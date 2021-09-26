@@ -1,23 +1,18 @@
-const path = require('path');
+const path = require('path')
 
-const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin')
+const CopyPlugin = require('copy-webpack-plugin')
 
 module.exports = {
-  target: 'web',
+  target: 'node',
 
   devtool: false,
 
   mode: 'none',
 
   entry: {
-    snarkyjs_chrome: {
-      import: path.resolve(__dirname, 'src/index.ts'),
-      library: {
-        name: 'snarky',
-        type: 'umd',
-        umdNamedDefine: true,
-      },
+    snarkyjs_node: {
+      import: path.resolve(__dirname, 'nodejs/src/index.ts'),
     },
   },
 
@@ -25,19 +20,13 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     publicPath: '',
     filename: '[name].js',
-    library: 'snarky',
-    libraryTarget: 'umd',
-    libraryExport: 'default',
-    umdNamedDefine: true,
-    clean: true,
   },
 
-  resolve: {
-    extensions: ['.ts', '.js'],
-    fallback: {
-      child_process: false,
-      fs: false,
-    },
+  externals: {
+    './node_bindings/snarky_js_node.bc.js':
+      'commonjs ./node_bindings/snarky_js_node.bc.js',
+    './snarky': 'commonjs ./snarky',
+    './snarky_js_node.bc.js': 'commonjs ./snarky_js_node.bc.js',
   },
 
   module: {
@@ -56,7 +45,7 @@ module.exports = {
       },
       {
         test: /\.m?js$/,
-        exclude: /(node_modules|snarky_js_chrome.bc.js)/,
+        exclude: /(node_modules)/,
         use: {
           loader: 'babel-loader',
           options: {
@@ -68,16 +57,19 @@ module.exports = {
     ],
   },
 
-  plugins: [new CleanWebpackPlugin(), new NodePolyfillPlugin()],
-  optimization: {
-    splitChunks: {
-      cacheGroups: {
-        commons: {
-          test: /\.bc.js$/,
-          name: 'snarkyjs_chrome_bindings',
-          chunks: 'all',
+  plugins: [
+    new CleanWebpackPlugin(),
+    new CopyPlugin({
+      patterns: [
+        {
+          from: './nodejs/src/node_bindings/',
+          to: 'node_bindings',
         },
-      },
-    },
-  },
-};
+        {
+          from: './nodejs/src/snarky.js',
+          to: '',
+        },
+      ],
+    }),
+  ],
+}

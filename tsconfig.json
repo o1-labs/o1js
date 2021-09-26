@@ -6,6 +6,7 @@
     "outDir": "dist",
     "lib": ["dom", "esnext"],
     "target": "ESNext",
+    "allowJs": true,
     "importHelpers": true,
     // output .d.ts declaration files for consumers
     "declaration": true,
