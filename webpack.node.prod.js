@@ -1,18 +1,19 @@
 const path = require('path')
 
+const TerserPlugin = require('terser-webpack-plugin')
 const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 const CopyPlugin = require('copy-webpack-plugin')
 
 module.exports = {
   target: 'node',
 
-  devtool: false,
+  mode: 'production',
 
-  mode: 'none',
+  devtool: false,
 
   entry: {
     snarkyjs_node: {
-      import: path.resolve(__dirname, 'nodejs/src/index.ts'),
+      import: path.resolve(__dirname, 'src/index.ts'),
     },
   },
 
@@ -25,8 +26,16 @@ module.exports = {
   externals: {
     './node_bindings/snarky_js_node.bc.js':
       'commonjs ./node_bindings/snarky_js_node.bc.js',
-    './snarky': 'commonjs ./snarky',
     './snarky_js_node.bc.js': 'commonjs ./snarky_js_node.bc.js',
+  },
+
+  resolve: {
+    extensions: ['.ts', '.js'],
+  },
+
+  optimization: {
+    minimize: true,
+    minimizer: [new TerserPlugin()],
   },
 
   module: {
@@ -62,11 +71,11 @@ module.exports = {
     new CopyPlugin({
       patterns: [
         {
-          from: './nodejs/src/node_bindings/',
+          from: './src/node_bindings/',
           to: 'node_bindings',
         },
         {
-          from: './nodejs/src/snarky.js',
+          from: './src/snarky.js',
           to: '',
         },
       ],

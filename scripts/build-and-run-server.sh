@@ -1,6 +1,5 @@
 #!/bin/bash
-
-yarn build-dev
+npm run web:build-dev
 pushd dist
 python3 server.py
 
