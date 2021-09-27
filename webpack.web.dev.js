@@ -59,7 +59,7 @@ module.exports = {
       },
       {
         test: /\.m?js$/,
-        exclude: /(node_modules|snarky_js_chrome.bc.js)/,
+        exclude: /(node_modules)|(\.bc.js)/,
         use: {
           loader: 'babel-loader',
           options: {
