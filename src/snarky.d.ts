@@ -351,3 +351,8 @@ export const sizeInFieldElements: (x: any[]) => number;
 export const NumberAsField: AsFieldElements<Number>;
 
 export const array: <T>(x: AsFieldElements<T>, length: number) => AsFieldElements<T[]>;
+
+/* This function *must* be called at the end of a nodejs program, otherwise the
+ * worker threads will continue running and the program will never terminate.
+ * From web applications, this function is a no-op. */
+export const shutdown: () => Promise<undefined>
