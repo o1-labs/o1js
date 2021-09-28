@@ -1,19 +1,22 @@
-import { five } from '../src';
-import { main } from '../src/examples/schnorr_sign';
+import { main } from '../src/examples/schnorr_sign'
+import { shutdown } from '../src/snarky'
 
 const timeout = (ms: number) => {
-  return new Promise((resolve, _) => {
-    let wait = setTimeout(() => {
-      clearTimeout(wait);
-      resolve('');
-    }, ms);
-  });
-};
+    return new Promise((resolve, _) => {
+        let wait = setTimeout(() => {
+            clearTimeout(wait)
+            resolve('')
+        }, ms)
+    })
+}
 
-describe('five', () => {
-  it('is five', async () => {
-    await timeout(1000);
-    main();
-    expect(five).toEqual(5);
-  });
-});
+describe('snarkyjs', () => {
+    afterAll(() => {
+        shutdown()
+    })
+    it('schnoorr_sign.main() is successfully called', async () => {
+        await timeout(1000)
+        main()
+        expect(true)
+    })
+})
