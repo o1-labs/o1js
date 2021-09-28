@@ -1,4 +1,4 @@
-import { Field, Scalar, Group, Circuit } from '../snarky'; 
+import { Field, Scalar, Group, Circuit } from '../snarky';
 import { public_, circuitMain, prop, CircuitValue } from '../circuit_value';
 import { Signature } from '../signature';
 
@@ -13,7 +13,7 @@ class Witness extends CircuitValue {
     this.acc = acc;
     this.r = r;
   }
-};
+}
 
 // Public input:
 //  [newAcc: curve_point]
@@ -47,7 +47,7 @@ class Circ extends Circuit {
 }
 
 function testSigning() {
-  const _msg = [ Field.random() ];
+  const _msg = [Field.random()];
   const privKey = Scalar.random();
   const _pubKey = Group.generator.scale(privKey);
   //const s = Signature.create(privKey, msg);
@@ -61,6 +61,6 @@ export function main() {
   testSigning();
   console.log('keypairgen', after.getTime() - before.getTime());
   console.log('random', Field.random());
-  const proof = Circ.prove([], [ new Field(2) ], kp);
+  const proof = Circ.prove([], [new Field(2)], kp);
   console.log(proof, kp);
-};
+}

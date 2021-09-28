@@ -14,17 +14,17 @@ export class IndexBase {
 }
 
 class MerkleProofBase {
-  path: Array<Field>
+  path: Array<Field>;
 
   constructor(path: Array<Field>) {
     this.path = path;
   }
 
-  verify(root:Field, index: Index, leaf: Field): Bool {
+  verify(root: Field, index: Index, leaf: Field): Bool {
     return root.equals(impliedRoot(index.value, this.path, leaf));
   }
 
-  assertVerifies(root:Field, index: Index, leaf: Field): void {
+  assertVerifies(root: Field, index: Index, leaf: Field): void {
     checkMerklePath(root, index.value, this.path, leaf);
   }
 }
@@ -45,11 +45,13 @@ export function MerkleProofFactory(depth: number) {
 
     static ofFieldElements(xs: Array<Field>): MerkleProof {
       if (xs.length !== depth) {
-        throw new Error(`MerkleTree: ofFieldElements expected array of length ${depth}, got ${xs.length}`);
+        throw new Error(
+          `MerkleTree: ofFieldElements expected array of length ${depth}, got ${xs.length}`
+        );
       }
       return new MerkleProof(xs);
     }
-  }
+  };
 }
 
 export function IndexFactory(depth: number) {
@@ -62,8 +64,8 @@ export function IndexFactory(depth: number) {
       return depth;
     }
 
-    static fromInt(n : number): Index {
-      if (n >= (1 << depth)) {
+    static fromInt(n: number): Index {
+      if (n >= 1 << depth) {
         throw new Error('Index is too large');
       }
       let res = [];
@@ -73,18 +75,18 @@ export function IndexFactory(depth: number) {
       return new Index(res);
     }
 
-    static ofFieldElements(xs : Field[]): Index {
-      return new Index(xs.map(x => Bool.Unsafe.ofField(x)));
+    static ofFieldElements(xs: Field[]): Index {
+      return new Index(xs.map((x) => Bool.Unsafe.ofField(x)));
     }
 
-    static toFieldElements(i : Index): Field[] {
-      return i.value.map(b => b.toField());
+    static toFieldElements(i: Index): Field[] {
+      return i.value.map((b) => b.toField());
     }
 
     static check(i: Index) {
-      i.value.forEach(b => b.toField().assertBoolean());
+      i.value.forEach((b) => b.toField().assertBoolean());
     }
-  }
+  };
 }
 
 type Constructor<T> = { new (...args: any[]): T };
@@ -119,24 +121,36 @@ function emptyHash(depth: number): Field {
 type IndexId = number;
 
 type BinTree<A> =
-  | { kind: 'empty', hash: Field, depth: number }
-  | { kind: 'leaf', hash: Field, value: A }
-  | { kind: 'node', hash: Field, left: BinTree<A>, right: BinTree<A> }
+  | { kind: 'empty'; hash: Field; depth: number }
+  | { kind: 'leaf'; hash: Field; value: A }
+  | { kind: 'node'; hash: Field; left: BinTree<A>; right: BinTree<A> };
 
-function treeOfArray<A>(depth: number, hashElement: ((a: A) => Field), xs: A[]): BinTree<A> {
+function treeOfArray<A>(
+  depth: number,
+  hashElement: (a: A) => Field,
+  xs: A[]
+): BinTree<A> {
   if (xs.length === 0) {
     return emptyTree(depth);
   }
-  if (xs.length > (1 << depth)) {
-    throw new Error(`Length of elements (${xs.length}) is greater than 2^depth = ${1 << depth}`);
+  if (xs.length > 1 << depth) {
+    throw new Error(
+      `Length of elements (${xs.length}) is greater than 2^depth = ${
+        1 << depth
+      }`
+    );
   }
 
-  let trees : BinTree<A>[] = xs.map(x => ({ kind: 'leaf', hash: hashElement(x), value: x}));
+  let trees: BinTree<A>[] = xs.map((x) => ({
+    kind: 'leaf',
+    hash: hashElement(x),
+    value: x,
+  }));
   for (let treesDepth = 0; treesDepth < depth; ++treesDepth) {
     const newTrees: BinTree<A>[] = [];
-    for (let j = 0; j < (trees.length >> 1); ++j) {
+    for (let j = 0; j < trees.length >> 1; ++j) {
       const left = trees[2 * j];
-      const right = trees[2 * j + 1] || emptyTree(treesDepth); 
+      const right = trees[2 * j + 1] || emptyTree(treesDepth);
       newTrees.push({
         kind: 'node',
         hash: Poseidon.hash([left.hash, right.hash]),
@@ -152,17 +166,28 @@ function treeOfArray<A>(depth: number, hashElement: ((a: A) => Field), xs: A[]):
 }
 
 function impliedRoot(
-  index: Array<Bool>, path: Array<Field>, leaf: Field): Field {
+  index: Array<Bool>,
+  path: Array<Field>,
+  leaf: Field
+): Field {
   let impliedRoot = leaf;
   for (let i = 0; i < index.length; ++i) {
-    let [left, right] = Circuit.if(index[i], [path[i], impliedRoot], [impliedRoot, path[i]]);
+    let [left, right] = Circuit.if(
+      index[i],
+      [path[i], impliedRoot],
+      [impliedRoot, path[i]]
+    );
     impliedRoot = Poseidon.hash([left, right]);
   }
   return impliedRoot;
 }
 
 function checkMerklePath(
-  root: Field, index: Array<Bool>, path: Array<Field>, leaf: Field) {
+  root: Field,
+  index: Array<Bool>,
+  path: Array<Field>,
+  leaf: Field
+) {
   root.assertEquals(impliedRoot(index, path, leaf));
 }
 
@@ -173,7 +198,7 @@ function emptyTree<A>(depth: number): BinTree<A> {
 export class Tree<A> {
   value: BinTree<A>;
 
-  constructor(depth: number, hashElement: ((a: A) => Field), values: Array<A>) {
+  constructor(depth: number, hashElement: (a: A) => Field, values: Array<A>) {
     this.value = treeOfArray(depth, hashElement, values);
   }
 
@@ -189,7 +214,7 @@ export class Tree<A> {
       stack.push(tree);
       switch (tree.kind) {
         case 'leaf':
-          throw new Error("Tree/index depth mismatch");
+          throw new Error('Tree/index depth mismatch');
         case 'empty':
           (tree as any).kind = 'node';
           (tree as any).left = emptyTree(tree.depth - 1);
@@ -217,7 +242,7 @@ export class Tree<A> {
         tree.hash = eltHash;
         tree.value = x;
         break;
-    
+
       default:
         break;
     }
@@ -226,13 +251,13 @@ export class Tree<A> {
       tree = stack[i];
 
       if (tree.kind !== 'node') {
-          throw 'unreachable';
+        throw 'unreachable';
       }
       tree.hash = Poseidon.hash([tree.left.hash, tree.right.hash]);
     }
   }
 
-  get(index: Array<boolean>): { value: A | null, hash: Field } {
+  get(index: Array<boolean>): { value: A | null; hash: Field } {
     let tree = this.value;
     let i = index.length - 1;
 
@@ -247,13 +272,13 @@ export class Tree<A> {
         case 'node':
           tree = index[i] ? tree.right : tree.left;
           break;
-      
+
         default:
           break;
       }
     }
 
-    throw new Error("Malformed merkle tree");
+    throw new Error('Malformed merkle tree');
   }
 
   getValue(index: Array<boolean>): A | null {
@@ -267,7 +292,7 @@ export class Tree<A> {
   getMerklePath(index: Array<boolean>): Array<Field> {
     let res = [];
     let tree = this.value;
-    
+
     let keepGoing = true;
 
     let i = index.length - 1;
@@ -304,17 +329,19 @@ export interface MerkleTree<A> {
 }
 
 function constantIndex(xs: Array<Bool>): Array<boolean> {
-  return xs.map(b => b.toBoolean());
+  return xs.map((b) => b.toBoolean());
 }
 
 export class Collection<A> {
   eltTyp: AsFieldElements<A>;
-  values: { computed: true, value: MerkleTree<A> } | { computed: false, f: (() => MerkleTree<A>) };
+  values:
+    | { computed: true; value: MerkleTree<A> }
+    | { computed: false; f: () => MerkleTree<A> };
 
   // Maintains a set of currently valid path witnesses.
   // If the root changes, witnesses will be invalidated.
   cachedPaths: Map<IndexId, Array<Field>>;
-  cachedValues: Map<IndexId, { value: A, hash: Field }>;
+  cachedValues: Map<IndexId, { value: A; hash: Field }>;
   root: Field | null;
 
   getRoot(): Field {
@@ -324,7 +351,7 @@ export class Collection<A> {
     return this.root;
   }
 
-  constructor(eltTyp: AsFieldElements<A>, f: (() => Tree<A>), root? : Field) {
+  constructor(eltTyp: AsFieldElements<A>, f: () => Tree<A>, root?: Field) {
     this.eltTyp = eltTyp;
     this.cachedPaths = new Map();
     this.cachedValues = new Map();
@@ -342,23 +369,22 @@ export class Collection<A> {
     }
   }
 
-  set(i : Index, x: A) {
+  set(i: Index, x: A) {
     let cachedPath = this.cachedPaths.get(i.id);
 
-    let path : Array<Field>;
+    let path: Array<Field>;
     if (cachedPath !== undefined) {
       path = cachedPath;
     } else {
       let depth = i.value.length;
       let typ = Circuit.array(Field, depth);
-      
+
       let oldEltHash = Circuit.witness(Field, () =>
         this.getValues().getElementHash(constantIndex(i.value))
       );
-  
+
       path = Circuit.witness(typ, () => {
-        return this.getValues()
-        .getMerklePath(constantIndex(i.value))
+        return this.getValues().getMerklePath(constantIndex(i.value));
       });
 
       checkMerklePath(this.getRoot(), i.value, path, oldEltHash);
@@ -376,13 +402,16 @@ export class Collection<A> {
     let newRoot = impliedRoot(i.value, path, eltHash);
     Circuit.asProver(() => {
       this.getValues().setValue(
-        constantIndex(i.value), x, Field.toConstant(eltHash));
+        constantIndex(i.value),
+        x,
+        Field.toConstant(eltHash)
+      );
     });
-    
+
     this.root = newRoot;
   }
 
-  get(i : Index): A {
+  get(i: Index): A {
     let cached = this.cachedValues.get(i.id);
     if (cached !== undefined) {
       return cached.value;
