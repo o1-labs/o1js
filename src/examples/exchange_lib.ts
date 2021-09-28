@@ -6,10 +6,10 @@ import { Signature } from '../signature';
 // type TradeObject = { timestamp: Field, price: Field, quantity: Field, isBuy: Bool };
 
 export class Trade extends CircuitValue {
-  @prop isBuy: Bool
-  @prop price: Field
-  @prop quantity: Field
-  @prop timestamp: Field
+  @prop isBuy: Bool;
+  @prop price: Field;
+  @prop quantity: Field;
+  @prop timestamp: Field;
 
   constructor(isBuy: Bool, price: Field, quantity: Field, timestamp: Field) {
     super();
@@ -19,7 +19,7 @@ export class Trade extends CircuitValue {
     this.timestamp = timestamp;
   }
 
-  static readAll(bytes: Bytes) : Array<Trade> {
+  static readAll(bytes: Bytes): Array<Trade> {
     return bytes.value;
   }
 }
@@ -29,7 +29,7 @@ console.log('trade size', Trade.sizeInFieldElements());
 const numTrades = 2;
 
 export class Bytes extends CircuitValue {
-  value: Array<Trade>
+  value: Array<Trade>;
 
   constructor(value: Array<Trade>) {
     super();
@@ -38,14 +38,14 @@ export class Bytes extends CircuitValue {
   }
 }
 
-(Bytes.prototype as any)._fields = [ ['value', Circuit.array(Trade, numTrades) ] ];
+(Bytes.prototype as any)._fields = [['value', Circuit.array(Trade, numTrades)]];
 
 export class WebSnappRequest extends CircuitValue {
   constructor() {
-    super()
+    super();
   }
 
-  static ofString(_ : string): WebSnappRequest {
+  static ofString(_: string): WebSnappRequest {
     return new WebSnappRequest();
   }
 }
@@ -65,5 +65,3 @@ export class HTTPSAttestation extends CircuitValue {
     //this.signature.verify(O1PUB, request.toFieldElements().concat(this.response.toFieldElements()))
   }
 }
-
-

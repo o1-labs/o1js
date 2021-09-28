@@ -1,11 +1,11 @@
 import { Field, Circuit } from '../snarky';
-import { CircuitValue, prop, public_, circuitMain } from "../circuit_value";
-import { Signature, PrivateKey, PublicKey } from "../signature";
+import { CircuitValue, prop, public_, circuitMain } from '../circuit_value';
+import { Signature, PrivateKey, PublicKey } from '../signature';
 
 class Transaction extends CircuitValue {
-  @prop sender: PublicKey
-  @prop receiver: PublicKey
-  @prop amount: Field
+  @prop sender: PublicKey;
+  @prop receiver: PublicKey;
+  @prop amount: Field;
 
   constructor(sender: PublicKey, receiver: PublicKey, amount: Field) {
     super();
@@ -28,9 +28,11 @@ class Main extends Circuit {
     transaction: Transaction,
     s: Signature,
     receiverPrivKey: PrivateKey,
-    @public_ lowerBound: Field)
-  {
-    s.verify(transaction.sender, transaction.toFieldElements()).assertEquals(true);
+    @public_ lowerBound: Field
+  ) {
+    s.verify(transaction.sender, transaction.toFieldElements()).assertEquals(
+      true
+    );
     transaction.receiver.assertEquals(receiverPrivKey.toPublicKey());
     transaction.amount.assertGt(lowerBound);
   }
