@@ -89,6 +89,10 @@ module.exports = {
           to: '',
         },
         {
+          from: './src/chrome_bindings/worker_init.js',
+          to: '',
+        },
+        {
           from: './src/chrome_bindings/plonk_wasm.js',
           to: '',
         },
