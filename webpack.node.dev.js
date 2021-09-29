@@ -1,7 +1,7 @@
-const path = require('path')
+const path = require('path');
 
-const { CleanWebpackPlugin } = require('clean-webpack-plugin')
-const CopyPlugin = require('copy-webpack-plugin')
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   target: 'node',
@@ -11,8 +11,13 @@ module.exports = {
   mode: 'none',
 
   entry: {
-    snarkyjs_node: {
+    snarky: {
       import: path.resolve(__dirname, 'src/index.ts'),
+      library: {
+        name: 'snarky',
+        type: 'umd',
+        umdNamedDefine: true,
+      },
     },
   },
 
@@ -20,6 +25,11 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     publicPath: '',
     filename: '[name].js',
+    library: 'snarky',
+    libraryTarget: 'umd',
+    libraryExport: 'default',
+    umdNamedDefine: true,
+    clean: true,
   },
 
   externals: {
@@ -75,4 +85,4 @@ module.exports = {
       ],
     }),
   ],
-}
+};

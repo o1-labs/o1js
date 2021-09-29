@@ -22,7 +22,7 @@ export const initSnarkyJS = (async (bundle) => {
 
   snarkyBindings.addEventListener('load', () => {
     var snarkyLib = document.createElement('script');
-    snarkyLib.src = "/snarkyjs_web.js"; // This is the bundled snarkyjs code -- see webpack.config.js on how the bundle is generated
+    snarkyLib.src = "/snarky.js"; // This is the bundled snarkyjs code -- see webpack.config.js on how the bundle is generated
     document.body.appendChild(snarkyLib);
     if (bundle) {
       snarkyLib.addEventListener("load", () => {

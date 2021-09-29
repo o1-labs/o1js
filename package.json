@@ -1,9 +1,9 @@
 {
   "name": "@o1labs/snarkyjs-web",
   "description": "Web bindings for SnarkyJS",
-  "version": "0.1.24",
+  "version": "0.1.28",
   "license": "Apache-2.0",
-  "main": "dist/snarkyjs_web.js",
+  "main": "dist/snarky.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
