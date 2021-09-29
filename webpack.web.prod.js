@@ -13,7 +13,7 @@ module.exports = {
   mode: 'production',
 
   entry: {
-    snarkyjs_chrome: {
+    snarkyjs_web: {
       import: path.resolve(__dirname, 'src/index.ts'),
     },
   },
