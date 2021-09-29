@@ -1,9 +1,9 @@
-const path = require('path')
+const path = require('path');
 
-const TerserPlugin = require('terser-webpack-plugin')
-const NodePolyfillPlugin = require('node-polyfill-webpack-plugin')
-const CopyPlugin = require('copy-webpack-plugin')
-const { CleanWebpackPlugin } = require('clean-webpack-plugin')
+const TerserPlugin = require('terser-webpack-plugin');
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 module.exports = {
   target: 'web',
@@ -34,7 +34,11 @@ module.exports = {
 
   optimization: {
     minimize: true,
-    minimizer: [new TerserPlugin()],
+    minimizer: [
+      new TerserPlugin({
+        exclude: /worker_init.js/,
+      }),
+    ],
     splitChunks: {
       cacheGroups: {
         commons: {
@@ -62,7 +66,7 @@ module.exports = {
       },
       {
         test: /\.m?js$/,
-        exclude: /(node_modules|snarky_js_chrome.bc.js)/,
+        exclude: /(node_modules)|(\.bc.js)/,
         use: {
           loader: 'babel-loader',
           options: {
@@ -80,11 +84,19 @@ module.exports = {
     new CopyPlugin({
       patterns: [
         {
+          from: './src/chrome_bindings/plonk_init.js',
+          to: '',
+        },
+        {
           from: './src/chrome_bindings/plonk_wasm.js',
           to: '',
         },
         {
           from: './src/chrome_bindings/plonk_wasm_bg.wasm',
+          to: '',
+        },
+        {
+          from: './src/chrome_bindings/worker_init.js',
           to: '',
         },
         {
@@ -98,4 +110,4 @@ module.exports = {
       ],
     }),
   ],
-}
+};
