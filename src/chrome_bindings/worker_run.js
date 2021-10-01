@@ -75,17 +75,14 @@ export const override_bindings = function(plonk_wasm, worker) {
     for (var i in worker_spec_) {
         plonk_wasm_[i] = (function(i) {
             return function() {
-                console.log("Running a binding in the worker", i);
-                var old_onmessage = worker.onmessage;
+                // var old_onmessage = worker.onmessage;
                 var u32_ptr = plonk_wasm.create_zero_u32_ptr();
                 var args = Array.prototype.slice.apply(arguments);
                 worker.postMessage({"type": "run", name: i, args: args, u32_ptr: u32_ptr});
-                console.log("You spin me right round, baby");
                 /* Here be undefined behavior dragons. */
                 var res = plonk_wasm.wait_until_non_zero(u32_ptr);
-                console.log("Round round");
                 plonk_wasm.free_u32_ptr(u32_ptr);
-                worker.onmessage = old_onmessage;
+                // worker.onmessage = old_onmessage;
                 var res_spec = worker_spec_[i].res;
                 if (res_spec && res_spec.__wrap) {
                     return worker_spec_[i].res.__wrap(res);
