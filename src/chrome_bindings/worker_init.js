@@ -20,9 +20,7 @@ onmessage = function(msg) {
                 res_args[i] = args[i];
             }
         }
-        console.log("Running in worker");
         var res = plonk_wasm[msg.data.name].apply(plonk_wasm, res_args);
-        console.log("Right round like a record, baby");
         if (spec.res && spec.res.__wrap) {
             res = res.ptr;
         } else if (spec.res && spec.res.there) {
@@ -30,7 +28,6 @@ onmessage = function(msg) {
         }
         /* Here be undefined behavior dragons. */
         plonk_wasm.set_u32_ptr(msg.data.u32_ptr, res);
-        console.log("Right round");
         /*postMessage(res);*/
     }
 };
