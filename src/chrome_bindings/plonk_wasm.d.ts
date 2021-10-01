@@ -360,6 +360,38 @@ export function caml_pasta_fq_plonk_oracles_dummy(): WasmPastaFqPlonkOracles;
 export function caml_pasta_fq_plonk_oracles_deep_copy(x: WasmPastaFqPlonkOracles): WasmPastaFqPlonkOracles;
 /**
 * @param {number | undefined} offset
+* @param {WasmPastaFpUrs} urs
+* @param {string} path
+* @returns {WasmPastaFpPlonkVerifierIndex}
+*/
+export function caml_pasta_fp_plonk_verifier_index_read(offset: number | undefined, urs: WasmPastaFpUrs, path: string): WasmPastaFpPlonkVerifierIndex;
+/**
+* @param {boolean | undefined} append
+* @param {WasmPastaFpPlonkVerifierIndex} index
+* @param {string} path
+*/
+export function caml_pasta_fp_plonk_verifier_index_write(append: boolean | undefined, index: WasmPastaFpPlonkVerifierIndex, path: string): void;
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {WasmPastaFpPlonkVerifierIndex}
+*/
+export function caml_pasta_fp_plonk_verifier_index_create(index: WasmPastaFpPlonkIndex): WasmPastaFpPlonkVerifierIndex;
+/**
+* @param {number} log2_size
+* @returns {WasmPastaFpPlonkVerificationShifts}
+*/
+export function caml_pasta_fp_plonk_verifier_index_shifts(log2_size: number): WasmPastaFpPlonkVerificationShifts;
+/**
+* @returns {WasmPastaFpPlonkVerifierIndex}
+*/
+export function caml_pasta_fp_plonk_verifier_index_dummy(): WasmPastaFpPlonkVerifierIndex;
+/**
+* @param {WasmPastaFpPlonkVerifierIndex} x
+* @returns {WasmPastaFpPlonkVerifierIndex}
+*/
+export function caml_pasta_fp_plonk_verifier_index_deep_copy(x: WasmPastaFpPlonkVerifierIndex): WasmPastaFpPlonkVerifierIndex;
+/**
+* @param {number | undefined} offset
 * @param {WasmPastaFqUrs} urs
 * @param {string} path
 * @returns {WasmPastaFqPlonkVerifierIndex}
@@ -539,38 +571,6 @@ export function caml_pasta_vesta_affine_deep_copy(x: WasmVestaGAffine): WasmVest
 */
 export function caml_pasta_vesta_affine_one(): WasmVestaGAffine;
 /**
-* @param {number | undefined} offset
-* @param {WasmPastaFpUrs} urs
-* @param {string} path
-* @returns {WasmPastaFpPlonkVerifierIndex}
-*/
-export function caml_pasta_fp_plonk_verifier_index_read(offset: number | undefined, urs: WasmPastaFpUrs, path: string): WasmPastaFpPlonkVerifierIndex;
-/**
-* @param {boolean | undefined} append
-* @param {WasmPastaFpPlonkVerifierIndex} index
-* @param {string} path
-*/
-export function caml_pasta_fp_plonk_verifier_index_write(append: boolean | undefined, index: WasmPastaFpPlonkVerifierIndex, path: string): void;
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {WasmPastaFpPlonkVerifierIndex}
-*/
-export function caml_pasta_fp_plonk_verifier_index_create(index: WasmPastaFpPlonkIndex): WasmPastaFpPlonkVerifierIndex;
-/**
-* @param {number} log2_size
-* @returns {WasmPastaFpPlonkVerificationShifts}
-*/
-export function caml_pasta_fp_plonk_verifier_index_shifts(log2_size: number): WasmPastaFpPlonkVerificationShifts;
-/**
-* @returns {WasmPastaFpPlonkVerifierIndex}
-*/
-export function caml_pasta_fp_plonk_verifier_index_dummy(): WasmPastaFpPlonkVerifierIndex;
-/**
-* @param {WasmPastaFpPlonkVerifierIndex} x
-* @returns {WasmPastaFpPlonkVerifierIndex}
-*/
-export function caml_pasta_fp_plonk_verifier_index_deep_copy(x: WasmPastaFpPlonkVerifierIndex): WasmPastaFpPlonkVerifierIndex;
-/**
 * @param {number} depth
 * @returns {WasmPastaFpUrs}
 */
@@ -669,72 +669,6 @@ export function caml_pasta_fq_urs_batch_accumulator_check(urs: WasmPastaFqUrs, c
 */
 export function caml_pasta_fq_urs_h(urs: WasmPastaFqUrs): WasmPallasGAffine;
 /**
-* @returns {WasmPastaFpPlonkGateVector}
-*/
-export function caml_pasta_fp_plonk_gate_vector_create(): WasmPastaFpPlonkGateVector;
-/**
-* @param {WasmPastaFpPlonkGateVector} v
-* @param {WasmPastaFpPlonkGate} gate
-*/
-export function caml_pasta_fp_plonk_gate_vector_add(v: WasmPastaFpPlonkGateVector, gate: WasmPastaFpPlonkGate): void;
-/**
-* @param {WasmPastaFpPlonkGateVector} v
-* @param {number} i
-* @returns {WasmPastaFpPlonkGate}
-*/
-export function caml_pasta_fp_plonk_gate_vector_get(v: WasmPastaFpPlonkGateVector, i: number): WasmPastaFpPlonkGate;
-/**
-* @param {WasmPastaFpPlonkGateVector} v
-* @param {WasmPlonkWire} t
-* @param {WasmPlonkWire} h
-*/
-export function caml_pasta_fp_plonk_gate_vector_wrap(v: WasmPastaFpPlonkGateVector, t: WasmPlonkWire, h: WasmPlonkWire): void;
-/**
-* @param {WasmPastaFpPlonkGateVector} gates
-* @param {number} public_
-* @param {WasmPastaFpUrs} urs
-* @returns {WasmPastaFpPlonkIndex}
-*/
-export function caml_pasta_fp_plonk_index_create(gates: WasmPastaFpPlonkGateVector, public_: number, urs: WasmPastaFpUrs): WasmPastaFpPlonkIndex;
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
-*/
-export function caml_pasta_fp_plonk_index_max_degree(index: WasmPastaFpPlonkIndex): number;
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
-*/
-export function caml_pasta_fp_plonk_index_public_inputs(index: WasmPastaFpPlonkIndex): number;
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
-*/
-export function caml_pasta_fp_plonk_index_domain_d1_size(index: WasmPastaFpPlonkIndex): number;
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
-*/
-export function caml_pasta_fp_plonk_index_domain_d4_size(index: WasmPastaFpPlonkIndex): number;
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
-*/
-export function caml_pasta_fp_plonk_index_domain_d8_size(index: WasmPastaFpPlonkIndex): number;
-/**
-* @param {number | undefined} offset
-* @param {WasmPastaFpUrs} urs
-* @param {string} path
-* @returns {WasmPastaFpPlonkIndex}
-*/
-export function caml_pasta_fp_plonk_index_read(offset: number | undefined, urs: WasmPastaFpUrs, path: string): WasmPastaFpPlonkIndex;
-/**
-* @param {boolean | undefined} append
-* @param {WasmPastaFpPlonkIndex} index
-* @param {string} path
-*/
-export function caml_pasta_fp_plonk_index_write(append: boolean | undefined, index: WasmPastaFpPlonkIndex, path: string): void;
-/**
 * @returns {WasmPastaFqPlonkGateVector}
 */
 export function caml_pasta_fq_plonk_gate_vector_create(): WasmPastaFqPlonkGateVector;
@@ -801,13 +735,71 @@ export function caml_pasta_fq_plonk_index_read(offset: number | undefined, urs: 
 */
 export function caml_pasta_fq_plonk_index_write(append: boolean | undefined, index: WasmPastaFqPlonkIndex, path: string): void;
 /**
-* @param {string} name
+* @returns {WasmPastaFpPlonkGateVector}
 */
-export function greet(name: string): void;
+export function caml_pasta_fp_plonk_gate_vector_create(): WasmPastaFpPlonkGateVector;
 /**
-* @param {string} s
+* @param {WasmPastaFpPlonkGateVector} v
+* @param {WasmPastaFpPlonkGate} gate
 */
-export function console_log(s: string): void;
+export function caml_pasta_fp_plonk_gate_vector_add(v: WasmPastaFpPlonkGateVector, gate: WasmPastaFpPlonkGate): void;
+/**
+* @param {WasmPastaFpPlonkGateVector} v
+* @param {number} i
+* @returns {WasmPastaFpPlonkGate}
+*/
+export function caml_pasta_fp_plonk_gate_vector_get(v: WasmPastaFpPlonkGateVector, i: number): WasmPastaFpPlonkGate;
+/**
+* @param {WasmPastaFpPlonkGateVector} v
+* @param {WasmPlonkWire} t
+* @param {WasmPlonkWire} h
+*/
+export function caml_pasta_fp_plonk_gate_vector_wrap(v: WasmPastaFpPlonkGateVector, t: WasmPlonkWire, h: WasmPlonkWire): void;
+/**
+* @param {WasmPastaFpPlonkGateVector} gates
+* @param {number} public_
+* @param {WasmPastaFpUrs} urs
+* @returns {WasmPastaFpPlonkIndex}
+*/
+export function caml_pasta_fp_plonk_index_create(gates: WasmPastaFpPlonkGateVector, public_: number, urs: WasmPastaFpUrs): WasmPastaFpPlonkIndex;
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
+*/
+export function caml_pasta_fp_plonk_index_max_degree(index: WasmPastaFpPlonkIndex): number;
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
+*/
+export function caml_pasta_fp_plonk_index_public_inputs(index: WasmPastaFpPlonkIndex): number;
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
+*/
+export function caml_pasta_fp_plonk_index_domain_d1_size(index: WasmPastaFpPlonkIndex): number;
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
+*/
+export function caml_pasta_fp_plonk_index_domain_d4_size(index: WasmPastaFpPlonkIndex): number;
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
+*/
+export function caml_pasta_fp_plonk_index_domain_d8_size(index: WasmPastaFpPlonkIndex): number;
+/**
+* @param {number | undefined} offset
+* @param {WasmPastaFpUrs} urs
+* @param {string} path
+* @returns {WasmPastaFpPlonkIndex}
+*/
+export function caml_pasta_fp_plonk_index_read(offset: number | undefined, urs: WasmPastaFpUrs, path: string): WasmPastaFpPlonkIndex;
+/**
+* @param {boolean | undefined} append
+* @param {WasmPastaFpPlonkIndex} index
+* @param {string} path
+*/
+export function caml_pasta_fp_plonk_index_write(append: boolean | undefined, index: WasmPastaFpPlonkIndex, path: string): void;
 /**
 * @param {string} s
 * @param {number} _len
@@ -871,6 +863,32 @@ export function caml_bigint_256_of_bytes(x: Uint8Array): Uint8Array;
 */
 export function caml_bigint_256_deep_copy(x: Uint8Array): Uint8Array;
 /**
+* @param {string} name
+*/
+export function greet(name: string): void;
+/**
+* @param {string} s
+*/
+export function console_log(s: string): void;
+/**
+* @returns {number}
+*/
+export function create_zero_u32_ptr(): number;
+/**
+* @param {number} ptr
+*/
+export function free_u32_ptr(ptr: number): void;
+/**
+* @param {number} ptr
+* @param {number} arg
+*/
+export function set_u32_ptr(ptr: number, arg: number): void;
+/**
+* @param {number} ptr
+* @returns {number}
+*/
+export function wait_until_non_zero(ptr: number): number;
+/**
 * @param {number} num_threads
 * @returns {Promise<any>}
 */
@@ -907,15 +925,12 @@ export enum WasmPlonkCol {
 export class WasmPallasGAffine {
   free(): void;
 /**
-* @returns {boolean}
 */
   infinity: boolean;
 /**
-* @returns {Uint8Array}
 */
   x: Uint8Array;
 /**
-* @returns {Uint8Array}
 */
   y: Uint8Array;
 }
@@ -954,11 +969,9 @@ export class WasmPastaFpOpeningProof {
 */
   sg: WasmVestaGAffine;
 /**
-* @returns {Uint8Array}
 */
   z1: Uint8Array;
 /**
-* @returns {Uint8Array}
 */
   z2: Uint8Array;
 }
@@ -972,11 +985,9 @@ export class WasmPastaFpPlonkDomain {
 */
   constructor(log_size_of_group: number, group_gen: Uint8Array);
 /**
-* @returns {Uint8Array}
 */
   group_gen: Uint8Array;
 /**
-* @returns {number}
 */
   log_size_of_group: number;
 }
@@ -995,11 +1006,9 @@ export class WasmPastaFpPlonkGate {
 */
   c: Uint8Array;
 /**
-* @returns {number}
 */
   typ: number;
 /**
-* @returns {WasmPlonkWires}
 */
   wires: WasmPlonkWires;
 }
@@ -1026,11 +1035,9 @@ export class WasmPastaFpPlonkOracles {
 */
   constructor(o: Uint8Array, p_eval0: Uint8Array, p_eval1: Uint8Array, opening_prechallenges: Uint8Array, digest_before_evaluations: Uint8Array);
 /**
-* @returns {Uint8Array}
 */
   digest_before_evaluations: Uint8Array;
 /**
-* @returns {Uint8Array}
 */
   o: Uint8Array;
 /**
@@ -1038,11 +1045,9 @@ export class WasmPastaFpPlonkOracles {
 */
   opening_prechallenges: Uint8Array;
 /**
-* @returns {Uint8Array}
 */
   p_eval0: Uint8Array;
 /**
-* @returns {Uint8Array}
 */
   p_eval1: Uint8Array;
 }
@@ -1154,11 +1159,9 @@ export class WasmPastaFpPlonkVerificationShifts {
 */
   constructor(r: Uint8Array, o: Uint8Array);
 /**
-* @returns {Uint8Array}
 */
   o: Uint8Array;
 /**
-* @returns {Uint8Array}
 */
   r: Uint8Array;
 }
@@ -1176,7 +1179,6 @@ export class WasmPastaFpPlonkVerifierIndex {
 */
   constructor(domain: WasmPastaFpPlonkDomain, max_poly_size: number, max_quot_size: number, urs: WasmPastaFpUrs, evals: WasmPastaFpPlonkVerificationEvals, shifts: WasmPastaFpPlonkVerificationShifts);
 /**
-* @returns {WasmPastaFpPlonkDomain}
 */
   domain: WasmPastaFpPlonkDomain;
 /**
@@ -1184,15 +1186,12 @@ export class WasmPastaFpPlonkVerifierIndex {
 */
   evals: WasmPastaFpPlonkVerificationEvals;
 /**
-* @returns {number}
 */
   max_poly_size: number;
 /**
-* @returns {number}
 */
   max_quot_size: number;
 /**
-* @returns {WasmPastaFpPlonkVerificationShifts}
 */
   shifts: WasmPastaFpPlonkVerificationShifts;
 /**
@@ -1359,11 +1358,9 @@ export class WasmPastaFqOpeningProof {
 */
   sg: WasmPallasGAffine;
 /**
-* @returns {Uint8Array}
 */
   z1: Uint8Array;
 /**
-* @returns {Uint8Array}
 */
   z2: Uint8Array;
 }
@@ -1377,11 +1374,9 @@ export class WasmPastaFqPlonkDomain {
 */
   constructor(log_size_of_group: number, group_gen: Uint8Array);
 /**
-* @returns {Uint8Array}
 */
   group_gen: Uint8Array;
 /**
-* @returns {number}
 */
   log_size_of_group: number;
 }
@@ -1400,11 +1395,9 @@ export class WasmPastaFqPlonkGate {
 */
   c: Uint8Array;
 /**
-* @returns {number}
 */
   typ: number;
 /**
-* @returns {WasmPlonkWires}
 */
   wires: WasmPlonkWires;
 }
@@ -1431,11 +1424,9 @@ export class WasmPastaFqPlonkOracles {
 */
   constructor(o: Uint8Array, p_eval0: Uint8Array, p_eval1: Uint8Array, opening_prechallenges: Uint8Array, digest_before_evaluations: Uint8Array);
 /**
-* @returns {Uint8Array}
 */
   digest_before_evaluations: Uint8Array;
 /**
-* @returns {Uint8Array}
 */
   o: Uint8Array;
 /**
@@ -1443,11 +1434,9 @@ export class WasmPastaFqPlonkOracles {
 */
   opening_prechallenges: Uint8Array;
 /**
-* @returns {Uint8Array}
 */
   p_eval0: Uint8Array;
 /**
-* @returns {Uint8Array}
 */
   p_eval1: Uint8Array;
 }
@@ -1559,11 +1548,9 @@ export class WasmPastaFqPlonkVerificationShifts {
 */
   constructor(r: Uint8Array, o: Uint8Array);
 /**
-* @returns {Uint8Array}
 */
   o: Uint8Array;
 /**
-* @returns {Uint8Array}
 */
   r: Uint8Array;
 }
@@ -1581,7 +1568,6 @@ export class WasmPastaFqPlonkVerifierIndex {
 */
   constructor(domain: WasmPastaFqPlonkDomain, max_poly_size: number, max_quot_size: number, urs: WasmPastaFqUrs, evals: WasmPastaFqPlonkVerificationEvals, shifts: WasmPastaFqPlonkVerificationShifts);
 /**
-* @returns {WasmPastaFqPlonkDomain}
 */
   domain: WasmPastaFqPlonkDomain;
 /**
@@ -1589,15 +1575,12 @@ export class WasmPastaFqPlonkVerifierIndex {
 */
   evals: WasmPastaFqPlonkVerificationEvals;
 /**
-* @returns {number}
 */
   max_poly_size: number;
 /**
-* @returns {number}
 */
   max_quot_size: number;
 /**
-* @returns {WasmPastaFqPlonkVerificationShifts}
 */
   shifts: WasmPastaFqPlonkVerificationShifts;
 /**
@@ -1744,7 +1727,6 @@ export class WasmPastaPallasPolyComm {
 */
   constructor(unshifted: Uint32Array, shifted?: WasmPallasGAffine);
 /**
-* @returns {WasmPallasGAffine | undefined}
 */
   shifted?: WasmPallasGAffine;
 /**
@@ -1762,7 +1744,6 @@ export class WasmPastaVestaPolyComm {
 */
   constructor(unshifted: Uint32Array, shifted?: WasmVestaGAffine);
 /**
-* @returns {WasmVestaGAffine | undefined}
 */
   shifted?: WasmVestaGAffine;
 /**
@@ -1780,11 +1761,9 @@ export class WasmPlonkWire {
 */
   constructor(row: number, col: number);
 /**
-* @returns {number}
 */
   col: number;
 /**
-* @returns {number}
 */
   row: number;
 }
@@ -1800,19 +1779,15 @@ export class WasmPlonkWires {
 */
   constructor(row: number, l: WasmPlonkWire, r: WasmPlonkWire, o: WasmPlonkWire);
 /**
-* @returns {WasmPlonkWire}
 */
   l: WasmPlonkWire;
 /**
-* @returns {WasmPlonkWire}
 */
   o: WasmPlonkWire;
 /**
-* @returns {WasmPlonkWire}
 */
   r: WasmPlonkWire;
 /**
-* @returns {number}
 */
   row: number;
 }
@@ -1893,15 +1868,12 @@ export class WasmVecVecVestaPolyComm {
 export class WasmVestaGAffine {
   free(): void;
 /**
-* @returns {boolean}
 */
   infinity: boolean;
 /**
-* @returns {Uint8Array}
 */
   x: Uint8Array;
 /**
-* @returns {Uint8Array}
 */
   y: Uint8Array;
 }
@@ -2053,20 +2025,20 @@ export interface InitOutput {
   readonly wasmpastafqproverproof_evals0: (a: number) => number;
   readonly wasmpastafqproverproof_evals1: (a: number) => number;
   readonly wasmpastafqproverproof_commitments: (a: number) => number;
-  readonly wasmpastafqopeningproof_delta: (a: number) => number;
   readonly wasmpastafqprovercommitments_r_comm: (a: number) => number;
   readonly wasmpastafqprovercommitments_o_comm: (a: number) => number;
   readonly wasmpastafqprovercommitments_z_comm: (a: number) => number;
   readonly wasmpastafqprovercommitments_t_comm: (a: number) => number;
+  readonly wasmpastafqopeningproof_delta: (a: number) => number;
   readonly __wbg_wasmpastafqproofevaluations_free: (a: number) => void;
   readonly __wbg_wasmpastafqopeningproof_free: (a: number) => void;
   readonly wasmpastafqprovercommitments_set_r_comm: (a: number, b: number) => void;
   readonly wasmpastafqprovercommitments_set_o_comm: (a: number, b: number) => void;
   readonly wasmpastafqprovercommitments_set_z_comm: (a: number, b: number) => void;
   readonly wasmpastafqprovercommitments_set_t_comm: (a: number, b: number) => void;
+  readonly wasmpastafqprovercommitments_l_comm: (a: number) => number;
   readonly wasmpastafqproverproof_set_commitments: (a: number, b: number) => void;
   readonly wasmpastafqopeningproof_sg: (a: number) => number;
-  readonly wasmpastafqprovercommitments_l_comm: (a: number) => number;
   readonly __wbg_wasmvecvecvestapolycomm_free: (a: number) => void;
   readonly __wbg_wasmpastafqprovercommitments_free: (a: number) => void;
   readonly wasmpastafqproverproof_set_prev_challenges_scalars: (a: number, b: number) => void;
@@ -2132,7 +2104,6 @@ export interface InitOutput {
   readonly caml_pasta_fq_to_bytes: (a: number, b: number, c: number) => void;
   readonly caml_pasta_fq_of_bytes: (a: number, b: number, c: number) => void;
   readonly caml_pasta_fq_deep_copy: (a: number, b: number, c: number) => void;
-  readonly caml_pasta_fq_size_in_bits: () => number;
   readonly __wbg_wasmpastafpplonkoracles_free: (a: number) => void;
   readonly __wbg_get_wasmpastafpplonkoracles_o: (a: number, b: number) => void;
   readonly __wbg_set_wasmpastafpplonkoracles_o: (a: number, b: number, c: number) => void;
@@ -2160,14 +2131,95 @@ export interface InitOutput {
   readonly wasmpastafqplonkoracles_opening_prechallenges: (a: number, b: number) => void;
   readonly wasmpastafqplonkoracles_set_opening_prechallenges: (a: number, b: number, c: number) => void;
   readonly caml_pasta_fq_plonk_oracles_create: (a: number, b: number, c: number, d: number) => number;
-  readonly __wbg_wasmpastafqplonkdomain_free: (a: number) => void;
-  readonly __wbg_get_wasmpastafqplonkdomain_log_size_of_group: (a: number) => number;
-  readonly __wbg_set_wasmpastafqplonkdomain_log_size_of_group: (a: number, b: number) => void;
+  readonly __wbg_wasmpastafqplonkoracles_free: (a: number) => void;
+  readonly caml_pasta_fq_plonk_oracles_dummy: () => number;
+  readonly caml_pasta_fq_plonk_oracles_deep_copy: (a: number) => number;
+  readonly caml_pasta_fq_size_in_bits: () => number;
+  readonly __wbg_wasmpastafpplonkdomain_free: (a: number) => void;
+  readonly __wbg_get_wasmpastafpplonkdomain_log_size_of_group: (a: number) => number;
+  readonly __wbg_set_wasmpastafpplonkdomain_log_size_of_group: (a: number, b: number) => void;
+  readonly __wbg_get_wasmpastafpplonkdomain_group_gen: (a: number, b: number) => void;
+  readonly __wbg_set_wasmpastafpplonkdomain_group_gen: (a: number, b: number, c: number) => void;
+  readonly wasmpastafpplonkdomain_new: (a: number, b: number, c: number) => number;
+  readonly __wbg_wasmpastafpplonkverificationevals_free: (a: number) => void;
+  readonly wasmpastafpplonkverificationevals_sigma_comm0: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_sigma_comm1: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_sigma_comm2: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_ql_comm: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_qr_comm: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_qo_comm: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_qm_comm: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_qc_comm: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_rcm_comm0: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_rcm_comm1: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_rcm_comm2: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_psm_comm: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_add_comm: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_mul1_comm: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_mul2_comm: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_emul1_comm: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_emul2_comm: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_emul3_comm: (a: number) => number;
+  readonly wasmpastafpplonkverificationevals_set_sigma_comm0: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_sigma_comm1: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_sigma_comm2: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_ql_comm: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_qr_comm: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_qo_comm: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_qm_comm: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_qc_comm: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_rcm_comm0: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_rcm_comm1: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_rcm_comm2: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_psm_comm: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_add_comm: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_mul1_comm: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_mul2_comm: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_emul1_comm: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_emul2_comm: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_set_emul3_comm: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverificationevals_new: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number) => number;
+  readonly __wbg_wasmpastafpplonkverificationshifts_free: (a: number) => void;
+  readonly __wbg_get_wasmpastafpplonkverificationshifts_o: (a: number, b: number) => void;
+  readonly __wbg_set_wasmpastafpplonkverificationshifts_o: (a: number, b: number, c: number) => void;
+  readonly wasmpastafpplonkverificationshifts_new: (a: number, b: number, c: number, d: number) => number;
+  readonly __wbg_wasmpastafpplonkverifierindex_free: (a: number) => void;
+  readonly __wbg_get_wasmpastafpplonkverifierindex_domain: (a: number) => number;
+  readonly __wbg_set_wasmpastafpplonkverifierindex_domain: (a: number, b: number) => void;
+  readonly __wbg_get_wasmpastafpplonkverifierindex_max_poly_size: (a: number) => number;
+  readonly __wbg_set_wasmpastafpplonkverifierindex_max_poly_size: (a: number, b: number) => void;
+  readonly __wbg_get_wasmpastafpplonkverifierindex_max_quot_size: (a: number) => number;
+  readonly __wbg_set_wasmpastafpplonkverifierindex_max_quot_size: (a: number, b: number) => void;
+  readonly __wbg_get_wasmpastafpplonkverifierindex_shifts: (a: number) => number;
+  readonly __wbg_set_wasmpastafpplonkverifierindex_shifts: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverifierindex_new: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
+  readonly wasmpastafpplonkverifierindex_urs: (a: number) => number;
+  readonly wasmpastafpplonkverifierindex_set_urs: (a: number, b: number) => void;
+  readonly wasmpastafpplonkverifierindex_evals: (a: number) => number;
+  readonly wasmpastafpplonkverifierindex_set_evals: (a: number, b: number) => void;
+  readonly caml_pasta_fp_plonk_verifier_index_read: (a: number, b: number, c: number, d: number, e: number) => number;
+  readonly caml_pasta_fp_plonk_verifier_index_write: (a: number, b: number, c: number, d: number) => void;
+  readonly caml_pasta_fp_plonk_verifier_index_create: (a: number) => number;
+  readonly caml_pasta_fp_plonk_verifier_index_shifts: (a: number) => number;
+  readonly caml_pasta_fp_plonk_verifier_index_dummy: () => number;
+  readonly caml_pasta_fp_plonk_verifier_index_deep_copy: (a: number) => number;
   readonly __wbg_get_wasmpastafqplonkdomain_group_gen: (a: number, b: number) => void;
   readonly __wbg_set_wasmpastafqplonkdomain_group_gen: (a: number, b: number, c: number) => void;
   readonly wasmpastafqplonkdomain_new: (a: number, b: number, c: number) => number;
   readonly __wbg_wasmpastafqplonkverificationevals_free: (a: number) => void;
-  readonly wasmpastafqplonkverificationevals_sigma_comm0: (a: number) => number;
+  readonly __wbg_get_wasmpastafqplonkverificationshifts_o: (a: number, b: number) => void;
+  readonly __wbg_set_wasmpastafqplonkverificationshifts_o: (a: number, b: number, c: number) => void;
+  readonly wasmpastafqplonkverificationshifts_new: (a: number, b: number, c: number, d: number) => number;
+  readonly __wbg_wasmpastafqplonkverifierindex_free: (a: number) => void;
+  readonly wasmpastafqplonkverifierindex_new: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
+  readonly wasmpastafqplonkverifierindex_evals: (a: number) => number;
+  readonly wasmpastafqplonkverifierindex_set_evals: (a: number, b: number) => void;
+  readonly caml_pasta_fq_plonk_verifier_index_read: (a: number, b: number, c: number, d: number, e: number) => number;
+  readonly caml_pasta_fq_plonk_verifier_index_write: (a: number, b: number, c: number, d: number) => void;
+  readonly caml_pasta_fq_plonk_verifier_index_create: (a: number) => number;
+  readonly caml_pasta_fq_plonk_verifier_index_shifts: (a: number) => number;
+  readonly caml_pasta_fq_plonk_verifier_index_dummy: () => number;
+  readonly caml_pasta_fq_plonk_verifier_index_deep_copy: (a: number) => number;
   readonly wasmpastafqplonkverificationevals_sigma_comm1: (a: number) => number;
   readonly wasmpastafqplonkverificationevals_sigma_comm2: (a: number) => number;
   readonly wasmpastafqplonkverificationevals_ql_comm: (a: number) => number;
@@ -2185,7 +2237,11 @@ export interface InitOutput {
   readonly wasmpastafqplonkverificationevals_emul1_comm: (a: number) => number;
   readonly wasmpastafqplonkverificationevals_emul2_comm: (a: number) => number;
   readonly wasmpastafqplonkverificationevals_emul3_comm: (a: number) => number;
-  readonly wasmpastafqplonkverificationevals_set_sigma_comm0: (a: number, b: number) => void;
+  readonly __wbg_set_wasmpastafqplonkdomain_log_size_of_group: (a: number, b: number) => void;
+  readonly __wbg_set_wasmpastafqplonkverifierindex_max_poly_size: (a: number, b: number) => void;
+  readonly __wbg_get_wasmpastafqplonkverifierindex_shifts: (a: number) => number;
+  readonly __wbg_get_wasmpastafqplonkverifierindex_max_quot_size: (a: number) => number;
+  readonly wasmpastafqplonkverifierindex_urs: (a: number) => number;
   readonly wasmpastafqplonkverificationevals_set_sigma_comm1: (a: number, b: number) => void;
   readonly wasmpastafqplonkverificationevals_set_sigma_comm2: (a: number, b: number) => void;
   readonly wasmpastafqplonkverificationevals_set_ql_comm: (a: number, b: number) => void;
@@ -2203,36 +2259,22 @@ export interface InitOutput {
   readonly wasmpastafqplonkverificationevals_set_emul1_comm: (a: number, b: number) => void;
   readonly wasmpastafqplonkverificationevals_set_emul2_comm: (a: number, b: number) => void;
   readonly wasmpastafqplonkverificationevals_set_emul3_comm: (a: number, b: number) => void;
-  readonly wasmpastafqplonkverificationevals_new: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number) => number;
-  readonly __wbg_wasmpastafqplonkverificationshifts_free: (a: number) => void;
-  readonly __wbg_get_wasmpastafqplonkverificationshifts_o: (a: number, b: number) => void;
-  readonly __wbg_set_wasmpastafqplonkverificationshifts_o: (a: number, b: number, c: number) => void;
-  readonly wasmpastafqplonkverificationshifts_new: (a: number, b: number, c: number, d: number) => number;
-  readonly __wbg_wasmpastafqplonkverifierindex_free: (a: number) => void;
-  readonly __wbg_get_wasmpastafqplonkverifierindex_domain: (a: number) => number;
   readonly __wbg_set_wasmpastafqplonkverifierindex_domain: (a: number, b: number) => void;
+  readonly wasmpastafqplonkverificationevals_sigma_comm0: (a: number) => number;
+  readonly __wbg_get_wasmpastafqplonkdomain_log_size_of_group: (a: number) => number;
   readonly __wbg_get_wasmpastafqplonkverifierindex_max_poly_size: (a: number) => number;
-  readonly __wbg_set_wasmpastafqplonkverifierindex_max_poly_size: (a: number, b: number) => void;
-  readonly __wbg_get_wasmpastafqplonkverifierindex_max_quot_size: (a: number) => number;
-  readonly __wbg_set_wasmpastafqplonkverifierindex_max_quot_size: (a: number, b: number) => void;
-  readonly __wbg_get_wasmpastafqplonkverifierindex_shifts: (a: number) => number;
-  readonly __wbg_set_wasmpastafqplonkverifierindex_shifts: (a: number, b: number) => void;
-  readonly wasmpastafqplonkverifierindex_new: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
-  readonly wasmpastafqplonkverifierindex_urs: (a: number) => number;
-  readonly wasmpastafqplonkverifierindex_set_urs: (a: number, b: number) => void;
-  readonly wasmpastafqplonkverifierindex_evals: (a: number) => number;
-  readonly wasmpastafqplonkverifierindex_set_evals: (a: number, b: number) => void;
-  readonly caml_pasta_fq_plonk_verifier_index_read: (a: number, b: number, c: number, d: number, e: number) => number;
-  readonly caml_pasta_fq_plonk_verifier_index_write: (a: number, b: number, c: number, d: number) => void;
-  readonly caml_pasta_fq_plonk_verifier_index_create: (a: number) => number;
-  readonly caml_pasta_fq_plonk_verifier_index_shifts: (a: number) => number;
-  readonly caml_pasta_fq_plonk_verifier_index_dummy: () => number;
-  readonly caml_pasta_fq_plonk_verifier_index_deep_copy: (a: number) => number;
-  readonly __wbg_wasmpastafqplonkoracles_free: (a: number) => void;
-  readonly caml_pasta_fq_plonk_oracles_dummy: () => number;
+  readonly __wbg_set_wasmpastafpplonkverificationshifts_r: (a: number, b: number, c: number) => void;
   readonly __wbg_set_wasmpastafqplonkverificationshifts_r: (a: number, b: number, c: number) => void;
-  readonly caml_pasta_fq_plonk_oracles_deep_copy: (a: number) => number;
+  readonly wasmpastafqplonkverificationevals_set_sigma_comm0: (a: number, b: number) => void;
+  readonly __wbg_set_wasmpastafqplonkverifierindex_shifts: (a: number, b: number) => void;
+  readonly __wbg_wasmpastafqplonkdomain_free: (a: number) => void;
+  readonly __wbg_wasmpastafqplonkverificationshifts_free: (a: number) => void;
+  readonly __wbg_set_wasmpastafqplonkverifierindex_max_quot_size: (a: number, b: number) => void;
+  readonly wasmpastafqplonkverifierindex_set_urs: (a: number, b: number) => void;
+  readonly wasmpastafqplonkverificationevals_new: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number) => number;
+  readonly __wbg_get_wasmpastafpplonkverificationshifts_r: (a: number, b: number) => void;
   readonly __wbg_get_wasmpastafqplonkverificationshifts_r: (a: number, b: number) => void;
+  readonly __wbg_get_wasmpastafqplonkverifierindex_domain: (a: number) => number;
   readonly __wbg_wasmpallasgprojective_free: (a: number) => void;
   readonly __wbg_wasmpallasgaffine_free: (a: number) => void;
   readonly __wbg_get_wasmpallasgaffine_x: (a: number, b: number) => void;
@@ -2274,81 +2316,11 @@ export interface InitOutput {
   readonly caml_pasta_vesta_of_affine: (a: number) => number;
   readonly caml_pasta_vesta_of_affine_coordinates: (a: number, b: number, c: number, d: number) => number;
   readonly caml_pasta_vesta_affine_one: () => number;
-  readonly __wbg_wasmpastafpplonkdomain_free: (a: number) => void;
-  readonly __wbg_get_wasmpastafpplonkdomain_log_size_of_group: (a: number) => number;
-  readonly __wbg_set_wasmpastafpplonkdomain_log_size_of_group: (a: number, b: number) => void;
-  readonly wasmpastafpplonkdomain_new: (a: number, b: number, c: number) => number;
-  readonly __wbg_wasmpastafpplonkverificationevals_free: (a: number) => void;
-  readonly wasmpastafpplonkverificationevals_sigma_comm0: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_sigma_comm1: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_sigma_comm2: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_ql_comm: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_qr_comm: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_qo_comm: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_qm_comm: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_qc_comm: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_rcm_comm0: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_rcm_comm1: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_rcm_comm2: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_psm_comm: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_add_comm: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_mul1_comm: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_mul2_comm: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_emul1_comm: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_emul2_comm: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_emul3_comm: (a: number) => number;
-  readonly wasmpastafpplonkverificationevals_set_sigma_comm0: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_sigma_comm1: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_sigma_comm2: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_ql_comm: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_qr_comm: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_qo_comm: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_qm_comm: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_qc_comm: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_rcm_comm0: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_rcm_comm1: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_rcm_comm2: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_psm_comm: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_add_comm: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_mul1_comm: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_mul2_comm: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_emul1_comm: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_emul2_comm: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_set_emul3_comm: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverificationevals_new: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number) => number;
-  readonly __wbg_wasmpastafpplonkverificationshifts_free: (a: number) => void;
-  readonly wasmpastafpplonkverificationshifts_new: (a: number, b: number, c: number, d: number) => number;
-  readonly __wbg_wasmpastafpplonkverifierindex_free: (a: number) => void;
-  readonly __wbg_get_wasmpastafpplonkverifierindex_domain: (a: number) => number;
-  readonly __wbg_set_wasmpastafpplonkverifierindex_domain: (a: number, b: number) => void;
-  readonly __wbg_get_wasmpastafpplonkverifierindex_max_poly_size: (a: number) => number;
-  readonly __wbg_set_wasmpastafpplonkverifierindex_max_poly_size: (a: number, b: number) => void;
-  readonly __wbg_get_wasmpastafpplonkverifierindex_max_quot_size: (a: number) => number;
-  readonly __wbg_set_wasmpastafpplonkverifierindex_max_quot_size: (a: number, b: number) => void;
-  readonly __wbg_get_wasmpastafpplonkverifierindex_shifts: (a: number) => number;
-  readonly __wbg_set_wasmpastafpplonkverifierindex_shifts: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverifierindex_new: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
-  readonly wasmpastafpplonkverifierindex_urs: (a: number) => number;
-  readonly wasmpastafpplonkverifierindex_set_urs: (a: number, b: number) => void;
-  readonly wasmpastafpplonkverifierindex_evals: (a: number) => number;
-  readonly wasmpastafpplonkverifierindex_set_evals: (a: number, b: number) => void;
-  readonly caml_pasta_fp_plonk_verifier_index_read: (a: number, b: number, c: number, d: number, e: number) => number;
-  readonly caml_pasta_fp_plonk_verifier_index_write: (a: number, b: number, c: number, d: number) => void;
-  readonly caml_pasta_fp_plonk_verifier_index_create: (a: number) => number;
-  readonly caml_pasta_fp_plonk_verifier_index_shifts: (a: number) => number;
-  readonly caml_pasta_fp_plonk_verifier_index_dummy: () => number;
-  readonly caml_pasta_fp_plonk_verifier_index_deep_copy: (a: number) => number;
   readonly __wbg_set_wasmvestagaffine_infinity: (a: number, b: number) => void;
   readonly __wbg_get_wasmvestagaffine_infinity: (a: number) => number;
-  readonly __wbg_get_wasmpastafpplonkverificationshifts_o: (a: number, b: number) => void;
   readonly caml_pasta_vesta_affine_deep_copy: (a: number) => number;
-  readonly __wbg_set_wasmpastafpplonkdomain_group_gen: (a: number, b: number, c: number) => void;
-  readonly __wbg_set_wasmpastafpplonkverificationshifts_r: (a: number, b: number, c: number) => void;
-  readonly __wbg_set_wasmpastafpplonkverificationshifts_o: (a: number, b: number, c: number) => void;
   readonly __wbg_wasmvestagprojective_free: (a: number) => void;
   readonly __wbg_wasmvestagaffine_free: (a: number) => void;
-  readonly __wbg_get_wasmpastafpplonkdomain_group_gen: (a: number, b: number) => void;
-  readonly __wbg_get_wasmpastafpplonkverificationshifts_r: (a: number, b: number) => void;
   readonly __wbg_wasmpastafpurs_free: (a: number) => void;
   readonly caml_pasta_fp_urs_create: (a: number) => number;
   readonly caml_pasta_fp_urs_write: (a: number, b: number, c: number, d: number) => void;
@@ -2365,6 +2337,28 @@ export interface InitOutput {
   readonly caml_pasta_fq_urs_commit_evaluations: (a: number, b: number, c: number, d: number) => number;
   readonly caml_pasta_fq_urs_b_poly_commitment: (a: number, b: number, c: number) => number;
   readonly caml_pasta_fq_urs_batch_accumulator_check: (a: number, b: number, c: number, d: number, e: number) => number;
+  readonly __wbg_wasmpastafqplonkgatevector_free: (a: number) => void;
+  readonly __wbg_wasmpastafqplonkgate_free: (a: number) => void;
+  readonly __wbg_get_wasmpastafqplonkgate_typ: (a: number) => number;
+  readonly __wbg_set_wasmpastafqplonkgate_typ: (a: number, b: number) => void;
+  readonly __wbg_get_wasmpastafqplonkgate_wires: (a: number) => number;
+  readonly __wbg_set_wasmpastafqplonkgate_wires: (a: number, b: number) => void;
+  readonly wasmpastafqplonkgate_new: (a: number, b: number, c: number, d: number) => number;
+  readonly wasmpastafqplonkgate_c: (a: number, b: number) => void;
+  readonly wasmpastafqplonkgate_set_c: (a: number, b: number, c: number) => void;
+  readonly caml_pasta_fq_plonk_gate_vector_create: () => number;
+  readonly caml_pasta_fq_plonk_gate_vector_add: (a: number, b: number) => void;
+  readonly caml_pasta_fq_plonk_gate_vector_get: (a: number, b: number) => number;
+  readonly caml_pasta_fq_plonk_gate_vector_wrap: (a: number, b: number, c: number) => void;
+  readonly __wbg_wasmpastafqplonkindex_free: (a: number) => void;
+  readonly caml_pasta_fq_plonk_index_create: (a: number, b: number, c: number) => number;
+  readonly caml_pasta_fq_plonk_index_max_degree: (a: number) => number;
+  readonly caml_pasta_fq_plonk_index_public_inputs: (a: number) => number;
+  readonly caml_pasta_fq_plonk_index_domain_d1_size: (a: number) => number;
+  readonly caml_pasta_fq_plonk_index_domain_d4_size: (a: number) => number;
+  readonly caml_pasta_fq_plonk_index_domain_d8_size: (a: number) => number;
+  readonly caml_pasta_fq_plonk_index_read: (a: number, b: number, c: number, d: number, e: number) => number;
+  readonly caml_pasta_fq_plonk_index_write: (a: number, b: number, c: number, d: number) => void;
   readonly caml_pasta_fq_urs_h: (a: number) => number;
   readonly __wbg_wasmpastafqurs_free: (a: number) => void;
   readonly __wbg_wasmpastafpplonkgatevector_free: (a: number) => void;
@@ -2389,28 +2383,6 @@ export interface InitOutput {
   readonly caml_pasta_fp_plonk_index_domain_d8_size: (a: number) => number;
   readonly caml_pasta_fp_plonk_index_read: (a: number, b: number, c: number, d: number, e: number) => number;
   readonly caml_pasta_fp_plonk_index_write: (a: number, b: number, c: number, d: number) => void;
-  readonly wasmpastafqplonkgate_new: (a: number, b: number, c: number, d: number) => number;
-  readonly wasmpastafqplonkgate_c: (a: number, b: number) => void;
-  readonly wasmpastafqplonkgate_set_c: (a: number, b: number, c: number) => void;
-  readonly caml_pasta_fq_plonk_gate_vector_add: (a: number, b: number) => void;
-  readonly caml_pasta_fq_plonk_gate_vector_get: (a: number, b: number) => number;
-  readonly caml_pasta_fq_plonk_gate_vector_wrap: (a: number, b: number, c: number) => void;
-  readonly caml_pasta_fq_plonk_index_create: (a: number, b: number, c: number) => number;
-  readonly caml_pasta_fq_plonk_index_read: (a: number, b: number, c: number, d: number, e: number) => number;
-  readonly caml_pasta_fq_plonk_index_write: (a: number, b: number, c: number, d: number) => void;
-  readonly __wbg_wasmpastafqplonkindex_free: (a: number) => void;
-  readonly __wbg_wasmpastafqplonkgatevector_free: (a: number) => void;
-  readonly __wbg_get_wasmpastafqplonkgate_typ: (a: number) => number;
-  readonly caml_pasta_fq_plonk_gate_vector_create: () => number;
-  readonly __wbg_set_wasmpastafqplonkgate_typ: (a: number, b: number) => void;
-  readonly caml_pasta_fq_plonk_index_public_inputs: (a: number) => number;
-  readonly caml_pasta_fq_plonk_index_domain_d1_size: (a: number) => number;
-  readonly caml_pasta_fq_plonk_index_domain_d4_size: (a: number) => number;
-  readonly caml_pasta_fq_plonk_index_domain_d8_size: (a: number) => number;
-  readonly __wbg_wasmpastafqplonkgate_free: (a: number) => void;
-  readonly __wbg_set_wasmpastafqplonkgate_wires: (a: number, b: number) => void;
-  readonly caml_pasta_fq_plonk_index_max_degree: (a: number) => number;
-  readonly __wbg_get_wasmpastafqplonkgate_wires: (a: number) => number;
   readonly wasmpastavestapolycomm_new: (a: number, b: number, c: number) => number;
   readonly wasmpastavestapolycomm_unshifted: (a: number, b: number) => void;
   readonly wasmpastavestapolycomm_set_unshifted: (a: number, b: number, c: number) => void;
@@ -2439,8 +2411,6 @@ export interface InitOutput {
   readonly __wbg_get_wasmpastavestapolycomm_shifted: (a: number) => number;
   readonly __wbg_get_wasmplonkwires_row: (a: number) => number;
   readonly __wbg_set_wasmplonkwires_row: (a: number, b: number) => void;
-  readonly greet: (a: number, b: number) => void;
-  readonly console_log: (a: number, b: number) => void;
   readonly caml_bigint_256_of_numeral: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly caml_bigint_256_of_decimal_string: (a: number, b: number, c: number) => void;
   readonly caml_bigint_256_num_limbs: () => number;
@@ -2453,6 +2423,12 @@ export interface InitOutput {
   readonly caml_bigint_256_to_bytes: (a: number, b: number, c: number) => void;
   readonly caml_bigint_256_of_bytes: (a: number, b: number, c: number) => void;
   readonly caml_bigint_256_deep_copy: (a: number, b: number, c: number) => void;
+  readonly greet: (a: number, b: number) => void;
+  readonly console_log: (a: number, b: number) => void;
+  readonly create_zero_u32_ptr: () => number;
+  readonly free_u32_ptr: (a: number) => void;
+  readonly set_u32_ptr: (a: number, b: number) => void;
+  readonly wait_until_non_zero: (a: number) => number;
   readonly __wbg_wbg_rayon_poolbuilder_free: (a: number) => void;
   readonly wbg_rayon_poolbuilder_mainJS: (a: number) => number;
   readonly wbg_rayon_poolbuilder_numThreads: (a: number) => number;

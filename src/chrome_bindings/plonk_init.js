@@ -1,7 +1,7 @@
 import init, * as plonk_wasm from '/plonk_wasm.js';
+import {override_bindings} from './worker_run.js';
 export const initSnarkyJS = (async (bundle) => {
-  window.plonk_wasm = plonk_wasm;
-  await init();
+  var plonk_wasm_init = await init();
 
   var set_workers_ready;
   var workers_ready = new Promise(function(resolve) {
@@ -11,10 +11,11 @@ export const initSnarkyJS = (async (bundle) => {
   var worker = new Worker('/worker_init.js', {
     "type": "module"
   });
-  worker.onmessage = function() {
-    set_workers_ready();
-  };
+  worker.onmessage = function() { set_workers_ready(); };
+  worker.postMessage({type: "init", memory: plonk_wasm_init.memory});
   await workers_ready;
+
+  window.plonk_wasm = override_bindings(plonk_wasm, worker);
 
   var snarkyBindings = document.createElement('script');
   snarkyBindings.src = '/snarky_js_chrome.bc.js'; // This is the bundled snarky bindings code -- see webpack.config.js on how the bundle is generated

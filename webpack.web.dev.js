@@ -103,6 +103,10 @@ module.exports = {
           to: '',
         },
         {
+          from: './src/chrome_bindings/worker_run.js',
+          to: '',
+        },
+        {
           from: './src/chrome_bindings/plonk_wasm.js',
           to: '',
         },
