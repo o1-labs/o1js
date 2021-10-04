@@ -2,18 +2,30 @@ name: Build SnarkyJS
 on:
   push:
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - master
+      - master
 jobs:
-  Build:
+  Build-And-Test-Node:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v2
-      with:
-        node-version: '14'
-    - run: npm install
-    - run: npm run build-dev
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+      - run: cd packages/snarkyjs-node
+      - run: npm install
+      - run: npm run build-dev
+      - run: npm run test
 
+  Build-Web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+      - run: cd packages/snarkyjs-web
+      - run: npm install
+      - run: npm run build-dev
