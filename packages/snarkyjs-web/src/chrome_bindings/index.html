@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>hello-wasm example</title>
+    <script type="module">
+      import { initSnarkyJS } from "/plonk_init.js";
+      initSnarkyJS()
+    </script>
+  </head>
+  <body>
+    <button id="run_all_tests" disabled="true">Run all tests</button>
+    <button id="discover_tests">Discover tests</button>
+    <div id="discovered_tests"></div>
+    <textarea id="output" style="width: 100%" rows="35"></textarea>
+  </body>
+</html>
