@@ -12,7 +12,7 @@ module.exports = {
 
   entry: {
     snarky: {
-      import: path.resolve(__dirname, 'src/index.ts'),
+      import: path.resolve(__dirname, '../src/index.ts'),
       library: {
         name: 'snarky',
         type: 'umd',
@@ -22,7 +22,7 @@ module.exports = {
   },
 
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, '../dist/node'),
     publicPath: '',
     filename: '[name].js',
     library: 'snarky',
@@ -51,7 +51,7 @@ module.exports = {
           {
             loader: 'ts-loader',
             options: {
-              configFile: 'tsconfig.json',
+              configFile: '../tsconfig.node.json',
             },
           },
         ],
@@ -76,11 +76,11 @@ module.exports = {
     new CopyPlugin({
       patterns: [
         {
-          from: './src/node_bindings/',
+          from: 'src/node_bindings/',
           to: 'node_bindings',
         },
         {
-          from: './src/snarky.js',
+          from: 'src/snarky.d.ts',
           to: '',
         },
       ],

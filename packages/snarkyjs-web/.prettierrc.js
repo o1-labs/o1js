@@ -1,1 +1,0 @@
-../snarkyjs-node/.prettierrc.js

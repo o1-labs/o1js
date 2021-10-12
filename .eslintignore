@@ -1,0 +1,8 @@
+{
+  "ignorePatterns": [
+    "src/chrome_bindings",
+    "src/node_bindings",
+    "node_modules",
+    "dist"
+  ]
+}

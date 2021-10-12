@@ -1,1 +1,0 @@
-../../snarkyjs-node/src/snarky.d.ts

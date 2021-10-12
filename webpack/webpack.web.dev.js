@@ -1,20 +1,19 @@
 const path = require('path');
 
-const TerserPlugin = require('terser-webpack-plugin');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
-const CopyPlugin = require('copy-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   target: 'web',
 
   devtool: false,
 
-  mode: 'production',
+  mode: 'none',
 
   entry: {
     snarky: {
-      import: path.resolve(__dirname, 'src/index.ts'),
+      import: path.resolve(__dirname, '../src/index.ts'),
       library: {
         name: 'snarky',
         type: 'umd',
@@ -24,8 +23,8 @@ module.exports = {
   },
 
   output: {
-    path: path.resolve(__dirname, 'dist'),
-    publicPath: '',
+    path: path.resolve(__dirname, '../dist/web'),
+    publicPath: 'auto',
     filename: '[name].js',
     library: 'snarky',
     libraryTarget: 'umd',
@@ -40,16 +39,11 @@ module.exports = {
     fallback: {
       child_process: false,
       fs: false,
+      worker_threads: false,
     },
   },
 
   optimization: {
-    minimize: true,
-    minimizer: [
-      new TerserPlugin({
-        exclude: /worker_init.js/,
-      }),
-    ],
     splitChunks: {
       cacheGroups: {
         commons: {
@@ -69,7 +63,7 @@ module.exports = {
           {
             loader: 'ts-loader',
             options: {
-              configFile: 'tsconfig.json',
+              configFile: '../tsconfig.web.json',
             },
           },
         ],
@@ -95,23 +89,31 @@ module.exports = {
     new CopyPlugin({
       patterns: [
         {
-          from: './src/chrome_bindings/plonk_init.js',
+          from: 'src/chrome_bindings/index.html',
           to: '',
         },
         {
-          from: './src/chrome_bindings/plonk_wasm.js',
+          from: 'src/chrome_bindings/server.py',
           to: '',
         },
         {
-          from: './src/chrome_bindings/plonk_wasm_bg.wasm',
+          from: 'src/chrome_bindings/plonk_init.js',
           to: '',
         },
         {
-          from: './src/chrome_bindings/worker_init.js',
+          from: 'src/chrome_bindings/worker_init.js',
           to: '',
         },
         {
-          from: './src/chrome_bindings/worker_run.js',
+          from: 'src/chrome_bindings/worker_run.js',
+          to: '',
+        },
+        {
+          from: 'src/chrome_bindings/plonk_wasm.js',
+          to: '',
+        },
+        {
+          from: 'src/chrome_bindings/plonk_wasm_bg.wasm',
           to: '',
         },
         {

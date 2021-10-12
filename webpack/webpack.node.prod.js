@@ -1,19 +1,19 @@
 const path = require('path');
 
-const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
-  target: 'web',
+  target: 'node',
+
+  mode: 'production',
 
   devtool: false,
 
-  mode: 'none',
-
   entry: {
     snarky: {
-      import: path.resolve(__dirname, 'src/index.ts'),
+      import: path.resolve(__dirname, '../src/index.ts'),
       library: {
         name: 'snarky',
         type: 'umd',
@@ -23,7 +23,7 @@ module.exports = {
   },
 
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, '../dist/node'),
     publicPath: '',
     filename: '[name].js',
     library: 'snarky',
@@ -33,25 +33,19 @@ module.exports = {
     clean: true,
   },
 
+  externals: {
+    './node_bindings/snarky_js_node.bc.js':
+      'commonjs ./node_bindings/snarky_js_node.bc.js',
+    './snarky_js_node.bc.js': 'commonjs ./snarky_js_node.bc.js',
+  },
+
   resolve: {
-    symlinks: false,
     extensions: ['.ts', '.js'],
-    fallback: {
-      child_process: false,
-      fs: false,
-    },
   },
 
   optimization: {
-    splitChunks: {
-      cacheGroups: {
-        commons: {
-          test: /\.bc.js$/,
-          name: 'snarky_js_chrome.bc',
-          chunks: 'all',
-        },
-      },
-    },
+    minimize: true,
+    minimizer: [new TerserPlugin()],
   },
 
   module: {
@@ -62,7 +56,7 @@ module.exports = {
           {
             loader: 'ts-loader',
             options: {
-              configFile: 'tsconfig.json',
+              configFile: '../tsconfig.node.json',
             },
           },
         ],
@@ -84,40 +78,15 @@ module.exports = {
 
   plugins: [
     new CleanWebpackPlugin(),
-    new NodePolyfillPlugin(),
     new CopyPlugin({
       patterns: [
         {
-          from: './src/chrome_bindings/index.html',
-          to: '',
+          from: 'src/node_bindings/',
+          to: 'node_bindings',
         },
         {
-          from: './src/chrome_bindings/server.py',
+          from: 'src/snarky.d.ts',
           to: '',
-        },
-        {
-          from: './src/chrome_bindings/plonk_init.js',
-          to: '',
-        },
-        {
-          from: './src/chrome_bindings/worker_init.js',
-          to: '',
-        },
-        {
-          from: './src/chrome_bindings/worker_run.js',
-          to: '',
-        },
-        {
-          from: './src/chrome_bindings/plonk_wasm.js',
-          to: '',
-        },
-        {
-          from: './src/chrome_bindings/plonk_wasm_bg.wasm',
-          to: '',
-        },
-        {
-          from: 'src/chrome_bindings/snippets',
-          to: 'snippets',
         },
       ],
     }),
