@@ -1,5 +1,5 @@
 import { Poseidon, Field, Bool, Group, Circuit, Scalar } from '../snarky';
-import { PrivateKey, PublicKey, Signature } from '../signature';
+import { PrivateKey, PublicKey, Signature } from '../lib/signature';
 
 /* This file demonstrates the classes and functions available in snarky.js */
 
@@ -11,7 +11,7 @@ import { PrivateKey, PublicKey, Signature } from '../signature';
 */
 
 // You can initialize literal field elements with numbers, booleans, or decimal strings
-const x0 : Field = new Field('37');
+const x0: Field = new Field('37');
 // Typescript has type inference, so type annotations are usually optional.
 const x1 = new Field(37);
 console.assert(x0.equals(x1).toBoolean());
@@ -27,7 +27,7 @@ console.assert(b.equals(Field.one).toBoolean());
 const z = x0.mul(x1).add(b).div(234).square().neg().sub('67').add(false);
 
 /* Field elements can be converted to their full, little endian binary representation. */
-let bits : Bool[] = z.toBits();
+let bits: Bool[] = z.toBits();
 console.log(bits.length);
 
 /* If you know (or want to assert) that a field element fits in fewer bits, you can
@@ -61,7 +61,7 @@ const b0 = new Bool(false);
 const b1 = new Bool(true);
 
 /* There are a number of methods available on Bool, like `and`, `or`, and `not`. */
-const b3 : Bool = b0.and(b1.not()).or(b1);
+const b3: Bool = b0.and(b1.not()).or(b1);
 
 /* The most important thing you can do with a Bool is use the `Circuit.if` function
    to conditionally select a value.
@@ -84,39 +84,42 @@ const b3 : Bool = b0.and(b1.not()).or(b1);
    match).
 */
 
-const v : Field = Circuit.if(b0, x0, z);
+const v: Field = Circuit.if(b0, x0, z);
 /* b0 is false, so we expect v to be equal to z. */
 console.assert(v.equals(z).toBoolean());
 
 /* As mentioned, we can also use `Circuit.if` with compound types. */
 const c = Circuit.if(
-  b1, {
+  b1,
+  {
     foo: [x0, z],
-    bar: { someFieldElt: x1, someBool: b1 }
-  },{
+    bar: { someFieldElt: x1, someBool: b1 },
+  },
+  {
     foo: [z, x0],
-    bar: { someFieldElt: z, someBool: b0 }
-  });
+    bar: { someFieldElt: z, someBool: b0 },
+  }
+);
 
 console.assert(c.bar.someFieldElt.equals(x1).toBoolean());
 
 /* # Signature
-*/
+ */
 
 /* The standard library of snarkyJS comes with a Signature scheme.
    The message to be signed is an array of field elements, so any application level
    message data needs to be encoded as an array of field elements before being signed.
 */
 
-let privKey : PrivateKey = PrivateKey.random();
-let pubKey : PublicKey = PublicKey.fromPrivateKey(privKey);
+let privKey: PrivateKey = PrivateKey.random();
+let pubKey: PublicKey = PublicKey.fromPrivateKey(privKey);
 
-let msg0 : Field[] = [ 0xBA5EBA11, 0x15, 0xBAD ].map(x => new Field(x));
-let msg1 : Field[] = [ 0xFA1AFE1, 0xC0FFEE ].map(x => new Field(x));
+let msg0: Field[] = [0xba5eba11, 0x15, 0xbad].map((x) => new Field(x));
+let msg1: Field[] = [0xfa1afe1, 0xc0ffee].map((x) => new Field(x));
 let signature = Signature.create(privKey, msg0);
 
 console.assert(signature.verify(pubKey, msg0).toBoolean());
-console.assert(! signature.verify(pubKey, msg1).toBoolean());
+console.assert(!signature.verify(pubKey, msg1).toBoolean());
 
 /* # Group
 
@@ -129,7 +132,7 @@ console.assert(! signature.verify(pubKey, msg1).toBoolean());
 
 /* You can initialize elements as literals as follows: */
 let g0 = new Group(-1, 2);
-let g1 = new Group({x: -2, y: 2});
+let g1 = new Group({ x: -2, y: 2 });
 
 /* There is also a predefined generator. */
 let g2 = Group.generator;
@@ -139,6 +142,6 @@ let g3 = g0.add(g1).neg().sub(g2);
 
 /* Points can also be scaled by scalar field elements. Note that Field and Scalar
    are distinct and represent elements of distinct fields. */
-let s0 : Scalar = Scalar.random();
-let g4 : Group = g3.scale(s0);
+let s0: Scalar = Scalar.random();
+let g4: Group = g3.scale(s0);
 console.log(Group.toJSON(g4));

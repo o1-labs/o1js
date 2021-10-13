@@ -1,5 +1,5 @@
-import { five } from '../src';
 import { main } from '../src/examples/schnorr_sign';
+import { shutdown } from '../src/snarky';
 
 const timeout = (ms: number) => {
   return new Promise((resolve, _) => {
@@ -10,10 +10,13 @@ const timeout = (ms: number) => {
   });
 };
 
-describe('five', () => {
-  it('is five', async () => {
+describe('snarkyjs', () => {
+  afterAll(() => {
+    shutdown();
+  });
+  it('schnoorr_sign.main() is successfully called', async () => {
     await timeout(1000);
     main();
-    expect(five).toEqual(5);
+    expect(true);
   });
 });

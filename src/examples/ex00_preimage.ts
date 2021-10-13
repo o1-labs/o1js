@@ -1,5 +1,5 @@
 import { Poseidon, Field, Circuit } from '../snarky';
-import { circuitMain, public_ } from '../circuit_value';
+import { circuitMain, public_ } from '../lib/circuit_value';
 
 /* Exercise 0:
 

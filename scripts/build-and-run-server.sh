@@ -1,6 +1,3 @@
 #!/bin/bash
-
-yarn build-dev
-pushd dist
-python3 server.py
-
+npm run build:server
+node --experimental-wasm-modules --experimental-modules --experimental-wasm-threads -i dist/server/snarky.js

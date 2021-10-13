@@ -1,4 +1,9 @@
 export * from './snarky';
-export * from './signature';
-export * from './circuit_value';
-export * from './merkle_proof';
+export * from './lib/signature';
+export * from './lib/circuit_value';
+export * from './lib/merkle_proof';
+
+import { shutdown } from './snarky';
+if (typeof window === 'undefined') {
+  shutdown();
+}

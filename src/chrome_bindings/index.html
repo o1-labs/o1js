@@ -3,7 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <title>hello-wasm example</title>
-    <script type="module" src="./plonk_init.js"></script>
+    <script type="module">
+      import { initSnarkyJS } from '/plonk_init.js';
+      initSnarkyJS();
+    </script>
   </head>
   <body>
     <button id="run_all_tests" disabled="true">Run all tests</button>

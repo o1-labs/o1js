@@ -24,7 +24,7 @@ export function matMul(m1: Matrix<Field>, m2: Matrix<Field>) {
     for (let colIndex = 0; colIndex < k; ++colIndex) {
       let v = Field.zero;
       for (let i = 0; i < n; ++i) {
-        v = v.add(m1[rowIndex][i].mul(m2[i][colIndex]))
+        v = v.add(m1[rowIndex][i].mul(m2[i][colIndex]));
       }
       row.push(v);
     }

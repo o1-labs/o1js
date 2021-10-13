@@ -1,4 +1,10 @@
-export type JSONValue = number | string | boolean | null | Array<JSON> | { [key: string]: JSONValue };
+export type JSONValue =
+  | number
+  | string
+  | boolean
+  | null
+  | Array<JSON>
+  | { [key: string]: JSONValue };
 
 export class VerificationKey {
   verify(publicInput: any[], proof: Proof): boolean;
@@ -71,10 +77,22 @@ export class Field {
   static neg(x: Field | number | string | boolean): Field;
   static inv(x: Field | number | string | boolean): Field;
 
-  static add(x: Field | number | string | boolean, y: Field | number | string | boolean): Field;
-  static sub(x: Field | number | string | boolean, y: Field | number | string | boolean): Field;
-  static mul(x: Field | number | string | boolean, y: Field | number | string | boolean): Field;
-  static div(x: Field | number | string | boolean, y: Field | number | string | boolean): Field;
+  static add(
+    x: Field | number | string | boolean,
+    y: Field | number | string | boolean
+  ): Field;
+  static sub(
+    x: Field | number | string | boolean,
+    y: Field | number | string | boolean
+  ): Field;
+  static mul(
+    x: Field | number | string | boolean,
+    y: Field | number | string | boolean
+  ): Field;
+  static div(
+    x: Field | number | string | boolean,
+    y: Field | number | string | boolean
+  ): Field;
 
   static square(x: Field | number | string | boolean): Field;
   static sqrt(x: Field | number | string | boolean): Field;
@@ -85,19 +103,25 @@ export class Field {
   static toFieldElements(x: Field): Field[];
   static ofFieldElements(fields: Field[]): Field;
 
-  static assertEqual(x: Field | number | string | boolean, y: Field | number | string | boolean): Field;
+  static assertEqual(
+    x: Field | number | string | boolean,
+    y: Field | number | string | boolean
+  ): Field;
   static assertBoolean(x: Field | number | string | boolean): void;
   static isZero(x: Field | number | string | boolean): Bool;
 
   static ofBits(x: (Bool | boolean)[]): Field;
   static toBits(x: Field | number | string | boolean): Bool[];
 
-  static equal(x: Field | number | string | boolean, y: Field | number | string | boolean): Bool;
+  static equal(
+    x: Field | number | string | boolean,
+    y: Field | number | string | boolean
+  ): Bool;
 
   static toJSON(x: Field): JSONValue;
   static fromJSON(x: JSONValue): Field | null;
 
-  static toConstant(x : Field): Field;
+  static toConstant(x: Field): Field;
 }
 
 export class Bool {
@@ -158,9 +182,9 @@ export interface AsFieldElements<T> {
 }
 
 export interface CircuitMain<W, P> {
-  snarkyWitnessTyp: AsFieldElements<W>,
-  snarkyPublicTyp: AsFieldElements<P>,
-  snarkyMain: (W, P) => void
+  snarkyWitnessTyp: AsFieldElements<W>;
+  snarkyPublicTyp: AsFieldElements<P>;
+  snarkyMain: (W, P) => void;
 }
 
 export class Circuit {
@@ -171,7 +195,13 @@ export class Circuit {
     y: Field,
     z: Field
   ): void;
-  static addConstraint(this: Circuit, kind: 'add', x: Field, y: Field, z: Field): void;
+  static addConstraint(
+    this: Circuit,
+    kind: 'add',
+    x: Field,
+    y: Field,
+    z: Field
+  ): void;
   static addConstraint(
     this: Circuit,
     kind: 'equal',
@@ -190,7 +220,11 @@ export class Circuit {
   static newVariable(f: () => Field | number | string | boolean): Field;
 
   static witness<T>(
-    ctor: { toFieldElements(x: T): Field[]; ofFieldElements(x: Field[]): T; sizeInFieldElements(): number },
+    ctor: {
+      toFieldElements(x: T): Field[];
+      ofFieldElements(x: Field[]): T;
+      sizeInFieldElements(): number;
+    },
     f: () => T
   ): T;
 
@@ -207,139 +241,119 @@ export class Circuit {
     y: T
   ): void;
 
-  static assertEqual<T>(
-    x: T,
-    y: T
-  ): void;
+  static assertEqual<T>(x: T, y: T): void;
 
-  static equal<T>(
-    ctor: { toFieldElements(x: T): Field[] },
-    x: T,
-    y: T
-  ): Bool;
+  static equal<T>(ctor: { toFieldElements(x: T): Field[] }, x: T, y: T): Bool;
 
-  static equal(
-    x: T,
-    y: T
-  ): Bool;
+  static equal(x: T, y: T): Bool;
 
-  static if<T>(
-    b: Bool | boolean,
-    ctor: AsFieldElements<T>,
-    x: T,
-    y: T
-  ): T;
+  static if<T>(b: Bool | boolean, ctor: AsFieldElements<T>, x: T, y: T): T;
 
-  static if<T>(
-    b: Bool | boolean,
-    x: T,
-    y: T
-  ): T;
+  static if<T>(b: Bool | boolean, x: T, y: T): T;
 
   static generateKeypair(): Keypair;
 
-  static prove(
-    privateInput: any[], publicInput: any[],
-    kp: Keypair
-  ): Proof;
+  static prove(privateInput: any[], publicInput: any[], kp: Keypair): Proof;
 
-  static verify(
-    publicInput: any[],
-    vk: VerificationKey,
-    pi: Proof
-  ): boolean;
+  static verify(publicInput: any[], vk: VerificationKey, pi: Proof): boolean;
 
   static toFieldElements<A>(A): Field[];
 }
 
 export class Scalar {
-    toFieldElements(this: Scalar): Field[];
+  toFieldElements(this: Scalar): Field[];
 
-    /**
-     * Negate a scalar field element.
-     * Can only be called outside of circuit execution
-     * */
-    neg(): Scalar;
+  /**
+   * Negate a scalar field element.
+   * Can only be called outside of circuit execution
+   * */
+  neg(): Scalar;
 
-    /**
-     * Add scalar field elements.
-     * Can only be called outside of circuit execution
-     * */
-    add(y: Scalar): Scalar;
+  /**
+   * Add scalar field elements.
+   * Can only be called outside of circuit execution
+   * */
+  add(y: Scalar): Scalar;
 
-    /**
-     * Subtract scalar field elements.
-     * Can only be called outside of circuit execution
-     * */
-    sub(y: Scalar): Scalar;
+  /**
+   * Subtract scalar field elements.
+   * Can only be called outside of circuit execution
+   * */
+  sub(y: Scalar): Scalar;
 
-    /**
-     * Multiply scalar field elements.
-     * Can only be called outside of circuit execution
-     * */
-    mul(y: Scalar): Scalar;
+  /**
+   * Multiply scalar field elements.
+   * Can only be called outside of circuit execution
+   * */
+  mul(y: Scalar): Scalar;
 
-    /**
-     * Divide scalar field elements.
-     * Can only be called outside of circuit execution
-     * */
-    div(y: Scalar): Scalar;
+  /**
+   * Divide scalar field elements.
+   * Can only be called outside of circuit execution
+   * */
+  div(y: Scalar): Scalar;
 
-    toJSON(): JSONValue;
+  toJSON(): JSONValue;
 
-    static toFieldElements(x: Scalar): Field[]
-    static ofFieldElements(fields: Field[]): Scalar;
-    static sizeInFieldElements(): number;
-    static ofBits(bits: Bool[]): Scalar;
-    static random(): Scalar;
+  static toFieldElements(x: Scalar): Field[];
+  static ofFieldElements(fields: Field[]): Scalar;
+  static sizeInFieldElements(): number;
+  static ofBits(bits: Bool[]): Scalar;
+  static random(): Scalar;
 
-    static toJSON(x: Scalar): JSONValue;
-    static fromJSON(x: JSONValue): Scalar | null;
+  static toJSON(x: Scalar): JSONValue;
+  static fromJSON(x: JSONValue): Scalar | null;
 }
 
 export class EndoScalar {
-    static toFieldElements(x: Scalar): Field[]
-    static ofFieldElements(fields: Field[]): Scalar;
-    static sizeInFieldElements(): number;
+  static toFieldElements(x: Scalar): Field[];
+  static ofFieldElements(fields: Field[]): Scalar;
+  static sizeInFieldElements(): number;
 }
 
 export class Group {
-    x: Field;
-    y: Field;
+  x: Field;
+  y: Field;
 
-    add(y: Group): Group;
-    sub(y: Group): Group;
-    neg(): Group;
-    scale(y: Scalar): Group;
-    endoScale(y: EndoScalar): Group;
+  add(y: Group): Group;
+  sub(y: Group): Group;
+  neg(): Group;
+  scale(y: Scalar): Group;
+  endoScale(y: EndoScalar): Group;
 
-    assertEquals(y: Group): void;
-    equals(y: Group): Bool;
+  assertEquals(y: Group): void;
+  equals(y: Group): Bool;
 
-    toJSON(): JSONValue;
+  toJSON(): JSONValue;
 
-    constructor(args: { x: Field | number | string | boolean, y: Field | number | string | boolean })
-    constructor(x: Field | number | string | boolean, y: Field | number | string | boolean)
+  constructor(args: {
+    x: Field | number | string | boolean;
+    y: Field | number | string | boolean;
+  });
+  constructor(
+    x: Field | number | string | boolean,
+    y: Field | number | string | boolean
+  );
 
-    static generator: Group;
-    static add(x: Group, y: Group): Group;
-    static sub(x: Group, y: Group): Group;
-    static neg(x: Group): Group;
-    static scale(x: Group, y: Scalar): Group;
-    static endoScale(x: Group, y: EndoScalar): Group;
+  static generator: Group;
+  static add(x: Group, y: Group): Group;
+  static sub(x: Group, y: Group): Group;
+  static neg(x: Group): Group;
+  static scale(x: Group, y: Scalar): Group;
+  static endoScale(x: Group, y: EndoScalar): Group;
 
-    static assertEqual(x: Group, y: Group): void;
-    static equal(x: Group, y: Group): Bool;
+  static assertEqual(x: Group, y: Group): void;
+  static equal(x: Group, y: Group): Bool;
 
-    static toFieldElements(x: Group): Field[]
-    static ofFieldElements(fields: Field[]): Group;
-    static sizeInFieldElements(): number;
+  static toFieldElements(x: Group): Field[];
+  static ofFieldElements(fields: Field[]): Group;
+  static sizeInFieldElements(): number;
 
-    static toJSON(x: Group): JSONValue;
-    static fromJSON(x: JSONValue): Group | null;
+  static toJSON(x: Group): JSONValue;
+  static fromJSON(x: JSONValue): Group | null;
 }
 
-export const Poseidon : {
+export const Poseidon: {
   hash: (xs: Field[]) => Field;
 };
 
@@ -350,4 +364,12 @@ export const sizeInFieldElements: (x: any[]) => number;
 
 export const NumberAsField: AsFieldElements<Number>;
 
-export const array: <T>(x: AsFieldElements<T>, length: number) => AsFieldElements<T[]>;
+export const array: <T>(
+  x: AsFieldElements<T>,
+  length: number
+) => AsFieldElements<T[]>;
+
+/* This function *must* be called at the end of a nodejs program, otherwise the
+ * worker threads will continue running and the program will never terminate.
+ * From web applications, this function is a no-op. */
+export const shutdown: () => Promise<undefined>;
