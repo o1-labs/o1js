@@ -3,15 +3,27 @@
 ## SnarkyJS - Web
 
 ```
-cd packages/snarkyjs-web
 npm install
-npm run start
+npm run start:web
 ```
 
 ## SnarkyJS - Node
 
 ```
-cd packages/snarkyjs-node
 npm install
-npm run start
+npm run start:node
+```
+
+## Run Tests
+
+```
+npm run test
+```
+
+## Publish
+
+```bash
+# Make sure to have proper NPM credentials before publishing.
+# To get credentials, use `npm login`
+./scripts/publish.sh
 ```

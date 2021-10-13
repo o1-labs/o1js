@@ -4,12 +4,13 @@
   "version": "0.1.0",
   "license": "Apache-2.0",
   "exports": {
-    "./web": "./dist/web/snarky.js",
-    "./node": "./dist/node/snarky.js"
+    "./web": "./web/snarky.js",
+    "./node": "./node/snarky.js"
   },
-  "types": "dist/index.d.ts",
+  "types": "./web/index.d.ts",
   "files": [
-    "dist"
+    "web",
+    "node"
   ],
   "engines": {
     "node": ">=16"
