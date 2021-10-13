@@ -1,14 +1,23 @@
 {
-  "extends": "./node_modules/gts/tsconfig-google.json",
+  "include": ["./src"],
   "compilerOptions": {
-    "rootDir": ".",
-    "outDir": "build",
-    "target": "ES5",
+    "module": "esnext",
+    "outDir": "dist",
+    "lib": ["dom", "esnext"],
+    "target": "ESNext",
+    "allowJs": true,
+    "importHelpers": true,
+    "declaration": true,
+    "sourceMap": false,
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "moduleResolution": "node",
+    "jsx": "react",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
-  },
-  "include": [
-    "src/**/*.ts",
-    "test/**/*.ts"
-  ]
+    "emitDecoratorMetadata": true,
+    "allowSyntheticDefaultImports": true
+  }
 }

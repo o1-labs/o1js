@@ -1,30 +1,56 @@
 {
-  "name": "snarky-js",
-  "version": "0.0.0",
-  "description": "",
-  "main": "build/src/index.js",
-  "types": "build/src/index.d.ts",
-  "files": [
-    "build/src"
-  ],
+  "name": "@o1labs/snarkyjs",
+  "description": "JavaScript bindings for SnarkyJS",
+  "version": "0.1.0",
   "license": "Apache-2.0",
-  "keywords": [],
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "gts lint",
-    "clean": "gts clean",
-    "compile": "tsc && cp src/*.js build/src",
-    "fix": "gts fix",
-    "prepare": "npm run compile",
-    "pretest": "npm run compile",
-    "posttest": "npm run lint"
+  "exports": {
+    "./web": "./web/snarky.js",
+    "./server": "./server/snarky.js"
   },
+  "types": "./web/index.d.ts",
+  "files": [
+    "web",
+    "server"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "start:web": "./scripts/build-and-run-web.sh",
+    "start:server": "./scripts/build-and-run-server.sh",
+    "build:web": "webpack --config ./webpack/webpack.web.dev.js --stats-error-details",
+    "build:server": "webpack --config ./webpack/webpack.server.dev.js --stats-error-details",
+    "prepublish:web": "webpack --config ./webpack/webpack.web.prod.js --stats-error-details",
+    "prepublish:server": "webpack --config ./webpack/webpack.server.prod.js --stats-error-details",
+    "prepublish:both": "webpack --config ./webpack/webpack.prod.js --stats-error-details",
+    "format": "prettier --write --ignore-unknown **/*",
+    "test": "node --experimental-wasm-modules --experimental-modules --experimental-wasm-threads --experimental-vm-modules ./node_modules/jest/bin/jest.js --silent",
+    "clean": "rm -rf dist"
+  },
+  "author": "O(1) Labs",
   "devDependencies": {
-    "@types/node": "^14.11.2",
-    "gts": "^3.1.0",
-    "typescript": "^4.0.3"
+    "@babel/core": "^7.15.0",
+    "@babel/plugin-transform-runtime": "^7.15.0",
+    "@babel/preset-env": "^7.15.0",
+    "@types/jest": "^27.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.0.0",
+    "babel-loader": "^8.2.2",
+    "clean-webpack-plugin": "^4.0.0-alpha.0",
+    "copy-webpack-plugin": "^9.0.1",
+    "eslint": "^8.0.0",
+    "jest": "^27.0.6",
+    "node-polyfill-webpack-plugin": "^1.1.4",
+    "prettier": "^2.3.2",
+    "ts-jest": "^27.0.4",
+    "ts-loader": "^9.2.5",
+    "tslib": "^2.3.0",
+    "typescript": "^4.3.5",
+    "webpack": "^5.49.0",
+    "webpack-cli": "^4.7.2"
   },
   "dependencies": {
+    "env": "^0.0.2",
     "reflect-metadata": "^0.1.13"
   }
 }
