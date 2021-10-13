@@ -35,7 +35,6 @@ module.exports = {
   },
 
   resolve: {
-    symlinks: false,
     extensions: ['.ts', '.js'],
     fallback: {
       child_process: false,

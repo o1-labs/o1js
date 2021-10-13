@@ -23,7 +23,7 @@ module.exports = {
   },
 
   output: {
-    path: path.resolve(__dirname, '../dist/node'),
+    path: path.resolve(__dirname, '../dist/server'),
     publicPath: '',
     filename: '[name].js',
     library: 'snarky',
@@ -56,7 +56,7 @@ module.exports = {
           {
             loader: 'ts-loader',
             options: {
-              configFile: '../tsconfig.node.json',
+              configFile: '../tsconfig.server.json',
             },
           },
         ],

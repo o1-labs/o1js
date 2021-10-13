@@ -15,8 +15,8 @@ jobs:
         with:
           node-version: '16'
       - run: |
-          npm install
-          npm run build:node 
+          npm ci
+          npm run build:server
           npm run test
 
   Build-Web:
@@ -27,5 +27,5 @@ jobs:
         with:
           node-version: '16'
       - run: |
-          npm install
+          npm ci
           npm run build:web

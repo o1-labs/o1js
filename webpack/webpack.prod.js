@@ -1,4 +1,4 @@
 const webConfig = require('./webpack.web.prod');
-const nodeConfig = require('./webpack.node.prod');
+const serverConfig = require('./webpack.server.prod');
 
-module.exports = [webConfig, nodeConfig];
+module.exports = [webConfig, serverConfig];
