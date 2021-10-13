@@ -7,11 +7,11 @@ npm install
 npm run start:web
 ```
 
-## SnarkyJS - Node
+## SnarkyJS - Server
 
 ```
 npm install
-npm run start:node
+npm run start:server
 ```
 
 ## Run Tests

@@ -7,7 +7,7 @@ on:
     branches:
       - master
 jobs:
-  Build-And-Test-Node:
+  Build-And-Test-Server:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
