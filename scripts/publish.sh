@@ -3,6 +3,7 @@ npm run prepublish:both
 if [ -d "./dist" ] 
 then
     cp package.json ./dist
+    cp README.md ./dist
     cd ./dist
     npm publish
 else

@@ -1,7 +1,7 @@
 {
   "name": "@o1labs/snarkyjs",
   "description": "JavaScript bindings for SnarkyJS",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "Apache-2.0",
   "exports": {
     "./web": "./web/snarky.js",
