@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "exports": {
     "./web": "./web/snarky.js",
-    "./node": "./server/snarky.js"
+    "./server": "./server/snarky.js"
   },
   "types": "./web/index.d.ts",
   "files": [
