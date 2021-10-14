@@ -14,10 +14,15 @@ class Main extends Circuit {
     Poseidon.hash([preimage]).assertEquals(hash);
   }
 }
+export default () => {
+  console.log('Executing... Main.generateKeypair()');
+  const kp = Main.generateKeypair();
 
-const kp = Main.generateKeypair();
-
-const preimage = Field.random();
-const hash = Poseidon.hash([preimage]);
-const pi = Main.prove([preimage], [hash], kp);
-console.log('proof', pi);
+  console.log('Executing... Field.random()');
+  const preimage = Field.random();
+  console.log('Executing... Poseidon.hash()');
+  const hash = Poseidon.hash([preimage]);
+  console.log('Executing... Main.prove()');
+  const pi = Main.prove([preimage], [hash], kp);
+  console.log('proof', pi);
+};
