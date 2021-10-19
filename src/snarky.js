@@ -22,7 +22,7 @@ function shutdown() {
   }
 };
 
-(() => {
+await (async () => {
   if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
     // Since we export off the window object, we don't actually use this import for exporting.
     // The reason we require the web bindings here is just to get it included in the webpack output bundle.
@@ -35,6 +35,7 @@ function shutdown() {
     Scalar = window.__snarky.Scalar;
   } else {
     const snarkyServer = require('./node_bindings/snarky_js_node.bc.js');
+    await snarkyServer.snarky_ready;
     Field = snarkyServer.Field;
     Bool = snarkyServer.Bool;
     Circuit = snarkyServer.Circuit;
