@@ -33,14 +33,11 @@ module.exports = {
     clean: true,
   },
 
-  externals: {
-    './node_bindings/snarky_js_node.bc.js':
-      'commonjs ./node_bindings/snarky_js_node.bc.js',
-    './snarky_js_node.bc.js': 'commonjs ./snarky_js_node.bc.js',
-  },
-
   resolve: {
     extensions: ['.ts', '.js'],
+    alias: {
+      'snarky.bindings.js$': './node_bindings/snarky_js_node.bc.es6.js'
+    }
   },
 
   optimization: {
@@ -80,10 +77,6 @@ module.exports = {
     new CleanWebpackPlugin(),
     new CopyPlugin({
       patterns: [
-        {
-          from: 'src/node_bindings/',
-          to: 'node_bindings',
-        },
         {
           from: 'src/snarky.d.ts',
           to: '',

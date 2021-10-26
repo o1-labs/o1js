@@ -24,6 +24,7 @@
     "prepublish:web": "webpack --config ./webpack/webpack.web.prod.js --stats-error-details",
     "prepublish:server": "webpack --config ./webpack/webpack.server.prod.js --stats-error-details",
     "prepublish:both": "webpack --config ./webpack/webpack.prod.js --stats-error-details",
+    "fixit": "node --max_old_space_size=4112 fixit.js",
     "format": "prettier --write --ignore-unknown **/*",
     "test": "node --experimental-wasm-modules --experimental-modules --experimental-wasm-threads --experimental-vm-modules ./node_modules/jest/bin/jest.js --silent",
     "clean": "rm -rf dist"

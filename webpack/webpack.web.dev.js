@@ -40,6 +40,9 @@ module.exports = {
       fs: false,
       worker_threads: false,
     },
+    alias: {
+      'snarky.bindings.js$': './node_bindings/snarky_js_node.bc.es6.js'
+    }
   },
 
   optimization: {
