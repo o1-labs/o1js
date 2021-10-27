@@ -1,11 +1,11 @@
 {
   "name": "@o1labs/snarkyjs",
   "description": "JavaScript bindings for SnarkyJS",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "Apache-2.0",
   "exports": {
-    "./web": "./web/snarky.js",
-    "./server": "./server/snarky.js"
+    "./web": "./web/index.js",
+    "./server": "./server/index.js"
   },
   "types": "./web/index.d.ts",
   "files": [
