@@ -12,10 +12,10 @@ module.exports = {
   devtool: false,
 
   entry: {
-    snarky: {
+    index: {
       import: path.resolve(__dirname, '../src/index.ts'),
       library: {
-        name: 'snarky',
+        name: 'index',
         type: 'umd',
         umdNamedDefine: true,
       },
@@ -26,7 +26,7 @@ module.exports = {
     path: path.resolve(__dirname, '../dist/server'),
     publicPath: '',
     filename: '[name].js',
-    library: 'snarky',
+    library: 'index',
     libraryTarget: 'umd',
     libraryExport: 'default',
     umdNamedDefine: true,

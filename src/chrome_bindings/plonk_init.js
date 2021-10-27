@@ -29,7 +29,7 @@ export const initSnarkyJS = async (bundle) => {
 
     snarkyBindings.addEventListener('load', () => {
       var snarkyLib = document.createElement('script');
-      snarkyLib.src = '/snarky.js';
+      snarkyLib.src = '/index.js';
       snarkyLib.id = 'snarkyjs';
       document.body.appendChild(snarkyLib);
       resolve();
