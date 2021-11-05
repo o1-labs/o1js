@@ -1,5 +1,6 @@
 import { main } from '../src/examples/schnorr_sign';
 import { shutdown } from '../src/snarky';
+import { Update } from '../src/lib/party';
 
 const timeout = (ms: number) => {
   return new Promise((resolve, _) => {

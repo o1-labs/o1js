@@ -52,6 +52,7 @@ const x : SignedBool = new SignedBool_(new Bool(true), new Bool(true));
 
 console.log(x);
 */
+/*
 class Signed<A> extends CircuitValue {
   @prop sign: Bool;
   @prop magnitude: A;
@@ -211,4 +212,4 @@ export abstract class Snapp {
 export function method(this: any, target: any, key: string) {
   // TODO: init method is special
   console.log(this, target, key);
-}
+}*/
