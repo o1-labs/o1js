@@ -182,6 +182,50 @@ export class Update extends CircuitValue {
   }
 }
 
+export class TokenId extends Nat {
+  constructor(lsbFirst: Array<Bool>) {
+    super(lsbFirst, 64);
+  }
+}
+
+// TODO
+export class Events extends CircuitValue {}
+
+// TODO
+export class MerkleList<T> extends CircuitValue {}
+
+export class Body extends CircuitValue {
+  @prop publicKey: PublicKey
+  @prop update: Update
+  @prop tokenId: TokenId
+  @prop delta: Amount
+  @prop events: Events
+  @prop rollupEvents: Field
+  @prop callData: MerkleList<Array<Field>>
+  @prop depth: Field // TODO: this is an `int As_prover.t`
+
+  constructor(
+    publicKey: PublicKey,
+    update: Update,
+    tokenId: TokenId,
+    delta: Amount,
+    events: Events,
+    rollupEvents: Field,
+    callData: MerkleList<Array<Field>>,
+    depth: Field
+  ) {
+    super();
+    this.publicKey = publicKey;
+    this.update = update;
+    this.tokenId = tokenId;
+    this.delta = delta;
+    this.events = events;
+    this.rollupEvents = rollupEvents;
+    this.callData = callData;
+    this.depth = depth;
+  }
+}
+
 
 /*
   type timing = {
