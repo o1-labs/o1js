@@ -16,7 +16,7 @@ export const shutdown = () => {
   }
 };
 
-(async () => {
+(() => {
   if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
     // Since we export off the window object, we don't actually use this import for exporting.
     // The reason we require the web bindings here is just to get it included in the webpack output bundle.
