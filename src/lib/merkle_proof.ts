@@ -1,7 +1,111 @@
-import { CircuitValue } from './circuit_value';
-import { Bool, Field, Circuit, Poseidon, AsFieldElements } from '../snarky';
+import { CircuitValue, prop } from './circuit_value';
+import { Bool, Field, Circuit, Poseidon, AsFieldElements, NumberAsField } from '../snarky';
+import { Optional } from './optional';
+import { DataStore } from './data_store';
 
 let indexId = 0;
+
+export interface IndexedAccumulatorI<A, P> {
+  store: DataStore<A, P> | null,
+  check: (comm: Field, index: Index, a: A, proof: P) => Bool,
+}
+
+export class AccumulatorMembershipProof extends CircuitValue {
+  @prop merkleProof: MerkleProof;
+  @prop index: Index;
+
+  constructor(merkleProof: MerkleProof, index: Index) {
+    super();
+    this.merkleProof = merkleProof;
+    this.index = index;
+  }
+
+  verify<T extends CircuitValue>(commitment: Field, x: T): Bool {
+    let leaf = Poseidon.hash(x.toFieldElements());
+    return this.merkleProof.verify(commitment, this.index, leaf);
+  }
+}
+
+export interface AccumulatorI<A, P> {
+  commitment: () => Field,
+  check: (x: A, membershipProof: P) => Bool,
+  add: (x: A) => P,
+  getMembershipProof: (x: A) => P | null,
+}
+
+export function MerkleAccumulator<A>(store: DataStore<A, AccumulatorMembershipProof>): AccumulatorI<A, AccumulatorMembershipProof> {
+  throw 'todo'
+}
+
+export abstract class IndexedAccumulator<A> extends CircuitValue {
+  @prop commitment: Field;
+
+  constructor(commitment: Field) {
+    super()
+    this.commitment = commitment;
+  }
+
+  abstract set(index: Index, a: A): void
+
+  abstract get(index: Index): A
+}
+
+export class KeyedAccumulator<K, V> extends CircuitValue {
+  set(key: K, value: V): void {
+    throw 'todo'
+  }
+
+  get(key: K): Optional<V> {
+    throw 'todo';
+  }
+
+  commitment(): Field {
+    throw 'todo';
+  }
+
+  constructor(key: (v: V) => K, store: DataStore<V, AccumulatorMembershipProof>) {
+    super();
+  }
+}
+
+/*
+export function DataAvailableIndexedAccumulator<A, P>(C) {
+} */
+
+export function IndexedAccumulatorFactory<A, P>(
+  acc: IndexedAccumulatorI<A, P>,
+  eltTyp: AsFieldElements<A>,
+  proofTyp: AsFieldElements<P>) {
+    let getStore = () => {
+      if (acc.store == null) {
+        throw new Error('store not available')
+      }
+      return acc.store;
+    };
+
+    return class Acc extends IndexedAccumulator<A> {
+      get(index: Index): A {
+        let aPre = Circuit.witness(eltTyp, () => getStore().getValue(index));
+        let proof = Circuit.witness(proofTyp, () => getStore().getProof(index));
+        acc.check(this.commitment, index, aPre, proof);
+        return aPre;
+      }
+
+      set(index: Index, a: A) {
+        let aPre = Circuit.witness(eltTyp, () => getStore().getValue(index));
+        let proof = Circuit.witness(proofTyp, () => getStore().getProof(index));
+        let commPre = this.commitment;
+        acc.check(commPre, index, aPre, proof);
+        let commPost = Circuit.witness(Field, () => {
+          let s = getStore();
+          s.set(index, a);
+          return s.commitment();
+        })
+        acc.check(commPost, index, a, proof);
+        this.commitment = commPost;
+      }
+    }
+}
 
 export class IndexBase {
   id: IndexId;
