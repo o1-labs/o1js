@@ -2,11 +2,39 @@
 
 import { prop, CircuitValue } from './circuit_value';
 import { Field, Bool } from '../snarky';
+import { UInt32, UInt64 } from './uint';
+import { PublicKey } from './signature';
 
-// TODO. Also, don't make user ever talk about distinction b/w compressed and non-compressed keys
-type PublicKey = void;
 
 class SetOrKeep<_A> extends CircuitValue {}
+
+export class TransactionId {
+  wait(): Promise<void> {
+    throw 'todo';
+  }
+}
+
+export class Transaction {
+  send(): TransactionId {
+    throw 'todo';
+  }
+}
+
+export function transaction(f : () => void): Transaction {
+  throw 'todo'
+}
+
+export function sendPendingTransactions(): TransactionId {
+  throw 'todo';
+}
+
+export function currentSlot(): UInt32 {
+  throw 'todo'
+}
+
+export function getBalance(pubkey: PublicKey): UInt64 {
+  throw 'todo'
+}
 
 /*
 export class OrIgnore<A> extends CircuitValue {
