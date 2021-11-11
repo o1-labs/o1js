@@ -50,10 +50,7 @@ module.exports = {
   plugins: [
     new CleanWebpackPlugin(),
     new CopyPlugin({
-      patterns: [
-        { from: 'src/node_bindings/', to: 'node_bindings' },
-        { from: 'src/snarky.d.ts', to: '' },
-      ],
+      patterns: [{ from: 'src/node_bindings/', to: 'node_bindings' }],
     }),
   ],
 };

@@ -4,8 +4,9 @@
   "version": "0.1.2",
   "license": "Apache-2.0",
   "exports": {
-    "node": "./web/index.js",
-    "browser": "./server/index.js"
+    "browser": "./dist/web/index.js",
+    "require": "./dist/server/index.js",
+    "node": "./src/index.mjs"
   },
   "types": "./src/index.d.ts",
   "files": [
