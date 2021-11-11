@@ -1,6 +1,8 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "dist/server"
+    "outDir": "dist/server",
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
   }
 }
