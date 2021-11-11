@@ -1,5 +1,5 @@
 import { main } from '../src/examples/schnorr_sign';
-import { shutdown } from '../src/snarky';
+import { shutdown, snarkyReady } from '../src/snarky';
 
 const timeout = (ms: number) => {
   return new Promise((resolve, _) => {
@@ -15,7 +15,8 @@ describe('snarkyjs', () => {
     shutdown();
   });
   it('schnoorr_sign.main() is successfully called', async () => {
-    await timeout(1000);
+    // await timeout(1000);
+    await snarkyReady;
     main();
     expect(true);
   });

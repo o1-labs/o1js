@@ -4,10 +4,11 @@
   "version": "0.1.2",
   "license": "Apache-2.0",
   "exports": {
-    "node": "./web/index.js",
-    "browser": "./server/index.js"
+    "browser": "./dist/web/index.js",
+    "require": "./dist/server/index.js",
+    "node": "./src/index.mjs"
   },
-  "types": "./web/index.d.ts",
+  "types": "./src/index.d.ts",
   "files": [
     "web",
     "server"
@@ -20,7 +21,7 @@
     "start:web": "./scripts/build-and-run-web.sh",
     "start:server": "./scripts/build-and-run-server.sh",
     "build:web": "webpack --config ./webpack/webpack.web.dev.js --stats-error-details",
-    "build:server": "webpack --config ./webpack/webpack.server.dev.js --stats-error-details",
+    "build:server": "webpack --config ./webpack/webpack.node.simple.js --stats-error-details",
     "prepublish:web": "webpack --config ./webpack/webpack.web.prod.js --stats-error-details",
     "prepublish:server": "webpack --config ./webpack/webpack.server.prod.js --stats-error-details",
     "prepublish:both": "webpack --config ./webpack/webpack.prod.js --stats-error-details",
