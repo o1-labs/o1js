@@ -100,10 +100,6 @@ module.exports = {
           to: 'snarky_js_chrome.bc.js',
         },
         {
-          from: 'src/chrome_bindings/plonk_init.js',
-          to: '',
-        },
-        {
           from: 'src/chrome_bindings/worker_init.js',
           to: '',
         },
