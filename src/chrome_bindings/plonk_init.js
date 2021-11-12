@@ -1,19 +1,19 @@
-import init, * as plonk_wasm from '/plonk_wasm.js';
-import { override_bindings } from '/worker_run.js';
+import init, * as plonk_wasm from './plonk_wasm.js';
+import { override_bindings } from './worker_run.js';
 
-export const initSnarkyJS = async (bundle) => {
-  var plonk_wasm_init = await init();
+export async function initSnarkyJS() {
+  let plonk_wasm_init = await init();
 
-  var set_workers_ready;
-  var workers_ready = new Promise(function (resolve) {
+  let set_workers_ready;
+  let workers_ready = new Promise((resolve) => {
     set_workers_ready = resolve;
   });
 
-  var worker = new Worker('/worker_init.js', {
+  let worker = new Worker('/worker_init.js', {
     type: 'module',
   });
 
-  worker.onmessage = function () {
+  worker.onmessage = () => {
     set_workers_ready();
   };
 
@@ -22,26 +22,12 @@ export const initSnarkyJS = async (bundle) => {
 
   window.plonk_wasm = override_bindings(plonk_wasm, worker);
 
-  return new Promise(function (resolve) {
-    var snarkyBindings = document.createElement('script');
-    snarkyBindings.src = '/snarky_js_chrome.bc.js';
-    document.body.appendChild(snarkyBindings);
+  await loadScript('/snarky_js_chrome.bc.js');
+}
 
-    snarkyBindings.addEventListener('load', () => {
-      var snarkyLib = document.createElement('script');
-      snarkyLib.src = '/index.js';
-      snarkyLib.id = 'snarkyjs';
-      document.body.appendChild(snarkyLib);
-      resolve();
-      if (bundle) {
-        snarkyLib.addEventListener('load', () => {
-          var snarkyLib = document.createElement('script');
-          snarkyLib.src = bundle;
-          document.body.appendChild(snarkyLib);
-        });
-      }
-    });
-  });
-};
-
-window.initSnarkyJS = initSnarkyJS;
+function loadScript(src) {
+  let script = document.createElement('script');
+  script.src = src;
+  document.body.appendChild(script);
+  return new Promise((r) => script.addEventListener('load', () => r()));
+}

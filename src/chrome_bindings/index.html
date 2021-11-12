@@ -3,10 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <title>hello-wasm example</title>
+    <script src="./index.js"></script>
     <script type="module">
-      import { initSnarkyJS } from '/plonk_init.js';
-      await initSnarkyJS();
-      console.log(`initSnarkyJs finished after ${performance.now().toFixed(2)}ms`);
+      await snarkyReady;
+      console.log(`snarkyjs initialized after ${performance.now().toFixed(2)}ms`);
+      let Field = index.Field; // ugh
+      console.log(new Field(5));
     </script>
   </head>
   <body>
