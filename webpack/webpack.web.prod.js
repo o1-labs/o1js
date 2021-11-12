@@ -7,40 +7,26 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 module.exports = {
   target: 'web',
-
   devtool: false,
-
   mode: 'production',
 
   entry: {
     index: {
       import: path.resolve(__dirname, '../src/index.ts'),
-      library: {
-        name: 'index',
-        type: 'umd',
-        umdNamedDefine: true,
-      },
     },
   },
-
   output: {
     path: path.resolve(__dirname, '../dist/web'),
     publicPath: '',
     filename: '[name].js',
-    library: 'index',
-    libraryTarget: 'umd',
-    libraryExport: 'default',
-    umdNamedDefine: true,
+    library: {
+      type: 'module',
+    },
+    module: true,
     clean: true,
   },
-
   resolve: {
     extensions: ['.ts', '.js'],
-    fallback: {
-      child_process: false,
-      fs: false,
-      worker_threads: false,
-    },
   },
 
   optimization: {
@@ -60,7 +46,6 @@ module.exports = {
       },
     },
   },
-
   module: {
     rules: [
       {
@@ -95,6 +80,14 @@ module.exports = {
     new CopyPlugin({
       patterns: [
         {
+          from: 'src/chrome_bindings/index.html',
+          to: '',
+        },
+        {
+          from: 'src/chrome_bindings/server.py',
+          to: '',
+        },
+        {
           from: 'src/chrome_bindings/snarky_js_chrome.bc.js',
           to: 'snarky_js_chrome.bc.js',
         },
@@ -126,5 +119,5 @@ module.exports = {
     }),
   ],
 
-  experiments: { topLevelAwait: true },
+  experiments: { topLevelAwait: true, outputModule: true },
 };

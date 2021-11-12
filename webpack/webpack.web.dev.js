@@ -6,19 +6,12 @@ const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   target: 'web',
-
   devtool: false,
-
   mode: 'none',
 
   entry: {
     index: {
       import: path.resolve(__dirname, '../src/index.ts'),
-      library: {
-        name: 'index',
-        type: 'umd',
-        umdNamedDefine: true,
-      },
     },
   },
 
@@ -26,20 +19,15 @@ module.exports = {
     path: path.resolve(__dirname, '../dist/web'),
     publicPath: 'auto',
     filename: '[name].js',
-    library: 'index',
-    libraryTarget: 'umd',
-    libraryExport: 'default',
-    umdNamedDefine: true,
+    library: {
+      type: 'module',
+    },
+    module: true,
     clean: true,
   },
 
   resolve: {
     extensions: ['.ts', '.js'],
-    fallback: {
-      child_process: false,
-      fs: false,
-      worker_threads: false,
-    },
   },
 
   optimization: {
@@ -127,5 +115,5 @@ module.exports = {
     }),
   ],
 
-  experiments: { topLevelAwait: true },
+  experiments: { topLevelAwait: true, outputModule: true },
 };

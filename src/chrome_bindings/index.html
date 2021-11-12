@@ -3,11 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <title>hello-wasm example</title>
-    <script src="./index.js"></script>
     <script type="module">
-      await index.snarkyReady;
+      import {Field} from '/index.js';
       console.log(`snarkyjs initialized after ${performance.now().toFixed(2)}ms`);
-      let Field = index.Field; // ugh
       console.log(new Field(5));
     </script>
   </head>
