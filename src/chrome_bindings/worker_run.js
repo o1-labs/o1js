@@ -85,10 +85,9 @@ export const override_bindings = function (plonk_wasm, worker) {
     plonk_wasm_[key] = plonk_wasm[key];
   }
   for (let key in worker_spec_) {
-    plonk_wasm_[key] = () => {
+    plonk_wasm_[key] = (...args) => {
       // let old_onmessage = worker.onmessage;
       let u32_ptr = plonk_wasm.create_zero_u32_ptr();
-      let args = Array.prototype.slice.apply(arguments);
       worker.postMessage({ type: 'run', name: key, args, u32_ptr });
       /* Here be undefined behavior dragons. */
       let res = plonk_wasm.wait_until_non_zero(u32_ptr);
