@@ -56,17 +56,17 @@ module.exports = {
         ],
         exclude: /node_modules/,
       },
-      {
-        test: /\.m?js$/,
-        exclude: /(node_modules)|(\.bc.js)/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: ['@babel/preset-env'],
-            plugins: ['@babel/plugin-transform-runtime'],
-          },
-        },
-      },
+      // {
+      //   test: /\.m?js$/,
+      //   exclude: /(node_modules)|(\.bc.js)/,
+      //   use: {
+      //     loader: 'babel-loader',
+      //     options: {
+      //       presets: ['@babel/preset-env'],
+      //       plugins: ['@babel/plugin-transform-runtime'],
+      //     },
+      //   },
+      // },
     ],
   },
 
