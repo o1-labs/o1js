@@ -1,4 +1,4 @@
-import { startWorkers } from './snippets/wasm-bindgen-rayon-7afa899f36665473/src/workerHelpers.no-bundler.js';
+import { startWorkers } from 'https://cdn.jsdelivr.net/gh/mitschabaude/snarkyjs@feature/restructure-web/src/chrome_bindings/snippets/wasm-bindgen-rayon-7afa899f36665473/src/workerHelpers.no-bundler.js';
 
 let wasm;
 
@@ -6702,7 +6702,7 @@ async function load(module, imports) {
 
 async function init(input, maybe_memory) {
     if (typeof input === 'undefined') {
-        input = new URL('plonk_wasm_bg.wasm', import.meta.url);
+        input = 'https://cdn.jsdelivr.net/gh/mitschabaude/snarkyjs@feature/restructure-web/src/chrome_bindings/plonk_wasm_bg.wasm';
     }
     const imports = {};
     imports.wbg = {};
@@ -6795,7 +6795,7 @@ async function init(input, maybe_memory) {
         return addHeapObject(ret);
     };
     imports.wbg.__wbg_static_accessor_URL_b24f10c24510da94 = function() {
-        var ret = import.meta.url;
+        var ret = 'https://cdn.jsdelivr.net/gh/mitschabaude/snarkyjs@feature/restructure-web/src/chrome_bindings/plonk_wasm.js';
         return addHeapObject(ret);
     };
     imports.wbg.__wbg_startWorkers_3e6644f7fc0ac450 = function(arg0, arg1, arg2) {

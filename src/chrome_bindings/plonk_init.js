@@ -1,4 +1,4 @@
-import init, * as plonk_wasm from 'https://cdn.jsdelivr.net/gh/mitschabaude/snarkyjs@feature/restructure-web/src/chrome_bindings/plonk_wasm.js';
+import init, * as plonk_wasm from './plonk_wasm.js';
 import { override_bindings } from './worker_run.js';
 
 export async function initSnarkyJS() {
@@ -33,7 +33,9 @@ export async function initSnarkyJS() {
 
   window.plonk_wasm = override_bindings(plonk_wasm, worker);
 
-  await loadScript('./snarky_js_chrome.bc.js');
+  await loadScript(
+    'https://cdn.jsdelivr.net/gh/mitschabaude/snarkyjs@feature/restructure-web/src/chrome_bindings/snarky_js_chrome.bc.js'
+  );
 }
 
 function loadScript(src) {

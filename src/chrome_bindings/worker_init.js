@@ -34,7 +34,10 @@ onmessage = function (msg) {
     /*postMessage(res);*/
   }
 };
-message = await message;
-await init(undefined, message.data.memory);
-await plonk_wasm.initThreadPool(navigator.hardwareConcurrency);
-postMessage({ type: 'wasm_bindgen_rayon_threads_ready' });
+
+(async () => {
+  message = await message;
+  await init(undefined, message.data.memory);
+  await plonk_wasm.initThreadPool(navigator.hardwareConcurrency);
+  postMessage({ type: 'wasm_bindgen_rayon_threads_ready' });
+})();
