@@ -10,6 +10,7 @@ export async function initSnarkyJS() {
   });
 
   let src = './worker_init.js';
+  let worker = new Worker(src, { type: 'module' });
 
   // for some reason this doesnt work
 
@@ -17,11 +18,8 @@ export async function initSnarkyJS() {
   //   'https://cdn.jsdelivr.net/gh/mitschabaude/snarkyjs@feature/restructure-web/src/chrome_bindings/worker_init.js';
   // let scriptBlob = await fetch(src).then((r) => r.blob());
   // console.log(scriptBlob);
-  // let blob = new Blob([scriptBlob], { type: 'text/javascript' });
-  // console.log(blob);
   // let url = URL.createObjectURL(scriptBlob);
   // let worker = new Worker(url, { type: 'module' });
-  let worker = new Worker(src, { type: 'module' });
 
   worker.onmessage = () => {
     set_workers_ready();
@@ -29,8 +27,8 @@ export async function initSnarkyJS() {
 
   worker.postMessage({ type: 'init', memory: plonk_wasm_init.memory });
   console.log('awaiting workers ready...');
-  // URL.revokeObjectURL(url);
   await workers_ready;
+  // URL.revokeObjectURL(url);
   console.log('finished');
 
   window.plonk_wasm = override_bindings(plonk_wasm, worker);
