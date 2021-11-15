@@ -9,9 +9,11 @@ export async function initSnarkyJS() {
     set_workers_ready = resolve;
   });
 
-  let worker = new Worker('/worker_init.js', {
-    type: 'module',
-  });
+  let scriptBlob = await fetch(
+    'https://cdn.jsdelivr.net/gh/mitschabaude/snarkyjs/src/chrome_bindings/worker_init.js'
+  ).then((r) => r.blob());
+  let url = URL.createObjectURL(scriptBlob);
+  let worker = new Worker(url, { type: 'module' });
 
   worker.onmessage = () => {
     set_workers_ready();
@@ -22,7 +24,9 @@ export async function initSnarkyJS() {
 
   window.plonk_wasm = override_bindings(plonk_wasm, worker);
 
-  await loadScript('/snarky_js_chrome.bc.js');
+  await loadScript(
+    'https://cdn.jsdelivr.net/gh/mitschabaude/snarkyjs/src/chrome_bindings/snarky_js_chrome.bc.js'
+  );
 }
 
 function loadScript(src) {

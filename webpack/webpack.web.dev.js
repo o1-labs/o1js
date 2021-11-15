@@ -5,7 +5,7 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
-  target: 'web',
+  target: ['web', 'es2020'],
   devtool: false,
   mode: 'none',
 
