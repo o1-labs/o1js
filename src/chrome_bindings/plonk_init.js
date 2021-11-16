@@ -1,5 +1,6 @@
 import init, * as plonk_wasm from './plonk_wasm.esbuild.out.js';
 import { override_bindings } from './worker_run.js';
+import workerInitSrc from 'string:./worker_init.js';
 
 export async function initSnarkyJS() {
   let plonk_wasm_init = await init();
@@ -9,8 +10,10 @@ export async function initSnarkyJS() {
     set_workers_ready = resolve;
   });
 
-  let src = './worker_init.js';
-  let worker = new Worker(src, { type: 'module' });
+  let worker = inlineWorker(workerInitSrc);
+
+  // let src = './worker_init.js';
+  // let worker = new Worker(src, { type: 'module' });
 
   // for some reason this doesnt work
 
@@ -43,4 +46,12 @@ function loadScript(src) {
   script.src = src;
   document.body.appendChild(script);
   return new Promise((r) => script.addEventListener('load', () => r()));
+}
+
+function inlineWorker(src) {
+  let blob = new Blob([src], { type: 'application/javascript' });
+  let url = URL.createObjectURL(blob);
+  let worker = new Worker(url);
+  URL.revokeObjectURL(url);
+  return worker;
 }

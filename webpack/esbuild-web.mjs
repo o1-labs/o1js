@@ -41,39 +41,34 @@ await esbuild.build({
   entryPoints: [`./dist/web-esbuild/chrome_bindings/worker_init.js`],
   bundle: true,
   format: 'esm',
-  outfile: 'dist/web-esbuild/worker_init.js',
+  outfile: 'dist/web-esbuild/chrome_bindings/worker_init.js',
   target: 'esnext',
   plugins: [wasmPlugin()],
+  allowOverwrite: true,
 });
 
-// run esbuild on the js tree
+// run esbuild on the js entrypoint
 let jsEntry = path.basename(entry).replace('.ts', '.js');
 await esbuild.build({
   entryPoints: [`./dist/web-esbuild/${jsEntry}`],
   bundle: true,
-  platform: 'browser',
   format: 'esm',
   outfile: 'dist/web-esbuild/index.js',
   resolveExtensions: ['.js', '.ts'],
-  plugins: [wasmPlugin()],
+  plugins: [wasmPlugin(), srcStringPlugin()],
   external: ['*.bc.js'],
   target: 'esnext',
   allowOverwrite: true,
   // watch: true,
 });
 
+// copy auxiliary files
 copy({
-  './src/chrome_bindings/snarky_js_chrome.bc.js':
-    './dist/web-esbuild/snarky_js_chrome.bc.js',
-  // './src/chrome_bindings/plonk_wasm.js': './dist/web-esbuild/plonk_wasm.js',
   './src/chrome_bindings/plonk_wasm.d.ts': './dist/web-esbuild/plonk_wasm.d.ts',
-  // './src/chrome_bindings/plonk_wasm_bg.wasm':
-  //   './dist/web-esbuild/plonk_wasm_bg.wasm',
   './src/chrome_bindings/plonk_wasm_bg.wasm.d.ts':
     './dist/web-esbuild/plonk_wasm_bg.wasm.d.ts',
   './src/chrome_bindings/index.html': './dist/web-esbuild/index.html',
   './src/chrome_bindings/server.py': './dist/web-esbuild/server.py',
-  './src/chrome_bindings/snippets': './dist/web-esbuild/snippets',
 });
 
 function copy(copyMap) {
@@ -104,6 +99,37 @@ function wasmPlugin() {
           loader: 'binary',
         };
       });
+    },
+  };
+}
+
+function srcStringPlugin() {
+  return {
+    name: 'src-string-plugin',
+    setup(build) {
+      build.onResolve(
+        { filter: /^string:/ },
+        async ({ path: importPath, resolveDir }) => {
+          let absPath = path.resolve(
+            resolveDir,
+            importPath.replace('string:', '')
+          );
+          return {
+            path: absPath,
+            namespace: 'src-string',
+          };
+        }
+      );
+
+      build.onLoad(
+        { filter: /.*/, namespace: 'src-string' },
+        async ({ path }) => {
+          return {
+            contents: await fs.promises.readFile(path, { encoding: 'utf8' }),
+            loader: 'text',
+          };
+        }
+      );
     },
   };
 }
