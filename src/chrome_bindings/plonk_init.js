@@ -1,4 +1,4 @@
-import init, * as plonk_wasm from './plonk_wasm.esbuild.out.js';
+import init, * as plonk_wasm from './plonk_wasm.esbuild.js';
 import { override_bindings } from './worker_run.js';
 import workerInitSrc from 'string:./worker_init.js';
 

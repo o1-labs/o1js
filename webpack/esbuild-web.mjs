@@ -3,15 +3,26 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { exec } from 'node:child_process';
 
-// run esbuild on plonk_wasm.js
+// run esbuild on plonk_wasm.js and create non-module version for worker
 await esbuild.build({
   entryPoints: [`./src/chrome_bindings/plonk_wasm.esbuild.js`],
   bundle: true,
   format: 'esm',
-  outfile: 'src/chrome_bindings/plonk_wasm.esbuild.out.js',
+  outfile: 'src/chrome_bindings/plonk_wasm.esbuild.bundled.js',
   target: 'esnext',
   plugins: [wasmPlugin()],
 });
+let plonkWasm = await fs.promises.readFile(
+  'src/chrome_bindings/plonk_wasm.esbuild.bundled.js',
+  { encoding: 'utf8' }
+);
+// strip away trailing export statement
+let plonkWasmWorker = plonkWasm.slice(0, plonkWasm.indexOf('export {'));
+await fs.promises.writeFile(
+  'src/chrome_bindings/plonk_wasm.esbuild.worker.js',
+  plonkWasmWorker,
+  { encoding: 'utf8' }
+);
 
 // run typescript
 let entry = process.argv[2] ?? './src/index.ts';
@@ -35,6 +46,12 @@ copy({
   './src/snarky.js': './dist/web-esbuild/snarky.js',
   './src/chrome_bindings': './dist/web-esbuild/chrome_bindings/',
 });
+// overwrite plonk_wasm with bundled version
+copy({
+  'src/chrome_bindings/plonk_wasm.esbuild.bundled.js':
+    './dist/web-esbuild/chrome_bindings/plonk_wasm.esbuild.js',
+});
+await fs.promises.unlink('src/chrome_bindings/plonk_wasm.esbuild.bundled.js');
 
 // run esbuild on worker_init.js
 await esbuild.build({
@@ -69,6 +86,9 @@ copy({
     './dist/web-esbuild/plonk_wasm_bg.wasm.d.ts',
   './src/chrome_bindings/index.html': './dist/web-esbuild/index.html',
   './src/chrome_bindings/server.py': './dist/web-esbuild/server.py',
+  // TODO: remove dependency on this last worker file
+  './src/chrome_bindings/plonk_wasm.esbuild.worker.js':
+    './dist/web-esbuild/plonk_wasm.esbuild.worker.js',
 });
 
 function copy(copyMap) {

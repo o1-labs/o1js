@@ -1,6 +1,7 @@
 import { startWorkers } from './snippets/wasm-bindgen-rayon-7afa899f36665473/src/workerHelpers.esbuild.js';
 import wasmCode from './plonk_wasm_bg.wasm';
-export const CDN_LOCATION = 'https://cdn.jsdelivr.net/gh/mitschabaude/snarkyjs@feature/restructure-web/src/chrome_bindings/plonk_wasm.esbuild.out.js';
+export const CDN_LOCATION = 'https://cdn.jsdelivr.net/gh/mitschabaude/snarkyjs@feature/restructure-web/src/chrome_bindings/plonk_wasm.esbuild.worker.js';
+// export const CDN_LOCATION = 'http://localhost:8000/plonk_wasm.esbuild.worker.js';
 
 let wasm;
 
