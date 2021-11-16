@@ -3,6 +3,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { exec } from 'node:child_process';
 
+// run esbuild on plonk_wasm.js
+await esbuild.build({
+  entryPoints: [`./src/chrome_bindings/plonk_wasm.esbuild.js`],
+  bundle: true,
+  format: 'esm',
+  outfile: 'src/chrome_bindings/plonk_wasm.esbuild.out.js',
+  target: 'esnext',
+  plugins: [wasmPlugin()],
+});
+
 // run typescript
 let entry = process.argv[2] ?? './src/index.ts';
 let json = JSON.stringify({
@@ -33,6 +43,7 @@ await esbuild.build({
   format: 'esm',
   outfile: 'dist/web-esbuild/worker_init.js',
   target: 'esnext',
+  plugins: [wasmPlugin()],
 });
 
 // run esbuild on the js tree
@@ -44,7 +55,7 @@ await esbuild.build({
   format: 'esm',
   outfile: 'dist/web-esbuild/index.js',
   resolveExtensions: ['.js', '.ts'],
-  plugins: [],
+  plugins: [wasmPlugin()],
   external: ['*.bc.js'],
   target: 'esnext',
   allowOverwrite: true,
@@ -54,10 +65,10 @@ await esbuild.build({
 copy({
   './src/chrome_bindings/snarky_js_chrome.bc.js':
     './dist/web-esbuild/snarky_js_chrome.bc.js',
-  './src/chrome_bindings/plonk_wasm.js': './dist/web-esbuild/plonk_wasm.js',
+  // './src/chrome_bindings/plonk_wasm.js': './dist/web-esbuild/plonk_wasm.js',
   './src/chrome_bindings/plonk_wasm.d.ts': './dist/web-esbuild/plonk_wasm.d.ts',
-  './src/chrome_bindings/plonk_wasm_bg.wasm':
-    './dist/web-esbuild/plonk_wasm_bg.wasm',
+  // './src/chrome_bindings/plonk_wasm_bg.wasm':
+  //   './dist/web-esbuild/plonk_wasm_bg.wasm',
   './src/chrome_bindings/plonk_wasm_bg.wasm.d.ts':
     './dist/web-esbuild/plonk_wasm_bg.wasm.d.ts',
   './src/chrome_bindings/index.html': './dist/web-esbuild/index.html',
@@ -81,4 +92,18 @@ function execPromise(cmd) {
       r(stdout);
     })
   );
+}
+
+function wasmPlugin() {
+  return {
+    name: 'wasm-plugin',
+    setup(build) {
+      build.onLoad({ filter: /\.wasm$/ }, async ({ path }) => {
+        return {
+          contents: await fs.promises.readFile(path),
+          loader: 'binary',
+        };
+      });
+    },
+  };
 }

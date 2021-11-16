@@ -1,4 +1,4 @@
-import init, * as plonk_wasm from './plonk_wasm.js';
+import init, * as plonk_wasm from './plonk_wasm.esbuild.out.js';
 import * as worker_run from './worker_run.js';
 
 let worker_spec = worker_run.worker_spec(plonk_wasm);
