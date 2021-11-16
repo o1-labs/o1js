@@ -46,7 +46,7 @@ async function buildWeb({ entry, production }) {
     extends: './tsconfig.json',
     include: [entry],
     compilerOptions: {
-      outDir: 'dist/web-esbuild',
+      outDir: 'dist/web',
     },
   });
   await fs.promises.writeFile('./tsconfig.web-tmp.json', json);
@@ -59,22 +59,22 @@ async function buildWeb({ entry, production }) {
 
   // copy over pure js files
   copy({
-    './src/snarky.js': './dist/web-esbuild/snarky.js',
-    './src/chrome_bindings': './dist/web-esbuild/chrome_bindings/',
+    './src/snarky.js': './dist/web/snarky.js',
+    './src/chrome_bindings': './dist/web/chrome_bindings/',
   });
   // overwrite plonk_wasm with bundled version
   copy({
     'src/chrome_bindings/plonk_wasm.esbuild.bundled.js':
-      './dist/web-esbuild/chrome_bindings/plonk_wasm.esbuild.js',
+      './dist/web/chrome_bindings/plonk_wasm.esbuild.js',
   });
   await fs.promises.unlink('src/chrome_bindings/plonk_wasm.esbuild.bundled.js');
 
   // run esbuild on worker_init.js
   await esbuild.build({
-    entryPoints: [`./dist/web-esbuild/chrome_bindings/worker_init.js`],
+    entryPoints: [`./dist/web/chrome_bindings/worker_init.js`],
     bundle: true,
     format: 'esm',
-    outfile: 'dist/web-esbuild/chrome_bindings/worker_init.js',
+    outfile: 'dist/web/chrome_bindings/worker_init.js',
     target: 'esnext',
     plugins: [wasmPlugin()],
     allowOverwrite: true,
@@ -84,10 +84,10 @@ async function buildWeb({ entry, production }) {
   // run esbuild on the js entrypoint
   let jsEntry = path.basename(entry).replace('.ts', '.js');
   await esbuild.build({
-    entryPoints: [`./dist/web-esbuild/${jsEntry}`],
+    entryPoints: [`./dist/web/${jsEntry}`],
     bundle: true,
     format: 'esm',
-    outfile: 'dist/web-esbuild/index.js',
+    outfile: 'dist/web/index.js',
     resolveExtensions: ['.js', '.ts'],
     plugins: [wasmPlugin(), srcStringPlugin(), deferExecutionPlugin()],
     external: ['*.bc.js'],
@@ -100,15 +100,14 @@ async function buildWeb({ entry, production }) {
 
   // copy auxiliary files
   copy({
-    './src/chrome_bindings/plonk_wasm.d.ts':
-      './dist/web-esbuild/plonk_wasm.d.ts',
+    './src/chrome_bindings/plonk_wasm.d.ts': './dist/web/plonk_wasm.d.ts',
     './src/chrome_bindings/plonk_wasm_bg.wasm.d.ts':
-      './dist/web-esbuild/plonk_wasm_bg.wasm.d.ts',
-    './src/chrome_bindings/index.html': './dist/web-esbuild/index.html',
-    './src/chrome_bindings/server.py': './dist/web-esbuild/server.py',
+      './dist/web/plonk_wasm_bg.wasm.d.ts',
+    './src/chrome_bindings/index.html': './dist/web/index.html',
+    './src/chrome_bindings/server.py': './dist/web/server.py',
     // TODO: remove dependency on this last worker file
     './src/chrome_bindings/plonk_wasm.esbuild.worker.js':
-      './dist/web-esbuild/plonk_wasm.esbuild.worker.js',
+      './dist/web/plonk_wasm.esbuild.worker.js',
   });
 }
 
