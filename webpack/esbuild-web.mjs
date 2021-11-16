@@ -72,10 +72,11 @@ await esbuild.build({
   format: 'esm',
   outfile: 'dist/web-esbuild/index.js',
   resolveExtensions: ['.js', '.ts'],
-  plugins: [wasmPlugin(), srcStringPlugin()],
+  plugins: [wasmPlugin(), srcStringPlugin(), deferExecutionPlugin()],
   external: ['*.bc.js'],
   target: 'esnext',
   allowOverwrite: true,
+  logLevel: 'error',
   // watch: true,
 });
 
@@ -147,6 +148,51 @@ function srcStringPlugin() {
           return {
             contents: await fs.promises.readFile(path, { encoding: 'utf8' }),
             loader: 'text',
+          };
+        }
+      );
+    },
+  };
+}
+
+function deferExecutionPlugin() {
+  return {
+    name: 'defer-execution-plugin',
+    setup(build) {
+      build.onResolve(
+        { filter: /^defer:/ },
+        async ({ path: importPath, resolveDir }) => {
+          let absPath = path.resolve(
+            resolveDir,
+            importPath.replace('defer:', '')
+          );
+          return {
+            path: absPath,
+            namespace: 'defer-execution',
+          };
+        }
+      );
+
+      build.onLoad(
+        { filter: /.*/, namespace: 'defer-execution' },
+        async ({ path }) => {
+          let code = await fs.promises.readFile(path, { encoding: 'utf8' });
+          // replace direct eval, because esbuild refuses to bundle it
+          // code = code.replace(/eval\(/g, '(0, eval)(');
+          code = code.replace(
+            /function\(\)\s*\{\s*return this\s*\}\(\)/g,
+            'window'
+          );
+          code = code.replace(
+            /function\(\)\s*\{\s*return this;\s*\}\(\)/g,
+            'window'
+          );
+          let deferedCode = `
+          let require = () => {};
+          export default () => {\n${code}\n};`;
+          return {
+            contents: deferedCode,
+            loader: 'js',
           };
         }
       );
