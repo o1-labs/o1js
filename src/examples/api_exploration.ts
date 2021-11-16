@@ -8,7 +8,7 @@ import {
   PrivateKey,
   PublicKey,
   Signature,
-} from '../../dist/web-esbuild';
+} from '../index';
 
 /* This file demonstrates the classes and functions available in snarky.js */
 
