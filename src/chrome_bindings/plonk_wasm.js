@@ -6702,7 +6702,7 @@ async function load(module, imports) {
 
 async function init(input, maybe_memory) {
     if (typeof input === 'undefined') {
-        input = new URL('plonk_wasm_bg.wasm', import.meta.url);
+        input = new URL('./plonk_wasm_bg.wasm', import.meta.url);
     }
     const imports = {};
     imports.wbg = {};

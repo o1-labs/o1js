@@ -1385,69 +1385,6 @@ module.exports.caml_pasta_fq_plonk_verifier_index_deep_copy = function(x) {
 };
 
 /**
-* @param {number | undefined} offset
-* @param {WasmPastaFqUrs} urs
-* @param {string} path
-* @returns {WasmPastaFqPlonkVerifierIndex}
-*/
-module.exports.caml_pasta_fq_plonk_verifier_index_read = function(offset, urs, path) {
-    _assertClass(urs, WasmPastaFqUrs);
-    var ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    var len0 = WASM_VECTOR_LEN;
-    var ret = wasm.caml_pasta_fq_plonk_verifier_index_read(!isLikeNone(offset), isLikeNone(offset) ? 0 : offset, urs.ptr, ptr0, len0);
-    return WasmPastaFqPlonkVerifierIndex.__wrap(ret);
-};
-
-/**
-* @param {boolean | undefined} append
-* @param {WasmPastaFqPlonkVerifierIndex} index
-* @param {string} path
-*/
-module.exports.caml_pasta_fq_plonk_verifier_index_write = function(append, index, path) {
-    _assertClass(index, WasmPastaFqPlonkVerifierIndex);
-    var ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    var len0 = WASM_VECTOR_LEN;
-    wasm.caml_pasta_fq_plonk_verifier_index_write(isLikeNone(append) ? 0xFFFFFF : append ? 1 : 0, index.ptr, ptr0, len0);
-};
-
-/**
-* @param {WasmPastaFqPlonkIndex} index
-* @returns {WasmPastaFqPlonkVerifierIndex}
-*/
-module.exports.caml_pasta_fq_plonk_verifier_index_create = function(index) {
-    _assertClass(index, WasmPastaFqPlonkIndex);
-    var ret = wasm.caml_pasta_fq_plonk_verifier_index_create(index.ptr);
-    return WasmPastaFqPlonkVerifierIndex.__wrap(ret);
-};
-
-/**
-* @param {number} log2_size
-* @returns {WasmPastaFqPlonkVerificationShifts}
-*/
-module.exports.caml_pasta_fq_plonk_verifier_index_shifts = function(log2_size) {
-    var ret = wasm.caml_pasta_fq_plonk_verifier_index_shifts(log2_size);
-    return WasmPastaFqPlonkVerificationShifts.__wrap(ret);
-};
-
-/**
-* @returns {WasmPastaFqPlonkVerifierIndex}
-*/
-module.exports.caml_pasta_fq_plonk_verifier_index_dummy = function() {
-    var ret = wasm.caml_pasta_fq_plonk_verifier_index_dummy();
-    return WasmPastaFqPlonkVerifierIndex.__wrap(ret);
-};
-
-/**
-* @param {WasmPastaFqPlonkVerifierIndex} x
-* @returns {WasmPastaFqPlonkVerifierIndex}
-*/
-module.exports.caml_pasta_fq_plonk_verifier_index_deep_copy = function(x) {
-    _assertClass(x, WasmPastaFqPlonkVerifierIndex);
-    var ret = wasm.caml_pasta_fq_plonk_verifier_index_deep_copy(x.ptr);
-    return WasmPastaFqPlonkVerifierIndex.__wrap(ret);
-};
-
-/**
 * @returns {WasmPallasGProjective}
 */
 module.exports.caml_pasta_pallas_one = function() {
@@ -6874,8 +6811,9 @@ module.exports.__wbg_startWorkers_3482c2aa07586a4c = function(arg0, arg1, arg2) 
     return addHeapObject(ret);
 };
 
-const path = require('path').join(__dirname, 'plonk_wasm_bg.wasm');
-const bytes = require('fs').readFileSync(path);
+// const path = require('path').join(__dirname, 'plonk_wasm_bg.wasm');
+// const bytes = require('fs').readFileSync(path);
+const bytes = require('./plonk_wasm_bg.wasm.js');
 
 const wasmModule = new WebAssembly.Module(bytes);
 const wasmInstance = new WebAssembly.Instance(wasmModule, imports);
