@@ -60,6 +60,7 @@ async function buildWeb({ entry, production }) {
   // copy over pure js files
   copy({
     './src/snarky.js': './dist/web/snarky.js',
+    './src/snarky.d.ts': './dist/web/snarky.d.ts',
     './src/chrome_bindings': './dist/web/chrome_bindings/',
   });
   // overwrite plonk_wasm with bundled version
@@ -106,8 +107,8 @@ async function buildWeb({ entry, production }) {
     './src/chrome_bindings/index.html': './dist/web/index.html',
     './src/chrome_bindings/server.py': './dist/web/server.py',
     // TODO: remove dependency on this last worker file
-    './src/chrome_bindings/plonk_wasm.esbuild.worker.js':
-      './dist/web/plonk_wasm.esbuild.worker.js',
+    // './src/chrome_bindings/plonk_wasm.esbuild.worker.js':
+    //   './dist/web/plonk_wasm.esbuild.worker.js',
   });
 }
 
