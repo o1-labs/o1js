@@ -6811,8 +6811,9 @@ module.exports.__wbg_startWorkers_3482c2aa07586a4c = function(arg0, arg1, arg2) 
     return addHeapObject(ret);
 };
 
-const path = require('path').join(__dirname, 'plonk_wasm_bg.wasm');
-const bytes = require('fs').readFileSync(path);
+// const path = require('path').join(__dirname, 'plonk_wasm_bg.wasm');
+// const bytes = require('fs').readFileSync(path);
+const bytes = require('./plonk_wasm_bg.wasm.js');
 
 const wasmModule = new WebAssembly.Module(bytes);
 const wasmInstance = new WebAssembly.Instance(wasmModule, imports);

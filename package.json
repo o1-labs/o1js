@@ -3,10 +3,14 @@
   "description": "JavaScript bindings for SnarkyJS",
   "version": "0.1.2",
   "license": "Apache-2.0",
+  "main": "./dist/web/index.js",
   "exports": {
     "browser": "./dist/web/index.js",
-    "require": "./dist/server/index.js",
-    "node": "./src/index.mjs"
+    "node": {
+      "import": "./src/index.mjs",
+      "require": "./dist/server/index.js"
+    },
+    "default": "./dist/web/index.js"
   },
   "types": "./src/index.d.ts",
   "files": [
