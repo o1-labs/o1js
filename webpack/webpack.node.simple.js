@@ -21,7 +21,11 @@ module.exports = {
   externals: {
     './node_bindings/snarky_js_node.bc.js':
       'commonjs ./node_bindings/snarky_js_node.bc.js',
+    './node_bindings/snarky_js_node_ORIGINAL.bc.js':
+      'commonjs ./node_bindings/snarky_js_node_ORIGINAL.bc.js',
     './snarky_js_node.bc.js': 'commonjs ./snarky_js_node.bc.js',
+    './snarky_js_node_ORIGINAL.bc.js':
+      'commonjs ./snarky_js_node_ORIGINAL.bc.js',
     'reflect-metadata': 'commonjs reflect-metadata',
     tslib: 'commonjs tslib',
   },
