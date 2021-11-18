@@ -1,6 +1,10 @@
 import init, * as plonk_wasm from '/plonk_wasm.js';
 import { override_bindings } from '/worker_run.js';
 
+window.init = init;
+window.plonk_wasm = plonk_wasm;
+window.override_bindings = override_bindings;
+
 export const initSnarkyJS = async (bundle) => {
   var plonk_wasm_init = await init();
 
