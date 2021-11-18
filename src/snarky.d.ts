@@ -66,6 +66,12 @@ export class Field {
   toBits(length: number): Bool[];
 
   equals(y: Field | number | string | boolean): Bool;
+  
+  seal(): Field;
+  rangeCheckHelper(numBits: number): Field;
+  
+  isConstant(): boolean;
+  toConstant(): Field;
 
   // value(this: Field | number | string | boolean): Field;
 
@@ -120,8 +126,6 @@ export class Field {
 
   static toJSON(x: Field): JSONValue;
   static fromJSON(x: JSONValue): Field | null;
-
-  static toConstant(x: Field): Field;
 }
 
 export class Bool {
@@ -258,6 +262,8 @@ export class Circuit {
   static verify(publicInput: any[], vk: VerificationKey, pi: Proof): boolean;
 
   static toFieldElements<A>(A): Field[];
+  
+  static inProver(): boolean;
 }
 
 export class Scalar {

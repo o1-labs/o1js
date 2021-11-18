@@ -2,26 +2,63 @@
 
 import { prop, CircuitValue } from './circuit_value';
 import { Field, Bool } from '../snarky';
-import { UInt32, UInt64 } from './uint';
+import { UInt32, UInt64 } from './int';
 import { PublicKey } from './signature';
 
 
 class SetOrKeep<_A> extends CircuitValue {}
 
-export class TransactionId {
-  wait(): Promise<void> {
-    throw 'todo';
-  }
+export interface TransactionId {
+  wait(): Promise<void>
 }
 
-export class Transaction {
-  send(): TransactionId {
-    throw 'todo';
-  }
+export interface Transaction {
+  send(): TransactionId
 }
+
+interface SnappAccount {
+  app_state: Array<Field>,
+}
+
+interface Account {
+  balance: UInt64,
+  nonce: UInt32,
+  snapp: SnappAccount,
+}
+
+interface Mina {
+  transaction(f : () => void): Transaction,
+  currentSlot(): UInt32,
+  getAccount(publicKey: PublicKey): Account,
+}
+
+const Local: Mina = (() => {
+  const msPerSlot = 3 * 60 * 1000;
+  const startTime = (new Date()).valueOf();
+
+  const currentSlot = () =>
+    UInt32.fromNumber(
+      Math.ceil(((new Date()).valueOf() - startTime) / msPerSlot));
+    
+  const getAccount = (pk: PublicKey) => {
+    throw 'todo'
+  };
+
+  const transaction = (f: () => void) => {
+    throw 'todo'
+  };
+
+  return {
+    currentSlot,
+    getAccount,
+    transaction
+  }
+})();
+
+let activeInstance: Mina = Local;
 
 export function transaction(f : () => void): Transaction {
-  throw 'todo'
+  return activeInstance.transaction(f)
 }
 
 export function sendPendingTransactions(): TransactionId {
@@ -29,11 +66,15 @@ export function sendPendingTransactions(): TransactionId {
 }
 
 export function currentSlot(): UInt32 {
-  throw 'todo'
+  return activeInstance.currentSlot();
 }
 
 export function getBalance(pubkey: PublicKey): UInt64 {
-  throw 'todo'
+  return activeInstance.getAccount(pubkey).balance;
+}
+
+export function getAccount(pubkey: PublicKey): Account {
+  return activeInstance.getAccount(pubkey);
 }
 
 /*

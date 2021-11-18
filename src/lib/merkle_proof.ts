@@ -209,9 +209,14 @@ export type MerkleProof = InstanceType<typeof MerkleProof[0]>;
 export type Index = InstanceType<typeof Index[0]>;
 
 // TODO: Put better value
-const emptyHashes: Field[] = [new Field(1234561789)];
+const emptyHashes: Field[] =  [];
+//[new Field(1234561789)];
 
 function emptyHash(depth: number): Field {
+  if (emptyHashes.length === 0) {
+    emptyHashes.push(Field.zero)
+  }
+
   if (depth >= emptyHashes.length) {
     for (let i = emptyHashes.length; i < depth + 1; ++i) {
       const h = emptyHashes[i - 1];
@@ -508,7 +513,7 @@ export class Collection<A> {
       this.getValues().setValue(
         constantIndex(i.value),
         x,
-        Field.toConstant(eltHash)
+        eltHash.toConstant()
       );
     });
 

@@ -17,10 +17,13 @@ export function branch(
 export class ProofWithInput<A> {
   publicInput: A
   proof: Proof | null;
+  
+  assertVerifies() {
+    throw 'todo';
+  }
 
   constructor(publicInput: A) {
     this.publicInput = publicInput;
     this.proof = null;
   }
 }
-

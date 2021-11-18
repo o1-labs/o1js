@@ -9,7 +9,7 @@ import { SmartContract, state, method, init } from '../lib/snapp';
 import { proofSystem, branch, ProofWithInput } from '../lib/proof_system';
 import * as DataStore from '../lib/data_store';
 import * as Mina from '../lib/mina';
-import { UInt32, UInt64 } from '../lib/uint';
+import { UInt32, UInt64 } from '../lib/int';
 
 type AccountDb = KeyedAccumulator<PublicKey, RollupAccount>;
 
@@ -18,7 +18,7 @@ class RollupAccount extends CircuitValue {
   @prop nonce: UInt32;
   @prop publicKey: PublicKey;
   
-  constructor(balance: Field, nonce: Field, publicKey: PublicKey) {
+  constructor(balance: UInt64, nonce: UInt32, publicKey: PublicKey) {
     super();
     this.balance = balance;
     this.nonce = nonce;
@@ -71,6 +71,8 @@ class RollupStateTransition extends CircuitValue {
   }
 }
 
+// a recursive proof system is kind of like an "enum"
+
 @proofSystem
 class RollupProof extends ProofWithInput<RollupStateTransition> {
   @branch static processDeposit(
@@ -107,6 +109,7 @@ class RollupProof extends ProofWithInput<RollupStateTransition> {
     return new RollupProof(new RollupStateTransition(stateBefore, stateAfter));
   }
 
+  // Is branch a good name?
   @branch static merge(p1: RollupProof, p2: RollupProof): RollupProof {
     p1.publicInput.target.assertEquals(
       p2.publicInput.source
@@ -120,19 +123,87 @@ class RollupProof extends ProofWithInput<RollupStateTransition> {
 
 type OperatorsDb = AccumulatorI<PublicKey, AccumulatorMembershipProof>;
 
+// Rollup proof system itself (executed off chain)
+
+// Rollup snapp
+
+/*
+  There is a database of accounts that exists offchain ("hosted" on IPFS)
+    - rollup state
+
+  There is a database of permissioned rollup operator public keys, that's private
+  and stored on the disk of the owner of this snapp account.
+
+  - if you're the owner, you can add a permissioned operator to the set of operators
+    - you can only do this every 20 slots
+  - if you're a user, you can deposit funds into the rollup (in the future you can withdraw too)
+  - if you're a rollup operator, you can post a rollup proof to the snapp account and thus
+    update its state
+
+
+    - init 
+    - usage
+    - methods
+    - state
+*/
+
+/*
+A snapp transaction is a list of permissioned, precondition, updates
+
+- where a permission is a proof or a signature or nothing
+- a precondition is a series of assertions about the current state on Mina
+  - network preconditions (assertions on the protocol state)
+  - account preconditions (specific to state in an account)
+- an update is an edit to the on-chain state.
+*/
+
+/*
+  
+general stuff for defining types that can be used as private/public inputs
+@prop
+
+smart contract specific
+@state
+@method
+
+A circuit is a function that whose inputs are divided into
+public inputs and private inputs
+
+A smart contract is basically 
+- a description of the on-chain state used by that smart contract
+
+  the @state decorator is used to list out the onchain state
+- a list of circuits all of which have as their public input
+  the same thing, which is essentially a snapp transaction
+  
+  the @method decorator is used to list out all these circuits
+
+  and each individual circuit basically checks, "is this snapp
+  transaction (i.e., the one currently being constructed) 
+  acceptable to me"
+*/
+
+
 class RollupSnapp extends SmartContract {
-  @state operatorsCommitment: State<Field>;
-  @state rollupState: State<RollupState>;
+  @state(Field) operatorsCommitment: State<Field>; // state slot 0
+  @state(RollupState) rollupState: State<RollupState>; // state slots 1, 2
+  // RollupState public rollupState;
 
   // The 5 slot period during which this was last updated
-  @state lastUpdatedPeriod: State<UInt32>;
+  @state(UInt32) lastUpdatedPeriod: State<UInt32>; // state slot 3
+  // UInt32 public lastUpdatedPeriod
 
+  // maybe try something like react state hooks?
+
+  // the constructor should be init
   constructor(address: PublicKey) {
     super(address);
-    this.operatorsCommitment = new State();
-    this.rollupState = new State();
-    this.lastUpdatedPeriod = new State();
+    this.operatorsCommitment = new State(undefined as any, undefined as any);
+    this.rollupState = new State(undefined as any, undefined as any);
+    this.lastUpdatedPeriod = new State(undefined as any, undefined as any);
   }
+
+  static instanceOnChain(address: PublicKey): RollupSnapp { throw 'todo' }
 
   static periodLength = 5;
   static newOperatorGapSlots = 20;
@@ -155,16 +226,30 @@ class RollupSnapp extends SmartContract {
   {
     let period = submittedSlot.div(RollupSnapp.periodLength);
     let startSlot = period.mul(RollupSnapp.periodLength);
+    /*
 
+    this.deferToOnChain((onChainState) => {
+    })
+
+    this.deferToOnChain(({ protocolState }) => {
+      protocolState.globalSlotSinceGenesis.assertBetween(
+        startSlot, startSlot.add(RollupSnapp.periodLength));
+      )
+    });
+    */
+    /*
     this.protocolState.globalSlotSinceGenesis.assertBetween(
       startSlot, startSlot.add(RollupSnapp.periodLength));
+      */
 
     // Check it has been a while since the last addition of a new
     // operator
+    /*
     period.assertGt(
       this.lastUpdatedPeriod.get()
       .add(RollupSnapp.newOperatorGapPeriods)
     );
+    */
     this.lastUpdatedPeriod.set(period);
 
     this.operatorsCommitment.assertEquals(operatorsDb.commitment());
@@ -193,27 +278,39 @@ class RollupSnapp extends SmartContract {
     let deposit = new RollupDeposit(depositor.publicKey, depositAmount);
     this.emitEvent(deposit);
     const rollupState = this.rollupState.get();
+
+    /*
     rollupState.pendingDepositsCommitment = MerkleStack.pushCommitment(
       deposit, rollupState.pendingDepositsCommitment
     );
     this.rollupState.set(rollupState);
+    */
   }
 
   @method updateRollupState(
+    // TODO: Explicitly verify the proof
     rollupProof: RollupProof,
     operatorMembership: AccumulatorMembershipProof,
     // Operator signs the new rollup state
     operator: PublicKey,
     operatorSignature: Signature)
   {
+    // What you can actually do with snapp state fields is
+    // - assert that they have a given value
+    // - set them to a new value
+
+    /*
     operatorMembership.verify(this.operatorsCommitment.get(), operator)
     .assertEquals(true);
 
     operatorSignature.verify(operator, rollupProof.publicInput.target.toFieldElements())
     .assertEquals(true);
 
+    // account precondition
     this.rollupState.assertEquals(rollupProof.publicInput.source);
+    // account update
     this.rollupState.set(rollupProof.publicInput.target);
+    */
   }
 }
 
@@ -229,7 +326,7 @@ function main() {
   let operatorsDbStore = DataStore.Disk<PublicKey>(PublicKey, '/home/izzy/operators');
   let operatorsDb = MerkleAccumulator(operatorsDbStore);
 
-  let RollupInstance = new RollupSnapp(snappPubkey);
+  let RollupInstance = RollupSnapp.instanceOnChain(snappPubkey);
 
   // Add a new rollup operator
   let newOperatorPrivkey = PrivateKey.random();
@@ -247,15 +344,20 @@ function main() {
 
   let pendingDeposits = new MerkleStack<RollupDeposit>(RollupDeposit, () => []); // todo: storage
 
+  // TODO: Have a mock Mina module for testing purposes
+  // TODO: Make sure that modifications to data stores are not
+  // committed before corresponding changes happen on chain
+
   // Executes a snapp method, broadcasts the transaction to chain.
   Mina.transaction(() => {
     RollupInstance.addOperator(
       Mina.currentSlot(), operatorsDb, newOperatorPubkey, signature);
   }).send().wait().then(() => {
     let depositorBalance = Mina.getBalance(depositorPubkey);
-    let depositor = Party.createSigned(depositorPrivkey);
-
     return Mina.transaction(() => {
+      let depositor = Party.createSigned(depositorPrivkey);
+      // TODO: Figure out nicer way to have a second party.
+
       // Deposit some funds into the rollup
       RollupInstance.depositFunds(depositor, depositorBalance.div(2));
     }).send().wait()

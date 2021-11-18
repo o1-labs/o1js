@@ -10,7 +10,7 @@ export abstract class CircuitValue {
     const fields: [string, any][] = (this as any).prototype._fields;
     return fields.reduce((acc, [_, typ]) => acc + typ.sizeInFieldElements(), 0);
   }
-
+  
   static toFieldElements<T>(this: Constructor<T>, v: T): Field[] {
     const res: Field[] = [];
     const fields = (this as any).prototype._fields;
@@ -97,6 +97,22 @@ export abstract class CircuitValue {
     return new this(...props);
   }
 }
+
+(CircuitValue as any).check = (v: any) => {
+  const fields = (this as any).prototype._fields;
+  if (fields === undefined || fields === null) {
+    return;
+  }
+
+  for (let i = 0; i < fields.length; ++i) {
+    const [key, propType] = fields[i];
+    const value = (v as any)[key];
+    if (propType.check != undefined) {
+      propType.check(value);
+    }
+  }
+}
+
 
 export function prop(this: any, target: any, key: string) {
   const fieldType = Reflect.getMetadata('design:type', target, key);

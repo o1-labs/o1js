@@ -20,6 +20,7 @@ export const shutdown = () => {
   if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
     // Since we export off the window object, we don't actually use this import for exporting.
     // The reason we require the web bindings here is just to get it included in the webpack output bundle.
+    console.log('foo 1')
     const _ = require('./chrome_bindings/snarky_js_chrome.bc.js');
     Field = window.__snarky.Field;
     Bool = window.__snarky.Bool;
@@ -27,6 +28,7 @@ export const shutdown = () => {
     Poseidon = window.__snarky.Poseidon;
     Group = window.__snarky.Group;
     Scalar = window.__snarky.Scalar;
+    console.log('foo 2')
   } else {
     const snarkyServer = require('./node_bindings/snarky_js_node.bc.js');
     Field = snarkyServer.Field;

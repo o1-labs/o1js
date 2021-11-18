@@ -2,62 +2,21 @@ import { prop, CircuitValue } from './circuit_value';
 import { Field, Bool, VerificationKey, Poseidon } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { Optional } from './optional';
-import { UInt64, UInt32 } from './uint';
+import { UInt64, UInt32, Int64 } from './int';
+import { mixedTypeAnnotation } from '@babel/types';
+import * as Mina from './mina';
+import { Circuit } from '..';
 
-export class Nat extends CircuitValue {
-  @prop lsbFirst: Array<Bool>;
-  @prop numBits: number;
-
-  constructor(lsbFirst: Array<Bool>, numBits: number) {
-    super();
-    this.lsbFirst = lsbFirst;
-    this.numBits = numBits;
-  }
-}
-export class Currency extends Nat {
-  constructor(lsbFirst: Array<Bool>, numBits: number) {
-    super(lsbFirst, numBits)
-  }
-}
-
-export class Amount extends Currency {
-  constructor(lsbFirst: Array<Bool>) {
-    super(lsbFirst, 64);
-  }
-}
-export class Balance extends Currency {
-  constructor(lsbFirst: Array<Bool>) {
-    super(lsbFirst, 64);
-  }
-}
-export class Fee extends Currency {
-  constructor(lsbFirst: Array<Bool>) {
-    super(lsbFirst, 64);
-  }
-}
-
-export class GlobalSlot extends Nat {
-  constructor(lsbFirst: Array<Bool>) {
-    super(lsbFirst, 32);
-  }
-}
-
-export class SignedAmount extends CircuitValue {
-  neg(): SignedAmount {
-    throw 'todo';
-  }
-  static ofUnsigned(x: UInt64): SignedAmount {
-    throw 'todo'
-  }
-
-  static ofField(x: Field): SignedAmount {
-    throw 'todo';
-  }
-
-  toField(): Field {
-    throw 'todo';
-  }
-}
+export type Amount = UInt64;
+export const Amount = UInt64;
+export type Balance = UInt64;
+export const Balance = UInt64;
+export type Fee = UInt64;
+export const Fee = UInt64;
+export type GlobalSlot = UInt32;
+export const GlobalSlot = UInt32;
+export type SignedAmount = Int64;
+export const SignedAmount = Int64;
 
 export class Timing extends CircuitValue {
   @prop initialMinimumBalance: Balance
@@ -76,15 +35,15 @@ export class Timing extends CircuitValue {
   }
 }
 
-export class SetOrKeep<T> extends CircuitValue {
+export class SetOrKeep<T> {
   @prop value: Optional<T>;
 
   set(x: T) {
-    throw 'todo';
+    this.value.isSome = new Bool(true);
+    this.value.value = x;
   }
 
   constructor(value: Optional<T>) {
-    super();
     this.value = value;
   }
 }
@@ -137,6 +96,8 @@ export class Perm extends CircuitValue {
   }
 }
 
+// Perm = ProofRequried | SignatureRequired | NothingRequired | EitherRequired
+
 export class Permissions extends CircuitValue {
   @prop stake: Bool
   @prop editState: Perm
@@ -150,7 +111,18 @@ export class Permissions extends CircuitValue {
   @prop setTokenSymbol: Perm
 
   static default() : Permissions {
-    throw 'todo'
+    return new Permissions(
+      new Bool(true),
+      Perm.proof(),
+      Perm.signature(),
+      Perm.proof(),
+      Perm.signature(),
+      Perm.signature(),
+      Perm.signature(),
+      Perm.signature(),
+      Perm.proof(),
+      Perm.signature(),
+    );
   }
 
   constructor(stake: Bool, editState: Perm, send: Perm, receive: Perm, setDelegate: Perm, setPermissions: Perm, setVerificationKey: Perm, setSnappUri: Perm, editRollupState: Perm, setTokenSymbol: Perm) {
@@ -205,11 +177,7 @@ export class Update extends CircuitValue {
   }
 }
 
-export class TokenId extends Nat {
-  constructor(lsbFirst: Array<Bool>) {
-    super(lsbFirst, 64);
-  }
-}
+type TokenId = UInt64;
 
 // TODO
 export class Events extends CircuitValue {}
@@ -261,7 +229,13 @@ export class State<A> {
   predicate: OrIgnore<A>;
   update: SetOrKeep<A>;
 
-  constructor() {
+  accountPublicKey: PublicKey;
+  appStateIndex: number;
+
+  constructor(accountPublicKey: PublicKey, index: number) {
+    this.accountPublicKey = accountPublicKey;
+    this.appStateIndex = index;
+
     let value : A = undefined as any;
     this.predicate = new OrIgnore(new Optional(new Bool(false), value));
     this.update = new SetOrKeep(new Optional(new Bool(false), value))
@@ -277,11 +251,19 @@ export class State<A> {
     this.update.value.value = x;
   }
 
-  get(): A {
+  get(): Promise<A> {
+    /*
+    if (Circuit.inProver()) {
+      let res = Circuit.witness()
+    } else {
+    }
+
+    Mina.getAccount() */
+
     // TODO: Get the state from somewhere
     let actualState: A = undefined as any;
     this.assertEquals(actualState);
-    return actualState;
+    return new Promise((resolve) => resolve(actualState));
   }
 }
 
