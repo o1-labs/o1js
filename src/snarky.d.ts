@@ -374,4 +374,4 @@ export const array: <T>(
  * From web applications, this function is a no-op. */
 export const shutdown: () => Promise<undefined>;
 
-export let snarkyReady: Promise<undefined>;
+export let isReady: Promise<undefined>;
