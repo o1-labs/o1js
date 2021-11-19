@@ -18,7 +18,7 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "start:web": "./scripts/build-and-run-web.sh",
-    "start:server": "./scripts/build-and-run-server.sh",
+    "exec": "./scripts/build-and-run-server.sh",
     "build:web": "webpack --config ./webpack/webpack.web.dev.js --stats-error-details",
     "build:server": "webpack --config ./webpack/webpack.server.dev.js --stats-error-details",
     "prepublish:web": "webpack --config ./webpack/webpack.web.prod.js --stats-error-details",
