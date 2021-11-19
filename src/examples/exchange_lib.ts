@@ -1,7 +1,12 @@
 // import { MerkleCollection, MerkleProof } from '../mina.js';
-import { Circuit, Scalar, Group, Bool, Field } from '../snarky';
-import { prop, CircuitValue } from '../lib/circuit_value';
-import { Signature } from '../lib/signature';
+import {
+  Circuit,
+  Bool,
+  Field,
+  prop,
+  CircuitValue,
+  Signature,
+} from '@o1labs/snarkyjs';
 
 // type TradeObject = { timestamp: Field, price: Field, quantity: Field, isBuy: Bool };
 

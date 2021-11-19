@@ -2,7 +2,16 @@
 
 To write a Snapp, we recommend using the [Snapp CLI](https://github.com/o1-labs/snapp-cli), which makes writing a Snapp easy by including SnarkyJS & providing project scaffolding, a test framework, and formatting.
 
-## SnarkyJS - Web
+## Run examples in Node
+
+```
+npm install
+npm run build
+
+./run src/examples/api_exploration.ts
+```
+
+## Build and run web version
 
 ```
 npm install
@@ -11,14 +20,7 @@ npm run start:web
 
 Then go to `http://localhost:8000/`
 
-## SnarkyJS - Server
-
-```
-npm install
-npm run start:server
-```
-
-## Run Tests
+## Run tests
 
 ```
 npm run test

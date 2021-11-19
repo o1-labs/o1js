@@ -3,7 +3,32 @@ import path from 'node:path';
 import ts from 'typescript';
 import esbuild from 'esbuild';
 
-let srcPath = './src/build/examples/preimage.ts';
+export { buildAndImport };
+
+async function buildAndImport(srcPath) {
+  let tsConfig = findTsConfig() ?? defaultTsConfig;
+
+  let outfile = srcPath.replace('.ts', '.tmp.mjs');
+
+  await esbuild.build({
+    entryPoints: [srcPath],
+    bundle: true,
+    format: 'esm',
+    platform: 'node',
+    outfile,
+    target: 'esnext',
+    resolveExtensions: ['.node.js', '.ts', '.js'],
+    plugins: [typescriptPlugin(tsConfig), makeNodeModulesExternal()],
+  });
+
+  let absPath = path.resolve('.', outfile);
+
+  let importedModule = await import(absPath);
+
+  await fs.unlink(absPath);
+
+  return importedModule;
+}
 
 const defaultTsConfig = {
   compilerOptions: {
@@ -21,34 +46,6 @@ const defaultTsConfig = {
     allowSyntheticDefaultImports: true,
   },
 };
-let tsConfig = findTsConfig() ?? defaultTsConfig;
-
-let outfile = srcPath.replace('.ts', '.tmp.mjs');
-
-await esbuild.build({
-  entryPoints: [srcPath],
-  bundle: true,
-  format: 'esm',
-  platform: 'node',
-  outfile,
-  target: 'esnext',
-  resolveExtensions: ['.node.js', '.ts', '.js'],
-  plugins: [typescriptPlugin(tsConfig), makeNodeModulesExternal()],
-});
-
-let absPath = path.resolve('.', outfile);
-
-let Class = (await import(absPath)).default;
-
-await fs.unlink(absPath);
-
-// Uint8Array.prototype.toJSON = function () {
-//   return `new Uint8Array(${JSON.stringify([...this])})`;
-// };
-// console.log(JSON.stringify(new Uint8Array([1, 2, 3, 4])));
-
-let keypair = Class.generateKeypair();
-console.dir(keypair, { depth: null });
 
 function typescriptPlugin(tsConfig) {
   return {
