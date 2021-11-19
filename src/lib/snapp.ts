@@ -10,7 +10,6 @@ export function state<A>(ty: AsFieldElements<A>) {
     propertyName: string,
     _descriptor?: PropertyDescriptor
   ): any {
-    throw ''
   }
 }
 
@@ -19,14 +18,12 @@ export function method(
   propertyName: string,
   _descriptor?: PropertyDescriptor
 ): any {
-  throw ''
 }
 export function init(
   target: any,
   propertyName: string,
   _descriptor?: PropertyDescriptor
 ): any {
-  throw ''
 }
 
 export class SmartContract {
@@ -41,6 +38,10 @@ export class SmartContract {
     this.protocolState = null as unknown as ProtocolStatePredicate;
     this.self = null as unknown as Body;
     this.state = [];
+  }
+  
+  static fromAddress(address: PublicKey): SmartContract {
+    throw 'todo'
   }
 
   party(i: number): Body {

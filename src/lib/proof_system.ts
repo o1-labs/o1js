@@ -3,7 +3,6 @@ import { Proof } from "../snarky";
 export function proofSystem(
   target: any,
 ): any {
-  throw ''
 }
 
 export function branch(
@@ -11,7 +10,6 @@ export function branch(
   propertyName: string,
   _descriptor?: PropertyDescriptor
 ): any {
-  throw ''
 }
 
 export class ProofWithInput<A> {
