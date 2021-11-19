@@ -1,7 +1,7 @@
 // this is the entry point for node projects that use ESM imports
 import snarky from '../dist/server/index.js';
 // here we can just await the promise to provide a cleaner interface
-await snarky.snarkyReady;
+await snarky.isReady;
 
 // TODO: autogenerate this
 let {

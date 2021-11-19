@@ -6,7 +6,7 @@ let snarky = require('../src/node_bindings/snarky_js_node.bc.js');
 let classNames = ['Field', 'Bool', 'Circuit', 'Poseidon', 'Group', 'Scalar'];
 
 (async () => {
-  await snarky.snarkyReady;
+  await snarky.isReady;
 
   let classList = [];
   for (let className of classNames) {

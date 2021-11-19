@@ -1,4 +1,4 @@
-import { shutdown, snarkyReady } from '../dist/server';
+import { shutdown, isReady } from '../dist/server';
 import { main } from './schnorr_sign';
 
 describe('snarkyjs', () => {
@@ -6,7 +6,7 @@ describe('snarkyjs', () => {
     shutdown();
   });
   it('schnorr_sign.main() is successfully called', async () => {
-    await snarkyReady;
+    await isReady;
     main();
     expect(true);
   });

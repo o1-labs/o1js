@@ -8,7 +8,7 @@ import {
   PublicKey,
   Signature,
   shutdown,
-  snarkyReady,
+  isReady,
 } from '../dist/server';
 
 describe('snarkyjs', () => {
@@ -16,7 +16,7 @@ describe('snarkyjs', () => {
     shutdown();
   });
   it('api_exploration successfully runs', async () => {
-    await snarkyReady;
+    await isReady;
 
     /* This file demonstrates the classes and functions available in snarky.js */
 
