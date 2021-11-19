@@ -1,42 +1,26 @@
-export { Field, Bool, Circuit, Poseidon, Group, Scalar, shutdown, snarkyReady };
+export {
+  Field,
+  Bool,
+  Circuit,
+  Poseidon,
+  Group,
+  Scalar,
+  shutdown,
+  snarkyReady,
+  isSnarkyReady,
+};
 let snarkyServer = require('./node_bindings/snarky_js_node.bc.js');
 let snarkySpec = require('./snarky-class-spec.json');
 
 // proxy all classes, so subclasses can be declared at the top level, and static props still work later on
-let snarkyProxies = {};
-for (let classSpec of snarkySpec) {
-  let className = classSpec.name;
-  // constructor
-  let Class = function (...args) {
-    return new snarkyServer[className](...args);
-  };
-  for (let prop of classSpec.props) {
-    let propName = prop.name;
-    if (prop.type === 'function') {
-      // static method
-      Class[propName] = function (...args) {
-        return snarkyServer[className][propName].apply(this, args);
-      };
-    } else {
-      // other static prop
-      Object.defineProperty(Class, propName, {
-        get: function () {
-          return snarkyServer[className][propName];
-        },
-      });
-    }
-  }
-  snarkyProxies[className] = Class;
-}
-let { Field, Bool, Circuit, Poseidon, Group, Scalar } = snarkyProxies;
-
+// currently this does not proxy class *instances*. So `new Field(5)` returns the same thing as before and only works after snarkyReady
+let { Field, Bool, Circuit, Poseidon, Group, Scalar } = proxyClasses(
+  snarkyServer,
+  snarkySpec
+);
+let isSnarkyReady = false;
 let snarkyReady = snarkyServer.snarky_ready.then(() => {
-  // Field = snarkyServer.Field;
-  // Bool = snarkyServer.Bool;
-  // Circuit = snarkyServer.Circuit;
-  // Poseidon = snarkyServer.Poseidon;
-  // Group = snarkyServer.Group;
-  // Scalar = snarkyServer.Scalar;
+  isSnarkyReady = true;
 });
 
 function shutdown() {
@@ -49,3 +33,44 @@ function shutdown() {
     );
   }
 }
+
+function proxyClasses(moduleObject, moduleSpec) {
+  let moduleProxy = {};
+  for (let classSpec of moduleSpec) {
+    let className = classSpec.name;
+    // constructor
+    let Class = function (...args) {
+      if (!isSnarkyReady) throw Error(constructError(className));
+      return new moduleObject[className](...args);
+    };
+    for (let prop of classSpec.props) {
+      let propName = prop.name;
+      if (prop.type === 'function') {
+        // static method
+        Class[propName] = function (...args) {
+          if (!isSnarkyReady) throw Error(methodError(className, propName));
+          return moduleObject[className][propName].apply(this, args);
+        };
+      } else {
+        // other static prop
+        Object.defineProperty(Class, propName, {
+          get: function () {
+            return moduleObject[className][propName];
+          },
+        });
+      }
+    }
+    moduleProxy[className] = Class;
+  }
+  return moduleProxy;
+}
+
+let constructError = (
+  className
+) => `Cannot call class constructor because snarkyjs has not finished loading.
+Try calling \`await snarkyReady\` before \`new ${className}()\``;
+let methodError = (
+  className,
+  methodName
+) => `Cannot call static method because snarkyjs has not finished loading.
+Try calling \`await snarkyReady\` before \`${className}.${methodName}()\``;
