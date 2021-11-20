@@ -6,32 +6,96 @@ export type JSONValue =
   | Array<JSON>
   | { [key: string]: JSONValue };
 
+/**
+ * Part of the circuit [[ Keypair ]]. A verification key can be used to verify a [[ Proof ]] when you provide the correct public input.
+ */
 export class VerificationKey {
   verify(publicInput: any[], proof: Proof): boolean;
 }
 
+/**
+ * Contains a proving key and [[ VerificationKey ]] which can be used to verify proofs.
+ */
 export class Keypair {
   verificationKey(): VerificationKey;
 }
 
+/**
+ * Proofs can be verified using a [[ VerificationKey ]] and the public input.
+ */
 export class Proof {
   verify(verificationKey: VerificationKey, publicInput: any[]): boolean;
 }
 
-export type AsField = Field | number | string | boolean;
-
+/**
+ * TODO: Pull from docs
+ */
 export class Field {
+  /**
+   * Coerces anything field-like to a [[ Field ]].
+   */
   constructor(x: Field | number | string | boolean);
 
+  /**
+   * Negates this [[ Field ]]. This is equivalent to multiplying the [[ Field ]]
+   * by -1.
+   *
+   * ```typescript
+   * const negOne = Field.one.neg();
+   * negOne.assertEquals(-1);
+   * ```
+   */
   neg(): Field;
+
+  /**
+   * Inverts this [[ Field ]] element.
+   *
+   * ```typescript
+   * const invX = x.inv();
+   * invX.assertEquals(Field.one.div(x));
+   * ```
+   *
+   * @return A field element that is equivalent to one divided by this element.
+   */
   inv(): Field;
 
+  /**
+   * Adds this [[ Field ]] element to another coercible to a field.
+   */
   add(y: Field | number | string | boolean): Field;
+
+  /**
+   * Subtracts this [[ Field ]] element to another coercible to a field.
+   */
   sub(y: Field | number | string | boolean): Field;
+
+  /**
+   * Multiplies this [[ Field ]] element to another coercible to a field.
+   */
   mul(y: Field | number | string | boolean): Field;
+
+  /**
+   * Divides this [[ Field ]] element to another coercible to a field.
+   */
   div(y: Field | number | string | boolean): Field;
 
+  /**
+   * Squares this [[ Field ]] element.
+   *
+   * ```typescript
+   * const x2 = x.square();
+   * x2.assertEquals(x.mul(x));
+   * ```
+   */
   square(): Field;
+
+  /**
+   * Square roots this [[ Field ]] element.
+   *
+   * ```typescript
+   * x.square().sqrt().assertEquals(x);
+   * ```
+   */
   sqrt(): Field;
 
   toString(): string;
