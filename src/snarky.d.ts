@@ -443,3 +443,5 @@ export const array: <T>(
  * worker threads will continue running and the program will never terminate.
  * From web applications, this function is a no-op. */
 export const shutdown: () => Promise<undefined>;
+
+export let isReady: Promise<undefined>;
