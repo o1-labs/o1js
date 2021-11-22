@@ -6,15 +6,21 @@ on:
   pull_request:
     branches:
       - master
+
 jobs:
   Build-And-Test-Server:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - name: Checkout Repository
+        uses: actions/checkout@v2P
+
+      - name: Setup node
+        uses: actions/setup-node@v2
         with:
           node-version: '16'
-      - run: |
+
+      - name: run build:server & tests
+        run: |
           npm ci
           npm run build:server
           npm run test
@@ -22,10 +28,37 @@ jobs:
   Build-Web:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - name: Checkout Repository
+        uses: actions/checkout@v2P
+
+      - name: Setup node
+        uses: actions/setup-node@v2
         with:
           node-version: '16'
-      - run: |
+
+      - name: run build:web
+        run: |
           npm ci
           npm run build:web
+
+  Build-Doc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2P
+
+      - name: Setup node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: run typedoc
+        run: |
+          npm ci
+          npx typedoc src/index.ts
+
+      - name: deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target/doc

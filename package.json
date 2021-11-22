@@ -51,6 +51,7 @@
   },
   "dependencies": {
     "env": "^0.0.2",
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "typedoc": "^0.22.9"
   }
 }
