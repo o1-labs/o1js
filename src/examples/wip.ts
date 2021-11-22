@@ -2,7 +2,7 @@ import { CircuitValue, prop } from "../lib/circuit_value";
 import { PrivateKey, PublicKey, Signature } from "../lib/signature";
 import { Proof, Field, Circuit, Bool } from "../snarky"
 import { HTTPSAttestation } from "./exchange_lib";
-import { AccumulatorI, AccumulatorMembershipProof, Index, IndexedAccumulator, IndexedAccumulatorI, KeyedAccumulator, MerkleAccumulator, MerkleProof } from '../lib/merkle_proof';
+import { AccumulatorMembershipProof, Index, IndexedAccumulator, KeyedAccumulatorFactory, MerkleAccumulatorFactory, MerkleProof } from '../lib/merkle_proof';
 import { MerkleStack } from '../lib/merkle_stack';
 import { SignedAmount, State, Party, Body, Permissions, Perm, Amount } from '../lib/party';
 import { SmartContract, state, method, init } from '../lib/snapp';
@@ -10,8 +10,11 @@ import { proofSystem, branch, ProofWithInput } from '../lib/proof_system';
 import * as DataStore from '../lib/data_store';
 import * as Mina from '../lib/mina';
 import { UInt32, UInt64 } from '../lib/int';
+import { TypeofTypeAnnotation } from "@babel/types";
 
-type AccountDb = KeyedAccumulator<PublicKey, RollupAccount>;
+const AccountDbDepth: number = 32;
+const AccountDb = KeyedAccumulatorFactory<PublicKey, RollupAccount>(AccountDbDepth);
+type AccountDb = InstanceType<typeof AccountDb>;
 
 class RollupAccount extends CircuitValue {
   @prop balance: UInt64;
@@ -81,6 +84,8 @@ class RollupProof extends ProofWithInput<RollupStateTransition> {
     let before = new RollupState(pending.commitment, accountDb.commitment());
     let deposit = pending.pop();
     
+    // TODO: Apply deposit to db
+    
     let after = new RollupState(pending.commitment, accountDb.commitment());
 
     return new RollupProof(new RollupStateTransition(before, after));
@@ -95,15 +100,18 @@ class RollupProof extends ProofWithInput<RollupStateTransition> {
     s.verify(t.sender, t.toFieldElements()).assertEquals(true);
     let stateBefore = new RollupState(pending.commitment, accountDb.commitment());
 
-    let senderAccount = accountDb.get(t.sender);
+    let [senderAccount, senderPos] = accountDb.get(t.sender);
     senderAccount.isSome.assertEquals(true);
     senderAccount.value.nonce.assertEquals(t.nonce);
 
-    let receiverAccount = accountDb.get(t.receiver);
     senderAccount.value.balance = senderAccount.value.balance.sub(t.amount);
-    accountDb.set(t.sender, senderAccount.value);
+    senderAccount.value.nonce = senderAccount.value.nonce.add(1);
+
+    accountDb.set(senderPos, senderAccount.value);
+
+    let [receiverAccount, receiverPos] = accountDb.get(t.receiver);
     receiverAccount.value.balance = receiverAccount.value.balance.add(t.amount);
-    accountDb.set(t.receiver, receiverAccount.value);
+    accountDb.set(receiverPos, receiverAccount.value);
 
     let stateAfter = new RollupState(pending.commitment, accountDb.commitment());
     return new RollupProof(new RollupStateTransition(stateBefore, stateAfter));
@@ -121,7 +129,9 @@ class RollupProof extends ProofWithInput<RollupStateTransition> {
   }
 }
 
-type OperatorsDb = AccumulatorI<PublicKey, AccumulatorMembershipProof>;
+const OperatorsDbDepth: number = 8;
+const OperatorsDb = MerkleAccumulatorFactory<PublicKey>(OperatorsDbDepth);
+type OperatorsDb = InstanceType<typeof OperatorsDb>;
 
 // Rollup proof system itself (executed off chain)
 
@@ -175,6 +185,9 @@ A smart contract is basically
   the @state decorator is used to list out the onchain state
 - a list of circuits all of which have as their public input
   the same thing, which is essentially a snapp transaction
+  
+  - snapp transaction
+    - pr
   
   the @method decorator is used to list out all these circuits
 
@@ -314,36 +327,45 @@ class RollupSnapp extends SmartContract {
   }
 }
 
-function main() {
+export function main() {
   // TODO: Put real value
   let snappOwnerKey = PrivateKey.random();
   let snappPubkey = snappOwnerKey.toPublicKey();
+  console.log(0);
 
   let depositorPrivkey = PrivateKey.random();
   let depositorPubkey = depositorPrivkey.toPublicKey();
 
+  console.log(1);
+  const depth = 8;
   // Private state. Lives on disk.
-  let operatorsDbStore = DataStore.Disk<PublicKey>(PublicKey, '/home/izzy/operators');
-  let operatorsDb = MerkleAccumulator(operatorsDbStore);
+  let operatorsDbStore = DataStore.InMemory<PublicKey>(
+    PublicKey, depth);
+
+  let operatorsDb = OperatorsDb.fromStore(operatorsDbStore);
 
   let RollupInstance = RollupSnapp.instanceOnChain(snappPubkey);
 
+  console.log(2);
   // Add a new rollup operator
   let newOperatorPrivkey = PrivateKey.random();
   let newOperatorPubkey = newOperatorPrivkey.toPublicKey();
   let currentSlot = Mina.currentSlot();
   let message = currentSlot.toFieldElements().concat(newOperatorPubkey.toFieldElements());
   let signature = Signature.create(snappOwnerKey, message);
+  console.log(3);
 
+  let accountKey = (a: RollupAccount) => a.publicKey;
   // Public state, the state of accounts on the rollup.
   let accountDbStore =
-    DataStore.IPFS<RollupAccount>(
-      RollupAccount,
-      '/ipns/QmSrPmbaUKA3ZodhzPWZnpFgcPMFWF4QsxXbkWfEptTBJd');
-  let accountDb: AccountDb = new KeyedAccumulator((v: RollupAccount) => v.publicKey, accountDbStore);
+    DataStore.Keyed.InMemory(RollupAccount, PublicKey, accountKey, AccountDbDepth)
+  let accountDb: AccountDb = AccountDb.create(
+    accountKey,
+    accountDbStore);
 
   let pendingDeposits = new MerkleStack<RollupDeposit>(RollupDeposit, () => []); // todo: storage
 
+  console.log(4);
   // TODO: Have a mock Mina module for testing purposes
   // TODO: Make sure that modifications to data stores are not
   // committed before corresponding changes happen on chain
