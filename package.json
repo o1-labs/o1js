@@ -28,7 +28,7 @@
     "serve:web": "cd dist/web && python3 server.py",
     "exec": "./scripts/build-and-run-server.sh",
     "build:web": "node webpack/esbuild-web.mjs",
-    "build:server": "node webpack/extractJsooMethods.js && webpack --config ./webpack/webpack.node.simple.js --stats-error-details",
+    "build": "webpack --config ./webpack/webpack.node.simple.js --stats-error-details",
     "prepublish:web": "NODE_ENV=production node webpack/esbuild-web.mjs",
     "prepublish:server": "webpack --config ./webpack/webpack.node.simple.js --stats-error-details",
     "prepublish:both": "npm run prepublish:web && npm run prepublish:server",
