@@ -4,6 +4,7 @@ import { prop, CircuitValue } from './circuit_value';
 import { Field, Bool } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PublicKey } from './signature';
+import { Party } from './party';
 
 
 class SetOrKeep<_A> extends CircuitValue {}
@@ -26,6 +27,8 @@ interface Account {
   snapp: SnappAccount,
 }
 
+let _currentTransaction: Array<Party> | null
+
 interface Mina {
   transaction(f : () => void): Transaction,
   currentSlot(): UInt32,
@@ -41,11 +44,11 @@ const Local: Mina = (() => {
       Math.ceil(((new Date()).valueOf() - startTime) / msPerSlot));
     
   const getAccount = (pk: PublicKey) => {
-    throw 'todo'
+    throw 'getaccount'
   };
 
   const transaction = (f: () => void) => {
-    throw 'todo'
+    throw 'transaction'
   };
 
   return {
@@ -62,7 +65,7 @@ export function transaction(f : () => void): Transaction {
 }
 
 export function sendPendingTransactions(): TransactionId {
-  throw 'todo';
+  throw 'sendpending';
 }
 
 export function currentSlot(): UInt32 {

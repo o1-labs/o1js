@@ -272,12 +272,12 @@ export class Int64 {
     if (this.magnitude !== null && this.isPos !== null) {
       return new Int64(this.magnitude, this.isPos);
     } else {
-      throw 'todo';
+      throw 'neg';
     }
   }
 
   repr(): { magnitude: Field, isPos: Sgn } {
-    throw 'todo';
+    throw 'repr';
   }
 
   static toFieldElements(x: Int64): Field[] {

@@ -209,14 +209,20 @@ class RollupSnapp extends SmartContract {
   // maybe try something like react state hooks?
 
   // the constructor should be init
-  constructor(address: PublicKey) {
+  constructor(
+    address: PublicKey,
+    operatorsDb: OperatorsDb,
+    accountDb: AccountDb,
+    deposits: MerkleStack<RollupDeposit>,
+    lastUpatedPeriod: UInt32, 
+    ) {
     super(address);
-    this.operatorsCommitment = new State(undefined as any, undefined as any);
-    this.rollupState = new State(undefined as any, undefined as any);
-    this.lastUpdatedPeriod = new State(undefined as any, undefined as any);
+    this.operatorsCommitment = State.initialize(operatorsDb.commitment());
+    this.lastUpdatedPeriod = State.initialize(lastUpatedPeriod);
+    this.rollupState = State.initialize(new RollupState(deposits.commitment, accountDb.commitment()));
   }
 
-  static instanceOnChain(address: PublicKey): RollupSnapp { throw 'todo' }
+  static instanceOnChain(address: PublicKey): RollupSnapp { throw 'instanceonchain' }
 
   static periodLength = 5;
   static newOperatorGapSlots = 20;
@@ -355,8 +361,6 @@ export function main() {
 
   let operatorsDb = OperatorsDb.fromStore(operatorsDbStore);
 
-  let RollupInstance = RollupSnapp.instanceOnChain(snappPubkey);
-
   console.log(2);
   // Add a new rollup operator
   let newOperatorPrivkey = PrivateKey.random();
@@ -375,6 +379,8 @@ export function main() {
     accountDbStore);
 
   let pendingDeposits = new MerkleStack<RollupDeposit>(RollupDeposit, () => []); // todo: storage
+
+  let RollupInstance = new RollupSnapp(snappPubkey, operatorsDb, accountDb, pendingDeposits, UInt32.fromNumber(0));
 
   console.log(4);
   // TODO: Have a mock Mina module for testing purposes

@@ -16,8 +16,8 @@ export class ProofWithInput<A> {
   publicInput: A
   proof: Proof | null;
   
+  // TODO
   assertVerifies() {
-    throw 'todo';
   }
 
   constructor(publicInput: A) {

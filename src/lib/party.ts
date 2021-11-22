@@ -243,17 +243,20 @@ export class OrIgnore<A> extends CircuitValue {
 export class State<A> {
   predicate: OrIgnore<A>;
   update: SetOrKeep<A>;
+  
+  _initialState: A;
 
-  accountPublicKey: PublicKey;
-  appStateIndex: number;
-
-  constructor(accountPublicKey: PublicKey, index: number) {
-    this.accountPublicKey = accountPublicKey;
-    this.appStateIndex = index;
-
+  constructor() {
     let value : A = undefined as any;
+    this._initialState = value;
     this.predicate = new OrIgnore(new Optional(new Bool(false), value));
     this.update = new SetOrKeep(new Optional(new Bool(false), value))
+  }
+  
+  static initialize<A>(x: A): State<A> {
+    const r = new State<A>();
+    r._initialState = x;
+    return r;
   }
 
   assertEquals(x: A) {
