@@ -10,6 +10,8 @@ export function asFieldElementsToConstant<T>(typ: AsFieldElements<T>, t: T): T {
   return typ.ofFieldElements(xs);
 }
 
+// TODO: Synthesize the constructor if possible (bkase)
+//
 export abstract class CircuitValue {
   static sizeInFieldElements(): number {
     const fields: [string, any][] = (this as any).prototype._fields;
@@ -23,7 +25,7 @@ export abstract class CircuitValue {
       return res;
     }
 
-    for (let i = 0; i < fields.length; ++i) {
+    for (let i = 0, n = fields.length; i < n; ++i) {
       const [key, propType] = fields[i];
       const subElts: Field[] = propType.toFieldElements((v as any)[key]);
       subElts.forEach((x) => res.push(x));

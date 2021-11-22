@@ -239,17 +239,28 @@ class RollupSnapp extends SmartContract {
   {
     let period = submittedSlot.div(RollupSnapp.periodLength);
     let startSlot = period.mul(RollupSnapp.periodLength);
-    /*
 
+
+    /*
     this.deferToOnChain((onChainState) => {
     })
+    */
 
-    this.deferToOnChain(({ protocolState }) => {
+
+   /*
+    *
+    precondition.network({ protocolState } => {
       protocolState.globalSlotSinceGenesis.assertBetween(
         startSlot, startSlot.add(RollupSnapp.periodLength));
       )
+    })
+
+    this.self.precondition({ accountState } => {
+
     });
+
     */
+
     /*
     this.protocolState.globalSlotSinceGenesis.assertBetween(
       startSlot, startSlot.add(RollupSnapp.periodLength));
