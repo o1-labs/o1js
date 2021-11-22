@@ -101,7 +101,9 @@ export class Field {
   toString(): string;
   toJSON(): JSONValue;
 
+  // TODO: Rename to size()
   sizeInFieldElements(): number;
+  // TODO: Rename to toFields()
   toFieldElements(): Field[];
 
   lt(y: Field | number | string | boolean): Bool;
@@ -131,9 +133,11 @@ export class Field {
 
   equals(y: Field | number | string | boolean): Bool;
   
+  // TODO: Izzy to document
   seal(): Field;
+  // TODO: Izzy to document
   rangeCheckHelper(numBits: number): Field;
-  
+
   isConstant(): boolean;
   toConstant(): Field;
 
@@ -144,6 +148,7 @@ export class Field {
   static zero: Field;
   static random(): Field;
 
+  /*
   static neg(x: Field | number | string | boolean): Field;
   static inv(x: Field | number | string | boolean): Field;
 
@@ -168,27 +173,45 @@ export class Field {
   static sqrt(x: Field | number | string | boolean): Field;
 
   static toString(x: Field | number | string | boolean): string;
+  */
 
+  // TODO: Ask izzy/matthew why we need this?
+  ofFieldElements(fields: Field[]): Field;
+  // TODO: Rename to fromFields(fields: Field[])
+  // TODO: (bkase) Refactor AsFieldElements to not need these redundant static things
+  static ofFieldElements(fields: Field[]): Field;
   static sizeInFieldElements(): number;
   static toFieldElements(x: Field): Field[];
-  static ofFieldElements(fields: Field[]): Field;
 
+  /*
   static assertEqual(
     x: Field | number | string | boolean,
     y: Field | number | string | boolean
   ): Field;
   static assertBoolean(x: Field | number | string | boolean): void;
   static isZero(x: Field | number | string | boolean): Bool;
+  */
 
+  /**
+   * Converts a bit array into a field element (little endian)
+   * Fails if the field element cannot fit given too many bits.
+   *
+   * TODO: Rename to fromBits
+   */
   static ofBits(x: (Bool | boolean)[]): Field;
+  /*
   static toBits(x: Field | number | string | boolean): Bool[];
+  */
 
+ /*
   static equal(
     x: Field | number | string | boolean,
     y: Field | number | string | boolean
   ): Bool;
+  */
 
-  static toJSON(x: Field): JSONValue;
+  // static toJSON(x: Field): JSONValue;
+
   static fromJSON(x: JSONValue): Field | null;
 }
 
