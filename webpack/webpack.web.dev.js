@@ -1,3 +1,4 @@
+// UNUSED
 const path = require('path');
 
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
@@ -5,20 +6,13 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
-  target: 'web',
-
+  target: ['web', 'es2020'],
   devtool: false,
-
   mode: 'none',
 
   entry: {
-    snarky: {
+    index: {
       import: path.resolve(__dirname, '../src/index.ts'),
-      library: {
-        name: 'snarky',
-        type: 'umd',
-        umdNamedDefine: true,
-      },
     },
   },
 
@@ -26,20 +20,15 @@ module.exports = {
     path: path.resolve(__dirname, '../dist/web'),
     publicPath: 'auto',
     filename: '[name].js',
-    library: 'snarky',
-    libraryTarget: 'umd',
-    libraryExport: 'default',
-    umdNamedDefine: true,
+    library: {
+      type: 'module',
+    },
+    module: true,
     clean: true,
   },
 
   resolve: {
     extensions: ['.ts', '.js'],
-    fallback: {
-      child_process: false,
-      fs: false,
-      worker_threads: false,
-    },
   },
 
   optimization: {
@@ -68,17 +57,17 @@ module.exports = {
         ],
         exclude: /node_modules/,
       },
-      {
-        test: /\.m?js$/,
-        exclude: /(node_modules)|(\.bc.js)/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: ['@babel/preset-env'],
-            plugins: ['@babel/plugin-transform-runtime'],
-          },
-        },
-      },
+      // {
+      //   test: /\.m?js$/,
+      //   exclude: /(node_modules)|(\.bc.js)/,
+      //   use: {
+      //     loader: 'babel-loader',
+      //     options: {
+      //       presets: ['@babel/preset-env'],
+      //       plugins: ['@babel/plugin-transform-runtime'],
+      //     },
+      //   },
+      // },
     ],
   },
 
@@ -96,8 +85,8 @@ module.exports = {
           to: '',
         },
         {
-          from: 'src/chrome_bindings/plonk_init.js',
-          to: '',
+          from: 'src/chrome_bindings/snarky_js_chrome_ORIGINAL.bc.js',
+          to: 'snarky_js_chrome.bc.js',
         },
         {
           from: 'src/chrome_bindings/worker_init.js',
@@ -126,4 +115,6 @@ module.exports = {
       ],
     }),
   ],
+
+  experiments: { topLevelAwait: true, outputModule: true },
 };

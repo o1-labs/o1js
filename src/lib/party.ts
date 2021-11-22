@@ -18,6 +18,9 @@ export const GlobalSlot = UInt32;
 export type SignedAmount = Int64;
 export const SignedAmount = Int64;
 
+/**
+ * Timing info inside an account.
+ */
 export class Timing extends CircuitValue {
   @prop initialMinimumBalance: Balance
   @prop cliffTime: GlobalSlot
@@ -35,6 +38,9 @@ export class Timing extends CircuitValue {
   }
 }
 
+/**
+ * Either set a value or keep it the same.
+ */
 export class SetOrKeep<T> {
   @prop value: Optional<T>;
 
@@ -43,11 +49,20 @@ export class SetOrKeep<T> {
     this.value.value = x;
   }
 
+  /**
+   * An empty optional corresponds to a keep while some value is a set of that new value.
+   */
   constructor(value: Optional<T>) {
     this.value = value;
   }
 }
 
+/**
+ * Group a value with a hash.
+ *
+ * @typeParam T the value
+ * @typeParam H the hash
+ */
 export class WithHash<T, H> extends CircuitValue {
   @prop value: T;
   @prop hash: H;

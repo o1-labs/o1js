@@ -15,7 +15,7 @@
 // a bundlerless ES module environment (which has a few differences).
 
 function waitForMsgType(target, type) {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     target.addEventListener('message', function onMsg({ data }) {
       if (data == null || data.type !== type) return;
       target.removeEventListener('message', onMsg);
@@ -24,7 +24,7 @@ function waitForMsgType(target, type) {
   });
 }
 
-waitForMsgType(self, 'wasm_bindgen_worker_init').then(async data => {
+waitForMsgType(self, 'wasm_bindgen_worker_init').then(async (data) => {
   const pkg = await import(data.mainJS);
   await pkg.default(data.module, data.memory);
   postMessage({ type: 'wasm_bindgen_worker_ready' });
@@ -46,7 +46,7 @@ export async function startWorkers(module, memory, builder) {
     module,
     memory,
     receiver: builder.receiver(),
-    mainJS: builder.mainJS()
+    mainJS: builder.mainJS(),
   };
 
   _workers = await Promise.all(
@@ -55,10 +55,13 @@ export async function startWorkers(module, memory, builder) {
       // The script is fetched as a blob so it works even if this script is
       // hosted remotely (e.g. on a CDN). This avoids a cross-origin
       // security error.
-      let scriptBlob = await fetch(import.meta.url).then(r => r.blob());
+      // let scriptBlob = await fetch(import.meta.url).then(r => r.blob());
+      let scriptBlob = await fetch(
+        './snippets/wasm-bindgen-rayon-7afa899f36665473/src/workerHelpers.no-bundler.js'
+      ).then((r) => r.blob());
       let url = URL.createObjectURL(scriptBlob);
       const worker = new Worker(url, {
-        type: 'module'
+        type: 'module',
       });
       worker.postMessage(workerInit);
       await waitForMsgType(worker, 'wasm_bindgen_worker_ready');

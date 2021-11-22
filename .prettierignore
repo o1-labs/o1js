@@ -1,3 +1,4 @@
-src/chrome_bindings/*
+src/chrome_bindings/**/plonk_wasm*
+src/chrome_bindings/**/*.bc.js
 src/node_bindings/*
 dist/**/*
