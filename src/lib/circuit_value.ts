@@ -5,6 +5,11 @@ type Constructor<T> = { new (...args: any[]): T };
 
 export type Tuple<A, _N extends number> = Array<A>;
 
+export function asFieldElementsToConstant<T>(typ: AsFieldElements<T>, t: T): T {
+  const xs: Field[] = typ.toFieldElements(t);
+  return typ.ofFieldElements(xs);
+}
+
 export abstract class CircuitValue {
   static sizeInFieldElements(): number {
     const fields: [string, any][] = (this as any).prototype._fields;
@@ -56,6 +61,11 @@ export abstract class CircuitValue {
       offset += propSize;
     }
     return new this(...props);
+  }
+
+  static toConstant<T>(this: Constructor<T>, t: T): T {
+    const xs: Field[] = (this as any).toFieldElements(t);
+    return (this as any).ofFieldElements(xs.map((x) => x.toConstant()));
   }
 
   static toJSON<T>(this: Constructor<T>, v: T): JSONValue {
@@ -111,8 +121,7 @@ export abstract class CircuitValue {
       propType.check(value);
     }
   }
-}
-
+};
 
 export function prop(this: any, target: any, key: string) {
   const fieldType = Reflect.getMetadata('design:type', target, key);
