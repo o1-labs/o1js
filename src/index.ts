@@ -6,10 +6,8 @@ import * as Snarky from './snarky';
 import * as Foo from './examples/wip';
 
 (async () => {
-console.log('a');
-await Snarky.isReady.catch((e) => console.log(e));
-Foo.main();
-console.log('b');
-
-
-})().catch((e) => console.log(e))
+  console.log('a');
+  await Snarky.isReady.catch((e) => console.log(e));
+  Foo.main();
+  console.log('b');
+})().catch((e) => console.log(e));

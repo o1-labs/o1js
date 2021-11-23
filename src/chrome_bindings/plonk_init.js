@@ -1,51 +1,56 @@
-import init, * as plonk_wasm from '/plonk_wasm.js';
-import { override_bindings } from '/worker_run.js';
+import init, * as plonk_wasm from './plonk_wasm.esbuild.js';
+import { override_bindings } from './worker_run.js';
+import workerInitSrc from 'string:./worker_init.js';
+import snarkyJsChromeSrc from 'string:./snarky_js_chrome.bc.js';
+// import snarkyJsChrome from 'defer:./snarky_js_chrome.bc.js';
 
 window.init = init;
 window.plonk_wasm = plonk_wasm;
 window.override_bindings = override_bindings;
 
-export const initSnarkyJS = async (bundle) => {
-  var plonk_wasm_init = await init();
+export async function initSnarkyJS() {
+  let plonk_wasm_init = await init();
 
-  var set_workers_ready;
-  var workers_ready = new Promise(function (resolve) {
+  let set_workers_ready;
+  let workers_ready = new Promise((resolve) => {
     set_workers_ready = resolve;
   });
 
-  var worker = new Worker('/worker_init.js', {
-    type: 'module',
-  });
+  let worker = inlineWorker(workerInitSrc);
 
-  worker.onmessage = function () {
+  worker.onmessage = () => {
     set_workers_ready();
   };
 
   worker.postMessage({ type: 'init', memory: plonk_wasm_init.memory });
   await workers_ready;
-
   window.plonk_wasm = override_bindings(plonk_wasm, worker);
 
-  return new Promise(function (resolve) {
-    var snarkyBindings = document.createElement('script');
-    snarkyBindings.src = '/snarky_js_chrome.bc.js';
-    document.body.appendChild(snarkyBindings);
+  // we have two approaches to run the .bc.js code after its dependencies are ready, without fetching an additional script:
 
-    snarkyBindings.addEventListener('load', () => {
-      var snarkyLib = document.createElement('script');
-      snarkyLib.src = '/snarky.js';
-      snarkyLib.id = 'snarkyjs';
-      document.body.appendChild(snarkyLib);
-      resolve();
-      if (bundle) {
-        snarkyLib.addEventListener('load', () => {
-          var snarkyLib = document.createElement('script');
-          snarkyLib.src = bundle;
-          document.body.appendChild(snarkyLib);
-        });
-      }
-    });
-  });
-};
+  // 1. wrap it inside a function and just include that function in the bundle
+  // this could be nice and simple, but breaks because the .bc.js code uses `(function(){return this}())` to access `window`
+  // (probably as a cross-platform way to get the global object before globalThis existed)
+  // that obsolete hack doesn't work here because inside an ES module, this === undefined instead of this === window
+  // it seems to work when we patch the source code (replace IIFEs with `window`)
+  // snarkyJsChrome();
 
-window.initSnarkyJS = initSnarkyJS;
+  // 2. include the code as string and eval it
+  // (this works because it breaks out of strict mode)
+  new Function(snarkyJsChromeSrc)();
+}
+
+function loadScript(src) {
+  let script = document.createElement('script');
+  script.src = src;
+  document.body.appendChild(script);
+  return new Promise((r) => script.addEventListener('load', () => r()));
+}
+
+function inlineWorker(src) {
+  let blob = new Blob([src], { type: 'application/javascript' });
+  let url = URL.createObjectURL(blob);
+  let worker = new Worker(url);
+  URL.revokeObjectURL(url);
+  return worker;
+}
