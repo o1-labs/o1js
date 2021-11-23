@@ -1,5 +1,4 @@
-import { Poseidon, Field, Circuit } from '../snarky';
-import { circuitMain, public_ } from '../lib/circuit_value';
+import { Field, Circuit, circuitMain, public_ } from '@o1labs/snarkyjs';
 
 /* Exercise 2:
 

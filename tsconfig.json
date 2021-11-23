@@ -1,6 +1,6 @@
 {
   "include": ["./src"],
-  "exclude": ["./src/**/*.bc.js", "./src/examples"],
+  "exclude": ["./src/**/*.bc.js", "./src/build"],
   "compilerOptions": {
     "module": "esnext",
     "outDir": "dist",
@@ -19,6 +19,10 @@
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@o1labs/snarkyjs": ["."]
+    }
   }
 }

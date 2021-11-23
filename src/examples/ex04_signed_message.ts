@@ -1,6 +1,14 @@
-import { Field, Circuit } from '../snarky';
-import { CircuitValue, prop, public_, circuitMain } from '../lib/circuit_value';
-import { Signature, PrivateKey, PublicKey } from '../lib/signature';
+import {
+  Field,
+  Circuit,
+  CircuitValue,
+  prop,
+  public_,
+  circuitMain,
+  Signature,
+  PrivateKey,
+  PublicKey,
+} from '@o1labs/snarkyjs';
 
 class Transaction extends CircuitValue {
   @prop sender: PublicKey;

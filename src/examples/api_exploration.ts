@@ -1,5 +1,4 @@
 import {
-  Poseidon,
   Field,
   Bool,
   Group,
@@ -8,7 +7,7 @@ import {
   PrivateKey,
   PublicKey,
   Signature,
-} from '../index';
+} from '@o1labs/snarkyjs';
 
 /* This file demonstrates the classes and functions available in snarky.js */
 
