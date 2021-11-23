@@ -1,7 +1,14 @@
-import { Field, Scalar, Group, Circuit } from '../snarky';
-import { public_, circuitMain, prop, CircuitValue } from '../lib/circuit_value';
-import { Signature } from '../lib/signature';
-
+import {
+  Field,
+  Scalar,
+  Group,
+  Circuit,
+  public_,
+  circuitMain,
+  prop,
+  CircuitValue,
+  Signature,
+} from '@o1labs/snarkyjs';
 class Witness extends CircuitValue {
   @prop signature: Signature;
   @prop acc: Group;

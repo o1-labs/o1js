@@ -1,13 +1,21 @@
 // import { MerkleCollection, MerkleProof } from '../mina.js';
-import { Circuit as C, Field, Bool, AsField, Scalar } from '../snarky';
-import { public_, circuitMain, prop, CircuitValue } from '../lib/circuit_value';
+import {
+  Circuit as C,
+  Field,
+  Bool,
+  Scalar,
+  public_,
+  circuitMain,
+  prop,
+  CircuitValue,
+  Signature,
+} from '@o1labs/snarkyjs';
 import {
   Trade,
   HTTPSAttestation,
   Bytes,
   WebSnappRequest,
 } from './exchange_lib';
-import { Signature } from '../lib/signature';
 
 // Proof of bought low sold high for bragging rights
 //
