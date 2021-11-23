@@ -1,6 +1,10 @@
 import { Poseidon, Group, Field, Bool, Scalar } from '../snarky';
 import { prop, CircuitValue } from './circuit_value';
 
+/**
+ * A signing key. You can generate one via [[random]].
+ */
+
 export class PrivateKey extends CircuitValue {
   @prop s: Scalar;
 
@@ -9,14 +13,32 @@ export class PrivateKey extends CircuitValue {
     this.s = s;
   }
 
+  /**
+   * You can use this method to generate a private key. You can then obtain
+   * the associated public key via [[toPublicKey]]. And generate signatures
+   * via [[Signature.create]].
+   * 
+   * @returns a new [[PrivateKey]].
+   */
   static random(): PrivateKey {
     return new PrivateKey(Scalar.random());
   }
 
+  /**
+   * Deserializes a list of bits into a [[PrivateKey]].
+   * 
+   * @param bs a list of [[Bool]]s.
+   * @returns a [[PrivateKey]].
+   */
   static ofBits(bs: Bool[]): PrivateKey {
     return new PrivateKey(Scalar.ofBits(bs));
   }
 
+  /**
+   * Derives the associated public key.
+   * 
+   * @returns a [[PublicKey]].
+   */
   toPublicKey(): PublicKey {
     return new PublicKey(Group.generator.scale(this.s));
   }
