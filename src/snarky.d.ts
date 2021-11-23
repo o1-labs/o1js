@@ -450,6 +450,126 @@ export const Poseidon: {
   hash: (xs: Field[]) => Field;
 };
 
+type UInt32 = string;
+type UInt64 = string;
+
+interface OrIgnore<A> {
+  check: boolean,
+  value: A,
+}
+
+interface SetOrKeep<A> {
+  set: boolean,
+  value: A,
+};
+
+interface ClosedInterval<A> {
+  lower: A,
+  upper: A,
+}
+
+export interface EpochLedgerPredicate {
+  hash: OrIgnore<Field>,
+  totalCurrency: ClosedInterval<UInt64>,
+}
+
+export interface EpochDataPredicate {
+  ledger: EpochLedgerPredicate,
+  seed: OrIgnore<Field>,
+  startCheckpoint: OrIgnore<Field>,
+  lockCheckpoint: OrIgnore<Field>,
+  epochLength: ClosedInterval<UInt32>,
+}
+
+export interface ProtocolStatePredicate {
+  snarkedLedgerHash: OrIgnore<Field>,
+  snarkedNextAvailableToken: ClosedInterval<UInt64>,
+  timestamp: ClosedInterval<UInt64>,
+  blockchainLength: ClosedInterval<UInt32>,
+  minWindowDensity: ClosedInterval<UInt32>,
+  lastVrfOutput: OrIgnore<Field>,
+  totalCurrency: ClosedInterval<UInt64>,
+  globalSlotSinceHardFork: ClosedInterval<UInt32>,
+  globalSlotSinceGenesis: ClosedInterval<UInt32>,
+  stakingEpochData: EpochDataPredicate,
+  nextEpochData: EpochDataPredicate,
+}
+
+type Int64 = string;
+
+type PublicKey = { g: Group };
+
+interface PartyUpdate {
+  appState: Array<SetOrKeep<Field>>,
+  delegate: SetOrKeep<PublicKey>,
+  // TODO: Verification key
+  // TODO: permissions
+  // TODO: snapp uri
+  // TODO: token symbol
+  // TODO: timing
+}
+
+interface PartyBody {
+  publicKey: PublicKey,
+  update: PartyUpdate,
+  tokenId: UInt32,
+  delta: Int64,
+  events: Array<Array<Field>>,
+  sequenceEvents: Array<Array<Field>>,
+  callData: Field,
+  depth: number,
+}
+
+interface FullAccountPredicate {
+  balance: ClosedInterval<UInt64>,
+  nonce: ClosedInterval<UInt32>,
+  receiptChainHash: OrIgnore<Field>,
+  publicKey: OrIgnore<PublicKey>,
+  delegate: OrIgnore<PublicKey>,
+  state: Array<OrIgnore<Field>>,
+  sequenceState: OrIgnore<Field>,
+  provedState: OrIgnore<boolean>,
+}
+
+type AccountPredicate =
+  | { type: 'accept' }
+  | { type: 'nonce', value: UInt32 }
+  | { type: 'full', value: FullAccountPredicate }
+
+interface Party {
+  body: PartyBody,
+  predicate: AccountPredicate,
+}
+
+interface FeePayerParty {
+  body: PartyBody,
+  predicate: UInt32,
+}
+
+interface Parties {
+  feePayer: FeePayerParty,
+  otherParties: Array<Party>,
+  protocolState: ProtocolStatePredicate,
+}
+
+interface SnappAccount {
+  appState: Array<Field>,
+}
+
+interface Account {
+  balance: UInt64,
+  nonce: UInt32,
+  snapp: SnappAccount,
+}
+
+export class Ledger {
+  static create(genesisAccounts: Array<{publicKey: PublicKey, balance: number}>): Ledger;
+
+  applyPartiesTransaction(parties: Parties);
+  
+  getAccount(publicKey: PublicKey): Account | null;
+};
+
 /* TODO: Figure out types for these. */
 export const ofFieldElements: (x: any[], y: any[]) => any[];
 export const toFieldElements: (x: any[], y: any[]) => any[];
