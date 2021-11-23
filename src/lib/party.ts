@@ -329,12 +329,12 @@ export class ClosedInterval<A> extends CircuitValue {
 
 export class EpochLedgerPredicate extends CircuitValue {
   @prop hash_: OrIgnore<Field>;
-  @prop totalCurrency_: OrIgnore<UInt64>;
+  @prop totalCurrency: ClosedInterval<UInt64>;
 
-  constructor(hash_: OrIgnore<Field>, totalCurrency_: OrIgnore<UInt64>) {
+  constructor(hash_: OrIgnore<Field>, totalCurrency_: ClosedInterval<UInt64>) {
     super();
     this.hash_ = hash_;
-    this.totalCurrency_ = totalCurrency_;
+    this.totalCurrency = totalCurrency_;
   }
 }
 
