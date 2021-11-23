@@ -24,7 +24,8 @@
   },
   "scripts": {
     "type-check": "tsc --noEmit",
-    "build": "node webpack/extractJsooMethods.js && webpack --config ./webpack/webpack.node.simple.js --stats-error-details",
+    "build": "webpack --config ./webpack/webpack.node.simple.js --stats-error-details",
+    "build:server": "npm run build",
     "start:web": "./scripts/build-and-run-web-esbuild.sh",
     "serve:web": "cd dist/web && python3 server.py",
     "build:web": "node webpack/esbuild-web.mjs",

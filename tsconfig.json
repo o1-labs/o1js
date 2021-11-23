@@ -22,7 +22,7 @@
     "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
     "paths": {
-      "@o1labs/snarkyjs": ["dist/server"]
+      "@o1labs/snarkyjs": ["."]
     }
   }
 }
