@@ -1,4 +1,4 @@
-import init, * as plonk_wasm from './plonk_wasm.esbuild.js';
+import init, * as plonk_wasm from './plonk_wasm.js';
 import { override_bindings } from './worker_run.js';
 import workerInitSrc from 'string:./worker_init.js';
 import snarkyJsChromeSrc from 'string:./snarky_js_chrome.bc.js';
