@@ -1,8 +1,11 @@
-import init, * as plonk_wasm from './plonk_wasm.js';
-import { override_bindings } from './worker_run.js';
-import workerInitSrc from 'string:./worker_init.js';
+import plonkWasm from './plonk_wasm.js';
+import workerRun from './worker_run.js';
+import workerInit from './worker_init.js';
 import snarkyJsChromeSrc from 'string:./snarky_js_chrome.bc.js';
 // import snarkyJsChrome from 'defer:./snarky_js_chrome.bc.js';
+let plonk_wasm = plonkWasm();
+let init = plonk_wasm.default;
+let { override_bindings } = workerRun();
 
 export async function initSnarkyJS() {
   let plonk_wasm_init = await init();
@@ -12,7 +15,7 @@ export async function initSnarkyJS() {
     set_workers_ready = resolve;
   });
 
-  let worker = inlineWorker(workerInitSrc);
+  let worker = workerFromFunctionModule(workerInit);
 
   worker.onmessage = () => {
     set_workers_ready();
@@ -41,6 +44,21 @@ function loadScript(src) {
   script.src = src;
   document.body.appendChild(script);
   return new Promise((r) => script.addEventListener('load', () => r()));
+}
+
+function workerFromFunctionModule(fun) {
+  let deps = collectDependencies(fun, []);
+  let src = deps.map((d) => d.toString()).join('\n');
+  src += `\n(${fun.toString()})();`;
+  return inlineWorker(src);
+}
+
+function collectDependencies(fun, deps) {
+  for (let dep of fun.deps ?? []) {
+    collectDependencies(dep, deps);
+    if (!deps.includes(dep)) deps.push(dep);
+  }
+  return deps;
 }
 
 function inlineWorker(src) {
