@@ -1,10 +1,10 @@
 // This is for an account where any of a list of public keys can update the state
 
 import { prop, CircuitValue } from './circuit_value';
-import { Field, Bool } from '../snarky';
-import { UInt32, UInt64 } from './int';
-import { PublicKey } from './signature';
-import { Party } from './party';
+import { Circuit, Ledger, Field, Bool, FullAccountPredicate, FeePayerParty, Parties, PartyBody as SnarkyBody, Party as SnarkyParty } from '../snarky';
+import { Int64, UInt32, UInt64 } from './int';
+import { PrivateKey, PublicKey } from './signature';
+import { Body, ClosedInterval, DefaultTokenId, EpochDataPredicate, Party, ProtocolStatePredicate, Update } from './party';
 
 
 class SetOrKeep<_A> extends CircuitValue {}
@@ -18,7 +18,7 @@ export interface Transaction {
 }
 
 interface SnappAccount {
-  app_state: Array<Field>,
+  appState: Array<Field>,
 }
 
 interface Account {
@@ -27,41 +27,164 @@ interface Account {
   snapp: SnappAccount,
 }
 
-let _currentTransaction: Array<Party> | null
+export let nextTransactionId : { value: number } = { value: 0 };
+
+export let currentTransaction : {
+  sender: PrivateKey,
+  parties: Array<Party<FullAccountPredicate>>,
+  nextPartyIndex: number,
+  protocolState: ProtocolStatePredicate,
+} | undefined = undefined;
 
 interface Mina {
-  transaction(f : () => void): Transaction,
+  transaction(sender: PrivateKey, f : () => void): Transaction,
   currentSlot(): UInt32,
   getAccount(publicKey: PublicKey): Account,
 }
 
-const Local: Mina = (() => {
+export const Local = () => {
   const msPerSlot = 3 * 60 * 1000;
   const startTime = (new Date()).valueOf();
+  
+  console.log('hi', 0)
+  const ledger = Ledger.create([]);
 
+  console.log('hi', 1)
   const currentSlot = () =>
     UInt32.fromNumber(
       Math.ceil(((new Date()).valueOf() - startTime) / msPerSlot));
-    
-  const getAccount = (pk: PublicKey) => {
-    throw 'getaccount'
+      
+  const addAccount = (pk: PublicKey, balance: number) => {
+  console.log('hi', 2)
+    ledger.addAccount(pk, balance);
+  console.log('hi', 33)
   };
 
-  const transaction = (f: () => void) => {
-    throw 'transaction'
+  const getAccount = (pk: PublicKey) : Account => {
+    const r = ledger.getAccount(pk);
+    if (r == null) {
+      throw new Error(`getAccount: Could not find account for ${JSON.stringify(pk.toJSON())}`);
+    } else {
+      return {
+        balance: new UInt64(r.balance.value),
+        nonce: new UInt32(r.nonce.value),
+        snapp: r.snapp,
+      }
+    }
+  };
+
+  const transaction = (sender: PrivateKey, f: () => void): Transaction => {
+    if (currentTransaction !== undefined) {
+      throw new Error("Cannot start new transaction within another transaction");
+    }
+    
+    currentTransaction = {
+      sender,
+      parties: [],
+      nextPartyIndex: 0,
+      protocolState: ProtocolStatePredicate.ignoreAll()
+    }
+    
+    Circuit.runAndCheck(() => {
+      f();
+      return (() => {})
+    });
+
+    function epochData(d: EpochDataPredicate) {
+      return {
+        ledger: {
+          hash: d.ledger.hash_,
+          totalCurrency: d.ledger.totalCurrency
+        },
+        seed: d.seed_,
+        startCheckpoint: d.startCheckpoint_,
+        lockCheckpoint: d.lockCheckpoint_,
+        epochLength: d.epochLength
+      }
+    }
+
+    const ps = currentTransaction.protocolState;
+
+    const body = (b: Body): SnarkyBody => {
+      return {
+        publicKey: b.publicKey,
+        update: b.update,
+        tokenId: b.tokenId,
+        delta: b.delta,
+        // TODO: events
+        events: [],
+        sequenceEvents: [],
+        // TODO: calldata
+        callData: Field.zero,
+        // TODO
+        depth: 0,
+      }
+    };
+    
+    const otherParties: Array<SnarkyParty> =
+      currentTransaction.parties.map((p) => {
+        return {
+          body: body(p.body),
+          predicate: { type: 'full', value: p.predicate },
+        }
+      });
+      
+    const feePayer : FeePayerParty = {
+      body: body(Body.keepAll(sender.toPublicKey())),
+      predicate: UInt32.zero,
+    }
+
+    const txn : Parties = {
+      protocolState: {
+        snarkedLedgerHash:
+          ps.snarkedLedgerHash_,
+        snarkedNextAvailableToken: ps.snarkedNextAvailableToken,
+        timestamp: ps.timestamp,
+        blockchainLength: ps.blockchainLength,
+        minWindowDensity: ps.minWindowDensity,
+        lastVrfOutput: ps.lastVrfOutput_,
+        totalCurrency: ps.totalCurrency,
+        globalSlotSinceGenesis: ps.globalSlotSinceGenesis,
+        globalSlotSinceHardFork: ps.globalSlotSinceHardFork,
+        nextEpochData: epochData(ps.nextEpochData),
+        stakingEpochData: epochData(ps.stakingEpochData)
+      },
+      otherParties,
+      feePayer,
+    };
+
+    return {
+      send: () => {
+  console.log('hi', 3)
+        ledger.applyPartiesTransaction(txn);
+  console.log('hi', 4)
+        return {
+          wait:() => Promise.resolve()
+        }
+      }
+    }
   };
 
   return {
     currentSlot,
     getAccount,
-    transaction
+    transaction,
+    addAccount,
   }
-})();
+};
 
-let activeInstance: Mina = Local;
+let activeInstance: Mina = {
+  currentSlot: (() => { throw new Error('must call Mina.setActiveInstance first')}),
+  getAccount: (() => { throw new Error('must call Mina.setActiveInstance first')}),
+  transaction: (() => { throw new Error('must call Mina.setActiveInstance first')}),
+};
 
-export function transaction(f : () => void): Transaction {
-  return activeInstance.transaction(f)
+export function setActiveInstance(m: Mina) {
+  activeInstance = m;
+}
+
+export function transaction(sender: PrivateKey, f : () => void): Transaction {
+  return activeInstance.transaction(sender, f)
 }
 
 export function sendPendingTransactions(): TransactionId {

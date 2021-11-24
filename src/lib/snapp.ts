@@ -1,8 +1,9 @@
-import { AsFieldElements } from '..';
-import { Field, Poseidon, isReady } from '../snarky';
+import { Field, Poseidon, isReady, AsFieldElements } from '../snarky';
 import { CircuitValue } from './circuit_value';
-import { ProtocolStatePredicate, Body, State } from './party';
+import { AccountPredicate, ProtocolStatePredicate, Body, State, Party } from './party';
 import { PublicKey } from './signature';
+import * as Mina from './mina';
+import { FullAccountPredicate } from 'src';
 
 export function state<A>(ty: AsFieldElements<A>) {
   return function (
@@ -35,18 +36,63 @@ export function init(
   _descriptor?: PropertyDescriptor
 ): any {}
 
+type ExecutionState = {
+  transactionId: number,
+  partyIndex: number,
+  body: Body,
+  predicate: AccountPredicate,
+  protocolStatePredicate: ProtocolStatePredicate,
+};
+
 export class SmartContract {
-  protocolState: ProtocolStatePredicate;
-  self: Body;
+  // protocolState: ProtocolStatePredicate;
   address: PublicKey;
 
   state: Array<State<Field>>;
 
+  // private _self: { body: Body, predicate: AccountPredicate } | undefined;
+  
+  private _executionState: ExecutionState | undefined;
+
   constructor(address: PublicKey) {
     this.address = address;
-    this.protocolState = null as unknown as ProtocolStatePredicate;
-    this.self = null as unknown as Body;
+    // this.self = null as unknown as Body;
     this.state = [];
+  }
+  
+  private executionState(): ExecutionState {
+    if (this._executionState !== undefined) {
+      return this._executionState;
+    } else {
+      if (Mina.currentTransaction === undefined) {
+        throw new Error("Cannot execute outside of a Mina.transaction() block.");
+      } else {
+        const id = Mina.nextTransactionId.value++;
+        const index = Mina.currentTransaction.nextPartyIndex++;
+        const body = Body.keepAll(this.address);
+        const predicate = AccountPredicate.ignoreAll();
+        const party: Party<FullAccountPredicate> = { body, predicate };
+        Mina.currentTransaction.parties.push(party);
+
+        const s = {
+          transactionId: id,
+          partyIndex: index,
+          body,
+          predicate,
+          protocolStatePredicate: Mina.currentTransaction.protocolState,
+        };
+        this._executionState = s;
+        return s;
+      }
+    }
+  }
+  
+  get protocolState(): ProtocolStatePredicate {
+    return this.executionState().protocolStatePredicate;
+  }
+
+  get self(): Body {
+    return this.executionState().body;
   }
 
   static fromAddress(address: PublicKey): SmartContract {

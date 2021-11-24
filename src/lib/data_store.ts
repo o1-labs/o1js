@@ -74,7 +74,9 @@ export class Keyed {
     };
 
     const getProof = (i: Index): MerkleProof => {
+  console.log('getproof');
       const p = t.getMerklePath(i.value.map(b => b.toBoolean()));
+  console.log('getproof');
       return new P(p);
     }
 
@@ -97,6 +99,7 @@ export class Keyed {
     };
 
     const setValue = (k: K, v: V) => {
+  console.log('setvalu');
       const h = Poseidon.hash(keyTyp.toFieldElements(k)).toString();
       const idx_ = indexes.get(h);
       let idx = (idx_ === undefined)
@@ -104,6 +107,7 @@ export class Keyed {
       : idx_;
       indexes.set(h, idx);
 
+  console.log('setvalu');
       t.setValue(idx, v, Poseidon.hash(eltTyp.toFieldElements(v)));
     };
 
@@ -141,13 +145,17 @@ export function InMemory<A>(
     t.get(i.value.map(b => b.toBoolean())).value;
   
   const getProof = (i: Index): MerkleProof => {
+  console.log('mgetproof');
     const p = t.getMerklePath(i.value.map(b => b.toBoolean()));
+  console.log('mgetproof');
     return new P(p);
   }
   
   const set = (i: Index, x: A) => {
+  console.log('mset');
     const idx = i.value.map(b => b.toBoolean());
     const h = Poseidon.hash(eltTyp.toFieldElements(x));
+  console.log('mset');
     indexes.set(h.toString(), idx);
     t.setValue(idx, x, h);
   };

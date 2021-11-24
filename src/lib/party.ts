@@ -1,9 +1,9 @@
-import { prop, CircuitValue } from './circuit_value';
-import { Field, Bool, VerificationKey, Poseidon } from '../snarky';
+import { CircuitValue } from './circuit_value';
+import { Group, Field, Bool, VerificationKey, Poseidon } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { Optional } from './optional';
 import { UInt64, UInt32, Int64 } from './int';
-import { mixedTypeAnnotation } from '@babel/types';
+import { appendToMemberExpression, mixedTypeAnnotation } from '@babel/types';
 import * as Mina from './mina';
 import { Circuit } from '..';
 
@@ -18,18 +18,19 @@ export const GlobalSlot = UInt32;
 export type SignedAmount = Int64;
 export const SignedAmount = Int64;
 
+const SnappStateLength: number = 8;
+
 /**
  * Timing info inside an account.
  */
-export class Timing extends CircuitValue {
-  @prop initialMinimumBalance: Balance
-  @prop cliffTime: GlobalSlot
-  @prop cliffAmount: Amount
-  @prop vestingPeriod: GlobalSlot
-  @prop vestingIncrement: Amount
+export class Timing {
+  initialMinimumBalance: Balance
+  cliffTime: GlobalSlot
+  cliffAmount: Amount
+  vestingPeriod: GlobalSlot
+  vestingIncrement: Amount
 
   constructor(initialMinimumBalance: Balance, cliffTime: GlobalSlot, cliffAmount: Amount, vestingPeriod: GlobalSlot, vestingIncrement: Amount) {
-    super();
     this.initialMinimumBalance = initialMinimumBalance;
     this.cliffTime = cliffTime;
     this.cliffAmount = cliffAmount;
@@ -42,17 +43,16 @@ export class Timing extends CircuitValue {
  * Either set a value or keep it the same.
  */
 export class SetOrKeep<T> {
-  @prop value: Optional<T>;
+  set: Bool;
+  value: T;
 
-  set(x: T) {
-    this.value.isSome = new Bool(true);
-    this.value.value = x;
+  setValue(x: T) {
+    this.set = new Bool(true);
+    this.value = x;
   }
 
-  /**
-   * An empty optional corresponds to a keep while some value is a set of that new value.
-   */
-  constructor(value: Optional<T>) {
+  constructor(set: Bool, value: T) {
+    this.set = set;
     this.value = value;
   }
 }
@@ -63,24 +63,17 @@ export class SetOrKeep<T> {
  * @typeParam T the value
  * @typeParam H the hash
  */
-export class WithHash<T, H> extends CircuitValue {
-  @prop value: T;
-  @prop hash: H;
-
-  constructor(value: T, hash: H) {
-    super();
-    this.value = value;
-    this.hash = hash;
-  }
+export type WithHash<T, H> = {
+  value: T,
+  hash: H,
 }
 
-export class Perm extends CircuitValue {
-  @prop constant: Bool
-  @prop signatureNecessary: Bool
-  @prop signatureSufficient: Bool
+export class Perm {
+  constant: Bool
+  signatureNecessary: Bool
+  signatureSufficient: Bool
 
   constructor(constant: Bool, signatureNecessary: Bool, signatureSufficient: Bool) {
-    super();
     this.constant = constant;
     this.signatureNecessary = signatureNecessary;
     this.signatureSufficient = signatureSufficient;
@@ -113,17 +106,17 @@ export class Perm extends CircuitValue {
 
 // Perm = ProofRequried | SignatureRequired | NothingRequired | EitherRequired
 
-export class Permissions extends CircuitValue {
-  @prop stake: Bool
-  @prop editState: Perm
-  @prop send: Perm
-  @prop receive: Perm
-  @prop setDelegate: Perm
-  @prop setPermissions: Perm
-  @prop setVerificationKey: Perm
-  @prop setSnappUri: Perm
-  @prop editRollupState: Perm
-  @prop setTokenSymbol: Perm
+export class Permissions {
+  stake: Bool
+  editState: Perm
+  send: Perm
+  receive: Perm
+  setDelegate: Perm
+  setPermissions: Perm
+  setVerificationKey: Perm
+  setSnappUri: Perm
+  editRollupState: Perm
+  setTokenSymbol: Perm
 
   static default() : Permissions {
     return new Permissions(
@@ -141,7 +134,6 @@ export class Permissions extends CircuitValue {
   }
 
   constructor(stake: Bool, editState: Perm, send: Perm, receive: Perm, setDelegate: Perm, setPermissions: Perm, setVerificationKey: Perm, setSnappUri: Perm, editRollupState: Perm, setTokenSymbol: Perm) {
-    super();
     this.stake = stake;
     this.editState = editState;
     this.send = send;
@@ -163,17 +155,17 @@ export class TokenSymbol extends CircuitValue {
   // (Bool, Num_bits.n) Pickles_types.Vector.t
 }
 
-export class Update extends CircuitValue {
-  @prop appState: SetOrKeep<Field>
-  @prop delegate: SetOrKeep<PublicKey>
-  @prop verificationKey: SetOrKeep<WithHash<VerificationKey, Field>>
-  @prop permissions: SetOrKeep<Permissions>
-  @prop snappUri: SetOrKeep<String_>
-  @prop tokenSymbol: SetOrKeep<TokenSymbol>
-  @prop timing: SetOrKeep<Timing>
+export class Update {
+  appState: Array<SetOrKeep<Field>>
+  delegate: SetOrKeep<PublicKey>;
+  verificationKey: SetOrKeep<WithHash<VerificationKey, Field>>;
+  permissions: SetOrKeep<Permissions>;
+  snappUri: SetOrKeep<String_>;
+  tokenSymbol: SetOrKeep<TokenSymbol>;
+  timing: SetOrKeep<Timing>;
 
   constructor(
-       appState: SetOrKeep<Field>,
+       appState: Array<SetOrKeep<Field>>,
        delegate:SetOrKeep<PublicKey>,
        verificationKey:SetOrKeep<WithHash<VerificationKey, Field>>,
        permissions:SetOrKeep<Permissions>,
@@ -181,7 +173,6 @@ export class Update extends CircuitValue {
        tokenSymbol:SetOrKeep<TokenSymbol>,
        timing:SetOrKeep<Timing>
   ) {
-    super();
     this.appState = appState;
     this.delegate = delegate;
     this.verificationKey = verificationKey;
@@ -193,22 +184,66 @@ export class Update extends CircuitValue {
 }
 
 type TokenId = UInt64;
+export const DefaultTokenId: TokenId = new UInt64(Field.one);
 
 // TODO
-export class Events extends CircuitValue {}
+export class Events {
+  hash: Field;
+  events: Array<Array<Field>>;
+  
+  // TODO
+  constructor(hash: Field, events: Array<Array<Field>>) {
+    this.hash = hash;
+    this.events = events;
+  }
+}
 
 // TODO
-export class MerkleList<T> extends CircuitValue {}
+export class MerkleList<T> {
+  constructor() {}
+}
 
-export class Body extends CircuitValue {
-  @prop publicKey: PublicKey
-  @prop update: Update
-  @prop tokenId: TokenId
-  @prop delta: SignedAmount
-  @prop events: Events
-  @prop rollupEvents: Field
-  @prop callData: MerkleList<Array<Field>>
-  @prop depth: Field // TODO: this is an `int As_prover.t`
+export class Body {
+  publicKey: PublicKey
+  update: Update
+  tokenId: TokenId
+  delta: SignedAmount
+  events: Events
+  sequenceEvents: Field
+  callData: MerkleList<Array<Field>>
+  depth: Field // TODO: this is an `int As_prover.t`
+  
+  static keepAll(publicKey: PublicKey): Body {
+    function keep<A>(dummy: A): SetOrKeep<A> {
+      return new SetOrKeep(new Bool(false), dummy);
+    }
+
+    const appState: Array<SetOrKeep<Field>> = [];
+
+    for (let i = 0; i < SnappStateLength; ++i) {
+      appState.push(keep(Field.zero));
+    }
+    
+    const update = new Update(
+      appState,
+      keep(new PublicKey(Group.generator)),
+      keep({hash: Field.zero, value: (undefined as any)}),
+      keep(Permissions.default()),
+      keep(undefined as any),
+      keep(undefined as any),
+      keep(undefined as any),
+    );
+    return new Body(
+      publicKey,
+      update,
+      DefaultTokenId,
+      Int64.zero,
+      new Events(Field.zero, []),
+      Field.zero,
+      new MerkleList(),
+      Field.zero,
+    )
+  }
 
   constructor(
     publicKey: PublicKey,
@@ -216,27 +251,28 @@ export class Body extends CircuitValue {
     tokenId: TokenId,
     delta: SignedAmount,
     events: Events,
-    rollupEvents: Field,
+    sequenceEvents: Field,
     callData: MerkleList<Array<Field>>,
     depth: Field
   ) {
-    super();
     this.publicKey = publicKey;
     this.update = update;
     this.tokenId = tokenId;
     this.delta = delta;
     this.events = events;
-    this.rollupEvents = rollupEvents;
+    this.sequenceEvents = sequenceEvents;
     this.callData = callData;
     this.depth = depth;
   }
 }
 
-export class OrIgnore<A> extends CircuitValue {
-  @prop checkEquals: Optional<A>
-  constructor(value: Optional<A>) {
-    super();
-    this.checkEquals = value;
+export class OrIgnore<A> {
+  check: Bool;
+  value: A;
+
+  constructor(check: Bool, value: A) {
+    this.check = check;
+    this.value = value;
   }
 }
 
@@ -249,8 +285,8 @@ export class State<A> {
   constructor() {
     let value : A = undefined as any;
     this._initialState = value;
-    this.predicate = new OrIgnore(new Optional(new Bool(false), value));
-    this.update = new SetOrKeep(new Optional(new Bool(false), value))
+    this.predicate = new OrIgnore(new Bool(false), value);
+    this.update = new SetOrKeep(new Bool(false), value);
   }
   
   static initialize<A>(x: A): State<A> {
@@ -260,13 +296,13 @@ export class State<A> {
   }
 
   assertEquals(x: A) {
-    this.predicate.checkEquals.isSome = new Bool(true);
-    this.predicate.checkEquals.value = x;
+    this.predicate.check = new Bool(true);
+    this.predicate.value = x;
   }
 
   set(x: A) {
-    this.update.value.isSome = new Bool(true);
-    this.update.value.value = x;
+    this.update.set = new Bool(true);
+    this.update.value = x;
   }
 
   get(): Promise<A> {
@@ -285,12 +321,11 @@ export class State<A> {
   }
 }
 
-export class ClosedInterval<A> extends CircuitValue {
-  @prop lower_: OrIgnore<A>;
-  @prop upper_: OrIgnore<A>;
+export class ClosedInterval<A> {
+  lower_: A | undefined;
+  upper_: A | undefined;
 
-  constructor(lower: OrIgnore<A>, upper: OrIgnore<A>) {
-    super();
+  constructor(lower:A | undefined, upper: A | undefined) {
     this.lower_ = lower;
     this.upper_ = upper;
   }
@@ -301,52 +336,48 @@ export class ClosedInterval<A> extends CircuitValue {
   }
 
   set lower(x: A) {
-    this.lower_.checkEquals.value = x;
-    this.lower_.checkEquals.isSome = new Bool(true);
+    this.lower_ = x;
   }
 
   get lower(): A {
-    if (this.lower_.checkEquals.value === null) {
+    if (this.lower_ === undefined) {
       throw new Error('Cannot get lower before it was set.');
     } else {
-      return this.lower_.checkEquals.value;
+      return this.lower_;
     }
   }
 
   set upper(x: A) {
-    this.upper_.checkEquals.value = x;
-    this.upper_.checkEquals.isSome = new Bool(true);
+    this.upper_ = x;
   }
 
   get upper(): A {
-    if (this.upper_.checkEquals.value === null) {
+    if (this.upper_ === undefined) {
       throw new Error('Cannot get upper before it was set.');
     } else {
-      return this.upper_.checkEquals.value;
+      return this.upper_;
     }
   }
 }
 
-export class EpochLedgerPredicate extends CircuitValue {
-  @prop hash_: OrIgnore<Field>;
-  @prop totalCurrency: ClosedInterval<UInt64>;
+export class EpochLedgerPredicate {
+  hash_: OrIgnore<Field>;
+  totalCurrency: ClosedInterval<UInt64>;
 
   constructor(hash_: OrIgnore<Field>, totalCurrency_: ClosedInterval<UInt64>) {
-    super();
     this.hash_ = hash_;
     this.totalCurrency = totalCurrency_;
   }
 }
 
-export class EpochDataPredicate extends CircuitValue {
-  @prop ledger: EpochLedgerPredicate;
-  @prop seed_: OrIgnore<Field>;
-  @prop startCheckpoint_: OrIgnore<Field>;
-  @prop lockCheckpoint_: OrIgnore<Field>;
-  @prop epochLength: ClosedInterval<UInt32>;
+export class EpochDataPredicate {
+  ledger: EpochLedgerPredicate;
+  seed_: OrIgnore<Field>;
+  startCheckpoint_: OrIgnore<Field>;
+  lockCheckpoint_: OrIgnore<Field>;
+  epochLength: ClosedInterval<UInt32>;
 
   constructor(ledger: EpochLedgerPredicate, seed_: OrIgnore<Field>, startCheckpoint_: OrIgnore<Field>, lockCheckpoint_: OrIgnore<Field>, epochLength: ClosedInterval<UInt32>) {
-    super();
     this.ledger = ledger;
     this.seed_ = seed_;
     this.startCheckpoint_ = startCheckpoint_;
@@ -354,58 +385,62 @@ export class EpochDataPredicate extends CircuitValue {
     this.epochLength = epochLength;
   }
 
-  set seed(x: Field) {
-    this.seed_.checkEquals.value = x;
-    this.seed_.checkEquals.isSome = new Bool(true);
-  }
-
+  // TODO: Should return promise
   get seed(): Field {
-    if (this.seed_.checkEquals.value === null) {
+    if (this.seed_.value === null) {
       throw new Error('Cannot get seed before it was set.');
     } else {
-      return this.seed_.checkEquals.value;
+      return this.seed_.value;
     }
-  }
-
-  set startCheckpoint(x: Field) {
-    this.startCheckpoint_.checkEquals.value = x;
-    this.startCheckpoint_.checkEquals.isSome = new Bool(true);
   }
 
   get startCheckpoint(): Field {
-    if (this.startCheckpoint_.checkEquals.value === null) {
+    if (this.startCheckpoint_.value === null) {
       throw new Error('Cannot get startCheckpoint before it was set.');
     } else {
-      return this.startCheckpoint_.checkEquals.value;
+      return this.startCheckpoint_.value;
     }
   }
 
-  set lockCheckpoint(x: Field) {
-    this.lockCheckpoint_.checkEquals.value = x;
-    this.lockCheckpoint_.checkEquals.isSome = new Bool(true);
-  }
-
   get lockCheckpoint(): Field {
-    if (this.lockCheckpoint_.checkEquals.value === null) {
+    if (this.lockCheckpoint_.value === null) {
       throw new Error('Cannot get lockCheckpoint before it was set.');
     } else {
-      return this.lockCheckpoint_.checkEquals.value;
+      return this.lockCheckpoint_.value;
     }
   }
 }
 
-export class ProtocolStatePredicate extends CircuitValue {
-  @prop snarkedLedgerHash_: OrIgnore<Field>;
-  @prop snarkedNextAvailableToken: ClosedInterval<UInt64>;
-  @prop timestamp: ClosedInterval<UInt64>;
-  @prop blockchainLength: ClosedInterval<UInt32>;
-  @prop minWindowDensity: ClosedInterval<UInt32>;
-  @prop lastVrfOutput_: OrIgnore<Field>;
-  @prop totalCurrency: ClosedInterval<UInt64>;
-  @prop globalSlotSinceHardFork: ClosedInterval<UInt32>;
-  @prop globalSlotSinceGenesis: ClosedInterval<UInt32>;
-  @prop stakingEpochData: EpochDataPredicate;
-  @prop nextEpochData: EpochDataPredicate;
+export class ProtocolStatePredicate {
+  snarkedLedgerHash_: OrIgnore<Field>;
+  snarkedNextAvailableToken: ClosedInterval<UInt64>;
+  timestamp: ClosedInterval<UInt64>;
+  blockchainLength: ClosedInterval<UInt32>;
+  minWindowDensity: ClosedInterval<UInt32>;
+  lastVrfOutput_: OrIgnore<Field>;
+  totalCurrency: ClosedInterval<UInt64>;
+  globalSlotSinceHardFork: ClosedInterval<UInt32>;
+  globalSlotSinceGenesis: ClosedInterval<UInt32>;
+  stakingEpochData: EpochDataPredicate;
+  nextEpochData: EpochDataPredicate;
+  
+  static ignoreAll(): ProtocolStatePredicate {
+    const ledger = new EpochLedgerPredicate(ignore(Field.zero), uint64());
+    const epochData = new EpochDataPredicate(ledger, ignore(Field.zero), ignore(Field.zero), ignore(Field.zero), uint32());
+    return new ProtocolStatePredicate(
+      ignore(Field.zero),
+      uint64(),
+      uint64(),
+      uint32(),
+      uint32(),
+      ignore(Field.zero),
+      uint64(),
+      uint32(),
+      uint32(),
+      epochData,
+      epochData,
+    )
+  }
 
   constructor(
     snarkedLedgerHash_: OrIgnore<Field>,
@@ -420,7 +455,6 @@ export class ProtocolStatePredicate extends CircuitValue {
     stakingEpochData: EpochDataPredicate,
     nextEpochData: EpochDataPredicate
   ) {
-    super();
     this.snarkedLedgerHash_ = snarkedLedgerHash_;
     this.snarkedNextAvailableToken = snarkedNextAvailableToken;
     this.timestamp = timestamp;
@@ -434,36 +468,108 @@ export class ProtocolStatePredicate extends CircuitValue {
     this.nextEpochData = nextEpochData;
   }
 
-  set snarkedLedgerHash(x: Field) {
-    this.snarkedLedgerHash_.checkEquals.value = x;
-    this.snarkedLedgerHash_.checkEquals.isSome = new Bool(true);
-  }
-
   get snarkedLedgerHash(): Field {
-    if (this.snarkedLedgerHash_.checkEquals.value === null) {
+    this.snarkedLedgerHash_.check = new Bool(true);
+
+    if (this.snarkedLedgerHash_.value === null) {
       throw new Error('Cannot get snarkedLedgerHash before it was set.');
     } else {
-      return this.snarkedLedgerHash_.checkEquals.value;
+      return this.snarkedLedgerHash_.value;
     }
   }
 
-  set lastVrfOutput(x: Field) {
-    this.lastVrfOutput_.checkEquals.value = x;
-    this.lastVrfOutput_.checkEquals.isSome = new Bool(true);
-  }
-
   get lastVrfOutput(): Field {
-    if (this.lastVrfOutput_.checkEquals.value === null) {
+    this.lastVrfOutput_.check = new Bool(true);
+
+    if (this.lastVrfOutput_.value === null) {
       throw new Error('Cannot get lastVrfOutput before it was set.');
     } else {
-      return this.lastVrfOutput_.checkEquals.value;
+      return this.lastVrfOutput_.value;
     }
   }
 }
 
-export class Party {
-  static createSigned(privKey: PrivateKey): Body {
-    throw 'none';
+function ignore<A>(dummy: A): OrIgnore<A> {
+  return new OrIgnore(new Bool(false), dummy);
+}
+/*
+function check<A>(dummy: A): OrIgnore<A> {
+  return new OrIgnore(new Optional(new Bool(true), dummy));
+} */
+
+const uint32 = () => new ClosedInterval(
+  UInt32.fromNumber(0), UInt32.MAXINT());
+
+const uint64 = () => new ClosedInterval(
+  UInt64.fromNumber(0), UInt64.MAXINT());
+
+export class AccountPredicate {
+  balance: ClosedInterval<UInt64>;
+  nonce: ClosedInterval<UInt32>;
+  receiptChainHash: OrIgnore<Field>;
+  publicKey: OrIgnore<PublicKey>;
+  delegate: OrIgnore<PublicKey>;
+  state: Array<OrIgnore<Field>>;
+  sequenceState: OrIgnore<Field>;
+  provedState: OrIgnore<Bool>;
+  
+  static ignoreAll(): AccountPredicate {
+    let appState: Array<OrIgnore<Field>> = [];
+    for (let i = 0; i < SnappStateLength; ++i) {
+      appState.push(ignore(Field.zero));
+    }
+
+    return new AccountPredicate(
+      uint64(),
+      uint32(),
+      ignore(Field.zero),
+      ignore(new PublicKey(Group.generator)),
+      ignore(new PublicKey(Group.generator)),
+      appState,
+      ignore(Field.zero),
+      ignore(new Bool(false)),
+    )
+  }
+
+  constructor(
+    balance: ClosedInterval<UInt64>,
+    nonce: ClosedInterval<UInt32>,
+    receiptChainHash: OrIgnore<Field>,
+    publicKey: OrIgnore<PublicKey>,
+    delegate: OrIgnore<PublicKey>,
+    state: Array<OrIgnore<Field>>,
+    sequenceState: OrIgnore<Field>,
+    provedState: OrIgnore<Bool>,
+  ) {
+    this.balance = balance;
+    this.nonce = nonce;
+    this.receiptChainHash = receiptChainHash;
+    this.publicKey = publicKey;
+    this.delegate = delegate;
+    this.state = state;
+    this.sequenceState = sequenceState;
+    this.provedState = provedState;
+  }
+}
+
+export class Party<P> {
+  body: Body;
+  predicate: P;
+
+  constructor(body: Body, predicate: P) {
+    this.body = body;
+    this.predicate = predicate;
+  }
+
+  static createSigned(signer: PrivateKey): Party<UInt32> {
+    const pk = signer.toPublicKey();
+    const a = Mina.getAccount(pk);
+    if (a == null) {
+      throw new Error('Party.createSigned: Account not found');
+    }
+
+    const body: Body = Body.keepAll(pk);
+    return new Party(body, a.nonce);
   }
 }
 /*

@@ -767,6 +767,7 @@ export interface MerkleTree<A> {
 }
 
 function constantIndex(xs: Array<Bool>): Array<boolean> {
+  console.log('constantindex');
   return xs.map((b) => b.toBoolean());
 }
 

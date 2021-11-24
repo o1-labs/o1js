@@ -15,14 +15,20 @@ function argToField(name: string, x: { value: Field } | number): Field {
 export class UInt64 extends CircuitValue {
   @prop value: Field;
   
+  static zero: UInt64 = new UInt64(Field.zero);
+
   constructor(value: Field) {
     super();
     this.value = value;
   }
-  
+
   static check(x: UInt64) {
     let actual = x.value.rangeCheckHelper(64);
     actual.assertEquals(x.value);
+  }
+  
+  static MAXINT(): UInt64 {
+    return new UInt64(Field.fromJSON(((1n << 64n) - 1n).toString()) as Field);
   }
 
   static fromNumber(x: number): UInt64 {
@@ -125,6 +131,8 @@ export class UInt64 extends CircuitValue {
 export class UInt32 extends CircuitValue {
   @prop value: Field;
   
+  static zero: UInt32 = new UInt32(Field.zero);
+  
   constructor(value: Field) {
     super();
     this.value = value;
@@ -140,27 +148,42 @@ export class UInt32 extends CircuitValue {
   }
   
   static NUM_BITS = 32;
-  
+
+  static MAXINT(): UInt32 {
+    return new UInt32(Field.fromJSON(((1n << 32n) - 1n).toString()) as Field);
+  }
+
   divMod(y: UInt32 | number): [UInt32, UInt32] {
+    console.log('divmod', 0);
     let x = this.value;
+    console.log('divmod', 1);
     let y_ = argToField('UInt32.div', y);
+    console.log('divmod', 2);
 
     if (this.value.isConstant() && y_.isConstant()) {
+    console.log('divmod', 3);
       let xn = BigInt(x.toString());
+    console.log('divmod', 4);
       let yn = BigInt(y_.toString());
+    console.log('divmod', 5);
       let q = xn / yn;
+    console.log('divmod', 6);
       let r = xn - q * yn;
+    console.log('divmod', 7);
       return [
         new UInt32(new Field(q.toString())),
         new UInt32(new Field(r.toString()))
       ];
     }
 
+    console.log('divmod', 8);
     y_ = y_.seal();
+    console.log('divmod', 9);
 
     let q = Circuit.witness(Field, () => 
       new Field ((BigInt(x.toString()) / BigInt(y_.toString())).toString()));
 
+    console.log('divmod', 10);
     q.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(q);
 
     // TODO: Could be a bit more efficient
@@ -176,7 +199,10 @@ export class UInt32 extends CircuitValue {
   }
   
   div(y : UInt32 | number): UInt32 {
-    return this.divMod(y)[0];
+    console.log('div', 0)
+    const dm = this.divMod(y);
+    console.log('div', 1)
+    return dm[0];
   }
 
   mod(y : UInt32 | number): UInt32 {
@@ -245,35 +271,49 @@ class Sgn extends CircuitValue {
     super();
     this.value = value;
   }
+  
+  static Pos = new Sgn(Field.one);
+  static Neg = new Sgn(Field.one.neg());
 }
 
 export class Int64 {
-  @prop value: Field | null;
+  // In the range [-2^63, 2^63 - 1]
+  @prop value: Field;
 
+  static check() {
+    throw 'todo: int64 check'
+  }
+
+  /*
   @prop magnitude: UInt64 | null;
   @prop isPos: Sgn | null;
+  */
 
-  constructor(magnitude: UInt64, isPos: Sgn) {
-    this.value = null;
-    this.magnitude = magnitude;
-    this.isPos = isPos;
+  constructor(x: Field) {
+    this.value = x;
+  }
+
+  static zero = new Int64(Field.zero);
+
+  static ofUnsigned(x: UInt64): Int64 {
+    return new Int64(x.value);
   }
   
-  static ofUnsigned(x: UInt64): Int64 {
-    return new Int64(x, new Sgn(Field.one));
+  private static shift(): Field {
+    return Field.fromJSON((1n << 63n).toString()) as Field;
+  }
+
+
+  uint64Value(): Field {
+    return this.value.add(Int64.shift());
   }
 
   static sizeInFieldElements(): number {
-    return 2;
+    return 1;
   }
   
   neg(): Int64 {
-    // TODO
-    if (this.magnitude !== null && this.isPos !== null) {
-      return new Int64(this.magnitude, this.isPos);
-    } else {
-      throw 'neg';
-    }
+    return new Int64(this.value.neg());
   }
 
   repr(): { magnitude: Field, isPos: Sgn } {
@@ -281,12 +321,11 @@ export class Int64 {
   }
 
   static toFieldElements(x: Int64): Field[] {
-    let r = x.repr();
-    return [r.magnitude, r.isPos.value];
+    return [x.value];
   }
 
   static ofFieldElements(xs: Field[]) {
-    return new Int64(new UInt64(xs[0]), new Sgn(xs[1]));
+    return new Int64(xs[0]);
   }
 
   toFieldElements(): Field[] {

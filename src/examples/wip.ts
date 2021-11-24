@@ -233,7 +233,7 @@ class RollupSnapp extends SmartContract {
     // Force users to use the deposit method to send to this account
     perms.receive = Perm.proof();
     perms.editState = Perm.proof();
-    this.self.update.permissions.set(perms)
+    this.self.update.permissions.setValue(perms)
   }
 
   // Only allowed to update every so often
@@ -243,8 +243,11 @@ class RollupSnapp extends SmartContract {
     pk: PublicKey,
     s: Signature)
   {
+    console.log('add', 0);
     let period = submittedSlot.div(RollupSnapp.periodLength);
+    console.log('add', 1);
     let startSlot = period.mul(RollupSnapp.periodLength);
+    console.log('add', 2);
 
 
     /*
@@ -280,19 +283,27 @@ class RollupSnapp extends SmartContract {
       .add(RollupSnapp.newOperatorGapPeriods)
     );
     */
+    console.log('add', 3);
     this.lastUpdatedPeriod.set(period);
+    console.log('add', 4);
 
     this.operatorsCommitment.assertEquals(operatorsDb.commitment());
+    console.log('add', 5);
 
     const self = this.self;
+    console.log('add', 6);
 
     // verify signature on
     // message = [ submittedSlot, operatorPubKey ]
     let message = submittedSlot.toFieldElements().concat(pk.toFieldElements());
+    console.log('add', 7);
     s.verify(self.publicKey, message).assertEquals(true);
 
+    console.log('add', 8);
     operatorsDb.add(pk);
+    console.log('add', 9);
     this.operatorsCommitment.set(operatorsDb.commitment());
+    console.log('add', 10);
   }
 
   @method depositFunds(
@@ -345,6 +356,11 @@ class RollupSnapp extends SmartContract {
 }
 
 export function main() {
+  const minaSender = PrivateKey.random();
+  const Local = Mina.Local();
+  Mina.setActiveInstance(Local);
+  Local.addAccount(minaSender.toPublicKey(), 10000000);
+  
   // TODO: Put real value
   let snappOwnerKey = PrivateKey.random();
   let snappPubkey = snappOwnerKey.toPublicKey();
@@ -383,22 +399,25 @@ export function main() {
   let RollupInstance = new RollupSnapp(snappPubkey, operatorsDb, accountDb, pendingDeposits, UInt32.fromNumber(0));
 
   console.log(4);
+  
   // TODO: Have a mock Mina module for testing purposes
   // TODO: Make sure that modifications to data stores are not
   // committed before corresponding changes happen on chain
 
   // Executes a snapp method, broadcasts the transaction to chain.
-  Mina.transaction(() => {
+  Mina.transaction(minaSender, () => {
+    console.log(5);
     RollupInstance.addOperator(
       Mina.currentSlot(), operatorsDb, newOperatorPubkey, signature);
   }).send().wait().then(() => {
+    console.log(6);
     let depositorBalance = Mina.getBalance(depositorPubkey);
-    return Mina.transaction(() => {
+    return Mina.transaction(minaSender, () => {
       let depositor = Party.createSigned(depositorPrivkey);
       // TODO: Figure out nicer way to have a second party.
 
       // Deposit some funds into the rollup
-      RollupInstance.depositFunds(depositor, depositorBalance.div(2));
+      RollupInstance.depositFunds(depositor.body, depositorBalance.div(2));
     }).send().wait()
   }).then(() => {
     let rollupAmount = UInt64.fromNumber(10);
@@ -418,7 +437,7 @@ export function main() {
           pendingDeposits,
           accountDb));
     
-    Mina.transaction(() => {
+    Mina.transaction(minaSender, () => {
       let membershipProof = operatorsDb.getMembershipProof(newOperatorPubkey);
       if (membershipProof === null) { throw 'not an operator' };
       RollupInstance.updateRollupState(
