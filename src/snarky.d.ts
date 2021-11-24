@@ -321,7 +321,7 @@ export class Circuit {
 
   static asProver(f: () => void): void;
   
-  static runAndCheck<T>(f : () => (() => T)): T;
+  static runAndCheck<T>(f : () => Promise<(() => T)>): Promise<T>;
 
   static array<T>(
     ctor: AsFieldElements<T>,
@@ -353,6 +353,8 @@ export class Circuit {
   static toFieldElements<A>(A): Field[];
   
   static inProver(): boolean;
+
+  static inCheckedComputation(): boolean;
 }
 
 export class Scalar {

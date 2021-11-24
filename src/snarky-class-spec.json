@@ -181,6 +181,10 @@
         "type": "function"
       },
       {
+        "name": "inCheckedComputation",
+        "type": "function"
+      },
+      {
         "name": "runAndCheck",
         "type": "function"
       },
