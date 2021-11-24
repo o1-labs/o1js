@@ -37,9 +37,9 @@ export let currentTransaction : {
 } | undefined = undefined;
 
 interface Mina {
-  transaction(sender: PrivateKey, f : () => void): Transaction,
+  transaction(sender: PrivateKey, f : () => void | Promise<void>): Transaction,
   currentSlot(): UInt32,
-  getAccount(publicKey: PublicKey): Account,
+  getAccount(publicKey: PublicKey): Promise<Account>,
 }
 
 export const Local = () => {
@@ -60,20 +60,21 @@ export const Local = () => {
   console.log('hi', 33)
   };
 
-  const getAccount = (pk: PublicKey) : Account => {
+  const getAccount = (pk: PublicKey) : Promise<Account> => {
     const r = ledger.getAccount(pk);
     if (r == null) {
       throw new Error(`getAccount: Could not find account for ${JSON.stringify(pk.toJSON())}`);
     } else {
-      return {
+      const a = {
         balance: new UInt64(r.balance.value),
         nonce: new UInt32(r.nonce.value),
         snapp: r.snapp,
-      }
+      };
+      return new Promise((r) => r(a));
     }
   };
 
-  const transaction = (sender: PrivateKey, f: () => void): Transaction => {
+  const transaction = (sender: PrivateKey, f: () => void | Promise<void>): Transaction => {
     if (currentTransaction !== undefined) {
       throw new Error("Cannot start new transaction within another transaction");
     }
@@ -84,10 +85,18 @@ export const Local = () => {
       nextPartyIndex: 0,
       protocolState: ProtocolStatePredicate.ignoreAll()
     }
-    
+
     Circuit.runAndCheck(() => {
-      f();
-      return (() => {})
+      const res = f ();
+      if (res instanceof Promise) {
+        return res.then(() => {
+          return () => {}
+        })
+      } else {
+        const r: Promise<() => void> =
+          new Promise((k) => k(() => {}));
+        return r;
+      }
     });
 
     function epochData(d: EpochDataPredicate) {
@@ -183,7 +192,7 @@ export function setActiveInstance(m: Mina) {
   activeInstance = m;
 }
 
-export function transaction(sender: PrivateKey, f : () => void): Transaction {
+export function transaction(sender: PrivateKey, f : () => void | Promise<void>): Transaction {
   return activeInstance.transaction(sender, f)
 }
 
@@ -195,11 +204,11 @@ export function currentSlot(): UInt32 {
   return activeInstance.currentSlot();
 }
 
-export function getBalance(pubkey: PublicKey): UInt64 {
-  return activeInstance.getAccount(pubkey).balance;
+export function getBalance(pubkey: PublicKey): Promise<UInt64> {
+  return activeInstance.getAccount(pubkey).then((a) => a.balance);
 }
 
-export function getAccount(pubkey: PublicKey): Account {
+export function getAccount(pubkey: PublicKey): Promise<Account> {
   return activeInstance.getAccount(pubkey);
 }
 

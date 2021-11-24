@@ -217,9 +217,9 @@ class RollupSnapp extends SmartContract {
     lastUpatedPeriod: UInt32, 
     ) {
     super(address);
-    this.operatorsCommitment = State.initialize(operatorsDb.commitment());
-    this.lastUpdatedPeriod = State.initialize(lastUpatedPeriod);
-    this.rollupState = State.initialize(new RollupState(deposits.commitment, accountDb.commitment()));
+    this.operatorsCommitment = State.init(operatorsDb.commitment());
+    this.lastUpdatedPeriod = State.init(lastUpatedPeriod);
+    this.rollupState = State.init(new RollupState(deposits.commitment, accountDb.commitment()));
   }
 
   static instanceOnChain(address: PublicKey): RollupSnapp { throw 'instanceonchain' }
@@ -411,13 +411,15 @@ export function main() {
       Mina.currentSlot(), operatorsDb, newOperatorPubkey, signature);
   }).send().wait().then(() => {
     console.log(6);
-    let depositorBalance = Mina.getBalance(depositorPubkey);
     return Mina.transaction(minaSender, () => {
-      let depositor = Party.createSigned(depositorPrivkey);
-      // TODO: Figure out nicer way to have a second party.
+      return Party.createSigned(depositorPrivkey).then((depositor) => {
+        // TODO: Figure out nicer way to have a second party.
 
-      // Deposit some funds into the rollup
-      RollupInstance.depositFunds(depositor.body, depositorBalance.div(2));
+        return Mina.getBalance(depositorPubkey).then((depositorBalance) => {
+          // Deposit some funds into the rollup
+          RollupInstance.depositFunds(depositor.body, depositorBalance.div(2));
+        });
+      });
     }).send().wait()
   }).then(() => {
     let rollupAmount = UInt64.fromNumber(10);

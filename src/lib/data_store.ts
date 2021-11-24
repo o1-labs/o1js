@@ -4,7 +4,7 @@ import { Tree, IndexFactory, MerkleProof, MerkleProofFactory  } from './merkle_p
 import { Poseidon } from '../snarky';
 import { asFieldElementsToConstant} from './circuit_value';
 import { UInt64 } from './int';
-import { Bool } from '../snarky';
+import { Circuit, Bool } from '../snarky';
 
 export interface DataStore<A, P> {
   depth: number,
@@ -152,12 +152,14 @@ export function InMemory<A>(
   }
   
   const set = (i: Index, x: A) => {
-  console.log('mset');
-    const idx = i.value.map(b => b.toBoolean());
-    const h = Poseidon.hash(eltTyp.toFieldElements(x));
-  console.log('mset');
-    indexes.set(h.toString(), idx);
-    t.setValue(idx, x, h);
+    Circuit.asProver(() => {
+      console.log('mset');
+      const idx = i.value.map(b => b.toBoolean());
+      const h = Poseidon.hash(eltTyp.toFieldElements(x));
+      console.log('mset');
+      indexes.set(h.toString(), idx);
+      t.setValue(idx, x, h);
+    })
   };
 
   const commitment = (): Field => t.root();

@@ -276,6 +276,25 @@ export class OrIgnore<A> {
   }
 }
 
+export abstract class State<A> {
+  abstract get(): Promise<A>;
+  abstract set(x: A): void;
+  abstract assertEquals(x: A): void;
+
+  static init<A>(x: A): State<A> {
+    class Init extends State<A> {
+      value: A; constructor(){ super(); this.value = x; }
+      get(): Promise<A> { throw 'init:unimplemented' }
+      set(_: A) { throw 'init:unimplmented' }
+      assertEquals(_: A) { throw 'init:unimplemented' }
+    }
+    return new Init()
+  }
+
+  constructor() {}
+}
+
+/*
 export class State<A> {
   predicate: OrIgnore<A>;
   update: SetOrKeep<A>;
@@ -306,13 +325,6 @@ export class State<A> {
   }
 
   get(): Promise<A> {
-    /*
-    if (Circuit.inProver()) {
-      let res = Circuit.witness()
-    } else {
-    }
-
-    Mina.getAccount() */
 
     // TODO: Get the state from somewhere
     let actualState: A = undefined as any;
@@ -320,6 +332,7 @@ export class State<A> {
     return new Promise((resolve) => resolve(actualState));
   }
 }
+*/
 
 export class ClosedInterval<A> {
   lower_: A | undefined;
@@ -561,15 +574,19 @@ export class Party<P> {
     this.predicate = predicate;
   }
 
-  static createSigned(signer: PrivateKey): Party<UInt32> {
-    const pk = signer.toPublicKey();
-    const a = Mina.getAccount(pk);
-    if (a == null) {
-      throw new Error('Party.createSigned: Account not found');
-    }
+  static createSigned(signer: PrivateKey): Promise<Party<UInt32>> {
+    // TODO: This should be a witness block that uses the setVariable
+    // API to set the value of a variable after it's allocated
 
+    const pk = signer.toPublicKey();
     const body: Body = Body.keepAll(pk);
-    return new Party(body, a.nonce);
+    return Mina.getAccount(pk).then((a) => {
+      if (a == null) {
+        throw new Error('Party.createSigned: Account not found');
+      }
+
+      return new Party(body, a.nonce);
+    });
   }
 }
 /*
