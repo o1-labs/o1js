@@ -320,6 +320,8 @@ export class Circuit {
   ): T;
 
   static asProver(f: () => void): void;
+  
+  static runAndCheck<T>(f : () => (() => T)): T;
 
   static array<T>(
     ctor: AsFieldElements<T>,
@@ -450,16 +452,16 @@ export const Poseidon: {
   hash: (xs: Field[]) => Field;
 };
 
-type UInt32 = string;
-type UInt64 = string;
+private interface UInt32 { value: Field }
+private interface UInt64 { value: Field }
 
 interface OrIgnore<A> {
-  check: boolean,
+  check: Bool,
   value: A,
 }
 
 interface SetOrKeep<A> {
-  set: boolean,
+  set: Bool,
   value: A,
 };
 
@@ -495,13 +497,11 @@ export interface ProtocolStatePredicate {
   nextEpochData: EpochDataPredicate,
 }
 
-type Int64 = string;
-
-type PublicKey = { g: Group };
+private interface Int64 { uint64Value(): Field };
 
 interface PartyUpdate {
   appState: Array<SetOrKeep<Field>>,
-  delegate: SetOrKeep<PublicKey>,
+  delegate: SetOrKeep<{ g: Group }>,
   // TODO: Verification key
   // TODO: permissions
   // TODO: snapp uri
@@ -510,7 +510,7 @@ interface PartyUpdate {
 }
 
 interface PartyBody {
-  publicKey: PublicKey,
+  publicKey: { g: Group },
   update: PartyUpdate,
   tokenId: UInt32,
   delta: Int64,
@@ -524,11 +524,11 @@ interface FullAccountPredicate {
   balance: ClosedInterval<UInt64>,
   nonce: ClosedInterval<UInt32>,
   receiptChainHash: OrIgnore<Field>,
-  publicKey: OrIgnore<PublicKey>,
-  delegate: OrIgnore<PublicKey>,
+  publicKey: OrIgnore<{ g: Group }>,
+  delegate: OrIgnore<{ g: Group }>,
   state: Array<OrIgnore<Field>>,
   sequenceState: OrIgnore<Field>,
-  provedState: OrIgnore<boolean>,
+  provedState: OrIgnore<Bool>,
 }
 
 type AccountPredicate =
@@ -563,11 +563,13 @@ interface Account {
 }
 
 export class Ledger {
-  static create(genesisAccounts: Array<{publicKey: PublicKey, balance: number}>): Ledger;
-
-  applyPartiesTransaction(parties: Parties);
+  static create(genesisAccounts: Array<{publicKey: { g: Group }, balance: number}>): Ledger;
   
-  getAccount(publicKey: PublicKey): Account | null;
+  addAccount(publicKey: {g: Group}, balance: number): void;
+
+  applyPartiesTransaction(parties: Parties): void;
+  
+  getAccount(publicKey: { g: Group }): Account | null;
 };
 
 /* TODO: Figure out types for these. */

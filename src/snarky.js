@@ -1,5 +1,5 @@
 import { initSnarkyJS } from './chrome_bindings/plonk_init.js';
-export { Field, Bool, Circuit, Poseidon, Group, Scalar };
+export { Field, Bool, Circuit, Poseidon, Group, Scalar, Ledger };
 
 // for compat with node version
 export { shutdown, isReady };
@@ -9,4 +9,4 @@ let isReady = Promise.resolve();
 // we should probably not do this
 await initSnarkyJS();
 
-let { Field, Bool, Circuit, Poseidon, Group, Scalar } = window.__snarky;
+let { Field, Bool, Circuit, Poseidon, Group, Scalar, Ledger } = window.__snarky;

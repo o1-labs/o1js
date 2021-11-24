@@ -177,6 +177,14 @@
         "type": "function"
       },
       {
+        "name": "inProver",
+        "type": "function"
+      },
+      {
+        "name": "runAndCheck",
+        "type": "function"
+      },
+      {
         "name": "witness",
         "type": "function"
       },
@@ -309,6 +317,15 @@
       },
       {
         "name": "fromJSON",
+        "type": "function"
+      }
+    ]
+  },
+  {
+    "name": "Ledger",
+    "props": [
+      {
+        "name": "create",
         "type": "function"
       }
     ]
