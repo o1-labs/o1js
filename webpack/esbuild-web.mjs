@@ -45,13 +45,26 @@ async function buildWeb({ entry, production }) {
     { encoding: 'utf8' }
   );
   // strip away trailing export statement
-  let plonkWasmWorker = plonkWasmBundled.slice(
-    0,
-    plonkWasmBundled.indexOf('export {')
-  );
+  let i = plonkWasmBundled.indexOf('export {');
+  let exportSlice = plonkWasmBundled.slice(i);
+  let defaultExport = exportSlice.match(/\w* as default/)[0];
+  // let defaultExportName = defaultExport.replace(' as default', '');
+  exportSlice = exportSlice
+    .replace(defaultExport, `default: init`)
+    .replace('export', 'return');
+  plonkWasmBundled = plonkWasmBundled.slice(0, i) + exportSlice;
+
+  plonkWasmBundled = plonkWasmBundled.replace('var startWorkers;\n', '');
+  plonkWasmBundled = `import {startWorkers} from './workerHelpers.js'
+export {plonkWasm as default};
+function plonkWasm() {
+  ${plonkWasmBundled}
+}
+plonkWasm.deps = [startWorkers]`;
+
   await fs.promises.writeFile(
-    'src/chrome_bindings/plonk_wasm.esbuild.worker.js',
-    plonkWasmWorker,
+    'src/chrome_bindings/plonk_wasm.esbuild.js',
+    plonkWasmBundled,
     { encoding: 'utf8' }
   );
 
@@ -85,16 +98,16 @@ async function buildWeb({ entry, production }) {
   await fs.promises.unlink('src/chrome_bindings/plonk_wasm.esbuild.js');
 
   // run esbuild on worker_init.js
-  await esbuild.build({
-    entryPoints: [`./dist/web/chrome_bindings/worker_init.js`],
-    bundle: true,
-    format: 'esm',
-    outfile: 'dist/web/chrome_bindings/worker_init.js',
-    target: 'esnext',
-    plugins: [wasmPlugin()],
-    allowOverwrite: true,
-    minify,
-  });
+  // await esbuild.build({
+  //   entryPoints: [`./dist/web/chrome_bindings/worker_init.js`],
+  //   bundle: true,
+  //   format: 'esm',
+  //   outfile: 'dist/web/chrome_bindings/worker_init.js',
+  //   target: 'esnext',
+  //   plugins: [wasmPlugin()],
+  //   allowOverwrite: true,
+  //   minify,
+  // });
 
   // run esbuild on the js entrypoint
   let jsEntry = path.basename(entry).replace('.ts', '.js');
@@ -121,8 +134,8 @@ async function buildWeb({ entry, production }) {
     './src/chrome_bindings/index.html': './dist/web/index.html',
     './src/chrome_bindings/server.py': './dist/web/server.py',
     // TODO: remove dependency on this last worker file
-    './src/chrome_bindings/plonk_wasm.esbuild.worker.js':
-      './dist/web/plonk_wasm.esbuild.worker.js',
+    // './src/chrome_bindings/plonk_wasm.esbuild.worker.js':
+    //   './dist/web/plonk_wasm.esbuild.worker.js',
   });
 }
 
@@ -147,15 +160,13 @@ function execPromise(cmd) {
 function rewriteWasmBindings(src) {
   src = src
     .replace("new URL('./plonk_wasm_bg.wasm', import.meta.url)", 'wasmCode')
-    .replace('import.meta.url', 'CDN_LOCATION')
+    .replace('import.meta.url', '"/"')
     .replace(
       "import { startWorkers } from './snippets/wasm-bindgen-rayon-7afa899f36665473/src/workerHelpers.no-bundler.js';",
-      `import { startWorkers } from './snippets/wasm-bindgen-rayon-7afa899f36665473/src/workerHelpers.esbuild.js';
-import wasmCode from './plonk_wasm_bg.wasm';
-export let CDN_LOCATION = 'https://cdn.jsdelivr.net/gh/o1-labs/snarkyjs@feature/better-web-build/src/chrome_bindings/plonk_wasm.esbuild.worker.js';
+      `import wasmCode from './plonk_wasm_bg.wasm';
+let startWorkers;
 `
     );
-  // export let CDN_LOCATION = 'http://localhost:8000/plonk_wasm.esbuild.worker.js';
   return src;
 }
 

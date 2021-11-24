@@ -1,8 +1,8 @@
 import plonkWasm from './plonk_wasm.js';
 import workerRun from './worker_run.js';
 import workerInit from './worker_init.js';
+import { srcFromFunctionModule, inlineWorker } from './workerHelpers.js';
 import snarkyJsChromeSrc from 'string:./snarky_js_chrome.bc.js';
-// import snarkyJsChrome from 'defer:./snarky_js_chrome.bc.js';
 let plonk_wasm = plonkWasm();
 let init = plonk_wasm.default;
 let { override_bindings } = workerRun();
@@ -15,12 +15,13 @@ export async function initSnarkyJS() {
     set_workers_ready = resolve;
   });
 
-  let worker = workerFromFunctionModule(workerInit);
+  let worker = inlineWorker(srcFromFunctionModule(workerInit));
 
   worker.onmessage = () => {
     set_workers_ready();
   };
 
+  // TODO can't we send the compiled wasm module as well?
   worker.postMessage({ type: 'init', memory: plonk_wasm_init.memory });
   await workers_ready;
   window.plonk_wasm = override_bindings(plonk_wasm, worker);
@@ -32,39 +33,8 @@ export async function initSnarkyJS() {
   // (probably as a cross-platform way to get the global object before globalThis existed)
   // that obsolete hack doesn't work here because inside an ES module, this === undefined instead of this === window
   // it seems to work when we patch the source code (replace IIFEs with `window`)
-  // snarkyJsChrome();
 
-  // 2. include the code as string and eval it
+  // 2. include the code as string and eval it:
   // (this works because it breaks out of strict mode)
   new Function(snarkyJsChromeSrc)();
-}
-
-function loadScript(src) {
-  let script = document.createElement('script');
-  script.src = src;
-  document.body.appendChild(script);
-  return new Promise((r) => script.addEventListener('load', () => r()));
-}
-
-function workerFromFunctionModule(fun) {
-  let deps = collectDependencies(fun, []);
-  let src = deps.map((d) => d.toString()).join('\n');
-  src += `\n(${fun.toString()})();`;
-  return inlineWorker(src);
-}
-
-function collectDependencies(fun, deps) {
-  for (let dep of fun.deps ?? []) {
-    collectDependencies(dep, deps);
-    if (!deps.includes(dep)) deps.push(dep);
-  }
-  return deps;
-}
-
-function inlineWorker(src) {
-  let blob = new Blob([src], { type: 'application/javascript' });
-  let url = URL.createObjectURL(blob);
-  let worker = new Worker(url);
-  URL.revokeObjectURL(url);
-  return worker;
 }
