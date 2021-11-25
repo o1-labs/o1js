@@ -34,7 +34,6 @@ async function buildWeb({ entry, production }) {
     target: 'esnext',
     plugins: [wasmPlugin()],
     allowOverwrite: true,
-    minify,
   });
   bindings = await readFile(tmpBindingsPath, 'utf8');
   bindings = rewriteBundledWasmBindings(bindings);
