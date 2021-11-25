@@ -1,14 +1,28 @@
 
 function foo(x: number) {
-  return function (this: any, target: any, key: string) {
-      console.log('is A', target.constructor === A);
-      console.log('thnis', this);
-      console.log('t', target);
-      Object.defineProperty(target, key, { set: (x) => { console.log('setter')}, get: () => 'correct'})
-  }
+
+return function (this: any, target: any, key: string) {
+    console.log('is A', target.constructor === A);
+    console.log('thnis', target.bar());
+    console.log('t', target);
+    Object.defineProperty(target, key, { set: (x) => { console.log('setter')}, get: () => 'correct'})
+}
 }
 abstract class B {
+    _bar: string | undefined;
+    address: string;
+    constructor(address: string) {
+      this.address = address;
+      this.bar();
+    }
 
+    bar() : string {
+
+        if (this._bar !== undefined) { return this._bar }
+console.log('only once')
+        this._bar = 'super';
+        return this._bar;
+    }
 }
 
 
@@ -17,13 +31,14 @@ class A extends B  {
     x: string;
 
     constructor() {
-        super()
+       super('ptotat')
        this.x = 'wrong';
     }
 }
 const a = new A();
 
 console.log(a.x)
+
 
 export * from './snarky';
 export * from './lib/signature';

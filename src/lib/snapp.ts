@@ -32,24 +32,26 @@ export function state<A>(ty: AsFieldElements<A>) {
         SnappClass._states = [];
         let layout: Map<string, { offset: number, length: number }>;
         SnappClass._layout = () => {
-          if (layout !== undefined) {
-            return layout;
+          if (layout === undefined) {
+            layout = new Map();
+
+            let offset = 0;
+            SnappClass._states.forEach(([key, ty]: [any, any]) => {
+              let length = ty.sizeInFieldElements();
+              layout.set(key, {offset, length});
+              offset += length;
+            });
           }
-
-          layout = new Map();
-
-          let offset = 0;
-          SnappClass._states.array.forEach(([key, ty]: [any, any]) => {
-            let length = ty.sizeInFieldElements();
-            layout.set(key, {offset, length});
-            offset += length;
-          });
+          
+          return layout;
         }
       }
 
       class S extends State<A> {
+        static _this: any;
+
         static getLayout() {
-          const layout: Map<string, { offset: number, length: number}> = target._layout();
+          const layout: Map<string, { offset: number, length: number}> = SnappClass._layout();
           const r = layout.get(key);
           if (r === undefined) { throw new Error(`state ${key} not found`)}
           return r;
@@ -58,7 +60,12 @@ export function state<A>(ty: AsFieldElements<A>) {
         set(a: A) {
           const r = S.getLayout();
           const xs = ty.toFieldElements(a);
-          let e: ExecutionState = SnappClass.executionState();
+          /*
+          console.log('target', target)
+          console.log('target.address', target.address);
+          console.log('target', target.executionState); */
+          let e: ExecutionState = S._this.executionState();
+          console.log('post e');
 
           xs.forEach((x, i) => {
             e.body.update.appState[r.offset + i].setValue(x);
@@ -68,7 +75,7 @@ export function state<A>(ty: AsFieldElements<A>) {
         assertEquals(a: A) {
           const r = S.getLayout();
           const xs = ty.toFieldElements(a);
-          let e: ExecutionState = SnappClass.executionState();
+          let e: ExecutionState = S._this.executionState();
 
           xs.forEach((x, i) => {
             e.predicate.state[r.offset + i].check = new Bool(true);
@@ -79,7 +86,7 @@ export function state<A>(ty: AsFieldElements<A>) {
         get(): Promise<A> {
           const r = S.getLayout();
 
-          let addr: PublicKey = target.address;
+          let addr: PublicKey = S._this.address;
  
           /* TODO: We need to be able to create variables and then fill
              them in so that we can rewrite this as something like
@@ -113,14 +120,16 @@ export function state<A>(ty: AsFieldElements<A>) {
       const s = new S();
       console.log('target', target)
       Object.defineProperty(target, key, {
-        get: (() => {
+        get: (function (this: any) {
+          S._this = this;
           console.log('getterrrr');
           return s;
         }),
-        set: (v: { value: A }) => {
+        set: (function(this: any, v: { value: A }) {
+          S._this = this;
           console.log('setter');
           s.set(v.value)
-        }
+        })
       })
     }
 }
@@ -144,46 +153,57 @@ type ExecutionState = {
   protocolStatePredicate: ProtocolStatePredicate,
 };
 
-export class SmartContract {
+export abstract class SmartContract {
   // protocolState: ProtocolStatePredicate;
   address: PublicKey;
 
-  state: Array<State<Field>>;
+  // state: Array<State<Field>>;
 
   // private _self: { body: Body, predicate: AccountPredicate } | undefined;
   
-  private _executionState: ExecutionState | undefined;
+  _executionState: ExecutionState | undefined;
 
   constructor(address: PublicKey) {
     this.address = address;
+    try {
+      console.log('smartcontract ctor', 0);
+      this.executionState().body.update.verificationKey.set = new Bool(true);
+      console.log('smartcontract ctor', 1);
+    } catch (_error) {
+      throw new Error('Cannot construct `new` SmartContract instance outside a transaction. Use `SmartContract.fromAddress` to refer to an already deployed instance.')
+    }
     // this.self = null as unknown as Body;
-    this.state = [];
+    // this.state = [];
   }
 
   executionState(): ExecutionState {
-    if (this._executionState !== undefined) {
+    if (Mina.currentTransaction === undefined) {
+      throw new Error("Cannot execute outside of a Mina.transaction() block.");
+    }
+
+    if (this._executionState !== undefined
+      && this._executionState.transactionId === Mina.nextTransactionId.value) {
+      console.log('already defined');
       return this._executionState;
     } else {
-      if (Mina.currentTransaction === undefined) {
-        throw new Error("Cannot execute outside of a Mina.transaction() block.");
-      } else {
-        const id = Mina.nextTransactionId.value++;
-        const index = Mina.currentTransaction.nextPartyIndex++;
-        const body = Body.keepAll(this.address);
-        const predicate = AccountPredicate.ignoreAll();
-        const party: Party<FullAccountPredicate> = { body, predicate };
-        Mina.currentTransaction.parties.push(party);
+      console.log('not yet defined');
+      const id = Mina.nextTransactionId.value;
+      const index = Mina.currentTransaction.nextPartyIndex++;
+      const body = Body.keepAll(this.address);
+      const predicate = AccountPredicate.ignoreAll();
+      const party: Party<FullAccountPredicate> = { body, predicate };
+      console.log('pushing to parties', party.body.publicKey);
+      Mina.currentTransaction.parties.push(party);
 
-        const s = {
-          transactionId: id,
-          partyIndex: index,
-          body,
-          predicate,
-          protocolStatePredicate: Mina.currentTransaction.protocolState,
-        };
-        this._executionState = s;
-        return s;
-      }
+      const s = {
+        transactionId: id,
+        partyIndex: index,
+        body,
+        predicate,
+        protocolStatePredicate: Mina.currentTransaction.protocolState,
+      };
+      this._executionState = s;
+      return s;
     }
   }
   

@@ -1,7 +1,7 @@
 // This is for an account where any of a list of public keys can update the state
 
 import { prop, CircuitValue } from './circuit_value';
-import { Circuit, Ledger, Field, Bool, FullAccountPredicate, FeePayerParty, Parties, PartyBody as SnarkyBody, Party as SnarkyParty } from '../snarky';
+import { Circuit, Ledger, Field, Bool, AccountPredicate, FullAccountPredicate, FeePayerParty, Parties, PartyBody as SnarkyBody, Party as SnarkyParty } from '../snarky';
 import { Int64, UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
 import { Body, ClosedInterval, DefaultTokenId, EpochDataPredicate, Party, ProtocolStatePredicate, Update } from './party';
@@ -29,9 +29,13 @@ interface Account {
 
 export let nextTransactionId : { value: number } = { value: 0 };
 
+type PartyPredicate =
+  | UInt32
+  | FullAccountPredicate
+
 export let currentTransaction : {
   sender: PrivateKey,
-  parties: Array<Party<FullAccountPredicate>>,
+  parties: Array<Party<PartyPredicate>>,
   nextPartyIndex: number,
   protocolState: ProtocolStatePredicate,
 } | undefined = undefined;
@@ -65,6 +69,8 @@ export const Local = () => {
     if (r == null) {
       throw new Error(`getAccount: Could not find account for ${JSON.stringify(pk.toJSON())}`);
     } else {
+      console.log('res r', r);
+      console.log('balance is', r.balance.value);
       const a = {
         balance: new UInt64(r.balance.value),
         nonce: new UInt32(r.nonce.value),
@@ -79,26 +85,6 @@ export const Local = () => {
       throw new Error("Cannot start new transaction within another transaction");
     }
     
-    currentTransaction = {
-      sender,
-      parties: [],
-      nextPartyIndex: 0,
-      protocolState: ProtocolStatePredicate.ignoreAll()
-    }
-
-    Circuit.runAndCheck(() => {
-      const res = f ();
-      if (res instanceof Promise) {
-        return res.then(() => {
-          return () => {}
-        })
-      } else {
-        const r: Promise<() => void> =
-          new Promise((k) => k(() => {}));
-        return r;
-      }
-    });
-
     function epochData(d: EpochDataPredicate) {
       return {
         ledger: {
@@ -111,8 +97,6 @@ export const Local = () => {
         epochLength: d.epochLength
       }
     }
-
-    const ps = currentTransaction.protocolState;
 
     const body = (b: Body): SnarkyBody => {
       return {
@@ -129,46 +113,90 @@ export const Local = () => {
         depth: 0,
       }
     };
-    
-    const otherParties: Array<SnarkyParty> =
-      currentTransaction.parties.map((p) => {
-        return {
-          body: body(p.body),
-          predicate: { type: 'full', value: p.predicate },
-        }
-      });
-      
-    const feePayer : FeePayerParty = {
-      body: body(Body.keepAll(sender.toPublicKey())),
-      predicate: UInt32.zero,
+
+    currentTransaction = {
+      sender,
+      parties: [],
+      nextPartyIndex: 0,
+      protocolState: ProtocolStatePredicate.ignoreAll()
     }
 
-    const txn : Parties = {
-      protocolState: {
-        snarkedLedgerHash:
-          ps.snarkedLedgerHash_,
-        snarkedNextAvailableToken: ps.snarkedNextAvailableToken,
-        timestamp: ps.timestamp,
-        blockchainLength: ps.blockchainLength,
-        minWindowDensity: ps.minWindowDensity,
-        lastVrfOutput: ps.lastVrfOutput_,
-        totalCurrency: ps.totalCurrency,
-        globalSlotSinceGenesis: ps.globalSlotSinceGenesis,
-        globalSlotSinceHardFork: ps.globalSlotSinceHardFork,
-        nextEpochData: epochData(ps.nextEpochData),
-        stakingEpochData: epochData(ps.stakingEpochData)
-      },
-      otherParties,
-      feePayer,
-    };
+    const result = Circuit.runAndCheck(() => {
+      const res = f ();
+      if (res instanceof Promise) {
+        return res.then(() => {
+          return () => {}
+        })
+      } else {
+        const r: Promise<() => void> =
+          new Promise((k) => k(() => {}));
+        return r;
+      }
+    });
 
+    const senderPubkey = sender.toPublicKey();
+    const txn = result.then(() => getAccount(senderPubkey)).then(senderAccount => {
+      if (currentTransaction === undefined) { throw new Error("Transaction is undefined"); }
+
+      const otherParties: Array<SnarkyParty> =
+        currentTransaction.parties.map((p) => {
+          let predicate : AccountPredicate;
+          if (p.predicate instanceof UInt32) {
+            predicate = { type: 'nonce', value: p.predicate };
+          } else {
+            predicate = { type: 'full', value: p.predicate };
+          }
+
+          return {
+            body: body(p.body),
+            predicate
+          }
+        });
+
+      const feePayer : FeePayerParty = {
+        body: body(Body.keepAll(senderPubkey)),
+        predicate: senderAccount.nonce,
+      }
+
+      const ps = currentTransaction.protocolState;
+
+      const txn : Parties = {
+        protocolState: {
+          snarkedLedgerHash:
+            ps.snarkedLedgerHash_,
+          snarkedNextAvailableToken: ps.snarkedNextAvailableToken,
+          timestamp: ps.timestamp,
+          blockchainLength: ps.blockchainLength,
+          minWindowDensity: ps.minWindowDensity,
+          lastVrfOutput: ps.lastVrfOutput_,
+          totalCurrency: ps.totalCurrency,
+          globalSlotSinceGenesis: ps.globalSlotSinceGenesis,
+          globalSlotSinceHardFork: ps.globalSlotSinceHardFork,
+          nextEpochData: epochData(ps.nextEpochData),
+          stakingEpochData: epochData(ps.stakingEpochData)
+        },
+        otherParties,
+        feePayer,
+      };
+      
+      console.log(JSON.stringify(txn));
+
+      nextTransactionId.value += 1;
+      currentTransaction = undefined;
+      return txn
+    });
+
+    console.log('transaction', 10)
     return {
       send: () => {
-  console.log('hi', 3)
-        ledger.applyPartiesTransaction(txn);
-  console.log('hi', 4)
+        const res = txn.then(txn => ledger.applyPartiesTransaction(txn));
+  console.log('transacion', 11)
+  /*
+        console.log(txn);
+        console.log(JSON.stringify(txn)) */
+  console.log('transacion', 12)
         return {
-          wait:() => Promise.resolve()
+          wait:() => res
         }
       }
     }

@@ -295,17 +295,26 @@ export class Int64 {
 
   static zero = new Int64(Field.zero);
 
-  static ofUnsigned(x: UInt64): Int64 {
+  static fromUnsigned(x: UInt64): Int64 {
     return new Int64(x.value);
   }
   
   private static shift(): Field {
-    return Field.fromJSON((1n << 63n).toString()) as Field;
+    return Field.fromJSON((1n << 64n).toString()) as Field;
   }
 
 
   uint64Value(): Field {
-    return this.value.add(Int64.shift());
+    const n = BigInt(this.value.toString());
+    console.log('value', this.value.toJSON());
+    if (n < (1n << 64n)) {
+      return this.value;
+    } else {
+      const x = this.value.add(Int64.shift());
+      console.log('uint64 value ', x.toJSON());
+
+      return x;
+    }
   }
 
   static sizeInFieldElements(): number {

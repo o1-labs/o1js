@@ -581,11 +581,18 @@ export class Party<P> {
     const pk = signer.toPublicKey();
     const body: Body = Body.keepAll(pk);
     return Mina.getAccount(pk).then((a) => {
+      if (Mina.currentTransaction === undefined) {
+        throw new Error('Party.createSigned: Cannot run outside of a transaction');
+      }
+
       if (a == null) {
         throw new Error('Party.createSigned: Account not found');
       }
 
-      return new Party(body, a.nonce);
+      const party = new Party(body, a.nonce);
+      Mina.currentTransaction.nextPartyIndex++;
+      Mina.currentTransaction.parties.push(party);
+      return party;
     });
   }
 }
