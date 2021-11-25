@@ -1,5 +1,6 @@
 import esbuild from 'esbuild';
 import fs from 'node:fs';
+import { readFile, writeFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { exec } from 'node:child_process';
@@ -19,54 +20,25 @@ if (isMain) {
 
 async function buildWeb({ entry, production }) {
   let minify = !!production;
-  // run esbuild on plonk_wasm.js and create non-module version for worker
-  let plonkWasmModified = rewriteWasmBindings(
-    await fs.promises.readFile('./src/chrome_bindings/plonk_wasm.js', {
-      encoding: 'utf8',
-    })
-  );
-  await fs.promises.writeFile(
-    'src/chrome_bindings/plonk_wasm.esbuild.js',
-    plonkWasmModified,
-    { encoding: 'utf8' }
-  );
+
+  // prepare plonk_wasm.js with bundled wasm in function-wrapped form
+  let bindings = await readFile('./src/chrome_bindings/plonk_wasm.js', 'utf8');
+  bindings = rewriteWasmBindings(bindings);
+  let tmpBindingsPath = 'src/chrome_bindings/plonk_wasm.tmp.js';
+  await writeFile(tmpBindingsPath, bindings);
   await esbuild.build({
-    entryPoints: ['./src/chrome_bindings/plonk_wasm.esbuild.js'],
+    entryPoints: [tmpBindingsPath],
     bundle: true,
     format: 'esm',
-    outfile: 'src/chrome_bindings/plonk_wasm.esbuild.js',
+    outfile: tmpBindingsPath,
     target: 'esnext',
     plugins: [wasmPlugin()],
     allowOverwrite: true,
     minify,
   });
-  let plonkWasmBundled = await fs.promises.readFile(
-    'src/chrome_bindings/plonk_wasm.esbuild.js',
-    { encoding: 'utf8' }
-  );
-  // strip away trailing export statement
-  let i = plonkWasmBundled.indexOf('export {');
-  let exportSlice = plonkWasmBundled.slice(i);
-  let defaultExport = exportSlice.match(/\w* as default/)[0];
-  // let defaultExportName = defaultExport.replace(' as default', '');
-  exportSlice = exportSlice
-    .replace(defaultExport, `default: init`)
-    .replace('export', 'return');
-  plonkWasmBundled = plonkWasmBundled.slice(0, i) + exportSlice;
-
-  plonkWasmBundled = plonkWasmBundled.replace('var startWorkers;\n', '');
-  plonkWasmBundled = `import {startWorkers} from './workerHelpers.js'
-export {plonkWasm as default};
-function plonkWasm() {
-  ${plonkWasmBundled}
-}
-plonkWasm.deps = [startWorkers]`;
-
-  await fs.promises.writeFile(
-    'src/chrome_bindings/plonk_wasm.esbuild.js',
-    plonkWasmBundled,
-    { encoding: 'utf8' }
-  );
+  bindings = await readFile(tmpBindingsPath, 'utf8');
+  bindings = rewriteBundledWasmBindings(bindings);
+  await writeFile(tmpBindingsPath, bindings);
 
   // run typescript
   let json = JSON.stringify({
@@ -76,13 +48,9 @@ plonkWasm.deps = [startWorkers]`;
       outDir: 'dist/web',
     },
   });
-  await fs.promises.writeFile('./tsconfig.web-tmp.json', json);
+  await writeFile('./tsconfig.web-tmp.json', json);
   await execPromise('npx tsc -p tsconfig.web-tmp.json');
   await execPromise('rm ./tsconfig.web-tmp.json');
-  // process.on('SIGINT', async () => {
-  //   await execPromise('rm ./tsconfig.web-tmp.json');
-  //   process.exit();
-  // });
 
   // copy over pure js files
   copy({
@@ -91,23 +59,8 @@ plonkWasm.deps = [startWorkers]`;
     './src/chrome_bindings': './dist/web/chrome_bindings/',
   });
   // overwrite plonk_wasm with bundled version
-  copy({
-    'src/chrome_bindings/plonk_wasm.esbuild.js':
-      './dist/web/chrome_bindings/plonk_wasm.js',
-  });
-  await fs.promises.unlink('src/chrome_bindings/plonk_wasm.esbuild.js');
-
-  // run esbuild on worker_init.js
-  // await esbuild.build({
-  //   entryPoints: [`./dist/web/chrome_bindings/worker_init.js`],
-  //   bundle: true,
-  //   format: 'esm',
-  //   outfile: 'dist/web/chrome_bindings/worker_init.js',
-  //   target: 'esnext',
-  //   plugins: [wasmPlugin()],
-  //   allowOverwrite: true,
-  //   minify,
-  // });
+  copy({ [tmpBindingsPath]: './dist/web/chrome_bindings/plonk_wasm.js' });
+  await unlink(tmpBindingsPath);
 
   // run esbuild on the js entrypoint
   let jsEntry = path.basename(entry).replace('.ts', '.js');
@@ -117,7 +70,7 @@ plonkWasm.deps = [startWorkers]`;
     format: 'esm',
     outfile: 'dist/web/index.js',
     resolveExtensions: ['.js', '.ts'],
-    plugins: [wasmPlugin(), srcStringPlugin(), deferExecutionPlugin()],
+    plugins: [wasmPlugin(), srcStringPlugin()],
     external: ['*.bc.js'],
     target: 'esnext',
     allowOverwrite: true,
@@ -133,9 +86,6 @@ plonkWasm.deps = [startWorkers]`;
       './dist/web/plonk_wasm_bg.wasm.d.ts',
     './src/chrome_bindings/index.html': './dist/web/index.html',
     './src/chrome_bindings/server.py': './dist/web/server.py',
-    // TODO: remove dependency on this last worker file
-    // './src/chrome_bindings/plonk_wasm.esbuild.worker.js':
-    //   './dist/web/plonk_wasm.esbuild.worker.js',
   });
 }
 
@@ -169,6 +119,23 @@ let startWorkers;
     );
   return src;
 }
+function rewriteBundledWasmBindings(src) {
+  let i = src.indexOf('export {');
+  let exportSlice = src.slice(i);
+  let defaultExport = exportSlice.match(/\w* as default/)[0];
+  exportSlice = exportSlice
+    .replace(defaultExport, `default: init`)
+    .replace('export', 'return');
+  src = src.slice(0, i) + exportSlice;
+
+  src = src.replace('var startWorkers;\n', '');
+  return `import {startWorkers} from './workerHelpers.js'
+export {plonkWasm as default};
+function plonkWasm() {
+  ${src}
+}
+plonkWasm.deps = [startWorkers]`;
+}
 
 function wasmPlugin() {
   return {
@@ -176,7 +143,7 @@ function wasmPlugin() {
     setup(build) {
       build.onLoad({ filter: /\.wasm$/ }, async ({ path }) => {
         return {
-          contents: await fs.promises.readFile(path),
+          contents: await readFile(path),
           loader: 'binary',
         };
       });
@@ -206,7 +173,7 @@ function srcStringPlugin() {
         { filter: /.*/, namespace: 'src-string' },
         async ({ path }) => {
           return {
-            contents: await fs.promises.readFile(path, { encoding: 'utf8' }),
+            contents: await readFile(path, 'utf8'),
             loader: 'text',
           };
         }
@@ -236,7 +203,7 @@ function deferExecutionPlugin() {
       build.onLoad(
         { filter: /.*/, namespace: 'defer-execution' },
         async ({ path }) => {
-          let code = await fs.promises.readFile(path, { encoding: 'utf8' });
+          let code = await readFile(path, 'utf8');
           // replace direct eval, because esbuild refuses to bundle it
           // code = code.replace(/eval\(/g, '(0, eval)(');
           code = code.replace(
