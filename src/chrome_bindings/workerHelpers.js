@@ -5,20 +5,19 @@ export { srcFromFunctionModule, inlineWorker, workerHelperMain, startWorkers };
 function srcFromFunctionModule(fun) {
   let deps = collectDependencies(fun, []);
   if (!deps.includes(fun)) deps.push(fun);
-  let src = deps
-    .map(
-      (d) =>
-        d.toString() +
-        `\n${d.name}.deps = [${(d.deps ?? []).map((dd) => dd.name).join(',')}]`
-    )
-    .join('\n');
-  src += `\n${fun.name}();`;
-  return src;
+  let sources = deps.map((dep) => {
+    let src = dep.toString();
+    if (dep.deps) {
+      let depsList = dep.deps.map((d) => d.name).join(',');
+      src += `\n${dep.name}.deps = [${depsList}]`;
+    }
+    return src;
+  });
+  return sources.join('\n') + `\n${fun.name}();`;
 }
 srcFromFunctionModule.deps = [collectDependencies];
 
 function collectDependencies(fun, deps) {
-  // console.log(fun.name, fun.deps);
   for (let dep of fun.deps ?? []) {
     if (deps.includes(dep)) continue;
     deps.push(dep);
