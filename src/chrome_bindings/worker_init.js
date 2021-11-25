@@ -10,7 +10,7 @@ async function workerInit() {
 
   let worker_spec = worker_run.worker_spec(plonk_wasm);
   let messageReceived;
-  let message = new Promise(function (resolve) {
+  let message = new Promise((resolve) => {
     messageReceived = resolve;
   });
   self.onmessage = function (msg) {
@@ -43,7 +43,7 @@ async function workerInit() {
   };
 
   message = await message;
-  await init(undefined, message.data.memory);
+  await init(message.data.module, message.data.memory);
   await plonk_wasm.initThreadPool(navigator.hardwareConcurrency);
   postMessage({ type: 'wasm_bindgen_rayon_threads_ready' });
 }

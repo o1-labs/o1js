@@ -8,22 +8,13 @@ let init = plonk_wasm.default;
 let { override_bindings } = workerRun();
 
 export async function initSnarkyJS() {
-  let plonk_wasm_init = await init();
-
-  let set_workers_ready;
-  let workers_ready = new Promise((resolve) => {
-    set_workers_ready = resolve;
-  });
+  let { memory } = await init();
+  let module = init.__wbindgen_wasm_module;
 
   let worker = inlineWorker(srcFromFunctionModule(workerInit));
+  worker.postMessage({ type: 'init', memory, module });
 
-  worker.onmessage = () => {
-    set_workers_ready();
-  };
-
-  // TODO can't we send the compiled wasm module as well?
-  worker.postMessage({ type: 'init', memory: plonk_wasm_init.memory });
-  await workers_ready;
+  await new Promise((resolve) => (worker.onmessage = resolve));
   window.plonk_wasm = override_bindings(plonk_wasm, worker);
 
   // we have two approaches to run the .bc.js code after its dependencies are ready, without fetching an additional script:
