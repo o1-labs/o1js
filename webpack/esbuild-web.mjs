@@ -1,5 +1,5 @@
 import esbuild from 'esbuild';
-import fs from 'node:fs';
+import fse from 'fs-extra';
 import { readFile, writeFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -52,13 +52,13 @@ async function buildWeb({ entry, production }) {
   await execPromise('rm ./tsconfig.web-tmp.json');
 
   // copy over pure js files
-  copy({
+  await copy({
     './src/snarky.js': './dist/web/snarky.js',
     './src/snarky.d.ts': './dist/web/snarky.d.ts',
     './src/chrome_bindings': './dist/web/chrome_bindings/',
   });
   // overwrite plonk_wasm with bundled version
-  copy({ [tmpBindingsPath]: './dist/web/chrome_bindings/plonk_wasm.js' });
+  await copy({ [tmpBindingsPath]: './dist/web/chrome_bindings/plonk_wasm.js' });
   await unlink(tmpBindingsPath);
 
   // run esbuild on the js entrypoint
@@ -79,7 +79,7 @@ async function buildWeb({ entry, production }) {
   });
 
   // copy auxiliary files
-  copy({
+  await copy({
     './src/chrome_bindings/plonk_wasm.d.ts': './dist/web/plonk_wasm.d.ts',
     './src/chrome_bindings/plonk_wasm_bg.wasm.d.ts':
       './dist/web/plonk_wasm_bg.wasm.d.ts',
@@ -88,14 +88,18 @@ async function buildWeb({ entry, production }) {
   });
 }
 
-function copy(copyMap) {
+async function copy(copyMap) {
+  let promises = [];
   for (let [source, target] of Object.entries(copyMap)) {
-    fs.cpSync(source, target, {
-      recursive: true,
-      force: true,
-      dereference: true,
-    });
+    promises.push(
+      fse.copy(source, target, {
+        recursive: true,
+        overwrite: true,
+        dereference: true,
+      })
+    );
   }
+  await Promise.all(promises);
 }
 
 function execPromise(cmd) {
