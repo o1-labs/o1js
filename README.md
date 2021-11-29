@@ -10,7 +10,7 @@ SnarkyJS's documentation is available [here](https://o1-labs.github.io/snarkyjs/
 npm install
 npm run build
 
-./run src/examples/api_exploration.ts
+./run examples/api_exploration.ts
 ```
 
 ## Build and run web version

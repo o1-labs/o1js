@@ -1,27 +1,15 @@
-import { CircuitValue, prop } from "../lib/circuit_value";
-import { PrivateKey, PublicKey, Signature } from "../lib/signature";
-import { Proof, Field, Circuit, Bool } from "../snarky"
-import { HTTPSAttestation } from "./exchange_lib";
-import { AccumulatorMembershipProof, Index, IndexedAccumulator, KeyedAccumulatorFactory, MerkleAccumulatorFactory, MerkleProof } from '../lib/merkle_proof';
-import { MerkleStack } from '../lib/merkle_stack';
-import { SignedAmount, State, Party, Body, Permissions, Perm, Amount } from '../lib/party';
-import { SmartContract, state, method, init } from '../lib/snapp';
-import { proofSystem, branch, ProofWithInput } from '../lib/proof_system';
-import * as DataStore from '../lib/data_store';
-import * as Mina from '../lib/mina';
-import { UInt32, UInt64, Int64 } from '../lib/int';
-import { TypeofTypeAnnotation } from "@babel/types";
+import { CircuitValue, prop, PrivateKey, PublicKey, Signature, Field, AccumulatorMembershipProof, KeyedAccumulatorFactory, MerkleAccumulatorFactory, MerkleStack, Party, SmartContract, state, method, init, proofSystem, branch, ProofWithInput, Mina, Int } from '@o1labs/snarkyjs';
 
 const AccountDbDepth: number = 32;
 const AccountDb = KeyedAccumulatorFactory<PublicKey, RollupAccount>(AccountDbDepth);
 type AccountDb = InstanceType<typeof AccountDb>;
 
 class RollupAccount extends CircuitValue {
-  @prop balance: UInt64;
-  @prop nonce: UInt32;
+  @prop balance: Int.UInt64;
+  @prop nonce: Int.UInt32;
   @prop publicKey: PublicKey;
-  
-  constructor(balance: UInt64, nonce: UInt32, publicKey: PublicKey) {
+
+  constructor(balance: Int.UInt64, nonce: Int.UInt32, publicKey: PublicKey) {
     super();
     this.balance = balance;
     this.nonce = nonce;
@@ -30,12 +18,12 @@ class RollupAccount extends CircuitValue {
 }
 
 class RollupTransaction extends CircuitValue {
-  @prop amount: UInt64;
-  @prop nonce: UInt32;
+  @prop amount: Int.UInt64;
+  @prop nonce: Int.UInt32;
   @prop sender: PublicKey;
   @prop receiver: PublicKey;
 
-  constructor(amount: UInt64, nonce: UInt32, sender: PublicKey, receiver: PublicKey) {
+  constructor(amount: Int.UInt64, nonce: Int.UInt32, sender: PublicKey, receiver: PublicKey) {
     super();
     this.amount = amount;
     this.nonce = nonce;
@@ -46,8 +34,8 @@ class RollupTransaction extends CircuitValue {
 
 class RollupDeposit extends CircuitValue {
   @prop publicKey: PublicKey;
-  @prop amount: UInt64;
-  constructor(publicKey: PublicKey, amount: UInt64) {
+  @prop amount: Int.UInt64;
+  constructor(publicKey: PublicKey, amount: Int.UInt64) {
     super();
     this.publicKey = publicKey;
     this.amount = amount;
@@ -83,9 +71,9 @@ class RollupProof extends ProofWithInput<RollupStateTransition> {
     accountDb: AccountDb): RollupProof {
     let before = new RollupState(pending.commitment, accountDb.commitment());
     // let deposit = pending.pop();
-    
+
     // TODO: Apply deposit to db
-    
+
     let after = new RollupState(pending.commitment, accountDb.commitment());
 
     return new RollupProof(new RollupStateTransition(before, after));
@@ -96,7 +84,7 @@ class RollupProof extends ProofWithInput<RollupStateTransition> {
     s: Signature,
     pending: MerkleStack<RollupDeposit>,
     accountDb: AccountDb,
-    ): RollupProof {
+  ): RollupProof {
     s.verify(t.sender, t.toFieldElements()).assertEquals(true);
     let stateBefore = new RollupState(pending.commitment, accountDb.commitment());
 
@@ -203,37 +191,37 @@ A smart contract is basically
 
 
 class RollupSnapp extends SmartContract {
-  @state(Field) operatorsCommitment: State<Field>; // state slot 0
-  @state(RollupState) rollupState: State<RollupState>; // state slots 1, 2
+  @state(Field) operatorsCommitment: Party.State<Field>; // state slot 0
+  @state(RollupState) rollupState: Party.State<RollupState>; // state slots 1, 2
   // RollupState public rollupState;
 
   // The 5 slot period during which this was last updated
-  @state(UInt32) lastUpdatedPeriod: State<UInt32>; // state slot 3
-  // UInt32 public lastUpdatedPeriod
+  @state(Int.UInt32) lastUpdatedPeriod: Party.State<Int.UInt32>; // state slot 3
+  // Int.UInt32 public lastUpdatedPeriod
 
   // maybe try something like react state hooks?
 
   // the constructor should be init
   constructor(
-    senderAmount: UInt64,
+    senderAmount: Int.UInt64,
     address: PublicKey,
     operatorsDb: OperatorsDb,
     accountDb: AccountDb,
     deposits: MerkleStack<RollupDeposit>,
-    lastUpatedPeriod: UInt32, 
-    ) {
-  console.log('init', 0)
+    lastUpatedPeriod: Int.UInt32,
+  ) {
+    console.log('init', 0)
     super(address);
     console.log('sender amount', JSON.stringify(senderAmount));
-    this.self.delta = Int64.fromUnsigned(senderAmount);
-  console.log('init', 1)
-  console.log('should not be undefined', this.address);
-    this.operatorsCommitment = State.init(operatorsDb.commitment());
-  console.log('init', 2)
-    this.lastUpdatedPeriod = State.init(lastUpatedPeriod);
-  console.log('init', 3)
-    this.rollupState = State.init(new RollupState(deposits.commitment, accountDb.commitment()));
-  console.log('init', 4)
+    this.self.delta = Int.Int64.fromUnsigned(senderAmount);
+    console.log('init', 1)
+    console.log('should not be undefined', this.address);
+    this.operatorsCommitment = Party.State.init(operatorsDb.commitment());
+    console.log('init', 2)
+    this.lastUpdatedPeriod = Party.State.init(lastUpatedPeriod);
+    console.log('init', 3)
+    this.rollupState = Party.State.init(new RollupState(deposits.commitment, accountDb.commitment()));
+    console.log('init', 4)
   }
 
   static instanceOnChain(address: PublicKey): RollupSnapp { throw 'instanceonchain' }
@@ -243,20 +231,19 @@ class RollupSnapp extends SmartContract {
   static newOperatorGapPeriods = RollupSnapp.newOperatorGapSlots / RollupSnapp.periodLength;
 
   @init init() {
-    let perms = Permissions.default();
+    let perms = Party.Permissions.default();
     // Force users to use the deposit method to send to this account
-    perms.receive = Perm.proof();
-    perms.editState = Perm.proof();
+    perms.receive = Party.Perm.proof();
+    perms.editState = Party.Perm.proof();
     this.self.update.permissions.setValue(perms)
   }
 
   // Only allowed to update every so often
   @method addOperator(
-    submittedSlot: UInt32,
+    submittedSlot: Int.UInt32,
     operatorsDb: OperatorsDb,
     pk: PublicKey,
-    s: Signature)
-  {
+    s: Signature) {
     console.log('add', 0);
     let period = submittedSlot.div(RollupSnapp.periodLength);
     console.log('add', 1);
@@ -270,19 +257,19 @@ class RollupSnapp extends SmartContract {
     */
 
 
-   /*
-    *
-    precondition.network({ protocolState } => {
-      protocolState.globalSlotSinceGenesis.assertBetween(
-        startSlot, startSlot.add(RollupSnapp.periodLength));
-      )
-    })
-
-    this.self.precondition({ accountState } => {
-
-    });
-
-    */
+    /*
+     *
+     precondition.network({ protocolState } => {
+       protocolState.globalSlotSinceGenesis.assertBetween(
+         startSlot, startSlot.add(RollupSnapp.periodLength));
+       )
+     })
+ 
+     this.self.precondition({ accountState } => {
+ 
+     });
+ 
+     */
 
     /*
     this.protocolState.globalSlotSinceGenesis.assertBetween(
@@ -321,11 +308,11 @@ class RollupSnapp extends SmartContract {
   }
 
   @method depositFunds(
-    depositor: Body,
-    depositAmount: UInt64) {
+    depositor: Party.Body,
+    depositAmount: Int.UInt64) {
     const self = this.self;
 
-    let delta = SignedAmount.fromUnsigned(depositAmount);
+    let delta = Party.SignedAmount.fromUnsigned(depositAmount);
     self.delta = delta;
 
     depositor.delta = delta.neg();
@@ -348,8 +335,7 @@ class RollupSnapp extends SmartContract {
     operatorMembership: AccumulatorMembershipProof,
     // Operator signs the new rollup state
     operator: PublicKey,
-    operatorSignature: Signature)
-  {
+    operatorSignature: Signature) {
     // What you can actually do with snapp state fields is
     // - assert that they have a given value
     // - set them to a new value
@@ -370,19 +356,19 @@ class RollupSnapp extends SmartContract {
 }
 
 class SimpleSnapp extends SmartContract {
-  @state(Field) value: State<Field>;
-  
+  @state(Field) value: Party.State<Field>;
+
   // Maybe have the address not passed in somehow
   // Maybe create account first and then deploy smart contract to it
   // On ethereum, you deploy them from a key-account and it's deterministically generated from the sender account
-  constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
+  constructor(initialBalance: Int.UInt64, address: PublicKey, x: Field) {
     super(address);
-    this.self.delta = Int64.fromUnsigned(initialBalance);
-    this.value = State.init(x);
+    this.self.delta = Int.Int64.fromUnsigned(initialBalance);
+    this.value = Party.State.init(x);
   }
 
   // Maybe don't return a promise here, it's a bit confusing
-  @method async update(y : Field) {
+  @method async update(y: Field) {
     const x = await this.value.get();
     console.log('assert equals');
     x.square().mul(x).assertEquals(y);
@@ -406,20 +392,20 @@ export async function main() {
 
   const snappPrivkey = PrivateKey.random();
   const snappPubkey = snappPrivkey.toPublicKey();
-  
+
   let snappInstance: SimpleSnapp;
   const initSnappState = new Field(2);
 
   // Deploys the snapp
   await Mina.transaction(account1, async () => {
     // account2 sends 1000000000 to the new snapp account
-    const amount = UInt64.fromNumber(1000000000);
-    const p = await Party.createSigned(account2);
-    p.body.delta = Int64.fromUnsigned(amount).neg();
+    const amount = Int.UInt64.fromNumber(1000000000);
+    const p = await Party.Party.createSigned(account2);
+    p.body.delta = Int.Int64.fromUnsigned(amount).neg();
 
     snappInstance = new SimpleSnapp(amount, snappPubkey, initSnappState);
   }).send().wait();
-  
+
   // Update the snapp
   await Mina.transaction(account1, async () => {
     snappInstance.update(new Field(8))
@@ -441,7 +427,7 @@ function mainold() {
   Mina.setActiveInstance(Local);
   const largeValue = 30000000000;
   Local.addAccount(minaSender.toPublicKey(), largeValue);
-  
+
   // TODO: Put real value
   let snappOwnerKey = PrivateKey.random();
   let snappPubkey = snappOwnerKey.toPublicKey();
@@ -482,7 +468,7 @@ function mainold() {
   let RollupInstance: RollupSnapp;
 
   console.log(4);
-  
+
   // TODO: Have a mock Mina module for testing purposes
   // TODO: Make sure that modifications to data stores are not
   // committed before corresponding changes happen on chain
@@ -493,11 +479,11 @@ function mainold() {
   })
   .then(() =>
   Mina.transaction(minaSender, () => {
-    const amount = UInt64.fromNumber(1000000000);
+    const amount = Int.UInt64.fromNumber(1000000000);
 
     return Party.createSigned(depositorPrivkey).then(p => {
-      p.body.delta = Int64.fromUnsigned(amount).neg();
-      RollupInstance = new RollupSnapp(amount, snappPubkey, operatorsDb, accountDb, pendingDeposits, UInt32.fromNumber(0));
+      p.body.delta = Int.Int64.fromUnsigned(amount).neg();
+      RollupInstance = new RollupSnapp(amount, snappPubkey, operatorsDb, accountDb, pendingDeposits, Int.UInt32.fromNumber(0));
     });
   }).send().wait())
   .then(() => {
@@ -526,16 +512,16 @@ function mainold() {
       }).send().wait().catch((e) => {console.log('fuc', e); throw e})
     }).then(() => {
       console.log('main', 7);
-      let rollupAmount = UInt64.fromNumber(10);
-      let rollupNonce = UInt32.fromNumber(0);
+      let rollupAmount = Int.UInt64.fromNumber(10);
+      let rollupNonce = Int.UInt32.fromNumber(0);
       let rollupSender = depositorPubkey;
       let rollupReceiver = depositorPubkey;
       let rollupTransaction = new RollupTransaction(
         rollupAmount, rollupNonce, rollupSender, rollupReceiver
       );
       console.log('main', 8);
-      
-      const p1 = 
+
+      const p1 =
           RollupProof.processDeposit(pendingDeposits, accountDb);
       console.log('main', 80);
       const p2 =

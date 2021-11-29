@@ -41,17 +41,25 @@ const a = new A();
 console.log(a.x) */
 
 
-export * from './snarky';
-export * from './lib/signature';
-export * from './lib/circuit_value';
-export * from './lib/merkle_proof';
+export * from './snarky'; // TODO: do we want to expose this really?
+export * as Signature from './lib/signature';
+export * as CircuitValue from './lib/circuit_value';
+export * as Snapp from './lib/snapp';
+export * as Int from './lib/int';
+export * as MerkleProof from './lib/merkle_proof';
+export * as ProofSystem from './lib/proof_system';
+export * as Internal from './lib/party';
+export * as MerkleStack from './lib/merkle_stack';
+export * as Mina from './lib/mina';
+
 import * as Snarky from './snarky';
-import * as Foo from './examples/wip';
+//import * as Foo from './examples/wip';
+import * as Foo from '../examples/tictactoe';
 
 (async () => {
-  console.log('a');
-  await Snarky.isReady.catch((e) => console.log(e));
-  await Foo.main();
-  console.log('b');
-  Snarky.shutdown()
+    console.log('a');
+    await Snarky.isReady.catch((e) => console.log(e));
+    await Foo.main();
+    console.log('b');
+    Snarky.shutdown()
 })().catch((e) => console.log(e));
