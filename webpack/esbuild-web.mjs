@@ -112,7 +112,7 @@ function execPromise(cmd) {
 
 function rewriteWasmBindings(src) {
   src = src
-    .replace("new URL('./plonk_wasm_bg.wasm', import.meta.url)", 'wasmCode')
+    .replace("new URL('plonk_wasm_bg.wasm', import.meta.url)", 'wasmCode')
     .replace('import.meta.url', '"/"')
     .replace(
       "import { startWorkers } from './snippets/wasm-bindgen-rayon-7afa899f36665473/src/workerHelpers.no-bundler.js';",
