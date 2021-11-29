@@ -48,6 +48,7 @@
     "copy-webpack-plugin": "^9.0.1",
     "esbuild": "^0.13.13",
     "eslint": "^8.0.0",
+    "fs-extra": "^10.0.0",
     "jest": "^27.0.6",
     "minimist": "^1.2.5",
     "node-polyfill-webpack-plugin": "^1.1.4",

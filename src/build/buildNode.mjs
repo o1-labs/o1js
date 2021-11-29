@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import fse from 'fs-extra';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { exec } from 'node:child_process';
@@ -74,9 +75,9 @@ function copy(copyMap) {
   let promises = [];
   for (let [source, target] of Object.entries(copyMap)) {
     promises.push(
-      fs.cp(source, target, {
+      fse.copy(source, target, {
         recursive: true,
-        force: true,
+        overwrite: true,
         dereference: true,
       })
     );
