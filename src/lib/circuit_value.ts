@@ -17,7 +17,7 @@ export abstract class CircuitValue {
     const fields: [string, any][] = (this as any).prototype._fields;
     return fields.reduce((acc, [_, typ]) => acc + typ.sizeInFieldElements(), 0);
   }
-  
+
   static toFieldElements<T>(this: Constructor<T>, v: T): Field[] {
     const res: Field[] = [];
     const fields = (this as any).prototype._fields;
@@ -110,7 +110,7 @@ export abstract class CircuitValue {
   }
 }
 
-(CircuitValue as any).check = (v: any) => {
+(CircuitValue as any).check = function (v: any) {
   const fields = (this as any).prototype._fields;
   if (fields === undefined || fields === null) {
     return;
