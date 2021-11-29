@@ -1,4 +1,5 @@
 
+/*
 function foo(x: number) {
 
 return function (this: any, target: any, key: string) {
@@ -37,7 +38,7 @@ class A extends B  {
 }
 const a = new A();
 
-console.log(a.x)
+console.log(a.x) */
 
 
 export * from './snarky';
@@ -50,6 +51,7 @@ import * as Foo from './examples/wip';
 (async () => {
   console.log('a');
   await Snarky.isReady.catch((e) => console.log(e));
-  Foo.main();
+  await Foo.main();
   console.log('b');
+  Snarky.shutdown()
 })().catch((e) => console.log(e));

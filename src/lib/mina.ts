@@ -46,7 +46,7 @@ interface Mina {
   getAccount(publicKey: PublicKey): Promise<Account>,
 }
 
-export const Local = () => {
+export const LocalBlockchain = () => {
   const msPerSlot = 3 * 60 * 1000;
   const startTime = (new Date()).valueOf();
   

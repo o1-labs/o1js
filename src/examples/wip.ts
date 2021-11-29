@@ -369,7 +369,73 @@ class RollupSnapp extends SmartContract {
   }
 }
 
-export function main() {
+class SimpleSnapp extends SmartContract {
+  @state(Field) value: State<Field>;
+  
+  // Maybe have the address not passed in somehow
+  // Maybe create account first and then deploy smart contract to it
+  // On ethereum, you deploy them from a key-account and it's deterministically generated from the sender account
+  constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
+    super(address);
+    this.self.delta = Int64.fromUnsigned(initialBalance);
+    this.value = State.init(x);
+  }
+
+  // Maybe don't return a promise here, it's a bit confusing
+  @method async update(y : Field) {
+    const x = await this.value.get();
+    console.log('assert equals');
+    x.square().mul(x).assertEquals(y);
+    console.log('past assert equals');
+    this.value.set(y);
+  }
+}
+// extend this with a 'prize' for updating the account
+
+export async function main() {
+  const Local = Mina.LocalBlockchain();
+  Mina.setActiveInstance(Local);
+  const largeValue = 30000000000;
+
+  // Maybe just return deterministically 10 accounts with a bunch of money in them
+  // Initialize an account so we can send some transactions
+  const account1 = PrivateKey.random();
+  Local.addAccount(account1.toPublicKey(), largeValue);
+  const account2 = PrivateKey.random();
+  Local.addAccount(account2.toPublicKey(), largeValue);
+
+  const snappPrivkey = PrivateKey.random();
+  const snappPubkey = snappPrivkey.toPublicKey();
+  
+  let snappInstance: SimpleSnapp;
+  const initSnappState = new Field(2);
+
+  // Deploys the snapp
+  await Mina.transaction(account1, async () => {
+    // account2 sends 1000000000 to the new snapp account
+    const amount = UInt64.fromNumber(1000000000);
+    const p = await Party.createSigned(account2);
+    p.body.delta = Int64.fromUnsigned(amount).neg();
+
+    snappInstance = new SimpleSnapp(amount, snappPubkey, initSnappState);
+  }).send().wait();
+  
+  // Update the snapp
+  await Mina.transaction(account1, async () => {
+    snappInstance.update(new Field(8))
+  }).send().wait();
+
+  await Mina.transaction(account1, async () => {
+    snappInstance.update(new Field(109)).catch(e => console.log('error', e));
+  }).send().wait()
+
+  const a = await Mina.getAccount(snappPubkey);
+
+  console.log('final state value', a.snapp.appState[0].toString());
+}
+
+/*
+function mainold() {
   const minaSender = PrivateKey.random();
   const Local = Mina.Local();
   Mina.setActiveInstance(Local);
@@ -505,3 +571,5 @@ export function main() {
 
   });
 }
+
+*/
