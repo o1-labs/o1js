@@ -142,6 +142,19 @@ export function prop(this: any, target: any, key: string) {
   }
 }
 
+export function arrayProp<T>(eltTyp: AsFieldElements<T>, length: number) {
+  return function (target: any, key: string) {
+    const fieldType = Reflect.getMetadata('design:type', target, key);
+    console.log('field type is', fieldType);
+
+    if (target._fields === undefined || target._fields === null) {
+      target._fields = [];
+    }
+
+    target._fields.push([key, Circuit.array(eltTyp, length)]);
+  }
+}
+
 export function public_(target: any, _key: string | symbol, index: number) {
   // const fieldType = Reflect.getMetadata('design:paramtypes', target, key);
 
