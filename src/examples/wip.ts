@@ -25,7 +25,6 @@ import { proofSystem, branch, ProofWithInput } from '../lib/proof_system';
 import * as DataStore from '../lib/data_store';
 import * as Mina from '../lib/mina';
 import { UInt32, UInt64, Int64 } from '../lib/int';
-import { TypeofTypeAnnotation } from '@babel/types';
 
 const AccountDbDepth: number = 32;
 const AccountDb = KeyedAccumulatorFactory<PublicKey, RollupAccount>(

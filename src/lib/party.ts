@@ -3,7 +3,6 @@ import { Group, Field, Bool, VerificationKey, Poseidon } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { Optional } from './optional';
 import { UInt64, UInt32, Int64 } from './int';
-import { appendToMemberExpression, mixedTypeAnnotation } from '@babel/types';
 import * as Mina from './mina';
 import { Circuit } from '..';
 
