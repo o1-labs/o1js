@@ -100,24 +100,19 @@ class RollupProof extends ProofWithInput<RollupStateTransition> {
     s.verify(t.sender, t.toFieldElements()).assertEquals(true);
     let stateBefore = new RollupState(pending.commitment, accountDb.commitment());
 
-    console.log('txn', 0);
     let [senderAccount, senderPos] = accountDb.get(t.sender);
     senderAccount.isSome.assertEquals(true);
     senderAccount.value.nonce.assertEquals(t.nonce);
 
-    console.log('txn', 1);
     senderAccount.value.balance = senderAccount.value.balance.sub(t.amount);
     senderAccount.value.nonce = senderAccount.value.nonce.add(1);
 
-    console.log('txn', 2);
     accountDb.set(senderPos, senderAccount.value);
 
-    console.log('txn', 3);
     let [receiverAccount, receiverPos] = accountDb.get(t.receiver);
     receiverAccount.value.balance = receiverAccount.value.balance.add(t.amount);
     accountDb.set(receiverPos, receiverAccount.value);
 
-    console.log('txn', 4);
     let stateAfter = new RollupState(pending.commitment, accountDb.commitment());
     return new RollupProof(new RollupStateTransition(stateBefore, stateAfter));
   }
@@ -222,18 +217,11 @@ class RollupSnapp extends SmartContract {
     deposits: MerkleStack<RollupDeposit>,
     lastUpatedPeriod: UInt32, 
     ) {
-  console.log('init', 0)
     super(address);
-    console.log('sender amount', JSON.stringify(senderAmount));
     this.self.delta = Int64.fromUnsigned(senderAmount);
-  console.log('init', 1)
-  console.log('should not be undefined', this.address);
     this.operatorsCommitment = State.init(operatorsDb.commitment());
-  console.log('init', 2)
     this.lastUpdatedPeriod = State.init(lastUpatedPeriod);
-  console.log('init', 3)
     this.rollupState = State.init(new RollupState(deposits.commitment, accountDb.commitment()));
-  console.log('init', 4)
   }
 
   static instanceOnChain(address: PublicKey): RollupSnapp { throw 'instanceonchain' }
@@ -257,11 +245,8 @@ class RollupSnapp extends SmartContract {
     pk: PublicKey,
     s: Signature)
   {
-    console.log('add', 0);
     let period = submittedSlot.div(RollupSnapp.periodLength);
-    console.log('add', 1);
     let startSlot = period.mul(RollupSnapp.periodLength);
-    console.log('add', 2);
 
 
     /*
@@ -297,27 +282,19 @@ class RollupSnapp extends SmartContract {
       .add(RollupSnapp.newOperatorGapPeriods)
     );
     */
-    console.log('add', 3);
     this.lastUpdatedPeriod.set(period);
-    console.log('add', 4);
 
     this.operatorsCommitment.assertEquals(operatorsDb.commitment());
-    console.log('add', 5);
 
     const self = this.self;
-    console.log('add', 6);
 
     // verify signature on
     // message = [ submittedSlot, operatorPubKey ]
     let message = submittedSlot.toFieldElements().concat(pk.toFieldElements());
-    console.log('add', 7);
     s.verify(self.publicKey, message).assertEquals(true);
 
-    console.log('add', 8);
     operatorsDb.add(pk);
-    console.log('add', 9);
     this.operatorsCommitment.set(operatorsDb.commitment());
-    console.log('add', 10);
   }
 
   @method depositFunds(
@@ -384,9 +361,7 @@ class SimpleSnapp extends SmartContract {
   // Maybe don't return a promise here, it's a bit confusing
   @method async update(y : Field) {
     const x = await this.value.get();
-    console.log('assert equals');
     x.square().mul(x).assertEquals(y);
-    console.log('past assert equals');
     this.value.set(y);
   }
 }
