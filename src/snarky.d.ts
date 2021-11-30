@@ -28,7 +28,7 @@ export class Proof {
 }
 
 /**
- * TODO: Pull from docs
+ * An element of a finite field.
  */
 export class Field {
   /**
