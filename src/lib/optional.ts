@@ -1,5 +1,5 @@
-import { Bool, Field } from "../snarky";
-import { CircuitValue, prop } from "./circuit_value";
+import { Bool, Field } from '../snarky';
+import { CircuitValue, prop } from './circuit_value';
 
 export class Optional<T> {
   isSome: Bool;
@@ -12,10 +12,10 @@ export class Optional<T> {
 }
 
 type CircuitValueConstructor<T> = {
-  new (...args: any[]): T,
-  sizeInFieldElements: () => number,
-  ofFieldElements: (xs: Array<Field>) => T,
-  toFieldElements: (x: T) => Array<Field>,
+  new (...args: any[]): T;
+  sizeInFieldElements: () => number;
+  ofFieldElements: (xs: Array<Field>) => T;
+  toFieldElements: (x: T) => Array<Field>;
 };
 /*
 export function Optional<T>(TCtor: CircuitValueConstructor<T>) {

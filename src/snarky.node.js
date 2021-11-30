@@ -1,10 +1,20 @@
-export { Field, Bool, Circuit, Poseidon, Group, Scalar, Ledger, shutdown, isReady };
+export {
+  Field,
+  Bool,
+  Circuit,
+  Poseidon,
+  Group,
+  Scalar,
+  Ledger,
+  shutdown,
+  isReady,
+};
 let snarkyServer = require('./node_bindings/snarky_js_node.bc.js');
 let snarkySpec = require('./snarky-class-spec.json');
 
 // proxy all classes, so subclasses can be declared at the top level, and static props still work later on
 // currently this does not proxy class *instances*. So `new Field(5)` returns the same thing as before and only works after isReady
-let { Field, Bool, Circuit, Poseidon, Group, Scalar, Ledger, } = proxyClasses(
+let { Field, Bool, Circuit, Poseidon, Group, Scalar, Ledger } = proxyClasses(
   snarkyServer,
   snarkySpec
 );

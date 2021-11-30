@@ -17,7 +17,7 @@ export class PrivateKey extends CircuitValue {
    * You can use this method to generate a private key. You can then obtain
    * the associated public key via [[toPublicKey]]. And generate signatures
    * via [[Signature.create]].
-   * 
+   *
    * @returns a new [[PrivateKey]].
    */
   static random(): PrivateKey {
@@ -26,7 +26,7 @@ export class PrivateKey extends CircuitValue {
 
   /**
    * Deserializes a list of bits into a [[PrivateKey]].
-   * 
+   *
    * @param bs a list of [[Bool]]s.
    * @returns a [[PrivateKey]].
    */
@@ -36,7 +36,7 @@ export class PrivateKey extends CircuitValue {
 
   /**
    * Derives the associated public key.
-   * 
+   *
    * @returns a [[PublicKey]].
    */
   toPublicKey(): PublicKey {

@@ -24,13 +24,19 @@ const SnappStateLength: number = 8;
  * Timing info inside an account.
  */
 export class Timing {
-  initialMinimumBalance: Balance
-  cliffTime: GlobalSlot
-  cliffAmount: Amount
-  vestingPeriod: GlobalSlot
-  vestingIncrement: Amount
+  initialMinimumBalance: Balance;
+  cliffTime: GlobalSlot;
+  cliffAmount: Amount;
+  vestingPeriod: GlobalSlot;
+  vestingIncrement: Amount;
 
-  constructor(initialMinimumBalance: Balance, cliffTime: GlobalSlot, cliffAmount: Amount, vestingPeriod: GlobalSlot, vestingIncrement: Amount) {
+  constructor(
+    initialMinimumBalance: Balance,
+    cliffTime: GlobalSlot,
+    cliffAmount: Amount,
+    vestingPeriod: GlobalSlot,
+    vestingIncrement: Amount
+  ) {
     this.initialMinimumBalance = initialMinimumBalance;
     this.cliffTime = cliffTime;
     this.cliffAmount = cliffAmount;
@@ -64,16 +70,20 @@ export class SetOrKeep<T> {
  * @typeParam H the hash
  */
 export type WithHash<T, H> = {
-  value: T,
-  hash: H,
-}
+  value: T;
+  hash: H;
+};
 
 export class Perm {
-  constant: Bool
-  signatureNecessary: Bool
-  signatureSufficient: Bool
+  constant: Bool;
+  signatureNecessary: Bool;
+  signatureSufficient: Bool;
 
-  constructor(constant: Bool, signatureNecessary: Bool, signatureSufficient: Bool) {
+  constructor(
+    constant: Bool,
+    signatureNecessary: Bool,
+    signatureSufficient: Bool
+  ) {
     this.constant = constant;
     this.signatureNecessary = signatureNecessary;
     this.signatureSufficient = signatureSufficient;
@@ -107,18 +117,18 @@ export class Perm {
 // Perm = ProofRequried | SignatureRequired | NothingRequired | EitherRequired
 
 export class Permissions {
-  stake: Bool
-  editState: Perm
-  send: Perm
-  receive: Perm
-  setDelegate: Perm
-  setPermissions: Perm
-  setVerificationKey: Perm
-  setSnappUri: Perm
-  editRollupState: Perm
-  setTokenSymbol: Perm
+  stake: Bool;
+  editState: Perm;
+  send: Perm;
+  receive: Perm;
+  setDelegate: Perm;
+  setPermissions: Perm;
+  setVerificationKey: Perm;
+  setSnappUri: Perm;
+  editRollupState: Perm;
+  setTokenSymbol: Perm;
 
-  static default() : Permissions {
+  static default(): Permissions {
     return new Permissions(
       new Bool(true),
       Perm.proof(),
@@ -129,11 +139,22 @@ export class Permissions {
       Perm.signature(),
       Perm.signature(),
       Perm.proof(),
-      Perm.signature(),
+      Perm.signature()
     );
   }
 
-  constructor(stake: Bool, editState: Perm, send: Perm, receive: Perm, setDelegate: Perm, setPermissions: Perm, setVerificationKey: Perm, setSnappUri: Perm, editRollupState: Perm, setTokenSymbol: Perm) {
+  constructor(
+    stake: Bool,
+    editState: Perm,
+    send: Perm,
+    receive: Perm,
+    setDelegate: Perm,
+    setPermissions: Perm,
+    setVerificationKey: Perm,
+    setSnappUri: Perm,
+    editRollupState: Perm,
+    setTokenSymbol: Perm
+  ) {
     this.stake = stake;
     this.editState = editState;
     this.send = send;
@@ -156,7 +177,7 @@ export class TokenSymbol extends CircuitValue {
 }
 
 export class Update {
-  appState: Array<SetOrKeep<Field>>
+  appState: Array<SetOrKeep<Field>>;
   delegate: SetOrKeep<PublicKey>;
   verificationKey: SetOrKeep<WithHash<VerificationKey, Field>>;
   permissions: SetOrKeep<Permissions>;
@@ -165,13 +186,13 @@ export class Update {
   timing: SetOrKeep<Timing>;
 
   constructor(
-       appState: Array<SetOrKeep<Field>>,
-       delegate:SetOrKeep<PublicKey>,
-       verificationKey:SetOrKeep<WithHash<VerificationKey, Field>>,
-       permissions:SetOrKeep<Permissions>,
-       snappUri:SetOrKeep<String_>,
-       tokenSymbol:SetOrKeep<TokenSymbol>,
-       timing:SetOrKeep<Timing>
+    appState: Array<SetOrKeep<Field>>,
+    delegate: SetOrKeep<PublicKey>,
+    verificationKey: SetOrKeep<WithHash<VerificationKey, Field>>,
+    permissions: SetOrKeep<Permissions>,
+    snappUri: SetOrKeep<String_>,
+    tokenSymbol: SetOrKeep<TokenSymbol>,
+    timing: SetOrKeep<Timing>
   ) {
     this.appState = appState;
     this.delegate = delegate;
@@ -190,7 +211,7 @@ export const DefaultTokenId: TokenId = new UInt64(Field.one);
 export class Events {
   hash: Field;
   events: Array<Array<Field>>;
-  
+
   // TODO
   constructor(hash: Field, events: Array<Array<Field>>) {
     this.hash = hash;
@@ -204,15 +225,15 @@ export class MerkleList<T> {
 }
 
 export class Body {
-  publicKey: PublicKey
-  update: Update
-  tokenId: TokenId
-  delta: SignedAmount
-  events: Events
-  sequenceEvents: Field
-  callData: MerkleList<Array<Field>>
-  depth: Field // TODO: this is an `int As_prover.t`
-  
+  publicKey: PublicKey;
+  update: Update;
+  tokenId: TokenId;
+  delta: SignedAmount;
+  events: Events;
+  sequenceEvents: Field;
+  callData: MerkleList<Array<Field>>;
+  depth: Field; // TODO: this is an `int As_prover.t`
+
   static keepAll(publicKey: PublicKey): Body {
     function keep<A>(dummy: A): SetOrKeep<A> {
       return new SetOrKeep(new Bool(false), dummy);
@@ -223,15 +244,15 @@ export class Body {
     for (let i = 0; i < SnappStateLength; ++i) {
       appState.push(keep(Field.zero));
     }
-    
+
     const update = new Update(
       appState,
       keep(new PublicKey(Group.generator)),
-      keep({hash: Field.zero, value: (undefined as any)}),
+      keep({ hash: Field.zero, value: undefined as any }),
       keep(Permissions.default()),
       keep(undefined as any),
       keep(undefined as any),
-      keep(undefined as any),
+      keep(undefined as any)
     );
     return new Body(
       publicKey,
@@ -241,8 +262,8 @@ export class Body {
       new Events(Field.zero, []),
       Field.zero,
       new MerkleList(),
-      Field.zero,
-    )
+      Field.zero
+    );
   }
 
   constructor(
@@ -283,12 +304,22 @@ export abstract class State<A> {
 
   static init<A>(x: A): State<A> {
     class Init extends State<A> {
-      value: A; constructor(){ super(); this.value = x; }
-      get(): Promise<A> { throw 'init:unimplemented' }
-      set(_: A) { throw 'init:unimplmented' }
-      assertEquals(_: A) { throw 'init:unimplemented' }
+      value: A;
+      constructor() {
+        super();
+        this.value = x;
+      }
+      get(): Promise<A> {
+        throw 'init:unimplemented';
+      }
+      set(_: A) {
+        throw 'init:unimplmented';
+      }
+      assertEquals(_: A) {
+        throw 'init:unimplemented';
+      }
     }
-    return new Init()
+    return new Init();
   }
 
   constructor() {}
@@ -338,7 +369,7 @@ export class ClosedInterval<A> {
   lower_: A | undefined;
   upper_: A | undefined;
 
-  constructor(lower:A | undefined, upper: A | undefined) {
+  constructor(lower: A | undefined, upper: A | undefined) {
     this.lower_ = lower;
     this.upper_ = upper;
   }
@@ -390,7 +421,13 @@ export class EpochDataPredicate {
   lockCheckpoint_: OrIgnore<Field>;
   epochLength: ClosedInterval<UInt32>;
 
-  constructor(ledger: EpochLedgerPredicate, seed_: OrIgnore<Field>, startCheckpoint_: OrIgnore<Field>, lockCheckpoint_: OrIgnore<Field>, epochLength: ClosedInterval<UInt32>) {
+  constructor(
+    ledger: EpochLedgerPredicate,
+    seed_: OrIgnore<Field>,
+    startCheckpoint_: OrIgnore<Field>,
+    lockCheckpoint_: OrIgnore<Field>,
+    epochLength: ClosedInterval<UInt32>
+  ) {
     this.ledger = ledger;
     this.seed_ = seed_;
     this.startCheckpoint_ = startCheckpoint_;
@@ -436,10 +473,16 @@ export class ProtocolStatePredicate {
   globalSlotSinceGenesis: ClosedInterval<UInt32>;
   stakingEpochData: EpochDataPredicate;
   nextEpochData: EpochDataPredicate;
-  
+
   static ignoreAll(): ProtocolStatePredicate {
     const ledger = new EpochLedgerPredicate(ignore(Field.zero), uint64());
-    const epochData = new EpochDataPredicate(ledger, ignore(Field.zero), ignore(Field.zero), ignore(Field.zero), uint32());
+    const epochData = new EpochDataPredicate(
+      ledger,
+      ignore(Field.zero),
+      ignore(Field.zero),
+      ignore(Field.zero),
+      uint32()
+    );
     return new ProtocolStatePredicate(
       ignore(Field.zero),
       uint64(),
@@ -451,8 +494,8 @@ export class ProtocolStatePredicate {
       uint32(),
       uint32(),
       epochData,
-      epochData,
-    )
+      epochData
+    );
   }
 
   constructor(
@@ -510,11 +553,9 @@ function check<A>(dummy: A): OrIgnore<A> {
   return new OrIgnore(new Optional(new Bool(true), dummy));
 } */
 
-const uint32 = () => new ClosedInterval(
-  UInt32.fromNumber(0), UInt32.MAXINT());
+const uint32 = () => new ClosedInterval(UInt32.fromNumber(0), UInt32.MAXINT());
 
-const uint64 = () => new ClosedInterval(
-  UInt64.fromNumber(0), UInt64.MAXINT());
+const uint64 = () => new ClosedInterval(UInt64.fromNumber(0), UInt64.MAXINT());
 
 export class AccountPredicate {
   balance: ClosedInterval<UInt64>;
@@ -525,7 +566,7 @@ export class AccountPredicate {
   state: Array<OrIgnore<Field>>;
   sequenceState: OrIgnore<Field>;
   provedState: OrIgnore<Bool>;
-  
+
   static ignoreAll(): AccountPredicate {
     let appState: Array<OrIgnore<Field>> = [];
     for (let i = 0; i < SnappStateLength; ++i) {
@@ -540,8 +581,8 @@ export class AccountPredicate {
       ignore(new PublicKey(Group.generator)),
       appState,
       ignore(Field.zero),
-      ignore(new Bool(false)),
-    )
+      ignore(new Bool(false))
+    );
   }
 
   constructor(
@@ -552,7 +593,7 @@ export class AccountPredicate {
     delegate: OrIgnore<PublicKey>,
     state: Array<OrIgnore<Field>>,
     sequenceState: OrIgnore<Field>,
-    provedState: OrIgnore<Bool>,
+    provedState: OrIgnore<Bool>
   ) {
     this.balance = balance;
     this.nonce = nonce;
@@ -582,7 +623,9 @@ export class Party<P> {
     const body: Body = Body.keepAll(pk);
     return Mina.getAccount(pk).then((a) => {
       if (Mina.currentTransaction === undefined) {
-        throw new Error('Party.createSigned: Cannot run outside of a transaction');
+        throw new Error(
+          'Party.createSigned: Cannot run outside of a transaction'
+        );
       }
 
       if (a == null) {

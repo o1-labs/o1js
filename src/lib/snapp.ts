@@ -1,6 +1,12 @@
 import { Field, Bool, Poseidon, isReady, AsFieldElements } from '../snarky';
 import { CircuitValue } from './circuit_value';
-import { AccountPredicate, ProtocolStatePredicate, Body, State, Party } from './party';
+import {
+  AccountPredicate,
+  ProtocolStatePredicate,
+  Body,
+  State,
+  Party,
+} from './party';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
 import { FullAccountPredicate } from 'src';
@@ -9,81 +15,87 @@ export function state<A>(ty: AsFieldElements<A>) {
   return function (
     target: any,
     key: string,
-    _descriptor?: PropertyDescriptor): any {
-      const SnappClass = target.constructor;
-      if (! (SnappClass.prototype instanceof SmartContract)) {
-        throw new Error('Can only use @state decorator on classes that extend SmartContract');
-      }
+    _descriptor?: PropertyDescriptor
+  ): any {
+    const SnappClass = target.constructor;
+    if (!(SnappClass.prototype instanceof SmartContract)) {
+      throw new Error(
+        'Can only use @state decorator on classes that extend SmartContract'
+      );
+    }
 
-      const fieldType = Reflect.getMetadata('design:type', target, key);
-      if (fieldType != State) {
-        throw new Error('@state fields must have type State<A> for some type A');
-      }
-      
-      if (key === '_states' || key === '_layout') {
-        throw new Error('Property names _states and _layout reserved.');
-      }
+    const fieldType = Reflect.getMetadata('design:type', target, key);
+    if (fieldType != State) {
+      throw new Error('@state fields must have type State<A> for some type A');
+    }
 
-      if (SnappClass._states === undefined || SnappClass._states === null) {
-        SnappClass._states = [];
-        let layout: Map<string, { offset: number, length: number }>;
-        SnappClass._layout = () => {
-          if (layout === undefined) {
-            layout = new Map();
+    if (key === '_states' || key === '_layout') {
+      throw new Error('Property names _states and _layout reserved.');
+    }
 
-            let offset = 0;
-            SnappClass._states.forEach(([key, ty]: [any, any]) => {
-              let length = ty.sizeInFieldElements();
-              layout.set(key, {offset, length});
-              offset += length;
-            });
-          }
-          
-          return layout;
-        }
-      }
+    if (SnappClass._states === undefined || SnappClass._states === null) {
+      SnappClass._states = [];
+      let layout: Map<string, { offset: number; length: number }>;
+      SnappClass._layout = () => {
+        if (layout === undefined) {
+          layout = new Map();
 
-      class S extends State<A> {
-        static _this: any;
-
-        static getLayout() {
-          const layout: Map<string, { offset: number, length: number}> = SnappClass._layout();
-          const r = layout.get(key);
-          if (r === undefined) { throw new Error(`state ${key} not found`)}
-          return r;
+          let offset = 0;
+          SnappClass._states.forEach(([key, ty]: [any, any]) => {
+            let length = ty.sizeInFieldElements();
+            layout.set(key, { offset, length });
+            offset += length;
+          });
         }
 
-        set(a: A) {
-          const r = S.getLayout();
-          const xs = ty.toFieldElements(a);
-          /*
+        return layout;
+      };
+    }
+
+    class S extends State<A> {
+      static _this: any;
+
+      static getLayout() {
+        const layout: Map<string, { offset: number; length: number }> =
+          SnappClass._layout();
+        const r = layout.get(key);
+        if (r === undefined) {
+          throw new Error(`state ${key} not found`);
+        }
+        return r;
+      }
+
+      set(a: A) {
+        const r = S.getLayout();
+        const xs = ty.toFieldElements(a);
+        /*
           console.log('target', target)
           console.log('target.address', target.address);
           console.log('target', target.executionState); */
-          let e: ExecutionState = S._this.executionState();
+        let e: ExecutionState = S._this.executionState();
 
-          xs.forEach((x, i) => {
-            e.body.update.appState[r.offset + i].setValue(x);
-          });
-        }
-        
-        assertEquals(a: A) {
-          const r = S.getLayout();
-          const xs = ty.toFieldElements(a);
-          let e: ExecutionState = S._this.executionState();
+        xs.forEach((x, i) => {
+          e.body.update.appState[r.offset + i].setValue(x);
+        });
+      }
 
-          xs.forEach((x, i) => {
-            e.predicate.state[r.offset + i].check = new Bool(true);
-            e.predicate.state[r.offset + i].value = x;
-          });
-        }
+      assertEquals(a: A) {
+        const r = S.getLayout();
+        const xs = ty.toFieldElements(a);
+        let e: ExecutionState = S._this.executionState();
 
-        get(): Promise<A> {
-          const r = S.getLayout();
+        xs.forEach((x, i) => {
+          e.predicate.state[r.offset + i].check = new Bool(true);
+          e.predicate.state[r.offset + i].value = x;
+        });
+      }
 
-          let addr: PublicKey = S._this.address;
- 
-          /* TODO: We need to be able to create variables and then fill
+      get(): Promise<A> {
+        const r = S.getLayout();
+
+        let addr: PublicKey = S._this.address;
+
+        /* TODO: We need to be able to create variables and then fill
              them in so that we can rewrite this as something like
 
              const xs = Circuit.witness(array(r.length), () => array of zeroes);
@@ -100,30 +112,30 @@ export function state<A>(ty: AsFieldElements<A>) {
              }
           */
 
-          return Mina.getAccount(addr).then((a) => {
-            const xs = [];
-            for (let i = 0; i < r.length; ++i) {
-              xs.push(a.snapp.appState[r.offset + i]);
-            }
-            return ty.ofFieldElements(xs);
-          });
-        }
-      };
-
-      SnappClass._states.push([key, ty]);
-      
-      const s = new S();
-      Object.defineProperty(target, key, {
-        get: (function (this: any) {
-          S._this = this;
-          return s;
-        }),
-        set: (function(this: any, v: { value: A }) {
-          S._this = this;
-          s.set(v.value)
-        })
-      })
+        return Mina.getAccount(addr).then((a) => {
+          const xs = [];
+          for (let i = 0; i < r.length; ++i) {
+            xs.push(a.snapp.appState[r.offset + i]);
+          }
+          return ty.ofFieldElements(xs);
+        });
+      }
     }
+
+    SnappClass._states.push([key, ty]);
+
+    const s = new S();
+    Object.defineProperty(target, key, {
+      get: function (this: any) {
+        S._this = this;
+        return s;
+      },
+      set: function (this: any, v: { value: A }) {
+        S._this = this;
+        s.set(v.value);
+      },
+    });
+  };
 }
 
 export function method(
@@ -138,11 +150,11 @@ export function init(
 ): any {}
 
 type ExecutionState = {
-  transactionId: number,
-  partyIndex: number,
-  body: Body,
-  predicate: AccountPredicate,
-  protocolStatePredicate: ProtocolStatePredicate,
+  transactionId: number;
+  partyIndex: number;
+  body: Body;
+  predicate: AccountPredicate;
+  protocolStatePredicate: ProtocolStatePredicate;
 };
 
 export abstract class SmartContract {
@@ -152,7 +164,7 @@ export abstract class SmartContract {
   // state: Array<State<Field>>;
 
   // private _self: { body: Body, predicate: AccountPredicate } | undefined;
-  
+
   _executionState: ExecutionState | undefined;
 
   constructor(address: PublicKey) {
@@ -160,7 +172,9 @@ export abstract class SmartContract {
     try {
       this.executionState().body.update.verificationKey.set = new Bool(true);
     } catch (_error) {
-      throw new Error('Cannot construct `new` SmartContract instance outside a transaction. Use `SmartContract.fromAddress` to refer to an already deployed instance.')
+      throw new Error(
+        'Cannot construct `new` SmartContract instance outside a transaction. Use `SmartContract.fromAddress` to refer to an already deployed instance.'
+      );
     }
     // this.self = null as unknown as Body;
     // this.state = [];
@@ -168,11 +182,13 @@ export abstract class SmartContract {
 
   executionState(): ExecutionState {
     if (Mina.currentTransaction === undefined) {
-      throw new Error("Cannot execute outside of a Mina.transaction() block.");
+      throw new Error('Cannot execute outside of a Mina.transaction() block.');
     }
 
-    if (this._executionState !== undefined
-      && this._executionState.transactionId === Mina.nextTransactionId.value) {
+    if (
+      this._executionState !== undefined &&
+      this._executionState.transactionId === Mina.nextTransactionId.value
+    ) {
       return this._executionState;
     } else {
       const id = Mina.nextTransactionId.value;
@@ -193,7 +209,7 @@ export abstract class SmartContract {
       return s;
     }
   }
-  
+
   get protocolState(): ProtocolStatePredicate {
     return this.executionState().protocolStatePredicate;
   }

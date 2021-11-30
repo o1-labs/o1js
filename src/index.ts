@@ -1,4 +1,3 @@
-
 /*
 function foo(x: number) {
 
@@ -40,7 +39,6 @@ const a = new A();
 
 console.log(a.x) */
 
-
 export * from './snarky';
 export * from './lib/signature';
 export * from './lib/circuit_value';
@@ -51,7 +49,7 @@ import * as Foo from './examples/wip';
 (async () => {
   console.log('a');
   await Snarky.isReady.catch((e) => console.log(e));
-  await Foo.main();
+  await Foo.main().catch((e) => console.log('boo', e));
   console.log('b');
-  Snarky.shutdown()
+  Snarky.shutdown();
 })().catch((e) => console.log(e));

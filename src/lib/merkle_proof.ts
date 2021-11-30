@@ -1,16 +1,16 @@
 import { CircuitValue, prop } from './circuit_value';
-import { Bool, Field, Circuit, Poseidon, AsFieldElements, NumberAsField } from '../snarky';
+import {
+  Bool,
+  Field,
+  Circuit,
+  Poseidon,
+  AsFieldElements,
+  NumberAsField,
+} from '../snarky';
 import { Optional } from './optional';
 import { DataStore, KeyedDataStore } from './data_store';
 
 let indexId = 0;
-
-/*
-export interface IndexedAccumulatorI<A, P> {
-  store: DataStore<A, P> | null,
-  check: (comm: Field, index: Index, a: A, proof: P) => Bool,
-}
-  */
 
 export class AccumulatorMembershipProof {
   merkleProof: MerkleProof;
@@ -27,16 +27,9 @@ export class AccumulatorMembershipProof {
   }
 }
 
-/*
-export interface AccumulatorI<A, P> {
-  commitment: () => Field,
-  check: (x: A, membershipProof: P) => Bool,
-  add: (x: A) => P,
-  getMembershipProof: (x: A) => P | null,
-}
-  */
-
-export function MerkleAccumulatorFactory<A extends CircuitValue>(depth: number) {
+export function MerkleAccumulatorFactory<A extends CircuitValue>(
+  depth: number
+) {
   const I = Index[depth];
   const P = MerkleProof[depth];
 
@@ -58,15 +51,15 @@ export function MerkleAccumulatorFactory<A extends CircuitValue>(depth: number) 
     static sizeInFieldElements(): number {
       return 1;
     }
-    
+
     static toFieldElements(x: MerkleAccumulator): Field[] {
-      return [x.root]
+      return [x.root];
     }
-    
+
     static ofFieldElements(xs: Field[]): MerkleAccumulator {
-      return new MerkleAccumulator(xs[0])
+      return new MerkleAccumulator(xs[0]);
     }
-    
+
     toFieldElements(): Field[] {
       return MerkleAccumulator.toFieldElements(this);
     }
@@ -78,10 +71,12 @@ export function MerkleAccumulatorFactory<A extends CircuitValue>(depth: number) 
         return this._store;
       }
     }
-    
+
     set store(s: DataStore<A, MerkleProof>) {
       if (s.depth !== depth) {
-        throw new Error(`Store had depth ${s.depth} but contract expects ${depth}`);
+        throw new Error(
+          `Store had depth ${s.depth} but contract expects ${depth}`
+        );
       }
       this._store = s;
     }
@@ -103,11 +98,11 @@ export function MerkleAccumulatorFactory<A extends CircuitValue>(depth: number) 
         return new AccumulatorMembershipProof(this.store.getProof(idx), idx);
       }
     }
-    
+
     add(x: A): AccumulatorMembershipProof {
       let idx = Circuit.witness(I, () => this.store.nextIndex());
       let path = Circuit.witness(P, () => this.store.getProof(idx));
-      
+
       // Checks that this is a path to an empty leaf
       impliedRoot(idx.value, path.path, emptyHash(0)).assertEquals(this.root);
 
@@ -121,169 +116,29 @@ export function MerkleAccumulatorFactory<A extends CircuitValue>(depth: number) 
       } else {
         this.store.set(idx, x);
       }
-      
+
       return new AccumulatorMembershipProof(path, idx);
-    }
-  }
-}
-
-/*
-class MerkleAccumulator<A extends CircuitValue> extends CircuitValue {
-  @prop root: Field;
-  _store: DataStore<A, MerkleProof> | null;
-  
-  constructor(root: Field) {
-    super();
-    this.root = root;
-    this._store = null;
-  }
-  
-  get store(): DataStore<A, MerkleProof> {
-    if (this._store === null) {
-      throw new Error('MerkleAccumulator.store not set');
-    } else {
-      return this._store;
-    }
-  }
-  
-  set store(s: DataStore<A, MerkleProof>) {
-    this._store = s;
-  }
-
-  commitment() {
-    return this.root;
-  }
-
-  check(x: A, p: AccumulatorMembershipProof): Bool {
-    return p.verify(this.commitment(), x);
-  }
-
-  // Happens outside the circuit
-  getMembershipProof(x: A): AccumulatorMembershipProof | null {
-    const idx = this.store.getIndex(x);
-    if (idx === null) {
-      return null;
-    } else {
-      return new AccumulatorMembershipProof(this.store.getProof(idx), idx);
-    }
-  }
-  
-  add(x: A): AccumulatorMembershipProof {
-    const I = Index[this.store.depth];
-    const P = MerkleProof[this.store.depth];
-
-    let idx = Circuit.witness(I, () => this.store.nextIndex());
-    let path = Circuit.witness(P, () => this.store.getProof(idx));
-    
-    // Checks that this is a path to an empty leaf
-    impliedRoot(idx.value, path.path, emptyHash(0)).assertEquals(this.root);
-
-    const newLeaf = Poseidon.hash(x.toFieldElements());
-    this.root = impliedRoot(idx.value, path.path, newLeaf);
-
-    if (Circuit.inProver()) {
-      Circuit.asProver(() => {
-        this.store.set(idx, x);
-      });
-    } else {
-      this.store.set(idx, x);
-    }
-    
-    return new AccumulatorMembershipProof(path, idx);
-  }
-} */
-
-/*
-export function MerkleAccumulatorFactory<A extends CircuitValue>(
-  store: DataStore<A, MerkleProof>
-  ) {
-  return class MerkleAccumulator {
-    root: Field
-
-    commitment() {
-      return this.root;
-    }
-
-    check(x: A, p: AccumulatorMembershipProof): Bool {
-      return p.verify(this.commitment(), x);
-    }
-
-    // Happens outside the circuit
-    getMembershipProof(x: A): AccumulatorMembershipProof | null {
-      const idx = store.getIndex(x);
-      if (idx === null) {
-        return null;
-      } else {
-        return new AccumulatorMembershipProof(store.getProof(idx), idx);
-      }
-    }
-    
-    add(x: A): AccumulatorMembershipProof {
-      const I = Index[store.depth];
-      const P = MerkleProof[store.depth];
-
-      let idx = Circuit.witness(I, () => store.nextIndex());
-      let path = Circuit.witness(P, () => store.getProof(idx));
-      
-      // Checks that this is a path to an empty leaf
-      impliedRoot(idx.value, path.path, emptyHash(0)).assertEquals(this.root);
-
-      const newLeaf = Poseidon.hash(x.toFieldElements());
-      this.root = impliedRoot(idx.value, path.path, newLeaf);
-
-      if (Circuit.inProver()) {
-        Circuit.asProver(() => {
-          store.set(idx, x);
-        });
-      } else {
-        store.set(idx, x);
-      }
-      
-      return new AccumulatorMembershipProof(path, idx);
-    }
-
-    constructor(root: Field) {
-      this.root = root;
-    }
-
-    static toFieldElements(x: MerkleAccumulator): Field[] {
-      return [x.root]
-    }
-
-    static ofFieldElements(x: Field[]) {
-      new MerkleAccumulator(x[0]);
-    }
-    
-    static sizeInFieldElements(): number {
-      return 1;
-    }
-    
-    toFieldElements(): Field[] {
-      return MerkleAccumulator.toFieldElements(this);
     }
   };
 }
-
-/*
-export function MerkleAccumulator<A>()
-: AccumulatorI<A, AccumulatorMembershipProof> {
-  throw 'todo'
-} */
 
 export abstract class IndexedAccumulator<A> extends CircuitValue {
   @prop commitment: Field;
 
   constructor(commitment: Field) {
-    super()
+    super();
     this.commitment = commitment;
   }
 
-  abstract set(index: Index, a: A): void
+  abstract set(index: Index, a: A): void;
 
-  abstract get(index: Index): A
+  abstract get(index: Index): A;
 }
 
-export function KeyedAccumulatorFactory<K extends CircuitValue, V extends CircuitValue>(depth: number) {
+export function KeyedAccumulatorFactory<
+  K extends CircuitValue,
+  V extends CircuitValue
+>(depth: number) {
   const I = Index[depth];
   const P = MerkleProof[depth];
 
@@ -299,7 +154,9 @@ export function KeyedAccumulatorFactory<K extends CircuitValue, V extends Circui
       this._store = null;
       this.cachedPaths = new Map();
       this.cachedValues = new Map();
-      this.key = (_: V) => { throw new Error('uninitialized'); };
+      this.key = (_: V) => {
+        throw new Error('uninitialized');
+      };
     }
 
     static create(key: (v: V) => K, store: KeyedDataStore<K, V, MerkleProof>) {
@@ -311,15 +168,15 @@ export function KeyedAccumulatorFactory<K extends CircuitValue, V extends Circui
     static sizeInFieldElements(): number {
       return 1;
     }
-    
+
     static toFieldElements(x: KeyedAccumulator): Field[] {
-      return [x.root]
+      return [x.root];
     }
-    
+
     static ofFieldElements(xs: Field[]): KeyedAccumulator {
-      return new KeyedAccumulator(xs[0])
+      return new KeyedAccumulator(xs[0]);
     }
-    
+
     toFieldElements(): Field[] {
       return KeyedAccumulator.toFieldElements(this);
     }
@@ -331,10 +188,12 @@ export function KeyedAccumulatorFactory<K extends CircuitValue, V extends Circui
         return this._store;
       }
     }
-    
+
     set store(s: KeyedDataStore<K, V, MerkleProof>) {
       if (s.depth !== depth) {
-        throw new Error(`Store had depth ${s.depth} but contract expects ${depth}`);
+        throw new Error(
+          `Store had depth ${s.depth} but contract expects ${depth}`
+        );
       }
       this._store = s;
     }
@@ -342,12 +201,6 @@ export function KeyedAccumulatorFactory<K extends CircuitValue, V extends Circui
     commitment() {
       return this.root;
     }
-
-    /*
-    check(x: A, p: AccumulatorMembershipProof): Bool {
-      return p.verify(this.commitment(), x);
-    }
-    */
 
     // TODO: Make this work
     set(proof: AccumulatorMembershipProof, value: V): void {
@@ -360,80 +213,15 @@ export function KeyedAccumulatorFactory<K extends CircuitValue, V extends Circui
       let isSome = new Bool(idx_ !== null);
       let idx: Index = idx_ === null ? this.store.nextIndex() : idx_;
 
-      let { value, empty} = this.store.getValue(key);
+      let { value, empty } = this.store.getValue(key);
       // TODO: empty should equal not isSome
 
       const o = new Optional(isSome, value);
       const p = this.store.getProof(idx);
       return [o, new AccumulatorMembershipProof(p, idx)];
     }
-  }
+  };
 }
-
-/*
-export class KeyedAccumulator<K, V> extends CircuitValue {
-  store: KeyedDataStore<K, V, MerkleProof>;
-
-  cachedPaths: Map<IndexId, Array<Field>>;
-  cachedValues: Map<IndexId, { value: A; hash: Field }>;
-
-  set(key: K, value: V): void {
-    throw 'todo'
-  }
-
-  get(key: K): Optional<V> {
-    throw 'todo';
-  }
-
-  commitment(): Field {
-    throw 'todo';
-  }
-
-  constructor(key: (v: V) => K, store: KeyedDataStore<V, AccumulatorMembershipProof>) {
-    super();
-  }
-}
-*/
-
-/*
-export function DataAvailableIndexedAccumulator<A, P>(C) {
-} */
-
-/*
-export function IndexedAccumulatorFactory<A, P>(
-  acc: IndexedAccumulatorI<A, P>,
-  eltTyp: AsFieldElements<A>,
-  proofTyp: AsFieldElements<P>) {
-    let getStore = () => {
-      if (acc.store == null) {
-        throw new Error('store not available')
-      }
-      return acc.store;
-    };
-
-    return class Acc extends IndexedAccumulator<A> {
-      get(index: Index): A {
-        let aPre = Circuit.witness(eltTyp, () => getStore().getValue(index));
-        let proof = Circuit.witness(proofTyp, () => getStore().getProof(index));
-        acc.check(this.commitment, index, aPre, proof);
-        return aPre;
-      }
-
-      set(index: Index, a: A) {
-        let aPre = Circuit.witness(eltTyp, () => getStore().getValue(index));
-        let proof = Circuit.witness(proofTyp, () => getStore().getProof(index));
-        let commPre = this.commitment;
-        acc.check(commPre, index, aPre, proof);
-        let commPost = Circuit.witness(Field, () => {
-          let s = getStore();
-          s.set(index, a);
-          return s.commitment();
-        })
-        acc.check(commPost, index, a, proof);
-        this.commitment = commPost;
-      }
-    }
-} */
 
 export class IndexBase {
   id: IndexId;
@@ -510,7 +298,7 @@ export function IndexFactory(depth: number) {
     static ofFieldElements(xs: Field[]): Index {
       return new Index(xs.map((x) => Bool.Unsafe.ofField(x)));
     }
-    
+
     toFieldElements(): Field[] {
       return Index.toFieldElements(this);
     }
@@ -754,7 +542,7 @@ export class Tree<A> {
     res.reverse();
 
     return res;
- }
+  }
 }
 
 export interface MerkleTree<A> {

@@ -1,24 +1,19 @@
-import { Proof } from "../snarky";
+import { Proof } from '../snarky';
 
-export function proofSystem(
-  target: any,
-): any {
-}
+export function proofSystem(target: any): any {}
 
 export function branch(
   target: any,
   propertyName: string,
   _descriptor?: PropertyDescriptor
-): any {
-}
+): any {}
 
 export class ProofWithInput<A> {
-  publicInput: A
+  publicInput: A;
   proof: Proof | null;
-  
+
   // TODO
-  assertVerifies() {
-  }
+  assertVerifies() {}
 
   constructor(publicInput: A) {
     this.publicInput = publicInput;

@@ -1,26 +1,43 @@
-import { CircuitValue, prop } from "../lib/circuit_value";
-import { PrivateKey, PublicKey, Signature } from "../lib/signature";
-import { Proof, Field, Circuit, Bool } from "../snarky"
-import { HTTPSAttestation } from "./exchange_lib";
-import { AccumulatorMembershipProof, Index, IndexedAccumulator, KeyedAccumulatorFactory, MerkleAccumulatorFactory, MerkleProof } from '../lib/merkle_proof';
+import { CircuitValue, prop } from '../lib/circuit_value';
+import { PrivateKey, PublicKey, Signature } from '../lib/signature';
+import { Proof, Field, Circuit, Bool } from '../snarky';
+import { HTTPSAttestation } from './exchange_lib';
+import {
+  AccumulatorMembershipProof,
+  Index,
+  IndexedAccumulator,
+  KeyedAccumulatorFactory,
+  MerkleAccumulatorFactory,
+  MerkleProof,
+} from '../lib/merkle_proof';
 import { MerkleStack } from '../lib/merkle_stack';
-import { SignedAmount, State, Party, Body, Permissions, Perm, Amount } from '../lib/party';
+import {
+  SignedAmount,
+  State,
+  Party,
+  Body,
+  Permissions,
+  Perm,
+  Amount,
+} from '../lib/party';
 import { SmartContract, state, method, init } from '../lib/snapp';
 import { proofSystem, branch, ProofWithInput } from '../lib/proof_system';
 import * as DataStore from '../lib/data_store';
 import * as Mina from '../lib/mina';
 import { UInt32, UInt64, Int64 } from '../lib/int';
-import { TypeofTypeAnnotation } from "@babel/types";
+import { TypeofTypeAnnotation } from '@babel/types';
 
 const AccountDbDepth: number = 32;
-const AccountDb = KeyedAccumulatorFactory<PublicKey, RollupAccount>(AccountDbDepth);
+const AccountDb = KeyedAccumulatorFactory<PublicKey, RollupAccount>(
+  AccountDbDepth
+);
 type AccountDb = InstanceType<typeof AccountDb>;
 
 class RollupAccount extends CircuitValue {
   @prop balance: UInt64;
   @prop nonce: UInt32;
   @prop publicKey: PublicKey;
-  
+
   constructor(balance: UInt64, nonce: UInt32, publicKey: PublicKey) {
     super();
     this.balance = balance;
@@ -35,7 +52,12 @@ class RollupTransaction extends CircuitValue {
   @prop sender: PublicKey;
   @prop receiver: PublicKey;
 
-  constructor(amount: UInt64, nonce: UInt32, sender: PublicKey, receiver: PublicKey) {
+  constructor(
+    amount: UInt64,
+    nonce: UInt32,
+    sender: PublicKey,
+    receiver: PublicKey
+  ) {
     super();
     this.amount = amount;
     this.nonce = nonce;
@@ -80,12 +102,13 @@ class RollupStateTransition extends CircuitValue {
 class RollupProof extends ProofWithInput<RollupStateTransition> {
   @branch static processDeposit(
     pending: MerkleStack<RollupDeposit>,
-    accountDb: AccountDb): RollupProof {
+    accountDb: AccountDb
+  ): RollupProof {
     let before = new RollupState(pending.commitment, accountDb.commitment());
     // let deposit = pending.pop();
-    
+
     // TODO: Apply deposit to db
-    
+
     let after = new RollupState(pending.commitment, accountDb.commitment());
 
     return new RollupProof(new RollupStateTransition(before, after));
@@ -95,10 +118,13 @@ class RollupProof extends ProofWithInput<RollupStateTransition> {
     t: RollupTransaction,
     s: Signature,
     pending: MerkleStack<RollupDeposit>,
-    accountDb: AccountDb,
-    ): RollupProof {
+    accountDb: AccountDb
+  ): RollupProof {
     s.verify(t.sender, t.toFieldElements()).assertEquals(true);
-    let stateBefore = new RollupState(pending.commitment, accountDb.commitment());
+    let stateBefore = new RollupState(
+      pending.commitment,
+      accountDb.commitment()
+    );
 
     let [senderAccount, senderPos] = accountDb.get(t.sender);
     senderAccount.isSome.assertEquals(true);
@@ -113,19 +139,19 @@ class RollupProof extends ProofWithInput<RollupStateTransition> {
     receiverAccount.value.balance = receiverAccount.value.balance.add(t.amount);
     accountDb.set(receiverPos, receiverAccount.value);
 
-    let stateAfter = new RollupState(pending.commitment, accountDb.commitment());
+    let stateAfter = new RollupState(
+      pending.commitment,
+      accountDb.commitment()
+    );
     return new RollupProof(new RollupStateTransition(stateBefore, stateAfter));
   }
 
   // Is branch a good name?
   @branch static merge(p1: RollupProof, p2: RollupProof): RollupProof {
-    p1.publicInput.target.assertEquals(
-      p2.publicInput.source
-    );
+    p1.publicInput.target.assertEquals(p2.publicInput.source);
     return new RollupProof(
-      new RollupStateTransition(
-        p1.publicInput.source,
-        p2.publicInput.target));
+      new RollupStateTransition(p1.publicInput.source, p2.publicInput.target)
+    );
   }
 }
 
@@ -196,7 +222,6 @@ A smart contract is basically
   acceptable to me"
 */
 
-
 class RollupSnapp extends SmartContract {
   @state(Field) operatorsCommitment: State<Field>; // state slot 0
   @state(RollupState) rollupState: State<RollupState>; // state slots 1, 2
@@ -215,27 +240,32 @@ class RollupSnapp extends SmartContract {
     operatorsDb: OperatorsDb,
     accountDb: AccountDb,
     deposits: MerkleStack<RollupDeposit>,
-    lastUpatedPeriod: UInt32, 
-    ) {
+    lastUpatedPeriod: UInt32
+  ) {
     super(address);
     this.self.delta = Int64.fromUnsigned(senderAmount);
     this.operatorsCommitment = State.init(operatorsDb.commitment());
     this.lastUpdatedPeriod = State.init(lastUpatedPeriod);
-    this.rollupState = State.init(new RollupState(deposits.commitment, accountDb.commitment()));
+    this.rollupState = State.init(
+      new RollupState(deposits.commitment, accountDb.commitment())
+    );
   }
 
-  static instanceOnChain(address: PublicKey): RollupSnapp { throw 'instanceonchain' }
+  static instanceOnChain(address: PublicKey): RollupSnapp {
+    throw 'instanceonchain';
+  }
 
   static periodLength = 5;
   static newOperatorGapSlots = 20;
-  static newOperatorGapPeriods = RollupSnapp.newOperatorGapSlots / RollupSnapp.periodLength;
+  static newOperatorGapPeriods =
+    RollupSnapp.newOperatorGapSlots / RollupSnapp.periodLength;
 
   @init init() {
     let perms = Permissions.default();
     // Force users to use the deposit method to send to this account
     perms.receive = Perm.proof();
     perms.editState = Perm.proof();
-    this.self.update.permissions.setValue(perms)
+    this.self.update.permissions.setValue(perms);
   }
 
   // Only allowed to update every so often
@@ -243,19 +273,17 @@ class RollupSnapp extends SmartContract {
     submittedSlot: UInt32,
     operatorsDb: OperatorsDb,
     pk: PublicKey,
-    s: Signature)
-  {
+    s: Signature
+  ) {
     let period = submittedSlot.div(RollupSnapp.periodLength);
     let startSlot = period.mul(RollupSnapp.periodLength);
-
 
     /*
     this.deferToOnChain((onChainState) => {
     })
     */
 
-
-   /*
+    /*
     *
     precondition.network({ protocolState } => {
       protocolState.globalSlotSinceGenesis.assertBetween(
@@ -297,9 +325,7 @@ class RollupSnapp extends SmartContract {
     this.operatorsCommitment.set(operatorsDb.commitment());
   }
 
-  @method depositFunds(
-    depositor: Body,
-    depositAmount: UInt64) {
+  @method depositFunds(depositor: Body, depositAmount: UInt64) {
     const self = this.self;
 
     let delta = SignedAmount.fromUnsigned(depositAmount);
@@ -325,12 +351,11 @@ class RollupSnapp extends SmartContract {
     operatorMembership: AccumulatorMembershipProof,
     // Operator signs the new rollup state
     operator: PublicKey,
-    operatorSignature: Signature)
-  {
+    operatorSignature: Signature
+  ) {
     // What you can actually do with snapp state fields is
     // - assert that they have a given value
     // - set them to a new value
-
     /*
     operatorMembership.verify(this.operatorsCommitment.get(), operator)
     .assertEquals(true);
@@ -348,7 +373,7 @@ class RollupSnapp extends SmartContract {
 
 class SimpleSnapp extends SmartContract {
   @state(Field) value: State<Field>;
-  
+
   // Maybe have the address not passed in somehow
   // Maybe create account first and then deploy smart contract to it
   // On ethereum, you deploy them from a key-account and it's deterministically generated from the sender account
@@ -359,7 +384,7 @@ class SimpleSnapp extends SmartContract {
   }
 
   // Maybe don't return a promise here, it's a bit confusing
-  @method async update(y : Field) {
+  @method async update(y: Field) {
     const x = await this.value.get();
     x.square().mul(x).assertEquals(y);
     this.value.set(y);
@@ -381,7 +406,7 @@ export async function main() {
 
   const snappPrivkey = PrivateKey.random();
   const snappPubkey = snappPrivkey.toPublicKey();
-  
+
   let snappInstance: SimpleSnapp;
   const initSnappState = new Field(2);
 
@@ -393,17 +418,24 @@ export async function main() {
     p.body.delta = Int64.fromUnsigned(amount).neg();
 
     snappInstance = new SimpleSnapp(amount, snappPubkey, initSnappState);
-  }).send().wait();
-  
+  })
+    .send()
+    .wait();
+
   // Update the snapp
   await Mina.transaction(account1, async () => {
-    snappInstance.update(new Field(8))
-  }).send().wait();
+    snappInstance.update(new Field(8));
+  })
+    .send()
+    .wait();
 
   await Mina.transaction(account1, async () => {
-    snappInstance.update(new Field(109)).catch(e => console.log('error', e));
-  }).send().wait()
+    snappInstance.update(new Field(109));
+  })
+    .send()
+    .wait();
 
+  // .catch(e => console.log('error', e));
   const a = await Mina.getAccount(snappPubkey);
 
   console.log('final state value', a.snapp.appState[0].toString());

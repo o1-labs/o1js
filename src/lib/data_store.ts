@@ -1,29 +1,34 @@
 import { AccumulatorMembershipProof, Index } from './merkle_proof';
 import { AsFieldElements, Field } from '../snarky';
-import { Tree, IndexFactory, MerkleProof, MerkleProofFactory  } from './merkle_proof';
+import {
+  Tree,
+  IndexFactory,
+  MerkleProof,
+  MerkleProofFactory,
+} from './merkle_proof';
 import { Poseidon } from '../snarky';
-import { asFieldElementsToConstant} from './circuit_value';
+import { asFieldElementsToConstant } from './circuit_value';
 import { UInt64 } from './int';
 import { Circuit, Bool } from '../snarky';
 
 export interface DataStore<A, P> {
-  depth: number,
-  getValue: (index: Index) => A | null,
-  getIndex: (x: A) => Index | null,
-  getProof: (index: Index) => P,
-  nextIndex: () => Index,
-  set: (index: Index, a: A) => void,
-  commitment: () => Field,
+  depth: number;
+  getValue: (index: Index) => A | null;
+  getIndex: (x: A) => Index | null;
+  getProof: (index: Index) => P;
+  nextIndex: () => Index;
+  set: (index: Index, a: A) => void;
+  commitment: () => Field;
 }
 
 export interface KeyedDataStore<K, V, P> {
-  depth: number,
-  nextIndex: () => Index,
-  getIndex:(x: K) => Index | null,
-  getProof: (index: Index) => P,
-  getValue(k: K): { value: V, empty: boolean },
-  setValue(k: K, v: V): void,
-  commitment(): Field,
+  depth: number;
+  nextIndex: () => Index;
+  getIndex: (x: K) => Index | null;
+  getProof: (index: Index) => P;
+  getValue(k: K): { value: V; empty: boolean };
+  setValue(k: K, v: V): void;
+  commitment(): Field;
   /*
   depth: number,
   getValue: (index: Index) => A | null,
@@ -39,18 +44,22 @@ export class Keyed {
     eltTyp: AsFieldElements<V>,
     keyTyp: AsFieldElements<K>,
     key: (v: V) => K,
-    depth: number): KeyedDataStore<K, V, MerkleProof> {
-
+    depth: number
+  ): KeyedDataStore<K, V, MerkleProof> {
     const keyTable: Map<string, Index> = new Map();
 
     const P = MerkleProofFactory(depth);
     const I = Index[depth];
 
-    const t = new Tree<V>(depth, (x) => Poseidon.hash(eltTyp.toFieldElements(x)), []);
+    const t = new Tree<V>(
+      depth,
+      (x) => Poseidon.hash(eltTyp.toFieldElements(x)),
+      []
+    );
 
     let nextIdx = 0;
     let indexes: Map<string, boolean[]> = new Map();
-    
+
     let dummy = (() => {
       const n = eltTyp.sizeInFieldElements();
       const xs = [];
@@ -59,8 +68,8 @@ export class Keyed {
       }
       return eltTyp.ofFieldElements(xs);
     })();
-    
-    const getValue = (k: K): { value: V, empty: boolean } => {
+
+    const getValue = (k: K): { value: V; empty: boolean } => {
       const h = Poseidon.hash(keyTyp.toFieldElements(k));
 
       const r = indexes.get(h.toString());
@@ -74,21 +83,21 @@ export class Keyed {
     };
 
     const getProof = (i: Index): MerkleProof => {
-  console.log('getproof');
-      const p = t.getMerklePath(i.value.map(b => b.toBoolean()));
-  console.log('getproof');
+      console.log('getproof');
+      const p = t.getMerklePath(i.value.map((b) => b.toBoolean()));
+      console.log('getproof');
       return new P(p);
-    }
+    };
 
     const commitment = (): Field => t.root();
-    
+
     const getIndex = (k: K): Index | null => {
       const h = Poseidon.hash(keyTyp.toFieldElements(k)).toString();
       const r = indexes.get(h);
       if (r === undefined) {
         return null;
       } else {
-        return new I(r.map((b) => new Bool(b)))
+        return new I(r.map((b) => new Bool(b)));
       }
     };
 
@@ -99,15 +108,14 @@ export class Keyed {
     };
 
     const setValue = (k: K, v: V) => {
-  console.log('setvalu');
+      console.log('setvalu');
       const h = Poseidon.hash(keyTyp.toFieldElements(k)).toString();
       const idx_ = indexes.get(h);
-      let idx = (idx_ === undefined)
-      ? nextIndex().value.map(b => b.toBoolean())
-      : idx_;
+      let idx =
+        idx_ === undefined ? nextIndex().value.map((b) => b.toBoolean()) : idx_;
       indexes.set(h, idx);
 
-  console.log('setvalu');
+      console.log('setvalu');
       t.setValue(idx, v, Poseidon.hash(eltTyp.toFieldElements(v)));
     };
 
@@ -118,7 +126,7 @@ export class Keyed {
       getProof,
       getValue,
       setValue,
-      commitment
+      commitment,
     };
   }
 }
@@ -126,69 +134,73 @@ export class Keyed {
 export function IPFS<A>(
   eltTyp: AsFieldElements<A>,
   ipfsRoot: string
-  ): DataStore<A, MerkleProof> {
-  throw 'ipfs'
+): DataStore<A, MerkleProof> {
+  throw 'ipfs';
 }
 
 export function InMemory<A>(
   eltTyp: AsFieldElements<A>,
-  depth: number,
+  depth: number
 ): DataStore<A, MerkleProof> {
   const P = MerkleProofFactory(depth);
   const I = Index[depth];
 
-  const t = new Tree<A>(depth, (x) => Poseidon.hash(eltTyp.toFieldElements(x)), []);
+  const t = new Tree<A>(
+    depth,
+    (x) => Poseidon.hash(eltTyp.toFieldElements(x)),
+    []
+  );
   let nextIdx = 0;
   let indexes: Map<string, boolean[]> = new Map();
 
   const getValue = (i: Index): A | null =>
-    t.get(i.value.map(b => b.toBoolean())).value;
-  
+    t.get(i.value.map((b) => b.toBoolean())).value;
+
   const getProof = (i: Index): MerkleProof => {
-  console.log('mgetproof');
-    const p = t.getMerklePath(i.value.map(b => b.toBoolean()));
-  console.log('mgetproof');
+    console.log('mgetproof');
+    const p = t.getMerklePath(i.value.map((b) => b.toBoolean()));
+    console.log('mgetproof');
     return new P(p);
-  }
-  
+  };
+
   const set = (i: Index, x: A) => {
     Circuit.asProver(() => {
       console.log('mset');
-      const idx = i.value.map(b => b.toBoolean());
+      const idx = i.value.map((b) => b.toBoolean());
       const h = Poseidon.hash(eltTyp.toFieldElements(x));
       console.log('mset');
       indexes.set(h.toString(), idx);
       t.setValue(idx, x, h);
-    })
+    });
   };
 
   const commitment = (): Field => t.root();
-  
+
   const getIndex = (x: A): Index | null => {
     const h = Poseidon.hash(eltTyp.toFieldElements(x));
     const r = indexes.get(h.toString());
     if (r === undefined) {
       return null;
     } else {
-      return new I(r.map((b) => new Bool(b)))
+      return new I(r.map((b) => new Bool(b)));
     }
     /*
     const y = asFieldElementsToConstant<A>(eltTyp, x);
     y.toFieldElements() */
   };
-  
+
   const nextIndex = (): Index => {
     const n = nextIdx;
     nextIdx += 1;
     return I.fromInt(n);
   };
-  
+
   return { getValue, getIndex, getProof, nextIndex, set, commitment, depth };
 }
 
 export function OnDisk<A>(
   eltTyp: AsFieldElements<A>,
   path: string
-  ): DataStore<A, MerkleProof> {
-  throw 'ondisk'
+): DataStore<A, MerkleProof> {
+  throw 'ondisk';
 }

@@ -3,6 +3,6 @@
   "compilerOptions": {
     "outDir": "dist/web",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "emitDecoratorMetadata": true
   }
 }

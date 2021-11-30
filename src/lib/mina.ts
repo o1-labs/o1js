@@ -1,51 +1,66 @@
 // This is for an account where any of a list of public keys can update the state
 
 import { CircuitValue } from './circuit_value';
-import { Circuit, Ledger, Field, Bool, AccountPredicate, FullAccountPredicate, FeePayerParty, Parties, PartyBody as SnarkyBody, Party as SnarkyParty } from '../snarky';
+import {
+  Circuit,
+  Ledger,
+  Field,
+  Bool,
+  AccountPredicate,
+  FullAccountPredicate,
+  FeePayerParty,
+  Parties,
+  PartyBody as SnarkyBody,
+  Party as SnarkyParty,
+} from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
-import { Body, EpochDataPredicate, Party, ProtocolStatePredicate } from './party';
-
+import {
+  Body,
+  EpochDataPredicate,
+  Party,
+  ProtocolStatePredicate,
+} from './party';
 
 export interface TransactionId {
-  wait(): Promise<void>
+  wait(): Promise<void>;
 }
 
 export interface Transaction {
-  send(): TransactionId
+  send(): TransactionId;
 }
 
 interface SnappAccount {
-  appState: Array<Field>,
+  appState: Array<Field>;
 }
 
 interface Account {
-  balance: UInt64,
-  nonce: UInt32,
-  snapp: SnappAccount,
+  balance: UInt64;
+  nonce: UInt32;
+  snapp: SnappAccount;
 }
 
-export let nextTransactionId : { value: number } = { value: 0 };
+export let nextTransactionId: { value: number } = { value: 0 };
 
-type PartyPredicate =
-  | UInt32
-  | FullAccountPredicate
+type PartyPredicate = UInt32 | FullAccountPredicate;
 
-export let currentTransaction : {
-  sender: PrivateKey,
-  parties: Array<Party<PartyPredicate>>,
-  nextPartyIndex: number,
-  protocolState: ProtocolStatePredicate,
-} | undefined = undefined;
+export let currentTransaction:
+  | {
+      sender: PrivateKey;
+      parties: Array<Party<PartyPredicate>>;
+      nextPartyIndex: number;
+      protocolState: ProtocolStatePredicate;
+    }
+  | undefined = undefined;
 
 interface Mina {
-  transaction(sender: PrivateKey, f : () => void | Promise<void>): Transaction,
-  currentSlot(): UInt32,
-  getAccount(publicKey: PublicKey): Promise<Account>,
+  transaction(sender: PrivateKey, f: () => void | Promise<void>): Transaction;
+  currentSlot(): UInt32;
+  getAccount(publicKey: PublicKey): Promise<Account>;
 }
 
 interface MockMina extends Mina {
-  addAccount(publicKey: PublicKey, balance: number): void
+  addAccount(publicKey: PublicKey, balance: number): void;
 }
 
 /**
@@ -53,22 +68,25 @@ interface MockMina extends Mina {
  */
 export const LocalBlockchain: () => MockMina = () => {
   const msPerSlot = 3 * 60 * 1000;
-  const startTime = (new Date()).valueOf();
-  
+  const startTime = new Date().valueOf();
+
   const ledger = Ledger.create([]);
 
   const currentSlot = () =>
     UInt32.fromNumber(
-      Math.ceil(((new Date()).valueOf() - startTime) / msPerSlot));
-      
+      Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
+    );
+
   const addAccount = (pk: PublicKey, balance: number) => {
     ledger.addAccount(pk, balance);
   };
 
-  const getAccount = (pk: PublicKey) : Promise<Account> => {
+  const getAccount = (pk: PublicKey): Promise<Account> => {
     const r = ledger.getAccount(pk);
     if (r == null) {
-      throw new Error(`getAccount: Could not find account for ${JSON.stringify(pk.toJSON())}`);
+      throw new Error(
+        `getAccount: Could not find account for ${JSON.stringify(pk.toJSON())}`
+      );
     } else {
       const a = {
         balance: new UInt64(r.balance.value),
@@ -83,13 +101,13 @@ export const LocalBlockchain: () => MockMina = () => {
     return {
       ledger: {
         hash: d.ledger.hash_,
-        totalCurrency: d.ledger.totalCurrency
+        totalCurrency: d.ledger.totalCurrency,
       },
       seed: d.seed_,
       startCheckpoint: d.startCheckpoint_,
       lockCheckpoint: d.lockCheckpoint_,
-      epochLength: d.epochLength
-    }
+      epochLength: d.epochLength,
+    };
   }
 
   const body = (b: Body): SnarkyBody => {
@@ -105,92 +123,100 @@ export const LocalBlockchain: () => MockMina = () => {
       callData: Field.zero,
       // TODO
       depth: 0,
-    }
+    };
   };
 
-  const transaction = (sender: PrivateKey, f: () => void | Promise<void>): Transaction => {
+  const transaction = (
+    sender: PrivateKey,
+    f: () => void | Promise<void>
+  ): Transaction => {
     if (currentTransaction !== undefined) {
-      throw new Error("Cannot start new transaction within another transaction");
+      throw new Error(
+        'Cannot start new transaction within another transaction'
+      );
     }
-    
+
     currentTransaction = {
       sender,
       parties: [],
       nextPartyIndex: 0,
-      protocolState: ProtocolStatePredicate.ignoreAll()
-    }
+      protocolState: ProtocolStatePredicate.ignoreAll(),
+    };
 
     const result = Circuit.runAndCheck(() => {
-      const res = f ();
+      const res = f();
       if (res instanceof Promise) {
         return res.then(() => {
-          return () => {}
-        })
+          return () => {};
+        });
       } else {
-        const r: Promise<() => void> =
-          new Promise((k) => k(() => {}));
+        const r: Promise<() => void> = new Promise((k) => k(() => {}));
         return r;
       }
     });
 
     const senderPubkey = sender.toPublicKey();
-    const txn = result.then(() => getAccount(senderPubkey)).then(senderAccount => {
-      if (currentTransaction === undefined) { throw new Error("Transaction is undefined"); }
+    const txn = result
+      .then(() => getAccount(senderPubkey))
+      .then((senderAccount) => {
+        if (currentTransaction === undefined) {
+          throw new Error('Transaction is undefined');
+        }
 
-      const otherParties: Array<SnarkyParty> =
-        currentTransaction.parties.map((p) => {
-          let predicate : AccountPredicate;
-          if (p.predicate instanceof UInt32) {
-            predicate = { type: 'nonce', value: p.predicate };
-          } else {
-            predicate = { type: 'full', value: p.predicate };
+        const otherParties: Array<SnarkyParty> = currentTransaction.parties.map(
+          (p) => {
+            let predicate: AccountPredicate;
+            if (p.predicate instanceof UInt32) {
+              predicate = { type: 'nonce', value: p.predicate };
+            } else {
+              predicate = { type: 'full', value: p.predicate };
+            }
+
+            return {
+              body: body(p.body),
+              predicate,
+            };
           }
+        );
 
-          return {
-            body: body(p.body),
-            predicate
-          }
-        });
+        const feePayer: FeePayerParty = {
+          body: body(Body.keepAll(senderPubkey)),
+          predicate: senderAccount.nonce,
+        };
 
-      const feePayer : FeePayerParty = {
-        body: body(Body.keepAll(senderPubkey)),
-        predicate: senderAccount.nonce,
-      }
+        const ps = currentTransaction.protocolState;
 
-      const ps = currentTransaction.protocolState;
+        const txn: Parties = {
+          protocolState: {
+            snarkedLedgerHash: ps.snarkedLedgerHash_,
+            snarkedNextAvailableToken: ps.snarkedNextAvailableToken,
+            timestamp: ps.timestamp,
+            blockchainLength: ps.blockchainLength,
+            minWindowDensity: ps.minWindowDensity,
+            lastVrfOutput: ps.lastVrfOutput_,
+            totalCurrency: ps.totalCurrency,
+            globalSlotSinceGenesis: ps.globalSlotSinceGenesis,
+            globalSlotSinceHardFork: ps.globalSlotSinceHardFork,
+            nextEpochData: epochData(ps.nextEpochData),
+            stakingEpochData: epochData(ps.stakingEpochData),
+          },
+          otherParties,
+          feePayer,
+        };
 
-      const txn : Parties = {
-        protocolState: {
-          snarkedLedgerHash:
-            ps.snarkedLedgerHash_,
-          snarkedNextAvailableToken: ps.snarkedNextAvailableToken,
-          timestamp: ps.timestamp,
-          blockchainLength: ps.blockchainLength,
-          minWindowDensity: ps.minWindowDensity,
-          lastVrfOutput: ps.lastVrfOutput_,
-          totalCurrency: ps.totalCurrency,
-          globalSlotSinceGenesis: ps.globalSlotSinceGenesis,
-          globalSlotSinceHardFork: ps.globalSlotSinceHardFork,
-          nextEpochData: epochData(ps.nextEpochData),
-          stakingEpochData: epochData(ps.stakingEpochData)
-        },
-        otherParties,
-        feePayer,
-      };
-      
-      nextTransactionId.value += 1;
-      currentTransaction = undefined;
-      return txn
-    });
+        nextTransactionId.value += 1;
+        currentTransaction = undefined;
+        return txn;
+      });
 
     return {
       send: () => {
-        const res = txn.then(txn => ledger.applyPartiesTransaction(txn));
+        const res = txn.then((txn) => ledger.applyPartiesTransaction(txn));
         return {
-          wait:() => res
-        }
-      }
-    }
+          wait: () => res,
+        };
+      },
+    };
   };
 
   return {
@@ -198,13 +224,19 @@ export const LocalBlockchain: () => MockMina = () => {
     getAccount,
     transaction,
     addAccount,
-  }
+  };
 };
 
 let activeInstance: Mina = {
-  currentSlot: (() => { throw new Error('must call Mina.setActiveInstance first')}),
-  getAccount: (() => { throw new Error('must call Mina.setActiveInstance first')}),
-  transaction: (() => { throw new Error('must call Mina.setActiveInstance first')}),
+  currentSlot: () => {
+    throw new Error('must call Mina.setActiveInstance first');
+  },
+  getAccount: () => {
+    throw new Error('must call Mina.setActiveInstance first');
+  },
+  transaction: () => {
+    throw new Error('must call Mina.setActiveInstance first');
+  },
 };
 
 /**
@@ -227,10 +259,12 @@ export function setActiveInstance(m: Mina) {
  *
  * @return A transaction that can subsequently be submitted to the chain.
  */
-export function transaction(sender: PrivateKey, f : () => void | Promise<void>): Transaction {
-  return activeInstance.transaction(sender, f)
+export function transaction(
+  sender: PrivateKey,
+  f: () => void | Promise<void>
+): Transaction {
+  return activeInstance.transaction(sender, f);
 }
-
 
 /**
  * @return The current slot number, according to the active Mina instance.

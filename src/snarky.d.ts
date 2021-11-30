@@ -132,7 +132,7 @@ export class Field {
   toBits(length: number): Bool[];
 
   equals(y: Field | number | string | boolean): Bool;
-  
+
   // TODO: Izzy to document
   seal(): Field;
   // TODO: Izzy to document
@@ -203,7 +203,7 @@ export class Field {
   static toBits(x: Field | number | string | boolean): Bool[];
   */
 
- /*
+  /*
   static equal(
     x: Field | number | string | boolean,
     y: Field | number | string | boolean
@@ -320,8 +320,9 @@ export class Circuit {
   ): T;
 
   static asProver(f: () => void): void;
-  
-  static runAndCheck<T>(f : () => Promise<(() => T)>): Promise<T>;
+
+  // static runAndCheck<T>(f : () => Promise<(() => T)>): Promise<T>;
+  static runAndCheck<T>(f: () => Promise<() => T>): Promise<T>;
 
   static array<T>(
     ctor: AsFieldElements<T>,
@@ -351,7 +352,7 @@ export class Circuit {
   static verify(publicInput: any[], vk: VerificationKey, pi: Proof): boolean;
 
   static toFieldElements<A>(A): Field[];
-  
+
   static inProver(): boolean;
 
   static inCheckedComputation(): boolean;
@@ -454,56 +455,62 @@ export const Poseidon: {
   hash: (xs: Field[]) => Field;
 };
 
-private interface UInt32 { value: Field }
-private interface UInt64 { value: Field }
+interface UInt32 {
+  value: Field;
+}
+interface UInt64 {
+  value: Field;
+}
 
 interface OrIgnore<A> {
-  check: Bool,
-  value: A,
+  check: Bool;
+  value: A;
 }
 
 interface SetOrKeep<A> {
-  set: Bool,
-  value: A,
-};
+  set: Bool;
+  value: A;
+}
 
 interface ClosedInterval<A> {
-  lower: A,
-  upper: A,
+  lower: A;
+  upper: A;
 }
 
 export interface EpochLedgerPredicate {
-  hash: OrIgnore<Field>,
-  totalCurrency: ClosedInterval<UInt64>,
+  hash: OrIgnore<Field>;
+  totalCurrency: ClosedInterval<UInt64>;
 }
 
 export interface EpochDataPredicate {
-  ledger: EpochLedgerPredicate,
-  seed: OrIgnore<Field>,
-  startCheckpoint: OrIgnore<Field>,
-  lockCheckpoint: OrIgnore<Field>,
-  epochLength: ClosedInterval<UInt32>,
+  ledger: EpochLedgerPredicate;
+  seed: OrIgnore<Field>;
+  startCheckpoint: OrIgnore<Field>;
+  lockCheckpoint: OrIgnore<Field>;
+  epochLength: ClosedInterval<UInt32>;
 }
 
 export interface ProtocolStatePredicate {
-  snarkedLedgerHash: OrIgnore<Field>,
-  snarkedNextAvailableToken: ClosedInterval<UInt64>,
-  timestamp: ClosedInterval<UInt64>,
-  blockchainLength: ClosedInterval<UInt32>,
-  minWindowDensity: ClosedInterval<UInt32>,
-  lastVrfOutput: OrIgnore<Field>,
-  totalCurrency: ClosedInterval<UInt64>,
-  globalSlotSinceHardFork: ClosedInterval<UInt32>,
-  globalSlotSinceGenesis: ClosedInterval<UInt32>,
-  stakingEpochData: EpochDataPredicate,
-  nextEpochData: EpochDataPredicate,
+  snarkedLedgerHash: OrIgnore<Field>;
+  snarkedNextAvailableToken: ClosedInterval<UInt64>;
+  timestamp: ClosedInterval<UInt64>;
+  blockchainLength: ClosedInterval<UInt32>;
+  minWindowDensity: ClosedInterval<UInt32>;
+  lastVrfOutput: OrIgnore<Field>;
+  totalCurrency: ClosedInterval<UInt64>;
+  globalSlotSinceHardFork: ClosedInterval<UInt32>;
+  globalSlotSinceGenesis: ClosedInterval<UInt32>;
+  stakingEpochData: EpochDataPredicate;
+  nextEpochData: EpochDataPredicate;
 }
 
-private interface Int64 { uint64Value(): Field };
+interface Int64 {
+  uint64Value(): Field;
+}
 
 interface PartyUpdate {
-  appState: Array<SetOrKeep<Field>>,
-  delegate: SetOrKeep<{ g: Group }>,
+  appState: Array<SetOrKeep<Field>>;
+  delegate: SetOrKeep<{ g: Group }>;
   // TODO: Verification key
   // TODO: permissions
   // TODO: snapp uri
@@ -512,67 +519,69 @@ interface PartyUpdate {
 }
 
 interface PartyBody {
-  publicKey: { g: Group },
-  update: PartyUpdate,
-  tokenId: UInt32,
-  delta: Int64,
-  events: Array<Array<Field>>,
-  sequenceEvents: Array<Array<Field>>,
-  callData: Field,
-  depth: number,
+  publicKey: { g: Group };
+  update: PartyUpdate;
+  tokenId: UInt32;
+  delta: Int64;
+  events: Array<Array<Field>>;
+  sequenceEvents: Array<Array<Field>>;
+  callData: Field;
+  depth: number;
 }
 
 interface FullAccountPredicate {
-  balance: ClosedInterval<UInt64>,
-  nonce: ClosedInterval<UInt32>,
-  receiptChainHash: OrIgnore<Field>,
-  publicKey: OrIgnore<{ g: Group }>,
-  delegate: OrIgnore<{ g: Group }>,
-  state: Array<OrIgnore<Field>>,
-  sequenceState: OrIgnore<Field>,
-  provedState: OrIgnore<Bool>,
+  balance: ClosedInterval<UInt64>;
+  nonce: ClosedInterval<UInt32>;
+  receiptChainHash: OrIgnore<Field>;
+  publicKey: OrIgnore<{ g: Group }>;
+  delegate: OrIgnore<{ g: Group }>;
+  state: Array<OrIgnore<Field>>;
+  sequenceState: OrIgnore<Field>;
+  provedState: OrIgnore<Bool>;
 }
 
 type AccountPredicate =
   | { type: 'accept' }
-  | { type: 'nonce', value: UInt32 }
-  | { type: 'full', value: FullAccountPredicate }
+  | { type: 'nonce'; value: UInt32 }
+  | { type: 'full'; value: FullAccountPredicate };
 
 interface Party {
-  body: PartyBody,
-  predicate: AccountPredicate,
+  body: PartyBody;
+  predicate: AccountPredicate;
 }
 
 interface FeePayerParty {
-  body: PartyBody,
-  predicate: UInt32,
+  body: PartyBody;
+  predicate: UInt32;
 }
 
 interface Parties {
-  feePayer: FeePayerParty,
-  otherParties: Array<Party>,
-  protocolState: ProtocolStatePredicate,
+  feePayer: FeePayerParty;
+  otherParties: Array<Party>;
+  protocolState: ProtocolStatePredicate;
 }
 
 interface SnappAccount {
-  appState: Array<Field>,
+  appState: Array<Field>;
 }
 
 interface Account {
-  balance: UInt64,
-  nonce: UInt32,
-  snapp: SnappAccount,
+  balance: UInt64;
+  nonce: UInt32;
+  snapp: SnappAccount;
 }
 
 export class Ledger {
-  static create(genesisAccounts: Array<{publicKey: { g: Group }, balance: number}>): Ledger;
-  
-  addAccount(publicKey: {g: Group}, balance: number): void;
+  static create(
+    genesisAccounts: Array<{ publicKey: { g: Group }; balance: number }>
+  ): Ledger;
+
+  addAccount(publicKey: { g: Group }, balance: number): void;
 
   applyPartiesTransaction(parties: Parties): void;
-  
+
   getAccount(publicKey: { g: Group }): Account | null;
-};
+}
 
 /* TODO: Figure out types for these. */
 export const ofFieldElements: (x: any[], y: any[]) => any[];

@@ -8,8 +8,8 @@ export class MerkleStack<A extends CircuitValue> {
   commitment: Field;
   eltTyp: AsFieldElements<A>;
   values:
-  | { computed: true; value: Array<[A, Field]> }
-  | { computed: false; f: () => Array<[A, Field]> };
+    | { computed: true; value: Array<[A, Field]> }
+    | { computed: false; f: () => Array<[A, Field]> };
 
   static pushCommitment<B extends CircuitValue>(x: B, comm: Field): Field {
     return Poseidon.hash([comm].concat(x.toFieldElements()));
@@ -47,9 +47,7 @@ export class MerkleStack<A extends CircuitValue> {
       }
       return last[0];
     });
-    this.commitment.assertEquals(
-      MerkleStack.pushCommitment<A>(value, tail)
-    );
+    this.commitment.assertEquals(MerkleStack.pushCommitment<A>(value, tail));
     this.commitment = tail;
     return value;
   }
