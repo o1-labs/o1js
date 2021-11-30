@@ -47,7 +47,7 @@ type PartyPredicate = UInt32 | FullAccountPredicate;
 export let currentTransaction:
   | {
       sender: PrivateKey;
-      parties: Array<Party<PartyPredicate>>;
+      parties: Array<{ body: Body; predicate: PartyPredicate }>;
       nextPartyIndex: number;
       protocolState: ProtocolStatePredicate;
     }

@@ -6,10 +6,11 @@ import {
   Body,
   State,
   Party,
+  PartyBalance,
 } from './party';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
-import { FullAccountPredicate_ as FullAccountPredicate } from '../snarky';
+import { FullAccountPredicate_ } from '../snarky';
 
 export function state<A>(ty: AsFieldElements<A>) {
   return function (
@@ -75,7 +76,7 @@ export function state<A>(ty: AsFieldElements<A>) {
         let e: ExecutionState = S._this.executionState();
 
         xs.forEach((x, i) => {
-          e.body.update.appState[r.offset + i].setValue(x);
+          e.party.body.update.appState[r.offset + i].setValue(x);
         });
       }
 
@@ -85,8 +86,8 @@ export function state<A>(ty: AsFieldElements<A>) {
         let e: ExecutionState = S._this.executionState();
 
         xs.forEach((x, i) => {
-          e.predicate.state[r.offset + i].check = new Bool(true);
-          e.predicate.state[r.offset + i].value = x;
+          e.party.predicate.state[r.offset + i].check = new Bool(true);
+          e.party.predicate.state[r.offset + i].value = x;
         });
       }
 
@@ -152,8 +153,7 @@ export function init(
 type ExecutionState = {
   transactionId: number;
   partyIndex: number;
-  body: Body;
-  predicate: AccountPredicate;
+  party: Party<AccountPredicate>;
   protocolStatePredicate: ProtocolStatePredicate;
 };
 
@@ -170,7 +170,9 @@ export abstract class SmartContract {
   constructor(address: PublicKey) {
     this.address = address;
     try {
-      this.executionState().body.update.verificationKey.set = new Bool(true);
+      this.executionState().party.body.update.verificationKey.set = new Bool(
+        true
+      );
     } catch (_error) {
       throw new Error(
         'Cannot construct `new` SmartContract instance outside a transaction. Use `SmartContract.fromAddress` to refer to an already deployed instance.'
@@ -195,14 +197,13 @@ export abstract class SmartContract {
       const index = Mina.currentTransaction.nextPartyIndex++;
       const body = Body.keepAll(this.address);
       const predicate = AccountPredicate.ignoreAll();
-      const party: Party<FullAccountPredicate> = { body, predicate };
+      const party = new Party(body, predicate);
       Mina.currentTransaction.parties.push(party);
 
       const s = {
         transactionId: id,
         partyIndex: index,
-        body,
-        predicate,
+        party,
         protocolStatePredicate: Mina.currentTransaction.protocolState,
       };
       this._executionState = s;
@@ -214,8 +215,12 @@ export abstract class SmartContract {
     return this.executionState().protocolStatePredicate;
   }
 
-  get self(): Body {
-    return this.executionState().body;
+  get self(): Party<AccountPredicate> {
+    return this.executionState().party;
+  }
+
+  get balance(): PartyBalance {
+    return this.self.balance;
   }
 
   static fromAddress(address: PublicKey): SmartContract {

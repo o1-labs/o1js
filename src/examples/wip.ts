@@ -15,6 +15,7 @@ import {
   SignedAmount,
   State,
   Party,
+  AccountPredicate,
   Body,
   Permissions,
   Perm,
@@ -242,7 +243,7 @@ class RollupSnapp extends SmartContract {
     lastUpatedPeriod: UInt32
   ) {
     super(address);
-    this.self.delta = Int64.fromUnsigned(senderAmount);
+    this.self.balance.addInPlace(senderAmount);
     this.operatorsCommitment = State.init(operatorsDb.commitment());
     this.lastUpdatedPeriod = State.init(lastUpatedPeriod);
     this.rollupState = State.init(
@@ -324,13 +325,11 @@ class RollupSnapp extends SmartContract {
     this.operatorsCommitment.set(operatorsDb.commitment());
   }
 
-  @method depositFunds(depositor: Body, depositAmount: UInt64) {
+  @method depositFunds(depositor: Party<UInt32>, depositAmount: UInt64) {
     const self = this.self;
 
-    let delta = SignedAmount.fromUnsigned(depositAmount);
-    self.delta = delta;
-
-    depositor.delta = delta.neg();
+    self.balance.addInPlace(depositAmount);
+    depositor.balance.subInPlace(depositAmount);
 
     let deposit = new RollupDeposit(depositor.publicKey, depositAmount);
     this.emitEvent(deposit);
@@ -378,7 +377,7 @@ class SimpleSnapp extends SmartContract {
   // On ethereum, you deploy them from a key-account and it's deterministically generated from the sender account
   constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
     super(address);
-    this.self.delta = Int64.fromUnsigned(initialBalance);
+    this.balance.addInPlace(initialBalance);
     this.value = State.init(x);
   }
 
@@ -414,7 +413,7 @@ export async function main() {
     // account2 sends 1000000000 to the new snapp account
     const amount = UInt64.fromNumber(1000000000);
     const p = await Party.createSigned(account2);
-    p.body.delta = Int64.fromUnsigned(amount).neg();
+    p.balance.subInPlace(amount);
 
     snappInstance = new SimpleSnapp(amount, snappPubkey, initSnappState);
   })

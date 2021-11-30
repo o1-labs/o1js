@@ -323,6 +323,14 @@ export class Int64 {
     return new Int64(this.value.neg());
   }
 
+  add(y: Int64 | UInt32 | UInt64) {
+    return new Int64(this.value.add(y.value));
+  }
+
+  sub(y: Int64 | UInt32 | UInt64) {
+    return new Int64(this.value.sub(y.value));
+  }
+
   repr(): { magnitude: Field; isPos: Sgn } {
     throw 'repr';
   }

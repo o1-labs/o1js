@@ -4,7 +4,7 @@ import { PrivateKey, PublicKey } from './signature';
 import { Optional } from './optional';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
-import { Circuit } from '..';
+import { Circuit, PartyBody } from '..';
 
 export type Amount = UInt64;
 export const Amount = UInt64;
@@ -565,6 +565,21 @@ export class AccountPredicate {
   }
 }
 
+export class PartyBalance {
+  private body: Body;
+  constructor(body: Body) {
+    this.body = body;
+  }
+
+  addInPlace(x: Int64 | UInt32 | UInt64) {
+    this.body.delta = this.body.delta.add(x);
+  }
+
+  subInPlace(x: Int64 | UInt32 | UInt64) {
+    this.body.delta = this.body.delta.sub(x);
+  }
+}
+
 export class Party<P> {
   body: Body;
   predicate: P;
@@ -572,6 +587,18 @@ export class Party<P> {
   constructor(body: Body, predicate: P) {
     this.body = body;
     this.predicate = predicate;
+  }
+
+  get balance(): PartyBalance {
+    return new PartyBalance(this.body);
+  }
+
+  get update(): Update {
+    return this.body.update;
+  }
+
+  get publicKey(): PublicKey {
+    return this.body.publicKey;
   }
 
   static createSigned(signer: PrivateKey): Promise<Party<UInt32>> {

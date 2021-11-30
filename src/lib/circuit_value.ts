@@ -152,7 +152,7 @@ export function arrayProp<T>(eltTyp: AsFieldElements<T>, length: number) {
     }
 
     target._fields.push([key, Circuit.array(eltTyp, length)]);
-  }
+  };
 }
 
 export function public_(target: any, _key: string | symbol, index: number) {
