@@ -455,62 +455,62 @@ export const Poseidon: {
   hash: (xs: Field[]) => Field;
 };
 
-interface UInt32 {
+interface UInt32_ {
   value: Field;
 }
-interface UInt64 {
+interface UInt64_ {
   value: Field;
 }
 
-interface OrIgnore<A> {
+interface OrIgnore_<A> {
   check: Bool;
   value: A;
 }
 
-interface SetOrKeep<A> {
+interface SetOrKeep_<A> {
   set: Bool;
   value: A;
 }
 
-interface ClosedInterval<A> {
+interface ClosedInterval_<A> {
   lower: A;
   upper: A;
 }
 
-export interface EpochLedgerPredicate {
-  hash: OrIgnore<Field>;
-  totalCurrency: ClosedInterval<UInt64>;
+export interface EpochLedgerPredicate_ {
+  hash: OrIgnore_<Field>;
+  totalCurrency: ClosedInterval_<UInt64_>;
 }
 
-export interface EpochDataPredicate {
-  ledger: EpochLedgerPredicate;
-  seed: OrIgnore<Field>;
-  startCheckpoint: OrIgnore<Field>;
-  lockCheckpoint: OrIgnore<Field>;
-  epochLength: ClosedInterval<UInt32>;
+export interface EpochDataPredicate_ {
+  ledger: EpochLedgerPredicate_;
+  seed: OrIgnore_<Field>;
+  startCheckpoint: OrIgnore_<Field>;
+  lockCheckpoint: OrIgnore_<Field>;
+  epochLength: ClosedInterval_<UInt32_>;
 }
 
-export interface ProtocolStatePredicate {
-  snarkedLedgerHash: OrIgnore<Field>;
-  snarkedNextAvailableToken: ClosedInterval<UInt64>;
-  timestamp: ClosedInterval<UInt64>;
-  blockchainLength: ClosedInterval<UInt32>;
-  minWindowDensity: ClosedInterval<UInt32>;
-  lastVrfOutput: OrIgnore<Field>;
-  totalCurrency: ClosedInterval<UInt64>;
-  globalSlotSinceHardFork: ClosedInterval<UInt32>;
-  globalSlotSinceGenesis: ClosedInterval<UInt32>;
-  stakingEpochData: EpochDataPredicate;
-  nextEpochData: EpochDataPredicate;
+export interface ProtocolStatePredicate_ {
+  snarkedLedgerHash: OrIgnore_<Field>;
+  snarkedNextAvailableToken: ClosedInterval_<UInt64_>;
+  timestamp: ClosedInterval_<UInt64_>;
+  blockchainLength: ClosedInterval_<UInt32_>;
+  minWindowDensity: ClosedInterval_<UInt32_>;
+  lastVrfOutput: OrIgnore_<Field>;
+  totalCurrency: ClosedInterval_<UInt64_>;
+  globalSlotSinceHardFork: ClosedInterval_<UInt32_>;
+  globalSlotSinceGenesis: ClosedInterval_<UInt32_>;
+  stakingEpochData: EpochDataPredicate_;
+  nextEpochData: EpochDataPredicate_;
 }
 
-interface Int64 {
+interface Int64_ {
   uint64Value(): Field;
 }
 
 interface PartyUpdate {
-  appState: Array<SetOrKeep<Field>>;
-  delegate: SetOrKeep<{ g: Group }>;
+  appState: Array<SetOrKeep_<Field>>;
+  delegate: SetOrKeep_<{ g: Group }>;
   // TODO: Verification key
   // TODO: permissions
   // TODO: snapp uri
@@ -521,44 +521,44 @@ interface PartyUpdate {
 interface PartyBody {
   publicKey: { g: Group };
   update: PartyUpdate;
-  tokenId: UInt32;
-  delta: Int64;
+  tokenId: UInt32_;
+  delta: Int64_;
   events: Array<Array<Field>>;
   sequenceEvents: Array<Array<Field>>;
   callData: Field;
   depth: number;
 }
 
-interface FullAccountPredicate {
-  balance: ClosedInterval<UInt64>;
-  nonce: ClosedInterval<UInt32>;
-  receiptChainHash: OrIgnore<Field>;
-  publicKey: OrIgnore<{ g: Group }>;
-  delegate: OrIgnore<{ g: Group }>;
-  state: Array<OrIgnore<Field>>;
-  sequenceState: OrIgnore<Field>;
-  provedState: OrIgnore<Bool>;
+interface FullAccountPredicate_ {
+  balance: ClosedInterval_<UInt64_>;
+  nonce: ClosedInterval_<UInt32_>;
+  receiptChainHash: OrIgnore_<Field>;
+  publicKey: OrIgnore_<{ g: Group }>;
+  delegate: OrIgnore_<{ g: Group }>;
+  state: Array<OrIgnore_<Field>>;
+  sequenceState: OrIgnore_<Field>;
+  provedState: OrIgnore_<Bool>;
 }
 
-type AccountPredicate =
+type AccountPredicate_ =
   | { type: 'accept' }
-  | { type: 'nonce'; value: UInt32 }
-  | { type: 'full'; value: FullAccountPredicate };
+  | { type: 'nonce'; value: UInt32_ }
+  | { type: 'full'; value: FullAccountPredicate_ };
 
-interface Party {
+interface Party_ {
   body: PartyBody;
-  predicate: AccountPredicate;
+  predicate: AccountPredicate_;
 }
 
 interface FeePayerParty {
   body: PartyBody;
-  predicate: UInt32;
+  predicate: UInt32_;
 }
 
 interface Parties {
   feePayer: FeePayerParty;
-  otherParties: Array<Party>;
-  protocolState: ProtocolStatePredicate;
+  otherParties: Array<Party_>;
+  protocolState: ProtocolStatePredicate_;
 }
 
 interface SnappAccount {
@@ -566,8 +566,8 @@ interface SnappAccount {
 }
 
 interface Account {
-  balance: UInt64;
-  nonce: UInt32;
+  balance: UInt64_;
+  nonce: UInt32_;
   snapp: SnappAccount;
 }
 
