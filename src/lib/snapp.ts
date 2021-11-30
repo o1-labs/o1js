@@ -9,7 +9,7 @@ import {
 } from './party';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
-import { FullAccountPredicate } from 'src';
+import { FullAccountPredicate_ as FullAccountPredicate } from '../snarky';
 
 export function state<A>(ty: AsFieldElements<A>) {
   return function (

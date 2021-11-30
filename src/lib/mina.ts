@@ -6,12 +6,12 @@ import {
   Ledger,
   Field,
   Bool,
-  AccountPredicate,
-  FullAccountPredicate,
+  AccountPredicate_ as AccountPredicate,
+  FullAccountPredicate_ as FullAccountPredicate,
   FeePayerParty,
   Parties,
   PartyBody as SnarkyBody,
-  Party as SnarkyParty,
+  Party_ as SnarkyParty,
 } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
