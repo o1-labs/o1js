@@ -12,7 +12,7 @@
     },
     "default": "./dist/web/index.js"
   },
-  "types": "./src/index.d.ts",
+  "types": "./dist/server/index.d.ts",
   "files": [
     "dist",
     "src/index.mjs",
