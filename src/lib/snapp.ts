@@ -6,14 +6,10 @@ import * as Mina from './mina';
 import { FullAccountPredicate } from 'src';
 
 export function state<A>(ty: AsFieldElements<A>) {
-  console.log('state', ty);
   return function (
     target: any,
     key: string,
     _descriptor?: PropertyDescriptor): any {
-      console.log('key', key);
-      console.log('targetto', target);
-      console.log('desc', _descriptor);
       const SnappClass = target.constructor;
       if (! (SnappClass.prototype instanceof SmartContract)) {
         throw new Error('Can only use @state decorator on classes that extend SmartContract');
@@ -65,7 +61,6 @@ export function state<A>(ty: AsFieldElements<A>) {
           console.log('target.address', target.address);
           console.log('target', target.executionState); */
           let e: ExecutionState = S._this.executionState();
-          console.log('post e');
 
           xs.forEach((x, i) => {
             e.body.update.appState[r.offset + i].setValue(x);
@@ -118,16 +113,13 @@ export function state<A>(ty: AsFieldElements<A>) {
       SnappClass._states.push([key, ty]);
       
       const s = new S();
-      console.log('target', target)
       Object.defineProperty(target, key, {
         get: (function (this: any) {
           S._this = this;
-          console.log('getterrrr');
           return s;
         }),
         set: (function(this: any, v: { value: A }) {
           S._this = this;
-          console.log('setter');
           s.set(v.value)
         })
       })
@@ -166,9 +158,7 @@ export abstract class SmartContract {
   constructor(address: PublicKey) {
     this.address = address;
     try {
-      console.log('smartcontract ctor', 0);
       this.executionState().body.update.verificationKey.set = new Bool(true);
-      console.log('smartcontract ctor', 1);
     } catch (_error) {
       throw new Error('Cannot construct `new` SmartContract instance outside a transaction. Use `SmartContract.fromAddress` to refer to an already deployed instance.')
     }
@@ -183,16 +173,13 @@ export abstract class SmartContract {
 
     if (this._executionState !== undefined
       && this._executionState.transactionId === Mina.nextTransactionId.value) {
-      console.log('already defined');
       return this._executionState;
     } else {
-      console.log('not yet defined');
       const id = Mina.nextTransactionId.value;
       const index = Mina.currentTransaction.nextPartyIndex++;
       const body = Body.keepAll(this.address);
       const predicate = AccountPredicate.ignoreAll();
       const party: Party<FullAccountPredicate> = { body, predicate };
-      console.log('pushing to parties', party.body.publicKey);
       Mina.currentTransaction.parties.push(party);
 
       const s = {

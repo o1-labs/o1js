@@ -12,12 +12,11 @@ export interface IndexedAccumulatorI<A, P> {
 }
   */
 
-export class AccumulatorMembershipProof extends CircuitValue {
-  @prop merkleProof: MerkleProof;
-  @prop index: Index;
+export class AccumulatorMembershipProof {
+  merkleProof: MerkleProof;
+  index: Index;
 
   constructor(merkleProof: MerkleProof, index: Index) {
-    super();
     this.merkleProof = merkleProof;
     this.index = index;
   }
