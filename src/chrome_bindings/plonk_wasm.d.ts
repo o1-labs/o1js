@@ -1,51 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
-* @param {WasmFpGateVector} gates
-* @param {number} public_
-* @param {WasmFpSrs} srs
-* @returns {WasmPastaFpPlonkIndex}
-*/
-export function caml_pasta_fp_plonk_index_create(gates: WasmFpGateVector, public_: number, srs: WasmFpSrs): WasmPastaFpPlonkIndex;
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
-*/
-export function caml_pasta_fp_plonk_index_max_degree(index: WasmPastaFpPlonkIndex): number;
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
-*/
-export function caml_pasta_fp_plonk_index_public_inputs(index: WasmPastaFpPlonkIndex): number;
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
-*/
-export function caml_pasta_fp_plonk_index_domain_d1_size(index: WasmPastaFpPlonkIndex): number;
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
-*/
-export function caml_pasta_fp_plonk_index_domain_d4_size(index: WasmPastaFpPlonkIndex): number;
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
-*/
-export function caml_pasta_fp_plonk_index_domain_d8_size(index: WasmPastaFpPlonkIndex): number;
-/**
-* @param {number | undefined} offset
-* @param {WasmFpSrs} srs
-* @param {string} path
-* @returns {WasmPastaFpPlonkIndex}
-*/
-export function caml_pasta_fp_plonk_index_read(offset: number | undefined, srs: WasmFpSrs, path: string): WasmPastaFpPlonkIndex;
-/**
-* @param {boolean | undefined} append
-* @param {WasmPastaFpPlonkIndex} index
-* @param {string} path
-*/
-export function caml_pasta_fp_plonk_index_write(append: boolean | undefined, index: WasmPastaFpPlonkIndex, path: string): void;
-/**
 * @param {WasmPastaFpPlonkIndex} index
 * @param {WasmVecVecFp} witness
 * @param {Uint8Array} prev_challenges
@@ -406,75 +361,95 @@ export function caml_pasta_fq_plonk_gate_vector_get(v: WasmFqGateVector, i: numb
 */
 export function caml_pasta_fq_plonk_gate_vector_wrap(v: WasmFqGateVector, t: Wire, h: Wire): void;
 /**
-* @returns {WasmVestaGProjective}
+* @param {WasmFpGateVector} gates
+* @param {number} public_
+* @param {WasmFpSrs} srs
+* @returns {WasmPastaFpPlonkIndex}
 */
-export function caml_vesta_one(): WasmVestaGProjective;
+export function caml_pasta_fp_plonk_index_create(gates: WasmFpGateVector, public_: number, srs: WasmFpSrs): WasmPastaFpPlonkIndex;
 /**
-* @param {WasmVestaGProjective} x
-* @param {WasmVestaGProjective} y
-* @returns {WasmVestaGProjective}
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
 */
-export function caml_vesta_add(x: WasmVestaGProjective, y: WasmVestaGProjective): WasmVestaGProjective;
+export function caml_pasta_fp_plonk_index_max_degree(index: WasmPastaFpPlonkIndex): number;
 /**
-* @param {WasmVestaGProjective} x
-* @param {WasmVestaGProjective} y
-* @returns {WasmVestaGProjective}
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
 */
-export function caml_vesta_sub(x: WasmVestaGProjective, y: WasmVestaGProjective): WasmVestaGProjective;
+export function caml_pasta_fp_plonk_index_public_inputs(index: WasmPastaFpPlonkIndex): number;
 /**
-* @param {WasmVestaGProjective} x
-* @returns {WasmVestaGProjective}
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
 */
-export function caml_vesta_negate(x: WasmVestaGProjective): WasmVestaGProjective;
+export function caml_pasta_fp_plonk_index_domain_d1_size(index: WasmPastaFpPlonkIndex): number;
 /**
-* @param {WasmVestaGProjective} x
-* @returns {WasmVestaGProjective}
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
 */
-export function caml_vesta_double(x: WasmVestaGProjective): WasmVestaGProjective;
+export function caml_pasta_fp_plonk_index_domain_d4_size(index: WasmPastaFpPlonkIndex): number;
 /**
-* @param {WasmVestaGProjective} x
-* @param {Uint8Array} y
-* @returns {WasmVestaGProjective}
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
 */
-export function caml_vesta_scale(x: WasmVestaGProjective, y: Uint8Array): WasmVestaGProjective;
+export function caml_pasta_fp_plonk_index_domain_d8_size(index: WasmPastaFpPlonkIndex): number;
 /**
-* @returns {WasmVestaGProjective}
+* @param {number | undefined} offset
+* @param {WasmFpSrs} srs
+* @param {string} path
+* @returns {WasmPastaFpPlonkIndex}
 */
-export function caml_vesta_random(): WasmVestaGProjective;
+export function caml_pasta_fp_plonk_index_read(offset: number | undefined, srs: WasmFpSrs, path: string): WasmPastaFpPlonkIndex;
 /**
-* @param {number} i
-* @returns {WasmVestaGProjective}
+* @param {boolean | undefined} append
+* @param {WasmPastaFpPlonkIndex} index
+* @param {string} path
 */
-export function caml_vesta_rng(i: number): WasmVestaGProjective;
+export function caml_pasta_fp_plonk_index_write(append: boolean | undefined, index: WasmPastaFpPlonkIndex, path: string): void;
 /**
-* @returns {Uint8Array}
+* @param {WasmFqGateVector} gates
+* @param {number} public_
+* @param {WasmFqSrs} srs
+* @returns {WasmPastaFqPlonkIndex}
 */
-export function caml_vesta_endo_base(): Uint8Array;
+export function caml_pasta_fq_plonk_index_create(gates: WasmFqGateVector, public_: number, srs: WasmFqSrs): WasmPastaFqPlonkIndex;
 /**
-* @returns {Uint8Array}
+* @param {WasmPastaFqPlonkIndex} index
+* @returns {number}
 */
-export function caml_vesta_endo_scalar(): Uint8Array;
+export function caml_pasta_fq_plonk_index_max_degree(index: WasmPastaFqPlonkIndex): number;
 /**
-* @param {WasmVestaGProjective} x
-* @returns {WasmGVesta}
+* @param {WasmPastaFqPlonkIndex} index
+* @returns {number}
 */
-export function caml_vesta_to_affine(x: WasmVestaGProjective): WasmGVesta;
+export function caml_pasta_fq_plonk_index_public_inputs(index: WasmPastaFqPlonkIndex): number;
 /**
-* @param {WasmGVesta} x
-* @returns {WasmVestaGProjective}
+* @param {WasmPastaFqPlonkIndex} index
+* @returns {number}
 */
-export function caml_vesta_of_affine(x: WasmGVesta): WasmVestaGProjective;
+export function caml_pasta_fq_plonk_index_domain_d1_size(index: WasmPastaFqPlonkIndex): number;
 /**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
-* @returns {WasmVestaGProjective}
+* @param {WasmPastaFqPlonkIndex} index
+* @returns {number}
 */
-export function caml_vesta_of_affine_coordinates(x: Uint8Array, y: Uint8Array): WasmVestaGProjective;
+export function caml_pasta_fq_plonk_index_domain_d4_size(index: WasmPastaFqPlonkIndex): number;
 /**
-* @param {WasmGVesta} x
-* @returns {WasmGVesta}
+* @param {WasmPastaFqPlonkIndex} index
+* @returns {number}
 */
-export function caml_vesta_affine_deep_copy(x: WasmGVesta): WasmGVesta;
+export function caml_pasta_fq_plonk_index_domain_d8_size(index: WasmPastaFqPlonkIndex): number;
+/**
+* @param {number | undefined} offset
+* @param {WasmFqSrs} srs
+* @param {string} path
+* @returns {WasmPastaFqPlonkIndex}
+*/
+export function caml_pasta_fq_plonk_index_read(offset: number | undefined, srs: WasmFqSrs, path: string): WasmPastaFqPlonkIndex;
+/**
+* @param {boolean | undefined} append
+* @param {WasmPastaFqPlonkIndex} index
+* @param {string} path
+*/
+export function caml_pasta_fq_plonk_index_write(append: boolean | undefined, index: WasmPastaFqPlonkIndex, path: string): void;
 /**
 * @param {string} name
 */
@@ -572,50 +547,75 @@ export function caml_pallas_of_affine_coordinates(x: Uint8Array, y: Uint8Array):
 */
 export function caml_pallas_affine_deep_copy(x: WasmGPallas): WasmGPallas;
 /**
-* @param {WasmFqGateVector} gates
-* @param {number} public_
-* @param {WasmFqSrs} srs
-* @returns {WasmPastaFqPlonkIndex}
+* @returns {WasmVestaGProjective}
 */
-export function caml_pasta_fq_plonk_index_create(gates: WasmFqGateVector, public_: number, srs: WasmFqSrs): WasmPastaFqPlonkIndex;
+export function caml_vesta_one(): WasmVestaGProjective;
 /**
-* @param {WasmPastaFqPlonkIndex} index
-* @returns {number}
+* @param {WasmVestaGProjective} x
+* @param {WasmVestaGProjective} y
+* @returns {WasmVestaGProjective}
 */
-export function caml_pasta_fq_plonk_index_max_degree(index: WasmPastaFqPlonkIndex): number;
+export function caml_vesta_add(x: WasmVestaGProjective, y: WasmVestaGProjective): WasmVestaGProjective;
 /**
-* @param {WasmPastaFqPlonkIndex} index
-* @returns {number}
+* @param {WasmVestaGProjective} x
+* @param {WasmVestaGProjective} y
+* @returns {WasmVestaGProjective}
 */
-export function caml_pasta_fq_plonk_index_public_inputs(index: WasmPastaFqPlonkIndex): number;
+export function caml_vesta_sub(x: WasmVestaGProjective, y: WasmVestaGProjective): WasmVestaGProjective;
 /**
-* @param {WasmPastaFqPlonkIndex} index
-* @returns {number}
+* @param {WasmVestaGProjective} x
+* @returns {WasmVestaGProjective}
 */
-export function caml_pasta_fq_plonk_index_domain_d1_size(index: WasmPastaFqPlonkIndex): number;
+export function caml_vesta_negate(x: WasmVestaGProjective): WasmVestaGProjective;
 /**
-* @param {WasmPastaFqPlonkIndex} index
-* @returns {number}
+* @param {WasmVestaGProjective} x
+* @returns {WasmVestaGProjective}
 */
-export function caml_pasta_fq_plonk_index_domain_d4_size(index: WasmPastaFqPlonkIndex): number;
+export function caml_vesta_double(x: WasmVestaGProjective): WasmVestaGProjective;
 /**
-* @param {WasmPastaFqPlonkIndex} index
-* @returns {number}
+* @param {WasmVestaGProjective} x
+* @param {Uint8Array} y
+* @returns {WasmVestaGProjective}
 */
-export function caml_pasta_fq_plonk_index_domain_d8_size(index: WasmPastaFqPlonkIndex): number;
+export function caml_vesta_scale(x: WasmVestaGProjective, y: Uint8Array): WasmVestaGProjective;
 /**
-* @param {number | undefined} offset
-* @param {WasmFqSrs} srs
-* @param {string} path
-* @returns {WasmPastaFqPlonkIndex}
+* @returns {WasmVestaGProjective}
 */
-export function caml_pasta_fq_plonk_index_read(offset: number | undefined, srs: WasmFqSrs, path: string): WasmPastaFqPlonkIndex;
+export function caml_vesta_random(): WasmVestaGProjective;
 /**
-* @param {boolean | undefined} append
-* @param {WasmPastaFqPlonkIndex} index
-* @param {string} path
+* @param {number} i
+* @returns {WasmVestaGProjective}
 */
-export function caml_pasta_fq_plonk_index_write(append: boolean | undefined, index: WasmPastaFqPlonkIndex, path: string): void;
+export function caml_vesta_rng(i: number): WasmVestaGProjective;
+/**
+* @returns {Uint8Array}
+*/
+export function caml_vesta_endo_base(): Uint8Array;
+/**
+* @returns {Uint8Array}
+*/
+export function caml_vesta_endo_scalar(): Uint8Array;
+/**
+* @param {WasmVestaGProjective} x
+* @returns {WasmGVesta}
+*/
+export function caml_vesta_to_affine(x: WasmVestaGProjective): WasmGVesta;
+/**
+* @param {WasmGVesta} x
+* @returns {WasmVestaGProjective}
+*/
+export function caml_vesta_of_affine(x: WasmGVesta): WasmVestaGProjective;
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {WasmVestaGProjective}
+*/
+export function caml_vesta_of_affine_coordinates(x: Uint8Array, y: Uint8Array): WasmVestaGProjective;
+/**
+* @param {WasmGVesta} x
+* @returns {WasmGVesta}
+*/
+export function caml_vesta_affine_deep_copy(x: WasmGVesta): WasmGVesta;
 /**
 * @returns {number}
 */
@@ -1989,15 +1989,6 @@ export interface InitOutput {
   readonly __wbg_get_wasmgvesta_y: (a: number, b: number) => void;
   readonly __wbg_set_wasmgvesta_y: (a: number, b: number, c: number) => void;
   readonly __wbg_wasmpallasgprojective_free: (a: number) => void;
-  readonly __wbg_wasmpastafpplonkindex_free: (a: number) => void;
-  readonly caml_pasta_fp_plonk_index_create: (a: number, b: number, c: number) => number;
-  readonly caml_pasta_fp_plonk_index_max_degree: (a: number) => number;
-  readonly caml_pasta_fp_plonk_index_public_inputs: (a: number) => number;
-  readonly caml_pasta_fp_plonk_index_domain_d1_size: (a: number) => number;
-  readonly caml_pasta_fp_plonk_index_domain_d4_size: (a: number) => number;
-  readonly caml_pasta_fp_plonk_index_domain_d8_size: (a: number) => number;
-  readonly caml_pasta_fp_plonk_index_read: (a: number, b: number, c: number, d: number, e: number) => number;
-  readonly caml_pasta_fp_plonk_index_write: (a: number, b: number, c: number, d: number) => void;
   readonly __wbg_set_wasmgvesta_infinity: (a: number, b: number) => void;
   readonly __wbg_get_wasmgvesta_infinity: (a: number) => number;
   readonly __wbg_wasmgvesta_free: (a: number) => void;
@@ -2112,12 +2103,14 @@ export interface InitOutput {
   readonly wasmfqopeningproof_set_delta: (a: number, b: number) => void;
   readonly wasmfqproverproof_set_evals1: (a: number, b: number) => void;
   readonly wasmfqprovercommitments_set_z_comm: (a: number, b: number) => void;
+  readonly wasmfqopeningproof_sg: (a: number) => number;
   readonly wasmfqproofevaluations_set_s: (a: number, b: number) => void;
   readonly wasmfqproverproof_set_prev_challenges_scalars: (a: number, b: number) => void;
   readonly wasmvecvecfppolycomm_create: (a: number) => number;
   readonly wasmvecvecfq_create: (a: number) => number;
   readonly wasmvecvecfqpolycomm_create: (a: number) => number;
   readonly __wbg_wasmvecvecfqpolycomm_free: (a: number) => void;
+  readonly wasmfqopeningproof_delta: (a: number) => number;
   readonly __wbg_wasmfqproverproof_free: (a: number) => void;
   readonly wasmfqprovercommitments_z_comm: (a: number) => number;
   readonly wasmfqprovercommitments_t_comm: (a: number) => number;
@@ -2126,10 +2119,8 @@ export interface InitOutput {
   readonly wasmfqproverproof_set_commitments: (a: number, b: number) => void;
   readonly wasmfqproverproof_set_evals0: (a: number, b: number) => void;
   readonly wasmfqproverproof_set_proof: (a: number, b: number) => void;
-  readonly wasmfqopeningproof_sg: (a: number) => number;
   readonly wasmfqproverproof_proof: (a: number) => number;
   readonly __wbg_wasmfqprovercommitments_free: (a: number) => void;
-  readonly wasmfqopeningproof_delta: (a: number) => number;
   readonly wasmfqproofevaluations_set_w: (a: number, b: number) => void;
   readonly __wbg_wasmvecvecfq_free: (a: number) => void;
   readonly __wbg_wasmfpdomain_free: (a: number) => void;
@@ -2357,9 +2348,9 @@ export interface InitOutput {
   readonly fq_oracles_create: (a: number, b: number, c: number, d: number) => number;
   readonly fq_oracles_dummy: () => number;
   readonly __wbg_get_wasmfqoracles_o: (a: number) => number;
+  readonly caml_fq_srs_h: (a: number) => number;
   readonly __wbg_set_wasmfqoracles_o: (a: number, b: number) => void;
   readonly __wbg_wasmfqrandomoracles_free: (a: number) => void;
-  readonly caml_fq_srs_h: (a: number) => number;
   readonly __wbg_wasmfqoracles_free: (a: number) => void;
   readonly caml_fq_srs_read: (a: number, b: number, c: number, d: number) => number;
   readonly fq_oracles_deep_copy: (a: number) => number;
@@ -2405,29 +2396,33 @@ export interface InitOutput {
   readonly __wbg_get_wasmfqgate_typ: (a: number) => number;
   readonly __wbg_wasmfqgatevector_free: (a: number) => void;
   readonly __wbg_set_wasmfqgate_wires: (a: number, b: number) => void;
-  readonly __wbg_get_wasmfqpolycomm_shifted: (a: number) => number;
   readonly caml_pasta_fq_plonk_gate_vector_create: () => number;
   readonly __wbg_get_wasmfqgate_wires: (a: number) => number;
   readonly __wbg_wasmfqgate_free: (a: number) => void;
   readonly __wbg_get_wasmfqgate_row: (a: number) => number;
   readonly __wbg_set_wasmfqpolycomm_shifted: (a: number, b: number) => void;
+  readonly __wbg_get_wasmfqpolycomm_shifted: (a: number) => number;
   readonly __wbg_set_wasmfqgate_row: (a: number, b: number) => void;
   readonly __wbg_wasmfqpolycomm_free: (a: number) => void;
   readonly __wbg_set_wasmfqgate_typ: (a: number, b: number) => void;
-  readonly caml_vesta_one: () => number;
-  readonly caml_vesta_add: (a: number, b: number) => number;
-  readonly caml_vesta_sub: (a: number, b: number) => number;
-  readonly caml_vesta_negate: (a: number) => number;
-  readonly caml_vesta_double: (a: number) => number;
-  readonly caml_vesta_scale: (a: number, b: number, c: number) => number;
-  readonly caml_vesta_random: () => number;
-  readonly caml_vesta_rng: (a: number) => number;
-  readonly caml_vesta_endo_base: (a: number) => void;
-  readonly caml_vesta_endo_scalar: (a: number) => void;
-  readonly caml_vesta_to_affine: (a: number) => number;
-  readonly caml_vesta_of_affine: (a: number) => number;
-  readonly caml_vesta_of_affine_coordinates: (a: number, b: number, c: number, d: number) => number;
-  readonly caml_vesta_affine_deep_copy: (a: number) => number;
+  readonly __wbg_wasmpastafpplonkindex_free: (a: number) => void;
+  readonly caml_pasta_fp_plonk_index_create: (a: number, b: number, c: number) => number;
+  readonly caml_pasta_fp_plonk_index_max_degree: (a: number) => number;
+  readonly caml_pasta_fp_plonk_index_public_inputs: (a: number) => number;
+  readonly caml_pasta_fp_plonk_index_domain_d1_size: (a: number) => number;
+  readonly caml_pasta_fp_plonk_index_domain_d4_size: (a: number) => number;
+  readonly caml_pasta_fp_plonk_index_domain_d8_size: (a: number) => number;
+  readonly caml_pasta_fp_plonk_index_read: (a: number, b: number, c: number, d: number, e: number) => number;
+  readonly caml_pasta_fp_plonk_index_write: (a: number, b: number, c: number, d: number) => void;
+  readonly __wbg_wasmpastafqplonkindex_free: (a: number) => void;
+  readonly caml_pasta_fq_plonk_index_create: (a: number, b: number, c: number) => number;
+  readonly caml_pasta_fq_plonk_index_read: (a: number, b: number, c: number, d: number, e: number) => number;
+  readonly caml_pasta_fq_plonk_index_write: (a: number, b: number, c: number, d: number) => void;
+  readonly caml_pasta_fq_plonk_index_max_degree: (a: number) => number;
+  readonly caml_pasta_fq_plonk_index_public_inputs: (a: number) => number;
+  readonly caml_pasta_fq_plonk_index_domain_d1_size: (a: number) => number;
+  readonly caml_pasta_fq_plonk_index_domain_d4_size: (a: number) => number;
+  readonly caml_pasta_fq_plonk_index_domain_d8_size: (a: number) => number;
   readonly greet: (a: number, b: number) => void;
   readonly console_log: (a: number, b: number) => void;
   readonly create_zero_u32_ptr: () => number;
@@ -2448,15 +2443,20 @@ export interface InitOutput {
   readonly caml_pallas_of_affine: (a: number) => number;
   readonly caml_pallas_of_affine_coordinates: (a: number, b: number, c: number, d: number) => number;
   readonly caml_pallas_affine_deep_copy: (a: number) => number;
-  readonly __wbg_wasmpastafqplonkindex_free: (a: number) => void;
-  readonly caml_pasta_fq_plonk_index_create: (a: number, b: number, c: number) => number;
-  readonly caml_pasta_fq_plonk_index_max_degree: (a: number) => number;
-  readonly caml_pasta_fq_plonk_index_public_inputs: (a: number) => number;
-  readonly caml_pasta_fq_plonk_index_domain_d1_size: (a: number) => number;
-  readonly caml_pasta_fq_plonk_index_domain_d4_size: (a: number) => number;
-  readonly caml_pasta_fq_plonk_index_domain_d8_size: (a: number) => number;
-  readonly caml_pasta_fq_plonk_index_read: (a: number, b: number, c: number, d: number, e: number) => number;
-  readonly caml_pasta_fq_plonk_index_write: (a: number, b: number, c: number, d: number) => void;
+  readonly caml_vesta_one: () => number;
+  readonly caml_vesta_add: (a: number, b: number) => number;
+  readonly caml_vesta_sub: (a: number, b: number) => number;
+  readonly caml_vesta_negate: (a: number) => number;
+  readonly caml_vesta_double: (a: number) => number;
+  readonly caml_vesta_scale: (a: number, b: number, c: number) => number;
+  readonly caml_vesta_random: () => number;
+  readonly caml_vesta_rng: (a: number) => number;
+  readonly caml_vesta_endo_base: (a: number) => void;
+  readonly caml_vesta_endo_scalar: (a: number) => void;
+  readonly caml_vesta_to_affine: (a: number) => number;
+  readonly caml_vesta_of_affine: (a: number) => number;
+  readonly caml_vesta_of_affine_coordinates: (a: number, b: number, c: number, d: number) => number;
+  readonly caml_vesta_affine_deep_copy: (a: number) => number;
   readonly caml_pasta_fp_size_in_bits: () => number;
   readonly caml_pasta_fp_size: (a: number) => void;
   readonly caml_pasta_fp_add: (a: number, b: number, c: number, d: number, e: number) => void;

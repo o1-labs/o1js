@@ -76,146 +76,6 @@ function _assertClass(instance, klass) {
     }
     return instance.ptr;
 }
-/**
-* @param {WasmFpGateVector} gates
-* @param {number} public_
-* @param {WasmFpSrs} srs
-* @returns {WasmPastaFpPlonkIndex}
-*/
-module.exports.caml_pasta_fp_plonk_index_create = function(gates, public_, srs) {
-    _assertClass(gates, WasmFpGateVector);
-    _assertClass(srs, WasmFpSrs);
-    var ret = wasm.caml_pasta_fp_plonk_index_create(gates.ptr, public_, srs.ptr);
-    return WasmPastaFpPlonkIndex.__wrap(ret);
-};
-
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
-*/
-module.exports.caml_pasta_fp_plonk_index_max_degree = function(index) {
-    _assertClass(index, WasmPastaFpPlonkIndex);
-    var ret = wasm.caml_pasta_fp_plonk_index_max_degree(index.ptr);
-    return ret;
-};
-
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
-*/
-module.exports.caml_pasta_fp_plonk_index_public_inputs = function(index) {
-    _assertClass(index, WasmPastaFpPlonkIndex);
-    var ret = wasm.caml_pasta_fp_plonk_index_public_inputs(index.ptr);
-    return ret;
-};
-
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
-*/
-module.exports.caml_pasta_fp_plonk_index_domain_d1_size = function(index) {
-    _assertClass(index, WasmPastaFpPlonkIndex);
-    var ret = wasm.caml_pasta_fp_plonk_index_domain_d1_size(index.ptr);
-    return ret;
-};
-
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
-*/
-module.exports.caml_pasta_fp_plonk_index_domain_d4_size = function(index) {
-    _assertClass(index, WasmPastaFpPlonkIndex);
-    var ret = wasm.caml_pasta_fp_plonk_index_domain_d4_size(index.ptr);
-    return ret;
-};
-
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
-*/
-module.exports.caml_pasta_fp_plonk_index_domain_d8_size = function(index) {
-    _assertClass(index, WasmPastaFpPlonkIndex);
-    var ret = wasm.caml_pasta_fp_plonk_index_domain_d8_size(index.ptr);
-    return ret;
-};
-
-function isLikeNone(x) {
-    return x === undefined || x === null;
-}
-
-let cachedTextEncoder = new TextEncoder('utf-8');
-
-const encodeString = function (arg, view) {
-    const buf = cachedTextEncoder.encode(arg);
-    view.set(buf);
-    return {
-        read: arg.length,
-        written: buf.length
-    };
-};
-
-function passStringToWasm0(arg, malloc, realloc) {
-
-    if (realloc === undefined) {
-        const buf = cachedTextEncoder.encode(arg);
-        const ptr = malloc(buf.length);
-        getUint8Memory0().subarray(ptr, ptr + buf.length).set(buf);
-        WASM_VECTOR_LEN = buf.length;
-        return ptr;
-    }
-
-    let len = arg.length;
-    let ptr = malloc(len);
-
-    const mem = getUint8Memory0();
-
-    let offset = 0;
-
-    for (; offset < len; offset++) {
-        const code = arg.charCodeAt(offset);
-        if (code > 0x7F) break;
-        mem[ptr + offset] = code;
-    }
-
-    if (offset !== len) {
-        if (offset !== 0) {
-            arg = arg.slice(offset);
-        }
-        ptr = realloc(ptr, len, len = offset + arg.length * 3);
-        const view = getUint8Memory0().subarray(ptr + offset, ptr + len);
-        const ret = encodeString(arg, view);
-
-        offset += ret.written;
-    }
-
-    WASM_VECTOR_LEN = offset;
-    return ptr;
-}
-/**
-* @param {number | undefined} offset
-* @param {WasmFpSrs} srs
-* @param {string} path
-* @returns {WasmPastaFpPlonkIndex}
-*/
-module.exports.caml_pasta_fp_plonk_index_read = function(offset, srs, path) {
-    _assertClass(srs, WasmFpSrs);
-    var ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    var len0 = WASM_VECTOR_LEN;
-    var ret = wasm.caml_pasta_fp_plonk_index_read(!isLikeNone(offset), isLikeNone(offset) ? 0 : offset, srs.ptr, ptr0, len0);
-    return WasmPastaFpPlonkIndex.__wrap(ret);
-};
-
-/**
-* @param {boolean | undefined} append
-* @param {WasmPastaFpPlonkIndex} index
-* @param {string} path
-*/
-module.exports.caml_pasta_fp_plonk_index_write = function(append, index, path) {
-    _assertClass(index, WasmPastaFpPlonkIndex);
-    var ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    var len0 = WASM_VECTOR_LEN;
-    wasm.caml_pasta_fp_plonk_index_write(isLikeNone(append) ? 0xFFFFFF : append ? 1 : 0, index.ptr, ptr0, len0);
-};
 
 let cachegetUint32Memory0 = null;
 function getUint32Memory0() {
@@ -389,6 +249,58 @@ module.exports.caml_pasta_fq_plonk_proof_deep_copy = function(x) {
     return WasmFqProverProof.__wrap(ret);
 };
 
+function isLikeNone(x) {
+    return x === undefined || x === null;
+}
+
+let cachedTextEncoder = new TextEncoder('utf-8');
+
+const encodeString = function (arg, view) {
+    const buf = cachedTextEncoder.encode(arg);
+    view.set(buf);
+    return {
+        read: arg.length,
+        written: buf.length
+    };
+};
+
+function passStringToWasm0(arg, malloc, realloc) {
+
+    if (realloc === undefined) {
+        const buf = cachedTextEncoder.encode(arg);
+        const ptr = malloc(buf.length);
+        getUint8Memory0().subarray(ptr, ptr + buf.length).set(buf);
+        WASM_VECTOR_LEN = buf.length;
+        return ptr;
+    }
+
+    let len = arg.length;
+    let ptr = malloc(len);
+
+    const mem = getUint8Memory0();
+
+    let offset = 0;
+
+    for (; offset < len; offset++) {
+        const code = arg.charCodeAt(offset);
+        if (code > 0x7F) break;
+        mem[ptr + offset] = code;
+    }
+
+    if (offset !== len) {
+        if (offset !== 0) {
+            arg = arg.slice(offset);
+        }
+        ptr = realloc(ptr, len, len = offset + arg.length * 3);
+        const view = getUint8Memory0().subarray(ptr + offset, ptr + len);
+        const ret = encodeString(arg, view);
+
+        offset += ret.written;
+    }
+
+    WASM_VECTOR_LEN = offset;
+    return ptr;
+}
 /**
 * @param {number | undefined} offset
 * @param {WasmFpSrs} srs
@@ -1083,220 +995,6 @@ module.exports.caml_pasta_fq_plonk_gate_vector_wrap = function(v, t, h) {
 };
 
 /**
-* @returns {WasmVestaGProjective}
-*/
-module.exports.caml_vesta_one = function() {
-    var ret = wasm.caml_vesta_one();
-    return WasmVestaGProjective.__wrap(ret);
-};
-
-/**
-* @param {WasmVestaGProjective} x
-* @param {WasmVestaGProjective} y
-* @returns {WasmVestaGProjective}
-*/
-module.exports.caml_vesta_add = function(x, y) {
-    _assertClass(x, WasmVestaGProjective);
-    _assertClass(y, WasmVestaGProjective);
-    var ret = wasm.caml_vesta_add(x.ptr, y.ptr);
-    return WasmVestaGProjective.__wrap(ret);
-};
-
-/**
-* @param {WasmVestaGProjective} x
-* @param {WasmVestaGProjective} y
-* @returns {WasmVestaGProjective}
-*/
-module.exports.caml_vesta_sub = function(x, y) {
-    _assertClass(x, WasmVestaGProjective);
-    _assertClass(y, WasmVestaGProjective);
-    var ret = wasm.caml_vesta_sub(x.ptr, y.ptr);
-    return WasmVestaGProjective.__wrap(ret);
-};
-
-/**
-* @param {WasmVestaGProjective} x
-* @returns {WasmVestaGProjective}
-*/
-module.exports.caml_vesta_negate = function(x) {
-    _assertClass(x, WasmVestaGProjective);
-    var ret = wasm.caml_vesta_negate(x.ptr);
-    return WasmVestaGProjective.__wrap(ret);
-};
-
-/**
-* @param {WasmVestaGProjective} x
-* @returns {WasmVestaGProjective}
-*/
-module.exports.caml_vesta_double = function(x) {
-    _assertClass(x, WasmVestaGProjective);
-    var ret = wasm.caml_vesta_double(x.ptr);
-    return WasmVestaGProjective.__wrap(ret);
-};
-
-/**
-* @param {WasmVestaGProjective} x
-* @param {Uint8Array} y
-* @returns {WasmVestaGProjective}
-*/
-module.exports.caml_vesta_scale = function(x, y) {
-    _assertClass(x, WasmVestaGProjective);
-    var ptr0 = passArray8ToWasm0(y, wasm.__wbindgen_malloc);
-    var len0 = WASM_VECTOR_LEN;
-    var ret = wasm.caml_vesta_scale(x.ptr, ptr0, len0);
-    return WasmVestaGProjective.__wrap(ret);
-};
-
-/**
-* @returns {WasmVestaGProjective}
-*/
-module.exports.caml_vesta_random = function() {
-    var ret = wasm.caml_vesta_random();
-    return WasmVestaGProjective.__wrap(ret);
-};
-
-/**
-* @param {number} i
-* @returns {WasmVestaGProjective}
-*/
-module.exports.caml_vesta_rng = function(i) {
-    var ret = wasm.caml_vesta_rng(i);
-    return WasmVestaGProjective.__wrap(ret);
-};
-
-/**
-* @returns {Uint8Array}
-*/
-module.exports.caml_vesta_endo_base = function() {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm.caml_vesta_endo_base(retptr);
-        var r0 = getInt32Memory0()[retptr / 4 + 0];
-        var r1 = getInt32Memory0()[retptr / 4 + 1];
-        var v0 = getArrayU8FromWasm0(r0, r1).slice();
-        wasm.__wbindgen_free(r0, r1 * 1);
-        return v0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-};
-
-/**
-* @returns {Uint8Array}
-*/
-module.exports.caml_vesta_endo_scalar = function() {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm.caml_vesta_endo_scalar(retptr);
-        var r0 = getInt32Memory0()[retptr / 4 + 0];
-        var r1 = getInt32Memory0()[retptr / 4 + 1];
-        var v0 = getArrayU8FromWasm0(r0, r1).slice();
-        wasm.__wbindgen_free(r0, r1 * 1);
-        return v0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-};
-
-/**
-* @param {WasmVestaGProjective} x
-* @returns {WasmGVesta}
-*/
-module.exports.caml_vesta_to_affine = function(x) {
-    _assertClass(x, WasmVestaGProjective);
-    var ret = wasm.caml_vesta_to_affine(x.ptr);
-    return WasmGVesta.__wrap(ret);
-};
-
-/**
-* @param {WasmGVesta} x
-* @returns {WasmVestaGProjective}
-*/
-module.exports.caml_vesta_of_affine = function(x) {
-    _assertClass(x, WasmGVesta);
-    var ptr0 = x.ptr;
-    x.ptr = 0;
-    var ret = wasm.caml_vesta_of_affine(ptr0);
-    return WasmVestaGProjective.__wrap(ret);
-};
-
-/**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
-* @returns {WasmVestaGProjective}
-*/
-module.exports.caml_vesta_of_affine_coordinates = function(x, y) {
-    var ptr0 = passArray8ToWasm0(x, wasm.__wbindgen_malloc);
-    var len0 = WASM_VECTOR_LEN;
-    var ptr1 = passArray8ToWasm0(y, wasm.__wbindgen_malloc);
-    var len1 = WASM_VECTOR_LEN;
-    var ret = wasm.caml_vesta_of_affine_coordinates(ptr0, len0, ptr1, len1);
-    return WasmVestaGProjective.__wrap(ret);
-};
-
-/**
-* @param {WasmGVesta} x
-* @returns {WasmGVesta}
-*/
-module.exports.caml_vesta_affine_deep_copy = function(x) {
-    _assertClass(x, WasmGVesta);
-    var ptr0 = x.ptr;
-    x.ptr = 0;
-    var ret = wasm.caml_vesta_affine_deep_copy(ptr0);
-    return WasmGVesta.__wrap(ret);
-};
-
-/**
-* @param {string} name
-*/
-module.exports.greet = function(name) {
-    var ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    var len0 = WASM_VECTOR_LEN;
-    wasm.greet(ptr0, len0);
-};
-
-/**
-* @param {string} s
-*/
-module.exports.console_log = function(s) {
-    var ptr0 = passStringToWasm0(s, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    var len0 = WASM_VECTOR_LEN;
-    wasm.console_log(ptr0, len0);
-};
-
-/**
-* @returns {number}
-*/
-module.exports.create_zero_u32_ptr = function() {
-    var ret = wasm.create_zero_u32_ptr();
-    return ret;
-};
-
-/**
-* @param {number} ptr
-*/
-module.exports.free_u32_ptr = function(ptr) {
-    wasm.free_u32_ptr(ptr);
-};
-
-/**
-* @param {number} ptr
-* @param {number} arg
-*/
-module.exports.set_u32_ptr = function(ptr, arg) {
-    wasm.set_u32_ptr(ptr, arg);
-};
-
-/**
-* @param {number} ptr
-* @returns {number}
-*/
-module.exports.wait_until_non_zero = function(ptr) {
-    var ret = wasm.wait_until_non_zero(ptr);
-    return ret >>> 0;
-};
-
-/**
 * @returns {WasmPallasGProjective}
 */
 module.exports.caml_pallas_one = function() {
@@ -1547,6 +1245,309 @@ module.exports.caml_pasta_fq_plonk_index_write = function(append, index, path) {
     var ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     var len0 = WASM_VECTOR_LEN;
     wasm.caml_pasta_fq_plonk_index_write(isLikeNone(append) ? 0xFFFFFF : append ? 1 : 0, index.ptr, ptr0, len0);
+};
+
+/**
+* @param {string} name
+*/
+module.exports.greet = function(name) {
+    var ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    var len0 = WASM_VECTOR_LEN;
+    wasm.greet(ptr0, len0);
+};
+
+/**
+* @param {string} s
+*/
+module.exports.console_log = function(s) {
+    var ptr0 = passStringToWasm0(s, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    var len0 = WASM_VECTOR_LEN;
+    wasm.console_log(ptr0, len0);
+};
+
+/**
+* @returns {number}
+*/
+module.exports.create_zero_u32_ptr = function() {
+    var ret = wasm.create_zero_u32_ptr();
+    return ret;
+};
+
+/**
+* @param {number} ptr
+*/
+module.exports.free_u32_ptr = function(ptr) {
+    wasm.free_u32_ptr(ptr);
+};
+
+/**
+* @param {number} ptr
+* @param {number} arg
+*/
+module.exports.set_u32_ptr = function(ptr, arg) {
+    wasm.set_u32_ptr(ptr, arg);
+};
+
+/**
+* @param {number} ptr
+* @returns {number}
+*/
+module.exports.wait_until_non_zero = function(ptr) {
+    var ret = wasm.wait_until_non_zero(ptr);
+    return ret >>> 0;
+};
+
+/**
+* @returns {WasmVestaGProjective}
+*/
+module.exports.caml_vesta_one = function() {
+    var ret = wasm.caml_vesta_one();
+    return WasmVestaGProjective.__wrap(ret);
+};
+
+/**
+* @param {WasmVestaGProjective} x
+* @param {WasmVestaGProjective} y
+* @returns {WasmVestaGProjective}
+*/
+module.exports.caml_vesta_add = function(x, y) {
+    _assertClass(x, WasmVestaGProjective);
+    _assertClass(y, WasmVestaGProjective);
+    var ret = wasm.caml_vesta_add(x.ptr, y.ptr);
+    return WasmVestaGProjective.__wrap(ret);
+};
+
+/**
+* @param {WasmVestaGProjective} x
+* @param {WasmVestaGProjective} y
+* @returns {WasmVestaGProjective}
+*/
+module.exports.caml_vesta_sub = function(x, y) {
+    _assertClass(x, WasmVestaGProjective);
+    _assertClass(y, WasmVestaGProjective);
+    var ret = wasm.caml_vesta_sub(x.ptr, y.ptr);
+    return WasmVestaGProjective.__wrap(ret);
+};
+
+/**
+* @param {WasmVestaGProjective} x
+* @returns {WasmVestaGProjective}
+*/
+module.exports.caml_vesta_negate = function(x) {
+    _assertClass(x, WasmVestaGProjective);
+    var ret = wasm.caml_vesta_negate(x.ptr);
+    return WasmVestaGProjective.__wrap(ret);
+};
+
+/**
+* @param {WasmVestaGProjective} x
+* @returns {WasmVestaGProjective}
+*/
+module.exports.caml_vesta_double = function(x) {
+    _assertClass(x, WasmVestaGProjective);
+    var ret = wasm.caml_vesta_double(x.ptr);
+    return WasmVestaGProjective.__wrap(ret);
+};
+
+/**
+* @param {WasmVestaGProjective} x
+* @param {Uint8Array} y
+* @returns {WasmVestaGProjective}
+*/
+module.exports.caml_vesta_scale = function(x, y) {
+    _assertClass(x, WasmVestaGProjective);
+    var ptr0 = passArray8ToWasm0(y, wasm.__wbindgen_malloc);
+    var len0 = WASM_VECTOR_LEN;
+    var ret = wasm.caml_vesta_scale(x.ptr, ptr0, len0);
+    return WasmVestaGProjective.__wrap(ret);
+};
+
+/**
+* @returns {WasmVestaGProjective}
+*/
+module.exports.caml_vesta_random = function() {
+    var ret = wasm.caml_vesta_random();
+    return WasmVestaGProjective.__wrap(ret);
+};
+
+/**
+* @param {number} i
+* @returns {WasmVestaGProjective}
+*/
+module.exports.caml_vesta_rng = function(i) {
+    var ret = wasm.caml_vesta_rng(i);
+    return WasmVestaGProjective.__wrap(ret);
+};
+
+/**
+* @returns {Uint8Array}
+*/
+module.exports.caml_vesta_endo_base = function() {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.caml_vesta_endo_base(retptr);
+        var r0 = getInt32Memory0()[retptr / 4 + 0];
+        var r1 = getInt32Memory0()[retptr / 4 + 1];
+        var v0 = getArrayU8FromWasm0(r0, r1).slice();
+        wasm.__wbindgen_free(r0, r1 * 1);
+        return v0;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+};
+
+/**
+* @returns {Uint8Array}
+*/
+module.exports.caml_vesta_endo_scalar = function() {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.caml_vesta_endo_scalar(retptr);
+        var r0 = getInt32Memory0()[retptr / 4 + 0];
+        var r1 = getInt32Memory0()[retptr / 4 + 1];
+        var v0 = getArrayU8FromWasm0(r0, r1).slice();
+        wasm.__wbindgen_free(r0, r1 * 1);
+        return v0;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+};
+
+/**
+* @param {WasmVestaGProjective} x
+* @returns {WasmGVesta}
+*/
+module.exports.caml_vesta_to_affine = function(x) {
+    _assertClass(x, WasmVestaGProjective);
+    var ret = wasm.caml_vesta_to_affine(x.ptr);
+    return WasmGVesta.__wrap(ret);
+};
+
+/**
+* @param {WasmGVesta} x
+* @returns {WasmVestaGProjective}
+*/
+module.exports.caml_vesta_of_affine = function(x) {
+    _assertClass(x, WasmGVesta);
+    var ptr0 = x.ptr;
+    x.ptr = 0;
+    var ret = wasm.caml_vesta_of_affine(ptr0);
+    return WasmVestaGProjective.__wrap(ret);
+};
+
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {WasmVestaGProjective}
+*/
+module.exports.caml_vesta_of_affine_coordinates = function(x, y) {
+    var ptr0 = passArray8ToWasm0(x, wasm.__wbindgen_malloc);
+    var len0 = WASM_VECTOR_LEN;
+    var ptr1 = passArray8ToWasm0(y, wasm.__wbindgen_malloc);
+    var len1 = WASM_VECTOR_LEN;
+    var ret = wasm.caml_vesta_of_affine_coordinates(ptr0, len0, ptr1, len1);
+    return WasmVestaGProjective.__wrap(ret);
+};
+
+/**
+* @param {WasmGVesta} x
+* @returns {WasmGVesta}
+*/
+module.exports.caml_vesta_affine_deep_copy = function(x) {
+    _assertClass(x, WasmGVesta);
+    var ptr0 = x.ptr;
+    x.ptr = 0;
+    var ret = wasm.caml_vesta_affine_deep_copy(ptr0);
+    return WasmGVesta.__wrap(ret);
+};
+
+/**
+* @param {WasmFpGateVector} gates
+* @param {number} public_
+* @param {WasmFpSrs} srs
+* @returns {WasmPastaFpPlonkIndex}
+*/
+module.exports.caml_pasta_fp_plonk_index_create = function(gates, public_, srs) {
+    _assertClass(gates, WasmFpGateVector);
+    _assertClass(srs, WasmFpSrs);
+    var ret = wasm.caml_pasta_fp_plonk_index_create(gates.ptr, public_, srs.ptr);
+    return WasmPastaFpPlonkIndex.__wrap(ret);
+};
+
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
+*/
+module.exports.caml_pasta_fp_plonk_index_max_degree = function(index) {
+    _assertClass(index, WasmPastaFpPlonkIndex);
+    var ret = wasm.caml_pasta_fp_plonk_index_max_degree(index.ptr);
+    return ret;
+};
+
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
+*/
+module.exports.caml_pasta_fp_plonk_index_public_inputs = function(index) {
+    _assertClass(index, WasmPastaFpPlonkIndex);
+    var ret = wasm.caml_pasta_fp_plonk_index_public_inputs(index.ptr);
+    return ret;
+};
+
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
+*/
+module.exports.caml_pasta_fp_plonk_index_domain_d1_size = function(index) {
+    _assertClass(index, WasmPastaFpPlonkIndex);
+    var ret = wasm.caml_pasta_fp_plonk_index_domain_d1_size(index.ptr);
+    return ret;
+};
+
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
+*/
+module.exports.caml_pasta_fp_plonk_index_domain_d4_size = function(index) {
+    _assertClass(index, WasmPastaFpPlonkIndex);
+    var ret = wasm.caml_pasta_fp_plonk_index_domain_d4_size(index.ptr);
+    return ret;
+};
+
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
+*/
+module.exports.caml_pasta_fp_plonk_index_domain_d8_size = function(index) {
+    _assertClass(index, WasmPastaFpPlonkIndex);
+    var ret = wasm.caml_pasta_fp_plonk_index_domain_d8_size(index.ptr);
+    return ret;
+};
+
+/**
+* @param {number | undefined} offset
+* @param {WasmFpSrs} srs
+* @param {string} path
+* @returns {WasmPastaFpPlonkIndex}
+*/
+module.exports.caml_pasta_fp_plonk_index_read = function(offset, srs, path) {
+    _assertClass(srs, WasmFpSrs);
+    var ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    var len0 = WASM_VECTOR_LEN;
+    var ret = wasm.caml_pasta_fp_plonk_index_read(!isLikeNone(offset), isLikeNone(offset) ? 0 : offset, srs.ptr, ptr0, len0);
+    return WasmPastaFpPlonkIndex.__wrap(ret);
+};
+
+/**
+* @param {boolean | undefined} append
+* @param {WasmPastaFpPlonkIndex} index
+* @param {string} path
+*/
+module.exports.caml_pasta_fp_plonk_index_write = function(append, index, path) {
+    _assertClass(index, WasmPastaFpPlonkIndex);
+    var ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    var len0 = WASM_VECTOR_LEN;
+    wasm.caml_pasta_fp_plonk_index_write(isLikeNone(append) ? 0xFFFFFF : append ? 1 : 0, index.ptr, ptr0, len0);
 };
 
 /**
@@ -7271,10 +7272,6 @@ class wbg_rayon_PoolBuilder {
 }
 module.exports.wbg_rayon_PoolBuilder = wbg_rayon_PoolBuilder;
 
-module.exports.__wbg_log_19fef73d9a645b72 = function(arg0, arg1) {
-    console.log(getStringFromWasm0(arg0, arg1));
-};
-
 module.exports.__wbindgen_string_new = function(arg0, arg1) {
     var ret = getStringFromWasm0(arg0, arg1);
     return addHeapObject(ret);
@@ -7282,6 +7279,10 @@ module.exports.__wbindgen_string_new = function(arg0, arg1) {
 
 module.exports.__wbg_alert_b014848fc9035c81 = function(arg0, arg1) {
     alert(getStringFromWasm0(arg0, arg1));
+};
+
+module.exports.__wbg_log_19fef73d9a645b72 = function(arg0, arg1) {
+    console.log(getStringFromWasm0(arg0, arg1));
 };
 
 module.exports.__wbindgen_object_drop_ref = function(arg0) {
