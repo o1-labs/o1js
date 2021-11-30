@@ -11,6 +11,7 @@ export * from './lib/optional';
 export * from './lib/proof_system';
 export * from './lib/party';
 
+/*
 import * as Snarky from './snarky';
 import * as Foo from './examples/wip';
 
@@ -21,3 +22,4 @@ import * as Foo from './examples/wip';
   console.log('b');
   Snarky.shutdown();
 })().catch((e) => console.log(e));
+*/
