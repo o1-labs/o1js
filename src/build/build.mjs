@@ -22,11 +22,12 @@ async function buildAndImport(srcPath) {
   });
 
   let absPath = path.resolve('.', outfile);
-
-  let importedModule = await import(absPath);
-
-  await fs.unlink(absPath);
-
+  let importedModule;
+  try {
+    importedModule = await import(absPath);
+  } finally {
+    await fs.unlink(absPath);
+  }
   return importedModule;
 }
 
