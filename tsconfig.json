@@ -1,6 +1,6 @@
 {
   "include": ["./src"],
-  "exclude": ["./src/**/*.bc.js", "./src/build"],
+  "exclude": ["./src/**/*.bc.js", "./src/build", "./src/examples"],
   "compilerOptions": {
     "module": "esnext",
     "outDir": "dist",
