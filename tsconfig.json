@@ -20,9 +20,6 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "allowSyntheticDefaultImports": true,
-    "baseUrl": ".",
-    "paths": {
-      "@o1labs/snarkyjs": ["."]
-    }
+    "baseUrl": "./src"
   }
 }
