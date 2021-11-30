@@ -70,7 +70,13 @@ export class UInt64 extends CircuitValue {
 
     return [ q_, r_ ];
   }
-  
+
+  /** Integer division.
+   * 
+   * `x.div(y)` returns the floor of `x / y`, that is, the greatest
+   * `z` such that `x * y <= x`.
+   * 
+   */
   div(y : UInt64 | number): UInt64 {
     return this.divMod(y)[0];
   }
@@ -154,36 +160,25 @@ export class UInt32 extends CircuitValue {
   }
 
   divMod(y: UInt32 | number): [UInt32, UInt32] {
-    console.log('divmod', 0);
     let x = this.value;
-    console.log('divmod', 1);
     let y_ = argToField('UInt32.div', y);
-    console.log('divmod', 2);
 
     if (this.value.isConstant() && y_.isConstant()) {
-    console.log('divmod', 3);
       let xn = BigInt(x.toString());
-    console.log('divmod', 4);
       let yn = BigInt(y_.toString());
-    console.log('divmod', 5);
       let q = xn / yn;
-    console.log('divmod', 6);
       let r = xn - q * yn;
-    console.log('divmod', 7);
       return [
         new UInt32(new Field(q.toString())),
         new UInt32(new Field(r.toString()))
       ];
     }
 
-    console.log('divmod', 8);
     y_ = y_.seal();
-    console.log('divmod', 9);
 
     let q = Circuit.witness(Field, () => 
       new Field ((BigInt(x.toString()) / BigInt(y_.toString())).toString()));
 
-    console.log('divmod', 10);
     q.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(q);
 
     // TODO: Could be a bit more efficient
@@ -199,9 +194,7 @@ export class UInt32 extends CircuitValue {
   }
   
   div(y : UInt32 | number): UInt32 {
-    console.log('div', 0)
     const dm = this.divMod(y);
-    console.log('div', 1)
     return dm[0];
   }
 
@@ -306,12 +299,10 @@ export class Int64 {
 
   uint64Value(): Field {
     const n = BigInt(this.value.toString());
-    console.log('value', this.value.toJSON());
     if (n < (1n << 64n)) {
       return this.value;
     } else {
       const x = this.value.add(Int64.shift());
-      console.log('uint64 value ', x.toJSON());
 
       return x;
     }
