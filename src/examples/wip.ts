@@ -423,13 +423,13 @@ export async function main() {
 
   // Update the snapp
   await Mina.transaction(account1, async () => {
-    snappInstance.update(new Field(8));
+    await snappInstance.update(new Field(8));
   })
     .send()
     .wait();
 
   await Mina.transaction(account1, async () => {
-    snappInstance.update(new Field(109));
+    await snappInstance.update(new Field(109));
   })
     .send()
     .wait();
