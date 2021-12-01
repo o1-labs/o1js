@@ -27,6 +27,11 @@ let {
   MerkleProof,
   MerkleProofFactory,
   Tree,
+  SmartContract,
+  state,
+  State,
+  method,
+  UInt64,
 } = snarky;
 export {
   Bool,
@@ -51,4 +56,9 @@ export {
   MerkleProof,
   MerkleProofFactory,
   Tree,
+  SmartContract,
+  state,
+  State,
+  method,
+  UInt64,
 };
