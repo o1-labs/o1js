@@ -61,6 +61,11 @@ interface Mina {
 
 interface MockMina extends Mina {
   addAccount(publicKey: PublicKey, balance: number): void;
+  /**
+   * An array of 10 test accounts that have been pre-filled with
+   * 30000000000 units of currency.
+   */
+  testAccounts: Array<{ publicKey: PublicKey; privateKey: PrivateKey }>;
 }
 
 /**
@@ -80,6 +85,15 @@ export const LocalBlockchain: () => MockMina = () => {
   const addAccount = (pk: PublicKey, balance: number) => {
     ledger.addAccount(pk, balance);
   };
+
+  let testAccounts = [];
+  for (let i = 0; i < 10; ++i) {
+    const largeValue = 30000000000;
+    const k = PrivateKey.random();
+    const pk = k.toPublicKey();
+    addAccount(pk, largeValue);
+    testAccounts.push({ privateKey: k, publicKey: pk });
+  }
 
   const getAccount = (pk: PublicKey): Promise<Account> => {
     const r = ledger.getAccount(pk);
@@ -224,6 +238,7 @@ export const LocalBlockchain: () => MockMina = () => {
     getAccount,
     transaction,
     addAccount,
+    testAccounts,
   };
 };
 

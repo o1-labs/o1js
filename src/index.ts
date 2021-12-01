@@ -11,10 +11,10 @@ export * from './lib/optional';
 export * from './lib/proof_system';
 export * from './lib/party';
 
+/*
 import * as Snarky from './snarky';
 import * as Foo from './examples/wip';
 
-/*
 (async () => {
   console.log('a');
   await Snarky.isReady.catch((e) => console.log(e));

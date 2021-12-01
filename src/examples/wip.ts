@@ -393,14 +393,11 @@ class SimpleSnapp extends SmartContract {
 export async function main() {
   const Local = Mina.LocalBlockchain();
   Mina.setActiveInstance(Local);
-  const largeValue = 30000000000;
 
   // Maybe just return deterministically 10 accounts with a bunch of money in them
   // Initialize an account so we can send some transactions
-  const account1 = PrivateKey.random();
-  Local.addAccount(account1.toPublicKey(), largeValue);
-  const account2 = PrivateKey.random();
-  Local.addAccount(account2.toPublicKey(), largeValue);
+  const account1 = Local.testAccounts[0].privateKey;
+  const account2 = Local.testAccounts[1].privateKey;
 
   const snappPrivkey = PrivateKey.random();
   const snappPubkey = snappPrivkey.toPublicKey();
