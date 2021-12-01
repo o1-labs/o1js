@@ -11,8 +11,18 @@ export * from './lib/optional';
 export * from './lib/proof_system';
 export * from './lib/party';
 
-/*
+import * as util from 'util';
 import * as Snarky from './snarky';
+
+(Snarky.Field as any).prototype[util.inspect.custom] = function(depth: any, opts: any) {
+  return (this as Snarky.Field).toJSON();
+};
+
+(Snarky.Group as any).prototype[util.inspect.custom] = function(depth: any, opts: any) {
+  return (this as Snarky.Group).toJSON();
+};
+
+/*
 import * as Foo from './examples/wip';
 
 (async () => {
