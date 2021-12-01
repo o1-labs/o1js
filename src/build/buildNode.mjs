@@ -65,7 +65,7 @@ async function buildNode({ entry, production }) {
   let exportString = Object.keys(index)
     .filter((x) => x !== 'default')
     .join(', ');
-  let indexMjs = await fs.readFile('./src/index.mjs', 'utf8');
+  let indexMjs = await fs.readFile('./src/index.mjs.template', 'utf8');
   indexMjs = indexMjs.replace(/__EXPORTS__/g, exportString);
   await fs.writeFile('./dist/server/index.mjs', indexMjs);
   index.shutdown();
