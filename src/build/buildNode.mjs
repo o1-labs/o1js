@@ -19,12 +19,14 @@ if (isMain) {
 }
 
 async function buildNode({ entry, production }) {
+  // copy over files not processed by TS
   let copyPromise = copy({
     './src/node_bindings/': './dist/server/node_bindings/',
     './src/snarky.node.js': './dist/server/snarky.js',
     './src/snarky.d.ts': './dist/server/snarky.d.ts',
     './src/snarky-class-spec.json': './dist/server/snarky-class-spec.json',
   });
+  // invoke TS to recreate out .ts files as .js + d.ts in /dist/server
   let json = JSON.stringify({
     extends: './tsconfig.json',
     include: [entry],
@@ -38,11 +40,11 @@ async function buildNode({ entry, production }) {
   );
   await Promise.all([copyPromise, tscPromise]);
 
+  // bundle the new index.js file with esbuild and create a new index.js file which conforms to CJS
   let jsEntry = path.resolve(
     'dist/server',
     path.basename(entry).replace('.ts', '.js')
   );
-
   await esbuild.build({
     entryPoints: [jsEntry],
     bundle: true,
@@ -56,6 +58,17 @@ async function buildNode({ entry, production }) {
     plugins: [makeNodeModulesExternal()],
     minify: !!production,
   });
+
+  // import the new index.js to get a list of its exports
+  // the list of exports is used to create an ESM entry-point index.mjs
+  let index = await import('../../dist/server/index.js');
+  let exportString = Object.keys(index)
+    .filter((x) => x !== 'default')
+    .join(', ');
+  let indexMjs = await fs.readFile('./src/index.mjs', 'utf8');
+  indexMjs = indexMjs.replace(/__EXPORTS__/g, exportString);
+  await fs.writeFile('./dist/server/index.mjs', indexMjs);
+  index.shutdown();
 }
 
 function makeNodeModulesExternal() {

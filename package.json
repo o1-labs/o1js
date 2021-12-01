@@ -7,7 +7,7 @@
   "exports": {
     "browser": "./dist/web/index.js",
     "node": {
-      "import": "./src/index.mjs",
+      "import": "./dist/server/index.mjs",
       "require": "./dist/server/index.js"
     },
     "default": "./dist/web/index.js"
@@ -15,7 +15,6 @@
   "types": "./dist/server/index.d.ts",
   "files": [
     "dist",
-    "src/index.mjs",
     "src/lib",
     "src/**/*.d.ts"
   ],

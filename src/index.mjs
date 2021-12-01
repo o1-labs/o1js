@@ -1,64 +1,7 @@
-// this is the entry point for node projects that use ESM imports
-import snarky from '../dist/server/index.js';
+// this file becomes the entry point for node projects that use ESM imports
+import snarky from './index.js';
 // here we can just await the promise to provide a cleaner interface
 await snarky.isReady;
 
-// TODO: autogenerate this
-let {
-  Bool,
-  Circuit,
-  Field,
-  Group,
-  Poseidon,
-  Scalar,
-  shutdown,
-  PrivateKey,
-  PublicKey,
-  Signature,
-  CircuitValue,
-  circuitMain,
-  arrayProp,
-  prop,
-  public_,
-  Collection,
-  Index,
-  IndexBase,
-  IndexFactory,
-  MerkleProof,
-  MerkleProofFactory,
-  Tree,
-  SmartContract,
-  state,
-  State,
-  method,
-  UInt64,
-} = snarky;
-export {
-  Bool,
-  Circuit,
-  Field,
-  Group,
-  Poseidon,
-  Scalar,
-  shutdown,
-  PrivateKey,
-  PublicKey,
-  Signature,
-  CircuitValue,
-  circuitMain,
-  arrayProp,
-  prop,
-  public_,
-  Collection,
-  Index,
-  IndexBase,
-  IndexFactory,
-  MerkleProof,
-  MerkleProofFactory,
-  Tree,
-  SmartContract,
-  state,
-  State,
-  method,
-  UInt64,
-};
+let { __EXPORTS__ } = snarky;
+export { __EXPORTS__ };
