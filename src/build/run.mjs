@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 import minimist from 'minimist';
 import { buildAndImport } from './build.mjs';
-import { shutdown } from '../index.mjs';
+import { shutdown } from '../../dist/server/index.mjs';
 
 let {
   _: [filePath],
   main,
   default: runDefault,
   keypair: keyPair,
+  keep,
 } = minimist(process.argv.slice(2));
 
 if (!filePath) {
@@ -16,7 +17,7 @@ if (!filePath) {
   process.exit(0);
 }
 
-let module = await buildAndImport(filePath);
+let module = await buildAndImport(filePath, { keepFile: !!keep });
 if (main) await module.main();
 if (runDefault) await module.default();
 if (keyPair) {

@@ -144,14 +144,26 @@ export function prop(this: any, target: any, key: string) {
 
 export function arrayProp<T>(eltTyp: AsFieldElements<T>, length: number) {
   return function (target: any, key: string) {
-    const fieldType = Reflect.getMetadata('design:type', target, key);
-    console.log('field type is', fieldType);
-
+    // const fieldType = Reflect.getMetadata('design:type', target, key);
     if (target._fields === undefined || target._fields === null) {
       target._fields = [];
     }
-
     target._fields.push([key, Circuit.array(eltTyp, length)]);
+  };
+}
+
+export function matrixProp<T>(
+  eltTyp: AsFieldElements<T>,
+  nRows: number,
+  nColumns: number
+) {
+  return function (target: any, key: string) {
+    // const fieldType = Reflect.getMetadata('design:type', target, key);
+    target._fields ??= [];
+    target._fields.push([
+      key,
+      Circuit.array(Circuit.array(eltTyp, nColumns), nRows),
+    ]);
   };
 }
 
