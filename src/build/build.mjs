@@ -5,7 +5,7 @@ import esbuild from 'esbuild';
 
 export { buildAndImport };
 
-async function buildAndImport(srcPath) {
+async function buildAndImport(srcPath, { keepFile = false }) {
   let tsConfig = findTsConfig() ?? defaultTsConfig;
 
   let outfile = srcPath.replace('.ts', '.tmp.mjs');
@@ -26,7 +26,7 @@ async function buildAndImport(srcPath) {
   try {
     importedModule = await import(absPath);
   } finally {
-    await fs.unlink(absPath);
+    if (!keepFile) await fs.unlink(absPath);
   }
   return importedModule;
 }

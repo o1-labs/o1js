@@ -69,6 +69,8 @@ async function buildNode({ entry, production }) {
   indexMjs = indexMjs.replace(/__EXPORTS__/g, exportString);
   await fs.writeFile('./dist/server/index.mjs', indexMjs);
   index.shutdown();
+
+  console.log('finished build');
 }
 
 function makeNodeModulesExternal() {
