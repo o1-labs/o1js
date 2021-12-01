@@ -42,7 +42,7 @@ interface Account {
 
 export let nextTransactionId: { value: number } = { value: 0 };
 
-type PartyPredicate = UInt32 | FullAccountPredicate;
+type PartyPredicate = UInt32 | FullAccountPredicate | void;
 
 export let currentTransaction:
   | {
@@ -182,6 +182,8 @@ export const LocalBlockchain: () => MockMina = () => {
             let predicate: AccountPredicate;
             if (p.predicate instanceof UInt32) {
               predicate = { type: 'nonce', value: p.predicate };
+            } else if (p.predicate === undefined) {
+              predicate = { type: 'accept' }
             } else {
               predicate = { type: 'full', value: p.predicate };
             }

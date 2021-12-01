@@ -601,6 +601,24 @@ export class Party<P> {
     return this.body.publicKey;
   }
 
+  static createUnsigned(publicKey: PublicKey): Party<void> {
+    // TODO: This should be a witness block that uses the setVariable
+    // API to set the value of a variable after it's allocated
+
+    const pk = publicKey;
+    const body: Body = Body.keepAll(pk);
+    if (Mina.currentTransaction === undefined) {
+      throw new Error(
+        'Party.createUnsigned: Cannot run outside of a transaction'
+      );
+    }
+
+    const party = new Party(body, undefined);
+    Mina.currentTransaction.nextPartyIndex++;
+    Mina.currentTransaction.parties.push(party);
+    return party;
+  }
+
   static createSigned(signer: PrivateKey): Promise<Party<UInt32>> {
     // TODO: This should be a witness block that uses the setVariable
     // API to set the value of a variable after it's allocated
