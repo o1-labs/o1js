@@ -106,11 +106,13 @@ export class Field {
   // TODO: Rename to toFields()
   toFieldElements(): Field[];
 
+  // TODO: Make these long form version
   lt(y: Field | number | string | boolean): Bool;
   lte(y: Field | number | string | boolean): Bool;
   gt(y: Field | number | string | boolean): Bool;
   gte(y: Field | number | string | boolean): Bool;
 
+  // TODO: Make these long form version
   assertLt(y: Field | number | string | boolean): void;
   assertLte(y: Field | number | string | boolean): void;
   assertGt(y: Field | number | string | boolean): void;
@@ -175,12 +177,14 @@ export class Field {
   static toString(x: Field | number | string | boolean): string;
   */
 
-  // TODO: Ask izzy/matthew why we need this?
+  // TODO: Ask izzy/matthew why we need this non-static version?
   ofFieldElements(fields: Field[]): Field;
   // TODO: Rename to fromFields(fields: Field[])
   // TODO: (bkase) Refactor AsFieldElements to not need these redundant static things
   static ofFieldElements(fields: Field[]): Field;
+  // TODO: Rename to size()
   static sizeInFieldElements(): number;
+  // TODO: Rename to toFields
   static toFieldElements(x: Field): Field[];
 
   /*
