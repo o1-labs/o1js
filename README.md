@@ -33,5 +33,5 @@ npm run test
 ```bash
 # Make sure to have proper NPM credentials before publishing.
 # To get credentials, use `npm login`
-./scripts/publish.sh
+npm publish
 ```
