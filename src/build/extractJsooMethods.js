@@ -1,6 +1,6 @@
 // run this script once to generate src/snarky-class-spec
 let fs = require('fs').promises;
-let snarky = require('../src/node_bindings/snarky_js_node.bc.js');
+let snarky = require('../../node_bindings/snarky_js_node.bc.js');
 
 // classes that should be proxied
 let classNames = ['Field', 'Bool', 'Circuit', 'Poseidon', 'Group', 'Scalar'];
