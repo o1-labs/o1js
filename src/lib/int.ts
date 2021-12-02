@@ -84,22 +84,33 @@ export class UInt64 extends CircuitValue {
     return this.divMod(y)[0];
   }
 
+  /** Integer remainder.
+   *
+   * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
+   * `x - z` is divisble by `y`.
+   */
   mod(y: UInt64 | number): UInt64 {
     return this.divMod(y)[1];
   }
 
+  /** Multiplication with overflow checking.
+   */
   mul(y: UInt64 | number): UInt64 {
     let z = this.value.mul(argToField('UInt64.mul', y));
     z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
     return new UInt64(z);
   }
 
+  /** Addition with overflow checking.
+   */
   add(y: UInt64 | number): UInt64 {
     let z = this.value.add(argToField('UInt64.add', y));
     z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
     return new UInt64(z);
   }
 
+  /** Subtraction with underflow checking.
+   */
   sub(y: UInt64 | number): UInt64 {
     let z = this.value.sub(argToField('UInt64.sub', y));
     z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
