@@ -38,7 +38,7 @@ class Main extends Circuit {
     receiverPrivKey: PrivateKey,
     @public_ lowerBound: Field
   ) {
-    s.verify(transaction.sender, transaction.toFieldElements()).assertEquals(
+    s.verify(transaction.sender, transaction.toFields()).assertEquals(
       true
     );
     transaction.receiver.assertEquals(receiverPrivKey.toPublicKey());

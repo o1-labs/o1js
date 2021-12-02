@@ -53,7 +53,7 @@ export function state<A>(ty: AsFieldElements<A>) {
 
           let offset = 0;
           SnappClass._states.forEach(([key, ty]: [any, any]) => {
-            let length = ty.sizeInFieldElements();
+            let length = ty.sizeInFields();
             layout.set(key, { offset, length });
             offset += length;
           });
@@ -78,7 +78,7 @@ export function state<A>(ty: AsFieldElements<A>) {
 
       set(a: A) {
         const r = S.getLayout();
-        const xs = ty.toFieldElements(a);
+        const xs = ty.toFields(a);
         /*
           console.log('target', target)
           console.log('target.address', target.address);
@@ -92,7 +92,7 @@ export function state<A>(ty: AsFieldElements<A>) {
 
       assertEquals(a: A) {
         const r = S.getLayout();
-        const xs = ty.toFieldElements(a);
+        const xs = ty.toFields(a);
         let e: ExecutionState = S._this.executionState();
 
         xs.forEach((x, i) => {
@@ -110,7 +110,7 @@ export function state<A>(ty: AsFieldElements<A>) {
              them in so that we can rewrite this as something like
 
              const xs = Circuit.witness(array(r.length), () => array of zeroes);
-             const res = ty.ofFieldElements(xs);
+             const res = ty.ofFields(xs);
              if (Circuit.generatingWitness()) {
                return Mina.getAccount().then((a) => {
                  for (let i = 0; i < r.length ++i) {
@@ -128,7 +128,7 @@ export function state<A>(ty: AsFieldElements<A>) {
           for (let i = 0; i < r.length; ++i) {
             xs.push(a.snapp.appState[r.offset + i]);
           }
-          return ty.ofFieldElements(xs);
+          return ty.ofFields(xs);
         });
       }
     }
@@ -269,6 +269,6 @@ export abstract class SmartContract {
   emitEvent<T extends CircuitValue>(x: T): void {
     // TODO: Get the current party object, pull out the events field, and
     // hash this together with what's there
-    Poseidon.hash(x.toFieldElements());
+    Poseidon.hash(x.toFields());
   }
 }

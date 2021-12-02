@@ -120,7 +120,7 @@ class RollupProof extends ProofWithInput<RollupStateTransition> {
     pending: MerkleStack<RollupDeposit>,
     accountDb: AccountDb
   ): RollupProof {
-    s.verify(t.sender, t.toFieldElements()).assertEquals(true);
+    s.verify(t.sender, t.toFields()).assertEquals(true);
     let stateBefore = new RollupState(
       pending.commitment,
       accountDb.commitment()
@@ -318,7 +318,7 @@ class RollupSnapp extends SmartContract {
 
     // verify signature on
     // message = [ submittedSlot, operatorPubKey ]
-    let message = submittedSlot.toFieldElements().concat(pk.toFieldElements());
+    let message = submittedSlot.toFields().concat(pk.toFields());
     s.verify(self.publicKey, message).assertEquals(true);
 
     operatorsDb.add(pk);
@@ -358,7 +358,7 @@ class RollupSnapp extends SmartContract {
     operatorMembership.verify(this.operatorsCommitment.get(), operator)
     .assertEquals(true);
 
-    operatorSignature.verify(operator, rollupProof.publicInput.target.toFieldElements())
+    operatorSignature.verify(operator, rollupProof.publicInput.target.toFields())
     .assertEquals(true);
 
     // account precondition
@@ -467,7 +467,7 @@ function mainold() {
   let newOperatorPrivkey = PrivateKey.random();
   let newOperatorPubkey = newOperatorPrivkey.toPublicKey();
   let currentSlot = Mina.currentSlot();
-  let message = currentSlot.toFieldElements().concat(newOperatorPubkey.toFieldElements());
+  let message = currentSlot.toFields().concat(newOperatorPubkey.toFields());
   let signature = Signature.create(snappOwnerKey, message);
   console.log(3);
 
@@ -543,7 +543,7 @@ function mainold() {
       const p2 =
           RollupProof.transaction(
             rollupTransaction,
-            Signature.create(depositorPrivkey, rollupTransaction.toFieldElements()),
+            Signature.create(depositorPrivkey, rollupTransaction.toFields()),
             pendingDeposits,
             accountDb);
 
@@ -563,7 +563,7 @@ function mainold() {
           newOperatorPubkey,
           Signature.create(
             newOperatorPrivkey,
-            rollupProof.publicInput.target.toFieldElements())
+            rollupProof.publicInput.target.toFields())
         )
       }).send().wait().catch((e) => {
         console.log('rrr', e);

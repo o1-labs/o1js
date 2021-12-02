@@ -102,9 +102,9 @@ export class Field {
   toJSON(): JSONValue;
 
   // TODO: Rename to size()
-  sizeInFieldElements(): number;
+  sizeInFields(): number;
   // TODO: Rename to toFields()
-  toFieldElements(): Field[];
+  toFields(): Field[];
 
   // TODO: Make these long form version
   lt(y: Field | number | string | boolean): Bool;
@@ -178,14 +178,14 @@ export class Field {
   */
 
   // TODO: Ask izzy/matthew why we need this non-static version?
-  ofFieldElements(fields: Field[]): Field;
+  ofFields(fields: Field[]): Field;
   // TODO: Rename to fromFields(fields: Field[])
   // TODO: (bkase) Refactor AsFieldElements to not need these redundant static things
-  static ofFieldElements(fields: Field[]): Field;
+  static ofFields(fields: Field[]): Field;
   // TODO: Rename to size()
-  static sizeInFieldElements(): number;
+  static sizeInFields(): number;
   // TODO: Rename to toFields
-  static toFieldElements(x: Field): Field[];
+  static toFields(x: Field): Field[];
 
   /*
   static assertEqual(
@@ -218,6 +218,8 @@ export class Field {
 
   static fromJSON(x: JSONValue): Field | null;
 }
+
+export function Field(x : number | string): Field;
 
 /**
  * A boolean value. You can use it like this:
@@ -281,8 +283,8 @@ export class Bool {
   // not very useful no?
   isFalse(): Bool;
 
-  sizeInFieldElements(): number;
-  toFieldElements(): Field[];
+  sizeInFields(): number;
+  toFields(): Field[];
 
   toString(): string;
   toJSON(): JSONValue;
@@ -318,18 +320,18 @@ export class Bool {
 
   static count(x: Bool | boolean[]): Field;
 
-  static sizeInFieldElements(): number;
-  static toFieldElements(x: Bool | boolean): Field[];
-  static ofFieldElements(fields: Field[]): Bool;
+  static sizeInFields(): number;
+  static toFields(x: Bool | boolean): Field[];
+  static ofFields(fields: Field[]): Bool;
 
   static toJSON(x: Bool): JSONValue;
   static fromJSON(x: JSONValue): Bool | null;
 }
 
 export interface AsFieldElements<T> {
-  toFieldElements(x: T): Field[];
-  ofFieldElements(x: Field[]): T;
-  sizeInFieldElements(): number;
+  toFields(x: T): Field[];
+  ofFields(x: Field[]): T;
+  sizeInFields(): number;
 }
 
 export interface CircuitMain<W, P> {
@@ -372,9 +374,9 @@ export class Circuit {
 
   static witness<T>(
     ctor: {
-      toFieldElements(x: T): Field[];
-      ofFieldElements(x: Field[]): T;
-      sizeInFieldElements(): number;
+      toFields(x: T): Field[];
+      ofFields(x: Field[]): T;
+      sizeInFields(): number;
     },
     f: () => T
   ): T;
@@ -390,14 +392,14 @@ export class Circuit {
   ): AsFieldElements<T[]>;
 
   static assertEqual<T>(
-    ctor: { toFieldElements(x: T): Field[] },
+    ctor: { toFields(x: T): Field[] },
     x: T,
     y: T
   ): void;
 
   static assertEqual<T>(x: T, y: T): void;
 
-  static equal<T>(ctor: { toFieldElements(x: T): Field[] }, x: T, y: T): Bool;
+  static equal<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): Bool;
 
   static equal(x: T, y: T): Bool;
 
@@ -411,7 +413,7 @@ export class Circuit {
 
   static verify(publicInput: any[], vk: VerificationKey, pi: Proof): boolean;
 
-  static toFieldElements<A>(A): Field[];
+  static toFields<A>(A): Field[];
 
   static inProver(): boolean;
 
@@ -419,7 +421,7 @@ export class Circuit {
 }
 
 export class Scalar {
-  toFieldElements(this: Scalar): Field[];
+  toFields(this: Scalar): Field[];
 
   /**
    * Negate a scalar field element.
@@ -453,9 +455,9 @@ export class Scalar {
 
   toJSON(): JSONValue;
 
-  static toFieldElements(x: Scalar): Field[];
-  static ofFieldElements(fields: Field[]): Scalar;
-  static sizeInFieldElements(): number;
+  static toFields(x: Scalar): Field[];
+  static ofFields(fields: Field[]): Scalar;
+  static sizeInFields(): number;
   static ofBits(bits: Bool[]): Scalar;
   static random(): Scalar;
 
@@ -464,9 +466,9 @@ export class Scalar {
 }
 
 export class EndoScalar {
-  static toFieldElements(x: Scalar): Field[];
-  static ofFieldElements(fields: Field[]): Scalar;
-  static sizeInFieldElements(): number;
+  static toFields(x: Scalar): Field[];
+  static ofFields(fields: Field[]): Scalar;
+  static sizeInFields(): number;
 }
 
 export class Group {
@@ -503,9 +505,9 @@ export class Group {
   static assertEqual(x: Group, y: Group): void;
   static equal(x: Group, y: Group): Bool;
 
-  static toFieldElements(x: Group): Field[];
-  static ofFieldElements(fields: Field[]): Group;
-  static sizeInFieldElements(): number;
+  static toFields(x: Group): Field[];
+  static ofFields(fields: Field[]): Group;
+  static sizeInFields(): number;
 
   static toJSON(x: Group): JSONValue;
   static fromJSON(x: JSONValue): Group | null;
@@ -644,9 +646,9 @@ export class Ledger {
 }
 
 /* TODO: Figure out types for these. */
-export const ofFieldElements: (x: any[], y: any[]) => any[];
-export const toFieldElements: (x: any[], y: any[]) => any[];
-export const sizeInFieldElements: (x: any[]) => number;
+export const ofFields: (x: any[], y: any[]) => any[];
+export const toFields: (x: any[], y: any[]) => any[];
+export const sizeInFields: (x: any[]) => number;
 
 export const NumberAsField: AsFieldElements<Number>;
 

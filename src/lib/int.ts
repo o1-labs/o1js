@@ -327,7 +327,7 @@ export class Int64 {
     }
   }
 
-  static sizeInFieldElements(): number {
+  static sizeInFields(): number {
     return 1;
   }
 
@@ -347,19 +347,19 @@ export class Int64 {
     throw 'repr';
   }
 
-  static toFieldElements(x: Int64): Field[] {
+  static toFields(x: Int64): Field[] {
     return [x.value];
   }
 
-  static ofFieldElements(xs: Field[]) {
+  static ofFields(xs: Field[]) {
     return new Int64(xs[0]);
   }
 
-  toFieldElements(): Field[] {
-    return Int64.toFieldElements(this);
+  toFields(): Field[] {
+    return Int64.toFields(this);
   }
 
-  sizeInFieldElements(): number {
-    return Int64.sizeInFieldElements();
+  sizeInFields(): number {
+    return Int64.sizeInFields();
   }
 }

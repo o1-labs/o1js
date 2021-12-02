@@ -13,9 +13,9 @@ export class Optional<T> {
 
 type CircuitValueConstructor<T> = {
   new (...args: any[]): T;
-  sizeInFieldElements: () => number;
-  ofFieldElements: (xs: Array<Field>) => T;
-  toFieldElements: (x: T) => Array<Field>;
+  sizeInFields: () => number;
+  ofFields: (xs: Array<Field>) => T;
+  toFields: (x: T) => Array<Field>;
 };
 /*
 export function Optional<T>(TCtor: CircuitValueConstructor<T>) {
@@ -28,19 +28,19 @@ export function Optional<T>(TCtor: CircuitValueConstructor<T>) {
       this.value = value;
     }
 
-    static sizeInFieldElements(): number {
-      return 1 + TCtor.sizeInFieldElements();
+    static sizeInFields(): number {
+      return 1 + TCtor.sizeInFields();
     }
 
-    static ofFieldElements(xs: Field[]): OptionalT {
+    static ofFields(xs: Field[]): OptionalT {
       return new OptionalT(
         Bool.Unsafe.ofField(xs[0]),
-        TCtor.ofFieldElements(xs.slice(1))
+        TCtor.ofFields(xs.slice(1))
       );
     }
 
-    static toFieldElements(x: OptionalT): Field[] {
-      return [x.isSome.toField()].concat(TCtor.toFieldElements(x.value));
+    static toFields(x: OptionalT): Field[] {
+      return [x.isSome.toField()].concat(TCtor.toFields(x.value));
     }
 
     static check(x: OptionalT) {

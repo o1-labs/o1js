@@ -12,7 +12,7 @@ export class MerkleStack<A extends CircuitValue> {
     | { computed: false; f: () => Array<[A, Field]> };
 
   static pushCommitment<B extends CircuitValue>(x: B, comm: Field): Field {
-    return Poseidon.hash([comm].concat(x.toFieldElements()));
+    return Poseidon.hash([comm].concat(x.toFields()));
   }
 
   constructor(eltTyp: AsFieldElements<A>, f: () => Array<[A, Field]>) {

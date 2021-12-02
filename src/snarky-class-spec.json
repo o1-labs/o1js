@@ -51,15 +51,15 @@
         "type": "function"
       },
       {
-        "name": "sizeInFieldElements",
+        "name": "sizeInFields",
         "type": "function"
       },
       {
-        "name": "toFieldElements",
+        "name": "toFields",
         "type": "function"
       },
       {
-        "name": "ofFieldElements",
+        "name": "ofFields",
         "type": "function"
       },
       {
@@ -144,15 +144,15 @@
         "type": "function"
       },
       {
-        "name": "sizeInFieldElements",
+        "name": "sizeInFields",
         "type": "function"
       },
       {
-        "name": "toFieldElements",
+        "name": "toFields",
         "type": "function"
       },
       {
-        "name": "ofFieldElements",
+        "name": "ofFields",
         "type": "function"
       },
       {
@@ -217,7 +217,7 @@
         "type": "function"
       },
       {
-        "name": "toFieldElements",
+        "name": "toFields",
         "type": "function"
       },
       {
@@ -267,15 +267,15 @@
         "type": "function"
       },
       {
-        "name": "toFieldElements",
+        "name": "toFields",
         "type": "function"
       },
       {
-        "name": "ofFieldElements",
+        "name": "ofFields",
         "type": "function"
       },
       {
-        "name": "sizeInFieldElements",
+        "name": "sizeInFields",
         "type": "function"
       },
       {
@@ -296,15 +296,15 @@
     "name": "Scalar",
     "props": [
       {
-        "name": "toFieldElements",
+        "name": "toFields",
         "type": "function"
       },
       {
-        "name": "sizeInFieldElements",
+        "name": "sizeInFields",
         "type": "function"
       },
       {
-        "name": "ofFieldElements",
+        "name": "ofFields",
         "type": "function"
       },
       {

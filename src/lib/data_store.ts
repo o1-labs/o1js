@@ -53,7 +53,7 @@ export class Keyed {
 
     const t = new Tree<V>(
       depth,
-      (x) => Poseidon.hash(eltTyp.toFieldElements(x)),
+      (x) => Poseidon.hash(eltTyp.toFields(x)),
       []
     );
 
@@ -61,16 +61,16 @@ export class Keyed {
     let indexes: Map<string, boolean[]> = new Map();
 
     let dummy = (() => {
-      const n = eltTyp.sizeInFieldElements();
+      const n = eltTyp.sizeInFields();
       const xs = [];
       for (var i = 0; i < n; ++i) {
         xs.push(Field.zero);
       }
-      return eltTyp.ofFieldElements(xs);
+      return eltTyp.ofFields(xs);
     })();
 
     const getValue = (k: K): { value: V; empty: boolean } => {
-      const h = Poseidon.hash(keyTyp.toFieldElements(k));
+      const h = Poseidon.hash(keyTyp.toFields(k));
 
       const r = indexes.get(h.toString());
       const empty = { value: dummy, empty: true };
@@ -92,7 +92,7 @@ export class Keyed {
     const commitment = (): Field => t.root();
 
     const getIndex = (k: K): Index | null => {
-      const h = Poseidon.hash(keyTyp.toFieldElements(k)).toString();
+      const h = Poseidon.hash(keyTyp.toFields(k)).toString();
       const r = indexes.get(h);
       if (r === undefined) {
         return null;
@@ -109,14 +109,14 @@ export class Keyed {
 
     const setValue = (k: K, v: V) => {
       console.log('setvalu');
-      const h = Poseidon.hash(keyTyp.toFieldElements(k)).toString();
+      const h = Poseidon.hash(keyTyp.toFields(k)).toString();
       const idx_ = indexes.get(h);
       let idx =
         idx_ === undefined ? nextIndex().value.map((b) => b.toBoolean()) : idx_;
       indexes.set(h, idx);
 
       console.log('setvalu');
-      t.setValue(idx, v, Poseidon.hash(eltTyp.toFieldElements(v)));
+      t.setValue(idx, v, Poseidon.hash(eltTyp.toFields(v)));
     };
 
     return {
@@ -147,7 +147,7 @@ export function InMemory<A>(
 
   const t = new Tree<A>(
     depth,
-    (x) => Poseidon.hash(eltTyp.toFieldElements(x)),
+    (x) => Poseidon.hash(eltTyp.toFields(x)),
     []
   );
   let nextIdx = 0;
@@ -167,7 +167,7 @@ export function InMemory<A>(
     Circuit.asProver(() => {
       console.log('mset');
       const idx = i.value.map((b) => b.toBoolean());
-      const h = Poseidon.hash(eltTyp.toFieldElements(x));
+      const h = Poseidon.hash(eltTyp.toFields(x));
       console.log('mset');
       indexes.set(h.toString(), idx);
       t.setValue(idx, x, h);
@@ -177,7 +177,7 @@ export function InMemory<A>(
   const commitment = (): Field => t.root();
 
   const getIndex = (x: A): Index | null => {
-    const h = Poseidon.hash(eltTyp.toFieldElements(x));
+    const h = Poseidon.hash(eltTyp.toFields(x));
     const r = indexes.get(h.toString());
     if (r === undefined) {
       return null;
@@ -186,7 +186,7 @@ export function InMemory<A>(
     }
     /*
     const y = asFieldElementsToConstant<A>(eltTyp, x);
-    y.toFieldElements() */
+    y.toFields() */
   };
 
   const nextIndex = (): Index => {

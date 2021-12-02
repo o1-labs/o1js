@@ -22,7 +22,7 @@ export class AccumulatorMembershipProof {
   }
 
   verify<T extends CircuitValue>(commitment: Field, x: T): Bool {
-    let leaf = Poseidon.hash(x.toFieldElements());
+    let leaf = Poseidon.hash(x.toFields());
     return this.merkleProof.verify(commitment, this.index, leaf);
   }
 }
@@ -48,20 +48,20 @@ export function MerkleAccumulatorFactory<A extends CircuitValue>(
       return a;
     }
 
-    static sizeInFieldElements(): number {
+    static sizeInFields(): number {
       return 1;
     }
 
-    static toFieldElements(x: MerkleAccumulator): Field[] {
+    static toFields(x: MerkleAccumulator): Field[] {
       return [x.root];
     }
 
-    static ofFieldElements(xs: Field[]): MerkleAccumulator {
+    static ofFields(xs: Field[]): MerkleAccumulator {
       return new MerkleAccumulator(xs[0]);
     }
 
-    toFieldElements(): Field[] {
-      return MerkleAccumulator.toFieldElements(this);
+    toFields(): Field[] {
+      return MerkleAccumulator.toFields(this);
     }
 
     get store(): DataStore<A, MerkleProof> {
@@ -106,7 +106,7 @@ export function MerkleAccumulatorFactory<A extends CircuitValue>(
       // Checks that this is a path to an empty leaf
       impliedRoot(idx.value, path.path, emptyHash(0)).assertEquals(this.root);
 
-      const newLeaf = Poseidon.hash(x.toFieldElements());
+      const newLeaf = Poseidon.hash(x.toFields());
       this.root = impliedRoot(idx.value, path.path, newLeaf);
 
       if (Circuit.inProver()) {
@@ -165,20 +165,20 @@ export function KeyedAccumulatorFactory<
       return a;
     }
 
-    static sizeInFieldElements(): number {
+    static sizeInFields(): number {
       return 1;
     }
 
-    static toFieldElements(x: KeyedAccumulator): Field[] {
+    static toFields(x: KeyedAccumulator): Field[] {
       return [x.root];
     }
 
-    static ofFieldElements(xs: Field[]): KeyedAccumulator {
+    static ofFields(xs: Field[]): KeyedAccumulator {
       return new KeyedAccumulator(xs[0]);
     }
 
-    toFieldElements(): Field[] {
-      return KeyedAccumulator.toFieldElements(this);
+    toFields(): Field[] {
+      return KeyedAccumulator.toFields(this);
     }
 
     get store(): KeyedDataStore<K, V, MerkleProof> {
@@ -255,18 +255,18 @@ export function MerkleProofFactory(depth: number) {
       super(path);
     }
 
-    static sizeInFieldElements(): number {
+    static sizeInFields(): number {
       return depth;
     }
 
-    static toFieldElements(x: MerkleProof): Array<Field> {
+    static toFields(x: MerkleProof): Array<Field> {
       return x.path;
     }
 
-    static ofFieldElements(xs: Array<Field>): MerkleProof {
+    static ofFields(xs: Array<Field>): MerkleProof {
       if (xs.length !== depth) {
         throw new Error(
-          `MerkleTree: ofFieldElements expected array of length ${depth}, got ${xs.length}`
+          `MerkleTree: ofFields expected array of length ${depth}, got ${xs.length}`
         );
       }
       return new MerkleProof(xs);
@@ -280,7 +280,7 @@ export function IndexFactory(depth: number) {
       super(value);
     }
 
-    static sizeInFieldElements(): number {
+    static sizeInFields(): number {
       return depth;
     }
 
@@ -295,15 +295,15 @@ export function IndexFactory(depth: number) {
       return new Index(res);
     }
 
-    static ofFieldElements(xs: Field[]): Index {
+    static ofFields(xs: Field[]): Index {
       return new Index(xs.map((x) => Bool.Unsafe.ofField(x)));
     }
 
-    toFieldElements(): Field[] {
-      return Index.toFieldElements(this);
+    toFields(): Field[] {
+      return Index.toFields(this);
     }
 
-    static toFieldElements(i: Index): Field[] {
+    static toFields(i: Index): Field[] {
       return i.value.map((b) => b.toField());
     }
 
@@ -616,7 +616,7 @@ export class Collection<A> {
       checkMerklePath(this.getRoot(), i.value, path, oldEltHash);
     }
 
-    let eltHash = Poseidon.hash(this.eltTyp.toFieldElements(x));
+    let eltHash = Poseidon.hash(this.eltTyp.toFields(x));
 
     // Must clear the caches as we don't know if other indices happened to be equal to this one.
     this.cachedPaths.clear();
@@ -658,7 +658,7 @@ export class Collection<A> {
       return res;
     });
 
-    let eltHash = Poseidon.hash(this.eltTyp.toFieldElements(res));
+    let eltHash = Poseidon.hash(this.eltTyp.toFields(res));
     this.cachedValues.set(i.id, { value: res, hash: eltHash });
     this.cachedPaths.set(i.id, merkleProof);
 
