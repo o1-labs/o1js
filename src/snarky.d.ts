@@ -32,12 +32,12 @@ export class Proof {
  */
 export class Field {
   /**
-   * Coerces anything field-like to a [[ Field ]].
+   * Coerces anything field-like to a [[`Field`]].
    */
   constructor(x: Field | number | string | boolean);
 
   /**
-   * Negates this [[ Field ]]. This is equivalent to multiplying the [[ Field ]]
+   * Negates this [[`Field`]]. This is equivalent to multiplying the [[`Field`]]
    * by -1.
    *
    * ```typescript
@@ -48,7 +48,7 @@ export class Field {
   neg(): Field;
 
   /**
-   * Inverts this [[ Field ]] element.
+   * Inverts this [[`Field`]] element.
    *
    * ```typescript
    * const invX = x.inv();
@@ -60,27 +60,27 @@ export class Field {
   inv(): Field;
 
   /**
-   * Adds this [[ Field ]] element to another coercible to a field.
+   * Adds this [[`Field`]] element to another coercible to a field.
    */
   add(y: Field | number | string | boolean): Field;
 
   /**
-   * Subtracts this [[ Field ]] element to another coercible to a field.
+   * Subtracts this [[`Field`]] element to another coercible to a field.
    */
   sub(y: Field | number | string | boolean): Field;
 
   /**
-   * Multiplies this [[ Field ]] element to another coercible to a field.
+   * Multiplies this [[`Field`]] element to another coercible to a field.
    */
   mul(y: Field | number | string | boolean): Field;
 
   /**
-   * Divides this [[ Field ]] element to another coercible to a field.
+   * Divides this [[`Field`]] element to another coercible to a field.
    */
   div(y: Field | number | string | boolean): Field;
 
   /**
-   * Squares this [[ Field ]] element.
+   * Squares this [[`Field`]] element.
    *
    * ```typescript
    * const x2 = x.square();
@@ -90,7 +90,7 @@ export class Field {
   square(): Field;
 
   /**
-   * Square roots this [[ Field ]] element.
+   * Square roots this [[`Field`]] element.
    *
    * ```typescript
    * x.square().sqrt().assertEquals(x);
@@ -106,11 +106,13 @@ export class Field {
   // TODO: Rename to toFields()
   toFieldElements(): Field[];
 
+  // TODO: Make these long form version
   lt(y: Field | number | string | boolean): Bool;
   lte(y: Field | number | string | boolean): Bool;
   gt(y: Field | number | string | boolean): Bool;
   gte(y: Field | number | string | boolean): Bool;
 
+  // TODO: Make these long form version
   assertLt(y: Field | number | string | boolean): void;
   assertLte(y: Field | number | string | boolean): void;
   assertGt(y: Field | number | string | boolean): void;
@@ -175,12 +177,14 @@ export class Field {
   static toString(x: Field | number | string | boolean): string;
   */
 
-  // TODO: Ask izzy/matthew why we need this?
+  // TODO: Ask izzy/matthew why we need this non-static version?
   ofFieldElements(fields: Field[]): Field;
   // TODO: Rename to fromFields(fields: Field[])
   // TODO: (bkase) Refactor AsFieldElements to not need these redundant static things
   static ofFieldElements(fields: Field[]): Field;
+  // TODO: Rename to size()
   static sizeInFieldElements(): number;
+  // TODO: Rename to toFields
   static toFieldElements(x: Field): Field[];
 
   /*
@@ -215,19 +219,66 @@ export class Field {
   static fromJSON(x: JSONValue): Field | null;
 }
 
+/**
+ * A boolean value. You can use it like this:
+ *
+ * ```
+ * const x = new Bool(true);
+ * ```
+ *
+ * You can also combine multiple booleans via [[`not`]], [[`and`]], [[`or`]].
+ *
+ * Use [[assertEquals]] to enforce the value of a Bool.
+ */
 export class Bool {
   constructor(x: Bool | boolean);
 
+  /**
+   * Converts a [[`Bool`]] to a [[`Field`]]. `false` becomes 0 and `true` becomes 1.
+   */
   toField(): Field;
 
+  /**
+   * @returns a new [[`Bool`]] that is the negation of this [[`Bool`]].
+   */
   not(): Bool;
+
+  /**
+   * @param y A [[`Bool`]] to AND with this [[`Bool`]].
+   * @returns a new [[`Bool`]] that is set to true only if
+   * this [[`Bool`]] and `y` are also true.
+   */
   and(y: Bool | boolean): Bool;
+
+  /**
+   * @param y a [[`Bool`]] to OR with this [[`Bool`]].
+   * @returns a new [[`Bool`]] that is set to true if either
+   * this [[`Bool`]] or `y` is true.
+   */
   or(y: Bool | boolean): Bool;
 
+  /**
+   * Aborts the program if this [[`Bool`]] is equal to `y`.
+   * @param y a [[`Bool`]].
+   */
   assertEquals(y: Bool | boolean): void;
 
+  /**
+   * Returns true if this [[`Bool`]] is equal to `y`.
+   * @param y a [[`Bool`]].
+   */
   equals(y: Bool | boolean): Bool;
+
+  /**
+   * Returns true if this [[`Bool`]] is true.
+   */
+  // TODO: that seems useless :D?
   isTrue(): Bool;
+
+  /**
+   * Returns true if this [[`Bool`]] is false.
+   */
+  // not very useful no?
   isFalse(): Bool;
 
   sizeInFieldElements(): number;
@@ -236,13 +287,22 @@ export class Bool {
   toString(): string;
   toJSON(): JSONValue;
 
-  /* Can only be called on non-witness values */
+  /**
+   * This converts the [[`Bool`]] to a javascript [[boolean]].
+   * This can only be called on non-witness values.
+   */
   toBoolean(): boolean;
 
   /* static members */
   static toField(x: Bool | boolean): Field;
 
   static Unsafe: {
+    /**
+     * Converts a [[`Field`]] into a [[`Bool`]]. This is a **dangerous** operation
+     * as it assumes that the field element is either 1 or 0
+     * (which might not be true).
+     * @param x a [[`Field`]]
+     */
     ofField(x: Field | number | string | boolean): Bool;
   };
 

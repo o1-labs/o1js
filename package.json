@@ -25,13 +25,14 @@
     "type-check": "tsc --noEmit",
     "build": "node src/build/buildNode.mjs",
     "build:server": "npm run build",
-    "start:web": "./scripts/build-and-run-web-esbuild.sh",
+    "start:web": "./scripts/build-and-run-web.sh",
     "serve:web": "cd dist/web && python3 server.py",
     "exec": "./scripts/build-and-run-server.sh",
-    "build:web": "node webpack/esbuild-web.mjs",
-    "prepublish:web": "NODE_ENV=production node webpack/esbuild-web.mjs",
+    "build:web": "node src/build/buildWeb.mjs",
+    "prepublish:web": "NODE_ENV=production node src/build/buildWeb.mjs",
     "prepublish:server": "NODE_ENV=production node src/build/buildNode.mjs",
     "prepublish:both": "npm run prepublish:web && npm run prepublish:server",
+    "prepublishOnly": "npm run prepublish:web && npm run prepublish:server",
     "format": "prettier --write --ignore-unknown **/*",
     "test": "node --experimental-wasm-modules --experimental-modules --experimental-wasm-threads --experimental-vm-modules ./node_modules/jest/bin/jest.js --silent",
     "clean": "rm -rf dist"
@@ -55,14 +56,14 @@
     "prettier": "^2.3.2",
     "ts-jest": "^27.0.4",
     "ts-loader": "^9.2.5",
+    "typedoc": "^0.22.9",
     "typescript": "^4.4.4",
     "webpack": "^5.49.0",
     "webpack-cli": "^4.7.2"
   },
   "dependencies": {
     "env": "^0.0.2",
-    "tslib": "^2.3.0",
     "reflect-metadata": "^0.1.13",
-    "typedoc": "^0.22.9"
+    "tslib": "^2.3.0"
   }
 }
