@@ -12,6 +12,16 @@ import { PublicKey } from './signature';
 import * as Mina from './mina';
 import { FullAccountPredicate_ } from '../snarky';
 
+/**
+ * A decorator to use within a snapp to indicate what will be stored on-chain.
+ * For example, if you want to store a field element `some_state` in a snapp,
+ * you can use the following in the declaration of your snapp:
+ *
+ * ```
+ * @state(Field) some_state: Field;
+ * ```
+ *
+ */
 export function state<A>(ty: AsFieldElements<A>) {
   return function (
     target: any,
@@ -139,11 +149,22 @@ export function state<A>(ty: AsFieldElements<A>) {
   };
 }
 
+/**
+ * A decorator to use in a snapp to mark a method as callable by anyone.
+ * You can use inside your snapp class as:
+ *
+ * ```
+ * @method async my_method(some_arg: Field) {
+ *  // your code here
+ * }
+ * ```
+ */
 export function method(
   target: any,
   propertyName: string,
   _descriptor?: PropertyDescriptor
 ): any {}
+
 export function init(
   target: any,
   propertyName: string,
@@ -157,6 +178,16 @@ type ExecutionState = {
   protocolStatePredicate: ProtocolStatePredicate;
 };
 
+/**
+ * The main snapp class. To write a snapp, extend this class as such:
+ *
+ * ```
+ * class YourSmartContract extends SmartContract {
+ *   // your smart contract code here
+ * }
+ * ```
+ *
+ */
 export abstract class SmartContract {
   // protocolState: ProtocolStatePredicate;
   address: PublicKey;
