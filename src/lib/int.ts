@@ -16,10 +16,6 @@ function argToField(name: string, x: { value: Field } | number): Field {
 export class UInt64 extends CircuitValue {
   @prop value: Field;
 
-  [util.inspect.custom](depth: any, opts: any) {
-    return this.value.toString();
-  }
-
   static zero: UInt64 = new UInt64(Field.zero);
 
   constructor(value: Field) {
@@ -147,10 +143,6 @@ export class UInt32 extends CircuitValue {
   @prop value: Field;
 
   static zero: UInt32 = new UInt32(Field.zero);
-
-  [util.inspect.custom](depth: any, opts: any) {
-    return this.value.toString();
-  }
 
   constructor(value: Field) {
     super();
@@ -292,16 +284,6 @@ export class Int64 {
 
   static check() {
     throw 'todo: int64 check';
-  }
-
-  [util.inspect.custom](depth: any, opts: any) {
-    const s = this.value.toString();
-    const n = BigInt(s);
-    if (n < 1n << 64n) {
-      return s;
-    } else {
-      return '-' + this.value.neg().toString();
-    }
   }
 
   /*
