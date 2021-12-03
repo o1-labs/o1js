@@ -51,11 +51,7 @@ export class Keyed {
     const P = MerkleProofFactory(depth);
     const I = Index[depth];
 
-    const t = new Tree<V>(
-      depth,
-      (x) => Poseidon.hash(eltTyp.toFields(x)),
-      []
-    );
+    const t = new Tree<V>(depth, (x) => Poseidon.hash(eltTyp.toFields(x)), []);
 
     let nextIdx = 0;
     let indexes: Map<string, boolean[]> = new Map();
@@ -145,11 +141,7 @@ export function InMemory<A>(
   const P = MerkleProofFactory(depth);
   const I = Index[depth];
 
-  const t = new Tree<A>(
-    depth,
-    (x) => Poseidon.hash(eltTyp.toFields(x)),
-    []
-  );
+  const t = new Tree<A>(depth, (x) => Poseidon.hash(eltTyp.toFields(x)), []);
   let nextIdx = 0;
   let indexes: Map<string, boolean[]> = new Map();
 

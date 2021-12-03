@@ -219,7 +219,7 @@ export class Field {
   static fromJSON(x: JSONValue): Field | null;
 }
 
-export function Field(x : number | string): Field;
+export function Field(x: number | string): Field;
 
 /**
  * A boolean value. You can use it like this:
@@ -391,11 +391,7 @@ export class Circuit {
     length: number
   ): AsFieldElements<T[]>;
 
-  static assertEqual<T>(
-    ctor: { toFields(x: T): Field[] },
-    x: T,
-    y: T
-  ): void;
+  static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
 
   static assertEqual<T>(x: T, y: T): void;
 

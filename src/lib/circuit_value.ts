@@ -56,9 +56,7 @@ export abstract class CircuitValue {
     for (let i = 0; i < fields.length; ++i) {
       const propType = fields[i][1];
       const propSize = propType.sizeInFields();
-      const propVal = propType.ofFields(
-        xs.slice(offset, offset + propSize)
-      );
+      const propVal = propType.ofFields(xs.slice(offset, offset + propSize));
       props.push(propVal);
       offset += propSize;
     }

@@ -183,7 +183,7 @@ export const LocalBlockchain: () => MockMina = () => {
             if (p.predicate instanceof UInt32) {
               predicate = { type: 'nonce', value: p.predicate };
             } else if (p.predicate === undefined) {
-              predicate = { type: 'accept' }
+              predicate = { type: 'accept' };
             } else {
               predicate = { type: 'full', value: p.predicate };
             }

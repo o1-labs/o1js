@@ -23,6 +23,10 @@ export class UInt64 extends CircuitValue {
     this.value = value;
   }
 
+  toString(): string {
+    return this.value.toString();
+  }
+
   static check(x: UInt64) {
     let actual = x.value.rangeCheckHelper(64);
     actual.assertEquals(x.value);
@@ -158,6 +162,10 @@ export class UInt32 extends CircuitValue {
   constructor(value: Field) {
     super();
     this.value = value;
+  }
+
+  toString(): string {
+    return this.value.toString();
   }
 
   static check(x: UInt32) {
@@ -304,6 +312,16 @@ export class Int64 {
 
   constructor(x: Field) {
     this.value = x;
+  }
+
+  toString(): string {
+    const s = this.value.toString();
+    const n = BigInt(s);
+    if (n < 1n << 64n) {
+      return s;
+    } else {
+      return '-' + this.value.neg().toString();
+    }
   }
 
   static zero = new Int64(Field.zero);
