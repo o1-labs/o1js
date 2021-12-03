@@ -55,6 +55,8 @@ async function buildWeb({ entry, production }) {
   await copy({
     './src/snarky.js': './dist/web/snarky.js',
     './src/snarky.d.ts': './dist/web/snarky.d.ts',
+    './src/proxyClasses.js': './dist/web/proxyClasses.js',
+    './src/snarky-class-spec.json': './dist/web/snarky-class-spec.json',
     './src/chrome_bindings': './dist/web/chrome_bindings/',
   });
   // overwrite plonk_wasm with bundled version

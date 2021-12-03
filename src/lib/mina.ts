@@ -167,6 +167,10 @@ export const LocalBlockchain: () => MockMina = () => {
         const r: Promise<() => void> = new Promise((k) => k(() => {}));
         return r;
       }
+    }).catch((err) => {
+      currentTransaction = undefined;
+      // TODO would be nice if the error would be a bit more descriptive about what failed
+      throw err;
     });
 
     const senderPubkey = sender.toPublicKey();

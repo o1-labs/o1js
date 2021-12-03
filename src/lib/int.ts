@@ -16,8 +16,9 @@ function argToField(name: string, x: { value: Field } | number): Field {
 export class UInt64 extends CircuitValue {
   @prop value: Field;
 
-  static zero: UInt64 = new UInt64(Field.zero);
-
+  static get zero(): UInt64 {
+    return new UInt64(Field.zero);
+  }
   constructor(value: Field) {
     super();
     this.value = value;
@@ -157,7 +158,9 @@ export class UInt64 extends CircuitValue {
 export class UInt32 extends CircuitValue {
   @prop value: Field;
 
-  static zero: UInt32 = new UInt32(Field.zero);
+  static get zero(): UInt32 {
+    return new UInt32(Field.zero);
+  }
 
   constructor(value: Field) {
     super();
@@ -293,8 +296,12 @@ class Sgn extends CircuitValue {
     this.value = value;
   }
 
-  static Pos = new Sgn(Field.one);
-  static Neg = new Sgn(Field.one.neg());
+  static get Pos() {
+    return new Sgn(Field.one);
+  }
+  static get Neg() {
+    return new Sgn(Field.one.neg());
+  }
 }
 
 export class Int64 {
@@ -324,7 +331,9 @@ export class Int64 {
     }
   }
 
-  static zero = new Int64(Field.zero);
+  static get zero(): Int64 {
+    return new Int64(Field.zero);
+  }
 
   static fromUnsigned(x: UInt64): Int64 {
     return new Int64(x.value);

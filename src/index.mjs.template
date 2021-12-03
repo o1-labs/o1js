@@ -1,7 +1,8 @@
 // this file becomes the entry point for node projects that use ESM imports
 import snarkyjs from './index.js';
-// here we can just await the promise to provide a cleaner interface
-await snarkyjs.isReady;
+// here we could just await the promise to provide a cleaner interface
+// but there are reasons not to
+// await snarkyjs.isReady;
 
 let { __EXPORTS__ } = snarkyjs;
 export { __EXPORTS__ };

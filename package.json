@@ -14,12 +14,16 @@
   },
   "types": "./dist/server/index.d.ts",
   "files": [
+    "src/build",
     "dist",
     "src/lib",
     "src/**/*.d.ts"
   ],
+  "bin": {
+    "snarky-run": "src/build/run.mjs"
+  },
   "engines": {
-    "node": ">=16"
+    "node": ">=16.4.0"
   },
   "scripts": {
     "type-check": "tsc --noEmit",
@@ -39,27 +43,17 @@
   },
   "author": "O(1) Labs",
   "devDependencies": {
-    "@babel/core": "^7.15.0",
-    "@babel/plugin-transform-runtime": "^7.15.0",
-    "@babel/preset-env": "^7.15.0",
     "@types/jest": "^27.0.0",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
-    "babel-loader": "^8.2.2",
-    "clean-webpack-plugin": "^4.0.0-alpha.0",
-    "copy-webpack-plugin": "^9.0.1",
     "esbuild": "^0.13.13",
     "eslint": "^8.0.0",
     "fs-extra": "^10.0.0",
     "jest": "^27.0.6",
     "minimist": "^1.2.5",
-    "node-polyfill-webpack-plugin": "^1.1.4",
     "prettier": "^2.3.2",
     "ts-jest": "^27.0.4",
-    "ts-loader": "^9.2.5",
     "typedoc": "^0.22.9",
-    "typescript": "^4.4.4",
-    "webpack": "^5.49.0",
-    "webpack-cli": "^4.7.2"
+    "typescript": "^4.4.4"
   },
   "dependencies": {
     "env": "^0.0.2",

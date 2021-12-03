@@ -18,6 +18,7 @@ async function buildAndImport(srcPath, { keepFile = false }) {
     outfile,
     target: 'esnext',
     resolveExtensions: ['.node.js', '.ts', '.js'],
+    logLevel: 'error',
     plugins: [typescriptPlugin(tsConfig), makeNodeModulesExternal()],
   });
 

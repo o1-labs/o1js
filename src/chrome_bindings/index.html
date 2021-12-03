@@ -4,7 +4,11 @@
     <meta charset="utf-8" />
     <title>hello-wasm example</title>
     <script type="module">
-      import { Field } from '/index.js';
+      import { Field, isReady, SmartContract } from '/index.js';
+
+      class Something extends SmartContract {}
+
+      await isReady;
       console.log(
         `snarkyjs initialized after ${performance.now().toFixed(2)}ms`
       );
