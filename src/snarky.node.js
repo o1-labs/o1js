@@ -23,8 +23,10 @@ let isReady = snarkyServer.snarky_ready.then(() => {
   isReadyBoolean = true;
 });
 
+let didShutdown = false;
 function shutdown() {
-  if (global.wasm_rayon_poolbuilder) {
+  if (global.wasm_rayon_poolbuilder && !didShutdown) {
+    didShutdown = true;
     global.wasm_rayon_poolbuilder.free();
     return Promise.all(
       global.wasm_workers.map(async (worker) => {
