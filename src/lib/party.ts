@@ -204,7 +204,7 @@ export class Update {
 }
 
 type TokenId = UInt64;
-export const DefaultTokenId: TokenId = new UInt64(Field.one);
+export const getDefaultTokenId = () => new UInt64(Field.one);
 
 // TODO
 export class Events {
@@ -256,7 +256,7 @@ export class Body {
     return new Body(
       publicKey,
       update,
-      DefaultTokenId,
+      getDefaultTokenId(),
       Int64.zero,
       new Events(Field.zero, []),
       Field.zero,
