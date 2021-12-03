@@ -19,7 +19,7 @@
     "src/**/*.d.ts"
   ],
   "engines": {
-    "node": ">=16.13.0"
+    "node": ">=16.4.0"
   },
   "scripts": {
     "type-check": "tsc --noEmit",
