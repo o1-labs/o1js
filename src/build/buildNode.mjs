@@ -52,7 +52,7 @@ async function buildNode({ entry, production }) {
     format: 'cjs',
     platform: 'node',
     outfile: jsEntry,
-    target: 'esnext',
+    target: 'es2021',
     external: ['*.bc.js'],
     resolveExtensions: ['.node.js', '.ts', '.js'],
     allowOverwrite: true,

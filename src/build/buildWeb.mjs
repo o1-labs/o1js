@@ -73,7 +73,7 @@ async function buildWeb({ entry, production }) {
     resolveExtensions: ['.js', '.ts'],
     plugins: [wasmPlugin(), srcStringPlugin()],
     external: ['*.bc.js'],
-    target: 'esnext',
+    target: 'es2021',
     allowOverwrite: true,
     logLevel: 'error',
     minify,
