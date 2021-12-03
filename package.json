@@ -14,10 +14,14 @@
   },
   "types": "./dist/server/index.d.ts",
   "files": [
+    "src/build",
     "dist",
     "src/lib",
     "src/**/*.d.ts"
   ],
+  "bin": {
+    "snarky-run": "src/build/run.mjs"
+  },
   "engines": {
     "node": ">=16.4.0"
   },

@@ -13,7 +13,7 @@ let {
 
 if (!filePath) {
   console.log(`Usage:
-./run [file]`);
+npx snarky-run [file]`);
   process.exit(0);
 }
 
