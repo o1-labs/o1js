@@ -219,6 +219,9 @@ export class Field {
   static fromJSON(x: JSONValue): Field | null;
 }
 
+/**
+ * Shorthand for constructing a [[ Field ]]
+ */
 export function Field(x: number | string): Field;
 
 /**
@@ -653,9 +656,14 @@ export const array: <T>(
   length: number
 ) => AsFieldElements<T[]>;
 
-/* This function *must* be called at the end of a nodejs program, otherwise the
+/**
+ * This function *must* be called at the end of a nodejs program, otherwise the
  * worker threads will continue running and the program will never terminate.
- * From web applications, this function is a no-op. */
+ * From web applications, this function is a no-op.
+ */
 export const shutdown: () => Promise<undefined>;
 
+/**
+ * A Promise that resolves when SnarkyJS is ready to be used
+ */
 export let isReady: Promise<undefined>;
