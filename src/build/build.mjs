@@ -16,7 +16,7 @@ async function buildAndImport(srcPath, { keepFile = false }) {
     format: 'esm',
     platform: 'node',
     outfile,
-    target: 'es2021',
+    target: 'esnext',
     resolveExtensions: ['.node.js', '.ts', '.js'],
     logLevel: 'error',
     plugins: [typescriptPlugin(tsConfig), makeNodeModulesExternal()],
