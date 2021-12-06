@@ -19,6 +19,8 @@ if (isMain) {
 }
 
 async function buildNode({ entry, production }) {
+  let minify = !!production;
+
   // copy over files not processed by TS
   let copyPromise = copy({
     './src/node_bindings/': './dist/server/node_bindings/',
@@ -27,7 +29,19 @@ async function buildNode({ entry, production }) {
     './src/snarky.d.ts': './dist/server/snarky.d.ts',
     './src/snarky-class-spec.json': './dist/server/snarky-class-spec.json',
   });
-  // invoke TS to recreate out .ts files as .js + d.ts in /dist/server
+
+  if (minify) {
+    let snarkyJsPath = './dist/server/node_bindings/snarky_js_node.bc.js';
+    let snarkyJs = await fs.readFile(snarkyJsPath, 'utf8');
+    let { code } = await esbuild.transform(snarkyJs, {
+      target: 'es2021',
+      logLevel: 'error',
+      minify,
+    });
+    await fs.writeFile(snarkyJsPath, code);
+  }
+
+  // invoke TS to recreate .ts files as .js + d.ts in /dist/server
   let json = JSON.stringify({
     extends: './tsconfig.json',
     include: [entry],
@@ -57,7 +71,7 @@ async function buildNode({ entry, production }) {
     resolveExtensions: ['.node.js', '.ts', '.js'],
     allowOverwrite: true,
     plugins: [makeNodeModulesExternal()],
-    minify: !!production,
+    minify,
   });
 
   // import the new index.js to get a list of its exports

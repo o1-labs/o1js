@@ -59,6 +59,19 @@ async function buildWeb({ entry, production }) {
     './src/snarky-class-spec.json': './dist/web/snarky-class-spec.json',
     './src/chrome_bindings': './dist/web/chrome_bindings/',
   });
+
+  if (minify) {
+    let snarkyJsChromePath =
+      './dist/web/chrome_bindings/snarky_js_chrome.bc.js';
+    let snarkyJsChrome = await readFile(snarkyJsChromePath, 'utf8');
+    let { code } = await esbuild.transform(snarkyJsChrome, {
+      target: 'es2021',
+      logLevel: 'error',
+      minify,
+    });
+    await writeFile(snarkyJsChromePath, code);
+  }
+
   // overwrite plonk_wasm with bundled version
   await copy({ [tmpBindingsPath]: './dist/web/chrome_bindings/plonk_wasm.js' });
   await unlink(tmpBindingsPath);
