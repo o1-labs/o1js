@@ -65,17 +65,17 @@ export class Field {
   add(y: Field | number | string | boolean): Field;
 
   /**
-   * Subtracts this [[`Field`]] element to another coercible to a field.
+   * Subtracts another [[`Field`]]-like element from this one.
    */
   sub(y: Field | number | string | boolean): Field;
 
   /**
-   * Multiplies this [[`Field`]] element to another coercible to a field.
+   * Multiplies this [[`Field`]] element with another coercible to a field.
    */
   mul(y: Field | number | string | boolean): Field;
 
   /**
-   * Divides this [[`Field`]] element to another coercible to a field.
+   * Divides this [[`Field`]] element through another coercible to a field.
    */
   div(y: Field | number | string | boolean): Field;
 
@@ -107,18 +107,108 @@ export class Field {
   toFields(): Field[];
 
   // TODO: Make these long form version
+  /**
+   * Check if this [[`Field`]] is lower than another Field-like value.
+   * Returns a [[`Bool`]].
+   *
+   * ```ts
+   * Field(2).lt(3); // Bool(true)
+   * ```
+   */
   lt(y: Field | number | string | boolean): Bool;
+  /**
+   * Check if this [[`Field`]] is lower than or equal to another Field-like value.
+   * Returns a [[`Bool`]].
+   *
+   * ```ts
+   * Field(2).lte(3); // Bool(true)
+   * ```
+   */
   lte(y: Field | number | string | boolean): Bool;
+  /**
+   * Check if this [[`Field`]] is greater than another Field-like value.
+   * Returns a [[`Bool`]].
+   *
+   * ```ts
+   * Field(2).gt(1); // Bool(true)
+   * ```
+   */
   gt(y: Field | number | string | boolean): Bool;
+  /**
+   * Check if this [[`Field`]] is greater than or equal to another Field-like value.
+   * Returns a [[`Bool`]].
+   *
+   * ```ts
+   * Field(2).gte(1); // Bool(true)
+   * ```
+   */
   gte(y: Field | number | string | boolean): Bool;
 
   // TODO: Make these long form version
+  /**
+   * Assert that this [[`Field`]] is lower than another Field-like value.
+   *
+   * ```ts
+   * Field.one.assertLt(2);
+   * ```
+   *
+   * This function can only be called inside a checked computation, like a
+   * SmartContract method, and causes it to fail if the assertion fails.
+   */
   assertLt(y: Field | number | string | boolean): void;
+  /**
+   * Assert that this [[`Field`]] is lower than or equal to another Field-like value.
+   *
+   * ```ts
+   * Field.one.assertLte(2);
+   * ```
+   *
+   * This function can only be called inside a checked computation, like a
+   * SmartContract method, and causes it to fail if the assertion fails.
+   */
   assertLte(y: Field | number | string | boolean): void;
+  /**
+   * Assert that this [[`Field`]] is greater than another Field-like value.
+   *
+   * ```ts
+   * Field.one.assertGt(0);
+   * ```
+   *
+   * This function can only be called inside a checked computation, like a
+   * SmartContract method, and causes it to fail if the assertion fails.
+   */
   assertGt(y: Field | number | string | boolean): void;
+  /**
+   * Assert that this [[`Field`]] is greater than or equal to another Field-like value.
+   *
+   * ```ts
+   * Field.one.assertGte(0);
+   * ```
+   *
+   * This function can only be called inside a checked computation, like a
+   * SmartContract method, and causes it to fail if the assertion fails.
+   */
   assertGte(y: Field | number | string | boolean): void;
 
+  /**
+   * Assert that this [[`Field`]] equals another Field-like value.
+   * Throws an error if the assertion fails.
+   *
+   * ```ts
+   * Field.one.assertEquals(1);
+   * ```
+   */
   assertEquals(y: Field | number | string | boolean): void;
+  /**
+   * Assert that this [[`Field`]] is either 0 or 1.
+   *
+   * ```ts
+   * Field.zero.assertBoolean();
+   * ```
+   *
+   * This function can only be called inside a checked computation, like a
+   * SmartContract method, and throws an error if the assertion fails.
+   */
   assertBoolean(): void;
   isZero(): Bool;
 
@@ -133,6 +223,14 @@ export class Field {
    */
   toBits(length: number): Bool[];
 
+  /**
+   * Check if this [[`Field`]] equals another [[`Field`]]-like value.
+   * Returns a [[`Bool`]].
+   *
+   * ```ts
+   * Field(2).equals(2); // Bool(true)
+   * ```
+   */
   equals(y: Field | number | string | boolean): Bool;
 
   // TODO: Izzy to document
@@ -146,8 +244,17 @@ export class Field {
   // value(this: Field | number | string | boolean): Field;
 
   /* Self members */
+  /**
+   * The number 1 as a [[`Field`]].
+   */
   static one: Field;
+  /**
+   * The number 0 as a [[`Field`]].
+   */
   static zero: Field;
+  /**
+   * A random field element.
+   */
   static random(): Field;
 
   /*
@@ -219,6 +326,9 @@ export class Field {
   static fromJSON(x: JSONValue): Field | null;
 }
 
+/**
+ * An element of a finite field.
+ */
 export function Field(x: number | string): Field;
 
 /**
@@ -232,6 +342,7 @@ export function Field(x: number | string): Field;
  *
  * Use [[assertEquals]] to enforce the value of a Bool.
  */
+export function Bool(x: Bool | boolean): Bool;
 export class Bool {
   constructor(x: Bool | boolean);
 
@@ -653,9 +764,14 @@ export const array: <T>(
   length: number
 ) => AsFieldElements<T[]>;
 
-/* This function *must* be called at the end of a nodejs program, otherwise the
+/**
+ * This function *must* be called at the end of a nodejs program, otherwise the
  * worker threads will continue running and the program will never terminate.
- * From web applications, this function is a no-op. */
+ * From web applications, this function is a no-op.
+ */
 export const shutdown: () => Promise<undefined>;
 
+/**
+ * A Promise that resolves when SnarkyJS is ready to be used
+ */
 export let isReady: Promise<undefined>;

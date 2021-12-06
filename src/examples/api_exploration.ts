@@ -21,7 +21,11 @@ import {
 // You can initialize literal field elements with numbers, booleans, or decimal strings
 const x0: Field = new Field('37');
 // Typescript has type inference, so type annotations are usually optional.
-const x1 = new Field(37);
+let x1 = new Field(37);
+console.assert(x0.equals(x1).toBoolean());
+
+// The constructor is optional as well:
+x1 = Field(37);
 console.assert(x0.equals(x1).toBoolean());
 
 // When initializing with booleans, true corresponds to the field element 1, and false corresponds to 0
