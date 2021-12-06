@@ -1,4 +1,11 @@
-import { Field, Bool, Poseidon, isReady, AsFieldElements } from '../snarky';
+import {
+  Circuit,
+  Field,
+  Bool,
+  Poseidon,
+  isReady,
+  AsFieldElements,
+} from '../snarky';
 import { CircuitValue } from './circuit_value';
 import {
   AccountPredicate,
@@ -11,6 +18,7 @@ import {
 import { PublicKey } from './signature';
 import * as Mina from './mina';
 import { FullAccountPredicate_ } from '../snarky';
+import { UInt32 } from './int';
 
 /**
  * A decorator to use within a snapp to indicate what will be stored on-chain.
@@ -105,30 +113,27 @@ export function state<A>(ty: AsFieldElements<A>) {
         const r = S.getLayout();
 
         let addr: PublicKey = S._this.address;
+        let p: Promise<Field[]>;
 
-        /* TODO: We need to be able to create variables and then fill
-             them in so that we can rewrite this as something like
+        if (Circuit.inProver()) {
+          p = Mina.getAccount(addr).then(a => {
+            const xs: Field[] = [];
+            for (let i = 0; i < r.length; ++i) {
+              xs.push(a.snapp.appState[r.offset + i]);
+            }
+            return Circuit.witness(Circuit.array(Field, r.length), () => xs);
+          });
+        } else {
+          const res = Circuit.witness(Circuit.array(Field, r.length), () => { throw 'unimplemented'});
+          p = new Promise(k => k(res));
+        }
 
-             const xs = Circuit.witness(array(r.length), () => array of zeroes);
-             const res = ty.ofFields(xs);
-             if (Circuit.generatingWitness()) {
-               return Mina.getAccount().then((a) => {
-                 for (let i = 0; i < r.length ++i) {
-                   xs[i].setVariable(a.snapp.appState[r.offset + i]);
-                 }
-                 return res;
-               })
-             } else {
-               return new Promise((k) => k(res));
-             }
-          */
-
-        return Mina.getAccount(addr).then((a) => {
-          const xs = [];
-          for (let i = 0; i < r.length; ++i) {
-            xs.push(a.snapp.appState[r.offset + i]);
+        return p.then(xs => {
+          const res = ty.ofFields(xs);
+          if ((ty as any).check != undefined) {
+            (ty as any).check(res);
           }
-          return ty.ofFields(xs);
+          return res;
         });
       }
     }
@@ -252,6 +257,25 @@ export abstract class SmartContract {
 
   get balance(): PartyBalance {
     return this.self.balance;
+  }
+
+  get nonce(): Promise<UInt32> {
+    let p: Promise<UInt32>;
+    if (Circuit.inProver()) {
+      p = Mina.getAccount(this.address).then((a) => {
+        return Circuit.witness<UInt32>(UInt32, () => a.nonce);
+      });
+    } else {
+      const res = Circuit.witness<UInt32>(UInt32, () => {
+        throw 'unimplemented';
+      });
+      p = new Promise((resolve) => resolve(res));
+    }
+
+    return p.then((nonce) => {
+      this.executionState().party.predicate.nonce.assertBetween(nonce, nonce);
+      return nonce;
+    });
   }
 
   static fromAddress(address: PublicKey): SmartContract {
