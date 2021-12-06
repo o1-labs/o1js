@@ -3,9 +3,20 @@ import path from 'node:path';
 import ts from 'typescript';
 import esbuild from 'esbuild';
 
-export { buildAndImport };
+export { buildAndImport, build };
 
 async function buildAndImport(srcPath, { keepFile = false }) {
+  let absPath = await build(srcPath);
+  let importedModule;
+  try {
+    importedModule = await import(absPath);
+  } finally {
+    if (!keepFile) await fs.unlink(absPath);
+  }
+  return importedModule;
+}
+
+async function build(srcPath) {
   let tsConfig = findTsConfig() ?? defaultTsConfig;
 
   let outfile = srcPath.replace('.ts', '.tmp.mjs');
@@ -23,13 +34,7 @@ async function buildAndImport(srcPath, { keepFile = false }) {
   });
 
   let absPath = path.resolve('.', outfile);
-  let importedModule;
-  try {
-    importedModule = await import(absPath);
-  } finally {
-    if (!keepFile) await fs.unlink(absPath);
-  }
-  return importedModule;
+  return absPath;
 }
 
 const defaultTsConfig = {
