@@ -139,7 +139,7 @@ export class Perm {
   /**
    * Modification is permitted by only [[ Perm.proof ]] and [[ Perm.signature ]]
    */
- static proofAndSignature() {
+  static proofAndSignature() {
     return new Perm(new Bool(false), new Bool(true), new Bool(false));
   }
 }
@@ -494,8 +494,8 @@ export class ClosedInterval<A> {
    * @param upper The upper part
    */
   assertBetween(lower: A, upper: A) {
-    this.lower = x;
-    this.upper = y;
+    this.lower = lower;
+    this.upper = upper;
   }
 
   set lower(x: A) {
