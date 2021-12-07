@@ -1,11 +1,4 @@
-import {
-  Circuit,
-  Field,
-  Bool,
-  Poseidon,
-  isReady,
-  AsFieldElements,
-} from '../snarky';
+import { Circuit, Field, Bool, Poseidon, AsFieldElements } from '../snarky';
 import { CircuitValue } from './circuit_value';
 import {
   AccountPredicate,
@@ -17,7 +10,6 @@ import {
 } from './party';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
-import { FullAccountPredicate_ } from '../snarky';
 import { UInt32 } from './int';
 
 /**
@@ -116,7 +108,7 @@ export function state<A>(ty: AsFieldElements<A>) {
         let p: Promise<Field[]>;
 
         if (Circuit.inProver()) {
-          p = Mina.getAccount(addr).then(a => {
+          p = Mina.getAccount(addr).then((a) => {
             const xs: Field[] = [];
             for (let i = 0; i < r.length; ++i) {
               xs.push(a.snapp.appState[r.offset + i]);
@@ -124,11 +116,13 @@ export function state<A>(ty: AsFieldElements<A>) {
             return Circuit.witness(Circuit.array(Field, r.length), () => xs);
           });
         } else {
-          const res = Circuit.witness(Circuit.array(Field, r.length), () => { throw 'unimplemented'});
-          p = new Promise(k => k(res));
+          const res = Circuit.witness(Circuit.array(Field, r.length), () => {
+            throw 'unimplemented';
+          });
+          p = new Promise((k) => k(res));
         }
 
-        return p.then(xs => {
+        return p.then((xs) => {
           const res = ty.ofFields(xs);
           if ((ty as any).check != undefined) {
             (ty as any).check(res);
@@ -206,9 +200,7 @@ export abstract class SmartContract {
   constructor(address: PublicKey) {
     this.address = address;
     try {
-      this.executionState().party.body.update.verificationKey.set = new Bool(
-        true
-      );
+      this.executionState().party.body.update.verificationKey.set = Bool(true);
     } catch (_error) {
       throw new Error(
         'Cannot construct `new` SmartContract instance outside a transaction. Use `SmartContract.fromAddress` to refer to an already deployed instance.'
