@@ -199,6 +199,11 @@ export abstract class SmartContract {
 
   constructor(address: PublicKey) {
     this.address = address;
+    // this.self = null as unknown as Body;
+    // this.state = [];
+  }
+
+  init() {
     try {
       this.executionState().party.body.update.verificationKey.set = Bool(true);
     } catch (_error) {
@@ -206,8 +211,6 @@ export abstract class SmartContract {
         'Cannot construct `new` SmartContract instance outside a transaction. Use `SmartContract.fromAddress` to refer to an already deployed instance.'
       );
     }
-    // this.self = null as unknown as Body;
-    // this.state = [];
   }
 
   executionState(): ExecutionState {
