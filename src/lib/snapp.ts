@@ -273,10 +273,6 @@ export abstract class SmartContract {
     });
   }
 
-  static fromAddress(address: PublicKey): SmartContract {
-    throw 'fromaddress';
-  }
-
   party(i: number): Body {
     throw 'party';
   }
