@@ -10,7 +10,7 @@ import {
 } from './party';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
-import { UInt32 } from './int';
+import { UInt32, UInt64 } from './int';
 
 /**
  * A decorator to use within a snapp to indicate what will be stored on-chain.
@@ -203,7 +203,7 @@ export abstract class SmartContract {
     // this.state = [];
   }
 
-  init() {
+  init(initialBalance: UInt64 | UInt32) {
     try {
       this.executionState().party.body.update.verificationKey.set = Bool(true);
     } catch (_error) {
