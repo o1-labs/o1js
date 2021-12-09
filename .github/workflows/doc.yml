@@ -2,7 +2,7 @@ name: Build SnarkyJS
 on:
   push:
     branches:
-      - main
+      - feature/workshop-examples
 
 jobs:
   Build-Doc:
