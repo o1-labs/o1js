@@ -203,7 +203,7 @@ export abstract class SmartContract {
     // this.state = [];
   }
 
-  init(initialBalance: UInt64 | UInt32) {
+  deploy(...args: any[]) {
     try {
       this.executionState().party.body.update.verificationKey.set = Bool(true);
     } catch (_error) {
