@@ -98,7 +98,15 @@ export class Field {
    */
   sqrt(): Field;
 
+  /**
+   * Serialize the [[`Field`]] to a string, e.g. for printing.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   toString(): string;
+  /**
+   * Serialize the [[`Field`]] to a JSON string.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   toJSON(): JSONValue;
 
   // TODO: Rename to size()
@@ -397,7 +405,15 @@ export class Bool {
   sizeInFields(): number;
   toFields(): Field[];
 
+  /**
+   * Serialize the [[`Bool`]] to a string, e.g. for printing.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   toString(): string;
+  /**
+   * Serialize the [[`Bool`]] to a JSON string.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   toJSON(): JSONValue;
 
   /**
