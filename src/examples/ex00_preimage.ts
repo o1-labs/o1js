@@ -4,6 +4,7 @@ import {
   Circuit,
   circuitMain,
   public_,
+  isReady,
 } from '@o1labs/snarkyjs';
 
 /* Exercise 0:
@@ -19,6 +20,8 @@ class Main extends Circuit {
     Poseidon.hash([preimage]).assertEquals(hash);
   }
 }
+
+await isReady;
 
 console.log('generating keypair...');
 const kp = Main.generateKeypair();

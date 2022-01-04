@@ -70,4 +70,6 @@ export function main() {
   console.log('random', Field.random());
   const proof = Circ.prove([], [new Field(2)], kp);
   console.log(proof, kp);
+  let ok = Circ.verify([Field(2)], kp.verificationKey(), proof);
+  console.log('verified', ok);
 }

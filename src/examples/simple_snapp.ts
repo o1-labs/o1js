@@ -9,7 +9,7 @@ import {
   PrivateKey,
   SmartContract,
   Mina,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 
 class SimpleSnapp extends SmartContract {
   @state(Field) x: State<Field>;
