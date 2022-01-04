@@ -17,61 +17,59 @@ export default function workerRun() {
     return {
       caml_pasta_fp_plonk_index_create: {
         args: [
-          plonk_wasm.WasmPastaFpPlonkGateVector,
+          plonk_wasm.WasmFpGateVector,
           undefined /* number */,
-          plonk_wasm.WasmPastaFpUrs,
+          plonk_wasm.WasmFpSrs,
         ],
         res: plonk_wasm.WasmPastaFpPlonkIndex,
       },
       caml_pasta_fq_plonk_index_create: {
         args: [
-          plonk_wasm.WasmPastaFqPlonkGateVector,
+          plonk_wasm.WasmFqGateVector,
           undefined /* number */,
-          plonk_wasm.WasmPastaFqUrs,
+          plonk_wasm.WasmFqSrs,
         ],
         res: plonk_wasm.WasmPastaFqPlonkIndex,
       },
       caml_pasta_fp_plonk_verifier_index_create: {
         args: [plonk_wasm.WasmPastaFpPlonkIndex],
-        res: plonk_wasm.WasmPastaFpPlonkVerifierIndex,
+        res: plonk_wasm.WasmFpPlonkVerifierIndex,
       },
       caml_pasta_fq_plonk_verifier_index_create: {
         args: [plonk_wasm.WasmPastaFqPlonkIndex],
-        res: plonk_wasm.WasmPastaFqPlonkVerifierIndex,
+        res: plonk_wasm.WasmFqPlonkVerifierIndex,
       },
       caml_pasta_fp_plonk_proof_create: {
         args: [
           plonk_wasm.WasmPastaFpPlonkIndex,
-          undefined /*Uint8Array*/,
-          undefined /*Uint8Array*/,
+          plonk_wasm.WasmVecVecFp,
           undefined /*Uint8Array*/,
           undefined /*Uint32Array*/,
         ],
-        res: plonk_wasm.WasmPastaFpProverProof,
+        res: plonk_wasm.WasmFpProverProof,
       },
       caml_pasta_fq_plonk_proof_create: {
         args: [
           plonk_wasm.WasmPastaFqPlonkIndex,
-          undefined /*Uint8Array*/,
-          undefined /*Uint8Array*/,
+          plonk_wasm.WasmVecVecFq,
           undefined /*Uint8Array*/,
           undefined /*Uint32Array*/,
         ],
-        res: plonk_wasm.WasmPastaFqProverProof,
+        res: plonk_wasm.WasmFqProverProof,
       },
       caml_pasta_fp_plonk_proof_verify: {
         args: [
           undefined /*Uint32Array*/,
-          plonk_wasm.WasmPastaFpPlonkVerifierIndex,
-          plonk_wasm.WasmPastaFpProverProof,
+          plonk_wasm.WasmFpPlonkVerifierIndex,
+          plonk_wasm.WasmFpProverProof,
         ],
         res: bool,
       },
       caml_pasta_fq_plonk_proof_verify: {
         args: [
           undefined /*Uint32Array*/,
-          plonk_wasm.WasmPastaFqPlonkVerifierIndex,
-          plonk_wasm.WasmPastaFqProverProof,
+          plonk_wasm.WasmFqPlonkVerifierIndex,
+          plonk_wasm.WasmFqProverProof,
         ],
         res: bool,
       },
