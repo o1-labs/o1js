@@ -2551,9 +2551,6 @@ module.exports.WasmColumnTag = Object.freeze({ Witness:0,"0":"Witness",Z:1,"1":"
 */
 module.exports.WasmPolishTokenTag = Object.freeze({ Alpha:0,"0":"Alpha",Beta:1,"1":"Beta",Gamma:2,"2":"Gamma",JointCombiner:3,"3":"JointCombiner",EndoCoefficient:4,"4":"EndoCoefficient",Mds:5,"5":"Mds",Literal:6,"6":"Literal",Cell:7,"7":"Cell",Dup:8,"8":"Dup",Pow:9,"9":"Pow",Add:10,"10":"Add",Mul:11,"11":"Mul",Sub:12,"12":"Sub",VanishesOnLast4Rows:13,"13":"VanishesOnLast4Rows",UnnormalizedLagrangeBasis:14,"14":"UnnormalizedLagrangeBasis",Store:15,"15":"Store",Load:16,"16":"Load", });
 /**
-*/
-module.exports.WasmPolishTokenTag = Object.freeze({ Alpha:0,"0":"Alpha",Beta:1,"1":"Beta",Gamma:2,"2":"Gamma",JointCombiner:3,"3":"JointCombiner",EndoCoefficient:4,"4":"EndoCoefficient",Mds:5,"5":"Mds",Literal:6,"6":"Literal",Cell:7,"7":"Cell",Dup:8,"8":"Dup",Pow:9,"9":"Pow",Add:10,"10":"Add",Mul:11,"11":"Mul",Sub:12,"12":"Sub",VanishesOnLast4Rows:13,"13":"VanishesOnLast4Rows",UnnormalizedLagrangeBasis:14,"14":"UnnormalizedLagrangeBasis",Store:15,"15":"Store",Load:16,"16":"Load", });
-/**
 * A row accessible from a given row, corresponds to the fact that we open all polynomials
 * at `zeta` **and** `omega * zeta`.
 */
@@ -7882,12 +7879,12 @@ module.exports.__wbindgen_object_drop_ref = function(arg0) {
     takeObject(arg0);
 };
 
-module.exports.__wbg_alert_b014848fc9035c81 = function(arg0, arg1) {
-    alert(getStringFromWasm0(arg0, arg1));
-};
-
 module.exports.__wbg_log_19fef73d9a645b72 = function(arg0, arg1) {
     console.log(getStringFromWasm0(arg0, arg1));
+};
+
+module.exports.__wbg_alert_b014848fc9035c81 = function(arg0, arg1) {
+    alert(getStringFromWasm0(arg0, arg1));
 };
 
 module.exports.__wbg_process_2f24d6544ea7b200 = function(arg0) {

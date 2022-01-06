@@ -930,27 +930,6 @@ export enum WasmPolishTokenTag {
   Load,
 }
 /**
-*/
-export enum WasmPolishTokenTag {
-  Alpha,
-  Beta,
-  Gamma,
-  JointCombiner,
-  EndoCoefficient,
-  Mds,
-  Literal,
-  Cell,
-  Dup,
-  Pow,
-  Add,
-  Mul,
-  Sub,
-  VanishesOnLast4Rows,
-  UnnormalizedLagrangeBasis,
-  Store,
-  Load,
-}
-/**
 * A row accessible from a given row, corresponds to the fact that we open all polynomials
 * at `zeta` **and** `omega * zeta`.
 */
