@@ -9,10 +9,11 @@ import {
   SmartContract,
   Mina,
   Party,
+  isReady,
 } from '@o1labs/snarkyjs';
 
 class SimpleSnapp extends SmartContract {
-  @state(Field) x: State<Field>;
+  @state(Field) x: State<Field> = new State();
 
   constructor(address: PublicKey) {
     super(address);
@@ -28,6 +29,8 @@ class SimpleSnapp extends SmartContract {
     this.x.set(x.add(y));
   }
 }
+
+await isReady;
 
 const Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);

@@ -14,10 +14,16 @@ import { UInt32, UInt64 } from './int';
 /**
  * Gettable and settable state that you can be checked for equality.
  */
-export abstract class State<A> {
-  abstract get(): Promise<A>;
-  abstract set(x: A): void;
-  abstract assertEquals(x: A): void;
+export class State<A> {
+  constructor() {
+    (this as any).value = 'empty-state';
+  }
+
+  get(): Promise<A> {
+    return undefined as never;
+  }
+  set(x: A) {}
+  assertEquals(x: A) {}
 
   static init<A>(x: A): State<A> {
     class Init extends State<A> {
@@ -38,8 +44,6 @@ export abstract class State<A> {
     }
     return new Init();
   }
-
-  constructor() {}
 }
 
 /**
@@ -67,7 +71,9 @@ export function state<A>(ty: AsFieldElements<A>) {
 
     const fieldType = Reflect.getMetadata('design:type', target, key);
     if (fieldType != State) {
-      throw new Error('@state fields must have type State<A> for some type A');
+      throw new Error(
+        `@state fields must have type State<A> for some type A, got ${fieldType}`
+      );
     }
 
     if (key === '_states' || key === '_layout') {
@@ -172,6 +178,7 @@ export function state<A>(ty: AsFieldElements<A>) {
       },
       set: function (this: any, v: { value: A }) {
         S._this = this;
+        if ((v.value as any) === 'empty-state') return;
         s.set(v.value);
       },
     });
