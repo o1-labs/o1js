@@ -42,7 +42,7 @@ interface Account {
 
 export let nextTransactionId: { value: number } = { value: 0 };
 
-type PartyPredicate = UInt32 | FullAccountPredicate | void;
+type PartyPredicate = UInt32 | FullAccountPredicate | undefined;
 
 export let currentTransaction:
   | {

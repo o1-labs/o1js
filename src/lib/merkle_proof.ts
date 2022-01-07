@@ -586,7 +586,7 @@ export class Collection<A> {
   }
 
   private getValues(): MerkleTree<A> {
-    if (this.values.computed) {
+    if (this.values.computed === true) {
       return this.values.value;
     } else {
       let value = this.values.f();
