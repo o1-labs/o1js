@@ -15,10 +15,6 @@ import {
 class SimpleSnapp extends SmartContract {
   @state(Field) x: State<Field> = new State();
 
-  constructor(address: PublicKey) {
-    super(address);
-  }
-
   deploy(initialBalance: UInt64, x: Field) {
     this.balance.addInPlace(initialBalance);
     this.x = State.init(x);
