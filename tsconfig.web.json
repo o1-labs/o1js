@@ -1,8 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "dist/web",
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "outDir": "dist/web"
   }
 }

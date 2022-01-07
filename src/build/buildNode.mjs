@@ -7,18 +7,20 @@ import esbuild from 'esbuild';
 
 export { buildNode };
 
+const entry = './src/index.ts';
+const target = 'es2021';
+
 let nodePath = path.resolve(process.argv[1]);
 let modulePath = path.resolve(fileURLToPath(import.meta.url));
 let isMain = nodePath === modulePath;
 
 if (isMain) {
-  let entry = process.argv[2] ?? './src/index.ts';
   console.log('building', entry);
-  let production = process.env.NODE_ENV === 'production';
-  await buildNode({ entry, production });
+  await buildNode({ production: process.env.NODE_ENV === 'production' });
+  console.log('finished build');
 }
 
-async function buildNode({ entry, production }) {
+async function buildNode({ production }) {
   let minify = !!production;
 
   // copy over files not processed by TS
@@ -34,7 +36,7 @@ async function buildNode({ entry, production }) {
     let snarkyJsPath = './dist/server/node_bindings/snarky_js_node.bc.js';
     let snarkyJs = await fs.readFile(snarkyJsPath, 'utf8');
     let { code } = await esbuild.transform(snarkyJs, {
-      target: 'es2021',
+      target,
       logLevel: 'error',
       minify,
     });
@@ -42,17 +44,7 @@ async function buildNode({ entry, production }) {
   }
 
   // invoke TS to recreate .ts files as .js + d.ts in /dist/server
-  let json = JSON.stringify({
-    extends: './tsconfig.json',
-    include: [entry],
-    compilerOptions: {
-      outDir: 'dist/server',
-    },
-  });
-  await fs.writeFile('./tsconfig.server-tmp.json', json);
-  let tscPromise = execPromise('npx tsc -p tsconfig.server-tmp.json').then(() =>
-    fs.unlink('./tsconfig.server-tmp.json')
-  );
+  let tscPromise = execPromise('npx tsc -p tsconfig.server.json');
   await Promise.all([copyPromise, tscPromise]);
 
   // bundle the new index.js file with esbuild and create a new index.js file which conforms to CJS
@@ -66,7 +58,7 @@ async function buildNode({ entry, production }) {
     format: 'cjs',
     platform: 'node',
     outfile: jsEntry,
-    target: 'es2021',
+    target,
     external: ['*.bc.js'],
     resolveExtensions: ['.node.js', '.ts', '.js'],
     allowOverwrite: true,
@@ -84,8 +76,6 @@ async function buildNode({ entry, production }) {
   indexMjs = indexMjs.replace(/__EXPORTS__/g, exportString);
   await fs.writeFile('./dist/server/index.mjs', indexMjs);
   index.shutdown();
-
-  console.log('finished build');
 }
 
 function makeNodeModulesExternal() {

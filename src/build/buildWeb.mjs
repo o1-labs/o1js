@@ -7,18 +7,20 @@ import { exec } from 'node:child_process';
 
 export { buildWeb };
 
+const entry = './src/index.ts';
+const target = 'es2021';
+
 let nodePath = path.resolve(process.argv[1]);
 let modulePath = path.resolve(fileURLToPath(import.meta.url));
 let isMain = nodePath === modulePath;
 
 if (isMain) {
-  let entry = process.argv[2] ?? './src/index.ts';
   console.log('building', entry);
-  let production = process.env.NODE_ENV === 'production';
-  await buildWeb({ entry, production });
+  await buildWeb({ production: process.env.NODE_ENV === 'production' });
+  console.log('finished build');
 }
 
-async function buildWeb({ entry, production }) {
+async function buildWeb({ production }) {
   let minify = !!production;
 
   // prepare plonk_wasm.js with bundled wasm in function-wrapped form
@@ -40,19 +42,10 @@ async function buildWeb({ entry, production }) {
   await writeFile(tmpBindingsPath, bindings);
 
   // run typescript
-  let json = JSON.stringify({
-    extends: './tsconfig.json',
-    include: [entry],
-    compilerOptions: {
-      outDir: 'dist/web',
-    },
-  });
-  await writeFile('./tsconfig.web-tmp.json', json);
-  await execPromise('npx tsc -p tsconfig.web-tmp.json');
-  await execPromise('rm ./tsconfig.web-tmp.json');
+  let tscPromise = execPromise('npx tsc -p tsconfig.web.json');
 
   // copy over pure js files
-  await copy({
+  let copyPromise = copy({
     './src/snarky.js': './dist/web/snarky.js',
     './src/snarky.d.ts': './dist/web/snarky.d.ts',
     './src/proxyClasses.js': './dist/web/proxyClasses.js',
@@ -60,12 +53,14 @@ async function buildWeb({ entry, production }) {
     './src/chrome_bindings': './dist/web/chrome_bindings/',
   });
 
+  await Promise.all([tscPromise, copyPromise]);
+
   if (minify) {
     let snarkyJsChromePath =
       './dist/web/chrome_bindings/snarky_js_chrome.bc.js';
     let snarkyJsChrome = await readFile(snarkyJsChromePath, 'utf8');
     let { code } = await esbuild.transform(snarkyJsChrome, {
-      target: 'es2021',
+      target,
       logLevel: 'error',
       minify,
     });
@@ -86,7 +81,7 @@ async function buildWeb({ entry, production }) {
     resolveExtensions: ['.js', '.ts'],
     plugins: [wasmPlugin(), srcStringPlugin()],
     external: ['*.bc.js'],
-    target: 'es2021',
+    target,
     allowOverwrite: true,
     logLevel: 'error',
     minify,
