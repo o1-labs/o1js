@@ -441,37 +441,6 @@ export class OrIgnore<A> {
 }
 
 /**
- * Gettable and settable state that you can be checked for equality.
- */
-export abstract class State<A> {
-  abstract get(): Promise<A>;
-  abstract set(x: A): void;
-  abstract assertEquals(x: A): void;
-
-  static init<A>(x: A): State<A> {
-    class Init extends State<A> {
-      value: A;
-      constructor() {
-        super();
-        this.value = x;
-      }
-      get(): Promise<A> {
-        throw 'init:unimplemented';
-      }
-      set(_: A) {
-        throw 'init:unimplmented';
-      }
-      assertEquals(_: A) {
-        throw 'init:unimplemented';
-      }
-    }
-    return new Init();
-  }
-
-  constructor() {}
-}
-
-/**
  * An interval representing all the values between `lower` and `upper` inclusive
  * of both the `lower` and `upper` values.
  *

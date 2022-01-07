@@ -13,7 +13,6 @@ import {
 import { MerkleStack } from '../lib/merkle_stack';
 import {
   SignedAmount,
-  State,
   Party,
   AccountPredicate,
   Body,
@@ -21,7 +20,7 @@ import {
   Perm,
   Amount,
 } from '../lib/party';
-import { SmartContract, state, method, init } from '../lib/snapp';
+import { State, SmartContract, state, method, init } from '../lib/snapp';
 import { proofSystem, branch, ProofWithInput } from '../lib/proof_system';
 import * as DataStore from '../lib/data_store';
 import * as Mina from '../lib/mina';

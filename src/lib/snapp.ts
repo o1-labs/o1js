@@ -4,13 +4,43 @@ import {
   AccountPredicate,
   ProtocolStatePredicate,
   Body,
-  State,
   Party,
   PartyBalance,
 } from './party';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
 import { UInt32, UInt64 } from './int';
+
+/**
+ * Gettable and settable state that you can be checked for equality.
+ */
+export abstract class State<A> {
+  abstract get(): Promise<A>;
+  abstract set(x: A): void;
+  abstract assertEquals(x: A): void;
+
+  static init<A>(x: A): State<A> {
+    class Init extends State<A> {
+      value: A;
+      constructor() {
+        super();
+        this.value = x;
+      }
+      get(): Promise<A> {
+        throw 'init:unimplemented';
+      }
+      set(_: A) {
+        throw 'init:unimplmented';
+      }
+      assertEquals(_: A) {
+        throw 'init:unimplemented';
+      }
+    }
+    return new Init();
+  }
+
+  constructor() {}
+}
 
 /**
  * A decorator to use within a snapp to indicate what will be stored on-chain.
