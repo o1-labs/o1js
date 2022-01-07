@@ -4,7 +4,6 @@ import {
   State,
   method,
   UInt64,
-  PublicKey,
   PrivateKey,
   SmartContract,
   Mina,
