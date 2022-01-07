@@ -464,7 +464,7 @@ export interface AsFieldElements<T> {
 export interface CircuitMain<W, P> {
   snarkyWitnessTyp: AsFieldElements<W>;
   snarkyPublicTyp: AsFieldElements<P>;
-  snarkyMain: (W, P) => void;
+  snarkyMain: (w: W, p: P) => void;
 }
 
 export class Circuit {
@@ -524,7 +524,7 @@ export class Circuit {
 
   static equal<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): Bool;
 
-  static equal(x: T, y: T): Bool;
+  static equal<T>(x: T, y: T): Bool;
 
   static if<T>(b: Bool | boolean, ctor: AsFieldElements<T>, x: T, y: T): T;
 
@@ -536,7 +536,7 @@ export class Circuit {
 
   static verify(publicInput: any[], vk: VerificationKey, pi: Proof): boolean;
 
-  static toFields<A>(A): Field[];
+  static toFields<A>(a: A): Field[];
 
   static inProver(): boolean;
 
