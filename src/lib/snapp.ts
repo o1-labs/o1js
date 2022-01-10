@@ -11,8 +11,6 @@ import { PublicKey } from './signature';
 import * as Mina from './mina';
 import { UInt32 } from './int';
 
-const EMPTY_STATE = Symbol('empty-state');
-
 /**
  * Gettable and settable state that can be checked for equality.
  */
@@ -21,33 +19,105 @@ export type State<A> = {
   set(a: A): void;
   assertEquals(a: A): void;
 };
-type StateConstructor = (<A>() => State<A>) & {
-  new <A>(): State<A>;
-  init<A>(a: A): State<A>;
-};
 
 /**
  * Gettable and settable state that can be checked for equality.
  */
-export const State = function () {
+export function State<A>(): State<A> {
+  return createState<A>();
+}
+
+function createState<A>() {
   return {
-    value: EMPTY_STATE,
-    get() {
-      throw Error('not implemented');
+    _initialized: false,
+    _key: undefined as never as string, // defined by @state
+    _ty: undefined as never as AsFieldElements<A>, // defined by @state
+    _this: undefined as any, // defined by @state
+    _SnappClass: undefined as never as SmartContract & { _layout: () => any }, // defined by @state
+
+    _init(key: string, ty: AsFieldElements<A>, _this: any, SnappClass: any) {
+      this._initialized = true;
+      this._key = key;
+      this._ty = ty;
+      this._this = _this;
+      this._SnappClass = SnappClass;
     },
-    set() {
-      throw Error('not implemented');
+
+    getLayout() {
+      const layout: Map<string, { offset: number; length: number }> =
+        this._SnappClass._layout();
+      const r = layout.get(this._key);
+      if (r === undefined) {
+        throw new Error(`state ${this._key} not found`);
+      }
+      return r;
     },
-    assertEquals() {
-      throw Error('not implemented');
+
+    set(a: A) {
+      if (!this._initialized)
+        throw Error(
+          'set can only be called when the State is assigned to a SmartContract @state.'
+        );
+      const r = this.getLayout();
+      const xs = this._ty.toFields(a);
+      let e: ExecutionState = this._this.executionState();
+
+      xs.forEach((x, i) => {
+        e.party.body.update.appState[r.offset + i].setValue(x);
+      });
+    },
+
+    assertEquals(a: A) {
+      if (!this._initialized)
+        throw Error(
+          'assertEquals can only be called when the State is assigned to a SmartContract @state.'
+        );
+      const r = this.getLayout();
+      const xs = this._ty.toFields(a);
+      let e: ExecutionState = this._this.executionState();
+
+      xs.forEach((x, i) => {
+        e.party.predicate.state[r.offset + i].check = new Bool(true);
+        e.party.predicate.state[r.offset + i].value = x;
+      });
+    },
+
+    async get(): Promise<A> {
+      if (!this._initialized)
+        throw Error(
+          'get can only be called when the State is assigned to a SmartContract @state.'
+        );
+      const r = this.getLayout();
+
+      let addr: PublicKey = this._this.address;
+      let p: Promise<Field[]>;
+
+      if (Circuit.inProver()) {
+        p = Mina.getAccount(addr).then((a) => {
+          const xs: Field[] = [];
+          for (let i = 0; i < r.length; ++i) {
+            xs.push(a.snapp.appState[r.offset + i]);
+          }
+          return Circuit.witness(Circuit.array(Field, r.length), () => xs);
+        });
+      } else {
+        const res = Circuit.witness(Circuit.array(Field, r.length), () => {
+          throw 'unimplemented';
+        });
+        p = new Promise((k) => k(res));
+      }
+
+      let xs = await p;
+      const res = this._ty.ofFields(xs);
+      if ((this._ty as any).check != undefined) {
+        (this._ty as any).check(res);
+      }
+      return res;
     },
   };
-} as never as StateConstructor;
-State.init = function <A>(value: A) {
-  let s = State();
-  (s as any).value = value;
-  return s as never;
-};
+}
+
+type InternalStateType = ReturnType<typeof createState>;
 
 // class version:
 /* export class State<A> {
@@ -124,83 +194,20 @@ export function state<A>(ty: AsFieldElements<A>) {
       };
     }
 
-    class S {
-      static _this: any;
-
-      static getLayout() {
-        const layout: Map<string, { offset: number; length: number }> =
-          SnappClass._layout();
-        const r = layout.get(key);
-        if (r === undefined) {
-          throw new Error(`state ${key} not found`);
-        }
-        return r;
-      }
-
-      set(a: A) {
-        const r = S.getLayout();
-        const xs = ty.toFields(a);
-        let e: ExecutionState = S._this.executionState();
-
-        xs.forEach((x, i) => {
-          e.party.body.update.appState[r.offset + i].setValue(x);
-        });
-      }
-
-      assertEquals(a: A) {
-        const r = S.getLayout();
-        const xs = ty.toFields(a);
-        let e: ExecutionState = S._this.executionState();
-
-        xs.forEach((x, i) => {
-          e.party.predicate.state[r.offset + i].check = new Bool(true);
-          e.party.predicate.state[r.offset + i].value = x;
-        });
-      }
-
-      get(): Promise<A> {
-        const r = S.getLayout();
-
-        let addr: PublicKey = S._this.address;
-        let p: Promise<Field[]>;
-
-        if (Circuit.inProver()) {
-          p = Mina.getAccount(addr).then((a) => {
-            const xs: Field[] = [];
-            for (let i = 0; i < r.length; ++i) {
-              xs.push(a.snapp.appState[r.offset + i]);
-            }
-            return Circuit.witness(Circuit.array(Field, r.length), () => xs);
-          });
-        } else {
-          const res = Circuit.witness(Circuit.array(Field, r.length), () => {
-            throw 'unimplemented';
-          });
-          p = new Promise((k) => k(res));
-        }
-
-        return p.then((xs) => {
-          const res = ty.ofFields(xs);
-          if ((ty as any).check != undefined) {
-            (ty as any).check(res);
-          }
-          return res;
-        });
-      }
-    }
-
     SnappClass._states.push([key, ty]);
 
-    const s = new S();
     Object.defineProperty(target, key, {
-      get: function (this: any) {
-        S._this = this;
-        return s;
+      get(this) {
+        return this._?.[key];
       },
-      set: function (this: any, v: { value: A }) {
-        S._this = this;
-        if ((v.value as any) === EMPTY_STATE) return;
-        s.set(v.value);
+      set(this, v: InternalStateType) {
+        if (v._initialized)
+          throw Error(
+            'A State should only be assigned once to a SmartContract'
+          );
+        if (this._?.[key]) throw Error('A @state should only be assigned once');
+        v._init(key, ty, this, SnappClass);
+        (this._ ?? (this._ = {}))[key] = v;
       },
     });
   };
