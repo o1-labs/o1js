@@ -113,9 +113,13 @@ async function copy(copyMap) {
 }
 
 function execPromise(cmd) {
-  return new Promise((r) =>
-    exec(cmd, (_, stdout) => {
-      r(stdout);
+  return new Promise((res, rej) =>
+    exec(cmd, (err, stdout) => {
+      if (err) {
+        console.log(stdout);
+        rej(err);
+      }
+      res(stdout);
     })
   );
 }
