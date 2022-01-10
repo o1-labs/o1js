@@ -9,43 +9,66 @@ import {
 } from './party';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
-import { UInt32, UInt64 } from './int';
+import { UInt32 } from './int';
+
+const EMPTY_STATE = Symbol('empty-state');
 
 /**
- * Gettable and settable state that you can be checked for equality.
+ * Gettable and settable state that can be checked for equality.
  */
-const EMPTY_STATE = {};
-export class State<A> {
+export type State<A> = {
+  get(): Promise<A>;
+  set(a: A): void;
+  assertEquals(a: A): void;
+};
+type StateConstructor = (<A>() => State<A>) & {
+  new <A>(): State<A>;
+  init<A>(a: A): State<A>;
+};
+
+/**
+ * Gettable and settable state that can be checked for equality.
+ */
+export const State = function () {
+  return {
+    value: EMPTY_STATE,
+    get() {
+      throw Error('not implemented');
+    },
+    set() {
+      throw Error('not implemented');
+    },
+    assertEquals() {
+      throw Error('not implemented');
+    },
+  };
+} as never as StateConstructor;
+State.init = function <A>(value: A) {
+  let s = State();
+  (s as any).value = value;
+  return s as never;
+};
+
+// class version:
+/* export class State<A> {
   constructor() {
     (this as any).value = EMPTY_STATE;
   }
-
+  static init<A>(value: A): State<A> {
+    let s = new State();
+    (s as any).value = value;
+    return s as never;
+  }
   get(): Promise<A> {
-    return undefined as never;
+    throw Error('not implemented');
   }
-  set(x: A) {}
-  assertEquals(x: A) {}
-
-  static init<A>(x: A): State<A> {
-    class Init extends State<A> {
-      value: A;
-      constructor() {
-        super();
-        this.value = x;
-      }
-      get(): Promise<A> {
-        throw 'init:unimplemented';
-      }
-      set(_: A) {
-        throw 'init:unimplmented';
-      }
-      assertEquals(_: A) {
-        throw 'init:unimplemented';
-      }
-    }
-    return new Init();
+  set(value: A) {
+    throw Error('not implemented');
   }
-}
+  assertEquals(value: A) {
+    throw Error('not implemented');
+  }
+} */
 
 /**
  * A decorator to use within a snapp to indicate what will be stored on-chain.
@@ -101,7 +124,7 @@ export function state<A>(ty: AsFieldElements<A>) {
       };
     }
 
-    class S extends State<A> {
+    class S {
       static _this: any;
 
       static getLayout() {
@@ -117,10 +140,6 @@ export function state<A>(ty: AsFieldElements<A>) {
       set(a: A) {
         const r = S.getLayout();
         const xs = ty.toFields(a);
-        /*
-          console.log('target', target)
-          console.log('target.address', target.address);
-          console.log('target', target.executionState); */
         let e: ExecutionState = S._this.executionState();
 
         xs.forEach((x, i) => {
