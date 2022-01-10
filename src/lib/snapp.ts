@@ -14,9 +14,10 @@ import { UInt32, UInt64 } from './int';
 /**
  * Gettable and settable state that you can be checked for equality.
  */
+const EMPTY_STATE = {};
 export class State<A> {
   constructor() {
-    (this as any).value = 'empty-state';
+    (this as any).value = EMPTY_STATE;
   }
 
   get(): Promise<A> {
@@ -69,18 +70,19 @@ export function state<A>(ty: AsFieldElements<A>) {
       );
     }
 
-    const fieldType = Reflect.getMetadata('design:type', target, key);
-    if (fieldType != State) {
-      throw new Error(
-        `@state fields must have type State<A> for some type A, got ${fieldType}`
-      );
-    }
+    // TBD: ok to not check? bc type metadata not inferred from class field assignment
+    // const fieldType = Reflect.getMetadata('design:type', target, key);
+    // if (fieldType != State) {
+    //   throw new Error(
+    //     `@state fields must have type State<A> for some type A, got ${fieldType}`
+    //   );
+    // }
 
     if (key === '_states' || key === '_layout') {
       throw new Error('Property names _states and _layout reserved.');
     }
 
-    if (SnappClass._states === undefined || SnappClass._states === null) {
+    if (SnappClass._states == undefined) {
       SnappClass._states = [];
       let layout: Map<string, { offset: number; length: number }>;
       SnappClass._layout = () => {
@@ -178,7 +180,7 @@ export function state<A>(ty: AsFieldElements<A>) {
       },
       set: function (this: any, v: { value: A }) {
         S._this = this;
-        if ((v.value as any) === 'empty-state') return;
+        if ((v.value as any) === EMPTY_STATE) return;
         s.set(v.value);
       },
     });

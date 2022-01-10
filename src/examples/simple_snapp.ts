@@ -12,7 +12,7 @@ import {
 } from '@o1labs/snarkyjs';
 
 class SimpleSnapp extends SmartContract {
-  @state(Field) x: State<Field> = new State();
+  @state(Field) x = new State<Field>();
 
   deploy(initialBalance: UInt64, x: Field) {
     this.balance.addInPlace(initialBalance);
