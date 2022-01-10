@@ -76,7 +76,7 @@ State.init = function <A>(value: A) {
  * you can use the following in the declaration of your snapp:
  *
  * ```
- * @state(Field) some_state: Field;
+ * @state(Field) some_state = State<Field>();
  * ```
  *
  */
