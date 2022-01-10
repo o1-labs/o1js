@@ -222,12 +222,12 @@ A smart contract is basically
 */
 
 class RollupSnapp extends SmartContract {
-  @state(Field) operatorsCommitment: State<Field>; // state slot 0
-  @state(RollupState) rollupState: State<RollupState>; // state slots 1, 2
+  @state(Field) operatorsCommitment = State<Field>(); // state slot 0
+  @state(RollupState) rollupState = State<RollupState>(); // state slots 1, 2
   // RollupState public rollupState;
 
   // The 5 slot period during which this was last updated
-  @state(UInt32) lastUpdatedPeriod: State<UInt32>; // state slot 3
+  @state(UInt32) lastUpdatedPeriod = State<UInt32>(); // state slot 3
   // UInt32 public lastUpdatedPeriod
 
   // maybe try something like react state hooks?
@@ -369,7 +369,7 @@ class RollupSnapp extends SmartContract {
 }
 
 class SimpleSnapp extends SmartContract {
-  @state(Field) value: State<Field>;
+  @state(Field) value = State<Field>();
 
   // Maybe have the address not passed in somehow
   // Maybe create account first and then deploy smart contract to it
