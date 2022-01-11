@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Circuit, Field, Bool, JSONValue } from '../snarky';
+import { Circuit, Field, Bool, JSONValue, AsFieldElements } from '../snarky';
 
 type Constructor<T> = { new (...args: any[]): T };
 
@@ -173,12 +173,6 @@ export function public_(target: any, _key: string | symbol, index: number) {
   }
   target._public.push(index);
 }
-
-type AsFieldElements<A> = {
-  sizeInFields: () => number;
-  toFields: (x: A) => Array<any>;
-  ofFields: (x: Array<any>) => A;
-};
 
 function typOfArray(typs: Array<AsFieldElements<any>>): AsFieldElements<any> {
   return {
