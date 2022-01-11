@@ -3,7 +3,7 @@ export type JSONValue =
   | string
   | boolean
   | null
-  | Array<JSON>
+  | Array<JSONValue>
   | { [key: string]: JSONValue };
 
 /**
