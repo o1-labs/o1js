@@ -87,10 +87,6 @@
         "type": "function"
       },
       {
-        "name": "toConstant",
-        "type": "function"
-      },
-      {
         "name": "toJSON",
         "type": "function"
       },
@@ -173,19 +169,11 @@
     "name": "Circuit",
     "props": [
       {
-        "name": "asProver",
-        "type": "function"
-      },
-      {
-        "name": "inProver",
-        "type": "function"
-      },
-      {
-        "name": "inCheckedComputation",
-        "type": "function"
-      },
-      {
         "name": "runAndCheck",
+        "type": "function"
+      },
+      {
+        "name": "asProver",
         "type": "function"
       },
       {
@@ -218,6 +206,14 @@
       },
       {
         "name": "toFields",
+        "type": "function"
+      },
+      {
+        "name": "inProver",
+        "type": "function"
+      },
+      {
+        "name": "inCheckedComputation",
         "type": "function"
       },
       {
