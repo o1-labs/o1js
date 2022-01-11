@@ -1,10 +1,8 @@
 import { CircuitValue } from './circuit_value';
-import { Group, Field, Bool, VerificationKey, Poseidon } from '../snarky';
+import { Group, Field, Bool, VerificationKey } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
-import { Optional } from './optional';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
-import { Circuit, PartyBody } from '..';
 
 export type Amount = UInt64;
 export const Amount = UInt64;

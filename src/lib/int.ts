@@ -1,6 +1,5 @@
 import { Bool, Circuit, Field } from '../snarky';
 import { CircuitValue, prop } from './circuit_value';
-import * as util from 'util';
 
 function argToField(name: string, x: { value: Field } | number): Field {
   if (typeof x === 'number') {

@@ -5,7 +5,6 @@ import {
   Circuit,
   Poseidon,
   AsFieldElements,
-  NumberAsField,
 } from '../snarky';
 import { Optional } from './optional';
 import { DataStore, KeyedDataStore } from './data_store';

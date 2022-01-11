@@ -1,7 +1,5 @@
 import { AsFieldElements, Circuit, Field, Poseidon } from '../snarky';
 import { CircuitValue } from './circuit_value';
-import { Optional } from './optional';
-import { MerkleList } from './party';
 
 // TODO: Implement AsFieldElements
 export class MerkleStack<A extends CircuitValue> {

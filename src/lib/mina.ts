@@ -1,11 +1,9 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { CircuitValue } from './circuit_value';
 import {
   Circuit,
   Ledger,
   Field,
-  Bool,
   AccountPredicate_ as AccountPredicate,
   FullAccountPredicate_ as FullAccountPredicate,
   FeePayerParty,
@@ -18,7 +16,6 @@ import { PrivateKey, PublicKey } from './signature';
 import {
   Body,
   EpochDataPredicate,
-  Party,
   ProtocolStatePredicate,
 } from './party';
 
