@@ -24,7 +24,7 @@ const x0: Field = new Field('37');
 let x1 = new Field(37);
 console.assert(x0.equals(x1).toBoolean());
 
-// The constructor is optional as well:
+// The `new` keyword is optional as well:
 x1 = Field(37);
 console.assert(x0.equals(x1).toBoolean());
 
