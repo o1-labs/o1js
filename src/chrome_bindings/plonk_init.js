@@ -7,10 +7,6 @@ let plonk_wasm = plonkWasm();
 let init = plonk_wasm.default;
 let { override_bindings } = workerRun();
 
-window.init = init;
-window.plonk_wasm = plonk_wasm;
-window.override_bindings = override_bindings;
-
 export async function initSnarkyJS() {
   let { memory } = await init();
   let module = init.__wbindgen_wasm_module;
