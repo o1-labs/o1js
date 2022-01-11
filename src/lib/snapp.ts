@@ -222,12 +222,6 @@ export function method(
   _descriptor?: PropertyDescriptor
 ): any {}
 
-export function init(
-  target: any,
-  propertyName: string,
-  _descriptor?: PropertyDescriptor
-): any {}
-
 type ExecutionState = {
   transactionId: number;
   partyIndex: number;
@@ -266,7 +260,7 @@ export abstract class SmartContract {
       this.executionState().party.body.update.verificationKey.set = Bool(true);
     } catch (_error) {
       throw new Error(
-        'Cannot construct `new` SmartContract instance outside a transaction. Use `SmartContract.fromAddress` to refer to an already deployed instance.'
+        'Cannot deploy SmartContract outside a transaction.'
       );
     }
   }
