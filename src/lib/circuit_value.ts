@@ -3,8 +3,6 @@ import { Circuit, Field, Bool, JSONValue, AsFieldElements } from '../snarky';
 
 type Constructor<T> = { new (...args: any[]): T };
 
-export type Tuple<A, _N extends number> = Array<A>;
-
 export function asFieldElementsToConstant<T>(typ: AsFieldElements<T>, t: T): T {
   const xs: Field[] = typ.toFields(t);
   return typ.ofFields(xs);

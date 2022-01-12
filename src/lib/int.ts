@@ -78,7 +78,8 @@ export class UInt64 extends CircuitValue {
     return [q_, r_];
   }
 
-  /** Integer division.
+  /** 
+   * Integer division.
    *
    * `x.div(y)` returns the floor of `x / y`, that is, the greatest
    * `z` such that `x * y <= x`.
@@ -88,7 +89,8 @@ export class UInt64 extends CircuitValue {
     return this.divMod(y)[0];
   }
 
-  /** Integer remainder.
+  /**
+   * Integer remainder.
    *
    * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
    * `x - z` is divisble by `y`.
@@ -97,7 +99,8 @@ export class UInt64 extends CircuitValue {
     return this.divMod(y)[1];
   }
 
-  /** Multiplication with overflow checking.
+  /**
+   * Multiplication with overflow checking.
    */
   mul(y: UInt64 | number): UInt64 {
     let z = this.value.mul(argToField('UInt64.mul', y));
@@ -105,7 +108,8 @@ export class UInt64 extends CircuitValue {
     return new UInt64(z);
   }
 
-  /** Addition with overflow checking.
+  /**
+   * Addition with overflow checking.
    */
   add(y: UInt64 | number): UInt64 {
     let z = this.value.add(argToField('UInt64.add', y));
@@ -113,7 +117,8 @@ export class UInt64 extends CircuitValue {
     return new UInt64(z);
   }
 
-  /** Subtraction with underflow checking.
+  /**
+   * Subtraction with underflow checking.
    */
   sub(y: UInt64 | number): UInt64 {
     let z = this.value.sub(argToField('UInt64.sub', y));

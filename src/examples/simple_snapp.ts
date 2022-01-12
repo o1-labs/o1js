@@ -34,11 +34,11 @@ Mina.setActiveInstance(Local);
 const account1 = Local.testAccounts[0].privateKey;
 const account2 = Local.testAccounts[1].privateKey;
 
-const snappPrivkey = PrivateKey.random();
-const snappPubkey = snappPrivkey.toPublicKey();
+const snappPrivKey = PrivateKey.random();
+const snappPubKey = snappPrivKey.toPublicKey();
 
 await Mina.transaction(account1, async () => {
-  let snapp = new SimpleSnapp(snappPubkey);
+  let snapp = new SimpleSnapp(snappPubKey);
 
   const amount = UInt64.fromNumber(1000000);
   const p = await Party.createSigned(account2);
@@ -49,15 +49,15 @@ await Mina.transaction(account1, async () => {
   .send()
   .wait();
 
-let snappState = (await Mina.getAccount(snappPubkey)).snapp.appState[0];
+let snappState = (await Mina.getAccount(snappPubKey)).snapp.appState[0];
 console.log('initial state: ' + snappState);
 
 await Mina.transaction(account1, async () => {
-  let snapp = new SimpleSnapp(snappPubkey);
+  let snapp = new SimpleSnapp(snappPubKey);
   await snapp.update(Field(3));
 })
   .send()
   .wait();
 
-snappState = (await Mina.getAccount(snappPubkey)).snapp.appState[0];
+snappState = (await Mina.getAccount(snappPubKey)).snapp.appState[0];
 console.log('final state: ' + snappState);

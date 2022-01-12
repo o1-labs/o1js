@@ -110,7 +110,7 @@ function execPromise(cmd) {
     exec(cmd, (err, stdout) => {
       if (err) {
         console.log(stdout);
-        rej(err);
+        return rej(err);
       }
       res(stdout);
     })
