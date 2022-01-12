@@ -1,12 +1,13 @@
-import { CircuitValue, prop } from './circuit_value';
 import {
+  CircuitValue,
+  prop,
   Bool,
   Field,
   Circuit,
   Poseidon,
   AsFieldElements,
-} from '../snarky';
-import { Optional } from './optional';
+  Optional,
+} from '@o1labs/snarkyjs';
 import { DataStore, KeyedDataStore } from './data_store';
 
 let indexId = 0;

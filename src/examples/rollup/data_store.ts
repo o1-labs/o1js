@@ -1,15 +1,19 @@
+import {
+  Circuit,
+  Bool,
+  AsFieldElements,
+  Field,
+  Poseidon,
+  asFieldElementsToConstant,
+  UInt64,
+} from '@o1labs/snarkyjs';
 import { AccumulatorMembershipProof, Index } from './merkle_proof';
-import { AsFieldElements, Field } from '../snarky';
 import {
   Tree,
   IndexFactory,
   MerkleProof,
   MerkleProofFactory,
 } from './merkle_proof';
-import { Poseidon } from '../snarky';
-import { asFieldElementsToConstant } from './circuit_value';
-import { UInt64 } from './int';
-import { Circuit, Bool } from '../snarky';
 
 export interface DataStore<A, P> {
   depth: number;

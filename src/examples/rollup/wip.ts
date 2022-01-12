@@ -1,7 +1,27 @@
-import { CircuitValue, prop } from '../lib/circuit_value';
-import { PrivateKey, PublicKey, Signature } from '../lib/signature';
-import { Proof, Field, Circuit, Bool } from '../snarky';
-import { HTTPSAttestation } from './exchange_lib';
+import {
+  Field,
+  CircuitValue,
+  prop,
+  PrivateKey,
+  PublicKey,
+  Signature,
+  Party,
+  Permissions,
+  Perm,
+  State,
+  SmartContract,
+  state,
+  method,
+  Mina,
+  UInt32,
+  UInt64,
+  Int64,
+  isReady,
+  proofSystem,
+  branch,
+  ProofWithInput,
+} from '@o1labs/snarkyjs';
+
 import {
   AccumulatorMembershipProof,
   Index,
@@ -9,22 +29,11 @@ import {
   KeyedAccumulatorFactory,
   MerkleAccumulatorFactory,
   MerkleProof,
-} from '../lib/merkle_proof';
-import { MerkleStack } from '../lib/merkle_stack';
-import {
-  SignedAmount,
-  Party,
-  AccountPredicate,
-  Body,
-  Permissions,
-  Perm,
-  Amount,
-} from '../lib/party';
-import { State, SmartContract, state, method, init } from '../lib/snapp';
-import { proofSystem, branch, ProofWithInput } from '../lib/proof_system';
-import * as DataStore from '../lib/data_store';
-import * as Mina from '../lib/mina';
-import { UInt32, UInt64, Int64 } from '../lib/int';
+} from './merkle_proof';
+import { MerkleStack } from './merkle_stack';
+import * as DataStore from './data_store';
+
+await isReady;
 
 const AccountDbDepth: number = 32;
 const AccountDb = KeyedAccumulatorFactory<PublicKey, RollupAccount>(
@@ -232,24 +241,6 @@ class RollupSnapp extends SmartContract {
 
   // maybe try something like react state hooks?
 
-  // the constructor should be init
-  constructor(
-    senderAmount: UInt64,
-    address: PublicKey,
-    operatorsDb: OperatorsDb,
-    accountDb: AccountDb,
-    deposits: MerkleStack<RollupDeposit>,
-    lastUpatedPeriod: UInt32
-  ) {
-    super(address);
-    this.self.balance.addInPlace(senderAmount);
-    this.operatorsCommitment = State.init(operatorsDb.commitment());
-    this.lastUpdatedPeriod = State.init(lastUpatedPeriod);
-    this.rollupState = State.init(
-      new RollupState(deposits.commitment, accountDb.commitment())
-    );
-  }
-
   static instanceOnChain(address: PublicKey): RollupSnapp {
     throw 'instanceonchain';
   }
@@ -259,7 +250,20 @@ class RollupSnapp extends SmartContract {
   static newOperatorGapPeriods =
     RollupSnapp.newOperatorGapSlots / RollupSnapp.periodLength;
 
-  @init init() {
+  deploy(
+    senderAmount: UInt64,
+    operatorsDb: OperatorsDb,
+    accountDb: AccountDb,
+    deposits: MerkleStack<RollupDeposit>,
+    lastUpatedPeriod: UInt32
+  ) {
+    super.deploy();
+    this.self.balance.addInPlace(senderAmount);
+    this.operatorsCommitment.set(operatorsDb.commitment());
+    this.lastUpdatedPeriod.set(lastUpatedPeriod);
+    this.rollupState.set(
+      new RollupState(deposits.commitment, accountDb.commitment())
+    );
     let perms = Permissions.default();
     // Force users to use the deposit method to send to this account
     perms.receive = Perm.proof();
@@ -368,81 +372,13 @@ class RollupSnapp extends SmartContract {
   }
 }
 
-class SimpleSnapp extends SmartContract {
-  @state(Field) value = State<Field>();
-
-  // Maybe have the address not passed in somehow
-  // Maybe create account first and then deploy smart contract to it
-  // On ethereum, you deploy them from a key-account and it's deterministically generated from the sender account
-  constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
-    super(address);
-    this.balance.addInPlace(initialBalance);
-    this.value = State.init(x);
-  }
-
-  // Maybe don't return a promise here, it's a bit confusing
-  @method async update(y: Field) {
-    const x = await this.value.get();
-    x.square().mul(x).assertEquals(y);
-    this.value.set(y);
-  }
-}
-// extend this with a 'prize' for updating the account
-
-export async function main() {
-  const Local = Mina.LocalBlockchain();
-  Mina.setActiveInstance(Local);
-
-  // Maybe just return deterministically 10 accounts with a bunch of money in them
-  // Initialize an account so we can send some transactions
-  const account1 = Local.testAccounts[0].privateKey;
-  const account2 = Local.testAccounts[1].privateKey;
-
-  const snappPrivkey = PrivateKey.random();
-  const snappPubkey = snappPrivkey.toPublicKey();
-
-  let snappInstance: SimpleSnapp;
-  const initSnappState = new Field(2);
-
-  // Deploys the snapp
-  await Mina.transaction(account1, async () => {
-    // account2 sends 1000000000 to the new snapp account
-    const amount = UInt64.fromNumber(1000000000);
-    const p = await Party.createSigned(account2);
-    p.balance.subInPlace(amount);
-
-    snappInstance = new SimpleSnapp(amount, snappPubkey, initSnappState);
-  })
-    .send()
-    .wait();
-
-  // Update the snapp
-  await Mina.transaction(account1, async () => {
-    await snappInstance.update(new Field(8));
-  })
-    .send()
-    .wait();
-
-  await Mina.transaction(account1, async () => {
-    await snappInstance.update(new Field(109));
-  })
-    .send()
-    .wait();
-
-  // .catch(e => console.log('error', e));
-  const a = await Mina.getAccount(snappPubkey);
-
-  console.log('final state value', a.snapp.appState[0].toString());
-}
-
-/*
-function mainold() {
+function main() {
   const minaSender = PrivateKey.random();
-  const Local = Mina.Local();
+  const Local = Mina.LocalBlockchain();
   Mina.setActiveInstance(Local);
   const largeValue = 30000000000;
   Local.addAccount(minaSender.toPublicKey(), largeValue);
-  
+
   // TODO: Put real value
   let snappOwnerKey = PrivateKey.random();
   let snappPubkey = snappOwnerKey.toPublicKey();
@@ -456,8 +392,7 @@ function mainold() {
   console.log(1);
   const depth = 8;
   // Private state. Lives on disk.
-  let operatorsDbStore = DataStore.InMemory<PublicKey>(
-    PublicKey, depth);
+  let operatorsDbStore = DataStore.InMemory<PublicKey>(PublicKey, depth);
 
   let operatorsDb = OperatorsDb.fromStore(operatorsDbStore);
 
@@ -472,105 +407,152 @@ function mainold() {
 
   let accountKey = (a: RollupAccount) => a.publicKey;
   // Public state, the state of accounts on the rollup.
-  let accountDbStore =
-    DataStore.Keyed.InMemory(RollupAccount, PublicKey, accountKey, AccountDbDepth)
-  let accountDb: AccountDb = AccountDb.create(
+  let accountDbStore = DataStore.Keyed.InMemory(
+    RollupAccount,
+    PublicKey,
     accountKey,
-    accountDbStore);
+    AccountDbDepth
+  );
+  let accountDb: AccountDb = AccountDb.create(accountKey, accountDbStore);
 
   let pendingDeposits = new MerkleStack<RollupDeposit>(RollupDeposit, () => []); // todo: storage
 
   let RollupInstance: RollupSnapp;
 
   console.log(4);
-  
+
   // TODO: Have a mock Mina module for testing purposes
   // TODO: Make sure that modifications to data stores are not
   // committed before corresponding changes happen on chain
 
   // Executes a snapp method, broadcasts the transaction to chain.
-  return Mina.getAccount(minaSender.toPublicKey()).then((a) => {
-    console.log('sender account', JSON.stringify(a));
-  })
-  .then(() =>
-  Mina.transaction(minaSender, () => {
-    const amount = UInt64.fromNumber(1000000000);
+  return Mina.getAccount(minaSender.toPublicKey())
+    .then((a) => {
+      console.log('sender account', JSON.stringify(a));
+    })
+    .then(() =>
+      Mina.transaction(minaSender, () => {
+        const amount = UInt64.fromNumber(1000000000);
 
-    return Party.createSigned(depositorPrivkey).then(p => {
-      p.body.delta = Int64.fromUnsigned(amount).neg();
-      RollupInstance = new RollupSnapp(amount, snappPubkey, operatorsDb, accountDb, pendingDeposits, UInt32.fromNumber(0));
-    });
-  }).send().wait())
-  .then(() => {
-    console.log('after init');
-    return Mina.getAccount(snappPubkey).then((a) => {
-      console.log('got account', JSON.stringify(a));
-    }).catch((e) => { console.log('bad', e); throw e })
-  })
-  .then(() => {
-
-    return Mina.transaction(minaSender, () => {
-      console.log('main', 5);
-      RollupInstance.addOperator(
-        Mina.currentSlot(), operatorsDb, newOperatorPubkey, signature);
-    }).send().wait().catch((e) => {console.log('fuc', e); throw e}).then(() => {
-      console.log('main', 6);
-      return Mina.transaction(minaSender, () => {
-        return Party.createSigned(depositorPrivkey).then((depositor) => {
-          // TODO: Figure out nicer way to have a second party.
-
-          return Mina.getBalance(depositorPubkey).then((depositorBalance) => {
-            // Deposit some funds into the rollup
-            RollupInstance.depositFunds(depositor.body, depositorBalance.div(2));
-          });
+        return Party.createSigned(depositorPrivkey).then((p) => {
+          p.body.delta = Int64.fromUnsigned(amount).neg();
+          RollupInstance = new RollupSnapp(snappPubkey);
+          RollupInstance.deploy(
+            amount,
+            operatorsDb,
+            accountDb,
+            pendingDeposits,
+            UInt32.fromNumber(0)
+          );
         });
-      }).send().wait().catch((e) => {console.log('fuc', e); throw e})
-    }).then(() => {
-      console.log('main', 7);
-      let rollupAmount = UInt64.fromNumber(10);
-      let rollupNonce = UInt32.fromNumber(0);
-      let rollupSender = depositorPubkey;
-      let rollupReceiver = depositorPubkey;
-      let rollupTransaction = new RollupTransaction(
-        rollupAmount, rollupNonce, rollupSender, rollupReceiver
-      );
-      console.log('main', 8);
-      
-      const p1 = 
-          RollupProof.processDeposit(pendingDeposits, accountDb);
-      console.log('main', 80);
-      const p2 =
-          RollupProof.transaction(
+      })
+        .send()
+        .wait()
+    )
+    .then(() => {
+      console.log('after init');
+      return Mina.getAccount(snappPubkey)
+        .then((a) => {
+          console.log('got account', JSON.stringify(a));
+        })
+        .catch((e) => {
+          console.log('bad', e);
+          throw e;
+        });
+    })
+    .then(() => {
+      return Mina.transaction(minaSender, () => {
+        console.log('main', 5);
+        RollupInstance.addOperator(
+          Mina.currentSlot(),
+          operatorsDb,
+          newOperatorPubkey,
+          signature
+        );
+      })
+        .send()
+        .wait()
+        .catch((e) => {
+          console.log('fuc', e);
+          throw e;
+        })
+        .then(() => {
+          console.log('main', 6);
+          return Mina.transaction(minaSender, () => {
+            return Party.createSigned(depositorPrivkey).then((depositor) => {
+              // TODO: Figure out nicer way to have a second party.
+
+              return Mina.getBalance(depositorPubkey).then(
+                (depositorBalance) => {
+                  // Deposit some funds into the rollup
+                  RollupInstance.depositFunds(
+                    depositor,
+                    depositorBalance.div(2)
+                  );
+                }
+              );
+            });
+          })
+            .send()
+            .wait()
+            .catch((e) => {
+              console.log('fuc', e);
+              throw e;
+            });
+        })
+        .then(() => {
+          console.log('main', 7);
+          let rollupAmount = UInt64.fromNumber(10);
+          let rollupNonce = UInt32.fromNumber(0);
+          let rollupSender = depositorPubkey;
+          let rollupReceiver = depositorPubkey;
+          let rollupTransaction = new RollupTransaction(
+            rollupAmount,
+            rollupNonce,
+            rollupSender,
+            rollupReceiver
+          );
+          console.log('main', 8);
+
+          const p1 = RollupProof.processDeposit(pendingDeposits, accountDb);
+          console.log('main', 80);
+          const p2 = RollupProof.transaction(
             rollupTransaction,
             Signature.create(depositorPrivkey, rollupTransaction.toFields()),
             pendingDeposits,
-            accountDb);
+            accountDb
+          );
 
-      console.log('main', 81);
-      let rollupProof =
-        RollupProof.merge(p1, p2);
+          console.log('main', 81);
+          let rollupProof = RollupProof.merge(p1, p2);
 
-      console.log('main', 9);
-      return Mina.transaction(minaSender, () => {
-      console.log('main', 10);
-        let membershipProof = operatorsDb.getMembershipProof(newOperatorPubkey);
-      console.log('main', 11);
-        if (membershipProof === null) { throw 'not an operator' };
-        RollupInstance.updateRollupState(
-          rollupProof,
-          membershipProof,
-          newOperatorPubkey,
-          Signature.create(
-            newOperatorPrivkey,
-            rollupProof.publicInput.target.toFields())
-        )
-      }).send().wait().catch((e) => {
-        console.log('rrr', e);
-        throw e;
-      });
-    })
-
-  });
+          console.log('main', 9);
+          return Mina.transaction(minaSender, () => {
+            console.log('main', 10);
+            let membershipProof =
+              operatorsDb.getMembershipProof(newOperatorPubkey);
+            console.log('main', 11);
+            if (membershipProof === null) {
+              throw 'not an operator';
+            }
+            RollupInstance.updateRollupState(
+              rollupProof,
+              membershipProof,
+              newOperatorPubkey,
+              Signature.create(
+                newOperatorPrivkey,
+                rollupProof.publicInput.target.toFields()
+              )
+            );
+          })
+            .send()
+            .wait()
+            .catch((e) => {
+              console.log('rrr', e);
+              throw e;
+            });
+        });
+    });
 }
 
-*/
+main();
