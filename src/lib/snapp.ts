@@ -119,6 +119,8 @@ function createState<A>() {
 
 type InternalStateType = ReturnType<typeof createState>;
 
+const reservedPropNames = new Set(['_states', '_layout', '_']);
+
 /**
  * A decorator to use within a snapp to indicate what will be stored on-chain.
  * For example, if you want to store a field element `some_state` in a snapp,
@@ -131,16 +133,18 @@ type InternalStateType = ReturnType<typeof createState>;
  */
 export function state<A>(ty: AsFieldElements<A>) {
   return function (
-    target: any,
+    target: SmartContract & { constructor: any },
     key: string,
     _descriptor?: PropertyDescriptor
-  ): any {
+  ) {
     const SnappClass = target.constructor;
-    if (!(SnappClass.prototype instanceof SmartContract)) {
-      throw new Error(
-        'Can only use @state decorator on classes that extend SmartContract'
-      );
-    }
+    // TBD: I think the runtime error below is unnecessary, because having target: SmartContract
+    // means TS will not let the code build if @state is used on an incompatible class
+    // if (!(SnappClass.prototype instanceof SmartContract)) {
+    //   throw Error(
+    //     'Can only use @state decorator on classes that extend SmartContract'
+    //   );
+    // }
 
     // TBD: ok to not check? bc type metadata not inferred from class field assignment
     // const fieldType = Reflect.getMetadata('design:type', target, key);
@@ -150,8 +154,8 @@ export function state<A>(ty: AsFieldElements<A>) {
     //   );
     // }
 
-    if (key === '_states' || key === '_layout') {
-      throw new Error('Property names _states and _layout reserved.');
+    if (reservedPropNames.has(key)) {
+      throw Error(`Property name ${key} is reserved.`);
     }
 
     if (SnappClass._states == undefined) {
@@ -203,10 +207,12 @@ export function state<A>(ty: AsFieldElements<A>) {
  * ```
  */
 export function method(
-  target: any,
+  target: SmartContract & { constructor: any },
   propertyName: string,
   _descriptor?: PropertyDescriptor
-): any {}
+) {
+  const SnappClass = target.constructor;
+}
 
 type ExecutionState = {
   transactionId: number;
@@ -229,8 +235,6 @@ export abstract class SmartContract {
   // protocolState: ProtocolStatePredicate;
   address: PublicKey;
 
-  // state: Array<State<Field>>;
-
   // private _self: { body: Body, predicate: AccountPredicate } | undefined;
 
   _executionState: ExecutionState | undefined;
@@ -244,10 +248,8 @@ export abstract class SmartContract {
   deploy(...args: any[]) {
     try {
       this.executionState().party.body.update.verificationKey.set = Bool(true);
-    } catch (_error) {
-      throw new Error(
-        'Cannot deploy SmartContract outside a transaction.'
-      );
+    } catch {
+      throw new Error('Cannot deploy SmartContract outside a transaction.');
     }
   }
 
