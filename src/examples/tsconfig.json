@@ -5,7 +5,6 @@
   "compilerOptions": {
     "baseUrl": "../..",
     "paths": {
-      "@o1labs/snarkyjs": ["."],
       "snarkyjs": ["."]
     }
   }

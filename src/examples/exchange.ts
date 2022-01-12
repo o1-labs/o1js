@@ -9,7 +9,7 @@ import {
   prop,
   CircuitValue,
   Signature,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 import {
   Trade,
   HTTPSAttestation,

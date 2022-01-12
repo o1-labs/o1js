@@ -8,7 +8,7 @@ import {
   Signature,
   PrivateKey,
   PublicKey,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 
 class Transaction extends CircuitValue {
   @prop sender: PublicKey;

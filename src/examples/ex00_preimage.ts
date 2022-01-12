@@ -5,7 +5,7 @@ import {
   circuitMain,
   public_,
   isReady,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 
 /* Exercise 0:
 

@@ -7,7 +7,7 @@ import {
   Poseidon,
   AsFieldElements,
   Optional,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 import { DataStore, KeyedDataStore } from './data_store';
 
 let indexId = 0;

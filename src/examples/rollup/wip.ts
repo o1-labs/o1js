@@ -20,7 +20,7 @@ import {
   proofSystem,
   branch,
   ProofWithInput,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 
 import {
   AccumulatorMembershipProof,

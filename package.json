@@ -1,5 +1,5 @@
 {
-  "name": "@o1labs/snarkyjs",
+  "name": "snarkyjs",
   "description": "JavaScript bindings for SnarkyJS",
   "version": "0.1.11",
   "license": "Apache-2.0",

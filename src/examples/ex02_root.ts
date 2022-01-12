@@ -5,7 +5,7 @@ import {
   public_,
   isReady,
   shutdown,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 
 await isReady;
 

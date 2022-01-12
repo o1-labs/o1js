@@ -8,7 +8,7 @@ import {
   prop,
   CircuitValue,
   Signature,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 class Witness extends CircuitValue {
   @prop signature: Signature;
   @prop acc: Group;

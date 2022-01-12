@@ -1,4 +1,4 @@
-import { Field } from '@o1labs/snarkyjs';
+import { Field } from 'snarkyjs';
 
 /* Exercise 3:
 

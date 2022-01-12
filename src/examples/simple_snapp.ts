@@ -9,7 +9,7 @@ import {
   Mina,
   Party,
   isReady,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 
 class SimpleSnapp extends SmartContract {
   @state(Field) x = State<Field>();

@@ -6,7 +6,7 @@ import {
   Poseidon,
   asFieldElementsToConstant,
   UInt64,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 import { AccumulatorMembershipProof, Index } from './merkle_proof';
 import {
   Tree,

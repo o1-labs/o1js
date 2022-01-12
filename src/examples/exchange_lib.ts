@@ -6,7 +6,7 @@ import {
   prop,
   CircuitValue,
   Signature,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 
 // type TradeObject = { timestamp: Field, price: Field, quantity: Field, isBuy: Bool };
 
