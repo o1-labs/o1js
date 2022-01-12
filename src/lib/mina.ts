@@ -13,11 +13,7 @@ import {
 } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
-import {
-  Body,
-  EpochDataPredicate,
-  ProtocolStatePredicate,
-} from './party';
+import { Body, EpochDataPredicate, ProtocolStatePredicate } from './party';
 
 interface TransactionId {
   wait(): Promise<void>;
@@ -49,6 +45,9 @@ export let currentTransaction:
       protocolState: ProtocolStatePredicate;
     }
   | undefined = undefined;
+export function setCurrentTransaction(transaction: typeof currentTransaction) {
+  currentTransaction = transaction;
+}
 
 interface Mina {
   transaction(sender: PrivateKey, f: () => void | Promise<void>): Transaction;
