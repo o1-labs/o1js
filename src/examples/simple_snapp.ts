@@ -28,6 +28,8 @@ class SimpleSnapp extends SmartContract {
 
 await isReady;
 
+SimpleSnapp.compile();
+
 const Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
