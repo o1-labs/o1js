@@ -19,11 +19,11 @@ import {
   ProtocolStatePredicate,
 } from './party';
 
-export interface TransactionId {
+interface TransactionId {
   wait(): Promise<void>;
 }
 
-export interface Transaction {
+interface Transaction {
   send(): TransactionId;
 }
 

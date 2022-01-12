@@ -272,9 +272,9 @@ export class Permissions {
 }
 
 /* TODO: How should we handle "String"s, should we bridge them from OCaml? */
-export class String_ extends CircuitValue {}
+class String_ extends CircuitValue {}
 
-export class TokenSymbol extends CircuitValue {
+class TokenSymbol extends CircuitValue {
   // TODO: Figure out how to represent
   // (Bool, Num_bits.n) Pickles_types.Vector.t
 }
@@ -311,7 +311,7 @@ type TokenId = UInt64;
 export const getDefaultTokenId = () => new UInt64(Field.one);
 
 // TODO
-export class Events {
+class Events {
   hash: Field;
   events: Array<Array<Field>>;
 
@@ -323,7 +323,7 @@ export class Events {
 }
 
 // TODO
-export class MerkleList<T> {
+class MerkleList<T> {
   constructor() {}
 }
 

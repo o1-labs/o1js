@@ -662,12 +662,12 @@ interface ClosedInterval_<A> {
   upper: A;
 }
 
-export interface EpochLedgerPredicate_ {
+interface EpochLedgerPredicate_ {
   hash: OrIgnore_<Field>;
   totalCurrency: ClosedInterval_<UInt64_>;
 }
 
-export interface EpochDataPredicate_ {
+interface EpochDataPredicate_ {
   ledger: EpochLedgerPredicate_;
   seed: OrIgnore_<Field>;
   startCheckpoint: OrIgnore_<Field>;
@@ -675,7 +675,7 @@ export interface EpochDataPredicate_ {
   epochLength: ClosedInterval_<UInt32_>;
 }
 
-export interface ProtocolStatePredicate_ {
+interface ProtocolStatePredicate_ {
   snarkedLedgerHash: OrIgnore_<Field>;
   snarkedNextAvailableToken: ClosedInterval_<UInt64_>;
   timestamp: ClosedInterval_<UInt64_>;
@@ -767,18 +767,6 @@ export class Ledger {
 
   getAccount(publicKey: { g: Group }): Account | null;
 }
-
-/* TODO: Figure out types for these. */
-export const ofFields: (x: any[], y: any[]) => any[];
-export const toFields: (x: any[], y: any[]) => any[];
-export const sizeInFields: (x: any[]) => number;
-
-export const NumberAsField: AsFieldElements<Number>;
-
-export const array: <T>(
-  x: AsFieldElements<T>,
-  length: number
-) => AsFieldElements<T[]>;
 
 /**
  * This function *must* be called at the end of a nodejs program, otherwise the
