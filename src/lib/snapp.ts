@@ -7,7 +7,7 @@ import {
   Party,
   PartyBalance,
 } from './party';
-import { PublicKey } from './signature';
+import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { UInt32 } from './int';
 
@@ -119,7 +119,7 @@ function createState<A>() {
 
 type InternalStateType = ReturnType<typeof createState>;
 
-const reservedPropNames = new Set(['_states', '_layout', '_']);
+const reservedPropNames = new Set(['_states', '_layout', '_methods', '_']);
 
 /**
  * A decorator to use within a snapp to indicate what will be stored on-chain.
@@ -208,10 +208,71 @@ export function state<A>(ty: AsFieldElements<A>) {
  */
 export function method(
   target: SmartContract & { constructor: any },
-  propertyName: string,
+  methodName: string,
   _descriptor?: PropertyDescriptor
 ) {
   const SnappClass = target.constructor;
+  if (reservedPropNames.has(methodName)) {
+    throw Error(`Property name ${methodName} is reserved.`);
+  }
+  let paramTypes = Reflect.getMetadata('design:paramtypes', target, methodName);
+  let witnessArgs = [];
+  let proofArgs = [];
+  let args = [];
+  for (let i = 0; i < paramTypes.length; i++) {
+    let Parameter = paramTypes[i];
+    if (isProof(Parameter)) {
+      args.push({ type: 'proof', index: proofArgs.length });
+      proofArgs.push(Parameter);
+    } else if (isAsFields(Parameter)) {
+      args.push({ type: 'witness', index: witnessArgs.length });
+      witnessArgs.push(Parameter);
+    } else {
+      throw Error(
+        `Argument ${i} of method ${methodName} is not a valid circuit value.`
+      );
+    }
+  }
+  SnappClass._methods ??= [];
+  SnappClass._methods.push({
+    name: methodName,
+    method: (target as any)[methodName] as Function,
+    witnessArgs,
+    proofArgs,
+    args,
+  });
+}
+
+function methodInductiveRule({
+  method,
+  witnessArgs,
+}: {
+  method: Function;
+  witnessArgs: AsFieldElements<unknown>[];
+}) {
+  return function (transactionHash: Field) {
+    Mina.setCurrentTransaction({
+      sender: PrivateKey.random(), // TODO
+      parties: [],
+      nextPartyIndex: 0,
+      protocolState: ProtocolStatePredicate.ignoreAll(),
+    });
+    let witnesses = witnessArgs.map((w) => emptyWitness(w));
+    let hash = computeTransactionHash(Mina.currentTransaction);
+    hash.assertEquals();
+  };
+}
+
+function isAsFields(typ: Object) {
+  return (
+    !!typ && ['toFields', 'ofFields', 'sizeInFields'].every((s) => s in typ)
+  );
+}
+function isProof(typ: any) {
+  return false; // TODO
+}
+function emptyWitness<A>(typ: AsFieldElements<A>) {
+  return typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero));
 }
 
 type ExecutionState = {
