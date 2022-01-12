@@ -17,7 +17,7 @@ class SimpleSnapp extends SmartContract {
   deploy(initialBalance: UInt64, x: Field) {
     super.deploy();
     this.balance.addInPlace(initialBalance);
-    this.x = State.init(x);
+    this.x.set(x);
   }
 
   @method async update(y: Field) {
