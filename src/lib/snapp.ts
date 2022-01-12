@@ -206,14 +206,19 @@ export function state<A>(ty: AsFieldElements<A>) {
  * }
  * ```
  */
-export function method(
-  target: SmartContract & { constructor: any },
-  methodName: string,
+export function method<T extends SmartContract>(
+  target: T & { constructor: any },
+  methodName: keyof T & string,
   _descriptor?: PropertyDescriptor
 ) {
   const SnappClass = target.constructor;
   if (reservedPropNames.has(methodName)) {
     throw Error(`Property name ${methodName} is reserved.`);
+  }
+  if (typeof target[methodName] !== 'function') {
+    throw Error(
+      `@method decorator was applied to ${methodName} which is not a function.`
+    );
   }
   let paramTypes = Reflect.getMetadata('design:paramtypes', target, methodName);
   let witnessArgs = [];
@@ -235,33 +240,19 @@ export function method(
   }
   SnappClass._methods ??= [];
   SnappClass._methods.push({
-    name: methodName,
-    method: (target as any)[methodName] as Function,
+    methodName,
     witnessArgs,
     proofArgs,
     args,
   });
 }
 
-function methodInductiveRule({
-  method,
-  witnessArgs,
-}: {
-  method: Function;
+type methodEntry<T> = {
+  methodName: keyof T & string;
   witnessArgs: AsFieldElements<unknown>[];
-}) {
-  return function (transactionHash: Field) {
-    Mina.setCurrentTransaction({
-      sender: PrivateKey.random(), // TODO
-      parties: [],
-      nextPartyIndex: 0,
-      protocolState: ProtocolStatePredicate.ignoreAll(),
-    });
-    let witnesses = witnessArgs.map((w) => emptyWitness(w));
-    let hash = computeTransactionHash(Mina.currentTransaction);
-    hash.assertEquals();
-  };
-}
+  proofArgs: unknown[];
+  args: { type: string; index: number }[];
+};
 
 function isAsFields(typ: Object) {
   return (
@@ -282,6 +273,29 @@ type ExecutionState = {
   protocolStatePredicate: ProtocolStatePredicate;
 };
 
+function methodToInductiveRule<T extends SmartContract>(
+  snappClassInstance: T,
+  { methodName, witnessArgs }: methodEntry<T>
+) {
+  return function (transactionHash: Field) {
+    Mina.setCurrentTransaction({
+      sender: PrivateKey.random(), // TODO
+      parties: [],
+      nextPartyIndex: 0,
+      protocolState: ProtocolStatePredicate.ignoreAll(),
+    });
+    let witnesses = witnessArgs.map((w) => emptyWitness(w));
+    (snappClassInstance[methodName] as any)(...witnesses);
+    let hash = computeTransactionHash(Mina.currentTransaction);
+    hash.assertEquals(transactionHash);
+  };
+}
+
+function computeTransactionHash(x: any) {
+  // TODO
+  return Field.one;
+}
+
 /**
  * The main snapp class. To write a snapp, extend this class as such:
  *
@@ -292,18 +306,24 @@ type ExecutionState = {
  * ```
  *
  */
-export abstract class SmartContract {
-  // protocolState: ProtocolStatePredicate;
+export class SmartContract {
   address: PublicKey;
 
-  // private _self: { body: Body, predicate: AccountPredicate } | undefined;
-
-  _executionState: ExecutionState | undefined;
+  _executionState?: ExecutionState;
+  static _methods?: methodEntry<SmartContract>[];
 
   constructor(address: PublicKey) {
     this.address = address;
-    // this.self = null as unknown as Body;
-    // this.state = [];
+  }
+
+  static compile() {
+    let dummySender = PrivateKey.random();
+    let dummySenderPublic = dummySender.toPublicKey();
+    let dummyInstance = new this(dummySenderPublic);
+    let inductiveRules = (this._methods ?? []).map((m) =>
+      methodToInductiveRule(dummyInstance, m)
+    );
+    // TODO call some Ocaml function that passes inductiveRules to Pickles.compile
   }
 
   deploy(...args: any[]) {
