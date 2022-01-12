@@ -119,27 +119,6 @@ function createState<A>() {
 
 type InternalStateType = ReturnType<typeof createState>;
 
-// class version:
-/* export class State<A> {
-  constructor() {
-    (this as any).value = EMPTY_STATE;
-  }
-  static init<A>(value: A): State<A> {
-    let s = new State();
-    (s as any).value = value;
-    return s as never;
-  }
-  get(): Promise<A> {
-    throw Error('not implemented');
-  }
-  set(value: A) {
-    throw Error('not implemented');
-  }
-  assertEquals(value: A) {
-    throw Error('not implemented');
-  }
-} */
-
 /**
  * A decorator to use within a snapp to indicate what will be stored on-chain.
  * For example, if you want to store a field element `some_state` in a snapp,
