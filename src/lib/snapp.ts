@@ -102,7 +102,7 @@ function createState<A>() {
         });
       } else {
         const res = Circuit.witness(Circuit.array(Field, r.length), () => {
-          throw 'unimplemented';
+          throw Error('this should never happen');
         });
         p = new Promise((k) => k(res));
       }
@@ -300,7 +300,7 @@ export abstract class SmartContract {
       });
     } else {
       const res = Circuit.witness<UInt32>(UInt32, () => {
-        throw 'unimplemented';
+        throw Error('this should never happen');
       });
       p = new Promise((resolve) => resolve(res));
     }
