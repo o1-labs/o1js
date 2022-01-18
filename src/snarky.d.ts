@@ -779,3 +779,5 @@ export const shutdown: () => Promise<undefined>;
  * A Promise that resolves when SnarkyJS is ready to be used
  */
 export let isReady: Promise<undefined>;
+
+export let picklesCompile: (...args: any) => any;
