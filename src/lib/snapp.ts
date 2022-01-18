@@ -1,4 +1,11 @@
-import { Circuit, Field, Bool, Poseidon, AsFieldElements } from '../snarky';
+import {
+  Circuit,
+  Field,
+  Bool,
+  Poseidon,
+  AsFieldElements,
+  picklesCompile,
+} from '../snarky';
 import { CircuitValue } from './circuit_value';
 import {
   AccountPredicate,
@@ -273,24 +280,6 @@ type ExecutionState = {
   protocolStatePredicate: ProtocolStatePredicate;
 };
 
-function methodToInductiveRule<T extends SmartContract>(
-  snappClassInstance: T,
-  { methodName, witnessArgs }: methodEntry<T>
-) {
-  return function (transactionHash: Field) {
-    Mina.setCurrentTransaction({
-      sender: PrivateKey.random(), // TODO
-      parties: [],
-      nextPartyIndex: 0,
-      protocolState: ProtocolStatePredicate.ignoreAll(),
-    });
-    let witnesses = witnessArgs.map((w) => emptyWitness(w));
-    (snappClassInstance[methodName] as any)(...witnesses);
-    let hash = computeTransactionHash(Mina.currentTransaction);
-    hash.assertEquals(transactionHash);
-  };
-}
-
 function computeTransactionHash(x: any) {
   // TODO
   return Field.one;
@@ -320,10 +309,27 @@ export class SmartContract {
     let dummySender = PrivateKey.random();
     let dummySenderPublic = dummySender.toPublicKey();
     let dummyInstance = new this(dummySenderPublic);
-    let inductiveRules = (this._methods ?? []).map((m) =>
-      methodToInductiveRule(dummyInstance, m)
+    let inductiveRules = (this._methods ?? []).map(
+      ({ methodName, witnessArgs }) => {
+        function main(transactionHash: Field) {
+          console.log({ transactionHash });
+          Mina.setCurrentTransaction({
+            sender: PrivateKey.random(), // TODO
+            parties: [],
+            nextPartyIndex: 0,
+            protocolState: ProtocolStatePredicate.ignoreAll(),
+          });
+          let witnesses = witnessArgs.map(emptyWitness);
+          (dummyInstance[methodName] as any)(...witnesses); // call method in a way that `this` is defined
+          let hash = computeTransactionHash(Mina.currentTransaction);
+          hash.assertEquals(transactionHash);
+        }
+        return [0, methodName, main];
+      }
     );
-    // TODO call some Ocaml function that passes inductiveRules to Pickles.compile
+    let output = picklesCompile(inductiveRules);
+    console.log('output', output);
+    return output;
   }
 
   deploy(...args: any[]) {
