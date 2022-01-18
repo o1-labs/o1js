@@ -390,18 +390,6 @@ export class Bool {
    */
   equals(y: Bool | boolean): Bool;
 
-  /**
-   * Returns true if this [[`Bool`]] is true.
-   */
-  // TODO: that seems useless :D?
-  isTrue(): Bool;
-
-  /**
-   * Returns true if this [[`Bool`]] is false.
-   */
-  // not very useful no?
-  isFalse(): Bool;
-
   sizeInFields(): number;
   toFields(): Field[];
 
@@ -442,8 +430,6 @@ export class Bool {
   static assertEqual(x: Bool | boolean, y: Bool | boolean): void;
 
   static equal(x: Bool | boolean, y: Bool | boolean): Bool;
-  static isTrue(x: Bool | boolean): Bool;
-  static isFalse(x: Bool | boolean): Bool;
 
   static count(x: Bool | boolean[]): Field;
 
