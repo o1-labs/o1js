@@ -1,3 +1,4 @@
+// CURRENTLY UNUSED FILE
 import { Field, Proof } from '../snarky';
 import { PublicKey, Signature } from './signature';
 
