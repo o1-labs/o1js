@@ -6,7 +6,7 @@ import {
   prop,
   CircuitValue,
   Signature,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 
 // type TradeObject = { timestamp: Field, price: Field, quantity: Field, isBuy: Bool };
 
@@ -29,7 +29,7 @@ export class Trade extends CircuitValue {
   }
 }
 
-console.log('trade size', Trade.sizeInFieldElements());
+console.log('trade size', Trade.sizeInFields());
 
 const numTrades = 2;
 
@@ -67,6 +67,6 @@ export class HTTPSAttestation extends CircuitValue {
 
   verify(_request: WebSnappRequest) {
     //const O1PUB: Group = Group.generator;
-    //this.signature.verify(O1PUB, request.toFieldElements().concat(this.response.toFieldElements()))
+    //this.signature.verify(O1PUB, request.toFields().concat(this.response.toFields()))
   }
 }

@@ -7,55 +7,75 @@ import esbuild from 'esbuild';
 
 export { buildNode };
 
+const entry = './src/index.ts';
+const target = 'es2021';
+
 let nodePath = path.resolve(process.argv[1]);
 let modulePath = path.resolve(fileURLToPath(import.meta.url));
 let isMain = nodePath === modulePath;
 
 if (isMain) {
-  let entry = process.argv[2] ?? './src/index.ts';
   console.log('building', entry);
-  let production = process.env.NODE_ENV === 'production';
-  await buildNode({ entry, production });
+  await buildNode({ production: process.env.NODE_ENV === 'production' });
+  console.log('finished build');
 }
 
-async function buildNode({ entry, production }) {
+async function buildNode({ production }) {
+  let minify = !!production;
+
+  // copy over files not processed by TS
   let copyPromise = copy({
     './src/node_bindings/': './dist/server/node_bindings/',
     './src/snarky.node.js': './dist/server/snarky.js',
+    './src/proxyClasses.js': './dist/server/proxyClasses.js',
     './src/snarky.d.ts': './dist/server/snarky.d.ts',
     './src/snarky-class-spec.json': './dist/server/snarky-class-spec.json',
   });
-  let json = JSON.stringify({
-    extends: './tsconfig.json',
-    include: [entry],
-    compilerOptions: {
-      outDir: 'dist/server',
-    },
-  });
-  await fs.writeFile('./tsconfig.server-tmp.json', json);
-  let tscPromise = execPromise('npx tsc -p tsconfig.server-tmp.json').then(() =>
-    fs.unlink('./tsconfig.server-tmp.json')
-  );
+
+  if (minify) {
+    let snarkyJsPath = './dist/server/node_bindings/snarky_js_node.bc.js';
+    let snarkyJs = await fs.readFile(snarkyJsPath, 'utf8');
+    let { code } = await esbuild.transform(snarkyJs, {
+      target,
+      logLevel: 'error',
+      minify,
+    });
+    await fs.writeFile(snarkyJsPath, code);
+  }
+
+  // invoke TS to recreate .ts files as .js + d.ts in /dist/server
+  let tscPromise = execPromise('npx tsc -p tsconfig.server.json');
   await Promise.all([copyPromise, tscPromise]);
 
+  // bundle the new index.js file with esbuild and create a new index.js file which conforms to CJS
   let jsEntry = path.resolve(
     'dist/server',
     path.basename(entry).replace('.ts', '.js')
   );
-
   await esbuild.build({
     entryPoints: [jsEntry],
     bundle: true,
     format: 'cjs',
     platform: 'node',
     outfile: jsEntry,
-    target: 'esnext',
+    target,
     external: ['*.bc.js'],
     resolveExtensions: ['.node.js', '.ts', '.js'],
     allowOverwrite: true,
     plugins: [makeNodeModulesExternal()],
-    minify: !!production,
+    minify,
   });
+
+  // import the new index.js to get a list of its exports
+  // the list of exports is used to create an ESM entry-point index.mjs
+  let index = await import('../../dist/server/index.js');
+  let exportString = Object.keys(index)
+    .filter((x) => x !== 'default')
+    .join(', ');
+  let indexMjs = await fs.readFile('./src/index.mjs.template', 'utf8');
+  indexMjs = indexMjs.replace(/__EXPORTS__/g, exportString);
+  await fs.writeFile('./dist/server/index.mjs', indexMjs);
+  index.shutdown();
 }
 
 function makeNodeModulesExternal() {
@@ -86,9 +106,13 @@ function copy(copyMap) {
 }
 
 function execPromise(cmd) {
-  return new Promise((r) =>
-    exec(cmd, (_, stdout) => {
-      r(stdout);
+  return new Promise((res, rej) =>
+    exec(cmd, (err, stdout) => {
+      if (err) {
+        console.log(stdout);
+        return rej(err);
+      }
+      res(stdout);
     })
   );
 }

@@ -1,5 +1,5 @@
 /*
-import { Circuit, Field, AsField, toFieldElements, ofFieldElements, sizeInFieldElements, Bool } from './plonk';
+import { Circuit, Field, AsField, toFields, ofFields, sizeInFields, Bool } from './plonk';
 import { poseidon } from './poseidon';
 import { Group, Scalar } from './group';
 import { prop, CircuitValue, Tuple } from './circuit_value';

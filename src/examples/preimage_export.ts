@@ -4,7 +4,7 @@ import {
   Circuit,
   circuitMain,
   public_,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 
 export default class Main extends Circuit {
   @circuitMain

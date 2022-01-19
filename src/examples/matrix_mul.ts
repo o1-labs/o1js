@@ -1,4 +1,4 @@
-import { Field, Circuit } from '@o1labs/snarkyjs';
+import { Field, Circuit } from 'snarkyjs';
 
 /* @param x an n*m matrix, encoded as x[i][j] for row i column j.
  * @param y an o*n matrix, both encoded as y[i][j] for row i column j.

@@ -51,15 +51,15 @@
         "type": "function"
       },
       {
-        "name": "sizeInFieldElements",
+        "name": "sizeInFields",
         "type": "function"
       },
       {
-        "name": "toFieldElements",
+        "name": "toFields",
         "type": "function"
       },
       {
-        "name": "ofFieldElements",
+        "name": "ofFields",
         "type": "function"
       },
       {
@@ -84,10 +84,6 @@
       },
       {
         "name": "equal",
-        "type": "function"
-      },
-      {
-        "name": "toConstant",
         "type": "function"
       },
       {
@@ -144,15 +140,15 @@
         "type": "function"
       },
       {
-        "name": "sizeInFieldElements",
+        "name": "sizeInFields",
         "type": "function"
       },
       {
-        "name": "toFieldElements",
+        "name": "toFields",
         "type": "function"
       },
       {
-        "name": "ofFieldElements",
+        "name": "ofFields",
         "type": "function"
       },
       {
@@ -172,6 +168,10 @@
   {
     "name": "Circuit",
     "props": [
+      {
+        "name": "runAndCheck",
+        "type": "function"
+      },
       {
         "name": "asProver",
         "type": "function"
@@ -205,7 +205,15 @@
         "type": "function"
       },
       {
-        "name": "toFieldElements",
+        "name": "toFields",
+        "type": "function"
+      },
+      {
+        "name": "inProver",
+        "type": "function"
+      },
+      {
+        "name": "inCheckedComputation",
         "type": "function"
       },
       {
@@ -255,15 +263,15 @@
         "type": "function"
       },
       {
-        "name": "toFieldElements",
+        "name": "toFields",
         "type": "function"
       },
       {
-        "name": "ofFieldElements",
+        "name": "ofFields",
         "type": "function"
       },
       {
-        "name": "sizeInFieldElements",
+        "name": "sizeInFields",
         "type": "function"
       },
       {
@@ -284,15 +292,15 @@
     "name": "Scalar",
     "props": [
       {
-        "name": "toFieldElements",
+        "name": "toFields",
         "type": "function"
       },
       {
-        "name": "sizeInFieldElements",
+        "name": "sizeInFields",
         "type": "function"
       },
       {
-        "name": "ofFieldElements",
+        "name": "ofFields",
         "type": "function"
       },
       {
@@ -309,6 +317,15 @@
       },
       {
         "name": "fromJSON",
+        "type": "function"
+      }
+    ]
+  },
+  {
+    "name": "Ledger",
+    "props": [
+      {
+        "name": "create",
         "type": "function"
       }
     ]

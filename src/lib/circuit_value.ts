@@ -1,33 +1,38 @@
 import 'reflect-metadata';
-import { Circuit, Field, Bool, JSONValue } from '../snarky';
+import { Circuit, Field, Bool, JSONValue, AsFieldElements } from '../snarky';
 
 type Constructor<T> = { new (...args: any[]): T };
 
-export type Tuple<A, _N extends number> = Array<A>;
+export function asFieldElementsToConstant<T>(typ: AsFieldElements<T>, t: T): T {
+  const xs: Field[] = typ.toFields(t);
+  return typ.ofFields(xs);
+}
 
+// TODO: Synthesize the constructor if possible (bkase)
+//
 export abstract class CircuitValue {
-  static sizeInFieldElements(): number {
+  static sizeInFields(): number {
     const fields: [string, any][] = (this as any).prototype._fields;
-    return fields.reduce((acc, [_, typ]) => acc + typ.sizeInFieldElements(), 0);
+    return fields.reduce((acc, [_, typ]) => acc + typ.sizeInFields(), 0);
   }
 
-  static toFieldElements<T>(this: Constructor<T>, v: T): Field[] {
+  static toFields<T>(this: Constructor<T>, v: T): Field[] {
     const res: Field[] = [];
     const fields = (this as any).prototype._fields;
     if (fields === undefined || fields === null) {
       return res;
     }
 
-    for (let i = 0; i < fields.length; ++i) {
+    for (let i = 0, n = fields.length; i < n; ++i) {
       const [key, propType] = fields[i];
-      const subElts: Field[] = propType.toFieldElements((v as any)[key]);
+      const subElts: Field[] = propType.toFields((v as any)[key]);
       subElts.forEach((x) => res.push(x));
     }
     return res;
   }
 
-  toFieldElements(): Field[] {
-    return (this.constructor as any).toFieldElements(this);
+  toFields(): Field[] {
+    return (this.constructor as any).toFields(this);
   }
 
   toJSON(): JSONValue {
@@ -42,20 +47,23 @@ export abstract class CircuitValue {
     Circuit.assertEqual(this, x);
   }
 
-  static ofFieldElements<T>(this: Constructor<T>, xs: Field[]): T {
+  static ofFields<T>(this: Constructor<T>, xs: Field[]): T {
     const fields = (this as any).prototype._fields;
     let offset = 0;
     const props: any[] = [];
     for (let i = 0; i < fields.length; ++i) {
       const propType = fields[i][1];
-      const propSize = propType.sizeInFieldElements();
-      const propVal = propType.ofFieldElements(
-        xs.slice(offset, offset + propSize)
-      );
+      const propSize = propType.sizeInFields();
+      const propVal = propType.ofFields(xs.slice(offset, offset + propSize));
       props.push(propVal);
       offset += propSize;
     }
     return new this(...props);
+  }
+
+  static toConstant<T>(this: Constructor<T>, t: T): T {
+    const xs: Field[] = (this as any).toFields(t);
+    return (this as any).ofFields(xs.map((x) => x.toConstant()));
   }
 
   static toJSON<T>(this: Constructor<T>, v: T): JSONValue {
@@ -98,6 +106,21 @@ export abstract class CircuitValue {
   }
 }
 
+(CircuitValue as any).check = function (v: any) {
+  const fields = (this as any).prototype._fields;
+  if (fields === undefined || fields === null) {
+    return;
+  }
+
+  for (let i = 0; i < fields.length; ++i) {
+    const [key, propType] = fields[i];
+    const value = (v as any)[key];
+    if (propType.check != undefined) {
+      propType.check(value);
+    }
+  }
+};
+
 export function prop(this: any, target: any, key: string) {
   const fieldType = Reflect.getMetadata('design:type', target, key);
 
@@ -106,13 +129,38 @@ export function prop(this: any, target: any, key: string) {
   }
 
   if (fieldType === undefined) {
-  } else if (fieldType.toFieldElements && fieldType.ofFieldElements) {
+  } else if (fieldType.toFields && fieldType.ofFields) {
     target._fields.push([key, fieldType]);
   } else {
     console.log(
       `warning: property ${key} missing field element conversion methods`
     );
   }
+}
+
+export function arrayProp<T>(eltTyp: AsFieldElements<T>, length: number) {
+  return function (target: any, key: string) {
+    // const fieldType = Reflect.getMetadata('design:type', target, key);
+    if (target._fields === undefined || target._fields === null) {
+      target._fields = [];
+    }
+    target._fields.push([key, Circuit.array(eltTyp, length)]);
+  };
+}
+
+export function matrixProp<T>(
+  eltTyp: AsFieldElements<T>,
+  nRows: number,
+  nColumns: number
+) {
+  return function (target: any, key: string) {
+    // const fieldType = Reflect.getMetadata('design:type', target, key);
+    target._fields ??= [];
+    target._fields.push([
+      key,
+      Circuit.array(Circuit.array(eltTyp, nColumns), nRows),
+    ]);
+  };
 }
 
 export function public_(target: any, _key: string | symbol, index: number) {
@@ -124,36 +172,30 @@ export function public_(target: any, _key: string | symbol, index: number) {
   target._public.push(index);
 }
 
-type AsFieldElements<A> = {
-  sizeInFieldElements: () => number;
-  toFieldElements: (x: A) => Array<any>;
-  ofFieldElements: (x: Array<any>) => A;
-};
-
 function typOfArray(typs: Array<AsFieldElements<any>>): AsFieldElements<any> {
   return {
-    sizeInFieldElements: () => {
-      return typs.reduce((acc, typ) => acc + typ.sizeInFieldElements(), 0);
+    sizeInFields: () => {
+      return typs.reduce((acc, typ) => acc + typ.sizeInFields(), 0);
     },
 
-    toFieldElements: (t: Array<any>) => {
+    toFields: (t: Array<any>) => {
       if (t.length !== typs.length) {
         throw new Error(`typOfArray: Expected ${typs.length}, got ${t.length}`);
       }
 
       let res = [];
       for (let i = 0; i < t.length; ++i) {
-        res.push(...typs[i].toFieldElements(t[i]));
+        res.push(...typs[i].toFields(t[i]));
       }
       return res;
     },
 
-    ofFieldElements: (xs: Array<any>) => {
+    ofFields: (xs: Array<any>) => {
       let offset = 0;
       let res: Array<any> = [];
       typs.forEach((typ) => {
-        const n = typ.sizeInFieldElements();
-        res.push(typ.ofFieldElements(xs.slice(offset, offset + n)));
+        const n = typ.sizeInFields();
+        res.push(typ.ofFields(xs.slice(offset, offset + n)));
         offset += n;
       });
       return res;

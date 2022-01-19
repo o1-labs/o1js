@@ -8,7 +8,7 @@ import {
   prop,
   CircuitValue,
   Signature,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 class Witness extends CircuitValue {
   @prop signature: Signature;
   @prop acc: Group;
@@ -70,4 +70,6 @@ export function main() {
   console.log('random', Field.random());
   const proof = Circ.prove([], [new Field(2)], kp);
   console.log(proof, kp);
+  let ok = Circ.verify([Field(2)], kp.verificationKey(), proof);
+  console.log('verified', ok);
 }
