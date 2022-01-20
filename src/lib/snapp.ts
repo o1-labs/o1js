@@ -6,7 +6,7 @@ import {
   AsFieldElements,
   picklesCompile,
 } from '../snarky';
-import { CircuitValue } from './circuit_value';
+import { CircuitValue, toFieldsMagic } from './circuit_value';
 import {
   AccountPredicate,
   ProtocolStatePredicate,
@@ -414,6 +414,6 @@ function emptyWitness<A>(typ: AsFieldElements<A>) {
 // TODO
 function computeTransactionHash(tx: Mina.CurrentTransaction) {
   if (tx === undefined) throw Error('Transaction is undefined');
-  let { sender, nextPartyIndex, parties, protocolState } = tx;
-  return Poseidon.hash([...sender.toFields(), Field(nextPartyIndex)]);
+  let fields = toFieldsMagic(tx);
+  return Poseidon.hash(fields);
 }
