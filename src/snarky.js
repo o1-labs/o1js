@@ -11,11 +11,15 @@ export {
   Ledger,
   shutdown,
   isReady,
+  picklesCompile,
 };
 
+let picklesCompile;
 let isReadyBoolean = false;
 let isReady = initSnarkyJS().then(() => {
   isReadyBoolean = true;
+  console.log(window.__snarky);
+  picklesCompile = window.__snarky.picklesCompile;
 });
 
 let { Field, Bool, Circuit, Poseidon, Group, Scalar, Ledger } = proxyClasses(
