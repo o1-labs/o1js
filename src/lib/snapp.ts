@@ -22,7 +22,7 @@ import { UInt32 } from './int';
  * Gettable and settable state that can be checked for equality.
  */
 export type State<A> = {
-  get(): Promise<A>;
+  get(): A;
   set(a: A): void;
   assertEquals(a: A): void;
 };
@@ -89,7 +89,7 @@ function createState<A>() {
       });
     },
 
-    async get(): Promise<A> {
+    get() {
       if (!this._initialized)
         throw Error(
           'get can only be called when the State is assigned to a SmartContract @state.'
@@ -97,24 +97,23 @@ function createState<A>() {
       const r = this.getLayout();
 
       let addr: PublicKey = this._this.address;
-      let p: Promise<Field[]>;
+      let p: Field[];
 
       if (Circuit.inProver()) {
-        p = Mina.getAccount(addr).then((a) => {
-          const xs: Field[] = [];
-          for (let i = 0; i < r.length; ++i) {
-            xs.push(a.snapp.appState[r.offset + i]);
-          }
-          return Circuit.witness(Circuit.array(Field, r.length), () => xs);
-        });
+        console.log('get: in prover');
+        let a = Mina.getAccount(addr);
+
+        const xs: Field[] = [];
+        for (let i = 0; i < r.length; ++i) {
+          xs.push(a.snapp.appState[r.offset + i]);
+        }
+        p = Circuit.witness(Circuit.array(Field, r.length), () => xs);
       } else {
-        const res = Circuit.witness(Circuit.array(Field, r.length), () => {
+        p = Circuit.witness(Circuit.array(Field, r.length), () => {
           throw Error('this should never happen');
         });
-        p = new Promise((k) => k(res));
       }
-
-      let xs = await p;
+      let xs = p;
       const res = this._ty.ofFields(xs);
       if ((this._ty as any).check != undefined) {
         (this._ty as any).check(res);
@@ -269,21 +268,6 @@ function isAsFields(typ: Object) {
 function isProof(typ: any) {
   return false; // TODO
 }
-function emptyWitness<A>(typ: AsFieldElements<A>) {
-  return typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero));
-}
-
-type ExecutionState = {
-  transactionId: number;
-  partyIndex: number;
-  party: Party<AccountPredicate>;
-  protocolStatePredicate: ProtocolStatePredicate;
-};
-
-function computeTransactionHash(x: any) {
-  // TODO
-  return Field.one;
-}
 
 /**
  * The main snapp class. To write a snapp, extend this class as such:
@@ -319,10 +303,11 @@ export class SmartContract {
             nextPartyIndex: 0,
             protocolState: ProtocolStatePredicate.ignoreAll(),
           });
-          let witnesses = witnessArgs.map(emptyWitness);
+          let witnesses = witnessArgs.map(emptyWitness); // TODO is this correct?
           (dummyInstance[methodName] as any)(...witnesses); // call method in a way that `this` is defined
           let hash = computeTransactionHash(Mina.currentTransaction);
           hash.assertEquals(transactionHash);
+          Mina.setCurrentTransaction(undefined);
         }
         return [0, methodName, main];
       }
@@ -381,23 +366,20 @@ export class SmartContract {
     return this.self.balance;
   }
 
-  get nonce(): Promise<UInt32> {
-    let p: Promise<UInt32>;
+  get nonce() {
+    let nonce: UInt32;
     if (Circuit.inProver()) {
-      p = Mina.getAccount(this.address).then((a) => {
-        return Circuit.witness<UInt32>(UInt32, () => a.nonce);
-      });
+      let a = Mina.getAccount(this.address);
+      nonce = Circuit.witness<UInt32>(UInt32, () => a.nonce);
     } else {
       const res = Circuit.witness<UInt32>(UInt32, () => {
         throw Error('this should never happen');
       });
-      p = new Promise((resolve) => resolve(res));
+      nonce = res;
     }
 
-    return p.then((nonce) => {
-      this.executionState().party.predicate.nonce.assertBetween(nonce, nonce);
-      return nonce;
-    });
+    this.executionState().party.predicate.nonce.assertBetween(nonce, nonce);
+    return nonce;
   }
 
   party(i: number): Body {
@@ -413,4 +395,25 @@ export class SmartContract {
     // hash this together with what's there
     Poseidon.hash(x.toFields());
   }
+}
+
+type ExecutionState = {
+  transactionId: number;
+  partyIndex: number;
+  party: Party<AccountPredicate>;
+  protocolStatePredicate: ProtocolStatePredicate;
+};
+
+function emptyWitness<A>(typ: AsFieldElements<A>) {
+  // return typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero));
+  return Circuit.witness(typ, () =>
+    typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero))
+  );
+}
+
+// TODO
+function computeTransactionHash(tx: Mina.CurrentTransaction) {
+  if (tx === undefined) throw Error('Transaction is undefined');
+  let { sender, nextPartyIndex, parties, protocolState } = tx;
+  return Poseidon.hash([...sender.toFields(), Field(nextPartyIndex)]);
 }
