@@ -758,27 +758,27 @@ export class Party<P> {
     return party;
   }
 
-  static createSigned(signer: PrivateKey): Promise<Party<UInt32>> {
+  static createSigned(signer: PrivateKey) {
     // TODO: This should be a witness block that uses the setVariable
     // API to set the value of a variable after it's allocated
 
     const pk = signer.toPublicKey();
     const body: Body = Body.keepAll(pk);
-    return Mina.getAccount(pk).then((a) => {
-      if (Mina.currentTransaction === undefined) {
-        throw new Error(
-          'Party.createSigned: Cannot run outside of a transaction'
-        );
-      }
+    let a = Mina.getAccount(pk);
 
-      if (a == null) {
-        throw new Error('Party.createSigned: Account not found');
-      }
+    if (Mina.currentTransaction === undefined) {
+      throw new Error(
+        'Party.createSigned: Cannot run outside of a transaction'
+      );
+    }
 
-      const party = new Party(body, a.nonce);
-      Mina.currentTransaction.nextPartyIndex++;
-      Mina.currentTransaction.parties.push(party);
-      return party;
-    });
+    if (a == null) {
+      throw new Error('Party.createSigned: Account not found');
+    }
+
+    const party = new Party(body, a.nonce);
+    Mina.currentTransaction.nextPartyIndex++;
+    Mina.currentTransaction.parties.push(party);
+    return party;
   }
 }
