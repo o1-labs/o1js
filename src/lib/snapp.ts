@@ -100,7 +100,6 @@ function createState<A>() {
       let p: Field[];
 
       if (Circuit.inProver()) {
-        console.log('get: in prover');
         let a = Mina.getAccount(addr);
 
         const xs: Field[] = [];
@@ -289,14 +288,14 @@ export class SmartContract {
     this.address = address;
   }
 
-  static compile() {
-    let dummySender = PrivateKey.random();
-    let dummySenderPublic = dummySender.toPublicKey();
-    let dummyInstance = new this(dummySenderPublic);
+  static compile(address?: PublicKey) {
+    // TODO: think about how address should be passed in
+    // if address is not provided, create a random one
+    address ??= PrivateKey.random().toPublicKey();
+    let dummyInstance = new this(address);
     let inductiveRules = (this._methods ?? []).map(
       ({ methodName, witnessArgs }) => {
         function main(transactionHash: Field) {
-          console.log({ transactionHash });
           Mina.setCurrentTransaction({
             sender: PrivateKey.random(), // TODO
             parties: [],
@@ -306,6 +305,7 @@ export class SmartContract {
           let witnesses = witnessArgs.map(emptyWitness); // TODO is this correct?
           (dummyInstance[methodName] as any)(...witnesses); // call method in a way that `this` is defined
           let hash = computeTransactionHash(Mina.currentTransaction);
+          console.log({ transactionHash, hash });
           hash.assertEquals(transactionHash);
           Mina.setCurrentTransaction(undefined);
         }
