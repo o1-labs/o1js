@@ -16,16 +16,13 @@ export {
 };
 
 let isReadyBoolean = false;
-let isReady = snarky_ready.then(() => {
-  isReadyBoolean = true;
-  picklesCompile = getSnarky().picklesCompile;
-});
+let isReady = snarky_ready.then(() => (isReadyBoolean = true));
 let isItReady = () => isReadyBoolean;
 
 let { Field, Bool, Circuit, Poseidon, Group, Scalar, Ledger } = proxyClasses(
   getSnarky,
-  snarkySpec,
-  isItReady
+  isItReady,
+  snarkySpec
 );
 
 let { picklesCompile } = proxyFunctions(getSnarky, isItReady, [
