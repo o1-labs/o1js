@@ -47,5 +47,5 @@ function recoverVerificationKey(srs, vkBytes) {
     vkBytes
   );
   let vk = getJsooRuntime().caml_pasta_fp_plonk_verifier_index_of_rust(vkRust);
-  return new Circuit.getVerificationKey(vk);
+  return Circuit.getVerificationKey(vk);
 }
