@@ -526,6 +526,7 @@ export class Circuit {
 
   static inProver(): boolean;
 
+  // TODO: remove
   static inCheckedComputation(): boolean;
 }
 

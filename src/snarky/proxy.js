@@ -1,4 +1,4 @@
-export { proxyClasses };
+export { proxyClasses, proxyFunctions };
 
 function proxyClasses(getModuleObject, moduleSpec, getIsReady) {
   let moduleProxy = {};
@@ -34,12 +34,29 @@ function proxyClasses(getModuleObject, moduleSpec, getIsReady) {
   return moduleProxy;
 }
 
+function proxyFunctions(getModuleObject, isItReady, functionNames) {
+  let moduleProxy = {};
+  for (let functionName of functionNames) {
+    moduleProxy[functionName] = function (...args) {
+      if (!isItReady()) throw Error(functionError(functionName));
+      return getModuleObject()[functionName](...args);
+    };
+  }
+  return moduleProxy;
+}
+
 let constructError = (
   className
 ) => `Cannot call class constructor because snarkyjs has not finished loading.
 Try calling \`await isReady\` before \`new ${className}()\``;
+
 let methodError = (
   className,
   methodName
 ) => `Cannot call static method because snarkyjs has not finished loading.
 Try calling \`await isReady\` before \`${className}.${methodName}()\``;
+
+let functionError = (
+  functionName
+) => `Cannot call function because snarkyjs has not finished loading.
+Try calling \`await isReady\` before \`${functionName}()\``;
