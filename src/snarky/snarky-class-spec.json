@@ -128,14 +128,6 @@
         "type": "function"
       },
       {
-        "name": "isTrue",
-        "type": "function"
-      },
-      {
-        "name": "isFalse",
-        "type": "function"
-      },
-      {
         "name": "count",
         "type": "function"
       },
@@ -218,6 +210,10 @@
       },
       {
         "name": "if",
+        "type": "function"
+      },
+      {
+        "name": "getVerificationKey",
         "type": "function"
       }
     ]
