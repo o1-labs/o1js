@@ -1,9 +1,13 @@
 let snarky = require('./node_bindings/snarky_js_node.bc.js');
 
-export { getSnarky, snarky_ready, shutdown };
+export { getSnarky, getWasm, snarky_ready, shutdown };
 
 let getSnarky = () => snarky;
 let snarky_ready = snarky.snarky_ready;
+
+function getWasm() {
+  return globalThis.jsoo_runtime.plonk_wasm;
+}
 
 let didShutdown = false;
 function shutdown() {
