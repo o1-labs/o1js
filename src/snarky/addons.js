@@ -24,9 +24,16 @@ function getSrs(kp) {
  * @param { import("../snarky").VerificationKey } vk
  */
 function serializeVerificationKey(vk) {
-  return getWasm().caml_pasta_fp_plonk_verifier_index_serialize(
-    getJsooRuntime().caml_pasta_fp_plonk_verifier_index_to_rust(vk.value)
-  );
+  let wasm = getWasm();
+  let runtime = getJsooRuntime();
+  let isFp = vk.value[4].constructor.name === 'WasmFpSrs';
+  return isFp
+    ? wasm.caml_pasta_fp_plonk_verifier_index_serialize(
+        runtime.caml_pasta_fp_plonk_verifier_index_to_rust(vk.value)
+      )
+    : wasm.caml_pasta_fq_plonk_verifier_index_serialize(
+        runtime.caml_pasta_fq_plonk_verifier_index_to_rust(vk.value)
+      );
 }
 
 /**
