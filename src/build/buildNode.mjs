@@ -26,10 +26,8 @@ async function buildNode({ production }) {
   // copy over files not processed by TS
   let copyPromise = copy({
     './src/node_bindings/': './dist/server/node_bindings/',
-    './src/snarky.node.js': './dist/server/snarky.js',
-    './src/proxyClasses.js': './dist/server/proxyClasses.js',
     './src/snarky.d.ts': './dist/server/snarky.d.ts',
-    './src/snarky-class-spec.json': './dist/server/snarky-class-spec.json',
+    './src/snarky/': './dist/server/snarky/',
   });
 
   if (minify) {
