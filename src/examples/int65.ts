@@ -19,11 +19,11 @@ class Int65 extends CircuitValue {
 
   static fromFieldUnchecked(x: Field) {
     let MINUS_ONE = Field.one.neg();
-    let FIELD_MAX = BigInt(MINUS_ONE.toString());
+    let FIELD_ORDER = BigInt(MINUS_ONE.toString()) + 1n;
     let TWO64 = 1n << 64n;
     let xBigInt = BigInt(x.toString());
-    let isValidPositive = xBigInt < TWO64; // includes 0
-    let isValidNegative = FIELD_MAX - xBigInt < TWO64;
+    let isValidPositive = xBigInt < TWO64; // covers {0,...,2^64 - 1}
+    let isValidNegative = FIELD_ORDER - xBigInt < TWO64; // {-2^64 + 1,...,-1}
     if (!isValidPositive && !isValidNegative)
       throw Error(
         `Int64.fromField expected a value between (-2^64, 2^64), got ${x}`
@@ -38,7 +38,14 @@ class Int65 extends CircuitValue {
   }
 
   static fromNumber(x: number) {
-    return new Int65(Field(Math.abs(x)), x >= 0 ? Field.one : Field.one.neg());
+    return Int65.fromFieldUnchecked(Field(x));
+  }
+  static fromString(x: string) {
+    return Int65.fromFieldUnchecked(Field(x));
+  }
+  static fromBigInt(x: bigint) {
+    let xField = x < 0n ? Field((-x).toString()).neg() : Field(x.toString());
+    return Int65.fromFieldUnchecked(xField);
   }
 
   toString() {
@@ -119,12 +126,35 @@ async function test() {
   let x = Int65.fromNumber(-128);
   let y = new Int65(Field(128), Field(1));
 
-  x.add(y).assertEquals(Int65.zero);
+  // check arithmetic
 
+  x.add(y).assertEquals(Int65.zero);
   console.assert(x.sub(y).toString() === '-256');
   console.assert(y.add(x.neg()).toString() === '256');
   console.assert(x.mul(y).toString() == (-(128 ** 2)).toString());
   console.assert(y.div(x).neg().toString() === '1');
   console.assert(y.div(Int65.fromNumber(129)).toString() === '0');
+
+  // check if size limits are enforced correctly
+
+  // should work
+  Int65.fromBigInt((1n << 64n) - 1n).add(Int65.zero);
+  Int65.fromBigInt(-(1n << 64n) + 1n).add(Int65.zero);
+
+  // should fail
+  let fail = true;
+  try {
+    Int65.fromBigInt(1n << 64n);
+    fail = false;
+  } catch {}
+  try {
+    Int65.fromBigInt(-(1n << 64n));
+    fail = false;
+  } catch {}
+  try {
+    new Int65(Field((1n << 64n).toString()), Field(1)).add(Int65.zero);
+    fail = false;
+  } catch {}
+  console.assert(fail === true);
   console.log('everything ok!');
 }
