@@ -42,8 +42,9 @@ class Int65 extends CircuitValue {
   }
 
   toString() {
-    let sign = this.sign.equals(Field.one).toBoolean() ? '' : '-';
-    return sign + this.magnitude;
+    let abs = this.magnitude.toString();
+    let sgn = this.sign.equals(Field.one).toBoolean() || abs === '0' ? '' : '-';
+    return sgn + abs;
   }
 
   isConstant() {
@@ -123,5 +124,7 @@ async function test() {
   console.assert(x.sub(y).toString() === '-256');
   console.assert(y.add(x.neg()).toString() === '256');
   console.assert(x.mul(y).toString() == (-(128 ** 2)).toString());
+  console.assert(y.div(x).neg().toString() === '1');
+  console.assert(y.div(Int65.fromNumber(129)).toString() === '0');
   console.log('everything ok!');
 }
