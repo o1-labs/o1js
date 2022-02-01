@@ -51,7 +51,7 @@ class Int65 extends CircuitValue {
   }
 
   // --- circuit-compatible operations below ---
-  // the assumption here is that all DoubleInt64 values that appear in a circuit are already checked as valid
+  // the assumption here is that all Int65 values that appear in a circuit are already checked as valid
   // this is because Circuit.witness calls .check
   // so we only have to do additional checks if an operation on valid inputs can have an invalid outcome (example: overflow)
 
