@@ -1,8 +1,18 @@
 import { CircuitValue } from './circuit_value';
-import { Group, Field, Bool, VerificationKey } from '../snarky';
+import {
+  Group,
+  Field,
+  Bool,
+  VerificationKey,
+  Party_,
+  ProtocolStatePredicate_,
+  EpochDataPredicate_,
+} from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
+
+export { toParty, toProtocolState };
 
 export type Amount = UInt64;
 export const Amount = UInt64;
@@ -719,11 +729,12 @@ export class PartyBalance {
   }
 }
 
-export class Party<P> {
+type Predicate = undefined | UInt32 | AccountPredicate;
+export class Party {
   body: Body;
-  predicate: P;
+  predicate: Predicate;
 
-  constructor(body: Body, predicate: P) {
+  constructor(body: Body, predicate: Predicate) {
     this.body = body;
     this.predicate = predicate;
   }
@@ -740,7 +751,15 @@ export class Party<P> {
     return this.body.publicKey;
   }
 
-  static createUnsigned(publicKey: PublicKey): Party<void> {
+  static defaultParty(address: PublicKey) {
+    const body = Body.keepAll(address);
+    const predicate = AccountPredicate.ignoreAll();
+    return new Party(body, predicate) as Party & {
+      predicate: AccountPredicate;
+    };
+  }
+
+  static createUnsigned(publicKey: PublicKey) {
     // TODO: This should be a witness block that uses the setVariable
     // API to set the value of a variable after it's allocated
 
@@ -781,4 +800,79 @@ export class Party<P> {
     Mina.currentTransaction.parties.push(party);
     return party;
   }
+}
+
+function toParty(party: Party): Party_ {
+  let predicate: Party_['predicate'];
+  if (party.predicate === undefined) {
+    predicate = { type: 'accept' };
+  } else if (party.predicate instanceof UInt32) {
+    predicate = { type: 'nonce', value: party.predicate };
+  } else {
+    predicate = { type: 'full', value: party.predicate };
+  }
+  return {
+    predicate,
+    body: {
+      ...party.body,
+      events: party.body.events.events,
+      depth: parseInt(party.body.depth.toString(), 10),
+      // TODO
+      sequenceEvents: [],
+      callData: Field.zero,
+    },
+  };
+}
+
+function toProtocolState(
+  protocolState: ProtocolStatePredicate
+): ProtocolStatePredicate_ {
+  let {
+    snarkedLedgerHash_: snarkedLedgerHash,
+    snarkedNextAvailableToken,
+    timestamp,
+    blockchainLength,
+    minWindowDensity,
+    lastVrfOutput_: lastVrfOutput,
+    totalCurrency,
+    globalSlotSinceHardFork,
+    globalSlotSinceGenesis,
+    stakingEpochData,
+    nextEpochData,
+  } = protocolState;
+  return {
+    snarkedLedgerHash,
+    snarkedNextAvailableToken,
+    timestamp,
+    blockchainLength,
+    minWindowDensity,
+    lastVrfOutput,
+    totalCurrency,
+    globalSlotSinceHardFork,
+    globalSlotSinceGenesis,
+    stakingEpochData: toEpochDataPredicate(stakingEpochData),
+    nextEpochData: toEpochDataPredicate(nextEpochData),
+  };
+}
+
+function toEpochDataPredicate(
+  predicate: EpochDataPredicate
+): EpochDataPredicate_ {
+  let {
+    ledger,
+    epochLength,
+    lockCheckpoint_: lockCheckpoint,
+    seed_: seed,
+    startCheckpoint_: startCheckpoint,
+  } = predicate;
+  return {
+    ledger: {
+      totalCurrency: ledger.totalCurrency,
+      hash: ledger.hash_,
+    },
+    epochLength,
+    lockCheckpoint,
+    seed,
+    startCheckpoint,
+  };
 }
