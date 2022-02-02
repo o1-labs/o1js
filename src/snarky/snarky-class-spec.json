@@ -335,6 +335,18 @@
       {
         "name": "create",
         "type": "function"
+      },
+      {
+        "name": "hashParty",
+        "type": "function"
+      },
+      {
+        "name": "hashProtocolState",
+        "type": "function"
+      },
+      {
+        "name": "hashTransaction",
+        "type": "function"
       }
     ]
   }
