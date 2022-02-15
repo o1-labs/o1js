@@ -102,10 +102,7 @@ function createState<A>() {
       let addr: PublicKey = this._this.address;
       let p: Field[];
 
-      let isInProver = Circuit.inProver();
-      console.log('state.get', { isInProver });
-
-      if (isInProver) {
+      if (Circuit.inProver()) {
         let a = Mina.getAccount(addr);
 
         const xs: Field[] = [];
@@ -292,11 +289,6 @@ function toStatement(
     let transaction = Ledger.hashTransactionChecked(atParty, protocolStateHash);
     return { transaction, atParty };
   } else {
-    // TODO throws because party contains vars, even though it's in prover and should be able to read them out
-    // it seems Circuit.runAndCheck is somehow broken
-    let logDeep = (obj: any) => console.dir(obj, { depth: Infinity });
-    console.log({ checked, inProver: Circuit.inProver() });
-    logDeep({ appState0: self.body.update.appState[0] });
     let atParty = Ledger.hashParty(toParty(self));
     let protocolStateHash = Ledger.hashProtocolState(toProtocolState(state));
     let transaction = Ledger.hashTransaction(atParty, protocolStateHash);
@@ -342,7 +334,7 @@ function picklesRuleFromFunction(
     if (mainContext === undefined) throw Error('bug');
     console.log(statement);
     let { self, protocolState, witnesses } = mainContext;
-    console.log({ witnesses });
+    // console.log('witnesses', witnesses);
     witnesses = witnessTypes.map(
       witnesses
         ? (type, i) => Circuit.witness(type, () => witnesses![i])
@@ -410,19 +402,21 @@ export class SmartContract {
       self: Party.defaultParty(this.address),
       protocolState: ProtocolStatePredicate.ignoreAll(),
     };
-    console.log('prove: running main in normal mode, but checked');
+    console.log(
+      'prove: running method directly in prover mode to get statement'
+    );
     let statement: any;
 
-    await Circuit.runAndCheck(async () => {
+    Circuit.runAndCheckSync(() => {
       mainContext = ctx;
       (this[methodName] as any)(...args);
       mainContext = undefined;
       statement = toStatement(ctx.self, Field.zero, ctx.protocolState, false);
-      return () => {};
     });
-    console.dir({ statement }, { depth: 5 });
+    console.log(statement);
+    // console.dir({ statement }, { depth: 5 });
 
-    console.log('prove: running prover');
+    console.log('prove: running pickles prover');
     return withContext(
       {
         self: Party.defaultParty(this.address),
