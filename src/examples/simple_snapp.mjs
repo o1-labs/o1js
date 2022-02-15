@@ -55,11 +55,6 @@ let snappPubKey = snappPrivKey.toPublicKey();
 console.log('compile');
 let { provers, getVerificationKey } = SimpleSnapp.compile(snappPubKey);
 
-console.log('prove');
-let snapp = new SimpleSnapp(snappPubKey);
-let proof = snapp.prove(provers, 'update', [Field(3)]);
-console.log({ proof });
-
 console.log('deploy');
 await Mina.transaction(account1, async () => {
   let snapp = new SimpleSnapp(snappPubKey);
@@ -72,6 +67,11 @@ await Mina.transaction(account1, async () => {
   .wait();
 var snappState = (await Mina.getAccount(snappPubKey)).snapp.appState[0];
 console.log('initial state: ' + snappState);
+
+console.log('prove');
+let snapp = new SimpleSnapp(snappPubKey);
+let proof = await snapp.prove(provers, 'update', [Field(3)]);
+console.log({ proof });
 
 await Mina.transaction(account1, async () => {
   let snapp = new SimpleSnapp(snappPubKey);
