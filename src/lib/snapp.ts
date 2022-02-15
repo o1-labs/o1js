@@ -102,7 +102,10 @@ function createState<A>() {
       let addr: PublicKey = this._this.address;
       let p: Field[];
 
-      if (Circuit.inProver()) {
+      let isInProver = Circuit.inProver();
+      console.log('state.get', { isInProver });
+
+      if (isInProver) {
         let a = Mina.getAccount(addr);
 
         const xs: Field[] = [];
@@ -280,11 +283,7 @@ function toStatement(
   state: ProtocolStatePredicate,
   checked = false
 ) {
-  // TODO implement checked version of hashing
-  // TODO hash together with tail in the right way
-  let logDeep = (obj: any) => console.dir(obj, { depth: Infinity });
-  console.log({ checked });
-
+  // TODO hash together party with tail in the right way
   if (checked) {
     let atParty = Ledger.hashPartyChecked(toParty(self));
     let protocolStateHash = Ledger.hashProtocolStateChecked(
@@ -293,8 +292,11 @@ function toStatement(
     let transaction = Ledger.hashTransactionChecked(atParty, protocolStateHash);
     return { transaction, atParty };
   } else {
-    // TODO throws because party contains vars
-    logDeep({ appState: self.body.update.appState });
+    // TODO throws because party contains vars, even though it's in prover and should be able to read them out
+    // it seems Circuit.runAndCheck is somehow broken
+    let logDeep = (obj: any) => console.dir(obj, { depth: Infinity });
+    console.log({ checked, inProver: Circuit.inProver() });
+    logDeep({ appState0: self.body.update.appState[0] });
     let atParty = Ledger.hashParty(toParty(self));
     let protocolStateHash = Ledger.hashProtocolState(toProtocolState(state));
     let transaction = Ledger.hashTransaction(atParty, protocolStateHash);
@@ -400,7 +402,7 @@ export class SmartContract {
     return output;
   }
 
-  prove(provers: any[], methodName: keyof this, args: unknown[]) {
+  async prove(provers: any[], methodName: keyof this, args: unknown[]) {
     let SnappClass = this.constructor as never as typeof SmartContract;
     let i = SnappClass._methods!.findIndex((m) => m.methodName === methodName);
     if (!(i + 1)) throw Error(`Method ${methodName} not found!`);
@@ -408,9 +410,16 @@ export class SmartContract {
       self: Party.defaultParty(this.address),
       protocolState: ProtocolStatePredicate.ignoreAll(),
     };
-    console.log('prove: running main in normal (unchecked) mode');
-    withContext(ctx, () => (this[methodName] as any)(...args));
-    let statement = toStatement(ctx.self, Field.zero, ctx.protocolState, false);
+    console.log('prove: running main in normal mode, but checked');
+    let statement: any;
+
+    await Circuit.runAndCheck(async () => {
+      mainContext = ctx;
+      (this[methodName] as any)(...args);
+      mainContext = undefined;
+      statement = toStatement(ctx.self, Field.zero, ctx.protocolState, false);
+      return () => {};
+    });
     console.dir({ statement }, { depth: 5 });
 
     console.log('prove: running prover');
