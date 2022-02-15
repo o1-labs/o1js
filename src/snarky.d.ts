@@ -496,7 +496,7 @@ export class Circuit {
   // static runAndCheck<T>(f : () => Promise<(() => T)>): Promise<T>;
   static runAndCheck<T>(f: () => Promise<() => T>): Promise<T>;
 
-  static runAndCheckSync(f: () => void): void;
+  static runAndCheckSync<T>(f: () => T): T;
 
   static array<T>(
     ctor: AsFieldElements<T>,
