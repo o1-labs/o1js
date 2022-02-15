@@ -347,6 +347,18 @@
       {
         "name": "hashTransaction",
         "type": "function"
+      },
+      {
+        "name": "hashPartyChecked",
+        "type": "function"
+      },
+      {
+        "name": "hashProtocolStateChecked",
+        "type": "function"
+      },
+      {
+        "name": "hashTransactionChecked",
+        "type": "function"
       }
     ]
   }
