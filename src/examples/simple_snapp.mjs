@@ -56,10 +56,10 @@ console.log('compile');
 let { provers, getVerificationKey } = SimpleSnapp.compile(snappPubKey);
 
 console.log('deploy');
-await Mina.transaction(account1, async () => {
+await Mina.transaction(account1, () => {
   let snapp = new SimpleSnapp(snappPubKey);
   const amount = UInt64.fromNumber(1e6);
-  const p = await Party.createSigned(account2);
+  const p = Party.createSigned(account2);
   p.balance.subInPlace(amount);
   snapp.deploy(amount, Field(1));
 })
@@ -73,9 +73,9 @@ let snapp = new SimpleSnapp(snappPubKey);
 let proof = await snapp.prove(provers, 'update', [Field(3)]);
 console.log({ proof });
 
-await Mina.transaction(account1, async () => {
+await Mina.transaction(account1, () => {
   let snapp = new SimpleSnapp(snappPubKey);
-  await snapp.update(Field(3));
+  snapp.update(Field(3));
 })
   .send()
   .wait();
