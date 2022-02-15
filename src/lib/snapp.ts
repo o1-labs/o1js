@@ -278,7 +278,7 @@ function toStatement(
   self: Party,
   tail: Field,
   state: ProtocolStatePredicate,
-  checked = false
+  checked = true
 ) {
   // TODO hash together party with tail in the right way
   if (checked) {
@@ -302,6 +302,8 @@ function checkStatement(
   tail: Field,
   protocolState: ProtocolStatePredicate
 ) {
+  // ATM, we always compute the statement in checked mode to make assertEqual pass
+  // TODO: are checked / unchecked versions supposed to be compatible?
   let otherStatement = toStatement(self, tail, protocolState, true);
   atParty.assertEquals(otherStatement.atParty);
   transaction.assertEquals(otherStatement.transaction);
@@ -332,9 +334,7 @@ function picklesRuleFromFunction(
   function main(statement: Statement) {
     onStart?.();
     if (mainContext === undefined) throw Error('bug');
-    console.log(statement);
     let { self, protocolState, witnesses } = mainContext;
-    // console.log('witnesses', witnesses);
     witnesses = witnessTypes.map(
       witnesses
         ? (type, i) => Circuit.witness(type, () => witnesses![i])
@@ -390,7 +390,6 @@ export class SmartContract {
       },
       () => picklesCompile(rules)
     );
-    console.log('output', output);
     return output;
   }
 
@@ -402,21 +401,21 @@ export class SmartContract {
       self: Party.defaultParty(this.address),
       protocolState: ProtocolStatePredicate.ignoreAll(),
     };
-    console.log(
-      'prove: running method directly in prover mode to get statement'
-    );
-    let statement: any;
-
-    Circuit.runAndCheckSync(() => {
+    // console.log(
+    //   'prove: running method directly in prover mode to get statement'
+    // );
+    let statement = Circuit.runAndCheckSync(() => {
       mainContext = ctx;
       (this[methodName] as any)(...args);
       mainContext = undefined;
-      statement = toStatement(ctx.self, Field.zero, ctx.protocolState, false);
+      let statementVar = toStatement(ctx.self, Field.zero, ctx.protocolState);
+      return {
+        transaction: statementVar.transaction.toConstant(),
+        atParty: statementVar.atParty.toConstant(),
+      };
     });
-    console.log(statement);
-    // console.dir({ statement }, { depth: 5 });
 
-    console.log('prove: running pickles prover');
+    // console.log('prove: running pickles prover');
     return withContext(
       {
         self: Party.defaultParty(this.address),
