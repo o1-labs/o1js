@@ -754,6 +754,15 @@ export class Ledger {
   static hashParty(party: Party_): Field;
   static hashProtocolState(protocolState: ProtocolStatePredicate_): Field;
   static hashTransaction(partyHash: Field, protocolStateHash: Field): Field;
+
+  static hashPartyChecked(party: Party_): Field;
+  static hashProtocolStateChecked(
+    protocolState: ProtocolStatePredicate_
+  ): Field;
+  static hashTransactionChecked(
+    partyHash: Field,
+    protocolStateHash: Field
+  ): Field;
 }
 
 /**

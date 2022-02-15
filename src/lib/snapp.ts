@@ -209,7 +209,7 @@ export function state<A>(ty: AsFieldElements<A>) {
  * You can use inside your snapp class as:
  *
  * ```
- * @method async my_method(some_arg: Field) {
+ * @method myMethod(someArg: Field) {
  *  // your code here
  * }
  * ```
@@ -282,11 +282,24 @@ function toStatement(
 ) {
   // TODO implement checked version of hashing
   // TODO hash together with tail in the right way
-  // console.dir(self, { depth: Infinity });
-  let atParty = Ledger.hashParty(toParty(self)); // this throws when self is not full of constants
-  let protocolStateHash = Ledger.hashProtocolState(toProtocolState(state));
-  let transaction = Ledger.hashTransaction(atParty, protocolStateHash);
-  return { transaction, atParty };
+  let logDeep = (obj: any) => console.dir(obj, { depth: Infinity });
+  console.log({ checked });
+
+  if (checked) {
+    let atParty = Ledger.hashPartyChecked(toParty(self));
+    let protocolStateHash = Ledger.hashProtocolStateChecked(
+      toProtocolState(state)
+    );
+    let transaction = Ledger.hashTransactionChecked(atParty, protocolStateHash);
+    return { transaction, atParty };
+  } else {
+    // TODO throws because party contains vars
+    logDeep({ appState: self.body.update.appState });
+    let atParty = Ledger.hashParty(toParty(self));
+    let protocolStateHash = Ledger.hashProtocolState(toProtocolState(state));
+    let transaction = Ledger.hashTransaction(atParty, protocolStateHash);
+    return { transaction, atParty };
+  }
 }
 
 function checkStatement(
@@ -395,10 +408,12 @@ export class SmartContract {
       self: Party.defaultParty(this.address),
       protocolState: ProtocolStatePredicate.ignoreAll(),
     };
+    console.log('prove: running main in normal (unchecked) mode');
     withContext(ctx, () => (this[methodName] as any)(...args));
-    let statement = toStatement(ctx.self, Field.zero, ctx.protocolState);
+    let statement = toStatement(ctx.self, Field.zero, ctx.protocolState, false);
     console.dir({ statement }, { depth: 5 });
 
+    console.log('prove: running prover');
     return withContext(
       {
         self: Party.defaultParty(this.address),

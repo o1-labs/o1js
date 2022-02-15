@@ -35,6 +35,7 @@
     "prepublish:web": "NODE_ENV=production node src/build/buildWeb.mjs",
     "prepublish:both": "npm run prepublish:web && npm run prepublish:server",
     "prepublishOnly": "npm run prepublish:web && npm run prepublish:server",
+    "bootstrap-build": "npm run build && node src/build/extractJsooMethods.js && npm run build",
     "format": "prettier --write --ignore-unknown **/*",
     "test": "node --experimental-wasm-modules --experimental-modules --experimental-wasm-threads --experimental-vm-modules ./node_modules/jest/bin/jest.js --silent",
     "clean": "rm -rf dist"

@@ -52,6 +52,15 @@ let account2 = Local.testAccounts[1].privateKey;
 let snappPrivKey = PrivateKey.random();
 let snappPubKey = snappPrivKey.toPublicKey();
 
+console.log('compile');
+let { provers, getVerificationKey } = SimpleSnapp.compile(snappPubKey);
+
+console.log('prove');
+let snapp = new SimpleSnapp(snappPubKey);
+let proof = snapp.prove(provers, 'update', [Field(3)]);
+console.log({ proof });
+
+console.log('deploy');
 await Mina.transaction(account1, async () => {
   let snapp = new SimpleSnapp(snappPubKey);
   const amount = UInt64.fromNumber(1e6);
