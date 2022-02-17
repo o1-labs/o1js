@@ -689,6 +689,7 @@ interface Int64_ {
 interface PartyUpdate {
   appState: Array<SetOrKeep_<Field>>;
   delegate: SetOrKeep_<{ g: Group }>;
+  votingFor: SetOrKeep_<Field>;
   // TODO: Verification key
   // TODO: permissions
   // TODO: snapp uri
@@ -705,6 +706,9 @@ interface PartyBody {
   sequenceEvents: Array<Array<Field>>;
   callData: Field;
   depth: number;
+  protocolState: ProtocolStatePredicate_;
+  useFullCommitment: Bool;
+  incrementNonce: Bool;
 }
 
 interface FullAccountPredicate_ {
@@ -736,7 +740,6 @@ interface FeePayerParty {
 interface Parties {
   feePayer: FeePayerParty;
   otherParties: Array<Party_>;
-  protocolState: ProtocolStatePredicate_;
 }
 
 interface SnappAccount {
