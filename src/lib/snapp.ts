@@ -7,18 +7,17 @@ import {
   picklesCompile,
   Ledger,
 } from '../snarky';
-import { CircuitValue, toFieldsMagic } from './circuit_value';
+import { CircuitValue } from './circuit_value';
 import {
   AccountPredicate,
   ProtocolStatePredicate,
   Body,
   Party,
   PartyBalance,
-  toParty,
-  toProtocolState,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
+import { toParty, toProtocolState } from './party-conversion';
 import { UInt32 } from './int';
 
 /**
@@ -441,7 +440,6 @@ export class SmartContract {
         transactionId: 0,
         partyIndex: 0,
         party: mainContext.self as Party & { predicate: AccountPredicate },
-        protocolStatePredicate: mainContext.protocolState,
       };
     }
 
@@ -468,16 +466,15 @@ export class SmartContract {
         transactionId: id,
         partyIndex: index,
         party,
-        protocolStatePredicate: Mina.currentTransaction.protocolState,
       };
       this._executionState = s;
       return s;
     }
   }
 
-  get protocolState(): ProtocolStatePredicate {
-    return this.executionState().protocolStatePredicate;
-  }
+  // get protocolState(): ProtocolStatePredicate {
+  //   return this.executionState().party.body.protocolState;
+  // }
 
   get self() {
     return this.executionState().party;
@@ -522,7 +519,6 @@ type ExecutionState = {
   transactionId: number;
   partyIndex: number;
   party: Party & { predicate: AccountPredicate };
-  protocolStatePredicate: ProtocolStatePredicate;
 };
 
 function emptyWitness<A>(typ: AsFieldElements<A>) {

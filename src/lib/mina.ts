@@ -4,16 +4,14 @@ import {
   Circuit,
   Ledger,
   Field,
-  AccountPredicate_ as AccountPredicate,
-  FullAccountPredicate_ as FullAccountPredicate,
   FeePayerParty,
   Parties,
-  PartyBody as SnarkyBody,
-  Party_ as SnarkyParty,
+  Party_,
 } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
-import { Body, EpochDataPredicate, ProtocolStatePredicate } from './party';
+import { Body, Predicate } from './party';
+import { toParty, toPartyBody } from './party-conversion';
 
 interface TransactionId {
   wait(): Promise<void>;
@@ -35,15 +33,12 @@ interface Account {
 
 export let nextTransactionId: { value: number } = { value: 0 };
 
-type PartyPredicate = UInt32 | FullAccountPredicate | undefined;
-
 export type CurrentTransaction =
   | undefined
   | {
       sender: PrivateKey;
-      parties: Array<{ body: Body; predicate: PartyPredicate }>;
+      parties: Array<{ body: Body; predicate: Predicate }>;
       nextPartyIndex: number;
-      protocolState: ProtocolStatePredicate;
     };
 
 export let currentTransaction: CurrentTransaction = undefined;
@@ -109,35 +104,6 @@ export const LocalBlockchain: () => MockMina = () => {
     }
   };
 
-  function epochData(d: EpochDataPredicate) {
-    return {
-      ledger: {
-        hash: d.ledger.hash_,
-        totalCurrency: d.ledger.totalCurrency,
-      },
-      seed: d.seed_,
-      startCheckpoint: d.startCheckpoint_,
-      lockCheckpoint: d.lockCheckpoint_,
-      epochLength: d.epochLength,
-    };
-  }
-
-  const body = (b: Body): SnarkyBody => {
-    return {
-      publicKey: b.publicKey,
-      update: b.update,
-      tokenId: b.tokenId,
-      delta: b.delta,
-      // TODO: events
-      events: [],
-      sequenceEvents: [],
-      // TODO: calldata
-      callData: Field.zero,
-      // TODO
-      depth: 0,
-    };
-  };
-
   const transaction = (
     sender: PrivateKey,
     f: () => void | Promise<void>
@@ -152,7 +118,6 @@ export const LocalBlockchain: () => MockMina = () => {
       sender,
       parties: [],
       nextPartyIndex: 0,
-      protocolState: ProtocolStatePredicate.ignoreAll(),
     };
 
     try {
@@ -170,45 +135,16 @@ export const LocalBlockchain: () => MockMina = () => {
       throw new Error('Transaction is undefined');
     }
 
-    const otherParties: Array<SnarkyParty> = currentTransaction.parties.map(
-      (p) => {
-        let predicate: AccountPredicate;
-        if (p.predicate instanceof UInt32) {
-          predicate = { type: 'nonce', value: p.predicate };
-        } else if (p.predicate === undefined) {
-          predicate = { type: 'accept' };
-        } else {
-          predicate = { type: 'full', value: p.predicate };
-        }
-
-        return {
-          body: body(p.body),
-          predicate,
-        };
-      }
+    const otherParties: Array<Party_> = currentTransaction.parties.map(
+      (party) => toParty(party)
     );
 
     const feePayer: FeePayerParty = {
-      body: body(Body.keepAll(senderPubkey)),
+      body: toPartyBody(Body.keepAll(senderPubkey)),
       predicate: senderAccount.nonce,
     };
 
-    const ps = currentTransaction.protocolState;
-
     const txn: Parties = {
-      protocolState: {
-        snarkedLedgerHash: ps.snarkedLedgerHash_,
-        snarkedNextAvailableToken: ps.snarkedNextAvailableToken,
-        timestamp: ps.timestamp,
-        blockchainLength: ps.blockchainLength,
-        minWindowDensity: ps.minWindowDensity,
-        lastVrfOutput: ps.lastVrfOutput_,
-        totalCurrency: ps.totalCurrency,
-        globalSlotSinceGenesis: ps.globalSlotSinceGenesis,
-        globalSlotSinceHardFork: ps.globalSlotSinceHardFork,
-        nextEpochData: epochData(ps.nextEpochData),
-        stakingEpochData: epochData(ps.stakingEpochData),
-      },
       otherParties,
       feePayer,
     };
