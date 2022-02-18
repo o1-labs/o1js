@@ -27,8 +27,8 @@
   },
   "scripts": {
     "type-check": "tsc --noEmit",
-    "build": "node src/build/buildNode.mjs",
-    "build:server": "node src/build/buildNode.mjs",
+    "build": "node --stack-trace-limit=1000 src/build/buildNode.mjs",
+    "build:server": "node --stack-trace-limit=1000 src/build/buildNode.mjs",
     "build:web": "node src/build/buildWeb.mjs",
     "serve:web": "cd dist/web && python3 server.py",
     "prepublish:server": "NODE_ENV=production node src/build/buildNode.mjs",
