@@ -407,7 +407,7 @@ export class Body {
       new MerkleList(),
       Field.zero,
       ProtocolStatePredicate.ignoreAll(),
-      Bool(false),
+      Bool(true),
       Bool(false)
     );
   }
