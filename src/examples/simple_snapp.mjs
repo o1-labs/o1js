@@ -4,9 +4,9 @@
 
 import {
   Field,
-  state,
+  declareState,
+  declareMethodArguments,
   State,
-  method,
   UInt64,
   PrivateKey,
   SmartContract,
@@ -15,7 +15,6 @@ import {
   isReady,
   shutdown,
 } from 'snarkyjs';
-import 'reflect-metadata';
 
 await isReady;
 
@@ -34,17 +33,9 @@ class SimpleSnapp extends SmartContract {
     this.x.set(x.add(y));
   }
 }
+declareState(SimpleSnapp, { x: Field });
+declareMethodArguments(SimpleSnapp, { update: [Field] });
 
-// manually apply decorators:
-
-// @state(Field) x
-state(Field)(SimpleSnapp.prototype, 'x');
-
-// @method update(y: Field)
-Reflect.metadata('design:paramtypes', [Field])(SimpleSnapp.prototype, 'update');
-method(SimpleSnapp.prototype, 'update');
-
-// usual code
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 let account1 = Local.testAccounts[0].privateKey;
@@ -56,7 +47,7 @@ let snappPubKey = snappPrivKey.toPublicKey();
 // let { provers, getVerificationKey } = SimpleSnapp.compile(snappPubKey);
 
 console.log('deploy');
-let txn = await Mina.transaction(account1, () => {
+let txn = Mina.transaction(account1, () => {
   let snapp = new SimpleSnapp(snappPubKey);
   const amount = UInt64.fromNumber(1e6);
   const p = Party.createSigned(account2);

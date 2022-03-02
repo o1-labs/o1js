@@ -20,6 +20,8 @@ import * as Mina from './mina';
 import { toParty, toProtocolState } from './party-conversion';
 import { UInt32 } from './int';
 
+export { declareState, declareMethodArguments };
+
 /**
  * Gettable and settable state that can be checked for equality.
  */
@@ -526,4 +528,30 @@ function emptyWitness<A>(typ: AsFieldElements<A>) {
   return Circuit.witness(typ, () =>
     typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero))
   );
+}
+
+// alternative API which can replace decorators, works in pure JS
+
+function declareState<T extends typeof SmartContract>(
+  SmartContract: T,
+  states: Record<string, AsFieldElements<unknown>>
+) {
+  for (let key in states) {
+    let CircuitValue = states[key];
+    state(CircuitValue)(SmartContract.prototype, key);
+  }
+}
+
+function declareMethodArguments<T extends typeof SmartContract>(
+  SmartContract: T,
+  methodArguments: Record<string, AsFieldElements<unknown>[]>
+) {
+  for (let key in methodArguments) {
+    let argumentTypes = methodArguments[key];
+    Reflect.metadata('design:paramtypes', argumentTypes)(
+      SmartContract.prototype,
+      key
+    );
+    method(SmartContract.prototype, key as any);
+  }
 }
