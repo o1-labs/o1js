@@ -367,6 +367,10 @@
       {
         "name": "partiesToJson",
         "type": "function"
+      },
+      {
+        "name": "partiesToGraphQL",
+        "type": "function"
       }
     ]
   }
