@@ -162,11 +162,9 @@ export const LocalBlockchain: () => MockMina = () => {
       },
 
       toGraphQL() {
-        // TODO remove quotes "" in the JSON string
         return `mutation MyMutation {
           __typename
-          sendSnapp(input: ${Ledger.partiesToJson(txn)})
-        }`;
+          sendSnapp(input: ${Ledger.partiesToGraphQL(txn)})}`;
       },
     };
   }
