@@ -777,6 +777,7 @@ export class Ledger {
   ): Field;
 
   static partiesToJson(parties: Parties): string;
+  static partiesToGraphQL(parties: Parties): string;
 }
 
 /**
