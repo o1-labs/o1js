@@ -40,7 +40,7 @@ export class UInt64 extends CircuitValue {
   }
 
   static MAXINT(): UInt64 {
-    return new UInt64(Field.fromJSON(((1n << 64n) - 1n).toString()) as Field);
+    return new UInt64(Field(((1n << 64n) - 1n).toString()));
   }
 
   static fromNumber(x: number): UInt64 {
@@ -89,7 +89,7 @@ export class UInt64 extends CircuitValue {
     return [q_, r_];
   }
 
-  /** 
+  /**
    * Integer division.
    *
    * `x.div(y)` returns the floor of `x / y`, that is, the greatest
