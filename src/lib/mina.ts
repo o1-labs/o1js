@@ -104,10 +104,7 @@ export const LocalBlockchain: () => MockMina = () => {
     }
   };
 
-  const transaction = (
-    sender: PrivateKey,
-    f: () => void | Promise<void>
-  ): Transaction => {
+  function transaction(sender: PrivateKey, f: () => void | Promise<void>) {
     if (currentTransaction !== undefined) {
       throw new Error(
         'Cannot start new transaction within another transaction'
@@ -153,14 +150,26 @@ export const LocalBlockchain: () => MockMina = () => {
     currentTransaction = undefined;
 
     return {
-      send: () => {
+      send() {
         const res = (async () => ledger.applyPartiesTransaction(txn))();
         return {
           wait: () => res,
         };
       },
+
+      toJSON() {
+        return Ledger.partiesToJson(txn);
+      },
+
+      toGraphQL() {
+        // TODO remove quotes "" in the JSON string
+        return `mutation MyMutation {
+          __typename
+          sendSnapp(input: ${Ledger.partiesToJson(txn)})
+        }`;
+      },
     };
-  };
+  }
 
   return {
     currentSlot,

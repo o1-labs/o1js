@@ -775,6 +775,8 @@ export class Ledger {
     partyHash: Field,
     protocolStateHash: Field
   ): Field;
+
+  static partiesToJson(parties: Parties): string;
 }
 
 /**

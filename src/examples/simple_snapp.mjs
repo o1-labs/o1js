@@ -52,26 +52,28 @@ let account2 = Local.testAccounts[1].privateKey;
 let snappPrivKey = PrivateKey.random();
 let snappPubKey = snappPrivKey.toPublicKey();
 
-console.log('compile');
-let { provers, getVerificationKey } = SimpleSnapp.compile(snappPubKey);
+// console.log('compile');
+// let { provers, getVerificationKey } = SimpleSnapp.compile(snappPubKey);
 
 console.log('deploy');
-await Mina.transaction(account1, () => {
+let txn = await Mina.transaction(account1, () => {
   let snapp = new SimpleSnapp(snappPubKey);
   const amount = UInt64.fromNumber(1e6);
   const p = Party.createSigned(account2);
   p.balance.subInPlace(amount);
   snapp.deploy(amount, Field(1));
-})
-  .send()
-  .wait();
+});
+
+console.log(txn.toGraphQL());
+
+txn.send().wait();
 var snappState = (await Mina.getAccount(snappPubKey)).snapp.appState[0];
 console.log('initial state: ' + snappState);
 
-console.log('prove');
-let snapp = new SimpleSnapp(snappPubKey);
-let proof = await snapp.prove(provers, 'update', [Field(3)]);
-console.log({ proof });
+// console.log('prove');
+// let snapp = new SimpleSnapp(snappPubKey);
+// let proof = await snapp.prove(provers, 'update', [Field(3)]);
+// console.log({ proof });
 
 await Mina.transaction(account1, () => {
   let snapp = new SimpleSnapp(snappPubKey);
