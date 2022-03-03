@@ -2,7 +2,7 @@
 
 To write a Snapp, we recommend using the [Snapp CLI](https://github.com/o1-labs/snapp-cli), which makes writing a Snapp easy by including SnarkyJS & providing project scaffolding, a test framework, and formatting.
 
-SnarkyJS's documentation is available [here](https://o1-labs.github.io/snarkyjs/).
+SnarkyJS's documentation is available [here](https://docs.minaprotocol.com/en/snapps/snarkyjs-reference).
 
 ## Run examples in Node
 
