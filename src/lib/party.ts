@@ -282,7 +282,7 @@ class TokenSymbol extends CircuitValue {
 export class Update {
   appState: Array<SetOrKeep<Field>>;
   delegate: SetOrKeep<PublicKey>;
-  verificationKey: SetOrKeep<WithHash<VerificationKey, Field>>;
+  verificationKey: SetOrKeep<string>;
   permissions: SetOrKeep<Permissions>;
   snappUri: SetOrKeep<String_>;
   tokenSymbol: SetOrKeep<TokenSymbol>;
@@ -292,7 +292,7 @@ export class Update {
   constructor(
     appState: Array<SetOrKeep<Field>>,
     delegate: SetOrKeep<PublicKey>,
-    verificationKey: SetOrKeep<WithHash<VerificationKey, Field>>,
+    verificationKey: SetOrKeep<string>,
     permissions: SetOrKeep<Permissions>,
     snappUri: SetOrKeep<String_>,
     tokenSymbol: SetOrKeep<TokenSymbol>,
@@ -390,7 +390,7 @@ export class Body {
     const update = new Update(
       appState,
       keep(new PublicKey(Group.generator)),
-      keep({ hash: Field.zero, value: undefined as any }),
+      keep(''),
       keep(Permissions.default()),
       keep(undefined as any),
       keep(undefined as any),

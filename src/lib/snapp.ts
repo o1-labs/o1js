@@ -318,7 +318,7 @@ let mainContext = undefined as
     }
   | undefined;
 
-function withContext(context: typeof mainContext, f: Function) {
+function withContext<T>(context: typeof mainContext, f: () => T) {
   mainContext = context;
   let result = f();
   mainContext = undefined;
@@ -535,11 +535,13 @@ function emptyWitness<A>(typ: AsFieldElements<A>) {
 
 function deploy<S extends typeof SmartContract>(
   SmartContract: S,
-  address: PublicKey
+  address: PublicKey,
+  verificationKey: string
 ) {
   let tx = Mina.createUnsignedTransaction(() => {
     let snapp = new SmartContract(address);
     snapp.deploy();
+    snapp.self.update.verificationKey.value = verificationKey;
   });
   return tx.toJSON();
 }
@@ -548,11 +550,10 @@ function compile<S extends typeof SmartContract>(
   SmartContract: S,
   address: PublicKey
 ) {
-  let { provers, getVerificationKey } = SmartContract.compile(address);
-  // TODO return verification key in a format that can be
-  // * stored to disk as an artifact
-  // * later be recovered and put inside the snapp transaction in the right format
-  return 'TODO';
+  let { getVerificationKeyArtifact } = SmartContract.compile(address);
+  return {
+    verificationKey: getVerificationKeyArtifact(),
+  };
 }
 
 // alternative API which can replace decorators, works in pure JS

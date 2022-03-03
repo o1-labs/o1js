@@ -683,7 +683,7 @@ interface PartyUpdate {
   appState: Array<SetOrKeep_<Field>>;
   delegate: SetOrKeep_<{ g: Group }>;
   votingFor: SetOrKeep_<Field>;
-  // TODO: Verification key
+  verificationKey: SetOrKeep_<string>;
   // TODO: permissions
   // TODO: snapp uri
   // TODO: token symbol
@@ -785,4 +785,6 @@ export const shutdown: () => Promise<undefined>;
  */
 export let isReady: Promise<undefined>;
 
-export let picklesCompile: (...args: any) => any;
+export let picklesCompile: (...args: any) => {
+  getVerificationKeyArtifact: () => string;
+};
