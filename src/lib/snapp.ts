@@ -20,7 +20,7 @@ import * as Mina from './mina';
 import { toParty, toProtocolState } from './party-conversion';
 import { UInt32 } from './int';
 
-export { declareState, declareMethodArguments };
+export { deploy, compile, declareState, declareMethodArguments };
 
 /**
  * Gettable and settable state that can be checked for equality.
@@ -373,6 +373,7 @@ export class SmartContract {
   static compile(address?: PublicKey) {
     // TODO: think about how address should be passed in
     // if address is not provided, create a random one
+    // TODO: maybe PublicKey should just become a variable? Then compile doesn't need to know the address, which seems more natural
     address ??= PrivateKey.random().toPublicKey();
     let instance = new this(address);
 
@@ -427,7 +428,7 @@ export class SmartContract {
     );
   }
 
-  deploy(...args: any[]) {
+  deploy() {
     try {
       this.executionState().party.body.update.verificationKey.set = Bool(true);
     } catch {
@@ -528,6 +529,30 @@ function emptyWitness<A>(typ: AsFieldElements<A>) {
   return Circuit.witness(typ, () =>
     typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero))
   );
+}
+
+// functions designed to be called from a CLI
+
+function deploy<S extends typeof SmartContract>(
+  SmartContract: S,
+  address: PublicKey
+) {
+  let tx = Mina.createUnsignedTransaction(() => {
+    let snapp = new SmartContract(address);
+    snapp.deploy();
+  });
+  return tx.toJSON();
+}
+
+function compile<S extends typeof SmartContract>(
+  SmartContract: S,
+  address: PublicKey
+) {
+  let { provers, getVerificationKey } = SmartContract.compile(address);
+  // TODO return verification key in a format that can be
+  // * stored to disk as an artifact
+  // * later be recovered and put inside the snapp transaction in the right format
+  return 'TODO';
 }
 
 // alternative API which can replace decorators, works in pure JS

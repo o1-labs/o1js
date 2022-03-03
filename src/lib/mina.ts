@@ -13,6 +13,8 @@ import { PrivateKey, PublicKey } from './signature';
 import { Body, Predicate } from './party';
 import { toParty, toPartyBody } from './party-conversion';
 
+export { createUnsignedTransaction };
+
 interface TransactionId {
   wait(): Promise<void>;
 }
@@ -36,7 +38,7 @@ export let nextTransactionId: { value: number } = { value: 0 };
 export type CurrentTransaction =
   | undefined
   | {
-      sender: PrivateKey;
+      sender?: PrivateKey;
       parties: Array<{ body: Body; predicate: Predicate }>;
       nextPartyIndex: number;
     };
@@ -50,6 +52,68 @@ interface Mina {
   transaction(sender: PrivateKey, f: () => void | Promise<void>): Transaction;
   currentSlot(): UInt32;
   getAccount(publicKey: PublicKey): Account;
+}
+
+function createUnsignedTransaction(f: () => unknown) {
+  return createTransaction(undefined, f);
+}
+
+function createTransaction(sender: PrivateKey | undefined, f: () => unknown) {
+  if (currentTransaction !== undefined) {
+    throw new Error('Cannot start new transaction within another transaction');
+  }
+
+  currentTransaction = {
+    sender,
+    parties: [],
+    nextPartyIndex: 0,
+  };
+
+  try {
+    Circuit.runAndCheckSync(f);
+  } catch (err) {
+    currentTransaction = undefined;
+    // TODO would be nice if the error would be a bit more descriptive about what failed
+    throw err;
+  }
+
+  const otherParties: Array<Party_> = currentTransaction.parties.map((party) =>
+    toParty(party)
+  );
+
+  let feePayer: FeePayerParty;
+  if (sender !== undefined) {
+    // if sender is provided, fetch account to get nonce
+    const senderPubkey = sender.toPublicKey();
+    let senderAccount = getAccount(senderPubkey);
+    feePayer = {
+      body: toPartyBody(Body.keepAll(senderPubkey)),
+      predicate: senderAccount.nonce,
+    };
+  } else {
+    // otherwise use a dummy fee payer that has to be filled in later
+    feePayer = {
+      body: toPartyBody(Body.dummy()),
+      predicate: UInt32.zero,
+    };
+  }
+
+  const txn: Parties = { otherParties, feePayer };
+
+  nextTransactionId.value += 1;
+  currentTransaction = undefined;
+  return {
+    transaction: txn,
+    toJSON() {
+      return Ledger.partiesToJson(txn);
+    },
+
+    toGraphQL() {
+      return `mutation MyMutation {
+        __typename
+        sendSnapp(input: ${Ledger.partiesToGraphQL(txn)})}`;
+    },
+  };
 }
 
 interface MockMina extends Mina {
@@ -75,9 +139,9 @@ export const LocalBlockchain: () => MockMina = () => {
       Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
     );
 
-  const addAccount = (pk: PublicKey, balance: number) => {
+  function addAccount(pk: PublicKey, balance: number) {
     ledger.addAccount(pk, balance);
-  };
+  }
 
   let testAccounts = [];
   for (let i = 0; i < 10; ++i) {
@@ -88,7 +152,7 @@ export const LocalBlockchain: () => MockMina = () => {
     testAccounts.push({ privateKey: k, publicKey: pk });
   }
 
-  const getAccount = (pk: PublicKey) => {
+  function getAccount(pk: PublicKey) {
     const r = ledger.getAccount(pk);
     if (r == null) {
       throw new Error(
@@ -102,69 +166,18 @@ export const LocalBlockchain: () => MockMina = () => {
       };
       return a;
     }
-  };
+  }
 
   function transaction(sender: PrivateKey, f: () => void | Promise<void>) {
-    if (currentTransaction !== undefined) {
-      throw new Error(
-        'Cannot start new transaction within another transaction'
-      );
-    }
-
-    currentTransaction = {
-      sender,
-      parties: [],
-      nextPartyIndex: 0,
-    };
-
-    try {
-      Circuit.runAndCheckSync(f);
-    } catch (err) {
-      currentTransaction = undefined;
-      // TODO would be nice if the error would be a bit more descriptive about what failed
-      throw err;
-    }
-
-    const senderPubkey = sender.toPublicKey();
-    let senderAccount = getAccount(senderPubkey);
-
-    if (currentTransaction === undefined) {
-      throw new Error('Transaction is undefined');
-    }
-
-    const otherParties: Array<Party_> = currentTransaction.parties.map(
-      (party) => toParty(party)
-    );
-
-    const feePayer: FeePayerParty = {
-      body: toPartyBody(Body.keepAll(senderPubkey)),
-      predicate: senderAccount.nonce,
-    };
-
-    const txn: Parties = {
-      otherParties,
-      feePayer,
-    };
-
-    nextTransactionId.value += 1;
-    currentTransaction = undefined;
-
+    let txn = createTransaction(sender, f);
     return {
+      ...txn,
       send() {
-        const res = (async () => ledger.applyPartiesTransaction(txn))();
+        const res = (async () =>
+          ledger.applyPartiesTransaction(txn.transaction))();
         return {
           wait: () => res,
         };
-      },
-
-      toJSON() {
-        return Ledger.partiesToJson(txn);
-      },
-
-      toGraphQL() {
-        return `mutation MyMutation {
-          __typename
-          sendSnapp(input: ${Ledger.partiesToGraphQL(txn)})}`;
       },
     };
   }
