@@ -430,7 +430,7 @@ export class SmartContract {
 
   deploy() {
     try {
-      this.executionState().party.body.update.verificationKey.set = Bool(true);
+      // this.executionState().party.body.update.verificationKey.set = Bool(true);
     } catch {
       throw new Error('Cannot deploy SmartContract outside a transaction.');
     }
@@ -538,12 +538,21 @@ function deploy<S extends typeof SmartContract>(
   address: PublicKey,
   verificationKey: string
 ) {
+  let i = 0;
   let tx = Mina.createUnsignedTransaction(() => {
     let snapp = new SmartContract(address);
     snapp.deploy();
-    snapp.self.update.verificationKey.value = verificationKey;
+    i = Mina.currentTransaction!.nextPartyIndex - 1;
+    // snapp.self.update.verificationKey.set = Bool(true);
+    // snapp.self.update.verificationKey.value = verificationKey;
   });
-  return tx.toJSON();
+  // modifying the json after calling to ocaml avoids deserializing & then serializing the vk
+  let parties = JSON.parse(tx.toJSON()); // TODO: if we do this anyway, we might want to return the parsed JSON
+  parties.otherParties[i].data.body.update.verificationKey = {
+    set: Bool(true),
+    value: verificationKey,
+  };
+  return JSON.stringify(parties);
 }
 
 function compile<S extends typeof SmartContract>(
