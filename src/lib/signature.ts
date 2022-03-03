@@ -55,6 +55,15 @@ export class PublicKey extends CircuitValue {
   static fromPrivateKey(p: PrivateKey): PublicKey {
     return p.toPublicKey();
   }
+
+  static empty() {
+    return new PublicKey(new Group(Field.zero, Field.zero));
+  }
+
+  isEmpty() {
+    // there are no curve points with x === 0
+    return this.g.x.isZero();
+  }
 }
 
 export class Signature extends CircuitValue {

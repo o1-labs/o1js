@@ -412,6 +412,10 @@ export class Body {
     );
   }
 
+  static dummy() {
+    return Body.keepAll(PublicKey.empty());
+  }
+
   constructor(
     publicKey: PublicKey,
     update: Update,
