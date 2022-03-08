@@ -4,7 +4,6 @@ import { prop, CircuitValue } from './circuit_value';
 /**
  * A signing key. You can generate one via [[random]].
  */
-
 export class PrivateKey extends CircuitValue {
   @prop s: Scalar;
 

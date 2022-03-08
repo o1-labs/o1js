@@ -1,7 +1,7 @@
 {
   "name": "snarkyjs",
   "description": "JavaScript bindings for SnarkyJS",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "license": "Apache-2.0",
   "main": "./dist/web/index.js",
   "exports": {
@@ -46,6 +46,7 @@
     "esbuild": "^0.13.13",
     "eslint": "^8.0.0",
     "fs-extra": "^10.0.0",
+    "howslow": "^0.1.0",
     "jest": "^27.0.6",
     "minimist": "^1.2.5",
     "prettier": "^2.3.2",
