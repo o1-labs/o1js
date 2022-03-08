@@ -1,4 +1,4 @@
-import { Poseidon, Group, Field, Scalar } from '../snarky';
+import { Poseidon, Group, Field, Scalar, Circuit } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 
 export { encrypt, decrypt };
@@ -29,7 +29,9 @@ type CipherText = {
 
 function encrypt(message: Field[], otherPublicKey: PublicKey) {
   // key exchange
-  let privateKey = Scalar.random();
+  let privateKey = Circuit.inCheckedComputation()
+    ? Circuit.witness(Scalar, () => Scalar.random())
+    : Scalar.random();
   let publicKey = Group.generator.scale(privateKey);
   let sharedSecret = otherPublicKey.g.scale(privateKey);
 
@@ -38,11 +40,13 @@ function encrypt(message: Field[], otherPublicKey: PublicKey) {
 
   // encryption
   let cipherText = [];
-  for (let messageChunk of message) {
+  for (let i = 0; i < message.length; i++) {
     let keyStream = sponge.squeeze();
-    let encryptedChunk = messageChunk.add(keyStream);
-    sponge.absorb(encryptedChunk); // absorb for the auth tag
+    let encryptedChunk = message[i].add(keyStream);
     cipherText.push(encryptedChunk);
+    // absorb for the auth tag (two at a time for saving permutations)
+    if (i % 2 === 1) sponge.absorb(cipherText[i - 1]);
+    if (i % 2 === 1 || i === message.length - 1) sponge.absorb(cipherText[i]);
   }
   // authentication tag
   let authenticationTag = sponge.squeeze();
@@ -64,11 +68,12 @@ function decrypt(
 
   // decryption
   let message = [];
-  for (let encryptedChunk of cipherText) {
+  for (let i = 0; i < cipherText.length; i++) {
     let keyStream = sponge.squeeze();
-    let messageChunk = encryptedChunk.sub(keyStream);
-    sponge.absorb(encryptedChunk);
+    let messageChunk = cipherText[i].sub(keyStream);
     message.push(messageChunk);
+    if (i % 2 === 1) sponge.absorb(cipherText[i - 1]);
+    if (i % 2 === 1 || i === message.length - 1) sponge.absorb(cipherText[i]);
   }
   // authentication tag
   sponge.squeeze().assertEquals(authenticationTag!);
