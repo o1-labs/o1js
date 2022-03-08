@@ -6,14 +6,14 @@ let publicKey = privateKey.toPublicKey();
 
 // message
 let message = 'This is a secret.';
-let messageFields = Encoding.stringToFields(message);
+let messageFields = Encoding.Bijective.Fp.fromString(message);
 
 // encrypt
 let cipherText = Encryption.encrypt(messageFields, publicKey);
 
 // decrypt
-let decryptedMessageFields = Encryption.decrypt(cipherText, privateKey);
-let decryptedMessage = Encoding.stringFromFields(decryptedMessageFields);
+let decryptedFields = Encryption.decrypt(cipherText, privateKey);
+let decryptedMessage = Encoding.Bijective.Fp.toString(decryptedFields);
 
 if (decryptedMessage !== message) throw Error('decryption failed');
 console.log(`Original message: "${message}"`);
