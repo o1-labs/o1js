@@ -543,16 +543,18 @@ function deploy<S extends typeof SmartContract>(
     let snapp = new SmartContract(address);
     snapp.deploy();
     i = Mina.currentTransaction!.nextPartyIndex - 1;
-    // snapp.self.update.verificationKey.set = Bool(true);
-    // snapp.self.update.verificationKey.value = verificationKey;
+    snapp.self.update.verificationKey.set = Bool(true);
+    snapp.self.update.verificationKey.value = verificationKey;
   });
-  // modifying the json after calling to ocaml avoids deserializing & then serializing the vk
-  let parties = JSON.parse(tx.toJSON()); // TODO: if we do this anyway, we might want to return the parsed JSON
-  parties.otherParties[i].data.body.update.verificationKey = {
-    set: Bool(true),
-    value: verificationKey,
-  };
-  return JSON.stringify(parties);
+  return tx.toJSON();
+  // TODO modifying the json after calling to ocaml would avoid deserializing & then serializing the vk
+  // but need to compute hash
+  // let parties = JSON.parse(tx.toJSON()); // TODO: if we do this anyway, we might want to return the parsed JSON
+  // parties.otherParties[i].data.body.update.verificationKey = {
+  //   set: Bool(true),
+  //   value: {data: verificationKey, hash: Field.zero /* TODO */ },
+  // };
+  // return JSON.stringify(parties);
 }
 
 function compile<S extends typeof SmartContract>(
