@@ -416,16 +416,14 @@ export class SmartContract {
         atParty: statementVar.atParty.toConstant(),
       };
     });
-
-    // console.log('prove: running pickles prover');
-    return withContext(
-      {
-        self: Party.defaultParty(this.address),
-        protocolState: ProtocolStatePredicate.ignoreAll(),
-        witnesses: args,
-      },
-      () => provers[i](statement)
-    );
+    mainContext = {
+      self: Party.defaultParty(this.address),
+      protocolState: ProtocolStatePredicate.ignoreAll(),
+      witnesses: args,
+    };
+    let proof = await provers[i](statement);
+    mainContext = undefined;
+    return { proof, statement };
   }
 
   deploy() {
