@@ -700,7 +700,7 @@ interface PartyUpdate {
 interface PartyBody {
   publicKey: { g: Group };
   update: PartyUpdate;
-  tokenId: UInt32_;
+  tokenId: Field;
   delta: Int64_;
   events: Array<Array<Field>>;
   sequenceEvents: Array<Array<Field>>;
