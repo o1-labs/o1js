@@ -310,8 +310,7 @@ export class Update {
   }
 }
 
-type TokenId = UInt64;
-export const getDefaultTokenId = () => new UInt64(Field.one);
+export const getDefaultTokenId = () => Field.one;
 
 // TODO
 class Events {
@@ -350,7 +349,7 @@ export class Body {
   /**
    * The TokenId for this account.
    */
-  tokenId: TokenId;
+  tokenId: Field;
 
   /**
    * By what [[ SignedAmount ]] should the balance of this account change. All
@@ -419,7 +418,7 @@ export class Body {
   constructor(
     publicKey: PublicKey,
     update: Update,
-    tokenId: TokenId,
+    tokenId: Field,
     delta: SignedAmount,
     events: Events,
     sequenceEvents: Field,
