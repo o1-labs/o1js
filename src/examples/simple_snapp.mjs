@@ -17,20 +17,25 @@ import {
 } from 'snarkyjs';
 
 await isReady;
+const initialBalance = 1_000_000;
+const initialState = Field(1);
 
 class SimpleSnapp extends SmartContract {
   constructor(address) {
     super(address);
     this.x = State();
   }
-  deploy(initialBalance, x) {
+  deploy() {
     super.deploy();
-    this.balance.addInPlace(initialBalance);
-    this.x.set(x);
+    let amount = UInt64.fromNumber(initialBalance);
+    this.balance.addInPlace(amount);
+    const p = Party.createSigned(account2);
+    p.balance.subInPlace(amount);
+    this.x.set(initialState);
   }
   update(y) {
-    let x = this.x.get();
-    this.x.set(x.add(y));
+    // let x = this.x.get();
+    // this.x.set(x.add(y));
   }
 }
 declareState(SimpleSnapp, { x: Field });
@@ -43,28 +48,29 @@ let account2 = Local.testAccounts[1].privateKey;
 let snappPrivKey = PrivateKey.random();
 let snappPubKey = snappPrivKey.toPublicKey();
 
-// console.log('compile');
-// let { provers, getVerificationKey } = SimpleSnapp.compile(snappPubKey);
+console.log('compile...');
+console.time('compile');
+let { provers, verify } = SimpleSnapp.compile(snappPubKey);
+console.timeEnd('compile');
+
+// console.log('prove...');
+// console.time('prove');
+// let snapp = new SimpleSnapp(snappPubKey);
+// let proofPromise = snapp.prove(provers, 'update', [Field(3)]);
+// console.log({ proofPromise });
+// let { proof, statement } = await proofPromise;
+// console.timeEnd('prove');
+// console.log({ proof });
 
 console.log('deploy');
 let txn = Mina.transaction(account1, () => {
   let snapp = new SimpleSnapp(snappPubKey);
-  const amount = UInt64.fromNumber(1e6);
-  const p = Party.createSigned(account2);
-  p.balance.subInPlace(amount);
-  snapp.deploy(amount, Field(1));
+  snapp.deploy();
 });
-
-console.log(txn.toGraphQL());
 
 txn.send().wait();
 var snappState = (await Mina.getAccount(snappPubKey)).snapp.appState[0];
 console.log('initial state: ' + snappState);
-
-// console.log('prove');
-// let snapp = new SimpleSnapp(snappPubKey);
-// let proof = await snapp.prove(provers, 'update', [Field(3)]);
-// console.log({ proof });
 
 await Mina.transaction(account1, () => {
   let snapp = new SimpleSnapp(snappPubKey);
