@@ -4,8 +4,8 @@ import {
   Bool,
   Poseidon,
   AsFieldElements,
-  picklesCompile,
   Ledger,
+  Pickles,
 } from '../snarky';
 import { CircuitValue } from './circuit_value';
 import {
@@ -20,7 +20,7 @@ import * as Mina from './mina';
 import { toParty, toProtocolState } from './party-conversion';
 import { UInt32 } from './int';
 
-export { deploy, compile, declareState, declareMethodArguments };
+export { deploy, compile, call, declareState, declareMethodArguments };
 
 /**
  * Gettable and settable state that can be checked for equality.
@@ -275,23 +275,20 @@ function isProof(typ: any) {
 
 type Statement = { transaction: Field; atParty: Field };
 
-function toStatement(
-  self: Party,
-  tail: Field,
-  state: ProtocolStatePredicate,
-  checked = true
-) {
+function toStatement(self: Party, tail: Field, checked = true) {
   // TODO hash together party with tail in the right way
   if (checked) {
     let atParty = Ledger.hashPartyChecked(toParty(self));
     let protocolStateHash = Ledger.hashProtocolStateChecked(
-      toProtocolState(state)
+      toProtocolState(ProtocolStatePredicate.ignoreAll())
     );
     let transaction = Ledger.hashTransactionChecked(atParty, protocolStateHash);
     return { transaction, atParty };
   } else {
     let atParty = Ledger.hashParty(toParty(self));
-    let protocolStateHash = Ledger.hashProtocolState(toProtocolState(state));
+    let protocolStateHash = Ledger.hashProtocolState(
+      toProtocolState(ProtocolStatePredicate.ignoreAll())
+    );
     let transaction = Ledger.hashTransaction(atParty, protocolStateHash);
     return { transaction, atParty };
   }
@@ -300,22 +297,16 @@ function toStatement(
 function checkStatement(
   { transaction, atParty }: Statement,
   self: Party,
-  tail: Field,
-  protocolState: ProtocolStatePredicate
+  tail: Field
 ) {
   // ATM, we always compute the statement in checked mode to make assertEqual pass
-  // TODO: are checked / unchecked versions supposed to be compatible?
-  let otherStatement = toStatement(self, tail, protocolState, true);
+  let otherStatement = toStatement(self, tail, true);
   atParty.assertEquals(otherStatement.atParty);
   transaction.assertEquals(otherStatement.transaction);
 }
 
 let mainContext = undefined as
-  | {
-      witnesses?: unknown[];
-      self: Party & { predicate: AccountPredicate };
-      protocolState: ProtocolStatePredicate;
-    }
+  | { witnesses?: unknown[]; self: Party & { predicate: AccountPredicate } }
   | undefined;
 
 function withContext<T>(context: typeof mainContext, f: () => T) {
@@ -335,7 +326,7 @@ function picklesRuleFromFunction(
   function main(statement: Statement) {
     onStart?.();
     if (mainContext === undefined) throw Error('bug');
-    let { self, protocolState, witnesses } = mainContext;
+    let { self, witnesses } = mainContext;
     witnesses = witnessTypes.map(
       witnesses
         ? (type, i) => Circuit.witness(type, () => witnesses![i])
@@ -343,7 +334,7 @@ function picklesRuleFromFunction(
     );
     func(...witnesses);
     let tail = Field.zero;
-    checkStatement(statement, self, tail, protocolState);
+    checkStatement(statement, self, tail);
     onEnd?.();
   }
 
@@ -385,12 +376,8 @@ export class SmartContract {
       )
     );
 
-    let output = withContext(
-      {
-        self: Party.defaultParty(address),
-        protocolState: ProtocolStatePredicate.ignoreAll(),
-      },
-      () => picklesCompile(rules)
+    let output = withContext({ self: Party.defaultParty(address) }, () =>
+      Pickles.compile(rules)
     );
     return output;
   }
@@ -399,31 +386,27 @@ export class SmartContract {
     let SnappClass = this.constructor as never as typeof SmartContract;
     let i = SnappClass._methods!.findIndex((m) => m.methodName === methodName);
     if (!(i + 1)) throw Error(`Method ${methodName} not found!`);
-    let ctx = {
-      self: Party.defaultParty(this.address),
-      protocolState: ProtocolStatePredicate.ignoreAll(),
-    };
-    // console.log(
-    //   'prove: running method directly in prover mode to get statement'
-    // );
-    let statement = Circuit.runAndCheckSync(() => {
+    let ctx = { self: Party.defaultParty(this.address) };
+    let [statement, selfParty] = Circuit.runAndCheckSync(() => {
       mainContext = ctx;
       (this[methodName] as any)(...args);
+      // TODO
+      let selfParty = mainContext.self;
       mainContext = undefined;
-      let statementVar = toStatement(ctx.self, Field.zero, ctx.protocolState);
-      return {
-        transaction: statementVar.transaction.toConstant(),
-        atParty: statementVar.atParty.toConstant(),
-      };
+      let statementVar = toStatement(ctx.self, Field.zero);
+      return [
+        {
+          transaction: statementVar.transaction.toConstant(),
+          atParty: statementVar.atParty.toConstant(),
+        },
+        selfParty,
+      ];
     });
-    mainContext = {
-      self: Party.defaultParty(this.address),
-      protocolState: ProtocolStatePredicate.ignoreAll(),
-      witnesses: args,
-    };
+    mainContext = { self: Party.defaultParty(this.address), witnesses: args };
     let proof = await provers[i](statement);
     mainContext = undefined;
-    return { proof, statement };
+    // FIXME call calls Parties.to_json outside a prover, which seems to cause an error when variables are extracted
+    return { proof, statement, selfParty };
   }
 
   deploy() {
@@ -536,23 +519,37 @@ function deploy<S extends typeof SmartContract>(
   address: PublicKey,
   verificationKey: string
 ) {
-  let i = 0;
   let tx = Mina.createUnsignedTransaction(() => {
     let snapp = new SmartContract(address);
     snapp.deploy();
-    i = Mina.currentTransaction!.nextPartyIndex - 1;
     snapp.self.update.verificationKey.set = Bool(true);
     snapp.self.update.verificationKey.value = verificationKey;
   });
+  // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
   return tx.toJSON();
-  // TODO modifying the json after calling to ocaml would avoid deserializing & then serializing the vk
-  // but need to compute hash
-  // let parties = JSON.parse(tx.toJSON()); // TODO: if we do this anyway, we might want to return the parsed JSON
-  // parties.otherParties[i].data.body.update.verificationKey = {
-  //   set: Bool(true),
-  //   value: {data: verificationKey, hash: Field.zero /* TODO */ },
-  // };
-  // return JSON.stringify(parties);
+}
+
+async function call<S extends typeof SmartContract>(
+  SmartContract: S,
+  address: PublicKey,
+  methodName: string,
+  methodArguments: any,
+  provers: ((statement: Statement) => Promise<unknown>)[]
+) {
+  let snapp = new SmartContract(address);
+  let { selfParty, proof, statement } = await snapp.prove(
+    provers,
+    methodName as any,
+    methodArguments
+  );
+  // turn proof into string
+  let proofString = Pickles.proofToString(proof);
+  console.log(proofString);
+  console.dir(selfParty.body.update.appState, { depth: 10 });
+  let tx = Mina.createUnsignedTransaction(() => {
+    Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
+  });
+  return tx.toJSON();
 }
 
 function compile<S extends typeof SmartContract>(

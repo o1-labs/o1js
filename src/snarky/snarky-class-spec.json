@@ -373,5 +373,18 @@
         "type": "function"
       }
     ]
+  },
+  {
+    "name": "Pickles",
+    "props": [
+      {
+        "name": "compile",
+        "type": "function"
+      },
+      {
+        "name": "proofToString",
+        "type": "function"
+      }
+    ]
   }
 ]
