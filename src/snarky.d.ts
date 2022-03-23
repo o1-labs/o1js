@@ -792,6 +792,10 @@ export const shutdown: () => Promise<undefined>;
  */
 export let isReady: Promise<undefined>;
 
+type Statement = { transaction: Field; atParty: Field };
+
 export let picklesCompile: (...args: any) => {
   getVerificationKeyArtifact: () => string;
+  provers: ((statement: Statement) => Promise<unknown>)[];
+  verify: (statement: Statement, proof: unknown) => Promise<boolean>;
 };
