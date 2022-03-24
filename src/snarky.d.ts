@@ -723,13 +723,21 @@ interface FullAccountPredicate_ {
 }
 
 type AccountPredicate_ =
-  | { type: 'accept' }
-  | { type: 'nonce'; value: UInt32_ }
-  | { type: 'full'; value: FullAccountPredicate_ };
+  | { kind: 'accept' }
+  | { kind: 'nonce'; value: UInt32_ }
+  | { kind: 'full'; value: FullAccountPredicate_ };
+
+type Control =
+  | { kind: 'none' }
+  | { kind: 'signature'; value: string }
+  | { kind: 'proof'; value: string };
 
 interface Party_ {
-  body: PartyBody;
-  predicate: AccountPredicate_;
+  data: {
+    body: PartyBody;
+    predicate: AccountPredicate_;
+  };
+  authorization: Control;
 }
 
 interface FeePayerParty {

@@ -542,10 +542,10 @@ async function call<S extends typeof SmartContract>(
     methodName as any,
     methodArguments
   );
-  // turn proof into string
-  let proofString = Pickles.proofToString(proof);
-  console.log(proofString);
-  console.dir(selfParty.body.update.appState, { depth: 10 });
+  selfParty.authorization = {
+    kind: 'proof',
+    value: Pickles.proofToString(proof),
+  };
   let tx = Mina.createUnsignedTransaction(() => {
     Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
   });

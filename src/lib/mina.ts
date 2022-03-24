@@ -10,7 +10,7 @@ import {
 } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
-import { Body, Predicate } from './party';
+import { Body, Party } from './party';
 import { toParty, toPartyBody } from './party-conversion';
 
 export { createUnsignedTransaction };
@@ -39,7 +39,7 @@ export type CurrentTransaction =
   | undefined
   | {
       sender?: PrivateKey;
-      parties: Array<{ body: Body; predicate: Predicate }>;
+      parties: Party[];
       nextPartyIndex: number;
     };
 
@@ -77,9 +77,7 @@ function createTransaction(sender: PrivateKey | undefined, f: () => unknown) {
     throw err;
   }
 
-  const otherParties: Array<Party_> = currentTransaction.parties.map((party) =>
-    toParty(party)
-  );
+  const otherParties = currentTransaction.parties.map(toParty);
 
   let feePayer: FeePayerParty;
   if (sender !== undefined) {
