@@ -1,39 +1,41 @@
 import {
-  Circuit,
-  Ledger,
   Field,
-  FeePayerParty,
-  Parties,
   Party_,
   ProtocolStatePredicate_,
   EpochDataPredicate_,
+  Control,
 } from '../snarky';
 import {
   Body,
   EpochDataPredicate,
-  Predicate,
+  Party,
   ProtocolStatePredicate,
 } from './party';
 import { UInt32 } from './int';
 
 export { toParty, toPartyBody, toProtocolState };
 
-function toParty(party: { body: Body; predicate: Predicate }): Party_ {
-  let predicate: Party_['predicate'];
+type PartyPredicated = Party_['data'];
+
+function toParty(party: Party): Party_ {
+  let predicate: PartyPredicated['predicate'];
   if (party.predicate === undefined) {
-    predicate = { type: 'accept' };
+    predicate = { kind: 'accept' };
   } else if (party.predicate instanceof UInt32) {
-    predicate = { type: 'nonce', value: party.predicate };
+    predicate = { kind: 'nonce', value: party.predicate };
   } else {
-    predicate = { type: 'full', value: party.predicate };
+    predicate = { kind: 'full', value: party.predicate };
   }
   return {
-    predicate,
-    body: toPartyBody(party.body),
+    data: {
+      predicate,
+      body: toPartyBody(party.body),
+    },
+    authorization: party.authorization,
   };
 }
 
-function toPartyBody(body: Body): Party_['body'] {
+function toPartyBody(body: Body): PartyPredicated['body'] {
   return {
     ...body,
     events: body.events.events,

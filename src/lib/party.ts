@@ -1,5 +1,5 @@
 import { CircuitValue } from './circuit_value';
-import { Group, Field, Bool, VerificationKey } from '../snarky';
+import { Group, Field, Bool, Control } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
@@ -742,6 +742,7 @@ export type Predicate = undefined | UInt32 | AccountPredicate;
 export class Party {
   body: Body;
   predicate: Predicate;
+  authorization: Control = { kind: 'none' };
 
   constructor(body: Body, predicate: Predicate) {
     this.body = body;
