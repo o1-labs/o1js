@@ -516,17 +516,21 @@ function emptyWitness<A>(typ: AsFieldElements<A>) {
 
 function deploy<S extends typeof SmartContract>(
   SmartContract: S,
-  address: PublicKey,
+  privateKey: PrivateKey,
   verificationKey: string
 ) {
+  let i = 0;
+  let address = privateKey.toPublicKey();
   let tx = Mina.createUnsignedTransaction(() => {
     let snapp = new SmartContract(address);
     snapp.deploy();
+    i = Mina.currentTransaction!.nextPartyIndex - 1;
     snapp.self.update.verificationKey.set = Bool(true);
     snapp.self.update.verificationKey.value = verificationKey;
   });
   // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
-  return tx.toJSON();
+  let txJson = tx.toJSON();
+  return Ledger.signOtherParty(txJson, privateKey, i);
 }
 
 async function call<S extends typeof SmartContract>(

@@ -365,6 +365,14 @@
         "type": "function"
       },
       {
+        "name": "signFeePayer",
+        "type": "function"
+      },
+      {
+        "name": "signOtherParty",
+        "type": "function"
+      },
+      {
         "name": "partiesToJson",
         "type": "function"
       },

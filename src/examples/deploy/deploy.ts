@@ -17,7 +17,7 @@ if (artifact === undefined)
 let { verificationKey } = artifact;
 
 // produce and log the transaction json; the fee payer is a dummy which has to be added later, by the signing logic
-let transactionJson = deploy(SimpleSnapp, snappAddress, verificationKey);
+let transactionJson = deploy(SimpleSnapp, snappPrivateKey, verificationKey);
 
 console.log(transactionJson);
 
