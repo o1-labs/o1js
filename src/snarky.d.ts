@@ -777,6 +777,13 @@ export class Ledger {
     protocolStateHash: Field
   ): Field;
 
+  static signFeePayer(txJson: string, privateKey: { s: Scalar }): string;
+  static signOtherParty(
+    txJson: string,
+    privateKey: { s: Scalar },
+    i: number
+  ): string;
+
   static partiesToJson(parties: Parties): string;
   static partiesToGraphQL(parties: Parties): string;
 }
