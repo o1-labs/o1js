@@ -1,8 +1,8 @@
 # SnarkyJS
 
-To write a Snapp, we recommend using the [Snapp CLI](https://github.com/o1-labs/snapp-cli), which makes writing a Snapp easy by including SnarkyJS & providing project scaffolding, a test framework, and formatting.
+To write a zkApp, we recommend using the [zkApp CLI](https://github.com/o1-labs/zkapp-cli), which makes writing a zkApp easy by including SnarkyJS & providing project scaffolding, a test framework, and formatting.
 
-SnarkyJS's documentation is available [here](https://docs.minaprotocol.com/en/snapps/snarkyjs-reference).
+SnarkyJS's documentation is available [here](https://docs.minaprotocol.com/en/zkapps/snarkyjs-reference).
 
 ## Run examples in Node
 
