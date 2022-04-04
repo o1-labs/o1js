@@ -18,7 +18,7 @@ import {
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { toParty, toProtocolState } from './party-conversion';
-import { UInt32 } from './int';
+import { UInt32, UInt64 } from './int';
 
 export { deploy, compile, call, declareState, declareMethodArguments };
 
@@ -516,21 +516,42 @@ function emptyWitness<A>(typ: AsFieldElements<A>) {
 
 function deploy<S extends typeof SmartContract>(
   SmartContract: S,
-  privateKey: PrivateKey,
-  verificationKey: string
+  {
+    zkappKey,
+    verificationKey,
+    initialBalance,
+    initialBalanceFundingAccountKey,
+  }: {
+    zkappKey: PrivateKey;
+    verificationKey: string;
+    initialBalance?: number | string;
+    initialBalanceFundingAccountKey?: PrivateKey;
+  }
 ) {
   let i = 0;
-  let address = privateKey.toPublicKey();
+  let address = zkappKey.toPublicKey();
   let tx = Mina.createUnsignedTransaction(() => {
+    // first party: the zkapp account
     let snapp = new SmartContract(address);
     snapp.deploy();
     i = Mina.currentTransaction!.nextPartyIndex - 1;
     snapp.self.update.verificationKey.set = Bool(true);
     snapp.self.update.verificationKey.value = verificationKey;
+    if (initialBalance !== undefined) {
+      if (initialBalanceFundingAccountKey === undefined)
+        throw Error(
+          `When using the optional initialBalance argument, you need to also supply the funding account's private key in initialBalanceFundingAccountKey.`
+        );
+      let amount = UInt64.fromString(String(initialBalance));
+      snapp.self.balance.addInPlace(amount);
+      // optional second party: the sender/fee payer who also funds the zkapp
+      let party = Party.createSigned(initialBalanceFundingAccountKey);
+      party.balance.subInPlace(amount);
+    }
   });
   // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
   let txJson = tx.toJSON();
-  return Ledger.signOtherParty(txJson, privateKey, i);
+  return Ledger.signOtherParty(txJson, zkappKey, i);
 }
 
 async function call<S extends typeof SmartContract>(
