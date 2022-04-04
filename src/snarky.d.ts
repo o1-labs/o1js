@@ -762,12 +762,13 @@ interface Account {
 
 export class Ledger {
   static create(
-    genesisAccounts: Array<{ publicKey: { g: Group }; balance: number }>
+    genesisAccounts: Array<{ publicKey: { g: Group }; balance: string }>
   ): Ledger;
 
-  addAccount(publicKey: { g: Group }, balance: number): void;
+  addAccount(publicKey: { g: Group }, balance: string): void;
 
   applyPartiesTransaction(parties: Parties): void;
+  applyJsonTransaction(parties: string): void;
 
   getAccount(publicKey: { g: Group }): Account | null;
 
@@ -790,6 +791,9 @@ export class Ledger {
     privateKey: { s: Scalar },
     i: number
   ): string;
+
+  static publicKeyToString(publicKey: { g: Group }): string;
+  static privateKeyToString(privateKey: { s: Scalar }): string;
 
   static partiesToJson(parties: Parties): string;
   static partiesToGraphQL(parties: Parties): string;

@@ -373,6 +373,14 @@
         "type": "function"
       },
       {
+        "name": "publicKeyToString",
+        "type": "function"
+      },
+      {
+        "name": "privateKeyToString",
+        "type": "function"
+      },
+      {
         "name": "partiesToJson",
         "type": "function"
       },
