@@ -560,9 +560,11 @@ function compile<S extends typeof SmartContract>(
   SmartContract: S,
   address: PublicKey
 ) {
-  let { getVerificationKeyArtifact } = SmartContract.compile(address);
+  // TODO: instead of returning provers, return an artifact from which provers can be recovered
+  let { getVerificationKeyArtifact, provers } = SmartContract.compile(address);
   return {
     verificationKey: getVerificationKeyArtifact(),
+    provers,
   };
 }
 
