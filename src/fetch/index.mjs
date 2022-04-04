@@ -1,4 +1,4 @@
-import fetch, { AbortError } from 'node-fetch';
+import fetch, { AbortError } from 'isomorphic-fetch';
 
 // Specify 5s as the default timeout
 const defaultTimeout = 5000;
