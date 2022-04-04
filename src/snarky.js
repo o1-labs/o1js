@@ -1,5 +1,6 @@
 import { proxyClasses } from 'proxyClasses.js';
 import { initSnarkyJS } from './chrome_bindings/plonk_init.js';
+import { getAccount } from './fetch/index.mjs';
 import snarkySpec from './snarky-class-spec.json';
 export {
   Field,
@@ -11,6 +12,7 @@ export {
   Ledger,
   shutdown,
   isReady,
+  getAccount,
 };
 
 let isReadyBoolean = false;
