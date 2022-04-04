@@ -115,18 +115,19 @@ function createTransaction(sender: PrivateKey | undefined, f: () => unknown) {
 }
 
 interface MockMina extends Mina {
-  addAccount(publicKey: PublicKey, balance: number): void;
+  addAccount(publicKey: PublicKey, balance: string): void;
   /**
    * An array of 10 test accounts that have been pre-filled with
    * 30000000000 units of currency.
    */
   testAccounts: Array<{ publicKey: PublicKey; privateKey: PrivateKey }>;
+  applyJsonTransaction: (tx: string) => void;
 }
 
 /**
  * A mock Mina blockchain running locally and useful for testing.
  */
-export const LocalBlockchain: () => MockMina = () => {
+export function LocalBlockchain(): MockMina {
   const msPerSlot = 3 * 60 * 1000;
   const startTime = new Date().valueOf();
 
@@ -137,13 +138,13 @@ export const LocalBlockchain: () => MockMina = () => {
       Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
     );
 
-  function addAccount(pk: PublicKey, balance: number) {
+  function addAccount(pk: PublicKey, balance: string) {
     ledger.addAccount(pk, balance);
   }
 
   let testAccounts = [];
   for (let i = 0; i < 10; ++i) {
-    const largeValue = 30000000000;
+    const largeValue = '30000000000';
     const k = PrivateKey.random();
     const pk = k.toPublicKey();
     addAccount(pk, largeValue);
@@ -180,14 +181,19 @@ export const LocalBlockchain: () => MockMina = () => {
     };
   }
 
+  function applyJsonTransaction(json: string) {
+    return ledger.applyJsonTransaction(json);
+  }
+
   return {
     currentSlot,
     getAccount,
     transaction,
+    applyJsonTransaction,
     addAccount,
     testAccounts,
   };
-};
+}
 
 let activeInstance: Mina = {
   currentSlot: () => {
