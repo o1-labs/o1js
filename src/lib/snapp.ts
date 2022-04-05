@@ -545,7 +545,9 @@ function deploy<S extends typeof SmartContract>(
       let amount = UInt64.fromString(String(initialBalance));
       snapp.self.balance.addInPlace(amount);
       // optional second party: the sender/fee payer who also funds the zkapp
-      let party = Party.createSigned(initialBalanceFundingAccountKey);
+      let party = Party.createSigned(initialBalanceFundingAccountKey, {
+        isSameAsFeePayer: true,
+      });
       party.balance.subInPlace(amount);
     }
   });

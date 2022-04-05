@@ -1,5 +1,5 @@
 import { CircuitValue } from './circuit_value';
-import { Group, Field, Bool, Control } from '../snarky';
+import { Group, Field, Bool, Control, Circuit } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
@@ -787,13 +787,16 @@ export class Party {
     return party;
   }
 
-  static createSigned(signer: PrivateKey) {
+  static createSigned(
+    signer: PrivateKey,
+    options?: { isSameAsFeePayer?: Bool | boolean }
+  ) {
     // TODO: This should be a witness block that uses the setVariable
     // API to set the value of a variable after it's allocated
 
-    const pk = signer.toPublicKey();
-    const body: Body = Body.keepAll(pk);
-    let a = Mina.getAccount(pk);
+    let publicKey = signer.toPublicKey();
+    let body = Body.keepAll(publicKey);
+    let account = Mina.getAccount(publicKey);
 
     if (Mina.currentTransaction === undefined) {
       throw new Error(
@@ -801,11 +804,26 @@ export class Party {
       );
     }
 
-    if (a == null) {
+    if (account == null) {
       throw new Error('Party.createSigned: Account not found');
     }
 
-    const party = new Party(body, a.nonce);
+    // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher bc the fee payer already increases its nonce
+    let nonceIncrease = Circuit.if(
+      new Bool(options?.isSameAsFeePayer ?? false),
+      new UInt32(Field.one),
+      UInt32.zero
+    );
+    // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
+    for (let party of Mina.currentTransaction.parties) {
+      let shouldIncreaseNonce = party.publicKey
+        .equals(publicKey)
+        .and(party.body.incrementNonce);
+      nonceIncrease.add(new UInt32(shouldIncreaseNonce.toField()));
+    }
+    let nonce = account.nonce.add(nonceIncrease);
+
+    let party = new Party(body, nonce) as Party & { predicate: UInt32 };
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
     return party;
