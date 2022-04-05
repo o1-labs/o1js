@@ -748,6 +748,7 @@ interface SnappAccount {
 }
 
 interface Account {
+  publicKey: { g: Group };
   balance: UInt64_;
   nonce: UInt32_;
   snapp: SnappAccount;
@@ -760,8 +761,8 @@ export class Ledger {
 
   addAccount(publicKey: { g: Group }, balance: string): void;
 
-  applyPartiesTransaction(parties: Parties): void;
-  applyJsonTransaction(parties: string): void;
+  applyPartiesTransaction(parties: Parties): Account[];
+  applyJsonTransaction(parties: string): Account[];
 
   getAccount(publicKey: { g: Group }): Account | null;
 

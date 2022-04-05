@@ -49,7 +49,7 @@ export function setCurrentTransaction(transaction: CurrentTransaction) {
 }
 
 interface Mina {
-  transaction(sender: PrivateKey, f: () => void | Promise<void>): Transaction;
+  transaction(sender: PrivateKey, f: () => unknown): Transaction;
   currentSlot(): UInt32;
   getAccount(publicKey: PublicKey): Account;
 }
@@ -127,7 +127,7 @@ interface MockMina extends Mina {
 /**
  * A mock Mina blockchain running locally and useful for testing.
  */
-export function LocalBlockchain(): MockMina {
+export function LocalBlockchain() {
   const msPerSlot = 3 * 60 * 1000;
   const startTime = new Date().valueOf();
 
@@ -167,7 +167,7 @@ export function LocalBlockchain(): MockMina {
     }
   }
 
-  function transaction(sender: PrivateKey, f: () => void | Promise<void>) {
+  function transaction(sender: PrivateKey, f: () => unknown) {
     let txn = createTransaction(sender, f);
     return {
       ...txn,
