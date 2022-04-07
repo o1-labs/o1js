@@ -638,10 +638,10 @@ interface OrIgnore_<A> {
   value: A;
 }
 
-interface SetOrKeep_<A> {
+type SetOrKeep_<A> = {
   set: Bool;
-  value: A;
-}
+  value?: A;
+};
 
 interface ClosedInterval_<A> {
   lower: A;
@@ -679,12 +679,28 @@ interface Int64_ {
   uint64Value(): Field;
 }
 
+type auth_required = string;
+
+interface Permissions {
+  editState: auth_required;
+  send: auth_required;
+  receive: auth_required;
+  setSelegate: auth_required;
+  setPermissions: auth_required;
+  setVerificationKey: auth_required;
+  setZkappUri: auth_required;
+  editSequenceState: auth_required;
+  setTokenSymbol: auth_required;
+  incrementNonce: auth_required;
+  setVotingFor: auth_required;
+}
+
 interface PartyUpdate {
   appState: Array<SetOrKeep_<Field>>;
   delegate: SetOrKeep_<{ g: Group }>;
   votingFor: SetOrKeep_<Field>;
   verificationKey: SetOrKeep_<string>;
-  // TODO: permissions
+  permissions: SetOrKeep_<Permissions>;
   // TODO: snapp uri
   // TODO: token symbol
   // TODO: timing
