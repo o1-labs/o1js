@@ -531,24 +531,27 @@ function deploy<S extends typeof SmartContract>(
   let i = 0;
   let address = zkappKey.toPublicKey();
   let tx = Mina.createUnsignedTransaction(() => {
-    // first party: the zkapp account
+    if (initialBalance !== undefined) {
+      if (initialBalanceFundingAccountKey === undefined)
+        throw Error(
+          `When using the optional initialBalance argument, you need to also supply the funding account's private key in initialBalanceFundingAccountKey.`
+        );
+      // optional first party: the sender/fee payer who also funds the zkapp
+      let amount = UInt64.fromString(String(initialBalance));
+      let party = Party.createSigned(initialBalanceFundingAccountKey, {
+        isSameAsFeePayer: true,
+      });
+      party.balance.subInPlace(amount);
+    }
+    // main party: the zkapp account
     let snapp = new SmartContract(address);
     snapp.deploy();
     i = Mina.currentTransaction!.nextPartyIndex - 1;
     snapp.self.update.verificationKey.set = Bool(true);
     snapp.self.update.verificationKey.value = verificationKey;
     if (initialBalance !== undefined) {
-      if (initialBalanceFundingAccountKey === undefined)
-        throw Error(
-          `When using the optional initialBalance argument, you need to also supply the funding account's private key in initialBalanceFundingAccountKey.`
-        );
       let amount = UInt64.fromString(String(initialBalance));
       snapp.self.balance.addInPlace(amount);
-      // optional second party: the sender/fee payer who also funds the zkapp
-      let party = Party.createSigned(initialBalanceFundingAccountKey, {
-        isSameAsFeePayer: true,
-      });
-      party.balance.subInPlace(amount);
     }
   });
   // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
