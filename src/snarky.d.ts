@@ -764,7 +764,7 @@ export class Ledger {
   applyPartiesTransaction(parties: Parties): Account[];
   applyJsonTransaction(parties: string): Account[];
 
-  getAccount(publicKey: { g: Group }): Account | null;
+  getAccount(publicKey: { g: Group }): Account | undefined;
 
   static hashParty(party: Party_): Field;
   static hashProtocolState(protocolState: ProtocolStatePredicate_): Field;

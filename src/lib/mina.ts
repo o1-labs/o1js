@@ -13,7 +13,7 @@ import { PrivateKey, PublicKey } from './signature';
 import { Body, Party } from './party';
 import { toParty, toPartyBody } from './party-conversion';
 
-export { createUnsignedTransaction };
+export { createUnsignedTransaction, createSignedTransaction };
 
 interface TransactionId {
   wait(): Promise<void>;
@@ -56,6 +56,9 @@ interface Mina {
 
 function createUnsignedTransaction(f: () => unknown) {
   return createTransaction(undefined, f);
+}
+function createSignedTransaction(sender: PrivateKey, f: () => unknown) {
+  return createTransaction(sender, f);
 }
 
 function createTransaction(sender: PrivateKey | undefined, f: () => unknown) {
@@ -153,7 +156,7 @@ export function LocalBlockchain() {
 
   function getAccount(pk: PublicKey) {
     const r = ledger.getAccount(pk);
-    if (r == null) {
+    if (r == undefined) {
       throw new Error(
         `getAccount: Could not find account for ${JSON.stringify(pk.toJSON())}`
       );
