@@ -440,14 +440,6 @@ export class SmartContract {
     return { statement, selfParty };
   }
 
-  deploy() {
-    try {
-      // this.executionState().party.body.update.verificationKey.set = Bool(true);
-    } catch {
-      throw new Error('Cannot deploy SmartContract outside a transaction.');
-    }
-  }
-
   executionState(): ExecutionState {
     // TODO
     if (mainContext !== undefined) {
@@ -582,7 +574,7 @@ async function deploy<S extends typeof SmartContract>(
     }
     // main party: the zkapp account
     let snapp = new SmartContract(address);
-    snapp.deploy();
+    (snapp as any).deploy?.();
     i = Mina.currentTransaction!.nextPartyIndex - 1;
     snapp.self.update.verificationKey.set = Bool(true);
     snapp.self.update.verificationKey.value = verificationKey;
