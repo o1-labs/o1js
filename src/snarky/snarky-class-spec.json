@@ -365,7 +365,15 @@
         "type": "function"
       },
       {
+        "name": "publicKeyOfString",
+        "type": "function"
+      },
+      {
         "name": "privateKeyToString",
+        "type": "function"
+      },
+      {
+        "name": "privateKeyOfString",
         "type": "function"
       },
       {
