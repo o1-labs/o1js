@@ -89,14 +89,13 @@ function createTransaction(sender: PrivateKey | undefined, f: () => unknown) {
     let senderAccount = getAccount(senderPubkey);
     feePayer = {
       body: toFeePayerPartyBody(
-        Body.keepAll(senderPubkey),
-        senderAccount.nonce
+        Body.keepAllWithNonce(senderPubkey, senderAccount.nonce)
       ),
     };
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
     feePayer = {
-      body: toFeePayerPartyBody(Body.dummy(), UInt32.zero),
+      body: toFeePayerPartyBody(Body.dummyFeePayer()),
     };
   }
 

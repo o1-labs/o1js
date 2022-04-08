@@ -9,7 +9,7 @@ import {
 } from '../snarky';
 import { CircuitValue } from './circuit_value';
 import {
-  AccountPredicate,
+  AccountPrecondition,
   ProtocolStatePredicate,
   Body,
   Party,
@@ -96,8 +96,10 @@ function createState<A>() {
       let e: ExecutionState = this._this.executionState();
 
       xs.forEach((x, i) => {
-        e.party.predicate.state[r.offset + i].check = new Bool(true);
-        e.party.predicate.state[r.offset + i].value = x;
+        e.party.body.accountPrecondition.state[r.offset + i].check = new Bool(
+          true
+        );
+        e.party.body.accountPrecondition.state[r.offset + i].value = x;
       });
     },
 
@@ -314,7 +316,10 @@ function checkStatement(
 }
 
 let mainContext = undefined as
-  | { witnesses?: unknown[]; self: Party & { predicate: AccountPredicate } }
+  | {
+      witnesses?: unknown[];
+      self: Party & { body: { accountPrecondition: AccountPrecondition } };
+    }
   | undefined;
 
 function withContext<T>(context: typeof mainContext, f: () => T) {
@@ -446,7 +451,9 @@ export class SmartContract {
       return {
         transactionId: 0,
         partyIndex: 0,
-        party: mainContext.self as Party & { predicate: AccountPredicate },
+        party: mainContext.self as Party & {
+          body: { accountPrecondition: AccountPrecondition };
+        },
       };
     }
 
@@ -463,9 +470,8 @@ export class SmartContract {
       const id = Mina.nextTransactionId.value;
       const index = Mina.currentTransaction.nextPartyIndex++;
       const body = Body.keepAll(this.address);
-      const predicate = AccountPredicate.ignoreAll();
-      const party = new Party(body, predicate) as Party & {
-        predicate: AccountPredicate;
+      const party = new Party(body) as Party & {
+        body: { accountPrecondition: AccountPrecondition };
       };
       Mina.currentTransaction.parties.push(party);
 
@@ -503,7 +509,10 @@ export class SmartContract {
       nonce = res;
     }
 
-    this.executionState().party.predicate.nonce.assertBetween(nonce, nonce);
+    this.executionState().party.body.accountPrecondition.nonce.assertBetween(
+      nonce,
+      nonce
+    );
     return nonce;
   }
 
@@ -525,7 +534,9 @@ export class SmartContract {
 type ExecutionState = {
   transactionId: number;
   partyIndex: number;
-  party: Party & { predicate: AccountPredicate };
+  party: Party & {
+    body: { accountPrecondition: AccountPrecondition };
+  };
 };
 
 function emptyWitness<A>(typ: AsFieldElements<A>) {
