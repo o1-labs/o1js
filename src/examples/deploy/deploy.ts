@@ -1,5 +1,5 @@
 import { isReady, PrivateKey, deploy, shutdown, compile } from 'snarkyjs';
-import SimpleSnapp from './simple_snapp';
+import SimpleSnapp from './simple_zkapp';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
@@ -7,8 +7,8 @@ import { dirname } from 'node:path';
 await isReady;
 
 // TODO: get keys from somewhere else; for now we assume the account is already funded
-let snappPrivateKey = PrivateKey.random();
-let snappAddress = snappPrivateKey.toPublicKey();
+let zkappKey = PrivateKey.random();
+let zkappAddress = zkappKey.toPublicKey();
 
 // read verification key from disk
 let artifact = readArtifact(SimpleSnapp);
@@ -17,7 +17,7 @@ if (artifact === undefined)
 let { verificationKey } = artifact;
 
 // produce and log the transaction json; the fee payer is a dummy which has to be added later, by the signing logic
-let transactionJson = deploy(SimpleSnapp, snappPrivateKey, verificationKey);
+let transactionJson = await deploy(SimpleSnapp, { zkappKey, verificationKey });
 
 console.log(transactionJson);
 

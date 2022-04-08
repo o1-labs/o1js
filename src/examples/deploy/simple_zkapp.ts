@@ -8,7 +8,6 @@ class SimpleSnapp extends SmartContract {
   @state(Field) x = State<Field>();
 
   deploy() {
-    super.deploy();
     this.x.set(Field(initialState));
   }
 
