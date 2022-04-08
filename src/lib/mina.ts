@@ -11,7 +11,7 @@ import {
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
 import { Body, Party } from './party';
-import { toParty, toPartyBody } from './party-conversion';
+import { toFeePayerPartyBody, toParty } from './party-conversion';
 
 export { createUnsignedTransaction, createSignedTransaction };
 
@@ -88,14 +88,15 @@ function createTransaction(sender: PrivateKey | undefined, f: () => unknown) {
     const senderPubkey = sender.toPublicKey();
     let senderAccount = getAccount(senderPubkey);
     feePayer = {
-      body: toPartyBody(Body.keepAll(senderPubkey)),
-      predicate: senderAccount.nonce,
+      body: toFeePayerPartyBody(
+        Body.keepAll(senderPubkey),
+        senderAccount.nonce
+      ),
     };
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
     feePayer = {
-      body: toPartyBody(Body.dummy()),
-      predicate: UInt32.zero,
+      body: toFeePayerPartyBody(Body.dummy(), UInt32.zero),
     };
   }
 
