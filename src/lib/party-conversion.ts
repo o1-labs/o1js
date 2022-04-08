@@ -3,15 +3,12 @@ import {
   Party_,
   ProtocolStatePredicate_,
   EpochDataPredicate_,
-  Control,
-  Bool,
   FeePayerParty,
 } from '../snarky';
 import {
   Body,
   EpochDataPredicate,
   Party,
-  Predicate,
   ProtocolStatePredicate,
 } from './party';
 import { UInt32 } from './int';
@@ -20,19 +17,19 @@ export { toParty, toPartyBody, toFeePayerPartyBody, toProtocolState };
 
 function toParty(party: Party): Party_ {
   return {
-    body: toPartyBody(party.body, party.predicate),
+    body: toPartyBody(party.body),
     authorization: party.authorization,
   };
 }
 
-function toPartyBody(body: Body, predicate: Predicate): Party_['body'] {
+function toPartyBody(body: Body): Party_['body'] {
   let accountPrecondition: Party_['body']['accountPrecondition'];
-  if (predicate === undefined) {
+  if (body.accountPrecondition === undefined) {
     accountPrecondition = { kind: 'accept' };
-  } else if (predicate instanceof UInt32) {
-    accountPrecondition = { kind: 'nonce', value: predicate };
+  } else if (body.accountPrecondition instanceof UInt32) {
+    accountPrecondition = { kind: 'nonce', value: body.accountPrecondition };
   } else {
-    accountPrecondition = { kind: 'full', value: predicate };
+    accountPrecondition = { kind: 'full', value: body.accountPrecondition };
   }
   return {
     ...body,
@@ -47,14 +44,12 @@ function toPartyBody(body: Body, predicate: Predicate): Party_['body'] {
 }
 
 function toFeePayerPartyBody(
-  body: Body,
-  predicate: UInt32
+  body: Body & { accountPrecondition: UInt32 }
 ): FeePayerParty['body'] {
   return {
     ...body,
     events: body.events.events,
     depth: parseInt(body.depth.toString(), 10),
-    accountPrecondition: predicate,
     // TODO
     sequenceEvents: [],
     callData: Field.zero,
