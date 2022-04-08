@@ -15,7 +15,7 @@ export const GlobalSlot = UInt32;
 export type SignedAmount = Int64;
 export const SignedAmount = Int64;
 
-const SnappStateLength: number = 8;
+const ZkappStateLength: number = 8;
 
 /**
  * Timing info inside an account.
@@ -74,7 +74,7 @@ export type WithHash<T, H> = {
 /**
  * One specific permission value.
  *
- * A [[ Perm ]] tells one specific permission for our snapp how it should behave
+ * A [[ Perm ]] tells one specific permission for our zkapp how it should behave
  * when presented with requested modifications.
  *
  * Use static factory methods on this class to use a specific behavior. See
@@ -111,7 +111,7 @@ export class Perm {
   }
 
   /**
-   * Modification is permitted by proofs within the Snapp only
+   * Modification is permitted by proofs within the Zkapp only
    */
   static proof() {
     return new Perm(new Bool(false), new Bool(false), new Bool(false));
@@ -143,7 +143,7 @@ export class Perm {
 }
 
 /**
- * Permissions specify how specific aspects of the Snapp account are allowed to
+ * Permissions specify how specific aspects of the Zkapp account are allowed to
  * be modified. Most fields are denominated by a [[ Perm ]].
  */
 export class Permissions {
@@ -189,7 +189,7 @@ export class Permissions {
   setVerificationKey: Perm;
 
   /**
-   * The [[ Perm ]] corresponding to the ability to set the snapp uri typically
+   * The [[ Perm ]] corresponding to the ability to set the zkapp uri typically
    * pointing to the source code of the smart contract. Usually this should be
    * changed whenever the [[ Permissions.setVerificationKey ]] is changed.
    * Effectively "upgradability" of the smart contract.
@@ -282,7 +282,7 @@ export class Update {
   delegate: SetOrKeep<PublicKey>;
   verificationKey: SetOrKeep<string>;
   permissions: SetOrKeep<Permissions>;
-  snappUri: SetOrKeep<String_>;
+  zkappUri: SetOrKeep<String_>;
   tokenSymbol: SetOrKeep<TokenSymbol>;
   timing: SetOrKeep<Timing>;
   votingFor: SetOrKeep<Field>;
@@ -292,7 +292,7 @@ export class Update {
     delegate: SetOrKeep<PublicKey>,
     verificationKey: SetOrKeep<string>,
     permissions: SetOrKeep<Permissions>,
-    snappUri: SetOrKeep<String_>,
+    zkappUri: SetOrKeep<String_>,
     tokenSymbol: SetOrKeep<TokenSymbol>,
     timing: SetOrKeep<Timing>,
     votingFor: SetOrKeep<Field>
@@ -301,7 +301,7 @@ export class Update {
     this.delegate = delegate;
     this.verificationKey = verificationKey;
     this.permissions = permissions;
-    this.snappUri = snappUri;
+    this.zkappUri = zkappUri;
     this.tokenSymbol = tokenSymbol;
     this.timing = timing;
     this.votingFor = votingFor;
@@ -383,7 +383,7 @@ export class Body {
 
     const appState: Array<SetOrKeep<Field>> = [];
 
-    for (let i = 0; i < SnappStateLength; ++i) {
+    for (let i = 0; i < ZkappStateLength; ++i) {
       appState.push(keep(Field.zero));
     }
 
@@ -700,7 +700,7 @@ export class AccountPrecondition {
 
   static ignoreAll(): AccountPrecondition {
     let appState: Array<OrIgnore<Field>> = [];
-    for (let i = 0; i < SnappStateLength; ++i) {
+    for (let i = 0; i < ZkappStateLength; ++i) {
       appState.push(ignore(Field.zero));
     }
 
