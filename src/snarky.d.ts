@@ -814,7 +814,9 @@ export class Ledger {
   ): string;
 
   static publicKeyToString(publicKey: { g: Group }): string;
+  static publicKeyOfString(publicKeyBase58: string): Group;
   static privateKeyToString(privateKey: { s: Scalar }): string;
+  static privateKeyOfString(privateKeyBase58: string): Scalar;
 
   static partiesToJson(parties: Parties): string;
   static partiesToGraphQL(parties: Parties): string;
