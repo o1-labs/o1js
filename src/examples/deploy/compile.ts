@@ -1,16 +1,15 @@
 import { isReady, PrivateKey, shutdown, compile } from 'snarkyjs';
-import SimpleSnapp from './simple_snapp';
+import SimpleSnapp from './simple_zkapp';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 
 await isReady;
 
-// TODO: get keys from somewhere else; for now we assume the account is already funded
-let snappPrivateKey = PrivateKey.random();
-let snappAddress = snappPrivateKey.toPublicKey();
+let zkappKey = PrivateKey.random();
+let zkappAddress = zkappKey.toPublicKey();
 
-let { verificationKey } = compile(SimpleSnapp, snappAddress);
+let { verificationKey } = await compile(SimpleSnapp, zkappAddress);
 storeArtifact(SimpleSnapp, { verificationKey });
 
 shutdown();
