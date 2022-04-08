@@ -37,17 +37,8 @@ function toParty(party: Party): Party_ {
 }
 
 function toPartyBody(body: Body): PartyPredicated['body'] {
-  let p = body.update.permissions;
-  let permissions = { set: new Bool(false) };
-  // TODO
-  if (p.set) {
-  }
   return {
     ...body,
-    update: {
-      ...body.update,
-      permissions,
-    },
     events: body.events.events,
     depth: parseInt(body.depth.toString(), 10),
     // TODO

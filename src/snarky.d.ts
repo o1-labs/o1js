@@ -679,20 +679,24 @@ interface Int64_ {
   uint64Value(): Field;
 }
 
-type auth_required = string;
+type AuthRequired = {
+  constant: Bool;
+  signatureNecessary: Bool;
+  signatureSufficient: Bool;
+};
 
-interface Permissions {
-  editState: auth_required;
-  send: auth_required;
-  receive: auth_required;
-  setSelegate: auth_required;
-  setPermissions: auth_required;
-  setVerificationKey: auth_required;
-  setZkappUri: auth_required;
-  editSequenceState: auth_required;
-  setTokenSymbol: auth_required;
-  incrementNonce: auth_required;
-  setVotingFor: auth_required;
+interface Permissions_ {
+  editState: AuthRequired;
+  send: AuthRequired;
+  receive: AuthRequired;
+  setDelegate: AuthRequired;
+  setPermissions: AuthRequired;
+  setVerificationKey: AuthRequired;
+  setZkappUri: AuthRequired;
+  editSequenceState: AuthRequired;
+  setTokenSymbol: AuthRequired;
+  incrementNonce: AuthRequired;
+  setVotingFor: AuthRequired;
 }
 
 interface PartyUpdate {
@@ -700,7 +704,7 @@ interface PartyUpdate {
   delegate: SetOrKeep_<{ g: Group }>;
   votingFor: SetOrKeep_<Field>;
   verificationKey: SetOrKeep_<string>;
-  permissions: SetOrKeep_<Permissions>;
+  permissions: SetOrKeep_<Permissions_>;
   // TODO: snapp uri
   // TODO: token symbol
   // TODO: timing

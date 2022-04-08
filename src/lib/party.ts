@@ -148,14 +148,6 @@ export class Perm {
  */
 export class Permissions {
   /**
-   * True means that this account can stake directly. False means this account
-   * cannot.
-   *
-   * TODO: Is this correct?
-   */
-  stake: Bool;
-
-  /**
    * The [[ Perm ]] corresponding to the 8 state fields associated with an
    * account.
    */
@@ -202,7 +194,7 @@ export class Permissions {
    * changed whenever the [[ Permissions.setVerificationKey ]] is changed.
    * Effectively "upgradability" of the smart contract.
    */
-  setSnappUri: Perm;
+  setZkappUri: Perm;
 
   /**
    * The [[ Perm ]] corresponding to the ability to change the sequence state
@@ -210,7 +202,7 @@ export class Permissions {
    *
    * TODO: Define sequence state here as well.
    */
-  editRollupState: Perm;
+  editSequenceState: Perm;
 
   /**
    * The [[ Perm ]] corresponding to the ability to set the token symbol for
@@ -218,22 +210,24 @@ export class Permissions {
    */
   setTokenSymbol: Perm;
 
+  // TODO: doccomments
+  incrementNonce: Perm;
+  setVotingFor: Perm;
+
   /**
    * Default permissions are:
-   *   [[ Permissions.stake ]]=true
    *   [[ Permissions.editState ]]=[[ Perm.proof ]]
    *   [[ Permissions.send ]]=[[ Perm.signature ]]
    *   [[ Permissions.receive ]]=[[ Perm.proof ]]
    *   [[ Permissions.setDelegate ]]=[[ Perm.signature ]]
    *   [[ Permissions.setPermissions ]]=[[ Perm.signature ]]
    *   [[ Permissions.setVerificationKey ]]=[[ Perm.signature ]]
-   *   [[ Permissions.setSnappUri ]]=[[ Perm.signature ]]
-   *   [[ Permissions.editRollupState ]]=[[ Perm.proof ]]
+   *   [[ Permissions.setZkappUri ]]=[[ Perm.signature ]]
+   *   [[ Permissions.editSequenceState ]]=[[ Perm.proof ]]
    *   [[ Permissions.setTokenSymbol ]]=[[ Perm.signature ]]
    */
   static default(): Permissions {
     return new Permissions(
-      new Bool(true),
       Perm.proof(),
       Perm.signature(),
       Perm.proof(),
@@ -242,32 +236,36 @@ export class Permissions {
       Perm.signature(),
       Perm.signature(),
       Perm.proof(),
+      Perm.signature(),
+      Perm.signature(),
       Perm.signature()
     );
   }
 
   constructor(
-    stake: Bool,
     editState: Perm,
     send: Perm,
     receive: Perm,
     setDelegate: Perm,
     setPermissions: Perm,
     setVerificationKey: Perm,
-    setSnappUri: Perm,
-    editRollupState: Perm,
-    setTokenSymbol: Perm
+    setZkappUri: Perm,
+    editSequenceState: Perm,
+    setTokenSymbol: Perm,
+    incrementNonce: Perm,
+    setVotingFor: Perm
   ) {
-    this.stake = stake;
     this.editState = editState;
     this.send = send;
     this.receive = receive;
     this.setDelegate = setDelegate;
     this.setPermissions = setPermissions;
     this.setVerificationKey = setVerificationKey;
-    this.setSnappUri = setSnappUri;
-    this.editRollupState = editRollupState;
+    this.setZkappUri = setZkappUri;
+    this.editSequenceState = editSequenceState;
     this.setTokenSymbol = setTokenSymbol;
+    this.incrementNonce = incrementNonce;
+    this.setVotingFor = setVotingFor;
   }
 }
 
