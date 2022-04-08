@@ -116,7 +116,7 @@ function createState<A>() {
 
         const xs: Field[] = [];
         for (let i = 0; i < r.length; ++i) {
-          xs.push(a.snapp.appState[r.offset + i]);
+          xs.push(a.zkapp.appState[r.offset + i]);
         }
         p = Circuit.witness(Circuit.array(Field, r.length), () => xs);
       } else {
