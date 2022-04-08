@@ -705,7 +705,7 @@ interface PartyUpdate {
   votingFor: SetOrKeep_<Field>;
   verificationKey: SetOrKeep_<string>;
   permissions: SetOrKeep_<Permissions_>;
-  // TODO: snapp uri
+  // TODO: zkapp uri
   // TODO: token symbol
   // TODO: timing
 }
@@ -774,7 +774,7 @@ interface Parties {
   otherParties: Array<Party_>;
 }
 
-interface SnappAccount {
+interface ZkappAccount {
   appState: Array<Field>;
 }
 
@@ -782,7 +782,7 @@ interface Account {
   publicKey: { g: Group };
   balance: UInt64_;
   nonce: UInt32_;
-  snapp: SnappAccount;
+  zkapp: ZkappAccount;
 }
 
 export class Ledger {

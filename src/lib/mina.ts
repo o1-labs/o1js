@@ -23,14 +23,14 @@ interface Transaction {
   send(): TransactionId;
 }
 
-interface SnappAccount {
+interface ZkappAccount {
   appState: Array<Field>;
 }
 
 interface Account {
   balance: UInt64;
   nonce: UInt32;
-  snapp: SnappAccount;
+  zkapp: ZkappAccount;
 }
 
 export let nextTransactionId: { value: number } = { value: 0 };
@@ -113,7 +113,7 @@ function createTransaction(sender: PrivateKey | undefined, f: () => unknown) {
     toGraphQL() {
       return `mutation MyMutation {
         __typename
-        sendSnapp(input: ${Ledger.partiesToGraphQL(txn)})}`;
+        sendZkapp(input: ${Ledger.partiesToGraphQL(txn)})}`;
     },
   };
 }
@@ -155,7 +155,7 @@ export function LocalBlockchain() {
     testAccounts.push({ privateKey: k, publicKey: pk });
   }
 
-  function getAccount(pk: PublicKey) {
+  function getAccount(pk: PublicKey): Account {
     const r = ledger.getAccount(pk);
     if (r == undefined) {
       throw new Error(
@@ -165,7 +165,7 @@ export function LocalBlockchain() {
       const a = {
         balance: new UInt64(r.balance.value),
         nonce: new UInt32(r.nonce.value),
-        snapp: r.snapp,
+        zkapp: r.zkapp,
       };
       return a;
     }
