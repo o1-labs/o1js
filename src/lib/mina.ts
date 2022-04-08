@@ -1,13 +1,6 @@
 // This is for an account where any of a list of public keys can update the state
 
-import {
-  Circuit,
-  Ledger,
-  Field,
-  FeePayerParty,
-  Parties,
-  Party_,
-} from '../snarky';
+import { Circuit, Ledger, Field, FeePayerParty, Parties } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
 import { Body, Party } from './party';
