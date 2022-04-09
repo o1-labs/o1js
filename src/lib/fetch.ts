@@ -1,8 +1,20 @@
-import fetch, { AbortError } from 'isomorphic-fetch';
+import 'isomorphic-fetch';
+
+type Config = {
+  timeout: number | undefined;
+};
+
+type FetchResponse = { data: any };
+
+type FetchError = {
+  statusCode: number;
+  statusText: string;
+};
 
 // Specify 5s as the default timeout
 const defaultTimeout = 5000;
 
+// TODO: 'snapp' should be replaced with 'zkapp' soon
 const query = `
     query GetAccountInfo($publicKey: PublicKey!) {
       account(publicKey: $publicKey) {
@@ -18,19 +30,29 @@ const query = `
     }
   }`;
 
-function checkResponseStatus(res) {
-  if (res.ok) {
-    return res.json();
+async function checkResponseStatus(response: Response) {
+  if (response.ok) {
+    return (await response.json()) as FetchResponse;
   } else {
-    throw new Error(`${res.status}: (${res.statusText})`);
+    return {
+      statusCode: response.status,
+      statusText: response.statusText,
+    } as FetchError;
   }
 }
 
-function reportError(error) {
-  if (error instanceof AbortError) {
-    throw new Error(`Request timeout: ${JSON.stringify(error)}`);
+function inferError(error: unknown) {
+  let errorMessage = JSON.stringify(error);
+  if (error instanceof AbortSignal) {
+    return {
+      statusCode: 408,
+      statusText: `Request Timeout: ${errorMessage}`,
+    } as FetchError;
   } else {
-    throw new Error(`Unknown error: ${JSON.stringify(error)}`);
+    return {
+      statusCode: 500,
+      statusText: `Unknown Error: ${errorMessage}`,
+    } as FetchError;
   }
 }
 
@@ -44,10 +66,14 @@ function reportError(error) {
  *
  * @param {string} graphqlEndpoint The GraphQL endpoint to pull account information from
  * @param {string} publicKey The specified account to get account information on
- * @param {{timeout: number}} config timeout An object that exposes an optional timeout parameter
+ * @param {Config} config timeout An object that exposes an optional timeout parameter
  * @returns zkapp information on the specified account or an error is thrown
  */
-export async function getAccount(graphqlEndpoint, publicKey, config) {
+export async function getAccount(
+  graphqlEndpoint: string,
+  publicKey: string,
+  config?: Config
+) {
   const controller = new AbortController();
   const timer = setTimeout(
     () => {
@@ -56,9 +82,8 @@ export async function getAccount(graphqlEndpoint, publicKey, config) {
     config?.timeout ? config.timeout : defaultTimeout
   );
 
-  let response;
   try {
-    response = await fetch(graphqlEndpoint, {
+    let response = await fetch(graphqlEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -67,10 +92,9 @@ export async function getAccount(graphqlEndpoint, publicKey, config) {
       }),
       signal: controller.signal,
     });
+    return checkResponseStatus(response);
   } catch (error) {
-    reportError(error);
-  } finally {
     clearTimeout(timer);
+    return inferError(error);
   }
-  return checkResponseStatus(response);
 }

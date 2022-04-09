@@ -41,6 +41,7 @@
   },
   "author": "O(1) Labs",
   "devDependencies": {
+    "@types/isomorphic-fetch": "^0.0.36",
     "@types/jest": "^27.0.0",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "esbuild": "^0.13.13",
