@@ -20,27 +20,13 @@ const ZkappStateLength: number = 8;
 /**
  * Timing info inside an account.
  */
-export class Timing {
+export type Timing = {
   initialMinimumBalance: Balance;
   cliffTime: GlobalSlot;
   cliffAmount: Amount;
   vestingPeriod: GlobalSlot;
   vestingIncrement: Amount;
-
-  constructor(
-    initialMinimumBalance: Balance,
-    cliffTime: GlobalSlot,
-    cliffAmount: Amount,
-    vestingPeriod: GlobalSlot,
-    vestingIncrement: Amount
-  ) {
-    this.initialMinimumBalance = initialMinimumBalance;
-    this.cliffTime = cliffTime;
-    this.cliffAmount = cliffAmount;
-    this.vestingPeriod = vestingPeriod;
-    this.vestingIncrement = vestingIncrement;
-  }
-}
+};
 
 /**
  * Either set a value or keep it the same.
@@ -277,7 +263,7 @@ class TokenSymbol extends CircuitValue {
   // (Bool, Num_bits.n) Pickles_types.Vector.t
 }
 
-export class Update {
+export type Update = {
   appState: Array<SetOrKeep<Field>>;
   delegate: SetOrKeep<PublicKey>;
   verificationKey: SetOrKeep<string>;
@@ -286,28 +272,7 @@ export class Update {
   tokenSymbol: SetOrKeep<TokenSymbol>;
   timing: SetOrKeep<Timing>;
   votingFor: SetOrKeep<Field>;
-
-  constructor(
-    appState: Array<SetOrKeep<Field>>,
-    delegate: SetOrKeep<PublicKey>,
-    verificationKey: SetOrKeep<string>,
-    permissions: SetOrKeep<Permissions>,
-    zkappUri: SetOrKeep<String_>,
-    tokenSymbol: SetOrKeep<TokenSymbol>,
-    timing: SetOrKeep<Timing>,
-    votingFor: SetOrKeep<Field>
-  ) {
-    this.appState = appState;
-    this.delegate = delegate;
-    this.verificationKey = verificationKey;
-    this.permissions = permissions;
-    this.zkappUri = zkappUri;
-    this.tokenSymbol = tokenSymbol;
-    this.timing = timing;
-    this.votingFor = votingFor;
-  }
-}
-
+};
 export const getDefaultTokenId = () => Field.one;
 
 // TODO
@@ -389,16 +354,16 @@ export let Body = {
       appState.push(keep(Field.zero));
     }
 
-    const update = new Update(
+    const update: Update = {
       appState,
-      keep(new PublicKey(Group.generator)),
-      keep(''),
-      keep(Permissions.default()),
-      keep(undefined as any),
-      keep(undefined as any),
-      keep(undefined as any),
-      keep(Field.zero)
-    );
+      delegate: keep(new PublicKey(Group.generator)),
+      verificationKey: keep(''),
+      permissions: keep(Permissions.default()),
+      zkappUri: keep(undefined as any),
+      tokenSymbol: keep(undefined as any),
+      timing: keep(undefined as any),
+      votingFor: keep(Field.zero),
+    };
     return {
       publicKey,
       update,
@@ -665,7 +630,7 @@ const uint32 = () => new ClosedInterval(UInt32.fromNumber(0), UInt32.MAXINT());
  */
 const uint64 = () => new ClosedInterval(UInt64.fromNumber(0), UInt64.MAXINT());
 
-export class AccountPrecondition {
+export type AccountPrecondition = {
   balance: ClosedInterval<UInt64>;
   nonce: ClosedInterval<UInt32>;
   receiptChainHash: OrIgnore<Field>;
@@ -674,45 +639,25 @@ export class AccountPrecondition {
   state: Array<OrIgnore<Field>>;
   sequenceState: OrIgnore<Field>;
   provedState: OrIgnore<Bool>;
-
-  static ignoreAll(): AccountPrecondition {
+};
+export let AccountPrecondition = {
+  ignoreAll(): AccountPrecondition {
     let appState: Array<OrIgnore<Field>> = [];
     for (let i = 0; i < ZkappStateLength; ++i) {
       appState.push(ignore(Field.zero));
     }
-
-    return new AccountPrecondition(
-      uint64(),
-      uint32(),
-      ignore(Field.zero),
-      ignore(new PublicKey(Group.generator)),
-      ignore(new PublicKey(Group.generator)),
-      appState,
-      ignore(Field.zero),
-      ignore(new Bool(false))
-    );
-  }
-
-  constructor(
-    balance: ClosedInterval<UInt64>,
-    nonce: ClosedInterval<UInt32>,
-    receiptChainHash: OrIgnore<Field>,
-    publicKey: OrIgnore<PublicKey>,
-    delegate: OrIgnore<PublicKey>,
-    state: Array<OrIgnore<Field>>,
-    sequenceState: OrIgnore<Field>,
-    provedState: OrIgnore<Bool>
-  ) {
-    this.balance = balance;
-    this.nonce = nonce;
-    this.receiptChainHash = receiptChainHash;
-    this.publicKey = publicKey;
-    this.delegate = delegate;
-    this.state = state;
-    this.sequenceState = sequenceState;
-    this.provedState = provedState;
-  }
-}
+    return {
+      balance: uint64(),
+      nonce: uint32(),
+      receiptChainHash: ignore(Field.zero),
+      publicKey: ignore(new PublicKey(Group.generator)),
+      delegate: ignore(new PublicKey(Group.generator)),
+      state: appState,
+      sequenceState: ignore(Field.zero),
+      provedState: ignore(new Bool(false)),
+    };
+  },
+};
 
 export class PartyBalance {
   private body: Body;
