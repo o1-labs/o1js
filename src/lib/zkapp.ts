@@ -597,6 +597,14 @@ async function deploy<S extends typeof SmartContract>(
   // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
   let txJson = tx.toJSON();
   txJson = Ledger.signOtherParty(txJson, zkappKey, i);
+  // TODO this should be done in createTransaction automatically if Party.createSigned was called
+  if (initialBalance !== undefined) {
+    txJson = Ledger.signOtherParty(
+      txJson,
+      initialBalanceFundingAccountKey!,
+      i - 1
+    );
+  }
   if (shouldSignFeePayer) {
     if (feePayerKey === undefined || transactionFee === undefined) {
       throw Error(
