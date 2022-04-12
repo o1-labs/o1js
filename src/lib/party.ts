@@ -334,7 +334,7 @@ export type Precondition = undefined | UInt32 | AccountPrecondition;
  *
  * TODO: We need to rename this still.
  */
-export class Body {
+export type Body = {
   /**
    * The address for this body.
    */
@@ -372,11 +372,13 @@ export class Body {
   accountPrecondition: Precondition;
   useFullCommitment: Bool;
   incrementNonce: Bool;
+};
 
+export let Body = {
   /**
    * A body that Don't change part of the underlying account record.
    */
-  static keepAll(publicKey: PublicKey): Body {
+  keepAll(publicKey: PublicKey): Body {
     function keep<A>(dummy: A): SetOrKeep<A> {
       return new SetOrKeep(new Bool(false), dummy);
     }
@@ -397,64 +399,38 @@ export class Body {
       keep(undefined as any),
       keep(Field.zero)
     );
-    return new Body(
+    return {
       publicKey,
       update,
-      getDefaultTokenId(),
-      Int64.zero,
-      new Events(Field.zero, []),
-      Field.zero,
-      new MerkleList(),
-      Field.zero,
-      ProtocolStatePredicate.ignoreAll(),
-      AccountPrecondition.ignoreAll(),
-      Bool(true),
-      Bool(false)
-    );
-  }
+      tokenId: getDefaultTokenId(),
+      delta: Int64.zero,
+      events: new Events(Field.zero, []),
+      sequenceEvents: Field.zero,
+      callData: new MerkleList(),
+      depth: Field.zero,
+      protocolState: ProtocolStatePredicate.ignoreAll(),
+      accountPrecondition: AccountPrecondition.ignoreAll(),
+      // the default assumption is that snarkyjs transactions don't include the fee payer
+      // so useFullCommitment has to be false for signatures to be correct
+      useFullCommitment: Bool(false),
+      incrementNonce: Bool(false),
+    };
+  },
 
-  static keepAllWithNonce(publicKey: PublicKey, nonce: UInt32) {
+  keepAllWithNonce(publicKey: PublicKey, nonce: UInt32) {
     let body = Body.keepAll(publicKey);
     body.accountPrecondition = nonce;
     return body as Body & { accountPrecondition: UInt32 };
-  }
+  },
 
-  static dummy() {
+  dummy(): Body {
     return Body.keepAll(PublicKey.empty());
-  }
+  },
 
-  static dummyFeePayer() {
+  dummyFeePayer() {
     return Body.keepAllWithNonce(PublicKey.empty(), UInt32.zero);
-  }
-
-  constructor(
-    publicKey: PublicKey,
-    update: Update,
-    tokenId: Field,
-    delta: SignedAmount,
-    events: Events,
-    sequenceEvents: Field,
-    callData: MerkleList<Array<Field>>,
-    depth: Field,
-    protocolState: ProtocolStatePredicate,
-    accountPrecondition: Precondition,
-    useFullCommitment: Bool,
-    incrementNonce: Bool
-  ) {
-    this.publicKey = publicKey;
-    this.update = update;
-    this.tokenId = tokenId;
-    this.delta = delta;
-    this.events = events;
-    this.sequenceEvents = sequenceEvents;
-    this.callData = callData;
-    this.depth = depth;
-    this.protocolState = protocolState;
-    this.accountPrecondition = accountPrecondition;
-    this.useFullCommitment = useFullCommitment;
-    this.incrementNonce = incrementNonce;
-  }
-}
+  },
+};
 
 /**
  * Either check a value or ignore it.
