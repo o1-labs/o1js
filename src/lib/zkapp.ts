@@ -634,6 +634,8 @@ async function call<S extends typeof SmartContract>(
     kind: 'proof',
     value: Pickles.proofToString(proof),
   };
+  // FIXME: a proof-authorized party shouldn't need to increment nonce, this is needed due to a protocol bug
+  selfParty.body.incrementNonce = Bool(true);
   let tx = Mina.createUnsignedTransaction(() => {
     Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
   });
