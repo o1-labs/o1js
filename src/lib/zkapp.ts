@@ -588,6 +588,7 @@ async function deploy<S extends typeof SmartContract>(
     (zkapp as any).deploy?.();
     i = Mina.currentTransaction!.nextPartyIndex - 1;
     zkapp.self.update.verificationKey.set = Bool(true);
+    zkapp.self.body.incrementNonce = Bool(true);
     zkapp.self.update.verificationKey.value = verificationKey;
     if (initialBalance !== undefined) {
       let amount = UInt64.fromString(String(initialBalance));
@@ -651,6 +652,7 @@ async function callUnproved<S extends typeof SmartContract>(
     methodName as any,
     methodArguments
   );
+  selfParty.body.incrementNonce = Bool(true);
   let tx = Mina.createUnsignedTransaction(() => {
     Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
   });
