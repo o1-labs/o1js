@@ -25,7 +25,7 @@ export {
   compile,
   call,
   callUnproved,
-  signJsonTransaction,
+  signFeePayer,
   declareState,
   declareMethodArguments,
 };
@@ -603,7 +603,7 @@ async function deploy<S extends typeof SmartContract>(
         `When setting shouldSignFeePayer=true, you need to also supply feePayerKey (fee payer's private key) and transactionFee.`
       );
     }
-    txJson = await signJsonTransaction(txJson, feePayerKey, { transactionFee });
+    txJson = await signFeePayer(txJson, feePayerKey, { transactionFee });
   }
   return txJson;
 }
@@ -652,7 +652,7 @@ async function callUnproved<S extends typeof SmartContract>(
   return txJson;
 }
 
-async function signJsonTransaction(
+async function signFeePayer(
   transactionJson: string,
   senderKey: PrivateKey,
   {
@@ -669,7 +669,41 @@ async function signJsonTransaction(
   parties.feePayer.body.accountPrecondition = nonce;
   parties.feePayer.body.publicKey = Ledger.publicKeyToString(senderAddress);
   parties.feePayer.body.balanceChange = `${transactionFee}`;
-  return Ledger.signFeePayer(JSON.stringify(parties), senderKey);
+  return signJsonTransaction(JSON.stringify(parties), senderKey);
+  // return Ledger.signFeePayer(JSON.stringify(parties), senderKey);
+}
+
+/**
+ * Sign all parties of a transaction which belong to the account determined by [[ `privateKey` ]].
+ * @returns the modified transaction JSON
+ */
+function signJsonTransaction(
+  transactionJson: string,
+  privateKey: PrivateKey | string
+) {
+  if (typeof privateKey === 'string')
+    privateKey = PrivateKey.fromBase58(privateKey);
+  let publicKey = privateKey.toPublicKey().toBase58();
+  // TODO: we really need types for the parties json
+  let parties = JSON.parse(transactionJson);
+  let feePayer = parties.feePayer;
+  if (feePayer.body.publicKey === publicKey) {
+    parties = JSON.parse(
+      Ledger.signFeePayer(JSON.stringify(parties), privateKey)
+    );
+  }
+  for (let i = 0; i < parties.otherParties.length; i++) {
+    let party = parties.otherParties[i];
+    if (
+      party.body.publicKey === publicKey &&
+      party.authorization.proof === null
+    ) {
+      parties = JSON.parse(
+        Ledger.signOtherParty(JSON.stringify(parties), privateKey, i)
+      );
+    }
+  }
+  return JSON.stringify(parties);
 }
 
 async function compile<S extends typeof SmartContract>(
