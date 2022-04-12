@@ -413,6 +413,7 @@ export let Body = {
       // the default assumption is that snarkyjs transactions don't include the fee payer
       // so useFullCommitment has to be false for signatures to be correct
       useFullCommitment: Bool(false),
+      // this should be set to true if parties are signed
       incrementNonce: Bool(false),
     };
   },
@@ -810,6 +811,7 @@ export class Party {
     let nonce = account.nonce.add(nonceIncrease);
 
     body.accountPrecondition = nonce;
+    body.incrementNonce = new Bool(true);
 
     let party = new Party(body) as Party & {
       body: { accountPrecondition: UInt32 };
