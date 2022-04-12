@@ -662,22 +662,24 @@ async function callUnproved<S extends typeof SmartContract>(
 
 async function signFeePayer(
   transactionJson: string,
-  senderKey: PrivateKey,
+  feePayerKey: PrivateKey | string,
   {
     transactionFee = 0 as number | string,
-    nonce = undefined as string | undefined,
+    feePayerNonce = undefined as number | string | undefined,
   }
 ) {
   let parties = JSON.parse(transactionJson);
-  let senderAddress = senderKey.toPublicKey();
-  if (nonce === undefined) {
+  if (typeof feePayerKey === 'string')
+    feePayerKey = PrivateKey.fromBase58(feePayerKey);
+  let senderAddress = feePayerKey.toPublicKey();
+  if (feePayerNonce === undefined) {
     let senderAccount = await Mina.getAccount(senderAddress);
-    nonce = senderAccount.nonce.toString();
+    feePayerNonce = senderAccount.nonce.toString();
   }
-  parties.feePayer.body.accountPrecondition = nonce;
+  parties.feePayer.body.accountPrecondition = `${feePayerNonce}`;
   parties.feePayer.body.publicKey = Ledger.publicKeyToString(senderAddress);
   parties.feePayer.body.balanceChange = `${transactionFee}`;
-  return signJsonTransaction(JSON.stringify(parties), senderKey);
+  return signJsonTransaction(JSON.stringify(parties), feePayerKey);
   // return Ledger.signFeePayer(JSON.stringify(parties), senderKey);
 }
 
