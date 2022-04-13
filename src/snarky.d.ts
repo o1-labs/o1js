@@ -772,12 +772,13 @@ interface Party_ {
   authorization: Control;
 }
 
-interface FeePayerParty {
+interface FeePayerParty_ {
   body: FeePayerPartyBody;
+  authorization: Exclude<Control, { kind: 'proof'; value: string }>;
 }
 
 interface Parties {
-  feePayer: FeePayerParty;
+  feePayer: FeePayerParty_;
   otherParties: Array<Party_>;
 }
 

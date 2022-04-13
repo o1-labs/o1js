@@ -4,6 +4,8 @@ import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
 
+export { FeePayer, LazyControl };
+
 export type Amount = UInt64;
 export const Amount = UInt64;
 export type Balance = UInt64;
@@ -674,9 +676,13 @@ export class PartyBalance {
   }
 }
 
+type LazyControl =
+  | Control
+  | { kind: 'lazy-signature'; privateKey?: PrivateKey };
+
 export class Party {
   body: Body;
-  authorization: Control = { kind: 'none' };
+  authorization: LazyControl = { kind: 'none' };
 
   constructor(body: Body) {
     this.body = body;
@@ -699,6 +705,17 @@ export class Party {
     return new Party(body) as Party & {
       body: { accountPrecondition: AccountPrecondition };
     };
+  }
+
+  static defaultFeePayer(address: PublicKey, key: PrivateKey, nonce: UInt32) {
+    let body = Body.keepAllWithNonce(address, nonce);
+    let party = new Party(body) as FeePayer;
+    party.authorization = { kind: 'lazy-signature', privateKey: key };
+    return party;
+  }
+
+  static dummyFeePayer() {
+    return new Party(Body.dummyFeePayer()) as FeePayer;
   }
 
   static createUnsigned(publicKey: PublicKey) {
@@ -761,8 +778,16 @@ export class Party {
     let party = new Party(body) as Party & {
       body: { accountPrecondition: UInt32 };
     };
+    party.authorization = { kind: 'lazy-signature', privateKey: signer };
+
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
     return party;
   }
 }
+
+type FeePayer = Party & {
+  authorization: Exclude<LazyControl, { kind: 'proof'; value: string }>;
+} & {
+  body: { accountPrecondition: UInt32 };
+};
