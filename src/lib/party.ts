@@ -1,10 +1,17 @@
 import { CircuitValue } from './circuit_value';
-import { Group, Field, Bool, Control, Circuit, Ledger } from '../snarky';
+import { Group, Field, Bool, Control, Ledger } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
+import { toParties } from './party-conversion';
 
-export { FeePayer, LazyControl, signJsonTransaction };
+export {
+  FeePayer,
+  Parties,
+  LazyControl,
+  addMissingSignatures,
+  signJsonTransaction,
+};
 
 const ZkappStateLength = 8;
 
@@ -328,10 +335,6 @@ export let Body = {
   dummy(): Body {
     return Body.keepAll(PublicKey.empty());
   },
-
-  dummyFeePayer() {
-    return Body.keepAllWithNonce(PublicKey.empty(), UInt32.zero);
-  },
 };
 
 /**
@@ -634,6 +637,10 @@ export class Party {
     return this.body.publicKey;
   }
 
+  sign(privateKey: PrivateKey) {
+    this.authorization = { kind: 'lazy-signature', privateKey };
+  }
+
   static defaultParty(address: PublicKey) {
     const body = Body.keepAll(address);
     return new Party(body) as Party & {
@@ -643,13 +650,16 @@ export class Party {
 
   static defaultFeePayer(address: PublicKey, key: PrivateKey, nonce: UInt32) {
     let body = Body.keepAllWithNonce(address, nonce);
+    body.useFullCommitment = Bool(true);
     let party = new Party(body) as FeePayer;
     party.authorization = { kind: 'lazy-signature', privateKey: key };
     return party;
   }
 
   static dummyFeePayer() {
-    return new Party(Body.dummyFeePayer()) as FeePayer;
+    let body = Body.keepAllWithNonce(PublicKey.empty(), UInt32.zero);
+    body.useFullCommitment = Bool(true);
+    return new Party(body) as FeePayer;
   }
 
   static createUnsigned(publicKey: PublicKey) {
@@ -710,8 +720,7 @@ export class Party {
     let party = new Party(body) as Party & {
       body: { accountPrecondition: UInt32 };
     };
-    party.authorization = { kind: 'lazy-signature', privateKey: signer };
-
+    party.sign(signer);
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
     return party;
@@ -723,6 +732,40 @@ type FeePayer = Party & {
 } & {
   body: { accountPrecondition: UInt32 };
 };
+
+type Parties = { feePayer: FeePayer; otherParties: Party[] };
+
+function addMissingSignatures(
+  parties: Parties,
+  additionalKeys = [] as PrivateKey[]
+) {
+  let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
+  let { commitment, fullCommitment } = Ledger.transactionCommitments(
+    Ledger.partiesToJson(toParties(parties))
+  );
+  function addSignature(party: Party, isFeePayer?: boolean) {
+    if (party.authorization.kind !== 'lazy-signature') return;
+    let { privateKey } = party.authorization;
+    if (privateKey === undefined) {
+      let i = additionalPublicKeys.findIndex(
+        (pk) => pk === party.body.publicKey
+      );
+      if (i === -1) return;
+      privateKey = additionalKeys[i];
+    }
+    let transactionCommitment =
+      isFeePayer || party.body.useFullCommitment.toBoolean()
+        ? fullCommitment
+        : commitment;
+    let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
+    party.authorization = { kind: 'signature', value: signature };
+  }
+  let { feePayer, otherParties } = parties;
+  addSignature(feePayer, true);
+  for (let party of otherParties) {
+    addSignature(party);
+  }
+}
 
 /**
  * Sign all parties of a transaction which belong to the account determined by [[ `privateKey` ]].

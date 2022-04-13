@@ -3,7 +3,7 @@
 import { Circuit, Ledger, Field } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
-import { FeePayer, Party } from './party';
+import { addMissingSignatures, FeePayer, Parties, Party } from './party';
 import { toParties } from './party-conversion';
 
 export { createUnsignedTransaction, createSignedTransaction };
@@ -13,6 +13,8 @@ interface TransactionId {
 }
 
 interface Transaction {
+  transaction: Parties;
+  sign(): void;
   send(): TransactionId;
 }
 
@@ -97,6 +99,11 @@ function createTransaction(
   currentTransaction = undefined;
   return {
     transaction,
+
+    sign(additionalKeys?: PrivateKey[]) {
+      addMissingSignatures(this.transaction, additionalKeys);
+      return this;
+    },
 
     toJSON() {
       return Ledger.partiesToJson(toParties(this.transaction));
