@@ -818,7 +818,7 @@ export class Ledger {
     protocolStateHash: Field
   ): Field;
 
-  static transactionStatement(txJson: string, partyIndex: number): string;
+  static transactionStatement(txJson: string, partyIndex: number): Statement;
   static signFeePayer(txJson: string, privateKey: { s: Scalar }): string;
   static signOtherParty(
     txJson: string,

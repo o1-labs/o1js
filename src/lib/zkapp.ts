@@ -404,20 +404,17 @@ export class SmartContract {
       let selfParty = mainContext.self;
       mainContext = undefined;
 
-      // TODO dont create full transaction in here
-      // (fix by deferring proof creation to the end, or being cleverer with statement computation)
-      let tx = Mina.createUnsignedTransaction(() => {
+      // TODO dont create full transaction in here, properly build up atParty
+      let txJson = Mina.createUnsignedTransaction(() => {
         Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
-      }).transaction;
-
-      let statementVar = toStatement(ctx.self, Field.zero);
-      return [
-        {
-          transaction: statementVar.transaction.toConstant(),
-          atParty: statementVar.atParty.toConstant(),
-        },
-        selfParty,
-      ];
+      }).toJSON();
+      let statement = Ledger.transactionStatement(txJson, 0);
+      // let statementVar = toStatement(ctx.self, Field.zero);
+      // let statement = {
+      //   transaction: statementVar.transaction.toConstant(),
+      //   atParty: statementVar.atParty.toConstant(),
+      // };
+      return [statement, selfParty];
     });
     mainContext = { self: Party.defaultParty(this.address), witnesses: args };
     // TODO lazy proof?
