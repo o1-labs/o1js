@@ -4,7 +4,7 @@ import {
   ProtocolStatePredicate_,
   EpochDataPredicate_,
   FeePayerParty_,
-  Parties,
+  Parties_,
 } from '../snarky';
 import {
   Body,
@@ -25,7 +25,7 @@ function toParties({
 }: {
   feePayer: FeePayer;
   otherParties: Party[];
-}): Parties {
+}): Parties_ {
   return {
     feePayer: toFeePayer(feePayer),
     otherParties: otherParties.map(toParty),

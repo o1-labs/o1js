@@ -256,7 +256,6 @@ class RollupZkapp extends SmartContract {
     deposits: MerkleStack<RollupDeposit>,
     lastUpatedPeriod: UInt32
   ) {
-    super.deploy();
     this.self.balance.addInPlace(senderAmount);
     this.operatorsCommitment.set(operatorsDb.commitment());
     this.lastUpdatedPeriod.set(lastUpatedPeriod);
@@ -378,7 +377,7 @@ function main() {
   const minaSender = PrivateKey.random();
   const Local = Mina.LocalBlockchain();
   Mina.setActiveInstance(Local);
-  const largeValue = 30000000000;
+  const largeValue = '30000000000';
   Local.addAccount(minaSender.toPublicKey(), largeValue);
 
   // TODO: Put real value

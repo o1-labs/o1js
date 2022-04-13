@@ -15,6 +15,7 @@ import {
   Party,
   PartyBalance,
   signJsonTransaction,
+  Parties,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -410,6 +411,10 @@ export class SmartContract {
         Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
       }).toJSON();
       let statement = Ledger.transactionStatement(txJson, 0);
+      console.log(
+        'prove: created transaction statement',
+        JSON.stringify(statement)
+      );
       // let statementVar = toStatement(ctx.self, Field.zero);
       // let statement = {
       //   transaction: statementVar.transaction.toConstant(),
@@ -557,7 +562,6 @@ async function deploy<S extends typeof SmartContract>(
     zkappKey,
     verificationKey,
     initialBalance,
-    initialBalanceFundingAccountKey,
     shouldSignFeePayer,
     feePayerKey,
     transactionFee,
@@ -565,9 +569,8 @@ async function deploy<S extends typeof SmartContract>(
     zkappKey: PrivateKey;
     verificationKey: string;
     initialBalance?: number | string;
-    initialBalanceFundingAccountKey?: PrivateKey;
-    shouldSignFeePayer?: boolean;
     feePayerKey?: PrivateKey;
+    shouldSignFeePayer?: boolean;
     transactionFee?: string | number;
   }
 ) {
@@ -575,15 +578,13 @@ async function deploy<S extends typeof SmartContract>(
   let address = zkappKey.toPublicKey();
   let tx = Mina.createUnsignedTransaction(() => {
     if (initialBalance !== undefined) {
-      if (initialBalanceFundingAccountKey === undefined)
+      if (feePayerKey === undefined)
         throw Error(
-          `When using the optional initialBalance argument, you need to also supply the funding account's private key in initialBalanceFundingAccountKey.`
+          `When using the optional initialBalance argument, you need to also supply the fee payer's private key feePayerKey to sign the initial balance funding.`
         );
       // optional first party: the sender/fee payer who also funds the zkapp
       let amount = UInt64.fromString(String(initialBalance));
-      let party = Party.createSigned(initialBalanceFundingAccountKey, {
-        isSameAsFeePayer: true,
-      });
+      let party = Party.createSigned(feePayerKey, { isSameAsFeePayer: true });
       party.balance.subInPlace(amount);
     }
     // main party: the zkapp account
@@ -591,33 +592,24 @@ async function deploy<S extends typeof SmartContract>(
     (zkapp as any).deploy?.();
     i = Mina.currentTransaction!.nextPartyIndex - 1;
     zkapp.self.update.verificationKey.set = Bool(true);
-    zkapp.self.body.incrementNonce = Bool(true);
     zkapp.self.update.verificationKey.value = verificationKey;
+    zkapp.self.body.incrementNonce = Bool(true);
+    zkapp.self.sign(zkappKey);
     if (initialBalance !== undefined) {
       let amount = UInt64.fromString(String(initialBalance));
       zkapp.self.balance.addInPlace(amount);
     }
   });
-  // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
-  let txJson = tx.toJSON();
-  txJson = Ledger.signOtherParty(txJson, zkappKey, i);
-  // TODO this should be done in createTransaction automatically if Party.createSigned was called
-  if (initialBalance !== undefined) {
-    txJson = Ledger.signOtherParty(
-      txJson,
-      initialBalanceFundingAccountKey!,
-      i - 1
-    );
-  }
   if (shouldSignFeePayer) {
     if (feePayerKey === undefined || transactionFee === undefined) {
       throw Error(
         `When setting shouldSignFeePayer=true, you need to also supply feePayerKey (fee payer's private key) and transactionFee.`
       );
     }
-    txJson = await signFeePayer(txJson, feePayerKey, { transactionFee });
+    await addFeePayer(tx.transaction, feePayerKey, { transactionFee });
   }
-  return txJson;
+  // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
+  return tx.sign().toJSON();
 }
 
 async function call<S extends typeof SmartContract>(
@@ -671,6 +663,27 @@ async function callUnproved<S extends typeof SmartContract>(
   if (zkappKey !== undefined)
     txJson = Ledger.signOtherParty(txJson, zkappKey, 0);
   return txJson;
+}
+
+async function addFeePayer(
+  { feePayer }: Parties,
+  feePayerKey: PrivateKey | string,
+  {
+    transactionFee = 0 as number | string,
+    feePayerNonce = undefined as number | string | undefined,
+  }
+) {
+  if (typeof feePayerKey === 'string')
+    feePayerKey = PrivateKey.fromBase58(feePayerKey);
+  let senderAddress = feePayerKey.toPublicKey();
+  if (feePayerNonce === undefined) {
+    let senderAccount = await Mina.getAccount(senderAddress);
+    feePayerNonce = senderAccount.nonce.toString();
+  }
+  feePayer.body.accountPrecondition = UInt32.fromString(`${feePayerNonce}`);
+  feePayer.body.publicKey = senderAddress;
+  feePayer.balance.subInPlace(UInt64.fromString(`${transactionFee}`));
+  feePayer.sign(feePayerKey);
 }
 
 async function signFeePayer(
