@@ -353,6 +353,10 @@
         "type": "function"
       },
       {
+        "name": "transactionStatement",
+        "type": "function"
+      },
+      {
         "name": "signFeePayer",
         "type": "function"
       },
