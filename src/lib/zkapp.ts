@@ -620,7 +620,9 @@ async function call<S extends typeof SmartContract>(
   address: PublicKey,
   methodName: string,
   methodArguments: any,
-  provers: ((statement: Statement) => Promise<unknown>)[]
+  provers: ((statement: Statement) => Promise<unknown>)[],
+  // TODO: remove, create a nicer intf to check proofs
+  verify?: (statement: Statement, proof: unknown) => Promise<boolean>
 ) {
   let zkapp = new SmartContract(address);
   let { selfParty, proof, statement } = await zkapp.prove(
@@ -632,6 +634,10 @@ async function call<S extends typeof SmartContract>(
     kind: 'proof',
     value: Pickles.proofToString(proof),
   };
+  if (verify !== undefined) {
+    let ok = await verify(statement, proof);
+    if (!ok) throw Error('Proof failed to verify!');
+  }
   // FIXME: a proof-authorized party shouldn't need to increment nonce, this is needed due to a protocol bug
   selfParty.body.incrementNonce = Bool(true);
   let tx = Mina.createUnsignedTransaction(() => {
@@ -723,10 +729,12 @@ async function compile<S extends typeof SmartContract>(
   address: PublicKey
 ) {
   // TODO: instead of returning provers, return an artifact from which provers can be recovered
-  let { getVerificationKeyArtifact, provers } = SmartContract.compile(address);
+  let { getVerificationKeyArtifact, provers, verify } =
+    SmartContract.compile(address);
   return {
     verificationKey: getVerificationKeyArtifact(),
     provers,
+    verify,
   };
 }
 
