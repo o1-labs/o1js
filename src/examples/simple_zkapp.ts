@@ -17,7 +17,6 @@ class SimpleSnapp extends SmartContract {
   @state(Field) x = State<Field>();
 
   deploy() {
-    super.deploy();
     let amount = UInt64.fromNumber(initialBalance);
     this.balance.addInPlace(amount);
     const p = Party.createSigned(account2);
@@ -52,20 +51,8 @@ await Mina.transaction(account1, () => {
   .send()
   .wait();
 
-// console.log('compile');
-// let { provers, getVerificationKey } = SimpleSnapp.compile(snappPubKey);
-
-// let vk = getVerificationKey();
-// console.log(vk);
-// console.log(serializeVerificationKey(vk));
-
-// console.log('prove');
-// let snapp = new SimpleSnapp(snappPubKey);
-// let proof = snapp.prove(provers, 'update', [Field(3)]);
-// console.log({ proof });
-
-let snappState = (await Mina.getAccount(snappPubKey)).snapp.appState[0];
-console.log('initial state: ' + snappState);
+let zkappState = (await Mina.getAccount(snappPubKey)).zkapp.appState[0];
+console.log('initial state: ' + zkappState);
 
 console.log('update');
 await Mina.transaction(account1, async () => {
@@ -75,5 +62,5 @@ await Mina.transaction(account1, async () => {
   .send()
   .wait();
 
-snappState = (await Mina.getAccount(snappPubKey)).snapp.appState[0];
-console.log('final state: ' + snappState);
+zkappState = (await Mina.getAccount(snappPubKey)).zkapp.appState[0];
+console.log('final state: ' + zkappState);
