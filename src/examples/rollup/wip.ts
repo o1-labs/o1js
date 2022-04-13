@@ -7,7 +7,6 @@ import {
   Signature,
   Party,
   Permissions,
-  Perm,
   State,
   SmartContract,
   state,
@@ -266,8 +265,8 @@ class RollupZkapp extends SmartContract {
     );
     let perms = Permissions.default();
     // Force users to use the deposit method to send to this account
-    perms.receive = Perm.proof();
-    perms.editState = Perm.proof();
+    perms.receive = Permissions.proof();
+    perms.editState = Permissions.proof();
     this.self.update.permissions.setValue(perms);
   }
 

@@ -14,6 +14,7 @@ import {
   Body,
   Party,
   PartyBalance,
+  signJsonTransaction,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -693,39 +694,6 @@ async function signFeePayer(
   parties.feePayer.body.balanceChange = `${transactionFee}`;
   return signJsonTransaction(JSON.stringify(parties), feePayerKey);
   // return Ledger.signFeePayer(JSON.stringify(parties), senderKey);
-}
-
-/**
- * Sign all parties of a transaction which belong to the account determined by [[ `privateKey` ]].
- * @returns the modified transaction JSON
- */
-function signJsonTransaction(
-  transactionJson: string,
-  privateKey: PrivateKey | string
-) {
-  if (typeof privateKey === 'string')
-    privateKey = PrivateKey.fromBase58(privateKey);
-  let publicKey = privateKey.toPublicKey().toBase58();
-  // TODO: we really need types for the parties json
-  let parties = JSON.parse(transactionJson);
-  let feePayer = parties.feePayer;
-  if (feePayer.body.publicKey === publicKey) {
-    parties = JSON.parse(
-      Ledger.signFeePayer(JSON.stringify(parties), privateKey)
-    );
-  }
-  for (let i = 0; i < parties.otherParties.length; i++) {
-    let party = parties.otherParties[i];
-    if (
-      party.body.publicKey === publicKey &&
-      party.authorization.proof === null
-    ) {
-      parties = JSON.parse(
-        Ledger.signOtherParty(JSON.stringify(parties), privateKey, i)
-      );
-    }
-  }
-  return JSON.stringify(parties);
 }
 
 async function compile<S extends typeof SmartContract>(
