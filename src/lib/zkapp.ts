@@ -332,12 +332,9 @@ function withContext<T>(context: typeof mainContext, f: () => T) {
 function picklesRuleFromFunction(
   name: string,
   func: (...args: unknown[]) => void,
-  witnessTypes: AsFieldElements<unknown>[],
-  onStart?: Function,
-  onEnd?: Function
+  witnessTypes: AsFieldElements<unknown>[]
 ) {
   function main(statement: Statement) {
-    onStart?.();
     if (mainContext === undefined) throw Error('bug');
     let { self, witnesses } = mainContext;
     witnesses = witnessTypes.map(
@@ -347,8 +344,9 @@ function picklesRuleFromFunction(
     );
     func(...witnesses);
     let tail = Field.zero;
-    checkStatement(statement, self, tail);
-    onEnd?.();
+    // FIXME: figure out correct way to constrain statement https://github.com/o1-labs/snarkyjs/issues/98
+    statement.transaction.assertEquals(statement.transaction);
+    // checkStatement(statement, self, tail);
   }
 
   return [0, name, main];
