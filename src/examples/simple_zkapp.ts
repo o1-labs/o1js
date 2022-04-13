@@ -13,7 +13,7 @@ import {
 
 await isReady;
 
-class SimpleSnapp extends SmartContract {
+class SimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
 
   deploy() {
@@ -31,36 +31,36 @@ class SimpleSnapp extends SmartContract {
   }
 }
 
-const Local = Mina.LocalBlockchain();
+let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
-const account1 = Local.testAccounts[0].privateKey;
-const account2 = Local.testAccounts[1].privateKey;
+let account1 = Local.testAccounts[0].privateKey;
+let account2 = Local.testAccounts[1].privateKey;
 
-const snappPrivKey = PrivateKey.random();
-const snappPubKey = snappPrivKey.toPublicKey();
+let zkappPrivKey = PrivateKey.random();
+let zkappPubKey = zkappPrivKey.toPublicKey();
 
-const initialBalance = 1_000_000;
-const initialState = Field(1);
+let initialBalance = 1_000_000;
+let initialState = Field(1);
 
 console.log('deploy');
-await Mina.transaction(account1, () => {
-  let snapp = new SimpleSnapp(snappPubKey);
-  snapp.deploy();
+await Local.transaction(account1, () => {
+  let zkapp = new SimpleZkapp(zkappPubKey);
+  zkapp.deploy();
 })
   .send()
   .wait();
 
-let zkappState = (await Mina.getAccount(snappPubKey)).zkapp.appState[0];
+let zkappState = (await Mina.getAccount(zkappPubKey)).zkapp.appState[0];
 console.log('initial state: ' + zkappState);
 
 console.log('update');
-await Mina.transaction(account1, async () => {
-  let snapp = new SimpleSnapp(snappPubKey);
-  await snapp.update(Field(3));
+await Local.transaction(account1, async () => {
+  let zkapp = new SimpleZkapp(zkappPubKey);
+  zkapp.update(Field(3));
 })
   .send()
   .wait();
 
-zkappState = (await Mina.getAccount(snappPubKey)).zkapp.appState[0];
+zkappState = (await Mina.getAccount(zkappPubKey)).zkapp.appState[0];
 console.log('final state: ' + zkappState);

@@ -1,5 +1,5 @@
 import { isReady, PrivateKey, deploy, shutdown, compile } from 'snarkyjs';
-import SimpleSnapp from './simple_zkapp';
+import SimpleZkapp from './simple_zkapp';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
@@ -11,13 +11,13 @@ let zkappKey = PrivateKey.random();
 let zkappAddress = zkappKey.toPublicKey();
 
 // read verification key from disk
-let artifact = readArtifact(SimpleSnapp);
+let artifact = readArtifact(SimpleZkapp);
 if (artifact === undefined)
   throw Error('No verification key found! Use compile.ts first');
 let { verificationKey } = artifact;
 
 // produce and log the transaction json; the fee payer is a dummy which has to be added later, by the signing logic
-let transactionJson = await deploy(SimpleSnapp, { zkappKey, verificationKey });
+let transactionJson = await deploy(SimpleZkapp, { zkappKey, verificationKey });
 
 console.log(transactionJson);
 
