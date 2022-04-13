@@ -401,9 +401,15 @@ export class SmartContract {
     let [statement, selfParty] = Circuit.runAndCheckSync(() => {
       mainContext = ctx;
       (this[methodName] as any)(...args);
-      // TODO
       let selfParty = mainContext.self;
       mainContext = undefined;
+
+      // TODO dont create full transaction in here
+      // (fix by deferring proof creation to the end, or being cleverer with statement computation)
+      let tx = Mina.createUnsignedTransaction(() => {
+        Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
+      }).transaction;
+
       let statementVar = toStatement(ctx.self, Field.zero);
       return [
         {
@@ -414,6 +420,7 @@ export class SmartContract {
       ];
     });
     mainContext = { self: Party.defaultParty(this.address), witnesses: args };
+    // TODO lazy proof?
     let proof = await provers[i](statement);
     mainContext = undefined;
     // FIXME call calls Parties.to_json outside a prover, which seems to cause an error when variables are extracted
