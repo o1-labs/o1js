@@ -422,23 +422,14 @@ export class SmartContract {
       (this[methodName] as any)(...args);
       let selfParty = mainContext.self;
       mainContext = undefined;
+      // FIXME: a proof-authorized party shouldn't need to increment nonce, this is needed due to a protocol bug
+      selfParty.body.incrementNonce = Bool(true);
 
       // TODO dont create full transaction in here, properly build up atParty
       let txJson = Mina.createUnsignedTransaction(() => {
         Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
       }).toJSON();
       let statement = Ledger.transactionStatement(txJson, 0);
-      console.log('transaction statement:', JSON.stringify(statement));
-      let toHex = (x: Field) =>
-        '0x' + BigInt(x.toString()).toString(16).toUpperCase();
-      console.log(
-        'transaction statement (hex):',
-        JSON.stringify(
-          Object.fromEntries(
-            Object.entries(statement).map(([k, v]) => [k, toHex(v)])
-          )
-        )
-      );
       // let statementVar = toStatement(ctx.self, Field.zero);
       // let statement = {
       //   transaction: statementVar.transaction.toConstant(),
@@ -446,6 +437,18 @@ export class SmartContract {
       // };
       return [statement, selfParty];
     });
+    // TODO remove this debugging
+    let toHex = (x: Field) =>
+      '0x' + BigInt(x.toString()).toString(16).toUpperCase();
+    console.log(
+      'transaction statement passed to prover (hex):\n',
+      JSON.stringify(
+        Object.fromEntries(
+          Object.entries(statement).map(([k, v]) => [k, toHex(v)])
+        )
+      )
+    );
+
     mainContext = { self: Party.defaultParty(this.address), witnesses: args };
     // TODO lazy proof?
     let proof = await provers[i](statement);
@@ -651,8 +654,6 @@ async function call<S extends typeof SmartContract>(
     let ok = await verify(statement, proof);
     if (!ok) throw Error('Proof failed to verify!');
   }
-  // FIXME: a proof-authorized party shouldn't need to increment nonce, this is needed due to a protocol bug
-  selfParty.body.incrementNonce = Bool(true);
   let tx = Mina.createUnsignedTransaction(() => {
     Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
   });
