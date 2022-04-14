@@ -200,7 +200,8 @@ export let Permissions = {
     setZkappUri: Permission.signature(),
     editSequenceState: Permission.proof(),
     setTokenSymbol: Permission.signature(),
-    incrementNonce: Permission.signature(),
+    // TODO: this is  a workaround, should be changed to signature() once Parties_replay_check_failed is fixed
+    incrementNonce: Permissions.proofOrSignature(),
     setVotingFor: Permission.signature(),
   }),
 };
