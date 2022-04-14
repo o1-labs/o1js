@@ -437,17 +437,6 @@ export class SmartContract {
       // };
       return [statement, selfParty];
     });
-    // TODO remove this debugging
-    let toHex = (x: Field) =>
-      '0x' + BigInt(x.toString()).toString(16).toUpperCase();
-    console.log(
-      'transaction statement passed to prover (hex):\n',
-      JSON.stringify(
-        Object.fromEntries(
-          Object.entries(statement).map(([k, v]) => [k, toHex(v)])
-        )
-      )
-    );
 
     mainContext = { self: Party.defaultParty(this.address), witnesses: args };
     // TODO lazy proof?
