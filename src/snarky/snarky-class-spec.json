@@ -228,6 +228,18 @@
       {
         "name": "hash",
         "type": "function"
+      },
+      {
+        "name": "spongeCreate",
+        "type": "function"
+      },
+      {
+        "name": "spongeAbsorb",
+        "type": "function"
+      },
+      {
+        "name": "spongeSqueeze",
+        "type": "function"
       }
     ]
   },

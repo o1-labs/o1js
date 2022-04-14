@@ -622,8 +622,15 @@ export class Group {
   static fromJSON(x: JSONValue): Group | null;
 }
 
+declare class Sponge {
+  constructor();
+  absorb(x: Field): void;
+  squeeze(): Field;
+}
+
 export const Poseidon: {
   hash: (xs: Field[]) => Field;
+  Sponge: typeof Sponge;
 };
 
 interface UInt32_ {
