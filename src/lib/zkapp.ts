@@ -664,13 +664,12 @@ async function callUnproved<S extends typeof SmartContract>(
     methodName as any,
     methodArguments
   );
+  selfParty.sign(zkappKey);
   selfParty.body.incrementNonce = Bool(true);
   let tx = Mina.createUnsignedTransaction(() => {
     Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
   });
-  let txJson = tx.toJSON();
-  if (zkappKey !== undefined)
-    txJson = Ledger.signOtherParty(txJson, zkappKey, 0);
+  let txJson = tx.sign().toJSON();
   return txJson;
 }
 
@@ -715,7 +714,6 @@ async function signFeePayer(
   parties.feePayer.body.publicKey = Ledger.publicKeyToString(senderAddress);
   parties.feePayer.body.balanceChange = `${transactionFee}`;
   return signJsonTransaction(JSON.stringify(parties), feePayerKey);
-  // return Ledger.signFeePayer(JSON.stringify(parties), senderKey);
 }
 
 async function compile<S extends typeof SmartContract>(
