@@ -428,9 +428,16 @@ export class SmartContract {
         Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
       }).toJSON();
       let statement = Ledger.transactionStatement(txJson, 0);
+      console.log('transaction statement:', JSON.stringify(statement));
+      let toHex = (x: Field) =>
+        '0x' + BigInt(x.toString()).toString(16).toUpperCase();
       console.log(
-        'prove: created transaction statement',
-        JSON.stringify(statement)
+        'transaction statement (hex):',
+        JSON.stringify(
+          Object.fromEntries(
+            Object.entries(statement).map(([k, v]) => [k, toHex(v)])
+          )
+        )
       );
       // let statementVar = toStatement(ctx.self, Field.zero);
       // let statement = {
