@@ -637,7 +637,7 @@ export class Party {
     return this.body.publicKey;
   }
 
-  sign(privateKey: PrivateKey) {
+  sign(privateKey?: PrivateKey) {
     this.authorization = { kind: 'lazy-signature', privateKey };
   }
 
@@ -702,7 +702,7 @@ export class Party {
     }
 
     // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher bc the fee payer already increases its nonce
-    let nonceIncrease = options?.isSameAsFeePayer
+    let nonceIncrement = options?.isSameAsFeePayer
       ? new UInt32(Field.one)
       : UInt32.zero;
     // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
@@ -710,9 +710,9 @@ export class Party {
       let shouldIncreaseNonce = party.publicKey
         .equals(publicKey)
         .and(party.body.incrementNonce);
-      nonceIncrease.add(new UInt32(shouldIncreaseNonce.toField()));
+      nonceIncrement.add(new UInt32(shouldIncreaseNonce.toField()));
     }
-    let nonce = account.nonce.add(nonceIncrease);
+    let nonce = account.nonce.add(nonceIncrement);
 
     body.accountPrecondition = nonce;
     body.incrementNonce = Bool(true);
