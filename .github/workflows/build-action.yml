@@ -19,10 +19,10 @@ jobs:
         with:
           node-version: '16'
 
-      - name: run build:server & tests
+      - name: run build:node & tests
         run: |
           npm ci
-          npm run build:server
+          npm run build:node
           npm run test
 
   Build-Web:
