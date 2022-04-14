@@ -178,6 +178,7 @@ export function LocalBlockchain() {
     return {
       ...txn,
       send() {
+        txn.sign();
         ledger.applyPartiesTransaction(toParties(txn.transaction));
         return { wait: async () => {} };
       },
