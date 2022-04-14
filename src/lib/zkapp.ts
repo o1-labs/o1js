@@ -16,6 +16,7 @@ import {
   PartyBalance,
   signJsonTransaction,
   Parties,
+  Permissions,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -395,6 +396,22 @@ export class SmartContract {
     return output;
   }
 
+  deploy({
+    verificationKey,
+    zkappKey,
+  }: {
+    verificationKey?: string;
+    zkappKey?: PrivateKey;
+  }) {
+    if (verificationKey !== undefined) {
+      this.self.update.verificationKey.set = Bool(true);
+      this.self.update.verificationKey.value = verificationKey;
+    }
+    this.self.update.permissions.setValue(Permissions.default());
+    this.self.body.incrementNonce = Bool(true);
+    this.self.sign(zkappKey);
+  }
+
   async prove(provers: any[], methodName: keyof this, args: unknown[]) {
     let ZkappClass = this.constructor as never as typeof SmartContract;
     let i = ZkappClass._methods!.findIndex((m) => m.methodName === methodName);
@@ -493,10 +510,6 @@ export class SmartContract {
     }
   }
 
-  // get protocolState(): ProtocolStatePredicate {
-  //   return this.executionState().party.body.protocolState;
-  // }
-
   get self() {
     return this.executionState().party;
   }
@@ -574,7 +587,6 @@ async function deploy<S extends typeof SmartContract>(
     transactionFee?: string | number;
   }
 ) {
-  let i = 0;
   let address = zkappKey.toPublicKey();
   let tx = Mina.createUnsignedTransaction(() => {
     if (initialBalance !== undefined) {
@@ -589,12 +601,9 @@ async function deploy<S extends typeof SmartContract>(
     }
     // main party: the zkapp account
     let zkapp = new SmartContract(address);
-    (zkapp as any).deploy?.();
-    i = Mina.currentTransaction!.nextPartyIndex - 1;
-    zkapp.self.update.verificationKey.set = Bool(true);
-    zkapp.self.update.verificationKey.value = verificationKey;
-    zkapp.self.body.incrementNonce = Bool(true);
-    zkapp.self.sign(zkappKey);
+    zkapp.deploy({ verificationKey, zkappKey });
+    // TODO: add send / receive methods on SmartContract which create separate parties
+    // no need to bundle receive in the same party as deploy
     if (initialBalance !== undefined) {
       let amount = UInt64.fromString(String(initialBalance));
       zkapp.self.balance.addInPlace(amount);
