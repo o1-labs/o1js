@@ -577,6 +577,7 @@ async function deploy<S extends typeof SmartContract>(
     shouldSignFeePayer,
     feePayerKey,
     transactionFee,
+    feePayerNonce,
   }: {
     zkappKey: PrivateKey;
     verificationKey: string;
@@ -584,6 +585,7 @@ async function deploy<S extends typeof SmartContract>(
     feePayerKey?: PrivateKey;
     shouldSignFeePayer?: boolean;
     transactionFee?: string | number;
+    feePayerNonce?: string | number;
   }
 ) {
   let address = zkappKey.toPublicKey();
@@ -595,7 +597,15 @@ async function deploy<S extends typeof SmartContract>(
         );
       // optional first party: the sender/fee payer who also funds the zkapp
       let amount = UInt64.fromString(String(initialBalance));
-      let party = Party.createSigned(feePayerKey, { isSameAsFeePayer: true });
+      let nonce =
+        feePayerNonce !== undefined
+          ? UInt32.fromString(String(feePayerNonce))
+          : undefined;
+
+      let party = Party.createSigned(feePayerKey, {
+        isSameAsFeePayer: true,
+        nonce,
+      });
       party.balance.subInPlace(amount);
     }
     // main party: the zkapp account

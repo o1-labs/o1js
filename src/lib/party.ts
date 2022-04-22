@@ -683,14 +683,23 @@ export class Party {
 
   static createSigned(
     signer: PrivateKey,
-    options?: { isSameAsFeePayer?: Bool | boolean }
+    options?: { isSameAsFeePayer?: Bool | boolean; nonce?: UInt32 }
   ) {
+    let { nonce, isSameAsFeePayer } = options ?? {};
     // TODO: This should be a witness block that uses the setVariable
     // API to set the value of a variable after it's allocated
 
     let publicKey = signer.toPublicKey();
     let body = Body.keepAll(publicKey);
-    let account = Mina.getAccount(publicKey);
+
+    // TODO: getAccount could always be used if we had a generic way to add account info prior to creating transactions
+    if (nonce === undefined) {
+      let account = Mina.getAccount(publicKey);
+      if (account == null) {
+        throw new Error('Party.createSigned: Account not found');
+      }
+      nonce = account.nonce;
+    }
 
     if (Mina.currentTransaction === undefined) {
       throw new Error(
@@ -698,14 +707,8 @@ export class Party {
       );
     }
 
-    if (account == null) {
-      throw new Error('Party.createSigned: Account not found');
-    }
-
     // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher bc the fee payer already increases its nonce
-    let nonceIncrement = options?.isSameAsFeePayer
-      ? new UInt32(Field.one)
-      : UInt32.zero;
+    let nonceIncrement = isSameAsFeePayer ? new UInt32(Field.one) : UInt32.zero;
     // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
     for (let party of Mina.currentTransaction.parties) {
       let shouldIncreaseNonce = party.publicKey
@@ -713,8 +716,7 @@ export class Party {
         .and(party.body.incrementNonce);
       nonceIncrement.add(new UInt32(shouldIncreaseNonce.toField()));
     }
-    let nonce = account.nonce.add(nonceIncrement);
-
+    nonce = nonce.add(nonceIncrement);
     body.accountPrecondition = nonce;
     body.incrementNonce = Bool(true);
 
