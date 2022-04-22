@@ -20,7 +20,7 @@ async function getAccount(
     graphqlEndpoint = 'https://proxy.berkeley.minaexplorer.com/graphql',
     timeout = defaultTimeout,
   } = {}
-) {
+): Promise<{ account: Account } | { error?: FetchError }> {
   const controller = new AbortController();
   const timer = setTimeout(() => {
     controller.abort();
@@ -39,12 +39,12 @@ async function getAccount(
       signal: controller.signal,
     });
     let [value, error] = await checkResponseStatus(response);
-    if (value)
-      return [(value as FetchResponse).data, undefined] as [Account, undefined];
-    return [undefined, error] as [undefined, FetchError];
+    if (value !== undefined)
+      return { account: (value as FetchResponse).data.account };
+    return { error };
   } catch (error) {
     clearTimeout(timer);
-    return [undefined, inferError(error)] as [undefined, FetchError];
+    return { error: inferError(error) };
   }
 }
 
