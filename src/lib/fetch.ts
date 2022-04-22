@@ -1,10 +1,63 @@
 import 'isomorphic-fetch';
 
-type Config = {
-  timeout: number | undefined;
-};
+export { getAccount };
+
+/**
+ * Gets account information on the specified publicKey by performing a GraphQL query
+ * to the specified endpoint. This will call the 'GetAccountInfo' query which fetches
+ * zkapp related account information.
+ *
+ * If an error is returned by the specified endpoint, an error is thrown. Otherwise,
+ * the data is returned.
+ *
+ * @param publicKey The specified account to get account information on
+ * @param config An object that exposes additional options, like the graphql endpoint
+ * @returns zkapp information on the specified account or an error is thrown
+ */
+async function getAccount(
+  publicKey: string,
+  {
+    graphqlEndpoint = 'https://proxy.berkeley.minaexplorer.com/graphql',
+    timeout = defaultTimeout,
+  } = {}
+) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, timeout);
+
+  try {
+    let body = JSON.stringify({
+      operationName: null,
+      query: query(publicKey),
+      variables: {},
+    });
+    let response = await fetch(graphqlEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      signal: controller.signal,
+    });
+    let [value, error] = await checkResponseStatus(response);
+    if (value)
+      return [(value as FetchResponse).data, undefined] as [Account, undefined];
+    return [undefined, error] as [undefined, FetchError];
+  } catch (error) {
+    clearTimeout(timer);
+    return [undefined, inferError(error)] as [undefined, FetchError];
+  }
+}
 
 type FetchResponse = { data: any };
+
+type Account = {
+  publicKey: string;
+  nonce: string;
+  zkappUri: string;
+  zkappState: string[];
+  receiptChainState: string;
+  balance: { total: string };
+};
 
 type FetchError = {
   statusCode: number;
@@ -12,32 +65,33 @@ type FetchError = {
 };
 
 // Specify 5s as the default timeout
-const defaultTimeout = 5000;
+const defaultTimeout = 50000;
 
-// TODO: 'snapp' should be replaced with 'zkapp' soon
-const query = `
-    query GetAccountInfo($publicKey: PublicKey!) {
-      account(publicKey: $publicKey) {
-        publicKey
-        nonce
-        snappUri
-        snappState
-        receiptChainHash
-        delegate
-        balance {
-          total
-        }
-    }
-  }`;
+const query = (publicKey: string) => `{
+  account(publicKey: "${publicKey}") {
+    publicKey
+    nonce
+    zkappUri
+    zkappState
+    receiptChainHash
+    balance { total }
+  }
+}
+`;
 
-async function checkResponseStatus(response: Response) {
+async function checkResponseStatus(
+  response: Response
+): Promise<[FetchResponse, undefined] | [undefined, FetchError]> {
   if (response.ok) {
-    return (await response.json()) as FetchResponse;
+    return [(await response.json()) as FetchResponse, undefined];
   } else {
-    return {
-      statusCode: response.status,
-      statusText: response.statusText,
-    } as FetchError;
+    return [
+      undefined,
+      {
+        statusCode: response.status,
+        statusText: response.statusText,
+      } as FetchError,
+    ];
   }
 }
 
@@ -53,48 +107,5 @@ function inferError(error: unknown) {
       statusCode: 500,
       statusText: `Unknown Error: ${errorMessage}`,
     } as FetchError;
-  }
-}
-
-/**
- * Gets account information on the specified publicKey by performing a GraphQL query
- * to the specified endpoint. This will call the 'GetAccountInfo' query which fetches
- * zkapp related account information.
- *
- * If an error is returned by the specified endpoint, an error is thrown. Otherwise,
- * the data is returned.
- *
- * @param {string} graphqlEndpoint The GraphQL endpoint to pull account information from
- * @param {string} publicKey The specified account to get account information on
- * @param {Config} config timeout An object that exposes an optional timeout parameter
- * @returns zkapp information on the specified account or an error is thrown
- */
-export async function getAccount(
-  graphqlEndpoint: string,
-  publicKey: string,
-  config?: Config
-) {
-  const controller = new AbortController();
-  const timer = setTimeout(
-    () => {
-      controller.abort();
-    },
-    config?.timeout ? config.timeout : defaultTimeout
-  );
-
-  try {
-    let response = await fetch(graphqlEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query,
-        variables: { publicKey },
-      }),
-      signal: controller.signal,
-    });
-    return checkResponseStatus(response);
-  } catch (error) {
-    clearTimeout(timer);
-    return inferError(error);
   }
 }
