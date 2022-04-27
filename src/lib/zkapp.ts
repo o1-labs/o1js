@@ -352,7 +352,7 @@ function picklesRuleFromFunction(
     // checkStatement(statement, self, tail);
   }
 
-  return [0, name, main];
+  return [0, name, main] as [0, string, typeof main];
 }
 
 /**
