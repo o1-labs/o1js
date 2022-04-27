@@ -626,8 +626,10 @@ declare class Sponge {
   constructor();
   absorb(x: Field): void;
   squeeze(): Field;
+  // TODO: implement this
+  copy(): Sponge;
 }
-
+export type PoseidonSponge = Sponge;
 export const Poseidon: {
   hash: (xs: Field[]) => Field;
   Sponge: typeof Sponge;

@@ -7,6 +7,7 @@ import {
   ForStep,
   PerProofWitness,
   PlonkVerificationEvals,
+  StepStatement,
   typesMap,
   UnfinalizedProof,
 } from './types';
@@ -52,16 +53,18 @@ function stepMain<A>({
 }) {
   if (rule.prevs.length !== branching) throw Error('Assertion failed');
 
-  function main(stmt: Statement): void {
+  return function main(stmt: StepStatement) {
+    // TODO: implement witness creation. need to implement AsFields for every type
     let dlogPlonkIndex = exists<PlonkVerificationEvals<Group>>();
     let appState = exists<A>();
-    let prevs = exists<PerProofWitness[]>();
+    let prevs = exists<PerProofWitness<A>[]>();
     let prevStatements = prevs.map((prev) => prev[0]);
     // create bulletproof challenges
     let bulletproofChallenges: Field[][] = [];
     {
-      let vs: Bool[] = [];
+      let verifieds: Bool[] = [];
       let passThroughs = stmt.passThrough.slice(branching); // OK??
+      // this is where we execute the user function!
       let proofsShouldVerify = rule.main(prevStatements, appState);
       let unfinalizedProofs =
         stmt.proofState.unfinalizedProofs.slice(branching);
@@ -73,7 +76,7 @@ function stepMain<A>({
         typ: 'TODO',
         valueToFieldElements: basic.valueToFieldElements,
         wrapDomains: basic.wrapDomains,
-        stepDomains: basic.stepDomains,
+        stepDomains: ['known', basic.stepDomains],
         wrapKey: dlogPlonkIndex,
       };
       let datas = rule.prevs.map((tag) => {
@@ -87,41 +90,25 @@ function stepMain<A>({
         }
       });
       for (let i = 0; i < branching; i++) {
-        let [chals, v] = verifyOne({
+        let [challenges, verified] = verifyOne({
           proof: prevs[i],
           data: datas[i],
           passThrough: passThroughs[i],
           unfinalizedProof: unfinalizedProofs[i],
           shouldVerify: proofsShouldVerify[i],
         });
-        bulletproofChallenges.push(chals);
-        vs.push(v);
+        bulletproofChallenges.push(challenges);
+        verifieds.push(verified);
       }
-      vs.reduce(Bool.and).assertEquals(true);
+      verifieds.reduce(Bool.and).assertEquals(true);
     }
     let sgs = prevs.map(([, , , , , [opening]]) => opening.sg);
-    // let hash_me_only =
-    //   unstage
-    //     (hash_me_only ~index:dlog_plonk_index
-    //         basic.var_to_field_elements)
-    // in
-    // Field.Assert.equal stmt.proof_state.me_only
-    //   (hash_me_only
-    //       { app_state
-    //       ; dlog_plonk_index
-    //       ; sg = sgs
-    //       ; old_bulletproof_challenges =
-    //           (* Note: the bulletproof_challenges here are unpadded! *)
-    //           bulletproof_challenges
-    //       }))
     let hash = hashMeOnly(dlogPlonkIndex, basic.valueToFieldElements);
-  }
-}
-
-type Statement = {
-  proofState: {
-    unfinalizedProofs: UnfinalizedProof[]; // length: maxBranching
-    meOnly: Field;
+    hash({
+      appState,
+      dlogPlonkIndex,
+      sg: sgs,
+      oldBulletproofChallenges: bulletproofChallenges,
+    }).assertEquals(stmt.proofState.meOnly);
   };
-  passThrough: Field[]; // length: maxBranching
-};
+}

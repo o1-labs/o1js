@@ -1,5 +1,18 @@
 import { Bool, Field, Group, Scalar } from '../../snarky';
 
+export type StepStatement = {
+  proofState: {
+    unfinalizedProofs: UnfinalizedProof[]; // length: maxBranching
+    meOnly: Field;
+  };
+  passThrough: Field[]; // length: maxBranching
+};
+
+export type WrapStatement = {
+  passThrough: Field;
+  proofState: WrapProofState<Field>;
+};
+
 export type PlonkVerificationEvals<G> = {
   sigmaComm: G[];
   coefficientsComm: G[];
@@ -29,7 +42,7 @@ export let typesMap = {
         branches,
         maxBranching,
         branchings: branchings.map(Field),
-        stepDomains,
+        stepDomains: ['known', stepDomains],
         typ,
         valueToFieldElements,
         wrapDomains,
@@ -53,6 +66,7 @@ export let typesMap = {
 
 type StepTyp<A> = unknown;
 type Domains = { h: number; x: number };
+
 export type ForStep<A> = {
   branches: number;
   maxBranching: number;
@@ -63,37 +77,19 @@ export type ForStep<A> = {
   wrapKey: PlonkVerificationEvals<Group>;
   wrapDomains: Domains;
   stepDomains:
-    | Domains[] // `Known
-    | { h: Field }[]; // `SideLoaded
+    | ['known', Domains[]] // `Known
+    | ['sideLoaded', { h: Field }[]]; // `SideLoaded
   maxWidth?: [Bool, Bool, Bool, Bool];
 };
 
-// TODO
-// type ('local_statement, 'local_max_branching, 'local_num_branches) t =
-//   'local_statement
-//   * ( Challenge.Make(Impl).t
-//     , Challenge.Make(Impl).t Scalar_challenge.t
-//     , Impl.Field.t Shifted_value.Type1.t
-//     , Step_verifier.Make(Step_main_inputs).Other_field.t
-//     , unit
-//     , Digest.Make(Impl).t
-//     , Challenge.Make(Impl).t Scalar_challenge.t Types.Bulletproof_challenge.t
-//       Types.Step_bp_vec.t
-//     , 'local_num_branches One_hot_vector.t )
-//     Types.Wrap.Proof_state.In_circuit.t
-//   * (Impl.Field.t, Impl.Field.t array) Plonk_types.All_evals.t
-//   * (Step_main_inputs.Inner_curve.t, 'local_max_branching) Vector.t
-//   * ((Impl.Field.t, Tick.Rounds.n) Vector.t, 'local_max_branching) Vector.t
-//   * Wrap_proof.var
-export type PerProofWitness = [
+export type PerProofWitness<LocalStatement> = [
   LocalStatement,
   WrapProofState<null>,
-  Group[] /* length: local_max_branching */,
-  AllEvals,
-  Field[][] /* lengths: inner: Tick.Rounds.n, outer: local_max_branching */,
+  AllEvals<Field>,
+  Group[], // length: local_max_branching
+  Field[][], // lengths: inner: Tick.Rounds.n, outer: local_max_branching
   WrapProof
 ];
-type LocalStatement = unknown;
 
 export type WrapProofState<MeOnly extends null | Field> = {
   deferredValues: {
@@ -108,8 +104,6 @@ export type WrapProofState<MeOnly extends null | Field> = {
   meOnly: MeOnly;
 };
 
-type AllEvals = unknown;
-
 export type WrapProof = [
   { lr: [Group, Group][]; z1: Scalar; z2: Scalar; delta: Group; sg: Group },
   {
@@ -122,7 +116,7 @@ export type WrapProof = [
 export type WrapPassThrough<A> = {
   appState: A;
   dlogPlonkIndex: PlonkVerificationEvals<Group>;
-  sg: AllEvals;
+  sg: Group[];
   oldBulletproofChallenges: Field[][];
 };
 export type StepMeOnly<A> = WrapPassThrough<A>;
@@ -180,4 +174,20 @@ export type UnfinalizedProof = {
   };
   shouldFinalize: Bool;
   spongeDigestBeforeEvaluations: Field;
+};
+
+export type AllEvals<Field> = {
+  evals: [EvalsWithPublicInput<Field>, EvalsWithPublicInput<Field>];
+  ftEval1: Field;
+};
+export type EvalsWithPublicInput<Field> = {
+  publicInput: Field;
+  evals: Evals<Field[]>;
+};
+export type Evals<FieldArray> = {
+  w: FieldArray[];
+  z: FieldArray;
+  s: FieldArray[];
+  genericSelector: FieldArray;
+  poseidonSelector: FieldArray;
 };

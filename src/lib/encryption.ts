@@ -18,6 +18,10 @@ class Sponge {
   squeeze() {
     return (Poseidon as any).spongeSqueeze(this.sponge);
   }
+
+  copy(): Sponge {
+    throw Error('Sponge.copy is not implemented yet');
+  }
 }
 
 Poseidon.Sponge = Sponge;
