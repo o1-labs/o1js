@@ -8,6 +8,7 @@ export {
   parseAccount,
   markAccountToBeFetched,
   fetchMissingAccounts,
+  getCachedAccount,
   cacheAccount,
   cacheStringifiedAccount,
 };
@@ -30,7 +31,7 @@ async function getAccount(
   graphqlEndpoint: string,
   { timeout = defaultTimeout } = {}
 ): Promise<
-  | { account: Account; error: undefined }
+  | { account: FetchedAccount; error: undefined }
   | { account: undefined; error: FetchError }
 > {
   const controller = new AbortController();
@@ -71,20 +72,20 @@ type FetchError = {
 // Specify 30s as the default timeout
 const defaultTimeout = 30000;
 
-type Account = {
+type FetchedAccount = {
   publicKey: string;
-  nonce?: string;
-  zkappUri?: string;
-  zkappState?: string[];
-  receiptChainState?: string;
-  balance?: { total: string };
+  nonce: string;
+  zkappUri: string;
+  zkappState: string[];
+  receiptChainState: string;
+  balance: { total: string };
 };
 
-type SnarkyAccount = {
+type Account = {
   publicKey: PublicKey;
-  nonce?: UInt32;
-  zkappState?: Field[];
-  balance?: UInt64;
+  nonce: UInt32;
+  balance: UInt64;
+  zkapp: { appState: Field[] };
 };
 
 // TODO add more fields
@@ -101,29 +102,34 @@ const query = (publicKey: string) => `{
 `;
 
 // TODO automate these conversions
+function parseAccount(account: FetchedAccount): Account;
+function parseAccount(account: Partial<FetchedAccount>): Partial<Account>;
 function parseAccount({
   publicKey,
   nonce,
   zkappState,
   balance,
-}: Account): SnarkyAccount {
+}: Partial<FetchedAccount>): Partial<Account> {
   return {
-    publicKey: PublicKey.fromBase58(publicKey),
+    publicKey:
+      publicKey !== undefined ? PublicKey.fromBase58(publicKey) : undefined,
     nonce: nonce !== undefined ? UInt32.fromString(nonce) : undefined,
-    zkappState: zkappState && zkappState.map((s) => Field(s)),
     balance: balance && UInt64.fromString(balance.total),
+    zkapp: zkappState && { appState: zkappState.map((s) => Field(s)) },
   };
 }
+function stringifyAccount(account: Account): FetchedAccount;
+function stringifyAccount(account: Partial<Account>): Partial<FetchedAccount>;
 function stringifyAccount({
   publicKey,
   nonce,
-  zkappState,
+  zkapp,
   balance,
-}: SnarkyAccount): Account {
+}: Partial<Account>): Partial<FetchedAccount> {
   return {
-    publicKey: publicKey.toBase58(),
+    publicKey: publicKey !== undefined ? publicKey.toBase58() : undefined,
     nonce: nonce && nonce.value.toString(),
-    zkappState: zkappState && zkappState.map((s) => s.toString()),
+    zkappState: zkapp && zkapp.appState.map((s) => s.toString()),
     balance: balance && { total: balance.value.toString() },
   };
 }
@@ -162,7 +168,11 @@ function inferError(error: unknown) {
 // public key (base58) -> Account
 let accountCache = {} as Record<
   string,
-  { account: Account; graphqlEndpoint: string; timestamp: number }
+  {
+    account: FetchedAccount;
+    graphqlEndpoint: string;
+    timestamp: number;
+  }
 >;
 let accountsToFetch = {} as Record<
   string,
@@ -201,10 +211,19 @@ function fetchMissingAccounts(graphqlEndpoint: string) {
   );
 }
 
-function cacheAccount(account: SnarkyAccount, graphqlEndpoint: string) {
+function getCachedAccount(publicKey: PublicKey, graphqlEndpoint: string) {
+  let account =
+    accountCache[`${publicKey.toBase58()};${graphqlEndpoint}`]?.account;
+  if (account !== undefined) return parseAccount(account);
+}
+
+function cacheAccount(account: Account, graphqlEndpoint: string) {
   cacheStringifiedAccount(stringifyAccount(account), graphqlEndpoint);
 }
-function cacheStringifiedAccount(account: Account, graphqlEndpoint: string) {
+function cacheStringifiedAccount(
+  account: FetchedAccount,
+  graphqlEndpoint: string
+) {
   accountCache[`${account.publicKey};${graphqlEndpoint}`] = {
     account,
     graphqlEndpoint,

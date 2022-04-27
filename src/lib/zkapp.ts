@@ -124,13 +124,18 @@ function createState<A>() {
           xs.push(a.zkapp.appState[r.offset + i]);
         }
         p = Circuit.witness(Circuit.array(Field, r.length), () => xs);
-      } else {
+      } else if (Circuit.inCheckedComputation()) {
         p = Circuit.witness(Circuit.array(Field, r.length), (): Field[] => {
           throw Error('this should never happen');
         });
+      } else {
+        let a = Mina.getAccount(addr);
+        p = [];
+        for (let i = 0; i < r.length; ++i) {
+          p.push(a.zkapp.appState[r.offset + i]);
+        }
       }
-      let xs = p;
-      const res = this._ty.ofFields(xs);
+      const res = this._ty.ofFields(p);
       if ((this._ty as any).check != undefined) {
         (this._ty as any).check(res);
       }
@@ -427,7 +432,11 @@ export class SmartContract {
 
       // TODO dont create full transaction in here, properly build up atParty
       let txJson = Mina.createUnsignedTransaction(() => {
-        Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
+        Mina.setCurrentTransaction({
+          parties: [selfParty],
+          nextPartyIndex: 1,
+          fetchMode: 'final',
+        });
       }).toJSON();
       let statement = Ledger.transactionStatement(txJson, 0);
       // let statementVar = toStatement(ctx.self, Field.zero);
@@ -654,7 +663,11 @@ async function call<S extends typeof SmartContract>(
     if (!ok) throw Error('Proof failed to verify!');
   }
   let tx = Mina.createUnsignedTransaction(() => {
-    Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
+    Mina.setCurrentTransaction({
+      parties: [selfParty],
+      nextPartyIndex: 1,
+      fetchMode: 'final',
+    });
   });
   return tx.toJSON();
 }
@@ -674,7 +687,11 @@ async function callUnproved<S extends typeof SmartContract>(
   selfParty.sign(zkappKey);
   selfParty.body.incrementNonce = Bool(true);
   let tx = Mina.createUnsignedTransaction(() => {
-    Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
+    Mina.setCurrentTransaction({
+      parties: [selfParty],
+      nextPartyIndex: 1,
+      fetchMode: 'final',
+    });
   });
   let txJson = tx.sign().toJSON();
   return txJson;

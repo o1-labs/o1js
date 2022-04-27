@@ -11,6 +11,7 @@ export {
   LazyControl,
   addMissingSignatures,
   signJsonTransaction,
+  ZkappStateLength,
 };
 
 const ZkappStateLength = 8;
