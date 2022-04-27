@@ -644,9 +644,7 @@ export class Party {
 
   static defaultParty(address: PublicKey) {
     const body = Body.keepAll(address);
-    return new Party(body) as Party & {
-      body: { accountPrecondition: AccountPrecondition };
-    };
+    return new Party(body) as PartyWithFullAccountPrecondition;
   }
 
   static defaultFeePayer(address: PublicKey, key: PrivateKey, nonce: UInt32) {
@@ -718,9 +716,7 @@ export class Party {
     body.accountPrecondition = nonce;
     body.incrementNonce = Bool(true);
 
-    let party = new Party(body) as Party & {
-      body: { accountPrecondition: UInt32 };
-    };
+    let party = new Party(body) as PartyWithNoncePrecondition;
     party.sign(signer);
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
@@ -728,11 +724,16 @@ export class Party {
   }
 }
 
-type FeePayer = Party & {
-  authorization: Exclude<LazyControl, { kind: 'proof'; value: string }>;
-} & {
+export type PartyWithFullAccountPrecondition = Party & {
+  body: { accountPrecondition: AccountPrecondition };
+};
+export type PartyWithNoncePrecondition = Party & {
   body: { accountPrecondition: UInt32 };
 };
+
+type FeePayer = Party & {
+  authorization: Exclude<LazyControl, { kind: 'proof'; value: string }>;
+} & PartyWithNoncePrecondition;
 
 type Parties = { feePayer: FeePayer; otherParties: Party[] };
 

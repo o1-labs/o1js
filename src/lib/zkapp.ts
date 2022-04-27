@@ -9,7 +9,6 @@ import {
 } from '../snarky';
 import { CircuitValue } from './circuit_value';
 import {
-  AccountPrecondition,
   ProtocolStatePredicate,
   Body,
   Party,
@@ -17,6 +16,7 @@ import {
   signJsonTransaction,
   Parties,
   Permissions,
+  PartyWithFullAccountPrecondition,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -321,7 +321,7 @@ function checkStatement(
 let mainContext = undefined as
   | {
       witnesses?: unknown[];
-      self: Party & { body: { accountPrecondition: AccountPrecondition } };
+      self: PartyWithFullAccountPrecondition;
     }
   | undefined;
 
@@ -475,9 +475,7 @@ export class SmartContract {
       return {
         transactionId: 0,
         partyIndex: 0,
-        party: mainContext.self as Party & {
-          body: { accountPrecondition: AccountPrecondition };
-        },
+        party: mainContext.self as PartyWithFullAccountPrecondition,
       };
     }
 
@@ -494,9 +492,7 @@ export class SmartContract {
       const id = Mina.nextTransactionId.value;
       const index = Mina.currentTransaction.nextPartyIndex++;
       const body = Body.keepAll(this.address);
-      const party = new Party(body) as Party & {
-        body: { accountPrecondition: AccountPrecondition };
-      };
+      const party = new Party(body) as PartyWithFullAccountPrecondition;
       Mina.currentTransaction.parties.push(party);
 
       const s = {
@@ -554,9 +550,7 @@ export class SmartContract {
 type ExecutionState = {
   transactionId: number;
   partyIndex: number;
-  party: Party & {
-    body: { accountPrecondition: AccountPrecondition };
-  };
+  party: PartyWithFullAccountPrecondition;
 };
 
 function emptyWitness<A>(typ: AsFieldElements<A>) {
