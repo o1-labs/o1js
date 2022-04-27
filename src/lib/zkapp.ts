@@ -286,6 +286,14 @@ function isProof(typ: any) {
   return false; // TODO
 }
 
+/**
+ * A Statement consists of certain hashes of the transaction and of the proving Party which is constructed during method execution.
+
+  In SmartContract.prove, a method is run twice: First outside the proof, to obtain the statement, and once in the prover,
+  which takes the statement as input. The current transaction is hashed again inside the prover, which asserts that the result equals the input statement,
+  as part of the snark circuit. The block producer will also hash the transaction they receive and pass it as a public input to the verifier.
+  Thus, the transaction is fully constrained by the proof - the proof couldn't be used to attest to a different transaction.
+ */
 type Statement = { transaction: Field; atParty: Field };
 
 function toStatement(self: Party, tail: Field, checked = true) {
