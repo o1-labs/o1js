@@ -11,6 +11,8 @@ import {
   isReady,
   Permissions,
   shutdown,
+  compile,
+  DeployArgs,
 } from 'snarkyjs';
 
 await isReady;
@@ -18,7 +20,7 @@ await isReady;
 class SimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
 
-  deploy(args: { zkappKey: PrivateKey }) {
+  deploy(args: DeployArgs) {
     super.deploy(args);
     this.self.update.permissions.setValue({
       ...Permissions.default(),
@@ -45,12 +47,15 @@ let zkappAddress = zkappKey.toPublicKey();
 let initialBalance = 10_000_000_000;
 let initialState = Field(1);
 
-console.log('deploy');
+console.log('compile...');
+let { verificationKey } = await compile(SimpleZkapp, zkappAddress);
+
+console.log('deploy...');
 let tx = await Berkeley.transaction(whaleAccount, () => {
   const p = Party.createSigned(whaleAccount, { isSameAsFeePayer: true });
   p.balance.subInPlace(UInt64.fromNumber(initialBalance));
   let zkapp = new SimpleZkapp(zkappAddress);
-  zkapp.deploy({ zkappKey });
+  zkapp.deploy({ zkappKey, verificationKey });
 });
 console.log(tx.toJSON());
 
