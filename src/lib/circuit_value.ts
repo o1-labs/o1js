@@ -240,26 +240,3 @@ export function circuitMain(
     Array.from(publicIndexSet).map((i) => paramTypes[i])
   );
 }
-
-export function toFieldsMagic(thing: any): Field[] {
-  if (typeof thing == 'object') {
-    if (thing.toFields) {
-      // console.log('toFields');
-      return thing.toFields();
-    }
-
-    if (Array.isArray(thing)) {
-      // console.log('array', thing.length);
-      return thing.map((x) => toFieldsMagic(x)).flat();
-    }
-
-    let fields = [] as Field[];
-    let keys = Object.keys(thing).sort();
-    for (let key of keys) {
-      // console.log({ key });
-      fields.push(...toFieldsMagic(thing[key]));
-    }
-    return fields;
-  }
-  return [];
-}
