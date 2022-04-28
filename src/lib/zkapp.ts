@@ -25,6 +25,7 @@ import { UInt32, UInt64 } from './int';
 
 export {
   deploy,
+  DeployArgs,
   compile,
   call,
   callUnproved,
@@ -559,6 +560,11 @@ export class SmartContract {
     Poseidon.hash(x.toFields());
   }
 }
+
+type DeployArgs = {
+  verificationKey?: string;
+  zkappKey?: PrivateKey;
+};
 
 type ExecutionState = {
   transactionId: number;
