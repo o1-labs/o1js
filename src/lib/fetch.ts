@@ -1,6 +1,7 @@
 import 'isomorphic-fetch';
 import { Field } from '../snarky';
 import { UInt32, UInt64 } from './int';
+import { ZkappStateLength } from './party';
 import { PublicKey } from './signature';
 
 export {
@@ -9,9 +10,15 @@ export {
   markAccountToBeFetched,
   fetchMissingAccounts,
   getCachedAccount,
-  cacheAccount,
-  cacheStringifiedAccount,
+  addCachedAccount,
+  defaultGraphqlEndpoint,
+  setGraphqlEndpoint,
 };
+
+let defaultGraphqlEndpoint = 'none';
+function setGraphqlEndpoint(graphqlEndpoint: string) {
+  defaultGraphqlEndpoint = graphqlEndpoint;
+}
 
 /**
  * Gets account information on the specified publicKey by performing a GraphQL query
@@ -28,12 +35,16 @@ export {
  */
 async function getAccount(
   publicKey: string,
-  graphqlEndpoint: string,
+  graphqlEndpoint = defaultGraphqlEndpoint,
   { timeout = defaultTimeout } = {}
 ): Promise<
   | { account: FetchedAccount; error: undefined }
   | { account: undefined; error: FetchError }
 > {
+  if (graphqlEndpoint === 'none')
+    throw Error(
+      "Tried to fetch an account, but don't know a graphql endpoint. Try calling `setGraphqlEndpoint` first."
+    );
   const controller = new AbortController();
   const timer = setTimeout(() => {
     controller.abort();
@@ -75,9 +86,9 @@ const defaultTimeout = 30000;
 type FetchedAccount = {
   publicKey: string;
   nonce: string;
-  zkappUri: string;
+  zkappUri?: string;
   zkappState: string[];
-  receiptChainState: string;
+  receiptChainState?: string;
   balance: { total: string };
 };
 
@@ -86,6 +97,13 @@ type Account = {
   nonce: UInt32;
   balance: UInt64;
   zkapp: { appState: Field[] };
+};
+
+type FlexibleAccount = {
+  publicKey: PublicKey | string;
+  nonce: UInt32 | string | number;
+  balance?: UInt64 | string | number;
+  zkapp?: { appState: (Field | string | number)[] };
 };
 
 // TODO add more fields
@@ -118,19 +136,17 @@ function parseAccount({
     zkapp: zkappState && { appState: zkappState.map((s) => Field(s)) },
   };
 }
-function stringifyAccount(account: Account): FetchedAccount;
-function stringifyAccount(account: Partial<Account>): Partial<FetchedAccount>;
-function stringifyAccount({
-  publicKey,
-  nonce,
-  zkapp,
-  balance,
-}: Partial<Account>): Partial<FetchedAccount> {
+
+function stringifyAccount(account: FlexibleAccount): FetchedAccount {
+  let { publicKey, nonce, balance, zkapp } = account;
   return {
-    publicKey: publicKey !== undefined ? publicKey.toBase58() : undefined,
-    nonce: nonce && nonce.value.toString(),
-    zkappState: zkapp && zkapp.appState.map((s) => s.toString()),
-    balance: balance && { total: balance.value.toString() },
+    publicKey:
+      publicKey instanceof PublicKey ? publicKey.toBase58() : publicKey,
+    nonce: nonce?.toString(),
+    zkappState:
+      zkapp?.appState.map((s) => s.toString()) ??
+      Array(ZkappStateLength).fill('0'),
+    balance: { total: balance?.toString() ?? '0' },
   };
 }
 
@@ -211,21 +227,29 @@ function fetchMissingAccounts(graphqlEndpoint: string) {
   );
 }
 
-function getCachedAccount(publicKey: PublicKey, graphqlEndpoint: string) {
+function getCachedAccount(
+  publicKey: PublicKey,
+  graphqlEndpoint = defaultGraphqlEndpoint
+) {
   let account =
     accountCache[`${publicKey.toBase58()};${graphqlEndpoint}`]?.account;
   if (account !== undefined) return parseAccount(account);
 }
 
-function cacheAccount(account: Account, graphqlEndpoint: string) {
-  cacheStringifiedAccount(stringifyAccount(account), graphqlEndpoint);
-}
-function cacheStringifiedAccount(
-  account: FetchedAccount,
-  graphqlEndpoint: string
+function addCachedAccount(
+  account: {
+    publicKey: string | PublicKey;
+    nonce: string | number | UInt32;
+    balance?: string | number | UInt64;
+    zkapp?: {
+      appState: (string | number | Field)[];
+    };
+  },
+  graphqlEndpoint = defaultGraphqlEndpoint
 ) {
-  accountCache[`${account.publicKey};${graphqlEndpoint}`] = {
-    account,
+  let stringifiedAccount = stringifyAccount(account);
+  accountCache[`${stringifiedAccount.publicKey};${graphqlEndpoint}`] = {
+    account: stringifiedAccount,
     graphqlEndpoint,
     timestamp: Date.now(),
   };

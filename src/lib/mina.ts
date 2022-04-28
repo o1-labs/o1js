@@ -11,14 +11,13 @@ import {
   ZkappStateLength,
 } from './party';
 import { toParties } from './party-conversion';
-import { getCachedAccount, markAccountToBeFetched } from './fetch';
+import {
+  defaultGraphqlEndpoint,
+  getCachedAccount,
+  markAccountToBeFetched,
+} from './fetch';
 
 export { createUnsignedTransaction, createTransaction };
-
-let defaultGraphqlEndpoint = 'https://proxy.berkeley.minaexplorer.com/graphql';
-function setGraphqlEndpoint(graphqlEndpoint: string) {
-  defaultGraphqlEndpoint = graphqlEndpoint;
-}
 
 interface TransactionId {
   wait(): Promise<void>;
@@ -224,7 +223,7 @@ let activeInstance: Mina = {
       let account = getCachedAccount(publicKey, defaultGraphqlEndpoint);
       if (account === undefined)
         throw Error(
-          `getAccount: Could not find account for public key ${publicKey.toBase58()}`
+          `getAccount: Could not find account for public key ${publicKey.toBase58()}. Either call Mina.setActiveInstance first or explicitly add the account with addCachedAccount`
         );
       return account;
     }

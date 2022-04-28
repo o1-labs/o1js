@@ -12,8 +12,8 @@ export * from './lib/party';
 export {
   getAccount,
   parseAccount,
-  cacheAccount,
-  cacheStringifiedAccount,
+  addCachedAccount,
+  setGraphqlEndpoint,
 } from './lib/fetch';
 export * as Encryption from './lib/encryption';
 export * as Encoding from './lib/encoding';
