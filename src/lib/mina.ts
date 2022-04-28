@@ -138,7 +138,7 @@ function createTransaction(
 }
 
 interface Mina {
-  transaction(sender: PrivateKey, f: () => void): Transaction;
+  transaction(sender: PrivateKey, f: () => void): Promise<Transaction>;
   currentSlot(): UInt32;
   getAccount(publicKey: PublicKey): Account;
   fetchMissingAccounts(): Promise<void>;
@@ -203,7 +203,7 @@ function LocalBlockchain(): MockMina {
       }
     },
     async fetchMissingAccounts() {},
-    transaction(sender: PrivateKey, f: () => void) {
+    async transaction(sender: PrivateKey, f: () => void) {
       let txn = createTransaction(sender, f);
       return {
         ...txn,
@@ -246,15 +246,16 @@ function RemoteBlockchain(
         if (account !== undefined) return account;
       }
       throw Error(
-        `getAccount: Could not find account for public key ${publicKey.toBase58()}. ` +
-          `Either call Mina.setActiveInstance first or explicitly add the account with addCachedAccount.`
+        `getAccount: Could not find account for public key ${publicKey.toBase58()}.\nGraphql endpoint: ${graphqlEndpoint}`
       );
     },
     async fetchMissingAccounts() {
       await Fetch.fetchMissingAccounts(graphqlEndpoint);
     },
-    transaction(sender: PrivateKey, f: () => void) {
-      let txn = createTransaction(sender, f);
+    async transaction(sender: PrivateKey, f: () => void) {
+      createTransaction(sender, f, { fetchMode: 'test' });
+      await Fetch.fetchMissingAccounts(graphqlEndpoint);
+      let txn = createTransaction(sender, f, { fetchMode: 'cached' });
       return {
         ...txn,
         send() {
@@ -332,7 +333,7 @@ function setActiveInstance(m: Mina) {
  *
  * @return A transaction that can subsequently be submitted to the chain.
  */
-function transaction(sender: PrivateKey, f: () => void): Transaction {
+function transaction(sender: PrivateKey, f: () => void): Promise<Transaction> {
   return activeInstance.transaction(sender, f);
 }
 

@@ -50,23 +50,27 @@ let initialBalance = 10_000_000_000;
 let initialState = Field(1);
 
 console.log('deploy');
-Local.transaction(account1, () => {
-  const p = Party.createSigned(account1, { isSameAsFeePayer: true });
-  p.balance.subInPlace(UInt64.fromNumber(initialBalance));
-  let zkapp = new SimpleZkapp(zkappAddress);
-  zkapp.deploy({ zkappKey });
-}).send();
+(
+  await Local.transaction(account1, () => {
+    const p = Party.createSigned(account1, { isSameAsFeePayer: true });
+    p.balance.subInPlace(UInt64.fromNumber(initialBalance));
+    let zkapp = new SimpleZkapp(zkappAddress);
+    zkapp.deploy({ zkappKey });
+  })
+).send();
 
 let zkappState = (await Mina.getAccount(zkappAddress)).zkapp.appState[0];
 console.log('initial state: ' + zkappState);
 
 console.log('update');
-Local.transaction(account1, async () => {
-  let zkapp = new SimpleZkapp(zkappAddress);
-  zkapp.update(Field(3));
-  zkapp.self.sign(zkappKey);
-  zkapp.self.body.incrementNonce = Bool(true);
-}).send();
+(
+  await Local.transaction(account1, async () => {
+    let zkapp = new SimpleZkapp(zkappAddress);
+    zkapp.update(Field(3));
+    zkapp.self.sign(zkappKey);
+    zkapp.self.body.incrementNonce = Bool(true);
+  })
+).send();
 
 zkappState = (await Mina.getAccount(zkappAddress)).zkapp.appState[0];
 console.log('final state: ' + zkappState);
