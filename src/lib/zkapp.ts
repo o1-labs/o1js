@@ -435,7 +435,7 @@ export class SmartContract {
         Mina.setCurrentTransaction({
           parties: [selfParty],
           nextPartyIndex: 1,
-          fetchMode: 'final',
+          fetchMode: 'cached',
         });
       }).toJSON();
       let statement = Ledger.transactionStatement(txJson, 0);
@@ -666,7 +666,7 @@ async function call<S extends typeof SmartContract>(
     Mina.setCurrentTransaction({
       parties: [selfParty],
       nextPartyIndex: 1,
-      fetchMode: 'final',
+      fetchMode: 'cached',
     });
   });
   return tx.toJSON();
@@ -690,7 +690,7 @@ async function callUnproved<S extends typeof SmartContract>(
     Mina.setCurrentTransaction({
       parties: [selfParty],
       nextPartyIndex: 1,
-      fetchMode: 'final',
+      fetchMode: 'cached',
     });
   });
   let txJson = tx.sign().toJSON();
