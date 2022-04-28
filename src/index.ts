@@ -10,8 +10,8 @@ export * from './lib/zkapp';
 // export * from './lib/proof_system';
 export * from './lib/party';
 export {
-  getAccount,
-  parseAccount,
+  fetchAccount,
+  parseFetchedAccount,
   addCachedAccount,
   setGraphqlEndpoint,
 } from './lib/fetch';

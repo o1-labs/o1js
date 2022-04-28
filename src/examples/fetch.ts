@@ -1,10 +1,10 @@
-import { getAccount, isReady, shutdown } from 'snarkyjs';
+import { fetchAccount, isReady, setGraphqlEndpoint, shutdown } from 'snarkyjs';
 
 await isReady;
 
-let { account } = await getAccount(
-  'B62qmQDtbNTymWXdZAcp4JHjfhmWmuqHjwc6BamUEvD8KhFpMui2K1Z',
-  'https://proxy.berkeley.minaexplorer.com/graphql'
+setGraphqlEndpoint('https://proxy.berkeley.minaexplorer.com/graphql');
+let { account } = await fetchAccount(
+  'B62qmQDtbNTymWXdZAcp4JHjfhmWmuqHjwc6BamUEvD8KhFpMui2K1Z'
 );
 console.dir(account, { depth: 20 });
 await shutdown();

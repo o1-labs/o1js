@@ -5,8 +5,8 @@ import { ZkappStateLength } from './party';
 import { PublicKey } from './signature';
 
 export {
-  getAccount,
-  parseAccount,
+  fetchAccount,
+  parseFetchedAccount,
   markAccountToBeFetched,
   fetchMissingAccounts,
   getCachedAccount,
@@ -33,7 +33,7 @@ function setGraphqlEndpoint(graphqlEndpoint: string) {
  * @param config An object that exposes an additional timeout option
  * @returns zkapp information on the specified account or an error is thrown
  */
-async function getAccount(
+async function fetchAccount(
   publicKey: string,
   graphqlEndpoint = defaultGraphqlEndpoint,
   { timeout = defaultTimeout } = {}
@@ -120,9 +120,11 @@ const query = (publicKey: string) => `{
 `;
 
 // TODO automate these conversions
-function parseAccount(account: FetchedAccount): Account;
-function parseAccount(account: Partial<FetchedAccount>): Partial<Account>;
-function parseAccount({
+function parseFetchedAccount(account: FetchedAccount): Account;
+function parseFetchedAccount(
+  account: Partial<FetchedAccount>
+): Partial<Account>;
+function parseFetchedAccount({
   publicKey,
   nonce,
   zkappState,
@@ -213,7 +215,7 @@ function fetchMissingAccounts(graphqlEndpoint: string) {
   });
   return Promise.all(
     accounts.map(async ([key, { publicKey }]) => {
-      let response = await getAccount(publicKey, graphqlEndpoint);
+      let response = await fetchAccount(publicKey, graphqlEndpoint);
       if (response.error !== undefined) throw Error(response.error.statusText);
       let { account } = response;
       accountCache[key] = {
@@ -222,7 +224,7 @@ function fetchMissingAccounts(graphqlEndpoint: string) {
         timestamp: Date.now(),
       };
       delete accountsToFetch[key];
-      return parseAccount(account);
+      return parseFetchedAccount(account);
     })
   );
 }
@@ -233,7 +235,7 @@ function getCachedAccount(
 ) {
   let account =
     accountCache[`${publicKey.toBase58()};${graphqlEndpoint}`]?.account;
-  if (account !== undefined) return parseAccount(account);
+  if (account !== undefined) return parseFetchedAccount(account);
 }
 
 function addCachedAccount(
