@@ -326,28 +326,13 @@ function checkStatement(
   transaction.assertEquals(otherStatement.transaction);
 }
 
-let mainContext = undefined as
-  | {
-      witnesses?: unknown[];
-      self: PartyWithFullAccountPrecondition;
-    }
-  | undefined;
-
-function withContext<T>(context: typeof mainContext, f: () => T) {
-  mainContext = context;
-  let result = f();
-  mainContext = undefined;
-  return result;
-}
-
 function picklesRuleFromFunction(
   name: string,
   func: (...args: unknown[]) => void,
   witnessTypes: AsFieldElements<unknown>[]
 ) {
   function main(statement: Statement) {
-    if (mainContext === undefined) throw Error('bug');
-    let { self, witnesses } = mainContext;
+    let { self, witnesses } = getContext();
     witnesses = witnessTypes.map(
       witnesses
         ? (type, i) => Circuit.witness(type, () => witnesses![i])
@@ -398,7 +383,7 @@ export class SmartContract {
       )
     );
 
-    let output = withContext({ self: Party.defaultParty(address) }, () =>
+    let [, output] = withContext({ self: Party.defaultParty(address) }, () =>
       Pickles.compile(rules)
     );
     return output;
@@ -424,13 +409,14 @@ export class SmartContract {
     let ZkappClass = this.constructor as never as typeof SmartContract;
     let i = ZkappClass._methods!.findIndex((m) => m.methodName === methodName);
     if (!(i + 1)) throw Error(`Method ${methodName} not found!`);
-    let ctx = { self: Party.defaultParty(this.address) };
     let [statement, selfParty] = Circuit.runAndCheckSync(() => {
-      mainContext = ctx;
-      (this[methodName] as any)(...args);
-      let selfParty = mainContext.self;
-      mainContext = undefined;
-      // FIXME: a proof-authorized party shouldn't need to increment nonce, this is needed due to a protocol bug
+      let [selfParty] = withContext(
+        { self: Party.defaultParty(this.address) },
+        () => {
+          (this[methodName] as any)(...args);
+          // FIXME: a proof-authorized party shouldn't need to increment nonce, this is needed due to a protocol bug
+        }
+      );
       selfParty.body.incrementNonce = Bool(true);
 
       // TODO dont create full transaction in here, properly build up atParty
@@ -446,10 +432,11 @@ export class SmartContract {
       return [statement, selfParty];
     });
 
-    mainContext = { self: Party.defaultParty(this.address), witnesses: args };
     // TODO lazy proof?
-    let proof = await provers[i](statement);
-    mainContext = undefined;
+    let [, proof] = await withContextAsync(
+      { self: Party.defaultParty(this.address), witnesses: args },
+      () => provers[i](statement)
+    );
     // FIXME call calls Parties.to_json outside a prover, which seems to cause an error when variables are extracted
     return { proof, statement, selfParty };
   }
@@ -460,11 +447,12 @@ export class SmartContract {
     if (!(i + 1)) throw Error(`Method ${methodName} not found!`);
     let ctx = { self: Party.defaultParty(this.address) };
     let [statement, selfParty] = Circuit.runAndCheckSync(() => {
-      mainContext = ctx;
-      (this[methodName] as any)(...args);
-      // TODO
-      let selfParty = mainContext.self;
-      mainContext = undefined;
+      let [selfParty] = withContext(
+        { self: Party.defaultParty(this.address) },
+        () => {
+          (this[methodName] as any)(...args);
+        }
+      );
       let statementVar = toStatement(ctx.self, Field.zero);
       return [
         {
@@ -478,7 +466,7 @@ export class SmartContract {
   }
 
   executionState(): ExecutionState {
-    // TODO
+    // TODO reconcile mainContext with currentTransaction
     if (mainContext !== undefined) {
       return {
         transactionId: 0,
@@ -753,4 +741,68 @@ function declareMethodArguments<T extends typeof SmartContract>(
     );
     method(SmartContract.prototype, key as any);
   }
+}
+
+// TODO reconcile mainContext with currentTransaction
+let mainContext = undefined as
+  | {
+      witnesses?: unknown[];
+      self: PartyWithFullAccountPrecondition;
+      expectedAccesses: number | undefined;
+      actualAccesses: number;
+    }
+  | undefined;
+type PartialContext = {
+  witnesses?: unknown[];
+  self: PartyWithFullAccountPrecondition;
+  expectedAccesses?: number;
+  actualAccesses?: number;
+};
+
+function withContext<T>(
+  {
+    witnesses = undefined,
+    expectedAccesses = undefined,
+    actualAccesses = 0,
+    self,
+  }: PartialContext,
+  f: () => T
+) {
+  mainContext = { witnesses, expectedAccesses, actualAccesses, self };
+  let result = f();
+  mainContext = undefined;
+  return [self, result] as [PartyWithFullAccountPrecondition, T];
+}
+
+// TODO: this is unsafe, the mainContext will be overridden if we invoke this function multiple times concurrently
+// at the moment, we solve this by detecting unsafe use and throwing an error
+async function withContextAsync<T>(
+  {
+    witnesses = undefined,
+    expectedAccesses = 1,
+    actualAccesses = 0,
+    self,
+  }: PartialContext,
+  f: () => Promise<T>
+) {
+  mainContext = { witnesses, expectedAccesses, actualAccesses, self };
+  let result = await f();
+  if (mainContext.actualAccesses !== mainContext.expectedAccesses)
+    throw Error(contextConflictMessage);
+  mainContext = undefined;
+  return [self, result] as [PartyWithFullAccountPrecondition, T];
+}
+
+let contextConflictMessage =
+  "It seems you're running multiple provers concurrently within" +
+  ' the same JavaScript thread, which, at the moment, is not supported and would lead to bugs.';
+function getContext() {
+  if (mainContext === undefined) throw Error(contextConflictMessage);
+  mainContext.actualAccesses++;
+  if (
+    mainContext.expectedAccesses !== undefined &&
+    mainContext.actualAccesses > mainContext.expectedAccesses
+  )
+    throw Error(contextConflictMessage);
+  return mainContext;
 }
