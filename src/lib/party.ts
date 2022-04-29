@@ -1,5 +1,5 @@
 import { CircuitValue, cloneCircuitValue } from './circuit_value';
-import { Group, Field, Bool, Control, Ledger } from '../snarky';
+import { Group, Field, Bool, Control, Ledger, Circuit } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
@@ -657,7 +657,9 @@ export class Party {
     return this.body.publicKey;
   }
 
-  signInPlace(privateKey?: PrivateKey) {
+  signInPlace(privateKey?: PrivateKey, fallbackToZeroNonce = false) {
+    this.setNoncePrecondition(fallbackToZeroNonce);
+    this.body.incrementNonce = Bool(true);
     this.authorization = { kind: 'lazy-signature', privateKey };
   }
 
@@ -665,6 +667,37 @@ export class Party {
     let party = cloneCircuitValue(this);
     party.signInPlace(privateKey);
     return party;
+  }
+
+  // TODO this needs to be more intelligent about previous nonces in the transaction, similar to Party.createSigned
+  setNoncePrecondition(fallbackToZero = false) {
+    let nonce: UInt32;
+    try {
+      let inProver = Circuit.inProver();
+      if (inProver || !Circuit.inCheckedComputation()) {
+        let account = Mina.getAccount(this.body.publicKey);
+        nonce = inProver
+          ? Circuit.witness(UInt32, () => account.nonce)
+          : account.nonce;
+      } else {
+        nonce = Circuit.witness(UInt32, () => {
+          throw Error('this should never happen');
+        });
+      }
+    } catch (err) {
+      if (fallbackToZero) nonce = UInt32.zero;
+      else throw err;
+    }
+    let accountPrecondition = this.body.accountPrecondition;
+    if (
+      accountPrecondition === undefined ||
+      accountPrecondition instanceof UInt32
+    ) {
+      this.body.accountPrecondition = nonce;
+    } else {
+      accountPrecondition.nonce.assertBetween(nonce, nonce);
+    }
+    return nonce;
   }
 
   static defaultParty(address: PublicKey) {
@@ -742,7 +775,7 @@ export class Party {
     body.incrementNonce = Bool(true);
 
     let party = new Party(body) as PartyWithNoncePrecondition;
-    party.signInPlace(signer);
+    party.authorization = { kind: 'lazy-signature', privateKey: signer };
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
     return party;
