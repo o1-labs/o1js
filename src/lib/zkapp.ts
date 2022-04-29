@@ -67,13 +67,13 @@ function createState<A>() {
     },
 
     getLayout() {
-      const layout: Map<string, { offset: number; length: number }> =
+      let layout: Map<string, { offset: number; length: number }> =
         this._ZkappClass._layout();
-      const r = layout.get(this._key);
-      if (r === undefined) {
+      let stateLayout = layout.get(this._key);
+      if (stateLayout === undefined) {
         throw new Error(`state ${this._key} not found`);
       }
-      return r;
+      return stateLayout;
     },
 
     set(a: A) {
@@ -81,12 +81,12 @@ function createState<A>() {
         throw Error(
           'set can only be called when the State is assigned to a SmartContract @state.'
         );
-      const r = this.getLayout();
-      const xs = this._ty.toFields(a);
+      let layout = this.getLayout();
+      let stateAsFields = this._ty.toFields(a);
       let e: ExecutionState = this._this.executionState();
 
-      xs.forEach((x, i) => {
-        e.party.body.update.appState[r.offset + i].setValue(x);
+      stateAsFields.forEach((x, i) => {
+        e.party.body.update.appState[layout.offset + i].setValue(x);
       });
     },
 
@@ -95,15 +95,14 @@ function createState<A>() {
         throw Error(
           'assertEquals can only be called when the State is assigned to a SmartContract @state.'
         );
-      const r = this.getLayout();
-      const xs = this._ty.toFields(a);
+      let layout = this.getLayout();
+      let stateAsFields = this._ty.toFields(a);
       let e: ExecutionState = this._this.executionState();
 
-      xs.forEach((x, i) => {
-        e.party.body.accountPrecondition.state[r.offset + i].check = new Bool(
-          true
-        );
-        e.party.body.accountPrecondition.state[r.offset + i].value = x;
+      stateAsFields.forEach((x, i) => {
+        e.party.body.accountPrecondition.state[layout.offset + i].check =
+          Bool(true);
+        e.party.body.accountPrecondition.state[layout.offset + i].value = x;
       });
     },
 
@@ -112,35 +111,43 @@ function createState<A>() {
         throw Error(
           'get can only be called when the State is assigned to a SmartContract @state.'
         );
-      const r = this.getLayout();
+      let layout = this.getLayout();
 
-      let addr: PublicKey = this._this.address;
-      let p: Field[];
+      let address: PublicKey = this._this.address;
+      let stateAsFields: Field[];
+      let inProver = Circuit.inProver();
 
-      if (Circuit.inProver()) {
-        let a = Mina.getAccount(addr);
-
-        const xs: Field[] = [];
-        for (let i = 0; i < r.length; ++i) {
-          xs.push(a.zkapp.appState[r.offset + i]);
+      if (inProver || !Circuit.inCheckedComputation()) {
+        let a = Mina.getAccount(address);
+        if (a.zkapp === undefined) {
+          // if the account is not a zkapp account, let the default state be all zeroes
+          stateAsFields = Array(layout.length).fill(Field.zero);
+        } else {
+          stateAsFields = [];
+          for (let i = 0; i < layout.length; ++i) {
+            stateAsFields.push(a.zkapp.appState[layout.offset + i]);
+          }
         }
-        p = Circuit.witness(Circuit.array(Field, r.length), () => xs);
-      } else if (Circuit.inCheckedComputation()) {
-        p = Circuit.witness(Circuit.array(Field, r.length), (): Field[] => {
-          throw Error('this should never happen');
-        });
+        // in prover, create a new witness with the state values
+        // outside, just return the state values
+        stateAsFields = inProver
+          ? Circuit.witness(
+              Circuit.array(Field, layout.length),
+              () => stateAsFields
+            )
+          : stateAsFields;
       } else {
-        let a = Mina.getAccount(addr);
-        p = [];
-        for (let i = 0; i < r.length; ++i) {
-          p.push(a.zkapp.appState[r.offset + i]);
-        }
+        // in compile, we don't need the witness values
+        stateAsFields = Circuit.witness(
+          Circuit.array(Field, layout.length),
+          (): Field[] => {
+            throw Error('this should never happen');
+          }
+        );
       }
-      const res = this._ty.ofFields(p);
-      if ((this._ty as any).check != undefined) {
-        (this._ty as any).check(res);
-      }
-      return res;
+      let state = this._ty.ofFields(stateAsFields);
+      (this._ty as any).check?.(state);
+      return state;
     },
   };
 }
