@@ -13,11 +13,7 @@ import {
 } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
-import {
-  Body,
-  EpochDataPredicate,
-  ProtocolStatePredicate,
-} from './party';
+import { Body, EpochDataPredicate, ProtocolStatePredicate } from './party';
 
 interface TransactionId {
   wait(): Promise<void>;
@@ -41,19 +37,24 @@ export let nextTransactionId: { value: number } = { value: 0 };
 
 type PartyPredicate = UInt32 | FullAccountPredicate | undefined;
 
-export let currentTransaction:
+export type CurrentTransaction =
+  | undefined
   | {
       sender: PrivateKey;
       parties: Array<{ body: Body; predicate: PartyPredicate }>;
       nextPartyIndex: number;
       protocolState: ProtocolStatePredicate;
-    }
-  | undefined = undefined;
+    };
+
+export let currentTransaction: CurrentTransaction = undefined;
+export function setCurrentTransaction(transaction: CurrentTransaction) {
+  currentTransaction = transaction;
+}
 
 interface Mina {
   transaction(sender: PrivateKey, f: () => void | Promise<void>): Transaction;
   currentSlot(): UInt32;
-  getAccount(publicKey: PublicKey): Promise<Account>;
+  getAccount(publicKey: PublicKey): Account;
 }
 
 interface MockMina extends Mina {
@@ -92,7 +93,7 @@ export const LocalBlockchain: () => MockMina = () => {
     testAccounts.push({ privateKey: k, publicKey: pk });
   }
 
-  const getAccount = (pk: PublicKey): Promise<Account> => {
+  const getAccount = (pk: PublicKey) => {
     const r = ledger.getAccount(pk);
     if (r == null) {
       throw new Error(
@@ -104,7 +105,7 @@ export const LocalBlockchain: () => MockMina = () => {
         nonce: new UInt32(r.nonce.value),
         snapp: r.snapp,
       };
-      return new Promise((r) => r(a));
+      return a;
     }
   };
 
@@ -294,13 +295,13 @@ export function currentSlot(): UInt32 {
 /**
  * @return The account data associated to the given public key.
  */
-export function getAccount(pubkey: PublicKey): Promise<Account> {
+export function getAccount(pubkey: PublicKey) {
   return activeInstance.getAccount(pubkey);
 }
 
 /**
  * @return The balance associated to the given public key.
  */
-export function getBalance(pubkey: PublicKey): Promise<UInt64> {
-  return activeInstance.getAccount(pubkey).then((a) => a.balance);
+export function getBalance(pubkey: PublicKey) {
+  return activeInstance.getAccount(pubkey).balance;
 }

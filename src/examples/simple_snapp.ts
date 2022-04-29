@@ -20,8 +20,8 @@ class SimpleSnapp extends SmartContract {
     this.x.set(x);
   }
 
-  @method async update(y: Field) {
-    let x = await this.x.get();
+  @method update(y: Field) {
+    let x = this.x.get();
     this.x.set(x.add(y));
   }
 }
@@ -37,6 +37,12 @@ const account2 = Local.testAccounts[1].privateKey;
 const snappPrivKey = PrivateKey.random();
 const snappPubKey = snappPrivKey.toPublicKey();
 
+console.log('compile');
+let {
+  provers: [updateProver],
+} = SimpleSnapp.compile(snappPubKey);
+
+console.log('deploy');
 await Mina.transaction(account1, async () => {
   let snapp = new SimpleSnapp(snappPubKey);
 
@@ -49,6 +55,11 @@ await Mina.transaction(account1, async () => {
   .send()
   .wait();
 
+console.log('prove');
+let proof = updateProver(Field(1));
+console.log({ proof });
+
+console.log('update');
 let snappState = (await Mina.getAccount(snappPubKey)).snapp.appState[0];
 console.log('initial state: ' + snappState);
 

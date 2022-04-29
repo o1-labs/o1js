@@ -1,5 +1,12 @@
-import { Circuit, Field, Bool, Poseidon, AsFieldElements } from '../snarky';
-import { CircuitValue } from './circuit_value';
+import {
+  Circuit,
+  Field,
+  Bool,
+  Poseidon,
+  AsFieldElements,
+  picklesCompile,
+} from '../snarky';
+import { CircuitValue, toFieldsMagic } from './circuit_value';
 import {
   AccountPredicate,
   ProtocolStatePredicate,
@@ -7,7 +14,7 @@ import {
   Party,
   PartyBalance,
 } from './party';
-import { PublicKey } from './signature';
+import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { UInt32 } from './int';
 
@@ -15,7 +22,7 @@ import { UInt32 } from './int';
  * Gettable and settable state that can be checked for equality.
  */
 export type State<A> = {
-  get(): Promise<A>;
+  get(): A;
   set(a: A): void;
   assertEquals(a: A): void;
 };
@@ -82,7 +89,7 @@ function createState<A>() {
       });
     },
 
-    async get(): Promise<A> {
+    get() {
       if (!this._initialized)
         throw Error(
           'get can only be called when the State is assigned to a SmartContract @state.'
@@ -90,24 +97,22 @@ function createState<A>() {
       const r = this.getLayout();
 
       let addr: PublicKey = this._this.address;
-      let p: Promise<Field[]>;
+      let p: Field[];
 
       if (Circuit.inProver()) {
-        p = Mina.getAccount(addr).then((a) => {
-          const xs: Field[] = [];
-          for (let i = 0; i < r.length; ++i) {
-            xs.push(a.snapp.appState[r.offset + i]);
-          }
-          return Circuit.witness(Circuit.array(Field, r.length), () => xs);
-        });
+        let a = Mina.getAccount(addr);
+
+        const xs: Field[] = [];
+        for (let i = 0; i < r.length; ++i) {
+          xs.push(a.snapp.appState[r.offset + i]);
+        }
+        p = Circuit.witness(Circuit.array(Field, r.length), () => xs);
       } else {
-        const res = Circuit.witness(Circuit.array(Field, r.length), () => {
+        p = Circuit.witness(Circuit.array(Field, r.length), () => {
           throw Error('this should never happen');
         });
-        p = new Promise((k) => k(res));
       }
-
-      let xs = await p;
+      let xs = p;
       const res = this._ty.ofFields(xs);
       if ((this._ty as any).check != undefined) {
         (this._ty as any).check(res);
@@ -118,6 +123,8 @@ function createState<A>() {
 }
 
 type InternalStateType = ReturnType<typeof createState>;
+
+const reservedPropNames = new Set(['_states', '_layout', '_methods', '_']);
 
 /**
  * A decorator to use within a snapp to indicate what will be stored on-chain.
@@ -131,16 +138,18 @@ type InternalStateType = ReturnType<typeof createState>;
  */
 export function state<A>(ty: AsFieldElements<A>) {
   return function (
-    target: any,
+    target: SmartContract & { constructor: any },
     key: string,
     _descriptor?: PropertyDescriptor
-  ): any {
+  ) {
     const SnappClass = target.constructor;
-    if (!(SnappClass.prototype instanceof SmartContract)) {
-      throw new Error(
-        'Can only use @state decorator on classes that extend SmartContract'
-      );
-    }
+    // TBD: I think the runtime error below is unnecessary, because having target: SmartContract
+    // means TS will not let the code build if @state is used on an incompatible class
+    // if (!(SnappClass.prototype instanceof SmartContract)) {
+    //   throw Error(
+    //     'Can only use @state decorator on classes that extend SmartContract'
+    //   );
+    // }
 
     // TBD: ok to not check? bc type metadata not inferred from class field assignment
     // const fieldType = Reflect.getMetadata('design:type', target, key);
@@ -150,8 +159,8 @@ export function state<A>(ty: AsFieldElements<A>) {
     //   );
     // }
 
-    if (key === '_states' || key === '_layout') {
-      throw new Error('Property names _states and _layout reserved.');
+    if (reservedPropNames.has(key)) {
+      throw Error(`Property name ${key} is reserved.`);
     }
 
     if (SnappClass._states == undefined) {
@@ -202,18 +211,62 @@ export function state<A>(ty: AsFieldElements<A>) {
  * }
  * ```
  */
-export function method(
-  target: any,
-  propertyName: string,
+export function method<T extends SmartContract>(
+  target: T & { constructor: any },
+  methodName: keyof T & string,
   _descriptor?: PropertyDescriptor
-): any {}
+) {
+  const SnappClass = target.constructor;
+  if (reservedPropNames.has(methodName)) {
+    throw Error(`Property name ${methodName} is reserved.`);
+  }
+  if (typeof target[methodName] !== 'function') {
+    throw Error(
+      `@method decorator was applied to ${methodName} which is not a function.`
+    );
+  }
+  let paramTypes = Reflect.getMetadata('design:paramtypes', target, methodName);
+  let witnessArgs = [];
+  let proofArgs = [];
+  let args = [];
+  for (let i = 0; i < paramTypes.length; i++) {
+    let Parameter = paramTypes[i];
+    if (isProof(Parameter)) {
+      args.push({ type: 'proof', index: proofArgs.length });
+      proofArgs.push(Parameter);
+    } else if (isAsFields(Parameter)) {
+      args.push({ type: 'witness', index: witnessArgs.length });
+      witnessArgs.push(Parameter);
+    } else {
+      throw Error(
+        `Argument ${i} of method ${methodName} is not a valid circuit value.`
+      );
+    }
+  }
+  SnappClass._methods ??= [];
+  SnappClass._methods.push({
+    methodName,
+    witnessArgs,
+    proofArgs,
+    args,
+  });
+}
 
-type ExecutionState = {
-  transactionId: number;
-  partyIndex: number;
-  party: Party<AccountPredicate>;
-  protocolStatePredicate: ProtocolStatePredicate;
+type methodEntry<T> = {
+  methodName: keyof T & string;
+  witnessArgs: AsFieldElements<unknown>[];
+  proofArgs: unknown[];
+  args: { type: string; index: number }[];
 };
+
+function isAsFields(typ: Object) {
+  return (
+    !!typ && ['toFields', 'ofFields', 'sizeInFields'].every((s) => s in typ)
+  );
+}
+function isProof(typ: any) {
+  return false; // TODO
+}
 
 /**
  * The main snapp class. To write a snapp, extend this class as such:
@@ -225,29 +278,50 @@ type ExecutionState = {
  * ```
  *
  */
-export abstract class SmartContract {
-  // protocolState: ProtocolStatePredicate;
+export class SmartContract {
   address: PublicKey;
 
-  // state: Array<State<Field>>;
-
-  // private _self: { body: Body, predicate: AccountPredicate } | undefined;
-
-  _executionState: ExecutionState | undefined;
+  _executionState?: ExecutionState;
+  static _methods?: methodEntry<SmartContract>[];
 
   constructor(address: PublicKey) {
     this.address = address;
-    // this.self = null as unknown as Body;
-    // this.state = [];
+  }
+
+  static compile(address?: PublicKey) {
+    // TODO: think about how address should be passed in
+    // if address is not provided, create a random one
+    address ??= PrivateKey.random().toPublicKey();
+    let dummyInstance = new this(address);
+    let inductiveRules = (this._methods ?? []).map(
+      ({ methodName, witnessArgs }) => {
+        function main(transactionHash: Field) {
+          Mina.setCurrentTransaction({
+            sender: PrivateKey.random(), // TODO
+            parties: [],
+            nextPartyIndex: 0,
+            protocolState: ProtocolStatePredicate.ignoreAll(),
+          });
+          let witnesses = witnessArgs.map(emptyWitness); // TODO is this correct?
+          (dummyInstance[methodName] as any)(...witnesses); // call method in a way that `this` is defined
+          let hash = computeTransactionHash(Mina.currentTransaction);
+          console.log({ transactionHash, hash });
+          hash.assertEquals(transactionHash);
+          Mina.setCurrentTransaction(undefined);
+        }
+        return [0, methodName, main];
+      }
+    );
+    let output = picklesCompile(inductiveRules);
+    console.log('output', output);
+    return output;
   }
 
   deploy(...args: any[]) {
     try {
       this.executionState().party.body.update.verificationKey.set = Bool(true);
-    } catch (_error) {
-      throw new Error(
-        'Cannot deploy SmartContract outside a transaction.'
-      );
+    } catch {
+      throw new Error('Cannot deploy SmartContract outside a transaction.');
     }
   }
 
@@ -292,23 +366,20 @@ export abstract class SmartContract {
     return this.self.balance;
   }
 
-  get nonce(): Promise<UInt32> {
-    let p: Promise<UInt32>;
+  get nonce() {
+    let nonce: UInt32;
     if (Circuit.inProver()) {
-      p = Mina.getAccount(this.address).then((a) => {
-        return Circuit.witness<UInt32>(UInt32, () => a.nonce);
-      });
+      let a = Mina.getAccount(this.address);
+      nonce = Circuit.witness<UInt32>(UInt32, () => a.nonce);
     } else {
       const res = Circuit.witness<UInt32>(UInt32, () => {
         throw Error('this should never happen');
       });
-      p = new Promise((resolve) => resolve(res));
+      nonce = res;
     }
 
-    return p.then((nonce) => {
-      this.executionState().party.predicate.nonce.assertBetween(nonce, nonce);
-      return nonce;
-    });
+    this.executionState().party.predicate.nonce.assertBetween(nonce, nonce);
+    return nonce;
   }
 
   party(i: number): Body {
@@ -324,4 +395,25 @@ export abstract class SmartContract {
     // hash this together with what's there
     Poseidon.hash(x.toFields());
   }
+}
+
+type ExecutionState = {
+  transactionId: number;
+  partyIndex: number;
+  party: Party<AccountPredicate>;
+  protocolStatePredicate: ProtocolStatePredicate;
+};
+
+function emptyWitness<A>(typ: AsFieldElements<A>) {
+  // return typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero));
+  return Circuit.witness(typ, () =>
+    typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero))
+  );
+}
+
+// TODO
+function computeTransactionHash(tx: Mina.CurrentTransaction) {
+  if (tx === undefined) throw Error('Transaction is undefined');
+  let fields = toFieldsMagic(tx);
+  return Poseidon.hash(fields);
 }

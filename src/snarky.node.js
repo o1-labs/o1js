@@ -10,18 +10,21 @@ export {
   isReady,
 };
 let { proxyClasses } = require('./proxyClasses.js');
-let snarkyServer = require('./node_bindings/snarky_js_node.bc.js');
+let snarky = require('./node_bindings/snarky_js_node.bc.js');
 let snarkySpec = require('./snarky-class-spec.json');
+
+let { picklesCompile } = snarky;
+export { picklesCompile };
 
 // proxy all classes, so subclasses can be declared at the top level, and static props still work later on
 // currently this does not proxy class *instances*. So `new Field(5)` returns the same thing as before and only works after isReady
 let { Field, Bool, Circuit, Poseidon, Group, Scalar, Ledger } = proxyClasses(
-  () => snarkyServer,
+  () => snarky,
   snarkySpec,
   () => isReadyBoolean
 );
 let isReadyBoolean = false;
-let isReady = snarkyServer.snarky_ready.then(() => {
+let isReady = snarky.snarky_ready.then(() => {
   isReadyBoolean = true;
 });
 
