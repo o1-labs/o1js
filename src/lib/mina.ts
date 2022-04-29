@@ -39,14 +39,7 @@ interface Transaction {
   send(): TransactionId;
 }
 
-type Account = {
-  publicKey: PublicKey;
-  balance: UInt64;
-  nonce: UInt32;
-  zkapp: {
-    appState: Field[];
-  };
-};
+type Account = Fetch.Account;
 
 let nextTransactionId: { value: number } = { value: 0 };
 
@@ -65,6 +58,11 @@ function setCurrentTransaction(transaction: CurrentTransaction) {
   currentTransaction = transaction;
 }
 
+type SenderSpec =
+  | PrivateKey
+  | { privateKey: PrivateKey; fee?: number | string | UInt64 }
+  | undefined;
+
 function createUnsignedTransaction(
   f: () => unknown,
   { fetchMode = 'cached' as FetchMode } = {}
@@ -72,13 +70,18 @@ function createUnsignedTransaction(
   return createTransaction(undefined, f, { fetchMode });
 }
 function createTransaction(
-  senderKey: PrivateKey | undefined,
+  sender:
+    | PrivateKey
+    | { privateKey: PrivateKey; fee?: number | string | UInt64 }
+    | undefined,
   f: () => unknown,
   { fetchMode = 'cached' as FetchMode } = {}
 ) {
   if (currentTransaction !== undefined) {
     throw new Error('Cannot start new transaction within another transaction');
   }
+  let senderKey = sender instanceof PrivateKey ? sender : sender?.privateKey;
+  let fee = sender instanceof PrivateKey ? undefined : sender?.fee;
 
   currentTransaction = {
     sender: senderKey,
@@ -105,6 +108,11 @@ function createTransaction(
       senderKey,
       senderAccount.nonce
     );
+    if (fee !== undefined) {
+      feePayer.balance.subInPlace(
+        fee instanceof UInt64 ? fee : UInt64.fromString(String(fee))
+      );
+    }
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
     feePayer = Party.dummyFeePayer();
@@ -138,7 +146,7 @@ function createTransaction(
 }
 
 interface Mina {
-  transaction(sender: PrivateKey, f: () => void): Promise<Transaction>;
+  transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
   currentSlot(): UInt32;
   getAccount(publicKey: PublicKey): Account;
   fetchMissingAccounts(): Promise<void>;
@@ -203,7 +211,7 @@ function LocalBlockchain(): MockMina {
       }
     },
     async fetchMissingAccounts() {},
-    async transaction(sender: PrivateKey, f: () => void) {
+    async transaction(sender: SenderSpec, f: () => void) {
       let txn = createTransaction(sender, f);
       return {
         ...txn,
@@ -252,7 +260,7 @@ function RemoteBlockchain(
     async fetchMissingAccounts() {
       await Fetch.fetchMissingAccounts(graphqlEndpoint);
     },
-    async transaction(sender: PrivateKey, f: () => void) {
+    async transaction(sender: SenderSpec, f: () => void) {
       createTransaction(sender, f, { fetchMode: 'test' });
       await Fetch.fetchMissingAccounts(graphqlEndpoint);
       let txn = createTransaction(sender, f, { fetchMode: 'cached' });
