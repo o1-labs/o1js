@@ -7,6 +7,26 @@ export { Int65 };
 class Int65 extends CircuitValue {
   // * in the range [-2^64+1, 2^64-1], unlike a normal int64
   // * under- and overflowing is disallowed, similar to UInt64, unlike a normal int64
+  //
+  // Some thoughts regarding the representation as field elements:
+  // toFields returns the in-circuit representation, so the main objective is to minimize the number of constraints
+  // that result from this representation. Therefore, I think the only candidate for an efficient 1-field representation
+  // is the one where the Int65 is the field: toFields = int65 => [int65.magnitude.mul(int65.sign)]. Anything else involving
+  // bit packing would just lead to very inefficient circuit operations, IIUC.
+  //
+  // So, is magnitude * sign ("1-field") a more efficient representation than (magnitude, sign) ("2-field")?
+  // Several common operations like add, mul, etc, operate on 1-field so in 2-field they result in one additional multiplication
+  // constraint per operand. However, the check operation (constraining to 64 bits + a sign) which is called at the introduction
+  // of every witness, and also at the end of add, mul, etc, operates on 2-field. So here, the 1-field representation needs
+  // to add an additional magnitude * sign = int65 multiplication constraint, which will typically cancel out most of the gains
+  // achieved by 1-field elsewhere.
+  // There are some notable operations for which 2-field is definitely better:
+  //
+  // * div and mod (which do integer division with rounding on the magnitude)
+  // * converting the Int64 to a Currency.Amount.Signed (for the zkapp balance), which has the exact same (magnitude, sign) representation we use here.
+  //
+  // The second point is one of the main things an Int64 is used for, and was my original motivation to use 2 fields.
+  // Overall, I think the existing implementation is the optimal one, but happy to be corrected.
 
   @prop magnitude: Field; // absolute value, restricted like UInt64
   @prop sign: Field; // +/- 1
