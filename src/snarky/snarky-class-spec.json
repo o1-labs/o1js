@@ -375,6 +375,10 @@
       {
         "name": "partiesToGraphQL",
         "type": "function"
+      },
+      {
+        "name": "accountCreationFee",
+        "type": "function"
       }
     ]
   },
