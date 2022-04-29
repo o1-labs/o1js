@@ -841,6 +841,7 @@ export class Ledger {
 
   static partiesToJson(parties: Parties_): string;
   static partiesToGraphQL(parties: Parties_): string;
+  static accountCreationFee(): number;
 }
 
 /**
