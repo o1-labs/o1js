@@ -411,6 +411,10 @@
       {
         "name": "jsonToGraphQLQuery",
         "type": "function"
+      },
+      {
+        "name": "accountCreationFee",
+        "type": "function"
       }
     ]
   },
