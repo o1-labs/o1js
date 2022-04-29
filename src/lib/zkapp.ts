@@ -719,6 +719,17 @@ async function compile<S extends typeof SmartContract>(
 
 // alternative API which can replace decorators, works in pure JS
 
+/**
+ * `declareState` can be used in place of the `@state` decorator to declare on-chain state on a SmartContract.
+ * It should be placed _after_ the class declaration.
+ * Here is an example of declaring a state property "x" of type `Field`.
+ * ```js
+ * class MyContract extends SmartContract {
+ *  // ...
+ * }
+ * declareState(MyContract, { x: Field });
+ * ```
+ */
 function declareState<T extends typeof SmartContract>(
   SmartContract: T,
   states: Record<string, AsFieldElements<unknown>>
@@ -729,6 +740,21 @@ function declareState<T extends typeof SmartContract>(
   }
 }
 
+/**
+ * `declareMethodArguments` can be used in place of the `@method` decorator to declare SmartContract methods.
+ * It should be placed _after_ the class declaration.
+ * Here is an example of declaring a method "update" of type `Field`.
+ * ```js
+ * class MyContract extends SmartContract {
+ *   // ...
+ *   update(x) {
+ *    // ...
+ *   }
+ * }
+ * declareMethodArguments(MyContract, { update: [Field] });
+ * ```
+ * Note that a method of the same name must still be defined on the class, just without the decorator.
+ */
 function declareMethodArguments<T extends typeof SmartContract>(
   SmartContract: T,
   methodArguments: Record<string, AsFieldElements<unknown>[]>
