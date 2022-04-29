@@ -409,7 +409,7 @@
         "type": "function"
       },
       {
-        "name": "jsonToGraphQL",
+        "name": "jsonToGraphQLQuery",
         "type": "function"
       }
     ]

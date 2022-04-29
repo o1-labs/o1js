@@ -13,7 +13,9 @@ export {
   addCachedAccount,
   defaultGraphqlEndpoint,
   setGraphqlEndpoint,
+  sendZkappQuery,
 };
+export { Account };
 
 let defaultGraphqlEndpoint = 'none';
 function setGraphqlEndpoint(graphqlEndpoint: string) {
@@ -38,43 +40,51 @@ async function fetchAccount(
   graphqlEndpoint = defaultGraphqlEndpoint,
   { timeout = defaultTimeout } = {}
 ): Promise<
-  | { account: FetchedAccount; error: undefined }
+  | { account: Account; error: undefined }
   | { account: undefined; error: FetchError }
 > {
-  if (graphqlEndpoint === 'none')
-    throw Error(
-      "Tried to fetch an account, but don't know a graphql endpoint. Try calling `setGraphqlEndpoint` first."
-    );
-  const controller = new AbortController();
-  const timer = setTimeout(() => {
-    controller.abort();
-  }, timeout);
-
-  try {
-    let body = JSON.stringify({
-      operationName: null,
-      query: query(publicKey),
-      variables: {},
-    });
-    let response = await fetch(graphqlEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-      signal: controller.signal,
-    });
-    let [value, error] = await checkResponseStatus(response);
-    if (value !== undefined)
-      return {
-        account: (value as FetchResponse).data.account,
+  let response = await fetchAccountInternal(publicKey, graphqlEndpoint, {
+    timeout,
+  });
+  return response.error === undefined
+    ? {
+        account: parseFetchedAccount(response.account),
         error: undefined,
-      };
-    else return { account: undefined, error: error as FetchError };
-  } catch (error) {
-    clearTimeout(timer);
-    return { account: undefined, error: inferError(error) };
-  }
+      }
+    : { account: undefined, error: response.error };
 }
 
+// internal version of fetchAccount which does the same, but returns the original JSON version
+// of the account, to save some back-and-forth conversions when caching accounts
+async function fetchAccountInternal(
+  publicKey: string,
+  graphqlEndpoint = defaultGraphqlEndpoint,
+  config?: FetchConfig
+) {
+  let [response, error] = await makeGraphqlRequest(
+    accountQuery(publicKey),
+    graphqlEndpoint,
+    config
+  );
+  if (error !== undefined) return { account: undefined, error };
+  let account = (response as FetchResponse).data
+    .account as FetchedAccount | null;
+  if (account === null) {
+    return {
+      account: undefined,
+      error: {
+        statusCode: 404,
+        statusText: 'Account does not exist.',
+      },
+    };
+  }
+  return {
+    account,
+    error: undefined,
+  };
+}
+
+type FetchConfig = { timeout?: number };
 type FetchResponse = { data: any };
 type FetchError = {
   statusCode: number;
@@ -87,7 +97,7 @@ type FetchedAccount = {
   publicKey: string;
   nonce: string;
   zkappUri?: string;
-  zkappState: string[];
+  zkappState: string[] | null;
   receiptChainState?: string;
   balance: { total: string };
 };
@@ -96,7 +106,7 @@ type Account = {
   publicKey: PublicKey;
   nonce: UInt32;
   balance: UInt64;
-  zkapp: { appState: Field[] };
+  zkapp?: { appState: Field[] };
 };
 
 type FlexibleAccount = {
@@ -107,7 +117,7 @@ type FlexibleAccount = {
 };
 
 // TODO add more fields
-const query = (publicKey: string) => `{
+const accountQuery = (publicKey: string) => `{
   account(publicKey: "${publicKey}") {
     publicKey
     nonce
@@ -119,7 +129,7 @@ const query = (publicKey: string) => `{
 }
 `;
 
-// TODO automate these conversions
+// TODO automate these conversions (?)
 function parseFetchedAccount(account: FetchedAccount): Account;
 function parseFetchedAccount(
   account: Partial<FetchedAccount>
@@ -135,7 +145,7 @@ function parseFetchedAccount({
       publicKey !== undefined ? PublicKey.fromBase58(publicKey) : undefined,
     nonce: nonce !== undefined ? UInt32.fromString(nonce) : undefined,
     balance: balance && UInt64.fromString(balance.total),
-    zkapp: zkappState && { appState: zkappState.map((s) => Field(s)) },
+    zkapp: (zkappState && { appState: zkappState.map(Field) }) ?? undefined,
   };
 }
 
@@ -168,22 +178,18 @@ async function checkResponseStatus(
   }
 }
 
-function inferError(error: unknown) {
+function inferError(error: unknown): FetchError {
   let errorMessage = JSON.stringify(error);
   if (error instanceof AbortSignal) {
-    return {
-      statusCode: 408,
-      statusText: `Request Timeout: ${errorMessage}`,
-    } as FetchError;
+    return { statusCode: 408, statusText: `Request Timeout: ${errorMessage}` };
   } else {
     return {
       statusCode: 500,
       statusText: `Unknown Error: ${errorMessage}`,
-    } as FetchError;
+    };
   }
 }
 
-// public key (base58) -> Account
 let accountCache = {} as Record<
   string,
   {
@@ -215,7 +221,7 @@ function fetchMissingAccounts(graphqlEndpoint: string) {
   });
   return Promise.all(
     accounts.map(async ([key, { publicKey }]) => {
-      let response = await fetchAccount(publicKey, graphqlEndpoint);
+      let response = await fetchAccountInternal(publicKey, graphqlEndpoint);
       if (response.error !== undefined) throw Error(response.error.statusText);
       let { account } = response;
       accountCache[key] = {
@@ -255,4 +261,56 @@ function addCachedAccount(
     graphqlEndpoint,
     timestamp: Date.now(),
   };
+}
+
+function sendZkappQuery(json: string) {
+  return `mutation {
+  sendZkapp(input: {
+    parties: ${removeJsonQuotes(json)}
+  }) { zkapp
+    {
+      parties {
+        memo
+      }
+    }
+  }
+}`;
+}
+
+// removes the quotes on JSON keys
+function removeJsonQuotes(json: string) {
+  // source: https://stackoverflow.com/a/65443215
+  let cleaned = JSON.stringify(JSON.parse(json), null, 2);
+  return cleaned.replace(/^[\t ]*"[^:\n\r]+(?<!\\)":/gm, (match) =>
+    match.replace(/"/g, '')
+  );
+}
+
+async function makeGraphqlRequest(
+  query: string,
+  graphqlEndpoint = defaultGraphqlEndpoint,
+  { timeout = defaultTimeout } = {} as FetchConfig
+) {
+  if (graphqlEndpoint === 'none')
+    throw Error(
+      "Should have made a graphql request, but don't know to which endpoint. Try calling `setGraphqlEndpoint` first."
+    );
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, timeout);
+
+  try {
+    let body = JSON.stringify({ operationName: null, query, variables: {} });
+    let response = await fetch(graphqlEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      signal: controller.signal,
+    });
+    return await checkResponseStatus(response);
+  } catch (error) {
+    clearTimeout(timer);
+    return [undefined, inferError(error)];
+  }
 }

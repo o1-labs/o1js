@@ -14,6 +14,7 @@ export {
   parseFetchedAccount,
   addCachedAccount,
   setGraphqlEndpoint,
+  sendZkappQuery,
 } from './lib/fetch';
 export * as Encryption from './lib/encryption';
 export * as Encoding from './lib/encoding';
