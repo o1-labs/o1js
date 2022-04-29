@@ -1,4 +1,5 @@
 export * from './snarky';
+export * from './snarky/addons';
 export * from './lib/signature';
 export * from './lib/circuit_value';
 

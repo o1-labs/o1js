@@ -46,11 +46,9 @@ async function buildWeb({ production }) {
 
   // copy over pure js files
   let copyPromise = copy({
-    './src/snarky.js': './dist/web/snarky.js',
+    './src/chrome_bindings/': './dist/web/chrome_bindings/',
     './src/snarky.d.ts': './dist/web/snarky.d.ts',
-    './src/proxyClasses.js': './dist/web/proxyClasses.js',
-    './src/snarky-class-spec.json': './dist/web/snarky-class-spec.json',
-    './src/chrome_bindings': './dist/web/chrome_bindings/',
+    './src/snarky/': './dist/web/snarky/',
   });
 
   await Promise.all([tscPromise, copyPromise]);
@@ -86,15 +84,6 @@ async function buildWeb({ production }) {
     logLevel: 'error',
     minify,
     // watch: true,
-  });
-
-  // copy auxiliary files
-  await copy({
-    './src/chrome_bindings/plonk_wasm.d.ts': './dist/web/plonk_wasm.d.ts',
-    './src/chrome_bindings/plonk_wasm_bg.wasm.d.ts':
-      './dist/web/plonk_wasm_bg.wasm.d.ts',
-    './src/chrome_bindings/index.html': './dist/web/index.html',
-    './src/chrome_bindings/server.py': './dist/web/server.py',
   });
 }
 

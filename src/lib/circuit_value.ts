@@ -138,6 +138,7 @@ export function prop(this: any, target: any, key: string) {
   }
 }
 
+// TODO: move Circuit.array into JS so that this can be used before isReady
 export function arrayProp<T>(eltTyp: AsFieldElements<T>, length: number) {
   return function (target: any, key: string) {
     // const fieldType = Reflect.getMetadata('design:type', target, key);
