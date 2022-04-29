@@ -408,8 +408,7 @@ export class SmartContract {
       this.self.update.verificationKey.value = verificationKey;
     }
     this.self.update.permissions.setValue(Permissions.default());
-    this.self.body.incrementNonce = Bool(true);
-    this.self.sign(zkappKey);
+    this.self.sign(zkappKey, true);
   }
 
   async prove(provers: any[], methodName: keyof this, args: unknown[]) {
@@ -422,8 +421,6 @@ export class SmartContract {
       (this[methodName] as any)(...args);
       let selfParty = mainContext.self;
       mainContext = undefined;
-      // FIXME: a proof-authorized party shouldn't need to increment nonce, this is needed due to a protocol bug
-      selfParty.body.incrementNonce = Bool(true);
 
       // TODO dont create full transaction in here, properly build up atParty
       let txJson = Mina.createUnsignedTransaction(() => {
@@ -518,22 +515,7 @@ export class SmartContract {
   }
 
   get nonce() {
-    let nonce: UInt32;
-    if (Circuit.inProver()) {
-      let a = Mina.getAccount(this.address);
-      nonce = Circuit.witness(UInt32, () => a.nonce);
-    } else {
-      const res = Circuit.witness(UInt32, () => {
-        throw Error('this should never happen');
-      });
-      nonce = res;
-    }
-
-    this.executionState().party.body.accountPrecondition.nonce.assertBetween(
-      nonce,
-      nonce
-    );
-    return nonce;
+    return this.self.setNoncePrecondition();
   }
 
   party(i: number): Body {
@@ -662,7 +644,6 @@ async function callUnproved<S extends typeof SmartContract>(
     methodArguments
   );
   selfParty.sign(zkappKey);
-  selfParty.body.incrementNonce = Bool(true);
   let tx = Mina.createUnsignedTransaction(() => {
     Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
   });

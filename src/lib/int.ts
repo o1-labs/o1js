@@ -196,7 +196,7 @@ export class UInt32 extends CircuitValue {
   }
 
   static fromString(s: string) {
-    return new UInt64(argToField('UInt64.fromString', s));
+    return new UInt32(argToField('UInt32.fromString', s));
   }
 
   static NUM_BITS = 32;
