@@ -571,7 +571,9 @@ async function deploy<S extends typeof SmartContract>(
           `When using the optional initialBalance argument, you need to also supply the fee payer's private key feePayerKey to sign the initial balance funding.`
         );
       // optional first party: the sender/fee payer who also funds the zkapp
-      let amount = UInt64.fromString(String(initialBalance));
+      let amount = UInt64.fromString(String(initialBalance)).add(
+        Ledger.accountCreationFee()
+      );
       let party = Party.createSigned(feePayerKey, { isSameAsFeePayer: true });
       party.balance.subInPlace(amount);
     }
