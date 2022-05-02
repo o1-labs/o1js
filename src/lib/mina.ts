@@ -71,7 +71,7 @@ function createTransaction(
   };
 
   try {
-    Circuit.runAndCheck(f);
+    Circuit.runAndCheckSync(f);
   } catch (err) {
     currentTransaction = undefined;
     // TODO would be nice if the error would be a bit more descriptive about what failed

@@ -493,7 +493,7 @@ export class Circuit {
 
   static asProver(f: () => void): void;
 
-  static runAndCheck<T>(f: () => T): T;
+  static runAndCheckSync<T>(f: () => T): T;
 
   static array<T>(
     ctor: AsFieldElements<T>,

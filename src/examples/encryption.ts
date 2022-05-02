@@ -23,7 +23,7 @@ console.log(`Recovered message: "${decryptedMessage}"`);
 
 // the same but in a checked computation
 
-Circuit.runAndCheck(() => {
+Circuit.runAndCheckSync(() => {
   // encrypt
   let cipherText = Encryption.encrypt(messageFields, publicKey);
 
