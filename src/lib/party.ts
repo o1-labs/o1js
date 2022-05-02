@@ -1,18 +1,8 @@
 import { CircuitValue } from './circuit_value';
-import {
-  Group,
-  Field,
-  Bool,
-  VerificationKey,
-  Party_,
-  ProtocolStatePredicate_,
-  EpochDataPredicate_,
-} from '../snarky';
+import { Group, Field, Bool, VerificationKey } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
-
-export { toParty, toProtocolState };
 
 export type Amount = UInt64;
 export const Amount = UInt64;
@@ -292,20 +282,22 @@ class TokenSymbol extends CircuitValue {
 export class Update {
   appState: Array<SetOrKeep<Field>>;
   delegate: SetOrKeep<PublicKey>;
-  verificationKey: SetOrKeep<WithHash<VerificationKey, Field>>;
+  verificationKey: SetOrKeep<string>;
   permissions: SetOrKeep<Permissions>;
   snappUri: SetOrKeep<String_>;
   tokenSymbol: SetOrKeep<TokenSymbol>;
   timing: SetOrKeep<Timing>;
+  votingFor: SetOrKeep<Field>;
 
   constructor(
     appState: Array<SetOrKeep<Field>>,
     delegate: SetOrKeep<PublicKey>,
-    verificationKey: SetOrKeep<WithHash<VerificationKey, Field>>,
+    verificationKey: SetOrKeep<string>,
     permissions: SetOrKeep<Permissions>,
     snappUri: SetOrKeep<String_>,
     tokenSymbol: SetOrKeep<TokenSymbol>,
-    timing: SetOrKeep<Timing>
+    timing: SetOrKeep<Timing>,
+    votingFor: SetOrKeep<Field>
   ) {
     this.appState = appState;
     this.delegate = delegate;
@@ -314,11 +306,11 @@ export class Update {
     this.snappUri = snappUri;
     this.tokenSymbol = tokenSymbol;
     this.timing = timing;
+    this.votingFor = votingFor;
   }
 }
 
-type TokenId = UInt64;
-export const getDefaultTokenId = () => new UInt64(Field.one);
+export const getDefaultTokenId = () => Field.one;
 
 // TODO
 class Events {
@@ -357,7 +349,7 @@ export class Body {
   /**
    * The TokenId for this account.
    */
-  tokenId: TokenId;
+  tokenId: Field;
 
   /**
    * By what [[ SignedAmount ]] should the balance of this account change. All
@@ -376,6 +368,9 @@ export class Body {
   sequenceEvents: Field;
   callData: MerkleList<Array<Field>>;
   depth: Field; // TODO: this is an `int As_prover.t`
+  protocolState: ProtocolStatePredicate;
+  useFullCommitment: Bool;
+  incrementNonce: Bool;
 
   /**
    * A body that Don't change part of the underlying account record.
@@ -394,11 +389,12 @@ export class Body {
     const update = new Update(
       appState,
       keep(new PublicKey(Group.generator)),
-      keep({ hash: Field.zero, value: undefined as any }),
+      keep(''),
       keep(Permissions.default()),
       keep(undefined as any),
       keep(undefined as any),
-      keep(undefined as any)
+      keep(undefined as any),
+      keep(Field.zero)
     );
     return new Body(
       publicKey,
@@ -408,19 +404,29 @@ export class Body {
       new Events(Field.zero, []),
       Field.zero,
       new MerkleList(),
-      Field.zero
+      Field.zero,
+      ProtocolStatePredicate.ignoreAll(),
+      Bool(true),
+      Bool(false)
     );
+  }
+
+  static dummy() {
+    return Body.keepAll(PublicKey.empty());
   }
 
   constructor(
     publicKey: PublicKey,
     update: Update,
-    tokenId: TokenId,
+    tokenId: Field,
     delta: SignedAmount,
     events: Events,
     sequenceEvents: Field,
     callData: MerkleList<Array<Field>>,
-    depth: Field
+    depth: Field,
+    protocolState: ProtocolStatePredicate,
+    useFullCommitment: Bool,
+    incrementNonce: Bool
   ) {
     this.publicKey = publicKey;
     this.update = update;
@@ -430,6 +436,9 @@ export class Body {
     this.sequenceEvents = sequenceEvents;
     this.callData = callData;
     this.depth = depth;
+    this.protocolState = protocolState;
+    this.useFullCommitment = useFullCommitment;
+    this.incrementNonce = incrementNonce;
   }
 }
 
@@ -729,7 +738,7 @@ export class PartyBalance {
   }
 }
 
-type Predicate = undefined | UInt32 | AccountPredicate;
+export type Predicate = undefined | UInt32 | AccountPredicate;
 export class Party {
   body: Body;
   predicate: Predicate;
@@ -800,79 +809,4 @@ export class Party {
     Mina.currentTransaction.parties.push(party);
     return party;
   }
-}
-
-function toParty(party: Party): Party_ {
-  let predicate: Party_['predicate'];
-  if (party.predicate === undefined) {
-    predicate = { type: 'accept' };
-  } else if (party.predicate instanceof UInt32) {
-    predicate = { type: 'nonce', value: party.predicate };
-  } else {
-    predicate = { type: 'full', value: party.predicate };
-  }
-  return {
-    predicate,
-    body: {
-      ...party.body,
-      events: party.body.events.events,
-      depth: parseInt(party.body.depth.toString(), 10),
-      // TODO
-      sequenceEvents: [],
-      callData: Field.zero,
-    },
-  };
-}
-
-function toProtocolState(
-  protocolState: ProtocolStatePredicate
-): ProtocolStatePredicate_ {
-  let {
-    snarkedLedgerHash_: snarkedLedgerHash,
-    snarkedNextAvailableToken,
-    timestamp,
-    blockchainLength,
-    minWindowDensity,
-    lastVrfOutput_: lastVrfOutput,
-    totalCurrency,
-    globalSlotSinceHardFork,
-    globalSlotSinceGenesis,
-    stakingEpochData,
-    nextEpochData,
-  } = protocolState;
-  return {
-    snarkedLedgerHash,
-    snarkedNextAvailableToken,
-    timestamp,
-    blockchainLength,
-    minWindowDensity,
-    lastVrfOutput,
-    totalCurrency,
-    globalSlotSinceHardFork,
-    globalSlotSinceGenesis,
-    stakingEpochData: toEpochDataPredicate(stakingEpochData),
-    nextEpochData: toEpochDataPredicate(nextEpochData),
-  };
-}
-
-function toEpochDataPredicate(
-  predicate: EpochDataPredicate
-): EpochDataPredicate_ {
-  let {
-    ledger,
-    epochLength,
-    lockCheckpoint_: lockCheckpoint,
-    seed_: seed,
-    startCheckpoint_: startCheckpoint,
-  } = predicate;
-  return {
-    ledger: {
-      totalCurrency: ledger.totalCurrency,
-      hash: ledger.hash_,
-    },
-    epochLength,
-    lockCheckpoint,
-    seed,
-    startCheckpoint,
-  };
 }

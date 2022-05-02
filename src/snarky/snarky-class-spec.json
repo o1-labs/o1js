@@ -363,6 +363,14 @@
       {
         "name": "hashTransactionChecked",
         "type": "function"
+      },
+      {
+        "name": "partiesToJson",
+        "type": "function"
+      },
+      {
+        "name": "partiesToGraphQL",
+        "type": "function"
       }
     ]
   }

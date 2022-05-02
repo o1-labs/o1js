@@ -7,19 +7,20 @@ import {
   picklesCompile,
   Ledger,
 } from '../snarky';
-import { CircuitValue, toFieldsMagic } from './circuit_value';
+import { CircuitValue } from './circuit_value';
 import {
   AccountPredicate,
   ProtocolStatePredicate,
   Body,
   Party,
   PartyBalance,
-  toParty,
-  toProtocolState,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
+import { toParty, toProtocolState } from './party-conversion';
 import { UInt32 } from './int';
+
+export { deploy, compile, declareState, declareMethodArguments };
 
 /**
  * Gettable and settable state that can be checked for equality.
@@ -317,7 +318,7 @@ let mainContext = undefined as
     }
   | undefined;
 
-function withContext(context: typeof mainContext, f: Function) {
+function withContext<T>(context: typeof mainContext, f: () => T) {
   mainContext = context;
   let result = f();
   mainContext = undefined;
@@ -372,6 +373,7 @@ export class SmartContract {
   static compile(address?: PublicKey) {
     // TODO: think about how address should be passed in
     // if address is not provided, create a random one
+    // TODO: maybe PublicKey should just become a variable? Then compile doesn't need to know the address, which seems more natural
     address ??= PrivateKey.random().toPublicKey();
     let instance = new this(address);
 
@@ -414,21 +416,19 @@ export class SmartContract {
         atParty: statementVar.atParty.toConstant(),
       };
     });
-
-    // console.log('prove: running pickles prover');
-    return withContext(
-      {
-        self: Party.defaultParty(this.address),
-        protocolState: ProtocolStatePredicate.ignoreAll(),
-        witnesses: args,
-      },
-      () => provers[i](statement)
-    );
+    mainContext = {
+      self: Party.defaultParty(this.address),
+      protocolState: ProtocolStatePredicate.ignoreAll(),
+      witnesses: args,
+    };
+    let proof = await provers[i](statement);
+    mainContext = undefined;
+    return { proof, statement };
   }
 
-  deploy(...args: any[]) {
+  deploy() {
     try {
-      this.executionState().party.body.update.verificationKey.set = Bool(true);
+      // this.executionState().party.body.update.verificationKey.set = Bool(true);
     } catch {
       throw new Error('Cannot deploy SmartContract outside a transaction.');
     }
@@ -441,7 +441,6 @@ export class SmartContract {
         transactionId: 0,
         partyIndex: 0,
         party: mainContext.self as Party & { predicate: AccountPredicate },
-        protocolStatePredicate: mainContext.protocolState,
       };
     }
 
@@ -468,16 +467,15 @@ export class SmartContract {
         transactionId: id,
         partyIndex: index,
         party,
-        protocolStatePredicate: Mina.currentTransaction.protocolState,
       };
       this._executionState = s;
       return s;
     }
   }
 
-  get protocolState(): ProtocolStatePredicate {
-    return this.executionState().protocolStatePredicate;
-  }
+  // get protocolState(): ProtocolStatePredicate {
+  //   return this.executionState().party.body.protocolState;
+  // }
 
   get self() {
     return this.executionState().party;
@@ -522,7 +520,6 @@ type ExecutionState = {
   transactionId: number;
   partyIndex: number;
   party: Party & { predicate: AccountPredicate };
-  protocolStatePredicate: ProtocolStatePredicate;
 };
 
 function emptyWitness<A>(typ: AsFieldElements<A>) {
@@ -530,4 +527,66 @@ function emptyWitness<A>(typ: AsFieldElements<A>) {
   return Circuit.witness(typ, () =>
     typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero))
   );
+}
+
+// functions designed to be called from a CLI
+
+function deploy<S extends typeof SmartContract>(
+  SmartContract: S,
+  address: PublicKey,
+  verificationKey: string
+) {
+  let i = 0;
+  let tx = Mina.createUnsignedTransaction(() => {
+    let snapp = new SmartContract(address);
+    snapp.deploy();
+    i = Mina.currentTransaction!.nextPartyIndex - 1;
+    snapp.self.update.verificationKey.set = Bool(true);
+    snapp.self.update.verificationKey.value = verificationKey;
+  });
+  return tx.toJSON();
+  // TODO modifying the json after calling to ocaml would avoid deserializing & then serializing the vk
+  // but need to compute hash
+  // let parties = JSON.parse(tx.toJSON()); // TODO: if we do this anyway, we might want to return the parsed JSON
+  // parties.otherParties[i].data.body.update.verificationKey = {
+  //   set: Bool(true),
+  //   value: {data: verificationKey, hash: Field.zero /* TODO */ },
+  // };
+  // return JSON.stringify(parties);
+}
+
+function compile<S extends typeof SmartContract>(
+  SmartContract: S,
+  address: PublicKey
+) {
+  let { getVerificationKeyArtifact } = SmartContract.compile(address);
+  return {
+    verificationKey: getVerificationKeyArtifact(),
+  };
+}
+
+// alternative API which can replace decorators, works in pure JS
+
+function declareState<T extends typeof SmartContract>(
+  SmartContract: T,
+  states: Record<string, AsFieldElements<unknown>>
+) {
+  for (let key in states) {
+    let CircuitValue = states[key];
+    state(CircuitValue)(SmartContract.prototype, key);
+  }
+}
+
+function declareMethodArguments<T extends typeof SmartContract>(
+  SmartContract: T,
+  methodArguments: Record<string, AsFieldElements<unknown>[]>
+) {
+  for (let key in methodArguments) {
+    let argumentTypes = methodArguments[key];
+    Reflect.metadata('design:paramtypes', argumentTypes)(
+      SmartContract.prototype,
+      key
+    );
+    method(SmartContract.prototype, key as any);
+  }
 }

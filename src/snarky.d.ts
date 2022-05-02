@@ -689,7 +689,8 @@ interface Int64_ {
 interface PartyUpdate {
   appState: Array<SetOrKeep_<Field>>;
   delegate: SetOrKeep_<{ g: Group }>;
-  // TODO: Verification key
+  votingFor: SetOrKeep_<Field>;
+  verificationKey: SetOrKeep_<string>;
   // TODO: permissions
   // TODO: snapp uri
   // TODO: token symbol
@@ -699,12 +700,15 @@ interface PartyUpdate {
 interface PartyBody {
   publicKey: { g: Group };
   update: PartyUpdate;
-  tokenId: UInt32_;
+  tokenId: Field;
   delta: Int64_;
   events: Array<Array<Field>>;
   sequenceEvents: Array<Array<Field>>;
   callData: Field;
   depth: number;
+  protocolState: ProtocolStatePredicate_;
+  useFullCommitment: Bool;
+  incrementNonce: Bool;
 }
 
 interface FullAccountPredicate_ {
@@ -736,7 +740,6 @@ interface FeePayerParty {
 interface Parties {
   feePayer: FeePayerParty;
   otherParties: Array<Party_>;
-  protocolState: ProtocolStatePredicate_;
 }
 
 interface SnappAccount {
@@ -772,6 +775,9 @@ export class Ledger {
     partyHash: Field,
     protocolStateHash: Field
   ): Field;
+
+  static partiesToJson(parties: Parties): string;
+  static partiesToGraphQL(parties: Parties): string;
 }
 
 /**
@@ -786,4 +792,10 @@ export const shutdown: () => Promise<undefined>;
  */
 export let isReady: Promise<undefined>;
 
-export let picklesCompile: (...args: any) => any;
+type Statement = { transaction: Field; atParty: Field };
+
+export let picklesCompile: (...args: any) => {
+  getVerificationKeyArtifact: () => string;
+  provers: ((statement: Statement) => Promise<unknown>)[];
+  verify: (statement: Statement, proof: unknown) => Promise<boolean>;
+};
