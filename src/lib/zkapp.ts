@@ -664,26 +664,28 @@ async function callUnproved<S extends typeof SmartContract>(
   return txJson;
 }
 
-async function addFeePayer(
-  parties: Parties,
+function addFeePayer(
+  { feePayer, otherParties }: Parties,
   feePayerKey: PrivateKey | string,
   {
     transactionFee = 0 as number | string,
     feePayerNonce = undefined as number | string | undefined,
   }
 ) {
-  let { feePayer } = parties;
   if (typeof feePayerKey === 'string')
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
   if (feePayerNonce === undefined) {
-    let senderAccount = await Mina.getAccount(senderAddress);
+    let senderAccount = Mina.getAccount(senderAddress);
     feePayerNonce = senderAccount.nonce.toString();
   }
   feePayer.body.accountPrecondition = UInt32.fromString(`${feePayerNonce}`);
   feePayer.body.publicKey = senderAddress;
   feePayer.balance.subInPlace(UInt64.fromString(`${transactionFee}`));
-  parties.feePayer = feePayer.sign(feePayerKey);
+  return {
+    feePayer: feePayer.sign(feePayerKey),
+    otherParties: otherParties.map((o) => o.copy()),
+  };
 }
 
 async function signFeePayer(
