@@ -712,23 +712,9 @@ interface PartyUpdate {
   votingFor: SetOrKeep_<Field>;
   verificationKey: SetOrKeep_<string>;
   permissions: SetOrKeep_<Permissions_>;
-  // TODO: snapp uri
+  // TODO: zkapp uri
   // TODO: token symbol
   // TODO: timing
-}
-
-interface PartyBody {
-  publicKey: { g: Group };
-  update: PartyUpdate;
-  tokenId: Field;
-  delta: Int64_;
-  events: Array<Array<Field>>;
-  sequenceEvents: Array<Array<Field>>;
-  callData: Field;
-  depth: number;
-  protocolState: ProtocolStatePredicate_;
-  useFullCommitment: Bool;
-  incrementNonce: Bool;
 }
 
 interface FullAccountPredicate_ {
@@ -747,22 +733,47 @@ type AccountPredicate_ =
   | { kind: 'nonce'; value: UInt32_ }
   | { kind: 'full'; value: FullAccountPredicate_ };
 
+interface PartyBody {
+  publicKey: { g: Group };
+  update: PartyUpdate;
+  tokenId: Field;
+  delta: Int64_;
+  events: Array<Array<Field>>;
+  sequenceEvents: Array<Array<Field>>;
+  callData: Field;
+  depth: number;
+  protocolState: ProtocolStatePredicate_;
+  accountPrecondition: AccountPredicate_;
+  useFullCommitment: Bool;
+  incrementNonce: Bool;
+}
+interface FeePayerPartyBody {
+  publicKey: { g: Group };
+  update: PartyUpdate;
+  tokenId: Field;
+  delta: Int64_;
+  events: Array<Array<Field>>;
+  sequenceEvents: Array<Array<Field>>;
+  callData: Field;
+  depth: number;
+  protocolState: ProtocolStatePredicate_;
+  accountPrecondition: UInt32_;
+  useFullCommitment: Bool;
+  incrementNonce: Bool;
+}
+
 type Control =
   | { kind: 'none' }
   | { kind: 'signature'; value: string }
   | { kind: 'proof'; value: string };
 
 interface Party_ {
-  data: {
-    body: PartyBody;
-    predicate: AccountPredicate_;
-  };
+  body: PartyBody;
   authorization: Control;
 }
 
 interface FeePayerParty {
-  body: PartyBody;
-  predicate: UInt32_;
+  body: FeePayerPartyBody;
 }
 
 interface Parties {
@@ -770,7 +781,7 @@ interface Parties {
   otherParties: Array<Party_>;
 }
 
-interface SnappAccount {
+interface ZkappAccount {
   appState: Array<Field>;
 }
 
@@ -778,7 +789,7 @@ interface Account {
   publicKey: { g: Group };
   balance: UInt64_;
   nonce: UInt32_;
-  snapp: SnappAccount;
+  zkapp: ZkappAccount;
 }
 
 export class Ledger {

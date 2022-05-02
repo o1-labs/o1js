@@ -1,4 +1,4 @@
-// this is a pure JS version of the simple_snapp.ts example, that could be the starting point
+// this is a pure JS version of the simple_zkapp.ts example, that could be the starting point
 // to develop a more explicit, less pretty API without decorators, which would have the huge benefit
 // of working without a custom TS config and even without TS at all
 
@@ -20,7 +20,7 @@ await isReady;
 const initialBalance = 1_000_000;
 const initialState = Field(1);
 
-class SimpleSnapp extends SmartContract {
+class SimpleZkapp extends SmartContract {
   constructor(address) {
     super(address);
     this.x = State();
@@ -38,25 +38,25 @@ class SimpleSnapp extends SmartContract {
     // this.x.set(x.add(y));
   }
 }
-declareState(SimpleSnapp, { x: Field });
-declareMethodArguments(SimpleSnapp, { update: [Field] });
+declareState(SimpleZkapp, { x: Field });
+declareMethodArguments(SimpleZkapp, { update: [Field] });
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 let account1 = Local.testAccounts[0].privateKey;
 let account2 = Local.testAccounts[1].privateKey;
-let snappPrivKey = PrivateKey.random();
-let snappPubKey = snappPrivKey.toPublicKey();
+let zkappPrivKey = PrivateKey.random();
+let zkappPubKey = zkappPrivKey.toPublicKey();
 
 console.log('compile...');
 console.time('compile');
-let { provers, verify } = SimpleSnapp.compile(snappPubKey);
+let { provers, verify } = SimpleZkapp.compile(zkappPubKey);
 console.timeEnd('compile');
 
 // console.log('prove...');
 // console.time('prove');
-// let snapp = new SimpleSnapp(snappPubKey);
-// let proofPromise = snapp.prove(provers, 'update', [Field(3)]);
+// let zkapp = new SimpleZkapp(zkappPubKey);
+// let proofPromise = zkapp.prove(provers, 'update', [Field(3)]);
 // console.log({ proofPromise });
 // let { proof, statement } = await proofPromise;
 // console.timeEnd('prove');
@@ -64,21 +64,21 @@ console.timeEnd('compile');
 
 console.log('deploy');
 let txn = Mina.transaction(account1, () => {
-  let snapp = new SimpleSnapp(snappPubKey);
-  snapp.deploy();
+  let zkapp = new SimpleZkapp(zkappPubKey);
+  zkapp.deploy();
 });
 
 txn.send().wait();
-var snappState = (await Mina.getAccount(snappPubKey)).snapp.appState[0];
-console.log('initial state: ' + snappState);
+var zkappState = (await Mina.getAccount(zkappPubKey)).zkapp.appState[0];
+console.log('initial state: ' + zkappState);
 
 await Mina.transaction(account1, () => {
-  let snapp = new SimpleSnapp(snappPubKey);
-  snapp.update(Field(3));
+  let zkapp = new SimpleZkapp(zkappPubKey);
+  zkapp.update(Field(3));
 })
   .send()
   .wait();
-snappState = (await Mina.getAccount(snappPubKey)).snapp.appState[0];
-console.log('final state: ' + snappState);
+zkappState = (await Mina.getAccount(zkappPubKey)).zkapp.appState[0];
+console.log('final state: ' + zkappState);
 
 shutdown();

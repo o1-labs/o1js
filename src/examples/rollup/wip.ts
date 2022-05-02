@@ -169,19 +169,19 @@ type OperatorsDb = InstanceType<typeof OperatorsDb>;
 
 // Rollup proof system itself (executed off chain)
 
-// Rollup snapp
+// Rollup zkapp
 
 /*
   There is a database of accounts that exists offchain ("hosted" on IPFS)
     - rollup state
 
   There is a database of permissioned rollup operator public keys, that's private
-  and stored on the disk of the owner of this snapp account.
+  and stored on the disk of the owner of this zkapp account.
 
   - if you're the owner, you can add a permissioned operator to the set of operators
     - you can only do this every 20 slots
   - if you're a user, you can deposit funds into the rollup (in the future you can withdraw too)
-  - if you're a rollup operator, you can post a rollup proof to the snapp account and thus
+  - if you're a rollup operator, you can post a rollup proof to the zkapp account and thus
     update its state
 
 
@@ -192,7 +192,7 @@ type OperatorsDb = InstanceType<typeof OperatorsDb>;
 */
 
 /*
-A snapp transaction is a list of permissioned, precondition, updates
+A zkapp transaction is a list of permissioned, precondition, updates
 
 - where a permission is a proof or a signature or nothing
 - a precondition is a series of assertions about the current state on Mina
@@ -218,19 +218,19 @@ A smart contract is basically
 
   the @state decorator is used to list out the onchain state
 - a list of circuits all of which have as their public input
-  the same thing, which is essentially a snapp transaction
+  the same thing, which is essentially a zkapp transaction
   
-  - snapp transaction
+  - zkapp transaction
     - pr
   
   the @method decorator is used to list out all these circuits
 
-  and each individual circuit basically checks, "is this snapp
+  and each individual circuit basically checks, "is this zkapp
   transaction (i.e., the one currently being constructed) 
   acceptable to me"
 */
 
-class RollupSnapp extends SmartContract {
+class RollupZkapp extends SmartContract {
   @state(Field) operatorsCommitment = State<Field>(); // state slot 0
   @state(RollupState) rollupState = State<RollupState>(); // state slots 1, 2
   // RollupState public rollupState;
@@ -241,14 +241,14 @@ class RollupSnapp extends SmartContract {
 
   // maybe try something like react state hooks?
 
-  static instanceOnChain(address: PublicKey): RollupSnapp {
+  static instanceOnChain(address: PublicKey): RollupZkapp {
     throw 'instanceonchain';
   }
 
   static periodLength = 5;
   static newOperatorGapSlots = 20;
   static newOperatorGapPeriods =
-    RollupSnapp.newOperatorGapSlots / RollupSnapp.periodLength;
+    RollupZkapp.newOperatorGapSlots / RollupZkapp.periodLength;
 
   deploy(
     senderAmount: UInt64,
@@ -278,8 +278,8 @@ class RollupSnapp extends SmartContract {
     pk: PublicKey,
     s: Signature
   ) {
-    let period = submittedSlot.div(RollupSnapp.periodLength);
-    let startSlot = period.mul(RollupSnapp.periodLength);
+    let period = submittedSlot.div(RollupZkapp.periodLength);
+    let startSlot = period.mul(RollupZkapp.periodLength);
 
     /*
     this.deferToOnChain((onChainState) => {
@@ -290,7 +290,7 @@ class RollupSnapp extends SmartContract {
     *
     precondition.network({ protocolState } => {
       protocolState.globalSlotSinceGenesis.assertBetween(
-        startSlot, startSlot.add(RollupSnapp.periodLength));
+        startSlot, startSlot.add(RollupZkapp.periodLength));
       )
     })
 
@@ -302,7 +302,7 @@ class RollupSnapp extends SmartContract {
 
     /*
     this.protocolState.globalSlotSinceGenesis.assertBetween(
-      startSlot, startSlot.add(RollupSnapp.periodLength));
+      startSlot, startSlot.add(RollupZkapp.periodLength));
       */
 
     // Check it has been a while since the last addition of a new
@@ -310,7 +310,7 @@ class RollupSnapp extends SmartContract {
     /*
     period.assertGt(
       this.lastUpdatedPeriod.get()
-      .add(RollupSnapp.newOperatorGapPeriods)
+      .add(RollupZkapp.newOperatorGapPeriods)
     );
     */
     this.lastUpdatedPeriod.set(period);
@@ -357,7 +357,7 @@ class RollupSnapp extends SmartContract {
     operator: PublicKey,
     operatorSignature: Signature
   ) {
-    // What you can actually do with snapp state fields is
+    // What you can actually do with zkapp state fields is
     // - assert that they have a given value
     // - set them to a new value
     /*
@@ -383,8 +383,8 @@ function main() {
   Local.addAccount(minaSender.toPublicKey(), largeValue);
 
   // TODO: Put real value
-  let snappOwnerKey = PrivateKey.random();
-  let snappPubkey = snappOwnerKey.toPublicKey();
+  let zkappOwnerKey = PrivateKey.random();
+  let zkappPubkey = zkappOwnerKey.toPublicKey();
   console.log(0);
 
   let depositorPrivkey = PrivateKey.random();
@@ -405,7 +405,7 @@ function main() {
   let newOperatorPubkey = newOperatorPrivkey.toPublicKey();
   let currentSlot = Mina.currentSlot();
   let message = currentSlot.toFields().concat(newOperatorPubkey.toFields());
-  let signature = Signature.create(snappOwnerKey, message);
+  let signature = Signature.create(zkappOwnerKey, message);
   console.log(3);
 
   let accountKey = (a: RollupAccount) => a.publicKey;
@@ -420,7 +420,7 @@ function main() {
 
   let pendingDeposits = new MerkleStack<RollupDeposit>(RollupDeposit, () => []); // todo: storage
 
-  let RollupInstance: RollupSnapp;
+  let RollupInstance: RollupZkapp;
 
   console.log(4);
 
@@ -428,7 +428,7 @@ function main() {
   // TODO: Make sure that modifications to data stores are not
   // committed before corresponding changes happen on chain
 
-  // Executes a snapp method, broadcasts the transaction to chain.
+  // Executes a zkapp method, broadcasts the transaction to chain.
   return Mina.getAccount(minaSender.toPublicKey())
     .then((a) => {
       console.log('sender account', JSON.stringify(a));
@@ -439,7 +439,7 @@ function main() {
 
         return Party.createSigned(depositorPrivkey).then((p) => {
           p.body.delta = Int64.fromUnsigned(amount).neg();
-          RollupInstance = new RollupSnapp(snappPubkey);
+          RollupInstance = new RollupZkapp(zkappPubkey);
           RollupInstance.deploy(
             amount,
             operatorsDb,
@@ -454,7 +454,7 @@ function main() {
     )
     .then(() => {
       console.log('after init');
-      return Mina.getAccount(snappPubkey)
+      return Mina.getAccount(zkappPubkey)
         .then((a) => {
           console.log('got account', JSON.stringify(a));
         })

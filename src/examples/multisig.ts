@@ -3,7 +3,7 @@ import { Circuit, Field, AsField, toFields, ofFields, sizeInFields, Bool } from 
 import { poseidon } from './poseidon';
 import { Group, Scalar } from './group';
 import { prop, CircuitValue, Tuple } from './circuit_value';
-import { PublicKey, MerkleCollection, MerkleProof, Amount, Nonce, Permission, Permissions, Snapp, method } from './mina';
+import { PublicKey, MerkleCollection, MerkleProof, Amount, Nonce, Permission, Permissions, Zkapp, method } from './mina';
 
 class Signature extends CircuitValue {
   @prop r: Field;
@@ -25,7 +25,7 @@ class Signature extends CircuitValue {
   }
 };
 
-// A snapp for 2-of-n multisig
+// A zkapp for 2-of-n multisig
 type sigsNeeded = 2;
 
 class SendData extends CircuitValue {
@@ -62,7 +62,7 @@ class MemberSignature extends CircuitValue {
   }
 }
 
-class CanReceiveIfYouSudokoSolution extends Snapp {
+class CanReceiveIfYouSudokoSolution extends Zkapp {
   @method receive(s : SudokuSolution) {
     ...
   }
@@ -85,7 +85,7 @@ class TheApplication {
 - server batches state updates with a rollup
 - broadcasts to chain
 
-users ->HTTP-> application operator -batch proof-> construct snapp transaction and broadcast to chain
+users ->HTTP-> application operator -batch proof-> construct zkapp transaction and broadcast to chain
 */
 
 /*
@@ -94,15 +94,15 @@ let sudokuGuardedReceiver : CanReceiveIfYouSudokoSolution = ..;
 
 let sudokuSolution = ..;
 let multiSigSendData = ..;
-let c = new SnappContext();
+let c = new ZkappContext();
 c.run(privateMultisigAccount.send(multiSigSendData));
 c.run(sudokuGuardedReceiver.receive(sudokuSolution));
 c.execute(); // Generate 2 proofs, construct the transaction, submit to the chain
 
 
-class PrivateMultisig extends Snapp {
+class PrivateMultisig extends Zkapp {
   keys: MerkleCollection<PublicKey>;
-  // TODO: Use state decorator to provide mapping of snapp state onto class properties
+  // TODO: Use state decorator to provide mapping of zkapp state onto class properties
 
   @method init() {
     this.permissions.receive = Permission.NoAuthRequired;
@@ -114,8 +114,8 @@ class PrivateMultisig extends Snapp {
 
   // The arguments here are witness data used by the prover
   @method send(w: SendData) {
-    // The transaction property is automatically available (via the snapp decorator)
-    // and corresponds to the transaction commitment which is part of the snapp statement.
+    // The transaction property is automatically available (via the zkapp decorator)
+    // and corresponds to the transaction commitment which is part of the zkapp statement.
     const transaction = this.transaction();
     const self = transaction.parties.get(0);
     self.nonce.assertEqual(w.nonce);
@@ -135,7 +135,7 @@ class PrivateMultisig extends Snapp {
 
   // This method is redundant given permissions
   @method receive(amount: Amount) {
-    // The snapp statement also contains the snapp party-list at the current position,
+    // The zkapp statement also contains the zkapp party-list at the current position,
     // accessible via transaction.self()
     const self = this.transaction().self();
     self.nonce.ignore();

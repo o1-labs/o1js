@@ -1,14 +1,13 @@
 import { Field, state, State, method, SmartContract } from 'snarkyjs';
 
-export { SimpleSnapp as default };
+export { SimpleZkapp as default };
 
 const initialState = 10;
 
-class SimpleSnapp extends SmartContract {
+class SimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
 
   deploy() {
-    super.deploy();
     this.x.set(Field(initialState));
   }
 

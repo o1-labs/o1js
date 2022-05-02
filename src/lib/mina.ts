@@ -1,17 +1,10 @@
 // This is for an account where any of a list of public keys can update the state
 
-import {
-  Circuit,
-  Ledger,
-  Field,
-  FeePayerParty,
-  Parties,
-  Party_,
-} from '../snarky';
+import { Circuit, Ledger, Field, FeePayerParty, Parties } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
 import { Body, Party } from './party';
-import { toParty, toPartyBody } from './party-conversion';
+import { toFeePayerPartyBody, toParty } from './party-conversion';
 
 export { createUnsignedTransaction, createSignedTransaction };
 
@@ -23,14 +16,14 @@ interface Transaction {
   send(): TransactionId;
 }
 
-interface SnappAccount {
+interface ZkappAccount {
   appState: Array<Field>;
 }
 
 interface Account {
   balance: UInt64;
   nonce: UInt32;
-  snapp: SnappAccount;
+  zkapp: ZkappAccount;
 }
 
 export let nextTransactionId: { value: number } = { value: 0 };
@@ -88,14 +81,14 @@ function createTransaction(sender: PrivateKey | undefined, f: () => unknown) {
     const senderPubkey = sender.toPublicKey();
     let senderAccount = getAccount(senderPubkey);
     feePayer = {
-      body: toPartyBody(Body.keepAll(senderPubkey)),
-      predicate: senderAccount.nonce,
+      body: toFeePayerPartyBody(
+        Body.keepAllWithNonce(senderPubkey, senderAccount.nonce)
+      ),
     };
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
     feePayer = {
-      body: toPartyBody(Body.dummy()),
-      predicate: UInt32.zero,
+      body: toFeePayerPartyBody(Body.dummyFeePayer()),
     };
   }
 
@@ -112,7 +105,7 @@ function createTransaction(sender: PrivateKey | undefined, f: () => unknown) {
     toGraphQL() {
       return `mutation MyMutation {
         __typename
-        sendSnapp(input: ${Ledger.partiesToGraphQL(txn)})}`;
+        sendZkapp(input: ${Ledger.partiesToGraphQL(txn)})}`;
     },
   };
 }
@@ -154,7 +147,7 @@ export function LocalBlockchain() {
     testAccounts.push({ privateKey: k, publicKey: pk });
   }
 
-  function getAccount(pk: PublicKey) {
+  function getAccount(pk: PublicKey): Account {
     const r = ledger.getAccount(pk);
     if (r == undefined) {
       throw new Error(
@@ -164,7 +157,7 @@ export function LocalBlockchain() {
       const a = {
         balance: new UInt64(r.balance.value),
         nonce: new UInt32(r.nonce.value),
-        snapp: r.snapp,
+        zkapp: r.zkapp,
       };
       return a;
     }

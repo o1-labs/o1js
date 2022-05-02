@@ -9,7 +9,7 @@ import {
 } from '../snarky';
 import { CircuitValue } from './circuit_value';
 import {
-  AccountPredicate,
+  AccountPrecondition,
   ProtocolStatePredicate,
   Body,
   Party,
@@ -52,19 +52,19 @@ function createState<A>() {
     _key: undefined as never as string, // defined by @state
     _ty: undefined as never as AsFieldElements<A>, // defined by @state
     _this: undefined as any, // defined by @state
-    _SnappClass: undefined as never as SmartContract & { _layout: () => any }, // defined by @state
+    _ZkappClass: undefined as never as SmartContract & { _layout: () => any }, // defined by @state
 
-    _init(key: string, ty: AsFieldElements<A>, _this: any, SnappClass: any) {
+    _init(key: string, ty: AsFieldElements<A>, _this: any, ZkappClass: any) {
       this._initialized = true;
       this._key = key;
       this._ty = ty;
       this._this = _this;
-      this._SnappClass = SnappClass;
+      this._ZkappClass = ZkappClass;
     },
 
     getLayout() {
       const layout: Map<string, { offset: number; length: number }> =
-        this._SnappClass._layout();
+        this._ZkappClass._layout();
       const r = layout.get(this._key);
       if (r === undefined) {
         throw new Error(`state ${this._key} not found`);
@@ -96,8 +96,10 @@ function createState<A>() {
       let e: ExecutionState = this._this.executionState();
 
       xs.forEach((x, i) => {
-        e.party.predicate.state[r.offset + i].check = new Bool(true);
-        e.party.predicate.state[r.offset + i].value = x;
+        e.party.body.accountPrecondition.state[r.offset + i].check = new Bool(
+          true
+        );
+        e.party.body.accountPrecondition.state[r.offset + i].value = x;
       });
     },
 
@@ -116,7 +118,7 @@ function createState<A>() {
 
         const xs: Field[] = [];
         for (let i = 0; i < r.length; ++i) {
-          xs.push(a.snapp.appState[r.offset + i]);
+          xs.push(a.zkapp.appState[r.offset + i]);
         }
         p = Circuit.witness(Circuit.array(Field, r.length), () => xs);
       } else {
@@ -139,9 +141,9 @@ type InternalStateType = ReturnType<typeof createState>;
 const reservedPropNames = new Set(['_states', '_layout', '_methods', '_']);
 
 /**
- * A decorator to use within a snapp to indicate what will be stored on-chain.
- * For example, if you want to store a field element `some_state` in a snapp,
- * you can use the following in the declaration of your snapp:
+ * A decorator to use within a zkapp to indicate what will be stored on-chain.
+ * For example, if you want to store a field element `some_state` in a zkapp,
+ * you can use the following in the declaration of your zkapp:
  *
  * ```
  * @state(Field) some_state = State<Field>();
@@ -154,10 +156,10 @@ export function state<A>(ty: AsFieldElements<A>) {
     key: string,
     _descriptor?: PropertyDescriptor
   ) {
-    const SnappClass = target.constructor;
+    const ZkappClass = target.constructor;
     // TBD: I think the runtime error below is unnecessary, because having target: SmartContract
     // means TS will not let the code build if @state is used on an incompatible class
-    // if (!(SnappClass.prototype instanceof SmartContract)) {
+    // if (!(ZkappClass.prototype instanceof SmartContract)) {
     //   throw Error(
     //     'Can only use @state decorator on classes that extend SmartContract'
     //   );
@@ -175,15 +177,15 @@ export function state<A>(ty: AsFieldElements<A>) {
       throw Error(`Property name ${key} is reserved.`);
     }
 
-    if (SnappClass._states == undefined) {
-      SnappClass._states = [];
+    if (ZkappClass._states == undefined) {
+      ZkappClass._states = [];
       let layout: Map<string, { offset: number; length: number }>;
-      SnappClass._layout = () => {
+      ZkappClass._layout = () => {
         if (layout === undefined) {
           layout = new Map();
 
           let offset = 0;
-          SnappClass._states.forEach(([key, ty]: [any, any]) => {
+          ZkappClass._states.forEach(([key, ty]: [any, any]) => {
             let length = ty.sizeInFields();
             layout.set(key, { offset, length });
             offset += length;
@@ -194,7 +196,7 @@ export function state<A>(ty: AsFieldElements<A>) {
       };
     }
 
-    SnappClass._states.push([key, ty]);
+    ZkappClass._states.push([key, ty]);
 
     Object.defineProperty(target, key, {
       get(this) {
@@ -206,7 +208,7 @@ export function state<A>(ty: AsFieldElements<A>) {
             'A State should only be assigned once to a SmartContract'
           );
         if (this._?.[key]) throw Error('A @state should only be assigned once');
-        v._init(key, ty, this, SnappClass);
+        v._init(key, ty, this, ZkappClass);
         (this._ ?? (this._ = {}))[key] = v;
       },
     });
@@ -214,8 +216,8 @@ export function state<A>(ty: AsFieldElements<A>) {
 }
 
 /**
- * A decorator to use in a snapp to mark a method as callable by anyone.
- * You can use inside your snapp class as:
+ * A decorator to use in a zkapp to mark a method as callable by anyone.
+ * You can use inside your zkapp class as:
  *
  * ```
  * @method myMethod(someArg: Field) {
@@ -228,7 +230,7 @@ export function method<T extends SmartContract>(
   methodName: keyof T & string,
   _descriptor?: PropertyDescriptor
 ) {
-  const SnappClass = target.constructor;
+  const ZkappClass = target.constructor;
   if (reservedPropNames.has(methodName)) {
     throw Error(`Property name ${methodName} is reserved.`);
   }
@@ -255,8 +257,8 @@ export function method<T extends SmartContract>(
       );
     }
   }
-  SnappClass._methods ??= [];
-  SnappClass._methods.push({
+  ZkappClass._methods ??= [];
+  ZkappClass._methods.push({
     methodName,
     witnessArgs,
     proofArgs,
@@ -314,7 +316,10 @@ function checkStatement(
 }
 
 let mainContext = undefined as
-  | { witnesses?: unknown[]; self: Party & { predicate: AccountPredicate } }
+  | {
+      witnesses?: unknown[];
+      self: Party & { body: { accountPrecondition: AccountPrecondition } };
+    }
   | undefined;
 
 function withContext<T>(context: typeof mainContext, f: () => T) {
@@ -350,7 +355,7 @@ function picklesRuleFromFunction(
 }
 
 /**
- * The main snapp class. To write a snapp, extend this class as such:
+ * The main zkapp class. To write a zkapp, extend this class as such:
  *
  * ```
  * class YourSmartContract extends SmartContract {
@@ -391,8 +396,8 @@ export class SmartContract {
   }
 
   async prove(provers: any[], methodName: keyof this, args: unknown[]) {
-    let SnappClass = this.constructor as never as typeof SmartContract;
-    let i = SnappClass._methods!.findIndex((m) => m.methodName === methodName);
+    let ZkappClass = this.constructor as never as typeof SmartContract;
+    let i = ZkappClass._methods!.findIndex((m) => m.methodName === methodName);
     if (!(i + 1)) throw Error(`Method ${methodName} not found!`);
     let ctx = { self: Party.defaultParty(this.address) };
     let [statement, selfParty] = Circuit.runAndCheckSync(() => {
@@ -418,8 +423,8 @@ export class SmartContract {
   }
 
   async runAndCheck(methodName: keyof this, args: unknown[]) {
-    let SnappClass = this.constructor as never as typeof SmartContract;
-    let i = SnappClass._methods!.findIndex((m) => m.methodName === methodName);
+    let ZkappClass = this.constructor as never as typeof SmartContract;
+    let i = ZkappClass._methods!.findIndex((m) => m.methodName === methodName);
     if (!(i + 1)) throw Error(`Method ${methodName} not found!`);
     let ctx = { self: Party.defaultParty(this.address) };
     let [statement, selfParty] = Circuit.runAndCheckSync(() => {
@@ -446,7 +451,9 @@ export class SmartContract {
       return {
         transactionId: 0,
         partyIndex: 0,
-        party: mainContext.self as Party & { predicate: AccountPredicate },
+        party: mainContext.self as Party & {
+          body: { accountPrecondition: AccountPrecondition };
+        },
       };
     }
 
@@ -463,9 +470,8 @@ export class SmartContract {
       const id = Mina.nextTransactionId.value;
       const index = Mina.currentTransaction.nextPartyIndex++;
       const body = Body.keepAll(this.address);
-      const predicate = AccountPredicate.ignoreAll();
-      const party = new Party(body, predicate) as Party & {
-        predicate: AccountPredicate;
+      const party = new Party(body) as Party & {
+        body: { accountPrecondition: AccountPrecondition };
       };
       Mina.currentTransaction.parties.push(party);
 
@@ -503,7 +509,10 @@ export class SmartContract {
       nonce = res;
     }
 
-    this.executionState().party.predicate.nonce.assertBetween(nonce, nonce);
+    this.executionState().party.body.accountPrecondition.nonce.assertBetween(
+      nonce,
+      nonce
+    );
     return nonce;
   }
 
@@ -525,7 +534,9 @@ export class SmartContract {
 type ExecutionState = {
   transactionId: number;
   partyIndex: number;
-  party: Party & { predicate: AccountPredicate };
+  party: Party & {
+    body: { accountPrecondition: AccountPrecondition };
+  };
 };
 
 function emptyWitness<A>(typ: AsFieldElements<A>) {
@@ -573,14 +584,14 @@ async function deploy<S extends typeof SmartContract>(
       party.balance.subInPlace(amount);
     }
     // main party: the zkapp account
-    let snapp = new SmartContract(address);
-    (snapp as any).deploy?.();
+    let zkapp = new SmartContract(address);
+    (zkapp as any).deploy?.();
     i = Mina.currentTransaction!.nextPartyIndex - 1;
-    snapp.self.update.verificationKey.set = Bool(true);
-    snapp.self.update.verificationKey.value = verificationKey;
+    zkapp.self.update.verificationKey.set = Bool(true);
+    zkapp.self.update.verificationKey.value = verificationKey;
     if (initialBalance !== undefined) {
       let amount = UInt64.fromString(String(initialBalance));
-      snapp.self.balance.addInPlace(amount);
+      zkapp.self.balance.addInPlace(amount);
     }
   });
   // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
@@ -604,8 +615,8 @@ async function call<S extends typeof SmartContract>(
   methodArguments: any,
   provers: ((statement: Statement) => Promise<unknown>)[]
 ) {
-  let snapp = new SmartContract(address);
-  let { selfParty, proof, statement } = await snapp.prove(
+  let zkapp = new SmartContract(address);
+  let { selfParty, proof, statement } = await zkapp.prove(
     provers,
     methodName as any,
     methodArguments
@@ -627,8 +638,8 @@ async function callUnproved<S extends typeof SmartContract>(
   methodArguments: any,
   zkappKey?: PrivateKey
 ) {
-  let snapp = new SmartContract(address);
-  let { selfParty, statement } = await snapp.runAndCheck(
+  let zkapp = new SmartContract(address);
+  let { selfParty, statement } = await zkapp.runAndCheck(
     methodName as any,
     methodArguments
   );
@@ -649,10 +660,9 @@ async function signJsonTransaction(
   let parties = JSON.parse(transactionJson);
   let senderAddress = senderKey.toPublicKey();
   let senderAccount = await Mina.getAccount(senderAddress);
-  parties.feePayer.data.predicate = senderAccount.nonce.toString();
-  parties.feePayer.data.body.publicKey =
-    Ledger.publicKeyToString(senderAddress);
-  parties.feePayer.data.body.balanceChange = `${transactionFee}`;
+  parties.feePayer.body.accountPrecondition = senderAccount.nonce.toString();
+  parties.feePayer.body.publicKey = Ledger.publicKeyToString(senderAddress);
+  parties.feePayer.body.balanceChange = `${transactionFee}`;
   return Ledger.signFeePayer(JSON.stringify(parties), senderKey);
 }
 

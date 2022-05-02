@@ -15,7 +15,7 @@ export const GlobalSlot = UInt32;
 export type SignedAmount = Int64;
 export const SignedAmount = Int64;
 
-const SnappStateLength: number = 8;
+const ZkappStateLength: number = 8;
 
 /**
  * Timing info inside an account.
@@ -74,7 +74,7 @@ export type WithHash<T, H> = {
 /**
  * One specific permission value.
  *
- * A [[ Perm ]] tells one specific permission for our snapp how it should behave
+ * A [[ Perm ]] tells one specific permission for our zkapp how it should behave
  * when presented with requested modifications.
  *
  * Use static factory methods on this class to use a specific behavior. See
@@ -111,7 +111,7 @@ export class Perm {
   }
 
   /**
-   * Modification is permitted by proofs within the Snapp only
+   * Modification is permitted by proofs within the Zkapp only
    */
   static proof() {
     return new Perm(new Bool(false), new Bool(false), new Bool(false));
@@ -143,7 +143,7 @@ export class Perm {
 }
 
 /**
- * Permissions specify how specific aspects of the Snapp account are allowed to
+ * Permissions specify how specific aspects of the Zkapp account are allowed to
  * be modified. Most fields are denominated by a [[ Perm ]].
  */
 export class Permissions {
@@ -189,7 +189,7 @@ export class Permissions {
   setVerificationKey: Perm;
 
   /**
-   * The [[ Perm ]] corresponding to the ability to set the snapp uri typically
+   * The [[ Perm ]] corresponding to the ability to set the zkapp uri typically
    * pointing to the source code of the smart contract. Usually this should be
    * changed whenever the [[ Permissions.setVerificationKey ]] is changed.
    * Effectively "upgradability" of the smart contract.
@@ -282,7 +282,7 @@ export class Update {
   delegate: SetOrKeep<PublicKey>;
   verificationKey: SetOrKeep<string>;
   permissions: SetOrKeep<Permissions>;
-  snappUri: SetOrKeep<String_>;
+  zkappUri: SetOrKeep<String_>;
   tokenSymbol: SetOrKeep<TokenSymbol>;
   timing: SetOrKeep<Timing>;
   votingFor: SetOrKeep<Field>;
@@ -292,7 +292,7 @@ export class Update {
     delegate: SetOrKeep<PublicKey>,
     verificationKey: SetOrKeep<string>,
     permissions: SetOrKeep<Permissions>,
-    snappUri: SetOrKeep<String_>,
+    zkappUri: SetOrKeep<String_>,
     tokenSymbol: SetOrKeep<TokenSymbol>,
     timing: SetOrKeep<Timing>,
     votingFor: SetOrKeep<Field>
@@ -301,7 +301,7 @@ export class Update {
     this.delegate = delegate;
     this.verificationKey = verificationKey;
     this.permissions = permissions;
-    this.snappUri = snappUri;
+    this.zkappUri = zkappUri;
     this.tokenSymbol = tokenSymbol;
     this.timing = timing;
     this.votingFor = votingFor;
@@ -326,6 +326,8 @@ class Events {
 class MerkleList<T> {
   constructor() {}
 }
+
+export type Precondition = undefined | UInt32 | AccountPrecondition;
 
 /**
  * The body of describing how some [[ Party ]] should change.
@@ -367,6 +369,7 @@ export class Body {
   callData: MerkleList<Array<Field>>;
   depth: Field; // TODO: this is an `int As_prover.t`
   protocolState: ProtocolStatePredicate;
+  accountPrecondition: Precondition;
   useFullCommitment: Bool;
   incrementNonce: Bool;
 
@@ -380,7 +383,7 @@ export class Body {
 
     const appState: Array<SetOrKeep<Field>> = [];
 
-    for (let i = 0; i < SnappStateLength; ++i) {
+    for (let i = 0; i < ZkappStateLength; ++i) {
       appState.push(keep(Field.zero));
     }
 
@@ -404,13 +407,24 @@ export class Body {
       new MerkleList(),
       Field.zero,
       ProtocolStatePredicate.ignoreAll(),
+      AccountPrecondition.ignoreAll(),
       Bool(true),
       Bool(false)
     );
   }
 
+  static keepAllWithNonce(publicKey: PublicKey, nonce: UInt32) {
+    let body = Body.keepAll(publicKey);
+    body.accountPrecondition = nonce;
+    return body as Body & { accountPrecondition: UInt32 };
+  }
+
   static dummy() {
     return Body.keepAll(PublicKey.empty());
+  }
+
+  static dummyFeePayer() {
+    return Body.keepAllWithNonce(PublicKey.empty(), UInt32.zero);
   }
 
   constructor(
@@ -423,6 +437,7 @@ export class Body {
     callData: MerkleList<Array<Field>>,
     depth: Field,
     protocolState: ProtocolStatePredicate,
+    accountPrecondition: Precondition,
     useFullCommitment: Bool,
     incrementNonce: Bool
   ) {
@@ -435,6 +450,7 @@ export class Body {
     this.callData = callData;
     this.depth = depth;
     this.protocolState = protocolState;
+    this.accountPrecondition = accountPrecondition;
     this.useFullCommitment = useFullCommitment;
     this.incrementNonce = incrementNonce;
   }
@@ -672,7 +688,7 @@ const uint32 = () => new ClosedInterval(UInt32.fromNumber(0), UInt32.MAXINT());
  */
 const uint64 = () => new ClosedInterval(UInt64.fromNumber(0), UInt64.MAXINT());
 
-export class AccountPredicate {
+export class AccountPrecondition {
   balance: ClosedInterval<UInt64>;
   nonce: ClosedInterval<UInt32>;
   receiptChainHash: OrIgnore<Field>;
@@ -682,13 +698,13 @@ export class AccountPredicate {
   sequenceState: OrIgnore<Field>;
   provedState: OrIgnore<Bool>;
 
-  static ignoreAll(): AccountPredicate {
+  static ignoreAll(): AccountPrecondition {
     let appState: Array<OrIgnore<Field>> = [];
-    for (let i = 0; i < SnappStateLength; ++i) {
+    for (let i = 0; i < ZkappStateLength; ++i) {
       appState.push(ignore(Field.zero));
     }
 
-    return new AccountPredicate(
+    return new AccountPrecondition(
       uint64(),
       uint32(),
       ignore(Field.zero),
@@ -736,15 +752,12 @@ export class PartyBalance {
   }
 }
 
-export type Predicate = undefined | UInt32 | AccountPredicate;
 export class Party {
   body: Body;
-  predicate: Predicate;
   authorization: Control = { kind: 'none' };
 
-  constructor(body: Body, predicate: Predicate) {
+  constructor(body: Body) {
     this.body = body;
-    this.predicate = predicate;
   }
 
   get balance(): PartyBalance {
@@ -761,9 +774,8 @@ export class Party {
 
   static defaultParty(address: PublicKey) {
     const body = Body.keepAll(address);
-    const predicate = AccountPredicate.ignoreAll();
-    return new Party(body, predicate) as Party & {
-      predicate: AccountPredicate;
+    return new Party(body) as Party & {
+      body: { accountPrecondition: AccountPrecondition };
     };
   }
 
@@ -779,7 +791,7 @@ export class Party {
       );
     }
 
-    const party = new Party(body, undefined);
+    const party = new Party(body);
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
     return party;
@@ -821,7 +833,11 @@ export class Party {
     }
     let nonce = account.nonce.add(nonceIncrease);
 
-    let party = new Party(body, nonce) as Party & { predicate: UInt32 };
+    body.accountPrecondition = nonce;
+
+    let party = new Party(body) as Party & {
+      body: { accountPrecondition: UInt32 };
+    };
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
     return party;
