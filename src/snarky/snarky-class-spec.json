@@ -161,7 +161,7 @@
     "name": "Circuit",
     "props": [
       {
-        "name": "runAndCheckSync",
+        "name": "runAndCheck",
         "type": "function"
       },
       {
