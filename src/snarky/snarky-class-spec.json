@@ -365,11 +365,48 @@
         "type": "function"
       },
       {
+        "name": "signFeePayer",
+        "type": "function"
+      },
+      {
+        "name": "signOtherParty",
+        "type": "function"
+      },
+      {
+        "name": "publicKeyToString",
+        "type": "function"
+      },
+      {
+        "name": "publicKeyOfString",
+        "type": "function"
+      },
+      {
+        "name": "privateKeyToString",
+        "type": "function"
+      },
+      {
+        "name": "privateKeyOfString",
+        "type": "function"
+      },
+      {
         "name": "partiesToJson",
         "type": "function"
       },
       {
         "name": "partiesToGraphQL",
+        "type": "function"
+      }
+    ]
+  },
+  {
+    "name": "Pickles",
+    "props": [
+      {
+        "name": "compile",
+        "type": "function"
+      },
+      {
+        "name": "proofToString",
         "type": "function"
       }
     ]

@@ -645,10 +645,10 @@ interface OrIgnore_<A> {
   value: A;
 }
 
-interface SetOrKeep_<A> {
+type SetOrKeep_<A> = {
   set: Bool;
-  value: A;
-}
+  value?: A;
+};
 
 interface ClosedInterval_<A> {
   lower: A;
@@ -686,12 +686,32 @@ interface Int64_ {
   uint64Value(): Field;
 }
 
+type AuthRequired = {
+  constant: Bool;
+  signatureNecessary: Bool;
+  signatureSufficient: Bool;
+};
+
+interface Permissions_ {
+  editState: AuthRequired;
+  send: AuthRequired;
+  receive: AuthRequired;
+  setDelegate: AuthRequired;
+  setPermissions: AuthRequired;
+  setVerificationKey: AuthRequired;
+  setZkappUri: AuthRequired;
+  editSequenceState: AuthRequired;
+  setTokenSymbol: AuthRequired;
+  incrementNonce: AuthRequired;
+  setVotingFor: AuthRequired;
+}
+
 interface PartyUpdate {
   appState: Array<SetOrKeep_<Field>>;
   delegate: SetOrKeep_<{ g: Group }>;
   votingFor: SetOrKeep_<Field>;
   verificationKey: SetOrKeep_<string>;
-  // TODO: permissions
+  permissions: SetOrKeep_<Permissions_>;
   // TODO: snapp uri
   // TODO: token symbol
   // TODO: timing
@@ -723,13 +743,21 @@ interface FullAccountPredicate_ {
 }
 
 type AccountPredicate_ =
-  | { type: 'accept' }
-  | { type: 'nonce'; value: UInt32_ }
-  | { type: 'full'; value: FullAccountPredicate_ };
+  | { kind: 'accept' }
+  | { kind: 'nonce'; value: UInt32_ }
+  | { kind: 'full'; value: FullAccountPredicate_ };
+
+type Control =
+  | { kind: 'none' }
+  | { kind: 'signature'; value: string }
+  | { kind: 'proof'; value: string };
 
 interface Party_ {
-  body: PartyBody;
-  predicate: AccountPredicate_;
+  data: {
+    body: PartyBody;
+    predicate: AccountPredicate_;
+  };
+  authorization: Control;
 }
 
 interface FeePayerParty {
@@ -747,6 +775,7 @@ interface SnappAccount {
 }
 
 interface Account {
+  publicKey: { g: Group };
   balance: UInt64_;
   nonce: UInt32_;
   snapp: SnappAccount;
@@ -754,14 +783,15 @@ interface Account {
 
 export class Ledger {
   static create(
-    genesisAccounts: Array<{ publicKey: { g: Group }; balance: number }>
+    genesisAccounts: Array<{ publicKey: { g: Group }; balance: string }>
   ): Ledger;
 
-  addAccount(publicKey: { g: Group }, balance: number): void;
+  addAccount(publicKey: { g: Group }, balance: string): void;
 
-  applyPartiesTransaction(parties: Parties): void;
+  applyPartiesTransaction(parties: Parties): Account[];
+  applyJsonTransaction(parties: string): Account[];
 
-  getAccount(publicKey: { g: Group }): Account | null;
+  getAccount(publicKey: { g: Group }): Account | undefined;
 
   static hashParty(party: Party_): Field;
   static hashProtocolState(protocolState: ProtocolStatePredicate_): Field;
@@ -775,6 +805,18 @@ export class Ledger {
     partyHash: Field,
     protocolStateHash: Field
   ): Field;
+
+  static signFeePayer(txJson: string, privateKey: { s: Scalar }): string;
+  static signOtherParty(
+    txJson: string,
+    privateKey: { s: Scalar },
+    i: number
+  ): string;
+
+  static publicKeyToString(publicKey: { g: Group }): string;
+  static publicKeyOfString(publicKeyBase58: string): Group;
+  static privateKeyToString(privateKey: { s: Scalar }): string;
+  static privateKeyOfString(privateKeyBase58: string): Scalar;
 
   static partiesToJson(parties: Parties): string;
   static partiesToGraphQL(parties: Parties): string;
@@ -794,8 +836,12 @@ export let isReady: Promise<undefined>;
 
 type Statement = { transaction: Field; atParty: Field };
 
-export let picklesCompile: (...args: any) => {
-  getVerificationKeyArtifact: () => string;
-  provers: ((statement: Statement) => Promise<unknown>)[];
-  verify: (statement: Statement, proof: unknown) => Promise<boolean>;
+export const Pickles: {
+  compile: (...args: any) => {
+    getVerificationKeyArtifact: () => string;
+    provers: ((statement: Statement) => Promise<unknown>)[];
+    verify: (statement: Statement, proof: unknown) => Promise<boolean>;
+  };
+
+  proofToString: (proof: unknown) => string;
 };

@@ -1,4 +1,4 @@
-import { Poseidon, Group, Field, Bool, Scalar } from '../snarky';
+import { Poseidon, Group, Field, Bool, Scalar, Ledger } from '../snarky';
 import { prop, CircuitValue } from './circuit_value';
 
 /**
@@ -41,6 +41,14 @@ export class PrivateKey extends CircuitValue {
   toPublicKey(): PublicKey {
     return new PublicKey(Group.generator.scale(this.s));
   }
+
+  static fromBase58(privateKeyBase58: string) {
+    let scalar = Ledger.privateKeyOfString(privateKeyBase58);
+    return new PrivateKey(scalar);
+  }
+  toBase58() {
+    return Ledger.privateKeyToString(this);
+  }
 }
 
 export class PublicKey extends CircuitValue {
@@ -62,6 +70,14 @@ export class PublicKey extends CircuitValue {
   isEmpty() {
     // there are no curve points with x === 0
     return this.g.x.isZero();
+  }
+
+  static fromBase58(publicKeyBase58: string) {
+    let group = Ledger.publicKeyOfString(publicKeyBase58);
+    return new PublicKey(group);
+  }
+  toBase58() {
+    return Ledger.publicKeyToString(this);
   }
 }
 

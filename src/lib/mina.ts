@@ -10,10 +10,10 @@ import {
 } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
-import { Body, Predicate } from './party';
+import { Body, Party } from './party';
 import { toParty, toPartyBody } from './party-conversion';
 
-export { createUnsignedTransaction };
+export { createUnsignedTransaction, createSignedTransaction };
 
 interface TransactionId {
   wait(): Promise<void>;
@@ -39,7 +39,7 @@ export type CurrentTransaction =
   | undefined
   | {
       sender?: PrivateKey;
-      parties: Array<{ body: Body; predicate: Predicate }>;
+      parties: Party[];
       nextPartyIndex: number;
     };
 
@@ -49,13 +49,16 @@ export function setCurrentTransaction(transaction: CurrentTransaction) {
 }
 
 interface Mina {
-  transaction(sender: PrivateKey, f: () => void | Promise<void>): Transaction;
+  transaction(sender: PrivateKey, f: () => unknown): Transaction;
   currentSlot(): UInt32;
   getAccount(publicKey: PublicKey): Account;
 }
 
 function createUnsignedTransaction(f: () => unknown) {
   return createTransaction(undefined, f);
+}
+function createSignedTransaction(sender: PrivateKey, f: () => unknown) {
+  return createTransaction(sender, f);
 }
 
 function createTransaction(sender: PrivateKey | undefined, f: () => unknown) {
@@ -77,9 +80,7 @@ function createTransaction(sender: PrivateKey | undefined, f: () => unknown) {
     throw err;
   }
 
-  const otherParties: Array<Party_> = currentTransaction.parties.map((party) =>
-    toParty(party)
-  );
+  const otherParties = currentTransaction.parties.map(toParty);
 
   let feePayer: FeePayerParty;
   if (sender !== undefined) {
@@ -117,18 +118,19 @@ function createTransaction(sender: PrivateKey | undefined, f: () => unknown) {
 }
 
 interface MockMina extends Mina {
-  addAccount(publicKey: PublicKey, balance: number): void;
+  addAccount(publicKey: PublicKey, balance: string): void;
   /**
    * An array of 10 test accounts that have been pre-filled with
    * 30000000000 units of currency.
    */
   testAccounts: Array<{ publicKey: PublicKey; privateKey: PrivateKey }>;
+  applyJsonTransaction: (tx: string) => void;
 }
 
 /**
  * A mock Mina blockchain running locally and useful for testing.
  */
-export const LocalBlockchain: () => MockMina = () => {
+export function LocalBlockchain() {
   const msPerSlot = 3 * 60 * 1000;
   const startTime = new Date().valueOf();
 
@@ -139,13 +141,13 @@ export const LocalBlockchain: () => MockMina = () => {
       Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
     );
 
-  function addAccount(pk: PublicKey, balance: number) {
+  function addAccount(pk: PublicKey, balance: string) {
     ledger.addAccount(pk, balance);
   }
 
   let testAccounts = [];
   for (let i = 0; i < 10; ++i) {
-    const largeValue = 30000000000;
+    const largeValue = '30000000000';
     const k = PrivateKey.random();
     const pk = k.toPublicKey();
     addAccount(pk, largeValue);
@@ -154,7 +156,7 @@ export const LocalBlockchain: () => MockMina = () => {
 
   function getAccount(pk: PublicKey) {
     const r = ledger.getAccount(pk);
-    if (r == null) {
+    if (r == undefined) {
       throw new Error(
         `getAccount: Could not find account for ${JSON.stringify(pk.toJSON())}`
       );
@@ -168,7 +170,7 @@ export const LocalBlockchain: () => MockMina = () => {
     }
   }
 
-  function transaction(sender: PrivateKey, f: () => void | Promise<void>) {
+  function transaction(sender: PrivateKey, f: () => unknown) {
     let txn = createTransaction(sender, f);
     return {
       ...txn,
@@ -182,14 +184,19 @@ export const LocalBlockchain: () => MockMina = () => {
     };
   }
 
+  function applyJsonTransaction(json: string) {
+    return ledger.applyJsonTransaction(json);
+  }
+
   return {
     currentSlot,
     getAccount,
     transaction,
+    applyJsonTransaction,
     addAccount,
     testAccounts,
   };
-};
+}
 
 let activeInstance: Mina = {
   currentSlot: () => {

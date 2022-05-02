@@ -13,6 +13,7 @@ let classNames = [
   'Group',
   'Scalar',
   'Ledger',
+  'Pickles',
 ];
 
 (async () => {

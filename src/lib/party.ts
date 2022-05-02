@@ -1,5 +1,5 @@
 import { CircuitValue } from './circuit_value';
-import { Group, Field, Bool, VerificationKey } from '../snarky';
+import { Group, Field, Bool, Control, Circuit } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
@@ -148,14 +148,6 @@ export class Perm {
  */
 export class Permissions {
   /**
-   * True means that this account can stake directly. False means this account
-   * cannot.
-   *
-   * TODO: Is this correct?
-   */
-  stake: Bool;
-
-  /**
    * The [[ Perm ]] corresponding to the 8 state fields associated with an
    * account.
    */
@@ -202,7 +194,7 @@ export class Permissions {
    * changed whenever the [[ Permissions.setVerificationKey ]] is changed.
    * Effectively "upgradability" of the smart contract.
    */
-  setSnappUri: Perm;
+  setZkappUri: Perm;
 
   /**
    * The [[ Perm ]] corresponding to the ability to change the sequence state
@@ -210,7 +202,7 @@ export class Permissions {
    *
    * TODO: Define sequence state here as well.
    */
-  editRollupState: Perm;
+  editSequenceState: Perm;
 
   /**
    * The [[ Perm ]] corresponding to the ability to set the token symbol for
@@ -218,22 +210,24 @@ export class Permissions {
    */
   setTokenSymbol: Perm;
 
+  // TODO: doccomments
+  incrementNonce: Perm;
+  setVotingFor: Perm;
+
   /**
    * Default permissions are:
-   *   [[ Permissions.stake ]]=true
    *   [[ Permissions.editState ]]=[[ Perm.proof ]]
    *   [[ Permissions.send ]]=[[ Perm.signature ]]
    *   [[ Permissions.receive ]]=[[ Perm.proof ]]
    *   [[ Permissions.setDelegate ]]=[[ Perm.signature ]]
    *   [[ Permissions.setPermissions ]]=[[ Perm.signature ]]
    *   [[ Permissions.setVerificationKey ]]=[[ Perm.signature ]]
-   *   [[ Permissions.setSnappUri ]]=[[ Perm.signature ]]
-   *   [[ Permissions.editRollupState ]]=[[ Perm.proof ]]
+   *   [[ Permissions.setZkappUri ]]=[[ Perm.signature ]]
+   *   [[ Permissions.editSequenceState ]]=[[ Perm.proof ]]
    *   [[ Permissions.setTokenSymbol ]]=[[ Perm.signature ]]
    */
   static default(): Permissions {
     return new Permissions(
-      new Bool(true),
       Perm.proof(),
       Perm.signature(),
       Perm.proof(),
@@ -242,32 +236,36 @@ export class Permissions {
       Perm.signature(),
       Perm.signature(),
       Perm.proof(),
+      Perm.signature(),
+      Perm.signature(),
       Perm.signature()
     );
   }
 
   constructor(
-    stake: Bool,
     editState: Perm,
     send: Perm,
     receive: Perm,
     setDelegate: Perm,
     setPermissions: Perm,
     setVerificationKey: Perm,
-    setSnappUri: Perm,
-    editRollupState: Perm,
-    setTokenSymbol: Perm
+    setZkappUri: Perm,
+    editSequenceState: Perm,
+    setTokenSymbol: Perm,
+    incrementNonce: Perm,
+    setVotingFor: Perm
   ) {
-    this.stake = stake;
     this.editState = editState;
     this.send = send;
     this.receive = receive;
     this.setDelegate = setDelegate;
     this.setPermissions = setPermissions;
     this.setVerificationKey = setVerificationKey;
-    this.setSnappUri = setSnappUri;
-    this.editRollupState = editRollupState;
+    this.setZkappUri = setZkappUri;
+    this.editSequenceState = editSequenceState;
     this.setTokenSymbol = setTokenSymbol;
+    this.incrementNonce = incrementNonce;
+    this.setVotingFor = setVotingFor;
   }
 }
 
@@ -742,6 +740,7 @@ export type Predicate = undefined | UInt32 | AccountPredicate;
 export class Party {
   body: Body;
   predicate: Predicate;
+  authorization: Control = { kind: 'none' };
 
   constructor(body: Body, predicate: Predicate) {
     this.body = body;
@@ -786,13 +785,16 @@ export class Party {
     return party;
   }
 
-  static createSigned(signer: PrivateKey) {
+  static createSigned(
+    signer: PrivateKey,
+    options?: { isSameAsFeePayer?: Bool | boolean }
+  ) {
     // TODO: This should be a witness block that uses the setVariable
     // API to set the value of a variable after it's allocated
 
-    const pk = signer.toPublicKey();
-    const body: Body = Body.keepAll(pk);
-    let a = Mina.getAccount(pk);
+    let publicKey = signer.toPublicKey();
+    let body = Body.keepAll(publicKey);
+    let account = Mina.getAccount(publicKey);
 
     if (Mina.currentTransaction === undefined) {
       throw new Error(
@@ -800,11 +802,26 @@ export class Party {
       );
     }
 
-    if (a == null) {
+    if (account == null) {
       throw new Error('Party.createSigned: Account not found');
     }
 
-    const party = new Party(body, a.nonce);
+    // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher bc the fee payer already increases its nonce
+    let nonceIncrease = Circuit.if(
+      new Bool(options?.isSameAsFeePayer ?? false),
+      new UInt32(Field.one),
+      UInt32.zero
+    );
+    // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
+    for (let party of Mina.currentTransaction.parties) {
+      let shouldIncreaseNonce = party.publicKey
+        .equals(publicKey)
+        .and(party.body.incrementNonce);
+      nonceIncrease.add(new UInt32(shouldIncreaseNonce.toField()));
+    }
+    let nonce = account.nonce.add(nonceIncrease);
+
+    let party = new Party(body, nonce) as Party & { predicate: UInt32 };
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
     return party;
