@@ -577,7 +577,7 @@ async function deploy<S extends typeof SmartContract>(
         );
       // optional first party: the sender/fee payer who also funds the zkapp
       let amount = UInt64.fromString(String(initialBalance)).add(
-        Ledger.accountCreationFee()
+        Mina.accountCreationFee()
       );
       let party = Party.createSigned(feePayerKey, { isSameAsFeePayer: true });
       party.balance.subInPlace(amount);

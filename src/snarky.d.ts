@@ -800,8 +800,11 @@ export class Ledger {
 
   addAccount(publicKey: { g: Group }, balance: string): void;
 
-  applyPartiesTransaction(parties: Parties_): Account[];
-  applyJsonTransaction(parties: string): Account[];
+  applyPartiesTransaction(
+    parties: Parties_,
+    accountCreationFee: string
+  ): Account[];
+  applyJsonTransaction(parties: string, accountCreationFee: string): Account[];
 
   getAccount(publicKey: { g: Group }): Account | undefined;
 
@@ -841,7 +844,6 @@ export class Ledger {
 
   static partiesToJson(parties: Parties_): string;
   static partiesToGraphQL(parties: Parties_): string;
-  static accountCreationFee(): number;
 }
 
 /**
