@@ -493,9 +493,6 @@ export class Circuit {
 
   static asProver(f: () => void): void;
 
-  // static runAndCheck<T>(f : () => Promise<(() => T)>): Promise<T>;
-  static runAndCheck<T>(f: () => Promise<() => T>): Promise<T>;
-
   static runAndCheckSync<T>(f: () => T): T;
 
   static array<T>(
