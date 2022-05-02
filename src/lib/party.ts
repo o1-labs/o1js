@@ -42,6 +42,10 @@ export class SetOrKeep<T> {
     this.set = set;
     this.value = value;
   }
+
+  copy() {
+    return new SetOrKeep(this.set, this.value);
+  }
 }
 
 const True = () => Bool(true);
@@ -204,6 +208,12 @@ export let Permissions = {
     incrementNonce: Permissions.proofOrSignature(),
     setVotingFor: Permission.signature(),
   }),
+
+  copy(permissions: Permissions) {
+    return Object.fromEntries(
+      Object.entries(permissions).map(([key, value]) => [key, { ...value }])
+    ) as never as Permissions;
+  },
 };
 
 /* TODO: How should we handle "String"s, should we bridge them from OCaml? */
@@ -219,6 +229,34 @@ export type Update = {
   timing: SetOrKeep<Timing>;
   votingFor: SetOrKeep<Field>;
 };
+
+const Update = {
+  copy({
+    appState,
+    delegate,
+    verificationKey,
+    permissions,
+    zkappUri,
+    tokenSymbol,
+    timing,
+    votingFor,
+  }: Update): Update {
+    return {
+      appState: appState.map((s) => s.copy()),
+      delegate: delegate.copy(),
+      verificationKey: verificationKey.copy(),
+      permissions: new SetOrKeep(
+        permissions.set,
+        Permissions.copy(permissions.value)
+      ),
+      zkappUri: zkappUri.copy(),
+      tokenSymbol: tokenSymbol.copy(),
+      timing: new SetOrKeep(timing.set, { ...timing.value }),
+      votingFor: votingFor.copy(),
+    };
+  },
+};
+
 export const defaultTokenId = Field.one;
 
 // TODO
@@ -230,6 +268,13 @@ class Events {
   constructor(hash: Field, events: Array<Array<Field>>) {
     this.hash = hash;
     this.events = events;
+  }
+
+  copy(): Events {
+    return new Events(
+      this.hash,
+      this.events.map((e) => [...e])
+    );
   }
 }
 
@@ -351,6 +396,10 @@ export class OrIgnore<A> {
     this.check = check;
     this.value = value;
   }
+
+  copy() {
+    return new OrIgnore(this.check, this.value);
+  }
 }
 
 /**
@@ -367,6 +416,10 @@ export class ClosedInterval<A> {
   constructor(lower: A | undefined, upper: A | undefined) {
     this.lower_ = lower;
     this.upper_ = upper;
+  }
+
+  copy() {
+    return new ClosedInterval(this.lower_, this.upper_);
   }
 
   /**
@@ -413,6 +466,13 @@ export class EpochLedgerPredicate {
     this.hash_ = hash_;
     this.totalCurrency = totalCurrency_;
   }
+
+  copy() {
+    return new EpochLedgerPredicate(
+      this.hash_.copy(),
+      this.totalCurrency.copy()
+    );
+  }
 }
 
 export class EpochDataPredicate {
@@ -422,18 +482,28 @@ export class EpochDataPredicate {
   lockCheckpoint_: OrIgnore<Field>;
   epochLength: ClosedInterval<UInt32>;
 
-  constructor(
-    ledger: EpochLedgerPredicate,
-    seed_: OrIgnore<Field>,
-    startCheckpoint_: OrIgnore<Field>,
-    lockCheckpoint_: OrIgnore<Field>,
-    epochLength: ClosedInterval<UInt32>
-  ) {
+  constructor({
+    ledger,
+    seed_,
+    startCheckpoint_,
+    lockCheckpoint_,
+    epochLength,
+  }: {
+    ledger: EpochLedgerPredicate;
+    seed_: OrIgnore<Field>;
+    startCheckpoint_: OrIgnore<Field>;
+    lockCheckpoint_: OrIgnore<Field>;
+    epochLength: ClosedInterval<UInt32>;
+  }) {
     this.ledger = ledger;
     this.seed_ = seed_;
     this.startCheckpoint_ = startCheckpoint_;
     this.lockCheckpoint_ = lockCheckpoint_;
     this.epochLength = epochLength;
+  }
+
+  copy() {
+    return new EpochDataPredicate(copyObject(this));
   }
 
   // TODO: Should return promise
@@ -476,42 +546,54 @@ export class ProtocolStatePredicate {
   nextEpochData: EpochDataPredicate;
 
   static ignoreAll(): ProtocolStatePredicate {
-    const ledger = new EpochLedgerPredicate(ignore(Field.zero), uint64());
-    const epochData = new EpochDataPredicate(
-      ledger,
-      ignore(Field.zero),
-      ignore(Field.zero),
-      ignore(Field.zero),
-      uint32()
-    );
-    return new ProtocolStatePredicate(
-      ignore(Field.zero),
-      uint64(),
-      uint64(),
-      uint32(),
-      uint32(),
-      ignore(Field.zero),
-      uint64(),
-      uint32(),
-      uint32(),
-      epochData,
-      epochData
-    );
+    let stakingEpochData = new EpochDataPredicate({
+      ledger: new EpochLedgerPredicate(ignore(Field.zero), uint64()),
+      seed_: ignore(Field.zero),
+      startCheckpoint_: ignore(Field.zero),
+      lockCheckpoint_: ignore(Field.zero),
+      epochLength: uint32(),
+    });
+    let nextEpochData = stakingEpochData.copy();
+    return new ProtocolStatePredicate({
+      snarkedLedgerHash_: ignore(Field.zero),
+      snarkedNextAvailableToken: uint64(),
+      timestamp: uint64(),
+      blockchainLength: uint32(),
+      minWindowDensity: uint32(),
+      lastVrfOutput_: ignore(Field.zero),
+      totalCurrency: uint64(),
+      globalSlotSinceHardFork: uint32(),
+      globalSlotSinceGenesis: uint32(),
+      stakingEpochData,
+      nextEpochData,
+    });
   }
 
-  constructor(
-    snarkedLedgerHash_: OrIgnore<Field>,
-    snarkedNextAvailableToken: ClosedInterval<UInt64>,
-    timestamp: ClosedInterval<UInt64>,
-    blockchainLength: ClosedInterval<UInt32>,
-    minWindowDensity: ClosedInterval<UInt32>,
-    lastVrfOutput_: OrIgnore<Field>,
-    totalCurrency: ClosedInterval<UInt64>,
-    globalSlotSinceHardFork: ClosedInterval<UInt32>,
-    globalSlotSinceGenesis: ClosedInterval<UInt32>,
-    stakingEpochData: EpochDataPredicate,
-    nextEpochData: EpochDataPredicate
-  ) {
+  constructor({
+    snarkedLedgerHash_,
+    snarkedNextAvailableToken,
+    timestamp,
+    blockchainLength,
+    minWindowDensity,
+    lastVrfOutput_,
+    totalCurrency,
+    globalSlotSinceHardFork,
+    globalSlotSinceGenesis,
+    stakingEpochData,
+    nextEpochData,
+  }: {
+    snarkedLedgerHash_: OrIgnore<Field>;
+    snarkedNextAvailableToken: ClosedInterval<UInt64>;
+    timestamp: ClosedInterval<UInt64>;
+    blockchainLength: ClosedInterval<UInt32>;
+    minWindowDensity: ClosedInterval<UInt32>;
+    lastVrfOutput_: OrIgnore<Field>;
+    totalCurrency: ClosedInterval<UInt64>;
+    globalSlotSinceHardFork: ClosedInterval<UInt32>;
+    globalSlotSinceGenesis: ClosedInterval<UInt32>;
+    stakingEpochData: EpochDataPredicate;
+    nextEpochData: EpochDataPredicate;
+  }) {
     this.snarkedLedgerHash_ = snarkedLedgerHash_;
     this.snarkedNextAvailableToken = snarkedNextAvailableToken;
     this.timestamp = timestamp;
@@ -523,6 +605,10 @@ export class ProtocolStatePredicate {
     this.globalSlotSinceGenesis = globalSlotSinceGenesis;
     this.stakingEpochData = stakingEpochData;
     this.nextEpochData = nextEpochData;
+  }
+
+  copy() {
+    return new ProtocolStatePredicate(copyObject(this));
   }
 
   get snarkedLedgerHash(): Field {
@@ -580,7 +666,7 @@ export type AccountPrecondition = {
   sequenceState: OrIgnore<Field>;
   provedState: OrIgnore<Bool>;
 };
-export let AccountPrecondition = {
+export const AccountPrecondition = {
   ignoreAll(): AccountPrecondition {
     let appState: Array<OrIgnore<Field>> = [];
     for (let i = 0; i < ZkappStateLength; ++i) {
@@ -595,6 +681,19 @@ export let AccountPrecondition = {
       state: appState,
       sequenceState: ignore(Field.zero),
       provedState: ignore(Bool(false)),
+    };
+  },
+  copy(a: Precondition): Precondition {
+    if (a === undefined || a instanceof UInt32) return a;
+    return {
+      balance: a.balance.copy(),
+      nonce: a.nonce.copy(),
+      receiptChainHash: a.receiptChainHash.copy(),
+      publicKey: a.publicKey.copy(),
+      delegate: a.delegate.copy(),
+      state: a.state.map((s) => s.copy()),
+      sequenceState: a.sequenceState.copy(),
+      provedState: a.provedState.copy(),
     };
   },
 };
@@ -638,8 +737,35 @@ export class Party {
     return this.body.publicKey;
   }
 
+  copy() {
+    let { body, authorization } = this;
+    let newBody: Body = {
+      ...body,
+      update: Update.copy(body.update),
+      // TODO: callData
+      events: body.events.copy(),
+      protocolState: body.protocolState.copy(),
+      accountPrecondition: AccountPrecondition.copy(body.accountPrecondition),
+    };
+    let party = new Party(newBody);
+    party.authorization = { ...authorization };
+    return party;
+  }
+
+  sign(this: FeePayer, privateKey?: PrivateKey): FeePayer;
+  sign(
+    this: PartyWithNoncePrecondition,
+    privateKey?: PrivateKey
+  ): PartyWithNoncePrecondition;
+  sign(
+    this: PartyWithFullAccountPrecondition,
+    privateKey?: PrivateKey
+  ): PartyWithFullAccountPrecondition;
+  sign(this: Party, privateKey?: PrivateKey): Party;
   sign(privateKey?: PrivateKey) {
-    this.authorization = { kind: 'lazy-signature', privateKey };
+    let party = this.copy();
+    party.authorization = { kind: 'lazy-signature', privateKey };
+    return party;
   }
 
   static defaultParty(address: PublicKey) {
@@ -716,8 +842,7 @@ export class Party {
     body.accountPrecondition = nonce;
     body.incrementNonce = Bool(true);
 
-    let party = new Party(body) as PartyWithNoncePrecondition;
-    party.sign(signer);
+    let party = new Party(body).sign(signer) as PartyWithNoncePrecondition;
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
     return party;
@@ -800,4 +925,14 @@ function signJsonTransaction(
     }
   }
   return JSON.stringify(parties);
+}
+
+function copyObject<T extends Object>(obj: T): T {
+  return Object.fromEntries(
+    Object.entries(obj).map(([key, value]) => {
+      if ('copy' in value && typeof value.copy === 'function')
+        return [key, value.copy()];
+      else return [key, value];
+    })
+  ) as never as T;
 }
