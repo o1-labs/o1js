@@ -402,7 +402,11 @@ export class SmartContract {
     }
     this.self.update.permissions.setValue(Permissions.default());
     this.self.body.incrementNonce = Bool(true);
-    this.self.sign(zkappKey);
+    this.sign(zkappKey);
+  }
+
+  sign(zkappKey?: PrivateKey) {
+    this.self.authorization = { kind: 'lazy-signature', privateKey: zkappKey };
   }
 
   async prove(provers: any[], methodName: keyof this, args: unknown[]) {
@@ -651,7 +655,7 @@ async function callUnproved<S extends typeof SmartContract>(
     methodName as any,
     methodArguments
   );
-  selfParty.sign(zkappKey);
+  selfParty = selfParty.sign(zkappKey);
   selfParty.body.incrementNonce = Bool(true);
   let tx = Mina.createUnsignedTransaction(() => {
     Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
@@ -661,13 +665,14 @@ async function callUnproved<S extends typeof SmartContract>(
 }
 
 async function addFeePayer(
-  { feePayer }: Parties,
+  parties: Parties,
   feePayerKey: PrivateKey | string,
   {
     transactionFee = 0 as number | string,
     feePayerNonce = undefined as number | string | undefined,
   }
 ) {
+  let { feePayer } = parties;
   if (typeof feePayerKey === 'string')
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
@@ -678,7 +683,7 @@ async function addFeePayer(
   feePayer.body.accountPrecondition = UInt32.fromString(`${feePayerNonce}`);
   feePayer.body.publicKey = senderAddress;
   feePayer.balance.subInPlace(UInt64.fromString(`${transactionFee}`));
-  feePayer.sign(feePayerKey);
+  parties.feePayer = feePayer.sign(feePayerKey);
 }
 
 async function signFeePayer(

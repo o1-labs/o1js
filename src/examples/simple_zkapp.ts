@@ -61,7 +61,7 @@ Local.transaction(account1, async () => {
   let zkapp = new SimpleZkapp(zkappAddress);
   zkapp.update(Field(3));
   // TODO: mock proving
-  zkapp.self.sign(zkappKey);
+  zkapp.sign(zkappKey);
   zkapp.self.body.incrementNonce = Bool(true);
 }).send();
 
