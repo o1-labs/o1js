@@ -485,12 +485,9 @@ export class Circuit {
 
   static newVariable(f: () => Field | number | string | boolean): Field;
 
-  static witness<T>(
-    ctor: {
-      toFields(x: T): Field[];
-      ofFields(x: Field[]): T;
-      sizeInFields(): number;
-    },
+  // this convoluted generic typing is needed to give type inference enough flexibility
+  static witness<T, S extends AsFieldElements<T> = AsFieldElements<T>>(
+    ctor: S,
     f: () => T
   ): T;
 
@@ -498,6 +495,8 @@ export class Circuit {
 
   // static runAndCheck<T>(f : () => Promise<(() => T)>): Promise<T>;
   static runAndCheck<T>(f: () => Promise<() => T>): Promise<T>;
+
+  static runAndCheckSync<T>(f: () => T): T;
 
   static array<T>(
     ctor: AsFieldElements<T>,
@@ -760,6 +759,19 @@ export class Ledger {
   applyPartiesTransaction(parties: Parties): void;
 
   getAccount(publicKey: { g: Group }): Account | null;
+
+  static hashParty(party: Party_): Field;
+  static hashProtocolState(protocolState: ProtocolStatePredicate_): Field;
+  static hashTransaction(partyHash: Field, protocolStateHash: Field): Field;
+
+  static hashPartyChecked(party: Party_): Field;
+  static hashProtocolStateChecked(
+    protocolState: ProtocolStatePredicate_
+  ): Field;
+  static hashTransactionChecked(
+    partyHash: Field,
+    protocolStateHash: Field
+  ): Field;
 }
 
 /**

@@ -328,7 +328,10 @@ class RollupSnapp extends SmartContract {
     this.operatorsCommitment.set(operatorsDb.commitment());
   }
 
-  @method depositFunds(depositor: Party<UInt32>, depositAmount: UInt64) {
+  @method depositFunds(
+    depositor: Party & { predicate: UInt32 },
+    depositAmount: UInt64
+  ) {
     const self = this.self;
 
     self.balance.addInPlace(depositAmount);

@@ -165,6 +165,10 @@
         "type": "function"
       },
       {
+        "name": "runAndCheckSync",
+        "type": "function"
+      },
+      {
         "name": "asProver",
         "type": "function"
       },
@@ -334,6 +338,30 @@
     "props": [
       {
         "name": "create",
+        "type": "function"
+      },
+      {
+        "name": "hashParty",
+        "type": "function"
+      },
+      {
+        "name": "hashProtocolState",
+        "type": "function"
+      },
+      {
+        "name": "hashTransaction",
+        "type": "function"
+      },
+      {
+        "name": "hashPartyChecked",
+        "type": "function"
+      },
+      {
+        "name": "hashProtocolStateChecked",
+        "type": "function"
+      },
+      {
+        "name": "hashTransactionChecked",
         "type": "function"
       }
     ]

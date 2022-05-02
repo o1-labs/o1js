@@ -155,81 +155,70 @@ export const LocalBlockchain: () => MockMina = () => {
       protocolState: ProtocolStatePredicate.ignoreAll(),
     };
 
-    const result = Circuit.runAndCheck(() => {
-      const res = f();
-      if (res instanceof Promise) {
-        return res.then(() => {
-          return () => {};
-        });
-      } else {
-        const r: Promise<() => void> = new Promise((k) => k(() => {}));
-        return r;
-      }
-    }).catch((err) => {
+    try {
+      Circuit.runAndCheckSync(f);
+    } catch (err) {
       currentTransaction = undefined;
       // TODO would be nice if the error would be a bit more descriptive about what failed
       throw err;
-    });
+    }
 
     const senderPubkey = sender.toPublicKey();
-    const txn = result
-      .then(() => getAccount(senderPubkey))
-      .then((senderAccount) => {
-        if (currentTransaction === undefined) {
-          throw new Error('Transaction is undefined');
+    let senderAccount = getAccount(senderPubkey);
+
+    if (currentTransaction === undefined) {
+      throw new Error('Transaction is undefined');
+    }
+
+    const otherParties: Array<SnarkyParty> = currentTransaction.parties.map(
+      (p) => {
+        let predicate: AccountPredicate;
+        if (p.predicate instanceof UInt32) {
+          predicate = { type: 'nonce', value: p.predicate };
+        } else if (p.predicate === undefined) {
+          predicate = { type: 'accept' };
+        } else {
+          predicate = { type: 'full', value: p.predicate };
         }
 
-        const otherParties: Array<SnarkyParty> = currentTransaction.parties.map(
-          (p) => {
-            let predicate: AccountPredicate;
-            if (p.predicate instanceof UInt32) {
-              predicate = { type: 'nonce', value: p.predicate };
-            } else if (p.predicate === undefined) {
-              predicate = { type: 'accept' };
-            } else {
-              predicate = { type: 'full', value: p.predicate };
-            }
-
-            return {
-              body: body(p.body),
-              predicate,
-            };
-          }
-        );
-
-        const feePayer: FeePayerParty = {
-          body: body(Body.keepAll(senderPubkey)),
-          predicate: senderAccount.nonce,
+        return {
+          body: body(p.body),
+          predicate,
         };
+      }
+    );
 
-        const ps = currentTransaction.protocolState;
+    const feePayer: FeePayerParty = {
+      body: body(Body.keepAll(senderPubkey)),
+      predicate: senderAccount.nonce,
+    };
 
-        const txn: Parties = {
-          protocolState: {
-            snarkedLedgerHash: ps.snarkedLedgerHash_,
-            snarkedNextAvailableToken: ps.snarkedNextAvailableToken,
-            timestamp: ps.timestamp,
-            blockchainLength: ps.blockchainLength,
-            minWindowDensity: ps.minWindowDensity,
-            lastVrfOutput: ps.lastVrfOutput_,
-            totalCurrency: ps.totalCurrency,
-            globalSlotSinceGenesis: ps.globalSlotSinceGenesis,
-            globalSlotSinceHardFork: ps.globalSlotSinceHardFork,
-            nextEpochData: epochData(ps.nextEpochData),
-            stakingEpochData: epochData(ps.stakingEpochData),
-          },
-          otherParties,
-          feePayer,
-        };
+    const ps = currentTransaction.protocolState;
 
-        nextTransactionId.value += 1;
-        currentTransaction = undefined;
-        return txn;
-      });
+    const txn: Parties = {
+      protocolState: {
+        snarkedLedgerHash: ps.snarkedLedgerHash_,
+        snarkedNextAvailableToken: ps.snarkedNextAvailableToken,
+        timestamp: ps.timestamp,
+        blockchainLength: ps.blockchainLength,
+        minWindowDensity: ps.minWindowDensity,
+        lastVrfOutput: ps.lastVrfOutput_,
+        totalCurrency: ps.totalCurrency,
+        globalSlotSinceGenesis: ps.globalSlotSinceGenesis,
+        globalSlotSinceHardFork: ps.globalSlotSinceHardFork,
+        nextEpochData: epochData(ps.nextEpochData),
+        stakingEpochData: epochData(ps.stakingEpochData),
+      },
+      otherParties,
+      feePayer,
+    };
+
+    nextTransactionId.value += 1;
+    currentTransaction = undefined;
 
     return {
       send: () => {
-        const res = txn.then((txn) => ledger.applyPartiesTransaction(txn));
+        const res = (async () => ledger.applyPartiesTransaction(txn))();
         return {
           wait: () => res,
         };

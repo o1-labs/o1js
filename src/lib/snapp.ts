@@ -5,6 +5,7 @@ import {
   Poseidon,
   AsFieldElements,
   picklesCompile,
+  Ledger,
 } from '../snarky';
 import { CircuitValue, toFieldsMagic } from './circuit_value';
 import {
@@ -13,6 +14,8 @@ import {
   Body,
   Party,
   PartyBalance,
+  toParty,
+  toProtocolState,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -108,7 +111,7 @@ function createState<A>() {
         }
         p = Circuit.witness(Circuit.array(Field, r.length), () => xs);
       } else {
-        p = Circuit.witness(Circuit.array(Field, r.length), () => {
+        p = Circuit.witness(Circuit.array(Field, r.length), (): Field[] => {
           throw Error('this should never happen');
         });
       }
@@ -206,7 +209,7 @@ export function state<A>(ty: AsFieldElements<A>) {
  * You can use inside your snapp class as:
  *
  * ```
- * @method async my_method(some_arg: Field) {
+ * @method myMethod(someArg: Field) {
  *  // your code here
  * }
  * ```
@@ -257,6 +260,7 @@ type methodEntry<T> = {
   witnessArgs: AsFieldElements<unknown>[];
   proofArgs: unknown[];
   args: { type: string; index: number }[];
+  witnessValues?: unknown[];
 };
 
 function isAsFields(typ: Object) {
@@ -266,6 +270,83 @@ function isAsFields(typ: Object) {
 }
 function isProof(typ: any) {
   return false; // TODO
+}
+
+type Statement = { transaction: Field; atParty: Field };
+
+function toStatement(
+  self: Party,
+  tail: Field,
+  state: ProtocolStatePredicate,
+  checked = true
+) {
+  // TODO hash together party with tail in the right way
+  if (checked) {
+    let atParty = Ledger.hashPartyChecked(toParty(self));
+    let protocolStateHash = Ledger.hashProtocolStateChecked(
+      toProtocolState(state)
+    );
+    let transaction = Ledger.hashTransactionChecked(atParty, protocolStateHash);
+    return { transaction, atParty };
+  } else {
+    let atParty = Ledger.hashParty(toParty(self));
+    let protocolStateHash = Ledger.hashProtocolState(toProtocolState(state));
+    let transaction = Ledger.hashTransaction(atParty, protocolStateHash);
+    return { transaction, atParty };
+  }
+}
+
+function checkStatement(
+  { transaction, atParty }: Statement,
+  self: Party,
+  tail: Field,
+  protocolState: ProtocolStatePredicate
+) {
+  // ATM, we always compute the statement in checked mode to make assertEqual pass
+  // TODO: are checked / unchecked versions supposed to be compatible?
+  let otherStatement = toStatement(self, tail, protocolState, true);
+  atParty.assertEquals(otherStatement.atParty);
+  transaction.assertEquals(otherStatement.transaction);
+}
+
+let mainContext = undefined as
+  | {
+      witnesses?: unknown[];
+      self: Party & { predicate: AccountPredicate };
+      protocolState: ProtocolStatePredicate;
+    }
+  | undefined;
+
+function withContext(context: typeof mainContext, f: Function) {
+  mainContext = context;
+  let result = f();
+  mainContext = undefined;
+  return result;
+}
+
+function picklesRuleFromFunction(
+  name: string,
+  func: (...args: unknown[]) => void,
+  witnessTypes: AsFieldElements<unknown>[],
+  onStart?: Function,
+  onEnd?: Function
+) {
+  function main(statement: Statement) {
+    onStart?.();
+    if (mainContext === undefined) throw Error('bug');
+    let { self, protocolState, witnesses } = mainContext;
+    witnesses = witnessTypes.map(
+      witnesses
+        ? (type, i) => Circuit.witness(type, () => witnesses![i])
+        : emptyWitness
+    );
+    func(...witnesses);
+    let tail = Field.zero;
+    checkStatement(statement, self, tail, protocolState);
+    onEnd?.();
+  }
+
+  return [0, name, main];
 }
 
 /**
@@ -292,29 +373,57 @@ export class SmartContract {
     // TODO: think about how address should be passed in
     // if address is not provided, create a random one
     address ??= PrivateKey.random().toPublicKey();
-    let dummyInstance = new this(address);
-    let inductiveRules = (this._methods ?? []).map(
-      ({ methodName, witnessArgs }) => {
-        function main(transactionHash: Field) {
-          Mina.setCurrentTransaction({
-            sender: PrivateKey.random(), // TODO
-            parties: [],
-            nextPartyIndex: 0,
-            protocolState: ProtocolStatePredicate.ignoreAll(),
-          });
-          let witnesses = witnessArgs.map(emptyWitness); // TODO is this correct?
-          (dummyInstance[methodName] as any)(...witnesses); // call method in a way that `this` is defined
-          let hash = computeTransactionHash(Mina.currentTransaction);
-          console.log({ transactionHash, hash });
-          hash.assertEquals(transactionHash);
-          Mina.setCurrentTransaction(undefined);
-        }
-        return [0, methodName, main];
-      }
+    let instance = new this(address);
+
+    let rules = (this._methods ?? []).map(({ methodName, witnessArgs }) =>
+      picklesRuleFromFunction(
+        methodName,
+        (...args: unknown[]) => (instance[methodName] as any)(...args),
+        witnessArgs
+      )
     );
-    let output = picklesCompile(inductiveRules);
-    console.log('output', output);
+
+    let output = withContext(
+      {
+        self: Party.defaultParty(address),
+        protocolState: ProtocolStatePredicate.ignoreAll(),
+      },
+      () => picklesCompile(rules)
+    );
     return output;
+  }
+
+  async prove(provers: any[], methodName: keyof this, args: unknown[]) {
+    let SnappClass = this.constructor as never as typeof SmartContract;
+    let i = SnappClass._methods!.findIndex((m) => m.methodName === methodName);
+    if (!(i + 1)) throw Error(`Method ${methodName} not found!`);
+    let ctx = {
+      self: Party.defaultParty(this.address),
+      protocolState: ProtocolStatePredicate.ignoreAll(),
+    };
+    // console.log(
+    //   'prove: running method directly in prover mode to get statement'
+    // );
+    let statement = Circuit.runAndCheckSync(() => {
+      mainContext = ctx;
+      (this[methodName] as any)(...args);
+      mainContext = undefined;
+      let statementVar = toStatement(ctx.self, Field.zero, ctx.protocolState);
+      return {
+        transaction: statementVar.transaction.toConstant(),
+        atParty: statementVar.atParty.toConstant(),
+      };
+    });
+
+    // console.log('prove: running pickles prover');
+    return withContext(
+      {
+        self: Party.defaultParty(this.address),
+        protocolState: ProtocolStatePredicate.ignoreAll(),
+        witnesses: args,
+      },
+      () => provers[i](statement)
+    );
   }
 
   deploy(...args: any[]) {
@@ -326,6 +435,16 @@ export class SmartContract {
   }
 
   executionState(): ExecutionState {
+    // TODO
+    if (mainContext !== undefined) {
+      return {
+        transactionId: 0,
+        partyIndex: 0,
+        party: mainContext.self as Party & { predicate: AccountPredicate },
+        protocolStatePredicate: mainContext.protocolState,
+      };
+    }
+
     if (Mina.currentTransaction === undefined) {
       throw new Error('Cannot execute outside of a Mina.transaction() block.');
     }
@@ -340,7 +459,9 @@ export class SmartContract {
       const index = Mina.currentTransaction.nextPartyIndex++;
       const body = Body.keepAll(this.address);
       const predicate = AccountPredicate.ignoreAll();
-      const party = new Party(body, predicate);
+      const party = new Party(body, predicate) as Party & {
+        predicate: AccountPredicate;
+      };
       Mina.currentTransaction.parties.push(party);
 
       const s = {
@@ -358,7 +479,7 @@ export class SmartContract {
     return this.executionState().protocolStatePredicate;
   }
 
-  get self(): Party<AccountPredicate> {
+  get self() {
     return this.executionState().party;
   }
 
@@ -370,9 +491,9 @@ export class SmartContract {
     let nonce: UInt32;
     if (Circuit.inProver()) {
       let a = Mina.getAccount(this.address);
-      nonce = Circuit.witness<UInt32>(UInt32, () => a.nonce);
+      nonce = Circuit.witness(UInt32, () => a.nonce);
     } else {
-      const res = Circuit.witness<UInt32>(UInt32, () => {
+      const res = Circuit.witness(UInt32, () => {
         throw Error('this should never happen');
       });
       nonce = res;
@@ -400,7 +521,7 @@ export class SmartContract {
 type ExecutionState = {
   transactionId: number;
   partyIndex: number;
-  party: Party<AccountPredicate>;
+  party: Party & { predicate: AccountPredicate };
   protocolStatePredicate: ProtocolStatePredicate;
 };
 
@@ -409,11 +530,4 @@ function emptyWitness<A>(typ: AsFieldElements<A>) {
   return Circuit.witness(typ, () =>
     typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero))
   );
-}
-
-// TODO
-function computeTransactionHash(tx: Mina.CurrentTransaction) {
-  if (tx === undefined) throw Error('Transaction is undefined');
-  let fields = toFieldsMagic(tx);
-  return Poseidon.hash(fields);
 }

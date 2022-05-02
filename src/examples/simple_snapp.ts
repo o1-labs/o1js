@@ -12,6 +12,8 @@ import {
   serializeVerificationKey,
 } from 'snarkyjs';
 
+await isReady;
+
 class SimpleSnapp extends SmartContract {
   @state(Field) x = State<Field>();
 
@@ -23,11 +25,10 @@ class SimpleSnapp extends SmartContract {
 
   @method update(y: Field) {
     let x = this.x.get();
+    console.log('update', { y, x });
     this.x.set(x.add(y));
   }
 }
-
-await isReady;
 
 const Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
@@ -52,23 +53,21 @@ await Mina.transaction(account1, async () => {
   .wait();
 
 console.log('compile');
-let {
-  provers: [updateProver],
-  getVerificationKey,
-} = SimpleSnapp.compile(snappPubKey);
+let { provers, getVerificationKey } = SimpleSnapp.compile(snappPubKey);
 
-let vk = getVerificationKey();
-console.log(vk);
-console.log(serializeVerificationKey(vk));
+// let vk = getVerificationKey();
+// console.log(vk);
+// console.log(serializeVerificationKey(vk));
 
 console.log('prove');
-let proof = updateProver(Field(1));
+let snapp = new SimpleSnapp(snappPubKey);
+let proof = snapp.prove(provers, 'update', [Field(3)]);
 console.log({ proof });
 
-console.log('update');
 let snappState = (await Mina.getAccount(snappPubKey)).snapp.appState[0];
 console.log('initial state: ' + snappState);
 
+console.log('update');
 await Mina.transaction(account1, async () => {
   let snapp = new SimpleSnapp(snappPubKey);
   await snapp.update(Field(3));
