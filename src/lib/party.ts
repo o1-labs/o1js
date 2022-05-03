@@ -1,4 +1,4 @@
-import { CircuitValue } from './circuit_value';
+import { CircuitValue, cloneCircuitValue } from './circuit_value';
 import { Group, Field, Bool, Control, Ledger } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
@@ -41,10 +41,6 @@ export class SetOrKeep<T> {
   constructor(set: Bool, value: T) {
     this.set = set;
     this.value = value;
-  }
-
-  copy() {
-    return new SetOrKeep(this.set, this.value);
   }
 }
 
@@ -208,12 +204,6 @@ export let Permissions = {
     incrementNonce: Permissions.proofOrSignature(),
     setVotingFor: Permission.signature(),
   }),
-
-  copy(permissions: Permissions) {
-    return Object.fromEntries(
-      Object.entries(permissions).map(([key, value]) => [key, { ...value }])
-    ) as never as Permissions;
-  },
 };
 
 /* TODO: How should we handle "String"s, should we bridge them from OCaml? */
@@ -230,33 +220,6 @@ export type Update = {
   votingFor: SetOrKeep<Field>;
 };
 
-const Update = {
-  copy({
-    appState,
-    delegate,
-    verificationKey,
-    permissions,
-    zkappUri,
-    tokenSymbol,
-    timing,
-    votingFor,
-  }: Update): Update {
-    return {
-      appState: appState.map((s) => s.copy()),
-      delegate: delegate.copy(),
-      verificationKey: verificationKey.copy(),
-      permissions: new SetOrKeep(
-        permissions.set,
-        Permissions.copy(permissions.value)
-      ),
-      zkappUri: zkappUri.copy(),
-      tokenSymbol: tokenSymbol.copy(),
-      timing: new SetOrKeep(timing.set, { ...timing.value }),
-      votingFor: votingFor.copy(),
-    };
-  },
-};
-
 export const defaultTokenId = Field.one;
 
 // TODO
@@ -268,13 +231,6 @@ class Events {
   constructor(hash: Field, events: Array<Array<Field>>) {
     this.hash = hash;
     this.events = events;
-  }
-
-  copy(): Events {
-    return new Events(
-      this.hash,
-      this.events.map((e) => [...e])
-    );
   }
 }
 
@@ -396,10 +352,6 @@ export class OrIgnore<A> {
     this.check = check;
     this.value = value;
   }
-
-  copy() {
-    return new OrIgnore(this.check, this.value);
-  }
 }
 
 /**
@@ -416,10 +368,6 @@ export class ClosedInterval<A> {
   constructor(lower: A | undefined, upper: A | undefined) {
     this.lower_ = lower;
     this.upper_ = upper;
-  }
-
-  copy() {
-    return new ClosedInterval(this.lower_, this.upper_);
   }
 
   /**
@@ -466,13 +414,6 @@ export class EpochLedgerPredicate {
     this.hash_ = hash_;
     this.totalCurrency = totalCurrency_;
   }
-
-  copy() {
-    return new EpochLedgerPredicate(
-      this.hash_.copy(),
-      this.totalCurrency.copy()
-    );
-  }
 }
 
 export class EpochDataPredicate {
@@ -500,10 +441,6 @@ export class EpochDataPredicate {
     this.startCheckpoint_ = startCheckpoint_;
     this.lockCheckpoint_ = lockCheckpoint_;
     this.epochLength = epochLength;
-  }
-
-  copy() {
-    return new EpochDataPredicate(copyObject(this));
   }
 
   // TODO: Should return promise
@@ -553,7 +490,7 @@ export class ProtocolStatePredicate {
       lockCheckpoint_: ignore(Field.zero),
       epochLength: uint32(),
     });
-    let nextEpochData = stakingEpochData.copy();
+    let nextEpochData = cloneCircuitValue(stakingEpochData);
     return new ProtocolStatePredicate({
       snarkedLedgerHash_: ignore(Field.zero),
       snarkedNextAvailableToken: uint64(),
@@ -605,10 +542,6 @@ export class ProtocolStatePredicate {
     this.globalSlotSinceGenesis = globalSlotSinceGenesis;
     this.stakingEpochData = stakingEpochData;
     this.nextEpochData = nextEpochData;
-  }
-
-  copy() {
-    return new ProtocolStatePredicate(copyObject(this));
   }
 
   get snarkedLedgerHash(): Field {
@@ -683,19 +616,6 @@ export const AccountPrecondition = {
       provedState: ignore(Bool(false)),
     };
   },
-  copy(a: Precondition): Precondition {
-    if (a === undefined || a instanceof UInt32) return a;
-    return {
-      balance: a.balance.copy(),
-      nonce: a.nonce.copy(),
-      receiptChainHash: a.receiptChainHash.copy(),
-      publicKey: a.publicKey.copy(),
-      delegate: a.delegate.copy(),
-      state: a.state.map((s) => s.copy()),
-      sequenceState: a.sequenceState.copy(),
-      provedState: a.provedState.copy(),
-    };
-  },
 };
 
 export class PartyBalance {
@@ -737,33 +657,12 @@ export class Party {
     return this.body.publicKey;
   }
 
-  copy(this: FeePayer): FeePayer;
-  copy(this: PartyWithNoncePrecondition): PartyWithNoncePrecondition;
-  copy(
-    this: PartyWithFullAccountPrecondition
-  ): PartyWithFullAccountPrecondition;
-  copy(this: Party): Party;
-  copy() {
-    let { body, authorization } = this;
-    let newBody: Body = {
-      ...body,
-      update: Update.copy(body.update),
-      // TODO: callData
-      events: body.events.copy(),
-      protocolState: body.protocolState.copy(),
-      accountPrecondition: AccountPrecondition.copy(body.accountPrecondition),
-    };
-    let party = new Party(newBody);
-    party.authorization = { ...authorization };
-    return party;
-  }
-
   signInPlace(privateKey?: PrivateKey) {
     this.authorization = { kind: 'lazy-signature', privateKey };
   }
 
   sign(privateKey?: PrivateKey) {
-    let party = this.copy();
+    let party = cloneCircuitValue(this);
     party.signInPlace(privateKey);
     return party;
   }
@@ -842,7 +741,8 @@ export class Party {
     body.accountPrecondition = nonce;
     body.incrementNonce = Bool(true);
 
-    let party = new Party(body).sign(signer) as PartyWithNoncePrecondition;
+    let party = new Party(body) as PartyWithNoncePrecondition;
+    party.signInPlace(signer);
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
     return party;
@@ -873,9 +773,10 @@ function addMissingSignatures(
   let { commitment, fullCommitment } = Ledger.transactionCommitments(
     Ledger.partiesToJson(toParties(parties))
   );
-  function addSignature(party: Party, isFeePayer?: boolean) {
-    party = party.copy();
-    if (party.authorization.kind !== 'lazy-signature') return party;
+  function addSignature<P extends Party>(party: P, isFeePayer?: boolean) {
+    party = cloneCircuitValue(party);
+    if (party.authorization.kind !== 'lazy-signature')
+      return party as P & { authorization: Control };
     let { privateKey } = party.authorization;
     if (privateKey === undefined) {
       let i = additionalPublicKeys.findIndex(
@@ -893,16 +794,12 @@ function addMissingSignatures(
         : commitment;
     let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
     party.authorization = { kind: 'signature', value: signature };
-    return party;
+    return party as P & { authorization: Control };
   }
   let { feePayer, otherParties } = parties;
   return {
-    feePayer: addSignature(feePayer, true) as FeePayer & {
-      authorization: Control;
-    },
-    otherParties: otherParties.map(
-      (p) => addSignature(p) as Party & { authorization: Control }
-    ),
+    feePayer: addSignature(feePayer, true),
+    otherParties: otherParties.map((p) => addSignature(p)),
   };
 }
 
@@ -937,14 +834,4 @@ function signJsonTransaction(
     }
   }
   return JSON.stringify(parties);
-}
-
-function copyObject<T extends Object>(obj: T): T {
-  return Object.fromEntries(
-    Object.entries(obj).map(([key, value]) => {
-      if ('copy' in value && typeof value.copy === 'function')
-        return [key, value.copy()];
-      else return [key, value];
-    })
-  ) as never as T;
 }
