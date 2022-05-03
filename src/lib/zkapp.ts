@@ -426,7 +426,7 @@ export class SmartContract {
     let ZkappClass = this.constructor as never as typeof SmartContract;
     let i = ZkappClass._methods!.findIndex((m) => m.methodName === methodName);
     if (!(i + 1)) throw Error(`Method ${methodName} not found!`);
-    let [statement, selfParty] = Circuit.runAndCheckSync(() => {
+    let [statement, selfParty] = Circuit.runAndCheck(() => {
       let [selfParty] = withContext(
         { self: Party.defaultParty(this.address) },
         () => {
@@ -465,7 +465,7 @@ export class SmartContract {
     let i = ZkappClass._methods!.findIndex((m) => m.methodName === methodName);
     if (!(i + 1)) throw Error(`Method ${methodName} not found!`);
     let ctx = { self: Party.defaultParty(this.address) };
-    let [statement, selfParty] = Circuit.runAndCheckSync(() => {
+    let [statement, selfParty] = Circuit.runAndCheck(() => {
       let [selfParty] = withContext(
         { self: Party.defaultParty(this.address) },
         () => {
