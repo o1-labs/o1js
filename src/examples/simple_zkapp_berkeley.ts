@@ -55,10 +55,9 @@ let initialState = Field(1);
 let doComputeVk = false;
 
 // check if the zkapp is already deployed, based on whether the account exists and its first zkapp state is != 0
-let { account: zkappAccount } = await fetchAccount(zkappAddress);
 let zkapp = new SimpleZkapp(zkappAddress);
-let isDeployed =
-  zkappAccount?.zkapp?.appState[0].equals(0).not().toBoolean() ?? false;
+let x = await zkapp.x.fetch();
+let isDeployed = x.equals(0).not().toBoolean() ?? false;
 
 let { account: whaleAccount } = await fetchAccount(whaleKey.toPublicKey());
 let { nonce, balance } = whaleAccount!;

@@ -22,7 +22,7 @@ import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { toParty, toProtocolState } from './party-conversion';
 import { UInt32, UInt64 } from './int';
-import { Account } from './fetch';
+import { Account, fetchAccount } from './fetch';
 
 export {
   deploy,
@@ -41,6 +41,7 @@ export {
 export type State<A> = {
   get(): A;
   set(a: A): void;
+  fetch(): Promise<A>;
   assertEquals(a: A): void;
 };
 
@@ -161,6 +162,31 @@ function createState<A>() {
       let state = this._ty.ofFields(stateAsFields);
       (this._ty as any).check?.(state);
       return state;
+    },
+
+    async fetch() {
+      if (!this._initialized)
+        throw Error(
+          'fetch can only be called when the State is assigned to a SmartContract @state.'
+        );
+      if (Mina.currentTransaction !== undefined)
+        throw Error(
+          'fetch is not intended to be called inside a transaction block.'
+        );
+      let layout = this.getLayout();
+      let address: PublicKey = this._this.address;
+      let { account, error } = await fetchAccount(address);
+      if (account === undefined) throw error;
+      let stateAsFields: Field[];
+      if (account.zkapp === undefined) {
+        stateAsFields = Array(layout.length).fill(Field.zero);
+      } else {
+        stateAsFields = [];
+        for (let i = 0; i < layout.length; ++i) {
+          stateAsFields.push(account.zkapp.appState[layout.offset + i]);
+        }
+      }
+      return this._ty.ofFields(stateAsFields);
     },
   };
 }
