@@ -3,7 +3,6 @@ import {
   state,
   State,
   method,
-  UInt64,
   PrivateKey,
   SmartContract,
   Mina,
@@ -27,7 +26,6 @@ class SimpleZkapp extends SmartContract {
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
     });
-    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
     this.x.set(initialState);
   }
 
@@ -49,7 +47,6 @@ let zkappKey = PrivateKey.fromBase58(
 );
 let zkappAddress = zkappKey.toPublicKey();
 
-let initialBalance = 10_000_000_000;
 let transactionFee = 100_000_000;
 let initialState = Field(1);
 let doComputeVk = false;
@@ -75,11 +72,10 @@ if (!isDeployed) {
     { privateKey: whaleKey, fee: transactionFee },
     () => {
       const p = Party.createSigned(whaleKey, { isSameAsFeePayer: true });
-      p.balance.subInPlace(UInt64.fromNumber(initialBalance));
+      p.balance.subInPlace(Mina.accountCreationFee());
       zkapp.deploy({ zkappKey, verificationKey });
     }
   );
-  tx.sign();
   await tx.send().wait();
 }
 
@@ -97,7 +93,6 @@ if (isDeployed) {
       zkapp.sign(zkappKey);
     }
   );
-  tx.sign();
   await tx.send().wait();
 }
 
