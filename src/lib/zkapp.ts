@@ -7,7 +7,7 @@ import {
   Ledger,
   Pickles,
 } from '../snarky';
-import { CircuitValue } from './circuit_value';
+import { CircuitValue, cloneCircuitValue } from './circuit_value';
 import {
   ProtocolStatePredicate,
   Body,
@@ -658,7 +658,7 @@ async function callUnproved<S extends typeof SmartContract>(
     methodName as any,
     methodArguments
   );
-  selfParty = selfParty.sign(zkappKey) as PartyWithFullAccountPrecondition;
+  selfParty.signInPlace(zkappKey);
   selfParty.body.incrementNonce = Bool(true);
   let tx = Mina.createUnsignedTransaction(() => {
     Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
@@ -675,7 +675,7 @@ function addFeePayer(
     feePayerNonce = undefined as number | string | undefined,
   }
 ) {
-  feePayer = feePayer.copy();
+  feePayer = cloneCircuitValue(feePayer);
   if (typeof feePayerKey === 'string')
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
@@ -686,10 +686,8 @@ function addFeePayer(
   feePayer.body.accountPrecondition = UInt32.fromString(`${feePayerNonce}`);
   feePayer.body.publicKey = senderAddress;
   feePayer.balance.subInPlace(UInt64.fromString(`${transactionFee}`));
-  return {
-    feePayer: feePayer.sign(feePayerKey) as FeePayer,
-    otherParties,
-  };
+  feePayer.signInPlace(feePayerKey);
+  return { feePayer, otherParties };
 }
 
 function signFeePayer(
