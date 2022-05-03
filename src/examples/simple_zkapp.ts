@@ -63,7 +63,6 @@ tx = await Local.transaction(account1, () => {
   zkapp.update(Field(3));
   // TODO: mock proving
   zkapp.sign(zkappKey);
-  zkapp.self.body.incrementNonce = Bool(true);
 });
 tx.send();
 

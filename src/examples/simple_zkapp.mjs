@@ -70,7 +70,6 @@ console.log('update');
     let zkapp = new SimpleZkapp(zkappAddress);
     zkapp.update(Field(3));
     zkapp.sign(zkappKey);
-    zkapp.self.body.incrementNonce = Bool(true);
   })
 ).send();
 
