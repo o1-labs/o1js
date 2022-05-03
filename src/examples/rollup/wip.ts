@@ -7,7 +7,6 @@ import {
   Signature,
   Party,
   Permissions,
-  Perm,
   State,
   SmartContract,
   state,
@@ -257,7 +256,6 @@ class RollupZkapp extends SmartContract {
     deposits: MerkleStack<RollupDeposit>,
     lastUpatedPeriod: UInt32
   ) {
-    super.deploy();
     this.self.balance.addInPlace(senderAmount);
     this.operatorsCommitment.set(operatorsDb.commitment());
     this.lastUpdatedPeriod.set(lastUpatedPeriod);
@@ -266,8 +264,8 @@ class RollupZkapp extends SmartContract {
     );
     let perms = Permissions.default();
     // Force users to use the deposit method to send to this account
-    perms.receive = Perm.proof();
-    perms.editState = Perm.proof();
+    perms.receive = Permissions.proof();
+    perms.editState = Permissions.proof();
     this.self.update.permissions.setValue(perms);
   }
 
@@ -379,7 +377,7 @@ function main() {
   const minaSender = PrivateKey.random();
   const Local = Mina.LocalBlockchain();
   Mina.setActiveInstance(Local);
-  const largeValue = 30000000000;
+  const largeValue = '30000000000';
   Local.addAccount(minaSender.toPublicKey(), largeValue);
 
   // TODO: Put real value

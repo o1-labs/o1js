@@ -3,23 +3,56 @@ import {
   Party_,
   ProtocolStatePredicate_,
   EpochDataPredicate_,
-  FeePayerParty,
+  FeePayerParty_,
+  Parties_,
 } from '../snarky';
 import {
   Body,
   EpochDataPredicate,
+  FeePayer,
+  LazyControl,
   Party,
   ProtocolStatePredicate,
 } from './party';
 import { UInt32 } from './int';
+import { PrivateKey } from './signature';
 
-export { toParty, toPartyBody, toFeePayerPartyBody, toProtocolState };
+export { toParties, toParty, toProtocolState };
+
+function toParties({
+  feePayer,
+  otherParties,
+}: {
+  feePayer: FeePayer;
+  otherParties: Party[];
+}): Parties_ {
+  return {
+    feePayer: toFeePayer(feePayer),
+    otherParties: otherParties.map(toParty),
+  };
+}
 
 function toParty(party: Party): Party_ {
   return {
     body: toPartyBody(party.body),
-    authorization: party.authorization,
+    authorization: toControl(party.authorization),
   };
+}
+
+function toFeePayer(party: FeePayer): FeePayerParty_ {
+  return {
+    body: toFeePayerPartyBody(party.body),
+    authorization: toControl(party.authorization),
+  };
+}
+
+function toControl<T extends LazyControl>(
+  authorization: T
+):
+  | Exclude<T, { kind: 'lazy-signature'; privateKey?: PrivateKey }>
+  | { kind: 'none' } {
+  if (authorization.kind === 'lazy-signature') return { kind: 'none' };
+  return authorization as never;
 }
 
 function toPartyBody(body: Body): Party_['body'] {
@@ -45,7 +78,7 @@ function toPartyBody(body: Body): Party_['body'] {
 
 function toFeePayerPartyBody(
   body: Body & { accountPrecondition: UInt32 }
-): FeePayerParty['body'] {
+): FeePayerParty_['body'] {
   return {
     ...body,
     events: body.events.events,

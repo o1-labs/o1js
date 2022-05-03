@@ -772,12 +772,13 @@ interface Party_ {
   authorization: Control;
 }
 
-interface FeePayerParty {
+interface FeePayerParty_ {
   body: FeePayerPartyBody;
+  authorization: Exclude<Control, { kind: 'proof'; value: string }>;
 }
 
-interface Parties {
-  feePayer: FeePayerParty;
+interface Parties_ {
+  feePayer: FeePayerParty_;
   otherParties: Array<Party_>;
 }
 
@@ -799,7 +800,7 @@ export class Ledger {
 
   addAccount(publicKey: { g: Group }, balance: string): void;
 
-  applyPartiesTransaction(parties: Parties): Account[];
+  applyPartiesTransaction(parties: Parties_): Account[];
   applyJsonTransaction(parties: string): Account[];
 
   getAccount(publicKey: { g: Group }): Account | undefined;
@@ -817,6 +818,15 @@ export class Ledger {
     protocolStateHash: Field
   ): Field;
 
+  static transactionCommitments(txJson: string): {
+    commitment: Field;
+    fullCommitment: Field;
+  };
+  static transactionStatement(txJson: string, partyIndex: number): Statement;
+  static signFieldElement(
+    messageHash: Field,
+    privateKey: { s: Scalar }
+  ): string;
   static signFeePayer(txJson: string, privateKey: { s: Scalar }): string;
   static signOtherParty(
     txJson: string,
@@ -829,8 +839,8 @@ export class Ledger {
   static privateKeyToString(privateKey: { s: Scalar }): string;
   static privateKeyOfString(privateKeyBase58: string): Scalar;
 
-  static partiesToJson(parties: Parties): string;
-  static partiesToGraphQL(parties: Parties): string;
+  static partiesToJson(parties: Parties_): string;
+  static partiesToGraphQL(parties: Parties_): string;
 }
 
 /**

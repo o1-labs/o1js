@@ -1,46 +1,30 @@
 import { CircuitValue } from './circuit_value';
-import { Group, Field, Bool, Control, Circuit } from '../snarky';
+import { Group, Field, Bool, Control, Ledger } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
+import { toParties } from './party-conversion';
 
-export type Amount = UInt64;
-export const Amount = UInt64;
-export type Balance = UInt64;
-export const Balance = UInt64;
-export type Fee = UInt64;
-export const Fee = UInt64;
-export type GlobalSlot = UInt32;
-export const GlobalSlot = UInt32;
-export type SignedAmount = Int64;
-export const SignedAmount = Int64;
+export {
+  FeePayer,
+  Parties,
+  LazyControl,
+  addMissingSignatures,
+  signJsonTransaction,
+};
 
-const ZkappStateLength: number = 8;
+const ZkappStateLength = 8;
 
 /**
  * Timing info inside an account.
  */
-export class Timing {
-  initialMinimumBalance: Balance;
-  cliffTime: GlobalSlot;
-  cliffAmount: Amount;
-  vestingPeriod: GlobalSlot;
-  vestingIncrement: Amount;
-
-  constructor(
-    initialMinimumBalance: Balance,
-    cliffTime: GlobalSlot,
-    cliffAmount: Amount,
-    vestingPeriod: GlobalSlot,
-    vestingIncrement: Amount
-  ) {
-    this.initialMinimumBalance = initialMinimumBalance;
-    this.cliffTime = cliffTime;
-    this.cliffAmount = cliffAmount;
-    this.vestingPeriod = vestingPeriod;
-    this.vestingIncrement = vestingIncrement;
-  }
-}
+export type Timing = {
+  initialMinimumBalance: UInt64;
+  cliffTime: UInt32;
+  cliffAmount: UInt64;
+  vestingPeriod: UInt32;
+  vestingIncrement: UInt64;
+};
 
 /**
  * Either set a value or keep it the same.
@@ -50,7 +34,7 @@ export class SetOrKeep<T> {
   value: T;
 
   setValue(x: T) {
-    this.set = new Bool(true);
+    this.set = Bool(true);
     this.value = x;
   }
 
@@ -60,255 +44,182 @@ export class SetOrKeep<T> {
   }
 }
 
-/**
- * Group a value with a hash.
- *
- * @typeParam T the value
- * @typeParam H the hash
- */
-export type WithHash<T, H> = {
-  value: T;
-  hash: H;
-};
+const True = () => Bool(true);
+const False = () => Bool(false);
 
 /**
  * One specific permission value.
  *
- * A [[ Perm ]] tells one specific permission for our zkapp how it should behave
+ * A [[ Permission ]] tells one specific permission for our zkapp how it should behave
  * when presented with requested modifications.
  *
  * Use static factory methods on this class to use a specific behavior. See
  * documentation on those methods to learn more.
  */
-export class Perm {
+export type Permission = {
   constant: Bool;
   signatureNecessary: Bool;
   signatureSufficient: Bool;
-
-  constructor(
-    constant: Bool,
-    signatureNecessary: Bool,
-    signatureSufficient: Bool
-  ) {
-    this.constant = constant;
-    this.signatureNecessary = signatureNecessary;
-    this.signatureSufficient = signatureSufficient;
-  }
-
+};
+export let Permission = {
   /**
    * Modification is impossible.
    */
-  static impossible() {
-    return new Perm(new Bool(true), new Bool(true), new Bool(false));
-  }
+  impossible: (): Permission => ({
+    constant: True(),
+    signatureNecessary: True(),
+    signatureSufficient: False(),
+  }),
 
   /**
-   * Modification is permitted completely
-   * TODO: Is this correct?
+   * Modification is always permitted
    */
-  static none() {
-    return new Perm(new Bool(true), new Bool(false), new Bool(true));
-  }
+  none: (): Permission => ({
+    constant: True(),
+    signatureNecessary: False(),
+    signatureSufficient: False(),
+  }),
 
   /**
-   * Modification is permitted by proofs within the Zkapp only
+   * Modification is permitted by zkapp proofs only
    */
-  static proof() {
-    return new Perm(new Bool(false), new Bool(false), new Bool(false));
-  }
+  proof: (): Permission => ({
+    constant: False(),
+    signatureNecessary: False(),
+    signatureSufficient: False(),
+  }),
 
   /**
-   * Modification is permitted by signatures using the private key of this
-   * account only.
-   *
-   * TODO: Is this accurate?
+   * Modification is permitted by signatures only, using the private key of the zkapp account
    */
-  static signature() {
-    return new Perm(new Bool(false), new Bool(true), new Bool(true));
-  }
+  signature: (): Permission => ({
+    constant: False(),
+    signatureNecessary: True(),
+    signatureSufficient: True(),
+  }),
 
   /**
-   * Modification is permitted by [[ Perm.proof ]] or [[ Perm.signature ]]
+   * Modification is permitted by zkapp proofs or signatures
    */
-  static proofOrSignature() {
-    return new Perm(new Bool(false), new Bool(false), new Bool(true));
-  }
-
-  /**
-   * Modification is permitted by only [[ Perm.proof ]] and [[ Perm.signature ]]
-   */
-  static proofAndSignature() {
-    return new Perm(new Bool(false), new Bool(true), new Bool(false));
-  }
-}
+  proofOrSignature: (): Permission => ({
+    constant: False(),
+    signatureNecessary: False(),
+    signatureSufficient: True(),
+  }),
+};
 
 /**
- * Permissions specify how specific aspects of the Zkapp account are allowed to
- * be modified. Most fields are denominated by a [[ Perm ]].
+ * Permissions specify how specific aspects of the zkapp account are allowed to
+ * be modified. All fields are denominated by a [[ Permission ]].
  */
-export class Permissions {
+export type Permissions = {
   /**
-   * The [[ Perm ]] corresponding to the 8 state fields associated with an
+   * The [[ Permission ]] corresponding to the 8 state fields associated with an
    * account.
    */
-  editState: Perm;
+  editState: Permission;
 
   /**
-   * The [[ Perm ]] corresponding to the ability to send transactions from this
+   * The [[ Permission ]] corresponding to the ability to send transactions from this
    * account.
-   *
-   * TODO: Is this correct?
    */
-  send: Perm;
+  send: Permission;
 
   /**
-   * The [[ Perm ]] corresponding to the ability to receive transactions to this
+   * The [[ Permission ]] corresponding to the ability to receive transactions to this
    * account.
-   *
-   * TODO: Is this correct?
    */
-  receive: Perm;
+  receive: Permission;
 
   /**
-   * The [[ Perm ]] corresponding to the ability to set the delegate field of
+   * The [[ Permission ]] corresponding to the ability to set the delegate field of
    * the account.
    */
-  setDelegate: Perm;
+  setDelegate: Permission;
 
   /**
-   * The [[ Perm ]] corresponding to the ability to set the permissions field of
+   * The [[ Permission ]] corresponding to the ability to set the permissions field of
    * the account.
    */
-  setPermissions: Perm;
+  setPermissions: Permission;
 
   /**
-   * The [[ Perm ]] corresponding to the ability to set the verification key
+   * The [[ Permission ]] corresponding to the ability to set the verification key
    * associated with the circuit tied to this account. Effectively
    * "upgradability" of the smart contract.
    */
-  setVerificationKey: Perm;
+  setVerificationKey: Permission;
 
   /**
-   * The [[ Perm ]] corresponding to the ability to set the zkapp uri typically
+   * The [[ Permission ]] corresponding to the ability to set the zkapp uri typically
    * pointing to the source code of the smart contract. Usually this should be
    * changed whenever the [[ Permissions.setVerificationKey ]] is changed.
    * Effectively "upgradability" of the smart contract.
    */
-  setZkappUri: Perm;
+  setZkappUri: Permission;
 
   /**
-   * The [[ Perm ]] corresponding to the ability to change the sequence state
+   * The [[ Permission ]] corresponding to the ability to change the sequence state
    * associated with the account.
    *
    * TODO: Define sequence state here as well.
    */
-  editSequenceState: Perm;
+  editSequenceState: Permission;
 
   /**
-   * The [[ Perm ]] corresponding to the ability to set the token symbol for
+   * The [[ Permission ]] corresponding to the ability to set the token symbol for
    * this account.
    */
-  setTokenSymbol: Perm;
+  setTokenSymbol: Permission;
 
   // TODO: doccomments
-  incrementNonce: Perm;
-  setVotingFor: Perm;
-
+  incrementNonce: Permission;
+  setVotingFor: Permission;
+};
+export let Permissions = {
+  ...Permission,
   /**
    * Default permissions are:
-   *   [[ Permissions.editState ]]=[[ Perm.proof ]]
-   *   [[ Permissions.send ]]=[[ Perm.signature ]]
-   *   [[ Permissions.receive ]]=[[ Perm.proof ]]
-   *   [[ Permissions.setDelegate ]]=[[ Perm.signature ]]
-   *   [[ Permissions.setPermissions ]]=[[ Perm.signature ]]
-   *   [[ Permissions.setVerificationKey ]]=[[ Perm.signature ]]
-   *   [[ Permissions.setZkappUri ]]=[[ Perm.signature ]]
-   *   [[ Permissions.editSequenceState ]]=[[ Perm.proof ]]
-   *   [[ Permissions.setTokenSymbol ]]=[[ Perm.signature ]]
+   *   [[ Permissions.editState ]]=[[ Permission.proof ]]
+   *   [[ Permissions.send ]]=[[ Permission.signature ]]
+   *   [[ Permissions.receive ]]=[[ Permission.proof ]]
+   *   [[ Permissions.setDelegate ]]=[[ Permission.signature ]]
+   *   [[ Permissions.setPermissions ]]=[[ Permission.signature ]]
+   *   [[ Permissions.setVerificationKey ]]=[[ Permission.signature ]]
+   *   [[ Permissions.setZkappUri ]]=[[ Permission.signature ]]
+   *   [[ Permissions.editSequenceState ]]=[[ Permission.proof ]]
+   *   [[ Permissions.setTokenSymbol ]]=[[ Permission.signature ]]
    */
-  static default(): Permissions {
-    return new Permissions(
-      Perm.proof(),
-      Perm.signature(),
-      Perm.proof(),
-      Perm.signature(),
-      Perm.signature(),
-      Perm.signature(),
-      Perm.signature(),
-      Perm.proof(),
-      Perm.signature(),
-      Perm.signature(),
-      Perm.signature()
-    );
-  }
-
-  constructor(
-    editState: Perm,
-    send: Perm,
-    receive: Perm,
-    setDelegate: Perm,
-    setPermissions: Perm,
-    setVerificationKey: Perm,
-    setZkappUri: Perm,
-    editSequenceState: Perm,
-    setTokenSymbol: Perm,
-    incrementNonce: Perm,
-    setVotingFor: Perm
-  ) {
-    this.editState = editState;
-    this.send = send;
-    this.receive = receive;
-    this.setDelegate = setDelegate;
-    this.setPermissions = setPermissions;
-    this.setVerificationKey = setVerificationKey;
-    this.setZkappUri = setZkappUri;
-    this.editSequenceState = editSequenceState;
-    this.setTokenSymbol = setTokenSymbol;
-    this.incrementNonce = incrementNonce;
-    this.setVotingFor = setVotingFor;
-  }
-}
+  default: (): Permissions => ({
+    editState: Permission.proof(),
+    send: Permission.signature(),
+    receive: Permission.proof(),
+    setDelegate: Permission.signature(),
+    setPermissions: Permission.signature(),
+    setVerificationKey: Permission.signature(),
+    setZkappUri: Permission.signature(),
+    editSequenceState: Permission.proof(),
+    setTokenSymbol: Permission.signature(),
+    // TODO: this is  a workaround, should be changed to signature() once Parties_replay_check_failed is fixed
+    incrementNonce: Permissions.proofOrSignature(),
+    setVotingFor: Permission.signature(),
+  }),
+};
 
 /* TODO: How should we handle "String"s, should we bridge them from OCaml? */
 class String_ extends CircuitValue {}
 
-class TokenSymbol extends CircuitValue {
-  // TODO: Figure out how to represent
-  // (Bool, Num_bits.n) Pickles_types.Vector.t
-}
-
-export class Update {
+export type Update = {
   appState: Array<SetOrKeep<Field>>;
   delegate: SetOrKeep<PublicKey>;
   verificationKey: SetOrKeep<string>;
   permissions: SetOrKeep<Permissions>;
   zkappUri: SetOrKeep<String_>;
-  tokenSymbol: SetOrKeep<TokenSymbol>;
+  tokenSymbol: SetOrKeep<Field>;
   timing: SetOrKeep<Timing>;
   votingFor: SetOrKeep<Field>;
-
-  constructor(
-    appState: Array<SetOrKeep<Field>>,
-    delegate: SetOrKeep<PublicKey>,
-    verificationKey: SetOrKeep<string>,
-    permissions: SetOrKeep<Permissions>,
-    zkappUri: SetOrKeep<String_>,
-    tokenSymbol: SetOrKeep<TokenSymbol>,
-    timing: SetOrKeep<Timing>,
-    votingFor: SetOrKeep<Field>
-  ) {
-    this.appState = appState;
-    this.delegate = delegate;
-    this.verificationKey = verificationKey;
-    this.permissions = permissions;
-    this.zkappUri = zkappUri;
-    this.tokenSymbol = tokenSymbol;
-    this.timing = timing;
-    this.votingFor = votingFor;
-  }
-}
-
-export const getDefaultTokenId = () => Field.one;
+};
+export const defaultTokenId = Field.one;
 
 // TODO
 class Events {
@@ -334,7 +245,7 @@ export type Precondition = undefined | UInt32 | AccountPrecondition;
  *
  * TODO: We need to rename this still.
  */
-export class Body {
+export type Body = {
   /**
    * The address for this body.
    */
@@ -352,12 +263,10 @@ export class Body {
   tokenId: Field;
 
   /**
-   * By what [[ SignedAmount ]] should the balance of this account change. All
+   * By what [[ Int64 ]] should the balance of this account change. All
    * deltas must balance by the end of smart contract execution.
-   *
-   * TODO: Is this correct?
    */
-  delta: SignedAmount;
+  delta: Int64;
 
   /**
    * Recent events that have been emitted from this account.
@@ -372,13 +281,15 @@ export class Body {
   accountPrecondition: Precondition;
   useFullCommitment: Bool;
   incrementNonce: Bool;
+};
 
+export let Body = {
   /**
    * A body that Don't change part of the underlying account record.
    */
-  static keepAll(publicKey: PublicKey): Body {
+  keepAll(publicKey: PublicKey): Body {
     function keep<A>(dummy: A): SetOrKeep<A> {
-      return new SetOrKeep(new Bool(false), dummy);
+      return new SetOrKeep(False(), dummy);
     }
 
     const appState: Array<SetOrKeep<Field>> = [];
@@ -387,74 +298,45 @@ export class Body {
       appState.push(keep(Field.zero));
     }
 
-    const update = new Update(
+    const update: Update = {
       appState,
-      keep(new PublicKey(Group.generator)),
-      keep(''),
-      keep(Permissions.default()),
-      keep(undefined as any),
-      keep(undefined as any),
-      keep(undefined as any),
-      keep(Field.zero)
-    );
-    return new Body(
+      delegate: keep(new PublicKey(Group.generator)),
+      verificationKey: keep(''),
+      permissions: keep(Permissions.default()),
+      zkappUri: keep(undefined as any),
+      tokenSymbol: keep(undefined as any),
+      timing: keep(undefined as any),
+      votingFor: keep(Field.zero),
+    };
+    return {
       publicKey,
       update,
-      getDefaultTokenId(),
-      Int64.zero,
-      new Events(Field.zero, []),
-      Field.zero,
-      new MerkleList(),
-      Field.zero,
-      ProtocolStatePredicate.ignoreAll(),
-      AccountPrecondition.ignoreAll(),
-      Bool(true),
-      Bool(false)
-    );
-  }
+      tokenId: defaultTokenId,
+      delta: Int64.zero,
+      events: new Events(Field.zero, []),
+      sequenceEvents: Field.zero,
+      callData: new MerkleList(),
+      depth: Field.zero,
+      protocolState: ProtocolStatePredicate.ignoreAll(),
+      accountPrecondition: AccountPrecondition.ignoreAll(),
+      // the default assumption is that snarkyjs transactions don't include the fee payer
+      // so useFullCommitment has to be false for signatures to be correct
+      useFullCommitment: Bool(false),
+      // this should be set to true if parties are signed
+      incrementNonce: Bool(false),
+    };
+  },
 
-  static keepAllWithNonce(publicKey: PublicKey, nonce: UInt32) {
+  keepAllWithNonce(publicKey: PublicKey, nonce: UInt32) {
     let body = Body.keepAll(publicKey);
     body.accountPrecondition = nonce;
     return body as Body & { accountPrecondition: UInt32 };
-  }
+  },
 
-  static dummy() {
+  dummy(): Body {
     return Body.keepAll(PublicKey.empty());
-  }
-
-  static dummyFeePayer() {
-    return Body.keepAllWithNonce(PublicKey.empty(), UInt32.zero);
-  }
-
-  constructor(
-    publicKey: PublicKey,
-    update: Update,
-    tokenId: Field,
-    delta: SignedAmount,
-    events: Events,
-    sequenceEvents: Field,
-    callData: MerkleList<Array<Field>>,
-    depth: Field,
-    protocolState: ProtocolStatePredicate,
-    accountPrecondition: Precondition,
-    useFullCommitment: Bool,
-    incrementNonce: Bool
-  ) {
-    this.publicKey = publicKey;
-    this.update = update;
-    this.tokenId = tokenId;
-    this.delta = delta;
-    this.events = events;
-    this.sequenceEvents = sequenceEvents;
-    this.callData = callData;
-    this.depth = depth;
-    this.protocolState = protocolState;
-    this.accountPrecondition = accountPrecondition;
-    this.useFullCommitment = useFullCommitment;
-    this.incrementNonce = incrementNonce;
-  }
-}
+  },
+};
 
 /**
  * Either check a value or ignore it.
@@ -644,7 +526,7 @@ export class ProtocolStatePredicate {
   }
 
   get snarkedLedgerHash(): Field {
-    this.snarkedLedgerHash_.check = new Bool(true);
+    this.snarkedLedgerHash_.check = Bool(true);
 
     if (this.snarkedLedgerHash_.value === null) {
       throw new Error('Cannot get snarkedLedgerHash before it was set.');
@@ -654,7 +536,7 @@ export class ProtocolStatePredicate {
   }
 
   get lastVrfOutput(): Field {
-    this.lastVrfOutput_.check = new Bool(true);
+    this.lastVrfOutput_.check = Bool(true);
 
     if (this.lastVrfOutput_.value === null) {
       throw new Error('Cannot get lastVrfOutput before it was set.');
@@ -671,11 +553,11 @@ export class ProtocolStatePredicate {
  * @returns Always an ignored value regardless of the input.
  */
 function ignore<A>(dummy: A): OrIgnore<A> {
-  return new OrIgnore(new Bool(false), dummy);
+  return new OrIgnore(Bool(false), dummy);
 }
 /*
 function check<A>(dummy: A): OrIgnore<A> {
-  return new OrIgnore(new Optional(new Bool(true), dummy));
+  return new OrIgnore(new Optional(True, dummy));
 } */
 
 /**
@@ -688,7 +570,7 @@ const uint32 = () => new ClosedInterval(UInt32.fromNumber(0), UInt32.MAXINT());
  */
 const uint64 = () => new ClosedInterval(UInt64.fromNumber(0), UInt64.MAXINT());
 
-export class AccountPrecondition {
+export type AccountPrecondition = {
   balance: ClosedInterval<UInt64>;
   nonce: ClosedInterval<UInt32>;
   receiptChainHash: OrIgnore<Field>;
@@ -697,45 +579,25 @@ export class AccountPrecondition {
   state: Array<OrIgnore<Field>>;
   sequenceState: OrIgnore<Field>;
   provedState: OrIgnore<Bool>;
-
-  static ignoreAll(): AccountPrecondition {
+};
+export let AccountPrecondition = {
+  ignoreAll(): AccountPrecondition {
     let appState: Array<OrIgnore<Field>> = [];
     for (let i = 0; i < ZkappStateLength; ++i) {
       appState.push(ignore(Field.zero));
     }
-
-    return new AccountPrecondition(
-      uint64(),
-      uint32(),
-      ignore(Field.zero),
-      ignore(new PublicKey(Group.generator)),
-      ignore(new PublicKey(Group.generator)),
-      appState,
-      ignore(Field.zero),
-      ignore(new Bool(false))
-    );
-  }
-
-  constructor(
-    balance: ClosedInterval<UInt64>,
-    nonce: ClosedInterval<UInt32>,
-    receiptChainHash: OrIgnore<Field>,
-    publicKey: OrIgnore<PublicKey>,
-    delegate: OrIgnore<PublicKey>,
-    state: Array<OrIgnore<Field>>,
-    sequenceState: OrIgnore<Field>,
-    provedState: OrIgnore<Bool>
-  ) {
-    this.balance = balance;
-    this.nonce = nonce;
-    this.receiptChainHash = receiptChainHash;
-    this.publicKey = publicKey;
-    this.delegate = delegate;
-    this.state = state;
-    this.sequenceState = sequenceState;
-    this.provedState = provedState;
-  }
-}
+    return {
+      balance: uint64(),
+      nonce: uint32(),
+      receiptChainHash: ignore(Field.zero),
+      publicKey: ignore(new PublicKey(Group.generator)),
+      delegate: ignore(new PublicKey(Group.generator)),
+      state: appState,
+      sequenceState: ignore(Field.zero),
+      provedState: ignore(Bool(false)),
+    };
+  },
+};
 
 export class PartyBalance {
   private body: Body;
@@ -752,9 +614,13 @@ export class PartyBalance {
   }
 }
 
+type LazyControl =
+  | Control
+  | { kind: 'lazy-signature'; privateKey?: PrivateKey };
+
 export class Party {
   body: Body;
-  authorization: Control = { kind: 'none' };
+  authorization: LazyControl = { kind: 'none' };
 
   constructor(body: Body) {
     this.body = body;
@@ -772,11 +638,29 @@ export class Party {
     return this.body.publicKey;
   }
 
+  sign(privateKey?: PrivateKey) {
+    this.authorization = { kind: 'lazy-signature', privateKey };
+  }
+
   static defaultParty(address: PublicKey) {
     const body = Body.keepAll(address);
     return new Party(body) as Party & {
       body: { accountPrecondition: AccountPrecondition };
     };
+  }
+
+  static defaultFeePayer(address: PublicKey, key: PrivateKey, nonce: UInt32) {
+    let body = Body.keepAllWithNonce(address, nonce);
+    body.useFullCommitment = Bool(true);
+    let party = new Party(body) as FeePayer;
+    party.authorization = { kind: 'lazy-signature', privateKey: key };
+    return party;
+  }
+
+  static dummyFeePayer() {
+    let body = Body.keepAllWithNonce(PublicKey.empty(), UInt32.zero);
+    body.useFullCommitment = Bool(true);
+    return new Party(body) as FeePayer;
   }
 
   static createUnsigned(publicKey: PublicKey) {
@@ -819,27 +703,100 @@ export class Party {
     }
 
     // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher bc the fee payer already increases its nonce
-    let nonceIncrease = Circuit.if(
-      new Bool(options?.isSameAsFeePayer ?? false),
-      new UInt32(Field.one),
-      UInt32.zero
-    );
+    let nonceIncrement = options?.isSameAsFeePayer
+      ? new UInt32(Field.one)
+      : UInt32.zero;
     // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
     for (let party of Mina.currentTransaction.parties) {
       let shouldIncreaseNonce = party.publicKey
         .equals(publicKey)
         .and(party.body.incrementNonce);
-      nonceIncrease.add(new UInt32(shouldIncreaseNonce.toField()));
+      nonceIncrement.add(new UInt32(shouldIncreaseNonce.toField()));
     }
-    let nonce = account.nonce.add(nonceIncrease);
+    let nonce = account.nonce.add(nonceIncrement);
 
     body.accountPrecondition = nonce;
+    body.incrementNonce = Bool(true);
 
     let party = new Party(body) as Party & {
       body: { accountPrecondition: UInt32 };
     };
+    party.sign(signer);
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
     return party;
   }
+}
+
+type FeePayer = Party & {
+  authorization: Exclude<LazyControl, { kind: 'proof'; value: string }>;
+} & {
+  body: { accountPrecondition: UInt32 };
+};
+
+type Parties = { feePayer: FeePayer; otherParties: Party[] };
+
+function addMissingSignatures(
+  parties: Parties,
+  additionalKeys = [] as PrivateKey[]
+) {
+  let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
+  let { commitment, fullCommitment } = Ledger.transactionCommitments(
+    Ledger.partiesToJson(toParties(parties))
+  );
+  function addSignature(party: Party, isFeePayer?: boolean) {
+    if (party.authorization.kind !== 'lazy-signature') return;
+    let { privateKey } = party.authorization;
+    if (privateKey === undefined) {
+      let i = additionalPublicKeys.findIndex(
+        (pk) => pk === party.body.publicKey
+      );
+      if (i === -1) return;
+      privateKey = additionalKeys[i];
+    }
+    let transactionCommitment =
+      isFeePayer || party.body.useFullCommitment.toBoolean()
+        ? fullCommitment
+        : commitment;
+    let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
+    party.authorization = { kind: 'signature', value: signature };
+  }
+  let { feePayer, otherParties } = parties;
+  addSignature(feePayer, true);
+  for (let party of otherParties) {
+    addSignature(party);
+  }
+}
+
+/**
+ * Sign all parties of a transaction which belong to the account determined by [[ `privateKey` ]].
+ * @returns the modified transaction JSON
+ */
+function signJsonTransaction(
+  transactionJson: string,
+  privateKey: PrivateKey | string
+) {
+  if (typeof privateKey === 'string')
+    privateKey = PrivateKey.fromBase58(privateKey);
+  let publicKey = privateKey.toPublicKey().toBase58();
+  // TODO: we really need types for the parties json
+  let parties = JSON.parse(transactionJson);
+  let feePayer = parties.feePayer;
+  if (feePayer.body.publicKey === publicKey) {
+    parties = JSON.parse(
+      Ledger.signFeePayer(JSON.stringify(parties), privateKey)
+    );
+  }
+  for (let i = 0; i < parties.otherParties.length; i++) {
+    let party = parties.otherParties[i];
+    if (
+      party.body.publicKey === publicKey &&
+      party.authorization.proof === null
+    ) {
+      parties = JSON.parse(
+        Ledger.signOtherParty(JSON.stringify(parties), privateKey, i)
+      );
+    }
+  }
+  return JSON.stringify(parties);
 }

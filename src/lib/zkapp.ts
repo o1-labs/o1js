@@ -14,6 +14,9 @@ import {
   Body,
   Party,
   PartyBalance,
+  signJsonTransaction,
+  Parties,
+  Permissions,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -25,7 +28,7 @@ export {
   compile,
   call,
   callUnproved,
-  signJsonTransaction,
+  signFeePayer,
   declareState,
   declareMethodArguments,
 };
@@ -332,12 +335,9 @@ function withContext<T>(context: typeof mainContext, f: () => T) {
 function picklesRuleFromFunction(
   name: string,
   func: (...args: unknown[]) => void,
-  witnessTypes: AsFieldElements<unknown>[],
-  onStart?: Function,
-  onEnd?: Function
+  witnessTypes: AsFieldElements<unknown>[]
 ) {
   function main(statement: Statement) {
-    onStart?.();
     if (mainContext === undefined) throw Error('bug');
     let { self, witnesses } = mainContext;
     witnesses = witnessTypes.map(
@@ -347,8 +347,9 @@ function picklesRuleFromFunction(
     );
     func(...witnesses);
     let tail = Field.zero;
-    checkStatement(statement, self, tail);
-    onEnd?.();
+    // FIXME: figure out correct way to constrain statement https://github.com/o1-labs/snarkyjs/issues/98
+    statement.transaction.assertEquals(statement.transaction);
+    // checkStatement(statement, self, tail);
   }
 
   return [0, name, main];
@@ -395,6 +396,22 @@ export class SmartContract {
     return output;
   }
 
+  deploy({
+    verificationKey,
+    zkappKey,
+  }: {
+    verificationKey?: string;
+    zkappKey?: PrivateKey;
+  }) {
+    if (verificationKey !== undefined) {
+      this.self.update.verificationKey.set = Bool(true);
+      this.self.update.verificationKey.value = verificationKey;
+    }
+    this.self.update.permissions.setValue(Permissions.default());
+    this.self.body.incrementNonce = Bool(true);
+    this.self.sign(zkappKey);
+  }
+
   async prove(provers: any[], methodName: keyof this, args: unknown[]) {
     let ZkappClass = this.constructor as never as typeof SmartContract;
     let i = ZkappClass._methods!.findIndex((m) => m.methodName === methodName);
@@ -403,19 +420,26 @@ export class SmartContract {
     let [statement, selfParty] = Circuit.runAndCheckSync(() => {
       mainContext = ctx;
       (this[methodName] as any)(...args);
-      // TODO
       let selfParty = mainContext.self;
       mainContext = undefined;
-      let statementVar = toStatement(ctx.self, Field.zero);
-      return [
-        {
-          transaction: statementVar.transaction.toConstant(),
-          atParty: statementVar.atParty.toConstant(),
-        },
-        selfParty,
-      ];
+      // FIXME: a proof-authorized party shouldn't need to increment nonce, this is needed due to a protocol bug
+      selfParty.body.incrementNonce = Bool(true);
+
+      // TODO dont create full transaction in here, properly build up atParty
+      let txJson = Mina.createUnsignedTransaction(() => {
+        Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
+      }).toJSON();
+      let statement = Ledger.transactionStatement(txJson, 0);
+      // let statementVar = toStatement(ctx.self, Field.zero);
+      // let statement = {
+      //   transaction: statementVar.transaction.toConstant(),
+      //   atParty: statementVar.atParty.toConstant(),
+      // };
+      return [statement, selfParty];
     });
+
     mainContext = { self: Party.defaultParty(this.address), witnesses: args };
+    // TODO lazy proof?
     let proof = await provers[i](statement);
     mainContext = undefined;
     // FIXME call calls Parties.to_json outside a prover, which seems to cause an error when variables are extracted
@@ -485,10 +509,6 @@ export class SmartContract {
     }
   }
 
-  // get protocolState(): ProtocolStatePredicate {
-  //   return this.executionState().party.body.protocolState;
-  // }
-
   get self() {
     return this.executionState().party;
   }
@@ -554,7 +574,6 @@ async function deploy<S extends typeof SmartContract>(
     zkappKey,
     verificationKey,
     initialBalance,
-    initialBalanceFundingAccountKey,
     shouldSignFeePayer,
     feePayerKey,
     transactionFee,
@@ -562,50 +581,43 @@ async function deploy<S extends typeof SmartContract>(
     zkappKey: PrivateKey;
     verificationKey: string;
     initialBalance?: number | string;
-    initialBalanceFundingAccountKey?: PrivateKey;
-    shouldSignFeePayer?: boolean;
     feePayerKey?: PrivateKey;
+    shouldSignFeePayer?: boolean;
     transactionFee?: string | number;
   }
 ) {
-  let i = 0;
   let address = zkappKey.toPublicKey();
   let tx = Mina.createUnsignedTransaction(() => {
     if (initialBalance !== undefined) {
-      if (initialBalanceFundingAccountKey === undefined)
+      if (feePayerKey === undefined)
         throw Error(
-          `When using the optional initialBalance argument, you need to also supply the funding account's private key in initialBalanceFundingAccountKey.`
+          `When using the optional initialBalance argument, you need to also supply the fee payer's private key feePayerKey to sign the initial balance funding.`
         );
       // optional first party: the sender/fee payer who also funds the zkapp
       let amount = UInt64.fromString(String(initialBalance));
-      let party = Party.createSigned(initialBalanceFundingAccountKey, {
-        isSameAsFeePayer: true,
-      });
+      let party = Party.createSigned(feePayerKey, { isSameAsFeePayer: true });
       party.balance.subInPlace(amount);
     }
     // main party: the zkapp account
     let zkapp = new SmartContract(address);
-    (zkapp as any).deploy?.();
-    i = Mina.currentTransaction!.nextPartyIndex - 1;
-    zkapp.self.update.verificationKey.set = Bool(true);
-    zkapp.self.update.verificationKey.value = verificationKey;
+    zkapp.deploy({ verificationKey, zkappKey });
+    // TODO: add send / receive methods on SmartContract which create separate parties
+    // no need to bundle receive in the same party as deploy
     if (initialBalance !== undefined) {
       let amount = UInt64.fromString(String(initialBalance));
       zkapp.self.balance.addInPlace(amount);
     }
   });
-  // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
-  let txJson = tx.toJSON();
-  txJson = Ledger.signOtherParty(txJson, zkappKey, i);
   if (shouldSignFeePayer) {
     if (feePayerKey === undefined || transactionFee === undefined) {
       throw Error(
         `When setting shouldSignFeePayer=true, you need to also supply feePayerKey (fee payer's private key) and transactionFee.`
       );
     }
-    txJson = await signJsonTransaction(txJson, feePayerKey, { transactionFee });
+    await addFeePayer(tx.transaction, feePayerKey, { transactionFee });
   }
-  return txJson;
+  // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
+  return tx.sign().toJSON();
 }
 
 async function call<S extends typeof SmartContract>(
@@ -613,7 +625,9 @@ async function call<S extends typeof SmartContract>(
   address: PublicKey,
   methodName: string,
   methodArguments: any,
-  provers: ((statement: Statement) => Promise<unknown>)[]
+  provers: ((statement: Statement) => Promise<unknown>)[],
+  // TODO: remove, create a nicer intf to check proofs
+  verify?: (statement: Statement, proof: unknown) => Promise<boolean>
 ) {
   let zkapp = new SmartContract(address);
   let { selfParty, proof, statement } = await zkapp.prove(
@@ -625,6 +639,10 @@ async function call<S extends typeof SmartContract>(
     kind: 'proof',
     value: Pickles.proofToString(proof),
   };
+  if (verify !== undefined) {
+    let ok = await verify(statement, proof);
+    if (!ok) throw Error('Proof failed to verify!');
+  }
   let tx = Mina.createUnsignedTransaction(() => {
     Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
   });
@@ -643,27 +661,56 @@ async function callUnproved<S extends typeof SmartContract>(
     methodName as any,
     methodArguments
   );
+  selfParty.sign(zkappKey);
+  selfParty.body.incrementNonce = Bool(true);
   let tx = Mina.createUnsignedTransaction(() => {
     Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
   });
-  let txJson = tx.toJSON();
-  if (zkappKey !== undefined)
-    txJson = Ledger.signOtherParty(txJson, zkappKey, 0);
+  let txJson = tx.sign().toJSON();
   return txJson;
 }
 
-async function signJsonTransaction(
+async function addFeePayer(
+  { feePayer }: Parties,
+  feePayerKey: PrivateKey | string,
+  {
+    transactionFee = 0 as number | string,
+    feePayerNonce = undefined as number | string | undefined,
+  }
+) {
+  if (typeof feePayerKey === 'string')
+    feePayerKey = PrivateKey.fromBase58(feePayerKey);
+  let senderAddress = feePayerKey.toPublicKey();
+  if (feePayerNonce === undefined) {
+    let senderAccount = await Mina.getAccount(senderAddress);
+    feePayerNonce = senderAccount.nonce.toString();
+  }
+  feePayer.body.accountPrecondition = UInt32.fromString(`${feePayerNonce}`);
+  feePayer.body.publicKey = senderAddress;
+  feePayer.balance.subInPlace(UInt64.fromString(`${transactionFee}`));
+  feePayer.sign(feePayerKey);
+}
+
+async function signFeePayer(
   transactionJson: string,
-  senderKey: PrivateKey,
-  { transactionFee = 0 as number | string }
+  feePayerKey: PrivateKey | string,
+  {
+    transactionFee = 0 as number | string,
+    feePayerNonce = undefined as number | string | undefined,
+  }
 ) {
   let parties = JSON.parse(transactionJson);
-  let senderAddress = senderKey.toPublicKey();
-  let senderAccount = await Mina.getAccount(senderAddress);
-  parties.feePayer.body.accountPrecondition = senderAccount.nonce.toString();
+  if (typeof feePayerKey === 'string')
+    feePayerKey = PrivateKey.fromBase58(feePayerKey);
+  let senderAddress = feePayerKey.toPublicKey();
+  if (feePayerNonce === undefined) {
+    let senderAccount = await Mina.getAccount(senderAddress);
+    feePayerNonce = senderAccount.nonce.toString();
+  }
+  parties.feePayer.body.accountPrecondition = `${feePayerNonce}`;
   parties.feePayer.body.publicKey = Ledger.publicKeyToString(senderAddress);
   parties.feePayer.body.balanceChange = `${transactionFee}`;
-  return Ledger.signFeePayer(JSON.stringify(parties), senderKey);
+  return signJsonTransaction(JSON.stringify(parties), feePayerKey);
 }
 
 async function compile<S extends typeof SmartContract>(
@@ -671,10 +718,12 @@ async function compile<S extends typeof SmartContract>(
   address: PublicKey
 ) {
   // TODO: instead of returning provers, return an artifact from which provers can be recovered
-  let { getVerificationKeyArtifact, provers } = SmartContract.compile(address);
+  let { getVerificationKeyArtifact, provers, verify } =
+    SmartContract.compile(address);
   return {
     verificationKey: getVerificationKeyArtifact(),
     provers,
+    verify,
   };
 }
 

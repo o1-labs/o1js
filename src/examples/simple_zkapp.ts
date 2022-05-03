@@ -9,6 +9,8 @@ import {
   Mina,
   Party,
   isReady,
+  Bool,
+  Permissions,
 } from 'snarkyjs';
 
 await isReady;
@@ -16,17 +18,18 @@ await isReady;
 class SimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
 
-  deploy() {
-    let amount = UInt64.fromNumber(initialBalance);
-    this.balance.addInPlace(amount);
-    const p = Party.createSigned(account2);
-    p.balance.subInPlace(amount);
+  deploy(args: { zkappKey: PrivateKey }) {
+    super.deploy(args);
+    this.self.update.permissions.setValue({
+      ...Permissions.default(),
+      editState: Permissions.proofOrSignature(),
+    });
+    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
     this.x.set(initialState);
   }
 
   @method update(y: Field) {
     let x = this.x.get();
-    console.log('update', { y, x });
     this.x.set(x.add(y));
   }
 }
@@ -35,32 +38,32 @@ let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
 let account1 = Local.testAccounts[0].privateKey;
-let account2 = Local.testAccounts[1].privateKey;
 
-let zkappPrivKey = PrivateKey.random();
-let zkappPubKey = zkappPrivKey.toPublicKey();
+let zkappKey = PrivateKey.random();
+let zkappAddress = zkappKey.toPublicKey();
 
-let initialBalance = 1_000_000;
+let initialBalance = 10_000_000_000;
 let initialState = Field(1);
 
 console.log('deploy');
-await Local.transaction(account1, () => {
-  let zkapp = new SimpleZkapp(zkappPubKey);
-  zkapp.deploy();
-})
-  .send()
-  .wait();
+Local.transaction(account1, () => {
+  const p = Party.createSigned(account1, { isSameAsFeePayer: true });
+  p.balance.subInPlace(UInt64.fromNumber(initialBalance));
+  let zkapp = new SimpleZkapp(zkappAddress);
+  zkapp.deploy({ zkappKey });
+}).send();
 
-let zkappState = (await Mina.getAccount(zkappPubKey)).zkapp.appState[0];
+let zkappState = (await Mina.getAccount(zkappAddress)).zkapp.appState[0];
 console.log('initial state: ' + zkappState);
 
 console.log('update');
-await Local.transaction(account1, async () => {
-  let zkapp = new SimpleZkapp(zkappPubKey);
+Local.transaction(account1, async () => {
+  let zkapp = new SimpleZkapp(zkappAddress);
   zkapp.update(Field(3));
-})
-  .send()
-  .wait();
+  // TODO: mock proving
+  zkapp.self.sign(zkappKey);
+  zkapp.self.body.incrementNonce = Bool(true);
+}).send();
 
-zkappState = (await Mina.getAccount(zkappPubKey)).zkapp.appState[0];
+zkappState = (await Mina.getAccount(zkappAddress)).zkapp.appState[0];
 console.log('final state: ' + zkappState);

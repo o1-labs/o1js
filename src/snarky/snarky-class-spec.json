@@ -365,6 +365,18 @@
         "type": "function"
       },
       {
+        "name": "transactionCommitments",
+        "type": "function"
+      },
+      {
+        "name": "transactionStatement",
+        "type": "function"
+      },
+      {
+        "name": "signFieldElement",
+        "type": "function"
+      },
+      {
         "name": "signFeePayer",
         "type": "function"
       },

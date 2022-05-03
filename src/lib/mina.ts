@@ -1,10 +1,10 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, Ledger, Field, FeePayerParty, Parties } from '../snarky';
+import { Circuit, Ledger, Field } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
-import { Body, Party } from './party';
-import { toFeePayerPartyBody, toParty } from './party-conversion';
+import { addMissingSignatures, FeePayer, Parties, Party } from './party';
+import { toParties } from './party-conversion';
 
 export { createUnsignedTransaction, createSignedTransaction };
 
@@ -13,6 +13,8 @@ interface TransactionId {
 }
 
 interface Transaction {
+  transaction: Parties;
+  sign(): void;
   send(): TransactionId;
 }
 
@@ -54,13 +56,16 @@ function createSignedTransaction(sender: PrivateKey, f: () => unknown) {
   return createTransaction(sender, f);
 }
 
-function createTransaction(sender: PrivateKey | undefined, f: () => unknown) {
+function createTransaction(
+  senderKey: PrivateKey | undefined,
+  f: () => unknown
+) {
   if (currentTransaction !== undefined) {
     throw new Error('Cannot start new transaction within another transaction');
   }
 
   currentTransaction = {
-    sender,
+    sender: senderKey,
     parties: [],
     nextPartyIndex: 0,
   };
@@ -73,39 +78,44 @@ function createTransaction(sender: PrivateKey | undefined, f: () => unknown) {
     throw err;
   }
 
-  const otherParties = currentTransaction.parties.map(toParty);
-
-  let feePayer: FeePayerParty;
-  if (sender !== undefined) {
-    // if sender is provided, fetch account to get nonce
-    const senderPubkey = sender.toPublicKey();
-    let senderAccount = getAccount(senderPubkey);
-    feePayer = {
-      body: toFeePayerPartyBody(
-        Body.keepAllWithNonce(senderPubkey, senderAccount.nonce)
-      ),
-    };
+  let feePayer: FeePayer;
+  if (senderKey !== undefined) {
+    // if senderKey is provided, fetch account to get nonce and mark to be signed
+    let senderAddress = senderKey.toPublicKey();
+    let senderAccount = getAccount(senderAddress);
+    feePayer = Party.defaultFeePayer(
+      senderAddress,
+      senderKey,
+      senderAccount.nonce
+    );
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
-    feePayer = {
-      body: toFeePayerPartyBody(Body.dummyFeePayer()),
-    };
+    feePayer = Party.dummyFeePayer();
   }
 
-  const txn: Parties = { otherParties, feePayer };
+  let transaction = { otherParties: currentTransaction.parties, feePayer };
 
   nextTransactionId.value += 1;
   currentTransaction = undefined;
   return {
-    transaction: txn,
-    toJSON() {
-      return Ledger.partiesToJson(txn);
+    transaction,
+
+    sign(additionalKeys?: PrivateKey[]) {
+      addMissingSignatures(this.transaction, additionalKeys);
+      return this;
     },
 
+    toJSON() {
+      return Ledger.partiesToJson(toParties(this.transaction));
+    },
+
+    // TODO: this is untested, investigate if useful
     toGraphQL() {
       return `mutation MyMutation {
         __typename
-        sendZkapp(input: ${Ledger.partiesToGraphQL(txn)})}`;
+        sendZkapp(input: ${Ledger.partiesToGraphQL(
+          toParties(this.transaction)
+        )})}`;
     },
   };
 }
@@ -168,11 +178,9 @@ export function LocalBlockchain() {
     return {
       ...txn,
       send() {
-        const res = (async () =>
-          ledger.applyPartiesTransaction(txn.transaction))();
-        return {
-          wait: () => res,
-        };
+        txn.sign();
+        ledger.applyPartiesTransaction(toParties(txn.transaction));
+        return { wait: async () => {} };
       },
     };
   }
