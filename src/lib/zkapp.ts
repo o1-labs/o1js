@@ -17,6 +17,7 @@ import {
   Parties,
   Permissions,
   PartyWithFullAccountPrecondition,
+  FeePayer,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -608,7 +609,9 @@ async function deploy<S extends typeof SmartContract>(
         `When setting shouldSignFeePayer=true, you need to also supply feePayerKey (fee payer's private key) and transactionFee.`
       );
     }
-    await addFeePayer(tx.transaction, feePayerKey, { transactionFee });
+    tx.transaction = addFeePayer(tx.transaction, feePayerKey, {
+      transactionFee,
+    });
   }
   // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
   return tx.sign().toJSON();
@@ -684,12 +687,12 @@ function addFeePayer(
   feePayer.body.publicKey = senderAddress;
   feePayer.balance.subInPlace(UInt64.fromString(`${transactionFee}`));
   return {
-    feePayer: feePayer.sign(feePayerKey),
+    feePayer: feePayer.sign(feePayerKey) as FeePayer,
     otherParties,
   };
 }
 
-async function signFeePayer(
+function signFeePayer(
   transactionJson: string,
   feePayerKey: PrivateKey | string,
   {
@@ -702,7 +705,7 @@ async function signFeePayer(
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
   if (feePayerNonce === undefined) {
-    let senderAccount = await Mina.getAccount(senderAddress);
+    let senderAccount = Mina.getAccount(senderAddress);
     feePayerNonce = senderAccount.nonce.toString();
   }
   parties.feePayer.body.accountPrecondition = `${feePayerNonce}`;
