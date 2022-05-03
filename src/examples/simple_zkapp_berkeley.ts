@@ -13,9 +13,7 @@ import {
   shutdown,
   compile,
   DeployArgs,
-  sendZkappQuery,
   fetchAccount,
-  Bool,
 } from 'snarkyjs';
 
 await isReady;

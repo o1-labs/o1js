@@ -13,11 +13,10 @@ import {
   Poseidon,
   UInt64,
   Party,
-  compile,
   Permissions,
 } from 'snarkyjs';
 
-export { deploy, submitSolution, getSnappState };
+export { deploy, submitSolution, getZkappState };
 
 await isReady;
 
@@ -34,7 +33,7 @@ class Sudoku extends CircuitValue {
   }
 }
 
-class SudokuSnapp extends SmartContract {
+class SudokuZkapp extends SmartContract {
   @state(Field) sudokuHash = State<Field>();
   @state(Bool) isSolved = State<Bool>();
 
@@ -107,32 +106,29 @@ class SudokuSnapp extends SmartContract {
 const Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 const account1 = Local.testAccounts[0].privateKey;
-const account2 = Local.testAccounts[1].privateKey;
 
-const snappPrivkey = PrivateKey.random();
-let snappAddress = snappPrivkey.toPublicKey();
+const zkappPrivkey = PrivateKey.random();
+let zkappAddress = zkappPrivkey.toPublicKey();
 
 async function deploy(sudoku: number[][]) {
-  let tx = Mina.transaction(account1, () => {
-    const initialBalance = UInt64.fromNumber(1000000);
-    const p = Party.createSigned(account2);
-    p.balance.subInPlace(initialBalance);
-    let snapp = new SudokuSnapp(snappAddress);
+  let tx = await Mina.transaction(account1, () => {
+    const p = Party.createSigned(account1, { isSameAsFeePayer: true });
+    p.balance.subInPlace(Mina.accountCreationFee());
+    let zkapp = new SudokuZkapp(zkappAddress);
     let sudokuInstance = new Sudoku(sudoku);
-    snapp.deploy({ zkappKey: snappPrivkey });
-    snapp.balance.addInPlace(initialBalance);
-    snapp.sudokuHash.set(sudokuInstance.hash());
-    snapp.isSolved.set(Bool(false));
+    zkapp.deploy({ zkappKey: zkappPrivkey });
+    zkapp.sudokuHash.set(sudokuInstance.hash());
+    zkapp.isSolved.set(Bool(false));
   });
   await tx.send().wait();
 }
 
 async function submitSolution(sudoku: number[][], solution: number[][]) {
-  let tx = Mina.transaction(account2, () => {
-    let snapp = new SudokuSnapp(snappAddress);
-    snapp.submitSolution(new Sudoku(sudoku), new Sudoku(solution));
-    snapp.self.sign(snappPrivkey);
-    snapp.self.body.incrementNonce = Bool(true);
+  let tx = await Mina.transaction(account1, () => {
+    let zkapp = new SudokuZkapp(zkappAddress);
+    zkapp.submitSolution(new Sudoku(sudoku), new Sudoku(solution));
+    zkapp.self.sign(zkappPrivkey);
+    zkapp.self.body.incrementNonce = Bool(true);
   });
   try {
     await tx.send().wait();
@@ -142,10 +138,12 @@ async function submitSolution(sudoku: number[][], solution: number[][]) {
   }
 }
 
-async function getSnappState() {
-  let snappState = (await Mina.getAccount(snappAddress)).zkapp.appState;
-  let sudokuHash = fieldToHex(snappState[0]);
-  let isSolved = snappState[1].equals(true).toBoolean();
+async function getZkappState() {
+  let zkappState = Mina.getAccount(zkappAddress).zkapp?.appState;
+  if (zkappState === undefined)
+    throw Error('account does not have zkapp state');
+  let sudokuHash = fieldToHex(zkappState?.[0]);
+  let isSolved = zkappState[1].equals(true).toBoolean();
   return { sudokuHash, isSolved };
 }
 
