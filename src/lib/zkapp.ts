@@ -17,12 +17,12 @@ import {
   Parties,
   Permissions,
   PartyWithFullAccountPrecondition,
-  FeePayer,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { toParty, toProtocolState } from './party-conversion';
 import { UInt32, UInt64 } from './int';
+import { Account } from './fetch';
 
 export {
   deploy,
@@ -56,8 +56,10 @@ function createState<A>() {
     _initialized: false,
     _key: undefined as never as string, // defined by @state
     _ty: undefined as never as AsFieldElements<A>, // defined by @state
-    _this: undefined as any, // defined by @state
-    _ZkappClass: undefined as never as SmartContract & { _layout: () => any }, // defined by @state
+    _this: undefined as never as SmartContract, // defined by @state
+    _ZkappClass: undefined as never as typeof SmartContract & {
+      _layout: () => any;
+    }, // defined by @state
 
     _init(key: string, ty: AsFieldElements<A>, _this: any, ZkappClass: any) {
       this._initialized = true;
@@ -119,7 +121,16 @@ function createState<A>() {
       let inProver = Circuit.inProver();
 
       if (inProver || !Circuit.inCheckedComputation()) {
-        let a = Mina.getAccount(address);
+        let a: Account;
+        try {
+          a = Mina.getAccount(address);
+        } catch (err) {
+          if (inProver) throw err;
+          throw Error(
+            `${this._key}.get() failed, because the zkapp account was not found in the cache. ` +
+              `Try calling \`await fetchAccount(zkappAddress)\` first.`
+          );
+        }
         if (a.zkapp === undefined) {
           // if the account is not a zkapp account, let the default state be all zeroes
           stateAsFields = Array(layout.length).fill(Field.zero);

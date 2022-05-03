@@ -36,14 +36,16 @@ function setGraphqlEndpoint(graphqlEndpoint: string) {
  * @returns zkapp information on the specified account or an error is thrown
  */
 async function fetchAccount(
-  publicKey: string,
+  publicKey: string | PublicKey,
   graphqlEndpoint = defaultGraphqlEndpoint,
   { timeout = defaultTimeout } = {}
 ): Promise<
   | { account: Account; error: undefined }
   | { account: undefined; error: FetchError }
 > {
-  let response = await fetchAccountInternal(publicKey, graphqlEndpoint, {
+  let publicKeyBase58 =
+    publicKey instanceof PublicKey ? publicKey.toBase58() : publicKey;
+  let response = await fetchAccountInternal(publicKeyBase58, graphqlEndpoint, {
     timeout,
   });
   return response.error === undefined
@@ -78,6 +80,8 @@ async function fetchAccountInternal(
       },
     };
   }
+  // account successfully fetched - add to cache before returning
+  addCachedAccountInternal(account, graphqlEndpoint);
   return {
     account,
     error: undefined,
@@ -255,9 +259,15 @@ function addCachedAccount(
   },
   graphqlEndpoint = defaultGraphqlEndpoint
 ) {
-  let stringifiedAccount = stringifyAccount(account);
-  accountCache[`${stringifiedAccount.publicKey};${graphqlEndpoint}`] = {
-    account: stringifiedAccount,
+  addCachedAccountInternal(stringifyAccount(account), graphqlEndpoint);
+}
+
+function addCachedAccountInternal(
+  account: FetchedAccount,
+  graphqlEndpoint: string
+) {
+  accountCache[`${account.publicKey};${graphqlEndpoint}`] = {
+    account,
     graphqlEndpoint,
     timestamp: Date.now(),
   };

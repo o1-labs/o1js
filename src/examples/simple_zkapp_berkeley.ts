@@ -49,27 +49,24 @@ let zkappKey = PrivateKey.fromBase58(
   'EKFQZG2RuLMYyDsC9RGE5Y8gQGefkbUUUyEhFbgRRMHGgoF9eKpY'
 );
 let zkappAddress = zkappKey.toPublicKey();
-let zkappAddressBase58 = zkappAddress.toBase58();
 
 let initialBalance = 10_000_000_000;
 let transactionFee = 100_000_000;
 let initialState = Field(1);
-let doComputeVk = false;
+let doComputeVk = true;
 
 // check if the zkapp is already deployed, based on whether the account exists and its first zkapp state is != 0
-let { account } = await fetchAccount(zkappAddressBase58);
-let isDeployed =
-  account?.zkapp?.appState[0].equals(0).not().toBoolean() ?? false;
+await fetchAccount(zkappAddress);
+let zkapp = new SimpleZkapp(zkappAddress);
+let isDeployed = zkapp.x.get().equals(0).not().toBoolean() ?? false;
 
 console.log(
   'using whale account:',
-  JSON.stringify(
-    (await fetchAccount(whaleAccount.toPublicKey().toBase58())).account
-  )
+  JSON.stringify((await fetchAccount(whaleAccount.toPublicKey())).account)
 );
 
 if (!isDeployed) {
-  console.log(`Deploying zkapp for public key ${zkappAddressBase58}!`);
+  console.log(`Deploying zkapp for public key ${zkappAddress.toBase58()}!`);
   console.log('Compiling smart contract...');
   let { verificationKey } = doComputeVk
     ? await compile(SimpleZkapp, zkappAddress)
@@ -81,30 +78,29 @@ if (!isDeployed) {
     () => {
       const p = Party.createSigned(whaleAccount, { isSameAsFeePayer: true });
       p.balance.subInPlace(UInt64.fromNumber(initialBalance));
-      let zkapp = new SimpleZkapp(zkappAddress);
       zkapp.deploy({ zkappKey, verificationKey });
     }
   );
   tx.sign();
-  console.log(sendZkappQuery(tx.toJSON()));
+  // console.log(sendZkappQuery(tx.toJSON()));
 }
 
 if (isDeployed) {
+  let x = zkapp.x.get();
+  let xNext = x.add(2);
   console.log(
-    `Found deployed zkapp for public key ${zkappAddressBase58}. Creating zkapp update.`
+    `Found deployed zkapp with state x=${x}!\nCreating zkapp update to x=${xNext}.`
   );
   let tx = await Berkeley.transaction(
     { privateKey: whaleAccount, fee: transactionFee },
     () => {
-      let zkapp = new SimpleZkapp(zkappAddress);
       zkapp.update(Field(2));
       // TODO: proving
-      zkapp.self.sign(zkappKey);
-      zkapp.self.body.incrementNonce = Bool(true);
+      zkapp.sign(zkappKey);
     }
   );
   tx.sign();
-  console.log(sendZkappQuery(tx.toJSON()));
+  // console.log(sendZkappQuery(tx.toJSON()));
 }
 
 shutdown();

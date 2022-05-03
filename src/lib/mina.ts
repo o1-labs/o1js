@@ -262,7 +262,10 @@ function RemoteBlockchain(
         Fetch.markAccountToBeFetched(publicKey, graphqlEndpoint);
         return dummyAccount(publicKey);
       }
-      if (currentTransaction?.fetchMode === 'cached') {
+      if (
+        currentTransaction == undefined ||
+        currentTransaction.fetchMode === 'cached'
+      ) {
         let account = Fetch.getCachedAccount(publicKey, graphqlEndpoint);
         if (account !== undefined) return account;
       }
