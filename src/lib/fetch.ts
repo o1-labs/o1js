@@ -14,6 +14,7 @@ export {
   defaultGraphqlEndpoint,
   setGraphqlEndpoint,
   sendZkappQuery,
+  sendZkapp,
 };
 export { Account };
 
@@ -225,7 +226,6 @@ async function fetchMissingAccounts(graphqlEndpoint: string) {
   });
   await Promise.all(
     accounts.map(async ([key, { publicKey }]) => {
-      console.log(publicKey);
       let response = await fetchAccountInternal(publicKey, graphqlEndpoint);
       if (response.error === undefined) delete accountsToFetch[key];
     })
@@ -266,18 +266,30 @@ function addCachedAccountInternal(
   };
 }
 
+function sendZkapp(
+  json: string,
+  graphqlEndpoint = defaultGraphqlEndpoint,
+  { timeout = defaultTimeout } = {}
+) {
+  return makeGraphqlRequest(sendZkappQuery(json), graphqlEndpoint, {
+    timeout,
+  });
+}
+
+// TODO response useful?
 function sendZkappQuery(json: string) {
   return `mutation {
   sendZkapp(input: {
     parties: ${removeJsonQuotes(json)}
-  }) { zkapp
-    {
+  }) {
+    zkapp {
       parties {
         memo
       }
     }
   }
-}`;
+}
+`;
 }
 
 // removes the quotes on JSON keys
@@ -314,6 +326,6 @@ async function makeGraphqlRequest(
     return await checkResponseStatus(response);
   } catch (error) {
     clearTimeout(timer);
-    return [undefined, inferError(error)];
+    return [undefined, inferError(error)] as [undefined, FetchError];
   }
 }

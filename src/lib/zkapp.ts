@@ -125,6 +125,7 @@ function createState<A>() {
         try {
           a = Mina.getAccount(address);
         } catch (err) {
+          // TODO: there should also be a reasonable error here
           if (inProver) throw err;
           throw Error(
             `${this._key}.get() failed, because the zkapp account was not found in the cache. ` +

@@ -135,13 +135,8 @@ function createTransaction(
       return Ledger.partiesToJson(toParties(this.transaction));
     },
 
-    // TODO: this is untested, investigate if useful
-    toGraphQL() {
-      return `mutation MyMutation {
-        __typename
-        sendZkapp(input: ${Ledger.partiesToGraphQL(
-          toParties(this.transaction)
-        )})}`;
+    toGraphqlQuery() {
+      return Fetch.sendZkappQuery(this.toJSON());
     },
   };
 }
@@ -284,9 +279,20 @@ function RemoteBlockchain(
         ...txn,
         send() {
           txn.sign();
-          throw Error(
-            'transaction() is not implemented yet for remote blockchains.'
-          );
+          let sendPromise = Fetch.sendZkapp(txn.toJSON());
+          return {
+            async wait() {
+              let [response, error] = await sendPromise;
+              console.log('got graphql response', { response, error });
+              console.log(
+                'Info: waiting for inclusion in a block is not implemented yet.'
+              );
+              // if (error !== undefined) {
+              //   console.log('Graphql transaction failed. Query:');
+              //   console.log(txn.toGraphqlQuery());
+              // }
+            },
+          };
         },
       };
     },

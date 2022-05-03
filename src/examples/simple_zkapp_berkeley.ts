@@ -45,10 +45,10 @@ Mina.setActiveInstance(Berkeley);
 
 let whaleKey = Berkeley.testAccounts[0].privateKey;
 
-let zkappKey = PrivateKey.random();
-// let zkappKey = PrivateKey.fromBase58(
-//   'EKFQZG2RuLMYyDsC9RGE5Y8gQGefkbUUUyEhFbgRRMHGgoF9eKpY'
-// );
+// let zkappKey = PrivateKey.random();
+let zkappKey = PrivateKey.fromBase58(
+  'EKFQZG2RuLMYyDsC9RGE5Y8gQGefkbUUUyEhFbgRRMHGgoF9eKpY'
+);
 let zkappAddress = zkappKey.toPublicKey();
 
 let initialBalance = 10_000_000_000;
@@ -83,7 +83,7 @@ if (!isDeployed) {
     }
   );
   tx.sign();
-  console.log(sendZkappQuery(tx.toJSON()));
+  await tx.send().wait();
 }
 
 if (isDeployed) {
@@ -101,7 +101,7 @@ if (isDeployed) {
     }
   );
   tx.sign();
-  // console.log(sendZkappQuery(tx.toJSON()));
+  await tx.send().wait();
 }
 
 shutdown();
