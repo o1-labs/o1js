@@ -43,27 +43,28 @@ class SimpleZkapp extends SmartContract {
 let Berkeley = Mina.BerkeleyQANet();
 Mina.setActiveInstance(Berkeley);
 
-let whaleAccount = Berkeley.testAccounts[0].privateKey;
+let whaleKey = Berkeley.testAccounts[0].privateKey;
 
-let zkappKey = PrivateKey.fromBase58(
-  'EKFQZG2RuLMYyDsC9RGE5Y8gQGefkbUUUyEhFbgRRMHGgoF9eKpY'
-);
+let zkappKey = PrivateKey.random();
+// let zkappKey = PrivateKey.fromBase58(
+//   'EKFQZG2RuLMYyDsC9RGE5Y8gQGefkbUUUyEhFbgRRMHGgoF9eKpY'
+// );
 let zkappAddress = zkappKey.toPublicKey();
 
 let initialBalance = 10_000_000_000;
 let transactionFee = 100_000_000;
 let initialState = Field(1);
-let doComputeVk = true;
+let doComputeVk = false;
 
 // check if the zkapp is already deployed, based on whether the account exists and its first zkapp state is != 0
-await fetchAccount(zkappAddress);
+let { account: zkappAccount } = await fetchAccount(zkappAddress);
 let zkapp = new SimpleZkapp(zkappAddress);
-let isDeployed = zkapp.x.get().equals(0).not().toBoolean() ?? false;
+let isDeployed =
+  zkappAccount?.zkapp?.appState[0].equals(0).not().toBoolean() ?? false;
 
-console.log(
-  'using whale account:',
-  JSON.stringify((await fetchAccount(whaleAccount.toPublicKey())).account)
-);
+let { account: whaleAccount } = await fetchAccount(whaleKey.toPublicKey());
+let { nonce, balance } = whaleAccount!;
+console.log(`using whale account with nonce ${nonce}, balance ${balance}`);
 
 if (!isDeployed) {
   console.log(`Deploying zkapp for public key ${zkappAddress.toBase58()}!`);
@@ -74,15 +75,15 @@ if (!isDeployed) {
 
   console.log('Generating deploy transaction...');
   let tx = await Berkeley.transaction(
-    { privateKey: whaleAccount, fee: transactionFee },
+    { privateKey: whaleKey, fee: transactionFee },
     () => {
-      const p = Party.createSigned(whaleAccount, { isSameAsFeePayer: true });
+      const p = Party.createSigned(whaleKey, { isSameAsFeePayer: true });
       p.balance.subInPlace(UInt64.fromNumber(initialBalance));
       zkapp.deploy({ zkappKey, verificationKey });
     }
   );
   tx.sign();
-  // console.log(sendZkappQuery(tx.toJSON()));
+  console.log(sendZkappQuery(tx.toJSON()));
 }
 
 if (isDeployed) {
@@ -92,7 +93,7 @@ if (isDeployed) {
     `Found deployed zkapp with state x=${x}!\nCreating zkapp update to x=${xNext}.`
   );
   let tx = await Berkeley.transaction(
-    { privateKey: whaleAccount, fee: transactionFee },
+    { privateKey: whaleKey, fee: transactionFee },
     () => {
       zkapp.update(Field(2));
       // TODO: proving

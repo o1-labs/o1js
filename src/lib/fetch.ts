@@ -216,25 +216,18 @@ function markAccountToBeFetched(publicKey: PublicKey, graphqlEndpoint: string) {
   };
 }
 
-function fetchMissingAccounts(graphqlEndpoint: string) {
+async function fetchMissingAccounts(graphqlEndpoint: string) {
   let expired = Date.now() - cacheExpiry;
   let accounts = Object.entries(accountsToFetch).filter(([key, account]) => {
     if (account.graphqlEndpoint !== graphqlEndpoint) return false;
     let cachedAccount = accountCache[key];
     return cachedAccount === undefined || cachedAccount.timestamp > expired;
   });
-  return Promise.all(
+  await Promise.all(
     accounts.map(async ([key, { publicKey }]) => {
+      console.log(publicKey);
       let response = await fetchAccountInternal(publicKey, graphqlEndpoint);
-      if (response.error !== undefined) throw Error(response.error.statusText);
-      let { account } = response;
-      accountCache[key] = {
-        account,
-        graphqlEndpoint,
-        timestamp: Date.now(),
-      };
-      delete accountsToFetch[key];
-      return parseFetchedAccount(account);
+      if (response.error === undefined) delete accountsToFetch[key];
     })
   );
 }
