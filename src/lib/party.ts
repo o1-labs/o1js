@@ -737,6 +737,12 @@ export class Party {
     return this.body.publicKey;
   }
 
+  copy(this: FeePayer): FeePayer;
+  copy(this: PartyWithNoncePrecondition): PartyWithNoncePrecondition;
+  copy(
+    this: PartyWithFullAccountPrecondition
+  ): PartyWithFullAccountPrecondition;
+  copy(this: Party): Party;
   copy() {
     let { body, authorization } = this;
     let newBody: Body = {
@@ -752,19 +758,13 @@ export class Party {
     return party;
   }
 
-  sign(this: FeePayer, privateKey?: PrivateKey): FeePayer;
-  sign(
-    this: PartyWithNoncePrecondition,
-    privateKey?: PrivateKey
-  ): PartyWithNoncePrecondition;
-  sign(
-    this: PartyWithFullAccountPrecondition,
-    privateKey?: PrivateKey
-  ): PartyWithFullAccountPrecondition;
-  sign(this: Party, privateKey?: PrivateKey): Party;
+  signInPlace(privateKey?: PrivateKey) {
+    this.authorization = { kind: 'lazy-signature', privateKey };
+  }
+
   sign(privateKey?: PrivateKey) {
     let party = this.copy();
-    party.authorization = { kind: 'lazy-signature', privateKey };
+    party.signInPlace(privateKey);
     return party;
   }
 
@@ -855,29 +855,36 @@ export type PartyWithFullAccountPrecondition = Party & {
 export type PartyWithNoncePrecondition = Party & {
   body: { accountPrecondition: UInt32 };
 };
-
 type FeePayer = Party & {
   authorization: Exclude<LazyControl, { kind: 'proof'; value: string }>;
 } & PartyWithNoncePrecondition;
 
 type Parties = { feePayer: FeePayer; otherParties: Party[] };
+type PartiesValidated = {
+  feePayer: FeePayer & { authorization: Control };
+  otherParties: (Party & { authorization: Control })[];
+};
 
 function addMissingSignatures(
   parties: Parties,
   additionalKeys = [] as PrivateKey[]
-) {
+): PartiesValidated {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
   let { commitment, fullCommitment } = Ledger.transactionCommitments(
     Ledger.partiesToJson(toParties(parties))
   );
   function addSignature(party: Party, isFeePayer?: boolean) {
-    if (party.authorization.kind !== 'lazy-signature') return;
+    party = party.copy();
+    if (party.authorization.kind !== 'lazy-signature') return party;
     let { privateKey } = party.authorization;
     if (privateKey === undefined) {
       let i = additionalPublicKeys.findIndex(
         (pk) => pk === party.body.publicKey
       );
-      if (i === -1) return;
+      if (i === -1)
+        throw Error(
+          `addMissingSignatures: Cannot add signature for ${party.publicKey.toBase58()}, private key is missing.`
+        );
       privateKey = additionalKeys[i];
     }
     let transactionCommitment =
@@ -886,12 +893,17 @@ function addMissingSignatures(
         : commitment;
     let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
     party.authorization = { kind: 'signature', value: signature };
+    return party;
   }
   let { feePayer, otherParties } = parties;
-  addSignature(feePayer, true);
-  for (let party of otherParties) {
-    addSignature(party);
-  }
+  return {
+    feePayer: addSignature(feePayer, true) as FeePayer & {
+      authorization: Control;
+    },
+    otherParties: otherParties.map(
+      (p) => addSignature(p) as Party & { authorization: Control }
+    ),
+  };
 }
 
 /**
