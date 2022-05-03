@@ -690,9 +690,9 @@ async function signFeePayer(
     let senderAccount = await Mina.getAccount(senderAddress);
     feePayerNonce = senderAccount.nonce.toString();
   }
-  parties.feePayer.body.accountPrecondition = `${feePayerNonce}`;
+  parties.feePayer.body.nonce = `${feePayerNonce}`;
   parties.feePayer.body.publicKey = Ledger.publicKeyToString(senderAddress);
-  parties.feePayer.body.balanceChange = `${transactionFee}`;
+  parties.feePayer.body.fee = `${transactionFee}`;
   return signJsonTransaction(JSON.stringify(parties), feePayerKey);
 }
 
