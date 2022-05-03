@@ -49,7 +49,9 @@ let zkapp = new SimpleZkapp(zkappAddress);
 console.log('deploy');
 let tx = await Local.transaction(account1, () => {
   const p = Party.createSigned(account1, { isSameAsFeePayer: true });
-  p.balance.subInPlace(UInt64.fromNumber(initialBalance));
+  p.balance.subInPlace(
+    UInt64.fromNumber(initialBalance).add(Mina.accountCreationFee())
+  );
   zkapp.deploy({ zkappKey });
 });
 tx.send();
@@ -60,7 +62,7 @@ console.log('update');
 tx = await Local.transaction(account1, () => {
   zkapp.update(Field(3));
   // TODO: mock proving
-  zkapp.self.sign(zkappKey);
+  zkapp.sign(zkappKey);
   zkapp.self.body.incrementNonce = Bool(true);
 });
 tx.send();

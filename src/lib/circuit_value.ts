@@ -1,16 +1,27 @@
 import 'reflect-metadata';
 import { Circuit, Field, Bool, JSONValue, AsFieldElements } from '../snarky';
 
+export {
+  asFieldElementsToConstant,
+  CircuitValue,
+  prop,
+  arrayProp,
+  matrixProp,
+  public_,
+  circuitMain,
+  cloneCircuitValue,
+};
+
 type Constructor<T> = { new (...args: any[]): T };
 
-export function asFieldElementsToConstant<T>(typ: AsFieldElements<T>, t: T): T {
+function asFieldElementsToConstant<T>(typ: AsFieldElements<T>, t: T): T {
   const xs: Field[] = typ.toFields(t);
   return typ.ofFields(xs);
 }
 
 // TODO: Synthesize the constructor if possible (bkase)
 //
-export abstract class CircuitValue {
+abstract class CircuitValue {
   static sizeInFields(): number {
     const fields: [string, any][] = (this as any).prototype._fields;
     return fields.reduce((acc, [_, typ]) => acc + typ.sizeInFields(), 0);
@@ -121,7 +132,7 @@ export abstract class CircuitValue {
   }
 };
 
-export function prop(this: any, target: any, key: string) {
+function prop(this: any, target: any, key: string) {
   const fieldType = Reflect.getMetadata('design:type', target, key);
 
   if (target._fields === undefined || target._fields === null) {
@@ -139,7 +150,7 @@ export function prop(this: any, target: any, key: string) {
 }
 
 // TODO: move Circuit.array into JS so that this can be used before isReady
-export function arrayProp<T>(eltTyp: AsFieldElements<T>, length: number) {
+function arrayProp<T>(eltTyp: AsFieldElements<T>, length: number) {
   return function (target: any, key: string) {
     // const fieldType = Reflect.getMetadata('design:type', target, key);
     if (target._fields === undefined || target._fields === null) {
@@ -149,7 +160,7 @@ export function arrayProp<T>(eltTyp: AsFieldElements<T>, length: number) {
   };
 }
 
-export function matrixProp<T>(
+function matrixProp<T>(
   eltTyp: AsFieldElements<T>,
   nRows: number,
   nColumns: number
@@ -164,7 +175,7 @@ export function matrixProp<T>(
   };
 }
 
-export function public_(target: any, _key: string | symbol, index: number) {
+function public_(target: any, _key: string | symbol, index: number) {
   // const fieldType = Reflect.getMetadata('design:paramtypes', target, key);
 
   if (target._public === undefined) {
@@ -204,7 +215,7 @@ function typOfArray(typs: Array<AsFieldElements<any>>): AsFieldElements<any> {
   };
 }
 
-export function circuitMain(
+function circuitMain(
   target: any,
   propertyName: string,
   _descriptor?: PropertyDescriptor
@@ -241,25 +252,33 @@ export function circuitMain(
   );
 }
 
-export function toFieldsMagic(thing: any): Field[] {
-  if (typeof thing == 'object') {
-    if (thing.toFields) {
-      // console.log('toFields');
-      return thing.toFields();
-    }
+let primitives = new Set(['Field', 'Bool', 'Scalar', 'Group']);
+function cloneCircuitValue<T>(obj: T): T {
+  // primitive JS types and functions aren't cloned
+  if (typeof obj !== 'object' || obj === null) return obj;
 
-    if (Array.isArray(thing)) {
-      // console.log('array', thing.length);
-      return thing.map((x) => toFieldsMagic(x)).flat();
-    }
+  // built-in JS datatypes with custom cloning strategies
+  if (Array.isArray(obj)) return obj.map(cloneCircuitValue) as any as T;
+  if (obj instanceof Set)
+    return new Set([...obj].map(cloneCircuitValue)) as any as T;
+  if (obj instanceof Map)
+    return new Map(
+      [...obj].map(([k, v]) => [k, cloneCircuitValue(v)])
+    ) as any as T;
+  if (ArrayBuffer.isView(obj)) return new (obj.constructor as any)(obj);
 
-    let fields = [] as Field[];
-    let keys = Object.keys(thing).sort();
-    for (let key of keys) {
-      // console.log({ key });
-      fields.push(...toFieldsMagic(thing[key]));
-    }
-    return fields;
+  // snarkyjs primitives aren't cloned
+  if (primitives.has((obj as any).constructor.name)) return obj;
+
+  // cloning strategy that works for plain objects AND classes whose constructor only assigns properties
+  let propertyDescriptors: Record<string, PropertyDescriptor> = {};
+  for (let [key, value] of Object.entries(obj)) {
+    propertyDescriptors[key] = {
+      value: cloneCircuitValue(value),
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    };
   }
-  return [];
+  return Object.create(Object.getPrototypeOf(obj), propertyDescriptors);
 }

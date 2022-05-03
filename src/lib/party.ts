@@ -1,5 +1,5 @@
-import { CircuitValue } from './circuit_value';
-import { Group, Field, Bool, Control, Ledger } from '../snarky';
+import { CircuitValue, cloneCircuitValue } from './circuit_value';
+import { Group, Field, Bool, Control, Ledger, Circuit } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
@@ -220,6 +220,7 @@ export type Update = {
   timing: SetOrKeep<Timing>;
   votingFor: SetOrKeep<Field>;
 };
+
 export const defaultTokenId = Field.one;
 
 // TODO
@@ -423,13 +424,19 @@ export class EpochDataPredicate {
   lockCheckpoint_: OrIgnore<Field>;
   epochLength: ClosedInterval<UInt32>;
 
-  constructor(
-    ledger: EpochLedgerPredicate,
-    seed_: OrIgnore<Field>,
-    startCheckpoint_: OrIgnore<Field>,
-    lockCheckpoint_: OrIgnore<Field>,
-    epochLength: ClosedInterval<UInt32>
-  ) {
+  constructor({
+    ledger,
+    seed_,
+    startCheckpoint_,
+    lockCheckpoint_,
+    epochLength,
+  }: {
+    ledger: EpochLedgerPredicate;
+    seed_: OrIgnore<Field>;
+    startCheckpoint_: OrIgnore<Field>;
+    lockCheckpoint_: OrIgnore<Field>;
+    epochLength: ClosedInterval<UInt32>;
+  }) {
     this.ledger = ledger;
     this.seed_ = seed_;
     this.startCheckpoint_ = startCheckpoint_;
@@ -477,42 +484,54 @@ export class ProtocolStatePredicate {
   nextEpochData: EpochDataPredicate;
 
   static ignoreAll(): ProtocolStatePredicate {
-    const ledger = new EpochLedgerPredicate(ignore(Field.zero), uint64());
-    const epochData = new EpochDataPredicate(
-      ledger,
-      ignore(Field.zero),
-      ignore(Field.zero),
-      ignore(Field.zero),
-      uint32()
-    );
-    return new ProtocolStatePredicate(
-      ignore(Field.zero),
-      uint64(),
-      uint64(),
-      uint32(),
-      uint32(),
-      ignore(Field.zero),
-      uint64(),
-      uint32(),
-      uint32(),
-      epochData,
-      epochData
-    );
+    let stakingEpochData = new EpochDataPredicate({
+      ledger: new EpochLedgerPredicate(ignore(Field.zero), uint64()),
+      seed_: ignore(Field.zero),
+      startCheckpoint_: ignore(Field.zero),
+      lockCheckpoint_: ignore(Field.zero),
+      epochLength: uint32(),
+    });
+    let nextEpochData = cloneCircuitValue(stakingEpochData);
+    return new ProtocolStatePredicate({
+      snarkedLedgerHash_: ignore(Field.zero),
+      snarkedNextAvailableToken: uint64(),
+      timestamp: uint64(),
+      blockchainLength: uint32(),
+      minWindowDensity: uint32(),
+      lastVrfOutput_: ignore(Field.zero),
+      totalCurrency: uint64(),
+      globalSlotSinceHardFork: uint32(),
+      globalSlotSinceGenesis: uint32(),
+      stakingEpochData,
+      nextEpochData,
+    });
   }
 
-  constructor(
-    snarkedLedgerHash_: OrIgnore<Field>,
-    snarkedNextAvailableToken: ClosedInterval<UInt64>,
-    timestamp: ClosedInterval<UInt64>,
-    blockchainLength: ClosedInterval<UInt32>,
-    minWindowDensity: ClosedInterval<UInt32>,
-    lastVrfOutput_: OrIgnore<Field>,
-    totalCurrency: ClosedInterval<UInt64>,
-    globalSlotSinceHardFork: ClosedInterval<UInt32>,
-    globalSlotSinceGenesis: ClosedInterval<UInt32>,
-    stakingEpochData: EpochDataPredicate,
-    nextEpochData: EpochDataPredicate
-  ) {
+  constructor({
+    snarkedLedgerHash_,
+    snarkedNextAvailableToken,
+    timestamp,
+    blockchainLength,
+    minWindowDensity,
+    lastVrfOutput_,
+    totalCurrency,
+    globalSlotSinceHardFork,
+    globalSlotSinceGenesis,
+    stakingEpochData,
+    nextEpochData,
+  }: {
+    snarkedLedgerHash_: OrIgnore<Field>;
+    snarkedNextAvailableToken: ClosedInterval<UInt64>;
+    timestamp: ClosedInterval<UInt64>;
+    blockchainLength: ClosedInterval<UInt32>;
+    minWindowDensity: ClosedInterval<UInt32>;
+    lastVrfOutput_: OrIgnore<Field>;
+    totalCurrency: ClosedInterval<UInt64>;
+    globalSlotSinceHardFork: ClosedInterval<UInt32>;
+    globalSlotSinceGenesis: ClosedInterval<UInt32>;
+    stakingEpochData: EpochDataPredicate;
+    nextEpochData: EpochDataPredicate;
+  }) {
     this.snarkedLedgerHash_ = snarkedLedgerHash_;
     this.snarkedNextAvailableToken = snarkedNextAvailableToken;
     this.timestamp = timestamp;
@@ -581,7 +600,7 @@ export type AccountPrecondition = {
   sequenceState: OrIgnore<Field>;
   provedState: OrIgnore<Bool>;
 };
-export let AccountPrecondition = {
+export const AccountPrecondition = {
   ignoreAll(): AccountPrecondition {
     let appState: Array<OrIgnore<Field>> = [];
     for (let i = 0; i < ZkappStateLength; ++i) {
@@ -639,15 +658,52 @@ export class Party {
     return this.body.publicKey;
   }
 
-  sign(privateKey?: PrivateKey) {
+  signInPlace(privateKey?: PrivateKey, fallbackToZeroNonce = false) {
+    this.setNoncePrecondition(fallbackToZeroNonce);
+    this.body.incrementNonce = Bool(true);
     this.authorization = { kind: 'lazy-signature', privateKey };
+  }
+
+  sign(privateKey?: PrivateKey) {
+    let party = cloneCircuitValue(this);
+    party.signInPlace(privateKey);
+    return party;
+  }
+
+  // TODO this needs to be more intelligent about previous nonces in the transaction, similar to Party.createSigned
+  setNoncePrecondition(fallbackToZero = false) {
+    let nonce: UInt32;
+    try {
+      let inProver = Circuit.inProver();
+      if (inProver || !Circuit.inCheckedComputation()) {
+        let account = Mina.getAccount(this.body.publicKey);
+        nonce = inProver
+          ? Circuit.witness(UInt32, () => account.nonce)
+          : account.nonce;
+      } else {
+        nonce = Circuit.witness(UInt32, () => {
+          throw Error('this should never happen');
+        });
+      }
+    } catch (err) {
+      if (fallbackToZero) nonce = UInt32.zero;
+      else throw err;
+    }
+    let accountPrecondition = this.body.accountPrecondition;
+    if (
+      accountPrecondition === undefined ||
+      accountPrecondition instanceof UInt32
+    ) {
+      this.body.accountPrecondition = nonce;
+    } else {
+      accountPrecondition.nonce.assertBetween(nonce, nonce);
+    }
+    return nonce;
   }
 
   static defaultParty(address: PublicKey) {
     const body = Body.keepAll(address);
-    return new Party(body) as Party & {
-      body: { accountPrecondition: AccountPrecondition };
-    };
+    return new Party(body) as PartyWithFullAccountPrecondition;
   }
 
   static defaultFeePayer(address: PublicKey, key: PrivateKey, nonce: UInt32) {
@@ -721,40 +777,51 @@ export class Party {
     body.accountPrecondition = nonce;
     body.incrementNonce = Bool(true);
 
-    let party = new Party(body) as Party & {
-      body: { accountPrecondition: UInt32 };
-    };
-    party.sign(signer);
+    let party = new Party(body) as PartyWithNoncePrecondition;
+    party.authorization = { kind: 'lazy-signature', privateKey: signer };
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
     return party;
   }
 }
 
-type FeePayer = Party & {
-  authorization: Exclude<LazyControl, { kind: 'proof'; value: string }>;
-} & {
+export type PartyWithFullAccountPrecondition = Party & {
+  body: { accountPrecondition: AccountPrecondition };
+};
+export type PartyWithNoncePrecondition = Party & {
   body: { accountPrecondition: UInt32 };
 };
+type FeePayer = Party & {
+  authorization: Exclude<LazyControl, { kind: 'proof'; value: string }>;
+} & PartyWithNoncePrecondition;
 
 type Parties = { feePayer: FeePayer; otherParties: Party[] };
+type PartiesValidated = {
+  feePayer: FeePayer & { authorization: Control };
+  otherParties: (Party & { authorization: Control })[];
+};
 
 function addMissingSignatures(
   parties: Parties,
   additionalKeys = [] as PrivateKey[]
-) {
+): PartiesValidated {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
   let { commitment, fullCommitment } = Ledger.transactionCommitments(
     Ledger.partiesToJson(toParties(parties))
   );
-  function addSignature(party: Party, isFeePayer?: boolean) {
-    if (party.authorization.kind !== 'lazy-signature') return;
+  function addSignature<P extends Party>(party: P, isFeePayer?: boolean) {
+    party = cloneCircuitValue(party);
+    if (party.authorization.kind !== 'lazy-signature')
+      return party as P & { authorization: Control };
     let { privateKey } = party.authorization;
     if (privateKey === undefined) {
       let i = additionalPublicKeys.findIndex(
         (pk) => pk === party.body.publicKey
       );
-      if (i === -1) return;
+      if (i === -1)
+        throw Error(
+          `addMissingSignatures: Cannot add signature for ${party.publicKey.toBase58()}, private key is missing.`
+        );
       privateKey = additionalKeys[i];
     }
     let transactionCommitment =
@@ -763,12 +830,13 @@ function addMissingSignatures(
         : commitment;
     let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
     party.authorization = { kind: 'signature', value: signature };
+    return party as P & { authorization: Control };
   }
   let { feePayer, otherParties } = parties;
-  addSignature(feePayer, true);
-  for (let party of otherParties) {
-    addSignature(party);
-  }
+  return {
+    feePayer: addSignature(feePayer, true),
+    otherParties: otherParties.map((p) => addSignature(p)),
+  };
 }
 
 /**

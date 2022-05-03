@@ -26,6 +26,7 @@ export {
   currentSlot,
   getAccount,
   getBalance,
+  accountCreationFee,
 };
 
 interface TransactionId {
@@ -126,7 +127,7 @@ function createTransaction(
     transaction,
 
     sign(additionalKeys?: PrivateKey[]) {
-      addMissingSignatures(this.transaction, additionalKeys);
+      this.transaction = addMissingSignatures(this.transaction, additionalKeys);
       return this;
     },
 
@@ -150,6 +151,7 @@ interface Mina {
   currentSlot(): UInt32;
   getAccount(publicKey: PublicKey): Account;
   fetchMissingAccounts(): Promise<void>;
+  accountCreationFee(): UInt32;
 }
 interface MockMina extends Mina {
   addAccount(publicKey: PublicKey, balance: string): void;
@@ -167,10 +169,15 @@ interface Testnet extends Mina {
   testAccounts: Array<{ publicKey: PublicKey; privateKey: PrivateKey }>;
 }
 
+const defaultAccountCreationFee = 1_000_000_000;
+
 /**
  * A mock Mina blockchain running locally and useful for testing.
  */
-function LocalBlockchain(): MockMina {
+function LocalBlockchain({
+  accountCreationFee = defaultAccountCreationFee as string | number,
+} = {}): MockMina {
+  let accountCreationFee_ = String(accountCreationFee);
   const msPerSlot = 3 * 60 * 1000;
   const startTime = new Date().valueOf();
 
@@ -190,6 +197,7 @@ function LocalBlockchain(): MockMina {
   }
 
   return {
+    accountCreationFee: () => UInt32.fromString(accountCreationFee_),
     currentSlot() {
       return UInt32.fromNumber(
         Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
@@ -217,13 +225,16 @@ function LocalBlockchain(): MockMina {
         ...txn,
         send() {
           txn.sign();
-          ledger.applyPartiesTransaction(toParties(txn.transaction));
+          ledger.applyPartiesTransaction(
+            toParties(txn.transaction),
+            accountCreationFee_
+          );
           return { wait: async () => {} };
         },
       };
     },
     applyJsonTransaction(json: string) {
-      return ledger.applyJsonTransaction(json);
+      return ledger.applyJsonTransaction(json, accountCreationFee_);
     },
     addAccount,
     testAccounts,
@@ -237,8 +248,10 @@ function RemoteBlockchain(
     privateKey: PrivateKey;
   }[]
 ): Testnet {
+  let accountCreationFee = UInt32.fromNumber(defaultAccountCreationFee);
   Fetch.setGraphqlEndpoint(graphqlEndpoint);
   return {
+    accountCreationFee: () => accountCreationFee,
     currentSlot() {
       throw Error(
         'currentSlot() is not implemented yet for remote blockchains.'
@@ -292,6 +305,7 @@ function BerkeleyQANet(
 }
 
 let activeInstance: Mina = {
+  accountCreationFee: () => UInt32.fromNumber(defaultAccountCreationFee),
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
   },
@@ -364,6 +378,10 @@ function getAccount(pubkey: PublicKey) {
  */
 function getBalance(pubkey: PublicKey) {
   return activeInstance.getAccount(pubkey).balance;
+}
+
+function accountCreationFee() {
+  return activeInstance.accountCreationFee();
 }
 
 function dummyAccount(pubkey?: PublicKey): Account {
