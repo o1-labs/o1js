@@ -406,7 +406,7 @@ export class SmartContract {
   }
 
   sign(zkappKey?: PrivateKey) {
-    this.self.authorization = { kind: 'lazy-signature', privateKey: zkappKey };
+    this.self.signInPlace(zkappKey);
   }
 
   async prove(provers: any[], methodName: keyof this, args: unknown[]) {
@@ -655,7 +655,7 @@ async function callUnproved<S extends typeof SmartContract>(
     methodName as any,
     methodArguments
   );
-  selfParty = selfParty.sign(zkappKey);
+  selfParty = selfParty.sign(zkappKey) as PartyWithFullAccountPrecondition;
   selfParty.body.incrementNonce = Bool(true);
   let tx = Mina.createUnsignedTransaction(() => {
     Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
@@ -672,6 +672,7 @@ function addFeePayer(
     feePayerNonce = undefined as number | string | undefined,
   }
 ) {
+  feePayer = feePayer.copy();
   if (typeof feePayerKey === 'string')
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
@@ -684,7 +685,7 @@ function addFeePayer(
   feePayer.balance.subInPlace(UInt64.fromString(`${transactionFee}`));
   return {
     feePayer: feePayer.sign(feePayerKey),
-    otherParties: otherParties.map((o) => o.copy()),
+    otherParties,
   };
 }
 

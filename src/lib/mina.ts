@@ -101,7 +101,7 @@ function createTransaction(
     transaction,
 
     sign(additionalKeys?: PrivateKey[]) {
-      addMissingSignatures(this.transaction, additionalKeys);
+      this.transaction = addMissingSignatures(this.transaction, additionalKeys);
       return this;
     },
 
