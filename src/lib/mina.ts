@@ -37,7 +37,9 @@ interface TransactionId {
 interface Transaction {
   transaction: Parties;
   toJSON(): string;
-  sign(): void;
+  toGraphqlQuery(): string;
+  sign(): Transaction;
+  prove(): Promise<Transaction>;
   send(): TransactionId;
 }
 
@@ -78,7 +80,7 @@ function createTransaction(
     | undefined,
   f: () => unknown,
   { fetchMode = 'cached' as FetchMode } = {}
-) {
+): Transaction {
   if (currentTransaction !== undefined) {
     throw new Error('Cannot start new transaction within another transaction');
   }
@@ -143,6 +145,10 @@ function createTransaction(
 
     toGraphqlQuery() {
       return Fetch.sendZkappQuery(self.toJSON());
+    },
+
+    send() {
+      throw Error('this should be overriden');
     },
   };
   return self;
