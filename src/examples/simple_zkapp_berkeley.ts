@@ -49,7 +49,7 @@ let zkappAddress = zkappKey.toPublicKey();
 
 let transactionFee = 100_000_000;
 let initialState = Field(1);
-let doComputeVk = false;
+let doComputeVk = true;
 
 // check if the zkapp is already deployed, based on whether the account exists and its first zkapp state is != 0
 let zkapp = new SimpleZkapp(zkappAddress);
@@ -60,13 +60,13 @@ let { account: whaleAccount } = await fetchAccount(whaleKey.toPublicKey());
 let { nonce, balance } = whaleAccount!;
 console.log(`using whale account with nonce ${nonce}, balance ${balance}`);
 
+console.log('Compiling smart contract...');
+let { verificationKey } = doComputeVk
+  ? await compile(SimpleZkapp, zkappAddress)
+  : { verificationKey: undefined };
+
 if (!isDeployed) {
   console.log(`Deploying zkapp for public key ${zkappAddress.toBase58()}!`);
-  console.log('Compiling smart contract...');
-  let { verificationKey } = doComputeVk
-    ? await compile(SimpleZkapp, zkappAddress)
-    : { verificationKey: undefined };
-
   console.log('Generating deploy transaction...');
   let tx = await Berkeley.transaction(
     { privateKey: whaleKey, fee: transactionFee },
@@ -89,10 +89,10 @@ if (isDeployed) {
     { privateKey: whaleKey, fee: transactionFee },
     () => {
       zkapp.update(Field(2));
-      // TODO: proving
-      zkapp.sign(zkappKey);
     }
   );
+  await tx.prove();
+  console.log(tx.toGraphqlQuery());
   await tx.send().wait();
 }
 
