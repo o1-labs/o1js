@@ -743,6 +743,7 @@ interface PartyBody {
   accountPrecondition: AccountPredicate_;
   useFullCommitment: Bool;
   incrementNonce: Bool;
+  implicitAccountCreationFee: Bool;
 }
 interface FeePayerPartyBody {
   publicKey: { g: Group };

@@ -282,6 +282,7 @@ export type Body = {
   accountPrecondition: Precondition;
   useFullCommitment: Bool;
   incrementNonce: Bool;
+  implicitAccountCreationFee: Bool;
 };
 
 export let Body = {
@@ -325,6 +326,8 @@ export let Body = {
       useFullCommitment: Bool(false),
       // this should be set to true if parties are signed
       incrementNonce: Bool(false),
+      // TODO make true by default and update examples
+      implicitAccountCreationFee: Bool(false),
     };
   },
 
