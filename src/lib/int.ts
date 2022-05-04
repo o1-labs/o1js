@@ -1,11 +1,18 @@
 import { Bool, Circuit, Field } from '../snarky';
 import { CircuitValue, prop } from './circuit_value';
 
-function argToField(name: string, x: { value: Field } | number): Field {
+function argToField(
+  name: string,
+  x: { value: Field } | number | string
+): Field {
   if (typeof x === 'number') {
     if (!Number.isInteger(x)) {
       throw new Error(`${name} expected integer argument. Got ${x}`);
     }
+    // looks weird that we pass it as a string.. but this will cover far more cases without error than just passing in the number,
+    // because the number gets truncated to an int32, while the number -> string is accurate for numbers up to 2^53 - 1
+    return new Field(String(x));
+  } else if (typeof x === 'string') {
     return new Field(x);
   } else {
     return x.value;
@@ -33,11 +40,15 @@ export class UInt64 extends CircuitValue {
   }
 
   static MAXINT(): UInt64 {
-    return new UInt64(Field.fromJSON(((1n << 64n) - 1n).toString()) as Field);
+    return new UInt64(Field(((1n << 64n) - 1n).toString()));
   }
 
   static fromNumber(x: number): UInt64 {
     return new UInt64(argToField('UInt64.fromNumber', x));
+  }
+
+  static fromString(s: string) {
+    return new UInt64(argToField('UInt64.fromString', s));
   }
 
   static NUM_BITS = 64;
@@ -78,7 +89,7 @@ export class UInt64 extends CircuitValue {
     return [q_, r_];
   }
 
-  /** 
+  /**
    * Integer division.
    *
    * `x.div(y)` returns the floor of `x / y`, that is, the greatest
@@ -182,6 +193,10 @@ export class UInt32 extends CircuitValue {
 
   static fromNumber(x: number): UInt32 {
     return new UInt32(argToField('UInt32.fromNumber', x));
+  }
+
+  static fromString(s: string) {
+    return new UInt32(argToField('UInt32.fromString', s));
   }
 
   static NUM_BITS = 32;

@@ -4,6 +4,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { exec } from 'node:child_process';
 import esbuild from 'esbuild';
+import minimist from 'minimist';
+
+let { bindings = './src/node_bindings/' } = minimist(process.argv.slice(2));
 
 export { buildNode };
 
@@ -16,6 +19,7 @@ let isMain = nodePath === modulePath;
 
 if (isMain) {
   console.log('building', entry);
+  console.log('using bindings from', bindings);
   await buildNode({ production: process.env.NODE_ENV === 'production' });
   console.log('finished build');
 }
@@ -25,11 +29,9 @@ async function buildNode({ production }) {
 
   // copy over files not processed by TS
   let copyPromise = copy({
-    './src/node_bindings/': './dist/server/node_bindings/',
-    './src/snarky.node.js': './dist/server/snarky.js',
-    './src/proxyClasses.js': './dist/server/proxyClasses.js',
+    [bindings]: './dist/server/node_bindings/',
     './src/snarky.d.ts': './dist/server/snarky.d.ts',
-    './src/snarky-class-spec.json': './dist/server/snarky-class-spec.json',
+    './src/snarky/': './dist/server/snarky/',
   });
 
   if (minify) {
@@ -94,6 +96,7 @@ function makeNodeModulesExternal() {
 function copy(copyMap) {
   let promises = [];
   for (let [source, target] of Object.entries(copyMap)) {
+    if (path.resolve(source) === path.resolve(target)) continue;
     promises.push(
       fse.copy(source, target, {
         recursive: true,

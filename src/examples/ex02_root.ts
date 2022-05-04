@@ -5,6 +5,9 @@ import {
   public_,
   isReady,
   shutdown,
+  serializeVerificationKey,
+  getSrs,
+  recoverVerificationKey,
 } from 'snarkyjs';
 
 await isReady;
@@ -43,5 +46,10 @@ let ok = vk.verify([x], proof);
 console.timeEnd('verify...');
 
 console.log('ok?', ok);
+
+let srs = getSrs(kp);
+let vkSerialized = serializeVerificationKey(vk);
+let vk2 = recoverVerificationKey(srs, vkSerialized);
+console.log('ok with recovered key?', vk2.verify([x], proof));
 
 shutdown();

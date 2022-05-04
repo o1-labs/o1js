@@ -16,5 +16,6 @@
     "importHelpers": true, // reduces size
     "declaration": true, // declaration files are how library consumers get our types
     "noEmitOnError": false, // avoid accidentally shipping with type errors
+    "allowJs": true // to use JSDoc in some places where TS would be too cumbersome
   }
 }

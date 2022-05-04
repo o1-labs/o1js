@@ -485,19 +485,15 @@ export class Circuit {
 
   static newVariable(f: () => Field | number | string | boolean): Field;
 
-  static witness<T>(
-    ctor: {
-      toFields(x: T): Field[];
-      ofFields(x: Field[]): T;
-      sizeInFields(): number;
-    },
+  // this convoluted generic typing is needed to give type inference enough flexibility
+  static witness<T, S extends AsFieldElements<T> = AsFieldElements<T>>(
+    ctor: S,
     f: () => T
   ): T;
 
   static asProver(f: () => void): void;
 
-  // static runAndCheck<T>(f : () => Promise<(() => T)>): Promise<T>;
-  static runAndCheck<T>(f: () => Promise<() => T>): Promise<T>;
+  static runAndCheckSync<T>(f: () => T): T;
 
   static array<T>(
     ctor: AsFieldElements<T>,
@@ -526,6 +522,7 @@ export class Circuit {
 
   static inProver(): boolean;
 
+  // TODO: remove
   static inCheckedComputation(): boolean;
 }
 
@@ -645,10 +642,10 @@ interface OrIgnore_<A> {
   value: A;
 }
 
-interface SetOrKeep_<A> {
+type SetOrKeep_<A> = {
   set: Bool;
-  value: A;
-}
+  value?: A;
+};
 
 interface ClosedInterval_<A> {
   lower: A;
@@ -686,25 +683,35 @@ interface Int64_ {
   uint64Value(): Field;
 }
 
+type AuthRequired = {
+  constant: Bool;
+  signatureNecessary: Bool;
+  signatureSufficient: Bool;
+};
+
+interface Permissions_ {
+  editState: AuthRequired;
+  send: AuthRequired;
+  receive: AuthRequired;
+  setDelegate: AuthRequired;
+  setPermissions: AuthRequired;
+  setVerificationKey: AuthRequired;
+  setZkappUri: AuthRequired;
+  editSequenceState: AuthRequired;
+  setTokenSymbol: AuthRequired;
+  incrementNonce: AuthRequired;
+  setVotingFor: AuthRequired;
+}
+
 interface PartyUpdate {
   appState: Array<SetOrKeep_<Field>>;
   delegate: SetOrKeep_<{ g: Group }>;
-  // TODO: Verification key
-  // TODO: permissions
-  // TODO: snapp uri
+  votingFor: SetOrKeep_<Field>;
+  verificationKey: SetOrKeep_<string>;
+  permissions: SetOrKeep_<Permissions_>;
+  // TODO: zkapp uri
   // TODO: token symbol
   // TODO: timing
-}
-
-interface PartyBody {
-  publicKey: { g: Group };
-  update: PartyUpdate;
-  tokenId: UInt32_;
-  delta: Int64_;
-  events: Array<Array<Field>>;
-  sequenceEvents: Array<Array<Field>>;
-  callData: Field;
-  depth: number;
 }
 
 interface FullAccountPredicate_ {
@@ -719,46 +726,122 @@ interface FullAccountPredicate_ {
 }
 
 type AccountPredicate_ =
-  | { type: 'accept' }
-  | { type: 'nonce'; value: UInt32_ }
-  | { type: 'full'; value: FullAccountPredicate_ };
+  | { kind: 'accept' }
+  | { kind: 'nonce'; value: UInt32_ }
+  | { kind: 'full'; value: FullAccountPredicate_ };
+
+interface PartyBody {
+  publicKey: { g: Group };
+  update: PartyUpdate;
+  tokenId: Field;
+  delta: Int64_;
+  events: Array<Array<Field>>;
+  sequenceEvents: Array<Array<Field>>;
+  callData: Field;
+  depth: number;
+  protocolState: ProtocolStatePredicate_;
+  accountPrecondition: AccountPredicate_;
+  useFullCommitment: Bool;
+  incrementNonce: Bool;
+}
+interface FeePayerPartyBody {
+  publicKey: { g: Group };
+  update: PartyUpdate;
+  tokenId: Field;
+  delta: Int64_;
+  events: Array<Array<Field>>;
+  sequenceEvents: Array<Array<Field>>;
+  callData: Field;
+  depth: number;
+  protocolState: ProtocolStatePredicate_;
+  accountPrecondition: UInt32_;
+  useFullCommitment: Bool;
+  incrementNonce: Bool;
+}
+
+type Control =
+  | { kind: 'none' }
+  | { kind: 'signature'; value: string }
+  | { kind: 'proof'; value: string };
 
 interface Party_ {
   body: PartyBody;
-  predicate: AccountPredicate_;
+  authorization: Control;
 }
 
-interface FeePayerParty {
-  body: PartyBody;
-  predicate: UInt32_;
+interface FeePayerParty_ {
+  body: FeePayerPartyBody;
+  authorization: Exclude<Control, { kind: 'proof'; value: string }>;
 }
 
-interface Parties {
-  feePayer: FeePayerParty;
+interface Parties_ {
+  feePayer: FeePayerParty_;
   otherParties: Array<Party_>;
-  protocolState: ProtocolStatePredicate_;
 }
 
-interface SnappAccount {
+interface ZkappAccount {
   appState: Array<Field>;
 }
 
 interface Account {
+  publicKey: { g: Group };
   balance: UInt64_;
   nonce: UInt32_;
-  snapp: SnappAccount;
+  zkapp: ZkappAccount;
 }
 
+// TODO would be nice to document these, at least the parts that end up being used in the public API
 export class Ledger {
   static create(
-    genesisAccounts: Array<{ publicKey: { g: Group }; balance: number }>
+    genesisAccounts: Array<{ publicKey: { g: Group }; balance: string }>
   ): Ledger;
 
-  addAccount(publicKey: { g: Group }, balance: number): void;
+  addAccount(publicKey: { g: Group }, balance: string): void;
 
-  applyPartiesTransaction(parties: Parties): void;
+  applyPartiesTransaction(
+    parties: Parties_,
+    accountCreationFee: string
+  ): Account[];
+  applyJsonTransaction(parties: string, accountCreationFee: string): Account[];
 
-  getAccount(publicKey: { g: Group }): Account | null;
+  getAccount(publicKey: { g: Group }): Account | undefined;
+
+  static hashParty(party: Party_): Field;
+  static hashProtocolState(protocolState: ProtocolStatePredicate_): Field;
+  static hashTransaction(partyHash: Field, protocolStateHash: Field): Field;
+
+  static hashPartyChecked(party: Party_): Field;
+  static hashProtocolStateChecked(
+    protocolState: ProtocolStatePredicate_
+  ): Field;
+  static hashTransactionChecked(
+    partyHash: Field,
+    protocolStateHash: Field
+  ): Field;
+
+  static transactionCommitments(txJson: string): {
+    commitment: Field;
+    fullCommitment: Field;
+  };
+  static transactionStatement(txJson: string, partyIndex: number): Statement;
+  static signFieldElement(
+    messageHash: Field,
+    privateKey: { s: Scalar }
+  ): string;
+  static signFeePayer(txJson: string, privateKey: { s: Scalar }): string;
+  static signOtherParty(
+    txJson: string,
+    privateKey: { s: Scalar },
+    i: number
+  ): string;
+
+  static publicKeyToString(publicKey: { g: Group }): string;
+  static publicKeyOfString(publicKeyBase58: string): Group;
+  static privateKeyToString(privateKey: { s: Scalar }): string;
+  static privateKeyOfString(privateKeyBase58: string): Scalar;
+
+  static partiesToJson(parties: Parties_): string;
+  static partiesToGraphQL(parties: Parties_): string;
 }
 
 /**
@@ -772,3 +855,30 @@ export const shutdown: () => Promise<undefined>;
  * A Promise that resolves when SnarkyJS is ready to be used
  */
 export let isReady: Promise<undefined>;
+
+type Statement = { transaction: Field; atParty: Field };
+
+export const Pickles: {
+  /**
+   * This is the core API of the `Pickles` library, exposed from OCaml to JS. It takes a list of circuits --
+   * each in the form of a function which takes a public input `{ transaction: Field; atParty: Field }` as argument --,
+   * and joins them into one single circuit which can not only provide proofs for any of the sub-circuits, but also
+   * adds the necessary circuit logic to recursively merge in earlier proofs.
+   *
+   * After forming that big circuit in the finite field represented by `Field`, it gets wrapped in a
+   * recursive circuit in the field represented by `Scalar`. Any SmartContract proof will go through both of these circuits,
+   * so that the final proof ends up back in `Field`.
+   *
+   * The function returns the building blocks needed for SmartContract proving:
+   * * `provers` - a list of prover functions, on for each input `rule`
+   * * `verify` - a function which can verify proofs from any of the provers
+   * * `getVerificationKeyArtifact` - a function which returns the verification key used in `verify`, in base58 format, usable to deploy a zkapp
+   */
+  compile: (rules: [0, string, (statement: Statement) => void][]) => {
+    provers: ((statement: Statement) => Promise<unknown>)[];
+    verify: (statement: Statement, proof: unknown) => Promise<boolean>;
+    getVerificationKeyArtifact: () => string;
+  };
+
+  proofToString: (proof: unknown) => string;
+};
