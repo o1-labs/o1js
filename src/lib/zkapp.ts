@@ -7,9 +7,8 @@ import {
   Ledger,
   Pickles,
 } from '../snarky';
-import { CircuitValue } from './circuit_value';
+import { CircuitValue, cloneCircuitValue } from './circuit_value';
 import {
-  AccountPrecondition,
   ProtocolStatePredicate,
   Body,
   Party,
@@ -17,6 +16,8 @@ import {
   signJsonTransaction,
   Parties,
   Permissions,
+  PartyWithFullAccountPrecondition,
+  FeePayer,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -286,6 +287,14 @@ function isProof(typ: any) {
   return false; // TODO
 }
 
+/**
+ * A Statement consists of certain hashes of the transaction and of the proving Party which is constructed during method execution.
+
+  In SmartContract.prove, a method is run twice: First outside the proof, to obtain the statement, and once in the prover,
+  which takes the statement as input. The current transaction is hashed again inside the prover, which asserts that the result equals the input statement,
+  as part of the snark circuit. The block producer will also hash the transaction they receive and pass it as a public input to the verifier.
+  Thus, the transaction is fully constrained by the proof - the proof couldn't be used to attest to a different transaction.
+ */
 type Statement = { transaction: Field; atParty: Field };
 
 function toStatement(self: Party, tail: Field, checked = true) {
@@ -318,28 +327,13 @@ function checkStatement(
   transaction.assertEquals(otherStatement.transaction);
 }
 
-let mainContext = undefined as
-  | {
-      witnesses?: unknown[];
-      self: Party & { body: { accountPrecondition: AccountPrecondition } };
-    }
-  | undefined;
-
-function withContext<T>(context: typeof mainContext, f: () => T) {
-  mainContext = context;
-  let result = f();
-  mainContext = undefined;
-  return result;
-}
-
 function picklesRuleFromFunction(
   name: string,
   func: (...args: unknown[]) => void,
   witnessTypes: AsFieldElements<unknown>[]
 ) {
   function main(statement: Statement) {
-    if (mainContext === undefined) throw Error('bug');
-    let { self, witnesses } = mainContext;
+    let { self, witnesses } = getContext();
     witnesses = witnessTypes.map(
       witnesses
         ? (type, i) => Circuit.witness(type, () => witnesses![i])
@@ -352,7 +346,7 @@ function picklesRuleFromFunction(
     // checkStatement(statement, self, tail);
   }
 
-  return [0, name, main];
+  return [0, name, main] as [0, string, typeof main];
 }
 
 /**
@@ -390,7 +384,7 @@ export class SmartContract {
       )
     );
 
-    let output = withContext({ self: Party.defaultParty(address) }, () =>
+    let [, output] = withContext({ self: Party.defaultParty(address) }, () =>
       Pickles.compile(rules)
     );
     return output;
@@ -408,22 +402,24 @@ export class SmartContract {
       this.self.update.verificationKey.value = verificationKey;
     }
     this.self.update.permissions.setValue(Permissions.default());
-    this.self.body.incrementNonce = Bool(true);
-    this.self.sign(zkappKey);
+    this.sign(zkappKey, true);
+  }
+
+  sign(zkappKey?: PrivateKey, fallbackToZeroNonce?: boolean) {
+    this.self.signInPlace(zkappKey, fallbackToZeroNonce);
   }
 
   async prove(provers: any[], methodName: keyof this, args: unknown[]) {
     let ZkappClass = this.constructor as never as typeof SmartContract;
     let i = ZkappClass._methods!.findIndex((m) => m.methodName === methodName);
     if (!(i + 1)) throw Error(`Method ${methodName} not found!`);
-    let ctx = { self: Party.defaultParty(this.address) };
     let [statement, selfParty] = Circuit.runAndCheckSync(() => {
-      mainContext = ctx;
-      (this[methodName] as any)(...args);
-      let selfParty = mainContext.self;
-      mainContext = undefined;
-      // FIXME: a proof-authorized party shouldn't need to increment nonce, this is needed due to a protocol bug
-      selfParty.body.incrementNonce = Bool(true);
+      let [selfParty] = withContext(
+        { self: Party.defaultParty(this.address) },
+        () => {
+          (this[methodName] as any)(...args);
+        }
+      );
 
       // TODO dont create full transaction in here, properly build up atParty
       let txJson = Mina.createUnsignedTransaction(() => {
@@ -438,10 +434,11 @@ export class SmartContract {
       return [statement, selfParty];
     });
 
-    mainContext = { self: Party.defaultParty(this.address), witnesses: args };
     // TODO lazy proof?
-    let proof = await provers[i](statement);
-    mainContext = undefined;
+    let [, proof] = await withContextAsync(
+      { self: Party.defaultParty(this.address), witnesses: args },
+      () => provers[i](statement)
+    );
     // FIXME call calls Parties.to_json outside a prover, which seems to cause an error when variables are extracted
     return { proof, statement, selfParty };
   }
@@ -452,11 +449,12 @@ export class SmartContract {
     if (!(i + 1)) throw Error(`Method ${methodName} not found!`);
     let ctx = { self: Party.defaultParty(this.address) };
     let [statement, selfParty] = Circuit.runAndCheckSync(() => {
-      mainContext = ctx;
-      (this[methodName] as any)(...args);
-      // TODO
-      let selfParty = mainContext.self;
-      mainContext = undefined;
+      let [selfParty] = withContext(
+        { self: Party.defaultParty(this.address) },
+        () => {
+          (this[methodName] as any)(...args);
+        }
+      );
       let statementVar = toStatement(ctx.self, Field.zero);
       return [
         {
@@ -470,14 +468,12 @@ export class SmartContract {
   }
 
   executionState(): ExecutionState {
-    // TODO
+    // TODO reconcile mainContext with currentTransaction
     if (mainContext !== undefined) {
       return {
         transactionId: 0,
         partyIndex: 0,
-        party: mainContext.self as Party & {
-          body: { accountPrecondition: AccountPrecondition };
-        },
+        party: mainContext.self as PartyWithFullAccountPrecondition,
       };
     }
 
@@ -494,9 +490,7 @@ export class SmartContract {
       const id = Mina.nextTransactionId.value;
       const index = Mina.currentTransaction.nextPartyIndex++;
       const body = Body.keepAll(this.address);
-      const party = new Party(body) as Party & {
-        body: { accountPrecondition: AccountPrecondition };
-      };
+      const party = new Party(body) as PartyWithFullAccountPrecondition;
       Mina.currentTransaction.parties.push(party);
 
       const s = {
@@ -518,22 +512,7 @@ export class SmartContract {
   }
 
   get nonce() {
-    let nonce: UInt32;
-    if (Circuit.inProver()) {
-      let a = Mina.getAccount(this.address);
-      nonce = Circuit.witness(UInt32, () => a.nonce);
-    } else {
-      const res = Circuit.witness(UInt32, () => {
-        throw Error('this should never happen');
-      });
-      nonce = res;
-    }
-
-    this.executionState().party.body.accountPrecondition.nonce.assertBetween(
-      nonce,
-      nonce
-    );
-    return nonce;
+    return this.self.setNoncePrecondition();
   }
 
   party(i: number): Body {
@@ -554,9 +533,7 @@ export class SmartContract {
 type ExecutionState = {
   transactionId: number;
   partyIndex: number;
-  party: Party & {
-    body: { accountPrecondition: AccountPrecondition };
-  };
+  party: PartyWithFullAccountPrecondition;
 };
 
 function emptyWitness<A>(typ: AsFieldElements<A>) {
@@ -594,7 +571,9 @@ async function deploy<S extends typeof SmartContract>(
           `When using the optional initialBalance argument, you need to also supply the fee payer's private key feePayerKey to sign the initial balance funding.`
         );
       // optional first party: the sender/fee payer who also funds the zkapp
-      let amount = UInt64.fromString(String(initialBalance));
+      let amount = UInt64.fromString(String(initialBalance)).add(
+        Mina.accountCreationFee()
+      );
       let party = Party.createSigned(feePayerKey, { isSameAsFeePayer: true });
       party.balance.subInPlace(amount);
     }
@@ -614,7 +593,9 @@ async function deploy<S extends typeof SmartContract>(
         `When setting shouldSignFeePayer=true, you need to also supply feePayerKey (fee payer's private key) and transactionFee.`
       );
     }
-    await addFeePayer(tx.transaction, feePayerKey, { transactionFee });
+    tx.transaction = addFeePayer(tx.transaction, feePayerKey, {
+      transactionFee,
+    });
   }
   // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
   return tx.sign().toJSON();
@@ -661,8 +642,7 @@ async function callUnproved<S extends typeof SmartContract>(
     methodName as any,
     methodArguments
   );
-  selfParty.sign(zkappKey);
-  selfParty.body.incrementNonce = Bool(true);
+  selfParty.signInPlace(zkappKey);
   let tx = Mina.createUnsignedTransaction(() => {
     Mina.setCurrentTransaction({ parties: [selfParty], nextPartyIndex: 1 });
   });
@@ -670,28 +650,30 @@ async function callUnproved<S extends typeof SmartContract>(
   return txJson;
 }
 
-async function addFeePayer(
-  { feePayer }: Parties,
+function addFeePayer(
+  { feePayer, otherParties }: Parties,
   feePayerKey: PrivateKey | string,
   {
     transactionFee = 0 as number | string,
     feePayerNonce = undefined as number | string | undefined,
   }
 ) {
+  feePayer = cloneCircuitValue(feePayer);
   if (typeof feePayerKey === 'string')
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
   if (feePayerNonce === undefined) {
-    let senderAccount = await Mina.getAccount(senderAddress);
+    let senderAccount = Mina.getAccount(senderAddress);
     feePayerNonce = senderAccount.nonce.toString();
   }
   feePayer.body.accountPrecondition = UInt32.fromString(`${feePayerNonce}`);
   feePayer.body.publicKey = senderAddress;
   feePayer.balance.subInPlace(UInt64.fromString(`${transactionFee}`));
-  feePayer.sign(feePayerKey);
+  feePayer.signInPlace(feePayerKey);
+  return { feePayer, otherParties };
 }
 
-async function signFeePayer(
+function signFeePayer(
   transactionJson: string,
   feePayerKey: PrivateKey | string,
   {
@@ -704,7 +686,7 @@ async function signFeePayer(
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
   if (feePayerNonce === undefined) {
-    let senderAccount = await Mina.getAccount(senderAddress);
+    let senderAccount = Mina.getAccount(senderAddress);
     feePayerNonce = senderAccount.nonce.toString();
   }
   parties.feePayer.body.accountPrecondition = `${feePayerNonce}`;
@@ -729,6 +711,17 @@ async function compile<S extends typeof SmartContract>(
 
 // alternative API which can replace decorators, works in pure JS
 
+/**
+ * `declareState` can be used in place of the `@state` decorator to declare on-chain state on a SmartContract.
+ * It should be placed _after_ the class declaration.
+ * Here is an example of declaring a state property "x" of type `Field`.
+ * ```js
+ * class MyContract extends SmartContract {
+ *  // ...
+ * }
+ * declareState(MyContract, { x: Field });
+ * ```
+ */
 function declareState<T extends typeof SmartContract>(
   SmartContract: T,
   states: Record<string, AsFieldElements<unknown>>
@@ -739,6 +732,21 @@ function declareState<T extends typeof SmartContract>(
   }
 }
 
+/**
+ * `declareMethodArguments` can be used in place of the `@method` decorator to declare SmartContract methods.
+ * It should be placed _after_ the class declaration.
+ * Here is an example of declaring a method "update" of type `Field`.
+ * ```js
+ * class MyContract extends SmartContract {
+ *   // ...
+ *   update(x) {
+ *    // ...
+ *   }
+ * }
+ * declareMethodArguments(MyContract, { update: [Field] });
+ * ```
+ * Note that a method of the same name must still be defined on the class, just without the decorator.
+ */
 function declareMethodArguments<T extends typeof SmartContract>(
   SmartContract: T,
   methodArguments: Record<string, AsFieldElements<unknown>[]>
@@ -751,4 +759,68 @@ function declareMethodArguments<T extends typeof SmartContract>(
     );
     method(SmartContract.prototype, key as any);
   }
+}
+
+// TODO reconcile mainContext with currentTransaction
+let mainContext = undefined as
+  | {
+      witnesses?: unknown[];
+      self: PartyWithFullAccountPrecondition;
+      expectedAccesses: number | undefined;
+      actualAccesses: number;
+    }
+  | undefined;
+type PartialContext = {
+  witnesses?: unknown[];
+  self: PartyWithFullAccountPrecondition;
+  expectedAccesses?: number;
+  actualAccesses?: number;
+};
+
+function withContext<T>(
+  {
+    witnesses = undefined,
+    expectedAccesses = undefined,
+    actualAccesses = 0,
+    self,
+  }: PartialContext,
+  f: () => T
+) {
+  mainContext = { witnesses, expectedAccesses, actualAccesses, self };
+  let result = f();
+  mainContext = undefined;
+  return [self, result] as [PartyWithFullAccountPrecondition, T];
+}
+
+// TODO: this is unsafe, the mainContext will be overridden if we invoke this function multiple times concurrently
+// at the moment, we solve this by detecting unsafe use and throwing an error
+async function withContextAsync<T>(
+  {
+    witnesses = undefined,
+    expectedAccesses = 1,
+    actualAccesses = 0,
+    self,
+  }: PartialContext,
+  f: () => Promise<T>
+) {
+  mainContext = { witnesses, expectedAccesses, actualAccesses, self };
+  let result = await f();
+  if (mainContext.actualAccesses !== mainContext.expectedAccesses)
+    throw Error(contextConflictMessage);
+  mainContext = undefined;
+  return [self, result] as [PartyWithFullAccountPrecondition, T];
+}
+
+let contextConflictMessage =
+  "It seems you're running multiple provers concurrently within" +
+  ' the same JavaScript thread, which, at the moment, is not supported and would lead to bugs.';
+function getContext() {
+  if (mainContext === undefined) throw Error(contextConflictMessage);
+  mainContext.actualAccesses++;
+  if (
+    mainContext.expectedAccesses !== undefined &&
+    mainContext.actualAccesses > mainContext.expectedAccesses
+  )
+    throw Error(contextConflictMessage);
+  return mainContext;
 }

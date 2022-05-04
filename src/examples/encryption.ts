@@ -8,14 +8,14 @@ let publicKey = privateKey.toPublicKey();
 
 // message
 let message = 'This is a secret.';
-let messageFields = Encoding.Bijective.Fp.fromString(message);
+let messageFields = Encoding.stringToFields(message);
 
 // encrypt
 let cipherText = Encryption.encrypt(messageFields, publicKey);
 
 // decrypt
 let decryptedFields = Encryption.decrypt(cipherText, privateKey);
-let decryptedMessage = Encoding.Bijective.Fp.toString(decryptedFields);
+let decryptedMessage = Encoding.stringFromFields(decryptedFields);
 
 if (decryptedMessage !== message) throw Error('decryption failed');
 console.log(`Original message: "${message}"`);
@@ -23,7 +23,7 @@ console.log(`Recovered message: "${decryptedMessage}"`);
 
 // the same but in a checked computation
 
-await Circuit.runAndCheck(async () => {
+Circuit.runAndCheckSync(() => {
   // encrypt
   let cipherText = Encryption.encrypt(messageFields, publicKey);
 
@@ -33,9 +33,6 @@ await Circuit.runAndCheck(async () => {
   messageFields.forEach((m, i) => {
     m.assertEquals(decryptedFields[i]);
   });
-
-  // TODO this doesn't make any sense
-  return () => {};
 });
 
 console.log('everything works!');

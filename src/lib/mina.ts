@@ -44,6 +44,7 @@ export function setCurrentTransaction(transaction: CurrentTransaction) {
 }
 
 interface Mina {
+  accountCreationFee(): UInt32;
   transaction(sender: PrivateKey, f: () => unknown): Transaction;
   currentSlot(): UInt32;
   getAccount(publicKey: PublicKey): Account;
@@ -101,7 +102,7 @@ function createTransaction(
     transaction,
 
     sign(additionalKeys?: PrivateKey[]) {
-      addMissingSignatures(this.transaction, additionalKeys);
+      this.transaction = addMissingSignatures(this.transaction, additionalKeys);
       return this;
     },
 
@@ -130,10 +131,15 @@ interface MockMina extends Mina {
   applyJsonTransaction: (tx: string) => void;
 }
 
+const defaultAccountCreationFee = 1_000_000_000;
+
 /**
  * A mock Mina blockchain running locally and useful for testing.
  */
-export function LocalBlockchain() {
+export function LocalBlockchain({
+  accountCreationFee = defaultAccountCreationFee as string | number,
+} = {}) {
+  let accountCreationFee_ = String(accountCreationFee);
   const msPerSlot = 3 * 60 * 1000;
   const startTime = new Date().valueOf();
 
@@ -179,17 +185,21 @@ export function LocalBlockchain() {
       ...txn,
       send() {
         txn.sign();
-        ledger.applyPartiesTransaction(toParties(txn.transaction));
+        ledger.applyPartiesTransaction(
+          toParties(txn.transaction),
+          accountCreationFee_
+        );
         return { wait: async () => {} };
       },
     };
   }
 
   function applyJsonTransaction(json: string) {
-    return ledger.applyJsonTransaction(json);
+    return ledger.applyJsonTransaction(json, accountCreationFee_);
   }
 
   return {
+    accountCreationFee: () => UInt32.fromString(accountCreationFee_),
     currentSlot,
     getAccount,
     transaction,
@@ -200,6 +210,7 @@ export function LocalBlockchain() {
 }
 
 let activeInstance: Mina = {
+  accountCreationFee: () => UInt32.fromNumber(defaultAccountCreationFee),
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
   },
@@ -257,4 +268,8 @@ export function getAccount(pubkey: PublicKey) {
  */
 export function getBalance(pubkey: PublicKey) {
   return activeInstance.getAccount(pubkey).balance;
+}
+
+export function accountCreationFee() {
+  return activeInstance.accountCreationFee();
 }

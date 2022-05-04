@@ -493,9 +493,6 @@ export class Circuit {
 
   static asProver(f: () => void): void;
 
-  // static runAndCheck<T>(f : () => Promise<(() => T)>): Promise<T>;
-  static runAndCheck<T>(f: () => Promise<() => T>): Promise<T>;
-
   static runAndCheckSync<T>(f: () => T): T;
 
   static array<T>(
@@ -793,6 +790,7 @@ interface Account {
   zkapp: ZkappAccount;
 }
 
+// TODO would be nice to document these, at least the parts that end up being used in the public API
 export class Ledger {
   static create(
     genesisAccounts: Array<{ publicKey: { g: Group }; balance: string }>
@@ -800,8 +798,11 @@ export class Ledger {
 
   addAccount(publicKey: { g: Group }, balance: string): void;
 
-  applyPartiesTransaction(parties: Parties_): Account[];
-  applyJsonTransaction(parties: string): Account[];
+  applyPartiesTransaction(
+    parties: Parties_,
+    accountCreationFee: string
+  ): Account[];
+  applyJsonTransaction(parties: string, accountCreationFee: string): Account[];
 
   getAccount(publicKey: { g: Group }): Account | undefined;
 
@@ -858,10 +859,25 @@ export let isReady: Promise<undefined>;
 type Statement = { transaction: Field; atParty: Field };
 
 export const Pickles: {
-  compile: (...args: any) => {
-    getVerificationKeyArtifact: () => string;
+  /**
+   * This is the core API of the `Pickles` library, exposed from OCaml to JS. It takes a list of circuits --
+   * each in the form of a function which takes a public input `{ transaction: Field; atParty: Field }` as argument --,
+   * and joins them into one single circuit which can not only provide proofs for any of the sub-circuits, but also
+   * adds the necessary circuit logic to recursively merge in earlier proofs.
+   *
+   * After forming that big circuit in the finite field represented by `Field`, it gets wrapped in a
+   * recursive circuit in the field represented by `Scalar`. Any SmartContract proof will go through both of these circuits,
+   * so that the final proof ends up back in `Field`.
+   *
+   * The function returns the building blocks needed for SmartContract proving:
+   * * `provers` - a list of prover functions, on for each input `rule`
+   * * `verify` - a function which can verify proofs from any of the provers
+   * * `getVerificationKeyArtifact` - a function which returns the verification key used in `verify`, in base58 format, usable to deploy a zkapp
+   */
+  compile: (rules: [0, string, (statement: Statement) => void][]) => {
     provers: ((statement: Statement) => Promise<unknown>)[];
     verify: (statement: Statement, proof: unknown) => Promise<boolean>;
+    getVerificationKeyArtifact: () => string;
   };
 
   proofToString: (proof: unknown) => string;
