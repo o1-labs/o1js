@@ -11,11 +11,12 @@ import {
   EpochDataPredicate,
   FeePayer,
   LazyControl,
+  LazyProof,
+  LazySignature,
   Party,
   ProtocolStatePredicate,
 } from './party';
 import { UInt32 } from './int';
-import { PrivateKey } from './signature';
 
 export { toParties, toParty, toProtocolState };
 
@@ -48,10 +49,12 @@ function toFeePayer(party: FeePayer): FeePayerParty_ {
 
 function toControl<T extends LazyControl>(
   authorization: T
-):
-  | Exclude<T, { kind: 'lazy-signature'; privateKey?: PrivateKey }>
-  | { kind: 'none' } {
-  if (authorization.kind === 'lazy-signature') return { kind: 'none' };
+): Exclude<T, LazySignature | LazyProof> | { kind: 'none' } {
+  if (
+    authorization.kind === 'lazy-signature' ||
+    authorization.kind === 'lazy-proof'
+  )
+    return { kind: 'none' };
   return authorization as never;
 }
 

@@ -23,6 +23,13 @@ import * as Mina from './mina';
 import { toParty, toProtocolState } from './party-conversion';
 import { UInt32, UInt64 } from './int';
 import { Account, fetchAccount } from './fetch';
+import {
+  withContext,
+  withContextAsync,
+  getContext,
+  mainContext,
+} from './global-context';
+import * as GlobalContext from './global-context';
 
 export {
   deploy,
@@ -119,15 +126,17 @@ function createState<A>() {
 
       let address: PublicKey = this._this.address;
       let stateAsFields: Field[];
-      let inProver = Circuit.inProver();
-
-      if (inProver || !Circuit.inCheckedComputation()) {
+      let inProver = GlobalContext.inProver();
+      if (!GlobalContext.inCompile()) {
         let a: Account;
         try {
           a = Mina.getAccount(address);
         } catch (err) {
           // TODO: there should also be a reasonable error here
-          if (inProver) throw err;
+          if (inProver) {
+            console.log('here', address.toBase58());
+            throw err;
+          }
           throw Error(
             `${this._key}.get() failed, because the zkapp account was not found in the cache. ` +
               `Try calling \`await fetchAccount(zkappAddress)\` first.`
@@ -212,22 +221,6 @@ export function state<A>(ty: AsFieldElements<A>) {
     _descriptor?: PropertyDescriptor
   ) {
     const ZkappClass = target.constructor;
-    // TBD: I think the runtime error below is unnecessary, because having target: SmartContract
-    // means TS will not let the code build if @state is used on an incompatible class
-    // if (!(ZkappClass.prototype instanceof SmartContract)) {
-    //   throw Error(
-    //     'Can only use @state decorator on classes that extend SmartContract'
-    //   );
-    // }
-
-    // TBD: ok to not check? bc type metadata not inferred from class field assignment
-    // const fieldType = Reflect.getMetadata('design:type', target, key);
-    // if (fieldType != State) {
-    //   throw new Error(
-    //     `@state fields must have type State<A> for some type A, got ${fieldType}`
-    //   );
-    // }
-
     if (reservedPropNames.has(key)) {
       throw Error(`Property name ${key} is reserved.`);
     }
@@ -246,7 +239,6 @@ export function state<A>(ty: AsFieldElements<A>) {
             offset += length;
           });
         }
-
         return layout;
       };
     }
@@ -283,7 +275,7 @@ export function state<A>(ty: AsFieldElements<A>) {
 export function method<T extends SmartContract>(
   target: T & { constructor: any },
   methodName: keyof T & string,
-  _descriptor?: PropertyDescriptor
+  descriptor: PropertyDescriptor
 ) {
   const ZkappClass = target.constructor;
   if (reservedPropNames.has(methodName)) {
@@ -319,6 +311,36 @@ export function method<T extends SmartContract>(
     proofArgs,
     args,
   });
+  let argsLength = args.length;
+  let func = descriptor.value;
+  descriptor.value = wrapMethod(func, argsLength, ZkappClass);
+}
+
+// do different things when calling a method, depending on the circumstance
+function wrapMethod(
+  method: Function,
+  argsLength: number,
+  ZkappClass: typeof SmartContract
+) {
+  function wrappedMethod(this: SmartContract, ...args: any[]) {
+    let actualArgs = args.slice(0, argsLength);
+    let shouldCallDirectly = args[argsLength] as undefined | boolean;
+    if (Mina.currentTransaction === undefined || shouldCallDirectly === true) {
+      // outside a transaction, just call the method
+      return method.apply(this, actualArgs);
+    } else {
+      // in a transaction, also add a lazy proof to the self party
+      this.self.authorization = {
+        kind: 'lazy-proof',
+        method,
+        args: actualArgs,
+        ZkappClass,
+      };
+      return method.apply(this, actualArgs);
+    }
+  }
+  (wrappedMethod as any).name = method.name;
+  return wrappedMethod;
 }
 
 type methodEntry<T> = {
@@ -347,6 +369,9 @@ function isProof(typ: any) {
   Thus, the transaction is fully constrained by the proof - the proof couldn't be used to attest to a different transaction.
  */
 type Statement = { transaction: Field; atParty: Field };
+
+type Proof = unknown; // opaque
+type Prover = (statement: Statement) => Promise<Proof>;
 
 function toStatement(self: Party, tail: Field, checked = true) {
   // TODO hash together party with tail in the right way
@@ -415,6 +440,8 @@ export class SmartContract {
 
   _executionState?: ExecutionState;
   static _methods?: methodEntry<SmartContract>[];
+  static _provers?: Prover[];
+  static _getVerificationKey?: () => string;
 
   constructor(address: PublicKey) {
     this.address = address;
@@ -435,9 +462,12 @@ export class SmartContract {
       )
     );
 
-    let [, output] = withContext({ self: Party.defaultParty(address) }, () =>
-      Pickles.compile(rules)
+    let [, output] = withContext(
+      { self: Party.defaultParty(address), inCompile: true },
+      () => Pickles.compile(rules)
     );
+    this._provers = output.provers;
+    this._getVerificationKey = output.getVerificationKeyArtifact;
     return output;
   }
 
@@ -448,9 +478,9 @@ export class SmartContract {
     verificationKey?: string;
     zkappKey?: PrivateKey;
   }) {
+    verificationKey ??= (this.constructor as any)._getVerificationKey?.();
     if (verificationKey !== undefined) {
-      this.self.update.verificationKey.set = Bool(true);
-      this.self.update.verificationKey.value = verificationKey;
+      this.self.update.verificationKey.setValue(verificationKey);
     }
     this.self.update.permissions.setValue(Permissions.default());
     this.sign(zkappKey, true);
@@ -460,15 +490,24 @@ export class SmartContract {
     this.self.signInPlace(zkappKey, fallbackToZeroNonce);
   }
 
-  async prove(provers: any[], methodName: keyof this, args: unknown[]) {
+  async prove(methodName: keyof this, args: unknown[], provers?: Prover[]) {
+    // TODO could just pass in the method instead of method name -> cleaner API
     let ZkappClass = this.constructor as never as typeof SmartContract;
+    provers ??= ZkappClass._provers;
+    if (provers === undefined)
+      throw Error(
+        `Cannot produce execution proof - no provers found. Try calling \`await ${ZkappClass.name}.compile()\` first.`
+      );
+    let provers_ = provers;
+    // let methodName = method.name;
     let i = ZkappClass._methods!.findIndex((m) => m.methodName === methodName);
-    if (!(i + 1)) throw Error(`Method ${methodName} not found!`);
+    if (i === -1) throw Error(`Method ${methodName} not found!`);
     let [statement, selfParty] = Circuit.runAndCheck(() => {
       let [selfParty] = withContext(
-        { self: Party.defaultParty(this.address) },
+        { self: Party.defaultParty(this.address), inProver: true },
         () => {
-          (this[methodName] as any)(...args);
+          (this[methodName] as any)(...args, true);
+          // method(...args, true);
         }
       );
 
@@ -491,8 +530,12 @@ export class SmartContract {
 
     // TODO lazy proof?
     let [, proof] = await withContextAsync(
-      { self: Party.defaultParty(this.address), witnesses: args },
-      () => provers[i](statement)
+      {
+        self: Party.defaultParty(this.address),
+        witnesses: args,
+        inProver: true,
+      },
+      () => provers_[i](statement)
     );
     // FIXME call calls Parties.to_json outside a prover, which seems to cause an error when variables are extracted
     return { proof, statement, selfParty };
@@ -501,11 +544,11 @@ export class SmartContract {
   async runAndCheck(methodName: keyof this, args: unknown[]) {
     let ZkappClass = this.constructor as never as typeof SmartContract;
     let i = ZkappClass._methods!.findIndex((m) => m.methodName === methodName);
-    if (!(i + 1)) throw Error(`Method ${methodName} not found!`);
+    if (i === -1) throw Error(`Method ${methodName} not found!`);
     let ctx = { self: Party.defaultParty(this.address) };
     let [statement, selfParty] = Circuit.runAndCheck(() => {
       let [selfParty] = withContext(
-        { self: Party.defaultParty(this.address) },
+        { self: Party.defaultParty(this.address), inProver: true },
         () => {
           (this[methodName] as any)(...args);
         }
@@ -676,15 +719,15 @@ async function call<S extends typeof SmartContract>(
   address: PublicKey,
   methodName: string,
   methodArguments: any,
-  provers: ((statement: Statement) => Promise<unknown>)[],
+  provers: Prover[],
   // TODO: remove, create a nicer intf to check proofs
   verify?: (statement: Statement, proof: unknown) => Promise<boolean>
 ) {
   let zkapp = new SmartContract(address);
   let { selfParty, proof, statement } = await zkapp.prove(
-    provers,
     methodName as any,
-    methodArguments
+    methodArguments,
+    provers
   );
   selfParty.authorization = {
     kind: 'proof',
@@ -831,74 +874,10 @@ function declareMethodArguments<T extends typeof SmartContract>(
 ) {
   for (let key in methodArguments) {
     let argumentTypes = methodArguments[key];
-    Reflect.metadata('design:paramtypes', argumentTypes)(
-      SmartContract.prototype,
-      key
-    );
-    method(SmartContract.prototype, key as any);
+    let target = SmartContract.prototype;
+    Reflect.metadata('design:paramtypes', argumentTypes)(target, key);
+    let descriptor = Object.getOwnPropertyDescriptor(target, key)!;
+    method(SmartContract.prototype, key as any, descriptor);
+    Object.defineProperty(target, key, descriptor);
   }
-}
-
-// TODO reconcile mainContext with currentTransaction
-let mainContext = undefined as
-  | {
-      witnesses?: unknown[];
-      self: PartyWithFullAccountPrecondition;
-      expectedAccesses: number | undefined;
-      actualAccesses: number;
-    }
-  | undefined;
-type PartialContext = {
-  witnesses?: unknown[];
-  self: PartyWithFullAccountPrecondition;
-  expectedAccesses?: number;
-  actualAccesses?: number;
-};
-
-function withContext<T>(
-  {
-    witnesses = undefined,
-    expectedAccesses = undefined,
-    actualAccesses = 0,
-    self,
-  }: PartialContext,
-  f: () => T
-) {
-  mainContext = { witnesses, expectedAccesses, actualAccesses, self };
-  let result = f();
-  mainContext = undefined;
-  return [self, result] as [PartyWithFullAccountPrecondition, T];
-}
-
-// TODO: this is unsafe, the mainContext will be overridden if we invoke this function multiple times concurrently
-// at the moment, we solve this by detecting unsafe use and throwing an error
-async function withContextAsync<T>(
-  {
-    witnesses = undefined,
-    expectedAccesses = 1,
-    actualAccesses = 0,
-    self,
-  }: PartialContext,
-  f: () => Promise<T>
-) {
-  mainContext = { witnesses, expectedAccesses, actualAccesses, self };
-  let result = await f();
-  if (mainContext.actualAccesses !== mainContext.expectedAccesses)
-    throw Error(contextConflictMessage);
-  mainContext = undefined;
-  return [self, result] as [PartyWithFullAccountPrecondition, T];
-}
-
-let contextConflictMessage =
-  "It seems you're running multiple provers concurrently within" +
-  ' the same JavaScript thread, which, at the moment, is not supported and would lead to bugs.';
-function getContext() {
-  if (mainContext === undefined) throw Error(contextConflictMessage);
-  mainContext.actualAccesses++;
-  if (
-    mainContext.expectedAccesses !== undefined &&
-    mainContext.actualAccesses > mainContext.expectedAccesses
-  )
-    throw Error(contextConflictMessage);
-  return mainContext;
 }

@@ -1,15 +1,28 @@
 import { CircuitValue, cloneCircuitValue } from './circuit_value';
-import { Group, Field, Bool, Control, Ledger, Circuit } from '../snarky';
+import {
+  Group,
+  Field,
+  Bool,
+  Control,
+  Ledger,
+  Circuit,
+  Pickles,
+} from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
 import { toParties } from './party-conversion';
+import { SmartContract } from './zkapp';
+import { withContextAsync } from './global-context';
 
 export {
   FeePayer,
   Parties,
+  LazyProof,
+  LazySignature,
   LazyControl,
   addMissingSignatures,
+  addMissingProofs,
   signJsonTransaction,
   ZkappStateLength,
 };
@@ -634,9 +647,14 @@ export class PartyBalance {
   }
 }
 
-type LazyControl =
-  | Control
-  | { kind: 'lazy-signature'; privateKey?: PrivateKey };
+type LazySignature = { kind: 'lazy-signature'; privateKey?: PrivateKey };
+type LazyProof = {
+  kind: 'lazy-proof';
+  method: Function;
+  args: any[];
+  ZkappClass: typeof SmartContract;
+};
+type LazyControl = Control | LazySignature | LazyProof;
 
 export class Party {
   body: Body;
@@ -792,19 +810,22 @@ export type PartyWithNoncePrecondition = Party & {
   body: { accountPrecondition: UInt32 };
 };
 type FeePayer = Party & {
-  authorization: Exclude<LazyControl, { kind: 'proof'; value: string }>;
+  authorization: Exclude<
+    LazyControl,
+    { kind: 'proof'; value: string } | LazyProof
+  >;
 } & PartyWithNoncePrecondition;
 
 type Parties = { feePayer: FeePayer; otherParties: Party[] };
-type PartiesValidated = {
+type PartiesSigned = {
   feePayer: FeePayer & { authorization: Control };
-  otherParties: (Party & { authorization: Control })[];
+  otherParties: (Party & { authorization: Control | LazyProof })[];
 };
 
 function addMissingSignatures(
   parties: Parties,
   additionalKeys = [] as PrivateKey[]
-): PartiesValidated {
+): PartiesSigned {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
   let { commitment, fullCommitment } = Ledger.transactionCommitments(
     Ledger.partiesToJson(toParties(parties))
@@ -812,7 +833,7 @@ function addMissingSignatures(
   function addSignature<P extends Party>(party: P, isFeePayer?: boolean) {
     party = cloneCircuitValue(party);
     if (party.authorization.kind !== 'lazy-signature')
-      return party as P & { authorization: Control };
+      return party as P & { authorization: Control | LazyProof };
     let { privateKey } = party.authorization;
     if (privateKey === undefined) {
       let i = additionalPublicKeys.findIndex(
@@ -837,6 +858,57 @@ function addMissingSignatures(
     feePayer: addSignature(feePayer, true),
     otherParties: otherParties.map((p) => addSignature(p)),
   };
+}
+
+type PartiesProved = {
+  feePayer: FeePayer;
+  otherParties: (Party & { authorization: Control | LazySignature })[];
+};
+
+async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
+  let partiesJson = Ledger.partiesToJson(toParties(parties));
+  async function addProof<P extends Party>(party: P, index: number) {
+    party = cloneCircuitValue(party);
+    if (party.authorization.kind !== 'lazy-proof')
+      return party as P & { authorization: Control | LazySignature };
+    let { method, args, ZkappClass } = party.authorization;
+    let statement = Ledger.transactionStatement(partiesJson, index);
+    if (ZkappClass._provers === undefined)
+      throw Error(
+        `Cannot prove execution of ${method.name}(), no prover found. ` +
+          `Try calling \`await ${ZkappClass.name}.compile()\` first, this will cache provers in the background.`
+      );
+    let provers = ZkappClass._provers;
+    let methodError =
+      `Error when computing proofs: Method ${method.name} not found. ` +
+      `Make sure your environment supports decorators, and annotate with \`@method ${method.name}\`.`;
+    if (ZkappClass._methods === undefined) throw Error(methodError);
+    let i = ZkappClass._methods.findIndex((m) => m.methodName === method.name);
+    if (i === -1) throw Error(methodError);
+    let [, proof] = await withContextAsync(
+      {
+        self: Party.defaultParty(party.body.publicKey),
+        witnesses: args,
+        inProver: true,
+      },
+      () => provers[i](statement)
+    );
+    party.authorization = {
+      kind: 'proof',
+      value: Pickles.proofToString(proof),
+    };
+    return party as P & { authorization: Control | LazySignature };
+  }
+  let { feePayer, otherParties } = parties;
+  // compute proofs serially. in parallel would clash with our global variable hacks
+  let otherPartiesProved: (Party & {
+    authorization: Control | LazySignature;
+  })[] = [];
+  for (let i = 0; i < otherParties.length; i++) {
+    let partyProved = await addProof(otherParties[i], i);
+    otherPartiesProved.push(partyProved);
+  }
+  return { feePayer, otherParties: otherPartiesProved };
 }
 
 /**

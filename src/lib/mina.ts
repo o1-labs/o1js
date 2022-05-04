@@ -4,6 +4,7 @@ import { Circuit, Ledger, Field } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
 import {
+  addMissingProofs,
   addMissingSignatures,
   FeePayer,
   Parties,
@@ -123,22 +124,28 @@ function createTransaction(
 
   nextTransactionId.value += 1;
   currentTransaction = undefined;
-  return {
+  let self = {
     transaction,
 
     sign(additionalKeys?: PrivateKey[]) {
-      this.transaction = addMissingSignatures(this.transaction, additionalKeys);
-      return this;
+      self.transaction = addMissingSignatures(self.transaction, additionalKeys);
+      return self;
+    },
+
+    async prove() {
+      self.transaction = await addMissingProofs(self.transaction);
+      return self;
     },
 
     toJSON() {
-      return Ledger.partiesToJson(toParties(this.transaction));
+      return Ledger.partiesToJson(toParties(self.transaction));
     },
 
     toGraphqlQuery() {
-      return Fetch.sendZkappQuery(this.toJSON());
+      return Fetch.sendZkappQuery(self.toJSON());
     },
   };
+  return self;
 }
 
 interface Mina {
