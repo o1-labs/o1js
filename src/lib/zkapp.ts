@@ -616,6 +616,12 @@ export class SmartContract {
     return this.self.setNoncePrecondition();
   }
 
+  // TBD: do we want to have setters for updates, e.g. this.permissions = ... ?
+  // I'm hesitant to make the API even more magical / less explicit
+  setPermissions(permissions: Permissions) {
+    this.self.body.update.permissions.setValue(permissions);
+  }
+
   party(i: number): Body {
     throw 'party';
   }
