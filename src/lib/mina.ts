@@ -28,6 +28,7 @@ export {
   getAccount,
   getBalance,
   accountCreationFee,
+  sendTransaction,
 };
 
 interface TransactionId {
@@ -365,7 +366,7 @@ function setActiveInstance(m: Mina) {
  *
  * @return A transaction that can subsequently be submitted to the chain.
  */
-function transaction(sender: PrivateKey, f: () => void): Promise<Transaction> {
+function transaction(sender: SenderSpec, f: () => void): Promise<Transaction> {
   return activeInstance.transaction(sender, f);
 }
 

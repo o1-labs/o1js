@@ -134,7 +134,6 @@ function createState<A>() {
         } catch (err) {
           // TODO: there should also be a reasonable error here
           if (inProver) {
-            console.log('here', address.toBase58());
             throw err;
           }
           throw Error(
