@@ -148,7 +148,7 @@ function createTransaction(
     },
 
     send() {
-      throw Error('this should be overriden');
+      return sendTransaction(self);
     },
   };
   return self;
@@ -160,6 +160,7 @@ interface Mina {
   getAccount(publicKey: PublicKey): Account;
   fetchMissingAccounts(): Promise<void>;
   accountCreationFee(): UInt32;
+  sendTransaction(transaction: Transaction): TransactionId;
 }
 interface MockMina extends Mina {
   addAccount(publicKey: PublicKey, balance: string): void;
@@ -227,19 +228,16 @@ function LocalBlockchain({
       }
     },
     async fetchMissingAccounts() {},
+    sendTransaction(txn: Transaction) {
+      txn.sign();
+      ledger.applyPartiesTransaction(
+        toParties(txn.transaction),
+        accountCreationFee_
+      );
+      return { wait: async () => {} };
+    },
     async transaction(sender: SenderSpec, f: () => void) {
-      let txn = createTransaction(sender, f);
-      return {
-        ...txn,
-        send() {
-          txn.sign();
-          ledger.applyPartiesTransaction(
-            toParties(txn.transaction),
-            accountCreationFee_
-          );
-          return { wait: async () => {} };
-        },
-      };
+      return createTransaction(sender, f);
     },
     applyJsonTransaction(json: string) {
       return ledger.applyJsonTransaction(json, accountCreationFee_);
@@ -284,30 +282,27 @@ function RemoteBlockchain(
     async fetchMissingAccounts() {
       await Fetch.fetchMissingAccounts(graphqlEndpoint);
     },
+    sendTransaction(txn: Transaction) {
+      txn.sign();
+      let sendPromise = Fetch.sendZkapp(txn.toJSON());
+      return {
+        async wait() {
+          let [response, error] = await sendPromise;
+          console.log('got graphql response', { response, error });
+          console.log(
+            'Info: waiting for inclusion in a block is not implemented yet.'
+          );
+          // if (error !== undefined) {
+          //   console.log('Graphql transaction failed. Query:');
+          //   console.log(txn.toGraphqlQuery());
+          // }
+        },
+      };
+    },
     async transaction(sender: SenderSpec, f: () => void) {
       createTransaction(sender, f, { fetchMode: 'test' });
       await Fetch.fetchMissingAccounts(graphqlEndpoint);
-      let txn = createTransaction(sender, f, { fetchMode: 'cached' });
-      return {
-        ...txn,
-        send() {
-          txn.sign();
-          let sendPromise = Fetch.sendZkapp(txn.toJSON());
-          return {
-            async wait() {
-              let [response, error] = await sendPromise;
-              console.log('got graphql response', { response, error });
-              console.log(
-                'Info: waiting for inclusion in a block is not implemented yet.'
-              );
-              // if (error !== undefined) {
-              //   console.log('Graphql transaction failed. Query:');
-              //   console.log(txn.toGraphqlQuery());
-              // }
-            },
-          };
-        },
-      };
+      return createTransaction(sender, f, { fetchMode: 'cached' });
     },
     testAccounts,
   };
@@ -352,8 +347,11 @@ let activeInstance: Mina = {
   fetchMissingAccounts() {
     throw new Error('must call Mina.setActiveInstance first');
   },
-  transaction: () => {
+  sendTransaction() {
     throw new Error('must call Mina.setActiveInstance first');
+  },
+  async transaction(sender: SenderSpec, f: () => void) {
+    return createTransaction(sender, f);
   },
 };
 
@@ -404,6 +402,10 @@ function getBalance(pubkey: PublicKey) {
 
 function accountCreationFee() {
   return activeInstance.accountCreationFee();
+}
+
+function sendTransaction(txn: Transaction) {
+  return activeInstance.sendTransaction(txn);
 }
 
 function dummyAccount(pubkey?: PublicKey): Account {
