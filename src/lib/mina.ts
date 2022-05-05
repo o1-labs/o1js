@@ -158,7 +158,6 @@ interface Mina {
   transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
   currentSlot(): UInt32;
   getAccount(publicKey: PublicKey): Account;
-  fetchMissingAccounts(): Promise<void>;
   accountCreationFee(): UInt32;
   sendTransaction(transaction: Transaction): TransactionId;
 }
@@ -227,7 +226,6 @@ function LocalBlockchain({
         };
       }
     },
-    async fetchMissingAccounts() {},
     sendTransaction(txn: Transaction) {
       txn.sign();
       ledger.applyPartiesTransaction(
@@ -278,9 +276,6 @@ function RemoteBlockchain(
       throw Error(
         `getAccount: Could not find account for public key ${publicKey.toBase58()}.\nGraphql endpoint: ${graphqlEndpoint}`
       );
-    },
-    async fetchMissingAccounts() {
-      await Fetch.fetchMissingAccounts(graphqlEndpoint);
     },
     sendTransaction(txn: Transaction) {
       txn.sign();
@@ -342,9 +337,6 @@ let activeInstance: Mina = {
         );
       return account;
     }
-    throw new Error('must call Mina.setActiveInstance first');
-  },
-  fetchMissingAccounts() {
     throw new Error('must call Mina.setActiveInstance first');
   },
   sendTransaction() {
