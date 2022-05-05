@@ -358,15 +358,29 @@ function setActiveInstance(m: Mina) {
  * you can call into the methods of smart contracts.
  *
  * ```typescript
- * transaction(async () => {
- *   await mySmartContract.update();
- *   await someOtherContract.someOtherMethod();
+ * transaction(() => {
+ *   myZkapp.update();
+ *   someOtherZkapp.someOtherMethod();
  * })
  * ```
  *
  * @return A transaction that can subsequently be submitted to the chain.
  */
-function transaction(sender: SenderSpec, f: () => void): Promise<Transaction> {
+function transaction(f: () => void): Promise<Transaction>;
+function transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
+function transaction(
+  senderOrF: SenderSpec | (() => void),
+  fOrUndefined?: () => void
+): Promise<Transaction> {
+  let sender: SenderSpec;
+  let f: () => void;
+  if (fOrUndefined !== undefined) {
+    sender = senderOrF as SenderSpec;
+    f = fOrUndefined;
+  } else {
+    sender = undefined;
+    f = senderOrF as () => void;
+  }
   return activeInstance.transaction(sender, f);
 }
 
