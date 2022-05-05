@@ -330,12 +330,15 @@ function wrapMethod(
       return method.apply(this, actualArgs);
     } else {
       // in a transaction, also add a lazy proof to the self party
-      this.self.authorization = {
-        kind: 'lazy-proof',
-        method,
-        args: actualArgs,
-        ZkappClass,
-      };
+      // (if there's no other authorization set)
+      if (this.self.authorization.kind === 'none') {
+        this.self.authorization = {
+          kind: 'lazy-proof',
+          method,
+          args: actualArgs,
+          ZkappClass,
+        };
+      }
       return method.apply(this, actualArgs);
     }
   }
