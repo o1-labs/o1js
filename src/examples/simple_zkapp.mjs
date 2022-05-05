@@ -7,7 +7,7 @@ import {
   Party,
   isReady,
   declareState,
-  declareMethodArguments,
+  declareMethods,
   shutdown,
 } from 'snarkyjs';
 
@@ -28,7 +28,7 @@ class SimpleZkapp extends SmartContract {
   }
 }
 declareState(SimpleZkapp, { x: Field });
-declareMethodArguments(SimpleZkapp, { update: [Field] });
+declareMethods(SimpleZkapp, { update: [Field] });
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
@@ -55,9 +55,7 @@ tx.send();
 console.log('initial state: ' + zkapp.x.get());
 
 console.log('update');
-tx = await Local.transaction(account1, () => {
-  zkapp.update(Field(3));
-});
+tx = await Local.transaction(account1, () => zkapp.update(Field(3)));
 await tx.prove();
 tx.send();
 console.log('final state: ' + zkapp.x.get());

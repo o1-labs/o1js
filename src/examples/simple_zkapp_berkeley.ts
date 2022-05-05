@@ -84,9 +84,7 @@ if (isDeployed) {
   );
   let tx = await Berkeley.transaction(
     { privateKey: whaleKey, fee: transactionFee },
-    () => {
-      zkapp.update(Field(2));
-    }
+    () => zkapp.update(Field(2))
   );
   await tx.prove();
   console.log(tx.toGraphqlQuery());

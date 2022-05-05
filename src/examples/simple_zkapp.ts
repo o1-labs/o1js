@@ -9,7 +9,6 @@ import {
   Mina,
   Party,
   isReady,
-  Bool,
   Permissions,
 } from 'snarkyjs';
 
