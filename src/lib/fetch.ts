@@ -1,7 +1,7 @@
 import 'isomorphic-fetch';
 import { Field } from '../snarky';
 import { UInt32, UInt64 } from './int';
-import { ZkappStateLength } from './party';
+import { Permission, Permissions, ZkappStateLength } from './party';
 import { PublicKey } from './signature';
 
 export {
@@ -98,6 +98,27 @@ type FetchError = {
 // Specify 30s as the default timeout
 const defaultTimeout = 30000;
 
+type PermissionString =
+  | 'Signature'
+  | 'Proof'
+  | 'Either'
+  | 'None'
+  | 'Impossible';
+function toPermission(p: PermissionString): Permission {
+  switch (p) {
+    case 'None':
+      return Permission.none();
+    case 'Proof':
+      return Permission.proof();
+    case 'Signature':
+      return Permission.signature();
+    case 'Either':
+      return Permission.proofOrSignature();
+    case 'Impossible':
+      return Permission.impossible();
+  }
+}
+
 type FetchedAccount = {
   publicKey: string;
   nonce: string;
@@ -105,6 +126,19 @@ type FetchedAccount = {
   zkappState: string[] | null;
   receiptChainState?: string;
   balance: { total: string };
+  permissions?: {
+    editState: PermissionString;
+    send: PermissionString;
+    receive: PermissionString;
+    setDelegate: PermissionString;
+    setPermissions: PermissionString;
+    setVerificationKey: PermissionString;
+    setZkappUri: PermissionString;
+    editSequenceState: PermissionString;
+    setTokenSymbol: PermissionString;
+    incrementNonce: PermissionString;
+    setVotingFor: PermissionString;
+  };
 };
 
 type Account = {
@@ -112,6 +146,7 @@ type Account = {
   nonce: UInt32;
   balance: UInt64;
   zkapp?: { appState: Field[] };
+  permissions?: Permissions;
 };
 
 type FlexibleAccount = {
@@ -128,6 +163,19 @@ const accountQuery = (publicKey: string) => `{
     nonce
     zkappUri
     zkappState
+    permissions {
+      editState
+      send
+      receive
+      setDelegate
+      setPermissions
+      setVerificationKey
+      setZkappUri
+      editSequenceState
+      setTokenSymbol
+      incrementNonce
+      setVotingFor
+    }
     receiptChainHash
     balance { total }
   }
@@ -144,6 +192,7 @@ function parseFetchedAccount({
   nonce,
   zkappState,
   balance,
+  permissions,
 }: Partial<FetchedAccount>): Partial<Account> {
   return {
     publicKey:
@@ -151,6 +200,11 @@ function parseFetchedAccount({
     nonce: nonce !== undefined ? UInt32.fromString(nonce) : undefined,
     balance: balance && UInt64.fromString(balance.total),
     zkapp: (zkappState && { appState: zkappState.map(Field) }) ?? undefined,
+    permissions:
+      permissions &&
+      (Object.fromEntries(
+        Object.entries(permissions).map(([k, v]) => [k, toPermission(v)])
+      ) as Permissions),
   };
 }
 
