@@ -8,7 +8,6 @@ import {
   Mina,
   Party,
   isReady,
-  Permissions,
   shutdown,
   compile,
   DeployArgs,
@@ -22,10 +21,6 @@ class SimpleZkapp extends SmartContract {
 
   deploy(args: DeployArgs) {
     super.deploy(args);
-    this.self.update.permissions.setValue({
-      ...Permissions.default(),
-      editState: Permissions.proofOrSignature(),
-    });
     this.x.set(initialState);
   }
 
@@ -36,7 +31,9 @@ class SimpleZkapp extends SmartContract {
   }
 }
 
-let Berkeley = Mina.BerkeleyQANet();
+let Berkeley = Mina.BerkeleyQANet(
+  'https://proxy.berkeley.minaexplorer.com/graphql'
+);
 Mina.setActiveInstance(Berkeley);
 
 let whaleKey = Berkeley.testAccounts[0].privateKey;
@@ -49,7 +46,7 @@ let zkappAddress = zkappKey.toPublicKey();
 
 let transactionFee = 100_000_000;
 let initialState = Field(1);
-let doComputeVk = true;
+let doCompile = true;
 
 // check if the zkapp is already deployed, based on whether the account exists and its first zkapp state is != 0
 let zkapp = new SimpleZkapp(zkappAddress);
@@ -61,7 +58,7 @@ let { nonce, balance } = whaleAccount!;
 console.log(`using whale account with nonce ${nonce}, balance ${balance}`);
 
 console.log('Compiling smart contract...');
-let { verificationKey } = doComputeVk
+let { verificationKey } = doCompile
   ? await compile(SimpleZkapp, zkappAddress)
   : { verificationKey: undefined };
 

@@ -303,9 +303,7 @@ function RemoteBlockchain(
   };
 }
 
-function BerkeleyQANet(
-  graphqlEndpoint = 'https://proxy.berkeley.minaexplorer.com/graphql'
-): Testnet {
+function BerkeleyQANet(graphqlEndpoint: string): Testnet {
   let whaleKey = PrivateKey.fromBase58(
     'EKEtDLmauasBxaB3FsPVLHBdFHUoQMYa21y8phQwB9dV1fL4M2Cb'
   );
