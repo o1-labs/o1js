@@ -68,7 +68,7 @@ let initialState = Field(1);
 // compile the SmartContract to get the verification key (if deploying) or cache the provers (if updating)
 // this can take a while...
 console.log('Compiling smart contract...');
-let { verificationKey } = await SmartContract.compile(zkappAddress);
+let { verificationKey } = await SimpleZkapp.compile(zkappAddress);
 
 // check if the zkapp is already deployed, based on whether the account exists and its first zkapp state is != 0
 let zkapp = new SimpleZkapp(zkappAddress);

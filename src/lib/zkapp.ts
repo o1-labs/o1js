@@ -281,7 +281,7 @@ export function method<T extends SmartContract>(
   }
   if (typeof target[methodName] !== 'function') {
     throw Error(
-      `@method decorator was applied to ${methodName} which is not a function.`
+      `@method decorator was applied to \`${methodName}\`, which is not a function.`
     );
   }
   let paramTypes = Reflect.getMetadata('design:paramtypes', target, methodName);
