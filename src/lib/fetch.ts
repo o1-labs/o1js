@@ -276,7 +276,7 @@ async function fetchMissingAccounts(graphqlEndpoint: string) {
   let accounts = Object.entries(accountsToFetch).filter(([key, account]) => {
     if (account.graphqlEndpoint !== graphqlEndpoint) return false;
     let cachedAccount = accountCache[key];
-    return cachedAccount === undefined || cachedAccount.timestamp > expired;
+    return cachedAccount === undefined || cachedAccount.timestamp < expired;
   });
   await Promise.all(
     accounts.map(async ([key, { publicKey }]) => {
