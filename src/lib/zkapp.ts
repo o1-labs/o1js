@@ -47,7 +47,7 @@ export {
 export type State<A> = {
   get(): A;
   set(a: A): void;
-  fetch(): Promise<A>;
+  fetch(): Promise<A | undefined>;
   assertEquals(a: A): void;
 };
 
@@ -182,8 +182,8 @@ function createState<A>() {
         );
       let layout = this.getLayout();
       let address: PublicKey = this._this.address;
-      let { account, error } = await fetchAccount(address);
-      if (account === undefined) throw error;
+      let { account } = await fetchAccount(address);
+      if (account === undefined) return undefined;
       let stateAsFields: Field[];
       if (account.zkapp === undefined) {
         stateAsFields = Array(layout.length).fill(Field.zero);

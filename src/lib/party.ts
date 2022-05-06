@@ -813,8 +813,14 @@ export class Party {
 
   /**
    * Use this method to pay the account creation fee for another account.
+   * Beware that you _don't_ need to pass in the new account!
+   * Instead, the protocol will automatically identify accounts in your transaction that need funding.
+   *
+   * If you provide an optional `initialBalance`, this will be subtracted from the fee-paying account as well,
+   * but you have to separately ensure that it's added to the new account's balance.
    *
    * @param feePayerKey the private key of the account that pays the fee
+   * @param initialBalance the initial balance of the new account (default: 0)
    */
   static fundNewAcount(
     feePayerKey: PrivateKey,
@@ -828,7 +834,7 @@ export class Party {
       initialBalance instanceof UInt64
         ? initialBalance
         : UInt64.fromString(`${initialBalance}`);
-    party.balance.addInPlace(amount.add(Mina.accountCreationFee()));
+    party.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 }
 

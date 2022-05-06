@@ -77,7 +77,7 @@ async function fetchAccountInternal(
       account: undefined,
       error: {
         statusCode: 404,
-        statusText: 'Account does not exist.',
+        statusText: `fetchAccount: Account with public key ${publicKey} does not exist.`,
       },
     };
   }
