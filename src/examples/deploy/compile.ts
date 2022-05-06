@@ -1,4 +1,4 @@
-import { isReady, PrivateKey, shutdown, compile } from 'snarkyjs';
+import { isReady, PrivateKey, shutdown } from 'snarkyjs';
 import SimpleZkapp from './simple_zkapp';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -9,7 +9,7 @@ await isReady;
 let zkappKey = PrivateKey.random();
 let zkappAddress = zkappKey.toPublicKey();
 
-let { verificationKey } = await compile(SimpleZkapp, zkappAddress);
+let { verificationKey } = await SimpleZkapp.compile(zkappAddress);
 storeArtifact(SimpleZkapp, { verificationKey });
 
 shutdown();

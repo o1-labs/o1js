@@ -18,7 +18,6 @@ import {
   Party,
   isReady,
   shutdown,
-  compile,
   DeployArgs,
   fetchAccount,
 } from 'snarkyjs';
@@ -47,13 +46,17 @@ let Berkeley = Mina.BerkeleyQANet(
 );
 Mina.setActiveInstance(Berkeley);
 
-// hard-coded test account which has enough MINA to fund our zkapps
-let whaleKey = Berkeley.testAccounts[0].privateKey;
-let { account: whaleAccount } = await fetchAccount(whaleKey.toPublicKey());
-let { nonce, balance } = whaleAccount!;
-console.log(`using whale account with nonce ${nonce}, balance ${balance}`);
+// to use this test, change this private key to an account which has enough MINA to pay fees
+let feePayerKey = PrivateKey.fromBase58(
+  'EKEQc95PPQZnMY9d9p1vq1MWLeDJKtvKj4V75UDG3rjnf32BerWD'
+);
+let response = await fetchAccount(feePayerKey.toPublicKey());
+if (response.error) throw Error(response.error.statusText);
+let { nonce, balance } = response.account;
+console.log(`Using fee payer account with nonce ${nonce}, balance ${balance}`);
 
-// let zkappKey = PrivateKey.random();
+// replace this with a new zkapp key if you want to deploy a zkapp
+// and please never expose actual private keys in public code repositories like this!
 let zkappKey = PrivateKey.fromBase58(
   'EKFQZG2RuLMYyDsC9RGE5Y8gQGefkbUUUyEhFbgRRMHGgoF9eKpY'
 );
@@ -61,29 +64,25 @@ let zkappAddress = zkappKey.toPublicKey();
 
 let transactionFee = 100_000_000;
 let initialState = Field(1);
-let doCompile = true;
 
-// compile the SmartContract to get the verification key (if deploying) or the cache the provers (if updating)
+// compile the SmartContract to get the verification key (if deploying) or cache the provers (if updating)
 // this can take a while...
 console.log('Compiling smart contract...');
-let { verificationKey } = doCompile
-  ? await compile(SimpleZkapp, zkappAddress)
-  : { verificationKey: undefined };
+let { verificationKey } = await SmartContract.compile(zkappAddress);
 
 // check if the zkapp is already deployed, based on whether the account exists and its first zkapp state is != 0
 let zkapp = new SimpleZkapp(zkappAddress);
 let x = await zkapp.x.fetch();
-let isDeployed = x.equals(0).not().toBoolean() ?? false;
+let isDeployed = x?.equals(0).not().toBoolean() ?? false;
 
 // if the zkapp is not deployed yet, create a deploy transaction
 if (!isDeployed) {
   console.log(`Deploying zkapp for public key ${zkappAddress.toBase58()}.`);
   // the `transaction()` interface
   let transaction = await Mina.transaction(
-    { feePayerKey: whaleKey, fee: transactionFee },
+    { feePayerKey, fee: transactionFee },
     () => {
-      const p = Party.createSigned(whaleKey, { isSameAsFeePayer: true });
-      p.balance.subInPlace(Mina.accountCreationFee());
+      Party.fundNewAcount(feePayerKey);
       zkapp.deploy({ zkappKey, verificationKey });
     }
   );
@@ -100,7 +99,7 @@ if (isDeployed) {
   let x = zkapp.x.get();
   console.log(`Found deployed zkapp, updating state ${x} -> ${x.add(2)}.`);
   let transaction = await Mina.transaction(
-    { feePayerKey: whaleKey, fee: transactionFee },
+    { feePayerKey, fee: transactionFee },
     () => {
       zkapp.update(Field(2));
     }

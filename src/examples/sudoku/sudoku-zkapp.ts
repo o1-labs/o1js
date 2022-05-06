@@ -11,7 +11,6 @@ import {
   State,
   isReady,
   Poseidon,
-  UInt64,
   Party,
   Permissions,
 } from 'snarkyjs';
@@ -36,14 +35,6 @@ class Sudoku extends CircuitValue {
 class SudokuZkapp extends SmartContract {
   @state(Field) sudokuHash = State<Field>();
   @state(Bool) isSolved = State<Bool>();
-
-  deploy(args: any) {
-    super.deploy(args);
-    this.self.update.permissions.setValue({
-      ...Permissions.default(),
-      editState: Permissions.proofOrSignature(),
-    });
-  }
 
   @method submitSolution(sudokuInstance: Sudoku, solutionInstance: Sudoku) {
     let sudoku = sudokuInstance.value;
@@ -107,16 +98,19 @@ const Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 const account1 = Local.testAccounts[0].privateKey;
 
-const zkappPrivkey = PrivateKey.random();
-let zkappAddress = zkappPrivkey.toPublicKey();
+const zkappKey = PrivateKey.random();
+let zkappAddress = zkappKey.toPublicKey();
 
 async function deploy(sudoku: number[][]) {
   let tx = await Mina.transaction(account1, () => {
-    const p = Party.createSigned(account1, { isSameAsFeePayer: true });
-    p.balance.subInPlace(Mina.accountCreationFee());
+    Party.fundNewAcount(account1);
     let zkapp = new SudokuZkapp(zkappAddress);
     let sudokuInstance = new Sudoku(sudoku);
-    zkapp.deploy({ zkappKey: zkappPrivkey });
+    zkapp.deploy({ zkappKey });
+    zkapp.setPermissions({
+      ...Permissions.default(),
+      editState: Permissions.proofOrSignature(),
+    });
     zkapp.sudokuHash.set(sudokuInstance.hash());
     zkapp.isSolved.set(Bool(false));
   });
@@ -127,7 +121,7 @@ async function submitSolution(sudoku: number[][], solution: number[][]) {
   let tx = await Mina.transaction(account1, () => {
     let zkapp = new SudokuZkapp(zkappAddress);
     zkapp.submitSolution(new Sudoku(sudoku), new Sudoku(solution));
-    zkapp.self.sign(zkappPrivkey);
+    zkapp.self.sign(zkappKey);
     zkapp.self.body.incrementNonce = Bool(true);
   });
   try {
