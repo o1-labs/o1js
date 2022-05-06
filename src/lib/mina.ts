@@ -176,12 +176,6 @@ interface MockMina extends Mina {
   testAccounts: Array<{ publicKey: PublicKey; privateKey: PrivateKey }>;
   applyJsonTransaction: (tx: string) => void;
 }
-interface Testnet extends Mina {
-  /**
-   * An array containing test accounts that are pre-filled with currency.
-   */
-  testAccounts: Array<{ publicKey: PublicKey; privateKey: PrivateKey }>;
-}
 
 const defaultAccountCreationFee = 1_000_000_000;
 
@@ -251,13 +245,7 @@ function LocalBlockchain({
   };
 }
 
-function RemoteBlockchain(
-  graphqlEndpoint: string,
-  testAccounts = [] as {
-    publicKey: PublicKey;
-    privateKey: PrivateKey;
-  }[]
-): Testnet {
+function RemoteBlockchain(graphqlEndpoint: string): Mina {
   let accountCreationFee = UInt32.fromNumber(defaultAccountCreationFee);
   Fetch.setGraphqlEndpoint(graphqlEndpoint);
   return {
@@ -305,19 +293,11 @@ function RemoteBlockchain(
       await Fetch.fetchMissingAccounts(graphqlEndpoint);
       return createTransaction(sender, f, { fetchMode: 'cached' });
     },
-    testAccounts,
   };
 }
 
-function BerkeleyQANet(graphqlEndpoint: string): Testnet {
-  let whaleKey = PrivateKey.fromBase58(
-    'EKEtDLmauasBxaB3FsPVLHBdFHUoQMYa21y8phQwB9dV1fL4M2Cb'
-  );
-  let whaleAddress = PublicKey.fromBase58(
-    'B62qpfgnUm7zVqi8MJHNB2m37rtgMNDbFNhC2DpMmmVpQt8x6gKv9Ww'
-  );
-  let testAccounts = [{ privateKey: whaleKey, publicKey: whaleAddress }];
-  return RemoteBlockchain(graphqlEndpoint, testAccounts);
+function BerkeleyQANet(graphqlEndpoint: string) {
+  return RemoteBlockchain(graphqlEndpoint);
 }
 
 let activeInstance: Mina = {
