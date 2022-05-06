@@ -34,7 +34,6 @@ import * as GlobalContext from './global-context';
 export {
   deploy,
   DeployArgs,
-  compile,
   call,
   callUnproved,
   signFeePayer,
@@ -443,13 +442,13 @@ export class SmartContract {
   _executionState?: ExecutionState;
   static _methods?: methodEntry<SmartContract>[];
   static _provers?: Prover[];
-  static _getVerificationKey?: () => string;
+  static _verificationKey?: string;
 
   constructor(address: PublicKey) {
     this.address = address;
   }
 
-  static compile(address?: PublicKey) {
+  static async compile(address?: PublicKey) {
     // TODO: think about how address should be passed in
     // if address is not provided, create a random one
     // TODO: maybe PublicKey should just become a variable? Then compile doesn't need to know the address, which seems more natural
@@ -464,13 +463,15 @@ export class SmartContract {
       )
     );
 
-    let [, output] = withContext(
+    let [, { getVerificationKeyArtifact, provers, verify }] = withContext(
       { self: Party.defaultParty(address), inCompile: true },
       () => Pickles.compile(rules)
     );
-    this._provers = output.provers;
-    this._getVerificationKey = output.getVerificationKeyArtifact;
-    return output;
+    let verificationKey = getVerificationKeyArtifact();
+    this._provers = provers;
+    this._verificationKey = verificationKey;
+    // TODO: instead of returning provers, return an artifact from which provers can be recovered
+    return { verificationKey, provers, verify };
   }
 
   deploy({
@@ -480,7 +481,7 @@ export class SmartContract {
     verificationKey?: string;
     zkappKey?: PrivateKey;
   }) {
-    verificationKey ??= (this.constructor as any)._getVerificationKey?.();
+    verificationKey ??= (this.constructor as any)._verificationKey;
     if (verificationKey !== undefined) {
       this.self.update.verificationKey.setValue(verificationKey);
     }
@@ -822,20 +823,6 @@ function signFeePayer(
   parties.feePayer.body.publicKey = Ledger.publicKeyToString(senderAddress);
   parties.feePayer.body.fee = `${transactionFee}`;
   return signJsonTransaction(JSON.stringify(parties), feePayerKey);
-}
-
-async function compile<S extends typeof SmartContract>(
-  SmartContract: S,
-  address: PublicKey
-) {
-  // TODO: instead of returning provers, return an artifact from which provers can be recovered
-  let { getVerificationKeyArtifact, provers, verify } =
-    SmartContract.compile(address);
-  return {
-    verificationKey: getVerificationKeyArtifact(),
-    provers,
-    verify,
-  };
 }
 
 // alternative API which can replace decorators, works in pure JS
