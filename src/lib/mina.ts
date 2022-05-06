@@ -65,7 +65,7 @@ function setCurrentTransaction(transaction: CurrentTransaction) {
 
 type SenderSpec =
   | PrivateKey
-  | { privateKey: PrivateKey; fee?: number | string | UInt64 }
+  | { feePayerKey: PrivateKey; fee?: number | string | UInt64 }
   | undefined;
 
 function createUnsignedTransaction(
@@ -74,10 +74,11 @@ function createUnsignedTransaction(
 ) {
   return createTransaction(undefined, f, { fetchMode });
 }
+
 function createTransaction(
-  sender:
+  feePayer:
     | PrivateKey
-    | { privateKey: PrivateKey; fee?: number | string | UInt64 }
+    | { feePayerKey: PrivateKey; fee?: number | string | UInt64 }
     | undefined,
   f: () => unknown,
   { fetchMode = 'cached' as FetchMode } = {}
@@ -85,11 +86,12 @@ function createTransaction(
   if (currentTransaction !== undefined) {
     throw new Error('Cannot start new transaction within another transaction');
   }
-  let senderKey = sender instanceof PrivateKey ? sender : sender?.privateKey;
-  let fee = sender instanceof PrivateKey ? undefined : sender?.fee;
+  let feePayerKey =
+    feePayer instanceof PrivateKey ? feePayer : feePayer?.feePayerKey;
+  let fee = feePayer instanceof PrivateKey ? undefined : feePayer?.fee;
 
   currentTransaction = {
-    sender: senderKey,
+    sender: feePayerKey,
     parties: [],
     nextPartyIndex: 0,
     fetchMode,
@@ -103,27 +105,30 @@ function createTransaction(
     throw err;
   }
 
-  let feePayer: FeePayer;
-  if (senderKey !== undefined) {
+  let feePayerParty: FeePayer;
+  if (feePayerKey !== undefined) {
     // if senderKey is provided, fetch account to get nonce and mark to be signed
-    let senderAddress = senderKey.toPublicKey();
+    let senderAddress = feePayerKey.toPublicKey();
     let senderAccount = getAccount(senderAddress);
-    feePayer = Party.defaultFeePayer(
+    feePayerParty = Party.defaultFeePayer(
       senderAddress,
-      senderKey,
+      feePayerKey,
       senderAccount.nonce
     );
     if (fee !== undefined) {
-      feePayer.balance.subInPlace(
+      feePayerParty.balance.subInPlace(
         fee instanceof UInt64 ? fee : UInt64.fromString(String(fee))
       );
     }
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
-    feePayer = Party.dummyFeePayer();
+    feePayerParty = Party.dummyFeePayer();
   }
 
-  let transaction = { otherParties: currentTransaction.parties, feePayer };
+  let transaction = {
+    otherParties: currentTransaction.parties,
+    feePayer: feePayerParty,
+  };
 
   nextTransactionId.value += 1;
   currentTransaction = undefined;

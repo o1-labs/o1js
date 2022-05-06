@@ -80,7 +80,7 @@ if (!isDeployed) {
   console.log(`Deploying zkapp for public key ${zkappAddress.toBase58()}.`);
   // the `transaction()` interface
   let transaction = await Mina.transaction(
-    { privateKey: whaleKey, fee: transactionFee },
+    { feePayerKey: whaleKey, fee: transactionFee },
     () => {
       const p = Party.createSigned(whaleKey, { isSameAsFeePayer: true });
       p.balance.subInPlace(Mina.accountCreationFee());
@@ -100,7 +100,7 @@ if (isDeployed) {
   let x = zkapp.x.get();
   console.log(`Found deployed zkapp, updating state ${x} -> ${x.add(2)}.`);
   let transaction = await Mina.transaction(
-    { privateKey: whaleKey, fee: transactionFee },
+    { feePayerKey: whaleKey, fee: transactionFee },
     () => {
       zkapp.update(Field(2));
     }
