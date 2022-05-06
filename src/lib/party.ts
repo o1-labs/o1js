@@ -761,6 +761,14 @@ export class Party {
     options?: { isSameAsFeePayer?: Bool | boolean; nonce?: UInt32 }
   ) {
     let { nonce, isSameAsFeePayer } = options ?? {};
+    // if not specified, optimistically determine isSameAsFeePayer from the current transaction
+    // (gotcha: this makes the circuit depend on the fee payer parameter in the transaction.
+    // to avoid that, provide the argument explicitly)
+    let isFeePayer =
+      isSameAsFeePayer !== undefined
+        ? Bool(isSameAsFeePayer)
+        : Mina.currentTransaction?.sender?.equals(signer) ?? Bool(false);
+
     // TODO: This should be a witness block that uses the setVariable
     // API to set the value of a variable after it's allocated
 
@@ -770,9 +778,6 @@ export class Party {
     // TODO: getAccount could always be used if we had a generic way to add account info prior to creating transactions
     if (nonce === undefined) {
       let account = Mina.getAccount(publicKey);
-      if (account == null) {
-        throw new Error('Party.createSigned: Account not found');
-      }
       nonce = account.nonce;
     }
 
@@ -783,7 +788,11 @@ export class Party {
     }
 
     // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher bc the fee payer already increases its nonce
-    let nonceIncrement = isSameAsFeePayer ? new UInt32(Field.one) : UInt32.zero;
+    let nonceIncrement = Circuit.if(
+      isFeePayer,
+      new UInt32(Field.one),
+      UInt32.zero
+    );
     // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
     for (let party of Mina.currentTransaction.parties) {
       let shouldIncreaseNonce = party.publicKey
@@ -800,6 +809,26 @@ export class Party {
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
     return party;
+  }
+
+  /**
+   * Use this method to pay the account creation fee for another account.
+   *
+   * @param feePayerKey the private key of the account that pays the fee
+   */
+  static fundNewAcount(
+    feePayerKey: PrivateKey,
+    {
+      initialBalance = UInt64.zero as number | string | UInt64,
+      isSameAsFeePayer = undefined as Bool | boolean | undefined,
+    } = {}
+  ) {
+    let party = Party.createSigned(feePayerKey, { isSameAsFeePayer });
+    let amount =
+      initialBalance instanceof UInt64
+        ? initialBalance
+        : UInt64.fromString(`${initialBalance}`);
+    party.balance.addInPlace(amount.add(Mina.accountCreationFee()));
   }
 }
 
