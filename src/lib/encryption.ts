@@ -73,7 +73,7 @@ function decrypt(
     let messageChunk = cipherText[i].sub(keyStream);
     message.push(messageChunk);
     if (i % 2 === 1) sponge.absorb(cipherText[i - 1]);
-    if (i % 2 === 1 || i === message.length - 1) sponge.absorb(cipherText[i]);
+    if (i % 2 === 1 || i === cipherText.length - 1) sponge.absorb(cipherText[i]);
   }
   // authentication tag
   sponge.squeeze().assertEquals(authenticationTag!);
