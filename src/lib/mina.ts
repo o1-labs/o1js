@@ -3,10 +3,33 @@
 import { Circuit, Ledger, Field } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
-import { addMissingSignatures, FeePayer, Parties, Party } from './party';
+import {
+  addMissingProofs,
+  addMissingSignatures,
+  FeePayer,
+  Parties,
+  Party,
+  ZkappStateLength,
+} from './party';
 import { toParties } from './party-conversion';
+import * as Fetch from './fetch';
 
-export { createUnsignedTransaction, createSignedTransaction };
+export {
+  createUnsignedTransaction,
+  createTransaction,
+  BerkeleyQANet,
+  LocalBlockchain,
+  nextTransactionId,
+  CurrentTransaction,
+  setCurrentTransaction,
+  setActiveInstance,
+  transaction,
+  currentSlot,
+  getAccount,
+  getBalance,
+  accountCreationFee,
+  sendTransaction,
+};
 
 interface TransactionId {
   wait(): Promise<void>;
@@ -14,113 +37,136 @@ interface TransactionId {
 
 interface Transaction {
   transaction: Parties;
-  sign(): void;
+  toJSON(): string;
+  toGraphqlQuery(): string;
+  sign(): Transaction;
+  prove(): Promise<Transaction>;
   send(): TransactionId;
 }
 
-interface ZkappAccount {
-  appState: Array<Field>;
-}
+type Account = Fetch.Account;
 
-interface Account {
-  balance: UInt64;
-  nonce: UInt32;
-  zkapp: ZkappAccount;
-}
+let nextTransactionId: { value: number } = { value: 0 };
 
-export let nextTransactionId: { value: number } = { value: 0 };
-
-export type CurrentTransaction =
+type FetchMode = 'fetch' | 'cached' | 'test';
+type CurrentTransaction =
   | undefined
   | {
       sender?: PrivateKey;
       parties: Party[];
       nextPartyIndex: number;
+      fetchMode: FetchMode;
     };
 
 export let currentTransaction: CurrentTransaction = undefined;
-export function setCurrentTransaction(transaction: CurrentTransaction) {
+function setCurrentTransaction(transaction: CurrentTransaction) {
   currentTransaction = transaction;
 }
 
-interface Mina {
-  accountCreationFee(): UInt32;
-  transaction(sender: PrivateKey, f: () => unknown): Transaction;
-  currentSlot(): UInt32;
-  getAccount(publicKey: PublicKey): Account;
-}
+type SenderSpec =
+  | PrivateKey
+  | { feePayerKey: PrivateKey; fee?: number | string | UInt64 }
+  | undefined;
 
-function createUnsignedTransaction(f: () => unknown) {
-  return createTransaction(undefined, f);
-}
-function createSignedTransaction(sender: PrivateKey, f: () => unknown) {
-  return createTransaction(sender, f);
+function createUnsignedTransaction(
+  f: () => unknown,
+  { fetchMode = 'cached' as FetchMode } = {}
+) {
+  return createTransaction(undefined, f, { fetchMode });
 }
 
 function createTransaction(
-  senderKey: PrivateKey | undefined,
-  f: () => unknown
-) {
+  feePayer:
+    | PrivateKey
+    | { feePayerKey: PrivateKey; fee?: number | string | UInt64 }
+    | undefined,
+  f: () => unknown,
+  { fetchMode = 'cached' as FetchMode } = {}
+): Transaction {
   if (currentTransaction !== undefined) {
     throw new Error('Cannot start new transaction within another transaction');
   }
+  let feePayerKey =
+    feePayer instanceof PrivateKey ? feePayer : feePayer?.feePayerKey;
+  let fee = feePayer instanceof PrivateKey ? undefined : feePayer?.fee;
 
   currentTransaction = {
-    sender: senderKey,
+    sender: feePayerKey,
     parties: [],
     nextPartyIndex: 0,
+    fetchMode,
   };
 
   try {
-    Circuit.runAndCheckSync(f);
+    Circuit.runAndCheck(f);
   } catch (err) {
     currentTransaction = undefined;
     // TODO would be nice if the error would be a bit more descriptive about what failed
     throw err;
   }
 
-  let feePayer: FeePayer;
-  if (senderKey !== undefined) {
+  let feePayerParty: FeePayer;
+  if (feePayerKey !== undefined) {
     // if senderKey is provided, fetch account to get nonce and mark to be signed
-    let senderAddress = senderKey.toPublicKey();
+    let senderAddress = feePayerKey.toPublicKey();
     let senderAccount = getAccount(senderAddress);
-    feePayer = Party.defaultFeePayer(
+    feePayerParty = Party.defaultFeePayer(
       senderAddress,
-      senderKey,
+      feePayerKey,
       senderAccount.nonce
     );
+    if (fee !== undefined) {
+      feePayerParty.balance.subInPlace(
+        fee instanceof UInt64 ? fee : UInt64.fromString(String(fee))
+      );
+    }
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
-    feePayer = Party.dummyFeePayer();
+    feePayerParty = Party.dummyFeePayer();
   }
 
-  let transaction = { otherParties: currentTransaction.parties, feePayer };
+  let transaction = {
+    otherParties: currentTransaction.parties,
+    feePayer: feePayerParty,
+  };
 
   nextTransactionId.value += 1;
   currentTransaction = undefined;
-  return {
+  let self = {
     transaction,
 
     sign(additionalKeys?: PrivateKey[]) {
-      this.transaction = addMissingSignatures(this.transaction, additionalKeys);
-      return this;
+      self.transaction = addMissingSignatures(self.transaction, additionalKeys);
+      return self;
+    },
+
+    async prove() {
+      self.transaction = await addMissingProofs(self.transaction);
+      return self;
     },
 
     toJSON() {
-      return Ledger.partiesToJson(toParties(this.transaction));
+      return Ledger.partiesToJson(toParties(self.transaction));
     },
 
-    // TODO: this is untested, investigate if useful
-    toGraphQL() {
-      return `mutation MyMutation {
-        __typename
-        sendZkapp(input: ${Ledger.partiesToGraphQL(
-          toParties(this.transaction)
-        )})}`;
+    toGraphqlQuery() {
+      return Fetch.sendZkappQuery(self.toJSON());
+    },
+
+    send() {
+      return sendTransaction(self);
     },
   };
+  return self;
 }
 
+interface Mina {
+  transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
+  currentSlot(): UInt32;
+  getAccount(publicKey: PublicKey): Account;
+  accountCreationFee(): UInt32;
+  sendTransaction(transaction: Transaction): TransactionId;
+}
 interface MockMina extends Mina {
   addAccount(publicKey: PublicKey, balance: string): void;
   /**
@@ -136,19 +182,14 @@ const defaultAccountCreationFee = 1_000_000_000;
 /**
  * A mock Mina blockchain running locally and useful for testing.
  */
-export function LocalBlockchain({
+function LocalBlockchain({
   accountCreationFee = defaultAccountCreationFee as string | number,
-} = {}) {
+} = {}): MockMina {
   let accountCreationFee_ = String(accountCreationFee);
   const msPerSlot = 3 * 60 * 1000;
   const startTime = new Date().valueOf();
 
   const ledger = Ledger.create([]);
-
-  const currentSlot = () =>
-    UInt32.fromNumber(
-      Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
-    );
 
   function addAccount(pk: PublicKey, balance: string) {
     ledger.addAccount(pk, balance);
@@ -163,50 +204,100 @@ export function LocalBlockchain({
     testAccounts.push({ privateKey: k, publicKey: pk });
   }
 
-  function getAccount(pk: PublicKey): Account {
-    const r = ledger.getAccount(pk);
-    if (r == undefined) {
-      throw new Error(
-        `getAccount: Could not find account for ${JSON.stringify(pk.toJSON())}`
-      );
-    } else {
-      const a = {
-        balance: new UInt64(r.balance.value),
-        nonce: new UInt32(r.nonce.value),
-        zkapp: r.zkapp,
-      };
-      return a;
-    }
-  }
-
-  function transaction(sender: PrivateKey, f: () => unknown) {
-    let txn = createTransaction(sender, f);
-    return {
-      ...txn,
-      send() {
-        txn.sign();
-        ledger.applyPartiesTransaction(
-          toParties(txn.transaction),
-          accountCreationFee_
-        );
-        return { wait: async () => {} };
-      },
-    };
-  }
-
-  function applyJsonTransaction(json: string) {
-    return ledger.applyJsonTransaction(json, accountCreationFee_);
-  }
-
   return {
     accountCreationFee: () => UInt32.fromString(accountCreationFee_),
-    currentSlot,
-    getAccount,
-    transaction,
-    applyJsonTransaction,
+    currentSlot() {
+      return UInt32.fromNumber(
+        Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
+      );
+    },
+    getAccount(publicKey: PublicKey): Account {
+      let ledgerAccount = ledger.getAccount(publicKey);
+      if (ledgerAccount == undefined) {
+        throw new Error(
+          `getAccount: Could not find account for public key ${publicKey.toBase58()}`
+        );
+      } else {
+        return {
+          publicKey: publicKey,
+          balance: new UInt64(ledgerAccount.balance.value),
+          nonce: new UInt32(ledgerAccount.nonce.value),
+          zkapp: ledgerAccount.zkapp,
+        };
+      }
+    },
+    sendTransaction(txn: Transaction) {
+      txn.sign();
+      ledger.applyPartiesTransaction(
+        toParties(txn.transaction),
+        accountCreationFee_
+      );
+      return { wait: async () => {} };
+    },
+    async transaction(sender: SenderSpec, f: () => void) {
+      return createTransaction(sender, f);
+    },
+    applyJsonTransaction(json: string) {
+      return ledger.applyJsonTransaction(json, accountCreationFee_);
+    },
     addAccount,
     testAccounts,
   };
+}
+
+function RemoteBlockchain(graphqlEndpoint: string): Mina {
+  let accountCreationFee = UInt32.fromNumber(defaultAccountCreationFee);
+  Fetch.setGraphqlEndpoint(graphqlEndpoint);
+  return {
+    accountCreationFee: () => accountCreationFee,
+    currentSlot() {
+      throw Error(
+        'currentSlot() is not implemented yet for remote blockchains.'
+      );
+    },
+    getAccount(publicKey: PublicKey) {
+      if (currentTransaction?.fetchMode === 'test') {
+        Fetch.markAccountToBeFetched(publicKey, graphqlEndpoint);
+        return dummyAccount(publicKey);
+      }
+      if (
+        currentTransaction == undefined ||
+        currentTransaction.fetchMode === 'cached'
+      ) {
+        let account = Fetch.getCachedAccount(publicKey, graphqlEndpoint);
+        if (account !== undefined) return account;
+      }
+      throw Error(
+        `getAccount: Could not find account for public key ${publicKey.toBase58()}.\nGraphql endpoint: ${graphqlEndpoint}`
+      );
+    },
+    sendTransaction(txn: Transaction) {
+      txn.sign();
+      let sendPromise = Fetch.sendZkapp(txn.toJSON());
+      return {
+        async wait() {
+          let [response, error] = await sendPromise;
+          console.log('got graphql response', { response, error });
+          console.log(
+            'Info: waiting for inclusion in a block is not implemented yet.'
+          );
+          // if (error !== undefined) {
+          //   console.log('Graphql transaction failed. Query:');
+          //   console.log(txn.toGraphqlQuery());
+          // }
+        },
+      };
+    },
+    async transaction(sender: SenderSpec, f: () => void) {
+      createTransaction(sender, f, { fetchMode: 'test' });
+      await Fetch.fetchMissingAccounts(graphqlEndpoint);
+      return createTransaction(sender, f, { fetchMode: 'cached' });
+    },
+  };
+}
+
+function BerkeleyQANet(graphqlEndpoint: string) {
+  return RemoteBlockchain(graphqlEndpoint);
 }
 
 let activeInstance: Mina = {
@@ -214,18 +305,39 @@ let activeInstance: Mina = {
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
   },
-  getAccount: () => {
+  getAccount: (publicKey: PublicKey) => {
+    if (currentTransaction?.fetchMode === 'test') {
+      Fetch.markAccountToBeFetched(publicKey, Fetch.defaultGraphqlEndpoint);
+      return dummyAccount(publicKey);
+    }
+    if (
+      currentTransaction === undefined ||
+      currentTransaction?.fetchMode === 'cached'
+    ) {
+      let account = Fetch.getCachedAccount(
+        publicKey,
+        Fetch.defaultGraphqlEndpoint
+      );
+      if (account === undefined)
+        throw Error(
+          `getAccount: Could not find account for public key ${publicKey.toBase58()}. Either call Mina.setActiveInstance first or explicitly add the account with addCachedAccount`
+        );
+      return account;
+    }
     throw new Error('must call Mina.setActiveInstance first');
   },
-  transaction: () => {
+  sendTransaction() {
     throw new Error('must call Mina.setActiveInstance first');
+  },
+  async transaction(sender: SenderSpec, f: () => void) {
+    return createTransaction(sender, f);
   },
 };
 
 /**
  * Set the currently used Mina instance.
  */
-export function setActiveInstance(m: Mina) {
+function setActiveInstance(m: Mina) {
   activeInstance = m;
 }
 
@@ -234,42 +346,66 @@ export function setActiveInstance(m: Mina) {
  * you can call into the methods of smart contracts.
  *
  * ```typescript
- * transaction(async () => {
- *   await mySmartContract.update();
- *   await someOtherContract.someOtherMethod();
+ * transaction(() => {
+ *   myZkapp.update();
+ *   someOtherZkapp.someOtherMethod();
  * })
  * ```
  *
  * @return A transaction that can subsequently be submitted to the chain.
  */
-export function transaction(
-  sender: PrivateKey,
-  f: () => void | Promise<void>
-): Transaction {
+function transaction(f: () => void): Promise<Transaction>;
+function transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
+function transaction(
+  senderOrF: SenderSpec | (() => void),
+  fOrUndefined?: () => void
+): Promise<Transaction> {
+  let sender: SenderSpec;
+  let f: () => void;
+  if (fOrUndefined !== undefined) {
+    sender = senderOrF as SenderSpec;
+    f = fOrUndefined;
+  } else {
+    sender = undefined;
+    f = senderOrF as () => void;
+  }
   return activeInstance.transaction(sender, f);
 }
 
 /**
  * @return The current slot number, according to the active Mina instance.
  */
-export function currentSlot(): UInt32 {
+function currentSlot(): UInt32 {
   return activeInstance.currentSlot();
 }
 
 /**
  * @return The account data associated to the given public key.
  */
-export function getAccount(pubkey: PublicKey) {
+function getAccount(pubkey: PublicKey) {
   return activeInstance.getAccount(pubkey);
 }
 
 /**
  * @return The balance associated to the given public key.
  */
-export function getBalance(pubkey: PublicKey) {
+function getBalance(pubkey: PublicKey) {
   return activeInstance.getAccount(pubkey).balance;
 }
 
-export function accountCreationFee() {
+function accountCreationFee() {
   return activeInstance.accountCreationFee();
+}
+
+function sendTransaction(txn: Transaction) {
+  return activeInstance.sendTransaction(txn);
+}
+
+function dummyAccount(pubkey?: PublicKey): Account {
+  return {
+    balance: UInt64.zero,
+    nonce: UInt32.zero,
+    publicKey: pubkey ?? PublicKey.empty(),
+    zkapp: { appState: Array(ZkappStateLength).fill(Field.zero) },
+  };
 }

@@ -1,16 +1,30 @@
 import { CircuitValue, cloneCircuitValue } from './circuit_value';
-import { Group, Field, Bool, Control, Ledger, Circuit } from '../snarky';
+import {
+  Group,
+  Field,
+  Bool,
+  Control,
+  Ledger,
+  Circuit,
+  Pickles,
+} from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
 import { toParties } from './party-conversion';
+import { SmartContract } from './zkapp';
+import { withContextAsync } from './global-context';
 
 export {
   FeePayer,
   Parties,
+  LazyProof,
+  LazySignature,
   LazyControl,
   addMissingSignatures,
+  addMissingProofs,
   signJsonTransaction,
+  ZkappStateLength,
 };
 
 const ZkappStateLength = 8;
@@ -633,9 +647,14 @@ export class PartyBalance {
   }
 }
 
-type LazyControl =
-  | Control
-  | { kind: 'lazy-signature'; privateKey?: PrivateKey };
+type LazySignature = { kind: 'lazy-signature'; privateKey?: PrivateKey };
+type LazyProof = {
+  kind: 'lazy-proof';
+  method: Function;
+  args: any[];
+  ZkappClass: typeof SmartContract;
+};
+type LazyControl = Control | LazySignature | LazyProof;
 
 export class Party {
   body: Body;
@@ -739,14 +758,28 @@ export class Party {
 
   static createSigned(
     signer: PrivateKey,
-    options?: { isSameAsFeePayer?: Bool | boolean }
+    options?: { isSameAsFeePayer?: Bool | boolean; nonce?: UInt32 }
   ) {
+    let { nonce, isSameAsFeePayer } = options ?? {};
+    // if not specified, optimistically determine isSameAsFeePayer from the current transaction
+    // (gotcha: this makes the circuit depend on the fee payer parameter in the transaction.
+    // to avoid that, provide the argument explicitly)
+    let isFeePayer =
+      isSameAsFeePayer !== undefined
+        ? Bool(isSameAsFeePayer)
+        : Mina.currentTransaction?.sender?.equals(signer) ?? Bool(false);
+
     // TODO: This should be a witness block that uses the setVariable
     // API to set the value of a variable after it's allocated
 
     let publicKey = signer.toPublicKey();
     let body = Body.keepAll(publicKey);
-    let account = Mina.getAccount(publicKey);
+
+    // TODO: getAccount could always be used if we had a generic way to add account info prior to creating transactions
+    if (nonce === undefined) {
+      let account = Mina.getAccount(publicKey);
+      nonce = account.nonce;
+    }
 
     if (Mina.currentTransaction === undefined) {
       throw new Error(
@@ -754,14 +787,12 @@ export class Party {
       );
     }
 
-    if (account == null) {
-      throw new Error('Party.createSigned: Account not found');
-    }
-
     // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher bc the fee payer already increases its nonce
-    let nonceIncrement = options?.isSameAsFeePayer
-      ? new UInt32(Field.one)
-      : UInt32.zero;
+    let nonceIncrement = Circuit.if(
+      isFeePayer,
+      new UInt32(Field.one),
+      UInt32.zero
+    );
     // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
     for (let party of Mina.currentTransaction.parties) {
       let shouldIncreaseNonce = party.publicKey
@@ -769,8 +800,7 @@ export class Party {
         .and(party.body.incrementNonce);
       nonceIncrement.add(new UInt32(shouldIncreaseNonce.toField()));
     }
-    let nonce = account.nonce.add(nonceIncrement);
-
+    nonce = nonce.add(nonceIncrement);
     body.accountPrecondition = nonce;
     body.incrementNonce = Bool(true);
 
@@ -779,6 +809,32 @@ export class Party {
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
     return party;
+  }
+
+  /**
+   * Use this method to pay the account creation fee for another account.
+   * Beware that you _don't_ need to pass in the new account!
+   * Instead, the protocol will automatically identify accounts in your transaction that need funding.
+   *
+   * If you provide an optional `initialBalance`, this will be subtracted from the fee-paying account as well,
+   * but you have to separately ensure that it's added to the new account's balance.
+   *
+   * @param feePayerKey the private key of the account that pays the fee
+   * @param initialBalance the initial balance of the new account (default: 0)
+   */
+  static fundNewAcount(
+    feePayerKey: PrivateKey,
+    {
+      initialBalance = UInt64.zero as number | string | UInt64,
+      isSameAsFeePayer = undefined as Bool | boolean | undefined,
+    } = {}
+  ) {
+    let party = Party.createSigned(feePayerKey, { isSameAsFeePayer });
+    let amount =
+      initialBalance instanceof UInt64
+        ? initialBalance
+        : UInt64.fromString(`${initialBalance}`);
+    party.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 }
 
@@ -789,19 +845,22 @@ export type PartyWithNoncePrecondition = Party & {
   body: { accountPrecondition: UInt32 };
 };
 type FeePayer = Party & {
-  authorization: Exclude<LazyControl, { kind: 'proof'; value: string }>;
+  authorization: Exclude<
+    LazyControl,
+    { kind: 'proof'; value: string } | LazyProof
+  >;
 } & PartyWithNoncePrecondition;
 
 type Parties = { feePayer: FeePayer; otherParties: Party[] };
-type PartiesValidated = {
+type PartiesSigned = {
   feePayer: FeePayer & { authorization: Control };
-  otherParties: (Party & { authorization: Control })[];
+  otherParties: (Party & { authorization: Control | LazyProof })[];
 };
 
 function addMissingSignatures(
   parties: Parties,
   additionalKeys = [] as PrivateKey[]
-): PartiesValidated {
+): PartiesSigned {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
   let { commitment, fullCommitment } = Ledger.transactionCommitments(
     Ledger.partiesToJson(toParties(parties))
@@ -809,7 +868,7 @@ function addMissingSignatures(
   function addSignature<P extends Party>(party: P, isFeePayer?: boolean) {
     party = cloneCircuitValue(party);
     if (party.authorization.kind !== 'lazy-signature')
-      return party as P & { authorization: Control };
+      return party as P & { authorization: Control | LazyProof };
     let { privateKey } = party.authorization;
     if (privateKey === undefined) {
       let i = additionalPublicKeys.findIndex(
@@ -834,6 +893,57 @@ function addMissingSignatures(
     feePayer: addSignature(feePayer, true),
     otherParties: otherParties.map((p) => addSignature(p)),
   };
+}
+
+type PartiesProved = {
+  feePayer: FeePayer;
+  otherParties: (Party & { authorization: Control | LazySignature })[];
+};
+
+async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
+  let partiesJson = Ledger.partiesToJson(toParties(parties));
+  async function addProof<P extends Party>(party: P, index: number) {
+    party = cloneCircuitValue(party);
+    if (party.authorization.kind !== 'lazy-proof')
+      return party as P & { authorization: Control | LazySignature };
+    let { method, args, ZkappClass } = party.authorization;
+    let statement = Ledger.transactionStatement(partiesJson, index);
+    if (ZkappClass._provers === undefined)
+      throw Error(
+        `Cannot prove execution of ${method.name}(), no prover found. ` +
+          `Try calling \`await ${ZkappClass.name}.compile()\` first, this will cache provers in the background.`
+      );
+    let provers = ZkappClass._provers;
+    let methodError =
+      `Error when computing proofs: Method ${method.name} not found. ` +
+      `Make sure your environment supports decorators, and annotate with \`@method ${method.name}\`.`;
+    if (ZkappClass._methods === undefined) throw Error(methodError);
+    let i = ZkappClass._methods.findIndex((m) => m.methodName === method.name);
+    if (i === -1) throw Error(methodError);
+    let [, proof] = await withContextAsync(
+      {
+        self: Party.defaultParty(party.body.publicKey),
+        witnesses: args,
+        inProver: true,
+      },
+      () => provers[i](statement)
+    );
+    party.authorization = {
+      kind: 'proof',
+      value: Pickles.proofToString(proof),
+    };
+    return party as P & { authorization: Control | LazySignature };
+  }
+  let { feePayer, otherParties } = parties;
+  // compute proofs serially. in parallel would clash with our global variable hacks
+  let otherPartiesProved: (Party & {
+    authorization: Control | LazySignature;
+  })[] = [];
+  for (let i = 0; i < otherParties.length; i++) {
+    let partyProved = await addProof(otherParties[i], i);
+    otherPartiesProved.push(partyProved);
+  }
+  return { feePayer, otherParties: otherPartiesProved };
 }
 
 /**

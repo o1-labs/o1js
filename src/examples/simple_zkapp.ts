@@ -9,7 +9,6 @@ import {
   Mina,
   Party,
   isReady,
-  Bool,
   Permissions,
 } from 'snarkyjs';
 
@@ -44,28 +43,22 @@ let zkappAddress = zkappKey.toPublicKey();
 
 let initialBalance = 10_000_000_000;
 let initialState = Field(1);
+let zkapp = new SimpleZkapp(zkappAddress);
 
 console.log('deploy');
-Local.transaction(account1, () => {
-  const p = Party.createSigned(account1, { isSameAsFeePayer: true });
-  p.balance.subInPlace(
-    UInt64.fromNumber(initialBalance).add(Mina.accountCreationFee())
-  );
-  let zkapp = new SimpleZkapp(zkappAddress);
+let tx = await Local.transaction(account1, () => {
+  Party.fundNewAcount(account1, { initialBalance });
   zkapp.deploy({ zkappKey });
-}).send();
+});
+tx.send();
 
-let zkappState = (await Mina.getAccount(zkappAddress)).zkapp.appState[0];
-console.log('initial state: ' + zkappState);
+console.log('initial state: ' + zkapp.x.get());
 
 console.log('update');
-Local.transaction(account1, async () => {
-  let zkapp = new SimpleZkapp(zkappAddress);
+tx = await Local.transaction(account1, () => {
   zkapp.update(Field(3));
-  // TODO: mock proving
   zkapp.sign(zkappKey);
-  zkapp.self.body.incrementNonce = Bool(true);
-}).send();
+});
+tx.send();
 
-zkappState = (await Mina.getAccount(zkappAddress)).zkapp.appState[0];
-console.log('final state: ' + zkappState);
+console.log('final state: ' + zkapp.x.get());

@@ -161,7 +161,7 @@
     "name": "Circuit",
     "props": [
       {
-        "name": "runAndCheckSync",
+        "name": "runAndCheck",
         "type": "function"
       },
       {
@@ -402,10 +402,6 @@
       },
       {
         "name": "partiesToGraphQL",
-        "type": "function"
-      },
-      {
-        "name": "accountCreationFee",
         "type": "function"
       }
     ]

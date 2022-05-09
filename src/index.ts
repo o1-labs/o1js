@@ -6,9 +6,16 @@ export * from './lib/circuit_value';
 export * from './lib/int';
 export * as Mina from './lib/mina';
 export * from './lib/zkapp';
-export * from './lib/optional';
-export * from './lib/proof_system';
+// export * from './lib/optional';
+// export * from './lib/proof_system';
 export * from './lib/party';
-export * from './lib/fetch';
+export {
+  fetchAccount,
+  parseFetchedAccount,
+  addCachedAccount,
+  setGraphqlEndpoint,
+  sendZkappQuery,
+  sendZkapp,
+} from './lib/fetch';
 export * as Encryption from './lib/encryption';
 export * as Encoding from './lib/encoding';
