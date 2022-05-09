@@ -310,7 +310,10 @@ let activeInstance: Mina = {
       Fetch.markAccountToBeFetched(publicKey, Fetch.defaultGraphqlEndpoint);
       return dummyAccount(publicKey);
     }
-    if (currentTransaction?.fetchMode === 'cached') {
+    if (
+      currentTransaction === undefined ||
+      currentTransaction?.fetchMode === 'cached'
+    ) {
       let account = Fetch.getCachedAccount(
         publicKey,
         Fetch.defaultGraphqlEndpoint
