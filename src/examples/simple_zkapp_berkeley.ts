@@ -55,7 +55,10 @@ if (response.error) throw Error(response.error.statusText);
 let { nonce, balance } = response.account;
 console.log(`Using fee payer account with nonce ${nonce}, balance ${balance}`);
 
-// replace this with a new zkapp key if you want to deploy a zkapp
+// this is an actual zkapp that was deployed and updated with this script
+// deploy: https://berkeley.minaexplorer.com/block/3NLeHBnmRwancKHEniWoDryuQYiKWdTKnEDGuWQ8s5W9n15gNw8B
+// update: https://berkeley.minaexplorer.com/block/3NKXM2m3JnEeYwsME9wX9WfJQPPLGMJ74ZKXHZFFYhgUmXzxspq8
+// replace this with a new zkapp key if you want to deploy another zkapp
 // and please never expose actual private keys in public code repositories like this!
 let zkappKey = PrivateKey.fromBase58(
   'EKFQZG2RuLMYyDsC9RGE5Y8gQGefkbUUUyEhFbgRRMHGgoF9eKpY'
@@ -78,7 +81,7 @@ let isDeployed = x?.equals(0).not().toBoolean() ?? false;
 // if the zkapp is not deployed yet, create a deploy transaction
 if (!isDeployed) {
   console.log(`Deploying zkapp for public key ${zkappAddress.toBase58()}.`);
-  // the `transaction()` interface
+  // the `transaction()` interface is the same as when testing with a local blockchain
   let transaction = await Mina.transaction(
     { feePayerKey, fee: transactionFee },
     () => {
@@ -97,14 +100,15 @@ if (!isDeployed) {
 // if the zkapp is not deployed yet, create an update transaction
 if (isDeployed) {
   let x = zkapp.x.get();
-  console.log(`Found deployed zkapp, updating state ${x} -> ${x.add(2)}.`);
+  console.log(`Found deployed zkapp, updating state ${x} -> ${x.add(10)}.`);
   let transaction = await Mina.transaction(
     { feePayerKey, fee: transactionFee },
     () => {
-      zkapp.update(Field(2));
+      zkapp.update(Field(10));
     }
   );
   // fill in the proof - this can take a while...
+  console.log('Creating an execution proof...');
   await transaction.prove();
 
   // if you want to inspect the transaction, you can print it out:
