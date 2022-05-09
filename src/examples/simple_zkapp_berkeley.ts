@@ -84,7 +84,7 @@ if (!isDeployed) {
   let transaction = await Mina.transaction(
     { feePayerKey, fee: transactionFee },
     () => {
-      Party.fundNewAcount(feePayerKey);
+      Party.fundNewAccount(feePayerKey);
       zkapp.deploy({ zkappKey, verificationKey });
     }
   );

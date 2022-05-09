@@ -47,7 +47,7 @@ let zkapp = new SimpleZkapp(zkappAddress);
 
 console.log('deploy');
 let tx = await Local.transaction(account1, () => {
-  Party.fundNewAcount(account1, { initialBalance });
+  Party.fundNewAccount(account1, { initialBalance });
   zkapp.deploy({ zkappKey });
 });
 tx.send();

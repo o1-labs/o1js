@@ -103,7 +103,7 @@ let zkappAddress = zkappKey.toPublicKey();
 
 async function deploy(sudoku: number[][]) {
   let tx = await Mina.transaction(account1, () => {
-    Party.fundNewAcount(account1);
+    Party.fundNewAccount(account1);
     let zkapp = new SudokuZkapp(zkappAddress);
     let sudokuInstance = new Sudoku(sudoku);
     zkapp.deploy({ zkappKey });
