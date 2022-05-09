@@ -55,9 +55,8 @@ if (response.error) throw Error(response.error.statusText);
 let { nonce, balance } = response.account;
 console.log(`Using fee payer account with nonce ${nonce}, balance ${balance}`);
 
-// this is an actual zkapp that was deployed and updated with this script
-// deploy: https://berkeley.minaexplorer.com/block/3NLeHBnmRwancKHEniWoDryuQYiKWdTKnEDGuWQ8s5W9n15gNw8B
-// update: https://berkeley.minaexplorer.com/block/3NKXM2m3JnEeYwsME9wX9WfJQPPLGMJ74ZKXHZFFYhgUmXzxspq8
+// this is an actual zkapp that was deployed and updated with this script:
+// https://berkeley.minaexplorer.com/wallet/B62qpRzFVjd56FiHnNfxokVbcHMQLT119My1FEdSq8ss7KomLiSZcan
 // replace this with a new zkapp key if you want to deploy another zkapp
 // and please never expose actual private keys in public code repositories like this!
 let zkappKey = PrivateKey.fromBase58(
