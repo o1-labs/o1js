@@ -822,7 +822,7 @@ export class Party {
    * @param feePayerKey the private key of the account that pays the fee
    * @param initialBalance the initial balance of the new account (default: 0)
    */
-  static fundNewAcount(
+  static fundNewAccount(
     feePayerKey: PrivateKey,
     {
       initialBalance = UInt64.zero as number | string | UInt64,
