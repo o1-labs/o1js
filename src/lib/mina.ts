@@ -20,7 +20,6 @@ export {
   BerkeleyQANet,
   LocalBlockchain,
   nextTransactionId,
-  CurrentTransaction,
   setCurrentTransaction,
   setActiveInstance,
   transaction,
@@ -30,6 +29,8 @@ export {
   accountCreationFee,
   sendTransaction,
 };
+
+export { FeePayerSpec, CurrentTransaction };
 
 interface TransactionId {
   wait(): Promise<void>;
@@ -63,7 +64,7 @@ function setCurrentTransaction(transaction: CurrentTransaction) {
   currentTransaction = transaction;
 }
 
-type SenderSpec =
+type FeePayerSpec =
   | PrivateKey
   | { feePayerKey: PrivateKey; fee?: number | string | UInt64 }
   | undefined;
@@ -161,7 +162,7 @@ function createTransaction(
 }
 
 interface Mina {
-  transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
+  transaction(sender: FeePayerSpec, f: () => void): Promise<Transaction>;
   currentSlot(): UInt32;
   getAccount(publicKey: PublicKey): Account;
   accountCreationFee(): UInt32;
@@ -234,7 +235,7 @@ function LocalBlockchain({
       );
       return { wait: async () => {} };
     },
-    async transaction(sender: SenderSpec, f: () => void) {
+    async transaction(sender: FeePayerSpec, f: () => void) {
       return createTransaction(sender, f);
     },
     applyJsonTransaction(json: string) {
@@ -288,7 +289,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         },
       };
     },
-    async transaction(sender: SenderSpec, f: () => void) {
+    async transaction(sender: FeePayerSpec, f: () => void) {
       createTransaction(sender, f, { fetchMode: 'test' });
       await Fetch.fetchMissingAccounts(graphqlEndpoint);
       return createTransaction(sender, f, { fetchMode: 'cached' });
@@ -329,7 +330,7 @@ let activeInstance: Mina = {
   sendTransaction() {
     throw new Error('must call Mina.setActiveInstance first');
   },
-  async transaction(sender: SenderSpec, f: () => void) {
+  async transaction(sender: FeePayerSpec, f: () => void) {
     return createTransaction(sender, f);
   },
 };
@@ -355,15 +356,15 @@ function setActiveInstance(m: Mina) {
  * @return A transaction that can subsequently be submitted to the chain.
  */
 function transaction(f: () => void): Promise<Transaction>;
-function transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
+function transaction(sender: FeePayerSpec, f: () => void): Promise<Transaction>;
 function transaction(
-  senderOrF: SenderSpec | (() => void),
+  senderOrF: FeePayerSpec | (() => void),
   fOrUndefined?: () => void
 ): Promise<Transaction> {
-  let sender: SenderSpec;
+  let sender: FeePayerSpec;
   let f: () => void;
   if (fOrUndefined !== undefined) {
-    sender = senderOrF as SenderSpec;
+    sender = senderOrF as FeePayerSpec;
     f = fOrUndefined;
   } else {
     sender = undefined;

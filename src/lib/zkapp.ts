@@ -678,7 +678,19 @@ async function deploy<S extends typeof SmartContract>(
   }
 ) {
   let address = zkappKey.toPublicKey();
-  let tx = Mina.createUnsignedTransaction(() => {
+  let feePayerSpec: Mina.FeePayerSpec = undefined;
+  if (shouldSignFeePayer) {
+    if (feePayerKey === undefined || transactionFee === undefined) {
+      throw Error(
+        `When setting shouldSignFeePayer=true, you need to also supply feePayerKey (fee payer's private key) and transactionFee.`
+      );
+    }
+    feePayerSpec =
+      transactionFee !== undefined
+        ? { feePayerKey, fee: transactionFee }
+        : feePayerKey;
+  }
+  let tx = await Mina.transaction(feePayerSpec, () => {
     if (initialBalance !== undefined) {
       if (feePayerKey === undefined)
         throw Error(
@@ -709,16 +721,6 @@ async function deploy<S extends typeof SmartContract>(
       zkapp.self.balance.addInPlace(amount);
     }
   });
-  if (shouldSignFeePayer) {
-    if (feePayerKey === undefined || transactionFee === undefined) {
-      throw Error(
-        `When setting shouldSignFeePayer=true, you need to also supply feePayerKey (fee payer's private key) and transactionFee.`
-      );
-    }
-    tx.transaction = addFeePayer(tx.transaction, feePayerKey, {
-      transactionFee,
-    });
-  }
   // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
   return tx.sign().toJSON();
 }
