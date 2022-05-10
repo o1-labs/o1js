@@ -36,8 +36,8 @@ export {
   getNetworkState,
   accountCreationFee,
   sendTransaction,
+  FeePayerSpec,
 };
-
 interface TransactionId {
   wait(): Promise<void>;
 }
@@ -63,7 +63,7 @@ type CurrentTransaction = {
 
 let currentTransaction = Context.create<CurrentTransaction>();
 
-type SenderSpec =
+type FeePayerSpec =
   | PrivateKey
   | { feePayerKey: PrivateKey; fee?: number | string | UInt64; memo?: string }
   | undefined;
@@ -84,7 +84,7 @@ function createUnsignedTransaction(
 }
 
 function createTransaction(
-  feePayer: SenderSpec,
+  feePayer: FeePayerSpec,
   f: () => unknown,
   { fetchMode = 'cached' as FetchMode, isFinalRunOutsideCircuit = true } = {}
 ): Transaction {
@@ -191,7 +191,7 @@ function createTransaction(
 }
 
 interface Mina {
-  transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
+  transaction(sender: FeePayerSpec, f: () => void): Promise<Transaction>;
   currentSlot(): UInt32;
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
@@ -279,7 +279,7 @@ function LocalBlockchain({
       );
       return { wait: async () => {} };
     },
-    async transaction(sender: SenderSpec, f: () => void) {
+    async transaction(sender: FeePayerSpec, f: () => void) {
       // bad hack: run transaction just to see whether it creates proofs
       // if it doesn't, this is the last chance to run SmartContract.runOutsideCircuit, which is supposed to run only once
       // TODO: this has obvious holes if multiple zkapps are involved, but not relevant currently because we can't prove with multiple parties
@@ -383,7 +383,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         },
       };
     },
-    async transaction(sender: SenderSpec, f: () => void) {
+    async transaction(sender: FeePayerSpec, f: () => void) {
       let tx = createTransaction(sender, f, {
         fetchMode: 'test',
         isFinalRunOutsideCircuit: false,
@@ -446,7 +446,7 @@ let activeInstance: Mina = {
   sendTransaction() {
     throw new Error('must call Mina.setActiveInstance first');
   },
-  async transaction(sender: SenderSpec, f: () => void) {
+  async transaction(sender: FeePayerSpec, f: () => void) {
     return createTransaction(sender, f);
   },
 };
@@ -472,15 +472,15 @@ function setActiveInstance(m: Mina) {
  * @return A transaction that can subsequently be submitted to the chain.
  */
 function transaction(f: () => void): Promise<Transaction>;
-function transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
+function transaction(sender: FeePayerSpec, f: () => void): Promise<Transaction>;
 function transaction(
-  senderOrF: SenderSpec | (() => void),
+  senderOrF: FeePayerSpec | (() => void),
   fOrUndefined?: () => void
 ): Promise<Transaction> {
-  let sender: SenderSpec;
+  let sender: FeePayerSpec;
   let f: () => void;
   if (fOrUndefined !== undefined) {
-    sender = senderOrF as SenderSpec;
+    sender = senderOrF as FeePayerSpec;
     f = fOrUndefined;
   } else {
     sender = undefined;
