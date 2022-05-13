@@ -405,6 +405,10 @@
         "type": "function"
       },
       {
+        "name": "memoToBase58",
+        "type": "function"
+      },
+      {
         "name": "partiesToJson",
         "type": "function"
       },

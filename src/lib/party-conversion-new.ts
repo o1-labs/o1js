@@ -1,4 +1,4 @@
-import { Field } from '../snarky';
+import { Field, Ledger } from '../snarky';
 import { Parties as Parties_ } from '../snarky/parties';
 import {
   AccountPrecondition,
@@ -34,8 +34,8 @@ function toParties({
   return {
     feePayer: toFeePayer(feePayer),
     otherParties: otherParties.map(toParty),
-    // TODO
-    memo: '',
+    // TODO expose to Mina.transaction
+    memo: Ledger.memoToBase58(''),
   };
 }
 
