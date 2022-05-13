@@ -881,3 +881,14 @@ export const Pickles: {
 
   proofToString: (proof: unknown) => string;
 };
+
+export {
+  Parties_,
+  ProtocolStatePredicate_,
+  EpochDataPredicate_,
+  Party_,
+  FeePayerParty_,
+  Control,
+  UInt32_,
+  UInt64_,
+};
