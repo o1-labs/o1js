@@ -1,22 +1,81 @@
-import { isReady, ZKString } from 'snarkyjs';
+import { Circuit, isReady, ZKString } from 'snarkyjs';
 
 await isReady;
 
-// 2 strings are equal
 
-const zkstr1 = ZKString.fromString('These strings are equivalent');
-const zkstr2 = ZKString.fromString('These strings are equivalent');
+const equal1 = ZKString.fromString('These strings are equivalent');
+const equal2 = ZKString.fromString('These strings are equivalent');
 
-if (!zkstr1.equals(zkstr2).toBoolean()) throw Error('Strings are not equivalent');
-console.log('Equivalent: "', zkstr1.toString(), '", "', zkstr2.toString(), '"');
+const zkstring = ZKString.fromString('This string completely encompasses this string');
+const substring = ZKString.fromString('this string');
 
-// string matches substring
 
-const zkstr3 = ZKString.fromString('This string completely encompasses this string');
-const zkstr4 = ZKString.fromString('this string');
-const substr = zkstr3.substring(35, 46)
+console.log('Outside of a checked computation or prover, nothing matters');
 
-if (!substr.equals(zkstr4).toBoolean()) throw Error('Strings are not equivalent');
-console.log('Equivalent: "', substr.toString(), '", "', zkstr4.toString(), '"');
+// true
+if (!equal1.equals(equal2).toBoolean()) throw Error('Strings are not equivalent');
+console.log('Equivalent: "', equal1.toString(), '", "', equal2.toString(), '"');
+
+// false
+if (!equal1.equals(zkstring).toBoolean()) throw Error('Strings are not equivalent');
+console.log('Equivalent: "', equal1.toString(), '", "', zkstring.toString(), '"');
+
+// true
+if (!zkstring.substring(35, 46).equals(substring).toBoolean()) throw Error('Strings are not equivalent');
+console.log('Equivalent: "', zkstring.substring(35, 46).toString(), '", "', substring.toString(), '"');
+
+// false
+if (!substring.substring(1, 4).equals(zkstring).toBoolean()) throw Error('Strings are not equivalent');
+console.log('Equivalent: "', substring.substring(1, 4).toString(), '", "', zkstring.toString(), '"');
+
+// true
+if (!zkstring.contains(substring).toBoolean()) throw Error('String does not contain substring')
+
+// false
+if (!substring.contains(zkstring).toBoolean()) throw Error('String does not contain substring')
+
+console.log("\n\n\n");
+console.log('In a checked computation, things matter');
+
+Circuit.runAndCheck(() => {
+  // true
+  if (!equal1.equals(equal2).toBoolean()) throw Error('Strings are not equivalent');
+  console.log('Equivalent: "', equal1.toString(), '", "', equal2.toString(), '"');
+
+  // false
+  try {
+    if (!equal1.equals(zkstring).toBoolean()) throw Error('Strings are not equivalent');
+    console.log('SHOULD NOT REACH HERE');
+  } catch {
+    console.log('Caught expected failure: ', equal1.toString(), '", "', zkstring.toString(), '"');
+  }
+
+  // true
+  if (!zkstring.substring(35, 46).equals(substring).toBoolean()) throw Error('Strings are not equivalent');
+  console.log('Equivalent: "', zkstring.substring(35, 46).toString(), '", "', substring.toString(), '"');
+
+  // false
+  try {
+    if (!substring.substring(1, 4).equals(zkstring).toBoolean()) throw Error('Strings are not equivalent');
+    console.log('SHOULD NOT REACH HERE');
+  } catch {
+    console.log('Caught expected failure: ', substring.substring(1, 4).toString(), zkstring.toString());
+  }
+
+  // true
+  if (!zkstring.contains(substring).toBoolean()) throw Error('String does not contain substring')
+  console.log(zkstring.toString(), ' contains ', substring.toString(), '!')
+
+  // false
+  try {
+    if (!substring.contains(zkstring).toBoolean()) throw Error('String does not contain substring')
+    console.log('SHOULD NOT REACH HERE');
+  } catch {
+    console.log('Caught expected failure: ', substring.toString(), zkstring.toString());
+  }
+
+  if (!substring.append(substring).equals(ZKString.fromString('this stringthis string')).toBoolean()) throw Error('Append does not work')
+  console.log('Append: ', substring.toString(), substring.toString(), substring.append(substring).toString());
+});
 
 console.log('Everything looks good!')
