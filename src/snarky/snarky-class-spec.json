@@ -397,6 +397,14 @@
         "type": "function"
       },
       {
+        "name": "fieldToBase58",
+        "type": "function"
+      },
+      {
+        "name": "fieldOfBase58",
+        "type": "function"
+      },
+      {
         "name": "partiesToJson",
         "type": "function"
       },
