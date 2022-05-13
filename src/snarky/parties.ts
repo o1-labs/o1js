@@ -23,6 +23,8 @@ import * as Json from './parties-json';
 import { jsLayout } from './js-layout';
 
 export { Parties };
+export { Json };
+export * from './parties-leaves';
 
 type Parties = {
   feePayer: {

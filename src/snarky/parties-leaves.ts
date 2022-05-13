@@ -1,5 +1,5 @@
 import { Field, Bool, Group, Ledger } from '../snarky';
-import * as Json from './parties-leaves-json';
+import * as Json from './parties-json';
 
 export {
   PublicKey,
@@ -20,7 +20,7 @@ export {
   Memo,
 };
 
-export { toJson, TypeMap };
+export { toJson };
 
 type UInt64 = { value: Field };
 type UInt32 = { value: Field };

@@ -20,6 +20,7 @@ import {
 } from './parties-leaves-json';
 
 export { Parties };
+export * from './parties-leaves-json';
 
 type Parties = {
   feePayer: {

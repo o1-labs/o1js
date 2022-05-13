@@ -87,13 +87,18 @@ function writeTsContent(types, isJson) {
 import { ${[...dependencies].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? "import { toJson } from './parties-helpers';" +
-      "import * as Json from './parties-json';" +
-      "import { jsLayout } from './js-layout';"
+    ? "import { toJson } from './parties-helpers';\n" +
+      "import * as Json from './parties-json';\n" +
+      "import { jsLayout } from './js-layout';\n"
     : ''
 }
 
 export { ${[...exports].join(', ')} };
+${
+  !isJson
+    ? 'export { Json };\n' + "export * from './parties-leaves';\n"
+    : "export * from './parties-leaves-json';\n"
+}
 
 ${output}`;
 }
