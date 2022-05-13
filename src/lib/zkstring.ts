@@ -1,4 +1,4 @@
-import { Bool, Circuit, Field } from '../snarky';
+import { Bool, Circuit, Field, Poseidon } from '../snarky';
 import { CircuitValue, prop } from './circuit_value';
 
 export class Character extends CircuitValue {
@@ -79,6 +79,10 @@ export class ZKString extends CircuitValue {
     }
 
     return new Bool(true);
+  }
+
+  hash(): Field {
+    return Poseidon.hash(this.values.map(x => x.value));
   }
 
   length(): Field {
