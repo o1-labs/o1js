@@ -3,16 +3,22 @@ export { jsLayout };
 let jsLayout = {
   Parties: {
     type: 'object',
+    name: 'Parties',
+    docs: null,
     layout: [
       {
         key: 'feePayer',
         value: {
           type: 'object',
+          name: 'ZkappPartyFeePayer',
+          docs: null,
           layout: [
             {
               key: 'body',
               value: {
                 type: 'object',
+                name: 'FeePayerPartyBody',
+                docs: null,
                 layout: [
                   {
                     key: 'publicKey',
@@ -23,6 +29,8 @@ let jsLayout = {
                     key: 'update',
                     value: {
                       type: 'object',
+                      name: 'PartyUpdate',
+                      docs: null,
                       layout: [
                         {
                           key: 'appState',
@@ -49,6 +57,8 @@ let jsLayout = {
                             type: 'orundefined',
                             inner: {
                               type: 'object',
+                              name: 'VerificationKeyWithHash',
+                              docs: null,
                               layout: [
                                 {
                                   key: 'data',
@@ -71,6 +81,8 @@ let jsLayout = {
                             type: 'orundefined',
                             inner: {
                               type: 'object',
+                              name: 'Permissions',
+                              docs: null,
                               layout: [
                                 {
                                   key: 'editState',
@@ -154,6 +166,8 @@ let jsLayout = {
                             type: 'orundefined',
                             inner: {
                               type: 'object',
+                              name: 'Timing',
+                              docs: null,
                               layout: [
                                 {
                                   key: 'initialMinimumBalance',
@@ -218,6 +232,8 @@ let jsLayout = {
                     key: 'protocolStatePrecondition',
                     value: {
                       type: 'object',
+                      name: 'ProtocolStatePrecondition',
+                      docs: null,
                       layout: [
                         {
                           key: 'snarkedLedgerHash',
@@ -233,6 +249,8 @@ let jsLayout = {
                             type: 'orundefined',
                             inner: {
                               type: 'object',
+                              name: 'BlockTimeInterval',
+                              docs: null,
                               layout: [
                                 {
                                   key: 'lower',
@@ -255,6 +273,8 @@ let jsLayout = {
                             type: 'orundefined',
                             inner: {
                               type: 'object',
+                              name: 'LengthInterval',
+                              docs: null,
                               layout: [
                                 {
                                   key: 'lower',
@@ -277,6 +297,8 @@ let jsLayout = {
                             type: 'orundefined',
                             inner: {
                               type: 'object',
+                              name: 'LengthInterval',
+                              docs: null,
                               layout: [
                                 {
                                   key: 'lower',
@@ -299,6 +321,8 @@ let jsLayout = {
                             type: 'orundefined',
                             inner: {
                               type: 'object',
+                              name: 'CurrencyAmountInterval',
+                              docs: null,
                               layout: [
                                 {
                                   key: 'lower',
@@ -321,6 +345,8 @@ let jsLayout = {
                             type: 'orundefined',
                             inner: {
                               type: 'object',
+                              name: 'GlobalSlotInterval',
+                              docs: null,
                               layout: [
                                 {
                                   key: 'lower',
@@ -343,6 +369,8 @@ let jsLayout = {
                             type: 'orundefined',
                             inner: {
                               type: 'object',
+                              name: 'GlobalSlotInterval',
+                              docs: null,
                               layout: [
                                 {
                                   key: 'lower',
@@ -363,11 +391,15 @@ let jsLayout = {
                           key: 'stakingEpochData',
                           value: {
                             type: 'object',
+                            name: 'EpochDataPrecondition',
+                            docs: null,
                             layout: [
                               {
                                 key: 'ledger',
                                 value: {
                                   type: 'object',
+                                  name: 'EpochLedgerPrecondition',
+                                  docs: null,
                                   layout: [
                                     {
                                       key: 'hash',
@@ -383,6 +415,8 @@ let jsLayout = {
                                         type: 'orundefined',
                                         inner: {
                                           type: 'object',
+                                          name: 'CurrencyAmountInterval',
+                                          docs: null,
                                           layout: [
                                             {
                                               key: 'lower',
@@ -433,6 +467,8 @@ let jsLayout = {
                                   type: 'orundefined',
                                   inner: {
                                     type: 'object',
+                                    name: 'LengthInterval',
+                                    docs: null,
                                     layout: [
                                       {
                                         key: 'lower',
@@ -457,11 +493,15 @@ let jsLayout = {
                           key: 'nextEpochData',
                           value: {
                             type: 'object',
+                            name: 'EpochDataPrecondition',
+                            docs: null,
                             layout: [
                               {
                                 key: 'ledger',
                                 value: {
                                   type: 'object',
+                                  name: 'EpochLedgerPrecondition',
+                                  docs: null,
                                   layout: [
                                     {
                                       key: 'hash',
@@ -477,6 +517,8 @@ let jsLayout = {
                                         type: 'orundefined',
                                         inner: {
                                           type: 'object',
+                                          name: 'CurrencyAmountInterval',
+                                          docs: null,
                                           layout: [
                                             {
                                               key: 'lower',
@@ -527,6 +569,8 @@ let jsLayout = {
                                   type: 'orundefined',
                                   inner: {
                                     type: 'object',
+                                    name: 'LengthInterval',
+                                    docs: null,
                                     layout: [
                                       {
                                         key: 'lower',
@@ -567,11 +611,15 @@ let jsLayout = {
           type: 'array',
           inner: {
             type: 'object',
+            name: 'ZkappParty',
+            docs: 'A party to a zkApp transaction',
             layout: [
               {
                 key: 'body',
                 value: {
                   type: 'object',
+                  name: 'PartyBody',
+                  docs: null,
                   layout: [
                     {
                       key: 'publicKey',
@@ -583,6 +631,8 @@ let jsLayout = {
                       key: 'update',
                       value: {
                         type: 'object',
+                        name: 'PartyUpdate',
+                        docs: null,
                         layout: [
                           {
                             key: 'appState',
@@ -609,6 +659,8 @@ let jsLayout = {
                               type: 'orundefined',
                               inner: {
                                 type: 'object',
+                                name: 'VerificationKeyWithHash',
+                                docs: null,
                                 layout: [
                                   {
                                     key: 'data',
@@ -631,6 +683,8 @@ let jsLayout = {
                               type: 'orundefined',
                               inner: {
                                 type: 'object',
+                                name: 'Permissions',
+                                docs: null,
                                 layout: [
                                   {
                                     key: 'editState',
@@ -714,6 +768,8 @@ let jsLayout = {
                               type: 'orundefined',
                               inner: {
                                 type: 'object',
+                                name: 'Timing',
+                                docs: null,
                                 layout: [
                                   {
                                     key: 'initialMinimumBalance',
@@ -761,6 +817,8 @@ let jsLayout = {
                       key: 'balanceChange',
                       value: {
                         type: 'object',
+                        name: 'BalanceChange',
+                        docs: null,
                         layout: [
                           {
                             key: 'magnitude',
@@ -799,6 +857,8 @@ let jsLayout = {
                       key: 'protocolStatePrecondition',
                       value: {
                         type: 'object',
+                        name: 'ProtocolStatePrecondition',
+                        docs: null,
                         layout: [
                           {
                             key: 'snarkedLedgerHash',
@@ -814,6 +874,8 @@ let jsLayout = {
                               type: 'orundefined',
                               inner: {
                                 type: 'object',
+                                name: 'BlockTimeInterval',
+                                docs: null,
                                 layout: [
                                   {
                                     key: 'lower',
@@ -836,6 +898,8 @@ let jsLayout = {
                               type: 'orundefined',
                               inner: {
                                 type: 'object',
+                                name: 'LengthInterval',
+                                docs: null,
                                 layout: [
                                   {
                                     key: 'lower',
@@ -858,6 +922,8 @@ let jsLayout = {
                               type: 'orundefined',
                               inner: {
                                 type: 'object',
+                                name: 'LengthInterval',
+                                docs: null,
                                 layout: [
                                   {
                                     key: 'lower',
@@ -880,6 +946,8 @@ let jsLayout = {
                               type: 'orundefined',
                               inner: {
                                 type: 'object',
+                                name: 'CurrencyAmountInterval',
+                                docs: null,
                                 layout: [
                                   {
                                     key: 'lower',
@@ -902,6 +970,8 @@ let jsLayout = {
                               type: 'orundefined',
                               inner: {
                                 type: 'object',
+                                name: 'GlobalSlotInterval',
+                                docs: null,
                                 layout: [
                                   {
                                     key: 'lower',
@@ -924,6 +994,8 @@ let jsLayout = {
                               type: 'orundefined',
                               inner: {
                                 type: 'object',
+                                name: 'GlobalSlotInterval',
+                                docs: null,
                                 layout: [
                                   {
                                     key: 'lower',
@@ -944,11 +1016,15 @@ let jsLayout = {
                             key: 'stakingEpochData',
                             value: {
                               type: 'object',
+                              name: 'EpochDataPrecondition',
+                              docs: null,
                               layout: [
                                 {
                                   key: 'ledger',
                                   value: {
                                     type: 'object',
+                                    name: 'EpochLedgerPrecondition',
+                                    docs: null,
                                     layout: [
                                       {
                                         key: 'hash',
@@ -964,6 +1040,8 @@ let jsLayout = {
                                           type: 'orundefined',
                                           inner: {
                                             type: 'object',
+                                            name: 'CurrencyAmountInterval',
+                                            docs: null,
                                             layout: [
                                               {
                                                 key: 'lower',
@@ -1018,6 +1096,8 @@ let jsLayout = {
                                     type: 'orundefined',
                                     inner: {
                                       type: 'object',
+                                      name: 'LengthInterval',
+                                      docs: null,
                                       layout: [
                                         {
                                           key: 'lower',
@@ -1042,11 +1122,15 @@ let jsLayout = {
                             key: 'nextEpochData',
                             value: {
                               type: 'object',
+                              name: 'EpochDataPrecondition',
+                              docs: null,
                               layout: [
                                 {
                                   key: 'ledger',
                                   value: {
                                     type: 'object',
+                                    name: 'EpochLedgerPrecondition',
+                                    docs: null,
                                     layout: [
                                       {
                                         key: 'hash',
@@ -1062,6 +1146,8 @@ let jsLayout = {
                                           type: 'orundefined',
                                           inner: {
                                             type: 'object',
+                                            name: 'CurrencyAmountInterval',
+                                            docs: null,
                                             layout: [
                                               {
                                                 key: 'lower',
@@ -1116,6 +1202,8 @@ let jsLayout = {
                                     type: 'orundefined',
                                     inner: {
                                       type: 'object',
+                                      name: 'LengthInterval',
+                                      docs: null,
                                       layout: [
                                         {
                                           key: 'lower',
@@ -1144,6 +1232,8 @@ let jsLayout = {
                       key: 'accountPrecondition',
                       value: {
                         type: 'object',
+                        name: 'AccountPrecondition',
+                        docs: null,
                         layout: [
                           {
                             key: 'balance',
@@ -1151,6 +1241,8 @@ let jsLayout = {
                               type: 'orundefined',
                               inner: {
                                 type: 'object',
+                                name: 'BalanceInterval',
+                                docs: null,
                                 layout: [
                                   {
                                     key: 'lower',
@@ -1173,6 +1265,8 @@ let jsLayout = {
                               type: 'orundefined',
                               inner: {
                                 type: 'object',
+                                name: 'NonceInterval',
+                                docs: null,
                                 layout: [
                                   {
                                     key: 'lower',
@@ -1250,6 +1344,8 @@ let jsLayout = {
                 key: 'authorization',
                 value: {
                   type: 'object',
+                  name: 'Control',
+                  docs: null,
                   layout: [
                     {
                       key: 'proof',
@@ -1277,6 +1373,15 @@ let jsLayout = {
         docs: null,
       },
       { key: 'memo', value: { type: 'Memo' }, docs: null },
+    ],
+  },
+  BalanceChange: {
+    type: 'object',
+    name: 'BalanceChange',
+    docs: null,
+    layout: [
+      { key: 'magnitude', value: { type: 'CurrencyAmount' }, docs: null },
+      { key: 'sgn', value: { type: 'Sign' }, docs: null },
     ],
   },
 };
