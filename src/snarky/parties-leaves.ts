@@ -114,7 +114,9 @@ let ToJson: ToJson = {
   Fee: asString,
   BlockTime: asString,
   UInt32: asString,
-  TokenId: asString,
+  TokenId(x: TokenId): Json.TokenId {
+    return Ledger.fieldToBase58(x);
+  },
   Sign(x: Sign) {
     if (x.toString() === '1') return 'Positive';
     if (x.neg().toString() === '1') return 'Negative';

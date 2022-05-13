@@ -73,8 +73,8 @@ function toPartyBody(body: Body): Party_['body'] {
   return {
     // TODO
     balanceChange: { magnitude: body.delta, sgn: Field.one },
-    // TODO
-    caller: Field.zero,
+    // TODO add to Party and set to defaultTokenId (which is Field.one)
+    caller: Field.one,
     incrementNonce: body.incrementNonce.toBoolean(),
     publicKey: body.publicKey,
     tokenId: body.tokenId,
