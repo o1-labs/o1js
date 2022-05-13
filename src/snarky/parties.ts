@@ -22,7 +22,7 @@ import { toJson } from './parties-helpers';
 import * as Json from './parties-json';
 import { jsLayout } from './js-layout';
 
-export { Parties };
+export { Parties, BalanceChange };
 export { Json };
 export * from './parties-leaves';
 
@@ -259,5 +259,16 @@ type Parties = {
 let Parties = {
   toJson(parties: Parties): Json.Parties {
     return toJson(jsLayout.Parties, parties);
+  },
+};
+
+type BalanceChange = {
+  magnitude: CurrencyAmount;
+  sgn: Sign;
+};
+
+let BalanceChange = {
+  toJson(balancechange: BalanceChange): Json.BalanceChange {
+    return toJson(jsLayout.BalanceChange, balancechange);
   },
 };

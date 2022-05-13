@@ -1,4 +1,5 @@
 import { Field, Bool, Group, Ledger } from '../snarky';
+import { BalanceChange } from './parties';
 import * as Json from './parties-json';
 
 export {
@@ -20,7 +21,7 @@ export {
   Memo,
 };
 
-export { toJson };
+export { toJson, leafTypes };
 
 type UInt64 = { value: Field };
 type UInt32 = { value: Field };
@@ -66,6 +67,7 @@ type TypeMap = {
   Sign: Sign;
   SnappProof: SnappProof;
   Memo: Memo;
+  BalanceChange: BalanceChange;
   // builtin
   number: number;
   string: string;
@@ -114,12 +116,24 @@ let ToJson: ToJson = {
   UInt32: asString,
   TokenId: asString,
   Sign(x: Sign) {
-    return x.toString() === '1';
+    if (x.toString() === '1') return 'Positive';
+    if (x.neg().toString() === '1') return 'Negative';
+    throw Error(`Invalid Sign: ${x}`);
   },
   VerificationKey: identity,
   Signature: identity,
   SnappProof: identity,
   Memo: identity,
+  // override automatic conversion, essentially defining a custom leaf type
+  BalanceChange({ magnitude, sgn }: BalanceChange): Json.BalanceChange {
+    // TODO this is a hack, magnitude is actually the full int64
+    let b = magnitude.toString();
+    if (b.charAt(0) === '-') {
+      return { magnitude: b.slice(1), sgn: 'Negative' };
+    } else {
+      return { magnitude: b, sgn: 'Positive' };
+    }
+  },
   // builtin
   number: identity,
   string: identity,
@@ -136,3 +150,5 @@ function toJson<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
     throw Error(`toJson: unsupported type "${typeName}"`);
   return ToJson[typeName](value);
 }
+
+let leafTypes = new Set(Object.keys(ToJson));

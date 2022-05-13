@@ -19,7 +19,7 @@ import {
   Memo,
 } from './parties-leaves-json';
 
-export { Parties };
+export { Parties, BalanceChange };
 export * from './parties-leaves-json';
 
 type Parties = {
@@ -250,4 +250,9 @@ type Parties = {
     };
   }[];
   memo: Memo;
+};
+
+type BalanceChange = {
+  magnitude: CurrencyAmount;
+  sgn: Sign;
 };

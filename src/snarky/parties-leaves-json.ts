@@ -1,3 +1,5 @@
+import { BalanceChange } from './parties-json';
+
 export {
   PublicKey,
   Field,
@@ -29,7 +31,7 @@ type SnappProof = string;
 type Signature = string;
 type PublicKey = string;
 
-type Sign = boolean;
+type Sign = 'Positive' | 'Negative';
 type AuthRequired = 'Signature' | 'Proof' | 'Either' | 'None' | 'Impossible';
 
 // derived types
@@ -59,6 +61,7 @@ type TypeMap = {
   Sign: Sign;
   SnappProof: SnappProof;
   Memo: Memo;
+  BalanceChange: BalanceChange;
   // builtin
   number: number;
   string: string;
