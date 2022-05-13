@@ -630,6 +630,11 @@ export const AccountPrecondition = {
       provedState: ignore(Bool(false)),
     };
   },
+  nonce(nonce: UInt32): AccountPrecondition {
+    let p = AccountPrecondition.ignoreAll();
+    p.nonce.assertBetween(nonce, nonce);
+    return p;
+  },
 };
 
 export class PartyBalance {
