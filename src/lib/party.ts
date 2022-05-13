@@ -220,15 +220,13 @@ export let Permissions = {
   }),
 };
 
-/* TODO: How should we handle "String"s, should we bridge them from OCaml? */
-class String_ extends CircuitValue {}
-
 export type Update = {
   appState: Array<SetOrKeep<Field>>;
   delegate: SetOrKeep<PublicKey>;
   verificationKey: SetOrKeep<string>;
   permissions: SetOrKeep<Permissions>;
-  zkappUri: SetOrKeep<String_>;
+  // TODO Circuit String type needed? If yes, should we bridge it from OCaml?
+  zkappUri: SetOrKeep<string>;
   tokenSymbol: SetOrKeep<Field>;
   timing: SetOrKeep<Timing>;
   votingFor: SetOrKeep<Field>;

@@ -129,7 +129,7 @@ function toUpdate({
           hash: Field.zero, // TODO
         }
       : undefined,
-    zkappUri: 'todo', // TODO String_ type needed? Or constant
+    zkappUri: fromSetOrKeep(zkappUri),
     votingFor: fromSetOrKeep(votingFor),
   };
 }
