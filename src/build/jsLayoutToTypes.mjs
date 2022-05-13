@@ -39,6 +39,7 @@ function writeType(typeData, isJson) {
     let output = '{\n';
     let dependencies = new Set();
     indent += '  ';
+    // TODO: make docs work and use them for doccomments
     for (let { key, value, docs } of layout) {
       let questionMark = '';
       if (!isJson && value.type === 'orundefined') {
@@ -62,7 +63,7 @@ function writeType(typeData, isJson) {
   };
 }
 
-function writeAllTypes(types, isJson) {
+function writeTsContent(types, isJson) {
   let output = '';
   let dependencies = new Set();
   let exports = new Set();
@@ -71,32 +72,54 @@ function writeAllTypes(types, isJson) {
     exports.add(key);
     mergeSet(dependencies, inner.dependencies);
     output += `type ${key} = ${inner.output};\n\n`;
+    if (!isJson) {
+      output +=
+        `let ${key} = {\n` +
+        `  toJson(${key.toLowerCase()}: ${key}): Json.${key} {\n` +
+        `    return toJson(jsLayout.${key}, ${key.toLowerCase()});\n` +
+        `  },\n` +
+        `};\n\n`;
+    }
   }
   let importPath = isJson ? './parties-leaves-json' : './parties-leaves';
   return `// this file is auto-generated - don't edit it directly
 
 import { ${[...dependencies].join(', ')} } from '${importPath}';
+${
+  !isJson
+    ? "import { toJson } from './parties-helpers';" +
+      "import * as Json from './parties-json';" +
+      "import { jsLayout } from './js-layout';"
+    : ''
+}
 
 export { ${[...exports].join(', ')} };
 
 ${output}`;
 }
 
-let jsonTypesOutput = writeAllTypes(jsLayout, true);
-let jsonTypesPath = path.resolve(selfPath, '../../snarky/parties-json.d.ts');
-jsonTypesOutput = prettier.format(jsonTypesOutput, {
-  filepath: jsonTypesPath,
-  ...prettierRc,
-});
-await fs.writeFile(jsonTypesPath, jsonTypesOutput);
+async function writeTsFile(content, relPath) {
+  let absPath = path.resolve(selfPath, relPath);
+  content = prettier.format(content, {
+    filepath: absPath,
+    ...prettierRc,
+  });
+  await fs.writeFile(absPath, content);
+}
 
-let jsTypesOutput = writeAllTypes(jsLayout, false);
-let jsTypesPath = path.resolve(selfPath, '../../snarky/parties.d.ts');
-jsTypesOutput = prettier.format(jsTypesOutput, {
-  filepath: jsTypesPath,
-  ...prettierRc,
-});
-await fs.writeFile(jsTypesPath, jsTypesOutput);
+let jsonTypesContent = writeTsContent(jsLayout, true);
+await writeTsFile(jsonTypesContent, '../../snarky/parties-json.ts');
+
+let jsTypesContent = writeTsContent(jsLayout, false);
+await writeTsFile(jsTypesContent, '../../snarky/parties.ts');
+
+await writeTsFile(
+  `export { jsLayout };
+
+let jsLayout = ${JSON.stringify(jsLayout)};
+`,
+  '../../snarky/js-layout.ts'
+);
 
 function mergeSet(target, source) {
   if (source === undefined) return;

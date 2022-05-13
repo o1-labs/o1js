@@ -17,7 +17,7 @@ import {
   Sign,
   SnappProof,
   Memo,
-} from './parties-leaves';
+} from './parties-leaves-json';
 
 export { Parties };
 
@@ -26,13 +26,13 @@ type Parties = {
     body: {
       publicKey: PublicKey;
       update: {
-        appState: (Field | undefined)[];
-        delegate?: PublicKey;
-        verificationKey?: {
+        appState: (Field | null)[];
+        delegate: PublicKey | null;
+        verificationKey: {
           data: VerificationKey;
           hash: Field;
-        };
-        permissions?: {
+        } | null;
+        permissions: {
           editState: AuthRequired;
           send: AuthRequired;
           receive: AuthRequired;
@@ -44,78 +44,78 @@ type Parties = {
           setTokenSymbol: AuthRequired;
           incrementNonce: AuthRequired;
           setVotingFor: AuthRequired;
-        };
-        zkappUri?: string;
-        tokenSymbol?: string;
-        timing?: {
+        } | null;
+        zkappUri: string | null;
+        tokenSymbol: string | null;
+        timing: {
           initialMinimumBalance: Balance;
           cliffTime: GlobalSlot;
           cliffAmount: CurrencyAmount;
           vestingPeriod: GlobalSlot;
           vestingIncrement: CurrencyAmount;
-        };
-        votingFor?: StateHash;
+        } | null;
+        votingFor: StateHash | null;
       };
       fee: Fee;
       events: Field[][];
       sequenceEvents: Field[][];
       protocolStatePrecondition: {
-        snarkedLedgerHash?: Field;
-        timestamp?: {
+        snarkedLedgerHash: Field | null;
+        timestamp: {
           lower: BlockTime;
           upper: BlockTime;
-        };
-        blockchainLength?: {
+        } | null;
+        blockchainLength: {
           lower: UInt32;
           upper: UInt32;
-        };
-        minWindowDensity?: {
+        } | null;
+        minWindowDensity: {
           lower: UInt32;
           upper: UInt32;
-        };
-        totalCurrency?: {
+        } | null;
+        totalCurrency: {
           lower: CurrencyAmount;
           upper: CurrencyAmount;
-        };
-        globalSlotSinceHardFork?: {
+        } | null;
+        globalSlotSinceHardFork: {
           lower: UInt32;
           upper: UInt32;
-        };
-        globalSlotSinceGenesis?: {
+        } | null;
+        globalSlotSinceGenesis: {
           lower: UInt32;
           upper: UInt32;
-        };
+        } | null;
         stakingEpochData: {
           ledger: {
-            hash?: Field;
-            totalCurrency?: {
+            hash: Field | null;
+            totalCurrency: {
               lower: CurrencyAmount;
               upper: CurrencyAmount;
-            };
+            } | null;
           };
-          seed?: Field;
-          startCheckpoint?: Field;
-          lockCheckpoint?: Field;
-          epochLength?: {
+          seed: Field | null;
+          startCheckpoint: Field | null;
+          lockCheckpoint: Field | null;
+          epochLength: {
             lower: UInt32;
             upper: UInt32;
-          };
+          } | null;
         };
         nextEpochData: {
           ledger: {
-            hash?: Field;
-            totalCurrency?: {
+            hash: Field | null;
+            totalCurrency: {
               lower: CurrencyAmount;
               upper: CurrencyAmount;
-            };
+            } | null;
           };
-          seed?: Field;
-          startCheckpoint?: Field;
-          lockCheckpoint?: Field;
-          epochLength?: {
+          seed: Field | null;
+          startCheckpoint: Field | null;
+          lockCheckpoint: Field | null;
+          epochLength: {
             lower: UInt32;
             upper: UInt32;
-          };
+          } | null;
         };
       };
       nonce: UInt32;
@@ -127,13 +127,13 @@ type Parties = {
       publicKey: PublicKey;
       tokenId: TokenId;
       update: {
-        appState: (Field | undefined)[];
-        delegate?: PublicKey;
-        verificationKey?: {
+        appState: (Field | null)[];
+        delegate: PublicKey | null;
+        verificationKey: {
           data: VerificationKey;
           hash: Field;
-        };
-        permissions?: {
+        } | null;
+        permissions: {
           editState: AuthRequired;
           send: AuthRequired;
           receive: AuthRequired;
@@ -145,17 +145,17 @@ type Parties = {
           setTokenSymbol: AuthRequired;
           incrementNonce: AuthRequired;
           setVotingFor: AuthRequired;
-        };
-        zkappUri?: string;
-        tokenSymbol?: string;
-        timing?: {
+        } | null;
+        zkappUri: string | null;
+        tokenSymbol: string | null;
+        timing: {
           initialMinimumBalance: Balance;
           cliffTime: GlobalSlot;
           cliffAmount: CurrencyAmount;
           vestingPeriod: GlobalSlot;
           vestingIncrement: CurrencyAmount;
-        };
-        votingFor?: StateHash;
+        } | null;
+        votingFor: StateHash | null;
       };
       balanceChange: {
         magnitude: CurrencyAmount;
@@ -167,85 +167,85 @@ type Parties = {
       callData: Field;
       callDepth: number;
       protocolStatePrecondition: {
-        snarkedLedgerHash?: Field;
-        timestamp?: {
+        snarkedLedgerHash: Field | null;
+        timestamp: {
           lower: BlockTime;
           upper: BlockTime;
-        };
-        blockchainLength?: {
+        } | null;
+        blockchainLength: {
           lower: UInt32;
           upper: UInt32;
-        };
-        minWindowDensity?: {
+        } | null;
+        minWindowDensity: {
           lower: UInt32;
           upper: UInt32;
-        };
-        totalCurrency?: {
+        } | null;
+        totalCurrency: {
           lower: CurrencyAmount;
           upper: CurrencyAmount;
-        };
-        globalSlotSinceHardFork?: {
+        } | null;
+        globalSlotSinceHardFork: {
           lower: UInt32;
           upper: UInt32;
-        };
-        globalSlotSinceGenesis?: {
+        } | null;
+        globalSlotSinceGenesis: {
           lower: UInt32;
           upper: UInt32;
-        };
+        } | null;
         stakingEpochData: {
           ledger: {
-            hash?: Field;
-            totalCurrency?: {
+            hash: Field | null;
+            totalCurrency: {
               lower: CurrencyAmount;
               upper: CurrencyAmount;
-            };
+            } | null;
           };
-          seed?: Field;
-          startCheckpoint?: Field;
-          lockCheckpoint?: Field;
-          epochLength?: {
+          seed: Field | null;
+          startCheckpoint: Field | null;
+          lockCheckpoint: Field | null;
+          epochLength: {
             lower: UInt32;
             upper: UInt32;
-          };
+          } | null;
         };
         nextEpochData: {
           ledger: {
-            hash?: Field;
-            totalCurrency?: {
+            hash: Field | null;
+            totalCurrency: {
               lower: CurrencyAmount;
               upper: CurrencyAmount;
-            };
+            } | null;
           };
-          seed?: Field;
-          startCheckpoint?: Field;
-          lockCheckpoint?: Field;
-          epochLength?: {
+          seed: Field | null;
+          startCheckpoint: Field | null;
+          lockCheckpoint: Field | null;
+          epochLength: {
             lower: UInt32;
             upper: UInt32;
-          };
+          } | null;
         };
       };
       accountPrecondition: {
-        balance?: {
+        balance: {
           lower: Balance;
           upper: Balance;
-        };
-        nonce?: {
+        } | null;
+        nonce: {
           lower: UInt32;
           upper: UInt32;
-        };
-        receiptChainHash?: Field;
-        delegate?: PublicKey;
-        state: (Field | undefined)[];
-        sequenceState?: Field;
-        provedState?: boolean;
+        } | null;
+        receiptChainHash: Field | null;
+        delegate: PublicKey | null;
+        state: (Field | null)[];
+        sequenceState: Field | null;
+        provedState: boolean | null;
       };
       useFullCommitment: boolean;
       caller: TokenId;
     };
     authorization: {
-      proof?: SnappProof;
-      signature?: Signature;
+      proof: SnappProof | null;
+      signature: Signature | null;
     };
   }[];
   memo: Memo;
