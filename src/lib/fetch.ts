@@ -3,6 +3,7 @@ import { Field } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { Permission, Permissions, ZkappStateLength } from './party';
 import { PublicKey } from './signature';
+import * as PartyTypes from '../snarky/parties';
 
 export {
   fetchAccount,
@@ -98,13 +99,8 @@ type FetchError = {
 // Specify 30s as the default timeout
 const defaultTimeout = 30000;
 
-type PermissionString =
-  | 'Signature'
-  | 'Proof'
-  | 'Either'
-  | 'None'
-  | 'Impossible';
-function toPermission(p: PermissionString): Permission {
+type AuthRequired = PartyTypes.Json.AuthRequired;
+function toPermission(p: AuthRequired): Permission {
   switch (p) {
     case 'None':
       return Permission.none();
@@ -116,6 +112,8 @@ function toPermission(p: PermissionString): Permission {
       return Permission.proofOrSignature();
     case 'Impossible':
       return Permission.impossible();
+    default:
+      throw Error('unexpected permission');
   }
 }
 
@@ -127,17 +125,17 @@ type FetchedAccount = {
   receiptChainState?: string;
   balance: { total: string };
   permissions?: {
-    editState: PermissionString;
-    send: PermissionString;
-    receive: PermissionString;
-    setDelegate: PermissionString;
-    setPermissions: PermissionString;
-    setVerificationKey: PermissionString;
-    setZkappUri: PermissionString;
-    editSequenceState: PermissionString;
-    setTokenSymbol: PermissionString;
-    incrementNonce: PermissionString;
-    setVotingFor: PermissionString;
+    editState: AuthRequired;
+    send: AuthRequired;
+    receive: AuthRequired;
+    setDelegate: AuthRequired;
+    setPermissions: AuthRequired;
+    setVerificationKey: AuthRequired;
+    setZkappUri: AuthRequired;
+    editSequenceState: AuthRequired;
+    setTokenSymbol: AuthRequired;
+    incrementNonce: AuthRequired;
+    setVotingFor: AuthRequired;
   };
 };
 
