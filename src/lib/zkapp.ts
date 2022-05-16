@@ -9,7 +9,6 @@ import {
 } from '../snarky';
 import { CircuitValue, cloneCircuitValue } from './circuit_value';
 import {
-  ProtocolStatePredicate,
   Body,
   Party,
   PartyBalance,
@@ -21,7 +20,7 @@ import {
 import { Json } from 'snarky/parties';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
-import { toParty, toProtocolState } from './party-conversion';
+import { toParty } from './party-conversion';
 import { UInt32, UInt64 } from './int';
 import { Account, fetchAccount } from './fetch';
 import {
@@ -375,23 +374,11 @@ type Statement = { transaction: Field; atParty: Field };
 type Proof = unknown; // opaque
 type Prover = (statement: Statement) => Promise<Proof>;
 
-function toStatement(self: Party, tail: Field, checked = true) {
+function toStatement(self: Party, tail: Field) {
   // TODO hash together party with tail in the right way
-  if (checked) {
-    let atParty = Ledger.hashPartyChecked(toParty(self));
-    let protocolStateHash = Ledger.hashProtocolStateChecked(
-      toProtocolState(ProtocolStatePredicate.ignoreAll())
-    );
-    let transaction = Ledger.hashTransactionChecked(atParty, protocolStateHash);
-    return { transaction, atParty };
-  } else {
-    let atParty = Ledger.hashParty(toParty(self));
-    let protocolStateHash = Ledger.hashProtocolState(
-      toProtocolState(ProtocolStatePredicate.ignoreAll())
-    );
-    let transaction = Ledger.hashTransaction(atParty, protocolStateHash);
-    return { transaction, atParty };
-  }
+  let atParty = Ledger.hashPartyChecked(toParty(self));
+  let transaction = Ledger.hashTransactionChecked(atParty);
+  return { transaction, atParty };
 }
 
 function checkStatement(
@@ -400,7 +387,7 @@ function checkStatement(
   tail: Field
 ) {
   // ATM, we always compute the statement in checked mode to make assertEqual pass
-  let otherStatement = toStatement(self, tail, true);
+  let otherStatement = toStatement(self, tail);
   atParty.assertEquals(otherStatement.atParty);
   transaction.assertEquals(otherStatement.transaction);
 }

@@ -801,18 +801,10 @@ export class Ledger {
 
   getAccount(publicKey: { g: Group }): Account | undefined;
 
-  static hashParty(party: Party_): Field;
-  static hashProtocolState(protocolState: ProtocolStatePredicate_): Field;
-  static hashTransaction(partyHash: Field, protocolStateHash: Field): Field;
-
+  static hashParty(partyJson: string): Field;
+  static hashTransaction(partyHash: Field): Field;
   static hashPartyChecked(party: Party_): Field;
-  static hashProtocolStateChecked(
-    protocolState: ProtocolStatePredicate_
-  ): Field;
-  static hashTransactionChecked(
-    partyHash: Field,
-    protocolStateHash: Field
-  ): Field;
+  static hashTransactionChecked(partyHash: Field): Field;
 
   static transactionCommitments(txJson: string): {
     commitment: Field;

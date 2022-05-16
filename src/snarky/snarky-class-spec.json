@@ -341,19 +341,11 @@
         "type": "function"
       },
       {
-        "name": "hashProtocolState",
-        "type": "function"
-      },
-      {
         "name": "hashTransaction",
         "type": "function"
       },
       {
         "name": "hashPartyChecked",
-        "type": "function"
-      },
-      {
-        "name": "hashProtocolStateChecked",
         "type": "function"
       },
       {
