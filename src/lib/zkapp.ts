@@ -18,6 +18,7 @@ import {
   Permissions,
   PartyWithFullAccountPrecondition,
 } from './party';
+import { Json } from 'snarky/parties';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { toParty, toProtocolState } from './party-conversion';
@@ -528,11 +529,6 @@ export class SmartContract {
         });
       }).toJSON();
       let statement = Ledger.transactionStatement(txJson, 0);
-      // let statementVar = toStatement(ctx.self, Field.zero);
-      // let statement = {
-      //   transaction: statementVar.transaction.toConstant(),
-      //   atParty: statementVar.atParty.toConstant(),
-      // };
       return [statement, selfParty];
     });
 
@@ -816,7 +812,7 @@ function signFeePayer(
     feePayerNonce = undefined as number | string | undefined,
   }
 ) {
-  let parties = JSON.parse(transactionJson);
+  let parties: Json.Parties = JSON.parse(transactionJson);
   if (typeof feePayerKey === 'string')
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();

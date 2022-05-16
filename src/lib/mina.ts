@@ -11,7 +11,8 @@ import {
   Party,
   ZkappStateLength,
 } from './party';
-import { toParties } from './party-conversion';
+import { toParties } from './party-conversion-new';
+import { Parties as Parties_ } from '../snarky/parties';
 import * as Fetch from './fetch';
 
 export {
@@ -146,7 +147,9 @@ function createTransaction(
     },
 
     toJSON() {
-      return Ledger.partiesToJson(toParties(self.transaction));
+      let parties = toParties(self.transaction);
+      let json = Parties_.toJson(parties);
+      return JSON.stringify(json);
     },
 
     toGraphqlQuery() {
@@ -228,8 +231,8 @@ function LocalBlockchain({
     },
     sendTransaction(txn: Transaction) {
       txn.sign();
-      ledger.applyPartiesTransaction(
-        toParties(txn.transaction),
+      ledger.applyJsonTransaction(
+        JSON.stringify(Parties_.toJson(toParties(txn.transaction))),
         accountCreationFee_
       );
       return { wait: async () => {} };

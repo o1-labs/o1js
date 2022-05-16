@@ -11,9 +11,10 @@ import {
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
-import { toParties } from './party-conversion';
+import { toParties } from './party-conversion-new';
 import { SmartContract } from './zkapp';
 import { withContextAsync } from './global-context';
+import { Parties as Parties_, Json } from '../snarky/parties';
 
 export {
   FeePayer,
@@ -866,7 +867,7 @@ function addMissingSignatures(
 ): PartiesSigned {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
   let { commitment, fullCommitment } = Ledger.transactionCommitments(
-    Ledger.partiesToJson(toParties(parties))
+    JSON.stringify(Parties_.toJson(toParties(parties)))
   );
   function addSignature<P extends Party>(party: P, isFeePayer?: boolean) {
     party = cloneCircuitValue(party);
@@ -904,7 +905,7 @@ type PartiesProved = {
 };
 
 async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
-  let partiesJson = Ledger.partiesToJson(toParties(parties));
+  let partiesJson = JSON.stringify(Parties_.toJson(toParties(parties)));
   async function addProof<P extends Party>(party: P, index: number) {
     party = cloneCircuitValue(party);
     if (party.authorization.kind !== 'lazy-proof')
@@ -961,7 +962,7 @@ function signJsonTransaction(
     privateKey = PrivateKey.fromBase58(privateKey);
   let publicKey = privateKey.toPublicKey().toBase58();
   // TODO: we really need types for the parties json
-  let parties = JSON.parse(transactionJson);
+  let parties: Json.Parties = JSON.parse(transactionJson);
   let feePayer = parties.feePayer;
   if (feePayer.body.publicKey === publicKey) {
     parties = JSON.parse(

@@ -797,11 +797,7 @@ export class Ledger {
 
   addAccount(publicKey: { g: Group }, balance: string): void;
 
-  applyPartiesTransaction(
-    parties: Parties_,
-    accountCreationFee: string
-  ): Account[];
-  applyJsonTransaction(parties: string, accountCreationFee: string): Account[];
+  applyJsonTransaction(txJson: string, accountCreationFee: string): Account[];
 
   getAccount(publicKey: { g: Group }): Account | undefined;
 
