@@ -837,9 +837,6 @@ export class Ledger {
   static fieldToBase58(field: Field): string;
   static fieldOfBase58(fieldBase58: string): Field;
   static memoToBase58(memoString: string): string;
-
-  static partiesToJson(parties: Parties_): string;
-  static partiesToGraphQL(parties: Parties_): string;
 }
 
 /**

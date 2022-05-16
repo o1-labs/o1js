@@ -407,14 +407,6 @@
       {
         "name": "memoToBase58",
         "type": "function"
-      },
-      {
-        "name": "partiesToJson",
-        "type": "function"
-      },
-      {
-        "name": "partiesToGraphQL",
-        "type": "function"
       }
     ]
   },
