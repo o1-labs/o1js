@@ -879,7 +879,7 @@ export const Pickles: {
   compile: (rules: [0, string, (statement: Statement) => void][]) => {
     provers: ((statement: Statement) => Promise<unknown>)[];
     verify: (statement: Statement, proof: unknown) => Promise<boolean>;
-    getVerificationKeyArtifact: () => string;
+    getVerificationKeyArtifact: () => { data: string; hash: string };
   };
 
   proofToString: (proof: unknown) => string;
@@ -889,6 +889,7 @@ export {
   Parties_,
   ProtocolStatePredicate_,
   EpochDataPredicate_,
+  FullAccountPredicate_,
   Party_,
   FeePayerParty_,
   Control,

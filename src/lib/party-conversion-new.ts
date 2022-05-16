@@ -62,9 +62,9 @@ function toControl<T extends LazyControl>(authorization: T): Control_ {
 function toFeePayerControl<T extends LazyControl>(
   authorization: T
 ): Exclude<Control_['signature'], undefined> {
-  // TODO: this should add an actual dummy signature to allow signing later
   if (authorization.kind !== 'signature') {
-    return 'dummy';
+    // TODO: probably shouldn't hard-code dummy signature
+    return '7mWxjLYgbJUkZNcGouvhVj5tJ8yu9hoexb9ntvPK8t5LHqzmrL6QJjjKtf5SgmxB4QWkDw7qoMMbbNGtHVpsbJHPyTy2EzRQ';
   }
   return authorization.value;
 }
@@ -95,7 +95,7 @@ function toFeePayerPartyBody(
 ): FeePayerParty_['body'] {
   return {
     // TODO
-    fee: new UInt32(body.delta.uint64Value()),
+    fee: new UInt32(body.delta.value.neg()),
     nonce: body.accountPrecondition,
     publicKey: body.publicKey,
     update: toUpdate(body.update),
@@ -124,10 +124,7 @@ function toUpdate({
     // TODO -- should be a string in party.ts!
     tokenSymbol: fromSetOrKeep(tokenSymbol)?.toString(),
     verificationKey: verificationKey.set.toBoolean()
-      ? {
-          data: verificationKey.value,
-          hash: Field.zero, // TODO
-        }
+      ? verificationKey.value
       : undefined,
     zkappUri: fromSetOrKeep(zkappUri),
     votingFor: fromSetOrKeep(votingFor),

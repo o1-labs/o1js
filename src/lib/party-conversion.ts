@@ -5,8 +5,10 @@ import {
   EpochDataPredicate_,
   FeePayerParty_,
   Parties_,
+  FullAccountPredicate_,
 } from '../snarky';
 import {
+  AccountPrecondition,
   Body,
   EpochDataPredicate,
   FeePayer,
@@ -15,6 +17,7 @@ import {
   LazySignature,
   Party,
   ProtocolStatePredicate,
+  SetOrKeep,
 } from './party';
 import { UInt32 } from './int';
 
@@ -59,19 +62,20 @@ function toControl<T extends LazyControl>(
 }
 
 function toPartyBody(body: Body): Party_['body'] {
-  let accountPrecondition: Party_['body']['accountPrecondition'];
+  let accountPrecondition: FullAccountPredicate_;
   if (body.accountPrecondition === undefined) {
-    accountPrecondition = { kind: 'accept' };
+    accountPrecondition = AccountPrecondition.ignoreAll();
   } else if (body.accountPrecondition instanceof UInt32) {
-    accountPrecondition = { kind: 'nonce', value: body.accountPrecondition };
+    accountPrecondition = AccountPrecondition.nonce(body.accountPrecondition);
   } else {
-    accountPrecondition = { kind: 'full', value: body.accountPrecondition };
+    accountPrecondition = body.accountPrecondition;
   }
   return {
     ...body,
+    update: toUpdate(body.update),
     events: body.events.events,
     depth: parseInt(body.depth.toString(), 10),
-    accountPrecondition,
+    accountPrecondition: { kind: 'full', value: accountPrecondition },
     // TODO
     sequenceEvents: [],
     callData: Field.zero,
@@ -84,12 +88,23 @@ function toFeePayerPartyBody(
 ): FeePayerParty_['body'] {
   return {
     ...body,
+    update: toUpdate(body.update),
     events: body.events.events,
     depth: parseInt(body.depth.toString(), 10),
     // TODO
     sequenceEvents: [],
     callData: Field.zero,
     protocolState: toProtocolState(body.protocolState),
+  };
+}
+
+function toUpdate(update: Body['update']): Party_['body']['update'] {
+  return {
+    ...update,
+    verificationKey: new SetOrKeep(
+      update.verificationKey.set,
+      update.verificationKey.value.data
+    ),
   };
 }
 

@@ -1,4 +1,4 @@
-import { CircuitValue, cloneCircuitValue } from './circuit_value';
+import { cloneCircuitValue } from './circuit_value';
 import {
   Group,
   Field,
@@ -223,7 +223,7 @@ export let Permissions = {
 export type Update = {
   appState: Array<SetOrKeep<Field>>;
   delegate: SetOrKeep<PublicKey>;
-  verificationKey: SetOrKeep<string>;
+  verificationKey: SetOrKeep<{ data: string; hash: Field }>;
   permissions: SetOrKeep<Permissions>;
   // TODO Circuit String type needed? If yes, should we bridge it from OCaml?
   zkappUri: SetOrKeep<string>;
@@ -314,7 +314,7 @@ export let Body = {
     const update: Update = {
       appState,
       delegate: keep(new PublicKey(Group.generator)),
-      verificationKey: keep(''),
+      verificationKey: keep({ data: '', hash: Field.zero }),
       permissions: keep(Permissions.default()),
       zkappUri: keep(undefined as any),
       tokenSymbol: keep(undefined as any),

@@ -442,7 +442,7 @@ export class SmartContract {
   _executionState?: ExecutionState;
   static _methods?: methodEntry<SmartContract>[];
   static _provers?: Prover[];
-  static _verificationKey?: string;
+  static _verificationKey?: { data: string; hash: Field };
 
   constructor(address: PublicKey) {
     this.address = address;
@@ -469,7 +469,10 @@ export class SmartContract {
     );
     let verificationKey = getVerificationKeyArtifact();
     this._provers = provers;
-    this._verificationKey = verificationKey;
+    this._verificationKey = {
+      data: verificationKey.data,
+      hash: Field(verificationKey.hash),
+    };
     // TODO: instead of returning provers, return an artifact from which provers can be recovered
     return { verificationKey, provers, verify };
   }
@@ -478,12 +481,14 @@ export class SmartContract {
     verificationKey,
     zkappKey,
   }: {
-    verificationKey?: string;
+    verificationKey?: { data: string; hash: Field | string };
     zkappKey?: PrivateKey;
   }) {
     verificationKey ??= (this.constructor as any)._verificationKey;
     if (verificationKey !== undefined) {
-      this.self.update.verificationKey.setValue(verificationKey);
+      let { hash, data } = verificationKey;
+      let hash_ = typeof hash === 'string' ? Field(hash) : hash;
+      this.self.update.verificationKey.setValue({ hash: hash_, data });
     }
     this.self.update.permissions.setValue(Permissions.default());
     this.sign(zkappKey, true);
@@ -638,7 +643,7 @@ export class SmartContract {
 }
 
 type DeployArgs = {
-  verificationKey?: string;
+  verificationKey?: { data: string; hash: string | Field };
   zkappKey?: PrivateKey;
 };
 
@@ -669,7 +674,7 @@ async function deploy<S extends typeof SmartContract>(
     feePayerNonce,
   }: {
     zkappKey: PrivateKey;
-    verificationKey: string;
+    verificationKey: { data: string; hash: string | Field };
     initialBalance?: number | string;
     feePayerKey?: PrivateKey;
     shouldSignFeePayer?: boolean;
