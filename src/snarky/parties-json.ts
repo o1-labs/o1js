@@ -15,6 +15,7 @@ import {
   Signature,
   TokenId,
   Sign,
+  Bool,
   SnappProof,
   Memo,
 } from './parties-leaves-json';
@@ -162,7 +163,7 @@ type Parties = {
         magnitude: CurrencyAmount;
         sgn: Sign;
       };
-      incrementNonce: boolean;
+      incrementNonce: Bool;
       events: Field[][];
       sequenceEvents: Field[][];
       callData: Field;
@@ -239,9 +240,9 @@ type Parties = {
         delegate: PublicKey | null;
         state: (Field | null)[];
         sequenceState: Field | null;
-        provedState: boolean | null;
+        provedState: Bool | null;
       };
-      useFullCommitment: boolean;
+      useFullCommitment: Bool;
       caller: TokenId;
     };
     authorization: {

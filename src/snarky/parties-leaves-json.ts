@@ -3,6 +3,7 @@ import { BalanceChange } from './parties-json';
 export {
   PublicKey,
   Field,
+  Bool,
   VerificationKey,
   AuthRequired,
   Balance,
@@ -22,6 +23,7 @@ export {
 export { TypeMap };
 
 type Field = string;
+type Bool = boolean;
 type UInt64 = string;
 type UInt32 = string;
 
@@ -47,6 +49,7 @@ type TokenId = Field;
 type TypeMap = {
   PublicKey: PublicKey;
   Field: Field;
+  Bool: boolean;
   VerificationKey: VerificationKey;
   AuthRequired: AuthRequired;
   Balance: Balance;
@@ -65,7 +68,6 @@ type TypeMap = {
   // builtin
   number: number;
   string: string;
-  boolean: boolean;
   null: null;
   undefined: null;
   bigint: string;

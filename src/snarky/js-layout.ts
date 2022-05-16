@@ -832,7 +832,7 @@ let jsLayout = {
                     },
                     {
                       key: 'incrementNonce',
-                      value: { type: 'boolean' },
+                      value: { type: 'Bool' },
                       docs: null,
                     },
                     {
@@ -1322,7 +1322,7 @@ let jsLayout = {
                             key: 'provedState',
                             value: {
                               type: 'orundefined',
-                              inner: { type: 'boolean' },
+                              inner: { type: 'Bool' },
                             },
                             docs: null,
                           },
@@ -1332,7 +1332,7 @@ let jsLayout = {
                     },
                     {
                       key: 'useFullCommitment',
-                      value: { type: 'boolean' },
+                      value: { type: 'Bool' },
                       docs: null,
                     },
                     { key: 'caller', value: { type: 'TokenId' }, docs: null },

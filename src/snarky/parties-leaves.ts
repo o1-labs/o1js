@@ -5,6 +5,7 @@ import * as Json from './parties-json';
 export {
   PublicKey,
   Field,
+  Bool,
   VerificationKey,
   AuthRequired,
   Balance,
@@ -53,6 +54,7 @@ type TokenId = Field;
 type TypeMap = {
   PublicKey: PublicKey;
   Field: Field;
+  Bool: Bool;
   VerificationKey: VerificationKey;
   AuthRequired: AuthRequired;
   Balance: Balance;
@@ -71,7 +73,6 @@ type TypeMap = {
   // builtin
   number: number;
   string: string;
-  boolean: boolean;
   null: null;
   undefined: undefined;
   bigint: bigint;
@@ -93,7 +94,10 @@ let ToJson: ToJson = {
     return Ledger.publicKeyToString(x);
   },
   Field: asString,
-  AuthRequired(x: AuthRequired): Json.AuthRequired {
+  Bool(x: Bool) {
+    return x.toBoolean();
+  },
+  AuthRequired(x: AuthRequired) {
     let c = Number(x.constant.toBoolean());
     let n = Number(x.signatureNecessary.toBoolean());
     let s = Number(x.signatureSufficient.toBoolean());
@@ -114,7 +118,7 @@ let ToJson: ToJson = {
   Fee: asString,
   BlockTime: asString,
   UInt32: asString,
-  TokenId(x: TokenId): Json.TokenId {
+  TokenId(x: TokenId) {
     return Ledger.fieldToBase58(x);
   },
   Sign(x: Sign) {
@@ -127,7 +131,7 @@ let ToJson: ToJson = {
   SnappProof: identity,
   Memo: identity,
   // override automatic conversion, essentially defining a custom leaf type
-  BalanceChange({ magnitude, sgn }: BalanceChange): Json.BalanceChange {
+  BalanceChange({ magnitude, sgn }: BalanceChange) {
     // TODO this is a hack, magnitude is actually the full int64
     let b = magnitude.toString();
     if (b.charAt(0) === '-') {
@@ -139,7 +143,6 @@ let ToJson: ToJson = {
   // builtin
   number: identity,
   string: identity,
-  boolean: identity,
   null: identity,
   undefined(_: undefined) {
     return null;

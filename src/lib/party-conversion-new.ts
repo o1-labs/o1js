@@ -75,11 +75,11 @@ function toPartyBody(body: Body): Party_['body'] {
     balanceChange: { magnitude: body.delta, sgn: Field.one },
     // TODO add to Party and set to defaultTokenId (which is Field.one)
     caller: Field.one,
-    incrementNonce: body.incrementNonce.toBoolean(),
+    incrementNonce: body.incrementNonce,
     publicKey: body.publicKey,
     tokenId: body.tokenId,
     update: toUpdate(body.update),
-    useFullCommitment: body.useFullCommitment.toBoolean(),
+    useFullCommitment: body.useFullCommitment,
     events: body.events.events,
     callDepth: parseInt(body.depth.toString(), 10),
     accountPrecondition: toAccountPrecondition(body.accountPrecondition),
@@ -147,7 +147,7 @@ function toAccountPrecondition(
     balance: fromClosedInterval(full.balance),
     delegate: fromOrIgnore(full.delegate),
     nonce: fromClosedInterval(full.nonce),
-    provedState: fromOrIgnore(full.provedState)?.toBoolean(),
+    provedState: fromOrIgnore(full.provedState),
     receiptChainHash: fromOrIgnore(full.receiptChainHash),
     sequenceState: fromOrIgnore(full.sequenceState),
   };

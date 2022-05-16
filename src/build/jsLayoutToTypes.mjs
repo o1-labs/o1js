@@ -12,7 +12,6 @@ let jsLayout = JSON.parse(await fs.readFile(jsonPath, 'utf8'));
 let builtinLeafTypes = new Set([
   'number',
   'string',
-  'boolean',
   'null',
   'undefined',
   'bigint',
