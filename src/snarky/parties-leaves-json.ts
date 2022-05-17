@@ -6,6 +6,7 @@ export {
   Bool,
   VerificationKey,
   AuthRequired,
+  StringWithHash,
   Balance,
   GlobalSlot,
   CurrencyAmount,
@@ -35,6 +36,7 @@ type PublicKey = string;
 
 type Sign = 'Positive' | 'Negative';
 type AuthRequired = 'Signature' | 'Proof' | 'Either' | 'None' | 'Impossible';
+type StringWithHash = string;
 
 // derived types
 type Balance = UInt64;
@@ -52,6 +54,7 @@ type TypeMap = {
   Bool: boolean;
   VerificationKey: VerificationKey;
   AuthRequired: AuthRequired;
+  StringWithHash: StringWithHash;
   Balance: Balance;
   GlobalSlot: GlobalSlot;
   CurrencyAmount: CurrencyAmount;
@@ -69,7 +72,6 @@ type TypeMap = {
   BlockTimeInterval: null;
   // builtin
   number: number;
-  string: string;
   null: null;
   undefined: null;
   bigint: string;

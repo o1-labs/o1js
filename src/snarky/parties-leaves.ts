@@ -8,6 +8,7 @@ export {
   Bool,
   VerificationKey,
   AuthRequired,
+  StringWithHash,
   Balance,
   GlobalSlot,
   CurrencyAmount,
@@ -40,6 +41,10 @@ type AuthRequired = {
   signatureNecessary: Bool;
   signatureSufficient: Bool;
 };
+type StringWithHash = {
+  data: string;
+  hash: Field;
+};
 
 // derived types
 type Balance = UInt64;
@@ -57,6 +62,7 @@ type TypeMap = {
   Bool: Bool;
   VerificationKey: VerificationKey;
   AuthRequired: AuthRequired;
+  StringWithHash: StringWithHash;
   Balance: Balance;
   GlobalSlot: GlobalSlot;
   CurrencyAmount: CurrencyAmount;
@@ -71,7 +77,6 @@ type TypeMap = {
   Memo: Memo;
   // builtin
   number: number;
-  string: string;
   null: null;
   undefined: undefined;
   bigint: bigint;
@@ -116,6 +121,9 @@ let ToJson: ToJson = {
       default: throw Error('Unexpected permission');
     }
   },
+  StringWithHash({ data }: StringWithHash) {
+    return data;
+  },
   Balance: asString,
   GlobalSlot: asString,
   CurrencyAmount: asString,
@@ -151,7 +159,6 @@ let ToJson: ToJson = {
   },
   // builtin
   number: identity,
-  string: identity,
   null: identity,
   undefined(_: undefined) {
     return null;
@@ -170,23 +177,35 @@ function toJson<K extends keyof ToJsonTypeMap>(
 
 // to fields
 
+// TODO: to go _back_ from fields to JS types / JSON, we need the equivalent of typ.value_of_fields,
+// which also needs auxiliary data like the string in {data: string; hash: Field}
+// So eventually we should implement toAuxiliary(jsType) and fromFields(fields, auxiliary)
+
 type ToFields = { [K in keyof TypeMap]: (x: TypeMap[K]) => Field[] };
 
 function asFields(x: any): Field[] {
   return x.toFields();
 }
-function empty(x: any) {
+function empty(_: any) {
   return [];
 }
 
 let ToFields: ToFields = {
-  PublicKey: asFields,
+  PublicKey({ g }: PublicKey) {
+    let { x, y } = g;
+    // TODO inefficient! in-snark public key should be uncompressed
+    let isOdd = y.toBits()[0];
+    return [x, isOdd.toField()];
+  },
   Field: asFields,
   Bool: asFields,
   AuthRequired(x: AuthRequired) {
     return [x.constant, x.signatureNecessary, x.signatureSufficient]
       .map(asFields)
       .flat();
+  },
+  StringWithHash({ hash }: StringWithHash) {
+    return [hash];
   },
   Balance: asFields,
   GlobalSlot: asFields,
@@ -203,7 +222,6 @@ let ToFields: ToFields = {
   Memo: empty, // doesn't have to be converted to fields
   // builtin
   number: empty,
-  string: empty,
   null: empty,
   undefined: empty,
   bigint: empty,

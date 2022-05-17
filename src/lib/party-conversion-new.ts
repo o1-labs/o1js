@@ -16,7 +16,7 @@ import {
 } from './party';
 import { UInt32 } from './int';
 
-export { toParties, toParty, toProtocolState };
+export { toParties, toParty, toProtocolState, toUpdate };
 
 type Party_ = Parties_['otherParties'][number];
 type ProtocolStatePrecondition_ = Party_['body']['protocolStatePrecondition'];
@@ -122,7 +122,7 @@ function toUpdate({
     permissions: fromSetOrKeep(permissions),
     timing: fromSetOrKeep(timing),
     // TODO -- should be a string in party.ts!
-    tokenSymbol: mapSetOrKeep(tokenSymbol, (v) => v.toString()),
+    tokenSymbol: fromSetOrKeep(tokenSymbol),
     verificationKey: fromSetOrKeep(verificationKey),
     zkappUri: fromSetOrKeep(zkappUri),
     votingFor: fromSetOrKeep(votingFor),
@@ -211,7 +211,4 @@ function fromSetOrKeep<T>({ set, value }: SetOrKeep<T>) {
 }
 function fromClosedInterval<T>(intv: ClosedInterval<T>) {
   return { lower: intv.lower, upper: intv.upper };
-}
-function mapSetOrKeep<T, S>({ set, value }: SetOrKeep<T>, map: (t: T) => S) {
-  return { isSome: set, value: map(value) };
 }

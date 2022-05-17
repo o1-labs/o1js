@@ -59,6 +59,10 @@ export class SetOrKeep<T> {
   }
 }
 
+function keep<A>(dummy: A): SetOrKeep<A> {
+  return new SetOrKeep(Bool(false), dummy);
+}
+
 const True = () => Bool(true);
 const False = () => Bool(false);
 
@@ -92,7 +96,7 @@ export let Permission = {
   none: (): Permission => ({
     constant: True(),
     signatureNecessary: False(),
-    signatureSufficient: False(),
+    signatureSufficient: True(),
   }),
 
   /**
@@ -215,8 +219,21 @@ export let Permissions = {
     setZkappUri: Permission.signature(),
     editSequenceState: Permission.proof(),
     setTokenSymbol: Permission.signature(),
-    // TODO: this is  a workaround, should be changed to signature() once Parties_replay_check_failed is fixed
-    incrementNonce: Permissions.proofOrSignature(),
+    incrementNonce: Permissions.signature(),
+    setVotingFor: Permission.signature(),
+  }),
+
+  initial: (): Permissions => ({
+    editState: Permission.signature(),
+    send: Permission.signature(),
+    receive: Permission.none(),
+    setDelegate: Permission.signature(),
+    setPermissions: Permission.signature(),
+    setVerificationKey: Permission.signature(),
+    setZkappUri: Permission.signature(),
+    editSequenceState: Permission.signature(),
+    setTokenSymbol: Permission.signature(),
+    incrementNonce: Permissions.signature(),
     setVotingFor: Permission.signature(),
   }),
 };
@@ -227,8 +244,8 @@ export type Update = {
   verificationKey: SetOrKeep<{ data: string; hash: Field }>;
   permissions: SetOrKeep<Permissions>;
   // TODO Circuit String type needed? If yes, should we bridge it from OCaml?
-  zkappUri: SetOrKeep<string>;
-  tokenSymbol: SetOrKeep<Field>;
+  zkappUri: SetOrKeep<{ data: string; hash: Field }>;
+  tokenSymbol: SetOrKeep<{ data: string; hash: Field }>;
   timing: SetOrKeep<Timing>;
   votingFor: SetOrKeep<Field>;
 };
@@ -302,24 +319,32 @@ export let Body = {
    * A body that Don't change part of the underlying account record.
    */
   keepAll(publicKey: PublicKey): Body {
-    function keep<A>(dummy: A): SetOrKeep<A> {
-      return new SetOrKeep(False(), dummy);
-    }
-
     const appState: Array<SetOrKeep<Field>> = [];
-
     for (let i = 0; i < ZkappStateLength; ++i) {
       appState.push(keep(Field.zero));
     }
-
     const update: Update = {
       appState,
-      delegate: keep(new PublicKey(Group.generator)),
+      delegate: keep(PublicKey.empty()),
+      // TODO
       verificationKey: keep({ data: '', hash: Field.zero }),
-      permissions: keep(Permissions.default()),
-      zkappUri: keep(''),
-      tokenSymbol: keep(Field.zero),
-      timing: keep(undefined as any),
+      permissions: keep(Permissions.initial()),
+      // TODO don't hard code
+      zkappUri: keep({
+        data: '',
+        hash: Field(
+          '22930868938364086394602058221028773520482901241511717002947639863679740444066'
+        ),
+      }),
+      // TODO
+      tokenSymbol: keep({ data: '', hash: Field.zero }),
+      timing: keep<Timing>({
+        cliffAmount: UInt64.zero,
+        cliffTime: UInt32.zero,
+        initialMinimumBalance: UInt64.zero,
+        vestingIncrement: UInt64.zero,
+        vestingPeriod: UInt32.zero,
+      }),
       votingFor: keep(Field.zero),
     };
     return {
