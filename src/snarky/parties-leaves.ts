@@ -184,7 +184,7 @@ let ToFields: ToFields = {
   Field: asFields,
   Bool: asFields,
   AuthRequired(x: AuthRequired) {
-    return [x.constant, x.signatureSufficient, x.signatureNecessary]
+    return [x.constant, x.signatureNecessary, x.signatureSufficient]
       .map(asFields)
       .flat();
   },
