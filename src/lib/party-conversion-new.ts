@@ -172,7 +172,8 @@ function toProtocolState(
   } = protocolState;
   return {
     snarkedLedgerHash: fromOrIgnore(snarkedLedgerHash),
-    timestamp: fromClosedInterval(timestamp),
+    // TODO
+    timestamp: undefined, // fromClosedInterval(timestamp),
     blockchainLength: fromClosedInterval(blockchainLength),
     minWindowDensity: fromClosedInterval(minWindowDensity),
     totalCurrency: fromClosedInterval(totalCurrency),
