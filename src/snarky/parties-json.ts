@@ -3,6 +3,7 @@
 import {
   PublicKey,
   Field,
+  Bool,
   VerificationKey,
   AuthRequired,
   Balance,
@@ -15,7 +16,6 @@ import {
   Signature,
   TokenId,
   Sign,
-  Bool,
   SnappProof,
   Memo,
 } from './parties-leaves-json';

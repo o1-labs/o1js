@@ -37,7 +37,8 @@ let jsLayout = {
                           value: {
                             type: 'array',
                             inner: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'flaggedOption',
                               inner: { type: 'Field' },
                             },
                           },
@@ -46,7 +47,8 @@ let jsLayout = {
                         {
                           key: 'delegate',
                           value: {
-                            type: 'orundefined',
+                            type: 'option',
+                            optionType: 'flaggedOption',
                             inner: { type: 'PublicKey' },
                           },
                           docs: null,
@@ -54,7 +56,8 @@ let jsLayout = {
                         {
                           key: 'verificationKey',
                           value: {
-                            type: 'orundefined',
+                            type: 'option',
+                            optionType: 'flaggedOption',
                             inner: {
                               type: 'object',
                               name: 'VerificationKeyWithHash',
@@ -78,7 +81,8 @@ let jsLayout = {
                         {
                           key: 'permissions',
                           value: {
-                            type: 'orundefined',
+                            type: 'option',
+                            optionType: 'flaggedOption',
                             inner: {
                               type: 'object',
                               name: 'Permissions',
@@ -147,7 +151,8 @@ let jsLayout = {
                         {
                           key: 'zkappUri',
                           value: {
-                            type: 'orundefined',
+                            type: 'option',
+                            optionType: 'flaggedOption',
                             inner: { type: 'string' },
                           },
                           docs: null,
@@ -155,7 +160,8 @@ let jsLayout = {
                         {
                           key: 'tokenSymbol',
                           value: {
-                            type: 'orundefined',
+                            type: 'option',
+                            optionType: 'flaggedOption',
                             inner: { type: 'string' },
                           },
                           docs: null,
@@ -163,7 +169,8 @@ let jsLayout = {
                         {
                           key: 'timing',
                           value: {
-                            type: 'orundefined',
+                            type: 'option',
+                            optionType: 'flaggedOption',
                             inner: {
                               type: 'object',
                               name: 'Timing',
@@ -202,7 +209,8 @@ let jsLayout = {
                         {
                           key: 'votingFor',
                           value: {
-                            type: 'orundefined',
+                            type: 'option',
+                            optionType: 'flaggedOption',
                             inner: { type: 'StateHash' },
                           },
                           docs: null,
@@ -238,7 +246,8 @@ let jsLayout = {
                         {
                           key: 'snarkedLedgerHash',
                           value: {
-                            type: 'orundefined',
+                            type: 'option',
+                            optionType: 'flaggedOption',
                             inner: { type: 'Field' },
                           },
                           docs: null,
@@ -246,7 +255,8 @@ let jsLayout = {
                         {
                           key: 'timestamp',
                           value: {
-                            type: 'orundefined',
+                            type: 'option',
+                            optionType: 'implicit',
                             inner: {
                               type: 'object',
                               name: 'BlockTimeInterval',
@@ -270,7 +280,8 @@ let jsLayout = {
                         {
                           key: 'blockchainLength',
                           value: {
-                            type: 'orundefined',
+                            type: 'option',
+                            optionType: 'implicit',
                             inner: {
                               type: 'object',
                               name: 'LengthInterval',
@@ -294,7 +305,8 @@ let jsLayout = {
                         {
                           key: 'minWindowDensity',
                           value: {
-                            type: 'orundefined',
+                            type: 'option',
+                            optionType: 'implicit',
                             inner: {
                               type: 'object',
                               name: 'LengthInterval',
@@ -318,7 +330,8 @@ let jsLayout = {
                         {
                           key: 'totalCurrency',
                           value: {
-                            type: 'orundefined',
+                            type: 'option',
+                            optionType: 'implicit',
                             inner: {
                               type: 'object',
                               name: 'CurrencyAmountInterval',
@@ -342,7 +355,8 @@ let jsLayout = {
                         {
                           key: 'globalSlotSinceHardFork',
                           value: {
-                            type: 'orundefined',
+                            type: 'option',
+                            optionType: 'implicit',
                             inner: {
                               type: 'object',
                               name: 'GlobalSlotInterval',
@@ -366,7 +380,8 @@ let jsLayout = {
                         {
                           key: 'globalSlotSinceGenesis',
                           value: {
-                            type: 'orundefined',
+                            type: 'option',
+                            optionType: 'implicit',
                             inner: {
                               type: 'object',
                               name: 'GlobalSlotInterval',
@@ -404,7 +419,8 @@ let jsLayout = {
                                     {
                                       key: 'hash',
                                       value: {
-                                        type: 'orundefined',
+                                        type: 'option',
+                                        optionType: 'flaggedOption',
                                         inner: { type: 'Field' },
                                       },
                                       docs: null,
@@ -412,7 +428,8 @@ let jsLayout = {
                                     {
                                       key: 'totalCurrency',
                                       value: {
-                                        type: 'orundefined',
+                                        type: 'option',
+                                        optionType: 'implicit',
                                         inner: {
                                           type: 'object',
                                           name: 'CurrencyAmountInterval',
@@ -440,7 +457,8 @@ let jsLayout = {
                               {
                                 key: 'seed',
                                 value: {
-                                  type: 'orundefined',
+                                  type: 'option',
+                                  optionType: 'flaggedOption',
                                   inner: { type: 'Field' },
                                 },
                                 docs: null,
@@ -448,7 +466,8 @@ let jsLayout = {
                               {
                                 key: 'startCheckpoint',
                                 value: {
-                                  type: 'orundefined',
+                                  type: 'option',
+                                  optionType: 'flaggedOption',
                                   inner: { type: 'Field' },
                                 },
                                 docs: null,
@@ -456,7 +475,8 @@ let jsLayout = {
                               {
                                 key: 'lockCheckpoint',
                                 value: {
-                                  type: 'orundefined',
+                                  type: 'option',
+                                  optionType: 'flaggedOption',
                                   inner: { type: 'Field' },
                                 },
                                 docs: null,
@@ -464,7 +484,8 @@ let jsLayout = {
                               {
                                 key: 'epochLength',
                                 value: {
-                                  type: 'orundefined',
+                                  type: 'option',
+                                  optionType: 'implicit',
                                   inner: {
                                     type: 'object',
                                     name: 'LengthInterval',
@@ -506,7 +527,8 @@ let jsLayout = {
                                     {
                                       key: 'hash',
                                       value: {
-                                        type: 'orundefined',
+                                        type: 'option',
+                                        optionType: 'flaggedOption',
                                         inner: { type: 'Field' },
                                       },
                                       docs: null,
@@ -514,7 +536,8 @@ let jsLayout = {
                                     {
                                       key: 'totalCurrency',
                                       value: {
-                                        type: 'orundefined',
+                                        type: 'option',
+                                        optionType: 'implicit',
                                         inner: {
                                           type: 'object',
                                           name: 'CurrencyAmountInterval',
@@ -542,7 +565,8 @@ let jsLayout = {
                               {
                                 key: 'seed',
                                 value: {
-                                  type: 'orundefined',
+                                  type: 'option',
+                                  optionType: 'flaggedOption',
                                   inner: { type: 'Field' },
                                 },
                                 docs: null,
@@ -550,7 +574,8 @@ let jsLayout = {
                               {
                                 key: 'startCheckpoint',
                                 value: {
-                                  type: 'orundefined',
+                                  type: 'option',
+                                  optionType: 'flaggedOption',
                                   inner: { type: 'Field' },
                                 },
                                 docs: null,
@@ -558,7 +583,8 @@ let jsLayout = {
                               {
                                 key: 'lockCheckpoint',
                                 value: {
-                                  type: 'orundefined',
+                                  type: 'option',
+                                  optionType: 'flaggedOption',
                                   inner: { type: 'Field' },
                                 },
                                 docs: null,
@@ -566,7 +592,8 @@ let jsLayout = {
                               {
                                 key: 'epochLength',
                                 value: {
-                                  type: 'orundefined',
+                                  type: 'option',
+                                  optionType: 'implicit',
                                   inner: {
                                     type: 'object',
                                     name: 'LengthInterval',
@@ -639,7 +666,8 @@ let jsLayout = {
                             value: {
                               type: 'array',
                               inner: {
-                                type: 'orundefined',
+                                type: 'option',
+                                optionType: 'flaggedOption',
                                 inner: { type: 'Field' },
                               },
                             },
@@ -648,7 +676,8 @@ let jsLayout = {
                           {
                             key: 'delegate',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'flaggedOption',
                               inner: { type: 'PublicKey' },
                             },
                             docs: null,
@@ -656,7 +685,8 @@ let jsLayout = {
                           {
                             key: 'verificationKey',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'flaggedOption',
                               inner: {
                                 type: 'object',
                                 name: 'VerificationKeyWithHash',
@@ -680,7 +710,8 @@ let jsLayout = {
                           {
                             key: 'permissions',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'flaggedOption',
                               inner: {
                                 type: 'object',
                                 name: 'Permissions',
@@ -749,7 +780,8 @@ let jsLayout = {
                           {
                             key: 'zkappUri',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'flaggedOption',
                               inner: { type: 'string' },
                             },
                             docs: null,
@@ -757,7 +789,8 @@ let jsLayout = {
                           {
                             key: 'tokenSymbol',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'flaggedOption',
                               inner: { type: 'string' },
                             },
                             docs: null,
@@ -765,7 +798,8 @@ let jsLayout = {
                           {
                             key: 'timing',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'flaggedOption',
                               inner: {
                                 type: 'object',
                                 name: 'Timing',
@@ -804,7 +838,8 @@ let jsLayout = {
                           {
                             key: 'votingFor',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'flaggedOption',
                               inner: { type: 'StateHash' },
                             },
                             docs: null,
@@ -863,7 +898,8 @@ let jsLayout = {
                           {
                             key: 'snarkedLedgerHash',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'flaggedOption',
                               inner: { type: 'Field' },
                             },
                             docs: null,
@@ -871,7 +907,8 @@ let jsLayout = {
                           {
                             key: 'timestamp',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'implicit',
                               inner: {
                                 type: 'object',
                                 name: 'BlockTimeInterval',
@@ -895,7 +932,8 @@ let jsLayout = {
                           {
                             key: 'blockchainLength',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'implicit',
                               inner: {
                                 type: 'object',
                                 name: 'LengthInterval',
@@ -919,7 +957,8 @@ let jsLayout = {
                           {
                             key: 'minWindowDensity',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'implicit',
                               inner: {
                                 type: 'object',
                                 name: 'LengthInterval',
@@ -943,7 +982,8 @@ let jsLayout = {
                           {
                             key: 'totalCurrency',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'implicit',
                               inner: {
                                 type: 'object',
                                 name: 'CurrencyAmountInterval',
@@ -967,7 +1007,8 @@ let jsLayout = {
                           {
                             key: 'globalSlotSinceHardFork',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'implicit',
                               inner: {
                                 type: 'object',
                                 name: 'GlobalSlotInterval',
@@ -991,7 +1032,8 @@ let jsLayout = {
                           {
                             key: 'globalSlotSinceGenesis',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'implicit',
                               inner: {
                                 type: 'object',
                                 name: 'GlobalSlotInterval',
@@ -1029,7 +1071,8 @@ let jsLayout = {
                                       {
                                         key: 'hash',
                                         value: {
-                                          type: 'orundefined',
+                                          type: 'option',
+                                          optionType: 'flaggedOption',
                                           inner: { type: 'Field' },
                                         },
                                         docs: null,
@@ -1037,7 +1080,8 @@ let jsLayout = {
                                       {
                                         key: 'totalCurrency',
                                         value: {
-                                          type: 'orundefined',
+                                          type: 'option',
+                                          optionType: 'implicit',
                                           inner: {
                                             type: 'object',
                                             name: 'CurrencyAmountInterval',
@@ -1069,7 +1113,8 @@ let jsLayout = {
                                 {
                                   key: 'seed',
                                   value: {
-                                    type: 'orundefined',
+                                    type: 'option',
+                                    optionType: 'flaggedOption',
                                     inner: { type: 'Field' },
                                   },
                                   docs: null,
@@ -1077,7 +1122,8 @@ let jsLayout = {
                                 {
                                   key: 'startCheckpoint',
                                   value: {
-                                    type: 'orundefined',
+                                    type: 'option',
+                                    optionType: 'flaggedOption',
                                     inner: { type: 'Field' },
                                   },
                                   docs: null,
@@ -1085,7 +1131,8 @@ let jsLayout = {
                                 {
                                   key: 'lockCheckpoint',
                                   value: {
-                                    type: 'orundefined',
+                                    type: 'option',
+                                    optionType: 'flaggedOption',
                                     inner: { type: 'Field' },
                                   },
                                   docs: null,
@@ -1093,7 +1140,8 @@ let jsLayout = {
                                 {
                                   key: 'epochLength',
                                   value: {
-                                    type: 'orundefined',
+                                    type: 'option',
+                                    optionType: 'implicit',
                                     inner: {
                                       type: 'object',
                                       name: 'LengthInterval',
@@ -1135,7 +1183,8 @@ let jsLayout = {
                                       {
                                         key: 'hash',
                                         value: {
-                                          type: 'orundefined',
+                                          type: 'option',
+                                          optionType: 'flaggedOption',
                                           inner: { type: 'Field' },
                                         },
                                         docs: null,
@@ -1143,7 +1192,8 @@ let jsLayout = {
                                       {
                                         key: 'totalCurrency',
                                         value: {
-                                          type: 'orundefined',
+                                          type: 'option',
+                                          optionType: 'implicit',
                                           inner: {
                                             type: 'object',
                                             name: 'CurrencyAmountInterval',
@@ -1175,7 +1225,8 @@ let jsLayout = {
                                 {
                                   key: 'seed',
                                   value: {
-                                    type: 'orundefined',
+                                    type: 'option',
+                                    optionType: 'flaggedOption',
                                     inner: { type: 'Field' },
                                   },
                                   docs: null,
@@ -1183,7 +1234,8 @@ let jsLayout = {
                                 {
                                   key: 'startCheckpoint',
                                   value: {
-                                    type: 'orundefined',
+                                    type: 'option',
+                                    optionType: 'flaggedOption',
                                     inner: { type: 'Field' },
                                   },
                                   docs: null,
@@ -1191,7 +1243,8 @@ let jsLayout = {
                                 {
                                   key: 'lockCheckpoint',
                                   value: {
-                                    type: 'orundefined',
+                                    type: 'option',
+                                    optionType: 'flaggedOption',
                                     inner: { type: 'Field' },
                                   },
                                   docs: null,
@@ -1199,7 +1252,8 @@ let jsLayout = {
                                 {
                                   key: 'epochLength',
                                   value: {
-                                    type: 'orundefined',
+                                    type: 'option',
+                                    optionType: 'implicit',
                                     inner: {
                                       type: 'object',
                                       name: 'LengthInterval',
@@ -1238,7 +1292,8 @@ let jsLayout = {
                           {
                             key: 'balance',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'implicit',
                               inner: {
                                 type: 'object',
                                 name: 'BalanceInterval',
@@ -1262,7 +1317,8 @@ let jsLayout = {
                           {
                             key: 'nonce',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'implicit',
                               inner: {
                                 type: 'object',
                                 name: 'NonceInterval',
@@ -1286,7 +1342,8 @@ let jsLayout = {
                           {
                             key: 'receiptChainHash',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'flaggedOption',
                               inner: { type: 'Field' },
                             },
                             docs: null,
@@ -1294,7 +1351,8 @@ let jsLayout = {
                           {
                             key: 'delegate',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'flaggedOption',
                               inner: { type: 'PublicKey' },
                             },
                             docs: null,
@@ -1304,7 +1362,8 @@ let jsLayout = {
                             value: {
                               type: 'array',
                               inner: {
-                                type: 'orundefined',
+                                type: 'option',
+                                optionType: 'flaggedOption',
                                 inner: { type: 'Field' },
                               },
                             },
@@ -1313,7 +1372,8 @@ let jsLayout = {
                           {
                             key: 'sequenceState',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'flaggedOption',
                               inner: { type: 'Field' },
                             },
                             docs: null,
@@ -1321,7 +1381,8 @@ let jsLayout = {
                           {
                             key: 'provedState',
                             value: {
-                              type: 'orundefined',
+                              type: 'option',
+                              optionType: 'flaggedOption',
                               inner: { type: 'Bool' },
                             },
                             docs: null,
@@ -1350,7 +1411,8 @@ let jsLayout = {
                     {
                       key: 'proof',
                       value: {
-                        type: 'orundefined',
+                        type: 'option',
+                        optionType: 'orUndefined',
                         inner: { type: 'SnappProof' },
                       },
                       docs: null,
@@ -1358,7 +1420,8 @@ let jsLayout = {
                     {
                       key: 'signature',
                       value: {
-                        type: 'orundefined',
+                        type: 'option',
+                        optionType: 'orUndefined',
                         inner: { type: 'Signature' },
                       },
                       docs: null,

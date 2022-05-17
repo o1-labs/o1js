@@ -65,6 +65,8 @@ type TypeMap = {
   SnappProof: SnappProof;
   Memo: Memo;
   BalanceChange: BalanceChange;
+  // TODO sort this out: we override timestamp, which is implicit but has to be null for intg test to succeed
+  BlockTimeInterval: null;
   // builtin
   number: number;
   string: string;

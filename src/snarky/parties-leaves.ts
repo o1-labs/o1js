@@ -22,7 +22,7 @@ export {
   Memo,
 };
 
-export { toJson, leafTypes };
+export { toJson, toJsonLeafTypes, toFields, toFieldsLeafTypes };
 
 type UInt64 = { value: Field };
 type UInt32 = { value: Field };
@@ -69,7 +69,6 @@ type TypeMap = {
   Sign: Sign;
   SnappProof: SnappProof;
   Memo: Memo;
-  BalanceChange: BalanceChange;
   // builtin
   number: number;
   string: string;
@@ -87,7 +86,13 @@ function asString(x: Field | UInt32 | UInt64 | bigint) {
   return x.toString();
 }
 
-type ToJson = { [K in keyof TypeMap]: (x: TypeMap[K]) => Json.TypeMap[K] };
+type ToJsonTypeMap = TypeMap & {
+  BalanceChange: BalanceChange;
+  BlockTimeInterval: { lower: BlockTime; upper: BlockTime };
+};
+type ToJson = {
+  [K in keyof ToJsonTypeMap]: (x: ToJsonTypeMap[K]) => Json.TypeMap[K];
+};
 
 let ToJson: ToJson = {
   PublicKey(x: PublicKey): Json.PublicKey {
@@ -130,7 +135,7 @@ let ToJson: ToJson = {
   Signature: identity,
   SnappProof: identity,
   Memo: identity,
-  // override automatic conversion, essentially defining a custom leaf type
+  // override automatic conversion, essentially defining custom leaf types
   BalanceChange({ magnitude, sgn }: BalanceChange) {
     // TODO this is a hack, magnitude is actually the full int64
     let b = magnitude.toString();
@@ -139,6 +144,10 @@ let ToJson: ToJson = {
     } else {
       return { magnitude: b, sgn: 'Positive' };
     }
+  },
+  // TODO this is a hack
+  BlockTimeInterval(_: { lower: BlockTime; upper: BlockTime }) {
+    return null;
   },
   // builtin
   number: identity,
@@ -150,10 +159,61 @@ let ToJson: ToJson = {
   bigint: asString,
 };
 
-function toJson<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
+function toJson<K extends keyof ToJsonTypeMap>(
+  typeName: K,
+  value: ToJsonTypeMap[K]
+) {
   if (!(typeName in ToJson))
     throw Error(`toJson: unsupported type "${typeName}"`);
   return ToJson[typeName](value);
 }
 
-let leafTypes = new Set(Object.keys(ToJson));
+// to fields
+
+type ToFields = { [K in keyof TypeMap]: (x: TypeMap[K]) => Field[] };
+
+function asFields(x: any): Field[] {
+  return x.toFields();
+}
+function empty(x: any) {
+  return [];
+}
+
+let ToFields: ToFields = {
+  PublicKey: asFields,
+  Field: asFields,
+  Bool: asFields,
+  AuthRequired(x: AuthRequired) {
+    return [x.constant, x.signatureSufficient, x.signatureNecessary]
+      .map(asFields)
+      .flat();
+  },
+  Balance: asFields,
+  GlobalSlot: asFields,
+  CurrencyAmount: asFields,
+  StateHash: asFields,
+  Fee: asFields,
+  BlockTime: asFields,
+  UInt32: asFields,
+  TokenId: asFields,
+  Sign: asFields,
+  VerificationKey: empty, // the hash is separate
+  Signature: empty, // doesn't have to be converted to fields
+  SnappProof: empty, // doesn't have to be converted to fields
+  Memo: empty, // doesn't have to be converted to fields
+  // builtin
+  number: empty,
+  string: empty,
+  null: empty,
+  undefined: empty,
+  bigint: empty,
+};
+
+function toFields<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
+  if (!(typeName in ToFields))
+    throw Error(`toFields: unsupported type "${typeName}"`);
+  return ToFields[typeName](value);
+}
+
+let toJsonLeafTypes = new Set(Object.keys(ToJson));
+let toFieldsLeafTypes = new Set(Object.keys(ToFields));

@@ -122,10 +122,8 @@ function toUpdate({
     permissions: fromSetOrKeep(permissions),
     timing: fromSetOrKeep(timing),
     // TODO -- should be a string in party.ts!
-    tokenSymbol: fromSetOrKeep(tokenSymbol)?.toString(),
-    verificationKey: verificationKey.set.toBoolean()
-      ? verificationKey.value
-      : undefined,
+    tokenSymbol: mapSetOrKeep(tokenSymbol, (v) => v.toString()),
+    verificationKey: fromSetOrKeep(verificationKey),
     zkappUri: fromSetOrKeep(zkappUri),
     votingFor: fromSetOrKeep(votingFor),
   };
@@ -172,8 +170,7 @@ function toProtocolState(
   } = protocolState;
   return {
     snarkedLedgerHash: fromOrIgnore(snarkedLedgerHash),
-    // TODO
-    timestamp: undefined, // fromClosedInterval(timestamp),
+    timestamp: fromClosedInterval(timestamp),
     blockchainLength: fromClosedInterval(blockchainLength),
     minWindowDensity: fromClosedInterval(minWindowDensity),
     totalCurrency: fromClosedInterval(totalCurrency),
@@ -207,11 +204,14 @@ function toEpochDataPredicate(
 }
 
 function fromOrIgnore<T>({ check, value }: OrIgnore<T>) {
-  return check.toBoolean() ? value : undefined;
+  return { isSome: check, value };
 }
 function fromSetOrKeep<T>({ set, value }: SetOrKeep<T>) {
-  return set.toBoolean() ? value : undefined;
+  return { isSome: set, value };
 }
 function fromClosedInterval<T>(intv: ClosedInterval<T>) {
   return { lower: intv.lower, upper: intv.upper };
+}
+function mapSetOrKeep<T, S>({ set, value }: SetOrKeep<T>, map: (t: T) => S) {
+  return { isSome: set, value: map(value) };
 }

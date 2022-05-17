@@ -317,8 +317,8 @@ export let Body = {
       delegate: keep(new PublicKey(Group.generator)),
       verificationKey: keep({ data: '', hash: Field.zero }),
       permissions: keep(Permissions.default()),
-      zkappUri: keep(undefined as any),
-      tokenSymbol: keep(undefined as any),
+      zkappUri: keep(''),
+      tokenSymbol: keep(Field.zero),
       timing: keep(undefined as any),
       votingFor: keep(Field.zero),
     };

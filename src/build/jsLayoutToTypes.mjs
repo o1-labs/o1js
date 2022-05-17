@@ -19,7 +19,7 @@ let builtinLeafTypes = new Set([
 let indent = '';
 
 function writeType(typeData, isJson) {
-  let { type, inner, layout } = typeData;
+  let { type, inner, layout, optionType } = typeData;
   if (type === 'array') {
     let { output, dependencies } = writeType(inner, isJson);
     return {
@@ -27,10 +27,20 @@ function writeType(typeData, isJson) {
       dependencies,
     };
   }
-  if (type === 'orundefined') {
+  if (type === 'option') {
     let { output, dependencies } = writeType(inner, isJson);
+    if (optionType === 'flaggedOption') {
+      dependencies ??= new Set();
+      dependencies.add('Bool');
+    }
     return {
-      output: isJson ? `(${output} | null)` : `(${output} | undefined)`,
+      output: isJson
+        ? `(${output} | null)`
+        : optionType === 'implicit'
+        ? output
+        : optionType === 'flaggedOption'
+        ? `{isSome: Bool, value: ${output}}`
+        : `(${output} | undefined)`,
       dependencies,
     };
   }
@@ -41,7 +51,11 @@ function writeType(typeData, isJson) {
     // TODO: make docs work and use them for doccomments
     for (let { key, value, docs } of layout) {
       let questionMark = '';
-      if (!isJson && value.type === 'orundefined') {
+      if (
+        !isJson &&
+        value.type === 'option' &&
+        value.optionType === 'orUndefined'
+      ) {
         value = value.inner;
         questionMark = '?';
       }

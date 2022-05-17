@@ -3,6 +3,7 @@
 import {
   PublicKey,
   Field,
+  Bool,
   VerificationKey,
   AuthRequired,
   Balance,
@@ -15,7 +16,6 @@ import {
   Signature,
   TokenId,
   Sign,
-  Bool,
   SnappProof,
   Memo,
 } from './parties-leaves';
@@ -32,93 +32,102 @@ type Parties = {
     body: {
       publicKey: PublicKey;
       update: {
-        appState: (Field | undefined)[];
-        delegate?: PublicKey;
-        verificationKey?: {
-          data: VerificationKey;
-          hash: Field;
+        appState: { isSome: Bool; value: Field }[];
+        delegate: { isSome: Bool; value: PublicKey };
+        verificationKey: {
+          isSome: Bool;
+          value: {
+            data: VerificationKey;
+            hash: Field;
+          };
         };
-        permissions?: {
-          editState: AuthRequired;
-          send: AuthRequired;
-          receive: AuthRequired;
-          setDelegate: AuthRequired;
-          setPermissions: AuthRequired;
-          setVerificationKey: AuthRequired;
-          setZkappUri: AuthRequired;
-          editSequenceState: AuthRequired;
-          setTokenSymbol: AuthRequired;
-          incrementNonce: AuthRequired;
-          setVotingFor: AuthRequired;
+        permissions: {
+          isSome: Bool;
+          value: {
+            editState: AuthRequired;
+            send: AuthRequired;
+            receive: AuthRequired;
+            setDelegate: AuthRequired;
+            setPermissions: AuthRequired;
+            setVerificationKey: AuthRequired;
+            setZkappUri: AuthRequired;
+            editSequenceState: AuthRequired;
+            setTokenSymbol: AuthRequired;
+            incrementNonce: AuthRequired;
+            setVotingFor: AuthRequired;
+          };
         };
-        zkappUri?: string;
-        tokenSymbol?: string;
-        timing?: {
-          initialMinimumBalance: Balance;
-          cliffTime: GlobalSlot;
-          cliffAmount: CurrencyAmount;
-          vestingPeriod: GlobalSlot;
-          vestingIncrement: CurrencyAmount;
+        zkappUri: { isSome: Bool; value: string };
+        tokenSymbol: { isSome: Bool; value: string };
+        timing: {
+          isSome: Bool;
+          value: {
+            initialMinimumBalance: Balance;
+            cliffTime: GlobalSlot;
+            cliffAmount: CurrencyAmount;
+            vestingPeriod: GlobalSlot;
+            vestingIncrement: CurrencyAmount;
+          };
         };
-        votingFor?: StateHash;
+        votingFor: { isSome: Bool; value: StateHash };
       };
       fee: Fee;
       events: Field[][];
       sequenceEvents: Field[][];
       protocolStatePrecondition: {
-        snarkedLedgerHash?: Field;
-        timestamp?: {
+        snarkedLedgerHash: { isSome: Bool; value: Field };
+        timestamp: {
           lower: BlockTime;
           upper: BlockTime;
         };
-        blockchainLength?: {
+        blockchainLength: {
           lower: UInt32;
           upper: UInt32;
         };
-        minWindowDensity?: {
+        minWindowDensity: {
           lower: UInt32;
           upper: UInt32;
         };
-        totalCurrency?: {
+        totalCurrency: {
           lower: CurrencyAmount;
           upper: CurrencyAmount;
         };
-        globalSlotSinceHardFork?: {
+        globalSlotSinceHardFork: {
           lower: UInt32;
           upper: UInt32;
         };
-        globalSlotSinceGenesis?: {
+        globalSlotSinceGenesis: {
           lower: UInt32;
           upper: UInt32;
         };
         stakingEpochData: {
           ledger: {
-            hash?: Field;
-            totalCurrency?: {
+            hash: { isSome: Bool; value: Field };
+            totalCurrency: {
               lower: CurrencyAmount;
               upper: CurrencyAmount;
             };
           };
-          seed?: Field;
-          startCheckpoint?: Field;
-          lockCheckpoint?: Field;
-          epochLength?: {
+          seed: { isSome: Bool; value: Field };
+          startCheckpoint: { isSome: Bool; value: Field };
+          lockCheckpoint: { isSome: Bool; value: Field };
+          epochLength: {
             lower: UInt32;
             upper: UInt32;
           };
         };
         nextEpochData: {
           ledger: {
-            hash?: Field;
-            totalCurrency?: {
+            hash: { isSome: Bool; value: Field };
+            totalCurrency: {
               lower: CurrencyAmount;
               upper: CurrencyAmount;
             };
           };
-          seed?: Field;
-          startCheckpoint?: Field;
-          lockCheckpoint?: Field;
-          epochLength?: {
+          seed: { isSome: Bool; value: Field };
+          startCheckpoint: { isSome: Bool; value: Field };
+          lockCheckpoint: { isSome: Bool; value: Field };
+          epochLength: {
             lower: UInt32;
             upper: UInt32;
           };
@@ -133,35 +142,44 @@ type Parties = {
       publicKey: PublicKey;
       tokenId: TokenId;
       update: {
-        appState: (Field | undefined)[];
-        delegate?: PublicKey;
-        verificationKey?: {
-          data: VerificationKey;
-          hash: Field;
+        appState: { isSome: Bool; value: Field }[];
+        delegate: { isSome: Bool; value: PublicKey };
+        verificationKey: {
+          isSome: Bool;
+          value: {
+            data: VerificationKey;
+            hash: Field;
+          };
         };
-        permissions?: {
-          editState: AuthRequired;
-          send: AuthRequired;
-          receive: AuthRequired;
-          setDelegate: AuthRequired;
-          setPermissions: AuthRequired;
-          setVerificationKey: AuthRequired;
-          setZkappUri: AuthRequired;
-          editSequenceState: AuthRequired;
-          setTokenSymbol: AuthRequired;
-          incrementNonce: AuthRequired;
-          setVotingFor: AuthRequired;
+        permissions: {
+          isSome: Bool;
+          value: {
+            editState: AuthRequired;
+            send: AuthRequired;
+            receive: AuthRequired;
+            setDelegate: AuthRequired;
+            setPermissions: AuthRequired;
+            setVerificationKey: AuthRequired;
+            setZkappUri: AuthRequired;
+            editSequenceState: AuthRequired;
+            setTokenSymbol: AuthRequired;
+            incrementNonce: AuthRequired;
+            setVotingFor: AuthRequired;
+          };
         };
-        zkappUri?: string;
-        tokenSymbol?: string;
-        timing?: {
-          initialMinimumBalance: Balance;
-          cliffTime: GlobalSlot;
-          cliffAmount: CurrencyAmount;
-          vestingPeriod: GlobalSlot;
-          vestingIncrement: CurrencyAmount;
+        zkappUri: { isSome: Bool; value: string };
+        tokenSymbol: { isSome: Bool; value: string };
+        timing: {
+          isSome: Bool;
+          value: {
+            initialMinimumBalance: Balance;
+            cliffTime: GlobalSlot;
+            cliffAmount: CurrencyAmount;
+            vestingPeriod: GlobalSlot;
+            vestingIncrement: CurrencyAmount;
+          };
         };
-        votingFor?: StateHash;
+        votingFor: { isSome: Bool; value: StateHash };
       };
       balanceChange: {
         magnitude: CurrencyAmount;
@@ -173,78 +191,78 @@ type Parties = {
       callData: Field;
       callDepth: number;
       protocolStatePrecondition: {
-        snarkedLedgerHash?: Field;
-        timestamp?: {
+        snarkedLedgerHash: { isSome: Bool; value: Field };
+        timestamp: {
           lower: BlockTime;
           upper: BlockTime;
         };
-        blockchainLength?: {
+        blockchainLength: {
           lower: UInt32;
           upper: UInt32;
         };
-        minWindowDensity?: {
+        minWindowDensity: {
           lower: UInt32;
           upper: UInt32;
         };
-        totalCurrency?: {
+        totalCurrency: {
           lower: CurrencyAmount;
           upper: CurrencyAmount;
         };
-        globalSlotSinceHardFork?: {
+        globalSlotSinceHardFork: {
           lower: UInt32;
           upper: UInt32;
         };
-        globalSlotSinceGenesis?: {
+        globalSlotSinceGenesis: {
           lower: UInt32;
           upper: UInt32;
         };
         stakingEpochData: {
           ledger: {
-            hash?: Field;
-            totalCurrency?: {
+            hash: { isSome: Bool; value: Field };
+            totalCurrency: {
               lower: CurrencyAmount;
               upper: CurrencyAmount;
             };
           };
-          seed?: Field;
-          startCheckpoint?: Field;
-          lockCheckpoint?: Field;
-          epochLength?: {
+          seed: { isSome: Bool; value: Field };
+          startCheckpoint: { isSome: Bool; value: Field };
+          lockCheckpoint: { isSome: Bool; value: Field };
+          epochLength: {
             lower: UInt32;
             upper: UInt32;
           };
         };
         nextEpochData: {
           ledger: {
-            hash?: Field;
-            totalCurrency?: {
+            hash: { isSome: Bool; value: Field };
+            totalCurrency: {
               lower: CurrencyAmount;
               upper: CurrencyAmount;
             };
           };
-          seed?: Field;
-          startCheckpoint?: Field;
-          lockCheckpoint?: Field;
-          epochLength?: {
+          seed: { isSome: Bool; value: Field };
+          startCheckpoint: { isSome: Bool; value: Field };
+          lockCheckpoint: { isSome: Bool; value: Field };
+          epochLength: {
             lower: UInt32;
             upper: UInt32;
           };
         };
       };
       accountPrecondition: {
-        balance?: {
+        balance: {
           lower: Balance;
           upper: Balance;
         };
-        nonce?: {
+        nonce: {
           lower: UInt32;
           upper: UInt32;
         };
-        receiptChainHash?: Field;
-        delegate?: PublicKey;
-        state: (Field | undefined)[];
-        sequenceState?: Field;
-        provedState?: Bool;
+        receiptChainHash: { isSome: Bool; value: Field };
+        delegate: { isSome: Bool; value: PublicKey };
+        state: { isSome: Bool; value: Field }[];
+        sequenceState: { isSome: Bool; value: Field };
+        provedState: { isSome: Bool; value: Bool };
       };
       useFullCommitment: Bool;
       caller: TokenId;
