@@ -337,15 +337,7 @@
         "type": "function"
       },
       {
-        "name": "hashParty",
-        "type": "function"
-      },
-      {
         "name": "hashTransaction",
-        "type": "function"
-      },
-      {
-        "name": "hashPartyChecked",
         "type": "function"
       },
       {

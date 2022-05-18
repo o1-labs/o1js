@@ -801,9 +801,7 @@ export class Ledger {
 
   getAccount(publicKey: { g: Group }): Account | undefined;
 
-  static hashParty(partyJson: string): Field;
   static hashTransaction(partyHash: Field): Field;
-  static hashPartyChecked(party: Party_): Field;
   static hashTransactionChecked(partyHash: Field): Field;
 
   static transactionCommitments(txJson: string): {

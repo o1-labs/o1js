@@ -20,7 +20,6 @@ import {
 import { Json } from 'snarky/parties';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
-import { toParty } from './party-conversion';
 import { UInt32, UInt64 } from './int';
 import { Account, fetchAccount } from './fetch';
 import {
@@ -376,7 +375,7 @@ type Prover = (statement: Statement) => Promise<Proof>;
 
 function toStatement(self: Party, tail: Field) {
   // TODO hash together party with tail in the right way
-  let atParty = Ledger.hashPartyChecked(toParty(self));
+  let atParty = self.hash();
   let transaction = Ledger.hashTransactionChecked(atParty);
   return { transaction, atParty };
 }

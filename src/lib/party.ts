@@ -11,10 +11,10 @@ import {
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
-import { toParties } from './party-conversion-new';
 import { SmartContract } from './zkapp';
 import { withContextAsync } from './global-context';
-import { Parties as Parties_, Json } from '../snarky/parties';
+import { toParties, toParty } from './party-conversion-new';
+import { Parties as Parties_, Party as Party_, Json } from '../snarky/parties';
 
 export {
   FeePayer,
@@ -755,6 +755,11 @@ export class Party {
       accountPrecondition.nonce.assertBetween(nonce, nonce);
     }
     return nonce;
+  }
+
+  hash() {
+    let fields = Party_.toFields(toParty(this));
+    return Ledger.hashPartyFromFields(fields);
   }
 
   static defaultParty(address: PublicKey) {
