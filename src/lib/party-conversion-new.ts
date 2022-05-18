@@ -80,12 +80,11 @@ function toPartyBody(body: Body): Party_['body'] {
     tokenId: body.tokenId,
     update: toUpdate(body.update),
     useFullCommitment: body.useFullCommitment,
-    events: body.events.events,
+    events: body.events,
     callDepth: parseInt(body.depth.toString(), 10),
     accountPrecondition: toAccountPrecondition(body.accountPrecondition),
-    // TODO
-    sequenceEvents: [],
-    callData: Field.zero,
+    sequenceEvents: body.sequenceEvents,
+    callData: body.callData,
     protocolStatePrecondition: toProtocolState(body.protocolState),
   };
 }
@@ -99,9 +98,8 @@ function toFeePayerPartyBody(
     nonce: body.accountPrecondition,
     publicKey: body.publicKey,
     update: toUpdate(body.update),
-    events: body.events.events,
-    // TODO
-    sequenceEvents: [],
+    events: body.events,
+    sequenceEvents: body.sequenceEvents,
     protocolStatePrecondition: toProtocolState(body.protocolState),
   };
 }
@@ -147,7 +145,7 @@ function toAccountPrecondition(
     nonce: fromClosedInterval(full.nonce),
     provedState: fromOrIgnore(full.provedState),
     receiptChainHash: fromOrIgnore(full.receiptChainHash),
-    sequenceState: fromOrIgnore(full.sequenceState),
+    sequenceState: full.sequenceState,
   };
 }
 

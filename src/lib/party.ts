@@ -250,23 +250,30 @@ export type Update = {
   votingFor: SetOrKeep<Field>;
 };
 
-export const defaultTokenId = Field.one;
+export const getDefaultTokenId = () => Field.one;
 
 // TODO
 class Events {
   hash: Field;
-  events: Array<Array<Field>>;
+  data: Field[][];
 
-  // TODO
-  constructor(hash: Field, events: Array<Array<Field>>) {
-    this.hash = hash;
-    this.events = events;
+  // TODO don't hard-code, implement hashes
+  static empty() {
+    let emptyHash = Field(
+      '23641812384071365026036270005604392899711718400522999453895455265440046333209'
+    );
+    return new Events(emptyHash, []);
   }
-}
+  static emptySequenceState() {
+    return Field(
+      '19777675955122618431670853529822242067051263606115426372178827525373304476695'
+    );
+  }
 
-// TODO
-class MerkleList<T> {
-  constructor() {}
+  constructor(hash: Field, events: Field[][]) {
+    this.hash = hash;
+    this.data = events;
+  }
 }
 
 export type Precondition = undefined | UInt32 | AccountPrecondition;
@@ -305,8 +312,9 @@ export type Body = {
    * TODO: Add a reference to general explanation of events.
    */
   events: Events;
-  sequenceEvents: Field;
-  callData: MerkleList<Array<Field>>;
+  sequenceEvents: Events;
+  caller: Field;
+  callData: Field; //MerkleList<Array<Field>>;
   depth: Field; // TODO: this is an `int As_prover.t`
   protocolState: ProtocolStatePredicate;
   accountPrecondition: Precondition;
@@ -350,11 +358,12 @@ export let Body = {
     return {
       publicKey,
       update,
-      tokenId: defaultTokenId,
+      tokenId: getDefaultTokenId(),
       delta: Int64.zero,
-      events: new Events(Field.zero, []),
-      sequenceEvents: Field.zero,
-      callData: new MerkleList(),
+      events: Events.empty(),
+      sequenceEvents: Events.empty(),
+      caller: getDefaultTokenId(),
+      callData: Field.zero, // TODO new MerkleList(),
       depth: Field.zero,
       protocolState: ProtocolStatePredicate.ignoreAll(),
       accountPrecondition: AccountPrecondition.ignoreAll(),
@@ -634,7 +643,7 @@ export type AccountPrecondition = {
   publicKey: OrIgnore<PublicKey>;
   delegate: OrIgnore<PublicKey>;
   state: Array<OrIgnore<Field>>;
-  sequenceState: OrIgnore<Field>;
+  sequenceState: Field; // ignoring is implicit
   provedState: OrIgnore<Bool>;
 };
 export const AccountPrecondition = {
@@ -647,10 +656,10 @@ export const AccountPrecondition = {
       balance: uint64(),
       nonce: uint32(),
       receiptChainHash: ignore(Field.zero),
-      publicKey: ignore(new PublicKey(Group.generator)),
-      delegate: ignore(new PublicKey(Group.generator)),
+      publicKey: ignore(PublicKey.empty()),
+      delegate: ignore(PublicKey.empty()),
       state: appState,
-      sequenceState: ignore(Field.zero),
+      sequenceState: Events.emptySequenceState(),
       provedState: ignore(Bool(false)),
     };
   },

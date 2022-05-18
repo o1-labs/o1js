@@ -720,7 +720,7 @@ interface FullAccountPredicate_ {
   publicKey: OrIgnore_<{ g: Group }>;
   delegate: OrIgnore_<{ g: Group }>;
   state: Array<OrIgnore_<Field>>;
-  sequenceState: OrIgnore_<Field>;
+  sequenceState: Field;
   provedState: OrIgnore_<Bool>;
 }
 
@@ -829,6 +829,9 @@ export class Ledger {
   static fieldToBase58(field: Field): string;
   static fieldOfBase58(fieldBase58: string): Field;
   static memoToBase58(memoString: string): string;
+
+  static fieldsOfJson(json: string): Field[];
+  static hashPartyFromFields(fields: Field[]): Field;
 }
 
 /**

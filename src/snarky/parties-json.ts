@@ -6,6 +6,7 @@ import {
   Bool,
   VerificationKey,
   AuthRequired,
+  StringWithHash,
   Balance,
   GlobalSlot,
   CurrencyAmount,
@@ -20,7 +21,7 @@ import {
   Memo,
 } from './parties-leaves-json';
 
-export { Parties, BalanceChange };
+export { Parties, BalanceChange, Party };
 export * from './parties-leaves-json';
 
 type Parties = {
@@ -47,8 +48,8 @@ type Parties = {
           incrementNonce: AuthRequired;
           setVotingFor: AuthRequired;
         } | null;
-        zkappUri: string | null;
-        tokenSymbol: string | null;
+        zkappUri: StringWithHash | null;
+        tokenSymbol: StringWithHash | null;
         timing: {
           initialMinimumBalance: Balance;
           cliffTime: GlobalSlot;
@@ -148,8 +149,8 @@ type Parties = {
           incrementNonce: AuthRequired;
           setVotingFor: AuthRequired;
         } | null;
-        zkappUri: string | null;
-        tokenSymbol: string | null;
+        zkappUri: StringWithHash | null;
+        tokenSymbol: StringWithHash | null;
         timing: {
           initialMinimumBalance: Balance;
           cliffTime: GlobalSlot;
@@ -256,4 +257,131 @@ type Parties = {
 type BalanceChange = {
   magnitude: CurrencyAmount;
   sgn: Sign;
+};
+
+type Party = {
+  body: {
+    publicKey: PublicKey;
+    tokenId: TokenId;
+    update: {
+      appState: (Field | null)[];
+      delegate: PublicKey | null;
+      verificationKey: {
+        data: VerificationKey;
+        hash: Field;
+      } | null;
+      permissions: {
+        editState: AuthRequired;
+        send: AuthRequired;
+        receive: AuthRequired;
+        setDelegate: AuthRequired;
+        setPermissions: AuthRequired;
+        setVerificationKey: AuthRequired;
+        setZkappUri: AuthRequired;
+        editSequenceState: AuthRequired;
+        setTokenSymbol: AuthRequired;
+        incrementNonce: AuthRequired;
+        setVotingFor: AuthRequired;
+      } | null;
+      zkappUri: StringWithHash | null;
+      tokenSymbol: StringWithHash | null;
+      timing: {
+        initialMinimumBalance: Balance;
+        cliffTime: GlobalSlot;
+        cliffAmount: CurrencyAmount;
+        vestingPeriod: GlobalSlot;
+        vestingIncrement: CurrencyAmount;
+      } | null;
+      votingFor: StateHash | null;
+    };
+    balanceChange: {
+      magnitude: CurrencyAmount;
+      sgn: Sign;
+    };
+    incrementNonce: Bool;
+    events: Field[][];
+    sequenceEvents: Field[][];
+    callData: Field;
+    callDepth: number;
+    protocolStatePrecondition: {
+      snarkedLedgerHash: Field | null;
+      timestamp: {
+        lower: BlockTime;
+        upper: BlockTime;
+      } | null;
+      blockchainLength: {
+        lower: UInt32;
+        upper: UInt32;
+      } | null;
+      minWindowDensity: {
+        lower: UInt32;
+        upper: UInt32;
+      } | null;
+      totalCurrency: {
+        lower: CurrencyAmount;
+        upper: CurrencyAmount;
+      } | null;
+      globalSlotSinceHardFork: {
+        lower: UInt32;
+        upper: UInt32;
+      } | null;
+      globalSlotSinceGenesis: {
+        lower: UInt32;
+        upper: UInt32;
+      } | null;
+      stakingEpochData: {
+        ledger: {
+          hash: Field | null;
+          totalCurrency: {
+            lower: CurrencyAmount;
+            upper: CurrencyAmount;
+          } | null;
+        };
+        seed: Field | null;
+        startCheckpoint: Field | null;
+        lockCheckpoint: Field | null;
+        epochLength: {
+          lower: UInt32;
+          upper: UInt32;
+        } | null;
+      };
+      nextEpochData: {
+        ledger: {
+          hash: Field | null;
+          totalCurrency: {
+            lower: CurrencyAmount;
+            upper: CurrencyAmount;
+          } | null;
+        };
+        seed: Field | null;
+        startCheckpoint: Field | null;
+        lockCheckpoint: Field | null;
+        epochLength: {
+          lower: UInt32;
+          upper: UInt32;
+        } | null;
+      };
+    };
+    accountPrecondition: {
+      balance: {
+        lower: Balance;
+        upper: Balance;
+      } | null;
+      nonce: {
+        lower: UInt32;
+        upper: UInt32;
+      } | null;
+      receiptChainHash: Field | null;
+      delegate: PublicKey | null;
+      state: (Field | null)[];
+      sequenceState: Field | null;
+      provedState: Bool | null;
+    };
+    useFullCommitment: Bool;
+    caller: TokenId;
+  };
+  authorization: {
+    proof: SnappProof | null;
+    signature: Signature | null;
+  };
 };

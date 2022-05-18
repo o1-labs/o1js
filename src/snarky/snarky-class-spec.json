@@ -399,6 +399,14 @@
       {
         "name": "memoToBase58",
         "type": "function"
+      },
+      {
+        "name": "fieldsOfJson",
+        "type": "function"
+      },
+      {
+        "name": "hashPartyFromFields",
+        "type": "function"
       }
     ]
   },

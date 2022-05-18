@@ -73,7 +73,7 @@ function toPartyBody(body: Body): Party_['body'] {
   return {
     ...body,
     update: toUpdate(body.update),
-    events: body.events.events,
+    events: body.events.data,
     depth: parseInt(body.depth.toString(), 10),
     accountPrecondition: { kind: 'full', value: accountPrecondition },
     // TODO
@@ -89,7 +89,7 @@ function toFeePayerPartyBody(
   return {
     ...body,
     update: toUpdate(body.update),
-    events: body.events.events,
+    events: body.events.data,
     depth: parseInt(body.depth.toString(), 10),
     // TODO
     sequenceEvents: [],

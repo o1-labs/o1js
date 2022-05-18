@@ -225,6 +225,26 @@ let jsLayout = {
                     value: {
                       type: 'array',
                       inner: { type: 'array', inner: { type: 'Field' } },
+                      checkedType: {
+                        type: 'object',
+                        name: 'Events',
+                        docs: null,
+                        layout: [
+                          {
+                            key: 'data',
+                            value: {
+                              type: 'array',
+                              inner: {
+                                type: 'array',
+                                inner: { type: 'Field' },
+                              },
+                            },
+                            docs: null,
+                          },
+                          { key: 'hash', value: { type: 'Field' }, docs: null },
+                        ],
+                      },
+                      checkedTypeName: 'Events',
                     },
                     docs: null,
                   },
@@ -233,6 +253,26 @@ let jsLayout = {
                     value: {
                       type: 'array',
                       inner: { type: 'array', inner: { type: 'Field' } },
+                      checkedType: {
+                        type: 'object',
+                        name: 'Events',
+                        docs: null,
+                        layout: [
+                          {
+                            key: 'data',
+                            value: {
+                              type: 'array',
+                              inner: {
+                                type: 'array',
+                                inner: { type: 'Field' },
+                              },
+                            },
+                            docs: null,
+                          },
+                          { key: 'hash', value: { type: 'Field' }, docs: null },
+                        ],
+                      },
+                      checkedTypeName: 'Events',
                     },
                     docs: null,
                   },
@@ -875,6 +915,30 @@ let jsLayout = {
                       value: {
                         type: 'array',
                         inner: { type: 'array', inner: { type: 'Field' } },
+                        checkedType: {
+                          type: 'object',
+                          name: 'Events',
+                          docs: null,
+                          layout: [
+                            {
+                              key: 'data',
+                              value: {
+                                type: 'array',
+                                inner: {
+                                  type: 'array',
+                                  inner: { type: 'Field' },
+                                },
+                              },
+                              docs: null,
+                            },
+                            {
+                              key: 'hash',
+                              value: { type: 'Field' },
+                              docs: null,
+                            },
+                          ],
+                        },
+                        checkedTypeName: 'Events',
                       },
                       docs: null,
                     },
@@ -883,6 +947,30 @@ let jsLayout = {
                       value: {
                         type: 'array',
                         inner: { type: 'array', inner: { type: 'Field' } },
+                        checkedType: {
+                          type: 'object',
+                          name: 'Events',
+                          docs: null,
+                          layout: [
+                            {
+                              key: 'data',
+                              value: {
+                                type: 'array',
+                                inner: {
+                                  type: 'array',
+                                  inner: { type: 'Field' },
+                                },
+                              },
+                              docs: null,
+                            },
+                            {
+                              key: 'hash',
+                              value: { type: 'Field' },
+                              docs: null,
+                            },
+                          ],
+                        },
+                        checkedTypeName: 'Events',
                       },
                       docs: null,
                     },
@@ -1373,7 +1461,7 @@ let jsLayout = {
                             key: 'sequenceState',
                             value: {
                               type: 'option',
-                              optionType: 'flaggedOption',
+                              optionType: 'implicit',
                               inner: { type: 'Field' },
                             },
                             docs: null,
@@ -1674,6 +1762,23 @@ let jsLayout = {
               value: {
                 type: 'array',
                 inner: { type: 'array', inner: { type: 'Field' } },
+                checkedType: {
+                  type: 'object',
+                  name: 'Events',
+                  docs: null,
+                  layout: [
+                    {
+                      key: 'data',
+                      value: {
+                        type: 'array',
+                        inner: { type: 'array', inner: { type: 'Field' } },
+                      },
+                      docs: null,
+                    },
+                    { key: 'hash', value: { type: 'Field' }, docs: null },
+                  ],
+                },
+                checkedTypeName: 'Events',
               },
               docs: null,
             },
@@ -1682,6 +1787,23 @@ let jsLayout = {
               value: {
                 type: 'array',
                 inner: { type: 'array', inner: { type: 'Field' } },
+                checkedType: {
+                  type: 'object',
+                  name: 'Events',
+                  docs: null,
+                  layout: [
+                    {
+                      key: 'data',
+                      value: {
+                        type: 'array',
+                        inner: { type: 'array', inner: { type: 'Field' } },
+                      },
+                      docs: null,
+                    },
+                    { key: 'hash', value: { type: 'Field' }, docs: null },
+                  ],
+                },
+                checkedTypeName: 'Events',
               },
               docs: null,
             },
@@ -2164,7 +2286,7 @@ let jsLayout = {
                     key: 'sequenceState',
                     value: {
                       type: 'option',
-                      optionType: 'flaggedOption',
+                      optionType: 'implicit',
                       inner: { type: 'Field' },
                     },
                     docs: null,
@@ -2214,194 +2336,6 @@ let jsLayout = {
               docs: null,
             },
           ],
-        },
-        docs: null,
-      },
-    ],
-  },
-  Permissions: {
-    type: 'object',
-    name: 'Permissions',
-    docs: null,
-    layout: [
-      { key: 'editState', value: { type: 'AuthRequired' }, docs: null },
-      { key: 'send', value: { type: 'AuthRequired' }, docs: null },
-      { key: 'receive', value: { type: 'AuthRequired' }, docs: null },
-      { key: 'setDelegate', value: { type: 'AuthRequired' }, docs: null },
-      { key: 'setPermissions', value: { type: 'AuthRequired' }, docs: null },
-      {
-        key: 'setVerificationKey',
-        value: { type: 'AuthRequired' },
-        docs: null,
-      },
-      { key: 'setZkappUri', value: { type: 'AuthRequired' }, docs: null },
-      { key: 'editSequenceState', value: { type: 'AuthRequired' }, docs: null },
-      { key: 'setTokenSymbol', value: { type: 'AuthRequired' }, docs: null },
-      { key: 'incrementNonce', value: { type: 'AuthRequired' }, docs: null },
-      { key: 'setVotingFor', value: { type: 'AuthRequired' }, docs: null },
-    ],
-  },
-  Update: {
-    type: 'object',
-    name: 'PartyUpdate',
-    docs: null,
-    layout: [
-      {
-        key: 'appState',
-        value: {
-          type: 'array',
-          inner: {
-            type: 'option',
-            optionType: 'flaggedOption',
-            inner: { type: 'Field' },
-          },
-        },
-        docs: null,
-      },
-      {
-        key: 'delegate',
-        value: {
-          type: 'option',
-          optionType: 'flaggedOption',
-          inner: { type: 'PublicKey' },
-        },
-        docs: null,
-      },
-      {
-        key: 'verificationKey',
-        value: {
-          type: 'option',
-          optionType: 'flaggedOption',
-          inner: {
-            type: 'object',
-            name: 'VerificationKeyWithHash',
-            docs: null,
-            layout: [
-              { key: 'data', value: { type: 'VerificationKey' }, docs: null },
-              { key: 'hash', value: { type: 'Field' }, docs: null },
-            ],
-          },
-        },
-        docs: null,
-      },
-      {
-        key: 'permissions',
-        value: {
-          type: 'option',
-          optionType: 'flaggedOption',
-          inner: {
-            type: 'object',
-            name: 'Permissions',
-            docs: null,
-            layout: [
-              { key: 'editState', value: { type: 'AuthRequired' }, docs: null },
-              { key: 'send', value: { type: 'AuthRequired' }, docs: null },
-              { key: 'receive', value: { type: 'AuthRequired' }, docs: null },
-              {
-                key: 'setDelegate',
-                value: { type: 'AuthRequired' },
-                docs: null,
-              },
-              {
-                key: 'setPermissions',
-                value: { type: 'AuthRequired' },
-                docs: null,
-              },
-              {
-                key: 'setVerificationKey',
-                value: { type: 'AuthRequired' },
-                docs: null,
-              },
-              {
-                key: 'setZkappUri',
-                value: { type: 'AuthRequired' },
-                docs: null,
-              },
-              {
-                key: 'editSequenceState',
-                value: { type: 'AuthRequired' },
-                docs: null,
-              },
-              {
-                key: 'setTokenSymbol',
-                value: { type: 'AuthRequired' },
-                docs: null,
-              },
-              {
-                key: 'incrementNonce',
-                value: { type: 'AuthRequired' },
-                docs: null,
-              },
-              {
-                key: 'setVotingFor',
-                value: { type: 'AuthRequired' },
-                docs: null,
-              },
-            ],
-          },
-        },
-        docs: null,
-      },
-      {
-        key: 'zkappUri',
-        value: {
-          type: 'option',
-          optionType: 'flaggedOption',
-          inner: { type: 'StringWithHash' },
-        },
-        docs: null,
-      },
-      {
-        key: 'tokenSymbol',
-        value: {
-          type: 'option',
-          optionType: 'flaggedOption',
-          inner: { type: 'StringWithHash' },
-        },
-        docs: null,
-      },
-      {
-        key: 'timing',
-        value: {
-          type: 'option',
-          optionType: 'flaggedOption',
-          inner: {
-            type: 'object',
-            name: 'Timing',
-            docs: null,
-            layout: [
-              {
-                key: 'initialMinimumBalance',
-                value: { type: 'Balance' },
-                docs: null,
-              },
-              { key: 'cliffTime', value: { type: 'GlobalSlot' }, docs: null },
-              {
-                key: 'cliffAmount',
-                value: { type: 'CurrencyAmount' },
-                docs: null,
-              },
-              {
-                key: 'vestingPeriod',
-                value: { type: 'GlobalSlot' },
-                docs: null,
-              },
-              {
-                key: 'vestingIncrement',
-                value: { type: 'CurrencyAmount' },
-                docs: null,
-              },
-            ],
-          },
-        },
-        docs: null,
-      },
-      {
-        key: 'votingFor',
-        value: {
-          type: 'option',
-          optionType: 'flaggedOption',
-          inner: { type: 'StateHash' },
         },
         docs: null,
       },

@@ -23,6 +23,8 @@ export {
   Memo,
 };
 
+export { convertEventsToJson, convertEventsToFields };
+
 export { toJson, toJsonLeafTypes, toFields, toFieldsLeafTypes };
 
 type UInt64 = { value: Field };
@@ -235,3 +237,13 @@ function toFields<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
 
 let toJsonLeafTypes = new Set(Object.keys(ToJson));
 let toFieldsLeafTypes = new Set(Object.keys(ToFields));
+
+// converters for types which got an annotation about its circuit type in Ocaml
+
+function convertEventsToJson({ data }: { data: Field[][]; hash: Field }) {
+  return data.map((row) => row.map((e) => toJson('Field', e)));
+}
+
+function convertEventsToFields({ hash }: { data: Field[][]; hash: Field }) {
+  return [hash];
+}
