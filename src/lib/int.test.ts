@@ -1,6 +1,7 @@
 import {
   shutdown,
   isReady,
+  Circuit,
   Int64,
   UInt64,
   UInt32,
@@ -173,347 +174,828 @@ describe('int', () => {
   });
 
   describe('UInt64', () => {
-    describe('add', () => {
-      it('1+1=2', () => {
-        expect(new UInt64(Field.one).add(1).toString()).toEqual('2');
+    describe('Inside circuit', () => {
+      describe('add', () => {
+        it('1+1=2', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              x.add(y).assertEquals(new UInt64(Field(2)));
+            });
+          }).not.toThrow();
+        });
+
+        it('5000+5000=10000', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field(5000)));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field(5000)));
+              x.add(y).assertEquals(new UInt64(Field(10000)));
+            });
+          }).not.toThrow();
+        });
+
+        it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
+          const n = Field((((1n << 64n) - 2n) / 2n).toString());
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(n));
+              const y = Circuit.witness(UInt64, () => new UInt64(n));
+              x.add(y).add(1).assertEquals(UInt64.MAXINT());
+            });
+          }).not.toThrow();
+        });
+
+        it('should throw on overflow addition', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              x.add(y);
+            });
+          }).toThrow();
+        });
       });
 
-      it('5000+5000=10000', () => {
-        expect(new UInt64(Field(5000)).add(5000).toString()).toEqual('10000');
+      describe('sub', () => {
+        it('1-1=0', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              x.sub(y).assertEquals(new UInt64(Field.zero));
+            });
+          }).not.toThrow();
+        });
+
+        it('10000-5000=5000', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field(10000)));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field(5000)));
+              x.sub(y).assertEquals(new UInt64(Field(5000)));
+            });
+          }).not.toThrow();
+        });
+
+        it('should throw on sub if results in negative number', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field.zero));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              x.sub(y);
+            });
+          }).toThrow();
+        });
       });
 
-      it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
-        const value = Field((((1n << 64n) - 2n) / 2n).toString());
-        expect(
-          new UInt64(value)
-            .add(new UInt64(value))
-            .add(new UInt64(Field.one))
-            .toString()
-        ).toEqual(UInt64.MAXINT().toString());
+      describe('mul', () => {
+        it('1x2=2', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field(2)));
+              x.mul(y).assertEquals(new UInt64(Field(2)));
+            });
+          }).not.toThrow();
+        });
+
+        it('1x0=0', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.zero));
+              x.mul(y).assertEquals(new UInt64(Field.zero));
+            });
+          }).not.toThrow();
+        });
+
+        it('1000x1000=1000000', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
+              x.mul(y).assertEquals(new UInt64(Field(1000000)));
+            });
+          }).not.toThrow();
+        });
+
+        it('MAXINTx1=MAXINT', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              x.mul(y).assertEquals(UInt64.MAXINT());
+            });
+          }).not.toThrow();
+        });
+
+        it('should throw on overflow multiplication', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
+              const y = Circuit.witness(UInt64, () => new UInt64(Field(2)));
+              x.mul(y);
+            });
+          }).toThrow();
+        });
       });
 
-      it('should throw on overflow addition', () => {
-        expect(() => {
-          UInt64.MAXINT().add(1);
-        }).toThrow();
+      describe('div', () => {
+        it('2/1=2', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field(2)));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              x.div(y).assertEquals(new UInt64(Field(2)));
+            });
+          }).not.toThrow();
+        });
+
+        it('0/1=0', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field.zero));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              x.div(y).assertEquals(new UInt64(Field.zero));
+            });
+          }).not.toThrow();
+        });
+
+        it('2000/1000=2', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field(2000)));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
+              x.div(y).assertEquals(new UInt64(Field(2)));
+            });
+          }).not.toThrow();
+        });
+
+        it('MAXINT/1=MAXINT', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              x.div(y).assertEquals(UInt64.MAXINT());
+            });
+          }).not.toThrow();
+        });
+
+        it('should throw on division by zero', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.zero));
+              x.div(y);
+            });
+          }).toThrow();
+        });
+      });
+
+      describe('mod', () => {
+        it('1%1=0', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              x.mod(y).assertEquals(new UInt64(Field.zero));
+            });
+          }).not.toThrow();
+        });
+
+        it('500%32=20', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field(500)));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field(32)));
+              x.mod(y).assertEquals(new UInt64(Field(20)));
+            });
+          }).not.toThrow();
+        });
+
+        it('MAXINT%7=1', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
+              const y = Circuit.witness(UInt64, () => new UInt64(Field(7)));
+              x.mod(y).assertEquals(new UInt64(Field.one));
+            });
+          }).not.toThrow();
+        });
+
+        it('should throw on mod by zero', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.zero));
+              x.mod(y).assertEquals(new UInt64(Field.one));
+            });
+          }).toThrow();
+        });
+      });
+
+      describe('assertLt', () => {
+        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // it('1<2=true', () => {
+        //   expect(() => {
+        //     Circuit.runAndCheck(() => {
+        //       const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
+        //       const y = Circuit.witness(UInt64, () => new UInt64(Field(2)));
+        //       x.assertLt(y);
+        //     });
+        //   }).not.toThrow();
+        // });
+
+        it('1<1=false', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              x.assertLt(y);
+            });
+          }).toThrow();
+        });
+
+        it('2<1=false', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field(2)));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              x.assertLt(y);
+            });
+          }).toThrow();
+        });
+
+        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // it('1000<100000=true', () => {
+        //   expect(() => {
+        //     Circuit.runAndCheck(() => {
+        //       const x = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
+        //       const y = Circuit.witness(
+        //         UInt64,
+        //         () => new UInt64(Field(100000))
+        //       );
+        //       x.assertLt(y);
+        //     });
+        //   }).not.toThrow();
+        // });
+
+        it('100000<1000=false', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(
+                UInt64,
+                () => new UInt64(Field(100000))
+              );
+              const y = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
+              x.assertLt(y);
+            });
+          }).toThrow();
+        });
+
+        it('MAXINT<MAXINT=false', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
+              const y = Circuit.witness(UInt64, () => UInt64.MAXINT());
+              x.assertLt(y);
+            });
+          }).toThrow();
+        });
+      });
+
+      describe('assertLte', () => {
+        it('1<=1=true', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              x.assertLte(y);
+            });
+          }).not.toThrow();
+        });
+
+        it('2<=1=false', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field(2)));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              x.assertLte(y);
+            });
+          }).toThrow();
+        });
+
+        it('1000<=100000=true', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
+              const y = Circuit.witness(
+                UInt64,
+                () => new UInt64(Field(100000))
+              );
+              x.assertLte(y);
+            });
+          }).not.toThrow();
+        });
+
+        it('100000<=1000=false', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(
+                UInt64,
+                () => new UInt64(Field(100000))
+              );
+              const y = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
+              x.assertLte(y);
+            });
+          }).toThrow();
+        });
+
+        it('MAXINT<=MAXINT=true', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
+              const y = Circuit.witness(UInt64, () => UInt64.MAXINT());
+              x.assertLte(y);
+            });
+          }).not.toThrow();
+        });
+      });
+
+      describe('assertGt', () => {
+        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // it('2>1=true', () => {
+        //   expect(() => {
+        //     Circuit.runAndCheck(() => {
+        //       const x = Circuit.witness(UInt64, () => new UInt64(Field(2)));
+        //       const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+        //       x.assertGt(y);
+        //     });
+        //   }).not.toThrow();
+        // });
+
+        it('1>1=false', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              x.assertGt(y);
+            });
+          }).toThrow();
+        });
+
+        it('1>2=false', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const y = Circuit.witness(UInt64, () => new UInt64(Field(2)));
+              x.assertGt(y);
+            });
+          }).toThrow();
+        });
+
+        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // it('100000>1000=true', () => {
+        //   expect(() => {
+        //     Circuit.runAndCheck(() => {
+        //       const x = Circuit.witness(
+        //         UInt64,
+        //         () => new UInt64(Field(100000))
+        //       );
+        //       const y = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
+        //       x.assertGt(y);
+        //     });
+        //   }).not.toThrow();
+        // });
+
+        it('1000>100000=false', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
+              const y = Circuit.witness(
+                UInt64,
+                () => new UInt64(Field(100000))
+              );
+              x.assertGt(y);
+            });
+          }).toThrow();
+        });
+
+        // This function can't be run outside of a checked computation.
+        it('MAXINT>MAXINT=false', () => {
+          expect(() => {
+            Circuit.runAndCheck(() => {
+              const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
+              const y = Circuit.witness(UInt64, () => UInt64.MAXINT());
+              x.assertGt(y);
+            });
+          }).toThrow();
+        });
+      });
+
+      describe('from() ', () => {
+        describe('fromNumber()', () => {
+          it('should be the same as Field.one', () => {
+            expect(() => {
+              Circuit.runAndCheck(() => {
+                const x = Circuit.witness(UInt64, () => UInt64.fromNumber(1));
+                const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+                x.assertEquals(y);
+              });
+            }).not.toThrow();
+          });
+
+          it('should be the same as 2^53-1', () => {
+            expect(() => {
+              Circuit.runAndCheck(() => {
+                const x = Circuit.witness(UInt64, () =>
+                  UInt64.fromNumber(NUMBERMAX)
+                );
+                const y = Circuit.witness(
+                  UInt64,
+                  () => new UInt64(Field(String(NUMBERMAX)))
+                );
+                x.assertEquals(y);
+              });
+            }).not.toThrow();
+          });
+        });
+        describe('fromString()', () => {
+          it('should be the same as Field.one', () => {
+            expect(() => {
+              Circuit.runAndCheck(() => {
+                const x = Circuit.witness(UInt64, () => UInt64.fromString('1'));
+                const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+                x.assertEquals(y);
+              });
+            }).not.toThrow();
+          });
+
+          it('should be the same as 2^53-1', () => {
+            expect(() => {
+              Circuit.runAndCheck(() => {
+                const x = Circuit.witness(UInt64, () =>
+                  UInt64.fromString(String(NUMBERMAX))
+                );
+                const y = Circuit.witness(
+                  UInt64,
+                  () => new UInt64(Field(String(NUMBERMAX)))
+                );
+                x.assertEquals(y);
+              });
+            }).not.toThrow();
+          });
+        });
       });
     });
 
-    describe('sub', () => {
-      it('1-1=0', () => {
-        expect(new UInt64(Field.one).sub(1).toString()).toEqual('0');
+    describe('Outside of circuit', () => {
+      describe('add', () => {
+        it('1+1=2', () => {
+          expect(new UInt64(Field.one).add(1).toString()).toEqual('2');
+        });
+
+        it('5000+5000=10000', () => {
+          expect(new UInt64(Field(5000)).add(5000).toString()).toEqual('10000');
+        });
+
+        it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
+          const value = Field((((1n << 64n) - 2n) / 2n).toString());
+          expect(
+            new UInt64(value)
+              .add(new UInt64(value))
+              .add(new UInt64(Field.one))
+              .toString()
+          ).toEqual(UInt64.MAXINT().toString());
+        });
+
+        it('should throw on overflow addition', () => {
+          expect(() => {
+            UInt64.MAXINT().add(1);
+          }).toThrow();
+        });
       });
 
-      it('10000-5000=5000', () => {
-        expect(new UInt64(Field(10000)).sub(5000).toString()).toEqual('5000');
+      describe('sub', () => {
+        it('1-1=0', () => {
+          expect(new UInt64(Field.one).sub(1).toString()).toEqual('0');
+        });
+
+        it('10000-5000=5000', () => {
+          expect(new UInt64(Field(10000)).sub(5000).toString()).toEqual('5000');
+        });
+
+        it('should throw on sub if results in negative number', () => {
+          expect(() => {
+            UInt64.fromNumber(0).sub(1);
+          }).toThrow();
+        });
       });
 
-      it('should throw on sub if results in negative number', () => {
-        expect(() => {
-          UInt64.fromNumber(0).sub(1);
-        }).toThrow();
-      });
-    });
+      describe('mul', () => {
+        it('1x2=2', () => {
+          expect(new UInt64(Field.one).mul(2).toString()).toEqual('2');
+        });
 
-    describe('mul', () => {
-      it('1x2=2', () => {
-        expect(new UInt64(Field.one).mul(2).toString()).toEqual('2');
-      });
+        it('1x0=0', () => {
+          expect(new UInt64(Field.one).mul(0).toString()).toEqual('0');
+        });
 
-      it('1x0=0', () => {
-        expect(new UInt64(Field.one).mul(0).toString()).toEqual('0');
-      });
+        it('1000x1000=1000000', () => {
+          expect(new UInt64(Field(1000)).mul(1000).toString()).toEqual(
+            '1000000'
+          );
+        });
 
-      it('1000x1000=1000000', () => {
-        expect(new UInt64(Field(1000)).mul(1000).toString()).toEqual('1000000');
-      });
+        it('MAXINTx1=MAXINT', () => {
+          expect(UInt64.MAXINT().mul(1).toString()).toEqual(
+            UInt64.MAXINT().toString()
+          );
+        });
 
-      it('MAXINTx1=MAXINT', () => {
-        expect(UInt64.MAXINT().mul(1).toString()).toEqual(
-          UInt64.MAXINT().toString()
-        );
-      });
-
-      it('should throw on overflow multiplication', () => {
-        expect(() => {
-          UInt64.MAXINT().mul(2);
-        }).toThrow();
-      });
-    });
-
-    describe('div', () => {
-      it('2/1=2', () => {
-        expect(new UInt64(Field(2)).div(1).toString()).toEqual('2');
+        it('should throw on overflow multiplication', () => {
+          expect(() => {
+            UInt64.MAXINT().mul(2);
+          }).toThrow();
+        });
       });
 
-      it('0/1=0', () => {
-        expect(new UInt64(Field.zero).div(1).toString()).toEqual('0');
+      describe('div', () => {
+        it('2/1=2', () => {
+          expect(new UInt64(Field(2)).div(1).toString()).toEqual('2');
+        });
+
+        it('0/1=0', () => {
+          expect(new UInt64(Field.zero).div(1).toString()).toEqual('0');
+        });
+
+        it('2000/1000=2', () => {
+          expect(new UInt64(Field(2000)).div(1000).toString()).toEqual('2');
+        });
+
+        it('MAXINT/1=MAXINT', () => {
+          expect(UInt64.MAXINT().div(1).toString()).toEqual(
+            UInt64.MAXINT().toString()
+          );
+        });
+
+        it('should throw on division by zero', () => {
+          expect(() => {
+            UInt64.MAXINT().div(0);
+          }).toThrow();
+        });
       });
 
-      it('2000/1000=2', () => {
-        expect(new UInt64(Field(2000)).div(1000).toString()).toEqual('2');
+      describe('mod', () => {
+        it('1%1=0', () => {
+          expect(new UInt64(Field.one).mod(1).toString()).toEqual('0');
+        });
+
+        it('500%32=20', () => {
+          expect(new UInt64(Field(500)).mod(32).toString()).toEqual('20');
+        });
+
+        it('MAXINT%7=1', () => {
+          expect(UInt64.MAXINT().mod(7).toString()).toEqual('1');
+        });
+
+        it('should throw on mod by zero', () => {
+          expect(() => {
+            UInt64.MAXINT().mod(0);
+          }).toThrow();
+        });
       });
 
-      it('MAXINT/1=MAXINT', () => {
-        expect(UInt64.MAXINT().div(1).toString()).toEqual(
-          UInt64.MAXINT().toString()
-        );
+      describe('lt', () => {
+        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // it('1<2=true', () => {
+        //   expect(new UInt64(Field.one).lt(new UInt64(Field(2)))).toEqual(
+        //     Bool(true)
+        //   );
+        // });
+
+        // This function can't be run outside of a checked computation.
+        // it('1<1=false', () => {
+        //   expect(new UInt64(Field.one).lt(new UInt64(Field.one))).toEqual(
+        //     Bool(false)
+        //   );
+        // });
+
+        it('2<1=false', () => {
+          expect(new UInt64(Field(2)).lt(new UInt64(Field.one))).toEqual(
+            Bool(false)
+          );
+        });
+
+        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // it('1000<100000=true', () => {
+        //   expect(
+        //     new UInt64(Field(1000)).lt(new UInt64(Field(100000)))
+        //   ).toEqual(Bool(true));
+        // });
+
+        it('100000<1000=false', () => {
+          expect(new UInt64(Field(100000)).lt(new UInt64(Field(1000)))).toEqual(
+            Bool(false)
+          );
+        });
+
+        // This function can't be run outside of a checked computation.
+        // it('MAXINT<MAXINT=false', () => {
+        //   expect(UInt64.MAXINT().lt(UInt64.MAXINT())).toEqual(Bool(false));
+        // });
       });
 
-      it('should throw on division by zero', () => {
-        expect(() => {
-          UInt64.MAXINT().div(0);
-        }).toThrow();
-      });
-    });
+      describe('lte', () => {
+        // ERROR: This function can't be run outside of a checked computation.
+        // it('1<=1=true', () => {
+        //   expect(new UInt64(Field.one).lte(new UInt64(Field.one))).toEqual(
+        //     Bool(true)
+        //   );
+        // });
 
-    describe('mod', () => {
-      it('1%1=0', () => {
-        expect(new UInt64(Field.one).mod(1).toString()).toEqual('0');
-      });
+        it('2<=1=false', () => {
+          expect(new UInt64(Field(2)).lte(new UInt64(Field.one))).toEqual(
+            Bool(false)
+          );
+        });
 
-      it('500%32=20', () => {
-        expect(new UInt64(Field(500)).mod(32).toString()).toEqual('20');
-      });
+        // ERROR: rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // it('1000<=100000=true', () => {
+        //   expect(
+        //     new UInt64(Field(1000)).lte(new UInt64(Field(100000)))
+        //   ).toEqual(Bool(true));
+        // });
 
-      it('MAXINT%7=1', () => {
-        expect(UInt64.MAXINT().mod(7).toString()).toEqual('1');
-      });
+        it('100000<=1000=false', () => {
+          expect(
+            new UInt64(Field(100000)).lte(new UInt64(Field(1000)))
+          ).toEqual(Bool(false));
+        });
 
-      it('should throw on mod by zero', () => {
-        expect(() => {
-          UInt64.MAXINT().mod(0);
-        }).toThrow();
-      });
-    });
-
-    describe('lt', () => {
-      // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
-      // it('1<2=true', () => {
-      //   expect(new UInt64(Field.one).lt(new UInt64(Field(2)))).toEqual(
-      //     Bool(true)
-      //   );
-      // });
-
-      // This function can't be run outside of a checked computation.
-      // it('1<1=false', () => {
-      //   expect(new UInt64(Field.one).lt(new UInt64(Field.one))).toEqual(
-      //     Bool(false)
-      //   );
-      // });
-
-      it('2<1=false', () => {
-        expect(new UInt64(Field(2)).lt(new UInt64(Field.one))).toEqual(
-          Bool(false)
-        );
+        // ERROR: This function can't be run outside of a checked computation.
+        // it('MAXINT<=MAXINT=true', () => {
+        //   expect(UInt64.MAXINT().lte(UInt64.MAXINT())).toEqual(Bool(true));
+        // });
       });
 
-      // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
-      // it('1000<100000=true', () => {
-      //   expect(
-      //     new UInt64(Field(1000)).lt(new UInt64(Field(100000)))
-      //   ).toEqual(Bool(true));
-      // });
-
-      it('100000<1000=false', () => {
-        expect(new UInt64(Field(100000)).lt(new UInt64(Field(1000)))).toEqual(
-          Bool(false)
-        );
-      });
-
-      // This function can't be run outside of a checked computation.
-      // it('MAXINT<MAXINT=false', () => {
-      //   expect(UInt64.MAXINT().lt(UInt64.MAXINT())).toEqual(Bool(false));
-      // });
-    });
-
-    describe('lte', () => {
       // ERROR: This function can't be run outside of a checked computation.
-      // it('1<=1=true', () => {
-      //   expect(new UInt64(Field.one).lte(new UInt64(Field.one))).toEqual(
-      //     Bool(true)
-      //   );
+      // describe('assertLte', () => {
+      //   it('1<=1=true', () => {
+      //     expect(
+      //       new UInt64(Field.one).assertLte(new UInt64(Field.one))
+      //     ).not.toThrow();
+      //   });
+
+      //   it('2<=1=false', () => {
+      //     expect(
+      //       new UInt64(Field.one).assertLte(new UInt64(Field(2)))
+      //     ).toThrow();
+      //   });
+
+      //   it('1000<=100000=true', () => {
+      //     expect(
+      //       new UInt64(Field(1000)).assertLte(new UInt64(Field(100000)))
+      //     ).not.toThrow();
+      //   });
+
+      //   it('100000<=1000=false', () => {
+      //     expect(
+      //       new UInt64(Field(100000)).assertLte(new UInt64(Field(1000)))
+      //     ).toThrow();
+      //   });
+
+      //   it('MAXINT<=MAXINT=true', () => {
+      //     expect(UInt64.MAXINT().assertLte(UInt64.MAXINT())).not.toThrow();
+      //   });
       // });
 
-      it('2<=1=false', () => {
-        expect(new UInt64(Field(2)).lte(new UInt64(Field.one))).toEqual(
-          Bool(false)
-        );
-      });
+      describe('gt', () => {
+        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // it('2>1=true', () => {
+        //   expect(new UInt64(Field(2)).gt(new UInt64(Field.one))).toEqual(
+        //     Bool(true)
+        //   );
+        // });
 
-      // ERROR: rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
-      // it('1000<=100000=true', () => {
-      //   expect(
-      //     new UInt64(Field(1000)).lte(new UInt64(Field(100000)))
-      //   ).toEqual(Bool(true));
-      // });
+        // This function can't be run outside of a checked computation.
+        // it('1>1=false', () => {
+        //   expect(new UInt64(Field.one).gt(new UInt64(Field.one))).toEqual(
+        //     Bool(false)
+        //   );
+        // });
 
-      it('100000<=1000=false', () => {
-        expect(new UInt64(Field(100000)).lte(new UInt64(Field(1000)))).toEqual(
-          Bool(false)
-        );
-      });
+        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // it('1>2=false', () => {
+        //   expect(new UInt64(Field.one).lt(new UInt64(Field(2)))).toEqual(
+        //     Bool(false)
+        //   );
+        // });
 
-      // ERROR: This function can't be run outside of a checked computation.
-      // it('MAXINT<=MAXINT=true', () => {
-      //   expect(UInt64.MAXINT().lte(UInt64.MAXINT())).toEqual(Bool(true));
-      // });
-    });
+        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // it('100000>1000=true', () => {
+        //   expect(
+        //     new UInt64(Field(100000)).gt(new UInt64(Field(1000)))
+        //   ).toEqual(Bool(true));
+        // });
 
-    // ERROR: This function can't be run outside of a checked computation.
-    // describe('assertLte', () => {
-    //   it('1<=1=true', () => {
-    //     expect(
-    //       new UInt64(Field.one).assertLte(new UInt64(Field.one))
-    //     ).not.toThrow();
-    //   });
-
-    //   it('2<=1=false', () => {
-    //     expect(
-    //       new UInt64(Field.one).assertLte(new UInt64(Field(2)))
-    //     ).toThrow();
-    //   });
-
-    //   it('1000<=100000=true', () => {
-    //     expect(
-    //       new UInt64(Field(1000)).assertLte(new UInt64(Field(100000)))
-    //     ).not.toThrow();
-    //   });
-
-    //   it('100000<=1000=false', () => {
-    //     expect(
-    //       new UInt64(Field(100000)).assertLte(new UInt64(Field(1000)))
-    //     ).toThrow();
-    //   });
-
-    //   it('MAXINT<=MAXINT=true', () => {
-    //     expect(UInt64.MAXINT().assertLte(UInt64.MAXINT())).not.toThrow();
-    //   });
-    // });
-
-    describe('gt', () => {
-      // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
-      // it('2>1=true', () => {
-      //   expect(new UInt64(Field(2)).gt(new UInt64(Field.one))).toEqual(
-      //     Bool(true)
-      //   );
-      // });
-
-      // This function can't be run outside of a checked computation.
-      // it('1>1=false', () => {
-      //   expect(new UInt64(Field.one).gt(new UInt64(Field.one))).toEqual(
-      //     Bool(false)
-      //   );
-      // });
-
-      // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
-      // it('1>2=false', () => {
-      //   expect(new UInt64(Field.one).lt(new UInt64(Field(2)))).toEqual(
-      //     Bool(false)
-      //   );
-      // });
-
-      // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
-      // it('100000>1000=true', () => {
-      //   expect(
-      //     new UInt64(Field(100000)).gt(new UInt64(Field(1000)))
-      //   ).toEqual(Bool(true));
-      // });
-
-      it('1000>100000=false', () => {
-        expect(new UInt64(Field(1000)).gt(new UInt64(Field(100000)))).toEqual(
-          Bool(false)
-        );
-      });
-
-      // This function can't be run outside of a checked computation.
-      // it('MAXINT>MAXINT=false', () => {
-      //   expect(UInt64.MAXINT().gt(UInt64.MAXINT())).toEqual(Bool(false));
-      // });
-    });
-
-    // describe('assertGt', () => {
-    //   // This function can't be run outside of a checked computation.
-    //   it('1>1=false', () => {
-    //     expect(new UInt64(Field.one).assertGt(new UInt64(Field.one))).toThrow();
-    //   });
-    //
-    //   // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
-    //   it('2>1=true', () => {
-    //     expect(
-    //       new UInt64(Field(2)).assertGt(new UInt64(Field.one))
-    //     ).not.toThrow();
-    //   });
-
-    //   // assert_equal: 0 != 1
-    //   it('1000>100000=false', () => {
-    //     expect(
-    //       new UInt64(Field(1000)).assertGt(new UInt64(Field(100000)))
-    //     ).toThrow();
-    //   });
-
-    //   // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
-    //   it('100000>1000=true', () => {
-    //     expect(
-    //       new UInt64(Field(100000)).assertGt(new UInt64(Field(1000)))
-    //     ).not.toThrow();
-    //   });
-
-    //   // This function can't be run outside of a checked computation.
-    //   it('MAXINT>MAXINT=false', () => {
-    //     expect(UInt64.MAXINT().assertGt(UInt64.MAXINT())).toThrow();
-    //   });
-    // });
-
-    describe('toString()', () => {
-      it('should be the same as Field.zero', async () => {
-        const uint64 = new UInt64(Field.zero);
-        const field = Field.zero;
-        expect(uint64.toString()).toEqual(field.toString());
-      });
-      it('should be the same as 2^53-1', async () => {
-        const uint64 = new UInt64(Field(String(NUMBERMAX)));
-        const field = Field(String(NUMBERMAX));
-        expect(uint64.toString()).toEqual(field.toString());
-      });
-    });
-
-    describe('check()', () => {
-      it('should pass checking a MAXINT', () => {
-        expect(() => {
-          UInt64.check(UInt64.MAXINT());
-        }).not.toThrow();
-      });
-
-      it('should throw checking over MAXINT', () => {
-        const aboveMax = new UInt64(Field((1n << 64n).toString())); // This number is defined in UInt64.MAXINT()
-        expect(() => {
-          UInt64.check(aboveMax);
-        }).toThrow();
-      });
-    });
-
-    describe('from() ', () => {
-      describe('fromNumber()', () => {
-        it('should be the same as Field.one', () => {
-          const uint = UInt64.fromNumber(1);
-          expect(uint.value).toEqual(new UInt64(Field.one).value);
+        it('1000>100000=false', () => {
+          expect(new UInt64(Field(1000)).gt(new UInt64(Field(100000)))).toEqual(
+            Bool(false)
+          );
         });
 
-        it('should be the same as 2^53-1', () => {
-          const uint = UInt64.fromNumber(NUMBERMAX);
-          expect(uint.value).toEqual(Field(String(NUMBERMAX)));
+        // This function can't be run outside of a checked computation.
+        // it('MAXINT>MAXINT=false', () => {
+        //   expect(UInt64.MAXINT().gt(UInt64.MAXINT())).toEqual(Bool(false));
+        // });
+      });
+
+      // describe('assertGt', () => {
+      //   // This function can't be run outside of a checked computation.
+      //   it('1>1=false', () => {
+      //     expect(new UInt64(Field.one).assertGt(new UInt64(Field.one))).toThrow();
+      //   });
+      //
+      //   // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+      //   it('2>1=true', () => {
+      //     expect(
+      //       new UInt64(Field(2)).assertGt(new UInt64(Field.one))
+      //     ).not.toThrow();
+      //   });
+
+      //   // assert_equal: 0 != 1
+      //   it('1000>100000=false', () => {
+      //     expect(
+      //       new UInt64(Field(1000)).assertGt(new UInt64(Field(100000)))
+      //     ).toThrow();
+      //   });
+
+      //   // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+      //   it('100000>1000=true', () => {
+      //     expect(
+      //       new UInt64(Field(100000)).assertGt(new UInt64(Field(1000)))
+      //     ).not.toThrow();
+      //   });
+
+      //   // This function can't be run outside of a checked computation.
+      //   it('MAXINT>MAXINT=false', () => {
+      //     expect(UInt64.MAXINT().assertGt(UInt64.MAXINT())).toThrow();
+      //   });
+      // });
+
+      describe('toString()', () => {
+        it('should be the same as Field.zero', async () => {
+          const uint64 = new UInt64(Field.zero);
+          const field = Field.zero;
+          expect(uint64.toString()).toEqual(field.toString());
+        });
+        it('should be the same as 2^53-1', async () => {
+          const uint64 = new UInt64(Field(String(NUMBERMAX)));
+          const field = Field(String(NUMBERMAX));
+          expect(uint64.toString()).toEqual(field.toString());
         });
       });
-      describe('fromString()', () => {
-        it('should be the same as Field.one', () => {
-          const uint = UInt64.fromString('1');
-          expect(uint.value).toEqual(new UInt64(Field.one).value);
+
+      describe('check()', () => {
+        it('should pass checking a MAXINT', () => {
+          expect(() => {
+            UInt64.check(UInt64.MAXINT());
+          }).not.toThrow();
         });
 
-        it('should be the same as 2^53-1', () => {
-          const uint = UInt64.fromString(String(NUMBERMAX));
-          expect(uint.value).toEqual(Field(String(NUMBERMAX)));
+        it('should throw checking over MAXINT', () => {
+          const aboveMax = new UInt64(Field((1n << 64n).toString())); // This number is defined in UInt64.MAXINT()
+          expect(() => {
+            UInt64.check(aboveMax);
+          }).toThrow();
+        });
+      });
+
+      describe('from() ', () => {
+        describe('fromNumber()', () => {
+          it('should be the same as Field.one', () => {
+            const uint = UInt64.fromNumber(1);
+            expect(uint.value).toEqual(new UInt64(Field.one).value);
+          });
+
+          it('should be the same as 2^53-1', () => {
+            const uint = UInt64.fromNumber(NUMBERMAX);
+            expect(uint.value).toEqual(Field(String(NUMBERMAX)));
+          });
+        });
+        describe('fromString()', () => {
+          it('should be the same as Field.one', () => {
+            const uint = UInt64.fromString('1');
+            expect(uint.value).toEqual(new UInt64(Field.one).value);
+          });
+
+          it('should be the same as 2^53-1', () => {
+            const uint = UInt64.fromString(String(NUMBERMAX));
+            expect(uint.value).toEqual(Field(String(NUMBERMAX)));
+          });
         });
       });
     });
