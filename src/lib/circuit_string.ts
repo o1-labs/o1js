@@ -7,11 +7,7 @@ export class Character extends CircuitValue {
   constructor(value: Field) {
     super();
 
-    if (Character.validateInput(value)) {
-      this.value = value;
-    } else {
-      throw Error('Character initialization did not pass validation');
-    }
+    this.value = value;
   }
 
   equals(char: Character): Bool {
@@ -36,7 +32,8 @@ export class Character extends CircuitValue {
   TODO: Add support for more character sets
   ASCII reference: https://en.wikipedia.org/wiki/ASCII#Printable_characters
   */
-  static validateInput(value: Field): Boolean {
+  static check(value: Field): Boolean {
+    console.log('check')
     if (Circuit.inProver() || Circuit.inCheckedComputation()) {
       const ret = Bool.and(
         value.gte(Field(32)),
@@ -50,7 +47,7 @@ export class Character extends CircuitValue {
   }
 };
 
-export class ZKString extends CircuitValue {
+export class CircuitString extends CircuitValue {
   @prop values: Character[];
 
   constructor(values: Character[]) {
@@ -59,26 +56,16 @@ export class ZKString extends CircuitValue {
     this.values = values;
   }
 
-  append(str: ZKString): ZKString {
-    return new ZKString([...this.values, ...str.values])
+  append(str: CircuitString): CircuitString {
+    return new CircuitString([...this.values, ...str.values])
   }
 
-  // returns TRUE if str is found in this zkstring
-  contains(str: ZKString): Bool {
-    if (Circuit.inProver() || Circuit.inCheckedComputation()) {
-      let ret = new Bool(false);
-      const strLength = str.length();
+  // returns TRUE if str is found in this CircuitString
+  contains(str: CircuitString): Bool {
+    let ret = new Bool(false);
+    ret = this._contains(str)
 
-      Circuit.if(
-        this.length().gt(strLength),
-        ret = new Bool(false),
-        ret = this._contains(str)
-      )
-
-      return ret;
-    }
-
-    return new Bool(true);
+    return ret;
   }
 
   hash(): Field {
@@ -89,8 +76,8 @@ export class ZKString extends CircuitValue {
     return Field(this.values.length);
   }
 
-  substring(start: number, end: number): ZKString {
-    return new ZKString(this.values.slice(start, end));
+  substring(start: number, end: number): CircuitString {
+    return new CircuitString(this.values.slice(start, end));
   }
 
   toFields(): Field[] {
@@ -101,28 +88,19 @@ export class ZKString extends CircuitValue {
     return this.values.map(x => x.toString()).join('');
   }
 
-  equals(str: ZKString): Bool {
-    if (Circuit.inProver() || Circuit.inCheckedComputation()) {
-      let ret = new Bool(true);
+  equals(str: CircuitString): Bool {
+    let ret = new Bool(true);
+    ret = this._equals(str);
 
-      Circuit.if(
-        Bool.not(this.length().equals(str.length())),
-        ret = new Bool(false),
-        ret = this._equals(str)
-      )
-
-      return ret;
-    }
-
-    return new Bool(true);
+    return ret;
   }
 
-  static fromString(str: string): ZKString {
+  static fromString(str: string): CircuitString {
     const characters = str.split('').map(x => Character.fromString(x));
-    return new ZKString(characters);
+    return new CircuitString(characters);
   }
 
-  private _contains(str: ZKString): Bool {
+  private _contains(str: CircuitString): Bool {
     let ret = new Bool(false);
     const thisLength = Number(this.length().toString());
     const strLength = Number(str.length().toString());
@@ -136,7 +114,7 @@ export class ZKString extends CircuitValue {
     return ret;
   }
 
-  private _equals(str: ZKString): Bool {
+  private _equals(str: CircuitString): Bool {
     let ret = new Bool(true);
 
     this.values.forEach((value: Character, i: number) => {
