@@ -19,5 +19,5 @@ export {
 } from './lib/fetch';
 export * as Encryption from './lib/encryption';
 export * as Encoding from './lib/encoding';
-export { Character, CircuitString } from './lib/circuit_string';
+export { Character, CircuitString, resolveCircuitStringArrayProps } from './lib/circuit_string';
 

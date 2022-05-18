@@ -1,5 +1,7 @@
-import { Bool, Circuit, Field, Poseidon } from '../snarky';
-import { CircuitValue, prop } from './circuit_value';
+import { Bool, Circuit, Field, isReady, Poseidon } from '../snarky';
+import { arrayProp, CircuitValue, prop } from './circuit_value';
+
+const DEFAULT_STRING_LENGTH = 64;
 
 export class Character extends CircuitValue {
   @prop value: Field;
@@ -32,48 +34,76 @@ export class Character extends CircuitValue {
   TODO: Add support for more character sets
   ASCII reference: https://en.wikipedia.org/wiki/ASCII#Printable_characters
   */
-  static check(value: Field): Boolean {
+  static check(value: Field) {
     console.log('check')
-    if (Circuit.inProver() || Circuit.inCheckedComputation()) {
-      const ret = Bool.and(
-        value.gte(Field(32)),
-        value.lte(Field(126))
-      );
-
-      return ret.toBoolean();
-    }
-
-    return true;
+    value.assertGte(Field(32))
+    value.assertLte(Field(126))
   }
 };
 
+class NullCharacter extends Character {
+  constructor() {
+    super(Field(0));
+  }
+
+  static check(value: Field) {
+    value.assertEquals(Field(0))
+  }
+}
+
 export class CircuitString extends CircuitValue {
-  @prop values: Character[];
+  @prop usedLength: Field;
+  @prop maxLength: Field;
+
+
+  // arrayProp called later because we can't await isReady here
+  values;
 
   constructor(values: Character[]) {
     super();
 
-    this.values = values;
+    const usedLength = values.length;
+    const maxLength = DEFAULT_STRING_LENGTH;
+    values.length = maxLength;
+
+    // set the value of this.values to the input values, filled with null char
+    this.values = values.fill(new NullCharacter, usedLength);
+
+    this.usedLength = Field(usedLength);
+    this.maxLength = Field(maxLength);
   }
 
   append(str: CircuitString): CircuitString {
-    return new CircuitString([...this.values, ...str.values])
+    this.usedLength.add(str.usedLength).assertLte(this.maxLength);
+
+    let newStringValues: Character[] = []
+    let i = 0;
+
+    while (i < Number(this.usedLength.toString())) {
+      newStringValues.push(this.values[i]);
+      i++
+    }
+
+    i = 0;
+    while (i < Number(str.usedLength.toString())) {
+      newStringValues.push(str.values[i]);
+      i++
+    }
+
+    return new CircuitString(newStringValues)
   }
 
   // returns TRUE if str is found in this CircuitString
-  contains(str: CircuitString): Bool {
+  // @param size - the size of the str without null padding
+  contains(str: CircuitString, size: number): Bool {
     let ret = new Bool(false);
-    ret = this._contains(str)
+    ret = this._contains(str, size)
 
     return ret;
   }
 
   hash(): Field {
     return Poseidon.hash(this.values.map(x => x.value));
-  }
-
-  length(): Field {
-    return Field(this.values.length);
   }
 
   substring(start: number, end: number): CircuitString {
@@ -100,10 +130,10 @@ export class CircuitString extends CircuitValue {
     return new CircuitString(characters);
   }
 
-  private _contains(str: CircuitString): Bool {
+  private _contains(str: CircuitString, size: number): Bool {
     let ret = new Bool(false);
-    const thisLength = Number(this.length().toString());
-    const strLength = Number(str.length().toString());
+    const thisLength = Number(this.usedLength.toString());
+    const strLength = size;
     let i = 0;
 
     while (i + strLength <= thisLength) {
@@ -124,3 +154,28 @@ export class CircuitString extends CircuitValue {
     return ret;
   }
 };
+
+export class CircuitString8 extends CircuitString {
+  constructor(values: Character[]) {
+    super(values);
+
+    const usedLength = values.length;
+    const maxLength = 8;
+    values.length = maxLength;
+
+    // set the value of this.values to the input values, filled with null char
+    this.values = values.fill(new NullCharacter, usedLength);
+
+    this.usedLength = Field(usedLength);
+    this.maxLength = Field(maxLength);
+  }
+}
+
+export async function resolveCircuitStringArrayProps() {
+  await isReady;
+
+  arrayProp(Character, 8)(CircuitString8.prototype, 'values');
+  arrayProp(Character, 16)(CircuitString8.prototype, 'values');
+  arrayProp(Character, 32)(CircuitString8.prototype, 'values');
+  arrayProp(Character, DEFAULT_STRING_LENGTH)(CircuitString.prototype, 'values');
+}
