@@ -15,9 +15,11 @@ describe('int', () => {
   });
 
   afterAll(async () => {
+    // Use a timeout to delay the execution of `shutdown()` until Jest processes all tests.
+    // `shutdown()` exits the process when it's done cleanup so we want to delay it's execution until Jest is done
     setTimeout(async () => {
       await shutdown();
-    }, 1500);
+    }, 0);
   });
 
   const NUMBERMAX = 2 ** 53 - 1; //  JavaScript numbers can only safely store integers in the range -(2^53 − 1) to 2^53 − 1
