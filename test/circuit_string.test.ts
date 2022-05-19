@@ -1,8 +1,10 @@
 import {
   Bool,
+  Character,
   Circuit,
   CircuitString,
   CircuitString8,
+  Field,
   resolveCircuitStringArrayProps,
   shutdown,
   isReady,
@@ -134,5 +136,29 @@ describe('Circuit String', () => {
         expect(str1.append(str2).toString()).toBe('abcdefgh');
       });
     });
+  });
+
+  describe('CircuitString8', () => {
+    // This test passes but it should not
+    test('prop size is respected', () => {
+      Circuit.runAndCheck(() => {
+        const str = CircuitString8.fromString('More than eight chars')
+        expect(str.toString()).toBe('More than eight chars')
+      });
+    })
+  });
+
+  describe('with invalid input', () => {
+    // This test passes but it should not
+    test('cannot use a character out of range', () => {
+      Circuit.runAndCheck(() => {
+        const str = new CircuitString([
+          new Character(Field(100)),
+          new Character(Field(10000)),
+          new Character(Field(100)),
+        ]);
+        expect(str.toString()).toBe('dd')
+      });
+    })
   });
 });
