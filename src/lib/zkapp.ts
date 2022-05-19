@@ -15,7 +15,6 @@ import {
   signJsonTransaction,
   Parties,
   Permissions,
-  PartyWithFullAccountPrecondition,
   SetOrKeep,
 } from './party';
 import { Json } from 'snarky/parties';
@@ -562,7 +561,7 @@ export class SmartContract {
       return {
         transactionId: 0,
         partyIndex: 0,
-        party: mainContext.self as PartyWithFullAccountPrecondition,
+        party: mainContext.self,
       };
     }
 
@@ -579,7 +578,7 @@ export class SmartContract {
       const id = Mina.nextTransactionId.value;
       const index = Mina.currentTransaction.nextPartyIndex++;
       const body = Body.keepAll(this.address);
-      const party = new Party(body) as PartyWithFullAccountPrecondition;
+      const party = new Party(body);
       Mina.currentTransaction.parties.push(party);
 
       const s = {
@@ -637,7 +636,7 @@ type DeployArgs = {
 type ExecutionState = {
   transactionId: number;
   partyIndex: number;
-  party: PartyWithFullAccountPrecondition;
+  party: Party;
 };
 
 function emptyWitness<A>(typ: AsFieldElements<A>) {

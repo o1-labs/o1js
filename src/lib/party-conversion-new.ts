@@ -1,12 +1,5 @@
 import { Field, Ledger, Types } from '../snarky';
-import {
-  AccountPrecondition,
-  Body,
-  LazyControl,
-  Party,
-  Precondition,
-} from './party';
-import { UInt32 } from './int';
+import { Body, LazyControl, Party } from './party';
 
 export { toParties, toParty };
 
@@ -49,20 +42,5 @@ function toPartyBody(body: Body): Party_['body'] {
     // TODO
     balanceChange: { magnitude: body.delta, sgn: Field.one },
     callDepth: parseInt(body.depth.toString(), 10),
-    accountPrecondition: toAccountPrecondition(body.accountPrecondition),
   };
-}
-
-function toAccountPrecondition(
-  accountPrecondition: Precondition
-): Party_['body']['accountPrecondition'] {
-  let full: AccountPrecondition; // TODO make type names better
-  if (accountPrecondition === undefined) {
-    full = AccountPrecondition.ignoreAll();
-  } else if (accountPrecondition instanceof UInt32) {
-    full = AccountPrecondition.nonce(accountPrecondition);
-  } else {
-    full = accountPrecondition;
-  }
-  return full;
 }

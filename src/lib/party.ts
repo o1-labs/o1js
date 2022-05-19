@@ -244,8 +244,6 @@ class Events {
   }
 }
 
-export type Precondition = undefined | UInt32 | AccountPrecondition;
-
 /**
  * The body of describing how some [[ Party ]] should change.
  *
@@ -285,7 +283,7 @@ type Body = {
   callData: Field; //MerkleList<Array<Field>>;
   depth: Field; // TODO: this is an `int As_prover.t`
   protocolStatePrecondition: ProtocolStatePrecondition;
-  accountPrecondition: Precondition;
+  accountPrecondition: AccountPrecondition;
   useFullCommitment: Bool;
   incrementNonce: Bool;
 };
@@ -341,12 +339,6 @@ const Body = {
       // this should be set to true if parties are signed
       incrementNonce: Bool(false),
     };
-  },
-
-  keepAllWithNonce(publicKey: PublicKey, nonce: UInt32) {
-    let body = Body.keepAll(publicKey);
-    body.accountPrecondition = nonce;
-    return body as Body & { accountPrecondition: UInt32 };
   },
 
   dummy(): Body {
@@ -615,14 +607,7 @@ export class Party {
   setNoncePrecondition(fallbackToZero = false) {
     let nonce = Party.getNonce(this, fallbackToZero);
     let accountPrecondition = this.body.accountPrecondition;
-    if (
-      accountPrecondition === undefined ||
-      accountPrecondition instanceof UInt32
-    ) {
-      this.body.accountPrecondition = nonce;
-    } else {
-      Party.assertEquals(accountPrecondition.nonce, nonce);
-    }
+    Party.assertEquals(accountPrecondition.nonce, nonce);
     return nonce;
   }
 
@@ -637,7 +622,7 @@ export class Party {
 
   static defaultParty(address: PublicKey) {
     const body = Body.keepAll(address);
-    return new Party(body) as PartyWithFullAccountPrecondition;
+    return new Party(body);
   }
 
   static defaultFeePayer(
@@ -717,10 +702,10 @@ export class Party {
       nonceIncrement.add(new UInt32(shouldIncreaseNonce.toField()));
     }
     nonce = nonce.add(nonceIncrement);
-    body.accountPrecondition = nonce;
+    Party.assertEquals(body.accountPrecondition.nonce, nonce);
     body.incrementNonce = Bool(true);
 
-    let party = new Party(body) as PartyWithNoncePrecondition;
+    let party = new Party(body);
     party.authorization = { kind: 'lazy-signature', privateKey: signer };
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
@@ -753,13 +738,6 @@ export class Party {
     party.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 }
-
-export type PartyWithFullAccountPrecondition = Party & {
-  body: { accountPrecondition: AccountPrecondition };
-};
-export type PartyWithNoncePrecondition = Party & {
-  body: { accountPrecondition: UInt32 };
-};
 
 type Parties = {
   feePayer: FeePayerUnsigned;
