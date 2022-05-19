@@ -1,13 +1,5 @@
 import { cloneCircuitValue } from './circuit_value';
-import {
-  Group,
-  Field,
-  Bool,
-  Control,
-  Ledger,
-  Circuit,
-  Pickles,
-} from '../snarky';
+import { Field, Bool, Ledger, Circuit, Pickles } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
@@ -685,6 +677,11 @@ export class PartyBalance {
   }
 }
 
+type Control =
+  | { kind: 'none' }
+  | { kind: 'signature'; value: string }
+  | { kind: 'proof'; value: string };
+
 type LazySignature = { kind: 'lazy-signature'; privateKey?: PrivateKey };
 type LazyProof = {
   kind: 'lazy-proof';
@@ -755,6 +752,10 @@ export class Party {
       accountPrecondition.nonce.assertBetween(nonce, nonce);
     }
     return nonce;
+  }
+
+  toFields() {
+    return Party_.toFields(toParty(this));
   }
 
   hash() {
