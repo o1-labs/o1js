@@ -1,22 +1,24 @@
 import { cloneCircuitValue } from './circuit_value';
-import { Field, Bool, Ledger, Circuit, Pickles } from '../snarky';
+import { Field, Bool, Ledger, Circuit, Pickles, Types } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
 import { SmartContract } from './zkapp';
 import { withContextAsync } from './global-context';
 import { toParties, toParty } from './party-conversion-new';
-import * as Types from '../snarky/parties';
 
 export {
   SetOrKeep,
   Permission,
   Permissions,
-  FeePayer,
+  Body,
+  FeePayerUnsigned,
   Parties,
   LazyProof,
   LazySignature,
   LazyControl,
+  toFeePayerUnsafe,
+  partiesToJson,
   addMissingSignatures,
   addMissingProofs,
   signJsonTransaction,
@@ -249,7 +251,7 @@ export type Precondition = undefined | UInt32 | AccountPrecondition;
  *
  * TODO: We need to rename this still.
  */
-export type Body = {
+type Body = {
   /**
    * The address for this body.
    */
@@ -287,18 +289,12 @@ export type Body = {
   useFullCommitment: Bool;
   incrementNonce: Bool;
 };
-
-export let Body = {
-  /**
-   * A body that Don't change part of the underlying account record.
-   */
-  keepAll(publicKey: PublicKey): Body {
-    const appState: Array<SetOrKeep<Field>> = [];
-    for (let i = 0; i < ZkappStateLength; ++i) {
-      appState.push(keep(Field.zero));
-    }
-    const update: Update = {
-      appState,
+const Body = {
+  noUpdate(): Update {
+    return {
+      appState: Array(ZkappStateLength)
+        .fill(0)
+        .map(() => keep(Field.zero)),
       delegate: keep(PublicKey.empty()),
       // TODO
       verificationKey: keep({ data: '', hash: Field.zero }),
@@ -321,9 +317,15 @@ export let Body = {
       }),
       votingFor: keep(Field.zero),
     };
+  },
+
+  /**
+   * A body that Don't change part of the underlying account record.
+   */
+  keepAll(publicKey: PublicKey): Body {
     return {
       publicKey,
-      update,
+      update: Body.noUpdate(),
       tokenId: getDefaultTokenId(),
       delta: Int64.zero,
       events: Events.empty(),
@@ -331,7 +333,7 @@ export let Body = {
       caller: getDefaultTokenId(),
       callData: Field.zero, // TODO new MerkleList(),
       depth: Field.zero,
-      protocolStatePrecondition: ProtocolStatePredicate.ignoreAll(),
+      protocolStatePrecondition: ProtocolStatePrecondition.ignoreAll(),
       accountPrecondition: AccountPrecondition.ignoreAll(),
       // the default assumption is that snarkyjs transactions don't include the fee payer
       // so useFullCommitment has to be false for signatures to be correct
@@ -352,6 +354,27 @@ export let Body = {
   },
 };
 
+type FeePayer = Types.Parties['feePayer'];
+type FeePayerBody = FeePayer['body'];
+const FeePayerBody = {
+  keepAll(publicKey: PublicKey, nonce: UInt32): FeePayerBody {
+    return {
+      publicKey,
+      nonce,
+      fee: UInt64.zero,
+      update: Body.noUpdate(),
+      events: Events.empty(),
+      sequenceEvents: Events.empty(),
+      protocolStatePrecondition: ProtocolStatePrecondition.ignoreAll(),
+    };
+  },
+};
+
+type FeePayerUnsigned = {
+  body: FeePayerBody;
+  authorization: UnfinishedSignature | string;
+};
+
 /**
  * Either check a value or ignore it.
  *
@@ -369,7 +392,7 @@ type OrIgnore<T> = { isSome: Bool; value: T };
 type ClosedInterval<T> = { lower: T; upper: T };
 
 type ProtocolStatePrecondition = PartyBody['protocolStatePrecondition'];
-let ProtocolStatePredicate = {
+let ProtocolStatePrecondition = {
   ignoreAll(): ProtocolStatePrecondition {
     let stakingEpochData = {
       ledger: { hash: ignore(Field.zero), totalCurrency: uint64() },
@@ -456,6 +479,11 @@ type Control =
   | { kind: 'none' }
   | { kind: 'signature'; value: string }
   | { kind: 'proof'; value: string };
+
+type UnfinishedSignature =
+  | { kind: 'none' }
+  | { kind: 'lazy-signature'; privateKey?: PrivateKey }
+  | string;
 
 type LazySignature = { kind: 'lazy-signature'; privateKey?: PrivateKey };
 type LazyProof = {
@@ -553,13 +581,22 @@ export class Party {
     return party;
   }
 
+  static signFeePayerInPlace(
+    feePayer: FeePayerUnsigned,
+    privateKey?: PrivateKey,
+    fallbackToZeroNonce = false
+  ) {
+    feePayer.body.nonce = this.getNonce(feePayer, fallbackToZeroNonce);
+    feePayer.authorization = { kind: 'lazy-signature', privateKey };
+  }
+
   // TODO this needs to be more intelligent about previous nonces in the transaction, similar to Party.createSigned
-  setNoncePrecondition(fallbackToZero = false) {
+  static getNonce(party: Party | FeePayerUnsigned, fallbackToZero = false) {
     let nonce: UInt32;
     try {
       let inProver = Circuit.inProver();
       if (inProver || !Circuit.inCheckedComputation()) {
-        let account = Mina.getAccount(this.body.publicKey);
+        let account = Mina.getAccount(party.body.publicKey);
         nonce = inProver
           ? Circuit.witness(UInt32, () => account.nonce)
           : account.nonce;
@@ -572,6 +609,11 @@ export class Party {
       if (fallbackToZero) nonce = UInt32.zero;
       else throw err;
     }
+    return nonce;
+  }
+
+  setNoncePrecondition(fallbackToZero = false) {
+    let nonce = Party.getNonce(this, fallbackToZero);
     let accountPrecondition = this.body.accountPrecondition;
     if (
       accountPrecondition === undefined ||
@@ -598,18 +640,18 @@ export class Party {
     return new Party(body) as PartyWithFullAccountPrecondition;
   }
 
-  static defaultFeePayer(address: PublicKey, key: PrivateKey, nonce: UInt32) {
-    let body = Body.keepAllWithNonce(address, nonce);
-    body.useFullCommitment = Bool(true);
-    let party = new Party(body) as FeePayer;
-    party.authorization = { kind: 'lazy-signature', privateKey: key };
-    return party;
+  static defaultFeePayer(
+    address: PublicKey,
+    key: PrivateKey,
+    nonce: UInt32
+  ): FeePayerUnsigned {
+    let body = FeePayerBody.keepAll(address, nonce);
+    return { body, authorization: { kind: 'lazy-signature', privateKey: key } };
   }
 
-  static dummyFeePayer() {
-    let body = Body.keepAllWithNonce(PublicKey.empty(), UInt32.zero);
-    body.useFullCommitment = Bool(true);
-    return new Party(body) as FeePayer;
+  static dummyFeePayer(): FeePayerUnsigned {
+    let body = FeePayerBody.keepAll(PublicKey.empty(), UInt32.zero);
+    return { body, authorization: { kind: 'none' } };
   }
 
   static createUnsigned(publicKey: PublicKey) {
@@ -718,18 +760,34 @@ export type PartyWithFullAccountPrecondition = Party & {
 export type PartyWithNoncePrecondition = Party & {
   body: { accountPrecondition: UInt32 };
 };
-type FeePayer = Party & {
-  authorization: Exclude<
-    LazyControl,
-    { kind: 'proof'; value: string } | LazyProof
-  >;
-} & PartyWithNoncePrecondition;
 
-type Parties = { feePayer: FeePayer; otherParties: Party[] };
+type Parties = {
+  feePayer: FeePayerUnsigned;
+  otherParties: Party[];
+};
 type PartiesSigned = {
-  feePayer: FeePayer & { authorization: Control };
+  feePayer: FeePayer;
   otherParties: (Party & { authorization: Control | LazyProof })[];
 };
+
+// TODO: probably shouldn't hard-code dummy signature
+const dummySignature =
+  '7mWxjLYgbJUkZNcGouvhVj5tJ8yu9hoexb9ntvPK8t5LHqzmrL6QJjjKtf5SgmxB4QWkDw7qoMMbbNGtHVpsbJHPyTy2EzRQ';
+
+function toFeePayerUnsafe(feePayer: FeePayerUnsigned): FeePayer {
+  let { body, authorization } = feePayer;
+  if (typeof authorization === 'string') return { body, authorization };
+  else {
+    return { body, authorization: dummySignature };
+  }
+}
+function partiesToJson({ feePayer, otherParties }: Parties) {
+  let parties = toParties({
+    feePayer: toFeePayerUnsafe(feePayer),
+    otherParties,
+  });
+  return Types.Parties.toJson(parties);
+}
 
 function addMissingSignatures(
   parties: Parties,
@@ -737,9 +795,31 @@ function addMissingSignatures(
 ): PartiesSigned {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
   let { commitment, fullCommitment } = Ledger.transactionCommitments(
-    JSON.stringify(Types.Parties.toJson(toParties(parties)))
+    JSON.stringify(partiesToJson(parties))
   );
-  function addSignature<P extends Party>(party: P, isFeePayer?: boolean) {
+  function addFeePayerSignature(party: FeePayerUnsigned): FeePayer {
+    let { body, authorization } = cloneCircuitValue(party);
+    if (typeof authorization === 'string') return { body, authorization };
+    if (authorization.kind === 'none')
+      return { body, authorization: dummySignature };
+    let { privateKey } = authorization;
+    if (privateKey === undefined) {
+      let i = additionalPublicKeys.findIndex(
+        (pk) => pk === party.body.publicKey
+      );
+      if (i === -1) {
+        let pk = PublicKey.toBase58(party.body.publicKey);
+        throw Error(
+          `addMissingSignatures: Cannot add signature for ${pk}, private key is missing.`
+        );
+      }
+      privateKey = additionalKeys[i];
+    }
+    let signature = Ledger.signFieldElement(fullCommitment, privateKey);
+    return { body, authorization: signature };
+  }
+
+  function addSignature<P extends Party>(party: P) {
     party = cloneCircuitValue(party);
     if (party.authorization.kind !== 'lazy-signature')
       return party as P & { authorization: Control | LazyProof };
@@ -754,28 +834,28 @@ function addMissingSignatures(
         );
       privateKey = additionalKeys[i];
     }
-    let transactionCommitment =
-      isFeePayer || party.body.useFullCommitment.toBoolean()
-        ? fullCommitment
-        : commitment;
+    let transactionCommitment = party.body.useFullCommitment.toBoolean()
+      ? fullCommitment
+      : commitment;
     let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
     party.authorization = { kind: 'signature', value: signature };
     return party as P & { authorization: Control };
   }
   let { feePayer, otherParties } = parties;
   return {
-    feePayer: addSignature(feePayer, true),
+    feePayer: addFeePayerSignature(feePayer),
     otherParties: otherParties.map((p) => addSignature(p)),
   };
 }
 
 type PartiesProved = {
-  feePayer: FeePayer;
+  feePayer: FeePayerUnsigned;
   otherParties: (Party & { authorization: Control | LazySignature })[];
 };
 
 async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
-  let partiesJson = JSON.stringify(Types.Parties.toJson(toParties(parties)));
+  let partiesJson = JSON.stringify(partiesToJson(parties));
+
   async function addProof<P extends Party>(party: P, index: number) {
     party = cloneCircuitValue(party);
     if (party.authorization.kind !== 'lazy-proof')

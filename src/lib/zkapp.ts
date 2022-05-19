@@ -788,10 +788,10 @@ function addFeePayer(
     let senderAccount = Mina.getAccount(senderAddress);
     feePayerNonce = senderAccount.nonce.toString();
   }
-  feePayer.body.accountPrecondition = UInt32.fromString(`${feePayerNonce}`);
+  feePayer.body.nonce = UInt32.fromString(`${feePayerNonce}`);
   feePayer.body.publicKey = senderAddress;
-  feePayer.balance.subInPlace(UInt64.fromString(`${transactionFee}`));
-  feePayer.signInPlace(feePayerKey);
+  feePayer.body.fee = UInt64.fromString(`${transactionFee}`);
+  Party.signFeePayerInPlace(feePayer, feePayerKey);
   return { feePayer, otherParties };
 }
 
