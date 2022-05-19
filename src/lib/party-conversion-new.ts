@@ -3,20 +3,16 @@ import { Parties as Parties_ } from '../snarky/parties';
 import {
   AccountPrecondition,
   Body,
-  ClosedInterval,
   EpochDataPredicate,
   FeePayer,
   LazyControl,
-  OrIgnore,
   Party,
   Precondition,
   ProtocolStatePredicate,
-  SetOrKeep,
-  Update,
 } from './party';
 import { UInt32 } from './int';
 
-export { toParties, toParty, toProtocolState, toUpdate };
+export { toParties, toParty, toProtocolState };
 
 type Party_ = Parties_['otherParties'][number];
 type ProtocolStatePrecondition_ = Party_['body']['protocolStatePrecondition'];
@@ -74,11 +70,11 @@ function toPartyBody(body: Body): Party_['body'] {
     // TODO
     balanceChange: { magnitude: body.delta, sgn: Field.one },
     // TODO add to Party and set to defaultTokenId (which is Field.one)
-    caller: Field.one,
+    caller: body.caller,
     incrementNonce: body.incrementNonce,
     publicKey: body.publicKey,
     tokenId: body.tokenId,
-    update: toUpdate(body.update),
+    update: body.update,
     useFullCommitment: body.useFullCommitment,
     events: body.events,
     callDepth: parseInt(body.depth.toString(), 10),
@@ -97,33 +93,10 @@ function toFeePayerPartyBody(
     fee: new UInt32(body.delta.value.neg()),
     nonce: body.accountPrecondition,
     publicKey: body.publicKey,
-    update: toUpdate(body.update),
+    update: body.update,
     events: body.events,
     sequenceEvents: body.sequenceEvents,
     protocolStatePrecondition: toProtocolState(body.protocolState),
-  };
-}
-
-function toUpdate({
-  appState,
-  delegate,
-  permissions,
-  timing,
-  tokenSymbol,
-  verificationKey,
-  zkappUri,
-  votingFor,
-}: Update): Party_['body']['update'] {
-  return {
-    appState: appState.map(fromSetOrKeep),
-    delegate: fromSetOrKeep(delegate),
-    permissions: fromSetOrKeep(permissions),
-    timing: fromSetOrKeep(timing),
-    // TODO -- should be a string in party.ts!
-    tokenSymbol: fromSetOrKeep(tokenSymbol),
-    verificationKey: fromSetOrKeep(verificationKey),
-    zkappUri: fromSetOrKeep(zkappUri),
-    votingFor: fromSetOrKeep(votingFor),
   };
 }
 
@@ -139,12 +112,12 @@ function toAccountPrecondition(
     full = accountPrecondition;
   }
   return {
-    state: full.state.map(fromOrIgnore),
-    balance: fromClosedInterval(full.balance),
-    delegate: fromOrIgnore(full.delegate),
-    nonce: fromClosedInterval(full.nonce),
-    provedState: fromOrIgnore(full.provedState),
-    receiptChainHash: fromOrIgnore(full.receiptChainHash),
+    state: full.state,
+    balance: full.balance,
+    delegate: full.delegate,
+    nonce: full.nonce,
+    provedState: full.provedState,
+    receiptChainHash: full.receiptChainHash,
     sequenceState: full.sequenceState,
   };
 }
@@ -167,13 +140,13 @@ function toProtocolState(
     nextEpochData,
   } = protocolState;
   return {
-    snarkedLedgerHash: fromOrIgnore(snarkedLedgerHash),
-    timestamp: fromClosedInterval(timestamp),
-    blockchainLength: fromClosedInterval(blockchainLength),
-    minWindowDensity: fromClosedInterval(minWindowDensity),
-    totalCurrency: fromClosedInterval(totalCurrency),
-    globalSlotSinceHardFork: fromClosedInterval(globalSlotSinceHardFork),
-    globalSlotSinceGenesis: fromClosedInterval(globalSlotSinceGenesis),
+    snarkedLedgerHash,
+    timestamp: timestamp,
+    blockchainLength: blockchainLength,
+    minWindowDensity: minWindowDensity,
+    totalCurrency: totalCurrency,
+    globalSlotSinceHardFork: globalSlotSinceHardFork,
+    globalSlotSinceGenesis: globalSlotSinceGenesis,
     stakingEpochData: toEpochDataPredicate(stakingEpochData),
     nextEpochData: toEpochDataPredicate(nextEpochData),
   };
@@ -191,22 +164,12 @@ function toEpochDataPredicate(
   } = predicate;
   return {
     ledger: {
-      totalCurrency: fromClosedInterval(ledger.totalCurrency),
-      hash: fromOrIgnore(ledger.hash_),
+      totalCurrency: ledger.totalCurrency,
+      hash: ledger.hash_,
     },
-    epochLength: fromClosedInterval(epochLength),
-    lockCheckpoint: fromOrIgnore(lockCheckpoint),
-    seed: fromOrIgnore(seed),
-    startCheckpoint: fromOrIgnore(startCheckpoint),
+    epochLength: epochLength,
+    lockCheckpoint,
+    seed,
+    startCheckpoint,
   };
-}
-
-function fromOrIgnore<T>({ check, value }: OrIgnore<T>) {
-  return { isSome: check, value };
-}
-function fromSetOrKeep<T>({ set, value }: SetOrKeep<T>) {
-  return { isSome: set, value };
-}
-function fromClosedInterval<T>(intv: ClosedInterval<T>) {
-  return { lower: intv.lower, upper: intv.upper };
 }

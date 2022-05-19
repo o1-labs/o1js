@@ -16,6 +16,7 @@ import {
   Parties,
   Permissions,
   PartyWithFullAccountPrecondition,
+  SetOrKeep,
 } from './party';
 import { Json } from 'snarky/parties';
 import { PrivateKey, PublicKey } from './signature';
@@ -95,7 +96,7 @@ function createState<A>() {
       let e: ExecutionState = this._this.executionState();
 
       stateAsFields.forEach((x, i) => {
-        e.party.body.update.appState[layout.offset + i].setValue(x);
+        Party.setValue(e.party.body.update.appState[layout.offset + i], x);
       });
     },
 
@@ -109,7 +110,7 @@ function createState<A>() {
       let e: ExecutionState = this._this.executionState();
 
       stateAsFields.forEach((x, i) => {
-        e.party.body.accountPrecondition.state[layout.offset + i].check =
+        e.party.body.accountPrecondition.state[layout.offset + i].isSome =
           Bool(true);
         e.party.body.accountPrecondition.state[layout.offset + i].value = x;
       });
@@ -473,11 +474,11 @@ export class SmartContract {
   }) {
     verificationKey ??= (this.constructor as any)._verificationKey;
     if (verificationKey !== undefined) {
-      let { hash, data } = verificationKey;
-      let hash_ = typeof hash === 'string' ? Field(hash) : hash;
-      this.self.update.verificationKey.setValue({ hash: hash_, data });
+      let { hash: hash_, data } = verificationKey;
+      let hash = typeof hash_ === 'string' ? Field(hash_) : hash_;
+      this.setValue(this.self.update.verificationKey, { hash, data });
     }
-    this.self.update.permissions.setValue(Permissions.default());
+    this.setValue(this.self.update.permissions, Permissions.default());
     this.sign(zkappKey, true);
   }
 
@@ -603,10 +604,14 @@ export class SmartContract {
     return this.self.setNoncePrecondition();
   }
 
+  setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
+    Party.setValue(maybeValue, value);
+  }
+
   // TBD: do we want to have setters for updates, e.g. this.permissions = ... ?
   // I'm hesitant to make the API even more magical / less explicit
   setPermissions(permissions: Permissions) {
-    this.self.body.update.permissions.setValue(permissions);
+    this.setValue(this.self.update.permissions, permissions);
   }
 
   party(i: number): Body {

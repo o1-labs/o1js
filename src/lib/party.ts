@@ -6,9 +6,12 @@ import * as Mina from './mina';
 import { SmartContract } from './zkapp';
 import { withContextAsync } from './global-context';
 import { toParties, toParty } from './party-conversion-new';
-import { Parties as Parties_, Party as Party_, Json } from '../snarky/parties';
+import * as Types from '../snarky/parties';
 
 export {
+  SetOrKeep,
+  Permission,
+  Permissions,
   FeePayer,
   Parties,
   LazyProof,
@@ -25,34 +28,15 @@ const ZkappStateLength = 8;
 /**
  * Timing info inside an account.
  */
-export type Timing = {
-  initialMinimumBalance: UInt64;
-  cliffTime: UInt32;
-  cliffAmount: UInt64;
-  vestingPeriod: UInt32;
-  vestingIncrement: UInt64;
-};
+type Timing = Types.Party['body']['update']['timing']['value'];
 
 /**
  * Either set a value or keep it the same.
  */
-export class SetOrKeep<T> {
-  set: Bool;
-  value: T;
+type SetOrKeep<T> = { isSome: Bool; value: T };
 
-  setValue(x: T) {
-    this.set = Bool(true);
-    this.value = x;
-  }
-
-  constructor(set: Bool, value: T) {
-    this.set = set;
-    this.value = value;
-  }
-}
-
-function keep<A>(dummy: A): SetOrKeep<A> {
-  return new SetOrKeep(Bool(false), dummy);
+function keep<T>(dummy: T): SetOrKeep<T> {
+  return { isSome: Bool(false), value: dummy };
 }
 
 const True = () => Bool(true);
@@ -67,12 +51,8 @@ const False = () => Bool(false);
  * Use static factory methods on this class to use a specific behavior. See
  * documentation on those methods to learn more.
  */
-export type Permission = {
-  constant: Bool;
-  signatureNecessary: Bool;
-  signatureSufficient: Bool;
-};
-export let Permission = {
+type Permission = Types.AuthRequired;
+let Permission = {
   /**
    * Modification is impossible.
    */
@@ -119,11 +99,12 @@ export let Permission = {
   }),
 };
 
+// TODO: we could replace this type if we could bridge the annotations from OCaml
 /**
  * Permissions specify how specific aspects of the zkapp account are allowed to
  * be modified. All fields are denominated by a [[ Permission ]].
  */
-export type Permissions = {
+type Permissions = {
   /**
    * The [[ Permission ]] corresponding to the 8 state fields associated with an
    * account.
@@ -187,7 +168,7 @@ export type Permissions = {
   incrementNonce: Permission;
   setVotingFor: Permission;
 };
-export let Permissions = {
+let Permissions = {
   ...Permission,
   /**
    * Default permissions are:
@@ -230,17 +211,7 @@ export let Permissions = {
   }),
 };
 
-export type Update = {
-  appState: Array<SetOrKeep<Field>>;
-  delegate: SetOrKeep<PublicKey>;
-  verificationKey: SetOrKeep<{ data: string; hash: Field }>;
-  permissions: SetOrKeep<Permissions>;
-  // TODO Circuit String type needed? If yes, should we bridge it from OCaml?
-  zkappUri: SetOrKeep<{ data: string; hash: Field }>;
-  tokenSymbol: SetOrKeep<{ data: string; hash: Field }>;
-  timing: SetOrKeep<Timing>;
-  votingFor: SetOrKeep<Field>;
-};
+type Update = Types.Party['body']['update'];
 
 export const getDefaultTokenId = () => Field.one;
 
@@ -383,15 +354,7 @@ export let Body = {
  *
  * Used within [[ AccountPredicate ]]s and [[ ProtocolStatePredicate ]]s.
  */
-export class OrIgnore<A> {
-  check: Bool;
-  value: A;
-
-  constructor(check: Bool, value: A) {
-    this.check = check;
-    this.value = value;
-  }
-}
+type OrIgnore<T> = { isSome: Bool; value: T };
 
 /**
  * An interval representing all the values between `lower` and `upper` inclusive
@@ -400,50 +363,7 @@ export class OrIgnore<A> {
  * @typeParam A something with an ordering where one can quantify a lower and
  *            upper bound.
  */
-export class ClosedInterval<A> {
-  lower_: A | undefined;
-  upper_: A | undefined;
-
-  constructor(lower: A | undefined, upper: A | undefined) {
-    this.lower_ = lower;
-    this.upper_ = upper;
-  }
-
-  /**
-   * Change this interval to have new lower and upper bounds.
-   *
-   * @param lower The lower part
-   * @param upper The upper part
-   */
-  assertBetween(lower: A, upper: A) {
-    this.lower = lower;
-    this.upper = upper;
-  }
-
-  set lower(x: A) {
-    this.lower_ = x;
-  }
-
-  get lower(): A {
-    if (this.lower_ === undefined) {
-      throw new Error('Cannot get lower before it was set.');
-    } else {
-      return this.lower_;
-    }
-  }
-
-  set upper(x: A) {
-    this.upper_ = x;
-  }
-
-  get upper(): A {
-    if (this.upper_ === undefined) {
-      throw new Error('Cannot get upper before it was set.');
-    } else {
-      return this.upper_;
-    }
-  }
-}
+type ClosedInterval<T> = { lower: T; upper: T };
 
 export class EpochLedgerPredicate {
   hash_: OrIgnore<Field>;
@@ -584,7 +504,7 @@ export class ProtocolStatePredicate {
   }
 
   get snarkedLedgerHash(): Field {
-    this.snarkedLedgerHash_.check = Bool(true);
+    this.snarkedLedgerHash_.isSome = Bool(true);
 
     if (this.snarkedLedgerHash_.value === null) {
       throw new Error('Cannot get snarkedLedgerHash before it was set.');
@@ -594,7 +514,7 @@ export class ProtocolStatePredicate {
   }
 
   get lastVrfOutput(): Field {
-    this.lastVrfOutput_.check = Bool(true);
+    this.lastVrfOutput_.isSome = Bool(true);
 
     if (this.lastVrfOutput_.value === null) {
       throw new Error('Cannot get lastVrfOutput before it was set.');
@@ -610,23 +530,19 @@ export class ProtocolStatePredicate {
  * @param dummy The value to ignore
  * @returns Always an ignored value regardless of the input.
  */
-function ignore<A>(dummy: A): OrIgnore<A> {
-  return new OrIgnore(Bool(false), dummy);
+function ignore<T>(dummy: T): OrIgnore<T> {
+  return { isSome: Bool(false), value: dummy };
 }
-/*
-function check<A>(dummy: A): OrIgnore<A> {
-  return new OrIgnore(new Optional(True, dummy));
-} */
 
 /**
  * Ranges between all uint32 values
  */
-const uint32 = () => new ClosedInterval(UInt32.fromNumber(0), UInt32.MAXINT());
+const uint32 = () => ({ lower: UInt32.fromNumber(0), upper: UInt32.MAXINT() });
 
 /**
  * Ranges between all uint64 values
  */
-const uint64 = () => new ClosedInterval(UInt64.fromNumber(0), UInt64.MAXINT());
+const uint64 = () => ({ lower: UInt64.fromNumber(0), upper: UInt64.MAXINT() });
 
 export type AccountPrecondition = {
   balance: ClosedInterval<UInt64>;
@@ -657,7 +573,7 @@ export const AccountPrecondition = {
   },
   nonce(nonce: UInt32): AccountPrecondition {
     let p = AccountPrecondition.ignoreAll();
-    p.nonce.assertBetween(nonce, nonce);
+    Party.assertEquals(p.nonce, nonce);
     return p;
   },
 };
@@ -707,6 +623,61 @@ export class Party {
     return this.body.update;
   }
 
+  static setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
+    maybeValue.isSome = Bool(true);
+    maybeValue.value = value;
+  }
+
+  /** Constrain a property to lie between lower and upper bounds.
+   *
+   * @param property The property to constrain
+   * @param lower The lower bound
+   * @param upper The upper bound
+   *
+   * Example: To constrain the account balance of a SmartContract to lie between 0 and 20 MINA, you can use
+   *
+   * ```ts
+   * @method onlyRunsWhenBalanceIsLow() {
+   *   let lower = UInt64.zero;
+   *   let upper = UInt64.fromNumber(20e9);
+   *   Party.assertBetween(this.self.body.accountPrecondition.balance, lower, upper);
+   *   // ...
+   * }
+   * ```
+   */
+  static assertBetween<T>(property: ClosedInterval<T>, lower: T, upper: T) {
+    property.lower = lower;
+    property.upper = upper;
+  }
+
+  // TODO: assertGreaterThan, assertLowerThan?
+
+  /** Fix a property to a certain value.
+   *
+   * @param property The property to constrain
+   * @param value The value it is fixed to
+   *
+   * Example: To fix the account nonce of a SmartContract to 0, you can use
+   *
+   * ```ts
+   * @method onlyRunsWhenNonceIsZero() {
+   *   Party.assertEquals(this.self.body.accountPrecondition.nonce, UInt32.zero);
+   *   // ...
+   * }
+   * ```
+   */
+  static assertEquals<T>(property: ClosedInterval<T> | OrIgnore<T>, value: T) {
+    if ('isSome' in property) {
+      property.isSome = Bool(true);
+      property.value = value;
+    } else if ('lower' in property) {
+      property.lower = value;
+      property.upper = value;
+    } else {
+      throw Error('assertEquals: Invalid argument');
+    }
+  }
+
   get publicKey(): PublicKey {
     return this.body.publicKey;
   }
@@ -749,17 +720,17 @@ export class Party {
     ) {
       this.body.accountPrecondition = nonce;
     } else {
-      accountPrecondition.nonce.assertBetween(nonce, nonce);
+      Party.assertEquals(accountPrecondition.nonce, nonce);
     }
     return nonce;
   }
 
   toFields() {
-    return Party_.toFields(toParty(this));
+    return Types.Party.toFields(toParty(this));
   }
 
   hash() {
-    let fields = Party_.toFields(toParty(this));
+    let fields = Types.Party.toFields(toParty(this));
     return Ledger.hashPartyFromFields(fields);
   }
 
@@ -907,7 +878,7 @@ function addMissingSignatures(
 ): PartiesSigned {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
   let { commitment, fullCommitment } = Ledger.transactionCommitments(
-    JSON.stringify(Parties_.toJson(toParties(parties)))
+    JSON.stringify(Types.Parties.toJson(toParties(parties)))
   );
   function addSignature<P extends Party>(party: P, isFeePayer?: boolean) {
     party = cloneCircuitValue(party);
@@ -945,7 +916,7 @@ type PartiesProved = {
 };
 
 async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
-  let partiesJson = JSON.stringify(Parties_.toJson(toParties(parties)));
+  let partiesJson = JSON.stringify(Types.Parties.toJson(toParties(parties)));
   async function addProof<P extends Party>(party: P, index: number) {
     party = cloneCircuitValue(party);
     if (party.authorization.kind !== 'lazy-proof')
@@ -1002,7 +973,7 @@ function signJsonTransaction(
     privateKey = PrivateKey.fromBase58(privateKey);
   let publicKey = privateKey.toPublicKey().toBase58();
   // TODO: we really need types for the parties json
-  let parties: Json.Parties = JSON.parse(transactionJson);
+  let parties: Types.Json.Parties = JSON.parse(transactionJson);
   let feePayer = parties.feePayer;
   if (feePayer.body.publicKey === publicKey) {
     parties = JSON.parse(
