@@ -54,6 +54,7 @@ describe('bool', () => {
         }).toThrow();
       });
     });
+
     describe('and', () => {
       it('true "and" true should return true', async () => {
         expect(() => {
@@ -149,6 +150,63 @@ describe('bool', () => {
             xTrue.not().assertEquals(xTrue);
           });
         }).toThrow();
+      });
+    });
+
+    describe('or', () => {
+      it('true "or" true should return true', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const xTrue = Circuit.witness(Bool, () => new Bool(true));
+            const yTrue = Circuit.witness(Bool, () => new Bool(true));
+
+            xTrue.or(yTrue).assertEquals(new Bool(true));
+          });
+        }).not.toThrow();
+      });
+
+      it('should throw if true "or" true is compared to false', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const xTrue = Circuit.witness(Bool, () => new Bool(true));
+            const yTrue = Circuit.witness(Bool, () => new Bool(true));
+
+            xTrue.or(yTrue).assertEquals(new Bool(false));
+          });
+        }).toThrow();
+      });
+
+      it('false "or" false should return false', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const xFalse = Circuit.witness(Bool, () => new Bool(false));
+            const yFalse = Circuit.witness(Bool, () => new Bool(false));
+
+            xFalse.or(yFalse).assertEquals(new Bool(false));
+          });
+        }).not.toThrow();
+      });
+
+      it('should throw if false "or" false is compared to true', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const xFalse = Circuit.witness(Bool, () => new Bool(false));
+            const yFalse = Circuit.witness(Bool, () => new Bool(false));
+
+            xFalse.or(yFalse).assertEquals(new Bool(true));
+          });
+        }).toThrow();
+      });
+
+      it('false "or" true should return true', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const xFalse = Circuit.witness(Bool, () => new Bool(false));
+            const yTrue = Circuit.witness(Bool, () => new Bool(true));
+
+            xFalse.or(yTrue).assertEquals(new Bool(true));
+          });
+        }).not.toThrow();
       });
     });
   });
