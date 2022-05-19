@@ -11,7 +11,6 @@ import { CircuitValue, cloneCircuitValue } from './circuit_value';
 import {
   Body,
   Party,
-  PartyBalance,
   signJsonTransaction,
   Parties,
   Permissions,
@@ -595,7 +594,7 @@ export class SmartContract {
     return this.executionState().party;
   }
 
-  get balance(): PartyBalance {
+  get balance() {
     return this.self.balance;
   }
 

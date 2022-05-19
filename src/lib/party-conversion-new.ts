@@ -24,7 +24,7 @@ function toParties({
 
 function toParty(party: Party): Party_ {
   return {
-    body: toPartyBody(party.body),
+    body: party.body,
     authorization: toControl(party.authorization),
   };
 }
@@ -34,13 +34,4 @@ function toControl<T extends LazyControl>(authorization: T): Control_ {
     return { signature: authorization.value };
   if (authorization.kind === 'proof') return { proof: authorization.value };
   return {};
-}
-
-function toPartyBody(body: Body): Party_['body'] {
-  return {
-    ...body,
-    // TODO
-    balanceChange: { magnitude: body.delta, sgn: Field.one },
-    callDepth: parseInt(body.depth.toString(), 10),
-  };
 }

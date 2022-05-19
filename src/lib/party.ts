@@ -12,6 +12,7 @@ export {
   Permission,
   Permissions,
   Body,
+  Party,
   FeePayerUnsigned,
   Parties,
   LazyProof,
@@ -244,12 +245,13 @@ class Events {
   }
 }
 
+// TODO: get docstrings from OCaml and delete this interface
 /**
  * The body of describing how some [[ Party ]] should change.
  *
  * TODO: We need to rename this still.
  */
-type Body = {
+interface Body extends PartyBody {
   /**
    * The address for this body.
    */
@@ -268,9 +270,12 @@ type Body = {
 
   /**
    * By what [[ Int64 ]] should the balance of this account change. All
-   * deltas must balance by the end of smart contract execution.
+   * balanceChanges must balance by the end of smart contract execution.
+   *
+   * TODO: Currently, due to the incompatible/fake Int64 implementation, we have to make
+   * magnitude an Int64 and sgn always 1.
    */
-  delta: Int64;
+  balanceChange: { magnitude: Int64; sgn: Field };
 
   /**
    * Recent events that have been emitted from this account.
@@ -281,12 +286,12 @@ type Body = {
   sequenceEvents: Events;
   caller: Field;
   callData: Field; //MerkleList<Array<Field>>;
-  depth: Field; // TODO: this is an `int As_prover.t`
+  callDepth: number; // TODO: this is an `int As_prover.t`
   protocolStatePrecondition: ProtocolStatePrecondition;
   accountPrecondition: AccountPrecondition;
   useFullCommitment: Bool;
   incrementNonce: Bool;
-};
+}
 const Body = {
   noUpdate(): Update {
     return {
@@ -325,12 +330,12 @@ const Body = {
       publicKey,
       update: Body.noUpdate(),
       tokenId: getDefaultTokenId(),
-      delta: Int64.zero,
+      balanceChange: { magnitude: Int64.zero, sgn: Field.one },
       events: Events.empty(),
       sequenceEvents: Events.empty(),
       caller: getDefaultTokenId(),
       callData: Field.zero, // TODO new MerkleList(),
-      depth: Field.zero,
+      callDepth: 0,
       protocolStatePrecondition: ProtocolStatePrecondition.ignoreAll(),
       accountPrecondition: AccountPrecondition.ignoreAll(),
       // the default assumption is that snarkyjs transactions don't include the fee payer
@@ -361,7 +366,6 @@ const FeePayerBody = {
     };
   },
 };
-
 type FeePayerUnsigned = {
   body: FeePayerBody;
   authorization: UnfinishedSignature | string;
@@ -452,21 +456,6 @@ export const AccountPrecondition = {
   },
 };
 
-export class PartyBalance {
-  private body: Body;
-  constructor(body: Body) {
-    this.body = body;
-  }
-
-  addInPlace(x: Int64 | UInt32 | UInt64) {
-    this.body.delta = this.body.delta.add(x);
-  }
-
-  subInPlace(x: Int64 | UInt32 | UInt64) {
-    this.body.delta = this.body.delta.sub(x);
-  }
-}
-
 type Control =
   | { kind: 'none' }
   | { kind: 'signature'; value: string }
@@ -486,7 +475,7 @@ type LazyProof = {
 };
 type LazyControl = Control | LazySignature | LazyProof;
 
-export class Party {
+class Party {
   body: Body;
   authorization: LazyControl = { kind: 'none' };
 
@@ -494,8 +483,22 @@ export class Party {
     this.body = body;
   }
 
-  get balance(): PartyBalance {
-    return new PartyBalance(this.body);
+  get balance() {
+    let party = this;
+    return {
+      addInPlace(x: Int64 | UInt32 | UInt64) {
+        party.body.balanceChange.magnitude = Int64.add(
+          party.body.balanceChange.magnitude,
+          x
+        );
+      },
+      subInPlace(x: Int64 | UInt32 | UInt64) {
+        party.body.balanceChange.magnitude = Int64.sub(
+          party.body.balanceChange.magnitude,
+          x
+        );
+      },
+    };
   }
 
   get update(): Update {
