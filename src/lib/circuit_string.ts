@@ -1,7 +1,7 @@
 import { Bool, Circuit, Field, isReady, Poseidon } from '../snarky';
 import { arrayProp, CircuitValue, prop } from './circuit_value';
 
-const DEFAULT_STRING_LENGTH = 64;
+const DEFAULT_STRING_LENGTH = 1024;
 
 export class Character extends CircuitValue {
   @prop value: Field;
@@ -32,12 +32,10 @@ export class Character extends CircuitValue {
 
   /* 
   TODO: Add support for more character sets
-  ASCII reference: https://en.wikipedia.org/wiki/ASCII#Printable_characters
+  default chacter value should be 0-255
   */
   static check(value: Field) {
-    console.log('check')
-    value.assertGte(Field(32))
-    value.assertLte(Field(126))
+    value.rangeCheckHelper(8).assertEquals(value);
   }
 };
 
@@ -95,9 +93,9 @@ export class CircuitString extends CircuitValue {
 
   // returns TRUE if str is found in this CircuitString
   // @param size - the size of the str without null padding
-  contains(str: CircuitString, size: number): Bool {
+  contains(str: CircuitString): Bool {
     let ret = new Bool(false);
-    ret = this._contains(str, size)
+    ret = this._contains(str)
 
     return ret;
   }
@@ -115,13 +113,14 @@ export class CircuitString extends CircuitValue {
   }
 
   toString(): string {
-    return this.values.map(x => x.toString()).join('');
+    return this.values.map(x => x.toString()).join('').replace(/[^ -~]+/g, "");
   }
 
   equals(str: CircuitString): Bool {
     let ret = new Bool(true);
     ret = this._equals(str);
 
+    console.log(ret)
     return ret;
   }
 
@@ -130,10 +129,10 @@ export class CircuitString extends CircuitValue {
     return new CircuitString(characters);
   }
 
-  private _contains(str: CircuitString, size: number): Bool {
+  private _contains(str: CircuitString): Bool {
     let ret = new Bool(false);
     const thisLength = Number(this.usedLength.toString());
-    const strLength = size;
+    const strLength = Number(str.usedLength.toString());
     let i = 0;
 
     while (i + strLength <= thisLength) {
@@ -175,7 +174,5 @@ export async function resolveCircuitStringArrayProps() {
   await isReady;
 
   arrayProp(Character, 8)(CircuitString8.prototype, 'values');
-  arrayProp(Character, 16)(CircuitString8.prototype, 'values');
-  arrayProp(Character, 32)(CircuitString8.prototype, 'values');
   arrayProp(Character, DEFAULT_STRING_LENGTH)(CircuitString.prototype, 'values');
 }
