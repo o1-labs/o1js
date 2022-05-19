@@ -211,7 +211,7 @@ describe('bool', () => {
     });
 
     describe('assertEquals', () => {
-      it('should not throw on x "assertEqual" x', async () => {
+      it('should not throw on true "assertEqual" true', async () => {
         expect(() => {
           Circuit.runAndCheck(() => {
             const x = Circuit.witness(Bool, () => new Bool(true));
@@ -221,13 +221,35 @@ describe('bool', () => {
         }).not.toThrow();
       });
 
-      it('should throw on x "assertEquals" y', async () => {
+      it('should throw on true "assertEquals" false', async () => {
         expect(() => {
           Circuit.runAndCheck(() => {
             const x = Circuit.witness(Bool, () => new Bool(true));
             const y = Circuit.witness(Bool, () => new Bool(false));
 
             x.assertEquals(y);
+          });
+        }).toThrow();
+      });
+    });
+    describe('equals', () => {
+      it('should not throw on true "equals" true', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const x = Circuit.witness(Bool, () => new Bool(true));
+
+            x.equals(x);
+          });
+        }).not.toThrow();
+      });
+
+      it('should throw on true "equals" false', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const x = Circuit.witness(Bool, () => new Bool(true));
+            const y = Circuit.witness(Bool, () => new Bool(false));
+
+            x.equals(y);
           });
         }).toThrow();
       });
