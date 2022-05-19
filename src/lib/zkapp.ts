@@ -327,7 +327,8 @@ function wrapMethod(
     } else {
       // in a transaction, also add a lazy proof to the self party
       // (if there's no other authorization set)
-      if (this.self.authorization.kind === 'none') {
+      let auth = this.self.authorization;
+      if (!('kind' in auth || 'proof' in auth || 'signature' in auth)) {
         this.self.authorization = {
           kind: 'lazy-proof',
           method,
@@ -728,10 +729,7 @@ async function call<S extends typeof SmartContract>(
     methodArguments,
     provers
   );
-  selfParty.authorization = {
-    kind: 'proof',
-    value: Pickles.proofToString(proof),
-  };
+  selfParty.authorization = { proof: Pickles.proofToString(proof) };
   if (verify !== undefined) {
     let ok = await verify(statement, proof);
     if (!ok) throw Error('Proof failed to verify!');

@@ -5,7 +5,6 @@ import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
 import { SmartContract } from './zkapp';
 import { withContextAsync } from './global-context';
-import { toParties, toParty } from './party-conversion-new';
 
 export {
   SetOrKeep,
@@ -18,7 +17,8 @@ export {
   LazyProof,
   LazySignature,
   LazyControl,
-  toFeePayerUnsafe,
+  toPartyUnsafe,
+  toPartiesUnsafe,
   partiesToJson,
   addMissingSignatures,
   addMissingProofs,
@@ -456,15 +456,7 @@ export const AccountPrecondition = {
   },
 };
 
-type Control =
-  | { kind: 'none' }
-  | { kind: 'signature'; value: string }
-  | { kind: 'proof'; value: string };
-
-type UnfinishedSignature =
-  | { kind: 'none' }
-  | { kind: 'lazy-signature'; privateKey?: PrivateKey }
-  | string;
+type Control = Types.Party['authorization'];
 
 type LazySignature = { kind: 'lazy-signature'; privateKey?: PrivateKey };
 type LazyProof = {
@@ -473,11 +465,14 @@ type LazyProof = {
   args: any[];
   ZkappClass: typeof SmartContract;
 };
+
+type UnfinishedSignature = undefined | LazySignature | string;
+
 type LazyControl = Control | LazySignature | LazyProof;
 
 class Party {
   body: Body;
-  authorization: LazyControl = { kind: 'none' };
+  authorization: LazyControl = {};
 
   constructor(body: Body) {
     this.body = body;
@@ -615,11 +610,11 @@ class Party {
   }
 
   toFields() {
-    return Types.Party.toFields(toParty(this));
+    return Types.Party.toFields(toPartyUnsafe(this));
   }
 
   hash() {
-    let fields = Types.Party.toFields(toParty(this));
+    let fields = Types.Party.toFields(toPartyUnsafe(this));
     return Ledger.hashPartyFromFields(fields);
   }
 
@@ -639,7 +634,7 @@ class Party {
 
   static dummyFeePayer(): FeePayerUnsigned {
     let body = FeePayerBody.keepAll(PublicKey.empty(), UInt32.zero);
-    return { body, authorization: { kind: 'none' } };
+    return { body, authorization: undefined };
   }
 
   static createUnsigned(publicKey: PublicKey) {
@@ -755,6 +750,7 @@ type PartiesSigned = {
 const dummySignature =
   '7mWxjLYgbJUkZNcGouvhVj5tJ8yu9hoexb9ntvPK8t5LHqzmrL6QJjjKtf5SgmxB4QWkDw7qoMMbbNGtHVpsbJHPyTy2EzRQ';
 
+// TODO find a better name for these to make it clearer what they do (replace any lazy authorization with no/dummy authorization)
 function toFeePayerUnsafe(feePayer: FeePayerUnsigned): FeePayer {
   let { body, authorization } = feePayer;
   if (typeof authorization === 'string') return { body, authorization };
@@ -762,12 +758,29 @@ function toFeePayerUnsafe(feePayer: FeePayerUnsigned): FeePayer {
     return { body, authorization: dummySignature };
   }
 }
-function partiesToJson({ feePayer, otherParties }: Parties) {
-  let parties = toParties({
+function toPartyUnsafe({ body, authorization }: Party): Types.Party {
+  return {
+    body,
+    authorization: 'kind' in authorization ? {} : authorization,
+  };
+}
+function toPartiesUnsafe({
+  feePayer,
+  otherParties,
+}: {
+  feePayer: FeePayerUnsigned;
+  otherParties: Party[];
+}): Types.Parties {
+  return {
     feePayer: toFeePayerUnsafe(feePayer),
-    otherParties,
-  });
-  return Types.Parties.toJson(parties);
+    otherParties: otherParties.map(toPartyUnsafe),
+    // TODO expose to Mina.transaction
+    memo: Ledger.memoToBase58(''),
+  };
+}
+
+function partiesToJson(parties: Parties) {
+  return Types.Parties.toJson(toPartiesUnsafe(parties));
 }
 
 function addMissingSignatures(
@@ -781,7 +794,7 @@ function addMissingSignatures(
   function addFeePayerSignature(party: FeePayerUnsigned): FeePayer {
     let { body, authorization } = cloneCircuitValue(party);
     if (typeof authorization === 'string') return { body, authorization };
-    if (authorization.kind === 'none')
+    if (authorization === undefined)
       return { body, authorization: dummySignature };
     let { privateKey } = authorization;
     if (privateKey === undefined) {
@@ -802,7 +815,10 @@ function addMissingSignatures(
 
   function addSignature<P extends Party>(party: P) {
     party = cloneCircuitValue(party);
-    if (party.authorization.kind !== 'lazy-signature')
+    if (
+      !('kind' in party.authorization) ||
+      party.authorization.kind !== 'lazy-signature'
+    )
       return party as P & { authorization: Control | LazyProof };
     let { privateKey } = party.authorization;
     if (privateKey === undefined) {
@@ -819,7 +835,7 @@ function addMissingSignatures(
       ? fullCommitment
       : commitment;
     let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
-    party.authorization = { kind: 'signature', value: signature };
+    party.authorization = { signature };
     return party as P & { authorization: Control };
   }
   let { feePayer, otherParties } = parties;
@@ -839,7 +855,10 @@ async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
 
   async function addProof<P extends Party>(party: P, index: number) {
     party = cloneCircuitValue(party);
-    if (party.authorization.kind !== 'lazy-proof')
+    if (
+      !('kind' in party.authorization) ||
+      party.authorization.kind !== 'lazy-proof'
+    )
       return party as P & { authorization: Control | LazySignature };
     let { method, args, ZkappClass } = party.authorization;
     let statement = Ledger.transactionStatement(partiesJson, index);
@@ -863,10 +882,7 @@ async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
       },
       () => provers[i](statement)
     );
-    party.authorization = {
-      kind: 'proof',
-      value: Pickles.proofToString(proof),
-    };
+    party.authorization = { proof: Pickles.proofToString(proof) };
     return party as P & { authorization: Control | LazySignature };
   }
   let { feePayer, otherParties } = parties;
