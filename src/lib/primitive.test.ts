@@ -9,7 +9,7 @@ describe('bool', () => {
   afterAll(async () => {
     setTimeout(async () => {
       await shutdown();
-    }, 1500);
+    }, 0);
   });
 
   describe('inside circuit', () => {
@@ -207,6 +207,29 @@ describe('bool', () => {
             xFalse.or(yTrue).assertEquals(new Bool(true));
           });
         }).not.toThrow();
+      });
+    });
+
+    describe('assertEquals', () => {
+      it('should not throw on x "assertEqual" x', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const x = Circuit.witness(Bool, () => new Bool(true));
+
+            x.assertEquals(x);
+          });
+        }).not.toThrow();
+      });
+
+      it('should throw on x "assertEquals" y', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const x = Circuit.witness(Bool, () => new Bool(true));
+            const y = Circuit.witness(Bool, () => new Bool(false));
+
+            x.assertEquals(y);
+          });
+        }).toThrow();
       });
     });
   });
