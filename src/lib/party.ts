@@ -25,10 +25,13 @@ export {
 
 const ZkappStateLength = 8;
 
+type PartyBody = Types.Party['body'];
+type Update = PartyBody['update'];
+
 /**
  * Timing info inside an account.
  */
-type Timing = Types.Party['body']['update']['timing']['value'];
+type Timing = Update['timing']['value'];
 
 /**
  * Either set a value or keep it the same.
@@ -99,12 +102,14 @@ let Permission = {
   }),
 };
 
-// TODO: we could replace this type if we could bridge the annotations from OCaml
+// TODO: we could replace the interface below if we could bridge annotations from OCaml
+type Permissions_ = Update['permissions']['value'];
+
 /**
  * Permissions specify how specific aspects of the zkapp account are allowed to
  * be modified. All fields are denominated by a [[ Permission ]].
  */
-type Permissions = {
+interface Permissions extends Permissions_ {
   /**
    * The [[ Permission ]] corresponding to the 8 state fields associated with an
    * account.
@@ -167,7 +172,7 @@ type Permissions = {
   // TODO: doccomments
   incrementNonce: Permission;
   setVotingFor: Permission;
-};
+}
 let Permissions = {
   ...Permission,
   /**
@@ -210,8 +215,6 @@ let Permissions = {
     setVotingFor: Permission.signature(),
   }),
 };
-
-type Update = Types.Party['body']['update'];
 
 export const getDefaultTokenId = () => Field.one;
 
@@ -279,7 +282,7 @@ export type Body = {
   caller: Field;
   callData: Field; //MerkleList<Array<Field>>;
   depth: Field; // TODO: this is an `int As_prover.t`
-  protocolState: ProtocolStatePredicate;
+  protocolStatePrecondition: ProtocolStatePrecondition;
   accountPrecondition: Precondition;
   useFullCommitment: Bool;
   incrementNonce: Bool;
@@ -328,7 +331,7 @@ export let Body = {
       caller: getDefaultTokenId(),
       callData: Field.zero, // TODO new MerkleList(),
       depth: Field.zero,
-      protocolState: ProtocolStatePredicate.ignoreAll(),
+      protocolStatePrecondition: ProtocolStatePredicate.ignoreAll(),
       accountPrecondition: AccountPrecondition.ignoreAll(),
       // the default assumption is that snarkyjs transactions don't include the fee payer
       // so useFullCommitment has to be false for signatures to be correct
@@ -365,164 +368,30 @@ type OrIgnore<T> = { isSome: Bool; value: T };
  */
 type ClosedInterval<T> = { lower: T; upper: T };
 
-export class EpochLedgerPredicate {
-  hash_: OrIgnore<Field>;
-  totalCurrency: ClosedInterval<UInt64>;
-
-  constructor(hash_: OrIgnore<Field>, totalCurrency_: ClosedInterval<UInt64>) {
-    this.hash_ = hash_;
-    this.totalCurrency = totalCurrency_;
-  }
-}
-
-export class EpochDataPredicate {
-  ledger: EpochLedgerPredicate;
-  seed_: OrIgnore<Field>;
-  startCheckpoint_: OrIgnore<Field>;
-  lockCheckpoint_: OrIgnore<Field>;
-  epochLength: ClosedInterval<UInt32>;
-
-  constructor({
-    ledger,
-    seed_,
-    startCheckpoint_,
-    lockCheckpoint_,
-    epochLength,
-  }: {
-    ledger: EpochLedgerPredicate;
-    seed_: OrIgnore<Field>;
-    startCheckpoint_: OrIgnore<Field>;
-    lockCheckpoint_: OrIgnore<Field>;
-    epochLength: ClosedInterval<UInt32>;
-  }) {
-    this.ledger = ledger;
-    this.seed_ = seed_;
-    this.startCheckpoint_ = startCheckpoint_;
-    this.lockCheckpoint_ = lockCheckpoint_;
-    this.epochLength = epochLength;
-  }
-
-  // TODO: Should return promise
-  get seed(): Field {
-    if (this.seed_.value === null) {
-      throw new Error('Cannot get seed before it was set.');
-    } else {
-      return this.seed_.value;
-    }
-  }
-
-  get startCheckpoint(): Field {
-    if (this.startCheckpoint_.value === null) {
-      throw new Error('Cannot get startCheckpoint before it was set.');
-    } else {
-      return this.startCheckpoint_.value;
-    }
-  }
-
-  get lockCheckpoint(): Field {
-    if (this.lockCheckpoint_.value === null) {
-      throw new Error('Cannot get lockCheckpoint before it was set.');
-    } else {
-      return this.lockCheckpoint_.value;
-    }
-  }
-}
-
-export class ProtocolStatePredicate {
-  snarkedLedgerHash_: OrIgnore<Field>;
-  snarkedNextAvailableToken: ClosedInterval<UInt64>;
-  timestamp: ClosedInterval<UInt64>;
-  blockchainLength: ClosedInterval<UInt32>;
-  minWindowDensity: ClosedInterval<UInt32>;
-  lastVrfOutput_: OrIgnore<Field>;
-  totalCurrency: ClosedInterval<UInt64>;
-  globalSlotSinceHardFork: ClosedInterval<UInt32>;
-  globalSlotSinceGenesis: ClosedInterval<UInt32>;
-  stakingEpochData: EpochDataPredicate;
-  nextEpochData: EpochDataPredicate;
-
-  static ignoreAll(): ProtocolStatePredicate {
-    let stakingEpochData = new EpochDataPredicate({
-      ledger: new EpochLedgerPredicate(ignore(Field.zero), uint64()),
-      seed_: ignore(Field.zero),
-      startCheckpoint_: ignore(Field.zero),
-      lockCheckpoint_: ignore(Field.zero),
+type ProtocolStatePrecondition = PartyBody['protocolStatePrecondition'];
+let ProtocolStatePredicate = {
+  ignoreAll(): ProtocolStatePrecondition {
+    let stakingEpochData = {
+      ledger: { hash: ignore(Field.zero), totalCurrency: uint64() },
+      seed: ignore(Field.zero),
+      startCheckpoint: ignore(Field.zero),
+      lockCheckpoint: ignore(Field.zero),
       epochLength: uint32(),
-    });
+    };
     let nextEpochData = cloneCircuitValue(stakingEpochData);
-    return new ProtocolStatePredicate({
-      snarkedLedgerHash_: ignore(Field.zero),
-      snarkedNextAvailableToken: uint64(),
+    return {
+      snarkedLedgerHash: ignore(Field.zero),
       timestamp: uint64(),
       blockchainLength: uint32(),
       minWindowDensity: uint32(),
-      lastVrfOutput_: ignore(Field.zero),
       totalCurrency: uint64(),
       globalSlotSinceHardFork: uint32(),
       globalSlotSinceGenesis: uint32(),
       stakingEpochData,
       nextEpochData,
-    });
-  }
-
-  constructor({
-    snarkedLedgerHash_,
-    snarkedNextAvailableToken,
-    timestamp,
-    blockchainLength,
-    minWindowDensity,
-    lastVrfOutput_,
-    totalCurrency,
-    globalSlotSinceHardFork,
-    globalSlotSinceGenesis,
-    stakingEpochData,
-    nextEpochData,
-  }: {
-    snarkedLedgerHash_: OrIgnore<Field>;
-    snarkedNextAvailableToken: ClosedInterval<UInt64>;
-    timestamp: ClosedInterval<UInt64>;
-    blockchainLength: ClosedInterval<UInt32>;
-    minWindowDensity: ClosedInterval<UInt32>;
-    lastVrfOutput_: OrIgnore<Field>;
-    totalCurrency: ClosedInterval<UInt64>;
-    globalSlotSinceHardFork: ClosedInterval<UInt32>;
-    globalSlotSinceGenesis: ClosedInterval<UInt32>;
-    stakingEpochData: EpochDataPredicate;
-    nextEpochData: EpochDataPredicate;
-  }) {
-    this.snarkedLedgerHash_ = snarkedLedgerHash_;
-    this.snarkedNextAvailableToken = snarkedNextAvailableToken;
-    this.timestamp = timestamp;
-    this.blockchainLength = blockchainLength;
-    this.minWindowDensity = minWindowDensity;
-    this.lastVrfOutput_ = lastVrfOutput_;
-    this.totalCurrency = totalCurrency;
-    this.globalSlotSinceHardFork = globalSlotSinceHardFork;
-    this.globalSlotSinceGenesis = globalSlotSinceGenesis;
-    this.stakingEpochData = stakingEpochData;
-    this.nextEpochData = nextEpochData;
-  }
-
-  get snarkedLedgerHash(): Field {
-    this.snarkedLedgerHash_.isSome = Bool(true);
-
-    if (this.snarkedLedgerHash_.value === null) {
-      throw new Error('Cannot get snarkedLedgerHash before it was set.');
-    } else {
-      return this.snarkedLedgerHash_.value;
-    }
-  }
-
-  get lastVrfOutput(): Field {
-    this.lastVrfOutput_.isSome = Bool(true);
-
-    if (this.lastVrfOutput_.value === null) {
-      throw new Error('Cannot get lastVrfOutput before it was set.');
-    } else {
-      return this.lastVrfOutput_.value;
-    }
-  }
-}
+    };
+  },
+};
 
 /**
  * Ignores a `dummy`
@@ -544,16 +413,7 @@ const uint32 = () => ({ lower: UInt32.fromNumber(0), upper: UInt32.MAXINT() });
  */
 const uint64 = () => ({ lower: UInt64.fromNumber(0), upper: UInt64.MAXINT() });
 
-export type AccountPrecondition = {
-  balance: ClosedInterval<UInt64>;
-  nonce: ClosedInterval<UInt32>;
-  receiptChainHash: OrIgnore<Field>;
-  publicKey: OrIgnore<PublicKey>;
-  delegate: OrIgnore<PublicKey>;
-  state: Array<OrIgnore<Field>>;
-  sequenceState: Field; // ignoring is implicit
-  provedState: OrIgnore<Bool>;
-};
+export type AccountPrecondition = PartyBody['accountPrecondition'];
 export const AccountPrecondition = {
   ignoreAll(): AccountPrecondition {
     let appState: Array<OrIgnore<Field>> = [];
@@ -564,7 +424,6 @@ export const AccountPrecondition = {
       balance: uint64(),
       nonce: uint32(),
       receiptChainHash: ignore(Field.zero),
-      publicKey: ignore(PublicKey.empty()),
       delegate: ignore(PublicKey.empty()),
       state: appState,
       sequenceState: Events.emptySequenceState(),

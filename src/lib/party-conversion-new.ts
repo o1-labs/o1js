@@ -3,20 +3,16 @@ import { Parties as Parties_ } from '../snarky/parties';
 import {
   AccountPrecondition,
   Body,
-  EpochDataPredicate,
   FeePayer,
   LazyControl,
   Party,
   Precondition,
-  ProtocolStatePredicate,
 } from './party';
 import { UInt32 } from './int';
 
-export { toParties, toParty, toProtocolState };
+export { toParties, toParty };
 
 type Party_ = Parties_['otherParties'][number];
-type ProtocolStatePrecondition_ = Party_['body']['protocolStatePrecondition'];
-type EpochDataPrecondition_ = ProtocolStatePrecondition_['nextEpochData'];
 type FeePayerParty_ = Parties_['feePayer'];
 type Control_ = Party_['authorization'];
 
@@ -67,21 +63,11 @@ function toFeePayerControl<T extends LazyControl>(
 
 function toPartyBody(body: Body): Party_['body'] {
   return {
+    ...body,
     // TODO
     balanceChange: { magnitude: body.delta, sgn: Field.one },
-    // TODO add to Party and set to defaultTokenId (which is Field.one)
-    caller: body.caller,
-    incrementNonce: body.incrementNonce,
-    publicKey: body.publicKey,
-    tokenId: body.tokenId,
-    update: body.update,
-    useFullCommitment: body.useFullCommitment,
-    events: body.events,
     callDepth: parseInt(body.depth.toString(), 10),
     accountPrecondition: toAccountPrecondition(body.accountPrecondition),
-    sequenceEvents: body.sequenceEvents,
-    callData: body.callData,
-    protocolStatePrecondition: toProtocolState(body.protocolState),
   };
 }
 
@@ -89,14 +75,10 @@ function toFeePayerPartyBody(
   body: Body & { accountPrecondition: UInt32 }
 ): FeePayerParty_['body'] {
   return {
+    ...body,
     // TODO
     fee: new UInt32(body.delta.value.neg()),
     nonce: body.accountPrecondition,
-    publicKey: body.publicKey,
-    update: body.update,
-    events: body.events,
-    sequenceEvents: body.sequenceEvents,
-    protocolStatePrecondition: toProtocolState(body.protocolState),
   };
 }
 
@@ -111,65 +93,5 @@ function toAccountPrecondition(
   } else {
     full = accountPrecondition;
   }
-  return {
-    state: full.state,
-    balance: full.balance,
-    delegate: full.delegate,
-    nonce: full.nonce,
-    provedState: full.provedState,
-    receiptChainHash: full.receiptChainHash,
-    sequenceState: full.sequenceState,
-  };
-}
-
-function toProtocolState(
-  protocolState: ProtocolStatePredicate
-): ProtocolStatePrecondition_ {
-  // TODO: remove unused values from ProtocolStatePredicate
-  let {
-    snarkedLedgerHash_: snarkedLedgerHash,
-    snarkedNextAvailableToken,
-    timestamp,
-    blockchainLength,
-    minWindowDensity,
-    lastVrfOutput_: lastVrfOutput,
-    totalCurrency,
-    globalSlotSinceHardFork,
-    globalSlotSinceGenesis,
-    stakingEpochData,
-    nextEpochData,
-  } = protocolState;
-  return {
-    snarkedLedgerHash,
-    timestamp: timestamp,
-    blockchainLength: blockchainLength,
-    minWindowDensity: minWindowDensity,
-    totalCurrency: totalCurrency,
-    globalSlotSinceHardFork: globalSlotSinceHardFork,
-    globalSlotSinceGenesis: globalSlotSinceGenesis,
-    stakingEpochData: toEpochDataPredicate(stakingEpochData),
-    nextEpochData: toEpochDataPredicate(nextEpochData),
-  };
-}
-
-function toEpochDataPredicate(
-  predicate: EpochDataPredicate
-): EpochDataPrecondition_ {
-  let {
-    ledger,
-    epochLength,
-    lockCheckpoint_: lockCheckpoint,
-    seed_: seed,
-    startCheckpoint_: startCheckpoint,
-  } = predicate;
-  return {
-    ledger: {
-      totalCurrency: ledger.totalCurrency,
-      hash: ledger.hash_,
-    },
-    epochLength: epochLength,
-    lockCheckpoint,
-    seed,
-    startCheckpoint,
-  };
+  return full;
 }

@@ -202,7 +202,7 @@ function parseFetchedAccount({
       permissions &&
       (Object.fromEntries(
         Object.entries(permissions).map(([k, v]) => [k, toPermission(v)])
-      ) as Permissions),
+      ) as unknown as Permissions),
   };
 }
 
