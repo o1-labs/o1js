@@ -121,5 +121,35 @@ describe('bool', () => {
         }).toThrow();
       });
     });
+
+    describe('not', () => {
+      it('should return true', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const xTrue = Circuit.witness(Bool, () => new Bool(true));
+            xTrue.toField().assertEquals(new Field(1));
+          });
+        }).not.toThrow();
+      });
+      it('should return a new bool that is the negation of the input', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const xTrue = Circuit.witness(Bool, () => new Bool(true));
+            const yFalse = Circuit.witness(Bool, () => new Bool(false));
+            xTrue.not().assertEquals(new Bool(false));
+            yFalse.not().assertEquals(new Bool(true));
+          });
+        }).not.toThrow();
+      });
+
+      it('should throw if input.not() is compared to input', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const xTrue = Circuit.witness(Bool, () => new Bool(true));
+            xTrue.not().assertEquals(xTrue);
+          });
+        }).toThrow();
+      });
+    });
   });
 });
