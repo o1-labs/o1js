@@ -21,6 +21,7 @@ export {
 /**
  * An element of a finite field.
  */
+declare function Field(x: number | string): Field;
 declare class Field {
   /**
    * Coerces anything field-like to a [[`Field`]].
@@ -324,11 +325,6 @@ declare class Field {
 
   static fromJSON(x: JSONValue): Field | null;
 }
-
-/**
- * An element of a finite field.
- */
-declare function Field(x: number | string): Field;
 
 /**
  * A boolean value. You can use it like this:
