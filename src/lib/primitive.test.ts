@@ -54,5 +54,72 @@ describe('bool', () => {
         }).toThrow();
       });
     });
+    describe('and', () => {
+      it('true "and" true should return true', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const xTrue = Circuit.witness(Bool, () => new Bool(true));
+            const yTrue = Circuit.witness(Bool, () => new Bool(true));
+
+            xTrue.and(yTrue).assertEquals(new Bool(true));
+          });
+        }).not.toThrow();
+      });
+
+      it('should throw if true "and" true is compared to false', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const xTrue = Circuit.witness(Bool, () => new Bool(true));
+            const yTrue = Circuit.witness(Bool, () => new Bool(true));
+
+            xTrue.and(yTrue).assertEquals(new Bool(false));
+          });
+        }).toThrow();
+      });
+
+      it('false "and" false should return false', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const xFalse = Circuit.witness(Bool, () => new Bool(false));
+            const yFalse = Circuit.witness(Bool, () => new Bool(false));
+
+            xFalse.and(yFalse).assertEquals(new Bool(false));
+          });
+        }).not.toThrow();
+      });
+
+      it('should throw if false "and" false is compared to true', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const xFalse = Circuit.witness(Bool, () => new Bool(false));
+            const yFalse = Circuit.witness(Bool, () => new Bool(false));
+
+            xFalse.and(yFalse).assertEquals(new Bool(true));
+          });
+        }).toThrow();
+      });
+
+      it('false "and" true should return false', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const xFalse = Circuit.witness(Bool, () => new Bool(false));
+            const yTrue = Circuit.witness(Bool, () => new Bool(true));
+
+            xFalse.and(yTrue).assertEquals(new Bool(false));
+          });
+        }).not.toThrow();
+      });
+
+      it('should throw if false "and" true is compared to true', async () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const xFalse = Circuit.witness(Bool, () => new Bool(false));
+            const yTrue = Circuit.witness(Bool, () => new Bool(true));
+
+            xFalse.and(yTrue).assertEquals(new Bool(true));
+          });
+        }).toThrow();
+      });
+    });
   });
 });
