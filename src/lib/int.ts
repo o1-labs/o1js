@@ -390,11 +390,11 @@ export class Int64 {
   }
 
   add(y: Int64 | UInt32 | UInt64) {
-    return new Int64(this.value.add(y.value));
+    return Int64.add(this, y);
   }
 
   sub(y: Int64 | UInt32 | UInt64) {
-    return new Int64(this.value.sub(y.value));
+    return Int64.add(this, y);
   }
 
   repr(): { magnitude: Field; isPos: Sgn } {
