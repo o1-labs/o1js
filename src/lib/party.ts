@@ -1,26 +1,25 @@
-import { CircuitValue, cloneCircuitValue } from './circuit_value';
-import {
-  Group,
-  Field,
-  Bool,
-  Control,
-  Ledger,
-  Circuit,
-  Pickles,
-} from '../snarky';
+import { cloneCircuitValue } from './circuit_value';
+import { Field, Bool, Ledger, Circuit, Pickles, Types } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
-import { toParties } from './party-conversion';
 import { SmartContract } from './zkapp';
 import { withContextAsync } from './global-context';
 
 export {
-  FeePayer,
+  SetOrKeep,
+  Permission,
+  Permissions,
+  Body,
+  Party,
+  FeePayerUnsigned,
   Parties,
   LazyProof,
   LazySignature,
   LazyControl,
+  toPartyUnsafe,
+  toPartiesUnsafe,
+  partiesToJson,
   addMissingSignatures,
   addMissingProofs,
   signJsonTransaction,
@@ -29,33 +28,21 @@ export {
 
 const ZkappStateLength = 8;
 
+type PartyBody = Types.Party['body'];
+type Update = PartyBody['update'];
+
 /**
  * Timing info inside an account.
  */
-export type Timing = {
-  initialMinimumBalance: UInt64;
-  cliffTime: UInt32;
-  cliffAmount: UInt64;
-  vestingPeriod: UInt32;
-  vestingIncrement: UInt64;
-};
+type Timing = Update['timing']['value'];
 
 /**
  * Either set a value or keep it the same.
  */
-export class SetOrKeep<T> {
-  set: Bool;
-  value: T;
+type SetOrKeep<T> = { isSome: Bool; value: T };
 
-  setValue(x: T) {
-    this.set = Bool(true);
-    this.value = x;
-  }
-
-  constructor(set: Bool, value: T) {
-    this.set = set;
-    this.value = value;
-  }
+function keep<T>(dummy: T): SetOrKeep<T> {
+  return { isSome: Bool(false), value: dummy };
 }
 
 const True = () => Bool(true);
@@ -70,12 +57,8 @@ const False = () => Bool(false);
  * Use static factory methods on this class to use a specific behavior. See
  * documentation on those methods to learn more.
  */
-export type Permission = {
-  constant: Bool;
-  signatureNecessary: Bool;
-  signatureSufficient: Bool;
-};
-export let Permission = {
+type Permission = Types.AuthRequired;
+let Permission = {
   /**
    * Modification is impossible.
    */
@@ -91,7 +74,7 @@ export let Permission = {
   none: (): Permission => ({
     constant: True(),
     signatureNecessary: False(),
-    signatureSufficient: False(),
+    signatureSufficient: True(),
   }),
 
   /**
@@ -122,11 +105,14 @@ export let Permission = {
   }),
 };
 
+// TODO: we could replace the interface below if we could bridge annotations from OCaml
+type Permissions_ = Update['permissions']['value'];
+
 /**
  * Permissions specify how specific aspects of the zkapp account are allowed to
  * be modified. All fields are denominated by a [[ Permission ]].
  */
-export type Permissions = {
+interface Permissions extends Permissions_ {
   /**
    * The [[ Permission ]] corresponding to the 8 state fields associated with an
    * account.
@@ -189,8 +175,8 @@ export type Permissions = {
   // TODO: doccomments
   incrementNonce: Permission;
   setVotingFor: Permission;
-};
-export let Permissions = {
+}
+let Permissions = {
   ...Permission,
   /**
    * Default permissions are:
@@ -214,53 +200,58 @@ export let Permissions = {
     setZkappUri: Permission.signature(),
     editSequenceState: Permission.proof(),
     setTokenSymbol: Permission.signature(),
-    // TODO: this is  a workaround, should be changed to signature() once Parties_replay_check_failed is fixed
-    incrementNonce: Permissions.proofOrSignature(),
+    incrementNonce: Permissions.signature(),
+    setVotingFor: Permission.signature(),
+  }),
+
+  initial: (): Permissions => ({
+    editState: Permission.signature(),
+    send: Permission.signature(),
+    receive: Permission.none(),
+    setDelegate: Permission.signature(),
+    setPermissions: Permission.signature(),
+    setVerificationKey: Permission.signature(),
+    setZkappUri: Permission.signature(),
+    editSequenceState: Permission.signature(),
+    setTokenSymbol: Permission.signature(),
+    incrementNonce: Permissions.signature(),
     setVotingFor: Permission.signature(),
   }),
 };
 
-/* TODO: How should we handle "String"s, should we bridge them from OCaml? */
-class String_ extends CircuitValue {}
-
-export type Update = {
-  appState: Array<SetOrKeep<Field>>;
-  delegate: SetOrKeep<PublicKey>;
-  verificationKey: SetOrKeep<string>;
-  permissions: SetOrKeep<Permissions>;
-  zkappUri: SetOrKeep<String_>;
-  tokenSymbol: SetOrKeep<Field>;
-  timing: SetOrKeep<Timing>;
-  votingFor: SetOrKeep<Field>;
-};
-
-export const defaultTokenId = Field.one;
+export const getDefaultTokenId = () => Field.one;
 
 // TODO
 class Events {
   hash: Field;
-  events: Array<Array<Field>>;
+  data: Field[][];
 
-  // TODO
-  constructor(hash: Field, events: Array<Array<Field>>) {
+  // TODO don't hard-code, implement hashes
+  static empty() {
+    let emptyHash = Field(
+      '23641812384071365026036270005604392899711718400522999453895455265440046333209'
+    );
+    return new Events(emptyHash, []);
+  }
+  static emptySequenceState() {
+    return Field(
+      '19777675955122618431670853529822242067051263606115426372178827525373304476695'
+    );
+  }
+
+  constructor(hash: Field, events: Field[][]) {
     this.hash = hash;
-    this.events = events;
+    this.data = events;
   }
 }
 
-// TODO
-class MerkleList<T> {
-  constructor() {}
-}
-
-export type Precondition = undefined | UInt32 | AccountPrecondition;
-
+// TODO: get docstrings from OCaml and delete this interface
 /**
  * The body of describing how some [[ Party ]] should change.
  *
  * TODO: We need to rename this still.
  */
-export type Body = {
+interface Body extends PartyBody {
   /**
    * The address for this body.
    */
@@ -279,9 +270,12 @@ export type Body = {
 
   /**
    * By what [[ Int64 ]] should the balance of this account change. All
-   * deltas must balance by the end of smart contract execution.
+   * balanceChanges must balance by the end of smart contract execution.
+   *
+   * TODO: Currently, due to the incompatible/fake Int64 implementation, we have to make
+   * magnitude an Int64 and sgn always 1.
    */
-  delta: Int64;
+  balanceChange: { magnitude: Int64; sgn: Field };
 
   /**
    * Recent events that have been emitted from this account.
@@ -289,50 +283,60 @@ export type Body = {
    * TODO: Add a reference to general explanation of events.
    */
   events: Events;
-  sequenceEvents: Field;
-  callData: MerkleList<Array<Field>>;
-  depth: Field; // TODO: this is an `int As_prover.t`
-  protocolState: ProtocolStatePredicate;
-  accountPrecondition: Precondition;
+  sequenceEvents: Events;
+  caller: Field;
+  callData: Field; //MerkleList<Array<Field>>;
+  callDepth: number; // TODO: this is an `int As_prover.t`
+  protocolStatePrecondition: ProtocolStatePrecondition;
+  accountPrecondition: AccountPrecondition;
   useFullCommitment: Bool;
   incrementNonce: Bool;
-};
+}
+const Body = {
+  noUpdate(): Update {
+    return {
+      appState: Array(ZkappStateLength)
+        .fill(0)
+        .map(() => keep(Field.zero)),
+      delegate: keep(PublicKey.empty()),
+      // TODO
+      verificationKey: keep({ data: '', hash: Field.zero }),
+      permissions: keep(Permissions.initial()),
+      // TODO don't hard code
+      zkappUri: keep({
+        data: '',
+        hash: Field(
+          '22930868938364086394602058221028773520482901241511717002947639863679740444066'
+        ),
+      }),
+      // TODO
+      tokenSymbol: keep({ data: '', hash: Field.zero }),
+      timing: keep<Timing>({
+        cliffAmount: UInt64.zero,
+        cliffTime: UInt32.zero,
+        initialMinimumBalance: UInt64.zero,
+        vestingIncrement: UInt64.zero,
+        vestingPeriod: UInt32.zero,
+      }),
+      votingFor: keep(Field.zero),
+    };
+  },
 
-export let Body = {
   /**
    * A body that Don't change part of the underlying account record.
    */
   keepAll(publicKey: PublicKey): Body {
-    function keep<A>(dummy: A): SetOrKeep<A> {
-      return new SetOrKeep(False(), dummy);
-    }
-
-    const appState: Array<SetOrKeep<Field>> = [];
-
-    for (let i = 0; i < ZkappStateLength; ++i) {
-      appState.push(keep(Field.zero));
-    }
-
-    const update: Update = {
-      appState,
-      delegate: keep(new PublicKey(Group.generator)),
-      verificationKey: keep(''),
-      permissions: keep(Permissions.default()),
-      zkappUri: keep(undefined as any),
-      tokenSymbol: keep(undefined as any),
-      timing: keep(undefined as any),
-      votingFor: keep(Field.zero),
-    };
     return {
       publicKey,
-      update,
-      tokenId: defaultTokenId,
-      delta: Int64.zero,
-      events: new Events(Field.zero, []),
-      sequenceEvents: Field.zero,
-      callData: new MerkleList(),
-      depth: Field.zero,
-      protocolState: ProtocolStatePredicate.ignoreAll(),
+      update: Body.noUpdate(),
+      tokenId: getDefaultTokenId(),
+      balanceChange: { magnitude: Int64.zero, sgn: Field.one },
+      events: Events.empty(),
+      sequenceEvents: Events.empty(),
+      caller: getDefaultTokenId(),
+      callData: Field.zero, // TODO new MerkleList(),
+      callDepth: 0,
+      protocolStatePrecondition: ProtocolStatePrecondition.ignoreAll(),
       accountPrecondition: AccountPrecondition.ignoreAll(),
       // the default assumption is that snarkyjs transactions don't include the fee payer
       // so useFullCommitment has to be false for signatures to be correct
@@ -342,15 +346,29 @@ export let Body = {
     };
   },
 
-  keepAllWithNonce(publicKey: PublicKey, nonce: UInt32) {
-    let body = Body.keepAll(publicKey);
-    body.accountPrecondition = nonce;
-    return body as Body & { accountPrecondition: UInt32 };
-  },
-
   dummy(): Body {
     return Body.keepAll(PublicKey.empty());
   },
+};
+
+type FeePayer = Types.Parties['feePayer'];
+type FeePayerBody = FeePayer['body'];
+const FeePayerBody = {
+  keepAll(publicKey: PublicKey, nonce: UInt32): FeePayerBody {
+    return {
+      publicKey,
+      nonce,
+      fee: UInt64.zero,
+      update: Body.noUpdate(),
+      events: Events.empty(),
+      sequenceEvents: Events.empty(),
+      protocolStatePrecondition: ProtocolStatePrecondition.ignoreAll(),
+    };
+  },
+};
+type FeePayerUnsigned = {
+  body: FeePayerBody;
+  authorization: UnfinishedSignature | string;
 };
 
 /**
@@ -358,15 +376,7 @@ export let Body = {
  *
  * Used within [[ AccountPredicate ]]s and [[ ProtocolStatePredicate ]]s.
  */
-export class OrIgnore<A> {
-  check: Bool;
-  value: A;
-
-  constructor(check: Bool, value: A) {
-    this.check = check;
-    this.value = value;
-  }
-}
+type OrIgnore<T> = { isSome: Bool; value: T };
 
 /**
  * An interval representing all the values between `lower` and `upper` inclusive
@@ -375,209 +385,32 @@ export class OrIgnore<A> {
  * @typeParam A something with an ordering where one can quantify a lower and
  *            upper bound.
  */
-export class ClosedInterval<A> {
-  lower_: A | undefined;
-  upper_: A | undefined;
+type ClosedInterval<T> = { lower: T; upper: T };
 
-  constructor(lower: A | undefined, upper: A | undefined) {
-    this.lower_ = lower;
-    this.upper_ = upper;
-  }
-
-  /**
-   * Change this interval to have new lower and upper bounds.
-   *
-   * @param lower The lower part
-   * @param upper The upper part
-   */
-  assertBetween(lower: A, upper: A) {
-    this.lower = lower;
-    this.upper = upper;
-  }
-
-  set lower(x: A) {
-    this.lower_ = x;
-  }
-
-  get lower(): A {
-    if (this.lower_ === undefined) {
-      throw new Error('Cannot get lower before it was set.');
-    } else {
-      return this.lower_;
-    }
-  }
-
-  set upper(x: A) {
-    this.upper_ = x;
-  }
-
-  get upper(): A {
-    if (this.upper_ === undefined) {
-      throw new Error('Cannot get upper before it was set.');
-    } else {
-      return this.upper_;
-    }
-  }
-}
-
-export class EpochLedgerPredicate {
-  hash_: OrIgnore<Field>;
-  totalCurrency: ClosedInterval<UInt64>;
-
-  constructor(hash_: OrIgnore<Field>, totalCurrency_: ClosedInterval<UInt64>) {
-    this.hash_ = hash_;
-    this.totalCurrency = totalCurrency_;
-  }
-}
-
-export class EpochDataPredicate {
-  ledger: EpochLedgerPredicate;
-  seed_: OrIgnore<Field>;
-  startCheckpoint_: OrIgnore<Field>;
-  lockCheckpoint_: OrIgnore<Field>;
-  epochLength: ClosedInterval<UInt32>;
-
-  constructor({
-    ledger,
-    seed_,
-    startCheckpoint_,
-    lockCheckpoint_,
-    epochLength,
-  }: {
-    ledger: EpochLedgerPredicate;
-    seed_: OrIgnore<Field>;
-    startCheckpoint_: OrIgnore<Field>;
-    lockCheckpoint_: OrIgnore<Field>;
-    epochLength: ClosedInterval<UInt32>;
-  }) {
-    this.ledger = ledger;
-    this.seed_ = seed_;
-    this.startCheckpoint_ = startCheckpoint_;
-    this.lockCheckpoint_ = lockCheckpoint_;
-    this.epochLength = epochLength;
-  }
-
-  // TODO: Should return promise
-  get seed(): Field {
-    if (this.seed_.value === null) {
-      throw new Error('Cannot get seed before it was set.');
-    } else {
-      return this.seed_.value;
-    }
-  }
-
-  get startCheckpoint(): Field {
-    if (this.startCheckpoint_.value === null) {
-      throw new Error('Cannot get startCheckpoint before it was set.');
-    } else {
-      return this.startCheckpoint_.value;
-    }
-  }
-
-  get lockCheckpoint(): Field {
-    if (this.lockCheckpoint_.value === null) {
-      throw new Error('Cannot get lockCheckpoint before it was set.');
-    } else {
-      return this.lockCheckpoint_.value;
-    }
-  }
-}
-
-export class ProtocolStatePredicate {
-  snarkedLedgerHash_: OrIgnore<Field>;
-  snarkedNextAvailableToken: ClosedInterval<UInt64>;
-  timestamp: ClosedInterval<UInt64>;
-  blockchainLength: ClosedInterval<UInt32>;
-  minWindowDensity: ClosedInterval<UInt32>;
-  lastVrfOutput_: OrIgnore<Field>;
-  totalCurrency: ClosedInterval<UInt64>;
-  globalSlotSinceHardFork: ClosedInterval<UInt32>;
-  globalSlotSinceGenesis: ClosedInterval<UInt32>;
-  stakingEpochData: EpochDataPredicate;
-  nextEpochData: EpochDataPredicate;
-
-  static ignoreAll(): ProtocolStatePredicate {
-    let stakingEpochData = new EpochDataPredicate({
-      ledger: new EpochLedgerPredicate(ignore(Field.zero), uint64()),
-      seed_: ignore(Field.zero),
-      startCheckpoint_: ignore(Field.zero),
-      lockCheckpoint_: ignore(Field.zero),
+type ProtocolStatePrecondition = PartyBody['protocolStatePrecondition'];
+let ProtocolStatePrecondition = {
+  ignoreAll(): ProtocolStatePrecondition {
+    let stakingEpochData = {
+      ledger: { hash: ignore(Field.zero), totalCurrency: uint64() },
+      seed: ignore(Field.zero),
+      startCheckpoint: ignore(Field.zero),
+      lockCheckpoint: ignore(Field.zero),
       epochLength: uint32(),
-    });
+    };
     let nextEpochData = cloneCircuitValue(stakingEpochData);
-    return new ProtocolStatePredicate({
-      snarkedLedgerHash_: ignore(Field.zero),
-      snarkedNextAvailableToken: uint64(),
+    return {
+      snarkedLedgerHash: ignore(Field.zero),
       timestamp: uint64(),
       blockchainLength: uint32(),
       minWindowDensity: uint32(),
-      lastVrfOutput_: ignore(Field.zero),
       totalCurrency: uint64(),
       globalSlotSinceHardFork: uint32(),
       globalSlotSinceGenesis: uint32(),
       stakingEpochData,
       nextEpochData,
-    });
-  }
-
-  constructor({
-    snarkedLedgerHash_,
-    snarkedNextAvailableToken,
-    timestamp,
-    blockchainLength,
-    minWindowDensity,
-    lastVrfOutput_,
-    totalCurrency,
-    globalSlotSinceHardFork,
-    globalSlotSinceGenesis,
-    stakingEpochData,
-    nextEpochData,
-  }: {
-    snarkedLedgerHash_: OrIgnore<Field>;
-    snarkedNextAvailableToken: ClosedInterval<UInt64>;
-    timestamp: ClosedInterval<UInt64>;
-    blockchainLength: ClosedInterval<UInt32>;
-    minWindowDensity: ClosedInterval<UInt32>;
-    lastVrfOutput_: OrIgnore<Field>;
-    totalCurrency: ClosedInterval<UInt64>;
-    globalSlotSinceHardFork: ClosedInterval<UInt32>;
-    globalSlotSinceGenesis: ClosedInterval<UInt32>;
-    stakingEpochData: EpochDataPredicate;
-    nextEpochData: EpochDataPredicate;
-  }) {
-    this.snarkedLedgerHash_ = snarkedLedgerHash_;
-    this.snarkedNextAvailableToken = snarkedNextAvailableToken;
-    this.timestamp = timestamp;
-    this.blockchainLength = blockchainLength;
-    this.minWindowDensity = minWindowDensity;
-    this.lastVrfOutput_ = lastVrfOutput_;
-    this.totalCurrency = totalCurrency;
-    this.globalSlotSinceHardFork = globalSlotSinceHardFork;
-    this.globalSlotSinceGenesis = globalSlotSinceGenesis;
-    this.stakingEpochData = stakingEpochData;
-    this.nextEpochData = nextEpochData;
-  }
-
-  get snarkedLedgerHash(): Field {
-    this.snarkedLedgerHash_.check = Bool(true);
-
-    if (this.snarkedLedgerHash_.value === null) {
-      throw new Error('Cannot get snarkedLedgerHash before it was set.');
-    } else {
-      return this.snarkedLedgerHash_.value;
-    }
-  }
-
-  get lastVrfOutput(): Field {
-    this.lastVrfOutput_.check = Bool(true);
-
-    if (this.lastVrfOutput_.value === null) {
-      throw new Error('Cannot get lastVrfOutput before it was set.');
-    } else {
-      return this.lastVrfOutput_.value;
-    }
-  }
-}
+    };
+  },
+};
 
 /**
  * Ignores a `dummy`
@@ -585,34 +418,21 @@ export class ProtocolStatePredicate {
  * @param dummy The value to ignore
  * @returns Always an ignored value regardless of the input.
  */
-function ignore<A>(dummy: A): OrIgnore<A> {
-  return new OrIgnore(Bool(false), dummy);
+function ignore<T>(dummy: T): OrIgnore<T> {
+  return { isSome: Bool(false), value: dummy };
 }
-/*
-function check<A>(dummy: A): OrIgnore<A> {
-  return new OrIgnore(new Optional(True, dummy));
-} */
 
 /**
  * Ranges between all uint32 values
  */
-const uint32 = () => new ClosedInterval(UInt32.fromNumber(0), UInt32.MAXINT());
+const uint32 = () => ({ lower: UInt32.fromNumber(0), upper: UInt32.MAXINT() });
 
 /**
  * Ranges between all uint64 values
  */
-const uint64 = () => new ClosedInterval(UInt64.fromNumber(0), UInt64.MAXINT());
+const uint64 = () => ({ lower: UInt64.fromNumber(0), upper: UInt64.MAXINT() });
 
-export type AccountPrecondition = {
-  balance: ClosedInterval<UInt64>;
-  nonce: ClosedInterval<UInt32>;
-  receiptChainHash: OrIgnore<Field>;
-  publicKey: OrIgnore<PublicKey>;
-  delegate: OrIgnore<PublicKey>;
-  state: Array<OrIgnore<Field>>;
-  sequenceState: OrIgnore<Field>;
-  provedState: OrIgnore<Bool>;
-};
+export type AccountPrecondition = PartyBody['accountPrecondition'];
 export const AccountPrecondition = {
   ignoreAll(): AccountPrecondition {
     let appState: Array<OrIgnore<Field>> = [];
@@ -623,29 +443,20 @@ export const AccountPrecondition = {
       balance: uint64(),
       nonce: uint32(),
       receiptChainHash: ignore(Field.zero),
-      publicKey: ignore(new PublicKey(Group.generator)),
-      delegate: ignore(new PublicKey(Group.generator)),
+      delegate: ignore(PublicKey.empty()),
       state: appState,
-      sequenceState: ignore(Field.zero),
+      sequenceState: Events.emptySequenceState(),
       provedState: ignore(Bool(false)),
     };
   },
+  nonce(nonce: UInt32): AccountPrecondition {
+    let p = AccountPrecondition.ignoreAll();
+    Party.assertEquals(p.nonce, nonce);
+    return p;
+  },
 };
 
-export class PartyBalance {
-  private body: Body;
-  constructor(body: Body) {
-    this.body = body;
-  }
-
-  addInPlace(x: Int64 | UInt32 | UInt64) {
-    this.body.delta = this.body.delta.add(x);
-  }
-
-  subInPlace(x: Int64 | UInt32 | UInt64) {
-    this.body.delta = this.body.delta.sub(x);
-  }
-}
+type Control = Types.Party['authorization'];
 
 type LazySignature = { kind: 'lazy-signature'; privateKey?: PrivateKey };
 type LazyProof = {
@@ -654,22 +465,94 @@ type LazyProof = {
   args: any[];
   ZkappClass: typeof SmartContract;
 };
+
+type UnfinishedSignature = undefined | LazySignature | string;
+
 type LazyControl = Control | LazySignature | LazyProof;
 
-export class Party {
+class Party {
   body: Body;
-  authorization: LazyControl = { kind: 'none' };
+  authorization: LazyControl = {};
 
   constructor(body: Body) {
     this.body = body;
   }
 
-  get balance(): PartyBalance {
-    return new PartyBalance(this.body);
+  get balance() {
+    let party = this;
+    return {
+      addInPlace(x: Int64 | UInt32 | UInt64) {
+        party.body.balanceChange.magnitude = Int64.add(
+          party.body.balanceChange.magnitude,
+          x
+        );
+      },
+      subInPlace(x: Int64 | UInt32 | UInt64) {
+        party.body.balanceChange.magnitude = Int64.sub(
+          party.body.balanceChange.magnitude,
+          x
+        );
+      },
+    };
   }
 
   get update(): Update {
     return this.body.update;
+  }
+
+  static setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
+    maybeValue.isSome = Bool(true);
+    maybeValue.value = value;
+  }
+
+  /** Constrain a property to lie between lower and upper bounds.
+   *
+   * @param property The property to constrain
+   * @param lower The lower bound
+   * @param upper The upper bound
+   *
+   * Example: To constrain the account balance of a SmartContract to lie between 0 and 20 MINA, you can use
+   *
+   * ```ts
+   * @method onlyRunsWhenBalanceIsLow() {
+   *   let lower = UInt64.zero;
+   *   let upper = UInt64.fromNumber(20e9);
+   *   Party.assertBetween(this.self.body.accountPrecondition.balance, lower, upper);
+   *   // ...
+   * }
+   * ```
+   */
+  static assertBetween<T>(property: ClosedInterval<T>, lower: T, upper: T) {
+    property.lower = lower;
+    property.upper = upper;
+  }
+
+  // TODO: assertGreaterThan, assertLowerThan?
+
+  /** Fix a property to a certain value.
+   *
+   * @param property The property to constrain
+   * @param value The value it is fixed to
+   *
+   * Example: To fix the account nonce of a SmartContract to 0, you can use
+   *
+   * ```ts
+   * @method onlyRunsWhenNonceIsZero() {
+   *   Party.assertEquals(this.self.body.accountPrecondition.nonce, UInt32.zero);
+   *   // ...
+   * }
+   * ```
+   */
+  static assertEquals<T>(property: ClosedInterval<T> | OrIgnore<T>, value: T) {
+    if ('isSome' in property) {
+      property.isSome = Bool(true);
+      property.value = value;
+    } else if ('lower' in property) {
+      property.lower = value;
+      property.upper = value;
+    } else {
+      throw Error('assertEquals: Invalid argument');
+    }
   }
 
   get publicKey(): PublicKey {
@@ -688,13 +571,22 @@ export class Party {
     return party;
   }
 
+  static signFeePayerInPlace(
+    feePayer: FeePayerUnsigned,
+    privateKey?: PrivateKey,
+    fallbackToZeroNonce = false
+  ) {
+    feePayer.body.nonce = this.getNonce(feePayer, fallbackToZeroNonce);
+    feePayer.authorization = { kind: 'lazy-signature', privateKey };
+  }
+
   // TODO this needs to be more intelligent about previous nonces in the transaction, similar to Party.createSigned
-  setNoncePrecondition(fallbackToZero = false) {
+  static getNonce(party: Party | FeePayerUnsigned, fallbackToZero = false) {
     let nonce: UInt32;
     try {
       let inProver = Circuit.inProver();
       if (inProver || !Circuit.inCheckedComputation()) {
-        let account = Mina.getAccount(this.body.publicKey);
+        let account = Mina.getAccount(party.body.publicKey);
         nonce = inProver
           ? Circuit.witness(UInt32, () => account.nonce)
           : account.nonce;
@@ -707,35 +599,42 @@ export class Party {
       if (fallbackToZero) nonce = UInt32.zero;
       else throw err;
     }
-    let accountPrecondition = this.body.accountPrecondition;
-    if (
-      accountPrecondition === undefined ||
-      accountPrecondition instanceof UInt32
-    ) {
-      this.body.accountPrecondition = nonce;
-    } else {
-      accountPrecondition.nonce.assertBetween(nonce, nonce);
-    }
     return nonce;
+  }
+
+  setNoncePrecondition(fallbackToZero = false) {
+    let nonce = Party.getNonce(this, fallbackToZero);
+    let accountPrecondition = this.body.accountPrecondition;
+    Party.assertEquals(accountPrecondition.nonce, nonce);
+    return nonce;
+  }
+
+  toFields() {
+    return Types.Party.toFields(toPartyUnsafe(this));
+  }
+
+  hash() {
+    let fields = Types.Party.toFields(toPartyUnsafe(this));
+    return Ledger.hashPartyFromFields(fields);
   }
 
   static defaultParty(address: PublicKey) {
     const body = Body.keepAll(address);
-    return new Party(body) as PartyWithFullAccountPrecondition;
+    return new Party(body);
   }
 
-  static defaultFeePayer(address: PublicKey, key: PrivateKey, nonce: UInt32) {
-    let body = Body.keepAllWithNonce(address, nonce);
-    body.useFullCommitment = Bool(true);
-    let party = new Party(body) as FeePayer;
-    party.authorization = { kind: 'lazy-signature', privateKey: key };
-    return party;
+  static defaultFeePayer(
+    address: PublicKey,
+    key: PrivateKey,
+    nonce: UInt32
+  ): FeePayerUnsigned {
+    let body = FeePayerBody.keepAll(address, nonce);
+    return { body, authorization: { kind: 'lazy-signature', privateKey: key } };
   }
 
-  static dummyFeePayer() {
-    let body = Body.keepAllWithNonce(PublicKey.empty(), UInt32.zero);
-    body.useFullCommitment = Bool(true);
-    return new Party(body) as FeePayer;
+  static dummyFeePayer(): FeePayerUnsigned {
+    let body = FeePayerBody.keepAll(PublicKey.empty(), UInt32.zero);
+    return { body, authorization: undefined };
   }
 
   static createUnsigned(publicKey: PublicKey) {
@@ -801,10 +700,10 @@ export class Party {
       nonceIncrement.add(new UInt32(shouldIncreaseNonce.toField()));
     }
     nonce = nonce.add(nonceIncrement);
-    body.accountPrecondition = nonce;
+    Party.assertEquals(body.accountPrecondition.nonce, nonce);
     body.incrementNonce = Bool(true);
 
-    let party = new Party(body) as PartyWithNoncePrecondition;
+    let party = new Party(body);
     party.authorization = { kind: 'lazy-signature', privateKey: signer };
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
@@ -838,24 +737,51 @@ export class Party {
   }
 }
 
-export type PartyWithFullAccountPrecondition = Party & {
-  body: { accountPrecondition: AccountPrecondition };
+type Parties = {
+  feePayer: FeePayerUnsigned;
+  otherParties: Party[];
 };
-export type PartyWithNoncePrecondition = Party & {
-  body: { accountPrecondition: UInt32 };
-};
-type FeePayer = Party & {
-  authorization: Exclude<
-    LazyControl,
-    { kind: 'proof'; value: string } | LazyProof
-  >;
-} & PartyWithNoncePrecondition;
-
-type Parties = { feePayer: FeePayer; otherParties: Party[] };
 type PartiesSigned = {
-  feePayer: FeePayer & { authorization: Control };
+  feePayer: FeePayer;
   otherParties: (Party & { authorization: Control | LazyProof })[];
 };
+
+// TODO: probably shouldn't hard-code dummy signature
+const dummySignature =
+  '7mWxjLYgbJUkZNcGouvhVj5tJ8yu9hoexb9ntvPK8t5LHqzmrL6QJjjKtf5SgmxB4QWkDw7qoMMbbNGtHVpsbJHPyTy2EzRQ';
+
+// TODO find a better name for these to make it clearer what they do (replace any lazy authorization with no/dummy authorization)
+function toFeePayerUnsafe(feePayer: FeePayerUnsigned): FeePayer {
+  let { body, authorization } = feePayer;
+  if (typeof authorization === 'string') return { body, authorization };
+  else {
+    return { body, authorization: dummySignature };
+  }
+}
+function toPartyUnsafe({ body, authorization }: Party): Types.Party {
+  return {
+    body,
+    authorization: 'kind' in authorization ? {} : authorization,
+  };
+}
+function toPartiesUnsafe({
+  feePayer,
+  otherParties,
+}: {
+  feePayer: FeePayerUnsigned;
+  otherParties: Party[];
+}): Types.Parties {
+  return {
+    feePayer: toFeePayerUnsafe(feePayer),
+    otherParties: otherParties.map(toPartyUnsafe),
+    // TODO expose to Mina.transaction
+    memo: Ledger.memoToBase58(''),
+  };
+}
+
+function partiesToJson(parties: Parties) {
+  return Types.Parties.toJson(toPartiesUnsafe(parties));
+}
 
 function addMissingSignatures(
   parties: Parties,
@@ -863,11 +789,36 @@ function addMissingSignatures(
 ): PartiesSigned {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
   let { commitment, fullCommitment } = Ledger.transactionCommitments(
-    Ledger.partiesToJson(toParties(parties))
+    JSON.stringify(partiesToJson(parties))
   );
-  function addSignature<P extends Party>(party: P, isFeePayer?: boolean) {
+  function addFeePayerSignature(party: FeePayerUnsigned): FeePayer {
+    let { body, authorization } = cloneCircuitValue(party);
+    if (typeof authorization === 'string') return { body, authorization };
+    if (authorization === undefined)
+      return { body, authorization: dummySignature };
+    let { privateKey } = authorization;
+    if (privateKey === undefined) {
+      let i = additionalPublicKeys.findIndex(
+        (pk) => pk === party.body.publicKey
+      );
+      if (i === -1) {
+        let pk = PublicKey.toBase58(party.body.publicKey);
+        throw Error(
+          `addMissingSignatures: Cannot add signature for ${pk}, private key is missing.`
+        );
+      }
+      privateKey = additionalKeys[i];
+    }
+    let signature = Ledger.signFieldElement(fullCommitment, privateKey);
+    return { body, authorization: signature };
+  }
+
+  function addSignature<P extends Party>(party: P) {
     party = cloneCircuitValue(party);
-    if (party.authorization.kind !== 'lazy-signature')
+    if (
+      !('kind' in party.authorization) ||
+      party.authorization.kind !== 'lazy-signature'
+    )
       return party as P & { authorization: Control | LazyProof };
     let { privateKey } = party.authorization;
     if (privateKey === undefined) {
@@ -880,31 +831,34 @@ function addMissingSignatures(
         );
       privateKey = additionalKeys[i];
     }
-    let transactionCommitment =
-      isFeePayer || party.body.useFullCommitment.toBoolean()
-        ? fullCommitment
-        : commitment;
+    let transactionCommitment = party.body.useFullCommitment.toBoolean()
+      ? fullCommitment
+      : commitment;
     let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
-    party.authorization = { kind: 'signature', value: signature };
+    party.authorization = { signature };
     return party as P & { authorization: Control };
   }
   let { feePayer, otherParties } = parties;
   return {
-    feePayer: addSignature(feePayer, true),
+    feePayer: addFeePayerSignature(feePayer),
     otherParties: otherParties.map((p) => addSignature(p)),
   };
 }
 
 type PartiesProved = {
-  feePayer: FeePayer;
+  feePayer: FeePayerUnsigned;
   otherParties: (Party & { authorization: Control | LazySignature })[];
 };
 
 async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
-  let partiesJson = Ledger.partiesToJson(toParties(parties));
+  let partiesJson = JSON.stringify(partiesToJson(parties));
+
   async function addProof<P extends Party>(party: P, index: number) {
     party = cloneCircuitValue(party);
-    if (party.authorization.kind !== 'lazy-proof')
+    if (
+      !('kind' in party.authorization) ||
+      party.authorization.kind !== 'lazy-proof'
+    )
       return party as P & { authorization: Control | LazySignature };
     let { method, args, ZkappClass } = party.authorization;
     let statement = Ledger.transactionStatement(partiesJson, index);
@@ -928,10 +882,7 @@ async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
       },
       () => provers[i](statement)
     );
-    party.authorization = {
-      kind: 'proof',
-      value: Pickles.proofToString(proof),
-    };
+    party.authorization = { proof: Pickles.proofToString(proof) };
     return party as P & { authorization: Control | LazySignature };
   }
   let { feePayer, otherParties } = parties;
@@ -958,7 +909,7 @@ function signJsonTransaction(
     privateKey = PrivateKey.fromBase58(privateKey);
   let publicKey = privateKey.toPublicKey().toBase58();
   // TODO: we really need types for the parties json
-  let parties = JSON.parse(transactionJson);
+  let parties: Types.Json.Parties = JSON.parse(transactionJson);
   let feePayer = parties.feePayer;
   if (feePayer.body.publicKey === publicKey) {
     parties = JSON.parse(
