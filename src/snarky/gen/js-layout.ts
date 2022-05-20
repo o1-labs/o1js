@@ -66,7 +66,7 @@ let jsLayout = {
                               layout: [
                                 {
                                   key: 'data',
-                                  value: { type: 'VerificationKey' },
+                                  value: { type: 'string' },
                                   docs: null,
                                 },
                                 {
@@ -154,7 +154,27 @@ let jsLayout = {
                           value: {
                             type: 'option',
                             optionType: 'flaggedOption',
-                            inner: { type: 'StringWithHash' },
+                            inner: {
+                              type: 'string',
+                              checkedType: {
+                                type: 'object',
+                                name: 'Events',
+                                docs: null,
+                                layout: [
+                                  {
+                                    key: 'data',
+                                    value: { type: 'string' },
+                                    docs: null,
+                                  },
+                                  {
+                                    key: 'hash',
+                                    value: { type: 'Field' },
+                                    docs: null,
+                                  },
+                                ],
+                              },
+                              checkedTypeName: 'StringWithHash',
+                            },
                           },
                           docs: null,
                         },
@@ -163,7 +183,27 @@ let jsLayout = {
                           value: {
                             type: 'option',
                             optionType: 'flaggedOption',
-                            inner: { type: 'StringWithHash' },
+                            inner: {
+                              type: 'string',
+                              checkedType: {
+                                type: 'object',
+                                name: 'Events',
+                                docs: null,
+                                layout: [
+                                  {
+                                    key: 'data',
+                                    value: { type: 'string' },
+                                    docs: null,
+                                  },
+                                  {
+                                    key: 'hash',
+                                    value: { type: 'Field' },
+                                    docs: null,
+                                  },
+                                ],
+                              },
+                              checkedTypeName: 'StringWithHash',
+                            },
                           },
                           docs: null,
                         },
@@ -179,27 +219,27 @@ let jsLayout = {
                               layout: [
                                 {
                                   key: 'initialMinimumBalance',
-                                  value: { type: 'Balance' },
+                                  value: { type: 'UInt64' },
                                   docs: null,
                                 },
                                 {
                                   key: 'cliffTime',
-                                  value: { type: 'GlobalSlot' },
+                                  value: { type: 'UInt32' },
                                   docs: null,
                                 },
                                 {
                                   key: 'cliffAmount',
-                                  value: { type: 'CurrencyAmount' },
+                                  value: { type: 'UInt64' },
                                   docs: null,
                                 },
                                 {
                                   key: 'vestingPeriod',
-                                  value: { type: 'GlobalSlot' },
+                                  value: { type: 'UInt32' },
                                   docs: null,
                                 },
                                 {
                                   key: 'vestingIncrement',
-                                  value: { type: 'CurrencyAmount' },
+                                  value: { type: 'UInt64' },
                                   docs: null,
                                 },
                               ],
@@ -212,7 +252,7 @@ let jsLayout = {
                           value: {
                             type: 'option',
                             optionType: 'flaggedOption',
-                            inner: { type: 'StateHash' },
+                            inner: { type: 'Field' },
                           },
                           docs: null,
                         },
@@ -220,7 +260,7 @@ let jsLayout = {
                     },
                     docs: null,
                   },
-                  { key: 'fee', value: { type: 'Fee' }, docs: null },
+                  { key: 'fee', value: { type: 'UInt64' }, docs: null },
                   {
                     key: 'events',
                     value: {
@@ -305,12 +345,12 @@ let jsLayout = {
                               layout: [
                                 {
                                   key: 'lower',
-                                  value: { type: 'BlockTime' },
+                                  value: { type: 'UInt64' },
                                   docs: null,
                                 },
                                 {
                                   key: 'upper',
-                                  value: { type: 'BlockTime' },
+                                  value: { type: 'UInt64' },
                                   docs: null,
                                 },
                               ],
@@ -380,12 +420,12 @@ let jsLayout = {
                               layout: [
                                 {
                                   key: 'lower',
-                                  value: { type: 'CurrencyAmount' },
+                                  value: { type: 'UInt64' },
                                   docs: null,
                                 },
                                 {
                                   key: 'upper',
-                                  value: { type: 'CurrencyAmount' },
+                                  value: { type: 'UInt64' },
                                   docs: null,
                                 },
                               ],
@@ -478,12 +518,12 @@ let jsLayout = {
                                           layout: [
                                             {
                                               key: 'lower',
-                                              value: { type: 'CurrencyAmount' },
+                                              value: { type: 'UInt64' },
                                               docs: null,
                                             },
                                             {
                                               key: 'upper',
-                                              value: { type: 'CurrencyAmount' },
+                                              value: { type: 'UInt64' },
                                               docs: null,
                                             },
                                           ],
@@ -586,12 +626,12 @@ let jsLayout = {
                                           layout: [
                                             {
                                               key: 'lower',
-                                              value: { type: 'CurrencyAmount' },
+                                              value: { type: 'UInt64' },
                                               docs: null,
                                             },
                                             {
                                               key: 'upper',
-                                              value: { type: 'CurrencyAmount' },
+                                              value: { type: 'UInt64' },
                                               docs: null,
                                             },
                                           ],
@@ -668,7 +708,7 @@ let jsLayout = {
               },
               docs: null,
             },
-            { key: 'authorization', value: { type: 'Signature' }, docs: null },
+            { key: 'authorization', value: { type: 'string' }, docs: null },
           ],
         },
         docs: null,
@@ -735,7 +775,7 @@ let jsLayout = {
                                 layout: [
                                   {
                                     key: 'data',
-                                    value: { type: 'VerificationKey' },
+                                    value: { type: 'string' },
                                     docs: null,
                                   },
                                   {
@@ -823,7 +863,27 @@ let jsLayout = {
                             value: {
                               type: 'option',
                               optionType: 'flaggedOption',
-                              inner: { type: 'StringWithHash' },
+                              inner: {
+                                type: 'string',
+                                checkedType: {
+                                  type: 'object',
+                                  name: 'Events',
+                                  docs: null,
+                                  layout: [
+                                    {
+                                      key: 'data',
+                                      value: { type: 'string' },
+                                      docs: null,
+                                    },
+                                    {
+                                      key: 'hash',
+                                      value: { type: 'Field' },
+                                      docs: null,
+                                    },
+                                  ],
+                                },
+                                checkedTypeName: 'StringWithHash',
+                              },
                             },
                             docs: null,
                           },
@@ -832,7 +892,27 @@ let jsLayout = {
                             value: {
                               type: 'option',
                               optionType: 'flaggedOption',
-                              inner: { type: 'StringWithHash' },
+                              inner: {
+                                type: 'string',
+                                checkedType: {
+                                  type: 'object',
+                                  name: 'Events',
+                                  docs: null,
+                                  layout: [
+                                    {
+                                      key: 'data',
+                                      value: { type: 'string' },
+                                      docs: null,
+                                    },
+                                    {
+                                      key: 'hash',
+                                      value: { type: 'Field' },
+                                      docs: null,
+                                    },
+                                  ],
+                                },
+                                checkedTypeName: 'StringWithHash',
+                              },
                             },
                             docs: null,
                           },
@@ -848,27 +928,27 @@ let jsLayout = {
                                 layout: [
                                   {
                                     key: 'initialMinimumBalance',
-                                    value: { type: 'Balance' },
+                                    value: { type: 'UInt64' },
                                     docs: null,
                                   },
                                   {
                                     key: 'cliffTime',
-                                    value: { type: 'GlobalSlot' },
+                                    value: { type: 'UInt32' },
                                     docs: null,
                                   },
                                   {
                                     key: 'cliffAmount',
-                                    value: { type: 'CurrencyAmount' },
+                                    value: { type: 'UInt64' },
                                     docs: null,
                                   },
                                   {
                                     key: 'vestingPeriod',
-                                    value: { type: 'GlobalSlot' },
+                                    value: { type: 'UInt32' },
                                     docs: null,
                                   },
                                   {
                                     key: 'vestingIncrement',
-                                    value: { type: 'CurrencyAmount' },
+                                    value: { type: 'UInt64' },
                                     docs: null,
                                   },
                                 ],
@@ -881,7 +961,7 @@ let jsLayout = {
                             value: {
                               type: 'option',
                               optionType: 'flaggedOption',
-                              inner: { type: 'StateHash' },
+                              inner: { type: 'Field' },
                             },
                             docs: null,
                           },
@@ -898,7 +978,7 @@ let jsLayout = {
                         layout: [
                           {
                             key: 'magnitude',
-                            value: { type: 'CurrencyAmount' },
+                            value: { type: 'UInt64' },
                             docs: null,
                           },
                           { key: 'sgn', value: { type: 'Sign' }, docs: null },
@@ -1005,12 +1085,12 @@ let jsLayout = {
                                 layout: [
                                   {
                                     key: 'lower',
-                                    value: { type: 'BlockTime' },
+                                    value: { type: 'UInt64' },
                                     docs: null,
                                   },
                                   {
                                     key: 'upper',
-                                    value: { type: 'BlockTime' },
+                                    value: { type: 'UInt64' },
                                     docs: null,
                                   },
                                 ],
@@ -1080,12 +1160,12 @@ let jsLayout = {
                                 layout: [
                                   {
                                     key: 'lower',
-                                    value: { type: 'CurrencyAmount' },
+                                    value: { type: 'UInt64' },
                                     docs: null,
                                   },
                                   {
                                     key: 'upper',
-                                    value: { type: 'CurrencyAmount' },
+                                    value: { type: 'UInt64' },
                                     docs: null,
                                   },
                                 ],
@@ -1178,16 +1258,12 @@ let jsLayout = {
                                             layout: [
                                               {
                                                 key: 'lower',
-                                                value: {
-                                                  type: 'CurrencyAmount',
-                                                },
+                                                value: { type: 'UInt64' },
                                                 docs: null,
                                               },
                                               {
                                                 key: 'upper',
-                                                value: {
-                                                  type: 'CurrencyAmount',
-                                                },
+                                                value: { type: 'UInt64' },
                                                 docs: null,
                                               },
                                             ],
@@ -1290,16 +1366,12 @@ let jsLayout = {
                                             layout: [
                                               {
                                                 key: 'lower',
-                                                value: {
-                                                  type: 'CurrencyAmount',
-                                                },
+                                                value: { type: 'UInt64' },
                                                 docs: null,
                                               },
                                               {
                                                 key: 'upper',
-                                                value: {
-                                                  type: 'CurrencyAmount',
-                                                },
+                                                value: { type: 'UInt64' },
                                                 docs: null,
                                               },
                                             ],
@@ -1390,12 +1462,12 @@ let jsLayout = {
                                 layout: [
                                   {
                                     key: 'lower',
-                                    value: { type: 'Balance' },
+                                    value: { type: 'UInt64' },
                                     docs: null,
                                   },
                                   {
                                     key: 'upper',
-                                    value: { type: 'Balance' },
+                                    value: { type: 'UInt64' },
                                     docs: null,
                                   },
                                 ],
@@ -1502,7 +1574,7 @@ let jsLayout = {
                       value: {
                         type: 'option',
                         optionType: 'orUndefined',
-                        inner: { type: 'SnappProof' },
+                        inner: { type: 'string' },
                       },
                       docs: null,
                     },
@@ -1511,7 +1583,7 @@ let jsLayout = {
                       value: {
                         type: 'option',
                         optionType: 'orUndefined',
-                        inner: { type: 'Signature' },
+                        inner: { type: 'string' },
                       },
                       docs: null,
                     },
@@ -1524,7 +1596,7 @@ let jsLayout = {
         },
         docs: null,
       },
-      { key: 'memo', value: { type: 'Memo' }, docs: null },
+      { key: 'memo', value: { type: 'string' }, docs: null },
     ],
   },
   BalanceChange: {
@@ -1532,7 +1604,7 @@ let jsLayout = {
     name: 'BalanceChange',
     docs: null,
     layout: [
-      { key: 'magnitude', value: { type: 'CurrencyAmount' }, docs: null },
+      { key: 'magnitude', value: { type: 'UInt64' }, docs: null },
       { key: 'sgn', value: { type: 'Sign' }, docs: null },
     ],
   },
@@ -1590,7 +1662,7 @@ let jsLayout = {
                         layout: [
                           {
                             key: 'data',
-                            value: { type: 'VerificationKey' },
+                            value: { type: 'string' },
                             docs: null,
                           },
                           { key: 'hash', value: { type: 'Field' }, docs: null },
@@ -1674,7 +1746,27 @@ let jsLayout = {
                     value: {
                       type: 'option',
                       optionType: 'flaggedOption',
-                      inner: { type: 'StringWithHash' },
+                      inner: {
+                        type: 'string',
+                        checkedType: {
+                          type: 'object',
+                          name: 'Events',
+                          docs: null,
+                          layout: [
+                            {
+                              key: 'data',
+                              value: { type: 'string' },
+                              docs: null,
+                            },
+                            {
+                              key: 'hash',
+                              value: { type: 'Field' },
+                              docs: null,
+                            },
+                          ],
+                        },
+                        checkedTypeName: 'StringWithHash',
+                      },
                     },
                     docs: null,
                   },
@@ -1683,7 +1775,27 @@ let jsLayout = {
                     value: {
                       type: 'option',
                       optionType: 'flaggedOption',
-                      inner: { type: 'StringWithHash' },
+                      inner: {
+                        type: 'string',
+                        checkedType: {
+                          type: 'object',
+                          name: 'Events',
+                          docs: null,
+                          layout: [
+                            {
+                              key: 'data',
+                              value: { type: 'string' },
+                              docs: null,
+                            },
+                            {
+                              key: 'hash',
+                              value: { type: 'Field' },
+                              docs: null,
+                            },
+                          ],
+                        },
+                        checkedTypeName: 'StringWithHash',
+                      },
                     },
                     docs: null,
                   },
@@ -1699,27 +1811,27 @@ let jsLayout = {
                         layout: [
                           {
                             key: 'initialMinimumBalance',
-                            value: { type: 'Balance' },
+                            value: { type: 'UInt64' },
                             docs: null,
                           },
                           {
                             key: 'cliffTime',
-                            value: { type: 'GlobalSlot' },
+                            value: { type: 'UInt32' },
                             docs: null,
                           },
                           {
                             key: 'cliffAmount',
-                            value: { type: 'CurrencyAmount' },
+                            value: { type: 'UInt64' },
                             docs: null,
                           },
                           {
                             key: 'vestingPeriod',
-                            value: { type: 'GlobalSlot' },
+                            value: { type: 'UInt32' },
                             docs: null,
                           },
                           {
                             key: 'vestingIncrement',
-                            value: { type: 'CurrencyAmount' },
+                            value: { type: 'UInt64' },
                             docs: null,
                           },
                         ],
@@ -1732,7 +1844,7 @@ let jsLayout = {
                     value: {
                       type: 'option',
                       optionType: 'flaggedOption',
-                      inner: { type: 'StateHash' },
+                      inner: { type: 'Field' },
                     },
                     docs: null,
                   },
@@ -1747,11 +1859,7 @@ let jsLayout = {
                 name: 'BalanceChange',
                 docs: null,
                 layout: [
-                  {
-                    key: 'magnitude',
-                    value: { type: 'CurrencyAmount' },
-                    docs: null,
-                  },
+                  { key: 'magnitude', value: { type: 'UInt64' }, docs: null },
                   { key: 'sgn', value: { type: 'Sign' }, docs: null },
                 ],
               },
@@ -1838,12 +1946,12 @@ let jsLayout = {
                         layout: [
                           {
                             key: 'lower',
-                            value: { type: 'BlockTime' },
+                            value: { type: 'UInt64' },
                             docs: null,
                           },
                           {
                             key: 'upper',
-                            value: { type: 'BlockTime' },
+                            value: { type: 'UInt64' },
                             docs: null,
                           },
                         ],
@@ -1913,12 +2021,12 @@ let jsLayout = {
                         layout: [
                           {
                             key: 'lower',
-                            value: { type: 'CurrencyAmount' },
+                            value: { type: 'UInt64' },
                             docs: null,
                           },
                           {
                             key: 'upper',
-                            value: { type: 'CurrencyAmount' },
+                            value: { type: 'UInt64' },
                             docs: null,
                           },
                         ],
@@ -2011,12 +2119,12 @@ let jsLayout = {
                                     layout: [
                                       {
                                         key: 'lower',
-                                        value: { type: 'CurrencyAmount' },
+                                        value: { type: 'UInt64' },
                                         docs: null,
                                       },
                                       {
                                         key: 'upper',
-                                        value: { type: 'CurrencyAmount' },
+                                        value: { type: 'UInt64' },
                                         docs: null,
                                       },
                                     ],
@@ -2119,12 +2227,12 @@ let jsLayout = {
                                     layout: [
                                       {
                                         key: 'lower',
-                                        value: { type: 'CurrencyAmount' },
+                                        value: { type: 'UInt64' },
                                         docs: null,
                                       },
                                       {
                                         key: 'upper',
-                                        value: { type: 'CurrencyAmount' },
+                                        value: { type: 'UInt64' },
                                         docs: null,
                                       },
                                     ],
@@ -2215,12 +2323,12 @@ let jsLayout = {
                         layout: [
                           {
                             key: 'lower',
-                            value: { type: 'Balance' },
+                            value: { type: 'UInt64' },
                             docs: null,
                           },
                           {
                             key: 'upper',
-                            value: { type: 'Balance' },
+                            value: { type: 'UInt64' },
                             docs: null,
                           },
                         ],
@@ -2323,7 +2431,7 @@ let jsLayout = {
               value: {
                 type: 'option',
                 optionType: 'orUndefined',
-                inner: { type: 'SnappProof' },
+                inner: { type: 'string' },
               },
               docs: null,
             },
@@ -2332,7 +2440,7 @@ let jsLayout = {
               value: {
                 type: 'option',
                 optionType: 'orUndefined',
-                inner: { type: 'Signature' },
+                inner: { type: 'string' },
               },
               docs: null,
             },

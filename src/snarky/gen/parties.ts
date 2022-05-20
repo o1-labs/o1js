@@ -4,22 +4,14 @@ import {
   PublicKey,
   Field,
   Bool,
-  VerificationKey,
   AuthRequired,
-  StringWithHash,
-  Balance,
-  GlobalSlot,
-  CurrencyAmount,
-  StateHash,
-  Fee,
-  BlockTime,
+  UInt64,
   UInt32,
-  Signature,
   TokenId,
   Sign,
-  SnappProof,
-  Memo,
+  convertStringWithHashToJson,
   convertEventsToJson,
+  convertStringWithHashToFields,
   convertEventsToFields,
 } from '../parties-leaves';
 import { toJson, toFields } from '../parties-helpers';
@@ -31,17 +23,28 @@ export { Json };
 export * from '../parties-leaves';
 
 type JsonConverters = {
+  StringWithHash: (stringwithhash: {
+    data: string;
+    hash: Field;
+  }) => Json.TypeMap['string'];
   Events: (events: {
     data: Field[][];
     hash: Field;
   }) => Json.TypeMap['Field'][][];
 };
-let jsonConverters: JsonConverters = { Events: convertEventsToJson };
+let jsonConverters: JsonConverters = {
+  StringWithHash: convertStringWithHashToJson,
+  Events: convertEventsToJson,
+};
 
 type FieldsConverters = {
+  StringWithHash: (stringwithhash: { data: string; hash: Field }) => Field[];
   Events: (events: { data: Field[][]; hash: Field }) => Field[];
 };
-let fieldsConverters: FieldsConverters = { Events: convertEventsToFields };
+let fieldsConverters: FieldsConverters = {
+  StringWithHash: convertStringWithHashToFields,
+  Events: convertEventsToFields,
+};
 
 type Parties = {
   feePayer: {
@@ -53,7 +56,7 @@ type Parties = {
         verificationKey: {
           isSome: Bool;
           value: {
-            data: VerificationKey;
+            data: string;
             hash: Field;
           };
         };
@@ -73,21 +76,33 @@ type Parties = {
             setVotingFor: AuthRequired;
           };
         };
-        zkappUri: { isSome: Bool; value: StringWithHash };
-        tokenSymbol: { isSome: Bool; value: StringWithHash };
+        zkappUri: {
+          isSome: Bool;
+          value: {
+            data: string;
+            hash: Field;
+          };
+        };
+        tokenSymbol: {
+          isSome: Bool;
+          value: {
+            data: string;
+            hash: Field;
+          };
+        };
         timing: {
           isSome: Bool;
           value: {
-            initialMinimumBalance: Balance;
-            cliffTime: GlobalSlot;
-            cliffAmount: CurrencyAmount;
-            vestingPeriod: GlobalSlot;
-            vestingIncrement: CurrencyAmount;
+            initialMinimumBalance: UInt64;
+            cliffTime: UInt32;
+            cliffAmount: UInt64;
+            vestingPeriod: UInt32;
+            vestingIncrement: UInt64;
           };
         };
-        votingFor: { isSome: Bool; value: StateHash };
+        votingFor: { isSome: Bool; value: Field };
       };
-      fee: Fee;
+      fee: UInt64;
       events: {
         data: Field[][];
         hash: Field;
@@ -99,8 +114,8 @@ type Parties = {
       protocolStatePrecondition: {
         snarkedLedgerHash: { isSome: Bool; value: Field };
         timestamp: {
-          lower: BlockTime;
-          upper: BlockTime;
+          lower: UInt64;
+          upper: UInt64;
         };
         blockchainLength: {
           lower: UInt32;
@@ -111,8 +126,8 @@ type Parties = {
           upper: UInt32;
         };
         totalCurrency: {
-          lower: CurrencyAmount;
-          upper: CurrencyAmount;
+          lower: UInt64;
+          upper: UInt64;
         };
         globalSlotSinceHardFork: {
           lower: UInt32;
@@ -126,8 +141,8 @@ type Parties = {
           ledger: {
             hash: { isSome: Bool; value: Field };
             totalCurrency: {
-              lower: CurrencyAmount;
-              upper: CurrencyAmount;
+              lower: UInt64;
+              upper: UInt64;
             };
           };
           seed: { isSome: Bool; value: Field };
@@ -142,8 +157,8 @@ type Parties = {
           ledger: {
             hash: { isSome: Bool; value: Field };
             totalCurrency: {
-              lower: CurrencyAmount;
-              upper: CurrencyAmount;
+              lower: UInt64;
+              upper: UInt64;
             };
           };
           seed: { isSome: Bool; value: Field };
@@ -157,7 +172,7 @@ type Parties = {
       };
       nonce: UInt32;
     };
-    authorization: Signature;
+    authorization: string;
   };
   otherParties: {
     body: {
@@ -169,7 +184,7 @@ type Parties = {
         verificationKey: {
           isSome: Bool;
           value: {
-            data: VerificationKey;
+            data: string;
             hash: Field;
           };
         };
@@ -189,22 +204,34 @@ type Parties = {
             setVotingFor: AuthRequired;
           };
         };
-        zkappUri: { isSome: Bool; value: StringWithHash };
-        tokenSymbol: { isSome: Bool; value: StringWithHash };
+        zkappUri: {
+          isSome: Bool;
+          value: {
+            data: string;
+            hash: Field;
+          };
+        };
+        tokenSymbol: {
+          isSome: Bool;
+          value: {
+            data: string;
+            hash: Field;
+          };
+        };
         timing: {
           isSome: Bool;
           value: {
-            initialMinimumBalance: Balance;
-            cliffTime: GlobalSlot;
-            cliffAmount: CurrencyAmount;
-            vestingPeriod: GlobalSlot;
-            vestingIncrement: CurrencyAmount;
+            initialMinimumBalance: UInt64;
+            cliffTime: UInt32;
+            cliffAmount: UInt64;
+            vestingPeriod: UInt32;
+            vestingIncrement: UInt64;
           };
         };
-        votingFor: { isSome: Bool; value: StateHash };
+        votingFor: { isSome: Bool; value: Field };
       };
       balanceChange: {
-        magnitude: CurrencyAmount;
+        magnitude: UInt64;
         sgn: Sign;
       };
       incrementNonce: Bool;
@@ -221,8 +248,8 @@ type Parties = {
       protocolStatePrecondition: {
         snarkedLedgerHash: { isSome: Bool; value: Field };
         timestamp: {
-          lower: BlockTime;
-          upper: BlockTime;
+          lower: UInt64;
+          upper: UInt64;
         };
         blockchainLength: {
           lower: UInt32;
@@ -233,8 +260,8 @@ type Parties = {
           upper: UInt32;
         };
         totalCurrency: {
-          lower: CurrencyAmount;
-          upper: CurrencyAmount;
+          lower: UInt64;
+          upper: UInt64;
         };
         globalSlotSinceHardFork: {
           lower: UInt32;
@@ -248,8 +275,8 @@ type Parties = {
           ledger: {
             hash: { isSome: Bool; value: Field };
             totalCurrency: {
-              lower: CurrencyAmount;
-              upper: CurrencyAmount;
+              lower: UInt64;
+              upper: UInt64;
             };
           };
           seed: { isSome: Bool; value: Field };
@@ -264,8 +291,8 @@ type Parties = {
           ledger: {
             hash: { isSome: Bool; value: Field };
             totalCurrency: {
-              lower: CurrencyAmount;
-              upper: CurrencyAmount;
+              lower: UInt64;
+              upper: UInt64;
             };
           };
           seed: { isSome: Bool; value: Field };
@@ -279,8 +306,8 @@ type Parties = {
       };
       accountPrecondition: {
         balance: {
-          lower: Balance;
-          upper: Balance;
+          lower: UInt64;
+          upper: UInt64;
         };
         nonce: {
           lower: UInt32;
@@ -296,11 +323,11 @@ type Parties = {
       caller: TokenId;
     };
     authorization: {
-      proof?: SnappProof;
-      signature?: Signature;
+      proof?: string;
+      signature?: string;
     };
   }[];
-  memo: Memo;
+  memo: string;
 };
 
 let Parties = {
@@ -313,7 +340,7 @@ let Parties = {
 };
 
 type BalanceChange = {
-  magnitude: CurrencyAmount;
+  magnitude: UInt64;
   sgn: Sign;
 };
 
@@ -336,7 +363,7 @@ type Party = {
       verificationKey: {
         isSome: Bool;
         value: {
-          data: VerificationKey;
+          data: string;
           hash: Field;
         };
       };
@@ -356,22 +383,34 @@ type Party = {
           setVotingFor: AuthRequired;
         };
       };
-      zkappUri: { isSome: Bool; value: StringWithHash };
-      tokenSymbol: { isSome: Bool; value: StringWithHash };
+      zkappUri: {
+        isSome: Bool;
+        value: {
+          data: string;
+          hash: Field;
+        };
+      };
+      tokenSymbol: {
+        isSome: Bool;
+        value: {
+          data: string;
+          hash: Field;
+        };
+      };
       timing: {
         isSome: Bool;
         value: {
-          initialMinimumBalance: Balance;
-          cliffTime: GlobalSlot;
-          cliffAmount: CurrencyAmount;
-          vestingPeriod: GlobalSlot;
-          vestingIncrement: CurrencyAmount;
+          initialMinimumBalance: UInt64;
+          cliffTime: UInt32;
+          cliffAmount: UInt64;
+          vestingPeriod: UInt32;
+          vestingIncrement: UInt64;
         };
       };
-      votingFor: { isSome: Bool; value: StateHash };
+      votingFor: { isSome: Bool; value: Field };
     };
     balanceChange: {
-      magnitude: CurrencyAmount;
+      magnitude: UInt64;
       sgn: Sign;
     };
     incrementNonce: Bool;
@@ -388,8 +427,8 @@ type Party = {
     protocolStatePrecondition: {
       snarkedLedgerHash: { isSome: Bool; value: Field };
       timestamp: {
-        lower: BlockTime;
-        upper: BlockTime;
+        lower: UInt64;
+        upper: UInt64;
       };
       blockchainLength: {
         lower: UInt32;
@@ -400,8 +439,8 @@ type Party = {
         upper: UInt32;
       };
       totalCurrency: {
-        lower: CurrencyAmount;
-        upper: CurrencyAmount;
+        lower: UInt64;
+        upper: UInt64;
       };
       globalSlotSinceHardFork: {
         lower: UInt32;
@@ -415,8 +454,8 @@ type Party = {
         ledger: {
           hash: { isSome: Bool; value: Field };
           totalCurrency: {
-            lower: CurrencyAmount;
-            upper: CurrencyAmount;
+            lower: UInt64;
+            upper: UInt64;
           };
         };
         seed: { isSome: Bool; value: Field };
@@ -431,8 +470,8 @@ type Party = {
         ledger: {
           hash: { isSome: Bool; value: Field };
           totalCurrency: {
-            lower: CurrencyAmount;
-            upper: CurrencyAmount;
+            lower: UInt64;
+            upper: UInt64;
           };
         };
         seed: { isSome: Bool; value: Field };
@@ -446,8 +485,8 @@ type Party = {
     };
     accountPrecondition: {
       balance: {
-        lower: Balance;
-        upper: Balance;
+        lower: UInt64;
+        upper: UInt64;
       };
       nonce: {
         lower: UInt32;
@@ -463,8 +502,8 @@ type Party = {
     caller: TokenId;
   };
   authorization: {
-    proof?: SnappProof;
-    signature?: Signature;
+    proof?: string;
+    signature?: string;
   };
 };
 

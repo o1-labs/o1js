@@ -2,28 +2,14 @@ import { Field, Bool, Group, Ledger } from '../snarky';
 import { BalanceChange } from './gen/parties';
 import * as Json from './gen/parties-json';
 
-export {
-  PublicKey,
-  Field,
-  Bool,
-  VerificationKey,
-  AuthRequired,
-  StringWithHash,
-  Balance,
-  GlobalSlot,
-  CurrencyAmount,
-  StateHash,
-  Fee,
-  BlockTime,
-  UInt32,
-  Signature,
-  TokenId,
-  Sign,
-  SnappProof,
-  Memo,
-};
+export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
-export { convertEventsToJson, convertEventsToFields };
+export {
+  convertEventsToJson,
+  convertEventsToFields,
+  convertStringWithHashToJson,
+  convertStringWithHashToFields,
+};
 
 export { toJson, toJsonLeafTypes, toFields, toFieldsLeafTypes };
 
@@ -31,30 +17,11 @@ type UInt64 = { value: Field };
 type UInt32 = { value: Field };
 type Sign = Field; // constrained to +-1
 type PublicKey = { g: Group };
-type Memo = string;
-
-// these two are opaque to JS atm
-type VerificationKey = string;
-type SnappProof = string;
-type Signature = string; // <-- should be exposed fairly easily!
-
 type AuthRequired = {
   constant: Bool;
   signatureNecessary: Bool;
   signatureSufficient: Bool;
 };
-type StringWithHash = {
-  data: string;
-  hash: Field;
-};
-
-// derived types
-type Balance = UInt64;
-type GlobalSlot = UInt32;
-type CurrencyAmount = UInt64;
-type StateHash = Field;
-type Fee = UInt64;
-type BlockTime = UInt32;
 type TokenId = Field;
 
 // to what types in the js layout are mapped
@@ -62,26 +29,16 @@ type TypeMap = {
   PublicKey: PublicKey;
   Field: Field;
   Bool: Bool;
-  VerificationKey: VerificationKey;
   AuthRequired: AuthRequired;
-  StringWithHash: StringWithHash;
-  Balance: Balance;
-  GlobalSlot: GlobalSlot;
-  CurrencyAmount: CurrencyAmount;
-  StateHash: StateHash;
-  Fee: Fee;
-  BlockTime: BlockTime;
   UInt32: UInt32;
-  Signature: Signature;
-  TokenId: TokenId;
+  UInt64: UInt64;
   Sign: Sign;
-  SnappProof: SnappProof;
-  Memo: Memo;
+  TokenId: TokenId;
   // builtin
   number: number;
   null: null;
   undefined: undefined;
-  bigint: bigint;
+  string: string;
 };
 
 // json conversion
@@ -95,7 +52,7 @@ function asString(x: Field | UInt32 | UInt64 | bigint) {
 
 type ToJsonTypeMap = TypeMap & {
   BalanceChange: BalanceChange;
-  BlockTimeInterval: { lower: BlockTime; upper: BlockTime };
+  BlockTimeInterval: { lower: UInt64; upper: UInt64 };
 };
 type ToJson = {
   [K in keyof ToJsonTypeMap]: (x: ToJsonTypeMap[K]) => Json.TypeMap[K];
@@ -123,16 +80,8 @@ let ToJson: ToJson = {
       default: throw Error('Unexpected permission');
     }
   },
-  StringWithHash({ data }: StringWithHash) {
-    return data;
-  },
-  Balance: asString,
-  GlobalSlot: asString,
-  CurrencyAmount: asString,
-  StateHash: asString,
-  Fee: asString,
-  BlockTime: asString,
   UInt32: asString,
+  UInt64: asString,
   TokenId(x: TokenId) {
     return Ledger.fieldToBase58(x);
   },
@@ -141,10 +90,6 @@ let ToJson: ToJson = {
     if (x.neg().toString() === '1') return 'Negative';
     throw Error(`Invalid Sign: ${x}`);
   },
-  VerificationKey: identity,
-  Signature: identity,
-  SnappProof: identity,
-  Memo: identity,
   // override automatic conversion, essentially defining custom leaf types
   BalanceChange({ magnitude, sgn }: BalanceChange) {
     // TODO this is a hack, magnitude is actually the full int64
@@ -156,7 +101,7 @@ let ToJson: ToJson = {
     }
   },
   // TODO this is a hack
-  BlockTimeInterval(_: { lower: BlockTime; upper: BlockTime }) {
+  BlockTimeInterval(_: { lower: UInt64; upper: UInt64 }) {
     return null;
   },
   // builtin
@@ -165,7 +110,7 @@ let ToJson: ToJson = {
   undefined(_: undefined) {
     return null;
   },
-  bigint: asString,
+  string: identity,
 };
 
 function toJson<K extends keyof ToJsonTypeMap>(
@@ -206,27 +151,15 @@ let ToFields: ToFields = {
       .map(asFields)
       .flat();
   },
-  StringWithHash({ hash }: StringWithHash) {
-    return [hash];
-  },
-  Balance: asFields,
-  GlobalSlot: asFields,
-  CurrencyAmount: asFields,
-  StateHash: asFields,
-  Fee: asFields,
-  BlockTime: asFields,
   UInt32: asFields,
+  UInt64: asFields,
   TokenId: asFields,
   Sign: asFields,
-  VerificationKey: empty, // the hash is separate
-  Signature: empty, // doesn't have to be converted to fields
-  SnappProof: empty, // doesn't have to be converted to fields
-  Memo: empty, // doesn't have to be converted to fields
   // builtin
   number: empty,
   null: empty,
   undefined: empty,
-  bigint: empty,
+  string: empty,
 };
 
 function toFields<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
@@ -240,10 +173,18 @@ let toFieldsLeafTypes = new Set(Object.keys(ToFields));
 
 // converters for types which got an annotation about its circuit type in Ocaml
 
-function convertEventsToJson({ data }: { data: Field[][]; hash: Field }) {
+type DataAsHash<T> = { data: T; hash: Field };
+
+function convertEventsToJson({ data }: DataAsHash<Field[][]>) {
   return data.map((row) => row.map((e) => toJson('Field', e)));
 }
+function convertEventsToFields({ hash }: DataAsHash<Field[][]>) {
+  return [hash];
+}
 
-function convertEventsToFields({ hash }: { data: Field[][]; hash: Field }) {
+function convertStringWithHashToJson({ data }: DataAsHash<string>) {
+  return data;
+}
+function convertStringWithHashToFields({ hash }: DataAsHash<string>) {
   return [hash];
 }
