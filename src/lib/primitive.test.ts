@@ -296,5 +296,15 @@ describe('bool', () => {
         }).toThrow();
       });
     });
+
+    describe('toFields', () => {
+      it('should return an array of Fields', () => {
+        const x = new Bool(false);
+        const fieldArr = x.toFields();
+        const isArr = Array.isArray(fieldArr);
+        expect(isArr).toBe(true);
+        expect(fieldArr[0]).toEqual(new Field(0));
+      });
+    });
   });
 });
