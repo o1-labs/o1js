@@ -1,4 +1,4 @@
-import { BalanceChange } from './parties-json';
+import { BalanceChange } from './gen/parties-json';
 
 export {
   PublicKey,

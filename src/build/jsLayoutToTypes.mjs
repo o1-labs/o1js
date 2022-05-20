@@ -144,13 +144,13 @@ function writeTsContent(types, isJson) {
   mergeSet(imports, new Set(jsonConverters_));
   mergeSet(imports, new Set(fieldsConverters));
 
-  let importPath = isJson ? './parties-leaves-json' : './parties-leaves';
-  return `// this file is auto-generated - don't edit it directly
+  let importPath = isJson ? '../parties-leaves-json' : '../parties-leaves';
+  return `// @generated this file is auto-generated - don't edit it directly
 
 import { ${[...imports].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? "import { toJson, toFields } from './parties-helpers';\n" +
+    ? "import { toJson, toFields } from '../parties-helpers';\n" +
       "import * as Json from './parties-json';\n" +
       "import { jsLayout } from './js-layout';\n"
     : ''
@@ -159,8 +159,8 @@ ${
 export { ${[...exports].join(', ')} };
 ${
   !isJson
-    ? 'export { Json };\n' + "export * from './parties-leaves';\n"
-    : "export * from './parties-leaves-json';\n"
+    ? 'export { Json };\n' + "export * from '../parties-leaves';\n"
+    : "export * from '../parties-leaves-json';\n"
 }
 
 ${
@@ -194,18 +194,22 @@ async function writeTsFile(content, relPath) {
   await fs.writeFile(absPath, content);
 }
 
+let genPath = '../../snarky/gen';
+await ensureDir(genPath);
+
 let jsonTypesContent = writeTsContent(jsLayout, true);
-await writeTsFile(jsonTypesContent, '../../snarky/parties-json.ts');
+await writeTsFile(jsonTypesContent, `${genPath}/parties-json.ts`);
 
 let jsTypesContent = writeTsContent(jsLayout, false);
-await writeTsFile(jsTypesContent, '../../snarky/parties.ts');
+await writeTsFile(jsTypesContent, `${genPath}/parties.ts`);
 
 await writeTsFile(
-  `export { jsLayout };
+  `// @generated this file is auto-generated - don't edit it directly
+export { jsLayout };
 
 let jsLayout = ${JSON.stringify(jsLayout)};
 `,
-  '../../snarky/js-layout.ts'
+  `${genPath}/js-layout.ts`
 );
 
 function mergeSet(target, source) {
@@ -219,5 +223,17 @@ function mergeObject(target, source) {
   if (source === undefined) return;
   for (let key in source) {
     target[key] = source[key];
+  }
+}
+
+async function ensureDir(relPath) {
+  let absPath = path.resolve(selfPath, relPath);
+  let exists = false;
+  try {
+    await fs.stat(absPath);
+    exists = true;
+  } catch {}
+  if (!exists) {
+    await fs.mkdir(absPath, { recursive: true });
   }
 }

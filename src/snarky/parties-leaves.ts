@@ -1,6 +1,6 @@
 import { Field, Bool, Group, Ledger } from '../snarky';
-import { BalanceChange } from './parties';
-import * as Json from './parties-json';
+import { BalanceChange } from './gen/parties';
+import * as Json from './gen/parties-json';
 
 export {
   PublicKey,

@@ -1,4 +1,4 @@
-// this file is auto-generated - don't edit it directly
+// @generated this file is auto-generated - don't edit it directly
 
 import {
   PublicKey,
@@ -19,10 +19,10 @@ import {
   Sign,
   SnappProof,
   Memo,
-} from './parties-leaves-json';
+} from '../parties-leaves-json';
 
 export { Parties, BalanceChange, Party };
-export * from './parties-leaves-json';
+export * from '../parties-leaves-json';
 
 type Parties = {
   feePayer: {

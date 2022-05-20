@@ -6,6 +6,7 @@ import {
   AsFieldElements,
   Ledger,
   Pickles,
+  Types,
 } from '../snarky';
 import { CircuitValue, cloneCircuitValue } from './circuit_value';
 import {
@@ -16,7 +17,6 @@ import {
   Permissions,
   SetOrKeep,
 } from './party';
-import { Json } from 'snarky/parties';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { UInt32, UInt64 } from './int';
@@ -799,7 +799,7 @@ function signFeePayer(
     feePayerNonce = undefined as number | string | undefined,
   }
 ) {
-  let parties: Json.Parties = JSON.parse(transactionJson);
+  let parties: Types.Json.Parties = JSON.parse(transactionJson);
   if (typeof feePayerKey === 'string')
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();

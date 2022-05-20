@@ -17,7 +17,7 @@ export {
   Pickles,
   JSONValue,
 };
-export * as Types from './snarky/parties';
+export * as Types from './snarky/gen/parties';
 
 /**
  * An element of a finite field.

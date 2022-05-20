@@ -1,3 +1,4 @@
+// @generated this file is auto-generated - don't edit it directly
 export { jsLayout };
 
 let jsLayout = {

@@ -1,4 +1,4 @@
-// this file is auto-generated - don't edit it directly
+// @generated this file is auto-generated - don't edit it directly
 
 import {
   PublicKey,
@@ -21,14 +21,14 @@ import {
   Memo,
   convertEventsToJson,
   convertEventsToFields,
-} from './parties-leaves';
-import { toJson, toFields } from './parties-helpers';
+} from '../parties-leaves';
+import { toJson, toFields } from '../parties-helpers';
 import * as Json from './parties-json';
 import { jsLayout } from './js-layout';
 
 export { Parties, BalanceChange, Party };
 export { Json };
-export * from './parties-leaves';
+export * from '../parties-leaves';
 
 type JsonConverters = {
   Events: (events: {

@@ -1,9 +1,8 @@
 import 'isomorphic-fetch';
-import { Field } from '../snarky';
+import { Field, Types } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { Permission, Permissions, ZkappStateLength } from './party';
 import { PublicKey } from './signature';
-import * as PartyTypes from '../snarky/parties';
 
 export {
   fetchAccount,
@@ -99,7 +98,7 @@ type FetchError = {
 // Specify 30s as the default timeout
 const defaultTimeout = 30000;
 
-type AuthRequired = PartyTypes.Json.AuthRequired;
+type AuthRequired = Types.Json.AuthRequired;
 function toPermission(p: AuthRequired): Permission {
   switch (p) {
     case 'None':
