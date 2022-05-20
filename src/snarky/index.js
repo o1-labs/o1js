@@ -14,7 +14,7 @@ export {
   isReady,
   Pickles,
 };
-export * as Types from './parties';
+export * as Types from './gen/parties';
 
 let isReadyBoolean = false;
 let isReady = snarky_ready.then(() => (isReadyBoolean = true));
