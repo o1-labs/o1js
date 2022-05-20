@@ -1,4 +1,11 @@
-import { isReady, shutdown, Field, Bool, Circuit } from '../../dist/server';
+import {
+  isReady,
+  shutdown,
+  Field,
+  Bool,
+  Circuit,
+  EpochDataPredicate,
+} from '../../dist/server';
 
 describe('bool', () => {
   beforeAll(async () => {
@@ -17,7 +24,7 @@ describe('bool', () => {
       it('should return a Field', async () => {
         expect(true).toEqual(true);
       });
-      it('should convert false to Field element 0 ', () => {
+      it('should convert false to Field element 0', () => {
         expect(() => {
           Circuit.runAndCheck(() => {
             const xFalse = Circuit.witness(Bool, () => new Bool(false));
@@ -26,7 +33,6 @@ describe('bool', () => {
           });
         }).not.toThrow();
       });
-
       it('should throw when false toString is compared to Field element other than 0 ', () => {
         expect(() => {
           Circuit.runAndCheck(() => {
@@ -45,7 +51,7 @@ describe('bool', () => {
         }).not.toThrow();
       });
 
-      it('should throw when true toString is compared to Field element other than 1 ', () => {
+      it('should throw when true toField is compared to Field element other than 1 ', () => {
         expect(() => {
           Circuit.runAndCheck(() => {
             const xTrue = Circuit.witness(Bool, () => new Bool(true));
@@ -55,6 +61,19 @@ describe('bool', () => {
       });
     });
 
+    describe('toFields', () => {
+      it('should return an array of Fields', () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const x = Circuit.witness(Bool, () => new Bool(false));
+            const fieldArr = x.toFields();
+            const isArr = Array.isArray(fieldArr);
+            expect(isArr).toBe(true);
+            fieldArr[0].assertEquals(new Field(0));
+          });
+        }).not.toThrow();
+      });
+    });
     describe('and', () => {
       it('true "and" true should return true', async () => {
         expect(() => {
@@ -238,18 +257,16 @@ describe('bool', () => {
           Circuit.runAndCheck(() => {
             const x = Circuit.witness(Bool, () => new Bool(true));
 
-            x.equals(x);
+            x.equals(x).assertEquals(true);
           });
         }).not.toThrow();
       });
-
       it('should throw on true "equals" false', async () => {
         expect(() => {
           Circuit.runAndCheck(() => {
             const x = Circuit.witness(Bool, () => new Bool(true));
             const y = Circuit.witness(Bool, () => new Bool(false));
-
-            x.equals(y);
+            x.equals(y).assertEquals(true);
           });
         }).toThrow();
       });
