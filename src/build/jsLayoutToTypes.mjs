@@ -6,8 +6,10 @@ import prettierRc from '../../.prettierrc.js';
 
 // let jsLayout = JSON.parse(process.argv[2]);
 let selfPath = fileURLToPath(import.meta.url);
-let jsonPath = path.resolve(selfPath, '../jsLayout.json');
+let jsonPath = path.resolve(selfPath, '../../../../jsLayout.json');
 let jsLayout = JSON.parse(await fs.readFile(jsonPath, 'utf8'));
+
+console.log(`jsLayoutToTypes.mjs: generating TS types from ${jsonPath}`);
 
 let builtinLeafTypes = new Set([
   'number',
