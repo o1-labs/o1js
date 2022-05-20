@@ -272,4 +272,29 @@ describe('bool', () => {
       });
     });
   });
+  describe('outside circuit', () => {
+    describe('toField', () => {
+      it('should return a Field', async () => {
+        expect(true).toEqual(true);
+      });
+      it('should convert false to Field element 0', () => {
+        expect(new Bool(false).toField()).toEqual(new Field(0));
+      });
+      it('should throw when false toField is compared to Field element other than 0 ', () => {
+        expect(() => {
+          expect(new Bool(false).toField()).toEqual(new Field(1));
+        }).toThrow();
+      });
+
+      it('should convert true to Field element 1', () => {
+        expect(new Bool(true).toField()).toEqual(new Field(1));
+      });
+
+      it('should throw when true toField is compared to Field element other than 1 ', () => {
+        expect(() => {
+          expect(new Bool(true).toField()).toEqual(new Field(0));
+        }).toThrow();
+      });
+    });
+  });
 });
