@@ -306,5 +306,48 @@ describe('bool', () => {
         expect(fieldArr[0]).toEqual(new Field(0));
       });
     });
+    describe('and', () => {
+      it('true "and" true should return true', async () => {
+        const xTrue = new Bool(true);
+        const yTrue = new Bool(true);
+        expect(xTrue.and(yTrue)).toEqual(new Bool(true));
+      });
+
+      it('should throw if true "and" true is compared to false', async () => {
+        expect(() => {
+          const xTrue = new Bool(true);
+          const yTrue = new Bool(true);
+          expect(xTrue.and(yTrue)).toEqual(new Bool(false));
+        }).toThrow();
+      });
+
+      it('false "and" false should return false', async () => {
+        const xFalse = new Bool(false);
+        const yFalse = new Bool(false);
+        expect(xFalse.and(yFalse)).toEqual(new Bool(false));
+      });
+
+      it('should throw if false "and" false is compared to true', async () => {
+        expect(() => {
+          const xFalse = new Bool(false);
+          const yFalse = new Bool(false);
+          expect(xFalse.and(yFalse)).toEqual(new Bool(true));
+        }).toThrow();
+      });
+
+      it('false "and" true should return false', async () => {
+        const xFalse = new Bool(false);
+        const yTrue = new Bool(true);
+        expect(xFalse.and(yTrue)).toEqual(new Bool(false));
+      });
+
+      it('should throw if false "and" true is compared to true', async () => {
+        expect(() => {
+          const xFalse = new Bool(false);
+          const yFalse = new Bool(false);
+          expect(xFalse.and(yFalse)).toEqual(new Bool(true));
+        }).toThrow();
+      });
+    });
   });
 });
