@@ -274,9 +274,6 @@ describe('bool', () => {
   });
   describe('outside circuit', () => {
     describe('toField', () => {
-      it('should return a Field', async () => {
-        expect(true).toEqual(true);
-      });
       it('should convert false to Field element 0', () => {
         expect(new Bool(false).toField()).toEqual(new Field(0));
       });
@@ -361,8 +358,58 @@ describe('bool', () => {
         expect(() => {
           const xTrue = new Bool(true);
 
-          expect(xTrue.not()).toEqual(xTrue);
+          xTrue.not().assertEquals(xTrue);
         }).toThrow();
+      });
+    });
+
+    describe('or', () => {
+      it('true "or" true should return true', async () => {
+        const xTrue = new Bool(true);
+        const yTrue = new Bool(true);
+
+        xTrue.or(yTrue).assertEquals(new Bool(true));
+      });
+
+      it('should throw if true "or" true is compared to false', async () => {
+        expect(() => {
+          const xTrue = new Bool(true);
+          const yTrue = new Bool(true);
+
+          expect(xTrue.or(yTrue)).toEqual(new Bool(false));
+        }).toThrow();
+      });
+
+      it('false "or" false should return false', async () => {
+        const xFalse = new Bool(false);
+        const yFalse = new Bool(false);
+
+        xFalse.or(yFalse).assertEquals(new Bool(false));
+      });
+
+      it('should throw if false "or" false is compared to true', async () => {
+        expect(() => {
+          const xFalse = new Bool(false);
+          const yFalse = new Bool(false);
+
+          expect(xFalse.or(yFalse)).toEqual(new Bool(true));
+        }).toThrow();
+      });
+
+      it('false "or" true should return true', async () => {
+        const xFalse = new Bool(false);
+        const yTrue = new Bool(true);
+        xFalse.or(yTrue).assertEquals(new Bool(true));
+      });
+    });
+    describe('toBoolean', () => {
+      it('should return a true javascript boolean', () => {
+        const xTrue = new Bool(true);
+        expect(xTrue.toBoolean()).toEqual(true);
+      });
+      it('should return a false javascript boolean', () => {
+        const xFalse = new Bool(false);
+        expect(xFalse.toBoolean()).toEqual(false);
       });
     });
   });
