@@ -349,5 +349,21 @@ describe('bool', () => {
         }).toThrow();
       });
     });
+    describe('not', () => {
+      it('should return a new bool that is the negation of the input', async () => {
+        const xTrue = new Bool(true);
+        const yFalse = new Bool(false);
+        expect(xTrue.not()).toEqual(new Bool(false));
+        expect(yFalse.not()).toEqual(new Bool(true));
+      });
+
+      it('should throw if input.not() is compared to input', async () => {
+        expect(() => {
+          const xTrue = new Bool(true);
+
+          expect(xTrue.not()).toEqual(xTrue);
+        }).toThrow();
+      });
+    });
   });
 });
