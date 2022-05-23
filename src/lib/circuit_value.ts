@@ -149,28 +149,45 @@ function prop(this: any, target: any, key: string) {
   }
 }
 
-// TODO: move Circuit.array into JS so that this can be used before isReady
-function arrayProp<T>(eltTyp: AsFieldElements<T>, length: number) {
+function circuitArray<T>(elementType: AsFieldElements<T>, length: number) {
+  let elementLength = elementType.sizeInFields();
+  length = elementLength * length;
+  return {
+    sizeInFields() {
+      return length;
+    },
+    toFields(array: T[]) {
+      return array.map((e) => elementType.toFields(e)).flat();
+    },
+    ofFields(fields: Field[]) {
+      let array = [];
+      for (let i = 0; i < length; i += elementLength) {
+        array.push(elementType.ofFields(fields.slice(i, i + elementLength)));
+      }
+      return array;
+    },
+  };
+}
+
+function arrayProp<T>(elementType: AsFieldElements<T>, length: number) {
   return function (target: any, key: string) {
-    // const fieldType = Reflect.getMetadata('design:type', target, key);
     if (target._fields === undefined || target._fields === null) {
       target._fields = [];
     }
-    target._fields.push([key, Circuit.array(eltTyp, length)]);
+    target._fields.push([key, circuitArray(elementType, length)]);
   };
 }
 
 function matrixProp<T>(
-  eltTyp: AsFieldElements<T>,
+  elementType: AsFieldElements<T>,
   nRows: number,
   nColumns: number
 ) {
   return function (target: any, key: string) {
-    // const fieldType = Reflect.getMetadata('design:type', target, key);
     target._fields ??= [];
     target._fields.push([
       key,
-      Circuit.array(Circuit.array(eltTyp, nColumns), nRows),
+      circuitArray(circuitArray(elementType, nColumns), nRows),
     ]);
   };
 }
@@ -184,7 +201,7 @@ function public_(target: any, _key: string | symbol, index: number) {
   target._public.push(index);
 }
 
-function typOfArray(typs: Array<AsFieldElements<any>>): AsFieldElements<any> {
+function typeOfArray(typs: Array<AsFieldElements<any>>): AsFieldElements<any> {
   return {
     sizeInFields: () => {
       return typs.reduce((acc, typ) => acc + typ.sizeInFields(), 0);
@@ -244,10 +261,10 @@ function circuitMain(
     return target[propertyName].apply(target, args);
   };
 
-  target.snarkyWitnessTyp = typOfArray(
+  target.snarkyWitnessTyp = typeOfArray(
     Array.from(witnessIndexSet).map((i) => paramTypes[i])
   );
-  target.snarkyPublicTyp = typOfArray(
+  target.snarkyPublicTyp = typeOfArray(
     Array.from(publicIndexSet).map((i) => paramTypes[i])
   );
 }
