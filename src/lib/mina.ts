@@ -258,7 +258,8 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
     getAccount(publicKey: PublicKey) {
       if (currentTransaction?.fetchMode === 'test') {
         Fetch.markAccountToBeFetched(publicKey, graphqlEndpoint);
-        return dummyAccount(publicKey);
+        let account = Fetch.getCachedAccount(publicKey, graphqlEndpoint);
+        return account ?? dummyAccount(publicKey);
       }
       if (
         currentTransaction == undefined ||
