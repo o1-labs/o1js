@@ -384,7 +384,7 @@ describe('bool', () => {
         const xFalse = new Bool(false);
         const yFalse = new Bool(false);
 
-        xFalse.or(yFalse).assertEquals(new Bool(false));
+        expect(xFalse.or(yFalse)).toEqual(new Bool(false));
       });
 
       it('should throw if false "or" false is compared to true', async () => {
