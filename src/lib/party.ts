@@ -478,11 +478,11 @@ class Party {
   get balance() {
     let party = this;
     return {
-      addInPlace(x: Int64 | UInt32 | UInt64) {
+      addInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
         party.body.balanceChange = party.body.balanceChange.add(x);
       },
-      subInPlace(x: Int64 | UInt32 | UInt64) {
-        party.body.balanceChange = party.body.balanceChange.add(x);
+      subInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
+        party.body.balanceChange = party.body.balanceChange.sub(x);
       },
     };
   }
