@@ -179,6 +179,11 @@ class UInt32 extends CircuitValue {
     return this.value.toString();
   }
 
+  toUInt64(): UInt64 {
+    // this is safe, because the UInt32 range is included in the UInt64 range
+    return new UInt64(this.value);
+  }
+
   static check(x: UInt32) {
     let actual = x.value.rangeCheckHelper(32);
     actual.assertEquals(x.value);
@@ -343,8 +348,9 @@ class Int64 extends CircuitValue {
     return new Int64(new UInt64(magnitude), sign);
   }
 
-  static fromUnsigned(x: UInt64) {
-    return new Int64(x, Field.one);
+  static fromUnsigned(x: UInt64 | UInt32) {
+    let x_ = x instanceof UInt32 ? x.toUInt64() : x;
+    return new Int64(x_, Field.one);
   }
 
   static fromNumber(x: number) {
@@ -407,19 +413,19 @@ class Int64 extends CircuitValue {
     return new Int64(this.magnitude, this.sgn.neg());
   }
 
-  add(y: Int64 | number | string | bigint) {
+  add(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = argToInt64(y);
     return Int64.fromField(this.toField().add(y_.toField()));
   }
-  sub(y: Int64 | number | string | bigint) {
+  sub(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = argToInt64(y);
     return Int64.fromField(this.toField().sub(y_.toField()));
   }
-  mul(y: Int64 | number | string | bigint) {
+  mul(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = argToInt64(y);
     return Int64.fromField(this.toField().mul(y_.toField()));
   }
-  div(y: Int64 | number | string | bigint) {
+  div(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = argToInt64(y);
     let [q] = this.magnitude.divMod(y_.magnitude);
     let sign = this.sgn.mul(y_.sgn);
@@ -430,20 +436,23 @@ class Int64 extends CircuitValue {
     return new Int64(r, this.sgn);
   }
 
-  equals(y: Int64 | number | string | bigint) {
+  equals(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = argToInt64(y);
     return this.toField().equals(y_.toField());
   }
-  assertEquals(y: Int64 | number | string | bigint) {
+  assertEquals(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = argToInt64(y);
     this.toField().assertEquals(y_.toField());
   }
 }
 
-function argToInt64(x: number | string | bigint | Int64) {
+function argToInt64(
+  x: number | string | bigint | UInt64 | UInt32 | Int64
+): Int64 {
   if (typeof x === 'number') return Int64.fromNumber(x);
   if (typeof x === 'string') return Int64.fromString(x);
   if (typeof x === 'bigint') return Int64.fromBigInt(x);
+  if (x instanceof UInt64 || x instanceof UInt32) return Int64.fromUnsigned(x);
   return x;
 }
 
