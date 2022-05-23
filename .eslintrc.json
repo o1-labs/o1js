@@ -11,6 +11,7 @@
   },
   "rules": {
     "no-unused-vars": "warn",
-    "no-constant-condition": "off"
+    "no-constant-condition": "off",
+    "no-empty": "off"
   }
 }

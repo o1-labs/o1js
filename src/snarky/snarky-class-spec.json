@@ -337,23 +337,7 @@
         "type": "function"
       },
       {
-        "name": "hashParty",
-        "type": "function"
-      },
-      {
-        "name": "hashProtocolState",
-        "type": "function"
-      },
-      {
         "name": "hashTransaction",
-        "type": "function"
-      },
-      {
-        "name": "hashPartyChecked",
-        "type": "function"
-      },
-      {
-        "name": "hashProtocolStateChecked",
         "type": "function"
       },
       {
@@ -397,11 +381,23 @@
         "type": "function"
       },
       {
-        "name": "partiesToJson",
+        "name": "fieldToBase58",
         "type": "function"
       },
       {
-        "name": "partiesToGraphQL",
+        "name": "fieldOfBase58",
+        "type": "function"
+      },
+      {
+        "name": "memoToBase58",
+        "type": "function"
+      },
+      {
+        "name": "fieldsOfJson",
+        "type": "function"
+      },
+      {
+        "name": "hashPartyFromFields",
         "type": "function"
       }
     ]

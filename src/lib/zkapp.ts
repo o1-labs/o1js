@@ -6,21 +6,19 @@ import {
   AsFieldElements,
   Ledger,
   Pickles,
+  Types,
 } from '../snarky';
 import { CircuitValue, cloneCircuitValue } from './circuit_value';
 import {
-  ProtocolStatePredicate,
   Body,
   Party,
-  PartyBalance,
   signJsonTransaction,
   Parties,
   Permissions,
-  PartyWithFullAccountPrecondition,
+  SetOrKeep,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
-import { toParty, toProtocolState } from './party-conversion';
 import { UInt32, UInt64 } from './int';
 import { Account, fetchAccount } from './fetch';
 import {
@@ -96,7 +94,7 @@ function createState<A>() {
       let e: ExecutionState = this._this.executionState();
 
       stateAsFields.forEach((x, i) => {
-        e.party.body.update.appState[layout.offset + i].setValue(x);
+        Party.setValue(e.party.body.update.appState[layout.offset + i], x);
       });
     },
 
@@ -110,7 +108,7 @@ function createState<A>() {
       let e: ExecutionState = this._this.executionState();
 
       stateAsFields.forEach((x, i) => {
-        e.party.body.accountPrecondition.state[layout.offset + i].check =
+        e.party.body.accountPrecondition.state[layout.offset + i].isSome =
           Bool(true);
         e.party.body.accountPrecondition.state[layout.offset + i].value = x;
       });
@@ -329,7 +327,8 @@ function wrapMethod(
     } else {
       // in a transaction, also add a lazy proof to the self party
       // (if there's no other authorization set)
-      if (this.self.authorization.kind === 'none') {
+      let auth = this.self.authorization;
+      if (!('kind' in auth || 'proof' in auth || 'signature' in auth)) {
         this.self.authorization = {
           kind: 'lazy-proof',
           method,
@@ -374,23 +373,11 @@ type Statement = { transaction: Field; atParty: Field };
 type Proof = unknown; // opaque
 type Prover = (statement: Statement) => Promise<Proof>;
 
-function toStatement(self: Party, tail: Field, checked = true) {
+function toStatement(self: Party, tail: Field) {
   // TODO hash together party with tail in the right way
-  if (checked) {
-    let atParty = Ledger.hashPartyChecked(toParty(self));
-    let protocolStateHash = Ledger.hashProtocolStateChecked(
-      toProtocolState(ProtocolStatePredicate.ignoreAll())
-    );
-    let transaction = Ledger.hashTransactionChecked(atParty, protocolStateHash);
-    return { transaction, atParty };
-  } else {
-    let atParty = Ledger.hashParty(toParty(self));
-    let protocolStateHash = Ledger.hashProtocolState(
-      toProtocolState(ProtocolStatePredicate.ignoreAll())
-    );
-    let transaction = Ledger.hashTransaction(atParty, protocolStateHash);
-    return { transaction, atParty };
-  }
+  let atParty = self.hash();
+  let transaction = Ledger.hashTransactionChecked(atParty);
+  return { transaction, atParty };
 }
 
 function checkStatement(
@@ -399,7 +386,7 @@ function checkStatement(
   tail: Field
 ) {
   // ATM, we always compute the statement in checked mode to make assertEqual pass
-  let otherStatement = toStatement(self, tail, true);
+  let otherStatement = toStatement(self, tail);
   atParty.assertEquals(otherStatement.atParty);
   transaction.assertEquals(otherStatement.transaction);
 }
@@ -442,7 +429,7 @@ export class SmartContract {
   _executionState?: ExecutionState;
   static _methods?: methodEntry<SmartContract>[];
   static _provers?: Prover[];
-  static _verificationKey?: string;
+  static _verificationKey?: { data: string; hash: Field };
 
   constructor(address: PublicKey) {
     this.address = address;
@@ -469,7 +456,10 @@ export class SmartContract {
     );
     let verificationKey = getVerificationKeyArtifact();
     this._provers = provers;
-    this._verificationKey = verificationKey;
+    this._verificationKey = {
+      data: verificationKey.data,
+      hash: Field(verificationKey.hash),
+    };
     // TODO: instead of returning provers, return an artifact from which provers can be recovered
     return { verificationKey, provers, verify };
   }
@@ -478,14 +468,16 @@ export class SmartContract {
     verificationKey,
     zkappKey,
   }: {
-    verificationKey?: string;
+    verificationKey?: { data: string; hash: Field | string };
     zkappKey?: PrivateKey;
   }) {
     verificationKey ??= (this.constructor as any)._verificationKey;
     if (verificationKey !== undefined) {
-      this.self.update.verificationKey.setValue(verificationKey);
+      let { hash: hash_, data } = verificationKey;
+      let hash = typeof hash_ === 'string' ? Field(hash_) : hash_;
+      this.setValue(this.self.update.verificationKey, { hash, data });
     }
-    this.self.update.permissions.setValue(Permissions.default());
+    this.setValue(this.self.update.permissions, Permissions.default());
     this.sign(zkappKey, true);
   }
 
@@ -523,11 +515,6 @@ export class SmartContract {
         });
       }).toJSON();
       let statement = Ledger.transactionStatement(txJson, 0);
-      // let statementVar = toStatement(ctx.self, Field.zero);
-      // let statement = {
-      //   transaction: statementVar.transaction.toConstant(),
-      //   atParty: statementVar.atParty.toConstant(),
-      // };
       return [statement, selfParty];
     });
 
@@ -574,7 +561,7 @@ export class SmartContract {
       return {
         transactionId: 0,
         partyIndex: 0,
-        party: mainContext.self as PartyWithFullAccountPrecondition,
+        party: mainContext.self,
       };
     }
 
@@ -591,7 +578,7 @@ export class SmartContract {
       const id = Mina.nextTransactionId.value;
       const index = Mina.currentTransaction.nextPartyIndex++;
       const body = Body.keepAll(this.address);
-      const party = new Party(body) as PartyWithFullAccountPrecondition;
+      const party = new Party(body);
       Mina.currentTransaction.parties.push(party);
 
       const s = {
@@ -608,7 +595,7 @@ export class SmartContract {
     return this.executionState().party;
   }
 
-  get balance(): PartyBalance {
+  get balance() {
     return this.self.balance;
   }
 
@@ -616,10 +603,14 @@ export class SmartContract {
     return this.self.setNoncePrecondition();
   }
 
+  setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
+    Party.setValue(maybeValue, value);
+  }
+
   // TBD: do we want to have setters for updates, e.g. this.permissions = ... ?
   // I'm hesitant to make the API even more magical / less explicit
   setPermissions(permissions: Permissions) {
-    this.self.body.update.permissions.setValue(permissions);
+    this.setValue(this.self.update.permissions, permissions);
   }
 
   party(i: number): Body {
@@ -638,14 +629,14 @@ export class SmartContract {
 }
 
 type DeployArgs = {
-  verificationKey?: string;
+  verificationKey?: { data: string; hash: string | Field };
   zkappKey?: PrivateKey;
 };
 
 type ExecutionState = {
   transactionId: number;
   partyIndex: number;
-  party: PartyWithFullAccountPrecondition;
+  party: Party;
 };
 
 function emptyWitness<A>(typ: AsFieldElements<A>) {
@@ -669,7 +660,7 @@ async function deploy<S extends typeof SmartContract>(
     feePayerNonce,
   }: {
     zkappKey: PrivateKey;
-    verificationKey: string;
+    verificationKey: { data: string; hash: string | Field };
     initialBalance?: number | string;
     feePayerKey?: PrivateKey;
     shouldSignFeePayer?: boolean;
@@ -738,10 +729,7 @@ async function call<S extends typeof SmartContract>(
     methodArguments,
     provers
   );
-  selfParty.authorization = {
-    kind: 'proof',
-    value: Pickles.proofToString(proof),
-  };
+  selfParty.authorization = { proof: Pickles.proofToString(proof) };
   if (verify !== undefined) {
     let ok = await verify(statement, proof);
     if (!ok) throw Error('Proof failed to verify!');
@@ -796,10 +784,10 @@ function addFeePayer(
     let senderAccount = Mina.getAccount(senderAddress);
     feePayerNonce = senderAccount.nonce.toString();
   }
-  feePayer.body.accountPrecondition = UInt32.fromString(`${feePayerNonce}`);
+  feePayer.body.nonce = UInt32.fromString(`${feePayerNonce}`);
   feePayer.body.publicKey = senderAddress;
-  feePayer.balance.subInPlace(UInt64.fromString(`${transactionFee}`));
-  feePayer.signInPlace(feePayerKey);
+  feePayer.body.fee = UInt64.fromString(`${transactionFee}`);
+  Party.signFeePayerInPlace(feePayer, feePayerKey);
   return { feePayer, otherParties };
 }
 
@@ -811,7 +799,7 @@ function signFeePayer(
     feePayerNonce = undefined as number | string | undefined,
   }
 ) {
-  let parties = JSON.parse(transactionJson);
+  let parties: Types.Json.Parties = JSON.parse(transactionJson);
   if (typeof feePayerKey === 'string')
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();

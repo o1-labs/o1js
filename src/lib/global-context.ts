@@ -1,4 +1,4 @@
-import { PartyWithFullAccountPrecondition } from './party';
+import { Party } from './party';
 
 export {
   withContext,
@@ -14,7 +14,7 @@ export {
 let mainContext = undefined as
   | {
       witnesses?: unknown[];
-      self: PartyWithFullAccountPrecondition;
+      self: Party;
       expectedAccesses: number | undefined;
       actualAccesses: number;
       inProver?: boolean;
@@ -23,7 +23,7 @@ let mainContext = undefined as
   | undefined;
 type PartialContext = {
   witnesses?: unknown[];
-  self: PartyWithFullAccountPrecondition;
+  self: Party;
   expectedAccesses?: number;
   actualAccesses?: number;
   inProver?: boolean;
@@ -43,7 +43,7 @@ function withContext<T>(
   mainContext = { witnesses, expectedAccesses, actualAccesses, self, ...other };
   let result = f();
   mainContext = undefined;
-  return [self, result] as [PartyWithFullAccountPrecondition, T];
+  return [self, result] as [Party, T];
 }
 
 // TODO: this is unsafe, the mainContext will be overridden if we invoke this function multiple times concurrently
@@ -63,7 +63,7 @@ async function withContextAsync<T>(
   if (mainContext.actualAccesses !== mainContext.expectedAccesses)
     throw Error(contextConflictMessage);
   mainContext = undefined;
-  return [self, result] as [PartyWithFullAccountPrecondition, T];
+  return [self, result] as [Party, T];
 }
 
 let contextConflictMessage =

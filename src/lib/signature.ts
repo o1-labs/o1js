@@ -1,4 +1,4 @@
-import { Poseidon, Group, Field, Bool, Scalar, Ledger } from '../snarky';
+import { Poseidon, Group, Field, Bool, Scalar, Ledger, Types } from '../snarky';
 import { prop, CircuitValue } from './circuit_value';
 
 /**
@@ -47,7 +47,11 @@ export class PrivateKey extends CircuitValue {
     return new PrivateKey(scalar);
   }
   toBase58() {
-    return Ledger.privateKeyToString(this);
+    return PrivateKey.toBase58(this);
+  }
+  // static version, to operate on non-class versions of this type
+  static toBase58(privateKey: { s: Scalar }) {
+    return Ledger.privateKeyToString(privateKey);
   }
 }
 
@@ -77,7 +81,11 @@ export class PublicKey extends CircuitValue {
     return new PublicKey(group);
   }
   toBase58() {
-    return Ledger.publicKeyToString(this);
+    return PublicKey.toBase58(this);
+  }
+  // static version, to operate on non-class versions of this type
+  static toBase58(publicKey: Types.PublicKey) {
+    return Ledger.publicKeyToString(publicKey);
   }
 }
 
