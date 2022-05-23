@@ -11,7 +11,7 @@ import {
   Sign,
 } from '../parties-leaves-json';
 
-export { Parties, BalanceChange, Party };
+export { Parties, Party };
 export * from '../parties-leaves-json';
 
 type Parties = {
@@ -242,11 +242,6 @@ type Parties = {
     };
   }[];
   memo: string;
-};
-
-type BalanceChange = {
-  magnitude: UInt64;
-  sgn: Sign;
 };
 
 type Party = {
