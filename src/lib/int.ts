@@ -354,7 +354,7 @@ class Int64 extends CircuitValue {
   }
 
   static fromNumber(x: number) {
-    return Int64.fromFieldUnchecked(Field(x));
+    return Int64.fromFieldUnchecked(Field(String(x)));
   }
   static fromString(x: string) {
     return Int64.fromFieldUnchecked(Field(x));
