@@ -381,12 +381,20 @@ export class Int64 {
     return new Int64(this.value.neg());
   }
 
+  static add(x: Int64, y: Int64 | UInt32 | UInt64) {
+    return new Int64(x.value.add(y.value));
+  }
+
+  static sub(x: Int64, y: Int64 | UInt32 | UInt64) {
+    return new Int64(x.value.sub(y.value));
+  }
+
   add(y: Int64 | UInt32 | UInt64) {
-    return new Int64(this.value.add(y.value));
+    return Int64.add(this, y);
   }
 
   sub(y: Int64 | UInt32 | UInt64) {
-    return new Int64(this.value.sub(y.value));
+    return Int64.add(this, y);
   }
 
   repr(): { magnitude: Field; isPos: Sgn } {

@@ -1,0 +1,10 @@
+(rule
+ (targets js-layout.ts parties.ts parties-json.ts)
+ (mode promote)
+ (deps
+  (:script ../../build/jsLayoutToTypes.mjs)
+  ../../../../jsLayout.json
+  ../../../.prettierrc.js
+  (glob_files ../../../node_modules/prettier/*))
+ (action
+  (run node %{script})))

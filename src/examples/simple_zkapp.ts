@@ -10,6 +10,7 @@ import {
   Party,
   isReady,
   Permissions,
+  DeployArgs,
 } from 'snarkyjs';
 
 await isReady;
@@ -17,9 +18,9 @@ await isReady;
 class SimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
 
-  deploy(args: { zkappKey: PrivateKey }) {
+  deploy(args: DeployArgs) {
     super.deploy(args);
-    this.self.update.permissions.setValue({
+    this.setPermissions({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
     });
@@ -28,6 +29,12 @@ class SimpleZkapp extends SmartContract {
   }
 
   @method update(y: Field) {
+    // update is only valid if the balance is at least 10 MINA
+    Party.assertBetween(
+      this.self.body.accountPrecondition.balance,
+      UInt64.fromNumber(10e9),
+      UInt64.MAXINT()
+    );
     let x = this.x.get();
     this.x.set(x.add(y));
   }
