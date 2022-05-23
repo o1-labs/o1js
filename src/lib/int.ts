@@ -309,14 +309,14 @@ class Int64 extends CircuitValue {
   // Some thoughts regarding the representation as field elements:
   // toFields returns the in-circuit representation, so the main objective is to minimize the number of constraints
   // that result from this representation. Therefore, I think the only candidate for an efficient 1-field representation
-  // is the one where the Int65 is the field: toFields = int65 => [int65.magnitude.mul(int65.sign)]. Anything else involving
+  // is the one where the Int64 is the field: toFields = Int64 => [Int64.magnitude.mul(Int64.sign)]. Anything else involving
   // bit packing would just lead to very inefficient circuit operations.
   //
   // So, is magnitude * sign ("1-field") a more efficient representation than (magnitude, sign) ("2-field")?
   // Several common operations like add, mul, etc, operate on 1-field so in 2-field they result in one additional multiplication
   // constraint per operand. However, the check operation (constraining to 64 bits + a sign) which is called at the introduction
   // of every witness, and also at the end of add, mul, etc, operates on 2-field. So here, the 1-field representation needs
-  // to add an additional magnitude * sign = int65 multiplication constraint, which will typically cancel out most of the gains
+  // to add an additional magnitude * sign = Int64 multiplication constraint, which will typically cancel out most of the gains
   // achieved by 1-field elsewhere.
   // There are some notable operations for which 2-field is definitely better:
   //
@@ -375,7 +375,7 @@ class Int64 extends CircuitValue {
   }
 
   // --- circuit-compatible operations below ---
-  // the assumption here is that all Int65 values that appear in a circuit are already checked as valid
+  // the assumption here is that all Int64 values that appear in a circuit are already checked as valid
   // this is because Circuit.witness calls .check
   // so we only have to do additional checks if an operation on valid inputs can have an invalid outcome (example: overflow)
 
