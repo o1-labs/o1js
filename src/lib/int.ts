@@ -354,7 +354,8 @@ class Int64 extends CircuitValue {
   }
 
   static fromNumber(x: number) {
-    return Int64.fromFieldUnchecked(Field(String(x)));
+    if (x < 0) return Int64.fromString(String(-x)).neg();
+    return Int64.fromString(String(x));
   }
   static fromString(x: string) {
     return Int64.fromFieldUnchecked(Field(x));
@@ -432,8 +433,10 @@ class Int64 extends CircuitValue {
     return new Int64(q, sign);
   }
   mod(y: UInt64 | number | string) {
-    let [, r] = this.magnitude.divMod(y);
-    return new Int64(r, this.sgn);
+    let y_ = new UInt64(argToField('Int64.mod', y));
+    let [, r] = this.magnitude.divMod(y_);
+    r = Circuit.if(this.isPositive(), r, y_.sub(r));
+    return new Int64(r, Field.one);
   }
 
   equals(y: Int64 | number | string | bigint | UInt64 | UInt32) {
@@ -443,6 +446,9 @@ class Int64 extends CircuitValue {
   assertEquals(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = argToInt64(y);
     this.toField().assertEquals(y_.toField());
+  }
+  isPositive() {
+    return this.sgn.equals(Field.one);
   }
 }
 

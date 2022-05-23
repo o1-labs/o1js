@@ -164,6 +164,31 @@ describe('int', () => {
         );
       });
     });
+
+    describe('mul / div / mod', () => {
+      it('mul, div and mod work', () => {
+        // 2 ** 6 === 64
+        let x = Int64.fromField(Field(2))
+          .mul(2)
+          .mul('2')
+          .mul(2n)
+          .mul(UInt32.fromNumber(2))
+          .mul(UInt64.fromNumber(2));
+        expect(`${x}`).toBe('64');
+
+        // 64 * (-64) === -64**2
+        let y = Int64.fromNumber(-64);
+        expect(`${x.mul(y)}`).toEqual(`${-(64 ** 2)}`);
+        // (-64) // 64 === -1
+        expect(y.div(x).toString()).toEqual('-1');
+        // (-64) // 65 === 0
+        expect(y.div(65).toString()).toEqual('0');
+        // 64 % 3 === 1
+        expect(x.mod(3).toString()).toEqual('1');
+        // (-64) % 3 === 2
+        expect(y.mod(3).toString()).toEqual('2');
+      });
+    });
   });
 
   describe('UInt64', () => {
