@@ -22,12 +22,17 @@ function argToField(
 export class UInt64 extends CircuitValue {
   @prop value: Field;
 
-  static get zero(): UInt64 {
-    return new UInt64(Field.zero);
-  }
   constructor(value: Field) {
     super();
     this.value = value;
+  }
+
+  static get zero(): UInt64 {
+    return new UInt64(Field.zero);
+  }
+
+  static get one(): UInt64 {
+    return new UInt64(Field.one);
   }
 
   toString(): string {
@@ -53,7 +58,7 @@ export class UInt64 extends CircuitValue {
 
   static NUM_BITS = 64;
 
-  divMod(y: UInt64 | number): [UInt64, UInt64] {
+  divMod(y: UInt64 | number | string): [UInt64, UInt64] {
     let x = this.value;
     let y_ = argToField('UInt64.div', y);
 
@@ -173,13 +178,17 @@ export class UInt64 extends CircuitValue {
 export class UInt32 extends CircuitValue {
   @prop value: Field;
 
+  constructor(value: Field) {
+    super();
+    this.value = value;
+  }
+
   static get zero(): UInt32 {
     return new UInt32(Field.zero);
   }
 
-  constructor(value: Field) {
-    super();
-    this.value = value;
+  static get one(): UInt32 {
+    return new UInt32(Field.one);
   }
 
   toString(): string {
@@ -301,15 +310,18 @@ export class UInt32 extends CircuitValue {
   }
 }
 
-class Int65 extends CircuitValue {
+class Int64 extends CircuitValue {
   // * in the range [-2^64+1, 2^64-1], unlike a normal int64
-  // * under- and overflowing is disallowed, similar to UInt64, unlike a normal int64
-  //
+  // * under- and overflowing is disallowed, similar to UInt64, unlike a normal int64+
+
+  @prop magnitude: UInt64; // absolute value
+  @prop sgn: Field; // +/- 1
+
   // Some thoughts regarding the representation as field elements:
   // toFields returns the in-circuit representation, so the main objective is to minimize the number of constraints
   // that result from this representation. Therefore, I think the only candidate for an efficient 1-field representation
   // is the one where the Int65 is the field: toFields = int65 => [int65.magnitude.mul(int65.sign)]. Anything else involving
-  // bit packing would just lead to very inefficient circuit operations, IIUC.
+  // bit packing would just lead to very inefficient circuit operations.
   //
   // So, is magnitude * sign ("1-field") a more efficient representation than (magnitude, sign) ("2-field")?
   // Several common operations like add, mul, etc, operate on 1-field so in 2-field they result in one additional multiplication
@@ -322,16 +334,13 @@ class Int65 extends CircuitValue {
   // * div and mod (which do integer division with rounding on the magnitude)
   // * converting the Int64 to a Currency.Amount.Signed (for the zkapp balance), which has the exact same (magnitude, sign) representation we use here.
   //
-  // The second point is one of the main things an Int64 is used for, and was my original motivation to use 2 fields.
-  // Overall, I think the existing implementation is the optimal one, but happy to be corrected.
+  // The second point is one of the main things an Int64 is used for, and was the original motivation to use 2 fields.
+  // Overall, I think the existing implementation is the optimal one.
 
-  @prop magnitude: Field; // absolute value, restricted like UInt64
-  @prop sign: Field; // +/- 1
-
-  constructor(magnitude: Field, sign: Field) {
+  constructor(magnitude: UInt64, sgn: Field) {
     super();
     this.magnitude = magnitude;
-    this.sign = sign;
+    this.sgn = sgn;
   }
 
   static fromFieldUnchecked(x: Field) {
@@ -347,32 +356,32 @@ class Int65 extends CircuitValue {
       );
     let magnitude = Field(isValidPositive ? x.toString() : x.neg().toString());
     let sign = isValidPositive ? Field.one : MINUS_ONE;
-    return new Int65(magnitude, sign);
+    return new Int64(new UInt64(magnitude), sign);
   }
 
   static fromUnsigned(x: UInt64) {
-    return new Int65(x.value, Field.one);
+    return new Int64(x, Field.one);
   }
 
   static fromNumber(x: number) {
-    return Int65.fromFieldUnchecked(Field(x));
+    return Int64.fromFieldUnchecked(Field(x));
   }
   static fromString(x: string) {
-    return Int65.fromFieldUnchecked(Field(x));
+    return Int64.fromFieldUnchecked(Field(x));
   }
   static fromBigInt(x: bigint) {
     let xField = x < 0n ? Field((-x).toString()).neg() : Field(x.toString());
-    return Int65.fromFieldUnchecked(xField);
+    return Int64.fromFieldUnchecked(xField);
   }
 
   toString() {
     let abs = this.magnitude.toString();
-    let sgn = this.sign.equals(Field.one).toBoolean() || abs === '0' ? '' : '-';
+    let sgn = this.sgn.equals(Field.one).toBoolean() || abs === '0' ? '' : '-';
     return sgn + abs;
   }
 
   isConstant() {
-    return this.magnitude.isConstant() && this.sign.isConstant();
+    return this.magnitude.value.isConstant() && this.sgn.isConstant();
   }
 
   // --- circuit-compatible operations below ---
@@ -380,57 +389,76 @@ class Int65 extends CircuitValue {
   // this is because Circuit.witness calls .check
   // so we only have to do additional checks if an operation on valid inputs can have an invalid outcome (example: overflow)
 
-  static check(x: Int65) {
-    UInt64.check(new UInt64(x.magnitude)); // |x| < 2^64
-    x.sign.square().assertEquals(Field.one); // sign(x)^2 === 1
+  static check(x: Int64) {
+    UInt64.check(x.magnitude); // |x| < 2^64
+    x.sgn.square().assertEquals(Field.one); // sign(x)^2 === 1
   }
 
   static get zero() {
-    return new Int65(Field.zero, Field.one);
+    return new Int64(UInt64.zero, Field.one);
+  }
+  static get one() {
+    return new Int64(UInt64.one, Field.one);
+  }
+  static get minusOne() {
+    return new Int64(UInt64.one, Field.one.neg());
   }
 
   toField() {
-    return this.magnitude.mul(this.sign);
+    return this.magnitude.value.mul(this.sgn);
   }
 
-  static fromField(x: Field): Int65 {
-    let getUnchecked = () => Int65.fromFieldUnchecked(x);
+  static fromField(x: Field): Int64 {
+    let getUnchecked = () => Int64.fromFieldUnchecked(x);
     // constant case - just return unchecked value
     if (x.isConstant()) return getUnchecked();
     // variable case - create a new checked witness and prove consistency with original field
-    let xInt = Circuit.witness(Int65, getUnchecked);
+    let xInt = Circuit.witness(Int64, getUnchecked);
     xInt.toField().assertEquals(x); // sign(x) * |x| === x
     return xInt;
   }
 
   neg() {
     // doesn't need further check if `this` is valid
-    return new Int65(this.magnitude, this.sign.neg());
+    return new Int64(this.magnitude, this.sgn.neg());
   }
 
-  add(y: Int65) {
-    return Int65.fromField(this.toField().add(y.toField()));
+  add(y: Int64 | number | string | bigint) {
+    let y_ = argToInt64(y);
+    return Int64.fromField(this.toField().add(y_.toField()));
   }
-  sub(y: Int65) {
-    return Int65.fromField(this.toField().sub(y.toField()));
+  sub(y: Int64 | number | string | bigint) {
+    let y_ = argToInt64(y);
+    return Int64.fromField(this.toField().sub(y_.toField()));
   }
-  mul(y: Int65) {
-    return Int65.fromField(this.toField().mul(y.toField()));
+  mul(y: Int64 | number | string | bigint) {
+    let y_ = argToInt64(y);
+    return Int64.fromField(this.toField().mul(y_.toField()));
   }
-  div(y: Int65) {
-    let [q] = new UInt64(this.magnitude).divMod(new UInt64(y.magnitude));
-    let sign = this.sign.mul(y.sign);
-    return new Int65(q.value, sign);
+  div(y: Int64 | number | string | bigint) {
+    let y_ = argToInt64(y);
+    let [q] = this.magnitude.divMod(y_.magnitude);
+    let sign = this.sgn.mul(y_.sgn);
+    return new Int64(q, sign);
   }
-  mod(y: UInt64) {
-    let [, r] = new UInt64(this.magnitude).divMod(y);
-    return new Int65(r.value, this.sign);
+  mod(y: UInt64 | number | string) {
+    let [, r] = this.magnitude.divMod(y);
+    return new Int64(r, this.sgn);
   }
 
-  equals(y: Int65) {
-    return this.toField().equals(y.toField());
+  equals(y: Int64 | number | string | bigint) {
+    let y_ = argToInt64(y);
+    return this.toField().equals(y_.toField());
   }
-  assertEquals(y: Int65) {
-    this.toField().assertEquals(y.toField());
+  assertEquals(y: Int64 | number | string | bigint) {
+    let y_ = argToInt64(y);
+    this.toField().assertEquals(y_.toField());
   }
+}
+
+function argToInt64(x: number | string | bigint | Int64) {
+  if (typeof x === 'number') return Int64.fromNumber(x);
+  if (typeof x === 'string') return Int64.fromString(x);
+  if (typeof x === 'bigint') return Int64.fromBigInt(x);
+  return x;
 }
