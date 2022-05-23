@@ -27,7 +27,7 @@ describe('int', () => {
   describe('Int64', () => {
     describe('toString', () => {
       it('should be the same as Field.zero', async () => {
-        const int = new Int64(Field.zero);
+        const int = new Int64(UInt64.zero, Field.one);
         const field = Field.zero;
         expect(int.toString()).toEqual(field.toString());
       });
@@ -40,7 +40,7 @@ describe('int', () => {
       // });
 
       it('should be the same as 2^53-1', async () => {
-        const int = new Int64(Field(String(NUMBERMAX)));
+        const int = Int64.fromField(Field(String(NUMBERMAX)));
         const field = Field(String(NUMBERMAX));
         expect(int.toString()).toEqual(field.toString());
       });
@@ -48,33 +48,21 @@ describe('int', () => {
 
     describe('zero', () => {
       it('should be the same as Field zero', async () => {
-        expect(Int64.zero.value).toEqual(Field.zero);
+        expect(Int64.zero.magnitude.value).toEqual(Field.zero);
       });
     });
 
     describe('fromUnsigned', () => {
       it('should be the same as UInt64.zero', async () => {
-        expect(new Int64(Field.zero).value).toEqual(
-          Int64.fromUnsigned(UInt64.zero).value
+        expect(new Int64(UInt64.zero, Field.one)).toEqual(
+          Int64.fromUnsigned(UInt64.zero)
         );
       });
 
       it('should be the same as UInt64.MAXINT', async () => {
-        expect(new Int64(Field(((1n << 64n) - 1n).toString())).value).toEqual(
-          Int64.fromUnsigned(UInt64.MAXINT()).value
+        expect(Int64.fromBigInt((1n << 64n) - 1n)).toEqual(
+          Int64.fromUnsigned(UInt64.MAXINT())
         );
-      });
-    });
-
-    describe('uint64Value', () => {
-      it('should equal Field.one', () => {
-        const int = new Int64(Field.one);
-        expect(int.uint64Value()).toEqual(Field.one);
-      });
-
-      it('should equal UInt64.MAXINT', () => {
-        const int = new Int64(Field(((1n << 64n) - 1n).toString()));
-        expect(int.uint64Value()).toEqual(UInt64.MAXINT().value);
       });
     });
 
@@ -93,23 +81,23 @@ describe('int', () => {
 
     describe('add', () => {
       it('1+1=2', () => {
-        expect(
-          new Int64(Field.one).add(new Int64(Field.one)).toString()
-        ).toEqual('2');
+        expect(Int64.one.add(Int64.fromString('1')).toString()).toEqual('2');
       });
 
       it('5000+5000=10000', () => {
         expect(
-          new Int64(Field(5000)).add(new Int64(Field(5000))).toString()
+          Int64.fromNumber(5000)
+            .add(Int64.fromField(Field(5000)))
+            .toString()
         ).toEqual('10000');
       });
 
       it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
-        const value = Field((((1n << 64n) - 2n) / 2n).toString());
+        const value = ((1n << 64n) - 2n) / 2n;
         expect(
-          new Int64(value)
-            .add(new Int64(value))
-            .add(new Int64(Field.one))
+          Int64.fromBigInt(value)
+            .add(Int64.fromBigInt(value))
+            .add(Int64.one)
             .toString()
         ).toEqual(UInt64.MAXINT().toString());
       });
@@ -125,21 +113,17 @@ describe('int', () => {
 
     describe('sub', () => {
       it('1-1=0', () => {
-        expect(
-          new Int64(Field.one).sub(new Int64(Field.one)).toString()
-        ).toEqual('0');
+        expect(Int64.one.sub(Int64.fromNumber(1)).toString()).toEqual('0');
       });
 
       it('10000-5000=5000', () => {
         expect(
-          new Int64(Field(10000)).sub(new Int64(Field(5000))).toString()
+          Int64.fromField(Field(10000)).sub(Int64.fromString('5000')).toString()
         ).toEqual('5000');
       });
 
       it('0-1=-1', () => {
-        expect(
-          new Int64(Field.zero).sub(new Int64(Field.one)).toString()
-        ).toEqual('-1');
+        expect(Int64.zero.sub(Int64.one).toString()).toEqual('-1');
       });
 
       // ERROR: Expected: -18446744073709552000 - Received: "-18446744073709551615"
@@ -152,24 +136,25 @@ describe('int', () => {
       // });
     });
     describe('toFields', () => {
-      it('toFields(1) should be the same as Field.one', () => {
-        expect(Int64.toFields(new Int64(Field.one))).toEqual([Field.one]);
+      it('toFields(1) should be the same as [Field.one, Field.one]', () => {
+        expect(Int64.toFields(Int64.one)).toEqual([Field.one, Field.one]);
       });
 
       it('toFields(2^53-1) should be the same as Field(2^53-1)', () => {
-        expect(Int64.toFields(new Int64(Field(String(NUMBERMAX))))).toEqual([
+        expect(Int64.toFields(Int64.fromNumber(NUMBERMAX))).toEqual([
           Field(String(NUMBERMAX)),
+          Field.one,
         ]);
       });
     });
     describe('ofFields', () => {
-      it('ofFields(1) should be the same as Field.one', () => {
-        expect(Int64.ofFields([Field.one])).toEqual(new Int64(Field.one));
+      it('ofFields([1, 1]) should be the same as Int64.one', () => {
+        expect(Int64.ofFields([Field.one, Field.one])).toEqual(Int64.one);
       });
 
       it('ofFields(2^53-1) should be the same as Field(2^53-1)', () => {
-        expect(Int64.ofFields([Field(String(NUMBERMAX))])).toEqual(
-          new Int64(Field(String(NUMBERMAX)))
+        expect(Int64.ofFields([Field(String(NUMBERMAX)), Field.one])).toEqual(
+          Int64.fromNumber(NUMBERMAX)
         );
       });
     });
