@@ -32,8 +32,8 @@ describe('int', () => {
         expect(int.toString()).toEqual(field.toString());
       });
 
-      // ERROR: field.toString() is 28948022309329048855892746252171976963363056481941560715954676764349967630336
-      it.skip('should be the same as neg Field.one', async () => {
+      // field.toString() is 28948022309329048855892746252171976963363056481941560715954676764349967630336
+      it('should be the same as neg Field.one', async () => {
         const int = new Int64(Field.one.neg());
         const field = Field.one.neg();
         expect(int.toString()).toEqual(field.toString());
@@ -115,7 +115,7 @@ describe('int', () => {
         ).toEqual(UInt64.MAXINT().toString());
       });
 
-      // ERROR: Does not throw - Int64 should be in the range [-2^63, 2^63 - 1]
+      // Does not throw - Int64 should be in the range [-2^63, 2^63 - 1]
       it.skip('should throw on overflow addition', () => {
         const value = Field(((1n << 64n) - 1n).toString());
         expect(() => {
@@ -143,7 +143,7 @@ describe('int', () => {
         ).toEqual('-1');
       });
 
-      // ERROR: Expected: -18446744073709552000 - Received: "-18446744073709551615"
+      // Expected: -18446744073709552000 - Received: "-18446744073709551615"
       it.skip('(0-MAXINT) subs to -MAXINT', () => {
         expect(
           new Int64(Field.zero)
@@ -587,7 +587,6 @@ describe('int', () => {
           }).toThrow();
         });
 
-        // This function can't be run outside of a checked computation.
         it('MAXINT>MAXINT=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
@@ -780,8 +779,7 @@ describe('int', () => {
           );
         });
 
-        // This function can't be run outside of a checked computation.
-        it.skip('1<1=false', () => {
+        it('1<1=false', () => {
           expect(new UInt64(Field.one).lt(new UInt64(Field.one))).toEqual(
             Bool(false)
           );
@@ -806,15 +804,13 @@ describe('int', () => {
           );
         });
 
-        // This function can't be run outside of a checked computation.
-        it.skip('MAXINT<MAXINT=false', () => {
+        it('MAXINT<MAXINT=false', () => {
           expect(UInt64.MAXINT().lt(UInt64.MAXINT())).toEqual(Bool(false));
         });
       });
 
       describe('lte', () => {
-        // ERROR: This function can't be run outside of a checked computation.
-        it.skip('1<=1=true', () => {
+        it('1<=1=true', () => {
           expect(new UInt64(Field.one).lte(new UInt64(Field.one))).toEqual(
             Bool(true)
           );
@@ -826,7 +822,7 @@ describe('int', () => {
           );
         });
 
-        // ERROR: rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
         it.skip('1000<=100000=true', () => {
           expect(
             new UInt64(Field(1000)).lte(new UInt64(Field(100000)))
@@ -839,40 +835,40 @@ describe('int', () => {
           ).toEqual(Bool(false));
         });
 
-        // ERROR: This function can't be run outside of a checked computation.
-        it.skip('MAXINT<=MAXINT=true', () => {
+        it('MAXINT<=MAXINT=true', () => {
           expect(UInt64.MAXINT().lte(UInt64.MAXINT())).toEqual(Bool(true));
         });
       });
 
-      // ERROR: This function can't be run outside of a checked computation.
-      describe.skip('assertLte', () => {
+      describe('assertLte', () => {
         it('1<=1=true', () => {
-          expect(
-            new UInt64(Field.one).assertLte(new UInt64(Field.one))
-          ).not.toThrow();
+          expect(() => {
+            new UInt64(Field.one).assertLte(new UInt64(Field.one));
+          }).not.toThrow();
         });
 
         it('2<=1=false', () => {
-          expect(
-            new UInt64(Field.one).assertLte(new UInt64(Field(2)))
-          ).toThrow();
+          expect(() => {
+            new UInt64(Field(2)).assertLte(new UInt64(Field.one));
+          }).toThrow();
         });
 
         it('1000<=100000=true', () => {
-          expect(
-            new UInt64(Field(1000)).assertLte(new UInt64(Field(100000)))
-          ).not.toThrow();
+          expect(() => {
+            new UInt64(Field(1000)).assertLte(new UInt64(Field(100000)));
+          }).not.toThrow();
         });
 
         it('100000<=1000=false', () => {
-          expect(
-            new UInt64(Field(100000)).assertLte(new UInt64(Field(1000)))
-          ).toThrow();
+          expect(() => {
+            new UInt64(Field(100000)).assertLte(new UInt64(Field(1000)));
+          }).toThrow();
         });
 
         it('MAXINT<=MAXINT=true', () => {
-          expect(UInt64.MAXINT().assertLte(UInt64.MAXINT())).not.toThrow();
+          expect(() => {
+            UInt64.MAXINT().assertLte(UInt64.MAXINT());
+          }).not.toThrow();
         });
       });
 
@@ -884,8 +880,7 @@ describe('int', () => {
           );
         });
 
-        // This function can't be run outside of a checked computation.
-        it.skip('1>1=false', () => {
+        it('1>1=false', () => {
           expect(new UInt64(Field.one).gt(new UInt64(Field.one))).toEqual(
             Bool(false)
           );
@@ -911,44 +906,42 @@ describe('int', () => {
           );
         });
 
-        // This function can't be run outside of a checked computation.
-        it.skip('MAXINT>MAXINT=false', () => {
+        it('MAXINT>MAXINT=false', () => {
           expect(UInt64.MAXINT().gt(UInt64.MAXINT())).toEqual(Bool(false));
         });
       });
 
-      describe.skip('assertGt', () => {
-        // This function can't be run outside of a checked computation.
+      describe('assertGt', () => {
         it('1>1=false', () => {
-          expect(
-            new UInt64(Field.one).assertGt(new UInt64(Field.one))
-          ).toThrow();
+          expect(() => {
+            new UInt64(Field.one).assertGt(new UInt64(Field.one));
+          }).toThrow();
         });
 
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
-        it('2>1=true', () => {
+        it.skip('2>1=true', () => {
           expect(
             new UInt64(Field(2)).assertGt(new UInt64(Field.one))
           ).not.toThrow();
         });
 
-        // assert_equal: 0 != 1
         it('1000>100000=false', () => {
-          expect(
-            new UInt64(Field(1000)).assertGt(new UInt64(Field(100000)))
-          ).toThrow();
+          expect(() => {
+            new UInt64(Field(1000)).assertGt(new UInt64(Field(100000)));
+          }).toThrow();
         });
 
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
-        it('100000>1000=true', () => {
+        it.skip('100000>1000=true', () => {
           expect(
             new UInt64(Field(100000)).assertGt(new UInt64(Field(1000)))
           ).not.toThrow();
         });
 
-        // This function can't be run outside of a checked computation.
         it('MAXINT>MAXINT=false', () => {
-          expect(UInt64.MAXINT().assertGt(UInt64.MAXINT())).toThrow();
+          expect(() => {
+            UInt64.MAXINT().assertGt(UInt64.MAXINT());
+          }).toThrow();
         });
       });
 
@@ -1419,7 +1412,6 @@ describe('int', () => {
           }).toThrow();
         });
 
-        // This function can't be run outside of a checked computation.
         it('MAXINT>MAXINT=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
@@ -1612,8 +1604,7 @@ describe('int', () => {
           );
         });
 
-        // This function can't be run outside of a checked computation.
-        it.skip('1<1=false', () => {
+        it('1<1=false', () => {
           expect(new UInt32(Field.one).lt(new UInt32(Field.one))).toEqual(
             Bool(false)
           );
@@ -1638,15 +1629,13 @@ describe('int', () => {
           );
         });
 
-        // This function can't be run outside of a checked computation.
-        it.skip('MAXINT<MAXINT=false', () => {
+        it('MAXINT<MAXINT=false', () => {
           expect(UInt32.MAXINT().lt(UInt32.MAXINT())).toEqual(Bool(false));
         });
       });
 
       describe('lte', () => {
-        // ERROR: This function can't be run outside of a checked computation.
-        it.skip('1<=1=true', () => {
+        it('1<=1=true', () => {
           expect(new UInt32(Field.one).lte(new UInt32(Field.one))).toEqual(
             Bool(true)
           );
@@ -1658,7 +1647,7 @@ describe('int', () => {
           );
         });
 
-        // ERROR: rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
         it.skip('1000<=100000=true', () => {
           expect(
             new UInt32(Field(1000)).lte(new UInt32(Field(100000)))
@@ -1671,40 +1660,40 @@ describe('int', () => {
           ).toEqual(Bool(false));
         });
 
-        // ERROR: This function can't be run outside of a checked computation.
-        it.skip('MAXINT<=MAXINT=true', () => {
+        it('MAXINT<=MAXINT=true', () => {
           expect(UInt32.MAXINT().lte(UInt32.MAXINT())).toEqual(Bool(true));
         });
       });
 
-      // ERROR: This function can't be run outside of a checked computation.
-      describe.skip('assertLte', () => {
+      describe('assertLte', () => {
         it('1<=1=true', () => {
-          expect(
-            new UInt32(Field.one).assertLte(new UInt32(Field.one))
-          ).not.toThrow();
+          expect(() => {
+            new UInt32(Field.one).assertLte(new UInt32(Field.one));
+          }).not.toThrow();
         });
 
         it('2<=1=false', () => {
-          expect(
-            new UInt32(Field.one).assertLte(new UInt32(Field(2)))
-          ).toThrow();
+          expect(() => {
+            new UInt32(Field(2)).assertLte(new UInt32(Field.one));
+          }).toThrow();
         });
 
         it('1000<=100000=true', () => {
-          expect(
-            new UInt32(Field(1000)).assertLte(new UInt32(Field(100000)))
-          ).not.toThrow();
+          expect(() => {
+            new UInt32(Field(1000)).assertLte(new UInt32(Field(100000)));
+          }).not.toThrow();
         });
 
         it('100000<=1000=false', () => {
-          expect(
-            new UInt32(Field(100000)).assertLte(new UInt32(Field(1000)))
-          ).toThrow();
+          expect(() => {
+            new UInt32(Field(100000)).assertLte(new UInt32(Field(1000)));
+          }).toThrow();
         });
 
         it('MAXINT<=MAXINT=true', () => {
-          expect(UInt32.MAXINT().assertLte(UInt32.MAXINT())).not.toThrow();
+          expect(() => {
+            UInt32.MAXINT().assertLte(UInt32.MAXINT());
+          }).not.toThrow();
         });
       });
 
@@ -1716,8 +1705,7 @@ describe('int', () => {
           );
         });
 
-        // This function can't be run outside of a checked computation.
-        it.skip('1>1=false', () => {
+        it('1>1=false', () => {
           expect(new UInt32(Field.one).gt(new UInt32(Field.one))).toEqual(
             Bool(false)
           );
@@ -1743,14 +1731,12 @@ describe('int', () => {
           );
         });
 
-        // This function can't be run outside of a checked computation.
-        it.skip('MAXINT>MAXINT=false', () => {
+        it('MAXINT>MAXINT=false', () => {
           expect(UInt32.MAXINT().gt(UInt32.MAXINT())).toEqual(Bool(false));
         });
       });
 
       describe.skip('assertGt', () => {
-        // This function can't be run outside of a checked computation.
         it('1>1=false', () => {
           expect(
             new UInt32(Field.one).assertGt(new UInt32(Field.one))
@@ -1778,7 +1764,6 @@ describe('int', () => {
           ).not.toThrow();
         });
 
-        // This function can't be run outside of a checked computation.
         it('MAXINT>MAXINT=false', () => {
           expect(UInt32.MAXINT().assertGt(UInt32.MAXINT())).toThrow();
         });
