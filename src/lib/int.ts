@@ -301,119 +301,136 @@ export class UInt32 extends CircuitValue {
   }
 }
 
-class Sgn extends CircuitValue {
-  // +/- 1
-  @prop value: Field;
+class Int65 extends CircuitValue {
+  // * in the range [-2^64+1, 2^64-1], unlike a normal int64
+  // * under- and overflowing is disallowed, similar to UInt64, unlike a normal int64
+  //
+  // Some thoughts regarding the representation as field elements:
+  // toFields returns the in-circuit representation, so the main objective is to minimize the number of constraints
+  // that result from this representation. Therefore, I think the only candidate for an efficient 1-field representation
+  // is the one where the Int65 is the field: toFields = int65 => [int65.magnitude.mul(int65.sign)]. Anything else involving
+  // bit packing would just lead to very inefficient circuit operations, IIUC.
+  //
+  // So, is magnitude * sign ("1-field") a more efficient representation than (magnitude, sign) ("2-field")?
+  // Several common operations like add, mul, etc, operate on 1-field so in 2-field they result in one additional multiplication
+  // constraint per operand. However, the check operation (constraining to 64 bits + a sign) which is called at the introduction
+  // of every witness, and also at the end of add, mul, etc, operates on 2-field. So here, the 1-field representation needs
+  // to add an additional magnitude * sign = int65 multiplication constraint, which will typically cancel out most of the gains
+  // achieved by 1-field elsewhere.
+  // There are some notable operations for which 2-field is definitely better:
+  //
+  // * div and mod (which do integer division with rounding on the magnitude)
+  // * converting the Int64 to a Currency.Amount.Signed (for the zkapp balance), which has the exact same (magnitude, sign) representation we use here.
+  //
+  // The second point is one of the main things an Int64 is used for, and was my original motivation to use 2 fields.
+  // Overall, I think the existing implementation is the optimal one, but happy to be corrected.
 
-  static check(x: Sgn) {
-    let x_ = x.value.seal();
-    x_.mul(x_).assertEquals(Field.one);
-  }
+  @prop magnitude: Field; // absolute value, restricted like UInt64
+  @prop sign: Field; // +/- 1
 
-  constructor(value: Field) {
+  constructor(magnitude: Field, sign: Field) {
     super();
-    this.value = value;
+    this.magnitude = magnitude;
+    this.sign = sign;
   }
 
-  static get Pos() {
-    return new Sgn(Field.one);
-  }
-  static get Neg() {
-    return new Sgn(Field.one.neg());
-  }
-}
-
-export class Int64 {
-  // In the range [-2^63, 2^63 - 1]
-  @prop value: Field;
-
-  static check() {
-    throw 'todo: int64 check';
-  }
-
-  /*
-  @prop magnitude: UInt64 | null;
-  @prop isPos: Sgn | null;
-  */
-
-  constructor(x: Field) {
-    this.value = x;
+  static fromFieldUnchecked(x: Field) {
+    let MINUS_ONE = Field.one.neg();
+    let FIELD_ORDER = BigInt(MINUS_ONE.toString()) + 1n;
+    let TWO64 = 1n << 64n;
+    let xBigInt = BigInt(x.toString());
+    let isValidPositive = xBigInt < TWO64; // covers {0,...,2^64 - 1}
+    let isValidNegative = FIELD_ORDER - xBigInt < TWO64; // {-2^64 + 1,...,-1}
+    if (!isValidPositive && !isValidNegative)
+      throw Error(
+        `Int64.fromField expected a value between (-2^64, 2^64), got ${x}`
+      );
+    let magnitude = Field(isValidPositive ? x.toString() : x.neg().toString());
+    let sign = isValidPositive ? Field.one : MINUS_ONE;
+    return new Int65(magnitude, sign);
   }
 
-  toString(): string {
-    const s = this.value.toString();
-    const n = BigInt(s);
-    if (n < 1n << 64n) {
-      return s;
-    } else {
-      return '-' + this.value.neg().toString();
-    }
+  static fromUnsigned(x: UInt64) {
+    return new Int65(x.value, Field.one);
   }
 
-  static get zero(): Int64 {
-    return new Int64(Field.zero);
+  static fromNumber(x: number) {
+    return Int65.fromFieldUnchecked(Field(x));
+  }
+  static fromString(x: string) {
+    return Int65.fromFieldUnchecked(Field(x));
+  }
+  static fromBigInt(x: bigint) {
+    let xField = x < 0n ? Field((-x).toString()).neg() : Field(x.toString());
+    return Int65.fromFieldUnchecked(xField);
   }
 
-  static fromUnsigned(x: UInt64): Int64 {
-    return new Int64(x.value);
+  toString() {
+    let abs = this.magnitude.toString();
+    let sgn = this.sign.equals(Field.one).toBoolean() || abs === '0' ? '' : '-';
+    return sgn + abs;
   }
 
-  private static shift(): Field {
-    return Field.fromJSON((1n << 64n).toString()) as Field;
+  isConstant() {
+    return this.magnitude.isConstant() && this.sign.isConstant();
   }
 
-  uint64Value(): Field {
-    const n = BigInt(this.value.toString());
-    if (n < 1n << 64n) {
-      return this.value;
-    } else {
-      const x = this.value.add(Int64.shift());
+  // --- circuit-compatible operations below ---
+  // the assumption here is that all Int65 values that appear in a circuit are already checked as valid
+  // this is because Circuit.witness calls .check
+  // so we only have to do additional checks if an operation on valid inputs can have an invalid outcome (example: overflow)
 
-      return x;
-    }
+  static check(x: Int65) {
+    UInt64.check(new UInt64(x.magnitude)); // |x| < 2^64
+    x.sign.square().assertEquals(Field.one); // sign(x)^2 === 1
   }
 
-  static sizeInFields(): number {
-    return 1;
+  static get zero() {
+    return new Int65(Field.zero, Field.one);
   }
 
-  neg(): Int64 {
-    return new Int64(this.value.neg());
+  toField() {
+    return this.magnitude.mul(this.sign);
   }
 
-  static add(x: Int64, y: Int64 | UInt32 | UInt64) {
-    return new Int64(x.value.add(y.value));
+  static fromField(x: Field): Int65 {
+    let getUnchecked = () => Int65.fromFieldUnchecked(x);
+    // constant case - just return unchecked value
+    if (x.isConstant()) return getUnchecked();
+    // variable case - create a new checked witness and prove consistency with original field
+    let xInt = Circuit.witness(Int65, getUnchecked);
+    xInt.toField().assertEquals(x); // sign(x) * |x| === x
+    return xInt;
   }
 
-  static sub(x: Int64, y: Int64 | UInt32 | UInt64) {
-    return new Int64(x.value.sub(y.value));
+  neg() {
+    // doesn't need further check if `this` is valid
+    return new Int65(this.magnitude, this.sign.neg());
   }
 
-  add(y: Int64 | UInt32 | UInt64) {
-    return Int64.add(this, y);
+  add(y: Int65) {
+    return Int65.fromField(this.toField().add(y.toField()));
+  }
+  sub(y: Int65) {
+    return Int65.fromField(this.toField().sub(y.toField()));
+  }
+  mul(y: Int65) {
+    return Int65.fromField(this.toField().mul(y.toField()));
+  }
+  div(y: Int65) {
+    let [q] = new UInt64(this.magnitude).divMod(new UInt64(y.magnitude));
+    let sign = this.sign.mul(y.sign);
+    return new Int65(q.value, sign);
+  }
+  mod(y: UInt64) {
+    let [, r] = new UInt64(this.magnitude).divMod(y);
+    return new Int65(r.value, this.sign);
   }
 
-  sub(y: Int64 | UInt32 | UInt64) {
-    return Int64.add(this, y);
+  equals(y: Int65) {
+    return this.toField().equals(y.toField());
   }
-
-  repr(): { magnitude: Field; isPos: Sgn } {
-    throw 'repr';
-  }
-
-  static toFields(x: Int64): Field[] {
-    return [x.value];
-  }
-
-  static ofFields(xs: Field[]) {
-    return new Int64(xs[0]);
-  }
-
-  toFields(): Field[] {
-    return Int64.toFields(this);
-  }
-
-  sizeInFields(): number {
-    return Int64.sizeInFields();
+  assertEquals(y: Int65) {
+    this.toField().assertEquals(y.toField());
   }
 }
