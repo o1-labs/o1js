@@ -17,7 +17,7 @@ describe('Circuit String', () => {
   });
 
   afterAll(() => {
-    // shutdown();
+    shutdown();
   });
 
   describe('#equals', () => {

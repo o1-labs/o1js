@@ -16,6 +16,10 @@ export class Character extends CircuitValue {
     return this.value.equals(char.value);
   }
 
+  isNull(): Bool {
+    return new Bool(false)
+  }
+
   toField(): Field {
     return this.value;
   }
@@ -44,15 +48,17 @@ class NullCharacter extends Character {
     super(Field(0));
   }
 
+  isNull(): Bool {
+    return new Bool(true)
+  }
+
   static check(value: Field) {
     value.assertEquals(Field(0))
   }
 }
 
 export class CircuitString extends CircuitValue {
-  @prop usedLength: Field;
   @prop maxLength: Field;
-
 
   // arrayProp called later because we can't await isReady here
   values;
@@ -60,33 +66,27 @@ export class CircuitString extends CircuitValue {
   constructor(values: Character[]) {
     super();
 
-    const usedLength = values.length;
     const maxLength = DEFAULT_STRING_LENGTH;
-    values.length = maxLength;
 
-    // set the value of this.values to the input values, filled with null char
-    this.values = values.fill(new NullCharacter, usedLength);
-
-    this.usedLength = Field(usedLength);
+    this.values = values.fill(new NullCharacter);
     this.maxLength = Field(maxLength);
   }
 
   append(str: CircuitString): CircuitString {
-    this.usedLength.add(str.usedLength).assertLte(this.maxLength);
-
     let newStringValues: Character[] = []
     let i = 0;
 
-    while (i < Number(this.usedLength.toString())) {
-      newStringValues.push(this.values[i]);
-      i++
-    }
+    this.values.forEach((char) => {
+      if (char.isNull().toBoolean()) {
+        newStringValues.push(char);
+      }
+    })
 
-    i = 0;
-    while (i < Number(str.usedLength.toString())) {
-      newStringValues.push(str.values[i]);
-      i++
-    }
+    str.values.forEach((char) => {
+      if (char.isNull().toBoolean()) {
+        newStringValues.push(char);
+      }
+    })
 
     return new CircuitString(newStringValues)
   }
@@ -131,8 +131,8 @@ export class CircuitString extends CircuitValue {
 
   private _contains(str: CircuitString): Bool {
     let ret = new Bool(false);
-    const thisLength = Number(this.usedLength.toString());
-    const strLength = Number(str.usedLength.toString());
+    const thisLength = Number(this.maxLength.toString());
+    const strLength = Number(str.maxLength.toString());
     let i = 0;
 
     while (i + strLength <= thisLength) {
@@ -158,14 +158,7 @@ export class CircuitString8 extends CircuitString {
   constructor(values: Character[]) {
     super(values);
 
-    const usedLength = values.length;
     const maxLength = 8;
-    values.length = maxLength;
-
-    // set the value of this.values to the input values, filled with null char
-    this.values = values.fill(new NullCharacter, usedLength);
-
-    this.usedLength = Field(usedLength);
     this.maxLength = Field(maxLength);
   }
 }
