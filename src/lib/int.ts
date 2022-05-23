@@ -1,25 +1,9 @@
 import { Bool, Circuit, Field } from '../snarky';
 import { CircuitValue, prop } from './circuit_value';
 
-function argToField(
-  name: string,
-  x: { value: Field } | number | string
-): Field {
-  if (typeof x === 'number') {
-    if (!Number.isInteger(x)) {
-      throw new Error(`${name} expected integer argument. Got ${x}`);
-    }
-    // looks weird that we pass it as a string.. but this will cover far more cases without error than just passing in the number,
-    // because the number gets truncated to an int32, while the number -> string is accurate for numbers up to 2^53 - 1
-    return new Field(String(x));
-  } else if (typeof x === 'string') {
-    return new Field(x);
-  } else {
-    return x.value;
-  }
-}
+export { UInt32, UInt64, Int64 };
 
-export class UInt64 extends CircuitValue {
+class UInt64 extends CircuitValue {
   @prop value: Field;
 
   constructor(value: Field) {
@@ -175,7 +159,7 @@ export class UInt64 extends CircuitValue {
   }
 }
 
-export class UInt32 extends CircuitValue {
+class UInt32 extends CircuitValue {
   @prop value: Field;
 
   constructor(value: Field) {
@@ -461,4 +445,22 @@ function argToInt64(x: number | string | bigint | Int64) {
   if (typeof x === 'string') return Int64.fromString(x);
   if (typeof x === 'bigint') return Int64.fromBigInt(x);
   return x;
+}
+
+function argToField(
+  name: string,
+  x: { value: Field } | number | string
+): Field {
+  if (typeof x === 'number') {
+    if (!Number.isInteger(x)) {
+      throw new Error(`${name} expected integer argument. Got ${x}`);
+    }
+    // looks weird that we pass it as a string.. but this will cover far more cases without error than just passing in the number,
+    // because the number gets truncated to an int32, while the number -> string is accurate for numbers up to 2^53 - 1
+    return new Field(String(x));
+  } else if (typeof x === 'string') {
+    return new Field(x);
+  } else {
+    return x.value;
+  }
 }
