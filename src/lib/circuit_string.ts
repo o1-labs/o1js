@@ -59,9 +59,7 @@ class NullCharacter extends Character {
 
 export class CircuitString extends CircuitValue {
   @prop maxLength: Field;
-
-  // arrayProp called later because we can't await isReady here
-  values;
+  @arrayProp(Character, DEFAULT_STRING_LENGTH) values: Character[];
 
   constructor(values: Character[]) {
     super();
@@ -155,17 +153,13 @@ export class CircuitString extends CircuitValue {
 };
 
 export class CircuitString8 extends CircuitString {
+  @arrayProp(Character, 8) values: Character[];
+
   constructor(values: Character[]) {
     super(values);
 
     const maxLength = 8;
     this.maxLength = Field(maxLength);
+    this.values = values.fill(new NullCharacter);
   }
-}
-
-export async function resolveCircuitStringArrayProps() {
-  await isReady;
-
-  arrayProp(Character, 8)(CircuitString8.prototype, 'values');
-  arrayProp(Character, DEFAULT_STRING_LENGTH)(CircuitString.prototype, 'values');
 }

@@ -1,7 +1,6 @@
-import { isReady, CircuitString, resolveCircuitStringArrayProps } from 'snarkyjs';
+import { isReady, CircuitString } from 'snarkyjs';
 
 await isReady;
-await resolveCircuitStringArrayProps()
 
 const equal1 = CircuitString.fromString('These strings are equivalent');
 const equal2 = CircuitString.fromString('These strings are equivalent');

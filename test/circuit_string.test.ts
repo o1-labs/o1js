@@ -5,19 +5,19 @@ import {
   CircuitString,
   CircuitString8,
   Field,
-  resolveCircuitStringArrayProps,
   shutdown,
-  isReady,
+  isReady
 } from '../dist/server';
 
 describe('Circuit String', () => {
   beforeEach(async () => {
     await isReady;
-    await resolveCircuitStringArrayProps()
   });
 
   afterAll(() => {
-    shutdown();
+    setTimeout(async () => {
+      await shutdown();
+    }, 0);
   });
 
   describe('#equals', () => {
@@ -39,8 +39,8 @@ describe('Circuit String', () => {
       expect(str.equals(not_same_str)).toEqual(new Bool(false))
 
       Circuit.runAndCheck(() => {
-        const str = CircuitString.fromString('Your size')
-        const not_same_str = CircuitString.fromString('size')
+        const str = Circuit.witness(CircuitString, () => { return CircuitString.fromString('Your size') })
+        const not_same_str = Circuit.witness(CircuitString, () => { return CircuitString.fromString('size') })
         expect(str.equals(not_same_str)).toEqual(new Bool(false))
       });
     });
@@ -139,26 +139,34 @@ describe('Circuit String', () => {
   });
 
   describe('CircuitString8', () => {
-    // This test passes but it should not
-    test('prop size is respected', () => {
-      Circuit.runAndCheck(() => {
-        const str = CircuitString8.fromString('More than eight chars')
-        expect(str.toString()).toBe('More than eight chars')
-      });
-    })
+    test('cannot create more than 8 chars', () => {
+      expect(() => {
+        Circuit.runAndCheck(() => {
+          Circuit.witness(
+            CircuitString8,
+            () => { return CircuitString8.fromString('More than eight chars') }
+          );
+        });
+      }).toThrow();
+    });
   });
 
   describe('with invalid input', () => {
-    // This test passes but it should not
     test('cannot use a character out of range', () => {
-      Circuit.runAndCheck(() => {
-        const str = new CircuitString([
-          new Character(Field(100)),
-          new Character(Field(10000)),
-          new Character(Field(100)),
-        ]);
-        expect(str.toString()).toBe('dd')
-      });
+      expect(() => {
+        Circuit.runAndCheck(() => {
+          const str = Circuit.witness(
+            CircuitString,
+            () => {
+              return new CircuitString([
+                new Character(Field(100)),
+                new Character(Field(10000)),
+                new Character(Field(100)),
+              ]);
+            }
+          );
+        });
+      }).toThrow();
     })
   });
 });
