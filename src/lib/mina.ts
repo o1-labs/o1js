@@ -1,17 +1,17 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, Ledger, Field } from '../snarky';
+import { Circuit, Ledger, Field, Types } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
 import {
   addMissingProofs,
   addMissingSignatures,
-  FeePayer,
+  FeePayerUnsigned,
   Parties,
+  partiesToJson,
   Party,
   ZkappStateLength,
 } from './party';
-import { toParties } from './party-conversion';
 import * as Fetch from './fetch';
 
 export {
@@ -105,7 +105,7 @@ function createTransaction(
     throw err;
   }
 
-  let feePayerParty: FeePayer;
+  let feePayerParty: FeePayerUnsigned;
   if (feePayerKey !== undefined) {
     // if senderKey is provided, fetch account to get nonce and mark to be signed
     let senderAddress = feePayerKey.toPublicKey();
@@ -116,16 +116,15 @@ function createTransaction(
       senderAccount.nonce
     );
     if (fee !== undefined) {
-      feePayerParty.balance.subInPlace(
-        fee instanceof UInt64 ? fee : UInt64.fromString(String(fee))
-      );
+      feePayerParty.body.fee =
+        fee instanceof UInt64 ? fee : UInt64.fromString(String(fee));
     }
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
     feePayerParty = Party.dummyFeePayer();
   }
 
-  let transaction = {
+  let transaction: Parties = {
     otherParties: currentTransaction.parties,
     feePayer: feePayerParty,
   };
@@ -146,7 +145,8 @@ function createTransaction(
     },
 
     toJSON() {
-      return Ledger.partiesToJson(toParties(self.transaction));
+      let json = partiesToJson(self.transaction);
+      return JSON.stringify(json);
     },
 
     toGraphqlQuery() {
@@ -163,17 +163,17 @@ function createTransaction(
 interface Mina {
   transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
   currentSlot(): UInt32;
-  getAccount(publicKey: PublicKey): Account;
+  getAccount(publicKey: Types.PublicKey): Account;
   accountCreationFee(): UInt32;
   sendTransaction(transaction: Transaction): TransactionId;
 }
 interface MockMina extends Mina {
-  addAccount(publicKey: PublicKey, balance: string): void;
+  addAccount(publicKey: Types.PublicKey, balance: string): void;
   /**
    * An array of 10 test accounts that have been pre-filled with
    * 30000000000 units of currency.
    */
-  testAccounts: Array<{ publicKey: PublicKey; privateKey: PrivateKey }>;
+  testAccounts: Array<{ publicKey: Types.PublicKey; privateKey: PrivateKey }>;
   applyJsonTransaction: (tx: string) => void;
 }
 
@@ -228,8 +228,8 @@ function LocalBlockchain({
     },
     sendTransaction(txn: Transaction) {
       txn.sign();
-      ledger.applyPartiesTransaction(
-        toParties(txn.transaction),
+      ledger.applyJsonTransaction(
+        JSON.stringify(partiesToJson(txn.transaction)),
         accountCreationFee_
       );
       return { wait: async () => {} };
@@ -258,7 +258,8 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
     getAccount(publicKey: PublicKey) {
       if (currentTransaction?.fetchMode === 'test') {
         Fetch.markAccountToBeFetched(publicKey, graphqlEndpoint);
-        return dummyAccount(publicKey);
+        let account = Fetch.getCachedAccount(publicKey, graphqlEndpoint);
+        return account ?? dummyAccount(publicKey);
       }
       if (
         currentTransaction == undefined ||
@@ -382,14 +383,14 @@ function currentSlot(): UInt32 {
 /**
  * @return The account data associated to the given public key.
  */
-function getAccount(pubkey: PublicKey) {
+function getAccount(pubkey: Types.PublicKey) {
   return activeInstance.getAccount(pubkey);
 }
 
 /**
  * @return The balance associated to the given public key.
  */
-function getBalance(pubkey: PublicKey) {
+function getBalance(pubkey: Types.PublicKey) {
   return activeInstance.getAccount(pubkey).balance;
 }
 

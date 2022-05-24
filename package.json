@@ -1,7 +1,7 @@
 {
   "name": "snarkyjs",
   "description": "JavaScript bindings for SnarkyJS",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "license": "Apache-2.0",
   "main": "./dist/web/index.js",
   "exports": {
@@ -54,8 +54,8 @@
     "minimist": "^1.2.5",
     "prettier": "^2.3.2",
     "ts-jest": "^27.0.4",
-    "typedoc": "^0.22.9",
-    "typescript": "^4.4.4"
+    "typedoc": "^0.22.15",
+    "typescript": "^4.6.4"
   },
   "dependencies": {
     "env": "^0.0.2",

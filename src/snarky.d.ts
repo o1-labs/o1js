@@ -1,36 +1,29 @@
-export type JSONValue =
-  | number
-  | string
-  | boolean
-  | null
-  | Array<JSONValue>
-  | { [key: string]: JSONValue };
-
-/**
- * Part of the circuit [[ Keypair ]]. A verification key can be used to verify a [[ Proof ]] when you provide the correct public input.
- */
-export class VerificationKey {
-  verify(publicInput: any[], proof: Proof): boolean;
-}
-
-/**
- * Contains a proving key and [[ VerificationKey ]] which can be used to verify proofs.
- */
-export class Keypair {
-  verificationKey(): VerificationKey;
-}
-
-/**
- * Proofs can be verified using a [[ VerificationKey ]] and the public input.
- */
-export class Proof {
-  verify(verificationKey: VerificationKey, publicInput: any[]): boolean;
-}
+export {
+  Field,
+  Bool,
+  Group,
+  Scalar,
+  EndoScalar,
+  AsFieldElements,
+  Circuit,
+  CircuitMain,
+  Poseidon,
+  VerificationKey,
+  Keypair,
+  Proof,
+  Ledger,
+  isReady,
+  shutdown,
+  Pickles,
+  JSONValue,
+};
+export * as Types from './snarky/gen/parties';
 
 /**
  * An element of a finite field.
  */
-export class Field {
+declare function Field(x: number | string): Field;
+declare class Field {
   /**
    * Coerces anything field-like to a [[`Field`]].
    */
@@ -335,11 +328,6 @@ export class Field {
 }
 
 /**
- * An element of a finite field.
- */
-export function Field(x: number | string): Field;
-
-/**
  * A boolean value. You can use it like this:
  *
  * ```
@@ -350,8 +338,8 @@ export function Field(x: number | string): Field;
  *
  * Use [[assertEquals]] to enforce the value of a Bool.
  */
-export function Bool(x: Bool | boolean): Bool;
-export class Bool {
+declare function Bool(x: Bool | boolean): Bool;
+declare class Bool {
   constructor(x: Bool | boolean);
 
   /**
@@ -441,19 +429,19 @@ export class Bool {
   static fromJSON(x: JSONValue): Bool | null;
 }
 
-export interface AsFieldElements<T> {
+declare interface AsFieldElements<T> {
   toFields(x: T): Field[];
   ofFields(x: Field[]): T;
   sizeInFields(): number;
 }
 
-export interface CircuitMain<W, P> {
+declare interface CircuitMain<W, P> {
   snarkyWitnessTyp: AsFieldElements<W>;
   snarkyPublicTyp: AsFieldElements<P>;
   snarkyMain: (w: W, p: P) => void;
 }
 
-export class Circuit {
+declare class Circuit {
   static addConstraint(
     this: Circuit,
     kind: 'multiply',
@@ -525,7 +513,7 @@ export class Circuit {
   static inCheckedComputation(): boolean;
 }
 
-export class Scalar {
+declare class Scalar {
   toFields(this: Scalar): Field[];
 
   /**
@@ -570,13 +558,13 @@ export class Scalar {
   static fromJSON(x: JSONValue): Scalar | null;
 }
 
-export class EndoScalar {
+declare class EndoScalar {
   static toFields(x: Scalar): Field[];
   static ofFields(fields: Field[]): Scalar;
   static sizeInFields(): number;
 }
 
-export class Group {
+declare class Group {
   x: Field;
   y: Field;
 
@@ -624,10 +612,31 @@ declare class Sponge {
   squeeze(): Field;
 }
 
-export const Poseidon: {
+declare const Poseidon: {
   hash: (xs: Field[]) => Field;
   Sponge: typeof Sponge;
 };
+
+/**
+ * Part of the circuit [[ Keypair ]]. A verification key can be used to verify a [[ Proof ]] when you provide the correct public input.
+ */
+declare class VerificationKey {
+  verify(publicInput: any[], proof: Proof): boolean;
+}
+
+/**
+ * Contains a proving key and [[ VerificationKey ]] which can be used to verify proofs.
+ */
+declare class Keypair {
+  verificationKey(): VerificationKey;
+}
+
+/**
+ * Proofs can be verified using a [[ VerificationKey ]] and the public input.
+ */
+declare class Proof {
+  verify(verificationKey: VerificationKey, publicInput: any[]): boolean;
+}
 
 interface UInt32_ {
   value: Field;
@@ -636,187 +645,27 @@ interface UInt64_ {
   value: Field;
 }
 
-interface OrIgnore_<A> {
-  check: Bool;
-  value: A;
-}
-
-type SetOrKeep_<A> = {
-  set: Bool;
-  value?: A;
-};
-
-interface ClosedInterval_<A> {
-  lower: A;
-  upper: A;
-}
-
-interface EpochLedgerPredicate_ {
-  hash: OrIgnore_<Field>;
-  totalCurrency: ClosedInterval_<UInt64_>;
-}
-
-interface EpochDataPredicate_ {
-  ledger: EpochLedgerPredicate_;
-  seed: OrIgnore_<Field>;
-  startCheckpoint: OrIgnore_<Field>;
-  lockCheckpoint: OrIgnore_<Field>;
-  epochLength: ClosedInterval_<UInt32_>;
-}
-
-interface ProtocolStatePredicate_ {
-  snarkedLedgerHash: OrIgnore_<Field>;
-  snarkedNextAvailableToken: ClosedInterval_<UInt64_>;
-  timestamp: ClosedInterval_<UInt64_>;
-  blockchainLength: ClosedInterval_<UInt32_>;
-  minWindowDensity: ClosedInterval_<UInt32_>;
-  lastVrfOutput: OrIgnore_<Field>;
-  totalCurrency: ClosedInterval_<UInt64_>;
-  globalSlotSinceHardFork: ClosedInterval_<UInt32_>;
-  globalSlotSinceGenesis: ClosedInterval_<UInt32_>;
-  stakingEpochData: EpochDataPredicate_;
-  nextEpochData: EpochDataPredicate_;
-}
-
-interface Int64_ {
-  uint64Value(): Field;
-}
-
-type AuthRequired = {
-  constant: Bool;
-  signatureNecessary: Bool;
-  signatureSufficient: Bool;
-};
-
-interface Permissions_ {
-  editState: AuthRequired;
-  send: AuthRequired;
-  receive: AuthRequired;
-  setDelegate: AuthRequired;
-  setPermissions: AuthRequired;
-  setVerificationKey: AuthRequired;
-  setZkappUri: AuthRequired;
-  editSequenceState: AuthRequired;
-  setTokenSymbol: AuthRequired;
-  incrementNonce: AuthRequired;
-  setVotingFor: AuthRequired;
-}
-
-interface PartyUpdate {
-  appState: Array<SetOrKeep_<Field>>;
-  delegate: SetOrKeep_<{ g: Group }>;
-  votingFor: SetOrKeep_<Field>;
-  verificationKey: SetOrKeep_<string>;
-  permissions: SetOrKeep_<Permissions_>;
-  // TODO: zkapp uri
-  // TODO: token symbol
-  // TODO: timing
-}
-
-interface FullAccountPredicate_ {
-  balance: ClosedInterval_<UInt64_>;
-  nonce: ClosedInterval_<UInt32_>;
-  receiptChainHash: OrIgnore_<Field>;
-  publicKey: OrIgnore_<{ g: Group }>;
-  delegate: OrIgnore_<{ g: Group }>;
-  state: Array<OrIgnore_<Field>>;
-  sequenceState: OrIgnore_<Field>;
-  provedState: OrIgnore_<Bool>;
-}
-
-type AccountPredicate_ =
-  | { kind: 'accept' }
-  | { kind: 'nonce'; value: UInt32_ }
-  | { kind: 'full'; value: FullAccountPredicate_ };
-
-interface PartyBody {
-  publicKey: { g: Group };
-  update: PartyUpdate;
-  tokenId: Field;
-  delta: Int64_;
-  events: Array<Array<Field>>;
-  sequenceEvents: Array<Array<Field>>;
-  callData: Field;
-  depth: number;
-  protocolState: ProtocolStatePredicate_;
-  accountPrecondition: AccountPredicate_;
-  useFullCommitment: Bool;
-  incrementNonce: Bool;
-}
-interface FeePayerPartyBody {
-  publicKey: { g: Group };
-  update: PartyUpdate;
-  tokenId: Field;
-  delta: Int64_;
-  events: Array<Array<Field>>;
-  sequenceEvents: Array<Array<Field>>;
-  callData: Field;
-  depth: number;
-  protocolState: ProtocolStatePredicate_;
-  accountPrecondition: UInt32_;
-  useFullCommitment: Bool;
-  incrementNonce: Bool;
-}
-
-type Control =
-  | { kind: 'none' }
-  | { kind: 'signature'; value: string }
-  | { kind: 'proof'; value: string };
-
-interface Party_ {
-  body: PartyBody;
-  authorization: Control;
-}
-
-interface FeePayerParty_ {
-  body: FeePayerPartyBody;
-  authorization: Exclude<Control, { kind: 'proof'; value: string }>;
-}
-
-interface Parties_ {
-  feePayer: FeePayerParty_;
-  otherParties: Array<Party_>;
-}
-
-interface ZkappAccount {
-  appState: Array<Field>;
-}
-
 interface Account {
   publicKey: { g: Group };
   balance: UInt64_;
   nonce: UInt32_;
-  zkapp: ZkappAccount;
+  zkapp: { appState: Field[] };
 }
 
 // TODO would be nice to document these, at least the parts that end up being used in the public API
-export class Ledger {
+declare class Ledger {
   static create(
     genesisAccounts: Array<{ publicKey: { g: Group }; balance: string }>
   ): Ledger;
 
   addAccount(publicKey: { g: Group }, balance: string): void;
 
-  applyPartiesTransaction(
-    parties: Parties_,
-    accountCreationFee: string
-  ): Account[];
-  applyJsonTransaction(parties: string, accountCreationFee: string): Account[];
+  applyJsonTransaction(txJson: string, accountCreationFee: string): Account[];
 
   getAccount(publicKey: { g: Group }): Account | undefined;
 
-  static hashParty(party: Party_): Field;
-  static hashProtocolState(protocolState: ProtocolStatePredicate_): Field;
-  static hashTransaction(partyHash: Field, protocolStateHash: Field): Field;
-
-  static hashPartyChecked(party: Party_): Field;
-  static hashProtocolStateChecked(
-    protocolState: ProtocolStatePredicate_
-  ): Field;
-  static hashTransactionChecked(
-    partyHash: Field,
-    protocolStateHash: Field
-  ): Field;
+  static hashTransaction(partyHash: Field): Field;
+  static hashTransactionChecked(partyHash: Field): Field;
 
   static transactionCommitments(txJson: string): {
     commitment: Field;
@@ -838,9 +687,12 @@ export class Ledger {
   static publicKeyOfString(publicKeyBase58: string): Group;
   static privateKeyToString(privateKey: { s: Scalar }): string;
   static privateKeyOfString(privateKeyBase58: string): Scalar;
+  static fieldToBase58(field: Field): string;
+  static fieldOfBase58(fieldBase58: string): Field;
+  static memoToBase58(memoString: string): string;
 
-  static partiesToJson(parties: Parties_): string;
-  static partiesToGraphQL(parties: Parties_): string;
+  static fieldsOfJson(json: string): Field[];
+  static hashPartyFromFields(fields: Field[]): Field;
 }
 
 /**
@@ -848,16 +700,16 @@ export class Ledger {
  * worker threads will continue running and the program will never terminate.
  * From web applications, this function is a no-op.
  */
-export const shutdown: () => Promise<undefined>;
+declare const shutdown: () => Promise<undefined>;
 
 /**
  * A Promise that resolves when SnarkyJS is ready to be used
  */
-export let isReady: Promise<undefined>;
+declare let isReady: Promise<undefined>;
 
 type Statement = { transaction: Field; atParty: Field };
 
-export const Pickles: {
+declare const Pickles: {
   /**
    * This is the core API of the `Pickles` library, exposed from OCaml to JS. It takes a list of circuits --
    * each in the form of a function which takes a public input `{ transaction: Field; atParty: Field }` as argument --,
@@ -876,8 +728,16 @@ export const Pickles: {
   compile: (rules: [0, string, (statement: Statement) => void][]) => {
     provers: ((statement: Statement) => Promise<unknown>)[];
     verify: (statement: Statement, proof: unknown) => Promise<boolean>;
-    getVerificationKeyArtifact: () => string;
+    getVerificationKeyArtifact: () => { data: string; hash: string };
   };
 
   proofToString: (proof: unknown) => string;
 };
+
+type JSONValue =
+  | number
+  | string
+  | boolean
+  | null
+  | Array<JSONValue>
+  | { [key: string]: JSONValue };
