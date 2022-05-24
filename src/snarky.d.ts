@@ -22,12 +22,12 @@ export * as Types from './snarky/gen/parties';
 /**
  * An element of a finite field.
  */
-declare function Field(x: number | string): Field;
+declare function Field(x: number | string | boolean | bigint): Field;
 declare class Field {
   /**
    * Coerces anything field-like to a [[`Field`]].
    */
-  constructor(x: Field | number | string | boolean);
+  constructor(x: Field | number | string | boolean | bigint);
 
   /**
    * Negates this [[`Field`]]. This is equivalent to multiplying the [[`Field`]]
@@ -325,6 +325,10 @@ declare class Field {
   // static toJSON(x: Field): JSONValue;
 
   static fromJSON(x: JSONValue): Field | null;
+
+  static fromString(x: string): Field;
+  static fromNumber(x: number): Field;
+  static fromBigInt(x: bigint): Field;
 }
 
 /**

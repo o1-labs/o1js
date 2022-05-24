@@ -93,6 +93,18 @@
       {
         "name": "fromJSON",
         "type": "function"
+      },
+      {
+        "name": "fromNumber",
+        "type": "function"
+      },
+      {
+        "name": "fromString",
+        "type": "function"
+      },
+      {
+        "name": "fromBigInt",
+        "type": "function"
       }
     ]
   },
