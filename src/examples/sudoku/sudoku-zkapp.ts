@@ -148,5 +148,5 @@ function divmod(k: number, n: number) {
 }
 
 function fieldToHex(field: Field) {
-  return BigInt(field.toString()).toString(16);
+  return field.toBigInt().toString(16);
 }

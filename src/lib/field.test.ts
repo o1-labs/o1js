@@ -32,17 +32,24 @@ describe('Field constructor', () => {
     expect(() => Field.fromNumber(0.5)).toThrow();
   });
 
-  // Field(bigint), Field.fromBigInt
+  // Field(bigint), Field.fromBigInt, toBigInt
 
   it('handles bigints', () => {
     expect(Field(-1n)).toEqual(Field.one.neg());
     expect(Field.fromBigInt(-1n)).toEqual(Field.fromNumber(-1));
-    expect(
-      Field(0x40000000000000000000000000000000224698fc094cf91b992d30ed00000000n)
-    ).toEqual(Field.one.neg());
+    expect(Field(Field.ORDER - 1n)).toEqual(Field.one.neg());
     expect(Field(1n << 64n).toString()).toEqual('18446744073709551616');
     expect(Field.fromBigInt(1n << 64n)).toEqual(Field('18446744073709551616'));
   });
 
   // TODO Field(string), Field(boolean), Field(otherField)
+});
+
+describe('Field serialization and static props', () => {
+  it('toBigInt works on static props', () => {
+    expect(Field.one.toBigInt()).toEqual(1n);
+    expect(Field.zero.toBigInt()).toEqual(0n);
+    expect(Field.minusOne.toBigInt()).toEqual(Field.ORDER - 1n);
+    expect(Field(0xff).toBigInt()).toEqual(0xffn);
+  });
 });

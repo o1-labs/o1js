@@ -22,7 +22,7 @@ export * as Types from './snarky/gen/parties';
 /**
  * An element of a finite field.
  */
-declare function Field(x: number | string | boolean | bigint): Field;
+declare function Field(x: Field | number | string | boolean | bigint): Field;
 declare class Field {
   /**
    * Coerces anything field-like to a [[`Field`]].
@@ -96,6 +96,11 @@ declare class Field {
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
   toString(): string;
+  /**
+   * Serialize the [[`Field`]] to a bigint.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the bigint representation of the Field.
+   */
+  toBigInt(): bigint;
   /**
    * Serialize the [[`Field`]] to a JSON string.
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
@@ -253,6 +258,15 @@ declare class Field {
    * The number 0 as a [[`Field`]].
    */
   static zero: Field;
+  /**
+   * The number -1 as a [[`Field`]].
+   */
+  static minusOne: Field;
+  /**
+   * The field order as a `bigint`.
+   */
+  static ORDER: bigint;
+
   /**
    * A random field element.
    */

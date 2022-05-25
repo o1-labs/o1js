@@ -11,6 +11,14 @@
         "type": "object"
       },
       {
+        "name": "minusOne",
+        "type": "object"
+      },
+      {
+        "name": "ORDER",
+        "type": "bigint"
+      },
+      {
         "name": "random",
         "type": "function"
       },
