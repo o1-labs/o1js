@@ -71,22 +71,63 @@ export class CircuitString extends CircuitValue {
     this.maxLength = DEFAULT_STRING_LENGTH;
   }
 
+  private firstNullMask(): Bool[] {
+    let t = this as any;
+    if (t._firstNullMask !== undefined) return t._firstNullMask;
+    // create an array that is true where `this` has its first null character, false elsewhere
+    let mask = [];
+    let wasntNullAlready = Bool(true);
+    for (let i = 0; i < this.maxLength; i++) {
+      let isNull = this.values[i].isNull();
+      mask[i] = isNull.and(wasntNullAlready);
+      wasntNullAlready = isNull.not().and(wasntNullAlready);
+    }
+    // mask has length n+1, the last element is true when `this` has no null char
+    mask[this.maxLength] = wasntNullAlready;
+    t._firstNullMask = mask;
+    return mask;
+  }
+
   append(str: CircuitString): CircuitString {
-    let newStringValues: Character[] = [];
+    let n = this.maxLength;
+    let chars = this.values;
+    let otherChars = str.values;
 
-    this.values.forEach((char) => {
-      if (Number(char.value.toString()) > 0) {
-        newStringValues.push(char);
+    let mask = this.firstNullMask();
+
+    function chooseWithMask<T>(chars: Character[], mask: Bool[]) {
+      // picks the character at the index where mask is true
+      let m = mask.length;
+      if (chars.length !== m) throw Error('bug');
+      let char = Field.zero;
+      for (let i = 0; i < m; i++) {
+        let maybeChar = chars[i].value.mul(mask[i].toField());
+        char = char.add(maybeChar);
       }
-    });
+      return new Character(char);
+    }
 
-    str.values.forEach((char) => {
-      if (Number(char.value.toString()) > 0) {
-        newStringValues.push(char);
+    let newChars: Character[] = [];
+    let reverseOtherChars = otherChars.reverse();
+    let nullChar = new NullCharacter();
+
+    for (let i = 0; i < 2 * n; i++) {
+      let possibleCharsAtI;
+      if (i < n) {
+        possibleCharsAtI = reverseOtherChars
+          .slice(n - i - 1, n)
+          .concat(Array(n - i).fill(chars[i]));
+      } else {
+        possibleCharsAtI = Array(i - n + 1)
+          .fill(nullChar)
+          .concat(reverseOtherChars.slice(0, 2 * n - i));
       }
-    });
-
-    return new CircuitString(newStringValues);
+      newChars[i] = chooseWithMask(possibleCharsAtI, mask);
+    }
+    let result = new CircuitString([]);
+    result.maxLength = 2 * n;
+    result.values = newChars;
+    return result;
   }
 
   // returns TRUE if str is found in this CircuitString
