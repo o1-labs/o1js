@@ -17,7 +17,7 @@ export class Character extends CircuitValue {
   }
 
   isNull(): Bool {
-    return new Bool(false)
+    return new Bool(false);
   }
 
   toField(): Field {
@@ -41,7 +41,7 @@ export class Character extends CircuitValue {
   static check(value: Field) {
     value.rangeCheckHelper(8).assertEquals(value);
   }
-};
+}
 
 class NullCharacter extends Character {
   constructor() {
@@ -50,11 +50,11 @@ class NullCharacter extends Character {
   }
 
   isNull(): Bool {
-    return new Bool(true)
+    return new Bool(true);
   }
 
   static check(value: Field) {
-    value.assertEquals(Field(0))
+    value.assertEquals(Field(0));
   }
 }
 
@@ -67,40 +67,44 @@ export class CircuitString extends CircuitValue {
 
     const inputLength = values.length;
     values.length = DEFAULT_STRING_LENGTH;
-    values = values.fill(new NullCharacter(), inputLength, DEFAULT_STRING_LENGTH)
+    values = values.fill(
+      new NullCharacter(),
+      inputLength,
+      DEFAULT_STRING_LENGTH
+    );
     this.values = values;
     this.maxLength = Field(DEFAULT_STRING_LENGTH);
   }
 
   append(str: CircuitString): CircuitString {
-    let newStringValues: Character[] = []
+    let newStringValues: Character[] = [];
 
     this.values.forEach((char) => {
       if (Number(char.value.toString()) > 0) {
         newStringValues.push(char);
       }
-    })
+    });
 
     str.values.forEach((char) => {
       if (Number(char.value.toString()) > 0) {
         newStringValues.push(char);
       }
-    })
+    });
 
-    return new CircuitString(newStringValues)
+    return new CircuitString(newStringValues);
   }
 
   // returns TRUE if str is found in this CircuitString
   // @param size - the size of the str without null padding
   contains(str: CircuitString): Bool {
     let ret = new Bool(false);
-    ret = this._contains(str)
+    ret = this._contains(str);
 
     return ret;
   }
 
   hash(): Field {
-    return Poseidon.hash(this.values.map(x => x.value));
+    return Poseidon.hash(this.values.map((x) => x.value));
   }
 
   substring(start: number, end: number): CircuitString {
@@ -108,36 +112,39 @@ export class CircuitString extends CircuitValue {
   }
 
   toFields(): Field[] {
-    return this.values.map(x => x.toField());
+    return this.values.map((x) => x.toField());
   }
 
   toString(): string {
-    return this.values.map(x => x.toString()).join('').replace(/[^ -~]+/g, "");
+    return this.values
+      .map((x) => x.toString())
+      .join('')
+      .replace(/[^ -~]+/g, '');
   }
 
   equals(str: CircuitString): Bool {
-    return this._equals(str)
+    return this._equals(str);
   }
 
   static fromString(str: string): CircuitString {
-    const characters = str.split('').map(x => Character.fromString(x));
+    const characters = str.split('').map((x) => Character.fromString(x));
     return new CircuitString(characters);
   }
 
   private _contains(str: CircuitString): Bool {
     let ret = new Bool(false);
     let length = 0;
-    str.values.forEach(char => {
+    str.values.forEach((char) => {
       if (Number(char.value.toString()) > 0) {
-        length++
+        length++;
       }
-    })
+    });
     const maxLength = Number(this.maxLength.toString());
     let i = 0;
 
     while (i + length <= maxLength) {
-      ret = ret.or(this.substring(i, i + length).equals(str))
-      i++
+      ret = ret.or(this.substring(i, i + length).equals(str));
+      i++;
     }
 
     return ret;
@@ -148,11 +155,11 @@ export class CircuitString extends CircuitValue {
 
     this.values.forEach((value: Character, i: number) => {
       ret = ret.and(value.equals(str.values[i]));
-    })
+    });
 
     return ret;
   }
-};
+}
 
 export class CircuitString8 extends CircuitString {
   @arrayProp(Character, 8) values: Character[];
@@ -162,7 +169,7 @@ export class CircuitString8 extends CircuitString {
 
     const inputLength = values.length;
     values.length = 8;
-    values = values.fill(new NullCharacter(), inputLength, 8)
+    values = values.fill(new NullCharacter(), inputLength, 8);
     this.values = values;
     this.maxLength = Field(8);
   }
