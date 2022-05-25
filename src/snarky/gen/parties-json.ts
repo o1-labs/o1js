@@ -52,7 +52,7 @@ type Parties = {
       fee: UInt64;
       events: Field[][];
       sequenceEvents: Field[][];
-      protocolStatePrecondition: {
+      networkPrecondition: {
         snarkedLedgerHash: Field | null;
         timestamp: {
           lower: UInt64;
@@ -159,79 +159,81 @@ type Parties = {
       sequenceEvents: Field[][];
       callData: Field;
       callDepth: number;
-      protocolStatePrecondition: {
-        snarkedLedgerHash: Field | null;
-        timestamp: {
-          lower: UInt64;
-          upper: UInt64;
-        } | null;
-        blockchainLength: {
-          lower: UInt32;
-          upper: UInt32;
-        } | null;
-        minWindowDensity: {
-          lower: UInt32;
-          upper: UInt32;
-        } | null;
-        totalCurrency: {
-          lower: UInt64;
-          upper: UInt64;
-        } | null;
-        globalSlotSinceHardFork: {
-          lower: UInt32;
-          upper: UInt32;
-        } | null;
-        globalSlotSinceGenesis: {
-          lower: UInt32;
-          upper: UInt32;
-        } | null;
-        stakingEpochData: {
-          ledger: {
-            hash: Field | null;
-            totalCurrency: {
-              lower: UInt64;
-              upper: UInt64;
-            } | null;
-          };
-          seed: Field | null;
-          startCheckpoint: Field | null;
-          lockCheckpoint: Field | null;
-          epochLength: {
+      preconditions: {
+        network: {
+          snarkedLedgerHash: Field | null;
+          timestamp: {
+            lower: UInt64;
+            upper: UInt64;
+          } | null;
+          blockchainLength: {
             lower: UInt32;
             upper: UInt32;
           } | null;
-        };
-        nextEpochData: {
-          ledger: {
-            hash: Field | null;
-            totalCurrency: {
-              lower: UInt64;
-              upper: UInt64;
-            } | null;
-          };
-          seed: Field | null;
-          startCheckpoint: Field | null;
-          lockCheckpoint: Field | null;
-          epochLength: {
+          minWindowDensity: {
             lower: UInt32;
             upper: UInt32;
           } | null;
+          totalCurrency: {
+            lower: UInt64;
+            upper: UInt64;
+          } | null;
+          globalSlotSinceHardFork: {
+            lower: UInt32;
+            upper: UInt32;
+          } | null;
+          globalSlotSinceGenesis: {
+            lower: UInt32;
+            upper: UInt32;
+          } | null;
+          stakingEpochData: {
+            ledger: {
+              hash: Field | null;
+              totalCurrency: {
+                lower: UInt64;
+                upper: UInt64;
+              } | null;
+            };
+            seed: Field | null;
+            startCheckpoint: Field | null;
+            lockCheckpoint: Field | null;
+            epochLength: {
+              lower: UInt32;
+              upper: UInt32;
+            } | null;
+          };
+          nextEpochData: {
+            ledger: {
+              hash: Field | null;
+              totalCurrency: {
+                lower: UInt64;
+                upper: UInt64;
+              } | null;
+            };
+            seed: Field | null;
+            startCheckpoint: Field | null;
+            lockCheckpoint: Field | null;
+            epochLength: {
+              lower: UInt32;
+              upper: UInt32;
+            } | null;
+          };
         };
-      };
-      accountPrecondition: {
-        balance: {
-          lower: UInt64;
-          upper: UInt64;
-        } | null;
-        nonce: {
-          lower: UInt32;
-          upper: UInt32;
-        } | null;
-        receiptChainHash: Field | null;
-        delegate: PublicKey | null;
-        state: (Field | null)[];
-        sequenceState: Field | null;
-        provedState: Bool | null;
+        account: {
+          balance: {
+            lower: UInt64;
+            upper: UInt64;
+          } | null;
+          nonce: {
+            lower: UInt32;
+            upper: UInt32;
+          } | null;
+          receiptChainHash: Field | null;
+          delegate: PublicKey | null;
+          state: (Field | null)[];
+          sequenceState: Field | null;
+          provedState: Bool | null;
+        };
       };
       useFullCommitment: Bool;
       caller: TokenId;
@@ -293,79 +295,81 @@ type Party = {
     sequenceEvents: Field[][];
     callData: Field;
     callDepth: number;
-    protocolStatePrecondition: {
-      snarkedLedgerHash: Field | null;
-      timestamp: {
-        lower: UInt64;
-        upper: UInt64;
-      } | null;
-      blockchainLength: {
-        lower: UInt32;
-        upper: UInt32;
-      } | null;
-      minWindowDensity: {
-        lower: UInt32;
-        upper: UInt32;
-      } | null;
-      totalCurrency: {
-        lower: UInt64;
-        upper: UInt64;
-      } | null;
-      globalSlotSinceHardFork: {
-        lower: UInt32;
-        upper: UInt32;
-      } | null;
-      globalSlotSinceGenesis: {
-        lower: UInt32;
-        upper: UInt32;
-      } | null;
-      stakingEpochData: {
-        ledger: {
-          hash: Field | null;
-          totalCurrency: {
-            lower: UInt64;
-            upper: UInt64;
-          } | null;
-        };
-        seed: Field | null;
-        startCheckpoint: Field | null;
-        lockCheckpoint: Field | null;
-        epochLength: {
+    preconditions: {
+      network: {
+        snarkedLedgerHash: Field | null;
+        timestamp: {
+          lower: UInt64;
+          upper: UInt64;
+        } | null;
+        blockchainLength: {
           lower: UInt32;
           upper: UInt32;
         } | null;
-      };
-      nextEpochData: {
-        ledger: {
-          hash: Field | null;
-          totalCurrency: {
-            lower: UInt64;
-            upper: UInt64;
-          } | null;
-        };
-        seed: Field | null;
-        startCheckpoint: Field | null;
-        lockCheckpoint: Field | null;
-        epochLength: {
+        minWindowDensity: {
           lower: UInt32;
           upper: UInt32;
         } | null;
+        totalCurrency: {
+          lower: UInt64;
+          upper: UInt64;
+        } | null;
+        globalSlotSinceHardFork: {
+          lower: UInt32;
+          upper: UInt32;
+        } | null;
+        globalSlotSinceGenesis: {
+          lower: UInt32;
+          upper: UInt32;
+        } | null;
+        stakingEpochData: {
+          ledger: {
+            hash: Field | null;
+            totalCurrency: {
+              lower: UInt64;
+              upper: UInt64;
+            } | null;
+          };
+          seed: Field | null;
+          startCheckpoint: Field | null;
+          lockCheckpoint: Field | null;
+          epochLength: {
+            lower: UInt32;
+            upper: UInt32;
+          } | null;
+        };
+        nextEpochData: {
+          ledger: {
+            hash: Field | null;
+            totalCurrency: {
+              lower: UInt64;
+              upper: UInt64;
+            } | null;
+          };
+          seed: Field | null;
+          startCheckpoint: Field | null;
+          lockCheckpoint: Field | null;
+          epochLength: {
+            lower: UInt32;
+            upper: UInt32;
+          } | null;
+        };
       };
-    };
-    accountPrecondition: {
-      balance: {
-        lower: UInt64;
-        upper: UInt64;
-      } | null;
-      nonce: {
-        lower: UInt32;
-        upper: UInt32;
-      } | null;
-      receiptChainHash: Field | null;
-      delegate: PublicKey | null;
-      state: (Field | null)[];
-      sequenceState: Field | null;
-      provedState: Bool | null;
+      account: {
+        balance: {
+          lower: UInt64;
+          upper: UInt64;
+        } | null;
+        nonce: {
+          lower: UInt32;
+          upper: UInt32;
+        } | null;
+        receiptChainHash: Field | null;
+        delegate: PublicKey | null;
+        state: (Field | null)[];
+        sequenceState: Field | null;
+        provedState: Bool | null;
+      };
     };
     useFullCommitment: Bool;
     caller: TokenId;

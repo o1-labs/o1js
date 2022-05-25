@@ -108,9 +108,9 @@ function createState<A>() {
       let e: ExecutionState = this._this.executionState();
 
       stateAsFields.forEach((x, i) => {
-        e.party.body.accountPrecondition.state[layout.offset + i].isSome =
+        e.party.body.preconditions.account.state[layout.offset + i].isSome =
           Bool(true);
-        e.party.body.accountPrecondition.state[layout.offset + i].value = x;
+        e.party.body.preconditions.account.state[layout.offset + i].value = x;
       });
     },
 
