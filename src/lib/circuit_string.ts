@@ -17,7 +17,7 @@ export class Character extends CircuitValue {
   }
 
   isNull(): Bool {
-    return new Bool(false);
+    return this.equals(new NullCharacter());
   }
 
   toField(): Field {
@@ -38,23 +38,18 @@ export class Character extends CircuitValue {
   TODO: Add support for more character sets
   default chacter value should be 0-255
   */
-  static check(value: Field) {
-    value.rangeCheckHelper(8).assertEquals(value);
+  static check(c: Character) {
+    c.value.rangeCheckHelper(8).assertEquals(c.value);
   }
 }
 
 class NullCharacter extends Character {
   constructor() {
-    super(Field(0));
-    this.value = Field(0);
+    super(Field.zero);
   }
 
-  isNull(): Bool {
-    return new Bool(true);
-  }
-
-  static check(value: Field) {
-    value.assertEquals(Field(0));
+  static check(c: Character) {
+    c.value.assertEquals(Field.zero);
   }
 }
 
