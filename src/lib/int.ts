@@ -371,9 +371,7 @@ class Int64 extends CircuitValue {
     let isValidPositive = xBigInt < TWO64; // covers {0,...,2^64 - 1}
     let isValidNegative = Field.ORDER - xBigInt < TWO64; // {-2^64 + 1,...,-1}
     if (!isValidPositive && !isValidNegative)
-      throw Error(
-        `Int64.fromField expected a value between (-2^64, 2^64), got ${x}`
-      );
+      throw Error(`Int64: Expected a value between (-2^64, 2^64), got ${x}`);
     let magnitude = Field(isValidPositive ? x.toString() : x.neg().toString());
     let sign = isValidPositive ? Field.one : Field.minusOne;
     return new Int64(new UInt64(magnitude), sign);
