@@ -116,12 +116,32 @@ describe('int', () => {
         }).toThrow();
       });
 
-      it('should throw on overflow addition', () => {
+      // TODO - should we make these throw?
+      // These are edge cases, where one of two inputs is out of the Int64 range,
+      // but the result of an operation with a proper Int64 moves it into the range.
+      // They would only get caught if we'd also check the range in the Int64 / UInt64 constructors,
+      // which breaks out current practice of having a dumb constructor that only stores variables
+      it.skip('operations should throw on overflow of any input', () => {
         expect(() => {
-          Int64.fromBigInt((1n << 64n) - 1n).add(Int64.one);
+          new Int64(new UInt64(Field(1n << 64n))).sub(1);
         }).toThrow();
         expect(() => {
-          Int64.from(1).add((1n << 64n) - 1n);
+          new Int64(new UInt64(Field(-(1n << 64n)))).add(5);
+        }).toThrow();
+        expect(() => {
+          Int64.from(20).sub(new UInt64(Field((1n << 64n) + 10n)));
+        }).toThrow();
+        expect(() => {
+          Int64.from(6).add(new UInt64(Field(-(1n << 64n) - 5n)));
+        }).toThrow();
+      });
+
+      it('should throw on overflow addition', () => {
+        expect(() => {
+          Int64.from((1n << 64n) - 1n).add(1);
+        }).toThrow();
+        expect(() => {
+          Int64.one.add((1n << 64n) - 1n);
         }).toThrow();
       });
       it('should not throw on non-overflowing addition', () => {
