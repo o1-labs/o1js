@@ -59,7 +59,7 @@ class NullCharacter extends Character {
 }
 
 export class CircuitString extends CircuitValue {
-  @prop maxLength: Field;
+  maxLength: Field;
   @arrayProp(Character, DEFAULT_STRING_LENGTH) values: Character[];
 
   constructor(values: Character[]) {
