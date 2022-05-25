@@ -65,24 +65,24 @@ export class CircuitString extends CircuitValue {
   constructor(values: Character[]) {
     super();
 
-    const maxLength = DEFAULT_STRING_LENGTH;
-
+    const inputLength = values.length;
+    values.length = DEFAULT_STRING_LENGTH;
+    values = values.fill(new NullCharacter(), inputLength, DEFAULT_STRING_LENGTH)
     this.values = values;
-    this.maxLength = Field(maxLength);
+    this.maxLength = Field(DEFAULT_STRING_LENGTH);
   }
 
   append(str: CircuitString): CircuitString {
     let newStringValues: Character[] = []
-    let i = 0;
 
     this.values.forEach((char) => {
-      if (char.toString() == '') {
+      if (Number(char.value.toString()) > 0) {
         newStringValues.push(char);
       }
     })
 
     str.values.forEach((char) => {
-      if (char.toString() == '') {
+      if (Number(char.value.toString()) > 0) {
         newStringValues.push(char);
       }
     })
@@ -103,16 +103,6 @@ export class CircuitString extends CircuitValue {
     return Poseidon.hash(this.values.map(x => x.value));
   }
 
-  length(): number {
-    let i = 0;
-    this.values.forEach(char => {
-      if (char.toString() != '') {
-        i++;
-      }
-    })
-    return i;
-  }
-
   substring(start: number, end: number): CircuitString {
     return new CircuitString(this.values.slice(start, end));
   }
@@ -126,10 +116,7 @@ export class CircuitString extends CircuitValue {
   }
 
   equals(str: CircuitString): Bool {
-    let ret = new Bool(true);
-    ret = this._equals(str);
-
-    return ret;
+    return this._equals(str)
   }
 
   static fromString(str: string): CircuitString {
@@ -139,12 +126,17 @@ export class CircuitString extends CircuitValue {
 
   private _contains(str: CircuitString): Bool {
     let ret = new Bool(false);
-    const thisLength = this.length();
-    const strLength = str.length();
+    let length = 0;
+    str.values.forEach(char => {
+      if (Number(char.value.toString()) > 0) {
+        length++
+      }
+    })
+    const maxLength = Number(this.maxLength.toString());
     let i = 0;
 
-    while (i + strLength <= thisLength) {
-      ret = ret.or(this.substring(i, i + strLength).equals(str))
+    while (i + length <= maxLength) {
+      ret = ret.or(this.substring(i, i + length).equals(str))
       i++
     }
 
@@ -168,8 +160,10 @@ export class CircuitString8 extends CircuitString {
   constructor(values: Character[]) {
     super(values);
 
-    const maxLength = 8;
-    this.maxLength = Field(maxLength);
+    const inputLength = values.length;
+    values.length = 8;
+    values = values.fill(new NullCharacter(), inputLength, 8)
     this.values = values;
+    this.maxLength = Field(8);
   }
 }
