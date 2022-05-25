@@ -1,4 +1,4 @@
-import { isReady, CircuitString, Circuit, Bool } from 'snarkyjs';
+import { isReady, CircuitString, Circuit, Character, Field } from 'snarkyjs';
 import * as assert from 'assert/strict';
 
 await isReady;
@@ -8,6 +8,18 @@ const not_same_str = CircuitString.fromString('size');
 assert.equal(str.equals(not_same_str).toBoolean(), false);
 
 Circuit.runAndCheck(() => {
+  const extra = Circuit.witness(CircuitString, () => {
+    return new CircuitString([
+      new Character(Field(100)),
+      new Character(Field(100)),
+      new Character(Field(100)),
+    ]);
+  });
+
+  const char = Circuit.witness(Character, () => {
+    return new Character(Field(10));
+  });
+
   const str = Circuit.witness(CircuitString, () => {
     return CircuitString.fromString('Your size');
   });
