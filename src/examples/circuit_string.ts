@@ -17,4 +17,8 @@ console.log('Equivalent: "', circuitString.substring(35, 46).toString(), '", "',
 
 if (!circuitString.contains(substring, 11).toBoolean()) throw Error('String does not contain substring')
 
+console.log(
+  circuitString.length(),
+  substring.length()
+)
 console.log('Everything looks good!')

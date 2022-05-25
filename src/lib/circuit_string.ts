@@ -46,6 +46,7 @@ export class Character extends CircuitValue {
 class NullCharacter extends Character {
   constructor() {
     super(Field(0));
+    this.value = Field(0);
   }
 
   isNull(): Bool {
@@ -66,7 +67,7 @@ export class CircuitString extends CircuitValue {
 
     const maxLength = DEFAULT_STRING_LENGTH;
 
-    this.values = values.fill(new NullCharacter);
+    this.values = values;
     this.maxLength = Field(maxLength);
   }
 
@@ -75,13 +76,13 @@ export class CircuitString extends CircuitValue {
     let i = 0;
 
     this.values.forEach((char) => {
-      if (char.isNull().toBoolean()) {
+      if (char.toString() == '') {
         newStringValues.push(char);
       }
     })
 
     str.values.forEach((char) => {
-      if (char.isNull().toBoolean()) {
+      if (char.toString() == '') {
         newStringValues.push(char);
       }
     })
@@ -102,6 +103,16 @@ export class CircuitString extends CircuitValue {
     return Poseidon.hash(this.values.map(x => x.value));
   }
 
+  length(): number {
+    let i = 0;
+    this.values.forEach(char => {
+      if (char.toString() != '') {
+        i++;
+      }
+    })
+    return i;
+  }
+
   substring(start: number, end: number): CircuitString {
     return new CircuitString(this.values.slice(start, end));
   }
@@ -118,7 +129,6 @@ export class CircuitString extends CircuitValue {
     let ret = new Bool(true);
     ret = this._equals(str);
 
-    console.log(ret)
     return ret;
   }
 
@@ -129,8 +139,8 @@ export class CircuitString extends CircuitValue {
 
   private _contains(str: CircuitString): Bool {
     let ret = new Bool(false);
-    const thisLength = Number(this.maxLength.toString());
-    const strLength = Number(str.maxLength.toString());
+    const thisLength = this.length();
+    const strLength = str.length();
     let i = 0;
 
     while (i + strLength <= thisLength) {
@@ -160,6 +170,6 @@ export class CircuitString8 extends CircuitString {
 
     const maxLength = 8;
     this.maxLength = Field(maxLength);
-    this.values = values.fill(new NullCharacter);
+    this.values = values;
   }
 }
