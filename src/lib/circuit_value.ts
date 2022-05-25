@@ -12,7 +12,7 @@ export {
   cloneCircuitValue,
 };
 
-type Constructor<T> = { new (...args: any[]): T };
+type Constructor<T> = { new(...args: any[]): T };
 
 function asFieldElementsToConstant<T>(typ: AsFieldElements<T>, t: T): T {
   const xs: Field[] = typ.toFields(t);
@@ -150,8 +150,6 @@ function prop(this: any, target: any, key: string) {
 }
 
 function circuitArray<T>(elementType: AsFieldElements<T>, length: number) {
-  let elementLength = elementType.sizeInFields();
-  length = elementLength * length;
   return {
     sizeInFields() {
       return length;
@@ -161,6 +159,8 @@ function circuitArray<T>(elementType: AsFieldElements<T>, length: number) {
     },
     ofFields(fields: Field[]) {
       let array = [];
+      let elementLength = elementType.sizeInFields();
+      length = elementLength * length;
       for (let i = 0; i < length; i += elementLength) {
         array.push(elementType.ofFields(fields.slice(i, i + elementLength)));
       }
