@@ -59,7 +59,7 @@ class NullCharacter extends Character {
 }
 
 export class CircuitString extends CircuitValue {
-  maxLength: Field;
+  maxLength: number;
   @arrayProp(Character, DEFAULT_STRING_LENGTH) values: Character[];
 
   constructor(values: Character[]) {
@@ -73,7 +73,7 @@ export class CircuitString extends CircuitValue {
       DEFAULT_STRING_LENGTH
     );
     this.values = values;
-    this.maxLength = Field(DEFAULT_STRING_LENGTH);
+    this.maxLength = DEFAULT_STRING_LENGTH;
   }
 
   append(str: CircuitString): CircuitString {
@@ -139,7 +139,7 @@ export class CircuitString extends CircuitValue {
         length++;
       }
     });
-    const maxLength = Number(this.maxLength.toString());
+    const maxLength = this.maxLength;
     let i = 0;
 
     while (i + length <= maxLength) {
@@ -171,6 +171,6 @@ export class CircuitString8 extends CircuitString {
     values.length = 8;
     values = values.fill(new NullCharacter(), inputLength, 8);
     this.values = values;
-    this.maxLength = Field(8);
+    this.maxLength = 8;
   }
 }
