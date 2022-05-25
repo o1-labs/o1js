@@ -1,7 +1,7 @@
 import { Bool, Circuit, Field, isReady, Poseidon } from '../snarky';
 import { arrayProp, CircuitValue, prop } from './circuit_value';
 
-const DEFAULT_STRING_LENGTH = 32;
+const DEFAULT_STRING_LENGTH = 128;
 
 export class Character extends CircuitValue {
   @prop value: Field;
