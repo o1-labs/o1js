@@ -167,6 +167,12 @@ function circuitArray<T>(elementType: AsFieldElements<T>, length: number) {
       }
       return array;
     },
+    check(array: T[]) {
+      if ((elementType as any).check === undefined) return;
+      for (let i = 0; i < length; i++) {
+        (elementType as any).check(array[i]);
+      }
+    },
   };
 }
 
