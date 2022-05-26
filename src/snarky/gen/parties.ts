@@ -111,7 +111,7 @@ type Parties = {
         data: Field[][];
         hash: Field;
       };
-      protocolStatePrecondition: {
+      networkPrecondition: {
         snarkedLedgerHash: { isSome: Bool; value: Field };
         timestamp: {
           lower: UInt64;
@@ -245,79 +245,81 @@ type Parties = {
       };
       callData: Field;
       callDepth: number;
-      protocolStatePrecondition: {
-        snarkedLedgerHash: { isSome: Bool; value: Field };
-        timestamp: {
-          lower: UInt64;
-          upper: UInt64;
-        };
-        blockchainLength: {
-          lower: UInt32;
-          upper: UInt32;
-        };
-        minWindowDensity: {
-          lower: UInt32;
-          upper: UInt32;
-        };
-        totalCurrency: {
-          lower: UInt64;
-          upper: UInt64;
-        };
-        globalSlotSinceHardFork: {
-          lower: UInt32;
-          upper: UInt32;
-        };
-        globalSlotSinceGenesis: {
-          lower: UInt32;
-          upper: UInt32;
-        };
-        stakingEpochData: {
-          ledger: {
-            hash: { isSome: Bool; value: Field };
-            totalCurrency: {
-              lower: UInt64;
-              upper: UInt64;
-            };
+      preconditions: {
+        network: {
+          snarkedLedgerHash: { isSome: Bool; value: Field };
+          timestamp: {
+            lower: UInt64;
+            upper: UInt64;
           };
-          seed: { isSome: Bool; value: Field };
-          startCheckpoint: { isSome: Bool; value: Field };
-          lockCheckpoint: { isSome: Bool; value: Field };
-          epochLength: {
+          blockchainLength: {
             lower: UInt32;
             upper: UInt32;
           };
-        };
-        nextEpochData: {
-          ledger: {
-            hash: { isSome: Bool; value: Field };
-            totalCurrency: {
-              lower: UInt64;
-              upper: UInt64;
-            };
-          };
-          seed: { isSome: Bool; value: Field };
-          startCheckpoint: { isSome: Bool; value: Field };
-          lockCheckpoint: { isSome: Bool; value: Field };
-          epochLength: {
+          minWindowDensity: {
             lower: UInt32;
             upper: UInt32;
           };
+          totalCurrency: {
+            lower: UInt64;
+            upper: UInt64;
+          };
+          globalSlotSinceHardFork: {
+            lower: UInt32;
+            upper: UInt32;
+          };
+          globalSlotSinceGenesis: {
+            lower: UInt32;
+            upper: UInt32;
+          };
+          stakingEpochData: {
+            ledger: {
+              hash: { isSome: Bool; value: Field };
+              totalCurrency: {
+                lower: UInt64;
+                upper: UInt64;
+              };
+            };
+            seed: { isSome: Bool; value: Field };
+            startCheckpoint: { isSome: Bool; value: Field };
+            lockCheckpoint: { isSome: Bool; value: Field };
+            epochLength: {
+              lower: UInt32;
+              upper: UInt32;
+            };
+          };
+          nextEpochData: {
+            ledger: {
+              hash: { isSome: Bool; value: Field };
+              totalCurrency: {
+                lower: UInt64;
+                upper: UInt64;
+              };
+            };
+            seed: { isSome: Bool; value: Field };
+            startCheckpoint: { isSome: Bool; value: Field };
+            lockCheckpoint: { isSome: Bool; value: Field };
+            epochLength: {
+              lower: UInt32;
+              upper: UInt32;
+            };
+          };
         };
-      };
-      accountPrecondition: {
-        balance: {
-          lower: UInt64;
-          upper: UInt64;
+        account: {
+          balance: {
+            lower: UInt64;
+            upper: UInt64;
+          };
+          nonce: {
+            lower: UInt32;
+            upper: UInt32;
+          };
+          receiptChainHash: { isSome: Bool; value: Field };
+          delegate: { isSome: Bool; value: PublicKey };
+          state: { isSome: Bool; value: Field }[];
+          sequenceState: Field;
+          provedState: { isSome: Bool; value: Bool };
         };
-        nonce: {
-          lower: UInt32;
-          upper: UInt32;
-        };
-        receiptChainHash: { isSome: Bool; value: Field };
-        delegate: { isSome: Bool; value: PublicKey };
-        state: { isSome: Bool; value: Field }[];
-        sequenceState: Field;
-        provedState: { isSome: Bool; value: Bool };
       };
       useFullCommitment: Bool;
       caller: TokenId;
@@ -410,79 +412,81 @@ type Party = {
     };
     callData: Field;
     callDepth: number;
-    protocolStatePrecondition: {
-      snarkedLedgerHash: { isSome: Bool; value: Field };
-      timestamp: {
-        lower: UInt64;
-        upper: UInt64;
-      };
-      blockchainLength: {
-        lower: UInt32;
-        upper: UInt32;
-      };
-      minWindowDensity: {
-        lower: UInt32;
-        upper: UInt32;
-      };
-      totalCurrency: {
-        lower: UInt64;
-        upper: UInt64;
-      };
-      globalSlotSinceHardFork: {
-        lower: UInt32;
-        upper: UInt32;
-      };
-      globalSlotSinceGenesis: {
-        lower: UInt32;
-        upper: UInt32;
-      };
-      stakingEpochData: {
-        ledger: {
-          hash: { isSome: Bool; value: Field };
-          totalCurrency: {
-            lower: UInt64;
-            upper: UInt64;
-          };
+    preconditions: {
+      network: {
+        snarkedLedgerHash: { isSome: Bool; value: Field };
+        timestamp: {
+          lower: UInt64;
+          upper: UInt64;
         };
-        seed: { isSome: Bool; value: Field };
-        startCheckpoint: { isSome: Bool; value: Field };
-        lockCheckpoint: { isSome: Bool; value: Field };
-        epochLength: {
+        blockchainLength: {
           lower: UInt32;
           upper: UInt32;
         };
-      };
-      nextEpochData: {
-        ledger: {
-          hash: { isSome: Bool; value: Field };
-          totalCurrency: {
-            lower: UInt64;
-            upper: UInt64;
-          };
-        };
-        seed: { isSome: Bool; value: Field };
-        startCheckpoint: { isSome: Bool; value: Field };
-        lockCheckpoint: { isSome: Bool; value: Field };
-        epochLength: {
+        minWindowDensity: {
           lower: UInt32;
           upper: UInt32;
         };
+        totalCurrency: {
+          lower: UInt64;
+          upper: UInt64;
+        };
+        globalSlotSinceHardFork: {
+          lower: UInt32;
+          upper: UInt32;
+        };
+        globalSlotSinceGenesis: {
+          lower: UInt32;
+          upper: UInt32;
+        };
+        stakingEpochData: {
+          ledger: {
+            hash: { isSome: Bool; value: Field };
+            totalCurrency: {
+              lower: UInt64;
+              upper: UInt64;
+            };
+          };
+          seed: { isSome: Bool; value: Field };
+          startCheckpoint: { isSome: Bool; value: Field };
+          lockCheckpoint: { isSome: Bool; value: Field };
+          epochLength: {
+            lower: UInt32;
+            upper: UInt32;
+          };
+        };
+        nextEpochData: {
+          ledger: {
+            hash: { isSome: Bool; value: Field };
+            totalCurrency: {
+              lower: UInt64;
+              upper: UInt64;
+            };
+          };
+          seed: { isSome: Bool; value: Field };
+          startCheckpoint: { isSome: Bool; value: Field };
+          lockCheckpoint: { isSome: Bool; value: Field };
+          epochLength: {
+            lower: UInt32;
+            upper: UInt32;
+          };
+        };
       };
-    };
-    accountPrecondition: {
-      balance: {
-        lower: UInt64;
-        upper: UInt64;
+      account: {
+        balance: {
+          lower: UInt64;
+          upper: UInt64;
+        };
+        nonce: {
+          lower: UInt32;
+          upper: UInt32;
+        };
+        receiptChainHash: { isSome: Bool; value: Field };
+        delegate: { isSome: Bool; value: PublicKey };
+        state: { isSome: Bool; value: Field }[];
+        sequenceState: Field;
+        provedState: { isSome: Bool; value: Bool };
       };
-      nonce: {
-        lower: UInt32;
-        upper: UInt32;
-      };
-      receiptChainHash: { isSome: Bool; value: Field };
-      delegate: { isSome: Bool; value: PublicKey };
-      state: { isSome: Bool; value: Field }[];
-      sequenceState: Field;
-      provedState: { isSome: Bool; value: Bool };
     };
     useFullCommitment: Bool;
     caller: TokenId;
