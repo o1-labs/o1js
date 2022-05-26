@@ -18,7 +18,7 @@ import { toJson, toFields } from '../parties-helpers';
 import * as Json from './parties-json';
 import { jsLayout } from './js-layout';
 
-export { Parties, BalanceChange, Party };
+export { Parties, Party };
 export { Json };
 export * from '../parties-leaves';
 
@@ -336,20 +336,6 @@ let Parties = {
   },
   toFields(parties: Parties): Field[] {
     return toFields(jsLayout.Parties, parties, fieldsConverters);
-  },
-};
-
-type BalanceChange = {
-  magnitude: UInt64;
-  sgn: Sign;
-};
-
-let BalanceChange = {
-  toJson(balancechange: BalanceChange): Json.BalanceChange {
-    return toJson(jsLayout.BalanceChange, balancechange, jsonConverters);
-  },
-  toFields(balancechange: BalanceChange): Field[] {
-    return toFields(jsLayout.BalanceChange, balancechange, fieldsConverters);
   },
 };
 
