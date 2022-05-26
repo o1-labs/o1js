@@ -10,6 +10,7 @@ export {
   SetOrKeep,
   Permission,
   Permissions,
+  Preconditions,
   Body,
   Party,
   FeePayerUnsigned,
@@ -34,7 +35,7 @@ type Update = PartyBody['update'];
 /**
  * Preconditions for the network and accounts
  */
-export type Preconditions = PartyBody['preconditions'];
+type Preconditions = PartyBody['preconditions'];
 
 /**
  * Timing info inside an account.
@@ -224,7 +225,7 @@ let Permissions = {
   }),
 };
 
-export const getDefaultTokenId = () => Field.one;
+const getDefaultTokenId = () => Field.one;
 
 // TODO
 class Events {
@@ -435,8 +436,8 @@ const uint32 = () => ({ lower: UInt32.fromNumber(0), upper: UInt32.MAXINT() });
  */
 const uint64 = () => ({ lower: UInt64.fromNumber(0), upper: UInt64.MAXINT() });
 
-export type AccountPrecondition = Preconditions['account'];
-export const AccountPrecondition = {
+type AccountPrecondition = Preconditions['account'];
+const AccountPrecondition = {
   ignoreAll(): AccountPrecondition {
     let appState: Array<OrIgnore<Field>> = [];
     for (let i = 0; i < ZkappStateLength; ++i) {
@@ -459,13 +460,13 @@ export const AccountPrecondition = {
   },
 };
 
-export const Preconditions = {
+const Preconditions = {
   ignoreAll(): Preconditions {
     return {
       account: AccountPrecondition.ignoreAll(),
-      network: NetworkPrecondition.ignoreAll()
-    }
-  }
+      network: NetworkPrecondition.ignoreAll(),
+    };
+  },
 };
 
 type Control = Types.Party['authorization'];
