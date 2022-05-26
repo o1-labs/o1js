@@ -32,7 +32,7 @@ describe('int', () => {
         expect(int.toString()).toEqual(field.toString());
       });
 
-      // field.toString() is 28948022309329048855892746252171976963363056481941560715954676764349967630336
+      // Issue: https://github.com/o1-labs/snarkyjs/issues/211
       it('should be the same as neg Field.one', async () => {
         const int = new Int64(Field.one.neg());
         const field = Field.one.neg();
@@ -79,13 +79,13 @@ describe('int', () => {
     });
 
     describe('neg', () => {
-      // Expected: "-1" Received: "28948022309329048855892746252171976963363056481941560715954676764349967630336"
+      // Issue: https://github.com/o1-labs/snarkyjs/issues/211
       it.skip('neg(1)=-1', () => {
         const int = new Int64(Field.one);
         expect(int.neg().value).toEqual('-1');
       });
 
-      // Expected: "-9007199254740991" Received: "28948022309329048855892746252171976963363056481941560715954667757150712889346"
+      // Issue: https://github.com/o1-labs/snarkyjs/issues/211
       it.skip('neg(2^53-1)=-2^53-1', () => {
         const int = new Int64(Field(String(NUMBERMAX)));
         expect(int.neg().value).toEqual(`${-NUMBERMAX}`);
@@ -115,7 +115,7 @@ describe('int', () => {
         ).toEqual(UInt64.MAXINT().toString());
       });
 
-      // Does not throw - Int64 should be in the range [-2^63, 2^63 - 1]
+      // Issue: https://github.com/o1-labs/snarkyjs/issues/212
       it.skip('should throw on overflow addition', () => {
         const value = Field(((1n << 64n) - 1n).toString());
         expect(() => {
@@ -164,6 +164,7 @@ describe('int', () => {
         ]);
       });
     });
+
     describe('ofFields', () => {
       it('ofFields(1) should be the same as Field.one', () => {
         expect(Int64.ofFields([Field.one])).toEqual(new Int64(Field.one));
@@ -401,7 +402,7 @@ describe('int', () => {
       });
 
       describe('assertLt', () => {
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('1<2=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
@@ -432,7 +433,7 @@ describe('int', () => {
           }).toThrow();
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('1000<100000=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
@@ -529,7 +530,7 @@ describe('int', () => {
       });
 
       describe('assertGt', () => {
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('2>1=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
@@ -560,7 +561,7 @@ describe('int', () => {
           }).toThrow();
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('100000>1000=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
@@ -625,6 +626,7 @@ describe('int', () => {
             }).not.toThrow();
           });
         });
+
         describe('fromString()', () => {
           it('should be the same as Field.one', () => {
             expect(() => {
@@ -772,7 +774,7 @@ describe('int', () => {
       });
 
       describe('lt', () => {
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('1<2=true', () => {
           expect(new UInt64(Field.one).lt(new UInt64(Field(2)))).toEqual(
             Bool(true)
@@ -791,7 +793,7 @@ describe('int', () => {
           );
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('1000<100000=true', () => {
           expect(new UInt64(Field(1000)).lt(new UInt64(Field(100000)))).toEqual(
             Bool(true)
@@ -822,7 +824,7 @@ describe('int', () => {
           );
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('1000<=100000=true', () => {
           expect(
             new UInt64(Field(1000)).lte(new UInt64(Field(100000)))
@@ -873,7 +875,7 @@ describe('int', () => {
       });
 
       describe('gt', () => {
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('2>1=true', () => {
           expect(new UInt64(Field(2)).gt(new UInt64(Field.one))).toEqual(
             Bool(true)
@@ -886,14 +888,14 @@ describe('int', () => {
           );
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('1>2=false', () => {
           expect(new UInt64(Field.one).lt(new UInt64(Field(2)))).toEqual(
             Bool(false)
           );
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('100000>1000=true', () => {
           expect(new UInt64(Field(100000)).gt(new UInt64(Field(1000)))).toEqual(
             Bool(true)
@@ -918,7 +920,7 @@ describe('int', () => {
           }).toThrow();
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('2>1=true', () => {
           expect(
             new UInt64(Field(2)).assertGt(new UInt64(Field.one))
@@ -931,7 +933,7 @@ describe('int', () => {
           }).toThrow();
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('100000>1000=true', () => {
           expect(
             new UInt64(Field(100000)).assertGt(new UInt64(Field(1000)))
@@ -1226,7 +1228,7 @@ describe('int', () => {
       });
 
       describe('assertLt', () => {
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('1<2=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
@@ -1257,7 +1259,7 @@ describe('int', () => {
           }).toThrow();
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('1000<100000=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
@@ -1354,7 +1356,7 @@ describe('int', () => {
       });
 
       describe('assertGt', () => {
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('2>1=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
@@ -1385,7 +1387,7 @@ describe('int', () => {
           }).toThrow();
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('100000>1000=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
@@ -1450,6 +1452,7 @@ describe('int', () => {
             }).not.toThrow();
           });
         });
+
         describe('fromString()', () => {
           it('should be the same as Field.one', () => {
             expect(() => {
@@ -1597,7 +1600,7 @@ describe('int', () => {
       });
 
       describe('lt', () => {
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('1<2=true', () => {
           expect(new UInt32(Field.one).lt(new UInt32(Field(2)))).toEqual(
             Bool(true)
@@ -1616,7 +1619,7 @@ describe('int', () => {
           );
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('1000<100000=true', () => {
           expect(new UInt32(Field(1000)).lt(new UInt32(Field(100000)))).toEqual(
             Bool(true)
@@ -1647,7 +1650,7 @@ describe('int', () => {
           );
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('1000<=100000=true', () => {
           expect(
             new UInt32(Field(1000)).lte(new UInt32(Field(100000)))
@@ -1698,7 +1701,7 @@ describe('int', () => {
       });
 
       describe('gt', () => {
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('2>1=true', () => {
           expect(new UInt32(Field(2)).gt(new UInt32(Field.one))).toEqual(
             Bool(true)
@@ -1711,14 +1714,14 @@ describe('int', () => {
           );
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('1>2=false', () => {
           expect(new UInt32(Field.one).lt(new UInt32(Field(2)))).toEqual(
             Bool(false)
           );
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it.skip('100000>1000=true', () => {
           expect(new UInt32(Field(100000)).gt(new UInt32(Field(1000)))).toEqual(
             Bool(true)
@@ -1743,21 +1746,20 @@ describe('int', () => {
           ).toThrow();
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it('2>1=true', () => {
           expect(
             new UInt32(Field(2)).assertGt(new UInt32(Field.one))
           ).not.toThrow();
         });
 
-        // assert_equal: 0 != 1
         it('1000>100000=false', () => {
           expect(
             new UInt32(Field(1000)).assertGt(new UInt32(Field(100000)))
           ).toThrow();
         });
 
-        // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
+        // Issue: https://github.com/o1-labs/snarkyjs/issues/174
         it('100000>1000=true', () => {
           expect(
             new UInt32(Field(100000)).assertGt(new UInt32(Field(1000)))
@@ -1775,6 +1777,7 @@ describe('int', () => {
           const y = Field.zero;
           expect(x.toString()).toEqual(y.toString());
         });
+
         it('should be the same as 2^32-1', async () => {
           const x = new UInt32(Field(String(NUMBERMAX)));
           const y = Field(String(NUMBERMAX));
