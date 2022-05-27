@@ -17,12 +17,115 @@ type State<A> = {
   fetch(): Promise<A | undefined>;
   assertEquals(a: A): void;
 };
-
-/**
- * Gettable and settable state that can be checked for equality.
- */
 function State<A>(): State<A> {
   return createState<A>();
+}
+
+/**
+ * A decorator to use within a zkapp to indicate what will be stored on-chain.
+ * For example, if you want to store a field element `some_state` in a zkapp,
+ * you can use the following in the declaration of your zkapp:
+ *
+ * ```
+ * @state(Field) some_state = State<Field>();
+ * ```
+ *
+ */
+function state<A>(ty: AsFieldElements<A>) {
+  return function (
+    target: SmartContract & { constructor: any },
+    key: string,
+    _descriptor?: PropertyDescriptor
+  ) {
+    const ZkappClass = target.constructor;
+    if (reservedPropNames.has(key)) {
+      throw Error(`Property name ${key} is reserved.`);
+    }
+
+    if (ZkappClass._states == undefined) {
+      ZkappClass._states = [];
+      let layout: Map<string, { offset: number; length: number }>;
+      ZkappClass._layout = () => {
+        if (layout === undefined) {
+          layout = new Map();
+
+          let offset = 0;
+          ZkappClass._states.forEach(([key, ty]: [any, any]) => {
+            let length = ty.sizeInFields();
+            layout.set(key, { offset, length });
+            offset += length;
+          });
+        }
+        return layout;
+      };
+    }
+
+    ZkappClass._states.push([key, ty]);
+
+    Object.defineProperty(target, key, {
+      get(this) {
+        return this._?.[key];
+      },
+      set(this, v: InternalStateType<A>) {
+        if (v._contract !== undefined)
+          throw Error(
+            'A State should only be assigned once to a SmartContract'
+          );
+        if (this._?.[key]) throw Error('A @state should only be assigned once');
+        v._contract = {
+          key,
+          stateType: ty,
+          instance: this,
+          class: ZkappClass,
+        };
+        (this._ ?? (this._ = {}))[key] = v;
+      },
+    });
+  };
+}
+
+/**
+ * `declareState` can be used in place of the `@state` decorator to declare on-chain state on a SmartContract.
+ * It should be placed _after_ the class declaration.
+ * Here is an example of declaring a state property `x` of type `Field`.
+ * ```ts
+ * class MyContract extends SmartContract {
+ *   x = State<Field>();
+ *   // ...
+ * }
+ * declareState(MyContract, { x: Field });
+ * ```
+ *
+ * If you're using pure JS, it's _not_ possible to use the built-in class field syntax,
+ * i.e. the following will _not_ work:
+ *
+ * ```js
+ * // THIS IS WRONG IN JS!
+ * class MyContract extends SmartContract {
+ *   x = State();
+ * }
+ * declareState(MyContract, { x: Field });
+ * ```
+ *
+ * Instead, add a constructor where you assign the property:
+ * ```js
+ * class MyContract extends SmartContract {
+ *   constructor(x) {
+ *     super();
+ *     this.x = State();
+ *   }
+ * }
+ * declareState(MyContract, { x: Field });
+ * ```
+ */
+function declareState<T extends typeof SmartContract>(
+  SmartContract: T,
+  states: Record<string, AsFieldElements<unknown>>
+) {
+  for (let key in states) {
+    let CircuitValue = states[key];
+    state(CircuitValue)(SmartContract.prototype, key);
+  }
 }
 
 // metadata defined by @state, which link state to a particular SmartContract
@@ -163,110 +266,3 @@ function createState<A>(): InternalStateType<A> {
 }
 
 const reservedPropNames = new Set(['_states', '_layout', '_methods', '_']);
-
-/**
- * A decorator to use within a zkapp to indicate what will be stored on-chain.
- * For example, if you want to store a field element `some_state` in a zkapp,
- * you can use the following in the declaration of your zkapp:
- *
- * ```
- * @state(Field) some_state = State<Field>();
- * ```
- *
- */
-function state<A>(ty: AsFieldElements<A>) {
-  return function (
-    target: SmartContract & { constructor: any },
-    key: string,
-    _descriptor?: PropertyDescriptor
-  ) {
-    const ZkappClass = target.constructor;
-    if (reservedPropNames.has(key)) {
-      throw Error(`Property name ${key} is reserved.`);
-    }
-
-    if (ZkappClass._states == undefined) {
-      ZkappClass._states = [];
-      let layout: Map<string, { offset: number; length: number }>;
-      ZkappClass._layout = () => {
-        if (layout === undefined) {
-          layout = new Map();
-
-          let offset = 0;
-          ZkappClass._states.forEach(([key, ty]: [any, any]) => {
-            let length = ty.sizeInFields();
-            layout.set(key, { offset, length });
-            offset += length;
-          });
-        }
-        return layout;
-      };
-    }
-
-    ZkappClass._states.push([key, ty]);
-
-    Object.defineProperty(target, key, {
-      get(this) {
-        return this._?.[key];
-      },
-      set(this, v: InternalStateType<A>) {
-        if (v._contract !== undefined)
-          throw Error(
-            'A State should only be assigned once to a SmartContract'
-          );
-        if (this._?.[key]) throw Error('A @state should only be assigned once');
-        v._contract = {
-          key,
-          stateType: ty,
-          instance: this,
-          class: ZkappClass,
-        };
-        (this._ ?? (this._ = {}))[key] = v;
-      },
-    });
-  };
-}
-
-/**
- * `declareState` can be used in place of the `@state` decorator to declare on-chain state on a SmartContract.
- * It should be placed _after_ the class declaration.
- * Here is an example of declaring a state property `x` of type `Field`.
- * ```ts
- * class MyContract extends SmartContract {
- *   x = State<Field>();
- *   // ...
- * }
- * declareState(MyContract, { x: Field });
- * ```
- *
- * If you're using pure JS, it's _not_ possible to use the built-in class field syntax,
- * i.e. the following will _not_ work:
- *
- * ```js
- * // THIS IS WRONG IN JS!
- * class MyContract extends SmartContract {
- *   x = State();
- * }
- * declareState(MyContract, { x: Field });
- * ```
- *
- * Instead, add a constructor where you assign the property:
- * ```js
- * class MyContract extends SmartContract {
- *   constructor(x) {
- *     super();
- *     this.x = State();
- *   }
- * }
- * declareState(MyContract, { x: Field });
- * ```
- */
-function declareState<T extends typeof SmartContract>(
-  SmartContract: T,
-  states: Record<string, AsFieldElements<unknown>>
-) {
-  for (let key in states) {
-    let CircuitValue = states[key];
-    state(CircuitValue)(SmartContract.prototype, key);
-  }
-}
