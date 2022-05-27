@@ -124,36 +124,36 @@ type StateAttachedContract<A> = {
 
 type InternalStateType<A> = State<A> & { _contract?: StateAttachedContract<A> };
 
-function createState<A>(): InternalStateType<A> {
+function createState<T>(): InternalStateType<T> {
   return {
-    _contract: undefined as StateAttachedContract<A> | undefined,
+    _contract: undefined as StateAttachedContract<T> | undefined,
 
-    set(a: A) {
+    set(state: T) {
       if (this._contract === undefined)
         throw Error(
           'set can only be called when the State is assigned to a SmartContract @state.'
         );
       let layout = getLayoutPosition(this._contract);
-      let stateAsFields = this._contract.stateType.toFields(a);
-      let e = this._contract.instance.executionState();
+      let stateAsFields = this._contract.stateType.toFields(state);
+      let party = this._contract.instance.self;
       stateAsFields.forEach((x, i) => {
-        Party.setValue(e.party.body.update.appState[layout.offset + i], x);
+        Party.setValue(party.body.update.appState[layout.offset + i], x);
       });
     },
 
-    assertEquals(a: A) {
+    assertEquals(state: T) {
       if (this._contract === undefined)
         throw Error(
           'assertEquals can only be called when the State is assigned to a SmartContract @state.'
         );
       let layout = getLayoutPosition(this._contract);
-      let stateAsFields = this._contract.stateType.toFields(a);
-      let e = this._contract.instance.executionState();
+      let stateAsFields = this._contract.stateType.toFields(state);
+      let party = this._contract.instance.self;
 
       stateAsFields.forEach((x, i) => {
-        e.party.body.preconditions.account.state[layout.offset + i].isSome =
+        party.body.preconditions.account.state[layout.offset + i].isSome =
           Bool(true);
-        e.party.body.preconditions.account.state[layout.offset + i].value = x;
+        party.body.preconditions.account.state[layout.offset + i].value = x;
       });
     },
 
@@ -167,9 +167,9 @@ function createState<A>(): InternalStateType<A> {
       let stateAsFields: Field[];
       let inProver = GlobalContext.inProver();
       if (!GlobalContext.inCompile()) {
-        let a: Account;
+        let account: Account;
         try {
-          a = Mina.getAccount(address);
+          account = Mina.getAccount(address);
         } catch (err) {
           // TODO: there should also be a reasonable error here
           if (inProver) {
@@ -180,13 +180,13 @@ function createState<A>(): InternalStateType<A> {
               `Try calling \`await fetchAccount(zkappAddress)\` first.`
           );
         }
-        if (a.zkapp === undefined) {
+        if (account.zkapp === undefined) {
           // if the account is not a zkapp account, let the default state be all zeroes
           stateAsFields = Array(layout.length).fill(Field.zero);
         } else {
           stateAsFields = [];
           for (let i = 0; i < layout.length; ++i) {
-            stateAsFields.push(a.zkapp.appState[layout.offset + i]);
+            stateAsFields.push(account.zkapp.appState[layout.offset + i]);
           }
         }
         // in prover, create a new witness with the state values
