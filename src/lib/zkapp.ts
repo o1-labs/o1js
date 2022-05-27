@@ -66,36 +66,29 @@ type StateAttachedContract<A> = {
   };
 };
 
-function createState<A>() {
+function getLayoutPosition<A>({
+  key,
+  class: contractClass,
+}: StateAttachedContract<A>) {
+  let layout = contractClass._layout();
+  let stateLayout = layout.get(key);
+  if (stateLayout === undefined) {
+    throw new Error(`state ${key} not found`);
+  }
+  return stateLayout;
+}
+type InternalStateType<A> = State<A> & { _contract?: StateAttachedContract<A> };
+
+function createState<A>(): InternalStateType<A> {
   return {
     _contract: undefined as StateAttachedContract<A> | undefined,
-
-    _init(
-      key: string,
-      stateType: AsFieldElements<A>,
-      instance: SmartContract,
-      contractClass: typeof SmartContract & {
-        _layout: () => Map<string, { offset: number; length: number }>;
-      }
-    ) {
-      this._contract = { key, stateType, instance, class: contractClass };
-    },
-
-    getLayout({ key, class: contractClass }: StateAttachedContract<A>) {
-      let layout = contractClass._layout();
-      let stateLayout = layout.get(key);
-      if (stateLayout === undefined) {
-        throw new Error(`state ${key} not found`);
-      }
-      return stateLayout;
-    },
 
     set(a: A) {
       if (this._contract === undefined)
         throw Error(
           'set can only be called when the State is assigned to a SmartContract @state.'
         );
-      let layout = this.getLayout(this._contract);
+      let layout = getLayoutPosition(this._contract);
       let stateAsFields = this._contract.stateType.toFields(a);
       let e: ExecutionState = this._contract.instance.executionState();
       stateAsFields.forEach((x, i) => {
@@ -108,7 +101,7 @@ function createState<A>() {
         throw Error(
           'assertEquals can only be called when the State is assigned to a SmartContract @state.'
         );
-      let layout = this.getLayout(this._contract);
+      let layout = getLayoutPosition(this._contract);
       let stateAsFields = this._contract.stateType.toFields(a);
       let e: ExecutionState = this._contract.instance.executionState();
 
@@ -124,7 +117,7 @@ function createState<A>() {
         throw Error(
           'get can only be called when the State is assigned to a SmartContract @state.'
         );
-      let layout = this.getLayout(this._contract);
+      let layout = getLayoutPosition(this._contract);
       let address: PublicKey = this._contract.instance.address;
       let stateAsFields: Field[];
       let inProver = GlobalContext.inProver();
@@ -182,7 +175,7 @@ function createState<A>() {
         throw Error(
           'fetch is not intended to be called inside a transaction block.'
         );
-      let layout = this.getLayout(this._contract);
+      let layout = getLayoutPosition(this._contract);
       let address: PublicKey = this._contract.instance.address;
       let { account } = await fetchAccount(address);
       if (account === undefined) return undefined;
@@ -199,8 +192,6 @@ function createState<A>() {
     },
   };
 }
-
-type InternalStateType = ReturnType<typeof createState>;
 
 const reservedPropNames = new Set(['_states', '_layout', '_methods', '_']);
 
@@ -249,13 +240,18 @@ export function state<A>(ty: AsFieldElements<A>) {
       get(this) {
         return this._?.[key];
       },
-      set(this, v: InternalStateType) {
+      set(this, v: InternalStateType<A>) {
         if (v._contract !== undefined)
           throw Error(
             'A State should only be assigned once to a SmartContract'
           );
         if (this._?.[key]) throw Error('A @state should only be assigned once');
-        v._init(key, ty as any, this, ZkappClass);
+        v._contract = {
+          key,
+          stateType: ty,
+          instance: this,
+          class: ZkappClass,
+        };
         (this._ ?? (this._ = {}))[key] = v;
       },
     });
