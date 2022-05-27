@@ -28,7 +28,7 @@ import {
 
 export { deploy, DeployArgs, call, callUnproved, signFeePayer, declareMethods };
 
-const reservedPropNames = new Set(['_states', '_layout', '_methods', '_']);
+const reservedPropNames = new Set(['_methods', '_']);
 
 /**
  * A decorator to use in a zkapp to mark a method as callable by anyone.

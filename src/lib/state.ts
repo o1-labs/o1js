@@ -31,7 +31,7 @@ function State<A>(): State<A> {
  * ```
  *
  */
-function state<A>(ty: AsFieldElements<A>) {
+function state<A>(stateType: AsFieldElements<A>) {
   return function (
     target: SmartContract & { constructor: any },
     key: string,
@@ -41,26 +41,12 @@ function state<A>(ty: AsFieldElements<A>) {
     if (reservedPropNames.has(key)) {
       throw Error(`Property name ${key} is reserved.`);
     }
-
-    if (ZkappClass._states == undefined) {
-      ZkappClass._states = [];
-      let layout: Map<string, { offset: number; length: number }>;
-      ZkappClass._layout = () => {
-        if (layout === undefined) {
-          layout = new Map();
-
-          let offset = 0;
-          ZkappClass._states.forEach(([key, ty]: [any, any]) => {
-            let length = ty.sizeInFields();
-            layout.set(key, { offset, length });
-            offset += length;
-          });
-        }
-        return layout;
-      };
+    let sc = smartContracts.get(ZkappClass);
+    if (sc === undefined) {
+      sc = { states: [], layout: undefined };
+      smartContracts.set(ZkappClass, sc);
     }
-
-    ZkappClass._states.push([key, ty]);
+    sc.states.push([key, stateType]);
 
     Object.defineProperty(target, key, {
       get(this) {
@@ -74,7 +60,7 @@ function state<A>(ty: AsFieldElements<A>) {
         if (this._?.[key]) throw Error('A @state should only be assigned once');
         v._contract = {
           key,
-          stateType: ty,
+          stateType: stateType,
           instance: this,
           class: ZkappClass,
         };
@@ -133,22 +119,9 @@ type StateAttachedContract<A> = {
   key: string;
   stateType: AsFieldElements<A>;
   instance: SmartContract;
-  class: typeof SmartContract & {
-    _layout: () => Map<string, { offset: number; length: number }>;
-  };
+  class: typeof SmartContract;
 };
 
-function getLayoutPosition<A>({
-  key,
-  class: contractClass,
-}: StateAttachedContract<A>) {
-  let layout = contractClass._layout();
-  let stateLayout = layout.get(key);
-  if (stateLayout === undefined) {
-    throw new Error(`state ${key} not found`);
-  }
-  return stateLayout;
-}
 type InternalStateType<A> = State<A> & { _contract?: StateAttachedContract<A> };
 
 function createState<A>(): InternalStateType<A> {
@@ -234,7 +207,7 @@ function createState<A>(): InternalStateType<A> {
         );
       }
       let state = this._contract.stateType.ofFields(stateAsFields);
-      (this._contract.stateType as any).check?.(state);
+      this._contract.stateType.check?.(state);
       return state;
     },
 
@@ -256,7 +229,7 @@ function createState<A>(): InternalStateType<A> {
         stateAsFields = Array(layout.length).fill(Field.zero);
       } else {
         stateAsFields = [];
-        for (let i = 0; i < layout.length; ++i) {
+        for (let i = 0; i < layout.length; i++) {
           stateAsFields.push(account.zkapp.appState[layout.offset + i]);
         }
       }
@@ -265,4 +238,40 @@ function createState<A>(): InternalStateType<A> {
   };
 }
 
-const reservedPropNames = new Set(['_states', '_layout', '_methods', '_']);
+function getLayoutPosition<A>({
+  key,
+  class: contractClass,
+}: StateAttachedContract<A>) {
+  let layout = getLayout(contractClass);
+  let stateLayout = layout.get(key);
+  if (stateLayout === undefined) {
+    throw new Error(`state ${key} not found`);
+  }
+  return stateLayout;
+}
+
+function getLayout(scClass: typeof SmartContract) {
+  let sc = smartContracts.get(scClass);
+  if (sc === undefined) throw Error('bug');
+  if (sc.layout === undefined) {
+    let layout = new Map();
+    sc.layout = layout;
+    let offset = 0;
+    sc.states.forEach(([key, stateType]) => {
+      let length = stateType.sizeInFields();
+      layout.set(key, { offset, length });
+      offset += length;
+    });
+  }
+  return sc.layout;
+}
+
+const smartContracts = new WeakMap<
+  typeof SmartContract,
+  {
+    states: [string, AsFieldElements<any>][];
+    layout: Map<string, { offset: number; length: number }> | undefined;
+  }
+>();
+
+const reservedPropNames = new Set(['_methods', '_']);
