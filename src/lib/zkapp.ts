@@ -56,56 +56,61 @@ export function State<A>(): State<A> {
   return createState<A>();
 }
 
+// metadata defined by @state, which link state to a particular SmartContract
+type StateAttachedContract<A> = {
+  key: string;
+  stateType: AsFieldElements<A>;
+  instance: SmartContract;
+  class: typeof SmartContract & {
+    _layout: () => Map<string, { offset: number; length: number }>;
+  };
+};
+
 function createState<A>() {
   return {
-    _initialized: false,
-    _key: undefined as never as string, // defined by @state
-    _ty: undefined as never as AsFieldElements<A>, // defined by @state
-    _this: undefined as never as SmartContract, // defined by @state
-    _ZkappClass: undefined as never as typeof SmartContract & {
-      _layout: () => any;
-    }, // defined by @state
+    _contract: undefined as StateAttachedContract<A> | undefined,
 
-    _init(key: string, ty: AsFieldElements<A>, _this: any, ZkappClass: any) {
-      this._initialized = true;
-      this._key = key;
-      this._ty = ty;
-      this._this = _this;
-      this._ZkappClass = ZkappClass;
+    _init(
+      key: string,
+      stateType: AsFieldElements<A>,
+      instance: SmartContract,
+      contractClass: typeof SmartContract & {
+        _layout: () => Map<string, { offset: number; length: number }>;
+      }
+    ) {
+      this._contract = { key, stateType, instance, class: contractClass };
     },
 
-    getLayout() {
-      let layout: Map<string, { offset: number; length: number }> =
-        this._ZkappClass._layout();
-      let stateLayout = layout.get(this._key);
+    getLayout({ key, class: contractClass }: StateAttachedContract<A>) {
+      let layout = contractClass._layout();
+      let stateLayout = layout.get(key);
       if (stateLayout === undefined) {
-        throw new Error(`state ${this._key} not found`);
+        throw new Error(`state ${key} not found`);
       }
       return stateLayout;
     },
 
     set(a: A) {
-      if (!this._initialized)
+      if (this._contract === undefined)
         throw Error(
           'set can only be called when the State is assigned to a SmartContract @state.'
         );
-      let layout = this.getLayout();
-      let stateAsFields = this._ty.toFields(a);
-      let e: ExecutionState = this._this.executionState();
-
+      let layout = this.getLayout(this._contract);
+      let stateAsFields = this._contract.stateType.toFields(a);
+      let e: ExecutionState = this._contract.instance.executionState();
       stateAsFields.forEach((x, i) => {
         Party.setValue(e.party.body.update.appState[layout.offset + i], x);
       });
     },
 
     assertEquals(a: A) {
-      if (!this._initialized)
+      if (this._contract === undefined)
         throw Error(
           'assertEquals can only be called when the State is assigned to a SmartContract @state.'
         );
-      let layout = this.getLayout();
-      let stateAsFields = this._ty.toFields(a);
-      let e: ExecutionState = this._this.executionState();
+      let layout = this.getLayout(this._contract);
+      let stateAsFields = this._contract.stateType.toFields(a);
+      let e: ExecutionState = this._contract.instance.executionState();
 
       stateAsFields.forEach((x, i) => {
         e.party.body.preconditions.account.state[layout.offset + i].isSome =
@@ -115,13 +120,12 @@ function createState<A>() {
     },
 
     get() {
-      if (!this._initialized)
+      if (this._contract === undefined)
         throw Error(
           'get can only be called when the State is assigned to a SmartContract @state.'
         );
-      let layout = this.getLayout();
-
-      let address: PublicKey = this._this.address;
+      let layout = this.getLayout(this._contract);
+      let address: PublicKey = this._contract.instance.address;
       let stateAsFields: Field[];
       let inProver = GlobalContext.inProver();
       if (!GlobalContext.inCompile()) {
@@ -134,7 +138,7 @@ function createState<A>() {
             throw err;
           }
           throw Error(
-            `${this._key}.get() failed, because the zkapp account was not found in the cache. ` +
+            `${this._contract.key}.get() failed, because the zkapp account was not found in the cache. ` +
               `Try calling \`await fetchAccount(zkappAddress)\` first.`
           );
         }
@@ -164,13 +168,13 @@ function createState<A>() {
           }
         );
       }
-      let state = this._ty.ofFields(stateAsFields);
-      (this._ty as any).check?.(state);
+      let state = this._contract.stateType.ofFields(stateAsFields);
+      (this._contract.stateType as any).check?.(state);
       return state;
     },
 
     async fetch() {
-      if (!this._initialized)
+      if (this._contract === undefined)
         throw Error(
           'fetch can only be called when the State is assigned to a SmartContract @state.'
         );
@@ -178,8 +182,8 @@ function createState<A>() {
         throw Error(
           'fetch is not intended to be called inside a transaction block.'
         );
-      let layout = this.getLayout();
-      let address: PublicKey = this._this.address;
+      let layout = this.getLayout(this._contract);
+      let address: PublicKey = this._contract.instance.address;
       let { account } = await fetchAccount(address);
       if (account === undefined) return undefined;
       let stateAsFields: Field[];
@@ -191,7 +195,7 @@ function createState<A>() {
           stateAsFields.push(account.zkapp.appState[layout.offset + i]);
         }
       }
-      return this._ty.ofFields(stateAsFields);
+      return this._contract.stateType.ofFields(stateAsFields);
     },
   };
 }
@@ -246,12 +250,12 @@ export function state<A>(ty: AsFieldElements<A>) {
         return this._?.[key];
       },
       set(this, v: InternalStateType) {
-        if (v._initialized)
+        if (v._contract !== undefined)
           throw Error(
             'A State should only be assigned once to a SmartContract'
           );
         if (this._?.[key]) throw Error('A @state should only be assigned once');
-        v._init(key, ty, this, ZkappClass);
+        v._init(key, ty as any, this, ZkappClass);
         (this._ ?? (this._ = {}))[key] = v;
       },
     });

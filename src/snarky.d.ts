@@ -451,6 +451,7 @@ declare interface AsFieldElements<T> {
   toFields(x: T): Field[];
   ofFields(x: Field[]): T;
   sizeInFields(): number;
+  check?: (x: T) => void;
 }
 
 declare interface CircuitMain<W, P> {
