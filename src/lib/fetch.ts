@@ -1,5 +1,5 @@
 import 'isomorphic-fetch';
-import { Field, Types } from '../snarky';
+import { Bool, Field, Types } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { Permission, Permissions, ZkappStateLength } from './party';
 import { PublicKey } from './signature';
@@ -121,7 +121,7 @@ type FetchedAccount = {
   nonce: string;
   zkappUri?: string;
   zkappState: string[] | null;
-  receiptChainState?: string;
+  receiptChainHash?: string;
   balance: { total: string };
   permissions?: {
     editState: AuthRequired;
@@ -136,6 +136,9 @@ type FetchedAccount = {
     incrementNonce: AuthRequired;
     setVotingFor: AuthRequired;
   };
+  delegateAccount?: { publicKey: string };
+  sequenceEvents?: string[] | null;
+  // TODO: how to query provedState?
 };
 
 type Account = {
@@ -144,6 +147,10 @@ type Account = {
   balance: UInt64;
   zkapp?: { appState: Field[] };
   permissions?: Permissions;
+  receiptChainHash?: Field;
+  delegate?: PublicKey;
+  sequenceState?: Field;
+  provedState?: Bool;
 };
 
 type FlexibleAccount = {
@@ -175,6 +182,8 @@ const accountQuery = (publicKey: string) => `{
     }
     receiptChainHash
     balance { total }
+    delegateAccount { publicKey }
+    sequenceEvents
   }
 }
 `;
@@ -190,6 +199,9 @@ function parseFetchedAccount({
   zkappState,
   balance,
   permissions,
+  delegateAccount,
+  receiptChainHash,
+  sequenceEvents,
 }: Partial<FetchedAccount>): Partial<Account> {
   return {
     publicKey:
@@ -202,6 +214,16 @@ function parseFetchedAccount({
       (Object.fromEntries(
         Object.entries(permissions).map(([k, v]) => [k, toPermission(v)])
       ) as unknown as Permissions),
+    // TODO: how is sequenceState related to sequenceEvents?
+    sequenceState:
+      sequenceEvents != undefined ? Field(sequenceEvents[0]) : undefined,
+    // TODO: how to parse receptChainHash?
+    // receiptChainHash:
+    //   receiptChainHash !== undefined
+    //     ? Ledger.fieldOfBase58(receiptChainHash)
+    //     : undefined,
+    delegate:
+      delegateAccount && PublicKey.fromBase58(delegateAccount.publicKey),
   };
 }
 
