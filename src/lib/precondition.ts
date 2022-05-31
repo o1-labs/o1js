@@ -20,69 +20,97 @@ type AccountPrecondition = Preconditions['account'];
 type AccountType = Fetch.Account;
 type Account = ReturnType<typeof Account>;
 
-// type AccountPreconditionClass = {
-//   [K in Exclude<keyof AccountPrecondition, 'state'>]: {
-//     // TODO
-//     get: () => any;
-//   };
-// };
+type Key = Exclude<keyof AccountType, 'zkapp' | 'permissions' | 'publicKey'>;
+type RangeKey = 'balance' | 'nonce';
+type ClassType = {
+  [K in Key]: AsFieldElements<Exclude<AccountType[K], undefined>>;
+};
+type ValueType = {
+  [K in Key]: Exclude<AccountType[K], undefined>;
+};
+type AccountClassType = {
+  [K in Key]: K extends RangeKey
+    ? {
+        get(): ValueType[K];
+        assertEquals(value: ValueType[K]): void;
+        assertBetween(lower: ValueType[K], upper: ValueType[K]): void;
+        assertNothing(): void;
+      }
+    : {
+        get(): ValueType[K];
+        assertEquals(value: ValueType[K]): void;
+        assertNothing(): void;
+      };
+};
 
-function Account(party: Party) {
+function Account(party: Party): AccountClassType {
   let address = party.body.publicKey;
-  let { read, vars } = getPreconditionContextExn(party);
+  let { read, vars, constrained } = getPreconditionContextExn(party);
 
-  function get<T>(path: PreconditionPath, getVariable: () => T): T {
-    read.add(path);
-    return vars[path] ?? (vars[path] = getVariable());
+  function precondition<K extends Key>(path: K, fieldType: ClassType[K]) {
+    let longPath = `account.${path}` as const;
+    return {
+      get(): ValueType[K] {
+        read.add(longPath);
+        return (vars[longPath] ??
+          (vars[longPath] = getAccountFieldExn(
+            address,
+            path,
+            fieldType
+          ))) as ValueType[K];
+      },
+      assertEquals(value: ValueType[K]) {
+        constrained.add(longPath);
+        let property = getPath(
+          party.body.preconditions,
+          longPath
+        ) as AccountPrecondition[K];
+        if ('isSome' in property) {
+          property.isSome = Bool(true);
+          property.value = value as any;
+        } else if ('lower' in property) {
+          property.lower = value as any;
+          property.upper = value as any;
+        } else {
+          party.body.preconditions.account[path] = value as any;
+        }
+      },
+      assertNothing() {
+        constrained.add(longPath);
+      },
+    };
+  }
+
+  function rangePrecondition<K extends 'nonce' | 'balance'>(
+    path: K,
+    fieldType: ClassType[K]
+  ) {
+    let longPath = `account.${path}` as const;
+    return {
+      ...precondition(path, fieldType),
+      assertBetween(lower: ValueType[K], upper: ValueType[K]) {
+        constrained.add(longPath);
+        let property = getPath(
+          party.body.preconditions,
+          longPath
+        ) as AccountPrecondition[K];
+        property.lower = lower;
+        property.upper = upper;
+      },
+    };
   }
 
   return {
-    balance: {
-      get() {
-        return get('account.balance', () =>
-          getAccountFieldExn(address, 'balance', UInt64)
-        );
-      },
-    },
-    nonce: {
-      get() {
-        return get('account.nonce', () =>
-          getAccountFieldExn(address, 'nonce', UInt32)
-        );
-      },
-    },
+    balance: rangePrecondition('balance', UInt64),
+    nonce: rangePrecondition('nonce', UInt32),
     // TODO: OK how we read this from delegateAccount?
-    delegate: {
-      get() {
-        return get('account.delegate', () =>
-          getAccountFieldExn(address, 'delegate', PublicKey)
-        );
-      },
-    },
+    delegate: precondition('delegate', PublicKey),
     // TODO: no graphql field yet
-    provedState: {
-      get() {
-        return get('account.provedState', () =>
-          getAccountFieldExn(address, 'provedState', Bool)
-        );
-      },
-    },
+    provedState: precondition('provedState', Bool),
     // TODO: figure out serialization
-    receiptChainHash: {
-      get() {
-        return get('account.receiptChainHash', () =>
-          getAccountFieldExn(address, 'receiptChainHash', Field)
-        );
-      },
-    },
+    receiptChainHash: precondition('receiptChainHash', Field),
     // TODO: OK how we read this from sequenceEvents?
-    sequenceState: {
-      get() {
-        return get('account.sequenceState', () =>
-          getAccountFieldExn(address, 'sequenceState', Field)
-        );
-      },
-    },
+    sequenceState: precondition('sequenceState', Field),
     // TODO: should we add state? then we should change the structure on `Fetch.Account` which is stupid anyway
     // then can just use circuitArray(Field, 8) as the type
   };
@@ -111,7 +139,7 @@ function getAccountFieldExn<K extends keyof AccountType>(
 }
 
 // per-party context for checking invariants on precondition construction
-type PreconditionPath = `account.${keyof ReturnType<typeof Account>}`;
+type PreconditionPath = `account.${Key}`;
 type PreconditionContext = {
   isSelf: boolean;
   vars: Partial<Record<PreconditionPath, any>>;

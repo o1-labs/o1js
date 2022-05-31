@@ -30,13 +30,10 @@ class SimpleZkapp extends SmartContract {
 
   @method update(y: Field) {
     let balance = this.account.balance.get();
-    this.self.body.preconditions.account.balance.lower =
-      UInt64.fromNumber(10e9);
+    this.account.balance.assertBetween(UInt64.zero, UInt64.from(10e9));
+
     let x = this.x.get();
-    this.x.set(x.add(y));
-    // let party = Party.createSigned(account1);
-    // party.account.balance.get();
-    // party.body.preconditions.account.balance.lower = UInt64.fromNumber(1);
+    this.x.set(x.add(y).add(balance.value));
   }
 }
 
