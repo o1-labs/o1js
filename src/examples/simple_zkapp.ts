@@ -29,14 +29,14 @@ class SimpleZkapp extends SmartContract {
   }
 
   @method update(y: Field) {
-    // update is only valid if the balance is at least 10 MINA
-    Party.assertBetween(
-      this.self.body.preconditions.account.balance,
-      UInt64.fromNumber(10e9),
-      UInt64.MAXINT()
-    );
+    let balance = this.account.balance.get();
+    this.self.body.preconditions.account.balance.lower =
+      UInt64.fromNumber(10e9);
     let x = this.x.get();
     this.x.set(x.add(y));
+    // let party = Party.createSigned(account1);
+    // party.account.balance.get();
+    // party.body.preconditions.account.balance.lower = UInt64.fromNumber(1);
   }
 }
 

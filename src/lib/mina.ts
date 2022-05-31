@@ -13,6 +13,7 @@ import {
   ZkappStateLength,
 } from './party';
 import * as Fetch from './fetch';
+import { assertPreconditionInvariants } from './precondition';
 
 export {
   createUnsignedTransaction,
@@ -103,6 +104,10 @@ function createTransaction(
     currentTransaction = undefined;
     // TODO would be nice if the error would be a bit more descriptive about what failed
     throw err;
+  }
+  // assert invariants on the created parties
+  for (let party of currentTransaction.parties) {
+    assertPreconditionInvariants(party);
   }
 
   let feePayerParty: FeePayerUnsigned;

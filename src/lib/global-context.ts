@@ -1,8 +1,10 @@
 import * as Mina from './mina';
 import { Body, Party } from './party';
+import { PublicKey } from './signature';
 import { SmartContract } from './zkapp';
 
 export {
+  selfParty,
   getExecutionState,
   withContext,
   withContextAsync,
@@ -18,6 +20,11 @@ type ExecutionState = {
   partyIndex: number;
   party: Party;
 };
+
+function selfParty(address: PublicKey) {
+  let body = Body.keepAll(address);
+  return new (Party as any)(body, {}, true) as Party;
+}
 
 function getExecutionState(smartContract: SmartContract): ExecutionState {
   // TODO reconcile mainContext with currentTransaction
@@ -42,8 +49,7 @@ function getExecutionState(smartContract: SmartContract): ExecutionState {
   }
   let id = Mina.nextTransactionId.value;
   let index = Mina.currentTransaction.nextPartyIndex++;
-  let body = Body.keepAll(smartContract.address);
-  let party = new Party(body);
+  let party = selfParty(smartContract.address);
   Mina.currentTransaction.parties.push(party);
 
   executionState = {

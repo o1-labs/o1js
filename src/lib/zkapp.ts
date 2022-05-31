@@ -24,7 +24,10 @@ import {
   withContextAsync,
   getContext,
   getExecutionState,
+  selfParty,
+  inCompile,
 } from './global-context';
+import { assertPreconditionInvariants } from './precondition';
 
 export { deploy, DeployArgs, call, callUnproved, signFeePayer, declareMethods };
 
@@ -94,6 +97,13 @@ function wrapMethod(
     let actualArgs = args.slice(0, argsLength);
     let shouldCallDirectly = args[argsLength] as undefined | boolean;
     if (Mina.currentTransaction === undefined || shouldCallDirectly === true) {
+      // in compile, check the self party right after calling the method
+      // TODO: this needs to be done in a unified way for all parties that are created
+      if (inCompile()) {
+        let result = method.apply(this, actualArgs);
+        assertPreconditionInvariants(this.self);
+        return result;
+      }
       // outside a transaction, just call the method
       return method.apply(this, actualArgs);
     } else {
@@ -222,7 +232,7 @@ export class SmartContract {
     );
 
     let [, { getVerificationKeyArtifact, provers, verify }] = withContext(
-      { self: Party.defaultParty(address), inCompile: true },
+      { self: selfParty(address), inCompile: true },
       () => Pickles.compile(rules)
     );
     let verificationKey = getVerificationKeyArtifact();
@@ -328,6 +338,10 @@ export class SmartContract {
 
   get self() {
     return getExecutionState(this).party;
+  }
+
+  get account() {
+    return this.self.account;
   }
 
   get balance() {
