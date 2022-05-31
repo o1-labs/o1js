@@ -11,6 +11,7 @@ export { state, State, declareState } from './lib/state';
 export * from './lib/party';
 export {
   fetchAccount,
+  fetchLastBlock,
   parseFetchedAccount,
   addCachedAccount,
   setGraphqlEndpoint,

@@ -6,6 +6,8 @@ import { PublicKey } from './signature';
 
 export {
   fetchAccount,
+  fetchLastBlock,
+  fetchBlock,
   parseFetchedAccount,
   markAccountToBeFetched,
   fetchMissingAccounts,
@@ -160,7 +162,7 @@ type FlexibleAccount = {
   zkapp?: { appState: (Field | string | number)[] };
 };
 
-// TODO add more fields
+// TODO provedState
 const accountQuery = (publicKey: string) => `{
   account(publicKey: "${publicKey}") {
     publicKey
@@ -240,34 +242,6 @@ function stringifyAccount(account: FlexibleAccount): FetchedAccount {
   };
 }
 
-async function checkResponseStatus(
-  response: Response
-): Promise<[FetchResponse, undefined] | [undefined, FetchError]> {
-  if (response.ok) {
-    return [(await response.json()) as FetchResponse, undefined];
-  } else {
-    return [
-      undefined,
-      {
-        statusCode: response.status,
-        statusText: response.statusText,
-      } as FetchError,
-    ];
-  }
-}
-
-function inferError(error: unknown): FetchError {
-  let errorMessage = JSON.stringify(error);
-  if (error instanceof AbortSignal) {
-    return { statusCode: 408, statusText: `Request Timeout: ${errorMessage}` };
-  } else {
-    return {
-      statusCode: 500,
-      statusText: `Unknown Error: ${errorMessage}`,
-    };
-  }
-}
-
 let accountCache = {} as Record<
   string,
   {
@@ -339,6 +313,109 @@ function addCachedAccountInternal(
   };
 }
 
+async function fetchLastBlock(graphqlEndpoint = defaultGraphqlEndpoint) {
+  let bestChainQuery = `{ bestChain { protocolState { consensusState { blockHeight } } } }`;
+  let [resp, error] = await makeGraphqlRequest(bestChainQuery, graphqlEndpoint);
+  if (error) throw Error(error.statusText);
+  let blockHeights = resp?.data.bestChain.map(
+    (block: FetchedBlock) => block.protocolState.consensusState.blockHeight
+  );
+  let lastHeight = blockHeights[blockHeights.length - 1];
+  return fetchBlock(lastHeight);
+}
+
+async function fetchBlock(
+  blockHeight: number,
+  graphqlEndpoint = defaultGraphqlEndpoint
+) {
+  let [resp, error] = await makeGraphqlRequest(
+    blockQuery(blockHeight),
+    graphqlEndpoint
+  );
+  if (error) throw Error(error.statusText);
+  return resp?.data?.block as FetchedBlock;
+}
+
+const blockQuery = (height: number) => `{
+  block(height: ${height}) {
+    protocolState {
+      blockchainState {
+        snarkedLedgerHash
+        stagedLedgerHash
+        date
+        utcDate
+        stagedLedgerProofEmitted
+      }
+      previousStateHash
+      consensusState {
+        blockHeight
+        slotSinceGenesis
+        slot
+        nextEpochData {
+          ledger {hash totalCurrency}
+          seed
+          startCheckpoint
+          lockCheckpoint
+          epochLength
+        }
+        stakingEpochData {
+          ledger {hash totalCurrency}
+          seed
+          startCheckpoint
+          lockCheckpoint
+          epochLength
+        }
+        epochCount
+        minWindowDensity
+        totalCurrency
+        epoch
+      }
+    }
+  }
+}`;
+
+type FetchedBlock = {
+  protocolState: {
+    blockchainState: {
+      snarkedLedgerHash: string; // hash-like encoding
+      stagedLedgerHash: string; // hash-like encoding
+      date: string; // String(Date.now())
+      utcDate: string; // String(Date.now())
+      stagedLedgerProofEmitted: boolean; // bool
+    };
+    previousStateHash: string; // hash-like encoding
+    consensusState: {
+      blockHeight: string; // String(number)
+      slotSinceGenesis: string; // String(number)
+      slot: string; // String(number)
+      nextEpochData: {
+        ledger: {
+          hash: string; // hash-like encoding
+          totalCurrency: string; // String(number)
+        };
+        seed: string; // hash-like encoding
+        startCheckpoint: string; // hash-like encoding
+        lockCheckpoint: string; // hash-like encoding
+        epochLength: string; // String(number)
+      };
+      stakingEpochData: {
+        ledger: {
+          hash: string; // hash-like encoding
+          totalCurrency: string; // String(number)
+        };
+        seed: string; // hash-like encoding
+        startCheckpoint: string; // hash-like encoding
+        lockCheckpoint: string; // hash-like encoding
+        epochLength: string; // String(number)
+      };
+      epochCount: string; // String(number)
+      minWindowDensity: string; // String(number)
+      totalCurrency: string; // String(number)
+      epoch: string; // String(number)
+    };
+  };
+};
+
 function sendZkapp(
   json: string,
   graphqlEndpoint = defaultGraphqlEndpoint,
@@ -400,5 +477,33 @@ async function makeGraphqlRequest(
   } catch (error) {
     clearTimeout(timer);
     return [undefined, inferError(error)] as [undefined, FetchError];
+  }
+}
+
+async function checkResponseStatus(
+  response: Response
+): Promise<[FetchResponse, undefined] | [undefined, FetchError]> {
+  if (response.ok) {
+    return [(await response.json()) as FetchResponse, undefined];
+  } else {
+    return [
+      undefined,
+      {
+        statusCode: response.status,
+        statusText: response.statusText,
+      } as FetchError,
+    ];
+  }
+}
+
+function inferError(error: unknown): FetchError {
+  let errorMessage = JSON.stringify(error);
+  if (error instanceof AbortSignal) {
+    return { statusCode: 408, statusText: `Request Timeout: ${errorMessage}` };
+  } else {
+    return {
+      statusCode: 500,
+      statusText: `Unknown Error: ${errorMessage}`,
+    };
   }
 }
