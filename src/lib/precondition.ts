@@ -21,7 +21,6 @@ type AccountType = Fetch.Account;
 type Account = ReturnType<typeof Account>;
 
 type Key = Exclude<keyof AccountType, 'zkapp' | 'permissions' | 'publicKey'>;
-type RangeKey = 'balance' | 'nonce';
 type ClassType = {
   [K in Key]: AsFieldElements<Exclude<AccountType[K], undefined>>;
 };
@@ -29,7 +28,7 @@ type ValueType = {
   [K in Key]: Exclude<AccountType[K], undefined>;
 };
 type AccountClassType = {
-  [K in Key]: K extends RangeKey
+  [K in Key]: AccountPrecondition[K] extends rangeCondition<any>
     ? {
         get(): ValueType[K];
         assertEquals(value: ValueType[K]): void;
