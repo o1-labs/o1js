@@ -23,7 +23,7 @@ import {
   withContext,
   withContextAsync,
   getContext,
-  mainContext,
+  getExecutionState,
 } from './global-context';
 
 export { deploy, DeployArgs, call, callUnproved, signFeePayer, declareMethods };
@@ -198,7 +198,6 @@ function picklesRuleFromFunction(
 export class SmartContract {
   address: PublicKey;
 
-  _executionState?: ExecutionState;
   static _methods?: methodEntry<SmartContract>[];
   static _provers?: Prover[];
   static _verificationKey?: { data: string; hash: Field };
@@ -327,44 +326,8 @@ export class SmartContract {
     return { statement, selfParty };
   }
 
-  executionState(): ExecutionState {
-    // TODO reconcile mainContext with currentTransaction
-    if (mainContext !== undefined) {
-      return {
-        transactionId: 0,
-        partyIndex: 0,
-        party: mainContext.self,
-      };
-    }
-
-    if (Mina.currentTransaction === undefined) {
-      throw new Error('Cannot execute outside of a Mina.transaction() block.');
-    }
-
-    if (
-      this._executionState !== undefined &&
-      this._executionState.transactionId === Mina.nextTransactionId.value
-    ) {
-      return this._executionState;
-    } else {
-      const id = Mina.nextTransactionId.value;
-      const index = Mina.currentTransaction.nextPartyIndex++;
-      const body = Body.keepAll(this.address);
-      const party = new Party(body);
-      Mina.currentTransaction.parties.push(party);
-
-      const s = {
-        transactionId: id,
-        partyIndex: index,
-        party,
-      };
-      this._executionState = s;
-      return s;
-    }
-  }
-
   get self() {
-    return this.executionState().party;
+    return getExecutionState(this).party;
   }
 
   get balance() {
@@ -403,12 +366,6 @@ export class SmartContract {
 type DeployArgs = {
   verificationKey?: { data: string; hash: string | Field };
   zkappKey?: PrivateKey;
-};
-
-type ExecutionState = {
-  transactionId: number;
-  partyIndex: number;
-  party: Party;
 };
 
 function emptyWitness<A>(typ: AsFieldElements<A>) {
