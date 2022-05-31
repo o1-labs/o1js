@@ -124,7 +124,10 @@ function getAccountFieldExn<K extends keyof AccountType>(
   let inProver = GlobalContext.inProver();
   if (!GlobalContext.inCompile()) {
     let account = Mina.getAccount(address);
-    if (account[key] === undefined) throw Error('bug');
+    if (account[key] === undefined)
+      throw Error(
+        `Could not get \`${key}\` on account with public key ${address.toBase58()}. The property may not be available on this account.`
+      );
     let field = account[key] as Value;
     // in prover, create a new witness with the state values
     // outside, just return the state values
