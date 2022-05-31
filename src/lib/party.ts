@@ -823,7 +823,7 @@ function addMissingSignatures(
       if (i === -1) {
         let pk = PublicKey.toBase58(party.body.publicKey);
         throw Error(
-          `addMissingSignatures: Cannot add signature for ${pk}, private key is missing.`
+          `addMissingSignatures: Cannot add signature for fee payer (${pk}), private key is missing.`
         );
       }
       privateKey = additionalKeys[i];
@@ -841,8 +841,8 @@ function addMissingSignatures(
       return party as Party & { authorization: Control | LazyProof };
     let { privateKey } = party.authorization;
     if (privateKey === undefined) {
-      let i = additionalPublicKeys.findIndex(
-        (pk) => pk === party.body.publicKey
+      let i = additionalPublicKeys.findIndex((pk) =>
+        pk.equals(party.body.publicKey)
       );
       if (i === -1)
         throw Error(

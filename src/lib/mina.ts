@@ -40,7 +40,7 @@ interface Transaction {
   transaction: Parties;
   toJSON(): string;
   toGraphqlQuery(): string;
-  sign(): Transaction;
+  sign(additionialKeys?: PrivateKey[]): Transaction;
   prove(): Promise<Transaction>;
   send(): TransactionId;
 }
