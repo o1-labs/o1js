@@ -20,15 +20,18 @@ type AccountPrecondition = Preconditions['account'];
 type AccountType = Fetch.Account;
 type Account = ReturnType<typeof Account>;
 
-type Key = Exclude<keyof AccountType, 'zkapp' | 'permissions' | 'publicKey'>;
+type AccountKey = Exclude<
+  keyof AccountType,
+  'zkapp' | 'permissions' | 'publicKey'
+>;
 type ClassType = {
-  [K in Key]: AsFieldElements<Exclude<AccountType[K], undefined>>;
+  [K in AccountKey]: AsFieldElements<Exclude<AccountType[K], undefined>>;
 };
 type ValueType = {
-  [K in Key]: Exclude<AccountType[K], undefined>;
+  [K in AccountKey]: Exclude<AccountType[K], undefined>;
 };
 type AccountClassType = {
-  [K in Key]: AccountPrecondition[K] extends rangeCondition<any>
+  [K in AccountKey]: AccountPrecondition[K] extends rangeCondition<any>
     ? {
         get(): ValueType[K];
         assertEquals(value: ValueType[K]): void;
@@ -46,7 +49,10 @@ function Account(party: Party): AccountClassType {
   let address = party.body.publicKey;
   let { read, vars, constrained } = getPreconditionContextExn(party);
 
-  function precondition<K extends Key>(path: K, fieldType: ClassType[K]) {
+  function precondition<K extends AccountKey>(
+    path: K,
+    fieldType: ClassType[K]
+  ) {
     let longPath = `account.${path}` as const;
     return {
       get(): ValueType[K] {
@@ -141,7 +147,7 @@ function getAccountFieldExn<K extends keyof AccountType>(
 }
 
 // per-party context for checking invariants on precondition construction
-type PreconditionPath = `account.${Key}`;
+type PreconditionPath = `account.${AccountKey}`;
 type PreconditionContext = {
   isSelf: boolean;
   vars: Partial<Record<PreconditionPath, any>>;
