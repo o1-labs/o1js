@@ -3,6 +3,7 @@ import { Bool, Field, Types } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { Permission, Permissions, ZkappStateLength } from './party';
 import { PublicKey } from './signature';
+import { NetworkValue } from './precondition';
 
 export {
   fetchAccount,
@@ -333,7 +334,7 @@ async function fetchBlock(
     graphqlEndpoint
   );
   if (error) throw Error(error.statusText);
-  return resp?.data?.block as FetchedBlock;
+  return parseFetchedBlock(resp?.data?.block as FetchedBlock);
 }
 
 const blockQuery = (height: number) => `{
@@ -415,6 +416,54 @@ type FetchedBlock = {
     };
   };
 };
+
+function parseFetchedBlock({
+  protocolState: {
+    blockchainState: { snarkedLedgerHash, utcDate },
+    consensusState: {
+      blockHeight,
+      minWindowDensity,
+      totalCurrency,
+      slot,
+      slotSinceGenesis,
+      nextEpochData,
+      stakingEpochData,
+    },
+  },
+}: FetchedBlock): NetworkValue {
+  return {
+    snarkedLedgerHash: Field.zero, // TODO
+    // TODO: use date or utcDate?
+    timestamp: UInt64.fromString(utcDate),
+    blockchainLength: UInt32.fromString(blockHeight),
+    minWindowDensity: UInt32.fromString(minWindowDensity),
+    totalCurrency: UInt64.fromString(totalCurrency),
+    // is this really `slot`?
+    globalSlotSinceHardFork: UInt32.fromString(slot),
+    globalSlotSinceGenesis: UInt32.fromString(slotSinceGenesis),
+    nextEpochData: parseEpochData(nextEpochData),
+    stakingEpochData: parseEpochData(stakingEpochData),
+  };
+}
+
+function parseEpochData({
+  ledger: { hash, totalCurrency },
+  seed,
+  startCheckpoint,
+  lockCheckpoint,
+  epochLength,
+}: FetchedBlock['protocolState']['consensusState']['nextEpochData']): NetworkValue['nextEpochData'] {
+  return {
+    ledger: {
+      hash: Field.zero, // TODO
+      totalCurrency: UInt64.fromString(totalCurrency),
+    },
+    seed: Field.zero, // TODO
+    startCheckpoint: Field.zero, // TODO
+    lockCheckpoint: Field.zero, // TODO
+    epochLength: UInt32.fromString(epochLength),
+  };
+}
 
 function sendZkapp(
   json: string,

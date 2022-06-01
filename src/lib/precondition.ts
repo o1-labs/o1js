@@ -14,7 +14,14 @@ import { Party, Preconditions } from './party';
 import * as GlobalContext from './global-context';
 import { UInt32, UInt64 } from './int';
 
-export { preconditions, Account, Network, assertPreconditionInvariants };
+export {
+  preconditions,
+  Account,
+  Network,
+  assertPreconditionInvariants,
+  AccountValue,
+  NetworkValue,
+};
 
 function preconditions(party: Party, isSelf: boolean) {
   initializePreconditions(party, isSelf);
@@ -139,12 +146,12 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   throw Error('todo');
 }
 
-function getAccountFieldExn<K extends keyof AccountValueType>(
+function getAccountFieldExn<K extends keyof AccountValue>(
   address: PublicKey,
   key: K,
-  fieldType: AsFieldElements<AccountValueType[K]>
-): AccountValueType[K] {
-  type Value = AccountValueType[K];
+  fieldType: AsFieldElements<AccountValue[K]>
+): AccountValue[K] {
+  type Value = AccountValue[K];
   let inProver = GlobalContext.inProver();
   if (!GlobalContext.inCompile()) {
     let account = Mina.getAccount(address);
@@ -220,6 +227,7 @@ const preconditionContexts = new WeakMap<Party, PreconditionContext>();
 
 // TODO actually fetch network preconditions
 type NetworkPrecondition = Preconditions['network'];
+type NetworkValue = PreconditionBaseTypes<NetworkPrecondition>;
 type Network = PreconditionClassType<NetworkPrecondition>;
 
 // TODO: OK how we read delegate from delegateAccount?
@@ -229,7 +237,8 @@ type Network = PreconditionClassType<NetworkPrecondition>;
 // TODO: should we add account.state? then we should change the structure on `Fetch.Account` which is stupid anyway
 // then can just use circuitArray(Field, 8) as the type
 type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
-type AccountValueType = PreconditionBaseTypes<AccountPrecondition>;
+// TODO to use this type as account type everywhere, need to add publicKey
+type AccountValue = PreconditionBaseTypes<AccountPrecondition>;
 type Account = PreconditionClassType<AccountPrecondition>;
 
 type PreconditionBaseTypes<T> = {
@@ -268,6 +277,8 @@ type BasicToFull<K> = K extends Types.UInt32
   ? Field
   : K extends Bool
   ? Bool
+  : K extends Types.PublicKey
+  ? PublicKey
   : never;
 
 // layout types
