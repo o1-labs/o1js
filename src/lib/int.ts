@@ -1,4 +1,4 @@
-import { Circuit, Field } from '../snarky';
+import { Circuit, Field, Types } from '../snarky';
 import { CircuitValue, prop } from './circuit_value';
 
 export { UInt32, UInt64, Int64 };
@@ -24,7 +24,7 @@ class UInt64 extends CircuitValue {
     return this.value.toString();
   }
 
-  static check(x: UInt64) {
+  static check(x: Types.UInt64) {
     let actual = x.value.rangeCheckHelper(64);
     actual.assertEquals(x.value);
   }
@@ -202,7 +202,7 @@ class UInt32 extends CircuitValue {
     return new UInt64(this.value);
   }
 
-  static check(x: UInt32) {
+  static check(x: Types.UInt32) {
     let actual = x.value.rangeCheckHelper(32);
     actual.assertEquals(x.value);
   }

@@ -14,36 +14,38 @@ function preconditions(party: Party, isSelf: boolean) {
   return { account: Account(party) };
 }
 
-// TODO: would be nice to autogenerate the graphql return type for account (and possibly various ones for the network stuff)
-
-type AccountPrecondition = Preconditions['account'];
-type AccountType = Fetch.Account;
-type Account = ReturnType<typeof Account>;
-
-type AccountKey = Exclude<
-  keyof AccountType,
-  'zkapp' | 'permissions' | 'publicKey'
->;
-type ClassType = {
-  [K in AccountKey]: AsFieldElements<Exclude<AccountType[K], undefined>>;
+type PreconditionBaseTypes<T> = {
+  [K in keyof T]: T[K] extends RangeCondition<infer U>
+    ? U
+    : T[K] extends FlaggedOptionCondition<infer U>
+    ? U
+    : T[K] extends AsFieldElements<infer U>
+    ? U
+    : PreconditionBaseTypes<T[K]>;
 };
-type ValueType = {
-  [K in AccountKey]: Exclude<AccountType[K], undefined>;
+
+type PreconditionSubclassType<U> = {
+  get(): U;
+  assertEquals(value: U): void;
+  assertNothing(): void;
 };
-type AccountClassType = {
-  [K in AccountKey]: AccountPrecondition[K] extends rangeCondition<any>
-    ? {
-        get(): ValueType[K];
-        assertEquals(value: ValueType[K]): void;
-        assertBetween(lower: ValueType[K], upper: ValueType[K]): void;
-        assertNothing(): void;
+
+type PreconditionClassType<T> = {
+  [K in keyof T]: T[K] extends RangeCondition<infer U>
+    ? PreconditionSubclassType<U> & {
+        assertBetween(lower: U, upper: U): void;
       }
-    : {
-        get(): ValueType[K];
-        assertEquals(value: ValueType[K]): void;
-        assertNothing(): void;
-      };
+    : T[K] extends FlaggedOptionCondition<infer U>
+    ? PreconditionSubclassType<U>
+    : T[K] extends AsFieldElements<infer U>
+    ? PreconditionSubclassType<U>
+    : PreconditionClassType<T[K]>;
 };
+
+type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
+type AccountKey = keyof AccountPrecondition;
+type AccountValueType = PreconditionBaseTypes<AccountPrecondition>;
+type AccountClassType = PreconditionClassType<AccountPrecondition>;
 
 function Account(party: Party): AccountClassType {
   let address = party.body.publicKey;
@@ -51,20 +53,20 @@ function Account(party: Party): AccountClassType {
 
   function precondition<K extends AccountKey>(
     path: K,
-    fieldType: ClassType[K]
+    fieldType: AsFieldElements<AccountValueType[K]>
   ) {
     let longPath = `account.${path}` as const;
     return {
-      get(): ValueType[K] {
+      get(): AccountValueType[K] {
         read.add(longPath);
         return (vars[longPath] ??
           (vars[longPath] = getAccountFieldExn(
             address,
             path,
             fieldType
-          ))) as ValueType[K];
+          ))) as AccountValueType[K];
       },
-      assertEquals(value: ValueType[K]) {
+      assertEquals(value: AccountValueType[K]) {
         constrained.add(longPath);
         let property = getPath(
           party.body.preconditions,
@@ -88,12 +90,12 @@ function Account(party: Party): AccountClassType {
 
   function rangePrecondition<K extends 'nonce' | 'balance'>(
     path: K,
-    fieldType: ClassType[K]
+    fieldType: AsFieldElements<AccountValueType[K]>
   ) {
     let longPath = `account.${path}` as const;
     return {
       ...precondition(path, fieldType),
-      assertBetween(lower: ValueType[K], upper: ValueType[K]) {
+      assertBetween(lower: AccountValueType[K], upper: AccountValueType[K]) {
         constrained.add(longPath);
         let property = getPath(
           party.body.preconditions,
@@ -121,12 +123,12 @@ function Account(party: Party): AccountClassType {
   };
 }
 
-function getAccountFieldExn<K extends keyof AccountType>(
+function getAccountFieldExn<K extends keyof AccountValueType>(
   address: PublicKey,
   key: K,
-  fieldType: AsFieldElements<Exclude<AccountType[K], undefined>>
+  fieldType: AsFieldElements<AccountValueType[K]>
 ) {
-  type Value = Exclude<AccountType[K], undefined>;
+  type Value = AccountValueType[K];
   let inProver = GlobalContext.inProver();
   if (!GlobalContext.inCompile()) {
     let account = Mina.getAccount(address);
@@ -200,16 +202,21 @@ function getPreconditionContextExn(party: Party) {
 const preconditionContexts = new WeakMap<Party, PreconditionContext>();
 
 // types for the two kinds of conditions
-type rangeCondition<T> = { lower: T; upper: T };
-type valueCondition<T> = { isSome: boolean; value: T };
-type anyCondition<T> = rangeCondition<T> | valueCondition<T> | T;
+type RangeCondition<T> = { lower: T; upper: T };
+type FlaggedOptionCondition<T> = { isSome: Bool; value: T };
+type AnyCondition<T> =
+  | RangeCondition<T>
+  | FlaggedOptionCondition<T>
+  | AsFieldElements<T>;
+
 function isRangeCondition<T>(
-  condition: anyCondition<T>
-): condition is rangeCondition<T> {
+  condition: AnyCondition<T>
+): condition is RangeCondition<T> {
   return 'lower' in condition;
 }
 
 // helper. getPath({a: {b: 'x'}}, 'a.b') === 'x'
+// TODO: would be awesome to type this
 function getPath(obj: any, path: string) {
   let pathArray = path.split('.').reverse();
   while (pathArray.length > 0) {
