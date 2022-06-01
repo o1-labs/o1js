@@ -621,7 +621,13 @@ declare class Group {
   static sizeInFields(): number;
 
   static toJSON(x: Group): JSONValue;
-  static fromJSON(x: JSONValue): Group | null;
+  static fromJSON({
+    x,
+    y,
+  }: {
+    x: string | number;
+    y: string | number;
+  }): Group | null;
 }
 
 declare class Sponge {
