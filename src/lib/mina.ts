@@ -169,7 +169,7 @@ interface Mina {
   transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
   currentSlot(): UInt32;
   getAccount(publicKey: Types.PublicKey): Account;
-  accountCreationFee(): UInt32;
+  accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): TransactionId;
 }
 interface MockMina extends Mina {
@@ -190,7 +190,6 @@ const defaultAccountCreationFee = 1_000_000_000;
 function LocalBlockchain({
   accountCreationFee = defaultAccountCreationFee as string | number,
 } = {}): MockMina {
-  let accountCreationFee_ = String(accountCreationFee);
   const msPerSlot = 3 * 60 * 1000;
   const startTime = new Date().valueOf();
 
@@ -210,7 +209,7 @@ function LocalBlockchain({
   }
 
   return {
-    accountCreationFee: () => UInt32.fromString(accountCreationFee_),
+    accountCreationFee: () => UInt64.from(accountCreationFee),
     currentSlot() {
       return UInt32.fromNumber(
         Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
@@ -235,7 +234,7 @@ function LocalBlockchain({
       txn.sign();
       ledger.applyJsonTransaction(
         JSON.stringify(partiesToJson(txn.transaction)),
-        accountCreationFee_
+        String(accountCreationFee)
       );
       return { wait: async () => {} };
     },
@@ -243,7 +242,7 @@ function LocalBlockchain({
       return createTransaction(sender, f);
     },
     applyJsonTransaction(json: string) {
-      return ledger.applyJsonTransaction(json, accountCreationFee_);
+      return ledger.applyJsonTransaction(json, String(accountCreationFee));
     },
     addAccount,
     testAccounts,
@@ -251,7 +250,7 @@ function LocalBlockchain({
 }
 
 function RemoteBlockchain(graphqlEndpoint: string): Mina {
-  let accountCreationFee = UInt32.fromNumber(defaultAccountCreationFee);
+  let accountCreationFee = UInt64.from(defaultAccountCreationFee);
   Fetch.setGraphqlEndpoint(graphqlEndpoint);
   return {
     accountCreationFee: () => accountCreationFee,
@@ -307,7 +306,7 @@ function BerkeleyQANet(graphqlEndpoint: string) {
 }
 
 let activeInstance: Mina = {
-  accountCreationFee: () => UInt32.fromNumber(defaultAccountCreationFee),
+  accountCreationFee: () => UInt64.from(defaultAccountCreationFee),
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
   },
