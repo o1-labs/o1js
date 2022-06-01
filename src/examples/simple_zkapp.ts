@@ -11,6 +11,7 @@ import {
   isReady,
   Permissions,
   DeployArgs,
+  UInt32,
 } from 'snarkyjs';
 
 await isReady;
@@ -31,6 +32,8 @@ class SimpleZkapp extends SmartContract {
   @method update(y: Field) {
     let balance = this.account.balance.get();
     this.account.balance.assertBetween(UInt64.zero, UInt64.from(10e9));
+
+    this.network.blockchainLength.assertEquals(UInt32.zero);
 
     let x = this.x.get();
     this.x.set(x.add(y).add(balance.value));

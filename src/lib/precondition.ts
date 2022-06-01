@@ -1,4 +1,4 @@
-import { Circuit, AsFieldElements, Bool, Field } from '../snarky';
+import { Circuit, AsFieldElements, Bool, Field, jsLayout } from '../snarky';
 import { circuitValueEquals } from './circuit_value';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
@@ -7,47 +7,116 @@ import { Party, Preconditions } from './party';
 import * as GlobalContext from './global-context';
 import { UInt32, UInt64 } from './int';
 
-export { preconditions, Account, assertPreconditionInvariants };
+export { preconditions, Account, Network, assertPreconditionInvariants };
 
 function preconditions(party: Party, isSelf: boolean) {
   initializePreconditions(party, isSelf);
-  return { account: Account(party) };
+  return { account: Account(party), network: Network(party) };
 }
 
-type PreconditionBaseTypes<T> = {
-  [K in keyof T]: T[K] extends RangeCondition<infer U>
-    ? U
-    : T[K] extends FlaggedOptionCondition<infer U>
-    ? U
-    : T[K] extends AsFieldElements<infer U>
-    ? U
-    : PreconditionBaseTypes<T[K]>;
-};
+function Network(party: Party): Network {
+  // TODO there should be a less error-prone way of typing js layout
+  // e.g. separate keys list and value object, so that we can access by key
+  let layout = (jsLayout as any).Party.layout[0].value.layout[9].value.layout[0]
+    .value as Layout;
+  let context = getPreconditionContextExn(party);
+  return preconditionClass(layout, `network`, party, context);
+}
 
-type PreconditionSubclassType<U> = {
-  get(): U;
-  assertEquals(value: U): void;
-  assertNothing(): void;
-};
+function preconditionClass(
+  layout: Layout,
+  baseKey: any,
+  party: Party,
+  context: PreconditionContext
+): any {
+  if (layout.type === 'option') {
+    // range condition
+    if (layout.optionType === 'implicit' && layout.inner.type === 'object') {
+      let lower = layout.inner.layout[0].value.type;
+      let baseType = baseMap[lower];
+      return {
+        ...preconditionSubclass(party, baseKey, baseType as any, context),
+        assertBetween(lower: any, upper: any) {
+          context.constrained.add(baseKey);
+          let property = getPath(party.body.preconditions, baseKey);
+          property.lower = lower;
+          property.upper = upper;
+        },
+      };
+    }
+    // value condition
+    else if (layout.optionType === 'flaggedOption') {
+      let baseType = baseMap[layout.inner.type];
+      return preconditionSubclass(party, baseKey, baseType as any, context);
+    } else if (layout.inner.type !== 'object') {
+      let baseType = baseMap[layout.inner.type];
+      return preconditionSubclass(party, baseKey, baseType as any, context);
+    }
+  } else if (layout.type === 'array') {
+    return {}; // not applicable yet, TODO if we implement state
+  } else if (layout.type === 'object') {
+    // for each field, create a recursive object
+    return Object.fromEntries(
+      layout.layout.map(({ key, value }) => {
+        return [
+          key,
+          preconditionClass(value, `${baseKey}.${key}`, party, context),
+        ];
+      })
+    );
+  } else throw Error('bug');
+}
 
-type PreconditionClassType<T> = {
-  [K in keyof T]: T[K] extends RangeCondition<infer U>
-    ? PreconditionSubclassType<U> & {
-        assertBetween(lower: U, upper: U): void;
+function preconditionSubclass<
+  K extends LongKey,
+  U extends FlatPreconditionValue[K]
+>(
+  party: Party,
+  longKey: K,
+  fieldType: AsFieldElements<U>,
+  { read, vars, constrained }: PreconditionContext
+) {
+  return {
+    get() {
+      read.add(longKey);
+      return (vars[longKey] ??
+        (vars[longKey] = getVariable(longKey, fieldType))) as U;
+    },
+    assertEquals(value: U) {
+      constrained.add(longKey);
+      let property = getPath(
+        party.body.preconditions,
+        longKey
+      ) as AnyCondition<U>;
+      if ('isSome' in property) {
+        property.isSome = Bool(true);
+        property.value = value;
+      } else if ('lower' in property) {
+        property.lower = value;
+        property.upper = value;
+      } else {
+        setPath(party.body.preconditions, longKey, value);
       }
-    : T[K] extends FlaggedOptionCondition<infer U>
-    ? PreconditionSubclassType<U>
-    : T[K] extends AsFieldElements<infer U>
-    ? PreconditionSubclassType<U>
-    : PreconditionClassType<T[K]>;
-};
+    },
+    assertNothing() {
+      constrained.add(longKey);
+    },
+  };
+}
+
+function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
+  longKey: K,
+  fieldType: AsFieldElements<U>
+): U {
+  throw Error('todo');
+}
 
 type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
 type AccountKey = keyof AccountPrecondition;
 type AccountValueType = PreconditionBaseTypes<AccountPrecondition>;
-type AccountClassType = PreconditionClassType<AccountPrecondition>;
+type Account = PreconditionClassType<AccountPrecondition>;
 
-function Account(party: Party): AccountClassType {
+function Account(party: Party): Account {
   let address = party.body.publicKey;
   let { read, vars, constrained } = getPreconditionContextExn(party);
 
@@ -64,7 +133,7 @@ function Account(party: Party): AccountClassType {
             address,
             path,
             fieldType
-          ))) as AccountValueType[K];
+          ) as FlatPreconditionValue[typeof longPath])) as AccountValueType[K];
       },
       assertEquals(value: AccountValueType[K]) {
         constrained.add(longPath);
@@ -149,12 +218,11 @@ function getAccountFieldExn<K extends keyof AccountValueType>(
 }
 
 // per-party context for checking invariants on precondition construction
-type PreconditionPath = `account.${AccountKey}`;
 type PreconditionContext = {
   isSelf: boolean;
-  vars: Partial<Record<PreconditionPath, any>>;
-  read: Set<PreconditionPath>;
-  constrained: Set<PreconditionPath>;
+  vars: Partial<FlatPreconditionValue>;
+  read: Set<LongKey>;
+  constrained: Set<LongKey>;
 };
 
 function initializePreconditions(party: Party, isSelf: boolean) {
@@ -201,6 +269,102 @@ function getPreconditionContextExn(party: Party) {
 
 const preconditionContexts = new WeakMap<Party, PreconditionContext>();
 
+// exported types
+
+type NetworkPrecondition = Preconditions['network'];
+type Network = PreconditionClassType<NetworkPrecondition>;
+
+type PreconditionBaseTypes<T> = {
+  [K in keyof T]: T[K] extends RangeCondition<infer U>
+    ? U
+    : T[K] extends FlaggedOptionCondition<infer U>
+    ? U
+    : T[K] extends AsFieldElements<infer U>
+    ? U
+    : PreconditionBaseTypes<T[K]>;
+};
+
+type PreconditionSubclassType<U> = {
+  get(): U;
+  assertEquals(value: U): void;
+  assertNothing(): void;
+};
+
+type PreconditionClassType<T> = {
+  [K in keyof T]: T[K] extends RangeCondition<infer U>
+    ? PreconditionSubclassType<U> & {
+        assertBetween(lower: U, upper: U): void;
+      }
+    : T[K] extends FlaggedOptionCondition<infer U>
+    ? PreconditionSubclassType<U>
+    : T[K] extends AsFieldElements<infer U>
+    ? PreconditionSubclassType<U>
+    : PreconditionClassType<T[K]>;
+};
+
+// layout types
+
+type BaseLayout = { type: 'UInt64' | 'UInt32' | 'Field' | 'Bool' };
+let baseMap = { UInt64, UInt32, Field, Bool };
+
+type RangeLayout<T extends BaseLayout> = {
+  type: 'object';
+  layout: [{ key: 'lower'; value: T }, { key: 'upper'; value: T }];
+};
+type OptionLayout<T extends BaseLayout> = { type: 'option' } & (
+  | {
+      optionType: 'flaggedOption';
+      inner: T;
+    }
+  | {
+      optionType: 'implicit';
+      inner: RangeLayout<T>;
+    }
+  | {
+      optionType: 'implicit';
+      inner: T;
+    }
+);
+type Layout =
+  | {
+      type: 'object';
+      layout: {
+        key: string;
+        value: Layout;
+      }[];
+    }
+  | {
+      type: 'array';
+      inner: Layout;
+    }
+  | OptionLayout<BaseLayout>
+  | BaseLayout;
+
+// TS magic for computing flattened precondition types
+
+type JoinEntries<K, P> = K extends string
+  ? P extends [string, unknown, unknown]
+    ? [`${K}${P[0] extends '' ? '' : '.'}${P[0]}`, P[1], P[2]]
+    : never
+  : never;
+
+type PreconditionFlatEntry<T> = T extends AnyCondition<infer U>
+  ? ['', T, U]
+  : { [K in keyof T]: JoinEntries<K, PreconditionFlatEntry<T[K]>> }[keyof T];
+
+type FlatPreconditionValue = {
+  [S in PreconditionFlatEntry<NetworkPrecondition> as `network.${S[0]}`]: S[2];
+} & {
+  [S in PreconditionFlatEntry<AccountPrecondition> as `account.${S[0]}`]: S[2];
+};
+type FlatPrecondition = {
+  [S in PreconditionFlatEntry<NetworkPrecondition> as `network.${S[0]}`]: S[1];
+} & {
+  [S in PreconditionFlatEntry<AccountPrecondition> as `account.${S[0]}`]: S[1];
+};
+
+type LongKey = keyof FlatPreconditionValue;
+
 // types for the two kinds of conditions
 type RangeCondition<T> = { lower: T; upper: T };
 type FlaggedOptionCondition<T> = { isSome: Bool; value: T };
@@ -224,4 +388,9 @@ function getPath(obj: any, path: string) {
     obj = obj[key as any];
   }
   return obj;
+}
+function setPath(obj: any, path: string, value: any) {
+  let pathArray = path.split('.');
+  let key = pathArray.pop()!;
+  getPath(obj, pathArray.join('.'))[key] = value;
 }

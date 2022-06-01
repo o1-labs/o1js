@@ -344,6 +344,10 @@ export class SmartContract {
     return this.self.account;
   }
 
+  get network() {
+    return this.self.network;
+  }
+
   get balance() {
     return this.self.balance;
   }

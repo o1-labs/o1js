@@ -15,6 +15,7 @@ export {
   Pickles,
 };
 export * as Types from './gen/parties';
+export { jsLayout } from './gen/js-layout';
 
 let isReadyBoolean = false;
 let isReady = snarky_ready.then(() => (isReadyBoolean = true));

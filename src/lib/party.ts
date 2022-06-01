@@ -485,6 +485,7 @@ class Party {
   body: Body;
   authorization: LazyControl;
   account: Precondition.Account;
+  network: Precondition.Network;
 
   private isSelf: boolean;
 
@@ -492,8 +493,9 @@ class Party {
   constructor(body: Body, authorization = {} as LazyControl, isSelf = false) {
     this.body = body;
     this.authorization = authorization;
-    let { account } = Precondition.preconditions(this, isSelf);
+    let { account, network } = Precondition.preconditions(this, isSelf);
     this.account = account;
+    this.network = network;
     this.isSelf = isSelf;
   }
 
