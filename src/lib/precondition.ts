@@ -1,4 +1,11 @@
-import { Circuit, AsFieldElements, Bool, Field, jsLayout } from '../snarky';
+import {
+  Circuit,
+  AsFieldElements,
+  Bool,
+  Field,
+  jsLayout,
+  Types,
+} from '../snarky';
 import { circuitValueEquals } from './circuit_value';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
@@ -14,6 +21,9 @@ function preconditions(party: Party, isSelf: boolean) {
   return { account: Account(party), network: Network(party) };
 }
 
+// note: please keep the two precondition implementations separate
+// so we can add customized fields easily
+
 function Network(party: Party): Network {
   // TODO there should be a less error-prone way of typing js layout
   // e.g. separate keys list and value object, so that we can access by key
@@ -21,6 +31,15 @@ function Network(party: Party): Network {
     .value as Layout;
   let context = getPreconditionContextExn(party);
   return preconditionClass(layout, `network`, party, context);
+}
+
+function Account(party: Party): Account {
+  // TODO there should be a less error-prone way of typing js layout
+  // e.g. separate keys list and value object, so that we can access by key
+  let layout = (jsLayout as any).Party.layout[0].value.layout[9].value.layout[1]
+    .value as Layout;
+  let context = getPreconditionContextExn(party);
+  return preconditionClass(layout, `account`, party, context);
 }
 
 function preconditionClass(
@@ -80,7 +99,7 @@ function preconditionSubclass<
     get() {
       read.add(longKey);
       return (vars[longKey] ??
-        (vars[longKey] = getVariable(longKey, fieldType))) as U;
+        (vars[longKey] = getVariable(party, longKey, fieldType))) as U;
     },
     assertEquals(value: U) {
       constrained.add(longKey);
@@ -105,98 +124,26 @@ function preconditionSubclass<
 }
 
 function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
+  party: Party,
   longKey: K,
   fieldType: AsFieldElements<U>
 ): U {
+  let [accountOrNetwork, ...rest] = longKey.split('.');
+  let key = rest.join('.');
+
+  if (accountOrNetwork === 'account') {
+    let address = party.body.publicKey;
+    return getAccountFieldExn<any>(address, key, fieldType);
+  }
+
   throw Error('todo');
-}
-
-type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
-type AccountKey = keyof AccountPrecondition;
-type AccountValueType = PreconditionBaseTypes<AccountPrecondition>;
-type Account = PreconditionClassType<AccountPrecondition>;
-
-function Account(party: Party): Account {
-  let address = party.body.publicKey;
-  let { read, vars, constrained } = getPreconditionContextExn(party);
-
-  function precondition<K extends AccountKey>(
-    path: K,
-    fieldType: AsFieldElements<AccountValueType[K]>
-  ) {
-    let longPath = `account.${path}` as const;
-    return {
-      get(): AccountValueType[K] {
-        read.add(longPath);
-        return (vars[longPath] ??
-          (vars[longPath] = getAccountFieldExn(
-            address,
-            path,
-            fieldType
-          ) as FlatPreconditionValue[typeof longPath])) as AccountValueType[K];
-      },
-      assertEquals(value: AccountValueType[K]) {
-        constrained.add(longPath);
-        let property = getPath(
-          party.body.preconditions,
-          longPath
-        ) as AccountPrecondition[K];
-        if ('isSome' in property) {
-          property.isSome = Bool(true);
-          property.value = value as any;
-        } else if ('lower' in property) {
-          property.lower = value as any;
-          property.upper = value as any;
-        } else {
-          party.body.preconditions.account[path] = value as any;
-        }
-      },
-      assertNothing() {
-        constrained.add(longPath);
-      },
-    };
-  }
-
-  function rangePrecondition<K extends 'nonce' | 'balance'>(
-    path: K,
-    fieldType: AsFieldElements<AccountValueType[K]>
-  ) {
-    let longPath = `account.${path}` as const;
-    return {
-      ...precondition(path, fieldType),
-      assertBetween(lower: AccountValueType[K], upper: AccountValueType[K]) {
-        constrained.add(longPath);
-        let property = getPath(
-          party.body.preconditions,
-          longPath
-        ) as AccountPrecondition[K];
-        property.lower = lower;
-        property.upper = upper;
-      },
-    };
-  }
-
-  return {
-    balance: rangePrecondition('balance', UInt64),
-    nonce: rangePrecondition('nonce', UInt32),
-    // TODO: OK how we read this from delegateAccount?
-    delegate: precondition('delegate', PublicKey),
-    // TODO: no graphql field yet
-    provedState: precondition('provedState', Bool),
-    // TODO: figure out serialization
-    receiptChainHash: precondition('receiptChainHash', Field),
-    // TODO: OK how we read this from sequenceEvents?
-    sequenceState: precondition('sequenceState', Field),
-    // TODO: should we add state? then we should change the structure on `Fetch.Account` which is stupid anyway
-    // then can just use circuitArray(Field, 8) as the type
-  };
 }
 
 function getAccountFieldExn<K extends keyof AccountValueType>(
   address: PublicKey,
   key: K,
   fieldType: AsFieldElements<AccountValueType[K]>
-) {
+): AccountValueType[K] {
   type Value = AccountValueType[K];
   let inProver = GlobalContext.inProver();
   if (!GlobalContext.inCompile()) {
@@ -205,7 +152,7 @@ function getAccountFieldExn<K extends keyof AccountValueType>(
       throw Error(
         `Could not get \`${key}\` on account with public key ${address.toBase58()}. The property may not be available on this account.`
       );
-    let field = account[key] as Value;
+    let field = account[key] as any as Value;
     // in prover, create a new witness with the state values
     // outside, just return the state values
     return inProver ? Circuit.witness(fieldType, () => field) : field;
@@ -271,29 +218,40 @@ const preconditionContexts = new WeakMap<Party, PreconditionContext>();
 
 // exported types
 
+// TODO actually fetch network preconditions
 type NetworkPrecondition = Preconditions['network'];
 type Network = PreconditionClassType<NetworkPrecondition>;
 
+// TODO: OK how we read delegate from delegateAccount?
+// TODO: no graphql field for provedState yet
+// TODO: figure out serialization of receiptChainHash
+// TODO: OK how we read sequenceState from sequenceEvents?
+// TODO: should we add account.state? then we should change the structure on `Fetch.Account` which is stupid anyway
+// then can just use circuitArray(Field, 8) as the type
+type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
+type AccountValueType = PreconditionBaseTypes<AccountPrecondition>;
+type Account = PreconditionClassType<AccountPrecondition>;
+
 type PreconditionBaseTypes<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
-    ? U
+    ? BasicToFull<U>
     : T[K] extends FlaggedOptionCondition<infer U>
-    ? U
+    ? BasicToFull<U>
     : T[K] extends AsFieldElements<infer U>
-    ? U
+    ? BasicToFull<U>
     : PreconditionBaseTypes<T[K]>;
 };
 
 type PreconditionSubclassType<U> = {
-  get(): U;
-  assertEquals(value: U): void;
+  get(): BasicToFull<U>;
+  assertEquals(value: BasicToFull<U>): void;
   assertNothing(): void;
 };
 
 type PreconditionClassType<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
     ? PreconditionSubclassType<U> & {
-        assertBetween(lower: U, upper: U): void;
+        assertBetween(lower: BasicToFull<U>, upper: BasicToFull<U>): void;
       }
     : T[K] extends FlaggedOptionCondition<infer U>
     ? PreconditionSubclassType<U>
@@ -301,6 +259,16 @@ type PreconditionClassType<T> = {
     ? PreconditionSubclassType<U>
     : PreconditionClassType<T[K]>;
 };
+
+type BasicToFull<K> = K extends Types.UInt32
+  ? UInt32
+  : K extends Types.UInt64
+  ? UInt64
+  : K extends Field
+  ? Field
+  : K extends Bool
+  ? Bool
+  : never;
 
 // layout types
 
