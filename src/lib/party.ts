@@ -10,6 +10,7 @@ export {
   SetOrKeep,
   Permission,
   Permissions,
+  Preconditions,
   Body,
   Party,
   FeePayerUnsigned,
@@ -30,6 +31,11 @@ const ZkappStateLength = 8;
 
 type PartyBody = Types.Party['body'];
 type Update = PartyBody['update'];
+
+/**
+ * Preconditions for the network and accounts
+ */
+type Preconditions = PartyBody['preconditions'];
 
 /**
  * Timing info inside an account.
@@ -219,7 +225,7 @@ let Permissions = {
   }),
 };
 
-export const getDefaultTokenId = () => Field.one;
+const getDefaultTokenId = () => Field.one;
 
 // TODO
 class Events {
@@ -284,8 +290,7 @@ interface Body extends PartyBody {
   caller: Field;
   callData: Field; //MerkleList<Array<Field>>;
   callDepth: number; // TODO: this is an `int As_prover.t`
-  protocolStatePrecondition: ProtocolStatePrecondition;
-  accountPrecondition: AccountPrecondition;
+  preconditions: Preconditions;
   useFullCommitment: Bool;
   incrementNonce: Bool;
 }
@@ -333,8 +338,7 @@ const Body = {
       caller: getDefaultTokenId(),
       callData: Field.zero, // TODO new MerkleList(),
       callDepth: 0,
-      protocolStatePrecondition: ProtocolStatePrecondition.ignoreAll(),
-      accountPrecondition: AccountPrecondition.ignoreAll(),
+      preconditions: Preconditions.ignoreAll(),
       // the default assumption is that snarkyjs transactions don't include the fee payer
       // so useFullCommitment has to be false for signatures to be correct
       useFullCommitment: Bool(false),
@@ -359,7 +363,7 @@ const FeePayerBody = {
       update: Body.noUpdate(),
       events: Events.empty(),
       sequenceEvents: Events.empty(),
-      protocolStatePrecondition: ProtocolStatePrecondition.ignoreAll(),
+      networkPrecondition: NetworkPrecondition.ignoreAll(),
     };
   },
 };
@@ -384,9 +388,9 @@ type OrIgnore<T> = { isSome: Bool; value: T };
  */
 type ClosedInterval<T> = { lower: T; upper: T };
 
-type ProtocolStatePrecondition = PartyBody['protocolStatePrecondition'];
-let ProtocolStatePrecondition = {
-  ignoreAll(): ProtocolStatePrecondition {
+type NetworkPrecondition = Preconditions['network'];
+let NetworkPrecondition = {
+  ignoreAll(): NetworkPrecondition {
     let stakingEpochData = {
       ledger: { hash: ignore(Field.zero), totalCurrency: uint64() },
       seed: ignore(Field.zero),
@@ -429,8 +433,8 @@ const uint32 = () => ({ lower: UInt32.fromNumber(0), upper: UInt32.MAXINT() });
  */
 const uint64 = () => ({ lower: UInt64.fromNumber(0), upper: UInt64.MAXINT() });
 
-export type AccountPrecondition = PartyBody['accountPrecondition'];
-export const AccountPrecondition = {
+type AccountPrecondition = Preconditions['account'];
+const AccountPrecondition = {
   ignoreAll(): AccountPrecondition {
     let appState: Array<OrIgnore<Field>> = [];
     for (let i = 0; i < ZkappStateLength; ++i) {
@@ -450,6 +454,15 @@ export const AccountPrecondition = {
     let p = AccountPrecondition.ignoreAll();
     Party.assertEquals(p.nonce, nonce);
     return p;
+  },
+};
+
+const Preconditions = {
+  ignoreAll(): Preconditions {
+    return {
+      account: AccountPrecondition.ignoreAll(),
+      network: NetworkPrecondition.ignoreAll(),
+    };
   },
 };
 
@@ -595,7 +608,7 @@ class Party {
 
   setNoncePrecondition(fallbackToZero = false) {
     let nonce = Party.getNonce(this, fallbackToZero);
-    let accountPrecondition = this.body.accountPrecondition;
+    let accountPrecondition = this.body.preconditions.account;
     Party.assertEquals(accountPrecondition.nonce, nonce);
     return nonce;
   }
@@ -691,7 +704,7 @@ class Party {
       nonceIncrement.add(new UInt32(shouldIncreaseNonce.toField()));
     }
     nonce = nonce.add(nonceIncrement);
-    Party.assertEquals(body.accountPrecondition.nonce, nonce);
+    Party.assertEquals(body.preconditions.account.nonce, nonce);
     body.incrementNonce = Bool(true);
 
     let party = new Party(body);

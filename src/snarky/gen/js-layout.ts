@@ -318,10 +318,10 @@ let jsLayout = {
                     docs: null,
                   },
                   {
-                    key: 'protocolStatePrecondition',
+                    key: 'networkPrecondition',
                     value: {
                       type: 'object',
-                      name: 'ProtocolStatePrecondition',
+                      name: 'NetworkPrecondition',
                       docs: null,
                       layout: [
                         {
@@ -1058,252 +1058,55 @@ let jsLayout = {
                     { key: 'callData', value: { type: 'Field' }, docs: null },
                     { key: 'callDepth', value: { type: 'number' }, docs: null },
                     {
-                      key: 'protocolStatePrecondition',
+                      key: 'preconditions',
                       value: {
                         type: 'object',
-                        name: 'ProtocolStatePrecondition',
+                        name: 'Preconditions',
                         docs: null,
                         layout: [
                           {
-                            key: 'snarkedLedgerHash',
-                            value: {
-                              type: 'option',
-                              optionType: 'flaggedOption',
-                              inner: { type: 'Field' },
-                            },
-                            docs: null,
-                          },
-                          {
-                            key: 'timestamp',
-                            value: {
-                              type: 'option',
-                              optionType: 'implicit',
-                              inner: {
-                                type: 'object',
-                                name: 'BlockTimeInterval',
-                                docs: null,
-                                layout: [
-                                  {
-                                    key: 'lower',
-                                    value: { type: 'UInt64' },
-                                    docs: null,
-                                  },
-                                  {
-                                    key: 'upper',
-                                    value: { type: 'UInt64' },
-                                    docs: null,
-                                  },
-                                ],
-                              },
-                            },
-                            docs: null,
-                          },
-                          {
-                            key: 'blockchainLength',
-                            value: {
-                              type: 'option',
-                              optionType: 'implicit',
-                              inner: {
-                                type: 'object',
-                                name: 'LengthInterval',
-                                docs: null,
-                                layout: [
-                                  {
-                                    key: 'lower',
-                                    value: { type: 'UInt32' },
-                                    docs: null,
-                                  },
-                                  {
-                                    key: 'upper',
-                                    value: { type: 'UInt32' },
-                                    docs: null,
-                                  },
-                                ],
-                              },
-                            },
-                            docs: null,
-                          },
-                          {
-                            key: 'minWindowDensity',
-                            value: {
-                              type: 'option',
-                              optionType: 'implicit',
-                              inner: {
-                                type: 'object',
-                                name: 'LengthInterval',
-                                docs: null,
-                                layout: [
-                                  {
-                                    key: 'lower',
-                                    value: { type: 'UInt32' },
-                                    docs: null,
-                                  },
-                                  {
-                                    key: 'upper',
-                                    value: { type: 'UInt32' },
-                                    docs: null,
-                                  },
-                                ],
-                              },
-                            },
-                            docs: null,
-                          },
-                          {
-                            key: 'totalCurrency',
-                            value: {
-                              type: 'option',
-                              optionType: 'implicit',
-                              inner: {
-                                type: 'object',
-                                name: 'CurrencyAmountInterval',
-                                docs: null,
-                                layout: [
-                                  {
-                                    key: 'lower',
-                                    value: { type: 'UInt64' },
-                                    docs: null,
-                                  },
-                                  {
-                                    key: 'upper',
-                                    value: { type: 'UInt64' },
-                                    docs: null,
-                                  },
-                                ],
-                              },
-                            },
-                            docs: null,
-                          },
-                          {
-                            key: 'globalSlotSinceHardFork',
-                            value: {
-                              type: 'option',
-                              optionType: 'implicit',
-                              inner: {
-                                type: 'object',
-                                name: 'GlobalSlotInterval',
-                                docs: null,
-                                layout: [
-                                  {
-                                    key: 'lower',
-                                    value: { type: 'UInt32' },
-                                    docs: null,
-                                  },
-                                  {
-                                    key: 'upper',
-                                    value: { type: 'UInt32' },
-                                    docs: null,
-                                  },
-                                ],
-                              },
-                            },
-                            docs: null,
-                          },
-                          {
-                            key: 'globalSlotSinceGenesis',
-                            value: {
-                              type: 'option',
-                              optionType: 'implicit',
-                              inner: {
-                                type: 'object',
-                                name: 'GlobalSlotInterval',
-                                docs: null,
-                                layout: [
-                                  {
-                                    key: 'lower',
-                                    value: { type: 'UInt32' },
-                                    docs: null,
-                                  },
-                                  {
-                                    key: 'upper',
-                                    value: { type: 'UInt32' },
-                                    docs: null,
-                                  },
-                                ],
-                              },
-                            },
-                            docs: null,
-                          },
-                          {
-                            key: 'stakingEpochData',
+                            key: 'network',
                             value: {
                               type: 'object',
-                              name: 'EpochDataPrecondition',
+                              name: 'NetworkPrecondition',
                               docs: null,
                               layout: [
                                 {
-                                  key: 'ledger',
+                                  key: 'snarkedLedgerHash',
                                   value: {
-                                    type: 'object',
-                                    name: 'EpochLedgerPrecondition',
-                                    docs: null,
-                                    layout: [
-                                      {
-                                        key: 'hash',
-                                        value: {
-                                          type: 'option',
-                                          optionType: 'flaggedOption',
-                                          inner: { type: 'Field' },
+                                    type: 'option',
+                                    optionType: 'flaggedOption',
+                                    inner: { type: 'Field' },
+                                  },
+                                  docs: null,
+                                },
+                                {
+                                  key: 'timestamp',
+                                  value: {
+                                    type: 'option',
+                                    optionType: 'implicit',
+                                    inner: {
+                                      type: 'object',
+                                      name: 'BlockTimeInterval',
+                                      docs: null,
+                                      layout: [
+                                        {
+                                          key: 'lower',
+                                          value: { type: 'UInt64' },
+                                          docs: null,
                                         },
-                                        docs: null,
-                                      },
-                                      {
-                                        key: 'totalCurrency',
-                                        value: {
-                                          type: 'option',
-                                          optionType: 'implicit',
-                                          inner: {
-                                            type: 'object',
-                                            name: 'CurrencyAmountInterval',
-                                            docs: null,
-                                            layout: [
-                                              {
-                                                key: 'lower',
-                                                value: { type: 'UInt64' },
-                                                docs: null,
-                                              },
-                                              {
-                                                key: 'upper',
-                                                value: { type: 'UInt64' },
-                                                docs: null,
-                                              },
-                                            ],
-                                          },
+                                        {
+                                          key: 'upper',
+                                          value: { type: 'UInt64' },
+                                          docs: null,
                                         },
-                                        docs: null,
-                                      },
-                                    ],
+                                      ],
+                                    },
                                   },
                                   docs: null,
                                 },
                                 {
-                                  key: 'seed',
-                                  value: {
-                                    type: 'option',
-                                    optionType: 'flaggedOption',
-                                    inner: { type: 'Field' },
-                                  },
-                                  docs: null,
-                                },
-                                {
-                                  key: 'startCheckpoint',
-                                  value: {
-                                    type: 'option',
-                                    optionType: 'flaggedOption',
-                                    inner: { type: 'Field' },
-                                  },
-                                  docs: null,
-                                },
-                                {
-                                  key: 'lockCheckpoint',
-                                  value: {
-                                    type: 'option',
-                                    optionType: 'flaggedOption',
-                                    inner: { type: 'Field' },
-                                  },
-                                  docs: null,
-                                },
-                                {
-                                  key: 'epochLength',
+                                  key: 'blockchainLength',
                                   value: {
                                     type: 'option',
                                     optionType: 'implicit',
@@ -1327,91 +1130,8 @@ let jsLayout = {
                                   },
                                   docs: null,
                                 },
-                              ],
-                            },
-                            docs: null,
-                          },
-                          {
-                            key: 'nextEpochData',
-                            value: {
-                              type: 'object',
-                              name: 'EpochDataPrecondition',
-                              docs: null,
-                              layout: [
                                 {
-                                  key: 'ledger',
-                                  value: {
-                                    type: 'object',
-                                    name: 'EpochLedgerPrecondition',
-                                    docs: null,
-                                    layout: [
-                                      {
-                                        key: 'hash',
-                                        value: {
-                                          type: 'option',
-                                          optionType: 'flaggedOption',
-                                          inner: { type: 'Field' },
-                                        },
-                                        docs: null,
-                                      },
-                                      {
-                                        key: 'totalCurrency',
-                                        value: {
-                                          type: 'option',
-                                          optionType: 'implicit',
-                                          inner: {
-                                            type: 'object',
-                                            name: 'CurrencyAmountInterval',
-                                            docs: null,
-                                            layout: [
-                                              {
-                                                key: 'lower',
-                                                value: { type: 'UInt64' },
-                                                docs: null,
-                                              },
-                                              {
-                                                key: 'upper',
-                                                value: { type: 'UInt64' },
-                                                docs: null,
-                                              },
-                                            ],
-                                          },
-                                        },
-                                        docs: null,
-                                      },
-                                    ],
-                                  },
-                                  docs: null,
-                                },
-                                {
-                                  key: 'seed',
-                                  value: {
-                                    type: 'option',
-                                    optionType: 'flaggedOption',
-                                    inner: { type: 'Field' },
-                                  },
-                                  docs: null,
-                                },
-                                {
-                                  key: 'startCheckpoint',
-                                  value: {
-                                    type: 'option',
-                                    optionType: 'flaggedOption',
-                                    inner: { type: 'Field' },
-                                  },
-                                  docs: null,
-                                },
-                                {
-                                  key: 'lockCheckpoint',
-                                  value: {
-                                    type: 'option',
-                                    optionType: 'flaggedOption',
-                                    inner: { type: 'Field' },
-                                  },
-                                  docs: null,
-                                },
-                                {
-                                  key: 'epochLength',
+                                  key: 'minWindowDensity',
                                   value: {
                                     type: 'option',
                                     optionType: 'implicit',
@@ -1435,116 +1155,407 @@ let jsLayout = {
                                   },
                                   docs: null,
                                 },
+                                {
+                                  key: 'totalCurrency',
+                                  value: {
+                                    type: 'option',
+                                    optionType: 'implicit',
+                                    inner: {
+                                      type: 'object',
+                                      name: 'CurrencyAmountInterval',
+                                      docs: null,
+                                      layout: [
+                                        {
+                                          key: 'lower',
+                                          value: { type: 'UInt64' },
+                                          docs: null,
+                                        },
+                                        {
+                                          key: 'upper',
+                                          value: { type: 'UInt64' },
+                                          docs: null,
+                                        },
+                                      ],
+                                    },
+                                  },
+                                  docs: null,
+                                },
+                                {
+                                  key: 'globalSlotSinceHardFork',
+                                  value: {
+                                    type: 'option',
+                                    optionType: 'implicit',
+                                    inner: {
+                                      type: 'object',
+                                      name: 'GlobalSlotInterval',
+                                      docs: null,
+                                      layout: [
+                                        {
+                                          key: 'lower',
+                                          value: { type: 'UInt32' },
+                                          docs: null,
+                                        },
+                                        {
+                                          key: 'upper',
+                                          value: { type: 'UInt32' },
+                                          docs: null,
+                                        },
+                                      ],
+                                    },
+                                  },
+                                  docs: null,
+                                },
+                                {
+                                  key: 'globalSlotSinceGenesis',
+                                  value: {
+                                    type: 'option',
+                                    optionType: 'implicit',
+                                    inner: {
+                                      type: 'object',
+                                      name: 'GlobalSlotInterval',
+                                      docs: null,
+                                      layout: [
+                                        {
+                                          key: 'lower',
+                                          value: { type: 'UInt32' },
+                                          docs: null,
+                                        },
+                                        {
+                                          key: 'upper',
+                                          value: { type: 'UInt32' },
+                                          docs: null,
+                                        },
+                                      ],
+                                    },
+                                  },
+                                  docs: null,
+                                },
+                                {
+                                  key: 'stakingEpochData',
+                                  value: {
+                                    type: 'object',
+                                    name: 'EpochDataPrecondition',
+                                    docs: null,
+                                    layout: [
+                                      {
+                                        key: 'ledger',
+                                        value: {
+                                          type: 'object',
+                                          name: 'EpochLedgerPrecondition',
+                                          docs: null,
+                                          layout: [
+                                            {
+                                              key: 'hash',
+                                              value: {
+                                                type: 'option',
+                                                optionType: 'flaggedOption',
+                                                inner: { type: 'Field' },
+                                              },
+                                              docs: null,
+                                            },
+                                            {
+                                              key: 'totalCurrency',
+                                              value: {
+                                                type: 'option',
+                                                optionType: 'implicit',
+                                                inner: {
+                                                  type: 'object',
+                                                  name: 'CurrencyAmountInterval',
+                                                  docs: null,
+                                                  layout: [
+                                                    {
+                                                      key: 'lower',
+                                                      value: { type: 'UInt64' },
+                                                      docs: null,
+                                                    },
+                                                    {
+                                                      key: 'upper',
+                                                      value: { type: 'UInt64' },
+                                                      docs: null,
+                                                    },
+                                                  ],
+                                                },
+                                              },
+                                              docs: null,
+                                            },
+                                          ],
+                                        },
+                                        docs: null,
+                                      },
+                                      {
+                                        key: 'seed',
+                                        value: {
+                                          type: 'option',
+                                          optionType: 'flaggedOption',
+                                          inner: { type: 'Field' },
+                                        },
+                                        docs: null,
+                                      },
+                                      {
+                                        key: 'startCheckpoint',
+                                        value: {
+                                          type: 'option',
+                                          optionType: 'flaggedOption',
+                                          inner: { type: 'Field' },
+                                        },
+                                        docs: null,
+                                      },
+                                      {
+                                        key: 'lockCheckpoint',
+                                        value: {
+                                          type: 'option',
+                                          optionType: 'flaggedOption',
+                                          inner: { type: 'Field' },
+                                        },
+                                        docs: null,
+                                      },
+                                      {
+                                        key: 'epochLength',
+                                        value: {
+                                          type: 'option',
+                                          optionType: 'implicit',
+                                          inner: {
+                                            type: 'object',
+                                            name: 'LengthInterval',
+                                            docs: null,
+                                            layout: [
+                                              {
+                                                key: 'lower',
+                                                value: { type: 'UInt32' },
+                                                docs: null,
+                                              },
+                                              {
+                                                key: 'upper',
+                                                value: { type: 'UInt32' },
+                                                docs: null,
+                                              },
+                                            ],
+                                          },
+                                        },
+                                        docs: null,
+                                      },
+                                    ],
+                                  },
+                                  docs: null,
+                                },
+                                {
+                                  key: 'nextEpochData',
+                                  value: {
+                                    type: 'object',
+                                    name: 'EpochDataPrecondition',
+                                    docs: null,
+                                    layout: [
+                                      {
+                                        key: 'ledger',
+                                        value: {
+                                          type: 'object',
+                                          name: 'EpochLedgerPrecondition',
+                                          docs: null,
+                                          layout: [
+                                            {
+                                              key: 'hash',
+                                              value: {
+                                                type: 'option',
+                                                optionType: 'flaggedOption',
+                                                inner: { type: 'Field' },
+                                              },
+                                              docs: null,
+                                            },
+                                            {
+                                              key: 'totalCurrency',
+                                              value: {
+                                                type: 'option',
+                                                optionType: 'implicit',
+                                                inner: {
+                                                  type: 'object',
+                                                  name: 'CurrencyAmountInterval',
+                                                  docs: null,
+                                                  layout: [
+                                                    {
+                                                      key: 'lower',
+                                                      value: { type: 'UInt64' },
+                                                      docs: null,
+                                                    },
+                                                    {
+                                                      key: 'upper',
+                                                      value: { type: 'UInt64' },
+                                                      docs: null,
+                                                    },
+                                                  ],
+                                                },
+                                              },
+                                              docs: null,
+                                            },
+                                          ],
+                                        },
+                                        docs: null,
+                                      },
+                                      {
+                                        key: 'seed',
+                                        value: {
+                                          type: 'option',
+                                          optionType: 'flaggedOption',
+                                          inner: { type: 'Field' },
+                                        },
+                                        docs: null,
+                                      },
+                                      {
+                                        key: 'startCheckpoint',
+                                        value: {
+                                          type: 'option',
+                                          optionType: 'flaggedOption',
+                                          inner: { type: 'Field' },
+                                        },
+                                        docs: null,
+                                      },
+                                      {
+                                        key: 'lockCheckpoint',
+                                        value: {
+                                          type: 'option',
+                                          optionType: 'flaggedOption',
+                                          inner: { type: 'Field' },
+                                        },
+                                        docs: null,
+                                      },
+                                      {
+                                        key: 'epochLength',
+                                        value: {
+                                          type: 'option',
+                                          optionType: 'implicit',
+                                          inner: {
+                                            type: 'object',
+                                            name: 'LengthInterval',
+                                            docs: null,
+                                            layout: [
+                                              {
+                                                key: 'lower',
+                                                value: { type: 'UInt32' },
+                                                docs: null,
+                                              },
+                                              {
+                                                key: 'upper',
+                                                value: { type: 'UInt32' },
+                                                docs: null,
+                                              },
+                                            ],
+                                          },
+                                        },
+                                        docs: null,
+                                      },
+                                    ],
+                                  },
+                                  docs: null,
+                                },
                               ],
                             },
                             docs: null,
                           },
-                        ],
-                      },
-                      docs: null,
-                    },
-                    {
-                      key: 'accountPrecondition',
-                      value: {
-                        type: 'object',
-                        name: 'AccountPrecondition',
-                        docs: null,
-                        layout: [
                           {
-                            key: 'balance',
+                            key: 'account',
                             value: {
-                              type: 'option',
-                              optionType: 'implicit',
-                              inner: {
-                                type: 'object',
-                                name: 'BalanceInterval',
-                                docs: null,
-                                layout: [
-                                  {
-                                    key: 'lower',
-                                    value: { type: 'UInt64' },
-                                    docs: null,
+                              type: 'object',
+                              name: 'AccountPrecondition',
+                              docs: null,
+                              layout: [
+                                {
+                                  key: 'balance',
+                                  value: {
+                                    type: 'option',
+                                    optionType: 'implicit',
+                                    inner: {
+                                      type: 'object',
+                                      name: 'BalanceInterval',
+                                      docs: null,
+                                      layout: [
+                                        {
+                                          key: 'lower',
+                                          value: { type: 'UInt64' },
+                                          docs: null,
+                                        },
+                                        {
+                                          key: 'upper',
+                                          value: { type: 'UInt64' },
+                                          docs: null,
+                                        },
+                                      ],
+                                    },
                                   },
-                                  {
-                                    key: 'upper',
-                                    value: { type: 'UInt64' },
-                                    docs: null,
+                                  docs: null,
+                                },
+                                {
+                                  key: 'nonce',
+                                  value: {
+                                    type: 'option',
+                                    optionType: 'implicit',
+                                    inner: {
+                                      type: 'object',
+                                      name: 'NonceInterval',
+                                      docs: null,
+                                      layout: [
+                                        {
+                                          key: 'lower',
+                                          value: { type: 'UInt32' },
+                                          docs: null,
+                                        },
+                                        {
+                                          key: 'upper',
+                                          value: { type: 'UInt32' },
+                                          docs: null,
+                                        },
+                                      ],
+                                    },
                                   },
-                                ],
-                              },
-                            },
-                            docs: null,
-                          },
-                          {
-                            key: 'nonce',
-                            value: {
-                              type: 'option',
-                              optionType: 'implicit',
-                              inner: {
-                                type: 'object',
-                                name: 'NonceInterval',
-                                docs: null,
-                                layout: [
-                                  {
-                                    key: 'lower',
-                                    value: { type: 'UInt32' },
-                                    docs: null,
+                                  docs: null,
+                                },
+                                {
+                                  key: 'receiptChainHash',
+                                  value: {
+                                    type: 'option',
+                                    optionType: 'flaggedOption',
+                                    inner: { type: 'Field' },
                                   },
-                                  {
-                                    key: 'upper',
-                                    value: { type: 'UInt32' },
-                                    docs: null,
+                                  docs: null,
+                                },
+                                {
+                                  key: 'delegate',
+                                  value: {
+                                    type: 'option',
+                                    optionType: 'flaggedOption',
+                                    inner: { type: 'PublicKey' },
                                   },
-                                ],
-                              },
-                            },
-                            docs: null,
-                          },
-                          {
-                            key: 'receiptChainHash',
-                            value: {
-                              type: 'option',
-                              optionType: 'flaggedOption',
-                              inner: { type: 'Field' },
-                            },
-                            docs: null,
-                          },
-                          {
-                            key: 'delegate',
-                            value: {
-                              type: 'option',
-                              optionType: 'flaggedOption',
-                              inner: { type: 'PublicKey' },
-                            },
-                            docs: null,
-                          },
-                          {
-                            key: 'state',
-                            value: {
-                              type: 'array',
-                              inner: {
-                                type: 'option',
-                                optionType: 'flaggedOption',
-                                inner: { type: 'Field' },
-                              },
-                            },
-                            docs: null,
-                          },
-                          {
-                            key: 'sequenceState',
-                            value: {
-                              type: 'option',
-                              optionType: 'implicit',
-                              inner: { type: 'Field' },
-                            },
-                            docs: null,
-                          },
-                          {
-                            key: 'provedState',
-                            value: {
-                              type: 'option',
-                              optionType: 'flaggedOption',
-                              inner: { type: 'Bool' },
+                                  docs: null,
+                                },
+                                {
+                                  key: 'state',
+                                  value: {
+                                    type: 'array',
+                                    inner: {
+                                      type: 'option',
+                                      optionType: 'flaggedOption',
+                                      inner: { type: 'Field' },
+                                    },
+                                  },
+                                  docs: null,
+                                },
+                                {
+                                  key: 'sequenceState',
+                                  value: {
+                                    type: 'option',
+                                    optionType: 'implicit',
+                                    inner: { type: 'Field' },
+                                  },
+                                  docs: null,
+                                },
+                                {
+                                  key: 'provedState',
+                                  value: {
+                                    type: 'option',
+                                    optionType: 'flaggedOption',
+                                    inner: { type: 'Bool' },
+                                  },
+                                  docs: null,
+                                },
+                              ],
                             },
                             docs: null,
                           },
@@ -1910,252 +1921,55 @@ let jsLayout = {
             { key: 'callData', value: { type: 'Field' }, docs: null },
             { key: 'callDepth', value: { type: 'number' }, docs: null },
             {
-              key: 'protocolStatePrecondition',
+              key: 'preconditions',
               value: {
                 type: 'object',
-                name: 'ProtocolStatePrecondition',
+                name: 'Preconditions',
                 docs: null,
                 layout: [
                   {
-                    key: 'snarkedLedgerHash',
-                    value: {
-                      type: 'option',
-                      optionType: 'flaggedOption',
-                      inner: { type: 'Field' },
-                    },
-                    docs: null,
-                  },
-                  {
-                    key: 'timestamp',
-                    value: {
-                      type: 'option',
-                      optionType: 'implicit',
-                      inner: {
-                        type: 'object',
-                        name: 'BlockTimeInterval',
-                        docs: null,
-                        layout: [
-                          {
-                            key: 'lower',
-                            value: { type: 'UInt64' },
-                            docs: null,
-                          },
-                          {
-                            key: 'upper',
-                            value: { type: 'UInt64' },
-                            docs: null,
-                          },
-                        ],
-                      },
-                    },
-                    docs: null,
-                  },
-                  {
-                    key: 'blockchainLength',
-                    value: {
-                      type: 'option',
-                      optionType: 'implicit',
-                      inner: {
-                        type: 'object',
-                        name: 'LengthInterval',
-                        docs: null,
-                        layout: [
-                          {
-                            key: 'lower',
-                            value: { type: 'UInt32' },
-                            docs: null,
-                          },
-                          {
-                            key: 'upper',
-                            value: { type: 'UInt32' },
-                            docs: null,
-                          },
-                        ],
-                      },
-                    },
-                    docs: null,
-                  },
-                  {
-                    key: 'minWindowDensity',
-                    value: {
-                      type: 'option',
-                      optionType: 'implicit',
-                      inner: {
-                        type: 'object',
-                        name: 'LengthInterval',
-                        docs: null,
-                        layout: [
-                          {
-                            key: 'lower',
-                            value: { type: 'UInt32' },
-                            docs: null,
-                          },
-                          {
-                            key: 'upper',
-                            value: { type: 'UInt32' },
-                            docs: null,
-                          },
-                        ],
-                      },
-                    },
-                    docs: null,
-                  },
-                  {
-                    key: 'totalCurrency',
-                    value: {
-                      type: 'option',
-                      optionType: 'implicit',
-                      inner: {
-                        type: 'object',
-                        name: 'CurrencyAmountInterval',
-                        docs: null,
-                        layout: [
-                          {
-                            key: 'lower',
-                            value: { type: 'UInt64' },
-                            docs: null,
-                          },
-                          {
-                            key: 'upper',
-                            value: { type: 'UInt64' },
-                            docs: null,
-                          },
-                        ],
-                      },
-                    },
-                    docs: null,
-                  },
-                  {
-                    key: 'globalSlotSinceHardFork',
-                    value: {
-                      type: 'option',
-                      optionType: 'implicit',
-                      inner: {
-                        type: 'object',
-                        name: 'GlobalSlotInterval',
-                        docs: null,
-                        layout: [
-                          {
-                            key: 'lower',
-                            value: { type: 'UInt32' },
-                            docs: null,
-                          },
-                          {
-                            key: 'upper',
-                            value: { type: 'UInt32' },
-                            docs: null,
-                          },
-                        ],
-                      },
-                    },
-                    docs: null,
-                  },
-                  {
-                    key: 'globalSlotSinceGenesis',
-                    value: {
-                      type: 'option',
-                      optionType: 'implicit',
-                      inner: {
-                        type: 'object',
-                        name: 'GlobalSlotInterval',
-                        docs: null,
-                        layout: [
-                          {
-                            key: 'lower',
-                            value: { type: 'UInt32' },
-                            docs: null,
-                          },
-                          {
-                            key: 'upper',
-                            value: { type: 'UInt32' },
-                            docs: null,
-                          },
-                        ],
-                      },
-                    },
-                    docs: null,
-                  },
-                  {
-                    key: 'stakingEpochData',
+                    key: 'network',
                     value: {
                       type: 'object',
-                      name: 'EpochDataPrecondition',
+                      name: 'NetworkPrecondition',
                       docs: null,
                       layout: [
                         {
-                          key: 'ledger',
+                          key: 'snarkedLedgerHash',
                           value: {
-                            type: 'object',
-                            name: 'EpochLedgerPrecondition',
-                            docs: null,
-                            layout: [
-                              {
-                                key: 'hash',
-                                value: {
-                                  type: 'option',
-                                  optionType: 'flaggedOption',
-                                  inner: { type: 'Field' },
+                            type: 'option',
+                            optionType: 'flaggedOption',
+                            inner: { type: 'Field' },
+                          },
+                          docs: null,
+                        },
+                        {
+                          key: 'timestamp',
+                          value: {
+                            type: 'option',
+                            optionType: 'implicit',
+                            inner: {
+                              type: 'object',
+                              name: 'BlockTimeInterval',
+                              docs: null,
+                              layout: [
+                                {
+                                  key: 'lower',
+                                  value: { type: 'UInt64' },
+                                  docs: null,
                                 },
-                                docs: null,
-                              },
-                              {
-                                key: 'totalCurrency',
-                                value: {
-                                  type: 'option',
-                                  optionType: 'implicit',
-                                  inner: {
-                                    type: 'object',
-                                    name: 'CurrencyAmountInterval',
-                                    docs: null,
-                                    layout: [
-                                      {
-                                        key: 'lower',
-                                        value: { type: 'UInt64' },
-                                        docs: null,
-                                      },
-                                      {
-                                        key: 'upper',
-                                        value: { type: 'UInt64' },
-                                        docs: null,
-                                      },
-                                    ],
-                                  },
+                                {
+                                  key: 'upper',
+                                  value: { type: 'UInt64' },
+                                  docs: null,
                                 },
-                                docs: null,
-                              },
-                            ],
+                              ],
+                            },
                           },
                           docs: null,
                         },
                         {
-                          key: 'seed',
-                          value: {
-                            type: 'option',
-                            optionType: 'flaggedOption',
-                            inner: { type: 'Field' },
-                          },
-                          docs: null,
-                        },
-                        {
-                          key: 'startCheckpoint',
-                          value: {
-                            type: 'option',
-                            optionType: 'flaggedOption',
-                            inner: { type: 'Field' },
-                          },
-                          docs: null,
-                        },
-                        {
-                          key: 'lockCheckpoint',
-                          value: {
-                            type: 'option',
-                            optionType: 'flaggedOption',
-                            inner: { type: 'Field' },
-                          },
-                          docs: null,
-                        },
-                        {
-                          key: 'epochLength',
+                          key: 'blockchainLength',
                           value: {
                             type: 'option',
                             optionType: 'implicit',
@@ -2179,91 +1993,8 @@ let jsLayout = {
                           },
                           docs: null,
                         },
-                      ],
-                    },
-                    docs: null,
-                  },
-                  {
-                    key: 'nextEpochData',
-                    value: {
-                      type: 'object',
-                      name: 'EpochDataPrecondition',
-                      docs: null,
-                      layout: [
                         {
-                          key: 'ledger',
-                          value: {
-                            type: 'object',
-                            name: 'EpochLedgerPrecondition',
-                            docs: null,
-                            layout: [
-                              {
-                                key: 'hash',
-                                value: {
-                                  type: 'option',
-                                  optionType: 'flaggedOption',
-                                  inner: { type: 'Field' },
-                                },
-                                docs: null,
-                              },
-                              {
-                                key: 'totalCurrency',
-                                value: {
-                                  type: 'option',
-                                  optionType: 'implicit',
-                                  inner: {
-                                    type: 'object',
-                                    name: 'CurrencyAmountInterval',
-                                    docs: null,
-                                    layout: [
-                                      {
-                                        key: 'lower',
-                                        value: { type: 'UInt64' },
-                                        docs: null,
-                                      },
-                                      {
-                                        key: 'upper',
-                                        value: { type: 'UInt64' },
-                                        docs: null,
-                                      },
-                                    ],
-                                  },
-                                },
-                                docs: null,
-                              },
-                            ],
-                          },
-                          docs: null,
-                        },
-                        {
-                          key: 'seed',
-                          value: {
-                            type: 'option',
-                            optionType: 'flaggedOption',
-                            inner: { type: 'Field' },
-                          },
-                          docs: null,
-                        },
-                        {
-                          key: 'startCheckpoint',
-                          value: {
-                            type: 'option',
-                            optionType: 'flaggedOption',
-                            inner: { type: 'Field' },
-                          },
-                          docs: null,
-                        },
-                        {
-                          key: 'lockCheckpoint',
-                          value: {
-                            type: 'option',
-                            optionType: 'flaggedOption',
-                            inner: { type: 'Field' },
-                          },
-                          docs: null,
-                        },
-                        {
-                          key: 'epochLength',
+                          key: 'minWindowDensity',
                           value: {
                             type: 'option',
                             optionType: 'implicit',
@@ -2287,116 +2018,407 @@ let jsLayout = {
                           },
                           docs: null,
                         },
+                        {
+                          key: 'totalCurrency',
+                          value: {
+                            type: 'option',
+                            optionType: 'implicit',
+                            inner: {
+                              type: 'object',
+                              name: 'CurrencyAmountInterval',
+                              docs: null,
+                              layout: [
+                                {
+                                  key: 'lower',
+                                  value: { type: 'UInt64' },
+                                  docs: null,
+                                },
+                                {
+                                  key: 'upper',
+                                  value: { type: 'UInt64' },
+                                  docs: null,
+                                },
+                              ],
+                            },
+                          },
+                          docs: null,
+                        },
+                        {
+                          key: 'globalSlotSinceHardFork',
+                          value: {
+                            type: 'option',
+                            optionType: 'implicit',
+                            inner: {
+                              type: 'object',
+                              name: 'GlobalSlotInterval',
+                              docs: null,
+                              layout: [
+                                {
+                                  key: 'lower',
+                                  value: { type: 'UInt32' },
+                                  docs: null,
+                                },
+                                {
+                                  key: 'upper',
+                                  value: { type: 'UInt32' },
+                                  docs: null,
+                                },
+                              ],
+                            },
+                          },
+                          docs: null,
+                        },
+                        {
+                          key: 'globalSlotSinceGenesis',
+                          value: {
+                            type: 'option',
+                            optionType: 'implicit',
+                            inner: {
+                              type: 'object',
+                              name: 'GlobalSlotInterval',
+                              docs: null,
+                              layout: [
+                                {
+                                  key: 'lower',
+                                  value: { type: 'UInt32' },
+                                  docs: null,
+                                },
+                                {
+                                  key: 'upper',
+                                  value: { type: 'UInt32' },
+                                  docs: null,
+                                },
+                              ],
+                            },
+                          },
+                          docs: null,
+                        },
+                        {
+                          key: 'stakingEpochData',
+                          value: {
+                            type: 'object',
+                            name: 'EpochDataPrecondition',
+                            docs: null,
+                            layout: [
+                              {
+                                key: 'ledger',
+                                value: {
+                                  type: 'object',
+                                  name: 'EpochLedgerPrecondition',
+                                  docs: null,
+                                  layout: [
+                                    {
+                                      key: 'hash',
+                                      value: {
+                                        type: 'option',
+                                        optionType: 'flaggedOption',
+                                        inner: { type: 'Field' },
+                                      },
+                                      docs: null,
+                                    },
+                                    {
+                                      key: 'totalCurrency',
+                                      value: {
+                                        type: 'option',
+                                        optionType: 'implicit',
+                                        inner: {
+                                          type: 'object',
+                                          name: 'CurrencyAmountInterval',
+                                          docs: null,
+                                          layout: [
+                                            {
+                                              key: 'lower',
+                                              value: { type: 'UInt64' },
+                                              docs: null,
+                                            },
+                                            {
+                                              key: 'upper',
+                                              value: { type: 'UInt64' },
+                                              docs: null,
+                                            },
+                                          ],
+                                        },
+                                      },
+                                      docs: null,
+                                    },
+                                  ],
+                                },
+                                docs: null,
+                              },
+                              {
+                                key: 'seed',
+                                value: {
+                                  type: 'option',
+                                  optionType: 'flaggedOption',
+                                  inner: { type: 'Field' },
+                                },
+                                docs: null,
+                              },
+                              {
+                                key: 'startCheckpoint',
+                                value: {
+                                  type: 'option',
+                                  optionType: 'flaggedOption',
+                                  inner: { type: 'Field' },
+                                },
+                                docs: null,
+                              },
+                              {
+                                key: 'lockCheckpoint',
+                                value: {
+                                  type: 'option',
+                                  optionType: 'flaggedOption',
+                                  inner: { type: 'Field' },
+                                },
+                                docs: null,
+                              },
+                              {
+                                key: 'epochLength',
+                                value: {
+                                  type: 'option',
+                                  optionType: 'implicit',
+                                  inner: {
+                                    type: 'object',
+                                    name: 'LengthInterval',
+                                    docs: null,
+                                    layout: [
+                                      {
+                                        key: 'lower',
+                                        value: { type: 'UInt32' },
+                                        docs: null,
+                                      },
+                                      {
+                                        key: 'upper',
+                                        value: { type: 'UInt32' },
+                                        docs: null,
+                                      },
+                                    ],
+                                  },
+                                },
+                                docs: null,
+                              },
+                            ],
+                          },
+                          docs: null,
+                        },
+                        {
+                          key: 'nextEpochData',
+                          value: {
+                            type: 'object',
+                            name: 'EpochDataPrecondition',
+                            docs: null,
+                            layout: [
+                              {
+                                key: 'ledger',
+                                value: {
+                                  type: 'object',
+                                  name: 'EpochLedgerPrecondition',
+                                  docs: null,
+                                  layout: [
+                                    {
+                                      key: 'hash',
+                                      value: {
+                                        type: 'option',
+                                        optionType: 'flaggedOption',
+                                        inner: { type: 'Field' },
+                                      },
+                                      docs: null,
+                                    },
+                                    {
+                                      key: 'totalCurrency',
+                                      value: {
+                                        type: 'option',
+                                        optionType: 'implicit',
+                                        inner: {
+                                          type: 'object',
+                                          name: 'CurrencyAmountInterval',
+                                          docs: null,
+                                          layout: [
+                                            {
+                                              key: 'lower',
+                                              value: { type: 'UInt64' },
+                                              docs: null,
+                                            },
+                                            {
+                                              key: 'upper',
+                                              value: { type: 'UInt64' },
+                                              docs: null,
+                                            },
+                                          ],
+                                        },
+                                      },
+                                      docs: null,
+                                    },
+                                  ],
+                                },
+                                docs: null,
+                              },
+                              {
+                                key: 'seed',
+                                value: {
+                                  type: 'option',
+                                  optionType: 'flaggedOption',
+                                  inner: { type: 'Field' },
+                                },
+                                docs: null,
+                              },
+                              {
+                                key: 'startCheckpoint',
+                                value: {
+                                  type: 'option',
+                                  optionType: 'flaggedOption',
+                                  inner: { type: 'Field' },
+                                },
+                                docs: null,
+                              },
+                              {
+                                key: 'lockCheckpoint',
+                                value: {
+                                  type: 'option',
+                                  optionType: 'flaggedOption',
+                                  inner: { type: 'Field' },
+                                },
+                                docs: null,
+                              },
+                              {
+                                key: 'epochLength',
+                                value: {
+                                  type: 'option',
+                                  optionType: 'implicit',
+                                  inner: {
+                                    type: 'object',
+                                    name: 'LengthInterval',
+                                    docs: null,
+                                    layout: [
+                                      {
+                                        key: 'lower',
+                                        value: { type: 'UInt32' },
+                                        docs: null,
+                                      },
+                                      {
+                                        key: 'upper',
+                                        value: { type: 'UInt32' },
+                                        docs: null,
+                                      },
+                                    ],
+                                  },
+                                },
+                                docs: null,
+                              },
+                            ],
+                          },
+                          docs: null,
+                        },
                       ],
                     },
                     docs: null,
                   },
-                ],
-              },
-              docs: null,
-            },
-            {
-              key: 'accountPrecondition',
-              value: {
-                type: 'object',
-                name: 'AccountPrecondition',
-                docs: null,
-                layout: [
                   {
-                    key: 'balance',
+                    key: 'account',
                     value: {
-                      type: 'option',
-                      optionType: 'implicit',
-                      inner: {
-                        type: 'object',
-                        name: 'BalanceInterval',
-                        docs: null,
-                        layout: [
-                          {
-                            key: 'lower',
-                            value: { type: 'UInt64' },
-                            docs: null,
+                      type: 'object',
+                      name: 'AccountPrecondition',
+                      docs: null,
+                      layout: [
+                        {
+                          key: 'balance',
+                          value: {
+                            type: 'option',
+                            optionType: 'implicit',
+                            inner: {
+                              type: 'object',
+                              name: 'BalanceInterval',
+                              docs: null,
+                              layout: [
+                                {
+                                  key: 'lower',
+                                  value: { type: 'UInt64' },
+                                  docs: null,
+                                },
+                                {
+                                  key: 'upper',
+                                  value: { type: 'UInt64' },
+                                  docs: null,
+                                },
+                              ],
+                            },
                           },
-                          {
-                            key: 'upper',
-                            value: { type: 'UInt64' },
-                            docs: null,
+                          docs: null,
+                        },
+                        {
+                          key: 'nonce',
+                          value: {
+                            type: 'option',
+                            optionType: 'implicit',
+                            inner: {
+                              type: 'object',
+                              name: 'NonceInterval',
+                              docs: null,
+                              layout: [
+                                {
+                                  key: 'lower',
+                                  value: { type: 'UInt32' },
+                                  docs: null,
+                                },
+                                {
+                                  key: 'upper',
+                                  value: { type: 'UInt32' },
+                                  docs: null,
+                                },
+                              ],
+                            },
                           },
-                        ],
-                      },
-                    },
-                    docs: null,
-                  },
-                  {
-                    key: 'nonce',
-                    value: {
-                      type: 'option',
-                      optionType: 'implicit',
-                      inner: {
-                        type: 'object',
-                        name: 'NonceInterval',
-                        docs: null,
-                        layout: [
-                          {
-                            key: 'lower',
-                            value: { type: 'UInt32' },
-                            docs: null,
+                          docs: null,
+                        },
+                        {
+                          key: 'receiptChainHash',
+                          value: {
+                            type: 'option',
+                            optionType: 'flaggedOption',
+                            inner: { type: 'Field' },
                           },
-                          {
-                            key: 'upper',
-                            value: { type: 'UInt32' },
-                            docs: null,
+                          docs: null,
+                        },
+                        {
+                          key: 'delegate',
+                          value: {
+                            type: 'option',
+                            optionType: 'flaggedOption',
+                            inner: { type: 'PublicKey' },
                           },
-                        ],
-                      },
-                    },
-                    docs: null,
-                  },
-                  {
-                    key: 'receiptChainHash',
-                    value: {
-                      type: 'option',
-                      optionType: 'flaggedOption',
-                      inner: { type: 'Field' },
-                    },
-                    docs: null,
-                  },
-                  {
-                    key: 'delegate',
-                    value: {
-                      type: 'option',
-                      optionType: 'flaggedOption',
-                      inner: { type: 'PublicKey' },
-                    },
-                    docs: null,
-                  },
-                  {
-                    key: 'state',
-                    value: {
-                      type: 'array',
-                      inner: {
-                        type: 'option',
-                        optionType: 'flaggedOption',
-                        inner: { type: 'Field' },
-                      },
-                    },
-                    docs: null,
-                  },
-                  {
-                    key: 'sequenceState',
-                    value: {
-                      type: 'option',
-                      optionType: 'implicit',
-                      inner: { type: 'Field' },
-                    },
-                    docs: null,
-                  },
-                  {
-                    key: 'provedState',
-                    value: {
-                      type: 'option',
-                      optionType: 'flaggedOption',
-                      inner: { type: 'Bool' },
+                          docs: null,
+                        },
+                        {
+                          key: 'state',
+                          value: {
+                            type: 'array',
+                            inner: {
+                              type: 'option',
+                              optionType: 'flaggedOption',
+                              inner: { type: 'Field' },
+                            },
+                          },
+                          docs: null,
+                        },
+                        {
+                          key: 'sequenceState',
+                          value: {
+                            type: 'option',
+                            optionType: 'implicit',
+                            inner: { type: 'Field' },
+                          },
+                          docs: null,
+                        },
+                        {
+                          key: 'provedState',
+                          value: {
+                            type: 'option',
+                            optionType: 'flaggedOption',
+                            inner: { type: 'Bool' },
+                          },
+                          docs: null,
+                        },
+                      ],
                     },
                     docs: null,
                   },
