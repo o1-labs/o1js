@@ -37,7 +37,14 @@ function getExecutionState(smartContract: SmartContract): ExecutionState {
   }
 
   if (Mina.currentTransaction === undefined) {
-    throw new Error('Cannot execute outside of a Mina.transaction() block.');
+    // throw new Error('Cannot execute outside of a Mina.transaction() block.');
+    // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
+    // or even expose the .get() methods independently of any party (they don't need one)
+    return {
+      transactionId: NaN,
+      partyIndex: NaN,
+      party: selfParty(smartContract.address),
+    };
   }
 
   let executionState = executionStates.get(smartContract);
