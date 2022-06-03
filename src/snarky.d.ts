@@ -611,7 +611,7 @@ declare class Group {
   sub(y: Group): Group;
   neg(): Group;
   scale(y: Scalar): Group;
-  endoScale(y: EndoScalar): Group;
+  // TODO: Add this function when OCaml bindings are implemented : endoScale(y: EndoScalar): Group;
 
   assertEquals(y: Group): void;
   equals(y: Group): Bool;
@@ -632,7 +632,7 @@ declare class Group {
   static sub(x: Group, y: Group): Group;
   static neg(x: Group): Group;
   static scale(x: Group, y: Scalar): Group;
-  static endoScale(x: Group, y: EndoScalar): Group;
+  // TODO: Add this function when OCaml bindings are implemented : static endoScale(x: Group, y: EndoScalar): Group;
 
   static assertEqual(x: Group, y: Group): void;
   static equal(x: Group, y: Group): Bool;
@@ -642,7 +642,13 @@ declare class Group {
   static sizeInFields(): number;
 
   static toJSON(x: Group): JSONValue;
-  static fromJSON(x: JSONValue): Group | null;
+  static fromJSON({
+    x,
+    y,
+  }: {
+    x: string | number;
+    y: string | number;
+  }): Group | null;
 }
 
 declare class Sponge {
