@@ -277,11 +277,8 @@ interface Body extends PartyBody {
   /**
    * By what [[ Int64 ]] should the balance of this account change. All
    * balanceChanges must balance by the end of smart contract execution.
-   *
-   * TODO: Currently, due to the incompatible/fake Int64 implementation, we have to make
-   * magnitude an Int64 and sgn always 1.
    */
-  balanceChange: { magnitude: Int64; sgn: Field };
+  balanceChange: Int64;
 
   /**
    * Recent events that have been emitted from this account.
@@ -335,7 +332,7 @@ const Body = {
       publicKey,
       update: Body.noUpdate(),
       tokenId: getDefaultTokenId(),
-      balanceChange: { magnitude: Int64.zero, sgn: Field.one },
+      balanceChange: Int64.zero,
       events: Events.empty(),
       sequenceEvents: Events.empty(),
       caller: getDefaultTokenId(),
@@ -494,17 +491,11 @@ class Party {
   get balance() {
     let party = this;
     return {
-      addInPlace(x: Int64 | UInt32 | UInt64) {
-        party.body.balanceChange.magnitude = Int64.add(
-          party.body.balanceChange.magnitude,
-          x
-        );
+      addInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
+        party.body.balanceChange = party.body.balanceChange.add(x);
       },
-      subInPlace(x: Int64 | UInt32 | UInt64) {
-        party.body.balanceChange.magnitude = Int64.sub(
-          party.body.balanceChange.magnitude,
-          x
-        );
+      subInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
+        party.body.balanceChange = party.body.balanceChange.sub(x);
       },
     };
   }

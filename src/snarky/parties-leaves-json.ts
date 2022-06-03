@@ -1,5 +1,3 @@
-import { BalanceChange } from './gen/parties-json';
-
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
 export { TypeMap };
@@ -23,8 +21,6 @@ type TypeMap = {
   UInt64: UInt64;
   Sign: Sign;
   TokenId: TokenId;
-  // TODO remove custom override
-  BalanceChange: BalanceChange;
   // TODO sort this out: we override timestamp, which is implicit but has to be null for intg test to succeed
   BlockTimeInterval: null;
   // builtin

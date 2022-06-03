@@ -9,15 +9,13 @@ import {
   Bool,
   state,
   State,
-  isReady,
   Poseidon,
   Party,
   Permissions,
+  isReady,
 } from 'snarkyjs';
 
 export { deploy, submitSolution, getZkappState };
-
-await isReady;
 
 class Sudoku extends CircuitValue {
   @matrixProp(Field, 9, 9) value: Field[][];
@@ -94,6 +92,8 @@ class SudokuZkapp extends SmartContract {
 }
 
 // setup
+await isReady;
+
 const Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 const account1 = Local.testAccounts[0].privateKey;
@@ -121,23 +121,15 @@ async function submitSolution(sudoku: number[][], solution: number[][]) {
   let tx = await Mina.transaction(account1, () => {
     let zkapp = new SudokuZkapp(zkappAddress);
     zkapp.submitSolution(new Sudoku(sudoku), new Sudoku(solution));
-    zkapp.self.sign(zkappKey);
-    zkapp.self.body.incrementNonce = Bool(true);
+    zkapp.sign(zkappKey);
   });
-  try {
-    await tx.send().wait();
-    return true;
-  } catch (err) {
-    return false;
-  }
+  await tx.send().wait();
 }
 
-async function getZkappState() {
-  let zkappState = Mina.getAccount(zkappAddress).zkapp?.appState;
-  if (zkappState === undefined)
-    throw Error('account does not have zkapp state');
-  let sudokuHash = fieldToHex(zkappState?.[0]);
-  let isSolved = zkappState[1].equals(true).toBoolean();
+function getZkappState() {
+  let zkapp = new SudokuZkapp(zkappAddress);
+  let sudokuHash = fieldToHex(zkapp.sudokuHash.get());
+  let isSolved = zkapp.isSolved.get().toBoolean();
   return { sudokuHash, isSolved };
 }
 
@@ -148,5 +140,5 @@ function divmod(k: number, n: number) {
 }
 
 function fieldToHex(field: Field) {
-  return BigInt(field.toString()).toString(16);
+  return field.toBigInt().toString(16);
 }

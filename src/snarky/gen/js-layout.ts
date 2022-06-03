@@ -1610,15 +1610,6 @@ let jsLayout = {
       { key: 'memo', value: { type: 'string' }, docs: null },
     ],
   },
-  BalanceChange: {
-    type: 'object',
-    name: 'BalanceChange',
-    docs: null,
-    layout: [
-      { key: 'magnitude', value: { type: 'UInt64' }, docs: null },
-      { key: 'sgn', value: { type: 'Sign' }, docs: null },
-    ],
-  },
   Party: {
     type: 'object',
     name: 'ZkappParty',
