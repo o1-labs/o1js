@@ -31,7 +31,11 @@ async function buildNode({ production }) {
   let copyPromise = copy({
     [bindings]: './dist/server/node_bindings/',
     './src/snarky.d.ts': './dist/server/snarky.d.ts',
-    './src/snarky/': './dist/server/snarky/',
+    ...Object.fromEntries(
+      (await fs.readdir('./src/snarky/'))
+        .filter((f) => f.endsWith('.js') || f.endsWith('.json'))
+        .map((f) => [`./src/snarky/${f}`, `./dist/server/snarky/${f}`])
+    ),
   });
 
   if (minify) {

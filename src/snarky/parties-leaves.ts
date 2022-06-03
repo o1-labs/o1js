@@ -1,5 +1,4 @@
 import { Field, Bool, Group, Ledger } from '../snarky';
-import { BalanceChange } from './gen/parties';
 import * as Json from './gen/parties-json';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
@@ -51,7 +50,6 @@ function asString(x: Field | UInt32 | UInt64 | bigint) {
 }
 
 type ToJsonTypeMap = TypeMap & {
-  BalanceChange: BalanceChange;
   BlockTimeInterval: { lower: UInt64; upper: UInt64 };
 };
 type ToJson = {
@@ -89,16 +87,6 @@ let ToJson: ToJson = {
     if (x.toString() === '1') return 'Positive';
     if (x.neg().toString() === '1') return 'Negative';
     throw Error(`Invalid Sign: ${x}`);
-  },
-  // override automatic conversion, essentially defining custom leaf types
-  BalanceChange({ magnitude, sgn }: BalanceChange) {
-    // TODO this is a hack, magnitude is actually the full int64
-    let b = magnitude.toString();
-    if (b.charAt(0) === '-') {
-      return { magnitude: b.slice(1), sgn: 'Negative' };
-    } else {
-      return { magnitude: b, sgn: 'Positive' };
-    }
   },
   // TODO this is a hack
   BlockTimeInterval(_: { lower: UInt64; upper: UInt64 }) {

@@ -22,12 +22,12 @@ export * as Types from './snarky/gen/parties';
 /**
  * An element of a finite field.
  */
-declare function Field(x: number | string): Field;
+declare function Field(x: Field | number | string | boolean | bigint): Field;
 declare class Field {
   /**
    * Coerces anything field-like to a [[`Field`]].
    */
-  constructor(x: Field | number | string | boolean);
+  constructor(x: Field | number | string | boolean | bigint);
 
   /**
    * Negates this [[`Field`]]. This is equivalent to multiplying the [[`Field`]]
@@ -96,6 +96,11 @@ declare class Field {
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
   toString(): string;
+  /**
+   * Serialize the [[`Field`]] to a bigint.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the bigint representation of the Field.
+   */
+  toBigInt(): bigint;
   /**
    * Serialize the [[`Field`]] to a JSON string.
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
@@ -254,6 +259,15 @@ declare class Field {
    */
   static zero: Field;
   /**
+   * The number -1 as a [[`Field`]].
+   */
+  static minusOne: Field;
+  /**
+   * The field order as a `bigint`.
+   */
+  static ORDER: bigint;
+
+  /**
    * A random field element.
    */
   static random(): Field;
@@ -325,6 +339,10 @@ declare class Field {
   // static toJSON(x: Field): JSONValue;
 
   static fromJSON(x: JSONValue): Field | null;
+
+  static fromString(x: string): Field;
+  static fromNumber(x: number): Field;
+  static fromBigInt(x: bigint): Field;
 }
 
 /**
@@ -572,7 +590,7 @@ declare class Group {
   sub(y: Group): Group;
   neg(): Group;
   scale(y: Scalar): Group;
-  endoScale(y: EndoScalar): Group;
+  // TODO: Add this function when OCaml bindings are implemented : endoScale(y: EndoScalar): Group;
 
   assertEquals(y: Group): void;
   equals(y: Group): Bool;
@@ -593,7 +611,7 @@ declare class Group {
   static sub(x: Group, y: Group): Group;
   static neg(x: Group): Group;
   static scale(x: Group, y: Scalar): Group;
-  static endoScale(x: Group, y: EndoScalar): Group;
+  // TODO: Add this function when OCaml bindings are implemented : static endoScale(x: Group, y: EndoScalar): Group;
 
   static assertEqual(x: Group, y: Group): void;
   static equal(x: Group, y: Group): Bool;
@@ -603,7 +621,13 @@ declare class Group {
   static sizeInFields(): number;
 
   static toJSON(x: Group): JSONValue;
-  static fromJSON(x: JSONValue): Group | null;
+  static fromJSON({
+    x,
+    y,
+  }: {
+    x: string | number;
+    y: string | number;
+  }): Group | null;
 }
 
 declare class Sponge {
