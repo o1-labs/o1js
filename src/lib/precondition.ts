@@ -9,7 +9,6 @@ import {
 import { circuitValueEquals } from './circuit_value';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
-import * as Fetch from './fetch';
 import { Party, Preconditions } from './party';
 import * as GlobalContext from './global-context';
 import { UInt32, UInt64 } from './int';
@@ -37,7 +36,7 @@ function Network(party: Party): Network {
   let layout = (jsLayout as any).Party.layout[0].value.layout[9].value.layout[0]
     .value as Layout;
   let context = getPreconditionContextExn(party);
-  return preconditionClass(layout, `network`, party, context);
+  return preconditionClass(layout, 'network', party, context);
 }
 
 function Account(party: Party): Account {
@@ -46,7 +45,7 @@ function Account(party: Party): Account {
   let layout = (jsLayout as any).Party.layout[0].value.layout[9].value.layout[1]
     .value as Layout;
   let context = getPreconditionContextExn(party);
-  return preconditionClass(layout, `account`, party, context);
+  return preconditionClass(layout, 'account', party, context);
 }
 
 function preconditionClass(
@@ -135,39 +134,39 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   longKey: K,
   fieldType: AsFieldElements<U>
 ): U {
+  // in compile, just return an empty variable
+  if (GlobalContext.inCompile()) {
+    return Circuit.witness(fieldType, (): U => {
+      throw Error(
+        `This error is thrown because you are reading out the value of a variable, when that value is not known.
+To write a correct circuit, you must avoid any dependency on the concrete value of variables.`
+      );
+    });
+  }
+  // if not in compile, get the variable's value first
   let [accountOrNetwork, ...rest] = longKey.split('.');
   let key = rest.join('.');
-
+  let value: U;
   if (accountOrNetwork === 'account') {
     let address = party.body.publicKey;
-    return getAccountFieldExn<any>(address, key, fieldType);
-  }
-
-  throw Error('todo');
-}
-
-function getAccountFieldExn<K extends keyof AccountValue>(
-  address: PublicKey,
-  key: K,
-  fieldType: AsFieldElements<AccountValue[K]>
-): AccountValue[K] {
-  type Value = AccountValue[K];
-  let inProver = GlobalContext.inProver();
-  if (!GlobalContext.inCompile()) {
-    let account = Mina.getAccount(address);
-    if (account[key] === undefined)
+    let account: any = Mina.getAccount(address);
+    value = account[key];
+    if (value === undefined)
       throw Error(
         `Could not get \`${key}\` on account with public key ${address.toBase58()}. The property may not be available on this account.`
       );
-    let field = account[key] as any as Value;
-    // in prover, create a new witness with the state values
-    // outside, just return the state values
-    return inProver ? Circuit.witness(fieldType, () => field) : field;
+  } else if (accountOrNetwork === 'network') {
+    let networkState = Mina.getNetworkState();
+    value = getPath(networkState, key);
   } else {
-    // in compile, we don't need the witness values
-    return Circuit.witness(fieldType, (): Value => {
-      throw Error('Accessed witness in compile - this is a bug.');
-    });
+    throw Error('impossible');
+  }
+  // in prover, return a new variable which holds the value
+  // outside, just return the value
+  if (GlobalContext.inProver()) {
+    return Circuit.witness(fieldType, () => value);
+  } else {
+    return value;
   }
 }
 
@@ -203,12 +202,13 @@ function assertPreconditionInvariants(party: Party) {
 
     // we accessed a precondition field but not constrained it explicitly - throw an error
     let hasAssertBetween = isRangeCondition(precondition);
-    let errorMessage = `You used \`${self}.${preconditionPath}.get()\` without adding a precondition that links it to the actual balance.
+    let shortPath = preconditionPath.split('.').pop();
+    let errorMessage = `You used \`${self}.${preconditionPath}.get()\` without adding a precondition that links it to the actual ${shortPath}.
 Consider adding this line to your code:
 ${self}.${preconditionPath}.assertEquals(${self}.${preconditionPath}.get());${
       hasAssertBetween
         ? `
-You can also add more flexible preconditions with \`${self}.${preconditionPath}.assertBetween\`.`
+You can also add more flexible preconditions with \`${self}.${preconditionPath}.assertBetween(...)\`.`
         : ''
     }`;
     throw Error(errorMessage);

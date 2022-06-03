@@ -13,7 +13,8 @@ import {
   ZkappStateLength,
 } from './party';
 import * as Fetch from './fetch';
-import { assertPreconditionInvariants } from './precondition';
+import { assertPreconditionInvariants, NetworkValue } from './precondition';
+import { cloneCircuitValue } from './circuit_value';
 
 export {
   createUnsignedTransaction,
@@ -28,6 +29,7 @@ export {
   currentSlot,
   getAccount,
   getBalance,
+  getNetworkState,
   accountCreationFee,
   sendTransaction,
 };
@@ -169,6 +171,7 @@ interface Mina {
   transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
   currentSlot(): UInt32;
   getAccount(publicKey: Types.PublicKey): Account;
+  getNetworkState(): NetworkValue;
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): TransactionId;
 }
@@ -230,6 +233,13 @@ function LocalBlockchain({
         };
       }
     },
+    getNetworkState() {
+      // TODO:
+      // * enable to change the network state, to test various preconditions
+      // * pass the network state to be used to applyJsonTransaction (needs JS -> OCaml transfer)
+      // * could make totalCurrency consistent with the sum of account balances
+      return dummyNetworkState();
+    },
     sendTransaction(txn: Transaction) {
       txn.sign();
       ledger.applyJsonTransaction(
@@ -276,6 +286,23 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         `getAccount: Could not find account for public key ${publicKey.toBase58()}.\nGraphql endpoint: ${graphqlEndpoint}`
       );
     },
+    getNetworkState() {
+      if (currentTransaction?.fetchMode === 'test') {
+        Fetch.markNetworkToBeFetched(graphqlEndpoint);
+        let network = Fetch.getCachedNetwork(graphqlEndpoint);
+        return network ?? dummyNetworkState();
+      }
+      if (
+        currentTransaction == undefined ||
+        currentTransaction.fetchMode === 'cached'
+      ) {
+        let network = Fetch.getCachedNetwork(graphqlEndpoint);
+        if (network !== undefined) return network;
+      }
+      throw Error(
+        `getNetworkState: Could not fetch network state from graphql endpoint ${graphqlEndpoint}`
+      );
+    },
     sendTransaction(txn: Transaction) {
       txn.sign();
       let sendPromise = Fetch.sendZkapp(txn.toJSON());
@@ -295,7 +322,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
     },
     async transaction(sender: SenderSpec, f: () => void) {
       createTransaction(sender, f, { fetchMode: 'test' });
-      await Fetch.fetchMissingAccounts(graphqlEndpoint);
+      await Fetch.fetchMissingData(graphqlEndpoint);
       return createTransaction(sender, f, { fetchMode: 'cached' });
     },
   };
@@ -329,6 +356,9 @@ let activeInstance: Mina = {
         );
       return account;
     }
+    throw new Error('must call Mina.setActiveInstance first');
+  },
+  getNetworkState() {
     throw new Error('must call Mina.setActiveInstance first');
   },
   sendTransaction() {
@@ -392,6 +422,13 @@ function getAccount(pubkey: Types.PublicKey) {
 }
 
 /**
+ * @return Data associated with the current state of the Mina network.
+ */
+function getNetworkState() {
+  return activeInstance.getNetworkState();
+}
+
+/**
  * @return The balance associated to the given public key.
  */
 function getBalance(pubkey: Types.PublicKey) {
@@ -412,5 +449,26 @@ function dummyAccount(pubkey?: PublicKey): Account {
     nonce: UInt32.zero,
     publicKey: pubkey ?? PublicKey.empty(),
     zkapp: { appState: Array(ZkappStateLength).fill(Field.zero) },
+  };
+}
+
+function dummyNetworkState(): NetworkValue {
+  let epochData: NetworkValue['stakingEpochData'] = {
+    ledger: { hash: Field.zero, totalCurrency: UInt64.zero },
+    seed: Field.zero,
+    startCheckpoint: Field.zero,
+    lockCheckpoint: Field.zero,
+    epochLength: UInt32.zero,
+  };
+  return {
+    snarkedLedgerHash: Field.zero,
+    timestamp: UInt64.zero,
+    blockchainLength: UInt32.zero,
+    minWindowDensity: UInt32.zero,
+    totalCurrency: UInt64.zero,
+    globalSlotSinceHardFork: UInt32.zero,
+    globalSlotSinceGenesis: UInt32.zero,
+    stakingEpochData: epochData,
+    nextEpochData: cloneCircuitValue(epochData),
   };
 }

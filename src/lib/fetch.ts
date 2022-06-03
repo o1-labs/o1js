@@ -11,8 +11,10 @@ export {
   fetchBlock,
   parseFetchedAccount,
   markAccountToBeFetched,
-  fetchMissingAccounts,
+  markNetworkToBeFetched,
+  fetchMissingData,
   getCachedAccount,
+  getCachedNetwork,
   addCachedAccount,
   defaultGraphqlEndpoint,
   setGraphqlEndpoint,
@@ -251,10 +253,19 @@ let accountCache = {} as Record<
     timestamp: number;
   }
 >;
+let networkCache = {} as Record<
+  string,
+  {
+    network: NetworkValue;
+    graphqlEndpoint: string;
+    timestamp: number;
+  }
+>;
 let accountsToFetch = {} as Record<
   string,
   { publicKey: string; graphqlEndpoint: string }
 >;
+let networksToFetch = {} as Record<string, { graphqlEndpoint: string }>;
 let cacheExpiry = 10 * 60 * 1000; // 10 minutes
 
 function markAccountToBeFetched(publicKey: PublicKey, graphqlEndpoint: string) {
@@ -264,20 +275,39 @@ function markAccountToBeFetched(publicKey: PublicKey, graphqlEndpoint: string) {
     graphqlEndpoint,
   };
 }
+function markNetworkToBeFetched(graphqlEndpoint: string) {
+  networksToFetch[graphqlEndpoint] = { graphqlEndpoint };
+}
 
-async function fetchMissingAccounts(graphqlEndpoint: string) {
+async function fetchMissingData(graphqlEndpoint: string) {
   let expired = Date.now() - cacheExpiry;
   let accounts = Object.entries(accountsToFetch).filter(([key, account]) => {
     if (account.graphqlEndpoint !== graphqlEndpoint) return false;
     let cachedAccount = accountCache[key];
     return cachedAccount === undefined || cachedAccount.timestamp < expired;
   });
-  await Promise.all(
-    accounts.map(async ([key, { publicKey }]) => {
-      let response = await fetchAccountInternal(publicKey, graphqlEndpoint);
-      if (response.error === undefined) delete accountsToFetch[key];
-    })
-  );
+  let promises = accounts.map(async ([key, { publicKey }]) => {
+    let response = await fetchAccountInternal(publicKey, graphqlEndpoint);
+    if (response.error === undefined) delete accountsToFetch[key];
+  });
+
+  let network = Object.entries(networksToFetch).find(([key, network]) => {
+    if (network.graphqlEndpoint !== graphqlEndpoint) return;
+    let cachedNetwork = networkCache[key];
+    return cachedNetwork === undefined || cachedNetwork.timestamp < expired;
+  });
+  if (network !== undefined) {
+    promises.push(
+      (async () => {
+        try {
+          await fetchLastBlock(graphqlEndpoint);
+          delete networksToFetch[network[0]];
+        } catch {}
+      })()
+    );
+  }
+
+  await Promise.all(promises);
 }
 
 function getCachedAccount(
@@ -287,6 +317,9 @@ function getCachedAccount(
   let account =
     accountCache[`${publicKey.toBase58()};${graphqlEndpoint}`]?.account;
   if (account !== undefined) return parseFetchedAccount(account);
+}
+function getCachedNetwork(graphqlEndpoint = defaultGraphqlEndpoint) {
+  return networkCache[graphqlEndpoint]?.network;
 }
 
 function addCachedAccount(
@@ -322,7 +355,13 @@ async function fetchLastBlock(graphqlEndpoint = defaultGraphqlEndpoint) {
     (block: FetchedBlock) => block.protocolState.consensusState.blockHeight
   );
   let lastHeight = blockHeights[blockHeights.length - 1];
-  return fetchBlock(lastHeight);
+  let network = await fetchBlock(lastHeight);
+  networkCache[graphqlEndpoint] = {
+    network,
+    graphqlEndpoint,
+    timestamp: Date.now(),
+  };
+  return network;
 }
 
 async function fetchBlock(
