@@ -1,11 +1,4 @@
-import {
-  isReady,
-  shutdown,
-  Field,
-  Bool,
-  Circuit,
-  EpochDataPredicate,
-} from '../../dist/server';
+import { isReady, shutdown, Field, Bool, Circuit } from '../../dist/server';
 
 describe('bool', () => {
   beforeAll(async () => {
