@@ -93,11 +93,33 @@ export default function workerRun() {
     }
     for (let key in spec) {
       plonk_wasm_[key] = (...args) => {
+        if (globalThis.__compileStart) {
+          console.log(
+            `time for compile, so far: ${(
+              (performance.now() - globalThis.__compileStart) /
+              1e3
+            ).toFixed(3)} sec`
+          );
+          delete globalThis.__compileStart;
+        }
+        if (globalThis.__proveStart) {
+          console.log(
+            `time for prove, so far: ${(
+              (performance.now() - globalThis.__proveStart) /
+              1e3
+            ).toFixed(3)} sec`
+          );
+          delete globalThis.__proveStart;
+        }
+        let time = performance.now();
         let u32_ptr = plonk_wasm.create_zero_u32_ptr();
         worker.postMessage({ type: 'run', name: key, args, u32_ptr });
         /* Here be undefined behavior dragons. */
         let res = plonk_wasm.wait_until_non_zero(u32_ptr);
         plonk_wasm.free_u32_ptr(u32_ptr);
+        console.log(
+          `time (${key}): ${((performance.now() - time) / 1e3).toFixed(3)} sec`
+        );
         let res_spec = spec[key].res;
         if (res_spec && res_spec.__wrap) {
           return spec[key].res.__wrap(res);
