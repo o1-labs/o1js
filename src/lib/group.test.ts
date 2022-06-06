@@ -133,6 +133,32 @@ describe('group', () => {
           });
         }).not.toThrow();
       });
+
+      it('x*g+y*g = (x+y)*g', () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const g = new Group(1, 1);
+            const x = Scalar.fromJSON(2)!;
+            const y = Scalar.fromJSON(3)!;
+            const left = g.scale(x).add(g.scale(y));
+            const right = g.scale(x.add(y));
+            left.assertEquals(right);
+          });
+        }).not.toThrow();
+      });
+
+      it('x*(y*g) = (x*y)*g', () => {
+        expect(() => {
+          Circuit.runAndCheck(() => {
+            const g = new Group(1, 1);
+            const x = Scalar.fromJSON(2)!;
+            const y = Scalar.fromJSON(3)!;
+            const left = g.scale(y).scale(x);
+            const right = g.scale(y.mul(x));
+            left.assertEquals(right);
+          });
+        }).not.toThrow();
+      });
     });
 
     describe('equals', () => {
@@ -270,6 +296,24 @@ describe('group', () => {
         expect(() => {
           new Group(1, 1).scale(Scalar.random());
         }).not.toThrow();
+      });
+
+      it('x*g+y*g = (x+y)*g', () => {
+        const g = new Group(1, 1);
+        const x = Scalar.fromJSON(2)!;
+        const y = Scalar.fromJSON(3)!;
+        const left = g.scale(x).add(g.scale(y));
+        const right = g.scale(x.add(y));
+        expect(left).toEqual(right);
+      });
+
+      it('x*(y*g) = (x*y)*g', () => {
+        const g = new Group(1, 1);
+        const x = Scalar.fromJSON(2)!;
+        const y = Scalar.fromJSON(3)!;
+        const left = g.scale(y).scale(x);
+        const right = g.scale(y.mul(x));
+        expect(left).toEqual(right);
       });
     });
 
