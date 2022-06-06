@@ -57,6 +57,30 @@ export default function workerRun() {
         ],
         res: bool,
       },
+      caml_fp_srs_b_poly_commitment: {
+        args: [wasm.WasmFpSrs, undefined /*Uint8Array*/],
+        res: wasm.WasmFpPolyComm,
+      },
+      caml_fq_srs_b_poly_commitment: {
+        args: [wasm.WasmFqSrs, undefined /*Uint8Array*/],
+        res: wasm.WasmFqPolyComm,
+      },
+      fp_oracles_create: {
+        args: [
+          undefined /* Uint32Array */,
+          wasm.WasmFpPlonkVerifierIndex,
+          wasm.WasmFpProverProof,
+        ],
+        res: wasm.WasmFpOracles,
+      },
+      fq_oracles_create: {
+        args: [
+          undefined /* Uint32Array */,
+          wasm.WasmFqPlonkVerifierIndex,
+          wasm.WasmFqProverProof,
+        ],
+        res: wasm.WasmFqOracles,
+      },
     };
   }
 
@@ -69,13 +93,11 @@ export default function workerRun() {
     }
     for (let key in spec) {
       plonk_wasm_[key] = (...args) => {
-        console.log(`running ${key}() with args`, args);
         let u32_ptr = plonk_wasm.create_zero_u32_ptr();
         worker.postMessage({ type: 'run', name: key, args, u32_ptr });
         /* Here be undefined behavior dragons. */
         let res = plonk_wasm.wait_until_non_zero(u32_ptr);
         plonk_wasm.free_u32_ptr(u32_ptr);
-        // worker.onmessage = old_onmessage;
         let res_spec = spec[key].res;
         if (res_spec && res_spec.__wrap) {
           return spec[key].res.__wrap(res);
