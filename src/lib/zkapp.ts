@@ -339,7 +339,6 @@ function wrapMethod(
       return method.apply(this, actualArgs);
     }
   }
-  (wrappedMethod as any).name = method.name;
   return wrappedMethod;
 }
 
@@ -494,7 +493,6 @@ export class SmartContract {
         `Cannot produce execution proof - no provers found. Try calling \`await ${ZkappClass.name}.compile()\` first.`
       );
     let provers_ = provers;
-    // let methodName = method.name;
     let i = ZkappClass._methods!.findIndex((m) => m.methodName === methodName);
     if (i === -1) throw Error(`Method ${methodName} not found!`);
     let [statement, selfParty] = Circuit.runAndCheck(() => {
