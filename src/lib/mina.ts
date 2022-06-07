@@ -278,14 +278,21 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       return {
         async wait() {
           let [response, error] = await sendPromise;
-          console.log('got graphql response', { response, error });
-          console.log(
-            'Info: waiting for inclusion in a block is not implemented yet.'
-          );
-          // if (error !== undefined) {
-          //   console.log('Graphql transaction failed. Query:');
-          //   console.log(txn.toGraphqlQuery());
-          // }
+          if (error === undefined) {
+            if (
+              response!.data === null &&
+              (response as any).errors?.length > 0
+            ) {
+              console.log('got graphql errors', (response as any).errors);
+            } else {
+              console.log('got graphql response', response);
+              console.log(
+                'Info: waiting for inclusion in a block is not implemented yet.'
+              );
+            }
+          } else {
+            console.log('got fetch error', error);
+          }
         },
       };
     },
