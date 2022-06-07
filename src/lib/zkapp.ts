@@ -27,7 +27,10 @@ import {
   selfParty,
   inCompile,
 } from './global-context';
-import { assertPreconditionInvariants } from './precondition';
+import {
+  assertPreconditionInvariants,
+  cleanPreconditionsCache,
+} from './precondition';
 
 export { deploy, DeployArgs, call, callUnproved, signFeePayer, declareMethods };
 
@@ -190,6 +193,7 @@ function picklesRuleFromFunction(
     // FIXME: figure out correct way to constrain statement https://github.com/o1-labs/snarkyjs/issues/98
     statement.transaction.assertEquals(statement.transaction);
     // checkStatement(statement, self, tail);
+    cleanPreconditionsCache(self);
   }
 
   return [0, name, main] as [0, string, typeof main];

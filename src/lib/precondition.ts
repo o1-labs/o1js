@@ -18,6 +18,7 @@ export {
   Account,
   Network,
   assertPreconditionInvariants,
+  cleanPreconditionsCache,
   AccountValue,
   NetworkValue,
 };
@@ -99,16 +100,17 @@ function preconditionSubclass<
   party: Party,
   longKey: K,
   fieldType: AsFieldElements<U>,
-  { read, vars, constrained }: PreconditionContext
+  context: PreconditionContext
 ) {
   return {
     get() {
+      let { read, vars } = context;
       read.add(longKey);
       return (vars[longKey] ??
         (vars[longKey] = getVariable(party, longKey, fieldType))) as U;
     },
     assertEquals(value: U) {
-      constrained.add(longKey);
+      context.constrained.add(longKey);
       let property = getPath(
         party.body.preconditions,
         longKey
@@ -124,7 +126,7 @@ function preconditionSubclass<
       }
     },
     assertNothing() {
-      constrained.add(longKey);
+      context.constrained.add(longKey);
     },
   };
 }
@@ -187,6 +189,11 @@ function initializePreconditions(party: Party, isSelf: boolean) {
   });
 }
 
+function cleanPreconditionsCache(party: Party) {
+  let context = preconditionContexts.get(party);
+  if (context !== undefined) context.vars = {};
+}
+
 function assertPreconditionInvariants(party: Party) {
   let context = getPreconditionContextExn(party);
   let self = context.isSelf ? 'this' : 'party';
@@ -233,7 +240,6 @@ type Network = PreconditionClassType<NetworkPrecondition>;
 // TODO: OK how we read delegate from delegateAccount?
 // TODO: no graphql field for provedState yet
 // TODO: figure out serialization of receiptChainHash
-// TODO: OK how we read sequenceState from sequenceEvents?
 // TODO: should we add account.state? then we should change the structure on `Fetch.Account` which is stupid anyway
 // then can just use circuitArray(Field, 8) as the type
 type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
@@ -335,11 +341,6 @@ type FlatPreconditionValue = {
   [S in PreconditionFlatEntry<NetworkPrecondition> as `network.${S[0]}`]: S[2];
 } & {
   [S in PreconditionFlatEntry<AccountPrecondition> as `account.${S[0]}`]: S[2];
-};
-type FlatPrecondition = {
-  [S in PreconditionFlatEntry<NetworkPrecondition> as `network.${S[0]}`]: S[1];
-} & {
-  [S in PreconditionFlatEntry<AccountPrecondition> as `account.${S[0]}`]: S[1];
 };
 
 type LongKey = keyof FlatPreconditionValue;
