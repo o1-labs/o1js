@@ -7,8 +7,6 @@ import {
   Mina,
   PrivateKey,
   Party,
-  Types,
-  Bool,
 } from '../../dist/server';
 
 let zkappKey: PrivateKey;
