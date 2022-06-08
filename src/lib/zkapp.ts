@@ -1,7 +1,6 @@
 import {
   Circuit,
   Field,
-  Bool,
   Poseidon,
   AsFieldElements,
   Ledger,
@@ -20,243 +19,16 @@ import {
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { UInt32, UInt64 } from './int';
-import { Account, fetchAccount } from './fetch';
 import {
   withContext,
   withContextAsync,
   getContext,
   mainContext,
 } from './global-context';
-import * as GlobalContext from './global-context';
 
-export {
-  deploy,
-  DeployArgs,
-  call,
-  callUnproved,
-  signFeePayer,
-  declareState,
-  declareMethods,
-};
+export { deploy, DeployArgs, call, callUnproved, signFeePayer, declareMethods };
 
-/**
- * Gettable and settable state that can be checked for equality.
- */
-export type State<A> = {
-  get(): A;
-  set(a: A): void;
-  fetch(): Promise<A | undefined>;
-  assertEquals(a: A): void;
-};
-
-/**
- * Gettable and settable state that can be checked for equality.
- */
-export function State<A>(): State<A> {
-  return createState<A>();
-}
-
-function createState<A>() {
-  return {
-    _initialized: false,
-    _key: undefined as never as string, // defined by @state
-    _ty: undefined as never as AsFieldElements<A>, // defined by @state
-    _this: undefined as never as SmartContract, // defined by @state
-    _ZkappClass: undefined as never as typeof SmartContract & {
-      _layout: () => any;
-    }, // defined by @state
-
-    _init(key: string, ty: AsFieldElements<A>, _this: any, ZkappClass: any) {
-      this._initialized = true;
-      this._key = key;
-      this._ty = ty;
-      this._this = _this;
-      this._ZkappClass = ZkappClass;
-    },
-
-    getLayout() {
-      let layout: Map<string, { offset: number; length: number }> =
-        this._ZkappClass._layout();
-      let stateLayout = layout.get(this._key);
-      if (stateLayout === undefined) {
-        throw new Error(`state ${this._key} not found`);
-      }
-      return stateLayout;
-    },
-
-    set(a: A) {
-      if (!this._initialized)
-        throw Error(
-          'set can only be called when the State is assigned to a SmartContract @state.'
-        );
-      let layout = this.getLayout();
-      let stateAsFields = this._ty.toFields(a);
-      let e: ExecutionState = this._this.executionState();
-
-      stateAsFields.forEach((x, i) => {
-        Party.setValue(e.party.body.update.appState[layout.offset + i], x);
-      });
-    },
-
-    assertEquals(a: A) {
-      if (!this._initialized)
-        throw Error(
-          'assertEquals can only be called when the State is assigned to a SmartContract @state.'
-        );
-      let layout = this.getLayout();
-      let stateAsFields = this._ty.toFields(a);
-      let e: ExecutionState = this._this.executionState();
-
-      stateAsFields.forEach((x, i) => {
-        e.party.body.preconditions.account.state[layout.offset + i].isSome =
-          Bool(true);
-        e.party.body.preconditions.account.state[layout.offset + i].value = x;
-      });
-    },
-
-    get() {
-      if (!this._initialized)
-        throw Error(
-          'get can only be called when the State is assigned to a SmartContract @state.'
-        );
-      let layout = this.getLayout();
-
-      let address: PublicKey = this._this.address;
-      let stateAsFields: Field[];
-      let inProver = GlobalContext.inProver();
-      if (!GlobalContext.inCompile()) {
-        let a: Account;
-        try {
-          a = Mina.getAccount(address);
-        } catch (err) {
-          // TODO: there should also be a reasonable error here
-          if (inProver) {
-            throw err;
-          }
-          throw Error(
-            `${this._key}.get() failed, because the zkapp account was not found in the cache. ` +
-              `Try calling \`await fetchAccount(zkappAddress)\` first.`
-          );
-        }
-        if (a.zkapp === undefined) {
-          // if the account is not a zkapp account, let the default state be all zeroes
-          stateAsFields = Array(layout.length).fill(Field.zero);
-        } else {
-          stateAsFields = [];
-          for (let i = 0; i < layout.length; ++i) {
-            stateAsFields.push(a.zkapp.appState[layout.offset + i]);
-          }
-        }
-        // in prover, create a new witness with the state values
-        // outside, just return the state values
-        stateAsFields = inProver
-          ? Circuit.witness(
-              Circuit.array(Field, layout.length),
-              () => stateAsFields
-            )
-          : stateAsFields;
-      } else {
-        // in compile, we don't need the witness values
-        stateAsFields = Circuit.witness(
-          Circuit.array(Field, layout.length),
-          (): Field[] => {
-            throw Error('this should never happen');
-          }
-        );
-      }
-      let state = this._ty.ofFields(stateAsFields);
-      (this._ty as any).check?.(state);
-      return state;
-    },
-
-    async fetch() {
-      if (!this._initialized)
-        throw Error(
-          'fetch can only be called when the State is assigned to a SmartContract @state.'
-        );
-      if (Mina.currentTransaction !== undefined)
-        throw Error(
-          'fetch is not intended to be called inside a transaction block.'
-        );
-      let layout = this.getLayout();
-      let address: PublicKey = this._this.address;
-      let { account } = await fetchAccount(address);
-      if (account === undefined) return undefined;
-      let stateAsFields: Field[];
-      if (account.zkapp === undefined) {
-        stateAsFields = Array(layout.length).fill(Field.zero);
-      } else {
-        stateAsFields = [];
-        for (let i = 0; i < layout.length; ++i) {
-          stateAsFields.push(account.zkapp.appState[layout.offset + i]);
-        }
-      }
-      return this._ty.ofFields(stateAsFields);
-    },
-  };
-}
-
-type InternalStateType = ReturnType<typeof createState>;
-
-const reservedPropNames = new Set(['_states', '_layout', '_methods', '_']);
-
-/**
- * A decorator to use within a zkapp to indicate what will be stored on-chain.
- * For example, if you want to store a field element `some_state` in a zkapp,
- * you can use the following in the declaration of your zkapp:
- *
- * ```
- * @state(Field) some_state = State<Field>();
- * ```
- *
- */
-export function state<A>(ty: AsFieldElements<A>) {
-  return function (
-    target: SmartContract & { constructor: any },
-    key: string,
-    _descriptor?: PropertyDescriptor
-  ) {
-    const ZkappClass = target.constructor;
-    if (reservedPropNames.has(key)) {
-      throw Error(`Property name ${key} is reserved.`);
-    }
-
-    if (ZkappClass._states == undefined) {
-      ZkappClass._states = [];
-      let layout: Map<string, { offset: number; length: number }>;
-      ZkappClass._layout = () => {
-        if (layout === undefined) {
-          layout = new Map();
-
-          let offset = 0;
-          ZkappClass._states.forEach(([key, ty]: [any, any]) => {
-            let length = ty.sizeInFields();
-            layout.set(key, { offset, length });
-            offset += length;
-          });
-        }
-        return layout;
-      };
-    }
-
-    ZkappClass._states.push([key, ty]);
-
-    Object.defineProperty(target, key, {
-      get(this) {
-        return this._?.[key];
-      },
-      set(this, v: InternalStateType) {
-        if (v._initialized)
-          throw Error(
-            'A State should only be assigned once to a SmartContract'
-          );
-        if (this._?.[key]) throw Error('A @state should only be assigned once');
-        v._init(key, ty, this, ZkappClass);
-        (this._ ?? (this._ = {}))[key] = v;
-      },
-    });
-  };
-}
+const reservedPropNames = new Set(['_methods', '_']);
 
 /**
  * A decorator to use in a zkapp to mark a method as callable by anyone.
@@ -812,50 +584,6 @@ function signFeePayer(
 }
 
 // alternative API which can replace decorators, works in pure JS
-
-/**
- * `declareState` can be used in place of the `@state` decorator to declare on-chain state on a SmartContract.
- * It should be placed _after_ the class declaration.
- * Here is an example of declaring a state property `x` of type `Field`.
- * ```ts
- * class MyContract extends SmartContract {
- *   x = State<Field>();
- *   // ...
- * }
- * declareState(MyContract, { x: Field });
- * ```
- *
- * If you're using pure JS, it's _not_ possible to use the built-in class field syntax,
- * i.e. the following will _not_ work:
- *
- * ```js
- * // THIS IS WRONG IN JS!
- * class MyContract extends SmartContract {
- *   x = State();
- * }
- * declareState(MyContract, { x: Field });
- * ```
- *
- * Instead, add a constructor where you assign the property:
- * ```js
- * class MyContract extends SmartContract {
- *   constructor(x) {
- *     super();
- *     this.x = State();
- *   }
- * }
- * declareState(MyContract, { x: Field });
- * ```
- */
-function declareState<T extends typeof SmartContract>(
-  SmartContract: T,
-  states: Record<string, AsFieldElements<unknown>>
-) {
-  for (let key in states) {
-    let CircuitValue = states[key];
-    state(CircuitValue)(SmartContract.prototype, key);
-  }
-}
 
 /**
  * `declareMethods` can be used in place of the `@method` decorator
