@@ -50,6 +50,7 @@ function Account(party: Party): Account {
 }
 
 let unimplementedPreconditions: LongKey[] = [
+  // these are all unimplemented because we can't parse the hash yet
   'account.receiptChainHash',
   'network.snarkedLedgerHash',
   'network.nextEpochData.ledger.hash',
@@ -60,6 +61,10 @@ let unimplementedPreconditions: LongKey[] = [
   'network.stakingEpochData.seed',
   'network.stakingEpochData.startCheckpoint',
   'network.stakingEpochData.lockCheckpoint',
+  // this is unimplemented because the field is missing on the account endpoint
+  'account.provedState',
+  // this is partially unimplemented because the field is not returned by the local blockchain
+  'account.delegate',
 ];
 
 function preconditionClass(
