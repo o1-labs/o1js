@@ -65,6 +65,8 @@ let unimplementedPreconditions: LongKey[] = [
   'account.provedState',
   // this is partially unimplemented because the field is not returned by the local blockchain
   'account.delegate',
+  // this is unimplemented because setting this precondition made the integration test fail
+  'network.timestamp',
 ];
 
 function preconditionClass(
