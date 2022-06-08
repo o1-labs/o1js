@@ -101,15 +101,18 @@ function createTransaction(
   };
 
   try {
+    // run circuit
     Circuit.runAndCheck(f);
+
+    // check that on-chain values weren't used without setting a precondition
+    for (let party of currentTransaction.parties) {
+      assertPreconditionInvariants(party);
+    }
   } catch (err) {
+    nextTransactionId.value += 1;
     currentTransaction = undefined;
     // TODO would be nice if the error would be a bit more descriptive about what failed
     throw err;
-  }
-  // assert invariants on the created parties
-  for (let party of currentTransaction.parties) {
-    assertPreconditionInvariants(party);
   }
 
   let feePayerParty: FeePayerUnsigned;
