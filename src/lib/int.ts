@@ -6,7 +6,7 @@ export { UInt32, UInt64, Int64 };
 class UInt64 extends CircuitValue implements Types.UInt64 {
   @prop value: Field;
   static NUM_BITS = 64;
-  type?: 'UInt64';
+  _type?: 'UInt64';
 
   constructor(value: Field) {
     super();
@@ -180,7 +180,7 @@ class UInt64 extends CircuitValue implements Types.UInt64 {
 class UInt32 extends CircuitValue implements Types.UInt32 {
   @prop value: Field;
   static NUM_BITS = 32;
-  type?: 'UInt32';
+  _type?: 'UInt32';
 
   constructor(value: Field) {
     super();

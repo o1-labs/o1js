@@ -12,8 +12,8 @@ export {
 
 export { toJson, toJsonLeafTypes, toFields, toFieldsLeafTypes };
 
-type UInt64 = { value: Field; type?: 'UInt64' };
-type UInt32 = { value: Field; type?: 'UInt32' };
+type UInt64 = { value: Field; _type?: 'UInt64' };
+type UInt32 = { value: Field; _type?: 'UInt32' };
 type Sign = Field; // constrained to +-1
 type PublicKey = { g: Group };
 type AuthRequired = {

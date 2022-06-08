@@ -23,9 +23,8 @@ import {
   withContext,
   withContextAsync,
   getContext,
-  getExecutionState,
-  selfParty,
   inCompile,
+  mainContext,
 } from './global-context';
 import {
   assertPreconditionInvariants,
@@ -212,6 +211,7 @@ function picklesRuleFromFunction(
 export class SmartContract {
   address: PublicKey;
 
+  private _executionState: ExecutionState | undefined;
   static _methods?: methodEntry<SmartContract>[];
   static _provers?: Prover[];
   static _verificationKey?: { data: string; hash: Field };
@@ -340,8 +340,47 @@ export class SmartContract {
     return { statement, selfParty };
   }
 
+  private executionState(): ExecutionState {
+    // TODO reconcile mainContext with currentTransaction
+    if (mainContext !== undefined) {
+      return {
+        transactionId: 0,
+        partyIndex: 0,
+        party: mainContext.self,
+      };
+    }
+    if (Mina.currentTransaction === undefined) {
+      // throw new Error('Cannot execute outside of a Mina.transaction() block.');
+      // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
+      // or even expose the .get() methods independently of any party (they don't need one)
+      return {
+        transactionId: NaN,
+        partyIndex: NaN,
+        party: selfParty(this.address),
+      };
+    }
+    let executionState = this._executionState;
+    if (
+      executionState !== undefined &&
+      executionState.transactionId === Mina.nextTransactionId.value
+    ) {
+      return executionState;
+    }
+    let id = Mina.nextTransactionId.value;
+    let index = Mina.currentTransaction.nextPartyIndex++;
+    let party = selfParty(this.address);
+    Mina.currentTransaction.parties.push(party);
+    executionState = {
+      transactionId: id,
+      partyIndex: index,
+      party,
+    };
+    this._executionState = executionState;
+    return executionState;
+  }
+
   get self() {
-    return getExecutionState(this).party;
+    return this.executionState().party;
   }
 
   get account() {
@@ -384,6 +423,18 @@ export class SmartContract {
     Poseidon.hash(x.toFields());
   }
 }
+
+function selfParty(address: PublicKey) {
+  let body = Body.keepAll(address);
+  return new (Party as any)(body, {}, true) as Party;
+}
+
+// per-smart-contract context for transaction construction
+type ExecutionState = {
+  transactionId: number;
+  partyIndex: number;
+  party: Party;
+};
 
 type DeployArgs = {
   verificationKey?: { data: string; hash: string | Field };

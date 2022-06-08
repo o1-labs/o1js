@@ -1,11 +1,7 @@
-import * as Mina from './mina';
-import { Body, Party } from './party';
-import { PublicKey } from './signature';
-import { SmartContract } from './zkapp';
+import { Party } from './party';
 
 export {
-  selfParty,
-  getExecutionState,
+  mainContext,
   withContext,
   withContextAsync,
   getContext,
@@ -13,62 +9,6 @@ export {
   inCompile,
   inCheckedComputation,
 };
-
-// per-smart-contract context for transaction construction
-type ExecutionState = {
-  transactionId: number;
-  partyIndex: number;
-  party: Party;
-};
-
-function selfParty(address: PublicKey) {
-  let body = Body.keepAll(address);
-  return new (Party as any)(body, {}, true) as Party;
-}
-
-function getExecutionState(smartContract: SmartContract): ExecutionState {
-  // TODO reconcile mainContext with currentTransaction
-  if (mainContext !== undefined) {
-    return {
-      transactionId: 0,
-      partyIndex: 0,
-      party: mainContext.self,
-    };
-  }
-
-  if (Mina.currentTransaction === undefined) {
-    // throw new Error('Cannot execute outside of a Mina.transaction() block.');
-    // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
-    // or even expose the .get() methods independently of any party (they don't need one)
-    return {
-      transactionId: NaN,
-      partyIndex: NaN,
-      party: selfParty(smartContract.address),
-    };
-  }
-
-  let executionState = executionStates.get(smartContract);
-  if (
-    executionState !== undefined &&
-    executionState.transactionId === Mina.nextTransactionId.value
-  ) {
-    return executionState;
-  }
-  let id = Mina.nextTransactionId.value;
-  let index = Mina.currentTransaction.nextPartyIndex++;
-  let party = selfParty(smartContract.address);
-  Mina.currentTransaction.parties.push(party);
-
-  executionState = {
-    transactionId: id,
-    partyIndex: index,
-    party,
-  };
-  executionStates.set(smartContract, executionState);
-  return executionState;
-}
-
-const executionStates = new WeakMap<SmartContract, ExecutionState>();
 
 // context for compiling / proving
 // TODO reconcile mainContext with currentTransaction
