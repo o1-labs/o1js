@@ -49,6 +49,19 @@ function Account(party: Party): Account {
   return preconditionClass(layout, 'account', party, context);
 }
 
+let unimplementedPreconditions: LongKey[] = [
+  'account.receiptChainHash',
+  'network.snarkedLedgerHash',
+  'network.nextEpochData.ledger.hash',
+  'network.nextEpochData.seed',
+  'network.nextEpochData.startCheckpoint',
+  'network.nextEpochData.lockCheckpoint',
+  'network.stakingEpochData.ledger.hash',
+  'network.stakingEpochData.seed',
+  'network.stakingEpochData.startCheckpoint',
+  'network.stakingEpochData.lockCheckpoint',
+];
+
 function preconditionClass(
   layout: Layout,
   baseKey: any,
@@ -104,6 +117,10 @@ function preconditionSubclass<
 ) {
   return {
     get() {
+      if (unimplementedPreconditions.includes(longKey)) {
+        let self = context.isSelf ? 'this' : 'party';
+        throw Error(`${self}.${longKey}.get() is not implemented yet.`);
+      }
       let { read, vars } = context;
       read.add(longKey);
       return (vars[longKey] ??
