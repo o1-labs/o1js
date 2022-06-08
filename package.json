@@ -31,7 +31,7 @@
     "build": "node --stack-trace-limit=100 src/build/buildNode.mjs",
     "build:node": "node --stack-trace-limit=100 src/build/buildNode.mjs",
     "build:web": "node src/build/buildWeb.mjs",
-    "serve:web": "cd dist/web && python3 server.py",
+    "serve:web": "cp src/chrome_bindings/server.py src/chrome_bindings/index.html dist/web && cd dist/web && python3 server.py",
     "prepublish:node": "NODE_ENV=production node src/build/buildNode.mjs",
     "prepublish:web": "NODE_ENV=production node src/build/buildWeb.mjs",
     "prepublish:both": "npm run prepublish:web && npm run prepublish:node",

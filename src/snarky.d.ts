@@ -727,6 +727,11 @@ declare class Ledger {
     privateKey: { s: Scalar },
     i: number
   ): string;
+  static verifyPartyProof(
+    statement: Statement,
+    proof: string,
+    verificationKey: string
+  ): Promise<boolean>;
 
   static publicKeyToString(publicKey: { g: Group }): string;
   static publicKeyOfString(publicKeyBase58: string): Group;

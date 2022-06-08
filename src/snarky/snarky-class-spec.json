@@ -393,6 +393,10 @@
         "type": "function"
       },
       {
+        "name": "verifyPartyProof",
+        "type": "function"
+      },
+      {
         "name": "publicKeyToString",
         "type": "function"
       },

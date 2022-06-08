@@ -73,6 +73,30 @@ export default function workerRun() {
         ],
         res: bool,
       },
+      caml_fp_srs_b_poly_commitment: {
+        args: [plonk_wasm.WasmFpSrs, undefined /*Uint8Array*/],
+        res: plonk_wasm.WasmFpPolyComm,
+      },
+      caml_fq_srs_b_poly_commitment: {
+        args: [plonk_wasm.WasmFqSrs, undefined /*Uint8Array*/],
+        res: plonk_wasm.WasmFqPolyComm,
+      },
+      fp_oracles_create: {
+        args: [
+          undefined /* Uint32Array */,
+          plonk_wasm.WasmFpPlonkVerifierIndex,
+          plonk_wasm.WasmFpProverProof,
+        ],
+        res: plonk_wasm.WasmFpOracles,
+      },
+      fq_oracles_create: {
+        args: [
+          undefined /* Uint32Array */,
+          plonk_wasm.WasmFqPlonkVerifierIndex,
+          plonk_wasm.WasmFqProverProof,
+        ],
+        res: plonk_wasm.WasmFqOracles,
+      },
     };
   };
 
@@ -85,13 +109,11 @@ export default function workerRun() {
     }
     for (let key in worker_spec_) {
       plonk_wasm_[key] = (...args) => {
-        // let old_onmessage = worker.onmessage;
         let u32_ptr = plonk_wasm.create_zero_u32_ptr();
         worker.postMessage({ type: 'run', name: key, args, u32_ptr });
         /* Here be undefined behavior dragons. */
         let res = plonk_wasm.wait_until_non_zero(u32_ptr);
         plonk_wasm.free_u32_ptr(u32_ptr);
-        // worker.onmessage = old_onmessage;
         let res_spec = worker_spec_[key].res;
         if (res_spec && res_spec.__wrap) {
           return worker_spec_[key].res.__wrap(res);
