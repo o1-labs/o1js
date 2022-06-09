@@ -1,9 +1,11 @@
-import { Bool, Circuit, Field, isReady, Poseidon } from '../snarky';
+import { Bool, Field, Poseidon } from '../snarky';
 import { arrayProp, CircuitValue, prop } from './circuit_value';
+
+export { Character, CircuitString, CircuitString8 };
 
 const DEFAULT_STRING_LENGTH = 128;
 
-export class Character extends CircuitValue {
+class Character extends CircuitValue {
   @prop value: Field;
 
   constructor(value: Field) {
@@ -53,7 +55,7 @@ class NullCharacter extends Character {
   }
 }
 
-export class CircuitString extends CircuitValue {
+class CircuitString extends CircuitValue {
   maxLength: number;
   @arrayProp(Character, DEFAULT_STRING_LENGTH) values: Character[];
 
@@ -95,7 +97,7 @@ export class CircuitString extends CircuitValue {
 
     let mask = this.firstNullMask();
 
-    function chooseWithMask<T>(chars: Character[], mask: Bool[]) {
+    function chooseWithMask(chars: Character[], mask: Bool[]) {
       // picks the character at the index where mask is true
       let m = mask.length;
       if (chars.length !== m) throw Error('bug');
@@ -197,7 +199,7 @@ export class CircuitString extends CircuitValue {
   }
 }
 
-export class CircuitString8 extends CircuitString {
+class CircuitString8 extends CircuitString {
   @arrayProp(Character, 8) values: Character[];
 
   constructor(values: Character[]) {
