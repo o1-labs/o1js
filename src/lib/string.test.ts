@@ -7,7 +7,7 @@ import {
   Field,
   shutdown,
   isReady,
-} from '../dist/server';
+} from '../../dist/server';
 
 describe('Circuit String', () => {
   beforeEach(async () => {
