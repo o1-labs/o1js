@@ -23,8 +23,13 @@ import {
   withContext,
   withContextAsync,
   getContext,
+  inCompile,
   mainContext,
 } from './global-context';
+import {
+  assertPreconditionInvariants,
+  cleanPreconditionsCache,
+} from './precondition';
 
 export { deploy, DeployArgs, call, callUnproved, signFeePayer, declareMethods };
 
@@ -94,6 +99,13 @@ function wrapMethod(
     let actualArgs = args.slice(0, argsLength);
     let shouldCallDirectly = args[argsLength] as undefined | boolean;
     if (Mina.currentTransaction === undefined || shouldCallDirectly === true) {
+      // in compile, check the self party right after calling the method
+      // TODO: this needs to be done in a unified way for all parties that are created
+      if (inCompile()) {
+        let result = method.apply(this, actualArgs);
+        assertPreconditionInvariants(this.self);
+        return result;
+      }
       // outside a transaction, just call the method
       return method.apply(this, actualArgs);
     } else {
@@ -179,6 +191,7 @@ function picklesRuleFromFunction(
     // FIXME: figure out correct way to constrain statement https://github.com/o1-labs/snarkyjs/issues/98
     statement.transaction.assertEquals(statement.transaction);
     // checkStatement(statement, self, tail);
+    cleanPreconditionsCache(self);
   }
 
   return [0, name, main] as [0, string, typeof main];
@@ -197,7 +210,7 @@ function picklesRuleFromFunction(
 export class SmartContract {
   address: PublicKey;
 
-  _executionState?: ExecutionState;
+  private _executionState: ExecutionState | undefined;
   static _methods?: methodEntry<SmartContract>[];
   static _provers?: Prover[];
   static _verificationKey?: { data: string; hash: Field };
@@ -222,7 +235,7 @@ export class SmartContract {
     );
 
     let [, { getVerificationKeyArtifact, provers, verify }] = withContext(
-      { self: Party.defaultParty(address), inCompile: true },
+      { self: selfParty(address), inCompile: true },
       () => Pickles.compile(rules)
     );
     let verificationKey = getVerificationKeyArtifact();
@@ -325,7 +338,7 @@ export class SmartContract {
     return { statement, selfParty };
   }
 
-  executionState(): ExecutionState {
+  private executionState(): ExecutionState {
     // TODO reconcile mainContext with currentTransaction
     if (mainContext !== undefined) {
       return {
@@ -334,35 +347,46 @@ export class SmartContract {
         party: mainContext.self,
       };
     }
-
     if (Mina.currentTransaction === undefined) {
-      throw new Error('Cannot execute outside of a Mina.transaction() block.');
-    }
-
-    if (
-      this._executionState !== undefined &&
-      this._executionState.transactionId === Mina.nextTransactionId.value
-    ) {
-      return this._executionState;
-    } else {
-      const id = Mina.nextTransactionId.value;
-      const index = Mina.currentTransaction.nextPartyIndex++;
-      const body = Body.keepAll(this.address);
-      const party = new Party(body);
-      Mina.currentTransaction.parties.push(party);
-
-      const s = {
-        transactionId: id,
-        partyIndex: index,
-        party,
+      // throw new Error('Cannot execute outside of a Mina.transaction() block.');
+      // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
+      // or even expose the .get() methods independently of any party (they don't need one)
+      return {
+        transactionId: NaN,
+        partyIndex: NaN,
+        party: selfParty(this.address),
       };
-      this._executionState = s;
-      return s;
     }
+    let executionState = this._executionState;
+    if (
+      executionState !== undefined &&
+      executionState.transactionId === Mina.nextTransactionId.value
+    ) {
+      return executionState;
+    }
+    let id = Mina.nextTransactionId.value;
+    let index = Mina.currentTransaction.nextPartyIndex++;
+    let party = selfParty(this.address);
+    Mina.currentTransaction.parties.push(party);
+    executionState = {
+      transactionId: id,
+      partyIndex: index,
+      party,
+    };
+    this._executionState = executionState;
+    return executionState;
   }
 
   get self() {
     return this.executionState().party;
+  }
+
+  get account() {
+    return this.self.account;
+  }
+
+  get network() {
+    return this.self.network;
   }
 
   get balance() {
@@ -398,15 +422,21 @@ export class SmartContract {
   }
 }
 
-type DeployArgs = {
-  verificationKey?: { data: string; hash: string | Field };
-  zkappKey?: PrivateKey;
-};
+function selfParty(address: PublicKey) {
+  let body = Body.keepAll(address);
+  return new (Party as any)(body, {}, true) as Party;
+}
 
+// per-smart-contract context for transaction construction
 type ExecutionState = {
   transactionId: number;
   partyIndex: number;
   party: Party;
+};
+
+type DeployArgs = {
+  verificationKey?: { data: string; hash: string | Field };
+  zkappKey?: PrivateKey;
 };
 
 function emptyWitness<A>(typ: AsFieldElements<A>) {

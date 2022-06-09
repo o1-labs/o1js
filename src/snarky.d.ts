@@ -18,6 +18,7 @@ export {
   JSONValue,
 };
 export * as Types from './snarky/gen/parties';
+export { jsLayout } from './snarky/gen/js-layout';
 
 /**
  * An element of a finite field.
@@ -385,10 +386,20 @@ declare class Bool {
   or(y: Bool | boolean): Bool;
 
   /**
-   * Aborts the program if this [[`Bool`]] is equal to `y`.
+   * Proves that this [[`Bool`]] is equal to `y`.
    * @param y a [[`Bool`]].
    */
   assertEquals(y: Bool | boolean): void;
+
+  /**
+   * Proves that this [[`Bool`]] is `true`.
+   */
+  assertTrue(): void;
+
+  /**
+   * Proves that this [[`Bool`]] is `false`.
+   */
+  assertFalse(): void;
 
   /**
    * Returns true if this [[`Bool`]] is equal to `y`.
@@ -417,6 +428,15 @@ declare class Bool {
   toBoolean(): boolean;
 
   /* static members */
+  /**
+   * The constant [[`Bool`]] that is `true`.
+   */
+  static true: Bool;
+  /**
+   * The constant [[`Bool`]] that is `false`.
+   */
+  static false: Bool;
+
   static toField(x: Bool | boolean): Field;
 
   static Unsafe: {

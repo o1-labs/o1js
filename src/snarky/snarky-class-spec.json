@@ -120,6 +120,14 @@
     "name": "Bool",
     "props": [
       {
+        "name": "true",
+        "type": "object"
+      },
+      {
+        "name": "false",
+        "type": "object"
+      },
+      {
         "name": "toField",
         "type": "function"
       },

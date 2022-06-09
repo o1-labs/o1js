@@ -149,11 +149,11 @@ function createState<T>(): InternalStateType<T> {
       let layout = getLayoutPosition(this._contract);
       let stateAsFields = this._contract.stateType.toFields(state);
       let party = this._contract.instance.self;
-
       stateAsFields.forEach((x, i) => {
-        party.body.preconditions.account.state[layout.offset + i].isSome =
-          Bool(true);
-        party.body.preconditions.account.state[layout.offset + i].value = x;
+        Party.assertEquals(
+          party.body.preconditions.account.state[layout.offset + i],
+          x
+        );
       });
     },
 
