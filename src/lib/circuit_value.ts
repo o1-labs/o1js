@@ -51,7 +51,7 @@ abstract class CircuitValue {
     return (this.constructor as any).toJSON(this);
   }
 
-  equals(this: this, x: typeof this): Bool {
+  equals(this: this, x: this): Bool {
     return Circuit.equal(this, x);
   }
 
@@ -135,11 +135,9 @@ abstract class CircuitValue {
 
 function prop(this: any, target: any, key: string) {
   const fieldType = Reflect.getMetadata('design:type', target, key);
-
-  if (target._fields === undefined || target._fields === null) {
+  if (!target.hasOwnProperty('_fields')) {
     target._fields = [];
   }
-
   if (fieldType === undefined) {
   } else if (fieldType.toFields && fieldType.ofFields) {
     target._fields.push([key, fieldType]);
@@ -179,7 +177,7 @@ function circuitArray<T>(elementType: AsFieldElements<T>, length: number) {
 
 function arrayProp<T>(elementType: AsFieldElements<T>, length: number) {
   return function (target: any, key: string) {
-    if (target._fields === undefined || target._fields === null) {
+    if (!target.hasOwnProperty('_fields')) {
       target._fields = [];
     }
     target._fields.push([key, circuitArray(elementType, length)]);
@@ -192,7 +190,9 @@ function matrixProp<T>(
   nColumns: number
 ) {
   return function (target: any, key: string) {
-    target._fields ??= [];
+    if (!target.hasOwnProperty('_fields')) {
+      target._fields = [];
+    }
     target._fields.push([
       key,
       circuitArray(circuitArray(elementType, nColumns), nRows),
