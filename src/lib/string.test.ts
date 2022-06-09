@@ -10,13 +10,8 @@ import {
 } from '../../dist/server';
 
 describe('Circuit String', () => {
-  beforeEach(async () => {
-    await isReady;
-  });
-
-  afterAll(() => {
-    setTimeout(shutdown, 0);
-  });
+  beforeEach(() => isReady);
+  afterAll(() => setTimeout(shutdown, 0));
 
   describe('#equals', () => {
     test('returns true when values are equal', () => {
