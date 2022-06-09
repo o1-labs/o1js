@@ -8,20 +8,45 @@ import {
 } from 'snarkyjs';
 import * as assert from 'assert/strict';
 
-await isReady;
+// circuit which tests a couple of string features
 class MyContract extends SmartContract {
   @method checkString(s: CircuitString) {
-    CircuitString.fromString('some string').assertEquals(s);
+    let sWithExclamation = s.append(CircuitString.fromString('!'));
+    sWithExclamation
+      .equals(CircuitString.fromString('a string!'))
+      .or(sWithExclamation.contains(CircuitString.fromString('some')))
+      .assertTrue();
   }
 }
 
+await isReady;
 let address = PrivateKey.random().toPublicKey();
 
+console.log('compile...');
 await MyContract.compile(address);
+// should work
+console.log('prove...');
 let tx = await Mina.transaction(() => {
+  new MyContract(address).checkString(CircuitString.fromString('a string'));
+});
+await tx.prove();
+console.log('test 1 - ok');
+// should work
+tx = await Mina.transaction(() => {
   new MyContract(address).checkString(CircuitString.fromString('some string'));
 });
 await tx.prove();
+console.log('test 2 - ok');
+// should fail
+tx = await Mina.transaction(() => {
+  new MyContract(address).checkString(CircuitString.fromString('different'));
+});
+let fails = await tx
+  .prove()
+  .then(() => false)
+  .catch(() => true);
+if (!fails) Error('proof was supposed to fail');
+console.log('test 3 - ok');
 
 const str = CircuitString.fromString('Your size');
 const not_same_str = CircuitString.fromString('size');

@@ -3,7 +3,7 @@ import { arrayProp, CircuitValue, prop } from './circuit_value';
 
 export { Character, CircuitString, CircuitString8 };
 
-const DEFAULT_STRING_LENGTH = 128;
+const DEFAULT_STRING_LENGTH = 32;
 
 class Character extends CircuitValue {
   @prop value: Field;
@@ -39,79 +39,94 @@ class Character extends CircuitValue {
 }
 
 class CircuitString extends CircuitValue {
+  static maxLength = DEFAULT_STRING_LENGTH;
   @arrayProp(Character, DEFAULT_STRING_LENGTH) values: Character[];
 
   constructor(values: Character[]) {
     super();
-    this.values = fillWithNull(values, DEFAULT_STRING_LENGTH);
+    this.values = fillWithNull(values, this.maxLength());
   }
 
-  private firstNullMask(): Bool[] {
-    let t = this as any;
-    if (t._firstNullMask !== undefined) return t._firstNullMask;
-    // create an array that is true where `this` has its first null character, false elsewhere
-    let mask = [];
-    let wasntNullAlready = Bool(true);
+  private maxLength() {
+    return (this.constructor as typeof CircuitString).maxLength;
+  }
+
+  // some O(n) computation that should be only done once in the circuit
+  private computeLengthAndMask() {
     let n = this.values.length;
+    // length is the actual, dynamic length
+    let length = Field.zero;
+    // mask is an array that is true where `this` has its first null character, false elsewhere
+    let mask = [];
+    let wasntNullAlready = Bool.true;
     for (let i = 0; i < n; i++) {
       let isNull = this.values[i].isNull();
       mask[i] = isNull.and(wasntNullAlready);
       wasntNullAlready = isNull.not().and(wasntNullAlready);
+      length.add(wasntNullAlready.toField());
     }
     // mask has length n+1, the last element is true when `this` has no null char
     mask[n] = wasntNullAlready;
-    t._firstNullMask = mask;
-    return mask;
+    (this as any)._length = length;
+    (this as any)._mask = mask;
+    return { mask, length };
+  }
+  private lengthMask(): Bool[] {
+    return (this as any)._mask ?? this.computeLengthAndMask().mask;
+  }
+  private length(): Field {
+    return (this as any)._length ?? this.computeLengthAndMask().length;
   }
 
+  /**
+   * appends another string to this one, returns the result and proves that it fits
+   * within the `maxLength` of this string (the other string can have a different maxLength)
+   */
   append(str: CircuitString): CircuitString {
-    let n = this.values.length;
+    let n = this.maxLength();
+    // only allow append if the dynamic length does not overflow
+    this.length().add(str.length()).assertLt(n);
+
     let chars = this.values;
-    let otherChars = str.values;
+    let otherChars = fillWithNull(str.values, n);
 
-    let mask = this.firstNullMask();
-
-    function chooseWithMask(chars: Character[], mask: Bool[]) {
-      // picks the character at the index where mask is true
-      let m = mask.length;
-      if (chars.length !== m) throw Error('bug');
-      let char = Field.zero;
-      for (let i = 0; i < m; i++) {
-        let maybeChar = chars[i].value.mul(mask[i].toField());
-        char = char.add(maybeChar);
-      }
-      return new Character(char);
+    // compute the concatenated string -- for *each* of the possible lengths of the first string
+    let possibleResults = [];
+    for (let length = 0; length < n + 1; length++) {
+      // if the first string has this `length`, then this is the result:
+      possibleResults[length] = chars
+        .slice(0, length)
+        .concat(otherChars.slice(0, n - length));
     }
-
-    let newChars: Character[] = [];
-    let reverseOtherChars = otherChars.reverse();
-    let nullChar = NullCharacter();
-
-    for (let i = 0; i < 2 * n; i++) {
-      let possibleCharsAtI;
-      if (i < n) {
-        possibleCharsAtI = reverseOtherChars
-          .slice(n - i - 1, n)
-          .concat(Array(n - i).fill(chars[i]));
-      } else {
-        possibleCharsAtI = Array(i - n + 1)
-          .fill(nullChar)
-          .concat(reverseOtherChars.slice(0, 2 * n - i));
-      }
-      newChars[i] = chooseWithMask(possibleCharsAtI, mask);
+    // compute the actual result, by always picking the char which correponds to the actual length
+    let result: Character[] = [];
+    let mask = this.lengthMask();
+    for (let i = 0; i < n; i++) {
+      let possibleCharsAtI = possibleResults.map((result) => result[i]);
+      result[i] = pickOne(possibleCharsAtI, mask);
     }
-    // throws, for wrong length
-    let result = new CircuitString([]);
-    result.values = fillWithNull(newChars, 2 * n);
-    return result;
+    return new CircuitString(result);
   }
 
-  // returns TRUE if str is found in this CircuitString
-  // @param size - the size of the str without null padding
+  /**
+   * returns true if `str` is found in this `CircuitString`
+   */
   contains(str: CircuitString): Bool {
-    let ret = new Bool(false);
-    ret = this._contains(str);
+    // only succeed if the dynamic length is smaller
+    let length = this.length();
+    str.length().assertLt(length);
 
+    let n = this.maxLength();
+    let ret = Bool.false;
+
+    // for (let i=0; i<n; i++) {
+    //   this.
+    // }
+
+    // while (i + length <= n) {
+    //   ret = ret.or(this.substring(i, i + length).equals(str));
+    //   i++;
+    // }
     return ret;
   }
 
@@ -134,34 +149,12 @@ class CircuitString extends CircuitValue {
     const characters = str.split('').map((x) => Character.fromString(x));
     return new CircuitString(characters);
   }
-
-  private _contains(str: CircuitString): Bool {
-    let ret = new Bool(false);
-    let length = 0;
-    str.values.forEach((char) => {
-      if (Number(char.value.toString()) > 0) {
-        length++;
-      }
-    });
-    const maxLength = this.values.length;
-    let i = 0;
-
-    while (i + length <= maxLength) {
-      ret = ret.or(this.substring(i, i + length).equals(str));
-      i++;
-    }
-
-    return ret;
-  }
 }
 
+// TODO
 class CircuitString8 extends CircuitString {
-  @arrayProp(Character, 8) values: Character[];
-
-  constructor(values: Character[]) {
-    super(values);
-    this.values = fillWithNull(values, 8);
-  }
+  static maxLength = 8;
+  @arrayProp(Character, 8) values: Character[] = [];
 }
 
 // note: this used to be a custom class, which doesn't work
@@ -169,8 +162,23 @@ class CircuitString8 extends CircuitString {
 let NullCharacter = () => new Character(Field.zero);
 
 function fillWithNull([...values]: Character[], length: number) {
+  let nullChar = NullCharacter();
   for (let i = values.length; i < length; i++) {
-    values[i] = NullCharacter();
+    values[i] = nullChar;
   }
   return values;
+}
+
+// helper which expects an array, and a boolean mask (of the same length) with just one `true` in it,
+// and picks the coressponding element of the array
+function pickOne(chars: Character[], mask: Bool[]) {
+  // picks the character at the index where mask is true
+  let m = mask.length;
+  if (chars.length !== m) throw Error('bug');
+  let char = Field.zero;
+  for (let i = 0; i < m; i++) {
+    let maybeChar = chars[i].value.mul(mask[i].toField());
+    char = char.add(maybeChar);
+  }
+  return new Character(char);
 }
