@@ -99,13 +99,6 @@ function wrapMethod(
     let actualArgs = args.slice(0, argsLength);
     let shouldCallDirectly = args[argsLength] as undefined | boolean;
     if (Mina.currentTransaction === undefined || shouldCallDirectly === true) {
-      // in compile, check the self party right after calling the method
-      // TODO: this needs to be done in a unified way for all parties that are created
-      if (inCompile()) {
-        let result = method.apply(this, actualArgs);
-        assertPreconditionInvariants(this.self);
-        return result;
-      }
       // outside a transaction, just call the method
       return method.apply(this, actualArgs);
     } else {
@@ -191,6 +184,10 @@ function picklesRuleFromFunction(
     // FIXME: figure out correct way to constrain statement https://github.com/o1-labs/snarkyjs/issues/98
     statement.transaction.assertEquals(statement.transaction);
     // checkStatement(statement, self, tail);
+
+    // check the self party right after calling the method
+    // TODO: this needs to be done in a unified way for all parties that are created
+    assertPreconditionInvariants(self);
     cleanPreconditionsCache(self);
   }
 
