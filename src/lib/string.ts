@@ -10,16 +10,11 @@ class Character extends CircuitValue {
 
   constructor(value: Field) {
     super();
-
     this.value = value;
   }
 
-  equals(char: Character): Bool {
-    return this.value.equals(char.value);
-  }
-
   isNull(): Bool {
-    return this.equals(new NullCharacter());
+    return this.equals(NullCharacter() as this);
   }
 
   toField(): Field {
@@ -36,41 +31,19 @@ class Character extends CircuitValue {
     return new Character(char);
   }
 
-  /* 
-  TODO: Add support for more character sets
-  default chacter value should be 0-255
-  */
+  // TODO: Add support for more character sets
+  // right now it's 16 bits because 8 not supported :/
   static check(c: Character) {
-    c.value.rangeCheckHelper(8).assertEquals(c.value);
-  }
-}
-
-class NullCharacter extends Character {
-  constructor() {
-    super(Field.zero);
-  }
-
-  static check(c: Character) {
-    c.value.assertEquals(Field.zero);
+    c.value.rangeCheckHelper(16).assertEquals(c.value);
   }
 }
 
 class CircuitString extends CircuitValue {
-  maxLength: number;
   @arrayProp(Character, DEFAULT_STRING_LENGTH) values: Character[];
 
   constructor(values: Character[]) {
     super();
-
-    const inputLength = values.length;
-    values.length = DEFAULT_STRING_LENGTH;
-    values = values.fill(
-      new NullCharacter(),
-      inputLength,
-      DEFAULT_STRING_LENGTH
-    );
-    this.values = values;
-    this.maxLength = DEFAULT_STRING_LENGTH;
+    this.values = fillWithNull(values, DEFAULT_STRING_LENGTH);
   }
 
   private firstNullMask(): Bool[] {
@@ -79,19 +52,20 @@ class CircuitString extends CircuitValue {
     // create an array that is true where `this` has its first null character, false elsewhere
     let mask = [];
     let wasntNullAlready = Bool(true);
-    for (let i = 0; i < this.maxLength; i++) {
+    let n = this.values.length;
+    for (let i = 0; i < n; i++) {
       let isNull = this.values[i].isNull();
       mask[i] = isNull.and(wasntNullAlready);
       wasntNullAlready = isNull.not().and(wasntNullAlready);
     }
     // mask has length n+1, the last element is true when `this` has no null char
-    mask[this.maxLength] = wasntNullAlready;
+    mask[n] = wasntNullAlready;
     t._firstNullMask = mask;
     return mask;
   }
 
   append(str: CircuitString): CircuitString {
-    let n = this.maxLength;
+    let n = this.values.length;
     let chars = this.values;
     let otherChars = str.values;
 
@@ -111,7 +85,7 @@ class CircuitString extends CircuitValue {
 
     let newChars: Character[] = [];
     let reverseOtherChars = otherChars.reverse();
-    let nullChar = new NullCharacter();
+    let nullChar = NullCharacter();
 
     for (let i = 0; i < 2 * n; i++) {
       let possibleCharsAtI;
@@ -126,9 +100,9 @@ class CircuitString extends CircuitValue {
       }
       newChars[i] = chooseWithMask(possibleCharsAtI, mask);
     }
+    // throws, for wrong length
     let result = new CircuitString([]);
-    result.maxLength = 2 * n;
-    result.values = newChars;
+    result.values = fillWithNull(newChars, 2 * n);
     return result;
   }
 
@@ -149,19 +123,11 @@ class CircuitString extends CircuitValue {
     return new CircuitString(this.values.slice(start, end));
   }
 
-  toFields(): Field[] {
-    return this.values.map((x) => x.toField());
-  }
-
   toString(): string {
     return this.values
       .map((x) => x.toString())
       .join('')
       .replace(/[^ -~]+/g, '');
-  }
-
-  equals(str: CircuitString): Bool {
-    return this._equals(str);
   }
 
   static fromString(str: string): CircuitString {
@@ -177,23 +143,13 @@ class CircuitString extends CircuitValue {
         length++;
       }
     });
-    const maxLength = this.maxLength;
+    const maxLength = this.values.length;
     let i = 0;
 
     while (i + length <= maxLength) {
       ret = ret.or(this.substring(i, i + length).equals(str));
       i++;
     }
-
-    return ret;
-  }
-
-  private _equals(str: CircuitString): Bool {
-    let ret = new Bool(true);
-
-    this.values.forEach((value: Character, i: number) => {
-      ret = ret.and(value.equals(str.values[i]));
-    });
 
     return ret;
   }
@@ -204,11 +160,17 @@ class CircuitString8 extends CircuitString {
 
   constructor(values: Character[]) {
     super(values);
-
-    const inputLength = values.length;
-    values.length = 8;
-    values = values.fill(new NullCharacter(), inputLength, 8);
-    this.values = values;
-    this.maxLength = 8;
+    this.values = fillWithNull(values, 8);
   }
+}
+
+// note: this used to be a custom class, which doesn't work
+// NullCharacter must use the same circuits as normal Characters
+let NullCharacter = () => new Character(Field.zero);
+
+function fillWithNull([...values]: Character[], length: number) {
+  for (let i = values.length; i < length; i++) {
+    values[i] = NullCharacter();
+  }
+  return values;
 }
