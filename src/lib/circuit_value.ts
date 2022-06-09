@@ -51,7 +51,7 @@ abstract class CircuitValue {
     return (this.constructor as any).toJSON(this);
   }
 
-  equals(this: this, x: typeof this): Bool {
+  equals(this: this, x: this): Bool {
     return Circuit.equal(this, x);
   }
 
@@ -135,11 +135,9 @@ abstract class CircuitValue {
 
 function prop(this: any, target: any, key: string) {
   const fieldType = Reflect.getMetadata('design:type', target, key);
-
-  if (target._fields === undefined || target._fields === null) {
+  if (!target.hasOwnProperty('_fields')) {
     target._fields = [];
   }
-
   if (fieldType === undefined) {
   } else if (fieldType.toFields && fieldType.ofFields) {
     target._fields.push([key, fieldType]);
@@ -151,28 +149,35 @@ function prop(this: any, target: any, key: string) {
 }
 
 function circuitArray<T>(elementType: AsFieldElements<T>, length: number) {
-  let elementLength = elementType.sizeInFields();
-  length = elementLength * length;
   return {
     sizeInFields() {
-      return length;
+      let elementLength = elementType.sizeInFields();
+      return elementLength * length;
     },
     toFields(array: T[]) {
       return array.map((e) => elementType.toFields(e)).flat();
     },
     ofFields(fields: Field[]) {
       let array = [];
+      let elementLength = elementType.sizeInFields();
+      length = elementLength * length;
       for (let i = 0; i < length; i += elementLength) {
         array.push(elementType.ofFields(fields.slice(i, i + elementLength)));
       }
       return array;
+    },
+    check(array: T[]) {
+      if ((elementType as any).check === undefined) return;
+      for (let i = 0; i < length; i++) {
+        (elementType as any).check(array[i]);
+      }
     },
   };
 }
 
 function arrayProp<T>(elementType: AsFieldElements<T>, length: number) {
   return function (target: any, key: string) {
-    if (target._fields === undefined || target._fields === null) {
+    if (!target.hasOwnProperty('_fields')) {
       target._fields = [];
     }
     target._fields.push([key, circuitArray(elementType, length)]);
@@ -185,7 +190,9 @@ function matrixProp<T>(
   nColumns: number
 ) {
   return function (target: any, key: string) {
-    target._fields ??= [];
+    if (!target.hasOwnProperty('_fields')) {
+      target._fields = [];
+    }
     target._fields.push([
       key,
       circuitArray(circuitArray(elementType, nColumns), nRows),
