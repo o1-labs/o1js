@@ -173,7 +173,7 @@ describe('Circuit String', () => {
   }); */
 
   describe('with invalid input', () => {
-    test('cannot use a character out of range', () => {
+    test.skip('cannot use a character out of range', () => {
       expect(() => {
         Circuit.runAndCheck(() => {
           const str = Circuit.witness(CircuitString, () => {
