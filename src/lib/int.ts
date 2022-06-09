@@ -1,11 +1,12 @@
-import { Circuit, Field } from '../snarky';
+import { Circuit, Field, Types } from '../snarky';
 import { CircuitValue, prop } from './circuit_value';
 
 export { UInt32, UInt64, Int64 };
 
-class UInt64 extends CircuitValue {
+class UInt64 extends CircuitValue implements Types.UInt64 {
   @prop value: Field;
   static NUM_BITS = 64;
+  _type?: 'UInt64';
 
   constructor(value: Field) {
     super();
@@ -24,7 +25,7 @@ class UInt64 extends CircuitValue {
     return this.value.toString();
   }
 
-  static check(x: UInt64) {
+  static check(x: Types.UInt64) {
     let actual = x.value.rangeCheckHelper(64);
     actual.assertEquals(x.value);
   }
@@ -176,9 +177,10 @@ class UInt64 extends CircuitValue {
   }
 }
 
-class UInt32 extends CircuitValue {
+class UInt32 extends CircuitValue implements Types.UInt32 {
   @prop value: Field;
   static NUM_BITS = 32;
+  _type?: 'UInt32';
 
   constructor(value: Field) {
     super();
@@ -202,7 +204,7 @@ class UInt32 extends CircuitValue {
     return new UInt64(this.value);
   }
 
-  static check(x: UInt32) {
+  static check(x: Types.UInt32) {
     let actual = x.value.rangeCheckHelper(32);
     actual.assertEquals(x.value);
   }
@@ -332,7 +334,9 @@ class UInt32 extends CircuitValue {
   }
 }
 
-class Int64 extends CircuitValue {
+type BalanceChange = Types.Party['body']['balanceChange'];
+
+class Int64 extends CircuitValue implements BalanceChange {
   // * in the range [-2^64+1, 2^64-1], unlike a normal int64
   // * under- and overflowing is disallowed, similar to UInt64, unlike a normal int64+
 

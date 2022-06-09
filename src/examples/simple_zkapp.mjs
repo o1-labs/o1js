@@ -23,6 +23,7 @@ class SimpleZkapp extends SmartContract {
     this.x.set(initialState);
   }
   update(y) {
+    this.account.balance.assertEquals(this.account.balance.get());
     let x = this.x.get();
     this.x.set(x.add(y));
   }
@@ -42,7 +43,7 @@ let initialState = Field(1);
 let zkapp = new SimpleZkapp(zkappAddress);
 
 console.log('compile');
-SimpleZkapp.compile(zkappAddress);
+await SimpleZkapp.compile(zkappAddress);
 
 console.log('deploy');
 let tx = await Mina.transaction(feePayerKey, () => {

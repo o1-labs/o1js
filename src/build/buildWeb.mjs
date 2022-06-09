@@ -50,7 +50,9 @@ async function buildWeb({ production }) {
     './src/snarky.d.ts': './dist/web/snarky.d.ts',
     ...Object.fromEntries(
       (await readdir('./src/snarky/'))
-        .filter((f) => f.endsWith('.js') || f.endsWith('.json'))
+        .filter(
+          (f) => f.endsWith('.js') || f.endsWith('.json') || f.endsWith('.d.ts')
+        )
         .map((f) => [`./src/snarky/${f}`, `./dist/web/snarky/${f}`])
     ),
   });
