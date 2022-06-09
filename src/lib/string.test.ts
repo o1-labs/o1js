@@ -3,7 +3,6 @@ import {
   Character,
   Circuit,
   CircuitString,
-  CircuitString8,
   Field,
   shutdown,
   isReady,
@@ -51,7 +50,7 @@ describe('Circuit String', () => {
     });
   });
 
-  describe('#contains', () => {
+  /*   describe('#contains', () => {
     test('returns true when str contains other str', () => {
       const str = CircuitString.fromString(
         'Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth'
@@ -109,7 +108,7 @@ describe('Circuit String', () => {
         });
       });
     });
-  });
+  }); */
 
   describe('#toString', () => {
     test('serializes to string', () => {
@@ -161,7 +160,7 @@ describe('Circuit String', () => {
     });
   });
 
-  describe('CircuitString8', () => {
+  /*   describe('CircuitString8', () => {
     test('cannot create more than 8 chars', () => {
       expect(() => {
         Circuit.runAndCheck(() => {
@@ -171,7 +170,7 @@ describe('Circuit String', () => {
         });
       }).toThrow();
     });
-  });
+  }); */
 
   describe('with invalid input', () => {
     test('cannot use a character out of range', () => {

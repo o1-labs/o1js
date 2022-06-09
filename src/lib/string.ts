@@ -1,9 +1,9 @@
 import { Bool, Field, Poseidon } from '../snarky';
 import { arrayProp, CircuitValue, prop } from './circuit_value';
 
-export { Character, CircuitString, CircuitString8 };
+export { Character, CircuitString };
 
-const DEFAULT_STRING_LENGTH = 32;
+const DEFAULT_STRING_LENGTH = 128;
 
 class Character extends CircuitValue {
   @prop value: Field;
@@ -108,27 +108,15 @@ class CircuitString extends CircuitValue {
     return new CircuitString(result);
   }
 
+  // TODO
   /**
    * returns true if `str` is found in this `CircuitString`
    */
-  contains(str: CircuitString): Bool {
-    // only succeed if the dynamic length is smaller
-    let length = this.length();
-    str.length().assertLt(length);
-
-    let n = this.maxLength();
-    let ret = Bool.false;
-
-    // for (let i=0; i<n; i++) {
-    //   this.
-    // }
-
-    // while (i + length <= n) {
-    //   ret = ret.or(this.substring(i, i + length).equals(str));
-    //   i++;
-    // }
-    return ret;
-  }
+  // contains(str: CircuitString): Bool {
+  //   // only succeed if the dynamic length is smaller
+  //   let otherLength = str.length();
+  //   otherLength.assertLt(this.length());
+  // }
 
   hash(): Field {
     return Poseidon.hash(this.values.map((x) => x.value));
@@ -146,16 +134,19 @@ class CircuitString extends CircuitValue {
   }
 
   static fromString(str: string): CircuitString {
+    if (str.length > this.maxLength) {
+      throw Error('CircuitString.fromString: input string exceeds max length!');
+    }
     const characters = str.split('').map((x) => Character.fromString(x));
     return new CircuitString(characters);
   }
 }
 
 // TODO
-class CircuitString8 extends CircuitString {
-  static maxLength = 8;
-  @arrayProp(Character, 8) values: Character[] = [];
-}
+// class CircuitString8 extends CircuitString {
+//   static maxLength = 8;
+//   @arrayProp(Character, 8) values: Character[] = [];
+// }
 
 // note: this used to be a custom class, which doesn't work
 // NullCharacter must use the same circuits as normal Characters

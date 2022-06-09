@@ -14,7 +14,7 @@ class MyContract extends SmartContract {
     let sWithExclamation = s.append(CircuitString.fromString('!'));
     sWithExclamation
       .equals(CircuitString.fromString('a string!'))
-      .or(sWithExclamation.contains(CircuitString.fromString('some')))
+      .or(sWithExclamation.equals(CircuitString.fromString('some string!')))
       .assertTrue();
   }
 }
@@ -38,11 +38,9 @@ tx = await Mina.transaction(() => {
 await tx.prove();
 console.log('test 2 - ok');
 // should fail
-tx = await Mina.transaction(() => {
+let fails = await Mina.transaction(() => {
   new MyContract(address).checkString(CircuitString.fromString('different'));
-});
-let fails = await tx
-  .prove()
+})
   .then(() => false)
   .catch(() => true);
 if (!fails) Error('proof was supposed to fail');
@@ -74,10 +72,8 @@ console.log(
   '"'
 );
 
-if (!circuitString.contains(substring).toBoolean())
-  throw Error('String does not contain substring');
-
-// console.log(circuitString.length(), substring.length());
+// if (!circuitString.contains(substring).toBoolean())
+//   throw Error('String does not contain substring');
 
 console.log(circuitString.append(substring).toString());
 
