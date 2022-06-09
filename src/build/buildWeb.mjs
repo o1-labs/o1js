@@ -1,6 +1,6 @@
 import esbuild from 'esbuild';
 import fse from 'fs-extra';
-import { readFile, writeFile, unlink } from 'node:fs/promises';
+import { readFile, writeFile, unlink, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { exec } from 'node:child_process';
@@ -48,7 +48,13 @@ async function buildWeb({ production }) {
   let copyPromise = copy({
     './src/chrome_bindings/': './dist/web/chrome_bindings/',
     './src/snarky.d.ts': './dist/web/snarky.d.ts',
-    './src/snarky/': './dist/web/snarky/',
+    ...Object.fromEntries(
+      (await readdir('./src/snarky/'))
+        .filter(
+          (f) => f.endsWith('.js') || f.endsWith('.json') || f.endsWith('.d.ts')
+        )
+        .map((f) => [`./src/snarky/${f}`, `./dist/web/snarky/${f}`])
+    ),
   });
 
   await Promise.all([tscPromise, copyPromise]);

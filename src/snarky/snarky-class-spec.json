@@ -11,6 +11,14 @@
         "type": "object"
       },
       {
+        "name": "minusOne",
+        "type": "object"
+      },
+      {
+        "name": "ORDER",
+        "type": "bigint"
+      },
+      {
         "name": "random",
         "type": "function"
       },
@@ -93,12 +101,32 @@
       {
         "name": "fromJSON",
         "type": "function"
+      },
+      {
+        "name": "fromNumber",
+        "type": "function"
+      },
+      {
+        "name": "fromString",
+        "type": "function"
+      },
+      {
+        "name": "fromBigInt",
+        "type": "function"
       }
     ]
   },
   {
     "name": "Bool",
     "props": [
+      {
+        "name": "true",
+        "type": "object"
+      },
+      {
+        "name": "false",
+        "type": "object"
+      },
       {
         "name": "toField",
         "type": "function"
@@ -362,6 +390,10 @@
       },
       {
         "name": "signOtherParty",
+        "type": "function"
+      },
+      {
+        "name": "verifyPartyProof",
         "type": "function"
       },
       {

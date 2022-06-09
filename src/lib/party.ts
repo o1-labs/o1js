@@ -5,11 +5,13 @@ import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
 import { SmartContract } from './zkapp';
 import { withContextAsync } from './global-context';
+import * as Precondition from './precondition';
 
 export {
   SetOrKeep,
   Permission,
   Permissions,
+  Preconditions,
   Body,
   Party,
   FeePayerUnsigned,
@@ -30,6 +32,11 @@ const ZkappStateLength = 8;
 
 type PartyBody = Types.Party['body'];
 type Update = PartyBody['update'];
+
+/**
+ * Preconditions for the network and accounts
+ */
+type Preconditions = PartyBody['preconditions'];
 
 /**
  * Timing info inside an account.
@@ -219,7 +226,7 @@ let Permissions = {
   }),
 };
 
-export const getDefaultTokenId = () => Field.one;
+const getDefaultTokenId = () => Field.one;
 
 // TODO
 class Events {
@@ -271,11 +278,8 @@ interface Body extends PartyBody {
   /**
    * By what [[ Int64 ]] should the balance of this account change. All
    * balanceChanges must balance by the end of smart contract execution.
-   *
-   * TODO: Currently, due to the incompatible/fake Int64 implementation, we have to make
-   * magnitude an Int64 and sgn always 1.
    */
-  balanceChange: { magnitude: Int64; sgn: Field };
+  balanceChange: Int64;
 
   /**
    * Recent events that have been emitted from this account.
@@ -287,8 +291,7 @@ interface Body extends PartyBody {
   caller: Field;
   callData: Field; //MerkleList<Array<Field>>;
   callDepth: number; // TODO: this is an `int As_prover.t`
-  protocolStatePrecondition: ProtocolStatePrecondition;
-  accountPrecondition: AccountPrecondition;
+  preconditions: Preconditions;
   useFullCommitment: Bool;
   incrementNonce: Bool;
 }
@@ -330,14 +333,13 @@ const Body = {
       publicKey,
       update: Body.noUpdate(),
       tokenId: getDefaultTokenId(),
-      balanceChange: { magnitude: Int64.zero, sgn: Field.one },
+      balanceChange: Int64.zero,
       events: Events.empty(),
       sequenceEvents: Events.empty(),
       caller: getDefaultTokenId(),
       callData: Field.zero, // TODO new MerkleList(),
       callDepth: 0,
-      protocolStatePrecondition: ProtocolStatePrecondition.ignoreAll(),
-      accountPrecondition: AccountPrecondition.ignoreAll(),
+      preconditions: Preconditions.ignoreAll(),
       // the default assumption is that snarkyjs transactions don't include the fee payer
       // so useFullCommitment has to be false for signatures to be correct
       useFullCommitment: Bool(false),
@@ -362,7 +364,7 @@ const FeePayerBody = {
       update: Body.noUpdate(),
       events: Events.empty(),
       sequenceEvents: Events.empty(),
-      protocolStatePrecondition: ProtocolStatePrecondition.ignoreAll(),
+      networkPrecondition: NetworkPrecondition.ignoreAll(),
     };
   },
 };
@@ -387,9 +389,9 @@ type OrIgnore<T> = { isSome: Bool; value: T };
  */
 type ClosedInterval<T> = { lower: T; upper: T };
 
-type ProtocolStatePrecondition = PartyBody['protocolStatePrecondition'];
-let ProtocolStatePrecondition = {
-  ignoreAll(): ProtocolStatePrecondition {
+type NetworkPrecondition = Preconditions['network'];
+let NetworkPrecondition = {
+  ignoreAll(): NetworkPrecondition {
     let stakingEpochData = {
       ledger: { hash: ignore(Field.zero), totalCurrency: uint64() },
       seed: ignore(Field.zero),
@@ -432,8 +434,8 @@ const uint32 = () => ({ lower: UInt32.fromNumber(0), upper: UInt32.MAXINT() });
  */
 const uint64 = () => ({ lower: UInt64.fromNumber(0), upper: UInt64.MAXINT() });
 
-export type AccountPrecondition = PartyBody['accountPrecondition'];
-export const AccountPrecondition = {
+type AccountPrecondition = Preconditions['account'];
+const AccountPrecondition = {
   ignoreAll(): AccountPrecondition {
     let appState: Array<OrIgnore<Field>> = [];
     for (let i = 0; i < ZkappStateLength; ++i) {
@@ -456,6 +458,15 @@ export const AccountPrecondition = {
   },
 };
 
+const Preconditions = {
+  ignoreAll(): Preconditions {
+    return {
+      account: AccountPrecondition.ignoreAll(),
+      network: NetworkPrecondition.ignoreAll(),
+    };
+  },
+};
+
 type Control = Types.Party['authorization'];
 
 type LazySignature = { kind: 'lazy-signature'; privateKey?: PrivateKey };
@@ -472,26 +483,36 @@ type LazyControl = Control | LazySignature | LazyProof;
 
 class Party {
   body: Body;
-  authorization: LazyControl = {};
+  authorization: LazyControl;
+  account: Precondition.Account;
+  network: Precondition.Network;
 
-  constructor(body: Body) {
+  private isSelf: boolean;
+
+  constructor(body: Body, authorization?: LazyControl);
+  constructor(body: Body, authorization = {} as LazyControl, isSelf = false) {
     this.body = body;
+    this.authorization = authorization;
+    let { account, network } = Precondition.preconditions(this, isSelf);
+    this.account = account;
+    this.network = network;
+    this.isSelf = isSelf;
+  }
+
+  static clone(party: Party) {
+    let body = cloneCircuitValue(party.body);
+    let authorization = cloneCircuitValue(party.authorization);
+    return new (Party as any)(body, authorization, party.isSelf);
   }
 
   get balance() {
     let party = this;
     return {
-      addInPlace(x: Int64 | UInt32 | UInt64) {
-        party.body.balanceChange.magnitude = Int64.add(
-          party.body.balanceChange.magnitude,
-          x
-        );
+      addInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
+        party.body.balanceChange = party.body.balanceChange.add(x);
       },
-      subInPlace(x: Int64 | UInt32 | UInt64) {
-        party.body.balanceChange.magnitude = Int64.sub(
-          party.body.balanceChange.magnitude,
-          x
-        );
+      subInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
+        party.body.balanceChange = party.body.balanceChange.sub(x);
       },
     };
   }
@@ -566,7 +587,7 @@ class Party {
   }
 
   sign(privateKey?: PrivateKey) {
-    let party = cloneCircuitValue(this);
+    let party = Party.clone(this);
     party.signInPlace(privateKey);
     return party;
   }
@@ -604,7 +625,7 @@ class Party {
 
   setNoncePrecondition(fallbackToZero = false) {
     let nonce = Party.getNonce(this, fallbackToZero);
-    let accountPrecondition = this.body.accountPrecondition;
+    let accountPrecondition = this.body.preconditions.account;
     Party.assertEquals(accountPrecondition.nonce, nonce);
     return nonce;
   }
@@ -700,7 +721,7 @@ class Party {
       nonceIncrement.add(new UInt32(shouldIncreaseNonce.toField()));
     }
     nonce = nonce.add(nonceIncrement);
-    Party.assertEquals(body.accountPrecondition.nonce, nonce);
+    Party.assertEquals(body.preconditions.account.nonce, nonce);
     body.incrementNonce = Bool(true);
 
     let party = new Party(body);
@@ -804,7 +825,7 @@ function addMissingSignatures(
       if (i === -1) {
         let pk = PublicKey.toBase58(party.body.publicKey);
         throw Error(
-          `addMissingSignatures: Cannot add signature for ${pk}, private key is missing.`
+          `addMissingSignatures: Cannot add signature for fee payer (${pk}), private key is missing.`
         );
       }
       privateKey = additionalKeys[i];
@@ -813,17 +834,17 @@ function addMissingSignatures(
     return { body, authorization: signature };
   }
 
-  function addSignature<P extends Party>(party: P) {
-    party = cloneCircuitValue(party);
+  function addSignature(party: Party) {
+    party = Party.clone(party);
     if (
       !('kind' in party.authorization) ||
       party.authorization.kind !== 'lazy-signature'
     )
-      return party as P & { authorization: Control | LazyProof };
+      return party as Party & { authorization: Control | LazyProof };
     let { privateKey } = party.authorization;
     if (privateKey === undefined) {
-      let i = additionalPublicKeys.findIndex(
-        (pk) => pk === party.body.publicKey
+      let i = additionalPublicKeys.findIndex((pk) =>
+        pk.equals(party.body.publicKey)
       );
       if (i === -1)
         throw Error(
@@ -836,7 +857,7 @@ function addMissingSignatures(
       : commitment;
     let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
     party.authorization = { signature };
-    return party as P & { authorization: Control };
+    return party as Party & { authorization: Control };
   }
   let { feePayer, otherParties } = parties;
   return {
@@ -853,13 +874,13 @@ type PartiesProved = {
 async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
   let partiesJson = JSON.stringify(partiesToJson(parties));
 
-  async function addProof<P extends Party>(party: P, index: number) {
-    party = cloneCircuitValue(party);
+  async function addProof(party: Party, index: number) {
+    party = Party.clone(party);
     if (
       !('kind' in party.authorization) ||
       party.authorization.kind !== 'lazy-proof'
     )
-      return party as P & { authorization: Control | LazySignature };
+      return party as Party & { authorization: Control | LazySignature };
     let { method, args, ZkappClass } = party.authorization;
     let statement = Ledger.transactionStatement(partiesJson, index);
     if (ZkappClass._provers === undefined)
@@ -883,7 +904,7 @@ async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
       () => provers[i](statement)
     );
     party.authorization = { proof: Pickles.proofToString(proof) };
-    return party as P & { authorization: Control | LazySignature };
+    return party as Party & { authorization: Control | LazySignature };
   }
   let { feePayer, otherParties } = parties;
   // compute proofs serially. in parallel would clash with our global variable hacks

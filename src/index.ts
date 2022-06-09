@@ -6,10 +6,12 @@ export * from './lib/circuit_value';
 export * from './lib/int';
 export * as Mina from './lib/mina';
 export * from './lib/zkapp';
+export { state, State, declareState } from './lib/state';
 // export * from './lib/proof_system';
 export * from './lib/party';
 export {
   fetchAccount,
+  fetchLastBlock,
   parseFetchedAccount,
   addCachedAccount,
   setGraphqlEndpoint,

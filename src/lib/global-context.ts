@@ -1,15 +1,16 @@
 import { Party } from './party';
 
 export {
+  mainContext,
   withContext,
   withContextAsync,
   getContext,
-  mainContext,
   inProver,
   inCompile,
   inCheckedComputation,
 };
 
+// context for compiling / proving
 // TODO reconcile mainContext with currentTransaction
 let mainContext = undefined as
   | {
