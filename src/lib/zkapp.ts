@@ -795,6 +795,7 @@ function signFeePayer(
   {
     transactionFee = 0 as number | string,
     feePayerNonce = undefined as number | string | undefined,
+    memo = '',
   }
 ) {
   let parties: Types.Json.Parties = JSON.parse(transactionJson);
@@ -808,6 +809,7 @@ function signFeePayer(
   parties.feePayer.body.nonce = `${feePayerNonce}`;
   parties.feePayer.body.publicKey = Ledger.publicKeyToString(senderAddress);
   parties.feePayer.body.fee = `${transactionFee}`;
+  parties.memo = Ledger.memoToBase58(memo);
   return signJsonTransaction(JSON.stringify(parties), feePayerKey);
 }
 
