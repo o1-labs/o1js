@@ -166,17 +166,23 @@ function checkStatement(
 }
 
 function picklesRuleFromFunction(
-  name: string,
+  identifier: string,
   func: (...args: unknown[]) => void,
   witnessTypes: AsFieldElements<unknown>[]
 ) {
-  function main(statement: Statement) {
+  function main(
+    statement: Statement,
+    previousStatements: Statement[],
+    isMainValue: boolean
+  ) {
     let { self, witnesses } = getContext();
-    witnesses = witnessTypes.map(
-      witnesses
-        ? (type, i) => Circuit.witness(type, () => witnesses![i])
-        : emptyWitness
-    );
+    witnesses = isMainValue
+      ? witnesses ?? witnessTypes.map(emptyValue)
+      : witnessTypes.map(
+          witnesses
+            ? (type, i) => Circuit.witness(type, () => witnesses![i])
+            : emptyWitness
+        );
     func(...witnesses);
     let tail = Field.zero;
     // FIXME: figure out correct way to constrain statement https://github.com/o1-labs/snarkyjs/issues/98
@@ -187,9 +193,10 @@ function picklesRuleFromFunction(
     // TODO: this needs to be done in a unified way for all parties that are created
     assertPreconditionInvariants(self);
     cleanPreconditionsCache(self);
+    return [];
   }
 
-  return [0, name, main] as [0, string, typeof main];
+  return { identifier, main, proofsToVerify: [] };
 }
 
 /**
@@ -350,6 +357,10 @@ type DeployArgs = {
   verificationKey?: { data: string; hash: string | Field };
   zkappKey?: PrivateKey;
 };
+
+function emptyValue<A>(typ: AsFieldElements<A>) {
+  return typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero));
+}
 
 function emptyWitness<A>(typ: AsFieldElements<A>) {
   // return typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero));

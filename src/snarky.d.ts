@@ -758,6 +758,15 @@ declare const shutdown: () => Promise<undefined>;
 declare let isReady: Promise<undefined>;
 
 type Statement = { transaction: Field; atParty: Field };
+type Rule = {
+  identifier: string;
+  main: (
+    statement: Statement,
+    previousStatements: Statement[],
+    isValue: boolean
+  ) => Bool[];
+  proofsToVerify: { isSelf: boolean; tag: unknown }[];
+};
 
 declare const Pickles: {
   /**
@@ -775,9 +784,10 @@ declare const Pickles: {
    * * `verify` - a function which can verify proofs from any of the provers
    * * `getVerificationKeyArtifact` - a function which returns the verification key used in `verify`, in base58 format, usable to deploy a zkapp
    */
-  compile: (rules: [0, string, (statement: Statement) => void][]) => {
+  compile: (rules: Rule[]) => {
     provers: ((statement: Statement) => Promise<unknown>)[];
     verify: (statement: Statement, proof: unknown) => Promise<boolean>;
+    tag: unknown;
     getVerificationKeyArtifact: () => { data: string; hash: string };
   };
 
