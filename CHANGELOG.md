@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Huge snark performance improvements (2-10x) for most zkApps https://github.com/MinaProtocol/mina/pull/11053
 - Substantial reduction of snarkyjs' size https://github.com/MinaProtocol/mina/pull/11166
 
+### Removed
+
+- Unused functions `call` and `callUnproved`, which were embryonic versions of what is now the `transaction` API to call smart contract methods
+- Some unimplemented fields on `SmartContract`
+
 <!--
   Possible subsections:
     Added for new features.
