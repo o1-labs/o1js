@@ -52,7 +52,7 @@ describe('party', () => {
     // TODO remove restriction "This function can't be run outside of a checked computation."
     Circuit.runAndCheck(() => {
       let hash = party.hash();
-      expect(isLikeField(hash)).toBeTruthy;
+      expect(isLikeField(hash)).toBeTruthy();
 
       // if we clone the party, hash should be the same
       let party2 = Party.clone(party);
