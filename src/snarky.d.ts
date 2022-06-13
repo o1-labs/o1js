@@ -10,11 +10,11 @@ export {
   Poseidon,
   VerificationKey,
   Keypair,
-  Proof,
   Ledger,
   isReady,
   shutdown,
   Pickles,
+  Rule,
   JSONValue,
 };
 export * as Types from './snarky/gen/parties';
@@ -716,7 +716,7 @@ declare class Ledger {
     commitment: Field;
     fullCommitment: Field;
   };
-  static transactionStatement(txJson: string, partyIndex: number): Statement;
+  static transactionStatement(txJson: string, partyIndex: number): Field[];
   static signFieldElement(
     messageHash: Field,
     privateKey: { s: Scalar }
@@ -728,7 +728,7 @@ declare class Ledger {
     i: number
   ): string;
   static verifyPartyProof(
-    statement: Statement,
+    statement: Field[],
     proof: string,
     verificationKey: string
   ): Promise<boolean>;
@@ -757,12 +757,11 @@ declare const shutdown: () => Promise<undefined>;
  */
 declare let isReady: Promise<undefined>;
 
-type Statement = { transaction: Field; atParty: Field };
 type Rule = {
   identifier: string;
   main: (
-    statement: Statement,
-    previousStatements: Statement[],
+    statement: Field[],
+    previousStatements: Field[][],
     isValue: boolean
   ) => Bool[];
   proofsToVerify: { isSelf: boolean; tag: unknown }[];
@@ -784,9 +783,12 @@ declare const Pickles: {
    * * `verify` - a function which can verify proofs from any of the provers
    * * `getVerificationKeyArtifact` - a function which returns the verification key used in `verify`, in base58 format, usable to deploy a zkapp
    */
-  compile: (rules: Rule[]) => {
-    provers: ((statement: Statement) => Promise<unknown>)[];
-    verify: (statement: Statement, proof: unknown) => Promise<boolean>;
+  compile: (
+    rules: Rule[],
+    statementSize: number
+  ) => {
+    provers: ((statement: Field[]) => Promise<unknown>)[];
+    verify: (statement: Field[], proof: unknown) => Promise<boolean>;
     tag: unknown;
     getVerificationKeyArtifact: () => { data: string; hash: string };
   };

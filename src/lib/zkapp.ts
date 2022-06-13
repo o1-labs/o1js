@@ -5,6 +5,7 @@ import {
   Ledger,
   Pickles,
   Types,
+  Rule,
 } from '../snarky';
 import { cloneCircuitValue } from './circuit_value';
 import {
@@ -142,7 +143,7 @@ function isProof(typ: any) {
   as part of the snark circuit. The block producer will also hash the transaction they receive and pass it as a public input to the verifier.
   Thus, the transaction is fully constrained by the proof - the proof couldn't be used to attest to a different transaction.
  */
-type Statement = { transaction: Field; atParty: Field };
+type Statement = Field[]; // [transaction, atParty]
 
 type Proof = unknown; // opaque
 type Prover = (statement: Statement) => Promise<Proof>;
@@ -155,7 +156,7 @@ function toStatement(self: Party, tail: Field) {
 }
 
 function checkStatement(
-  { transaction, atParty }: Statement,
+  [transaction, atParty]: Statement,
   self: Party,
   tail: Field
 ) {
@@ -169,7 +170,7 @@ function picklesRuleFromFunction(
   identifier: string,
   func: (...args: unknown[]) => void,
   witnessTypes: AsFieldElements<unknown>[]
-) {
+): Rule {
   function main(
     statement: Statement,
     previousStatements: Statement[],
@@ -186,7 +187,7 @@ function picklesRuleFromFunction(
     func(...witnesses);
     let tail = Field.zero;
     // FIXME: figure out correct way to constrain statement https://github.com/o1-labs/snarkyjs/issues/98
-    statement.transaction.assertEquals(statement.transaction);
+    statement[0].assertEquals(statement[0]);
     // checkStatement(statement, self, tail);
 
     // check the self party right after calling the method
@@ -238,7 +239,7 @@ export class SmartContract {
 
     let [, { getVerificationKeyArtifact, provers, verify }] = withContext(
       { self: selfParty(address), inCompile: true },
-      () => Pickles.compile(rules)
+      () => Pickles.compile(rules, 2)
     );
     let verificationKey = getVerificationKeyArtifact();
     this._provers = provers;
