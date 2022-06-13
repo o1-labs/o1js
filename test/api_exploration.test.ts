@@ -1,3 +1,4 @@
+// TODO remove this once all the primitives in here are covered by proper tests
 import {
   Field,
   Bool,

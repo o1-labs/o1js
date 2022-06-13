@@ -1,13 +1,12 @@
 import {
   Circuit,
   Field,
-  Poseidon,
   AsFieldElements,
   Ledger,
   Pickles,
   Types,
 } from '../snarky';
-import { CircuitValue, cloneCircuitValue } from './circuit_value';
+import { cloneCircuitValue } from './circuit_value';
 import {
   Body,
   Party,
@@ -21,7 +20,6 @@ import * as Mina from './mina';
 import { UInt32, UInt64 } from './int';
 import {
   withContext,
-  withContextAsync,
   getContext,
   inCompile,
   mainContext,
@@ -31,7 +29,7 @@ import {
   cleanPreconditionsCache,
 } from './precondition';
 
-export { deploy, DeployArgs, call, callUnproved, signFeePayer, declareMethods };
+export { deploy, DeployArgs, signFeePayer, declareMethods };
 
 const reservedPropNames = new Set(['_methods', '_']);
 
@@ -269,75 +267,6 @@ export class SmartContract {
     this.self.signInPlace(zkappKey, fallbackToZeroNonce);
   }
 
-  async prove(methodName: keyof this, args: unknown[], provers?: Prover[]) {
-    // TODO could just pass in the method instead of method name -> cleaner API
-    let ZkappClass = this.constructor as never as typeof SmartContract;
-    provers ??= ZkappClass._provers;
-    if (provers === undefined)
-      throw Error(
-        `Cannot produce execution proof - no provers found. Try calling \`await ${ZkappClass.name}.compile()\` first.`
-      );
-    let provers_ = provers;
-    let i = ZkappClass._methods!.findIndex((m) => m.methodName === methodName);
-    if (i === -1) throw Error(`Method ${methodName} not found!`);
-    let [statement, selfParty] = Circuit.runAndCheck(() => {
-      let [selfParty] = withContext(
-        { self: Party.defaultParty(this.address), inProver: true },
-        () => {
-          (this[methodName] as any)(...args, true);
-          // method(...args, true);
-        }
-      );
-
-      // TODO dont create full transaction in here, properly build up atParty
-      let txJson = Mina.createUnsignedTransaction(() => {
-        Mina.setCurrentTransaction({
-          parties: [selfParty],
-          nextPartyIndex: 1,
-          fetchMode: 'cached',
-        });
-      }).toJSON();
-      let statement = Ledger.transactionStatement(txJson, 0);
-      return [statement, selfParty];
-    });
-
-    // TODO lazy proof?
-    let [, proof] = await withContextAsync(
-      {
-        self: Party.defaultParty(this.address),
-        witnesses: args,
-        inProver: true,
-      },
-      () => provers_[i](statement)
-    );
-    // FIXME call calls Parties.to_json outside a prover, which seems to cause an error when variables are extracted
-    return { proof, statement, selfParty };
-  }
-
-  async runAndCheck(methodName: keyof this, args: unknown[]) {
-    let ZkappClass = this.constructor as never as typeof SmartContract;
-    let i = ZkappClass._methods!.findIndex((m) => m.methodName === methodName);
-    if (i === -1) throw Error(`Method ${methodName} not found!`);
-    let ctx = { self: Party.defaultParty(this.address) };
-    let [statement, selfParty] = Circuit.runAndCheck(() => {
-      let [selfParty] = withContext(
-        { self: Party.defaultParty(this.address), inProver: true },
-        () => {
-          (this[methodName] as any)(...args);
-        }
-      );
-      let statementVar = toStatement(ctx.self, Field.zero);
-      return [
-        {
-          transaction: statementVar.transaction.toConstant(),
-          atParty: statementVar.atParty.toConstant(),
-        },
-        selfParty,
-      ];
-    });
-    return { statement, selfParty };
-  }
-
   private executionState(): ExecutionState {
     // TODO reconcile mainContext with currentTransaction
     if (mainContext !== undefined) {
@@ -406,20 +335,6 @@ export class SmartContract {
   setPermissions(permissions: Permissions) {
     this.setValue(this.self.update.permissions, permissions);
   }
-
-  party(i: number): Body {
-    throw 'party';
-  }
-
-  transactionHash(): Field {
-    throw 'txn hash';
-  }
-
-  emitEvent<T extends CircuitValue>(x: T): void {
-    // TODO: Get the current party object, pull out the events field, and
-    // hash this together with what's there
-    Poseidon.hash(x.toFields());
-  }
 }
 
 function selfParty(address: PublicKey) {
@@ -447,7 +362,7 @@ function emptyWitness<A>(typ: AsFieldElements<A>) {
 }
 
 // functions designed to be called from a CLI
-
+// TODO: this function is currently not used by the zkapp CLI, because it doesn't handle nonces properly in all cases
 async function deploy<S extends typeof SmartContract>(
   SmartContract: S,
   {
@@ -512,60 +427,6 @@ async function deploy<S extends typeof SmartContract>(
   }
   // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
   return tx.sign().toJSON();
-}
-
-async function call<S extends typeof SmartContract>(
-  SmartContract: S,
-  address: PublicKey,
-  methodName: string,
-  methodArguments: any,
-  provers: Prover[],
-  // TODO: remove, create a nicer intf to check proofs
-  verify?: (statement: Statement, proof: unknown) => Promise<boolean>
-) {
-  let zkapp = new SmartContract(address);
-  let { selfParty, proof, statement } = await zkapp.prove(
-    methodName as any,
-    methodArguments,
-    provers
-  );
-  selfParty.authorization = { proof: Pickles.proofToString(proof) };
-  if (verify !== undefined) {
-    let ok = await verify(statement, proof);
-    if (!ok) throw Error('Proof failed to verify!');
-  }
-  let tx = Mina.createUnsignedTransaction(() => {
-    Mina.setCurrentTransaction({
-      parties: [selfParty],
-      nextPartyIndex: 1,
-      fetchMode: 'cached',
-    });
-  });
-  return tx.toJSON();
-}
-
-async function callUnproved<S extends typeof SmartContract>(
-  SmartContract: S,
-  address: PublicKey,
-  methodName: string,
-  methodArguments: any,
-  zkappKey?: PrivateKey
-) {
-  let zkapp = new SmartContract(address);
-  let { selfParty, statement } = await zkapp.runAndCheck(
-    methodName as any,
-    methodArguments
-  );
-  selfParty.signInPlace(zkappKey);
-  let tx = Mina.createUnsignedTransaction(() => {
-    Mina.setCurrentTransaction({
-      parties: [selfParty],
-      nextPartyIndex: 1,
-      fetchMode: 'cached',
-    });
-  });
-  let txJson = tx.sign().toJSON();
-  return txJson;
 }
 
 function addFeePayer(
