@@ -65,7 +65,7 @@ function setCurrentTransaction(transaction: CurrentTransaction) {
 
 type SenderSpec =
   | PrivateKey
-  | { feePayerKey: PrivateKey; fee?: number | string | UInt64 }
+  | { feePayerKey: PrivateKey; fee?: number | string | UInt64; memo?: string }
   | undefined;
 
 function createUnsignedTransaction(
@@ -76,10 +76,7 @@ function createUnsignedTransaction(
 }
 
 function createTransaction(
-  feePayer:
-    | PrivateKey
-    | { feePayerKey: PrivateKey; fee?: number | string | UInt64 }
-    | undefined,
+  feePayer: SenderSpec,
   f: () => unknown,
   { fetchMode = 'cached' as FetchMode } = {}
 ): Transaction {
@@ -89,6 +86,7 @@ function createTransaction(
   let feePayerKey =
     feePayer instanceof PrivateKey ? feePayer : feePayer?.feePayerKey;
   let fee = feePayer instanceof PrivateKey ? undefined : feePayer?.fee;
+  let memo = feePayer instanceof PrivateKey ? '' : feePayer?.memo ?? '';
 
   currentTransaction = {
     sender: feePayerKey,
@@ -127,6 +125,7 @@ function createTransaction(
   let transaction: Parties = {
     otherParties: currentTransaction.parties,
     feePayer: feePayerParty,
+    memo,
   };
 
   nextTransactionId.value += 1;

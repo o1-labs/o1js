@@ -744,10 +744,12 @@ class Party {
 type Parties = {
   feePayer: FeePayerUnsigned;
   otherParties: Party[];
+  memo: string;
 };
 type PartiesSigned = {
   feePayer: FeePayer;
   otherParties: (Party & { authorization: Control | LazyProof })[];
+  memo: string;
 };
 
 // TODO: probably shouldn't hard-code dummy signature
@@ -771,15 +773,16 @@ function toPartyUnsafe({ body, authorization }: Party): Types.Party {
 function toPartiesUnsafe({
   feePayer,
   otherParties,
+  memo,
 }: {
   feePayer: FeePayerUnsigned;
   otherParties: Party[];
+  memo: string;
 }): Types.Parties {
   return {
     feePayer: toFeePayerUnsafe(feePayer),
     otherParties: otherParties.map(toPartyUnsafe),
-    // TODO expose to Mina.transaction
-    memo: Ledger.memoToBase58(''),
+    memo: Ledger.memoToBase58(memo),
   };
 }
 
@@ -842,16 +845,18 @@ function addMissingSignatures(
     party.authorization = { signature };
     return party as P & { authorization: Control };
   }
-  let { feePayer, otherParties } = parties;
+  let { feePayer, otherParties, memo } = parties;
   return {
     feePayer: addFeePayerSignature(feePayer),
     otherParties: otherParties.map((p) => addSignature(p)),
+    memo,
   };
 }
 
 type PartiesProved = {
   feePayer: FeePayerUnsigned;
   otherParties: (Party & { authorization: Control | LazySignature })[];
+  memo: string;
 };
 
 async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
@@ -889,7 +894,7 @@ async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
     party.authorization = { proof: Pickles.proofToString(proof) };
     return party as P & { authorization: Control | LazySignature };
   }
-  let { feePayer, otherParties } = parties;
+  let { feePayer, otherParties, memo } = parties;
   // compute proofs serially. in parallel would clash with our global variable hacks
   let otherPartiesProved: (Party & {
     authorization: Control | LazySignature;
@@ -898,7 +903,7 @@ async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
     let partyProved = await addProof(otherParties[i], i);
     otherPartiesProved.push(partyProved);
   }
-  return { feePayer, otherParties: otherPartiesProved };
+  return { feePayer, otherParties: otherPartiesProved, memo };
 }
 
 /**
