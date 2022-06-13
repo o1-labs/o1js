@@ -7,10 +7,19 @@ import {
   Mina,
   PrivateKey,
   Party,
+  method,
+  PublicKey,
 } from '../../dist/server';
 
+class MyContract extends SmartContract {
+  @method shouldMakeCompileThrow() {
+    this.network.blockchainLength.get();
+  }
+}
+
 let zkappKey: PrivateKey;
-let zkapp: SmartContract;
+let zkappAddress: PublicKey;
+let zkapp: MyContract;
 let feePayer: PrivateKey;
 
 beforeAll(async () => {
@@ -21,8 +30,8 @@ beforeAll(async () => {
   feePayer = Local.testAccounts[0].privateKey;
 
   zkappKey = PrivateKey.random();
-  let zkappAddress = zkappKey.toPublicKey();
-  zkapp = new SmartContract(zkappAddress);
+  zkappAddress = zkappKey.toPublicKey();
+  zkapp = new MyContract(zkappAddress);
 
   let tx = await Mina.transaction(feePayer, () => {
     Party.fundNewAccount(feePayer);
@@ -41,6 +50,14 @@ describe('preconditions', () => {
         })
       ).rejects.toThrow(/precondition/);
     }
+  });
+
+  it('get without constraint should throw during compile', async () => {
+    let err = await MyContract.compile(zkappAddress).catch((err) => err);
+    // TODO: err is an Array thrown from OCaml -.-
+    // which is also why expect(..).rejects.toThrow doesn't work
+    expect(err[2]).toBeInstanceOf(Error);
+    expect(err[2].message).toContain('precondition');
   });
 
   it('get + assertEquals should not throw', async () => {
