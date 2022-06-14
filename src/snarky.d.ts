@@ -3,7 +3,6 @@ export {
   Bool,
   Group,
   Scalar,
-  EndoScalar,
   AsFieldElements,
   Circuit,
   CircuitMain,
@@ -344,6 +343,8 @@ declare class Field {
   static fromString(x: string): Field;
   static fromNumber(x: number): Field;
   static fromBigInt(x: bigint): Field;
+
+  static check(x: Field): void;
 }
 
 /**
@@ -460,18 +461,19 @@ declare class Bool {
   static count(x: Bool | boolean[]): Field;
 
   static sizeInFields(): number;
-  static toFields(x: Bool | boolean): Field[];
+  static toFields(x: Bool): Field[];
   static ofFields(fields: Field[]): Bool;
 
   static toJSON(x: Bool): JSONValue;
   static fromJSON(x: JSONValue): Bool | null;
+  static check(x: Bool): void;
 }
 
 declare interface AsFieldElements<T> {
   toFields(x: T): Field[];
   ofFields(x: Field[]): T;
   sizeInFields(): number;
-  check?: (x: T) => void;
+  check(x: T): void;
 }
 
 declare interface CircuitMain<W, P> {
@@ -521,11 +523,6 @@ declare class Circuit {
   static asProver(f: () => void): void;
 
   static runAndCheck<T>(f: () => T): T;
-
-  static array<T>(
-    ctor: AsFieldElements<T>,
-    length: number
-  ): AsFieldElements<T[]>;
 
   static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
 
@@ -595,13 +592,15 @@ declare class Scalar {
 
   static toJSON(x: Scalar): JSONValue;
   static fromJSON(x: JSONValue): Scalar | null;
+  static check(x: Scalar): void;
 }
 
-declare class EndoScalar {
-  static toFields(x: Scalar): Field[];
-  static ofFields(fields: Field[]): Scalar;
-  static sizeInFields(): number;
-}
+// TODO: Add this when OCaml bindings are implemented:
+// declare class EndoScalar {
+//   static toFields(x: Scalar): Field[];
+//   static ofFields(fields: Field[]): Scalar;
+//   static sizeInFields(): number;
+// }
 
 declare class Group {
   x: Field;
@@ -649,6 +648,7 @@ declare class Group {
     x: string | number;
     y: string | number;
   }): Group | null;
+  static check(g: Group): void;
 }
 
 declare class Sponge {

@@ -113,6 +113,10 @@
       {
         "name": "fromBigInt",
         "type": "function"
+      },
+      {
+        "name": "check",
+        "type": "function"
       }
     ]
   },
@@ -353,6 +357,10 @@
       },
       {
         "name": "fromJSON",
+        "type": "function"
+      },
+      {
+        "name": "check",
         "type": "function"
       }
     ]
