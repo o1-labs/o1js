@@ -288,12 +288,13 @@ function circuitMain(
 }
 
 let primitives = new Set(['Field', 'Bool', 'Scalar', 'Group']);
+let complexTypes = new Set(['object', 'function']);
 
 // TODO properly type this at the interface
 // create recursive type that describes JSON-like structures of circuit types
 function circuitValue<T>(typeObj: any): AsFieldElements<T> {
   function sizeInFields(typeObj: any): number {
-    if (typeof typeObj !== 'object' || typeObj === null) return 0;
+    if (!complexTypes.has(typeof typeObj) || typeObj === null) return 0;
     if (Array.isArray(typeObj))
       return typeObj.map(sizeInFields).reduce((a, b) => a + b);
     if ('sizeInFields' in typeObj) return typeObj.sizeInFields();
@@ -302,7 +303,7 @@ function circuitValue<T>(typeObj: any): AsFieldElements<T> {
       .reduce((a, b) => a + b);
   }
   function toFields(typeObj: any, obj: any): Field[] {
-    if (typeof typeObj !== 'object' || typeObj === null) return [];
+    if (!complexTypes.has(typeof typeObj) || typeObj === null) return [];
     if (Array.isArray(typeObj))
       return typeObj.map((t, i) => toFields(t, obj[i])).flat();
     if ('toFields' in typeObj) return typeObj.toFields();
@@ -312,7 +313,7 @@ function circuitValue<T>(typeObj: any): AsFieldElements<T> {
       .flat();
   }
   function ofFields(typeObj: any, fields: Field[]): any {
-    if (typeof typeObj !== 'object' || typeObj === null) return null;
+    if (!complexTypes.has(typeof typeObj) || typeObj === null) return null;
     if (Array.isArray(typeObj)) {
       let array = [];
       let offset = 0;
