@@ -21,3 +21,4 @@ export {
 export * as Encryption from './lib/encryption';
 export * as Encoding from './lib/encoding';
 export { Character, CircuitString } from './lib/string';
+export * from './lib/proof_system';

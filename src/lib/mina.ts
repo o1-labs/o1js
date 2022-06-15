@@ -11,10 +11,12 @@ import {
   partiesToJson,
   Party,
   ZkappStateLength,
+  ZkappStatement,
 } from './party';
 import * as Fetch from './fetch';
 import { assertPreconditionInvariants, NetworkValue } from './precondition';
 import { cloneCircuitValue } from './circuit_value';
+import { Proof } from './proof_system';
 
 export {
   createUnsignedTransaction,
@@ -43,7 +45,7 @@ interface Transaction {
   toJSON(): string;
   toGraphqlQuery(): string;
   sign(additionialKeys?: PrivateKey[]): Transaction;
-  prove(): Promise<Transaction>;
+  prove(): Promise<(Proof<ZkappStatement> | undefined)[]>;
   send(): TransactionId;
 }
 
@@ -141,7 +143,7 @@ function createTransaction(
 
   nextTransactionId.value += 1;
   currentTransaction = undefined;
-  let self = {
+  let self: Transaction = {
     transaction,
 
     sign(additionalKeys?: PrivateKey[]) {
@@ -150,8 +152,9 @@ function createTransaction(
     },
 
     async prove() {
-      self.transaction = await addMissingProofs(self.transaction);
-      return self;
+      let { parties, proofs } = await addMissingProofs(self.transaction);
+      self.transaction = parties;
+      return proofs;
     },
 
     toJSON() {
@@ -184,7 +187,7 @@ interface MockMina extends Mina {
    * An array of 10 test accounts that have been pre-filled with
    * 30000000000 units of currency.
    */
-  testAccounts: Array<{ publicKey: Types.PublicKey; privateKey: PrivateKey }>;
+  testAccounts: Array<{ publicKey: PublicKey; privateKey: PrivateKey }>;
   applyJsonTransaction: (tx: string) => void;
 }
 
