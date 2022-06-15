@@ -3,15 +3,21 @@ import {
   state,
   State,
   method,
-  UInt64,
   PrivateKey,
   SmartContract,
   Mina,
   Party,
   isReady,
+  ZkappStatement,
+  Proof,
 } from 'snarkyjs';
 
 await isReady;
+
+class SimpleZkappProof extends Proof<ZkappStatement> {
+  static publicInputType = ZkappStatement;
+  static tag = () => SimpleZkapp;
+}
 
 class SimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
@@ -20,7 +26,9 @@ class SimpleZkapp extends SmartContract {
     this.x.set(Field.one);
   }
 
-  @method update(y: Field) {
+  @method update(y: Field, oldProof: SimpleZkappProof) {
+    console.log('public input', oldProof.publicInput);
+    oldProof.verify();
     let x = this.x.get();
     this.x.set(x.add(y));
   }
@@ -45,7 +53,6 @@ console.log('deploy');
 let tx = await Mina.transaction(feePayerKey, () => {
   Party.fundNewAccount(feePayerKey);
   zkapp.deploy({ zkappKey });
-  // zkapp.balance.addInPlace(UInt64.fromNumber(initialBalance));
 });
 tx.send();
 
@@ -61,10 +68,17 @@ console.log('initial state: ' + zkapp.x.get());
 
 console.log('update');
 tx = await Mina.transaction(feePayerKey, () => {
-  let zkapp = new SimpleZkapp(zkappAddress);
-  let a = Mina.getAccount(zkappAddress);
-  console.log(a);
-  zkapp.update(Field(3));
+  zkapp.update(Field(3), proof!);
+});
+[proof] = await tx.prove();
+console.log(proof);
+tx.send();
+
+console.log('state 2: ' + zkapp.x.get());
+
+console.log('update');
+tx = await Mina.transaction(feePayerKey, () => {
+  zkapp.update(Field(3), proof!);
 });
 [proof] = await tx.prove();
 console.log(proof);
