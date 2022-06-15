@@ -306,7 +306,7 @@ function circuitValue<T>(typeObj: any): AsFieldElements<T> {
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return [];
     if (Array.isArray(typeObj))
       return typeObj.map((t, i) => toFields(t, obj[i])).flat();
-    if ('toFields' in typeObj) return typeObj.toFields();
+    if ('toFields' in typeObj) return typeObj.toFields(obj);
     return Object.keys(typeObj)
       .sort()
       .map((k) => toFields(typeObj[k], obj[k]))
