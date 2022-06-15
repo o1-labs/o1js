@@ -222,11 +222,9 @@ export class SmartContract {
     this.address = address;
   }
 
-  static async compile(address?: PublicKey) {
+  static async compile(address: PublicKey) {
     // TODO: think about how address should be passed in
-    // if address is not provided, create a random one
     // TODO: maybe PublicKey should just become a variable? Then compile doesn't need to know the address, which seems more natural
-    address ??= PrivateKey.random().toPublicKey();
     let instance = new this(address);
 
     let rules = (this._methods ?? []).map(({ methodName, witnessArgs }) =>
