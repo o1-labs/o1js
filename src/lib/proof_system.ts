@@ -1,22 +1,37 @@
-import { Proof } from '../snarky';
+import { Pickles, Bool, Field, AsFieldElements } from '../snarky';
+import { UInt32, UInt64 } from './int';
 
-export function proofSystem(target: any): any {}
+export { Proof };
 
-export function branch(
-  target: any,
-  propertyName: string,
-  _descriptor?: PropertyDescriptor
-): any {}
+class Proof<T> {
+  publicInputType: AsFieldElements<T> = undefined as any;
+  publicInput: T;
+  shouldVerify = Bool.false;
+  private proof: RawProof | undefined;
 
-export class ProofWithInput<A> {
-  publicInput: A;
-  proof: Proof | null;
+  verify() {
+    this.shouldVerify = Bool.true;
+  }
+  verifyIf(condition: Bool) {
+    this.shouldVerify = condition;
+  }
 
-  // TODO
-  assertVerifies() {}
+  toString(): string {
+    throw 'todo';
+  }
 
-  constructor(publicInput: A) {
+  constructor({
+    publicInput,
+    proof,
+    publicInputType,
+  }: {
+    publicInput: T;
+    proof?: string;
+    publicInputType?: AsFieldElements<T>;
+  }) {
     this.publicInput = publicInput;
-    this.proof = null;
+    this.proof = proof; // TODO convert from string
+    if (publicInputType !== undefined) this.publicInputType = publicInputType;
   }
 }
+type RawProof = unknown;
