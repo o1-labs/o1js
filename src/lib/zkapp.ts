@@ -19,16 +19,12 @@ import {
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { UInt32, UInt64 } from './int';
-import {
-  withContext,
-  getContext,
-  inCompile,
-  mainContext,
-} from './global-context';
+import { withContext, getContext, mainContext } from './global-context';
 import {
   assertPreconditionInvariants,
   cleanPreconditionsCache,
 } from './precondition';
+import { Proof } from './proof_system';
 
 export { deploy, DeployArgs, signFeePayer, declareMethods };
 
@@ -61,7 +57,7 @@ export function method<T extends SmartContract>(
   let paramTypes = Reflect.getMetadata('design:paramtypes', target, methodName);
   let witnessArgs = [];
   let proofArgs = [];
-  let args = [];
+  let args: { type: 'proof' | 'witness'; index: number }[] = [];
   for (let i = 0; i < paramTypes.length; i++) {
     let Parameter = paramTypes[i];
     if (isProof(Parameter)) {
@@ -72,27 +68,26 @@ export function method<T extends SmartContract>(
       witnessArgs.push(Parameter);
     } else {
       throw Error(
-        `Argument ${i} of method ${methodName} is not a valid circuit value.`
+        `Argument ${
+          i + 1
+        } of method ${methodName} is not a valid circuit value: ${Parameter}`
       );
     }
   }
   ZkappClass._methods ??= [];
-  ZkappClass._methods.push({
-    methodName,
-    witnessArgs,
-    proofArgs,
-    args,
-  });
+  let methodEntry = { methodName, witnessArgs, proofArgs, args };
+  ZkappClass._methods.push(methodEntry);
   let argsLength = args.length;
   let func = descriptor.value;
-  descriptor.value = wrapMethod(func, argsLength, ZkappClass);
+  descriptor.value = wrapMethod(func, argsLength, ZkappClass, methodEntry);
 }
 
 // do different things when calling a method, depending on the circumstance
 function wrapMethod(
   method: Function,
   argsLength: number,
-  ZkappClass: typeof SmartContract
+  ZkappClass: typeof SmartContract,
+  { args: argDescriptors, proofArgs }: methodEntry<any>
 ) {
   function wrappedMethod(this: SmartContract, ...args: any[]) {
     let actualArgs = args.slice(0, argsLength);
@@ -105,10 +100,21 @@ function wrapMethod(
       // (if there's no other authorization set)
       let auth = this.self.authorization;
       if (!('kind' in auth || 'proof' in auth || 'signature' in auth)) {
+        let previousStatements: Statement[] = [];
+        for (let i = 0; i < argDescriptors.length; i++) {
+          let arg = argDescriptors[i];
+          if (arg.type === 'proof') {
+            let publicInputType = proofArgs[arg.index].publicInputType;
+            previousStatements[arg.index] = publicInputType.toFields(
+              (actualArgs[i] as Proof<any>).publicInput
+            );
+          }
+        }
         this.self.authorization = {
           kind: 'lazy-proof',
           method,
           args: actualArgs,
+          previousStatements,
           ZkappClass,
         };
       }
@@ -121,8 +127,8 @@ function wrapMethod(
 type methodEntry<T> = {
   methodName: keyof T & string;
   witnessArgs: AsFieldElements<unknown>[];
-  proofArgs: unknown[];
-  args: { type: string; index: number }[];
+  proofArgs: typeof Proof[];
+  args: { type: 'witness' | 'proof'; index: number }[];
   witnessValues?: unknown[];
 };
 
@@ -132,9 +138,9 @@ function isAsFields(typ: Object) {
   );
 }
 function isProof(typ: any) {
-  return false; // TODO
+  // the second case covers subclasses
+  return typ === Proof || typ?.prototype instanceof Proof;
 }
-
 /**
  * A Statement consists of certain hashes of the transaction and of the proving Party which is constructed during method execution.
 
@@ -145,8 +151,11 @@ function isProof(typ: any) {
  */
 type Statement = Field[]; // [transaction, atParty]
 
-type Proof = unknown; // opaque
-type Prover = (statement: Statement) => Promise<Proof>;
+type OpaqueProof = unknown; // opaque
+type Prover = (
+  statement: Statement,
+  previousStatements: Statement[]
+) => Promise<OpaqueProof>;
 
 function toStatement(self: Party, tail: Field) {
   // TODO hash together party with tail in the right way
@@ -166,19 +175,41 @@ function checkStatement(
   transaction.assertEquals(otherStatement.transaction);
 }
 
-function picklesRuleFromFunction(
-  identifier: string,
+function picklesRuleFromFunction<T>(
   func: (...args: unknown[]) => void,
-  witnessTypes: AsFieldElements<unknown>[]
+  proofSystemTag: any,
+  { methodName, witnessArgs, proofArgs, args }: methodEntry<T>
 ): Rule {
   function main(statement: Statement, previousStatements: Statement[]) {
-    let { self, witnesses } = getContext();
-    witnesses = witnessTypes.map(
-      witnesses
-        ? (type, i) => Circuit.witness(type, () => witnesses![i])
-        : emptyWitness
-    );
-    func(...witnesses);
+    console.log('main', methodName);
+    let { self, witnesses: actualArgs } = getContext();
+    let finalArgs = [];
+    let proofs: Proof<any>[] = [];
+    for (let i = 0; i < args.length; i++) {
+      let arg = args[i];
+      console.log(arg);
+      if (arg.type === 'witness') {
+        let type = witnessArgs[arg.index];
+        finalArgs[i] = actualArgs
+          ? Circuit.witness(type, () => actualArgs![i])
+          : emptyWitness(type);
+      } else {
+        let Proof = proofArgs[arg.index];
+        let publicInput = Proof.publicInputType.ofFields(
+          previousStatements[arg.index]
+        );
+        let proofInstance: Proof<any>;
+        if (actualArgs) {
+          let { proof }: Proof<any> = actualArgs[i] as any;
+          proofInstance = new Proof({ publicInput, proof });
+        } else {
+          proofInstance = new Proof({ publicInput, proof: '' });
+        }
+        finalArgs[i] = proofInstance;
+        proofs.push(proofInstance);
+      }
+    }
+    func(...finalArgs);
     let tail = Field.zero;
     // FIXME: figure out correct way to constrain statement https://github.com/o1-labs/snarkyjs/issues/98
     statement[0].assertEquals(statement[0]);
@@ -188,10 +219,16 @@ function picklesRuleFromFunction(
     // TODO: this needs to be done in a unified way for all parties that are created
     assertPreconditionInvariants(self);
     cleanPreconditionsCache(self);
-    return [];
+    let ret = proofs.map((proof) => proof.shouldVerify);
+    console.log('main returning', ret);
+    return ret;
   }
 
-  return { identifier, main, proofsToVerify: [] };
+  let proofsToVerify = proofArgs.map((Proof) => {
+    if (Proof.tag() === proofSystemTag) return { isSelf: true as const };
+    else throw Error('unimplemented');
+  });
+  return { identifier: methodName, main, proofsToVerify };
 }
 
 /**
@@ -221,15 +258,16 @@ export class SmartContract {
     // TODO: maybe PublicKey should just become a variable? Then compile doesn't need to know the address, which seems more natural
     let instance = new this(address);
 
-    let rules = (this._methods ?? []).map(({ methodName, witnessArgs }) =>
+    let rules = (this._methods ?? []).map((methodEntry) =>
       picklesRuleFromFunction(
-        methodName,
         // TODO: it's problematic that this refers to the instance that was passed in during compile
         // means the same instance will be used by the provers as well
         // which implies that stuff that is tied to the instance, like State(), is fixed to the address used here
         // caused a bug in the version of this function that created a random public key (which was unsound anyway)
-        (...args: unknown[]) => (instance[methodName] as any)(...args),
-        witnessArgs
+        (...args: unknown[]) =>
+          (instance[methodEntry.methodName] as any)(...args),
+        this,
+        methodEntry
       )
     );
 
