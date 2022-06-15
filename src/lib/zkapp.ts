@@ -230,6 +230,10 @@ export class SmartContract {
     let rules = (this._methods ?? []).map(({ methodName, witnessArgs }) =>
       picklesRuleFromFunction(
         methodName,
+        // TODO: it's problematic that this refers to the instance that was passed in during compile
+        // means the same instance will be used by the provers as well
+        // which implies that stuff that is tied to the instance, like State(), is fixed to the address used here
+        // caused a bug in the version of this function that created a random public key (which was unsound anyway)
         (...args: unknown[]) => (instance[methodName] as any)(...args),
         witnessArgs
       )
