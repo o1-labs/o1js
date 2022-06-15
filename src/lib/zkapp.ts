@@ -171,19 +171,13 @@ function picklesRuleFromFunction(
   func: (...args: unknown[]) => void,
   witnessTypes: AsFieldElements<unknown>[]
 ): Rule {
-  function main(
-    statement: Statement,
-    previousStatements: Statement[],
-    isMainValue: boolean
-  ) {
+  function main(statement: Statement, previousStatements: Statement[]) {
     let { self, witnesses } = getContext();
-    witnesses = isMainValue
-      ? witnesses ?? witnessTypes.map(emptyValue)
-      : witnessTypes.map(
-          witnesses
-            ? (type, i) => Circuit.witness(type, () => witnesses![i])
-            : emptyWitness
-        );
+    witnesses = witnessTypes.map(
+      witnesses
+        ? (type, i) => Circuit.witness(type, () => witnesses![i])
+        : emptyWitness
+    );
     func(...witnesses);
     let tail = Field.zero;
     // FIXME: figure out correct way to constrain statement https://github.com/o1-labs/snarkyjs/issues/98
