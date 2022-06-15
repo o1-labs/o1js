@@ -25,7 +25,7 @@ class UInt64 extends CircuitValue implements Types.UInt64 {
     return this.value.toString();
   }
 
-  static check(x: Types.UInt64) {
+  static check(x: UInt64) {
     let actual = x.value.rangeCheckHelper(64);
     actual.assertEquals(x.value);
   }
@@ -204,7 +204,7 @@ class UInt32 extends CircuitValue implements Types.UInt32 {
     return new UInt64(this.value);
   }
 
-  static check(x: Types.UInt32) {
+  static check(x: UInt32) {
     let actual = x.value.rangeCheckHelper(32);
     actual.assertEquals(x.value);
   }
