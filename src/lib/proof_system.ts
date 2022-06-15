@@ -22,3 +22,57 @@ class Proof<T> {
   }
 }
 type RawProof = unknown;
+type CompiledTag = unknown;
+
+type Circuit<PublicInput, Args extends readonly [any, ...any[]]> = {
+  privateInput: {
+    [K in keyof Args]: AsFieldElements<Args[K]>;
+  };
+  circuit(publicInput: PublicInput, ...args: Args): void;
+};
+
+type Prover<PublicInput, Args extends readonly [any, ...any[]]> = (
+  publicInput: PublicInput,
+  ...args: Args
+) => Promise<Proof<PublicInput>>;
+
+// TODO: this only works for Field / Bool / UInt32 / UInt64 / Int64 because they have a custom `check` method
+// doesn't work for general CircuitValue
+// we need a robust method for infering the type from a CircuitValue subclass!
+type InferAsFields<T extends AsFieldElements<any>> = T['check'] extends (
+  x: infer U
+) => void
+  ? U
+  : never;
+
+function MultiCircuit<
+  PublicInput extends AsFieldElements<any>,
+  Types extends {
+    [I in string]: readonly [any, ...any[]];
+  }
+>(c: {
+  publicInput: PublicInput;
+  circuits: {
+    [I in keyof Types]: Circuit<InferAsFields<PublicInput>, Types[I]>;
+  };
+}): {
+  [I in keyof Types]: Prover<InferAsFields<PublicInput>, Types[I]>;
+} {
+  return c as never;
+}
+
+/* let myCircuit = MultiCircuit({
+  publicInput: UInt32,
+  circuits: {
+    someCircuit: {
+      privateInput: [Bool],
+      circuit(publicInput: UInt32, b: Bool) {
+        publicInput.add(9).equals(UInt32.from(10)).and(b).assertTrue();
+      },
+    },
+  },
+});
+
+let p: Proof<UInt32> = await myCircuit.someCircuit(UInt32.one, Bool.true);
+p.verify();
+p.publicInput; */
