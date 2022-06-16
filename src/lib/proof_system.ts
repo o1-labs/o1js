@@ -1,4 +1,4 @@
-import { Bool, AsFieldElements } from '../snarky';
+import { Bool, AsFieldElements, Pickles } from '../snarky';
 
 export { Proof, CompiledTag };
 
@@ -19,6 +19,9 @@ class Proof<T> {
   }
   verifyIf(condition: Bool) {
     this.shouldVerify = condition;
+  }
+  toString() {
+    return Pickles.proofToString(this.proof);
   }
 
   constructor({ proof, publicInput }: { proof: RawProof; publicInput: T }) {

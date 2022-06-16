@@ -10,7 +10,6 @@ import {
   isReady,
   ZkappPublicInput,
   Proof,
-  Pickles,
   Ledger,
 } from 'snarkyjs';
 
@@ -107,7 +106,7 @@ tx = await Mina.transaction(feePayerKey, () => {
 tx.send();
 
 // check that proof can be converted to string
-let proofString = Pickles.proofToString(proof?.proof);
+let proofString = proof!.toString();
 
 // check that proof verifies
 let ok = Ledger.verifyPartyProof(

@@ -1,4 +1,17 @@
-export * from './snarky';
+export {
+  Field,
+  Bool,
+  Group,
+  Scalar,
+  AsFieldElements,
+  Circuit,
+  Poseidon,
+  Ledger,
+  isReady,
+  shutdown,
+  Types,
+} from './snarky';
+export type { VerificationKey, Keypair } from './snarky';
 export * from './snarky/addons';
 export * from './lib/signature';
 export * from './lib/circuit_value';
@@ -7,7 +20,7 @@ export * from './lib/int';
 export * as Mina from './lib/mina';
 export * from './lib/zkapp';
 export { state, State, declareState } from './lib/state';
-// export * from './lib/proof_system';
+export * from './lib/proof_system';
 export * from './lib/party';
 export {
   fetchAccount,
@@ -21,4 +34,3 @@ export {
 export * as Encryption from './lib/encryption';
 export * as Encoding from './lib/encoding';
 export { Character, CircuitString } from './lib/string';
-export * from './lib/proof_system';
