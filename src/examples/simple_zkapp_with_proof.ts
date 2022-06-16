@@ -10,27 +10,43 @@ import {
   isReady,
   ZkappStatement,
   Proof,
+  Pickles,
 } from 'snarkyjs';
 
 await isReady;
 
 class SimpleZkappProof extends Proof<ZkappStatement> {
   static publicInputType = ZkappStatement;
-  static tag = () => SimpleZkapp;
+  static tag = () => NotSoSimpleZkapp;
+}
+class TrivialProof extends Proof<ZkappStatement> {
+  static publicInputType = ZkappStatement;
+  static tag = () => TrivialZkapp;
 }
 
-class SimpleZkapp extends SmartContract {
+class NotSoSimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
 
-  @method init() {
+  @method init(proof: TrivialProof) {
+    proof.verify();
     this.x.set(Field.one);
   }
 
-  @method update(y: Field, oldProof: SimpleZkappProof) {
-    console.log('public input', oldProof.publicInput);
+  @method update(
+    y: Field,
+    oldProof: SimpleZkappProof,
+    trivialProof: TrivialProof
+  ) {
     oldProof.verify();
+    trivialProof.verify();
     let x = this.x.get();
     this.x.set(x.add(y));
+  }
+}
+
+class TrivialZkapp extends SmartContract {
+  @method proveSomething(hasToBe1: Field) {
+    hasToBe1.assertEquals(1);
   }
 }
 
@@ -44,10 +60,27 @@ let feePayerKey = Local.testAccounts[0].privateKey;
 let zkappKey = PrivateKey.random();
 let zkappAddress = zkappKey.toPublicKey();
 
-let zkapp = new SimpleZkapp(zkappAddress);
+// trivial zkapp account
+let zkappKey2 = PrivateKey.random();
+let zkappAddress2 = zkappKey2.toPublicKey();
+
+// compile and prove trivial zkapp
+console.log('compile (trivial zkapp)');
+await TrivialZkapp.compile(zkappAddress2);
+// TODO: should we have a simpler API for zkapp proving without
+// submitting transactions? or is this an irrelevant use case?
+// would also improve the return type -- `Proof` instead of `(Proof | undefined)[]`
+console.log('prove (trivial zkapp)');
+let [trivialZkappProof] = await (
+  await Mina.transaction(feePayerKey, () => {
+    new TrivialZkapp(zkappAddress2).proveSomething(Field(1));
+  })
+).prove();
 
 console.log('compile');
-await SimpleZkapp.compile(zkappAddress);
+await NotSoSimpleZkapp.compile(zkappAddress);
+
+let zkapp = new NotSoSimpleZkapp(zkappAddress);
 
 console.log('deploy');
 let tx = await Mina.transaction(feePayerKey, () => {
@@ -58,30 +91,30 @@ tx.send();
 
 console.log('init');
 tx = await Mina.transaction(feePayerKey, () => {
-  zkapp.init();
+  zkapp.init(trivialZkappProof!);
 });
 let [proof] = await tx.prove();
-console.log(proof);
 tx.send();
 
 console.log('initial state: ' + zkapp.x.get());
 
 console.log('update');
 tx = await Mina.transaction(feePayerKey, () => {
-  zkapp.update(Field(3), proof!);
+  zkapp.update(Field(3), proof!, trivialZkappProof!);
 });
 [proof] = await tx.prove();
-console.log(proof);
 tx.send();
+
+// check that proof can be converted to string
+Pickles.proofToString(proof?.proof);
 
 console.log('state 2: ' + zkapp.x.get());
 
 console.log('update');
 tx = await Mina.transaction(feePayerKey, () => {
-  zkapp.update(Field(3), proof!);
+  zkapp.update(Field(3), proof!, trivialZkappProof!);
 });
 [proof] = await tx.prove();
-console.log(proof);
 tx.send();
 
 console.log('final state: ' + zkapp.x.get());
