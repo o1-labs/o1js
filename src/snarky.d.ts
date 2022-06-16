@@ -13,7 +13,6 @@ export {
   isReady,
   shutdown,
   Pickles,
-  Rule,
   JSONValue,
 };
 export * as Types from './snarky/gen/parties';
@@ -760,15 +759,20 @@ declare const shutdown: () => Promise<undefined>;
  */
 declare let isReady: Promise<undefined>;
 
-type Rule = {
-  identifier: string;
-  main: (
+declare namespace Pickles {
+  type Proof = unknown; // opaque to js
+  type Statement = Field[];
+  type ProofWithStatement = { statement: Statement; proof: Proof };
+  type Rule = {
+    identifier: string;
+    main: (statement: Statement, previousStatements: Statement[]) => Bool[];
+    proofsToVerify: ({ isSelf: true } | { isSelf: false; tag: unknown })[];
+  };
+  type Prover = (
     statement: Field[],
-    previousStatements: Field[][],
-    isValue: boolean
-  ) => Bool[];
-  proofsToVerify: ({ isSelf: true } | { isSelf: false; tag: unknown })[];
-};
+    previousProofs: ProofWithStatement[]
+  ) => Promise<Proof>;
+}
 
 declare const Pickles: {
   /**
@@ -787,13 +791,10 @@ declare const Pickles: {
    * * `getVerificationKeyArtifact` - a function which returns the verification key used in `verify`, in base58 format, usable to deploy a zkapp
    */
   compile: (
-    rules: Rule[],
+    rules: Pickles.Rule[],
     statementSize: number
   ) => {
-    provers: ((
-      statement: Field[],
-      previousStatements: Field[][]
-    ) => Promise<unknown>)[];
+    provers: Pickles.Prover[];
     verify: (statement: Field[], proof: unknown) => Promise<boolean>;
     tag: unknown;
     getVerificationKeyArtifact: () => { data: string; hash: string };

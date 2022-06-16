@@ -5,7 +5,6 @@ import {
   Ledger,
   Pickles,
   Types,
-  Rule,
 } from '../snarky';
 import { cloneCircuitValue } from './circuit_value';
 import {
@@ -100,21 +99,23 @@ function wrapMethod(
       // (if there's no other authorization set)
       let auth = this.self.authorization;
       if (!('kind' in auth || 'proof' in auth || 'signature' in auth)) {
-        let previousStatements: Statement[] = [];
+        let previousProofs: Pickles.ProofWithStatement[] = [];
         for (let i = 0; i < argDescriptors.length; i++) {
           let arg = argDescriptors[i];
           if (arg.type === 'proof') {
+            let proof = actualArgs[i] as Proof<any>;
             let publicInputType = proofArgs[arg.index].publicInputType;
-            previousStatements[arg.index] = publicInputType.toFields(
-              (actualArgs[i] as Proof<any>).publicInput
-            );
+            previousProofs[arg.index] = {
+              statement: publicInputType.toFields(proof.publicInput),
+              proof: proof.proof,
+            };
           }
         }
         this.self.authorization = {
           kind: 'lazy-proof',
           method,
           args: actualArgs,
-          previousStatements,
+          previousProofs: previousProofs,
           ZkappClass,
         };
       }
@@ -151,12 +152,6 @@ function isProof(typ: any) {
  */
 type Statement = Field[]; // [transaction, atParty]
 
-type OpaqueProof = unknown; // opaque
-type Prover = (
-  statement: Statement,
-  previousStatements: Statement[]
-) => Promise<OpaqueProof>;
-
 function toStatement(self: Party, tail: Field) {
   // TODO hash together party with tail in the right way
   let atParty = self.hash();
@@ -179,15 +174,13 @@ function picklesRuleFromFunction<T>(
   func: (...args: unknown[]) => void,
   proofSystemTag: any,
   { methodName, witnessArgs, proofArgs, args }: methodEntry<T>
-): Rule {
+): Pickles.Rule {
   function main(statement: Statement, previousStatements: Statement[]) {
-    console.log('main', methodName);
     let { self, witnesses: actualArgs } = getContext();
     let finalArgs = [];
     let proofs: Proof<any>[] = [];
     for (let i = 0; i < args.length; i++) {
       let arg = args[i];
-      console.log(arg);
       if (arg.type === 'witness') {
         let type = witnessArgs[arg.index];
         finalArgs[i] = actualArgs
@@ -219,9 +212,7 @@ function picklesRuleFromFunction<T>(
     // TODO: this needs to be done in a unified way for all parties that are created
     assertPreconditionInvariants(self);
     cleanPreconditionsCache(self);
-    let ret = proofs.map((proof) => proof.shouldVerify);
-    console.log('main returning', ret);
-    return ret;
+    return proofs.map((proof) => proof.shouldVerify);
   }
 
   let proofsToVerify = proofArgs.map((Proof) => {
@@ -246,7 +237,7 @@ export class SmartContract {
 
   private _executionState: ExecutionState | undefined;
   static _methods?: methodEntry<SmartContract>[];
-  static _provers?: Prover[];
+  static _provers?: Pickles.Prover[];
   static _verificationKey?: { data: string; hash: Field };
 
   constructor(address: PublicKey) {

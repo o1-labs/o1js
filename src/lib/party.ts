@@ -476,7 +476,7 @@ type LazyProof = {
   kind: 'lazy-proof';
   method: Function;
   args: any[];
-  previousStatements: Field[][];
+  previousProofs: { statement: Field[]; proof: Pickles.Proof }[];
   ZkappClass: typeof SmartContract;
 };
 
@@ -891,7 +891,7 @@ async function addMissingProofs(parties: Parties): Promise<{
       party.authorization.kind !== 'lazy-proof'
     )
       return { partyProved: party as PartyProved, proof: undefined };
-    let { method, args, previousStatements, ZkappClass } = party.authorization;
+    let { method, args, previousProofs, ZkappClass } = party.authorization;
     let statement = Ledger.transactionStatement(partiesJson, index);
     if (ZkappClass._provers === undefined)
       throw Error(
@@ -911,7 +911,7 @@ async function addMissingProofs(parties: Parties): Promise<{
         witnesses: args,
         inProver: true,
       },
-      () => provers[i](statement, previousStatements)
+      () => provers[i](statement, previousProofs)
     );
     party.authorization = { proof: Pickles.proofToString(proof) };
     class ZkappProof extends Proof<ZkappStatement> {
