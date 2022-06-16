@@ -370,6 +370,7 @@ async function deploy<S extends typeof SmartContract>(
     feePayerKey,
     transactionFee,
     feePayerNonce,
+    memo,
   }: {
     zkappKey: PrivateKey;
     verificationKey: { data: string; hash: string | Field };
@@ -378,6 +379,7 @@ async function deploy<S extends typeof SmartContract>(
     shouldSignFeePayer?: boolean;
     transactionFee?: string | number;
     feePayerNonce?: string | number;
+    memo?: string;
   }
 ) {
   let address = zkappKey.toPublicKey();
@@ -412,6 +414,7 @@ async function deploy<S extends typeof SmartContract>(
       zkapp.self.balance.addInPlace(amount);
     }
   });
+  tx.transaction.memo = memo ?? '';
   if (shouldSignFeePayer) {
     if (feePayerKey === undefined || transactionFee === undefined) {
       throw Error(
@@ -427,11 +430,12 @@ async function deploy<S extends typeof SmartContract>(
 }
 
 function addFeePayer(
-  { feePayer, otherParties }: Parties,
+  { feePayer, otherParties, memo }: Parties,
   feePayerKey: PrivateKey | string,
   {
     transactionFee = 0 as number | string,
     feePayerNonce = undefined as number | string | undefined,
+    memo: feePayerMemo = undefined as string | undefined,
   }
 ) {
   feePayer = cloneCircuitValue(feePayer);
@@ -442,11 +446,13 @@ function addFeePayer(
     let senderAccount = Mina.getAccount(senderAddress);
     feePayerNonce = senderAccount.nonce.toString();
   }
+  let newMemo = memo;
+  if (feePayerMemo) newMemo = Ledger.memoToBase58(feePayerMemo);
   feePayer.body.nonce = UInt32.fromString(`${feePayerNonce}`);
   feePayer.body.publicKey = senderAddress;
   feePayer.body.fee = UInt64.fromString(`${transactionFee}`);
   Party.signFeePayerInPlace(feePayer, feePayerKey);
-  return { feePayer, otherParties };
+  return { feePayer, otherParties, memo: newMemo };
 }
 
 function signFeePayer(
@@ -455,6 +461,7 @@ function signFeePayer(
   {
     transactionFee = 0 as number | string,
     feePayerNonce = undefined as number | string | undefined,
+    memo: feePayerMemo = undefined as string | undefined,
   }
 ) {
   let parties: Types.Json.Parties = JSON.parse(transactionJson);
@@ -465,6 +472,7 @@ function signFeePayer(
     let senderAccount = Mina.getAccount(senderAddress);
     feePayerNonce = senderAccount.nonce.toString();
   }
+  if (feePayerMemo) parties.memo = Ledger.memoToBase58(feePayerMemo);
   parties.feePayer.body.nonce = `${feePayerNonce}`;
   parties.feePayer.body.publicKey = Ledger.publicKeyToString(senderAddress);
   parties.feePayer.body.fee = `${transactionFee}`;
