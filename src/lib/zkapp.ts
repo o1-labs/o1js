@@ -23,7 +23,7 @@ import {
   assertPreconditionInvariants,
   cleanPreconditionsCache,
 } from './precondition';
-import { Proof } from './proof_system';
+import { CompiledTag, Proof } from './proof_system';
 
 export { deploy, DeployArgs, signFeePayer, declareMethods };
 
@@ -172,7 +172,7 @@ function checkStatement(
 
 function picklesRuleFromFunction<T>(
   func: (...args: unknown[]) => void,
-  proofSystemTag: any,
+  proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, args }: methodEntry<T>
 ): Pickles.Rule {
   function main(statement: Statement, previousStatements: Statement[]) {
@@ -216,8 +216,18 @@ function picklesRuleFromFunction<T>(
   }
 
   let proofsToVerify = proofArgs.map((Proof) => {
-    if (Proof.tag() === proofSystemTag) return { isSelf: true as const };
-    else throw Error('unimplemented');
+    let tag = Proof.tag();
+    if (tag === proofSystemTag) return { isSelf: true as const };
+    else {
+      let compiledTag = CompiledTag.get(tag);
+      if (compiledTag === undefined) {
+        throw Error(
+          `${proofSystemTag.name}.compile() depends on ${tag.name}, but we cannot find compilation output for ${tag.name}.\n` +
+            `Try to run ${tag.name}.compile() first.`
+        );
+      }
+      return { isSelf: false, tag: compiledTag };
+    }
   });
   return { identifier: methodName, main, proofsToVerify };
 }
@@ -262,10 +272,11 @@ export class SmartContract {
       )
     );
 
-    let [, { getVerificationKeyArtifact, provers, verify }] = withContext(
+    let [, { getVerificationKeyArtifact, provers, verify, tag }] = withContext(
       { self: selfParty(address), inCompile: true },
       () => Pickles.compile(rules, 2)
     );
+    CompiledTag.store(this, tag);
     let verificationKey = getVerificationKeyArtifact();
     this._provers = provers;
     this._verificationKey = {
