@@ -269,16 +269,13 @@ export class SmartContract {
   static async compile(address: PublicKey) {
     // TODO: think about how address should be passed in
     // TODO: maybe PublicKey should just become a variable? Then compile doesn't need to know the address, which seems more natural
-    let instance = new this(address);
 
     let rules = (this._methods ?? []).map((methodEntry) =>
       picklesRuleFromFunction(
-        // TODO: it's problematic that this refers to the instance that was passed in during compile
-        // means the same instance will be used by the provers as well
-        // which implies that stuff that is tied to the instance, like State(), is fixed to the address used here
-        // caused a bug in the version of this function that created a random public key (which was unsound anyway)
-        (...args: unknown[]) =>
-          (instance[methodEntry.methodName] as any)(...args),
+        (...args: unknown[]) => {
+          let instance = new this(address);
+          (instance[methodEntry.methodName] as any)(...args);
+        },
         this,
         methodEntry
       )
