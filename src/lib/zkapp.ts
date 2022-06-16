@@ -73,6 +73,12 @@ export function method<T extends SmartContract>(
       );
     }
   }
+  if (proofArgs.length > 2) {
+    throw Error(
+      `${ZkappClass.name}.${methodName}() has more than two proof arguments, which is not supported.\n` +
+        `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
+    );
+  }
   ZkappClass._methods ??= [];
   let methodEntry = { methodName, witnessArgs, proofArgs, args };
   ZkappClass._methods.push(methodEntry);
@@ -215,6 +221,12 @@ function picklesRuleFromFunction<T>(
     return proofs.map((proof) => proof.shouldVerify);
   }
 
+  if (proofArgs.length > 2) {
+    throw Error(
+      `${proofSystemTag.name}.${methodName}() has more than two proof arguments, which is not supported.\n` +
+        `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
+    );
+  }
   let proofsToVerify = proofArgs.map((Proof) => {
     let tag = Proof.tag();
     if (tag === proofSystemTag) return { isSelf: true as const };
