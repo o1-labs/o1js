@@ -27,7 +27,7 @@ export {
   addMissingProofs,
   signJsonTransaction,
   ZkappStateLength,
-  ZkappStatement,
+  ZkappPublicInput,
 };
 
 const ZkappStateLength = 8;
@@ -476,7 +476,7 @@ type LazyProof = {
   kind: 'lazy-proof';
   method: Function;
   args: any[];
-  previousProofs: { statement: Field[]; proof: Pickles.Proof }[];
+  previousProofs: { publicInput: Field[]; proof: Pickles.Proof }[];
   ZkappClass: typeof SmartContract;
 };
 
@@ -879,12 +879,12 @@ type PartiesProved = {
   memo: string;
 };
 
-type ZkappStatement = [transaction: Field, atParty: Field];
-let ZkappStatement = circuitValue<ZkappStatement>([Field, Field]);
+type ZkappPublicInput = [transaction: Field, atParty: Field];
+let ZkappPublicInput = circuitValue<ZkappPublicInput>([Field, Field]);
 
 async function addMissingProofs(parties: Parties): Promise<{
   parties: PartiesProved;
-  proofs: (Proof<ZkappStatement> | undefined)[];
+  proofs: (Proof<ZkappPublicInput> | undefined)[];
 }> {
   let partiesJson = JSON.stringify(partiesToJson(parties));
   type PartyProved = Party & { authorization: Control | LazySignature };
@@ -897,7 +897,7 @@ async function addMissingProofs(parties: Parties): Promise<{
     )
       return { partyProved: party as PartyProved, proof: undefined };
     let { method, args, previousProofs, ZkappClass } = party.authorization;
-    let statement = Ledger.transactionStatement(partiesJson, index);
+    let publicInput = Ledger.zkappPublicInput(partiesJson, index);
     if (ZkappClass._provers === undefined)
       throw Error(
         `Cannot prove execution of ${method.name}(), no prover found. ` +
@@ -916,16 +916,16 @@ async function addMissingProofs(parties: Parties): Promise<{
         witnesses: args,
         inProver: true,
       },
-      () => provers[i](statement, previousProofs)
+      () => provers[i](publicInput, previousProofs)
     );
     party.authorization = { proof: Pickles.proofToString(proof) };
-    class ZkappProof extends Proof<ZkappStatement> {
-      static publicInputType = ZkappStatement;
+    class ZkappProof extends Proof<ZkappPublicInput> {
+      static publicInputType = ZkappPublicInput;
       static tag = () => ZkappClass;
     }
     return {
       partyProved: party as PartyProved,
-      proof: new ZkappProof({ publicInput: statement, proof }),
+      proof: new ZkappProof({ publicInput, proof }),
     };
   }
   let { feePayer, otherParties, memo } = parties;
@@ -933,7 +933,7 @@ async function addMissingProofs(parties: Parties): Promise<{
   let otherPartiesProved: (Party & {
     authorization: Control | LazySignature;
   })[] = [];
-  let proofs: (Proof<ZkappStatement> | undefined)[] = [];
+  let proofs: (Proof<ZkappPublicInput> | undefined)[] = [];
   for (let i = 0; i < otherParties.length; i++) {
     let { partyProved, proof } = await addProof(otherParties[i], i);
     otherPartiesProved.push(partyProved);

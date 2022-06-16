@@ -105,14 +105,14 @@ function wrapMethod(
       // (if there's no other authorization set)
       let auth = this.self.authorization;
       if (!('kind' in auth || 'proof' in auth || 'signature' in auth)) {
-        let previousProofs: Pickles.ProofWithStatement[] = [];
+        let previousProofs: Pickles.ProofWithPublicInput[] = [];
         for (let i = 0; i < argDescriptors.length; i++) {
           let arg = argDescriptors[i];
           if (arg.type === 'proof') {
             let proof = actualArgs[i] as Proof<any>;
             let publicInputType = proofArgs[arg.index].publicInputType;
             previousProofs[arg.index] = {
-              statement: publicInputType.toFields(proof.publicInput),
+              publicInput: publicInputType.toFields(proof.publicInput),
               proof: proof.proof,
             };
           }
@@ -149,31 +149,31 @@ function isProof(typ: any) {
   return typ === Proof || typ?.prototype instanceof Proof;
 }
 /**
- * A Statement consists of certain hashes of the transaction and of the proving Party which is constructed during method execution.
+ * The public input for zkApps consists of certain hashes of the transaction and of the proving Party which is constructed during method execution.
 
-  In SmartContract.prove, a method is run twice: First outside the proof, to obtain the statement, and once in the prover,
-  which takes the statement as input. The current transaction is hashed again inside the prover, which asserts that the result equals the input statement,
+  In SmartContract.prove, a method is run twice: First outside the proof, to obtain the public input, and once in the prover,
+  which takes the public input as input. The current transaction is hashed again inside the prover, which asserts that the result equals the input public input,
   as part of the snark circuit. The block producer will also hash the transaction they receive and pass it as a public input to the verifier.
   Thus, the transaction is fully constrained by the proof - the proof couldn't be used to attest to a different transaction.
  */
-type Statement = Field[]; // [transaction, atParty]
+type PublicInput = Field[]; // [transaction, atParty]
 
-function toStatement(self: Party, tail: Field) {
+function toPublicInput(self: Party, tail: Field) {
   // TODO hash together party with tail in the right way
   let atParty = self.hash();
   let transaction = Ledger.hashTransactionChecked(atParty);
   return { transaction, atParty };
 }
 
-function checkStatement(
-  [transaction, atParty]: Statement,
+function checkPublicInput(
+  [transaction, atParty]: PublicInput,
   self: Party,
   tail: Field
 ) {
-  // ATM, we always compute the statement in checked mode to make assertEqual pass
-  let otherStatement = toStatement(self, tail);
-  atParty.assertEquals(otherStatement.atParty);
-  transaction.assertEquals(otherStatement.transaction);
+  // ATM, we always compute the public input in checked mode to make assertEqual pass
+  let otherInput = toPublicInput(self, tail);
+  atParty.assertEquals(otherInput.atParty);
+  transaction.assertEquals(otherInput.transaction);
 }
 
 function picklesRuleFromFunction<T>(
@@ -181,7 +181,7 @@ function picklesRuleFromFunction<T>(
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, args }: methodEntry<T>
 ): Pickles.Rule {
-  function main(statement: Statement, previousStatements: Statement[]) {
+  function main(publicInput: PublicInput, previousInputs: PublicInput[]) {
     let { self, witnesses: actualArgs } = getContext();
     let finalArgs = [];
     let proofs: Proof<any>[] = [];
@@ -195,7 +195,7 @@ function picklesRuleFromFunction<T>(
       } else {
         let Proof = proofArgs[arg.index];
         let publicInput = Proof.publicInputType.ofFields(
-          previousStatements[arg.index]
+          previousInputs[arg.index]
         );
         let proofInstance: Proof<any>;
         if (actualArgs) {
@@ -210,9 +210,9 @@ function picklesRuleFromFunction<T>(
     }
     func(...finalArgs);
     let tail = Field.zero;
-    // FIXME: figure out correct way to constrain statement https://github.com/o1-labs/snarkyjs/issues/98
-    statement[0].assertEquals(statement[0]);
-    // checkStatement(statement, self, tail);
+    // FIXME: figure out correct way to constrain public input https://github.com/o1-labs/snarkyjs/issues/98
+    publicInput[0].assertEquals(publicInput[0]);
+    // checkPublicInput(publicInput, self, tail);
 
     // check the self party right after calling the method
     // TODO: this needs to be done in a unified way for all parties that are created

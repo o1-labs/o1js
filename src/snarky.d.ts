@@ -715,7 +715,7 @@ declare class Ledger {
     commitment: Field;
     fullCommitment: Field;
   };
-  static transactionStatement(
+  static zkappPublicInput(
     txJson: string,
     partyIndex: number
   ): [transaction: Field, atParty: Field];
@@ -730,7 +730,7 @@ declare class Ledger {
     i: number
   ): string;
   static verifyPartyProof(
-    statement: Field[],
+    publicInput: Field[],
     proof: string,
     verificationKey: string
   ): Promise<boolean>;
@@ -761,16 +761,16 @@ declare let isReady: Promise<undefined>;
 
 declare namespace Pickles {
   type Proof = unknown; // opaque to js
-  type Statement = Field[];
-  type ProofWithStatement = { statement: Statement; proof: Proof };
+  type PublicInput = Field[];
+  type ProofWithPublicInput = { publicInput: PublicInput; proof: Proof };
   type Rule = {
     identifier: string;
-    main: (statement: Statement, previousStatements: Statement[]) => Bool[];
+    main: (publicInput: PublicInput, previousInputs: PublicInput[]) => Bool[];
     proofsToVerify: ({ isSelf: true } | { isSelf: false; tag: unknown })[];
   };
   type Prover = (
-    statement: Field[],
-    previousProofs: ProofWithStatement[]
+    publicInput: Field[],
+    previousProofs: ProofWithPublicInput[]
   ) => Promise<Proof>;
 }
 
@@ -792,10 +792,10 @@ declare const Pickles: {
    */
   compile: (
     rules: Pickles.Rule[],
-    statementSize: number
+    publicInputSize: number
   ) => {
     provers: Pickles.Prover[];
-    verify: (statement: Field[], proof: unknown) => Promise<boolean>;
+    verify: (publicInput: Field[], proof: unknown) => Promise<boolean>;
     tag: unknown;
     getVerificationKeyArtifact: () => { data: string; hash: string };
   };

@@ -8,7 +8,7 @@ import {
   Mina,
   Party,
   isReady,
-  ZkappStatement,
+  ZkappPublicInput,
   Proof,
   Pickles,
   Ledger,
@@ -16,12 +16,12 @@ import {
 
 await isReady;
 
-class SimpleZkappProof extends Proof<ZkappStatement> {
-  static publicInputType = ZkappStatement;
+class SimpleZkappProof extends Proof<ZkappPublicInput> {
+  static publicInputType = ZkappPublicInput;
   static tag = () => NotSoSimpleZkapp;
 }
-class TrivialProof extends Proof<ZkappStatement> {
-  static publicInputType = ZkappStatement;
+class TrivialProof extends Proof<ZkappPublicInput> {
+  static publicInputType = ZkappPublicInput;
   static tag = () => TrivialZkapp;
 }
 

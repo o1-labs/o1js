@@ -11,7 +11,7 @@ import {
   partiesToJson,
   Party,
   ZkappStateLength,
-  ZkappStatement,
+  ZkappPublicInput,
 } from './party';
 import * as Fetch from './fetch';
 import { assertPreconditionInvariants, NetworkValue } from './precondition';
@@ -45,7 +45,7 @@ interface Transaction {
   toJSON(): string;
   toGraphqlQuery(): string;
   sign(additionialKeys?: PrivateKey[]): Transaction;
-  prove(): Promise<(Proof<ZkappStatement> | undefined)[]>;
+  prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;
   send(): TransactionId;
 }
 
