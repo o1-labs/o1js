@@ -11,6 +11,7 @@ import {
   ZkappStatement,
   Proof,
   Pickles,
+  Ledger,
 } from 'snarkyjs';
 
 await isReady;
@@ -78,7 +79,7 @@ let [trivialZkappProof] = await (
 ).prove();
 
 console.log('compile');
-await NotSoSimpleZkapp.compile(zkappAddress);
+let { verificationKey } = await NotSoSimpleZkapp.compile(zkappAddress);
 
 let zkapp = new NotSoSimpleZkapp(zkappAddress);
 
@@ -106,7 +107,15 @@ tx = await Mina.transaction(feePayerKey, () => {
 tx.send();
 
 // check that proof can be converted to string
-Pickles.proofToString(proof?.proof);
+let proofString = Pickles.proofToString(proof?.proof);
+
+// check that proof verifies
+let ok = Ledger.verifyPartyProof(
+  proof!.publicInput,
+  proofString,
+  verificationKey.data
+);
+if (!ok) throw Error('proof cannot be verified');
 
 console.log('state 2: ' + zkapp.x.get());
 
