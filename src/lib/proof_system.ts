@@ -1,5 +1,5 @@
 import { Bool, Field, AsFieldElements, Pickles, Circuit } from '../snarky';
-import { getContext, withContext } from './global-context';
+import { getContext, withContext, withContextAsync } from './global-context';
 
 // public API
 export { Proof, Program };
@@ -106,24 +106,24 @@ type InferInstance<T extends AsFieldElements<any>> = T['check'] extends (
 */
 
 function Program<
-  PublicInput extends AsFieldElements<any>,
+  PublicInputType extends AsFieldElements<any>,
   Types extends {
     // TODO: how to prevent a method called `compile` from type-checking?
     [I in string]: Tuple<PrivateInput>;
   }
 >({
-  publicInput,
+  publicInput: publicInputType,
   methods,
 }: {
-  publicInput: PublicInput;
+  publicInput: PublicInputType;
   methods: {
-    [I in keyof Types]: Method<InferInstance<PublicInput>, Types[I]>;
+    [I in keyof Types]: Method<InferInstance<PublicInputType>, Types[I]>;
   };
 }): {
   name: string;
   compile: () => Promise<void>;
 } & {
-  [I in keyof Types]: Prover<InferInstance<PublicInput>, Types[I]>;
+  [I in keyof Types]: Prover<InferInstance<PublicInputType>, Types[I]>;
 } {
   let keys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
   let methodFunctions = keys.map((key) => methods[key].method);
@@ -140,7 +140,7 @@ function Program<
 
   async function compile(): Promise<void> {
     let { provers, verify } = compileProgram(
-      publicInput,
+      publicInputType,
       methodIntfs,
       methodFunctions,
       selfTag
@@ -148,14 +148,16 @@ function Program<
     compileOutput = { provers, verify };
   }
 
+  type PublicInput = InferInstance<PublicInputType>;
+
   function toProver<K extends keyof Types & string>(
     key: K,
     i: number
-  ): [K, Prover<InferInstance<PublicInput>, Types[K]>] {
+  ): [K, Prover<PublicInput, Types[K]>] {
     async function prove(
       publicInput: PublicInput,
       ...args: TupleToInstances<Types[typeof key]>
-    ): Promise<Proof<InferInstance<PublicInput>>> {
+    ): Promise<Proof<PublicInput>> {
       let picklesProver = compileOutput?.provers?.[i];
       if (picklesProver === undefined) {
         throw Error(
@@ -163,13 +165,23 @@ function Program<
             `Try calling \`await program.compile()\` first, this will cache provers in the background.`
         );
       }
+      let publicInputFields = publicInputType.toFields(publicInput);
       let previousProofs = getPreviousProofsForProver(args, methodIntfs[i]);
-      throw 'todo';
+
+      let [, proof] = await withContextAsync(
+        { witnesses: args, inProver: true },
+        () => picklesProver!(publicInputFields, previousProofs)
+      );
+      class ProgramProof extends Proof<PublicInput> {
+        static publicInputType = publicInputType;
+        static tag = () => selfTag;
+      }
+      return new ProgramProof({ publicInput, proof });
     }
     return [key, prove];
   }
   let provers = Object.fromEntries(keys.map(toProver)) as {
-    [I in keyof Types]: Prover<InferInstance<PublicInput>, Types[I]>;
+    [I in keyof Types]: Prover<PublicInput, Types[I]>;
   };
 
   return Object.assign(selfTag, { compile }, provers);
@@ -311,7 +323,7 @@ function picklesRuleFromFunction(
           let { proof }: Proof<any> = argsWithoutPublicInput[i] as any;
           proofInstance = new Proof({ publicInput, proof });
         } else {
-          proofInstance = new Proof({ publicInput, proof: '' });
+          proofInstance = new Proof({ publicInput, proof: undefined });
         }
         finalArgs[i] = proofInstance;
         proofs.push(proofInstance);
