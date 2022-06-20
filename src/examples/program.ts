@@ -1,6 +1,6 @@
-import { SelfProof, Field, Program } from 'snarkyjs';
+import { SelfProof, Field, ZkProgram } from 'snarkyjs';
 
-let MyProgram = Program({
+let MyProgram = ZkProgram({
   publicInput: Field,
 
   methods: {

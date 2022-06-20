@@ -2,7 +2,7 @@ import { Bool, Field, AsFieldElements, Pickles, Circuit } from '../snarky';
 import { getContext, withContext, withContextAsync } from './global-context';
 
 // public API
-export { Proof, SelfProof, Program };
+export { Proof, SelfProof, ZkProgram };
 
 // internal API
 export {
@@ -54,7 +54,7 @@ let CompiledTag = {
   },
 };
 
-function Program<
+function ZkProgram<
   PublicInputType extends AsFieldElements<any>,
   Types extends {
     // TODO: how to prevent a method called `compile` from type-checking?
