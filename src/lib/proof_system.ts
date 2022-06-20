@@ -8,6 +8,7 @@ export {
   CompiledTag,
   sortMethodArguments,
   getPublicInputType,
+  getPreviousProofsForProver,
   MethodInterface,
 };
 
@@ -118,18 +119,41 @@ function Program<
   };
 }): {
   name: string;
-  compile(): Promise<void>;
+  compile: () => Promise<void>;
 } & {
   [I in keyof Types]: Prover<InferInstance<PublicInput>, Types[I]>;
 } {
   let keys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
   let methodFunctions = keys.map((key) => methods[key].method);
   let methodIntfs = keys.map((key) =>
-    sortMethodArguments('Program', key, methods[key].privateInput)
+    sortMethodArguments('program', key, methods[key].privateInput)
   );
 
-  throw Error('todo');
+  async function compile(): Promise<void> {
+    throw 'todo';
+  }
+
+  function toProver<K extends keyof Types>(
+    key: K,
+    i: number
+  ): [K, Prover<InferInstance<PublicInput>, Types[K]>] {
+    async function prover(
+      publicInput: PublicInput,
+      ...args: TupleToInstances<Types[typeof key]>
+    ): Promise<Proof<InferInstance<PublicInput>>> {
+      let previousProofs = getPreviousProofsForProver(args, methodIntfs[i]);
+      throw 'todo';
+    }
+    return [key, prover];
+  }
+  let provers = Object.fromEntries(keys.map(toProver)) as {
+    [I in keyof Types]: Prover<InferInstance<PublicInput>, Types[I]>;
+  };
+
+  return Object.assign({ name: `Program${i++}`, compile }, provers);
 }
+
+let i = 0;
 
 function sortMethodArguments(
   programName: string,
@@ -184,6 +208,25 @@ function isProof(type: unknown): type is typeof Proof {
     type === Proof ||
     (typeof type === 'function' && type.prototype instanceof Proof)
   );
+}
+
+function getPreviousProofsForProver(
+  methodArgs: any[],
+  { allArgs, proofArgs }: MethodInterface
+) {
+  let previousProofs: Pickles.ProofWithPublicInput[] = [];
+  for (let i = 0; i < allArgs.length; i++) {
+    let arg = allArgs[i];
+    if (arg.type === 'proof') {
+      let { proof, publicInput } = methodArgs[i] as Proof<any>;
+      let publicInputType = getPublicInputType(proofArgs[arg.index]);
+      previousProofs[arg.index] = {
+        publicInput: publicInputType.toFields(publicInput),
+        proof,
+      };
+    }
+  }
+  return previousProofs;
 }
 
 type MethodInterface = {

@@ -25,6 +25,7 @@ import {
 } from './precondition';
 import {
   CompiledTag,
+  getPreviousProofsForProver,
   getPublicInputType,
   MethodInterface,
   Proof,
@@ -77,9 +78,9 @@ function wrapMethod(
   method: Function,
   argsLength: number,
   ZkappClass: typeof SmartContract,
-  { allArgs: argDescriptors, proofArgs }: MethodInterface
+  methodIntf: MethodInterface
 ) {
-  function wrappedMethod(this: SmartContract, ...args: any[]) {
+  return function wrappedMethod(this: SmartContract, ...args: any[]) {
     let actualArgs = args.slice(0, argsLength);
     let shouldCallDirectly = args[argsLength] as undefined | boolean;
     if (Mina.currentTransaction === undefined || shouldCallDirectly === true) {
@@ -90,30 +91,17 @@ function wrapMethod(
       // (if there's no other authorization set)
       let auth = this.self.authorization;
       if (!('kind' in auth || 'proof' in auth || 'signature' in auth)) {
-        let previousProofs: Pickles.ProofWithPublicInput[] = [];
-        for (let i = 0; i < argDescriptors.length; i++) {
-          let arg = argDescriptors[i];
-          if (arg.type === 'proof') {
-            let proof = actualArgs[i] as Proof<any>;
-            let publicInputType = getPublicInputType(proofArgs[arg.index]);
-            previousProofs[arg.index] = {
-              publicInput: publicInputType.toFields(proof.publicInput),
-              proof: proof.proof,
-            };
-          }
-        }
         this.self.authorization = {
           kind: 'lazy-proof',
           method,
           args: actualArgs,
-          previousProofs: previousProofs,
+          previousProofs: getPreviousProofsForProver(actualArgs, methodIntf),
           ZkappClass,
         };
       }
       return method.apply(this, actualArgs);
     }
-  }
-  return wrappedMethod;
+  };
 }
 
 /**
