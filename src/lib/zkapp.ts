@@ -18,7 +18,12 @@ import {
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { UInt32, UInt64 } from './int';
-import { withContext, getContext, mainContext } from './global-context';
+import {
+  withContext,
+  getContext,
+  mainContext,
+  inCheckedComputation,
+} from './global-context';
 import {
   assertPreconditionInvariants,
   cleanPreconditionsCache,
@@ -68,24 +73,36 @@ export function method<T extends SmartContract>(
   );
   ZkappClass._methods ??= [];
   ZkappClass._methods.push(methodEntry);
-  let argsLength = methodEntry.allArgs.length;
   let func = descriptor.value;
-  descriptor.value = wrapMethod(func, argsLength, ZkappClass, methodEntry);
+  descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
 }
 
 // do different things when calling a method, depending on the circumstance
 function wrapMethod(
   method: Function,
-  argsLength: number,
   ZkappClass: typeof SmartContract,
   methodIntf: MethodInterface
 ) {
-  return function wrappedMethod(this: SmartContract, ...args: any[]) {
-    let actualArgs = args.slice(0, argsLength);
-    let shouldCallDirectly = args[argsLength] as undefined | boolean;
-    if (Mina.currentTransaction === undefined || shouldCallDirectly === true) {
-      // outside a transaction, just call the method
-      return method.apply(this, actualArgs);
+  return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
+    if (inCheckedComputation() || Mina.currentTransaction === undefined) {
+      if (inCheckedComputation()) {
+        // inside prover / compile, the method is always called with the public input as first argument
+        // -- so we can add assertions about it
+        let publicInput = actualArgs[0];
+        actualArgs = actualArgs.slice(1);
+        // FIXME: figure out correct way to constrain public input https://github.com/o1-labs/snarkyjs/issues/98
+        let tail = Field.zero;
+        publicInput[0].assertEquals(publicInput[0]);
+        // checkPublicInput(publicInput, self, tail);
+      }
+
+      // outside a transaction, just call the method, but check precondition invariants
+      let result = method.apply(this, actualArgs);
+      // check the self party right after calling the method
+      // TODO: this needs to be done in a unified way for all parties that are created
+      assertPreconditionInvariants(this.self);
+      cleanPreconditionsCache(this.self);
+      return result;
     } else {
       // in a transaction, also add a lazy proof to the self party
       // (if there's no other authorization set)
@@ -132,21 +149,21 @@ function checkPublicInput(
   transaction.assertEquals(otherInput.transaction);
 }
 
-function picklesRuleFromFunction<T>(
+function picklesRuleFromFunction(
   func: (...args: unknown[]) => void,
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface
 ): Pickles.Rule {
   function main(publicInput: PublicInput, previousInputs: PublicInput[]) {
-    let { self, witnesses: actualArgs } = getContext();
+    let { witnesses: argsWithoutPublicInput } = getContext();
     let finalArgs = [];
     let proofs: Proof<any>[] = [];
     for (let i = 0; i < allArgs.length; i++) {
       let arg = allArgs[i];
       if (arg.type === 'witness') {
         let type = witnessArgs[arg.index];
-        finalArgs[i] = actualArgs
-          ? Circuit.witness(type, () => actualArgs![i])
+        finalArgs[i] = argsWithoutPublicInput
+          ? Circuit.witness(type, () => argsWithoutPublicInput![i])
           : emptyWitness(type);
       } else {
         let Proof = proofArgs[arg.index];
@@ -154,8 +171,8 @@ function picklesRuleFromFunction<T>(
           previousInputs[arg.index]
         );
         let proofInstance: Proof<any>;
-        if (actualArgs) {
-          let { proof }: Proof<any> = actualArgs[i] as any;
+        if (argsWithoutPublicInput) {
+          let { proof }: Proof<any> = argsWithoutPublicInput[i] as any;
           proofInstance = new Proof({ publicInput, proof });
         } else {
           proofInstance = new Proof({ publicInput, proof: '' });
@@ -164,16 +181,7 @@ function picklesRuleFromFunction<T>(
         proofs.push(proofInstance);
       }
     }
-    func(...finalArgs);
-    let tail = Field.zero;
-    // FIXME: figure out correct way to constrain public input https://github.com/o1-labs/snarkyjs/issues/98
-    publicInput[0].assertEquals(publicInput[0]);
-    // checkPublicInput(publicInput, self, tail);
-
-    // check the self party right after calling the method
-    // TODO: this needs to be done in a unified way for all parties that are created
-    assertPreconditionInvariants(self);
-    cleanPreconditionsCache(self);
+    func(publicInput, ...finalArgs);
     return proofs.map((proof) => proof.shouldVerify);
   }
 
@@ -359,10 +367,6 @@ type DeployArgs = {
   verificationKey?: { data: string; hash: string | Field };
   zkappKey?: PrivateKey;
 };
-
-function emptyValue<A>(typ: AsFieldElements<A>) {
-  return typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero));
-}
 
 function emptyWitness<A>(typ: AsFieldElements<A>) {
   // return typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero));
