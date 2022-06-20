@@ -35,14 +35,6 @@ class Proof<T> {
   toString() {
     return Pickles.proofToString(this.proof);
   }
-  static dummy<T>(): Proof<T> {
-    let publicInputType = getPublicInputType<T>(this);
-    let publicInput = publicInputType.ofFields(
-      Array(publicInputType.sizeInFields()).fill(Field.zero)
-    );
-    let proof = ''; // TODO
-    return new this({ publicInput, proof });
-  }
 
   constructor({ proof, publicInput }: { proof: RawProof; publicInput: T }) {
     this.publicInput = publicInput;
