@@ -11,21 +11,16 @@ import {
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { UInt32, UInt64 } from './int';
-import {
-  withContext,
-  mainContext,
-  inCheckedComputation,
-} from './global-context';
+import { mainContext, inCheckedComputation } from './global-context';
 import {
   assertPreconditionInvariants,
   cleanPreconditionsCache,
 } from './precondition';
 import {
-  CompiledTag,
   getPreviousProofsForProver,
   MethodInterface,
-  picklesRuleFromFunction,
   sortMethodArguments,
+  compile as compileProgram,
 } from './proof_system';
 
 export { deploy, DeployArgs, signFeePayer, declareMethods };
@@ -165,23 +160,21 @@ export class SmartContract {
   static async compile(address: PublicKey) {
     // TODO: think about how address should be passed in
     // TODO: maybe PublicKey should just become a variable? Then compile doesn't need to know the address, which seems more natural
+    let methodIntfs = this._methods ?? [];
+    let methods = methodIntfs.map(({ methodName }) => {
+      return (...args: unknown[]) => {
+        let instance = new this(address);
+        (instance as any)[methodName](...args);
+      };
+    });
 
-    let rules = (this._methods ?? []).map((methodEntry) =>
-      picklesRuleFromFunction(
-        (...args: unknown[]) => {
-          let instance = new this(address);
-          (instance as any)[methodEntry.methodName](...args);
-        },
-        this,
-        methodEntry
-      )
+    let { getVerificationKeyArtifact, provers, verify } = compileProgram(
+      methodIntfs,
+      methods,
+      this,
+      { self: selfParty(address) }
     );
 
-    let [, { getVerificationKeyArtifact, provers, verify, tag }] = withContext(
-      { self: selfParty(address), inCompile: true },
-      () => Pickles.compile(rules, 2)
-    );
-    CompiledTag.store(this, tag);
     let verificationKey = getVerificationKeyArtifact();
     this._provers = provers;
     this._verificationKey = {

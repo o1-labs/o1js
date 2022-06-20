@@ -1,5 +1,5 @@
 import { Bool, Field, AsFieldElements, Pickles, Circuit } from '../snarky';
-import { getContext } from './global-context';
+import { getContext, withContext } from './global-context';
 
 // public API
 export { Proof };
@@ -11,6 +11,7 @@ export {
   getPreviousProofsForProver,
   MethodInterface,
   picklesRuleFromFunction,
+  compile,
 };
 
 class Proof<T> {
@@ -236,6 +237,23 @@ type MethodInterface = {
   proofArgs: Subclass<typeof Proof>[];
   allArgs: { type: 'witness' | 'proof'; index: number }[];
 };
+
+function compile(
+  methodIntfs: MethodInterface[],
+  methods: ((...args: unknown[]) => void)[],
+  proofSystemTag: { name: string },
+  additionalContext: any
+) {
+  let rules = methodIntfs.map((methodEntry, i) =>
+    picklesRuleFromFunction(methods[i], proofSystemTag, methodEntry)
+  );
+  let [, { getVerificationKeyArtifact, provers, verify, tag }] = withContext(
+    { inCompile: true, ...additionalContext },
+    () => Pickles.compile(rules, 2)
+  );
+  CompiledTag.store(proofSystemTag, tag);
+  return { getVerificationKeyArtifact, provers, verify, tag };
+}
 
 function picklesRuleFromFunction(
   func: (...args: unknown[]) => void,
