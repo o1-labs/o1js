@@ -23,7 +23,13 @@ import {
   assertPreconditionInvariants,
   cleanPreconditionsCache,
 } from './precondition';
-import { CompiledTag, Proof } from './proof_system';
+import {
+  CompiledTag,
+  getPublicInputType,
+  MethodInterface,
+  Proof,
+  sortMethodArguments,
+} from './proof_system';
 
 export { deploy, DeployArgs, signFeePayer, declareMethods };
 
@@ -54,35 +60,14 @@ export function method<T extends SmartContract>(
     );
   }
   let paramTypes = Reflect.getMetadata('design:paramtypes', target, methodName);
-  let witnessArgs = [];
-  let proofArgs = [];
-  let args: { type: 'proof' | 'witness'; index: number }[] = [];
-  for (let i = 0; i < paramTypes.length; i++) {
-    let Parameter = paramTypes[i];
-    if (isProof(Parameter)) {
-      args.push({ type: 'proof', index: proofArgs.length });
-      proofArgs.push(Parameter);
-    } else if (isAsFields(Parameter)) {
-      args.push({ type: 'witness', index: witnessArgs.length });
-      witnessArgs.push(Parameter);
-    } else {
-      throw Error(
-        `Argument ${
-          i + 1
-        } of method ${methodName} is not a valid circuit value: ${Parameter}`
-      );
-    }
-  }
-  if (proofArgs.length > 2) {
-    throw Error(
-      `${ZkappClass.name}.${methodName}() has more than two proof arguments, which is not supported.\n` +
-        `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
-    );
-  }
+  let methodEntry = sortMethodArguments(
+    ZkappClass.name,
+    methodName,
+    paramTypes
+  );
   ZkappClass._methods ??= [];
-  let methodEntry = { methodName, witnessArgs, proofArgs, args };
   ZkappClass._methods.push(methodEntry);
-  let argsLength = args.length;
+  let argsLength = methodEntry.allArgs.length;
   let func = descriptor.value;
   descriptor.value = wrapMethod(func, argsLength, ZkappClass, methodEntry);
 }
@@ -92,7 +77,7 @@ function wrapMethod(
   method: Function,
   argsLength: number,
   ZkappClass: typeof SmartContract,
-  { args: argDescriptors, proofArgs }: methodEntry<any>
+  { allArgs: argDescriptors, proofArgs }: MethodInterface
 ) {
   function wrappedMethod(this: SmartContract, ...args: any[]) {
     let actualArgs = args.slice(0, argsLength);
@@ -110,7 +95,7 @@ function wrapMethod(
           let arg = argDescriptors[i];
           if (arg.type === 'proof') {
             let proof = actualArgs[i] as Proof<any>;
-            let publicInputType = proofArgs[arg.index].publicInputType;
+            let publicInputType = getPublicInputType(proofArgs[arg.index]);
             previousProofs[arg.index] = {
               publicInput: publicInputType.toFields(proof.publicInput),
               proof: proof.proof,
@@ -131,23 +116,6 @@ function wrapMethod(
   return wrappedMethod;
 }
 
-type methodEntry<T> = {
-  methodName: keyof T & string;
-  witnessArgs: AsFieldElements<unknown>[];
-  proofArgs: typeof Proof[];
-  args: { type: 'witness' | 'proof'; index: number }[];
-  witnessValues?: unknown[];
-};
-
-function isAsFields(typ: Object) {
-  return (
-    !!typ && ['toFields', 'ofFields', 'sizeInFields'].every((s) => s in typ)
-  );
-}
-function isProof(typ: any) {
-  // the second case covers subclasses
-  return typ === Proof || typ?.prototype instanceof Proof;
-}
 /**
  * The public input for zkApps consists of certain hashes of the transaction and of the proving Party which is constructed during method execution.
 
@@ -179,14 +147,14 @@ function checkPublicInput(
 function picklesRuleFromFunction<T>(
   func: (...args: unknown[]) => void,
   proofSystemTag: { name: string },
-  { methodName, witnessArgs, proofArgs, args }: methodEntry<T>
+  { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface
 ): Pickles.Rule {
   function main(publicInput: PublicInput, previousInputs: PublicInput[]) {
     let { self, witnesses: actualArgs } = getContext();
     let finalArgs = [];
     let proofs: Proof<any>[] = [];
-    for (let i = 0; i < args.length; i++) {
-      let arg = args[i];
+    for (let i = 0; i < allArgs.length; i++) {
+      let arg = allArgs[i];
       if (arg.type === 'witness') {
         let type = witnessArgs[arg.index];
         finalArgs[i] = actualArgs
@@ -194,7 +162,7 @@ function picklesRuleFromFunction<T>(
           : emptyWitness(type);
       } else {
         let Proof = proofArgs[arg.index];
-        let publicInput = Proof.publicInputType.ofFields(
+        let publicInput = getPublicInputType(Proof).ofFields(
           previousInputs[arg.index]
         );
         let proofInstance: Proof<any>;
@@ -258,7 +226,7 @@ export class SmartContract {
   address: PublicKey;
 
   private _executionState: ExecutionState | undefined;
-  static _methods?: methodEntry<SmartContract>[];
+  static _methods?: MethodInterface[];
   static _provers?: Pickles.Prover[];
   static _verificationKey?: { data: string; hash: Field };
 
@@ -274,7 +242,7 @@ export class SmartContract {
       picklesRuleFromFunction(
         (...args: unknown[]) => {
           let instance = new this(address);
-          (instance[methodEntry.methodName] as any)(...args);
+          (instance as any)[methodEntry.methodName](...args);
         },
         this,
         methodEntry

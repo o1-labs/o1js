@@ -1,6 +1,15 @@
 import { Bool, Field, AsFieldElements, Pickles } from '../snarky';
 
-export { Proof, CompiledTag };
+// public API
+export { Proof };
+
+// internal API
+export {
+  CompiledTag,
+  sortMethodArguments,
+  getPublicInputType,
+  MethodInterface,
+};
 
 class Proof<T> {
   static publicInputType: AsFieldElements<any> = undefined as any;
@@ -24,8 +33,9 @@ class Proof<T> {
     return Pickles.proofToString(this.proof);
   }
   static dummy<T>(): Proof<T> {
-    let publicInput = this.publicInputType.ofFields(
-      Array(this.publicInputType.sizeInFields()).fill(Field.zero)
+    let publicInputType = getPublicInputType<T>(this);
+    let publicInput = publicInputType.ofFields(
+      Array(publicInputType.sizeInFields()).fill(Field.zero)
     );
     let proof = ''; // TODO
     return new this({ publicInput, proof });
@@ -36,6 +46,19 @@ class Proof<T> {
     this.proof = proof; // TODO optionally convert from string?
   }
 }
+
+function getPublicInputType<T, P extends Subclass<typeof Proof> = typeof Proof>(
+  Proof: P
+): AsFieldElements<T> {
+  if (Proof.publicInputType === undefined) {
+    throw Error(
+      `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
+        `class MyProof extends Proof<PublicInput> { ... }`
+    );
+  }
+  return Proof.publicInputType;
+}
+
 type RawProof = unknown;
 type CompiledTag = unknown;
 
@@ -49,7 +72,7 @@ let CompiledTag = {
   },
 };
 
-type AnyTuple = readonly [any, ...any[]] | readonly [];
+type Tuple<T> = [T, ...T[]] | [];
 
 // TODO: inference of AsFieldElements shouldn't just use InstanceType
 // but the alternatives will be messier (see commented code below for some ideas)
@@ -83,9 +106,12 @@ function Program<
   PublicInput extends AsFieldElements<any>,
   Types extends {
     // TODO: how to prevent a method called `compile` from type-checking?
-    [I in string]: AnyTuple;
+    [I in string]: Tuple<PrivateInput>;
   }
->(c: {
+>({
+  publicInput,
+  methods,
+}: {
   publicInput: PublicInput;
   methods: {
     [I in keyof Types]: Circuit<InferInstance<PublicInput>, Types[I]>;
@@ -96,51 +122,127 @@ function Program<
 } & {
   [I in keyof Types]: Prover<InferInstance<PublicInput>, Types[I]>;
 } {
-  return c as never;
+  let keys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
+  let methodFunctions = keys.map((key) => methods[key].method);
+  let methodIntfs = keys.map((key) =>
+    sortMethodArguments('Program', key, methods[key].privateInput)
+  );
+
+  throw Error('todo');
 }
 
-type Circuit<PublicInput, Args extends AnyTuple> = {
+function sortMethodArguments(
+  programName: string,
+  methodName: string,
+  privateInputs: unknown[]
+): MethodInterface {
+  let witnessArgs: AsFieldElements<unknown>[] = [];
+  let proofArgs: Subclass<typeof Proof>[] = [];
+  let allArgs: { type: 'proof' | 'witness'; index: number }[] = [];
+  for (let i = 0; i < privateInputs.length; i++) {
+    let privateInput = privateInputs[i];
+    if (isProof(privateInput)) {
+      if (privateInput === Proof) {
+        throw Error(
+          `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
+            `class MyProof extends Proof<PublicInput> { ... }`
+        );
+      }
+      allArgs.push({ type: 'proof', index: proofArgs.length });
+      proofArgs.push(privateInput);
+    } else if (isAsFields(privateInput)) {
+      allArgs.push({ type: 'witness', index: witnessArgs.length });
+      witnessArgs.push(privateInput);
+    } else {
+      throw Error(
+        `Argument ${
+          i + 1
+        } of method ${methodName} is not a valid circuit value: ${privateInput}`
+      );
+    }
+  }
+  if (proofArgs.length > 2) {
+    throw Error(
+      `${programName}.${methodName}() has more than two proof arguments, which is not supported.\n` +
+        `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
+    );
+  }
+  return { methodName, witnessArgs, proofArgs, allArgs };
+}
+
+function isAsFields(
+  type: unknown
+): type is AsFieldElements<unknown> & ObjectConstructor {
+  return (
+    typeof type === 'function' &&
+    ['toFields', 'ofFields', 'sizeInFields'].every((s) => s in type)
+  );
+}
+function isProof(type: unknown): type is typeof Proof {
+  // the second case covers subclasses
+  return (
+    type === Proof ||
+    (typeof type === 'function' && type.prototype instanceof Proof)
+  );
+}
+
+type MethodInterface = {
+  methodName: string;
+  witnessArgs: AsFieldElements<unknown>[];
+  proofArgs: Subclass<typeof Proof>[];
+  allArgs: { type: 'witness' | 'proof'; index: number }[];
+};
+
+type Subclass<Class extends new (...args: any) => any> = (new (
+  ...args: any
+) => InstanceType<Class>) & {
+  [K in keyof Class]: Class[K];
+} & { prototype: InstanceType<Class> };
+
+type PrivateInput = AsFieldElements<any> | Subclass<typeof Proof>;
+
+type Circuit<PublicInput, Args extends Tuple<PrivateInput>> = {
   privateInput: Args;
-  // GetProofOrAsFieldElements<Args>
-  // {
-  //   [K in keyof Args]: Args[K] extends Proof<infer U> ? (typeof Proof<U>) : AsFieldElements<Args[K]>;
-  // };
   method(publicInput: PublicInput, ...args: TupleToInstances<Args>): void;
 };
 
-type Prover<PublicInput, Args extends AnyTuple> = (
+type Prover<PublicInput, Args extends Tuple<PrivateInput>> = (
   publicInput: PublicInput,
   ...args: TupleToInstances<Args>
 ) => Promise<Proof<PublicInput>>;
 
-/* import { UInt32 } from './int';
+import { UInt32 } from './int';
 
-class MyProof extends Proof<UInt32> {
-  static publicInputType = UInt32;
-  static tag = () => MyProgram;
-}
+async function test() {
+  class MyProof extends Proof<UInt32> {
+    static publicInputType = UInt32;
+    static tag: () => { name: string } = () => MyProgram;
+  }
 
-let MyProgram = Program({
-  publicInput: UInt32,
+  let MyProgram = Program({
+    publicInput: UInt32,
 
-  methods: {
-    otherMethod: {
-      privateInput: [],
+    methods: {
+      otherMethod: {
+        privateInput: [],
 
-      method(publicInput: UInt32) {},
-    },
+        method(publicInput: UInt32) {},
+      },
 
-    someMethod: {
-      privateInput: [Bool, MyProof],
+      someMethod: {
+        privateInput: [Bool, MyProof],
 
-      method(publicInput: UInt32, b: Bool, x: MyProof) {
-        x.publicInput;
-        publicInput.add(9).equals(UInt32.from(10)).and(b).assertTrue();
+        method(publicInput: UInt32, b: Bool, x: MyProof) {
+          x.publicInput;
+          publicInput.add(9).equals(UInt32.from(10)).and(b).assertTrue();
+        },
       },
     },
-  },
-});
+  });
+  await MyProgram.compile();
 
-let p = await MyProgram.someMethod(UInt32.one, Bool.true, MyProof.dummy());
-p.verify();
-let x: UInt32 = p.publicInput; */
+  let p = await MyProgram.someMethod(UInt32.one, Bool.true, Proof.dummy());
+  p.verify();
+  let x: UInt32 = p.publicInput;
+  let p2 = await MyProgram.otherMethod(UInt32.one);
+}
