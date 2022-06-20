@@ -368,39 +368,3 @@ type Prover<PublicInput, Args extends Tuple<PrivateInput>> = (
   publicInput: PublicInput,
   ...args: TupleToInstances<Args>
 ) => Promise<Proof<PublicInput>>;
-
-import { UInt32 } from './int';
-
-async function test() {
-  class MyProof extends Proof<UInt32> {
-    static publicInputType = UInt32;
-    static tag: () => { name: string } = () => MyProgram;
-  }
-
-  let MyProgram = Program({
-    publicInput: UInt32,
-
-    methods: {
-      otherMethod: {
-        privateInput: [],
-
-        method(publicInput: UInt32) {},
-      },
-
-      someMethod: {
-        privateInput: [Bool, MyProof],
-
-        method(publicInput: UInt32, b: Bool, x: MyProof) {
-          x.publicInput;
-          publicInput.add(9).equals(UInt32.from(10)).and(b).assertTrue();
-        },
-      },
-    },
-  });
-  await MyProgram.compile();
-
-  let p = await MyProgram.someMethod(UInt32.one, Bool.true, Proof.dummy());
-  p.verify();
-  let x: UInt32 = p.publicInput;
-  let p2 = await MyProgram.otherMethod(UInt32.one);
-}
