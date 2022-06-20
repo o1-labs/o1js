@@ -22,6 +22,7 @@ import {
   MethodInterface,
   sortMethodArguments,
   compileProgram,
+  Proof,
 } from './proof_system';
 
 export { deploy, DeployArgs, signFeePayer, declareMethods };
@@ -53,10 +54,15 @@ export function method<T extends SmartContract>(
     );
   }
   let paramTypes = Reflect.getMetadata('design:paramtypes', target, methodName);
+  class SelfProof extends Proof<ZkappPublicInput> {
+    static publicInputType = ZkappPublicInput;
+    static tag = () => ZkappClass;
+  }
   let methodEntry = sortMethodArguments(
     ZkappClass.name,
     methodName,
-    paramTypes
+    paramTypes,
+    SelfProof
   );
   ZkappClass._methods ??= [];
   ZkappClass._methods.push(methodEntry);

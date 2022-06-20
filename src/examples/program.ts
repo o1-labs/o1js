@@ -1,9 +1,4 @@
-import { Proof, Field, Program } from 'snarkyjs';
-
-class MyProof extends Proof<Field> {
-  static publicInputType = Field;
-  static tag: () => { name: string } = () => MyProgram;
-}
+import { SelfProof, Field, Program } from 'snarkyjs';
 
 let MyProgram = Program({
   publicInput: Field,
@@ -18,9 +13,9 @@ let MyProgram = Program({
     },
 
     inductiveCase: {
-      privateInput: [MyProof],
+      privateInput: [SelfProof],
 
-      method(publicInput: Field, earlierProof: MyProof) {
+      method(publicInput: Field, earlierProof: SelfProof<Field>) {
         earlierProof.verify();
         earlierProof.publicInput.add(1).assertEquals(publicInput);
       },

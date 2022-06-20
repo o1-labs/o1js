@@ -11,14 +11,11 @@ import {
   ZkappPublicInput,
   Proof,
   Ledger,
+  SelfProof,
 } from 'snarkyjs';
 
 await isReady;
 
-class SimpleZkappProof extends Proof<ZkappPublicInput> {
-  static publicInputType = ZkappPublicInput;
-  static tag = () => NotSoSimpleZkapp;
-}
 class TrivialProof extends Proof<ZkappPublicInput> {
   static publicInputType = ZkappPublicInput;
   static tag = () => TrivialZkapp;
@@ -34,7 +31,7 @@ class NotSoSimpleZkapp extends SmartContract {
 
   @method update(
     y: Field,
-    oldProof: SimpleZkappProof,
+    oldProof: SelfProof<ZkappPublicInput>,
     trivialProof: TrivialProof
   ) {
     oldProof.verify();
