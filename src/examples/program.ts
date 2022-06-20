@@ -1,26 +1,28 @@
-import { Proof, UInt32, Bool, Program } from 'snarkyjs';
+import { Proof, Field, Program } from 'snarkyjs';
 
-class MyProof extends Proof<UInt32> {
-  static publicInputType = UInt32;
+class MyProof extends Proof<Field> {
+  static publicInputType = Field;
   static tag: () => { name: string } = () => MyProgram;
 }
 
 let MyProgram = Program({
-  publicInput: UInt32,
+  publicInput: Field,
 
   methods: {
-    otherMethod: {
+    baseCase: {
       privateInput: [],
 
-      method(publicInput: UInt32) {},
+      method(publicInput: Field) {
+        publicInput.assertEquals(Field.zero);
+      },
     },
 
-    someMethod: {
-      privateInput: [Bool, MyProof],
+    plus1Case: {
+      privateInput: [MyProof],
 
-      method(publicInput: UInt32, b: Bool, x: MyProof) {
-        x.publicInput;
-        publicInput.add(9).equals(UInt32.from(10)).and(b).assertTrue();
+      method(publicInput: Field, earlierProof: MyProof) {
+        earlierProof.verify();
+        earlierProof.publicInput.add(1).assertEquals(publicInput);
       },
     },
   },
@@ -29,4 +31,13 @@ let MyProgram = Program({
 console.log('compiling MyProgram...');
 await MyProgram.compile();
 
-await MyProgram.otherMethod(UInt32.one);
+console.log('proving base case...');
+let proof = await MyProgram.baseCase(Field.zero);
+
+console.log('proving step 1...');
+proof = await MyProgram.plus1Case(Field.one, proof);
+
+console.log('proving step 2...');
+proof = await MyProgram.plus1Case(Field(2), proof);
+
+console.log('ok?', proof.publicInput.toString() === '2');
