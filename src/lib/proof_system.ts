@@ -2,7 +2,7 @@ import { Bool, Field, AsFieldElements, Pickles, Circuit } from '../snarky';
 import { getContext, withContext } from './global-context';
 
 // public API
-export { Proof };
+export { Proof, Program };
 
 // internal API
 export {
@@ -11,7 +11,7 @@ export {
   getPreviousProofsForProver,
   MethodInterface,
   picklesRuleFromFunction,
-  compile,
+  compileProgram,
 };
 
 class Proof<T> {
@@ -130,29 +130,49 @@ function Program<
   let methodIntfs = keys.map((key) =>
     sortMethodArguments('program', key, methods[key].privateInput)
   );
+  let selfTag = { name: `Program${i++}` };
+  let compileOutput:
+    | {
+        provers: Pickles.Prover[];
+        verify: (publicInput: Field[], proof: unknown) => Promise<boolean>;
+      }
+    | undefined;
 
   async function compile(): Promise<void> {
-    throw 'todo';
+    let { provers, verify } = compileProgram(
+      publicInput,
+      methodIntfs,
+      methodFunctions,
+      selfTag
+    );
+    compileOutput = { provers, verify };
   }
 
-  function toProver<K extends keyof Types>(
+  function toProver<K extends keyof Types & string>(
     key: K,
     i: number
   ): [K, Prover<InferInstance<PublicInput>, Types[K]>] {
-    async function prover(
+    async function prove(
       publicInput: PublicInput,
       ...args: TupleToInstances<Types[typeof key]>
     ): Promise<Proof<InferInstance<PublicInput>>> {
+      let picklesProver = compileOutput?.provers?.[i];
+      if (picklesProver === undefined) {
+        throw Error(
+          `Cannot prove execution of program.${key}(), no prover found. ` +
+            `Try calling \`await program.compile()\` first, this will cache provers in the background.`
+        );
+      }
       let previousProofs = getPreviousProofsForProver(args, methodIntfs[i]);
       throw 'todo';
     }
-    return [key, prover];
+    return [key, prove];
   }
   let provers = Object.fromEntries(keys.map(toProver)) as {
     [I in keyof Types]: Prover<InferInstance<PublicInput>, Types[I]>;
   };
 
-  return Object.assign({ name: `Program${i++}`, compile }, provers);
+  return Object.assign(selfTag, { compile }, provers);
 }
 
 let i = 0;
@@ -238,14 +258,20 @@ type MethodInterface = {
   allArgs: { type: 'witness' | 'proof'; index: number }[];
 };
 
-function compile(
+function compileProgram(
+  publicInputType: AsFieldElements<any>,
   methodIntfs: MethodInterface[],
-  methods: ((...args: unknown[]) => void)[],
+  methods: ((...args: any) => void)[],
   proofSystemTag: { name: string },
-  additionalContext: any
+  additionalContext?: { self: any } | undefined
 ) {
   let rules = methodIntfs.map((methodEntry, i) =>
-    picklesRuleFromFunction(methods[i], proofSystemTag, methodEntry)
+    picklesRuleFromFunction(
+      publicInputType,
+      methods[i],
+      proofSystemTag,
+      methodEntry
+    )
   );
   let [, { getVerificationKeyArtifact, provers, verify, tag }] = withContext(
     { inCompile: true, ...additionalContext },
@@ -256,6 +282,7 @@ function compile(
 }
 
 function picklesRuleFromFunction(
+  publicInputType: AsFieldElements<any>,
   func: (...args: unknown[]) => void,
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface
@@ -290,7 +317,7 @@ function picklesRuleFromFunction(
         proofs.push(proofInstance);
       }
     }
-    func(publicInput, ...finalArgs);
+    func(publicInputType.ofFields(publicInput), ...finalArgs);
     return proofs.map((proof) => proof.shouldVerify);
   }
 

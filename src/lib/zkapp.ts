@@ -7,6 +7,7 @@ import {
   Parties,
   Permissions,
   SetOrKeep,
+  ZkappPublicInput,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -20,7 +21,7 @@ import {
   getPreviousProofsForProver,
   MethodInterface,
   sortMethodArguments,
-  compile as compileProgram,
+  compileProgram,
 } from './proof_system';
 
 export { deploy, DeployArgs, signFeePayer, declareMethods };
@@ -107,25 +108,14 @@ function wrapMethod(
   };
 }
 
-/**
- * The public input for zkApps consists of certain hashes of the transaction and of the proving Party which is constructed during method execution.
-
-  In SmartContract.prove, a method is run twice: First outside the proof, to obtain the public input, and once in the prover,
-  which takes the public input as input. The current transaction is hashed again inside the prover, which asserts that the result equals the input public input,
-  as part of the snark circuit. The block producer will also hash the transaction they receive and pass it as a public input to the verifier.
-  Thus, the transaction is fully constrained by the proof - the proof couldn't be used to attest to a different transaction.
- */
-type PublicInput = Field[]; // [transaction, atParty]
-
 function toPublicInput(self: Party, tail: Field) {
   // TODO hash together party with tail in the right way
   let atParty = self.hash();
   let transaction = Ledger.hashTransactionChecked(atParty);
   return { transaction, atParty };
 }
-
 function checkPublicInput(
-  [transaction, atParty]: PublicInput,
+  [transaction, atParty]: ZkappPublicInput,
   self: Party,
   tail: Field
 ) {
@@ -169,6 +159,7 @@ export class SmartContract {
     });
 
     let { getVerificationKeyArtifact, provers, verify } = compileProgram(
+      ZkappPublicInput,
       methodIntfs,
       methods,
       this,
@@ -209,6 +200,7 @@ export class SmartContract {
   private executionState(): ExecutionState {
     // TODO reconcile mainContext with currentTransaction
     if (mainContext !== undefined) {
+      if (mainContext.self === undefined) throw Error('bug');
       return {
         transactionId: 0,
         partyIndex: 0,
