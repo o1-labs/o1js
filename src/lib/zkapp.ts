@@ -1,11 +1,4 @@
-import {
-  Circuit,
-  Field,
-  AsFieldElements,
-  Ledger,
-  Pickles,
-  Types,
-} from '../snarky';
+import { Field, AsFieldElements, Ledger, Pickles, Types } from '../snarky';
 import { cloneCircuitValue } from './circuit_value';
 import {
   Body,
@@ -20,7 +13,6 @@ import * as Mina from './mina';
 import { UInt32, UInt64 } from './int';
 import {
   withContext,
-  getContext,
   mainContext,
   inCheckedComputation,
 } from './global-context';
@@ -31,9 +23,8 @@ import {
 import {
   CompiledTag,
   getPreviousProofsForProver,
-  getPublicInputType,
   MethodInterface,
-  Proof,
+  picklesRuleFromFunction,
   sortMethodArguments,
 } from './proof_system';
 
@@ -147,65 +138,6 @@ function checkPublicInput(
   let otherInput = toPublicInput(self, tail);
   atParty.assertEquals(otherInput.atParty);
   transaction.assertEquals(otherInput.transaction);
-}
-
-function picklesRuleFromFunction(
-  func: (...args: unknown[]) => void,
-  proofSystemTag: { name: string },
-  { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface
-): Pickles.Rule {
-  function main(publicInput: PublicInput, previousInputs: PublicInput[]) {
-    let { witnesses: argsWithoutPublicInput } = getContext();
-    let finalArgs = [];
-    let proofs: Proof<any>[] = [];
-    for (let i = 0; i < allArgs.length; i++) {
-      let arg = allArgs[i];
-      if (arg.type === 'witness') {
-        let type = witnessArgs[arg.index];
-        finalArgs[i] = argsWithoutPublicInput
-          ? Circuit.witness(type, () => argsWithoutPublicInput![i])
-          : emptyWitness(type);
-      } else {
-        let Proof = proofArgs[arg.index];
-        let publicInput = getPublicInputType(Proof).ofFields(
-          previousInputs[arg.index]
-        );
-        let proofInstance: Proof<any>;
-        if (argsWithoutPublicInput) {
-          let { proof }: Proof<any> = argsWithoutPublicInput[i] as any;
-          proofInstance = new Proof({ publicInput, proof });
-        } else {
-          proofInstance = new Proof({ publicInput, proof: '' });
-        }
-        finalArgs[i] = proofInstance;
-        proofs.push(proofInstance);
-      }
-    }
-    func(publicInput, ...finalArgs);
-    return proofs.map((proof) => proof.shouldVerify);
-  }
-
-  if (proofArgs.length > 2) {
-    throw Error(
-      `${proofSystemTag.name}.${methodName}() has more than two proof arguments, which is not supported.\n` +
-        `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
-    );
-  }
-  let proofsToVerify = proofArgs.map((Proof) => {
-    let tag = Proof.tag();
-    if (tag === proofSystemTag) return { isSelf: true as const };
-    else {
-      let compiledTag = CompiledTag.get(tag);
-      if (compiledTag === undefined) {
-        throw Error(
-          `${proofSystemTag.name}.compile() depends on ${tag.name}, but we cannot find compilation output for ${tag.name}.\n` +
-            `Try to run ${tag.name}.compile() first.`
-        );
-      }
-      return { isSelf: false, tag: compiledTag };
-    }
-  });
-  return { identifier: methodName, main, proofsToVerify };
 }
 
 /**
@@ -367,13 +299,6 @@ type DeployArgs = {
   verificationKey?: { data: string; hash: string | Field };
   zkappKey?: PrivateKey;
 };
-
-function emptyWitness<A>(typ: AsFieldElements<A>) {
-  // return typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero));
-  return Circuit.witness(typ, () =>
-    typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero))
-  );
-}
 
 // functions designed to be called from a CLI
 // TODO: this function is currently not used by the zkapp CLI, because it doesn't handle nonces properly in all cases

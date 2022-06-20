@@ -1,4 +1,5 @@
-import { Bool, Field, AsFieldElements, Pickles } from '../snarky';
+import { Bool, Field, AsFieldElements, Pickles, Circuit } from '../snarky';
+import { getContext } from './global-context';
 
 // public API
 export { Proof };
@@ -7,9 +8,9 @@ export { Proof };
 export {
   CompiledTag,
   sortMethodArguments,
-  getPublicInputType,
   getPreviousProofsForProver,
   MethodInterface,
+  picklesRuleFromFunction,
 };
 
 class Proof<T> {
@@ -115,7 +116,7 @@ function Program<
 }: {
   publicInput: PublicInput;
   methods: {
-    [I in keyof Types]: Circuit<InferInstance<PublicInput>, Types[I]>;
+    [I in keyof Types]: Method<InferInstance<PublicInput>, Types[I]>;
   };
 }): {
   name: string;
@@ -236,6 +237,75 @@ type MethodInterface = {
   allArgs: { type: 'witness' | 'proof'; index: number }[];
 };
 
+function picklesRuleFromFunction(
+  func: (...args: unknown[]) => void,
+  proofSystemTag: { name: string },
+  { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface
+): Pickles.Rule {
+  function main(
+    publicInput: Pickles.PublicInput,
+    previousInputs: Pickles.PublicInput[]
+  ) {
+    let { witnesses: argsWithoutPublicInput } = getContext();
+    let finalArgs = [];
+    let proofs: Proof<any>[] = [];
+    for (let i = 0; i < allArgs.length; i++) {
+      let arg = allArgs[i];
+      if (arg.type === 'witness') {
+        let type = witnessArgs[arg.index];
+        finalArgs[i] = argsWithoutPublicInput
+          ? Circuit.witness(type, () => argsWithoutPublicInput![i])
+          : emptyWitness(type);
+      } else {
+        let Proof = proofArgs[arg.index];
+        let publicInput = getPublicInputType(Proof).ofFields(
+          previousInputs[arg.index]
+        );
+        let proofInstance: Proof<any>;
+        if (argsWithoutPublicInput) {
+          let { proof }: Proof<any> = argsWithoutPublicInput[i] as any;
+          proofInstance = new Proof({ publicInput, proof });
+        } else {
+          proofInstance = new Proof({ publicInput, proof: '' });
+        }
+        finalArgs[i] = proofInstance;
+        proofs.push(proofInstance);
+      }
+    }
+    func(publicInput, ...finalArgs);
+    return proofs.map((proof) => proof.shouldVerify);
+  }
+
+  if (proofArgs.length > 2) {
+    throw Error(
+      `${proofSystemTag.name}.${methodName}() has more than two proof arguments, which is not supported.\n` +
+        `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
+    );
+  }
+  let proofsToVerify = proofArgs.map((Proof) => {
+    let tag = Proof.tag();
+    if (tag === proofSystemTag) return { isSelf: true as const };
+    else {
+      let compiledTag = CompiledTag.get(tag);
+      if (compiledTag === undefined) {
+        throw Error(
+          `${proofSystemTag.name}.compile() depends on ${tag.name}, but we cannot find compilation output for ${tag.name}.\n` +
+            `Try to run ${tag.name}.compile() first.`
+        );
+      }
+      return { isSelf: false, tag: compiledTag };
+    }
+  });
+  return { identifier: methodName, main, proofsToVerify };
+}
+
+function emptyWitness<A>(typ: AsFieldElements<A>) {
+  // return typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero));
+  return Circuit.witness(typ, () =>
+    typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero))
+  );
+}
+
 type Subclass<Class extends new (...args: any) => any> = (new (
   ...args: any
 ) => InstanceType<Class>) & {
@@ -244,7 +314,7 @@ type Subclass<Class extends new (...args: any) => any> = (new (
 
 type PrivateInput = AsFieldElements<any> | Subclass<typeof Proof>;
 
-type Circuit<PublicInput, Args extends Tuple<PrivateInput>> = {
+type Method<PublicInput, Args extends Tuple<PrivateInput>> = {
   privateInput: Args;
   method(publicInput: PublicInput, ...args: TupleToInstances<Args>): void;
 };
