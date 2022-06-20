@@ -41,19 +41,6 @@ class Proof<T> {
     this.proof = proof; // TODO optionally convert from string?
   }
 }
-
-function getPublicInputType<T, P extends Subclass<typeof Proof> = typeof Proof>(
-  Proof: P
-): AsFieldElements<T> {
-  if (Proof.publicInputType === undefined) {
-    throw Error(
-      `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
-        `class MyProof extends Proof<PublicInput> { ... }`
-    );
-  }
-  return Proof.publicInputType;
-}
-
 type RawProof = unknown;
 type CompiledTag = unknown;
 
@@ -66,36 +53,6 @@ let CompiledTag = {
     compiledTags.set(tag, compiledTag);
   },
 };
-
-type Tuple<T> = [T, ...T[]] | [];
-
-// TODO: inference of AsFieldElements shouldn't just use InstanceType
-// but the alternatives will be messier (see commented code below for some ideas)
-type InferInstance<T> = T extends new (...args: any) => any
-  ? InstanceType<T>
-  : never;
-type TupleToInstances<T> = {
-  [I in keyof T]: InferInstance<T[I]>;
-};
-
-/* type TupleToInstances_<T> =
-  {[I in keyof T]: T[I] extends AsFieldElements<any> ? InferAsFields<T[I]> : T[I] extends typeof Proof<infer W> ? Proof<W> : T[I]}
-this is a workaround for TS bug https://github.com/microsoft/TypeScript/issues/29919
-type TupleToInstances<
-  A extends AnyTuple,
-  T extends (...args: A) => any
-> = T extends (...args: infer P) => any ? TupleToInstances_<P> : never;
-if the bug is resolved, this should just be TupleToInstances_<P>
-
-// TODO: this only works for Field / Bool / UInt32 / UInt64 / Int64 because they have a custom `check` method
-// doesn't work for general CircuitValue
-// we need a robust method for infering the type from a CircuitValue subclass!
-type InferInstance<T extends AsFieldElements<any>> = T['check'] extends (
-  x: infer U
-) => void
-  ? U
-  : never;
-*/
 
 function Program<
   PublicInputType extends AsFieldElements<any>,
@@ -354,6 +311,48 @@ function emptyWitness<A>(typ: AsFieldElements<A>) {
     typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero))
   );
 }
+
+function getPublicInputType<T, P extends Subclass<typeof Proof> = typeof Proof>(
+  Proof: P
+): AsFieldElements<T> {
+  if (Proof.publicInputType === undefined) {
+    throw Error(
+      `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
+        `class MyProof extends Proof<PublicInput> { ... }`
+    );
+  }
+  return Proof.publicInputType;
+}
+
+type Tuple<T> = [T, ...T[]] | [];
+
+// TODO: inference of AsFieldElements shouldn't just use InstanceType
+// but the alternatives will be messier (see commented code below for some ideas)
+type InferInstance<T> = T extends new (...args: any) => any
+  ? InstanceType<T>
+  : never;
+type TupleToInstances<T> = {
+  [I in keyof T]: InferInstance<T[I]>;
+};
+
+/* type TupleToInstances_<T> =
+  {[I in keyof T]: T[I] extends AsFieldElements<any> ? InferAsFields<T[I]> : T[I] extends typeof Proof<infer W> ? Proof<W> : T[I]}
+this is a workaround for TS bug https://github.com/microsoft/TypeScript/issues/29919
+type TupleToInstances<
+  A extends AnyTuple,
+  T extends (...args: A) => any
+> = T extends (...args: infer P) => any ? TupleToInstances_<P> : never;
+if the bug is resolved, this should just be TupleToInstances_<P>
+
+// TODO: this only works for Field / Bool / UInt32 / UInt64 / Int64 because they have a custom `check` method
+// doesn't work for general CircuitValue
+// we need a robust method for infering the type from a CircuitValue subclass!
+type InferInstance<T extends AsFieldElements<any>> = T['check'] extends (
+  x: infer U
+) => void
+  ? U
+  : never;
+*/
 
 type Subclass<Class extends new (...args: any) => any> = (new (
   ...args: any
