@@ -287,7 +287,7 @@ function compileProgram(
   );
   let [, { getVerificationKeyArtifact, provers, verify, tag }] = withContext(
     { inCompile: true, ...additionalContext },
-    () => Pickles.compile(rules, 2)
+    () => Pickles.compile(rules, publicInputType.sizeInFields())
   );
   CompiledTag.store(proofSystemTag, tag);
   return { getVerificationKeyArtifact, provers, verify, tag };
