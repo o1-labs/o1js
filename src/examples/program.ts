@@ -17,7 +17,7 @@ let MyProgram = Program({
       },
     },
 
-    plus1Case: {
+    inductiveCase: {
       privateInput: [MyProof],
 
       method(publicInput: Field, earlierProof: MyProof) {
@@ -35,9 +35,9 @@ console.log('proving base case...');
 let proof = await MyProgram.baseCase(Field.zero);
 
 console.log('proving step 1...');
-proof = await MyProgram.plus1Case(Field.one, proof);
+proof = await MyProgram.inductiveCase(Field.one, proof);
 
 console.log('proving step 2...');
-proof = await MyProgram.plus1Case(Field(2), proof);
+proof = await MyProgram.inductiveCase(Field(2), proof);
 
 console.log('ok?', proof.publicInput.toString() === '2');
