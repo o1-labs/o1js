@@ -887,7 +887,7 @@ async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
     )
       return party as Party & { authorization: Control | LazySignature };
     let { method, args, ZkappClass } = party.authorization;
-    let statement = Ledger.transactionStatement(partiesJson, index);
+    let statement = Ledger.zkappPublicInput(partiesJson, index);
     if (ZkappClass._provers === undefined)
       throw Error(
         `Cannot prove execution of ${method.name}(), no prover found. ` +
@@ -906,7 +906,7 @@ async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
         witnesses: args,
         inProver: true,
       },
-      () => provers[i](statement)
+      () => provers[i](statement, [])
     );
     party.authorization = { proof: Pickles.proofToString(proof) };
     return party as Party & { authorization: Control | LazySignature };

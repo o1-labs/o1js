@@ -716,7 +716,7 @@ declare class Ledger {
     commitment: Field;
     fullCommitment: Field;
   };
-  static transactionStatement(txJson: string, partyIndex: number): Field[];
+  static zkappPublicInput(txJson: string, partyIndex: number): Field[];
   static signFieldElement(
     messageHash: Field,
     privateKey: { s: Scalar }
@@ -759,11 +759,7 @@ declare let isReady: Promise<undefined>;
 
 type Rule = {
   identifier: string;
-  main: (
-    statement: Field[],
-    previousStatements: Field[][],
-    isValue: boolean
-  ) => Bool[];
+  main: (statement: Field[], previousStatements: Field[][]) => Bool[];
   proofsToVerify: { isSelf: boolean; tag: unknown }[];
 };
 
@@ -787,7 +783,10 @@ declare const Pickles: {
     rules: Rule[],
     statementSize: number
   ) => {
-    provers: ((statement: Field[]) => Promise<unknown>)[];
+    provers: ((
+      statement: Field[],
+      previousStatements: Field[][]
+    ) => Promise<unknown>)[];
     verify: (statement: Field[], proof: unknown) => Promise<boolean>;
     tag: unknown;
     getVerificationKeyArtifact: () => { data: string; hash: string };

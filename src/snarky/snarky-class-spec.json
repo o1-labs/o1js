@@ -385,7 +385,7 @@
         "type": "function"
       },
       {
-        "name": "transactionStatement",
+        "name": "zkappPublicInput",
         "type": "function"
       },
       {
