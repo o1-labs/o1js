@@ -1,15 +1,16 @@
 import { Party } from './party';
 
 export {
+  mainContext,
   withContext,
   withContextAsync,
   getContext,
-  mainContext,
   inProver,
   inCompile,
   inCheckedComputation,
 };
 
+// context for compiling / proving
 // TODO reconcile mainContext with currentTransaction
 let mainContext = undefined as
   | {
@@ -41,8 +42,12 @@ function withContext<T>(
   f: () => T
 ) {
   mainContext = { witnesses, expectedAccesses, actualAccesses, self, ...other };
-  let result = f();
-  mainContext = undefined;
+  let result: T;
+  try {
+    result = f();
+  } finally {
+    mainContext = undefined;
+  }
   return [self, result] as [Party, T];
 }
 
@@ -59,10 +64,14 @@ async function withContextAsync<T>(
   f: () => Promise<T>
 ) {
   mainContext = { witnesses, expectedAccesses, actualAccesses, self, ...other };
-  let result = await f();
-  if (mainContext.actualAccesses !== mainContext.expectedAccesses)
-    throw Error(contextConflictMessage);
-  mainContext = undefined;
+  let result: T;
+  try {
+    result = await f();
+    if (mainContext.actualAccesses !== mainContext.expectedAccesses)
+      throw Error(contextConflictMessage);
+  } finally {
+    mainContext = undefined;
+  }
   return [self, result] as [Party, T];
 }
 

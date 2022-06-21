@@ -33,7 +33,9 @@ async function buildNode({ production }) {
     './src/snarky.d.ts': './dist/server/snarky.d.ts',
     ...Object.fromEntries(
       (await fs.readdir('./src/snarky/'))
-        .filter((f) => f.endsWith('.js') || f.endsWith('.json'))
+        .filter(
+          (f) => f.endsWith('.js') || f.endsWith('.json') || f.endsWith('.d.ts')
+        )
         .map((f) => [`./src/snarky/${f}`, `./dist/server/snarky/${f}`])
     ),
   });

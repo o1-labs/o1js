@@ -1,15 +1,19 @@
 import 'isomorphic-fetch';
-import { Field, Types } from '../snarky';
+import { Bool, Field, Types } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { Permission, Permissions, ZkappStateLength } from './party';
 import { PublicKey } from './signature';
+import { NetworkValue } from './precondition';
 
 export {
   fetchAccount,
+  fetchLastBlock,
   parseFetchedAccount,
   markAccountToBeFetched,
-  fetchMissingAccounts,
+  markNetworkToBeFetched,
+  fetchMissingData,
   getCachedAccount,
+  getCachedNetwork,
   addCachedAccount,
   defaultGraphqlEndpoint,
   setGraphqlEndpoint,
@@ -121,7 +125,7 @@ type FetchedAccount = {
   nonce: string;
   zkappUri?: string;
   zkappState: string[] | null;
-  receiptChainState?: string;
+  receiptChainHash?: string;
   balance: { total: string };
   permissions?: {
     editState: AuthRequired;
@@ -136,6 +140,9 @@ type FetchedAccount = {
     incrementNonce: AuthRequired;
     setVotingFor: AuthRequired;
   };
+  delegateAccount?: { publicKey: string };
+  sequenceEvents?: string[] | null;
+  // TODO: how to query provedState?
 };
 
 type Account = {
@@ -144,6 +151,10 @@ type Account = {
   balance: UInt64;
   zkapp?: { appState: Field[] };
   permissions?: Permissions;
+  receiptChainHash?: Field;
+  delegate?: PublicKey;
+  sequenceState?: Field;
+  provedState?: Bool;
 };
 
 type FlexibleAccount = {
@@ -153,7 +164,7 @@ type FlexibleAccount = {
   zkapp?: { appState: (Field | string | number)[] };
 };
 
-// TODO add more fields
+// TODO provedState
 const accountQuery = (publicKey: string) => `{
   account(publicKey: "${publicKey}") {
     publicKey
@@ -175,6 +186,8 @@ const accountQuery = (publicKey: string) => `{
     }
     receiptChainHash
     balance { total }
+    delegateAccount { publicKey }
+    sequenceEvents
   }
 }
 `;
@@ -190,6 +203,9 @@ function parseFetchedAccount({
   zkappState,
   balance,
   permissions,
+  delegateAccount,
+  receiptChainHash,
+  sequenceEvents,
 }: Partial<FetchedAccount>): Partial<Account> {
   return {
     publicKey:
@@ -202,6 +218,16 @@ function parseFetchedAccount({
       (Object.fromEntries(
         Object.entries(permissions).map(([k, v]) => [k, toPermission(v)])
       ) as unknown as Permissions),
+    // TODO: how is sequenceState related to sequenceEvents?
+    sequenceState:
+      sequenceEvents != undefined ? Field(sequenceEvents[0]) : undefined,
+    // TODO: how to parse receptChainHash?
+    // receiptChainHash:
+    //   receiptChainHash !== undefined
+    //     ? Ledger.fieldOfBase58(receiptChainHash)
+    //     : undefined,
+    delegate:
+      delegateAccount && PublicKey.fromBase58(delegateAccount.publicKey),
   };
 }
 
@@ -218,34 +244,6 @@ function stringifyAccount(account: FlexibleAccount): FetchedAccount {
   };
 }
 
-async function checkResponseStatus(
-  response: Response
-): Promise<[FetchResponse, undefined] | [undefined, FetchError]> {
-  if (response.ok) {
-    return [(await response.json()) as FetchResponse, undefined];
-  } else {
-    return [
-      undefined,
-      {
-        statusCode: response.status,
-        statusText: response.statusText,
-      } as FetchError,
-    ];
-  }
-}
-
-function inferError(error: unknown): FetchError {
-  let errorMessage = JSON.stringify(error);
-  if (error instanceof AbortSignal) {
-    return { statusCode: 408, statusText: `Request Timeout: ${errorMessage}` };
-  } else {
-    return {
-      statusCode: 500,
-      statusText: `Unknown Error: ${errorMessage}`,
-    };
-  }
-}
-
 let accountCache = {} as Record<
   string,
   {
@@ -254,10 +252,19 @@ let accountCache = {} as Record<
     timestamp: number;
   }
 >;
+let networkCache = {} as Record<
+  string,
+  {
+    network: NetworkValue;
+    graphqlEndpoint: string;
+    timestamp: number;
+  }
+>;
 let accountsToFetch = {} as Record<
   string,
   { publicKey: string; graphqlEndpoint: string }
 >;
+let networksToFetch = {} as Record<string, { graphqlEndpoint: string }>;
 let cacheExpiry = 10 * 60 * 1000; // 10 minutes
 
 function markAccountToBeFetched(publicKey: PublicKey, graphqlEndpoint: string) {
@@ -267,20 +274,39 @@ function markAccountToBeFetched(publicKey: PublicKey, graphqlEndpoint: string) {
     graphqlEndpoint,
   };
 }
+function markNetworkToBeFetched(graphqlEndpoint: string) {
+  networksToFetch[graphqlEndpoint] = { graphqlEndpoint };
+}
 
-async function fetchMissingAccounts(graphqlEndpoint: string) {
+async function fetchMissingData(graphqlEndpoint: string) {
   let expired = Date.now() - cacheExpiry;
   let accounts = Object.entries(accountsToFetch).filter(([key, account]) => {
     if (account.graphqlEndpoint !== graphqlEndpoint) return false;
     let cachedAccount = accountCache[key];
     return cachedAccount === undefined || cachedAccount.timestamp < expired;
   });
-  await Promise.all(
-    accounts.map(async ([key, { publicKey }]) => {
-      let response = await fetchAccountInternal(publicKey, graphqlEndpoint);
-      if (response.error === undefined) delete accountsToFetch[key];
-    })
-  );
+  let promises = accounts.map(async ([key, { publicKey }]) => {
+    let response = await fetchAccountInternal(publicKey, graphqlEndpoint);
+    if (response.error === undefined) delete accountsToFetch[key];
+  });
+
+  let network = Object.entries(networksToFetch).find(([key, network]) => {
+    if (network.graphqlEndpoint !== graphqlEndpoint) return;
+    let cachedNetwork = networkCache[key];
+    return cachedNetwork === undefined || cachedNetwork.timestamp < expired;
+  });
+  if (network !== undefined) {
+    promises.push(
+      (async () => {
+        try {
+          await fetchLastBlock(graphqlEndpoint);
+          delete networksToFetch[network[0]];
+        } catch {}
+      })()
+    );
+  }
+
+  await Promise.all(promises);
 }
 
 function getCachedAccount(
@@ -290,6 +316,9 @@ function getCachedAccount(
   let account =
     accountCache[`${publicKey.toBase58()};${graphqlEndpoint}`]?.account;
   if (account !== undefined) return parseFetchedAccount(account);
+}
+function getCachedNetwork(graphqlEndpoint = defaultGraphqlEndpoint) {
+  return networkCache[graphqlEndpoint]?.network;
 }
 
 function addCachedAccount(
@@ -314,6 +343,150 @@ function addCachedAccountInternal(
     account,
     graphqlEndpoint,
     timestamp: Date.now(),
+  };
+}
+
+async function fetchLastBlock(graphqlEndpoint = defaultGraphqlEndpoint) {
+  let [resp, error] = await makeGraphqlRequest(lastBlockQuery, graphqlEndpoint);
+  if (error) throw Error(error.statusText);
+  let lastBlock = resp?.data?.bestChain?.[0];
+  if (lastBlock === undefined) {
+    throw Error('Failed to fetch latest network state.');
+  }
+  let network = parseFetchedBlock(lastBlock);
+  networkCache[graphqlEndpoint] = {
+    network,
+    graphqlEndpoint,
+    timestamp: Date.now(),
+  };
+  return network;
+}
+
+const lastBlockQuery = `{
+  bestChain(maxLength: 1) {
+    protocolState {
+      blockchainState {
+        snarkedLedgerHash
+        stagedLedgerHash
+        date
+        utcDate
+        stagedLedgerProofEmitted
+      }
+      previousStateHash
+      consensusState {
+        blockHeight
+        slotSinceGenesis
+        slot
+        nextEpochData {
+          ledger {hash totalCurrency}
+          seed
+          startCheckpoint
+          lockCheckpoint
+          epochLength
+        }
+        stakingEpochData {
+          ledger {hash totalCurrency}
+          seed
+          startCheckpoint
+          lockCheckpoint
+          epochLength
+        }
+        epochCount
+        minWindowDensity
+        totalCurrency
+        epoch
+      }
+    }
+  }
+}`;
+
+type FetchedBlock = {
+  protocolState: {
+    blockchainState: {
+      snarkedLedgerHash: string; // hash-like encoding
+      stagedLedgerHash: string; // hash-like encoding
+      date: string; // String(Date.now())
+      utcDate: string; // String(Date.now())
+      stagedLedgerProofEmitted: boolean; // bool
+    };
+    previousStateHash: string; // hash-like encoding
+    consensusState: {
+      blockHeight: string; // String(number)
+      slotSinceGenesis: string; // String(number)
+      slot: string; // String(number)
+      nextEpochData: {
+        ledger: {
+          hash: string; // hash-like encoding
+          totalCurrency: string; // String(number)
+        };
+        seed: string; // hash-like encoding
+        startCheckpoint: string; // hash-like encoding
+        lockCheckpoint: string; // hash-like encoding
+        epochLength: string; // String(number)
+      };
+      stakingEpochData: {
+        ledger: {
+          hash: string; // hash-like encoding
+          totalCurrency: string; // String(number)
+        };
+        seed: string; // hash-like encoding
+        startCheckpoint: string; // hash-like encoding
+        lockCheckpoint: string; // hash-like encoding
+        epochLength: string; // String(number)
+      };
+      epochCount: string; // String(number)
+      minWindowDensity: string; // String(number)
+      totalCurrency: string; // String(number)
+      epoch: string; // String(number)
+    };
+  };
+};
+
+function parseFetchedBlock({
+  protocolState: {
+    blockchainState: { snarkedLedgerHash, utcDate },
+    consensusState: {
+      blockHeight,
+      minWindowDensity,
+      totalCurrency,
+      slot,
+      slotSinceGenesis,
+      nextEpochData,
+      stakingEpochData,
+    },
+  },
+}: FetchedBlock): NetworkValue {
+  return {
+    snarkedLedgerHash: Field.zero, // TODO
+    // TODO: use date or utcDate?
+    timestamp: UInt64.fromString(utcDate),
+    blockchainLength: UInt32.fromString(blockHeight),
+    minWindowDensity: UInt32.fromString(minWindowDensity),
+    totalCurrency: UInt64.fromString(totalCurrency),
+    // is this really `slot`?
+    globalSlotSinceHardFork: UInt32.fromString(slot),
+    globalSlotSinceGenesis: UInt32.fromString(slotSinceGenesis),
+    nextEpochData: parseEpochData(nextEpochData),
+    stakingEpochData: parseEpochData(stakingEpochData),
+  };
+}
+
+function parseEpochData({
+  ledger: { hash, totalCurrency },
+  seed,
+  startCheckpoint,
+  lockCheckpoint,
+  epochLength,
+}: FetchedBlock['protocolState']['consensusState']['nextEpochData']): NetworkValue['nextEpochData'] {
+  return {
+    ledger: {
+      hash: Field.zero, // TODO
+      totalCurrency: UInt64.fromString(totalCurrency),
+    },
+    seed: Field.zero, // TODO
+    startCheckpoint: Field.zero, // TODO
+    lockCheckpoint: Field.zero, // TODO
+    epochLength: UInt32.fromString(epochLength),
   };
 }
 
@@ -378,5 +551,33 @@ async function makeGraphqlRequest(
   } catch (error) {
     clearTimeout(timer);
     return [undefined, inferError(error)] as [undefined, FetchError];
+  }
+}
+
+async function checkResponseStatus(
+  response: Response
+): Promise<[FetchResponse, undefined] | [undefined, FetchError]> {
+  if (response.ok) {
+    return [(await response.json()) as FetchResponse, undefined];
+  } else {
+    return [
+      undefined,
+      {
+        statusCode: response.status,
+        statusText: response.statusText,
+      } as FetchError,
+    ];
+  }
+}
+
+function inferError(error: unknown): FetchError {
+  let errorMessage = JSON.stringify(error);
+  if (error instanceof AbortSignal) {
+    return { statusCode: 408, statusText: `Request Timeout: ${errorMessage}` };
+  } else {
+    return {
+      statusCode: 500,
+      statusText: `Unknown Error: ${errorMessage}`,
+    };
   }
 }

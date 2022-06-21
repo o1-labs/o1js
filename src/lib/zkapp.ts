@@ -1,14 +1,12 @@
 import {
   Circuit,
   Field,
-  Bool,
-  Poseidon,
   AsFieldElements,
   Ledger,
   Pickles,
   Types,
 } from '../snarky';
-import { CircuitValue, cloneCircuitValue } from './circuit_value';
+import { cloneCircuitValue } from './circuit_value';
 import {
   Body,
   Party,
@@ -20,243 +18,20 @@ import {
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { UInt32, UInt64 } from './int';
-import { Account, fetchAccount } from './fetch';
 import {
   withContext,
-  withContextAsync,
   getContext,
+  inCompile,
   mainContext,
 } from './global-context';
-import * as GlobalContext from './global-context';
+import {
+  assertPreconditionInvariants,
+  cleanPreconditionsCache,
+} from './precondition';
 
-export {
-  deploy,
-  DeployArgs,
-  call,
-  callUnproved,
-  signFeePayer,
-  declareState,
-  declareMethods,
-};
+export { deploy, DeployArgs, signFeePayer, declareMethods };
 
-/**
- * Gettable and settable state that can be checked for equality.
- */
-export type State<A> = {
-  get(): A;
-  set(a: A): void;
-  fetch(): Promise<A | undefined>;
-  assertEquals(a: A): void;
-};
-
-/**
- * Gettable and settable state that can be checked for equality.
- */
-export function State<A>(): State<A> {
-  return createState<A>();
-}
-
-function createState<A>() {
-  return {
-    _initialized: false,
-    _key: undefined as never as string, // defined by @state
-    _ty: undefined as never as AsFieldElements<A>, // defined by @state
-    _this: undefined as never as SmartContract, // defined by @state
-    _ZkappClass: undefined as never as typeof SmartContract & {
-      _layout: () => any;
-    }, // defined by @state
-
-    _init(key: string, ty: AsFieldElements<A>, _this: any, ZkappClass: any) {
-      this._initialized = true;
-      this._key = key;
-      this._ty = ty;
-      this._this = _this;
-      this._ZkappClass = ZkappClass;
-    },
-
-    getLayout() {
-      let layout: Map<string, { offset: number; length: number }> =
-        this._ZkappClass._layout();
-      let stateLayout = layout.get(this._key);
-      if (stateLayout === undefined) {
-        throw new Error(`state ${this._key} not found`);
-      }
-      return stateLayout;
-    },
-
-    set(a: A) {
-      if (!this._initialized)
-        throw Error(
-          'set can only be called when the State is assigned to a SmartContract @state.'
-        );
-      let layout = this.getLayout();
-      let stateAsFields = this._ty.toFields(a);
-      let e: ExecutionState = this._this.executionState();
-
-      stateAsFields.forEach((x, i) => {
-        Party.setValue(e.party.body.update.appState[layout.offset + i], x);
-      });
-    },
-
-    assertEquals(a: A) {
-      if (!this._initialized)
-        throw Error(
-          'assertEquals can only be called when the State is assigned to a SmartContract @state.'
-        );
-      let layout = this.getLayout();
-      let stateAsFields = this._ty.toFields(a);
-      let e: ExecutionState = this._this.executionState();
-
-      stateAsFields.forEach((x, i) => {
-        e.party.body.preconditions.account.state[layout.offset + i].isSome =
-          Bool(true);
-        e.party.body.preconditions.account.state[layout.offset + i].value = x;
-      });
-    },
-
-    get() {
-      if (!this._initialized)
-        throw Error(
-          'get can only be called when the State is assigned to a SmartContract @state.'
-        );
-      let layout = this.getLayout();
-
-      let address: PublicKey = this._this.address;
-      let stateAsFields: Field[];
-      let inProver = GlobalContext.inProver();
-      if (!GlobalContext.inCompile()) {
-        let a: Account;
-        try {
-          a = Mina.getAccount(address);
-        } catch (err) {
-          // TODO: there should also be a reasonable error here
-          if (inProver) {
-            throw err;
-          }
-          throw Error(
-            `${this._key}.get() failed, because the zkapp account was not found in the cache. ` +
-              `Try calling \`await fetchAccount(zkappAddress)\` first.`
-          );
-        }
-        if (a.zkapp === undefined) {
-          // if the account is not a zkapp account, let the default state be all zeroes
-          stateAsFields = Array(layout.length).fill(Field.zero);
-        } else {
-          stateAsFields = [];
-          for (let i = 0; i < layout.length; ++i) {
-            stateAsFields.push(a.zkapp.appState[layout.offset + i]);
-          }
-        }
-        // in prover, create a new witness with the state values
-        // outside, just return the state values
-        stateAsFields = inProver
-          ? Circuit.witness(
-              Circuit.array(Field, layout.length),
-              () => stateAsFields
-            )
-          : stateAsFields;
-      } else {
-        // in compile, we don't need the witness values
-        stateAsFields = Circuit.witness(
-          Circuit.array(Field, layout.length),
-          (): Field[] => {
-            throw Error('this should never happen');
-          }
-        );
-      }
-      let state = this._ty.ofFields(stateAsFields);
-      (this._ty as any).check?.(state);
-      return state;
-    },
-
-    async fetch() {
-      if (!this._initialized)
-        throw Error(
-          'fetch can only be called when the State is assigned to a SmartContract @state.'
-        );
-      if (Mina.currentTransaction !== undefined)
-        throw Error(
-          'fetch is not intended to be called inside a transaction block.'
-        );
-      let layout = this.getLayout();
-      let address: PublicKey = this._this.address;
-      let { account } = await fetchAccount(address);
-      if (account === undefined) return undefined;
-      let stateAsFields: Field[];
-      if (account.zkapp === undefined) {
-        stateAsFields = Array(layout.length).fill(Field.zero);
-      } else {
-        stateAsFields = [];
-        for (let i = 0; i < layout.length; ++i) {
-          stateAsFields.push(account.zkapp.appState[layout.offset + i]);
-        }
-      }
-      return this._ty.ofFields(stateAsFields);
-    },
-  };
-}
-
-type InternalStateType = ReturnType<typeof createState>;
-
-const reservedPropNames = new Set(['_states', '_layout', '_methods', '_']);
-
-/**
- * A decorator to use within a zkapp to indicate what will be stored on-chain.
- * For example, if you want to store a field element `some_state` in a zkapp,
- * you can use the following in the declaration of your zkapp:
- *
- * ```
- * @state(Field) some_state = State<Field>();
- * ```
- *
- */
-export function state<A>(ty: AsFieldElements<A>) {
-  return function (
-    target: SmartContract & { constructor: any },
-    key: string,
-    _descriptor?: PropertyDescriptor
-  ) {
-    const ZkappClass = target.constructor;
-    if (reservedPropNames.has(key)) {
-      throw Error(`Property name ${key} is reserved.`);
-    }
-
-    if (ZkappClass._states == undefined) {
-      ZkappClass._states = [];
-      let layout: Map<string, { offset: number; length: number }>;
-      ZkappClass._layout = () => {
-        if (layout === undefined) {
-          layout = new Map();
-
-          let offset = 0;
-          ZkappClass._states.forEach(([key, ty]: [any, any]) => {
-            let length = ty.sizeInFields();
-            layout.set(key, { offset, length });
-            offset += length;
-          });
-        }
-        return layout;
-      };
-    }
-
-    ZkappClass._states.push([key, ty]);
-
-    Object.defineProperty(target, key, {
-      get(this) {
-        return this._?.[key];
-      },
-      set(this, v: InternalStateType) {
-        if (v._initialized)
-          throw Error(
-            'A State should only be assigned once to a SmartContract'
-          );
-        if (this._?.[key]) throw Error('A @state should only be assigned once');
-        v._init(key, ty, this, ZkappClass);
-        (this._ ?? (this._ = {}))[key] = v;
-      },
-    });
-  };
-}
+const reservedPropNames = new Set(['_methods', '_']);
 
 /**
  * A decorator to use in a zkapp to mark a method as callable by anyone.
@@ -407,6 +182,11 @@ function picklesRuleFromFunction(
     // FIXME: figure out correct way to constrain statement https://github.com/o1-labs/snarkyjs/issues/98
     statement.transaction.assertEquals(statement.transaction);
     // checkStatement(statement, self, tail);
+
+    // check the self party right after calling the method
+    // TODO: this needs to be done in a unified way for all parties that are created
+    assertPreconditionInvariants(self);
+    cleanPreconditionsCache(self);
   }
 
   return [0, name, main] as [0, string, typeof main];
@@ -425,7 +205,7 @@ function picklesRuleFromFunction(
 export class SmartContract {
   address: PublicKey;
 
-  _executionState?: ExecutionState;
+  private _executionState: ExecutionState | undefined;
   static _methods?: methodEntry<SmartContract>[];
   static _provers?: Prover[];
   static _verificationKey?: { data: string; hash: Field };
@@ -450,7 +230,7 @@ export class SmartContract {
     );
 
     let [, { getVerificationKeyArtifact, provers, verify }] = withContext(
-      { self: Party.defaultParty(address), inCompile: true },
+      { self: selfParty(address), inCompile: true },
       () => Pickles.compile(rules)
     );
     let verificationKey = getVerificationKeyArtifact();
@@ -484,76 +264,7 @@ export class SmartContract {
     this.self.signInPlace(zkappKey, fallbackToZeroNonce);
   }
 
-  async prove(methodName: keyof this, args: unknown[], provers?: Prover[]) {
-    // TODO could just pass in the method instead of method name -> cleaner API
-    let ZkappClass = this.constructor as never as typeof SmartContract;
-    provers ??= ZkappClass._provers;
-    if (provers === undefined)
-      throw Error(
-        `Cannot produce execution proof - no provers found. Try calling \`await ${ZkappClass.name}.compile()\` first.`
-      );
-    let provers_ = provers;
-    let i = ZkappClass._methods!.findIndex((m) => m.methodName === methodName);
-    if (i === -1) throw Error(`Method ${methodName} not found!`);
-    let [statement, selfParty] = Circuit.runAndCheck(() => {
-      let [selfParty] = withContext(
-        { self: Party.defaultParty(this.address), inProver: true },
-        () => {
-          (this[methodName] as any)(...args, true);
-          // method(...args, true);
-        }
-      );
-
-      // TODO dont create full transaction in here, properly build up atParty
-      let txJson = Mina.createUnsignedTransaction(() => {
-        Mina.setCurrentTransaction({
-          parties: [selfParty],
-          nextPartyIndex: 1,
-          fetchMode: 'cached',
-        });
-      }).toJSON();
-      let statement = Ledger.transactionStatement(txJson, 0);
-      return [statement, selfParty];
-    });
-
-    // TODO lazy proof?
-    let [, proof] = await withContextAsync(
-      {
-        self: Party.defaultParty(this.address),
-        witnesses: args,
-        inProver: true,
-      },
-      () => provers_[i](statement)
-    );
-    // FIXME call calls Parties.to_json outside a prover, which seems to cause an error when variables are extracted
-    return { proof, statement, selfParty };
-  }
-
-  async runAndCheck(methodName: keyof this, args: unknown[]) {
-    let ZkappClass = this.constructor as never as typeof SmartContract;
-    let i = ZkappClass._methods!.findIndex((m) => m.methodName === methodName);
-    if (i === -1) throw Error(`Method ${methodName} not found!`);
-    let ctx = { self: Party.defaultParty(this.address) };
-    let [statement, selfParty] = Circuit.runAndCheck(() => {
-      let [selfParty] = withContext(
-        { self: Party.defaultParty(this.address), inProver: true },
-        () => {
-          (this[methodName] as any)(...args);
-        }
-      );
-      let statementVar = toStatement(ctx.self, Field.zero);
-      return [
-        {
-          transaction: statementVar.transaction.toConstant(),
-          atParty: statementVar.atParty.toConstant(),
-        },
-        selfParty,
-      ];
-    });
-    return { statement, selfParty };
-  }
-
-  executionState(): ExecutionState {
+  private executionState(): ExecutionState {
     // TODO reconcile mainContext with currentTransaction
     if (mainContext !== undefined) {
       return {
@@ -562,35 +273,46 @@ export class SmartContract {
         party: mainContext.self,
       };
     }
-
     if (Mina.currentTransaction === undefined) {
-      throw new Error('Cannot execute outside of a Mina.transaction() block.');
-    }
-
-    if (
-      this._executionState !== undefined &&
-      this._executionState.transactionId === Mina.nextTransactionId.value
-    ) {
-      return this._executionState;
-    } else {
-      const id = Mina.nextTransactionId.value;
-      const index = Mina.currentTransaction.nextPartyIndex++;
-      const body = Body.keepAll(this.address);
-      const party = new Party(body);
-      Mina.currentTransaction.parties.push(party);
-
-      const s = {
-        transactionId: id,
-        partyIndex: index,
-        party,
+      // throw new Error('Cannot execute outside of a Mina.transaction() block.');
+      // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
+      // or even expose the .get() methods independently of any party (they don't need one)
+      return {
+        transactionId: NaN,
+        partyIndex: NaN,
+        party: selfParty(this.address),
       };
-      this._executionState = s;
-      return s;
     }
+    let executionState = this._executionState;
+    if (
+      executionState !== undefined &&
+      executionState.transactionId === Mina.nextTransactionId.value
+    ) {
+      return executionState;
+    }
+    let id = Mina.nextTransactionId.value;
+    let index = Mina.currentTransaction.nextPartyIndex++;
+    let party = selfParty(this.address);
+    Mina.currentTransaction.parties.push(party);
+    executionState = {
+      transactionId: id,
+      partyIndex: index,
+      party,
+    };
+    this._executionState = executionState;
+    return executionState;
   }
 
   get self() {
     return this.executionState().party;
+  }
+
+  get account() {
+    return this.self.account;
+  }
+
+  get network() {
+    return this.self.network;
   }
 
   get balance() {
@@ -610,31 +332,23 @@ export class SmartContract {
   setPermissions(permissions: Permissions) {
     this.setValue(this.self.update.permissions, permissions);
   }
-
-  party(i: number): Body {
-    throw 'party';
-  }
-
-  transactionHash(): Field {
-    throw 'txn hash';
-  }
-
-  emitEvent<T extends CircuitValue>(x: T): void {
-    // TODO: Get the current party object, pull out the events field, and
-    // hash this together with what's there
-    Poseidon.hash(x.toFields());
-  }
 }
 
-type DeployArgs = {
-  verificationKey?: { data: string; hash: string | Field };
-  zkappKey?: PrivateKey;
-};
+function selfParty(address: PublicKey) {
+  let body = Body.keepAll(address);
+  return new (Party as any)(body, {}, true) as Party;
+}
 
+// per-smart-contract context for transaction construction
 type ExecutionState = {
   transactionId: number;
   partyIndex: number;
   party: Party;
+};
+
+type DeployArgs = {
+  verificationKey?: { data: string; hash: string | Field };
+  zkappKey?: PrivateKey;
 };
 
 function emptyWitness<A>(typ: AsFieldElements<A>) {
@@ -645,7 +359,7 @@ function emptyWitness<A>(typ: AsFieldElements<A>) {
 }
 
 // functions designed to be called from a CLI
-
+// TODO: this function is currently not used by the zkapp CLI, because it doesn't handle nonces properly in all cases
 async function deploy<S extends typeof SmartContract>(
   SmartContract: S,
   {
@@ -656,6 +370,7 @@ async function deploy<S extends typeof SmartContract>(
     feePayerKey,
     transactionFee,
     feePayerNonce,
+    memo,
   }: {
     zkappKey: PrivateKey;
     verificationKey: { data: string; hash: string | Field };
@@ -664,6 +379,7 @@ async function deploy<S extends typeof SmartContract>(
     shouldSignFeePayer?: boolean;
     transactionFee?: string | number;
     feePayerNonce?: string | number;
+    memo?: string;
   }
 ) {
   let address = zkappKey.toPublicKey();
@@ -698,6 +414,7 @@ async function deploy<S extends typeof SmartContract>(
       zkapp.self.balance.addInPlace(amount);
     }
   });
+  tx.transaction.memo = memo ?? '';
   if (shouldSignFeePayer) {
     if (feePayerKey === undefined || transactionFee === undefined) {
       throw Error(
@@ -712,66 +429,13 @@ async function deploy<S extends typeof SmartContract>(
   return tx.sign().toJSON();
 }
 
-async function call<S extends typeof SmartContract>(
-  SmartContract: S,
-  address: PublicKey,
-  methodName: string,
-  methodArguments: any,
-  provers: Prover[],
-  // TODO: remove, create a nicer intf to check proofs
-  verify?: (statement: Statement, proof: unknown) => Promise<boolean>
-) {
-  let zkapp = new SmartContract(address);
-  let { selfParty, proof, statement } = await zkapp.prove(
-    methodName as any,
-    methodArguments,
-    provers
-  );
-  selfParty.authorization = { proof: Pickles.proofToString(proof) };
-  if (verify !== undefined) {
-    let ok = await verify(statement, proof);
-    if (!ok) throw Error('Proof failed to verify!');
-  }
-  let tx = Mina.createUnsignedTransaction(() => {
-    Mina.setCurrentTransaction({
-      parties: [selfParty],
-      nextPartyIndex: 1,
-      fetchMode: 'cached',
-    });
-  });
-  return tx.toJSON();
-}
-
-async function callUnproved<S extends typeof SmartContract>(
-  SmartContract: S,
-  address: PublicKey,
-  methodName: string,
-  methodArguments: any,
-  zkappKey?: PrivateKey
-) {
-  let zkapp = new SmartContract(address);
-  let { selfParty, statement } = await zkapp.runAndCheck(
-    methodName as any,
-    methodArguments
-  );
-  selfParty.signInPlace(zkappKey);
-  let tx = Mina.createUnsignedTransaction(() => {
-    Mina.setCurrentTransaction({
-      parties: [selfParty],
-      nextPartyIndex: 1,
-      fetchMode: 'cached',
-    });
-  });
-  let txJson = tx.sign().toJSON();
-  return txJson;
-}
-
 function addFeePayer(
-  { feePayer, otherParties }: Parties,
+  { feePayer, otherParties, memo }: Parties,
   feePayerKey: PrivateKey | string,
   {
     transactionFee = 0 as number | string,
     feePayerNonce = undefined as number | string | undefined,
+    memo: feePayerMemo = undefined as string | undefined,
   }
 ) {
   feePayer = cloneCircuitValue(feePayer);
@@ -782,11 +446,13 @@ function addFeePayer(
     let senderAccount = Mina.getAccount(senderAddress);
     feePayerNonce = senderAccount.nonce.toString();
   }
+  let newMemo = memo;
+  if (feePayerMemo) newMemo = Ledger.memoToBase58(feePayerMemo);
   feePayer.body.nonce = UInt32.fromString(`${feePayerNonce}`);
   feePayer.body.publicKey = senderAddress;
   feePayer.body.fee = UInt64.fromString(`${transactionFee}`);
   Party.signFeePayerInPlace(feePayer, feePayerKey);
-  return { feePayer, otherParties };
+  return { feePayer, otherParties, memo: newMemo };
 }
 
 function signFeePayer(
@@ -795,6 +461,7 @@ function signFeePayer(
   {
     transactionFee = 0 as number | string,
     feePayerNonce = undefined as number | string | undefined,
+    memo: feePayerMemo = undefined as string | undefined,
   }
 ) {
   let parties: Types.Json.Parties = JSON.parse(transactionJson);
@@ -805,6 +472,7 @@ function signFeePayer(
     let senderAccount = Mina.getAccount(senderAddress);
     feePayerNonce = senderAccount.nonce.toString();
   }
+  if (feePayerMemo) parties.memo = Ledger.memoToBase58(feePayerMemo);
   parties.feePayer.body.nonce = `${feePayerNonce}`;
   parties.feePayer.body.publicKey = Ledger.publicKeyToString(senderAddress);
   parties.feePayer.body.fee = `${transactionFee}`;
@@ -812,50 +480,6 @@ function signFeePayer(
 }
 
 // alternative API which can replace decorators, works in pure JS
-
-/**
- * `declareState` can be used in place of the `@state` decorator to declare on-chain state on a SmartContract.
- * It should be placed _after_ the class declaration.
- * Here is an example of declaring a state property `x` of type `Field`.
- * ```ts
- * class MyContract extends SmartContract {
- *   x = State<Field>();
- *   // ...
- * }
- * declareState(MyContract, { x: Field });
- * ```
- *
- * If you're using pure JS, it's _not_ possible to use the built-in class field syntax,
- * i.e. the following will _not_ work:
- *
- * ```js
- * // THIS IS WRONG IN JS!
- * class MyContract extends SmartContract {
- *   x = State();
- * }
- * declareState(MyContract, { x: Field });
- * ```
- *
- * Instead, add a constructor where you assign the property:
- * ```js
- * class MyContract extends SmartContract {
- *   constructor(x) {
- *     super();
- *     this.x = State();
- *   }
- * }
- * declareState(MyContract, { x: Field });
- * ```
- */
-function declareState<T extends typeof SmartContract>(
-  SmartContract: T,
-  states: Record<string, AsFieldElements<unknown>>
-) {
-  for (let key in states) {
-    let CircuitValue = states[key];
-    state(CircuitValue)(SmartContract.prototype, key);
-  }
-}
 
 /**
  * `declareMethods` can be used in place of the `@method` decorator

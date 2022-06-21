@@ -10,6 +10,7 @@ export {
   public_,
   circuitMain,
   cloneCircuitValue,
+  circuitValueEquals,
 };
 
 type Constructor<T> = { new (...args: any[]): T };
@@ -50,7 +51,7 @@ abstract class CircuitValue {
     return (this.constructor as any).toJSON(this);
   }
 
-  equals(this: this, x: typeof this): Bool {
+  equals(this: this, x: this): Bool {
     return Circuit.equal(this, x);
   }
 
@@ -134,11 +135,9 @@ abstract class CircuitValue {
 
 function prop(this: any, target: any, key: string) {
   const fieldType = Reflect.getMetadata('design:type', target, key);
-
-  if (target._fields === undefined || target._fields === null) {
+  if (!target.hasOwnProperty('_fields')) {
     target._fields = [];
   }
-
   if (fieldType === undefined) {
   } else if (fieldType.toFields && fieldType.ofFields) {
     target._fields.push([key, fieldType]);
@@ -150,28 +149,35 @@ function prop(this: any, target: any, key: string) {
 }
 
 function circuitArray<T>(elementType: AsFieldElements<T>, length: number) {
-  let elementLength = elementType.sizeInFields();
-  length = elementLength * length;
   return {
     sizeInFields() {
-      return length;
+      let elementLength = elementType.sizeInFields();
+      return elementLength * length;
     },
     toFields(array: T[]) {
       return array.map((e) => elementType.toFields(e)).flat();
     },
     ofFields(fields: Field[]) {
       let array = [];
+      let elementLength = elementType.sizeInFields();
+      length = elementLength * length;
       for (let i = 0; i < length; i += elementLength) {
         array.push(elementType.ofFields(fields.slice(i, i + elementLength)));
       }
       return array;
+    },
+    check(array: T[]) {
+      if ((elementType as any).check === undefined) return;
+      for (let i = 0; i < length; i++) {
+        (elementType as any).check(array[i]);
+      }
     },
   };
 }
 
 function arrayProp<T>(elementType: AsFieldElements<T>, length: number) {
   return function (target: any, key: string) {
-    if (target._fields === undefined || target._fields === null) {
+    if (!target.hasOwnProperty('_fields')) {
       target._fields = [];
     }
     target._fields.push([key, circuitArray(elementType, length)]);
@@ -184,7 +190,9 @@ function matrixProp<T>(
   nColumns: number
 ) {
   return function (target: any, key: string) {
-    target._fields ??= [];
+    if (!target.hasOwnProperty('_fields')) {
+      target._fields = [];
+    }
     target._fields.push([
       key,
       circuitArray(circuitArray(elementType, nColumns), nRows),
@@ -270,6 +278,7 @@ function circuitMain(
 }
 
 let primitives = new Set(['Field', 'Bool', 'Scalar', 'Group']);
+
 function cloneCircuitValue<T>(obj: T): T {
   // primitive JS types and functions aren't cloned
   if (typeof obj !== 'object' || obj === null) return obj;
@@ -298,4 +307,65 @@ function cloneCircuitValue<T>(obj: T): T {
     };
   }
   return Object.create(Object.getPrototypeOf(obj), propertyDescriptors);
+}
+
+function circuitValueEquals<T>(a: T, b: T): boolean {
+  // primitive JS types and functions are checked for exact equality
+  if (typeof a !== 'object' || a === null) return a === b;
+
+  // built-in JS datatypes with custom equality checks
+  if (Array.isArray(a)) {
+    return (
+      Array.isArray(b) &&
+      a.length === b.length &&
+      a.every((a_, i) => circuitValueEquals(a_, b[i]))
+    );
+  }
+  if (a instanceof Set) {
+    return (
+      b instanceof Set && a.size === b.size && [...a].every((a_) => b.has(a_))
+    );
+  }
+  if (a instanceof Map) {
+    return (
+      b instanceof Map &&
+      a.size === b.size &&
+      [...a].every(([k, v]) => circuitValueEquals(v, b.get(k)))
+    );
+  }
+  if (ArrayBuffer.isView(a) && !(a instanceof DataView)) {
+    // typed array
+    return (
+      ArrayBuffer.isView(b) &&
+      !(b instanceof DataView) &&
+      circuitValueEquals([...(a as any)], [...(b as any)])
+    );
+  }
+
+  // the two checks below cover snarkyjs primitives and CircuitValues
+  // if we have an .equals method, try to use it
+  if ('equals' in a && typeof (a as any).equals === 'function') {
+    let isEqual = (a as any).equals(b).toBoolean();
+    if (typeof isEqual === 'boolean') return isEqual;
+    if (isEqual instanceof Bool) return isEqual.toBoolean();
+  }
+  // if we have a .toFields method, try to use it
+  if (
+    'toFields' in a &&
+    typeof (a as any).toFields === 'function' &&
+    'toFields' in b &&
+    typeof (b as any).toFields === 'function'
+  ) {
+    let aFields = (a as any).toFields() as Field[];
+    let bFields = (b as any).toFields() as Field[];
+    return aFields.every((a, i) => a.equals(bFields[i]).toBoolean());
+  }
+
+  // equality test that works for plain objects AND classes whose constructor only assigns properties
+  let aEntries = Object.entries(a).filter(([, v]) => v !== undefined);
+  let bEntries = Object.entries(b).filter(([, v]) => v !== undefined);
+  if (aEntries.length !== bEntries.length) return false;
+  return aEntries.every(
+    ([key, value]) => key in b && circuitValueEquals((b as any)[key], value)
+  );
 }
