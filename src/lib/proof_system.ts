@@ -194,7 +194,8 @@ function isAsFields(
   type: unknown
 ): type is AsFieldElements<unknown> & ObjectConstructor {
   return (
-    typeof type === 'function' &&
+    (typeof type === 'function' || typeof type === 'object') &&
+    type !== null &&
     ['toFields', 'ofFields', 'sizeInFields'].every((s) => s in type)
   );
 }
