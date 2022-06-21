@@ -2,7 +2,7 @@ import { Bool, Field, AsFieldElements, Pickles, Circuit } from '../snarky';
 import { getContext, withContext, withContextAsync } from './global-context';
 
 // public API
-export { Proof, Program };
+export { Proof, SelfProof, ZkProgram };
 
 // internal API
 export {
@@ -54,7 +54,7 @@ let CompiledTag = {
   },
 };
 
-function Program<
+function ZkProgram<
   PublicInputType extends AsFieldElements<any>,
   Types extends {
     // TODO: how to prevent a method called `compile` from type-checking?
@@ -74,12 +74,20 @@ function Program<
 } & {
   [I in keyof Types]: Prover<InferInstance<PublicInputType>, Types[I]>;
 } {
-  let keys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
-  let methodFunctions = keys.map((key) => methods[key].method);
-  let methodIntfs = keys.map((key) =>
-    sortMethodArguments('program', key, methods[key].privateInput)
-  );
   let selfTag = { name: `Program${i++}` };
+
+  type PublicInput = InferInstance<PublicInputType>;
+  class SelfProof extends Proof<PublicInput> {
+    static publicInputType = publicInputType;
+    static tag = () => selfTag;
+  }
+
+  let keys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
+  let methodIntfs = keys.map((key) =>
+    sortMethodArguments('program', key, methods[key].privateInput, SelfProof)
+  );
+  let methodFunctions = keys.map((key) => methods[key].method);
+
   let compileOutput:
     | {
         provers: Pickles.Prover[];
@@ -96,8 +104,6 @@ function Program<
     );
     compileOutput = { provers, verify };
   }
-
-  type PublicInput = InferInstance<PublicInputType>;
 
   function toProver<K extends keyof Types & string>(
     key: K,
@@ -138,10 +144,13 @@ function Program<
 
 let i = 0;
 
+class SelfProof<T> extends Proof<T> {}
+
 function sortMethodArguments(
   programName: string,
   methodName: string,
-  privateInputs: unknown[]
+  privateInputs: unknown[],
+  selfProof: Subclass<typeof Proof>
 ): MethodInterface {
   let witnessArgs: AsFieldElements<unknown>[] = [];
   let proofArgs: Subclass<typeof Proof>[] = [];
@@ -156,7 +165,11 @@ function sortMethodArguments(
         );
       }
       allArgs.push({ type: 'proof', index: proofArgs.length });
-      proofArgs.push(privateInput);
+      if (privateInput === SelfProof) {
+        proofArgs.push(selfProof);
+      } else {
+        proofArgs.push(privateInput);
+      }
     } else if (isAsFields(privateInput)) {
       allArgs.push({ type: 'witness', index: witnessArgs.length });
       witnessArgs.push(privateInput);
