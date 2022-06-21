@@ -1,4 +1,5 @@
-import { Circuit, Field, Bool, AsFieldElements } from '../snarky';
+import { Circuit, Field, AsFieldElements } from '../snarky';
+import { circuitArray } from './circuit_value';
 import { Party } from './party';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
@@ -193,14 +194,14 @@ function createState<T>(): InternalStateType<T> {
         // outside, just return the state values
         stateAsFields = inProver
           ? Circuit.witness(
-              Circuit.array(Field, layout.length),
+              circuitArray(Field, layout.length),
               () => stateAsFields
             )
           : stateAsFields;
       } else {
         // in compile, we don't need the witness values
         stateAsFields = Circuit.witness(
-          Circuit.array(Field, layout.length),
+          circuitArray(Field, layout.length),
           (): Field[] => {
             throw Error('this should never happen');
           }

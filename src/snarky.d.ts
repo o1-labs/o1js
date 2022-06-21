@@ -3,18 +3,17 @@ export {
   Bool,
   Group,
   Scalar,
-  EndoScalar,
   AsFieldElements,
   Circuit,
   CircuitMain,
   Poseidon,
   VerificationKey,
   Keypair,
-  Proof,
   Ledger,
   isReady,
   shutdown,
   Pickles,
+  Rule,
   JSONValue,
 };
 export * as Types from './snarky/gen/parties';
@@ -344,6 +343,8 @@ declare class Field {
   static fromString(x: string): Field;
   static fromNumber(x: number): Field;
   static fromBigInt(x: bigint): Field;
+
+  static check(x: Field): void;
 }
 
 /**
@@ -431,11 +432,11 @@ declare class Bool {
   /**
    * The constant [[`Bool`]] that is `true`.
    */
-  static true: Bool;
+  //static true: Bool;
   /**
    * The constant [[`Bool`]] that is `false`.
    */
-  static false: Bool;
+  //static false: Bool;
 
   static toField(x: Bool | boolean): Field;
 
@@ -460,18 +461,19 @@ declare class Bool {
   static count(x: Bool | boolean[]): Field;
 
   static sizeInFields(): number;
-  static toFields(x: Bool | boolean): Field[];
+  static toFields(x: Bool): Field[];
   static ofFields(fields: Field[]): Bool;
 
   static toJSON(x: Bool): JSONValue;
   static fromJSON(x: JSONValue): Bool | null;
+  static check(x: Bool): void;
 }
 
 declare interface AsFieldElements<T> {
   toFields(x: T): Field[];
   ofFields(x: Field[]): T;
   sizeInFields(): number;
-  check?: (x: T) => void;
+  check(x: T): void;
 }
 
 declare interface CircuitMain<W, P> {
@@ -521,11 +523,6 @@ declare class Circuit {
   static asProver(f: () => void): void;
 
   static runAndCheck<T>(f: () => T): T;
-
-  static array<T>(
-    ctor: AsFieldElements<T>,
-    length: number
-  ): AsFieldElements<T[]>;
 
   static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
 
@@ -595,13 +592,15 @@ declare class Scalar {
 
   static toJSON(x: Scalar): JSONValue;
   static fromJSON(x: JSONValue): Scalar | null;
+  static check(x: Scalar): void;
 }
 
-declare class EndoScalar {
-  static toFields(x: Scalar): Field[];
-  static ofFields(fields: Field[]): Scalar;
-  static sizeInFields(): number;
-}
+// TODO: Add this when OCaml bindings are implemented:
+// declare class EndoScalar {
+//   static toFields(x: Scalar): Field[];
+//   static ofFields(fields: Field[]): Scalar;
+//   static sizeInFields(): number;
+// }
 
 declare class Group {
   x: Field;
@@ -649,6 +648,7 @@ declare class Group {
     x: string | number;
     y: string | number;
   }): Group | null;
+  static check(g: Group): void;
 }
 
 declare class Sponge {
@@ -716,7 +716,7 @@ declare class Ledger {
     commitment: Field;
     fullCommitment: Field;
   };
-  static transactionStatement(txJson: string, partyIndex: number): Statement;
+  static zkappPublicInput(txJson: string, partyIndex: number): Field[];
   static signFieldElement(
     messageHash: Field,
     privateKey: { s: Scalar }
@@ -728,7 +728,7 @@ declare class Ledger {
     i: number
   ): string;
   static verifyPartyProof(
-    statement: Statement,
+    statement: Field[],
     proof: string,
     verificationKey: string
   ): Promise<boolean>;
@@ -757,7 +757,11 @@ declare const shutdown: () => Promise<undefined>;
  */
 declare let isReady: Promise<undefined>;
 
-type Statement = { transaction: Field; atParty: Field };
+type Rule = {
+  identifier: string;
+  main: (statement: Field[], previousStatements: Field[][]) => Bool[];
+  proofsToVerify: { isSelf: boolean; tag: unknown }[];
+};
 
 declare const Pickles: {
   /**
@@ -775,9 +779,16 @@ declare const Pickles: {
    * * `verify` - a function which can verify proofs from any of the provers
    * * `getVerificationKeyArtifact` - a function which returns the verification key used in `verify`, in base58 format, usable to deploy a zkapp
    */
-  compile: (rules: [0, string, (statement: Statement) => void][]) => {
-    provers: ((statement: Statement) => Promise<unknown>)[];
-    verify: (statement: Statement, proof: unknown) => Promise<boolean>;
+  compile: (
+    rules: Rule[],
+    statementSize: number
+  ) => {
+    provers: ((
+      statement: Field[],
+      previousStatements: Field[][]
+    ) => Promise<unknown>)[];
+    verify: (statement: Field[], proof: unknown) => Promise<boolean>;
+    tag: unknown;
     getVerificationKeyArtifact: () => { data: string; hash: string };
   };
 

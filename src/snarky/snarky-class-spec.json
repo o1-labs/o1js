@@ -113,6 +113,10 @@
       {
         "name": "fromBigInt",
         "type": "function"
+      },
+      {
+        "name": "check",
+        "type": "function"
       }
     ]
   },
@@ -354,6 +358,10 @@
       {
         "name": "fromJSON",
         "type": "function"
+      },
+      {
+        "name": "check",
+        "type": "function"
       }
     ]
   },
@@ -377,7 +385,7 @@
         "type": "function"
       },
       {
-        "name": "transactionStatement",
+        "name": "zkappPublicInput",
         "type": "function"
       },
       {

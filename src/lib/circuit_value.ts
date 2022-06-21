@@ -11,6 +11,7 @@ export {
   circuitMain,
   cloneCircuitValue,
   circuitValueEquals,
+  circuitArray,
 };
 
 type Constructor<T> = { new (...args: any[]): T };
@@ -127,9 +128,9 @@ abstract class CircuitValue {
   for (let i = 0; i < fields.length; ++i) {
     const [key, propType] = fields[i];
     const value = (v as any)[key];
-    if (propType.check != undefined) {
-      propType.check(value);
-    }
+    if (propType.check === undefined)
+      throw Error('bug: circuit value without .check()');
+    propType.check(value);
   }
 };
 
@@ -167,7 +168,6 @@ function circuitArray<T>(elementType: AsFieldElements<T>, length: number) {
       return array;
     },
     check(array: T[]) {
-      if ((elementType as any).check === undefined) return;
       for (let i = 0; i < length; i++) {
         (elementType as any).check(array[i]);
       }
@@ -236,6 +236,10 @@ function typeOfArray(typs: Array<AsFieldElements<any>>): AsFieldElements<any> {
         offset += n;
       });
       return res;
+    },
+
+    check(xs: Array<any>) {
+      typs.forEach((typ, i) => (typ as any).check(xs[i]));
     },
   };
 }
