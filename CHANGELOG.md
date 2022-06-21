@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - new fields `this.account` and `this.network` on both `SmartContract` and `Party`
   - `this.<account|network>.<property>.get()` to use on-chain values in a circuit, e.g. account balance or block height
   - `this.<account|network>.<property>.{assertEqual, assertBetween, assertNothing}()` to constrain what values to allow for these
-- `Bool.true`, `Bool.false` and `bool.assertTrue()`, `bool.assertFalse()` as convenient aliases for existing functionality
+- `bool.assertTrue()`, `bool.assertFalse()` as convenient aliases for existing functionality
 - `Ledger.verifyPartyProof` which can check if a proof on a transaction is valid https://github.com/o1-labs/snarkyjs/pull/208
 - This changelog
 
