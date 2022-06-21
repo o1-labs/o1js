@@ -161,8 +161,8 @@ function circuitArray<T>(elementType: AsFieldElements<T>, length: number) {
     ofFields(fields: Field[]) {
       let array = [];
       let elementLength = elementType.sizeInFields();
-      length = elementLength * length;
-      for (let i = 0; i < length; i += elementLength) {
+      let n = elementLength * length;
+      for (let i = 0; i < n; i += elementLength) {
         array.push(elementType.ofFields(fields.slice(i, i + elementLength)));
       }
       return array;
