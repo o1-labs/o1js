@@ -99,17 +99,23 @@ function wrapMethod(
     } else {
       // in a transaction, also add a lazy proof to the self party
       // (if there's no other authorization set)
+
+      // first, clone to protect against the method modifying arguments!
+      // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
+      let clonedArgs = cloneCircuitValue(actualArgs);
+      let result = method.apply(this, actualArgs);
       let auth = this.self.authorization;
       if (!('kind' in auth || 'proof' in auth || 'signature' in auth)) {
         this.self.authorization = {
           kind: 'lazy-proof',
           method,
-          args: actualArgs,
+          args: clonedArgs,
+          // proofs actually don't have to be cloned
           previousProofs: getPreviousProofsForProver(actualArgs, methodIntf),
           ZkappClass,
         };
       }
-      return method.apply(this, actualArgs);
+      return result;
     }
   };
 }

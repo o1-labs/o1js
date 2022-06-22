@@ -84,7 +84,7 @@ function ZkProgram<
 
   let keys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
   let methodIntfs = keys.map((key) =>
-    sortMethodArguments('program', key, methods[key].privateInput, SelfProof)
+    sortMethodArguments('program', key, methods[key].privateInputs, SelfProof)
   );
   let methodFunctions = keys.map((key) => methods[key].method);
 
@@ -194,7 +194,8 @@ function isAsFields(
   type: unknown
 ): type is AsFieldElements<unknown> & ObjectConstructor {
   return (
-    typeof type === 'function' &&
+    (typeof type === 'function' || typeof type === 'object') &&
+    type !== null &&
     ['toFields', 'ofFields', 'sizeInFields'].every((s) => s in type)
   );
 }
@@ -376,7 +377,7 @@ type Subclass<Class extends new (...args: any) => any> = (new (
 type PrivateInput = AsFieldElements<any> | Subclass<typeof Proof>;
 
 type Method<PublicInput, Args extends Tuple<PrivateInput>> = {
-  privateInput: Args;
+  privateInputs: Args;
   method(publicInput: PublicInput, ...args: TupleToInstances<Args>): void;
 };
 

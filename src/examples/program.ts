@@ -5,7 +5,7 @@ let MyProgram = ZkProgram({
 
   methods: {
     baseCase: {
-      privateInput: [],
+      privateInputs: [],
 
       method(publicInput: Field) {
         publicInput.assertEquals(Field.zero);
@@ -13,7 +13,7 @@ let MyProgram = ZkProgram({
     },
 
     inductiveCase: {
-      privateInput: [SelfProof],
+      privateInputs: [SelfProof],
 
       method(publicInput: Field, earlierProof: SelfProof<Field>) {
         earlierProof.verify();
