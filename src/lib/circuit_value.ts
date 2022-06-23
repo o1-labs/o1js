@@ -53,11 +53,11 @@ abstract class CircuitValue {
     return (this.constructor as any).toJSON(this);
   }
 
-  equals(this: this, x: this): Bool {
+  equals(x: this): Bool {
     return Circuit.equal(this, x);
   }
 
-  assertEquals(this: this, x: typeof this): void {
+  assertEquals(x: this): void {
     Circuit.assertEqual(this, x);
   }
 
@@ -75,7 +75,23 @@ abstract class CircuitValue {
     return new this(...props);
   }
 
-  static check: (x: any) => void;
+  static check<T extends new (...args: any) => any>(
+    this: T,
+    v: InstanceType<T>
+  ) {
+    const fields = (this as any).prototype._fields;
+    if (fields === undefined || fields === null) {
+      return;
+    }
+
+    for (let i = 0; i < fields.length; ++i) {
+      const [key, propType] = fields[i];
+      const value = (v as any)[key];
+      if (propType.check === undefined)
+        throw Error('bug: circuit value without .check()');
+      propType.check(value);
+    }
+  }
 
   static toConstant<T>(this: Constructor<T>, t: T): T {
     const xs: Field[] = (this as any).toFields(t);
@@ -121,21 +137,6 @@ abstract class CircuitValue {
     return new this(...props);
   }
 }
-
-(CircuitValue as any).check = function (v: any) {
-  const fields = (this as any).prototype._fields;
-  if (fields === undefined || fields === null) {
-    return;
-  }
-
-  for (let i = 0; i < fields.length; ++i) {
-    const [key, propType] = fields[i];
-    const value = (v as any)[key];
-    if (propType.check === undefined)
-      throw Error('bug: circuit value without .check()');
-    propType.check(value);
-  }
-};
 
 function prop(this: any, target: any, key: string) {
   const fieldType = Reflect.getMetadata('design:type', target, key);
