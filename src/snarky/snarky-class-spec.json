@@ -452,6 +452,14 @@
       {
         "name": "proofToString",
         "type": "function"
+      },
+      {
+        "name": "proofToBase64",
+        "type": "function"
+      },
+      {
+        "name": "proofOfBase64",
+        "type": "function"
       }
     ]
   }

@@ -931,9 +931,10 @@ async function addMissingProofs(parties: Parties): Promise<{
       static publicInputType = ZkappPublicInput;
       static tag = () => ZkappClass;
     }
+    let maxProofsVerified = ZkappClass._maxProofsVerified!;
     return {
       partyProved: party as PartyProved,
-      proof: new ZkappProof({ publicInput, proof }),
+      proof: new ZkappProof({ publicInput, proof, maxProofsVerified }),
     };
   }
   let { feePayer, otherParties, memo } = parties;

@@ -23,16 +23,27 @@ let MyProgram = ZkProgram({
   },
 });
 
+let MyProof = ZkProgram.Proof(MyProgram);
+
 console.log('compiling MyProgram...');
 await MyProgram.compile();
 
 console.log('proving base case...');
 let proof = await MyProgram.baseCase(Field.zero);
+proof = testJsonRoundtrip(proof);
 
 console.log('proving step 1...');
 proof = await MyProgram.inductiveCase(Field.one, proof);
+proof = testJsonRoundtrip(proof);
 
 console.log('proving step 2...');
 proof = await MyProgram.inductiveCase(Field(2), proof);
+proof = testJsonRoundtrip(proof);
 
 console.log('ok?', proof.publicInput.toString() === '2');
+
+function testJsonRoundtrip(proof: any): any {
+  let jsonProof = proof.toJSON();
+  console.log({ ...jsonProof, proof: jsonProof.proof.slice(0, 10) + '..' });
+  return MyProof.fromJSON(jsonProof);
+}

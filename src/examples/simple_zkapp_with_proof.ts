@@ -103,7 +103,7 @@ tx = await Mina.transaction(feePayerKey, () => {
 tx.send();
 
 // check that proof can be converted to string
-let proofString = proof!.toString();
+let proofString = proof!.toTransactionString();
 
 // check that proof verifies
 let ok = Ledger.verifyPartyProof(

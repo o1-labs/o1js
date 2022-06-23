@@ -66,6 +66,11 @@ export function method<T extends SmartContract>(
   );
   ZkappClass._methods ??= [];
   ZkappClass._methods.push(methodEntry);
+  ZkappClass._maxProofsVerified ??= 0;
+  ZkappClass._maxProofsVerified = Math.max(
+    ZkappClass._maxProofsVerified,
+    methodEntry.proofArgs.length
+  );
   let func = descriptor.value;
   descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
 }
@@ -153,6 +158,7 @@ export class SmartContract {
   private _executionState: ExecutionState | undefined;
   static _methods?: MethodInterface[];
   static _provers?: Pickles.Prover[];
+  static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
 
   constructor(address: PublicKey) {

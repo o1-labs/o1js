@@ -800,7 +800,12 @@ declare const Pickles: {
     getVerificationKeyArtifact: () => { data: string; hash: string };
   };
 
-  proofToString: (proof: unknown) => string;
+  proofToString: (proof: Pickles.Proof) => string;
+  proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
+  proofOfBase64: (
+    base64: string,
+    maxProofsVerified: 0 | 1 | 2
+  ) => [0 | 1 | 2, Pickles.Proof];
 };
 
 type JSONValue =
