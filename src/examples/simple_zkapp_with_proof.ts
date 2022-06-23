@@ -9,17 +9,21 @@ import {
   Party,
   isReady,
   ZkappPublicInput,
-  Proof,
   Ledger,
   SelfProof,
 } from 'snarkyjs';
 
 await isReady;
 
-class TrivialProof extends Proof<ZkappPublicInput> {
-  static publicInputType = ZkappPublicInput;
-  static tag = () => TrivialZkapp;
+class TrivialZkapp extends SmartContract {
+  @method proveSomething(hasToBe1: Field) {
+    hasToBe1.assertEquals(1);
+  }
 }
+// very unfortunate that TS can't handle this directly:
+// class TrivialProof extends TrivialZkapp.Proof {}
+let TrivialProof_ = TrivialZkapp.Proof;
+class TrivialProof extends TrivialProof_ {}
 
 class NotSoSimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
@@ -38,12 +42,6 @@ class NotSoSimpleZkapp extends SmartContract {
     trivialProof.verify();
     let x = this.x.get();
     this.x.set(x.add(y));
-  }
-}
-
-class TrivialZkapp extends SmartContract {
-  @method proveSomething(hasToBe1: Field) {
-    hasToBe1.assertEquals(1);
   }
 }
 
@@ -68,11 +66,13 @@ await TrivialZkapp.compile(zkappAddress2);
 // submitting transactions? or is this an irrelevant use case?
 // would also improve the return type -- `Proof` instead of `(Proof | undefined)[]`
 console.log('prove (trivial zkapp)');
-let [trivialZkappProof] = await (
+let [trivialProof] = await (
   await Mina.transaction(feePayerKey, () => {
     new TrivialZkapp(zkappAddress2).proveSomething(Field(1));
   })
 ).prove();
+
+trivialProof = testJsonRoundtrip(TrivialProof, trivialProof);
 
 console.log('compile');
 let { verificationKey } = await NotSoSimpleZkapp.compile(zkappAddress);
@@ -88,16 +88,18 @@ tx.send();
 
 console.log('init');
 tx = await Mina.transaction(feePayerKey, () => {
-  zkapp.init(trivialZkappProof!);
+  zkapp.init(trivialProof!);
 });
 let [proof] = await tx.prove();
 tx.send();
+
+proof = testJsonRoundtrip(NotSoSimpleZkapp.Proof, proof);
 
 console.log('initial state: ' + zkapp.x.get());
 
 console.log('update');
 tx = await Mina.transaction(feePayerKey, () => {
-  zkapp.update(Field(3), proof!, trivialZkappProof!);
+  zkapp.update(Field(3), proof!, trivialProof!);
 });
 [proof] = await tx.prove();
 tx.send();
@@ -113,13 +115,23 @@ let ok = Ledger.verifyPartyProof(
 );
 if (!ok) throw Error('proof cannot be verified');
 
+proof = testJsonRoundtrip(NotSoSimpleZkapp.Proof, proof);
+
 console.log('state 2: ' + zkapp.x.get());
 
 console.log('update');
 tx = await Mina.transaction(feePayerKey, () => {
-  zkapp.update(Field(3), proof!, trivialZkappProof!);
+  zkapp.update(Field(3), proof!, trivialProof!);
 });
 [proof] = await tx.prove();
 tx.send();
 
+proof = testJsonRoundtrip(NotSoSimpleZkapp.Proof, proof);
+
 console.log('final state: ' + zkapp.x.get());
+
+function testJsonRoundtrip(Proof: any, proof: any): any {
+  let jsonProof = proof.toJSON();
+  console.log({ ...jsonProof, proof: jsonProof.proof.slice(0, 10) + '..' });
+  return Proof.fromJSON(jsonProof);
+}
