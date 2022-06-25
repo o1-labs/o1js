@@ -22,7 +22,7 @@ import {
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
-import { UInt32, UInt64 } from './int';
+import { Int64, UInt32, UInt64 } from './int';
 import {
   mainContext,
   inCheckedComputation,
@@ -331,6 +331,14 @@ class SmartContract {
 
   get network() {
     return this.self.network;
+  }
+
+  transfer(
+    amount: Int64 | UInt32 | UInt64 | string | number | bigint,
+    receiver: Party,
+    tokenId?: string
+  ) {
+    return this.self.transfer(amount, receiver, tokenId);
   }
 
   get balance() {

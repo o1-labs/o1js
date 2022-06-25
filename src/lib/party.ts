@@ -516,6 +516,26 @@ class Party {
     return new (Party as any)(body, authorization, party.isSelf);
   }
 
+  get tokenId() {
+    return this.body.tokenId;
+  }
+
+  public transfer(
+    amount: Int64 | UInt32 | UInt64 | string | number | bigint,
+    receiver: Party,
+    tokenId?: string
+  ) {
+    let party = this;
+    party.body.balanceChange = party.body.balanceChange.sub(amount);
+    receiver.body.balanceChange = receiver.body.balanceChange.add(amount);
+
+    if (tokenId) {
+      let token = Ledger.fieldOfBase58(tokenId);
+      party.body.tokenId = token;
+      receiver.body.tokenId = token;
+    }
+  }
+
   get balance() {
     let party = this;
     return {

@@ -385,6 +385,14 @@
         "type": "function"
       },
       {
+        "name": "customTokenID",
+        "type": "function"
+      },
+      {
+        "name": "createTokenAccount",
+        "type": "function"
+      },
+      {
         "name": "hashTransaction",
         "type": "function"
       },
