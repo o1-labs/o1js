@@ -28,6 +28,7 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "dev": "node --stack-trace-limit=100 src/build/buildNode.mjs --bindings=./dist/server/node_bindings/",
+    "make": "make -C ../../../.. snarkyjs",
     "build": "node --stack-trace-limit=100 src/build/buildNode.mjs",
     "build:node": "node --stack-trace-limit=100 src/build/buildNode.mjs",
     "build:web": "node src/build/buildWeb.mjs",

@@ -5,7 +5,6 @@ import {
   Ledger,
   Pickles,
   Types,
-  Rule,
 } from '../snarky';
 import { cloneCircuitValue } from './circuit_value';
 import {
@@ -19,16 +18,12 @@ import {
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { UInt32, UInt64 } from './int';
-import {
-  withContext,
-  getContext,
-  inCompile,
-  mainContext,
-} from './global-context';
+import { withContext, getContext, mainContext } from './global-context';
 import {
   assertPreconditionInvariants,
   cleanPreconditionsCache,
 } from './precondition';
+import { CompiledTag, Proof } from './proof_system';
 
 export { deploy, DeployArgs, signFeePayer, declareMethods };
 
@@ -61,7 +56,7 @@ export function method<T extends SmartContract>(
   let paramTypes = Reflect.getMetadata('design:paramtypes', target, methodName);
   let witnessArgs = [];
   let proofArgs = [];
-  let args = [];
+  let args: { type: 'proof' | 'witness'; index: number }[] = [];
   for (let i = 0; i < paramTypes.length; i++) {
     let Parameter = paramTypes[i];
     if (isProof(Parameter)) {
@@ -72,27 +67,32 @@ export function method<T extends SmartContract>(
       witnessArgs.push(Parameter);
     } else {
       throw Error(
-        `Argument ${i} of method ${methodName} is not a valid circuit value.`
+        `Argument ${
+          i + 1
+        } of method ${methodName} is not a valid circuit value: ${Parameter}`
       );
     }
   }
+  if (proofArgs.length > 2) {
+    throw Error(
+      `${ZkappClass.name}.${methodName}() has more than two proof arguments, which is not supported.\n` +
+        `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
+    );
+  }
   ZkappClass._methods ??= [];
-  ZkappClass._methods.push({
-    methodName,
-    witnessArgs,
-    proofArgs,
-    args,
-  });
+  let methodEntry = { methodName, witnessArgs, proofArgs, args };
+  ZkappClass._methods.push(methodEntry);
   let argsLength = args.length;
   let func = descriptor.value;
-  descriptor.value = wrapMethod(func, argsLength, ZkappClass);
+  descriptor.value = wrapMethod(func, argsLength, ZkappClass, methodEntry);
 }
 
 // do different things when calling a method, depending on the circumstance
 function wrapMethod(
   method: Function,
   argsLength: number,
-  ZkappClass: typeof SmartContract
+  ZkappClass: typeof SmartContract,
+  { args: argDescriptors, proofArgs }: methodEntry<any>
 ) {
   function wrappedMethod(this: SmartContract, ...args: any[]) {
     let actualArgs = args.slice(0, argsLength);
@@ -105,10 +105,23 @@ function wrapMethod(
       // (if there's no other authorization set)
       let auth = this.self.authorization;
       if (!('kind' in auth || 'proof' in auth || 'signature' in auth)) {
+        let previousProofs: Pickles.ProofWithPublicInput[] = [];
+        for (let i = 0; i < argDescriptors.length; i++) {
+          let arg = argDescriptors[i];
+          if (arg.type === 'proof') {
+            let proof = actualArgs[i] as Proof<any>;
+            let publicInputType = proofArgs[arg.index].publicInputType;
+            previousProofs[arg.index] = {
+              publicInput: publicInputType.toFields(proof.publicInput),
+              proof: proof.proof,
+            };
+          }
+        }
         this.self.authorization = {
           kind: 'lazy-proof',
           method,
           args: actualArgs,
+          previousProofs: previousProofs,
           ZkappClass,
         };
       }
@@ -121,8 +134,8 @@ function wrapMethod(
 type methodEntry<T> = {
   methodName: keyof T & string;
   witnessArgs: AsFieldElements<unknown>[];
-  proofArgs: unknown[];
-  args: { type: string; index: number }[];
+  proofArgs: typeof Proof[];
+  args: { type: 'witness' | 'proof'; index: number }[];
   witnessValues?: unknown[];
 };
 
@@ -132,69 +145,103 @@ function isAsFields(typ: Object) {
   );
 }
 function isProof(typ: any) {
-  return false; // TODO
+  // the second case covers subclasses
+  return typ === Proof || typ?.prototype instanceof Proof;
 }
-
 /**
- * A Statement consists of certain hashes of the transaction and of the proving Party which is constructed during method execution.
+ * The public input for zkApps consists of certain hashes of the transaction and of the proving Party which is constructed during method execution.
 
-  In SmartContract.prove, a method is run twice: First outside the proof, to obtain the statement, and once in the prover,
-  which takes the statement as input. The current transaction is hashed again inside the prover, which asserts that the result equals the input statement,
+  In SmartContract.prove, a method is run twice: First outside the proof, to obtain the public input, and once in the prover,
+  which takes the public input as input. The current transaction is hashed again inside the prover, which asserts that the result equals the input public input,
   as part of the snark circuit. The block producer will also hash the transaction they receive and pass it as a public input to the verifier.
   Thus, the transaction is fully constrained by the proof - the proof couldn't be used to attest to a different transaction.
  */
-type Statement = Field[]; // [transaction, atParty]
+type PublicInput = Field[]; // [transaction, atParty]
 
-type Proof = unknown; // opaque
-type Prover = (
-  statement: Statement,
-  previousStatements: Statement[]
-) => Promise<Proof>;
-
-function toStatement(self: Party, tail: Field) {
+function toPublicInput(self: Party, tail: Field) {
   // TODO hash together party with tail in the right way
   let atParty = self.hash();
   let transaction = Ledger.hashTransactionChecked(atParty);
   return { transaction, atParty };
 }
 
-function checkStatement(
-  [transaction, atParty]: Statement,
+function checkPublicInput(
+  [transaction, atParty]: PublicInput,
   self: Party,
   tail: Field
 ) {
-  // ATM, we always compute the statement in checked mode to make assertEqual pass
-  let otherStatement = toStatement(self, tail);
-  atParty.assertEquals(otherStatement.atParty);
-  transaction.assertEquals(otherStatement.transaction);
+  // ATM, we always compute the public input in checked mode to make assertEqual pass
+  let otherInput = toPublicInput(self, tail);
+  atParty.assertEquals(otherInput.atParty);
+  transaction.assertEquals(otherInput.transaction);
 }
 
-function picklesRuleFromFunction(
-  identifier: string,
+function picklesRuleFromFunction<T>(
   func: (...args: unknown[]) => void,
-  witnessTypes: AsFieldElements<unknown>[]
-): Rule {
-  function main(statement: Statement, previousStatements: Statement[]) {
-    let { self, witnesses } = getContext();
-    witnesses = witnessTypes.map(
-      witnesses
-        ? (type, i) => Circuit.witness(type, () => witnesses![i])
-        : emptyWitness
-    );
-    func(...witnesses);
+  proofSystemTag: { name: string },
+  { methodName, witnessArgs, proofArgs, args }: methodEntry<T>
+): Pickles.Rule {
+  function main(publicInput: PublicInput, previousInputs: PublicInput[]) {
+    let { self, witnesses: actualArgs } = getContext();
+    let finalArgs = [];
+    let proofs: Proof<any>[] = [];
+    for (let i = 0; i < args.length; i++) {
+      let arg = args[i];
+      if (arg.type === 'witness') {
+        let type = witnessArgs[arg.index];
+        finalArgs[i] = actualArgs
+          ? Circuit.witness(type, () => actualArgs![i])
+          : emptyWitness(type);
+      } else {
+        let Proof = proofArgs[arg.index];
+        let publicInput = Proof.publicInputType.ofFields(
+          previousInputs[arg.index]
+        );
+        let proofInstance: Proof<any>;
+        if (actualArgs) {
+          let { proof }: Proof<any> = actualArgs[i] as any;
+          proofInstance = new Proof({ publicInput, proof });
+        } else {
+          proofInstance = new Proof({ publicInput, proof: '' });
+        }
+        finalArgs[i] = proofInstance;
+        proofs.push(proofInstance);
+      }
+    }
+    func(...finalArgs);
     let tail = Field.zero;
-    // FIXME: figure out correct way to constrain statement https://github.com/o1-labs/snarkyjs/issues/98
-    statement[0].assertEquals(statement[0]);
-    // checkStatement(statement, self, tail);
+    // FIXME: figure out correct way to constrain public input https://github.com/o1-labs/snarkyjs/issues/98
+    publicInput[0].assertEquals(publicInput[0]);
+    // checkPublicInput(publicInput, self, tail);
 
     // check the self party right after calling the method
     // TODO: this needs to be done in a unified way for all parties that are created
     assertPreconditionInvariants(self);
     cleanPreconditionsCache(self);
-    return [];
+    return proofs.map((proof) => proof.shouldVerify);
   }
 
-  return { identifier, main, proofsToVerify: [] };
+  if (proofArgs.length > 2) {
+    throw Error(
+      `${proofSystemTag.name}.${methodName}() has more than two proof arguments, which is not supported.\n` +
+        `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
+    );
+  }
+  let proofsToVerify = proofArgs.map((Proof) => {
+    let tag = Proof.tag();
+    if (tag === proofSystemTag) return { isSelf: true as const };
+    else {
+      let compiledTag = CompiledTag.get(tag);
+      if (compiledTag === undefined) {
+        throw Error(
+          `${proofSystemTag.name}.compile() depends on ${tag.name}, but we cannot find compilation output for ${tag.name}.\n` +
+            `Try to run ${tag.name}.compile() first.`
+        );
+      }
+      return { isSelf: false, tag: compiledTag };
+    }
+  });
+  return { identifier: methodName, main, proofsToVerify };
 }
 
 /**
@@ -212,32 +259,33 @@ export class SmartContract {
 
   private _executionState: ExecutionState | undefined;
   static _methods?: methodEntry<SmartContract>[];
-  static _provers?: Prover[];
+  static _provers?: Pickles.Prover[];
   static _verificationKey?: { data: string; hash: Field };
 
   constructor(address: PublicKey) {
     this.address = address;
   }
 
-  static async compile(address?: PublicKey) {
+  static async compile(address: PublicKey) {
     // TODO: think about how address should be passed in
-    // if address is not provided, create a random one
     // TODO: maybe PublicKey should just become a variable? Then compile doesn't need to know the address, which seems more natural
-    address ??= PrivateKey.random().toPublicKey();
-    let instance = new this(address);
 
-    let rules = (this._methods ?? []).map(({ methodName, witnessArgs }) =>
+    let rules = (this._methods ?? []).map((methodEntry) =>
       picklesRuleFromFunction(
-        methodName,
-        (...args: unknown[]) => (instance[methodName] as any)(...args),
-        witnessArgs
+        (...args: unknown[]) => {
+          let instance = new this(address);
+          (instance[methodEntry.methodName] as any)(...args);
+        },
+        this,
+        methodEntry
       )
     );
 
-    let [, { getVerificationKeyArtifact, provers, verify }] = withContext(
+    let [, { getVerificationKeyArtifact, provers, verify, tag }] = withContext(
       { self: selfParty(address), inCompile: true },
       () => Pickles.compile(rules, 2)
     );
+    CompiledTag.store(this, tag);
     let verificationKey = getVerificationKeyArtifact();
     this._provers = provers;
     this._verificationKey = {

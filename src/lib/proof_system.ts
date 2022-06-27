@@ -1,22 +1,43 @@
-import { Proof } from '../snarky';
+import { Bool, AsFieldElements, Pickles } from '../snarky';
 
-export function proofSystem(target: any): any {}
+export { Proof, CompiledTag };
 
-export function branch(
-  target: any,
-  propertyName: string,
-  _descriptor?: PropertyDescriptor
-): any {}
+class Proof<T> {
+  static publicInputType: AsFieldElements<any> = undefined as any;
+  static tag: () => { name: string } = () => {
+    throw Error(
+      `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
+        `class MyProof extends Proof<PublicInput> { ... }`
+    );
+  };
+  publicInput: T;
+  proof: RawProof;
+  shouldVerify = Bool(false);
 
-export class ProofWithInput<A> {
-  publicInput: A;
-  proof: Proof | null;
+  verify() {
+    this.shouldVerify = Bool(true);
+  }
+  verifyIf(condition: Bool) {
+    this.shouldVerify = condition;
+  }
+  toString() {
+    return Pickles.proofToString(this.proof);
+  }
 
-  // TODO
-  assertVerifies() {}
-
-  constructor(publicInput: A) {
+  constructor({ proof, publicInput }: { proof: RawProof; publicInput: T }) {
     this.publicInput = publicInput;
-    this.proof = null;
+    this.proof = proof; // TODO optionally convert from string?
   }
 }
+type RawProof = unknown;
+type CompiledTag = unknown;
+
+let compiledTags = new WeakMap<any, CompiledTag>();
+let CompiledTag = {
+  get(tag: any): CompiledTag | undefined {
+    return compiledTags.get(tag);
+  },
+  store(tag: any, compiledTag: CompiledTag) {
+    compiledTags.set(tag, compiledTag);
+  },
+};

@@ -12,6 +12,7 @@ export {
   cloneCircuitValue,
   circuitValueEquals,
   circuitArray,
+  circuitValue,
 };
 
 type Constructor<T> = { new (...args: any[]): T };
@@ -73,6 +74,8 @@ abstract class CircuitValue {
     }
     return new this(...props);
   }
+
+  static check: (x: any) => void;
 
   static toConstant<T>(this: Constructor<T>, t: T): T {
     const xs: Field[] = (this as any).toFields(t);
@@ -149,7 +152,10 @@ function prop(this: any, target: any, key: string) {
   }
 }
 
-function circuitArray<T>(elementType: AsFieldElements<T>, length: number) {
+function circuitArray<T>(
+  elementType: AsFieldElements<T>,
+  length: number
+): AsFieldElements<T[]> {
   return {
     sizeInFields() {
       let elementLength = elementType.sizeInFields();
@@ -282,6 +288,65 @@ function circuitMain(
 }
 
 let primitives = new Set(['Field', 'Bool', 'Scalar', 'Group']);
+let complexTypes = new Set(['object', 'function']);
+
+// TODO properly type this at the interface
+// create recursive type that describes JSON-like structures of circuit types
+// TODO unit-test this
+function circuitValue<T>(typeObj: any): AsFieldElements<T> {
+  function sizeInFields(typeObj: any): number {
+    if (!complexTypes.has(typeof typeObj) || typeObj === null) return 0;
+    if (Array.isArray(typeObj))
+      return typeObj.map(sizeInFields).reduce((a, b) => a + b);
+    if ('sizeInFields' in typeObj) return typeObj.sizeInFields();
+    return Object.values(typeObj)
+      .map(sizeInFields)
+      .reduce((a, b) => a + b);
+  }
+  function toFields(typeObj: any, obj: any): Field[] {
+    if (!complexTypes.has(typeof typeObj) || typeObj === null) return [];
+    if (Array.isArray(typeObj))
+      return typeObj.map((t, i) => toFields(t, obj[i])).flat();
+    if ('toFields' in typeObj) return typeObj.toFields(obj);
+    return Object.keys(typeObj)
+      .sort()
+      .map((k) => toFields(typeObj[k], obj[k]))
+      .flat();
+  }
+  function ofFields(typeObj: any, fields: Field[]): any {
+    if (!complexTypes.has(typeof typeObj) || typeObj === null) return null;
+    if (Array.isArray(typeObj)) {
+      let array = [];
+      let offset = 0;
+      for (let subObj of typeObj) {
+        let size = sizeInFields(subObj);
+        array.push(subObj.ofFields(fields.slice(offset, offset + size)));
+        offset += size;
+      }
+      return array;
+    }
+    if ('ofFields' in typeObj) return typeObj.ofFields(fields);
+    let typeObjArray = Object.keys(typeObj)
+      .sort()
+      .map((k) => typeObj[k]);
+    return ofFields(typeObjArray, fields);
+  }
+  function check(typeObj: any, obj: any): void {
+    if (typeof typeObj !== 'object' || typeObj === null) return;
+    if (Array.isArray(typeObj))
+      return typeObj.forEach((t, i) => check(t, obj[i]));
+    if ('check' in typeObj) return typeObj.check(obj);
+    return Object.keys(typeObj)
+      .sort()
+      .forEach((k) => check(typeObj[k], obj[k]));
+  }
+  return {
+    sizeInFields: () => sizeInFields(typeObj),
+    toFields: (obj: T) => toFields(typeObj, obj),
+    ofFields: (fields: Field[]) => ofFields(typeObj, fields) as T,
+    check: (obj: T) => check(typeObj, obj),
+  };
+}
 
 function cloneCircuitValue<T>(obj: T): T {
   // primitive JS types and functions aren't cloned

@@ -1,4 +1,4 @@
-import { cloneCircuitValue } from './circuit_value';
+import { circuitValue, cloneCircuitValue } from './circuit_value';
 import { Field, Bool, Ledger, Circuit, Pickles, Types } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
@@ -6,6 +6,7 @@ import * as Mina from './mina';
 import { SmartContract } from './zkapp';
 import { withContextAsync } from './global-context';
 import * as Precondition from './precondition';
+import { Proof } from './proof_system';
 
 export {
   SetOrKeep,
@@ -26,6 +27,7 @@ export {
   addMissingProofs,
   signJsonTransaction,
   ZkappStateLength,
+  ZkappPublicInput,
 };
 
 const ZkappStateLength = 8;
@@ -474,6 +476,7 @@ type LazyProof = {
   kind: 'lazy-proof';
   method: Function;
   args: any[];
+  previousProofs: { publicInput: Field[]; proof: Pickles.Proof }[];
   ZkappClass: typeof SmartContract;
 };
 
@@ -876,8 +879,15 @@ type PartiesProved = {
   memo: string;
 };
 
-async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
+type ZkappPublicInput = [transaction: Field, atParty: Field];
+let ZkappPublicInput = circuitValue<ZkappPublicInput>([Field, Field]);
+
+async function addMissingProofs(parties: Parties): Promise<{
+  parties: PartiesProved;
+  proofs: (Proof<ZkappPublicInput> | undefined)[];
+}> {
   let partiesJson = JSON.stringify(partiesToJson(parties));
+  type PartyProved = Party & { authorization: Control | LazySignature };
 
   async function addProof(party: Party, index: number) {
     party = Party.clone(party);
@@ -885,13 +895,13 @@ async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
       !('kind' in party.authorization) ||
       party.authorization.kind !== 'lazy-proof'
     )
-      return party as Party & { authorization: Control | LazySignature };
-    let { method, args, ZkappClass } = party.authorization;
-    let statement = Ledger.zkappPublicInput(partiesJson, index);
+      return { partyProved: party as PartyProved, proof: undefined };
+    let { method, args, previousProofs, ZkappClass } = party.authorization;
+    let publicInput = Ledger.zkappPublicInput(partiesJson, index);
     if (ZkappClass._provers === undefined)
       throw Error(
         `Cannot prove execution of ${method.name}(), no prover found. ` +
-          `Try calling \`await ${ZkappClass.name}.compile()\` first, this will cache provers in the background.`
+          `Try calling \`await ${ZkappClass.name}.compile(address)\` first, this will cache provers in the background.`
       );
     let provers = ZkappClass._provers;
     let methodError =
@@ -906,21 +916,33 @@ async function addMissingProofs(parties: Parties): Promise<PartiesProved> {
         witnesses: args,
         inProver: true,
       },
-      () => provers[i](statement, [])
+      () => provers[i](publicInput, previousProofs)
     );
     party.authorization = { proof: Pickles.proofToString(proof) };
-    return party as Party & { authorization: Control | LazySignature };
+    class ZkappProof extends Proof<ZkappPublicInput> {
+      static publicInputType = ZkappPublicInput;
+      static tag = () => ZkappClass;
+    }
+    return {
+      partyProved: party as PartyProved,
+      proof: new ZkappProof({ publicInput, proof }),
+    };
   }
   let { feePayer, otherParties, memo } = parties;
   // compute proofs serially. in parallel would clash with our global variable hacks
   let otherPartiesProved: (Party & {
     authorization: Control | LazySignature;
   })[] = [];
+  let proofs: (Proof<ZkappPublicInput> | undefined)[] = [];
   for (let i = 0; i < otherParties.length; i++) {
-    let partyProved = await addProof(otherParties[i], i);
+    let { partyProved, proof } = await addProof(otherParties[i], i);
     otherPartiesProved.push(partyProved);
+    proofs.push(proof);
   }
-  return { feePayer, otherParties: otherPartiesProved, memo };
+  return {
+    parties: { feePayer, otherParties: otherPartiesProved, memo },
+    proofs,
+  };
 }
 
 /**

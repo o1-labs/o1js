@@ -13,7 +13,6 @@ export {
   isReady,
   shutdown,
   Pickles,
-  Rule,
   JSONValue,
 };
 export * as Types from './snarky/gen/parties';
@@ -716,7 +715,10 @@ declare class Ledger {
     commitment: Field;
     fullCommitment: Field;
   };
-  static zkappPublicInput(txJson: string, partyIndex: number): Field[];
+  static zkappPublicInput(
+    txJson: string,
+    partyIndex: number
+  ): [transaction: Field, atParty: Field];
   static signFieldElement(
     messageHash: Field,
     privateKey: { s: Scalar }
@@ -728,7 +730,7 @@ declare class Ledger {
     i: number
   ): string;
   static verifyPartyProof(
-    statement: Field[],
+    publicInput: Field[],
     proof: string,
     verificationKey: string
   ): Promise<boolean>;
@@ -757,11 +759,20 @@ declare const shutdown: () => Promise<undefined>;
  */
 declare let isReady: Promise<undefined>;
 
-type Rule = {
-  identifier: string;
-  main: (statement: Field[], previousStatements: Field[][]) => Bool[];
-  proofsToVerify: { isSelf: boolean; tag: unknown }[];
-};
+declare namespace Pickles {
+  type Proof = unknown; // opaque to js
+  type PublicInput = Field[];
+  type ProofWithPublicInput = { publicInput: PublicInput; proof: Proof };
+  type Rule = {
+    identifier: string;
+    main: (publicInput: PublicInput, previousInputs: PublicInput[]) => Bool[];
+    proofsToVerify: ({ isSelf: true } | { isSelf: false; tag: unknown })[];
+  };
+  type Prover = (
+    publicInput: Field[],
+    previousProofs: ProofWithPublicInput[]
+  ) => Promise<Proof>;
+}
 
 declare const Pickles: {
   /**
@@ -780,14 +791,11 @@ declare const Pickles: {
    * * `getVerificationKeyArtifact` - a function which returns the verification key used in `verify`, in base58 format, usable to deploy a zkapp
    */
   compile: (
-    rules: Rule[],
-    statementSize: number
+    rules: Pickles.Rule[],
+    publicInputSize: number
   ) => {
-    provers: ((
-      statement: Field[],
-      previousStatements: Field[][]
-    ) => Promise<unknown>)[];
-    verify: (statement: Field[], proof: unknown) => Promise<boolean>;
+    provers: Pickles.Prover[];
+    verify: (publicInput: Field[], proof: unknown) => Promise<boolean>;
     tag: unknown;
     getVerificationKeyArtifact: () => { data: string; hash: string };
   };
