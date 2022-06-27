@@ -145,14 +145,9 @@ class UInt64 extends CircuitValue implements Types.UInt64 {
   }
 
   lte(y: UInt64) {
-    let xMinusY = this.value.sub(y.value).seal();
-    let xMinusYFits = xMinusY.rangeCheckHelper(UInt64.NUM_BITS).equals(xMinusY);
-    let yMinusXFits = xMinusY
-      .rangeCheckHelper(UInt64.NUM_BITS)
-      .equals(xMinusY.neg());
-    xMinusYFits.or(yMinusXFits).assertEquals(true);
-    // x <= y if y - x fits in 64 bits
-    return yMinusXFits;
+    this.value.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(this.value);
+    y.value.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(y.value);
+    return this.value.lte(y.value);
   }
 
   assertLte(y: UInt64) {
@@ -302,14 +297,9 @@ class UInt32 extends CircuitValue implements Types.UInt32 {
   }
 
   lte(y: UInt32) {
-    let xMinusY = this.value.sub(y.value).seal();
-    let xMinusYFits = xMinusY.rangeCheckHelper(UInt32.NUM_BITS).equals(xMinusY);
-    let yMinusXFits = xMinusY
-      .rangeCheckHelper(UInt32.NUM_BITS)
-      .equals(xMinusY.neg());
-    xMinusYFits.or(yMinusXFits).assertEquals(true);
-    // x <= y if y - x fits in 32 bits
-    return yMinusXFits;
+    this.value.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(this.value);
+    y.value.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(y.value);
+    return this.value.lte(y.value);
   }
 
   assertLte(y: UInt32) {
