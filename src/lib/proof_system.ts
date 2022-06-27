@@ -24,10 +24,10 @@ class Proof<T> {
   };
   publicInput: T;
   proof: RawProof;
-  shouldVerify = Bool.false;
+  shouldVerify = Bool(false);
 
   verify() {
-    this.shouldVerify = Bool.true;
+    this.shouldVerify = Bool(true);
   }
   verifyIf(condition: Bool) {
     this.shouldVerify = condition;
