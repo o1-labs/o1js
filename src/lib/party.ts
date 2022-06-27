@@ -363,10 +363,7 @@ const FeePayerBody = {
       publicKey,
       nonce,
       fee: UInt64.zero,
-      update: Body.noUpdate(),
-      events: Events.empty(),
-      sequenceEvents: Events.empty(),
-      networkPrecondition: NetworkPrecondition.ignoreAll(),
+      validUntil: undefined,
     };
   },
 };
