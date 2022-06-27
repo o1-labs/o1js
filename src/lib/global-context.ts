@@ -15,7 +15,7 @@ export {
 let mainContext = undefined as
   | {
       witnesses?: unknown[];
-      self: Party;
+      self?: Party;
       expectedAccesses: number | undefined;
       actualAccesses: number;
       inProver?: boolean;
@@ -24,7 +24,7 @@ let mainContext = undefined as
   | undefined;
 type PartialContext = {
   witnesses?: unknown[];
-  self: Party;
+  self?: Party;
   expectedAccesses?: number;
   actualAccesses?: number;
   inProver?: boolean;
