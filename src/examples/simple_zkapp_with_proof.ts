@@ -11,6 +11,7 @@ import {
   ZkappPublicInput,
   Ledger,
   SelfProof,
+  verify,
 } from 'snarkyjs';
 
 await isReady;
@@ -61,7 +62,9 @@ let zkappAddress2 = zkappKey2.toPublicKey();
 
 // compile and prove trivial zkapp
 console.log('compile (trivial zkapp)');
-await TrivialZkapp.compile(zkappAddress2);
+let { verificationKey: trivialVerificationKey } = await TrivialZkapp.compile(
+  zkappAddress2
+);
 // TODO: should we have a simpler API for zkapp proving without
 // submitting transactions? or is this an irrelevant use case?
 // would also improve the return type -- `Proof` instead of `(Proof | undefined)[]`
@@ -72,7 +75,11 @@ let [trivialProof] = await (
   })
 ).prove();
 
-trivialProof = testJsonRoundtrip(TrivialProof, trivialProof);
+trivialProof = await testJsonRoundtripAndVerify(
+  TrivialProof,
+  trivialProof,
+  trivialVerificationKey
+);
 
 console.log('compile');
 let { verificationKey } = await NotSoSimpleZkapp.compile(zkappAddress);
@@ -93,7 +100,11 @@ tx = await Mina.transaction(feePayerKey, () => {
 let [proof] = await tx.prove();
 tx.send();
 
-proof = testJsonRoundtrip(NotSoSimpleZkapp.Proof, proof);
+proof = await testJsonRoundtripAndVerify(
+  NotSoSimpleZkapp.Proof,
+  proof,
+  verificationKey
+);
 
 console.log('initial state: ' + zkapp.x.get());
 
@@ -104,18 +115,11 @@ tx = await Mina.transaction(feePayerKey, () => {
 [proof] = await tx.prove();
 tx.send();
 
-// check that proof can be converted to string
-let proofString = proof!.toTransactionString();
-
-// check that proof verifies
-let ok = Ledger.verifyPartyProof(
-  proof!.publicInput,
-  proofString,
-  verificationKey.data
+proof = await testJsonRoundtripAndVerify(
+  NotSoSimpleZkapp.Proof,
+  proof,
+  verificationKey
 );
-if (!ok) throw Error('proof cannot be verified');
-
-proof = testJsonRoundtrip(NotSoSimpleZkapp.Proof, proof);
 
 console.log('state 2: ' + zkapp.x.get());
 
@@ -126,12 +130,25 @@ tx = await Mina.transaction(feePayerKey, () => {
 [proof] = await tx.prove();
 tx.send();
 
-proof = testJsonRoundtrip(NotSoSimpleZkapp.Proof, proof);
+proof = await testJsonRoundtripAndVerify(
+  NotSoSimpleZkapp.Proof,
+  proof,
+  verificationKey
+);
 
 console.log('final state: ' + zkapp.x.get());
 
-function testJsonRoundtrip(Proof: any, proof: any): any {
+async function testJsonRoundtripAndVerify(
+  Proof: any,
+  proof: any,
+  verificationKey: { data: string }
+): Promise<any> {
   let jsonProof = proof.toJSON();
-  console.log({ ...jsonProof, proof: jsonProof.proof.slice(0, 10) + '..' });
+  console.log(
+    'json proof:',
+    JSON.stringify({ ...jsonProof, proof: jsonProof.proof.slice(0, 10) + '..' })
+  );
+  let ok = await verify(jsonProof, verificationKey.data);
+  if (!ok) throw Error('proof cannot be verified');
   return Proof.fromJSON(jsonProof);
 }

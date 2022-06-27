@@ -2,7 +2,7 @@ import { Bool, Field, AsFieldElements, Pickles, Circuit } from '../snarky';
 import { getContext, withContext, withContextAsync } from './global-context';
 
 // public API
-export { Proof, SelfProof, ZkProgram };
+export { Proof, SelfProof, ZkProgram, verify };
 
 // internal API
 export {
@@ -32,9 +32,6 @@ class Proof<T> {
   }
   verifyIf(condition: Bool) {
     this.shouldVerify = condition;
-  }
-  toTransactionString() {
-    return Pickles.proofToString(this.proof);
   }
   toJSON(): JsonProof {
     return {
@@ -74,6 +71,27 @@ class Proof<T> {
     this.maxProofsVerified = maxProofsVerified;
   }
 }
+
+function verify(proof: Proof<any> | JsonProof, verificationKey: string) {
+  if (typeof proof.proof === 'string') {
+    // json proof
+    let [, picklesProof] = Pickles.proofOfBase64(
+      proof.proof,
+      proof.maxProofsVerified
+    );
+    let publicInputFields = (proof as JsonProof).publicInput.map(
+      Field.fromString
+    );
+    return Pickles.verify(publicInputFields, picklesProof, verificationKey);
+  } else {
+    // proof class
+    let publicInputFields = getPublicInputType(
+      proof.constructor as any
+    ).toFields(proof.publicInput);
+    return Pickles.verify(publicInputFields, proof.proof, verificationKey);
+  }
+}
+
 type RawProof = unknown;
 type JsonProof = {
   publicInput: string[];
@@ -108,7 +126,7 @@ function ZkProgram<
   };
 }): {
   name: string;
-  compile: () => Promise<void>;
+  compile: () => Promise<{ verificationKey: string }>;
   publicInputType: PublicInputType;
 } & {
   [I in keyof Types]: Prover<InferInstance<PublicInputType>, Types[I]>;
@@ -138,14 +156,15 @@ function ZkProgram<
       }
     | undefined;
 
-  async function compile(): Promise<void> {
-    let { provers, verify } = compileProgram(
+  async function compile() {
+    let { provers, verify, getVerificationKeyArtifact } = compileProgram(
       publicInputType,
       methodIntfs,
       methodFunctions,
       selfTag
     );
     compileOutput = { provers, verify };
+    return { verificationKey: getVerificationKeyArtifact().data };
   }
 
   function toProver<K extends keyof Types & string>(
