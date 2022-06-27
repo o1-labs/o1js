@@ -127,6 +127,7 @@ function ZkProgram<
 }): {
   name: string;
   compile: () => Promise<{ verificationKey: string }>;
+  verify: (proof: Proof<InferInstance<PublicInputType>>) => Promise<boolean>;
   publicInputType: PublicInputType;
 } & {
   [I in keyof Types]: Prover<InferInstance<PublicInputType>, Types[I]>;
@@ -201,7 +202,19 @@ function ZkProgram<
     [I in keyof Types]: Prover<PublicInput, Types[I]>;
   };
 
-  return Object.assign(selfTag, { compile, publicInputType }, provers);
+  function verify(proof: Proof<PublicInput>) {
+    if (compileOutput?.verify === undefined) {
+      throw Error(
+        `Cannot verify proof, verification key not found. Try calling \`await program.compile()\` first.`
+      );
+    }
+    return compileOutput.verify(
+      publicInputType.toFields(proof.publicInput),
+      proof.proof
+    );
+  }
+
+  return Object.assign(selfTag, { compile, verify, publicInputType }, provers);
 }
 
 let i = 0;

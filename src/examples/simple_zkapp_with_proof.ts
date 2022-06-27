@@ -9,7 +9,6 @@ import {
   Party,
   isReady,
   ZkappPublicInput,
-  Ledger,
   SelfProof,
   verify,
 } from 'snarkyjs';
