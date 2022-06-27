@@ -292,6 +292,7 @@ let complexTypes = new Set(['object', 'function']);
 
 // TODO properly type this at the interface
 // create recursive type that describes JSON-like structures of circuit types
+// TODO unit-test this
 function circuitValue<T>(typeObj: any): AsFieldElements<T> {
   function sizeInFields(typeObj: any): number {
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return 0;
