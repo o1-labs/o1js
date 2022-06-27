@@ -431,11 +431,11 @@ declare class Bool {
   /**
    * The constant [[`Bool`]] that is `true`.
    */
-  static true: Bool;
+  //static true: Bool;
   /**
    * The constant [[`Bool`]] that is `false`.
    */
-  static false: Bool;
+  //static false: Bool;
 
   static toField(x: Bool | boolean): Field;
 
