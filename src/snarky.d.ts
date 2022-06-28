@@ -798,6 +798,15 @@ declare const Pickles: {
     getVerificationKeyArtifact: () => { data: string; hash: string };
   };
 
+  /**
+   * This function has the same inputs as compile, but is a quick-to-compute
+   * hash that can be used to short-circuit proofs if rules haven't changed.
+   */
+  circuitDigest: (
+    rules: Pickles.Rule[],
+    publicInputSize: number
+  ) => string;
+
   verify(
     publicInput: Pickles.PublicInput,
     proof: Pickles.Proof,
