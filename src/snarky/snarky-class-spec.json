@@ -405,10 +405,6 @@
         "type": "function"
       },
       {
-        "name": "verifyPartyProof",
-        "type": "function"
-      },
-      {
         "name": "publicKeyToString",
         "type": "function"
       },
@@ -454,7 +450,19 @@
         "type": "function"
       },
       {
-        "name": "proofToString",
+        "name": "verify",
+        "type": "function"
+      },
+      {
+        "name": "proofToBase64",
+        "type": "function"
+      },
+      {
+        "name": "proofOfBase64",
+        "type": "function"
+      },
+      {
+        "name": "proofToBase64Transaction",
         "type": "function"
       }
     ]
