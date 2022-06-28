@@ -20,6 +20,7 @@ type State<A> = {
   set(a: A): void;
   fetch(): Promise<A | undefined>;
   assertEquals(a: A): void;
+  assertNothing(): void;
 };
 function State<A>(): State<A> {
   return createState<A>();
@@ -165,6 +166,14 @@ function createState<T>(): InternalStateType<T> {
           x
         );
       });
+      this._contract.wasConstrained = true;
+    },
+
+    assertNothing() {
+      if (this._contract === undefined)
+        throw Error(
+          'assertNothing can only be called when the State is assigned to a SmartContract @state.'
+        );
       this._contract.wasConstrained = true;
     },
 
