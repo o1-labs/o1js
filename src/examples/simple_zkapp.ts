@@ -32,6 +32,7 @@ class SimpleZkapp extends SmartContract {
 
   @method update(y: Field) {
     let x = this.x.get();
+    this.x.assertEquals(x);
     this.x.set(x.add(y));
   }
 
