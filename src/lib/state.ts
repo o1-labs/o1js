@@ -7,7 +7,10 @@ import { Account, fetchAccount } from './fetch';
 import * as GlobalContext from './global-context';
 import { SmartContract } from './zkapp';
 
+// external API
 export { State, state, declareState };
+// internal API
+export { assertStatePrecondition, cleanStatePrecondition };
 
 /**
  * Gettable and settable state that can be checked for equality.
@@ -64,8 +67,11 @@ function state<A>(stateType: AsFieldElements<A>) {
           stateType: stateType,
           instance: this,
           class: ZkappClass,
+          wasConstrained: false,
+          wasRead: false,
+          cachedVariable: undefined,
         };
-        (this._ ?? (this._ = {}))[key] = v;
+        (this._ ??= {})[key] = v;
       },
     });
   };
@@ -121,6 +127,9 @@ type StateAttachedContract<A> = {
   stateType: AsFieldElements<A>;
   instance: SmartContract;
   class: typeof SmartContract;
+  wasRead: boolean;
+  wasConstrained: boolean;
+  cachedVariable?: A;
 };
 
 type InternalStateType<A> = State<A> & { _contract?: StateAttachedContract<A> };
@@ -156,6 +165,7 @@ function createState<T>(): InternalStateType<T> {
           x
         );
       });
+      this._contract.wasConstrained = true;
     },
 
     get() {
@@ -163,6 +173,10 @@ function createState<T>(): InternalStateType<T> {
         throw Error(
           'get can only be called when the State is assigned to a SmartContract @state.'
         );
+      if (this._contract.cachedVariable !== undefined) {
+        this._contract.wasRead = true;
+        return this._contract.cachedVariable;
+      }
       let layout = getLayoutPosition(this._contract);
       let address: PublicKey = this._contract.instance.address;
       let stateAsFields: Field[];
@@ -209,6 +223,8 @@ function createState<T>(): InternalStateType<T> {
       }
       let state = this._contract.stateType.ofFields(stateAsFields);
       this._contract.stateType.check?.(state);
+      this._contract.wasRead = true;
+      this._contract.cachedVariable = state;
       return state;
     },
 
@@ -267,6 +283,7 @@ function getLayout(scClass: typeof SmartContract) {
   return sc.layout;
 }
 
+// per-smart contract class context for keeping track of state layout
 const smartContracts = new WeakMap<
   typeof SmartContract,
   {
@@ -276,3 +293,37 @@ const smartContracts = new WeakMap<
 >();
 
 const reservedPropNames = new Set(['_methods', '_']);
+
+function assertStatePrecondition(sc: SmartContract) {
+  try {
+    for (let [key, context] of getStateContexts(sc)) {
+      // check if every state that was read was also contrained
+      if (!context?.wasRead || context.wasConstrained) continue;
+      // we accessed a precondition field but not constrained it explicitly - throw an error
+      let errorMessage = `You used \`this.${key}.get()\` without adding a precondition that links it to the actual on-chain state.
+Consider adding this line to your code:
+this.${key}.assertEquals(this.${key}.get());`;
+      throw Error(errorMessage);
+    }
+  } finally {
+    cleanStatePrecondition(sc);
+  }
+}
+
+function cleanStatePrecondition(sc: SmartContract) {
+  for (let [, context] of getStateContexts(sc)) {
+    if (context === undefined) continue;
+    context.wasRead = false;
+    context.wasConstrained = false;
+    context.cachedVariable = undefined;
+  }
+}
+
+function getStateContexts(
+  sc: SmartContract
+): [string, StateAttachedContract<unknown> | undefined][] {
+  let scClass = sc.constructor as typeof SmartContract;
+  let scInfo = smartContracts.get(scClass);
+  if (scInfo === undefined) return [];
+  return scInfo.states.map(([key]) => [key, (sc as any)[key]?._contract]);
+}
