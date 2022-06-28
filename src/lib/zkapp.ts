@@ -66,6 +66,11 @@ export function method<T extends SmartContract>(
   );
   ZkappClass._methods ??= [];
   ZkappClass._methods.push(methodEntry);
+  ZkappClass._maxProofsVerified ??= 0;
+  ZkappClass._maxProofsVerified = Math.max(
+    ZkappClass._maxProofsVerified,
+    methodEntry.proofArgs.length
+  );
   let func = descriptor.value;
   descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
 }
@@ -99,17 +104,23 @@ function wrapMethod(
     } else {
       // in a transaction, also add a lazy proof to the self party
       // (if there's no other authorization set)
+
+      // first, clone to protect against the method modifying arguments!
+      // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
+      let clonedArgs = cloneCircuitValue(actualArgs);
+      let result = method.apply(this, actualArgs);
       let auth = this.self.authorization;
       if (!('kind' in auth || 'proof' in auth || 'signature' in auth)) {
         this.self.authorization = {
           kind: 'lazy-proof',
           method,
-          args: actualArgs,
+          args: clonedArgs,
+          // proofs actually don't have to be cloned
           previousProofs: getPreviousProofsForProver(actualArgs, methodIntf),
           ZkappClass,
         };
       }
-      return method.apply(this, actualArgs);
+      return result;
     }
   };
 }
@@ -147,7 +158,16 @@ export class SmartContract {
   private _executionState: ExecutionState | undefined;
   static _methods?: MethodInterface[];
   static _provers?: Pickles.Prover[];
+  static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
+
+  static get Proof() {
+    let Contract = this;
+    return class extends Proof<ZkappPublicInput> {
+      static publicInputType = ZkappPublicInput;
+      static tag = () => Contract;
+    };
+  }
 
   constructor(address: PublicKey) {
     this.address = address;

@@ -923,14 +923,15 @@ async function addMissingProofs(parties: Parties): Promise<{
       },
       () => provers[i](publicInput, previousProofs)
     );
-    party.authorization = { proof: Pickles.proofToString(proof) };
+    party.authorization = { proof: Pickles.proofToBase64Transaction(proof) };
     class ZkappProof extends Proof<ZkappPublicInput> {
       static publicInputType = ZkappPublicInput;
       static tag = () => ZkappClass;
     }
+    let maxProofsVerified = ZkappClass._maxProofsVerified!;
     return {
       partyProved: party as PartyProved,
-      proof: new ZkappProof({ publicInput, proof }),
+      proof: new ZkappProof({ publicInput, proof, maxProofsVerified }),
     };
   }
   let { feePayer, otherParties, memo } = parties;
