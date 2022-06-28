@@ -863,7 +863,6 @@ function addMissingSignatures(
     return party as Party & { authorization: Control };
   }
   let { feePayer, otherParties, memo } = parties;
-  console.log(3);
   return {
     feePayer: addFeePayerSignature(feePayer),
     otherParties: otherParties.map((p) => addSignature(p)),
