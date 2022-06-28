@@ -772,16 +772,12 @@ type PartiesSigned = {
   memo: string;
 };
 
-// TODO: probably shouldn't hard-code dummy signature
-const dummySignature =
-  '7mWxjLYgbJUkZNcGouvhVj5tJ8yu9hoexb9ntvPK8t5LHqzmrL6QJjjKtf5SgmxB4QWkDw7qoMMbbNGtHVpsbJHPyTy2EzRQ';
-
 // TODO find a better name for these to make it clearer what they do (replace any lazy authorization with no/dummy authorization)
 function toFeePayerUnsafe(feePayer: FeePayerUnsigned): FeePayer {
   let { body, authorization } = feePayer;
   if (typeof authorization === 'string') return { body, authorization };
   else {
-    return { body, authorization: dummySignature };
+    return { body, authorization: Ledger.dummySignature() };
   }
 }
 function toPartyUnsafe({ body, authorization }: Party): Types.Party {
@@ -821,8 +817,9 @@ function addMissingSignatures(
   function addFeePayerSignature(party: FeePayerUnsigned): FeePayer {
     let { body, authorization } = cloneCircuitValue(party);
     if (typeof authorization === 'string') return { body, authorization };
-    if (authorization === undefined)
-      return { body, authorization: dummySignature };
+    if (authorization === undefined) {
+      return { body, authorization: Ledger.dummySignature() };
+    }
     let { privateKey } = authorization;
     if (privateKey === undefined) {
       let i = additionalPublicKeys.findIndex(
@@ -866,6 +863,7 @@ function addMissingSignatures(
     return party as Party & { authorization: Control };
   }
   let { feePayer, otherParties, memo } = parties;
+  console.log(3);
   return {
     feePayer: addFeePayerSignature(feePayer),
     otherParties: otherParties.map((p) => addSignature(p)),
