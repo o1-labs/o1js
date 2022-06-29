@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     Like smart contracts, ZkPrograms can produce execution proofs and merge in previous proofs, but they are more general and suitable for roll-up-type systems.
   - Supported numbers of merged proofs are 0, 1 and 2
   - PRs: https://github.com/o1-labs/snarkyjs/pull/245 https://github.com/o1-labs/snarkyjs/pull/250 https://github.com/o1-labs/snarkyjs/pull/261
+- `SmartContract.digest()` to quickly compute a hash of the contract's circuit. This will be used by the zkApp CLI to figure out whether `compile` should be re-run or a cached verification key can be used.
 
 ### Changed
 

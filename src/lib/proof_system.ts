@@ -12,6 +12,7 @@ export {
   MethodInterface,
   picklesRuleFromFunction,
   compileProgram,
+  digestProgram,
 };
 
 class Proof<T> {
@@ -329,6 +330,27 @@ function compileProgram(
   );
   CompiledTag.store(proofSystemTag, tag);
   return { getVerificationKeyArtifact, provers, verify, tag };
+}
+
+function digestProgram(
+  publicInputType: AsFieldElements<any>,
+  methodIntfs: MethodInterface[],
+  methods: ((...args: any) => void)[],
+  proofSystemTag: { name: string },
+  additionalContext?: { self: any } | undefined
+) {
+  let rules = methodIntfs.map((methodEntry, i) =>
+    picklesRuleFromFunction(
+      publicInputType,
+      methods[i],
+      proofSystemTag,
+      methodEntry
+    )
+  );
+  let [, digest] = withContext({ inCompile: true, ...additionalContext }, () =>
+    Pickles.circuitDigest(rules, publicInputType.sizeInFields())
+  );
+  return digest;
 }
 
 function picklesRuleFromFunction(
