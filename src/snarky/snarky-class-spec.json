@@ -393,15 +393,15 @@
         "type": "function"
       },
       {
+        "name": "dummySignature",
+        "type": "function"
+      },
+      {
         "name": "signFeePayer",
         "type": "function"
       },
       {
         "name": "signOtherParty",
-        "type": "function"
-      },
-      {
-        "name": "verifyPartyProof",
         "type": "function"
       },
       {
@@ -450,7 +450,23 @@
         "type": "function"
       },
       {
-        "name": "proofToString",
+        "name": "circuitDigest",
+        "type": "function"
+      },
+      {
+        "name": "verify",
+        "type": "function"
+      },
+      {
+        "name": "proofToBase64",
+        "type": "function"
+      },
+      {
+        "name": "proofOfBase64",
+        "type": "function"
+      },
+      {
+        "name": "proofToBase64Transaction",
         "type": "function"
       }
     ]

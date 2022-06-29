@@ -431,11 +431,11 @@ declare class Bool {
   /**
    * The constant [[`Bool`]] that is `true`.
    */
-  static true: Bool;
+  //static true: Bool;
   /**
    * The constant [[`Bool`]] that is `false`.
    */
-  static false: Bool;
+  //static false: Bool;
 
   static toField(x: Bool | boolean): Field;
 
@@ -723,17 +723,13 @@ declare class Ledger {
     messageHash: Field,
     privateKey: { s: Scalar }
   ): string;
+  static dummySignature(): string;
   static signFeePayer(txJson: string, privateKey: { s: Scalar }): string;
   static signOtherParty(
     txJson: string,
     privateKey: { s: Scalar },
     i: number
   ): string;
-  static verifyPartyProof(
-    publicInput: Field[],
-    proof: string,
-    verificationKey: string
-  ): Promise<boolean>;
 
   static publicKeyToString(publicKey: { g: Group }): string;
   static publicKeyOfString(publicKeyBase58: string): Group;
@@ -795,12 +791,36 @@ declare const Pickles: {
     publicInputSize: number
   ) => {
     provers: Pickles.Prover[];
-    verify: (publicInput: Field[], proof: unknown) => Promise<boolean>;
+    verify: (
+      publicInput: Pickles.PublicInput,
+      proof: Pickles.Proof
+    ) => Promise<boolean>;
     tag: unknown;
     getVerificationKeyArtifact: () => { data: string; hash: string };
   };
 
-  proofToString: (proof: unknown) => string;
+  /**
+   * This function has the same inputs as compile, but is a quick-to-compute
+   * hash that can be used to short-circuit proofs if rules haven't changed.
+   */
+  circuitDigest: (
+    rules: Pickles.Rule[],
+    publicInputSize: number
+  ) => string;
+
+  verify(
+    publicInput: Pickles.PublicInput,
+    proof: Pickles.Proof,
+    verificationKey: string
+  ): Promise<boolean>;
+
+  proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
+  proofOfBase64: (
+    base64: string,
+    maxProofsVerified: 0 | 1 | 2
+  ) => [0 | 1 | 2, Pickles.Proof];
+
+  proofToBase64Transaction: (proof: Pickles.Proof) => string;
 };
 
 type JSONValue =

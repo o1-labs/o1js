@@ -363,10 +363,7 @@ const FeePayerBody = {
       publicKey,
       nonce,
       fee: UInt64.zero,
-      update: Body.noUpdate(),
-      events: Events.empty(),
-      sequenceEvents: Events.empty(),
-      networkPrecondition: NetworkPrecondition.ignoreAll(),
+      validUntil: undefined,
     };
   },
 };
@@ -772,16 +769,12 @@ type PartiesSigned = {
   memo: string;
 };
 
-// TODO: probably shouldn't hard-code dummy signature
-const dummySignature =
-  '7mWxjLYgbJUkZNcGouvhVj5tJ8yu9hoexb9ntvPK8t5LHqzmrL6QJjjKtf5SgmxB4QWkDw7qoMMbbNGtHVpsbJHPyTy2EzRQ';
-
 // TODO find a better name for these to make it clearer what they do (replace any lazy authorization with no/dummy authorization)
 function toFeePayerUnsafe(feePayer: FeePayerUnsigned): FeePayer {
   let { body, authorization } = feePayer;
   if (typeof authorization === 'string') return { body, authorization };
   else {
-    return { body, authorization: dummySignature };
+    return { body, authorization: Ledger.dummySignature() };
   }
 }
 function toPartyUnsafe({ body, authorization }: Party): Types.Party {
@@ -821,8 +814,9 @@ function addMissingSignatures(
   function addFeePayerSignature(party: FeePayerUnsigned): FeePayer {
     let { body, authorization } = cloneCircuitValue(party);
     if (typeof authorization === 'string') return { body, authorization };
-    if (authorization === undefined)
-      return { body, authorization: dummySignature };
+    if (authorization === undefined) {
+      return { body, authorization: Ledger.dummySignature() };
+    }
     let { privateKey } = authorization;
     if (privateKey === undefined) {
       let i = additionalPublicKeys.findIndex(
@@ -879,6 +873,14 @@ type PartiesProved = {
   memo: string;
 };
 
+/**
+ * The public input for zkApps consists of certain hashes of the transaction and of the proving Party which is constructed during method execution.
+
+  In SmartContract.prove, a method is run twice: First outside the proof, to obtain the public input, and once in the prover,
+  which takes the public input as input. The current transaction is hashed again inside the prover, which asserts that the result equals the input public input,
+  as part of the snark circuit. The block producer will also hash the transaction they receive and pass it as a public input to the verifier.
+  Thus, the transaction is fully constrained by the proof - the proof couldn't be used to attest to a different transaction.
+ */
 type ZkappPublicInput = [transaction: Field, atParty: Field];
 let ZkappPublicInput = circuitValue<ZkappPublicInput>([Field, Field]);
 
@@ -918,14 +920,15 @@ async function addMissingProofs(parties: Parties): Promise<{
       },
       () => provers[i](publicInput, previousProofs)
     );
-    party.authorization = { proof: Pickles.proofToString(proof) };
+    party.authorization = { proof: Pickles.proofToBase64Transaction(proof) };
     class ZkappProof extends Proof<ZkappPublicInput> {
       static publicInputType = ZkappPublicInput;
       static tag = () => ZkappClass;
     }
+    let maxProofsVerified = ZkappClass._maxProofsVerified!;
     return {
       partyProved: party as PartyProved,
-      proof: new ZkappProof({ publicInput, proof }),
+      proof: new ZkappProof({ publicInput, proof, maxProofsVerified }),
     };
   }
   let { feePayer, otherParties, memo } = parties;

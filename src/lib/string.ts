@@ -58,7 +58,7 @@ class CircuitString extends CircuitValue {
     let length = Field.zero;
     // mask is an array that is true where `this` has its first null character, false elsewhere
     let mask = [];
-    let wasntNullAlready = Bool.true;
+    let wasntNullAlready = Bool(true);
     for (let i = 0; i < n; i++) {
       let isNull = this.values[i].isNull();
       mask[i] = isNull.and(wasntNullAlready);

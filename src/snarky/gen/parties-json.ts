@@ -2,12 +2,12 @@
 
 import {
   PublicKey,
-  Field,
-  Bool,
-  AuthRequired,
   UInt64,
   UInt32,
   TokenId,
+  Field,
+  Bool,
+  AuthRequired,
   Sign,
 } from '../parties-leaves-json';
 
@@ -18,99 +18,8 @@ type Parties = {
   feePayer: {
     body: {
       publicKey: PublicKey;
-      update: {
-        appState: (Field | null)[];
-        delegate: PublicKey | null;
-        verificationKey: {
-          data: string;
-          hash: Field;
-        } | null;
-        permissions: {
-          editState: AuthRequired;
-          send: AuthRequired;
-          receive: AuthRequired;
-          setDelegate: AuthRequired;
-          setPermissions: AuthRequired;
-          setVerificationKey: AuthRequired;
-          setZkappUri: AuthRequired;
-          editSequenceState: AuthRequired;
-          setTokenSymbol: AuthRequired;
-          incrementNonce: AuthRequired;
-          setVotingFor: AuthRequired;
-        } | null;
-        zkappUri: string | null;
-        tokenSymbol: string | null;
-        timing: {
-          initialMinimumBalance: UInt64;
-          cliffTime: UInt32;
-          cliffAmount: UInt64;
-          vestingPeriod: UInt32;
-          vestingIncrement: UInt64;
-        } | null;
-        votingFor: Field | null;
-      };
       fee: UInt64;
-      events: Field[][];
-      sequenceEvents: Field[][];
-      networkPrecondition: {
-        snarkedLedgerHash: Field | null;
-        timestamp: {
-          lower: UInt64;
-          upper: UInt64;
-        } | null;
-        blockchainLength: {
-          lower: UInt32;
-          upper: UInt32;
-        } | null;
-        minWindowDensity: {
-          lower: UInt32;
-          upper: UInt32;
-        } | null;
-        totalCurrency: {
-          lower: UInt64;
-          upper: UInt64;
-        } | null;
-        globalSlotSinceHardFork: {
-          lower: UInt32;
-          upper: UInt32;
-        } | null;
-        globalSlotSinceGenesis: {
-          lower: UInt32;
-          upper: UInt32;
-        } | null;
-        stakingEpochData: {
-          ledger: {
-            hash: Field | null;
-            totalCurrency: {
-              lower: UInt64;
-              upper: UInt64;
-            } | null;
-          };
-          seed: Field | null;
-          startCheckpoint: Field | null;
-          lockCheckpoint: Field | null;
-          epochLength: {
-            lower: UInt32;
-            upper: UInt32;
-          } | null;
-        };
-        nextEpochData: {
-          ledger: {
-            hash: Field | null;
-            totalCurrency: {
-              lower: UInt64;
-              upper: UInt64;
-            } | null;
-          };
-          seed: Field | null;
-          startCheckpoint: Field | null;
-          lockCheckpoint: Field | null;
-          epochLength: {
-            lower: UInt32;
-            upper: UInt32;
-          } | null;
-        };
-      };
+      validUntil: UInt32 | null;
       nonce: UInt32;
     };
     authorization: string;

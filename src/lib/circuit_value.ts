@@ -168,8 +168,8 @@ function circuitArray<T>(
     ofFields(fields: Field[]) {
       let array = [];
       let elementLength = elementType.sizeInFields();
-      length = elementLength * length;
-      for (let i = 0; i < length; i += elementLength) {
+      let n = elementLength * length;
+      for (let i = 0; i < n; i += elementLength) {
         array.push(elementType.ofFields(fields.slice(i, i + elementLength)));
       }
       return array;
@@ -293,6 +293,7 @@ let complexTypes = new Set(['object', 'function']);
 
 // TODO properly type this at the interface
 // create recursive type that describes JSON-like structures of circuit types
+// TODO unit-test this
 function circuitValue<T>(typeObj: any): AsFieldElements<T> {
   function sizeInFields(typeObj: any): number {
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return 0;
