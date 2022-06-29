@@ -41,6 +41,7 @@ class NotSoSimpleZkapp extends SmartContract {
     oldProof.verify();
     trivialProof.verify();
     let x = this.x.get();
+    this.x.assertEquals(x);
     this.x.set(x.add(y));
   }
 }

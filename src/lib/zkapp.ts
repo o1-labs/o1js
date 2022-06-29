@@ -25,6 +25,7 @@ import {
   Proof,
   digestProgram,
 } from './proof_system';
+import { assertStatePrecondition, cleanStatePrecondition } from './state';
 
 export { deploy, DeployArgs, signFeePayer, declareMethods };
 
@@ -83,6 +84,7 @@ function wrapMethod(
   methodIntf: MethodInterface
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
+    cleanStatePrecondition(this);
     if (inCheckedComputation() || Mina.currentTransaction === undefined) {
       if (inCheckedComputation()) {
         // inside prover / compile, the method is always called with the public input as first argument
@@ -101,6 +103,7 @@ function wrapMethod(
       // TODO: this needs to be done in a unified way for all parties that are created
       assertPreconditionInvariants(this.self);
       cleanPreconditionsCache(this.self);
+      assertStatePrecondition(this);
       return result;
     } else {
       // in a transaction, also add a lazy proof to the self party
@@ -110,6 +113,7 @@ function wrapMethod(
       // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
       let clonedArgs = cloneCircuitValue(actualArgs);
       let result = method.apply(this, actualArgs);
+      assertStatePrecondition(this);
       let auth = this.self.authorization;
       if (!('kind' in auth || 'proof' in auth || 'signature' in auth)) {
         this.self.authorization = {

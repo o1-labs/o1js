@@ -25,6 +25,7 @@ class SimpleZkapp extends SmartContract {
   update(y) {
     this.account.balance.assertEquals(this.account.balance.get());
     let x = this.x.get();
+    this.x.assertEquals(x);
     this.x.set(x.add(y));
   }
 }

@@ -723,6 +723,7 @@ declare class Ledger {
     messageHash: Field,
     privateKey: { s: Scalar }
   ): string;
+  static dummySignature(): string;
   static signFeePayer(txJson: string, privateKey: { s: Scalar }): string;
   static signOtherParty(
     txJson: string,
