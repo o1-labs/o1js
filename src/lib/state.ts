@@ -182,7 +182,15 @@ function createState<T>(): InternalStateType<T> {
         throw Error(
           'get can only be called when the State is assigned to a SmartContract @state.'
         );
-      if (this._contract.cachedVariable !== undefined) {
+      // inside the circuit, we have to cache variables, so there's only one unique variable per on-chain state.
+      // if we'd return a fresh variable everytime, developers could easily end up linking just *one* of them to the precondition,
+      // while using an unconstrained variable elsewhere, which would create a loophole in the proof.
+      if (
+        this._contract.cachedVariable !== undefined &&
+        // `inCheckedComputation() === true` here always implies being inside a wrapped smart contract method,
+        // which will ensure that the cache is cleaned up before & after each method run.
+        GlobalContext.inCheckedComputation()
+      ) {
         this._contract.wasRead = true;
         return this._contract.cachedVariable;
       }
