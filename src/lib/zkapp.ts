@@ -23,6 +23,7 @@ import {
   sortMethodArguments,
   compileProgram,
   Proof,
+  digestProgram,
 } from './proof_system';
 
 export { deploy, DeployArgs, signFeePayer, declareMethods };
@@ -200,6 +201,19 @@ export class SmartContract {
     };
     // TODO: instead of returning provers, return an artifact from which provers can be recovered
     return { verificationKey, provers, verify };
+  }
+
+  static digest(address: PublicKey) {
+    let methodIntfs = this._methods ?? [];
+    let methods = methodIntfs.map(({ methodName }) => {
+      return (...args: unknown[]) => {
+        let instance = new this(address);
+        (instance as any)[methodName](...args);
+      };
+    });
+    return digestProgram(ZkappPublicInput, methodIntfs, methods, this, {
+      self: selfParty(address),
+    });
   }
 
   deploy({
