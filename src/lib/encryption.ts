@@ -1,26 +1,8 @@
-import { Poseidon, Group, Field, Scalar, Circuit } from '../snarky';
+import { Group, Field, Scalar, Circuit } from '../snarky';
+import { Poseidon } from './hash';
 import { PrivateKey, PublicKey } from './signature';
 
 export { encrypt, decrypt };
-
-class Sponge {
-  sponge: unknown;
-
-  constructor() {
-    this.sponge = (Poseidon as any).spongeCreate()();
-  }
-
-  absorb(x: Field) {
-    // console.log(this.sponge, x);
-    (Poseidon as any).spongeAbsorb(this.sponge, x);
-  }
-
-  squeeze() {
-    return (Poseidon as any).spongeSqueeze(this.sponge);
-  }
-}
-
-Poseidon.Sponge = Sponge;
 
 type CipherText = {
   publicKey: Group;
@@ -73,7 +55,8 @@ function decrypt(
     let messageChunk = cipherText[i].sub(keyStream);
     message.push(messageChunk);
     if (i % 2 === 1) sponge.absorb(cipherText[i - 1]);
-    if (i % 2 === 1 || i === cipherText.length - 1) sponge.absorb(cipherText[i]);
+    if (i % 2 === 1 || i === cipherText.length - 1)
+      sponge.absorb(cipherText[i]);
   }
   // authentication tag
   sponge.squeeze().assertEquals(authenticationTag!);
