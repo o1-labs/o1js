@@ -262,6 +262,10 @@
         "type": "function"
       },
       {
+        "name": "prefixes",
+        "type": "object"
+      },
+      {
         "name": "spongeCreate",
         "type": "function"
       },

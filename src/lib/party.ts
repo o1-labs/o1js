@@ -7,6 +7,7 @@ import { SmartContract } from './zkapp';
 import { withContextAsync } from './global-context';
 import * as Precondition from './precondition';
 import { Proof } from './proof_system';
+import { salt } from './hash';
 
 export {
   SetOrKeep,
@@ -235,17 +236,12 @@ class Events {
   hash: Field;
   data: Field[][];
 
-  // TODO don't hard-code, implement hashes
   static empty() {
-    let emptyHash = Field(
-      '23641812384071365026036270005604392899711718400522999453895455265440046333209'
-    );
+    let emptyHash = salt('MinaSnappEventsEmpty')[0];
     return new Events(emptyHash, []);
   }
   static emptySequenceState() {
-    return Field(
-      '19777675955122618431670853529822242067051263606115426372178827525373304476695'
-    );
+    return salt('MinaSnappSequenceEmpty')[0];
   }
 
   constructor(hash: Field, events: Field[][]) {

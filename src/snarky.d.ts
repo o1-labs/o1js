@@ -657,6 +657,7 @@ declare const Poseidon: {
     input: Field[],
     isChecked: boolean
   ): [Field, Field, Field];
+  prefixes: Record<'event' | 'events' | 'sequenceEvents', string>;
   spongeCreate(isChecked: boolean): unknown;
   spongeAbsorb(sponge: unknown, x: Field): void;
   spongeSqueeze(sponge: unknown): Field;

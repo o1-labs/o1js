@@ -1,7 +1,11 @@
 import { Poseidon as Poseidon_, Field } from '../snarky';
 import { inCheckedComputation } from './global-context';
 
+// external API
 export { Poseidon };
+
+// internal API
+export { salt, prefixes };
 
 class Sponge {
   private sponge: unknown;
@@ -39,3 +43,25 @@ const Poseidon = {
 
   Sponge,
 };
+
+const prefixes = Poseidon_.prefixes;
+
+function salt(prefix: string) {
+  return Poseidon.update(Poseidon.initialState, [prefixToField(prefix)]);
+}
+
+// same as Random_oracle.prefix_to_field in OCaml
+function prefixToField(prefix: string) {
+  if (prefix.length * 8 >= 255) throw Error('prefix too long');
+  let bits = [...prefix]
+    .map((char) => {
+      // convert char to 8 bits
+      let bits = [];
+      for (let j = 0, c = char.charCodeAt(0); j < 8; j++, c >>= 1) {
+        bits.push(!!(c & 1));
+      }
+      return bits;
+    })
+    .flat();
+  return Field.ofBits(bits);
+}
