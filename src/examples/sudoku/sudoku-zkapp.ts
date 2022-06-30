@@ -83,6 +83,7 @@ class SudokuZkapp extends SmartContract {
 
     // finally, we check that the sudoku is the one that was originally deployed
     let sudokuHash = this.sudokuHash.get(); // get the hash from the blockchain
+    this.sudokuHash.assertEquals(sudokuHash);
     sudokuInstance.hash().assertEquals(sudokuHash);
 
     // all checks passed => the sudoku is solved!
