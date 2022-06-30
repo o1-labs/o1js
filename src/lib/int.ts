@@ -8,11 +8,6 @@ class UInt64 extends CircuitValue implements Types.UInt64 {
   static NUM_BITS = 64;
   _type?: 'UInt64';
 
-  constructor(value: Field) {
-    super();
-    this.value = value;
-  }
-
   static get zero() {
     return new UInt64(Field.zero);
   }
@@ -181,11 +176,6 @@ class UInt32 extends CircuitValue implements Types.UInt32 {
   @prop value: Field;
   static NUM_BITS = 32;
   _type?: 'UInt32';
-
-  constructor(value: Field) {
-    super();
-    this.value = value;
-  }
 
   static get zero(): UInt32 {
     return new UInt32(Field.zero);
@@ -364,9 +354,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   // Overall, I think the existing implementation is the optimal one.
 
   constructor(magnitude: UInt64, sgn = Field.one) {
-    super();
-    this.magnitude = magnitude;
-    this.sgn = sgn;
+    super(magnitude, sgn);
   }
 
   private static fromFieldUnchecked(x: Field) {

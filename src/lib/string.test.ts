@@ -177,7 +177,7 @@ describe('Circuit String', () => {
       expect(() => {
         Circuit.runAndCheck(() => {
           const str = Circuit.witness(CircuitString, () => {
-            return new CircuitString([
+            return CircuitString.fromCharacters([
               new Character(Field(100)),
               new Character(Field(10000)),
               new Character(Field(100)),

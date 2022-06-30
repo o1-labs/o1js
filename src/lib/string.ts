@@ -8,11 +8,6 @@ const DEFAULT_STRING_LENGTH = 128;
 class Character extends CircuitValue {
   @prop value: Field;
 
-  constructor(value: Field) {
-    super();
-    this.value = value;
-  }
-
   isNull(): Bool {
     return this.equals(NullCharacter() as this);
   }
@@ -42,9 +37,15 @@ class CircuitString extends CircuitValue {
   static maxLength = DEFAULT_STRING_LENGTH;
   @arrayProp(Character, DEFAULT_STRING_LENGTH) values: Character[];
 
-  constructor(values: Character[]) {
-    super();
-    this.values = fillWithNull(values, this.maxLength());
+  // constructor is private because
+  // * we do not want extra logic inside CircuitValue constructors, as a general pattern (to be able to create them generically)
+  // * here, not running extra logic to fill up the characters would be wrong
+  private constructor(values: Character[]) {
+    super(values);
+  }
+  // this is the publicly accessible constructor
+  static fromCharacters(chars: Character[]): CircuitString {
+    return new CircuitString(fillWithNull(chars, this.maxLength));
   }
 
   private maxLength() {
@@ -105,7 +106,7 @@ class CircuitString extends CircuitValue {
       let possibleCharsAtI = possibleResults.map((result) => result[i]);
       result[i] = pickOne(possibleCharsAtI, mask);
     }
-    return new CircuitString(result);
+    return CircuitString.fromCharacters(result);
   }
 
   // TODO
@@ -123,7 +124,7 @@ class CircuitString extends CircuitValue {
   }
 
   substring(start: number, end: number): CircuitString {
-    return new CircuitString(this.values.slice(start, end));
+    return CircuitString.fromCharacters(this.values.slice(start, end));
   }
 
   toString(): string {
@@ -137,8 +138,8 @@ class CircuitString extends CircuitValue {
     if (str.length > this.maxLength) {
       throw Error('CircuitString.fromString: input string exceeds max length!');
     }
-    const characters = str.split('').map((x) => Character.fromString(x));
-    return new CircuitString(characters);
+    let characters = str.split('').map((x) => Character.fromString(x));
+    return CircuitString.fromCharacters(characters);
   }
 }
 
