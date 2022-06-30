@@ -22,9 +22,25 @@ function asFieldElementsToConstant<T>(typ: AsFieldElements<T>, t: T): T {
   return typ.ofFields(xs);
 }
 
-// TODO: Synthesize the constructor if possible (bkase)
-//
 abstract class CircuitValue {
+  constructor(...props: any[]) {
+    const fields = (this.constructor as any).prototype._fields;
+    if (fields === undefined || fields === null) {
+      return;
+    }
+
+    if (props.length !== fields.length) {
+      throw Error(
+        `${this.constructor.name} constructor called with ${props.length} arguments, but expected ${fields.length}`
+      );
+    }
+
+    for (let i = 0; i < fields.length; ++i) {
+      const [key, propType] = fields[i];
+      (this as any)[key] = props[i];
+    }
+  }
+
   static sizeInFields(): number {
     const fields: [string, any][] = (this as any).prototype._fields;
     return fields.reduce((acc, [_, typ]) => acc + typ.sizeInFields(), 0);
