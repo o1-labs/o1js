@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { Circuit, Field, Bool, JSONValue, AsFieldElements } from '../snarky';
+import { withContext } from './global-context';
 
 export {
   asFieldElementsToConstant,
@@ -271,12 +272,15 @@ function circuitMain(
   }
 
   target.snarkyMain = (w: Array<any>, pub: Array<any>) => {
-    let args = [];
-    for (let i = 0; i < numArgs; ++i) {
-      args.push((publicIndexSet.has(i) ? pub : w).shift());
-    }
+    let [, result] = withContext({ inCheckedComputaton: true }, () => {
+      let args = [];
+      for (let i = 0; i < numArgs; ++i) {
+        args.push((publicIndexSet.has(i) ? pub : w).shift());
+      }
 
-    return target[propertyName].apply(target, args);
+      return target[propertyName].apply(target, args);
+    });
+    return result;
   };
 
   target.snarkyWitnessTyp = typeOfArray(
