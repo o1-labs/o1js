@@ -43,12 +43,13 @@ function withContext<T>(
   }: PartialContext,
   f: () => T
 ) {
+  let prevContext = mainContext;
   mainContext = { witnesses, expectedAccesses, actualAccesses, self, ...other };
   let result: T;
   try {
     result = f();
   } finally {
-    mainContext = undefined;
+    mainContext = prevContext;
   }
   return [self, result] as [Party, T];
 }

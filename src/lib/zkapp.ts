@@ -8,11 +8,18 @@ import {
   Permissions,
   SetOrKeep,
   ZkappPublicInput,
+  Events,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { UInt32, UInt64 } from './int';
-import { mainContext, inCheckedComputation } from './global-context';
+import {
+  mainContext,
+  inCheckedComputation,
+  inCompile,
+  withContext,
+  inProver,
+} from './global-context';
 import {
   assertPreconditionInvariants,
   cleanPreconditionsCache,
@@ -85,18 +92,36 @@ function wrapMethod(
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
-    if (inCheckedComputation() || Mina.currentTransaction === undefined) {
-      if (inCheckedComputation()) {
-        // inside prover / compile, the method is always called with the public input as first argument
-        // -- so we can add assertions about it
-        let publicInput = actualArgs[0];
-        actualArgs = actualArgs.slice(1);
-        // FIXME: figure out correct way to constrain public input https://github.com/o1-labs/snarkyjs/issues/98
-        let tail = Field.zero;
-        publicInput[0].assertEquals(publicInput[0]);
-        // checkPublicInput(publicInput, self, tail);
-      }
+    if (inCheckedComputation()) {
+      return withContext(
+        {
+          inCompile: inCompile(),
+          inProver: inProver(),
+          // important to run this with a fresh party everytime, otherwise we compile messes up our circuits
+          // because it runs this multiple times
+          self: selfParty(this.address),
+        },
+        () => {
+          // inside prover / compile, the method is always called with the public input as first argument
+          // -- so we can add assertions about it
+          let publicInput = actualArgs[0];
+          actualArgs = actualArgs.slice(1);
+          // FIXME: figure out correct way to constrain public input https://github.com/o1-labs/snarkyjs/issues/98
+          let tail = Field.zero;
+          publicInput[0].assertEquals(publicInput[0]);
+          // checkPublicInput(publicInput, self, tail);
 
+          // outside a transaction, just call the method, but check precondition invariants
+          let result = method.apply(this, actualArgs);
+          // check the self party right after calling the method
+          // TODO: this needs to be done in a unified way for all parties that are created
+          assertPreconditionInvariants(this.self);
+          cleanPreconditionsCache(this.self);
+          assertStatePrecondition(this);
+          return result;
+        }
+      )[1];
+    } else if (Mina.currentTransaction === undefined) {
       // outside a transaction, just call the method, but check precondition invariants
       let result = method.apply(this, actualArgs);
       // check the self party right after calling the method
