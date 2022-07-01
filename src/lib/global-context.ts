@@ -20,6 +20,7 @@ let mainContext = undefined as
       actualAccesses: number;
       inProver?: boolean;
       inCompile?: boolean;
+      inCheckedComputation?: boolean;
     }
   | undefined;
 type PartialContext = {
@@ -29,6 +30,7 @@ type PartialContext = {
   actualAccesses?: number;
   inProver?: boolean;
   inCompile?: boolean;
+  inCheckedComputation?: boolean;
 };
 
 function withContext<T>(
@@ -96,5 +98,9 @@ function inCompile() {
   return !!mainContext?.inCompile;
 }
 function inCheckedComputation() {
-  return !!mainContext?.inCompile || !!mainContext?.inProver;
+  return (
+    !!mainContext?.inCompile ||
+    !!mainContext?.inProver ||
+    !!mainContext?.inCheckedComputation
+  );
 }

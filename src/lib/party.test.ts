@@ -63,6 +63,17 @@ describe('party', () => {
       expect(party2.hash()).not.toEqual(hash);
     });
   });
+
+  it('creates the right empty events', () => {
+    expect(party.body.events.hash.toString()).toEqual(
+      '23641812384071365026036270005604392899711718400522999453895455265440046333209'
+    );
+  });
+  it('creates the right empty sequence state', () => {
+    expect(party.body.preconditions.account.sequenceState.toString()).toEqual(
+      '19777675955122618431670853529822242067051263606115426372178827525373304476695'
+    );
+  });
 });
 
 // to check that we got something that looks like a Field

@@ -5,7 +5,6 @@ export {
   Scalar,
   AsFieldElements,
   Circuit,
-  Poseidon,
   Ledger,
   isReady,
   shutdown,
@@ -13,6 +12,7 @@ export {
 } from './snarky';
 export type { VerificationKey, Keypair } from './snarky';
 export * from './snarky/addons';
+export { Poseidon } from './lib/hash';
 export * from './lib/signature';
 export * from './lib/circuit_value';
 

@@ -650,15 +650,17 @@ declare class Group {
   static check(g: Group): void;
 }
 
-declare class Sponge {
-  constructor();
-  absorb(x: Field): void;
-  squeeze(): Field;
-}
-
 declare const Poseidon: {
-  hash: (xs: Field[]) => Field;
-  Sponge: typeof Sponge;
+  hash(input: Field[], isChecked: boolean): Field;
+  update(
+    state: [Field, Field, Field],
+    input: Field[],
+    isChecked: boolean
+  ): [Field, Field, Field];
+  prefixes: Record<'event' | 'events' | 'sequenceEvents', string>;
+  spongeCreate(isChecked: boolean): unknown;
+  spongeAbsorb(sponge: unknown, x: Field): void;
+  spongeSqueeze(sponge: unknown): Field;
 };
 
 /**
@@ -803,10 +805,7 @@ declare const Pickles: {
    * This function has the same inputs as compile, but is a quick-to-compute
    * hash that can be used to short-circuit proofs if rules haven't changed.
    */
-  circuitDigest: (
-    rules: Pickles.Rule[],
-    publicInputSize: number
-  ) => string;
+  circuitDigest: (rules: Pickles.Rule[], publicInputSize: number) => string;
 
   verify(
     publicInput: Pickles.PublicInput,
