@@ -7,7 +7,7 @@ import { SmartContract } from './zkapp';
 import { withContextAsync } from './global-context';
 import * as Precondition from './precondition';
 import { Proof } from './proof_system';
-import { salt } from './hash';
+import { emptyHashWithPrefix, hashWithPrefix, prefixes } from './hash';
 
 export {
   SetOrKeep,
@@ -29,6 +29,7 @@ export {
   signJsonTransaction,
   ZkappStateLength,
   ZkappPublicInput,
+  Events,
 };
 
 const ZkappStateLength = 8;
@@ -231,24 +232,29 @@ let Permissions = {
 
 const getDefaultTokenId = () => Field.one;
 
-// TODO
-class Events {
+type Event = Field[];
+
+type Events = {
   hash: Field;
-  data: Field[][];
+  data: Event[];
+};
 
-  static empty() {
-    let emptyHash = salt('MinaSnappEventsEmpty')[0];
-    return new Events(emptyHash, []);
-  }
-  static emptySequenceState() {
-    return salt('MinaSnappSequenceEmpty')[0];
-  }
+const Events = {
+  empty(): Events {
+    let hash = emptyHashWithPrefix('MinaSnappEventsEmpty');
+    return { hash, data: [] };
+  },
 
-  constructor(hash: Field, events: Field[][]) {
-    this.hash = hash;
-    this.data = events;
-  }
-}
+  pushEvent(events: Events, event: Event): Events {
+    let eventHash = hashWithPrefix(prefixes.event, event);
+    let hash = hashWithPrefix(prefixes.events, [events.hash, eventHash]);
+    return { hash, data: [...events.data, event] };
+  },
+
+  emptySequenceState() {
+    return emptyHashWithPrefix('MinaSnappSequenceEmpty');
+  },
+};
 
 // TODO: get docstrings from OCaml and delete this interface
 /**
@@ -365,7 +371,7 @@ const FeePayerBody = {
 };
 type FeePayerUnsigned = {
   body: FeePayerBody;
-  authorization: UnfinishedSignature | string;
+  authorization: UnfinishedSignature;
 };
 
 /**
