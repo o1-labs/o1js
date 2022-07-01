@@ -3,7 +3,6 @@ import { Circuit, Field, Bool, JSONValue, AsFieldElements } from '../snarky';
 import { withContext } from './global-context';
 
 export {
-  asFieldElementsToConstant,
   CircuitValue,
   prop,
   arrayProp,
@@ -17,11 +16,6 @@ export {
 };
 
 type Constructor<T> = { new (...args: any[]): T };
-
-function asFieldElementsToConstant<T>(typ: AsFieldElements<T>, t: T): T {
-  const xs: Field[] = typ.toFields(t);
-  return typ.ofFields(xs);
-}
 
 // TODO: Synthesize the constructor if possible (bkase)
 //
@@ -324,16 +318,18 @@ function circuitValue<T>(typeObj: any): AsFieldElements<T> {
       let offset = 0;
       for (let subObj of typeObj) {
         let size = sizeInFields(subObj);
-        array.push(subObj.ofFields(fields.slice(offset, offset + size)));
+        array.push(ofFields(subObj, fields.slice(offset, offset + size)));
         offset += size;
       }
       return array;
     }
     if ('ofFields' in typeObj) return typeObj.ofFields(fields);
-    let typeObjArray = Object.keys(typeObj)
-      .sort()
-      .map((k) => typeObj[k]);
-    return ofFields(typeObjArray, fields);
+    let keys = Object.keys(typeObj).sort();
+    let values = ofFields(
+      keys.map((k) => typeObj[k]),
+      fields
+    );
+    return Object.fromEntries(keys.map((k, i) => [k, values[i]]));
   }
   function check(typeObj: any, obj: any): void {
     if (typeof typeObj !== 'object' || typeObj === null) return;
