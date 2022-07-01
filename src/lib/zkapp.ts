@@ -326,6 +326,32 @@ export class SmartContract {
     return this.self.setNoncePrecondition();
   }
 
+  events: { [key: string]: AsFieldElements<any> } = {};
+
+  // TODO: not able to type event such that it is inferred correctly so far
+  emitEvent<K extends keyof this['events']>(type: K, event: any) {
+    let party = this.self;
+    let eventTypes: (keyof this['events'])[] = Object.keys(this.events);
+    if (eventTypes.length === 0)
+      throw Error(
+        'emitEvent: You are trying to emit an event without having declared the types of your events.\n' +
+          `Make sure to add a property \`events\` on ${this.constructor.name}, for example: \n` +
+          `class ${this.constructor.name} extends SmartContract {\n` +
+          `  events = { 'my-event': Field }\n` +
+          `}`
+      );
+    let eventNumber = eventTypes.sort().indexOf(type as string);
+    if (eventNumber === -1)
+      throw Error(
+        `emitEvent: Unknown event type "${
+          type as string
+        }". The declared event types are: ${eventTypes.join(', ')}.`
+      );
+    let eventType = (this.events as this['events'])[type];
+    let eventFields = [Field(eventNumber), ...eventType.toFields(event)];
+    party.body.events = Events.pushEvent(party.body.events, eventFields);
+  }
+
   setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
     Party.setValue(maybeValue, value);
   }
