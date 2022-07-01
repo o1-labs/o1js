@@ -348,7 +348,14 @@ export class SmartContract {
         }". The declared event types are: ${eventTypes.join(', ')}.`
       );
     let eventType = (this.events as this['events'])[type];
-    let eventFields = [Field(eventNumber), ...eventType.toFields(event)];
+    let eventFields: Field[];
+    if (eventTypes.length === 1) {
+      // if there is just one event type, just store it directly as field elements
+      eventFields = eventType.toFields(event);
+    } else {
+      // if there is more than one event type, also store its index, like in an enum, to identify the type later
+      eventFields = [Field(eventNumber), ...eventType.toFields(event)];
+    }
     party.body.events = Events.pushEvent(party.body.events, eventFields);
   }
 
