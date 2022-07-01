@@ -272,7 +272,7 @@ function circuitMain(
   }
 
   target.snarkyMain = (w: Array<any>, pub: Array<any>) => {
-    let [, result] = withContext({ inCheckedComputaton: true }, () => {
+    let [, result] = withContext({ inCheckedComputation: true }, () => {
       let args = [];
       for (let i = 0; i < numArgs; ++i) {
         args.push((publicIndexSet.has(i) ? pub : w).shift());
