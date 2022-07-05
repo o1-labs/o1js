@@ -8,6 +8,8 @@ import { withContextAsync } from './global-context';
 import * as Precondition from './precondition';
 import { Proof } from './proof_system';
 import { emptyHashWithPrefix, hashWithPrefix, prefixes } from './hash';
+import { salt } from './hash';
+import { Token } from './token';
 
 export {
   SetOrKeep,
@@ -492,6 +494,12 @@ type UnfinishedSignature = undefined | LazySignature | string;
 
 type LazyControl = Control | LazySignature | LazyProof;
 
+type SendParams = {
+  from: PublicKey;
+  to: PublicKey;
+  amount: Int64 | UInt32 | UInt64 | string | number | bigint;
+};
+
 class Party {
   body: Body;
   authorization: LazyControl;
@@ -516,6 +524,29 @@ class Party {
     return new (Party as any)(body, authorization, party.isSelf);
   }
 
+  get token() {
+    let thisParty = this;
+    let customToken = new Token(thisParty.body.publicKey);
+
+    return {
+      transfer({ from, to, amount }: SendParams) {
+        const party = from ? Party.createUnsigned(from) : thisParty;
+        const receiver = Party.createUnsigned(to);
+
+        party.body.balanceChange = party.body.balanceChange.sub(amount);
+        receiver.body.balanceChange = receiver.body.balanceChange.add(amount);
+
+        const token = Ledger.fieldOfBase58(customToken.id);
+        console.log('LOOK HERE TOKEN', token);
+        console.log('LOOK HERE TOKEN1', receiver.body.tokenId);
+        receiver.body.tokenId = token;
+        receiver.body.caller = token;
+        receiver.body.callDepth = 1;
+        // receiver.body.useFullCommitment = Bool(true);
+      },
+    };
+  }
+
   get tokenId() {
     return this.body.tokenId;
   }
@@ -527,8 +558,6 @@ class Party {
   ) {
     let party = this;
     party.body.balanceChange = party.body.balanceChange.sub(amount);
-    party.body.useFullCommitment = Bool(true);
-
     receiver.body.balanceChange = receiver.body.balanceChange.add(amount);
 
     if (tokenId) {

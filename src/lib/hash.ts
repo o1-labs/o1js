@@ -5,7 +5,7 @@ import { inCheckedComputation } from './global-context';
 export { Poseidon };
 
 // internal API
-export { prefixes, emptyHashWithPrefix, hashWithPrefix };
+export { prefixes, emptyHashWithPrefix, hashWithPrefix, salt };
 
 class Sponge {
   private sponge: unknown;
