@@ -527,17 +527,24 @@ class Party {
   ) {
     let party = this;
     party.body.balanceChange = party.body.balanceChange.sub(amount);
+    party.body.useFullCommitment = Bool(true);
+
     receiver.body.balanceChange = receiver.body.balanceChange.add(amount);
 
     if (tokenId) {
-      let token = Ledger.fieldOfBase58(tokenId);
-      party.body.tokenId = token;
+      const token = Ledger.fieldOfBase58(tokenId);
+      console.log('LOOK HERE TOKEN', token);
+      console.log('LOOK HERE TOKEN1', receiver.body.tokenId);
       receiver.body.tokenId = token;
+      receiver.body.caller = token;
+      receiver.body.callDepth = 1;
+      // receiver.body.useFullCommitment = Bool(true);
     }
   }
 
   get balance() {
     let party = this;
+
     return {
       addInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
         party.body.balanceChange = party.body.balanceChange.add(x);
