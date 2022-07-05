@@ -201,6 +201,14 @@ export class SmartContract {
 
   constructor(address: PublicKey) {
     this.address = address;
+    Object.defineProperty(this, 'stateUpdate', {
+      set(this, stateUpdate: StateUpdate<any, any>) {
+        ((this as any)._ ??= {}).stateUpdate = stateUpdate;
+      },
+      get(this) {
+        return getStateUpdate(this);
+      },
+    });
   }
 
   static async compile(address: PublicKey) {
@@ -359,6 +367,14 @@ export class SmartContract {
     party.body.events = Events.pushEvent(party.body.events, eventFields);
   }
 
+  static stateUpdate<T, U, S extends StateUpdate<T, U>>(
+    stateUpdate: S
+  ): { emit(update: U): void; apply(state: T, update: U): T } {
+    // we lie about the return value here, and instead overwrite this.stateUpdate with a getter,
+    // so we can get access to `this` inside functions on this.stateUpdate (see constructor)
+    return stateUpdate as any;
+  }
+
   setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
     Party.setValue(maybeValue, value);
   }
@@ -368,6 +384,41 @@ export class SmartContract {
   setPermissions(permissions: Permissions) {
     this.setValue(this.self.update.permissions, permissions);
   }
+}
+
+type StateUpdate<State, Update> = {
+  state: AsFieldElements<State>;
+  update: AsFieldElements<Update>;
+  apply(state: State, update: Update): State;
+};
+
+function getStateUpdate(contract: SmartContract) {
+  let stateUpdate = ((contract as any)._ ??= {}).stateUpdate;
+  if (stateUpdate === undefined)
+    throw Error(
+      'stateUpdate.emit: You are trying to emit a state update without having declared its type.\n' +
+        `Make sure to add a property \`stateUpdate\` on ${contract.constructor.name}, for example:
+class ${contract.constructor.name} extends SmartContract {
+  stateUpdate = {
+    state: Field,
+    update: Field,
+    apply(state: Field, update: Field) {
+      return state.add(update);
+    }
+  }
+}`
+    );
+  return {
+    ...stateUpdate,
+    emit: (update: any) => {
+      let party = contract.self;
+      let eventFields = stateUpdate.update.toFields(update);
+      party.body.sequenceEvents = Events.pushEvent(
+        party.body.sequenceEvents,
+        eventFields
+      );
+    },
+  };
 }
 
 function selfParty(address: PublicKey) {
