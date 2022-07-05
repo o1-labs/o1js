@@ -295,11 +295,11 @@ function circuitValue<T>(typeObj: any): AsFieldElements<T> {
   function sizeInFields(typeObj: any): number {
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return 0;
     if (Array.isArray(typeObj))
-      return typeObj.map(sizeInFields).reduce((a, b) => a + b);
+      return typeObj.map(sizeInFields).reduce((a, b) => a + b, 0);
     if ('sizeInFields' in typeObj) return typeObj.sizeInFields();
     return Object.values(typeObj)
       .map(sizeInFields)
-      .reduce((a, b) => a + b);
+      .reduce((a, b) => a + b, 0);
   }
   function toFields(typeObj: any, obj: any): Field[] {
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return [];
