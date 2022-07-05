@@ -294,8 +294,8 @@ type PreconditionClassType<T> = {
       }
     : T[K] extends FlaggedOptionCondition<infer U>
     ? PreconditionSubclassType<U>
-    : T[K] extends AsFieldElements<infer U>
-    ? PreconditionSubclassType<U>
+    : T[K] extends Field
+    ? PreconditionSubclassType<Field>
     : PreconditionClassType<T[K]>;
 };
 
