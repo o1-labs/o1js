@@ -498,6 +498,7 @@ type SendParams = {
   from: PublicKey;
   to: PublicKey;
   amount: Int64 | UInt32 | UInt64 | string | number | bigint;
+  accountCreation?: boolean;
 };
 
 type MintOrBurnParams = {
@@ -531,7 +532,7 @@ class Party {
 
   get token() {
     let thisParty = this;
-    let customToken = new Token(this.body.publicKey);
+    let customToken = new Token(thisParty.body.publicKey);
 
     return {
       id: customToken.id,
@@ -544,27 +545,31 @@ class Party {
 
       burn({ address, amount }: MintOrBurnParams) {},
 
-      transfer({ from, to, amount }: SendParams) {
+      transfer({ from, to, amount, accountCreation }: SendParams) {
         if (from === thisParty.publicKey) {
-          thisParty.body.balanceChange = thisParty.body.balanceChange.sub(
-            Mina.accountCreationFee()
-          );
+          if (accountCreation) {
+            thisParty.body.balanceChange = thisParty.body.balanceChange.sub(
+              Mina.accountCreationFee()
+            );
+          }
         } else {
-          let senderParty = Party.createUnsigned(from);
-          senderParty.body.balanceChange = senderParty.body.balanceChange.sub(
-            Mina.accountCreationFee()
-          );
+          if (accountCreation) {
+            let senderParty = Party.createUnsigned(from);
+            senderParty.body.balanceChange = senderParty.body.balanceChange.sub(
+              Mina.accountCreationFee()
+            );
+          }
         }
 
-        let receiverParty = Party.createUnsigned(to);
+        const token = Ledger.fieldOfBase58(customToken.id);
+        let receiverParty = Party.createUnsigned(to, {
+          caller: token,
+          tokenId: token,
+          callDepth: 1, // TODO: Make this smarter
+        });
+
         receiverParty.body.balanceChange =
           receiverParty.body.balanceChange.add(amount);
-
-        const token = Ledger.fieldOfBase58(customToken.id);
-
-        receiverParty.body.tokenId = token;
-        receiverParty.body.caller = token;
-        receiverParty.body.callDepth = 1;
       },
     };
   }
@@ -747,17 +752,28 @@ class Party {
     return { body, authorization: undefined };
   }
 
-  static createUnsigned(publicKey: PublicKey) {
+  static createUnsigned(
+    publicKey: PublicKey,
+    bodyInput?: {
+      caller?: Field;
+      tokenId?: Field;
+      callDepth?: number;
+    }
+  ) {
     // TODO: This should be a witness block that uses the setVariable
     // API to set the value of a variable after it's allocated
-
-    const pk = publicKey;
-    const body: Body = Body.keepAll(pk);
     if (Mina.currentTransaction === undefined) {
       throw new Error(
         'Party.createUnsigned: Cannot run outside of a transaction'
       );
     }
+
+    const pk = publicKey;
+    const body: Body = Body.keepAll(pk);
+    const { caller, tokenId, callDepth } = bodyInput || {};
+    body.caller = caller || body.caller;
+    body.tokenId = tokenId || body.tokenId;
+    body.callDepth = callDepth || body.callDepth;
 
     const party = new Party(body);
     Mina.currentTransaction.nextPartyIndex++;
