@@ -15,17 +15,36 @@ export {
   circuitValue,
 };
 
-type Constructor<T> = { new (...args: any[]): T };
+type AnyConstructor = new (...args: any) => any;
 
-// TODO: Synthesize the constructor if possible (bkase)
-//
 abstract class CircuitValue {
+  constructor(...props: any[]) {
+    const fields = (this.constructor as any).prototype._fields;
+    if (fields === undefined || fields === null) {
+      return;
+    }
+
+    if (props.length !== fields.length) {
+      throw Error(
+        `${this.constructor.name} constructor called with ${props.length} arguments, but expected ${fields.length}`
+      );
+    }
+
+    for (let i = 0; i < fields.length; ++i) {
+      const [key, propType] = fields[i];
+      (this as any)[key] = props[i];
+    }
+  }
+
   static sizeInFields(): number {
     const fields: [string, any][] = (this as any).prototype._fields;
     return fields.reduce((acc, [_, typ]) => acc + typ.sizeInFields(), 0);
   }
 
-  static toFields<T>(this: Constructor<T>, v: T): Field[] {
+  static toFields<T extends AnyConstructor>(
+    this: T,
+    v: InstanceType<T>
+  ): Field[] {
     const res: Field[] = [];
     const fields = (this as any).prototype._fields;
     if (fields === undefined || fields === null) {
@@ -48,15 +67,18 @@ abstract class CircuitValue {
     return (this.constructor as any).toJSON(this);
   }
 
-  equals(this: this, x: this): Bool {
+  equals(x: this): Bool {
     return Circuit.equal(this, x);
   }
 
-  assertEquals(this: this, x: typeof this): void {
+  assertEquals(x: this): void {
     Circuit.assertEqual(this, x);
   }
 
-  static ofFields<T>(this: Constructor<T>, xs: Field[]): T {
+  static ofFields<T extends AnyConstructor>(
+    this: T,
+    xs: Field[]
+  ): InstanceType<T> {
     const fields = (this as any).prototype._fields;
     let offset = 0;
     const props: any[] = [];
@@ -70,14 +92,33 @@ abstract class CircuitValue {
     return new this(...props);
   }
 
-  static check: (x: any) => void;
+  static check<T extends AnyConstructor>(this: T, v: InstanceType<T>) {
+    const fields = (this as any).prototype._fields;
+    if (fields === undefined || fields === null) {
+      return;
+    }
 
-  static toConstant<T>(this: Constructor<T>, t: T): T {
+    for (let i = 0; i < fields.length; ++i) {
+      const [key, propType] = fields[i];
+      const value = (v as any)[key];
+      if (propType.check === undefined)
+        throw Error('bug: circuit value without .check()');
+      propType.check(value);
+    }
+  }
+
+  static toConstant<T extends AnyConstructor>(
+    this: T,
+    t: InstanceType<T>
+  ): InstanceType<T> {
     const xs: Field[] = (this as any).toFields(t);
     return (this as any).ofFields(xs.map((x) => x.toConstant()));
   }
 
-  static toJSON<T>(this: Constructor<T>, v: T): JSONValue {
+  static toJSON<T extends AnyConstructor>(
+    this: T,
+    v: InstanceType<T>
+  ): JSONValue {
     const res: { [key: string]: JSONValue } = {};
     if ((this as any).prototype._fields !== undefined) {
       const fields: [string, any][] = (this as any).prototype._fields;
@@ -88,7 +129,10 @@ abstract class CircuitValue {
     return res;
   }
 
-  static fromJSON<T>(this: Constructor<T>, value: JSONValue): T | null {
+  static fromJSON<T extends AnyConstructor>(
+    this: T,
+    value: JSONValue
+  ): InstanceType<T> | null {
     const props: any[] = [];
     const fields: [string, any][] = (this as any).prototype._fields;
 
@@ -116,21 +160,6 @@ abstract class CircuitValue {
     return new this(...props);
   }
 }
-
-(CircuitValue as any).check = function (v: any) {
-  const fields = (this as any).prototype._fields;
-  if (fields === undefined || fields === null) {
-    return;
-  }
-
-  for (let i = 0; i < fields.length; ++i) {
-    const [key, propType] = fields[i];
-    const value = (v as any)[key];
-    if (propType.check === undefined)
-      throw Error('bug: circuit value without .check()');
-    propType.check(value);
-  }
-};
 
 function prop(this: any, target: any, key: string) {
   const fieldType = Reflect.getMetadata('design:type', target, key);

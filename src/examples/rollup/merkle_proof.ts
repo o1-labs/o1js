@@ -125,11 +125,6 @@ export function MerkleAccumulatorFactory<A extends CircuitValue>(
 export abstract class IndexedAccumulator<A> extends CircuitValue {
   @prop commitment: Field;
 
-  constructor(commitment: Field) {
-    super();
-    this.commitment = commitment;
-  }
-
   abstract set(index: Index, a: A): void;
 
   abstract get(index: Index): A;

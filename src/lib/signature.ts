@@ -8,11 +8,6 @@ import { Poseidon } from './hash';
 export class PrivateKey extends CircuitValue {
   @prop s: Scalar;
 
-  constructor(s: Scalar) {
-    super();
-    this.s = s;
-  }
-
   /**
    * You can use this method to generate a private key. You can then obtain
    * the associated public key via [[toPublicKey]]. And generate signatures
@@ -59,11 +54,6 @@ export class PrivateKey extends CircuitValue {
 export class PublicKey extends CircuitValue {
   @prop g: Group;
 
-  constructor(g: Group) {
-    super();
-    this.g = g;
-  }
-
   static fromPrivateKey(p: PrivateKey): PublicKey {
     return p.toPublicKey();
   }
@@ -93,12 +83,6 @@ export class PublicKey extends CircuitValue {
 export class Signature extends CircuitValue {
   @prop r: Field;
   @prop s: Scalar;
-
-  constructor(r: Field, s: Scalar) {
-    super();
-    this.r = r;
-    this.s = s;
-  }
 
   static create(privKey: PrivateKey, msg: Field[]): Signature {
     const { g: publicKey } = PublicKey.fromPrivateKey(privKey);

@@ -614,7 +614,7 @@ class Party {
           ? Circuit.witness(UInt32, () => account.nonce)
           : account.nonce;
       } else {
-        nonce = Circuit.witness(UInt32, () => {
+        nonce = Circuit.witness(UInt32, (): UInt32 => {
           throw Error('this should never happen');
         });
       }
