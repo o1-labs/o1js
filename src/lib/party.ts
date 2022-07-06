@@ -578,26 +578,6 @@ class Party {
     return this.body.tokenId;
   }
 
-  public transfer(
-    amount: Int64 | UInt32 | UInt64 | string | number | bigint,
-    receiver: Party,
-    tokenId?: string
-  ) {
-    let party = this;
-    party.body.balanceChange = party.body.balanceChange.sub(amount);
-    receiver.body.balanceChange = receiver.body.balanceChange.add(amount);
-
-    if (tokenId) {
-      const token = Ledger.fieldOfBase58(tokenId);
-      console.log('LOOK HERE TOKEN', token);
-      console.log('LOOK HERE TOKEN1', receiver.body.tokenId);
-      receiver.body.tokenId = token;
-      receiver.body.caller = token;
-      receiver.body.callDepth = 1;
-      // receiver.body.useFullCommitment = Bool(true);
-    }
-  }
-
   get balance() {
     let party = this;
 

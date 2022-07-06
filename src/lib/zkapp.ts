@@ -337,14 +337,6 @@ class SmartContract {
     return this.self.token;
   }
 
-  transfer(
-    amount: Int64 | UInt32 | UInt64 | string | number | bigint,
-    receiver: Party,
-    tokenId?: string
-  ) {
-    return this.self.transfer(amount, receiver, tokenId);
-  }
-
   get balance() {
     return this.self.balance;
   }
