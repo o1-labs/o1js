@@ -458,7 +458,7 @@ class ${contract.constructor.name} extends SmartContract {
       stateHash: Field,
       updateLists: U[][],
       possibleUpdatesPerTransaction: number[],
-      maxTransactionsWithUpdates = 4
+      maxTransactionsWithUpdates = 32
     ): { state: S; stateHash: Field } {
       if (updateLists.length > maxTransactionsWithUpdates) {
         throw Error(
