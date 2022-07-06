@@ -4,7 +4,6 @@ export {
   Group,
   Scalar,
   AsFieldElements,
-  Circuit,
   Ledger,
   isReady,
   shutdown,
@@ -14,7 +13,16 @@ export type { VerificationKey, Keypair } from './snarky';
 export * from './snarky/addons';
 export { Poseidon } from './lib/hash';
 export * from './lib/signature';
-export * from './lib/circuit_value';
+export {
+  Circuit,
+  CircuitValue,
+  prop,
+  arrayProp,
+  matrixProp,
+  public_,
+  circuitMain,
+  circuitValue,
+} from './lib/circuit_value';
 
 export * from './lib/int';
 export * as Mina from './lib/mina';

@@ -2,18 +2,20 @@ import 'reflect-metadata';
 import { Circuit, Field, Bool, JSONValue, AsFieldElements } from '../snarky';
 import { withContext } from './global-context';
 
+// external API
 export {
+  Circuit,
   CircuitValue,
   prop,
   arrayProp,
   matrixProp,
   public_,
   circuitMain,
-  cloneCircuitValue,
-  circuitValueEquals,
-  circuitArray,
   circuitValue,
 };
+
+// internal API
+export { cloneCircuitValue, circuitValueEquals, circuitArray };
 
 type AnyConstructor = new (...args: any) => any;
 
@@ -467,3 +469,37 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
     ([key, value]) => key in b && circuitValueEquals((b as any)[key], value)
   );
 }
+
+(Circuit as any).pickOne = function pickOne<T, A extends AsFieldElements<T>>(
+  mask: Bool[],
+  type: A,
+  values: T[]
+): T {
+  // picks the value at the index where mask is true
+  let nValues = values.length;
+  if (mask.length !== nValues)
+    throw Error(
+      `pickOne: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
+    );
+  // TODO: we'd like3 to do a sanity check on the input values here -- but Circuit.asProver is only available in checked computations
+  // would be nice to have a generalization which works in all environments
+  // Circuit.asProver(() => {
+  //   let nTrue = mask.filter((b) => b.toBoolean()).length;
+  //   if (nTrue > 1) {
+  //     throw Error(
+  //       `pickOne: \`mask\` must have 0 or 1 true element, found ${nTrue}.`
+  //     );
+  //   }
+  // });
+  let size = type.sizeInFields();
+  let fields = Array(size).fill(Field.zero);
+  for (let i = 0; i < nValues; i++) {
+    let valueFields = type.toFields(values[i]);
+    let maskField = mask[i].toField();
+    for (let j = 0; j < size; j++) {
+      let maybeField = valueFields[j].mul(maskField);
+      fields[j] = fields[j].add(maybeField);
+    }
+  }
+  return type.ofFields(fields);
+};
