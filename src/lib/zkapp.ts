@@ -379,6 +379,11 @@ export class SmartContract {
     party.body.events = Events.pushEvent(party.body.events, eventFields);
   }
 
+  static runOutsideCircuit(run: () => void) {
+    if (Mina.currentTransaction?.isFinalRunOutsideCircuit || inProver())
+      Circuit.asProver(run);
+  }
+
   static stateUpdate: (<S, U, SU extends StateUpdate<S, U>>(
     stateUpdate: SU
   ) => {

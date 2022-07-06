@@ -61,6 +61,7 @@ type CurrentTransaction =
       parties: Party[];
       nextPartyIndex: number;
       fetchMode: FetchMode;
+      isFinalRunOutsideCircuit: boolean;
     };
 
 export let currentTransaction: CurrentTransaction = undefined;
@@ -83,7 +84,7 @@ function createUnsignedTransaction(
 function createTransaction(
   feePayer: SenderSpec,
   f: () => unknown,
-  { fetchMode = 'cached' as FetchMode } = {}
+  { fetchMode = 'cached' as FetchMode, isFinalRunOutsideCircuit = true } = {}
 ): Transaction {
   if (currentTransaction !== undefined) {
     throw new Error('Cannot start new transaction within another transaction');
@@ -98,6 +99,7 @@ function createTransaction(
     parties: [],
     nextPartyIndex: 0,
     fetchMode,
+    isFinalRunOutsideCircuit,
   };
 
   try {
@@ -254,7 +256,21 @@ function LocalBlockchain({
       return { wait: async () => {} };
     },
     async transaction(sender: SenderSpec, f: () => void) {
-      return createTransaction(sender, f);
+      // bad hack: run transaction just to see whether it creates proofs
+      // if it doesn't, this is the last chance to run SmartContract.runOutsideCircuit, which is supposed to run only once
+      // TODO: this has obvious holes if multiple zkapps are involved, but not relevant currently because we can't prove with multiple parties
+      // and hopefully with upcoming work by Matt we can just run everything in the prover, and nowhere else
+      let tx = createTransaction(sender, f, {
+        isFinalRunOutsideCircuit: false,
+      });
+      let hasProofs = tx.transaction.otherParties.some(
+        (party) =>
+          'kind' in party.authorization &&
+          party.authorization.kind === 'lazy-proof'
+      );
+      return createTransaction(sender, f, {
+        isFinalRunOutsideCircuit: !hasProofs,
+      });
     },
     applyJsonTransaction(json: string) {
       return ledger.applyJsonTransaction(json, String(accountCreationFee));
@@ -333,9 +349,20 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       };
     },
     async transaction(sender: SenderSpec, f: () => void) {
-      createTransaction(sender, f, { fetchMode: 'test' });
+      let tx = createTransaction(sender, f, {
+        fetchMode: 'test',
+        isFinalRunOutsideCircuit: false,
+      });
       await Fetch.fetchMissingData(graphqlEndpoint);
-      return createTransaction(sender, f, { fetchMode: 'cached' });
+      let hasProofs = tx.transaction.otherParties.some(
+        (party) =>
+          'kind' in party.authorization &&
+          party.authorization.kind === 'lazy-proof'
+      );
+      return createTransaction(sender, f, {
+        fetchMode: 'cached',
+        isFinalRunOutsideCircuit: !hasProofs,
+      });
     },
   };
 }
