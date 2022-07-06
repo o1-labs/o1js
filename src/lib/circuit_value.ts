@@ -15,7 +15,7 @@ export {
 };
 
 // internal API
-export { cloneCircuitValue, circuitValueEquals, circuitArray };
+export { pickOne, cloneCircuitValue, circuitValueEquals, circuitArray };
 
 type AnyConstructor = new (...args: any) => any;
 
@@ -470,7 +470,7 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
   );
 }
 
-(Circuit as any).pickOne = function pickOne<T, A extends AsFieldElements<T>>(
+function pickOne<T, A extends AsFieldElements<T>>(
   mask: Bool[],
   type: A,
   values: T[]
@@ -502,4 +502,6 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
     }
   }
   return type.ofFields(fields);
-};
+}
+
+Circuit.pickOne = pickOne;
