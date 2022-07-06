@@ -546,16 +546,25 @@ class Party {
 
       transfer({ from, to, amount }: SendParams) {
         if (from === thisParty.publicKey) {
-          thisParty.body.balanceChange =
-            thisParty.body.balanceChange.sub(amount);
+          thisParty.body.balanceChange = thisParty.body.balanceChange.sub(
+            Mina.accountCreationFee()
+          );
         } else {
           let senderParty = Party.createUnsigned(from);
-          senderParty.body.balanceChange =
-            senderParty.body.balanceChange.sub(amount);
+          senderParty.body.balanceChange = senderParty.body.balanceChange.sub(
+            Mina.accountCreationFee()
+          );
         }
+
         let receiverParty = Party.createUnsigned(to);
         receiverParty.body.balanceChange =
           receiverParty.body.balanceChange.add(amount);
+
+        const token = Ledger.fieldOfBase58(customToken.id);
+
+        receiverParty.body.tokenId = token;
+        receiverParty.body.caller = token;
+        receiverParty.body.callDepth = 1;
       },
     };
   }
