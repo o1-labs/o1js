@@ -1,5 +1,17 @@
-import { Field, AsFieldElements, Ledger, Pickles, Types } from '../snarky';
-import { cloneCircuitValue } from './circuit_value';
+import {
+  Field,
+  Bool,
+  AsFieldElements,
+  Ledger,
+  Pickles,
+  Types,
+} from '../snarky';
+import {
+  Circuit,
+  circuitArray,
+  cloneCircuitValue,
+  pickOne,
+} from './circuit_value';
 import {
   Body,
   Party,
@@ -367,13 +379,31 @@ export class SmartContract {
     party.body.events = Events.pushEvent(party.body.events, eventFields);
   }
 
-  static stateUpdate<T, U, S extends StateUpdate<T, U>>(
-    stateUpdate: S
-  ): { emit(update: U): void; apply(state: T, update: U): T } {
-    // we lie about the return value here, and instead overwrite this.stateUpdate with a getter,
-    // so we can get access to `this` inside functions on this.stateUpdate (see constructor)
-    return stateUpdate as any;
-  }
+  static stateUpdate: (<S, U, SU extends StateUpdate<S, U>>(
+    stateUpdate: SU
+  ) => {
+    emit: (update: U) => void;
+    applyUpdates(
+      state: S,
+      stateHash: Field,
+      updateLists: U[][],
+      possibleUpdatesPerTransaction: number[],
+      maxTransactionsWithUpdates?: number
+    ): {
+      state: S;
+      stateHash: Field;
+    };
+  }) & {
+    initialStateHash: Field;
+  } = Object.defineProperty(
+    function (stateUpdate: any) {
+      // we lie about the return value here, and instead overwrite this.stateUpdate with a getter,
+      // so we can get access to `this` inside functions on this.stateUpdate (see constructor)
+      return stateUpdate;
+    },
+    'initialStateHash',
+    { get: Events.emptySequenceState }
+  ) as any;
 
   setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
     Party.setValue(maybeValue, value);
@@ -392,8 +422,8 @@ type StateUpdate<State, Update> = {
   apply(state: State, update: Update): State;
 };
 
-function getStateUpdate(contract: SmartContract) {
-  let stateUpdate = ((contract as any)._ ??= {}).stateUpdate;
+function getStateUpdate<S, U>(contract: SmartContract) {
+  let stateUpdate: StateUpdate<S, U> = ((contract as any)._ ??= {}).stateUpdate;
   if (stateUpdate === undefined)
     throw Error(
       'stateUpdate.emit: You are trying to emit a state update without having declared its type.\n' +
@@ -409,8 +439,7 @@ class ${contract.constructor.name} extends SmartContract {
 }`
     );
   return {
-    ...stateUpdate,
-    emit: (update: any) => {
+    emit: (update: U) => {
       let party = contract.self;
       let eventFields = stateUpdate.update.toFields(update);
       party.body.sequenceEvents = Events.pushEvent(
@@ -418,7 +447,81 @@ class ${contract.constructor.name} extends SmartContract {
         eventFields
       );
     },
+
+    applyUpdates(
+      state: S,
+      stateHash: Field,
+      updateLists: U[][],
+      possibleUpdatesPerTransaction: number[],
+      maxTransactionsWithUpdates = 4
+    ): { state: S; stateHash: Field } {
+      if (updateLists.length > maxTransactionsWithUpdates) {
+        throw Error(
+          `stateUpdate.applyUpdates: Exceeded the maximum number of lists of updates, ${maxTransactionsWithUpdates}.
+Use the optional \`maxTransactionsWithUpdates\` argument to increase this number.`
+        );
+      }
+      // move 0 to the start of possibleUpdatesPerTransaction
+      if (possibleUpdatesPerTransaction.includes(0)) {
+        possibleUpdatesPerTransaction = possibleUpdatesPerTransaction.splice(
+          possibleUpdatesPerTransaction.indexOf(0),
+          1
+        );
+      }
+      possibleUpdatesPerTransaction = [0].concat(possibleUpdatesPerTransaction);
+      let possibleUpdateTypes = possibleUpdatesPerTransaction.map((n) =>
+        circuitArray(stateUpdate.update, n)
+      );
+      for (let i = 0; i < maxTransactionsWithUpdates; i++) {
+        let updates = i < updateLists.length ? updateLists[i] : [];
+        let length = updates.length;
+        let lengths = possibleUpdatesPerTransaction.map((n) =>
+          Circuit.witness(Bool, () => Bool(length === n))
+        );
+        // create dummy updates for the other possible update lengths,
+        // -> because this needs to be a statically-sized computation we have to operate on all of them
+        let updatess = possibleUpdatesPerTransaction.map((n, i) => {
+          let type = possibleUpdateTypes[i];
+          return Circuit.witness(type, () =>
+            length === n ? updates : emptyValue(type)
+          );
+        });
+        // for each update length, compute the events hash and then pick the actual one
+        let eventsHashes = updatess.map((updates) => {
+          let events = updates.map((u) => stateUpdate.update.toFields(u));
+          return Events.hash(events);
+        });
+        let eventsHash = pickOne(lengths, Field, eventsHashes);
+        let newStateHash = Events.updateSequenceState(stateHash, eventsHash);
+        let isEmpty = lengths[0];
+        // update state hash, if this is not an empty update
+        stateHash = Circuit.if(isEmpty, stateHash, newStateHash);
+        // also, for each update length, compute the new state and then pick the actual one
+        let newStates = updatess.map((updates) => {
+          // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
+          let newState = Circuit.witness(stateUpdate.state, () => {
+            // TODO: why doesn't this work without the toConstant mapping?
+            let { toFields, ofFields } = stateUpdate.state;
+            return ofFields(toFields(state).map((x) => x.toConstant()));
+            // return state;
+          });
+          Circuit.assertEqual(newState, state);
+          updates.forEach((update) => {
+            newState = stateUpdate.apply(newState, update);
+          });
+          return newState;
+        });
+        // update state
+        state = Circuit.pickOne(lengths, stateUpdate.state, newStates);
+      }
+      contract.account.sequenceState.assertEquals(stateHash);
+      return { state, stateHash };
+    },
   };
+}
+
+function emptyValue<T>(type: AsFieldElements<T>) {
+  return type.ofFields(Array(type.sizeInFields()).fill(Field.zero));
 }
 
 function selfParty(address: PublicKey) {
