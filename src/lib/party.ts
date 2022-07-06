@@ -500,6 +500,11 @@ type SendParams = {
   amount: Int64 | UInt32 | UInt64 | string | number | bigint;
 };
 
+type MintOrBurnParams = {
+  address: PublicKey;
+  amount: Int64 | UInt32 | UInt64 | string | number | bigint;
+};
+
 class Party {
   body: Body;
   authorization: LazyControl;
@@ -526,23 +531,31 @@ class Party {
 
   get token() {
     let thisParty = this;
-    let customToken = new Token(thisParty.body.publicKey);
+    let customToken = new Token(this.body.publicKey);
 
     return {
+      id: customToken.id,
+
+      parentTokenId: customToken.parentTokenId,
+
+      tokenOwner: customToken.tokenOwner,
+
+      mint({ address, amount }: MintOrBurnParams) {},
+
+      burn({ address, amount }: MintOrBurnParams) {},
+
       transfer({ from, to, amount }: SendParams) {
-        const party = from ? Party.createUnsigned(from) : thisParty;
-        const receiver = Party.createUnsigned(to);
-
-        party.body.balanceChange = party.body.balanceChange.sub(amount);
-        receiver.body.balanceChange = receiver.body.balanceChange.add(amount);
-
-        const token = Ledger.fieldOfBase58(customToken.id);
-        console.log('LOOK HERE TOKEN', token);
-        console.log('LOOK HERE TOKEN1', receiver.body.tokenId);
-        receiver.body.tokenId = token;
-        receiver.body.caller = token;
-        receiver.body.callDepth = 1;
-        // receiver.body.useFullCommitment = Bool(true);
+        if (from === thisParty.publicKey) {
+          thisParty.body.balanceChange =
+            thisParty.body.balanceChange.sub(amount);
+        } else {
+          let senderParty = Party.createUnsigned(from);
+          senderParty.body.balanceChange =
+            senderParty.body.balanceChange.sub(amount);
+        }
+        let receiverParty = Party.createUnsigned(to);
+        receiverParty.body.balanceChange =
+          receiverParty.body.balanceChange.add(amount);
       },
     };
   }

@@ -333,6 +333,10 @@ class SmartContract {
     return this.self.network;
   }
 
+  get token() {
+    return this.self.token;
+  }
+
   transfer(
     amount: Int64 | UInt32 | UInt64 | string | number | bigint,
     receiver: Party,
