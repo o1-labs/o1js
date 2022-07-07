@@ -14,13 +14,6 @@ class Transaction extends CircuitValue {
   @prop sender: PublicKey;
   @prop receiver: PublicKey;
   @prop amount: Field;
-
-  constructor(sender: PublicKey, receiver: PublicKey, amount: Field) {
-    super();
-    this.sender = sender;
-    this.receiver = receiver;
-    this.amount = amount;
-  }
 }
 
 /* Exercise 4:

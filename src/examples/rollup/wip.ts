@@ -44,13 +44,6 @@ class RollupAccount extends CircuitValue {
   @prop balance: UInt64;
   @prop nonce: UInt32;
   @prop publicKey: PublicKey;
-
-  constructor(balance: UInt64, nonce: UInt32, publicKey: PublicKey) {
-    super();
-    this.balance = balance;
-    this.nonce = nonce;
-    this.publicKey = publicKey;
-  }
 }
 
 class RollupTransaction extends CircuitValue {
@@ -58,49 +51,21 @@ class RollupTransaction extends CircuitValue {
   @prop nonce: UInt32;
   @prop sender: PublicKey;
   @prop receiver: PublicKey;
-
-  constructor(
-    amount: UInt64,
-    nonce: UInt32,
-    sender: PublicKey,
-    receiver: PublicKey
-  ) {
-    super();
-    this.amount = amount;
-    this.nonce = nonce;
-    this.sender = sender;
-    this.receiver = receiver;
-  }
 }
 
 class RollupDeposit extends CircuitValue {
   @prop publicKey: PublicKey;
   @prop amount: UInt64;
-  constructor(publicKey: PublicKey, amount: UInt64) {
-    super();
-    this.publicKey = publicKey;
-    this.amount = amount;
-  }
 }
 
 class RollupState extends CircuitValue {
   @prop pendingDepositsCommitment: Field;
   @prop accountDbCommitment: Field;
-  constructor(p: Field, c: Field) {
-    super();
-    this.pendingDepositsCommitment = p;
-    this.accountDbCommitment = c;
-  }
 }
 
 class RollupStateTransition extends CircuitValue {
   @prop source: RollupState;
   @prop target: RollupState;
-  constructor(source: RollupState, target: RollupState) {
-    super();
-    this.source = source;
-    this.target = target;
-  }
 }
 
 // a recursive proof system is kind of like an "enum"

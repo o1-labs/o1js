@@ -20,9 +20,8 @@ export { deploy, submitSolution, getZkappState };
 class Sudoku extends CircuitValue {
   @matrixProp(Field, 9, 9) value: Field[][];
 
-  constructor(value: number[][]) {
-    super();
-    this.value = value.map((row) => row.map(Field));
+  static from(value: number[][]) {
+    return new Sudoku(value.map((row) => row.map(Field)));
   }
 
   hash() {
@@ -84,6 +83,7 @@ class SudokuZkapp extends SmartContract {
 
     // finally, we check that the sudoku is the one that was originally deployed
     let sudokuHash = this.sudokuHash.get(); // get the hash from the blockchain
+    this.sudokuHash.assertEquals(sudokuHash);
     sudokuInstance.hash().assertEquals(sudokuHash);
 
     // all checks passed => the sudoku is solved!
@@ -105,7 +105,7 @@ async function deploy(sudoku: number[][]) {
   let tx = await Mina.transaction(account1, () => {
     Party.fundNewAccount(account1);
     let zkapp = new SudokuZkapp(zkappAddress);
-    let sudokuInstance = new Sudoku(sudoku);
+    let sudokuInstance = Sudoku.from(sudoku);
     zkapp.deploy({ zkappKey });
     zkapp.setPermissions({
       ...Permissions.default(),
@@ -120,7 +120,7 @@ async function deploy(sudoku: number[][]) {
 async function submitSolution(sudoku: number[][], solution: number[][]) {
   let tx = await Mina.transaction(account1, () => {
     let zkapp = new SudokuZkapp(zkappAddress);
-    zkapp.submitSolution(new Sudoku(sudoku), new Sudoku(solution));
+    zkapp.submitSolution(Sudoku.from(sudoku), Sudoku.from(solution));
     zkapp.sign(zkappKey);
   });
   await tx.send().wait();
