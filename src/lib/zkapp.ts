@@ -201,7 +201,8 @@ export class SmartContract {
 
   private _executionState: ExecutionState | undefined;
   static _methods?: MethodInterface[];
-  static _methodMetadata: Record<string, { sequenceEvents: number }> = {}; // keyed by method name
+  private static _methodMetadata: Record<string, { sequenceEvents: number }> =
+    {}; // keyed by method name
   static _provers?: Pickles.Prover[];
   static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
@@ -391,20 +392,9 @@ export class SmartContract {
       Circuit.asProver(run);
   }
 
-  static stateUpdate: (<S, U, SU extends StateUpdate<S, U>>(
+  static StateUpdate: (<S, U, SU extends StateUpdate<S, U>>(
     stateUpdate: SU
-  ) => {
-    emit: (update: U) => void;
-    applyUpdates(
-      state: S,
-      stateHash: Field,
-      updateLists: U[][],
-      maxTransactionsWithUpdates?: number
-    ): {
-      state: S;
-      stateHash: Field;
-    };
-  }) & {
+  ) => StateUpdateReturn<S, U>) & {
     initialStateHash: Field;
   } = Object.defineProperty(
     function (stateUpdate: any) {
@@ -464,7 +454,24 @@ type StateUpdate<State, Update> = {
   apply(state: State, update: Update): State;
 };
 
-function getStateUpdate<S, U>(contract: SmartContract) {
+type StateUpdateReturn<State, Update> = {
+  emit: (update: Update) => void;
+  applyUpdates(
+    stateAndUpdates: {
+      state: State;
+      stateHash: Field;
+      updates: Update[][];
+    },
+    advancedOptions?: { maxTransactionsWithUpdates?: number }
+  ): {
+    state: State;
+    stateHash: Field;
+  };
+};
+
+function getStateUpdate<S, U>(
+  contract: SmartContract
+): StateUpdateReturn<S, U> {
   let stateUpdate: StateUpdate<S, U> = ((contract as any)._ ??= {}).stateUpdate;
   if (stateUpdate === undefined)
     throw Error(
@@ -494,10 +501,16 @@ class ${contract.constructor.name} extends SmartContract {
     },
 
     applyUpdates(
-      state: S,
-      stateHash: Field,
-      updateLists: U[][],
-      maxTransactionsWithUpdates = 32
+      {
+        state,
+        stateHash,
+        updates: updateLists,
+      }: {
+        state: S;
+        stateHash: Field;
+        updates: U[][];
+      },
+      { maxTransactionsWithUpdates = 32 } = {}
     ): { state: S; stateHash: Field } {
       if (updateLists.length > maxTransactionsWithUpdates) {
         throw Error(
