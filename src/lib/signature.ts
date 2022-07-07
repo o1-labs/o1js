@@ -1,5 +1,6 @@
-import { Poseidon, Group, Field, Bool, Scalar, Ledger, Types } from '../snarky';
+import { Group, Field, Bool, Scalar, Ledger, Types } from '../snarky';
 import { prop, CircuitValue } from './circuit_value';
+import { Poseidon } from './hash';
 
 /**
  * A signing key. You can generate one via [[random]].

@@ -1,8 +1,8 @@
 import 'reflect-metadata';
 import { Circuit, Field, Bool, JSONValue, AsFieldElements } from '../snarky';
+import { withContext } from './global-context';
 
 export {
-  asFieldElementsToConstant,
   CircuitValue,
   prop,
   arrayProp,
@@ -16,11 +16,6 @@ export {
 };
 
 type AnyConstructor = new (...args: any) => any;
-
-function asFieldElementsToConstant<T>(typ: AsFieldElements<T>, t: T): T {
-  const xs: Field[] = typ.toFields(t);
-  return typ.ofFields(xs);
-}
 
 abstract class CircuitValue {
   constructor(...props: any[]) {
@@ -300,12 +295,15 @@ function circuitMain(
   }
 
   target.snarkyMain = (w: Array<any>, pub: Array<any>) => {
-    let args = [];
-    for (let i = 0; i < numArgs; ++i) {
-      args.push((publicIndexSet.has(i) ? pub : w).shift());
-    }
+    let [, result] = withContext({ inCheckedComputation: true }, () => {
+      let args = [];
+      for (let i = 0; i < numArgs; ++i) {
+        args.push((publicIndexSet.has(i) ? pub : w).shift());
+      }
 
-    return target[propertyName].apply(target, args);
+      return target[propertyName].apply(target, args);
+    });
+    return result;
   };
 
   target.snarkyWitnessTyp = typeOfArray(
@@ -349,16 +347,18 @@ function circuitValue<T>(typeObj: any): AsFieldElements<T> {
       let offset = 0;
       for (let subObj of typeObj) {
         let size = sizeInFields(subObj);
-        array.push(subObj.ofFields(fields.slice(offset, offset + size)));
+        array.push(ofFields(subObj, fields.slice(offset, offset + size)));
         offset += size;
       }
       return array;
     }
     if ('ofFields' in typeObj) return typeObj.ofFields(fields);
-    let typeObjArray = Object.keys(typeObj)
-      .sort()
-      .map((k) => typeObj[k]);
-    return ofFields(typeObjArray, fields);
+    let keys = Object.keys(typeObj).sort();
+    let values = ofFields(
+      keys.map((k) => typeObj[k]),
+      fields
+    );
+    return Object.fromEntries(keys.map((k, i) => [k, values[i]]));
   }
   function check(typeObj: any, obj: any): void {
     if (typeof typeObj !== 'object' || typeObj === null) return;

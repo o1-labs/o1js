@@ -14,6 +14,7 @@ export {
   shutdown,
   Pickles,
   JSONValue,
+  InferAsFieldElements,
 };
 export * as Types from './snarky/gen/parties';
 export { jsLayout } from './snarky/gen/js-layout';
@@ -475,6 +476,9 @@ declare interface AsFieldElements<T> {
   check(x: T): void;
 }
 
+type InferAsFieldElements<T extends AsFieldElements<any>> =
+  T extends AsFieldElements<infer U> ? U : never;
+
 declare interface CircuitMain<W, P> {
   snarkyWitnessTyp: AsFieldElements<W>;
   snarkyPublicTyp: AsFieldElements<P>;
@@ -650,15 +654,17 @@ declare class Group {
   static check(g: Group): void;
 }
 
-declare class Sponge {
-  constructor();
-  absorb(x: Field): void;
-  squeeze(): Field;
-}
-
 declare const Poseidon: {
-  hash: (xs: Field[]) => Field;
-  Sponge: typeof Sponge;
+  hash(input: Field[], isChecked: boolean): Field;
+  update(
+    state: [Field, Field, Field],
+    input: Field[],
+    isChecked: boolean
+  ): [Field, Field, Field];
+  prefixes: Record<'event' | 'events' | 'sequenceEvents', string>;
+  spongeCreate(isChecked: boolean): unknown;
+  spongeAbsorb(sponge: unknown, x: Field): void;
+  spongeSqueeze(sponge: unknown): Field;
 };
 
 /**
@@ -803,10 +809,7 @@ declare const Pickles: {
    * This function has the same inputs as compile, but is a quick-to-compute
    * hash that can be used to short-circuit proofs if rules haven't changed.
    */
-  circuitDigest: (
-    rules: Pickles.Rule[],
-    publicInputSize: number
-  ) => string;
+  circuitDigest: (rules: Pickles.Rule[], publicInputSize: number) => string;
 
   verify(
     publicInput: Pickles.PublicInput,

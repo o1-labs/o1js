@@ -8,11 +8,18 @@ import {
   Permissions,
   SetOrKeep,
   ZkappPublicInput,
+  Events,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { UInt32, UInt64 } from './int';
-import { mainContext, inCheckedComputation } from './global-context';
+import {
+  mainContext,
+  inCheckedComputation,
+  inCompile,
+  withContext,
+  inProver,
+} from './global-context';
 import {
   assertPreconditionInvariants,
   cleanPreconditionsCache,
@@ -85,18 +92,36 @@ function wrapMethod(
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
-    if (inCheckedComputation() || Mina.currentTransaction === undefined) {
-      if (inCheckedComputation()) {
-        // inside prover / compile, the method is always called with the public input as first argument
-        // -- so we can add assertions about it
-        let publicInput = actualArgs[0];
-        actualArgs = actualArgs.slice(1);
-        // FIXME: figure out correct way to constrain public input https://github.com/o1-labs/snarkyjs/issues/98
-        let tail = Field.zero;
-        publicInput[0].assertEquals(publicInput[0]);
-        // checkPublicInput(publicInput, self, tail);
-      }
+    if (inCheckedComputation()) {
+      return withContext(
+        {
+          inCompile: inCompile(),
+          inProver: inProver(),
+          // important to run this with a fresh party everytime, otherwise we compile messes up our circuits
+          // because it runs this multiple times
+          self: selfParty(this.address),
+        },
+        () => {
+          // inside prover / compile, the method is always called with the public input as first argument
+          // -- so we can add assertions about it
+          let publicInput = actualArgs[0];
+          actualArgs = actualArgs.slice(1);
+          // FIXME: figure out correct way to constrain public input https://github.com/o1-labs/snarkyjs/issues/98
+          let tail = Field.zero;
+          publicInput[0].assertEquals(publicInput[0]);
+          // checkPublicInput(publicInput, self, tail);
 
+          // outside a transaction, just call the method, but check precondition invariants
+          let result = method.apply(this, actualArgs);
+          // check the self party right after calling the method
+          // TODO: this needs to be done in a unified way for all parties that are created
+          assertPreconditionInvariants(this.self);
+          cleanPreconditionsCache(this.self);
+          assertStatePrecondition(this);
+          return result;
+        }
+      )[1];
+    } else if (Mina.currentTransaction === undefined) {
       // outside a transaction, just call the method, but check precondition invariants
       let result = method.apply(this, actualArgs);
       // check the self party right after calling the method
@@ -299,6 +324,39 @@ export class SmartContract {
 
   get nonce() {
     return this.self.setNoncePrecondition();
+  }
+
+  events: { [key: string]: AsFieldElements<any> } = {};
+
+  // TODO: not able to type event such that it is inferred correctly so far
+  emitEvent<K extends keyof this['events']>(type: K, event: any) {
+    let party = this.self;
+    let eventTypes: (keyof this['events'])[] = Object.keys(this.events);
+    if (eventTypes.length === 0)
+      throw Error(
+        'emitEvent: You are trying to emit an event without having declared the types of your events.\n' +
+          `Make sure to add a property \`events\` on ${this.constructor.name}, for example: \n` +
+          `class ${this.constructor.name} extends SmartContract {\n` +
+          `  events = { 'my-event': Field }\n` +
+          `}`
+      );
+    let eventNumber = eventTypes.sort().indexOf(type as string);
+    if (eventNumber === -1)
+      throw Error(
+        `emitEvent: Unknown event type "${
+          type as string
+        }". The declared event types are: ${eventTypes.join(', ')}.`
+      );
+    let eventType = (this.events as this['events'])[type];
+    let eventFields: Field[];
+    if (eventTypes.length === 1) {
+      // if there is just one event type, just store it directly as field elements
+      eventFields = eventType.toFields(event);
+    } else {
+      // if there is more than one event type, also store its index, like in an enum, to identify the type later
+      eventFields = [Field(eventNumber), ...eventType.toFields(event)];
+    }
+    party.body.events = Events.pushEvent(party.body.events, eventFields);
   }
 
   setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
