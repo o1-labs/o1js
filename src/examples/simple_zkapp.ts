@@ -14,7 +14,6 @@ import {
   UInt32,
   Bool,
   PublicKey,
-  circuitValue,
 } from 'snarkyjs';
 
 await isReady;
@@ -28,20 +27,11 @@ class SimpleZkapp extends SmartContract {
     payoutReceiver: PublicKey,
   };
 
-  stateUpdate = SmartContract.stateUpdate({
-    state: circuitValue<null>(null),
-    update: UInt64,
-    apply(state: null, _: UInt64) {
-      return state;
-    },
-  });
-
   deploy(args: DeployArgs) {
     super.deploy(args);
     this.setPermissions({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
-      editSequenceState: Permissions.proofOrSignature(),
     });
     this.balance.addInPlace(UInt64.fromNumber(initialBalance));
     this.x.set(initialState);
@@ -78,7 +68,6 @@ class SimpleZkapp extends SmartContract {
     // emit some events
     this.emitEvent('payoutReceiver', callerAddress);
     this.emitEvent('payout', halfBalance);
-    this.stateUpdate.emit(halfBalance);
   }
 }
 

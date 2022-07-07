@@ -481,7 +481,7 @@ function pickOne<T, A extends AsFieldElements<T>>(
     throw Error(
       `pickOne: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
     );
-  // TODO: we'd like3 to do a sanity check on the input values here -- but Circuit.asProver is only available in checked computations
+  // TODO: we'd like to do a sanity check on the input values here -- but Circuit.asProver is only available in checked computations
   // would be nice to have a generalization which works in all environments
   // Circuit.asProver(() => {
   //   let nTrue = mask.filter((b) => b.toBoolean()).length;
