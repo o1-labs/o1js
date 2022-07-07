@@ -45,8 +45,6 @@ class StateUpdateZkapp extends SmartContract {
     // get previous state and assert that it's the same as on-chain state
     let counter = this.counter.get();
     let oldStateHash = this.stateHash.get();
-    this.account.balance.get();
-    this.account.balance.assertNothing();
     this.counter.assertEquals(counter);
     this.stateHash.assertEquals(oldStateHash);
     // compute the new state and hash from pending updates
