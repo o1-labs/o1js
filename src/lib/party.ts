@@ -498,7 +498,7 @@ type SendParams = {
   from: PublicKey;
   to: PublicKey;
   amount: Int64 | UInt32 | UInt64 | string | number | bigint;
-  accountCreation?: boolean;
+  newTokenAccount: Bool | boolean;
 };
 
 type MintOrBurnParams = {
@@ -545,20 +545,22 @@ class Party {
 
       burn({ address, amount }: MintOrBurnParams) {},
 
-      transfer({ from, to, amount, accountCreation }: SendParams) {
+      transfer({ from, to, amount, newTokenAccount }: SendParams) {
+        let tokenCreationFee = Circuit.if(
+          newTokenAccount,
+          Mina.accountCreationFee(),
+          UInt64.zero
+        );
+
+        console.log('tokenCreationFee', tokenCreationFee);
+
         if (from === thisParty.publicKey) {
-          if (accountCreation) {
-            thisParty.body.balanceChange = thisParty.body.balanceChange.sub(
-              Mina.accountCreationFee()
-            );
-          }
+          thisParty.body.balanceChange =
+            thisParty.body.balanceChange.sub(tokenCreationFee);
         } else {
-          if (accountCreation) {
-            let senderParty = Party.createUnsigned(from);
-            senderParty.body.balanceChange = senderParty.body.balanceChange.sub(
-              Mina.accountCreationFee()
-            );
-          }
+          let senderParty = Party.createUnsigned(from);
+          senderParty.body.balanceChange =
+            senderParty.body.balanceChange.sub(tokenCreationFee);
         }
 
         const token = Ledger.fieldOfBase58(customToken.id);
