@@ -5,7 +5,7 @@ import { inCheckedComputation } from './global-context';
 export { Poseidon };
 
 // internal API
-export { salt, prefixes };
+export { prefixes, emptyHashWithPrefix, hashWithPrefix };
 
 class Sponge {
   private sponge: unknown;
@@ -44,10 +44,23 @@ const Poseidon = {
   Sponge,
 };
 
+function emptyHashWithPrefix(prefix: string) {
+  return salt(prefix)[0];
+}
+
+function hashWithPrefix(prefix: string, input: Field[]) {
+  let init = salt(prefix);
+  return Poseidon.update(init, input)[0];
+}
 const prefixes = Poseidon_.prefixes;
 
 function salt(prefix: string) {
-  return Poseidon.update(Poseidon.initialState, [prefixToField(prefix)]);
+  return Poseidon_.update(
+    Poseidon.initialState,
+    [prefixToField(prefix)],
+    // salt is never suppoesed to run in checked mode
+    false
+  );
 }
 
 // same as Random_oracle.prefix_to_field in OCaml

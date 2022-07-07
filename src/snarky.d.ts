@@ -14,6 +14,7 @@ export {
   shutdown,
   Pickles,
   JSONValue,
+  InferAsFieldElements,
 };
 export * as Types from './snarky/gen/parties';
 export { jsLayout } from './snarky/gen/js-layout';
@@ -474,6 +475,9 @@ declare interface AsFieldElements<T> {
   sizeInFields(): number;
   check(x: T): void;
 }
+
+type InferAsFieldElements<T extends AsFieldElements<any>> =
+  T extends AsFieldElements<infer U> ? U : never;
 
 declare interface CircuitMain<W, P> {
   snarkyWitnessTyp: AsFieldElements<W>;

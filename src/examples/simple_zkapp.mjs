@@ -18,11 +18,18 @@ class SimpleZkapp extends SmartContract {
     super(address);
     this.x = State();
   }
+
+  events = {
+    update: Field,
+  };
+
   deploy(args) {
     super.deploy(args);
     this.x.set(initialState);
   }
   update(y) {
+    this.emitEvent('update', y);
+    this.emitEvent('update', y);
     this.account.balance.assertEquals(this.account.balance.get());
     let x = this.x.get();
     this.x.assertEquals(x);

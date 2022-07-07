@@ -13,12 +13,19 @@ import {
   DeployArgs,
   UInt32,
   Bool,
+  PublicKey,
 } from 'snarkyjs';
 
 await isReady;
 
 class SimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
+
+  events = {
+    update: Field,
+    payout: UInt64,
+    payoutReceiver: PublicKey,
+  };
 
   deploy(args: DeployArgs) {
     super.deploy(args);
@@ -31,6 +38,7 @@ class SimpleZkapp extends SmartContract {
   }
 
   @method update(y: Field) {
+    this.emitEvent('update', y);
     let x = this.x.get();
     this.x.assertEquals(x);
     this.x.set(x.add(y));
@@ -56,6 +64,10 @@ class SimpleZkapp extends SmartContract {
     let halfBalance = balance.div(2);
     this.balance.subInPlace(halfBalance);
     callerParty.balance.addInPlace(halfBalance);
+
+    // emit some events
+    this.emitEvent('payoutReceiver', callerAddress);
+    this.emitEvent('payout', halfBalance);
   }
 }
 
@@ -78,7 +90,7 @@ let initialState = Field(1);
 let zkapp = new SimpleZkapp(zkappAddress);
 
 console.log('deploy');
-let tx = await Local.transaction(feePayer, () => {
+let tx = await Mina.transaction(feePayer, () => {
   Party.fundNewAccount(feePayer, { initialBalance });
   zkapp.deploy({ zkappKey });
 });
@@ -88,24 +100,28 @@ console.log('initial state: ' + zkapp.x.get());
 console.log(`initial balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 
 console.log('update');
-tx = await Local.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, () => {
   zkapp.update(Field(3));
   zkapp.sign(zkappKey);
 });
 tx.send();
 
+console.log(tx.toJSON());
+
 console.log('payout');
-tx = await Local.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, () => {
   zkapp.payout(privilegedKey);
   zkapp.sign(zkappKey);
 });
 tx.send();
 
+console.log(tx.toJSON());
+
 console.log('final state: ' + zkapp.x.get());
 console.log(`final balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 
 console.log('try to payout a second time..');
-tx = await Local.transaction(feePayer, () => {
+tx = await Mina.transaction(feePayer, () => {
   zkapp.payout(privilegedKey);
   zkapp.sign(zkappKey);
 });
@@ -117,7 +133,7 @@ try {
 
 console.log('try to payout to a different account..');
 try {
-  tx = await Local.transaction(feePayer, () => {
+  tx = await Mina.transaction(feePayer, () => {
     zkapp.payout(Local.testAccounts[2].privateKey);
     zkapp.sign(zkappKey);
   });
