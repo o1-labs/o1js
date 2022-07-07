@@ -6,6 +6,7 @@ import * as Mina from './mina';
 import { Account, fetchAccount } from './fetch';
 import * as GlobalContext from './global-context';
 import { SmartContract } from './zkapp';
+import { emptyValue } from './proof_system';
 
 // external API
 export { State, state, declareState };
@@ -198,7 +199,8 @@ function createState<T>(): InternalStateType<T> {
       let address: PublicKey = this._contract.instance.address;
       let stateAsFields: Field[];
       let inProver = GlobalContext.inProver();
-      if (!GlobalContext.inCompile()) {
+      let stateFieldsType = circuitArray(Field, layout.length);
+      if (!GlobalContext.inCompile() && !GlobalContext.inAnalyze()) {
         let account: Account;
         try {
           account = Mina.getAccount(address);
@@ -224,19 +226,15 @@ function createState<T>(): InternalStateType<T> {
         // in prover, create a new witness with the state values
         // outside, just return the state values
         stateAsFields = inProver
-          ? Circuit.witness(
-              circuitArray(Field, layout.length),
-              () => stateAsFields
-            )
+          ? Circuit.witness(stateFieldsType, () => stateAsFields)
           : stateAsFields;
       } else {
         // in compile, we don't need the witness values
-        stateAsFields = Circuit.witness(
-          circuitArray(Field, layout.length),
-          (): Field[] => {
-            throw Error('this should never happen');
-          }
-        );
+        stateAsFields = GlobalContext.inCompile()
+          ? Circuit.witness(stateFieldsType, (): Field[] => {
+              throw Error('this should never happen');
+            })
+          : emptyValue(stateFieldsType);
       }
       let state = this._contract.stateType.ofFields(stateAsFields);
       this._contract.stateType.check?.(state);

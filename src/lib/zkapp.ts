@@ -31,6 +31,7 @@ import {
   inCompile,
   withContext,
   inProver,
+  inAnalyze,
 } from './global-context';
 import {
   assertPreconditionInvariants,
@@ -415,14 +416,15 @@ export class SmartContract {
     let methods = ZkappClass._methods ?? [];
     if (
       !methods.every((m) => m.methodName in ZkappClass._methodMetadata) &&
-      !mainContext?.otherContext?.insideAnalyze
+      !inAnalyze()
     ) {
       let self = selfParty(this.address);
       for (let method of methods) {
         withContext(
           {
+            inAnalyze: true,
             self,
-            otherContext: { numberOfSequenceEvents: 0, insideAnalyze: true },
+            otherContext: { numberOfSequenceEvents: 0 },
           },
           () => {
             let args = synthesizeMethodArguments(method);

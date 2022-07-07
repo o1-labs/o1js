@@ -12,6 +12,7 @@ import * as Mina from './mina';
 import { Party, Preconditions } from './party';
 import * as GlobalContext from './global-context';
 import { UInt32, UInt64 } from './int';
+import { emptyValue } from './proof_system';
 
 export {
   preconditions,
@@ -168,6 +169,8 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
 To write a correct circuit, you must avoid any dependency on the concrete value of variables.`
       );
     });
+  } else if (GlobalContext.inAnalyze()) {
+    return emptyValue(fieldType);
   }
   // if not in compile, get the variable's value first
   let [accountOrNetwork, ...rest] = longKey.split('.');
