@@ -51,8 +51,7 @@ class StateUpdateZkapp extends SmartContract {
     let { state, stateHash } = this.stateUpdate.applyUpdates(
       recentStateUpdates.state,
       recentStateUpdates.stateHash,
-      recentStateUpdates.updates,
-      [1]
+      recentStateUpdates.updates
     );
     SmartContract.runOutsideCircuit(() => {
       recentStateUpdates = {

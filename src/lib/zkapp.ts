@@ -43,6 +43,8 @@ import {
   compileProgram,
   Proof,
   digestProgram,
+  emptyValue,
+  synthesizeMethodArguments,
 } from './proof_system';
 import { assertStatePrecondition, cleanStatePrecondition } from './state';
 
@@ -109,7 +111,7 @@ function wrapMethod(
         {
           inCompile: inCompile(),
           inProver: inProver(),
-          // important to run this with a fresh party everytime, otherwise we compile messes up our circuits
+          // important to run this with a fresh party everytime, otherwise compile messes up our circuits
           // because it runs this multiple times
           self: selfParty(this.address),
         },
@@ -199,6 +201,7 @@ export class SmartContract {
 
   private _executionState: ExecutionState | undefined;
   static _methods?: MethodInterface[];
+  static _methodMetadata: Record<string, { sequenceEvents: number }> = {}; // keyed by method name
   static _provers?: Pickles.Prover[];
   static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
@@ -233,7 +236,11 @@ export class SmartContract {
         (instance as any)[methodName](...args);
       };
     });
-
+    // run methods once to get information that we need already at compile time
+    Circuit.runAndCheck(() => {
+      let instance = new this(address);
+      instance.analyzeMethods();
+    });
     let { getVerificationKeyArtifact, provers, verify } = compileProgram(
       ZkappPublicInput,
       methodIntfs,
@@ -392,7 +399,6 @@ export class SmartContract {
       state: S,
       stateHash: Field,
       updateLists: U[][],
-      possibleUpdatesPerTransaction: number[],
       maxTransactionsWithUpdates?: number
     ): {
       state: S;
@@ -409,6 +415,37 @@ export class SmartContract {
     'initialStateHash',
     { get: Events.emptySequenceState }
   ) as any;
+
+  // run all methods to collect metadata like how many sequence events they use -- if we don't have this information yet
+  // TODO: this could also be used to quickly perform any invariant checks on parties construction
+  // TODO: it would be even better to run the methods in "compile mode" here -- i.e. with variables which can't be read --,
+  // to be able to give quick errors when people try to depend on variables for constructing their circuit (https://github.com/o1-labs/snarkyjs/issues/224)
+  analyzeMethods() {
+    let ZkappClass = this.constructor as typeof SmartContract;
+    let methods = ZkappClass._methods ?? [];
+    if (
+      !methods.every((m) => m.methodName in ZkappClass._methodMetadata) &&
+      !mainContext?.otherContext?.insideAnalyze
+    ) {
+      let self = selfParty(this.address);
+      for (let method of methods) {
+        withContext(
+          {
+            self,
+            otherContext: { numberOfSequenceEvents: 0, insideAnalyze: true },
+          },
+          () => {
+            let args = synthesizeMethodArguments(method);
+            (this as any)[method.methodName](...args);
+            ZkappClass._methodMetadata[method.methodName] = {
+              sequenceEvents: mainContext?.otherContext?.numberOfSequenceEvents,
+            };
+          }
+        );
+      }
+    }
+    return ZkappClass._methodMetadata;
+  }
 
   setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
     Party.setValue(maybeValue, value);
@@ -431,7 +468,7 @@ function getStateUpdate<S, U>(contract: SmartContract) {
   let stateUpdate: StateUpdate<S, U> = ((contract as any)._ ??= {}).stateUpdate;
   if (stateUpdate === undefined)
     throw Error(
-      'stateUpdate.emit: You are trying to emit a state update without having declared its type.\n' +
+      'You are trying to use a state update without having declared its type.\n' +
         `Make sure to add a property \`stateUpdate\` on ${contract.constructor.name}, for example:
 class ${contract.constructor.name} extends SmartContract {
   stateUpdate = {
@@ -451,13 +488,15 @@ class ${contract.constructor.name} extends SmartContract {
         party.body.sequenceEvents,
         eventFields
       );
+      if (mainContext?.otherContext?.numberOfSequenceEvents !== undefined) {
+        mainContext.otherContext.numberOfSequenceEvents += 1;
+      }
     },
 
     applyUpdates(
       state: S,
       stateHash: Field,
       updateLists: U[][],
-      possibleUpdatesPerTransaction: number[],
       maxTransactionsWithUpdates = 32
     ): { state: S; stateHash: Field } {
       if (updateLists.length > maxTransactionsWithUpdates) {
@@ -466,14 +505,13 @@ class ${contract.constructor.name} extends SmartContract {
 Use the optional \`maxTransactionsWithUpdates\` argument to increase this number.`
         );
       }
-      // move 0 to the start of possibleUpdatesPerTransaction
-      if (possibleUpdatesPerTransaction.includes(0)) {
-        possibleUpdatesPerTransaction = possibleUpdatesPerTransaction.splice(
-          possibleUpdatesPerTransaction.indexOf(0),
-          1
-        );
-      }
-      possibleUpdatesPerTransaction = [0].concat(possibleUpdatesPerTransaction);
+      let methodData = contract.analyzeMethods();
+      let possibleUpdatesPerTransaction = [
+        ...new Set(Object.values(methodData).map((o) => o.sequenceEvents)).add(
+          0
+        ),
+      ].sort((x, y) => x - y);
+
       let possibleUpdateTypes = possibleUpdatesPerTransaction.map((n) =>
         circuitArray(stateUpdate.update, n)
       );
@@ -523,10 +561,6 @@ Use the optional \`maxTransactionsWithUpdates\` argument to increase this number
       return { state, stateHash };
     },
   };
-}
-
-function emptyValue<T>(type: AsFieldElements<T>) {
-  return type.ofFields(Array(type.sizeInFields()).fill(Field.zero));
 }
 
 function selfParty(address: PublicKey) {

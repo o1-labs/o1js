@@ -13,6 +13,8 @@ export {
   picklesRuleFromFunction,
   compileProgram,
   digestProgram,
+  emptyValue,
+  synthesizeMethodArguments,
 };
 
 class Proof<T> {
@@ -416,11 +418,30 @@ function picklesRuleFromFunction(
   return { identifier: methodName, main, proofsToVerify };
 }
 
-function emptyWitness<A>(typ: AsFieldElements<A>) {
-  // return typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero));
-  return Circuit.witness(typ, () =>
-    typ.ofFields(Array(typ.sizeInFields()).fill(Field.zero))
-  );
+function synthesizeMethodArguments({
+  allArgs,
+  proofArgs,
+  witnessArgs,
+}: MethodInterface) {
+  let args = [];
+  for (let arg of allArgs) {
+    if (arg.type === 'witness') {
+      args.push(emptyValue(witnessArgs[arg.index]));
+    } else {
+      let Proof = proofArgs[arg.index];
+      let publicInput = emptyValue(getPublicInputType(Proof));
+      args.push(new Proof({ publicInput, proof: undefined }));
+    }
+  }
+  return args;
+}
+
+function emptyValue<T>(type: AsFieldElements<T>) {
+  return type.ofFields(Array(type.sizeInFields()).fill(Field.zero));
+}
+
+function emptyWitness<T>(type: AsFieldElements<T>) {
+  return Circuit.witness(type, () => emptyValue(type));
 }
 
 function getPublicInputType<T, P extends Subclass<typeof Proof> = typeof Proof>(

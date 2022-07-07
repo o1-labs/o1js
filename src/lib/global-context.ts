@@ -21,6 +21,7 @@ let mainContext = undefined as
       inProver?: boolean;
       inCompile?: boolean;
       inCheckedComputation?: boolean;
+      otherContext?: any;
     }
   | undefined;
 type PartialContext = {
@@ -31,6 +32,7 @@ type PartialContext = {
   inProver?: boolean;
   inCompile?: boolean;
   inCheckedComputation?: boolean;
+  otherContext?: any;
 };
 
 function withContext<T>(
