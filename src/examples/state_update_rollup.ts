@@ -47,6 +47,7 @@ class StateUpdateZkapp extends SmartContract {
     });
   }
 
+  // TODO: this would be cleaner if could use a return value to communicate the new state, stateHash
   @method rollupStateUpdate() {
     let { state, stateHash } = this.stateUpdate.applyUpdates(
       recentStateUpdates.state,
