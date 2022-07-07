@@ -55,7 +55,7 @@ class StateUpdateZkapp extends SmartContract {
   }
 }
 
-const doProofs = false;
+const doProofs = true;
 const initialCounter = Field.zero;
 
 // this is a data structure where we internally keep track of the current state, state hash and pending updates
