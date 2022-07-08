@@ -504,6 +504,7 @@ type SendParams = {
 type MintOrBurnParams = {
   address: PublicKey;
   amount: Int64 | UInt32 | UInt64 | string | number | bigint;
+  newTokenAccount: Bool | boolean;
 };
 
 class Party {
@@ -533,6 +534,7 @@ class Party {
   get token() {
     let thisParty = this;
     let customToken = new Token(thisParty.body.publicKey);
+    const token = Ledger.fieldOfBase58(customToken.id);
 
     return {
       id: customToken.id,
@@ -541,9 +543,43 @@ class Party {
 
       tokenOwner: customToken.tokenOwner,
 
-      mint({ address, amount }: MintOrBurnParams) {},
+      mint({ address, amount, newTokenAccount }: MintOrBurnParams) {
+        let tokenCreationFee = Circuit.if(
+          newTokenAccount,
+          Mina.accountCreationFee(),
+          UInt64.zero
+        );
 
-      burn({ address, amount }: MintOrBurnParams) {},
+        thisParty.body.balanceChange =
+          thisParty.body.balanceChange.sub(tokenCreationFee);
+
+        let receiverParty = Party.createUnsigned(address, {
+          caller: token,
+          tokenId: token,
+          callDepth: 1, // TODO: Make this smarter
+        });
+        receiverParty.body.balanceChange =
+          receiverParty.body.balanceChange.add(amount);
+      },
+
+      burn({ address, amount, newTokenAccount }: MintOrBurnParams) {
+        let tokenCreationFee = Circuit.if(
+          newTokenAccount,
+          Mina.accountCreationFee(),
+          UInt64.zero
+        );
+
+        thisParty.body.balanceChange =
+          thisParty.body.balanceChange.sub(tokenCreationFee);
+
+        let receiverParty = Party.createUnsigned(address, {
+          caller: token,
+          tokenId: token,
+          callDepth: 1, // TODO: Make this smarter
+        });
+        receiverParty.body.balanceChange =
+          receiverParty.body.balanceChange.sub(amount);
+      },
 
       transfer({ from, to, amount, newTokenAccount }: SendParams) {
         let tokenCreationFee = Circuit.if(
@@ -552,18 +588,31 @@ class Party {
           UInt64.zero
         );
 
-        console.log('tokenCreationFee', tokenCreationFee);
-
         if (from === thisParty.publicKey) {
           thisParty.body.balanceChange =
             thisParty.body.balanceChange.sub(tokenCreationFee);
+
+          let transferParty = Party.createUnsigned(thisParty.publicKey, {
+            caller: token,
+            tokenId: token,
+          });
+
+          transferParty.body.balanceChange =
+            transferParty.body.balanceChange.sub(amount);
         } else {
           let senderParty = Party.createUnsigned(from);
           senderParty.body.balanceChange =
             senderParty.body.balanceChange.sub(tokenCreationFee);
+
+          let transferParty = Party.createUnsigned(from, {
+            caller: token,
+            tokenId: token,
+            callDepth: 1,
+          });
+          transferParty.body.balanceChange =
+            transferParty.body.balanceChange.sub(amount);
         }
 
-        const token = Ledger.fieldOfBase58(customToken.id);
         let receiverParty = Party.createUnsigned(to, {
           caller: token,
           tokenId: token,
