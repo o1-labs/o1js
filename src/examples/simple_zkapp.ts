@@ -71,6 +71,8 @@ class SimpleZkapp extends SmartContract {
   }
 }
 
+const doProofs = true;
+
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
@@ -89,6 +91,11 @@ let initialBalance = 10_000_000_000;
 let initialState = Field(1);
 let zkapp = new SimpleZkapp(zkappAddress);
 
+if (doProofs) {
+  console.log('compile');
+  await SimpleZkapp.compile(zkappAddress);
+}
+
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, () => {
   Party.fundNewAccount(feePayer, { initialBalance });
@@ -102,18 +109,16 @@ console.log(`initial balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 console.log('update');
 tx = await Mina.transaction(feePayer, () => {
   zkapp.update(Field(3));
-  zkapp.sign(zkappKey);
+  if (!doProofs) zkapp.sign(zkappKey);
 });
 tx.send();
 
 console.log('payout');
 tx = await Mina.transaction(feePayer, () => {
   zkapp.payout(privilegedKey);
-  zkapp.sign(zkappKey);
+  if (!doProofs) zkapp.sign(zkappKey);
 });
 tx.send();
-
-console.log(tx.toJSON());
 
 console.log('final state: ' + zkapp.x.get());
 console.log(`final balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
@@ -121,7 +126,7 @@ console.log(`final balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 console.log('try to payout a second time..');
 tx = await Mina.transaction(feePayer, () => {
   zkapp.payout(privilegedKey);
-  zkapp.sign(zkappKey);
+  if (!doProofs) zkapp.sign(zkappKey);
 });
 try {
   tx.send();
@@ -133,7 +138,7 @@ console.log('try to payout to a different account..');
 try {
   tx = await Mina.transaction(feePayer, () => {
     zkapp.payout(Local.testAccounts[2].privateKey);
-    zkapp.sign(zkappKey);
+    if (!doProofs) zkapp.sign(zkappKey);
   });
   tx.send();
 } catch (err: any) {
