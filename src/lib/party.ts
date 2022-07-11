@@ -495,15 +495,14 @@ type UnfinishedSignature = undefined | LazySignature | string;
 type LazyControl = Control | LazySignature | LazyProof;
 
 type SendParams = {
-  from: PrivateKey;
-  to: PrivateKey;
+  from: PublicKey;
+  to: PublicKey;
   amount: Int64 | UInt32 | UInt64 | string | number | bigint;
   newTokenAccount: Bool | boolean;
 };
 
 type MintOrBurnParams = {
   address: PublicKey;
-  privateKey: PrivateKey;
   amount: Int64 | UInt32 | UInt64 | string | number | bigint;
   newTokenAccount: Bool | boolean;
 };
@@ -558,12 +557,14 @@ class Party {
           caller: token,
           tokenId: token,
           callDepth: 1, // TODO: Make this smarter
+          useFullCommitment: Bool(true),
         });
+
         receiverParty.body.balanceChange =
           receiverParty.body.balanceChange.add(amount);
       },
 
-      burn({ address, amount, newTokenAccount, privateKey }: MintOrBurnParams) {
+      burn({ address, amount, newTokenAccount }: MintOrBurnParams) {
         let tokenCreationFee = Circuit.if(
           newTokenAccount,
           Mina.accountCreationFee(),
@@ -577,11 +578,13 @@ class Party {
           caller: token,
           tokenId: token,
           callDepth: 1, // TODO: Make this smarter
+          useFullCommitment: Bool(true),
         });
         receiverParty.body.balanceChange =
           receiverParty.body.balanceChange.sub(amount);
-
-        receiverParty.signInPlace(privateKey);
+        receiverParty.authorization = {
+          kind: 'lazy-signature',
+        };
       },
 
       transfer({ from, to, amount, newTokenAccount }: SendParams) {
@@ -591,13 +594,7 @@ class Party {
           UInt64.zero
         );
 
-        let fromAddress = from.toPublicKey();
-        let toAddress = to.toPublicKey();
-
-        console.log('---TOKEN ACCOUNT1', fromAddress.toBase58());
-        console.log('---TOKEN ACCOUNT2', toAddress.toBase58());
-
-        if (fromAddress === thisParty.publicKey) {
+        if (from === thisParty.publicKey) {
           thisParty.body.balanceChange =
             thisParty.body.balanceChange.sub(tokenCreationFee);
 
@@ -612,25 +609,29 @@ class Party {
           thisParty.body.balanceChange =
             thisParty.body.balanceChange.sub(tokenCreationFee);
 
-          let transferParty = Party.createUnsigned(fromAddress, {
+          let transferParty = Party.createUnsigned(from, {
             caller: token,
             tokenId: token,
             callDepth: 1,
+            useFullCommitment: Bool(true),
           });
+
           transferParty.body.balanceChange =
             transferParty.body.balanceChange.sub(amount);
-          transferParty.signInPlace(from);
+          transferParty.authorization = {
+            kind: 'lazy-signature',
+          };
         }
 
-        let receiverParty = Party.createUnsigned(toAddress, {
+        let receiverParty = Party.createUnsigned(to, {
           caller: token,
           tokenId: token,
           callDepth: 1, // TODO: Make this smarter
+          useFullCommitment: Bool(true),
         });
 
         receiverParty.body.balanceChange =
           receiverParty.body.balanceChange.add(amount);
-        receiverParty.signInPlace(to);
       },
     };
   }
@@ -799,6 +800,7 @@ class Party {
       caller?: Field;
       tokenId?: Field;
       callDepth?: number;
+      useFullCommitment?: Bool;
     }
   ) {
     // TODO: This should be a witness block that uses the setVariable
@@ -811,11 +813,11 @@ class Party {
 
     const pk = publicKey;
     const body: Body = Body.keepAll(pk);
-    const { caller, tokenId, callDepth } = options ?? {};
+    const { caller, tokenId, callDepth, useFullCommitment } = options ?? {};
     body.caller = caller || body.caller;
     body.tokenId = tokenId || body.tokenId;
     body.callDepth = callDepth || body.callDepth;
-    // body.useFullCommitment = Bool(true);
+    body.useFullCommitment = useFullCommitment || body.useFullCommitment;
 
     const party = new Party(body);
     Mina.currentTransaction.nextPartyIndex++;
