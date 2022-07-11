@@ -495,14 +495,15 @@ type UnfinishedSignature = undefined | LazySignature | string;
 type LazyControl = Control | LazySignature | LazyProof;
 
 type SendParams = {
-  from: PublicKey;
-  to: PublicKey;
+  from: PrivateKey;
+  to: PrivateKey;
   amount: Int64 | UInt32 | UInt64 | string | number | bigint;
   newTokenAccount: Bool | boolean;
 };
 
 type MintOrBurnParams = {
   address: PublicKey;
+  privateKey: PrivateKey;
   amount: Int64 | UInt32 | UInt64 | string | number | bigint;
   newTokenAccount: Bool | boolean;
 };
@@ -562,7 +563,7 @@ class Party {
           receiverParty.body.balanceChange.add(amount);
       },
 
-      burn({ address, amount, newTokenAccount }: MintOrBurnParams) {
+      burn({ address, amount, newTokenAccount, privateKey }: MintOrBurnParams) {
         let tokenCreationFee = Circuit.if(
           newTokenAccount,
           Mina.accountCreationFee(),
@@ -579,6 +580,8 @@ class Party {
         });
         receiverParty.body.balanceChange =
           receiverParty.body.balanceChange.sub(amount);
+
+        receiverParty.signInPlace(privateKey);
       },
 
       transfer({ from, to, amount, newTokenAccount }: SendParams) {
@@ -588,7 +591,13 @@ class Party {
           UInt64.zero
         );
 
-        if (from === thisParty.publicKey) {
+        let fromAddress = from.toPublicKey();
+        let toAddress = to.toPublicKey();
+
+        console.log('---TOKEN ACCOUNT1', fromAddress.toBase58());
+        console.log('---TOKEN ACCOUNT2', toAddress.toBase58());
+
+        if (fromAddress === thisParty.publicKey) {
           thisParty.body.balanceChange =
             thisParty.body.balanceChange.sub(tokenCreationFee);
 
@@ -600,20 +609,20 @@ class Party {
           transferParty.body.balanceChange =
             transferParty.body.balanceChange.sub(amount);
         } else {
-          let senderParty = Party.createUnsigned(from);
-          senderParty.body.balanceChange =
-            senderParty.body.balanceChange.sub(tokenCreationFee);
+          thisParty.body.balanceChange =
+            thisParty.body.balanceChange.sub(tokenCreationFee);
 
-          let transferParty = Party.createUnsigned(from, {
+          let transferParty = Party.createUnsigned(fromAddress, {
             caller: token,
             tokenId: token,
             callDepth: 1,
           });
           transferParty.body.balanceChange =
             transferParty.body.balanceChange.sub(amount);
+          transferParty.signInPlace(from);
         }
 
-        let receiverParty = Party.createUnsigned(to, {
+        let receiverParty = Party.createUnsigned(toAddress, {
           caller: token,
           tokenId: token,
           callDepth: 1, // TODO: Make this smarter
@@ -621,6 +630,7 @@ class Party {
 
         receiverParty.body.balanceChange =
           receiverParty.body.balanceChange.add(amount);
+        receiverParty.signInPlace(to);
       },
     };
   }
@@ -785,7 +795,7 @@ class Party {
 
   static createUnsigned(
     publicKey: PublicKey,
-    bodyInput?: {
+    options?: {
       caller?: Field;
       tokenId?: Field;
       callDepth?: number;
@@ -801,10 +811,11 @@ class Party {
 
     const pk = publicKey;
     const body: Body = Body.keepAll(pk);
-    const { caller, tokenId, callDepth } = bodyInput || {};
+    const { caller, tokenId, callDepth } = options ?? {};
     body.caller = caller || body.caller;
     body.tokenId = tokenId || body.tokenId;
     body.callDepth = callDepth || body.callDepth;
+    // body.useFullCommitment = Bool(true);
 
     const party = new Party(body);
     Mina.currentTransaction.nextPartyIndex++;
@@ -814,7 +825,13 @@ class Party {
 
   static createSigned(
     signer: PrivateKey,
-    options?: { isSameAsFeePayer?: Bool | boolean; nonce?: UInt32 }
+    options?: {
+      isSameAsFeePayer?: Bool | boolean;
+      nonce?: UInt32;
+      // caller?: Field;
+      // tokenId?: Field;
+      // callDepth?: number;
+    }
   ) {
     let { nonce, isSameAsFeePayer } = options ?? {};
     // if not specified, optimistically determine isSameAsFeePayer from the current transaction
@@ -859,6 +876,11 @@ class Party {
     nonce = nonce.add(nonceIncrement);
     Party.assertEquals(body.preconditions.account.nonce, nonce);
     body.incrementNonce = Bool(true);
+    // const { caller, tokenId, callDepth } = options ?? {};
+    // body.caller = caller || body.caller;
+    // body.tokenId = tokenId || body.tokenId;
+    // body.callDepth = callDepth || body.callDepth;
+    // body.useFullCommitment = Bool(true);
 
     let party = new Party(body);
     party.authorization = { kind: 'lazy-signature', privateKey: signer };
