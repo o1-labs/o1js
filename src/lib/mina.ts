@@ -44,7 +44,7 @@ interface Transaction {
   transaction: Parties;
   toJSON(): string;
   toGraphqlQuery(): string;
-  sign(additionialKeys?: PrivateKey[]): Transaction;
+  sign(additionalKeys?: PrivateKey[]): Transaction;
   prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;
   send(): TransactionId;
 }
