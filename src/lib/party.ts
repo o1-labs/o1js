@@ -30,6 +30,7 @@ export {
   ZkappStateLength,
   ZkappPublicInput,
   Events,
+  partyToPublicInput,
 };
 
 const ZkappStateLength = 8;
@@ -891,14 +892,23 @@ type PartiesProved = {
   as part of the snark circuit. The block producer will also hash the transaction they receive and pass it as a public input to the verifier.
   Thus, the transaction is fully constrained by the proof - the proof couldn't be used to attest to a different transaction.
  */
-type ZkappPublicInput = [transaction: Field, atParty: Field];
-let ZkappPublicInput = circuitValue<ZkappPublicInput>([Field, Field]);
+type ZkappPublicInput = { party: Field; calls: Field };
+let ZkappPublicInput = circuitValue<ZkappPublicInput>(
+  { party: Field, calls: Field },
+  { customObjectKeys: ['party', 'calls'] }
+);
+
+function partyToPublicInput(self: Party): ZkappPublicInput {
+  // TODO compute `calls` from party's children
+  let party = self.hash();
+  let calls = Field.zero; // zero is the correct value if party has no children
+  return { party, calls };
+}
 
 async function addMissingProofs(parties: Parties): Promise<{
   parties: PartiesProved;
   proofs: (Proof<ZkappPublicInput> | undefined)[];
 }> {
-  let partiesJson = JSON.stringify(partiesToJson(parties));
   type PartyProved = Party & { authorization: Control | LazySignature };
 
   async function addProof(party: Party, index: number) {
@@ -909,7 +919,8 @@ async function addMissingProofs(parties: Parties): Promise<{
     )
       return { partyProved: party as PartyProved, proof: undefined };
     let { method, args, previousProofs, ZkappClass } = party.authorization;
-    let publicInput = Ledger.zkappPublicInput(partiesJson, index);
+    let publicInput = partyToPublicInput(party);
+    let publicInputFields = ZkappPublicInput.toFields(publicInput);
     if (ZkappClass._provers === undefined)
       throw Error(
         `Cannot prove execution of ${method.name}(), no prover found. ` +
@@ -928,7 +939,7 @@ async function addMissingProofs(parties: Parties): Promise<{
         witnesses: args,
         inProver: true,
       },
-      () => provers[i](publicInput, previousProofs)
+      () => provers[i](publicInputFields, previousProofs)
     );
     party.authorization = { proof: Pickles.proofToBase64Transaction(proof) };
     class ZkappProof extends Proof<ZkappPublicInput> {

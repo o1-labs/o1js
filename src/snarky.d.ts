@@ -740,7 +740,7 @@ declare class Ledger {
   static zkappPublicInput(
     txJson: string,
     partyIndex: number
-  ): [transaction: Field, atParty: Field];
+  ): { party: Field; calls: Field };
   static signFieldElement(
     messageHash: Field,
     privateKey: { s: Scalar }
