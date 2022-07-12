@@ -813,7 +813,7 @@ declare const Pickles: {
 
   verify(
     publicInput: Pickles.PublicInput,
-    proof: Pickles.Proof,
+    proof: [0 | 1 | 2, Pickles.Proof],
     verificationKey: string
   ): Promise<boolean>;
 

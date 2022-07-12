@@ -83,13 +83,21 @@ function verify(proof: Proof<any> | JsonProof, verificationKey: string) {
     let publicInputFields = (proof as JsonProof).publicInput.map(
       Field.fromString
     );
-    return Pickles.verify(publicInputFields, picklesProof, verificationKey);
+    return Pickles.verify(
+      publicInputFields,
+      [proof.maxProofsVerified, picklesProof],
+      verificationKey
+    );
   } else {
     // proof class
     let publicInputFields = getPublicInputType(
       proof.constructor as any
     ).toFields(proof.publicInput);
-    return Pickles.verify(publicInputFields, proof.proof, verificationKey);
+    return Pickles.verify(
+      publicInputFields,
+      [proof.maxProofsVerified, proof.proof],
+      verificationKey
+    );
   }
 }
 
