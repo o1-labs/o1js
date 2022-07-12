@@ -732,7 +732,7 @@ declare class Ledger {
 
   applyJsonTransaction(txJson: string, accountCreationFee: string): Account[];
 
-  getAccount(publicKey: { g: Group }): Account | undefined;
+  getAccount(publicKey: { g: Group }, tokenId: Field): Account | undefined;
 
   static hashTransaction(partyHash: Field): Field;
   static hashTransactionChecked(partyHash: Field): Field;

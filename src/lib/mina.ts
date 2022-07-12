@@ -225,11 +225,14 @@ function LocalBlockchain({
         Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
       );
     },
-    getAccount(publicKey: PublicKey): Account {
-      let ledgerAccount = ledger.getAccount(publicKey);
+    getAccount(publicKey: PublicKey, tokenId?: string): Account {
+      const tokenIdAsField = tokenId
+        ? Ledger.fieldOfBase58(tokenId)
+        : Field.one;
+      let ledgerAccount = ledger.getAccount(publicKey, tokenIdAsField);
       if (ledgerAccount == undefined) {
         throw new Error(
-          `getAccount: Could not find account for public key ${publicKey.toBase58()}`
+          `getAccount: Could not find account for public key ${publicKey.toBase58()} with the token id ${tokenId?.toString()}`
         );
       } else {
         return {

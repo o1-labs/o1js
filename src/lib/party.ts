@@ -9,7 +9,6 @@ import * as Precondition from './precondition';
 import { Proof } from './proof_system';
 import { emptyHashWithPrefix, hashWithPrefix, prefixes } from './hash';
 import { salt } from './hash';
-import { Token } from './token';
 
 export {
   SetOrKeep,
@@ -494,6 +493,19 @@ type UnfinishedSignature = undefined | LazySignature | string;
 
 type LazyControl = Control | LazySignature | LazyProof;
 
+class Token {
+  readonly id: string;
+  readonly parentTokenId: string;
+  readonly tokenOwner: PublicKey;
+
+  constructor(options: { tokenOwner: PublicKey; parentTokenId?: string }) {
+    const { tokenOwner, parentTokenId } = options ?? {};
+    this.parentTokenId = parentTokenId ?? getDefaultTokenId().toString();
+    this.tokenOwner = tokenOwner;
+    this.id = Ledger.customTokenID(tokenOwner);
+  }
+}
+
 type SendParams = {
   from: PublicKey;
   to: PublicKey;
@@ -533,8 +545,8 @@ class Party {
 
   get token() {
     let thisParty = this;
-    let customToken = new Token(thisParty.body.publicKey);
-    const token = Ledger.fieldOfBase58(customToken.id);
+    const customToken = new Token({ tokenOwner: thisParty.body.publicKey });
+    const tokenIdAsField = Ledger.fieldOfBase58(customToken.id);
 
     return {
       id: customToken.id,
@@ -554,8 +566,8 @@ class Party {
           thisParty.body.balanceChange.sub(tokenCreationFee);
 
         let receiverParty = Party.createUnsigned(address, {
-          caller: token,
-          tokenId: token,
+          caller: tokenIdAsField,
+          tokenId: tokenIdAsField,
           callDepth: 1, // TODO: Make this smarter
           useFullCommitment: Bool(true),
         });
@@ -575,11 +587,12 @@ class Party {
           thisParty.body.balanceChange.sub(tokenCreationFee);
 
         let receiverParty = Party.createUnsigned(address, {
-          caller: token,
-          tokenId: token,
+          caller: tokenIdAsField,
+          tokenId: tokenIdAsField,
           callDepth: 1, // TODO: Make this smarter
           useFullCommitment: Bool(true),
         });
+
         receiverParty.body.balanceChange =
           receiverParty.body.balanceChange.sub(amount);
         receiverParty.authorization = {
@@ -599,8 +612,8 @@ class Party {
             thisParty.body.balanceChange.sub(tokenCreationFee);
 
           let transferParty = Party.createUnsigned(thisParty.publicKey, {
-            caller: token,
-            tokenId: token,
+            caller: tokenIdAsField,
+            tokenId: tokenIdAsField,
           });
 
           transferParty.body.balanceChange =
@@ -610,8 +623,8 @@ class Party {
             thisParty.body.balanceChange.sub(tokenCreationFee);
 
           let transferParty = Party.createUnsigned(from, {
-            caller: token,
-            tokenId: token,
+            caller: tokenIdAsField,
+            tokenId: tokenIdAsField,
             callDepth: 1,
             useFullCommitment: Bool(true),
           });
@@ -624,8 +637,8 @@ class Party {
         }
 
         let receiverParty = Party.createUnsigned(to, {
-          caller: token,
-          tokenId: token,
+          caller: tokenIdAsField,
+          tokenId: tokenIdAsField,
           callDepth: 1, // TODO: Make this smarter
           useFullCommitment: Bool(true),
         });
