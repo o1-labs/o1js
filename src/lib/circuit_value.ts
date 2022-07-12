@@ -510,3 +510,14 @@ Circuit.switch = function <T, A extends AsFieldElements<T>>(
   }
   return type.ofFields(fields);
 };
+
+Circuit.constraintSystem = function (f) {
+  let [, result] = withContext(
+    { inAnalyze: true, inCheckedComputation: true },
+    () => {
+      let { rows, digest, json } = (Circuit as any)._constraintSystem(f);
+      return { rows, digest };
+    }
+  );
+  return result;
+};
