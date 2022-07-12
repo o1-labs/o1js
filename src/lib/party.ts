@@ -578,6 +578,7 @@ class Party {
           useFullCommitment: Bool(true),
         });
 
+        // Require signature from the token account being deducted
         receiverParty.body.balanceChange =
           receiverParty.body.balanceChange.sub(amount);
         receiverParty.authorization = {
@@ -585,25 +586,26 @@ class Party {
         };
       },
 
-      transfer({ from, to, amount }: SendParams) {
+      send({ from, to, amount }: SendParams) {
         if (from === thisParty.publicKey) {
-          let transferParty = Party.createUnsigned(thisParty.publicKey, {
+          let senderParty = Party.createUnsigned(thisParty.publicKey, {
             caller: tokenIdAsField,
             tokenId: tokenIdAsField,
           });
-          transferParty.body.balanceChange =
-            transferParty.body.balanceChange.sub(amount);
+          senderParty.body.balanceChange =
+            senderParty.body.balanceChange.sub(amount);
         } else {
-          let transferParty = Party.createUnsigned(from, {
+          let senderParty = Party.createUnsigned(from, {
             caller: tokenIdAsField,
             tokenId: tokenIdAsField,
             callDepth: 1,
             useFullCommitment: Bool(true),
           });
 
-          transferParty.body.balanceChange =
-            transferParty.body.balanceChange.sub(amount);
-          transferParty.authorization = {
+          // Require signature if the sender party is not the zkApp
+          senderParty.body.balanceChange =
+            senderParty.body.balanceChange.sub(amount);
+          senderParty.authorization = {
             kind: 'lazy-signature',
           };
         }
