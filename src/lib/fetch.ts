@@ -171,6 +171,7 @@ const accountQuery = (publicKey: string) => `{
     nonce
     zkappUri
     zkappState
+    tokenId
     permissions {
       editState
       send

@@ -460,8 +460,8 @@ function currentSlot(): UInt32 {
 /**
  * @return The account data associated to the given public key.
  */
-function getAccount(pubkey: Types.PublicKey, tokenId?: string) {
-  return activeInstance.getAccount(pubkey, tokenId);
+function getAccount(pubkey: Types.PublicKey) {
+  return activeInstance.getAccount(pubkey);
 }
 
 /**
@@ -474,8 +474,8 @@ function getNetworkState() {
 /**
  * @return The balance associated to the given public key.
  */
-function getBalance(pubkey: Types.PublicKey) {
-  return activeInstance.getAccount(pubkey).balance;
+function getBalance(pubkey: Types.PublicKey, tokenId?: string) {
+  return activeInstance.getAccount(pubkey, tokenId).balance;
 }
 
 function accountCreationFee() {
