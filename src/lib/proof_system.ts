@@ -14,6 +14,7 @@ export {
   compileProgram,
   digestProgram,
   emptyValue,
+  emptyWitness,
   synthesizeMethodArguments,
 };
 
@@ -418,18 +419,18 @@ function picklesRuleFromFunction(
   return { identifier: methodName, main, proofsToVerify };
 }
 
-function synthesizeMethodArguments({
-  allArgs,
-  proofArgs,
-  witnessArgs,
-}: MethodInterface) {
+function synthesizeMethodArguments(
+  { allArgs, proofArgs, witnessArgs }: MethodInterface,
+  asVariables = false
+) {
   let args = [];
+  let empty = asVariables ? emptyWitness : emptyValue;
   for (let arg of allArgs) {
     if (arg.type === 'witness') {
-      args.push(emptyValue(witnessArgs[arg.index]));
+      args.push(empty(witnessArgs[arg.index]));
     } else {
       let Proof = proofArgs[arg.index];
-      let publicInput = emptyValue(getPublicInputType(Proof));
+      let publicInput = empty(getPublicInputType(Proof));
       args.push(new Proof({ publicInput, proof: undefined }));
     }
   }

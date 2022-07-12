@@ -106,8 +106,6 @@ tx = await Mina.transaction(feePayer, () => {
 });
 tx.send();
 
-console.log(tx.toJSON());
-
 console.log('payout');
 tx = await Mina.transaction(feePayer, () => {
   zkapp.payout(privilegedKey);

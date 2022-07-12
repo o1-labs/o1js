@@ -6,6 +6,7 @@ import {
   Pickles,
   Types,
   InferAsFieldElements,
+  Poseidon,
 } from '../snarky';
 import { Circuit, circuitArray, cloneCircuitValue } from './circuit_value';
 import {
@@ -25,7 +26,6 @@ import { UInt32, UInt64 } from './int';
 import {
   mainContext,
   inCheckedComputation,
-  inCompile,
   withContext,
   inProver,
   inAnalyze,
@@ -40,9 +40,9 @@ import {
   sortMethodArguments,
   compileProgram,
   Proof,
-  digestProgram,
   emptyValue,
   synthesizeMethodArguments,
+  emptyWitness,
 } from './proof_system';
 import { assertStatePrecondition, cleanStatePrecondition } from './state';
 
@@ -116,8 +116,7 @@ function wrapMethod(
     if (inCheckedComputation()) {
       return withContext(
         {
-          inCompile: inCompile(),
-          inProver: inProver(),
+          ...mainContext,
           // important to run this with a fresh party everytime, otherwise compile messes up our circuits
           // because it runs this multiple times
           self: selfParty(this.address),
@@ -195,8 +194,10 @@ class SmartContract {
 
   private _executionState: ExecutionState | undefined;
   static _methods?: MethodInterface[];
-  private static _methodMetadata: Record<string, { sequenceEvents: number }> =
-    {}; // keyed by method name
+  private static _methodMetadata: Record<
+    string,
+    { sequenceEvents: number; rows: number; digest: string }
+  > = {}; // keyed by method name
   static _provers?: Pickles.Prover[];
   static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
@@ -232,10 +233,7 @@ class SmartContract {
       };
     });
     // run methods once to get information that we need already at compile time
-    Circuit.runAndCheck(() => {
-      let instance = new this(address);
-      instance.analyzeMethods();
-    });
+    this.analyzeMethods(address);
     let { getVerificationKeyArtifact, provers, verify } = compileProgram(
       ZkappPublicInput,
       methodIntfs,
@@ -255,16 +253,12 @@ class SmartContract {
   }
 
   static digest(address: PublicKey) {
-    let methodIntfs = this._methods ?? [];
-    let methods = methodIntfs.map(({ methodName }) => {
-      return (...args: unknown[]) => {
-        let instance = new this(address);
-        (instance as any)[methodName](...args);
-      };
-    });
-    return digestProgram(ZkappPublicInput, methodIntfs, methods, this, {
-      self: selfParty(address),
-    });
+    let methodData = this.analyzeMethods(address);
+    let hash = Poseidon.hash(
+      Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest))),
+      false
+    );
+    return hash.toBigInt().toString(16);
   }
 
   deploy({
@@ -390,26 +384,34 @@ class SmartContract {
   // TODO: this could also be used to quickly perform any invariant checks on parties construction
   // TODO: it would be even better to run the methods in "compile mode" here -- i.e. with variables which can't be read --,
   // to be able to give quick errors when people try to depend on variables for constructing their circuit (https://github.com/o1-labs/snarkyjs/issues/224)
-  analyzeMethods() {
-    let ZkappClass = this.constructor as typeof SmartContract;
+  static analyzeMethods(address: PublicKey) {
+    let ZkappClass = this as typeof SmartContract;
+    let instance = new ZkappClass(address);
     let methods = ZkappClass._methods ?? [];
     if (
       !methods.every((m) => m.methodName in ZkappClass._methodMetadata) &&
       !inAnalyze()
     ) {
-      let self = selfParty(this.address);
+      let self = selfParty(address);
       for (let method of methods) {
         withContext(
           {
             inAnalyze: true,
+            inCheckedComputation: true,
             self,
             otherContext: { numberOfSequenceEvents: 0 },
           },
           () => {
-            let args = synthesizeMethodArguments(method);
-            (this as any)[method.methodName](...args);
+            let { rows, digest }: ReturnType<typeof Circuit.constraintSystem> =
+              (Circuit as any)._constraintSystem(() => {
+                let args = synthesizeMethodArguments(method, true);
+                let publicInput = emptyWitness(ZkappPublicInput);
+                (instance as any)[method.methodName](publicInput, ...args);
+              });
             ZkappClass._methodMetadata[method.methodName] = {
               sequenceEvents: mainContext?.otherContext?.numberOfSequenceEvents,
+              rows,
+              digest,
             };
           }
         );
@@ -481,7 +483,9 @@ class ${contract.constructor.name} extends SmartContract {
 Use the optional \`maxTransactionsWithActions\` argument to increase this number.`
         );
       }
-      let methodData = contract.analyzeMethods();
+      let methodData = (
+        contract.constructor as typeof SmartContract
+      ).analyzeMethods(contract.address);
       let possibleActionsPerTransaction = [
         ...new Set(Object.values(methodData).map((o) => o.sequenceEvents)).add(
           0
