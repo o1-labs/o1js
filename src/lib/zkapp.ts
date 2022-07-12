@@ -41,8 +41,7 @@ import {
   compileProgram,
   Proof,
   emptyValue,
-  synthesizeMethodArguments,
-  emptyWitness,
+  analyzeMethod,
 } from './proof_system';
 import { assertStatePrecondition, cleanStatePrecondition } from './state';
 
@@ -387,34 +386,26 @@ class SmartContract {
   static analyzeMethods(address: PublicKey) {
     let ZkappClass = this as typeof SmartContract;
     let instance = new ZkappClass(address);
-    let methods = ZkappClass._methods ?? [];
+    let methodIntfs = ZkappClass._methods ?? [];
     if (
-      !methods.every((m) => m.methodName in ZkappClass._methodMetadata) &&
+      !methodIntfs.every((m) => m.methodName in ZkappClass._methodMetadata) &&
       !inAnalyze()
     ) {
-      let self = selfParty(address);
-      for (let method of methods) {
-        withContext(
+      for (let methodIntf of methodIntfs) {
+        let { context, rows, digest } = analyzeMethod(
+          ZkappPublicInput,
+          methodIntf,
+          (...args) => (instance as any)[methodIntf.methodName](...args),
           {
-            inAnalyze: true,
-            inCheckedComputation: true,
-            self,
+            self: selfParty(address),
             otherContext: { numberOfSequenceEvents: 0 },
-          },
-          () => {
-            let { rows, digest }: ReturnType<typeof Circuit.constraintSystem> =
-              (Circuit as any)._constraintSystem(() => {
-                let args = synthesizeMethodArguments(method, true);
-                let publicInput = emptyWitness(ZkappPublicInput);
-                (instance as any)[method.methodName](publicInput, ...args);
-              });
-            ZkappClass._methodMetadata[method.methodName] = {
-              sequenceEvents: mainContext?.otherContext?.numberOfSequenceEvents,
-              rows,
-              digest,
-            };
           }
         );
+        ZkappClass._methodMetadata[methodIntf.methodName] = {
+          sequenceEvents: context?.otherContext?.numberOfSequenceEvents,
+          rows,
+          digest,
+        };
       }
     }
     return ZkappClass._methodMetadata;
