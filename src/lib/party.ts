@@ -510,13 +510,11 @@ type SendParams = {
   from: PublicKey;
   to: PublicKey;
   amount: Int64 | UInt32 | UInt64 | string | number | bigint;
-  newTokenAccount: Bool | boolean;
 };
 
 type MintOrBurnParams = {
   address: PublicKey;
   amount: Int64 | UInt32 | UInt64 | string | number | bigint;
-  newTokenAccount: Bool | boolean;
 };
 
 class Party {
@@ -555,16 +553,7 @@ class Party {
 
       tokenOwner: customToken.tokenOwner,
 
-      mint({ address, amount, newTokenAccount }: MintOrBurnParams) {
-        let tokenCreationFee = Circuit.if(
-          newTokenAccount,
-          Mina.accountCreationFee(),
-          UInt64.zero
-        );
-
-        thisParty.body.balanceChange =
-          thisParty.body.balanceChange.sub(tokenCreationFee);
-
+      mint({ address, amount }: MintOrBurnParams) {
         let receiverParty = Party.createUnsigned(address, {
           caller: tokenIdAsField,
           tokenId: tokenIdAsField,
@@ -576,16 +565,7 @@ class Party {
           receiverParty.body.balanceChange.add(amount);
       },
 
-      burn({ address, amount, newTokenAccount }: MintOrBurnParams) {
-        let tokenCreationFee = Circuit.if(
-          newTokenAccount,
-          Mina.accountCreationFee(),
-          UInt64.zero
-        );
-
-        thisParty.body.balanceChange =
-          thisParty.body.balanceChange.sub(tokenCreationFee);
-
+      burn({ address, amount }: MintOrBurnParams) {
         let receiverParty = Party.createUnsigned(address, {
           caller: tokenIdAsField,
           tokenId: tokenIdAsField,
@@ -600,28 +580,15 @@ class Party {
         };
       },
 
-      transfer({ from, to, amount, newTokenAccount }: SendParams) {
-        let tokenCreationFee = Circuit.if(
-          newTokenAccount,
-          Mina.accountCreationFee(),
-          UInt64.zero
-        );
-
+      transfer({ from, to, amount }: SendParams) {
         if (from === thisParty.publicKey) {
-          thisParty.body.balanceChange =
-            thisParty.body.balanceChange.sub(tokenCreationFee);
-
           let transferParty = Party.createUnsigned(thisParty.publicKey, {
             caller: tokenIdAsField,
             tokenId: tokenIdAsField,
           });
-
           transferParty.body.balanceChange =
             transferParty.body.balanceChange.sub(amount);
         } else {
-          thisParty.body.balanceChange =
-            thisParty.body.balanceChange.sub(tokenCreationFee);
-
           let transferParty = Party.createUnsigned(from, {
             caller: tokenIdAsField,
             tokenId: tokenIdAsField,
