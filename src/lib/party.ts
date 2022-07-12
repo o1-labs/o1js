@@ -541,9 +541,12 @@ class Party {
     return new (Party as any)(body, authorization, party.isSelf);
   }
 
-  get token() {
+  token(tokenId?: string) {
     let thisParty = this;
-    const customToken = new Token({ tokenOwner: thisParty.body.publicKey });
+    const customToken = new Token({
+      tokenOwner: thisParty.body.publicKey,
+      parentTokenId: tokenId,
+    });
     const tokenIdAsField = Ledger.fieldOfBase58(customToken.id);
 
     return {
