@@ -32,6 +32,8 @@ export {
   ZkappPublicInput,
   Events,
   partyToPublicInput,
+  Token,
+  getDefaultTokenId,
 };
 
 const ZkappStateLength = 8;
@@ -232,7 +234,7 @@ let Permissions = {
   }),
 };
 
-const getDefaultTokenId = () => Field.one;
+const getDefaultTokenId = () => Ledger.fieldToBase58(Field.one);
 
 type Event = Field[];
 
@@ -346,11 +348,11 @@ const Body = {
     return {
       publicKey,
       update: Body.noUpdate(),
-      tokenId: getDefaultTokenId(),
+      tokenId: Ledger.fieldOfBase58(getDefaultTokenId()),
       balanceChange: Int64.zero,
       events: Events.empty(),
       sequenceEvents: Events.empty(),
-      caller: getDefaultTokenId(),
+      caller: Ledger.fieldOfBase58(getDefaultTokenId()),
       callData: Field.zero, // TODO new MerkleList(),
       callDepth: 0,
       preconditions: Preconditions.ignoreAll(),
@@ -500,7 +502,7 @@ class Token {
 
   constructor(options: { tokenOwner: PublicKey; parentTokenId?: string }) {
     const { tokenOwner, parentTokenId } = options ?? {};
-    this.parentTokenId = parentTokenId ?? getDefaultTokenId().toString();
+    this.parentTokenId = parentTokenId ?? getDefaultTokenId();
     this.tokenOwner = tokenOwner;
     this.id = Ledger.customTokenID(tokenOwner);
   }

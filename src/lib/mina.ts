@@ -12,6 +12,7 @@ import {
   Party,
   ZkappStateLength,
   ZkappPublicInput,
+  getDefaultTokenId,
 } from './party';
 import * as Fetch from './fetch';
 import { assertPreconditionInvariants, NetworkValue } from './precondition';
@@ -177,7 +178,7 @@ function createTransaction(
 interface Mina {
   transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
   currentSlot(): UInt32;
-  getAccount(publicKey: Types.PublicKey): Account;
+  getAccount(publicKey: Types.PublicKey, tokenId?: string): Account;
   getNetworkState(): NetworkValue;
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): TransactionId;
@@ -228,11 +229,11 @@ function LocalBlockchain({
     getAccount(publicKey: PublicKey, tokenId?: string): Account {
       const tokenIdAsField = tokenId
         ? Ledger.fieldOfBase58(tokenId)
-        : Field.one;
+        : Ledger.fieldOfBase58(getDefaultTokenId());
       let ledgerAccount = ledger.getAccount(publicKey, tokenIdAsField);
       if (ledgerAccount == undefined) {
         throw new Error(
-          `getAccount: Could not find account for public key ${publicKey.toBase58()} with the token id ${tokenId?.toString()}`
+          `getAccount: Could not find account for public key ${publicKey.toBase58()} with the token id ${tokenIdAsField?.toString()}`
         );
       } else {
         return {
@@ -459,8 +460,8 @@ function currentSlot(): UInt32 {
 /**
  * @return The account data associated to the given public key.
  */
-function getAccount(pubkey: Types.PublicKey) {
-  return activeInstance.getAccount(pubkey);
+function getAccount(pubkey: Types.PublicKey, tokenId?: string) {
+  return activeInstance.getAccount(pubkey, tokenId);
 }
 
 /**
