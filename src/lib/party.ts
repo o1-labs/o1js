@@ -9,13 +9,15 @@ import * as Precondition from './precondition';
 import { Proof, snarkContext } from './proof_system';
 import { emptyHashWithPrefix, hashWithPrefix, prefixes } from './hash';
 
+// external API
+export { Permissions, Party, ZkappPublicInput };
+
+// internal API
 export {
   SetOrKeep,
   Permission,
-  Permissions,
   Preconditions,
   Body,
-  Party,
   FeePayerUnsigned,
   Parties,
   LazyProof,
@@ -28,7 +30,6 @@ export {
   addMissingProofs,
   signJsonTransaction,
   ZkappStateLength,
-  ZkappPublicInput,
   Events,
   partyToPublicInput,
   partyContext,
@@ -650,6 +651,10 @@ class Party {
 
   toFields() {
     return Types.Party.toFields(toPartyUnsafe(this));
+  }
+
+  toJSON() {
+    return Types.Party.toJson(toPartyUnsafe(this));
   }
 
   hash() {

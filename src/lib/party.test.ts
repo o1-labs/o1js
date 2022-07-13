@@ -4,8 +4,6 @@ import {
   Circuit,
   Party,
   PrivateKey,
-  toPartyUnsafe,
-  Types,
   shutdown,
   Field,
   PublicKey,
@@ -25,10 +23,10 @@ describe('party', () => {
 
   it('can convert party to fields consistently', () => {
     // convert party to fields in OCaml, going via Party.of_json
-    let json = JSON.stringify(Types.Party.toJson(toPartyUnsafe(party)).body);
+    let json = JSON.stringify(party.toJSON().body);
     let fields1 = Ledger.fieldsOfJson(json);
     // convert party to fields in pure JS, leveraging generated code
-    let fields2 = Types.Party.toFields(toPartyUnsafe(party));
+    let fields2 = party.toFields();
 
     // this is useful console output in the case the test should fail
     if (fields1.length !== fields2.length) {
