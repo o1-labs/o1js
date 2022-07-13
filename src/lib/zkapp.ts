@@ -113,7 +113,7 @@ function wrapMethod(
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
     if (inCheckedComputation()) {
-      return withContext(
+      let [context, result] = withContext(
         {
           ...mainContext,
           // important to run this with a fresh party everytime, otherwise compile messes up our circuits
@@ -137,7 +137,9 @@ function wrapMethod(
           assertStatePrecondition(this);
           return result;
         }
-      )[1];
+      );
+      if (mainContext !== undefined) mainContext.self = context.self;
+      return result;
     } else if (Mina.currentTransaction === undefined) {
       // outside a transaction, just call the method, but check precondition invariants
       let result = method.apply(this, actualArgs);
@@ -395,14 +397,14 @@ class SmartContract {
         let { context, rows, digest } = analyzeMethod(
           ZkappPublicInput,
           methodIntf,
-          (...args) => (instance as any)[methodIntf.methodName](...args),
-          {
-            self: selfParty(address),
-            otherContext: { numberOfSequenceEvents: 0 },
-          }
+          (...args) => (instance as any)[methodIntf.methodName](...args)
+        );
+        console.log(
+          methodIntf.methodName,
+          context.self!.body.sequenceEvents.data.length
         );
         ZkappClass._methodMetadata[methodIntf.methodName] = {
-          sequenceEvents: context?.otherContext?.numberOfSequenceEvents,
+          sequenceEvents: context.self!.body.sequenceEvents.data.length,
           rows,
           digest,
         };
@@ -456,9 +458,6 @@ class ${contract.constructor.name} extends SmartContract {
         party.body.sequenceEvents,
         eventFields
       );
-      if (mainContext?.otherContext?.numberOfSequenceEvents !== undefined) {
-        mainContext.otherContext.numberOfSequenceEvents += 1;
-      }
     },
 
     reduce<S>(

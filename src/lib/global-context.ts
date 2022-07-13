@@ -22,7 +22,6 @@ type MainContext = {
   inCompile?: boolean;
   inCheckedComputation?: boolean;
   inAnalyze?: boolean;
-  otherContext?: any;
 };
 
 let mainContext = undefined as MainContext | undefined;
