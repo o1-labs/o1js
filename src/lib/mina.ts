@@ -294,7 +294,11 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         'currentSlot() is not implemented yet for remote blockchains.'
       );
     },
-    getAccount(publicKey: PublicKey) {
+    getAccount(publicKey: PublicKey, tokenId?: string) {
+      const tokenIdAsField = tokenId
+        ? Ledger.fieldOfBase58(tokenId)
+        : Ledger.fieldOfBase58(getDefaultTokenId());
+
       if (currentTransaction?.fetchMode === 'test') {
         Fetch.markAccountToBeFetched(publicKey, graphqlEndpoint);
         let account = Fetch.getCachedAccount(publicKey, graphqlEndpoint);

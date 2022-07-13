@@ -545,17 +545,14 @@ class Party {
 
   token(tokenId?: string) {
     let thisParty = this;
-    const customToken = new Token({
+    let customToken = new Token({
       tokenOwner: thisParty.body.publicKey,
       parentTokenId: tokenId,
     });
-    const tokenIdAsField = Ledger.fieldOfBase58(customToken.id);
-
+    let tokenIdAsField = Ledger.fieldOfBase58(customToken.id);
     return {
       id: customToken.id,
-
       parentTokenId: customToken.parentTokenId,
-
       tokenOwner: customToken.tokenOwner,
 
       mint({ address, amount }: MintOrBurnParams) {
@@ -578,9 +575,9 @@ class Party {
           useFullCommitment: Bool(true),
         });
 
-        // Require signature from the token account being deducted
         receiverParty.body.balanceChange =
           receiverParty.body.balanceChange.sub(amount);
+        // Require signature from the token account being deducted
         receiverParty.authorization = {
           kind: 'lazy-signature',
         };
@@ -602,9 +599,9 @@ class Party {
             useFullCommitment: Bool(true),
           });
 
-          // Require signature if the sender party is not the zkApp
           senderParty.body.balanceChange =
             senderParty.body.balanceChange.sub(amount);
+          // Require signature if the sender party is not the zkApp
           senderParty.authorization = {
             kind: 'lazy-signature',
           };
@@ -616,7 +613,6 @@ class Party {
           callDepth: 1, // TODO: Make this smarter
           useFullCommitment: Bool(true),
         });
-
         receiverParty.body.balanceChange =
           receiverParty.body.balanceChange.add(amount);
       },
@@ -801,10 +797,10 @@ class Party {
     const pk = publicKey;
     const body: Body = Body.keepAll(pk);
     const { caller, tokenId, callDepth, useFullCommitment } = options ?? {};
-    body.caller = caller || body.caller;
-    body.tokenId = tokenId || body.tokenId;
-    body.callDepth = callDepth || body.callDepth;
-    body.useFullCommitment = useFullCommitment || body.useFullCommitment;
+    body.caller = caller ?? body.caller;
+    body.tokenId = tokenId ?? body.tokenId;
+    body.callDepth = callDepth ?? body.callDepth;
+    body.useFullCommitment = useFullCommitment ?? body.useFullCommitment;
 
     const party = new Party(body);
     Mina.currentTransaction.nextPartyIndex++;
@@ -817,9 +813,6 @@ class Party {
     options?: {
       isSameAsFeePayer?: Bool | boolean;
       nonce?: UInt32;
-      // caller?: Field;
-      // tokenId?: Field;
-      // callDepth?: number;
     }
   ) {
     let { nonce, isSameAsFeePayer } = options ?? {};
@@ -865,11 +858,6 @@ class Party {
     nonce = nonce.add(nonceIncrement);
     Party.assertEquals(body.preconditions.account.nonce, nonce);
     body.incrementNonce = Bool(true);
-    // const { caller, tokenId, callDepth } = options ?? {};
-    // body.caller = caller || body.caller;
-    // body.tokenId = tokenId || body.tokenId;
-    // body.callDepth = callDepth || body.callDepth;
-    // body.useFullCommitment = Bool(true);
 
     let party = new Party(body);
     party.authorization = { kind: 'lazy-signature', privateKey: signer };
