@@ -135,7 +135,7 @@ function wrapMethod(
         }
       );
       return [context, result];
-    } else if (Mina.currentTransaction === undefined) {
+    } else if (!Mina.currentTransaction.has()) {
       // outside a transaction, just call the method, but check precondition invariants
       let result = method.apply(this, actualArgs);
       // check the self party right after calling the method
@@ -287,7 +287,7 @@ class SmartContract {
         party: partyContext.get().self,
       };
     }
-    if (Mina.currentTransaction === undefined) {
+    if (!Mina.currentTransaction.has()) {
       // throw new Error('Cannot execute outside of a Mina.transaction() block.');
       // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
       // or even expose the .get() methods independently of any party (they don't need one)
@@ -300,14 +300,15 @@ class SmartContract {
     let executionState = this._executionState;
     if (
       executionState !== undefined &&
-      executionState.transactionId === Mina.nextTransactionId.value
+      executionState.transactionId === Mina.currentTransaction.id()
     ) {
       return executionState;
     }
-    let id = Mina.nextTransactionId.value;
-    let index = Mina.currentTransaction.nextPartyIndex++;
+    let transaction = Mina.currentTransaction.get();
+    let id = Mina.currentTransaction.id();
+    let index = transaction.nextPartyIndex++;
     let party = selfParty(this.address);
-    Mina.currentTransaction.parties.push(party);
+    transaction.parties.push(party);
     executionState = {
       transactionId: id,
       partyIndex: index,
@@ -371,7 +372,7 @@ class SmartContract {
   }
 
   static runOutsideCircuit(run: () => void) {
-    if (Mina.currentTransaction?.isFinalRunOutsideCircuit || inProver())
+    if (Mina.currentTransaction()?.isFinalRunOutsideCircuit || inProver())
       Circuit.asProver(run);
   }
 

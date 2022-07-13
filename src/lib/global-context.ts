@@ -5,7 +5,7 @@ export { Context };
 namespace Context {
   export type id = number;
 
-  export type t<Context> = {
+  export type t<Context> = (() => Context | undefined) & {
     data: { context: Context; id: id }[];
     allowsNesting: boolean;
 
@@ -16,6 +16,9 @@ namespace Context {
       context: Context,
       func: () => Promise<Result>
     ): Promise<[Context, Result]>;
+    enter(context: Context): id;
+    leave(id: id): Context;
+    id: () => id;
   };
 }
 const Context = { create };
@@ -26,14 +29,26 @@ function create<C>(
     default: undefined,
   } as { allowsNesting?: boolean; default?: C }
 ): Context.t<C> {
-  let t: Context.t<C> = {
-    data: [],
-    allowsNesting: options.allowsNesting ?? true,
-    get: () => get(t),
-    has: () => t.data.length !== 0,
-    runWith: (context, func) => runWith(t, context, func),
-    runWithAsync: (context, func) => runWithAsync(t, context, func),
-  };
+  let t: Context.t<C> = Object.assign(
+    function (): C | undefined {
+      return t.data[t.data.length - 1].context;
+    },
+    {
+      data: [],
+      allowsNesting: options.allowsNesting ?? true,
+      get: () => get(t),
+      has: () => t.data.length !== 0,
+      runWith: <R>(context: C, func: () => R) => runWith(t, context, func),
+      runWithAsync: <R>(context: C, func: () => Promise<R>) =>
+        runWithAsync(t, context, func),
+      enter: (context: C) => enter(t, context),
+      leave: (id: Context.id) => leave(t, id),
+      id: () => {
+        if (t.data.length === 0) throw Error(contextConflictMessage);
+        return t.data[t.data.length - 1].id;
+      },
+    }
+  );
   if (options.default !== undefined) enter(t, options.default);
   return t;
 }

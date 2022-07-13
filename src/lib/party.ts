@@ -678,14 +678,14 @@ class Party {
 
   static createUnsigned(publicKey: PublicKey) {
     const body: Body = Body.keepAll(publicKey);
-    if (Mina.currentTransaction === undefined) {
+    if (!Mina.currentTransaction.has()) {
       throw new Error(
         'Party.createUnsigned: Cannot run outside of a transaction'
       );
     }
     const party = new Party(body);
-    Mina.currentTransaction.nextPartyIndex++;
-    Mina.currentTransaction.parties.push(party);
+    Mina.currentTransaction.get().nextPartyIndex++;
+    Mina.currentTransaction.get().parties.push(party);
     return party;
   }
 
@@ -700,7 +700,7 @@ class Party {
     let isFeePayer =
       isSameAsFeePayer !== undefined
         ? Bool(isSameAsFeePayer)
-        : Mina.currentTransaction?.sender?.equals(signer) ?? Bool(false);
+        : Mina.currentTransaction()?.sender?.equals(signer) ?? Bool(false);
 
     // TODO: This should be a witness block that uses the setVariable
     // API to set the value of a variable after it's allocated
@@ -714,7 +714,7 @@ class Party {
       nonce = account.nonce;
     }
 
-    if (Mina.currentTransaction === undefined) {
+    if (!Mina.currentTransaction.has()) {
       throw new Error(
         'Party.createSigned: Cannot run outside of a transaction'
       );
@@ -727,7 +727,7 @@ class Party {
       UInt32.zero
     );
     // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
-    for (let party of Mina.currentTransaction.parties) {
+    for (let party of Mina.currentTransaction.get().parties) {
       let shouldIncreaseNonce = party.publicKey
         .equals(publicKey)
         .and(party.body.incrementNonce);
@@ -739,8 +739,8 @@ class Party {
 
     let party = new Party(body);
     party.authorization = { kind: 'lazy-signature', privateKey: signer };
-    Mina.currentTransaction.nextPartyIndex++;
-    Mina.currentTransaction.parties.push(party);
+    Mina.currentTransaction.get().nextPartyIndex++;
+    Mina.currentTransaction.get().parties.push(party);
     return party;
   }
 
