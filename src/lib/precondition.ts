@@ -9,7 +9,7 @@ import {
 import { circuitValueEquals } from './circuit_value';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
-import { Party, Preconditions } from './party';
+import { getDefaultTokenId, Party, Preconditions } from './party';
 import * as GlobalContext from './global-context';
 import { UInt32, UInt64 } from './int';
 
@@ -178,7 +178,10 @@ To write a correct circuit, you must avoid any dependency on the concrete value 
   let value: U;
   if (accountOrNetwork === 'account') {
     let address = party.body.publicKey;
-    let account: any = Mina.getAccount(address);
+    let account: any = Mina.getAccount({
+      publicKey: address,
+      tokenId: getDefaultTokenId(),
+    });
     value = account[key];
     if (value === undefined)
       throw Error(

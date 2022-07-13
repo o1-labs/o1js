@@ -619,10 +619,6 @@ class Party {
     };
   }
 
-  get tokenId() {
-    return this.body.tokenId;
-  }
-
   get balance() {
     let party = this;
 
@@ -726,7 +722,10 @@ class Party {
     try {
       let inProver = Circuit.inProver();
       if (inProver || !Circuit.inCheckedComputation()) {
-        let account = Mina.getAccount(party.body.publicKey);
+        let account = Mina.getAccount({
+          publicKey: party.body.publicKey as PublicKey,
+          tokenId: getDefaultTokenId(),
+        });
         nonce = inProver
           ? Circuit.witness(UInt32, () => account.nonce)
           : account.nonce;
@@ -832,7 +831,10 @@ class Party {
 
     // TODO: getAccount could always be used if we had a generic way to add account info prior to creating transactions
     if (nonce === undefined) {
-      let account = Mina.getAccount(publicKey);
+      let account = Mina.getAccount({
+        publicKey,
+        tokenId: getDefaultTokenId(),
+      });
       nonce = account.nonce;
     }
 

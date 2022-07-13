@@ -1,9 +1,15 @@
 import 'isomorphic-fetch';
 import { Bool, Field, Types } from '../snarky';
 import { UInt32, UInt64 } from './int';
-import { Permission, Permissions, ZkappStateLength } from './party';
+import {
+  getDefaultTokenId,
+  Permission,
+  Permissions,
+  ZkappStateLength,
+} from './party';
 import { PublicKey } from './signature';
 import { NetworkValue } from './precondition';
+import { AccountParams } from './mina';
 
 export {
   fetchAccount,
@@ -41,16 +47,14 @@ function setGraphqlEndpoint(graphqlEndpoint: string) {
  * @returns zkapp information on the specified account or an error is thrown
  */
 async function fetchAccount(
-  publicKey: string | PublicKey,
+  accountInfo: AccountParams,
   graphqlEndpoint = defaultGraphqlEndpoint,
   { timeout = defaultTimeout } = {}
 ): Promise<
   | { account: Account; error: undefined }
   | { account: undefined; error: FetchError }
 > {
-  let publicKeyBase58 =
-    publicKey instanceof PublicKey ? publicKey.toBase58() : publicKey;
-  let response = await fetchAccountInternal(publicKeyBase58, graphqlEndpoint, {
+  let response = await fetchAccountInternal(accountInfo, graphqlEndpoint, {
     timeout,
   });
   return response.error === undefined
@@ -64,12 +68,13 @@ async function fetchAccount(
 // internal version of fetchAccount which does the same, but returns the original JSON version
 // of the account, to save some back-and-forth conversions when caching accounts
 async function fetchAccountInternal(
-  publicKey: string,
+  accountInfo: AccountParams,
   graphqlEndpoint = defaultGraphqlEndpoint,
   config?: FetchConfig
 ) {
+  const { publicKey, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
-    accountQuery(publicKey),
+    accountQuery(publicKey.toBase58(), tokenId ?? getDefaultTokenId()),
     graphqlEndpoint,
     config
   );
@@ -81,7 +86,7 @@ async function fetchAccountInternal(
       account: undefined,
       error: {
         statusCode: 404,
-        statusText: `fetchAccount: Account with public key ${publicKey} does not exist.`,
+        statusText: `fetchAccount: Account with public key ${publicKey.toBase58()} does not exist.`,
       },
     };
   }
@@ -123,6 +128,7 @@ function toPermission(p: AuthRequired): Permission {
 type FetchedAccount = {
   publicKey: string;
   nonce: string;
+  tokenId: string;
   zkappUri?: string;
   zkappState: string[] | null;
   receiptChainHash?: string;
@@ -149,6 +155,7 @@ type Account = {
   publicKey: PublicKey;
   nonce: UInt32;
   balance: UInt64;
+  tokenId: string;
   zkapp?: { appState: Field[] };
   permissions?: Permissions;
   receiptChainHash?: Field;
@@ -160,18 +167,18 @@ type Account = {
 type FlexibleAccount = {
   publicKey: PublicKey | string;
   nonce: UInt32 | string | number;
+  tokenId: string;
   balance?: UInt64 | string | number;
   zkapp?: { appState: (Field | string | number)[] };
 };
 
 // TODO provedState
-const accountQuery = (publicKey: string) => `{
-  account(publicKey: "${publicKey}") {
+const accountQuery = (publicKey: string, tokenId: string) => `{
+  account(publicKey: "${publicKey}" tokenId: "${tokenId}") {
     publicKey
     nonce
     zkappUri
     zkappState
-    tokenId
     permissions {
       editState
       send
@@ -189,6 +196,7 @@ const accountQuery = (publicKey: string) => `{
     balance { total }
     delegateAccount { publicKey }
     sequenceEvents
+    tokenId
   }
 }
 `;
@@ -233,7 +241,7 @@ function parseFetchedAccount({
 }
 
 function stringifyAccount(account: FlexibleAccount): FetchedAccount {
-  let { publicKey, nonce, balance, zkapp } = account;
+  let { publicKey, nonce, balance, zkapp, tokenId } = account;
   return {
     publicKey:
       publicKey instanceof PublicKey ? publicKey.toBase58() : publicKey,
@@ -242,6 +250,7 @@ function stringifyAccount(account: FlexibleAccount): FetchedAccount {
       zkapp?.appState.map((s) => s.toString()) ??
       Array(ZkappStateLength).fill('0'),
     balance: { total: balance?.toString() ?? '0' },
+    tokenId,
   };
 }
 
@@ -263,15 +272,20 @@ let networkCache = {} as Record<
 >;
 let accountsToFetch = {} as Record<
   string,
-  { publicKey: string; graphqlEndpoint: string }
+  { publicKey: string; tokenId: string; graphqlEndpoint: string }
 >;
 let networksToFetch = {} as Record<string, { graphqlEndpoint: string }>;
 let cacheExpiry = 10 * 60 * 1000; // 10 minutes
 
-function markAccountToBeFetched(publicKey: PublicKey, graphqlEndpoint: string) {
+function markAccountToBeFetched(
+  publicKey: PublicKey,
+  tokenId: string,
+  graphqlEndpoint: string
+) {
   let publicKeyBase58 = publicKey.toBase58();
-  accountsToFetch[`${publicKeyBase58};${graphqlEndpoint}`] = {
+  accountsToFetch[`${publicKeyBase58};${tokenId};${graphqlEndpoint}`] = {
     publicKey: publicKeyBase58,
+    tokenId,
     graphqlEndpoint,
   };
 }
@@ -286,8 +300,11 @@ async function fetchMissingData(graphqlEndpoint: string) {
     let cachedAccount = accountCache[key];
     return cachedAccount === undefined || cachedAccount.timestamp < expired;
   });
-  let promises = accounts.map(async ([key, { publicKey }]) => {
-    let response = await fetchAccountInternal(publicKey, graphqlEndpoint);
+  let promises = accounts.map(async ([key, { publicKey, tokenId }]) => {
+    let response = await fetchAccountInternal(
+      { publicKey: PublicKey.fromBase58(publicKey), tokenId },
+      graphqlEndpoint
+    );
     if (response.error === undefined) delete accountsToFetch[key];
   });
 
@@ -312,10 +329,12 @@ async function fetchMissingData(graphqlEndpoint: string) {
 
 function getCachedAccount(
   publicKey: PublicKey,
+  tokenId: string,
   graphqlEndpoint = defaultGraphqlEndpoint
 ) {
   let account =
-    accountCache[`${publicKey.toBase58()};${graphqlEndpoint}`]?.account;
+    accountCache[`${publicKey.toBase58()};${tokenId}${graphqlEndpoint}`]
+      ?.account;
   if (account !== undefined) return parseFetchedAccount(account);
 }
 function getCachedNetwork(graphqlEndpoint = defaultGraphqlEndpoint) {
@@ -330,6 +349,7 @@ function addCachedAccount(
     zkapp?: {
       appState: (string | number | Field)[];
     };
+    tokenId: string;
   },
   graphqlEndpoint = defaultGraphqlEndpoint
 ) {
@@ -340,7 +360,7 @@ function addCachedAccountInternal(
   account: FetchedAccount,
   graphqlEndpoint: string
 ) {
-  accountCache[`${account.publicKey};${graphqlEndpoint}`] = {
+  accountCache[`${account.publicKey};${account.tokenId};${graphqlEndpoint}`] = {
     account,
     graphqlEndpoint,
     timestamp: Date.now(),

@@ -19,6 +19,7 @@ import {
   ZkappPublicInput,
   Events,
   partyToPublicInput,
+  getDefaultTokenId,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -643,7 +644,10 @@ function addFeePayer(
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
   if (feePayerNonce === undefined) {
-    let senderAccount = Mina.getAccount(senderAddress);
+    let senderAccount = Mina.getAccount({
+      publicKey: senderAddress,
+      tokenId: getDefaultTokenId(),
+    });
     feePayerNonce = senderAccount.nonce.toString();
   }
   let newMemo = memo;
@@ -669,7 +673,10 @@ function signFeePayer(
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
   if (feePayerNonce === undefined) {
-    let senderAccount = Mina.getAccount(senderAddress);
+    let senderAccount = Mina.getAccount({
+      publicKey: senderAddress,
+      tokenId: getDefaultTokenId(),
+    });
     feePayerNonce = senderAccount.nonce.toString();
   }
   if (feePayerMemo) parties.memo = Ledger.memoToBase58(feePayerMemo);
