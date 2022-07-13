@@ -4,9 +4,9 @@ import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
 import { SmartContract } from './zkapp';
-import { withContextAsync } from './global-context';
+import { Context } from './global-context';
 import * as Precondition from './precondition';
-import { Proof } from './proof_system';
+import { Proof, snarkContext } from './proof_system';
 import { emptyHashWithPrefix, hashWithPrefix, prefixes } from './hash';
 
 export {
@@ -31,9 +31,16 @@ export {
   ZkappPublicInput,
   Events,
   partyToPublicInput,
+  partyContext,
+  PartyContext,
 };
 
 const ZkappStateLength = 8;
+
+// global self-party context
+// TODO: merge with Mina.currentTransaction
+type PartyContext = { self: Party };
+let partyContext = Context.create<PartyContext>();
 
 type PartyBody = Types.Party['body'];
 type Update = PartyBody['update'];
@@ -549,7 +556,7 @@ class Party {
    * @method onlyRunsWhenBalanceIsLow() {
    *   let lower = UInt64.zero;
    *   let upper = UInt64.fromNumber(20e9);
-   *   Party.assertBetween(this.self.body.accountPrecondition.balance, lower, upper);
+   *   Party.assertBetween(this.self.body.preconditions.account.balance, lower, upper);
    *   // ...
    * }
    * ```
@@ -570,7 +577,7 @@ class Party {
    *
    * ```ts
    * @method onlyRunsWhenNonceIsZero() {
-   *   Party.assertEquals(this.self.body.accountPrecondition.nonce, UInt32.zero);
+   *   Party.assertEquals(this.self.body.preconditions.account.nonce, UInt32.zero);
    *   // ...
    * }
    * ```
@@ -670,17 +677,12 @@ class Party {
   }
 
   static createUnsigned(publicKey: PublicKey) {
-    // TODO: This should be a witness block that uses the setVariable
-    // API to set the value of a variable after it's allocated
-
-    const pk = publicKey;
-    const body: Body = Body.keepAll(pk);
+    const body: Body = Body.keepAll(publicKey);
     if (Mina.currentTransaction === undefined) {
       throw new Error(
         'Party.createUnsigned: Cannot run outside of a transaction'
       );
     }
-
     const party = new Party(body);
     Mina.currentTransaction.nextPartyIndex++;
     Mina.currentTransaction.parties.push(party);
@@ -933,12 +935,8 @@ async function addMissingProofs(parties: Parties): Promise<{
     if (ZkappClass._methods === undefined) throw Error(methodError);
     let i = ZkappClass._methods.findIndex((m) => m.methodName === method.name);
     if (i === -1) throw Error(methodError);
-    let [, proof] = await withContextAsync(
-      {
-        self: Party.defaultParty(party.body.publicKey),
-        witnesses: args,
-        inProver: true,
-      },
+    let [, proof] = await snarkContext.runWithAsync(
+      { inProver: true, witnesses: args },
       () => provers[i](publicInputFields, previousProofs)
     );
     party.authorization = { proof: Pickles.proofToBase64Transaction(proof) };

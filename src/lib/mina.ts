@@ -16,7 +16,7 @@ import {
 import * as Fetch from './fetch';
 import { assertPreconditionInvariants, NetworkValue } from './precondition';
 import { cloneCircuitValue } from './circuit_value';
-import { Proof } from './proof_system';
+import { Proof, snarkContext } from './proof_system';
 
 export {
   createUnsignedTransaction,
@@ -104,7 +104,20 @@ function createTransaction(
 
   try {
     // run circuit
-    Circuit.runAndCheck(f);
+    let err: any;
+    while (true) {
+      // this is such a ridiculous hack
+      if (err !== undefined) err.bootstrap();
+      try {
+        snarkContext.runWith({ inRunAndCheck: true }, () =>
+          Circuit.runAndCheck(f)
+        );
+        break;
+      } catch (err_) {
+        if ((err_ as any)?.bootstrap) err = err_;
+        else throw err_;
+      }
+    }
 
     // check that on-chain values weren't used without setting a precondition
     for (let party of currentTransaction.parties) {

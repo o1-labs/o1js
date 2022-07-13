@@ -19,17 +19,12 @@ import {
   ZkappPublicInput,
   Events,
   partyToPublicInput,
+  partyContext,
+  PartyContext,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { UInt32, UInt64 } from './int';
-import {
-  mainContext,
-  inCheckedComputation,
-  withContext,
-  inProver,
-  inAnalyze,
-} from './global-context';
 import {
   assertPreconditionInvariants,
   cleanPreconditionsCache,
@@ -42,6 +37,10 @@ import {
   Proof,
   emptyValue,
   analyzeMethod,
+  inCheckedComputation,
+  snarkContext,
+  inProver,
+  inAnalyze,
 } from './proof_system';
 import { assertStatePrecondition, cleanStatePrecondition } from './state';
 
@@ -113,13 +112,10 @@ function wrapMethod(
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
     if (inCheckedComputation()) {
-      let [context, result] = withContext(
-        {
-          ...mainContext,
-          // important to run this with a fresh party everytime, otherwise compile messes up our circuits
-          // because it runs this multiple times
-          self: selfParty(this.address),
-        },
+      // important to run this with a fresh party everytime, otherwise compile messes up our circuits
+      // because it runs this multiple times
+      let [context, result] = partyContext.runWith(
+        { self: selfParty(this.address) },
         () => {
           // inside prover / compile, the method is always called with the public input as first argument
           // -- so we can add assertions about it
@@ -138,8 +134,7 @@ function wrapMethod(
           return result;
         }
       );
-      if (mainContext !== undefined) mainContext.self = context.self;
-      return result;
+      return [context, result];
     } else if (Mina.currentTransaction === undefined) {
       // outside a transaction, just call the method, but check precondition invariants
       let result = method.apply(this, actualArgs);
@@ -285,12 +280,11 @@ class SmartContract {
 
   private executionState(): ExecutionState {
     // TODO reconcile mainContext with currentTransaction
-    if (mainContext !== undefined) {
-      if (mainContext.self === undefined) throw Error('bug');
+    if (partyContext.has()) {
       return {
         transactionId: 0,
         partyIndex: 0,
-        party: mainContext.self,
+        party: partyContext.get().self,
       };
     }
     if (Mina.currentTransaction === undefined) {
@@ -394,17 +388,25 @@ class SmartContract {
       !inAnalyze()
     ) {
       for (let methodIntf of methodIntfs) {
-        let { context, rows, digest } = analyzeMethod(
+        if (snarkContext.get().inRunAndCheck) {
+          let err = new Error(
+            'Can not analyze methods inside Circuit.runAndCheck, because this creates a circuit nested in another circuit'
+          );
+          // EXCEPT if the code that calls this knows that it can first run `analyzeMethods` OUTSIDE runAndCheck and try again
+          (err as any).bootstrap = () => ZkappClass.analyzeMethods(address);
+          throw err;
+        }
+        let {
+          rows,
+          digest,
+          result: [context],
+        } = analyzeMethod<[PartyContext, any]>(
           ZkappPublicInput,
           methodIntf,
           (...args) => (instance as any)[methodIntf.methodName](...args)
         );
-        console.log(
-          methodIntf.methodName,
-          context.self!.body.sequenceEvents.data.length
-        );
         ZkappClass._methodMetadata[methodIntf.methodName] = {
-          sequenceEvents: context.self!.body.sequenceEvents.data.length,
+          sequenceEvents: context.self.body.sequenceEvents.data.length,
           rows,
           digest,
         };

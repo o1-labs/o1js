@@ -10,9 +10,8 @@ import { circuitValueEquals } from './circuit_value';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
 import { Party, Preconditions } from './party';
-import * as GlobalContext from './global-context';
 import { UInt32, UInt64 } from './int';
-import { emptyValue } from './proof_system';
+import { emptyValue, inAnalyze, inCompile, inProver } from './proof_system';
 
 export {
   preconditions,
@@ -162,14 +161,14 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   fieldType: AsFieldElements<U>
 ): U {
   // in compile, just return an empty variable
-  if (GlobalContext.inCompile()) {
+  if (inCompile()) {
     return Circuit.witness(fieldType, (): U => {
       throw Error(
         `This error is thrown because you are reading out the value of a variable, when that value is not known.
 To write a correct circuit, you must avoid any dependency on the concrete value of variables.`
       );
     });
-  } else if (GlobalContext.inAnalyze()) {
+  } else if (inAnalyze()) {
     return emptyValue(fieldType);
   }
   // if not in compile, get the variable's value first
@@ -192,7 +191,7 @@ To write a correct circuit, you must avoid any dependency on the concrete value 
   }
   // in prover, return a new variable which holds the value
   // outside, just return the value
-  if (GlobalContext.inProver()) {
+  if (inProver()) {
     return Circuit.witness(fieldType, () => value);
   } else {
     return value;

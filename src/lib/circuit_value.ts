@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { Circuit, Field, Bool, JSONValue, AsFieldElements } from '../snarky';
-import { withContext } from './global-context';
+import { snarkContext } from './proof_system';
 
 // external API
 export {
@@ -301,14 +301,17 @@ function circuitMain(
   }
 
   target.snarkyMain = (w: Array<any>, pub: Array<any>) => {
-    let [, result] = withContext({ inCheckedComputation: true }, () => {
-      let args = [];
-      for (let i = 0; i < numArgs; ++i) {
-        args.push((publicIndexSet.has(i) ? pub : w).shift());
-      }
+    let [, result] = snarkContext.runWith(
+      { inCheckedComputation: true },
+      () => {
+        let args = [];
+        for (let i = 0; i < numArgs; ++i) {
+          args.push((publicIndexSet.has(i) ? pub : w).shift());
+        }
 
-      return target[propertyName].apply(target, args);
-    });
+        return target[propertyName].apply(target, args);
+      }
+    );
     return result;
   };
 
@@ -511,12 +514,15 @@ Circuit.switch = function <T, A extends AsFieldElements<T>>(
   return type.ofFields(fields);
 };
 
-Circuit.constraintSystem = function (f) {
-  let [, result] = withContext(
+Circuit.constraintSystem = function <T>(f: () => T) {
+  let [, result] = snarkContext.runWith(
     { inAnalyze: true, inCheckedComputation: true },
     () => {
-      let { rows, digest, json } = (Circuit as any)._constraintSystem(f);
-      return { rows, digest };
+      let result: T;
+      let { rows, digest, json } = (Circuit as any)._constraintSystem(() => {
+        result = f();
+      });
+      return { rows, digest, result: result! };
     }
   );
   return result;

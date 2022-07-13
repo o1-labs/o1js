@@ -527,7 +527,11 @@ declare class Circuit {
 
   static runAndCheck<T>(f: () => T): T;
 
-  static constraintSystem(f: () => void): { rows: number; digest: string };
+  static constraintSystem<T>(f: () => T): {
+    rows: number;
+    digest: string;
+    result: T;
+  };
 
   static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
 
