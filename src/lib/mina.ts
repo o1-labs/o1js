@@ -60,9 +60,7 @@ type CurrentTransaction = {
   isFinalRunOutsideCircuit: boolean;
 };
 
-let currentTransaction = Context.create<CurrentTransaction>({
-  allowsNesting: false,
-});
+let currentTransaction = Context.create<CurrentTransaction>();
 
 type SenderSpec =
   | PrivateKey
