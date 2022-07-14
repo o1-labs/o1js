@@ -549,7 +549,6 @@ class Party {
       tokenOwner: thisParty.body.publicKey,
       parentTokenId: tokenId,
     });
-    let tokenIdAsField = Ledger.fieldOfBase58(customToken.id);
     return {
       id: customToken.id,
       parentTokenId: customToken.parentTokenId,
@@ -557,50 +556,56 @@ class Party {
 
       mint({ address, amount }: MintOrBurnParams) {
         let receiverParty = Party.createUnsigned(address, {
-          caller: tokenIdAsField,
-          tokenId: tokenIdAsField,
-          callDepth: 1, // TODO: Make this smarter
+          caller: this.id,
+          tokenId: this.id,
+          callDepth: 1,
           useFullCommitment: Bool(true),
         });
 
+        // Add the amount to mint to the receiver's account
         receiverParty.body.balanceChange =
           receiverParty.body.balanceChange.add(amount);
       },
 
       burn({ address, amount }: MintOrBurnParams) {
         let receiverParty = Party.createUnsigned(address, {
-          caller: tokenIdAsField,
-          tokenId: tokenIdAsField,
-          callDepth: 1, // TODO: Make this smarter
+          caller: this.id,
+          tokenId: this.id,
+          callDepth: 1,
           useFullCommitment: Bool(true),
         });
 
+        // Sub the amount to burn from the receiver's account
         receiverParty.body.balanceChange =
           receiverParty.body.balanceChange.sub(amount);
-        // Require signature from the token account being deducted
+
+        // Require signature from the receiver account being deducted
         receiverParty.authorization = {
           kind: 'lazy-signature',
         };
       },
 
       send({ from, to, amount }: SendParams) {
+        // Check if the sender party is the current zkApp address
         if (from === thisParty.publicKey) {
+          // If so, create a new party for the zkApp to send the amount to the receiver
           let senderParty = Party.createUnsigned(thisParty.publicKey, {
-            caller: tokenIdAsField,
-            tokenId: tokenIdAsField,
+            caller: this.id,
+            tokenId: this.id,
           });
           senderParty.body.balanceChange =
             senderParty.body.balanceChange.sub(amount);
         } else {
+          // If not, create a new party for the sender to send the amount to the receiver
           let senderParty = Party.createUnsigned(from, {
-            caller: tokenIdAsField,
-            tokenId: tokenIdAsField,
+            caller: this.id,
+            tokenId: this.id,
             callDepth: 1,
             useFullCommitment: Bool(true),
           });
-
           senderParty.body.balanceChange =
             senderParty.body.balanceChange.sub(amount);
+
           // Require signature if the sender party is not the zkApp
           senderParty.authorization = {
             kind: 'lazy-signature',
@@ -608,11 +613,13 @@ class Party {
         }
 
         let receiverParty = Party.createUnsigned(to, {
-          caller: tokenIdAsField,
-          tokenId: tokenIdAsField,
-          callDepth: 1, // TODO: Make this smarter
+          caller: this.id,
+          tokenId: this.id,
+          callDepth: 1,
           useFullCommitment: Bool(true),
         });
+
+        // Add the amount to send to the receiver's account
         receiverParty.body.balanceChange =
           receiverParty.body.balanceChange.add(amount);
       },
@@ -779,8 +786,8 @@ class Party {
   static createUnsigned(
     publicKey: PublicKey,
     options?: {
-      caller?: Field;
-      tokenId?: Field;
+      caller?: string;
+      tokenId?: string;
       callDepth?: number;
       useFullCommitment?: Bool;
     }
@@ -796,8 +803,8 @@ class Party {
     const pk = publicKey;
     const body: Body = Body.keepAll(pk);
     const { caller, tokenId, callDepth, useFullCommitment } = options ?? {};
-    body.caller = caller ?? body.caller;
-    body.tokenId = tokenId ?? body.tokenId;
+    body.caller = caller ? Ledger.fieldOfBase58(caller) : body.caller;
+    body.tokenId = tokenId ? Ledger.fieldOfBase58(tokenId) : body.tokenId;
     body.callDepth = callDepth ?? body.callDepth;
     body.useFullCommitment = useFullCommitment ?? body.useFullCommitment;
 
