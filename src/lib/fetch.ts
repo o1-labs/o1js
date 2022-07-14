@@ -129,6 +129,7 @@ type FetchedAccount = {
   publicKey: string;
   nonce: string;
   tokenId: string;
+  tokenSymbol: string;
   zkappUri?: string;
   zkappState: string[] | null;
   receiptChainHash?: string;
@@ -156,6 +157,7 @@ type Account = {
   nonce: UInt32;
   balance: UInt64;
   tokenId: string;
+  tokenSymbol: string;
   zkapp?: { appState: Field[] };
   permissions?: Permissions;
   receiptChainHash?: Field;
@@ -168,6 +170,7 @@ type FlexibleAccount = {
   publicKey: PublicKey | string;
   nonce: UInt32 | string | number;
   tokenId: string;
+  tokenSymbol?: string;
   balance?: UInt64 | string | number;
   zkapp?: { appState: (Field | string | number)[] };
 };
@@ -197,6 +200,7 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
     delegateAccount { publicKey }
     sequenceEvents
     tokenId
+    tokenSymbol
   }
 }
 `;
@@ -241,7 +245,7 @@ function parseFetchedAccount({
 }
 
 function stringifyAccount(account: FlexibleAccount): FetchedAccount {
-  let { publicKey, nonce, balance, zkapp, tokenId } = account;
+  let { publicKey, nonce, balance, zkapp, tokenId, tokenSymbol } = account;
   return {
     publicKey:
       publicKey instanceof PublicKey ? publicKey.toBase58() : publicKey,
@@ -251,6 +255,7 @@ function stringifyAccount(account: FlexibleAccount): FetchedAccount {
       Array(ZkappStateLength).fill('0'),
     balance: { total: balance?.toString() ?? '0' },
     tokenId,
+    tokenSymbol: tokenSymbol ?? '',
   };
 }
 

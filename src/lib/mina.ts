@@ -253,6 +253,7 @@ function LocalBlockchain({
           balance: new UInt64(ledgerAccount.balance.value),
           nonce: new UInt32(ledgerAccount.nonce.value),
           zkapp: ledgerAccount.zkapp,
+          tokenSymbol: ledgerAccount.tokenSymbol,
         };
       }
     },
@@ -513,6 +514,7 @@ function dummyAccount(pubkey?: PublicKey): Account {
     publicKey: pubkey ?? PublicKey.empty(),
     tokenId: getDefaultTokenId(),
     zkapp: { appState: Array(ZkappStateLength).fill(Field.zero) },
+    tokenSymbol: '',
   };
 }
 

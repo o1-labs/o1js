@@ -1,5 +1,13 @@
 import { circuitValue, cloneCircuitValue } from './circuit_value';
-import { Field, Bool, Ledger, Circuit, Pickles, Types } from '../snarky';
+import {
+  Field,
+  Bool,
+  Ledger,
+  Circuit,
+  Pickles,
+  Types,
+  Poseidon,
+} from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
@@ -625,6 +633,18 @@ class Party {
         // Add the amount to send to the receiver's account
         receiverParty.body.balanceChange =
           receiverParty.body.balanceChange.add(amount);
+      },
+    };
+  }
+
+  tokenSymbol() {
+    let party = this;
+    return {
+      set(tokenSymbol: string) {
+        Party.setValue(party.update.tokenSymbol, {
+          data: tokenSymbol,
+          hash: salt(tokenSymbol)[0],
+        });
       },
     };
   }

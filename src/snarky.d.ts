@@ -719,6 +719,8 @@ interface Account {
   publicKey: { g: Group };
   balance: UInt64_;
   nonce: UInt32_;
+  tokenId: Field;
+  tokenSymbol: string;
   zkapp: { appState: Field[] };
 }
 
