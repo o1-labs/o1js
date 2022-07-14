@@ -45,7 +45,16 @@ import {
 } from './proof_system';
 import { assertStatePrecondition, cleanStatePrecondition } from './state';
 
-export { deploy, DeployArgs, signFeePayer, declareMethods };
+// external API
+export {
+  SmartContract,
+  Experimental,
+  method,
+  deploy,
+  DeployArgs,
+  signFeePayer,
+  declareMethods,
+};
 
 const reservedPropNames = new Set(['_methods', '_']);
 
@@ -59,7 +68,7 @@ const reservedPropNames = new Set(['_methods', '_']);
  * }
  * ```
  */
-export function method<T extends SmartContract>(
+function method<T extends SmartContract>(
   target: T & { constructor: any },
   methodName: keyof T & string,
   descriptor: PropertyDescriptor
@@ -193,7 +202,7 @@ function checkPublicInput(
  * ```
  *
  */
-export class SmartContract {
+class SmartContract {
   address: PublicKey;
 
   private _executionState: ExecutionState | undefined;
@@ -388,23 +397,6 @@ export class SmartContract {
     if (Mina.currentTransaction?.isFinalRunOutsideCircuit || inProver())
       Circuit.asProver(run);
   }
-
-  static Reducer: (<
-    T extends AsFieldElements<any>,
-    A extends InferAsFieldElements<T>
-  >(reducer: {
-    actionType: T;
-  }) => ReducerReturn<A>) & {
-    initialActionsHash: Field;
-  } = Object.defineProperty(
-    function (reducer: any) {
-      // we lie about the return value here, and instead overwrite this.reducer with a getter,
-      // so we can get access to `this` inside functions on this.reducer (see constructor)
-      return reducer;
-    },
-    'initialActionsHash',
-    { get: Events.emptySequenceState }
-  ) as any;
 
   // run all methods to collect metadata like how many sequence events they use -- if we don't have this information yet
   // TODO: this could also be used to quickly perform any invariant checks on parties construction
@@ -730,4 +722,27 @@ function declareMethods<T extends typeof SmartContract>(
     method(SmartContract.prototype, key as any, descriptor);
     Object.defineProperty(target, key, descriptor);
   }
+}
+
+/**
+ * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
+ * (Not unstable in the sense that they are less functional or tested than other parts.)
+ */
+class Experimental {
+  static Reducer: (<
+    T extends AsFieldElements<any>,
+    A extends InferAsFieldElements<T>
+  >(reducer: {
+    actionType: T;
+  }) => ReducerReturn<A>) & {
+    initialActionsHash: Field;
+  } = Object.defineProperty(
+    function (reducer: any) {
+      // we lie about the return value here, and instead overwrite this.reducer with a getter,
+      // so we can get access to `this` inside functions on this.reducer (see constructor)
+      return reducer;
+    },
+    'initialActionsHash',
+    { get: Events.emptySequenceState }
+  ) as any;
 }

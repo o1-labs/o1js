@@ -26,7 +26,15 @@ export {
 
 export * from './lib/int';
 export * as Mina from './lib/mina';
-export * from './lib/zkapp';
+export {
+  SmartContract,
+  Experimental,
+  method,
+  deploy,
+  DeployArgs,
+  signFeePayer,
+  declareMethods,
+} from './lib/zkapp';
 export { state, State, declareState } from './lib/state';
 export { Proof, SelfProof, ZkProgram, verify } from './lib/proof_system';
 export * from './lib/party';

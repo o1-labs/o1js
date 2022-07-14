@@ -5,6 +5,7 @@ import {
   method,
   PrivateKey,
   SmartContract,
+  Experimental,
   Mina,
   Party,
   isReady,
@@ -17,7 +18,7 @@ const INCREMENT = Field.one;
 
 class CounterZkapp extends SmartContract {
   // the "reducer" field describes a type of action that we can dispatch, and reduce later
-  reducer = SmartContract.Reducer({ actionType: Field });
+  reducer = Experimental.Reducer({ actionType: Field });
 
   // on-chain version of our state. it will typically lag behind the
   // version that's implicitly represented by the list of actions
@@ -93,7 +94,7 @@ let tx = await Mina.transaction(feePayer, () => {
     });
   }
   zkapp.counter.set(initialCounter);
-  zkapp.actionsHash.set(SmartContract.Reducer.initialActionsHash);
+  zkapp.actionsHash.set(Experimental.Reducer.initialActionsHash);
 });
 tx.send();
 
