@@ -31,6 +31,8 @@ export {
   ZkappStateLength,
   Events,
   partyToPublicInput,
+  CallForest,
+  createChildParty,
 };
 
 const ZkappStateLength = 8;
@@ -497,6 +499,8 @@ class Party {
   authorization: LazyControl;
   account: Precondition.Account;
   network: Precondition.Network;
+  children: Party[] = [];
+  parent: Party | undefined = undefined;
 
   private isSelf: boolean;
 
@@ -779,6 +783,25 @@ type PartiesSigned = {
   otherParties: (Party & { authorization: Control | LazyProof })[];
   memo: string;
 };
+
+const CallForest = {
+  toFlatList(forest: Party[], depth = 0): Party[] {
+    let parties = [];
+    for (let party of forest) {
+      party.body.callDepth = depth;
+      parties.push(party, ...CallForest.toFlatList(party.children, depth + 1));
+    }
+    return parties;
+  },
+};
+
+function createChildParty(parent: Party, childAddress: PublicKey) {
+  let child = Party.defaultParty(childAddress);
+  child.body.callDepth = parent.body.callDepth + 1;
+  child.parent = parent;
+  parent.children.push(child);
+  return child;
+}
 
 // TODO find a better name for these to make it clearer what they do (replace any lazy authorization with no/dummy authorization)
 function toFeePayerUnsafe(feePayer: FeePayerUnsigned): FeePayer {

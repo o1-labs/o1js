@@ -12,6 +12,7 @@ import {
   Party,
   ZkappStateLength,
   ZkappPublicInput,
+  CallForest,
 } from './party';
 import * as Fetch from './fetch';
 import { assertPreconditionInvariants, NetworkValue } from './precondition';
@@ -109,14 +110,18 @@ function createTransaction(
         else throw err_;
       }
     }
-
+  } catch (err) {
+    currentTransaction.leave(transactionId);
+    throw err;
+  }
+  let otherParties = CallForest.toFlatList(currentTransaction.get().parties);
+  try {
     // check that on-chain values weren't used without setting a precondition
-    for (let party of currentTransaction.get().parties) {
+    for (let party of otherParties) {
       assertPreconditionInvariants(party);
     }
   } catch (err) {
     currentTransaction.leave(transactionId);
-    // TODO would be nice if the error would be a bit more descriptive about what failed
     throw err;
   }
 
@@ -139,11 +144,7 @@ function createTransaction(
     feePayerParty = Party.dummyFeePayer();
   }
 
-  let transaction: Parties = {
-    otherParties: currentTransaction.get().parties,
-    feePayer: feePayerParty,
-    memo,
-  };
+  let transaction: Parties = { otherParties, feePayer: feePayerParty, memo };
 
   currentTransaction.leave(transactionId);
   let self: Transaction = {
