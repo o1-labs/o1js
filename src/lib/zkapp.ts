@@ -6,12 +6,7 @@ import {
   Pickles,
   Types,
 } from '../snarky';
-import {
-  Circuit,
-  circuitArray,
-  cloneCircuitValue,
-  pickOne,
-} from './circuit_value';
+import { Circuit, circuitArray, cloneCircuitValue } from './circuit_value';
 import {
   Body,
   Party,
@@ -549,7 +544,7 @@ Use the optional \`maxTransactionsWithUpdates\` argument to increase this number
           let events = updates.map((u) => stateUpdate.update.toFields(u));
           return Events.hash(events);
         });
-        let eventsHash = pickOne(lengths, Field, eventsHashes);
+        let eventsHash = Circuit.switch(lengths, Field, eventsHashes);
         let newStateHash = Events.updateSequenceState(stateHash, eventsHash);
         let isEmpty = lengths[0];
         // update state hash, if this is not an empty update
@@ -570,7 +565,7 @@ Use the optional \`maxTransactionsWithUpdates\` argument to increase this number
           return newState;
         });
         // update state
-        state = Circuit.pickOne(lengths, stateUpdate.state, newStates);
+        state = Circuit.switch(lengths, stateUpdate.state, newStates);
       }
       contract.account.sequenceState.assertEquals(stateHash);
       return { state, stateHash };

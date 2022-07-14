@@ -15,7 +15,7 @@ export {
 };
 
 // internal API
-export { pickOne, cloneCircuitValue, circuitValueEquals, circuitArray };
+export { cloneCircuitValue, circuitValueEquals, circuitArray };
 
 type AnyConstructor = new (...args: any) => any;
 
@@ -69,12 +69,16 @@ abstract class CircuitValue {
     return (this.constructor as any).toJSON(this);
   }
 
-  equals(x: this): Bool {
+  equals(x: this) {
     return Circuit.equal(this, x);
   }
 
-  assertEquals(x: this): void {
+  assertEquals(x: this) {
     Circuit.assertEqual(this, x);
+  }
+
+  isConstant(x: this) {
+    return x.toFields().every((x) => x.isConstant());
   }
 
   static ofFields<T extends AnyConstructor>(
@@ -470,7 +474,8 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
   );
 }
 
-function pickOne<T, A extends AsFieldElements<T>>(
+// TODO: move `Circuit` to JS entirely, this patching harms code discoverability
+Circuit.switch = function <T, A extends AsFieldElements<T>>(
   mask: Bool[],
   type: A,
   values: T[]
@@ -479,18 +484,18 @@ function pickOne<T, A extends AsFieldElements<T>>(
   let nValues = values.length;
   if (mask.length !== nValues)
     throw Error(
-      `pickOne: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
+      `Circuit.switch: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
     );
-  // TODO: we'd like to do a sanity check on the input values here -- but Circuit.asProver is only available in checked computations
-  // would be nice to have a generalization which works in all environments
-  // Circuit.asProver(() => {
-  //   let nTrue = mask.filter((b) => b.toBoolean()).length;
-  //   if (nTrue > 1) {
-  //     throw Error(
-  //       `pickOne: \`mask\` must have 0 or 1 true element, found ${nTrue}.`
-  //     );
-  //   }
-  // });
+  let checkMask = () => {
+    let nTrue = mask.filter((b) => b.toBoolean()).length;
+    if (nTrue > 1) {
+      throw Error(
+        `Circuit.switch: \`mask\` must have 0 or 1 true element, found ${nTrue}.`
+      );
+    }
+  };
+  if (mask.every((b) => b.toField().isConstant())) checkMask();
+  else Circuit.asProver(checkMask);
   let size = type.sizeInFields();
   let fields = Array(size).fill(Field.zero);
   for (let i = 0; i < nValues; i++) {
@@ -502,6 +507,4 @@ function pickOne<T, A extends AsFieldElements<T>>(
     }
   }
   return type.ofFields(fields);
-}
-
-Circuit.pickOne = pickOne;
+};

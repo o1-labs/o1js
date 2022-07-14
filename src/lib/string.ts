@@ -105,7 +105,7 @@ class CircuitString extends CircuitValue {
     let mask = this.lengthMask();
     for (let i = 0; i < n; i++) {
       let possibleCharsAtI = possibleResults.map((r) => r[i]);
-      result[i] = Circuit.pickOne(mask, Character, possibleCharsAtI);
+      result[i] = Circuit.switch(mask, Character, possibleCharsAtI);
     }
     return CircuitString.fromCharacters(result);
   }

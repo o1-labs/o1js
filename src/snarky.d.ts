@@ -545,11 +545,11 @@ declare class Circuit {
    * The result is that value which corresponds to the true element of the mask. Example:
    *
    * ```ts
-   * let x = Circuit.pickOne([Bool(false), Bool(true)], Field, [Field(1), Field(2)]);
+   * let x = Circuit.switch([Bool(false), Bool(true)], Field, [Field(1), Field(2)]);
    * x.assertEquals(2);
    * ```
    */
-  static pickOne<T, A extends AsFieldElements<T>>(
+  static switch<T, A extends AsFieldElements<T>>(
     mask: Bool[],
     type: A,
     values: T[]
