@@ -13,30 +13,20 @@ export {
 
 // context for compiling / proving
 // TODO reconcile mainContext with currentTransaction
-let mainContext = undefined as
-  | {
-      witnesses?: unknown[];
-      self?: Party;
-      expectedAccesses: number | undefined;
-      actualAccesses: number;
-      inProver?: boolean;
-      inCompile?: boolean;
-      inCheckedComputation?: boolean;
-      inAnalyze?: boolean;
-      otherContext?: any;
-    }
-  | undefined;
-type PartialContext = {
+type MainContext = {
   witnesses?: unknown[];
   self?: Party;
-  expectedAccesses?: number;
-  actualAccesses?: number;
+  expectedAccesses: number | undefined;
+  actualAccesses: number;
   inProver?: boolean;
   inCompile?: boolean;
   inCheckedComputation?: boolean;
   inAnalyze?: boolean;
   otherContext?: any;
 };
+
+let mainContext = undefined as MainContext | undefined;
+type PartialContext = Partial<MainContext>;
 
 function withContext<T>(
   {
@@ -51,12 +41,14 @@ function withContext<T>(
   let prevContext = mainContext;
   mainContext = { witnesses, expectedAccesses, actualAccesses, self, ...other };
   let result: T;
+  let resultContext: MainContext;
   try {
     result = f();
   } finally {
+    resultContext = mainContext;
     mainContext = prevContext;
   }
-  return [self, result] as [Party, T];
+  return [resultContext, result] as [MainContext, T];
 }
 
 // TODO: this is unsafe, the mainContext will be overridden if we invoke this function multiple times concurrently
@@ -71,16 +63,19 @@ async function withContextAsync<T>(
   }: PartialContext,
   f: () => Promise<T>
 ) {
+  let prevContext = mainContext;
   mainContext = { witnesses, expectedAccesses, actualAccesses, self, ...other };
   let result: T;
+  let resultContext: MainContext;
   try {
     result = await f();
     if (mainContext.actualAccesses !== mainContext.expectedAccesses)
       throw Error(contextConflictMessage);
   } finally {
-    mainContext = undefined;
+    resultContext = mainContext;
+    mainContext = prevContext;
   }
-  return [self, result] as [Party, T];
+  return [resultContext, result] as [MainContext, T];
 }
 
 let contextConflictMessage =
