@@ -4,7 +4,6 @@ import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
 import { SmartContract } from './zkapp';
-import { Context } from './global-context';
 import * as Precondition from './precondition';
 import { Proof, snarkContext } from './proof_system';
 import { emptyHashWithPrefix, hashWithPrefix, prefixes } from './hash';
@@ -682,7 +681,6 @@ class Party {
       );
     }
     const party = new Party(body);
-    Mina.currentTransaction.get().nextPartyIndex++;
     Mina.currentTransaction.get().parties.push(party);
     return party;
   }
@@ -740,7 +738,6 @@ class Party {
 
     let party = new Party(body);
     party.authorization = { kind: 'lazy-signature', privateKey: signer };
-    Mina.currentTransaction.get().nextPartyIndex++;
     Mina.currentTransaction.get().parties.push(party);
     return party;
   }

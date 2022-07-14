@@ -55,7 +55,6 @@ type FetchMode = 'fetch' | 'cached' | 'test';
 type CurrentTransaction = {
   sender?: PrivateKey;
   parties: Party[];
-  nextPartyIndex: number;
   fetchMode: FetchMode;
   isFinalRunOutsideCircuit: boolean;
 };
@@ -90,7 +89,6 @@ function createTransaction(
   let transactionId = currentTransaction.enter({
     sender: feePayerKey,
     parties: [],
-    nextPartyIndex: 0,
     fetchMode,
     isFinalRunOutsideCircuit,
   });

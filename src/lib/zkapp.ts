@@ -116,7 +116,6 @@ function wrapMethod(
         {
           sender: undefined,
           parties: [],
-          nextPartyIndex: 0,
           fetchMode: inProver() ? 'cached' : 'test',
           isFinalRunOutsideCircuit: false,
         },
@@ -302,12 +301,11 @@ class SmartContract {
     }
     let transaction = Mina.currentTransaction.get();
     let id = Mina.currentTransaction.id();
-    let index = transaction.nextPartyIndex++;
     let party = selfParty(this.address);
     transaction.parties.push(party);
     executionState = {
       transactionId: id,
-      partyIndex: index,
+      partyIndex: transaction.parties.length,
       party,
     };
     this._executionState = executionState;
