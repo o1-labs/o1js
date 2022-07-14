@@ -14,6 +14,7 @@ import {
   UInt32,
   Bool,
   PublicKey,
+  Circuit,
 } from 'snarkyjs';
 
 await isReady;
@@ -32,6 +33,7 @@ class SimpleZkapp extends SmartContract {
     this.setPermissions({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
+      send: Permissions.proofOrSignature(),
     });
     this.balance.addInPlace(UInt64.fromNumber(initialBalance));
     this.x.set(initialState);
@@ -61,7 +63,10 @@ class SimpleZkapp extends SmartContract {
     // pay out half of the zkapp balance to the caller
     let balance = this.account.balance.get();
     this.account.balance.assertEquals(balance);
-    let halfBalance = balance.div(2);
+    // FIXME UInt64.div() doesn't work on variables
+    let halfBalance = Circuit.witness(UInt64, () =>
+      balance.toConstant().div(2)
+    );
     this.balance.subInPlace(halfBalance);
     callerParty.balance.addInPlace(halfBalance);
 
@@ -111,6 +116,7 @@ tx = await Mina.transaction(feePayer, () => {
   zkapp.update(Field(3));
   if (!doProofs) zkapp.sign(zkappKey);
 });
+if (doProofs) await tx.prove();
 tx.send();
 
 console.log('payout');
@@ -118,6 +124,7 @@ tx = await Mina.transaction(feePayer, () => {
   zkapp.payout(privilegedKey);
   if (!doProofs) zkapp.sign(zkappKey);
 });
+if (doProofs) await tx.prove();
 tx.send();
 
 console.log('final state: ' + zkapp.x.get());
@@ -129,6 +136,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 try {
+  if (doProofs) await tx.prove();
   tx.send();
 } catch (err: any) {
   console.log('Transaction failed with error', err.message);
@@ -140,6 +148,7 @@ try {
     zkapp.payout(Local.testAccounts[2].privateKey);
     if (!doProofs) zkapp.sign(zkappKey);
   });
+  if (doProofs) await tx.prove();
   tx.send();
 } catch (err: any) {
   console.log('Transaction failed with error', err.message);

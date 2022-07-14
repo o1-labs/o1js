@@ -19,8 +19,6 @@ import {
   ZkappPublicInput,
   Events,
   partyToPublicInput,
-  partyContext,
-  PartyContext,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -114,8 +112,14 @@ function wrapMethod(
     if (inCheckedComputation()) {
       // important to run this with a fresh party everytime, otherwise compile messes up our circuits
       // because it runs this multiple times
-      let [context, result] = partyContext.runWith(
-        { self: selfParty(this.address) },
+      let [, result] = Mina.currentTransaction.runWith(
+        {
+          sender: undefined,
+          parties: [],
+          nextPartyIndex: 0,
+          fetchMode: inProver() ? 'cached' : 'test',
+          isFinalRunOutsideCircuit: false,
+        },
         () => {
           // inside prover / compile, the method is always called with the public input as first argument
           // -- so we can add assertions about it
@@ -134,7 +138,7 @@ function wrapMethod(
           return result;
         }
       );
-      return [context, result];
+      return result;
     } else if (!Mina.currentTransaction.has()) {
       // outside a transaction, just call the method, but check precondition invariants
       let result = method.apply(this, actualArgs);
@@ -279,14 +283,6 @@ class SmartContract {
   }
 
   private executionState(): ExecutionState {
-    // TODO reconcile mainContext with currentTransaction
-    if (partyContext.has()) {
-      return {
-        transactionId: 0,
-        partyIndex: 0,
-        party: partyContext.get().self,
-      };
-    }
     if (!Mina.currentTransaction.has()) {
       // throw new Error('Cannot execute outside of a Mina.transaction() block.');
       // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
@@ -397,17 +393,14 @@ class SmartContract {
           (err as any).bootstrap = () => ZkappClass.analyzeMethods(address);
           throw err;
         }
-        let {
-          rows,
-          digest,
-          result: [context],
-        } = analyzeMethod<[PartyContext, any]>(
+        let { rows, digest } = analyzeMethod(
           ZkappPublicInput,
           methodIntf,
           (...args) => (instance as any)[methodIntf.methodName](...args)
         );
+        let party = instance._executionState?.party!;
         ZkappClass._methodMetadata[methodIntf.methodName] = {
-          sequenceEvents: context.self.body.sequenceEvents.data.length,
+          sequenceEvents: party.body.sequenceEvents.data.length,
           rows,
           digest,
         };

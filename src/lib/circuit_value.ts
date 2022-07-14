@@ -69,6 +69,10 @@ abstract class CircuitValue {
     return (this.constructor as any).toJSON(this);
   }
 
+  toConstant(): this {
+    return (this.constructor as any).toConstant(this);
+  }
+
   equals(x: this) {
     return Circuit.equal(this, x);
   }

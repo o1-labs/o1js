@@ -32,16 +32,9 @@ export {
   ZkappStateLength,
   Events,
   partyToPublicInput,
-  partyContext,
-  PartyContext,
 };
 
 const ZkappStateLength = 8;
-
-// global self-party context
-// TODO: merge with Mina.currentTransaction
-type PartyContext = { self: Party };
-let partyContext = Context.create<PartyContext>();
 
 type PartyBody = Types.Party['body'];
 type Update = PartyBody['update'];
@@ -699,14 +692,17 @@ class Party {
     options?: { isSameAsFeePayer?: Bool | boolean; nonce?: UInt32 }
   ) {
     let { nonce, isSameAsFeePayer } = options ?? {};
-    // if not specified, optimistically determine isSameAsFeePayer from the current transaction
-    // (gotcha: this makes the circuit depend on the fee payer parameter in the transaction.
-    // to avoid that, provide the argument explicitly)
+    // if not specified, determine isSameAsFeePayer from the current transaction
+    // (gotcha: this doesn't constrain `isSameAsFeePayer`, to avoid making the circuit depend on something that can't be
+    // inferred at compile time. to constrain it, provide the argument explicitly)
     let isFeePayer =
       isSameAsFeePayer !== undefined
         ? Bool(isSameAsFeePayer)
-        : Mina.currentTransaction()?.sender?.equals(signer) ?? Bool(false);
-
+        : Circuit.witness(
+            Bool,
+            () =>
+              Mina.currentTransaction()?.sender?.equals(signer) ?? Bool(false)
+          );
     // TODO: This should be a witness block that uses the setVariable
     // API to set the value of a variable after it's allocated
 
@@ -955,6 +951,7 @@ async function addMissingProofs(parties: Parties): Promise<{
       proof: new ZkappProof({ publicInput, proof, maxProofsVerified }),
     };
   }
+
   let { feePayer, otherParties, memo } = parties;
   // compute proofs serially. in parallel would clash with our global variable hacks
   let otherPartiesProved: (Party & {
