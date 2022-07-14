@@ -9,26 +9,15 @@ import {
   Party,
   isReady,
   Permissions,
-  circuitValue,
 } from 'snarkyjs';
 
 await isReady;
 
-// version of the "simple zkapp" which accepts concurrent updates
-class ReducerZkapp extends SmartContract {
-  // the "reducer" field describes a state and how it can be updated
-  // (the state doesn't have to be related to on-chain state. here it is, though)
-  reducer = SmartContract.Reducer({
-    // type for the state
-    state: circuitValue<{ counter: Field }>({ counter: Field }),
-    // type for the action
-    actionType: Field,
-    // function that says how to apply an action
-    apply(state: { counter: Field }, action: Field) {
-      state.counter = state.counter.add(action);
-      return state;
-    },
-  });
+const INCREMENT = Field.one;
+
+class CounterZkapp extends SmartContract {
+  // the "reducer" field describes a type of action that we can dispatch, and reduce later
+  reducer = SmartContract.Reducer({ actionType: Field });
 
   // on-chain version of our state. it will typically lag behind the
   // version that's implicitly represented by the list of actions
@@ -36,27 +25,34 @@ class ReducerZkapp extends SmartContract {
   // helper field to store the point in the action history that our on-chain state is at
   @state(Field) actionsHash = State<Field>();
 
-  // dispatches an action
-  @method incrementCounter(increment: Field) {
-    this.reducer.dispatch(increment);
+  @method incrementCounter() {
+    this.reducer.dispatch(INCREMENT);
   }
 
-  @method rollupActions() {
-    // get previous state and assert that it's the same as on-chain state
+  @method rollupIncrements() {
+    // get previous counter & actions hash, assert that they're the same as on-chain values
     let counter = this.counter.get();
-    let oldActionsHash = this.actionsHash.get();
     this.counter.assertEquals(counter);
-    this.actionsHash.assertEquals(oldActionsHash);
-    // compute the new state and hash from pending actions
+    let actionsHash = this.actionsHash.get();
+    this.actionsHash.assertEquals(actionsHash);
+
+    // compute the new counter and hash from pending actions
     // remark: it's not feasible to pass in the pending actions as method arguments, because they have dynamic size
-    let { state, actionsHash } = this.reducer.reduce({
-      state: { counter },
-      actionsHash: oldActionsHash,
-      actions: pendingActions,
-    });
+    let { state: newCounter, actionsHash: newActionsHash } =
+      this.reducer.reduce(
+        pendingActions,
+        // state type
+        Field,
+        // function that says how to apply an action
+        (state: Field, _action: Field) => {
+          return state.add(1);
+        },
+        { state: counter, actionsHash }
+      );
+
     // update on-chain state
-    this.counter.set(state.counter);
-    this.actionsHash.set(actionsHash);
+    this.counter.set(newCounter);
+    this.actionsHash.set(newActionsHash);
   }
 }
 
@@ -79,10 +75,10 @@ let feePayer = Local.testAccounts[0].privateKey;
 let zkappKey = PrivateKey.random();
 let zkappAddress = zkappKey.toPublicKey();
 
-let zkapp = new ReducerZkapp(zkappAddress);
+let zkapp = new CounterZkapp(zkappAddress);
 if (doProofs) {
   console.log('compile');
-  await ReducerZkapp.compile(zkappAddress);
+  await CounterZkapp.compile(zkappAddress);
 }
 
 console.log('deploy');
@@ -102,33 +98,31 @@ let tx = await Mina.transaction(feePayer, () => {
 tx.send();
 
 console.log('action 1');
-let increment = Field(3);
 tx = await Mina.transaction(feePayer, () => {
-  zkapp.incrementCounter(increment);
+  zkapp.incrementCounter();
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
 tx.send();
 // update internal state
-pendingActions.push([increment]);
+pendingActions.push([INCREMENT]);
 
 console.log('action 2');
-increment = Field(2);
 tx = await Mina.transaction(feePayer, () => {
-  zkapp.incrementCounter(increment);
+  zkapp.incrementCounter();
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
 tx.send();
 // update internal state
-pendingActions.push([increment]);
+pendingActions.push([INCREMENT]);
 
 console.log('state (on-chain): ' + zkapp.counter.get());
 console.log('pending actions:', JSON.stringify(pendingActions));
 
 console.log('rollup transaction');
 tx = await Mina.transaction(feePayer, () => {
-  zkapp.rollupActions();
+  zkapp.rollupIncrements();
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();

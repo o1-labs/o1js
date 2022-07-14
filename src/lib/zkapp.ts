@@ -5,6 +5,7 @@ import {
   Ledger,
   Pickles,
   Types,
+  InferAsFieldElements,
 } from '../snarky';
 import { Circuit, circuitArray, cloneCircuitValue } from './circuit_value';
 import {
@@ -214,7 +215,7 @@ export class SmartContract {
   constructor(address: PublicKey) {
     this.address = address;
     Object.defineProperty(this, 'reducer', {
-      set(this, reducer: Reducer<any, any>) {
+      set(this, reducer: Reducer<any>) {
         ((this as any)._ ??= {}).reducer = reducer;
       },
       get(this) {
@@ -388,9 +389,12 @@ export class SmartContract {
       Circuit.asProver(run);
   }
 
-  static Reducer: (<S, A, R extends Reducer<S, A>>(
-    reducer: R
-  ) => ReducerReturn<S, A>) & {
+  static Reducer: (<
+    T extends AsFieldElements<any>,
+    A extends InferAsFieldElements<T>
+  >(reducer: {
+    actionType: T;
+  }) => ReducerReturn<A>) & {
     initialActionsHash: Field;
   } = Object.defineProperty(
     function (reducer: any) {
@@ -445,20 +449,15 @@ export class SmartContract {
   }
 }
 
-type Reducer<State, Action> = {
-  state: AsFieldElements<State>;
-  actionType: AsFieldElements<Action>;
-  apply(state: State, action: Action): State;
-};
+type Reducer<Action> = { actionType: AsFieldElements<Action> };
 
-type ReducerReturn<State, Action> = {
+type ReducerReturn<Action> = {
   dispatch(action: Action): void;
-  reduce(
-    stateAndUpdates: {
-      state: State;
-      actionsHash: Field;
-      actions: Action[][];
-    },
+  reduce<State>(
+    actions: Action[][],
+    stateType: AsFieldElements<State>,
+    reduce: (state: State, action: Action) => State,
+    initial: { state: State; actionsHash: Field },
     advancedOptions?: { maxTransactionsWithActions?: number }
   ): {
     state: State;
@@ -466,8 +465,8 @@ type ReducerReturn<State, Action> = {
   };
 };
 
-function getReducer<S, A>(contract: SmartContract): ReducerReturn<S, A> {
-  let reducer: Reducer<S, A> = ((contract as any)._ ??= {}).reducer;
+function getReducer<A>(contract: SmartContract): ReducerReturn<A> {
+  let reducer: Reducer<A> = ((contract as any)._ ??= {}).reducer;
   if (reducer === undefined)
     throw Error(
       'You are trying to use a reducer without having declared its type.\n' +
@@ -489,16 +488,11 @@ class ${contract.constructor.name} extends SmartContract {
       }
     },
 
-    reduce(
-      {
-        state,
-        actionsHash,
-        actions: actionLists,
-      }: {
-        state: S;
-        actionsHash: Field;
-        actions: A[][];
-      },
+    reduce<S>(
+      actionLists: A[][],
+      stateType: AsFieldElements<S>,
+      reduce: (state: S, action: A) => S,
+      { state, actionsHash }: { state: S; actionsHash: Field },
       { maxTransactionsWithActions = 32 } = {}
     ): { state: S; actionsHash: Field } {
       if (actionLists.length > maxTransactionsWithActions) {
@@ -547,23 +541,23 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         // also, for each action length, compute the new state and then pick the actual one
         let newStates = actionss.map((actions) => {
           // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
-          let newState = Circuit.witness(reducer.state, () => {
+          let newState = Circuit.witness(stateType, () => {
             // TODO: why doesn't this work without the toConstant mapping?
-            let { toFields, ofFields } = reducer.state;
+            let { toFields, ofFields } = stateType;
             return ofFields(toFields(state).map((x) => x.toConstant()));
             // return state;
           });
           Circuit.assertEqual(newState, state);
           actions.forEach((action) => {
-            newState = reducer.apply(newState, action);
+            newState = reduce(newState, action);
           });
           return newState;
         });
         // update state
-        state = Circuit.switch(lengths, reducer.state, newStates);
+        state = Circuit.switch(lengths, stateType, newStates);
       }
       contract.account.sequenceState.assertEquals(actionsHash);
-      return { state, actionsHash: actionsHash };
+      return { state, actionsHash };
     },
   };
 }
