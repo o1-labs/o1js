@@ -470,10 +470,10 @@ declare class Bool {
 }
 
 declare interface AsFieldElements<T> {
-  toFields(x: T): Field[];
-  ofFields(x: Field[]): T;
+  toFields: (x: T) => Field[];
+  ofFields: (x: Field[]) => T;
   sizeInFields(): number;
-  check(x: T): void;
+  check: (x: T) => void;
 }
 
 type InferAsFieldElements<T extends AsFieldElements<any>> =
