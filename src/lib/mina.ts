@@ -312,14 +312,22 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       tokenId = tokenId ?? getDefaultTokenId();
       if (currentTransaction?.fetchMode === 'test') {
         Fetch.markAccountToBeFetched(publicKey, tokenId, graphqlEndpoint);
-        let account = Fetch.getCachedAccount(publicKey, graphqlEndpoint);
+        let account = Fetch.getCachedAccount(
+          publicKey,
+          tokenId,
+          graphqlEndpoint
+        );
         return account ?? dummyAccount(publicKey);
       }
       if (
         currentTransaction == undefined ||
         currentTransaction.fetchMode === 'cached'
       ) {
-        let account = Fetch.getCachedAccount(publicKey, graphqlEndpoint);
+        let account = Fetch.getCachedAccount(
+          publicKey,
+          tokenId,
+          graphqlEndpoint
+        );
         if (account !== undefined) return account;
       }
       throw Error(
@@ -412,6 +420,7 @@ let activeInstance: Mina = {
     ) {
       let account = Fetch.getCachedAccount(
         publicKey,
+        tokenId,
         Fetch.defaultGraphqlEndpoint
       );
       if (account === undefined)
