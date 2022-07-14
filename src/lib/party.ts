@@ -504,7 +504,10 @@ class Token {
     const { tokenOwner, parentTokenId } = options ?? {};
     this.parentTokenId = parentTokenId ?? getDefaultTokenId();
     this.tokenOwner = tokenOwner;
-    this.id = Ledger.customTokenID(tokenOwner);
+    this.id = Ledger.customTokenID(
+      tokenOwner,
+      Ledger.fieldOfBase58(this.parentTokenId)
+    );
   }
 }
 

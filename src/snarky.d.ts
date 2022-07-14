@@ -757,7 +757,8 @@ declare class Ledger {
     i: number
   ): string;
 
-  static customTokenID(publicKey: { g: Group }): string;
+  static customTokenID(publicKey: { g: Group }, tokenId: Field): string;
+  static createTokenAccount(publicKey: { g: Group }, tokenId: Field): string;
 
   static publicKeyToString(publicKey: { g: Group }): string;
   static publicKeyOfString(publicKeyBase58: string): Group;
