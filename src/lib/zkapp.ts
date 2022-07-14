@@ -213,12 +213,12 @@ export class SmartContract {
 
   constructor(address: PublicKey) {
     this.address = address;
-    Object.defineProperty(this, 'stateUpdate', {
-      set(this, stateUpdate: StateUpdate<any, any>) {
-        ((this as any)._ ??= {}).stateUpdate = stateUpdate;
+    Object.defineProperty(this, 'reducer', {
+      set(this, reducer: Reducer<any, any>) {
+        ((this as any)._ ??= {}).reducer = reducer;
       },
       get(this) {
-        return getStateUpdate(this);
+        return getReducer(this);
       },
     });
   }
@@ -388,17 +388,17 @@ export class SmartContract {
       Circuit.asProver(run);
   }
 
-  static StateUpdate: (<S, U, SU extends StateUpdate<S, U>>(
-    stateUpdate: SU
-  ) => StateUpdateReturn<S, U>) & {
-    initialStateHash: Field;
+  static Reducer: (<S, A, R extends Reducer<S, A>>(
+    reducer: R
+  ) => ReducerReturn<S, A>) & {
+    initialActionsHash: Field;
   } = Object.defineProperty(
-    function (stateUpdate: any) {
-      // we lie about the return value here, and instead overwrite this.stateUpdate with a getter,
-      // so we can get access to `this` inside functions on this.stateUpdate (see constructor)
-      return stateUpdate;
+    function (reducer: any) {
+      // we lie about the return value here, and instead overwrite this.reducer with a getter,
+      // so we can get access to `this` inside functions on this.reducer (see constructor)
+      return reducer;
     },
-    'initialStateHash',
+    'initialActionsHash',
     { get: Events.emptySequenceState }
   ) as any;
 
@@ -445,49 +445,41 @@ export class SmartContract {
   }
 }
 
-type StateUpdate<State, Update> = {
+type Reducer<State, Action> = {
   state: AsFieldElements<State>;
-  update: AsFieldElements<Update>;
-  apply(state: State, update: Update): State;
+  actionType: AsFieldElements<Action>;
+  apply(state: State, action: Action): State;
 };
 
-type StateUpdateReturn<State, Update> = {
-  emit: (update: Update) => void;
-  applyUpdates(
+type ReducerReturn<State, Action> = {
+  dispatch(action: Action): void;
+  reduce(
     stateAndUpdates: {
       state: State;
-      stateHash: Field;
-      updates: Update[][];
+      actionsHash: Field;
+      actions: Action[][];
     },
-    advancedOptions?: { maxTransactionsWithUpdates?: number }
+    advancedOptions?: { maxTransactionsWithActions?: number }
   ): {
     state: State;
-    stateHash: Field;
+    actionsHash: Field;
   };
 };
 
-function getStateUpdate<S, U>(
-  contract: SmartContract
-): StateUpdateReturn<S, U> {
-  let stateUpdate: StateUpdate<S, U> = ((contract as any)._ ??= {}).stateUpdate;
-  if (stateUpdate === undefined)
+function getReducer<S, A>(contract: SmartContract): ReducerReturn<S, A> {
+  let reducer: Reducer<S, A> = ((contract as any)._ ??= {}).reducer;
+  if (reducer === undefined)
     throw Error(
-      'You are trying to use a state update without having declared its type.\n' +
-        `Make sure to add a property \`stateUpdate\` on ${contract.constructor.name}, for example:
+      'You are trying to use a reducer without having declared its type.\n' +
+        `Make sure to add a property \`reducer\` on ${contract.constructor.name}, for example:
 class ${contract.constructor.name} extends SmartContract {
-  stateUpdate = {
-    state: Field,
-    update: Field,
-    apply(state: Field, update: Field) {
-      return state.add(update);
-    }
-  }
+  reducer = { actionType: Field };
 }`
     );
   return {
-    emit: (update: U) => {
+    dispatch(action: A) {
       let party = contract.self;
-      let eventFields = stateUpdate.update.toFields(update);
+      let eventFields = reducer.actionType.toFields(action);
       party.body.sequenceEvents = Events.pushEvent(
         party.body.sequenceEvents,
         eventFields
@@ -497,78 +489,81 @@ class ${contract.constructor.name} extends SmartContract {
       }
     },
 
-    applyUpdates(
+    reduce(
       {
         state,
-        stateHash,
-        updates: updateLists,
+        actionsHash,
+        actions: actionLists,
       }: {
         state: S;
-        stateHash: Field;
-        updates: U[][];
+        actionsHash: Field;
+        actions: A[][];
       },
-      { maxTransactionsWithUpdates = 32 } = {}
-    ): { state: S; stateHash: Field } {
-      if (updateLists.length > maxTransactionsWithUpdates) {
+      { maxTransactionsWithActions = 32 } = {}
+    ): { state: S; actionsHash: Field } {
+      if (actionLists.length > maxTransactionsWithActions) {
         throw Error(
-          `stateUpdate.applyUpdates: Exceeded the maximum number of lists of updates, ${maxTransactionsWithUpdates}.
-Use the optional \`maxTransactionsWithUpdates\` argument to increase this number.`
+          `reducer.reduce: Exceeded the maximum number of lists of actions, ${maxTransactionsWithActions}.
+Use the optional \`maxTransactionsWithActions\` argument to increase this number.`
         );
       }
       let methodData = contract.analyzeMethods();
-      let possibleUpdatesPerTransaction = [
+      let possibleActionsPerTransaction = [
         ...new Set(Object.values(methodData).map((o) => o.sequenceEvents)).add(
           0
         ),
       ].sort((x, y) => x - y);
 
-      let possibleUpdateTypes = possibleUpdatesPerTransaction.map((n) =>
-        circuitArray(stateUpdate.update, n)
+      let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
+        circuitArray(reducer.actionType, n)
       );
-      for (let i = 0; i < maxTransactionsWithUpdates; i++) {
-        let updates = i < updateLists.length ? updateLists[i] : [];
-        let length = updates.length;
-        let lengths = possibleUpdatesPerTransaction.map((n) =>
+      for (let i = 0; i < maxTransactionsWithActions; i++) {
+        let actions = i < actionLists.length ? actionLists[i] : [];
+        let length = actions.length;
+        let lengths = possibleActionsPerTransaction.map((n) =>
           Circuit.witness(Bool, () => Bool(length === n))
         );
-        // create dummy updates for the other possible update lengths,
+        // create dummy actions for the other possible action lengths,
         // -> because this needs to be a statically-sized computation we have to operate on all of them
-        let updatess = possibleUpdatesPerTransaction.map((n, i) => {
-          let type = possibleUpdateTypes[i];
+        let actionss = possibleActionsPerTransaction.map((n, i) => {
+          let type = possibleActionTypes[i];
           return Circuit.witness(type, () =>
-            length === n ? updates : emptyValue(type)
+            length === n ? actions : emptyValue(type)
           );
         });
-        // for each update length, compute the events hash and then pick the actual one
-        let eventsHashes = updatess.map((updates) => {
-          let events = updates.map((u) => stateUpdate.update.toFields(u));
+        // for each action length, compute the events hash and then pick the actual one
+        let eventsHashes = actionss.map((actions) => {
+          let events = actions.map((u) => reducer.actionType.toFields(u));
           return Events.hash(events);
         });
         let eventsHash = Circuit.switch(lengths, Field, eventsHashes);
-        let newStateHash = Events.updateSequenceState(stateHash, eventsHash);
+        let newActionsHash = Events.updateSequenceState(
+          actionsHash,
+          eventsHash
+        );
         let isEmpty = lengths[0];
-        // update state hash, if this is not an empty update
-        stateHash = Circuit.if(isEmpty, stateHash, newStateHash);
-        // also, for each update length, compute the new state and then pick the actual one
-        let newStates = updatess.map((updates) => {
+        // update state hash, if this is not an empty action
+        actionsHash = Circuit.if(isEmpty, actionsHash, newActionsHash);
+        // also, for each action length, compute the new state and then pick the actual one
+        let newStates = actionss.map((actions) => {
           // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
-          let newState = Circuit.witness(stateUpdate.state, () => {
+          let newState = Circuit.witness(reducer.state, () => {
             // TODO: why doesn't this work without the toConstant mapping?
-            let { toFields, ofFields } = stateUpdate.state;
+            let { toFields, ofFields } = reducer.state;
             return ofFields(toFields(state).map((x) => x.toConstant()));
             // return state;
           });
           Circuit.assertEqual(newState, state);
-          updates.forEach((update) => {
-            newState = stateUpdate.apply(newState, update);
+          actions.forEach((action) => {
+            newState = reducer.apply(newState, action);
           });
           return newState;
         });
         // update state
-        state = Circuit.switch(lengths, stateUpdate.state, newStates);
+        state = Circuit.switch(lengths, reducer.state, newStates);
       }
-      contract.account.sequenceState.assertEquals(stateHash);
-      return { state, stateHash };
+      contract.account.sequenceState.assertEquals(actionsHash);
+      return { state, actionsHash: actionsHash };
     },
   };
 }
