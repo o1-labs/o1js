@@ -40,7 +40,7 @@ function writeType(typeData, isJson, withTypeMap) {
     };
     typeData = typeData.checkedType;
   }
-  let { type, inner, layout, optionType } = typeData;
+  let { type, inner, entries, keys, optionType, docEntries } = typeData;
   if (type === 'array') {
     let {
       output,
@@ -82,7 +82,8 @@ function writeType(typeData, isJson, withTypeMap) {
     let output = '{\n';
     indent += '  ';
     // TODO: make docs work and use them for doccomments
-    for (let { key, value, docs } of layout) {
+    for (let key of keys) {
+      let value = entries[key];
       let questionMark = '';
       if (
         !isJson &&
@@ -130,10 +131,10 @@ function writeTsContent(types, isJson) {
       output +=
         `let ${key} = {\n` +
         `  toJson(${key.toLowerCase()}: ${key}): Json.${key} {\n` +
-        `    return toJson(jsLayout.${key}, ${key.toLowerCase()}, jsonConverters);\n` +
+        `    return toJson(jsLayout.${key} as any, ${key.toLowerCase()}, jsonConverters);\n` +
         `  },\n` +
         `  toFields(${key.toLowerCase()}: ${key}): Field[] {\n` +
-        `    return toFields(jsLayout.${key}, ${key.toLowerCase()}, fieldsConverters);\n` +
+        `    return toFields(jsLayout.${key} as any, ${key.toLowerCase()}, fieldsConverters);\n` +
         `  },\n` +
         `};\n\n`;
     }
