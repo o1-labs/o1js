@@ -517,7 +517,10 @@ class Party {
   static clone(party: Party) {
     let body = cloneCircuitValue(party.body);
     let authorization = cloneCircuitValue(party.authorization);
-    return new (Party as any)(body, authorization, party.isSelf);
+    let clonedParty = new (Party as any)(body, authorization, party.isSelf);
+    clonedParty.children = party.children;
+    clonedParty.parent = party.parent;
+    return clonedParty;
   }
 
   get balance() {
@@ -793,6 +796,23 @@ const CallForest = {
     }
     return parties;
   },
+
+  // Mina_base.Parties.Digest.Forest.empty
+  emptyHash() {
+    return Field.zero;
+  },
+
+  // similar to Mina_base.Parties.Call_forest.accumulate_hashes
+  // it hashes a party's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
+  hashChildren(parent: Party) {
+    let stackHash = CallForest.emptyHash();
+    for (let party of parent.children.reverse()) {
+      let calls = CallForest.hashChildren(party);
+      let nodeHash = hashWithPrefix(prefixes.partyNode, [party.hash(), calls]);
+      stackHash = hashWithPrefix(prefixes.partyCons, [nodeHash, stackHash]);
+    }
+    return stackHash;
+  },
 };
 
 function createChildParty(parent: Party, childAddress: PublicKey) {
@@ -922,9 +942,8 @@ let ZkappPublicInput = circuitValue<ZkappPublicInput>(
 );
 
 function partyToPublicInput(self: Party): ZkappPublicInput {
-  // TODO compute `calls` from party's children
   let party = self.hash();
-  let calls = Field.zero; // zero is the correct value if party has no children
+  let calls = CallForest.hashChildren(self);
   return { party, calls };
 }
 
