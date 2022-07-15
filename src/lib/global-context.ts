@@ -8,6 +8,7 @@ export {
   inProver,
   inCompile,
   inCheckedComputation,
+  inAnalyze,
 };
 
 // context for compiling / proving
@@ -21,6 +22,8 @@ let mainContext = undefined as
       inProver?: boolean;
       inCompile?: boolean;
       inCheckedComputation?: boolean;
+      inAnalyze?: boolean;
+      otherContext?: any;
     }
   | undefined;
 type PartialContext = {
@@ -31,6 +34,8 @@ type PartialContext = {
   inProver?: boolean;
   inCompile?: boolean;
   inCheckedComputation?: boolean;
+  inAnalyze?: boolean;
+  otherContext?: any;
 };
 
 function withContext<T>(
@@ -104,4 +109,7 @@ function inCheckedComputation() {
     !!mainContext?.inProver ||
     !!mainContext?.inCheckedComputation
   );
+}
+function inAnalyze() {
+  return !!mainContext?.inAnalyze;
 }

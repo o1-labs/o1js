@@ -470,10 +470,10 @@ declare class Bool {
 }
 
 declare interface AsFieldElements<T> {
-  toFields(x: T): Field[];
-  ofFields(x: Field[]): T;
+  toFields: (x: T) => Field[];
+  ofFields: (x: Field[]) => T;
   sizeInFields(): number;
-  check(x: T): void;
+  check: (x: T) => void;
 }
 
 type InferAsFieldElements<T extends AsFieldElements<any>> =
@@ -538,6 +538,22 @@ declare class Circuit {
   static if<T>(b: Bool | boolean, ctor: AsFieldElements<T>, x: T, y: T): T;
 
   static if<T>(b: Bool | boolean, x: T, y: T): T;
+
+  /**
+   * Generalization of `Circuit.if` for choosing between more than two different cases.
+   * It takes a "mask", which is an array of `Bool`s that contains only one `true` element, as well as a type/constructor and an array of values of that type.
+   * The result is that value which corresponds to the true element of the mask. Example:
+   *
+   * ```ts
+   * let x = Circuit.switch([Bool(false), Bool(true)], Field, [Field(1), Field(2)]);
+   * x.assertEquals(2);
+   * ```
+   */
+  static switch<T, A extends AsFieldElements<T>>(
+    mask: Bool[],
+    type: A,
+    values: T[]
+  ): T;
 
   static generateKeypair(): Keypair;
 

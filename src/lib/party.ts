@@ -251,8 +251,16 @@ const Events = {
     return { hash, data: [...events.data, event] };
   },
 
+  hash(events: Event[]) {
+    return events.reduce(Events.pushEvent, Events.empty()).hash;
+  },
+
   emptySequenceState() {
     return emptyHashWithPrefix('MinaSnappSequenceEmpty');
+  },
+
+  updateSequenceState(state: Field, eventsHash: Field) {
+    return hashWithPrefix(prefixes.sequenceEvents, [state, eventsHash]);
   },
 };
 

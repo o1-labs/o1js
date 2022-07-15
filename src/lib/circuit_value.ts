@@ -2,18 +2,20 @@ import 'reflect-metadata';
 import { Circuit, Field, Bool, JSONValue, AsFieldElements } from '../snarky';
 import { withContext } from './global-context';
 
+// external API
 export {
+  Circuit,
   CircuitValue,
   prop,
   arrayProp,
   matrixProp,
   public_,
   circuitMain,
-  cloneCircuitValue,
-  circuitValueEquals,
-  circuitArray,
   circuitValue,
 };
+
+// internal API
+export { cloneCircuitValue, circuitValueEquals, circuitArray };
 
 type AnyConstructor = new (...args: any) => any;
 
@@ -67,12 +69,16 @@ abstract class CircuitValue {
     return (this.constructor as any).toJSON(this);
   }
 
-  equals(x: this): Bool {
+  equals(x: this) {
     return Circuit.equal(this, x);
   }
 
-  assertEquals(x: this): void {
+  assertEquals(x: this) {
     Circuit.assertEqual(this, x);
+  }
+
+  isConstant(x: this) {
+    return x.toFields().every((x) => x.isConstant());
   }
 
   static ofFields<T extends AnyConstructor>(
@@ -324,11 +330,11 @@ function circuitValue<T>(typeObj: any): AsFieldElements<T> {
   function sizeInFields(typeObj: any): number {
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return 0;
     if (Array.isArray(typeObj))
-      return typeObj.map(sizeInFields).reduce((a, b) => a + b);
+      return typeObj.map(sizeInFields).reduce((a, b) => a + b, 0);
     if ('sizeInFields' in typeObj) return typeObj.sizeInFields();
     return Object.values(typeObj)
       .map(sizeInFields)
-      .reduce((a, b) => a + b);
+      .reduce((a, b) => a + b, 0);
   }
   function toFields(typeObj: any, obj: any): Field[] {
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return [];
@@ -467,3 +473,38 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
     ([key, value]) => key in b && circuitValueEquals((b as any)[key], value)
   );
 }
+
+// TODO: move `Circuit` to JS entirely, this patching harms code discoverability
+Circuit.switch = function <T, A extends AsFieldElements<T>>(
+  mask: Bool[],
+  type: A,
+  values: T[]
+): T {
+  // picks the value at the index where mask is true
+  let nValues = values.length;
+  if (mask.length !== nValues)
+    throw Error(
+      `Circuit.switch: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
+    );
+  let checkMask = () => {
+    let nTrue = mask.filter((b) => b.toBoolean()).length;
+    if (nTrue > 1) {
+      throw Error(
+        `Circuit.switch: \`mask\` must have 0 or 1 true element, found ${nTrue}.`
+      );
+    }
+  };
+  if (mask.every((b) => b.toField().isConstant())) checkMask();
+  else Circuit.asProver(checkMask);
+  let size = type.sizeInFields();
+  let fields = Array(size).fill(Field.zero);
+  for (let i = 0; i < nValues; i++) {
+    let valueFields = type.toFields(values[i]);
+    let maskField = mask[i].toField();
+    for (let j = 0; j < size; j++) {
+      let maybeField = valueFields[j].mul(maskField);
+      fields[j] = fields[j].add(maybeField);
+    }
+  }
+  return type.ofFields(fields);
+};

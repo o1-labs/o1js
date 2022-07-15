@@ -1,5 +1,13 @@
-import { Field, AsFieldElements, Ledger, Pickles, Types } from '../snarky';
-import { cloneCircuitValue } from './circuit_value';
+import {
+  Field,
+  Bool,
+  AsFieldElements,
+  Ledger,
+  Pickles,
+  Types,
+  InferAsFieldElements,
+} from '../snarky';
+import { Circuit, circuitArray, cloneCircuitValue } from './circuit_value';
 import {
   Body,
   Party,
@@ -19,6 +27,7 @@ import {
   inCompile,
   withContext,
   inProver,
+  inAnalyze,
 } from './global-context';
 import {
   assertPreconditionInvariants,
@@ -31,10 +40,21 @@ import {
   compileProgram,
   Proof,
   digestProgram,
+  emptyValue,
+  synthesizeMethodArguments,
 } from './proof_system';
 import { assertStatePrecondition, cleanStatePrecondition } from './state';
 
-export { deploy, DeployArgs, signFeePayer, declareMethods };
+// external API
+export {
+  SmartContract,
+  Experimental,
+  method,
+  deploy,
+  DeployArgs,
+  signFeePayer,
+  declareMethods,
+};
 
 const reservedPropNames = new Set(['_methods', '_']);
 
@@ -48,7 +68,7 @@ const reservedPropNames = new Set(['_methods', '_']);
  * }
  * ```
  */
-export function method<T extends SmartContract>(
+function method<T extends SmartContract>(
   target: T & { constructor: any },
   methodName: keyof T & string,
   descriptor: PropertyDescriptor
@@ -97,7 +117,7 @@ function wrapMethod(
         {
           inCompile: inCompile(),
           inProver: inProver(),
-          // important to run this with a fresh party everytime, otherwise we compile messes up our circuits
+          // important to run this with a fresh party everytime, otherwise compile messes up our circuits
           // because it runs this multiple times
           self: selfParty(this.address),
         },
@@ -182,11 +202,13 @@ function checkPublicInput(
  * ```
  *
  */
-export class SmartContract {
+class SmartContract {
   address: PublicKey;
 
   private _executionState: ExecutionState | undefined;
   static _methods?: MethodInterface[];
+  private static _methodMetadata: Record<string, { sequenceEvents: number }> =
+    {}; // keyed by method name
   static _provers?: Pickles.Prover[];
   static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
@@ -201,6 +223,14 @@ export class SmartContract {
 
   constructor(address: PublicKey) {
     this.address = address;
+    Object.defineProperty(this, 'reducer', {
+      set(this, reducer: Reducer<any>) {
+        ((this as any)._ ??= {}).reducer = reducer;
+      },
+      get(this) {
+        return getReducer(this);
+      },
+    });
   }
 
   static async compile(address: PublicKey) {
@@ -213,7 +243,11 @@ export class SmartContract {
         (instance as any)[methodName](...args);
       };
     });
-
+    // run methods once to get information that we need already at compile time
+    Circuit.runAndCheck(() => {
+      let instance = new this(address);
+      instance.analyzeMethods();
+    });
     let { getVerificationKeyArtifact, provers, verify } = compileProgram(
       ZkappPublicInput,
       methodIntfs,
@@ -359,6 +393,43 @@ export class SmartContract {
     party.body.events = Events.pushEvent(party.body.events, eventFields);
   }
 
+  static runOutsideCircuit(run: () => void) {
+    if (Mina.currentTransaction?.isFinalRunOutsideCircuit || inProver())
+      Circuit.asProver(run);
+  }
+
+  // run all methods to collect metadata like how many sequence events they use -- if we don't have this information yet
+  // TODO: this could also be used to quickly perform any invariant checks on parties construction
+  // TODO: it would be even better to run the methods in "compile mode" here -- i.e. with variables which can't be read --,
+  // to be able to give quick errors when people try to depend on variables for constructing their circuit (https://github.com/o1-labs/snarkyjs/issues/224)
+  analyzeMethods() {
+    let ZkappClass = this.constructor as typeof SmartContract;
+    let methods = ZkappClass._methods ?? [];
+    if (
+      !methods.every((m) => m.methodName in ZkappClass._methodMetadata) &&
+      !inAnalyze()
+    ) {
+      let self = selfParty(this.address);
+      for (let method of methods) {
+        withContext(
+          {
+            inAnalyze: true,
+            self,
+            otherContext: { numberOfSequenceEvents: 0 },
+          },
+          () => {
+            let args = synthesizeMethodArguments(method);
+            (this as any)[method.methodName](...args);
+            ZkappClass._methodMetadata[method.methodName] = {
+              sequenceEvents: mainContext?.otherContext?.numberOfSequenceEvents,
+            };
+          }
+        );
+      }
+    }
+    return ZkappClass._methodMetadata;
+  }
+
   setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
     Party.setValue(maybeValue, value);
   }
@@ -368,6 +439,119 @@ export class SmartContract {
   setPermissions(permissions: Permissions) {
     this.setValue(this.self.update.permissions, permissions);
   }
+}
+
+type Reducer<Action> = { actionType: AsFieldElements<Action> };
+
+type ReducerReturn<Action> = {
+  dispatch(action: Action): void;
+  reduce<State>(
+    actions: Action[][],
+    stateType: AsFieldElements<State>,
+    reduce: (state: State, action: Action) => State,
+    initial: { state: State; actionsHash: Field },
+    options?: { maxTransactionsWithActions?: number }
+  ): {
+    state: State;
+    actionsHash: Field;
+  };
+};
+
+function getReducer<A>(contract: SmartContract): ReducerReturn<A> {
+  let reducer: Reducer<A> = ((contract as any)._ ??= {}).reducer;
+  if (reducer === undefined)
+    throw Error(
+      'You are trying to use a reducer without having declared its type.\n' +
+        `Make sure to add a property \`reducer\` on ${contract.constructor.name}, for example:
+class ${contract.constructor.name} extends SmartContract {
+  reducer = { actionType: Field };
+}`
+    );
+  return {
+    dispatch(action: A) {
+      let party = contract.self;
+      let eventFields = reducer.actionType.toFields(action);
+      party.body.sequenceEvents = Events.pushEvent(
+        party.body.sequenceEvents,
+        eventFields
+      );
+      if (mainContext?.otherContext?.numberOfSequenceEvents !== undefined) {
+        mainContext.otherContext.numberOfSequenceEvents += 1;
+      }
+    },
+
+    reduce<S>(
+      actionLists: A[][],
+      stateType: AsFieldElements<S>,
+      reduce: (state: S, action: A) => S,
+      { state, actionsHash }: { state: S; actionsHash: Field },
+      { maxTransactionsWithActions = 32 } = {}
+    ): { state: S; actionsHash: Field } {
+      if (actionLists.length > maxTransactionsWithActions) {
+        throw Error(
+          `reducer.reduce: Exceeded the maximum number of lists of actions, ${maxTransactionsWithActions}.
+Use the optional \`maxTransactionsWithActions\` argument to increase this number.`
+        );
+      }
+      let methodData = contract.analyzeMethods();
+      let possibleActionsPerTransaction = [
+        ...new Set(Object.values(methodData).map((o) => o.sequenceEvents)).add(
+          0
+        ),
+      ].sort((x, y) => x - y);
+
+      let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
+        circuitArray(reducer.actionType, n)
+      );
+      for (let i = 0; i < maxTransactionsWithActions; i++) {
+        let actions = i < actionLists.length ? actionLists[i] : [];
+        let length = actions.length;
+        let lengths = possibleActionsPerTransaction.map((n) =>
+          Circuit.witness(Bool, () => Bool(length === n))
+        );
+        // create dummy actions for the other possible action lengths,
+        // -> because this needs to be a statically-sized computation we have to operate on all of them
+        let actionss = possibleActionsPerTransaction.map((n, i) => {
+          let type = possibleActionTypes[i];
+          return Circuit.witness(type, () =>
+            length === n ? actions : emptyValue(type)
+          );
+        });
+        // for each action length, compute the events hash and then pick the actual one
+        let eventsHashes = actionss.map((actions) => {
+          let events = actions.map((u) => reducer.actionType.toFields(u));
+          return Events.hash(events);
+        });
+        let eventsHash = Circuit.switch(lengths, Field, eventsHashes);
+        let newActionsHash = Events.updateSequenceState(
+          actionsHash,
+          eventsHash
+        );
+        let isEmpty = lengths[0];
+        // update state hash, if this is not an empty action
+        actionsHash = Circuit.if(isEmpty, actionsHash, newActionsHash);
+        // also, for each action length, compute the new state and then pick the actual one
+        let newStates = actionss.map((actions) => {
+          // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
+          let newState = Circuit.witness(stateType, () => {
+            // TODO: why doesn't this work without the toConstant mapping?
+            let { toFields, ofFields } = stateType;
+            return ofFields(toFields(state).map((x) => x.toConstant()));
+            // return state;
+          });
+          Circuit.assertEqual(newState, state);
+          actions.forEach((action) => {
+            newState = reduce(newState, action);
+          });
+          return newState;
+        });
+        // update state
+        state = Circuit.switch(lengths, stateType, newStates);
+      }
+      contract.account.sequenceState.assertEquals(actionsHash);
+      return { state, actionsHash };
+    },
+  };
 }
 
 function selfParty(address: PublicKey) {
@@ -538,4 +722,27 @@ function declareMethods<T extends typeof SmartContract>(
     method(SmartContract.prototype, key as any, descriptor);
     Object.defineProperty(target, key, descriptor);
   }
+}
+
+/**
+ * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
+ * (Not unstable in the sense that they are less functional or tested than other parts.)
+ */
+class Experimental {
+  static Reducer: (<
+    T extends AsFieldElements<any>,
+    A extends InferAsFieldElements<T>
+  >(reducer: {
+    actionType: T;
+  }) => ReducerReturn<A>) & {
+    initialActionsHash: Field;
+  } = Object.defineProperty(
+    function (reducer: any) {
+      // we lie about the return value here, and instead overwrite this.reducer with a getter,
+      // so we can get access to `this` inside functions on this.reducer (see constructor)
+      return reducer;
+    },
+    'initialActionsHash',
+    { get: Events.emptySequenceState }
+  ) as any;
 }

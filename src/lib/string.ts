@@ -1,5 +1,5 @@
 import { Bool, Field } from '../snarky';
-import { arrayProp, CircuitValue, prop } from './circuit_value';
+import { Circuit, arrayProp, CircuitValue, prop } from './circuit_value';
 import { Poseidon } from './hash';
 
 export { Character, CircuitString };
@@ -104,8 +104,8 @@ class CircuitString extends CircuitValue {
     let result: Character[] = [];
     let mask = this.lengthMask();
     for (let i = 0; i < n; i++) {
-      let possibleCharsAtI = possibleResults.map((result) => result[i]);
-      result[i] = pickOne(possibleCharsAtI, mask);
+      let possibleCharsAtI = possibleResults.map((r) => r[i]);
+      result[i] = Circuit.switch(mask, Character, possibleCharsAtI);
     }
     return CircuitString.fromCharacters(result);
   }
@@ -160,18 +160,4 @@ function fillWithNull([...values]: Character[], length: number) {
     values[i] = nullChar;
   }
   return values;
-}
-
-// helper which expects an array, and a boolean mask (of the same length) with just one `true` in it,
-// and picks the coressponding element of the array
-function pickOne(chars: Character[], mask: Bool[]) {
-  // picks the character at the index where mask is true
-  let m = mask.length;
-  if (chars.length !== m) throw Error('bug');
-  let char = Field.zero;
-  for (let i = 0; i < m; i++) {
-    let maybeChar = chars[i].value.mul(mask[i].toField());
-    char = char.add(maybeChar);
-  }
-  return new Character(char);
 }

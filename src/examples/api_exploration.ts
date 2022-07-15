@@ -7,6 +7,7 @@ import {
   PrivateKey,
   PublicKey,
   Signature,
+  Int64,
 } from 'snarkyjs';
 
 /* This file demonstrates the classes and functions available in snarky.js */
@@ -114,6 +115,14 @@ const c = Circuit.if(
 );
 
 console.assert(c.bar.someFieldElt.equals(x1).toBoolean());
+
+// Circuit.switch is a generalization of Circuit.if, for when you need to distinguish between multiple cases.
+let x = Circuit.switch([Bool(false), Bool(true), Bool(false)], Int64, [
+  Int64.from(1),
+  Int64.from(2),
+  Int64.from(3),
+]);
+x.assertEquals(Int64.from(2));
 
 /* # Signature
  */
