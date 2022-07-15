@@ -335,11 +335,11 @@ let complexTypes = new Set(['object', 'function']);
 // TODO unit-test this
 function circuitValue<T>(
   typeObj: any,
-  advanced?: { customObjectKeys: string[] }
+  options?: { customObjectKeys: string[] }
 ): AsFieldElements<T> {
   let objectKeys =
     typeof typeObj === 'object'
-      ? advanced?.customObjectKeys ?? Object.keys(typeObj).sort()
+      ? options?.customObjectKeys ?? Object.keys(typeObj).sort()
       : [];
 
   function sizeInFields(typeObj: any): number {

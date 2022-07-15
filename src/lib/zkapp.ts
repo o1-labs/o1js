@@ -429,7 +429,7 @@ type ReducerReturn<Action> = {
     stateType: AsFieldElements<State>,
     reduce: (state: State, action: Action) => State,
     initial: { state: State; actionsHash: Field },
-    advancedOptions?: { maxTransactionsWithActions?: number }
+    options?: { maxTransactionsWithActions?: number }
   ): {
     state: State;
     actionsHash: Field;
