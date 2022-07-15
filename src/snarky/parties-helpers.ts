@@ -1,6 +1,6 @@
 import * as Leaves from './parties-leaves';
 
-export { toJson, toFields, Layout };
+export { toJson, toFields, toAuxiliary, Layout };
 
 function toJson(typeData: Layout, value: any, converters: any): any {
   let { checkedTypeName } = typeData;
@@ -87,6 +87,54 @@ function toFields(typeData: Layout, value: any, converters: any): any {
     return fields;
   }
   let fields = Leaves.toFields(typeData.type, value);
+  // i += fields.length; // DEBUG
+  return fields;
+}
+
+function toAuxiliary(typeData: Layout, value: any, converters: any): any {
+  let { checkedTypeName } = typeData;
+  if (checkedTypeName) {
+    // there's a custom conversion function!
+    let fields = converters[checkedTypeName](value);
+    // i += fields.length; // DEBUG
+    return fields;
+  }
+  if (typeData.type === 'array') {
+    return value
+      .map((x: any) => toAuxiliary(typeData.inner, x, converters))
+      .flat();
+  }
+  if (typeData.type === 'option') {
+    let { optionType, inner } = typeData;
+    switch (optionType) {
+      case 'implicit':
+        return toAuxiliary(inner, value, converters);
+      case 'flaggedOption':
+        // i += 1; // DEBUG
+        return toAuxiliary(inner, value.value, converters);
+      default:
+        return [];
+    }
+  }
+  if (typeData.type === 'object') {
+    let { name, keys, entries } = typeData;
+    if (Leaves.toFieldsLeafTypes.has(name)) {
+      // override with custom leaf type
+      return Leaves.toAuxiliary(name as keyof Leaves.TypeMap, value);
+    }
+    let fields: any = [];
+    // let fieldsMap: any = {}; // DEBUG
+    for (let key of keys) {
+      // let i0 = i; // DEBUG
+      let newFields = toAuxiliary(entries[key], value[key], converters);
+      fields.push(...newFields);
+      // fieldsMap[key] = [i0, newFields.map(String)]; // DEBUG
+    }
+    // console.log(name); // DEBUG
+    // console.log(fieldsMap); // DEBUG
+    return fields;
+  }
+  let fields = Leaves.toAuxiliary(typeData.type, value);
   // i += fields.length; // DEBUG
   return fields;
 }
