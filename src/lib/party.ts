@@ -460,6 +460,7 @@ const AccountPrecondition = {
       state: appState,
       sequenceState: Events.emptySequenceState(),
       provedState: ignore(Bool(false)),
+      isNew: ignore(Bool(false)),
     };
   },
   nonce(nonce: UInt32): AccountPrecondition {
