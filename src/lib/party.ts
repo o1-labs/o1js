@@ -885,9 +885,9 @@ type PartiesProved = {
 };
 
 /**
- * The public input for zkApps consists of certain hashes of the transaction and of the proving Party which is constructed during method execution.
+ * The public input for zkApps consists of certain hashes of the proving Party (and its child parties) which is constructed during method execution.
 
-  In SmartContract.prove, a method is run twice: First outside the proof, to obtain the public input, and once in the prover,
+  For SmartContract proving, a method is run twice: First outside the proof, to obtain the public input, and once in the prover,
   which takes the public input as input. The current transaction is hashed again inside the prover, which asserts that the result equals the input public input,
   as part of the snark circuit. The block producer will also hash the transaction they receive and pass it as a public input to the verifier.
   Thus, the transaction is fully constrained by the proof - the proof couldn't be used to attest to a different transaction.
@@ -911,7 +911,7 @@ async function addMissingProofs(parties: Parties): Promise<{
 }> {
   type PartyProved = Party & { authorization: Control | LazySignature };
 
-  async function addProof(party: Party, index: number) {
+  async function addProof(party: Party) {
     party = Party.clone(party);
     if (
       !('kind' in party.authorization) ||
@@ -958,8 +958,8 @@ async function addMissingProofs(parties: Parties): Promise<{
     authorization: Control | LazySignature;
   })[] = [];
   let proofs: (Proof<ZkappPublicInput> | undefined)[] = [];
-  for (let i = 0; i < otherParties.length; i++) {
-    let { partyProved, proof } = await addProof(otherParties[i], i);
+  for (let party of otherParties) {
+    let { partyProved, proof } = await addProof(party);
     otherPartiesProved.push(partyProved);
     proofs.push(proof);
   }
