@@ -8,6 +8,8 @@ import {
   Field,
   PublicKey,
   CircuitValue,
+  Mina,
+  Experimental,
 } from '../../dist/server';
 
 let address: PublicKey;
@@ -60,6 +62,23 @@ describe('party', () => {
       Party.setValue(party2.update.appState[0], Field.one);
       expect(party2.hash()).not.toEqual(hash);
     });
+  });
+
+  it("converts party to a public input that's consistent with the ocaml implementation", async () => {
+    let otherAddress = PrivateKey.random().toPublicKey();
+
+    let party = Party.createUnsigned(address);
+    Experimental.createChildParty(party, otherAddress);
+    let publicInput = party.toPublicInput();
+
+    // create transaction JSON with the same party structure, for ocaml version
+    let tx = await Mina.transaction(() => {
+      let party = Party.createUnsigned(address);
+      Experimental.createChildParty(party, otherAddress);
+    });
+    let publicInputOcaml = Ledger.zkappPublicInput(tx.toJSON(), 0);
+
+    expect(publicInputOcaml).toEqual(publicInput);
   });
 
   it('creates the right empty events', () => {

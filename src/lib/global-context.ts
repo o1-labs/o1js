@@ -31,7 +31,7 @@ function create<C>(
 ): Context.t<C> {
   let t: Context.t<C> = Object.assign(
     function (): C | undefined {
-      return t.data[t.data.length - 1].context;
+      return t.data[t.data.length - 1]?.context;
     },
     {
       data: [],

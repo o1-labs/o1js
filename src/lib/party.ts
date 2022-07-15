@@ -661,6 +661,14 @@ class Party {
     return Ledger.hashPartyFromFields(fields);
   }
 
+  // TODO: this was only exposed to be used in a unit test
+  // consider removing when we have inline unit tests
+  toPublicInput(): ZkappPublicInput {
+    let party = this.hash();
+    let calls = CallForest.hashChildren(this);
+    return { party, calls };
+  }
+
   static defaultParty(address: PublicKey) {
     const body = Body.keepAll(address);
     return new Party(body);
@@ -681,14 +689,8 @@ class Party {
   }
 
   static createUnsigned(publicKey: PublicKey) {
-    const body: Body = Body.keepAll(publicKey);
-    if (!Mina.currentTransaction.has()) {
-      throw new Error(
-        'Party.createUnsigned: Cannot run outside of a transaction'
-      );
-    }
-    const party = new Party(body);
-    Mina.currentTransaction.get().parties.push(party);
+    let party = Party.defaultParty(publicKey);
+    Mina.currentTransaction()?.parties.push(party);
     return party;
   }
 
