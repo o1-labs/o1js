@@ -23,7 +23,7 @@ import {
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
-import { Int64, UInt32, UInt64 } from './int';
+import { UInt32, UInt64 } from './int';
 import {
   mainContext,
   inCheckedComputation,

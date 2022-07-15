@@ -509,8 +509,27 @@ class Token {
   readonly tokenOwner: PublicKey;
 
   constructor(options: { tokenOwner: PublicKey; parentTokenId?: string }) {
-    const { tokenOwner, parentTokenId } = options ?? {};
-    this.parentTokenId = parentTokenId ?? getDefaultTokenId();
+    let { tokenOwner, parentTokenId } = options ?? {};
+
+    // Reassign to default tokenId if undefined
+    parentTokenId ??= getDefaultTokenId();
+
+    // Check if we can deserialize the parentTokenId
+    try {
+      Ledger.fieldOfBase58(parentTokenId);
+    } catch (e) {
+      throw new Error(`Invalid parentTokenId\n(error: ${(<Error>e).message})`);
+    }
+
+    // Check if we can create a custom tokenId
+    try {
+      Ledger.customTokenID(tokenOwner, Ledger.fieldOfBase58(parentTokenId));
+    } catch (e) {
+      throw new Error(
+        `Could not create a custom token id:\n(error: ${(<Error>e).message})`
+      );
+    }
+    this.parentTokenId = parentTokenId;
     this.tokenOwner = tokenOwner;
     this.id = Ledger.customTokenID(
       tokenOwner,
@@ -522,12 +541,12 @@ class Token {
 type SendParams = {
   from: PublicKey;
   to: PublicKey;
-  amount: Int64 | UInt32 | UInt64 | string | number | bigint;
+  amount: UInt32 | UInt64;
 };
 
 type MintOrBurnParams = {
   address: PublicKey;
-  amount: Int64 | UInt32 | UInt64 | string | number | bigint;
+  amount: UInt32 | UInt64;
 };
 
 class Party {

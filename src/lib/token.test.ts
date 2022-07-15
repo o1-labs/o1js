@@ -11,8 +11,12 @@ import {
   PublicKey,
   DeployArgs,
   Permissions,
+  Token,
+  Ledger,
+  getDefaultTokenId,
 } from '../../dist/server';
-import { deploy } from './zkapp';
+
+const tokenSymbol = 'MY_TOKEN';
 
 class TokenContract extends SmartContract {
   deploy(args: DeployArgs) {
@@ -21,17 +25,17 @@ class TokenContract extends SmartContract {
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
     });
-    this.tokenSymbol.set('MY_TOKEN');
+    this.tokenSymbol.set(tokenSymbol);
   }
 
-  @method mint(receiverAddress: PublicKey, amount: number) {
+  @method mint(receiverAddress: PublicKey, amount: UInt64) {
     this.token().mint({
       address: receiverAddress,
       amount,
     });
   }
 
-  @method burn(receiverAddress: PublicKey, amount: number) {
+  @method burn(receiverAddress: PublicKey, amount: UInt64) {
     this.token().burn({
       address: receiverAddress,
       amount,
@@ -41,7 +45,7 @@ class TokenContract extends SmartContract {
   @method send(
     senderAddress: PublicKey,
     receiverAddress: PublicKey,
-    amount: number
+    amount: UInt64
   ) {
     this.token().send({
       to: receiverAddress,
@@ -49,12 +53,24 @@ class TokenContract extends SmartContract {
       amount,
     });
   }
+
+  @method setInvalidTokenSymbol() {
+    this.tokenSymbol.set(
+      'this-token-symbol-is-too-long-and-will-cause-an-error'
+    );
+  }
 }
 
 let zkappKey: PrivateKey;
 let zkappAddress: PublicKey;
 let zkapp: TokenContract;
 let feePayer: PrivateKey;
+
+let tokenAccount1Key: PrivateKey;
+let tokenAccount1: PublicKey;
+
+let tokenAccount2Key: PrivateKey;
+let tokenAccount2: PublicKey;
 
 beforeAll(async () => {
   // set up local blockchain, create zkapp keys, deploy the contract
@@ -67,11 +83,11 @@ beforeAll(async () => {
   zkappAddress = zkappKey.toPublicKey();
   zkapp = new TokenContract(zkappAddress);
 
-  let tokenAccount1Key = Local.testAccounts[1].privateKey;
-  let tokenAccount1 = tokenAccount1Key.toPublicKey();
+  tokenAccount1Key = Local.testAccounts[1].privateKey;
+  tokenAccount1 = tokenAccount1Key.toPublicKey();
 
-  let tokenAccount2Key = Local.testAccounts[2].privateKey;
-  let tokenAccount2 = tokenAccount2Key.toPublicKey();
+  tokenAccount2Key = Local.testAccounts[2].privateKey;
+  tokenAccount2 = tokenAccount2Key.toPublicKey();
 
   let tx = await Mina.transaction(feePayer, () => {
     Party.fundNewAccount(feePayer);
@@ -84,11 +100,46 @@ afterAll(() => setTimeout(shutdown, 0));
 
 describe('Token', () => {
   describe('Create existing token', () => {
-    it('should have a valid custom token id', async () => {});
-    it('should have a valid token symbol', async () => {});
-    it('should create a valid token with a parentTokenId', async () => {});
-    it('should error if passing in an invalid parentTokenId', async () => {});
-    it('should error if passing in an invalid tokenSymbol', async () => {});
+    it('should have a valid custom token id', async () => {
+      const tokenId = zkapp.token().id;
+      const expectedTokenId = new Token({ tokenOwner: zkappAddress }).id;
+      expect(tokenId).toBeDefined();
+      expect(tokenId).toEqual(expectedTokenId);
+    });
+
+    it('should have a valid token symbol', async () => {
+      const symbol = Mina.getAccount({
+        publicKey: zkappAddress,
+      }).tokenSymbol;
+      expect(tokenSymbol).toBeDefined();
+      expect(symbol).toEqual(tokenSymbol);
+    });
+
+    it('should create a valid token with a different parentTokenId', async () => {
+      const newTokenId = Ledger.customTokenID(
+        tokenAccount1,
+        Ledger.fieldOfBase58(zkapp.token().id)
+      );
+      expect(newTokenId).toBeDefined();
+    });
+
+    it('should error if passing in an invalid parentTokenId', async () => {
+      expect(() => {
+        new Token({
+          tokenOwner: zkappAddress,
+          parentTokenId: 'invalid',
+        });
+      }).toThrow();
+    });
+
+    it('should error if passing in an invalid tokenSymbol', async () => {
+      await Mina.transaction(feePayer, () => {
+        zkapp.setInvalidTokenSymbol();
+        zkapp.sign(zkappKey);
+      }).catch((e) => {
+        expect(e).toBeDefined();
+      });
+    });
   });
 
   describe('Mint token', () => {
