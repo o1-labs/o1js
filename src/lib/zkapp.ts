@@ -17,6 +17,7 @@ import {
   SetOrKeep,
   ZkappPublicInput,
   Events,
+  partyToPublicInput,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -126,13 +127,11 @@ function wrapMethod(
           // -- so we can add assertions about it
           let publicInput = actualArgs[0];
           actualArgs = actualArgs.slice(1);
-          // FIXME: figure out correct way to constrain public input https://github.com/o1-labs/snarkyjs/issues/98
-          let tail = Field.zero;
-          publicInput[0].assertEquals(publicInput[0]);
-          // checkPublicInput(publicInput, self, tail);
 
           // outside a transaction, just call the method, but check precondition invariants
           let result = method.apply(this, actualArgs);
+          checkPublicInput(publicInput, this.self);
+
           // check the self party right after calling the method
           // TODO: this needs to be done in a unified way for all parties that are created
           assertPreconditionInvariants(this.self);
@@ -175,21 +174,10 @@ function wrapMethod(
   };
 }
 
-function toPublicInput(self: Party, tail: Field) {
-  // TODO hash together party with tail in the right way
-  let atParty = self.hash();
-  let transaction = Ledger.hashTransactionChecked(atParty);
-  return { transaction, atParty };
-}
-function checkPublicInput(
-  [transaction, atParty]: ZkappPublicInput,
-  self: Party,
-  tail: Field
-) {
-  // ATM, we always compute the public input in checked mode to make assertEqual pass
-  let otherInput = toPublicInput(self, tail);
-  atParty.assertEquals(otherInput.atParty);
-  transaction.assertEquals(otherInput.transaction);
+function checkPublicInput({ party, calls }: ZkappPublicInput, self: Party) {
+  let otherInput = partyToPublicInput(self);
+  party.assertEquals(otherInput.party);
+  calls.assertEquals(otherInput.calls);
 }
 
 /**

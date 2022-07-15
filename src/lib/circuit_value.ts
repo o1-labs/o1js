@@ -326,7 +326,15 @@ let complexTypes = new Set(['object', 'function']);
 // TODO properly type this at the interface
 // create recursive type that describes JSON-like structures of circuit types
 // TODO unit-test this
-function circuitValue<T>(typeObj: any): AsFieldElements<T> {
+function circuitValue<T>(
+  typeObj: any,
+  options?: { customObjectKeys: string[] }
+): AsFieldElements<T> {
+  let objectKeys =
+    typeof typeObj === 'object'
+      ? options?.customObjectKeys ?? Object.keys(typeObj).sort()
+      : [];
+
   function sizeInFields(typeObj: any): number {
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return 0;
     if (Array.isArray(typeObj))
@@ -341,10 +349,7 @@ function circuitValue<T>(typeObj: any): AsFieldElements<T> {
     if (Array.isArray(typeObj))
       return typeObj.map((t, i) => toFields(t, obj[i])).flat();
     if ('toFields' in typeObj) return typeObj.toFields(obj);
-    return Object.keys(typeObj)
-      .sort()
-      .map((k) => toFields(typeObj[k], obj[k]))
-      .flat();
+    return objectKeys.map((k) => toFields(typeObj[k], obj[k])).flat();
   }
   function ofFields(typeObj: any, fields: Field[]): any {
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return null;
@@ -359,21 +364,18 @@ function circuitValue<T>(typeObj: any): AsFieldElements<T> {
       return array;
     }
     if ('ofFields' in typeObj) return typeObj.ofFields(fields);
-    let keys = Object.keys(typeObj).sort();
     let values = ofFields(
-      keys.map((k) => typeObj[k]),
+      objectKeys.map((k) => typeObj[k]),
       fields
     );
-    return Object.fromEntries(keys.map((k, i) => [k, values[i]]));
+    return Object.fromEntries(objectKeys.map((k, i) => [k, values[i]]));
   }
   function check(typeObj: any, obj: any): void {
     if (typeof typeObj !== 'object' || typeObj === null) return;
     if (Array.isArray(typeObj))
       return typeObj.forEach((t, i) => check(t, obj[i]));
     if ('check' in typeObj) return typeObj.check(obj);
-    return Object.keys(typeObj)
-      .sort()
-      .forEach((k) => check(typeObj[k], obj[k]));
+    return objectKeys.forEach((k) => check(typeObj[k], obj[k]));
   }
   return {
     sizeInFields: () => sizeInFields(typeObj),

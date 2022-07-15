@@ -30,6 +30,7 @@ export {
   ZkappStateLength,
   ZkappPublicInput,
   Events,
+  partyToPublicInput,
 };
 
 const ZkappStateLength = 8;
@@ -884,24 +885,33 @@ type PartiesProved = {
 };
 
 /**
- * The public input for zkApps consists of certain hashes of the transaction and of the proving Party which is constructed during method execution.
+ * The public input for zkApps consists of certain hashes of the proving Party (and its child parties) which is constructed during method execution.
 
-  In SmartContract.prove, a method is run twice: First outside the proof, to obtain the public input, and once in the prover,
+  For SmartContract proving, a method is run twice: First outside the proof, to obtain the public input, and once in the prover,
   which takes the public input as input. The current transaction is hashed again inside the prover, which asserts that the result equals the input public input,
   as part of the snark circuit. The block producer will also hash the transaction they receive and pass it as a public input to the verifier.
   Thus, the transaction is fully constrained by the proof - the proof couldn't be used to attest to a different transaction.
  */
-type ZkappPublicInput = [transaction: Field, atParty: Field];
-let ZkappPublicInput = circuitValue<ZkappPublicInput>([Field, Field]);
+type ZkappPublicInput = { party: Field; calls: Field };
+let ZkappPublicInput = circuitValue<ZkappPublicInput>(
+  { party: Field, calls: Field },
+  { customObjectKeys: ['party', 'calls'] }
+);
+
+function partyToPublicInput(self: Party): ZkappPublicInput {
+  // TODO compute `calls` from party's children
+  let party = self.hash();
+  let calls = Field.zero; // zero is the correct value if party has no children
+  return { party, calls };
+}
 
 async function addMissingProofs(parties: Parties): Promise<{
   parties: PartiesProved;
   proofs: (Proof<ZkappPublicInput> | undefined)[];
 }> {
-  let partiesJson = JSON.stringify(partiesToJson(parties));
   type PartyProved = Party & { authorization: Control | LazySignature };
 
-  async function addProof(party: Party, index: number) {
+  async function addProof(party: Party) {
     party = Party.clone(party);
     if (
       !('kind' in party.authorization) ||
@@ -909,7 +919,8 @@ async function addMissingProofs(parties: Parties): Promise<{
     )
       return { partyProved: party as PartyProved, proof: undefined };
     let { method, args, previousProofs, ZkappClass } = party.authorization;
-    let publicInput = Ledger.zkappPublicInput(partiesJson, index);
+    let publicInput = partyToPublicInput(party);
+    let publicInputFields = ZkappPublicInput.toFields(publicInput);
     if (ZkappClass._provers === undefined)
       throw Error(
         `Cannot prove execution of ${method.name}(), no prover found. ` +
@@ -928,7 +939,7 @@ async function addMissingProofs(parties: Parties): Promise<{
         witnesses: args,
         inProver: true,
       },
-      () => provers[i](publicInput, previousProofs)
+      () => provers[i](publicInputFields, previousProofs)
     );
     party.authorization = { proof: Pickles.proofToBase64Transaction(proof) };
     class ZkappProof extends Proof<ZkappPublicInput> {
@@ -947,8 +958,8 @@ async function addMissingProofs(parties: Parties): Promise<{
     authorization: Control | LazySignature;
   })[] = [];
   let proofs: (Proof<ZkappPublicInput> | undefined)[] = [];
-  for (let i = 0; i < otherParties.length; i++) {
-    let { partyProved, proof } = await addProof(otherParties[i], i);
+  for (let party of otherParties) {
+    let { partyProved, proof } = await addProof(party);
     otherPartiesProved.push(partyProved);
     proofs.push(proof);
   }
