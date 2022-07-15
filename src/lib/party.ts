@@ -966,6 +966,8 @@ async function addMissingProofs(parties: Parties): Promise<{
     )
       return { partyProved: party as PartyProved, proof: undefined };
     let { method, args, previousProofs, ZkappClass } = party.authorization;
+    // FIXME: this returns a variable, which messes up some internal snarky state
+    // it miraculously works if there is just one prover run, but not if there are two
     let publicInput = partyToPublicInput(party);
     let publicInputFields = ZkappPublicInput.toFields(publicInput);
     if (ZkappClass._provers === undefined)
