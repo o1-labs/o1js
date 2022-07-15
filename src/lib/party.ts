@@ -958,8 +958,8 @@ async function addMissingProofs(parties: Parties): Promise<{
     authorization: Control | LazySignature;
   })[] = [];
   let proofs: (Proof<ZkappPublicInput> | undefined)[] = [];
-  for (let i = 0; i < otherParties.length; i++) {
-    let { partyProved, proof } = await addProof(otherParties[i], i);
+  for (let party of otherParties) {
+    let { partyProved, proof } = await addProof(party);
     otherPartiesProved.push(partyProved);
     proofs.push(proof);
   }
