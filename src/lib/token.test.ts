@@ -1,6 +1,9 @@
 import {
   shutdown,
   isReady,
+  State,
+  state,
+  Field,
   UInt64,
   UInt32,
   SmartContract,
@@ -19,6 +22,9 @@ import {
 const tokenSymbol = 'MY_TOKEN';
 
 class TokenContract extends SmartContract {
+  @state(UInt64) totalAmountInCirculation = State<UInt64>();
+  @state(UInt64) maxAmountInCirculation = State<UInt64>();
+
   deploy(args: DeployArgs) {
     super.deploy(args);
     this.setPermissions({
@@ -26,13 +32,29 @@ class TokenContract extends SmartContract {
       editState: Permissions.proofOrSignature(),
     });
     this.tokenSymbol.set(tokenSymbol);
+    this.totalAmountInCirculation.set(UInt64.zero);
+    this.maxAmountInCirculation.set(UInt64.from(100_000_000));
   }
 
   @method mint(receiverAddress: PublicKey, amount: UInt64) {
+    let totalAmountInCirculation = this.totalAmountInCirculation.get();
+    this.totalAmountInCirculation.assertEquals(totalAmountInCirculation);
+
+    let maxAmountInCirculation = this.maxAmountInCirculation.get();
+    this.maxAmountInCirculation.assertEquals(maxAmountInCirculation);
+
+    let newTotalAmountInCirculation = totalAmountInCirculation.add(amount);
+
+    newTotalAmountInCirculation.value
+      .lte(maxAmountInCirculation.value)
+      .assertTrue();
+
     this.token().mint({
       address: receiverAddress,
       amount,
     });
+
+    this.totalAmountInCirculation.set(newTotalAmountInCirculation);
   }
 
   @method burn(receiverAddress: PublicKey, amount: UInt64) {
@@ -143,9 +165,39 @@ describe('Token', () => {
   });
 
   describe('Mint token', () => {
-    it('should change the balance of a token account after token owner mints', async () => {});
-    it('should error if token owner mints more tokens than allowed', async () => {});
-    it('should error if token owner mints negative amount tokens', async () => {});
+    it('should change the balance of a token account after token owner mints', async () => {
+      let tx = await Mina.transaction(feePayer, () => {
+        Party.fundNewAccount(feePayer);
+        zkapp.mint(tokenAccount1, UInt64.from(100_000));
+        zkapp.sign(zkappKey);
+      });
+      tx.send();
+      const balance = Mina.getBalance({
+        publicKey: tokenAccount1,
+        tokenId: zkapp.token().id,
+      }).value.toBigInt();
+      expect(balance).toEqual(BigInt(100_000));
+    });
+
+    it('should error if token owner mints more tokens than allowed', async () => {
+      await Mina.transaction(feePayer, () => {
+        Party.fundNewAccount(feePayer);
+        zkapp.mint(tokenAccount1, UInt64.from(100_000_000_000));
+        zkapp.sign(zkappKey);
+      }).catch((e) => {
+        expect(e).toBeDefined();
+      });
+    });
+
+    it('should error if token owner mints negative amount tokens', async () => {
+      await Mina.transaction(feePayer, () => {
+        Party.fundNewAccount(feePayer);
+        zkapp.mint(tokenAccount1, UInt64.from(-100_000));
+        zkapp.sign(zkappKey);
+      }).catch((e) => {
+        expect(e).toBeDefined();
+      });
+    });
   });
 
   describe('Burn token', () => {
