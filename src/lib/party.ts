@@ -721,7 +721,7 @@ class Party {
     // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher bc the fee payer already increases its nonce
     let nonceIncrement = Circuit.if(
       isFeePayer,
-      new UInt32(Field.one),
+      UInt32.from(Field.one),
       UInt32.zero
     );
     // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
@@ -729,7 +729,7 @@ class Party {
       let shouldIncreaseNonce = party.publicKey
         .equals(publicKey)
         .and(party.body.incrementNonce);
-      nonceIncrement.add(new UInt32(shouldIncreaseNonce.toField()));
+      nonceIncrement.add(UInt32.from(shouldIncreaseNonce.toField()));
     }
     nonce = nonce.add(nonceIncrement);
     Party.assertEquals(body.preconditions.account.nonce, nonce);

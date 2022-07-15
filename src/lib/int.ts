@@ -9,11 +9,11 @@ class UInt64 extends CircuitValue implements Types.UInt64 {
   _type?: 'UInt64';
 
   static get zero() {
-    return new UInt64(Field.zero);
+    return UInt64.from(Field.zero);
   }
 
   static get one() {
-    return new UInt64(Field.one);
+    return UInt64.from(Field.one);
   }
 
   toString() {
@@ -52,7 +52,7 @@ class UInt64 extends CircuitValue implements Types.UInt64 {
   }
 
   static MAXINT() {
-    return new UInt64(Field((1n << 64n) - 1n));
+    return UInt64.from(Field((1n << 64n) - 1n));
   }
 
   divMod(y: UInt64 | number | string) {
@@ -65,8 +65,8 @@ class UInt64 extends CircuitValue implements Types.UInt64 {
       let q = xn / yn;
       let r = xn - q * yn;
       return {
-        quotient: new UInt64(Field(q)),
-        rest: new UInt64(Field(r)),
+        quotient: UInt64.from(Field(q)),
+        rest: UInt64.from(Field(r)),
       };
     }
 
@@ -83,10 +83,10 @@ class UInt64 extends CircuitValue implements Types.UInt64 {
     let r = x.sub(q.mul(y_)).seal();
     r.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(r);
 
-    let r_ = new UInt64(r);
-    let q_ = new UInt64(q);
+    let r_ = UInt64.from(r);
+    let q_ = UInt64.from(q);
 
-    r_.assertLt(new UInt64(y_));
+    r_.assertLt(UInt64.from(y_));
 
     return { quotient: q_, rest: r_ };
   }
@@ -118,7 +118,7 @@ class UInt64 extends CircuitValue implements Types.UInt64 {
   mul(y: UInt64 | number) {
     let z = this.value.mul(UInt64.from(y).value);
     z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
-    return new UInt64(z);
+    return UInt64.from(z);
   }
 
   /**
@@ -127,7 +127,7 @@ class UInt64 extends CircuitValue implements Types.UInt64 {
   add(y: UInt64 | number) {
     let z = this.value.add(UInt64.from(y).value);
     z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
-    return new UInt64(z);
+    return UInt64.from(z);
   }
 
   /**
@@ -136,7 +136,7 @@ class UInt64 extends CircuitValue implements Types.UInt64 {
   sub(y: UInt64 | number) {
     let z = this.value.sub(UInt64.from(y).value);
     z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
-    return new UInt64(z);
+    return UInt64.from(z);
   }
 
   lte(y: UInt64) {
@@ -178,11 +178,11 @@ class UInt32 extends CircuitValue implements Types.UInt32 {
   _type?: 'UInt32';
 
   static get zero(): UInt32 {
-    return new UInt32(Field.zero);
+    return UInt32.from(Field.zero);
   }
 
   static get one(): UInt32 {
-    return new UInt32(Field.one);
+    return UInt32.from(Field.one);
   }
 
   toString(): string {
@@ -191,7 +191,7 @@ class UInt32 extends CircuitValue implements Types.UInt32 {
 
   toUInt64(): UInt64 {
     // this is safe, because the UInt32 range is included in the UInt64 range
-    return new UInt64(this.value);
+    return UInt64.from(this.value);
   }
 
   static check(x: UInt32) {
@@ -226,7 +226,7 @@ class UInt32 extends CircuitValue implements Types.UInt32 {
   }
 
   static MAXINT() {
-    return new UInt32(Field((1n << 32n) - 1n));
+    return UInt32.from(Field((1n << 32n) - 1n));
   }
 
   divMod(y: UInt32 | number | string) {
@@ -239,8 +239,8 @@ class UInt32 extends CircuitValue implements Types.UInt32 {
       let q = xn / yn;
       let r = xn - q * yn;
       return {
-        quotient: new UInt32(new Field(q.toString())),
-        rest: new UInt32(new Field(r.toString())),
+        quotient: UInt32.from(new Field(q.toString())),
+        rest: UInt32.from(new Field(r.toString())),
       };
     }
 
@@ -257,10 +257,10 @@ class UInt32 extends CircuitValue implements Types.UInt32 {
     let r = x.sub(q.mul(y_)).seal();
     r.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(r);
 
-    let r_ = new UInt32(r);
-    let q_ = new UInt32(q);
+    let r_ = UInt32.from(r);
+    let q_ = UInt32.from(q);
 
-    r_.assertLt(new UInt32(y_));
+    r_.assertLt(UInt32.from(y_));
 
     return { quotient: q_, rest: r_ };
   }
@@ -276,19 +276,19 @@ class UInt32 extends CircuitValue implements Types.UInt32 {
   mul(y: UInt32 | number) {
     let z = this.value.mul(UInt32.from(y).value);
     z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
-    return new UInt32(z);
+    return UInt32.from(z);
   }
 
   add(y: UInt32 | number) {
     let z = this.value.add(UInt32.from(y).value);
     z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
-    return new UInt32(z);
+    return UInt32.from(z);
   }
 
   sub(y: UInt32 | number) {
     let z = this.value.sub(UInt32.from(y).value);
     z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
-    return new UInt32(z);
+    return UInt32.from(z);
   }
 
   lte(y: UInt32) {
@@ -366,7 +366,7 @@ class Int64 extends CircuitValue implements BalanceChange {
       throw Error(`Int64: Expected a value between (-2^64, 2^64), got ${x}`);
     let magnitude = Field(isValidPositive ? x.toString() : x.neg().toString());
     let sign = isValidPositive ? Field.one : Field.minusOne;
-    return new Int64(new UInt64(magnitude), sign);
+    return new Int64(UInt64.from(magnitude), sign);
   }
 
   // this doesn't check ranges because we assume they're already checked on UInts
@@ -462,7 +462,7 @@ class Int64 extends CircuitValue implements BalanceChange {
     let y_ = UInt64.from(y);
     let rest = this.magnitude.divMod(y_).rest.value;
     rest = Circuit.if(this.isPositive(), rest, y_.value.sub(rest));
-    return new Int64(new UInt64(rest));
+    return new Int64(UInt64.from(rest));
   }
 
   equals(y: Int64 | number | string | bigint | UInt64 | UInt32) {

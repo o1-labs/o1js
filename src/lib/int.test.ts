@@ -123,16 +123,16 @@ describe('int', () => {
       // which breaks out current practice of having a dumb constructor that only stores variables
       it.skip('operations should throw on overflow of any input', () => {
         expect(() => {
-          new Int64(new UInt64(Field(1n << 64n))).sub(1);
+          new Int64(UInt64.from(Field(1n << 64n))).sub(1);
         }).toThrow();
         expect(() => {
-          new Int64(new UInt64(Field(-(1n << 64n)))).add(5);
+          new Int64(UInt64.from(Field(-(1n << 64n)))).add(5);
         }).toThrow();
         expect(() => {
-          Int64.from(20).sub(new UInt64(Field((1n << 64n) + 10n)));
+          Int64.from(20).sub(UInt64.from(Field((1n << 64n) + 10n)));
         }).toThrow();
         expect(() => {
-          Int64.from(6).add(new UInt64(Field(-(1n << 64n) - 5n)));
+          Int64.from(6).add(UInt64.from(Field(-(1n << 64n) - 5n)));
         }).toThrow();
       });
 
@@ -230,9 +230,9 @@ describe('int', () => {
         it('1+1=2', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              x.add(y).assertEquals(new UInt64(Field(2)));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field.one));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
+              x.add(y).assertEquals(UInt64.from(Field(2)));
             });
           }).not.toThrow();
         });
@@ -240,9 +240,9 @@ describe('int', () => {
         it('5000+5000=10000', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field(5000)));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field(5000)));
-              x.add(y).assertEquals(new UInt64(Field(10000)));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field(5000)));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field(5000)));
+              x.add(y).assertEquals(UInt64.from(Field(10000)));
             });
           }).not.toThrow();
         });
@@ -251,8 +251,8 @@ describe('int', () => {
           const n = Field((((1n << 64n) - 2n) / 2n).toString());
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(n));
-              const y = Circuit.witness(UInt64, () => new UInt64(n));
+              const x = Circuit.witness(UInt64, () => UInt64.from(n));
+              const y = Circuit.witness(UInt64, () => UInt64.from(n));
               x.add(y).add(1).assertEquals(UInt64.MAXINT());
             });
           }).not.toThrow();
@@ -262,7 +262,7 @@ describe('int', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
               x.add(y);
             });
           }).toThrow();
@@ -273,9 +273,9 @@ describe('int', () => {
         it('1-1=0', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              x.sub(y).assertEquals(new UInt64(Field.zero));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field.one));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
+              x.sub(y).assertEquals(UInt64.from(Field.zero));
             });
           }).not.toThrow();
         });
@@ -283,9 +283,11 @@ describe('int', () => {
         it('10000-5000=5000', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field(10000)));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field(5000)));
-              x.sub(y).assertEquals(new UInt64(Field(5000)));
+              const x = Circuit.witness(UInt64, () =>
+                UInt64.from(Field(10000))
+              );
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field(5000)));
+              x.sub(y).assertEquals(UInt64.from(Field(5000)));
             });
           }).not.toThrow();
         });
@@ -293,8 +295,8 @@ describe('int', () => {
         it('should throw on sub if results in negative number', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field.zero));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field.zero));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
               x.sub(y);
             });
           }).toThrow();
@@ -305,9 +307,9 @@ describe('int', () => {
         it('1x2=2', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field(2)));
-              x.mul(y).assertEquals(new UInt64(Field(2)));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field.one));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field(2)));
+              x.mul(y).assertEquals(UInt64.from(Field(2)));
             });
           }).not.toThrow();
         });
@@ -315,9 +317,9 @@ describe('int', () => {
         it('1x0=0', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.zero));
-              x.mul(y).assertEquals(new UInt64(Field.zero));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field.one));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.zero));
+              x.mul(y).assertEquals(UInt64.from(Field.zero));
             });
           }).not.toThrow();
         });
@@ -325,9 +327,9 @@ describe('int', () => {
         it('1000x1000=1000000', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
-              x.mul(y).assertEquals(new UInt64(Field(1000000)));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field(1000)));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field(1000)));
+              x.mul(y).assertEquals(UInt64.from(Field(1000000)));
             });
           }).not.toThrow();
         });
@@ -336,7 +338,7 @@ describe('int', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
               x.mul(y).assertEquals(UInt64.MAXINT());
             });
           }).not.toThrow();
@@ -346,7 +348,7 @@ describe('int', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
-              const y = Circuit.witness(UInt64, () => new UInt64(Field(2)));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field(2)));
               x.mul(y);
             });
           }).toThrow();
@@ -357,9 +359,9 @@ describe('int', () => {
         it('2/1=2', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field(2)));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              x.div(y).assertEquals(new UInt64(Field(2)));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field(2)));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
+              x.div(y).assertEquals(UInt64.from(Field(2)));
             });
           }).not.toThrow();
         });
@@ -367,9 +369,9 @@ describe('int', () => {
         it('0/1=0', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field.zero));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              x.div(y).assertEquals(new UInt64(Field.zero));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field.zero));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
+              x.div(y).assertEquals(UInt64.from(Field.zero));
             });
           }).not.toThrow();
         });
@@ -377,9 +379,9 @@ describe('int', () => {
         it('2000/1000=2', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field(2000)));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
-              x.div(y).assertEquals(new UInt64(Field(2)));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field(2000)));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field(1000)));
+              x.div(y).assertEquals(UInt64.from(Field(2)));
             });
           }).not.toThrow();
         });
@@ -388,7 +390,7 @@ describe('int', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
               x.div(y).assertEquals(UInt64.MAXINT());
             });
           }).not.toThrow();
@@ -398,7 +400,7 @@ describe('int', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.zero));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.zero));
               x.div(y);
             });
           }).toThrow();
@@ -409,9 +411,9 @@ describe('int', () => {
         it('1%1=0', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              x.mod(y).assertEquals(new UInt64(Field.zero));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field.one));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
+              x.mod(y).assertEquals(UInt64.from(Field.zero));
             });
           }).not.toThrow();
         });
@@ -419,9 +421,9 @@ describe('int', () => {
         it('500%32=20', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field(500)));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field(32)));
-              x.mod(y).assertEquals(new UInt64(Field(20)));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field(500)));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field(32)));
+              x.mod(y).assertEquals(UInt64.from(Field(20)));
             });
           }).not.toThrow();
         });
@@ -430,8 +432,8 @@ describe('int', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
-              const y = Circuit.witness(UInt64, () => new UInt64(Field(7)));
-              x.mod(y).assertEquals(new UInt64(Field.one));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field(7)));
+              x.mod(y).assertEquals(UInt64.from(Field.one));
             });
           }).not.toThrow();
         });
@@ -440,8 +442,8 @@ describe('int', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.zero));
-              x.mod(y).assertEquals(new UInt64(Field.one));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.zero));
+              x.mod(y).assertEquals(UInt64.from(Field.one));
             });
           }).toThrow();
         });
@@ -452,8 +454,8 @@ describe('int', () => {
         it.skip('1<2=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field(2)));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field.one));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field(2)));
               x.assertLt(y);
             });
           }).not.toThrow();
@@ -462,8 +464,8 @@ describe('int', () => {
         it('1<1=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field.one));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
               x.assertLt(y);
             });
           }).toThrow();
@@ -472,8 +474,8 @@ describe('int', () => {
         it('2<1=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field(2)));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field(2)));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
               x.assertLt(y);
             });
           }).toThrow();
@@ -483,10 +485,9 @@ describe('int', () => {
         it.skip('1000<100000=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
-              const y = Circuit.witness(
-                UInt64,
-                () => new UInt64(Field(100000))
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field(1000)));
+              const y = Circuit.witness(UInt64, () =>
+                UInt64.from(Field(100000))
               );
               x.assertLt(y);
             });
@@ -496,11 +497,10 @@ describe('int', () => {
         it('100000<1000=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(
-                UInt64,
-                () => new UInt64(Field(100000))
+              const x = Circuit.witness(UInt64, () =>
+                UInt64.from(Field(100000))
               );
-              const y = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field(1000)));
               x.assertLt(y);
             });
           }).toThrow();
@@ -521,8 +521,8 @@ describe('int', () => {
         it('1<=1=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field.one));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
               x.assertLte(y);
             });
           }).not.toThrow();
@@ -531,8 +531,8 @@ describe('int', () => {
         it('2<=1=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field(2)));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field(2)));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
               x.assertLte(y);
             });
           }).toThrow();
@@ -541,10 +541,9 @@ describe('int', () => {
         it('1000<=100000=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
-              const y = Circuit.witness(
-                UInt64,
-                () => new UInt64(Field(100000))
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field(1000)));
+              const y = Circuit.witness(UInt64, () =>
+                UInt64.from(Field(100000))
               );
               x.assertLte(y);
             });
@@ -554,11 +553,10 @@ describe('int', () => {
         it('100000<=1000=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(
-                UInt64,
-                () => new UInt64(Field(100000))
+              const x = Circuit.witness(UInt64, () =>
+                UInt64.from(Field(100000))
               );
-              const y = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field(1000)));
               x.assertLte(y);
             });
           }).toThrow();
@@ -580,8 +578,8 @@ describe('int', () => {
         it.skip('2>1=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field(2)));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field(2)));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
               x.assertGt(y);
             });
           }).not.toThrow();
@@ -590,8 +588,8 @@ describe('int', () => {
         it('1>1=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field.one));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
               x.assertGt(y);
             });
           }).toThrow();
@@ -600,8 +598,8 @@ describe('int', () => {
         it('1>2=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field(2)));
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field.one));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field(2)));
               x.assertGt(y);
             });
           }).toThrow();
@@ -611,11 +609,10 @@ describe('int', () => {
         it.skip('100000>1000=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(
-                UInt64,
-                () => new UInt64(Field(100000))
+              const x = Circuit.witness(UInt64, () =>
+                UInt64.from(Field(100000))
               );
-              const y = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
+              const y = Circuit.witness(UInt64, () => UInt64.from(Field(1000)));
               x.assertGt(y);
             });
           }).not.toThrow();
@@ -624,10 +621,9 @@ describe('int', () => {
         it('1000>100000=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
-              const y = Circuit.witness(
-                UInt64,
-                () => new UInt64(Field(100000))
+              const x = Circuit.witness(UInt64, () => UInt64.from(Field(1000)));
+              const y = Circuit.witness(UInt64, () =>
+                UInt64.from(Field(100000))
               );
               x.assertGt(y);
             });
@@ -651,7 +647,7 @@ describe('int', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
                 const x = Circuit.witness(UInt64, () => UInt64.fromNumber(1));
-                const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+                const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
                 x.assertEquals(y);
               });
             }).not.toThrow();
@@ -663,9 +659,8 @@ describe('int', () => {
                 const x = Circuit.witness(UInt64, () =>
                   UInt64.fromNumber(NUMBERMAX)
                 );
-                const y = Circuit.witness(
-                  UInt64,
-                  () => new UInt64(Field(String(NUMBERMAX)))
+                const y = Circuit.witness(UInt64, () =>
+                  UInt64.from(Field(String(NUMBERMAX)))
                 );
                 x.assertEquals(y);
               });
@@ -677,7 +672,7 @@ describe('int', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
                 const x = Circuit.witness(UInt64, () => UInt64.fromString('1'));
-                const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+                const y = Circuit.witness(UInt64, () => UInt64.from(Field.one));
                 x.assertEquals(y);
               });
             }).not.toThrow();
@@ -689,9 +684,8 @@ describe('int', () => {
                 const x = Circuit.witness(UInt64, () =>
                   UInt64.fromString(String(NUMBERMAX))
                 );
-                const y = Circuit.witness(
-                  UInt64,
-                  () => new UInt64(Field(String(NUMBERMAX)))
+                const y = Circuit.witness(UInt64, () =>
+                  UInt64.from(Field(String(NUMBERMAX)))
                 );
                 x.assertEquals(y);
               });
@@ -704,19 +698,21 @@ describe('int', () => {
     describe('Outside of circuit', () => {
       describe('add', () => {
         it('1+1=2', () => {
-          expect(new UInt64(Field.one).add(1).toString()).toEqual('2');
+          expect(UInt64.from(Field.one).add(1).toString()).toEqual('2');
         });
 
         it('5000+5000=10000', () => {
-          expect(new UInt64(Field(5000)).add(5000).toString()).toEqual('10000');
+          expect(UInt64.from(Field(5000)).add(5000).toString()).toEqual(
+            '10000'
+          );
         });
 
         it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
           const value = Field((((1n << 64n) - 2n) / 2n).toString());
           expect(
-            new UInt64(value)
-              .add(new UInt64(value))
-              .add(new UInt64(Field.one))
+            UInt64.from(value)
+              .add(UInt64.from(value))
+              .add(UInt64.from(Field.one))
               .toString()
           ).toEqual(UInt64.MAXINT().toString());
         });
@@ -730,11 +726,13 @@ describe('int', () => {
 
       describe('sub', () => {
         it('1-1=0', () => {
-          expect(new UInt64(Field.one).sub(1).toString()).toEqual('0');
+          expect(UInt64.from(Field.one).sub(1).toString()).toEqual('0');
         });
 
         it('10000-5000=5000', () => {
-          expect(new UInt64(Field(10000)).sub(5000).toString()).toEqual('5000');
+          expect(UInt64.from(Field(10000)).sub(5000).toString()).toEqual(
+            '5000'
+          );
         });
 
         it('should throw on sub if results in negative number', () => {
@@ -746,15 +744,15 @@ describe('int', () => {
 
       describe('mul', () => {
         it('1x2=2', () => {
-          expect(new UInt64(Field.one).mul(2).toString()).toEqual('2');
+          expect(UInt64.from(Field.one).mul(2).toString()).toEqual('2');
         });
 
         it('1x0=0', () => {
-          expect(new UInt64(Field.one).mul(0).toString()).toEqual('0');
+          expect(UInt64.from(Field.one).mul(0).toString()).toEqual('0');
         });
 
         it('1000x1000=1000000', () => {
-          expect(new UInt64(Field(1000)).mul(1000).toString()).toEqual(
+          expect(UInt64.from(Field(1000)).mul(1000).toString()).toEqual(
             '1000000'
           );
         });
@@ -774,15 +772,15 @@ describe('int', () => {
 
       describe('div', () => {
         it('2/1=2', () => {
-          expect(new UInt64(Field(2)).div(1).toString()).toEqual('2');
+          expect(UInt64.from(Field(2)).div(1).toString()).toEqual('2');
         });
 
         it('0/1=0', () => {
-          expect(new UInt64(Field.zero).div(1).toString()).toEqual('0');
+          expect(UInt64.from(Field.zero).div(1).toString()).toEqual('0');
         });
 
         it('2000/1000=2', () => {
-          expect(new UInt64(Field(2000)).div(1000).toString()).toEqual('2');
+          expect(UInt64.from(Field(2000)).div(1000).toString()).toEqual('2');
         });
 
         it('MAXINT/1=MAXINT', () => {
@@ -800,11 +798,11 @@ describe('int', () => {
 
       describe('mod', () => {
         it('1%1=0', () => {
-          expect(new UInt64(Field.one).mod(1).toString()).toEqual('0');
+          expect(UInt64.from(Field.one).mod(1).toString()).toEqual('0');
         });
 
         it('500%32=20', () => {
-          expect(new UInt64(Field(500)).mod(32).toString()).toEqual('20');
+          expect(UInt64.from(Field(500)).mod(32).toString()).toEqual('20');
         });
 
         it('MAXINT%7=1', () => {
@@ -821,34 +819,34 @@ describe('int', () => {
       describe('lt', () => {
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
         it.skip('1<2=true', () => {
-          expect(new UInt64(Field.one).lt(new UInt64(Field(2)))).toEqual(
+          expect(UInt64.from(Field.one).lt(UInt64.from(Field(2)))).toEqual(
             Bool(true)
           );
         });
 
         it('1<1=false', () => {
-          expect(new UInt64(Field.one).lt(new UInt64(Field.one))).toEqual(
+          expect(UInt64.from(Field.one).lt(UInt64.from(Field.one))).toEqual(
             Bool(false)
           );
         });
 
         it('2<1=false', () => {
-          expect(new UInt64(Field(2)).lt(new UInt64(Field.one))).toEqual(
+          expect(UInt64.from(Field(2)).lt(UInt64.from(Field.one))).toEqual(
             Bool(false)
           );
         });
 
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
         it.skip('1000<100000=true', () => {
-          expect(new UInt64(Field(1000)).lt(new UInt64(Field(100000)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            UInt64.from(Field(1000)).lt(UInt64.from(Field(100000)))
+          ).toEqual(Bool(true));
         });
 
         it('100000<1000=false', () => {
-          expect(new UInt64(Field(100000)).lt(new UInt64(Field(1000)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            UInt64.from(Field(100000)).lt(UInt64.from(Field(1000)))
+          ).toEqual(Bool(false));
         });
 
         it('MAXINT<MAXINT=false', () => {
@@ -858,13 +856,13 @@ describe('int', () => {
 
       describe('lte', () => {
         it('1<=1=true', () => {
-          expect(new UInt64(Field.one).lte(new UInt64(Field.one))).toEqual(
+          expect(UInt64.from(Field.one).lte(UInt64.from(Field.one))).toEqual(
             Bool(true)
           );
         });
 
         it('2<=1=false', () => {
-          expect(new UInt64(Field(2)).lte(new UInt64(Field.one))).toEqual(
+          expect(UInt64.from(Field(2)).lte(UInt64.from(Field.one))).toEqual(
             Bool(false)
           );
         });
@@ -872,13 +870,13 @@ describe('int', () => {
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
         it.skip('1000<=100000=true', () => {
           expect(
-            new UInt64(Field(1000)).lte(new UInt64(Field(100000)))
+            UInt64.from(Field(1000)).lte(UInt64.from(Field(100000)))
           ).toEqual(Bool(true));
         });
 
         it('100000<=1000=false', () => {
           expect(
-            new UInt64(Field(100000)).lte(new UInt64(Field(1000)))
+            UInt64.from(Field(100000)).lte(UInt64.from(Field(1000)))
           ).toEqual(Bool(false));
         });
 
@@ -890,25 +888,25 @@ describe('int', () => {
       describe('assertLte', () => {
         it('1<=1=true', () => {
           expect(() => {
-            new UInt64(Field.one).assertLte(new UInt64(Field.one));
+            UInt64.from(Field.one).assertLte(UInt64.from(Field.one));
           }).not.toThrow();
         });
 
         it('2<=1=false', () => {
           expect(() => {
-            new UInt64(Field(2)).assertLte(new UInt64(Field.one));
+            UInt64.from(Field(2)).assertLte(UInt64.from(Field.one));
           }).toThrow();
         });
 
         it('1000<=100000=true', () => {
           expect(() => {
-            new UInt64(Field(1000)).assertLte(new UInt64(Field(100000)));
+            UInt64.from(Field(1000)).assertLte(UInt64.from(Field(100000)));
           }).not.toThrow();
         });
 
         it('100000<=1000=false', () => {
           expect(() => {
-            new UInt64(Field(100000)).assertLte(new UInt64(Field(1000)));
+            UInt64.from(Field(100000)).assertLte(UInt64.from(Field(1000)));
           }).toThrow();
         });
 
@@ -922,35 +920,35 @@ describe('int', () => {
       describe('gt', () => {
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
         it.skip('2>1=true', () => {
-          expect(new UInt64(Field(2)).gt(new UInt64(Field.one))).toEqual(
+          expect(UInt64.from(Field(2)).gt(UInt64.from(Field.one))).toEqual(
             Bool(true)
           );
         });
 
         it('1>1=false', () => {
-          expect(new UInt64(Field.one).gt(new UInt64(Field.one))).toEqual(
+          expect(UInt64.from(Field.one).gt(UInt64.from(Field.one))).toEqual(
             Bool(false)
           );
         });
 
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
         it.skip('1>2=false', () => {
-          expect(new UInt64(Field.one).lt(new UInt64(Field(2)))).toEqual(
+          expect(UInt64.from(Field.one).lt(UInt64.from(Field(2)))).toEqual(
             Bool(false)
           );
         });
 
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
         it.skip('100000>1000=true', () => {
-          expect(new UInt64(Field(100000)).gt(new UInt64(Field(1000)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            UInt64.from(Field(100000)).gt(UInt64.from(Field(1000)))
+          ).toEqual(Bool(true));
         });
 
         it('1000>100000=false', () => {
-          expect(new UInt64(Field(1000)).gt(new UInt64(Field(100000)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            UInt64.from(Field(1000)).gt(UInt64.from(Field(100000)))
+          ).toEqual(Bool(false));
         });
 
         it('MAXINT>MAXINT=false', () => {
@@ -961,27 +959,27 @@ describe('int', () => {
       describe('assertGt', () => {
         it('1>1=false', () => {
           expect(() => {
-            new UInt64(Field.one).assertGt(new UInt64(Field.one));
+            UInt64.from(Field.one).assertGt(UInt64.from(Field.one));
           }).toThrow();
         });
 
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
         it.skip('2>1=true', () => {
           expect(
-            new UInt64(Field(2)).assertGt(new UInt64(Field.one))
+            UInt64.from(Field(2)).assertGt(UInt64.from(Field.one))
           ).not.toThrow();
         });
 
         it('1000>100000=false', () => {
           expect(() => {
-            new UInt64(Field(1000)).assertGt(new UInt64(Field(100000)));
+            UInt64.from(Field(1000)).assertGt(UInt64.from(Field(100000)));
           }).toThrow();
         });
 
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
         it.skip('100000>1000=true', () => {
           expect(
-            new UInt64(Field(100000)).assertGt(new UInt64(Field(1000)))
+            UInt64.from(Field(100000)).assertGt(UInt64.from(Field(1000)))
           ).not.toThrow();
         });
 
@@ -994,12 +992,12 @@ describe('int', () => {
 
       describe('toString()', () => {
         it('should be the same as Field.zero', async () => {
-          const uint64 = new UInt64(Field.zero);
+          const uint64 = UInt64.from(Field.zero);
           const field = Field.zero;
           expect(uint64.toString()).toEqual(field.toString());
         });
         it('should be the same as 2^53-1', async () => {
-          const uint64 = new UInt64(Field(String(NUMBERMAX)));
+          const uint64 = UInt64.from(Field(String(NUMBERMAX)));
           const field = Field(String(NUMBERMAX));
           expect(uint64.toString()).toEqual(field.toString());
         });
@@ -1013,7 +1011,7 @@ describe('int', () => {
         });
 
         it('should throw checking over MAXINT', () => {
-          const aboveMax = new UInt64(Field((1n << 64n).toString())); // This number is defined in UInt64.MAXINT()
+          const aboveMax = UInt64.from(Field((1n << 64n).toString())); // This number is defined in UInt64.MAXINT()
           expect(() => {
             UInt64.check(aboveMax);
           }).toThrow();
@@ -1024,7 +1022,7 @@ describe('int', () => {
         describe('fromNumber()', () => {
           it('should be the same as Field.one', () => {
             const uint = UInt64.fromNumber(1);
-            expect(uint.value).toEqual(new UInt64(Field.one).value);
+            expect(uint.value).toEqual(UInt64.from(Field.one).value);
           });
 
           it('should be the same as 2^53-1', () => {
@@ -1035,7 +1033,7 @@ describe('int', () => {
         describe('fromString()', () => {
           it('should be the same as Field.one', () => {
             const uint = UInt64.fromString('1');
-            expect(uint.value).toEqual(new UInt64(Field.one).value);
+            expect(uint.value).toEqual(UInt64.from(Field.one).value);
           });
 
           it('should be the same as 2^53-1', () => {
@@ -1055,9 +1053,9 @@ describe('int', () => {
         it('1+1=2', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              x.add(y).assertEquals(new UInt32(Field(2)));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field.one));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
+              x.add(y).assertEquals(UInt32.from(Field(2)));
             });
           }).not.toThrow();
         });
@@ -1065,9 +1063,9 @@ describe('int', () => {
         it('5000+5000=10000', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field(5000)));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field(5000)));
-              x.add(y).assertEquals(new UInt32(Field(10000)));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field(5000)));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field(5000)));
+              x.add(y).assertEquals(UInt32.from(Field(10000)));
             });
           }).not.toThrow();
         });
@@ -1076,8 +1074,8 @@ describe('int', () => {
           const n = Field((((1n << 32n) - 2n) / 2n).toString());
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(n));
-              const y = Circuit.witness(UInt32, () => new UInt32(n));
+              const x = Circuit.witness(UInt32, () => UInt32.from(n));
+              const y = Circuit.witness(UInt32, () => UInt32.from(n));
               x.add(y).add(1).assertEquals(UInt32.MAXINT());
             });
           }).not.toThrow();
@@ -1087,7 +1085,7 @@ describe('int', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => UInt32.MAXINT());
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
               x.add(y);
             });
           }).toThrow();
@@ -1098,9 +1096,9 @@ describe('int', () => {
         it('1-1=0', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              x.sub(y).assertEquals(new UInt32(Field.zero));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field.one));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
+              x.sub(y).assertEquals(UInt32.from(Field.zero));
             });
           }).not.toThrow();
         });
@@ -1108,9 +1106,11 @@ describe('int', () => {
         it('10000-5000=5000', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field(10000)));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field(5000)));
-              x.sub(y).assertEquals(new UInt32(Field(5000)));
+              const x = Circuit.witness(UInt32, () =>
+                UInt32.from(Field(10000))
+              );
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field(5000)));
+              x.sub(y).assertEquals(UInt32.from(Field(5000)));
             });
           }).not.toThrow();
         });
@@ -1118,8 +1118,8 @@ describe('int', () => {
         it('should throw on sub if results in negative number', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field.zero));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field.zero));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
               x.sub(y);
             });
           }).toThrow();
@@ -1130,9 +1130,9 @@ describe('int', () => {
         it('1x2=2', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field(2)));
-              x.mul(y).assertEquals(new UInt32(Field(2)));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field.one));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field(2)));
+              x.mul(y).assertEquals(UInt32.from(Field(2)));
             });
           }).not.toThrow();
         });
@@ -1140,9 +1140,9 @@ describe('int', () => {
         it('1x0=0', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.zero));
-              x.mul(y).assertEquals(new UInt32(Field.zero));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field.one));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.zero));
+              x.mul(y).assertEquals(UInt32.from(Field.zero));
             });
           }).not.toThrow();
         });
@@ -1150,9 +1150,9 @@ describe('int', () => {
         it('1000x1000=1000000', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field(1000)));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field(1000)));
-              x.mul(y).assertEquals(new UInt32(Field(1000000)));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field(1000)));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field(1000)));
+              x.mul(y).assertEquals(UInt32.from(Field(1000000)));
             });
           }).not.toThrow();
         });
@@ -1161,7 +1161,7 @@ describe('int', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => UInt32.MAXINT());
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
               x.mul(y).assertEquals(UInt32.MAXINT());
             });
           }).not.toThrow();
@@ -1171,7 +1171,7 @@ describe('int', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => UInt32.MAXINT());
-              const y = Circuit.witness(UInt32, () => new UInt32(Field(2)));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field(2)));
               x.mul(y);
             });
           }).toThrow();
@@ -1182,9 +1182,9 @@ describe('int', () => {
         it('2/1=2', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field(2)));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              x.div(y).assertEquals(new UInt32(Field(2)));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field(2)));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
+              x.div(y).assertEquals(UInt32.from(Field(2)));
             });
           }).not.toThrow();
         });
@@ -1192,9 +1192,9 @@ describe('int', () => {
         it('0/1=0', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field.zero));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              x.div(y).assertEquals(new UInt32(Field.zero));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field.zero));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
+              x.div(y).assertEquals(UInt32.from(Field.zero));
             });
           }).not.toThrow();
         });
@@ -1202,9 +1202,9 @@ describe('int', () => {
         it('2000/1000=2', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field(2000)));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field(1000)));
-              x.div(y).assertEquals(new UInt32(Field(2)));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field(2000)));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field(1000)));
+              x.div(y).assertEquals(UInt32.from(Field(2)));
             });
           }).not.toThrow();
         });
@@ -1213,7 +1213,7 @@ describe('int', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => UInt32.MAXINT());
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
               x.div(y).assertEquals(UInt32.MAXINT());
             });
           }).not.toThrow();
@@ -1223,7 +1223,7 @@ describe('int', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => UInt32.MAXINT());
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.zero));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.zero));
               x.div(y);
             });
           }).toThrow();
@@ -1234,9 +1234,9 @@ describe('int', () => {
         it('1%1=0', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              x.mod(y).assertEquals(new UInt32(Field.zero));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field.one));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
+              x.mod(y).assertEquals(UInt32.from(Field.zero));
             });
           }).not.toThrow();
         });
@@ -1244,9 +1244,9 @@ describe('int', () => {
         it('500%32=20', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field(500)));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field(32)));
-              x.mod(y).assertEquals(new UInt32(Field(20)));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field(500)));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field(32)));
+              x.mod(y).assertEquals(UInt32.from(Field(20)));
             });
           }).not.toThrow();
         });
@@ -1255,8 +1255,8 @@ describe('int', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => UInt32.MAXINT());
-              const y = Circuit.witness(UInt32, () => new UInt32(Field(7)));
-              x.mod(y).assertEquals(new UInt32(Field(3)));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field(7)));
+              x.mod(y).assertEquals(UInt32.from(Field(3)));
             });
           }).not.toThrow();
         });
@@ -1265,8 +1265,8 @@ describe('int', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => UInt32.MAXINT());
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.zero));
-              x.mod(y).assertEquals(new UInt32(Field.one));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.zero));
+              x.mod(y).assertEquals(UInt32.from(Field.one));
             });
           }).toThrow();
         });
@@ -1277,8 +1277,8 @@ describe('int', () => {
         it.skip('1<2=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field(2)));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field.one));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field(2)));
               x.assertLt(y);
             });
           }).not.toThrow();
@@ -1287,8 +1287,8 @@ describe('int', () => {
         it('1<1=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field.one));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
               x.assertLt(y);
             });
           }).toThrow();
@@ -1297,8 +1297,8 @@ describe('int', () => {
         it('2<1=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field(2)));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field(2)));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
               x.assertLt(y);
             });
           }).toThrow();
@@ -1308,10 +1308,9 @@ describe('int', () => {
         it.skip('1000<100000=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field(1000)));
-              const y = Circuit.witness(
-                UInt32,
-                () => new UInt32(Field(100000))
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field(1000)));
+              const y = Circuit.witness(UInt32, () =>
+                UInt32.from(Field(100000))
               );
               x.assertLt(y);
             });
@@ -1321,11 +1320,10 @@ describe('int', () => {
         it('100000<1000=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(
-                UInt32,
-                () => new UInt32(Field(100000))
+              const x = Circuit.witness(UInt32, () =>
+                UInt32.from(Field(100000))
               );
-              const y = Circuit.witness(UInt32, () => new UInt32(Field(1000)));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field(1000)));
               x.assertLt(y);
             });
           }).toThrow();
@@ -1346,8 +1344,8 @@ describe('int', () => {
         it('1<=1=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field.one));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
               x.assertLte(y);
             });
           }).not.toThrow();
@@ -1356,8 +1354,8 @@ describe('int', () => {
         it('2<=1=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field(2)));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field(2)));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
               x.assertLte(y);
             });
           }).toThrow();
@@ -1366,10 +1364,9 @@ describe('int', () => {
         it('1000<=100000=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field(1000)));
-              const y = Circuit.witness(
-                UInt32,
-                () => new UInt32(Field(100000))
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field(1000)));
+              const y = Circuit.witness(UInt32, () =>
+                UInt32.from(Field(100000))
               );
               x.assertLte(y);
             });
@@ -1379,11 +1376,10 @@ describe('int', () => {
         it('100000<=1000=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(
-                UInt32,
-                () => new UInt32(Field(100000))
+              const x = Circuit.witness(UInt32, () =>
+                UInt32.from(Field(100000))
               );
-              const y = Circuit.witness(UInt32, () => new UInt32(Field(1000)));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field(1000)));
               x.assertLte(y);
             });
           }).toThrow();
@@ -1405,8 +1401,8 @@ describe('int', () => {
         it.skip('2>1=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field(2)));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field(2)));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
               x.assertGt(y);
             });
           }).not.toThrow();
@@ -1415,8 +1411,8 @@ describe('int', () => {
         it('1>1=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field.one));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
               x.assertGt(y);
             });
           }).toThrow();
@@ -1425,8 +1421,8 @@ describe('int', () => {
         it('1>2=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field(2)));
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field.one));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field(2)));
               x.assertGt(y);
             });
           }).toThrow();
@@ -1436,11 +1432,10 @@ describe('int', () => {
         it.skip('100000>1000=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(
-                UInt32,
-                () => new UInt32(Field(100000))
+              const x = Circuit.witness(UInt32, () =>
+                UInt32.from(Field(100000))
               );
-              const y = Circuit.witness(UInt32, () => new UInt32(Field(1000)));
+              const y = Circuit.witness(UInt32, () => UInt32.from(Field(1000)));
               x.assertGt(y);
             });
           }).not.toThrow();
@@ -1449,10 +1444,9 @@ describe('int', () => {
         it('1000>100000=false', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field(1000)));
-              const y = Circuit.witness(
-                UInt32,
-                () => new UInt32(Field(100000))
+              const x = Circuit.witness(UInt32, () => UInt32.from(Field(1000)));
+              const y = Circuit.witness(UInt32, () =>
+                UInt32.from(Field(100000))
               );
               x.assertGt(y);
             });
@@ -1476,7 +1470,7 @@ describe('int', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
                 const x = Circuit.witness(UInt32, () => UInt32.fromNumber(1));
-                const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
+                const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
                 x.assertEquals(y);
               });
             }).not.toThrow();
@@ -1488,9 +1482,8 @@ describe('int', () => {
                 const x = Circuit.witness(UInt32, () =>
                   UInt32.fromNumber(NUMBERMAX)
                 );
-                const y = Circuit.witness(
-                  UInt32,
-                  () => new UInt32(Field(String(NUMBERMAX)))
+                const y = Circuit.witness(UInt32, () =>
+                  UInt32.from(Field(String(NUMBERMAX)))
                 );
                 x.assertEquals(y);
               });
@@ -1502,7 +1495,7 @@ describe('int', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
                 const x = Circuit.witness(UInt32, () => UInt32.fromString('1'));
-                const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
+                const y = Circuit.witness(UInt32, () => UInt32.from(Field.one));
                 x.assertEquals(y);
               });
             }).not.toThrow();
@@ -1514,9 +1507,8 @@ describe('int', () => {
                 const x = Circuit.witness(UInt32, () =>
                   UInt32.fromString(String(NUMBERMAX))
                 );
-                const y = Circuit.witness(
-                  UInt32,
-                  () => new UInt32(Field(String(NUMBERMAX)))
+                const y = Circuit.witness(UInt32, () =>
+                  UInt32.from(Field(String(NUMBERMAX)))
                 );
                 x.assertEquals(y);
               });
@@ -1529,19 +1521,21 @@ describe('int', () => {
     describe('Outside of circuit', () => {
       describe('add', () => {
         it('1+1=2', () => {
-          expect(new UInt32(Field.one).add(1).toString()).toEqual('2');
+          expect(UInt32.from(Field.one).add(1).toString()).toEqual('2');
         });
 
         it('5000+5000=10000', () => {
-          expect(new UInt32(Field(5000)).add(5000).toString()).toEqual('10000');
+          expect(UInt32.from(Field(5000)).add(5000).toString()).toEqual(
+            '10000'
+          );
         });
 
         it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
           const value = Field((((1n << 32n) - 2n) / 2n).toString());
           expect(
-            new UInt32(value)
-              .add(new UInt32(value))
-              .add(new UInt32(Field.one))
+            UInt32.from(value)
+              .add(UInt32.from(value))
+              .add(UInt32.from(Field.one))
               .toString()
           ).toEqual(UInt32.MAXINT().toString());
         });
@@ -1555,11 +1549,13 @@ describe('int', () => {
 
       describe('sub', () => {
         it('1-1=0', () => {
-          expect(new UInt32(Field.one).sub(1).toString()).toEqual('0');
+          expect(UInt32.from(Field.one).sub(1).toString()).toEqual('0');
         });
 
         it('10000-5000=5000', () => {
-          expect(new UInt32(Field(10000)).sub(5000).toString()).toEqual('5000');
+          expect(UInt32.from(Field(10000)).sub(5000).toString()).toEqual(
+            '5000'
+          );
         });
 
         it('should throw on sub if results in negative number', () => {
@@ -1571,15 +1567,15 @@ describe('int', () => {
 
       describe('mul', () => {
         it('1x2=2', () => {
-          expect(new UInt32(Field.one).mul(2).toString()).toEqual('2');
+          expect(UInt32.from(Field.one).mul(2).toString()).toEqual('2');
         });
 
         it('1x0=0', () => {
-          expect(new UInt32(Field.one).mul(0).toString()).toEqual('0');
+          expect(UInt32.from(Field.one).mul(0).toString()).toEqual('0');
         });
 
         it('1000x1000=1000000', () => {
-          expect(new UInt32(Field(1000)).mul(1000).toString()).toEqual(
+          expect(UInt32.from(Field(1000)).mul(1000).toString()).toEqual(
             '1000000'
           );
         });
@@ -1599,15 +1595,15 @@ describe('int', () => {
 
       describe('div', () => {
         it('2/1=2', () => {
-          expect(new UInt32(Field(2)).div(1).toString()).toEqual('2');
+          expect(UInt32.from(Field(2)).div(1).toString()).toEqual('2');
         });
 
         it('0/1=0', () => {
-          expect(new UInt32(Field.zero).div(1).toString()).toEqual('0');
+          expect(UInt32.from(Field.zero).div(1).toString()).toEqual('0');
         });
 
         it('2000/1000=2', () => {
-          expect(new UInt32(Field(2000)).div(1000).toString()).toEqual('2');
+          expect(UInt32.from(Field(2000)).div(1000).toString()).toEqual('2');
         });
 
         it('MAXINT/1=MAXINT', () => {
@@ -1625,11 +1621,11 @@ describe('int', () => {
 
       describe('mod', () => {
         it('1%1=0', () => {
-          expect(new UInt32(Field.one).mod(1).toString()).toEqual('0');
+          expect(UInt32.from(Field.one).mod(1).toString()).toEqual('0');
         });
 
         it('500%32=20', () => {
-          expect(new UInt32(Field(500)).mod(32).toString()).toEqual('20');
+          expect(UInt32.from(Field(500)).mod(32).toString()).toEqual('20');
         });
 
         it('MAXINT%7=3', () => {
@@ -1646,34 +1642,34 @@ describe('int', () => {
       describe('lt', () => {
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
         it.skip('1<2=true', () => {
-          expect(new UInt32(Field.one).lt(new UInt32(Field(2)))).toEqual(
+          expect(UInt32.from(Field.one).lt(UInt32.from(Field(2)))).toEqual(
             Bool(true)
           );
         });
 
         it('1<1=false', () => {
-          expect(new UInt32(Field.one).lt(new UInt32(Field.one))).toEqual(
+          expect(UInt32.from(Field.one).lt(UInt32.from(Field.one))).toEqual(
             Bool(false)
           );
         });
 
         it('2<1=false', () => {
-          expect(new UInt32(Field(2)).lt(new UInt32(Field.one))).toEqual(
+          expect(UInt32.from(Field(2)).lt(UInt32.from(Field.one))).toEqual(
             Bool(false)
           );
         });
 
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
         it.skip('1000<100000=true', () => {
-          expect(new UInt32(Field(1000)).lt(new UInt32(Field(100000)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            UInt32.from(Field(1000)).lt(UInt32.from(Field(100000)))
+          ).toEqual(Bool(true));
         });
 
         it('100000<1000=false', () => {
-          expect(new UInt32(Field(100000)).lt(new UInt32(Field(1000)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            UInt32.from(Field(100000)).lt(UInt32.from(Field(1000)))
+          ).toEqual(Bool(false));
         });
 
         it('MAXINT<MAXINT=false', () => {
@@ -1683,13 +1679,13 @@ describe('int', () => {
 
       describe('lte', () => {
         it('1<=1=true', () => {
-          expect(new UInt32(Field.one).lte(new UInt32(Field.one))).toEqual(
+          expect(UInt32.from(Field.one).lte(UInt32.from(Field.one))).toEqual(
             Bool(true)
           );
         });
 
         it('2<=1=false', () => {
-          expect(new UInt32(Field(2)).lte(new UInt32(Field.one))).toEqual(
+          expect(UInt32.from(Field(2)).lte(UInt32.from(Field.one))).toEqual(
             Bool(false)
           );
         });
@@ -1697,13 +1693,13 @@ describe('int', () => {
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
         it.skip('1000<=100000=true', () => {
           expect(
-            new UInt32(Field(1000)).lte(new UInt32(Field(100000)))
+            UInt32.from(Field(1000)).lte(UInt32.from(Field(100000)))
           ).toEqual(Bool(true));
         });
 
         it('100000<=1000=false', () => {
           expect(
-            new UInt32(Field(100000)).lte(new UInt32(Field(1000)))
+            UInt32.from(Field(100000)).lte(UInt32.from(Field(1000)))
           ).toEqual(Bool(false));
         });
 
@@ -1715,25 +1711,25 @@ describe('int', () => {
       describe('assertLte', () => {
         it('1<=1=true', () => {
           expect(() => {
-            new UInt32(Field.one).assertLte(new UInt32(Field.one));
+            UInt32.from(Field.one).assertLte(UInt32.from(Field.one));
           }).not.toThrow();
         });
 
         it('2<=1=false', () => {
           expect(() => {
-            new UInt32(Field(2)).assertLte(new UInt32(Field.one));
+            UInt32.from(Field(2)).assertLte(UInt32.from(Field.one));
           }).toThrow();
         });
 
         it('1000<=100000=true', () => {
           expect(() => {
-            new UInt32(Field(1000)).assertLte(new UInt32(Field(100000)));
+            UInt32.from(Field(1000)).assertLte(UInt32.from(Field(100000)));
           }).not.toThrow();
         });
 
         it('100000<=1000=false', () => {
           expect(() => {
-            new UInt32(Field(100000)).assertLte(new UInt32(Field(1000)));
+            UInt32.from(Field(100000)).assertLte(UInt32.from(Field(1000)));
           }).toThrow();
         });
 
@@ -1747,35 +1743,35 @@ describe('int', () => {
       describe('gt', () => {
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
         it.skip('2>1=true', () => {
-          expect(new UInt32(Field(2)).gt(new UInt32(Field.one))).toEqual(
+          expect(UInt32.from(Field(2)).gt(UInt32.from(Field.one))).toEqual(
             Bool(true)
           );
         });
 
         it('1>1=false', () => {
-          expect(new UInt32(Field.one).gt(new UInt32(Field.one))).toEqual(
+          expect(UInt32.from(Field.one).gt(UInt32.from(Field.one))).toEqual(
             Bool(false)
           );
         });
 
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
         it.skip('1>2=false', () => {
-          expect(new UInt32(Field.one).lt(new UInt32(Field(2)))).toEqual(
+          expect(UInt32.from(Field.one).lt(UInt32.from(Field(2)))).toEqual(
             Bool(false)
           );
         });
 
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
         it.skip('100000>1000=true', () => {
-          expect(new UInt32(Field(100000)).gt(new UInt32(Field(1000)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            UInt32.from(Field(100000)).gt(UInt32.from(Field(1000)))
+          ).toEqual(Bool(true));
         });
 
         it('1000>100000=false', () => {
-          expect(new UInt32(Field(1000)).gt(new UInt32(Field(100000)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            UInt32.from(Field(1000)).gt(UInt32.from(Field(100000)))
+          ).toEqual(Bool(false));
         });
 
         it('MAXINT>MAXINT=false', () => {
@@ -1786,28 +1782,28 @@ describe('int', () => {
       describe.skip('assertGt', () => {
         it('1>1=false', () => {
           expect(
-            new UInt32(Field.one).assertGt(new UInt32(Field.one))
+            UInt32.from(Field.one).assertGt(UInt32.from(Field.one))
           ).toThrow();
         });
 
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967630336 to fit in 64 bits
         it('2>1=true', () => {
           expect(
-            new UInt32(Field(2)).assertGt(new UInt32(Field.one))
+            UInt32.from(Field(2)).assertGt(UInt32.from(Field.one))
           ).not.toThrow();
         });
 
         // assert_equal: 0 != 1
         it('1000>100000=false', () => {
           expect(
-            new UInt32(Field(1000)).assertGt(new UInt32(Field(100000)))
+            UInt32.from(Field(1000)).assertGt(UInt32.from(Field(100000)))
           ).toThrow();
         });
 
         // rangeCheckHelper: Expected 28948022309329048855892746252171976963363056481941560715954676764349967531337 to fit in 64 bits
         it('100000>1000=true', () => {
           expect(
-            new UInt32(Field(100000)).assertGt(new UInt32(Field(1000)))
+            UInt32.from(Field(100000)).assertGt(UInt32.from(Field(1000)))
           ).not.toThrow();
         });
 
@@ -1818,12 +1814,12 @@ describe('int', () => {
 
       describe('toString()', () => {
         it('should be the same as Field.zero', async () => {
-          const x = new UInt32(Field.zero);
+          const x = UInt32.from(Field.zero);
           const y = Field.zero;
           expect(x.toString()).toEqual(y.toString());
         });
         it('should be the same as 2^32-1', async () => {
-          const x = new UInt32(Field(String(NUMBERMAX)));
+          const x = UInt32.from(Field(String(NUMBERMAX)));
           const y = Field(String(NUMBERMAX));
           expect(x.toString()).toEqual(y.toString());
         });
@@ -1837,7 +1833,7 @@ describe('int', () => {
         });
 
         it('should throw checking over MAXINT', () => {
-          const x = new UInt32(Field((1n << 32n).toString())); // This number is defined in UInt32.MAXINT()
+          const x = UInt32.from(Field((1n << 32n).toString())); // This number is defined in UInt32.MAXINT()
           expect(() => {
             UInt32.check(x);
           }).toThrow();
@@ -1848,7 +1844,7 @@ describe('int', () => {
         describe('fromNumber()', () => {
           it('should be the same as Field.one', () => {
             const x = UInt32.fromNumber(1);
-            expect(x.value).toEqual(new UInt32(Field.one).value);
+            expect(x.value).toEqual(UInt32.from(Field.one).value);
           });
 
           it('should be the same as 2^53-1', () => {
@@ -1859,7 +1855,7 @@ describe('int', () => {
         describe('fromString()', () => {
           it('should be the same as Field.one', () => {
             const x = UInt32.fromString('1');
-            expect(x.value).toEqual(new UInt32(Field.one).value);
+            expect(x.value).toEqual(UInt32.from(Field.one).value);
           });
 
           it('should be the same as 2^53-1', () => {

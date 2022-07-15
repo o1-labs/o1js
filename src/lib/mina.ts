@@ -234,8 +234,8 @@ function LocalBlockchain({
       } else {
         return {
           publicKey: publicKey,
-          balance: new UInt64(ledgerAccount.balance.value),
-          nonce: new UInt32(ledgerAccount.nonce.value),
+          balance: UInt64.from(ledgerAccount.balance.value),
+          nonce: UInt32.from(ledgerAccount.nonce.value),
           zkapp: ledgerAccount.zkapp,
         };
       }
