@@ -788,6 +788,9 @@ type PartiesSigned = {
 };
 
 const CallForest = {
+  // similar to Mina_base.Parties.Call_forest.to_parties_list
+  // takes a list of parties, which each can have children, so they form a "forest" (list of trees)
+  // returns a flattened list, with `party.body.callDepth` specifying positions in the forest
   toFlatList(forest: Party[], depth = 0): Party[] {
     let parties = [];
     for (let party of forest) {
@@ -803,7 +806,7 @@ const CallForest = {
   },
 
   // similar to Mina_base.Parties.Call_forest.accumulate_hashes
-  // it hashes a party's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
+  // hashes a party's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
   hashChildren(parent: Party) {
     let stackHash = CallForest.emptyHash();
     for (let party of parent.children.reverse()) {
