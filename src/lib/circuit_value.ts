@@ -81,8 +81,8 @@ abstract class CircuitValue {
     Circuit.assertEqual(this, x);
   }
 
-  isConstant(x: this) {
-    return x.toFields().every((x) => x.isConstant());
+  isConstant() {
+    return this.toFields().every((x) => x.isConstant());
   }
 
   static ofFields<T extends AnyConstructor>(
@@ -392,6 +392,8 @@ function circuitValue<T>(
   };
 }
 
+// FIXME: the logic in here to check for obj.constructor.name actually doesn't work
+// something that works is Field.one.constructor === obj.constructor etc
 function cloneCircuitValue<T>(obj: T): T {
   // primitive JS types and functions aren't cloned
   if (typeof obj !== 'object' || obj === null) return obj;
