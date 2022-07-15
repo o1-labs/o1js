@@ -6,8 +6,10 @@ export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 export {
   convertEventsToJson,
   convertEventsToFields,
+  convertEventsToAux,
   convertStringWithHashToJson,
   convertStringWithHashToFields,
+  convertStringWithHashToAux,
 };
 
 export {
@@ -15,6 +17,7 @@ export {
   toJsonLeafTypes,
   toFields,
   toFieldsLeafTypes,
+  toAuxiliary,
   TypeMap,
   ToJsonTypeMap,
 };
@@ -163,6 +166,37 @@ function toFields<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
   return ToFields[typeName](value);
 }
 
+type ToAuxiliary = { [K in keyof ToFields]: (x: ToFields[K]) => any[] };
+
+function valueAsArray(value: any) {
+  return [value];
+}
+
+let ToAuxiliary: ToAuxiliary = {
+  PublicKey: empty,
+  Field: empty,
+  Bool: empty,
+  AuthRequired: empty,
+  UInt32: empty,
+  UInt64: empty,
+  TokenId: empty,
+  Sign: empty,
+  // builtin
+  number: valueAsArray,
+  null: valueAsArray,
+  undefined: valueAsArray,
+  string: valueAsArray,
+};
+
+function toAuxiliary<K extends keyof ToFields>(
+  typeName: K,
+  value: ToFields[K]
+) {
+  if (!(typeName in ToFields))
+    throw Error(`toAuxiliary: unsupported type "${typeName}"`);
+  return ToAuxiliary[typeName](value);
+}
+
 let toJsonLeafTypes = new Set(Object.keys(ToJson));
 let toFieldsLeafTypes = new Set(Object.keys(ToFields));
 
@@ -176,10 +210,16 @@ function convertEventsToJson({ data }: DataAsHash<Field[][]>) {
 function convertEventsToFields({ hash }: DataAsHash<Field[][]>) {
   return [hash];
 }
+function convertEventsToAux({ data }: DataAsHash<Field[][]>) {
+  return [data];
+}
 
 function convertStringWithHashToJson({ data }: DataAsHash<string>) {
   return data;
 }
 function convertStringWithHashToFields({ hash }: DataAsHash<string>) {
   return [hash];
+}
+function convertStringWithHashToAux({ data }: DataAsHash<string>) {
+  return [data];
 }
