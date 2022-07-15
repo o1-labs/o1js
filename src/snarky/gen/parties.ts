@@ -216,10 +216,10 @@ type Parties = {
 
 let Parties = {
   toJson(parties: Parties): Json.Parties {
-    return toJson(jsLayout.Parties, parties, jsonConverters);
+    return toJson(jsLayout.Parties as any, parties, jsonConverters);
   },
   toFields(parties: Parties): Field[] {
-    return toFields(jsLayout.Parties, parties, fieldsConverters);
+    return toFields(jsLayout.Parties as any, parties, fieldsConverters);
   },
 };
 
@@ -381,9 +381,9 @@ type Party = {
 
 let Party = {
   toJson(party: Party): Json.Party {
-    return toJson(jsLayout.Party, party, jsonConverters);
+    return toJson(jsLayout.Party as any, party, jsonConverters);
   },
   toFields(party: Party): Field[] {
-    return toFields(jsLayout.Party, party, fieldsConverters);
+    return toFields(jsLayout.Party as any, party, fieldsConverters);
   },
 };

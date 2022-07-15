@@ -10,7 +10,14 @@ export {
   convertStringWithHashToFields,
 };
 
-export { toJson, toJsonLeafTypes, toFields, toFieldsLeafTypes };
+export {
+  toJson,
+  toJsonLeafTypes,
+  toFields,
+  toFieldsLeafTypes,
+  TypeMap,
+  ToJsonTypeMap,
+};
 
 type UInt64 = { value: Field; _type?: 'UInt64' };
 type UInt32 = { value: Field; _type?: 'UInt32' };

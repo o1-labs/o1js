@@ -1,17 +1,18 @@
 import * as Leaves from './parties-leaves';
 
-export { toJson, toFields };
+export { toJson, toFields, Layout };
 
-function toJson(typeData: any, value: any, converters: any): any {
-  let { type, inner, layout, name, optionType, checkedTypeName } = typeData;
+function toJson(typeData: Layout, value: any, converters: any): any {
+  let { checkedTypeName } = typeData;
   if (checkedTypeName) {
     // there's a custom conversion function!
     return converters[checkedTypeName](value);
   }
-  if (type === 'array') {
-    return value.map((x: any) => toJson(inner, x, converters));
+  if (typeData.type === 'array') {
+    return value.map((x: any) => toJson(typeData.inner, x, converters));
   }
-  if (type === 'option') {
+  if (typeData.type === 'option') {
+    let { optionType, inner } = typeData;
     switch (optionType) {
       case 'implicit':
         return toJson(inner, value, converters);
@@ -23,34 +24,38 @@ function toJson(typeData: any, value: any, converters: any): any {
         return value !== undefined ? toJson(inner, value, converters) : null;
     }
   }
-  if (type === 'object') {
+  if (typeData.type === 'object') {
+    let { name, keys, entries } = typeData;
     if (Leaves.toJsonLeafTypes.has(name)) {
       // override with custom leaf type
-      return Leaves.toJson(name, value);
+      return Leaves.toJson(name as keyof Leaves.ToJsonTypeMap, value);
     }
     let json: any = {};
-    for (let { key, value: typeData } of layout) {
-      json[key] = toJson(typeData, value[key], converters);
+    for (let key of keys) {
+      json[key] = toJson(entries[key], value[key], converters);
     }
     return json;
   }
-  return Leaves.toJson(type, value);
+  return Leaves.toJson(typeData.type, value);
 }
 
 // let i = 0; // DEBUG
 
-function toFields(typeData: any, value: any, converters: any): any {
-  let { type, inner, layout, name, optionType, checkedTypeName } = typeData;
+function toFields(typeData: Layout, value: any, converters: any): any {
+  let { checkedTypeName } = typeData;
   if (checkedTypeName) {
     // there's a custom conversion function!
     let fields = converters[checkedTypeName](value);
     // i += fields.length; // DEBUG
     return fields;
   }
-  if (type === 'array') {
-    return value.map((x: any) => toFields(inner, x, converters)).flat();
+  if (typeData.type === 'array') {
+    return value
+      .map((x: any) => toFields(typeData.inner, x, converters))
+      .flat();
   }
-  if (type === 'option') {
+  if (typeData.type === 'option') {
+    let { optionType, inner } = typeData;
     switch (optionType) {
       case 'implicit':
         return toFields(inner, value, converters);
@@ -63,16 +68,17 @@ function toFields(typeData: any, value: any, converters: any): any {
         return [];
     }
   }
-  if (type === 'object') {
+  if (typeData.type === 'object') {
+    let { name, keys, entries } = typeData;
     if (Leaves.toFieldsLeafTypes.has(name)) {
       // override with custom leaf type
-      return Leaves.toFields(name, value);
+      return Leaves.toFields(name as keyof Leaves.TypeMap, value);
     }
     let fields: any = [];
     // let fieldsMap: any = {}; // DEBUG
-    for (let { key, value: typeData } of layout) {
+    for (let key of keys) {
       // let i0 = i; // DEBUG
-      let newFields = toFields(typeData, value[key], converters);
+      let newFields = toFields(entries[key], value[key], converters);
       fields.push(...newFields);
       // fieldsMap[key] = [i0, newFields.map(String)]; // DEBUG
     }
@@ -80,7 +86,49 @@ function toFields(typeData: any, value: any, converters: any): any {
     // console.log(fieldsMap); // DEBUG
     return fields;
   }
-  let fields = Leaves.toFields(type, value);
+  let fields = Leaves.toFields(typeData.type, value);
   // i += fields.length; // DEBUG
   return fields;
 }
+
+// types
+
+type WithChecked = { checkedType?: Layout; checkedTypeName?: string };
+
+type BaseLayout = { type: keyof Leaves.TypeMap } & WithChecked;
+
+type RangeLayout<T extends BaseLayout> = {
+  type: 'object';
+  name: string;
+  keys: ['lower', 'upper'];
+  entries: { lower: T; upper: T };
+} & WithChecked;
+
+type OptionLayout<T extends BaseLayout> = { type: 'option' } & (
+  | {
+      optionType: 'flaggedOption';
+      inner: T;
+    }
+  | {
+      optionType: 'implicit';
+      inner: RangeLayout<T>;
+    }
+  | {
+      optionType: 'implicit';
+      inner: T;
+    }
+) &
+  WithChecked;
+type Layout =
+  | OptionLayout<BaseLayout>
+  | BaseLayout
+  | ({
+      type: 'object';
+      name: string;
+      keys: string[];
+      entries: Record<string, Layout>;
+    } & WithChecked)
+  | ({
+      type: 'array';
+      inner: Layout;
+    } & WithChecked);
