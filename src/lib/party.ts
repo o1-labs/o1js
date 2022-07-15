@@ -637,8 +637,9 @@ class Party {
     };
   }
 
-  tokenSymbol() {
+  get tokenSymbol() {
     let party = this;
+
     return {
       set(tokenSymbol: string) {
         Party.setValue(party.update.tokenSymbol, {
