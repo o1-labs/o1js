@@ -15,8 +15,10 @@ import {
   convertEventsToFields,
   convertStringWithHashToAux,
   convertEventsToAux,
+  convertStringWithHashFromFields,
+  convertEventsFromFields,
 } from '../parties-leaves';
-import { toJson, toFields, toAuxiliary } from '../parties-helpers';
+import { toJson, toFields, toAuxiliary, fromFields } from '../parties-helpers';
 import * as Json from './parties-json';
 import { jsLayout } from './js-layout';
 
@@ -55,6 +57,27 @@ type AuxConverters = {
 let auxConverters: AuxConverters = {
   StringWithHash: convertStringWithHashToAux,
   Events: convertEventsToAux,
+};
+
+type FromFieldsConverters = {
+  StringWithHash: (
+    fields: Field[],
+    aux: any[]
+  ) => {
+    data: string;
+    hash: Field;
+  };
+  Events: (
+    fields: Field[],
+    aux: any[]
+  ) => {
+    data: Field[][];
+    hash: Field;
+  };
+};
+let fromFieldsConverters: FromFieldsConverters = {
+  StringWithHash: convertStringWithHashFromFields,
+  Events: convertEventsFromFields,
 };
 
 type Parties = {
@@ -235,6 +258,14 @@ let Parties = {
   toAuxiliary(parties?: Parties): any[] {
     return toAuxiliary(jsLayout.Parties as any, parties, auxConverters);
   },
+  fromFields(fields: Field[], aux: any[]): Parties {
+    return fromFields(
+      jsLayout.Parties as any,
+      fields,
+      aux,
+      fromFieldsConverters
+    );
+  },
 };
 
 type Party = {
@@ -402,5 +433,8 @@ let Party = {
   },
   toAuxiliary(party?: Party): any[] {
     return toAuxiliary(jsLayout.Party as any, party, auxConverters);
+  },
+  fromFields(fields: Field[], aux: any[]): Party {
+    return fromFields(jsLayout.Party as any, fields, aux, fromFieldsConverters);
   },
 };

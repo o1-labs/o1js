@@ -91,6 +91,7 @@ let jsLayout = {
                         optionType: 'flaggedOption',
                         inner: { type: 'Field' },
                       },
+                      staticLength: 8,
                     },
                     delegate: {
                       type: 'option',
@@ -259,7 +260,12 @@ let jsLayout = {
                 incrementNonce: { type: 'Bool' },
                 events: {
                   type: 'array',
-                  inner: { type: 'array', inner: { type: 'Field' } },
+                  inner: {
+                    type: 'array',
+                    inner: { type: 'Field' },
+                    staticLength: null,
+                  },
+                  staticLength: null,
                   checkedType: {
                     type: 'object',
                     name: 'Events',
@@ -268,7 +274,12 @@ let jsLayout = {
                     entries: {
                       data: {
                         type: 'array',
-                        inner: { type: 'array', inner: { type: 'Field' } },
+                        inner: {
+                          type: 'array',
+                          inner: { type: 'Field' },
+                          staticLength: null,
+                        },
+                        staticLength: null,
                       },
                       hash: { type: 'Field' },
                     },
@@ -278,7 +289,12 @@ let jsLayout = {
                 },
                 sequenceEvents: {
                   type: 'array',
-                  inner: { type: 'array', inner: { type: 'Field' } },
+                  inner: {
+                    type: 'array',
+                    inner: { type: 'Field' },
+                    staticLength: null,
+                  },
+                  staticLength: null,
                   checkedType: {
                     type: 'object',
                     name: 'Events',
@@ -287,7 +303,12 @@ let jsLayout = {
                     entries: {
                       data: {
                         type: 'array',
-                        inner: { type: 'array', inner: { type: 'Field' } },
+                        inner: {
+                          type: 'array',
+                          inner: { type: 'Field' },
+                          staticLength: null,
+                        },
+                        staticLength: null,
                       },
                       hash: { type: 'Field' },
                     },
@@ -648,6 +669,7 @@ let jsLayout = {
                             optionType: 'flaggedOption',
                             inner: { type: 'Field' },
                           },
+                          staticLength: 8,
                         },
                         sequenceState: {
                           type: 'option',
@@ -713,6 +735,7 @@ let jsLayout = {
           },
           docEntries: { body: null, authorization: null },
         },
+        staticLength: null,
       },
       memo: { type: 'string' },
     },
@@ -767,6 +790,7 @@ let jsLayout = {
                   optionType: 'flaggedOption',
                   inner: { type: 'Field' },
                 },
+                staticLength: 8,
               },
               delegate: {
                 type: 'option',
@@ -932,7 +956,12 @@ let jsLayout = {
           incrementNonce: { type: 'Bool' },
           events: {
             type: 'array',
-            inner: { type: 'array', inner: { type: 'Field' } },
+            inner: {
+              type: 'array',
+              inner: { type: 'Field' },
+              staticLength: null,
+            },
+            staticLength: null,
             checkedType: {
               type: 'object',
               name: 'Events',
@@ -941,7 +970,12 @@ let jsLayout = {
               entries: {
                 data: {
                   type: 'array',
-                  inner: { type: 'array', inner: { type: 'Field' } },
+                  inner: {
+                    type: 'array',
+                    inner: { type: 'Field' },
+                    staticLength: null,
+                  },
+                  staticLength: null,
                 },
                 hash: { type: 'Field' },
               },
@@ -951,7 +985,12 @@ let jsLayout = {
           },
           sequenceEvents: {
             type: 'array',
-            inner: { type: 'array', inner: { type: 'Field' } },
+            inner: {
+              type: 'array',
+              inner: { type: 'Field' },
+              staticLength: null,
+            },
+            staticLength: null,
             checkedType: {
               type: 'object',
               name: 'Events',
@@ -960,7 +999,12 @@ let jsLayout = {
               entries: {
                 data: {
                   type: 'array',
-                  inner: { type: 'array', inner: { type: 'Field' } },
+                  inner: {
+                    type: 'array',
+                    inner: { type: 'Field' },
+                    staticLength: null,
+                  },
+                  staticLength: null,
                 },
                 hash: { type: 'Field' },
               },
@@ -1321,6 +1365,7 @@ let jsLayout = {
                       optionType: 'flaggedOption',
                       inner: { type: 'Field' },
                     },
+                    staticLength: 8,
                   },
                   sequenceState: {
                     type: 'option',
