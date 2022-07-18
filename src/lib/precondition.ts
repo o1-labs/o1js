@@ -33,8 +33,6 @@ function preconditions(party: Party, isSelf: boolean) {
 // so we can add customized fields easily
 
 function Network(party: Party): Network {
-  // TODO there should be a less error-prone way of typing js layout
-  // e.g. separate keys list and value object, so that we can access by key
   let layout =
     jsLayout.Party.entries.body.entries.preconditions.entries.network;
   let context = getPreconditionContextExn(party);
@@ -42,8 +40,6 @@ function Network(party: Party): Network {
 }
 
 function Account(party: Party): Account {
-  // TODO there should be a less error-prone way of typing js layout
-  // e.g. separate keys list and value object, so that we can access by key
   let layout =
     jsLayout.Party.entries.body.entries.preconditions.entries.account;
   let context = getPreconditionContextExn(party);
