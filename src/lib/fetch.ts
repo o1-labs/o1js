@@ -46,16 +46,24 @@ function setGraphqlEndpoint(graphqlEndpoint: string) {
  * @returns zkapp information on the specified account or an error is thrown
  */
 async function fetchAccount(
-  accountInfo: { publicKey: PublicKey; tokenId?: string },
+  accountInfo: { publicKey: string | PublicKey; tokenId?: string },
   graphqlEndpoint = defaultGraphqlEndpoint,
   { timeout = defaultTimeout } = {}
 ): Promise<
   | { account: Account; error: undefined }
   | { account: undefined; error: FetchError }
 > {
-  let response = await fetchAccountInternal(accountInfo, graphqlEndpoint, {
-    timeout,
-  });
+  let publicKeyBase58 =
+    accountInfo.publicKey instanceof PublicKey
+      ? accountInfo.publicKey.toBase58()
+      : accountInfo.publicKey;
+  let response = await fetchAccountInternal(
+    { publicKey: publicKeyBase58, tokenId: accountInfo.tokenId },
+    graphqlEndpoint,
+    {
+      timeout,
+    }
+  );
   return response.error === undefined
     ? {
         account: parseFetchedAccount(response.account),
@@ -67,13 +75,13 @@ async function fetchAccount(
 // internal version of fetchAccount which does the same, but returns the original JSON version
 // of the account, to save some back-and-forth conversions when caching accounts
 async function fetchAccountInternal(
-  accountInfo: { publicKey: PublicKey; tokenId?: string },
+  accountInfo: { publicKey: string; tokenId?: string },
   graphqlEndpoint = defaultGraphqlEndpoint,
   config?: FetchConfig
 ) {
   const { publicKey, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
-    accountQuery(publicKey.toBase58(), tokenId ?? getDefaultTokenId()),
+    accountQuery(publicKey, tokenId ?? getDefaultTokenId()),
     graphqlEndpoint,
     config
   );
@@ -85,7 +93,7 @@ async function fetchAccountInternal(
       account: undefined,
       error: {
         statusCode: 404,
-        statusText: `fetchAccount: Account with public key ${publicKey.toBase58()} does not exist.`,
+        statusText: `fetchAccount: Account with public key ${publicKey} does not exist.`,
       },
     };
   }
@@ -306,7 +314,7 @@ async function fetchMissingData(graphqlEndpoint: string) {
   });
   let promises = accounts.map(async ([key, { publicKey, tokenId }]) => {
     let response = await fetchAccountInternal(
-      { publicKey: PublicKey.fromBase58(publicKey), tokenId },
+      { publicKey, tokenId },
       graphqlEndpoint
     );
     if (response.error === undefined) delete accountsToFetch[key];
