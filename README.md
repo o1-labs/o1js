@@ -19,7 +19,8 @@ npm run build
 
 ```
 npm install
-npm run start:web
+npm run build
+npm run serve:web
 ```
 
 Then go to `http://localhost:8000/`
