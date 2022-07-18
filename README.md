@@ -28,14 +28,6 @@ Then go to `http://localhost:8000/`
 npm run test
 ```
 
-## Publish
-
-```bash
-# Make sure to have proper NPM credentials before publishing.
-# To get credentials, use `npm login`
-npm publish
-```
-
 ## Contributing
 
 We appreciate any community contributions to SnarkyJS! Below are some steps that will help you get your changes in main as quickly as possible.
