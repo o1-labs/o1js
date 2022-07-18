@@ -5,7 +5,7 @@ import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
 import { SmartContract } from './zkapp';
 import * as Precondition from './precondition';
-import { Proof, snarkContext } from './proof_system';
+import { inCheckedComputation, Proof, snarkContext } from './proof_system';
 import { emptyHashWithPrefix, hashWithPrefix, prefixes } from './hash';
 
 // external API
@@ -657,8 +657,14 @@ class Party {
   }
 
   hash() {
-    let fields = Types.Party.toFields(toPartyUnsafe(this));
-    return Ledger.hashPartyFromFields(fields);
+    // these two ways of hashing are (and have to be) consistent / produce the same hash
+    if (inCheckedComputation()) {
+      let fields = Types.Party.toFields(toPartyUnsafe(this));
+      return Ledger.hashPartyFromFields(fields);
+    } else {
+      let json = Types.Party.toJson(toPartyUnsafe(this));
+      return Ledger.hashPartyFromJson(JSON.stringify(json));
+    }
   }
 
   // TODO: this was only exposed to be used in a unit test
