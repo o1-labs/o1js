@@ -384,15 +384,15 @@ class SmartContract {
       !methodIntfs.every((m) => m.methodName in ZkappClass._methodMetadata) &&
       !inAnalyze()
     ) {
+      if (snarkContext.get().inRunAndCheck) {
+        let err = new Error(
+          'Can not analyze methods inside Circuit.runAndCheck, because this creates a circuit nested in another circuit'
+        );
+        // EXCEPT if the code that calls this knows that it can first run `analyzeMethods` OUTSIDE runAndCheck and try again
+        (err as any).bootstrap = () => ZkappClass.analyzeMethods(address);
+        throw err;
+      }
       for (let methodIntf of methodIntfs) {
-        if (snarkContext.get().inRunAndCheck) {
-          let err = new Error(
-            'Can not analyze methods inside Circuit.runAndCheck, because this creates a circuit nested in another circuit'
-          );
-          // EXCEPT if the code that calls this knows that it can first run `analyzeMethods` OUTSIDE runAndCheck and try again
-          (err as any).bootstrap = () => ZkappClass.analyzeMethods(address);
-          throw err;
-        }
         let { rows, digest } = analyzeMethod(
           ZkappPublicInput,
           methodIntf,
