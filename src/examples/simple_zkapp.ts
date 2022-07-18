@@ -120,6 +120,15 @@ tx = await Mina.transaction(feePayer, () => {
 if (doProofs) await tx.prove();
 tx.send();
 
+// pay more into the zkapp -- this doesn't need a proof
+console.log('receive');
+tx = await Mina.transaction(feePayer, () => {
+  let payerParty = Party.createSigned(feePayer);
+  payerParty.balance.subInPlace(8e9);
+  zkapp.balance.addInPlace(8e9);
+});
+tx.send();
+
 console.log('payout');
 tx = await Mina.transaction(feePayer, () => {
   zkapp.payout(privilegedKey);
