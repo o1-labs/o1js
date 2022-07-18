@@ -4,6 +4,8 @@ To write a zkApp, we recommend using the [zkApp CLI](https://github.com/o1-labs/
 
 SnarkyJS's documentation is available [here](https://docs.minaprotocol.com/en/zkapps/snarkyjs-reference).
 
+See [CHANGELOG.md](https://github.com/o1-labs/snarkyjs/blob/main/CHANGELOG.md) for a list of changes between versions.
+
 ## Run examples in Node
 
 ```
@@ -28,10 +30,12 @@ Then go to `http://localhost:8000/`
 npm run test
 ```
 
-## Publish
+## Contributing
 
-```bash
-# Make sure to have proper NPM credentials before publishing.
-# To get credentials, use `npm login`
-npm publish
-```
+We appreciate any community contributions to SnarkyJS! Below are some steps that will help you get your changes in main as quickly as possible.
+
+1. Create a new issue for your proposed changes (or use an existing issue if a relevant one exists).
+2. Write an RFC in your issue outlining your proposed changes and motivation. [Example](https://github.com/o1-labs/snarkyjs/issues/233) Note: if you are proposing a smaller change your RFC will be smaller, and that's ok! :)
+3. One of the maintainers will review your RFC and work with you until it is approved.
+4. Fork the repository and implement your changes.
+5. Submit pull request and wait for code review :)
