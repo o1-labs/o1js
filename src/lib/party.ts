@@ -207,7 +207,7 @@ let Permissions = {
   default: (): Permissions => ({
     editState: Permission.proof(),
     send: Permission.signature(),
-    receive: Permission.proof(),
+    receive: Permission.none(),
     setDelegate: Permission.signature(),
     setPermissions: Permission.signature(),
     setVerificationKey: Permission.signature(),
