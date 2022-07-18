@@ -4,6 +4,8 @@ To write a zkApp, we recommend using the [zkApp CLI](https://github.com/o1-labs/
 
 SnarkyJS's documentation is available [here](https://docs.minaprotocol.com/en/zkapps/snarkyjs-reference).
 
+See [CHANGELOG.md](https://github.com/o1-labs/snarkyjs/blob/main/CHANGELOG.md) for a list of changes between versions.
+
 ## Run examples in Node
 
 ```
