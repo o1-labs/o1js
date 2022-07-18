@@ -1,4 +1,11 @@
-import { Bool, Field, AsFieldElements, Pickles, Circuit } from '../snarky';
+import {
+  Bool,
+  Field,
+  AsFieldElements,
+  Pickles,
+  Circuit,
+  Poseidon,
+} from '../snarky';
 import { getContext, withContext, withContextAsync } from './global-context';
 
 // public API
@@ -12,8 +19,9 @@ export {
   MethodInterface,
   picklesRuleFromFunction,
   compileProgram,
-  digestProgram,
+  analyzeMethod,
   emptyValue,
+  emptyWitness,
   synthesizeMethodArguments,
 };
 
@@ -131,6 +139,7 @@ function ZkProgram<
   name: string;
   compile: () => Promise<{ verificationKey: string }>;
   verify: (proof: Proof<InferInstance<PublicInputType>>) => Promise<boolean>;
+  digest: () => string;
   publicInputType: PublicInputType;
 } & {
   [I in keyof Types]: Prover<InferInstance<PublicInputType>, Types[I]>;
@@ -217,7 +226,22 @@ function ZkProgram<
     );
   }
 
-  return Object.assign(selfTag, { compile, verify, publicInputType }, provers);
+  function digest() {
+    let methodData = methodIntfs.map((methodEntry, i) =>
+      analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
+    );
+    let hash = Poseidon.hash(
+      Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest))),
+      false
+    );
+    return hash.toBigInt().toString(16);
+  }
+
+  return Object.assign(
+    selfTag,
+    { compile, verify, digest, publicInputType },
+    provers
+  );
 }
 
 let i = 0;
@@ -334,25 +358,30 @@ function compileProgram(
   return { getVerificationKeyArtifact, provers, verify, tag };
 }
 
-function digestProgram(
+function analyzeMethod(
   publicInputType: AsFieldElements<any>,
-  methodIntfs: MethodInterface[],
-  methods: ((...args: any) => void)[],
-  proofSystemTag: { name: string },
-  additionalContext?: { self: any } | undefined
+  methodIntf: MethodInterface,
+  method: (...args: any) => void,
+  additionalContext?: any
 ) {
-  let rules = methodIntfs.map((methodEntry, i) =>
-    picklesRuleFromFunction(
-      publicInputType,
-      methods[i],
-      proofSystemTag,
-      methodEntry
-    )
+  let [context, { rows, digest }] = withContext(
+    {
+      inAnalyze: true,
+      inCheckedComputation: true,
+      ...additionalContext,
+    },
+    () => {
+      let { rows, digest }: ReturnType<typeof Circuit.constraintSystem> = (
+        Circuit as any
+      )._constraintSystem(() => {
+        let args = synthesizeMethodArguments(methodIntf, true);
+        let publicInput = emptyWitness(publicInputType);
+        method(publicInput, ...args);
+      });
+      return { rows, digest };
+    }
   );
-  let [, digest] = withContext({ inCompile: true, ...additionalContext }, () =>
-    Pickles.circuitDigest(rules, publicInputType.sizeInFields())
-  );
-  return digest;
+  return { context, rows, digest };
 }
 
 function picklesRuleFromFunction(
@@ -418,18 +447,18 @@ function picklesRuleFromFunction(
   return { identifier: methodName, main, proofsToVerify };
 }
 
-function synthesizeMethodArguments({
-  allArgs,
-  proofArgs,
-  witnessArgs,
-}: MethodInterface) {
+function synthesizeMethodArguments(
+  { allArgs, proofArgs, witnessArgs }: MethodInterface,
+  asVariables = false
+) {
   let args = [];
+  let empty = asVariables ? emptyWitness : emptyValue;
   for (let arg of allArgs) {
     if (arg.type === 'witness') {
-      args.push(emptyValue(witnessArgs[arg.index]));
+      args.push(empty(witnessArgs[arg.index]));
     } else {
       let Proof = proofArgs[arg.index];
-      let publicInput = emptyValue(getPublicInputType(Proof));
+      let publicInput = empty(getPublicInputType(Proof));
       args.push(new Proof({ publicInput, proof: undefined }));
     }
   }

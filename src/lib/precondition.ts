@@ -12,7 +12,6 @@ import * as Mina from './mina';
 import { Party, Preconditions } from './party';
 import * as GlobalContext from './global-context';
 import { UInt32, UInt64 } from './int';
-import { emptyValue } from './proof_system';
 
 export {
   preconditions,
@@ -162,15 +161,16 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   fieldType: AsFieldElements<U>
 ): U {
   // in compile, just return an empty variable
-  if (GlobalContext.inCompile()) {
+  if (GlobalContext.inCompile() || GlobalContext.inAnalyze()) {
     return Circuit.witness(fieldType, (): U => {
+      // TODO this error is never thrown. instead, reading the value with e.g. `toString` ends up
+      // calling snarky's eval_as_prover, which throws "Can't evaluate prover code outside an as_prover block"
+      // this should be caught and replaced with a better error message
       throw Error(
         `This error is thrown because you are reading out the value of a variable, when that value is not known.
 To write a correct circuit, you must avoid any dependency on the concrete value of variables.`
       );
     });
-  } else if (GlobalContext.inAnalyze()) {
-    return emptyValue(fieldType);
   }
   // if not in compile, get the variable's value first
   let [accountOrNetwork, ...rest] = longKey.split('.');

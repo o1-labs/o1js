@@ -6,7 +6,6 @@ import * as Mina from './mina';
 import { Account, fetchAccount } from './fetch';
 import * as GlobalContext from './global-context';
 import { SmartContract } from './zkapp';
-import { emptyValue } from './proof_system';
 
 // external API
 export { State, state, declareState };
@@ -229,12 +228,14 @@ function createState<T>(): InternalStateType<T> {
           ? Circuit.witness(stateFieldsType, () => stateAsFields)
           : stateAsFields;
       } else {
-        // in compile, we don't need the witness values
-        stateAsFields = GlobalContext.inCompile()
-          ? Circuit.witness(stateFieldsType, (): Field[] => {
-              throw Error('this should never happen');
-            })
-          : emptyValue(stateFieldsType);
+        // in compile/analyze, we don't need the witness values
+        stateAsFields = Circuit.witness(stateFieldsType, (): Field[] => {
+          // TODO this error is never thrown. instead, reading the value with e.g. `toString` ends up
+          // calling snarky's eval_as_prover, which throws "Can't evaluate prover code outside an as_prover block"
+          // this should be caught and replaced with a better error message
+          throw Error(`This error is thrown because you are reading out the value of a variable, when that value is not known.
+To write a correct circuit, you must avoid any dependency on the concrete value of variables.`);
+        });
       }
       let state = this._contract.stateType.ofFields(stateAsFields);
       this._contract.stateType.check?.(state);

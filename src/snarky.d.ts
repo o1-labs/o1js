@@ -527,6 +527,8 @@ declare class Circuit {
 
   static runAndCheck<T>(f: () => T): T;
 
+  static constraintSystem(f: () => void): { rows: number; digest: string };
+
   static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
 
   static assertEqual<T>(x: T, y: T): void;
@@ -795,7 +797,7 @@ declare namespace Pickles {
 declare const Pickles: {
   /**
    * This is the core API of the `Pickles` library, exposed from OCaml to JS. It takes a list of circuits --
-   * each in the form of a function which takes a public input `{ transaction: Field; atParty: Field }` as argument --,
+   * each in the form of a function which takes a public input `{ party: Field; calls: Field }` as argument --,
    * and joins them into one single circuit which can not only provide proofs for any of the sub-circuits, but also
    * adds the necessary circuit logic to recursively merge in earlier proofs.
    *
@@ -807,6 +809,13 @@ declare const Pickles: {
    * * `provers` - a list of prover functions, on for each input `rule`
    * * `verify` - a function which can verify proofs from any of the provers
    * * `getVerificationKeyArtifact` - a function which returns the verification key used in `verify`, in base58 format, usable to deploy a zkapp
+   *
+   * Internal details:
+   * `compile` calls each of the input rules four times, inside pickles.ml / compile:
+   * 1) let step_data = ...    -> Pickles.Step_branch_data.create -> Pickles.Fix_domains.domains -> Impl.constraint_system
+   * 2) let step_keypair = ... -> log_step -> Snarky_log.Constraints.log -> constraint_count
+   * 3) let (wrap_pk, wrap_vk) -> log_wrap -> Snarky_log.Constraints.log -> constraint_count
+   * 4) let (wrap_pk, wrap_vk) -> log_wrap -> Snarky_log.Constraints.log -> constraint_count (yes, a second time)
    */
   compile: (
     rules: Pickles.Rule[],

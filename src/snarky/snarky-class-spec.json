@@ -197,6 +197,10 @@
         "type": "function"
       },
       {
+        "name": "_constraintSystem",
+        "type": "function"
+      },
+      {
         "name": "asProver",
         "type": "function"
       },

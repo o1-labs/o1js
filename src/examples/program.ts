@@ -25,6 +25,8 @@ let MyProgram = ZkProgram({
 
 let MyProof = ZkProgram.Proof(MyProgram);
 
+console.log('program digest', MyProgram.digest());
+
 console.log('compiling MyProgram...');
 let { verificationKey } = await MyProgram.compile();
 console.log('verification key', verificationKey.slice(0, 10) + '..');

@@ -73,7 +73,9 @@ Mina.setActiveInstance(Local);
 let feePayer = Local.testAccounts[0].privateKey;
 
 // the zkapp account
-let zkappKey = PrivateKey.random();
+let zkappKey = PrivateKey.fromBase58(
+  'EKEQc95PPQZnMY9d9p1vq1MWLeDJKtvKj4V75UDG3rjnf32BerWD'
+);
 let zkappAddress = zkappKey.toPublicKey();
 
 let zkapp = new CounterZkapp(zkappAddress);
