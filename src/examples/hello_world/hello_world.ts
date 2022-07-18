@@ -1,22 +1,21 @@
 import {
   Field,
   SmartContract,
-  method,
-  PrivateKey,
-  Bool,
-  State,
-  Party,
-  DeployArgs,
   state,
-  Permissions,
-  isReady,
-} from '../../../dist/server/index.mjs';
+  State,
+  method,
+  DeployArgs,
+  PrivateKey,
+} from '../../../dist/server/index.js';
 
-class HelloWorld extends SmartContract {
+export class HelloWorld extends SmartContract {
   @state(Field) x = State<Field>();
 
   deploy(input: DeployArgs) {
     super.deploy(input);
+  }
+
+  init() {
     this.x.set(3);
   }
 
