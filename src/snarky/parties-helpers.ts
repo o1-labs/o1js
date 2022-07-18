@@ -91,7 +91,11 @@ function toFields(typeData: Layout, value: any, converters: any): any {
   return fields;
 }
 
-function toAuxiliary(typeData: Layout, value: any, converters: any): any {
+function toAuxiliary<T>(
+  typeData: Layout,
+  value: T | undefined,
+  converters: any
+): any {
   let { checkedTypeName } = typeData;
   if (checkedTypeName) {
     // there's a custom conversion function!
@@ -100,9 +104,10 @@ function toAuxiliary(typeData: Layout, value: any, converters: any): any {
     return fields;
   }
   if (typeData.type === 'array') {
-    return value
-      .map((x: any) => toAuxiliary(typeData.inner, x, converters))
-      .flat();
+    let v: any[] | undefined = value as any;
+    // TODO: this might become inexact. array length isn't encoded
+    if (v === undefined) return [];
+    return v.map((x: any) => toAuxiliary(typeData.inner, x, converters)).flat();
   }
   if (typeData.type === 'option') {
     let { optionType, inner } = typeData;
@@ -111,7 +116,8 @@ function toAuxiliary(typeData: Layout, value: any, converters: any): any {
         return toAuxiliary(inner, value, converters);
       case 'flaggedOption':
         // i += 1; // DEBUG
-        return toAuxiliary(inner, value.value, converters);
+        let v: { isSome: boolean; value: any } | undefined = value as any;
+        return toAuxiliary(inner, v?.value, converters);
       default:
         return [];
     }
@@ -120,13 +126,14 @@ function toAuxiliary(typeData: Layout, value: any, converters: any): any {
     let { name, keys, entries } = typeData;
     if (Leaves.toFieldsLeafTypes.has(name)) {
       // override with custom leaf type
-      return Leaves.toAuxiliary(name as keyof Leaves.TypeMap, value);
+      return Leaves.toAuxiliary(name as keyof Leaves.TypeMap, value as any);
     }
     let fields: any = [];
+    let v: Record<string, any> | undefined = value as any;
     // let fieldsMap: any = {}; // DEBUG
     for (let key of keys) {
       // let i0 = i; // DEBUG
-      let newFields = toAuxiliary(entries[key], value[key], converters);
+      let newFields = toAuxiliary(entries[key], v?.[key], converters);
       fields.push(...newFields);
       // fieldsMap[key] = [i0, newFields.map(String)]; // DEBUG
     }
@@ -134,7 +141,7 @@ function toAuxiliary(typeData: Layout, value: any, converters: any): any {
     // console.log(fieldsMap); // DEBUG
     return fields;
   }
-  let fields = Leaves.toAuxiliary(typeData.type, value);
+  let fields = Leaves.toAuxiliary(typeData.type, value as any);
   // i += fields.length; // DEBUG
   return fields;
 }

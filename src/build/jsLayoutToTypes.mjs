@@ -38,7 +38,7 @@ function writeType(typeData, isJson, withTypeMap) {
         writeType(typeData, true, true).output
       }`,
       toFieldsType: `(${name.toLowerCase()}: ${typeString}) => Field[]`,
-      toAuxType: `(${name.toLowerCase()}: ${typeString}) => any[]`,
+      toAuxType: `(${name.toLowerCase()}?: ${typeString}) => any[]`,
     };
     typeData = typeData.checkedType;
   }
@@ -138,7 +138,7 @@ function writeTsContent(types, isJson) {
         `  toFields(${key.toLowerCase()}: ${key}): Field[] {\n` +
         `    return toFields(jsLayout.${key} as any, ${key.toLowerCase()}, fieldsConverters);\n` +
         `  },\n` +
-        `  toAuxiliary(${key.toLowerCase()}: ${key}): any[] {\n` +
+        `  toAuxiliary(${key.toLowerCase()}?: ${key}): any[] {\n` +
         `    return toAuxiliary(jsLayout.${key} as any, ${key.toLowerCase()}, auxConverters);\n` +
         `  },\n` +
         `};\n\n`;
