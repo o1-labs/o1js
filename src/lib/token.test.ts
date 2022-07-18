@@ -130,9 +130,7 @@ describe('Token', () => {
     });
 
     it('should have a valid token symbol', async () => {
-      const symbol = Mina.getAccount({
-        publicKey: zkappAddress,
-      }).tokenSymbol;
+      const symbol = Mina.getAccount(zkappAddress).tokenSymbol;
       expect(tokenSymbol).toBeDefined();
       expect(symbol).toEqual(tokenSymbol);
     });
@@ -172,10 +170,10 @@ describe('Token', () => {
         zkapp.sign(zkappKey);
       });
       tx.send();
-      const balance = Mina.getBalance({
-        publicKey: tokenAccount1,
-        tokenId: zkapp.token().id,
-      }).value.toBigInt();
+      const balance = Mina.getBalance(
+        tokenAccount1,
+        zkapp.token().id
+      ).value.toBigInt();
       expect(balance).toEqual(BigInt(100_000));
     });
 

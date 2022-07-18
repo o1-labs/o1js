@@ -202,10 +202,7 @@ function createState<T>(): InternalStateType<T> {
       if (!GlobalContext.inCompile() && !GlobalContext.inAnalyze()) {
         let account: Account;
         try {
-          account = Mina.getAccount({
-            publicKey: address,
-            tokenId: getDefaultTokenId(),
-          });
+          account = Mina.getAccount(address, getDefaultTokenId());
         } catch (err) {
           // TODO: there should also be a reasonable error here
           if (inProver) {

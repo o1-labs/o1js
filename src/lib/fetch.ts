@@ -9,7 +9,6 @@ import {
 } from './party';
 import { PublicKey } from './signature';
 import { NetworkValue } from './precondition';
-import { AccountParams } from './mina';
 
 export {
   fetchAccount,
@@ -47,7 +46,7 @@ function setGraphqlEndpoint(graphqlEndpoint: string) {
  * @returns zkapp information on the specified account or an error is thrown
  */
 async function fetchAccount(
-  accountInfo: AccountParams,
+  accountInfo: { publicKey: PublicKey; tokenId?: string },
   graphqlEndpoint = defaultGraphqlEndpoint,
   { timeout = defaultTimeout } = {}
 ): Promise<
@@ -68,7 +67,7 @@ async function fetchAccount(
 // internal version of fetchAccount which does the same, but returns the original JSON version
 // of the account, to save some back-and-forth conversions when caching accounts
 async function fetchAccountInternal(
-  accountInfo: AccountParams,
+  accountInfo: { publicKey: PublicKey; tokenId?: string },
   graphqlEndpoint = defaultGraphqlEndpoint,
   config?: FetchConfig
 ) {

@@ -35,7 +35,6 @@ export {
   getNetworkState,
   accountCreationFee,
   sendTransaction,
-  AccountParams,
 };
 
 interface TransactionId {
@@ -75,11 +74,6 @@ type SenderSpec =
   | PrivateKey
   | { feePayerKey: PrivateKey; fee?: number | string | UInt64; memo?: string }
   | undefined;
-
-type AccountParams = {
-  publicKey: PublicKey;
-  tokenId?: string;
-};
 
 function createUnsignedTransaction(
   f: () => unknown,
@@ -128,10 +122,7 @@ function createTransaction(
   if (feePayerKey !== undefined) {
     // if senderKey is provided, fetch account to get nonce and mark to be signed
     let senderAddress = feePayerKey.toPublicKey();
-    let senderAccount = getAccount({
-      publicKey: senderAddress,
-      tokenId: getDefaultTokenId(),
-    });
+    let senderAccount = getAccount(senderAddress, getDefaultTokenId());
     feePayerParty = Party.defaultFeePayer(
       senderAddress,
       feePayerKey,
@@ -187,7 +178,7 @@ function createTransaction(
 interface Mina {
   transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
   currentSlot(): UInt32;
-  getAccount(accountParams: AccountParams): Account;
+  getAccount(publicKey: PublicKey, tokenId?: string): Account;
   getNetworkState(): NetworkValue;
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): TransactionId;
@@ -235,13 +226,14 @@ function LocalBlockchain({
         Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
       );
     },
-    getAccount(account: AccountParams): Account {
-      let { publicKey, tokenId } = account;
-      tokenId = tokenId ?? getDefaultTokenId();
-      const tokenIdAsField = tokenId
-        ? Ledger.fieldOfBase58(tokenId)
-        : Ledger.fieldOfBase58(getDefaultTokenId());
-      let ledgerAccount = ledger.getAccount(publicKey, tokenIdAsField);
+    getAccount(
+      publicKey: PublicKey,
+      tokenId: string = getDefaultTokenId()
+    ): Account {
+      let ledgerAccount = ledger.getAccount(
+        publicKey,
+        Ledger.fieldOfBase58(tokenId)
+      );
       if (ledgerAccount == undefined) {
         throw new Error(
           `getAccount: Could not find account for public key ${publicKey.toBase58()} with the tokenId ${tokenId}`
@@ -307,9 +299,10 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         'currentSlot() is not implemented yet for remote blockchains.'
       );
     },
-    getAccount(account: AccountParams): Account {
-      let { publicKey, tokenId } = account;
-      tokenId = tokenId ?? getDefaultTokenId();
+    getAccount(
+      publicKey: PublicKey,
+      tokenId: string = getDefaultTokenId()
+    ): Account {
       if (currentTransaction?.fetchMode === 'test') {
         Fetch.markAccountToBeFetched(publicKey, tokenId, graphqlEndpoint);
         let account = Fetch.getCachedAccount(
@@ -403,9 +396,10 @@ let activeInstance: Mina = {
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
   },
-  getAccount: (account: AccountParams) => {
-    let { publicKey, tokenId } = account;
-    tokenId = tokenId ?? getDefaultTokenId();
+  getAccount(
+    publicKey: PublicKey,
+    tokenId: string = getDefaultTokenId()
+  ): Account {
     if (currentTransaction?.fetchMode === 'test') {
       Fetch.markAccountToBeFetched(
         publicKey,
@@ -490,8 +484,8 @@ function currentSlot(): UInt32 {
 /**
  * @return The account data associated to the given public key.
  */
-function getAccount(account: AccountParams) {
-  return activeInstance.getAccount(account);
+function getAccount(publicKey: PublicKey, tokenId?: string): Account {
+  return activeInstance.getAccount(publicKey, tokenId);
 }
 
 /**
@@ -504,8 +498,8 @@ function getNetworkState() {
 /**
  * @return The balance associated to the given public key.
  */
-function getBalance(account: AccountParams) {
-  return activeInstance.getAccount(account).balance;
+function getBalance(publicKey: PublicKey, tokenId?: string) {
+  return activeInstance.getAccount(publicKey, tokenId).balance;
 }
 
 function accountCreationFee() {
