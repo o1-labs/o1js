@@ -33,12 +33,14 @@ function writeType(typeData, isJson, withTypeMap) {
       toJsonName: `convert${name}ToJson`,
       toFieldsName: `convert${name}ToFields`,
       toAuxName: `convert${name}ToAux`,
+      fromFieldsName: `convert${name}FromFields`,
       typeName: name,
       toJsonType: `(${name.toLowerCase()}: ${typeString}) => ${
         writeType(typeData, true, true).output
       }`,
       toFieldsType: `(${name.toLowerCase()}: ${typeString}) => Field[]`,
       toAuxType: `(${name.toLowerCase()}?: ${typeString}) => any[]`,
+      fromFieldsType: `(fields: Field[], aux: any[]) => ${typeString}`,
     };
     typeData = typeData.checkedType;
   }
@@ -141,6 +143,9 @@ function writeTsContent(types, isJson) {
         `  toAuxiliary(${key.toLowerCase()}?: ${key}): any[] {\n` +
         `    return toAuxiliary(jsLayout.${key} as any, ${key.toLowerCase()}, auxConverters);\n` +
         `  },\n` +
+        `  fromFields(fields: Field[], aux: any[]): ${key} {\n` +
+        `    return fromFields(jsLayout.${key} as any, fields, aux, fromFieldsConverters);\n` +
+        `  },\n` +
         `};\n\n`;
     }
   }
@@ -148,11 +153,15 @@ function writeTsContent(types, isJson) {
   let jsonConverters_ = Object.values(converters).map((c) => c.toJsonName);
   let fieldsConverters = Object.values(converters).map((c) => c.toFieldsName);
   let auxConverters = Object.values(converters).map((c) => c.toAuxName);
+  let fromFieldsConverters = Object.values(converters).map(
+    (c) => c.fromFieldsName
+  );
   let imports = new Set();
   mergeSet(imports, dependencies);
   mergeSet(imports, new Set(jsonConverters_));
   mergeSet(imports, new Set(fieldsConverters));
   mergeSet(imports, new Set(auxConverters));
+  mergeSet(imports, new Set(fromFieldsConverters));
 
   let importPath = isJson ? '../parties-leaves-json' : '../parties-leaves';
   return `// @generated this file is auto-generated - don't edit it directly
@@ -160,7 +169,7 @@ function writeTsContent(types, isJson) {
 import { ${[...imports].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? "import { toJson, toFields, toAuxiliary } from '../parties-helpers';\n" +
+    ? "import { toJson, toFields, toAuxiliary, fromFields } from '../parties-helpers';\n" +
       "import * as Json from './parties-json';\n" +
       "import { jsLayout } from './js-layout';\n"
     : ''
@@ -194,6 +203,13 @@ type AuxConverters = { ${Object.values(converters)
         .join(';\n')} };
 let auxConverters: AuxConverters = { ${Object.values(converters)
         .map((c) => `${c.typeName}: ${c.toAuxName}`)
+        .join(',\n')} };
+
+type FromFieldsConverters = { ${Object.values(converters)
+        .map((c) => `${c.typeName}: ${c.fromFieldsType}`)
+        .join(';\n')} };
+let fromFieldsConverters: FromFieldsConverters = { ${Object.values(converters)
+        .map((c) => `${c.typeName}: ${c.fromFieldsName}`)
         .join(',\n')} };
 `
     : ''

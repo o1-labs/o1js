@@ -7,9 +7,11 @@ export {
   convertEventsToJson,
   convertEventsToFields,
   convertEventsToAux,
+  convertEventsFromFields,
   convertStringWithHashToJson,
   convertStringWithHashToFields,
   convertStringWithHashToAux,
+  convertStringWithHashFromFields,
 };
 
 export {
@@ -18,6 +20,7 @@ export {
   toFields,
   toFieldsLeafTypes,
   toAuxiliary,
+  fromFields,
   TypeMap,
   ToJsonTypeMap,
 };
@@ -55,7 +58,7 @@ type TypeMap = {
 function identity(x: any) {
   return x;
 }
-function asString(x: Field | UInt32 | UInt64 | bigint) {
+function asString(x: Field | bigint) {
   return x.toString();
 }
 
@@ -88,8 +91,12 @@ let ToJson: ToJson = {
       default: throw Error('Unexpected permission');
     }
   },
-  UInt32: asString,
-  UInt64: asString,
+  UInt32(x: UInt32) {
+    return x.value.toString();
+  },
+  UInt64(x: UInt64) {
+    return x.value.toString();
+  },
   TokenId(x: TokenId) {
     return Ledger.fieldToBase58(x);
   },
@@ -121,10 +128,6 @@ function toJson<K extends keyof ToJsonTypeMap>(
 }
 
 // to fields
-
-// TODO: to go _back_ from fields to JS types / JSON, we need the equivalent of typ.value_of_fields,
-// which also needs auxiliary data like the string in {data: string; hash: Field}
-// So eventually we should implement toAuxiliary(jsType) and fromFields(fields, auxiliary)
 
 type ToFields = { [K in keyof TypeMap]: (x: TypeMap[K]) => Field[] };
 
@@ -166,6 +169,8 @@ function toFields<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
   return ToFields[typeName](value);
 }
 
+// to auxiliary
+
 type ToAuxiliary = {
   [K in keyof TypeMap]:
     | ((x: TypeMap[K] | undefined) => [])
@@ -183,8 +188,8 @@ let ToAuxiliary: ToAuxiliary = {
   Sign: empty,
   // builtin
   number: (x = 0) => [x],
-  null: () => [null],
-  undefined: () => [undefined],
+  null: empty,
+  undefined: empty,
   string: (x = '') => [x],
 };
 
@@ -195,6 +200,72 @@ function toAuxiliary<K extends keyof TypeMap>(
   if (!(typeName in ToFields))
     throw Error(`toAuxiliary: unsupported type "${typeName}"`);
   return ToAuxiliary[typeName](value);
+}
+
+// from fields & aux
+// these functions get the reversed output of `toFields` and `toAuxiliary` and pop the values they need from those arrays
+// NB: unlike toFields, this is only used outside snark, so no worries about constraint efficiency, checking booleanness etc
+
+type FromFields = {
+  [K in keyof TypeMap]: (fields: Field[], aux: any[]) => TypeMap[K];
+};
+
+function takeOneAux(_: Field[], aux: any[]) {
+  return aux.pop()!;
+}
+
+let FromFields: FromFields = {
+  PublicKey(fields: Field[]) {
+    let x = fields.pop()!;
+    let isOdd = fields.pop()!;
+    // compute y from elliptic curve equation y^2 = x^3 + 5
+    let someY = x.mul(x).mul(x).add(5).sqrt();
+    let isTheRightY = isOdd.equals(someY.toBits()[0].toField());
+    let y = isTheRightY
+      .toField()
+      .mul(someY)
+      .add(isTheRightY.not().toField().mul(someY.neg()));
+    return { g: new Group({ x, y }) };
+  },
+  Field(fields: Field[]) {
+    return fields.pop()!;
+  },
+  Bool(fields: Field[]) {
+    return Bool.Unsafe.ofField(fields.pop()!);
+  },
+  AuthRequired(fields: Field[], _) {
+    let constant = FromFields.Bool(fields, _);
+    let signatureNecessary = FromFields.Bool(fields, _);
+    let signatureSufficient = FromFields.Bool(fields, _);
+    return { constant, signatureNecessary, signatureSufficient };
+  },
+  UInt32(fields: Field[]) {
+    return { value: fields.pop()! };
+  },
+  UInt64(fields: Field[]) {
+    return { value: fields.pop()! };
+  },
+  TokenId(fields: Field[]) {
+    return fields.pop()!;
+  },
+  Sign(fields: Field[]) {
+    return fields.pop()!;
+  },
+  // builtin
+  number: takeOneAux,
+  null: () => null,
+  undefined: () => undefined,
+  string: takeOneAux,
+};
+
+function fromFields<K extends keyof TypeMap>(
+  typeName: K,
+  fields: Field[],
+  aux: any[]
+): TypeMap[K] {
+  if (!(typeName in ToFields))
+    throw Error(`fromFields: unsupported type "${typeName}"`);
+  return FromFields[typeName](fields, aux);
 }
 
 let toJsonLeafTypes = new Set(Object.keys(ToJson));
@@ -213,6 +284,14 @@ function convertEventsToFields({ hash }: DataAsHash<Field[][]>) {
 function convertEventsToAux(events?: DataAsHash<Field[][]>) {
   return [events?.data ?? []];
 }
+function convertEventsFromFields(
+  fields: Field[],
+  aux: any[]
+): DataAsHash<Field[][]> {
+  let hash = fields.pop()!;
+  let data = aux.pop()!;
+  return { data, hash };
+}
 
 function convertStringWithHashToJson({ data }: DataAsHash<string>) {
   return data;
@@ -222,4 +301,12 @@ function convertStringWithHashToFields({ hash }: DataAsHash<string>) {
 }
 function convertStringWithHashToAux(stringWithHash?: DataAsHash<string>) {
   return [stringWithHash?.data ?? ''];
+}
+function convertStringWithHashFromFields(
+  fields: Field[],
+  aux: any[]
+): DataAsHash<string> {
+  let hash = fields.pop()!;
+  let data = aux.pop()!;
+  return { data, hash };
 }
