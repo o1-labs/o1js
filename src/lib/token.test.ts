@@ -28,6 +28,9 @@ class TokenContract extends SmartContract {
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
     });
+  }
+
+  @method init() {
     this.tokenSymbol.set(tokenSymbol);
     this.totalAmountInCirculation.set(UInt64.zero);
     this.maxAmountInCirculation.set(UInt64.from(100_000_000));
@@ -108,11 +111,13 @@ async function setupLocal() {
   tokenAccount2Key = Local.testAccounts[2].privateKey;
   tokenAccount2 = tokenAccount2Key.toPublicKey();
 
-  let tx = await Mina.transaction(feePayer, () => {
-    Party.fundNewAccount(feePayer);
-    zkapp.deploy({ zkappKey });
-  });
-  tx.send();
+  (
+    await Mina.transaction(feePayer, () => {
+      Party.fundNewAccount(feePayer);
+      zkapp.deploy({ zkappKey });
+      zkapp.init();
+    })
+  ).send();
 }
 
 describe('Token', () => {
