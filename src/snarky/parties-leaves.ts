@@ -131,7 +131,7 @@ type ToFields = { [K in keyof TypeMap]: (x: TypeMap[K]) => Field[] };
 function asFields(x: any): Field[] {
   return x.toFields();
 }
-function empty(_: any) {
+function empty(_: any): [] {
   return [];
 }
 
@@ -166,11 +166,11 @@ function toFields<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
   return ToFields[typeName](value);
 }
 
-type ToAuxiliary = { [K in keyof ToFields]: (x: ToFields[K]) => any[] };
-
-function valueAsArray(value: any) {
-  return [value];
-}
+type ToAuxiliary = {
+  [K in keyof TypeMap]:
+    | ((x: TypeMap[K] | undefined) => [])
+    | ((x: TypeMap[K] | undefined) => [TypeMap[K]]);
+};
 
 let ToAuxiliary: ToAuxiliary = {
   PublicKey: empty,
@@ -182,15 +182,15 @@ let ToAuxiliary: ToAuxiliary = {
   TokenId: empty,
   Sign: empty,
   // builtin
-  number: valueAsArray,
-  null: valueAsArray,
-  undefined: valueAsArray,
-  string: valueAsArray,
+  number: (x = 0) => [x],
+  null: () => [null],
+  undefined: () => [undefined],
+  string: (x = '') => [x],
 };
 
-function toAuxiliary<K extends keyof ToFields>(
+function toAuxiliary<K extends keyof TypeMap>(
   typeName: K,
-  value: ToFields[K]
+  value: TypeMap[K] | undefined
 ) {
   if (!(typeName in ToFields))
     throw Error(`toAuxiliary: unsupported type "${typeName}"`);
@@ -210,8 +210,8 @@ function convertEventsToJson({ data }: DataAsHash<Field[][]>) {
 function convertEventsToFields({ hash }: DataAsHash<Field[][]>) {
   return [hash];
 }
-function convertEventsToAux({ data }: DataAsHash<Field[][]>) {
-  return [data];
+function convertEventsToAux(events?: DataAsHash<Field[][]>) {
+  return [events?.data ?? []];
 }
 
 function convertStringWithHashToJson({ data }: DataAsHash<string>) {
@@ -220,6 +220,6 @@ function convertStringWithHashToJson({ data }: DataAsHash<string>) {
 function convertStringWithHashToFields({ hash }: DataAsHash<string>) {
   return [hash];
 }
-function convertStringWithHashToAux({ data }: DataAsHash<string>) {
-  return [data];
+function convertStringWithHashToAux(stringWithHash?: DataAsHash<string>) {
+  return [stringWithHash?.data ?? ''];
 }

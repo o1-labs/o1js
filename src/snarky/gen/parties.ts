@@ -49,8 +49,8 @@ let fieldsConverters: FieldsConverters = {
 };
 
 type AuxConverters = {
-  StringWithHash: (stringwithhash: { data: string; hash: Field }) => any[];
-  Events: (events: { data: Field[][]; hash: Field }) => any[];
+  StringWithHash: (stringwithhash?: { data: string; hash: Field }) => any[];
+  Events: (events?: { data: Field[][]; hash: Field }) => any[];
 };
 let auxConverters: AuxConverters = {
   StringWithHash: convertStringWithHashToAux,
@@ -232,7 +232,7 @@ let Parties = {
   toFields(parties: Parties): Field[] {
     return toFields(jsLayout.Parties as any, parties, fieldsConverters);
   },
-  toAuxiliary(parties: Parties): any[] {
+  toAuxiliary(parties?: Parties): any[] {
     return toAuxiliary(jsLayout.Parties as any, parties, auxConverters);
   },
 };
@@ -400,7 +400,7 @@ let Party = {
   toFields(party: Party): Field[] {
     return toFields(jsLayout.Party as any, party, fieldsConverters);
   },
-  toAuxiliary(party: Party): any[] {
+  toAuxiliary(party?: Party): any[] {
     return toAuxiliary(jsLayout.Party as any, party, auxConverters);
   },
 };
