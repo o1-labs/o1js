@@ -1,4 +1,4 @@
-import { circuitValue, cloneCircuitValue } from './circuit_value';
+import { CircuitValue, circuitValue, cloneCircuitValue } from './circuit_value';
 import {
   Field,
   Bool,
@@ -518,9 +518,7 @@ class Token {
     try {
       Ledger.fieldToBase58(parentTokenId);
     } catch (e) {
-      throw new Error(
-        `Invalid parentTokenId\n(error: ${(e as Error).message})`
-      );
+      throw new Error(`Invalid parentTokenId\nError: ${(e as Error).message}`);
     }
 
     // Check if we can create a custom tokenId
@@ -528,13 +526,13 @@ class Token {
       Ledger.customTokenId(tokenOwner, parentTokenId);
     } catch (e) {
       throw new Error(
-        `Could not create a custom token id:\n(error: ${(e as Error).message})`
+        `Could not create a custom token id:\nError: ${(e as Error).message}`
       );
     }
 
     this.parentTokenId = parentTokenId;
     this.tokenOwner = tokenOwner;
-    if (inCheckedComputation()) {
+    if (tokenOwner.toConstant() && parentTokenId.isConstant()) {
       this.id = Ledger.customTokenIdChecked(tokenOwner, this.parentTokenId);
     } else {
       this.id = Ledger.customTokenId(tokenOwner, this.parentTokenId);
@@ -885,7 +883,7 @@ class Party {
 
     // TODO: getAccount could always be used if we had a generic way to add account info prior to creating transactions
     if (nonce === undefined) {
-      let account = Mina.getAccount(publicKey, getDefaultTokenId());
+      let account = Mina.getAccount(publicKey, body.tokenId);
       nonce = account.nonce;
     }
 
