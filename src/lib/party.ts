@@ -782,6 +782,20 @@ class Party implements Types.Party {
         : UInt64.fromString(`${initialBalance}`);
     party.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
+
+  static witness(compute: () => Party) {
+    let proverParty: Party | undefined;
+    let partyRaw = Types.Party.witness(() => {
+      proverParty = compute();
+      return proverParty;
+    });
+    let party = new Party(partyRaw.body, partyRaw.authorization);
+    party.lazyAuthorization =
+      proverParty && cloneCircuitValue(proverParty.lazyAuthorization);
+    party.children = proverParty?.children ?? [];
+    party.parent = proverParty?.parent;
+    return party;
+  }
 }
 
 const CallForest = {
