@@ -2,7 +2,7 @@ import { circuitValue, cloneCircuitValue } from './circuit_value';
 import { Field, Bool, Ledger, Circuit, Pickles } from '../snarky';
 import { Types } from '../snarky/types';
 import { PrivateKey, PublicKey } from './signature';
-import { UInt64, UInt32, Int64 } from './int';
+import { UInt64, UInt32, Int64, Sign } from './int';
 import * as Mina from './mina';
 import { SmartContract } from './zkapp';
 import * as Precondition from './precondition';
@@ -295,7 +295,10 @@ interface Body extends PartyBody {
    * By what [[ Int64 ]] should the balance of this account change. All
    * balanceChanges must balance by the end of smart contract execution.
    */
-  balanceChange: Int64;
+  balanceChange: {
+    magnitude: UInt64;
+    sgn: Sign;
+  };
 
   /**
    * Recent events that have been emitted from this account.
@@ -528,10 +531,12 @@ class Party {
     let party = this;
     return {
       addInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
-        party.body.balanceChange = party.body.balanceChange.add(x);
+        let { magnitude, sgn } = party.body.balanceChange;
+        party.body.balanceChange = new Int64(magnitude, sgn).add(x);
       },
       subInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
-        party.body.balanceChange = party.body.balanceChange.sub(x);
+        let { magnitude, sgn } = party.body.balanceChange;
+        party.body.balanceChange = new Int64(magnitude, sgn).sub(x);
       },
     };
   }
