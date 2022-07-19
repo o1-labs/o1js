@@ -12,7 +12,7 @@ import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
 import { SmartContract } from './zkapp';
-import { withContextAsync } from './global-context';
+import { inCheckedComputation, withContextAsync } from './global-context';
 import * as Precondition from './precondition';
 import { Proof } from './proof_system';
 import { emptyHashWithPrefix, hashWithPrefix, prefixes } from './hash';
@@ -242,7 +242,7 @@ let Permissions = {
   }),
 };
 
-const getDefaultTokenId = () => Ledger.fieldToBase58(Field.one);
+const getDefaultTokenId = () => Field.one;
 
 type Event = Field[];
 
@@ -356,11 +356,11 @@ const Body = {
     return {
       publicKey,
       update: Body.noUpdate(),
-      tokenId: Ledger.fieldOfBase58(getDefaultTokenId()),
+      tokenId: getDefaultTokenId(),
       balanceChange: Int64.zero,
       events: Events.empty(),
       sequenceEvents: Events.empty(),
-      caller: Ledger.fieldOfBase58(getDefaultTokenId()),
+      caller: getDefaultTokenId(),
       callData: Field.zero, // TODO new MerkleList(),
       callDepth: 0,
       preconditions: Preconditions.ignoreAll(),
@@ -504,11 +504,11 @@ type UnfinishedSignature = undefined | LazySignature | string;
 type LazyControl = Control | LazySignature | LazyProof;
 
 class Token {
-  readonly id: string;
-  readonly parentTokenId: string;
+  readonly id: Field;
+  readonly parentTokenId: Field;
   readonly tokenOwner: PublicKey;
 
-  constructor(options: { tokenOwner: PublicKey; parentTokenId?: string }) {
+  constructor(options: { tokenOwner: PublicKey; parentTokenId?: Field }) {
     let { tokenOwner, parentTokenId } = options ?? {};
 
     // Reassign to default tokenId if undefined
@@ -516,25 +516,29 @@ class Token {
 
     // Check if we can deserialize the parentTokenId
     try {
-      Ledger.fieldOfBase58(parentTokenId);
+      Ledger.fieldToBase58(parentTokenId);
     } catch (e) {
-      throw new Error(`Invalid parentTokenId\n(error: ${(<Error>e).message})`);
+      throw new Error(
+        `Invalid parentTokenId\n(error: ${(e as Error).message})`
+      );
     }
 
     // Check if we can create a custom tokenId
     try {
-      Ledger.customTokenID(tokenOwner, Ledger.fieldOfBase58(parentTokenId));
+      Ledger.customTokenId(tokenOwner, parentTokenId);
     } catch (e) {
       throw new Error(
-        `Could not create a custom token id:\n(error: ${(<Error>e).message})`
+        `Could not create a custom token id:\n(error: ${(e as Error).message})`
       );
     }
+
     this.parentTokenId = parentTokenId;
     this.tokenOwner = tokenOwner;
-    this.id = Ledger.customTokenID(
-      tokenOwner,
-      Ledger.fieldOfBase58(this.parentTokenId)
-    );
+    if (inCheckedComputation()) {
+      this.id = Ledger.customTokenIdChecked(tokenOwner, this.parentTokenId);
+    } else {
+      this.id = Ledger.customTokenId(tokenOwner, this.parentTokenId);
+    }
   }
 }
 
@@ -573,7 +577,7 @@ class Party {
     return new (Party as any)(body, authorization, party.isSelf);
   }
 
-  token(tokenId?: string) {
+  token(tokenId?: Field) {
     let thisParty = this;
     let customToken = new Token({
       tokenOwner: thisParty.body.publicKey,
@@ -829,8 +833,8 @@ class Party {
   static createUnsigned(
     publicKey: PublicKey,
     options?: {
-      caller?: string;
-      tokenId?: string;
+      caller?: Field;
+      tokenId?: Field;
       callDepth?: number;
       useFullCommitment?: Bool;
     }
@@ -846,8 +850,8 @@ class Party {
     const pk = publicKey;
     const body: Body = Body.keepAll(pk);
     const { caller, tokenId, callDepth, useFullCommitment } = options ?? {};
-    body.caller = caller ? Ledger.fieldOfBase58(caller) : body.caller;
-    body.tokenId = tokenId ? Ledger.fieldOfBase58(tokenId) : body.tokenId;
+    body.caller = caller ?? body.caller;
+    body.tokenId = tokenId ?? body.tokenId;
     body.callDepth = callDepth ?? body.callDepth;
     body.useFullCommitment = useFullCommitment ?? body.useFullCommitment;
 

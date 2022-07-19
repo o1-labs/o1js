@@ -178,7 +178,7 @@ To write a correct circuit, you must avoid any dependency on the concrete value 
   let value: U;
   if (accountOrNetwork === 'account') {
     let address = party.body.publicKey;
-    let account: any = Mina.getAccount(address, getDefaultTokenId());
+    let account: any = Mina.getAccount(address, party.body.tokenId);
     value = account[key];
     if (value === undefined)
       throw Error(

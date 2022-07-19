@@ -385,7 +385,11 @@
         "type": "function"
       },
       {
-        "name": "customTokenID",
+        "name": "customTokenId",
+        "type": "function"
+      },
+      {
+        "name": "customTokenIdChecked",
         "type": "function"
       },
       {

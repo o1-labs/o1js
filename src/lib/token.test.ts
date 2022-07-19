@@ -1,4 +1,5 @@
 import {
+  Field,
   shutdown,
   isReady,
   State,
@@ -144,20 +145,8 @@ describe('Token', () => {
     });
 
     it('should create a valid token with a different parentTokenId', async () => {
-      const newTokenId = Ledger.customTokenID(
-        tokenAccount1,
-        Ledger.fieldOfBase58(zkapp.token().id)
-      );
+      const newTokenId = Ledger.customTokenId(tokenAccount1, zkapp.token().id);
       expect(newTokenId).toBeDefined();
-    });
-
-    it('should error if passing in an invalid parentTokenId', async () => {
-      expect(() => {
-        new Token({
-          tokenOwner: zkappAddress,
-          parentTokenId: 'invalid',
-        });
-      }).toThrow();
     });
 
     it('should error if passing in an invalid tokenSymbol', async () => {

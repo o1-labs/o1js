@@ -1,5 +1,5 @@
 import 'isomorphic-fetch';
-import { Bool, Field, Types } from '../snarky';
+import { Bool, Field, Types, Ledger } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import {
   getDefaultTokenId,
@@ -81,7 +81,10 @@ async function fetchAccountInternal(
 ) {
   const { publicKey, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
-    accountQuery(publicKey, tokenId ?? getDefaultTokenId()),
+    accountQuery(
+      publicKey,
+      tokenId ?? Ledger.fieldToBase58(getDefaultTokenId())
+    ),
     graphqlEndpoint,
     config
   );
@@ -163,7 +166,7 @@ type Account = {
   publicKey: PublicKey;
   nonce: UInt32;
   balance: UInt64;
-  tokenId: string;
+  tokenId: Field;
   tokenSymbol: string;
   zkapp?: { appState: Field[] };
   permissions?: Permissions;
@@ -176,7 +179,7 @@ type Account = {
 type FlexibleAccount = {
   publicKey: PublicKey | string;
   nonce: UInt32 | string | number;
-  tokenId: string;
+  tokenId?: string;
   tokenSymbol?: string;
   balance?: UInt64 | string | number;
   zkapp?: { appState: (Field | string | number)[] };
@@ -261,7 +264,7 @@ function stringifyAccount(account: FlexibleAccount): FetchedAccount {
       zkapp?.appState.map((s) => s.toString()) ??
       Array(ZkappStateLength).fill('0'),
     balance: { total: balance?.toString() ?? '0' },
-    tokenId,
+    tokenId: tokenId ?? Ledger.fieldToBase58(getDefaultTokenId()),
     tokenSymbol: tokenSymbol ?? '',
   };
 }
