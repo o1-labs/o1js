@@ -1,12 +1,11 @@
 import { Circuit, AsFieldElements, Bool, Field } from '../snarky';
 import { circuitValueEquals } from './circuit_value';
-import { PublicKey } from './signature';
 import * as Mina from './mina';
 import { Party, Preconditions } from './party';
 import { UInt32, UInt64 } from './int';
 import { inAnalyze, inCompile, inProver } from './proof_system';
 import { Layout } from 'snarky/parties-helpers';
-import { jsLayout, Types } from '../snarky/types';
+import { jsLayout } from '../snarky/types';
 
 export {
   preconditions,
@@ -271,24 +270,24 @@ type Account = PreconditionClassType<AccountPrecondition>;
 
 type PreconditionBaseTypes<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
-    ? BasicToFull<U>
+    ? U
     : T[K] extends FlaggedOptionCondition<infer U>
-    ? BasicToFull<U>
+    ? U
     : T[K] extends AsFieldElements<infer U>
-    ? BasicToFull<U>
+    ? U
     : PreconditionBaseTypes<T[K]>;
 };
 
 type PreconditionSubclassType<U> = {
-  get(): BasicToFull<U>;
-  assertEquals(value: BasicToFull<U>): void;
+  get(): U;
+  assertEquals(value: U): void;
   assertNothing(): void;
 };
 
 type PreconditionClassType<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
     ? PreconditionSubclassType<U> & {
-        assertBetween(lower: BasicToFull<U>, upper: BasicToFull<U>): void;
+        assertBetween(lower: U, upper: U): void;
       }
     : T[K] extends FlaggedOptionCondition<infer U>
     ? PreconditionSubclassType<U>
@@ -296,18 +295,6 @@ type PreconditionClassType<T> = {
     ? PreconditionSubclassType<Field>
     : PreconditionClassType<T[K]>;
 };
-
-type BasicToFull<K> = K extends Types.UInt32
-  ? UInt32
-  : K extends Types.UInt64
-  ? UInt64
-  : K extends Field
-  ? Field
-  : K extends Bool
-  ? Bool
-  : K extends Types.PublicKey
-  ? PublicKey
-  : never;
 
 // TS magic for computing flattened precondition types
 
