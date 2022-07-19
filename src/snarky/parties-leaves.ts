@@ -16,6 +16,7 @@ export {
   toAuxiliary,
   sizeInFields,
   fromFields,
+  check,
   TypeMap,
   ToJsonTypeMap,
 };
@@ -284,6 +285,38 @@ function fromFields<K extends keyof TypeMap>(
   return FromFields[typeName](fields, aux);
 }
 
+// check
+
+type Check = { [K in keyof TypeMap]: (x: TypeMap[K]) => void };
+
+function none() {}
+
+let Check: Check = {
+  PublicKey: (v) => PublicKey.check(v),
+  Field: (v) => Field.check(v),
+  Bool: (v) => Bool.check(v),
+  AuthRequired(x: AuthRequired) {
+    Bool.check(x.constant);
+    Bool.check(x.signatureNecessary);
+    Bool.check(x.signatureSufficient);
+  },
+  UInt32: (v) => UInt32.check(v),
+  UInt64: (v) => UInt64.check(v),
+  TokenId: (v) => Field.check(v),
+  Sign: (v) => Sign.check(v),
+  // builtin
+  number: none,
+  null: none,
+  undefined: none,
+  string: none,
+};
+
+function check<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
+  if (!(typeName in ToFields))
+    throw Error(`check: unsupported type "${typeName}"`);
+  Check[typeName](value);
+}
+
 let toJsonLeafTypes = new Set(Object.keys(ToJson));
 let toFieldsLeafTypes = new Set(Object.keys(ToFields));
 
@@ -309,6 +342,7 @@ const Events: AsFieldsAndAux<DataAsHash<Field[][]>, string[][]> = {
   toJson({ data }) {
     return data.map((row) => row.map((e) => toJson('Field', e)));
   },
+  check() {},
 };
 
 const StringWithHash: AsFieldsAndAux<DataAsHash<string>, string> = {
@@ -329,4 +363,5 @@ const StringWithHash: AsFieldsAndAux<DataAsHash<string>, string> = {
   toJson({ data }) {
     return data;
   },
+  check() {},
 };
