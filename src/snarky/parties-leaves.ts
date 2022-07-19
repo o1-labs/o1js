@@ -2,19 +2,11 @@ import { Field, Bool, Group, Ledger } from '../snarky';
 import * as Json from './gen/parties-json';
 import { UInt32, UInt64, Sign } from '../lib/int';
 import { PublicKey } from '../lib/signature';
+import { AsFieldsAndAux } from './parties-helpers';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
-export {
-  convertEventsToJson,
-  convertEventsToFields,
-  convertEventsToAux,
-  convertEventsFromFields,
-  convertStringWithHashToJson,
-  convertStringWithHashToFields,
-  convertStringWithHashToAux,
-  convertStringWithHashFromFields,
-};
+export { Events, StringWithHash };
 
 export {
   toJson,
@@ -22,6 +14,7 @@ export {
   toFields,
   toFieldsLeafTypes,
   toAuxiliary,
+  sizeInFields,
   fromFields,
   TypeMap,
   ToJsonTypeMap,
@@ -200,6 +193,31 @@ function toAuxiliary<K extends keyof TypeMap>(
   return ToAuxiliary[typeName](value);
 }
 
+// size in fields
+
+type SizeInFields = { [K in keyof TypeMap]: number };
+let SizeInFields: SizeInFields = {
+  PublicKey: 2,
+  Field: 1,
+  Bool: 1,
+  AuthRequired: 3,
+  UInt32: 1,
+  UInt64: 1,
+  TokenId: 1,
+  Sign: 1,
+  // builtin
+  number: 0,
+  null: 0,
+  undefined: 0,
+  string: 0,
+};
+
+function sizeInFields<K extends keyof TypeMap>(typeName: K) {
+  if (!(typeName in ToFields))
+    throw Error(`sizeInFields: unsupported type "${typeName}"`);
+  return SizeInFields[typeName];
+}
+
 // from fields & aux
 // these functions get the reversed output of `toFields` and `toAuxiliary` and pop the values they need from those arrays
 // NB: unlike toFields, this is only used outside snark, so no worries about constraint efficiency, checking booleanness etc
@@ -273,38 +291,42 @@ let toFieldsLeafTypes = new Set(Object.keys(ToFields));
 
 type DataAsHash<T> = { data: T; hash: Field };
 
-function convertEventsToJson({ data }: DataAsHash<Field[][]>) {
-  return data.map((row) => row.map((e) => toJson('Field', e)));
-}
-function convertEventsToFields({ hash }: DataAsHash<Field[][]>) {
-  return [hash];
-}
-function convertEventsToAux(events?: DataAsHash<Field[][]>) {
-  return [events?.data ?? []];
-}
-function convertEventsFromFields(
-  fields: Field[],
-  aux: any[]
-): DataAsHash<Field[][]> {
-  let hash = fields.pop()!;
-  let data = aux.pop()!;
-  return { data, hash };
-}
+const Events: AsFieldsAndAux<DataAsHash<Field[][]>, string[][]> = {
+  sizeInFields() {
+    return 1;
+  },
+  toFields({ hash }) {
+    return [hash];
+  },
+  toAuxiliary(value) {
+    return [value?.data ?? []];
+  },
+  fromFields(fields, aux) {
+    let hash = fields.pop()!;
+    let data = aux.pop()!;
+    return { data, hash };
+  },
+  toJson({ data }) {
+    return data.map((row) => row.map((e) => toJson('Field', e)));
+  },
+};
 
-function convertStringWithHashToJson({ data }: DataAsHash<string>) {
-  return data;
-}
-function convertStringWithHashToFields({ hash }: DataAsHash<string>) {
-  return [hash];
-}
-function convertStringWithHashToAux(stringWithHash?: DataAsHash<string>) {
-  return [stringWithHash?.data ?? ''];
-}
-function convertStringWithHashFromFields(
-  fields: Field[],
-  aux: any[]
-): DataAsHash<string> {
-  let hash = fields.pop()!;
-  let data = aux.pop()!;
-  return { data, hash };
-}
+const StringWithHash: AsFieldsAndAux<DataAsHash<string>, string> = {
+  sizeInFields() {
+    return 1;
+  },
+  toFields({ hash }) {
+    return [hash];
+  },
+  toAuxiliary(value) {
+    return [value?.data ?? ''];
+  },
+  fromFields(fields, aux) {
+    let hash = fields.pop()!;
+    let data = aux.pop()!;
+    return { data, hash };
+  },
+  toJson({ data }) {
+    return data;
+  },
+};
