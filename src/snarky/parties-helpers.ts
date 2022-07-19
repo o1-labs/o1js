@@ -1,5 +1,6 @@
 import * as Leaves from './parties-leaves';
-import { Field, Bool } from '../snarky';
+import { Field, Bool, Circuit } from '../snarky';
+import { circuitArray } from '../lib/circuit_value';
 
 export { asFieldsAndAux, Layout, AsFieldsAndAux };
 
@@ -9,6 +10,7 @@ type AsFieldsAndAux<T, TJson> = {
   toAuxiliary(value?: T): any[];
   fromFields(fields: Field[], aux: any[]): T;
   toJson(value: T): TJson;
+  check(value: T): void;
 };
 type CustomTypes = Record<string, AsFieldsAndAux<any, any>>;
 
@@ -28,6 +30,24 @@ function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
     },
     toJson(value: T): TJson {
       return toJson(typeData, value, customTypes);
+    },
+    check(value: T): void {
+      check(typeData, value, customTypes);
+    },
+    witness(f: () => T): T {
+      let aux: any[];
+      let fields = Circuit.witness<Field[]>(
+        circuitArray(Field, this.sizeInFields()),
+        () => {
+          let value = f();
+          aux = this.toAuxiliary(value);
+          return this.toFields(value);
+        }
+      );
+      aux ??= this.toAuxiliary();
+      let witness = this.fromFields(fields, aux);
+      this.check(witness);
+      return witness;
     },
   };
 }
@@ -275,6 +295,48 @@ function fromFieldsReversed(
     return values;
   }
   return Leaves.fromFields(typeData.type, fields, aux);
+}
+
+function check(typeData: Layout, value: any, customTypes: CustomTypes): void {
+  let { checkedTypeName } = typeData;
+  if (checkedTypeName) {
+    // there's a custom type!
+    customTypes[checkedTypeName].check(value);
+    return;
+  }
+  if (typeData.type === 'array') {
+    value.forEach((x: any) => {
+      check(typeData.inner, x, customTypes);
+    });
+    return;
+  }
+  if (typeData.type === 'option') {
+    let { optionType, inner } = typeData;
+    switch (optionType) {
+      case 'implicit':
+        check(inner, value, customTypes);
+        return;
+      case 'flaggedOption':
+        Bool.check(value.isSome);
+        check(inner, value.value, customTypes);
+        return;
+      default:
+        return;
+    }
+  }
+  if (typeData.type === 'object') {
+    let { name, keys, entries } = typeData;
+    if (Leaves.toFieldsLeafTypes.has(name)) {
+      // override with custom leaf type
+      Leaves.check(name as keyof Leaves.TypeMap, value);
+      return;
+    }
+    for (let key of keys) {
+      check(entries[key], value[key], customTypes);
+    }
+    return;
+  }
+  Leaves.check(typeData.type, value);
 }
 
 // types
