@@ -7,6 +7,7 @@ import {
   UInt32,
   Field,
   Bool,
+  Sign,
 } from '../../dist/server';
 
 describe('int', () => {
@@ -27,7 +28,7 @@ describe('int', () => {
   describe('Int64', () => {
     describe('toString', () => {
       it('should be the same as Field.zero', async () => {
-        const int = new Int64(UInt64.zero, Field.one);
+        const int = new Int64(UInt64.zero, Sign.one);
         const field = Field.zero;
         expect(int.toString()).toEqual(field.toString());
       });
@@ -52,7 +53,7 @@ describe('int', () => {
 
     describe('fromUnsigned', () => {
       it('should be the same as UInt64.zero', async () => {
-        expect(new Int64(UInt64.zero, Field.one)).toEqual(
+        expect(new Int64(UInt64.zero, Sign.one)).toEqual(
           Int64.fromUnsigned(UInt64.zero)
         );
       });

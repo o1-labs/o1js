@@ -1,6 +1,6 @@
 import { Field, Bool, Group, Ledger } from '../snarky';
 import * as Json from './gen/parties-json';
-import { UInt32, UInt64 } from '../lib/int';
+import { UInt32, UInt64, Sign } from '../lib/int';
 import { PublicKey } from '../lib/signature';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
@@ -27,7 +27,6 @@ export {
   ToJsonTypeMap,
 };
 
-type Sign = Field; // constrained to +-1
 type AuthRequired = {
   constant: Bool;
   signatureNecessary: Bool;
@@ -248,7 +247,7 @@ let FromFields: FromFields = {
     return fields.pop()!;
   },
   Sign(fields: Field[]) {
-    return fields.pop()!;
+    return new Sign(fields.pop()!);
   },
   // builtin
   number: takeOneAux,
