@@ -14,3 +14,16 @@ function setupLocalBlockchain() {
   Mina.setActiveInstance(Local);
   return Local.testAccounts[0].privateKey;
 }
+
+async function localDeploy(
+  zkAppInstance: HelloWorld,
+  zkAppPrivatekey: PrivateKey,
+  deployerAccount: PrivateKey
+) {
+  const txn = await Mina.transaction(deployerAccount, () => {
+    Party.fundNewAccount(deployerAccount);
+    zkAppInstance.deploy({ zkappKey: zkAppPrivatekey });
+    zkAppInstance.init();
+  });
+  await txn.send().wait();
+}
