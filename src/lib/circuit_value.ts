@@ -77,8 +77,8 @@ abstract class CircuitValue {
     Circuit.assertEqual(this, x);
   }
 
-  toConstant(): this {
-    return (this.constructor as any).toConstant(this);
+  isConstant(x: this) {
+    return x.toFields().every((x) => x.isConstant());
   }
 
   static ofFields<T extends AnyConstructor>(

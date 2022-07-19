@@ -1,18 +1,10 @@
-import { CircuitValue, circuitValue, cloneCircuitValue } from './circuit_value';
-import {
-  Field,
-  Bool,
-  Ledger,
-  Circuit,
-  Pickles,
-  Types,
-  Poseidon,
-} from '../snarky';
+import { circuitValue, cloneCircuitValue } from './circuit_value';
+import { Field, Bool, Ledger, Circuit, Pickles, Types } from '../snarky';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
 import { SmartContract } from './zkapp';
-import { inCheckedComputation, withContextAsync } from './global-context';
+import { withContextAsync } from './global-context';
 import * as Precondition from './precondition';
 import { Proof } from './proof_system';
 import { emptyHashWithPrefix, hashWithPrefix, prefixes } from './hash';
@@ -514,13 +506,6 @@ class Token {
     // Reassign to default tokenId if undefined
     parentTokenId ??= getDefaultTokenId();
 
-    // Check if we can deserialize the parentTokenId
-    try {
-      Ledger.fieldToBase58(parentTokenId);
-    } catch (e) {
-      throw new Error(`Invalid parentTokenId\nError: ${(e as Error).message}`);
-    }
-
     // Check if we can create a custom tokenId
     try {
       Ledger.customTokenId(tokenOwner, parentTokenId);
@@ -532,7 +517,10 @@ class Token {
 
     this.parentTokenId = parentTokenId;
     this.tokenOwner = tokenOwner;
-    if (tokenOwner.toConstant() && parentTokenId.isConstant()) {
+    if (
+      tokenOwner.toFields().every((x) => x.isConstant()) &&
+      parentTokenId.isConstant()
+    ) {
       this.id = Ledger.customTokenIdChecked(tokenOwner, this.parentTokenId);
     } else {
       this.id = Ledger.customTokenId(tokenOwner, this.parentTokenId);
@@ -575,12 +563,12 @@ class Party {
     return new (Party as any)(body, authorization, party.isSelf);
   }
 
-  token(tokenId?: Field) {
+  token() {
     let thisParty = this;
     let customToken = new Token({
       tokenOwner: thisParty.body.publicKey,
-      parentTokenId: tokenId,
     });
+
     return {
       id: customToken.id,
       parentTokenId: customToken.parentTokenId,
@@ -591,7 +579,6 @@ class Party {
           caller: this.id,
           tokenId: this.id,
           callDepth: 1,
-          useFullCommitment: Bool(true),
         });
 
         // Add the amount to mint to the receiver's account
@@ -618,37 +605,26 @@ class Party {
       },
 
       send({ from, to, amount }: SendParams) {
-        // Check if the sender party is the current zkApp address
-        if (from === thisParty.publicKey) {
-          // If so, create a new party for the zkApp to send the amount to the receiver
-          let senderParty = Party.createUnsigned(thisParty.publicKey, {
-            caller: this.id,
-            tokenId: this.id,
-          });
-          senderParty.body.balanceChange =
-            senderParty.body.balanceChange.sub(amount);
-        } else {
-          // If not, create a new party for the sender to send the amount to the receiver
-          let senderParty = Party.createUnsigned(from, {
-            caller: this.id,
-            tokenId: this.id,
-            callDepth: 1,
-            useFullCommitment: Bool(true),
-          });
-          senderParty.body.balanceChange =
-            senderParty.body.balanceChange.sub(amount);
+        // Create a new party for the sender to send the amount to the receiver
+        let senderParty = Party.createUnsigned(from, {
+          caller: this.id,
+          tokenId: this.id,
+          callDepth: 1,
+          useFullCommitment: Bool(true),
+        });
 
-          // Require signature if the sender party is not the zkApp
-          senderParty.authorization = {
-            kind: 'lazy-signature',
-          };
-        }
+        senderParty.body.balanceChange =
+          senderParty.body.balanceChange.sub(amount);
+
+        // Require signature from the sender party
+        senderParty.authorization = {
+          kind: 'lazy-signature',
+        };
 
         let receiverParty = Party.createUnsigned(to, {
           caller: this.id,
           tokenId: this.id,
           callDepth: 1,
-          useFullCommitment: Bool(true),
         });
 
         // Add the amount to send to the receiver's account

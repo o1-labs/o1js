@@ -175,23 +175,13 @@ describe('Token', () => {
 
       expect(
         Mina.getBalance(tokenAccount1, zkapp.token().id).value.toBigInt()
-      ).toEqual(BigInt(100_000));
+      ).toEqual(100_000n);
     });
 
     it('should error if token owner mints more tokens than allowed', async () => {
       await Mina.transaction(feePayer, () => {
         Party.fundNewAccount(feePayer);
         zkapp.mint(tokenAccount1, UInt64.from(100_000_000_000));
-        zkapp.sign(zkappKey);
-      }).catch((e) => {
-        expect(e).toBeDefined();
-      });
-    });
-
-    it('should error if token owner mints negative amount tokens', async () => {
-      await Mina.transaction(feePayer, () => {
-        Party.fundNewAccount(feePayer);
-        zkapp.mint(tokenAccount1, UInt64.from(-100_000));
         zkapp.sign(zkappKey);
       }).catch((e) => {
         expect(e).toBeDefined();
@@ -223,7 +213,7 @@ describe('Token', () => {
 
       expect(
         Mina.getBalance(tokenAccount1, zkapp.token().id).value.toBigInt()
-      ).toEqual(BigInt(90_000));
+      ).toEqual(90_000n);
     });
 
     it('should error if token owner burns more tokens than token account has', async () => {
@@ -245,16 +235,6 @@ describe('Token', () => {
       expect(() => {
         tx.send();
       }).toThrow();
-    });
-
-    it('should error if token owner burns negative amount tokens', async () => {
-      await Mina.transaction(feePayer, () => {
-        Party.fundNewAccount(feePayer);
-        zkapp.burn(tokenAccount1, UInt64.from(-100_000));
-        zkapp.sign(zkappKey);
-      }).catch((e) => {
-        expect(e).toBeDefined();
-      });
     });
   });
   describe('Send token', () => {
@@ -282,10 +262,10 @@ describe('Token', () => {
 
       expect(
         Mina.getBalance(tokenAccount1, zkapp.token().id).value.toBigInt()
-      ).toEqual(BigInt(90_000));
+      ).toEqual(90_000n);
       expect(
         Mina.getBalance(tokenAccount2, zkapp.token().id).value.toBigInt()
-      ).toEqual(BigInt(10_000));
+      ).toEqual(10_000n);
     });
 
     it('should error creating a token account if no account creation fee is specified', async () => {
@@ -328,22 +308,6 @@ describe('Token', () => {
       expect(() => {
         tx.send();
       }).toThrow();
-    });
-
-    it('should error if sender sends negative amount of tokens', async () => {
-      (
-        await Mina.transaction(feePayer, () => {
-          Party.fundNewAccount(feePayer);
-          zkapp.mint(tokenAccount1, UInt64.from(100_000));
-          zkapp.sign(zkappKey);
-        })
-      ).send();
-      await Mina.transaction(feePayer, () => {
-        zkapp.send(tokenAccount1, tokenAccount2, UInt64.from(-10_000));
-        zkapp.sign(zkappKey);
-      }).catch((e) => {
-        expect(e).toBeDefined();
-      });
     });
   });
 });

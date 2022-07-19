@@ -334,8 +334,8 @@ class SmartContract {
     return this.self.network;
   }
 
-  token(tokenId?: Field) {
-    return this.self.token(tokenId);
+  token() {
+    return this.self.token();
   }
 
   get tokenSymbol() {
