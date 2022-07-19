@@ -1,9 +1,10 @@
 import 'isomorphic-fetch';
-import { Bool, Field, Types } from '../snarky';
+import { Bool, Field } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { Permission, Permissions, ZkappStateLength } from './party';
 import { PublicKey } from './signature';
 import { NetworkValue } from './precondition';
+import { Types } from '../snarky/types';
 
 export {
   fetchAccount,

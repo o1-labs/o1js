@@ -1,6 +1,6 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, Ledger, Field, Types } from '../snarky';
+import { Circuit, Ledger, Field } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
 import {
@@ -184,13 +184,13 @@ function createTransaction(
 interface Mina {
   transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
   currentSlot(): UInt32;
-  getAccount(publicKey: Types.PublicKey): Account;
+  getAccount(publicKey: PublicKey): Account;
   getNetworkState(): NetworkValue;
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): TransactionId;
 }
 interface MockMina extends Mina {
-  addAccount(publicKey: Types.PublicKey, balance: string): void;
+  addAccount(publicKey: PublicKey, balance: string): void;
   /**
    * An array of 10 test accounts that have been pre-filled with
    * 30000000000 units of currency.
@@ -463,7 +463,7 @@ function currentSlot(): UInt32 {
 /**
  * @return The account data associated to the given public key.
  */
-function getAccount(pubkey: Types.PublicKey) {
+function getAccount(pubkey: PublicKey) {
   return activeInstance.getAccount(pubkey);
 }
 
@@ -477,7 +477,7 @@ function getNetworkState() {
 /**
  * @return The balance associated to the given public key.
  */
-function getBalance(pubkey: Types.PublicKey) {
+function getBalance(pubkey: PublicKey) {
   return activeInstance.getAccount(pubkey).balance;
 }
 

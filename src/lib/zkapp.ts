@@ -4,7 +4,6 @@ import {
   AsFieldElements,
   Ledger,
   Pickles,
-  Types,
   InferAsFieldElements,
   Poseidon,
 } from '../snarky';
@@ -41,6 +40,7 @@ import {
   inAnalyze,
 } from './proof_system';
 import { assertStatePrecondition, cleanStatePrecondition } from './state';
+import { Types } from '../snarky/types';
 
 // external API
 export {
