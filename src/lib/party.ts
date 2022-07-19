@@ -18,13 +18,9 @@ export {
   Permission,
   Preconditions,
   Body,
+  Authorization,
   FeePayerUnsigned,
   Parties,
-  LazyProof,
-  LazySignature,
-  LazyControl,
-  toPartyUnsafe,
-  toPartiesUnsafe,
   partiesToJson,
   addMissingSignatures,
   addMissingProofs,
@@ -384,9 +380,8 @@ const FeePayerBody = {
     };
   },
 };
-type FeePayerUnsigned = {
-  body: FeePayerBody;
-  authorization: UnfinishedSignature;
+type FeePayerUnsigned = FeePayer & {
+  lazyAuthorization?: LazySignature | undefined;
 };
 
 /**
@@ -484,7 +479,6 @@ const Preconditions = {
 };
 
 type Control = Types.Party['authorization'];
-
 type LazySignature = { kind: 'lazy-signature'; privateKey?: PrivateKey };
 type LazyProof = {
   kind: 'lazy-proof';
@@ -494,13 +488,10 @@ type LazyProof = {
   ZkappClass: typeof SmartContract;
 };
 
-type UnfinishedSignature = undefined | LazySignature | string;
-
-type LazyControl = Control | LazySignature | LazyProof;
-
-class Party {
+class Party implements Types.Party {
   body: Body;
-  authorization: LazyControl;
+  authorization: Control;
+  lazyAuthorization: LazySignature | LazyProof | undefined = undefined;
   account: Precondition.Account;
   network: Precondition.Network;
   children: Party[] = [];
@@ -508,8 +499,8 @@ class Party {
 
   private isSelf: boolean;
 
-  constructor(body: Body, authorization?: LazyControl);
-  constructor(body: Body, authorization = {} as LazyControl, isSelf = false) {
+  constructor(body: Body, authorization?: Control);
+  constructor(body: Body, authorization = {} as Control, isSelf = false) {
     this.body = body;
     this.authorization = authorization;
     let { account, network } = Precondition.preconditions(this, isSelf);
@@ -522,6 +513,7 @@ class Party {
     let body = cloneCircuitValue(party.body);
     let authorization = cloneCircuitValue(party.authorization);
     let clonedParty = new (Party as any)(body, authorization, party.isSelf);
+    clonedParty.lazyAuthorization = cloneCircuitValue(party.lazyAuthorization);
     clonedParty.children = party.children;
     clonedParty.parent = party.parent;
     return clonedParty;
@@ -607,7 +599,7 @@ class Party {
   signInPlace(privateKey?: PrivateKey, fallbackToZeroNonce = false) {
     this.setNoncePrecondition(fallbackToZeroNonce);
     this.body.incrementNonce = Bool(true);
-    this.authorization = { kind: 'lazy-signature', privateKey };
+    Authorization.setLazySignature(this, { privateKey });
   }
 
   sign(privateKey?: PrivateKey) {
@@ -622,7 +614,8 @@ class Party {
     fallbackToZeroNonce = false
   ) {
     feePayer.body.nonce = this.getNonce(feePayer, fallbackToZeroNonce);
-    feePayer.authorization = { kind: 'lazy-signature', privateKey };
+    feePayer.authorization = Ledger.dummySignature();
+    feePayer.lazyAuthorization = { kind: 'lazy-signature', privateKey };
   }
 
   // TODO this needs to be more intelligent about previous nonces in the transaction, similar to Party.createSigned
@@ -655,20 +648,20 @@ class Party {
   }
 
   toFields() {
-    return Types.Party.toFields(toPartyUnsafe(this));
+    return Types.Party.toFields(this);
   }
 
   toJSON() {
-    return Types.Party.toJson(toPartyUnsafe(this));
+    return Types.Party.toJson(this);
   }
 
   hash() {
     // these two ways of hashing are (and have to be) consistent / produce the same hash
     if (inCheckedComputation()) {
-      let fields = Types.Party.toFields(toPartyUnsafe(this));
+      let fields = Types.Party.toFields(this);
       return Ledger.hashPartyFromFields(fields);
     } else {
-      let json = Types.Party.toJson(toPartyUnsafe(this));
+      let json = Types.Party.toJson(this);
       return Ledger.hashPartyFromJson(JSON.stringify(json));
     }
   }
@@ -692,12 +685,16 @@ class Party {
     nonce: UInt32
   ): FeePayerUnsigned {
     let body = FeePayerBody.keepAll(address, nonce);
-    return { body, authorization: { kind: 'lazy-signature', privateKey: key } };
+    return {
+      body,
+      authorization: Ledger.dummySignature(),
+      lazyAuthorization: { kind: 'lazy-signature', privateKey: key },
+    };
   }
 
   static dummyFeePayer(): FeePayerUnsigned {
     let body = FeePayerBody.keepAll(PublicKey.empty(), UInt32.zero);
-    return { body, authorization: undefined };
+    return { body, authorization: Ledger.dummySignature() };
   }
 
   static createUnsigned(publicKey: PublicKey) {
@@ -734,7 +731,7 @@ class Party {
     body.incrementNonce = Bool(true);
 
     let party = new Party(body);
-    party.authorization = { kind: 'lazy-signature', privateKey: signer };
+    Authorization.setLazySignature(party, { privateKey: signer });
     Mina.currentTransaction.get().parties.push(party);
     return party;
   }
@@ -762,17 +759,6 @@ class Party {
     party.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 }
-
-type Parties = {
-  feePayer: FeePayerUnsigned;
-  otherParties: Party[];
-  memo: string;
-};
-type PartiesSigned = {
-  feePayer: FeePayer;
-  otherParties: (Party & { authorization: Control | LazyProof })[];
-  memo: string;
-};
 
 const CallForest = {
   // similar to Mina_base.Parties.Call_forest.to_parties_list
@@ -813,39 +799,54 @@ function createChildParty(parent: Party, childAddress: PublicKey) {
   return child;
 }
 
-// TODO find a better name for these to make it clearer what they do (replace any lazy authorization with no/dummy authorization)
-function toFeePayerUnsafe(feePayer: FeePayerUnsigned): FeePayer {
-  let { body, authorization } = feePayer;
-  if (typeof authorization === 'string') return { body, authorization };
-  else {
-    return { body, authorization: Ledger.dummySignature() };
-  }
-}
-function toPartyUnsafe({ body, authorization }: Party): Types.Party {
-  return {
-    body,
-    authorization: 'kind' in authorization ? {} : authorization,
-  };
-}
-function toPartiesUnsafe({
-  feePayer,
-  otherParties,
-  memo,
-}: {
+// authorization
+
+type Parties = {
   feePayer: FeePayerUnsigned;
   otherParties: Party[];
   memo: string;
-}): Types.Parties {
-  return {
-    feePayer: toFeePayerUnsafe(feePayer),
-    otherParties: otherParties.map(toPartyUnsafe),
-    memo: Ledger.memoToBase58(memo),
-  };
+};
+type PartiesSigned = {
+  feePayer: FeePayer;
+  otherParties: (Party & { lazyAuthorization?: LazyProof })[];
+  memo: string;
+};
+type PartiesProved = {
+  feePayer: FeePayerUnsigned;
+  otherParties: (Party & { lazyAuthorization?: LazySignature })[];
+  memo: string;
+};
+
+function partiesToJson({ feePayer, otherParties, memo }: Parties) {
+  memo = Ledger.memoToBase58(memo);
+  return Types.Parties.toJson({ feePayer, otherParties, memo });
 }
 
-function partiesToJson(parties: Parties) {
-  return Types.Parties.toJson(toPartiesUnsafe(parties));
-}
+const Authorization = {
+  hasLazyProof(party: Party) {
+    return party.lazyAuthorization?.kind === 'lazy-proof';
+  },
+  hasAny(party: Party) {
+    let { authorization: auth, lazyAuthorization: lazyAuth } = party;
+    return !!(lazyAuth || 'proof' in auth || 'signature' in auth);
+  },
+  setSignature(party: Party, signature: string) {
+    party.authorization = { signature };
+    party.lazyAuthorization = undefined;
+  },
+  setProof(party: Party, proof: string) {
+    party.authorization = { proof };
+    party.lazyAuthorization = undefined;
+  },
+  setLazySignature(party: Party, signature: Omit<LazySignature, 'kind'>) {
+    party.authorization = {};
+    party.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
+  },
+  setLazyProof(party: Party, proof: Omit<LazyProof, 'kind'>) {
+    party.authorization = {};
+    party.lazyAuthorization = { ...proof, kind: 'lazy-proof' };
+  },
+};
 
 function addMissingSignatures(
   parties: Parties,
@@ -856,12 +857,9 @@ function addMissingSignatures(
     JSON.stringify(partiesToJson(parties))
   );
   function addFeePayerSignature(party: FeePayerUnsigned): FeePayer {
-    let { body, authorization } = cloneCircuitValue(party);
-    if (typeof authorization === 'string') return { body, authorization };
-    if (authorization === undefined) {
-      return { body, authorization: Ledger.dummySignature() };
-    }
-    let { privateKey } = authorization;
+    let { body, authorization, lazyAuthorization } = cloneCircuitValue(party);
+    if (lazyAuthorization === undefined) return { body, authorization };
+    let { privateKey } = lazyAuthorization;
     if (privateKey === undefined) {
       let i = additionalPublicKeys.findIndex(
         (pk) => pk === party.body.publicKey
@@ -880,12 +878,10 @@ function addMissingSignatures(
 
   function addSignature(party: Party) {
     party = Party.clone(party);
-    if (
-      !('kind' in party.authorization) ||
-      party.authorization.kind !== 'lazy-signature'
-    )
-      return party as Party & { authorization: Control | LazyProof };
-    let { privateKey } = party.authorization;
+    if (party.lazyAuthorization?.kind !== 'lazy-signature') {
+      return party as Party & { lazyAuthorization?: LazyProof };
+    }
+    let { privateKey } = party.lazyAuthorization;
     if (privateKey === undefined) {
       let i = additionalPublicKeys.findIndex((pk) =>
         pk.equals(party.body.publicKey)
@@ -900,22 +896,16 @@ function addMissingSignatures(
       ? fullCommitment
       : commitment;
     let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
-    party.authorization = { signature };
-    return party as Party & { authorization: Control };
+    Authorization.setSignature(party, signature);
+    return party as Party & { lazyAuthorization: undefined };
   }
   let { feePayer, otherParties, memo } = parties;
   return {
     feePayer: addFeePayerSignature(feePayer),
-    otherParties: otherParties.map((p) => addSignature(p)),
+    otherParties: otherParties.map(addSignature),
     memo,
   };
 }
-
-type PartiesProved = {
-  feePayer: FeePayerUnsigned;
-  otherParties: (Party & { authorization: Control | LazySignature })[];
-  memo: string;
-};
 
 /**
  * The public input for zkApps consists of certain hashes of the proving Party (and its child parties) which is constructed during method execution.
@@ -941,16 +931,14 @@ async function addMissingProofs(parties: Parties): Promise<{
   parties: PartiesProved;
   proofs: (Proof<ZkappPublicInput> | undefined)[];
 }> {
-  type PartyProved = Party & { authorization: Control | LazySignature };
+  type PartyProved = Party & { lazyAuthorization?: LazySignature };
 
   async function addProof(party: Party) {
     party = Party.clone(party);
-    if (
-      !('kind' in party.authorization) ||
-      party.authorization.kind !== 'lazy-proof'
-    )
+    if (party.lazyAuthorization?.kind !== 'lazy-proof') {
       return { partyProved: party as PartyProved, proof: undefined };
-    let { method, args, previousProofs, ZkappClass } = party.authorization;
+    }
+    let { method, args, previousProofs, ZkappClass } = party.lazyAuthorization;
     let publicInput = partyToPublicInput(party);
     let publicInputFields = ZkappPublicInput.toFields(publicInput);
     if (ZkappClass._provers === undefined)
@@ -969,23 +957,17 @@ async function addMissingProofs(parties: Parties): Promise<{
       { inProver: true, witnesses: args },
       () => provers[i](publicInputFields, previousProofs)
     );
-    party.authorization = { proof: Pickles.proofToBase64Transaction(proof) };
-    class ZkappProof extends Proof<ZkappPublicInput> {
-      static publicInputType = ZkappPublicInput;
-      static tag = () => ZkappClass;
-    }
+    Authorization.setProof(party, Pickles.proofToBase64Transaction(proof));
     let maxProofsVerified = ZkappClass._maxProofsVerified!;
     return {
       partyProved: party as PartyProved,
-      proof: new ZkappProof({ publicInput, proof, maxProofsVerified }),
+      proof: new ZkappClass.Proof({ publicInput, proof, maxProofsVerified }),
     };
   }
 
   let { feePayer, otherParties, memo } = parties;
   // compute proofs serially. in parallel would clash with our global variable hacks
-  let otherPartiesProved: (Party & {
-    authorization: Control | LazySignature;
-  })[] = [];
+  let otherPartiesProved: PartyProved[] = [];
   let proofs: (Proof<ZkappPublicInput> | undefined)[] = [];
   for (let party of otherParties) {
     let { partyProved, proof } = await addProof(party);

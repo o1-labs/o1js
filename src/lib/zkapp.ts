@@ -18,6 +18,7 @@ import {
   ZkappPublicInput,
   Events,
   partyToPublicInput,
+  Authorization,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -158,16 +159,15 @@ function wrapMethod(
       let clonedArgs = cloneCircuitValue(actualArgs);
       let result = method.apply(this, actualArgs);
       assertStatePrecondition(this);
-      let auth = this.self.authorization;
-      if (!('kind' in auth || 'proof' in auth || 'signature' in auth)) {
-        this.self.authorization = {
-          kind: 'lazy-proof',
+      let party = this.self;
+      if (!Authorization.hasAny(party)) {
+        Authorization.setLazyProof(party, {
           method,
           args: clonedArgs,
           // proofs actually don't have to be cloned
           previousProofs: getPreviousProofsForProver(actualArgs, methodIntf),
           ZkappClass,
-        };
+        });
       }
       return result;
     }
