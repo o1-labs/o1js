@@ -1,28 +1,57 @@
 import * as Leaves from './parties-leaves';
 import { Field, Bool } from '../snarky';
 
-export { toJson, toFields, toAuxiliary, fromFields, Layout };
+export { asFieldsAndAux, Layout, AsFieldsAndAux };
 
-function toJson(typeData: Layout, value: any, converters: any): any {
+type AsFieldsAndAux<T, TJson> = {
+  sizeInFields(): number;
+  toFields(value: T): Field[];
+  toAuxiliary(value?: T): any[];
+  fromFields(fields: Field[], aux: any[]): T;
+  toJson(value: T): TJson;
+};
+type CustomTypes = Record<string, AsFieldsAndAux<any, any>>;
+
+function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
+  return {
+    sizeInFields(): number {
+      return sizeInFields(typeData, customTypes);
+    },
+    toFields(value: T): Field[] {
+      return toFields(typeData, value, customTypes);
+    },
+    toAuxiliary(value?: T): any[] {
+      return toAuxiliary(typeData, value, customTypes);
+    },
+    fromFields(fields: Field[], aux: any[]): T {
+      return fromFields(typeData, fields, aux, customTypes);
+    },
+    toJson(value: T): TJson {
+      return toJson(typeData, value, customTypes);
+    },
+  };
+}
+
+function toJson(typeData: Layout, value: any, customTypes: CustomTypes): any {
   let { checkedTypeName } = typeData;
   if (checkedTypeName) {
-    // there's a custom conversion function!
-    return converters[checkedTypeName](value);
+    // there's a custom type!
+    return customTypes[checkedTypeName].toJson(value);
   }
   if (typeData.type === 'array') {
-    return value.map((x: any) => toJson(typeData.inner, x, converters));
+    return value.map((x: any) => toJson(typeData.inner, x, customTypes));
   }
   if (typeData.type === 'option') {
     let { optionType, inner } = typeData;
     switch (optionType) {
       case 'implicit':
-        return toJson(inner, value, converters);
+        return toJson(inner, value, customTypes);
       case 'flaggedOption':
         return value.isSome.toBoolean()
-          ? toJson(inner, value.value, converters)
+          ? toJson(inner, value.value, customTypes)
           : null;
       default:
-        return value !== undefined ? toJson(inner, value, converters) : null;
+        return value !== undefined ? toJson(inner, value, customTypes) : null;
     }
   }
   if (typeData.type === 'object') {
@@ -33,7 +62,7 @@ function toJson(typeData: Layout, value: any, converters: any): any {
     }
     let json: any = {};
     for (let key of keys) {
-      json[key] = toJson(entries[key], value[key], converters);
+      json[key] = toJson(entries[key], value[key], customTypes);
     }
     return json;
   }
@@ -42,29 +71,29 @@ function toJson(typeData: Layout, value: any, converters: any): any {
 
 // let i = 0; // DEBUG
 
-function toFields(typeData: Layout, value: any, converters: any): any {
+function toFields(typeData: Layout, value: any, customTypes: CustomTypes): any {
   let { checkedTypeName } = typeData;
   if (checkedTypeName) {
-    // there's a custom conversion function!
-    let fields = converters[checkedTypeName](value);
+    // there's a custom type!
+    let fields = customTypes[checkedTypeName].toFields(value);
     // i += fields.length; // DEBUG
     return fields;
   }
   if (typeData.type === 'array') {
     return value
-      .map((x: any) => toFields(typeData.inner, x, converters))
+      .map((x: any) => toFields(typeData.inner, x, customTypes))
       .flat();
   }
   if (typeData.type === 'option') {
     let { optionType, inner } = typeData;
     switch (optionType) {
       case 'implicit':
-        return toFields(inner, value, converters);
+        return toFields(inner, value, customTypes);
       case 'flaggedOption':
         // i += 1; // DEBUG
         return value.isSome
           .toFields()
-          .concat(toFields(inner, value.value, converters));
+          .concat(toFields(inner, value.value, customTypes));
       default:
         return [];
     }
@@ -79,7 +108,7 @@ function toFields(typeData: Layout, value: any, converters: any): any {
     // let fieldsMap: any = {}; // DEBUG
     for (let key of keys) {
       // let i0 = i; // DEBUG
-      let newFields = toFields(entries[key], value[key], converters);
+      let newFields = toFields(entries[key], value[key], customTypes);
       fields.push(...newFields);
       // fieldsMap[key] = [i0, newFields.map(String)]; // DEBUG
     }
@@ -95,12 +124,12 @@ function toFields(typeData: Layout, value: any, converters: any): any {
 function toAuxiliary<T>(
   typeData: Layout,
   value: T | undefined,
-  converters: any
+  customTypes: any
 ): any {
   let { checkedTypeName } = typeData;
   if (checkedTypeName) {
-    // there's a custom conversion function!
-    return converters[checkedTypeName](value);
+    // there's a custom type!
+    return customTypes[checkedTypeName].toAuxiliary(value);
   }
   if (typeData.type === 'array') {
     let v: any[] | undefined = value as any;
@@ -108,20 +137,20 @@ function toAuxiliary<T>(
     // encode array length at runtime so it can be unambiguously read back in
     if (v === undefined) return [length];
     return [length].concat(
-      v.map((x: any) => toAuxiliary(typeData.inner, x, converters)).flat()
+      v.map((x: any) => toAuxiliary(typeData.inner, x, customTypes)).flat()
     );
   }
   if (typeData.type === 'option') {
     let { optionType, inner } = typeData;
     switch (optionType) {
       case 'implicit':
-        return toAuxiliary(inner, value, converters);
+        return toAuxiliary(inner, value, customTypes);
       case 'flaggedOption':
         let v: { isSome: boolean; value: any } | undefined = value as any;
-        return toAuxiliary(inner, v?.value, converters);
+        return toAuxiliary(inner, v?.value, customTypes);
       case 'orUndefined':
         if (value === undefined) return [false];
-        return [true].concat(toAuxiliary(inner, value, converters));
+        return [true].concat(toAuxiliary(inner, value, customTypes));
       default:
         throw Error('bug');
     }
@@ -135,7 +164,7 @@ function toAuxiliary<T>(
     let aux: any = [];
     let v: Record<string, any> | undefined = value as any;
     for (let key of keys) {
-      let newAux = toAuxiliary(entries[key], v?.[key], converters);
+      let newAux = toAuxiliary(entries[key], v?.[key], customTypes);
       aux.push(...newAux);
     }
     return aux;
@@ -144,17 +173,55 @@ function toAuxiliary<T>(
   return aux;
 }
 
+function sizeInFields(typeData: Layout, customTypes: CustomTypes): number {
+  let { checkedTypeName } = typeData;
+  if (checkedTypeName) {
+    // there's a custom type!
+    return customTypes[checkedTypeName].sizeInFields();
+  }
+  if (typeData.type === 'array') {
+    let length = typeData.staticLength ?? NaN;
+    return length * sizeInFields(typeData.inner, customTypes);
+  }
+  if (typeData.type === 'option') {
+    let { optionType, inner } = typeData;
+    switch (optionType) {
+      case 'implicit':
+        return sizeInFields(inner, customTypes);
+      case 'flaggedOption':
+        return 1 + sizeInFields(inner, customTypes);
+      case 'orUndefined':
+        return 0;
+      default:
+        throw Error('bug');
+    }
+  }
+  if (typeData.type === 'object') {
+    let { name, keys, entries } = typeData;
+    if (Leaves.toFieldsLeafTypes.has(name)) {
+      // override with custom leaf type
+      return Leaves.sizeInFields(name as keyof Leaves.TypeMap);
+    }
+    let size = 0;
+    for (let key of keys) {
+      size += sizeInFields(entries[key], customTypes);
+    }
+    return size;
+  }
+  return Leaves.sizeInFields(typeData.type);
+}
+
 function fromFields(
   typeData: Layout,
   fields: Field[],
   aux: any[],
-  converters: any
+  customTypes: CustomTypes
 ) {
   return fromFieldsReversed(
     typeData,
     [...fields].reverse(),
     [...aux].reverse(),
-    converters
+    customTypes
   );
 }
 
@@ -162,19 +229,18 @@ function fromFieldsReversed(
   typeData: Layout,
   fields: Field[],
   aux: any[],
-  converters: any
+  customTypes: CustomTypes
 ): any {
   let { checkedTypeName } = typeData;
   if (checkedTypeName) {
-    // there's a custom conversion function!
-    let value = converters[checkedTypeName](fields, aux);
-    return value;
+    // there's a custom type!
+    return customTypes[checkedTypeName].fromFields(fields, aux);
   }
   if (typeData.type === 'array') {
     let value = [];
     let length = aux.pop()!;
     for (let i = 0; i < length; i++) {
-      value[i] = fromFieldsReversed(typeData.inner, fields, aux, converters);
+      value[i] = fromFieldsReversed(typeData.inner, fields, aux, customTypes);
     }
     return value;
   }
@@ -182,15 +248,15 @@ function fromFieldsReversed(
     let { optionType, inner } = typeData;
     switch (optionType) {
       case 'implicit':
-        return fromFieldsReversed(inner, fields, aux, converters);
+        return fromFieldsReversed(inner, fields, aux, customTypes);
       case 'flaggedOption':
         let isSome = Bool.Unsafe.ofField(fields.pop()!);
-        let value = fromFieldsReversed(inner, fields, aux, converters);
+        let value = fromFieldsReversed(inner, fields, aux, customTypes);
         return { isSome, value };
       case 'orUndefined':
         let isDefined = aux.pop()!;
         return isDefined
-          ? fromFieldsReversed(inner, fields, aux, converters)
+          ? fromFieldsReversed(inner, fields, aux, customTypes)
           : undefined;
       default:
         throw Error('bug');
@@ -204,7 +270,7 @@ function fromFieldsReversed(
     }
     let values: Record<string, any> = {};
     for (let key of keys) {
-      values[key] = fromFieldsReversed(entries[key], fields, aux, converters);
+      values[key] = fromFieldsReversed(entries[key], fields, aux, customTypes);
     }
     return values;
   }
