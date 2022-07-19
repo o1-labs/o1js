@@ -1,5 +1,7 @@
 import { Field, Bool, Group, Ledger } from '../snarky';
 import * as Json from './gen/parties-json';
+import { UInt32, UInt64 } from '../lib/int';
+import { PublicKey } from '../lib/signature';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
@@ -25,10 +27,7 @@ export {
   ToJsonTypeMap,
 };
 
-type UInt64 = { value: Field; _type?: 'UInt64' };
-type UInt32 = { value: Field; _type?: 'UInt32' };
 type Sign = Field; // constrained to +-1
-type PublicKey = { g: Group };
 type AuthRequired = {
   constant: Bool;
   signatureNecessary: Bool;
@@ -225,7 +224,7 @@ let FromFields: FromFields = {
       .toField()
       .mul(someY)
       .add(isTheRightY.not().toField().mul(someY.neg()));
-    return { g: new Group({ x, y }) };
+    return new PublicKey(new Group(x, y));
   },
   Field(fields: Field[]) {
     return fields.pop()!;
@@ -240,10 +239,10 @@ let FromFields: FromFields = {
     return { constant, signatureNecessary, signatureSufficient };
   },
   UInt32(fields: Field[]) {
-    return { value: fields.pop()! };
+    return new UInt32(fields.pop()!);
   },
   UInt64(fields: Field[]) {
-    return { value: fields.pop()! };
+    return new UInt64(fields.pop()!);
   },
   TokenId(fields: Field[]) {
     return fields.pop()!;

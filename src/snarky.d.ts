@@ -16,8 +16,6 @@ export {
   JSONValue,
   InferAsFieldElements,
 };
-export * as Types from './snarky/gen/parties';
-export { jsLayout } from './snarky/gen/js-layout';
 
 /**
  * An element of a finite field.

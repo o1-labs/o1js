@@ -1,5 +1,6 @@
 import { circuitValue, cloneCircuitValue } from './circuit_value';
-import { Field, Bool, Ledger, Circuit, Pickles, Types } from '../snarky';
+import { Field, Bool, Ledger, Circuit, Pickles } from '../snarky';
+import { Types } from '../snarky/types';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';

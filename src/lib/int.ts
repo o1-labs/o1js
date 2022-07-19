@@ -1,12 +1,12 @@
-import { Circuit, Field, Types } from '../snarky';
+import { Circuit, Field } from '../snarky';
 import { CircuitValue, prop } from './circuit_value';
+import { Types } from '../snarky/types';
 
 export { UInt32, UInt64, Int64 };
 
-class UInt64 extends CircuitValue implements Types.UInt64 {
+class UInt64 extends CircuitValue {
   @prop value: Field;
   static NUM_BITS = 64;
-  _type?: 'UInt64';
 
   static get zero() {
     return new UInt64(Field.zero);
@@ -172,10 +172,9 @@ class UInt64 extends CircuitValue implements Types.UInt64 {
   }
 }
 
-class UInt32 extends CircuitValue implements Types.UInt32 {
+class UInt32 extends CircuitValue {
   @prop value: Field;
   static NUM_BITS = 32;
-  _type?: 'UInt32';
 
   static get zero(): UInt32 {
     return new UInt32(Field.zero);

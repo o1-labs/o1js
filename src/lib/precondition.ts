@@ -1,11 +1,4 @@
-import {
-  Circuit,
-  AsFieldElements,
-  Bool,
-  Field,
-  jsLayout,
-  Types,
-} from '../snarky';
+import { Circuit, AsFieldElements, Bool, Field } from '../snarky';
 import { circuitValueEquals } from './circuit_value';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
@@ -13,6 +6,7 @@ import { Party, Preconditions } from './party';
 import { UInt32, UInt64 } from './int';
 import { inAnalyze, inCompile, inProver } from './proof_system';
 import { Layout } from 'snarky/parties-helpers';
+import { jsLayout, Types } from '../snarky/types';
 
 export {
   preconditions,
