@@ -3,20 +3,22 @@ import {
   SmartContract,
   state,
   State,
+  Party,
   method,
   DeployArgs,
   PrivateKey,
-} from '../../../dist/server/index.js';
+} from '../../../dist/server';
+
+export const adminPrivateKey = PrivateKey.random();
+export const adminPublicKey = adminPrivateKey.toPublicKey();
 
 export class HelloWorld extends SmartContract {
   @state(Field) x = State<Field>();
 
   deploy(input: DeployArgs) {
     super.deploy(input);
-  }
-
-  init() {
-    this.x.set(3);
+    this.x.set(Field(3));
+    Party.setValue(this.self.update.delegate, adminPublicKey);
   }
 
   @method update(squared: Field, admin: PrivateKey) {
