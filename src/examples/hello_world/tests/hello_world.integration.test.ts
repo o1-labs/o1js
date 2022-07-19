@@ -7,7 +7,7 @@ import {
   PrivateKey,
   PublicKey,
   Party,
-} from 'snarkyjs';
+} from '../../../../dist/server';
 
 function setupLocalBlockchain() {
   const Local = Mina.LocalBlockchain();
@@ -39,7 +39,6 @@ describe('HelloWorld', () => {
     zkAppPrivateKey = PrivateKey.random();
     zkAppAddress = zkAppPrivateKey.toPublicKey();
   });
-
   afterAll(async () => {
     // `shutdown()` internally calls `process.exit()` which will exit the running Jest process early.
     // Specifying a timeout of 0 is a workaround to defer `shutdown()` until Jest is done running all tests.
