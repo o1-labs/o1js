@@ -13,6 +13,7 @@ import {
   ZkappStateLength,
   ZkappPublicInput,
   CallForest,
+  Authorization,
 } from './party';
 import * as Fetch from './fetch';
 import { assertPreconditionInvariants, NetworkValue } from './precondition';
@@ -267,9 +268,7 @@ function LocalBlockchain({
         isFinalRunOutsideCircuit: false,
       });
       let hasProofs = tx.transaction.otherParties.some(
-        (party) =>
-          'kind' in party.authorization &&
-          party.authorization.kind === 'lazy-proof'
+        Authorization.hasLazyProof
       );
       return createTransaction(sender, f, {
         isFinalRunOutsideCircuit: !hasProofs,
@@ -358,9 +357,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       });
       await Fetch.fetchMissingData(graphqlEndpoint);
       let hasProofs = tx.transaction.otherParties.some(
-        (party) =>
-          'kind' in party.authorization &&
-          party.authorization.kind === 'lazy-proof'
+        Authorization.hasLazyProof
       );
       return createTransaction(sender, f, {
         fetchMode: 'cached',
