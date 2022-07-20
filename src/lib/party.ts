@@ -635,6 +635,10 @@ class Party {
     };
   }
 
+  get tokenId() {
+    return this.body.tokenId;
+  }
+
   get tokenSymbol() {
     let party = this;
 

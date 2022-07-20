@@ -338,6 +338,10 @@ class SmartContract {
     return this.self.token();
   }
 
+  get tokenId() {
+    return this.self.tokenId;
+  }
+
   get tokenSymbol() {
     return this.self.tokenSymbol;
   }
