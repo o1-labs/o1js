@@ -19,7 +19,7 @@ npm run build
 
 ```
 npm install
-npm run build
+npm run build:web
 npm run serve:web
 ```
 
