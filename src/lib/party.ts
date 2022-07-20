@@ -694,54 +694,30 @@ class Party {
     return party;
   }
 
-  static createSigned(
-    signer: PrivateKey,
-    options?: { isSameAsFeePayer?: Bool | boolean; nonce?: UInt32 }
-  ) {
-    let { nonce, isSameAsFeePayer } = options ?? {};
-    // if not specified, determine isSameAsFeePayer from the current transaction
-    // (gotcha: this doesn't constrain `isSameAsFeePayer`, to avoid making the circuit depend on something that can't be
-    // inferred at compile time. to constrain it, provide the argument explicitly)
-    let isFeePayer =
-      isSameAsFeePayer !== undefined
-        ? Bool(isSameAsFeePayer)
-        : Circuit.witness(
-            Bool,
-            () =>
-              Mina.currentTransaction()?.sender?.equals(signer) ?? Bool(false)
-          );
-    // TODO: This should be a witness block that uses the setVariable
-    // API to set the value of a variable after it's allocated
-
+  static createSigned(signer: PrivateKey) {
     let publicKey = signer.toPublicKey();
     let body = Body.keepAll(publicKey);
-
-    // TODO: getAccount could always be used if we had a generic way to add account info prior to creating transactions
-    if (nonce === undefined) {
-      let account = Mina.getAccount(publicKey);
-      nonce = account.nonce;
-    }
-
     if (!Mina.currentTransaction.has()) {
       throw new Error(
         'Party.createSigned: Cannot run outside of a transaction'
       );
     }
-
-    // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher bc the fee payer already increases its nonce
-    let nonceIncrement = Circuit.if(
-      isFeePayer,
-      new UInt32(Field.one),
-      UInt32.zero
-    );
-    // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
-    for (let party of Mina.currentTransaction.get().parties) {
-      let shouldIncreaseNonce = party.publicKey
-        .equals(publicKey)
-        .and(party.body.incrementNonce);
-      nonceIncrement.add(new UInt32(shouldIncreaseNonce.toField()));
-    }
-    nonce = nonce.add(nonceIncrement);
+    // it's fine to compute the nonce outside the circuit, because we're constraining it with a precondition
+    let nonce = Circuit.witness(UInt32, () => {
+      let nonce = Number(Mina.getAccount(publicKey).nonce.toString());
+      // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher,
+      // bc the fee payer already increases its nonce
+      let isFeePayer = Mina.currentTransaction()?.sender?.equals(signer);
+      if (isFeePayer?.toBoolean()) nonce++;
+      // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
+      for (let party of Mina.currentTransaction.get().parties) {
+        let shouldIncreaseNonce = party.publicKey
+          .equals(publicKey)
+          .and(party.body.incrementNonce);
+        if (shouldIncreaseNonce.toBoolean()) nonce++;
+      }
+      return UInt32.from(nonce);
+    });
     Party.assertEquals(body.preconditions.account.nonce, nonce);
     body.incrementNonce = Bool(true);
 
@@ -764,12 +740,9 @@ class Party {
    */
   static fundNewAccount(
     feePayerKey: PrivateKey,
-    {
-      initialBalance = UInt64.zero as number | string | UInt64,
-      isSameAsFeePayer = undefined as Bool | boolean | undefined,
-    } = {}
+    { initialBalance = UInt64.zero as number | string | UInt64 } = {}
   ) {
-    let party = Party.createSigned(feePayerKey, { isSameAsFeePayer });
+    let party = Party.createSigned(feePayerKey);
     let amount =
       initialBalance instanceof UInt64
         ? initialBalance

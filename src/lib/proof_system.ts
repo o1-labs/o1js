@@ -379,21 +379,11 @@ function analyzeMethod<T>(
   methodIntf: MethodInterface,
   method: (...args: any) => T
 ) {
-  let [, { rows, digest, result }] = snarkContext.runWith(
-    { inAnalyze: true, inCheckedComputation: true },
-    () => {
-      let result: T;
-      let { rows, digest }: ReturnType<typeof Circuit.constraintSystem> = (
-        Circuit as any
-      )._constraintSystem(() => {
-        let args = synthesizeMethodArguments(methodIntf, true);
-        let publicInput = emptyWitness(publicInputType);
-        result = method(publicInput, ...args);
-      });
-      return { rows, digest, result: result! };
-    }
-  );
-  return { rows, digest, result: result as T };
+  return Circuit.constraintSystem(() => {
+    let args = synthesizeMethodArguments(methodIntf, true);
+    let publicInput = emptyWitness(publicInputType);
+    return method(publicInput, ...args);
+  });
 }
 
 function picklesRuleFromFunction(
