@@ -1,4 +1,4 @@
-import { Field, Bool, Group, Ledger } from '../snarky';
+import { Field, Bool, Group, Ledger, Circuit } from '../snarky';
 import * as Json from './gen/parties-json';
 import { UInt32, UInt64, Sign } from '../lib/int';
 import { PublicKey } from '../lib/signature';
@@ -234,6 +234,9 @@ let FromFields: FromFields = {
   PublicKey(fields: Field[]) {
     let x = fields.pop()!;
     let isOdd = fields.pop()!;
+    Circuit.asProver(() => {
+      console.log('public key', x + '');
+    });
     // compute y from elliptic curve equation y^2 = x^3 + 5
     // TODO: this is used in-snark, so we should improve constraint efficiency
     let someY = x.mul(x).mul(x).add(5).sqrt();
