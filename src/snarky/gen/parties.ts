@@ -201,6 +201,7 @@ type Parties = {
           state: { isSome: Bool; value: Field }[];
           sequenceState: Field;
           provedState: { isSome: Bool; value: Bool };
+          isNew: { isSome: Bool; value: Bool };
         };
       };
       useFullCommitment: Bool;
@@ -368,6 +369,7 @@ type Party = {
         state: { isSome: Bool; value: Field }[];
         sequenceState: Field;
         provedState: { isSome: Bool; value: Bool };
+        isNew: { isSome: Bool; value: Bool };
       };
     };
     useFullCommitment: Bool;
