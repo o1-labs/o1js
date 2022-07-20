@@ -338,7 +338,7 @@ function circuitValue<T>(
   options?: { customObjectKeys: string[] }
 ): AsFieldElements<T> {
   let objectKeys =
-    typeof typeObj === 'object'
+    typeof typeObj === 'object' && typeObj !== null
       ? options?.customObjectKeys ?? Object.keys(typeObj).sort()
       : [];
 
