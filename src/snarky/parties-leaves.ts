@@ -221,7 +221,6 @@ function sizeInFields<K extends keyof TypeMap>(typeName: K) {
 
 // from fields & aux
 // these functions get the reversed output of `toFields` and `toAuxiliary` and pop the values they need from those arrays
-// NB: unlike toFields, this is only used outside snark, so no worries about constraint efficiency, checking booleanness etc
 
 type FromFields = {
   [K in keyof TypeMap]: (fields: Field[], aux: any[]) => TypeMap[K];
@@ -236,6 +235,7 @@ let FromFields: FromFields = {
     let x = fields.pop()!;
     let isOdd = fields.pop()!;
     // compute y from elliptic curve equation y^2 = x^3 + 5
+    // TODO: this is used in-snark, so we should improve constraint efficiency
     let someY = x.mul(x).mul(x).add(5).sqrt();
     let isTheRightY = isOdd.equals(someY.toBits()[0].toField());
     let y = isTheRightY
