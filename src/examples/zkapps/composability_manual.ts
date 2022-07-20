@@ -36,8 +36,10 @@ class CallableAdd extends SmartContract {
 
 let callableKey = PrivateKey.random();
 let callableAddress = callableKey.toPublicKey();
-console.log('callable address', callableAddress.toBase58());
 let callableTokenId = Field.one;
+// TODO: we need a way to declare witnesses that should be the same when proving,
+// just like we do with method arguments
+let blindingValue0 = Field.random();
 
 class Caller extends SmartContract {
   @state(Field) sum = State<Field>();
@@ -47,34 +49,39 @@ class Caller extends SmartContract {
     let input: [Field, Field] = [x, y];
 
     // we have to call this.self to create our party first!
-    let thisParty = this.self;
+    let selfParty = this.self;
 
     // witness the result of calling `add`
-    let blindingValue = Circuit.witness(Field, () => Field.random());
-    let { party, result } = Party.witness<Field>(Field, () => {
-      // here we will call the other method
-      // let adder = new CallableAdd(callableAddress);
-      // let result = adder.add(...input, blindingValue);
-      let party = Experimental.createChildParty(thisParty, callableAddress);
-      let [x0, y0] = [x.toConstant(), y.toConstant()];
-      let result = x0.add(y0);
-      // store inputs + result in callData
-      // the blindingValue is necessary because otherwise, putting this on the transaction would leak information about the private inputs
-      party.body.callData = Poseidon.hash([blindingValue, x0, y0, result]);
+    let blindingValue = Circuit.witness(Field, () => blindingValue0);
+    let { party, result } = Party.witness<Field>(
+      Field,
+      () => {
+        // here we will call the other method
+        // let adder = new CallableAdd(callableAddress);
+        // let result = adder.add(...input, blindingValue);
+        let party = Party.defaultParty(callableAddress);
+        let [x0, y0] = [x.toConstant(), y.toConstant()];
+        let result = x0.add(y0);
+        // store inputs + result in callData
+        // the blindingValue is necessary because otherwise, putting this on the transaction would leak information about the private inputs
 
-      party.lazyAuthorization = {
-        kind: 'lazy-proof',
-        method: CallableAdd.prototype.add,
-        args: [x0, y0],
-        previousProofs: [],
-        ZkappClass: CallableAdd,
-      };
+        party.body.callData = Poseidon.hash([blindingValue, x0, y0, result]);
 
-      console.log('address base58', party.body.publicKey.toBase58());
-      console.log('address x', party.body.publicKey.g.x + '');
-
-      return { party, result };
-    });
+        party.lazyAuthorization = {
+          kind: 'lazy-proof',
+          methodName: 'add',
+          args: [x0, y0, blindingValue],
+          previousProofs: [],
+          ZkappClass: CallableAdd,
+        };
+        return { party, result };
+      },
+      true
+    );
+    // connect party to our own. outside Circuit.witness so compile knows about it
+    party.body.callDepth = selfParty.body.callDepth + 1;
+    party.parent = selfParty;
+    selfParty.children.push(party);
 
     // assert that we really called the right zkapp
     party.body.publicKey.assertEquals(callableAddress);
@@ -89,18 +96,6 @@ class Caller extends SmartContract {
     this.emitEvent('sum', result);
     this.sum.set(result);
   }
-}
-
-function makeChildParty(parent: Party, child: Party) {
-  let otherParties = Mina.currentTransaction()?.parties;
-  if (otherParties?.includes(child)) {
-    let i = otherParties.indexOf(child);
-    otherParties.splice(i, 1);
-  }
-  child.body.callDepth = parent.body.callDepth + 1;
-  child.parent = parent;
-  parent.children.push(child);
-  return child;
 }
 
 // script to deploy zkapps and do interactions
