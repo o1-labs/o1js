@@ -234,12 +234,16 @@ let FromFields: FromFields = {
   PublicKey(fields: Field[]) {
     let x = fields.pop()!;
     let isOdd = fields.pop()!;
-    Circuit.asProver(() => {
-      console.log('public key', x + '');
-    });
     // compute y from elliptic curve equation y^2 = x^3 + 5
     // TODO: this is used in-snark, so we should improve constraint efficiency
-    let someY = x.mul(x).mul(x).add(5).sqrt();
+    let ySquared = x.mul(x).mul(x).add(5);
+    let someY: Field;
+    if (ySquared.isConstant()) {
+      someY = ySquared.sqrt();
+    } else {
+      someY = Circuit.witness(Field, () => ySquared.toConstant().sqrt());
+      someY.square().equals(ySquared).or(x.equals(Field.zero)).assertTrue();
+    }
     let isTheRightY = isOdd.equals(someY.toBits()[0].toField());
     let y = isTheRightY
       .toField()
