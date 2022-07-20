@@ -1,5 +1,12 @@
-import { circuitValue, cloneCircuitValue } from './circuit_value';
-import { Field, Bool, Ledger, Circuit, Pickles } from '../snarky';
+import { circuitArray, circuitValue, cloneCircuitValue } from './circuit_value';
+import {
+  Field,
+  Bool,
+  Ledger,
+  Circuit,
+  Pickles,
+  AsFieldElements,
+} from '../snarky';
 import { Types } from '../snarky/types';
 import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64, Sign } from './int';
@@ -783,18 +790,39 @@ class Party implements Types.Party {
     party.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 
-  static witness(compute: () => Party) {
-    let proverParty: Party | undefined;
-    let partyRaw = Types.Party.witness(() => {
-      proverParty = compute();
-      return proverParty;
+  static witness<T>(
+    type: AsFieldElements<T>,
+    compute: () => { party: Party; result: T }
+  ) {
+    // construct the circuit type for a party + other result
+    let partyType = circuitArray(Field, Types.Party.sizeInFields());
+    type combinedType = { party: Field[]; result: T };
+    let combinedType = circuitValue<combinedType>({
+      party: partyType,
+      result: type,
     });
-    let party = new Party(partyRaw.body, partyRaw.authorization);
+
+    // compute the witness, with the party represented as plain field elements
+    // (in the prover, also store the actual party)
+    let proverParty: Party | undefined;
+    let fieldsAndResult = Circuit.witness<combinedType>(combinedType, () => {
+      let { party, result } = compute();
+      proverParty = party;
+      return { party: Types.Party.toFields(party), result };
+    });
+
+    // get back a Types.Party from the fields + aux (where aux is just the default in compile)
+    let aux = Types.Party.toAuxiliary(proverParty);
+    let rawParty = Types.Party.fromFields(fieldsAndResult.party, aux);
+    Types.Party.check(rawParty);
+
+    // construct the full Party instance from the raw party + (maybe) the prover party
+    let party = new Party(rawParty.body, rawParty.authorization);
     party.lazyAuthorization =
       proverParty && cloneCircuitValue(proverParty.lazyAuthorization);
     party.children = proverParty?.children ?? [];
     party.parent = proverParty?.parent;
-    return party;
+    return { party, result: fieldsAndResult.result };
   }
 }
 
