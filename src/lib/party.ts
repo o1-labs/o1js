@@ -567,6 +567,7 @@ class Party {
     let thisParty = this;
     let customToken = new Token({
       tokenOwner: thisParty.body.publicKey,
+      parentTokenId: thisParty.body.tokenId,
     });
 
     return {
