@@ -560,7 +560,6 @@ async function deploy<S extends typeof SmartContract>(
     shouldSignFeePayer,
     feePayerKey,
     transactionFee,
-    feePayerNonce,
     memo,
   }: {
     zkappKey: PrivateKey;
@@ -569,7 +568,6 @@ async function deploy<S extends typeof SmartContract>(
     feePayerKey?: PrivateKey;
     shouldSignFeePayer?: boolean;
     transactionFee?: string | number;
-    feePayerNonce?: string | number;
     memo?: string;
   }
 ) {
@@ -584,15 +582,7 @@ async function deploy<S extends typeof SmartContract>(
       let amount = UInt64.fromString(String(initialBalance)).add(
         Mina.accountCreationFee()
       );
-      let nonce =
-        feePayerNonce !== undefined
-          ? UInt32.fromString(String(feePayerNonce))
-          : undefined;
-
-      let party = Party.createSigned(feePayerKey, {
-        isSameAsFeePayer: true,
-        nonce,
-      });
+      let party = Party.createSigned(feePayerKey);
       party.balance.subInPlace(amount);
     }
     // main party: the zkapp account
