@@ -304,8 +304,8 @@ interface Body extends PartyBody {
   events: Events;
   sequenceEvents: Events;
   caller: Field;
-  callData: Field; //MerkleList<Array<Field>>;
-  callDepth: number; // TODO: this is an `int As_prover.t`
+  callData: Field;
+  callDepth: number;
   preconditions: Preconditions;
   useFullCommitment: Bool;
   incrementNonce: Bool;
@@ -352,7 +352,7 @@ const Body = {
       events: Events.empty(),
       sequenceEvents: Events.empty(),
       caller: getDefaultTokenId(),
-      callData: Field.zero, // TODO new MerkleList(),
+      callData: Field.zero,
       callDepth: 0,
       preconditions: Preconditions.ignoreAll(),
       // the default assumption is that snarkyjs transactions don't include the fee payer
@@ -1003,7 +1003,6 @@ function signJsonTransaction(
   if (typeof privateKey === 'string')
     privateKey = PrivateKey.fromBase58(privateKey);
   let publicKey = privateKey.toPublicKey().toBase58();
-  // TODO: we really need types for the parties json
   let parties: Types.Json.Parties = JSON.parse(transactionJson);
   let feePayer = parties.feePayer;
   if (feePayer.body.publicKey === publicKey) {
