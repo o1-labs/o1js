@@ -162,7 +162,7 @@ function wrapMethod(
       let party = this.self;
       if (!Authorization.hasAny(party)) {
         Authorization.setLazyProof(party, {
-          method,
+          methodName: methodIntf.methodName,
           args: clonedArgs,
           // proofs actually don't have to be cloned
           previousProofs: getPreviousProofsForProver(actualArgs, methodIntf),
