@@ -95,11 +95,15 @@ function createTransaction(
     isFinalRunOutsideCircuit,
   });
 
+  // run circuit
+  // we have this while(true) loop because one of the smart contracts we're calling inside `f` might be calling
+  // SmartContract.analyzeMethods, which would be running its methods again inside `Circuit.constraintSystem`, which
+  // would throw an error when nested inside `Circuit.runAndCheck`. So if that happens, we have to run `analyzeMethods` first
+  // and retry `Circuit.runAndCheck(f)`. Since at this point in the function, we don't know which smart contracts are involved,
+  // we created that hack with a `bootstrap()` function that analyzeMethods sticks on the error, to call itself again.
   try {
-    // run circuit
     let err: any;
     while (true) {
-      // this is such a ridiculous hack
       if (err !== undefined) err.bootstrap();
       try {
         snarkContext.runWith({ inRunAndCheck: true }, () =>
