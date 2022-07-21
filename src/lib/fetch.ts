@@ -229,6 +229,8 @@ function parseFetchedAccount({
   delegateAccount,
   receiptChainHash,
   sequenceEvents,
+  tokenId,
+  tokenSymbol,
 }: Partial<FetchedAccount>): Partial<Account> {
   return {
     publicKey:
@@ -251,6 +253,8 @@ function parseFetchedAccount({
     //     : undefined,
     delegate:
       delegateAccount && PublicKey.fromBase58(delegateAccount.publicKey),
+    tokenId: tokenId !== undefined ? Ledger.fieldOfBase58(tokenId) : undefined,
+    tokenSymbol: tokenSymbol !== undefined ? tokenSymbol : undefined,
   };
 }
 
@@ -344,12 +348,15 @@ async function fetchMissingData(graphqlEndpoint: string) {
 
 function getCachedAccount(
   publicKey: PublicKey,
-  tokenId: string,
+  tokenId: Field,
   graphqlEndpoint = defaultGraphqlEndpoint
 ) {
   let account =
-    accountCache[`${publicKey.toBase58()};${tokenId}${graphqlEndpoint}`]
-      ?.account;
+    accountCache[
+      `${publicKey.toBase58()};${Ledger.fieldToBase58(
+        tokenId
+      )};${graphqlEndpoint}`
+    ]?.account;
   if (account !== undefined) return parseFetchedAccount(account);
 }
 function getCachedNetwork(graphqlEndpoint = defaultGraphqlEndpoint) {

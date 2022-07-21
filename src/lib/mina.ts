@@ -310,7 +310,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         );
         let account = Fetch.getCachedAccount(
           publicKey,
-          Ledger.fieldToBase58(tokenId),
+          tokenId,
           graphqlEndpoint
         );
         return account ?? dummyAccount(publicKey);
@@ -321,7 +321,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       ) {
         let account = Fetch.getCachedAccount(
           publicKey,
-          Ledger.fieldToBase58(tokenId),
+          tokenId,
           graphqlEndpoint
         );
         if (account !== undefined) return account;
@@ -419,12 +419,14 @@ let activeInstance: Mina = {
     ) {
       let account = Fetch.getCachedAccount(
         publicKey,
-        Ledger.fieldToBase58(tokenId),
+        tokenId,
         Fetch.defaultGraphqlEndpoint
       );
       if (account === undefined)
         throw Error(
-          `getAccount: Could not find account for public key ${publicKey.toBase58()} with the tokenId ${tokenId}.\nEither call Mina.setActiveInstance first or explicitly add the account with addCachedAccount`
+          `getAccount: Could not find account for public key ${publicKey.toBase58()} with the tokenId ${Ledger.fieldToBase58(
+            tokenId
+          )}.\nEither call Mina.setActiveInstance first or explicitly add the account with addCachedAccount`
         );
       return account;
     }
