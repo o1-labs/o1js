@@ -1,110 +1,112 @@
 import { Party } from './party';
 
-export {
-  mainContext,
-  withContext,
-  withContextAsync,
-  getContext,
-  inProver,
-  inCompile,
-  inCheckedComputation,
-  inAnalyze,
-};
+export { Context };
 
-// context for compiling / proving
-// TODO reconcile mainContext with currentTransaction
-type MainContext = {
-  witnesses?: unknown[];
-  self?: Party;
-  expectedAccesses: number | undefined;
-  actualAccesses: number;
-  inProver?: boolean;
-  inCompile?: boolean;
-  inCheckedComputation?: boolean;
-  inAnalyze?: boolean;
-  otherContext?: any;
-};
+namespace Context {
+  export type id = number;
 
-let mainContext = undefined as MainContext | undefined;
-type PartialContext = Partial<MainContext>;
+  export type t<Context> = (() => Context | undefined) & {
+    data: { context: Context; id: id }[];
+    allowsNesting: boolean;
 
-function withContext<T>(
-  {
-    witnesses = undefined,
-    expectedAccesses = undefined,
-    actualAccesses = 0,
-    self,
-    ...other
-  }: PartialContext,
-  f: () => T
-) {
-  let prevContext = mainContext;
-  mainContext = { witnesses, expectedAccesses, actualAccesses, self, ...other };
-  let result: T;
-  let resultContext: MainContext;
-  try {
-    result = f();
-  } finally {
-    resultContext = mainContext;
-    mainContext = prevContext;
-  }
-  return [resultContext, result] as [MainContext, T];
+    get(): Context;
+    has(): boolean;
+    runWith<Result>(context: Context, func: () => Result): [Context, Result];
+    runWithAsync<Result>(
+      context: Context,
+      func: () => Promise<Result>
+    ): Promise<[Context, Result]>;
+    enter(context: Context): id;
+    leave(id: id): Context;
+    id: () => id;
+  };
+}
+const Context = { create };
+
+function create<C>(
+  options = {
+    allowsNesting: true,
+    default: undefined,
+  } as { allowsNesting?: boolean; default?: C }
+): Context.t<C> {
+  let t: Context.t<C> = Object.assign(
+    function (): C | undefined {
+      return t.data[t.data.length - 1].context;
+    },
+    {
+      data: [],
+      allowsNesting: options.allowsNesting ?? true,
+      get: () => get(t),
+      has: () => t.data.length !== 0,
+      runWith: <R>(context: C, func: () => R) => runWith(t, context, func),
+      runWithAsync: <R>(context: C, func: () => Promise<R>) =>
+        runWithAsync(t, context, func),
+      enter: (context: C) => enter(t, context),
+      leave: (id: Context.id) => leave(t, id),
+      id: () => {
+        if (t.data.length === 0) throw Error(contextConflictMessage);
+        return t.data[t.data.length - 1].id;
+      },
+    }
+  );
+  if (options.default !== undefined) enter(t, options.default);
+  return t;
 }
 
-// TODO: this is unsafe, the mainContext will be overridden if we invoke this function multiple times concurrently
-// at the moment, we solve this by detecting unsafe use and throwing an error
-async function withContextAsync<T>(
-  {
-    witnesses = undefined,
-    expectedAccesses = 1,
-    actualAccesses = 0,
-    self,
-    ...other
-  }: PartialContext,
-  f: () => Promise<T>
-) {
-  let prevContext = mainContext;
-  mainContext = { witnesses, expectedAccesses, actualAccesses, self, ...other };
-  let result: T;
-  let resultContext: MainContext;
-  try {
-    result = await f();
-    if (mainContext.actualAccesses !== mainContext.expectedAccesses)
-      throw Error(contextConflictMessage);
-  } finally {
-    resultContext = mainContext;
-    mainContext = prevContext;
+function enter<C>(t: Context.t<C>, context: C): Context.id {
+  if (t.data.length > 0 && !t.allowsNesting) {
+    throw Error(contextConflictMessage);
   }
-  return [resultContext, result] as [MainContext, T];
+  let id = Math.random();
+  t.data.push({ context, id });
+  return id;
+}
+
+function leave<C>(t: Context.t<C>, id: Context.id): C {
+  let current = t.data.pop();
+  if (current === undefined) throw Error(contextConflictMessage);
+  if (current.id !== id) throw Error(contextConflictMessage);
+  return current.context;
+}
+
+function get<C>(t: Context.t<C>): C {
+  if (t.data.length === 0) throw Error(contextConflictMessage);
+  let current = t.data[t.data.length - 1];
+  return current.context;
+}
+
+function runWith<C, Result>(
+  t: Context.t<C>,
+  context: C,
+  func: () => Result
+): [C, Result] {
+  let id = enter(t, context);
+  let result: Result;
+  let resultContext: C;
+  try {
+    result = func();
+  } finally {
+    resultContext = leave(t, id);
+  }
+  return [resultContext, result];
+}
+
+async function runWithAsync<C, Result>(
+  t: Context.t<C>,
+  context: C,
+  func: () => Promise<Result>
+): Promise<[C, Result]> {
+  let id = enter(t, context);
+  let result: Result;
+  let resultContext: C;
+  try {
+    result = await func();
+  } finally {
+    resultContext = leave(t, id);
+  }
+  return [resultContext, result];
 }
 
 let contextConflictMessage =
   "It seems you're running multiple provers concurrently within" +
   ' the same JavaScript thread, which, at the moment, is not supported and would lead to bugs.';
-function getContext() {
-  if (mainContext === undefined) throw Error(contextConflictMessage);
-  mainContext.actualAccesses++;
-  if (
-    mainContext.expectedAccesses !== undefined &&
-    mainContext.actualAccesses > mainContext.expectedAccesses
-  )
-    throw Error(contextConflictMessage);
-  return mainContext;
-}
-
-function inProver() {
-  return !!mainContext?.inProver;
-}
-function inCompile() {
-  return !!mainContext?.inCompile;
-}
-function inCheckedComputation() {
-  return (
-    !!mainContext?.inCompile ||
-    !!mainContext?.inProver ||
-    !!mainContext?.inCheckedComputation
-  );
-}
-function inAnalyze() {
-  return !!mainContext?.inAnalyze;
-}

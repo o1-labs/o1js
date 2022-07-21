@@ -4,18 +4,20 @@ import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
 import { SmartContract } from './zkapp';
-import { withContextAsync } from './global-context';
+import { Context } from './global-context';
 import * as Precondition from './precondition';
-import { Proof } from './proof_system';
+import { Proof, snarkContext } from './proof_system';
 import { emptyHashWithPrefix, hashWithPrefix, prefixes } from './hash';
 
+// external API
+export { Permissions, Party, ZkappPublicInput };
+
+// internal API
 export {
   SetOrKeep,
   Permission,
-  Permissions,
   Preconditions,
   Body,
-  Party,
   FeePayerUnsigned,
   Parties,
   LazyProof,
@@ -28,7 +30,6 @@ export {
   addMissingProofs,
   signJsonTransaction,
   ZkappStateLength,
-  ZkappPublicInput,
   Events,
   partyToPublicInput,
 };
@@ -549,7 +550,7 @@ class Party {
    * @method onlyRunsWhenBalanceIsLow() {
    *   let lower = UInt64.zero;
    *   let upper = UInt64.fromNumber(20e9);
-   *   Party.assertBetween(this.self.body.accountPrecondition.balance, lower, upper);
+   *   Party.assertBetween(this.self.body.preconditions.account.balance, lower, upper);
    *   // ...
    * }
    * ```
@@ -570,7 +571,7 @@ class Party {
    *
    * ```ts
    * @method onlyRunsWhenNonceIsZero() {
-   *   Party.assertEquals(this.self.body.accountPrecondition.nonce, UInt32.zero);
+   *   Party.assertEquals(this.self.body.preconditions.account.nonce, UInt32.zero);
    *   // ...
    * }
    * ```
@@ -645,6 +646,10 @@ class Party {
     return Types.Party.toFields(toPartyUnsafe(this));
   }
 
+  toJSON() {
+    return Types.Party.toJson(toPartyUnsafe(this));
+  }
+
   hash() {
     let fields = Types.Party.toFields(toPartyUnsafe(this));
     return Ledger.hashPartyFromFields(fields);
@@ -670,75 +675,49 @@ class Party {
   }
 
   static createUnsigned(publicKey: PublicKey) {
-    // TODO: This should be a witness block that uses the setVariable
-    // API to set the value of a variable after it's allocated
-
-    const pk = publicKey;
-    const body: Body = Body.keepAll(pk);
-    if (Mina.currentTransaction === undefined) {
+    const body: Body = Body.keepAll(publicKey);
+    if (!Mina.currentTransaction.has()) {
       throw new Error(
         'Party.createUnsigned: Cannot run outside of a transaction'
       );
     }
-
     const party = new Party(body);
-    Mina.currentTransaction.nextPartyIndex++;
-    Mina.currentTransaction.parties.push(party);
+    Mina.currentTransaction.get().nextPartyIndex++;
+    Mina.currentTransaction.get().parties.push(party);
     return party;
   }
 
-  static createSigned(
-    signer: PrivateKey,
-    options?: { isSameAsFeePayer?: Bool | boolean; nonce?: UInt32 }
-  ) {
-    let { nonce, isSameAsFeePayer } = options ?? {};
-    // if not specified, optimistically determine isSameAsFeePayer from the current transaction
-    // (gotcha: this makes the circuit depend on the fee payer parameter in the transaction.
-    // to avoid that, provide the argument explicitly)
-    let isFeePayer =
-      isSameAsFeePayer !== undefined
-        ? Bool(isSameAsFeePayer)
-        : Mina.currentTransaction?.sender?.equals(signer) ?? Bool(false);
-
-    // TODO: This should be a witness block that uses the setVariable
-    // API to set the value of a variable after it's allocated
-
+  static createSigned(signer: PrivateKey) {
     let publicKey = signer.toPublicKey();
     let body = Body.keepAll(publicKey);
-
-    // TODO: getAccount could always be used if we had a generic way to add account info prior to creating transactions
-    if (nonce === undefined) {
-      let account = Mina.getAccount(publicKey);
-      nonce = account.nonce;
-    }
-
-    if (Mina.currentTransaction === undefined) {
+    if (!Mina.currentTransaction.has()) {
       throw new Error(
         'Party.createSigned: Cannot run outside of a transaction'
       );
     }
-
-    // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher bc the fee payer already increases its nonce
-    let nonceIncrement = Circuit.if(
-      isFeePayer,
-      new UInt32(Field.one),
-      UInt32.zero
-    );
-    // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
-    for (let party of Mina.currentTransaction.parties) {
-      let shouldIncreaseNonce = party.publicKey
-        .equals(publicKey)
-        .and(party.body.incrementNonce);
-      nonceIncrement.add(new UInt32(shouldIncreaseNonce.toField()));
-    }
-    nonce = nonce.add(nonceIncrement);
+    // it's fine to compute the nonce outside the circuit, because we're constraining it with a precondition
+    let nonce = Circuit.witness(UInt32, () => {
+      let nonce = Number(Mina.getAccount(publicKey).nonce.toString());
+      // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher,
+      // bc the fee payer already increases its nonce
+      let isFeePayer = Mina.currentTransaction()?.sender?.equals(signer);
+      if (isFeePayer?.toBoolean()) nonce++;
+      // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
+      for (let party of Mina.currentTransaction.get().parties) {
+        let shouldIncreaseNonce = party.publicKey
+          .equals(publicKey)
+          .and(party.body.incrementNonce);
+        if (shouldIncreaseNonce.toBoolean()) nonce++;
+      }
+      return UInt32.from(nonce);
+    });
     Party.assertEquals(body.preconditions.account.nonce, nonce);
     body.incrementNonce = Bool(true);
 
     let party = new Party(body);
     party.authorization = { kind: 'lazy-signature', privateKey: signer };
-    Mina.currentTransaction.nextPartyIndex++;
-    Mina.currentTransaction.parties.push(party);
+    Mina.currentTransaction.get().nextPartyIndex++;
+    Mina.currentTransaction.get().parties.push(party);
     return party;
   }
 
@@ -755,12 +734,9 @@ class Party {
    */
   static fundNewAccount(
     feePayerKey: PrivateKey,
-    {
-      initialBalance = UInt64.zero as number | string | UInt64,
-      isSameAsFeePayer = undefined as Bool | boolean | undefined,
-    } = {}
+    { initialBalance = UInt64.zero as number | string | UInt64 } = {}
   ) {
-    let party = Party.createSigned(feePayerKey, { isSameAsFeePayer });
+    let party = Party.createSigned(feePayerKey);
     let amount =
       initialBalance instanceof UInt64
         ? initialBalance
@@ -933,12 +909,8 @@ async function addMissingProofs(parties: Parties): Promise<{
     if (ZkappClass._methods === undefined) throw Error(methodError);
     let i = ZkappClass._methods.findIndex((m) => m.methodName === method.name);
     if (i === -1) throw Error(methodError);
-    let [, proof] = await withContextAsync(
-      {
-        self: Party.defaultParty(party.body.publicKey),
-        witnesses: args,
-        inProver: true,
-      },
+    let [, proof] = await snarkContext.runWithAsync(
+      { inProver: true, witnesses: args },
       () => provers[i](publicInputFields, previousProofs)
     );
     party.authorization = { proof: Pickles.proofToBase64Transaction(proof) };
@@ -952,6 +924,7 @@ async function addMissingProofs(parties: Parties): Promise<{
       proof: new ZkappProof({ publicInput, proof, maxProofsVerified }),
     };
   }
+
   let { feePayer, otherParties, memo } = parties;
   // compute proofs serially. in parallel would clash with our global variable hacks
   let otherPartiesProved: (Party & {

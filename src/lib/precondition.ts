@@ -10,8 +10,8 @@ import { circuitValueEquals } from './circuit_value';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
 import { Party, Preconditions } from './party';
-import * as GlobalContext from './global-context';
 import { UInt32, UInt64 } from './int';
+import { inAnalyze, inCompile, inProver } from './proof_system';
 
 export {
   preconditions,
@@ -161,7 +161,7 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   fieldType: AsFieldElements<U>
 ): U {
   // in compile, just return an empty variable
-  if (GlobalContext.inCompile() || GlobalContext.inAnalyze()) {
+  if (inCompile() || inAnalyze()) {
     return Circuit.witness(fieldType, (): U => {
       // TODO this error is never thrown. instead, reading the value with e.g. `toString` ends up
       // calling snarky's eval_as_prover, which throws "Can't evaluate prover code outside an as_prover block"
@@ -192,7 +192,7 @@ To write a correct circuit, you must avoid any dependency on the concrete value 
   }
   // in prover, return a new variable which holds the value
   // outside, just return the value
-  if (GlobalContext.inProver()) {
+  if (inProver()) {
     return Circuit.witness(fieldType, () => value);
   } else {
     return value;

@@ -4,7 +4,12 @@ import { Party } from './party';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
 import { Account, fetchAccount } from './fetch';
-import * as GlobalContext from './global-context';
+import {
+  inAnalyze,
+  inCheckedComputation,
+  inCompile,
+  inProver,
+} from './proof_system';
 import { SmartContract } from './zkapp';
 
 // external API
@@ -189,7 +194,7 @@ function createState<T>(): InternalStateType<T> {
         this._contract.cachedVariable !== undefined &&
         // `inCheckedComputation() === true` here always implies being inside a wrapped smart contract method,
         // which will ensure that the cache is cleaned up before & after each method run.
-        GlobalContext.inCheckedComputation()
+        inCheckedComputation()
       ) {
         this._contract.wasRead = true;
         return this._contract.cachedVariable;
@@ -197,15 +202,15 @@ function createState<T>(): InternalStateType<T> {
       let layout = getLayoutPosition(this._contract);
       let address: PublicKey = this._contract.instance.address;
       let stateAsFields: Field[];
-      let inProver = GlobalContext.inProver();
+      let inProver_ = inProver();
       let stateFieldsType = circuitArray(Field, layout.length);
-      if (!GlobalContext.inCompile() && !GlobalContext.inAnalyze()) {
+      if (!inCompile() && !inAnalyze()) {
         let account: Account;
         try {
           account = Mina.getAccount(address);
         } catch (err) {
           // TODO: there should also be a reasonable error here
-          if (inProver) {
+          if (inProver_) {
             throw err;
           }
           throw Error(
@@ -224,7 +229,7 @@ function createState<T>(): InternalStateType<T> {
         }
         // in prover, create a new witness with the state values
         // outside, just return the state values
-        stateAsFields = inProver
+        stateAsFields = inProver_
           ? Circuit.witness(stateFieldsType, () => stateAsFields)
           : stateAsFields;
       } else {

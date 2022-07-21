@@ -37,14 +37,12 @@ export {
 } from './lib/zkapp';
 export { state, State, declareState } from './lib/state';
 export { Proof, SelfProof, ZkProgram, verify } from './lib/proof_system';
-export * from './lib/party';
+export { Party, Permissions, ZkappPublicInput } from './lib/party';
 export {
   fetchAccount,
   fetchLastBlock,
-  parseFetchedAccount,
   addCachedAccount,
   setGraphqlEndpoint,
-  sendZkappQuery,
   sendZkapp,
 } from './lib/fetch';
 export * as Encryption from './lib/encryption';

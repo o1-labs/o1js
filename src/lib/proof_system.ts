@@ -6,7 +6,7 @@ import {
   Circuit,
   Poseidon,
 } from '../snarky';
-import { getContext, withContext, withContextAsync } from './global-context';
+import { Context } from './global-context';
 
 // public API
 export { Proof, SelfProof, ZkProgram, verify };
@@ -23,7 +23,23 @@ export {
   emptyValue,
   emptyWitness,
   synthesizeMethodArguments,
+  snarkContext,
+  inProver,
+  inCompile,
+  inAnalyze,
+  inCheckedComputation,
 };
+
+// global circuit-related context
+type SnarkContext = {
+  witnesses?: unknown[];
+  inProver?: boolean;
+  inCompile?: boolean;
+  inCheckedComputation?: boolean;
+  inAnalyze?: boolean;
+  inRunAndCheck?: boolean;
+};
+let snarkContext = Context.create<SnarkContext>({ default: {} });
 
 class Proof<T> {
   static publicInputType: AsFieldElements<any> = undefined as any;
@@ -198,7 +214,7 @@ function ZkProgram<
       let publicInputFields = publicInputType.toFields(publicInput);
       let previousProofs = getPreviousProofsForProver(args, methodIntfs[i]);
 
-      let [, proof] = await withContextAsync(
+      let [, proof] = await snarkContext.runWithAsync(
         { witnesses: args, inProver: true },
         () => picklesProver!(publicInputFields, previousProofs)
       );
@@ -350,38 +366,24 @@ function compileProgram(
       methodEntry
     )
   );
-  let [, { getVerificationKeyArtifact, provers, verify, tag }] = withContext(
-    { inCompile: true, ...additionalContext },
-    () => Pickles.compile(rules, publicInputType.sizeInFields())
-  );
+  let [, { getVerificationKeyArtifact, provers, verify, tag }] =
+    snarkContext.runWith({ inCompile: true, ...additionalContext }, () =>
+      Pickles.compile(rules, publicInputType.sizeInFields())
+    );
   CompiledTag.store(proofSystemTag, tag);
   return { getVerificationKeyArtifact, provers, verify, tag };
 }
 
-function analyzeMethod(
+function analyzeMethod<T>(
   publicInputType: AsFieldElements<any>,
   methodIntf: MethodInterface,
-  method: (...args: any) => void,
-  additionalContext?: any
+  method: (...args: any) => T
 ) {
-  let [context, { rows, digest }] = withContext(
-    {
-      inAnalyze: true,
-      inCheckedComputation: true,
-      ...additionalContext,
-    },
-    () => {
-      let { rows, digest }: ReturnType<typeof Circuit.constraintSystem> = (
-        Circuit as any
-      )._constraintSystem(() => {
-        let args = synthesizeMethodArguments(methodIntf, true);
-        let publicInput = emptyWitness(publicInputType);
-        method(publicInput, ...args);
-      });
-      return { rows, digest };
-    }
-  );
-  return { context, rows, digest };
+  return Circuit.constraintSystem(() => {
+    let args = synthesizeMethodArguments(methodIntf, true);
+    let publicInput = emptyWitness(publicInputType);
+    return method(publicInput, ...args);
+  });
 }
 
 function picklesRuleFromFunction(
@@ -394,7 +396,7 @@ function picklesRuleFromFunction(
     publicInput: Pickles.PublicInput,
     previousInputs: Pickles.PublicInput[]
   ) {
-    let { witnesses: argsWithoutPublicInput } = getContext();
+    let { witnesses: argsWithoutPublicInput } = snarkContext.get();
     let finalArgs = [];
     let proofs: Proof<any>[] = [];
     for (let i = 0; i < allArgs.length; i++) {
@@ -494,6 +496,27 @@ ZkProgram.Proof = function <
     static tag = () => program;
   };
 };
+
+// helpers for circuit context
+
+function inProver() {
+  return !!snarkContext.get().inProver;
+}
+function inCompile() {
+  return !!snarkContext.get().inCompile;
+}
+function inAnalyze() {
+  return !!snarkContext.get().inAnalyze;
+}
+function inCheckedComputation() {
+  return (
+    !!snarkContext.get().inCompile ||
+    !!snarkContext.get().inProver ||
+    !!snarkContext.get().inCheckedComputation
+  );
+}
+
+// helper types
 
 type Tuple<T> = [T, ...T[]] | [];
 
