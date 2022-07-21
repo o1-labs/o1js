@@ -6,6 +6,7 @@ import {
   Circuit,
   Poseidon,
 } from '../snarky';
+import { toConstant } from './circuit_value';
 import { Context } from './global-context';
 
 // public API
@@ -23,6 +24,8 @@ export {
   emptyValue,
   emptyWitness,
   synthesizeMethodArguments,
+  methodArgumentsToConstant,
+  methodArgumentsToFields,
   snarkContext,
   inProver,
   inCompile,
@@ -465,6 +468,43 @@ function synthesizeMethodArguments(
     }
   }
   return args;
+}
+
+function methodArgumentsToConstant(
+  { allArgs, proofArgs, witnessArgs }: MethodInterface,
+  args: any[]
+) {
+  let constArgs = [];
+  for (let i = 0; i < allArgs.length; i++) {
+    let arg = args[i];
+    let { type, index } = allArgs[i];
+    if (type === 'witness') {
+      constArgs.push(toConstant(witnessArgs[index], arg));
+    } else {
+      let Proof = proofArgs[index];
+      let publicInput = toConstant(getPublicInputType(Proof), arg.publicInput);
+      constArgs.push(new Proof({ publicInput, proof: arg.proof }));
+    }
+  }
+  return constArgs;
+}
+function methodArgumentsToFields(
+  { allArgs, proofArgs, witnessArgs }: MethodInterface,
+  args: any[]
+) {
+  let fields: Field[] = [];
+  for (let i = 0; i < allArgs.length; i++) {
+    let arg = args[i];
+    let { type, index } = allArgs[i];
+    if (type === 'witness') {
+      fields.push(...witnessArgs[index].toFields(arg));
+    } else {
+      let Proof = proofArgs[index];
+      let publicInput = getPublicInputType(Proof).toFields(arg.publicInput);
+      fields.push(...publicInput);
+    }
+  }
+  return fields;
 }
 
 function emptyValue<T>(type: AsFieldElements<T>) {

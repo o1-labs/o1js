@@ -5,7 +5,7 @@ import {
   Ledger,
   Pickles,
   InferAsFieldElements,
-  Poseidon,
+  Poseidon as Poseidon_,
 } from '../snarky';
 import {
   Circuit,
@@ -44,9 +44,13 @@ import {
   snarkContext,
   inProver,
   inAnalyze,
+  methodArgumentsToConstant,
+  methodArgumentsToFields,
 } from './proof_system';
 import { assertStatePrecondition, cleanStatePrecondition } from './state';
 import { Types } from '../snarky/types';
+import { Context } from './global-context';
+import { Poseidon } from './hash';
 
 // external API
 export {
@@ -88,6 +92,9 @@ function method<T extends SmartContract>(
     );
   }
   let paramTypes = Reflect.getMetadata('design:paramtypes', target, methodName);
+  // this doesn't work :/
+  // let returnType = Reflect.getMetadata('design:returntype', target, methodName);
+
   class SelfProof extends Proof<ZkappPublicInput> {
     static publicInputType = ZkappPublicInput;
     static tag = () => ZkappClass;
@@ -109,6 +116,8 @@ function method<T extends SmartContract>(
   descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
 }
 
+let smartContractContext = Context.create<{ this: SmartContract }>();
+
 // do different things when calling a method, depending on the circumstance
 function wrapMethod(
   method: Function,
@@ -116,76 +125,174 @@ function wrapMethod(
   methodIntf: MethodInterface
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
+    // console.log('wrapped method', methodIntf.methodName);
     cleanStatePrecondition(this);
-    if (inCheckedComputation()) {
-      // important to run this with a fresh party everytime, otherwise compile messes up our circuits
-      // because it runs this multiple times
-      let [, result] = Mina.currentTransaction.runWith(
-        {
-          sender: undefined,
-          parties: [],
-          fetchMode: inProver() ? 'cached' : 'test',
-          isFinalRunOutsideCircuit: false,
-        },
-        () => {
-          // inside prover / compile, the method is always called with the public input as first argument
-          // -- so we can add assertions about it
-          let publicInput = actualArgs[0];
-          actualArgs = actualArgs.slice(1);
-          let party = this.self;
+    if (!smartContractContext.has()) {
+      return smartContractContext.runWith({ this: this }, () => {
+        if (inCheckedComputation()) {
+          // important to run this with a fresh party everytime, otherwise compile messes up our circuits
+          // because it runs this multiple times
+          let [, result] = Mina.currentTransaction.runWith(
+            {
+              sender: undefined,
+              parties: [],
+              fetchMode: inProver() ? 'cached' : 'test',
+              isFinalRunOutsideCircuit: false,
+            },
+            () => {
+              // inside prover / compile, the method is always called with the public input as first argument
+              // -- so we can add assertions about it
+              let publicInput = actualArgs[0];
+              actualArgs = actualArgs.slice(1);
+              let party = this.self;
 
+              let result = method.apply(this, actualArgs);
+
+              // connects our input + result with callData, so this method can be called
+              // TODO include result + blinding value
+              let argsFields = methodArgumentsToFields(methodIntf, actualArgs);
+              party.body.callData = Poseidon.hash(argsFields);
+              // Circuit.asProver(() => {
+              //   console.log('callData (checked) ' + party.body.callData);
+              // });
+
+              // connect the public input to the party & child parties we created
+              // Circuit.asProver(() => {
+              //   console.log('party (prover)');
+              //   console.dir(party.toJSON(), { depth: 5 });
+              // });
+              checkPublicInput(publicInput, party);
+
+              // check the self party right after calling the method
+              // TODO: this needs to be done in a unified way for all parties that are created
+              assertPreconditionInvariants(party);
+              cleanPreconditionsCache(party);
+              assertStatePrecondition(this);
+              return result;
+            }
+          );
+          return result;
+        } else if (!Mina.currentTransaction.has()) {
           // outside a transaction, just call the method, but check precondition invariants
           let result = method.apply(this, actualArgs);
-          checkPublicInput(publicInput, party);
-
           // check the self party right after calling the method
           // TODO: this needs to be done in a unified way for all parties that are created
-          assertPreconditionInvariants(party);
-          cleanPreconditionsCache(party);
+          assertPreconditionInvariants(this.self);
+          cleanPreconditionsCache(this.self);
           assertStatePrecondition(this);
           return result;
-        }
-      );
-      return result;
-    } else if (!Mina.currentTransaction.has()) {
-      // outside a transaction, just call the method, but check precondition invariants
-      let result = method.apply(this, actualArgs);
-      // check the self party right after calling the method
-      // TODO: this needs to be done in a unified way for all parties that are created
-      assertPreconditionInvariants(this.self);
-      cleanPreconditionsCache(this.self);
-      assertStatePrecondition(this);
-      return result;
-    } else {
-      // in a transaction, also add a lazy proof to the self party
-      // (if there's no other authorization set)
+        } else {
+          // in a transaction, also add a lazy proof to the self party
+          // (if there's no other authorization set)
 
-      // first, clone to protect against the method modifying arguments!
-      // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
-      let clonedArgs = cloneCircuitValue(actualArgs);
-      let party = this.self;
+          // first, clone to protect against the method modifying arguments!
+          // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
+          let clonedArgs = cloneCircuitValue(actualArgs);
+          let party = this.self;
 
-      // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
-      let [{ memoized }, result] = memoizationContext.runWith(
-        { memoized: [], currentIndex: 0 },
-        () => {
-          let result = method.apply(this, actualArgs);
+          // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
+          let [{ memoized }, result] = memoizationContext.runWith(
+            { memoized: [], currentIndex: 0 },
+            () => method.apply(this, actualArgs)
+          );
           assertStatePrecondition(this);
+
+          // connects our input + result with callData, so this method can be called
+          // TODO include result + blinding value
+          let argsFields = methodArgumentsToFields(methodIntf, actualArgs);
+          party.body.callData = Poseidon.hash(argsFields);
+          // console.log('callData (transaction) ' + party.body.callData);s
+
+          if (!Authorization.hasAny(party)) {
+            Authorization.setLazyProof(party, {
+              methodName: methodIntf.methodName,
+              args: clonedArgs,
+              // proofs actually don't have to be cloned
+              previousProofs: getPreviousProofsForProver(
+                actualArgs,
+                methodIntf
+              ),
+              ZkappClass,
+              memoized,
+            });
+          }
           return result;
         }
-      );
-      if (!Authorization.hasAny(party)) {
-        Authorization.setLazyProof(party, {
-          methodName: methodIntf.methodName,
-          args: clonedArgs,
-          // proofs actually don't have to be cloned
-          previousProofs: getPreviousProofsForProver(actualArgs, methodIntf),
-          ZkappClass,
-          memoized,
-        });
-      }
-      return result;
+      })[1];
     }
+    // if we're here, this method was called inside _another_ smart contract method
+    // this means we have to run this method inside a witness block, to not affect the caller's circuit
+    let parentParty = smartContractContext.get().this.self;
+
+    // TODO create blinding value automatically, with custom annotation? or everytime, without annotation?
+    // the blindingValue is necessary because otherwise, putting this on the transaction would leak information about the private inputs
+    // let blindingValue = memoizeWitness(Field, () => Field.random());
+
+    // witness the result of calling `add`
+    // let result: any;
+    let { party, result } = Party.witness(
+      // circuitValue<null>(null),
+      Field,
+      () => {
+        let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
+        let party = this.self;
+        // the line above adds the callee's self party into the wrong place in the transaction structure
+        // so we remove it again
+        // TODO: since we wrap all method calls now anyway, should remove that hidden logic in this.self
+        // and add parties to transactions more explicitly
+        let transaction = Mina.currentTransaction();
+        if (transaction !== undefined) transaction.parties.pop();
+
+        let [{ memoized }, result] = memoizationContext.runWith(
+          { memoized: [], currentIndex: 0 },
+          () => method.apply(this, constantArgs)
+        );
+        // result = result0;
+        assertStatePrecondition(this);
+
+        // store inputs + result in callData
+        // TODO include result + blinding value
+        // TODO: need annotation for result type, include result type in this hash
+        let argsFields = methodArgumentsToFields(methodIntf, constantArgs);
+        party.body.callData = Poseidon_.hash(argsFields, false);
+        // console.log('callData (callee) ' + party.body.callData);
+
+        if (!Authorization.hasAny(party)) {
+          Authorization.setLazyProof(party, {
+            methodName: methodIntf.methodName,
+            args: constantArgs,
+            previousProofs: getPreviousProofsForProver(
+              constantArgs,
+              methodIntf
+            ),
+            ZkappClass,
+            memoized,
+          });
+        }
+        return { party, result };
+      },
+      true
+    );
+    // we're in the _caller's_ circuit now, where we assert stuff about the method call
+
+    // connect party to our own. outside Circuit.witness so compile knows about it
+    party.body.callDepth = parentParty.body.callDepth + 1;
+    party.parent = parentParty;
+    parentParty.children.push(party);
+
+    // assert that we really called the right zkapp
+    party.body.publicKey.assertEquals(this.address);
+    party.body.tokenId.assertEquals(this.self.body.tokenId);
+
+    // assert that the inputs & outputs we have match what the callee put on its callData
+    let callData = Poseidon.hash(
+      methodArgumentsToFields(methodIntf, actualArgs)
+    );
+    // Circuit.asProver(() => {
+    //   console.log('callData (caller) ' + callData);
+    // });
+    party.body.callData.assertEquals(callData);
+    return result;
   };
 }
 
@@ -270,7 +377,7 @@ class SmartContract {
 
   static digest(address: PublicKey) {
     let methodData = this.analyzeMethods(address);
-    let hash = Poseidon.hash(
+    let hash = Poseidon_.hash(
       Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest))),
       false
     );
@@ -300,12 +407,10 @@ class SmartContract {
 
   private executionState(): ExecutionState {
     if (!Mina.currentTransaction.has()) {
-      // throw new Error('Cannot execute outside of a Mina.transaction() block.');
       // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
       // or even expose the .get() methods independently of any party (they don't need one)
       return {
         transactionId: NaN,
-        partyIndex: NaN,
         party: selfParty(this.address),
       };
     }
@@ -320,11 +425,7 @@ class SmartContract {
     let id = Mina.currentTransaction.id();
     let party = selfParty(this.address);
     transaction.parties.push(party);
-    executionState = {
-      transactionId: id,
-      partyIndex: transaction.parties.length,
-      party,
-    };
+    executionState = { transactionId: id, party };
     this._executionState = executionState;
     return executionState;
   }
@@ -553,11 +654,7 @@ function selfParty(address: PublicKey) {
 }
 
 // per-smart-contract context for transaction construction
-type ExecutionState = {
-  transactionId: number;
-  partyIndex: number;
-  party: Party;
-};
+type ExecutionState = { transactionId: number; party: Party };
 
 type DeployArgs = {
   verificationKey?: { data: string; hash: string | Field };

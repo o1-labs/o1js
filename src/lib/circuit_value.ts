@@ -22,6 +22,7 @@ export {
   circuitArray,
   memoizationContext,
   memoizeWitness,
+  toConstant,
 };
 
 type AnyConstructor = new (...args: any) => any;
@@ -490,6 +491,10 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
   return aEntries.every(
     ([key, value]) => key in b && circuitValueEquals((b as any)[key], value)
   );
+}
+
+function toConstant<T>(type: AsFieldElements<T>, value: T): T {
+  return type.ofFields(type.toFields(value).map((x) => x.toConstant()));
 }
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
