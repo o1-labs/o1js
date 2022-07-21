@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { Circuit, Field, Bool, JSONValue, AsFieldElements } from '../snarky';
-import { withContext } from './global-context';
+import { snarkContext } from './proof_system';
 
 // external API
 export {
@@ -67,6 +67,10 @@ abstract class CircuitValue {
 
   toJSON(): JSONValue {
     return (this.constructor as any).toJSON(this);
+  }
+
+  toConstant(): this {
+    return (this.constructor as any).toConstant(this);
   }
 
   equals(x: this) {
@@ -301,14 +305,17 @@ function circuitMain(
   }
 
   target.snarkyMain = (w: Array<any>, pub: Array<any>) => {
-    let [, result] = withContext({ inCheckedComputation: true }, () => {
-      let args = [];
-      for (let i = 0; i < numArgs; ++i) {
-        args.push((publicIndexSet.has(i) ? pub : w).shift());
-      }
+    let [, result] = snarkContext.runWith(
+      { inCheckedComputation: true },
+      () => {
+        let args = [];
+        for (let i = 0; i < numArgs; ++i) {
+          args.push((publicIndexSet.has(i) ? pub : w).shift());
+        }
 
-      return target[propertyName].apply(target, args);
-    });
+        return target[propertyName].apply(target, args);
+      }
+    );
     return result;
   };
 
@@ -331,7 +338,7 @@ function circuitValue<T>(
   options?: { customObjectKeys: string[] }
 ): AsFieldElements<T> {
   let objectKeys =
-    typeof typeObj === 'object'
+    typeof typeObj === 'object' && typeObj !== null
       ? options?.customObjectKeys ?? Object.keys(typeObj).sort()
       : [];
 
@@ -385,6 +392,8 @@ function circuitValue<T>(
   };
 }
 
+// FIXME: the logic in here to check for obj.constructor.name actually doesn't work
+// something that works is Field.one.constructor === obj.constructor etc
 function cloneCircuitValue<T>(obj: T): T {
   // primitive JS types and functions aren't cloned
   if (typeof obj !== 'object' || obj === null) return obj;
@@ -511,12 +520,15 @@ Circuit.switch = function <T, A extends AsFieldElements<T>>(
   return type.ofFields(fields);
 };
 
-Circuit.constraintSystem = function (f) {
-  let [, result] = withContext(
+Circuit.constraintSystem = function <T>(f: () => T) {
+  let [, result] = snarkContext.runWith(
     { inAnalyze: true, inCheckedComputation: true },
     () => {
-      let { rows, digest, json } = (Circuit as any)._constraintSystem(f);
-      return { rows, digest };
+      let result: T;
+      let { rows, digest, json } = (Circuit as any)._constraintSystem(() => {
+        result = f();
+      });
+      return { rows, digest, result: result! };
     }
   );
   return result;

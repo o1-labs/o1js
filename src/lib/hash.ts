@@ -1,5 +1,5 @@
 import { Poseidon as Poseidon_, Field } from '../snarky';
-import { inCheckedComputation } from './global-context';
+import { inCheckedComputation } from './proof_system';
 
 // external API
 export { Poseidon };

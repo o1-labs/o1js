@@ -4,19 +4,20 @@ import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
 import { SmartContract } from './zkapp';
-import { withContextAsync } from './global-context';
 import * as Precondition from './precondition';
-import { Proof } from './proof_system';
+import { inCheckedComputation, Proof, snarkContext } from './proof_system';
 import { emptyHashWithPrefix, hashWithPrefix, prefixes } from './hash';
 import { salt } from './hash';
 
+// external API
+export { Permissions, Party, ZkappPublicInput };
+
+// internal API
 export {
   SetOrKeep,
   Permission,
-  Permissions,
   Preconditions,
   Body,
-  Party,
   FeePayerUnsigned,
   Parties,
   LazyProof,
@@ -29,11 +30,12 @@ export {
   addMissingProofs,
   signJsonTransaction,
   ZkappStateLength,
-  ZkappPublicInput,
   Events,
   partyToPublicInput,
   Token,
   getDefaultTokenId,
+  CallForest,
+  createChildParty,
 };
 
 const ZkappStateLength = 8;
@@ -208,7 +210,7 @@ let Permissions = {
   default: (): Permissions => ({
     editState: Permission.proof(),
     send: Permission.signature(),
-    receive: Permission.proof(),
+    receive: Permission.none(),
     setDelegate: Permission.signature(),
     setPermissions: Permission.signature(),
     setVerificationKey: Permission.signature(),
@@ -305,8 +307,8 @@ interface Body extends PartyBody {
   events: Events;
   sequenceEvents: Events;
   caller: Field;
-  callData: Field; //MerkleList<Array<Field>>;
-  callDepth: number; // TODO: this is an `int As_prover.t`
+  callData: Field;
+  callDepth: number;
   preconditions: Preconditions;
   useFullCommitment: Bool;
   incrementNonce: Bool;
@@ -353,7 +355,7 @@ const Body = {
       events: Events.empty(),
       sequenceEvents: Events.empty(),
       caller: getDefaultTokenId(),
-      callData: Field.zero, // TODO new MerkleList(),
+      callData: Field.zero,
       callDepth: 0,
       preconditions: Preconditions.ignoreAll(),
       // the default assumption is that snarkyjs transactions don't include the fee payer
@@ -545,6 +547,8 @@ class Party {
   authorization: LazyControl;
   account: Precondition.Account;
   network: Precondition.Network;
+  children: Party[] = [];
+  parent: Party | undefined = undefined;
 
   private isSelf: boolean;
 
@@ -561,7 +565,10 @@ class Party {
   static clone(party: Party) {
     let body = cloneCircuitValue(party.body);
     let authorization = cloneCircuitValue(party.authorization);
-    return new (Party as any)(body, authorization, party.isSelf);
+    let clonedParty = new (Party as any)(body, authorization, party.isSelf);
+    clonedParty.children = party.children;
+    clonedParty.parent = party.parent;
+    return clonedParty;
   }
 
   token() {
@@ -687,7 +694,7 @@ class Party {
    * @method onlyRunsWhenBalanceIsLow() {
    *   let lower = UInt64.zero;
    *   let upper = UInt64.fromNumber(20e9);
-   *   Party.assertBetween(this.self.body.accountPrecondition.balance, lower, upper);
+   *   Party.assertBetween(this.self.body.preconditions.account.balance, lower, upper);
    *   // ...
    * }
    * ```
@@ -708,7 +715,7 @@ class Party {
    *
    * ```ts
    * @method onlyRunsWhenNonceIsZero() {
-   *   Party.assertEquals(this.self.body.accountPrecondition.nonce, UInt32.zero);
+   *   Party.assertEquals(this.self.body.preconditions.account.nonce, UInt32.zero);
    *   // ...
    * }
    * ```
@@ -786,9 +793,27 @@ class Party {
     return Types.Party.toFields(toPartyUnsafe(this));
   }
 
+  toJSON() {
+    return Types.Party.toJson(toPartyUnsafe(this));
+  }
+
   hash() {
-    let fields = Types.Party.toFields(toPartyUnsafe(this));
-    return Ledger.hashPartyFromFields(fields);
+    // these two ways of hashing are (and have to be) consistent / produce the same hash
+    if (inCheckedComputation()) {
+      let fields = Types.Party.toFields(toPartyUnsafe(this));
+      return Ledger.hashPartyFromFields(fields);
+    } else {
+      let json = Types.Party.toJson(toPartyUnsafe(this));
+      return Ledger.hashPartyFromJson(JSON.stringify(json));
+    }
+  }
+
+  // TODO: this was only exposed to be used in a unit test
+  // consider removing when we have inline unit tests
+  toPublicInput(): ZkappPublicInput {
+    let party = this.hash();
+    let calls = CallForest.hashChildren(this);
+    return { party, calls };
   }
 
   static defaultParty(address: PublicKey) {
@@ -819,83 +844,47 @@ class Party {
       useFullCommitment?: Bool;
     }
   ) {
-    // TODO: This should be a witness block that uses the setVariable
-    // API to set the value of a variable after it's allocated
-    if (Mina.currentTransaction === undefined) {
-      throw new Error(
-        'Party.createUnsigned: Cannot run outside of a transaction'
-      );
-    }
-
-    const pk = publicKey;
-    const body: Body = Body.keepAll(pk);
+    let party = Party.defaultParty(publicKey);
     const { caller, tokenId, callDepth, useFullCommitment } = options ?? {};
-    body.caller = caller ?? body.caller;
-    body.tokenId = tokenId ?? body.tokenId;
-    body.callDepth = callDepth ?? body.callDepth;
-    body.useFullCommitment = useFullCommitment ?? body.useFullCommitment;
-
-    const party = new Party(body);
-    Mina.currentTransaction.nextPartyIndex++;
-    Mina.currentTransaction.parties.push(party);
+    party.body.caller = caller ?? party.body.caller;
+    party.body.tokenId = tokenId ?? party.body.tokenId;
+    party.body.callDepth = callDepth ?? party.body.callDepth;
+    party.body.useFullCommitment =
+      useFullCommitment ?? party.body.useFullCommitment;
+    Mina.currentTransaction()?.parties.push(party);
     return party;
   }
 
-  static createSigned(
-    signer: PrivateKey,
-    options?: {
-      isSameAsFeePayer?: Bool | boolean;
-      nonce?: UInt32;
-    }
-  ) {
-    let { nonce, isSameAsFeePayer } = options ?? {};
-    // if not specified, optimistically determine isSameAsFeePayer from the current transaction
-    // (gotcha: this makes the circuit depend on the fee payer parameter in the transaction.
-    // to avoid that, provide the argument explicitly)
-    let isFeePayer =
-      isSameAsFeePayer !== undefined
-        ? Bool(isSameAsFeePayer)
-        : Mina.currentTransaction?.sender?.equals(signer) ?? Bool(false);
-
-    // TODO: This should be a witness block that uses the setVariable
-    // API to set the value of a variable after it's allocated
-
+  static createSigned(signer: PrivateKey) {
     let publicKey = signer.toPublicKey();
     let body = Body.keepAll(publicKey);
-
-    // TODO: getAccount could always be used if we had a generic way to add account info prior to creating transactions
-    if (nonce === undefined) {
-      let account = Mina.getAccount(publicKey, body.tokenId);
-      nonce = account.nonce;
-    }
-
-    if (Mina.currentTransaction === undefined) {
+    if (!Mina.currentTransaction.has()) {
       throw new Error(
         'Party.createSigned: Cannot run outside of a transaction'
       );
     }
-
-    // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher bc the fee payer already increases its nonce
-    let nonceIncrement = Circuit.if(
-      isFeePayer,
-      new UInt32(Field.one),
-      UInt32.zero
-    );
-    // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
-    for (let party of Mina.currentTransaction.parties) {
-      let shouldIncreaseNonce = party.publicKey
-        .equals(publicKey)
-        .and(party.body.incrementNonce);
-      nonceIncrement.add(new UInt32(shouldIncreaseNonce.toField()));
-    }
-    nonce = nonce.add(nonceIncrement);
+    // it's fine to compute the nonce outside the circuit, because we're constraining it with a precondition
+    let nonce = Circuit.witness(UInt32, () => {
+      let nonce = Number(Mina.getAccount(publicKey).nonce.toString());
+      // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher,
+      // bc the fee payer already increases its nonce
+      let isFeePayer = Mina.currentTransaction()?.sender?.equals(signer);
+      if (isFeePayer?.toBoolean()) nonce++;
+      // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
+      for (let party of Mina.currentTransaction.get().parties) {
+        let shouldIncreaseNonce = party.publicKey
+          .equals(publicKey)
+          .and(party.body.incrementNonce);
+        if (shouldIncreaseNonce.toBoolean()) nonce++;
+      }
+      return UInt32.from(nonce);
+    });
     Party.assertEquals(body.preconditions.account.nonce, nonce);
     body.incrementNonce = Bool(true);
 
     let party = new Party(body);
     party.authorization = { kind: 'lazy-signature', privateKey: signer };
-    Mina.currentTransaction.nextPartyIndex++;
-    Mina.currentTransaction.parties.push(party);
+    Mina.currentTransaction.get().parties.push(party);
     return party;
   }
 
@@ -912,12 +901,9 @@ class Party {
    */
   static fundNewAccount(
     feePayerKey: PrivateKey,
-    {
-      initialBalance = UInt64.zero as number | string | UInt64,
-      isSameAsFeePayer = undefined as Bool | boolean | undefined,
-    } = {}
+    { initialBalance = UInt64.zero as number | string | UInt64 } = {}
   ) {
-    let party = Party.createSigned(feePayerKey, { isSameAsFeePayer });
+    let party = Party.createSigned(feePayerKey);
     let amount =
       initialBalance instanceof UInt64
         ? initialBalance
@@ -936,6 +922,45 @@ type PartiesSigned = {
   otherParties: (Party & { authorization: Control | LazyProof })[];
   memo: string;
 };
+
+const CallForest = {
+  // similar to Mina_base.Parties.Call_forest.to_parties_list
+  // takes a list of parties, which each can have children, so they form a "forest" (list of trees)
+  // returns a flattened list, with `party.body.callDepth` specifying positions in the forest
+  toFlatList(forest: Party[], depth = 0): Party[] {
+    let parties = [];
+    for (let party of forest) {
+      party.body.callDepth = depth;
+      parties.push(party, ...CallForest.toFlatList(party.children, depth + 1));
+    }
+    return parties;
+  },
+
+  // Mina_base.Parties.Digest.Forest.empty
+  emptyHash() {
+    return Field.zero;
+  },
+
+  // similar to Mina_base.Parties.Call_forest.accumulate_hashes
+  // hashes a party's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
+  hashChildren(parent: Party) {
+    let stackHash = CallForest.emptyHash();
+    for (let party of parent.children.reverse()) {
+      let calls = CallForest.hashChildren(party);
+      let nodeHash = hashWithPrefix(prefixes.partyNode, [party.hash(), calls]);
+      stackHash = hashWithPrefix(prefixes.partyCons, [nodeHash, stackHash]);
+    }
+    return stackHash;
+  },
+};
+
+function createChildParty(parent: Party, childAddress: PublicKey) {
+  let child = Party.defaultParty(childAddress);
+  child.body.callDepth = parent.body.callDepth + 1;
+  child.parent = parent;
+  parent.children.push(child);
+  return child;
+}
 
 // TODO find a better name for these to make it clearer what they do (replace any lazy authorization with no/dummy authorization)
 function toFeePayerUnsafe(feePayer: FeePayerUnsigned): FeePayer {
@@ -1056,9 +1081,8 @@ let ZkappPublicInput = circuitValue<ZkappPublicInput>(
 );
 
 function partyToPublicInput(self: Party): ZkappPublicInput {
-  // TODO compute `calls` from party's children
   let party = self.hash();
-  let calls = Field.zero; // zero is the correct value if party has no children
+  let calls = CallForest.hashChildren(self);
   return { party, calls };
 }
 
@@ -1090,12 +1114,8 @@ async function addMissingProofs(parties: Parties): Promise<{
     if (ZkappClass._methods === undefined) throw Error(methodError);
     let i = ZkappClass._methods.findIndex((m) => m.methodName === method.name);
     if (i === -1) throw Error(methodError);
-    let [, proof] = await withContextAsync(
-      {
-        self: Party.defaultParty(party.body.publicKey),
-        witnesses: args,
-        inProver: true,
-      },
+    let [, proof] = await snarkContext.runWithAsync(
+      { inProver: true, witnesses: args },
       () => provers[i](publicInputFields, previousProofs)
     );
     party.authorization = { proof: Pickles.proofToBase64Transaction(proof) };
@@ -1109,6 +1129,7 @@ async function addMissingProofs(parties: Parties): Promise<{
       proof: new ZkappProof({ publicInput, proof, maxProofsVerified }),
     };
   }
+
   let { feePayer, otherParties, memo } = parties;
   // compute proofs serially. in parallel would clash with our global variable hacks
   let otherPartiesProved: (Party & {
@@ -1137,7 +1158,6 @@ function signJsonTransaction(
   if (typeof privateKey === 'string')
     privateKey = PrivateKey.fromBase58(privateKey);
   let publicKey = privateKey.toPublicKey().toBase58();
-  // TODO: we really need types for the parties json
   let parties: Types.Json.Parties = JSON.parse(transactionJson);
   let feePayer = parties.feePayer;
   if (feePayer.body.publicKey === publicKey) {

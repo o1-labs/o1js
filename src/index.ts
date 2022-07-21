@@ -28,7 +28,6 @@ export * from './lib/int';
 export * as Mina from './lib/mina';
 export {
   SmartContract,
-  Experimental,
   method,
   deploy,
   DeployArgs,
@@ -37,16 +36,25 @@ export {
 } from './lib/zkapp';
 export { state, State, declareState } from './lib/state';
 export { Proof, SelfProof, ZkProgram, verify } from './lib/proof_system';
-export * from './lib/party';
+export { Party, Permissions, ZkappPublicInput } from './lib/party';
 export {
   fetchAccount,
   fetchLastBlock,
-  parseFetchedAccount,
   addCachedAccount,
   setGraphqlEndpoint,
-  sendZkappQuery,
   sendZkapp,
 } from './lib/fetch';
 export * as Encryption from './lib/encryption';
 export * as Encoding from './lib/encoding';
 export { Character, CircuitString } from './lib/string';
+
+// experimental APIs
+import { Reducer } from './lib/zkapp';
+import { createChildParty } from './lib/party';
+export { Experimental };
+
+/**
+ * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
+ * (Not unstable in the sense that they are less functional or tested than other parts.)
+ */
+const Experimental = { Reducer, createChildParty };

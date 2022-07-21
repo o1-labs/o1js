@@ -298,13 +298,14 @@ let cacheExpiry = 10 * 60 * 1000; // 10 minutes
 
 function markAccountToBeFetched(
   publicKey: PublicKey,
-  tokenId: string,
+  tokenId: Field,
   graphqlEndpoint: string
 ) {
   let publicKeyBase58 = publicKey.toBase58();
-  accountsToFetch[`${publicKeyBase58};${tokenId};${graphqlEndpoint}`] = {
+  let tokenBase58 = Ledger.fieldToBase58(tokenId);
+  accountsToFetch[`${publicKeyBase58};${tokenBase58};${graphqlEndpoint}`] = {
     publicKey: publicKeyBase58,
-    tokenId,
+    tokenId: tokenBase58,
     graphqlEndpoint,
   };
 }

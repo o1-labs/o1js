@@ -25,13 +25,6 @@ import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
 import { UInt32, UInt64 } from './int';
 import {
-  mainContext,
-  inCheckedComputation,
-  withContext,
-  inProver,
-  inAnalyze,
-} from './global-context';
-import {
   assertPreconditionInvariants,
   cleanPreconditionsCache,
 } from './precondition';
@@ -43,19 +36,25 @@ import {
   Proof,
   emptyValue,
   analyzeMethod,
+  inCheckedComputation,
+  snarkContext,
+  inProver,
+  inAnalyze,
 } from './proof_system';
 import { assertStatePrecondition, cleanStatePrecondition } from './state';
 
 // external API
 export {
   SmartContract,
-  Experimental,
   method,
   deploy,
   DeployArgs,
   signFeePayer,
   declareMethods,
 };
+
+// internal API
+export { Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
 
@@ -114,12 +113,14 @@ function wrapMethod(
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
     if (inCheckedComputation()) {
-      return withContext(
+      // important to run this with a fresh party everytime, otherwise compile messes up our circuits
+      // because it runs this multiple times
+      let [, result] = Mina.currentTransaction.runWith(
         {
-          ...mainContext,
-          // important to run this with a fresh party everytime, otherwise compile messes up our circuits
-          // because it runs this multiple times
-          self: selfParty(this.address),
+          sender: undefined,
+          parties: [],
+          fetchMode: inProver() ? 'cached' : 'test',
+          isFinalRunOutsideCircuit: false,
         },
         () => {
           // inside prover / compile, the method is always called with the public input as first argument
@@ -138,8 +139,9 @@ function wrapMethod(
           assertStatePrecondition(this);
           return result;
         }
-      )[1];
-    } else if (Mina.currentTransaction === undefined) {
+      );
+      return result;
+    } else if (!Mina.currentTransaction.has()) {
       // outside a transaction, just call the method, but check precondition invariants
       let result = method.apply(this, actualArgs);
       // check the self party right after calling the method
@@ -283,16 +285,7 @@ class SmartContract {
   }
 
   private executionState(): ExecutionState {
-    // TODO reconcile mainContext with currentTransaction
-    if (mainContext !== undefined) {
-      if (mainContext.self === undefined) throw Error('bug');
-      return {
-        transactionId: 0,
-        partyIndex: 0,
-        party: mainContext.self,
-      };
-    }
-    if (Mina.currentTransaction === undefined) {
+    if (!Mina.currentTransaction.has()) {
       // throw new Error('Cannot execute outside of a Mina.transaction() block.');
       // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
       // or even expose the .get() methods independently of any party (they don't need one)
@@ -305,17 +298,17 @@ class SmartContract {
     let executionState = this._executionState;
     if (
       executionState !== undefined &&
-      executionState.transactionId === Mina.nextTransactionId.value
+      executionState.transactionId === Mina.currentTransaction.id()
     ) {
       return executionState;
     }
-    let id = Mina.nextTransactionId.value;
-    let index = Mina.currentTransaction.nextPartyIndex++;
+    let transaction = Mina.currentTransaction.get();
+    let id = Mina.currentTransaction.id();
     let party = selfParty(this.address);
-    Mina.currentTransaction.parties.push(party);
+    transaction.parties.push(party);
     executionState = {
       transactionId: id,
-      partyIndex: index,
+      partyIndex: transaction.parties.length,
       party,
     };
     this._executionState = executionState;
@@ -388,7 +381,7 @@ class SmartContract {
   }
 
   static runOutsideCircuit(run: () => void) {
-    if (Mina.currentTransaction?.isFinalRunOutsideCircuit || inProver())
+    if (Mina.currentTransaction()?.isFinalRunOutsideCircuit || inProver())
       Circuit.asProver(run);
   }
 
@@ -404,18 +397,23 @@ class SmartContract {
       !methodIntfs.every((m) => m.methodName in ZkappClass._methodMetadata) &&
       !inAnalyze()
     ) {
+      if (snarkContext.get().inRunAndCheck) {
+        let err = new Error(
+          'Can not analyze methods inside Circuit.runAndCheck, because this creates a circuit nested in another circuit'
+        );
+        // EXCEPT if the code that calls this knows that it can first run `analyzeMethods` OUTSIDE runAndCheck and try again
+        (err as any).bootstrap = () => ZkappClass.analyzeMethods(address);
+        throw err;
+      }
       for (let methodIntf of methodIntfs) {
-        let { context, rows, digest } = analyzeMethod(
+        let { rows, digest } = analyzeMethod(
           ZkappPublicInput,
           methodIntf,
-          (...args) => (instance as any)[methodIntf.methodName](...args),
-          {
-            self: selfParty(address),
-            otherContext: { numberOfSequenceEvents: 0 },
-          }
+          (...args) => (instance as any)[methodIntf.methodName](...args)
         );
+        let party = instance._executionState?.party!;
         ZkappClass._methodMetadata[methodIntf.methodName] = {
-          sequenceEvents: context?.otherContext?.numberOfSequenceEvents,
+          sequenceEvents: party.body.sequenceEvents.data.length,
           rows,
           digest,
         };
@@ -469,9 +467,6 @@ class ${contract.constructor.name} extends SmartContract {
         party.body.sequenceEvents,
         eventFields
       );
-      if (mainContext?.otherContext?.numberOfSequenceEvents !== undefined) {
-        mainContext.otherContext.numberOfSequenceEvents += 1;
-      }
     },
 
     reduce<S>(
@@ -578,7 +573,6 @@ async function deploy<S extends typeof SmartContract>(
     shouldSignFeePayer,
     feePayerKey,
     transactionFee,
-    feePayerNonce,
     memo,
   }: {
     zkappKey: PrivateKey;
@@ -587,7 +581,6 @@ async function deploy<S extends typeof SmartContract>(
     feePayerKey?: PrivateKey;
     shouldSignFeePayer?: boolean;
     transactionFee?: string | number;
-    feePayerNonce?: string | number;
     memo?: string;
   }
 ) {
@@ -602,15 +595,7 @@ async function deploy<S extends typeof SmartContract>(
       let amount = UInt64.fromString(String(initialBalance)).add(
         Mina.accountCreationFee()
       );
-      let nonce =
-        feePayerNonce !== undefined
-          ? UInt32.fromString(String(feePayerNonce))
-          : undefined;
-
-      let party = Party.createSigned(feePayerKey, {
-        isSameAsFeePayer: true,
-        nonce,
-      });
+      let party = Party.createSigned(feePayerKey);
       party.balance.subInPlace(amount);
     }
     // main party: the zkapp account
@@ -720,25 +705,19 @@ function declareMethods<T extends typeof SmartContract>(
   }
 }
 
-/**
- * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
- * (Not unstable in the sense that they are less functional or tested than other parts.)
- */
-class Experimental {
-  static Reducer: (<
-    T extends AsFieldElements<any>,
-    A extends InferAsFieldElements<T>
-  >(reducer: {
-    actionType: T;
-  }) => ReducerReturn<A>) & {
-    initialActionsHash: Field;
-  } = Object.defineProperty(
-    function (reducer: any) {
-      // we lie about the return value here, and instead overwrite this.reducer with a getter,
-      // so we can get access to `this` inside functions on this.reducer (see constructor)
-      return reducer;
-    },
-    'initialActionsHash',
-    { get: Events.emptySequenceState }
-  ) as any;
-}
+const Reducer: (<
+  T extends AsFieldElements<any>,
+  A extends InferAsFieldElements<T>
+>(reducer: {
+  actionType: T;
+}) => ReducerReturn<A>) & {
+  initialActionsHash: Field;
+} = Object.defineProperty(
+  function (reducer: any) {
+    // we lie about the return value here, and instead overwrite this.reducer with a getter,
+    // so we can get access to `this` inside functions on this.reducer (see constructor)
+    return reducer;
+  },
+  'initialActionsHash',
+  { get: Events.emptySequenceState }
+) as any;

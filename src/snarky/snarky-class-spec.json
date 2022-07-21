@@ -463,6 +463,10 @@
       {
         "name": "hashPartyFromFields",
         "type": "function"
+      },
+      {
+        "name": "hashPartyFromJson",
+        "type": "function"
       }
     ]
   },

@@ -4,12 +4,12 @@ import {
   Circuit,
   Party,
   PrivateKey,
-  toPartyUnsafe,
-  Types,
   shutdown,
   Field,
   PublicKey,
   CircuitValue,
+  Mina,
+  Experimental,
 } from '../../dist/server';
 
 let address: PublicKey;
@@ -25,10 +25,10 @@ describe('party', () => {
 
   it('can convert party to fields consistently', () => {
     // convert party to fields in OCaml, going via Party.of_json
-    let json = JSON.stringify(Types.Party.toJson(toPartyUnsafe(party)).body);
+    let json = JSON.stringify(party.toJSON().body);
     let fields1 = Ledger.fieldsOfJson(json);
     // convert party to fields in pure JS, leveraging generated code
-    let fields2 = Types.Party.toFields(toPartyUnsafe(party));
+    let fields2 = party.toFields();
 
     // this is useful console output in the case the test should fail
     if (fields1.length !== fields2.length) {
@@ -62,6 +62,23 @@ describe('party', () => {
       Party.setValue(party2.update.appState[0], Field.one);
       expect(party2.hash()).not.toEqual(hash);
     });
+  });
+
+  it("converts party to a public input that's consistent with the ocaml implementation", async () => {
+    let otherAddress = PrivateKey.random().toPublicKey();
+
+    let party = Party.createUnsigned(address);
+    Experimental.createChildParty(party, otherAddress);
+    let publicInput = party.toPublicInput();
+
+    // create transaction JSON with the same party structure, for ocaml version
+    let tx = await Mina.transaction(() => {
+      let party = Party.createUnsigned(address);
+      Experimental.createChildParty(party, otherAddress);
+    });
+    let publicInputOcaml = Ledger.zkappPublicInput(tx.toJSON(), 0);
+
+    expect(publicInputOcaml).toEqual(publicInput);
   });
 
   it('creates the right empty events', () => {

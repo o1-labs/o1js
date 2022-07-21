@@ -527,7 +527,11 @@ declare class Circuit {
 
   static runAndCheck<T>(f: () => T): T;
 
-  static constraintSystem(f: () => void): { rows: number; digest: string };
+  static constraintSystem<T>(f: () => T): {
+    rows: number;
+    digest: string;
+    result: T;
+  };
 
   static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
 
@@ -679,7 +683,10 @@ declare const Poseidon: {
     input: Field[],
     isChecked: boolean
   ): [Field, Field, Field];
-  prefixes: Record<'event' | 'events' | 'sequenceEvents', string>;
+  prefixes: Record<
+    'event' | 'events' | 'sequenceEvents' | 'partyCons' | 'partyNode',
+    string
+  >;
   spongeCreate(isChecked: boolean): unknown;
   spongeAbsorb(sponge: unknown, x: Field): void;
   spongeSqueeze(sponge: unknown): Field;
@@ -734,9 +741,6 @@ declare class Ledger {
 
   getAccount(publicKey: { g: Group }, tokenId: Field): Account | undefined;
 
-  static hashTransaction(partyHash: Field): Field;
-  static hashTransactionChecked(partyHash: Field): Field;
-
   static transactionCommitments(txJson: string): {
     commitment: Field;
     fullCommitment: Field;
@@ -771,6 +775,7 @@ declare class Ledger {
 
   static fieldsOfJson(json: string): Field[];
   static hashPartyFromFields(fields: Field[]): Field;
+  static hashPartyFromJson(json: string): Field;
 }
 
 /**

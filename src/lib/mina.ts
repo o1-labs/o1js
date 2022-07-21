@@ -13,20 +13,21 @@ import {
   ZkappStateLength,
   ZkappPublicInput,
   getDefaultTokenId,
+  CallForest,
 } from './party';
 import * as Fetch from './fetch';
 import { assertPreconditionInvariants, NetworkValue } from './precondition';
 import { cloneCircuitValue } from './circuit_value';
-import { Proof } from './proof_system';
+import { Proof, snarkContext } from './proof_system';
+import { Context } from './global-context';
 
 export {
   createUnsignedTransaction,
   createTransaction,
   BerkeleyQANet,
   LocalBlockchain,
-  nextTransactionId,
+  currentTransaction,
   CurrentTransaction,
-  setCurrentTransaction,
   setActiveInstance,
   transaction,
   currentSlot,
@@ -52,23 +53,15 @@ interface Transaction {
 
 type Account = Fetch.Account;
 
-let nextTransactionId: { value: number } = { value: 0 };
-
 type FetchMode = 'fetch' | 'cached' | 'test';
-type CurrentTransaction =
-  | undefined
-  | {
-      sender?: PrivateKey;
-      parties: Party[];
-      nextPartyIndex: number;
-      fetchMode: FetchMode;
-      isFinalRunOutsideCircuit: boolean;
-    };
+type CurrentTransaction = {
+  sender?: PrivateKey;
+  parties: Party[];
+  fetchMode: FetchMode;
+  isFinalRunOutsideCircuit: boolean;
+};
 
-export let currentTransaction: CurrentTransaction = undefined;
-function setCurrentTransaction(transaction: CurrentTransaction) {
-  currentTransaction = transaction;
-}
+let currentTransaction = Context.create<CurrentTransaction>();
 
 type SenderSpec =
   | PrivateKey
@@ -87,7 +80,7 @@ function createTransaction(
   f: () => unknown,
   { fetchMode = 'cached' as FetchMode, isFinalRunOutsideCircuit = true } = {}
 ): Transaction {
-  if (currentTransaction !== undefined) {
+  if (currentTransaction.has()) {
     throw new Error('Cannot start new transaction within another transaction');
   }
   let feePayerKey =
@@ -95,26 +88,45 @@ function createTransaction(
   let fee = feePayer instanceof PrivateKey ? undefined : feePayer?.fee;
   let memo = feePayer instanceof PrivateKey ? '' : feePayer?.memo ?? '';
 
-  currentTransaction = {
+  let transactionId = currentTransaction.enter({
     sender: feePayerKey,
     parties: [],
-    nextPartyIndex: 0,
     fetchMode,
     isFinalRunOutsideCircuit,
-  };
+  });
 
+  // run circuit
+  // we have this while(true) loop because one of the smart contracts we're calling inside `f` might be calling
+  // SmartContract.analyzeMethods, which would be running its methods again inside `Circuit.constraintSystem`, which
+  // would throw an error when nested inside `Circuit.runAndCheck`. So if that happens, we have to run `analyzeMethods` first
+  // and retry `Circuit.runAndCheck(f)`. Since at this point in the function, we don't know which smart contracts are involved,
+  // we created that hack with a `bootstrap()` function that analyzeMethods sticks on the error, to call itself again.
   try {
-    // run circuit
-    Circuit.runAndCheck(f);
-
+    let err: any;
+    while (true) {
+      if (err !== undefined) err.bootstrap();
+      try {
+        snarkContext.runWith({ inRunAndCheck: true }, () =>
+          Circuit.runAndCheck(f)
+        );
+        break;
+      } catch (err_) {
+        if ((err_ as any)?.bootstrap) err = err_;
+        else throw err_;
+      }
+    }
+  } catch (err) {
+    currentTransaction.leave(transactionId);
+    throw err;
+  }
+  let otherParties = CallForest.toFlatList(currentTransaction.get().parties);
+  try {
     // check that on-chain values weren't used without setting a precondition
-    for (let party of currentTransaction.parties) {
+    for (let party of otherParties) {
       assertPreconditionInvariants(party);
     }
   } catch (err) {
-    nextTransactionId.value += 1;
-    currentTransaction = undefined;
-    // TODO would be nice if the error would be a bit more descriptive about what failed
+    currentTransaction.leave(transactionId);
     throw err;
   }
 
@@ -137,14 +149,9 @@ function createTransaction(
     feePayerParty = Party.dummyFeePayer();
   }
 
-  let transaction: Parties = {
-    otherParties: currentTransaction.parties,
-    feePayer: feePayerParty,
-    memo,
-  };
+  let transaction: Parties = { otherParties, feePayer: feePayerParty, memo };
 
-  nextTransactionId.value += 1;
-  currentTransaction = undefined;
+  currentTransaction.leave(transactionId);
   let self: Transaction = {
     transaction,
 
@@ -298,16 +305,9 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         'currentSlot() is not implemented yet for remote blockchains.'
       );
     },
-    getAccount(
-      publicKey: PublicKey,
-      tokenId: Field = getDefaultTokenId()
-    ): Account {
-      if (currentTransaction?.fetchMode === 'test') {
-        Fetch.markAccountToBeFetched(
-          publicKey,
-          Ledger.fieldToBase58(tokenId),
-          graphqlEndpoint
-        );
+    getAccount(publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) {
+      if (currentTransaction()?.fetchMode === 'test') {
+        Fetch.markAccountToBeFetched(publicKey, tokenId, graphqlEndpoint);
         let account = Fetch.getCachedAccount(
           publicKey,
           tokenId,
@@ -316,8 +316,8 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         return account ?? dummyAccount(publicKey);
       }
       if (
-        currentTransaction == undefined ||
-        currentTransaction.fetchMode === 'cached'
+        !currentTransaction.has() ||
+        currentTransaction.get().fetchMode === 'cached'
       ) {
         let account = Fetch.getCachedAccount(
           publicKey,
@@ -333,14 +333,14 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       );
     },
     getNetworkState() {
-      if (currentTransaction?.fetchMode === 'test') {
+      if (currentTransaction()?.fetchMode === 'test') {
         Fetch.markNetworkToBeFetched(graphqlEndpoint);
         let network = Fetch.getCachedNetwork(graphqlEndpoint);
         return network ?? dummyNetworkState();
       }
       if (
-        currentTransaction == undefined ||
-        currentTransaction.fetchMode === 'cached'
+        !currentTransaction.has() ||
+        currentTransaction.get().fetchMode === 'cached'
       ) {
         let network = Fetch.getCachedNetwork(graphqlEndpoint);
         if (network !== undefined) return network;
@@ -401,21 +401,18 @@ let activeInstance: Mina = {
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
   },
-  getAccount(
-    publicKey: PublicKey,
-    tokenId: Field = getDefaultTokenId()
-  ): Account {
-    if (currentTransaction?.fetchMode === 'test') {
+  getAccount: (publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) => {
+    if (currentTransaction()?.fetchMode === 'test') {
       Fetch.markAccountToBeFetched(
         publicKey,
-        Ledger.fieldToBase58(tokenId),
+        tokenId,
         Fetch.defaultGraphqlEndpoint
       );
       return dummyAccount(publicKey);
     }
     if (
-      currentTransaction === undefined ||
-      currentTransaction?.fetchMode === 'cached'
+      !currentTransaction.has() ||
+      currentTransaction.get().fetchMode === 'cached'
     ) {
       let account = Fetch.getCachedAccount(
         publicKey,
