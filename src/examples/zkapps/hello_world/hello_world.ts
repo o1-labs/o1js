@@ -7,7 +7,7 @@ import {
   method,
   DeployArgs,
   PrivateKey,
-} from '../../../dist/server';
+} from '../../../../dist/server';
 
 export const adminPrivateKey = PrivateKey.random();
 export const adminPublicKey = adminPrivateKey.toPublicKey();
