@@ -739,9 +739,6 @@ declare class Ledger {
 
   getAccount(publicKey: { g: Group }): Account | undefined;
 
-  static hashTransaction(partyHash: Field): Field;
-  static hashTransactionChecked(partyHash: Field): Field;
-
   static transactionCommitments(txJson: string): {
     commitment: Field;
     fullCommitment: Field;
@@ -772,6 +769,7 @@ declare class Ledger {
 
   static fieldsOfJson(json: string): Field[];
   static hashPartyFromFields(fields: Field[]): Field;
+  static hashPartyFromJson(json: string): Field;
 }
 
 /**

@@ -1,3 +1,10 @@
+/**
+ * This is just two zkapps mixed together in one file, with their respective interactions bundled
+ * in the same transaction, to check that this actually works.
+ * -) "simple zkapp", testing state updates + events + account preconditions + child parties
+ * -) "counter rollup", testing state updates + sequence events / reducer
+ */
+
 import {
   Field,
   state,
@@ -18,7 +25,66 @@ import {
   Experimental,
 } from 'snarkyjs';
 
+const doProofs = true;
+
 await isReady;
+
+const INCREMENT = Field.one;
+
+let offchainStorage = {
+  pendingActions: [] as Field[][],
+};
+
+class CounterZkapp extends SmartContract {
+  // the "reducer" field describes a type of action that we can dispatch, and reduce later
+  reducer = Experimental.Reducer({ actionType: Field });
+
+  // on-chain version of our state. it will typically lag behind the
+  // version that's implicitly represented by the list of actions
+  @state(Field) counter = State<Field>();
+  // helper field to store the point in the action history that our on-chain state is at
+  @state(Field) actionsHash = State<Field>();
+
+  deploy(args: DeployArgs) {
+    super.deploy(args);
+    this.setPermissions({
+      ...Permissions.default(),
+      editState: Permissions.proofOrSignature(),
+      editSequenceState: Permissions.proofOrSignature(),
+    });
+    this.actionsHash.set(Experimental.Reducer.initialActionsHash);
+  }
+
+  @method incrementCounter() {
+    this.reducer.dispatch(INCREMENT);
+  }
+
+  @method rollupIncrements() {
+    // get previous counter & actions hash, assert that they're the same as on-chain values
+    let counter = this.counter.get();
+    this.counter.assertEquals(counter);
+    let actionsHash = this.actionsHash.get();
+    this.actionsHash.assertEquals(actionsHash);
+
+    // compute the new counter and hash from pending actions
+    // remark: it's not feasible to pass in the pending actions as method arguments, because they have dynamic size
+    let { state: newCounter, actionsHash: newActionsHash } =
+      this.reducer.reduce(
+        offchainStorage.pendingActions,
+        // state type
+        Field,
+        // function that says how to apply an action
+        (state: Field, _action: Field) => {
+          return state.add(1);
+        },
+        { state: counter, actionsHash }
+      );
+
+    // update on-chain state
+    this.counter.set(newCounter);
+    this.actionsHash.set(newActionsHash);
+  }
+}
 
 class SimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
@@ -77,8 +143,6 @@ class SimpleZkapp extends SmartContract {
   }
 }
 
-const doProofs = true;
-
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
@@ -97,48 +161,62 @@ let initialBalance = 10_000_000_000;
 let initialState = Field(1);
 let zkapp = new SimpleZkapp(zkappAddress);
 
+let counterZkappKey = PrivateKey.random();
+let counterZkappAddress = counterZkappKey.toPublicKey();
+let counterZkapp = new CounterZkapp(counterZkappAddress);
+
 if (doProofs) {
   console.log('compile');
   await SimpleZkapp.compile(zkappAddress);
+  await CounterZkapp.compile(counterZkappAddress);
 }
 
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer, { initialBalance });
+  Party.fundNewAccount(feePayer, {
+    initialBalance: Mina.accountCreationFee().add(initialBalance),
+  });
   zkapp.deploy({ zkappKey });
+  counterZkapp.deploy({ zkappKey: counterZkappKey });
 });
 tx.send();
 
 console.log('initial state: ' + zkapp.x.get());
 console.log(`initial balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 
-console.log('update');
+console.log('update & dispatch increment');
 tx = await Mina.transaction(feePayer, () => {
   zkapp.update(Field(3));
-  if (!doProofs) zkapp.sign(zkappKey);
+  counterZkapp.incrementCounter();
+  if (!doProofs) {
+    zkapp.sign(zkappKey);
+    counterZkapp.sign(counterZkappKey);
+  }
 });
 if (doProofs) await tx.prove();
 tx.send();
+offchainStorage.pendingActions.push([INCREMENT]);
+console.log('state (on-chain): ' + counterZkapp.counter.get());
+console.log('pending actions:', JSON.stringify(offchainStorage.pendingActions));
 
-// pay more into the zkapp -- this doesn't need a proof
-console.log('receive');
-tx = await Mina.transaction(feePayer, () => {
-  let payerParty = Party.createSigned(feePayer);
-  payerParty.balance.subInPlace(8e9);
-  zkapp.balance.addInPlace(8e9);
-});
-tx.send();
-
-console.log('payout');
+console.log('payout & rollup');
 tx = await Mina.transaction(feePayer, () => {
   zkapp.payout(privilegedKey);
-  if (!doProofs) zkapp.sign(zkappKey);
+  counterZkapp.rollupIncrements();
+  if (!doProofs) {
+    zkapp.sign(zkappKey);
+    counterZkapp.sign(counterZkappKey);
+  }
 });
 if (doProofs) await tx.prove();
+console.log(tx.toJSON());
 tx.send();
+offchainStorage.pendingActions = [];
 
 console.log('final state: ' + zkapp.x.get());
 console.log(`final balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
+console.log('state (on-chain): ' + counterZkapp.counter.get());
+console.log('pending actions:', JSON.stringify(offchainStorage.pendingActions));
 
 console.log('try to payout a second time..');
 tx = await Mina.transaction(feePayer, () => {

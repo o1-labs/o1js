@@ -5,7 +5,7 @@ import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
 import { SmartContract } from './zkapp';
 import * as Precondition from './precondition';
-import { Proof, snarkContext } from './proof_system';
+import { inCheckedComputation, Proof, snarkContext } from './proof_system';
 import { emptyHashWithPrefix, hashWithPrefix, prefixes } from './hash';
 
 // external API
@@ -207,7 +207,7 @@ let Permissions = {
   default: (): Permissions => ({
     editState: Permission.proof(),
     send: Permission.signature(),
-    receive: Permission.proof(),
+    receive: Permission.none(),
     setDelegate: Permission.signature(),
     setPermissions: Permission.signature(),
     setVerificationKey: Permission.signature(),
@@ -304,8 +304,8 @@ interface Body extends PartyBody {
   events: Events;
   sequenceEvents: Events;
   caller: Field;
-  callData: Field; //MerkleList<Array<Field>>;
-  callDepth: number; // TODO: this is an `int As_prover.t`
+  callData: Field;
+  callDepth: number;
   preconditions: Preconditions;
   useFullCommitment: Bool;
   incrementNonce: Bool;
@@ -352,7 +352,7 @@ const Body = {
       events: Events.empty(),
       sequenceEvents: Events.empty(),
       caller: getDefaultTokenId(),
-      callData: Field.zero, // TODO new MerkleList(),
+      callData: Field.zero,
       callDepth: 0,
       preconditions: Preconditions.ignoreAll(),
       // the default assumption is that snarkyjs transactions don't include the fee payer
@@ -657,8 +657,14 @@ class Party {
   }
 
   hash() {
-    let fields = Types.Party.toFields(toPartyUnsafe(this));
-    return Ledger.hashPartyFromFields(fields);
+    // these two ways of hashing are (and have to be) consistent / produce the same hash
+    if (inCheckedComputation()) {
+      let fields = Types.Party.toFields(toPartyUnsafe(this));
+      return Ledger.hashPartyFromFields(fields);
+    } else {
+      let json = Types.Party.toJson(toPartyUnsafe(this));
+      return Ledger.hashPartyFromJson(JSON.stringify(json));
+    }
   }
 
   // TODO: this was only exposed to be used in a unit test
@@ -997,7 +1003,6 @@ function signJsonTransaction(
   if (typeof privateKey === 'string')
     privateKey = PrivateKey.fromBase58(privateKey);
   let publicKey = privateKey.toPublicKey().toBase58();
-  // TODO: we really need types for the parties json
   let parties: Types.Json.Parties = JSON.parse(transactionJson);
   let feePayer = parties.feePayer;
   if (feePayer.body.publicKey === publicKey) {

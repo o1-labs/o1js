@@ -385,14 +385,6 @@
         "type": "function"
       },
       {
-        "name": "hashTransaction",
-        "type": "function"
-      },
-      {
-        "name": "hashTransactionChecked",
-        "type": "function"
-      },
-      {
         "name": "transactionCommitments",
         "type": "function"
       },
@@ -450,6 +442,10 @@
       },
       {
         "name": "hashPartyFromFields",
+        "type": "function"
+      },
+      {
+        "name": "hashPartyFromJson",
         "type": "function"
       }
     ]
