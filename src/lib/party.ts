@@ -499,6 +499,7 @@ type LazyProof = {
   previousProofs: { publicInput: Field[]; proof: Pickles.Proof }[];
   ZkappClass: typeof SmartContract;
   memoized: Field[][];
+  blindingValue: Field;
 };
 
 class Party implements Types.Party {
@@ -990,8 +991,14 @@ async function addMissingProofs(parties: Parties): Promise<{
     if (party.lazyAuthorization?.kind !== 'lazy-proof') {
       return { partyProved: party as PartyProved, proof: undefined };
     }
-    let { methodName, args, previousProofs, ZkappClass, memoized } =
-      party.lazyAuthorization;
+    let {
+      methodName,
+      args,
+      previousProofs,
+      ZkappClass,
+      memoized,
+      blindingValue,
+    } = party.lazyAuthorization;
     let publicInput = partyToPublicInput(party);
     let publicInputFields = ZkappPublicInput.toFields(publicInput);
     if (ZkappClass._provers === undefined)
@@ -1009,8 +1016,9 @@ async function addMissingProofs(parties: Parties): Promise<{
     let [, [, proof]] = await snarkContext.runWithAsync(
       { inProver: true, witnesses: args },
       () =>
-        memoizationContext.runWithAsync({ memoized, currentIndex: 0 }, () =>
-          provers[i](publicInputFields, previousProofs)
+        memoizationContext.runWithAsync(
+          { memoized, currentIndex: 0, blindingValue },
+          () => provers[i](publicInputFields, previousProofs)
         )
     );
     Authorization.setProof(party, Pickles.proofToBase64Transaction(proof));

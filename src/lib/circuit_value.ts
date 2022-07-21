@@ -22,6 +22,7 @@ export {
   circuitArray,
   memoizationContext,
   memoizeWitness,
+  getBlindingValue,
   toConstant,
 };
 
@@ -546,8 +547,11 @@ Circuit.constraintSystem = function <T>(f: () => T) {
   return result;
 };
 
-let memoizationContext =
-  Context.create<{ memoized: Field[][]; currentIndex: number }>();
+let memoizationContext = Context.create<{
+  memoized: Field[][];
+  currentIndex: number;
+  blindingValue: Field;
+}>();
 
 /**
  * Like Circuit.witness, but memoizes the witness during transaction construction
@@ -567,4 +571,13 @@ function memoizeWitness<T>(type: AsFieldElements<T>, compute: () => T) {
     context.currentIndex += 1;
     return type.ofFields(currentValue);
   });
+}
+
+function getBlindingValue() {
+  if (!memoizationContext.has()) return Field.random();
+  let context = memoizationContext.get();
+  if (context?.blindingValue === undefined) {
+    context.blindingValue = Field.random();
+  }
+  return context.blindingValue;
 }

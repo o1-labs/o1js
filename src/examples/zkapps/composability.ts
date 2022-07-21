@@ -21,7 +21,7 @@ await isReady;
 
 // contract which can add two numbers and return the result
 class CallableAdd extends SmartContract {
-  @method add(x: Field, y: Field, _blindingValue: Field): Field {
+  @method add(x: Field, y: Field): Field {
     // compute result
     return x.add(y);
   }
@@ -35,11 +35,8 @@ class Caller extends SmartContract {
   events = { sum: Field };
 
   @method callAddAndEmit(x: Field, y: Field) {
-    let blindingValue = Experimental.memoizeWitness(Field, () =>
-      Field.random()
-    );
     let adder = new CallableAdd(callableAddress);
-    let sum = adder.add(x, y, blindingValue);
+    let sum = adder.add(x, y);
     this.emitEvent('sum', sum);
     this.sum.set(sum);
   }
@@ -61,9 +58,9 @@ let zkapp = new Caller(zkappAddress);
 let callableZkapp = new CallableAdd(callableAddress);
 
 if (doProofs) {
-  console.log('compile (caller)');
-  await CallableAdd.compile(callableAddress);
   console.log('compile (callee)');
+  await CallableAdd.compile(callableAddress);
+  console.log('compile (caller)');
   await Caller.compile(zkappAddress);
 }
 

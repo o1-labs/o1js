@@ -12,6 +12,7 @@ import {
   circuitArray,
   circuitValue,
   cloneCircuitValue,
+  getBlindingValue,
   memoizationContext,
   toConstant,
 } from './circuit_value';
@@ -128,9 +129,9 @@ function wrapMethod(
   methodIntf: MethodInterface
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
-    // console.log('wrapped method', methodIntf.methodName);
     cleanStatePrecondition(this);
     if (!smartContractContext.has()) {
+      // console.log('wrapped method', methodIntf.methodName);
       return smartContractContext.runWith({ this: this }, () => {
         if (inCheckedComputation()) {
           // important to run this with a fresh party everytime, otherwise compile messes up our circuits
@@ -149,14 +150,26 @@ function wrapMethod(
               actualArgs = actualArgs.slice(1);
               let party = this.self;
 
-              let result = method.apply(this, actualArgs);
+              // the blinding value is important because otherwise, putting callData on the transaction would leak information about the private inputs
+              let blindingValue = Circuit.witness(Field, getBlindingValue);
+              // it's also good if we prove that we use the same blinding value across the method
+              // that's why we pass the variable_ (not the constant) into a new context
+              // console.log('blinding value (circuit)', blindingValue);
+              let context = memoizationContext() ?? {
+                memoized: [],
+                currentIndex: 0,
+              };
+              let [, result] = memoizationContext.runWith(
+                { ...context, blindingValue },
+                () => method.apply(this, actualArgs)
+              );
 
               // connects our input + result with callData, so this method can be called
-              // TODO include result + blinding value
               let argsFields = methodArgumentsToFields(methodIntf, actualArgs);
               if (methodIntf.returnType) {
                 argsFields.push(...methodIntf.returnType.toFields(result));
               }
+              argsFields.push(blindingValue);
               party.body.callData = Poseidon.hash(argsFields);
               // Circuit.asProver(() => {
               //   console.log('callData (checked) ' + party.body.callData);
@@ -197,9 +210,17 @@ function wrapMethod(
           let party = this.self;
 
           // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
+          let blindingValue = getBlindingValue();
+          // console.log('blinding value (tx)', blindingValue);
           let [{ memoized }, result] = memoizationContext.runWith(
-            { memoized: [], currentIndex: 0 },
-            () => method.apply(this, actualArgs)
+            {
+              memoized: [],
+              currentIndex: 0,
+              blindingValue,
+            },
+            () => {
+              method.apply(this, actualArgs);
+            }
           );
           assertStatePrecondition(this);
 
@@ -209,6 +230,7 @@ function wrapMethod(
           if (methodIntf.returnType) {
             argsFields.push(...methodIntf.returnType.toFields(result));
           }
+          argsFields.push(blindingValue);
           party.body.callData = Poseidon.hash(argsFields);
           // console.log('callData (transaction) ' + party.body.callData);s
 
@@ -223,19 +245,25 @@ function wrapMethod(
               ),
               ZkappClass,
               memoized,
+              blindingValue,
             });
           }
           return result;
         }
       })[1];
     }
+    // console.log(
+    //   'wrapped method',
+    //   methodIntf.methodName,
+    //   '(called by another one)'
+    // );
     // if we're here, this method was called inside _another_ smart contract method
     // this means we have to run this method inside a witness block, to not affect the caller's circuit
     let parentParty = smartContractContext.get().this.self;
 
-    // TODO create blinding value automatically, with custom annotation? or everytime, without annotation?
-    // the blindingValue is necessary because otherwise, putting this on the transaction would leak information about the private inputs
-    // let blindingValue = memoizeWitness(Field, () => Field.random());
+    // we just reuse the blinding value of the caller for the callee
+    let blindingValue = getBlindingValue();
+    // console.log('blinding value (caller)', blindingValue);
 
     // witness the result of calling `add`
     let { returnType } = methodIntf;
@@ -262,6 +290,8 @@ function wrapMethod(
       returnType ?? circuitValue<null>(null),
       () => {
         let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
+        let constantBlindingValue = blindingValue.toConstant();
+        // console.log('blinding value (callee)', constantBlindingValue);
         let party = this.self;
         // the line above adds the callee's self party into the wrong place in the transaction structure
         // so we remove it again
@@ -271,7 +301,11 @@ function wrapMethod(
         if (transaction !== undefined) transaction.parties.pop();
 
         let [{ memoized }, result] = memoizationContext.runWith(
-          { memoized: [], currentIndex: 0 },
+          {
+            memoized: [],
+            currentIndex: 0,
+            blindingValue: constantBlindingValue,
+          },
           () => method.apply(this, constantArgs)
         );
         assertStatePrecondition(this);
@@ -290,10 +324,9 @@ function wrapMethod(
         // TODO include result + blinding value
         // TODO: need annotation for result type, include result type in this hash
         let argsFields = methodArgumentsToFields(methodIntf, constantArgs);
-        party.body.callData = Poseidon_.hash(
-          argsFields.concat(resultFields),
-          false
-        );
+        argsFields.push(...resultFields);
+        argsFields.push(constantBlindingValue);
+        party.body.callData = Poseidon_.hash(argsFields, false);
         // console.log('callData (callee) ' + party.body.callData);
 
         if (!Authorization.hasAny(party)) {
@@ -306,6 +339,7 @@ function wrapMethod(
             ),
             ZkappClass,
             memoized,
+            blindingValue: constantBlindingValue,
           });
         }
         return { party, result: result ?? null };
@@ -326,6 +360,7 @@ function wrapMethod(
     // assert that the inputs & outputs we have match what the callee put on its callData
     let argsFields = methodArgumentsToFields(methodIntf, actualArgs);
     if (returnType) argsFields.push(...returnType.toFields(result));
+    argsFields.push(blindingValue);
     let callData = Poseidon.hash(argsFields);
     // Circuit.asProver(() => {
     //   console.log('callData (caller) ' + callData);
