@@ -120,7 +120,8 @@ function method<T extends SmartContract>(
   descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
 }
 
-let smartContractContext = Context.create<{ this: SmartContract }>();
+let smartContractContext =
+  Context.create<{ this: SmartContract; methodCallDepth: number }>();
 
 // do different things when calling a method, depending on the circumstance
 function wrapMethod(
@@ -132,125 +133,131 @@ function wrapMethod(
     cleanStatePrecondition(this);
     if (!smartContractContext.has()) {
       // console.log('wrapped method', methodIntf.methodName);
-      return smartContractContext.runWith({ this: this }, () => {
-        if (inCheckedComputation()) {
-          // important to run this with a fresh party everytime, otherwise compile messes up our circuits
-          // because it runs this multiple times
-          let [, result] = Mina.currentTransaction.runWith(
-            {
-              sender: undefined,
-              parties: [],
-              fetchMode: inProver() ? 'cached' : 'test',
-              isFinalRunOutsideCircuit: false,
-            },
-            () => {
-              // inside prover / compile, the method is always called with the public input as first argument
-              // -- so we can add assertions about it
-              let publicInput = actualArgs[0];
-              actualArgs = actualArgs.slice(1);
-              let party = this.self;
+      return smartContractContext.runWith(
+        { this: this, methodCallDepth: 0 },
+        () => {
+          if (inCheckedComputation()) {
+            // important to run this with a fresh party everytime, otherwise compile messes up our circuits
+            // because it runs this multiple times
+            let [, result] = Mina.currentTransaction.runWith(
+              {
+                sender: undefined,
+                parties: [],
+                fetchMode: inProver() ? 'cached' : 'test',
+                isFinalRunOutsideCircuit: false,
+              },
+              () => {
+                // inside prover / compile, the method is always called with the public input as first argument
+                // -- so we can add assertions about it
+                let publicInput = actualArgs[0];
+                actualArgs = actualArgs.slice(1);
+                let party = this.self;
 
-              // the blinding value is important because otherwise, putting callData on the transaction would leak information about the private inputs
-              let blindingValue = Circuit.witness(Field, getBlindingValue);
-              // it's also good if we prove that we use the same blinding value across the method
-              // that's why we pass the variable_ (not the constant) into a new context
-              // console.log('blinding value (circuit)', blindingValue);
-              let context = memoizationContext() ?? {
+                // the blinding value is important because otherwise, putting callData on the transaction would leak information about the private inputs
+                let blindingValue = Circuit.witness(Field, getBlindingValue);
+                // it's also good if we prove that we use the same blinding value across the method
+                // that's why we pass the variable_ (not the constant) into a new context
+                // console.log('blinding value (circuit)', blindingValue);
+                let context = memoizationContext() ?? {
+                  memoized: [],
+                  currentIndex: 0,
+                };
+                let [, result] = memoizationContext.runWith(
+                  { ...context, blindingValue },
+                  () => method.apply(this, actualArgs)
+                );
+
+                // connects our input + result with callData, so this method can be called
+                let argsFields = methodArgumentsToFields(
+                  methodIntf,
+                  actualArgs
+                );
+                if (methodIntf.returnType) {
+                  argsFields.push(...methodIntf.returnType.toFields(result));
+                }
+                argsFields.push(blindingValue);
+                party.body.callData = Poseidon.hash(argsFields);
+                // Circuit.asProver(() => {
+                //   console.log('callData (checked) ' + party.body.callData);
+                // });
+
+                // connect the public input to the party & child parties we created
+                // Circuit.asProver(() => {
+                //   console.log('party (prover)');
+                //   console.dir(party.toJSON(), { depth: 5 });
+                // });
+                checkPublicInput(publicInput, party);
+
+                // check the self party right after calling the method
+                // TODO: this needs to be done in a unified way for all parties that are created
+                assertPreconditionInvariants(party);
+                cleanPreconditionsCache(party);
+                assertStatePrecondition(this);
+                return result;
+              }
+            );
+            return result;
+          } else if (!Mina.currentTransaction.has()) {
+            // outside a transaction, just call the method, but check precondition invariants
+            let result = method.apply(this, actualArgs);
+            // check the self party right after calling the method
+            // TODO: this needs to be done in a unified way for all parties that are created
+            assertPreconditionInvariants(this.self);
+            cleanPreconditionsCache(this.self);
+            assertStatePrecondition(this);
+            return result;
+          } else {
+            // in a transaction, also add a lazy proof to the self party
+            // (if there's no other authorization set)
+
+            // first, clone to protect against the method modifying arguments!
+            // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
+            let clonedArgs = cloneCircuitValue(actualArgs);
+            let party = this.self;
+
+            // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
+            let blindingValue = getBlindingValue();
+            // console.log('blinding value (tx)', blindingValue);
+            let [{ memoized }, result] = memoizationContext.runWith(
+              {
                 memoized: [],
                 currentIndex: 0,
-              };
-              let [, result] = memoizationContext.runWith(
-                { ...context, blindingValue },
-                () => method.apply(this, actualArgs)
-              );
-
-              // connects our input + result with callData, so this method can be called
-              let argsFields = methodArgumentsToFields(methodIntf, actualArgs);
-              if (methodIntf.returnType) {
-                argsFields.push(...methodIntf.returnType.toFields(result));
+                blindingValue,
+              },
+              () => {
+                method.apply(this, actualArgs);
               }
-              argsFields.push(blindingValue);
-              party.body.callData = Poseidon.hash(argsFields);
-              // Circuit.asProver(() => {
-              //   console.log('callData (checked) ' + party.body.callData);
-              // });
+            );
+            assertStatePrecondition(this);
 
-              // connect the public input to the party & child parties we created
-              // Circuit.asProver(() => {
-              //   console.log('party (prover)');
-              //   console.dir(party.toJSON(), { depth: 5 });
-              // });
-              checkPublicInput(publicInput, party);
-
-              // check the self party right after calling the method
-              // TODO: this needs to be done in a unified way for all parties that are created
-              assertPreconditionInvariants(party);
-              cleanPreconditionsCache(party);
-              assertStatePrecondition(this);
-              return result;
+            // connects our input + result with callData, so this method can be called
+            // TODO include result + blinding value
+            let argsFields = methodArgumentsToFields(methodIntf, actualArgs);
+            if (methodIntf.returnType) {
+              argsFields.push(...methodIntf.returnType.toFields(result));
             }
-          );
-          return result;
-        } else if (!Mina.currentTransaction.has()) {
-          // outside a transaction, just call the method, but check precondition invariants
-          let result = method.apply(this, actualArgs);
-          // check the self party right after calling the method
-          // TODO: this needs to be done in a unified way for all parties that are created
-          assertPreconditionInvariants(this.self);
-          cleanPreconditionsCache(this.self);
-          assertStatePrecondition(this);
-          return result;
-        } else {
-          // in a transaction, also add a lazy proof to the self party
-          // (if there's no other authorization set)
+            argsFields.push(blindingValue);
+            party.body.callData = Poseidon.hash(argsFields);
+            // console.log('callData (transaction) ' + party.body.callData);s
 
-          // first, clone to protect against the method modifying arguments!
-          // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
-          let clonedArgs = cloneCircuitValue(actualArgs);
-          let party = this.self;
-
-          // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
-          let blindingValue = getBlindingValue();
-          // console.log('blinding value (tx)', blindingValue);
-          let [{ memoized }, result] = memoizationContext.runWith(
-            {
-              memoized: [],
-              currentIndex: 0,
-              blindingValue,
-            },
-            () => {
-              method.apply(this, actualArgs);
+            if (!Authorization.hasAny(party)) {
+              Authorization.setLazyProof(party, {
+                methodName: methodIntf.methodName,
+                args: clonedArgs,
+                // proofs actually don't have to be cloned
+                previousProofs: getPreviousProofsForProver(
+                  actualArgs,
+                  methodIntf
+                ),
+                ZkappClass,
+                memoized,
+                blindingValue,
+              });
             }
-          );
-          assertStatePrecondition(this);
-
-          // connects our input + result with callData, so this method can be called
-          // TODO include result + blinding value
-          let argsFields = methodArgumentsToFields(methodIntf, actualArgs);
-          if (methodIntf.returnType) {
-            argsFields.push(...methodIntf.returnType.toFields(result));
+            return result;
           }
-          argsFields.push(blindingValue);
-          party.body.callData = Poseidon.hash(argsFields);
-          // console.log('callData (transaction) ' + party.body.callData);s
-
-          if (!Authorization.hasAny(party)) {
-            Authorization.setLazyProof(party, {
-              methodName: methodIntf.methodName,
-              args: clonedArgs,
-              // proofs actually don't have to be cloned
-              previousProofs: getPreviousProofsForProver(
-                actualArgs,
-                methodIntf
-              ),
-              ZkappClass,
-              memoized,
-              blindingValue,
-            });
-          }
-          return result;
         }
-      })[1];
+      )[1];
     }
     // console.log(
     //   'wrapped method',
@@ -258,114 +265,127 @@ function wrapMethod(
     //   '(called by another one)'
     // );
     // if we're here, this method was called inside _another_ smart contract method
-    // this means we have to run this method inside a witness block, to not affect the caller's circuit
     let parentParty = smartContractContext.get().this.self;
-
-    // we just reuse the blinding value of the caller for the callee
-    let blindingValue = getBlindingValue();
-    // console.log('blinding value (caller)', blindingValue);
-
-    // witness the result of calling `add`
-    let { returnType } = methodIntf;
-
-    // if the result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
-    // so we have to explain to the user how to do that
-    let noReturnTypeError =
-      `To return a result from ${methodIntf.methodName}() inside another zkApp, you need to declare the return type.\n` +
-      `This can be done by annotating the type at the end of the function signature. For example:\n\n` +
-      `@method ${methodIntf.methodName}(): Field {\n` +
-      `  // ...\n` +
-      `}\n\n` +
-      `Note: Only types built out of \`Field\` are valid return types. This includes snarkyjs primitive types and custom CircuitValues.`;
-    // if we're lucky, analyzeMethods was already run on the callee smart contract, and we can catch this error early
-    if (
-      (ZkappClass as any)._methodMetadata[methodIntf.methodName]?.hasReturn &&
-      returnType === undefined
-    ) {
-      throw Error(noReturnTypeError);
-    }
-
-    // let result: any;
-    let { party, result } = Party.witness(
-      returnType ?? circuitValue<null>(null),
+    let methodCallDepth = smartContractContext.get().methodCallDepth;
+    console.log({ methodCallDepth });
+    let [, result] = smartContractContext.runWith(
+      { this: this, methodCallDepth: methodCallDepth + 1 },
       () => {
-        let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
-        let constantBlindingValue = blindingValue.toConstant();
-        // console.log('blinding value (callee)', constantBlindingValue);
-        let party = this.self;
-        // the line above adds the callee's self party into the wrong place in the transaction structure
-        // so we remove it again
-        // TODO: since we wrap all method calls now anyway, should remove that hidden logic in this.self
-        // and add parties to transactions more explicitly
-        let transaction = Mina.currentTransaction();
-        if (transaction !== undefined) transaction.parties.pop();
+        // we just reuse the blinding value of the caller for the callee
+        let blindingValue = getBlindingValue();
+        // console.log('blinding value (caller)', blindingValue);
 
-        let [{ memoized }, result] = memoizationContext.runWith(
-          {
-            memoized: [],
-            currentIndex: 0,
-            blindingValue: constantBlindingValue,
-          },
-          () => method.apply(this, constantArgs)
-        );
-        assertStatePrecondition(this);
+        // witness the result of calling `add`
+        let { returnType } = methodIntf;
 
-        let resultFields: Field[] = [];
-        if (result !== undefined) {
-          if (returnType === undefined) {
-            throw Error(noReturnTypeError);
-          } else {
-            result = toConstant(returnType, result);
-            resultFields = returnType.toFields(result);
+        // if the result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
+        // so we have to explain to the user how to do that
+        let noReturnTypeError =
+          `To return a result from ${methodIntf.methodName}() inside another zkApp, you need to declare the return type.\n` +
+          `This can be done by annotating the type at the end of the function signature. For example:\n\n` +
+          `@method ${methodIntf.methodName}(): Field {\n` +
+          `  // ...\n` +
+          `}\n\n` +
+          `Note: Only types built out of \`Field\` are valid return types. This includes snarkyjs primitive types and custom CircuitValues.`;
+        // if we're lucky, analyzeMethods was already run on the callee smart contract, and we can catch this error early
+        if (
+          (ZkappClass as any)._methodMetadata[methodIntf.methodName]
+            ?.hasReturn &&
+          returnType === undefined
+        ) {
+          throw Error(noReturnTypeError);
+        }
+
+        let runCalledContract = () => {
+          let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
+          let constantBlindingValue = blindingValue.toConstant();
+          // console.log('blinding value (callee)', constantBlindingValue);
+          let party = this.self;
+          // the line above adds the callee's self party into the wrong place in the transaction structure
+          // so we remove it again
+          // TODO: since we wrap all method calls now anyway, should remove that hidden logic in this.self
+          // and add parties to transactions more explicitly
+          let transaction = Mina.currentTransaction();
+          if (transaction !== undefined) transaction.parties.pop();
+
+          let [{ memoized }, result] = memoizationContext.runWith(
+            {
+              memoized: [],
+              currentIndex: 0,
+              blindingValue: constantBlindingValue,
+            },
+            () => method.apply(this, constantArgs)
+          );
+          assertStatePrecondition(this);
+
+          let resultFields: Field[] = [];
+          if (result !== undefined) {
+            if (returnType === undefined) {
+              throw Error(noReturnTypeError);
+            } else {
+              result = toConstant(returnType, result);
+              resultFields = returnType.toFields(result);
+            }
           }
-        }
 
-        // store inputs + result in callData
-        // TODO include result + blinding value
-        // TODO: need annotation for result type, include result type in this hash
-        let argsFields = methodArgumentsToFields(methodIntf, constantArgs);
-        argsFields.push(...resultFields);
-        argsFields.push(constantBlindingValue);
-        party.body.callData = Poseidon_.hash(argsFields, false);
-        // console.log('callData (callee) ' + party.body.callData);
+          // store inputs + result in callData
+          let argsFields = methodArgumentsToFields(methodIntf, constantArgs);
+          argsFields.push(...resultFields);
+          argsFields.push(constantBlindingValue);
+          party.body.callData = Poseidon_.hash(argsFields, false);
+          // console.log('callData (callee) ' + party.body.callData);
 
-        if (!Authorization.hasAny(party)) {
-          Authorization.setLazyProof(party, {
-            methodName: methodIntf.methodName,
-            args: constantArgs,
-            previousProofs: getPreviousProofsForProver(
-              constantArgs,
-              methodIntf
-            ),
-            ZkappClass,
-            memoized,
-            blindingValue: constantBlindingValue,
-          });
-        }
-        return { party, result: result ?? null };
-      },
-      true
+          if (!Authorization.hasAny(party)) {
+            Authorization.setLazyProof(party, {
+              methodName: methodIntf.methodName,
+              args: constantArgs,
+              previousProofs: getPreviousProofsForProver(
+                constantArgs,
+                methodIntf
+              ),
+              ZkappClass,
+              memoized,
+              blindingValue: constantBlindingValue,
+            });
+          }
+          return { party, result: result ?? null };
+        };
+
+        // we have to run the called contract inside a witness block, to not affect the caller's circuit
+        // however, if this is another contract called by a called contract, then we're already in a witness block,
+        // and shouldn't open another one
+        let { party, result } =
+          methodCallDepth === 0
+            ? Party.witness(
+                returnType ?? circuitValue<null>(null),
+                runCalledContract,
+                true
+              )
+            : runCalledContract();
+
+        // we're back in the _caller's_ circuit now, where we assert stuff about the method call
+
+        // connect party to our own. outside Circuit.witness so compile knows about it
+        party.body.callDepth = parentParty.body.callDepth + 1;
+        party.parent = parentParty;
+        parentParty.children.push(party);
+
+        // assert that we really called the right zkapp
+        party.body.publicKey.assertEquals(this.address);
+        party.body.tokenId.assertEquals(this.self.body.tokenId);
+
+        // assert that the inputs & outputs we have match what the callee put on its callData
+        let argsFields = methodArgumentsToFields(methodIntf, actualArgs);
+        if (returnType) argsFields.push(...returnType.toFields(result));
+        argsFields.push(blindingValue);
+        let callData = Poseidon.hash(argsFields);
+        // Circuit.asProver(() => {
+        //   console.log('callData (caller) ' + callData);
+        // });
+        party.body.callData.assertEquals(callData);
+        return result;
+      }
     );
-    // we're in the _caller's_ circuit now, where we assert stuff about the method call
-
-    // connect party to our own. outside Circuit.witness so compile knows about it
-    party.body.callDepth = parentParty.body.callDepth + 1;
-    party.parent = parentParty;
-    parentParty.children.push(party);
-
-    // assert that we really called the right zkapp
-    party.body.publicKey.assertEquals(this.address);
-    party.body.tokenId.assertEquals(this.self.body.tokenId);
-
-    // assert that the inputs & outputs we have match what the callee put on its callData
-    let argsFields = methodArgumentsToFields(methodIntf, actualArgs);
-    if (returnType) argsFields.push(...returnType.toFields(result));
-    argsFields.push(blindingValue);
-    let callData = Poseidon.hash(argsFields);
-    // Circuit.asProver(() => {
-    //   console.log('callData (caller) ' + callData);
-    // });
-    party.body.callData.assertEquals(callData);
     return result;
   };
 }
