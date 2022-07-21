@@ -26,6 +26,7 @@ export {
   synthesizeMethodArguments,
   methodArgumentsToConstant,
   methodArgumentsToFields,
+  isAsFields,
   snarkContext,
   inProver,
   inCompile,
@@ -352,6 +353,7 @@ type MethodInterface = {
   witnessArgs: AsFieldElements<unknown>[];
   proofArgs: Subclass<typeof Proof>[];
   allArgs: { type: 'witness' | 'proof'; index: number }[];
+  returnType?: AsFieldElements<unknown>;
 };
 
 function compileProgram(

@@ -21,7 +21,7 @@ await isReady;
 
 // contract which can add two numbers and return the result
 class CallableAdd extends SmartContract {
-  @method add(x: Field, y: Field, _blindingValue: Field) {
+  @method add(x: Field, y: Field, _blindingValue: Field): Field {
     // compute result
     return x.add(y);
   }

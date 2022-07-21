@@ -10,8 +10,10 @@ import {
 import {
   Circuit,
   circuitArray,
+  circuitValue,
   cloneCircuitValue,
   memoizationContext,
+  toConstant,
 } from './circuit_value';
 import {
   Body,
@@ -46,6 +48,7 @@ import {
   inAnalyze,
   methodArgumentsToConstant,
   methodArgumentsToFields,
+  isAsFields,
 } from './proof_system';
 import { assertStatePrecondition, cleanStatePrecondition } from './state';
 import { Types } from '../snarky/types';
@@ -92,8 +95,7 @@ function method<T extends SmartContract>(
     );
   }
   let paramTypes = Reflect.getMetadata('design:paramtypes', target, methodName);
-  // this doesn't work :/
-  // let returnType = Reflect.getMetadata('design:returntype', target, methodName);
+  let returnType = Reflect.getMetadata('design:returntype', target, methodName);
 
   class SelfProof extends Proof<ZkappPublicInput> {
     static publicInputType = ZkappPublicInput;
@@ -105,6 +107,7 @@ function method<T extends SmartContract>(
     paramTypes,
     SelfProof
   );
+  if (isAsFields(returnType)) methodEntry.returnType = returnType;
   ZkappClass._methods ??= [];
   ZkappClass._methods.push(methodEntry);
   ZkappClass._maxProofsVerified ??= 0;
@@ -151,6 +154,9 @@ function wrapMethod(
               // connects our input + result with callData, so this method can be called
               // TODO include result + blinding value
               let argsFields = methodArgumentsToFields(methodIntf, actualArgs);
+              if (methodIntf.returnType) {
+                argsFields.push(...methodIntf.returnType.toFields(result));
+              }
               party.body.callData = Poseidon.hash(argsFields);
               // Circuit.asProver(() => {
               //   console.log('callData (checked) ' + party.body.callData);
@@ -200,6 +206,9 @@ function wrapMethod(
           // connects our input + result with callData, so this method can be called
           // TODO include result + blinding value
           let argsFields = methodArgumentsToFields(methodIntf, actualArgs);
+          if (methodIntf.returnType) {
+            argsFields.push(...methodIntf.returnType.toFields(result));
+          }
           party.body.callData = Poseidon.hash(argsFields);
           // console.log('callData (transaction) ' + party.body.callData);s
 
@@ -229,10 +238,28 @@ function wrapMethod(
     // let blindingValue = memoizeWitness(Field, () => Field.random());
 
     // witness the result of calling `add`
+    let { returnType } = methodIntf;
+
+    // if the result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
+    // so we have to explain to the user how to do that
+    let noReturnTypeError =
+      `To return a result from ${methodIntf.methodName}() inside another zkApp, you need to declare the return type.\n` +
+      `This can be done by annotating the type at the end of the function signature. For example:\n\n` +
+      `@method ${methodIntf.methodName}(): Field {\n` +
+      `  // ...\n` +
+      `}\n\n` +
+      `Note: Only types built out of \`Field\` are valid return types. This includes snarkyjs primitive types and custom CircuitValues.`;
+    // if we're lucky, analyzeMethods was already run on the callee smart contract, and we can catch this error early
+    if (
+      (ZkappClass as any)._methodMetadata[methodIntf.methodName]?.hasReturn &&
+      returnType === undefined
+    ) {
+      throw Error(noReturnTypeError);
+    }
+
     // let result: any;
     let { party, result } = Party.witness(
-      // circuitValue<null>(null),
-      Field,
+      returnType ?? circuitValue<null>(null),
       () => {
         let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
         let party = this.self;
@@ -247,14 +274,26 @@ function wrapMethod(
           { memoized: [], currentIndex: 0 },
           () => method.apply(this, constantArgs)
         );
-        // result = result0;
         assertStatePrecondition(this);
+
+        let resultFields: Field[] = [];
+        if (result !== undefined) {
+          if (returnType === undefined) {
+            throw Error(noReturnTypeError);
+          } else {
+            result = toConstant(returnType, result);
+            resultFields = returnType.toFields(result);
+          }
+        }
 
         // store inputs + result in callData
         // TODO include result + blinding value
         // TODO: need annotation for result type, include result type in this hash
         let argsFields = methodArgumentsToFields(methodIntf, constantArgs);
-        party.body.callData = Poseidon_.hash(argsFields, false);
+        party.body.callData = Poseidon_.hash(
+          argsFields.concat(resultFields),
+          false
+        );
         // console.log('callData (callee) ' + party.body.callData);
 
         if (!Authorization.hasAny(party)) {
@@ -269,7 +308,7 @@ function wrapMethod(
             memoized,
           });
         }
-        return { party, result };
+        return { party, result: result ?? null };
       },
       true
     );
@@ -285,9 +324,9 @@ function wrapMethod(
     party.body.tokenId.assertEquals(this.self.body.tokenId);
 
     // assert that the inputs & outputs we have match what the callee put on its callData
-    let callData = Poseidon.hash(
-      methodArgumentsToFields(methodIntf, actualArgs)
-    );
+    let argsFields = methodArgumentsToFields(methodIntf, actualArgs);
+    if (returnType) argsFields.push(...returnType.toFields(result));
+    let callData = Poseidon.hash(argsFields);
     // Circuit.asProver(() => {
     //   console.log('callData (caller) ' + callData);
     // });
@@ -319,7 +358,7 @@ class SmartContract {
   static _methods?: MethodInterface[];
   private static _methodMetadata: Record<
     string,
-    { sequenceEvents: number; rows: number; digest: string }
+    { sequenceEvents: number; rows: number; digest: string; hasReturn: boolean }
   > = {}; // keyed by method name
   static _provers?: Pickles.Prover[];
   static _maxProofsVerified?: 0 | 1 | 2;
@@ -509,7 +548,7 @@ class SmartContract {
         throw err;
       }
       for (let methodIntf of methodIntfs) {
-        let { rows, digest } = analyzeMethod(
+        let { rows, digest, result } = analyzeMethod(
           ZkappPublicInput,
           methodIntf,
           (...args) => (instance as any)[methodIntf.methodName](...args)
@@ -519,6 +558,7 @@ class SmartContract {
           sequenceEvents: party.body.sequenceEvents.data.length,
           rows,
           digest,
+          hasReturn: result !== undefined,
         };
       }
     }
