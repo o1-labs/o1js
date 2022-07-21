@@ -45,13 +45,15 @@ import { assertStatePrecondition, cleanStatePrecondition } from './state';
 // external API
 export {
   SmartContract,
-  Experimental,
   method,
   deploy,
   DeployArgs,
   signFeePayer,
   declareMethods,
 };
+
+// internal API
+export { Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
 
@@ -116,7 +118,6 @@ function wrapMethod(
         {
           sender: undefined,
           parties: [],
-          nextPartyIndex: 0,
           fetchMode: inProver() ? 'cached' : 'test',
           isFinalRunOutsideCircuit: false,
         },
@@ -302,12 +303,11 @@ class SmartContract {
     }
     let transaction = Mina.currentTransaction.get();
     let id = Mina.currentTransaction.id();
-    let index = transaction.nextPartyIndex++;
     let party = selfParty(this.address);
     transaction.parties.push(party);
     executionState = {
       transactionId: id,
-      partyIndex: index,
+      partyIndex: transaction.parties.length,
       party,
     };
     this._executionState = executionState;
@@ -692,25 +692,19 @@ function declareMethods<T extends typeof SmartContract>(
   }
 }
 
-/**
- * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
- * (Not unstable in the sense that they are less functional or tested than other parts.)
- */
-class Experimental {
-  static Reducer: (<
-    T extends AsFieldElements<any>,
-    A extends InferAsFieldElements<T>
-  >(reducer: {
-    actionType: T;
-  }) => ReducerReturn<A>) & {
-    initialActionsHash: Field;
-  } = Object.defineProperty(
-    function (reducer: any) {
-      // we lie about the return value here, and instead overwrite this.reducer with a getter,
-      // so we can get access to `this` inside functions on this.reducer (see constructor)
-      return reducer;
-    },
-    'initialActionsHash',
-    { get: Events.emptySequenceState }
-  ) as any;
-}
+const Reducer: (<
+  T extends AsFieldElements<any>,
+  A extends InferAsFieldElements<T>
+>(reducer: {
+  actionType: T;
+}) => ReducerReturn<A>) & {
+  initialActionsHash: Field;
+} = Object.defineProperty(
+  function (reducer: any) {
+    // we lie about the return value here, and instead overwrite this.reducer with a getter,
+    // so we can get access to `this` inside functions on this.reducer (see constructor)
+    return reducer;
+  },
+  'initialActionsHash',
+  { get: Events.emptySequenceState }
+) as any;

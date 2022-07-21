@@ -4,7 +4,6 @@ import { PrivateKey, PublicKey } from './signature';
 import { UInt64, UInt32, Int64 } from './int';
 import * as Mina from './mina';
 import { SmartContract } from './zkapp';
-import { Context } from './global-context';
 import * as Precondition from './precondition';
 import { Proof, snarkContext } from './proof_system';
 import { emptyHashWithPrefix, hashWithPrefix, prefixes } from './hash';
@@ -32,6 +31,8 @@ export {
   ZkappStateLength,
   Events,
   partyToPublicInput,
+  CallForest,
+  createChildParty,
 };
 
 const ZkappStateLength = 8;
@@ -498,6 +499,8 @@ class Party {
   authorization: LazyControl;
   account: Precondition.Account;
   network: Precondition.Network;
+  children: Party[] = [];
+  parent: Party | undefined = undefined;
 
   private isSelf: boolean;
 
@@ -514,7 +517,10 @@ class Party {
   static clone(party: Party) {
     let body = cloneCircuitValue(party.body);
     let authorization = cloneCircuitValue(party.authorization);
-    return new (Party as any)(body, authorization, party.isSelf);
+    let clonedParty = new (Party as any)(body, authorization, party.isSelf);
+    clonedParty.children = party.children;
+    clonedParty.parent = party.parent;
+    return clonedParty;
   }
 
   get balance() {
@@ -655,6 +661,14 @@ class Party {
     return Ledger.hashPartyFromFields(fields);
   }
 
+  // TODO: this was only exposed to be used in a unit test
+  // consider removing when we have inline unit tests
+  toPublicInput(): ZkappPublicInput {
+    let party = this.hash();
+    let calls = CallForest.hashChildren(this);
+    return { party, calls };
+  }
+
   static defaultParty(address: PublicKey) {
     const body = Body.keepAll(address);
     return new Party(body);
@@ -675,15 +689,8 @@ class Party {
   }
 
   static createUnsigned(publicKey: PublicKey) {
-    const body: Body = Body.keepAll(publicKey);
-    if (!Mina.currentTransaction.has()) {
-      throw new Error(
-        'Party.createUnsigned: Cannot run outside of a transaction'
-      );
-    }
-    const party = new Party(body);
-    Mina.currentTransaction.get().nextPartyIndex++;
-    Mina.currentTransaction.get().parties.push(party);
+    let party = Party.defaultParty(publicKey);
+    Mina.currentTransaction()?.parties.push(party);
     return party;
   }
 
@@ -716,7 +723,6 @@ class Party {
 
     let party = new Party(body);
     party.authorization = { kind: 'lazy-signature', privateKey: signer };
-    Mina.currentTransaction.get().nextPartyIndex++;
     Mina.currentTransaction.get().parties.push(party);
     return party;
   }
@@ -755,6 +761,45 @@ type PartiesSigned = {
   otherParties: (Party & { authorization: Control | LazyProof })[];
   memo: string;
 };
+
+const CallForest = {
+  // similar to Mina_base.Parties.Call_forest.to_parties_list
+  // takes a list of parties, which each can have children, so they form a "forest" (list of trees)
+  // returns a flattened list, with `party.body.callDepth` specifying positions in the forest
+  toFlatList(forest: Party[], depth = 0): Party[] {
+    let parties = [];
+    for (let party of forest) {
+      party.body.callDepth = depth;
+      parties.push(party, ...CallForest.toFlatList(party.children, depth + 1));
+    }
+    return parties;
+  },
+
+  // Mina_base.Parties.Digest.Forest.empty
+  emptyHash() {
+    return Field.zero;
+  },
+
+  // similar to Mina_base.Parties.Call_forest.accumulate_hashes
+  // hashes a party's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
+  hashChildren(parent: Party) {
+    let stackHash = CallForest.emptyHash();
+    for (let party of parent.children.reverse()) {
+      let calls = CallForest.hashChildren(party);
+      let nodeHash = hashWithPrefix(prefixes.partyNode, [party.hash(), calls]);
+      stackHash = hashWithPrefix(prefixes.partyCons, [nodeHash, stackHash]);
+    }
+    return stackHash;
+  },
+};
+
+function createChildParty(parent: Party, childAddress: PublicKey) {
+  let child = Party.defaultParty(childAddress);
+  child.body.callDepth = parent.body.callDepth + 1;
+  child.parent = parent;
+  parent.children.push(child);
+  return child;
+}
 
 // TODO find a better name for these to make it clearer what they do (replace any lazy authorization with no/dummy authorization)
 function toFeePayerUnsafe(feePayer: FeePayerUnsigned): FeePayer {
@@ -875,9 +920,8 @@ let ZkappPublicInput = circuitValue<ZkappPublicInput>(
 );
 
 function partyToPublicInput(self: Party): ZkappPublicInput {
-  // TODO compute `calls` from party's children
   let party = self.hash();
-  let calls = Field.zero; // zero is the correct value if party has no children
+  let calls = CallForest.hashChildren(self);
   return { party, calls };
 }
 

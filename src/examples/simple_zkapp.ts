@@ -15,6 +15,7 @@ import {
   Bool,
   PublicKey,
   Circuit,
+  Experimental,
 } from 'snarkyjs';
 
 await isReady;
@@ -56,7 +57,7 @@ class SimpleZkapp extends SmartContract {
     callerAddress.assertEquals(privilegedAddress);
 
     // assert that the caller nonce is 0, and increment the nonce - this way, payout can only happen once
-    let callerParty = Party.createUnsigned(callerAddress);
+    let callerParty = Experimental.createChildParty(this.self, callerAddress);
     callerParty.account.nonce.assertEquals(UInt32.zero);
     callerParty.body.incrementNonce = Bool(true);
 
