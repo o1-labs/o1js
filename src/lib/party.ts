@@ -32,8 +32,8 @@ export {
   ZkappStateLength,
   Events,
   partyToPublicInput,
-  Token,
   getDefaultTokenId,
+  Token,
   CallForest,
   createChildParty,
 };
@@ -584,10 +584,9 @@ class Party {
       tokenOwner: customToken.tokenOwner,
 
       mint({ address, amount }: MintOrBurnParams) {
-        let receiverParty = Party.createUnsigned(address, {
+        let receiverParty = createChildParty(thisParty, address, {
           caller: this.id,
           tokenId: this.id,
-          callDepth: 1,
         });
 
         // Add the amount to mint to the receiver's account
@@ -596,10 +595,9 @@ class Party {
       },
 
       burn({ address, amount }: MintOrBurnParams) {
-        let receiverParty = Party.createUnsigned(address, {
+        let receiverParty = createChildParty(thisParty, address, {
           caller: this.id,
           tokenId: this.id,
-          callDepth: 1,
           useFullCommitment: Bool(true),
         });
 
@@ -615,10 +613,9 @@ class Party {
 
       send({ from, to, amount }: SendParams) {
         // Create a new party for the sender to send the amount to the receiver
-        let senderParty = Party.createUnsigned(from, {
+        let senderParty = createChildParty(thisParty, from, {
           caller: this.id,
           tokenId: this.id,
-          callDepth: 1,
           useFullCommitment: Bool(true),
         });
 
@@ -630,10 +627,9 @@ class Party {
           kind: 'lazy-signature',
         };
 
-        let receiverParty = Party.createUnsigned(to, {
+        let receiverParty = createChildParty(thisParty, to, {
           caller: this.id,
           tokenId: this.id,
-          callDepth: 1,
         });
 
         // Add the amount to send to the receiver's account
@@ -835,22 +831,8 @@ class Party {
     return { body, authorization: undefined };
   }
 
-  static createUnsigned(
-    publicKey: PublicKey,
-    options?: {
-      caller?: Field;
-      tokenId?: Field;
-      callDepth?: number;
-      useFullCommitment?: Bool;
-    }
-  ) {
+  static createUnsigned(publicKey: PublicKey) {
     let party = Party.defaultParty(publicKey);
-    const { caller, tokenId, callDepth, useFullCommitment } = options ?? {};
-    party.body.caller = caller ?? party.body.caller;
-    party.body.tokenId = tokenId ?? party.body.tokenId;
-    party.body.callDepth = callDepth ?? party.body.callDepth;
-    party.body.useFullCommitment =
-      useFullCommitment ?? party.body.useFullCommitment;
     Mina.currentTransaction()?.parties.push(party);
     return party;
   }
@@ -954,9 +936,22 @@ const CallForest = {
   },
 };
 
-function createChildParty(parent: Party, childAddress: PublicKey) {
+function createChildParty(
+  parent: Party,
+  childAddress: PublicKey,
+  options?: {
+    caller?: Field;
+    tokenId?: Field;
+    useFullCommitment?: Bool;
+  }
+) {
   let child = Party.defaultParty(childAddress);
+  const { caller, tokenId, useFullCommitment } = options ?? {};
   child.body.callDepth = parent.body.callDepth + 1;
+  child.body.caller = caller ?? child.body.caller;
+  child.body.tokenId = tokenId ?? child.body.tokenId;
+  child.body.useFullCommitment =
+    useFullCommitment ?? child.body.useFullCommitment;
   child.parent = parent;
   parent.children.push(child);
   return child;
