@@ -37,9 +37,6 @@ class CallableAdd extends SmartContract {
 let callableKey = PrivateKey.random();
 let callableAddress = callableKey.toPublicKey();
 let callableTokenId = Field.one;
-// TODO: we need a way to declare witnesses that should be the same when proving,
-// just like we do with method arguments
-let blindingValue0 = Field.random();
 
 class Caller extends SmartContract {
   @state(Field) sum = State<Field>();
@@ -52,7 +49,9 @@ class Caller extends SmartContract {
     let selfParty = this.self;
 
     // witness the result of calling `add`
-    let blindingValue = Circuit.witness(Field, () => blindingValue0);
+    let blindingValue = Experimental.memoizeWitness(Field, () =>
+      Field.random()
+    );
     let { party, result } = Party.witness<Field>(
       Field,
       () => {
@@ -73,6 +72,7 @@ class Caller extends SmartContract {
           args: [x0, y0, blindingValue],
           previousProofs: [],
           ZkappClass: CallableAdd,
+          memoized: [],
         };
         return { party, result };
       },
@@ -139,7 +139,7 @@ tx = await Mina.transaction(feePayer, () => {
 console.log('proving');
 if (doProofs) await tx.prove();
 
-console.log(tx.toJSON());
+console.dir(JSON.parse(tx.toJSON()), { depth: 5 });
 
 tx.send();
 

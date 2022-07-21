@@ -7,7 +7,12 @@ import {
   InferAsFieldElements,
   Poseidon,
 } from '../snarky';
-import { Circuit, circuitArray, cloneCircuitValue } from './circuit_value';
+import {
+  Circuit,
+  circuitArray,
+  cloneCircuitValue,
+  memoizationContext,
+} from './circuit_value';
 import {
   Body,
   Party,
@@ -127,15 +132,16 @@ function wrapMethod(
           // -- so we can add assertions about it
           let publicInput = actualArgs[0];
           actualArgs = actualArgs.slice(1);
+          let party = this.self;
 
           // outside a transaction, just call the method, but check precondition invariants
           let result = method.apply(this, actualArgs);
-          checkPublicInput(publicInput, this.self);
+          checkPublicInput(publicInput, party);
 
           // check the self party right after calling the method
           // TODO: this needs to be done in a unified way for all parties that are created
-          assertPreconditionInvariants(this.self);
-          cleanPreconditionsCache(this.self);
+          assertPreconditionInvariants(party);
+          cleanPreconditionsCache(party);
           assertStatePrecondition(this);
           return result;
         }
@@ -157,9 +163,17 @@ function wrapMethod(
       // first, clone to protect against the method modifying arguments!
       // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
       let clonedArgs = cloneCircuitValue(actualArgs);
-      let result = method.apply(this, actualArgs);
-      assertStatePrecondition(this);
       let party = this.self;
+
+      // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
+      let [{ memoized }, result] = memoizationContext.runWith(
+        { memoized: [], currentIndex: 0 },
+        () => {
+          let result = method.apply(this, actualArgs);
+          assertStatePrecondition(this);
+          return result;
+        }
+      );
       if (!Authorization.hasAny(party)) {
         Authorization.setLazyProof(party, {
           methodName: methodIntf.methodName,
@@ -167,6 +181,7 @@ function wrapMethod(
           // proofs actually don't have to be cloned
           previousProofs: getPreviousProofsForProver(actualArgs, methodIntf),
           ZkappClass,
+          memoized,
         });
       }
       return result;

@@ -1,4 +1,9 @@
-import { circuitArray, circuitValue, cloneCircuitValue } from './circuit_value';
+import {
+  circuitArray,
+  circuitValue,
+  cloneCircuitValue,
+  memoizationContext,
+} from './circuit_value';
 import {
   Field,
   Bool,
@@ -493,6 +498,7 @@ type LazyProof = {
   args: any[];
   previousProofs: { publicInput: Field[]; proof: Pickles.Proof }[];
   ZkappClass: typeof SmartContract;
+  memoized: Field[][];
 };
 
 class Party implements Types.Party {
@@ -984,7 +990,7 @@ async function addMissingProofs(parties: Parties): Promise<{
     if (party.lazyAuthorization?.kind !== 'lazy-proof') {
       return { partyProved: party as PartyProved, proof: undefined };
     }
-    let { methodName, args, previousProofs, ZkappClass } =
+    let { methodName, args, previousProofs, ZkappClass, memoized } =
       party.lazyAuthorization;
     let publicInput = partyToPublicInput(party);
     let publicInputFields = ZkappPublicInput.toFields(publicInput);
@@ -1000,9 +1006,12 @@ async function addMissingProofs(parties: Parties): Promise<{
     if (ZkappClass._methods === undefined) throw Error(methodError);
     let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
     if (i === -1) throw Error(methodError);
-    let [, proof] = await snarkContext.runWithAsync(
+    let [, [, proof]] = await snarkContext.runWithAsync(
       { inProver: true, witnesses: args },
-      () => provers[i](publicInputFields, previousProofs)
+      () =>
+        memoizationContext.runWithAsync({ memoized, currentIndex: 0 }, () =>
+          provers[i](publicInputFields, previousProofs)
+        )
     );
     Authorization.setProof(party, Pickles.proofToBase64Transaction(proof));
     let maxProofsVerified = ZkappClass._maxProofsVerified!;
