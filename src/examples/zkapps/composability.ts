@@ -2,7 +2,6 @@
  * zkApps composability
  */
 import {
-  Experimental,
   Field,
   isReady,
   method,
@@ -19,24 +18,33 @@ const doProofs = true;
 
 await isReady;
 
-// contract which can add two numbers and return the result
-class CallableAdd extends SmartContract {
-  @method add(x: Field, y: Field): Field {
-    // compute result
-    return x.add(y);
+// contract which can add 1 to a number
+class Incrementer extends SmartContract {
+  @method increment(x: Field): Field {
+    return x.add(1);
   }
 }
 
-let callableKey = PrivateKey.random();
-let callableAddress = callableKey.toPublicKey();
+// contract which can add two numbers, plus 1, and return the result
+// incrementing by one is outsourced to another contract (it's cleaner that way, we want to stick to the single responsibility principle)
+class Adder extends SmartContract {
+  @method addPlus1(x: Field, y: Field): Field {
+    // compute result
+    let sum = x.add(y);
+    // call the other contract to increment
+    let incrementer = new Incrementer(incrementerAddress);
+    return incrementer.increment(sum);
+  }
+}
 
+// contract which calls the Adder, stores the result on chain & emits an event
 class Caller extends SmartContract {
   @state(Field) sum = State<Field>();
   events = { sum: Field };
 
   @method callAddAndEmit(x: Field, y: Field) {
-    let adder = new CallableAdd(callableAddress);
-    let sum = adder.add(x, y);
+    let adder = new Adder(adderAddress);
+    let sum = adder.addPlus1(x, y);
     this.emitEvent('sum', sum);
     this.sum.set(sum);
   }
@@ -50,16 +58,24 @@ Mina.setActiveInstance(Local);
 // a test account that pays all the fees, and puts additional funds into the zkapp
 let feePayer = Local.testAccounts[0].privateKey;
 
-// the zkapp account
+// the first contract's address
+let incrementerKey = PrivateKey.random();
+let incrementerAddress = incrementerKey.toPublicKey();
+// the second contract's address
+let adderKey = PrivateKey.random();
+let adderAddress = adderKey.toPublicKey();
+// the third contract's address
 let zkappKey = PrivateKey.random();
 let zkappAddress = zkappKey.toPublicKey();
 
 let zkapp = new Caller(zkappAddress);
-let callableZkapp = new CallableAdd(callableAddress);
+let callableZkapp = new Adder(adderAddress);
 
 if (doProofs) {
-  console.log('compile (callee)');
-  await CallableAdd.compile(callableAddress);
+  console.log('compile (incrementer)');
+  await Incrementer.compile(incrementerAddress);
+  console.log('compile (adder)');
+  await Adder.compile(adderAddress);
   console.log('compile (caller)');
   await Caller.compile(zkappAddress);
 }
@@ -72,17 +88,18 @@ let tx = await Mina.transaction(feePayer, () => {
     ...Permissions.default(),
     editState: Permissions.proofOrSignature(),
   });
-  callableZkapp.deploy({ zkappKey: callableKey });
+  callableZkapp.deploy({ zkappKey: adderKey });
 });
 tx.send();
 
 console.log('call interaction');
 tx = await Mina.transaction(feePayer, () => {
+  // we just call one contract here, nothing special to do
   zkapp.callAddAndEmit(Field(5), Field(6));
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) {
-  console.log('proving (2 proofs: caller + callee)');
+  console.log('proving (3 proofs.. can take a bit!)');
   await tx.prove();
 }
 
@@ -90,4 +107,5 @@ console.dir(JSON.parse(tx.toJSON()), { depth: 5 });
 
 tx.send();
 
+// should hopefully be 12 since we added 5 + 6 + 1
 console.log('state: ' + zkapp.sum.get());
