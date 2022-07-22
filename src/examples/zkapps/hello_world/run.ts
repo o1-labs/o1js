@@ -1,11 +1,5 @@
 import { HelloWorld, adminPrivateKey } from './hello_world';
-import {
-  isReady,
-  Mina,
-  PrivateKey,
-  Party,
-  Field,
-} from '../../../../dist/server';
+import { isReady, Mina, PrivateKey, Party, Field, shutdown } from 'snarkyjs';
 
 // setup local ledger
 let Local = Mina.LocalBlockchain();
@@ -28,21 +22,20 @@ let txn = await Mina.transaction(deployerAccount, () => {
 try {
   txn.send().wait();
 } catch (err: any) {
-  console.log('Deployment failed with error', err.message);
+  shutdown();
+  console.error('Deployment failed with error', err.message);
 }
 
-const initialState = zkAppInstance.x.get();
+const initialState = zkAppInstance.x.get().toString();
+
+console.log(`Updating from ${initialState} to 9 failed with error`);
 
 txn = await Mina.transaction(deployerAccount, () => {
   zkAppInstance.update(Field(9), adminPrivateKey);
-  zkAppInstance.sign(zkAppPrivateKey);
 });
 
 try {
   txn.send().wait();
 } catch (err: any) {
-  console.log(
-    `Updating from ${initialState} to 9 failed with error`,
-    err.message
-  );
+  console.error(`Updating from ${initialState} to 9 failed with error`, err);
 }
