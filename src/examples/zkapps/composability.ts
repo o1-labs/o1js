@@ -88,10 +88,12 @@ let tx = await Mina.transaction(feePayer, () => {
     initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
   });
   zkapp.deploy({ zkappKey });
-  zkapp.setPermissions({
-    ...Permissions.default(),
-    editState: Permissions.proofOrSignature(),
-  });
+  if (!doProofs) {
+    zkapp.setPermissions({
+      ...Permissions.default(),
+      editState: Permissions.proofOrSignature(),
+    });
+  }
   adderZkapp.deploy({ zkappKey: adderKey });
   incrementerZkapp.deploy({ zkappKey: incrementerKey });
 });

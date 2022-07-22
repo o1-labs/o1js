@@ -133,7 +133,6 @@ function wrapMethod(
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
     if (!smartContractContext.has()) {
-      // console.log('wrapped method', methodIntf.methodName);
       return smartContractContext.runWith(
         { this: this, methodCallDepth: 0 },
         () => {
@@ -158,7 +157,6 @@ function wrapMethod(
                 let blindingValue = Circuit.witness(Field, getBlindingValue);
                 // it's also good if we prove that we use the same blinding value across the method
                 // that's why we pass the variable_ (not the constant) into a new context
-                // console.log('blinding value (circuit)', blindingValue);
                 let context = memoizationContext() ?? {
                   memoized: [],
                   currentIndex: 0,
@@ -178,15 +176,8 @@ function wrapMethod(
                 }
                 argsFields.push(blindingValue);
                 party.body.callData = Poseidon.hash(argsFields);
-                // Circuit.asProver(() => {
-                //   console.log('callData (checked) ' + party.body.callData);
-                // });
 
                 // connect the public input to the party & child parties we created
-                // Circuit.asProver(() => {
-                //   console.log('party (prover)');
-                //   console.dir(party.toJSON(), { depth: 5 });
-                // });
                 checkPublicInput(publicInput, party);
 
                 // check the self party right after calling the method
@@ -218,7 +209,6 @@ function wrapMethod(
 
             // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
             let blindingValue = getBlindingValue();
-            // console.log('blinding value (tx)', blindingValue);
             let [{ memoized }, result] = memoizationContext.runWith(
               {
                 memoized: [],
@@ -231,15 +221,13 @@ function wrapMethod(
             );
             assertStatePrecondition(this);
 
-            // connects our input + result with callData, so this method can be called
-            // TODO include result + blinding value
+            // connect our input + result with callData, so this method can be called
             let argsFields = methodArgumentsToFields(methodIntf, actualArgs);
             if (methodIntf.returnType) {
               argsFields.push(...methodIntf.returnType.toFields(result));
             }
             argsFields.push(blindingValue);
             party.body.callData = Poseidon.hash(argsFields);
-            // console.log('callData (transaction) ' + party.body.callData);s
 
             if (!Authorization.hasAny(party)) {
               Authorization.setLazyProof(party, {
@@ -260,26 +248,15 @@ function wrapMethod(
         }
       )[1];
     }
-    // console.log(
-    //   'wrapped method',
-    //   methodIntf.methodName,
-    //   '(called by another one)'
-    // );
     // if we're here, this method was called inside _another_ smart contract method
     let parentParty = smartContractContext.get().this.self;
     let methodCallDepth = smartContractContext.get().methodCallDepth;
     let [, result] = smartContractContext.runWith(
       { this: this, methodCallDepth: methodCallDepth + 1 },
       () => {
-        // we just reuse the blinding value of the caller for the callee
-        let blindingValue = getBlindingValue();
-        // console.log('blinding value (caller)', blindingValue);
-
-        // witness the result of calling `add`
-        let { returnType } = methodIntf;
-
-        // if the result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
+        // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
         // so we have to explain to the user how to do that
+        let { returnType } = methodIntf;
         let noReturnTypeError =
           `To return a result from ${methodIntf.methodName}() inside another zkApp, you need to declare the return type.\n` +
           `This can be done by annotating the type at the end of the function signature. For example:\n\n` +
@@ -295,11 +272,12 @@ function wrapMethod(
         ) {
           throw Error(noReturnTypeError);
         }
+        // we just reuse the blinding value of the caller for the callee
+        let blindingValue = getBlindingValue();
 
         let runCalledContract = () => {
           let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
           let constantBlindingValue = blindingValue.toConstant();
-          // console.log('blinding value (callee)', constantBlindingValue);
           let party = this.self;
           // the line above adds the callee's self party into the wrong place in the transaction structure
           // so we remove it again
@@ -333,7 +311,6 @@ function wrapMethod(
           argsFields.push(...resultFields);
           argsFields.push(constantBlindingValue);
           party.body.callData = Poseidon_.hash(argsFields, false);
-          // console.log('callData (callee) ' + party.body.callData);
 
           if (!Authorization.hasAny(party)) {
             Authorization.setLazyProof(party, {
@@ -352,8 +329,8 @@ function wrapMethod(
         };
 
         // we have to run the called contract inside a witness block, to not affect the caller's circuit
-        // however, if this is another contract called by a called contract, then we're already in a witness block,
-        // and shouldn't open another one
+        // however, if this is a nested call -- the caller is already called by another contract --,
+        // then we're already in a witness block, and shouldn't open another one
         let { party, result } =
           methodCallDepth === 0
             ? Party.witness(
@@ -365,7 +342,7 @@ function wrapMethod(
 
         // we're back in the _caller's_ circuit now, where we assert stuff about the method call
 
-        // connect party to our own. outside Circuit.witness so compile knows about it
+        // connect party to our own. outside Circuit.witness so compile knows the right structure when hashing children
         party.body.callDepth = parentParty.body.callDepth + 1;
         party.parent = parentParty;
         // beware: we don't include the callee's children in the caller circuit
@@ -384,9 +361,6 @@ function wrapMethod(
         if (returnType) argsFields.push(...returnType.toFields(result));
         argsFields.push(blindingValue);
         let callData = Poseidon.hash(argsFields);
-        // Circuit.asProver(() => {
-        //   console.log('callData (caller) ' + callData);
-        // });
         party.body.callData.assertEquals(callData);
         return result;
       }
@@ -589,8 +563,6 @@ class SmartContract {
 
   // run all methods to collect metadata like how many sequence events they use -- if we don't have this information yet
   // TODO: this could also be used to quickly perform any invariant checks on parties construction
-  // TODO: it would be even better to run the methods in "compile mode" here -- i.e. with variables which can't be read --,
-  // to be able to give quick errors when people try to depend on variables for constructing their circuit (https://github.com/o1-labs/snarkyjs/issues/224)
   static analyzeMethods(address: PublicKey) {
     let ZkappClass = this as typeof SmartContract;
     let instance = new ZkappClass(address);
@@ -818,7 +790,6 @@ async function deploy<S extends typeof SmartContract>(
       transactionFee,
     });
   }
-  // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
   return tx.sign().toJSON();
 }
 
