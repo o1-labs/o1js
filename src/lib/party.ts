@@ -508,7 +508,7 @@ class Party implements Types.Party {
   lazyAuthorization: LazySignature | LazyProof | undefined = undefined;
   account: Precondition.Account;
   network: Precondition.Network;
-  children: Party[] = [];
+  children: { party: Party; calls?: Field }[] = [];
   parent: Party | undefined = undefined;
 
   private isSelf: boolean;
@@ -821,7 +821,8 @@ const CallForest = {
     let parties = [];
     for (let party of forest) {
       party.body.callDepth = depth;
-      parties.push(party, ...CallForest.toFlatList(party.children, depth + 1));
+      let children = party.children.map((c) => c.party);
+      parties.push(party, ...CallForest.toFlatList(children, depth + 1));
     }
     return parties;
   },
@@ -835,8 +836,10 @@ const CallForest = {
   // hashes a party's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
   hashChildren(parent: Party) {
     let stackHash = CallForest.emptyHash();
-    for (let party of parent.children.reverse()) {
-      let calls = CallForest.hashChildren(party);
+    for (let { party, calls } of parent.children.reverse()) {
+      // only compute calls if it's not there yet --
+      // this gives us the flexibility to witness only direct children of a zkApp
+      calls ??= CallForest.hashChildren(party);
       let nodeHash = hashWithPrefix(prefixes.partyNode, [party.hash(), calls]);
       stackHash = hashWithPrefix(prefixes.partyCons, [nodeHash, stackHash]);
     }
@@ -848,7 +851,7 @@ function createChildParty(parent: Party, childAddress: PublicKey) {
   let child = Party.defaultParty(childAddress);
   child.body.callDepth = parent.body.callDepth + 1;
   child.parent = parent;
-  parent.children.push(child);
+  parent.children.push({ party: child, calls: undefined });
   return child;
 }
 

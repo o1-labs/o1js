@@ -27,6 +27,7 @@ import {
   Events,
   partyToPublicInput,
   Authorization,
+  CallForest,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -267,7 +268,6 @@ function wrapMethod(
     // if we're here, this method was called inside _another_ smart contract method
     let parentParty = smartContractContext.get().this.self;
     let methodCallDepth = smartContractContext.get().methodCallDepth;
-    console.log({ methodCallDepth });
     let [, result] = smartContractContext.runWith(
       { this: this, methodCallDepth: methodCallDepth + 1 },
       () => {
@@ -368,7 +368,12 @@ function wrapMethod(
         // connect party to our own. outside Circuit.witness so compile knows about it
         party.body.callDepth = parentParty.body.callDepth + 1;
         party.parent = parentParty;
-        parentParty.children.push(party);
+        // beware: we don't include the callee's children in the caller circuit
+        // nothing is asserted about them -- it's the callee's task to check their children
+        let calls = Circuit.witness(Field, () =>
+          CallForest.hashChildren(party)
+        );
+        parentParty.children.push({ party, calls });
 
         // assert that we really called the right zkapp
         party.body.publicKey.assertEquals(this.address);
