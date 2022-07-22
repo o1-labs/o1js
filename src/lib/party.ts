@@ -524,9 +524,9 @@ class Token {
       tokenOwner.toFields().every((x) => x.isConstant()) &&
       parentTokenId.isConstant()
     ) {
-      this.id = Ledger.customTokenIdChecked(tokenOwner, this.parentTokenId);
-    } else {
       this.id = Ledger.customTokenId(tokenOwner, this.parentTokenId);
+    } else {
+      this.id = Ledger.customTokenIdChecked(tokenOwner, this.parentTokenId);
     }
   }
 }
