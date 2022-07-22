@@ -68,6 +68,14 @@ type SenderSpec =
   | { feePayerKey: PrivateKey; fee?: number | string | UInt64; memo?: string }
   | undefined;
 
+function reportGetAccountError(publicKey: string, tokenId: string) {
+  if (tokenId === Ledger.fieldToBase58(getDefaultTokenId())) {
+    return `getAccount: Could not find account for public key ${publicKey}`;
+  } else {
+    return `getAccount: Could not find account for public key ${publicKey} with the tokenId ${tokenId}`;
+  }
+}
+
 function createUnsignedTransaction(
   f: () => unknown,
   { fetchMode = 'cached' as FetchMode } = {}
@@ -240,9 +248,10 @@ function LocalBlockchain({
       let ledgerAccount = ledger.getAccount(publicKey, tokenId);
       if (ledgerAccount == undefined) {
         throw new Error(
-          `getAccount: Could not find account for public key ${publicKey.toBase58()} with the tokenId ${Ledger.fieldToBase58(
-            tokenId
-          )}`
+          reportGetAccountError(
+            publicKey.toBase58(),
+            Ledger.fieldToBase58(tokenId)
+          )
         );
       } else {
         return {
@@ -327,9 +336,10 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         if (account !== undefined) return account;
       }
       throw Error(
-        `getAccount: Could not find account for public key ${publicKey.toBase58()} with the tokenId ${Ledger.fieldToBase58(
-          tokenId
-        )}.\nGraphql endpoint: ${graphqlEndpoint}`
+        `${reportGetAccountError(
+          publicKey.toBase58(),
+          Ledger.fieldToBase58(tokenId)
+        )}\nGraphql endpoint: ${graphqlEndpoint}`
       );
     },
     getNetworkState() {
@@ -421,9 +431,10 @@ let activeInstance: Mina = {
       );
       if (account === undefined)
         throw Error(
-          `getAccount: Could not find account for public key ${publicKey.toBase58()} with the tokenId ${Ledger.fieldToBase58(
-            tokenId
-          )}.\nEither call Mina.setActiveInstance first or explicitly add the account with addCachedAccount`
+          `${reportGetAccountError(
+            publicKey.toBase58(),
+            Ledger.fieldToBase58(tokenId)
+          )}\n\nEither call Mina.setActiveInstance first or explicitly add the account with addCachedAccount`
         );
       return account;
     }
