@@ -69,7 +69,8 @@ let zkappKey = PrivateKey.random();
 let zkappAddress = zkappKey.toPublicKey();
 
 let zkapp = new Caller(zkappAddress);
-let callableZkapp = new Adder(adderAddress);
+let adderZkapp = new Adder(adderAddress);
+let incrementerZkapp = new Incrementer(incrementerAddress);
 
 if (doProofs) {
   console.log('compile (incrementer)');
@@ -82,13 +83,17 @@ if (doProofs) {
 
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer, { initialBalance: Mina.accountCreationFee() });
+  // TODO: enable funding multiple accounts properly
+  Party.fundNewAccount(feePayer, {
+    initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
+  });
   zkapp.deploy({ zkappKey });
   zkapp.setPermissions({
     ...Permissions.default(),
     editState: Permissions.proofOrSignature(),
   });
-  callableZkapp.deploy({ zkappKey: adderKey });
+  adderZkapp.deploy({ zkappKey: adderKey });
+  incrementerZkapp.deploy({ zkappKey: incrementerKey });
 });
 tx.send();
 
