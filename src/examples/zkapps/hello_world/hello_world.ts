@@ -34,6 +34,7 @@ export class HelloWorld extends SmartContract {
     this.x.set(squared);
 
     const adminPk = admin.toPublicKey();
+
     this.account.delegate.assertEquals(adminPk);
   }
 }
