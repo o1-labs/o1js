@@ -26,8 +26,11 @@ try {
   console.error('Deployment failed with error', err.message);
 }
 
-const initialState = zkAppInstance.x.get().toString();
+const initialState = await Mina.getAccount(
+  zkAppAddress
+).zkapp?.appState[0].toString();
 let currentState;
+console.log('intialAccountstate', initialState);
 
 // Update state with value that satisfies preconditions and correct admin private key
 console.log(`Updating state from ${initialState} to 9 with Admin Private Key`);
@@ -38,7 +41,10 @@ txn = await Mina.transaction(deployerAccount, () => {
 
 try {
   txn.send().wait();
-  currentState = zkAppInstance.x.get().toString();
+  currentState = await Mina.getAccount(
+    zkAppAddress
+  ).zkapp?.appState[0].toString();
+
   if (currentState !== '9') {
     console.error(
       `Current state of ${currentState} does not match 9 after calling update with 9`
@@ -62,7 +68,10 @@ txn = await Mina.transaction(deployerAccount, () => {
 
 try {
   txn.send().wait();
-  currentState = zkAppInstance.x.get().toString();
+  currentState = await Mina.getAccount(
+    zkAppAddress
+  ).zkapp?.appState[0].toString();
+
   if (currentState !== '9') {
     console.error(
       `State was updated from 9 to ${currentState} does not match 9 after calling update with 9`
@@ -84,7 +93,9 @@ try {
     zkAppInstance.sign(zkAppPrivateKey);
   });
   txn.send().wait();
-  currentState = zkAppInstance.x.get().toString();
+  currentState = await Mina.getAccount(
+    zkAppAddress
+  ).zkapp?.appState[0].toString();
   if (currentState !== '9') {
     console.error(
       `State was updated from 9 to ${currentState} which fails the precondition x.square().assertEquals(squared);`
