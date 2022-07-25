@@ -22,7 +22,6 @@ import { Proof, snarkContext } from './proof_system';
 import { Context } from './global-context';
 
 export {
-  createUnsignedTransaction,
   createTransaction,
   BerkeleyQANet,
   LocalBlockchain,
@@ -74,13 +73,6 @@ function reportGetAccountError(publicKey: string, tokenId: string) {
   } else {
     return `getAccount: Could not find account for public key ${publicKey} with the tokenId ${tokenId}`;
   }
-}
-
-function createUnsignedTransaction(
-  f: () => unknown,
-  { fetchMode = 'cached' as FetchMode } = {}
-) {
-  return createTransaction(undefined, f, { fetchMode });
 }
 
 function createTransaction(

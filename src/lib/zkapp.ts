@@ -570,35 +570,22 @@ async function deploy<S extends typeof SmartContract>(
     zkappKey,
     verificationKey,
     initialBalance,
-    shouldSignFeePayer,
-    feePayerKey,
-    transactionFee,
-    memo,
+    feePayer,
   }: {
     zkappKey: PrivateKey;
     verificationKey: { data: string; hash: string | Field };
     initialBalance?: number | string;
-    feePayerKey?: PrivateKey;
-    shouldSignFeePayer?: boolean;
-    transactionFee?: string | number;
-    memo?: string;
+    feePayer?: Mina.FeePayerSpec;
   }
 ) {
   let address = zkappKey.toPublicKey();
-  let feePayerSpec: Mina.FeePayerSpec = undefined;
-  if (shouldSignFeePayer) {
-    if (feePayerKey === undefined || transactionFee === undefined) {
-      throw Error(
-        `When setting shouldSignFeePayer=true, you need to also supply feePayerKey (fee payer's private key) and transactionFee.`
-      );
-    }
-    feePayerSpec = { feePayerKey, fee: transactionFee, memo: memo ?? '' };
-  }
-  let tx = await Mina.transaction(feePayerSpec, () => {
+  let feePayerKey =
+    feePayer instanceof PrivateKey ? feePayer : feePayer?.feePayerKey;
+  let tx = await Mina.transaction(feePayer, () => {
     if (initialBalance !== undefined) {
       if (feePayerKey === undefined)
         throw Error(
-          `When using the optional initialBalance argument, you need to also supply the fee payer's private key feePayerKey to sign the initial balance funding.`
+          `When using the optional initialBalance argument, you need to also supply the fee payer's private key as part of the \`feePayer\` argument, to sign the initial balance funding.`
         );
       // optional first party: the sender/fee payer who also funds the zkapp
       let amount = UInt64.fromString(String(initialBalance)).add(
