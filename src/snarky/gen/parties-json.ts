@@ -142,6 +142,7 @@ type Parties = {
           state: (Field | null)[];
           sequenceState: Field | null;
           provedState: Bool | null;
+          isNew: Bool | null;
         };
       };
       useFullCommitment: Bool;
@@ -273,6 +274,7 @@ type Party = {
         state: (Field | null)[];
         sequenceState: Field | null;
         provedState: Bool | null;
+        isNew: Bool | null;
       };
     };
     useFullCommitment: Bool;

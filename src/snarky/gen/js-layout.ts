@@ -888,6 +888,15 @@ let jsLayout = {
                                   },
                                   docs: null,
                                 },
+                                {
+                                  key: 'isNew',
+                                  value: {
+                                    type: 'option',
+                                    optionType: 'flaggedOption',
+                                    inner: { type: 'Bool' },
+                                  },
+                                  docs: null,
+                                },
                               ],
                             },
                             docs: null,
@@ -1744,6 +1753,15 @@ let jsLayout = {
                         },
                         {
                           key: 'provedState',
+                          value: {
+                            type: 'option',
+                            optionType: 'flaggedOption',
+                            inner: { type: 'Bool' },
+                          },
+                          docs: null,
+                        },
+                        {
+                          key: 'isNew',
                           value: {
                             type: 'option',
                             optionType: 'flaggedOption',

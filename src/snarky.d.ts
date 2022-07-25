@@ -724,6 +724,8 @@ interface Account {
   publicKey: { g: Group };
   balance: UInt64_;
   nonce: UInt32_;
+  tokenId: Field;
+  tokenSymbol: string;
   zkapp: { appState: Field[] };
 }
 
@@ -737,7 +739,7 @@ declare class Ledger {
 
   applyJsonTransaction(txJson: string, accountCreationFee: string): Account[];
 
-  getAccount(publicKey: { g: Group }): Account | undefined;
+  getAccount(publicKey: { g: Group }, tokenId: Field): Account | undefined;
 
   static transactionCommitments(txJson: string): {
     commitment: Field;
@@ -758,6 +760,10 @@ declare class Ledger {
     privateKey: { s: Scalar },
     i: number
   ): string;
+
+  static customTokenId(publicKey: { g: Group }, tokenId: Field): Field;
+  static customTokenIdChecked(publicKey: { g: Group }, tokenId: Field): Field;
+  static createTokenAccount(publicKey: { g: Group }, tokenId: Field): string;
 
   static publicKeyToString(publicKey: { g: Group }): string;
   static publicKeyOfString(publicKeyBase58: string): Group;
