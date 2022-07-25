@@ -56,6 +56,7 @@ import { assertStatePrecondition, cleanStatePrecondition } from './state';
 import { Types } from '../snarky/types';
 import { Context } from './global-context';
 import { Poseidon } from './hash';
+import * as Encoding from './encoding';
 
 // external API
 export {
@@ -111,6 +112,7 @@ function method<T extends SmartContract>(
   );
   if (isAsFields(returnType)) methodEntry.returnType = returnType;
   ZkappClass._methods ??= [];
+  let methodIndex = ZkappClass._methods.length;
   ZkappClass._methods.push(methodEntry);
   ZkappClass._maxProofsVerified ??= 0;
   ZkappClass._maxProofsVerified = Math.max(
@@ -118,7 +120,7 @@ function method<T extends SmartContract>(
     methodEntry.proofArgs.length
   );
   let func = descriptor.value;
-  descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
+  descriptor.value = wrapMethod(func, ZkappClass, methodEntry, methodIndex);
 }
 
 let smartContractContext =
@@ -128,7 +130,8 @@ let smartContractContext =
 function wrapMethod(
   method: Function,
   ZkappClass: typeof SmartContract,
-  methodIntf: MethodInterface
+  methodIntf: MethodInterface,
+  methodIndex: number
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
@@ -167,15 +170,18 @@ function wrapMethod(
                 );
 
                 // connects our input + result with callData, so this method can be called
-                let argsFields = methodArgumentsToFields(
+                let callDataFields = methodArgumentsToFields(
                   methodIntf,
                   actualArgs
                 );
                 if (methodIntf.returnType) {
-                  argsFields.push(...methodIntf.returnType.toFields(result));
+                  callDataFields.push(
+                    ...methodIntf.returnType.toFields(result)
+                  );
                 }
-                argsFields.push(blindingValue);
-                party.body.callData = Poseidon.hash(argsFields);
+                callDataFields.push(getMethodId(methodIntf, methodIndex));
+                callDataFields.push(blindingValue);
+                party.body.callData = Poseidon.hash(callDataFields);
 
                 // connect the public input to the party & child parties we created
                 checkPublicInput(publicInput, party);
@@ -222,12 +228,16 @@ function wrapMethod(
             assertStatePrecondition(this);
 
             // connect our input + result with callData, so this method can be called
-            let argsFields = methodArgumentsToFields(methodIntf, actualArgs);
+            let callDataFields = methodArgumentsToFields(
+              methodIntf,
+              actualArgs
+            );
             if (methodIntf.returnType) {
-              argsFields.push(...methodIntf.returnType.toFields(result));
+              callDataFields.push(...methodIntf.returnType.toFields(result));
             }
-            argsFields.push(blindingValue);
-            party.body.callData = Poseidon.hash(argsFields);
+            callDataFields.push(getMethodId(methodIntf, methodIndex));
+            callDataFields.push(blindingValue);
+            party.body.callData = Poseidon.hash(callDataFields);
 
             if (!Authorization.hasAny(party)) {
               Authorization.setLazyProof(party, {
@@ -307,10 +317,14 @@ function wrapMethod(
           }
 
           // store inputs + result in callData
-          let argsFields = methodArgumentsToFields(methodIntf, constantArgs);
-          argsFields.push(...resultFields);
-          argsFields.push(constantBlindingValue);
-          party.body.callData = Poseidon_.hash(argsFields, false);
+          let callDataFields = methodArgumentsToFields(
+            methodIntf,
+            constantArgs
+          );
+          callDataFields.push(...resultFields);
+          callDataFields.push(getMethodId(methodIntf, methodIndex));
+          callDataFields.push(constantBlindingValue);
+          party.body.callData = Poseidon_.hash(callDataFields, false);
 
           if (!Authorization.hasAny(party)) {
             Authorization.setLazyProof(party, {
@@ -357,10 +371,11 @@ function wrapMethod(
         party.body.tokenId.assertEquals(this.self.body.tokenId);
 
         // assert that the inputs & outputs we have match what the callee put on its callData
-        let argsFields = methodArgumentsToFields(methodIntf, actualArgs);
-        if (returnType) argsFields.push(...returnType.toFields(result));
-        argsFields.push(blindingValue);
-        let callData = Poseidon.hash(argsFields);
+        let callDataFields = methodArgumentsToFields(methodIntf, actualArgs);
+        if (returnType) callDataFields.push(...returnType.toFields(result));
+        callDataFields.push(getMethodId(methodIntf, methodIndex));
+        callDataFields.push(blindingValue);
+        let callData = Poseidon.hash(callDataFields);
         party.body.callData.assertEquals(callData);
         return result;
       }
@@ -373,6 +388,10 @@ function checkPublicInput({ party, calls }: ZkappPublicInput, self: Party) {
   let otherInput = partyToPublicInput(self);
   party.assertEquals(otherInput.party);
   calls.assertEquals(otherInput.calls);
+}
+
+function getMethodId({ methodName }: MethodInterface, methodIndex: number) {
+  return Encoding.stringToFields(`${methodIndex};${methodName}`)[0];
 }
 
 /**
