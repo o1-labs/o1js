@@ -24,11 +24,7 @@ let txn = await Mina.transaction(feePayer1, () => {
   zkAppInstance.deploy({ zkappKey: zkAppPrivateKey });
 });
 
-try {
-  txn.send().wait();
-} catch (err: any) {
-  throw new Error(`Deployment failed with error ${err.message}`);
-}
+txn.send().wait();
 
 const initialState = await Mina.getAccount(
   zkAppAddress
@@ -46,23 +42,18 @@ txn = await Mina.transaction(feePayer1, () => {
   zkAppInstance.sign(zkAppPrivateKey);
 });
 
-try {
-  txn.send().wait();
+txn.send().wait();
 
-  currentState = await Mina.getAccount(
-    zkAppAddress
-  ).zkapp?.appState[0].toString();
+currentState = await Mina.getAccount(
+  zkAppAddress
+).zkapp?.appState[0].toString();
 
-  if (currentState !== '4') {
-    throw new Error(
-      `Current state of ${currentState} does not match 4 after calling update with 4`
-    );
-  } else {
-    console.log(`Current state succesfully updated to ${currentState}`);
-  }
-} catch (err: any) {
-  throw new Error(`
-    Updating from ${initialState} to 4 failed with error ${err.message}`);
+if (currentState !== '4') {
+  throw new Error(
+    `Current state of ${currentState} does not match 4 after calling update with 4`
+  );
+} else {
+  console.log(`Current state succesfully updated to ${currentState}`);
 }
 
 const wrongAdminPrivateKey = PrivateKey.random();
@@ -77,16 +68,6 @@ txn = await Mina.transaction(feePayer1, () => {
 
 try {
   txn.send().wait();
-
-  currentState = await Mina.getAccount(
-    zkAppAddress
-  ).zkapp?.appState[0].toString();
-
-  if (currentState !== '16') {
-    throw new Error(
-      `The current state of ${currentState} does not match 16 after calling update with 16`
-    );
-  }
 } catch (err: any) {
   console.log(
     `State correctly was not updated with wrong Admin Private Key. Current state is still ${currentState}`
