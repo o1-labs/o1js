@@ -29,7 +29,7 @@ export class HelloWorld extends SmartContract {
 
   @method update(squared: Field, admin: PrivateKey) {
     const x = this.x.get();
-    this.x.assertEquals(this.x.get());
+    this.x.assertNothing();
     x.square().assertEquals(squared);
     this.x.set(squared);
 
