@@ -1,6 +1,5 @@
 import { HelloWorld, adminPrivateKey } from './hello_world';
 import { isReady, Mina, PrivateKey, Party, Field, shutdown } from 'snarkyjs';
-import { toJson } from 'dist/server/snarky/parties-leaves';
 
 let txn2, txn3, txn4;
 // setup local ledger
@@ -19,6 +18,7 @@ const zkAppAddress = zkAppPrivateKey.toPublicKey();
 const zkAppInstance = new HelloWorld(zkAppAddress);
 
 console.log('Deploying Hello World ....');
+
 let txn = await Mina.transaction(feePayer1, () => {
   Party.fundNewAccount(feePayer1);
   zkAppInstance.deploy({ zkappKey: zkAppPrivateKey });
@@ -34,6 +34,7 @@ const initialState = await Mina.getAccount(
   zkAppAddress
 ).zkapp?.appState[0].toString();
 let currentState;
+
 console.log('Initial State', initialState);
 
 // update state with value that satisfies preconditions and correct admin private key
@@ -47,6 +48,7 @@ txn = await Mina.transaction(feePayer1, () => {
 
 try {
   txn.send().wait();
+
   currentState = await Mina.getAccount(
     zkAppAddress
   ).zkapp?.appState[0].toString();
@@ -75,6 +77,7 @@ txn = await Mina.transaction(feePayer1, () => {
 
 try {
   txn.send().wait();
+
   currentState = await Mina.getAccount(
     zkAppAddress
   ).zkapp?.appState[0].toString();
@@ -179,6 +182,7 @@ try {
   });
 
   txn3.send();
+
   currentState = await Mina.getAccount(
     zkAppAddress
   ).zkapp?.appState[0].toString();
@@ -198,6 +202,7 @@ try {
   });
 
   txn4.send().wait();
+
   throw new Error(`State was incorrectly updated to ${currentState}`);
 } catch (err: any) {
   currentState = await Mina.getAccount(
