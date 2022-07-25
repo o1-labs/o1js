@@ -156,7 +156,7 @@ try {
 
 try {
   // expected to succeed and update state to 16
-  txn2 = await Mina.transaction({ feePayerKey: feePayer1, fee: '2' }, () => {
+  txn2 = await Mina.transaction({ feePayerKey: feePayer2, fee: '2' }, () => {
     zkAppInstance.update(Field(16), adminPrivateKey);
     zkAppInstance.sign(zkAppPrivateKey);
   });
@@ -176,7 +176,7 @@ try {
 
 try {
   // expected to succeed and update state to 256
-  txn3 = await Mina.transaction({ feePayerKey: feePayer1, fee: '1' }, () => {
+  txn3 = await Mina.transaction({ feePayerKey: feePayer3, fee: '1' }, () => {
     zkAppInstance.update(Field(256), adminPrivateKey);
     zkAppInstance.sign(zkAppPrivateKey);
   });
@@ -196,7 +196,7 @@ try {
 
 try {
   // expected to fail and current state remains 256
-  txn4 = await Mina.transaction({ feePayerKey: feePayer1, fee: '1' }, () => {
+  txn4 = await Mina.transaction({ feePayerKey: feePayer4, fee: '1' }, () => {
     zkAppInstance.update(Field(16), adminPrivateKey);
     zkAppInstance.sign(zkAppPrivateKey);
   });
