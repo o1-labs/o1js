@@ -22,7 +22,7 @@ export class HelloWorld extends SmartContract {
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
     });
-    this.x.set(Field(3));
+    this.x.set(Field(2));
 
     Party.setValue(this.self.update.delegate, adminPublicKey);
   }
