@@ -19,6 +19,11 @@ export { cloneCircuitValue, circuitValueEquals, circuitArray };
 
 type AnyConstructor = new (...args: any) => any;
 
+type NonMethodKeys<T> = {
+  [K in keyof T]: T[K] extends Function ? never : K;
+}[keyof T];
+type NonMethods<T> = Pick<T, NonMethodKeys<T>>;
+
 abstract class CircuitValue {
   constructor(...props: any[]) {
     const fields = (this.constructor as any).prototype._fields;
@@ -36,6 +41,13 @@ abstract class CircuitValue {
       const [key, propType] = fields[i];
       (this as any)[key] = props[i];
     }
+  }
+
+  static fromObject<T extends AnyConstructor>(
+    this: T,
+    value: NonMethods<InstanceType<T>>
+  ): InstanceType<T> {
+    return Object.assign(Object.create(this.prototype), value);
   }
 
   static sizeInFields(): number {
@@ -89,17 +101,22 @@ abstract class CircuitValue {
     this: T,
     xs: Field[]
   ): InstanceType<T> {
-    const fields = (this as any).prototype._fields;
+    const fields: [string, any][] = (this as any).prototype._fields;
+    if (xs.length < fields.length) {
+      throw Error(
+        `${this.name}.ofFields: Expected ${fields.length} field elements, got ${xs?.length}`
+      );
+    }
     let offset = 0;
-    const props: any[] = [];
+    const props: any = {};
     for (let i = 0; i < fields.length; ++i) {
-      const propType = fields[i][1];
+      const [key, propType] = fields[i];
       const propSize = propType.sizeInFields();
       const propVal = propType.ofFields(xs.slice(offset, offset + propSize));
-      props.push(propVal);
+      props[key] = propVal;
       offset += propSize;
     }
-    return new this(...props);
+    return Object.assign(Object.create(this.prototype), props);
   }
 
   static check<T extends AnyConstructor>(this: T, v: InstanceType<T>) {
@@ -143,7 +160,7 @@ abstract class CircuitValue {
     this: T,
     value: JSONValue
   ): InstanceType<T> | null {
-    const props: any[] = [];
+    const props: any = {};
     const fields: [string, any][] = (this as any).prototype._fields;
 
     switch (typeof value) {
@@ -162,12 +179,12 @@ abstract class CircuitValue {
         if (value[key] === undefined) {
           return null;
         } else {
-          props.push(propType.fromJSON(value[key]));
+          props[key] = propType.fromJSON(value[key]);
         }
       }
     }
 
-    return new this(...props);
+    return Object.assign(Object.create(this.prototype), props);
   }
 }
 
