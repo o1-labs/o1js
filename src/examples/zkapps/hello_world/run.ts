@@ -71,14 +71,7 @@ let correctlyFails = false;
 try {
   txn.send().wait();
 } catch (err: any) {
-  if (err.message.includes('Account_delegate_precondition_unsatisfied')) {
-    correctlyFails = true;
-    console.log(
-      `State correctly was not updated with wrong Admin Private Key. Current state is still ${currentState}`
-    );
-  } else {
-    throw Error(err);
-  }
+  handleError(err, 'Account_delegate_precondition_unsatisfied');
 }
 
 if (!correctlyFails) {
@@ -98,28 +91,8 @@ try {
   });
 
   txn.send().wait();
-
-  // // currentState = await Mina.getAccount(
-  // //   zkAppAddress
-  // // ).zkapp?.appState[0].toString();
-
-  // if (currentState !== '4') {
-  //   throw new Error(
-  //     `State was updated from 4 to ${currentState} which fails the precondition x.square().assertEquals(squared);`
-  //   );
-  // }
 } catch (err: any) {
-  if (err.message.includes('assert_equal')) {
-    correctlyFails = true;
-    currentState = await Mina.getAccount(
-      zkAppAddress
-    ).zkapp?.appState[0].toString();
-    console.log(
-      `Update correctly rejected current state is still ${currentState}.`
-    );
-  } else {
-    throw Error(err);
-  }
+  handleError(err, 'assert_equal');
 }
 
 if (!correctlyFails) {
@@ -145,18 +118,6 @@ try {
   txn.send();
 } catch (err: any) {
   handleError(err, 'assert_equal');
-  currentState = await Mina.getAccount(
-    zkAppAddress
-  ).zkapp?.appState[0].toString();
-
-  if (err.message.includes('assert_equal')) {
-    correctlyFails = true;
-    console.log(
-      `Update correctly rejected current state is still ${currentState}.`
-    );
-  } else {
-    throw Error(err);
-  }
 }
 if (!correctlyFails) {
   throw Error(
@@ -202,16 +163,7 @@ try {
 
   txn4.send().wait();
 } catch (err: any) {
-  currentState = await Mina.getAccount(
-    zkAppAddress
-  ).zkapp?.appState[0].toString();
-
-  if (err.message.includes('assert_equal')) {
-    correctlyFails = true;
-    console.log(
-      `Update correctly rejected current state is still ${currentState}.`
-    );
-  }
+  handleError(err, 'assert_equal');
 }
 
 if (!correctlyFails) {
@@ -219,6 +171,12 @@ if (!correctlyFails) {
     'We could update the state with input that fails the precondition'
   );
 }
+
+/**
+ * Properly test for expected failure case and preserves original error.
+ * @param {any} error  The error thrown in the catch block.
+ * @param {string} deploy  The expected error message.
+ */
 
 function handleError(error: any, errorMessage: string) {
   currentState = Mina.getAccount(zkAppAddress).zkapp?.appState[0].toString();
