@@ -155,7 +155,7 @@ txn3.send();
 
 currentState = Mina.getAccount(zkAppAddress).zkapp?.appState[0].toString();
 
-if (currentState !== '16') {
+if (currentState !== '256') {
   throw Error(
     `Current state of ${currentState} does not match 256 after calling update with 256`
   );
@@ -195,7 +195,7 @@ function handleError(error: any, errorMessage: string) {
   if (error.message.includes(errorMessage)) {
     correctlyFails = true;
     console.log(
-      `Update correctly rejected current state is still ${currentState}.`
+      `Update correctly rejected with failing precondition. Current state is still ${currentState}.`
     );
   } else {
     throw Error(error);
