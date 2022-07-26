@@ -1,7 +1,7 @@
 import { HelloWorld, adminPrivateKey } from './hello_world';
-import { isReady, Mina, PrivateKey, Party, Field, shutdown } from 'snarkyjs';
+import { Mina, PrivateKey, Party, Field } from 'snarkyjs';
 
-let txn2, txn3, txn4;
+let txn, txn2, txn3, txn4;
 // setup local ledger
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
@@ -19,16 +19,16 @@ const zkAppInstance = new HelloWorld(zkAppAddress);
 
 console.log('Deploying Hello World ....');
 
-let txn = await Mina.transaction(feePayer1, () => {
+txn = await Mina.transaction(feePayer1, () => {
   Party.fundNewAccount(feePayer1);
   zkAppInstance.deploy({ zkappKey: zkAppPrivateKey });
 });
 
-txn.send().wait();
+txn.send();
 
-const initialState = await Mina.getAccount(
-  zkAppAddress
-).zkapp?.appState[0].toString();
+const initialState =
+  Mina.getAccount(zkAppAddress).zkapp?.appState[0].toString();
+
 let currentState;
 
 console.log('Initial State', initialState);
@@ -37,24 +37,23 @@ console.log('Initial State', initialState);
 console.log(
   `Updating state from ${initialState} to 4 with Admin Private Key ...`
 );
+
 txn = await Mina.transaction(feePayer1, () => {
   zkAppInstance.update(Field(4), adminPrivateKey);
   zkAppInstance.sign(zkAppPrivateKey);
 });
 
-txn.send().wait();
+txn.send();
 
-currentState = await Mina.getAccount(
-  zkAppAddress
-).zkapp?.appState[0].toString();
+currentState = Mina.getAccount(zkAppAddress).zkapp?.appState[0].toString();
 
 if (currentState !== '4') {
   throw Error(
     `Current state of ${currentState} does not match 4 after calling update with 4`
   );
-} else {
-  console.log(`Current state succesfully updated to ${currentState}`);
 }
+
+console.log(`Current state succesfully updated to ${currentState}`);
 
 const wrongAdminPrivateKey = PrivateKey.random();
 // attempt to update state with value that satisfies preconditions and incorrect admin private key
@@ -62,14 +61,15 @@ console.log(
   `Attempting to update state from ${currentState} to 16 with incorrect Admin Private Key ...`
 );
 
-txn = await Mina.transaction(feePayer1, () => {
-  zkAppInstance.update(Field(16), wrongAdminPrivateKey);
-  zkAppInstance.sign(zkAppPrivateKey);
-});
-
 let correctlyFails = false;
+
 try {
-  txn.send().wait();
+  txn = await Mina.transaction(feePayer1, () => {
+    zkAppInstance.update(Field(16), wrongAdminPrivateKey);
+    zkAppInstance.sign(zkAppPrivateKey);
+  });
+
+  txn.send();
 } catch (err: any) {
   handleError(err, 'Account_delegate_precondition_unsatisfied');
 }
@@ -80,6 +80,7 @@ if (!correctlyFails) {
 
 // attempt to update state with value that fails precondition x.square().assertEquals(squared).
 correctlyFails = false;
+
 try {
   console.log(
     `Attempting to update state from ${currentState} to the value that fails precondition of 30 ...`
@@ -90,7 +91,7 @@ try {
     zkAppInstance.sign(zkAppPrivateKey);
   });
 
-  txn.send().wait();
+  txn.send();
 } catch (err: any) {
   handleError(err, 'assert_equal');
 }
@@ -106,7 +107,7 @@ correctlyFails = false;
 
 try {
   console.log(
-    `Attempting to simultaneous update the current state of ${currentState} from multiple users ...`
+    `Attempting to simultaneously update the current state of ${currentState} from multiple users ...`
   );
 
   // expected to fail and current state stays at 4
@@ -119,6 +120,7 @@ try {
 } catch (err: any) {
   handleError(err, 'assert_equal');
 }
+
 if (!correctlyFails) {
   throw Error(
     'We could update the state with input that fails the precondition'
@@ -133,9 +135,13 @@ txn2 = await Mina.transaction({ feePayerKey: feePayer2, fee: '2' }, () => {
 
 txn2.send();
 
-currentState = await Mina.getAccount(
-  zkAppAddress
-).zkapp?.appState[0].toString();
+currentState = Mina.getAccount(zkAppAddress).zkapp?.appState[0].toString();
+
+if (currentState !== '16') {
+  throw Error(
+    `Current state of ${currentState} does not match 16 after calling update with 16`
+  );
+}
 
 console.log(`Update successful. Current state is ${currentState}.`);
 
@@ -147,13 +153,18 @@ txn3 = await Mina.transaction({ feePayerKey: feePayer3, fee: '1' }, () => {
 
 txn3.send();
 
-currentState = await Mina.getAccount(
-  zkAppAddress
-).zkapp?.appState[0].toString();
+currentState = Mina.getAccount(zkAppAddress).zkapp?.appState[0].toString();
+
+if (currentState !== '16') {
+  throw Error(
+    `Current state of ${currentState} does not match 256 after calling update with 256`
+  );
+}
 
 console.log(`Update successful. Current state is ${currentState}.`);
 
 correctlyFails = false;
+
 try {
   // expected to fail and current state remains 256
   txn4 = await Mina.transaction({ feePayerKey: feePayer4, fee: '1' }, () => {
@@ -161,7 +172,7 @@ try {
     zkAppInstance.sign(zkAppPrivateKey);
   });
 
-  txn4.send().wait();
+  txn4.send();
 } catch (err: any) {
   handleError(err, 'assert_equal');
 }
@@ -173,9 +184,9 @@ if (!correctlyFails) {
 }
 
 /**
- * Properly test for expected failure case and preserves original error.
+ * Test for expected failure case. Original error thrown if not expected failure case.
  * @param {any} error  The error thrown in the catch block.
- * @param {string} deploy  The expected error message.
+ * @param {string} errorMessage  The expected error message.
  */
 
 function handleError(error: any, errorMessage: string) {
