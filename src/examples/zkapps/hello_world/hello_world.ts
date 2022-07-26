@@ -7,7 +7,8 @@ import {
   method,
   DeployArgs,
   PrivateKey,
-} from '../../../dist/server';
+  Permissions,
+} from 'snarkyjs';
 
 export const adminPrivateKey = PrivateKey.random();
 export const adminPublicKey = adminPrivateKey.toPublicKey();
@@ -17,17 +18,23 @@ export class HelloWorld extends SmartContract {
 
   deploy(input: DeployArgs) {
     super.deploy(input);
-    this.x.set(Field(3));
+    this.setPermissions({
+      ...Permissions.default(),
+      editState: Permissions.proofOrSignature(),
+    });
+    this.x.set(Field(2));
+
     Party.setValue(this.self.update.delegate, adminPublicKey);
   }
 
   @method update(squared: Field, admin: PrivateKey) {
     const x = this.x.get();
-    this.x.assertEquals(x);
+    this.x.assertNothing();
     x.square().assertEquals(squared);
     this.x.set(squared);
 
     const adminPk = admin.toPublicKey();
+
     this.account.delegate.assertEquals(adminPk);
   }
 }
