@@ -32,6 +32,7 @@ export {
   inCompile,
   inAnalyze,
   inCheckedComputation,
+  addAnnotation,
 };
 
 // global circuit-related context
@@ -42,6 +43,7 @@ type SnarkContext = {
   inCheckedComputation?: boolean;
   inAnalyze?: boolean;
   inRunAndCheck?: boolean;
+  annotations?: Record<string, any>;
 };
 let snarkContext = Context.create<SnarkContext>({ default: {} });
 
@@ -384,11 +386,25 @@ function analyzeMethod<T>(
   methodIntf: MethodInterface,
   method: (...args: any) => T
 ) {
-  return Circuit.constraintSystem(() => {
-    let args = synthesizeMethodArguments(methodIntf, true);
-    let publicInput = emptyWitness(publicInputType);
-    return method(publicInput, ...args);
-  });
+  let [context, { rows, digest, result }] = snarkContext.runWith(
+    { inAnalyze: true, inCheckedComputation: true },
+    () => {
+      let result: T;
+      let { rows, digest, json } = (Circuit as any)._constraintSystem(() => {
+        let args = synthesizeMethodArguments(methodIntf, true);
+        let publicInput = emptyWitness(publicInputType);
+        result = method(publicInput, ...args);
+      });
+      return { rows, digest, result: result! as T };
+    }
+  );
+  return { rows, digest, result, annotations: context.annotations ?? {} };
+}
+function addAnnotation<T>(key: string, set: (annotation?: T) => T) {
+  let context = snarkContext.get();
+  if (!context.inAnalyze) return;
+  let annotations = (context.annotations ??= {});
+  annotations[key] = set(annotations[key]);
 }
 
 function picklesRuleFromFunction(

@@ -52,6 +52,7 @@ import {
   methodArgumentsToConstant,
   methodArgumentsToFields,
   isAsFields,
+  addAnnotation,
 } from './proof_system';
 import { assertStatePrecondition, cleanStatePrecondition } from './state';
 import { Types } from '../snarky/types';
@@ -262,6 +263,10 @@ function wrapMethod(
     // if we're here, this method was called inside _another_ smart contract method
     let parentParty = smartContractContext.get().this.self;
     let methodCallDepth = smartContractContext.get().methodCallDepth;
+    addAnnotation('callees', (callees: any[] = []) => [
+      ...callees,
+      { class: ZkappClass, address: this.address },
+    ]);
     let [, result] = smartContractContext.runWith(
       { this: this, methodCallDepth: methodCallDepth + 1 },
       () => {
@@ -612,12 +617,17 @@ class SmartContract {
         throw err;
       }
       for (let methodIntf of methodIntfs) {
-        let { rows, digest, result } = analyzeMethod(
+        let { rows, digest, result, annotations } = analyzeMethod(
           ZkappPublicInput,
           methodIntf,
           (...args) => (instance as any)[methodIntf.methodName](...args)
         );
         let party = instance._executionState?.party!;
+        let callees: { class: typeof SmartContract; address: PublicKey }[] =
+          annotations.callees ?? [];
+        callees.forEach((callee) => {
+          callee.class.analyzeMethods(callee.address);
+        });
         ZkappClass._methodMetadata[methodIntf.methodName] = {
           sequenceEvents: party.body.sequenceEvents.data.length,
           rows,
