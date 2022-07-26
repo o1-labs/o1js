@@ -593,25 +593,25 @@ class Party implements Types.Party {
         });
 
         // Add the amount to mint to the receiver's account
-        receiverParty.body.balanceChange =
-          receiverParty.body.balanceChange.add(amount);
+        let { magnitude, sgn } = receiverParty.body.balanceChange;
+        receiverParty.body.balanceChange = new Int64(magnitude, sgn).add(
+          amount
+        );
       },
 
       burn({ address, amount }: MintOrBurnParams) {
-        let receiverParty = createChildParty(thisParty, address, {
+        let senderParty = createChildParty(thisParty, address, {
           caller: this.id,
           tokenId: this.id,
           useFullCommitment: Bool(true),
         });
 
-        // Sub the amount to burn from the receiver's account
-        receiverParty.body.balanceChange =
-          receiverParty.body.balanceChange.sub(amount);
+        // Sub the amount to burn from the sender's account
+        let { magnitude, sgn } = senderParty.body.balanceChange;
+        senderParty.body.balanceChange = new Int64(magnitude, sgn).sub(amount);
 
-        // Require signature from the receiver account being deducted
-        receiverParty.authorization = {
-          kind: 'lazy-signature',
-        };
+        // Require signature from the sender account being deducted
+        Authorization.setLazySignature(senderParty);
       },
 
       send({ from, to, amount }: SendParams) {
@@ -622,13 +622,13 @@ class Party implements Types.Party {
           useFullCommitment: Bool(true),
         });
 
-        senderParty.body.balanceChange =
-          senderParty.body.balanceChange.sub(amount);
+        let i0 = senderParty.body.balanceChange;
+        senderParty.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(
+          amount
+        );
 
         // Require signature from the sender party
-        senderParty.authorization = {
-          kind: 'lazy-signature',
-        };
+        Authorization.setLazySignature(senderParty);
 
         let receiverParty = createChildParty(thisParty, to, {
           caller: this.id,
@@ -636,8 +636,10 @@ class Party implements Types.Party {
         });
 
         // Add the amount to send to the receiver's account
-        receiverParty.body.balanceChange =
-          receiverParty.body.balanceChange.add(amount);
+        let i1 = receiverParty.body.balanceChange;
+        receiverParty.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
+          amount
+        );
       },
     };
   }
@@ -1030,7 +1032,8 @@ const Authorization = {
     party.authorization = { proof };
     party.lazyAuthorization = undefined;
   },
-  setLazySignature(party: Party, signature: Omit<LazySignature, 'kind'>) {
+  setLazySignature(party: Party, signature?: Omit<LazySignature, 'kind'>) {
+    signature ??= {};
     party.authorization = {};
     party.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
