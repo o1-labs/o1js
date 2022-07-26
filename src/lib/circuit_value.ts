@@ -576,7 +576,7 @@ function memoizeWitness<T>(type: AsFieldElements<T>, compute: () => T) {
 function getBlindingValue() {
   if (!memoizationContext.has()) return Field.random();
   let context = memoizationContext.get();
-  if (context?.blindingValue === undefined) {
+  if (context.blindingValue === undefined) {
     context.blindingValue = Field.random();
   }
   return context.blindingValue;
