@@ -49,7 +49,7 @@ currentState = await Mina.getAccount(
 ).zkapp?.appState[0].toString();
 
 if (currentState !== '4') {
-  throw new Error(
+  throw Error(
     `Current state of ${currentState} does not match 4 after calling update with 4`
   );
 } else {
@@ -61,20 +61,32 @@ const wrongAdminPrivateKey = PrivateKey.random();
 console.log(
   `Attempting to update state from ${currentState} to 16 with incorrect Admin Private Key ...`
 );
+
 txn = await Mina.transaction(feePayer1, () => {
   zkAppInstance.update(Field(16), wrongAdminPrivateKey);
   zkAppInstance.sign(zkAppPrivateKey);
 });
 
+let correctlyFails = false;
 try {
   txn.send().wait();
 } catch (err: any) {
-  console.log(
-    `State correctly was not updated with wrong Admin Private Key. Current state is still ${currentState}`
-  );
+  if (err.message.includes('Account_delegate_precondition_unsatisfied')) {
+    correctlyFails = true;
+    console.log(
+      `State correctly was not updated with wrong Admin Private Key. Current state is still ${currentState}`
+    );
+  } else {
+    throw Error(err);
+  }
+}
+
+if (!correctlyFails) {
+  throw Error('We could update the state with the wrong admin key');
 }
 
 // attempt to update state with value that fails precondition x.square().assertEquals(squared).
+correctlyFails = false;
 try {
   console.log(
     `Attempting to update state from ${currentState} to the value that fails precondition of 30 ...`
@@ -87,22 +99,38 @@ try {
 
   txn.send().wait();
 
-  currentState = await Mina.getAccount(
-    zkAppAddress
-  ).zkapp?.appState[0].toString();
+  // // currentState = await Mina.getAccount(
+  // //   zkAppAddress
+  // // ).zkapp?.appState[0].toString();
 
-  if (currentState !== '4') {
-    throw new Error(
-      `State was updated from 4 to ${currentState} which fails the precondition x.square().assertEquals(squared);`
-    );
-  }
+  // if (currentState !== '4') {
+  //   throw new Error(
+  //     `State was updated from 4 to ${currentState} which fails the precondition x.square().assertEquals(squared);`
+  //   );
+  // }
 } catch (err: any) {
-  console.log(
-    `State correctly was not updated when fails the precondition x.square().assertEquals(squared). Current state is still ${currentState}`
+  if (err.message.includes('assert_equal')) {
+    correctlyFails = true;
+    currentState = await Mina.getAccount(
+      zkAppAddress
+    ).zkapp?.appState[0].toString();
+    console.log(
+      `Update correctly rejected current state is still ${currentState}.`
+    );
+  } else {
+    throw Error(err);
+  }
+}
+
+if (!correctlyFails) {
+  throw Error(
+    'We could update the state to a value that violates the precondition'
   );
 }
 
 // attempt simultaneous “Update” method invocation by different users
+correctlyFails = false;
+
 try {
   console.log(
     `Attempting to simultaneous update the current state of ${currentState} from multiple users ...`
@@ -115,66 +143,55 @@ try {
   });
 
   txn.send();
-
+} catch (err: any) {
   currentState = await Mina.getAccount(
     zkAppAddress
   ).zkapp?.appState[0].toString();
 
-  if (currentState !== '4') {
-    throw new Error(
-      `State was updated from 4 to ${currentState} which fails the precondition x.square().assertEquals(squared);`
+  if (err.message.includes('assert_equal')) {
+    correctlyFails = true;
+    console.log(
+      `Update correctly rejected current state is still ${currentState}.`
     );
+  } else {
+    throw Error(err);
   }
-} catch (err: any) {
-  currentState = await Mina.getAccount(
-    zkAppAddress
-  ).zkapp?.appState[0].toString();
-
-  console.log(
-    `Update correctly rejected with error ${err.message}  current state is still ${currentState}.`
+}
+if (!correctlyFails) {
+  throw Error(
+    'We could update the state with input that fails the precondition'
   );
 }
 
-try {
-  // expected to succeed and update state to 16
-  txn2 = await Mina.transaction({ feePayerKey: feePayer2, fee: '2' }, () => {
-    zkAppInstance.update(Field(16), adminPrivateKey);
-    zkAppInstance.sign(zkAppPrivateKey);
-  });
+// expected to succeed and update state to 16
+txn2 = await Mina.transaction({ feePayerKey: feePayer2, fee: '2' }, () => {
+  zkAppInstance.update(Field(16), adminPrivateKey);
+  zkAppInstance.sign(zkAppPrivateKey);
+});
 
-  txn2.send();
+txn2.send();
 
-  currentState = await Mina.getAccount(
-    zkAppAddress
-  ).zkapp?.appState[0].toString();
+currentState = await Mina.getAccount(
+  zkAppAddress
+).zkapp?.appState[0].toString();
 
-  console.log(`Update successful. Current state is ${currentState}.`);
-} catch (err: any) {
-  throw new Error(
-    `State was updated to ${currentState} with error ${err.message}`
-  );
-}
+console.log(`Update successful. Current state is ${currentState}.`);
 
-try {
-  // expected to succeed and update state to 256
-  txn3 = await Mina.transaction({ feePayerKey: feePayer3, fee: '1' }, () => {
-    zkAppInstance.update(Field(256), adminPrivateKey);
-    zkAppInstance.sign(zkAppPrivateKey);
-  });
+// expected to succeed and update state to 256
+txn3 = await Mina.transaction({ feePayerKey: feePayer3, fee: '1' }, () => {
+  zkAppInstance.update(Field(256), adminPrivateKey);
+  zkAppInstance.sign(zkAppPrivateKey);
+});
 
-  txn3.send();
+txn3.send();
 
-  currentState = await Mina.getAccount(
-    zkAppAddress
-  ).zkapp?.appState[0].toString();
+currentState = await Mina.getAccount(
+  zkAppAddress
+).zkapp?.appState[0].toString();
 
-  console.log(`Update successful. Current state is ${currentState}.`);
-} catch (err: any) {
-  throw new Error(
-    `State was updated to ${currentState} with error ${err.message}`
-  );
-}
+console.log(`Update successful. Current state is ${currentState}.`);
 
+correctlyFails = false;
 try {
   // expected to fail and current state remains 256
   txn4 = await Mina.transaction({ feePayerKey: feePayer4, fee: '1' }, () => {
@@ -183,13 +200,21 @@ try {
   });
 
   txn4.send().wait();
-
-  throw new Error(`State was incorrectly updated to ${currentState}`);
 } catch (err: any) {
   currentState = await Mina.getAccount(
     zkAppAddress
   ).zkapp?.appState[0].toString();
-  console.log(
-    `Update correctly rejected with error ${err.message}  current state is still ${currentState}.`
+
+  if (err.message.includes('assert_equal')) {
+    correctlyFails = true;
+    console.log(
+      `Update correctly rejected current state is still ${currentState}.`
+    );
+  }
+}
+
+if (!correctlyFails) {
+  throw Error(
+    'We could update the state with input that fails the precondition'
   );
 }
