@@ -144,6 +144,7 @@ try {
 
   txn.send();
 } catch (err: any) {
+  handleError(err, 'assert_equal');
   currentState = await Mina.getAccount(
     zkAppAddress
   ).zkapp?.appState[0].toString();
@@ -217,4 +218,17 @@ if (!correctlyFails) {
   throw Error(
     'We could update the state with input that fails the precondition'
   );
+}
+
+function handleError(error: any, errorMessage: string) {
+  currentState = Mina.getAccount(zkAppAddress).zkapp?.appState[0].toString();
+
+  if (error.message.includes(errorMessage)) {
+    correctlyFails = true;
+    console.log(
+      `Update correctly rejected current state is still ${currentState}.`
+    );
+  } else {
+    throw Error(error);
+  }
 }
