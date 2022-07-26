@@ -620,6 +620,7 @@ let jsLayout = {
                         'state',
                         'sequenceState',
                         'provedState',
+                        'isNew',
                       ],
                       entries: {
                         balance: {
@@ -681,6 +682,11 @@ let jsLayout = {
                           optionType: 'flaggedOption',
                           inner: { type: 'Bool' },
                         },
+                        isNew: {
+                          type: 'option',
+                          optionType: 'flaggedOption',
+                          inner: { type: 'Bool' },
+                        },
                       },
                       docEntries: {
                         balance: null,
@@ -690,6 +696,7 @@ let jsLayout = {
                         state: null,
                         sequenceState: null,
                         provedState: null,
+                        isNew: null,
                       },
                     },
                   },
@@ -1316,6 +1323,7 @@ let jsLayout = {
                   'state',
                   'sequenceState',
                   'provedState',
+                  'isNew',
                 ],
                 entries: {
                   balance: {
@@ -1377,6 +1385,11 @@ let jsLayout = {
                     optionType: 'flaggedOption',
                     inner: { type: 'Bool' },
                   },
+                  isNew: {
+                    type: 'option',
+                    optionType: 'flaggedOption',
+                    inner: { type: 'Bool' },
+                  },
                 },
                 docEntries: {
                   balance: null,
@@ -1386,6 +1399,7 @@ let jsLayout = {
                   state: null,
                   sequenceState: null,
                   provedState: null,
+                  isNew: null,
                 },
               },
             },
