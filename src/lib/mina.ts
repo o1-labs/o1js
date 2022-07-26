@@ -12,6 +12,7 @@ import {
   Party,
   ZkappStateLength,
   ZkappPublicInput,
+  getDefaultTokenId,
   CallForest,
   Authorization,
 } from './party';
@@ -22,7 +23,6 @@ import { Proof, snarkContext } from './proof_system';
 import { Context } from './global-context';
 
 export {
-  createUnsignedTransaction,
   createTransaction,
   BerkeleyQANet,
   LocalBlockchain,
@@ -36,8 +36,8 @@ export {
   getNetworkState,
   accountCreationFee,
   sendTransaction,
+  FeePayerSpec,
 };
-
 interface TransactionId {
   wait(): Promise<void>;
 }
@@ -46,7 +46,7 @@ interface Transaction {
   transaction: Parties;
   toJSON(): string;
   toGraphqlQuery(): string;
-  sign(additionialKeys?: PrivateKey[]): Transaction;
+  sign(additionalKeys?: PrivateKey[]): Transaction;
   prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;
   send(): TransactionId;
 }
@@ -63,20 +63,21 @@ type CurrentTransaction = {
 
 let currentTransaction = Context.create<CurrentTransaction>();
 
-type SenderSpec =
+type FeePayerSpec =
   | PrivateKey
   | { feePayerKey: PrivateKey; fee?: number | string | UInt64; memo?: string }
   | undefined;
 
-function createUnsignedTransaction(
-  f: () => unknown,
-  { fetchMode = 'cached' as FetchMode } = {}
-) {
-  return createTransaction(undefined, f, { fetchMode });
+function reportGetAccountError(publicKey: string, tokenId: string) {
+  if (tokenId === Ledger.fieldToBase58(getDefaultTokenId())) {
+    return `getAccount: Could not find account for public key ${publicKey}`;
+  } else {
+    return `getAccount: Could not find account for public key ${publicKey} with the tokenId ${tokenId}`;
+  }
 }
 
 function createTransaction(
-  feePayer: SenderSpec,
+  feePayer: FeePayerSpec,
   f: () => unknown,
   { fetchMode = 'cached' as FetchMode, isFinalRunOutsideCircuit = true } = {}
 ): Transaction {
@@ -134,7 +135,7 @@ function createTransaction(
   if (feePayerKey !== undefined) {
     // if senderKey is provided, fetch account to get nonce and mark to be signed
     let senderAddress = feePayerKey.toPublicKey();
-    let senderAccount = getAccount(senderAddress);
+    let senderAccount = getAccount(senderAddress, getDefaultTokenId());
     feePayerParty = Party.defaultFeePayer(
       senderAddress,
       feePayerKey,
@@ -183,9 +184,9 @@ function createTransaction(
 }
 
 interface Mina {
-  transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
+  transaction(sender: FeePayerSpec, f: () => void): Promise<Transaction>;
   currentSlot(): UInt32;
-  getAccount(publicKey: PublicKey): Account;
+  getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): TransactionId;
@@ -233,18 +234,26 @@ function LocalBlockchain({
         Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
       );
     },
-    getAccount(publicKey: PublicKey): Account {
-      let ledgerAccount = ledger.getAccount(publicKey);
+    getAccount(
+      publicKey: PublicKey,
+      tokenId: Field = getDefaultTokenId()
+    ): Account {
+      let ledgerAccount = ledger.getAccount(publicKey, tokenId);
       if (ledgerAccount == undefined) {
         throw new Error(
-          `getAccount: Could not find account for public key ${publicKey.toBase58()}`
+          reportGetAccountError(
+            publicKey.toBase58(),
+            Ledger.fieldToBase58(tokenId)
+          )
         );
       } else {
         return {
           publicKey: publicKey,
+          tokenId,
           balance: new UInt64(ledgerAccount.balance.value),
           nonce: new UInt32(ledgerAccount.nonce.value),
           zkapp: ledgerAccount.zkapp,
+          tokenSymbol: ledgerAccount.tokenSymbol,
         };
       }
     },
@@ -263,7 +272,7 @@ function LocalBlockchain({
       );
       return { wait: async () => {} };
     },
-    async transaction(sender: SenderSpec, f: () => void) {
+    async transaction(sender: FeePayerSpec, f: () => void) {
       // bad hack: run transaction just to see whether it creates proofs
       // if it doesn't, this is the last chance to run SmartContract.runOutsideCircuit, which is supposed to run only once
       // TODO: this has obvious holes if multiple zkapps are involved, but not relevant currently because we can't prove with multiple parties
@@ -296,21 +305,32 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         'currentSlot() is not implemented yet for remote blockchains.'
       );
     },
-    getAccount(publicKey: PublicKey) {
+    getAccount(publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) {
       if (currentTransaction()?.fetchMode === 'test') {
-        Fetch.markAccountToBeFetched(publicKey, graphqlEndpoint);
-        let account = Fetch.getCachedAccount(publicKey, graphqlEndpoint);
+        Fetch.markAccountToBeFetched(publicKey, tokenId, graphqlEndpoint);
+        let account = Fetch.getCachedAccount(
+          publicKey,
+          tokenId,
+          graphqlEndpoint
+        );
         return account ?? dummyAccount(publicKey);
       }
       if (
         !currentTransaction.has() ||
         currentTransaction.get().fetchMode === 'cached'
       ) {
-        let account = Fetch.getCachedAccount(publicKey, graphqlEndpoint);
+        let account = Fetch.getCachedAccount(
+          publicKey,
+          tokenId,
+          graphqlEndpoint
+        );
         if (account !== undefined) return account;
       }
       throw Error(
-        `getAccount: Could not find account for public key ${publicKey.toBase58()}.\nGraphql endpoint: ${graphqlEndpoint}`
+        `${reportGetAccountError(
+          publicKey.toBase58(),
+          Ledger.fieldToBase58(tokenId)
+        )}\nGraphql endpoint: ${graphqlEndpoint}`
       );
     },
     getNetworkState() {
@@ -354,7 +374,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         },
       };
     },
-    async transaction(sender: SenderSpec, f: () => void) {
+    async transaction(sender: FeePayerSpec, f: () => void) {
       let tx = createTransaction(sender, f, {
         fetchMode: 'test',
         isFinalRunOutsideCircuit: false,
@@ -380,9 +400,13 @@ let activeInstance: Mina = {
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
   },
-  getAccount: (publicKey: PublicKey) => {
+  getAccount: (publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) => {
     if (currentTransaction()?.fetchMode === 'test') {
-      Fetch.markAccountToBeFetched(publicKey, Fetch.defaultGraphqlEndpoint);
+      Fetch.markAccountToBeFetched(
+        publicKey,
+        tokenId,
+        Fetch.defaultGraphqlEndpoint
+      );
       return dummyAccount(publicKey);
     }
     if (
@@ -391,11 +415,15 @@ let activeInstance: Mina = {
     ) {
       let account = Fetch.getCachedAccount(
         publicKey,
+        tokenId,
         Fetch.defaultGraphqlEndpoint
       );
       if (account === undefined)
         throw Error(
-          `getAccount: Could not find account for public key ${publicKey.toBase58()}. Either call Mina.setActiveInstance first or explicitly add the account with addCachedAccount`
+          `${reportGetAccountError(
+            publicKey.toBase58(),
+            Ledger.fieldToBase58(tokenId)
+          )}\n\nEither call Mina.setActiveInstance first or explicitly add the account with addCachedAccount`
         );
       return account;
     }
@@ -407,7 +435,7 @@ let activeInstance: Mina = {
   sendTransaction() {
     throw new Error('must call Mina.setActiveInstance first');
   },
-  async transaction(sender: SenderSpec, f: () => void) {
+  async transaction(sender: FeePayerSpec, f: () => void) {
     return createTransaction(sender, f);
   },
 };
@@ -433,15 +461,15 @@ function setActiveInstance(m: Mina) {
  * @return A transaction that can subsequently be submitted to the chain.
  */
 function transaction(f: () => void): Promise<Transaction>;
-function transaction(sender: SenderSpec, f: () => void): Promise<Transaction>;
+function transaction(sender: FeePayerSpec, f: () => void): Promise<Transaction>;
 function transaction(
-  senderOrF: SenderSpec | (() => void),
+  senderOrF: FeePayerSpec | (() => void),
   fOrUndefined?: () => void
 ): Promise<Transaction> {
-  let sender: SenderSpec;
+  let sender: FeePayerSpec;
   let f: () => void;
   if (fOrUndefined !== undefined) {
-    sender = senderOrF as SenderSpec;
+    sender = senderOrF as FeePayerSpec;
     f = fOrUndefined;
   } else {
     sender = undefined;
@@ -460,8 +488,8 @@ function currentSlot(): UInt32 {
 /**
  * @return The account data associated to the given public key.
  */
-function getAccount(pubkey: PublicKey) {
-  return activeInstance.getAccount(pubkey);
+function getAccount(publicKey: PublicKey, tokenId?: Field): Account {
+  return activeInstance.getAccount(publicKey, tokenId);
 }
 
 /**
@@ -474,8 +502,8 @@ function getNetworkState() {
 /**
  * @return The balance associated to the given public key.
  */
-function getBalance(pubkey: PublicKey) {
-  return activeInstance.getAccount(pubkey).balance;
+function getBalance(publicKey: PublicKey, tokenId?: Field) {
+  return activeInstance.getAccount(publicKey, tokenId).balance;
 }
 
 function accountCreationFee() {
@@ -491,7 +519,9 @@ function dummyAccount(pubkey?: PublicKey): Account {
     balance: UInt64.zero,
     nonce: UInt32.zero,
     publicKey: pubkey ?? PublicKey.empty(),
+    tokenId: getDefaultTokenId(),
     zkapp: { appState: Array(ZkappStateLength).fill(Field.zero) },
+    tokenSymbol: '',
   };
 }
 

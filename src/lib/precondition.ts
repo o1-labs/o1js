@@ -2,6 +2,7 @@ import { Circuit, AsFieldElements, Bool, Field } from '../snarky';
 import { circuitValueEquals } from './circuit_value';
 import * as Mina from './mina';
 import { Party, Preconditions } from './party';
+import * as GlobalContext from './global-context';
 import { UInt32, UInt64 } from './int';
 import { inAnalyze, inCompile, inProver } from './proof_system';
 import { Layout } from 'snarky/parties-helpers';
@@ -172,7 +173,7 @@ To write a correct circuit, you must avoid any dependency on the concrete value 
   let value: U;
   if (accountOrNetwork === 'account') {
     let address = party.body.publicKey;
-    let account: any = Mina.getAccount(address);
+    let account: any = Mina.getAccount(address, party.body.tokenId);
     value = account[key];
     if (value === undefined)
       throw Error(

@@ -51,7 +51,7 @@ Mina.setActiveInstance(Berkeley);
 let feePayerKey = PrivateKey.fromBase58(
   'EKEQc95PPQZnMY9d9p1vq1MWLeDJKtvKj4V75UDG3rjnf32BerWD'
 );
-let response = await fetchAccount(feePayerKey.toPublicKey());
+let response = await fetchAccount({ publicKey: feePayerKey.toPublicKey() });
 if (response.error) throw Error(response.error.statusText);
 let { nonce, balance } = response.account;
 console.log(`Using fee payer account with nonce ${nonce}, balance ${balance}`);

@@ -1,7 +1,12 @@
 import 'isomorphic-fetch';
-import { Bool, Field } from '../snarky';
+import { Bool, Field, Ledger } from '../snarky';
 import { UInt32, UInt64 } from './int';
-import { Permission, Permissions, ZkappStateLength } from './party';
+import {
+  getDefaultTokenId,
+  Permission,
+  Permissions,
+  ZkappStateLength,
+} from './party';
 import { PublicKey } from './signature';
 import { NetworkValue } from './precondition';
 import { Types } from '../snarky/types';
@@ -42,7 +47,7 @@ function setGraphqlEndpoint(graphqlEndpoint: string) {
  * @returns zkapp information on the specified account or an error is thrown
  */
 async function fetchAccount(
-  publicKey: string | PublicKey,
+  accountInfo: { publicKey: string | PublicKey; tokenId?: string },
   graphqlEndpoint = defaultGraphqlEndpoint,
   { timeout = defaultTimeout } = {}
 ): Promise<
@@ -50,10 +55,16 @@ async function fetchAccount(
   | { account: undefined; error: FetchError }
 > {
   let publicKeyBase58 =
-    publicKey instanceof PublicKey ? publicKey.toBase58() : publicKey;
-  let response = await fetchAccountInternal(publicKeyBase58, graphqlEndpoint, {
-    timeout,
-  });
+    accountInfo.publicKey instanceof PublicKey
+      ? accountInfo.publicKey.toBase58()
+      : accountInfo.publicKey;
+  let response = await fetchAccountInternal(
+    { publicKey: publicKeyBase58, tokenId: accountInfo.tokenId },
+    graphqlEndpoint,
+    {
+      timeout,
+    }
+  );
   return response.error === undefined
     ? {
         account: parseFetchedAccount(response.account),
@@ -65,12 +76,16 @@ async function fetchAccount(
 // internal version of fetchAccount which does the same, but returns the original JSON version
 // of the account, to save some back-and-forth conversions when caching accounts
 async function fetchAccountInternal(
-  publicKey: string,
+  accountInfo: { publicKey: string; tokenId?: string },
   graphqlEndpoint = defaultGraphqlEndpoint,
   config?: FetchConfig
 ) {
+  const { publicKey, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
-    accountQuery(publicKey),
+    accountQuery(
+      publicKey,
+      tokenId ?? Ledger.fieldToBase58(getDefaultTokenId())
+    ),
     graphqlEndpoint,
     config
   );
@@ -124,6 +139,8 @@ function toPermission(p: AuthRequired): Permission {
 type FetchedAccount = {
   publicKey: string;
   nonce: string;
+  tokenId: string;
+  tokenSymbol: string;
   zkappUri?: string;
   zkappState: string[] | null;
   receiptChainHash?: string;
@@ -150,6 +167,8 @@ type Account = {
   publicKey: PublicKey;
   nonce: UInt32;
   balance: UInt64;
+  tokenId: Field;
+  tokenSymbol: string;
   zkapp?: { appState: Field[] };
   permissions?: Permissions;
   receiptChainHash?: Field;
@@ -161,13 +180,15 @@ type Account = {
 type FlexibleAccount = {
   publicKey: PublicKey | string;
   nonce: UInt32 | string | number;
+  tokenId?: string;
+  tokenSymbol?: string;
   balance?: UInt64 | string | number;
   zkapp?: { appState: (Field | string | number)[] };
 };
 
 // TODO provedState
-const accountQuery = (publicKey: string) => `{
-  account(publicKey: "${publicKey}") {
+const accountQuery = (publicKey: string, tokenId: string) => `{
+  account(publicKey: "${publicKey}", tokenId: "${tokenId}") {
     publicKey
     nonce
     zkappUri
@@ -189,6 +210,8 @@ const accountQuery = (publicKey: string) => `{
     balance { total }
     delegateAccount { publicKey }
     sequenceEvents
+    tokenId
+    tokenSymbol
   }
 }
 `;
@@ -207,6 +230,8 @@ function parseFetchedAccount({
   delegateAccount,
   receiptChainHash,
   sequenceEvents,
+  tokenId,
+  tokenSymbol,
 }: Partial<FetchedAccount>): Partial<Account> {
   return {
     publicKey:
@@ -229,11 +254,13 @@ function parseFetchedAccount({
     //     : undefined,
     delegate:
       delegateAccount && PublicKey.fromBase58(delegateAccount.publicKey),
+    tokenId: tokenId !== undefined ? Ledger.fieldOfBase58(tokenId) : undefined,
+    tokenSymbol: tokenSymbol !== undefined ? tokenSymbol : undefined,
   };
 }
 
 function stringifyAccount(account: FlexibleAccount): FetchedAccount {
-  let { publicKey, nonce, balance, zkapp } = account;
+  let { publicKey, nonce, balance, zkapp, tokenId, tokenSymbol } = account;
   return {
     publicKey:
       publicKey instanceof PublicKey ? publicKey.toBase58() : publicKey,
@@ -242,6 +269,8 @@ function stringifyAccount(account: FlexibleAccount): FetchedAccount {
       zkapp?.appState.map((s) => s.toString()) ??
       Array(ZkappStateLength).fill('0'),
     balance: { total: balance?.toString() ?? '0' },
+    tokenId: tokenId ?? Ledger.fieldToBase58(getDefaultTokenId()),
+    tokenSymbol: tokenSymbol ?? '',
   };
 }
 
@@ -263,15 +292,21 @@ let networkCache = {} as Record<
 >;
 let accountsToFetch = {} as Record<
   string,
-  { publicKey: string; graphqlEndpoint: string }
+  { publicKey: string; tokenId: string; graphqlEndpoint: string }
 >;
 let networksToFetch = {} as Record<string, { graphqlEndpoint: string }>;
 let cacheExpiry = 10 * 60 * 1000; // 10 minutes
 
-function markAccountToBeFetched(publicKey: PublicKey, graphqlEndpoint: string) {
+function markAccountToBeFetched(
+  publicKey: PublicKey,
+  tokenId: Field,
+  graphqlEndpoint: string
+) {
   let publicKeyBase58 = publicKey.toBase58();
-  accountsToFetch[`${publicKeyBase58};${graphqlEndpoint}`] = {
+  let tokenBase58 = Ledger.fieldToBase58(tokenId);
+  accountsToFetch[`${publicKeyBase58};${tokenBase58};${graphqlEndpoint}`] = {
     publicKey: publicKeyBase58,
+    tokenId: tokenBase58,
     graphqlEndpoint,
   };
 }
@@ -286,8 +321,11 @@ async function fetchMissingData(graphqlEndpoint: string) {
     let cachedAccount = accountCache[key];
     return cachedAccount === undefined || cachedAccount.timestamp < expired;
   });
-  let promises = accounts.map(async ([key, { publicKey }]) => {
-    let response = await fetchAccountInternal(publicKey, graphqlEndpoint);
+  let promises = accounts.map(async ([key, { publicKey, tokenId }]) => {
+    let response = await fetchAccountInternal(
+      { publicKey, tokenId },
+      graphqlEndpoint
+    );
     if (response.error === undefined) delete accountsToFetch[key];
   });
 
@@ -312,10 +350,15 @@ async function fetchMissingData(graphqlEndpoint: string) {
 
 function getCachedAccount(
   publicKey: PublicKey,
+  tokenId: Field,
   graphqlEndpoint = defaultGraphqlEndpoint
 ) {
   let account =
-    accountCache[`${publicKey.toBase58()};${graphqlEndpoint}`]?.account;
+    accountCache[
+      `${publicKey.toBase58()};${Ledger.fieldToBase58(
+        tokenId
+      )};${graphqlEndpoint}`
+    ]?.account;
   if (account !== undefined) return parseFetchedAccount(account);
 }
 function getCachedNetwork(graphqlEndpoint = defaultGraphqlEndpoint) {
@@ -330,6 +373,7 @@ function addCachedAccount(
     zkapp?: {
       appState: (string | number | Field)[];
     };
+    tokenId: string;
   },
   graphqlEndpoint = defaultGraphqlEndpoint
 ) {
@@ -340,7 +384,7 @@ function addCachedAccountInternal(
   account: FetchedAccount,
   graphqlEndpoint: string
 ) {
-  accountCache[`${account.publicKey};${graphqlEndpoint}`] = {
+  accountCache[`${account.publicKey};${account.tokenId};${graphqlEndpoint}`] = {
     account,
     graphqlEndpoint,
     timestamp: Date.now(),

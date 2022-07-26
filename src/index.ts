@@ -36,7 +36,14 @@ export {
 } from './lib/zkapp';
 export { state, State, declareState } from './lib/state';
 export { Proof, SelfProof, ZkProgram, verify } from './lib/proof_system';
-export { Party, Permissions, ZkappPublicInput } from './lib/party';
+export {
+  Token,
+  Party,
+  Permissions,
+  ZkappPublicInput,
+  getDefaultTokenId,
+  partiesToJson,
+} from './lib/party';
 export {
   fetchAccount,
   fetchLastBlock,
