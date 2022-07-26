@@ -4,7 +4,6 @@ import {
   AsFieldElements,
   Ledger,
   Pickles,
-  Types,
   InferAsFieldElements,
   Poseidon,
 } from '../snarky';
@@ -19,6 +18,7 @@ import {
   ZkappPublicInput,
   Events,
   partyToPublicInput,
+  Authorization,
   getDefaultTokenId,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
@@ -42,6 +42,7 @@ import {
   inAnalyze,
 } from './proof_system';
 import { assertStatePrecondition, cleanStatePrecondition } from './state';
+import { Types } from '../snarky/types';
 
 // external API
 export {
@@ -159,16 +160,15 @@ function wrapMethod(
       let clonedArgs = cloneCircuitValue(actualArgs);
       let result = method.apply(this, actualArgs);
       assertStatePrecondition(this);
-      let auth = this.self.authorization;
-      if (!('kind' in auth || 'proof' in auth || 'signature' in auth)) {
-        this.self.authorization = {
-          kind: 'lazy-proof',
+      let party = this.self;
+      if (!Authorization.hasAny(party)) {
+        Authorization.setLazyProof(party, {
           method,
           args: clonedArgs,
           // proofs actually don't have to be cloned
           previousProofs: getPreviousProofsForProver(actualArgs, methodIntf),
           ZkappClass,
-        };
+        });
       }
       return result;
     }

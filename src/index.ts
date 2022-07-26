@@ -7,7 +7,6 @@ export {
   Ledger,
   isReady,
   shutdown,
-  Types,
 } from './snarky';
 export type { VerificationKey, Keypair } from './snarky';
 export * from './snarky/addons';
@@ -23,8 +22,9 @@ export {
   circuitMain,
   circuitValue,
 } from './lib/circuit_value';
-
 export * from './lib/int';
+export { Types } from './snarky/types';
+
 export * as Mina from './lib/mina';
 export {
   SmartContract,

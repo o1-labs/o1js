@@ -1,6 +1,6 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, Ledger, Field, Types } from '../snarky';
+import { Circuit, Ledger, Field } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
 import {
@@ -14,6 +14,7 @@ import {
   ZkappPublicInput,
   getDefaultTokenId,
   CallForest,
+  Authorization,
 } from './party';
 import * as Fetch from './fetch';
 import { assertPreconditionInvariants, NetworkValue } from './precondition';
@@ -191,7 +192,7 @@ interface Mina {
   sendTransaction(transaction: Transaction): TransactionId;
 }
 interface MockMina extends Mina {
-  addAccount(publicKey: Types.PublicKey, balance: string): void;
+  addAccount(publicKey: PublicKey, balance: string): void;
   /**
    * An array of 10 test accounts that have been pre-filled with
    * 30000000000 units of currency.
@@ -280,9 +281,7 @@ function LocalBlockchain({
         isFinalRunOutsideCircuit: false,
       });
       let hasProofs = tx.transaction.otherParties.some(
-        (party) =>
-          'kind' in party.authorization &&
-          party.authorization.kind === 'lazy-proof'
+        Authorization.hasLazyProof
       );
       return createTransaction(sender, f, {
         isFinalRunOutsideCircuit: !hasProofs,
@@ -382,9 +381,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       });
       await Fetch.fetchMissingData(graphqlEndpoint);
       let hasProofs = tx.transaction.otherParties.some(
-        (party) =>
-          'kind' in party.authorization &&
-          party.authorization.kind === 'lazy-proof'
+        Authorization.hasLazyProof
       );
       return createTransaction(sender, f, {
         fetchMode: 'cached',

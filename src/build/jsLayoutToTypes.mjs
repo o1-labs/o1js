@@ -24,23 +24,14 @@ function writeType(typeData, isJson, withTypeMap) {
   let converters = {};
   if (!isJson && typeData.checkedType) {
     let name = typeData.checkedTypeName;
-    let typeString = writeType(
-      typeData.checkedType,
-      isJson,
-      withTypeMap
-    ).output;
     converters[name] = {
-      toJsonName: `convert${name}ToJson`,
-      toFieldsName: `convert${name}ToFields`,
       typeName: name,
-      toJsonType: `(${name.toLowerCase()}: ${typeString}) => ${
-        writeType(typeData, true, true).output
-      }`,
-      toFieldsType: `(${name.toLowerCase()}: ${typeString}) => Field[]`,
+      type: writeType(typeData.checkedType, false, withTypeMap).output,
+      jsonType: writeType(typeData, true, true).output,
     };
     typeData = typeData.checkedType;
   }
-  let { type, inner, layout, optionType } = typeData;
+  let { type, inner, entries, keys, optionType, docEntries } = typeData;
   if (type === 'array') {
     let {
       output,
@@ -82,7 +73,8 @@ function writeType(typeData, isJson, withTypeMap) {
     let output = '{\n';
     indent += '  ';
     // TODO: make docs work and use them for doccomments
-    for (let { key, value, docs } of layout) {
+    for (let key of keys) {
+      let value = entries[key];
       let questionMark = '';
       if (
         !isJson &&
@@ -119,32 +111,22 @@ function writeTsContent(types, isJson) {
   let dependencies = new Set();
   let converters = {};
   let exports = new Set();
-  for (let [key, value] of Object.entries(types)) {
+  for (let [Type, value] of Object.entries(types)) {
     let inner = writeType(value, isJson);
-    exports.add(key);
+    exports.add(Type);
     mergeSet(dependencies, inner.dependencies);
     mergeObject(converters, inner.converters);
-    output += `type ${key} = ${inner.output};\n\n`;
-
+    output += `type ${Type} = ${inner.output};\n\n`;
     if (!isJson) {
-      output +=
-        `let ${key} = {\n` +
-        `  toJson(${key.toLowerCase()}: ${key}): Json.${key} {\n` +
-        `    return toJson(jsLayout.${key}, ${key.toLowerCase()}, jsonConverters);\n` +
-        `  },\n` +
-        `  toFields(${key.toLowerCase()}: ${key}): Field[] {\n` +
-        `    return toFields(jsLayout.${key}, ${key.toLowerCase()}, fieldsConverters);\n` +
-        `  },\n` +
-        `};\n\n`;
+      output += `let ${Type} = asFieldsAndAux<${Type}, Json.${Type}>(jsLayout.${Type} as any, customTypes);\n\n`;
     }
   }
 
-  let jsonConverters_ = Object.values(converters).map((c) => c.toJsonName);
-  let fieldsConverters = Object.values(converters).map((c) => c.toFieldsName);
+  let customTypes = Object.values(converters);
+  let customTypeNames = Object.values(converters).map((c) => c.typeName);
   let imports = new Set();
   mergeSet(imports, dependencies);
-  mergeSet(imports, new Set(jsonConverters_));
-  mergeSet(imports, new Set(fieldsConverters));
+  mergeSet(imports, new Set(customTypeNames));
 
   let importPath = isJson ? '../parties-leaves-json' : '../parties-leaves';
   return `// @generated this file is auto-generated - don't edit it directly
@@ -152,7 +134,7 @@ function writeTsContent(types, isJson) {
 import { ${[...imports].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? "import { toJson, toFields } from '../parties-helpers';\n" +
+    ? "import { asFieldsAndAux, AsFieldsAndAux } from '../parties-helpers';\n" +
       "import * as Json from './parties-json';\n" +
       "import { jsLayout } from './js-layout';\n"
     : ''
@@ -166,22 +148,13 @@ ${
 }
 
 ${
-  !isJson
-    ? `type JsonConverters = { ${Object.values(converters)
-        .map((c) => `${c.typeName}: ${c.toJsonType}`)
-        .join(';\n')} };
-let jsonConverters: JsonConverters = { ${Object.values(converters)
-        .map((c) => `${c.typeName}: ${c.toJsonName}`)
-        .join(',\n')} };
-
-type FieldsConverters = { ${Object.values(converters)
-        .map((c) => `${c.typeName}: ${c.toFieldsType}`)
-        .join(';\n')} };
-let fieldsConverters: FieldsConverters = { ${Object.values(converters)
-        .map((c) => `${c.typeName}: ${c.toFieldsName}`)
-        .join(',\n')} };
+  (!isJson || '') &&
+  `
+type CustomTypes = { ${customTypes
+    .map((c) => `${c.typeName}: AsFieldsAndAux<${c.type}, ${c.jsonType}>;`)
+    .join(' ')} }
+let customTypes: CustomTypes = { ${customTypeNames.join(', ')} };
 `
-    : ''
 }
 
 ${output}`;

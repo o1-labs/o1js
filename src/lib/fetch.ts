@@ -1,5 +1,5 @@
 import 'isomorphic-fetch';
-import { Bool, Field, Types, Ledger } from '../snarky';
+import { Bool, Field, Ledger } from '../snarky';
 import { UInt32, UInt64 } from './int';
 import {
   getDefaultTokenId,
@@ -9,6 +9,7 @@ import {
 } from './party';
 import { PublicKey } from './signature';
 import { NetworkValue } from './precondition';
+import { Types } from '../snarky/types';
 
 export {
   fetchAccount,

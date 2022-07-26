@@ -1,12 +1,12 @@
-import { Circuit, Field, Types } from '../snarky';
+import { Circuit, Field } from '../snarky';
 import { CircuitValue, prop } from './circuit_value';
+import { Types } from '../snarky/types';
 
-export { UInt32, UInt64, Int64 };
+export { UInt32, UInt64, Int64, Sign };
 
-class UInt64 extends CircuitValue implements Types.UInt64 {
+class UInt64 extends CircuitValue {
   @prop value: Field;
   static NUM_BITS = 64;
-  _type?: 'UInt64';
 
   static get zero() {
     return new UInt64(Field.zero);
@@ -172,10 +172,9 @@ class UInt64 extends CircuitValue implements Types.UInt64 {
   }
 }
 
-class UInt32 extends CircuitValue implements Types.UInt32 {
+class UInt32 extends CircuitValue {
   @prop value: Field;
   static NUM_BITS = 32;
-  _type?: 'UInt32';
 
   static get zero(): UInt32 {
     return new UInt32(Field.zero);
@@ -324,6 +323,33 @@ class UInt32 extends CircuitValue implements Types.UInt32 {
   }
 }
 
+class Sign extends CircuitValue {
+  @prop value: Field; // +/- 1
+
+  static get one() {
+    return new Sign(Field.one);
+  }
+  static get minusOne() {
+    return new Sign(Field.minusOne);
+  }
+  static check(x: Sign) {
+    // x^2 == 1  <=>  x == 1 or x == -1
+    x.value.square().assertEquals(Field.one);
+  }
+  neg() {
+    return new Sign(this.value.neg());
+  }
+  mul(y: Sign) {
+    return new Sign(this.value.mul(y.value));
+  }
+  isPositive() {
+    return this.value.equals(Field.one);
+  }
+  toString() {
+    return this.value.toString();
+  }
+}
+
 type BalanceChange = Types.Party['body']['balanceChange'];
 
 class Int64 extends CircuitValue implements BalanceChange {
@@ -331,7 +357,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   // * under- and overflowing is disallowed, similar to UInt64, unlike a normal int64+
 
   @prop magnitude: UInt64; // absolute value
-  @prop sgn: Field; // +/- 1
+  @prop sgn: Sign; // +/- 1
 
   // Some thoughts regarding the representation as field elements:
   // toFields returns the in-circuit representation, so the main objective is to minimize the number of constraints
@@ -353,7 +379,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   // The second point is one of the main things an Int64 is used for, and was the original motivation to use 2 fields.
   // Overall, I think the existing implementation is the optimal one.
 
-  constructor(magnitude: UInt64, sgn = Field.one) {
+  constructor(magnitude: UInt64, sgn = Sign.one) {
     super(magnitude, sgn);
   }
 
@@ -365,7 +391,7 @@ class Int64 extends CircuitValue implements BalanceChange {
     if (!isValidPositive && !isValidNegative)
       throw Error(`Int64: Expected a value between (-2^64, 2^64), got ${x}`);
     let magnitude = Field(isValidPositive ? x.toString() : x.neg().toString());
-    let sign = isValidPositive ? Field.one : Field.minusOne;
+    let sign = isValidPositive ? Sign.one : Sign.minusOne;
     return new Int64(new UInt64(magnitude), sign);
   }
 
@@ -394,7 +420,7 @@ class Int64 extends CircuitValue implements BalanceChange {
 
   toString() {
     let abs = this.magnitude.toString();
-    let sgn = this.sgn.equals(Field.one).toBoolean() || abs === '0' ? '' : '-';
+    let sgn = this.isPositive().toBoolean() || abs === '0' ? '' : '-';
     return sgn + abs;
   }
 
@@ -404,13 +430,8 @@ class Int64 extends CircuitValue implements BalanceChange {
 
   // --- circuit-compatible operations below ---
   // the assumption here is that all Int64 values that appear in a circuit are already checked as valid
-  // this is because Circuit.witness calls .check
+  // this is because Circuit.witness calls .check, which calls .check on each prop, i.e. UInt64 and Sign
   // so we only have to do additional checks if an operation on valid inputs can have an invalid outcome (example: overflow)
-
-  static check(x: Int64) {
-    UInt64.check(x.magnitude); // |x| < 2^64
-    x.sgn.square().assertEquals(Field.one); // sign(x)^2 === 1
-  }
 
   static get zero() {
     return new Int64(UInt64.zero);
@@ -423,7 +444,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   toField() {
-    return this.magnitude.value.mul(this.sgn);
+    return this.magnitude.value.mul(this.sgn.value);
   }
 
   static fromField(x: Field): Int64 {
@@ -474,6 +495,6 @@ class Int64 extends CircuitValue implements BalanceChange {
     this.toField().assertEquals(y_.toField());
   }
   isPositive() {
-    return this.sgn.equals(Field.one);
+    return this.sgn.isPositive();
   }
 }

@@ -1,18 +1,12 @@
-import {
-  Circuit,
-  AsFieldElements,
-  Bool,
-  Field,
-  jsLayout,
-  Types,
-} from '../snarky';
+import { Circuit, AsFieldElements, Bool, Field } from '../snarky';
 import { circuitValueEquals } from './circuit_value';
-import { PublicKey } from './signature';
 import * as Mina from './mina';
 import { Party, Preconditions } from './party';
 import * as GlobalContext from './global-context';
 import { UInt32, UInt64 } from './int';
 import { inAnalyze, inCompile, inProver } from './proof_system';
+import { Layout } from 'snarky/parties-helpers';
+import { jsLayout } from '../snarky/types';
 
 export {
   preconditions,
@@ -33,21 +27,17 @@ function preconditions(party: Party, isSelf: boolean) {
 // so we can add customized fields easily
 
 function Network(party: Party): Network {
-  // TODO there should be a less error-prone way of typing js layout
-  // e.g. separate keys list and value object, so that we can access by key
-  let layout = (jsLayout as any).Party.layout[0].value.layout[9].value.layout[0]
-    .value as Layout;
+  let layout =
+    jsLayout.Party.entries.body.entries.preconditions.entries.network;
   let context = getPreconditionContextExn(party);
-  return preconditionClass(layout, 'network', party, context);
+  return preconditionClass(layout as Layout, 'network', party, context);
 }
 
 function Account(party: Party): Account {
-  // TODO there should be a less error-prone way of typing js layout
-  // e.g. separate keys list and value object, so that we can access by key
-  let layout = (jsLayout as any).Party.layout[0].value.layout[9].value.layout[1]
-    .value as Layout;
+  let layout =
+    jsLayout.Party.entries.body.entries.preconditions.entries.account;
   let context = getPreconditionContextExn(party);
-  return preconditionClass(layout, 'account', party, context);
+  return preconditionClass(layout as Layout, 'account', party, context);
 }
 
 let unimplementedPreconditions: LongKey[] = [
@@ -70,6 +60,9 @@ let unimplementedPreconditions: LongKey[] = [
   'network.timestamp',
 ];
 
+type BaseType = 'UInt64' | 'UInt32' | 'Field' | 'Bool';
+let baseMap = { UInt64, UInt32, Field, Bool };
+
 function preconditionClass(
   layout: Layout,
   baseKey: any,
@@ -79,7 +72,7 @@ function preconditionClass(
   if (layout.type === 'option') {
     // range condition
     if (layout.optionType === 'implicit' && layout.inner.type === 'object') {
-      let lower = layout.inner.layout[0].value.type;
+      let lower = layout.inner.entries.lower.type as BaseType;
       let baseType = baseMap[lower];
       return {
         ...preconditionSubclass(party, baseKey, baseType as any, context),
@@ -93,10 +86,10 @@ function preconditionClass(
     }
     // value condition
     else if (layout.optionType === 'flaggedOption') {
-      let baseType = baseMap[layout.inner.type];
+      let baseType = baseMap[layout.inner.type as BaseType];
       return preconditionSubclass(party, baseKey, baseType as any, context);
     } else if (layout.inner.type !== 'object') {
-      let baseType = baseMap[layout.inner.type];
+      let baseType = baseMap[layout.inner.type as BaseType];
       return preconditionSubclass(party, baseKey, baseType as any, context);
     }
   } else if (layout.type === 'array') {
@@ -104,7 +97,8 @@ function preconditionClass(
   } else if (layout.type === 'object') {
     // for each field, create a recursive object
     return Object.fromEntries(
-      layout.layout.map(({ key, value }) => {
+      layout.keys.map((key) => {
+        let value = layout.entries[key];
         return [
           key,
           preconditionClass(value, `${baseKey}.${key}`, party, context),
@@ -277,24 +271,24 @@ type Account = PreconditionClassType<AccountPrecondition>;
 
 type PreconditionBaseTypes<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
-    ? BasicToFull<U>
+    ? U
     : T[K] extends FlaggedOptionCondition<infer U>
-    ? BasicToFull<U>
+    ? U
     : T[K] extends AsFieldElements<infer U>
-    ? BasicToFull<U>
+    ? U
     : PreconditionBaseTypes<T[K]>;
 };
 
 type PreconditionSubclassType<U> = {
-  get(): BasicToFull<U>;
-  assertEquals(value: BasicToFull<U>): void;
+  get(): U;
+  assertEquals(value: U): void;
   assertNothing(): void;
 };
 
 type PreconditionClassType<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
     ? PreconditionSubclassType<U> & {
-        assertBetween(lower: BasicToFull<U>, upper: BasicToFull<U>): void;
+        assertBetween(lower: U, upper: U): void;
       }
     : T[K] extends FlaggedOptionCondition<infer U>
     ? PreconditionSubclassType<U>
@@ -302,56 +296,6 @@ type PreconditionClassType<T> = {
     ? PreconditionSubclassType<Field>
     : PreconditionClassType<T[K]>;
 };
-
-type BasicToFull<K> = K extends Types.UInt32
-  ? UInt32
-  : K extends Types.UInt64
-  ? UInt64
-  : K extends Field
-  ? Field
-  : K extends Bool
-  ? Bool
-  : K extends Types.PublicKey
-  ? PublicKey
-  : never;
-
-// layout types
-
-type BaseLayout = { type: 'UInt64' | 'UInt32' | 'Field' | 'Bool' };
-let baseMap = { UInt64, UInt32, Field, Bool };
-
-type RangeLayout<T extends BaseLayout> = {
-  type: 'object';
-  layout: [{ key: 'lower'; value: T }, { key: 'upper'; value: T }];
-};
-type OptionLayout<T extends BaseLayout> = { type: 'option' } & (
-  | {
-      optionType: 'flaggedOption';
-      inner: T;
-    }
-  | {
-      optionType: 'implicit';
-      inner: RangeLayout<T>;
-    }
-  | {
-      optionType: 'implicit';
-      inner: T;
-    }
-);
-type Layout =
-  | {
-      type: 'object';
-      layout: {
-        key: string;
-        value: Layout;
-      }[];
-    }
-  | {
-      type: 'array';
-      inner: Layout;
-    }
-  | OptionLayout<BaseLayout>
-  | BaseLayout;
 
 // TS magic for computing flattened precondition types
 

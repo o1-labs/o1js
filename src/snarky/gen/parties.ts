@@ -9,12 +9,10 @@ import {
   Bool,
   AuthRequired,
   Sign,
-  convertStringWithHashToJson,
-  convertEventsToJson,
-  convertStringWithHashToFields,
-  convertEventsToFields,
+  StringWithHash,
+  Events,
 } from '../parties-leaves';
-import { toJson, toFields } from '../parties-helpers';
+import { asFieldsAndAux, AsFieldsAndAux } from '../parties-helpers';
 import * as Json from './parties-json';
 import { jsLayout } from './js-layout';
 
@@ -22,29 +20,23 @@ export { Parties, Party };
 export { Json };
 export * from '../parties-leaves';
 
-type JsonConverters = {
-  StringWithHash: (stringwithhash: {
-    data: string;
-    hash: Field;
-  }) => Json.TypeMap['string'];
-  Events: (events: {
-    data: Field[][];
-    hash: Field;
-  }) => Json.TypeMap['Field'][][];
+type CustomTypes = {
+  StringWithHash: AsFieldsAndAux<
+    {
+      data: string;
+      hash: Field;
+    },
+    Json.TypeMap['string']
+  >;
+  Events: AsFieldsAndAux<
+    {
+      data: Field[][];
+      hash: Field;
+    },
+    Json.TypeMap['Field'][][]
+  >;
 };
-let jsonConverters: JsonConverters = {
-  StringWithHash: convertStringWithHashToJson,
-  Events: convertEventsToJson,
-};
-
-type FieldsConverters = {
-  StringWithHash: (stringwithhash: { data: string; hash: Field }) => Field[];
-  Events: (events: { data: Field[][]; hash: Field }) => Field[];
-};
-let fieldsConverters: FieldsConverters = {
-  StringWithHash: convertStringWithHashToFields,
-  Events: convertEventsToFields,
-};
+let customTypes: CustomTypes = { StringWithHash, Events };
 
 type Parties = {
   feePayer: {
@@ -215,14 +207,10 @@ type Parties = {
   memo: string;
 };
 
-let Parties = {
-  toJson(parties: Parties): Json.Parties {
-    return toJson(jsLayout.Parties, parties, jsonConverters);
-  },
-  toFields(parties: Parties): Field[] {
-    return toFields(jsLayout.Parties, parties, fieldsConverters);
-  },
-};
+let Parties = asFieldsAndAux<Parties, Json.Parties>(
+  jsLayout.Parties as any,
+  customTypes
+);
 
 type Party = {
   body: {
@@ -381,11 +369,7 @@ type Party = {
   };
 };
 
-let Party = {
-  toJson(party: Party): Json.Party {
-    return toJson(jsLayout.Party, party, jsonConverters);
-  },
-  toFields(party: Party): Field[] {
-    return toFields(jsLayout.Party, party, fieldsConverters);
-  },
-};
+let Party = asFieldsAndAux<Party, Json.Party>(
+  jsLayout.Party as any,
+  customTypes
+);
