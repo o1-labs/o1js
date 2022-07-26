@@ -20,6 +20,7 @@ import { SmartContract } from './zkapp';
 import * as Precondition from './precondition';
 import { inCheckedComputation, Proof, snarkContext } from './proof_system';
 import { emptyHashWithPrefix, hashWithPrefix, prefixes } from './hash';
+import { salt } from './hash';
 
 // external API
 export { Permissions, Party, ZkappPublicInput };
@@ -40,6 +41,8 @@ export {
   ZkappStateLength,
   Events,
   partyToPublicInput,
+  getDefaultTokenId,
+  Token,
   CallForest,
   createChildParty,
 };
@@ -472,6 +475,7 @@ const AccountPrecondition = {
       state: appState,
       sequenceState: Events.emptySequenceState(),
       provedState: ignore(Bool(false)),
+      isNew: ignore(Bool(false)),
     };
   },
   nonce(nonce: UInt32): AccountPrecondition {
@@ -500,6 +504,50 @@ type LazyProof = {
   ZkappClass: typeof SmartContract;
   memoized: Field[][];
   blindingValue: Field;
+};
+
+class Token {
+  readonly id: Field;
+  readonly parentTokenId: Field;
+  readonly tokenOwner: PublicKey;
+
+  constructor(options: { tokenOwner: PublicKey; parentTokenId?: Field }) {
+    let { tokenOwner, parentTokenId } = options ?? {};
+
+    // Reassign to default tokenId if undefined
+    parentTokenId ??= getDefaultTokenId();
+
+    // Check if we can create a custom tokenId
+    try {
+      Ledger.customTokenId(tokenOwner, parentTokenId);
+    } catch (e) {
+      throw new Error(
+        `Could not create a custom token id:\nError: ${(e as Error).message}`
+      );
+    }
+
+    this.parentTokenId = parentTokenId;
+    this.tokenOwner = tokenOwner;
+    if (
+      tokenOwner.toFields().every((x) => x.isConstant()) &&
+      parentTokenId.isConstant()
+    ) {
+      this.id = Ledger.customTokenId(tokenOwner, this.parentTokenId);
+    } else {
+      this.id = Ledger.customTokenIdChecked(tokenOwner, this.parentTokenId);
+    }
+  }
+}
+
+type SendParams = {
+  from: PublicKey;
+  to: PublicKey;
+  amount: UInt32 | UInt64;
+};
+
+type MintOrBurnParams = {
+  address: PublicKey;
+  amount: UInt32 | UInt64;
 };
 
 class Party implements Types.Party {
@@ -533,8 +581,96 @@ class Party implements Types.Party {
     return clonedParty;
   }
 
+  token() {
+    let thisParty = this;
+    let customToken = new Token({
+      tokenOwner: thisParty.body.publicKey,
+      parentTokenId: thisParty.body.tokenId,
+    });
+
+    return {
+      id: customToken.id,
+      parentTokenId: customToken.parentTokenId,
+      tokenOwner: customToken.tokenOwner,
+
+      mint({ address, amount }: MintOrBurnParams) {
+        let receiverParty = createChildParty(thisParty, address, {
+          caller: this.id,
+          tokenId: this.id,
+        });
+
+        // Add the amount to mint to the receiver's account
+        let { magnitude, sgn } = receiverParty.body.balanceChange;
+        receiverParty.body.balanceChange = new Int64(magnitude, sgn).add(
+          amount
+        );
+      },
+
+      burn({ address, amount }: MintOrBurnParams) {
+        let senderParty = createChildParty(thisParty, address, {
+          caller: this.id,
+          tokenId: this.id,
+          useFullCommitment: Bool(true),
+        });
+
+        // Sub the amount to burn from the sender's account
+        let { magnitude, sgn } = senderParty.body.balanceChange;
+        senderParty.body.balanceChange = new Int64(magnitude, sgn).sub(amount);
+
+        // Require signature from the sender account being deducted
+        Authorization.setLazySignature(senderParty);
+      },
+
+      send({ from, to, amount }: SendParams) {
+        // Create a new party for the sender to send the amount to the receiver
+        let senderParty = createChildParty(thisParty, from, {
+          caller: this.id,
+          tokenId: this.id,
+          useFullCommitment: Bool(true),
+        });
+
+        let i0 = senderParty.body.balanceChange;
+        senderParty.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(
+          amount
+        );
+
+        // Require signature from the sender party
+        Authorization.setLazySignature(senderParty);
+
+        let receiverParty = createChildParty(thisParty, to, {
+          caller: this.id,
+          tokenId: this.id,
+        });
+
+        // Add the amount to send to the receiver's account
+        let i1 = receiverParty.body.balanceChange;
+        receiverParty.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
+          amount
+        );
+      },
+    };
+  }
+
+  get tokenId() {
+    return this.body.tokenId;
+  }
+
+  get tokenSymbol() {
+    let party = this;
+
+    return {
+      set(tokenSymbol: string) {
+        Party.setValue(party.update.tokenSymbol, {
+          data: tokenSymbol,
+          hash: salt(tokenSymbol)[0],
+        });
+      },
+    };
+  }
+
   get balance() {
     let party = this;
+
     return {
       addInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
         let { magnitude, sgn } = party.body.balanceChange;
@@ -638,7 +774,10 @@ class Party implements Types.Party {
     try {
       let inProver = Circuit.inProver();
       if (inProver || !Circuit.inCheckedComputation()) {
-        let account = Mina.getAccount(party.body.publicKey);
+        let account = Mina.getAccount(
+          party.body.publicKey as PublicKey,
+          getDefaultTokenId()
+        );
         nonce = inProver
           ? Circuit.witness(UInt32, () => account.nonce)
           : account.nonce;
@@ -847,9 +986,22 @@ const CallForest = {
   },
 };
 
-function createChildParty(parent: Party, childAddress: PublicKey) {
+function createChildParty(
+  parent: Party,
+  childAddress: PublicKey,
+  options?: {
+    caller?: Field;
+    tokenId?: Field;
+    useFullCommitment?: Bool;
+  }
+) {
   let child = Party.defaultParty(childAddress);
+  const { caller, tokenId, useFullCommitment } = options ?? {};
   child.body.callDepth = parent.body.callDepth + 1;
+  child.body.caller = caller ?? child.body.caller;
+  child.body.tokenId = tokenId ?? child.body.tokenId;
+  child.body.useFullCommitment =
+    useFullCommitment ?? child.body.useFullCommitment;
   child.parent = parent;
   parent.children.push({ party: child, calls: undefined });
   return child;
@@ -894,7 +1046,8 @@ const Authorization = {
     party.authorization = { proof };
     party.lazyAuthorization = undefined;
   },
-  setLazySignature(party: Party, signature: Omit<LazySignature, 'kind'>) {
+  setLazySignature(party: Party, signature?: Omit<LazySignature, 'kind'>) {
+    signature ??= {};
     party.authorization = {};
     party.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },

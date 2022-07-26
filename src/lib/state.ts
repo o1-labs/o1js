@@ -1,6 +1,6 @@
-import { Circuit, Field, AsFieldElements } from '../snarky';
+import { Circuit, Field, AsFieldElements, Ledger } from '../snarky';
 import { circuitArray } from './circuit_value';
-import { Party } from './party';
+import { getDefaultTokenId, Party } from './party';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
 import { Account, fetchAccount } from './fetch';
@@ -207,7 +207,10 @@ function createState<T>(): InternalStateType<T> {
       if (!inCompile() && !inAnalyze()) {
         let account: Account;
         try {
-          account = Mina.getAccount(address);
+          account = Mina.getAccount(
+            address,
+            this._contract.instance.self.body.tokenId
+          );
         } catch (err) {
           // TODO: there should also be a reasonable error here
           if (inProver_) {
@@ -260,7 +263,10 @@ To write a correct circuit, you must avoid any dependency on the concrete value 
         );
       let layout = getLayoutPosition(this._contract);
       let address: PublicKey = this._contract.instance.address;
-      let { account } = await fetchAccount(address);
+      let { account } = await fetchAccount({
+        publicKey: address,
+        tokenId: Ledger.fieldToBase58(getDefaultTokenId()),
+      });
       if (account === undefined) return undefined;
       let stateAsFields: Field[];
       if (account.zkapp === undefined) {

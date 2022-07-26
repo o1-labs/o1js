@@ -385,6 +385,26 @@
         "type": "function"
       },
       {
+        "name": "customTokenId",
+        "type": "function"
+      },
+      {
+        "name": "customTokenIdChecked",
+        "type": "function"
+      },
+      {
+        "name": "createTokenAccount",
+        "type": "function"
+      },
+      {
+        "name": "hashTransaction",
+        "type": "function"
+      },
+      {
+        "name": "hashTransactionChecked",
+        "type": "function"
+      },
+      {
         "name": "transactionCommitments",
         "type": "function"
       },

@@ -28,6 +28,7 @@ import {
   partyToPublicInput,
   Authorization,
   CallForest,
+  getDefaultTokenId,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -534,6 +535,18 @@ class SmartContract {
     return this.self.network;
   }
 
+  token() {
+    return this.self.token();
+  }
+
+  get tokenId() {
+    return this.self.tokenId;
+  }
+
+  get tokenSymbol() {
+    return this.self.tokenSymbol;
+  }
+
   get balance() {
     return this.self.balance;
   }
@@ -760,26 +773,22 @@ async function deploy<S extends typeof SmartContract>(
     zkappKey,
     verificationKey,
     initialBalance,
-    shouldSignFeePayer,
-    feePayerKey,
-    transactionFee,
-    memo,
+    feePayer,
   }: {
     zkappKey: PrivateKey;
     verificationKey: { data: string; hash: string | Field };
     initialBalance?: number | string;
-    feePayerKey?: PrivateKey;
-    shouldSignFeePayer?: boolean;
-    transactionFee?: string | number;
-    memo?: string;
+    feePayer?: Mina.FeePayerSpec;
   }
 ) {
   let address = zkappKey.toPublicKey();
-  let tx = Mina.createUnsignedTransaction(() => {
+  let feePayerKey =
+    feePayer instanceof PrivateKey ? feePayer : feePayer?.feePayerKey;
+  let tx = await Mina.transaction(feePayer, () => {
     if (initialBalance !== undefined) {
       if (feePayerKey === undefined)
         throw Error(
-          `When using the optional initialBalance argument, you need to also supply the fee payer's private key feePayerKey to sign the initial balance funding.`
+          `When using the optional initialBalance argument, you need to also supply the fee payer's private key as part of the \`feePayer\` argument, to sign the initial balance funding.`
         );
       // optional first party: the sender/fee payer who also funds the zkapp
       let amount = UInt64.fromString(String(initialBalance)).add(
@@ -798,17 +807,6 @@ async function deploy<S extends typeof SmartContract>(
       zkapp.self.balance.addInPlace(amount);
     }
   });
-  tx.transaction.memo = memo ?? '';
-  if (shouldSignFeePayer) {
-    if (feePayerKey === undefined || transactionFee === undefined) {
-      throw Error(
-        `When setting shouldSignFeePayer=true, you need to also supply feePayerKey (fee payer's private key) and transactionFee.`
-      );
-    }
-    tx.transaction = addFeePayer(tx.transaction, feePayerKey, {
-      transactionFee,
-    });
-  }
   return tx.sign().toJSON();
 }
 
@@ -826,7 +824,7 @@ function addFeePayer(
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
   if (feePayerNonce === undefined) {
-    let senderAccount = Mina.getAccount(senderAddress);
+    let senderAccount = Mina.getAccount(senderAddress, getDefaultTokenId());
     feePayerNonce = senderAccount.nonce.toString();
   }
   let newMemo = memo;
@@ -852,7 +850,7 @@ function signFeePayer(
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
   if (feePayerNonce === undefined) {
-    let senderAccount = Mina.getAccount(senderAddress);
+    let senderAccount = Mina.getAccount(senderAddress, getDefaultTokenId());
     feePayerNonce = senderAccount.nonce.toString();
   }
   if (feePayerMemo) parties.memo = Ledger.memoToBase58(feePayerMemo);
