@@ -195,6 +195,7 @@ let implementedWithRange = [
 ];
 let unimplemented = [
   () => zkapp.account.provedState,
+  () => zkapp.account.isNew,
   () => zkapp.account.delegate,
   () => zkapp.account.receiptChainHash,
   () => zkapp.network.timestamp,
