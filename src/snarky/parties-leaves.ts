@@ -99,7 +99,7 @@ let ToJson: ToJson = {
   },
   // TODO this is a hack
   BlockTimeInterval(_: { lower: UInt64; upper: UInt64 }) {
-    return null;
+    return { lower: '0', upper: '-1' };
   },
   // builtin
   number: identity,

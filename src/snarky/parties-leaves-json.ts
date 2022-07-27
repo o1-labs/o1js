@@ -22,7 +22,7 @@ type TypeMap = {
   Sign: Sign;
   TokenId: TokenId;
   // TODO sort this out: we override timestamp, which is implicit but has to be null for intg test to succeed
-  BlockTimeInterval: null;
+  BlockTimeInterval: { lower: string; upper: string };
   // builtin
   number: number;
   null: null;
