@@ -54,9 +54,7 @@ function asString(x: Field | bigint) {
   return x.toString();
 }
 
-type ToJsonTypeMap = TypeMap & {
-  BlockTimeInterval: { lower: UInt64; upper: UInt64 };
-};
+type ToJsonTypeMap = TypeMap;
 type ToJson = {
   [K in keyof ToJsonTypeMap]: (x: ToJsonTypeMap[K]) => Json.TypeMap[K];
 };
@@ -96,10 +94,6 @@ let ToJson: ToJson = {
     if (x.toString() === '1') return 'Positive';
     if (x.neg().toString() === '1') return 'Negative';
     throw Error(`Invalid Sign: ${x}`);
-  },
-  // TODO this is a hack
-  BlockTimeInterval(_: { lower: UInt64; upper: UInt64 }) {
-    return { lower: '0', upper: '-1' };
   },
   // builtin
   number: identity,
