@@ -18,6 +18,8 @@ import {
   Experimental,
 } from 'snarkyjs';
 
+const doProofs = true;
+
 await isReady;
 
 class SimpleZkapp extends SmartContract {
@@ -76,8 +78,6 @@ class SimpleZkapp extends SmartContract {
     this.emitEvent('payout', halfBalance);
   }
 }
-
-const doProofs = true;
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);

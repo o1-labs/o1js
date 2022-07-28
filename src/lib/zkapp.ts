@@ -794,8 +794,11 @@ async function deploy<S extends typeof SmartContract>(
       let amount = UInt64.fromString(String(initialBalance)).add(
         Mina.accountCreationFee()
       );
-      let party = Party.createSigned(feePayerKey);
+      let feePayerAddress = feePayerKey.toPublicKey();
+      let party = Party.defaultParty(feePayerAddress);
+      party.body.useFullCommitment = Bool(true);
       party.balance.subInPlace(amount);
+      Mina.currentTransaction()?.parties.push(party);
     }
     // main party: the zkapp account
     let zkapp = new SmartContract(address);
