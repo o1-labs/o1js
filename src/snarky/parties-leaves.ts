@@ -10,14 +10,14 @@ export { Events, StringWithHash };
 
 export {
   toJson,
-  toJsonLeafTypes,
   toFields,
-  toFieldsLeafTypes,
   toAuxiliary,
   sizeInFields,
   fromFields,
   check,
+  toInput,
   TypeMap,
+  Input,
 };
 
 type AuthRequired = {
@@ -313,8 +313,68 @@ function check<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
   Check[typeName](value);
 }
 
-let toJsonLeafTypes = new Set(Object.keys(ToJson));
-let toFieldsLeafTypes = new Set(Object.keys(ToFields));
+// to input
+
+type Input = {
+  fields?: Field[];
+  packed?: [Field, number][];
+};
+
+type ToInput = {
+  [K in keyof TypeMap]: (x: TypeMap[K]) => Input;
+};
+
+function emptyInput(_: any): Input {
+  return {};
+}
+
+let ToInput: ToInput = {
+  PublicKey(pk) {
+    let [x, isOdd] = ToFields.PublicKey(pk);
+    return {
+      fields: [x],
+      packed: [[isOdd, 1]],
+    };
+  },
+  Field(x) {
+    return { fields: [x] };
+  },
+  Bool(x) {
+    return { packed: [[x.toField(), 1]] };
+  },
+  AuthRequired({ constant, signatureNecessary, signatureSufficient }) {
+    return {
+      packed: [
+        [constant.toField(), 1],
+        [signatureNecessary.toField(), 1],
+        [signatureSufficient.toField(), 1],
+      ],
+    };
+  },
+  TokenId(x) {
+    return { fields: [x] };
+  },
+  Sign(x) {
+    return { packed: [[x.value, 1]] };
+  },
+  UInt32(x) {
+    return { packed: [[x.value, 32]] };
+  },
+  UInt64(x) {
+    return { packed: [[x.value, 64]] };
+  },
+  // builtin
+  number: emptyInput,
+  null: emptyInput,
+  undefined: emptyInput,
+  string: emptyInput,
+};
+
+function toInput<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
+  if (!(typeName in ToFields))
+    throw Error(`toInput: unsupported type "${typeName}"`);
+  return ToInput[typeName](value);
+}
 
 // converters for types which got an annotation about its circuit type in Ocaml
 
@@ -339,6 +399,9 @@ const Events: AsFieldsAndAux<DataAsHash<Field[][]>, string[][]> = {
     return data.map((row) => row.map((e) => toJson('Field', e)));
   },
   check() {},
+  toInput({ hash }) {
+    return { fields: [hash] };
+  },
 };
 
 const StringWithHash: AsFieldsAndAux<DataAsHash<string>, string> = {
@@ -360,4 +423,7 @@ const StringWithHash: AsFieldsAndAux<DataAsHash<string>, string> = {
     return data;
   },
   check() {},
+  toInput({ hash }) {
+    return { fields: [hash] };
+  },
 };

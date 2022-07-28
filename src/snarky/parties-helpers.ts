@@ -11,6 +11,7 @@ type AsFieldsAndAux<T, TJson> = {
   fromFields(fields: Field[], aux: any[]): T;
   toJson(value: T): TJson;
   check(value: T): void;
+  toInput(value: T): Leaves.Input;
 };
 type CustomTypes = Record<string, AsFieldsAndAux<any, any>>;
 
@@ -33,6 +34,9 @@ function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
     },
     check(value: T): void {
       check(typeData, value, customTypes);
+    },
+    toInput(value: T): Leaves.Input {
+      return toInput(typeData, value, customTypes);
     },
     witness(f: () => T): T {
       let aux: any[];
@@ -216,10 +220,6 @@ function fromFieldsReversed(
   }
   if (typeData.type === 'object') {
     let { name, keys, entries } = typeData;
-    if (Leaves.toFieldsLeafTypes.has(name)) {
-      // override with custom leaf type
-      return Leaves.fromFields(name as keyof Leaves.TypeMap, fields, aux);
-    }
     let values: Record<string, any> = {};
     for (let key of keys) {
       values[key] = fromFieldsReversed(entries[key], fields, aux, customTypes);
@@ -242,6 +242,48 @@ function check(typeData: Layout, value: any, customTypes: CustomTypes) {
       reduceObject() {},
       reduceFlaggedOption() {},
       reduceOrUndefined() {},
+      customTypes,
+    },
+    typeData,
+    value
+  );
+}
+
+function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
+  return mapReduce<any, Leaves.Input>(
+    {
+      map(type, value) {
+        return Leaves.toInput(type, value);
+      },
+      mapCustom(type, value) {
+        return type.toInput(value);
+      },
+      reduceArray(array) {
+        let acc: Leaves.Input = { fields: [], packed: [] };
+        for (let { fields, packed } of array) {
+          if (fields) acc.fields!.push(...fields);
+          if (packed) acc.packed!.push(...packed);
+        }
+        return acc;
+      },
+      reduceObject(keys, object) {
+        let acc: Leaves.Input = { fields: [], packed: [] };
+        for (let key of keys) {
+          let { fields, packed } = object[key];
+          if (fields) acc.fields!.push(...fields);
+          if (packed) acc.packed!.push(...packed);
+        }
+        return acc;
+      },
+      reduceFlaggedOption({ isSome, value }) {
+        return {
+          fields: value.fields,
+          packed: isSome.packed!.concat(value.packed ?? []),
+        };
+      },
+      reduceOrUndefined(_) {
+        return {};
+      },
       customTypes,
     },
     typeData,
