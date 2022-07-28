@@ -257,7 +257,7 @@ To write a correct circuit, you must avoid any dependency on the concrete value 
         throw Error(
           'fetch can only be called when the State is assigned to a SmartContract @state.'
         );
-      if (Mina.currentTransaction !== undefined)
+      if (Mina.currentTransaction.has())
         throw Error(
           'fetch is not intended to be called inside a transaction block.'
         );

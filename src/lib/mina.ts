@@ -363,7 +363,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
             ) {
               console.log('got graphql errors', (response as any).errors);
             } else {
-              console.log('got graphql response', response);
+              console.log('got graphql response', response?.data);
               console.log(
                 'Info: waiting for inclusion in a block is not implemented yet.'
               );
