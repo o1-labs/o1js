@@ -18,7 +18,6 @@ export {
   fromFields,
   check,
   TypeMap,
-  ToJsonTypeMap,
 };
 
 type AuthRequired = {
@@ -54,9 +53,8 @@ function asString(x: Field | bigint) {
   return x.toString();
 }
 
-type ToJsonTypeMap = TypeMap;
 type ToJson = {
-  [K in keyof ToJsonTypeMap]: (x: ToJsonTypeMap[K]) => Json.TypeMap[K];
+  [K in keyof TypeMap]: (x: TypeMap[K]) => Json.TypeMap[K];
 };
 
 let ToJson: ToJson = {
@@ -104,10 +102,7 @@ let ToJson: ToJson = {
   string: identity,
 };
 
-function toJson<K extends keyof ToJsonTypeMap>(
-  typeName: K,
-  value: ToJsonTypeMap[K]
-) {
+function toJson<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
   if (!(typeName in ToJson))
     throw Error(`toJson: unsupported type "${typeName}"`);
   return ToJson[typeName](value);

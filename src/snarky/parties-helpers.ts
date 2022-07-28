@@ -52,41 +52,32 @@ function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
   };
 }
 
-function toJson(typeData: Layout, value: any, customTypes: CustomTypes): any {
-  let { checkedTypeName } = typeData;
-  if (checkedTypeName) {
-    // there's a custom type!
-    return customTypes[checkedTypeName].toJson(value);
-  }
-  if (typeData.type === 'array') {
-    return value.map((x: any) => toJson(typeData.inner, x, customTypes));
-  }
-  if (typeData.type === 'option') {
-    let { optionType, inner } = typeData;
-    switch (optionType) {
-      case 'implicit':
-        return toJson(inner, value, customTypes);
-      case 'flaggedOption':
-        return value.isSome.toBoolean()
-          ? toJson(inner, value.value, customTypes)
-          : null;
-      default:
-        return value !== undefined ? toJson(inner, value, customTypes) : null;
-    }
-  }
-  if (typeData.type === 'object') {
-    let { name, keys, entries } = typeData;
-    if (Leaves.toJsonLeafTypes.has(name)) {
-      // override with custom leaf type
-      return Leaves.toJson(name as keyof Leaves.ToJsonTypeMap, value);
-    }
-    let json: any = {};
-    for (let key of keys) {
-      json[key] = toJson(entries[key], value[key], customTypes);
-    }
-    return json;
-  }
-  return Leaves.toJson(typeData.type, value);
+function toJson(typeData: Layout, value: any, customTypes: CustomTypes) {
+  return mapReduce<any, any>(
+    {
+      map(type, value) {
+        return Leaves.toJson(type, value);
+      },
+      mapCustom(type, value) {
+        return type.toJson(value);
+      },
+      reduceArray(array) {
+        return array;
+      },
+      reduceObject(_, object) {
+        return object;
+      },
+      reduceFlaggedOption({ isSome, value }) {
+        return isSome ? value : null;
+      },
+      reduceOrUndefined(value) {
+        return value ?? null;
+      },
+      customTypes,
+    },
+    typeData,
+    value
+  );
 }
 
 function toFields(typeData: Layout, value: any, customTypes: CustomTypes) {
@@ -104,7 +95,10 @@ function toFields(typeData: Layout, value: any, customTypes: CustomTypes) {
       reduceObject(keys, object) {
         return keys.map((key) => object![key]).flat();
       },
-      reduceOptional(_) {
+      reduceFlaggedOption({ isSome, value }) {
+        return [isSome, value].flat();
+      },
+      reduceOrUndefined(_) {
         return [];
       },
       customTypes,
@@ -130,7 +124,10 @@ function toAuxiliary(typeData: Layout, value: any, customTypes: CustomTypes) {
       reduceObject(keys, object) {
         return keys.map((key) => object[key]).flat();
       },
-      reduceOptional(value) {
+      reduceFlaggedOption({ isSome, value }) {
+        return [isSome, value].flat();
+      },
+      reduceOrUndefined(value) {
         return value === undefined ? [false] : [true].concat(value);
       },
       customTypes,
@@ -155,7 +152,10 @@ function sizeInFields(typeData: Layout, customTypes: CustomTypes) {
     reduceObject(keys, object) {
       return keys.map((key) => object[key]).reduce((x, y) => x + y);
     },
-    reduceOptional(_) {
+    reduceFlaggedOption({ isSome, value }) {
+      return isSome + value;
+    },
+    reduceOrUndefined(_) {
       return 0;
     },
     customTypes,
@@ -240,7 +240,8 @@ function check(typeData: Layout, value: any, customTypes: CustomTypes) {
       },
       reduceArray() {},
       reduceObject() {},
-      reduceOptional() {},
+      reduceFlaggedOption() {},
+      reduceOrUndefined() {},
       customTypes,
     },
     typeData,
@@ -254,7 +255,8 @@ type MapReduceSpec<T, R> = {
   mapCustom: (type: AsFieldsAndAux<any, any>, value?: T) => R;
   reduceArray: (array: R[], typeData: ArrayLayout) => R;
   reduceObject: (keys: string[], record: Record<string, R>) => R;
-  reduceOptional: (value?: R) => R;
+  reduceFlaggedOption: (option: { isSome: R; value: R }) => R;
+  reduceOrUndefined: (value?: R) => R;
 };
 
 function mapReduce<T, R>(
@@ -279,14 +281,14 @@ function mapReduce<T, R>(
         return mapReduce(spec, inner, value);
       case 'flaggedOption':
         let v: { isSome: T; value: T } | undefined = value as any;
-        return spec.reduceObject(['isSome', 'value'], {
+        return spec.reduceFlaggedOption({
           isSome: spec.map('Bool', v?.isSome),
           value: mapReduce(spec, inner, v?.value),
         });
       case 'orUndefined':
         let mapped =
           value === undefined ? undefined : mapReduce(spec, inner, value);
-        return spec.reduceOptional(mapped);
+        return spec.reduceOrUndefined(mapped);
       default:
         throw Error('bug');
     }
