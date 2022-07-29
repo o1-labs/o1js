@@ -19,8 +19,12 @@ import * as Mina from './mina';
 import { SmartContract } from './zkapp';
 import * as Precondition from './precondition';
 import { inCheckedComputation, Proof, snarkContext } from './proof_system';
-import { emptyHashWithPrefix, hashWithPrefix, prefixes } from './hash';
-import { salt } from './hash';
+import {
+  emptyHashWithPrefix,
+  hashWithPrefix,
+  prefixes,
+  TokenSymbol,
+} from './hash';
 
 // external API
 export { Permissions, Party, ZkappPublicInput };
@@ -343,7 +347,7 @@ const Body = {
         ),
       }),
       // TODO
-      tokenSymbol: keep({ data: '', hash: Field.zero }),
+      tokenSymbol: keep(TokenSymbol.empty),
       timing: keep<Timing>({
         cliffAmount: UInt64.zero,
         cliffTime: UInt32.zero,
@@ -660,10 +664,7 @@ class Party implements Types.Party {
 
     return {
       set(tokenSymbol: string) {
-        Party.setValue(party.update.tokenSymbol, {
-          data: tokenSymbol,
-          hash: salt(tokenSymbol)[0],
-        });
+        Party.setValue(party.update.tokenSymbol, TokenSymbol.from(tokenSymbol));
       },
     };
   }

@@ -1,3 +1,4 @@
+import { AsFieldsAndAux } from '../snarky/parties-helpers';
 import { Poseidon as Poseidon_, Field } from '../snarky';
 import { inCheckedComputation } from './proof_system';
 
@@ -5,7 +6,7 @@ import { inCheckedComputation } from './proof_system';
 export { Poseidon };
 
 // internal API
-export { prefixes, emptyHashWithPrefix, hashWithPrefix, salt };
+export { prefixes, emptyHashWithPrefix, hashWithPrefix, salt, TokenSymbol };
 
 class Sponge {
   private sponge: unknown;
@@ -109,3 +110,45 @@ function packToFields({ fields = [], packed = [] }: Input) {
 (Poseidon as any).packToFields = packToFields;
 
 type Input = { fields?: Field[]; packed?: [Field, number][] };
+
+type TokenSymbol = {
+  symbol: string;
+  field: Field;
+};
+const TokenSymbolPure: AsFieldsAndAux<TokenSymbol, string> = {
+  toFields({ field }) {
+    return [field];
+  },
+  toAuxiliary(value) {
+    return [value?.symbol ?? ''];
+  },
+  fromFields(fields, aux) {
+    let field = fields.pop()!;
+    let symbol = aux.pop()!;
+    return { symbol, field };
+  },
+  sizeInFields() {
+    return 1;
+  },
+  check({ field }: TokenSymbol) {
+    let actual = field.rangeCheckHelper(48);
+    actual.assertEquals(field);
+  },
+  toJson({ symbol }) {
+    return symbol;
+  },
+  toInput({ field }) {
+    return { packed: [[field, 48]] };
+  },
+};
+const TokenSymbol = {
+  ...TokenSymbolPure,
+  get empty() {
+    return { symbol: '', field: Field.zero };
+  },
+
+  from(symbol: string): TokenSymbol {
+    let field = prefixToField(symbol);
+    return { symbol, field };
+  },
+};

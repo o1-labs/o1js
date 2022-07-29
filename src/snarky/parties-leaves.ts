@@ -1,12 +1,13 @@
 import { Field, Bool, Group, Ledger, Circuit } from '../snarky';
 import * as Json from './gen/parties-json';
 import { UInt32, UInt64, Sign } from '../lib/int';
+import { TokenSymbol } from '../lib/hash';
 import { PublicKey } from '../lib/signature';
 import { AsFieldsAndAux } from './parties-helpers';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
-export { Events, StringWithHash };
+export { Events, StringWithHash, TokenSymbol };
 
 export {
   toJson,

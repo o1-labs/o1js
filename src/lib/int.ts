@@ -2,6 +2,7 @@ import { Circuit, Field } from '../snarky';
 import { CircuitValue, prop } from './circuit_value';
 import { Types } from '../snarky/types';
 
+// external API
 export { UInt32, UInt64, Int64, Sign };
 
 class UInt64 extends CircuitValue {

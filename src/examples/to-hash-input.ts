@@ -52,6 +52,7 @@ update.permissions.value = {
   setPermissions: Permissions.none(),
   receive: Permissions.proof(),
 };
+party.tokenSymbol.set('BLABLA');
 testInput(Update, Ledger.hashInputFromJson.update, update);
 
 function testInput<T>(

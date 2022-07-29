@@ -8,6 +8,7 @@ import {
   Field,
   Bool,
   AuthRequired,
+  TokenSymbol,
   Sign,
   StringWithHash,
   Events,
@@ -28,6 +29,7 @@ type CustomTypes = {
     },
     Json.TypeMap['string']
   >;
+  TokenSymbol: AsFieldsAndAux<TokenSymbol, Json.TypeMap['string']>;
   Events: AsFieldsAndAux<
     {
       data: Field[][];
@@ -36,7 +38,7 @@ type CustomTypes = {
     Json.TypeMap['Field'][][]
   >;
 };
-let customTypes: CustomTypes = { StringWithHash, Events };
+let customTypes: CustomTypes = { StringWithHash, TokenSymbol, Events };
 
 type Parties = {
   feePayer: {
@@ -85,13 +87,7 @@ type Parties = {
             hash: Field;
           };
         };
-        tokenSymbol: {
-          isSome: Bool;
-          value: {
-            data: string;
-            hash: Field;
-          };
-        };
+        tokenSymbol: { isSome: Bool; value: TokenSymbol };
         timing: {
           isSome: Bool;
           value: {
@@ -249,13 +245,7 @@ type Party = {
           hash: Field;
         };
       };
-      tokenSymbol: {
-        isSome: Bool;
-        value: {
-          data: string;
-          hash: Field;
-        };
-      };
+      tokenSymbol: { isSome: Bool; value: TokenSymbol };
       timing: {
         isSome: Bool;
         value: {

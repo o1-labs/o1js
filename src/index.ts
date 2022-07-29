@@ -22,7 +22,7 @@ export {
   circuitMain,
   circuitValue,
 } from './lib/circuit_value';
-export * from './lib/int';
+export { UInt32, UInt64, Int64, Sign } from './lib/int';
 export { Types } from './snarky/types';
 
 export * as Mina from './lib/mina';
