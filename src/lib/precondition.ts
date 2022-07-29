@@ -57,8 +57,6 @@ let unimplementedPreconditions: LongKey[] = [
   'account.isNew',
   // this is partially unimplemented because the field is not returned by the local blockchain
   'account.delegate',
-  // this is unimplemented because setting this precondition made the integration test fail
-  'network.timestamp',
 ];
 
 type BaseType = 'UInt64' | 'UInt32' | 'Field' | 'Bool';
