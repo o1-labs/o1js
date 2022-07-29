@@ -778,7 +778,10 @@ declare class Ledger {
   static hashInputFromJson: {
     packInput(input: OcamlInput): Field[];
     timing(json: String): OcamlInput;
+    permissions(json: String): OcamlInput;
     update(json: String): OcamlInput;
+    accountPrecondition(json: String): OcamlInput;
+    networkPrecondition(json: String): OcamlInput;
     body(json: String): OcamlInput;
   };
 }

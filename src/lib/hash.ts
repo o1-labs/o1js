@@ -102,7 +102,6 @@ function packToFields({ fields = [], packed = [] }: Input) {
     }
   }
   packedBits.push(currentPackedField);
-  console.log('packed bits', JSON.stringify(packedBits));
   return fields.concat(packedBits);
 }
 
