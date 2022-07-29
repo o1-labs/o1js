@@ -78,3 +78,34 @@ function prefixToField(prefix: string) {
     .flat();
   return Field.ofBits(bits);
 }
+
+/**
+ * Convert the {fields, packed} hash input representation to a list of field elements
+ * Random_oracle_input.Chunked.pack_to_fields
+ */
+function packToFields({ fields = [], packed = [] }: Input) {
+  if (packed.length === 0) return fields;
+  let packedBits = [];
+  let currentPackedField = Field.zero;
+  let currentSize = 0;
+  for (let [field, size] of packed) {
+    currentSize += size;
+    if (currentSize < 255) {
+      currentPackedField = currentPackedField
+        .mul(Field(1n << BigInt(size)))
+        .add(field);
+    } else {
+      packedBits.push(currentPackedField);
+      currentSize = 0;
+      currentPackedField = field;
+    }
+  }
+  packedBits.push(currentPackedField);
+  console.log('packed bits', JSON.stringify(packedBits));
+  return fields.concat(packedBits);
+}
+
+// TODO remove
+(Poseidon as any).packToFields = packToFields;
+
+type Input = { fields?: Field[]; packed?: [Field, number][] };
