@@ -110,7 +110,7 @@ function writeTsContent(types, isJson) {
   let output = '';
   let dependencies = new Set();
   let converters = {};
-  let exports = new Set();
+  let exports = new Set(isJson ? [] : ['customTypes']);
   for (let [Type, value] of Object.entries(types)) {
     let inner = writeType(value, isJson);
     exports.add(Type);

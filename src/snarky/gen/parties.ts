@@ -16,7 +16,7 @@ import { asFieldsAndAux, AsFieldsAndAux } from '../parties-helpers';
 import * as Json from './parties-json';
 import { jsLayout } from './js-layout';
 
-export { Parties, Party };
+export { customTypes, Parties, Party };
 export { Json };
 export * from '../parties-leaves';
 
