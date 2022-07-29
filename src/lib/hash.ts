@@ -97,7 +97,7 @@ function packToFields({ fields = [], packed = [] }: Input) {
         .add(field);
     } else {
       packedBits.push(currentPackedField);
-      currentSize = 0;
+      currentSize = size;
       currentPackedField = field;
     }
   }
