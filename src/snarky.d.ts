@@ -774,7 +774,16 @@ declare class Ledger {
   static fieldsOfJson(json: string): Field[];
   static hashPartyFromFields(fields: Field[]): Field;
   static hashPartyFromJson(json: string): Field;
+
+  static hashInputFromJson: {
+    packInput(input: OcamlInput): Field[];
+    timing(json: String): OcamlInput;
+    update(json: String): OcamlInput;
+    body(json: String): OcamlInput;
+  };
 }
+
+type OcamlInput = { fields: Field[]; packed: { field: Field; size: number }[] };
 
 /**
  * This function *must* be called at the end of a nodejs program, otherwise the
