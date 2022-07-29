@@ -11,6 +11,8 @@ import {
   Experimental,
   Bool,
   Permissions,
+  Sign,
+  Token,
 } from 'snarkyjs';
 
 await isReady;
@@ -104,7 +106,16 @@ testInput(
 
 // body
 let Body = asFieldsAndAux<Body, any>(jsLayout.Party.entries.body);
-testInput(Body, Ledger.hashInputFromJson.body, party.body);
+let body = party.body;
+body.balanceChange.magnitude = UInt64.from(14197832);
+body.balanceChange.sgn = Sign.minusOne;
+body.callData = Field.random();
+body.callDepth = 1;
+body.incrementNonce = Bool(true);
+let tokenOwner = PrivateKey.random().toPublicKey();
+body.tokenId = new Token({ tokenOwner }).id;
+body.caller = body.tokenId;
+testInput(Body, Ledger.hashInputFromJson.body, body);
 
 // party (should be same as body)
 testInput(

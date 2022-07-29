@@ -356,7 +356,7 @@ let ToInput: ToInput = {
     return { fields: [x] };
   },
   Sign(x) {
-    return { packed: [[x.value, 1]] };
+    return { packed: [[x.isPositive().toField(), 1]] };
   },
   UInt32(x) {
     return { packed: [[x.value, 32]] };

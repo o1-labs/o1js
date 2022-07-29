@@ -9,6 +9,7 @@ import {
   PublicKey,
   Mina,
   Experimental,
+  Int64,
 } from '../../dist/server';
 
 let address: PublicKey;
@@ -19,6 +20,7 @@ describe('party', () => {
     await isReady;
     address = PrivateKey.random().toPublicKey();
     party = Party.defaultParty(address);
+    party.body.balanceChange = Int64.from(1e9).neg();
   });
   afterAll(() => setTimeout(shutdown, 0));
 
