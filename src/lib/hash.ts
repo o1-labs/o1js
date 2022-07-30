@@ -6,7 +6,14 @@ import { inCheckedComputation } from './proof_system';
 export { Poseidon };
 
 // internal API
-export { prefixes, emptyHashWithPrefix, hashWithPrefix, salt, TokenSymbol };
+export {
+  prefixes,
+  emptyHashWithPrefix,
+  hashWithPrefix,
+  salt,
+  TokenSymbol,
+  packToFields,
+};
 
 class Sponge {
   private sponge: unknown;
@@ -105,15 +112,10 @@ function packToFields({ fields = [], packed = [] }: Input) {
   return fields.concat(packedBits);
 }
 
-// TODO remove
-(Poseidon as any).packToFields = packToFields;
-
 type Input = { fields?: Field[]; packed?: [Field, number][] };
 
-type TokenSymbol = {
-  symbol: string;
-  field: Field;
-};
+type TokenSymbol = { symbol: string; field: Field };
+
 const TokenSymbolPure: AsFieldsAndAux<TokenSymbol, string> = {
   toFields({ field }) {
     return [field];

@@ -64,6 +64,7 @@ import {
   asFieldsAndAux,
   AsFieldsAndAux as AsFieldsAndAux_,
 } from './snarky/types';
+import { packToFields } from './lib/hash';
 export { Experimental };
 
 /**
@@ -77,6 +78,7 @@ const Experimental = {
   // TODO: for testing, maybe remove later
   jsLayout,
   asFieldsAndAux,
+  packToFields,
 };
 namespace Experimental {
   export type AsFieldsAndAux<T, TJson> = AsFieldsAndAux_<T, TJson>;

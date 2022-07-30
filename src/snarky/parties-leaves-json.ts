@@ -21,8 +21,6 @@ type TypeMap = {
   UInt64: UInt64;
   Sign: Sign;
   TokenId: TokenId;
-  // TODO sort this out: we override timestamp, which is implicit but has to be null for intg test to succeed
-  BlockTimeInterval: { lower: string; upper: string };
   // builtin
   number: number;
   null: null;

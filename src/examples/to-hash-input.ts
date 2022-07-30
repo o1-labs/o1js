@@ -3,7 +3,6 @@ import {
   Party,
   PrivateKey,
   Types,
-  Poseidon,
   Field,
   Ledger,
   UInt64,
@@ -17,9 +16,7 @@ import {
 
 await isReady;
 
-let packToFields: (input: Types.Input) => Field[] = (Poseidon as any)
-  .packToFields;
-let { asFieldsAndAux, jsLayout } = Experimental;
+let { asFieldsAndAux, jsLayout, packToFields } = Experimental;
 
 let party = Party.defaultParty(PrivateKey.random().toPublicKey());
 
