@@ -618,9 +618,10 @@ type AsFieldsAndAux<T, TJson> = {
 };
 
 // convert from circuit values
-function fromCircuitValue<T extends AnyConstructor & typeof CircuitValue>(
-  type: T
-): AsFieldsAndAux<InstanceType<T>, JSONValue> {
+function fromCircuitValue<
+  T extends AnyConstructor & typeof CircuitValue,
+  TJson = JSONValue
+>(type: T): AsFieldsAndAux<InstanceType<T>, TJson> {
   return {
     sizeInFields() {
       return type.sizeInFields();
@@ -632,7 +633,12 @@ function fromCircuitValue<T extends AnyConstructor & typeof CircuitValue>(
       return [];
     },
     fromFields(fields) {
-      return type.ofFields(fields);
+      let myFields: Field[] = [];
+      let size = type.sizeInFields();
+      for (let i = 0; i < size; i++) {
+        myFields.push(fields.pop()!);
+      }
+      return type.ofFields(myFields);
     },
     check(value) {
       type.check(value);
@@ -641,7 +647,7 @@ function fromCircuitValue<T extends AnyConstructor & typeof CircuitValue>(
       return type.toInput(value);
     },
     toJson(value) {
-      return type.toJSON(value);
+      return type.toJSON(value) as any;
     },
   };
 }

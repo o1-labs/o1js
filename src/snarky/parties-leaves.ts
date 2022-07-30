@@ -49,7 +49,13 @@ type TypeMap = {
 
 // types that implement AsFieldAndAux, and so can be left out of the conversion maps below
 // sort of a "transposed" representation
-type FullTypesKey = 'number' | 'null' | 'undefined' | 'string';
+type FullTypesKey =
+  | 'number'
+  | 'null'
+  | 'undefined'
+  | 'string'
+  | 'UInt32'
+  | 'UInt64';
 type OtherTypesKey = Exclude<keyof TypeMap, FullTypesKey>;
 type FullTypes = {
   [K in FullTypesKey]: AsFieldsAndAux<TypeMap[K], Json.TypeMap[K]>;
@@ -66,7 +72,9 @@ let emptyType = {
 };
 
 const FullTypes: FullTypes = {
-  // implementations for primitive JS types
+  UInt32: AsFieldsAndAux.fromCircuitValue(UInt32),
+  UInt64: AsFieldsAndAux.fromCircuitValue(UInt64),
+  // primitive JS types
   number: {
     ...emptyType,
     toAuxiliary: (value = 0) => [value],
@@ -122,12 +130,6 @@ let ToJson: ToJson = {
       default: throw Error('Unexpected permission');
     }
   },
-  UInt32(x: UInt32) {
-    return x.value.toString();
-  },
-  UInt64(x: UInt64) {
-    return x.value.toString();
-  },
   TokenId(x: TokenId) {
     return Ledger.fieldToBase58(x);
   },
@@ -169,8 +171,6 @@ let ToFields: ToFields = {
       .map(asFields)
       .flat();
   },
-  UInt32: asFields,
-  UInt64: asFields,
   TokenId: asFields,
   Sign: asFields,
 };
@@ -194,8 +194,6 @@ let ToAuxiliary: ToAuxiliary = {
   Field: empty,
   Bool: empty,
   AuthRequired: empty,
-  UInt32: empty,
-  UInt64: empty,
   TokenId: empty,
   Sign: empty,
 };
@@ -217,8 +215,6 @@ let SizeInFields: SizeInFields = {
   Field: 1,
   Bool: 1,
   AuthRequired: 3,
-  UInt32: 1,
-  UInt64: 1,
   TokenId: 1,
   Sign: 1,
 };
@@ -269,12 +265,6 @@ let FromFields: FromFields = {
     let signatureSufficient = FromFields.Bool(fields, _);
     return { constant, signatureNecessary, signatureSufficient };
   },
-  UInt32(fields: Field[]) {
-    return new UInt32(fields.pop()!);
-  },
-  UInt64(fields: Field[]) {
-    return new UInt64(fields.pop()!);
-  },
   TokenId(fields: Field[]) {
     return fields.pop()!;
   },
@@ -306,8 +296,6 @@ let Check: Check = {
     Bool.check(x.signatureNecessary);
     Bool.check(x.signatureSufficient);
   },
-  UInt32: (v) => UInt32.check(v),
-  UInt64: (v) => UInt64.check(v),
   TokenId: (v) => Field.check(v),
   Sign: (v) => Sign.check(v),
 };
@@ -352,12 +340,6 @@ let ToInput: ToInput = {
   },
   Sign(x) {
     return { packed: [[x.isPositive().toField(), 1]] };
-  },
-  UInt32(x) {
-    return { packed: [[x.value, 32]] };
-  },
-  UInt64(x) {
-    return { packed: [[x.value, 64]] };
   },
 };
 

@@ -1,6 +1,7 @@
 import { Circuit, Field } from '../snarky';
 import { CircuitValue, prop } from './circuit_value';
 import { Types } from '../snarky/types';
+import { HashInput } from './hash';
 
 // external API
 export { UInt32, UInt64, Int64, Sign };
@@ -24,6 +25,12 @@ class UInt64 extends CircuitValue {
   static check(x: UInt64) {
     let actual = x.value.rangeCheckHelper(64);
     actual.assertEquals(x.value);
+  }
+  static toInput(x: UInt64): HashInput {
+    return { packed: [[x.value, 64]] };
+  }
+  static toJSON(x: UInt64) {
+    return x.value.toString();
   }
 
   private static checkConstant(x: Field) {
@@ -197,6 +204,12 @@ class UInt32 extends CircuitValue {
   static check(x: UInt32) {
     let actual = x.value.rangeCheckHelper(32);
     actual.assertEquals(x.value);
+  }
+  static toInput(x: UInt32): HashInput {
+    return { packed: [[x.value, 32]] };
+  }
+  static toJSON(x: UInt32) {
+    return x.value.toString();
   }
 
   private static checkConstant(x: Field) {
