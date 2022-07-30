@@ -140,7 +140,6 @@ abstract class CircuitValue {
     if (fields === undefined || fields === null) {
       return;
     }
-
     for (let i = 0; i < fields.length; ++i) {
       const [key, propType] = fields[i];
       const value = (v as any)[key];
@@ -440,7 +439,7 @@ function circuitValue<T>(
     return Object.fromEntries(objectKeys.map((k, i) => [k, values[i]]));
   }
   function check(typeObj: any, obj: any): void {
-    if (typeof typeObj !== 'object' || typeObj === null) return;
+    if (!complexTypes.has(typeof typeObj) || typeObj === null) return;
     if (Array.isArray(typeObj))
       return typeObj.forEach((t, i) => check(t, obj[i]));
     if ('check' in typeObj) return typeObj.check(obj);
