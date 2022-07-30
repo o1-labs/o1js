@@ -1,7 +1,8 @@
-import { Field, Bool, Group, Ledger, Circuit } from '../snarky';
+import { Group, Ledger, Circuit } from '../snarky';
+import { Field, Bool } from '../lib/core';
 import * as Json from './gen/parties-json';
 import { UInt32, UInt64, Sign } from '../lib/int';
-import { TokenSymbol, HashInput } from '../lib/hash';
+import { TokenSymbol } from '../lib/hash';
 import { PublicKey } from '../lib/signature';
 import {
   AsFieldsAndAux,
@@ -52,13 +53,6 @@ let emptyType = {
   toJSON: () => null,
 };
 
-const Bool_: AsFieldsExtended<Bool> = {
-  ...circuitValue<Bool>(Bool),
-  toInput(x) {
-    return { packed: [[x.toField(), 1]] };
-  },
-};
-
 const TokenId: AsFieldsExtended<TokenId> = {
   ...circuitValue<TokenId>(Field),
   toJSON(x: TokenId): Json.TokenId {
@@ -90,16 +84,6 @@ const AuthRequired: AsFieldsExtended<AuthRequired> = {
       case '001': return 'Either';
       default: throw Error('Unexpected permission');
     }
-  },
-  // TODO: this should be made automatic by putting toInput on Bool
-  toInput({ constant, signatureNecessary, signatureSufficient }) {
-    return {
-      packed: [
-        [constant.toField(), 1],
-        [signatureNecessary.toField(), 1],
-        [signatureSufficient.toField(), 1],
-      ],
-    };
   },
 };
 
@@ -146,8 +130,8 @@ let { fromCircuitValue } = AsFieldsAndAux;
 const TypeMap: {
   [K in keyof TypeMap]: AsFieldsAndAux<TypeMap[K], Json.TypeMap[K]>;
 } = {
-  Field: fromCircuitValue(circuitValue<Field>(Field)),
-  Bool: fromCircuitValue(Bool_),
+  Field: fromCircuitValue(Field),
+  Bool: fromCircuitValue(Bool),
   UInt32: fromCircuitValue(UInt32),
   UInt64: fromCircuitValue(UInt64),
   Sign: fromCircuitValue(Sign),

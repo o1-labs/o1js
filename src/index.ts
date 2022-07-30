@@ -1,6 +1,4 @@
 export {
-  Field,
-  Bool,
   Group,
   Scalar,
   AsFieldElements,
@@ -8,6 +6,7 @@ export {
   isReady,
   shutdown,
 } from './snarky';
+export { Field, Bool } from './lib/core';
 export type { VerificationKey, Keypair } from './snarky';
 export * from './snarky/addons';
 export { Poseidon } from './lib/hash';

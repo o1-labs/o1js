@@ -334,8 +334,7 @@ declare class Field {
   ): Bool;
   */
 
-  // static toJSON(x: Field): JSONValue;
-
+  static toJSON(x: Field): JSONValue;
   static fromJSON(x: JSONValue): Field | null;
 
   static fromString(x: string): Field;
@@ -343,6 +342,9 @@ declare class Field {
   static fromBigInt(x: bigint): Field;
 
   static check(x: Field): void;
+
+  // monkey-patched in JS
+  static toInput(x: Field): { fields: Field[] };
 }
 
 /**
@@ -465,6 +467,9 @@ declare class Bool {
   static toJSON(x: Bool): JSONValue;
   static fromJSON(x: JSONValue): Bool | null;
   static check(x: Bool): void;
+
+  // monkey-patched in JS
+  static toInput(x: Bool): { packed: [Field, number][] };
 }
 
 declare interface AsFieldElements<T> {

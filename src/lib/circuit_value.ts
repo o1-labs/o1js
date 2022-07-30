@@ -1,5 +1,6 @@
 import 'reflect-metadata';
-import { Circuit, Field, Bool, JSONValue, AsFieldElements } from '../snarky';
+import { Circuit, JSONValue, AsFieldElements } from '../snarky';
+import { Field, Bool } from './core';
 import { Context } from './global-context';
 import { HashInput } from './hash';
 import { snarkContext } from './proof_system';
