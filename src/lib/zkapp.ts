@@ -348,7 +348,7 @@ function wrapMethod(
         // then we're already in a witness block, and shouldn't open another one
         let { party, result } =
           methodCallDepth === 0
-            ? Party.witness(
+            ? Party.witness<any>(
                 returnType ?? circuitValue<null>(null),
                 runCalledContract,
                 true

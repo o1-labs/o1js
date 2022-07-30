@@ -122,6 +122,7 @@ const HashInput = {
     if (input2.packed !== undefined) {
       (input1.packed ??= []).push(...input2.packed);
     }
+    return input1;
   },
 };
 

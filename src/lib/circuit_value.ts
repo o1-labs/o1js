@@ -18,6 +18,7 @@ export {
 
 // internal API
 export {
+  AsFieldsExtended,
   AsFieldsAndAux,
   cloneCircuitValue,
   circuitValueEquals,
@@ -362,13 +363,18 @@ function circuitMain(
 let primitives = new Set(['Field', 'Bool', 'Scalar', 'Group']);
 let complexTypes = new Set(['object', 'function']);
 
+type AsFieldsExtended<T> = AsFieldElements<T> & {
+  toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
+  toJSON: (x: T) => JSONValue;
+};
+
 // TODO properly type this at the interface
 // create recursive type that describes JSON-like structures of circuit types
 // TODO unit-test this
 function circuitValue<T>(
   typeObj: any,
   options?: { customObjectKeys: string[] }
-): AsFieldElements<T> {
+): AsFieldsExtended<T> {
   let objectKeys =
     typeof typeObj === 'object' && typeObj !== null
       ? options?.customObjectKeys ?? Object.keys(typeObj).sort()
@@ -389,6 +395,30 @@ function circuitValue<T>(
       return typeObj.map((t, i) => toFields(t, obj[i])).flat();
     if ('toFields' in typeObj) return typeObj.toFields(obj);
     return objectKeys.map((k) => toFields(typeObj[k], obj[k])).flat();
+  }
+  function toInput(typeObj: any, obj: any): HashInput {
+    if (!complexTypes.has(typeof typeObj) || typeObj === null) return {};
+    if (Array.isArray(typeObj)) {
+      return typeObj
+        .map((t, i) => toInput(t, obj[i]))
+        .reduce(HashInput.append, {});
+    }
+    if ('toInput' in typeObj) return typeObj.toInput(obj) as HashInput;
+    if ('toFields' in typeObj) {
+      return { fields: typeObj.toFields(obj) };
+    }
+    return objectKeys
+      .map((k) => toInput(typeObj[k], obj[k]))
+      .reduce(HashInput.append, {});
+  }
+  function toJSON(typeObj: any, obj: any): JSONValue {
+    if (!complexTypes.has(typeof typeObj) || typeObj === null)
+      return obj ?? null;
+    if (Array.isArray(typeObj)) return typeObj.map((t, i) => toJSON(t, obj[i]));
+    if ('toJSON' in typeObj) return typeObj.toJSON(obj);
+    return Object.fromEntries(
+      objectKeys.map((k) => [k, toJSON(typeObj[k], obj[k])])
+    );
   }
   function ofFields(typeObj: any, fields: Field[]): any {
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return null;
@@ -419,6 +449,8 @@ function circuitValue<T>(
   return {
     sizeInFields: () => sizeInFields(typeObj),
     toFields: (obj: T) => toFields(typeObj, obj),
+    toInput: (obj: T) => toInput(typeObj, obj),
+    toJSON: (obj: T) => toJSON(typeObj, obj),
     ofFields: (fields: Field[]) => ofFields(typeObj, fields) as T,
     check: (obj: T) => check(typeObj, obj),
   };
@@ -618,10 +650,9 @@ type AsFieldsAndAux<T, TJson> = {
 };
 
 // convert from circuit values
-function fromCircuitValue<
-  T extends AnyConstructor & typeof CircuitValue,
-  TJson = JSONValue
->(type: T): AsFieldsAndAux<InstanceType<T>, TJson> {
+function fromCircuitValue<T, A extends AsFieldsExtended<T>, TJson = JSONValue>(
+  type: A
+): AsFieldsAndAux<T, TJson> {
   return {
     sizeInFields() {
       return type.sizeInFields();

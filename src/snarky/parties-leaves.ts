@@ -3,7 +3,11 @@ import * as Json from './gen/parties-json';
 import { UInt32, UInt64, Sign } from '../lib/int';
 import { TokenSymbol, HashInput } from '../lib/hash';
 import { PublicKey } from '../lib/signature';
-import { AsFieldsAndAux } from '../lib/circuit_value';
+import {
+  AsFieldsAndAux,
+  AsFieldsExtended,
+  circuitValue,
+} from '../lib/circuit_value';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
@@ -56,7 +60,8 @@ type FullTypesKey =
   | 'string'
   | 'UInt32'
   | 'UInt64'
-  | 'Sign';
+  | 'Sign'
+  | 'TokenId';
 type OtherTypesKey = Exclude<keyof TypeMap, FullTypesKey>;
 type FullTypes = {
   [K in FullTypesKey]: AsFieldsAndAux<TypeMap[K], Json.TypeMap[K]>;
@@ -72,10 +77,18 @@ let emptyType = {
   toJSON: () => null,
 };
 
+const TokenId: AsFieldsExtended<TokenId> = {
+  ...circuitValue<TokenId>(Field),
+  toJSON(x: TokenId) {
+    return Ledger.fieldToBase58(x);
+  },
+};
+
 const FullTypes: FullTypes = {
   UInt32: AsFieldsAndAux.fromCircuitValue(UInt32),
   UInt64: AsFieldsAndAux.fromCircuitValue(UInt64),
   Sign: AsFieldsAndAux.fromCircuitValue(Sign),
+  TokenId: AsFieldsAndAux.fromCircuitValue(TokenId),
   // primitive JS types
   number: {
     ...emptyType,
@@ -132,9 +145,6 @@ let ToJson: ToJson = {
       default: throw Error('Unexpected permission');
     }
   },
-  TokenId(x: TokenId) {
-    return Ledger.fieldToBase58(x);
-  },
 };
 
 function toJSON<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
@@ -168,7 +178,6 @@ let ToFields: ToFields = {
       .map(asFields)
       .flat();
   },
-  TokenId: asFields,
 };
 
 function toFields<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
@@ -190,7 +199,6 @@ let ToAuxiliary: ToAuxiliary = {
   Field: empty,
   Bool: empty,
   AuthRequired: empty,
-  TokenId: empty,
 };
 
 function toAuxiliary<K extends OtherTypesKey>(
@@ -210,7 +218,6 @@ let SizeInFields: SizeInFields = {
   Field: 1,
   Bool: 1,
   AuthRequired: 3,
-  TokenId: 1,
 };
 
 function sizeInFields<K extends OtherTypesKey>(typeName: K) {
@@ -259,9 +266,6 @@ let FromFields: FromFields = {
     let signatureSufficient = FromFields.Bool(fields, _);
     return { constant, signatureNecessary, signatureSufficient };
   },
-  TokenId(fields: Field[]) {
-    return fields.pop()!;
-  },
 };
 
 function fromFields<K extends OtherTypesKey>(
@@ -287,7 +291,6 @@ let Check: Check = {
     Bool.check(x.signatureNecessary);
     Bool.check(x.signatureSufficient);
   },
-  TokenId: (v) => Field.check(v),
 };
 
 function check<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
@@ -324,9 +327,6 @@ let ToInput: ToInput = {
         [signatureSufficient.toField(), 1],
       ],
     };
-  },
-  TokenId(x) {
-    return { fields: [x] };
   },
 };
 
