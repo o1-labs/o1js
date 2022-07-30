@@ -682,7 +682,7 @@ declare const Poseidon: {
     isChecked: boolean
   ): [Field, Field, Field];
   prefixes: Record<
-    'event' | 'events' | 'sequenceEvents' | 'partyCons' | 'partyNode',
+    'event' | 'events' | 'sequenceEvents' | 'body' | 'partyCons' | 'partyNode',
     string
   >;
   spongeCreate(isChecked: boolean): unknown;

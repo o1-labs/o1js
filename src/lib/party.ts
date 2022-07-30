@@ -22,6 +22,7 @@ import { inCheckedComputation, Proof, snarkContext } from './proof_system';
 import {
   emptyHashWithPrefix,
   hashWithPrefix,
+  packToFields,
   prefixes,
   TokenSymbol,
 } from './hash';
@@ -811,9 +812,14 @@ class Party implements Types.Party {
 
   hash() {
     // these two ways of hashing are (and have to be) consistent / produce the same hash
+    // TODO: there's no reason anymore to use two different hashing methods here!
+    // -- the "inCheckedComputation" branch works in all circumstances now
+    // we just leave this here for a couple more weeks, because it checks consistency between
+    // JS & OCaml hashing on *every single party proof* we create. It will give us 100%
+    // confidence that the two implementations are equivalent, and catch regressions quickly
     if (inCheckedComputation()) {
-      let fields = Types.Party.toFields(this);
-      return Ledger.hashPartyFromFields(fields);
+      let input = Types.Party.toInput(this);
+      return hashWithPrefix(prefixes.body, packToFields(input));
     } else {
       let json = Types.Party.toJson(this);
       return Ledger.hashPartyFromJson(JSON.stringify(json));
