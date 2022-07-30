@@ -1,4 +1,4 @@
-import * as Leaves from './parties-leaves';
+import { TypeMap } from './parties-leaves';
 import { Field, Bool, Circuit } from '../snarky';
 import { circuitArray, AsFieldsAndAux } from '../lib/circuit_value';
 import { HashInput } from 'lib/hash';
@@ -52,9 +52,6 @@ function toJSON(typeData: Layout, value: any, customTypes: CustomTypes) {
   return mapReduce<any, any>(
     {
       map(type, value) {
-        return Leaves.toJSON(type, value as never);
-      },
-      mapCustom(type, value) {
         return type.toJSON(value);
       },
       reduceArray(array) {
@@ -80,9 +77,6 @@ function toFields(typeData: Layout, value: any, customTypes: CustomTypes) {
   return mapReduce<any, Field[]>(
     {
       map(type, value) {
-        return Leaves.toFields(type, value as never);
-      },
-      mapCustom(type, value) {
         return type.toFields(value);
       },
       reduceArray(array) {
@@ -108,9 +102,6 @@ function toAuxiliary(typeData: Layout, value: any, customTypes: CustomTypes) {
   return mapReduce<any, any[]>(
     {
       map(type, value) {
-        return Leaves.toAuxiliary(type, value);
-      },
-      mapCustom(type, value) {
         return type.toAuxiliary(value);
       },
       reduceArray(array, { staticLength }) {
@@ -136,9 +127,6 @@ function toAuxiliary(typeData: Layout, value: any, customTypes: CustomTypes) {
 function sizeInFields(typeData: Layout, customTypes: CustomTypes) {
   let spec: MapReduceSpec<any, number> = {
     map(type) {
-      return Leaves.sizeInFields(type);
-    },
-    mapCustom(type) {
       return type.sizeInFields();
     },
     reduceArray(_, { inner, staticLength }): number {
@@ -218,19 +206,13 @@ function fromFieldsReversed(
     }
     return values;
   }
-  if (Leaves.isFullType(typeData.type)) {
-    return Leaves.FullTypes[typeData.type].fromFields(fields, aux);
-  }
-  return Leaves.fromFields(typeData.type, fields, aux);
+  return TypeMap[typeData.type].fromFields(fields, aux);
 }
 
 function check(typeData: Layout, value: any, customTypes: CustomTypes) {
   return mapReduce<any, void>(
     {
       map(type, value) {
-        return Leaves.check(type, value as never);
-      },
-      mapCustom(type, value) {
         return type.check(value);
       },
       reduceArray() {},
@@ -248,9 +230,6 @@ function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
   return mapReduce<any, HashInput>(
     {
       map(type, value) {
-        return Leaves.toInput(type, value as never);
-      },
-      mapCustom(type, value) {
         return type.toInput(value);
       },
       reduceArray(array) {
@@ -288,8 +267,7 @@ function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
 
 type MapReduceSpec<T, R> = {
   customTypes: CustomTypes;
-  map: (type: Leaves.OtherTypesKey, value?: T) => R;
-  mapCustom: (type: AsFieldsAndAux<any, any>, value?: T) => R;
+  map: (type: AsFieldsAndAux<any, any>, value?: T) => R;
   reduceArray: (array: R[], typeData: ArrayLayout) => R;
   reduceObject: (keys: string[], record: Record<string, R>) => R;
   reduceFlaggedOption: (option: { isSome: R; value: R }) => R;
@@ -304,7 +282,7 @@ function mapReduce<T, R>(
   let { checkedTypeName } = typeData;
   if (checkedTypeName) {
     // there's a custom type!
-    return spec.mapCustom(spec.customTypes[checkedTypeName], value);
+    return spec.map(spec.customTypes[checkedTypeName], value);
   }
   if (typeData.type === 'array') {
     let v: T[] | undefined = value as any;
@@ -319,7 +297,7 @@ function mapReduce<T, R>(
       case 'flaggedOption':
         let v: { isSome: T; value: T } | undefined = value as any;
         return spec.reduceFlaggedOption({
-          isSome: spec.mapCustom(Leaves.FullTypes.Bool, v?.isSome),
+          isSome: spec.map(TypeMap.Bool, v?.isSome),
           value: mapReduce(spec, inner, v?.value),
         });
       case 'orUndefined':
@@ -339,17 +317,14 @@ function mapReduce<T, R>(
     });
     return spec.reduceObject(keys, object);
   }
-  if (Leaves.isFullType(typeData.type)) {
-    return spec.mapCustom(Leaves.FullTypes[typeData.type], value);
-  }
-  return spec.map(typeData.type, value);
+  return spec.map(TypeMap[typeData.type], value);
 }
 
 // types
 
 type WithChecked = { checkedType?: Layout; checkedTypeName?: string };
 
-type BaseLayout = { type: keyof Leaves.TypeMap } & WithChecked;
+type BaseLayout = { type: keyof TypeMap } & WithChecked;
 
 type RangeLayout<T extends BaseLayout> = {
   type: 'object';

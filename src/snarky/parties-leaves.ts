@@ -13,19 +13,7 @@ export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
 export { Events, StringWithHash, TokenSymbol };
 
-export {
-  toJSON,
-  toFields,
-  toAuxiliary,
-  sizeInFields,
-  fromFields,
-  check,
-  toInput,
-  TypeMap,
-  OtherTypesKey,
-  isFullType,
-  FullTypes,
-};
+export { TypeMap };
 
 type AuthRequired = {
   constant: Bool;
@@ -53,23 +41,6 @@ type TypeMap = {
 
 // types that implement AsFieldAndAux, and so can be left out of the conversion maps below
 // sort of a "transposed" representation
-type FullTypesKey =
-  | 'number'
-  | 'null'
-  | 'undefined'
-  | 'string'
-  | 'Field'
-  | 'Bool'
-  | 'UInt32'
-  | 'UInt64'
-  | 'Sign'
-  | 'TokenId'
-  | 'AuthRequired'
-  | 'PublicKey';
-type OtherTypesKey = Exclude<keyof TypeMap, FullTypesKey>;
-type FullTypes = {
-  [K in FullTypesKey]: AsFieldsAndAux<TypeMap[K], Json.TypeMap[K]>;
-};
 
 let emptyType = {
   sizeInFields: () => 0,
@@ -172,7 +143,9 @@ const PublicKeyCompressed: AsFieldsExtended<PublicKey> = {
 
 let { fromCircuitValue } = AsFieldsAndAux;
 
-const FullTypes: FullTypes = {
+const TypeMap: {
+  [K in keyof TypeMap]: AsFieldsAndAux<TypeMap[K], Json.TypeMap[K]>;
+} = {
   Field: fromCircuitValue(circuitValue<Field>(Field)),
   Bool: fromCircuitValue(Bool_),
   UInt32: fromCircuitValue(UInt32),
@@ -201,112 +174,7 @@ const FullTypes: FullTypes = {
   },
 };
 
-function isFullType(type: keyof TypeMap): type is FullTypesKey {
-  return type in FullTypes;
-}
-
-// json conversion
-
-type ToJson = {
-  [K in OtherTypesKey]: (x: TypeMap[K]) => Json.TypeMap[K];
-};
-
-let ToJson: ToJson = {};
-
-function toJSON<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
-  if (!(typeName in ToJson))
-    throw Error(`toJSON: unsupported type "${typeName}"`);
-  return ToJson[typeName](value);
-}
-
-// to fields
-
-type ToFields = { [K in OtherTypesKey]: (x: TypeMap[K]) => Field[] };
-
-let ToFields: ToFields = {};
-
-function toFields<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
-  if (!(typeName in ToFields))
-    throw Error(`toFields: unsupported type "${typeName}"`);
-  return ToFields[typeName](value);
-}
-
-// to auxiliary
-
-type ToAuxiliary = {
-  [K in OtherTypesKey]:
-    | ((x: TypeMap[K] | undefined) => [])
-    | ((x: TypeMap[K] | undefined) => [TypeMap[K]]);
-};
-
-let ToAuxiliary: ToAuxiliary = {};
-
-function toAuxiliary<K extends OtherTypesKey>(
-  typeName: K,
-  value: TypeMap[K] | undefined
-) {
-  if (!(typeName in ToFields))
-    throw Error(`toAuxiliary: unsupported type "${typeName}"`);
-  return ToAuxiliary[typeName](value);
-}
-
-// size in fields
-
-type SizeInFields = { [K in OtherTypesKey]: number };
-let SizeInFields: SizeInFields = {};
-
-function sizeInFields<K extends OtherTypesKey>(typeName: K) {
-  if (!(typeName in ToFields))
-    throw Error(`sizeInFields: unsupported type "${typeName}"`);
-  return SizeInFields[typeName];
-}
-
-// from fields & aux
-// these functions get the reversed output of `toFields` and `toAuxiliary` and pop the values they need from those arrays
-
-type FromFields = {
-  [K in OtherTypesKey]: (fields: Field[], aux: any[]) => TypeMap[K];
-};
-
-let FromFields: FromFields = {};
-
-function fromFields<K extends OtherTypesKey>(
-  typeName: K,
-  fields: Field[],
-  aux: any[]
-): TypeMap[K] {
-  if (!(typeName in ToFields))
-    throw Error(`fromFields: unsupported type "${typeName}"`);
-  return FromFields[typeName](fields, aux);
-}
-
-// check
-
-type Check = { [K in OtherTypesKey]: (x: TypeMap[K]) => void };
-
-let Check: Check = {};
-
-function check<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
-  if (!(typeName in ToFields))
-    throw Error(`check: unsupported type "${typeName}"`);
-  Check[typeName](value);
-}
-
-// to input
-
-type ToInput = {
-  [K in OtherTypesKey]: (x: TypeMap[K]) => HashInput;
-};
-
-let ToInput: ToInput = {};
-
-function toInput<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
-  if (!(typeName in ToFields))
-    throw Error(`toInput: unsupported type "${typeName}"`);
-  return ToInput[typeName](value);
-}
-
-// converters for types which got an annotation about its circuit type in Ocaml
+// types which got an annotation about its circuit type in Ocaml
 
 type DataAsHash<T> = { data: T; hash: Field };
 
