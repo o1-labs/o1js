@@ -62,7 +62,8 @@ type FullTypesKey =
   | 'UInt64'
   | 'Sign'
   | 'TokenId'
-  | 'AuthRequired';
+  | 'AuthRequired'
+  | 'PublicKey';
 type OtherTypesKey = Exclude<keyof TypeMap, FullTypesKey>;
 type FullTypes = {
   [K in FullTypesKey]: AsFieldsAndAux<TypeMap[K], Json.TypeMap[K]>;
@@ -80,11 +81,12 @@ let emptyType = {
 
 const TokenId: AsFieldsExtended<TokenId> = {
   ...circuitValue<TokenId>(Field),
-  toJSON(x: TokenId) {
+  toJSON(x: TokenId): Json.TokenId {
     return Ledger.fieldToBase58(x);
   },
 };
-let AuthRequired: AsFieldsExtended<AuthRequired> = {
+
+const AuthRequired: AsFieldsExtended<AuthRequired> = {
   ...circuitValue<AuthRequired>(
     { constant: Bool, signatureNecessary: Bool, signatureSufficient: Bool },
     {
@@ -95,7 +97,7 @@ let AuthRequired: AsFieldsExtended<AuthRequired> = {
       ],
     }
   ),
-  toJSON(x) {
+  toJSON(x): Json.AuthRequired {
     let c = Number(x.constant.toBoolean());
     let n = Number(x.signatureNecessary.toBoolean());
     let s = Number(x.signatureSufficient.toBoolean());
@@ -121,12 +123,51 @@ let AuthRequired: AsFieldsExtended<AuthRequired> = {
   },
 };
 
+const PublicKeyCompressed: AsFieldsExtended<PublicKey> = {
+  ...circuitValue<PublicKey>(PublicKey),
+  toJSON(x): Json.PublicKey {
+    return Ledger.publicKeyToString(x);
+  },
+  toFields({ g }: PublicKey) {
+    let { x, y } = g;
+    // TODO inefficient! in-snark public key should be uncompressed
+    let isOdd = y.toBits()[0];
+    return [x, isOdd.toField()];
+  },
+  ofFields([x, isOdd]) {
+    // compute y from elliptic curve equation y^2 = x^3 + 5
+    // TODO: this is used in-snark, so we should improve constraint efficiency
+    let ySquared = x.mul(x).mul(x).add(5);
+    let someY: Field;
+    if (ySquared.isConstant()) {
+      someY = ySquared.sqrt();
+    } else {
+      someY = Circuit.witness(Field, () => ySquared.toConstant().sqrt());
+      someY.square().equals(ySquared).or(x.equals(Field.zero)).assertTrue();
+    }
+    let isTheRightY = isOdd.equals(someY.toBits()[0].toField());
+    let y = isTheRightY
+      .toField()
+      .mul(someY)
+      .add(isTheRightY.not().toField().mul(someY.neg()));
+    return new PublicKey(new Group(x, y));
+  },
+  toInput(pk) {
+    let [x, isOdd] = this.toFields(pk);
+    return {
+      fields: [x],
+      packed: [[isOdd, 1]],
+    };
+  },
+};
+
 const FullTypes: FullTypes = {
   UInt32: AsFieldsAndAux.fromCircuitValue(UInt32),
   UInt64: AsFieldsAndAux.fromCircuitValue(UInt64),
   Sign: AsFieldsAndAux.fromCircuitValue(Sign),
   TokenId: AsFieldsAndAux.fromCircuitValue(TokenId),
   AuthRequired: AsFieldsAndAux.fromCircuitValue(AuthRequired),
+  PublicKey: AsFieldsAndAux.fromCircuitValue(PublicKeyCompressed),
   // primitive JS types
   number: {
     ...emptyType,
@@ -162,9 +203,6 @@ type ToJson = {
 };
 
 let ToJson: ToJson = {
-  PublicKey(x: PublicKey): Json.PublicKey {
-    return Ledger.publicKeyToString(x);
-  },
   Field: asString,
   Bool(x: Bool) {
     return x.toBoolean();
@@ -189,12 +227,6 @@ function empty(_: any): [] {
 }
 
 let ToFields: ToFields = {
-  PublicKey({ g }: PublicKey) {
-    let { x, y } = g;
-    // TODO inefficient! in-snark public key should be uncompressed
-    let isOdd = y.toBits()[0];
-    return [x, isOdd.toField()];
-  },
   Field: asFields,
   Bool: asFields,
 };
@@ -214,7 +246,6 @@ type ToAuxiliary = {
 };
 
 let ToAuxiliary: ToAuxiliary = {
-  PublicKey: empty,
   Field: empty,
   Bool: empty,
 };
@@ -232,7 +263,6 @@ function toAuxiliary<K extends OtherTypesKey>(
 
 type SizeInFields = { [K in OtherTypesKey]: number };
 let SizeInFields: SizeInFields = {
-  PublicKey: 2,
   Field: 1,
   Bool: 1,
 };
@@ -251,26 +281,6 @@ type FromFields = {
 };
 
 let FromFields: FromFields = {
-  PublicKey(fields: Field[]) {
-    let x = fields.pop()!;
-    let isOdd = fields.pop()!;
-    // compute y from elliptic curve equation y^2 = x^3 + 5
-    // TODO: this is used in-snark, so we should improve constraint efficiency
-    let ySquared = x.mul(x).mul(x).add(5);
-    let someY: Field;
-    if (ySquared.isConstant()) {
-      someY = ySquared.sqrt();
-    } else {
-      someY = Circuit.witness(Field, () => ySquared.toConstant().sqrt());
-      someY.square().equals(ySquared).or(x.equals(Field.zero)).assertTrue();
-    }
-    let isTheRightY = isOdd.equals(someY.toBits()[0].toField());
-    let y = isTheRightY
-      .toField()
-      .mul(someY)
-      .add(isTheRightY.not().toField().mul(someY.neg()));
-    return new PublicKey(new Group(x, y));
-  },
   Field(fields: Field[]) {
     return fields.pop()!;
   },
@@ -294,7 +304,6 @@ function fromFields<K extends OtherTypesKey>(
 type Check = { [K in OtherTypesKey]: (x: TypeMap[K]) => void };
 
 let Check: Check = {
-  PublicKey: (v) => PublicKey.check(v),
   Field: (v) => Field.check(v),
   Bool: (v) => Bool.check(v),
 };
@@ -312,13 +321,6 @@ type ToInput = {
 };
 
 let ToInput: ToInput = {
-  PublicKey(pk) {
-    let [x, isOdd] = ToFields.PublicKey(pk);
-    return {
-      fields: [x],
-      packed: [[isOdd, 1]],
-    };
-  },
   Field(x) {
     return { fields: [x] };
   },
