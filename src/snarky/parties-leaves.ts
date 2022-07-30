@@ -55,7 +55,8 @@ type FullTypesKey =
   | 'undefined'
   | 'string'
   | 'UInt32'
-  | 'UInt64';
+  | 'UInt64'
+  | 'Sign';
 type OtherTypesKey = Exclude<keyof TypeMap, FullTypesKey>;
 type FullTypes = {
   [K in FullTypesKey]: AsFieldsAndAux<TypeMap[K], Json.TypeMap[K]>;
@@ -74,6 +75,7 @@ let emptyType = {
 const FullTypes: FullTypes = {
   UInt32: AsFieldsAndAux.fromCircuitValue(UInt32),
   UInt64: AsFieldsAndAux.fromCircuitValue(UInt64),
+  Sign: AsFieldsAndAux.fromCircuitValue(Sign),
   // primitive JS types
   number: {
     ...emptyType,
@@ -133,11 +135,6 @@ let ToJson: ToJson = {
   TokenId(x: TokenId) {
     return Ledger.fieldToBase58(x);
   },
-  Sign(x: Sign) {
-    if (x.toString() === '1') return 'Positive';
-    if (x.neg().toString() === '1') return 'Negative';
-    throw Error(`Invalid Sign: ${x}`);
-  },
 };
 
 function toJSON<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
@@ -172,7 +169,6 @@ let ToFields: ToFields = {
       .flat();
   },
   TokenId: asFields,
-  Sign: asFields,
 };
 
 function toFields<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
@@ -195,7 +191,6 @@ let ToAuxiliary: ToAuxiliary = {
   Bool: empty,
   AuthRequired: empty,
   TokenId: empty,
-  Sign: empty,
 };
 
 function toAuxiliary<K extends OtherTypesKey>(
@@ -216,7 +211,6 @@ let SizeInFields: SizeInFields = {
   Bool: 1,
   AuthRequired: 3,
   TokenId: 1,
-  Sign: 1,
 };
 
 function sizeInFields<K extends OtherTypesKey>(typeName: K) {
@@ -268,9 +262,6 @@ let FromFields: FromFields = {
   TokenId(fields: Field[]) {
     return fields.pop()!;
   },
-  Sign(fields: Field[]) {
-    return new Sign(fields.pop()!);
-  },
 };
 
 function fromFields<K extends OtherTypesKey>(
@@ -297,7 +288,6 @@ let Check: Check = {
     Bool.check(x.signatureSufficient);
   },
   TokenId: (v) => Field.check(v),
-  Sign: (v) => Sign.check(v),
 };
 
 function check<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
@@ -337,9 +327,6 @@ let ToInput: ToInput = {
   },
   TokenId(x) {
     return { fields: [x] };
-  },
-  Sign(x) {
-    return { packed: [[x.isPositive().toField(), 1]] };
   },
 };
 

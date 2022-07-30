@@ -350,6 +350,14 @@ class Sign extends CircuitValue {
     // x^2 == 1  <=>  x == 1 or x == -1
     x.value.square().assertEquals(Field.one);
   }
+  static toInput(x: Sign): HashInput {
+    return { packed: [[x.isPositive().toField(), 1]] };
+  }
+  static toJSON(x: Sign) {
+    if (x.toString() === '1') return 'Positive';
+    if (x.neg().toString() === '1') return 'Negative';
+    throw Error(`Invalid Sign: ${x}`);
+  }
   neg() {
     return new Sign(this.value.neg());
   }
