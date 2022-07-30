@@ -61,7 +61,8 @@ type FullTypesKey =
   | 'UInt32'
   | 'UInt64'
   | 'Sign'
-  | 'TokenId';
+  | 'TokenId'
+  | 'AuthRequired';
 type OtherTypesKey = Exclude<keyof TypeMap, FullTypesKey>;
 type FullTypes = {
   [K in FullTypesKey]: AsFieldsAndAux<TypeMap[K], Json.TypeMap[K]>;
@@ -83,12 +84,49 @@ const TokenId: AsFieldsExtended<TokenId> = {
     return Ledger.fieldToBase58(x);
   },
 };
+let AuthRequired: AsFieldsExtended<AuthRequired> = {
+  ...circuitValue<AuthRequired>(
+    { constant: Bool, signatureNecessary: Bool, signatureSufficient: Bool },
+    {
+      customObjectKeys: [
+        'constant',
+        'signatureNecessary',
+        'signatureSufficient',
+      ],
+    }
+  ),
+  toJSON(x) {
+    let c = Number(x.constant.toBoolean());
+    let n = Number(x.signatureNecessary.toBoolean());
+    let s = Number(x.signatureSufficient.toBoolean());
+    // prettier-ignore
+    switch (`${c}${n}${s}`) {
+      case '110': return 'Impossible';
+      case '101': return 'None';
+      case '000': return 'Proof';
+      case '011': return 'Signature';
+      case '001': return 'Either';
+      default: throw Error('Unexpected permission');
+    }
+  },
+  // TODO: this should be made automatic by putting toInput on Bool
+  toInput({ constant, signatureNecessary, signatureSufficient }) {
+    return {
+      packed: [
+        [constant.toField(), 1],
+        [signatureNecessary.toField(), 1],
+        [signatureSufficient.toField(), 1],
+      ],
+    };
+  },
+};
 
 const FullTypes: FullTypes = {
   UInt32: AsFieldsAndAux.fromCircuitValue(UInt32),
   UInt64: AsFieldsAndAux.fromCircuitValue(UInt64),
   Sign: AsFieldsAndAux.fromCircuitValue(Sign),
   TokenId: AsFieldsAndAux.fromCircuitValue(TokenId),
+  AuthRequired: AsFieldsAndAux.fromCircuitValue(AuthRequired),
   // primitive JS types
   number: {
     ...emptyType,
@@ -131,20 +169,6 @@ let ToJson: ToJson = {
   Bool(x: Bool) {
     return x.toBoolean();
   },
-  AuthRequired(x: AuthRequired) {
-    let c = Number(x.constant.toBoolean());
-    let n = Number(x.signatureNecessary.toBoolean());
-    let s = Number(x.signatureSufficient.toBoolean());
-    // prettier-ignore
-    switch (`${c}${n}${s}`) {
-      case '110': return 'Impossible';
-      case '101': return 'None';
-      case '000': return 'Proof';
-      case '011': return 'Signature';
-      case '001': return 'Either';
-      default: throw Error('Unexpected permission');
-    }
-  },
 };
 
 function toJSON<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
@@ -173,11 +197,6 @@ let ToFields: ToFields = {
   },
   Field: asFields,
   Bool: asFields,
-  AuthRequired(x: AuthRequired) {
-    return [x.constant, x.signatureNecessary, x.signatureSufficient]
-      .map(asFields)
-      .flat();
-  },
 };
 
 function toFields<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
@@ -198,7 +217,6 @@ let ToAuxiliary: ToAuxiliary = {
   PublicKey: empty,
   Field: empty,
   Bool: empty,
-  AuthRequired: empty,
 };
 
 function toAuxiliary<K extends OtherTypesKey>(
@@ -217,7 +235,6 @@ let SizeInFields: SizeInFields = {
   PublicKey: 2,
   Field: 1,
   Bool: 1,
-  AuthRequired: 3,
 };
 
 function sizeInFields<K extends OtherTypesKey>(typeName: K) {
@@ -260,12 +277,6 @@ let FromFields: FromFields = {
   Bool(fields: Field[]) {
     return Bool.Unsafe.ofField(fields.pop()!);
   },
-  AuthRequired(fields: Field[], _) {
-    let constant = FromFields.Bool(fields, _);
-    let signatureNecessary = FromFields.Bool(fields, _);
-    let signatureSufficient = FromFields.Bool(fields, _);
-    return { constant, signatureNecessary, signatureSufficient };
-  },
 };
 
 function fromFields<K extends OtherTypesKey>(
@@ -286,11 +297,6 @@ let Check: Check = {
   PublicKey: (v) => PublicKey.check(v),
   Field: (v) => Field.check(v),
   Bool: (v) => Bool.check(v),
-  AuthRequired(x: AuthRequired) {
-    Bool.check(x.constant);
-    Bool.check(x.signatureNecessary);
-    Bool.check(x.signatureSufficient);
-  },
 };
 
 function check<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
@@ -318,15 +324,6 @@ let ToInput: ToInput = {
   },
   Bool(x) {
     return { packed: [[x.toField(), 1]] };
-  },
-  AuthRequired({ constant, signatureNecessary, signatureSufficient }) {
-    return {
-      packed: [
-        [constant.toField(), 1],
-        [signatureNecessary.toField(), 1],
-        [signatureSufficient.toField(), 1],
-      ],
-    };
   },
 };
 
