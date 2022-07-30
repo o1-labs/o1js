@@ -288,7 +288,7 @@ function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
 
 type MapReduceSpec<T, R> = {
   customTypes: CustomTypes;
-  map: (type: keyof Leaves.TypeMap, value?: T) => R;
+  map: (type: Leaves.OtherTypesKey, value?: T) => R;
   mapCustom: (type: AsFieldsAndAux<any, any>, value?: T) => R;
   reduceArray: (array: R[], typeData: ArrayLayout) => R;
   reduceObject: (keys: string[], record: Record<string, R>) => R;

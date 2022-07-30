@@ -18,6 +18,7 @@ export {
   check,
   toInput,
   TypeMap,
+  OtherTypesKey,
   isFullType,
   FullTypes,
 };
@@ -91,15 +92,12 @@ function isFullType(type: keyof TypeMap): type is FullTypesKey {
 
 // json conversion
 
-function identity(x: any) {
-  return x;
-}
 function asString(x: Field | bigint) {
   return x.toString();
 }
 
 type ToJson = {
-  [K in keyof TypeMap]: (x: TypeMap[K]) => Json.TypeMap[K];
+  [K in OtherTypesKey]: (x: TypeMap[K]) => Json.TypeMap[K];
 };
 
 let ToJson: ToJson = {
@@ -138,16 +136,9 @@ let ToJson: ToJson = {
     if (x.neg().toString() === '1') return 'Negative';
     throw Error(`Invalid Sign: ${x}`);
   },
-  // builtin
-  number: identity,
-  null: identity,
-  undefined(_: undefined) {
-    return null;
-  },
-  string: identity,
 };
 
-function toJson<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
+function toJson<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
   if (!(typeName in ToJson))
     throw Error(`toJson: unsupported type "${typeName}"`);
   return ToJson[typeName](value);
@@ -155,7 +146,7 @@ function toJson<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
 
 // to fields
 
-type ToFields = { [K in keyof TypeMap]: (x: TypeMap[K]) => Field[] };
+type ToFields = { [K in OtherTypesKey]: (x: TypeMap[K]) => Field[] };
 
 function asFields(x: any): Field[] {
   return x.toFields();
@@ -182,14 +173,9 @@ let ToFields: ToFields = {
   UInt64: asFields,
   TokenId: asFields,
   Sign: asFields,
-  // builtin
-  number: empty,
-  null: empty,
-  undefined: empty,
-  string: empty,
 };
 
-function toFields<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
+function toFields<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
   if (!(typeName in ToFields))
     throw Error(`toFields: unsupported type "${typeName}"`);
   return ToFields[typeName](value);
@@ -198,7 +184,7 @@ function toFields<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
 // to auxiliary
 
 type ToAuxiliary = {
-  [K in keyof TypeMap]:
+  [K in OtherTypesKey]:
     | ((x: TypeMap[K] | undefined) => [])
     | ((x: TypeMap[K] | undefined) => [TypeMap[K]]);
 };
@@ -212,14 +198,9 @@ let ToAuxiliary: ToAuxiliary = {
   UInt64: empty,
   TokenId: empty,
   Sign: empty,
-  // builtin
-  number: (x = 0) => [x],
-  null: empty,
-  undefined: empty,
-  string: (x = '') => [x],
 };
 
-function toAuxiliary<K extends keyof TypeMap>(
+function toAuxiliary<K extends OtherTypesKey>(
   typeName: K,
   value: TypeMap[K] | undefined
 ) {
@@ -230,7 +211,7 @@ function toAuxiliary<K extends keyof TypeMap>(
 
 // size in fields
 
-type SizeInFields = { [K in keyof TypeMap]: number };
+type SizeInFields = { [K in OtherTypesKey]: number };
 let SizeInFields: SizeInFields = {
   PublicKey: 2,
   Field: 1,
@@ -240,14 +221,9 @@ let SizeInFields: SizeInFields = {
   UInt64: 1,
   TokenId: 1,
   Sign: 1,
-  // builtin
-  number: 0,
-  null: 0,
-  undefined: 0,
-  string: 0,
 };
 
-function sizeInFields<K extends keyof TypeMap>(typeName: K) {
+function sizeInFields<K extends OtherTypesKey>(typeName: K) {
   if (!(typeName in ToFields))
     throw Error(`sizeInFields: unsupported type "${typeName}"`);
   return SizeInFields[typeName];
@@ -257,12 +233,8 @@ function sizeInFields<K extends keyof TypeMap>(typeName: K) {
 // these functions get the reversed output of `toFields` and `toAuxiliary` and pop the values they need from those arrays
 
 type FromFields = {
-  [K in keyof TypeMap]: (fields: Field[], aux: any[]) => TypeMap[K];
+  [K in OtherTypesKey]: (fields: Field[], aux: any[]) => TypeMap[K];
 };
-
-function takeOneAux(_: Field[], aux: any[]) {
-  return aux.pop()!;
-}
 
 let FromFields: FromFields = {
   PublicKey(fields: Field[]) {
@@ -309,14 +281,9 @@ let FromFields: FromFields = {
   Sign(fields: Field[]) {
     return new Sign(fields.pop()!);
   },
-  // builtin
-  number: takeOneAux,
-  null: () => null,
-  undefined: () => undefined,
-  string: takeOneAux,
 };
 
-function fromFields<K extends keyof TypeMap>(
+function fromFields<K extends OtherTypesKey>(
   typeName: K,
   fields: Field[],
   aux: any[]
@@ -328,9 +295,7 @@ function fromFields<K extends keyof TypeMap>(
 
 // check
 
-type Check = { [K in keyof TypeMap]: (x: TypeMap[K]) => void };
-
-function none() {}
+type Check = { [K in OtherTypesKey]: (x: TypeMap[K]) => void };
 
 let Check: Check = {
   PublicKey: (v) => PublicKey.check(v),
@@ -345,14 +310,9 @@ let Check: Check = {
   UInt64: (v) => UInt64.check(v),
   TokenId: (v) => Field.check(v),
   Sign: (v) => Sign.check(v),
-  // builtin
-  number: none,
-  null: none,
-  undefined: none,
-  string: none,
 };
 
-function check<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
+function check<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
   if (!(typeName in ToFields))
     throw Error(`check: unsupported type "${typeName}"`);
   Check[typeName](value);
@@ -361,12 +321,8 @@ function check<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
 // to input
 
 type ToInput = {
-  [K in keyof TypeMap]: (x: TypeMap[K]) => HashInput;
+  [K in OtherTypesKey]: (x: TypeMap[K]) => HashInput;
 };
-
-function emptyInput(_: any): HashInput {
-  return {};
-}
 
 let ToInput: ToInput = {
   PublicKey(pk) {
@@ -403,14 +359,9 @@ let ToInput: ToInput = {
   UInt64(x) {
     return { packed: [[x.value, 64]] };
   },
-  // builtin
-  number: emptyInput,
-  null: emptyInput,
-  undefined: emptyInput,
-  string: emptyInput,
 };
 
-function toInput<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
+function toInput<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
   if (!(typeName in ToFields))
     throw Error(`toInput: unsupported type "${typeName}"`);
   return ToInput[typeName](value);
