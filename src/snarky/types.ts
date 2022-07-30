@@ -3,7 +3,6 @@ import { customTypes } from './gen/parties';
 
 export * as Types from './gen/parties';
 export { jsLayout } from './gen/js-layout';
-export { AsFieldsAndAux } from './parties-helpers';
 
 export { asFieldsAndAux };
 

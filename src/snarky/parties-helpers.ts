@@ -1,18 +1,10 @@
 import * as Leaves from './parties-leaves';
 import { Field, Bool, Circuit } from '../snarky';
-import { circuitArray } from '../lib/circuit_value';
+import { circuitArray, AsFieldsAndAux } from '../lib/circuit_value';
+import { HashInput } from 'lib/hash';
 
 export { asFieldsAndAux, Layout, AsFieldsAndAux };
 
-type AsFieldsAndAux<T, TJson> = {
-  sizeInFields(): number;
-  toFields(value: T): Field[];
-  toAuxiliary(value?: T): any[];
-  fromFields(fields: Field[], aux: any[]): T;
-  toJson(value: T): TJson;
-  check(value: T): void;
-  toInput(value: T): Leaves.Input;
-};
 type CustomTypes = Record<string, AsFieldsAndAux<any, any>>;
 
 function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
@@ -35,7 +27,7 @@ function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
     check(value: T): void {
       check(typeData, value, customTypes);
     },
-    toInput(value: T): Leaves.Input {
+    toInput(value: T): HashInput {
       return toInput(typeData, value, customTypes);
     },
     witness(f: () => T): T {
@@ -226,6 +218,9 @@ function fromFieldsReversed(
     }
     return values;
   }
+  if (Leaves.isFullType(typeData.type)) {
+    return Leaves.FullTypes[typeData.type].fromFields(fields, aux);
+  }
   return Leaves.fromFields(typeData.type, fields, aux);
 }
 
@@ -250,7 +245,7 @@ function check(typeData: Layout, value: any, customTypes: CustomTypes) {
 }
 
 function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
-  return mapReduce<any, Leaves.Input>(
+  return mapReduce<any, HashInput>(
     {
       map(type, value) {
         return Leaves.toInput(type, value);
@@ -259,7 +254,7 @@ function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
         return type.toInput(value);
       },
       reduceArray(array) {
-        let acc: Leaves.Input = { fields: [], packed: [] };
+        let acc: HashInput = { fields: [], packed: [] };
         for (let { fields, packed } of array) {
           if (fields) acc.fields!.push(...fields);
           if (packed) acc.packed!.push(...packed);
@@ -267,7 +262,7 @@ function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
         return acc;
       },
       reduceObject(keys, object) {
-        let acc: Leaves.Input = { fields: [], packed: [] };
+        let acc: HashInput = { fields: [], packed: [] };
         for (let key of keys) {
           let { fields, packed } = object[key];
           if (fields) acc.fields!.push(...fields);
@@ -343,6 +338,9 @@ function mapReduce<T, R>(
       object[key] = mapReduce(spec, entries[key], v?.[key]);
     });
     return spec.reduceObject(keys, object);
+  }
+  if (Leaves.isFullType(typeData.type)) {
+    return spec.mapCustom(Leaves.FullTypes[typeData.type], value);
   }
   return spec.map(typeData.type, value);
 }

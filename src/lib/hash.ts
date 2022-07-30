@@ -1,4 +1,4 @@
-import { AsFieldsAndAux } from '../snarky/parties-helpers';
+import { AsFieldsAndAux } from './circuit_value';
 import { Poseidon as Poseidon_, Field } from '../snarky';
 import { inCheckedComputation } from './proof_system';
 
@@ -7,6 +7,7 @@ export { Poseidon };
 
 // internal API
 export {
+  HashInput,
   prefixes,
   emptyHashWithPrefix,
   hashWithPrefix,
@@ -91,7 +92,7 @@ function prefixToField(prefix: string) {
  * Convert the {fields, packed} hash input representation to a list of field elements
  * Random_oracle_input.Chunked.pack_to_fields
  */
-function packToFields({ fields = [], packed = [] }: Input) {
+function packToFields({ fields = [], packed = [] }: HashInput) {
   if (packed.length === 0) return fields;
   let packedBits = [];
   let currentPackedField = Field.zero;
@@ -112,7 +113,17 @@ function packToFields({ fields = [], packed = [] }: Input) {
   return fields.concat(packedBits);
 }
 
-type Input = { fields?: Field[]; packed?: [Field, number][] };
+type HashInput = { fields?: Field[]; packed?: [Field, number][] };
+const HashInput = {
+  append(input1: HashInput, input2: HashInput) {
+    if (input2.fields !== undefined) {
+      (input1.fields ??= []).push(...input2.fields);
+    }
+    if (input2.packed !== undefined) {
+      (input1.packed ??= []).push(...input2.packed);
+    }
+  },
+};
 
 type TokenSymbol = { symbol: string; field: Field };
 

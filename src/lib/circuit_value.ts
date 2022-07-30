@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { Circuit, Field, Bool, JSONValue, AsFieldElements } from '../snarky';
 import { Context } from './global-context';
+import { HashInput } from './hash';
 import { snarkContext } from './proof_system';
 
 // external API
@@ -17,6 +18,7 @@ export {
 
 // internal API
 export {
+  AsFieldsAndAux,
   cloneCircuitValue,
   circuitValueEquals,
   circuitArray,
@@ -57,17 +59,38 @@ abstract class CircuitValue {
     v: InstanceType<T>
   ): Field[] {
     const res: Field[] = [];
-    const fields = (this as any).prototype._fields;
+    const fields = this.prototype._fields;
     if (fields === undefined || fields === null) {
       return res;
     }
-
     for (let i = 0, n = fields.length; i < n; ++i) {
       const [key, propType] = fields[i];
       const subElts: Field[] = propType.toFields((v as any)[key]);
       subElts.forEach((x) => res.push(x));
     }
     return res;
+  }
+
+  static toInput<T extends AnyConstructor>(
+    this: T,
+    v: InstanceType<T>
+  ): HashInput {
+    let input: HashInput = { fields: [], packed: [] };
+    let fields = this.prototype._fields;
+    if (fields === undefined) return input;
+    for (let i = 0, n = fields.length; i < n; ++i) {
+      let [key, type] = fields[i];
+      if ('toInput' in type) {
+        HashInput.append(input, type.toInput(v[key]));
+        continue;
+      }
+      // as a fallback, use toFields on the type
+      // TODO: this is problematic -- ignores if there's a toInput on a nested type
+      // so, remove this? should every circuit value define toInput?
+      let xs: Field[] = type.toFields(v[key]);
+      input.fields!.push(...xs);
+    }
+    return input;
   }
 
   toFields(): Field[] {
@@ -581,3 +604,48 @@ function getBlindingValue() {
   }
   return context.blindingValue;
 }
+
+// "complex" circuit values which have auxiliary data, and have to be hashed
+
+type AsFieldsAndAux<T, TJson> = {
+  sizeInFields(): number;
+  toFields(value: T): Field[];
+  toAuxiliary(value?: T): any[];
+  fromFields(fields: Field[], aux: any[]): T;
+  toJson(value: T): TJson;
+  check(value: T): void;
+  toInput(value: T): HashInput;
+};
+
+// convert from circuit values
+function fromCircuitValue<T extends AnyConstructor & typeof CircuitValue>(
+  type: T
+): AsFieldsAndAux<InstanceType<T>, JSONValue> {
+  return {
+    sizeInFields() {
+      return type.sizeInFields();
+    },
+    toFields(value) {
+      return type.toFields(value);
+    },
+    toAuxiliary(_) {
+      return [];
+    },
+    fromFields(fields) {
+      return type.ofFields(fields);
+    },
+    check(value) {
+      type.check(value);
+    },
+    toInput(value) {
+      return type.toInput(value);
+    },
+    toJson(value) {
+      return type.toJSON(value);
+    },
+  };
+}
+
+const AsFieldsAndAux = {
+  fromCircuitValue,
+};

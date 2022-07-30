@@ -1,9 +1,9 @@
 import { Field, Bool, Group, Ledger, Circuit } from '../snarky';
 import * as Json from './gen/parties-json';
 import { UInt32, UInt64, Sign } from '../lib/int';
-import { TokenSymbol } from '../lib/hash';
+import { TokenSymbol, HashInput } from '../lib/hash';
 import { PublicKey } from '../lib/signature';
-import { AsFieldsAndAux } from './parties-helpers';
+import { AsFieldsAndAux } from '../lib/circuit_value';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
@@ -18,7 +18,8 @@ export {
   check,
   toInput,
   TypeMap,
-  Input,
+  isFullType,
+  FullTypes,
 };
 
 type AuthRequired = {
@@ -44,6 +45,49 @@ type TypeMap = {
   undefined: undefined;
   string: string;
 };
+
+// types that implement AsFieldAndAux, and so can be left out of the conversion maps below
+// sort of a "transposed" representation
+type FullTypesKey = 'number' | 'null' | 'undefined' | 'string';
+type OtherTypesKey = Exclude<keyof TypeMap, FullTypesKey>;
+type FullTypes = {
+  [K in FullTypesKey]: AsFieldsAndAux<TypeMap[K], Json.TypeMap[K]>;
+};
+
+let emptyType = {
+  sizeInFields: () => 0,
+  toFields: () => [],
+  toAuxiliary: () => [],
+  fromFields: () => null,
+  check: () => {},
+  toInput: () => ({}),
+  toJson: () => null,
+};
+
+const FullTypes: FullTypes = {
+  // implementations for primitive JS types
+  number: {
+    ...emptyType,
+    toAuxiliary: (value = 0) => [value],
+    toJson: (value) => value,
+    fromFields: (_, aux) => aux.pop()!,
+  },
+  string: {
+    ...emptyType,
+    toAuxiliary: (value = '') => [value],
+    toJson: (value) => value,
+    fromFields: (_, aux) => aux.pop()!,
+  },
+  null: emptyType,
+  undefined: {
+    ...emptyType,
+    fromFields: () => undefined,
+  },
+};
+
+function isFullType(type: keyof TypeMap): type is FullTypesKey {
+  return type in FullTypes;
+}
 
 // json conversion
 
@@ -316,16 +360,11 @@ function check<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
 
 // to input
 
-type Input = {
-  fields?: Field[];
-  packed?: [Field, number][];
-};
-
 type ToInput = {
-  [K in keyof TypeMap]: (x: TypeMap[K]) => Input;
+  [K in keyof TypeMap]: (x: TypeMap[K]) => HashInput;
 };
 
-function emptyInput(_: any): Input {
+function emptyInput(_: any): HashInput {
   return {};
 }
 
