@@ -58,6 +58,8 @@ type FullTypesKey =
   | 'null'
   | 'undefined'
   | 'string'
+  | 'Field'
+  | 'Bool'
   | 'UInt32'
   | 'UInt64'
   | 'Sign'
@@ -77,6 +79,13 @@ let emptyType = {
   check: () => {},
   toInput: () => ({}),
   toJSON: () => null,
+};
+
+const Bool_: AsFieldsExtended<Bool> = {
+  ...circuitValue<Bool>(Bool),
+  toInput(x) {
+    return { packed: [[x.toField(), 1]] };
+  },
 };
 
 const TokenId: AsFieldsExtended<TokenId> = {
@@ -161,13 +170,17 @@ const PublicKeyCompressed: AsFieldsExtended<PublicKey> = {
   },
 };
 
+let { fromCircuitValue } = AsFieldsAndAux;
+
 const FullTypes: FullTypes = {
-  UInt32: AsFieldsAndAux.fromCircuitValue(UInt32),
-  UInt64: AsFieldsAndAux.fromCircuitValue(UInt64),
-  Sign: AsFieldsAndAux.fromCircuitValue(Sign),
-  TokenId: AsFieldsAndAux.fromCircuitValue(TokenId),
-  AuthRequired: AsFieldsAndAux.fromCircuitValue(AuthRequired),
-  PublicKey: AsFieldsAndAux.fromCircuitValue(PublicKeyCompressed),
+  Field: fromCircuitValue(circuitValue<Field>(Field)),
+  Bool: fromCircuitValue(Bool_),
+  UInt32: fromCircuitValue(UInt32),
+  UInt64: fromCircuitValue(UInt64),
+  Sign: fromCircuitValue(Sign),
+  TokenId: fromCircuitValue(TokenId),
+  AuthRequired: fromCircuitValue(AuthRequired),
+  PublicKey: fromCircuitValue(PublicKeyCompressed),
   // primitive JS types
   number: {
     ...emptyType,
@@ -194,20 +207,11 @@ function isFullType(type: keyof TypeMap): type is FullTypesKey {
 
 // json conversion
 
-function asString(x: Field | bigint) {
-  return x.toString();
-}
-
 type ToJson = {
   [K in OtherTypesKey]: (x: TypeMap[K]) => Json.TypeMap[K];
 };
 
-let ToJson: ToJson = {
-  Field: asString,
-  Bool(x: Bool) {
-    return x.toBoolean();
-  },
-};
+let ToJson: ToJson = {};
 
 function toJSON<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
   if (!(typeName in ToJson))
@@ -219,17 +223,7 @@ function toJSON<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
 
 type ToFields = { [K in OtherTypesKey]: (x: TypeMap[K]) => Field[] };
 
-function asFields(x: any): Field[] {
-  return x.toFields();
-}
-function empty(_: any): [] {
-  return [];
-}
-
-let ToFields: ToFields = {
-  Field: asFields,
-  Bool: asFields,
-};
+let ToFields: ToFields = {};
 
 function toFields<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
   if (!(typeName in ToFields))
@@ -245,10 +239,7 @@ type ToAuxiliary = {
     | ((x: TypeMap[K] | undefined) => [TypeMap[K]]);
 };
 
-let ToAuxiliary: ToAuxiliary = {
-  Field: empty,
-  Bool: empty,
-};
+let ToAuxiliary: ToAuxiliary = {};
 
 function toAuxiliary<K extends OtherTypesKey>(
   typeName: K,
@@ -262,10 +253,7 @@ function toAuxiliary<K extends OtherTypesKey>(
 // size in fields
 
 type SizeInFields = { [K in OtherTypesKey]: number };
-let SizeInFields: SizeInFields = {
-  Field: 1,
-  Bool: 1,
-};
+let SizeInFields: SizeInFields = {};
 
 function sizeInFields<K extends OtherTypesKey>(typeName: K) {
   if (!(typeName in ToFields))
@@ -280,14 +268,7 @@ type FromFields = {
   [K in OtherTypesKey]: (fields: Field[], aux: any[]) => TypeMap[K];
 };
 
-let FromFields: FromFields = {
-  Field(fields: Field[]) {
-    return fields.pop()!;
-  },
-  Bool(fields: Field[]) {
-    return Bool.Unsafe.ofField(fields.pop()!);
-  },
-};
+let FromFields: FromFields = {};
 
 function fromFields<K extends OtherTypesKey>(
   typeName: K,
@@ -303,10 +284,7 @@ function fromFields<K extends OtherTypesKey>(
 
 type Check = { [K in OtherTypesKey]: (x: TypeMap[K]) => void };
 
-let Check: Check = {
-  Field: (v) => Field.check(v),
-  Bool: (v) => Bool.check(v),
-};
+let Check: Check = {};
 
 function check<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
   if (!(typeName in ToFields))
@@ -320,14 +298,7 @@ type ToInput = {
   [K in OtherTypesKey]: (x: TypeMap[K]) => HashInput;
 };
 
-let ToInput: ToInput = {
-  Field(x) {
-    return { fields: [x] };
-  },
-  Bool(x) {
-    return { packed: [[x.toField(), 1]] };
-  },
-};
+let ToInput: ToInput = {};
 
 function toInput<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
   if (!(typeName in ToFields))
@@ -355,7 +326,7 @@ const Events: AsFieldsAndAux<DataAsHash<Field[][]>, string[][]> = {
     return { data, hash };
   },
   toJSON({ data }) {
-    return data.map((row) => row.map((e) => toJSON('Field', e)));
+    return data.map((row) => row.map((e) => e.toString()));
   },
   check() {},
   toInput({ hash }) {

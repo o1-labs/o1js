@@ -52,7 +52,7 @@ function toJSON(typeData: Layout, value: any, customTypes: CustomTypes) {
   return mapReduce<any, any>(
     {
       map(type, value) {
-        return Leaves.toJSON(type, value);
+        return Leaves.toJSON(type, value as never);
       },
       mapCustom(type, value) {
         return type.toJSON(value);
@@ -80,7 +80,7 @@ function toFields(typeData: Layout, value: any, customTypes: CustomTypes) {
   return mapReduce<any, Field[]>(
     {
       map(type, value) {
-        return Leaves.toFields(type, value);
+        return Leaves.toFields(type, value as never);
       },
       mapCustom(type, value) {
         return type.toFields(value);
@@ -228,7 +228,7 @@ function check(typeData: Layout, value: any, customTypes: CustomTypes) {
   return mapReduce<any, void>(
     {
       map(type, value) {
-        return Leaves.check(type, value);
+        return Leaves.check(type, value as never);
       },
       mapCustom(type, value) {
         return type.check(value);
@@ -248,7 +248,7 @@ function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
   return mapReduce<any, HashInput>(
     {
       map(type, value) {
-        return Leaves.toInput(type, value);
+        return Leaves.toInput(type, value as never);
       },
       mapCustom(type, value) {
         return type.toInput(value);
@@ -319,7 +319,7 @@ function mapReduce<T, R>(
       case 'flaggedOption':
         let v: { isSome: T; value: T } | undefined = value as any;
         return spec.reduceFlaggedOption({
-          isSome: spec.map('Bool', v?.isSome),
+          isSome: spec.mapCustom(Leaves.FullTypes.Bool, v?.isSome),
           value: mapReduce(spec, inner, v?.value),
         });
       case 'orUndefined':
