@@ -21,8 +21,8 @@ function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
     fromFields(fields: Field[], aux: any[]): T {
       return fromFields(typeData, fields, aux, customTypes);
     },
-    toJson(value: T): TJson {
-      return toJson(typeData, value, customTypes);
+    toJSON(value: T): TJson {
+      return toJSON(typeData, value, customTypes);
     },
     check(value: T): void {
       check(typeData, value, customTypes);
@@ -48,14 +48,14 @@ function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
   };
 }
 
-function toJson(typeData: Layout, value: any, customTypes: CustomTypes) {
+function toJSON(typeData: Layout, value: any, customTypes: CustomTypes) {
   return mapReduce<any, any>(
     {
       map(type, value) {
-        return Leaves.toJson(type, value);
+        return Leaves.toJSON(type, value);
       },
       mapCustom(type, value) {
-        return type.toJson(value);
+        return type.toJSON(value);
       },
       reduceArray(array) {
         return array;

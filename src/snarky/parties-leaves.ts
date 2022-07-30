@@ -10,7 +10,7 @@ export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 export { Events, StringWithHash, TokenSymbol };
 
 export {
-  toJson,
+  toJSON,
   toFields,
   toAuxiliary,
   sizeInFields,
@@ -68,7 +68,7 @@ let emptyType = {
   fromFields: () => null,
   check: () => {},
   toInput: () => ({}),
-  toJson: () => null,
+  toJSON: () => null,
 };
 
 const FullTypes: FullTypes = {
@@ -78,13 +78,13 @@ const FullTypes: FullTypes = {
   number: {
     ...emptyType,
     toAuxiliary: (value = 0) => [value],
-    toJson: (value) => value,
+    toJSON: (value) => value,
     fromFields: (_, aux) => aux.pop()!,
   },
   string: {
     ...emptyType,
     toAuxiliary: (value = '') => [value],
-    toJson: (value) => value,
+    toJSON: (value) => value,
     fromFields: (_, aux) => aux.pop()!,
   },
   null: emptyType,
@@ -140,9 +140,9 @@ let ToJson: ToJson = {
   },
 };
 
-function toJson<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
+function toJSON<K extends OtherTypesKey>(typeName: K, value: TypeMap[K]) {
   if (!(typeName in ToJson))
-    throw Error(`toJson: unsupported type "${typeName}"`);
+    throw Error(`toJSON: unsupported type "${typeName}"`);
   return ToJson[typeName](value);
 }
 
@@ -368,8 +368,8 @@ const Events: AsFieldsAndAux<DataAsHash<Field[][]>, string[][]> = {
     let data = aux.pop()!;
     return { data, hash };
   },
-  toJson({ data }) {
-    return data.map((row) => row.map((e) => toJson('Field', e)));
+  toJSON({ data }) {
+    return data.map((row) => row.map((e) => toJSON('Field', e)));
   },
   check() {},
   toInput({ hash }) {
@@ -392,7 +392,7 @@ const StringWithHash: AsFieldsAndAux<DataAsHash<string>, string> = {
     let data = aux.pop()!;
     return { data, hash };
   },
-  toJson({ data }) {
+  toJSON({ data }) {
     return data;
   },
   check() {},

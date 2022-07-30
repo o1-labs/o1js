@@ -13,7 +13,7 @@ let fields = Types.Party.toFields(party);
 let aux = Types.Party.toAuxiliary(party);
 
 let partyRaw = Types.Party.fromFields(fields, aux);
-let json = Types.Party.toJson(partyRaw);
+let json = Types.Party.toJSON(partyRaw);
 
 if (address.toBase58() !== json.body.publicKey) throw Error('fail');
 

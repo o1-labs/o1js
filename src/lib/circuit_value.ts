@@ -612,7 +612,7 @@ type AsFieldsAndAux<T, TJson> = {
   toFields(value: T): Field[];
   toAuxiliary(value?: T): any[];
   fromFields(fields: Field[], aux: any[]): T;
-  toJson(value: T): TJson;
+  toJSON(value: T): TJson;
   check(value: T): void;
   toInput(value: T): HashInput;
 };
@@ -646,7 +646,7 @@ function fromCircuitValue<
     toInput(value) {
       return type.toInput(value);
     },
-    toJson(value) {
+    toJSON(value) {
       return type.toJSON(value) as any;
     },
   };

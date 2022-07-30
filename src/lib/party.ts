@@ -807,7 +807,7 @@ class Party implements Types.Party {
   }
 
   toJSON() {
-    return Types.Party.toJson(this);
+    return Types.Party.toJSON(this);
   }
 
   hash() {
@@ -821,7 +821,7 @@ class Party implements Types.Party {
       let input = Types.Party.toInput(this);
       return hashWithPrefix(prefixes.body, packToFields(input));
     } else {
-      let json = Types.Party.toJson(this);
+      let json = Types.Party.toJSON(this);
       return Ledger.hashPartyFromJson(JSON.stringify(json));
     }
   }
@@ -1034,7 +1034,7 @@ type PartiesProved = {
 
 function partiesToJson({ feePayer, otherParties, memo }: Parties) {
   memo = Ledger.memoToBase58(memo);
-  return Types.Parties.toJson({ feePayer, otherParties, memo });
+  return Types.Parties.toJSON({ feePayer, otherParties, memo });
 }
 
 const Authorization = {

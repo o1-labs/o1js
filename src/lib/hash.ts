@@ -146,7 +146,7 @@ const TokenSymbolPure: AsFieldsAndAux<TokenSymbol, string> = {
     let actual = field.rangeCheckHelper(48);
     actual.assertEquals(field);
   },
-  toJson({ symbol }) {
+  toJSON({ symbol }) {
     return symbol;
   },
   toInput({ field }) {

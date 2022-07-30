@@ -129,7 +129,7 @@ function testInput<T>(
   toInputOcaml: (json: string) => InputOcaml,
   value: T
 ) {
-  let json = Module.toJson(value);
+  let json = Module.toJSON(value);
   // console.log(json);
   let input1 = inputFromOcaml(toInputOcaml(JSON.stringify(json)));
   let input2 = Module.toInput(value);
