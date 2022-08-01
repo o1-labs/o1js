@@ -58,10 +58,11 @@ export { Character, CircuitString } from './lib/string';
 // experimental APIs
 import { Reducer } from './lib/zkapp';
 import { createChildParty } from './lib/party';
+import { memoizeWitness } from './lib/circuit_value';
 export { Experimental };
 
 /**
  * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
  * (Not unstable in the sense that they are less functional or tested than other parts.)
  */
-const Experimental = { Reducer, createChildParty };
+const Experimental = { Reducer, createChildParty, memoizeWitness };

@@ -6,6 +6,7 @@ import {
   Circuit,
   Poseidon,
 } from '../snarky';
+import { toConstant } from './circuit_value';
 import { Context } from './global-context';
 
 // public API
@@ -23,6 +24,9 @@ export {
   emptyValue,
   emptyWitness,
   synthesizeMethodArguments,
+  methodArgumentsToConstant,
+  methodArgumentTypesAndValues,
+  isAsFields,
   snarkContext,
   inProver,
   inCompile,
@@ -349,6 +353,7 @@ type MethodInterface = {
   witnessArgs: AsFieldElements<unknown>[];
   proofArgs: Subclass<typeof Proof>[];
   allArgs: { type: 'witness' | 'proof'; index: number }[];
+  returnType?: AsFieldElements<unknown>;
 };
 
 function compileProgram(
@@ -465,6 +470,48 @@ function synthesizeMethodArguments(
     }
   }
   return args;
+}
+
+function methodArgumentsToConstant(
+  { allArgs, proofArgs, witnessArgs }: MethodInterface,
+  args: any[]
+) {
+  let constArgs = [];
+  for (let i = 0; i < allArgs.length; i++) {
+    let arg = args[i];
+    let { type, index } = allArgs[i];
+    if (type === 'witness') {
+      constArgs.push(toConstant(witnessArgs[index], arg));
+    } else {
+      let Proof = proofArgs[index];
+      let publicInput = toConstant(getPublicInputType(Proof), arg.publicInput);
+      constArgs.push(new Proof({ publicInput, proof: arg.proof }));
+    }
+  }
+  return constArgs;
+}
+
+type TypeAndValue<T> = { type: AsFieldElements<T>; value: T };
+
+function methodArgumentTypesAndValues(
+  { allArgs, proofArgs, witnessArgs }: MethodInterface,
+  args: unknown[]
+) {
+  let typesAndValues: TypeAndValue<any>[] = [];
+  for (let i = 0; i < allArgs.length; i++) {
+    let arg = args[i];
+    let { type, index } = allArgs[i];
+    if (type === 'witness') {
+      typesAndValues.push({ type: witnessArgs[index], value: arg });
+    } else {
+      let Proof = proofArgs[index];
+      typesAndValues.push({
+        type: getPublicInputType(Proof),
+        value: (arg as Proof<any>).publicInput,
+      });
+    }
+  }
+  return typesAndValues;
 }
 
 function emptyValue<T>(type: AsFieldElements<T>) {

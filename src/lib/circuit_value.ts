@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { Circuit, Field, Bool, JSONValue, AsFieldElements } from '../snarky';
+import { Context } from './global-context';
 import { snarkContext } from './proof_system';
 
 // external API
@@ -15,7 +16,15 @@ export {
 };
 
 // internal API
-export { cloneCircuitValue, circuitValueEquals, circuitArray };
+export {
+  cloneCircuitValue,
+  circuitValueEquals,
+  circuitArray,
+  memoizationContext,
+  memoizeWitness,
+  getBlindingValue,
+  toConstant,
+};
 
 type AnyConstructor = new (...args: any) => any;
 
@@ -485,6 +494,10 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
   );
 }
 
+function toConstant<T>(type: AsFieldElements<T>, value: T): T {
+  return type.ofFields(type.toFields(value).map((x) => x.toConstant()));
+}
+
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
 Circuit.switch = function <T, A extends AsFieldElements<T>>(
   mask: Bool[],
@@ -533,3 +546,38 @@ Circuit.constraintSystem = function <T>(f: () => T) {
   );
   return result;
 };
+
+let memoizationContext = Context.create<{
+  memoized: Field[][];
+  currentIndex: number;
+  blindingValue: Field;
+}>();
+
+/**
+ * Like Circuit.witness, but memoizes the witness during transaction construction
+ * for reuse by the prover. This is needed to witness non-deterministic values.
+ */
+function memoizeWitness<T>(type: AsFieldElements<T>, compute: () => T) {
+  return Circuit.witness(type, () => {
+    if (!memoizationContext.has()) return compute();
+    let context = memoizationContext.get();
+    let { memoized, currentIndex } = context;
+    let currentValue = memoized[currentIndex];
+    if (currentValue === undefined) {
+      let value = compute();
+      currentValue = type.toFields(value).map((x) => x.toConstant());
+      memoized[currentIndex] = currentValue;
+    }
+    context.currentIndex += 1;
+    return type.ofFields(currentValue);
+  });
+}
+
+function getBlindingValue() {
+  if (!memoizationContext.has()) return Field.random();
+  let context = memoizationContext.get();
+  if (context.blindingValue === undefined) {
+    context.blindingValue = Field.random();
+  }
+  return context.blindingValue;
+}

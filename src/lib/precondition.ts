@@ -54,6 +54,7 @@ let unimplementedPreconditions: LongKey[] = [
   'network.stakingEpochData.lockCheckpoint',
   // this is unimplemented because the field is missing on the account endpoint
   'account.provedState',
+  'account.isNew',
   // this is partially unimplemented because the field is not returned by the local blockchain
   'account.delegate',
   // this is unimplemented because setting this precondition made the integration test fail

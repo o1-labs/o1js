@@ -1,4 +1,9 @@
-import { circuitArray, circuitValue, cloneCircuitValue } from './circuit_value';
+import {
+  circuitArray,
+  circuitValue,
+  cloneCircuitValue,
+  memoizationContext,
+} from './circuit_value';
 import {
   Field,
   Bool,
@@ -493,10 +498,12 @@ type Control = Types.Party['authorization'];
 type LazySignature = { kind: 'lazy-signature'; privateKey?: PrivateKey };
 type LazyProof = {
   kind: 'lazy-proof';
-  method: Function;
+  methodName: string;
   args: any[];
   previousProofs: { publicInput: Field[]; proof: Pickles.Proof }[];
   ZkappClass: typeof SmartContract;
+  memoized: Field[][];
+  blindingValue: Field;
 };
 
 class Token {
@@ -549,7 +556,7 @@ class Party implements Types.Party {
   lazyAuthorization: LazySignature | LazyProof | undefined = undefined;
   account: Precondition.Account;
   network: Precondition.Network;
-  children: Party[] = [];
+  children: { party: Party; calls?: Field }[] = [];
   parent: Party | undefined = undefined;
 
   private isSelf: boolean;
@@ -907,7 +914,8 @@ class Party implements Types.Party {
 
   static witness<T>(
     type: AsFieldElements<T>,
-    compute: () => { party: Party; result: T }
+    compute: () => { party: Party; result: T },
+    skipCheck = false
   ) {
     // construct the circuit type for a party + other result
     let partyType = circuitArray(Field, Types.Party.sizeInFields());
@@ -929,7 +937,10 @@ class Party implements Types.Party {
     // get back a Types.Party from the fields + aux (where aux is just the default in compile)
     let aux = Types.Party.toAuxiliary(proverParty);
     let rawParty = Types.Party.fromFields(fieldsAndResult.party, aux);
-    Types.Party.check(rawParty);
+    // usually when we introduce witnesses, we add checks for their type-specific properties (e.g., booleanness).
+    // a party, however, might already be forced to be valid by the on-chain transaction logic,
+    // allowing us to skip expensive checks in user proofs.
+    if (!skipCheck) Types.Party.check(rawParty);
 
     // construct the full Party instance from the raw party + (maybe) the prover party
     let party = new Party(rawParty.body, rawParty.authorization);
@@ -949,7 +960,8 @@ const CallForest = {
     let parties = [];
     for (let party of forest) {
       party.body.callDepth = depth;
-      parties.push(party, ...CallForest.toFlatList(party.children, depth + 1));
+      let children = party.children.map((c) => c.party);
+      parties.push(party, ...CallForest.toFlatList(children, depth + 1));
     }
     return parties;
   },
@@ -963,8 +975,10 @@ const CallForest = {
   // hashes a party's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
   hashChildren(parent: Party) {
     let stackHash = CallForest.emptyHash();
-    for (let party of parent.children.reverse()) {
-      let calls = CallForest.hashChildren(party);
+    for (let { party, calls } of parent.children.reverse()) {
+      // only compute calls if it's not there yet --
+      // this gives us the flexibility to witness only direct children of a zkApp
+      calls ??= CallForest.hashChildren(party);
       let nodeHash = hashWithPrefix(prefixes.partyNode, [party.hash(), calls]);
       stackHash = hashWithPrefix(prefixes.partyCons, [nodeHash, stackHash]);
     }
@@ -989,7 +1003,7 @@ function createChildParty(
   child.body.useFullCommitment =
     useFullCommitment ?? child.body.useFullCommitment;
   child.parent = parent;
-  parent.children.push(child);
+  parent.children.push({ party: child, calls: undefined });
   return child;
 }
 
@@ -1133,24 +1147,35 @@ async function addMissingProofs(parties: Parties): Promise<{
     if (party.lazyAuthorization?.kind !== 'lazy-proof') {
       return { partyProved: party as PartyProved, proof: undefined };
     }
-    let { method, args, previousProofs, ZkappClass } = party.lazyAuthorization;
+    let {
+      methodName,
+      args,
+      previousProofs,
+      ZkappClass,
+      memoized,
+      blindingValue,
+    } = party.lazyAuthorization;
     let publicInput = partyToPublicInput(party);
     let publicInputFields = ZkappPublicInput.toFields(publicInput);
     if (ZkappClass._provers === undefined)
       throw Error(
-        `Cannot prove execution of ${method.name}(), no prover found. ` +
+        `Cannot prove execution of ${methodName}(), no prover found. ` +
           `Try calling \`await ${ZkappClass.name}.compile(address)\` first, this will cache provers in the background.`
       );
     let provers = ZkappClass._provers;
     let methodError =
-      `Error when computing proofs: Method ${method.name} not found. ` +
-      `Make sure your environment supports decorators, and annotate with \`@method ${method.name}\`.`;
+      `Error when computing proofs: Method ${methodName} not found. ` +
+      `Make sure your environment supports decorators, and annotate with \`@method ${methodName}\`.`;
     if (ZkappClass._methods === undefined) throw Error(methodError);
-    let i = ZkappClass._methods.findIndex((m) => m.methodName === method.name);
+    let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
     if (i === -1) throw Error(methodError);
-    let [, proof] = await snarkContext.runWithAsync(
+    let [, [, proof]] = await snarkContext.runWithAsync(
       { inProver: true, witnesses: args },
-      () => provers[i](publicInputFields, previousProofs)
+      () =>
+        memoizationContext.runWithAsync(
+          { memoized, currentIndex: 0, blindingValue },
+          () => provers[i](publicInputFields, previousProofs)
+        )
     );
     Authorization.setProof(party, Pickles.proofToBase64Transaction(proof));
     let maxProofsVerified = ZkappClass._maxProofsVerified!;

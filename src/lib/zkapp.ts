@@ -5,9 +5,17 @@ import {
   Ledger,
   Pickles,
   InferAsFieldElements,
-  Poseidon,
+  Poseidon as Poseidon_,
 } from '../snarky';
-import { Circuit, circuitArray, cloneCircuitValue } from './circuit_value';
+import {
+  Circuit,
+  circuitArray,
+  circuitValue,
+  cloneCircuitValue,
+  getBlindingValue,
+  memoizationContext,
+  toConstant,
+} from './circuit_value';
 import {
   Body,
   Party,
@@ -19,6 +27,7 @@ import {
   Events,
   partyToPublicInput,
   Authorization,
+  CallForest,
   getDefaultTokenId,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
@@ -40,9 +49,15 @@ import {
   snarkContext,
   inProver,
   inAnalyze,
+  methodArgumentsToConstant,
+  isAsFields,
+  methodArgumentTypesAndValues,
 } from './proof_system';
 import { assertStatePrecondition, cleanStatePrecondition } from './state';
 import { Types } from '../snarky/types';
+import { Context } from './global-context';
+import { Poseidon } from './hash';
+import * as Encoding from './encoding';
 
 // external API
 export {
@@ -84,6 +99,8 @@ function method<T extends SmartContract>(
     );
   }
   let paramTypes = Reflect.getMetadata('design:paramtypes', target, methodName);
+  let returnType = Reflect.getMetadata('design:returntype', target, methodName);
+
   class SelfProof extends Proof<ZkappPublicInput> {
     static publicInputType = ZkappPublicInput;
     static tag = () => ZkappClass;
@@ -94,6 +111,7 @@ function method<T extends SmartContract>(
     paramTypes,
     SelfProof
   );
+  if (isAsFields(returnType)) methodEntry.returnType = returnType;
   ZkappClass._methods ??= [];
   ZkappClass._methods.push(methodEntry);
   ZkappClass._maxProofsVerified ??= 0;
@@ -105,6 +123,9 @@ function method<T extends SmartContract>(
   descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
 }
 
+let smartContractContext =
+  Context.create<{ this: SmartContract; methodCallDepth: number }>();
+
 // do different things when calling a method, depending on the circumstance
 function wrapMethod(
   method: Function,
@@ -113,65 +134,243 @@ function wrapMethod(
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
-    if (inCheckedComputation()) {
-      // important to run this with a fresh party everytime, otherwise compile messes up our circuits
-      // because it runs this multiple times
-      let [, result] = Mina.currentTransaction.runWith(
-        {
-          sender: undefined,
-          parties: [],
-          fetchMode: inProver() ? 'cached' : 'test',
-          isFinalRunOutsideCircuit: false,
-        },
+    if (!smartContractContext.has()) {
+      return smartContractContext.runWith(
+        { this: this, methodCallDepth: 0 },
         () => {
-          // inside prover / compile, the method is always called with the public input as first argument
-          // -- so we can add assertions about it
-          let publicInput = actualArgs[0];
-          actualArgs = actualArgs.slice(1);
+          if (inCheckedComputation()) {
+            // important to run this with a fresh party everytime, otherwise compile messes up our circuits
+            // because it runs this multiple times
+            let [, result] = Mina.currentTransaction.runWith(
+              {
+                sender: undefined,
+                parties: [],
+                fetchMode: inProver() ? 'cached' : 'test',
+                isFinalRunOutsideCircuit: false,
+              },
+              () => {
+                // inside prover / compile, the method is always called with the public input as first argument
+                // -- so we can add assertions about it
+                let publicInput = actualArgs[0];
+                actualArgs = actualArgs.slice(1);
+                let party = this.self;
 
-          // outside a transaction, just call the method, but check precondition invariants
-          let result = method.apply(this, actualArgs);
-          checkPublicInput(publicInput, this.self);
+                // the blinding value is important because otherwise, putting callData on the transaction would leak information about the private inputs
+                let blindingValue = Circuit.witness(Field, getBlindingValue);
+                // it's also good if we prove that we use the same blinding value across the method
+                // that's why we pass the variable_ (not the constant) into a new context
+                let context = memoizationContext() ?? {
+                  memoized: [],
+                  currentIndex: 0,
+                };
+                let [, result] = memoizationContext.runWith(
+                  { ...context, blindingValue },
+                  () => method.apply(this, actualArgs)
+                );
 
-          // check the self party right after calling the method
-          // TODO: this needs to be done in a unified way for all parties that are created
-          assertPreconditionInvariants(this.self);
-          cleanPreconditionsCache(this.self);
-          assertStatePrecondition(this);
-          return result;
+                // connects our input + result with callData, so this method can be called
+                let callDataFields = computeCallData(
+                  methodIntf,
+                  actualArgs,
+                  result,
+                  blindingValue
+                );
+                party.body.callData = Poseidon.hash(callDataFields);
+
+                // connect the public input to the party & child parties we created
+                checkPublicInput(publicInput, party);
+
+                // check the self party right after calling the method
+                // TODO: this needs to be done in a unified way for all parties that are created
+                assertPreconditionInvariants(party);
+                cleanPreconditionsCache(party);
+                assertStatePrecondition(this);
+                return result;
+              }
+            );
+            return result;
+          } else if (!Mina.currentTransaction.has()) {
+            // outside a transaction, just call the method, but check precondition invariants
+            let result = method.apply(this, actualArgs);
+            // check the self party right after calling the method
+            // TODO: this needs to be done in a unified way for all parties that are created
+            assertPreconditionInvariants(this.self);
+            cleanPreconditionsCache(this.self);
+            assertStatePrecondition(this);
+            return result;
+          } else {
+            // in a transaction, also add a lazy proof to the self party
+            // (if there's no other authorization set)
+
+            // first, clone to protect against the method modifying arguments!
+            // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
+            let clonedArgs = cloneCircuitValue(actualArgs);
+            let party = this.self;
+
+            // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
+            let blindingValue = getBlindingValue();
+            let [{ memoized }, result] = memoizationContext.runWith(
+              {
+                memoized: [],
+                currentIndex: 0,
+                blindingValue,
+              },
+              () => {
+                method.apply(this, actualArgs);
+              }
+            );
+            assertStatePrecondition(this);
+
+            // connect our input + result with callData, so this method can be called
+            let callDataFields = computeCallData(
+              methodIntf,
+              actualArgs,
+              result,
+              blindingValue
+            );
+            party.body.callData = Poseidon.hash(callDataFields);
+
+            if (!Authorization.hasAny(party)) {
+              Authorization.setLazyProof(party, {
+                methodName: methodIntf.methodName,
+                args: clonedArgs,
+                // proofs actually don't have to be cloned
+                previousProofs: getPreviousProofsForProver(
+                  actualArgs,
+                  methodIntf
+                ),
+                ZkappClass,
+                memoized,
+                blindingValue,
+              });
+            }
+            return result;
+          }
         }
-      );
-      return result;
-    } else if (!Mina.currentTransaction.has()) {
-      // outside a transaction, just call the method, but check precondition invariants
-      let result = method.apply(this, actualArgs);
-      // check the self party right after calling the method
-      // TODO: this needs to be done in a unified way for all parties that are created
-      assertPreconditionInvariants(this.self);
-      cleanPreconditionsCache(this.self);
-      assertStatePrecondition(this);
-      return result;
-    } else {
-      // in a transaction, also add a lazy proof to the self party
-      // (if there's no other authorization set)
-
-      // first, clone to protect against the method modifying arguments!
-      // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
-      let clonedArgs = cloneCircuitValue(actualArgs);
-      let result = method.apply(this, actualArgs);
-      assertStatePrecondition(this);
-      let party = this.self;
-      if (!Authorization.hasAny(party)) {
-        Authorization.setLazyProof(party, {
-          method,
-          args: clonedArgs,
-          // proofs actually don't have to be cloned
-          previousProofs: getPreviousProofsForProver(actualArgs, methodIntf),
-          ZkappClass,
-        });
-      }
-      return result;
+      )[1];
     }
+    // if we're here, this method was called inside _another_ smart contract method
+    let parentParty = smartContractContext.get().this.self;
+    let methodCallDepth = smartContractContext.get().methodCallDepth;
+    let [, result] = smartContractContext.runWith(
+      { this: this, methodCallDepth: methodCallDepth + 1 },
+      () => {
+        // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
+        // so we have to explain to the user how to do that
+        let { returnType } = methodIntf;
+        let noReturnTypeError =
+          `To return a result from ${methodIntf.methodName}() inside another zkApp, you need to declare the return type.\n` +
+          `This can be done by annotating the type at the end of the function signature. For example:\n\n` +
+          `@method ${methodIntf.methodName}(): Field {\n` +
+          `  // ...\n` +
+          `}\n\n` +
+          `Note: Only types built out of \`Field\` are valid return types. This includes snarkyjs primitive types and custom CircuitValues.`;
+        // if we're lucky, analyzeMethods was already run on the callee smart contract, and we can catch this error early
+        if (
+          (ZkappClass as any)._methodMetadata[methodIntf.methodName]
+            ?.hasReturn &&
+          returnType === undefined
+        ) {
+          throw Error(noReturnTypeError);
+        }
+        // we just reuse the blinding value of the caller for the callee
+        let blindingValue = getBlindingValue();
+
+        let runCalledContract = () => {
+          let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
+          let constantBlindingValue = blindingValue.toConstant();
+          let party = this.self;
+          // the line above adds the callee's self party into the wrong place in the transaction structure
+          // so we remove it again
+          // TODO: since we wrap all method calls now anyway, should remove that hidden logic in this.self
+          // and add parties to transactions more explicitly
+          let transaction = Mina.currentTransaction();
+          if (transaction !== undefined) transaction.parties.pop();
+
+          let [{ memoized }, result] = memoizationContext.runWith(
+            {
+              memoized: [],
+              currentIndex: 0,
+              blindingValue: constantBlindingValue,
+            },
+            () => method.apply(this, constantArgs)
+          );
+          assertStatePrecondition(this);
+
+          if (result !== undefined) {
+            if (returnType === undefined) {
+              throw Error(noReturnTypeError);
+            } else {
+              result = toConstant(returnType, result);
+            }
+          }
+
+          // store inputs + result in callData
+          let callDataFields = computeCallData(
+            methodIntf,
+            constantArgs,
+            result,
+            constantBlindingValue
+          );
+          party.body.callData = Poseidon_.hash(callDataFields, false);
+
+          if (!Authorization.hasAny(party)) {
+            Authorization.setLazyProof(party, {
+              methodName: methodIntf.methodName,
+              args: constantArgs,
+              previousProofs: getPreviousProofsForProver(
+                constantArgs,
+                methodIntf
+              ),
+              ZkappClass,
+              memoized,
+              blindingValue: constantBlindingValue,
+            });
+          }
+          return { party, result: result ?? null };
+        };
+
+        // we have to run the called contract inside a witness block, to not affect the caller's circuit
+        // however, if this is a nested call -- the caller is already called by another contract --,
+        // then we're already in a witness block, and shouldn't open another one
+        let { party, result } =
+          methodCallDepth === 0
+            ? Party.witness(
+                returnType ?? circuitValue<null>(null),
+                runCalledContract,
+                true
+              )
+            : runCalledContract();
+
+        // we're back in the _caller's_ circuit now, where we assert stuff about the method call
+
+        // connect party to our own. outside Circuit.witness so compile knows the right structure when hashing children
+        party.body.callDepth = parentParty.body.callDepth + 1;
+        party.parent = parentParty;
+        // beware: we don't include the callee's children in the caller circuit
+        // nothing is asserted about them -- it's the callee's task to check their children
+        let calls = Circuit.witness(Field, () =>
+          CallForest.hashChildren(party)
+        );
+        parentParty.children.push({ party, calls });
+
+        // assert that we really called the right zkapp
+        party.body.publicKey.assertEquals(this.address);
+        party.body.tokenId.assertEquals(this.self.body.tokenId);
+
+        // assert that the inputs & outputs we have match what the callee put on its callData
+        let callDataFields = computeCallData(
+          methodIntf,
+          actualArgs,
+          result,
+          blindingValue
+        );
+        let callData = Poseidon.hash(callDataFields);
+        party.body.callData.assertEquals(callData);
+        return result;
+      }
+    );
+    return result;
   };
 }
 
@@ -179,6 +378,44 @@ function checkPublicInput({ party, calls }: ZkappPublicInput, self: Party) {
   let otherInput = partyToPublicInput(self);
   party.assertEquals(otherInput.party);
   calls.assertEquals(otherInput.calls);
+}
+
+/**
+ * compute fields to be hashed as callData, in a way that the hash & circuit changes whenever
+ * the method signature changes, i.e., the argument / return types represented as lists of field elements and the methodName.
+ * see https://github.com/o1-labs/snarkyjs/issues/303#issuecomment-1196441140
+ */
+function computeCallData(
+  methodIntf: MethodInterface,
+  argumentValues: any[],
+  returnValue: any,
+  blindingValue: Field
+) {
+  let { returnType, methodName } = methodIntf;
+  let args = methodArgumentTypesAndValues(methodIntf, argumentValues);
+  let argSizesAndFields: Field[][] = args.map(({ type, value }) => [
+    Field(type.sizeInFields()),
+    ...type.toFields(value),
+  ]);
+  let totalArgSize = Field(
+    args.map(({ type }) => type.sizeInFields()).reduce((s, t) => s + t)
+  );
+  let totalArgFields = argSizesAndFields.flat();
+  let returnSize = Field(returnType?.sizeInFields() ?? 0);
+  let returnFields = returnType?.toFields(returnValue) ?? [];
+  let methodNameFields = Encoding.stringToFields(methodName);
+  return [
+    // we have to encode the sizes of arguments / return value, so that fields can't accidentally shift
+    // from one argument to another, or from arguments to the return value, or from the return value to the method name
+    totalArgSize,
+    ...totalArgFields,
+    returnSize,
+    ...returnFields,
+    // we don't have to encode the method name size because the blinding value is fixed to one field element,
+    // so method name fields can't accidentally become the blinding value and vice versa
+    ...methodNameFields,
+    blindingValue,
+  ];
 }
 
 /**
@@ -198,7 +435,7 @@ class SmartContract {
   static _methods?: MethodInterface[];
   private static _methodMetadata: Record<
     string,
-    { sequenceEvents: number; rows: number; digest: string }
+    { sequenceEvents: number; rows: number; digest: string; hasReturn: boolean }
   > = {}; // keyed by method name
   static _provers?: Pickles.Prover[];
   static _maxProofsVerified?: 0 | 1 | 2;
@@ -256,7 +493,7 @@ class SmartContract {
 
   static digest(address: PublicKey) {
     let methodData = this.analyzeMethods(address);
-    let hash = Poseidon.hash(
+    let hash = Poseidon_.hash(
       Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest))),
       false
     );
@@ -286,12 +523,10 @@ class SmartContract {
 
   private executionState(): ExecutionState {
     if (!Mina.currentTransaction.has()) {
-      // throw new Error('Cannot execute outside of a Mina.transaction() block.');
       // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
       // or even expose the .get() methods independently of any party (they don't need one)
       return {
         transactionId: NaN,
-        partyIndex: NaN,
         party: selfParty(this.address),
       };
     }
@@ -306,11 +541,7 @@ class SmartContract {
     let id = Mina.currentTransaction.id();
     let party = selfParty(this.address);
     transaction.parties.push(party);
-    executionState = {
-      transactionId: id,
-      partyIndex: transaction.parties.length,
-      party,
-    };
+    executionState = { transactionId: id, party };
     this._executionState = executionState;
     return executionState;
   }
@@ -387,8 +618,6 @@ class SmartContract {
 
   // run all methods to collect metadata like how many sequence events they use -- if we don't have this information yet
   // TODO: this could also be used to quickly perform any invariant checks on parties construction
-  // TODO: it would be even better to run the methods in "compile mode" here -- i.e. with variables which can't be read --,
-  // to be able to give quick errors when people try to depend on variables for constructing their circuit (https://github.com/o1-labs/snarkyjs/issues/224)
   static analyzeMethods(address: PublicKey) {
     let ZkappClass = this as typeof SmartContract;
     let instance = new ZkappClass(address);
@@ -406,7 +635,7 @@ class SmartContract {
         throw err;
       }
       for (let methodIntf of methodIntfs) {
-        let { rows, digest } = analyzeMethod(
+        let { rows, digest, result } = analyzeMethod(
           ZkappPublicInput,
           methodIntf,
           (...args) => (instance as any)[methodIntf.methodName](...args)
@@ -416,6 +645,7 @@ class SmartContract {
           sequenceEvents: party.body.sequenceEvents.data.length,
           rows,
           digest,
+          hasReturn: result !== undefined,
         };
       }
     }
@@ -551,11 +781,7 @@ function selfParty(address: PublicKey) {
 }
 
 // per-smart-contract context for transaction construction
-type ExecutionState = {
-  transactionId: number;
-  partyIndex: number;
-  party: Party;
-};
+type ExecutionState = { transactionId: number; party: Party };
 
 type DeployArgs = {
   verificationKey?: { data: string; hash: string | Field };
@@ -604,7 +830,6 @@ async function deploy<S extends typeof SmartContract>(
       zkapp.self.balance.addInPlace(amount);
     }
   });
-  // TODO modifying the json after calling to ocaml would avoid extra vk serialization.. but need to compute vk hash
   return tx.sign().toJSON();
 }
 

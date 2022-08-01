@@ -7,7 +7,6 @@ import {
   shutdown,
   Field,
   PublicKey,
-  CircuitValue,
   Mina,
   Experimental,
 } from '../../dist/server';
@@ -52,7 +51,7 @@ describe('party', () => {
     // TODO remove restriction "This function can't be run outside of a checked computation."
     Circuit.runAndCheck(() => {
       let hash = party.hash();
-      expect(isLikeField(hash)).toBeTruthy();
+      expect(isField(hash)).toBeTruthy();
 
       // if we clone the party, hash should be the same
       let party2 = Party.clone(party);
@@ -95,13 +94,6 @@ describe('party', () => {
 
 // to check that we got something that looks like a Field
 // note: `instanceof Field` doesn't work
-function isLikeField(x: any) {
-  return (
-    !(x instanceof CircuitValue) &&
-    'equals' in x &&
-    'toFields' in x &&
-    'add' in x &&
-    'mul' in x &&
-    Array.isArray((x as any).value)
-  );
+function isField(x: any): x is Field {
+  return x?.constructor === Field.one.constructor;
 }
