@@ -24,6 +24,7 @@ jobs:
           npm ci
           npm run build:node
           npm run test
+          npm run test:integration
 
   Build-Web:
     runs-on: ubuntu-latest
