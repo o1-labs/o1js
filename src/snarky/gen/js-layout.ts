@@ -185,18 +185,8 @@ let jsLayout = {
                       optionType: 'flaggedOption',
                       inner: {
                         type: 'string',
-                        checkedType: {
-                          type: 'object',
-                          name: 'Events',
-                          docs: null,
-                          keys: ['data', 'hash'],
-                          entries: {
-                            data: { type: 'string' },
-                            hash: { type: 'Field' },
-                          },
-                          docEntries: { data: null, hash: null },
-                        },
-                        checkedTypeName: 'StringWithHash',
+                        checkedType: { type: 'TokenSymbol' },
+                        checkedTypeName: 'TokenSymbol',
                       },
                     },
                     timing: {
@@ -891,18 +881,8 @@ let jsLayout = {
                 optionType: 'flaggedOption',
                 inner: {
                   type: 'string',
-                  checkedType: {
-                    type: 'object',
-                    name: 'Events',
-                    docs: null,
-                    keys: ['data', 'hash'],
-                    entries: {
-                      data: { type: 'string' },
-                      hash: { type: 'Field' },
-                    },
-                    docEntries: { data: null, hash: null },
-                  },
-                  checkedTypeName: 'StringWithHash',
+                  checkedType: { type: 'TokenSymbol' },
+                  checkedTypeName: 'TokenSymbol',
                 },
               },
               timing: {

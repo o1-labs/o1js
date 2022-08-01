@@ -22,7 +22,7 @@ export {
   circuitMain,
   circuitValue,
 } from './lib/circuit_value';
-export * from './lib/int';
+export { UInt32, UInt64, Int64, Sign } from './lib/int';
 export { Types } from './snarky/types';
 
 export * as Mina from './lib/mina';
@@ -59,10 +59,27 @@ export { Character, CircuitString } from './lib/string';
 import { Reducer } from './lib/zkapp';
 import { createChildParty } from './lib/party';
 import { memoizeWitness } from './lib/circuit_value';
+import {
+  jsLayout,
+  asFieldsAndAux,
+  AsFieldsAndAux as AsFieldsAndAux_,
+} from './snarky/types';
+import { packToFields } from './lib/hash';
 export { Experimental };
 
 /**
  * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
  * (Not unstable in the sense that they are less functional or tested than other parts.)
  */
-const Experimental = { Reducer, createChildParty, memoizeWitness };
+const Experimental = {
+  Reducer,
+  createChildParty,
+  memoizeWitness,
+  // TODO: for testing, maybe remove later
+  jsLayout,
+  asFieldsAndAux,
+  packToFields,
+};
+namespace Experimental {
+  export type AsFieldsAndAux<T, TJson> = AsFieldsAndAux_<T, TJson>;
+}

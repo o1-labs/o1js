@@ -139,7 +139,7 @@ function toPermission(p: AuthRequired): Permission {
 type FetchedAccount = {
   publicKey: string;
   nonce: string;
-  tokenId: string;
+  token: string;
   tokenSymbol: string;
   zkappUri?: string;
   zkappState: string[] | null;
@@ -210,7 +210,7 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
     balance { total }
     delegateAccount { publicKey }
     sequenceEvents
-    tokenId
+    token
     tokenSymbol
   }
 }
@@ -230,7 +230,7 @@ function parseFetchedAccount({
   delegateAccount,
   receiptChainHash,
   sequenceEvents,
-  tokenId,
+  token,
   tokenSymbol,
 }: Partial<FetchedAccount>): Partial<Account> {
   return {
@@ -254,7 +254,7 @@ function parseFetchedAccount({
     //     : undefined,
     delegate:
       delegateAccount && PublicKey.fromBase58(delegateAccount.publicKey),
-    tokenId: tokenId !== undefined ? Ledger.fieldOfBase58(tokenId) : undefined,
+    tokenId: token !== undefined ? Ledger.fieldOfBase58(token) : undefined,
     tokenSymbol: tokenSymbol !== undefined ? tokenSymbol : undefined,
   };
 }
@@ -269,7 +269,7 @@ function stringifyAccount(account: FlexibleAccount): FetchedAccount {
       zkapp?.appState.map((s) => s.toString()) ??
       Array(ZkappStateLength).fill('0'),
     balance: { total: balance?.toString() ?? '0' },
-    tokenId: tokenId ?? Ledger.fieldToBase58(getDefaultTokenId()),
+    token: tokenId ?? Ledger.fieldToBase58(getDefaultTokenId()),
     tokenSymbol: tokenSymbol ?? '',
   };
 }
@@ -384,7 +384,7 @@ function addCachedAccountInternal(
   account: FetchedAccount,
   graphqlEndpoint: string
 ) {
-  accountCache[`${account.publicKey};${account.tokenId};${graphqlEndpoint}`] = {
+  accountCache[`${account.publicKey};${account.token};${graphqlEndpoint}`] = {
     account,
     graphqlEndpoint,
     timestamp: Date.now(),
@@ -570,6 +570,7 @@ function removeJsonQuotes(json: string) {
   );
 }
 
+// TODO it seems we're not actually catching most errors here
 async function makeGraphqlRequest(
   query: string,
   graphqlEndpoint = defaultGraphqlEndpoint,

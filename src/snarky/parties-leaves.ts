@@ -1,24 +1,24 @@
 import { Field, Bool, Group, Ledger, Circuit } from '../snarky';
 import * as Json from './gen/parties-json';
 import { UInt32, UInt64, Sign } from '../lib/int';
+import { TokenSymbol } from '../lib/hash';
 import { PublicKey } from '../lib/signature';
 import { AsFieldsAndAux } from './parties-helpers';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
-export { Events, StringWithHash };
+export { Events, StringWithHash, TokenSymbol };
 
 export {
   toJson,
-  toJsonLeafTypes,
   toFields,
-  toFieldsLeafTypes,
   toAuxiliary,
   sizeInFields,
   fromFields,
   check,
+  toInput,
   TypeMap,
-  ToJsonTypeMap,
+  Input,
 };
 
 type AuthRequired = {
@@ -54,11 +54,8 @@ function asString(x: Field | bigint) {
   return x.toString();
 }
 
-type ToJsonTypeMap = TypeMap & {
-  BlockTimeInterval: { lower: UInt64; upper: UInt64 };
-};
 type ToJson = {
-  [K in keyof ToJsonTypeMap]: (x: ToJsonTypeMap[K]) => Json.TypeMap[K];
+  [K in keyof TypeMap]: (x: TypeMap[K]) => Json.TypeMap[K];
 };
 
 let ToJson: ToJson = {
@@ -97,10 +94,6 @@ let ToJson: ToJson = {
     if (x.neg().toString() === '1') return 'Negative';
     throw Error(`Invalid Sign: ${x}`);
   },
-  // TODO this is a hack
-  BlockTimeInterval(_: { lower: UInt64; upper: UInt64 }) {
-    return null;
-  },
   // builtin
   number: identity,
   null: identity,
@@ -110,10 +103,7 @@ let ToJson: ToJson = {
   string: identity,
 };
 
-function toJson<K extends keyof ToJsonTypeMap>(
-  typeName: K,
-  value: ToJsonTypeMap[K]
-) {
+function toJson<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
   if (!(typeName in ToJson))
     throw Error(`toJson: unsupported type "${typeName}"`);
   return ToJson[typeName](value);
@@ -324,8 +314,68 @@ function check<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
   Check[typeName](value);
 }
 
-let toJsonLeafTypes = new Set(Object.keys(ToJson));
-let toFieldsLeafTypes = new Set(Object.keys(ToFields));
+// to input
+
+type Input = {
+  fields?: Field[];
+  packed?: [Field, number][];
+};
+
+type ToInput = {
+  [K in keyof TypeMap]: (x: TypeMap[K]) => Input;
+};
+
+function emptyInput(_: any): Input {
+  return {};
+}
+
+let ToInput: ToInput = {
+  PublicKey(pk) {
+    let [x, isOdd] = ToFields.PublicKey(pk);
+    return {
+      fields: [x],
+      packed: [[isOdd, 1]],
+    };
+  },
+  Field(x) {
+    return { fields: [x] };
+  },
+  Bool(x) {
+    return { packed: [[x.toField(), 1]] };
+  },
+  AuthRequired({ constant, signatureNecessary, signatureSufficient }) {
+    return {
+      packed: [
+        [constant.toField(), 1],
+        [signatureNecessary.toField(), 1],
+        [signatureSufficient.toField(), 1],
+      ],
+    };
+  },
+  TokenId(x) {
+    return { fields: [x] };
+  },
+  Sign(x) {
+    return { packed: [[x.isPositive().toField(), 1]] };
+  },
+  UInt32(x) {
+    return { packed: [[x.value, 32]] };
+  },
+  UInt64(x) {
+    return { packed: [[x.value, 64]] };
+  },
+  // builtin
+  number: emptyInput,
+  null: emptyInput,
+  undefined: emptyInput,
+  string: emptyInput,
+};
+
+function toInput<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
+  if (!(typeName in ToFields))
+    throw Error(`toInput: unsupported type "${typeName}"`);
+  return ToInput[typeName](value);
+}
 
 // converters for types which got an annotation about its circuit type in Ocaml
 
@@ -350,6 +400,9 @@ const Events: AsFieldsAndAux<DataAsHash<Field[][]>, string[][]> = {
     return data.map((row) => row.map((e) => toJson('Field', e)));
   },
   check() {},
+  toInput({ hash }) {
+    return { fields: [hash] };
+  },
 };
 
 const StringWithHash: AsFieldsAndAux<DataAsHash<string>, string> = {
@@ -371,4 +424,7 @@ const StringWithHash: AsFieldsAndAux<DataAsHash<string>, string> = {
     return data;
   },
   check() {},
+  toInput({ hash }) {
+    return { fields: [hash] };
+  },
 };

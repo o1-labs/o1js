@@ -467,6 +467,10 @@
       {
         "name": "hashPartyFromJson",
         "type": "function"
+      },
+      {
+        "name": "hashInputFromJson",
+        "type": "object"
       }
     ]
   },

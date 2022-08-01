@@ -11,6 +11,7 @@ type AsFieldsAndAux<T, TJson> = {
   fromFields(fields: Field[], aux: any[]): T;
   toJson(value: T): TJson;
   check(value: T): void;
+  toInput(value: T): Leaves.Input;
 };
 type CustomTypes = Record<string, AsFieldsAndAux<any, any>>;
 
@@ -34,6 +35,9 @@ function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
     check(value: T): void {
       check(typeData, value, customTypes);
     },
+    toInput(value: T): Leaves.Input {
+      return toInput(typeData, value, customTypes);
+    },
     witness(f: () => T): T {
       let aux: any[];
       let fields = Circuit.witness<Field[]>(
@@ -52,183 +56,115 @@ function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
   };
 }
 
-function toJson(typeData: Layout, value: any, customTypes: CustomTypes): any {
-  let { checkedTypeName } = typeData;
-  if (checkedTypeName) {
-    // there's a custom type!
-    return customTypes[checkedTypeName].toJson(value);
-  }
-  if (typeData.type === 'array') {
-    return value.map((x: any) => toJson(typeData.inner, x, customTypes));
-  }
-  if (typeData.type === 'option') {
-    let { optionType, inner } = typeData;
-    switch (optionType) {
-      case 'implicit':
-        return toJson(inner, value, customTypes);
-      case 'flaggedOption':
-        return value.isSome.toBoolean()
-          ? toJson(inner, value.value, customTypes)
-          : null;
-      default:
-        return value !== undefined ? toJson(inner, value, customTypes) : null;
-    }
-  }
-  if (typeData.type === 'object') {
-    let { name, keys, entries } = typeData;
-    if (Leaves.toJsonLeafTypes.has(name)) {
-      // override with custom leaf type
-      return Leaves.toJson(name as keyof Leaves.ToJsonTypeMap, value);
-    }
-    let json: any = {};
-    for (let key of keys) {
-      json[key] = toJson(entries[key], value[key], customTypes);
-    }
-    return json;
-  }
-  return Leaves.toJson(typeData.type, value);
+function toJson(typeData: Layout, value: any, customTypes: CustomTypes) {
+  return layoutFold<any, any>(
+    {
+      map(type, value) {
+        return Leaves.toJson(type, value);
+      },
+      mapCustom(type, value) {
+        return type.toJson(value);
+      },
+      reduceArray(array) {
+        return array;
+      },
+      reduceObject(_, object) {
+        return object;
+      },
+      reduceFlaggedOption({ isSome, value }) {
+        return isSome ? value : null;
+      },
+      reduceOrUndefined(value) {
+        return value ?? null;
+      },
+      customTypes,
+    },
+    typeData,
+    value
+  );
 }
 
-// let i = 0; // DEBUG
-
-function toFields(typeData: Layout, value: any, customTypes: CustomTypes): any {
-  let { checkedTypeName } = typeData;
-  if (checkedTypeName) {
-    // there's a custom type!
-    let fields = customTypes[checkedTypeName].toFields(value);
-    // i += fields.length; // DEBUG
-    return fields;
-  }
-  if (typeData.type === 'array') {
-    return value
-      .map((x: any) => toFields(typeData.inner, x, customTypes))
-      .flat();
-  }
-  if (typeData.type === 'option') {
-    let { optionType, inner } = typeData;
-    switch (optionType) {
-      case 'implicit':
-        return toFields(inner, value, customTypes);
-      case 'flaggedOption':
-        // i += 1; // DEBUG
-        return value.isSome
-          .toFields()
-          .concat(toFields(inner, value.value, customTypes));
-      default:
+function toFields(typeData: Layout, value: any, customTypes: CustomTypes) {
+  return layoutFold<any, Field[]>(
+    {
+      map(type, value) {
+        return Leaves.toFields(type, value);
+      },
+      mapCustom(type, value) {
+        return type.toFields(value);
+      },
+      reduceArray(array) {
+        return array!.flat();
+      },
+      reduceObject(keys, object) {
+        return keys.map((key) => object![key]).flat();
+      },
+      reduceFlaggedOption({ isSome, value }) {
+        return [isSome, value].flat();
+      },
+      reduceOrUndefined(_) {
         return [];
-    }
-  }
-  if (typeData.type === 'object') {
-    let { name, keys, entries } = typeData;
-    if (Leaves.toFieldsLeafTypes.has(name)) {
-      // override with custom leaf type
-      return Leaves.toFields(name as keyof Leaves.TypeMap, value);
-    }
-    let fields: any = [];
-    // let fieldsMap: any = {}; // DEBUG
-    for (let key of keys) {
-      // let i0 = i; // DEBUG
-      let newFields = toFields(entries[key], value[key], customTypes);
-      fields.push(...newFields);
-      // fieldsMap[key] = [i0, newFields.map(String)]; // DEBUG
-    }
-    // console.log(name); // DEBUG
-    // console.log(fieldsMap); // DEBUG
-    return fields;
-  }
-  let fields = Leaves.toFields(typeData.type, value);
-  // i += fields.length; // DEBUG
-  return fields;
+      },
+      customTypes,
+    },
+    typeData,
+    value
+  );
 }
 
-function toAuxiliary<T>(
-  typeData: Layout,
-  value: T | undefined,
-  customTypes: any
-): any {
-  let { checkedTypeName } = typeData;
-  if (checkedTypeName) {
-    // there's a custom type!
-    return customTypes[checkedTypeName].toAuxiliary(value);
-  }
-  if (typeData.type === 'array') {
-    let v: any[] | undefined = value as any;
-    let length = typeData.staticLength ?? v?.length ?? 0;
-    // encode array length at runtime so it can be unambiguously read back in
-    if (v === undefined) return [length];
-    return [length].concat(
-      v.map((x: any) => toAuxiliary(typeData.inner, x, customTypes)).flat()
-    );
-  }
-  if (typeData.type === 'option') {
-    let { optionType, inner } = typeData;
-    switch (optionType) {
-      case 'implicit':
-        return toAuxiliary(inner, value, customTypes);
-      case 'flaggedOption':
-        let v: { isSome: boolean; value: any } | undefined = value as any;
-        return toAuxiliary(inner, v?.value, customTypes);
-      case 'orUndefined':
-        if (value === undefined) return [false];
-        return [true].concat(toAuxiliary(inner, value, customTypes));
-      default:
-        throw Error('bug');
-    }
-  }
-  if (typeData.type === 'object') {
-    let { name, keys, entries } = typeData;
-    if (Leaves.toFieldsLeafTypes.has(name)) {
-      // override with custom leaf type
-      return Leaves.toAuxiliary(name as keyof Leaves.TypeMap, value as any);
-    }
-    let aux: any = [];
-    let v: Record<string, any> | undefined = value as any;
-    for (let key of keys) {
-      let newAux = toAuxiliary(entries[key], v?.[key], customTypes);
-      aux.push(...newAux);
-    }
-    return aux;
-  }
-  let aux = Leaves.toAuxiliary(typeData.type, value as any);
-  return aux;
+function toAuxiliary(typeData: Layout, value: any, customTypes: CustomTypes) {
+  return layoutFold<any, any[]>(
+    {
+      map(type, value) {
+        return Leaves.toAuxiliary(type, value);
+      },
+      mapCustom(type, value) {
+        return type.toAuxiliary(value);
+      },
+      reduceArray(array, { staticLength }) {
+        let length = staticLength ?? array.length;
+        return [length].concat(array.flat());
+      },
+      reduceObject(keys, object) {
+        return keys.map((key) => object[key]).flat();
+      },
+      reduceFlaggedOption({ isSome, value }) {
+        return [isSome, value].flat();
+      },
+      reduceOrUndefined(value) {
+        return value === undefined ? [false] : [true].concat(value);
+      },
+      customTypes,
+    },
+    typeData,
+    value
+  );
 }
 
-function sizeInFields(typeData: Layout, customTypes: CustomTypes): number {
-  let { checkedTypeName } = typeData;
-  if (checkedTypeName) {
-    // there's a custom type!
-    return customTypes[checkedTypeName].sizeInFields();
-  }
-  if (typeData.type === 'array') {
-    let length = typeData.staticLength ?? NaN;
-    return length * sizeInFields(typeData.inner, customTypes);
-  }
-  if (typeData.type === 'option') {
-    let { optionType, inner } = typeData;
-    switch (optionType) {
-      case 'implicit':
-        return sizeInFields(inner, customTypes);
-      case 'flaggedOption':
-        return 1 + sizeInFields(inner, customTypes);
-      case 'orUndefined':
-        return 0;
-      default:
-        throw Error('bug');
-    }
-  }
-  if (typeData.type === 'object') {
-    let { name, keys, entries } = typeData;
-    if (Leaves.toFieldsLeafTypes.has(name)) {
-      // override with custom leaf type
-      return Leaves.sizeInFields(name as keyof Leaves.TypeMap);
-    }
-    let size = 0;
-    for (let key of keys) {
-      size += sizeInFields(entries[key], customTypes);
-    }
-    return size;
-  }
-  return Leaves.sizeInFields(typeData.type);
+function sizeInFields(typeData: Layout, customTypes: CustomTypes) {
+  let spec: FoldSpec<any, number> = {
+    map(type) {
+      return Leaves.sizeInFields(type);
+    },
+    mapCustom(type) {
+      return type.sizeInFields();
+    },
+    reduceArray(_, { inner, staticLength }): number {
+      let length = staticLength ?? NaN;
+      return length * layoutFold(spec, inner);
+    },
+    reduceObject(keys, object) {
+      return keys.map((key) => object[key]).reduce((x, y) => x + y);
+    },
+    reduceFlaggedOption({ isSome, value }) {
+      return isSome + value;
+    },
+    reduceOrUndefined(_) {
+      return 0;
+    },
+    customTypes,
+  };
+  return layoutFold<any, number>(spec, typeData);
 }
 
 function fromFields(
@@ -284,10 +220,6 @@ function fromFieldsReversed(
   }
   if (typeData.type === 'object') {
     let { name, keys, entries } = typeData;
-    if (Leaves.toFieldsLeafTypes.has(name)) {
-      // override with custom leaf type
-      return Leaves.fromFields(name as keyof Leaves.TypeMap, fields, aux);
-    }
     let values: Record<string, any> = {};
     for (let key of keys) {
       values[key] = fromFieldsReversed(entries[key], fields, aux, customTypes);
@@ -297,46 +229,122 @@ function fromFieldsReversed(
   return Leaves.fromFields(typeData.type, fields, aux);
 }
 
-function check(typeData: Layout, value: any, customTypes: CustomTypes): void {
+function check(typeData: Layout, value: any, customTypes: CustomTypes) {
+  return layoutFold<any, void>(
+    {
+      map(type, value) {
+        return Leaves.check(type, value);
+      },
+      mapCustom(type, value) {
+        return type.check(value);
+      },
+      reduceArray() {},
+      reduceObject() {},
+      reduceFlaggedOption() {},
+      reduceOrUndefined() {},
+      customTypes,
+    },
+    typeData,
+    value
+  );
+}
+
+function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
+  return layoutFold<any, Leaves.Input>(
+    {
+      map(type, value) {
+        return Leaves.toInput(type, value);
+      },
+      mapCustom(type, value) {
+        return type.toInput(value);
+      },
+      reduceArray(array) {
+        let acc: Leaves.Input = { fields: [], packed: [] };
+        for (let { fields, packed } of array) {
+          if (fields) acc.fields!.push(...fields);
+          if (packed) acc.packed!.push(...packed);
+        }
+        return acc;
+      },
+      reduceObject(keys, object) {
+        let acc: Leaves.Input = { fields: [], packed: [] };
+        for (let key of keys) {
+          let { fields, packed } = object[key];
+          if (fields) acc.fields!.push(...fields);
+          if (packed) acc.packed!.push(...packed);
+        }
+        return acc;
+      },
+      reduceFlaggedOption({ isSome, value }) {
+        return {
+          fields: value.fields,
+          packed: isSome.packed!.concat(value.packed ?? []),
+        };
+      },
+      reduceOrUndefined(_) {
+        return {};
+      },
+      customTypes,
+    },
+    typeData,
+    value
+  );
+}
+
+type FoldSpec<T, R> = {
+  customTypes: CustomTypes;
+  map: (type: keyof Leaves.TypeMap, value?: T) => R;
+  mapCustom: (type: AsFieldsAndAux<any, any>, value?: T) => R;
+  reduceArray: (array: R[], typeData: ArrayLayout) => R;
+  reduceObject: (keys: string[], record: Record<string, R>) => R;
+  reduceFlaggedOption: (option: { isSome: R; value: R }) => R;
+  reduceOrUndefined: (value?: R) => R;
+};
+
+function layoutFold<T, R>(
+  spec: FoldSpec<T, R>,
+  typeData: Layout,
+  value?: T
+): R {
   let { checkedTypeName } = typeData;
   if (checkedTypeName) {
     // there's a custom type!
-    customTypes[checkedTypeName].check(value);
-    return;
+    return spec.mapCustom(spec.customTypes[checkedTypeName], value);
   }
   if (typeData.type === 'array') {
-    value.forEach((x: any) => {
-      check(typeData.inner, x, customTypes);
-    });
-    return;
+    let v: T[] | undefined = value as any;
+    let array = v?.map((x: T) => layoutFold(spec, typeData.inner, x)) ?? [];
+    return spec.reduceArray(array, typeData);
   }
   if (typeData.type === 'option') {
     let { optionType, inner } = typeData;
     switch (optionType) {
       case 'implicit':
-        check(inner, value, customTypes);
-        return;
+        return layoutFold(spec, inner, value);
       case 'flaggedOption':
-        Bool.check(value.isSome);
-        check(inner, value.value, customTypes);
-        return;
+        let v: { isSome: T; value: T } | undefined = value as any;
+        return spec.reduceFlaggedOption({
+          isSome: spec.map('Bool', v?.isSome),
+          value: layoutFold(spec, inner, v?.value),
+        });
+      case 'orUndefined':
+        let mapped =
+          value === undefined ? undefined : layoutFold(spec, inner, value);
+        return spec.reduceOrUndefined(mapped);
       default:
-        return;
+        throw Error('bug');
     }
   }
   if (typeData.type === 'object') {
-    let { name, keys, entries } = typeData;
-    if (Leaves.toFieldsLeafTypes.has(name)) {
-      // override with custom leaf type
-      Leaves.check(name as keyof Leaves.TypeMap, value);
-      return;
-    }
-    for (let key of keys) {
-      check(entries[key], value[key], customTypes);
-    }
-    return;
+    let { keys, entries } = typeData;
+    let v: Record<string, T> | undefined = value as any;
+    let object: Record<string, R> = {};
+    keys.forEach((key) => {
+      object[key] = layoutFold(spec, entries[key], v?.[key]);
+    });
+    return spec.reduceObject(keys, object);
   }
-  Leaves.check(typeData.type, value);
+  return spec.map(typeData.type, value);
 }
 
 // types
@@ -371,6 +379,13 @@ type OptionLayout<T extends BaseLayout> = { type: 'option' } & (
     }
 ) &
   WithChecked;
+
+type ArrayLayout = {
+  type: 'array';
+  inner: Layout;
+  staticLength: number | null;
+} & WithChecked;
+
 type Layout =
   | OptionLayout<BaseLayout>
   | BaseLayout
@@ -380,8 +395,4 @@ type Layout =
       keys: string[];
       entries: Record<string, Layout>;
     } & WithChecked)
-  | ({
-      type: 'array';
-      inner: Layout;
-      staticLength: number | null;
-    } & WithChecked);
+  | ArrayLayout;

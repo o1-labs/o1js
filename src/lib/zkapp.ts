@@ -398,7 +398,7 @@ function computeCallData(
     ...type.toFields(value),
   ]);
   let totalArgSize = Field(
-    args.map(({ type }) => type.sizeInFields()).reduce((s, t) => s + t)
+    args.map(({ type }) => type.sizeInFields()).reduce((s, t) => s + t, 0)
   );
   let totalArgFields = argSizesAndFields.flat();
   let returnSize = Field(returnType?.sizeInFields() ?? 0);
@@ -817,8 +817,11 @@ async function deploy<S extends typeof SmartContract>(
       let amount = UInt64.fromString(String(initialBalance)).add(
         Mina.accountCreationFee()
       );
-      let party = Party.createSigned(feePayerKey);
+      let feePayerAddress = feePayerKey.toPublicKey();
+      let party = Party.defaultParty(feePayerAddress);
+      party.body.useFullCommitment = Bool(true);
       party.balance.subInPlace(amount);
+      Mina.currentTransaction()?.parties.push(party);
     }
     // main party: the zkapp account
     let zkapp = new SmartContract(address);

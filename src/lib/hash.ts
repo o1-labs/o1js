@@ -1,3 +1,4 @@
+import { AsFieldsAndAux } from '../snarky/parties-helpers';
 import { Poseidon as Poseidon_, Field } from '../snarky';
 import { inCheckedComputation } from './proof_system';
 
@@ -5,7 +6,14 @@ import { inCheckedComputation } from './proof_system';
 export { Poseidon };
 
 // internal API
-export { prefixes, emptyHashWithPrefix, hashWithPrefix, salt };
+export {
+  prefixes,
+  emptyHashWithPrefix,
+  hashWithPrefix,
+  salt,
+  TokenSymbol,
+  packToFields,
+};
 
 class Sponge {
   private sponge: unknown;
@@ -78,3 +86,70 @@ function prefixToField(prefix: string) {
     .flat();
   return Field.ofBits(bits);
 }
+
+/**
+ * Convert the {fields, packed} hash input representation to a list of field elements
+ * Random_oracle_input.Chunked.pack_to_fields
+ */
+function packToFields({ fields = [], packed = [] }: Input) {
+  if (packed.length === 0) return fields;
+  let packedBits = [];
+  let currentPackedField = Field.zero;
+  let currentSize = 0;
+  for (let [field, size] of packed) {
+    currentSize += size;
+    if (currentSize < 255) {
+      currentPackedField = currentPackedField
+        .mul(Field(1n << BigInt(size)))
+        .add(field);
+    } else {
+      packedBits.push(currentPackedField);
+      currentSize = size;
+      currentPackedField = field;
+    }
+  }
+  packedBits.push(currentPackedField);
+  return fields.concat(packedBits);
+}
+
+type Input = { fields?: Field[]; packed?: [Field, number][] };
+
+type TokenSymbol = { symbol: string; field: Field };
+
+const TokenSymbolPure: AsFieldsAndAux<TokenSymbol, string> = {
+  toFields({ field }) {
+    return [field];
+  },
+  toAuxiliary(value) {
+    return [value?.symbol ?? ''];
+  },
+  fromFields(fields, aux) {
+    let field = fields.pop()!;
+    let symbol = aux.pop()!;
+    return { symbol, field };
+  },
+  sizeInFields() {
+    return 1;
+  },
+  check({ field }: TokenSymbol) {
+    let actual = field.rangeCheckHelper(48);
+    actual.assertEquals(field);
+  },
+  toJson({ symbol }) {
+    return symbol;
+  },
+  toInput({ field }) {
+    return { packed: [[field, 48]] };
+  },
+};
+const TokenSymbol = {
+  ...TokenSymbolPure,
+  get empty() {
+    return { symbol: '', field: Field.zero };
+  },
+
+  from(symbol: string): TokenSymbol {
+    let field = prefixToField(symbol);
+    return { symbol, field };
+  },
+};

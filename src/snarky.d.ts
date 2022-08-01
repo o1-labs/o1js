@@ -682,7 +682,7 @@ declare const Poseidon: {
     isChecked: boolean
   ): [Field, Field, Field];
   prefixes: Record<
-    'event' | 'events' | 'sequenceEvents' | 'partyCons' | 'partyNode',
+    'event' | 'events' | 'sequenceEvents' | 'body' | 'partyCons' | 'partyNode',
     string
   >;
   spongeCreate(isChecked: boolean): unknown;
@@ -774,7 +774,19 @@ declare class Ledger {
   static fieldsOfJson(json: string): Field[];
   static hashPartyFromFields(fields: Field[]): Field;
   static hashPartyFromJson(json: string): Field;
+
+  static hashInputFromJson: {
+    packInput(input: OcamlInput): Field[];
+    timing(json: String): OcamlInput;
+    permissions(json: String): OcamlInput;
+    update(json: String): OcamlInput;
+    accountPrecondition(json: String): OcamlInput;
+    networkPrecondition(json: String): OcamlInput;
+    body(json: String): OcamlInput;
+  };
 }
+
+type OcamlInput = { fields: Field[]; packed: { field: Field; size: number }[] };
 
 /**
  * This function *must* be called at the end of a nodejs program, otherwise the
