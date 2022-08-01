@@ -398,7 +398,7 @@ function computeCallData(
     ...type.toFields(value),
   ]);
   let totalArgSize = Field(
-    args.map(({ type }) => type.sizeInFields()).reduce((s, t) => s + t)
+    args.map(({ type }) => type.sizeInFields()).reduce((s, t) => s + t, 0)
   );
   let totalArgFields = argSizesAndFields.flat();
   let returnSize = Field(returnType?.sizeInFields() ?? 0);
