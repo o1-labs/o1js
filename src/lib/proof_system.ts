@@ -25,7 +25,7 @@ export {
   emptyWitness,
   synthesizeMethodArguments,
   methodArgumentsToConstant,
-  methodArgumentsToFields,
+  methodArgumentTypesAndValues,
   isAsFields,
   snarkContext,
   inProver,
@@ -490,23 +490,28 @@ function methodArgumentsToConstant(
   }
   return constArgs;
 }
-function methodArgumentsToFields(
+
+type TypeAndValue<T> = { type: AsFieldElements<T>; value: T };
+
+function methodArgumentTypesAndValues(
   { allArgs, proofArgs, witnessArgs }: MethodInterface,
-  args: any[]
+  args: unknown[]
 ) {
-  let fields: Field[] = [];
+  let typesAndValues: TypeAndValue<any>[] = [];
   for (let i = 0; i < allArgs.length; i++) {
     let arg = args[i];
     let { type, index } = allArgs[i];
     if (type === 'witness') {
-      fields.push(...witnessArgs[index].toFields(arg));
+      typesAndValues.push({ type: witnessArgs[index], value: arg });
     } else {
       let Proof = proofArgs[index];
-      let publicInput = getPublicInputType(Proof).toFields(arg.publicInput);
-      fields.push(...publicInput);
+      typesAndValues.push({
+        type: getPublicInputType(Proof),
+        value: (arg as Proof<any>).publicInput,
+      });
     }
   }
-  return fields;
+  return typesAndValues;
 }
 
 function emptyValue<T>(type: AsFieldElements<T>) {

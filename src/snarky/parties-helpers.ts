@@ -49,7 +49,7 @@ function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
 }
 
 function toJSON(typeData: Layout, value: any, customTypes: CustomTypes) {
-  return mapReduce<any, any>(
+  return layoutFold<any, any>(
     {
       map(type, value) {
         return type.toJSON(value);
@@ -74,7 +74,7 @@ function toJSON(typeData: Layout, value: any, customTypes: CustomTypes) {
 }
 
 function toFields(typeData: Layout, value: any, customTypes: CustomTypes) {
-  return mapReduce<any, Field[]>(
+  return layoutFold<any, Field[]>(
     {
       map(type, value) {
         return type.toFields(value);
@@ -99,7 +99,7 @@ function toFields(typeData: Layout, value: any, customTypes: CustomTypes) {
 }
 
 function toAuxiliary(typeData: Layout, value: any, customTypes: CustomTypes) {
-  return mapReduce<any, any[]>(
+  return layoutFold<any, any[]>(
     {
       map(type, value) {
         return type.toAuxiliary(value);
@@ -125,13 +125,13 @@ function toAuxiliary(typeData: Layout, value: any, customTypes: CustomTypes) {
 }
 
 function sizeInFields(typeData: Layout, customTypes: CustomTypes) {
-  let spec: MapReduceSpec<any, number> = {
+  let spec: FoldSpec<any, number> = {
     map(type) {
       return type.sizeInFields();
     },
     reduceArray(_, { inner, staticLength }): number {
       let length = staticLength ?? NaN;
-      return length * mapReduce(spec, inner);
+      return length * layoutFold(spec, inner);
     },
     reduceObject(keys, object) {
       return keys.map((key) => object[key]).reduce((x, y) => x + y);
@@ -144,7 +144,7 @@ function sizeInFields(typeData: Layout, customTypes: CustomTypes) {
     },
     customTypes,
   };
-  return mapReduce<any, number>(spec, typeData);
+  return layoutFold<any, number>(spec, typeData);
 }
 
 function fromFields(
@@ -210,7 +210,7 @@ function fromFieldsReversed(
 }
 
 function check(typeData: Layout, value: any, customTypes: CustomTypes) {
-  return mapReduce<any, void>(
+  return layoutFold<any, void>(
     {
       map(type, value) {
         return type.check(value);
@@ -227,7 +227,7 @@ function check(typeData: Layout, value: any, customTypes: CustomTypes) {
 }
 
 function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
-  return mapReduce<any, HashInput>(
+  return layoutFold<any, HashInput>(
     {
       map(type, value) {
         return type.toInput(value);
@@ -265,7 +265,7 @@ function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
   );
 }
 
-type MapReduceSpec<T, R> = {
+type FoldSpec<T, R> = {
   customTypes: CustomTypes;
   map: (type: AsFieldsAndAux<any, any>, value?: T) => R;
   reduceArray: (array: R[], typeData: ArrayLayout) => R;
@@ -274,8 +274,8 @@ type MapReduceSpec<T, R> = {
   reduceOrUndefined: (value?: R) => R;
 };
 
-function mapReduce<T, R>(
-  spec: MapReduceSpec<T, R>,
+function layoutFold<T, R>(
+  spec: FoldSpec<T, R>,
   typeData: Layout,
   value?: T
 ): R {
@@ -286,23 +286,23 @@ function mapReduce<T, R>(
   }
   if (typeData.type === 'array') {
     let v: T[] | undefined = value as any;
-    let array = v?.map((x: T) => mapReduce(spec, typeData.inner, x)) ?? [];
+    let array = v?.map((x: T) => layoutFold(spec, typeData.inner, x)) ?? [];
     return spec.reduceArray(array, typeData);
   }
   if (typeData.type === 'option') {
     let { optionType, inner } = typeData;
     switch (optionType) {
       case 'implicit':
-        return mapReduce(spec, inner, value);
+        return layoutFold(spec, inner, value);
       case 'flaggedOption':
         let v: { isSome: T; value: T } | undefined = value as any;
         return spec.reduceFlaggedOption({
           isSome: spec.map(TypeMap.Bool, v?.isSome),
-          value: mapReduce(spec, inner, v?.value),
+          value: layoutFold(spec, inner, v?.value),
         });
       case 'orUndefined':
         let mapped =
-          value === undefined ? undefined : mapReduce(spec, inner, value);
+          value === undefined ? undefined : layoutFold(spec, inner, value);
         return spec.reduceOrUndefined(mapped);
       default:
         throw Error('bug');
@@ -313,7 +313,7 @@ function mapReduce<T, R>(
     let v: Record<string, T> | undefined = value as any;
     let object: Record<string, R> = {};
     keys.forEach((key) => {
-      object[key] = mapReduce(spec, entries[key], v?.[key]);
+      object[key] = layoutFold(spec, entries[key], v?.[key]);
     });
     return spec.reduceObject(keys, object);
   }

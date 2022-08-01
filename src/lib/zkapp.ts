@@ -50,8 +50,8 @@ import {
   inProver,
   inAnalyze,
   methodArgumentsToConstant,
-  methodArgumentsToFields,
   isAsFields,
+  methodArgumentTypesAndValues,
 } from './proof_system';
 import { assertStatePrecondition, cleanStatePrecondition } from './state';
 import { Types } from '../snarky/types';
@@ -113,7 +113,6 @@ function method<T extends SmartContract>(
   );
   if (isAsFields(returnType)) methodEntry.returnType = returnType;
   ZkappClass._methods ??= [];
-  let methodIndex = ZkappClass._methods.length;
   ZkappClass._methods.push(methodEntry);
   ZkappClass._maxProofsVerified ??= 0;
   ZkappClass._maxProofsVerified = Math.max(
@@ -121,7 +120,7 @@ function method<T extends SmartContract>(
     methodEntry.proofArgs.length
   );
   let func = descriptor.value;
-  descriptor.value = wrapMethod(func, ZkappClass, methodEntry, methodIndex);
+  descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
 }
 
 let smartContractContext =
@@ -131,8 +130,7 @@ let smartContractContext =
 function wrapMethod(
   method: Function,
   ZkappClass: typeof SmartContract,
-  methodIntf: MethodInterface,
-  methodIndex: number
+  methodIntf: MethodInterface
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
@@ -171,17 +169,12 @@ function wrapMethod(
                 );
 
                 // connects our input + result with callData, so this method can be called
-                let callDataFields = methodArgumentsToFields(
+                let callDataFields = computeCallData(
                   methodIntf,
-                  actualArgs
+                  actualArgs,
+                  result,
+                  blindingValue
                 );
-                if (methodIntf.returnType) {
-                  callDataFields.push(
-                    ...methodIntf.returnType.toFields(result)
-                  );
-                }
-                callDataFields.push(getMethodId(methodIntf, methodIndex));
-                callDataFields.push(blindingValue);
                 party.body.callData = Poseidon.hash(callDataFields);
 
                 // connect the public input to the party & child parties we created
@@ -229,15 +222,12 @@ function wrapMethod(
             assertStatePrecondition(this);
 
             // connect our input + result with callData, so this method can be called
-            let callDataFields = methodArgumentsToFields(
+            let callDataFields = computeCallData(
               methodIntf,
-              actualArgs
+              actualArgs,
+              result,
+              blindingValue
             );
-            if (methodIntf.returnType) {
-              callDataFields.push(...methodIntf.returnType.toFields(result));
-            }
-            callDataFields.push(getMethodId(methodIntf, methodIndex));
-            callDataFields.push(blindingValue);
             party.body.callData = Poseidon.hash(callDataFields);
 
             if (!Authorization.hasAny(party)) {
@@ -307,24 +297,21 @@ function wrapMethod(
           );
           assertStatePrecondition(this);
 
-          let resultFields: Field[] = [];
           if (result !== undefined) {
             if (returnType === undefined) {
               throw Error(noReturnTypeError);
             } else {
               result = toConstant(returnType, result);
-              resultFields = returnType.toFields(result);
             }
           }
 
           // store inputs + result in callData
-          let callDataFields = methodArgumentsToFields(
+          let callDataFields = computeCallData(
             methodIntf,
-            constantArgs
+            constantArgs,
+            result,
+            constantBlindingValue
           );
-          callDataFields.push(...resultFields);
-          callDataFields.push(getMethodId(methodIntf, methodIndex));
-          callDataFields.push(constantBlindingValue);
           party.body.callData = Poseidon_.hash(callDataFields, false);
 
           if (!Authorization.hasAny(party)) {
@@ -372,10 +359,12 @@ function wrapMethod(
         party.body.tokenId.assertEquals(this.self.body.tokenId);
 
         // assert that the inputs & outputs we have match what the callee put on its callData
-        let callDataFields = methodArgumentsToFields(methodIntf, actualArgs);
-        if (returnType) callDataFields.push(...returnType.toFields(result));
-        callDataFields.push(getMethodId(methodIntf, methodIndex));
-        callDataFields.push(blindingValue);
+        let callDataFields = computeCallData(
+          methodIntf,
+          actualArgs,
+          result,
+          blindingValue
+        );
         let callData = Poseidon.hash(callDataFields);
         party.body.callData.assertEquals(callData);
         return result;
@@ -391,8 +380,42 @@ function checkPublicInput({ party, calls }: ZkappPublicInput, self: Party) {
   calls.assertEquals(otherInput.calls);
 }
 
-function getMethodId({ methodName }: MethodInterface, methodIndex: number) {
-  return Encoding.stringToFields(`${methodIndex};${methodName}`)[0];
+/**
+ * compute fields to be hashed as callData, in a way that the hash & circuit changes whenever
+ * the method signature changes, i.e., the argument / return types represented as lists of field elements and the methodName.
+ * see https://github.com/o1-labs/snarkyjs/issues/303#issuecomment-1196441140
+ */
+function computeCallData(
+  methodIntf: MethodInterface,
+  argumentValues: any[],
+  returnValue: any,
+  blindingValue: Field
+) {
+  let { returnType, methodName } = methodIntf;
+  let args = methodArgumentTypesAndValues(methodIntf, argumentValues);
+  let argSizesAndFields: Field[][] = args.map(({ type, value }) => [
+    Field(type.sizeInFields()),
+    ...type.toFields(value),
+  ]);
+  let totalArgSize = Field(
+    args.map(({ type }) => type.sizeInFields()).reduce((s, t) => s + t, 0)
+  );
+  let totalArgFields = argSizesAndFields.flat();
+  let returnSize = Field(returnType?.sizeInFields() ?? 0);
+  let returnFields = returnType?.toFields(returnValue) ?? [];
+  let methodNameFields = Encoding.stringToFields(methodName);
+  return [
+    // we have to encode the sizes of arguments / return value, so that fields can't accidentally shift
+    // from one argument to another, or from arguments to the return value, or from the return value to the method name
+    totalArgSize,
+    ...totalArgFields,
+    returnSize,
+    ...returnFields,
+    // we don't have to encode the method name size because the blinding value is fixed to one field element,
+    // so method name fields can't accidentally become the blinding value and vice versa
+    ...methodNameFields,
+    blindingValue,
+  ];
 }
 
 /**

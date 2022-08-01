@@ -1,4 +1,4 @@
-import { Circuit, Field } from '../snarky';
+import { Circuit, Field, Bool } from '../snarky';
 import { CircuitValue, prop } from './circuit_value';
 import { Types } from '../snarky/types';
 import { HashInput } from './hash';
@@ -148,14 +148,20 @@ class UInt64 extends CircuitValue {
   }
 
   lte(y: UInt64) {
-    let xMinusY = this.value.sub(y.value).seal();
-    let xMinusYFits = xMinusY.rangeCheckHelper(UInt64.NUM_BITS).equals(xMinusY);
-    let yMinusXFits = xMinusY
-      .rangeCheckHelper(UInt64.NUM_BITS)
-      .equals(xMinusY.neg());
-    xMinusYFits.or(yMinusXFits).assertEquals(true);
-    // x <= y if y - x fits in 64 bits
-    return yMinusXFits;
+    if (this.value.isConstant() && y.value.isConstant()) {
+      return Bool(this.value.toBigInt() <= y.value.toBigInt());
+    } else {
+      let xMinusY = this.value.sub(y.value).seal();
+      let xMinusYFits = xMinusY
+        .rangeCheckHelper(UInt64.NUM_BITS)
+        .equals(xMinusY);
+      let yMinusXFits = xMinusY
+        .rangeCheckHelper(UInt64.NUM_BITS)
+        .equals(xMinusY.neg());
+      xMinusYFits.or(yMinusXFits).assertEquals(true);
+      // x <= y if y - x fits in 64 bits
+      return yMinusXFits;
+    }
   }
 
   assertLte(y: UInt64) {
@@ -305,14 +311,20 @@ class UInt32 extends CircuitValue {
   }
 
   lte(y: UInt32) {
-    let xMinusY = this.value.sub(y.value).seal();
-    let xMinusYFits = xMinusY.rangeCheckHelper(UInt32.NUM_BITS).equals(xMinusY);
-    let yMinusXFits = xMinusY
-      .rangeCheckHelper(UInt32.NUM_BITS)
-      .equals(xMinusY.neg());
-    xMinusYFits.or(yMinusXFits).assertEquals(true);
-    // x <= y if y - x fits in 32 bits
-    return yMinusXFits;
+    if (this.value.isConstant() && y.value.isConstant()) {
+      return Bool(this.value.toBigInt() <= y.value.toBigInt());
+    } else {
+      let xMinusY = this.value.sub(y.value).seal();
+      let xMinusYFits = xMinusY
+        .rangeCheckHelper(UInt32.NUM_BITS)
+        .equals(xMinusY);
+      let yMinusXFits = xMinusY
+        .rangeCheckHelper(UInt32.NUM_BITS)
+        .equals(xMinusY.neg());
+      xMinusYFits.or(yMinusXFits).assertEquals(true);
+      // x <= y if y - x fits in 64 bits
+      return yMinusXFits;
+    }
   }
 
   assertLte(y: UInt32) {
