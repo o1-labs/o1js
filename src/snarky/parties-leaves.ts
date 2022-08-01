@@ -1,25 +1,20 @@
-import { Field, Bool, Group, Ledger, Circuit } from '../snarky';
+import { Group, Ledger, Circuit } from '../snarky';
+import { Field, Bool } from '../lib/core';
 import * as Json from './gen/parties-json';
 import { UInt32, UInt64, Sign } from '../lib/int';
 import { TokenSymbol } from '../lib/hash';
 import { PublicKey } from '../lib/signature';
-import { AsFieldsAndAux } from './parties-helpers';
+import {
+  AsFieldsAndAux,
+  AsFieldsExtended,
+  circuitValue,
+} from '../lib/circuit_value';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
 export { Events, StringWithHash, TokenSymbol };
 
-export {
-  toJson,
-  toFields,
-  toAuxiliary,
-  sizeInFields,
-  fromFields,
-  check,
-  toInput,
-  TypeMap,
-  Input,
-};
+export { TypeMap };
 
 type AuthRequired = {
   constant: Bool;
@@ -45,28 +40,38 @@ type TypeMap = {
   string: string;
 };
 
-// json conversion
+// types that implement AsFieldAndAux, and so can be left out of the conversion maps below
+// sort of a "transposed" representation
 
-function identity(x: any) {
-  return x;
-}
-function asString(x: Field | bigint) {
-  return x.toString();
-}
-
-type ToJson = {
-  [K in keyof TypeMap]: (x: TypeMap[K]) => Json.TypeMap[K];
+let emptyType = {
+  sizeInFields: () => 0,
+  toFields: () => [],
+  toAuxiliary: () => [],
+  fromFields: () => null,
+  check: () => {},
+  toInput: () => ({}),
+  toJSON: () => null,
 };
 
-let ToJson: ToJson = {
-  PublicKey(x: PublicKey): Json.PublicKey {
-    return Ledger.publicKeyToString(x);
+const TokenId: AsFieldsExtended<TokenId> = {
+  ...circuitValue<TokenId>(Field),
+  toJSON(x: TokenId): Json.TokenId {
+    return Ledger.fieldToBase58(x);
   },
-  Field: asString,
-  Bool(x: Bool) {
-    return x.toBoolean();
-  },
-  AuthRequired(x: AuthRequired) {
+};
+
+const AuthRequired: AsFieldsExtended<AuthRequired> = {
+  ...circuitValue<AuthRequired>(
+    { constant: Bool, signatureNecessary: Bool, signatureSufficient: Bool },
+    {
+      customObjectKeys: [
+        'constant',
+        'signatureNecessary',
+        'signatureSufficient',
+      ],
+    }
+  ),
+  toJSON(x): Json.AuthRequired {
     let c = Number(x.constant.toBoolean());
     let n = Number(x.signatureNecessary.toBoolean());
     let s = Number(x.signatureSufficient.toBoolean());
@@ -80,150 +85,20 @@ let ToJson: ToJson = {
       default: throw Error('Unexpected permission');
     }
   },
-  UInt32(x: UInt32) {
-    return x.value.toString();
-  },
-  UInt64(x: UInt64) {
-    return x.value.toString();
-  },
-  TokenId(x: TokenId) {
-    return Ledger.fieldToBase58(x);
-  },
-  Sign(x: Sign) {
-    if (x.toString() === '1') return 'Positive';
-    if (x.neg().toString() === '1') return 'Negative';
-    throw Error(`Invalid Sign: ${x}`);
-  },
-  // builtin
-  number: identity,
-  null: identity,
-  undefined(_: undefined) {
-    return null;
-  },
-  string: identity,
 };
 
-function toJson<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
-  if (!(typeName in ToJson))
-    throw Error(`toJson: unsupported type "${typeName}"`);
-  return ToJson[typeName](value);
-}
-
-// to fields
-
-type ToFields = { [K in keyof TypeMap]: (x: TypeMap[K]) => Field[] };
-
-function asFields(x: any): Field[] {
-  return x.toFields();
-}
-function empty(_: any): [] {
-  return [];
-}
-
-let ToFields: ToFields = {
-  PublicKey({ g }: PublicKey) {
+const PublicKeyCompressed: AsFieldsExtended<PublicKey> = {
+  ...circuitValue<PublicKey>(PublicKey),
+  toJSON(x): Json.PublicKey {
+    return Ledger.publicKeyToString(x);
+  },
+  toFields({ g }: PublicKey) {
     let { x, y } = g;
     // TODO inefficient! in-snark public key should be uncompressed
     let isOdd = y.toBits()[0];
     return [x, isOdd.toField()];
   },
-  Field: asFields,
-  Bool: asFields,
-  AuthRequired(x: AuthRequired) {
-    return [x.constant, x.signatureNecessary, x.signatureSufficient]
-      .map(asFields)
-      .flat();
-  },
-  UInt32: asFields,
-  UInt64: asFields,
-  TokenId: asFields,
-  Sign: asFields,
-  // builtin
-  number: empty,
-  null: empty,
-  undefined: empty,
-  string: empty,
-};
-
-function toFields<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
-  if (!(typeName in ToFields))
-    throw Error(`toFields: unsupported type "${typeName}"`);
-  return ToFields[typeName](value);
-}
-
-// to auxiliary
-
-type ToAuxiliary = {
-  [K in keyof TypeMap]:
-    | ((x: TypeMap[K] | undefined) => [])
-    | ((x: TypeMap[K] | undefined) => [TypeMap[K]]);
-};
-
-let ToAuxiliary: ToAuxiliary = {
-  PublicKey: empty,
-  Field: empty,
-  Bool: empty,
-  AuthRequired: empty,
-  UInt32: empty,
-  UInt64: empty,
-  TokenId: empty,
-  Sign: empty,
-  // builtin
-  number: (x = 0) => [x],
-  null: empty,
-  undefined: empty,
-  string: (x = '') => [x],
-};
-
-function toAuxiliary<K extends keyof TypeMap>(
-  typeName: K,
-  value: TypeMap[K] | undefined
-) {
-  if (!(typeName in ToFields))
-    throw Error(`toAuxiliary: unsupported type "${typeName}"`);
-  return ToAuxiliary[typeName](value);
-}
-
-// size in fields
-
-type SizeInFields = { [K in keyof TypeMap]: number };
-let SizeInFields: SizeInFields = {
-  PublicKey: 2,
-  Field: 1,
-  Bool: 1,
-  AuthRequired: 3,
-  UInt32: 1,
-  UInt64: 1,
-  TokenId: 1,
-  Sign: 1,
-  // builtin
-  number: 0,
-  null: 0,
-  undefined: 0,
-  string: 0,
-};
-
-function sizeInFields<K extends keyof TypeMap>(typeName: K) {
-  if (!(typeName in ToFields))
-    throw Error(`sizeInFields: unsupported type "${typeName}"`);
-  return SizeInFields[typeName];
-}
-
-// from fields & aux
-// these functions get the reversed output of `toFields` and `toAuxiliary` and pop the values they need from those arrays
-
-type FromFields = {
-  [K in keyof TypeMap]: (fields: Field[], aux: any[]) => TypeMap[K];
-};
-
-function takeOneAux(_: Field[], aux: any[]) {
-  return aux.pop()!;
-}
-
-let FromFields: FromFields = {
-  PublicKey(fields: Field[]) {
-    let x = fields.pop()!;
-    let isOdd = fields.pop()!;
+  ofFields([x, isOdd]) {
     // compute y from elliptic curve equation y^2 = x^3 + 5
     // TODO: this is used in-snark, so we should improve constraint efficiency
     let ySquared = x.mul(x).mul(x).add(5);
@@ -241,143 +116,49 @@ let FromFields: FromFields = {
       .add(isTheRightY.not().toField().mul(someY.neg()));
     return new PublicKey(new Group(x, y));
   },
-  Field(fields: Field[]) {
-    return fields.pop()!;
-  },
-  Bool(fields: Field[]) {
-    return Bool.Unsafe.ofField(fields.pop()!);
-  },
-  AuthRequired(fields: Field[], _) {
-    let constant = FromFields.Bool(fields, _);
-    let signatureNecessary = FromFields.Bool(fields, _);
-    let signatureSufficient = FromFields.Bool(fields, _);
-    return { constant, signatureNecessary, signatureSufficient };
-  },
-  UInt32(fields: Field[]) {
-    return new UInt32(fields.pop()!);
-  },
-  UInt64(fields: Field[]) {
-    return new UInt64(fields.pop()!);
-  },
-  TokenId(fields: Field[]) {
-    return fields.pop()!;
-  },
-  Sign(fields: Field[]) {
-    return new Sign(fields.pop()!);
-  },
-  // builtin
-  number: takeOneAux,
-  null: () => null,
-  undefined: () => undefined,
-  string: takeOneAux,
-};
-
-function fromFields<K extends keyof TypeMap>(
-  typeName: K,
-  fields: Field[],
-  aux: any[]
-): TypeMap[K] {
-  if (!(typeName in ToFields))
-    throw Error(`fromFields: unsupported type "${typeName}"`);
-  return FromFields[typeName](fields, aux);
-}
-
-// check
-
-type Check = { [K in keyof TypeMap]: (x: TypeMap[K]) => void };
-
-function none() {}
-
-let Check: Check = {
-  PublicKey: (v) => PublicKey.check(v),
-  Field: (v) => Field.check(v),
-  Bool: (v) => Bool.check(v),
-  AuthRequired(x: AuthRequired) {
-    Bool.check(x.constant);
-    Bool.check(x.signatureNecessary);
-    Bool.check(x.signatureSufficient);
-  },
-  UInt32: (v) => UInt32.check(v),
-  UInt64: (v) => UInt64.check(v),
-  TokenId: (v) => Field.check(v),
-  Sign: (v) => Sign.check(v),
-  // builtin
-  number: none,
-  null: none,
-  undefined: none,
-  string: none,
-};
-
-function check<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
-  if (!(typeName in ToFields))
-    throw Error(`check: unsupported type "${typeName}"`);
-  Check[typeName](value);
-}
-
-// to input
-
-type Input = {
-  fields?: Field[];
-  packed?: [Field, number][];
-};
-
-type ToInput = {
-  [K in keyof TypeMap]: (x: TypeMap[K]) => Input;
-};
-
-function emptyInput(_: any): Input {
-  return {};
-}
-
-let ToInput: ToInput = {
-  PublicKey(pk) {
-    let [x, isOdd] = ToFields.PublicKey(pk);
+  toInput(pk) {
+    let [x, isOdd] = this.toFields(pk);
     return {
       fields: [x],
       packed: [[isOdd, 1]],
     };
   },
-  Field(x) {
-    return { fields: [x] };
-  },
-  Bool(x) {
-    return { packed: [[x.toField(), 1]] };
-  },
-  AuthRequired({ constant, signatureNecessary, signatureSufficient }) {
-    return {
-      packed: [
-        [constant.toField(), 1],
-        [signatureNecessary.toField(), 1],
-        [signatureSufficient.toField(), 1],
-      ],
-    };
-  },
-  TokenId(x) {
-    return { fields: [x] };
-  },
-  Sign(x) {
-    return { packed: [[x.isPositive().toField(), 1]] };
-  },
-  UInt32(x) {
-    return { packed: [[x.value, 32]] };
-  },
-  UInt64(x) {
-    return { packed: [[x.value, 64]] };
-  },
-  // builtin
-  number: emptyInput,
-  null: emptyInput,
-  undefined: emptyInput,
-  string: emptyInput,
 };
 
-function toInput<K extends keyof TypeMap>(typeName: K, value: TypeMap[K]) {
-  if (!(typeName in ToFields))
-    throw Error(`toInput: unsupported type "${typeName}"`);
-  return ToInput[typeName](value);
-}
+let { fromCircuitValue } = AsFieldsAndAux;
 
-// converters for types which got an annotation about its circuit type in Ocaml
+const TypeMap: {
+  [K in keyof TypeMap]: AsFieldsAndAux<TypeMap[K], Json.TypeMap[K]>;
+} = {
+  Field: fromCircuitValue(Field),
+  Bool: fromCircuitValue(Bool),
+  UInt32: fromCircuitValue(UInt32),
+  UInt64: fromCircuitValue(UInt64),
+  Sign: fromCircuitValue(Sign),
+  TokenId: fromCircuitValue(TokenId),
+  AuthRequired: fromCircuitValue(AuthRequired),
+  PublicKey: fromCircuitValue(PublicKeyCompressed),
+  // primitive JS types
+  number: {
+    ...emptyType,
+    toAuxiliary: (value = 0) => [value],
+    toJSON: (value) => value,
+    fromFields: (_, aux) => aux.pop()!,
+  },
+  string: {
+    ...emptyType,
+    toAuxiliary: (value = '') => [value],
+    toJSON: (value) => value,
+    fromFields: (_, aux) => aux.pop()!,
+  },
+  null: emptyType,
+  undefined: {
+    ...emptyType,
+    fromFields: () => undefined,
+  },
+};
+
+// types which got an annotation about its circuit type in Ocaml
 
 type DataAsHash<T> = { data: T; hash: Field };
 
@@ -396,8 +177,8 @@ const Events: AsFieldsAndAux<DataAsHash<Field[][]>, string[][]> = {
     let data = aux.pop()!;
     return { data, hash };
   },
-  toJson({ data }) {
-    return data.map((row) => row.map((e) => toJson('Field', e)));
+  toJSON({ data }) {
+    return data.map((row) => row.map((e) => e.toString()));
   },
   check() {},
   toInput({ hash }) {
@@ -420,7 +201,7 @@ const StringWithHash: AsFieldsAndAux<DataAsHash<string>, string> = {
     let data = aux.pop()!;
     return { data, hash };
   },
-  toJson({ data }) {
+  toJSON({ data }) {
     return data;
   },
   check() {},

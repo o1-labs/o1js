@@ -1,18 +1,10 @@
-import * as Leaves from './parties-leaves';
+import { TypeMap } from './parties-leaves';
 import { Field, Bool, Circuit } from '../snarky';
-import { circuitArray } from '../lib/circuit_value';
+import { circuitArray, AsFieldsAndAux } from '../lib/circuit_value';
+import { HashInput } from 'lib/hash';
 
 export { asFieldsAndAux, Layout, AsFieldsAndAux };
 
-type AsFieldsAndAux<T, TJson> = {
-  sizeInFields(): number;
-  toFields(value: T): Field[];
-  toAuxiliary(value?: T): any[];
-  fromFields(fields: Field[], aux: any[]): T;
-  toJson(value: T): TJson;
-  check(value: T): void;
-  toInput(value: T): Leaves.Input;
-};
 type CustomTypes = Record<string, AsFieldsAndAux<any, any>>;
 
 function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
@@ -29,13 +21,13 @@ function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
     fromFields(fields: Field[], aux: any[]): T {
       return fromFields(typeData, fields, aux, customTypes);
     },
-    toJson(value: T): TJson {
-      return toJson(typeData, value, customTypes);
+    toJSON(value: T): TJson {
+      return toJSON(typeData, value, customTypes);
     },
     check(value: T): void {
       check(typeData, value, customTypes);
     },
-    toInput(value: T): Leaves.Input {
+    toInput(value: T): HashInput {
       return toInput(typeData, value, customTypes);
     },
     witness(f: () => T): T {
@@ -56,14 +48,11 @@ function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
   };
 }
 
-function toJson(typeData: Layout, value: any, customTypes: CustomTypes) {
+function toJSON(typeData: Layout, value: any, customTypes: CustomTypes) {
   return layoutFold<any, any>(
     {
       map(type, value) {
-        return Leaves.toJson(type, value);
-      },
-      mapCustom(type, value) {
-        return type.toJson(value);
+        return type.toJSON(value);
       },
       reduceArray(array) {
         return array;
@@ -88,9 +77,6 @@ function toFields(typeData: Layout, value: any, customTypes: CustomTypes) {
   return layoutFold<any, Field[]>(
     {
       map(type, value) {
-        return Leaves.toFields(type, value);
-      },
-      mapCustom(type, value) {
         return type.toFields(value);
       },
       reduceArray(array) {
@@ -116,9 +102,6 @@ function toAuxiliary(typeData: Layout, value: any, customTypes: CustomTypes) {
   return layoutFold<any, any[]>(
     {
       map(type, value) {
-        return Leaves.toAuxiliary(type, value);
-      },
-      mapCustom(type, value) {
         return type.toAuxiliary(value);
       },
       reduceArray(array, { staticLength }) {
@@ -144,9 +127,6 @@ function toAuxiliary(typeData: Layout, value: any, customTypes: CustomTypes) {
 function sizeInFields(typeData: Layout, customTypes: CustomTypes) {
   let spec: FoldSpec<any, number> = {
     map(type) {
-      return Leaves.sizeInFields(type);
-    },
-    mapCustom(type) {
       return type.sizeInFields();
     },
     reduceArray(_, { inner, staticLength }): number {
@@ -226,16 +206,13 @@ function fromFieldsReversed(
     }
     return values;
   }
-  return Leaves.fromFields(typeData.type, fields, aux);
+  return TypeMap[typeData.type].fromFields(fields, aux);
 }
 
 function check(typeData: Layout, value: any, customTypes: CustomTypes) {
   return layoutFold<any, void>(
     {
       map(type, value) {
-        return Leaves.check(type, value);
-      },
-      mapCustom(type, value) {
         return type.check(value);
       },
       reduceArray() {},
@@ -250,16 +227,13 @@ function check(typeData: Layout, value: any, customTypes: CustomTypes) {
 }
 
 function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
-  return layoutFold<any, Leaves.Input>(
+  return layoutFold<any, HashInput>(
     {
       map(type, value) {
-        return Leaves.toInput(type, value);
-      },
-      mapCustom(type, value) {
         return type.toInput(value);
       },
       reduceArray(array) {
-        let acc: Leaves.Input = { fields: [], packed: [] };
+        let acc: HashInput = { fields: [], packed: [] };
         for (let { fields, packed } of array) {
           if (fields) acc.fields!.push(...fields);
           if (packed) acc.packed!.push(...packed);
@@ -267,7 +241,7 @@ function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
         return acc;
       },
       reduceObject(keys, object) {
-        let acc: Leaves.Input = { fields: [], packed: [] };
+        let acc: HashInput = { fields: [], packed: [] };
         for (let key of keys) {
           let { fields, packed } = object[key];
           if (fields) acc.fields!.push(...fields);
@@ -293,8 +267,7 @@ function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
 
 type FoldSpec<T, R> = {
   customTypes: CustomTypes;
-  map: (type: keyof Leaves.TypeMap, value?: T) => R;
-  mapCustom: (type: AsFieldsAndAux<any, any>, value?: T) => R;
+  map: (type: AsFieldsAndAux<any, any>, value?: T) => R;
   reduceArray: (array: R[], typeData: ArrayLayout) => R;
   reduceObject: (keys: string[], record: Record<string, R>) => R;
   reduceFlaggedOption: (option: { isSome: R; value: R }) => R;
@@ -309,7 +282,7 @@ function layoutFold<T, R>(
   let { checkedTypeName } = typeData;
   if (checkedTypeName) {
     // there's a custom type!
-    return spec.mapCustom(spec.customTypes[checkedTypeName], value);
+    return spec.map(spec.customTypes[checkedTypeName], value);
   }
   if (typeData.type === 'array') {
     let v: T[] | undefined = value as any;
@@ -324,7 +297,7 @@ function layoutFold<T, R>(
       case 'flaggedOption':
         let v: { isSome: T; value: T } | undefined = value as any;
         return spec.reduceFlaggedOption({
-          isSome: spec.map('Bool', v?.isSome),
+          isSome: spec.map(TypeMap.Bool, v?.isSome),
           value: layoutFold(spec, inner, v?.value),
         });
       case 'orUndefined':
@@ -344,14 +317,14 @@ function layoutFold<T, R>(
     });
     return spec.reduceObject(keys, object);
   }
-  return spec.map(typeData.type, value);
+  return spec.map(TypeMap[typeData.type], value);
 }
 
 // types
 
 type WithChecked = { checkedType?: Layout; checkedTypeName?: string };
 
-type BaseLayout = { type: keyof Leaves.TypeMap } & WithChecked;
+type BaseLayout = { type: keyof TypeMap } & WithChecked;
 
 type RangeLayout<T extends BaseLayout> = {
   type: 'object';

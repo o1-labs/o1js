@@ -1,6 +1,8 @@
 import 'reflect-metadata';
-import { Circuit, Field, Bool, JSONValue, AsFieldElements } from '../snarky';
+import { Circuit, JSONValue, AsFieldElements } from '../snarky';
+import { Field, Bool } from './core';
 import { Context } from './global-context';
+import { HashInput } from './hash';
 import { snarkContext } from './proof_system';
 
 // external API
@@ -17,6 +19,8 @@ export {
 
 // internal API
 export {
+  AsFieldsExtended,
+  AsFieldsAndAux,
   cloneCircuitValue,
   circuitValueEquals,
   circuitArray,
@@ -57,17 +61,38 @@ abstract class CircuitValue {
     v: InstanceType<T>
   ): Field[] {
     const res: Field[] = [];
-    const fields = (this as any).prototype._fields;
+    const fields = this.prototype._fields;
     if (fields === undefined || fields === null) {
       return res;
     }
-
     for (let i = 0, n = fields.length; i < n; ++i) {
       const [key, propType] = fields[i];
       const subElts: Field[] = propType.toFields((v as any)[key]);
       subElts.forEach((x) => res.push(x));
     }
     return res;
+  }
+
+  static toInput<T extends AnyConstructor>(
+    this: T,
+    v: InstanceType<T>
+  ): HashInput {
+    let input: HashInput = { fields: [], packed: [] };
+    let fields = this.prototype._fields;
+    if (fields === undefined) return input;
+    for (let i = 0, n = fields.length; i < n; ++i) {
+      let [key, type] = fields[i];
+      if ('toInput' in type) {
+        HashInput.append(input, type.toInput(v[key]));
+        continue;
+      }
+      // as a fallback, use toFields on the type
+      // TODO: this is problematic -- ignores if there's a toInput on a nested type
+      // so, remove this? should every circuit value define toInput?
+      let xs: Field[] = type.toFields(v[key]);
+      input.fields!.push(...xs);
+    }
+    return input;
   }
 
   toFields(): Field[] {
@@ -116,7 +141,6 @@ abstract class CircuitValue {
     if (fields === undefined || fields === null) {
       return;
     }
-
     for (let i = 0; i < fields.length; ++i) {
       const [key, propType] = fields[i];
       const value = (v as any)[key];
@@ -339,13 +363,18 @@ function circuitMain(
 let primitives = new Set(['Field', 'Bool', 'Scalar', 'Group']);
 let complexTypes = new Set(['object', 'function']);
 
+type AsFieldsExtended<T> = AsFieldElements<T> & {
+  toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
+  toJSON: (x: T) => JSONValue;
+};
+
 // TODO properly type this at the interface
 // create recursive type that describes JSON-like structures of circuit types
 // TODO unit-test this
 function circuitValue<T>(
   typeObj: any,
   options?: { customObjectKeys: string[] }
-): AsFieldElements<T> {
+): AsFieldsExtended<T> {
   let objectKeys =
     typeof typeObj === 'object' && typeObj !== null
       ? options?.customObjectKeys ?? Object.keys(typeObj).sort()
@@ -367,6 +396,30 @@ function circuitValue<T>(
     if ('toFields' in typeObj) return typeObj.toFields(obj);
     return objectKeys.map((k) => toFields(typeObj[k], obj[k])).flat();
   }
+  function toInput(typeObj: any, obj: any): HashInput {
+    if (!complexTypes.has(typeof typeObj) || typeObj === null) return {};
+    if (Array.isArray(typeObj)) {
+      return typeObj
+        .map((t, i) => toInput(t, obj[i]))
+        .reduce(HashInput.append, {});
+    }
+    if ('toInput' in typeObj) return typeObj.toInput(obj) as HashInput;
+    if ('toFields' in typeObj) {
+      return { fields: typeObj.toFields(obj) };
+    }
+    return objectKeys
+      .map((k) => toInput(typeObj[k], obj[k]))
+      .reduce(HashInput.append, {});
+  }
+  function toJSON(typeObj: any, obj: any): JSONValue {
+    if (!complexTypes.has(typeof typeObj) || typeObj === null)
+      return obj ?? null;
+    if (Array.isArray(typeObj)) return typeObj.map((t, i) => toJSON(t, obj[i]));
+    if ('toJSON' in typeObj) return typeObj.toJSON(obj);
+    return Object.fromEntries(
+      objectKeys.map((k) => [k, toJSON(typeObj[k], obj[k])])
+    );
+  }
   function ofFields(typeObj: any, fields: Field[]): any {
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return null;
     if (Array.isArray(typeObj)) {
@@ -387,7 +440,7 @@ function circuitValue<T>(
     return Object.fromEntries(objectKeys.map((k, i) => [k, values[i]]));
   }
   function check(typeObj: any, obj: any): void {
-    if (typeof typeObj !== 'object' || typeObj === null) return;
+    if (!complexTypes.has(typeof typeObj) || typeObj === null) return;
     if (Array.isArray(typeObj))
       return typeObj.forEach((t, i) => check(t, obj[i]));
     if ('check' in typeObj) return typeObj.check(obj);
@@ -396,6 +449,8 @@ function circuitValue<T>(
   return {
     sizeInFields: () => sizeInFields(typeObj),
     toFields: (obj: T) => toFields(typeObj, obj),
+    toInput: (obj: T) => toInput(typeObj, obj),
+    toJSON: (obj: T) => toJSON(typeObj, obj),
     ofFields: (fields: Field[]) => ofFields(typeObj, fields) as T,
     check: (obj: T) => check(typeObj, obj),
   };
@@ -581,3 +636,53 @@ function getBlindingValue() {
   }
   return context.blindingValue;
 }
+
+// "complex" circuit values which have auxiliary data, and have to be hashed
+
+type AsFieldsAndAux<T, TJson> = {
+  sizeInFields(): number;
+  toFields(value: T): Field[];
+  toAuxiliary(value?: T): any[];
+  fromFields(fields: Field[], aux: any[]): T;
+  toJSON(value: T): TJson;
+  check(value: T): void;
+  toInput(value: T): HashInput;
+};
+
+// convert from circuit values
+function fromCircuitValue<T, A extends AsFieldsExtended<T>, TJson = JSONValue>(
+  type: A
+): AsFieldsAndAux<T, TJson> {
+  return {
+    sizeInFields() {
+      return type.sizeInFields();
+    },
+    toFields(value) {
+      return type.toFields(value);
+    },
+    toAuxiliary(_) {
+      return [];
+    },
+    fromFields(fields) {
+      let myFields: Field[] = [];
+      let size = type.sizeInFields();
+      for (let i = 0; i < size; i++) {
+        myFields.push(fields.pop()!);
+      }
+      return type.ofFields(myFields);
+    },
+    check(value) {
+      type.check(value);
+    },
+    toInput(value) {
+      return type.toInput(value);
+    },
+    toJSON(value) {
+      return type.toJSON(value) as any;
+    },
+  };
+}
+
+const AsFieldsAndAux = {
+  fromCircuitValue,
+};

@@ -1,6 +1,4 @@
 export {
-  Field,
-  Bool,
   Group,
   Scalar,
   AsFieldElements,
@@ -8,6 +6,7 @@ export {
   isReady,
   shutdown,
 } from './snarky';
+export { Field, Bool } from './lib/core';
 export type { VerificationKey, Keypair } from './snarky';
 export * from './snarky/addons';
 export { Poseidon } from './lib/hash';
@@ -58,12 +57,11 @@ export { Character, CircuitString } from './lib/string';
 // experimental APIs
 import { Reducer } from './lib/zkapp';
 import { createChildParty } from './lib/party';
-import { memoizeWitness } from './lib/circuit_value';
 import {
-  jsLayout,
-  asFieldsAndAux,
+  memoizeWitness,
   AsFieldsAndAux as AsFieldsAndAux_,
-} from './snarky/types';
+} from './lib/circuit_value';
+import { jsLayout, asFieldsAndAux } from './snarky/types';
 import { packToFields } from './lib/hash';
 export { Experimental };
 
