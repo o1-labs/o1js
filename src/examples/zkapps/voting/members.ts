@@ -22,12 +22,12 @@ export class Members extends SmartContract {
 
   @method addEntry() {
     // Emit event that indicates adding this item
-    // Preconditions: restrict who can vote or who can be a canidate
+    // Preconditions: Restrict who can vote or who can be a candidate
   }
 
   @method isMember(accountId) {
-    // Verify membership with the accountId via merkletree committed to by the sequence events and returns a boolean
-    // Preconditions:
+    // Verify membership(voter or candidate) with the accountId via merkletree committed to by the sequence events and returns a boolean
+    // Preconditions: Item exists in committed storage
   }
 
   @method publish() {
