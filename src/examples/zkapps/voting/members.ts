@@ -26,4 +26,6 @@ export class Members extends SmartContract {
   @method isMember(accountId) {
     // Verify membership via merkletree committed to by the sequence events and return a boolean
   }
+
+  @method publish() {}
 }
