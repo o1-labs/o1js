@@ -8,4 +8,13 @@ import {
   Permissions,
 } from 'snarkyjs';
 
-export class Members extends SmartContract {}
+export class Members extends SmartContract {
+  deploy(args: DeployArgs) {
+    super.deploy(args);
+    this.setPermissions({
+      ...Permissions.default(),
+      editState: Permissions.proofOrSignature(),
+    });
+    // TODO: Add initilaztion here
+  }
+}
