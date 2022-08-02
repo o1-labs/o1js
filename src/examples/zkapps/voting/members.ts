@@ -9,6 +9,8 @@ import {
 } from 'snarkyjs';
 
 export class Members extends SmartContract {
+  // TODO: Add state variables
+
   deploy(args: DeployArgs) {
     super.deploy(args);
     this.setPermissions({
