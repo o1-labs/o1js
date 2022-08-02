@@ -611,6 +611,34 @@ class SmartContract {
     party.body.events = Events.pushEvent(party.body.events, eventFields);
   }
 
+  fetchEvents(): { type: string; event: AsFieldElements<any> }[] {
+    let events = Mina.fetchEvents(this.address)
+      .map((el: any) => el.events)
+      .flat();
+
+    let sortedEventTypes = Object.keys(this.events).sort();
+    return events.map((event: any) => {
+      if (sortedEventTypes.length === 1) {
+        let type = sortedEventTypes[0];
+        return {
+          type,
+          event: this.events[type].ofFields(
+            event.map((f: string) => Field.fromString(f))
+          ),
+        };
+      } else {
+        let type = sortedEventTypes[event[0]];
+        event.shift();
+        return {
+          type,
+          event: this.events[type].ofFields(
+            event.map((f: string) => Field.fromString(f))
+          ),
+        };
+      }
+    });
+  }
+
   static runOutsideCircuit(run: () => void) {
     if (Mina.currentTransaction()?.isFinalRunOutsideCircuit || inProver())
       Circuit.asProver(run);

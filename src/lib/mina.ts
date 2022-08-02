@@ -36,6 +36,7 @@ export {
   getNetworkState,
   accountCreationFee,
   sendTransaction,
+  fetchEvents,
   FeePayerSpec,
 };
 interface TransactionId {
@@ -190,7 +191,9 @@ interface Mina {
   getNetworkState(): NetworkValue;
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): TransactionId;
+  fetchEvents: (publicKey: PublicKey) => any;
 }
+
 interface MockMina extends Mina {
   addAccount(publicKey: PublicKey, balance: string): void;
   /**
@@ -226,6 +229,8 @@ function LocalBlockchain({
     addAccount(pk, largeValue);
     testAccounts.push({ privateKey: k, publicKey: pk });
   }
+
+  const events: Record<string, any> = {};
 
   return {
     accountCreationFee: () => UInt64.from(accountCreationFee),
@@ -266,10 +271,28 @@ function LocalBlockchain({
     },
     sendTransaction(txn: Transaction) {
       txn.sign();
+
       ledger.applyJsonTransaction(
         JSON.stringify(partiesToJson(txn.transaction)),
         String(accountCreationFee)
       );
+
+      // fetches all events from the transaction and stores it
+      JSON.parse(txn.toJSON()).otherParties.forEach((p: any) => {
+        if (events[p.body.publicKey] === undefined) {
+          events[p.body.publicKey] = {};
+        }
+        if (p.body.events.length > 0) {
+          if (events[p.body.publicKey][p.body.tokenId] === undefined) {
+            events[p.body.publicKey][p.body.tokenId] = [];
+          }
+          events[p.body.publicKey][p.body.tokenId].push({
+            events: p.body.events,
+            slot: 1,
+          });
+        }
+      });
+
       return { wait: async () => {} };
     },
     async transaction(sender: FeePayerSpec, f: () => void) {
@@ -289,6 +312,15 @@ function LocalBlockchain({
     },
     applyJsonTransaction(json: string) {
       return ledger.applyJsonTransaction(json, String(accountCreationFee));
+    },
+    fetchEvents(publicKey: PublicKey): any {
+      let addr = publicKey.toBase58();
+      let tokenIds = Object.keys(events[addr]);
+      let eventsForAddress: any = [];
+      tokenIds.forEach((id) => {
+        eventsForAddress.push(...events[addr][id]);
+      });
+      return eventsForAddress;
     },
     addAccount,
     testAccounts,
@@ -388,6 +420,11 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         isFinalRunOutsideCircuit: !hasProofs,
       });
     },
+    fetchEvents() {
+      throw Error(
+        'fetchEvents() is not implemented yet for remote blockchains.'
+      );
+    },
   };
 }
 
@@ -437,6 +474,9 @@ let activeInstance: Mina = {
   },
   async transaction(sender: FeePayerSpec, f: () => void) {
     return createTransaction(sender, f);
+  },
+  fetchEvents() {
+    throw Error('must call Mina.setActiveInstance first');
   },
 };
 
@@ -512,6 +552,13 @@ function accountCreationFee() {
 
 function sendTransaction(txn: Transaction) {
   return activeInstance.sendTransaction(txn);
+}
+
+/**
+ * @return A list of emitted events associated to the given public key.
+ */
+function fetchEvents(publicKey: PublicKey) {
+  return activeInstance.fetchEvents(publicKey);
 }
 
 function dummyAccount(pubkey?: PublicKey): Account {
