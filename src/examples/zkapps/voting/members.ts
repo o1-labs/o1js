@@ -17,17 +17,20 @@ export class Members extends SmartContract {
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
     });
-  }
-
-  @method init() {
     // TODO: Add account state initilaztion here
   }
 
-  @method addEntry() {}
-
-  @method isMember(accountId) {
-    // Verify membership via merkletree committed to by the sequence events and return a boolean
+  @method addEntry() {
+    // Emit event that indicates adding this item
+    // Preconditions: restrict who can vote or who can be a canidate
   }
 
-  @method publish() {}
+  @method isMember(accountId) {
+    // Verify membership with the accountId via merkletree committed to by the sequence events and returns a boolean
+    // Preconditions:
+  }
+
+  @method publish() {
+    // Commit to the items accumulated so far. This is a periodic update
+  }
 }
