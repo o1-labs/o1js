@@ -20,4 +20,6 @@ export class Members extends SmartContract {
   @method init() {
     // TODO: Add account state initilaztion here
   }
+
+  @method addEntry() {}
 }
