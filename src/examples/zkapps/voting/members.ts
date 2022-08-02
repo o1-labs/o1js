@@ -15,6 +15,9 @@ export class Members extends SmartContract {
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
     });
-    // TODO: Add initilaztion here
+  }
+
+  @method init() {
+    // TODO: Add account state initilaztion here
   }
 }
