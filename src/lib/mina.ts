@@ -1,6 +1,7 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, Ledger, Field } from '../snarky';
+import { Circuit, Ledger } from '../snarky';
+import { Field, Bool } from './core';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
 import {
@@ -15,12 +16,14 @@ import {
   getDefaultTokenId,
   CallForest,
   Authorization,
+  Events,
 } from './party';
 import * as Fetch from './fetch';
 import { assertPreconditionInvariants, NetworkValue } from './precondition';
 import { cloneCircuitValue } from './circuit_value';
 import { Proof, snarkContext } from './proof_system';
 import { Context } from './global-context';
+import { emptyReceiptChainHash } from './hash';
 
 export {
   createTransaction,
@@ -32,6 +35,7 @@ export {
   transaction,
   currentSlot,
   getAccount,
+  hasAccount,
   getBalance,
   getNetworkState,
   accountCreationFee,
@@ -186,6 +190,7 @@ function createTransaction(
 interface Mina {
   transaction(sender: FeePayerSpec, f: () => void): Promise<Transaction>;
   currentSlot(): UInt32;
+  hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
   accountCreationFee(): UInt64;
@@ -234,6 +239,9 @@ function LocalBlockchain({
         Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
       );
     },
+    hasAccount(publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) {
+      return !!ledger.getAccount(publicKey, tokenId);
+    },
     getAccount(
       publicKey: PublicKey,
       tokenId: Field = getDefaultTokenId()
@@ -252,8 +260,17 @@ function LocalBlockchain({
           tokenId,
           balance: new UInt64(ledgerAccount.balance.value),
           nonce: new UInt32(ledgerAccount.nonce.value),
-          zkapp: ledgerAccount.zkapp,
+          appState:
+            ledgerAccount.zkapp?.appState ??
+            Array(ZkappStateLength).fill(Field.zero),
           tokenSymbol: ledgerAccount.tokenSymbol,
+          receiptChainHash: ledgerAccount.receiptChainHash,
+          provedState: Bool(ledgerAccount.zkapp?.provedState ?? false),
+          delegate:
+            ledgerAccount.delegate && new PublicKey(ledgerAccount.delegate),
+          sequenceState:
+            ledgerAccount.zkapp?.sequenceState[0] ??
+            Events.emptySequenceState(),
         };
       }
     },
@@ -304,6 +321,15 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       throw Error(
         'currentSlot() is not implemented yet for remote blockchains.'
       );
+    },
+    hasAccount(publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) {
+      if (
+        !currentTransaction.has() ||
+        currentTransaction.get().fetchMode === 'cached'
+      ) {
+        return !!Fetch.getCachedAccount(publicKey, tokenId, graphqlEndpoint);
+      }
+      return false;
     },
     getAccount(publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) {
       if (currentTransaction()?.fetchMode === 'test') {
@@ -400,7 +426,20 @@ let activeInstance: Mina = {
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
   },
-  getAccount: (publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) => {
+  hasAccount(publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) {
+    if (
+      !currentTransaction.has() ||
+      currentTransaction.get().fetchMode === 'cached'
+    ) {
+      return !!Fetch.getCachedAccount(
+        publicKey,
+        tokenId,
+        Fetch.defaultGraphqlEndpoint
+      );
+    }
+    return false;
+  },
+  getAccount(publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) {
     if (currentTransaction()?.fetchMode === 'test') {
       Fetch.markAccountToBeFetched(
         publicKey,
@@ -492,6 +531,10 @@ function getAccount(publicKey: PublicKey, tokenId?: Field): Account {
   return activeInstance.getAccount(publicKey, tokenId);
 }
 
+function hasAccount(publicKey: PublicKey, tokenId?: Field): boolean {
+  return activeInstance.hasAccount(publicKey, tokenId);
+}
+
 /**
  * @return Data associated with the current state of the Mina network.
  */
@@ -520,8 +563,12 @@ function dummyAccount(pubkey?: PublicKey): Account {
     nonce: UInt32.zero,
     publicKey: pubkey ?? PublicKey.empty(),
     tokenId: getDefaultTokenId(),
-    zkapp: { appState: Array(ZkappStateLength).fill(Field.zero) },
+    appState: Array(ZkappStateLength).fill(Field.zero),
     tokenSymbol: '',
+    provedState: Bool(false),
+    receiptChainHash: emptyReceiptChainHash(),
+    delegate: undefined,
+    sequenceState: Events.emptySequenceState(),
   };
 }
 

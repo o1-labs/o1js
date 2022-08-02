@@ -716,12 +716,8 @@ declare class Proof {
   verify(verificationKey: VerificationKey, publicInput: any[]): boolean;
 }
 
-interface UInt32_ {
-  value: Field;
-}
-interface UInt64_ {
-  value: Field;
-}
+type UInt32_ = { value: Field };
+type UInt64_ = { value: Field };
 
 interface Account {
   publicKey: { g: Group };
@@ -729,7 +725,17 @@ interface Account {
   nonce: UInt32_;
   tokenId: Field;
   tokenSymbol: string;
-  zkapp: { appState: Field[] };
+  receiptChainHash: Field;
+  delegate?: { g: Group };
+  votingFor: Field;
+  zkapp?: {
+    appState: Field[];
+    verificationKey?: { hash: Field; data: unknown };
+    zkappVersion: number;
+    sequenceState: Field[];
+    lastSequenceSlot: number;
+    provedState: boolean;
+  };
 }
 
 // TODO would be nice to document these, at least the parts that end up being used in the public API

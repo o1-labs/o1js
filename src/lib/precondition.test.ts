@@ -135,11 +135,21 @@ describe('preconditions', () => {
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
 
-  it('unsatisfied assertEquals should be rejected', async () => {
-    for (let precondition of implemented) {
+  it('unsatisfied assertEquals should be rejected (numbers)', async () => {
+    for (let precondition of implementedNumber) {
       let tx = await Mina.transaction(feePayer, () => {
-        let p: any = precondition().get();
+        let p = precondition().get();
         precondition().assertEquals(p.add(1));
+      });
+      expect(() => tx.send()).toThrow(/unsatisfied/);
+    }
+  });
+
+  it('unsatisfied assertEquals should be rejected (booleans)', async () => {
+    for (let precondition of implementedBool) {
+      let tx = await Mina.transaction(feePayer, () => {
+        let p = precondition().get();
+        precondition().assertEquals(p.not());
       });
       expect(() => tx.send()).toThrow(/unsatisfied/);
     }
@@ -167,7 +177,7 @@ describe('preconditions', () => {
   });
 });
 
-let implemented = [
+let implementedNumber = [
   () => zkapp.account.balance,
   () => zkapp.account.nonce,
   () => zkapp.network.timestamp,
@@ -181,6 +191,11 @@ let implemented = [
   () => zkapp.network.nextEpochData.epochLength,
   () => zkapp.network.nextEpochData.ledger.totalCurrency,
 ];
+let implementedBool = [
+  () => zkapp.account.isNew,
+  // () => zkapp.account.provedState,
+];
+let implemented = [...implementedNumber, ...implementedBool];
 let implementedWithRange = [
   () => zkapp.account.balance,
   () => zkapp.account.nonce,
@@ -196,9 +211,8 @@ let implementedWithRange = [
   () => zkapp.network.nextEpochData.ledger.totalCurrency,
 ];
 let unimplemented = [
-  () => zkapp.account.provedState,
-  () => zkapp.account.isNew,
   () => zkapp.account.delegate,
+  () => zkapp.account.provedState,
   () => zkapp.account.receiptChainHash,
   () => zkapp.network.snarkedLedgerHash,
   () => zkapp.network.stakingEpochData.lockCheckpoint,

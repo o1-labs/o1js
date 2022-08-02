@@ -14,6 +14,7 @@ export {
   salt,
   TokenSymbol,
   packToFields,
+  emptyReceiptChainHash,
 };
 
 class Sponge {
@@ -165,3 +166,7 @@ const TokenSymbol = {
     return { symbol, field };
   },
 };
+
+function emptyReceiptChainHash() {
+  return emptyHashWithPrefix('CodaReceiptEmpty');
+}

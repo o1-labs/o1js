@@ -169,12 +169,12 @@ type Account = {
   balance: UInt64;
   tokenId: Field;
   tokenSymbol: string;
-  zkapp?: { appState: Field[] };
+  appState?: Field[];
   permissions?: Permissions;
-  receiptChainHash?: Field;
+  receiptChainHash: Field;
   delegate?: PublicKey;
   sequenceState?: Field;
-  provedState?: Bool;
+  provedState: Bool;
 };
 
 type FlexibleAccount = {
@@ -238,7 +238,7 @@ function parseFetchedAccount({
       publicKey !== undefined ? PublicKey.fromBase58(publicKey) : undefined,
     nonce: nonce !== undefined ? UInt32.fromString(nonce) : undefined,
     balance: balance && UInt64.fromString(balance.total),
-    zkapp: (zkappState && { appState: zkappState.map(Field) }) ?? undefined,
+    appState: (zkappState && zkappState.map(Field)) ?? undefined,
     permissions:
       permissions &&
       (Object.fromEntries(
