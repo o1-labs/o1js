@@ -191,7 +191,7 @@ interface Mina {
   getNetworkState(): NetworkValue;
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): TransactionId;
-  fetchEvents: (publicKey: PublicKey) => any;
+  fetchEvents: (publicKey: PublicKey, tokenId: Field) => any;
 }
 
 interface MockMina extends Mina {
@@ -277,16 +277,18 @@ function LocalBlockchain({
         String(accountCreationFee)
       );
 
-      // fetches all events from the transaction and stores it
-      JSON.parse(txn.toJSON()).otherParties.forEach((p: any) => {
-        if (events[p.body.publicKey] === undefined) {
-          events[p.body.publicKey] = {};
+      // fetches all events from the transaction and stores them
+      partiesToJson(txn.transaction).otherParties.forEach((p: any) => {
+        let addr = p.body.publicKey;
+        let tokenId = p.body.tokenId;
+        if (events[addr] === undefined) {
+          events[addr] = {};
         }
         if (p.body.events.length > 0) {
-          if (events[p.body.publicKey][p.body.tokenId] === undefined) {
-            events[p.body.publicKey][p.body.tokenId] = [];
+          if (events[addr][tokenId] === undefined) {
+            events[addr][tokenId] = [];
           }
-          events[p.body.publicKey][p.body.tokenId].push({
+          events[addr][tokenId].push({
             events: p.body.events,
             slot: 1,
           });
@@ -313,14 +315,8 @@ function LocalBlockchain({
     applyJsonTransaction(json: string) {
       return ledger.applyJsonTransaction(json, String(accountCreationFee));
     },
-    fetchEvents(publicKey: PublicKey): any {
-      let addr = publicKey.toBase58();
-      let tokenIds = Object.keys(events[addr]);
-      let eventsForAddress: any = [];
-      tokenIds.forEach((id) => {
-        eventsForAddress.push(...events[addr][id]);
-      });
-      return eventsForAddress;
+    fetchEvents(publicKey: PublicKey, tokenId: Field): any {
+      return events[publicKey.toBase58()][Ledger.fieldToBase58(tokenId)];
     },
     addAccount,
     testAccounts,
@@ -557,8 +553,8 @@ function sendTransaction(txn: Transaction) {
 /**
  * @return A list of emitted events associated to the given public key.
  */
-function fetchEvents(publicKey: PublicKey) {
-  return activeInstance.fetchEvents(publicKey);
+function fetchEvents(publicKey: PublicKey, tokenId: Field) {
+  return activeInstance.fetchEvents(publicKey, tokenId);
 }
 
 function dummyAccount(pubkey?: PublicKey): Account {

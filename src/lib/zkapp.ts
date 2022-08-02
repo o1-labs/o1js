@@ -612,7 +612,7 @@ class SmartContract {
   }
 
   fetchEvents(): { type: string; event: AsFieldElements<any> }[] {
-    let events = Mina.fetchEvents(this.address)
+    let events = Mina.fetchEvents(this.address, this.self.body.tokenId)
       .map((el: any) => el.events)
       .flat();
 
