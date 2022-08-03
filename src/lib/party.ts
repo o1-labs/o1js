@@ -1164,6 +1164,13 @@ async function addMissingProofs(parties: Parties): Promise<{
     } = party.lazyAuthorization;
     let publicInput = partyToPublicInput(party);
     let publicInputFields = ZkappPublicInput.toFields(publicInput);
+
+    console.log('addMissingProofs -- (ZkappClass)', ZkappClass);
+    console.log('addMissingProofs -- (methodName)', methodName);
+    console.log('addMissingProofs -- (args)', args);
+    console.log('addMissingProofs -- (publicInput)', publicInput);
+    console.log('addMissingProofs -- (blindingValue)', blindingValue);
+
     if (ZkappClass._provers === undefined)
       throw Error(
         `Cannot prove execution of ${methodName}(), no prover found. ` +

@@ -29,6 +29,7 @@ import {
   Authorization,
   CallForest,
   getDefaultTokenId,
+  Token,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -430,6 +431,7 @@ function computeCallData(
  */
 class SmartContract {
   address: PublicKey;
+  nativeToken: Field;
 
   private _executionState: ExecutionState | undefined;
   static _methods?: MethodInterface[];
@@ -449,8 +451,9 @@ class SmartContract {
     };
   }
 
-  constructor(address: PublicKey) {
+  constructor(address: PublicKey, nativeToken?: Field) {
     this.address = address;
+    this.nativeToken = nativeToken ?? getDefaultTokenId();
     Object.defineProperty(this, 'reducer', {
       set(this, reducer: Reducer<any>) {
         ((this as any)._ ??= {}).reducer = reducer;
@@ -527,7 +530,7 @@ class SmartContract {
       // or even expose the .get() methods independently of any party (they don't need one)
       return {
         transactionId: NaN,
-        party: selfParty(this.address),
+        party: selfParty(this.address, this.nativeToken),
       };
     }
     let executionState = this._executionState;
@@ -539,7 +542,7 @@ class SmartContract {
     }
     let transaction = Mina.currentTransaction.get();
     let id = Mina.currentTransaction.id();
-    let party = selfParty(this.address);
+    let party = selfParty(this.address, this.nativeToken);
     transaction.parties.push(party);
     executionState = { transactionId: id, party };
     this._executionState = executionState;
@@ -775,8 +778,13 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
   };
 }
 
-function selfParty(address: PublicKey) {
+function selfParty(address: PublicKey, tokenId?: Field) {
   let body = Body.keepAll(address);
+  if (tokenId) {
+    body.tokenId = tokenId;
+    body.caller = tokenId;
+    body.callDepth = 1;
+  }
   return new (Party as any)(body, {}, true) as Party;
 }
 
