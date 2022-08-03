@@ -65,7 +65,7 @@ class TokenContract extends SmartContract {
     });
   }
 
-  @method send(
+  @method sendTokens(
     senderAddress: PublicKey,
     receiverAddress: PublicKey,
     amount: UInt64
@@ -253,7 +253,7 @@ describe('Token', () => {
       (
         await Mina.transaction(feePayer, () => {
           Party.fundNewAccount(feePayer);
-          zkapp.send(tokenAccount1, tokenAccount2, UInt64.from(10_000));
+          zkapp.sendTokens(tokenAccount1, tokenAccount2, UInt64.from(10_000));
           zkapp.sign(zkappKey);
         })
       )
@@ -279,7 +279,7 @@ describe('Token', () => {
 
       let tx = (
         await Mina.transaction(feePayer, () => {
-          zkapp.send(tokenAccount1, tokenAccount2, UInt64.from(10_000));
+          zkapp.sendTokens(tokenAccount1, tokenAccount2, UInt64.from(10_000));
           zkapp.sign(zkappKey);
         })
       ).sign([tokenAccount1Key]);
@@ -300,7 +300,11 @@ describe('Token', () => {
 
       let tx = (
         await Mina.transaction(feePayer, () => {
-          zkapp.send(tokenAccount1, tokenAccount2, UInt64.from(100_000_000));
+          zkapp.sendTokens(
+            tokenAccount1,
+            tokenAccount2,
+            UInt64.from(100_000_000)
+          );
           zkapp.sign(zkappKey);
         })
       ).sign([tokenAccount1Key]);
