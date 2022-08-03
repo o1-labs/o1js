@@ -37,6 +37,7 @@ export {
   accountCreationFee,
   sendTransaction,
   fetchEvents,
+  getActions,
   FeePayerSpec,
 };
 interface TransactionId {
@@ -192,6 +193,7 @@ interface Mina {
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): TransactionId;
   fetchEvents: (publicKey: PublicKey, tokenId?: Field) => any;
+  getActions: (publicKey: PublicKey, tokenId?: Field) => any;
 }
 
 interface MockMina extends Mina {
@@ -231,6 +233,7 @@ function LocalBlockchain({
   }
 
   const events: Record<string, any> = {};
+  const actions: Record<string, any> = {};
 
   return {
     accountCreationFee: () => UInt64.from(accountCreationFee),
@@ -296,8 +299,21 @@ function LocalBlockchain({
             slot: currentSlot().toString(), // TODO: use block when implemented
           });
         }
-      });
 
+        if (actions[addr] === undefined) {
+          actions[addr] = {};
+        }
+        if (p.body.sequenceEvents.length > 0) {
+          if (actions[addr][tokenId] === undefined) {
+            actions[addr][tokenId] = [];
+          }
+          actions[addr][tokenId].push({
+            actions: p.body.sequenceEvents,
+            hash: 'xxxxxx',
+          });
+        }
+      });
+      console.log(actions);
       return { wait: async () => {} };
     },
     async transaction(sender: FeePayerSpec, f: () => void) {
@@ -325,6 +341,14 @@ function LocalBlockchain({
       let eventsForAccount =
         events?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)];
       return eventsForAccount === undefined ? [] : eventsForAccount;
+    },
+    getActions(
+      publicKey: PublicKey,
+      tokenId: Field = getDefaultTokenId()
+    ): any[] {
+      let actionsForAccount =
+        actions?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)];
+      return actionsForAccount === undefined ? [] : actionsForAccount;
     },
     addAccount,
     testAccounts,
@@ -429,6 +453,11 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         'fetchEvents() is not implemented yet for remote blockchains.'
       );
     },
+    getActions() {
+      throw Error(
+        'fetchEvents() is not implemented yet for remote blockchains.'
+      );
+    },
   };
 }
 
@@ -480,6 +509,9 @@ let activeInstance: Mina = {
     return createTransaction(sender, f);
   },
   fetchEvents() {
+    throw Error('must call Mina.setActiveInstance first');
+  },
+  getActions() {
     throw Error('must call Mina.setActiveInstance first');
   },
 };
@@ -563,6 +595,13 @@ function sendTransaction(txn: Transaction) {
  */
 async function fetchEvents(publicKey: PublicKey, tokenId: Field) {
   return await activeInstance.fetchEvents(publicKey, tokenId);
+}
+
+/**
+ * @return A list of emitted sequencing actions associated to the given public key.
+ */
+function getActions(publicKey: PublicKey, tokenId: Field) {
+  return activeInstance.getActions(publicKey, tokenId);
 }
 
 function dummyAccount(pubkey?: PublicKey): Account {

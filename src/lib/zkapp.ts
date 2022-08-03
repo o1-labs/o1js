@@ -721,6 +721,7 @@ type ReducerReturn<Action> = {
     state: State;
     actionsHash: Field;
   };
+  getActions(fromStateHash?: Field, endStateHash?: Field): Action[][];
 };
 
 function getReducer<A>(contract: SmartContract): ReducerReturn<A> {
@@ -815,6 +816,14 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       }
       contract.account.sequenceState.assertEquals(actionsHash);
       return { state, actionsHash };
+    },
+    getActions(fromStateHash?: Field, endStateHash?: Field): A[][] {
+      return Mina.getActions(contract.address, contract.self.tokenId).map(
+        (el: any) =>
+          el.actions.map((a: any[]) =>
+            reducer.actionType.ofFields(a.map((f: any) => Field.fromString(f)))
+          )
+      );
     },
   };
 }
