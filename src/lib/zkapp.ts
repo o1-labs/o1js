@@ -611,13 +611,27 @@ class SmartContract {
     party.body.events = Events.pushEvent(party.body.events, eventFields);
   }
 
-  fetchEvents(): { type: string; event: AsFieldElements<any> }[] {
+  fetchEvents(
+    start: UInt32,
+    end?: UInt32
+  ): { type: string; event: AsFieldElements<any> }[] {
+    // filters all elements so that they are within the given range
+    // only returns { type: "", event: [] } in a flat format
     let events = Mina.fetchEvents(this.address, this.self.body.tokenId)
+      .filter((el: any) => {
+        let slot = UInt32.from(el.slot);
+        return end === undefined
+          ? start.lte(slot).toBoolean()
+          : start.lte(slot).toBoolean() && slot.lte(end).toBoolean();
+      })
       .map((el: any) => el.events)
       .flat();
 
+    // used to match field values back to their original type
     let sortedEventTypes = Object.keys(this.events).sort();
+
     return events.map((event: any) => {
+      // if there is only one event type, the event structure has no index and can directly be matched to the event type
       if (sortedEventTypes.length === 1) {
         let type = sortedEventTypes[0];
         return {
@@ -627,7 +641,9 @@ class SmartContract {
           ),
         };
       } else {
+        // if there are multiple events we have to use the index event[0] to find the exact event type
         let type = sortedEventTypes[event[0]];
+        // all other elements of the array are values used to construct the original object, we can drop the first value since its just an index
         event.shift();
         return {
           type,

@@ -272,13 +272,16 @@ function LocalBlockchain({
     sendTransaction(txn: Transaction) {
       txn.sign();
 
+      let partiesJson = partiesToJson(txn.transaction);
+
       ledger.applyJsonTransaction(
-        JSON.stringify(partiesToJson(txn.transaction)),
+        JSON.stringify(partiesJson),
         String(accountCreationFee)
       );
 
       // fetches all events from the transaction and stores them
-      partiesToJson(txn.transaction).otherParties.forEach((p: any) => {
+      // events are identified and associated with a publicKey and tokenId
+      partiesJson.otherParties.forEach((p: any) => {
         let addr = p.body.publicKey;
         let tokenId = p.body.tokenId;
         if (events[addr] === undefined) {
@@ -290,7 +293,7 @@ function LocalBlockchain({
           }
           events[addr][tokenId].push({
             events: p.body.events,
-            slot: 1,
+            slot: currentSlot().toString(), // TODO: use block when implemented
           });
         }
       });
