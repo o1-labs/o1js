@@ -1,4 +1,4 @@
-import { Members } from './members';
+import { Membership } from './membership';
 import { Mina, PrivateKey, Party, Field } from 'snarkyjs';
 
 let Local = Mina.LocalBlockchain();

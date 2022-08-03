@@ -8,7 +8,7 @@ import {
   Permissions,
 } from 'snarkyjs';
 
-export class Members extends SmartContract {
+export class Membership extends SmartContract {
   // TODO: Add state variables
 
   deploy(args: DeployArgs) {
@@ -26,7 +26,7 @@ export class Members extends SmartContract {
   }
 
   @method isMember(accountId) {
-    // Verify membership(voter or candidate) with the accountId via merkletree committed to by the sequence events and returns a boolean
+    // Verify membershiphip(voter or candidate) with the accountId via merkletree committed to by the sequence events and returns a boolean
     // Preconditions: Item exists in committed storage
   }
 
