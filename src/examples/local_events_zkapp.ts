@@ -16,18 +16,29 @@ import {
   PublicKey,
   Circuit,
   Experimental,
+  CircuitValue,
+  prop,
 } from 'snarkyjs';
 
 const doProofs = false;
 
 await isReady;
 
+class Event extends CircuitValue {
+  @prop pub: PublicKey;
+  @prop value: Field;
+
+  constructor(pub: PublicKey, value: Field) {
+    super(pub, value);
+  }
+}
+
 class SimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
 
   events = {
-    sender: PublicKey,
-    value: Field,
+    complexEvent: Event,
+    simpleEvent: Field,
   };
 
   deploy(args: DeployArgs) {
@@ -42,8 +53,11 @@ class SimpleZkapp extends SmartContract {
   }
 
   @method update(y: Field) {
-    this.emitEvent('sender', PrivateKey.random().toPublicKey());
-    this.emitEvent('value', y);
+    this.emitEvent(
+      'complexEvent',
+      new Event(PrivateKey.random().toPublicKey(), y)
+    );
+    this.emitEvent('simpleEvent', y);
     let x = this.x.get();
     this.x.assertEquals(x);
     this.x.set(x.add(y));
@@ -80,16 +94,15 @@ let tx = await Mina.transaction(feePayer, () => {
 });
 tx.send();
 
-console.log('update');
+console.log('call update');
 tx = await Mina.transaction(feePayer, () => {
   zkapp.update(Field(1));
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
 tx.send();
-//console.log(Local.fetchEvents());
 
-console.log('update');
+console.log('call update');
 tx = await Mina.transaction(feePayer, () => {
   zkapp.update(Field(2));
   if (!doProofs) zkapp.sign(zkappKey);
@@ -97,8 +110,7 @@ tx = await Mina.transaction(feePayer, () => {
 if (doProofs) await tx.prove();
 tx.send();
 
-console.log('----');
-let events = zkapp.fetchEvents();
+console.log('---- emitted events: ----');
+// fetches all events from zkapp starting slot 0
+let events = zkapp.fetchEvents(UInt32.from(0));
 console.log(events);
-console.log('----');
-console.log(events[0].event);
