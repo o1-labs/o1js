@@ -20,7 +20,7 @@ export class Membership extends SmartContract {
     // TODO: Add account state initilaztion here
   }
 
-  @method addEntry() {
+  @method addEntry(accountId) {
     // Emit event that indicates adding this item
     // Preconditions: Restrict who can vote or who can be a candidate
   }
