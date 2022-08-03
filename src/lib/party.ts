@@ -673,7 +673,10 @@ class Party implements Types.Party {
 
   send({ to, amount }: Omit<SendParams, 'from'>) {
     let party = this;
-    let receiverParty = Party.createUnsigned(to);
+    let receiverParty = createChildParty(party, to, {
+      tokenId: party.body.tokenId,
+      caller: party.body.tokenId,
+    });
 
     // Sub the amount from the sender's account
     let i0 = party.body.balanceChange;
