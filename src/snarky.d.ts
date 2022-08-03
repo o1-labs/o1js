@@ -719,6 +719,7 @@ declare class Proof {
 type UInt32_ = { value: Field };
 type UInt64_ = { value: Field };
 
+// this closely corresponds to Mina_base.Account.t
 interface Account {
   publicKey: { g: Group };
   balance: UInt64_;
@@ -794,6 +795,19 @@ declare class Ledger {
     accountPrecondition(json: String): OcamlInput;
     networkPrecondition(json: String): OcamlInput;
     body(json: String): OcamlInput;
+  };
+
+  // low-level encoding helpers
+  static encoding: {
+    fieldToBinaryString(x: Field): string;
+    fieldOfBinaryString(s: string): Field;
+    toBase58(s: string, versionByte: number): string;
+    ofBase58(base58: string, versionByte: number): string;
+    versionBytes: {
+      tokenIdKey: number;
+      receiptChainHash: number;
+    };
+    receiptChainHashToBase58(x: Field): string;
   };
 }
 
