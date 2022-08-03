@@ -611,13 +611,13 @@ class SmartContract {
     party.body.events = Events.pushEvent(party.body.events, eventFields);
   }
 
-  async fetchEvents(
-    start: UInt32 = UInt32.from(0),
+  fetchEvents(
+    start: UInt32,
     end?: UInt32
-  ): Promise<{ type: string; event: AsFieldElements<any> }[]> {
+  ): { type: string; event: AsFieldElements<any> }[] {
     // filters all elements so that they are within the given range
     // only returns { type: "", event: [] } in a flat format
-    let events = (await Mina.fetchEvents(this.address, this.self.body.tokenId))
+    let events = Mina.fetchEvents(this.address, this.self.body.tokenId)
       .filter((el: any) => {
         let slot = UInt32.from(el.slot);
         return end === undefined

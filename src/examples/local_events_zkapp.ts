@@ -112,5 +112,5 @@ tx.send();
 
 console.log('---- emitted events: ----');
 // fetches all events from zkapp starting slot 0
-let events = await zkapp.fetchEvents(UInt32.from(1));
+let events = zkapp.fetchEvents(UInt32.from(0));
 console.log(events);

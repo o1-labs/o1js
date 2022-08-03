@@ -191,7 +191,7 @@ interface Mina {
   getNetworkState(): NetworkValue;
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): TransactionId;
-  fetchEvents: (publicKey: PublicKey, tokenId?: Field) => any;
+  fetchEvents: (publicKey: PublicKey, tokenId: Field) => any;
 }
 
 interface MockMina extends Mina {
@@ -281,7 +281,7 @@ function LocalBlockchain({
 
       // fetches all events from the transaction and stores them
       // events are identified and associated with a publicKey and tokenId
-      partiesJson.otherParties.forEach((p) => {
+      partiesJson.otherParties.forEach((p: any) => {
         let addr = p.body.publicKey;
         let tokenId = p.body.tokenId;
         if (events[addr] === undefined) {
@@ -318,13 +318,8 @@ function LocalBlockchain({
     applyJsonTransaction(json: string) {
       return ledger.applyJsonTransaction(json, String(accountCreationFee));
     },
-    async fetchEvents(
-      publicKey: PublicKey,
-      tokenId: Field = getDefaultTokenId()
-    ): Promise<any[]> {
-      let eventsForAccount =
-        events?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)];
-      return eventsForAccount === undefined ? [] : eventsForAccount;
+    fetchEvents(publicKey: PublicKey, tokenId: Field): any {
+      return events[publicKey.toBase58()][Ledger.fieldToBase58(tokenId)];
     },
     addAccount,
     testAccounts,
@@ -424,7 +419,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         isFinalRunOutsideCircuit: !hasProofs,
       });
     },
-    async fetchEvents() {
+    fetchEvents() {
       throw Error(
         'fetchEvents() is not implemented yet for remote blockchains.'
       );
@@ -561,8 +556,8 @@ function sendTransaction(txn: Transaction) {
 /**
  * @return A list of emitted events associated to the given public key.
  */
-async function fetchEvents(publicKey: PublicKey, tokenId: Field) {
-  return await activeInstance.fetchEvents(publicKey, tokenId);
+function fetchEvents(publicKey: PublicKey, tokenId: Field) {
+  return activeInstance.fetchEvents(publicKey, tokenId);
 }
 
 function dummyAccount(pubkey?: PublicKey): Account {
