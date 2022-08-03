@@ -55,8 +55,6 @@ let unimplementedPreconditions: LongKey[] = [
   // this is unimplemented because the field is missing on the account endpoint
   // but with the local ledger it works!
   'account.provedState',
-  // unimplemented because there's still some bug
-  'account.delegate',
 ];
 
 type BaseType = 'UInt64' | 'UInt32' | 'Field' | 'Bool';

@@ -155,6 +155,13 @@ describe('preconditions', () => {
     }
   });
 
+  it('unsatisfied assertEquals should be rejected (public key)', async () => {
+    let tx = await Mina.transaction(feePayer, () => {
+      zkapp.account.delegate.assertEquals(PublicKey.empty());
+    });
+    expect(() => tx.send()).toThrow(/unsatisfied/);
+  });
+
   it('unsatisfied assertBetween should be rejected', async () => {
     for (let precondition of implementedWithRange) {
       let tx = await Mina.transaction(feePayer, () => {
@@ -195,7 +202,11 @@ let implementedBool = [
   () => zkapp.account.isNew,
   // () => zkapp.account.provedState,
 ];
-let implemented = [...implementedNumber, ...implementedBool];
+let implemented = [
+  ...implementedNumber,
+  ...implementedBool,
+  () => zkapp.account.delegate,
+];
 let implementedWithRange = [
   () => zkapp.account.balance,
   () => zkapp.account.nonce,
@@ -211,7 +222,6 @@ let implementedWithRange = [
   () => zkapp.network.nextEpochData.ledger.totalCurrency,
 ];
 let unimplemented = [
-  () => zkapp.account.delegate,
   () => zkapp.account.provedState,
   () => zkapp.account.receiptChainHash,
   () => zkapp.network.snarkedLedgerHash,

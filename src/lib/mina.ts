@@ -267,7 +267,7 @@ function LocalBlockchain({
           receiptChainHash: ledgerAccount.receiptChainHash,
           provedState: Bool(ledgerAccount.zkapp?.provedState ?? false),
           delegate:
-            ledgerAccount.delegate && new PublicKey(ledgerAccount.delegate),
+            ledgerAccount.delegate && new PublicKey(ledgerAccount.delegate.g),
           sequenceState:
             ledgerAccount.zkapp?.sequenceState[0] ??
             Events.emptySequenceState(),
