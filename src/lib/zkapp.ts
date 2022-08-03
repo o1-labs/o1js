@@ -29,6 +29,7 @@ import {
   Authorization,
   CallForest,
   getDefaultTokenId,
+  SendParams,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -560,6 +561,10 @@ class SmartContract {
 
   token() {
     return this.self.token();
+  }
+
+  send(args: Omit<SendParams, 'from'>) {
+    return this.self.send(args);
   }
 
   get tokenId() {

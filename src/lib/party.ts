@@ -50,6 +50,7 @@ export {
   Token,
   CallForest,
   createChildParty,
+  SendParams,
 };
 
 const ZkappStateLength = 8;
@@ -668,6 +669,21 @@ class Party implements Types.Party {
         Party.setValue(party.update.tokenSymbol, TokenSymbol.from(tokenSymbol));
       },
     };
+  }
+
+  send({ to, amount }: Omit<SendParams, 'from'>) {
+    let party = this;
+    let receiverParty = Party.createUnsigned(to);
+
+    // Sub the amount from the sender's account
+    let i0 = party.body.balanceChange;
+    party.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(amount);
+
+    // Add the amount to send to the receiver's account
+    let i1 = receiverParty.body.balanceChange;
+    receiverParty.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
+      amount
+    );
   }
 
   get balance() {
