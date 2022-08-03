@@ -26,7 +26,7 @@ export class Membership extends SmartContract {
   }
 
   @method isMember(accountId) {
-    // Verify membershiphip(voter or candidate) with the accountId via merkletree committed to by the sequence events and returns a boolean
+    // Verify membership (voter or candidate) with the accountId via merkletree committed to by the sequence events and returns a boolean
     // Preconditions: Item exists in committed storage
   }
 
