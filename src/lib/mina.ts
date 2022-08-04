@@ -322,9 +322,9 @@ function LocalBlockchain({
       publicKey: PublicKey,
       tokenId: Field = getDefaultTokenId()
     ): Promise<any[]> {
-      let eventsForAccount =
-        events?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)];
-      return eventsForAccount === undefined ? [] : eventsForAccount;
+      return (
+        events?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)] ?? []
+      );
     },
     addAccount,
     testAccounts,
