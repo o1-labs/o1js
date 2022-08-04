@@ -10,6 +10,7 @@ import {
   Mina,
   Experimental,
   Int64,
+  Encoding,
 } from '../../dist/server';
 
 let address: PublicKey;
@@ -91,6 +92,12 @@ describe('party', () => {
     expect(party.body.preconditions.account.sequenceState.toString()).toEqual(
       '19777675955122618431670853529822242067051263606115426372178827525373304476695'
     );
+  });
+  it('encodes token ids correctly', () => {
+    let x = Field.random();
+    let defaultTokenId = Ledger.fieldToBase58(Field.one);
+    expect(Encoding.TokenId.toBase58(x)).toEqual(Ledger.fieldToBase58(x));
+    expect(Encoding.TokenId.fromBase58(defaultTokenId).toString()).toEqual('1');
   });
 });
 
