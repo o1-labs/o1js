@@ -322,6 +322,18 @@ function LocalBlockchain({
           });
         }
 
+        // actions/sequencing events
+        let latestActionsHash = Field.zero; // TODO: get latest actions hash from account
+        let actionList = p.body.sequenceEvents;
+        let eventsHash = Events.hash(
+          actionList.map((e) => e.map((f) => Field(f)))
+        );
+
+        latestActionsHash = Events.updateSequenceState(
+          latestActionsHash,
+          eventsHash
+        );
+
         if (actions[addr] === undefined) {
           actions[addr] = {};
         }
@@ -330,12 +342,12 @@ function LocalBlockchain({
             actions[addr][tokenId] = [];
           }
           actions[addr][tokenId].push({
-            actions: p.body.sequenceEvents,
-            hash: 'xxxxxx',
+            actions: actionList,
+            hash: latestActionsHash,
           });
         }
       });
-      console.log(actions);
+
       return { wait: async () => {} };
     },
     async transaction(sender: FeePayerSpec, f: () => void) {

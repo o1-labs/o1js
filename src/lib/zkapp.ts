@@ -828,7 +828,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       //contract.account.sequenceState.assertEquals(actionsHash);
       return { state, actionsHash };
     },
-    getActions(fromStateHash?: Field, endStateHash?: Field): A[][] {
+    getActions(fromActionHash?: Field, endActionHash?: Field): A[][] {
       return Mina.getActions(contract.address, contract.self.tokenId).map(
         (el: any) =>
           el.actions.map((a: any[]) =>
