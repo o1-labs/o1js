@@ -9,6 +9,7 @@ import {
   AsFieldsExtended,
   circuitValue,
 } from '../lib/circuit_value';
+import * as Encoding from '../lib/encoding';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
@@ -56,7 +57,7 @@ let emptyType = {
 const TokenId: AsFieldsExtended<TokenId> = {
   ...circuitValue<TokenId>(Field),
   toJSON(x: TokenId): Json.TokenId {
-    return Ledger.fieldToBase58(x);
+    return Encoding.TokenId.toBase58(x);
   },
 };
 

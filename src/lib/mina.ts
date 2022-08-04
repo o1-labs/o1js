@@ -13,7 +13,7 @@ import {
   Party,
   ZkappStateLength,
   ZkappPublicInput,
-  getDefaultTokenId,
+  TokenId,
   CallForest,
   Authorization,
   Events,
@@ -74,7 +74,7 @@ type FeePayerSpec =
   | undefined;
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
-  if (tokenId === Ledger.fieldToBase58(getDefaultTokenId())) {
+  if (tokenId === TokenId.toBase58(TokenId.default)) {
     return `getAccount: Could not find account for public key ${publicKey}`;
   } else {
     return `getAccount: Could not find account for public key ${publicKey} with the tokenId ${tokenId}`;
@@ -140,7 +140,7 @@ function createTransaction(
   if (feePayerKey !== undefined) {
     // if senderKey is provided, fetch account to get nonce and mark to be signed
     let senderAddress = feePayerKey.toPublicKey();
-    let senderAccount = getAccount(senderAddress, getDefaultTokenId());
+    let senderAccount = getAccount(senderAddress, TokenId.default);
     feePayerParty = Party.defaultFeePayer(
       senderAddress,
       feePayerKey,
@@ -244,20 +244,17 @@ function LocalBlockchain({
         Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
       );
     },
-    hasAccount(publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) {
+    hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       return !!ledger.getAccount(publicKey, tokenId);
     },
     getAccount(
       publicKey: PublicKey,
-      tokenId: Field = getDefaultTokenId()
+      tokenId: Field = TokenId.default
     ): Account {
       let ledgerAccount = ledger.getAccount(publicKey, tokenId);
       if (ledgerAccount == undefined) {
         throw new Error(
-          reportGetAccountError(
-            publicKey.toBase58(),
-            Ledger.fieldToBase58(tokenId)
-          )
+          reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
         );
       } else {
         return {
@@ -337,11 +334,9 @@ function LocalBlockchain({
     },
     async fetchEvents(
       publicKey: PublicKey,
-      tokenId: Field = getDefaultTokenId()
+      tokenId: Field = TokenId.default
     ): Promise<any[]> {
-      return (
-        events?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)] ?? []
-      );
+      return events?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
     },
     addAccount,
     testAccounts,
@@ -358,7 +353,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         'currentSlot() is not implemented yet for remote blockchains.'
       );
     },
-    hasAccount(publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) {
+    hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       if (
         !currentTransaction.has() ||
         currentTransaction.get().fetchMode === 'cached'
@@ -367,7 +362,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       }
       return false;
     },
-    getAccount(publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) {
+    getAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       if (currentTransaction()?.fetchMode === 'test') {
         Fetch.markAccountToBeFetched(publicKey, tokenId, graphqlEndpoint);
         let account = Fetch.getCachedAccount(
@@ -391,7 +386,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       throw Error(
         `${reportGetAccountError(
           publicKey.toBase58(),
-          Ledger.fieldToBase58(tokenId)
+          TokenId.toBase58(tokenId)
         )}\nGraphql endpoint: ${graphqlEndpoint}`
       );
     },
@@ -467,7 +462,7 @@ let activeInstance: Mina = {
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
   },
-  hasAccount(publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) {
+  hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
     if (
       !currentTransaction.has() ||
       currentTransaction.get().fetchMode === 'cached'
@@ -480,7 +475,7 @@ let activeInstance: Mina = {
     }
     return false;
   },
-  getAccount(publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) {
+  getAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
     if (currentTransaction()?.fetchMode === 'test') {
       Fetch.markAccountToBeFetched(
         publicKey,
@@ -502,7 +497,7 @@ let activeInstance: Mina = {
         throw Error(
           `${reportGetAccountError(
             publicKey.toBase58(),
-            Ledger.fieldToBase58(tokenId)
+            TokenId.toBase58(tokenId)
           )}\n\nEither call Mina.setActiveInstance first or explicitly add the account with addCachedAccount`
         );
       return account;
@@ -613,7 +608,7 @@ function dummyAccount(pubkey?: PublicKey): Account {
     balance: UInt64.zero,
     nonce: UInt32.zero,
     publicKey: pubkey ?? PublicKey.empty(),
-    tokenId: getDefaultTokenId(),
+    tokenId: TokenId.default,
     appState: Array(ZkappStateLength).fill(Field.zero),
     tokenSymbol: '',
     provedState: Bool(false),

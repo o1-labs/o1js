@@ -95,7 +95,7 @@ describe('party', () => {
   });
   it('encodes token ids correctly', () => {
     let x = Field.random();
-    let defaultTokenId = Ledger.fieldToBase58(Field.one);
+    let defaultTokenId = 'wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf';
     expect(Encoding.TokenId.toBase58(x)).toEqual(Ledger.fieldToBase58(x));
     expect(Encoding.TokenId.fromBase58(defaultTokenId).toString()).toEqual('1');
   });

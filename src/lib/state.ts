@@ -1,6 +1,6 @@
-import { Circuit, Field, AsFieldElements, Ledger } from '../snarky';
+import { Circuit, Field, AsFieldElements } from '../snarky';
 import { circuitArray } from './circuit_value';
-import { getDefaultTokenId, Party } from './party';
+import { Party, TokenId } from './party';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
 import { Account, fetchAccount } from './fetch';
@@ -265,7 +265,7 @@ To write a correct circuit, you must avoid any dependency on the concrete value 
       let address: PublicKey = this._contract.instance.address;
       let { account } = await fetchAccount({
         publicKey: address,
-        tokenId: Ledger.fieldToBase58(getDefaultTokenId()),
+        tokenId: TokenId.toBase58(TokenId.default),
       });
       if (account === undefined) return undefined;
       let stateAsFields: Field[];
