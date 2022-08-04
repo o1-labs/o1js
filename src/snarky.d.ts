@@ -799,18 +799,16 @@ declare class Ledger {
 
   // low-level encoding helpers
   static encoding: {
-    fieldToBinaryString(x: Field): string;
-    fieldOfBinaryString(s: string): Field;
-    toBase58(s: string, versionByte: number): string;
-    ofBase58(base58: string, versionByte: number): string;
+    toBase58(s: MlBytes, versionByte: number): string;
+    ofBase58(base58: string, versionByte: number): MlBytes;
     versionBytes: {
       tokenIdKey: number;
       receiptChainHash: number;
     };
-    receiptChainHashToBase58(x: Field): string;
   };
 }
 
+type MlBytes = { t: number; c: string; l: number };
 type OcamlInput = { fields: Field[]; packed: { field: Field; size: number }[] };
 
 /**
