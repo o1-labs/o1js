@@ -41,7 +41,7 @@ function Account(party: Party): Account {
 }
 
 let unimplementedPreconditions: LongKey[] = [
-  // unimplemented because of unit test failure when checking wrong precondition
+  // unimplemented because its not checked in the protocol
   'network.stakingEpochData.seed',
   'network.nextEpochData.seed',
   // this is partially unimplemented because the field is missing on the account endpoint
