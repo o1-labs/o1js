@@ -302,7 +302,12 @@ function LocalBlockchain({
         }
 
         // actions/sequencing events
-        let latestActionsHash = Field.zero; // TODO: get latest actions hash from account
+        let latestActionsHash =
+          ledger.getAccount(
+            PublicKey.fromBase58(addr),
+            Ledger.fieldOfBase58(tokenId)
+          )?.zkapp?.sequenceState[0] ?? Events.emptySequenceState();
+
         let actionList = p.body.sequenceEvents;
         let eventsHash = Events.hash(
           actionList.map((e) => e.map((f) => Field(f)))
@@ -322,7 +327,7 @@ function LocalBlockchain({
           }
           actions[addr][tokenId].push({
             actions: actionList,
-            hash: latestActionsHash,
+            hash: Ledger.fieldToBase58(latestActionsHash),
           });
         }
       });
@@ -359,9 +364,9 @@ function LocalBlockchain({
       publicKey: PublicKey,
       tokenId: Field = getDefaultTokenId()
     ): any[] {
-      let actionsForAccount =
-        actions?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)];
-      return actionsForAccount === undefined ? [] : actionsForAccount;
+      return (
+        actions?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)] ?? []
+      );
     },
     addAccount,
     testAccounts,

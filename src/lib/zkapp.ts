@@ -721,7 +721,13 @@ type ReducerReturn<Action> = {
     state: State;
     actionsHash: Field;
   };
-  getActions(fromStateHash?: Field, endStateHash?: Field): Action[][];
+  getActions({
+    fromActionHash,
+    endActionHash,
+  }: {
+    fromActionHash?: Field;
+    endActionHash?: Field;
+  }): Action[][];
 };
 
 function getReducer<A>(contract: SmartContract): ReducerReturn<A> {
@@ -817,13 +823,35 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       contract.account.sequenceState.assertEquals(actionsHash);
       return { state, actionsHash };
     },
-    getActions(fromActionHash?: Field, endActionHash?: Field): A[][] {
-      return Mina.getActions(contract.address, contract.self.tokenId).map(
-        (el: any) =>
+    getActions({
+      fromActionHash,
+      endActionHash,
+    }: {
+      fromActionHash?: Field;
+      endActionHash?: Field;
+    }): A[][] {
+      let inRange = fromActionHash ? false : true;
+      let foundStart = fromActionHash ? false : true;
+
+      let fromBase58 = Ledger.fieldToBase58(fromActionHash ?? Field.zero);
+      let endBase58 = Ledger.fieldToBase58(endActionHash ?? Field.zero);
+
+      return Mina.getActions(contract.address, contract.self.tokenId)
+        .filter((e: any) => {
+          if (fromActionHash && e.hash === fromBase58) {
+            inRange = true;
+            foundStart = true;
+          }
+          if (endActionHash && e.hash === endBase58) {
+            inRange = false;
+          }
+          return inRange || (e.hash === endBase58 && foundStart);
+        })
+        .map((el: any) =>
           el.actions.map((a: any[]) =>
             reducer.actionType.ofFields(a.map((f: any) => Field.fromString(f)))
           )
-      );
+        );
     },
   };
 }
