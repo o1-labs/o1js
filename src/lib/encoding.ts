@@ -8,6 +8,9 @@ export {
   Bijective,
   TokenId,
   ReceiptChainHash,
+  LedgerHash,
+  EpochSeed,
+  StateHash,
 };
 
 // functions for encoding data as field elements
@@ -292,12 +295,27 @@ function customEncoding(versionByte: () => number, versionNumber?: number) {
   };
 }
 
-const TokenId = customEncoding(() => Ledger.encoding.versionBytes.tokenIdKey);
-
 const RECEIPT_CHAIN_HASH_VERSION = 1;
+const LEDGER_HASH_VERSION = 1;
+const EPOCH_SEED_VERSION = 1;
+const STATE_HASH_VERSION = 1;
+
+const TokenId = customEncoding(() => Ledger.encoding.versionBytes.tokenIdKey);
 const ReceiptChainHash = customEncoding(
   () => Ledger.encoding.versionBytes.receiptChainHash,
   RECEIPT_CHAIN_HASH_VERSION
+);
+const LedgerHash = customEncoding(
+  () => Ledger.encoding.versionBytes.ledgerHash,
+  LEDGER_HASH_VERSION
+);
+const EpochSeed = customEncoding(
+  () => Ledger.encoding.versionBytes.epochSeed,
+  EPOCH_SEED_VERSION
+);
+const StateHash = customEncoding(
+  () => Ledger.encoding.versionBytes.stateHash,
+  STATE_HASH_VERSION
 );
 
 type InternalConstantField = { value: [0, Uint8Array] };

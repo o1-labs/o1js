@@ -5,6 +5,7 @@ import { TokenId, Permission, Permissions, ZkappStateLength } from './party';
 import { PublicKey } from './signature';
 import { NetworkValue } from './precondition';
 import { Types } from '../snarky/types';
+import * as Encoding from './encoding';
 
 export {
   fetchAccount,
@@ -236,14 +237,12 @@ function parseFetchedAccount({
       (Object.fromEntries(
         Object.entries(permissions).map(([k, v]) => [k, toPermission(v)])
       ) as unknown as Permissions),
-    // TODO: how is sequenceState related to sequenceEvents?
     sequenceState:
       sequenceEvents != undefined ? Field(sequenceEvents[0]) : undefined,
-    // TODO: how to parse receptChainHash?
-    // receiptChainHash:
-    //   receiptChainHash !== undefined
-    //     ? Ledger.fieldOfBase58(receiptChainHash)
-    //     : undefined,
+    receiptChainHash:
+      receiptChainHash !== undefined
+        ? Encoding.ReceiptChainHash.fromBase58(receiptChainHash)
+        : undefined,
     delegate:
       delegateAccount && PublicKey.fromBase58(delegateAccount.publicKey),
     tokenId: token !== undefined ? Ledger.fieldOfBase58(token) : undefined,
@@ -492,7 +491,7 @@ function parseFetchedBlock({
   },
 }: FetchedBlock): NetworkValue {
   return {
-    snarkedLedgerHash: Field.zero, // TODO
+    snarkedLedgerHash: Encoding.LedgerHash.fromBase58(snarkedLedgerHash),
     // TODO: use date or utcDate?
     timestamp: UInt64.fromString(utcDate),
     blockchainLength: UInt32.fromString(blockHeight),
@@ -515,12 +514,12 @@ function parseEpochData({
 }: FetchedBlock['protocolState']['consensusState']['nextEpochData']): NetworkValue['nextEpochData'] {
   return {
     ledger: {
-      hash: Field.zero, // TODO
+      hash: Encoding.LedgerHash.fromBase58(hash),
       totalCurrency: UInt64.fromString(totalCurrency),
     },
-    seed: Field.zero, // TODO
-    startCheckpoint: Field.zero, // TODO
-    lockCheckpoint: Field.zero, // TODO
+    seed: Encoding.EpochSeed.fromBase58(seed),
+    startCheckpoint: Encoding.StateHash.fromBase58(startCheckpoint),
+    lockCheckpoint: Encoding.StateHash.fromBase58(lockCheckpoint),
     epochLength: UInt32.fromString(epochLength),
   };
 }

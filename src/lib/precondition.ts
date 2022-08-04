@@ -41,18 +41,10 @@ function Account(party: Party): Account {
 }
 
 let unimplementedPreconditions: LongKey[] = [
-  // these are all unimplemented because we can't parse the hash yet
-  'account.receiptChainHash',
-  'network.snarkedLedgerHash',
-  'network.nextEpochData.ledger.hash',
-  'network.nextEpochData.seed',
-  'network.nextEpochData.startCheckpoint',
-  'network.nextEpochData.lockCheckpoint',
-  'network.stakingEpochData.ledger.hash',
+  // unimplemented because of unit test failure when checking wrong precondition
   'network.stakingEpochData.seed',
-  'network.stakingEpochData.startCheckpoint',
-  'network.stakingEpochData.lockCheckpoint',
-  // this is unimplemented because the field is missing on the account endpoint
+  'network.nextEpochData.seed',
+  // this is partially unimplemented because the field is missing on the account endpoint
   // but with the local ledger it works!
   'account.provedState',
 ];

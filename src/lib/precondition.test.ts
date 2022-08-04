@@ -139,7 +139,7 @@ describe('preconditions', () => {
     for (let precondition of implementedNumber) {
       let tx = await Mina.transaction(feePayer, () => {
         let p = precondition().get();
-        precondition().assertEquals(p.add(1));
+        precondition().assertEquals(p.add(1) as any);
       });
       expect(() => tx.send()).toThrow(/unsatisfied/);
     }
@@ -187,6 +187,7 @@ describe('preconditions', () => {
 let implementedNumber = [
   () => zkapp.account.balance,
   () => zkapp.account.nonce,
+  () => zkapp.account.receiptChainHash,
   () => zkapp.network.timestamp,
   () => zkapp.network.blockchainLength,
   () => zkapp.network.globalSlotSinceGenesis,
@@ -197,6 +198,15 @@ let implementedNumber = [
   () => zkapp.network.stakingEpochData.ledger.totalCurrency,
   () => zkapp.network.nextEpochData.epochLength,
   () => zkapp.network.nextEpochData.ledger.totalCurrency,
+  () => zkapp.network.snarkedLedgerHash,
+  () => zkapp.network.stakingEpochData.lockCheckpoint,
+  () => zkapp.network.stakingEpochData.startCheckpoint,
+  // () => zkapp.network.stakingEpochData.seed,
+  () => zkapp.network.stakingEpochData.ledger.hash,
+  () => zkapp.network.nextEpochData.lockCheckpoint,
+  () => zkapp.network.nextEpochData.startCheckpoint,
+  // () => zkapp.network.nextEpochData.seed,
+  () => zkapp.network.nextEpochData.ledger.hash,
 ];
 let implementedBool = [
   () => zkapp.account.isNew,
@@ -223,14 +233,6 @@ let implementedWithRange = [
 ];
 let unimplemented = [
   () => zkapp.account.provedState,
-  () => zkapp.account.receiptChainHash,
-  () => zkapp.network.snarkedLedgerHash,
-  () => zkapp.network.stakingEpochData.lockCheckpoint,
-  () => zkapp.network.stakingEpochData.startCheckpoint,
   () => zkapp.network.stakingEpochData.seed,
-  () => zkapp.network.stakingEpochData.ledger.hash,
-  () => zkapp.network.nextEpochData.lockCheckpoint,
-  () => zkapp.network.nextEpochData.startCheckpoint,
   () => zkapp.network.nextEpochData.seed,
-  () => zkapp.network.nextEpochData.ledger.hash,
 ];

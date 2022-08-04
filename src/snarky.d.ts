@@ -801,10 +801,14 @@ declare class Ledger {
   static encoding: {
     toBase58(s: MlBytes, versionByte: number): string;
     ofBase58(base58: string, versionByte: number): MlBytes;
-    versionBytes: {
-      tokenIdKey: number;
-      receiptChainHash: number;
-    };
+    versionBytes: Record<
+      | 'tokenIdKey'
+      | 'receiptChainHash'
+      | 'ledgerHash'
+      | 'epochSeed'
+      | 'stateHash',
+      number
+    >;
   };
 }
 
