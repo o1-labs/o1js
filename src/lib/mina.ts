@@ -202,6 +202,9 @@ interface MockMina extends Mina {
    */
   testAccounts: Array<{ publicKey: PublicKey; privateKey: PrivateKey }>;
   applyJsonTransaction: (tx: string) => void;
+  setTime: (ms: string | number) => void;
+  setSlot: (slot: string | number) => void;
+  setBlockHeight: (height: string | number) => void;
 }
 
 const defaultAccountCreationFee = 1_000_000_000;
@@ -217,11 +220,13 @@ function LocalBlockchain({
 
   const ledger = Ledger.create([]);
 
+  let networkState = defaultNetworkState();
+
   function addAccount(pk: PublicKey, balance: string) {
     ledger.addAccount(pk, balance);
   }
 
-  let testAccounts = [];
+  let testAccounts: any[] = [];
   for (let i = 0; i < 10; ++i) {
     const largeValue = '30000000000';
     const k = PrivateKey.random();
@@ -263,11 +268,7 @@ function LocalBlockchain({
       }
     },
     getNetworkState() {
-      // TODO:
-      // * enable to change the network state, to test various preconditions
-      // * pass the network state to be used to applyJsonTransaction (needs JS -> OCaml transfer)
-      // * could make totalCurrency consistent with the sum of account balances
-      return dummyNetworkState();
+      return networkState;
     },
     sendTransaction(txn: Transaction) {
       txn.sign();
@@ -276,7 +277,10 @@ function LocalBlockchain({
 
       ledger.applyJsonTransaction(
         JSON.stringify(partiesJson),
-        String(accountCreationFee)
+        String(accountCreationFee),
+        JSON.stringify({
+          blockchain_length: networkState.blockchainLength.toString(),
+        })
       );
 
       // fetches all events from the transaction and stores them
@@ -316,7 +320,11 @@ function LocalBlockchain({
       });
     },
     applyJsonTransaction(json: string) {
-      return ledger.applyJsonTransaction(json, String(accountCreationFee));
+      return ledger.applyJsonTransaction(
+        json,
+        String(accountCreationFee),
+        JSON.stringify({ blockchain_length: '123' })
+      );
     },
     async fetchEvents(
       publicKey: PublicKey,
@@ -328,6 +336,15 @@ function LocalBlockchain({
     },
     addAccount,
     testAccounts,
+    setTime(ms: string | number) {
+      networkState.timestamp = UInt64.from(ms);
+    },
+    setSlot(slot: string | number) {
+      networkState.globalSlotSinceGenesis = UInt32.from(slot);
+    },
+    setBlockHeight(height: string | number) {
+      networkState.blockchainLength = UInt32.from(height);
+    },
   };
 }
 
@@ -373,7 +390,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       if (currentTransaction()?.fetchMode === 'test') {
         Fetch.markNetworkToBeFetched(graphqlEndpoint);
         let network = Fetch.getCachedNetwork(graphqlEndpoint);
-        return network ?? dummyNetworkState();
+        return network ?? defaultNetworkState();
       }
       if (
         !currentTransaction.has() ||
@@ -576,7 +593,7 @@ function dummyAccount(pubkey?: PublicKey): Account {
   };
 }
 
-function dummyNetworkState(): NetworkValue {
+function defaultNetworkState(): NetworkValue {
   let epochData: NetworkValue['stakingEpochData'] = {
     ledger: { hash: Field.zero, totalCurrency: UInt64.zero },
     seed: Field.zero,

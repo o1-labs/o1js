@@ -740,7 +740,11 @@ declare class Ledger {
 
   addAccount(publicKey: { g: Group }, balance: string): void;
 
-  applyJsonTransaction(txJson: string, accountCreationFee: string): Account[];
+  applyJsonTransaction(
+    txJson: string,
+    accountCreationFee: string,
+    networkState: string
+  ): Account[];
 
   getAccount(publicKey: { g: Group }, tokenId: Field): Account | undefined;
 
