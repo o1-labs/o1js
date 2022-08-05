@@ -1,3 +1,11 @@
+/*
+Description: 
+
+This example described how developers can manipulate the network state of the local blockchain instance.
+Changing preconditions might be useful for integration tests, when you want to test your smart contracts behavior in different situations.
+For example, you only want your smart contract to initiate a pay out when the `blockchainLength` is at a special height. (lock up period)
+*/
+
 import {
   method,
   UInt64,
