@@ -202,9 +202,11 @@ interface MockMina extends Mina {
    */
   testAccounts: Array<{ publicKey: PublicKey; privateKey: PrivateKey }>;
   applyJsonTransaction: (tx: string) => void;
-  setTime: (ms: string | number) => void;
-  setSlot: (slot: string | number) => void;
-  setBlockHeight: (height: string | number) => void;
+  setTimestamp: (ms: UInt64) => void;
+  setGlobalSlot: (slot: UInt32) => void;
+  setGlobalSlotSinceHardfork: (slot: UInt32) => void;
+  setBlockchainLength: (height: UInt32) => void;
+  setTotalCurrency: (currency: UInt32) => void;
 }
 
 const defaultAccountCreationFee = 1_000_000_000;
@@ -278,9 +280,7 @@ function LocalBlockchain({
       ledger.applyJsonTransaction(
         JSON.stringify(partiesJson),
         String(accountCreationFee),
-        JSON.stringify({
-          blockchain_length: networkState.blockchainLength.toString(),
-        })
+        JSON.stringify(getNetworkPreconditions(networkState))
       );
 
       // fetches all events from the transaction and stores them
@@ -323,7 +323,7 @@ function LocalBlockchain({
       return ledger.applyJsonTransaction(
         json,
         String(accountCreationFee),
-        JSON.stringify({ blockchain_length: '123' })
+        JSON.stringify(getNetworkPreconditions(defaultNetworkState()))
       );
     },
     async fetchEvents(
@@ -336,14 +336,20 @@ function LocalBlockchain({
     },
     addAccount,
     testAccounts,
-    setTime(ms: string | number) {
-      networkState.timestamp = UInt64.from(ms);
+    setTimestamp(ms: UInt64) {
+      networkState.timestamp = ms;
     },
-    setSlot(slot: string | number) {
-      networkState.globalSlotSinceGenesis = UInt32.from(slot);
+    setGlobalSlot(slot: UInt32) {
+      networkState.globalSlotSinceGenesis = slot;
     },
-    setBlockHeight(height: string | number) {
-      networkState.blockchainLength = UInt32.from(height);
+    setGlobalSlotSinceHardfork(slot: UInt32) {
+      networkState.globalSlotSinceHardFork = slot;
+    },
+    setBlockchainLength(height: UInt32) {
+      networkState.blockchainLength = height;
+    },
+    setTotalCurrency(currency: UInt32) {
+      networkState.totalCurrency = currency;
     },
   };
 }
@@ -590,6 +596,24 @@ function dummyAccount(pubkey?: PublicKey): Account {
     tokenId: getDefaultTokenId(),
     zkapp: { appState: Array(ZkappStateLength).fill(Field.zero) },
     tokenSymbol: '',
+  };
+}
+
+interface DynamicPreconditions {
+  timestamp: string;
+  blockchainLength: string;
+  totalCurrency: string;
+  globalSlotSinceHardFork: string;
+  globalSlotSinceGenesis: string;
+}
+
+function getNetworkPreconditions(network: NetworkValue): DynamicPreconditions {
+  return {
+    timestamp: network.timestamp.toString(),
+    blockchainLength: network.blockchainLength.toString(),
+    totalCurrency: network.totalCurrency.toString(),
+    globalSlotSinceHardFork: network.globalSlotSinceHardFork.toString(),
+    globalSlotSinceGenesis: network.globalSlotSinceGenesis.toString(),
   };
 }
 

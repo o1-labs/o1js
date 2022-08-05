@@ -67,7 +67,7 @@ let tx = await Mina.transaction(feePayer, () => {
 });
 tx.send();
 
-let blockHeight = 0;
+let blockHeight: UInt32 = UInt32.zero;
 
 console.log('assert block height 0');
 tx = await Mina.transaction(feePayer, () => {
@@ -78,8 +78,8 @@ tx = await Mina.transaction(feePayer, () => {
 if (doProofs) await tx.prove();
 tx.send();
 
-blockHeight = 500;
-Local.setBlockHeight(blockHeight);
+blockHeight = UInt32.from(500);
+Local.setBlockchainLength(blockHeight);
 
 console.log('assert block height 500');
 tx = await Mina.transaction(feePayer, () => {
@@ -89,8 +89,8 @@ tx = await Mina.transaction(feePayer, () => {
 if (doProofs) await tx.prove();
 tx.send();
 
-blockHeight = 300;
-Local.setBlockHeight(5);
+blockHeight = UInt32.from(300);
+Local.setBlockchainLength(UInt32.from(5));
 console.log('invalid block height precondition');
 try {
   tx = await Mina.transaction(feePayer, () => {
@@ -101,7 +101,7 @@ try {
   tx.send();
 } catch (error) {
   console.log(
-    `Expected to fail! block height is ${Local.getNetworkState().blockchainLength.toString()}, but trying to assert ${blockHeight}`
+    `Expected to fail! block height is ${Local.getNetworkState().blockchainLength.toString()}, but trying to assert ${blockHeight.toString()}`
   );
   console.log(error);
 }
