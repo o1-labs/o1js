@@ -716,18 +716,20 @@ declare class Proof {
   verify(verificationKey: VerificationKey, publicInput: any[]): boolean;
 }
 
+// these types should be implemented by corresponding snarkyjs classes
 type UInt32_ = { value: Field };
 type UInt64_ = { value: Field };
+type PublicKey_ = { x: Field; isOdd: Bool };
 
 // this closely corresponds to Mina_base.Account.t
 interface Account {
-  publicKey: { g: Group };
+  publicKey: PublicKey_;
   balance: UInt64_;
   nonce: UInt32_;
   tokenId: Field;
   tokenSymbol: string;
   receiptChainHash: Field;
-  delegate?: { g: Group };
+  delegate?: PublicKey_;
   votingFor: Field;
   zkapp?: {
     appState: Field[];
@@ -742,14 +744,14 @@ interface Account {
 // TODO would be nice to document these, at least the parts that end up being used in the public API
 declare class Ledger {
   static create(
-    genesisAccounts: Array<{ publicKey: { g: Group }; balance: string }>
+    genesisAccounts: Array<{ publicKey: PublicKey_; balance: string }>
   ): Ledger;
 
-  addAccount(publicKey: { g: Group }, balance: string): void;
+  addAccount(publicKey: PublicKey_, balance: string): void;
 
   applyJsonTransaction(txJson: string, accountCreationFee: string): Account[];
 
-  getAccount(publicKey: { g: Group }, tokenId: Field): Account | undefined;
+  getAccount(publicKey: PublicKey_, tokenId: Field): Account | undefined;
 
   static transactionCommitments(txJson: string): {
     commitment: Field;
@@ -771,12 +773,12 @@ declare class Ledger {
     i: number
   ): string;
 
-  static customTokenId(publicKey: { g: Group }, tokenId: Field): Field;
-  static customTokenIdChecked(publicKey: { g: Group }, tokenId: Field): Field;
-  static createTokenAccount(publicKey: { g: Group }, tokenId: Field): string;
+  static customTokenId(publicKey: PublicKey_, tokenId: Field): Field;
+  static customTokenIdChecked(publicKey: PublicKey_, tokenId: Field): Field;
+  static createTokenAccount(publicKey: PublicKey_, tokenId: Field): string;
 
-  static publicKeyToString(publicKey: { g: Group }): string;
-  static publicKeyOfString(publicKeyBase58: string): Group;
+  static publicKeyToString(publicKey: PublicKey_): string;
+  static publicKeyOfString(publicKeyBase58: string): PublicKey_;
   static privateKeyToString(privateKey: { s: Scalar }): string;
   static privateKeyOfString(privateKeyBase58: string): Scalar;
   static fieldToBase58(field: Field): string;
