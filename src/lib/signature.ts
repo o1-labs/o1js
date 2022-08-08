@@ -64,13 +64,7 @@ class PublicKey extends CircuitValue {
     // TODO: we have to improve constraint efficiency by using range checks
     let { x, isOdd } = this;
     let ySquared = x.mul(x).mul(x).add(5);
-    let someY: Field;
-    if (ySquared.isConstant()) {
-      someY = ySquared.sqrt();
-    } else {
-      someY = Circuit.witness(Field, () => ySquared.toConstant().sqrt());
-      someY.square().equals(ySquared).or(x.equals(Field.zero)).assertTrue();
-    }
+    let someY = ySquared.sqrt();
     let isTheRightY = isOdd.equals(someY.toBits()[0]);
     let y = isTheRightY
       .toField()
