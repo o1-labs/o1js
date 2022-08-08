@@ -211,7 +211,7 @@ interface MockMina extends Mina {
   setGlobalSlot: (slot: UInt32) => void;
   setGlobalSlotSinceHardfork: (slot: UInt32) => void;
   setBlockchainLength: (height: UInt32) => void;
-  setTotalCurrency: (currency: UInt32) => void;
+  setTotalCurrency: (currency: UInt64) => void;
 }
 
 const defaultAccountCreationFee = 1_000_000_000;
@@ -364,7 +364,7 @@ function LocalBlockchain({
     setBlockchainLength(height: UInt32) {
       networkState.blockchainLength = height;
     },
-    setTotalCurrency(currency: UInt32) {
+    setTotalCurrency(currency: UInt64) {
       networkState.totalCurrency = currency;
     },
   };
