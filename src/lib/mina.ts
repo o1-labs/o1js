@@ -228,7 +228,11 @@ function LocalBlockchain({
     ledger.addAccount(pk, balance);
   }
 
-  let testAccounts: any[] = [];
+  let testAccounts: {
+    publicKey: PublicKey;
+    privateKey: PrivateKey;
+  }[] = [];
+
   for (let i = 0; i < 10; ++i) {
     const largeValue = '30000000000';
     const k = PrivateKey.random();
