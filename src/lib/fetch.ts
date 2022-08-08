@@ -1,15 +1,11 @@
 import 'isomorphic-fetch';
 import { Bool, Field, Ledger } from '../snarky';
 import { UInt32, UInt64 } from './int';
-import {
-  getDefaultTokenId,
-  Permission,
-  Permissions,
-  ZkappStateLength,
-} from './party';
+import { TokenId, Permission, Permissions, ZkappStateLength } from './party';
 import { PublicKey } from './signature';
 import { NetworkValue } from './precondition';
 import { Types } from '../snarky/types';
+import * as Encoding from './encoding';
 
 export {
   fetchAccount,
@@ -82,10 +78,7 @@ async function fetchAccountInternal(
 ) {
   const { publicKey, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
-    accountQuery(
-      publicKey,
-      tokenId ?? Ledger.fieldToBase58(getDefaultTokenId())
-    ),
+    accountQuery(publicKey, tokenId ?? TokenId.toBase58(TokenId.default)),
     graphqlEndpoint,
     config
   );
@@ -169,12 +162,12 @@ type Account = {
   balance: UInt64;
   tokenId: Field;
   tokenSymbol: string;
-  zkapp?: { appState: Field[] };
+  appState?: Field[];
   permissions?: Permissions;
-  receiptChainHash?: Field;
+  receiptChainHash: Field;
   delegate?: PublicKey;
   sequenceState?: Field;
-  provedState?: Bool;
+  provedState: Bool;
 };
 
 type FlexibleAccount = {
@@ -238,20 +231,18 @@ function parseFetchedAccount({
       publicKey !== undefined ? PublicKey.fromBase58(publicKey) : undefined,
     nonce: nonce !== undefined ? UInt32.fromString(nonce) : undefined,
     balance: balance && UInt64.fromString(balance.total),
-    zkapp: (zkappState && { appState: zkappState.map(Field) }) ?? undefined,
+    appState: (zkappState && zkappState.map(Field)) ?? undefined,
     permissions:
       permissions &&
       (Object.fromEntries(
         Object.entries(permissions).map(([k, v]) => [k, toPermission(v)])
       ) as unknown as Permissions),
-    // TODO: how is sequenceState related to sequenceEvents?
     sequenceState:
       sequenceEvents != undefined ? Field(sequenceEvents[0]) : undefined,
-    // TODO: how to parse receptChainHash?
-    // receiptChainHash:
-    //   receiptChainHash !== undefined
-    //     ? Ledger.fieldOfBase58(receiptChainHash)
-    //     : undefined,
+    receiptChainHash:
+      receiptChainHash !== undefined
+        ? Encoding.ReceiptChainHash.fromBase58(receiptChainHash)
+        : undefined,
     delegate:
       delegateAccount && PublicKey.fromBase58(delegateAccount.publicKey),
     tokenId: token !== undefined ? Ledger.fieldOfBase58(token) : undefined,
@@ -269,7 +260,7 @@ function stringifyAccount(account: FlexibleAccount): FetchedAccount {
       zkapp?.appState.map((s) => s.toString()) ??
       Array(ZkappStateLength).fill('0'),
     balance: { total: balance?.toString() ?? '0' },
-    token: tokenId ?? Ledger.fieldToBase58(getDefaultTokenId()),
+    token: tokenId ?? TokenId.toBase58(TokenId.default),
     tokenSymbol: tokenSymbol ?? '',
   };
 }
@@ -303,7 +294,7 @@ function markAccountToBeFetched(
   graphqlEndpoint: string
 ) {
   let publicKeyBase58 = publicKey.toBase58();
-  let tokenBase58 = Ledger.fieldToBase58(tokenId);
+  let tokenBase58 = TokenId.toBase58(tokenId);
   accountsToFetch[`${publicKeyBase58};${tokenBase58};${graphqlEndpoint}`] = {
     publicKey: publicKeyBase58,
     tokenId: tokenBase58,
@@ -355,9 +346,7 @@ function getCachedAccount(
 ) {
   let account =
     accountCache[
-      `${publicKey.toBase58()};${Ledger.fieldToBase58(
-        tokenId
-      )};${graphqlEndpoint}`
+      `${publicKey.toBase58()};${TokenId.toBase58(tokenId)};${graphqlEndpoint}`
     ]?.account;
   if (account !== undefined) return parseFetchedAccount(account);
 }
@@ -502,7 +491,7 @@ function parseFetchedBlock({
   },
 }: FetchedBlock): NetworkValue {
   return {
-    snarkedLedgerHash: Field.zero, // TODO
+    snarkedLedgerHash: Encoding.LedgerHash.fromBase58(snarkedLedgerHash),
     // TODO: use date or utcDate?
     timestamp: UInt64.fromString(utcDate),
     blockchainLength: UInt32.fromString(blockHeight),
@@ -525,12 +514,12 @@ function parseEpochData({
 }: FetchedBlock['protocolState']['consensusState']['nextEpochData']): NetworkValue['nextEpochData'] {
   return {
     ledger: {
-      hash: Field.zero, // TODO
+      hash: Encoding.LedgerHash.fromBase58(hash),
       totalCurrency: UInt64.fromString(totalCurrency),
     },
-    seed: Field.zero, // TODO
-    startCheckpoint: Field.zero, // TODO
-    lockCheckpoint: Field.zero, // TODO
+    seed: Encoding.EpochSeed.fromBase58(seed),
+    startCheckpoint: Encoding.StateHash.fromBase58(startCheckpoint),
+    lockCheckpoint: Encoding.StateHash.fromBase58(lockCheckpoint),
     epochLength: UInt32.fromString(epochLength),
   };
 }

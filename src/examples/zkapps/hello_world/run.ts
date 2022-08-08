@@ -26,8 +26,7 @@ txn = await Mina.transaction(feePayer1, () => {
 
 txn.send();
 
-const initialState =
-  Mina.getAccount(zkAppAddress).zkapp?.appState[0].toString();
+const initialState = Mina.getAccount(zkAppAddress).appState?.[0].toString();
 
 let currentState;
 
@@ -45,7 +44,7 @@ txn = await Mina.transaction(feePayer1, () => {
 
 txn.send();
 
-currentState = Mina.getAccount(zkAppAddress).zkapp?.appState[0].toString();
+currentState = Mina.getAccount(zkAppAddress).appState?.[0].toString();
 
 if (currentState !== '4') {
   throw Error(
@@ -135,7 +134,7 @@ txn2 = await Mina.transaction({ feePayerKey: feePayer2, fee: '2' }, () => {
 
 txn2.send();
 
-currentState = Mina.getAccount(zkAppAddress).zkapp?.appState[0].toString();
+currentState = Mina.getAccount(zkAppAddress).appState?.[0].toString();
 
 if (currentState !== '16') {
   throw Error(
@@ -153,7 +152,7 @@ txn3 = await Mina.transaction({ feePayerKey: feePayer3, fee: '1' }, () => {
 
 txn3.send();
 
-currentState = Mina.getAccount(zkAppAddress).zkapp?.appState[0].toString();
+currentState = Mina.getAccount(zkAppAddress).appState?.[0].toString();
 
 if (currentState !== '256') {
   throw Error(
@@ -190,7 +189,7 @@ if (!correctlyFails) {
  */
 
 function handleError(error: any, errorMessage: string) {
-  currentState = Mina.getAccount(zkAppAddress).zkapp?.appState[0].toString();
+  currentState = Mina.getAccount(zkAppAddress).appState?.[0].toString();
 
   if (error.message.includes(errorMessage)) {
     correctlyFails = true;

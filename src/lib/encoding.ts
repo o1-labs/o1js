@@ -1,4 +1,4 @@
-import { Field } from '../snarky';
+import { Field, Ledger } from '../snarky';
 
 export {
   stringToFields,
@@ -6,6 +6,11 @@ export {
   bytesToFields,
   bytesFromFields,
   Bijective,
+  TokenId,
+  ReceiptChainHash,
+  LedgerHash,
+  EpochSeed,
+  StateHash,
 };
 
 // functions for encoding data as field elements
@@ -251,3 +256,66 @@ function bigIntArrayToBytes(bigints: bigint[], bytesPerBigInt: number) {
   }
   return bytes.slice(0, i + 1);
 }
+
+// encoding of fields as base58, compatible with ocaml encodings (provided the versionByte and versionNumber are the same)
+
+function fieldToBase58(x: Field, versionByte: number, versionNumber?: number) {
+  if (!x.isConstant()) {
+    throw Error("encode: Field is not constant, can't read its value");
+  }
+  let bytes = [...(x as any as InternalConstantField).value[1]];
+  if (versionNumber !== undefined) bytes.unshift(versionNumber);
+  let binaryString = String.fromCharCode(...bytes);
+  let ocamlBytes = { t: 9, c: binaryString, l: bytes.length };
+  return Ledger.encoding.toBase58(ocamlBytes, versionByte);
+}
+function fieldFromBase58(
+  base58: string,
+  versionByte: number,
+  versionNumber?: number
+): Field {
+  let ocamlBytes = Ledger.encoding.ofBase58(base58, versionByte);
+  let bytes = [...ocamlBytes.c].map((_, i) => ocamlBytes.c.charCodeAt(i));
+  if (versionNumber !== undefined) bytes.shift();
+  let uint8array = new Uint8Array(32);
+  uint8array.set(bytes);
+  return Object.assign(Object.create(Field.one.constructor.prototype), {
+    value: [0, uint8array],
+  });
+}
+
+function customEncoding(versionByte: () => number, versionNumber?: number) {
+  return {
+    toBase58(field: Field) {
+      return fieldToBase58(field, versionByte(), versionNumber);
+    },
+    fromBase58(base58: string) {
+      return fieldFromBase58(base58, versionByte(), versionNumber);
+    },
+  };
+}
+
+const RECEIPT_CHAIN_HASH_VERSION = 1;
+const LEDGER_HASH_VERSION = 1;
+const EPOCH_SEED_VERSION = 1;
+const STATE_HASH_VERSION = 1;
+
+const TokenId = customEncoding(() => Ledger.encoding.versionBytes.tokenIdKey);
+const ReceiptChainHash = customEncoding(
+  () => Ledger.encoding.versionBytes.receiptChainHash,
+  RECEIPT_CHAIN_HASH_VERSION
+);
+const LedgerHash = customEncoding(
+  () => Ledger.encoding.versionBytes.ledgerHash,
+  LEDGER_HASH_VERSION
+);
+const EpochSeed = customEncoding(
+  () => Ledger.encoding.versionBytes.epochSeed,
+  EPOCH_SEED_VERSION
+);
+const StateHash = customEncoding(
+  () => Ledger.encoding.versionBytes.stateHash,
+  STATE_HASH_VERSION
+);
+
+type InternalConstantField = { value: [0, Uint8Array] };
