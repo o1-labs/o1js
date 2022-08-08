@@ -280,7 +280,7 @@ function LocalBlockchain({
       ledger.applyJsonTransaction(
         JSON.stringify(partiesJson),
         String(accountCreationFee),
-        JSON.stringify(getNetworkPreconditions(networkState))
+        JSON.stringify(networkState)
       );
 
       // fetches all events from the transaction and stores them
@@ -297,7 +297,7 @@ function LocalBlockchain({
           }
           events[addr][tokenId].push({
             events: p.body.events,
-            slot: currentSlot().toString(), // TODO: use block when implemented
+            slot: networkState.globalSlotSinceHardFork.toString(),
           });
         }
       });
@@ -323,7 +323,7 @@ function LocalBlockchain({
       return ledger.applyJsonTransaction(
         json,
         String(accountCreationFee),
-        JSON.stringify(getNetworkPreconditions(defaultNetworkState()))
+        JSON.stringify(defaultNetworkState())
       );
     },
     async fetchEvents(
@@ -596,24 +596,6 @@ function dummyAccount(pubkey?: PublicKey): Account {
     tokenId: getDefaultTokenId(),
     zkapp: { appState: Array(ZkappStateLength).fill(Field.zero) },
     tokenSymbol: '',
-  };
-}
-
-interface DynamicPreconditions {
-  timestamp: string;
-  blockchainLength: string;
-  totalCurrency: string;
-  globalSlotSinceHardFork: string;
-  globalSlotSinceGenesis: string;
-}
-
-function getNetworkPreconditions(network: NetworkValue): DynamicPreconditions {
-  return {
-    timestamp: network.timestamp.toString(),
-    blockchainLength: network.blockchainLength.toString(),
-    totalCurrency: network.totalCurrency.toString(),
-    globalSlotSinceHardFork: network.globalSlotSinceHardFork.toString(),
-    globalSlotSinceGenesis: network.globalSlotSinceGenesis.toString(),
   };
 }
 
