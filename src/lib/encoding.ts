@@ -257,42 +257,60 @@ function bigIntArrayToBytes(bigints: bigint[], bytesPerBigInt: number) {
   return bytes.slice(0, i + 1);
 }
 
-// encoding of fields as base58, compatible with ocaml encodings (provided the versionByte and versionNumber are the same)
+// generic encoding infrastructure
 
-function fieldToBase58(x: Field, versionByte: number, versionNumber?: number) {
-  if (!x.isConstant()) {
-    throw Error("encode: Field is not constant, can't read its value");
-  }
-  let bytes = [...(x as any as InternalConstantField).value[1]];
-  if (versionNumber !== undefined) bytes.unshift(versionNumber);
-  let binaryString = String.fromCharCode(...bytes);
-  let ocamlBytes = { t: 9, c: binaryString, l: bytes.length };
-  return Ledger.encoding.toBase58(ocamlBytes, versionByte);
-}
-function fieldFromBase58(
-  base58: string,
-  versionByte: number,
+type Binable<T> = {
+  toBytes(t: T): number[];
+  fromBytes(bytes: number[]): T;
+  sizeInBytes(): number;
+};
+
+function withVersionNumber<T>(
+  binable: Binable<T>,
   versionNumber?: number
-): Field {
-  let ocamlBytes = Ledger.encoding.ofBase58(base58, versionByte);
-  let bytes = [...ocamlBytes.c].map((_, i) => ocamlBytes.c.charCodeAt(i));
-  if (versionNumber !== undefined) bytes.shift();
-  let uint8array = new Uint8Array(32);
-  uint8array.set(bytes);
-  return Object.assign(Object.create(Field.one.constructor.prototype), {
-    value: [0, uint8array],
-  });
-}
-
-function customEncoding(versionByte: () => number, versionNumber?: number) {
+): Binable<T> {
   return {
-    toBase58(field: Field) {
-      return fieldToBase58(field, versionByte(), versionNumber);
+    toBytes(t) {
+      let bytes = binable.toBytes(t);
+      if (versionNumber !== undefined) bytes.unshift(versionNumber);
+      return bytes;
     },
-    fromBase58(base58: string) {
-      return fieldFromBase58(base58, versionByte(), versionNumber);
+    fromBytes(bytes) {
+      if (versionNumber !== undefined) bytes.shift();
+      return binable.fromBytes(bytes);
+    },
+    sizeInBytes() {
+      let size = binable.sizeInBytes();
+      return versionNumber !== undefined ? size + 1 : size;
     },
   };
+}
+
+type Base58<T> = {
+  toBase58(t: T): string;
+  fromBase58(base58: string): T;
+};
+
+function base58<T>(binable: Binable<T>, versionByte: () => number): Base58<T> {
+  return {
+    toBase58(t) {
+      let bytes = binable.toBytes(t);
+      let binaryString = String.fromCharCode(...bytes);
+      let ocamlBytes = { t: 9, c: binaryString, l: bytes.length };
+      return Ledger.encoding.toBase58(ocamlBytes, versionByte());
+    },
+    fromBase58(base58) {
+      let ocamlBytes = Ledger.encoding.ofBase58(base58, versionByte());
+      let bytes = [...ocamlBytes.c].map((_, i) => ocamlBytes.c.charCodeAt(i));
+      return binable.fromBytes(bytes);
+    },
+  };
+}
+
+// encoding of fields as base58, compatible with ocaml encodings (provided the versionByte and versionNumber are the same)
+
+function customEncoding(versionByte: () => number, versionNumber?: number) {
+  return base58(withVersionNumber(Field, versionNumber), versionByte);
 }
 
 const RECEIPT_CHAIN_HASH_VERSION = 1;
@@ -317,5 +335,3 @@ const StateHash = customEncoding(
   () => Ledger.encoding.versionBytes.stateHash,
   STATE_HASH_VERSION
 );
-
-type InternalConstantField = { value: [0, Uint8Array] };
