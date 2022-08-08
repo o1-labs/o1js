@@ -130,6 +130,9 @@ tx = await Mina.transaction(feePayer, () => {
 });
 if (doProofs) await tx.prove();
 tx.send();
+
+console.log(JSON.stringify(zkapp.reducer.getActions({})));
+
 // reset pending actions
 pendingActions = [];
 
