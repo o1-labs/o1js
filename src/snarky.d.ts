@@ -716,20 +716,27 @@ declare class Proof {
   verify(verificationKey: VerificationKey, publicInput: any[]): boolean;
 }
 
-interface UInt32_ {
-  value: Field;
-}
-interface UInt64_ {
-  value: Field;
-}
+type UInt32_ = { value: Field };
+type UInt64_ = { value: Field };
 
+// this closely corresponds to Mina_base.Account.t
 interface Account {
   publicKey: { g: Group };
   balance: UInt64_;
   nonce: UInt32_;
   tokenId: Field;
   tokenSymbol: string;
-  zkapp: { appState: Field[] };
+  receiptChainHash: Field;
+  delegate?: { g: Group };
+  votingFor: Field;
+  zkapp?: {
+    appState: Field[];
+    verificationKey?: { hash: Field; data: unknown };
+    zkappVersion: number;
+    sequenceState: Field[];
+    lastSequenceSlot: number;
+    provedState: boolean;
+  };
 }
 
 // TODO would be nice to document these, at least the parts that end up being used in the public API
@@ -793,8 +800,23 @@ declare class Ledger {
     networkPrecondition(json: String): OcamlInput;
     body(json: String): OcamlInput;
   };
+
+  // low-level encoding helpers
+  static encoding: {
+    toBase58(s: MlBytes, versionByte: number): string;
+    ofBase58(base58: string, versionByte: number): MlBytes;
+    versionBytes: Record<
+      | 'tokenIdKey'
+      | 'receiptChainHash'
+      | 'ledgerHash'
+      | 'epochSeed'
+      | 'stateHash',
+      number
+    >;
+  };
 }
 
+type MlBytes = { t: number; c: string; l: number };
 type OcamlInput = { fields: Field[]; packed: { field: Field; size: number }[] };
 
 /**

@@ -26,6 +26,7 @@ import {
   prefixes,
   TokenSymbol,
 } from './hash';
+import * as Encoding from './encoding';
 
 // external API
 export { Permissions, Party, ZkappPublicInput };
@@ -46,10 +47,11 @@ export {
   ZkappStateLength,
   Events,
   partyToPublicInput,
-  getDefaultTokenId,
+  TokenId,
   Token,
   CallForest,
   createChildParty,
+  SendParams,
 };
 
 const ZkappStateLength = 8;
@@ -250,8 +252,6 @@ let Permissions = {
   }),
 };
 
-const getDefaultTokenId = () => Field.one;
-
 type Event = Field[];
 
 type Events = {
@@ -367,11 +367,11 @@ const Body = {
     return {
       publicKey,
       update: Body.noUpdate(),
-      tokenId: getDefaultTokenId(),
+      tokenId: TokenId.default,
       balanceChange: Int64.zero,
       events: Events.empty(),
       sequenceEvents: Events.empty(),
-      caller: getDefaultTokenId(),
+      caller: TokenId.default,
       callData: Field.zero,
       callDepth: 0,
       preconditions: Preconditions.ignoreAll(),
@@ -511,16 +511,26 @@ type LazyProof = {
   blindingValue: Field;
 };
 
+const TokenId = {
+  ...Types.TokenId,
+  ...Encoding.TokenId,
+  get default() {
+    return Field.one;
+  },
+};
+
 class Token {
   readonly id: Field;
   readonly parentTokenId: Field;
   readonly tokenOwner: PublicKey;
 
+  static Id = TokenId;
+
   constructor(options: { tokenOwner: PublicKey; parentTokenId?: Field }) {
     let { tokenOwner, parentTokenId } = options ?? {};
 
     // Reassign to default tokenId if undefined
-    parentTokenId ??= getDefaultTokenId();
+    parentTokenId ??= TokenId.default;
 
     // Check if we can create a custom tokenId
     try {
@@ -670,6 +680,24 @@ class Party implements Types.Party {
     };
   }
 
+  send({ to, amount }: Omit<SendParams, 'from'>) {
+    let party = this;
+    let receiverParty = createChildParty(party, to, {
+      tokenId: party.body.tokenId,
+      caller: party.body.tokenId,
+    });
+
+    // Sub the amount from the sender's account
+    let i0 = party.body.balanceChange;
+    party.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(amount);
+
+    // Add the amount to send to the receiver's account
+    let i1 = receiverParty.body.balanceChange;
+    receiverParty.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
+      amount
+    );
+  }
+
   get balance() {
     let party = this;
 
@@ -778,7 +806,7 @@ class Party implements Types.Party {
       if (inProver || !Circuit.inCheckedComputation()) {
         let account = Mina.getAccount(
           party.body.publicKey as PublicKey,
-          getDefaultTokenId()
+          TokenId.default
         );
         nonce = inProver
           ? Circuit.witness(UInt32, () => account.nonce)

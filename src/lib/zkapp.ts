@@ -28,7 +28,8 @@ import {
   partyToPublicInput,
   Authorization,
   CallForest,
-  getDefaultTokenId,
+  TokenId,
+  SendParams,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -562,6 +563,10 @@ class SmartContract {
     return this.self.token();
   }
 
+  send(args: Omit<SendParams, 'from'>) {
+    return this.self.send(args);
+  }
+
   get tokenId() {
     return this.self.tokenId;
   }
@@ -894,7 +899,7 @@ function addFeePayer(
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
   if (feePayerNonce === undefined) {
-    let senderAccount = Mina.getAccount(senderAddress, getDefaultTokenId());
+    let senderAccount = Mina.getAccount(senderAddress, TokenId.default);
     feePayerNonce = senderAccount.nonce.toString();
   }
   let newMemo = memo;
@@ -920,7 +925,7 @@ function signFeePayer(
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
   if (feePayerNonce === undefined) {
-    let senderAccount = Mina.getAccount(senderAddress, getDefaultTokenId());
+    let senderAccount = Mina.getAccount(senderAddress, TokenId.default);
     feePayerNonce = senderAccount.nonce.toString();
   }
   if (feePayerMemo) parties.memo = Ledger.memoToBase58(feePayerMemo);
