@@ -716,9 +716,10 @@ declare class Proof {
   verify(verificationKey: VerificationKey, publicInput: any[]): boolean;
 }
 
+// these types should be implemented by corresponding snarkyjs classes
 type UInt32_ = { value: Field };
 type UInt64_ = { value: Field };
-type PublicKey_ = { g: { x: Field; isOdd: Bool } };
+type PublicKey_ = { x: Field; isOdd: Bool };
 
 // this closely corresponds to Mina_base.Account.t
 interface Account {

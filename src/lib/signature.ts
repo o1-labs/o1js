@@ -1,5 +1,5 @@
 import { Group, Field, Bool, Scalar, Ledger, Circuit } from '../snarky';
-import { prop, CircuitValue } from './circuit_value';
+import { prop, CircuitValue, AnyConstructor } from './circuit_value';
 import { Poseidon } from './hash';
 
 // external API
@@ -54,7 +54,8 @@ class PrivateKey extends CircuitValue {
   }
 }
 
-class CompressedCurvePoint extends CircuitValue {
+class PublicKey extends CircuitValue {
+  // compressed representation of a curve point, where `isOdd` is the least significant bit of `y`
   @prop x: Field;
   @prop isOdd: Bool;
 
@@ -78,22 +79,17 @@ class CompressedCurvePoint extends CircuitValue {
     return new Group(x, y);
   }
 
-  static fromGroup({ x, y }: Group): CompressedCurvePoint {
+  static fromGroup({ x, y }: Group): PublicKey {
     let isOdd = y.toBits()[0];
-    return CompressedCurvePoint.fromObject({ x, isOdd });
+    return PublicKey.fromObject({ x, isOdd });
   }
-}
-
-class PublicKey extends CircuitValue {
-  @prop g: CompressedCurvePoint;
 
   static fromPrivateKey({ s }: PrivateKey): PublicKey {
-    let g = CompressedCurvePoint.fromGroup(Group.generator.scale(s));
-    return new PublicKey(g);
+    return PublicKey.fromGroup(Group.generator.scale(s));
   }
 
   static from(g: { x: Field; isOdd: Bool }) {
-    return new PublicKey(CompressedCurvePoint.fromObject(g));
+    return PublicKey.fromObject(g);
   }
 
   static empty() {
@@ -102,12 +98,12 @@ class PublicKey extends CircuitValue {
 
   isEmpty() {
     // there are no curve points with x === 0
-    return this.g.x.isZero();
+    return this.x.isZero();
   }
 
   static fromBase58(publicKeyBase58: string) {
     let pk = Ledger.publicKeyOfString(publicKeyBase58);
-    return PublicKey.from(pk.g);
+    return PublicKey.from(pk);
   }
   toBase58() {
     return PublicKey.toBase58(this);
@@ -117,7 +113,10 @@ class PublicKey extends CircuitValue {
     return Ledger.publicKeyToString(publicKey);
   }
   static toJSON(publicKey: PublicKey) {
-    return Ledger.publicKeyToString(publicKey);
+    return publicKey.toBase58();
+  }
+  static fromJSON<T extends AnyConstructor>(this: T, publicKey: string) {
+    return PublicKey.fromBase58(publicKey) as InstanceType<T>;
   }
 }
 
@@ -126,7 +125,7 @@ class Signature extends CircuitValue {
   @prop s: Scalar;
 
   static create(privKey: PrivateKey, msg: Field[]): Signature {
-    const publicKey = PublicKey.fromPrivateKey(privKey).g.toGroup();
+    const publicKey = PublicKey.fromPrivateKey(privKey).toGroup();
     const d = privKey.s;
     const kPrime = Scalar.random();
     let { x: r, y: ry } = Group.generator.scale(kPrime);
@@ -139,7 +138,7 @@ class Signature extends CircuitValue {
   }
 
   verify(publicKey: PublicKey, msg: Field[]): Bool {
-    const point = publicKey.g.toGroup();
+    const point = publicKey.toGroup();
     let e = Scalar.ofBits(
       Poseidon.hash(msg.concat([point.x, point.y, this.r])).toBits()
     );

@@ -21,6 +21,7 @@ export {
 export {
   AsFieldsExtended,
   AsFieldsAndAux,
+  AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,
   circuitArray,
