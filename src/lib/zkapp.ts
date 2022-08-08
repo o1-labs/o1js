@@ -30,6 +30,7 @@ import {
   CallForest,
   getDefaultTokenId,
   Token,
+  createChildParty,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -562,7 +563,34 @@ class SmartContract {
   }
 
   token() {
-    return this.self.token();
+    return {
+      deploy: ({
+        //verificationKey,
+        deployer,
+      }: {
+        //verificationKey: { data: string; hash: Field | string };
+        deployer: PrivateKey;
+      }) => {
+        let childParty = createChildParty(this.self, deployer.toPublicKey(), {
+          caller: this.self.token().id,
+          tokenId: this.self.token().id,
+        });
+
+        // Set permissions on child party
+        // Party.setValue(childParty.update.permissions, Permissions.default());
+
+        // Sign child party
+        // childParty.signInPlace(deployer);
+
+        // Do we need to set the verification key on the child party?
+        // if (verificationKey !== undefined) {
+        //   let { hash: hash_, data } = verificationKey;
+        //   let hash = typeof hash_ === 'string' ? Field(hash_) : hash_;
+        //   Party.setValue(childParty.update.verificationKey, { hash, data });
+        // }
+      },
+      ...this.self.token(),
+    };
   }
 
   get tokenId() {
@@ -942,3 +970,10 @@ const Reducer: (<
   'initialActionsHash',
   { get: Events.emptySequenceState }
 ) as any;
+
+class Callback {
+  constructor(public callback: (args: any) => void, public args: any) {
+    this.callback = callback;
+    this.args = args;
+  }
+}

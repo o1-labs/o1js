@@ -873,7 +873,9 @@ class Party implements Types.Party {
     }
     // it's fine to compute the nonce outside the circuit, because we're constraining it with a precondition
     let nonce = Circuit.witness(UInt32, () => {
-      let nonce = Number(Mina.getAccount(publicKey).nonce.toString());
+      let nonce = Number(
+        Mina.getAccount(publicKey, body.tokenId).nonce.toString()
+      );
       // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher,
       // bc the fee payer already increases its nonce
       let isFeePayer = Mina.currentTransaction()?.sender?.equals(signer);
@@ -1164,13 +1166,6 @@ async function addMissingProofs(parties: Parties): Promise<{
     } = party.lazyAuthorization;
     let publicInput = partyToPublicInput(party);
     let publicInputFields = ZkappPublicInput.toFields(publicInput);
-
-    console.log('addMissingProofs -- (ZkappClass)', ZkappClass);
-    console.log('addMissingProofs -- (methodName)', methodName);
-    console.log('addMissingProofs -- (args)', args);
-    console.log('addMissingProofs -- (publicInput)', publicInput);
-    console.log('addMissingProofs -- (blindingValue)', blindingValue);
-
     if (ZkappClass._provers === undefined)
       throw Error(
         `Cannot prove execution of ${methodName}(), no prover found. ` +
