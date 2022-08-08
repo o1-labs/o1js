@@ -1,6 +1,6 @@
-import { Circuit, Field, AsFieldElements, Ledger } from '../snarky';
+import { Circuit, Field, AsFieldElements } from '../snarky';
 import { circuitArray } from './circuit_value';
-import { getDefaultTokenId, Party } from './party';
+import { Party, TokenId } from './party';
 import { PublicKey } from './signature';
 import * as Mina from './mina';
 import { Account, fetchAccount } from './fetch';
@@ -221,13 +221,13 @@ function createState<T>(): InternalStateType<T> {
               `Try calling \`await fetchAccount(zkappAddress)\` first.`
           );
         }
-        if (account.zkapp === undefined) {
+        if (account.appState === undefined) {
           // if the account is not a zkapp account, let the default state be all zeroes
           stateAsFields = Array(layout.length).fill(Field.zero);
         } else {
           stateAsFields = [];
           for (let i = 0; i < layout.length; ++i) {
-            stateAsFields.push(account.zkapp.appState[layout.offset + i]);
+            stateAsFields.push(account.appState[layout.offset + i]);
           }
         }
         // in prover, create a new witness with the state values
@@ -265,16 +265,16 @@ To write a correct circuit, you must avoid any dependency on the concrete value 
       let address: PublicKey = this._contract.instance.address;
       let { account } = await fetchAccount({
         publicKey: address,
-        tokenId: Ledger.fieldToBase58(getDefaultTokenId()),
+        tokenId: TokenId.toBase58(TokenId.default),
       });
       if (account === undefined) return undefined;
       let stateAsFields: Field[];
-      if (account.zkapp === undefined) {
+      if (account.appState === undefined) {
         stateAsFields = Array(layout.length).fill(Field.zero);
       } else {
         stateAsFields = [];
         for (let i = 0; i < layout.length; i++) {
-          stateAsFields.push(account.zkapp.appState[layout.offset + i]);
+          stateAsFields.push(account.appState[layout.offset + i]);
         }
       }
       return this._contract.stateType.ofFields(stateAsFields);

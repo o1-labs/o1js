@@ -471,7 +471,8 @@
       {
         "name": "hashInputFromJson",
         "type": "object"
-      }
+      },
+      { "name": "encoding", "type": "object" }
     ]
   },
   {
