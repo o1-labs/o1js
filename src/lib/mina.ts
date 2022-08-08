@@ -198,7 +198,10 @@ interface Mina {
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): TransactionId;
   fetchEvents: (publicKey: PublicKey, tokenId?: Field) => any;
-  getActions: (publicKey: PublicKey, tokenId?: Field) => any;
+  getActions: (
+    publicKey: PublicKey,
+    tokenId?: Field
+  ) => { hash: string; actions: string[][] }[];
 }
 
 interface MockMina extends Mina {
@@ -385,8 +388,8 @@ function LocalBlockchain({
     },
     getActions(
       publicKey: PublicKey,
-      tokenId: Field = getDefaultTokenId()
-    ): any[] {
+      tokenId: Field = TokenId.default
+    ): { hash: string; actions: string[][] }[] {
       return (
         actions?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)] ?? []
       );
