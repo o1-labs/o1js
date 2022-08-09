@@ -15,7 +15,7 @@ function encrypt(message: Field[], otherPublicKey: PublicKey) {
     ? Circuit.witness(Scalar, () => Scalar.random())
     : Scalar.random();
   let publicKey = Group.generator.scale(privateKey);
-  let sharedSecret = otherPublicKey.g.scale(privateKey);
+  let sharedSecret = otherPublicKey.toGroup().scale(privateKey);
 
   let sponge = new Poseidon.Sponge();
   sponge.absorb(sharedSecret.x); // don't think we need y, that's enough entropy

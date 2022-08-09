@@ -207,6 +207,11 @@ interface MockMina extends Mina {
    */
   testAccounts: Array<{ publicKey: PublicKey; privateKey: PrivateKey }>;
   applyJsonTransaction: (tx: string) => void;
+  setTimestamp: (ms: UInt64) => void;
+  setGlobalSlot: (slot: UInt32) => void;
+  setGlobalSlotSinceHardfork: (slot: UInt32) => void;
+  setBlockchainLength: (height: UInt32) => void;
+  setTotalCurrency: (currency: UInt64) => void;
 }
 
 const defaultAccountCreationFee = 1_000_000_000;
@@ -222,11 +227,17 @@ function LocalBlockchain({
 
   const ledger = Ledger.create([]);
 
+  let networkState = defaultNetworkState();
+
   function addAccount(pk: PublicKey, balance: string) {
     ledger.addAccount(pk, balance);
   }
 
-  let testAccounts = [];
+  let testAccounts: {
+    publicKey: PublicKey;
+    privateKey: PrivateKey;
+  }[] = [];
+
   for (let i = 0; i < 10; ++i) {
     const largeValue = '30000000000';
     const k = PrivateKey.random();
@@ -269,7 +280,7 @@ function LocalBlockchain({
           receiptChainHash: ledgerAccount.receiptChainHash,
           provedState: Bool(ledgerAccount.zkapp?.provedState ?? false),
           delegate:
-            ledgerAccount.delegate && new PublicKey(ledgerAccount.delegate.g),
+            ledgerAccount.delegate && PublicKey.from(ledgerAccount.delegate),
           sequenceState:
             ledgerAccount.zkapp?.sequenceState[0] ??
             Events.emptySequenceState(),
@@ -277,11 +288,7 @@ function LocalBlockchain({
       }
     },
     getNetworkState() {
-      // TODO:
-      // * enable to change the network state, to test various preconditions
-      // * pass the network state to be used to applyJsonTransaction (needs JS -> OCaml transfer)
-      // * could make totalCurrency consistent with the sum of account balances
-      return dummyNetworkState();
+      return networkState;
     },
     sendTransaction(txn: Transaction) {
       txn.sign();
@@ -290,7 +297,8 @@ function LocalBlockchain({
 
       ledger.applyJsonTransaction(
         JSON.stringify(partiesJson),
-        String(accountCreationFee)
+        String(accountCreationFee),
+        JSON.stringify(networkState)
       );
 
       // fetches all events from the transaction and stores them
@@ -307,7 +315,7 @@ function LocalBlockchain({
           }
           events[addr][tokenId].push({
             events: p.body.events,
-            slot: currentSlot().toString(), // TODO: use block when implemented
+            slot: networkState.globalSlotSinceHardFork.toString(),
           });
         }
       });
@@ -330,7 +338,11 @@ function LocalBlockchain({
       });
     },
     applyJsonTransaction(json: string) {
-      return ledger.applyJsonTransaction(json, String(accountCreationFee));
+      return ledger.applyJsonTransaction(
+        json,
+        String(accountCreationFee),
+        JSON.stringify(defaultNetworkState())
+      );
     },
     async fetchEvents(
       publicKey: PublicKey,
@@ -340,6 +352,21 @@ function LocalBlockchain({
     },
     addAccount,
     testAccounts,
+    setTimestamp(ms: UInt64) {
+      networkState.timestamp = ms;
+    },
+    setGlobalSlot(slot: UInt32) {
+      networkState.globalSlotSinceGenesis = slot;
+    },
+    setGlobalSlotSinceHardfork(slot: UInt32) {
+      networkState.globalSlotSinceHardFork = slot;
+    },
+    setBlockchainLength(height: UInt32) {
+      networkState.blockchainLength = height;
+    },
+    setTotalCurrency(currency: UInt64) {
+      networkState.totalCurrency = currency;
+    },
   };
 }
 
@@ -394,7 +421,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       if (currentTransaction()?.fetchMode === 'test') {
         Fetch.markNetworkToBeFetched(graphqlEndpoint);
         let network = Fetch.getCachedNetwork(graphqlEndpoint);
-        return network ?? dummyNetworkState();
+        return network ?? defaultNetworkState();
       }
       if (
         !currentTransaction.has() ||
@@ -618,7 +645,7 @@ function dummyAccount(pubkey?: PublicKey): Account {
   };
 }
 
-function dummyNetworkState(): NetworkValue {
+function defaultNetworkState(): NetworkValue {
   let epochData: NetworkValue['stakingEpochData'] = {
     ledger: { hash: Field.zero, totalCurrency: UInt64.zero },
     seed: Field.zero,
