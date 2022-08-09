@@ -23,6 +23,9 @@ export class MerkleTree {
 
   getRoot(): Field {
     return this.getNode(this.height - 1, 0n);
-  }  
-
+  }
+  
+  private setNode(level: number, index: bigint, value: Field) {
+    (this.nodes[level] ??= {})[index.toString()] = value;
+  }
 }
