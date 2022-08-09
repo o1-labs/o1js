@@ -4,7 +4,7 @@ import { Field } from './core'
 export type Witness = {
   isLeft: boolean;
   sibling: Field;
-}
+}[];
 
 export class MerkleTree {
   private nodes: Record<number, Record<string, Field>> = {};
@@ -41,4 +41,17 @@ export class MerkleTree {
       this.setNode(level, currIndex, Poseidon.hash([left, right]));
     }
   }
+
+  getWitness(index: bigint): Witness {
+    const witness = [];
+    for (let level = 0; level < this.height - 1; level++) {
+      const isLeft = index % 2n === 0n;
+      witness.push({
+        isLeft,
+        sibling: this.getNode(level, isLeft ? index + 1n : index - 1n),
+      });
+      index = index / 2n;
+    }
+    return witness;
+  }  
 }
