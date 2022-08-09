@@ -53,5 +53,16 @@ export class MerkleTree {
       index = index / 2n;
     }
     return witness;
-  }  
+  } 
+  validate(index: bigint): boolean {
+    const path = this.getWitness(index);
+    let hash = this.getNode(0, index);
+    for (const node of path) {
+      hash = Poseidon.hash(
+        node.isLeft ? [hash, node.sibling] : [node.sibling, hash]
+      );
+    }
+
+    return hash.toString() === this.getRoot().toString();
+  }   
 }
