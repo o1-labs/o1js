@@ -28,4 +28,17 @@ export class MerkleTree {
   private setNode(level: number, index: bigint, value: Field) {
     (this.nodes[level] ??= {})[index.toString()] = value;
   }
+
+  setLeaf(index: bigint, leaf: Field) {
+    this.setNode(0, index, leaf);
+    let currIndex = index;
+    for (let level = 1; level < this.height; level++) {
+      currIndex = currIndex / 2n;
+
+      const left = this.getNode(level - 1, currIndex * 2n);
+      const right = this.getNode(level - 1, currIndex * 2n + 1n);
+
+      this.setNode(level, currIndex, Poseidon.hash([left, right]));
+    }
+  }
 }
