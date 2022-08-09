@@ -59,25 +59,29 @@ function preconditionClass(
   context: PreconditionContext
 ): any {
   if (layout.type === 'option') {
-    // range condition
-    if (layout.optionType === 'implicit' && layout.inner.type === 'object') {
+    if (
+      layout.optionType === 'flaggedOption' &&
+      layout.inner.type === 'object' &&
+      layout.inner.keys.join(',') === 'lower,upper'
+    ) {
       let lower = layout.inner.entries.lower.type as BaseType;
       let baseType = baseMap[lower];
       return {
         ...preconditionSubclass(party, baseKey, baseType as any, context),
         assertBetween(lower: any, upper: any) {
           context.constrained.add(baseKey);
-          let property = getPath(party.body.preconditions, baseKey);
-          property.lower = lower;
-          property.upper = upper;
+          let property: RangeCondition<any> = getPath(
+            party.body.preconditions,
+            baseKey
+          );
+          property.isSome = Bool(true);
+          property.value.lower = lower;
+          property.value.upper = upper;
         },
       };
     }
     // value condition
     else if (layout.optionType === 'flaggedOption') {
-      let baseType = baseMap[layout.inner.type as BaseType];
-      return preconditionSubclass(party, baseKey, baseType as any, context);
-    } else if (layout.inner.type !== 'object') {
       let baseType = baseMap[layout.inner.type as BaseType];
       return preconditionSubclass(party, baseKey, baseType as any, context);
     }
@@ -124,10 +128,12 @@ function preconditionSubclass<
       ) as AnyCondition<U>;
       if ('isSome' in property) {
         property.isSome = Bool(true);
-        property.value = value;
-      } else if ('lower' in property) {
-        property.lower = value;
-        property.upper = value;
+        if ('lower' in property.value && 'upper' in property.value) {
+          property.value.lower = value;
+          property.value.upper = value;
+        } else {
+          property.value = value;
+        }
       } else {
         setPath(party.body.preconditions, longKey, value);
       }
@@ -327,7 +333,7 @@ type FlatPreconditionValue = {
 type LongKey = keyof FlatPreconditionValue;
 
 // types for the two kinds of conditions
-type RangeCondition<T> = { lower: T; upper: T };
+type RangeCondition<T> = { isSome: Bool; value: { lower: T; upper: T } };
 type FlaggedOptionCondition<T> = { isSome: Bool; value: T };
 type AnyCondition<T> =
   | RangeCondition<T>
@@ -337,7 +343,7 @@ type AnyCondition<T> =
 function isRangeCondition<T>(
   condition: AnyCondition<T>
 ): condition is RangeCondition<T> {
-  return 'lower' in condition;
+  return 'isSome' in condition && 'lower' in condition.value;
 }
 
 // helper. getPath({a: {b: 'x'}}, 'a.b') === 'x'
