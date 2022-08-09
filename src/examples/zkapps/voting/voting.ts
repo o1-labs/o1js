@@ -32,4 +32,9 @@ export class Voting extends SmartContract {
   // Invokes the publish method of both Voter and Candidate Membership contracts.
   }
 
+  vote(candidate) {
+    // Check if Voter and Candidate exist by calling the isMember method of corresponding Smart-Contracts 
+    // Emit corresponding Sequence Event with the Vote for Candidate information
+  }
+
 }
