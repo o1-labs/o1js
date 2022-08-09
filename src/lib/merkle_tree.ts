@@ -17,4 +17,8 @@ export class MerkleTree {
     }
   }
 
+  getNode(level: number, index: bigint): Field {
+    return this.nodes[level]?.[index.toString()] ?? this.zeroes[level];
+  }
+
 }
