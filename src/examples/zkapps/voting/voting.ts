@@ -37,4 +37,10 @@ export class Voting extends SmartContract {
     // Emit corresponding Sequence Event with the Vote for Candidate information
   }
 
+  countVotes() {
+    // Save the Sequence Events accumulated so far within the account’s state accumulatedMembers (AppState 1 in doc).
+    // Update the committed storage with the Sequence Events accumulated so far.
+    // Returns the JSON with the Candidates to Votes Count mapping.
+  } 
+
 }
