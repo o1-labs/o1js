@@ -29,7 +29,6 @@ import {
   Authorization,
   CallForest,
   getDefaultTokenId,
-  Token,
   createChildParty,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
@@ -69,12 +68,21 @@ export {
   DeployArgs,
   signFeePayer,
   declareMethods,
+  Callback,
 };
 
 // internal API
 export { Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
+
+function isCallback(type: unknown): type is typeof Callback {
+  // the second case covers subclasses
+  return (
+    type === Callback ||
+    (typeof type === 'function' && type.prototype instanceof Callback)
+  );
+}
 
 /**
  * A decorator to use in a zkapp to mark a method as callable by anyone.
@@ -107,10 +115,17 @@ function method<T extends SmartContract>(
     static publicInputType = ZkappPublicInput;
     static tag = () => ZkappClass;
   }
+
+  const paramTypesWithoutCallback = paramTypes.filter(
+    (el: any) => !isCallback(el)
+  );
+
+  let callback = paramTypes.find(isCallback);
+
   let methodEntry = sortMethodArguments(
     ZkappClass.name,
     methodName,
-    paramTypes,
+    paramTypesWithoutCallback,
     SelfProof
   );
   if (isAsFields(returnType)) methodEntry.returnType = returnType;
@@ -122,7 +137,7 @@ function method<T extends SmartContract>(
     methodEntry.proofArgs.length
   );
   let func = descriptor.value;
-  descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
+  descriptor.value = wrapMethod(func, ZkappClass, methodEntry, callback);
 }
 
 let smartContractContext =
@@ -132,7 +147,8 @@ let smartContractContext =
 function wrapMethod(
   method: Function,
   ZkappClass: typeof SmartContract,
-  methodIntf: MethodInterface
+  methodIntf: MethodInterface,
+  callbackMethod: Callback
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
@@ -141,6 +157,39 @@ function wrapMethod(
         { this: this, methodCallDepth: 0 },
         () => {
           if (inCheckedComputation()) {
+            if (callbackMethod) {
+              console.log('--------------------------');
+              console.log(ZkappClass);
+              console.log(method);
+              console.log(methodIntf);
+              console.log(callbackMethod);
+              console.log(callbackMethod.callback);
+              console.log(callbackMethod.args);
+              console.log('--------------------------');
+              // let [, result1] = Mina.currentTransaction.runWith(
+              //   {
+              //     sender: undefined,
+              //     parties: [],
+              //     fetchMode: inProver() ? 'cached' : 'test',
+              //     isFinalRunOutsideCircuit: false,
+              //   },
+              //   () => {
+              //     let context = memoizationContext() ?? {
+              //       memoized: [],
+              //       currentIndex: 0,
+              //     };
+
+              //     let blindingValue = Circuit.witness(Field, getBlindingValue);
+
+              //     let [, result] = memoizationContext.runWith(
+              //       { ...context, blindingValue },
+              //       () =>
+              //         method.apply(callbackMethod.callback, callbackMethod.args)
+              //     );
+              //   }
+              // );
+              // console.log('RESULT', result1);
+            }
             // important to run this with a fresh party everytime, otherwise compile messes up our circuits
             // because it runs this multiple times
             let [, result] = Mina.currentTransaction.runWith(
@@ -251,6 +300,7 @@ function wrapMethod(
         }
       )[1];
     }
+
     // if we're here, this method was called inside _another_ smart contract method
     let parentParty = smartContractContext.get().this.self;
     let methodCallDepth = smartContractContext.get().methodCallDepth;
@@ -564,30 +614,11 @@ class SmartContract {
 
   token() {
     return {
-      deploy: ({
-        //verificationKey,
-        deployer,
-      }: {
-        //verificationKey: { data: string; hash: Field | string };
-        deployer: PrivateKey;
-      }) => {
+      deploy: ({ deployer }: { deployer: PrivateKey }) => {
         let childParty = createChildParty(this.self, deployer.toPublicKey(), {
           caller: this.self.token().id,
           tokenId: this.self.token().id,
         });
-
-        // Set permissions on child party
-        // Party.setValue(childParty.update.permissions, Permissions.default());
-
-        // Sign child party
-        // childParty.signInPlace(deployer);
-
-        // Do we need to set the verification key on the child party?
-        // if (verificationKey !== undefined) {
-        //   let { hash: hash_, data } = verificationKey;
-        //   let hash = typeof hash_ === 'string' ? Field(hash_) : hash_;
-        //   Party.setValue(childParty.update.verificationKey, { hash, data });
-        // }
       },
       ...this.self.token(),
     };
@@ -972,7 +1003,7 @@ const Reducer: (<
 ) as any;
 
 class Callback {
-  constructor(public callback: (args: any) => void, public args: any) {
+  constructor(public callback: (...args: any) => void, public args: any) {
     this.callback = callback;
     this.args = args;
   }

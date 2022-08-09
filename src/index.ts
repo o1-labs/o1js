@@ -32,6 +32,7 @@ export {
   DeployArgs,
   signFeePayer,
   declareMethods,
+  Callback,
 } from './lib/zkapp';
 export { state, State, declareState } from './lib/state';
 export { Proof, SelfProof, ZkProgram, verify } from './lib/proof_system';

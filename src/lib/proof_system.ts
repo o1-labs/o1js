@@ -8,6 +8,7 @@ import {
 } from '../snarky';
 import { toConstant } from './circuit_value';
 import { Context } from './global-context';
+import { Callback } from './zkapp';
 
 // public API
 export { Proof, SelfProof, ZkProgram, verify };
