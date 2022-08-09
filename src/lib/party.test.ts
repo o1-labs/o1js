@@ -89,7 +89,9 @@ describe('party', () => {
     );
   });
   it('creates the right empty sequence state', () => {
-    expect(party.body.preconditions.account.sequenceState.toString()).toEqual(
+    expect(
+      party.body.preconditions.account.sequenceState.value.toString()
+    ).toEqual(
       '19777675955122618431670853529822242067051263606115426372178827525373304476695'
     );
   });

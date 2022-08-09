@@ -424,21 +424,21 @@ type NetworkPrecondition = Preconditions['network'];
 let NetworkPrecondition = {
   ignoreAll(): NetworkPrecondition {
     let stakingEpochData = {
-      ledger: { hash: ignore(Field.zero), totalCurrency: uint64() },
+      ledger: { hash: ignore(Field.zero), totalCurrency: ignore(uint64()) },
       seed: ignore(Field.zero),
       startCheckpoint: ignore(Field.zero),
       lockCheckpoint: ignore(Field.zero),
-      epochLength: uint32(),
+      epochLength: ignore(uint32()),
     };
     let nextEpochData = cloneCircuitValue(stakingEpochData);
     return {
       snarkedLedgerHash: ignore(Field.zero),
-      timestamp: uint64(),
-      blockchainLength: uint32(),
-      minWindowDensity: uint32(),
-      totalCurrency: uint64(),
-      globalSlotSinceHardFork: uint32(),
-      globalSlotSinceGenesis: uint32(),
+      timestamp: ignore(uint64()),
+      blockchainLength: ignore(uint32()),
+      minWindowDensity: ignore(uint32()),
+      totalCurrency: ignore(uint64()),
+      globalSlotSinceHardFork: ignore(uint32()),
+      globalSlotSinceGenesis: ignore(uint32()),
       stakingEpochData,
       nextEpochData,
     };
@@ -473,12 +473,12 @@ const AccountPrecondition = {
       appState.push(ignore(Field.zero));
     }
     return {
-      balance: uint64(),
-      nonce: uint32(),
+      balance: ignore(uint64()),
+      nonce: ignore(uint32()),
       receiptChainHash: ignore(Field.zero),
       delegate: ignore(PublicKey.empty()),
       state: appState,
-      sequenceState: Events.emptySequenceState(),
+      sequenceState: ignore(Events.emptySequenceState()),
       provedState: ignore(Bool(false)),
       isNew: ignore(Bool(false)),
     };
@@ -739,9 +739,14 @@ class Party implements Types.Party {
    * }
    * ```
    */
-  static assertBetween<T>(property: ClosedInterval<T>, lower: T, upper: T) {
-    property.lower = lower;
-    property.upper = upper;
+  static assertBetween<T>(
+    property: OrIgnore<ClosedInterval<T>>,
+    lower: T,
+    upper: T
+  ) {
+    property.isSome = Bool(true);
+    property.value.lower = lower;
+    property.value.upper = upper;
   }
 
   // TODO: assertGreaterThan, assertLowerThan?
@@ -760,15 +765,13 @@ class Party implements Types.Party {
    * }
    * ```
    */
-  static assertEquals<T>(property: ClosedInterval<T> | OrIgnore<T>, value: T) {
-    if ('isSome' in property) {
-      property.isSome = Bool(true);
-      property.value = value;
-    } else if ('lower' in property) {
-      property.lower = value;
-      property.upper = value;
+  static assertEquals<T>(property: OrIgnore<ClosedInterval<T> | T>, value: T) {
+    property.isSome = Bool(true);
+    if ('lower' in property.value && 'upper' in property.value) {
+      property.value.lower = value;
+      property.value.upper = value;
     } else {
-      throw Error('assertEquals: Invalid argument');
+      property.value = value;
     }
   }
 
