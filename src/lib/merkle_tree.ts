@@ -21,4 +21,8 @@ export class MerkleTree {
     return this.nodes[level]?.[index.toString()] ?? this.zeroes[level];
   }
 
+  getRoot(): Field {
+    return this.getNode(this.height - 1, 0n);
+  }  
+
 }
