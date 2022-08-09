@@ -18,5 +18,9 @@ export class Voting extends SmartContract {
       editState: Permissions.proofOrSignature(),
     });
     // TODO: Add account state initilaztion here
-  }  
+  }
+  
+  voterRegistration(member) {
+  // Invokes addEntry method on voter  Membership contract with member passed as an argument  
+  }
 }
