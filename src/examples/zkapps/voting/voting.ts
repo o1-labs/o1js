@@ -21,6 +21,11 @@ export class Voting extends SmartContract {
   }
   
   voterRegistration(member) {
-  // Invokes addEntry method on voter  Membership contract with member passed as an argument  
+  // Invokes addEntry method on Voter Membership contract with member passed as an argument  
   }
+
+  candidateRegistration(member) {
+  // Invokes addEntry method on Candidate Membership contract with member passed as an argument  
+  }
+
 }
