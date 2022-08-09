@@ -59,6 +59,7 @@ function preconditionClass(
   context: PreconditionContext
 ): any {
   if (layout.type === 'option') {
+    // range condition
     if (
       layout.optionType === 'flaggedOption' &&
       layout.inner.type === 'object' &&
