@@ -54,6 +54,7 @@ class PrivateKey extends CircuitValue {
   }
 }
 
+// TODO: this doesn't have a non-default check method yet. does it need one?
 class PublicKey extends CircuitValue {
   // compressed representation of a curve point, where `isOdd` is the least significant bit of `y`
   @prop x: Field;
