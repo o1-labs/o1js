@@ -55,7 +55,12 @@ export * as Encoding from './lib/encoding';
 export { Character, CircuitString } from './lib/string';
 
 // experimental APIs
-import { Reducer, Callback, partyFromCallback } from './lib/zkapp';
+import {
+  Reducer,
+  Callback,
+  partyFromCallback,
+  SmartContract,
+} from './lib/zkapp';
 import { createChildParty } from './lib/party';
 import {
   memoizeWitness,
@@ -80,6 +85,9 @@ const Experimental = {
   asFieldsAndAux,
   packToFields,
 };
+
+type Callback_<T extends SmartContract> = Callback<T>;
 namespace Experimental {
   export type AsFieldsAndAux<T, TJson> = AsFieldsAndAux_<T, TJson>;
+  export type Callback<T extends SmartContract> = Callback_<T>;
 }
