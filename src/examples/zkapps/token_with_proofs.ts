@@ -14,6 +14,8 @@ import {
   shutdown,
   Int64,
   Experimental,
+  Permissions,
+  Circuit,
 } from 'snarkyjs';
 
 await isReady;
@@ -22,7 +24,14 @@ class TokenContract extends SmartContract {
   @state(Field) x = State<Field>();
 
   @method tokenDeploy(deployer: PrivateKey) {
-    // super.token().deploy({ deployer });
+    let address = Circuit.witness(PublicKey, () => deployer.toPublicKey());
+    let deployParty = Experimental.createChildParty(this.self, address);
+    deployParty.body.tokenId = this.token().id;
+    deployParty.body.caller = this.token().id;
+    Party.setValue(deployParty.update.permissions, Permissions.default());
+    // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
+    // Party.setValue(deployParty.update.verificationKey, verificationKey);
+    deployParty.signInPlace(deployer, true);
   }
 
   @method update(y: Field) {
@@ -62,7 +71,7 @@ class TokenContract extends SmartContract {
     // TODO is there more?
     let negativeAmount = Int64.fromObject(senderParty.body.balanceChange);
     negativeAmount.assertEquals(Int64.from(amount).neg());
-    senderParty.body.tokenId.assertEquals(this.nativeToken);
+    senderParty.body.tokenId.assertEquals(this.token().id);
 
     this.token().send({
       from: senderAddress,
@@ -154,11 +163,11 @@ tx = await Local.transaction(feePayer, () => {
   tokenZkApp.tokenDeploy(zkAppBKey);
 });
 tx.sign([zkAppBKey]);
-
+console.log('deploy zkAppB (proof)');
 await tx.prove();
 tx.send();
 
-console.log(`test`);
+console.log('test');
 console.log(Mina.getAccount(zkAppBAddress, tokenId).publicKey.toBase58());
 console.log(
   Ledger.fieldToBase58(Mina.getAccount(zkAppBAddress, tokenId).tokenId)
