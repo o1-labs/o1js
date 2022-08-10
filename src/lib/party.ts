@@ -809,7 +809,7 @@ class Party implements Types.Party {
       try {
         let account = Mina.getAccount(
           party.body.publicKey as PublicKey,
-          TokenId.default
+          (party as Party).body.tokenId ?? TokenId.default
         );
         nonce = account.nonce;
       } catch (err) {
