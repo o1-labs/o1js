@@ -11,7 +11,7 @@ import { Context } from './global-context';
 import { SmartContract } from './zkapp';
 
 // public API
-export { Proof, SelfProof, ZkProgram, verify, Callback };
+export { Proof, SelfProof, ZkProgram, verify };
 
 // internal API
 export {
@@ -19,6 +19,7 @@ export {
   sortMethodArguments,
   getPreviousProofsForProver,
   MethodInterface,
+  GenericArgument,
   picklesRuleFromFunction,
   compileProgram,
   analyzeMethod,
@@ -269,14 +270,6 @@ let i = 0;
 
 class SelfProof<T> extends Proof<T> {}
 
-function isCallback(type: unknown): type is typeof Callback {
-  // the second case covers subclasses
-  return (
-    type === Callback ||
-    (typeof type === 'function' && type.prototype instanceof Callback)
-  );
-}
-
 function sortMethodArguments(
   programName: string,
   methodName: string,
@@ -285,8 +278,8 @@ function sortMethodArguments(
 ): MethodInterface {
   let witnessArgs: AsFieldElements<unknown>[] = [];
   let proofArgs: Subclass<typeof Proof>[] = [];
-  let allArgs: { type: 'proof' | 'witness' | 'callback'; index: number }[] = [];
-  let callbackArgs: Subclass<typeof Callback>[] = [];
+  let allArgs: { type: 'proof' | 'witness' | 'generic'; index: number }[] = [];
+  let genericArgs: Subclass<typeof GenericArgument>[] = [];
   for (let i = 0; i < privateInputs.length; i++) {
     let privateInput = privateInputs[i];
     if (isProof(privateInput)) {
@@ -305,10 +298,9 @@ function sortMethodArguments(
     } else if (isAsFields(privateInput)) {
       allArgs.push({ type: 'witness', index: witnessArgs.length });
       witnessArgs.push(privateInput);
-    } else if (isCallback(privateInput)) {
-      allArgs.push({ type: 'callback', index: callbackArgs.length });
-      console.log('sortMethodArguments -- PRIVATE INPUT', privateInput);
-      callbackArgs.push(privateInput);
+    } else if (isGeneric(privateInput)) {
+      allArgs.push({ type: 'generic', index: genericArgs.length });
+      genericArgs.push(privateInput);
     } else {
       throw Error(
         `Argument ${
@@ -323,7 +315,13 @@ function sortMethodArguments(
         `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
-  return { methodName, witnessArgs, proofArgs, allArgs, callbackArgs };
+  return {
+    methodName,
+    witnessArgs,
+    proofArgs,
+    allArgs,
+    genericArgs,
+  };
 }
 
 function isAsFields(
@@ -340,6 +338,19 @@ function isProof(type: unknown): type is typeof Proof {
   return (
     type === Proof ||
     (typeof type === 'function' && type.prototype instanceof Proof)
+  );
+}
+
+class GenericArgument {
+  isEmpty = true;
+}
+let emptyGeneric = () => new GenericArgument();
+
+function isGeneric(type: unknown): type is typeof GenericArgument {
+  // the second case covers subclasses
+  return (
+    type === GenericArgument ||
+    (typeof type === 'function' && type.prototype instanceof GenericArgument)
   );
 }
 
@@ -364,10 +375,12 @@ function getPreviousProofsForProver(
 
 type MethodInterface = {
   methodName: string;
+  // TODO: unify types of arguments
+  // "circuit types" should be flexible enough to encompass proofs and callback arguments
   witnessArgs: AsFieldElements<unknown>[];
   proofArgs: Subclass<typeof Proof>[];
-  callbackArgs: Subclass<typeof Callback>[];
-  allArgs: { type: 'witness' | 'proof' | 'callback'; index: number }[];
+  genericArgs: Subclass<typeof GenericArgument>[];
+  allArgs: { type: 'witness' | 'proof' | 'generic'; index: number }[];
   returnType?: AsFieldElements<unknown>;
 };
 
@@ -403,11 +416,6 @@ function analyzeMethod<T>(
   return Circuit.constraintSystem(() => {
     let args = synthesizeMethodArguments(methodIntf, true);
     let publicInput = emptyWitness(publicInputType);
-    console.log(
-      'analyzeMethod -- methodIntf, args - ',
-      methodIntf.methodName,
-      ...args
-    );
     return method(publicInput, ...args);
   });
 }
@@ -416,7 +424,7 @@ function picklesRuleFromFunction(
   publicInputType: AsFieldElements<any>,
   func: (...args: unknown[]) => void,
   proofSystemTag: { name: string },
-  { methodName, witnessArgs, proofArgs, allArgs, callbackArgs }: MethodInterface
+  { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface
 ): Pickles.Rule {
   function main(
     publicInput: Pickles.PublicInput,
@@ -446,9 +454,8 @@ function picklesRuleFromFunction(
         }
         finalArgs[i] = proofInstance;
         proofs.push(proofInstance);
-      } else if (arg.type === 'callback') {
-        // TODO CALLBACK: implement
-        let Callback = callbackArgs[arg.index];
+      } else if (arg.type === 'generic') {
+        finalArgs[i] = argsWithoutPublicInput?.[i] ?? emptyGeneric();
       }
     }
     func(publicInputType.ofFields(publicInput), ...finalArgs);
@@ -479,7 +486,7 @@ function picklesRuleFromFunction(
 }
 
 function synthesizeMethodArguments(
-  { allArgs, proofArgs, witnessArgs, callbackArgs }: MethodInterface,
+  { allArgs, proofArgs, witnessArgs }: MethodInterface,
   asVariables = false
 ) {
   let args = [];
@@ -491,11 +498,8 @@ function synthesizeMethodArguments(
       let Proof = proofArgs[arg.index];
       let publicInput = empty(getPublicInputType(Proof));
       args.push(new Proof({ publicInput, proof: undefined }));
-    } else if (arg.type === 'callback') {
-      // TODO CALLBACK: implement
-      let Callback = callbackArgs[arg.index];
-      console.log('synthesizeMethodArguments -- Callback - ', Callback);
-      args.push(new Callback(undefined, () => {}, []));
+    } else if (arg.type === 'generic') {
+      args.push(emptyGeneric());
     }
   }
   return args;
@@ -511,19 +515,28 @@ function methodArgumentsToConstant(
     let { type, index } = allArgs[i];
     if (type === 'witness') {
       constArgs.push(toConstant(witnessArgs[index], arg));
-    } else {
+    } else if (type === 'proof') {
       let Proof = proofArgs[index];
       let publicInput = toConstant(getPublicInputType(Proof), arg.publicInput);
       constArgs.push(new Proof({ publicInput, proof: arg.proof }));
+    } else if (type === 'generic') {
+      constArgs.push(arg);
     }
   }
   return constArgs;
 }
 
+let Generic: AsFieldElements<null> = {
+  toFields: () => [],
+  ofFields: () => null,
+  sizeInFields: () => 0,
+  check() {},
+};
+
 type TypeAndValue<T> = { type: AsFieldElements<T>; value: T };
 
 function methodArgumentTypesAndValues(
-  { allArgs, proofArgs, witnessArgs, callbackArgs }: MethodInterface,
+  { allArgs, proofArgs, witnessArgs }: MethodInterface,
   args: unknown[]
 ) {
   let typesAndValues: TypeAndValue<any>[] = [];
@@ -538,9 +551,8 @@ function methodArgumentTypesAndValues(
         type: getPublicInputType(Proof),
         value: (arg as Proof<any>).publicInput,
       });
-    } else if (type === 'callback') {
-      // TODO CALLBACK: implement
-      let Callback = callbackArgs[index];
+    } else if (type === 'generic') {
+      typesAndValues.push({ type: Generic, value: arg });
     }
   }
   return typesAndValues;
@@ -644,15 +656,3 @@ type Prover<PublicInput, Args extends Tuple<PrivateInput>> = (
   publicInput: PublicInput,
   ...args: TupleToInstances<Args>
 ) => Promise<Proof<PublicInput>>;
-
-class Callback<T extends SmartContract> {
-  constructor(
-    public s: T,
-    public callback: (...args: any) => void,
-    public args: any
-  ) {
-    this.s = s;
-    this.callback = callback;
-    this.args = args;
-  }
-}

@@ -34,13 +34,7 @@ export {
   declareMethods,
 } from './lib/zkapp';
 export { state, State, declareState } from './lib/state';
-export {
-  Proof,
-  SelfProof,
-  ZkProgram,
-  verify,
-  Callback,
-} from './lib/proof_system';
+export { Proof, SelfProof, ZkProgram, verify } from './lib/proof_system';
 
 export {
   Token,
