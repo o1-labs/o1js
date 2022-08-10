@@ -9,6 +9,7 @@ import {
   AsFieldsExtended,
   circuitValue,
 } from '../lib/circuit_value';
+import * as Encoding from '../lib/encoding';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
@@ -56,7 +57,7 @@ let emptyType = {
 const TokenId: AsFieldsExtended<TokenId> = {
   ...circuitValue<TokenId>(Field),
   toJSON(x: TokenId): Json.TokenId {
-    return Ledger.fieldToBase58(x);
+    return Encoding.TokenId.toBase58(x);
   },
 };
 
@@ -87,44 +88,6 @@ const AuthRequired: AsFieldsExtended<AuthRequired> = {
   },
 };
 
-const PublicKeyCompressed: AsFieldsExtended<PublicKey> = {
-  ...circuitValue<PublicKey>(PublicKey),
-  toJSON(x): Json.PublicKey {
-    return Ledger.publicKeyToString(x);
-  },
-  toFields({ g }: PublicKey) {
-    let { x, y } = g;
-    // TODO inefficient! in-snark public key should be uncompressed
-    let isOdd = y.toBits()[0];
-    return [x, isOdd.toField()];
-  },
-  ofFields([x, isOdd]) {
-    // compute y from elliptic curve equation y^2 = x^3 + 5
-    // TODO: this is used in-snark, so we should improve constraint efficiency
-    let ySquared = x.mul(x).mul(x).add(5);
-    let someY: Field;
-    if (ySquared.isConstant()) {
-      someY = ySquared.sqrt();
-    } else {
-      someY = Circuit.witness(Field, () => ySquared.toConstant().sqrt());
-      someY.square().equals(ySquared).or(x.equals(Field.zero)).assertTrue();
-    }
-    let isTheRightY = isOdd.equals(someY.toBits()[0].toField());
-    let y = isTheRightY
-      .toField()
-      .mul(someY)
-      .add(isTheRightY.not().toField().mul(someY.neg()));
-    return new PublicKey(new Group(x, y));
-  },
-  toInput(pk) {
-    let [x, isOdd] = this.toFields(pk);
-    return {
-      fields: [x],
-      packed: [[isOdd, 1]],
-    };
-  },
-};
-
 let { fromCircuitValue } = AsFieldsAndAux;
 
 const TypeMap: {
@@ -137,7 +100,7 @@ const TypeMap: {
   Sign: fromCircuitValue(Sign),
   TokenId: fromCircuitValue(TokenId),
   AuthRequired: fromCircuitValue(AuthRequired),
-  PublicKey: fromCircuitValue(PublicKeyCompressed),
+  PublicKey: fromCircuitValue(PublicKey),
   // primitive JS types
   number: {
     ...emptyType,

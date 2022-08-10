@@ -47,7 +47,6 @@ export {
   Party,
   Permissions,
   ZkappPublicInput,
-  getDefaultTokenId,
   partiesToJson,
 } from './lib/party';
 export {

@@ -183,8 +183,6 @@ function fromFieldsReversed(
   if (typeData.type === 'option') {
     let { optionType, inner } = typeData;
     switch (optionType) {
-      case 'implicit':
-        return fromFieldsReversed(inner, fields, aux, customTypes);
       case 'flaggedOption':
         let isSome = Bool.Unsafe.ofField(fields.pop()!);
         let value = fromFieldsReversed(inner, fields, aux, customTypes);
@@ -292,8 +290,6 @@ function layoutFold<T, R>(
   if (typeData.type === 'option') {
     let { optionType, inner } = typeData;
     switch (optionType) {
-      case 'implicit':
-        return layoutFold(spec, inner, value);
       case 'flaggedOption':
         let v: { isSome: T; value: T } | undefined = value as any;
         return spec.reduceFlaggedOption({
@@ -336,14 +332,10 @@ type RangeLayout<T extends BaseLayout> = {
 type OptionLayout<T extends BaseLayout> = { type: 'option' } & (
   | {
       optionType: 'flaggedOption';
-      inner: T;
-    }
-  | {
-      optionType: 'implicit';
       inner: RangeLayout<T>;
     }
   | {
-      optionType: 'implicit';
+      optionType: 'flaggedOption';
       inner: T;
     }
   | {

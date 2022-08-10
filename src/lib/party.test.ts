@@ -10,6 +10,7 @@ import {
   Mina,
   Experimental,
   Int64,
+  Encoding,
 } from '../../dist/server';
 
 let address: PublicKey;
@@ -88,9 +89,17 @@ describe('party', () => {
     );
   });
   it('creates the right empty sequence state', () => {
-    expect(party.body.preconditions.account.sequenceState.toString()).toEqual(
+    expect(
+      party.body.preconditions.account.sequenceState.value.toString()
+    ).toEqual(
       '19777675955122618431670853529822242067051263606115426372178827525373304476695'
     );
+  });
+  it('encodes token ids correctly', () => {
+    let x = Field.random();
+    let defaultTokenId = 'wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf';
+    expect(Encoding.TokenId.toBase58(x)).toEqual(Ledger.fieldToBase58(x));
+    expect(Encoding.TokenId.fromBase58(defaultTokenId).toString()).toEqual('1');
   });
 });
 

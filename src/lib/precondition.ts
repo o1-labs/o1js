@@ -1,12 +1,12 @@
 import { Circuit, AsFieldElements, Bool, Field } from '../snarky';
 import { circuitValueEquals } from './circuit_value';
 import * as Mina from './mina';
-import { Party, Preconditions } from './party';
-import * as GlobalContext from './global-context';
+import { Events, Party, Preconditions } from './party';
 import { UInt32, UInt64 } from './int';
 import { inAnalyze, inCompile, inProver } from './proof_system';
 import { Layout } from 'snarky/parties-helpers';
 import { jsLayout } from '../snarky/types';
+import { emptyReceiptChainHash } from './hash';
 
 export {
   preconditions,
@@ -41,22 +41,12 @@ function Account(party: Party): Account {
 }
 
 let unimplementedPreconditions: LongKey[] = [
-  // these are all unimplemented because we can't parse the hash yet
-  'account.receiptChainHash',
-  'network.snarkedLedgerHash',
-  'network.nextEpochData.ledger.hash',
-  'network.nextEpochData.seed',
-  'network.nextEpochData.startCheckpoint',
-  'network.nextEpochData.lockCheckpoint',
-  'network.stakingEpochData.ledger.hash',
+  // unimplemented because its not checked in the protocol
   'network.stakingEpochData.seed',
-  'network.stakingEpochData.startCheckpoint',
-  'network.stakingEpochData.lockCheckpoint',
-  // this is unimplemented because the field is missing on the account endpoint
+  'network.nextEpochData.seed',
+  // this is partially unimplemented because the field is missing on the account endpoint
+  // but with the local ledger it works!
   'account.provedState',
-  'account.isNew',
-  // this is partially unimplemented because the field is not returned by the local blockchain
-  'account.delegate',
 ];
 
 type BaseType = 'UInt64' | 'UInt32' | 'Field' | 'Bool';
@@ -70,24 +60,29 @@ function preconditionClass(
 ): any {
   if (layout.type === 'option') {
     // range condition
-    if (layout.optionType === 'implicit' && layout.inner.type === 'object') {
+    if (
+      layout.optionType === 'flaggedOption' &&
+      layout.inner.type === 'object' &&
+      layout.inner.keys.join(',') === 'lower,upper'
+    ) {
       let lower = layout.inner.entries.lower.type as BaseType;
       let baseType = baseMap[lower];
       return {
         ...preconditionSubclass(party, baseKey, baseType as any, context),
         assertBetween(lower: any, upper: any) {
           context.constrained.add(baseKey);
-          let property = getPath(party.body.preconditions, baseKey);
-          property.lower = lower;
-          property.upper = upper;
+          let property: RangeCondition<any> = getPath(
+            party.body.preconditions,
+            baseKey
+          );
+          property.isSome = Bool(true);
+          property.value.lower = lower;
+          property.value.upper = upper;
         },
       };
     }
     // value condition
     else if (layout.optionType === 'flaggedOption') {
-      let baseType = baseMap[layout.inner.type as BaseType];
-      return preconditionSubclass(party, baseKey, baseType as any, context);
-    } else if (layout.inner.type !== 'object') {
       let baseType = baseMap[layout.inner.type as BaseType];
       return preconditionSubclass(party, baseKey, baseType as any, context);
     }
@@ -124,8 +119,7 @@ function preconditionSubclass<
       }
       let { read, vars } = context;
       read.add(longKey);
-      return (vars[longKey] ??
-        (vars[longKey] = getVariable(party, longKey, fieldType))) as U;
+      return (vars[longKey] ??= getVariable(party, longKey, fieldType)) as U;
     },
     assertEquals(value: U) {
       context.constrained.add(longKey);
@@ -135,10 +129,12 @@ function preconditionSubclass<
       ) as AnyCondition<U>;
       if ('isSome' in property) {
         property.isSome = Bool(true);
-        property.value = value;
-      } else if ('lower' in property) {
-        property.lower = value;
-        property.upper = value;
+        if ('lower' in property.value && 'upper' in property.value) {
+          property.value.lower = value;
+          property.value.upper = value;
+        } else {
+          property.value = value;
+        }
       } else {
         setPath(party.body.preconditions, longKey, value);
       }
@@ -171,13 +167,8 @@ To write a correct circuit, you must avoid any dependency on the concrete value 
   let key = rest.join('.');
   let value: U;
   if (accountOrNetwork === 'account') {
-    let address = party.body.publicKey;
-    let account: any = Mina.getAccount(address, party.body.tokenId);
-    value = account[key];
-    if (value === undefined)
-      throw Error(
-        `Could not get \`${key}\` on account with public key ${address.toBase58()}. The property may not be available on this account.`
-      );
+    let account = getAccountPreconditions(party);
+    value = account[key as keyof AccountValue] as U;
   } else if (accountOrNetwork === 'network') {
     let networkState = Mina.getNetworkState();
     value = getPath(networkState, key);
@@ -191,6 +182,32 @@ To write a correct circuit, you must avoid any dependency on the concrete value 
   } else {
     return value;
   }
+}
+
+function getAccountPreconditions(party: Party): AccountValue {
+  let { publicKey, tokenId } = party.body;
+  let hasAccount = Mina.hasAccount(publicKey, tokenId);
+  if (!hasAccount) {
+    return {
+      balance: UInt64.zero,
+      nonce: UInt32.zero,
+      receiptChainHash: emptyReceiptChainHash(),
+      sequenceState: Events.emptySequenceState(),
+      delegate: publicKey,
+      provedState: Bool(false),
+      isNew: Bool(true),
+    };
+  }
+  let account = Mina.getAccount(publicKey, tokenId);
+  return {
+    balance: account.balance,
+    nonce: account.nonce,
+    receiptChainHash: account.receiptChainHash,
+    sequenceState: account.sequenceState ?? Events.emptySequenceState(),
+    delegate: account.delegate ?? account.publicKey,
+    provedState: account.provedState,
+    isNew: Bool(false),
+  };
 }
 
 // per-party context for checking invariants on precondition construction
@@ -261,7 +278,7 @@ type Network = PreconditionClassType<NetworkPrecondition>;
 // TODO: OK how we read delegate from delegateAccount?
 // TODO: no graphql field for provedState yet
 // TODO: figure out serialization of receiptChainHash
-// TODO: should we add account.state? then we should change the structure on `Fetch.Account` which is stupid anyway
+// TODO: should we add account.state?
 // then can just use circuitArray(Field, 8) as the type
 type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
 // TODO to use this type as account type everywhere, need to add publicKey
@@ -273,8 +290,8 @@ type PreconditionBaseTypes<T> = {
     ? U
     : T[K] extends FlaggedOptionCondition<infer U>
     ? U
-    : T[K] extends AsFieldElements<infer U>
-    ? U
+    : T[K] extends Field
+    ? Field
     : PreconditionBaseTypes<T[K]>;
 };
 
@@ -317,7 +334,7 @@ type FlatPreconditionValue = {
 type LongKey = keyof FlatPreconditionValue;
 
 // types for the two kinds of conditions
-type RangeCondition<T> = { lower: T; upper: T };
+type RangeCondition<T> = { isSome: Bool; value: { lower: T; upper: T } };
 type FlaggedOptionCondition<T> = { isSome: Bool; value: T };
 type AnyCondition<T> =
   | RangeCondition<T>
@@ -327,7 +344,7 @@ type AnyCondition<T> =
 function isRangeCondition<T>(
   condition: AnyCondition<T>
 ): condition is RangeCondition<T> {
-  return 'lower' in condition;
+  return 'isSome' in condition && 'lower' in condition.value;
 }
 
 // helper. getPath({a: {b: 'x'}}, 'a.b') === 'x'

@@ -28,8 +28,7 @@ import {
   partyToPublicInput,
   Authorization,
   CallForest,
-  getDefaultTokenId,
-  createChildParty,
+  TokenId,
 } from './party';
 import { PrivateKey, PublicKey } from './signature';
 import * as Mina from './mina';
@@ -460,7 +459,7 @@ class SmartContract {
 
   constructor(address: PublicKey, nativeToken?: Field) {
     this.address = address;
-    this.nativeToken = nativeToken ?? getDefaultTokenId();
+    this.nativeToken = nativeToken ?? TokenId.default;
     Object.defineProperty(this, 'reducer', {
       set(this, reducer: Reducer<any>) {
         ((this as any)._ ??= {}).reducer = reducer;
@@ -569,15 +568,7 @@ class SmartContract {
   }
 
   token() {
-    return {
-      deploy: ({ deployer }: { deployer: PrivateKey }) => {
-        let childParty = createChildParty(this.self, deployer.toPublicKey(), {
-          caller: this.self.token().id,
-          tokenId: this.self.token().id,
-        });
-      },
-      ...this.self.token(),
-    };
+    return this.self.token();
   }
 
   get tokenId() {
@@ -627,6 +618,50 @@ class SmartContract {
       eventFields = [Field(eventNumber), ...eventType.toFields(event)];
     }
     party.body.events = Events.pushEvent(party.body.events, eventFields);
+  }
+
+  async fetchEvents(
+    start: UInt32 = UInt32.from(0),
+    end?: UInt32
+  ): Promise<{ type: string; event: AsFieldElements<any> }[]> {
+    // filters all elements so that they are within the given range
+    // only returns { type: "", event: [] } in a flat format
+    let events = (await Mina.fetchEvents(this.address, this.self.body.tokenId))
+      .filter((el: any) => {
+        let slot = UInt32.from(el.slot);
+        return end === undefined
+          ? start.lte(slot).toBoolean()
+          : start.lte(slot).toBoolean() && slot.lte(end).toBoolean();
+      })
+      .map((el: any) => el.events)
+      .flat();
+
+    // used to match field values back to their original type
+    let sortedEventTypes = Object.keys(this.events).sort();
+
+    return events.map((event: any) => {
+      // if there is only one event type, the event structure has no index and can directly be matched to the event type
+      if (sortedEventTypes.length === 1) {
+        let type = sortedEventTypes[0];
+        return {
+          type,
+          event: this.events[type].ofFields(
+            event.map((f: string) => Field.fromString(f))
+          ),
+        };
+      } else {
+        // if there are multiple events we have to use the index event[0] to find the exact event type
+        let type = sortedEventTypes[event[0]];
+        // all other elements of the array are values used to construct the original object, we can drop the first value since its just an index
+        event.shift();
+        return {
+          type,
+          event: this.events[type].ofFields(
+            event.map((f: string) => Field.fromString(f))
+          ),
+        };
+      }
+    });
   }
 
   static runOutsideCircuit(run: () => void) {
@@ -873,7 +908,7 @@ function addFeePayer(
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
   if (feePayerNonce === undefined) {
-    let senderAccount = Mina.getAccount(senderAddress, getDefaultTokenId());
+    let senderAccount = Mina.getAccount(senderAddress, TokenId.default);
     feePayerNonce = senderAccount.nonce.toString();
   }
   let newMemo = memo;
@@ -899,7 +934,7 @@ function signFeePayer(
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
   if (feePayerNonce === undefined) {
-    let senderAccount = Mina.getAccount(senderAddress, getDefaultTokenId());
+    let senderAccount = Mina.getAccount(senderAddress, TokenId.default);
     feePayerNonce = senderAccount.nonce.toString();
   }
   if (feePayerMemo) parties.memo = Ledger.memoToBase58(feePayerMemo);

@@ -26,6 +26,7 @@ import {
   prefixes,
   TokenSymbol,
 } from './hash';
+import * as Encoding from './encoding';
 
 // external API
 export { Permissions, Party, ZkappPublicInput };
@@ -46,10 +47,11 @@ export {
   ZkappStateLength,
   Events,
   partyToPublicInput,
-  getDefaultTokenId,
+  TokenId,
   Token,
   CallForest,
   createChildParty,
+  SendParams,
 };
 
 const ZkappStateLength = 8;
@@ -250,8 +252,6 @@ let Permissions = {
   }),
 };
 
-const getDefaultTokenId = () => Field.one;
-
 type Event = Field[];
 
 type Events = {
@@ -367,11 +367,11 @@ const Body = {
     return {
       publicKey,
       update: Body.noUpdate(),
-      tokenId: getDefaultTokenId(),
+      tokenId: TokenId.default,
       balanceChange: Int64.zero,
       events: Events.empty(),
       sequenceEvents: Events.empty(),
-      caller: getDefaultTokenId(),
+      caller: TokenId.default,
       callData: Field.zero,
       callDepth: 0,
       preconditions: Preconditions.ignoreAll(),
@@ -424,21 +424,21 @@ type NetworkPrecondition = Preconditions['network'];
 let NetworkPrecondition = {
   ignoreAll(): NetworkPrecondition {
     let stakingEpochData = {
-      ledger: { hash: ignore(Field.zero), totalCurrency: uint64() },
+      ledger: { hash: ignore(Field.zero), totalCurrency: ignore(uint64()) },
       seed: ignore(Field.zero),
       startCheckpoint: ignore(Field.zero),
       lockCheckpoint: ignore(Field.zero),
-      epochLength: uint32(),
+      epochLength: ignore(uint32()),
     };
     let nextEpochData = cloneCircuitValue(stakingEpochData);
     return {
       snarkedLedgerHash: ignore(Field.zero),
-      timestamp: uint64(),
-      blockchainLength: uint32(),
-      minWindowDensity: uint32(),
-      totalCurrency: uint64(),
-      globalSlotSinceHardFork: uint32(),
-      globalSlotSinceGenesis: uint32(),
+      timestamp: ignore(uint64()),
+      blockchainLength: ignore(uint32()),
+      minWindowDensity: ignore(uint32()),
+      totalCurrency: ignore(uint64()),
+      globalSlotSinceHardFork: ignore(uint32()),
+      globalSlotSinceGenesis: ignore(uint32()),
       stakingEpochData,
       nextEpochData,
     };
@@ -473,12 +473,12 @@ const AccountPrecondition = {
       appState.push(ignore(Field.zero));
     }
     return {
-      balance: uint64(),
-      nonce: uint32(),
+      balance: ignore(uint64()),
+      nonce: ignore(uint32()),
       receiptChainHash: ignore(Field.zero),
       delegate: ignore(PublicKey.empty()),
       state: appState,
-      sequenceState: Events.emptySequenceState(),
+      sequenceState: ignore(Events.emptySequenceState()),
       provedState: ignore(Bool(false)),
       isNew: ignore(Bool(false)),
     };
@@ -511,16 +511,26 @@ type LazyProof = {
   blindingValue: Field;
 };
 
+const TokenId = {
+  ...Types.TokenId,
+  ...Encoding.TokenId,
+  get default() {
+    return Field.one;
+  },
+};
+
 class Token {
   readonly id: Field;
   readonly parentTokenId: Field;
   readonly tokenOwner: PublicKey;
 
+  static Id = TokenId;
+
   constructor(options: { tokenOwner: PublicKey; parentTokenId?: Field }) {
     let { tokenOwner, parentTokenId } = options ?? {};
 
     // Reassign to default tokenId if undefined
-    parentTokenId ??= getDefaultTokenId();
+    parentTokenId ??= TokenId.default;
 
     // Check if we can create a custom tokenId
     try {
@@ -670,6 +680,24 @@ class Party implements Types.Party {
     };
   }
 
+  send({ to, amount }: Omit<SendParams, 'from'>) {
+    let party = this;
+    let receiverParty = createChildParty(party, to, {
+      tokenId: party.body.tokenId,
+      caller: party.body.tokenId,
+    });
+
+    // Sub the amount from the sender's account
+    let i0 = party.body.balanceChange;
+    party.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(amount);
+
+    // Add the amount to send to the receiver's account
+    let i1 = receiverParty.body.balanceChange;
+    receiverParty.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
+      amount
+    );
+  }
+
   get balance() {
     let party = this;
 
@@ -711,9 +739,14 @@ class Party implements Types.Party {
    * }
    * ```
    */
-  static assertBetween<T>(property: ClosedInterval<T>, lower: T, upper: T) {
-    property.lower = lower;
-    property.upper = upper;
+  static assertBetween<T>(
+    property: OrIgnore<ClosedInterval<T>>,
+    lower: T,
+    upper: T
+  ) {
+    property.isSome = Bool(true);
+    property.value.lower = lower;
+    property.value.upper = upper;
   }
 
   // TODO: assertGreaterThan, assertLowerThan?
@@ -732,15 +765,13 @@ class Party implements Types.Party {
    * }
    * ```
    */
-  static assertEquals<T>(property: ClosedInterval<T> | OrIgnore<T>, value: T) {
-    if ('isSome' in property) {
-      property.isSome = Bool(true);
-      property.value = value;
-    } else if ('lower' in property) {
-      property.lower = value;
-      property.upper = value;
+  static assertEquals<T>(property: OrIgnore<ClosedInterval<T> | T>, value: T) {
+    property.isSome = Bool(true);
+    if ('lower' in property.value && 'upper' in property.value) {
+      property.value.lower = value;
+      property.value.upper = value;
     } else {
-      throw Error('assertEquals: Invalid argument');
+      property.value = value;
     }
   }
 
@@ -778,7 +809,7 @@ class Party implements Types.Party {
       if (inProver || !Circuit.inCheckedComputation()) {
         let account = Mina.getAccount(
           party.body.publicKey as PublicKey,
-          getDefaultTokenId()
+          TokenId.default
         );
         nonce = inProver
           ? Circuit.witness(UInt32, () => account.nonce)

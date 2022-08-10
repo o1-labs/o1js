@@ -1,6 +1,7 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, Ledger, Field } from '../snarky';
+import { Circuit, Ledger } from '../snarky';
+import { Field, Bool } from './core';
 import { UInt32, UInt64 } from './int';
 import { PrivateKey, PublicKey } from './signature';
 import {
@@ -12,15 +13,17 @@ import {
   Party,
   ZkappStateLength,
   ZkappPublicInput,
-  getDefaultTokenId,
+  TokenId,
   CallForest,
   Authorization,
+  Events,
 } from './party';
 import * as Fetch from './fetch';
 import { assertPreconditionInvariants, NetworkValue } from './precondition';
 import { cloneCircuitValue } from './circuit_value';
 import { Proof, snarkContext } from './proof_system';
 import { Context } from './global-context';
+import { emptyReceiptChainHash } from './hash';
 
 export {
   createTransaction,
@@ -32,10 +35,12 @@ export {
   transaction,
   currentSlot,
   getAccount,
+  hasAccount,
   getBalance,
   getNetworkState,
   accountCreationFee,
   sendTransaction,
+  fetchEvents,
   FeePayerSpec,
 };
 interface TransactionId {
@@ -69,7 +74,7 @@ type FeePayerSpec =
   | undefined;
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
-  if (tokenId === Ledger.fieldToBase58(getDefaultTokenId())) {
+  if (tokenId === TokenId.toBase58(TokenId.default)) {
     return `getAccount: Could not find account for public key ${publicKey}`;
   } else {
     return `getAccount: Could not find account for public key ${publicKey} with the tokenId ${tokenId}`;
@@ -135,7 +140,7 @@ function createTransaction(
   if (feePayerKey !== undefined) {
     // if senderKey is provided, fetch account to get nonce and mark to be signed
     let senderAddress = feePayerKey.toPublicKey();
-    let senderAccount = getAccount(senderAddress, getDefaultTokenId());
+    let senderAccount = getAccount(senderAddress, TokenId.default);
     feePayerParty = Party.defaultFeePayer(
       senderAddress,
       feePayerKey,
@@ -186,11 +191,14 @@ function createTransaction(
 interface Mina {
   transaction(sender: FeePayerSpec, f: () => void): Promise<Transaction>;
   currentSlot(): UInt32;
+  hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): TransactionId;
+  fetchEvents: (publicKey: PublicKey, tokenId?: Field) => any;
 }
+
 interface MockMina extends Mina {
   addAccount(publicKey: PublicKey, balance: string): void;
   /**
@@ -199,6 +207,11 @@ interface MockMina extends Mina {
    */
   testAccounts: Array<{ publicKey: PublicKey; privateKey: PrivateKey }>;
   applyJsonTransaction: (tx: string) => void;
+  setTimestamp: (ms: UInt64) => void;
+  setGlobalSlot: (slot: UInt32) => void;
+  setGlobalSlotSinceHardfork: (slot: UInt32) => void;
+  setBlockchainLength: (height: UInt32) => void;
+  setTotalCurrency: (currency: UInt64) => void;
 }
 
 const defaultAccountCreationFee = 1_000_000_000;
@@ -214,11 +227,17 @@ function LocalBlockchain({
 
   const ledger = Ledger.create([]);
 
+  let networkState = defaultNetworkState();
+
   function addAccount(pk: PublicKey, balance: string) {
     ledger.addAccount(pk, balance);
   }
 
-  let testAccounts = [];
+  let testAccounts: {
+    publicKey: PublicKey;
+    privateKey: PrivateKey;
+  }[] = [];
+
   for (let i = 0; i < 10; ++i) {
     const largeValue = '30000000000';
     const k = PrivateKey.random();
@@ -227,6 +246,8 @@ function LocalBlockchain({
     testAccounts.push({ privateKey: k, publicKey: pk });
   }
 
+  const events: Record<string, any> = {};
+
   return {
     accountCreationFee: () => UInt64.from(accountCreationFee),
     currentSlot() {
@@ -234,17 +255,17 @@ function LocalBlockchain({
         Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
       );
     },
+    hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+      return !!ledger.getAccount(publicKey, tokenId);
+    },
     getAccount(
       publicKey: PublicKey,
-      tokenId: Field = getDefaultTokenId()
+      tokenId: Field = TokenId.default
     ): Account {
       let ledgerAccount = ledger.getAccount(publicKey, tokenId);
       if (ledgerAccount == undefined) {
         throw new Error(
-          reportGetAccountError(
-            publicKey.toBase58(),
-            Ledger.fieldToBase58(tokenId)
-          )
+          reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
         );
       } else {
         return {
@@ -252,24 +273,53 @@ function LocalBlockchain({
           tokenId,
           balance: new UInt64(ledgerAccount.balance.value),
           nonce: new UInt32(ledgerAccount.nonce.value),
-          zkapp: ledgerAccount.zkapp,
+          appState:
+            ledgerAccount.zkapp?.appState ??
+            Array(ZkappStateLength).fill(Field.zero),
           tokenSymbol: ledgerAccount.tokenSymbol,
+          receiptChainHash: ledgerAccount.receiptChainHash,
+          provedState: Bool(ledgerAccount.zkapp?.provedState ?? false),
+          delegate:
+            ledgerAccount.delegate && PublicKey.from(ledgerAccount.delegate),
+          sequenceState:
+            ledgerAccount.zkapp?.sequenceState[0] ??
+            Events.emptySequenceState(),
         };
       }
     },
     getNetworkState() {
-      // TODO:
-      // * enable to change the network state, to test various preconditions
-      // * pass the network state to be used to applyJsonTransaction (needs JS -> OCaml transfer)
-      // * could make totalCurrency consistent with the sum of account balances
-      return dummyNetworkState();
+      return networkState;
     },
     sendTransaction(txn: Transaction) {
       txn.sign();
+
+      let partiesJson = partiesToJson(txn.transaction);
+
       ledger.applyJsonTransaction(
-        JSON.stringify(partiesToJson(txn.transaction)),
-        String(accountCreationFee)
+        JSON.stringify(partiesJson),
+        String(accountCreationFee),
+        JSON.stringify(networkState)
       );
+
+      // fetches all events from the transaction and stores them
+      // events are identified and associated with a publicKey and tokenId
+      partiesJson.otherParties.forEach((p) => {
+        let addr = p.body.publicKey;
+        let tokenId = p.body.tokenId;
+        if (events[addr] === undefined) {
+          events[addr] = {};
+        }
+        if (p.body.events.length > 0) {
+          if (events[addr][tokenId] === undefined) {
+            events[addr][tokenId] = [];
+          }
+          events[addr][tokenId].push({
+            events: p.body.events,
+            slot: networkState.globalSlotSinceHardFork.toString(),
+          });
+        }
+      });
+
       return { wait: async () => {} };
     },
     async transaction(sender: FeePayerSpec, f: () => void) {
@@ -288,10 +338,35 @@ function LocalBlockchain({
       });
     },
     applyJsonTransaction(json: string) {
-      return ledger.applyJsonTransaction(json, String(accountCreationFee));
+      return ledger.applyJsonTransaction(
+        json,
+        String(accountCreationFee),
+        JSON.stringify(defaultNetworkState())
+      );
+    },
+    async fetchEvents(
+      publicKey: PublicKey,
+      tokenId: Field = TokenId.default
+    ): Promise<any[]> {
+      return events?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
     },
     addAccount,
     testAccounts,
+    setTimestamp(ms: UInt64) {
+      networkState.timestamp = ms;
+    },
+    setGlobalSlot(slot: UInt32) {
+      networkState.globalSlotSinceGenesis = slot;
+    },
+    setGlobalSlotSinceHardfork(slot: UInt32) {
+      networkState.globalSlotSinceHardFork = slot;
+    },
+    setBlockchainLength(height: UInt32) {
+      networkState.blockchainLength = height;
+    },
+    setTotalCurrency(currency: UInt64) {
+      networkState.totalCurrency = currency;
+    },
   };
 }
 
@@ -305,7 +380,16 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         'currentSlot() is not implemented yet for remote blockchains.'
       );
     },
-    getAccount(publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) {
+    hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+      if (
+        !currentTransaction.has() ||
+        currentTransaction.get().fetchMode === 'cached'
+      ) {
+        return !!Fetch.getCachedAccount(publicKey, tokenId, graphqlEndpoint);
+      }
+      return false;
+    },
+    getAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       if (currentTransaction()?.fetchMode === 'test') {
         Fetch.markAccountToBeFetched(publicKey, tokenId, graphqlEndpoint);
         let account = Fetch.getCachedAccount(
@@ -329,7 +413,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       throw Error(
         `${reportGetAccountError(
           publicKey.toBase58(),
-          Ledger.fieldToBase58(tokenId)
+          TokenId.toBase58(tokenId)
         )}\nGraphql endpoint: ${graphqlEndpoint}`
       );
     },
@@ -337,7 +421,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       if (currentTransaction()?.fetchMode === 'test') {
         Fetch.markNetworkToBeFetched(graphqlEndpoint);
         let network = Fetch.getCachedNetwork(graphqlEndpoint);
-        return network ?? dummyNetworkState();
+        return network ?? defaultNetworkState();
       }
       if (
         !currentTransaction.has() ||
@@ -388,6 +472,11 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         isFinalRunOutsideCircuit: !hasProofs,
       });
     },
+    async fetchEvents() {
+      throw Error(
+        'fetchEvents() is not implemented yet for remote blockchains.'
+      );
+    },
   };
 }
 
@@ -400,7 +489,20 @@ let activeInstance: Mina = {
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
   },
-  getAccount: (publicKey: PublicKey, tokenId: Field = getDefaultTokenId()) => {
+  hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+    if (
+      !currentTransaction.has() ||
+      currentTransaction.get().fetchMode === 'cached'
+    ) {
+      return !!Fetch.getCachedAccount(
+        publicKey,
+        tokenId,
+        Fetch.defaultGraphqlEndpoint
+      );
+    }
+    return false;
+  },
+  getAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
     if (currentTransaction()?.fetchMode === 'test') {
       Fetch.markAccountToBeFetched(
         publicKey,
@@ -422,7 +524,7 @@ let activeInstance: Mina = {
         throw Error(
           `${reportGetAccountError(
             publicKey.toBase58(),
-            Ledger.fieldToBase58(tokenId)
+            TokenId.toBase58(tokenId)
           )}\n\nEither call Mina.setActiveInstance first or explicitly add the account with addCachedAccount`
         );
       return account;
@@ -437,6 +539,9 @@ let activeInstance: Mina = {
   },
   async transaction(sender: FeePayerSpec, f: () => void) {
     return createTransaction(sender, f);
+  },
+  fetchEvents() {
+    throw Error('must call Mina.setActiveInstance first');
   },
 };
 
@@ -492,6 +597,10 @@ function getAccount(publicKey: PublicKey, tokenId?: Field): Account {
   return activeInstance.getAccount(publicKey, tokenId);
 }
 
+function hasAccount(publicKey: PublicKey, tokenId?: Field): boolean {
+  return activeInstance.hasAccount(publicKey, tokenId);
+}
+
 /**
  * @return Data associated with the current state of the Mina network.
  */
@@ -514,18 +623,29 @@ function sendTransaction(txn: Transaction) {
   return activeInstance.sendTransaction(txn);
 }
 
+/**
+ * @return A list of emitted events associated to the given public key.
+ */
+async function fetchEvents(publicKey: PublicKey, tokenId: Field) {
+  return await activeInstance.fetchEvents(publicKey, tokenId);
+}
+
 function dummyAccount(pubkey?: PublicKey): Account {
   return {
     balance: UInt64.zero,
     nonce: UInt32.zero,
     publicKey: pubkey ?? PublicKey.empty(),
-    tokenId: getDefaultTokenId(),
-    zkapp: { appState: Array(ZkappStateLength).fill(Field.zero) },
+    tokenId: TokenId.default,
+    appState: Array(ZkappStateLength).fill(Field.zero),
     tokenSymbol: '',
+    provedState: Bool(false),
+    receiptChainHash: emptyReceiptChainHash(),
+    delegate: undefined,
+    sequenceState: Events.emptySequenceState(),
   };
 }
 
-function dummyNetworkState(): NetworkValue {
+function defaultNetworkState(): NetworkValue {
   let epochData: NetworkValue['stakingEpochData'] = {
     ledger: { hash: Field.zero, totalCurrency: UInt64.zero },
     seed: Field.zero,
