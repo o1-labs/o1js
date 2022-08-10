@@ -13,7 +13,7 @@ import {
   UInt64,
   shutdown,
   Int64,
-  Callback,
+  Experimental,
 } from 'snarkyjs';
 
 await isReady;
@@ -53,15 +53,17 @@ class TokenContract extends SmartContract {
   @method sendTokens(
     senderAddress: PublicKey,
     receiverAddress: PublicKey,
-    c: Callback<any>
+    callback: Experimental.Callback<any>
   ) {
-    console.log('DEBUG send tokens callback', c);
-
-    // let parties = c.callback(c.args);
-
-    // assert parties is correct
-
+    console.log('DEBUG send tokens callback', callback);
+    let senderParty = Experimental.partyFromCallback(this, callback, true);
     let amount = UInt64.from(1_000);
+    // assert party is correct
+    // TODO is there more?
+    let negativeAmount = Int64.fromObject(senderParty.body.balanceChange);
+    negativeAmount.assertEquals(Int64.from(amount).neg());
+    senderParty.body.tokenId.assertEquals(this.nativeToken);
+
     this.token().send({
       from: senderAddress,
       to: receiverAddress,
@@ -72,15 +74,6 @@ class TokenContract extends SmartContract {
 
 class ZkAppB extends SmartContract {
   @state(Field) x = State<Field>();
-
-  // deploy(args: DeployArgs) {
-  //   super.deploy(args);
-  //   this.setPermissions({
-  //     ...Permissions.default(),
-  //     editState: Permissions.proofOrSignature(),
-  //     editSequenceState: Permissions.proofOrSignature(),
-  //   });
-  // }
 
   @method update(y: Field) {
     this.x.assertEquals(this.x.get());
@@ -146,7 +139,7 @@ console.log('zkAppB', zkAppBAddress.toBase58());
 console.log('compile (TokenContract)');
 await TokenContract.compile(tokenZkAppAddress);
 console.log('compile (ZkAppB)');
-let { verificationKey: verificationKeyB } = await ZkAppB.compile(zkAppBAddress);
+await ZkAppB.compile(zkAppBAddress);
 
 console.log('deploy tokenZkApp');
 tx = await Local.transaction(feePayer, () => {
@@ -174,10 +167,11 @@ console.log(
 console.log('authorize send');
 
 tx = await Local.transaction(feePayer, () => {
-  let authorizeSendingCallback = new Callback(zkAppB, zkAppB.authorizeSend, [
-    zkAppBAddress,
-    tokenAccount1,
-  ]);
+  let authorizeSendingCallback = new Experimental.Callback(
+    zkAppB,
+    'authorizeSend',
+    [zkAppBAddress, tokenAccount1]
+  );
   console.log('authorizeSendingCallback', authorizeSendingCallback);
   // we call the token contract with the callback
   tokenZkApp.sendTokens(zkAppBAddress, tokenAccount1, authorizeSendingCallback);
