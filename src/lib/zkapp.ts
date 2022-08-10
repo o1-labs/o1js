@@ -107,7 +107,6 @@ function method<T extends SmartContract>(
     static publicInputType = ZkappPublicInput;
     static tag = () => ZkappClass;
   }
-
   let methodEntry = sortMethodArguments(
     ZkappClass.name,
     methodName,
@@ -136,10 +135,8 @@ function wrapMethod(
   methodIntf: MethodInterface
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
-    console.log('wrappedMethod -- actualArgs', actualArgs);
     cleanStatePrecondition(this);
     if (!smartContractContext.has()) {
-      // Currently there is a stack overflow error related to cloneCircuitValue starting when runWith is called
       return smartContractContext.runWith(
         { this: this, methodCallDepth: 0 },
         () => {
@@ -254,7 +251,6 @@ function wrapMethod(
         }
       )[1];
     }
-
     // if we're here, this method was called inside _another_ smart contract method
     let parentParty = smartContractContext.get().this.self;
     let methodCallDepth = smartContractContext.get().methodCallDepth;
@@ -301,9 +297,6 @@ function wrapMethod(
             },
             () => method.apply(this, constantArgs)
           );
-
-          // Need a way to get party produced by callback
-
           assertStatePrecondition(this);
 
           if (result !== undefined) {
@@ -889,7 +882,6 @@ function selfParty(address: PublicKey, tokenId?: Field) {
   if (tokenId) {
     body.tokenId = tokenId;
     body.caller = tokenId;
-    body.callDepth = 1;
   }
   return new (Party as any)(body, {}, true) as Party;
 }

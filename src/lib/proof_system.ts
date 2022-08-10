@@ -393,7 +393,6 @@ function compileProgram(
   proofSystemTag: { name: string },
   additionalContext?: { self: any } | undefined
 ) {
-  // Get callback in here somehow
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
       publicInputType,
