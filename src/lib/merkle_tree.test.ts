@@ -43,4 +43,14 @@ describe('Merkle Tree', () => {
     tree.setLeaf(index, Field(1));
     expect(tree.validate(index)).toBe(true);
   });
+
+  it('tree of height 256', () => {
+    const tree = new MerkleTree(256);
+
+    const index = 2n ** 128n;
+    expect(tree.validate(index)).toBe(true);
+
+    tree.setLeaf(index, Field(1));
+    expect(tree.validate(index)).toBe(true);
+  });
 });
