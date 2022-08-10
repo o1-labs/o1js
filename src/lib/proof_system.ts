@@ -6,9 +6,8 @@ import {
   Circuit,
   Poseidon,
 } from '../snarky';
-import { toConstant } from './circuit_value';
+import { circuitValue, toConstant } from './circuit_value';
 import { Context } from './global-context';
-import { SmartContract } from './zkapp';
 
 // public API
 export { Proof, SelfProof, ZkProgram, verify };
@@ -342,9 +341,12 @@ function isProof(type: unknown): type is typeof Proof {
 }
 
 class GenericArgument {
-  isEmpty = true;
+  isEmpty: boolean;
+  constructor(isEmpty = false) {
+    this.isEmpty = isEmpty;
+  }
 }
-let emptyGeneric = () => new GenericArgument();
+let emptyGeneric = () => new GenericArgument(true);
 
 function isGeneric(type: unknown): type is typeof GenericArgument {
   // the second case covers subclasses
@@ -526,12 +528,7 @@ function methodArgumentsToConstant(
   return constArgs;
 }
 
-let Generic: AsFieldElements<null> = {
-  toFields: () => [],
-  ofFields: () => null,
-  sizeInFields: () => 0,
-  check() {},
-};
+let Generic = circuitValue<null>(null);
 
 type TypeAndValue<T> = { type: AsFieldElements<T>; value: T };
 

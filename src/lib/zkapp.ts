@@ -52,6 +52,7 @@ import {
   methodArgumentsToConstant,
   isAsFields,
   methodArgumentTypesAndValues,
+  GenericArgument,
 } from './proof_system';
 import { assertStatePrecondition, cleanStatePrecondition } from './state';
 import { Types } from '../snarky/types';
@@ -67,10 +68,11 @@ export {
   DeployArgs,
   signFeePayer,
   declareMethods,
+  Callback,
 };
 
 // internal API
-export { Reducer };
+export { Reducer, partyFromCallback };
 
 const reservedPropNames = new Set(['_methods', '_']);
 
@@ -423,6 +425,60 @@ function computeCallData(
     ...methodNameFields,
     blindingValue,
   ];
+}
+
+class Callback<T extends SmartContract> extends GenericArgument {
+  instance: T;
+  methodIntf: MethodInterface;
+  args: any[];
+
+  constructor(instance: T, methodName: string, args: any[]) {
+    super();
+    this.instance = instance;
+    let ZkappClass = instance.constructor as typeof SmartContract;
+    let methodIntf = (ZkappClass._methods ?? []).find(
+      (i) => i.methodName === methodName
+    );
+    if (methodIntf === undefined)
+      throw Error(
+        `Callback: could not find method ${ZkappClass.name}.${methodName}`
+      );
+    this.methodIntf = methodIntf;
+    this.args = args;
+  }
+}
+
+function partyFromCallback(
+  parentZkapp: SmartContract,
+  callback: Callback<SmartContract>,
+  disallowChildren = false
+) {
+  let { party } = Party.witness(
+    circuitValue<null>(null),
+    () => {
+      if (callback.isEmpty) throw Error('bug: empty callback');
+      let { instance, methodIntf, args } = callback;
+      let method = instance[
+        methodIntf.methodName as keyof SmartContract
+      ] as Function;
+      let party = instance.self;
+      method.apply(instance, args);
+      return { party, result: null };
+    },
+    true
+  );
+  // connect party to our own. outside Circuit.witness so compile knows the right structure when hashing children
+  let parentParty = parentZkapp.self;
+  party.body.callDepth = parentParty.body.callDepth + 1;
+  party.parent = parentParty;
+  if (disallowChildren) {
+    let calls = Circuit.witness(Field, () => CallForest.hashChildren(party));
+    calls.assertEquals(CallForest.emptyHash());
+    parentParty.children.push({ party, calls });
+  } else {
+    parentParty.children.push({ party, calls: undefined });
+  }
+  return party;
 }
 
 /**

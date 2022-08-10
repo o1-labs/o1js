@@ -55,7 +55,7 @@ export * as Encoding from './lib/encoding';
 export { Character, CircuitString } from './lib/string';
 
 // experimental APIs
-import { Reducer } from './lib/zkapp';
+import { Reducer, Callback, partyFromCallback } from './lib/zkapp';
 import { createChildParty } from './lib/party';
 import {
   memoizeWitness,
@@ -71,6 +71,8 @@ export { Experimental };
  */
 const Experimental = {
   Reducer,
+  Callback,
+  partyFromCallback,
   createChildParty,
   memoizeWitness,
   // TODO: for testing, maybe remove later
