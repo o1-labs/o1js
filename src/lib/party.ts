@@ -804,24 +804,23 @@ class Party implements Types.Party {
   // TODO this needs to be more intelligent about previous nonces in the transaction, similar to Party.createSigned
   static getNonce(party: Party | FeePayerUnsigned, fallbackToZero = false) {
     let nonce: UInt32;
-    try {
-      let inProver = Circuit.inProver();
-      if (inProver || !Circuit.inCheckedComputation()) {
+    let inProver = Circuit.inProver();
+    if (inProver || !Circuit.inCheckedComputation()) {
+      try {
         let account = Mina.getAccount(
           party.body.publicKey as PublicKey,
           TokenId.default
         );
-        nonce = inProver
-          ? Circuit.witness(UInt32, () => account.nonce)
-          : account.nonce;
-      } else {
-        nonce = Circuit.witness(UInt32, (): UInt32 => {
-          throw Error('this should never happen');
-        });
+        nonce = account.nonce;
+      } catch (err) {
+        if (fallbackToZero) nonce = UInt32.zero;
+        else throw err;
       }
-    } catch (err) {
-      if (fallbackToZero) nonce = UInt32.zero;
-      else throw err;
+      nonce = inProver ? Circuit.witness(UInt32, () => nonce) : nonce;
+    } else {
+      nonce = Circuit.witness(UInt32, (): UInt32 => {
+        throw Error('this should never happen');
+      });
     }
     return nonce;
   }
