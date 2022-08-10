@@ -9,6 +9,7 @@ import {
   Party,
   method,
   PublicKey,
+  Bool,
 } from '../../dist/server';
 
 class MyContract extends SmartContract {
@@ -118,16 +119,20 @@ describe('preconditions', () => {
     let nonce = zkapp.account.nonce.get();
     let tx = await Mina.transaction(feePayer, () => {
       zkapp.account.balance.get();
-      zkapp.self.body.preconditions.account.balance.upper = UInt64.from(10e9);
+      zkapp.self.body.preconditions.account.balance.isSome = Bool(true);
+      zkapp.self.body.preconditions.account.balance.value.upper =
+        UInt64.from(10e9);
 
       zkapp.network.blockchainLength.get();
-      zkapp.self.body.preconditions.network.blockchainLength.upper =
+      zkapp.self.body.preconditions.network.blockchainLength.isSome =
+        Bool(true);
+      zkapp.self.body.preconditions.network.blockchainLength.value.upper =
         UInt32.from(1000);
 
       zkapp.network.totalCurrency.get();
-      zkapp.self.body.preconditions.network.totalCurrency.upper = UInt64.from(
-        1e9 * 1e9
-      );
+      zkapp.self.body.preconditions.network.totalCurrency.isSome = Bool(true);
+      zkapp.self.body.preconditions.network.totalCurrency.value.upper =
+        UInt64.from(1e9 * 1e9);
       zkapp.sign(zkappKey);
     });
     await tx.send().wait();

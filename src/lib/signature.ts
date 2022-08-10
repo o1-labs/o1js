@@ -1,11 +1,14 @@
-import { Group, Field, Bool, Scalar, Ledger } from '../snarky';
-import { prop, CircuitValue } from './circuit_value';
+import { Group, Field, Bool, Scalar, Ledger, Circuit } from '../snarky';
+import { prop, CircuitValue, AnyConstructor } from './circuit_value';
 import { Poseidon } from './hash';
+
+// external API
+export { PrivateKey, PublicKey, Signature };
 
 /**
  * A signing key. You can generate one via [[random]].
  */
-export class PrivateKey extends CircuitValue {
+class PrivateKey extends CircuitValue {
   @prop s: Scalar;
 
   /**
@@ -35,7 +38,7 @@ export class PrivateKey extends CircuitValue {
    * @returns a [[PublicKey]].
    */
   toPublicKey(): PublicKey {
-    return new PublicKey(Group.generator.scale(this.s));
+    return PublicKey.fromPrivateKey(this);
   }
 
   static fromBase58(privateKeyBase58: string) {
@@ -51,25 +54,50 @@ export class PrivateKey extends CircuitValue {
   }
 }
 
-export class PublicKey extends CircuitValue {
-  @prop g: Group;
+class PublicKey extends CircuitValue {
+  // compressed representation of a curve point, where `isOdd` is the least significant bit of `y`
+  @prop x: Field;
+  @prop isOdd: Bool;
 
-  static fromPrivateKey(p: PrivateKey): PublicKey {
-    return p.toPublicKey();
+  toGroup(): Group {
+    // compute y from elliptic curve equation y^2 = x^3 + 5
+    // TODO: we have to improve constraint efficiency by using range checks
+    let { x, isOdd } = this;
+    let ySquared = x.mul(x).mul(x).add(5);
+    let someY = ySquared.sqrt();
+    let isTheRightY = isOdd.equals(someY.toBits()[0]);
+    let y = isTheRightY
+      .toField()
+      .mul(someY)
+      .add(isTheRightY.not().toField().mul(someY.neg()));
+    return new Group(x, y);
+  }
+
+  static fromGroup({ x, y }: Group): PublicKey {
+    let isOdd = y.toBits()[0];
+    return PublicKey.fromObject({ x, isOdd });
+  }
+
+  static fromPrivateKey({ s }: PrivateKey): PublicKey {
+    return PublicKey.fromGroup(Group.generator.scale(s));
+  }
+
+  static from(g: { x: Field; isOdd: Bool }) {
+    return PublicKey.fromObject(g);
   }
 
   static empty() {
-    return new PublicKey(new Group(Field.zero, Field.zero));
+    return PublicKey.from({ x: Field.zero, isOdd: Bool(false) });
   }
 
   isEmpty() {
     // there are no curve points with x === 0
-    return this.g.x.isZero();
+    return this.x.isZero();
   }
 
   static fromBase58(publicKeyBase58: string) {
-    let group = Ledger.publicKeyOfString(publicKeyBase58);
-    return new PublicKey(group);
+    let pk = Ledger.publicKeyOfString(publicKeyBase58);
+    return PublicKey.from(pk);
   }
   toBase58() {
     return PublicKey.toBase58(this);
@@ -78,14 +106,20 @@ export class PublicKey extends CircuitValue {
   static toBase58(publicKey: PublicKey) {
     return Ledger.publicKeyToString(publicKey);
   }
+  static toJSON(publicKey: PublicKey) {
+    return publicKey.toBase58();
+  }
+  static fromJSON<T extends AnyConstructor>(this: T, publicKey: string) {
+    return PublicKey.fromBase58(publicKey) as InstanceType<T>;
+  }
 }
 
-export class Signature extends CircuitValue {
+class Signature extends CircuitValue {
   @prop r: Field;
   @prop s: Scalar;
 
   static create(privKey: PrivateKey, msg: Field[]): Signature {
-    const { g: publicKey } = PublicKey.fromPrivateKey(privKey);
+    const publicKey = PublicKey.fromPrivateKey(privKey).toGroup();
     const d = privKey.s;
     const kPrime = Scalar.random();
     let { x: r, y: ry } = Group.generator.scale(kPrime);
@@ -98,11 +132,11 @@ export class Signature extends CircuitValue {
   }
 
   verify(publicKey: PublicKey, msg: Field[]): Bool {
-    const pubKey = publicKey.g;
+    const point = publicKey.toGroup();
     let e = Scalar.ofBits(
-      Poseidon.hash(msg.concat([pubKey.x, pubKey.y, this.r])).toBits()
+      Poseidon.hash(msg.concat([point.x, point.y, this.r])).toBits()
     );
-    let r = pubKey.scale(e).neg().add(Group.generator.scale(this.s));
+    let r = point.scale(e).neg().add(Group.generator.scale(this.s));
     return Bool.and(r.x.equals(this.r), r.y.toBits()[0].equals(false));
   }
 }
