@@ -22,4 +22,15 @@ describe('Merkle Tree', () => {
       Poseidon.hash([Field(1), Field(2)]).toString()
     );
   });
+
+  it('builds correct tree', () => {
+    const tree = new MerkleTree(4);
+    tree.setLeaf(0n, Field(1));
+    tree.setLeaf(1n, Field(2));
+    tree.setLeaf(2n, Field(3));
+    expect(tree.validate(0n)).toBe(true);
+    expect(tree.validate(1n)).toBe(true);
+    expect(tree.validate(2n)).toBe(true);
+    expect(tree.validate(3n)).toBe(true);
+  });
 });
