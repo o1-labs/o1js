@@ -41,7 +41,7 @@ class CounterZkapp extends SmartContract {
     // remark: it's not feasible to pass in the pending actions as method arguments, because they have dynamic size
     let { state: newCounter, actionsHash: newActionsHash } =
       this.reducer.reduce(
-        pendingActions,
+        this.reducer.getActions({}),
         // state type
         Field,
         // function that says how to apply an action
