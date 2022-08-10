@@ -64,5 +64,12 @@ export class MerkleTree {
     }
 
     return hash.toString() === this.getRoot().toString();
-  }   
+  }
+   
+  fill(leaves: Field[]) {
+    leaves.forEach((value, index) => {
+      this.setLeaf(BigInt(index), value);
+    });
+  }  
+  
 }
