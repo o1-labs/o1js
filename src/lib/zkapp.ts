@@ -68,21 +68,12 @@ export {
   DeployArgs,
   signFeePayer,
   declareMethods,
-  Callback,
 };
 
 // internal API
 export { Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
-
-function isCallback(type: unknown): type is typeof Callback {
-  // the second case covers subclasses
-  return (
-    type === Callback ||
-    (typeof type === 'function' && type.prototype instanceof Callback)
-  );
-}
 
 /**
  * A decorator to use in a zkapp to mark a method as callable by anyone.
@@ -116,16 +107,10 @@ function method<T extends SmartContract>(
     static tag = () => ZkappClass;
   }
 
-  const paramTypesWithoutCallback = paramTypes.filter(
-    (el: any) => !isCallback(el)
-  );
-
-  let callback = paramTypes.find(isCallback);
-
   let methodEntry = sortMethodArguments(
     ZkappClass.name,
     methodName,
-    paramTypesWithoutCallback,
+    paramTypes,
     SelfProof
   );
   if (isAsFields(returnType)) methodEntry.returnType = returnType;
@@ -137,7 +122,7 @@ function method<T extends SmartContract>(
     methodEntry.proofArgs.length
   );
   let func = descriptor.value;
-  descriptor.value = wrapMethod(func, ZkappClass, methodEntry, callback);
+  descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
 }
 
 let smartContractContext =
@@ -147,49 +132,17 @@ let smartContractContext =
 function wrapMethod(
   method: Function,
   ZkappClass: typeof SmartContract,
-  methodIntf: MethodInterface,
-  callbackMethod: Callback
+  methodIntf: MethodInterface
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
+    console.log('wrappedMethod -- actualArgs', actualArgs);
     cleanStatePrecondition(this);
     if (!smartContractContext.has()) {
+      // Currently there is a stack overflow error related to cloneCircuitValue starting when runWith is called
       return smartContractContext.runWith(
         { this: this, methodCallDepth: 0 },
         () => {
           if (inCheckedComputation()) {
-            if (callbackMethod) {
-              console.log('--------------------------');
-              console.log(ZkappClass);
-              console.log(method);
-              console.log(methodIntf);
-              console.log(callbackMethod);
-              console.log(callbackMethod.callback);
-              console.log(callbackMethod.args);
-              console.log('--------------------------');
-              // let [, result1] = Mina.currentTransaction.runWith(
-              //   {
-              //     sender: undefined,
-              //     parties: [],
-              //     fetchMode: inProver() ? 'cached' : 'test',
-              //     isFinalRunOutsideCircuit: false,
-              //   },
-              //   () => {
-              //     let context = memoizationContext() ?? {
-              //       memoized: [],
-              //       currentIndex: 0,
-              //     };
-
-              //     let blindingValue = Circuit.witness(Field, getBlindingValue);
-
-              //     let [, result] = memoizationContext.runWith(
-              //       { ...context, blindingValue },
-              //       () =>
-              //         method.apply(callbackMethod.callback, callbackMethod.args)
-              //     );
-              //   }
-              // );
-              // console.log('RESULT', result1);
-            }
             // important to run this with a fresh party everytime, otherwise compile messes up our circuits
             // because it runs this multiple times
             let [, result] = Mina.currentTransaction.runWith(
@@ -347,6 +300,9 @@ function wrapMethod(
             },
             () => method.apply(this, constantArgs)
           );
+
+          // Need a way to get party produced by callback
+
           assertStatePrecondition(this);
 
           if (result !== undefined) {
@@ -1001,10 +957,3 @@ const Reducer: (<
   'initialActionsHash',
   { get: Events.emptySequenceState }
 ) as any;
-
-class Callback {
-  constructor(public callback: (...args: any) => void, public args: any) {
-    this.callback = callback;
-    this.args = args;
-  }
-}
