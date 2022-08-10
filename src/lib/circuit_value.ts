@@ -480,6 +480,13 @@ function cloneCircuitValue<T>(obj: T): T {
   // primitive JS types and functions aren't cloned
   if (typeof obj !== 'object' || obj === null) return obj;
 
+  // HACK: callbacks
+  if (
+    ['GenericArgument', 'Callback'].includes((obj as any).constructor?.name)
+  ) {
+    return obj;
+  }
+
   // built-in JS datatypes with custom cloning strategies
   if (Array.isArray(obj)) return obj.map(cloneCircuitValue) as any as T;
   if (obj instanceof Set)
