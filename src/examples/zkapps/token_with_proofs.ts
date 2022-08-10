@@ -24,7 +24,7 @@ class TokenContract extends SmartContract {
   @state(Field) x = State<Field>();
 
   @method tokenDeploy(deployer: PrivateKey) {
-    let address = Circuit.witness(PublicKey, () => deployer.toPublicKey());
+    let address = deployer.toPublicKey();
     let deployParty = Experimental.createChildParty(this.self, address);
     deployParty.body.tokenId = this.token().id;
     deployParty.body.caller = this.token().id;
@@ -65,19 +65,22 @@ class TokenContract extends SmartContract {
     callback: Experimental.Callback<any>
   ) {
     console.log('DEBUG send tokens callback', callback);
-    let senderParty = Experimental.partyFromCallback(this, callback, true);
+    let senderParty = Experimental.partyFromCallback(this, callback);
     let amount = UInt64.from(1_000);
+    let tokenId = this.token().id;
     // assert party is correct
     // TODO is there more?
     let negativeAmount = Int64.fromObject(senderParty.body.balanceChange);
     negativeAmount.assertEquals(Int64.from(amount).neg());
-    senderParty.body.tokenId.assertEquals(this.token().id);
+    senderParty.body.tokenId.assertEquals(tokenId);
+    senderParty.body.publicKey.assertEquals(senderAddress);
 
-    this.token().send({
-      from: senderAddress,
-      to: receiverAddress,
-      amount,
-    });
+    let receiverParty = Experimental.createChildParty(
+      this.self,
+      receiverAddress,
+      { caller: tokenId, tokenId }
+    );
+    receiverParty.balance.addInPlace(amount);
   }
 }
 
@@ -89,24 +92,10 @@ class ZkAppB extends SmartContract {
     this.x.set(y);
   }
 
-  @method authorizeSend(senderAddress: PublicKey, receiverAddress: PublicKey) {
+  @method authorizeSend(receiverAddress: PublicKey) {
     let amount = UInt64.from(1_000);
-
-    let senderParty = Party.createUnsigned(this.address);
-    senderParty.body.tokenId = this.nativeToken;
-    senderParty.body.caller = this.nativeToken;
-    let i0 = senderParty.body.balanceChange;
-    senderParty.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(
-      amount
-    );
-
-    let receiverParty = Party.createUnsigned(receiverAddress);
-    receiverParty.body.tokenId = this.nativeToken;
-    receiverParty.body.caller = this.nativeToken;
-    let i1 = receiverParty.body.balanceChange;
-    receiverParty.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
-      amount
-    );
+    this.balance.subInPlace(amount);
+    this.sign(zkAppBKey);
   }
 }
 
@@ -125,21 +114,13 @@ let tokenZkAppAddress = tokenZkAppKey.toPublicKey();
 let zkAppBKey = PrivateKey.random();
 let zkAppBAddress = zkAppBKey.toPublicKey();
 
-let zkAppCKey = PrivateKey.random();
-let zkAppCAddress = zkAppCKey.toPublicKey();
-
 let tokenAccount1Key = Local.testAccounts[1].privateKey;
 let tokenAccount1 = tokenAccount1Key.toPublicKey();
-
-let tokenAccount2Key = Local.testAccounts[2].privateKey;
-let tokenAccount2 = tokenAccount2Key.toPublicKey();
 
 let tokenZkApp = new TokenContract(tokenZkAppAddress);
 let tokenId = tokenZkApp.token().id;
 
 let zkAppB = new ZkAppB(zkAppBAddress, tokenId);
-
-let zkAppC = new C(zkAppCAddress);
 let tx;
 
 console.log('tokenZkAppAddress', tokenZkAppAddress.toBase58());
@@ -174,18 +155,17 @@ console.log(
 );
 
 console.log('authorize send');
-
 tx = await Local.transaction(feePayer, () => {
   let authorizeSendingCallback = new Experimental.Callback(
     zkAppB,
     'authorizeSend',
     [zkAppBAddress, tokenAccount1]
   );
-  console.log('authorizeSendingCallback', authorizeSendingCallback);
   // we call the token contract with the callback
   tokenZkApp.sendTokens(zkAppBAddress, tokenAccount1, authorizeSendingCallback);
 });
-tx.sign([zkAppBKey]);
+tx.sign();
+console.log('authorize send (proof)');
 await tx.prove();
 
 // We can't update the state without getting authorization from the token contract since the tokenId is set in the constructor
