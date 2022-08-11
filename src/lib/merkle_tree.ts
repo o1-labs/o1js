@@ -1,11 +1,14 @@
 import { Poseidon } from './hash';
-import { Field } from './core'
+import { Field } from './core';
 
 export type Witness = {
   isLeft: boolean;
   sibling: Field;
 }[];
 
+/**
+ * Levels are indexed from leafs (level 0) to root (level N - 1).
+ */
 export class MerkleTree {
   private nodes: Record<number, Record<string, Field>> = {};
   private zeroes: Field[];
@@ -24,7 +27,7 @@ export class MerkleTree {
   getRoot(): Field {
     return this.getNode(this.height - 1, 0n);
   }
-  
+
   private setNode(level: number, index: bigint, value: Field) {
     (this.nodes[level] ??= {})[index.toString()] = value;
   }
@@ -53,7 +56,8 @@ export class MerkleTree {
       index = index / 2n;
     }
     return witness;
-  } 
+  }
+
   validate(index: bigint): boolean {
     const path = this.getWitness(index);
     let hash = this.getNode(0, index);
@@ -65,11 +69,10 @@ export class MerkleTree {
 
     return hash.toString() === this.getRoot().toString();
   }
-   
+
   fill(leaves: Field[]) {
     leaves.forEach((value, index) => {
       this.setLeaf(BigInt(index), value);
     });
-  }  
-  
+  }
 }
