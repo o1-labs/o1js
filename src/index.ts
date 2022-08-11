@@ -68,13 +68,10 @@ import {
 } from './lib/circuit_value';
 import { jsLayout, asFieldsAndAux } from './snarky/types';
 import { packToFields } from './lib/hash';
+import { MerkleTree, MerkleWitness } from './lib/merkle_tree';
 export { Experimental };
 
-/**
- * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
- * (Not unstable in the sense that they are less functional or tested than other parts.)
- */
-const Experimental = {
+const Experimental_ = {
   Reducer,
   Callback,
   partyFromCallback,
@@ -84,10 +81,25 @@ const Experimental = {
   jsLayout,
   asFieldsAndAux,
   packToFields,
+  MerkleTree,
+  MerkleWitness,
 };
 
 type Callback_<T extends SmartContract> = Callback<T>;
+
+/**
+ * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
+ * (Not unstable in the sense that they are less functional or tested than other parts.)
+ */
 namespace Experimental {
+  export let Reducer = Experimental_.Reducer;
+  export let createChildParty = Experimental_.createChildParty;
+  export let memoizeWitness = Experimental_.memoizeWitness;
+  export let jsLayout = Experimental_.jsLayout;
+  export let asFieldsAndAux = Experimental_.asFieldsAndAux;
+  export let packToFields = Experimental_.packToFields;
+  export let MerkleTree = Experimental_.MerkleTree;
+  export let MerkleWitness = Experimental_.MerkleWitness;
   export type AsFieldsAndAux<T, TJson> = AsFieldsAndAux_<T, TJson>;
   export type Callback<T extends SmartContract> = Callback_<T>;
 }

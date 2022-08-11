@@ -40,19 +40,18 @@ type NonMethods<T> = Pick<T, NonMethodKeys<T>>;
 
 abstract class CircuitValue {
   constructor(...props: any[]) {
-    const fields = (this.constructor as any).prototype._fields;
-    if (fields === undefined || fields === null) {
-      return;
-    }
+    // if this is called with no arguments, do nothing, to support simple super() calls
+    if (props.length === 0) return;
 
+    let fields = this.constructor.prototype._fields;
+    if (fields === undefined) return;
     if (props.length !== fields.length) {
       throw Error(
         `${this.constructor.name} constructor called with ${props.length} arguments, but expected ${fields.length}`
       );
     }
-
     for (let i = 0; i < fields.length; ++i) {
-      const [key, propType] = fields[i];
+      let [key] = fields[i];
       (this as any)[key] = props[i];
     }
   }
@@ -238,9 +237,9 @@ function prop(this: any, target: any, key: string) {
 }
 
 function circuitArray<T>(
-  elementType: AsFieldElements<T>,
+  elementType: AsFieldElements<T> | AsFieldsExtended<T>,
   length: number
-): AsFieldElements<T[]> {
+): AsFieldsExtended<T[]> {
   return {
     sizeInFields() {
       let elementLength = elementType.sizeInFields();
@@ -262,6 +261,21 @@ function circuitArray<T>(
       for (let i = 0; i < length; i++) {
         (elementType as any).check(array[i]);
       }
+    },
+    toJSON(array) {
+      if (!('toJSON' in elementType)) {
+        throw Error('circuitArray.toJSON: element type has no toJSON method');
+      }
+      return array.map((v) => elementType.toJSON(v));
+    },
+    toInput(array) {
+      if (!('toInput' in elementType)) {
+        throw Error('circuitArray.toInput: element type has no toInput method');
+      }
+      return array.reduce(
+        (curr, value) => HashInput.append(curr, elementType.toInput(value)),
+        HashInput.empty
+      );
     },
   };
 }

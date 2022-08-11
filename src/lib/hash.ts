@@ -116,6 +116,9 @@ function packToFields({ fields = [], packed = [] }: HashInput) {
 
 type HashInput = { fields?: Field[]; packed?: [Field, number][] };
 const HashInput = {
+  get empty() {
+    return {};
+  },
   append(input1: HashInput, input2: HashInput) {
     if (input2.fields !== undefined) {
       (input1.fields ??= []).push(...input2.fields);
