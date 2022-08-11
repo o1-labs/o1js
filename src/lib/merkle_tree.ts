@@ -100,4 +100,16 @@ export class MerkleWitness extends CircuitValue {
 
     return hash;
   }
+
+  calculateIndex(): Field {
+    let powerOfTwo = Field(1);
+    let index = Field(0);
+
+    for (let i = 1; i < 256; ++i) {
+      index = Circuit.if(this.isLeft[i - 1], index, index.add(powerOfTwo));
+      powerOfTwo = powerOfTwo.mul(2);
+    }
+
+    return index;
+  }
 }
