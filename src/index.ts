@@ -62,7 +62,7 @@ import {
 } from './lib/circuit_value';
 import { jsLayout, asFieldsAndAux } from './snarky/types';
 import { packToFields } from './lib/hash';
-import { MerkleTree } from './lib/merkle_tree';
+import { MerkleTree, MerkleWitness } from './lib/merkle_tree';
 export { Experimental };
 
 /**
@@ -78,6 +78,7 @@ const Experimental = {
   asFieldsAndAux,
   packToFields,
   MerkleTree,
+  MerkleWitness,
 };
 namespace Experimental {
   export type AsFieldsAndAux<T, TJson> = AsFieldsAndAux_<T, TJson>;
