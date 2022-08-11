@@ -519,24 +519,24 @@ class SmartContract {
     });
   }
 
-  static async compile(address: PublicKey) {
+  static async compile(address: PublicKey, tokenId: Field = TokenId.default) {
     // TODO: think about how address should be passed in
     // TODO: maybe PublicKey should just become a variable? Then compile doesn't need to know the address, which seems more natural
     let methodIntfs = this._methods ?? [];
     let methods = methodIntfs.map(({ methodName }) => {
       return (...args: unknown[]) => {
-        let instance = new this(address);
+        let instance = new this(address, tokenId);
         (instance as any)[methodName](...args);
       };
     });
     // run methods once to get information that we need already at compile time
-    this.analyzeMethods(address);
-    let { getVerificationKeyArtifact, provers, verify } = compileProgram(
+    this.analyzeMethods(address, tokenId);
+    let { getVerificationKeyArtifact, provers, verify, tag } = compileProgram(
       ZkappPublicInput,
       methodIntfs,
       methods,
       this,
-      { self: selfParty(address) }
+      { self: selfParty(address, tokenId) }
     );
 
     let verificationKey = getVerificationKeyArtifact();
@@ -549,8 +549,8 @@ class SmartContract {
     return { verificationKey, provers, verify };
   }
 
-  static digest(address: PublicKey) {
-    let methodData = this.analyzeMethods(address);
+  static digest(address: PublicKey, tokenId: Field = TokenId.default) {
+    let methodData = this.analyzeMethods(address, tokenId);
     let hash = Poseidon_.hash(
       Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest))),
       false
@@ -720,9 +720,9 @@ class SmartContract {
 
   // run all methods to collect metadata like how many sequence events they use -- if we don't have this information yet
   // TODO: this could also be used to quickly perform any invariant checks on parties construction
-  static analyzeMethods(address: PublicKey) {
+  static analyzeMethods(address: PublicKey, tokenId: Field = TokenId.default) {
     let ZkappClass = this as typeof SmartContract;
-    let instance = new ZkappClass(address);
+    let instance = new ZkappClass(address, tokenId);
     let methodIntfs = ZkappClass._methods ?? [];
     if (
       !methodIntfs.every((m) => m.methodName in ZkappClass._methodMetadata) &&
@@ -733,7 +733,8 @@ class SmartContract {
           'Can not analyze methods inside Circuit.runAndCheck, because this creates a circuit nested in another circuit'
         );
         // EXCEPT if the code that calls this knows that it can first run `analyzeMethods` OUTSIDE runAndCheck and try again
-        (err as any).bootstrap = () => ZkappClass.analyzeMethods(address);
+        (err as any).bootstrap = () =>
+          ZkappClass.analyzeMethods(address, tokenId);
         throw err;
       }
       for (let methodIntf of methodIntfs) {
@@ -903,11 +904,13 @@ async function deploy<S extends typeof SmartContract>(
     verificationKey,
     initialBalance,
     feePayer,
+    tokenId = TokenId.default,
   }: {
     zkappKey: PrivateKey;
     verificationKey: { data: string; hash: string | Field };
     initialBalance?: number | string;
     feePayer?: Mina.FeePayerSpec;
+    tokenId: Field;
   }
 ) {
   let address = zkappKey.toPublicKey();
@@ -930,7 +933,7 @@ async function deploy<S extends typeof SmartContract>(
       Mina.currentTransaction()?.parties.push(party);
     }
     // main party: the zkapp account
-    let zkapp = new SmartContract(address);
+    let zkapp = new SmartContract(address, tokenId);
     zkapp.deploy({ verificationKey, zkappKey });
     // TODO: add send / receive methods on SmartContract which create separate parties
     // no need to bundle receive in the same party as deploy
