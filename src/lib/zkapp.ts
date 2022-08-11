@@ -559,9 +559,10 @@ class SmartContract {
     return this.self.network;
   }
 
-  token() {
-    return this.self.token();
-  }
+  // This is commented out since the API is not stable yet. Uncomment this in a non release build.
+  // token() {
+  //   return this.self.token();
+  // }
 
   send(args: Omit<SendParams, 'from'>) {
     return this.self.send(args);
