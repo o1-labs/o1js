@@ -88,4 +88,16 @@ export class MerkleWitness extends CircuitValue {
     this.path = witness.map((item) => item.sibling);
     this.isLeft = witness.map((item) => Bool(item.isLeft));
   }
+
+  calculateRoot(leaf: Field): Field {
+    let hash = leaf;
+
+    for (let i = 1; i < 256; ++i) {
+      const left = Circuit.if(this.isLeft[i - 1], hash, this.path[i - 1]);
+      const right = Circuit.if(this.isLeft[i - 1], this.path[i - 1], hash);
+      hash = Poseidon.hash([left, right]);
+    }
+
+    return hash;
+  }
 }
