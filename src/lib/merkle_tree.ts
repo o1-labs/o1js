@@ -2,15 +2,15 @@ import { Circuit, CircuitValue, arrayProp } from './circuit_value';
 import { Poseidon } from './hash';
 import { Bool, Field } from './core';
 
-export type Witness = {
-  isLeft: boolean;
-  sibling: Field;
-}[];
+// external API
+export { Witness, MerkleTree };
+
+type Witness = { isLeft: boolean; sibling: Field }[];
 
 /**
  * Levels are indexed from leafs (level 0) to root (level N - 1).
  */
-export class MerkleTree {
+class MerkleTree {
   private nodes: Record<number, Record<string, Field>> = {};
   private zeroes: Field[];
 

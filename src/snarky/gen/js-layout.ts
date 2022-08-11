@@ -337,7 +337,7 @@ let jsLayout = {
                         },
                         timestamp: {
                           type: 'option',
-                          optionType: 'implicit',
+                          optionType: 'flaggedOption',
                           inner: {
                             type: 'object',
                             name: 'BlockTimeInterval',
@@ -352,7 +352,7 @@ let jsLayout = {
                         },
                         blockchainLength: {
                           type: 'option',
-                          optionType: 'implicit',
+                          optionType: 'flaggedOption',
                           inner: {
                             type: 'object',
                             name: 'LengthInterval',
@@ -367,7 +367,7 @@ let jsLayout = {
                         },
                         minWindowDensity: {
                           type: 'option',
-                          optionType: 'implicit',
+                          optionType: 'flaggedOption',
                           inner: {
                             type: 'object',
                             name: 'LengthInterval',
@@ -382,7 +382,7 @@ let jsLayout = {
                         },
                         totalCurrency: {
                           type: 'option',
-                          optionType: 'implicit',
+                          optionType: 'flaggedOption',
                           inner: {
                             type: 'object',
                             name: 'CurrencyAmountInterval',
@@ -397,7 +397,7 @@ let jsLayout = {
                         },
                         globalSlotSinceHardFork: {
                           type: 'option',
-                          optionType: 'implicit',
+                          optionType: 'flaggedOption',
                           inner: {
                             type: 'object',
                             name: 'GlobalSlotInterval',
@@ -412,7 +412,7 @@ let jsLayout = {
                         },
                         globalSlotSinceGenesis: {
                           type: 'option',
-                          optionType: 'implicit',
+                          optionType: 'flaggedOption',
                           inner: {
                             type: 'object',
                             name: 'GlobalSlotInterval',
@@ -450,7 +450,7 @@ let jsLayout = {
                                 },
                                 totalCurrency: {
                                   type: 'option',
-                                  optionType: 'implicit',
+                                  optionType: 'flaggedOption',
                                   inner: {
                                     type: 'object',
                                     name: 'CurrencyAmountInterval',
@@ -483,7 +483,7 @@ let jsLayout = {
                             },
                             epochLength: {
                               type: 'option',
-                              optionType: 'implicit',
+                              optionType: 'flaggedOption',
                               inner: {
                                 type: 'object',
                                 name: 'LengthInterval',
@@ -530,7 +530,7 @@ let jsLayout = {
                                 },
                                 totalCurrency: {
                                   type: 'option',
-                                  optionType: 'implicit',
+                                  optionType: 'flaggedOption',
                                   inner: {
                                     type: 'object',
                                     name: 'CurrencyAmountInterval',
@@ -563,7 +563,7 @@ let jsLayout = {
                             },
                             epochLength: {
                               type: 'option',
-                              optionType: 'implicit',
+                              optionType: 'flaggedOption',
                               inner: {
                                 type: 'object',
                                 name: 'LengthInterval',
@@ -615,7 +615,7 @@ let jsLayout = {
                       entries: {
                         balance: {
                           type: 'option',
-                          optionType: 'implicit',
+                          optionType: 'flaggedOption',
                           inner: {
                             type: 'object',
                             name: 'BalanceInterval',
@@ -630,7 +630,7 @@ let jsLayout = {
                         },
                         nonce: {
                           type: 'option',
-                          optionType: 'implicit',
+                          optionType: 'flaggedOption',
                           inner: {
                             type: 'object',
                             name: 'NonceInterval',
@@ -664,7 +664,7 @@ let jsLayout = {
                         },
                         sequenceState: {
                           type: 'option',
-                          optionType: 'implicit',
+                          optionType: 'flaggedOption',
                           inner: { type: 'Field' },
                         },
                         provedState: {
@@ -1030,7 +1030,7 @@ let jsLayout = {
                   },
                   timestamp: {
                     type: 'option',
-                    optionType: 'implicit',
+                    optionType: 'flaggedOption',
                     inner: {
                       type: 'object',
                       name: 'BlockTimeInterval',
@@ -1045,7 +1045,7 @@ let jsLayout = {
                   },
                   blockchainLength: {
                     type: 'option',
-                    optionType: 'implicit',
+                    optionType: 'flaggedOption',
                     inner: {
                       type: 'object',
                       name: 'LengthInterval',
@@ -1060,7 +1060,7 @@ let jsLayout = {
                   },
                   minWindowDensity: {
                     type: 'option',
-                    optionType: 'implicit',
+                    optionType: 'flaggedOption',
                     inner: {
                       type: 'object',
                       name: 'LengthInterval',
@@ -1075,7 +1075,7 @@ let jsLayout = {
                   },
                   totalCurrency: {
                     type: 'option',
-                    optionType: 'implicit',
+                    optionType: 'flaggedOption',
                     inner: {
                       type: 'object',
                       name: 'CurrencyAmountInterval',
@@ -1090,7 +1090,7 @@ let jsLayout = {
                   },
                   globalSlotSinceHardFork: {
                     type: 'option',
-                    optionType: 'implicit',
+                    optionType: 'flaggedOption',
                     inner: {
                       type: 'object',
                       name: 'GlobalSlotInterval',
@@ -1105,7 +1105,7 @@ let jsLayout = {
                   },
                   globalSlotSinceGenesis: {
                     type: 'option',
-                    optionType: 'implicit',
+                    optionType: 'flaggedOption',
                     inner: {
                       type: 'object',
                       name: 'GlobalSlotInterval',
@@ -1143,7 +1143,7 @@ let jsLayout = {
                           },
                           totalCurrency: {
                             type: 'option',
-                            optionType: 'implicit',
+                            optionType: 'flaggedOption',
                             inner: {
                               type: 'object',
                               name: 'CurrencyAmountInterval',
@@ -1176,7 +1176,7 @@ let jsLayout = {
                       },
                       epochLength: {
                         type: 'option',
-                        optionType: 'implicit',
+                        optionType: 'flaggedOption',
                         inner: {
                           type: 'object',
                           name: 'LengthInterval',
@@ -1223,7 +1223,7 @@ let jsLayout = {
                           },
                           totalCurrency: {
                             type: 'option',
-                            optionType: 'implicit',
+                            optionType: 'flaggedOption',
                             inner: {
                               type: 'object',
                               name: 'CurrencyAmountInterval',
@@ -1256,7 +1256,7 @@ let jsLayout = {
                       },
                       epochLength: {
                         type: 'option',
-                        optionType: 'implicit',
+                        optionType: 'flaggedOption',
                         inner: {
                           type: 'object',
                           name: 'LengthInterval',
@@ -1308,7 +1308,7 @@ let jsLayout = {
                 entries: {
                   balance: {
                     type: 'option',
-                    optionType: 'implicit',
+                    optionType: 'flaggedOption',
                     inner: {
                       type: 'object',
                       name: 'BalanceInterval',
@@ -1323,7 +1323,7 @@ let jsLayout = {
                   },
                   nonce: {
                     type: 'option',
-                    optionType: 'implicit',
+                    optionType: 'flaggedOption',
                     inner: {
                       type: 'object',
                       name: 'NonceInterval',
@@ -1357,7 +1357,7 @@ let jsLayout = {
                   },
                   sequenceState: {
                     type: 'option',
-                    optionType: 'implicit',
+                    optionType: 'flaggedOption',
                     inner: { type: 'Field' },
                   },
                   provedState: {
