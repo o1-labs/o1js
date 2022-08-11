@@ -126,7 +126,7 @@ console.log('zkAppB', zkAppBAddress.toBase58());
 console.log('compile (TokenContract)');
 await TokenContract.compile(tokenZkAppAddress);
 console.log('compile (ZkAppB)');
-await ZkAppB.compile(zkAppBAddress);
+await ZkAppB.compile(zkAppBAddress, tokenId);
 
 console.log('deploy tokenZkApp');
 tx = await Local.transaction(feePayer, () => {
