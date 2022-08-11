@@ -1,5 +1,6 @@
+import { Circuit, CircuitValue, arrayProp } from './circuit_value';
 import { Poseidon } from './hash';
-import { Field } from './core';
+import { Bool, Field } from './core';
 
 export type Witness = {
   isLeft: boolean;
@@ -76,3 +77,5 @@ export class MerkleTree {
     });
   }
 }
+
+export class MerkleWitness extends CircuitValue {}
