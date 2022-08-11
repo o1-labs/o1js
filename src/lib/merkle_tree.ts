@@ -78,4 +78,14 @@ export class MerkleTree {
   }
 }
 
-export class MerkleWitness extends CircuitValue {}
+export class MerkleWitness extends CircuitValue {
+  @arrayProp(Field, 255) path: Field[];
+  @arrayProp(Bool, 255) isLeft: Bool[];
+
+  constructor(witness: Witness) {
+    super(witness);
+
+    this.path = witness.map((item) => item.sibling);
+    this.isLeft = witness.map((item) => Bool(item.isLeft));
+  }
+}
