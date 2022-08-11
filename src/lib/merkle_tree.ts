@@ -29,10 +29,12 @@ class MerkleTree {
     return this.getNode(this.height - 1, 0n);
   }
 
+  // TODO: this allows to set a node at an index larger than the size. OK?
   private setNode(level: number, index: bigint, value: Field) {
     (this.nodes[level] ??= {})[index.toString()] = value;
   }
 
+  // TODO: if this is passed an index bigger than the max, it will set a couple of out-of-bounds nodes but not affect the real Merkle root. OK?
   setLeaf(index: bigint, leaf: Field) {
     if (index >= this.leafCount) {
       throw new Error(
@@ -42,7 +44,7 @@ class MerkleTree {
     this.setNode(0, index, leaf);
     let currIndex = index;
     for (let level = 1; level < this.height; level++) {
-      currIndex = currIndex / 2n;
+      currIndex /= 2n;
 
       const left = this.getNode(level - 1, currIndex * 2n);
       const right = this.getNode(level - 1, currIndex * 2n + 1n);
@@ -60,15 +62,14 @@ class MerkleTree {
     const witness = [];
     for (let level = 0; level < this.height - 1; level++) {
       const isLeft = index % 2n === 0n;
-      witness.push({
-        isLeft,
-        sibling: this.getNode(level, isLeft ? index + 1n : index - 1n),
-      });
-      index = index / 2n;
+      const sibling = this.getNode(level, isLeft ? index + 1n : index - 1n);
+      witness.push({ isLeft, sibling });
+      index /= 2n;
     }
     return witness;
   }
 
+  // TODO: this will always return true if the merkle tree was constructed normally; seems to be only useful for testing. remove?
   validate(index: bigint): boolean {
     const path = this.getWitness(index);
     let hash = this.getNode(0, index);
@@ -81,6 +82,7 @@ class MerkleTree {
     return hash.toString() === this.getRoot().toString();
   }
 
+  // TODO: should this take an optional offset? should it fail if the array is too long?
   fill(leaves: Field[]) {
     leaves.forEach((value, index) => {
       this.setLeaf(BigInt(index), value);
@@ -97,8 +99,7 @@ class MerkleWitness extends CircuitValue {
   @arrayProp(Bool, 255) isLeft: Bool[];
 
   constructor(witness: Witness) {
-    super(witness);
-
+    super();
     this.path = witness.map((item) => item.sibling);
     this.isLeft = witness.map((item) => Bool(item.isLeft));
   }

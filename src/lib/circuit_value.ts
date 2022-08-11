@@ -40,19 +40,18 @@ type NonMethods<T> = Pick<T, NonMethodKeys<T>>;
 
 abstract class CircuitValue {
   constructor(...props: any[]) {
-    const fields = (this.constructor as any).prototype._fields;
-    if (fields === undefined || fields === null) {
-      return;
-    }
+    // if this is called with no arguments, do nothing, to support simple super() calls
+    if (props.length === 0) return;
 
+    let fields = this.constructor.prototype._fields;
+    if (fields === undefined) return;
     if (props.length !== fields.length) {
       throw Error(
         `${this.constructor.name} constructor called with ${props.length} arguments, but expected ${fields.length}`
       );
     }
-
     for (let i = 0; i < fields.length; ++i) {
-      const [key, propType] = fields[i];
+      let [key] = fields[i];
       (this as any)[key] = props[i];
     }
   }
