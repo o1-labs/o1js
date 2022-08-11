@@ -1218,9 +1218,10 @@ async function addMissingProofs(parties: Parties): Promise<{
     );
     Authorization.setProof(party, Pickles.proofToBase64Transaction(proof));
     let maxProofsVerified = ZkappClass._maxProofsVerified!;
+    const Proof = ZkappClass.Proof();
     return {
       partyProved: party as PartyProved,
-      proof: new ZkappClass.Proof({ publicInput, proof, maxProofsVerified }),
+      proof: new Proof({ publicInput, proof, maxProofsVerified }),
     };
   }
 

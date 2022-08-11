@@ -514,7 +514,7 @@ class SmartContract {
   static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
 
-  static get Proof() {
+  static Proof() {
     let Contract = this;
     return class extends Proof<ZkappPublicInput> {
       static publicInputType = ZkappPublicInput;
