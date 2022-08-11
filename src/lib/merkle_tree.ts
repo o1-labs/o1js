@@ -90,7 +90,7 @@ class MerkleTree {
   }
 
   get leafCount(): bigint {
-    return BigInt(2 ** (this.height - 1));
+    return 2n ** BigInt(this.height - 1);
   }
 }
 
