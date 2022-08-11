@@ -153,7 +153,7 @@ async function makeGuess(name: Names, index: bigint, guess: number) {
   let acc = Accounts.get(name)!;
   console.log(JSON.stringify(acc));
   let w = Tree.getWitness(index);
-  let witness = new Experimental.MerkleWitness(w);
+  let witness = new MerkleWitness(w);
 
   try {
     let tx = await Mina.transaction(feePayer, () => {
