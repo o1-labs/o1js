@@ -237,9 +237,9 @@ function prop(this: any, target: any, key: string) {
 }
 
 function circuitArray<T>(
-  elementType: AsFieldElements<T>,
+  elementType: AsFieldElements<T> | AsFieldsExtended<T>,
   length: number
-): AsFieldElements<T[]> {
+): AsFieldsExtended<T[]> {
   return {
     sizeInFields() {
       let elementLength = elementType.sizeInFields();
@@ -261,6 +261,21 @@ function circuitArray<T>(
       for (let i = 0; i < length; i++) {
         (elementType as any).check(array[i]);
       }
+    },
+    toJSON(array) {
+      if (!('toJSON' in elementType)) {
+        throw Error('circuitArray.toJSON: element type has no toJSON method');
+      }
+      return array.map((v) => elementType.toJSON(v));
+    },
+    toInput(array) {
+      if (!('toInput' in elementType)) {
+        throw Error('circuitArray.toInput: element type has no toInput method');
+      }
+      return array.reduce(
+        (curr, value) => HashInput.append(curr, elementType.toInput(value)),
+        HashInput.empty
+      );
     },
   };
 }
