@@ -94,20 +94,31 @@ class MerkleTree {
   }
 }
 
-class MerkleWitness extends CircuitValue {
-  @arrayProp(Field, 255) path: Field[];
-  @arrayProp(Bool, 255) isLeft: Bool[];
+class BaseMerkleWitness extends CircuitValue {
+  static height: number;
+  path: Field[];
+  isLeft: Bool[];
+  height(): number {
+    return (this.constructor as any).height;
+  }
 
   constructor(witness: Witness) {
     super();
+    let height = witness.length + 1;
+    if (height !== this.height()) {
+      throw Error(
+        `Length of witness ${height}-1 doesn't match static tree height ${this.height()}.`
+      );
+    }
     this.path = witness.map((item) => item.sibling);
     this.isLeft = witness.map((item) => Bool(item.isLeft));
   }
 
   calculateRoot(leaf: Field): Field {
     let hash = leaf;
+    let n = this.height();
 
-    for (let i = 1; i < 256; ++i) {
+    for (let i = 1; i < n; ++i) {
       const left = Circuit.if(this.isLeft[i - 1], hash, this.path[i - 1]);
       const right = Circuit.if(this.isLeft[i - 1], this.path[i - 1], hash);
       hash = Poseidon.hash([left, right]);
@@ -119,12 +130,22 @@ class MerkleWitness extends CircuitValue {
   calculateIndex(): Field {
     let powerOfTwo = Field(1);
     let index = Field(0);
+    let n = this.height();
 
-    for (let i = 1; i < 256; ++i) {
+    for (let i = 1; i < n; ++i) {
       index = Circuit.if(this.isLeft[i - 1], index, index.add(powerOfTwo));
       powerOfTwo = powerOfTwo.mul(2);
     }
 
     return index;
   }
+}
+
+function MerkleWitness(height: number): typeof BaseMerkleWitness {
+  class MerkleWitness_ extends BaseMerkleWitness {
+    static height = height;
+  }
+  arrayProp(Field, height - 1)(MerkleWitness_.prototype, 'path');
+  arrayProp(Bool, height - 1)(MerkleWitness_.prototype, 'isLeft');
+  return MerkleWitness_;
 }

@@ -33,6 +33,8 @@ import {
 
 await isReady;
 
+class MerkleWitness extends Experimental.MerkleWitness(4) {}
+
 class Account extends CircuitValue {
   @prop publicKey: PublicKey;
   @prop points: UInt32;
@@ -70,11 +72,7 @@ class Leaderboard extends SmartContract {
   }
 
   @method
-  guessPreimage(
-    guess: Field,
-    account: Account,
-    path: Experimental.MerkleWitness
-  ) {
+  guessPreimage(guess: Field, account: Account, path: MerkleWitness) {
     // this is our hash! its the hash of the preimage "22", but keep it a secret!
     let target =
       Field(
