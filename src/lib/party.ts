@@ -596,72 +596,80 @@ class Party implements Types.Party {
     return clonedParty;
   }
 
-  token() {
+  get experimental() {
     let thisParty = this;
-    let customToken = new Token({
-      tokenOwner: thisParty.body.publicKey,
-      parentTokenId: thisParty.body.tokenId,
-    });
 
     return {
-      id: customToken.id,
-      parentTokenId: customToken.parentTokenId,
-      tokenOwner: customToken.tokenOwner,
-
-      mint({ address, amount }: MintOrBurnParams) {
-        let receiverParty = createChildParty(thisParty, address, {
-          caller: this.id,
-          tokenId: this.id,
+      token() {
+        let customToken = new Token({
+          tokenOwner: thisParty.body.publicKey,
+          parentTokenId: thisParty.body.tokenId,
         });
+        return {
+          id: customToken.id,
+          parentTokenId: customToken.parentTokenId,
+          tokenOwner: customToken.tokenOwner,
 
-        // Add the amount to mint to the receiver's account
-        let { magnitude, sgn } = receiverParty.body.balanceChange;
-        receiverParty.body.balanceChange = new Int64(magnitude, sgn).add(
-          amount
-        );
-      },
+          mint({ address, amount }: MintOrBurnParams) {
+            let receiverParty = createChildParty(thisParty, address, {
+              caller: this.id,
+              tokenId: this.id,
+            });
 
-      burn({ address, amount }: MintOrBurnParams) {
-        let senderParty = createChildParty(thisParty, address, {
-          caller: this.id,
-          tokenId: this.id,
-          useFullCommitment: Bool(true),
-        });
+            // Add the amount to mint to the receiver's account
+            let { magnitude, sgn } = receiverParty.body.balanceChange;
+            receiverParty.body.balanceChange = new Int64(magnitude, sgn).add(
+              amount
+            );
+          },
 
-        // Sub the amount to burn from the sender's account
-        let { magnitude, sgn } = senderParty.body.balanceChange;
-        senderParty.body.balanceChange = new Int64(magnitude, sgn).sub(amount);
+          burn({ address, amount }: MintOrBurnParams) {
+            let senderParty = createChildParty(thisParty, address, {
+              caller: this.id,
+              tokenId: this.id,
+              useFullCommitment: Bool(true),
+            });
 
-        // Require signature from the sender account being deducted
-        Authorization.setLazySignature(senderParty);
-      },
+            // Sub the amount to burn from the sender's account
+            let { magnitude, sgn } = senderParty.body.balanceChange;
+            senderParty.body.balanceChange = new Int64(magnitude, sgn).sub(
+              amount
+            );
 
-      send({ from, to, amount }: SendParams) {
-        // Create a new party for the sender to send the amount to the receiver
-        let senderParty = createChildParty(thisParty, from, {
-          caller: this.id,
-          tokenId: this.id,
-          useFullCommitment: Bool(true),
-        });
+            // Require signature from the sender account being deducted
+            Authorization.setLazySignature(senderParty);
+          },
 
-        let i0 = senderParty.body.balanceChange;
-        senderParty.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(
-          amount
-        );
+          send({ from, to, amount }: SendParams) {
+            // Create a new party for the sender to send the amount to the receiver
+            let senderParty = createChildParty(thisParty, from, {
+              caller: this.id,
+              tokenId: this.id,
+              useFullCommitment: Bool(true),
+            });
 
-        // Require signature from the sender party
-        Authorization.setLazySignature(senderParty);
+            let i0 = senderParty.body.balanceChange;
+            senderParty.body.balanceChange = new Int64(
+              i0.magnitude,
+              i0.sgn
+            ).sub(amount);
 
-        let receiverParty = createChildParty(thisParty, to, {
-          caller: this.id,
-          tokenId: this.id,
-        });
+            // Require signature from the sender party
+            Authorization.setLazySignature(senderParty);
 
-        // Add the amount to send to the receiver's account
-        let i1 = receiverParty.body.balanceChange;
-        receiverParty.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
-          amount
-        );
+            let receiverParty = createChildParty(thisParty, to, {
+              caller: this.id,
+              tokenId: this.id,
+            });
+
+            // Add the amount to send to the receiver's account
+            let i1 = receiverParty.body.balanceChange;
+            receiverParty.body.balanceChange = new Int64(
+              i1.magnitude,
+              i1.sgn
+            ).add(amount);
+          },
+        };
       },
     };
   }

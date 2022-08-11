@@ -559,8 +559,13 @@ class SmartContract {
     return this.self.network;
   }
 
-  token() {
-    return this.self.token();
+  get experimental() {
+    let self = this.self;
+    return {
+      token() {
+        return self.experimental.token();
+      },
+    };
   }
 
   send(args: Omit<SendParams, 'from'>) {
