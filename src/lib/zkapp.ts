@@ -125,8 +125,11 @@ function method<T extends SmartContract>(
   descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
 }
 
-let smartContractContext =
-  Context.create<{ this: SmartContract; methodCallDepth: number }>();
+let smartContractContext = Context.create<{
+  this: SmartContract;
+  methodCallDepth: number;
+  isCallback: boolean;
+}>();
 
 // do different things when calling a method, depending on the circumstance
 function wrapMethod(
@@ -138,7 +141,7 @@ function wrapMethod(
     cleanStatePrecondition(this);
     if (!smartContractContext.has()) {
       return smartContractContext.runWith(
-        { this: this, methodCallDepth: 0 },
+        { this: this, methodCallDepth: 0, isCallback: false },
         () => {
           if (inCheckedComputation()) {
             // important to run this with a fresh party everytime, otherwise compile messes up our circuits
@@ -251,11 +254,17 @@ function wrapMethod(
         }
       )[1];
     }
+
+    // if we're in "callback" mode, just run the method
+    if (smartContractContext.get().isCallback) {
+      return method.apply(this, actualArgs);
+    }
+
     // if we're here, this method was called inside _another_ smart contract method
     let parentParty = smartContractContext.get().this.self;
     let methodCallDepth = smartContractContext.get().methodCallDepth;
     let [, result] = smartContractContext.runWith(
-      { this: this, methodCallDepth: methodCallDepth + 1 },
+      { this: this, methodCallDepth: methodCallDepth + 1, isCallback: false },
       () => {
         // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
         // so we have to explain to the user how to do that
@@ -455,7 +464,14 @@ function partyFromCallback(
         methodIntf.methodName as keyof SmartContract
       ] as Function;
       let party = instance.self;
-      method.apply(instance, args);
+      smartContractContext.runWith(
+        {
+          this: instance,
+          methodCallDepth: (smartContractContext()?.methodCallDepth ?? 0) + 1,
+          isCallback: true,
+        },
+        () => method.apply(instance, args)
+      );
       return { party, result: null };
     },
     true
