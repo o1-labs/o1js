@@ -26,8 +26,8 @@ class TokenContract extends SmartContract {
   @method tokenDeploy(deployer: PrivateKey) {
     let address = deployer.toPublicKey();
     let deployParty = Experimental.createChildParty(this.self, address);
-    deployParty.body.tokenId = this.token().id;
-    deployParty.body.caller = this.token().id;
+    deployParty.body.tokenId = this.experimental.token.id;
+    deployParty.body.caller = this.experimental.token.id;
     Party.setValue(deployParty.update.permissions, Permissions.default());
     // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
     // Party.setValue(deployParty.update.verificationKey, verificationKey);
@@ -45,7 +45,7 @@ class TokenContract extends SmartContract {
 
   @method mint(receiverAddress: PublicKey) {
     let amount = UInt64.from(1_000_000);
-    this.token().mint({
+    this.experimental.token.mint({
       address: receiverAddress,
       amount,
     });
@@ -53,7 +53,7 @@ class TokenContract extends SmartContract {
 
   @method burn(receiverAddress: PublicKey) {
     let amount = UInt64.from(1_000);
-    this.token().burn({
+    this.experimental.token.burn({
       address: receiverAddress,
       amount,
     });
@@ -67,7 +67,7 @@ class TokenContract extends SmartContract {
     console.log('DEBUG send tokens callback', callback);
     let senderParty = Experimental.partyFromCallback(this, callback);
     let amount = UInt64.from(1_000);
-    let tokenId = this.token().id;
+    let tokenId = this.experimental.token.id;
     // assert party is correct
     // TODO is there more?
     let negativeAmount = Int64.fromObject(senderParty.body.balanceChange);
@@ -118,7 +118,7 @@ let tokenAccount1Key = Local.testAccounts[1].privateKey;
 let tokenAccount1 = tokenAccount1Key.toPublicKey();
 
 let tokenZkApp = new TokenContract(tokenZkAppAddress);
-let tokenId = tokenZkApp.token().id;
+let tokenId = tokenZkApp.experimental.token.id;
 
 let zkAppB = new ZkAppB(zkAppBAddress, tokenId);
 let tx;

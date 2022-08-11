@@ -100,6 +100,8 @@ namespace Experimental {
   export let packToFields = Experimental_.packToFields;
   export let MerkleTree = Experimental_.MerkleTree;
   export let MerkleWitness = Experimental_.MerkleWitness;
+  export let partyFromCallback = Experimental_.partyFromCallback;
   export type AsFieldsAndAux<T, TJson> = AsFieldsAndAux_<T, TJson>;
+  export let Callback = Experimental_.Callback;
   export type Callback<T extends SmartContract> = Callback_<T>;
 }
