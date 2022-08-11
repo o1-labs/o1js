@@ -3,7 +3,7 @@ import { Poseidon } from './hash';
 import { Bool, Field } from './core';
 
 // external API
-export { Witness, MerkleTree };
+export { Witness, MerkleTree, MerkleWitness };
 
 type Witness = { isLeft: boolean; sibling: Field }[];
 
@@ -78,7 +78,7 @@ class MerkleTree {
   }
 }
 
-export class MerkleWitness extends CircuitValue {
+class MerkleWitness extends CircuitValue {
   @arrayProp(Field, 255) path: Field[];
   @arrayProp(Bool, 255) isLeft: Bool[];
 

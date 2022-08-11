@@ -65,11 +65,7 @@ import { packToFields } from './lib/hash';
 import { MerkleTree, MerkleWitness as MerkleWitness_ } from './lib/merkle_tree';
 export { Experimental };
 
-/**
- * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
- * (Not unstable in the sense that they are less functional or tested than other parts.)
- */
-const Experimental = {
+const Experimental_ = {
   Reducer,
   createChildParty,
   memoizeWitness,
@@ -79,7 +75,21 @@ const Experimental = {
   packToFields,
   MerkleTree,
 };
+
+/**
+ * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
+ * (Not unstable in the sense that they are less functional or tested than other parts.)
+ */
 namespace Experimental {
+  export let Reducer = Experimental_.Reducer;
+  export let createChildParty = Experimental_.createChildParty;
+  export let memoizeWitness = Experimental_.memoizeWitness;
+  export let jsLayout = Experimental_.jsLayout;
+  export let asFieldsAndAux = Experimental_.asFieldsAndAux;
+  export let packToFields = Experimental_.packToFields;
+  export let MerkleTree = Experimental_.MerkleTree;
+
   export type AsFieldsAndAux<T, TJson> = AsFieldsAndAux_<T, TJson>;
+  export let MerkleWitness = MerkleWitness_;
   export type MerkleWitness = MerkleWitness_;
 }
