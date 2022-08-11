@@ -37,7 +37,7 @@ class MerkleTree {
     this.setNode(0, index, leaf);
     let currIndex = index;
     for (let level = 1; level < this.height; level++) {
-      currIndex = currIndex / 2n;
+      currIndex /= 2n;
 
       const left = this.getNode(level - 1, currIndex * 2n);
       const right = this.getNode(level - 1, currIndex * 2n + 1n);
@@ -54,7 +54,7 @@ class MerkleTree {
         isLeft,
         sibling: this.getNode(level, isLeft ? index + 1n : index - 1n),
       });
-      index = index / 2n;
+      index /= 2n;
     }
     return witness;
   }
