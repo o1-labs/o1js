@@ -139,11 +139,12 @@ function wrapMethod(
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
-    if (!smartContractContext.has()) {
+    let isCallback = smartContractContext()?.isCallback;
+    if (!smartContractContext.has() || isCallback) {
       return smartContractContext.runWith(
         { this: this, methodCallDepth: 0, isCallback: false },
         () => {
-          if (inCheckedComputation()) {
+          if (inCheckedComputation() && !isCallback) {
             // important to run this with a fresh party everytime, otherwise compile messes up our circuits
             // because it runs this multiple times
             let [, result] = Mina.currentTransaction.runWith(
@@ -253,11 +254,6 @@ function wrapMethod(
           }
         }
       )[1];
-    }
-
-    // if we're in "callback" mode, just run the method
-    if (smartContractContext.get().isCallback) {
-      return method.apply(this, actualArgs);
     }
 
     // if we're here, this method was called inside _another_ smart contract method
@@ -485,7 +481,7 @@ function partyFromCallback(
     calls.assertEquals(CallForest.emptyHash());
     parentParty.children.push({ party, calls });
   } else {
-    parentParty.children.push({ party, calls: undefined });
+    parentParty.children.push({ party });
   }
   return party;
 }
