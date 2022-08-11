@@ -85,8 +85,7 @@ class MerkleWitness extends CircuitValue {
   @arrayProp(Bool, 255) isLeft: Bool[];
 
   constructor(witness: Witness) {
-    super(witness);
-
+    super();
     this.path = witness.map((item) => item.sibling);
     this.isLeft = witness.map((item) => Bool(item.isLeft));
   }
