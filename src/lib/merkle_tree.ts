@@ -76,6 +76,10 @@ class MerkleTree {
       this.setLeaf(BigInt(index), value);
     });
   }
+
+  get leafCount(): bigint {
+    return BigInt(2 ** (this.height - 1));
+  }
 }
 
 class MerkleWitness extends CircuitValue {
