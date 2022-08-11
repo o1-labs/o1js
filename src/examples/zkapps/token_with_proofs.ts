@@ -145,12 +145,6 @@ console.log('deploy zkAppB (proof)');
 await tx.prove();
 tx.send();
 
-console.log('test');
-console.log(Mina.getAccount(zkAppBAddress, tokenId).publicKey.toBase58());
-console.log(
-  Ledger.fieldToBase58(Mina.getAccount(zkAppBAddress, tokenId).tokenId)
-);
-
 console.log('authorize send');
 tx = await Local.transaction(feePayer, () => {
   let authorizeSendingCallback = new Experimental.Callback(
