@@ -58,4 +58,35 @@ describe('Merkle Tree', () => {
     tree.setLeaf(index, Field(1));
     expect(tree.validate(index)).toBe(true);
   });
+
+  it('works with MerkleWitness', () => {
+    // tree with height 3 (4 leaves)
+    const HEIGHT = 3;
+    let tree = new Experimental.MerkleTree(HEIGHT);
+    class MerkleWitness extends Experimental.MerkleWitness(HEIGHT) {}
+
+    // tree with the leaves [15, 16, 17, 18]
+    tree.fill([15, 16, 17, 18].map(Field));
+
+    // witness for the leaf '17', at index 2
+    let witness = new MerkleWitness(tree.getWitness(2n));
+
+    // calculate index
+    expect(witness.calculateIndex().toString()).toEqual('2');
+
+    // calculate root
+    let root = witness.calculateRoot(Field(17));
+    expect(tree.getRoot()).toEqual(root);
+
+    root = witness.calculateRoot(Field(16));
+    expect(tree.getRoot()).not.toEqual(root);
+
+    // construct and check path manually
+    let leftHalfHash = Poseidon.hash([Field(15), Field(16)]).toString();
+    let expectedWitness = {
+      path: ['18', leftHalfHash],
+      isLeft: [true, false],
+    };
+    expect(witness.toJSON()).toEqual(expectedWitness);
+  });
 });
