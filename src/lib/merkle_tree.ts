@@ -34,6 +34,11 @@ class MerkleTree {
   }
 
   setLeaf(index: bigint, leaf: Field) {
+    if (index >= this.leafCount) {
+      throw new Error(
+        `index ${index} is out of range for ${this.leafCount} leaves.`
+      );
+    }
     this.setNode(0, index, leaf);
     let currIndex = index;
     for (let level = 1; level < this.height; level++) {
@@ -47,6 +52,11 @@ class MerkleTree {
   }
 
   getWitness(index: bigint): Witness {
+    if (index >= this.leafCount) {
+      throw new Error(
+        `index ${index} is out of range for ${this.leafCount} leaves.`
+      );
+    }
     const witness = [];
     for (let level = 0; level < this.height - 1; level++) {
       const isLeft = index % 2n === 0n;
