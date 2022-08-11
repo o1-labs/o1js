@@ -4,24 +4,20 @@ import {
   Field,
   SmartContract,
   method,
-  PrivateKey,
-  Mina,
   Bool,
   state,
   State,
   Poseidon,
-  Party,
-  Permissions,
-  isReady,
 } from 'snarkyjs';
 
-export { deploy, submitSolution, getZkappState };
+export { SudokuZkapp, Sudoku };
 
 class Sudoku extends CircuitValue {
   @matrixProp(Field, 9, 9) value: Field[][];
 
-  static from(value: number[][]) {
-    return new Sudoku(value.map((row) => row.map(Field)));
+  constructor(sudoku: number[][]) {
+    super();
+    this.value = sudoku.map((row) => row.map(Field));
   }
 
   hash() {
@@ -91,54 +87,9 @@ class SudokuZkapp extends SmartContract {
   }
 }
 
-// setup
-await isReady;
+// helper
 
-const Local = Mina.LocalBlockchain();
-Mina.setActiveInstance(Local);
-const account1 = Local.testAccounts[0].privateKey;
-
-const zkappKey = PrivateKey.random();
-let zkappAddress = zkappKey.toPublicKey();
-
-async function deploy(sudoku: number[][]) {
-  let tx = await Mina.transaction(account1, () => {
-    Party.fundNewAccount(account1);
-    let zkapp = new SudokuZkapp(zkappAddress);
-    let sudokuInstance = Sudoku.from(sudoku);
-    zkapp.deploy({ zkappKey });
-    zkapp.setPermissions({
-      ...Permissions.default(),
-      editState: Permissions.proofOrSignature(),
-    });
-    zkapp.sudokuHash.set(sudokuInstance.hash());
-    zkapp.isSolved.set(Bool(false));
-  });
-  await tx.send().wait();
-}
-
-async function submitSolution(sudoku: number[][], solution: number[][]) {
-  let tx = await Mina.transaction(account1, () => {
-    let zkapp = new SudokuZkapp(zkappAddress);
-    zkapp.submitSolution(Sudoku.from(sudoku), Sudoku.from(solution));
-    zkapp.sign(zkappKey);
-  });
-  await tx.send().wait();
-}
-
-function getZkappState() {
-  let zkapp = new SudokuZkapp(zkappAddress);
-  let sudokuHash = fieldToHex(zkapp.sudokuHash.get());
-  let isSolved = zkapp.isSolved.get().toBoolean();
-  return { sudokuHash, isSolved };
-}
-
-// helpers
 function divmod(k: number, n: number) {
   let q = Math.floor(k / n);
   return [q, k - q * n];
-}
-
-function fieldToHex(field: Field) {
-  return field.toBigInt().toString(16);
 }
