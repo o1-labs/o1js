@@ -566,6 +566,7 @@ class SmartContract {
   }
 
   static digest(address: PublicKey, tokenId: Field = TokenId.default) {
+    // TODO: this should use the method digests in a deterministic order!
     let methodData = this.analyzeMethods(address, tokenId);
     let hash = Poseidon_.hash(
       Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest))),
