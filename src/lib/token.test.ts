@@ -20,8 +20,8 @@ import {
 const tokenSymbol = 'MY_TOKEN';
 
 class TokenContract extends SmartContract {
-  @state(UInt64) totalAmountInCirculation = State<UInt64>();
-  @state(UInt64) maxAmountInCirculation = State<UInt64>();
+  @state(UInt64) totalSupplyInCirculation = State<UInt64>();
+  @state(UInt64) maxSupplyInCirculation = State<UInt64>();
 
   deploy(args: DeployArgs) {
     super.deploy(args);
@@ -33,33 +33,33 @@ class TokenContract extends SmartContract {
 
   @method init() {
     this.tokenSymbol.set(tokenSymbol);
-    this.totalAmountInCirculation.set(UInt64.zero);
-    this.maxAmountInCirculation.set(UInt64.from(100_000_000));
+    this.totalSupplyInCirculation.set(UInt64.zero);
+    this.maxSupplyInCirculation.set(UInt64.from(100_000_000));
   }
 
   @method mint(receiverAddress: PublicKey, amount: UInt64) {
-    let totalAmountInCirculation = this.totalAmountInCirculation.get();
-    this.totalAmountInCirculation.assertEquals(totalAmountInCirculation);
+    let totalSupplyInCirculation = this.totalSupplyInCirculation.get();
+    this.totalSupplyInCirculation.assertEquals(totalSupplyInCirculation);
 
-    let maxAmountInCirculation = this.maxAmountInCirculation.get();
-    this.maxAmountInCirculation.assertEquals(maxAmountInCirculation);
+    let maxSupplyInCirculation = this.maxSupplyInCirculation.get();
+    this.maxSupplyInCirculation.assertEquals(maxSupplyInCirculation);
 
-    let newTotalAmountInCirculation = totalAmountInCirculation.add(amount);
+    let newTotalSupplyInCirculation = totalSupplyInCirculation.add(amount);
 
-    newTotalAmountInCirculation.value
-      .lte(maxAmountInCirculation.value)
+    newTotalSupplyInCirculation.value
+      .lte(maxSupplyInCirculation.value)
       .assertTrue();
 
-    this.token().mint({
+    this.experimental.token().mint({
       address: receiverAddress,
       amount,
     });
 
-    this.totalAmountInCirculation.set(newTotalAmountInCirculation);
+    this.totalSupplyInCirculation.set(newTotalSupplyInCirculation);
   }
 
   @method burn(receiverAddress: PublicKey, amount: UInt64) {
-    this.token().burn({
+    this.experimental.token().burn({
       address: receiverAddress,
       amount,
     });
@@ -70,7 +70,7 @@ class TokenContract extends SmartContract {
     receiverAddress: PublicKey,
     amount: UInt64
   ) {
-    this.token().send({
+    this.experimental.token().send({
       to: receiverAddress,
       from: senderAddress,
       amount,
@@ -132,7 +132,7 @@ describe('Token', () => {
     });
 
     it('should have a valid custom token id', async () => {
-      const tokenId = zkapp.token().id;
+      const tokenId = zkapp.experimental.token().id;
       const expectedTokenId = new Token({ tokenOwner: zkappAddress }).id;
       expect(tokenId).toBeDefined();
       expect(tokenId).toEqual(expectedTokenId);
@@ -145,7 +145,10 @@ describe('Token', () => {
     });
 
     it('should create a valid token with a different parentTokenId', async () => {
-      const newTokenId = Ledger.customTokenId(tokenAccount1, zkapp.token().id);
+      const newTokenId = Ledger.customTokenId(
+        tokenAccount1,
+        zkapp.experimental.token().id
+      );
       expect(newTokenId).toBeDefined();
     });
 
@@ -174,7 +177,10 @@ describe('Token', () => {
       ).send();
 
       expect(
-        Mina.getBalance(tokenAccount1, zkapp.token().id).value.toBigInt()
+        Mina.getBalance(
+          tokenAccount1,
+          zkapp.experimental.token().id
+        ).value.toBigInt()
       ).toEqual(100_000n);
     });
 
@@ -212,7 +218,10 @@ describe('Token', () => {
         .send();
 
       expect(
-        Mina.getBalance(tokenAccount1, zkapp.token().id).value.toBigInt()
+        Mina.getBalance(
+          tokenAccount1,
+          zkapp.experimental.token().id
+        ).value.toBigInt()
       ).toEqual(90_000n);
     });
 
@@ -261,10 +270,16 @@ describe('Token', () => {
         .send();
 
       expect(
-        Mina.getBalance(tokenAccount1, zkapp.token().id).value.toBigInt()
+        Mina.getBalance(
+          tokenAccount1,
+          zkapp.experimental.token().id
+        ).value.toBigInt()
       ).toEqual(90_000n);
       expect(
-        Mina.getBalance(tokenAccount2, zkapp.token().id).value.toBigInt()
+        Mina.getBalance(
+          tokenAccount2,
+          zkapp.experimental.token().id
+        ).value.toBigInt()
       ).toEqual(10_000n);
     });
 
