@@ -1,5 +1,10 @@
-import { Field, Poseidon, isReady, shutdown } from '../../dist/server';
-import { MerkleTree } from './merkle_tree';
+import {
+  isReady,
+  shutdown,
+  Poseidon,
+  Field,
+  Experimental,
+} from '../../dist/server';
 
 describe('Merkle Tree', () => {
   beforeAll(async () => {
@@ -10,12 +15,12 @@ describe('Merkle Tree', () => {
   });
 
   it('root of empty tree of size 1', () => {
-    const tree = new MerkleTree(1);
+    const tree = new Experimental.MerkleTree(1);
     expect(tree.getRoot().toString()).toEqual(Field(0).toString());
   });
 
   it('root is correct', () => {
-    const tree = new MerkleTree(2);
+    const tree = new Experimental.MerkleTree(2);
     tree.setLeaf(0n, Field(1));
     tree.setLeaf(1n, Field(2));
     expect(tree.getRoot().toString()).toEqual(
@@ -24,7 +29,7 @@ describe('Merkle Tree', () => {
   });
 
   it('builds correct tree', () => {
-    const tree = new MerkleTree(4);
+    const tree = new Experimental.MerkleTree(4);
     tree.setLeaf(0n, Field(1));
     tree.setLeaf(1n, Field(2));
     tree.setLeaf(2n, Field(3));
@@ -35,7 +40,7 @@ describe('Merkle Tree', () => {
   });
 
   it('tree of height 128', () => {
-    const tree = new MerkleTree(128);
+    const tree = new Experimental.MerkleTree(128);
 
     const index = 2n ** 64n;
     expect(tree.validate(index)).toBe(true);
@@ -45,7 +50,7 @@ describe('Merkle Tree', () => {
   });
 
   it('tree of height 256', () => {
-    const tree = new MerkleTree(256);
+    const tree = new Experimental.MerkleTree(256);
 
     const index = 2n ** 128n;
     expect(tree.validate(index)).toBe(true);
