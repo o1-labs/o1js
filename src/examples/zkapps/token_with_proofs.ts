@@ -15,7 +15,6 @@ import {
   Int64,
   Experimental,
   Permissions,
-  Circuit,
 } from 'snarkyjs';
 
 await isReady;
@@ -64,7 +63,6 @@ class TokenContract extends SmartContract {
     receiverAddress: PublicKey,
     callback: Experimental.Callback<any>
   ) {
-    console.log('DEBUG send tokens callback', callback);
     let senderParty = Experimental.partyFromCallback(this, callback);
     let amount = UInt64.from(1_000);
     let tokenId = this.experimental.token.id;
@@ -95,7 +93,6 @@ class ZkAppB extends SmartContract {
   @method authorizeSend(receiverAddress: PublicKey) {
     let amount = UInt64.from(1_000);
     this.balance.subInPlace(amount);
-    this.sign(zkAppBKey);
   }
 }
 
