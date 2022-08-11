@@ -36,6 +36,11 @@ class MerkleTree {
 
   // TODO: if this is passed an index bigger than the max, it will set a couple of out-of-bounds nodes but not affect the real Merkle root. OK?
   setLeaf(index: bigint, leaf: Field) {
+    if (index >= this.leafCount) {
+      throw new Error(
+        `index ${index} is out of range for ${this.leafCount} leaves.`
+      );
+    }
     this.setNode(0, index, leaf);
     let currIndex = index;
     for (let level = 1; level < this.height; level++) {
@@ -49,6 +54,11 @@ class MerkleTree {
   }
 
   getWitness(index: bigint): Witness {
+    if (index >= this.leafCount) {
+      throw new Error(
+        `index ${index} is out of range for ${this.leafCount} leaves.`
+      );
+    }
     const witness = [];
     for (let level = 0; level < this.height - 1; level++) {
       const isLeft = index % 2n === 0n;
@@ -77,6 +87,10 @@ class MerkleTree {
     leaves.forEach((value, index) => {
       this.setLeaf(BigInt(index), value);
     });
+  }
+
+  get leafCount(): bigint {
+    return BigInt(2 ** (this.height - 1));
   }
 }
 
