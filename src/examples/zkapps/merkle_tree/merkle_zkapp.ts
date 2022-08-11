@@ -49,9 +49,6 @@ class Account extends CircuitValue {
 }
 // we need the initiate tree root in order to tell the contract about our off-chain storage
 let initialCommitment: Field = Field.zero;
-
-let a = Experimental;
-
 /*
   We want to write a smart contract that serves as a leaderboard,
   but only has the commitment of the off-chain storage stored in an on-chain variable.
