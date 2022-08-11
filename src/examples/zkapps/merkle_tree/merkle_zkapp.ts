@@ -35,7 +35,7 @@ import {
 
 await isReady;
 
-class MerkleWitness extends Experimental.MerkleWitness(4) {}
+class MerkleWitness extends Experimental.MerkleWitness(8) {}
 
 class Account extends CircuitValue {
   @prop publicKey: PublicKey;
@@ -49,6 +49,10 @@ class Account extends CircuitValue {
 
   hash(): Field {
     return Poseidon.hash(this.toFields());
+  }
+
+  addPoints(n: number): Account {
+    return new Account(this.publicKey, this.points.add(n));
   }
 }
 // we need the initiate tree root in order to tell the contract about our off-chain storage
@@ -91,10 +95,10 @@ class Leaderboard extends SmartContract {
     path.calculateRoot(account.hash()).assertEquals(commitment);
 
     // we update the account and grant one point!
-    account.points = account.points.add(1);
+    let newAccount = account.addPoints(1);
 
     // we calculate the new Merkle Root, based on the account changes
-    let newCommitment = path.calculateRoot(account.hash());
+    let newCommitment = path.calculateRoot(newAccount.hash());
 
     this.commitment.set(newCommitment);
   }
@@ -136,38 +140,39 @@ Tree.setLeaf(3n, olivia.hash());
 
 // now that we got our accounts set up, we need the commitment to deploy our contract!
 initialCommitment = Tree.getRoot();
+console.log('initialCommitment 1', initialCommitment + '');
 
 let leaderboardZkApp = new Leaderboard(zkappAddress);
 console.log('Deploying leaderboard..');
 let tx = await Mina.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer, {
-    initialBalance,
-  });
+  Party.fundNewAccount(feePayer, { initialBalance });
   leaderboardZkApp.deploy({ zkappKey });
 });
 tx.send();
 
-makeGuess('Bob', 0n, 22);
+console.log('Initial points: ' + Accounts.get('Bob')?.points);
+
+console.log('Making guess..');
+await makeGuess('Bob', 0n, 22);
+
+console.log('Final points: ' + Accounts.get('Bob')?.points);
 
 async function makeGuess(name: Names, index: bigint, guess: number) {
-  let acc = Accounts.get(name)!;
-  console.log(JSON.stringify(acc));
+  let account = Accounts.get(name)!;
+  console.log(JSON.stringify(account));
   let w = Tree.getWitness(index);
   let witness = new MerkleWitness(w);
 
   try {
     let tx = await Mina.transaction(feePayer, () => {
-      Party.fundNewAccount(feePayer, {
-        initialBalance,
-      });
-      leaderboardZkApp.guessPreimage(Field(guess), acc, witness);
+      leaderboardZkApp.guessPreimage(Field(guess), account, witness);
+      leaderboardZkApp.sign(zkappKey);
     });
     tx.send();
 
     // if the transaction was successful, we can update our off-chain storage as well
-    Tree.setLeaf(index, acc.hash());
-    acc.points = acc.points.add(1);
-    Accounts.set(name, acc);
+    account.points = account.points.add(1);
+    Tree.setLeaf(index, account.hash());
     leaderboardZkApp.commitment.get().assertEquals(Tree.getRoot());
   } catch (error) {
     console.log(error);
