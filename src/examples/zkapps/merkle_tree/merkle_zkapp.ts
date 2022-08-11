@@ -29,6 +29,8 @@ import {
   Mina,
   method,
   UInt32,
+  PrivateKey,
+  Party,
 } from 'snarkyjs';
 
 await isReady;
@@ -68,16 +70,16 @@ class Leaderboard extends SmartContract {
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
     });
+    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
     this.commitment.set(initialCommitment);
   }
 
   @method
   guessPreimage(guess: Field, account: Account, path: MerkleWitness) {
     // this is our hash! its the hash of the preimage "22", but keep it a secret!
-    let target =
-      Field(
-        17057234437185175411792943285768571642343179330449434169483610110583519635705
-      );
+    let target = Field(
+      '17057234437185175411792943285768571642343179330449434169483610110583519635705'
+    );
     // if our guess preimage hashes to our target, we won a point!
     Poseidon.hash([guess]).assertEquals(target);
 
@@ -86,26 +88,32 @@ class Leaderboard extends SmartContract {
     this.commitment.assertEquals(commitment);
 
     // we check that the account is within the committed Merkle Tree
-    //path.calculateRoot(account.hash()).assertEquals(commitment);
+    path.calculateRoot(account.hash()).assertEquals(commitment);
 
     // we update the account and grant one point!
     account.points = account.points.add(1);
 
     // we calculate the new Merkle Root, based on the account changes
-    //let newCommitment = path.calculateRoot(account.hash());
+    let newCommitment = path.calculateRoot(account.hash());
 
-    //this.commitment.set(newCommitment);
+    this.commitment.set(newCommitment);
   }
 }
 
-// we initialize a new Merkle Tree with height 8
-const Tree = new Experimental.MerkleTree(8);
+type Names = 'Bob' | 'Alice' | 'Charlie' | 'Olivia';
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
+let initialBalance = 10_000_000_000;
+
+let feePayer = Local.testAccounts[0].privateKey;
+
+// the zkapp account
+let zkappKey = PrivateKey.random();
+let zkappAddress = zkappKey.toPublicKey();
 
 // this map serves as our off-chain in-memory storage
-let Accounts: Map<string, Account> = new Map<string, Account>();
+let Accounts: Map<string, Account> = new Map<Names, Account>();
 
 let bob = new Account(Local.testAccounts[0].publicKey, UInt32.from(0));
 let alice = new Account(Local.testAccounts[1].publicKey, UInt32.from(0));
@@ -118,6 +126,8 @@ Accounts.set('Charlie', charlie);
 Accounts.set('Olivia', olivia);
 
 // we now need "wrap" the Merkle tree around our off-chain storage
+// we initialize a new Merkle Tree with height 8
+const Tree = new Experimental.MerkleTree(8);
 
 Tree.setLeaf(0n, bob.hash());
 Tree.setLeaf(1n, alice.hash());
@@ -127,4 +137,39 @@ Tree.setLeaf(3n, olivia.hash());
 // now that we got our accounts set up, we need the commitment to deploy our contract!
 initialCommitment = Tree.getRoot();
 
-console.log(Poseidon.hash([Field(22)]).toString());
+let leaderboardZkApp = new Leaderboard(zkappAddress);
+console.log('Deploying leaderboard..');
+let tx = await Mina.transaction(feePayer, () => {
+  Party.fundNewAccount(feePayer, {
+    initialBalance,
+  });
+  leaderboardZkApp.deploy({ zkappKey });
+});
+tx.send();
+
+makeGuess('Bob', 0n, 22);
+
+async function makeGuess(name: Names, index: bigint, guess: number) {
+  let acc = Accounts.get(name)!;
+  console.log(JSON.stringify(acc));
+  let w = Tree.getWitness(index);
+  let witness = new Experimental.MerkleWitness(w);
+
+  try {
+    let tx = await Mina.transaction(feePayer, () => {
+      Party.fundNewAccount(feePayer, {
+        initialBalance,
+      });
+      leaderboardZkApp.guessPreimage(Field(guess), acc, witness);
+    });
+    tx.send();
+
+    // if the transaction was successful, we can update our off-chain storage as well
+    Tree.setLeaf(index, acc.hash());
+    acc.points = acc.points.add(1);
+    Accounts.set(name, acc);
+    leaderboardZkApp.commitment.get().assertEquals(Tree.getRoot());
+  } catch (error) {
+    console.log(error);
+  }
+}
