@@ -559,10 +559,14 @@ class SmartContract {
     return this.self.network;
   }
 
-  // This is commented out since the API is not stable yet. Uncomment this in a non release build.
-  // token() {
-  //   return this.self.token();
-  // }
+  get experimental() {
+    let zkapp = this;
+    return {
+      get token() {
+        return zkapp.self.token();
+      },
+    };
+  }
 
   send(args: Omit<SendParams, 'from'>) {
     return this.self.send(args);
