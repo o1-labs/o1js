@@ -25,7 +25,7 @@ if (isMain) {
 }
 
 async function buildNode({ production }) {
-  let minify = !!production;
+  let minify = false;
 
   // copy over files not processed by TS
   let copyPromise = copy({
