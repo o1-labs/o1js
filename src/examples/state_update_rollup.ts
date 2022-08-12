@@ -65,12 +65,6 @@ class CounterZkapp extends SmartContract {
 const doProofs = false;
 const initialCounter = Field.zero;
 
-// this is a data structure where we internally keep track of the pending actions
-// TODO: get these from a Mina node / the local blockchain
-// note: each entry in pendingActions is itself an array -- the list of actions dispatched by one method
-// this is the structure we need to do the hashing correctly
-let pendingActions: Field[][] = [];
-
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
