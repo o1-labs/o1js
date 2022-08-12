@@ -858,9 +858,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           ? Ledger.fieldToBase58(endActionHash)
           : undefined;
 
-        let actions;
-
-        actions = Mina.getActions(contract.address, contract.self.tokenId);
+        let actions = Mina.getActions(contract.address, contract.self.tokenId);
 
         // gets the start/end indices of our array slice
         let startIndex = start
