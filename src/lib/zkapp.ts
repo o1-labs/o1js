@@ -840,32 +840,50 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       fromActionHash?: Field;
       endActionHash?: Field;
     }): A[][] {
-      let inRange = fromActionHash ? false : true;
-      let foundStart = fromActionHash ? false : true;
+      let actionsForAccount: A[][] = [];
 
-      let fromBase58 = Ledger.fieldToBase58(fromActionHash ?? Field.zero);
-      let endBase58 = Ledger.fieldToBase58(endActionHash ?? Field.zero);
+      Circuit.asProver(() => {
+        // if the fromActionHash is the empty state, we fetch all events
+        fromActionHash = fromActionHash
+          ?.equals(Events.emptySequenceState())
+          .toBoolean()
+          ? undefined
+          : fromActionHash;
 
-      return Mina.getActions(contract.address, contract.self.tokenId)
-        .filter((event: { hash: string; actions: string[][] }) => {
-          if (fromActionHash && event.hash === fromBase58) {
-            inRange = true;
-            foundStart = true;
-          }
-          if (endActionHash && event.hash === endBase58) {
-            inRange = false;
-          }
-          return inRange || (event.hash === endBase58 && foundStart);
-        })
-        .map((event: { hash: string; actions: string[][] }) =>
-          event.actions.map((action: string[]) =>
-            reducer.actionType.ofFields(
-              action.map((fieldAsString: string) =>
-                Field.fromString(fieldAsString)
+        // used to determine start and end values in string
+        let start: string | undefined = fromActionHash
+          ? Ledger.fieldToBase58(fromActionHash)
+          : undefined;
+        let end: string | undefined = endActionHash
+          ? Ledger.fieldToBase58(endActionHash)
+          : undefined;
+
+        let actions;
+
+        actions = Mina.getActions(contract.address, contract.self.tokenId);
+
+        // gets the start/end indices of our array slice
+        let startIndex = start
+          ? actions.findIndex((e) => e.hash === start) + 2
+          : 0;
+        let endIndex = end
+          ? actions.findIndex((e) => e.hash === end) + 1
+          : undefined;
+
+        // slices the array so we only get the wanted range between fromActionHash and endActionHash
+        actionsForAccount = actions
+          .slice(startIndex, endIndex === 0 ? undefined : endIndex)
+          .map((event: { hash: string; actions: string[][] }) =>
+            event.actions.map((action: string[]) =>
+              reducer.actionType.ofFields(
+                action.map((fieldAsString: string) =>
+                  Field.fromString(fieldAsString)
+                )
               )
             )
-          )
-        );
+          );
+      });
+      return actionsForAccount;
     },
   };
 }

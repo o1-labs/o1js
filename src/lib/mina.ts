@@ -355,7 +355,6 @@ function LocalBlockchain({
           });
         }
       });
-
       return { wait: async () => {} };
     },
     async transaction(sender: FeePayerSpec, f: () => void) {
