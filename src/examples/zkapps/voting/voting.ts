@@ -37,11 +37,17 @@ let electionPreconditions = new ElectionPreconditions(
 );
 
 export class Voting extends SmartContract {
-  @state(Field) accumulatedVotes = State<Field>();
+  /**
+   * Root of the merkle tree that stores all committed votes.
+   */
   @state(Field) committedVotes = State<Field>();
 
-  // we need a public key so we can associate a new vote with it
-  reducer = Experimental.Reducer({ actionType: PublicKey });
+  /**
+   * Accumulator of all emitted votes.
+   */
+  @state(Field) accumulatedVotes = State<Field>();
+
+  reducer = Experimental.Reducer({ actionType: Member });
 
   deploy(args: DeployArgs) {
     super.deploy(args);
@@ -53,6 +59,10 @@ export class Voting extends SmartContract {
     this.committedVotes.set(Field.zero); // TODO: set this to the initial merkle root
   }
 
+  /**
+   * Method used to register a new voter. Calls the `addEntry(member)` method of the Voter-Membership contract.
+   * @param member
+   */
   voterRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
     currentSlot.assertEquals(this.network.globalSlotSinceGenesis.get());
@@ -65,6 +75,11 @@ export class Voting extends SmartContract {
     VoterContract.addEntry(member);
   }
 
+  /**
+   * Method used to register a new candidate.
+   * Calls the `addEntry(member)` method of the Candidate-Membership contract.
+   * @param member
+   */
   candidateRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
     currentSlot.assertEquals(this.network.globalSlotSinceGenesis.get());
@@ -78,11 +93,14 @@ export class Voting extends SmartContract {
       .and(member.balance.lte(participantPreconditions.maxMinaCandidate))
       .assertTrue();
 
-    // TODO: Invokes addEntry method on Candidate Membership contract with member passed as an argument.
     let CandidateContract = new Membership(CandidateMembershipAddress);
     CandidateContract.addEntry(member);
   }
 
+  /**
+   * Method used to register update all pending member registrations.
+   * Calls the `publish()` method of the Candidate-Membership and Voter-Membership contract.
+   */
   authorizeRegistrations() {
     // Invokes the publish method of both Voter and Candidate Membership contracts.
     let VoterContract = new Membership(VoterMembershipAddress);
@@ -92,6 +110,11 @@ export class Voting extends SmartContract {
     CandidateContract.publish();
   }
 
+  /**
+   * Method used to cast a vote to a specific candidate.
+   * Dispatches a new vote sequence event.
+   * @param member
+   */
   vote(candidate: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
     currentSlot.assertEquals(this.network.globalSlotSinceGenesis.get());
@@ -104,9 +127,13 @@ export class Voting extends SmartContract {
 
     // Check if Voter and Candidate exist by calling the isMember method of corresponding Smart-Contracts
     // Emit corresponding Sequence Event with the Vote for Candidate information
-    this.reducer.dispatch(candidate.publicKey);
+    this.reducer.dispatch(candidate);
   }
 
+  /**
+   * Method used to accumulate all pending votes from open sequence events
+   * and applies state changes to the votes merkle tree.
+   */
   countVotes() {
     // Save the Sequence Events accumulated so far within the account’s state accumulatedMembers (AppState 1 in doc).
     // Update the committed storage with the Sequence Events accumulated so far.
@@ -115,16 +142,16 @@ export class Voting extends SmartContract {
     let accumulatedVotes = this.accumulatedVotes.get();
     this.accumulatedVotes.assertEquals(accumulatedVotes);
 
-    let { state: newState, actionsHash: newActionsHash } = this.reducer.reduce(
+    /*     let { state: newState, actionsHash: newActionsHash } = this.reducer.reduce(
       [],
-      PublicKey,
-      // function that says how to apply an action
+      Member,
       (state: Field, _action: Field) => {
+        // TODO: apply changes to merkle root
         return state.add(1);
       },
       { state: Field.zero, actionsHash: accumulatedVotes }
-    );
+    ); */
 
-    this.accumulatedVotes.set(newActionsHash);
+    this.accumulatedVotes.set(Field.zero);
   }
 }
