@@ -25,12 +25,18 @@ import { Membership } from './membership';
 let CandidateMembershipAddress = PrivateKey.random().toPublicKey();
 let VoterMembershipAddress = PrivateKey.random().toPublicKey();
 
+/**
+ * Requirements in order for a Member to participate in the election, either as a Voter or Candidate.
+ */
 let participantPreconditions = new ParticipantPreconditions(
   UInt64.zero,
   UInt64.from(100),
   UInt64.from(10000)
 );
 
+/**
+ * Defines the preconditions of an election.
+ */
 let electionPreconditions = new ElectionPreconditions(
   UInt32.from(100),
   UInt32.from(150)
