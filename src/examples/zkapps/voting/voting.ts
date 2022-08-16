@@ -12,35 +12,10 @@ import {
   prop,
   UInt32,
 } from 'snarkyjs';
-import Member from './Member';
 
-class ParticipantPreconditions extends CircuitValue {
-  @prop minMinaVote: UInt64;
-  @prop minMinaCandidate: UInt64;
-  @prop maxMinaCandidate: UInt64;
-
-  constructor(
-    minMinaVote: UInt64,
-    minMinaCandidate: UInt64,
-    maxMinaCandidate: UInt64
-  ) {
-    super();
-    this.minMinaVote = minMinaVote;
-    this.minMinaCandidate = minMinaCandidate;
-    this.maxMinaCandidate = maxMinaCandidate;
-  }
-}
-
-class ElectionPreconditions extends CircuitValue {
-  @prop startElection: UInt32;
-  @prop endElection: UInt32;
-
-  constructor(startElection: UInt32, endElection: UInt32) {
-    super();
-    this.startElection = startElection;
-    this.endElection = endElection;
-  }
-}
+import Member from './member';
+import ElectionPreconditions from './election_preconditions';
+import ParticipantPreconditions from './participant_preconditions';
 
 export class Voting extends SmartContract {
   @state(ParticipantPreconditions) participantPreconditions =
@@ -58,16 +33,16 @@ export class Voting extends SmartContract {
   }
 
   voterRegistration(member: Member) {
-    let conditions = this.electionPreconditions.get();
-    conditions.assertEquals(this.electionPreconditions.get());
+    let electionPreconditions = this.electionPreconditions.get();
+    electionPreconditions.assertEquals(this.electionPreconditions.get());
 
     let currentSlot = this.network.globalSlotSinceGenesis.get();
     currentSlot.assertEquals(this.network.globalSlotSinceGenesis.get());
 
     // we can only register voters before the election has started
-    currentSlot.assertLt(conditions.startElection);
+    currentSlot.assertLt(electionPreconditions.startElection);
 
-    // Invokes addEntry method on Voter Membership contract with member passed as an argument.
+    // TODO: Invokes addEntry method on Voter Membership contract with member passed as an argument.
   }
 
   candidateRegistration(member: Member) {
@@ -83,7 +58,7 @@ export class Voting extends SmartContract {
     let participantPreconditions = this.participantPreconditions.get();
     participantPreconditions.assertEquals(participantPreconditions);
 
-    // Invokes addEntry method on Candidate Membership contract with member passed as an argument.
+    // TODO: Invokes addEntry method on Candidate Membership contract with member passed as an argument.
   }
 
   authorizeRegistrations() {
