@@ -1,7 +1,7 @@
 import { Bool, CircuitValue, Field, prop, PublicKey, UInt64 } from 'snarkyjs';
 
 export class Member extends CircuitValue {
-  static count = 0;
+  private static count = 0;
 
   @prop publicKey: PublicKey;
   @prop balance: UInt64;
