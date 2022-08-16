@@ -1,6 +1,6 @@
 import { CircuitValue, prop, UInt64 } from 'snarkyjs';
 
-export default class ParticipantPreconditions extends CircuitValue {
+export class ParticipantPreconditions extends CircuitValue {
   @prop minMinaVote: UInt64;
   @prop minMinaCandidate: UInt64;
   @prop maxMinaCandidate: UInt64;

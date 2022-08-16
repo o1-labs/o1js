@@ -7,6 +7,7 @@ import {
   DeployArgs,
   Permissions,
 } from 'snarkyjs';
+import { Member } from './member';
 
 export class Membership extends SmartContract {
   // TODO: Add state variables
@@ -20,7 +21,7 @@ export class Membership extends SmartContract {
     // TODO: Add account state initilaztion here
   }
 
-  @method addEntry(accountId) {
+  @method addEntry(member: Member) {
     // Emit event that indicates adding this item
     // Preconditions: Restrict who can vote or who can be a candidate
   }
