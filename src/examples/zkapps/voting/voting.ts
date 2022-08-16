@@ -14,6 +14,7 @@ import {
   PrivateKey,
   Experimental,
   PublicKey,
+  Poseidon,
 } from 'snarkyjs';
 
 import { Member } from './member';
@@ -53,6 +54,8 @@ export class Voting extends SmartContract {
    */
   @state(Field) accumulatedVotes = State<Field>();
 
+  VoterContract: Membership = new Membership(VoterMembershipAddress);
+  CandidateContract: Membership = new Membership(CandidateMembershipAddress);
   reducer = Experimental.Reducer({ actionType: Member });
 
   deploy(args: DeployArgs) {
@@ -77,8 +80,7 @@ export class Voting extends SmartContract {
     currentSlot.assertLt(electionPreconditions.startElection);
 
     // TODO: Invokes addEntry method on Voter Membership contract with member passed as an argument.
-    let VoterContract = new Membership(VoterMembershipAddress);
-    VoterContract.addEntry(member);
+    this.VoterContract.addEntry(member);
   }
 
   /**
@@ -99,8 +101,7 @@ export class Voting extends SmartContract {
       .and(member.balance.lte(participantPreconditions.maxMinaCandidate))
       .assertTrue();
 
-    let CandidateContract = new Membership(CandidateMembershipAddress);
-    CandidateContract.addEntry(member);
+    this.CandidateContract.addEntry(member);
   }
 
   /**
@@ -109,11 +110,9 @@ export class Voting extends SmartContract {
    */
   authorizeRegistrations() {
     // Invokes the publish method of both Voter and Candidate Membership contracts.
-    let VoterContract = new Membership(VoterMembershipAddress);
-    VoterContract.publish();
+    this.VoterContract.publish();
 
-    let CandidateContract = new Membership(CandidateMembershipAddress);
-    CandidateContract.publish();
+    this.CandidateContract.publish();
   }
 
   /**
@@ -131,8 +130,12 @@ export class Voting extends SmartContract {
       .and(currentSlot.lte(electionPreconditions.endElection))
       .assertTrue();
 
-    // Check if Voter and Candidate exist by calling the isMember method of corresponding Smart-Contracts
-    // Emit corresponding Sequence Event with the Vote for Candidate information
+    // TODO: derive voter accountId
+    this.VoterContract.isMember(Field.zero).assertTrue();
+
+    this.CandidateContract.isMember(candidate.accountId).assertTrue();
+
+    // emits a sequence event with the information about the candidate
     this.reducer.dispatch(candidate);
   }
 
@@ -156,7 +159,21 @@ export class Voting extends SmartContract {
         Member,
         (state: Field, _action: Member) => {
           // TODO: apply changes to merkle tree
-          return state.add(1);
+          let member = _action;
+
+          /*
+          // make sure the candidate is within the current merkle tree
+          member.witness
+            .calculateRoot(Poseidon.hash(member.toFields()))
+            .assertEquals(state);
+
+          // apply changes -> add one vote
+          member.votes = member.votes.add(1);
+          // calculate the new merkle root
+          return member.witness.calculateRoot(Poseidon.hash(member.toFields()));
+          */
+
+          return Field.zero;
         },
         // initial state
         { state: committedVotes, actionsHash: accumulatedVotes }

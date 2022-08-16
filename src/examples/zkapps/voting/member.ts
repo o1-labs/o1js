@@ -1,4 +1,12 @@
-import { Bool, CircuitValue, Field, prop, PublicKey, UInt64 } from 'snarkyjs';
+import {
+  Bool,
+  CircuitValue,
+  Experimental,
+  Field,
+  prop,
+  PublicKey,
+  UInt64,
+} from 'snarkyjs';
 
 export class Member extends CircuitValue {
   private static count = 0;
@@ -11,6 +19,9 @@ export class Member extends CircuitValue {
   @prop votes: Field;
   @prop isCandidate: Bool;
   @prop hashVoted: Bool;
+
+  // TODO: make work
+  @prop witness: typeof Experimental.MerkleWitness;
 
   private constructor(
     publicKey: PublicKey,
