@@ -19,9 +19,6 @@ import {
 } from './preconditions';
 import { Membership_ } from './membership';
 
-// dummy value
-let sequenceEvents: Field[][] = [];
-
 /**
  * Address to the Membership instance that keeps track of Candidates.
  */
@@ -95,6 +92,7 @@ export class Voting_ extends SmartContract {
       editState: Permissions.proofOrSignature(),
       editSequenceState: Permissions.proofOrSignature(),
     });
+    this.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
   }
 
   /**
@@ -107,7 +105,7 @@ export class Voting_ extends SmartContract {
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
     // we can only register voters before the election has started
-    currentSlot.assertLt(electionPreconditions.startElection);
+    currentSlot.assertLte(electionPreconditions.startElection);
 
     // ? should we also enforce preconditions here, or only on the membership SC side?
     member.balance.assertGte(voterPreconditions.minMina);
@@ -127,7 +125,7 @@ export class Voting_ extends SmartContract {
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
     // we can only register candidates before the election has started
-    currentSlot.assertLt(electionPreconditions.startElection);
+    currentSlot.assertLte(electionPreconditions.startElection);
 
     // ! I dont think we can pull in the actually caller balance, right?
     // ? should we also enforce preconditions here, or only on the membership SC side?
@@ -147,8 +145,11 @@ export class Voting_ extends SmartContract {
   @method
   authorizeRegistrations() {
     // Invokes the publish method of both Voter and Candidate Membership contracts.
-    //this.VoterContract.publish();
-    //this.CandidateContract.publish();
+    let VoterContract: Membership_ = new Membership_(voterAddress);
+    VoterContract.publish();
+
+    let CandidateContract: Membership_ = new Membership_(candidateAddress);
+    CandidateContract.publish();
   }
 
   /**
@@ -167,10 +168,11 @@ export class Voting_ extends SmartContract {
       .and(currentSlot.lte(electionPreconditions.endElection))
       .assertTrue();
 
-    // TODO: derive voter accountId - how?
+    // ! TODO: derive voter accountId - how? we should just pass in a voter Member
     //this.VoterContract.isMember(Field.zero).assertTrue();
 
-    //this.CandidateContract.isMember(candidate.accountId).assertTrue();
+    let CandidateContract: Membership_ = new Membership_(candidateAddress);
+    CandidateContract.isMember(candidate).assertTrue();
 
     // emits a sequence event with the information about the candidate
     this.reducer.dispatch(candidate);
@@ -194,7 +196,7 @@ export class Voting_ extends SmartContract {
 
     let { state: newCommittedVotes, actionsHash: newAccumulatedVotes } =
       this.reducer.reduce(
-        sequenceEvents,
+        this.reducer.getActions({ fromActionHash: accumulatedVotes }),
         Field,
         (state: Field, _action: Member) => {
           // checking that the member is part of the merkle tree
