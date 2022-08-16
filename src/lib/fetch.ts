@@ -181,7 +181,7 @@ type FlexibleAccount = {
 
 // TODO provedState
 const accountQuery = (publicKey: string, tokenId: string) => `{
-  account(publicKey: "${publicKey}", tokenId: "${tokenId}") {
+  account(publicKey: "${publicKey}", token: "${tokenId}") {
     publicKey
     nonce
     zkappUri
