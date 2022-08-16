@@ -26,12 +26,15 @@ class OffchainStorage<
     return super.get(key);
   }
 
-  getWitness(key: bigint): { isLeft: boolean; sibling: Field }[] | undefined {
-    if (!this.get(key)) return undefined;
+  getWitness(key: bigint): { isLeft: boolean; sibling: Field }[] {
     return this.merkleTree.getWitness(key);
   }
 
   getRoot(): Field {
     return this.merkleTree.getRoot();
+  }
+
+  clone() {
+    structuredClone(this);
   }
 }

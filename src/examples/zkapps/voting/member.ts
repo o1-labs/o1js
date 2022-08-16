@@ -6,8 +6,11 @@ export class Member extends CircuitValue {
   @prop publicKey: PublicKey;
   @prop tokenId: Field;
   @prop balance: UInt64;
-  @prop hashVoted: Bool;
   @prop accountId: Field;
+
+  @prop votes: Field;
+  @prop isCandidate: Bool;
+  @prop hashVoted: Bool;
 
   private constructor(
     publicKey: PublicKey,
@@ -21,6 +24,8 @@ export class Member extends CircuitValue {
     this.balance = balance;
     this.hashVoted = Bool(false);
     this.accountId = accountId;
+    this.isCandidate = Bool(false);
+    this.votes = Field.zero;
   }
 
   static from(publicKey: PublicKey, tokenId: Field, balance: UInt64) {
