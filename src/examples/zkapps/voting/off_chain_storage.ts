@@ -30,4 +30,8 @@ class OffchainStorage<
     if (!this.get(key)) return undefined;
     return this.merkleTree.getWitness(key);
   }
+
+  getRoot(): Field {
+    return this.merkleTree.getRoot();
+  }
 }
