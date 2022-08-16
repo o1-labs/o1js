@@ -1,24 +1,33 @@
 // Merkle Tree and off chain storage
 
-import { Experimental } from 'snarkyjs';
+import { Experimental, Field, Poseidon } from 'snarkyjs';
 
-export {
-  VoteHeight,
-  CandidateHeight,
-  VoterHeight,
-  VoteTree,
-  CandidateTree,
-  VoterTree,
-};
+export { OffchainStorage };
 
-const CandidateHeight = 4;
-const VoteHeight = CandidateHeight;
-const VoterHeight = 8;
+class OffchainStorage<
+  V extends {
+    toFields(): Field[];
+  }
+> extends Map<bigint, V> {
+  private merkleTree;
 
-let CandidateTree = new Experimental.MerkleTree(CandidateHeight);
-let VoteTree = new Experimental.MerkleTree(VoteHeight);
-let VoterTree = new Experimental.MerkleTree(VoterHeight);
+  constructor(public readonly height: number) {
+    super();
+    this.merkleTree = new Experimental.MerkleTree(height);
+  }
 
-class CandidateWitness extends Experimental.MerkleWitness(CandidateHeight) {}
-class VoteWitness extends Experimental.MerkleWitness(VoteHeight) {}
-class VoterWitness extends Experimental.MerkleWitness(VoterHeight) {}
+  set(key: bigint, value: V): this {
+    super.set(key, value);
+    this.merkleTree.setLeaf(key, Poseidon.hash(value.toFields()));
+    return this;
+  }
+
+  get(key: bigint): V | undefined {
+    return super.get(key);
+  }
+
+  getWitness(key: bigint): { isLeft: boolean; sibling: Field }[] | undefined {
+    if (!this.get(key)) return undefined;
+    return this.merkleTree.getWitness(key);
+  }
+}
