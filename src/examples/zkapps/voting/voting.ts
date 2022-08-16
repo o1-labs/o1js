@@ -142,16 +142,21 @@ export class Voting extends SmartContract {
     let accumulatedVotes = this.accumulatedVotes.get();
     this.accumulatedVotes.assertEquals(accumulatedVotes);
 
-    /*     let { state: newState, actionsHash: newActionsHash } = this.reducer.reduce(
-      [],
-      Member,
-      (state: Field, _action: Field) => {
-        // TODO: apply changes to merkle root
-        return state.add(1);
-      },
-      { state: Field.zero, actionsHash: accumulatedVotes }
-    ); */
+    let committedVotes = this.committedVotes.get();
 
-    this.accumulatedVotes.set(Field.zero);
+    let { state: newCommittedVotes, actionsHash: newAccumulatedVotes } =
+      this.reducer.reduce(
+        [],
+        Member,
+        (state: Field, _action: Member) => {
+          // TODO: apply changes to merkle tree
+          return state.add(1);
+        },
+        // initial state
+        { state: committedVotes, actionsHash: accumulatedVotes }
+      );
+
+    this.committedVotes.set(newCommittedVotes);
+    this.accumulatedVotes.set(newAccumulatedVotes);
   }
 }
