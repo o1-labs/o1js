@@ -31,7 +31,7 @@ let VoterMembershipAddress = PrivateKey.random().toPublicKey();
  */
 let participantPreconditions = new ParticipantPreconditions(
   UInt64.zero,
-  UInt64.from(100),
+  UInt64.from(0),
   UInt64.from(10000)
 );
 
@@ -39,7 +39,7 @@ let participantPreconditions = new ParticipantPreconditions(
  * Defines the preconditions of an election.
  */
 let electionPreconditions = new ElectionPreconditions(
-  UInt32.from(100),
+  UInt32.from(0),
   UInt32.from(150)
 );
 
@@ -74,13 +74,13 @@ export class Voting extends SmartContract {
    */
   voterRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    currentSlot.assertEquals(this.network.globalSlotSinceGenesis.get());
+    this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
     // we can only register voters before the election has started
     currentSlot.assertLt(electionPreconditions.startElection);
 
     // TODO: Invokes addEntry method on Voter Membership contract with member passed as an argument.
-    this.VoterContract.addEntry(member);
+    //this.VoterContract.addEntry(member);
   }
 
   /**
@@ -90,7 +90,7 @@ export class Voting extends SmartContract {
    */
   candidateRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    currentSlot.assertEquals(this.network.globalSlotSinceGenesis.get());
+    this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
     // we can only register candidates before the election has started
     currentSlot.assertLt(electionPreconditions.startElection);
@@ -101,7 +101,7 @@ export class Voting extends SmartContract {
       .and(member.balance.lte(participantPreconditions.maxMinaCandidate))
       .assertTrue();
 
-    this.CandidateContract.addEntry(member);
+    //this.CandidateContract.addEntry(member);
   }
 
   /**
@@ -110,9 +110,8 @@ export class Voting extends SmartContract {
    */
   authorizeRegistrations() {
     // Invokes the publish method of both Voter and Candidate Membership contracts.
-    this.VoterContract.publish();
-
-    this.CandidateContract.publish();
+    //this.VoterContract.publish();
+    //this.CandidateContract.publish();
   }
 
   /**
@@ -122,7 +121,7 @@ export class Voting extends SmartContract {
    */
   vote(candidate: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    currentSlot.assertEquals(this.network.globalSlotSinceGenesis.get());
+    this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
     // we can only vote in the election period
     currentSlot
@@ -131,9 +130,9 @@ export class Voting extends SmartContract {
       .assertTrue();
 
     // TODO: derive voter accountId
-    this.VoterContract.isMember(Field.zero).assertTrue();
+    //this.VoterContract.isMember(Field.zero).assertTrue();
 
-    this.CandidateContract.isMember(candidate.accountId).assertTrue();
+    //this.CandidateContract.isMember(candidate.accountId).assertTrue();
 
     // emits a sequence event with the information about the candidate
     this.reducer.dispatch(candidate);
