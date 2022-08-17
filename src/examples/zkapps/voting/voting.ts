@@ -25,7 +25,11 @@ import { Membership } from './membership';
 // dummy values for now
 let CandidateMembershipAddress = PrivateKey.random().toPublicKey();
 let VoterMembershipAddress = PrivateKey.random().toPublicKey();
-export let sequenceEvents: Field[][] = [];
+let sequenceEvents: Field[][] = [];
+export function setSequence(e: Field[]) {
+  sequenceEvents.push(e);
+  console.log(JSON.stringify(sequenceEvents));
+}
 
 /**
  * Requirements in order for a Member to participate in the election, either as a Voter or Candidate.
@@ -58,15 +62,6 @@ export class Voting extends SmartContract {
   VoterContract: Membership = new Membership(VoterMembershipAddress);
   CandidateContract: Membership = new Membership(CandidateMembershipAddress);
   reducer = Experimental.Reducer({ actionType: Member });
-
-  deploy(args: DeployArgs) {
-    super.deploy(args);
-    this.setPermissions({
-      ...Permissions.default(),
-      editState: Permissions.proofOrSignature(),
-      editSequenceState: Permissions.proofOrSignature(),
-    });
-  }
 
   /**
    * Method used to register a new voter. Calls the `addEntry(member)` method of the Voter-Membership contract.
@@ -164,7 +159,6 @@ export class Voting extends SmartContract {
         Field,
         (state: Field, _action: Member) => {
           // TODO: apply changes to merkle tree
-          let member = _action;
           return state.add(1);
         },
         // initial state

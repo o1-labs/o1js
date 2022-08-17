@@ -21,7 +21,7 @@ export class Member extends CircuitValue {
   @prop hashVoted: Bool;
 
   // TODO: make work
-  @prop witness: typeof Experimental.MerkleWitness;
+  //@prop witness: typeof Experimental.MerkleWitness;
 
   private constructor(
     publicKey: PublicKey,
