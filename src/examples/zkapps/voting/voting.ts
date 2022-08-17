@@ -72,6 +72,7 @@ export class Voting extends SmartContract {
    * Method used to register a new voter. Calls the `addEntry(member)` method of the Voter-Membership contract.
    * @param member
    */
+  @method
   voterRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
@@ -88,6 +89,7 @@ export class Voting extends SmartContract {
    * Calls the `addEntry(member)` method of the Candidate-Membership contract.
    * @param member
    */
+  @method
   candidateRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
@@ -108,6 +110,7 @@ export class Voting extends SmartContract {
    * Method used to register update all pending member registrations.
    * Calls the `publish()` method of the Candidate-Membership and Voter-Membership contract.
    */
+  @method
   authorizeRegistrations() {
     // Invokes the publish method of both Voter and Candidate Membership contracts.
     //this.VoterContract.publish();
@@ -119,6 +122,7 @@ export class Voting extends SmartContract {
    * Dispatches a new vote sequence event.
    * @param member
    */
+  @method
   vote(candidate: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
@@ -142,6 +146,7 @@ export class Voting extends SmartContract {
    * Method used to accumulate all pending votes from open sequence events
    * and applies state changes to the votes merkle tree.
    */
+  @method
   countVotes() {
     // Save the Sequence Events accumulated so far within the account’s state accumulatedMembers (AppState 1 in doc).
     // Update the committed storage with the Sequence Events accumulated so far.
