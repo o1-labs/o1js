@@ -25,6 +25,7 @@ import { Membership } from './membership';
 // dummy values for now
 let CandidateMembershipAddress = PrivateKey.random().toPublicKey();
 let VoterMembershipAddress = PrivateKey.random().toPublicKey();
+export let sequenceEvents: Field[][] = [];
 
 /**
  * Requirements in order for a Member to participate in the election, either as a Voter or Candidate.
@@ -63,9 +64,8 @@ export class Voting extends SmartContract {
     this.setPermissions({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
+      editSequenceState: Permissions.proofOrSignature(),
     });
-    this.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
-    this.committedVotes.set(Field.zero); // TODO: set this to the initial merkle root
   }
 
   /**
@@ -156,28 +156,16 @@ export class Voting extends SmartContract {
     this.accumulatedVotes.assertEquals(accumulatedVotes);
 
     let committedVotes = this.committedVotes.get();
+    this.committedVotes.assertEquals(committedVotes);
 
     let { state: newCommittedVotes, actionsHash: newAccumulatedVotes } =
       this.reducer.reduce(
-        [],
-        Member,
+        sequenceEvents,
+        Field,
         (state: Field, _action: Member) => {
           // TODO: apply changes to merkle tree
           let member = _action;
-
-          /*
-          // make sure the candidate is within the current merkle tree
-          member.witness
-            .calculateRoot(Poseidon.hash(member.toFields()))
-            .assertEquals(state);
-
-          // apply changes -> add one vote
-          member.votes = member.votes.add(1);
-          // calculate the new merkle root
-          return member.witness.calculateRoot(Poseidon.hash(member.toFields()));
-          */
-
-          return Field.zero;
+          return state.add(1);
         },
         // initial state
         { state: committedVotes, actionsHash: accumulatedVotes }
