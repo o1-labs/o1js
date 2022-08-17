@@ -39,6 +39,17 @@ export class Member extends CircuitValue {
     this.votes = Field.zero;
   }
 
+  toFields(): Field[] {
+    return this.publicKey
+      .toFields()
+      .concat(this.tokenId.toFields())
+      .concat(this.balance.toFields())
+      .concat(this.accountId.toFields())
+      .concat(this.votes.toFields())
+      .concat(this.isCandidate.toFields())
+      .concat(this.hashVoted.toFields());
+  }
+
   static from(publicKey: PublicKey, tokenId: Field, balance: UInt64) {
     this.count++;
     return new Member(
