@@ -22,42 +22,51 @@ import {
   ElectionPreconditions,
   ParticipantPreconditions,
 } from './preconditions';
-import { Membership } from './membership';
+import { Membership, Membership_ } from './membership';
 
-// dummy values for now
-let CandidateMembershipAddress = PrivateKey.random().toPublicKey();
-let VoterMembershipAddress = PrivateKey.random().toPublicKey();
-let sequenceEvents: Field[][] = [];
-export function setSequence(e: Field[]) {
-  sequenceEvents.push(e);
-  console.log(JSON.stringify(sequenceEvents));
-}
+/**
+ * Address to the Membership instance that keeps track of Candidates.
+ */
+let candidateAddress = PublicKey.empty();
+
+/**
+ * Address to the Membership instance that keeps track of Voters.
+ */
+let voterAddress = PublicKey.empty();
 
 /**
  * Requirements in order for a Member to participate in the election as a Candidate.
  */
-let candidatePreconditions = new ParticipantPreconditions(
-  UInt64.zero,
-  UInt64.from(0)
-);
+let candidatePreconditions = ParticipantPreconditions.default;
 
 /**
  * Requirements in order for a Member to participate in the election as a Voter.
  */
-let voterPreconditions = new ParticipantPreconditions(
-  UInt64.zero,
-  UInt64.MAXINT()
-);
+let voterPreconditions = ParticipantPreconditions.default;
 
 /**
  * Defines the preconditions of an election.
  */
-let electionPreconditions = new ElectionPreconditions(
-  UInt32.from(0),
-  UInt32.from(150)
-);
+let electionPreconditions = ElectionPreconditions.default;
 
-export class Voting extends SmartContract {
+interface VotingParams {
+  electionPreconditions: ElectionPreconditions;
+  voterPreconditions: ParticipantPreconditions;
+  candidatePreconditions: ParticipantPreconditions;
+  candidateAddress: PublicKey;
+  voterAddress: PublicKey;
+}
+
+export function Voting(params: VotingParams): typeof Voting_ {
+  electionPreconditions = params.electionPreconditions;
+  voterPreconditions = params.voterPreconditions;
+  candidatePreconditions = params.candidatePreconditions;
+  candidateAddress = params.candidateAddress;
+  voterAddress = params.voterAddress;
+  return Voting_;
+}
+
+class Voting_ extends SmartContract {
   /**
    * Root of the merkle tree that stores all committed votes.
    */
@@ -68,8 +77,8 @@ export class Voting extends SmartContract {
    */
   @state(Field) accumulatedVotes = State<Field>();
 
-  VoterContract: Membership = new Membership(VoterMembershipAddress);
-  CandidateContract: Membership = new Membership(CandidateMembershipAddress);
+  VoterContract: Membership_ = new Membership_(candidateAddress);
+  CandidateContract: Membership_ = new Membership_(candidateAddress);
   reducer = Experimental.Reducer({ actionType: Member });
 
   deploy(args: DeployArgs) {

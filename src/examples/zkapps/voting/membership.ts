@@ -7,14 +7,27 @@ import {
   DeployArgs,
   Permissions,
   Bool,
+  UInt64,
 } from 'snarkyjs';
 import { Member } from './member';
+import { ParticipantPreconditions } from './preconditions';
+
+let participantPreconditions = ParticipantPreconditions.default;
+
+interface MembershipParams {
+  participantPreconditions: ParticipantPreconditions;
+}
+
+export function Voting(params: MembershipParams): typeof Membership_ {
+  participantPreconditions = params.participantPreconditions;
+  return Membership_;
+}
 
 /**
  * The Membership contract keeps track of a set of members.
  * The contract can either be of type Voter or Candidate.
  */
-export class Membership extends SmartContract {
+export class Membership_ extends SmartContract {
   /**
    * Root of the merkle tree that stores all committed members.
    */
@@ -43,6 +56,9 @@ export class Membership extends SmartContract {
   @method addEntry(member: Member): Bool {
     // Emit event that indicates adding this item
     // Preconditions: Restrict who can vote or who can be a candidate
+    member.balance
+      .gte(participantPreconditions.minMina)
+      .and(member.balance.lte(participantPreconditions.maxMina)).assertTrue;
     return Bool(true);
   }
 
