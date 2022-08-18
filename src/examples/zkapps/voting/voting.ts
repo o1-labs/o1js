@@ -18,8 +18,10 @@ import {
 } from 'snarkyjs';
 
 import { Member } from './member';
-import { ElectionPreconditions } from './election_preconditions';
-import { ParticipantPreconditions } from './participant_preconditions';
+import {
+  ElectionPreconditions,
+  ParticipantPreconditions,
+} from './preconditions';
 import { Membership } from './membership';
 
 // dummy values for now
@@ -32,12 +34,19 @@ export function setSequence(e: Field[]) {
 }
 
 /**
- * Requirements in order for a Member to participate in the election, either as a Voter or Candidate.
+ * Requirements in order for a Member to participate in the election as a Candidate.
  */
-let participantPreconditions = new ParticipantPreconditions(
+let candidatePreconditions = new ParticipantPreconditions(
   UInt64.zero,
-  UInt64.from(0),
-  UInt64.from(10000)
+  UInt64.from(0)
+);
+
+/**
+ * Requirements in order for a Member to participate in the election as a Voter.
+ */
+let voterPreconditions = new ParticipantPreconditions(
+  UInt64.zero,
+  UInt64.MAXINT()
 );
 
 /**
@@ -75,8 +84,10 @@ export class Voting extends SmartContract {
     // we can only register voters before the election has started
     currentSlot.assertLt(electionPreconditions.startElection);
 
-    // TODO: Invokes addEntry method on Voter Membership contract with member passed as an argument.
-    //this.VoterContract.addEntry(member);
+    // ? should we also enforce preconditions here, or only on the membership SC side?
+    member.balance.assertGte(voterPreconditions.minMina);
+
+    this.VoterContract.addEntry(member);
   }
 
   /**
@@ -93,9 +104,10 @@ export class Voting extends SmartContract {
     currentSlot.assertLt(electionPreconditions.startElection);
 
     // ! I dont think we can pull in the actually caller balance, right?
+    // ? should we also enforce preconditions here, or only on the membership SC side?
     member.balance
-      .gte(participantPreconditions.minMinaCandidate)
-      .and(member.balance.lte(participantPreconditions.maxMinaCandidate))
+      .gte(candidatePreconditions.minMina)
+      .and(member.balance.lte(candidatePreconditions.maxMina))
       .assertTrue();
 
     //this.CandidateContract.addEntry(member);
@@ -128,7 +140,7 @@ export class Voting extends SmartContract {
       .and(currentSlot.lte(electionPreconditions.endElection))
       .assertTrue();
 
-    // TODO: derive voter accountId
+    // TODO: derive voter accountId - how?
     //this.VoterContract.isMember(Field.zero).assertTrue();
 
     //this.CandidateContract.isMember(candidate.accountId).assertTrue();

@@ -15,8 +15,10 @@ import {
 } from 'snarkyjs';
 import { MerkleTree, MerkleWitness } from 'dist/server/lib/merkle_tree';
 import { Member } from './member';
-import { ElectionPreconditions } from './election_preconditions';
-import { ParticipantPreconditions } from './participant_preconditions';
+import {
+  ElectionPreconditions,
+  ParticipantPreconditions,
+} from './preconditions';
 import { Voting } from './voting';
 
 let Local = Mina.LocalBlockchain();
