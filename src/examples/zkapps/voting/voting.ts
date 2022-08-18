@@ -171,6 +171,7 @@ export class Voting extends SmartContract {
         Field,
         (state: Field, _action: Member) => {
           // TODO: apply changes to merkle tree
+          // ! gotta fix the reducer first
           return state.add(1);
         },
         // initial state
