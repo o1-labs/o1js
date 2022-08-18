@@ -22,7 +22,7 @@ interface MembershipParams {
  * Returns a new contract class that based on a set of preconditions.
  * @param params {@link MembershipParams}
  */
-export function Voting(params: MembershipParams): typeof Membership_ {
+export function Membership(params: MembershipParams): typeof Membership_ {
   participantPreconditions = params.participantPreconditions;
   return Membership_;
 }

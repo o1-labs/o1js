@@ -73,7 +73,7 @@ export function Voting(params: VotingParams): typeof Voting_ {
   return Voting_;
 }
 
-class Voting_ extends SmartContract {
+export class Voting_ extends SmartContract {
   /**
    * Root of the merkle tree that stores all committed votes.
    */
