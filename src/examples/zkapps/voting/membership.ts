@@ -15,13 +15,22 @@ import { Member } from './member';
  * The contract can either be of type Voter or Candidate.
  */
 export class Membership extends SmartContract {
-  // TODO: Add state variables
+  /**
+   * Root of the merkle tree that stores all committed members.
+   */
+  @state(Field) committedMembers = State<Field>();
+
+  /**
+   * Accumulator of all emitted members.
+   */
+  @state(Field) accumulatedMembers = State<Field>();
 
   deploy(args: DeployArgs) {
     super.deploy(args);
     this.setPermissions({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
+      editSequenceState: Permissions.proofOrSignature(),
     });
     // TODO: Add account state initilaztion here
   }
@@ -38,7 +47,7 @@ export class Membership extends SmartContract {
   }
 
   /**
-   * Method used to check whether a member exists within the accumulator.
+   * Method used to check whether a member exists within the committed storage.
    * @param accountId
    * @returns true if member exists
    */

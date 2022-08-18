@@ -72,6 +72,15 @@ export class Voting extends SmartContract {
   CandidateContract: Membership = new Membership(CandidateMembershipAddress);
   reducer = Experimental.Reducer({ actionType: Member });
 
+  deploy(args: DeployArgs) {
+    super.deploy(args);
+    this.setPermissions({
+      ...Permissions.default(),
+      editState: Permissions.proofOrSignature(),
+      editSequenceState: Permissions.proofOrSignature(),
+    });
+  }
+
   /**
    * Method used to register a new voter. Calls the `addEntry(member)` method of the Voter-Membership contract.
    * @param member
