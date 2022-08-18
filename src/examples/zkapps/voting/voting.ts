@@ -22,7 +22,10 @@ import {
   ElectionPreconditions,
   ParticipantPreconditions,
 } from './preconditions';
-import { Membership, Membership_ } from './membership';
+import { Membership_ } from './membership';
+
+// dummy value
+let sequenceEvents: Field[][] = [];
 
 /**
  * Address to the Membership instance that keeps track of Candidates.
@@ -57,6 +60,10 @@ interface VotingParams {
   voterAddress: PublicKey;
 }
 
+/**
+ * Returns a new contract class that based on a set of preconditions.
+ * @param params {@link Voting_}
+ */
 export function Voting(params: VotingParams): typeof Voting_ {
   electionPreconditions = params.electionPreconditions;
   voterPreconditions = params.voterPreconditions;
