@@ -11,7 +11,7 @@ import {
 } from './preconditions';
 import { Voting, Voting_ } from './voting';
 
-interface VotingAppParams {
+export interface VotingAppParams {
   candidatePreconditions: ParticipantPreconditions;
   voterPreconditions: ParticipantPreconditions;
   electionPreconditions: ElectionPreconditions;
