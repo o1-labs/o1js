@@ -58,19 +58,23 @@ interface VotingParams {
   candidatePreconditions: ParticipantPreconditions;
   candidateAddress: PublicKey;
   voterAddress: PublicKey;
+  contractAddress: PublicKey;
 }
 
 /**
- * Returns a new contract class that based on a set of preconditions.
+ * Returns a new contract instance that based on a set of preconditions.
  * @param params {@link Voting_}
  */
-export function Voting(params: VotingParams): typeof Voting_ {
+export async function Voting(params: VotingParams): Promise<Voting_> {
   electionPreconditions = params.electionPreconditions;
   voterPreconditions = params.voterPreconditions;
   candidatePreconditions = params.candidatePreconditions;
   candidateAddress = params.candidateAddress;
   voterAddress = params.voterAddress;
-  return Voting_;
+
+  let contract = new Voting_(params.contractAddress);
+  await Voting_.compile(params.contractAddress);
+  return contract;
 }
 
 export class Voting_ extends SmartContract {

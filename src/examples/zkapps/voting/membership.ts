@@ -8,6 +8,7 @@ import {
   Permissions,
   Bool,
   UInt64,
+  PublicKey,
 } from 'snarkyjs';
 import { Member } from './member';
 import { ParticipantPreconditions } from './preconditions';
@@ -16,15 +17,22 @@ let participantPreconditions = ParticipantPreconditions.default;
 
 interface MembershipParams {
   participantPreconditions: ParticipantPreconditions;
+  contractAddress: PublicKey;
 }
 
 /**
- * Returns a new contract class that based on a set of preconditions.
+ * Returns a new contract instance that based on a set of preconditions.
  * @param params {@link MembershipParams}
  */
-export function Membership(params: MembershipParams): typeof Membership_ {
+export async function Membership(
+  params: MembershipParams
+): Promise<Membership_> {
   participantPreconditions = params.participantPreconditions;
-  return Membership_;
+
+  let contract = new Membership_(params.contractAddress);
+  await Membership_.compile(params.contractAddress);
+
+  return contract;
 }
 
 /**

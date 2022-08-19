@@ -15,6 +15,9 @@ interface VotingAppParams {
   candidatePreconditions: ParticipantPreconditions;
   voterPreconditions: ParticipantPreconditions;
   electionPreconditions: ElectionPreconditions;
+  voterAddress: PublicKey;
+  candidateAddress: PublicKey;
+  votingAddress: PublicKey;
 }
 
 function defaultParams(): VotingAppParams {
@@ -22,33 +25,43 @@ function defaultParams(): VotingAppParams {
     candidatePreconditions: ParticipantPreconditions.default,
     voterPreconditions: ParticipantPreconditions.default,
     electionPreconditions: ElectionPreconditions.default,
+    candidateAddress: PublicKey.empty(),
+    voterAddress: PublicKey.empty(),
+    votingAddress: PublicKey.empty(),
   };
 }
 
 /**
- * This function takes a set of preconditions and produces a set of contracts.
+ * ! This is the only workaround that I found works with how our contracts compiled
+ * ! Maybe we can figure out a more elegant factory pattern for our integration tests
+ * This function takes a set of preconditions and produces a set of contract instances.
  * @param params {@link VotingAppParams}
  * @returns
  */
-export function VotingApp(params: VotingAppParams = defaultParams()): {
-  voterContract: typeof Membership_;
-  candidateContract: typeof Membership_;
-  voting: typeof Voting_;
-} {
-  let Voter = Membership({
+export async function VotingApp(
+  params: VotingAppParams = defaultParams()
+): Promise<{
+  voterContract: Membership_;
+  candidateContract: Membership_;
+  voting: Voting_;
+}> {
+  let Voter = await Membership({
     participantPreconditions: params.voterPreconditions,
+    contractAddress: params.voterAddress,
   });
 
-  let Candidate = Membership({
+  let Candidate = await Membership({
     participantPreconditions: params.candidatePreconditions,
+    contractAddress: params.voterAddress,
   });
 
-  let VotingContract = Voting({
+  let VotingContract = await Voting({
     electionPreconditions: params.electionPreconditions,
     voterPreconditions: params.voterPreconditions,
     candidatePreconditions: params.candidatePreconditions,
-    candidateAddress: PublicKey.empty(), // TODO: insert real address
-    voterAddress: PublicKey.empty(), // TODO: insert real address
+    candidateAddress: params.candidateAddress,
+    voterAddress: params.voterAddress,
+    contractAddress: params.votingAddress,
   });
 
   return {
