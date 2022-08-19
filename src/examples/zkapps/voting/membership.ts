@@ -60,7 +60,7 @@ export class Membership_ extends SmartContract {
       editState: Permissions.proofOrSignature(),
       editSequenceState: Permissions.proofOrSignature(),
     });
-    // TODO: Add account state initilaztion here
+    // TODO: Add account state initilaztion here - we should probably do that at deploy time in the tx
   }
 
   /**
@@ -79,8 +79,25 @@ export class Membership_ extends SmartContract {
       .gte(participantPreconditions.minMina)
       .and(member.balance.lte(participantPreconditions.maxMina)).assertTrue;
 
+    // TODO: check if member already exists within sequence states, probably something similar to
+    let accumulatedMembers = this.accumulatedMembers.get();
+    this.accumulatedMembers.assertEquals(accumulatedMembers);
+
+    let { state: exists } = this.reducer.reduce(
+      [], // TODO: sequence events
+      Bool,
+      (state: Bool, _action: Member) => {
+        // ! gotta fix the reducer first
+        return _action.equals(member).or(state);
+      },
+      // initial state
+      { state: Bool(false), actionsHash: accumulatedMembers }
+    );
+
     this.reducer.dispatch(member);
-    return Bool(true);
+    // TODO: we cant really branch logic, revisit this section to align with testing docs
+
+    return exists;
   }
 
   /**
@@ -88,9 +105,19 @@ export class Membership_ extends SmartContract {
    * @param accountId
    * @returns true if member exists
    */
-  @method isMember(accountId: Field): Bool {
+  @method isMember(member: Member): Bool {
     // Verify membership (voter or candidate) with the accountId via merkletree committed to by the sequence events and returns a boolean
     // Preconditions: Item exists in committed storage
+
+    let committedMembers = this.committedMembers.get();
+    this.committedMembers.assertEquals(committedMembers);
+
+    // TODO: assert merkle path (?)
+
+    /*     return member.witness
+      .calculateRoot(Poseidong.hash(member.toFields()))
+      .equals(committedMembers); */
+
     return Bool(true);
   }
 
@@ -116,7 +143,7 @@ export class Membership_ extends SmartContract {
           return state.add(1);
         },
         // initial state
-        { state: committedMembers, actionsHash: committedMembers }
+        { state: committedMembers, actionsHash: accumulatedMembers }
       );
 
     this.committedMembers.set(newCommittedMembers);
