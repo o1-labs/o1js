@@ -9,6 +9,7 @@ import {
   Bool,
   UInt64,
   PublicKey,
+  Experimental,
 } from 'snarkyjs';
 import { Member } from './member';
 import { ParticipantPreconditions } from './preconditions';
@@ -50,6 +51,8 @@ export class Membership_ extends SmartContract {
    */
   @state(Field) accumulatedMembers = State<Field>();
 
+  reducer = Experimental.Reducer({ actionType: Member });
+
   deploy(args: DeployArgs) {
     super.deploy(args);
     this.setPermissions({
@@ -68,9 +71,15 @@ export class Membership_ extends SmartContract {
   @method addEntry(member: Member): Bool {
     // Emit event that indicates adding this item
     // Preconditions: Restrict who can vote or who can be a candidate
+
+    // since we need to keep this contract "generic", we always assert within a range
+    // even tho voters cant have a maximum balance, only candidate
+    // but for voter we simply use UInt64.MAXINT() as maximum
     member.balance
       .gte(participantPreconditions.minMina)
       .and(member.balance.lte(participantPreconditions.maxMina)).assertTrue;
+
+    this.reducer.dispatch(member);
     return Bool(true);
   }
 
@@ -90,5 +99,27 @@ export class Membership_ extends SmartContract {
    */
   @method publish() {
     // Commit to the items accumulated so far. This is a periodic update
+
+    let accumulatedMembers = this.accumulatedMembers.get();
+    this.accumulatedMembers.assertEquals(accumulatedMembers);
+
+    let committedMembers = this.committedMembers.get();
+    this.committedMembers.assertEquals(committedMembers);
+
+    let { state: newCommittedMembers, actionsHash: newAccumulatedMembers } =
+      this.reducer.reduce(
+        [], // TODO: sequence events
+        Field,
+        (state: Field, _action: Member) => {
+          // TODO: apply changes to merkle tree
+          // ! gotta fix the reducer first
+          return state.add(1);
+        },
+        // initial state
+        { state: committedMembers, actionsHash: committedMembers }
+      );
+
+    this.committedMembers.set(newCommittedMembers);
+    this.accumulatedMembers.set(newAccumulatedMembers);
   }
 }

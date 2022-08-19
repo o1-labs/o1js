@@ -88,7 +88,7 @@ export class Voting_ extends SmartContract {
    */
   @state(Field) accumulatedVotes = State<Field>();
 
-  VoterContract: Membership_ = new Membership_(candidateAddress);
+  VoterContract: Membership_ = new Membership_(voterAddress);
   CandidateContract: Membership_ = new Membership_(candidateAddress);
   reducer = Experimental.Reducer({ actionType: Member });
 
