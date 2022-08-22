@@ -1,4 +1,4 @@
-import { Mina, PublicKey } from 'snarkyjs';
+import { Mina, PrivateKey, PublicKey } from 'snarkyjs';
 import { VotingApp, VotingAppParams } from './factory';
 import { Membership_ } from './membership';
 import {
@@ -9,10 +9,7 @@ import { Voting_ } from './voting';
 
 import { OffchainStorage } from './off_chain_storage';
 import { Member } from './member';
-
-type Votes = OffchainStorage<Member>;
-type Candidates = OffchainStorage<Member>;
-type Voters = OffchainStorage<Member>;
+import { testSet } from './test';
 
 const HeightCandidateTree = 8;
 const HeightVoterTree = 8;
@@ -35,9 +32,9 @@ let params_set1: VotingAppParams = {
   candidatePreconditions: ParticipantPreconditions.default,
   voterPreconditions: ParticipantPreconditions.default,
   electionPreconditions: ElectionPreconditions.default,
-  voterAddress: PublicKey.empty(),
-  candidateAddress: PublicKey.empty(),
-  votingAddress: PublicKey.empty(),
+  voterKey: PrivateKey.random(),
+  candidateKey: PrivateKey.random(),
+  votingKey: PrivateKey.random(),
 };
 
 let storage_set1 = {
@@ -61,9 +58,9 @@ let params_set2: VotingAppParams = {
   candidatePreconditions: ParticipantPreconditions.default,
   voterPreconditions: ParticipantPreconditions.default,
   electionPreconditions: ElectionPreconditions.default,
-  voterAddress: PublicKey.empty(),
-  candidateAddress: PublicKey.empty(),
-  votingAddress: PublicKey.empty(),
+  voterKey: PrivateKey.random(),
+  candidateKey: PrivateKey.random(),
+  votingKey: PrivateKey.random(),
 };
 
 let storage_set2 = {
@@ -83,26 +80,3 @@ await testSet(contracts_set2, params_set2, storage_set2);
 // parallel creation of sets doesnt work with the current "factory" pattern
 
 // ..
-
-/**
- * Function used to test a set of contracts and precondition
- * @param set A set of contracts
- * @param params A set of preconditions and parameters
- * @param storage A set of off-chain storage
- */
-async function testSet(
-  set: {
-    voterContract: Membership_;
-    candidateContract: Membership_;
-    voting: Voting_;
-  },
-  params: VotingAppParams,
-  storage: {
-    votesStore: Votes;
-    candidatesStore: Candidates;
-    votersStore: Voters;
-  }
-) {
-  // TODO: do our testing here
-  throw new Error('Not implemented');
-}

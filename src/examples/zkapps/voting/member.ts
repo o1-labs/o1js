@@ -16,8 +16,11 @@ export class Member extends CircuitValue {
   @prop balance: UInt64;
   @prop accountId: Field;
 
+  // will need this to keep track of votes for candidates
   @prop votes: Field;
   @prop isCandidate: Bool;
+
+  // just to avoid double voting, but we can also ignore this for now
   @prop hashVoted: Bool;
 
   // TODO: make work
@@ -39,6 +42,7 @@ export class Member extends CircuitValue {
     this.votes = Field.zero;
   }
 
+  // I am defining a custom toFields method here because some things arent important when e.g. hashing
   toFields(): Field[] {
     return this.publicKey
       .toFields()
@@ -49,6 +53,8 @@ export class Member extends CircuitValue {
       .concat(this.isCandidate.toFields())
       .concat(this.hashVoted.toFields());
   }
+
+  // TODO: ofFields(xs: Field[])
 
   static from(publicKey: PublicKey, tokenId: Field, balance: UInt64) {
     this.count++;

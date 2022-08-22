@@ -3,7 +3,7 @@
  * Requires a set of preconditions.
  */
 
-import { PublicKey, UInt32, UInt64 } from 'snarkyjs';
+import { PrivateKey, PublicKey, UInt32, UInt64 } from 'snarkyjs';
 import { Membership, Membership_ } from './membership';
 import {
   ElectionPreconditions,
@@ -15,9 +15,10 @@ export interface VotingAppParams {
   candidatePreconditions: ParticipantPreconditions;
   voterPreconditions: ParticipantPreconditions;
   electionPreconditions: ElectionPreconditions;
-  voterAddress: PublicKey;
-  candidateAddress: PublicKey;
-  votingAddress: PublicKey;
+  voterKey: PrivateKey;
+  candidateKey: PrivateKey;
+  votingKey: PrivateKey;
+  doProofs: boolean;
 }
 
 function defaultParams(): VotingAppParams {
@@ -25,9 +26,10 @@ function defaultParams(): VotingAppParams {
     candidatePreconditions: ParticipantPreconditions.default,
     voterPreconditions: ParticipantPreconditions.default,
     electionPreconditions: ElectionPreconditions.default,
-    candidateAddress: PublicKey.empty(),
-    voterAddress: PublicKey.empty(),
-    votingAddress: PublicKey.empty(),
+    candidateKey: PrivateKey.random(),
+    voterKey: PrivateKey.random(),
+    votingKey: PrivateKey.random(),
+    doProofs: true,
   };
 }
 
@@ -47,21 +49,24 @@ export async function VotingApp(
 }> {
   let Voter = await Membership({
     participantPreconditions: params.voterPreconditions,
-    contractAddress: params.voterAddress,
+    contractAddress: params.voterKey.toPublicKey(),
+    doProofs: params.doProofs,
   });
 
   let Candidate = await Membership({
     participantPreconditions: params.candidatePreconditions,
-    contractAddress: params.voterAddress,
+    contractAddress: params.voterKey.toPublicKey(),
+    doProofs: params.doProofs,
   });
 
   let VotingContract = await Voting({
     electionPreconditions: params.electionPreconditions,
     voterPreconditions: params.voterPreconditions,
     candidatePreconditions: params.candidatePreconditions,
-    candidateAddress: params.candidateAddress,
-    voterAddress: params.voterAddress,
-    contractAddress: params.votingAddress,
+    candidateAddress: params.candidateKey.toPublicKey(),
+    voterAddress: params.voterKey.toPublicKey(),
+    contractAddress: params.votingKey.toPublicKey(),
+    doProofs: params.doProofs,
   });
 
   return {

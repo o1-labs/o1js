@@ -19,6 +19,7 @@ let participantPreconditions = ParticipantPreconditions.default;
 interface MembershipParams {
   participantPreconditions: ParticipantPreconditions;
   contractAddress: PublicKey;
+  doProofs: boolean;
 }
 
 /**
@@ -31,7 +32,9 @@ export async function Membership(
   participantPreconditions = params.participantPreconditions;
 
   let contract = new Membership_(params.contractAddress);
-  await Membership_.compile(params.contractAddress);
+  if (params.doProofs) {
+    await Membership_.compile(params.contractAddress);
+  }
 
   return contract;
 }

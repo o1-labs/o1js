@@ -59,6 +59,7 @@ interface VotingParams {
   candidateAddress: PublicKey;
   voterAddress: PublicKey;
   contractAddress: PublicKey;
+  doProofs: boolean;
 }
 
 /**
@@ -73,7 +74,9 @@ export async function Voting(params: VotingParams): Promise<Voting_> {
   voterAddress = params.voterAddress;
 
   let contract = new Voting_(params.contractAddress);
-  await Voting_.compile(params.contractAddress);
+  if (params.doProofs) {
+    await Voting_.compile(params.contractAddress);
+  }
   return contract;
 }
 
