@@ -33,7 +33,7 @@ let params_set1: VotingAppParams = {
   voterKey: PrivateKey.random(),
   candidateKey: PrivateKey.random(),
   votingKey: PrivateKey.random(),
-  doProofs: true,
+  doProofs: false,
 };
 
 let storage_set1 = {
@@ -55,28 +55,3 @@ await testSet(contracts_set1, params_set1, storage_set1);
 // parallel creation of sets doesnt work with the current "factory" pattern
 
 // ..
-
-// dummy set to demonstrate how the script will function
-console.log('Starting run for set 2...');
-
-let params_set2: VotingAppParams = {
-  candidatePreconditions: ParticipantPreconditions.default,
-  voterPreconditions: ParticipantPreconditions.default,
-  electionPreconditions: ElectionPreconditions.default,
-  voterKey: PrivateKey.random(),
-  candidateKey: PrivateKey.random(),
-  votingKey: PrivateKey.random(),
-  doProofs: true,
-};
-
-let storage_set2 = {
-  votesStore: new OffchainStorage<Member>(HeightVoterTree),
-  candidatesStore: new OffchainStorage<Member>(HeightCandidateTree),
-  votersStore: new OffchainStorage<Member>(HeightCandidateTree),
-};
-
-console.log('Building contracts for set 2...');
-let contracts_set2 = await VotingApp(params_set1);
-
-console.log('Testing set 1...');
-await testSet(contracts_set2, params_set2, storage_set2);

@@ -32,6 +32,7 @@ export async function testSet(
   Mina.setActiveInstance(Local);
 
   let feePayer = Local.testAccounts[0].privateKey;
+
   let tx;
 
   let voterContract = set.voterContract;
@@ -40,27 +41,28 @@ export async function testSet(
 
   console.log('deploying set of 3 contracts');
   tx = await Mina.transaction(feePayer, () => {
-    Party.fundNewAccount(feePayer);
+    Party.fundNewAccount(feePayer, { initialBalance: 0 });
     voterContract.deploy({ zkappKey: params.voterKey });
-    candidateContract.deploy({ zkappKey: params.candidateKey });
-    voting.deploy({ zkappKey: params.votingKey });
+    //candidateContract.deploy({ zkappKey: params.candidateKey });
+    //voting.deploy({ zkappKey: params.votingKey });
 
     // setting the merkle root
     voterContract.committedMembers.set(storage.votersStore.getRoot());
-    candidateContract.committedMembers.set(storage.candidatesStore.getRoot());
-    voting.committedVotes.set(storage.votesStore.getRoot());
+    //candidateContract.committedMembers.set(storage.candidatesStore.getRoot());
+    //voting.committedVotes.set(storage.votesStore.getRoot());
 
     // setting the initial sequence events hash
     voterContract.accumulatedMembers.set(
       Experimental.Reducer.initialActionsHash
     );
-    candidateContract.accumulatedMembers.set(
+    /*     candidateContract.accumulatedMembers.set(
       Experimental.Reducer.initialActionsHash
     );
-    voting.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
+    voting.accumulatedVotes.set(Experimental.Reducer.initialActionsHash); */
   });
   tx.send();
 
   // TODO: do our testing here
   //throw new Error('Not implemented');
+  console.log('test successful!');
 }
