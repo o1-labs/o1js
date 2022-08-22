@@ -35,6 +35,7 @@ let params_set1: VotingAppParams = {
   voterKey: PrivateKey.random(),
   candidateKey: PrivateKey.random(),
   votingKey: PrivateKey.random(),
+  doProofs: true,
 };
 
 let storage_set1 = {
@@ -67,6 +68,7 @@ let params_set2: VotingAppParams = {
   voterKey: PrivateKey.random(),
   candidateKey: PrivateKey.random(),
   votingKey: PrivateKey.random(),
+  doProofs: true,
 };
 
 let storage_set2 = {
