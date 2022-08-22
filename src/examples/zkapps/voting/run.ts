@@ -1,11 +1,9 @@
 import { Mina, PrivateKey, PublicKey } from 'snarkyjs';
 import { VotingApp, VotingAppParams } from './factory';
-import { Membership_ } from './membership';
 import {
   ElectionPreconditions,
   ParticipantPreconditions,
 } from './preconditions';
-import { Voting_ } from './voting';
 
 import { OffchainStorage } from './off_chain_storage';
 import { Member } from './member';

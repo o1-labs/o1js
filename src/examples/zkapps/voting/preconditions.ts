@@ -1,4 +1,4 @@
-import { CircuitValue, prop, UInt32, UInt64 } from 'snarkyjs';
+import { UInt32, UInt64 } from 'snarkyjs';
 
 export class ElectionPreconditions {
   startElection: UInt32;

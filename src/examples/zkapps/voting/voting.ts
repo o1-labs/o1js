@@ -6,15 +6,8 @@ import {
   method,
   DeployArgs,
   Permissions,
-  Circuit,
-  CircuitValue,
-  UInt64,
-  prop,
-  UInt32,
-  PrivateKey,
   Experimental,
   PublicKey,
-  Poseidon,
 } from 'snarkyjs';
 
 import { Member } from './member';

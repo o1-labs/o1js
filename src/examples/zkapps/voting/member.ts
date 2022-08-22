@@ -1,12 +1,4 @@
-import {
-  Bool,
-  CircuitValue,
-  Experimental,
-  Field,
-  prop,
-  PublicKey,
-  UInt64,
-} from 'snarkyjs';
+import { Bool, CircuitValue, Field, prop, PublicKey, UInt64 } from 'snarkyjs';
 
 export class Member extends CircuitValue {
   private static count = 0;

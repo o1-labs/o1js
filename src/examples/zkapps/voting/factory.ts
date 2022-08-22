@@ -3,7 +3,7 @@
  * Requires a set of preconditions.
  */
 
-import { PrivateKey, PublicKey, UInt32, UInt64 } from 'snarkyjs';
+import { PrivateKey } from 'snarkyjs';
 import { Membership, Membership_ } from './membership';
 import {
   ElectionPreconditions,

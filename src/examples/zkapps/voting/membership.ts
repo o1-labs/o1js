@@ -7,7 +7,6 @@ import {
   DeployArgs,
   Permissions,
   Bool,
-  UInt64,
   PublicKey,
   Experimental,
 } from 'snarkyjs';

@@ -1,4 +1,4 @@
-import { Experimental, Mina, Party } from 'dist/server';
+import { Experimental, Mina, Party } from 'snarkyjs';
 import { VotingAppParams } from './factory';
 import { Member } from './member';
 import { Membership_ } from './membership';
@@ -62,5 +62,5 @@ export async function testSet(
   tx.send();
 
   // TODO: do our testing here
-  throw new Error('Not implemented');
+  //throw new Error('Not implemented');
 }
