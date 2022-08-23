@@ -9,7 +9,13 @@ import {
   Experimental,
   Token,
 } from 'snarkyjs';
-import { VotingMerkleTree } from './run';
+
+class MerkleWitness extends Experimental.MerkleWitness(8) {}
+let w = {
+  isLeft: false,
+  sibling: Field.zero,
+};
+let dummyWitness = Array.from(Array(8).keys()).map(() => w);
 
 export class Member extends CircuitValue {
   private static count = 0;
@@ -26,9 +32,9 @@ export class Member extends CircuitValue {
   // just to avoid double voting, but we can also ignore this for now
   @prop hashVoted: Bool;
 
-  @prop witness: VotingMerkleTree;
+  @prop witness: MerkleWitness;
 
-  private constructor(
+  constructor(
     publicKey: PublicKey,
     tokenId: Field,
     balance: UInt64,
@@ -42,13 +48,8 @@ export class Member extends CircuitValue {
     this.accountId = accountId;
     this.isCandidate = Bool(false);
     this.votes = Field.zero;
-    let w = {
-      isLeft: false,
-      sibling: Field.zero,
-    };
-    this.witness = new VotingMerkleTree(
-      Array.from(Array(VotingMerkleTree.height).keys()).map(() => w)
-    );
+
+    this.witness = new MerkleWitness(dummyWitness);
   }
 
   // I am defining a custom toFields method here because some things arent important when e.g. hashing

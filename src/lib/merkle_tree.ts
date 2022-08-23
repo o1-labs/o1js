@@ -7,7 +7,7 @@ export {
   Witness,
   MerkleTree,
   MerkleWitness,
-  BaseMerkleWitness /* need to export BaseMerkleWitness so we can export classes that extend it as well*/,
+  //BaseMerkleWitness /* need to export BaseMerkleWitness so we can export classes that extend it as well*/,
 };
 
 type Witness = { isLeft: boolean; sibling: Field }[];

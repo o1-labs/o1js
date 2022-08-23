@@ -64,7 +64,6 @@ export class Membership_ extends SmartContract {
       editState: Permissions.proofOrSignature(),
       editSequenceState: Permissions.proofOrSignature(),
     });
-    // TODO: Add account state initilaztion here - we should probably do that at deploy time in the tx
   }
 
   /**

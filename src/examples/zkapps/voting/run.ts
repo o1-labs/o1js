@@ -12,10 +12,6 @@ import { testSet } from './test';
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
-// ! should probably move this as well to avoid this circular import pattern
-const TreeHeight = 8;
-export class VotingMerkleTree extends Experimental.MerkleWitness(TreeHeight) {}
-
 console.log('Running Voting script...');
 
 // I really hope this factory pattern works with SnarkyJS' contracts
@@ -38,9 +34,9 @@ let params_set1: VotingAppParams = {
 };
 
 let storage_set1 = {
-  votesStore: new OffchainStorage<Member>(TreeHeight),
-  candidatesStore: new OffchainStorage<Member>(TreeHeight),
-  votersStore: new OffchainStorage<Member>(TreeHeight),
+  votesStore: new OffchainStorage<Member>(8),
+  candidatesStore: new OffchainStorage<Member>(8),
+  votersStore: new OffchainStorage<Member>(8),
 };
 
 console.log('Building contracts for set 1...');
