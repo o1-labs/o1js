@@ -35,6 +35,7 @@ export class Member extends CircuitValue {
   @prop hashVoted: Bool;
 
   @prop witness: MerkleWitness;
+  @prop votesWitness: MerkleWitness;
 
   constructor(
     publicKey: PublicKey,
@@ -52,6 +53,7 @@ export class Member extends CircuitValue {
     this.votes = Field.zero;
 
     this.witness = new MerkleWitness(dummyWitness);
+    this.votesWitness = new MerkleWitness(dummyWitness);
   }
 
   // I am defining a custom toFields method here because some things arent important when e.g. hashing
