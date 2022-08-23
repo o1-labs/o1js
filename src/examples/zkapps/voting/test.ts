@@ -107,6 +107,19 @@ export async function testSet(
   throw Error(err)
 }
 
+console.log('authroizing registrations...')
+  try {
+    tx = await Mina.transaction(feePayer, () => {
+    // register new candidate
+    contracts.voting.authorizeRegistrations();
+    contracts.voting.sign(votingKey);
+  });
+  
+  tx.send();
+} catch (err: any) {
+  throw Error(err)
+}
+
 
   console.log('test successful!');
 }
