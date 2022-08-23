@@ -823,7 +823,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         // update state
         state = Circuit.switch(lengths, stateType, newStates);
       }
-      contract.account.sequenceState.assertEquals(actionsHash);
+      //contract.account.sequenceState.assertEquals(actionsHash);
       return { state, actionsHash };
     },
   };
