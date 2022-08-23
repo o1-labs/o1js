@@ -3,7 +3,12 @@ import { Poseidon } from './hash';
 import { Bool, Field } from './core';
 
 // external API
-export { Witness, MerkleTree, MerkleWitness };
+export {
+  Witness,
+  MerkleTree,
+  MerkleWitness,
+  BaseMerkleWitness /* need to export BaseMerkleWitness so we can export classes that extend it as well*/,
+};
 
 type Witness = { isLeft: boolean; sibling: Field }[];
 
