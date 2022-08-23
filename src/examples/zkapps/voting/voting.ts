@@ -107,7 +107,7 @@ export class Voting_ extends SmartContract {
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
     // we can only register voters before the election has started
-    currentSlot.assertLt(electionPreconditions.startElection);
+    currentSlot.assertLte(electionPreconditions.startElection);
 
     // ? should we also enforce preconditions here, or only on the membership SC side?
     member.balance.assertGte(voterPreconditions.minMina);

@@ -10,7 +10,7 @@ import {
   Token,
 } from 'snarkyjs';
 
-class MerkleWitness extends Experimental.MerkleWitness(8) {}
+class MerkleWitness extends Experimental.MerkleWitness(9) {}
 let w = {
   isLeft: false,
   sibling: Field.zero,
