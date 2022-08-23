@@ -77,3 +77,5 @@ let storage_set2 = {
 console.log('Building contracts for set 2...');
 let contracts_set2 = await VotingApp(params_set2);
 
+console.log('Testing set 2...');
+await testSet(contracts_set2, params_set2, storage_set2);
