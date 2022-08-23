@@ -86,8 +86,6 @@ export class Voting_ extends SmartContract {
    */
   @state(Field) accumulatedVotes = State<Field>();
 
-  VoterContract: Membership_ = new Membership_(voterAddress);
-  CandidateContract: Membership_ = new Membership_(candidateAddress);
   reducer = Experimental.Reducer({ actionType: Member });
 
   deploy(args: DeployArgs) {
@@ -114,7 +112,8 @@ export class Voting_ extends SmartContract {
     // ? should we also enforce preconditions here, or only on the membership SC side?
     member.balance.assertGte(voterPreconditions.minMina);
 
-    this.VoterContract.addEntry(member);
+    let VoterContract: Membership_ = new Membership_(voterAddress);
+    VoterContract.addEntry(member);
   }
 
   /**
@@ -137,7 +136,8 @@ export class Voting_ extends SmartContract {
       .and(member.balance.lte(candidatePreconditions.maxMina))
       .assertTrue();
 
-    //this.CandidateContract.addEntry(member);
+    let CandidateContract: Membership_ = new Membership_(candidateAddress);
+    CandidateContract.addEntry(member);
   }
 
   /**

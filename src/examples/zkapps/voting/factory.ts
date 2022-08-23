@@ -55,7 +55,7 @@ export async function VotingApp(
 
   let Candidate = await Membership({
     participantPreconditions: params.candidatePreconditions,
-    contractAddress: params.voterKey.toPublicKey(),
+    contractAddress: params.candidateKey.toPublicKey(),
     doProofs: params.doProofs,
   });
 
