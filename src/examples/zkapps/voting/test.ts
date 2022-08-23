@@ -88,17 +88,17 @@ export async function testSet(
 }
 
  console.log('attempting to register a candidate...')
-
+let newCandidate: Member;
   try {
     tx = await Mina.transaction(feePayer, () => {
-    let newCanidate = Member.from(
+    newCandidate = Member.from(
       PrivateKey.random().toPublicKey(),
       Field.zero,
       UInt64.from(50)
     );
 
     // register new candidate
-    contracts.voting.candidateRegistration(newCanidate);
+    contracts.voting.candidateRegistration(newCandidate);
     contracts.voting.sign(votingKey);
   });
   
@@ -120,6 +120,36 @@ console.log('authroizing registrations...')
   throw Error(err)
 }
 
+console.log('attempting to vote for the new candidate...')
+  try {
+    tx = await Mina.transaction(feePayer, () => {
+  
+    contracts.voting.vote(newCandidate);
+    contracts.voting.sign(votingKey);
+  });
+  
+  tx.send();
+} catch (err: any) {
+  throw Error(err)
+}
+
+console.log('attempting to vote for a fake candidate...')
+  try {
+    tx = await Mina.transaction(feePayer, () => {
+
+  let fakkCanidate = Member.from(
+    PrivateKey.random().toPublicKey(),
+    Field.zero,
+    UInt64.from(50)
+  );
+    contracts.voting.vote(fakeCandidate);
+    contracts.voting.sign(votingKey);
+  });
+  
+  tx.send();
+} catch (err: any) {
+   // TODO: handle errors
+}
 
   console.log('test successful!');
 }
