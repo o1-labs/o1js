@@ -16,7 +16,7 @@ type Voters = OffchainStorage<Member>;
  * @param storage A set of off-chain storage
  */
 export async function testSet(
-  set: {
+  contracts: {
     voterContract: Membership_;
     candidateContract: Membership_;
     voting: Voting_;
@@ -35,32 +35,37 @@ export async function testSet(
 
   let tx;
 
-  let voterContract = set.voterContract;
-  let candidateContract = set.candidateContract;
-  let voting = set.voting;
+  let voterContract = contracts.voterContract;
+  let candidateContract = contracts.candidateContract;
+  let voting = contracts.voting;
 
   console.log('deploying set of 3 contracts');
   tx = await Mina.transaction(feePayer, () => {
-    Party.fundNewAccount(feePayer, { initialBalance: 0 });
+    Party.fundNewAccount(feePayer, {
+      initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
+    });
+
+    voting.deploy({ zkappKey: params.votingKey });
+    candidateContract.deploy({ zkappKey: params.candidateKey });
     voterContract.deploy({ zkappKey: params.voterKey });
-    //candidateContract.deploy({ zkappKey: params.candidateKey });
-    //voting.deploy({ zkappKey: params.votingKey });
 
     // setting the merkle root
     voterContract.committedMembers.set(storage.votersStore.getRoot());
-    //candidateContract.committedMembers.set(storage.candidatesStore.getRoot());
-    //voting.committedVotes.set(storage.votesStore.getRoot());
+    candidateContract.committedMembers.set(storage.candidatesStore.getRoot());
+    voting.committedVotes.set(storage.votesStore.getRoot());
 
     // setting the initial sequence events hash
     voterContract.accumulatedMembers.set(
       Experimental.Reducer.initialActionsHash
     );
-    /*     candidateContract.accumulatedMembers.set(
+    candidateContract.accumulatedMembers.set(
       Experimental.Reducer.initialActionsHash
     );
-    voting.accumulatedVotes.set(Experimental.Reducer.initialActionsHash); */
+    voting.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
   });
   tx.send();
+
+  console.log('all contracts deployed');
 
   // TODO: do our testing here
   //throw new Error('Not implemented');

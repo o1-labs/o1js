@@ -40,18 +40,14 @@ let params: VotingAppParams = {
 
 let contracts = await VotingApp(params);
 
-try {
-  tx = await Mina.transaction(feePayer, () => {
-    Party.fundNewAccount(feePayer, {
-      initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
-    });
-
-    contracts.voting.deploy({ zkappKey: votingKey });
-    contracts.candidateContract.deploy({ zkappKey: candidateKey });
-    contracts.voterContract.deploy({ zkappKey: voterKey });
+tx = await Mina.transaction(feePayer, () => {
+  Party.fundNewAccount(feePayer, {
+    initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
   });
 
-  tx.send();
-} catch (error) {
-  console.log(error);
-}
+  contracts.voting.deploy({ zkappKey: votingKey });
+  contracts.candidateContract.deploy({ zkappKey: candidateKey });
+  contracts.voterContract.deploy({ zkappKey: voterKey });
+});
+
+tx.send();
