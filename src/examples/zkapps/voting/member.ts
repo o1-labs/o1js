@@ -1,226 +1,89 @@
+import { isAsFields } from 'dist/server/lib/proof_system';
 import {
+  Bool,
+  CircuitValue,
   Field,
-  SmartContract,
-  state,
-  State,
-  method,
-  DeployArgs,
-  Permissions,
-  Experimental,
+  prop,
   PublicKey,
-  Poseidon,
-  Circuit,
+  UInt64,
+  Experimental,
+  Token,
 } from 'snarkyjs';
 
-import { Member } from './member';
-import {
-  ElectionPreconditions,
-  ParticipantPreconditions,
-} from './preconditions';
-import { Membership_ } from './membership';
+export class MerkleWitness extends Experimental.MerkleWitness(8) {}
+let w = {
+  isLeft: false,
+  sibling: Field.zero,
+};
+let dummyWitness = Array.from(Array(MerkleWitness.height - 1).keys()).map(
+  () => w
+);
 
-/**
- * Address to the Membership instance that keeps track of Candidates.
- */
-let candidateAddress = PublicKey.empty();
+export class Member extends CircuitValue {
+  private static count = 0;
 
-/**
- * Address to the Membership instance that keeps track of Voters.
- */
-let voterAddress = PublicKey.empty();
+  @prop publicKey: PublicKey;
+  @prop tokenId: Field;
+  @prop balance: UInt64;
+  @prop accountId: Field;
 
-/**
- * Requirements in order for a Member to participate in the election as a Candidate.
- */
-let candidatePreconditions = ParticipantPreconditions.default;
+  // will need this to keep track of votes for candidates
+  @prop votes: Field;
+  @prop isCandidate: Bool;
 
-/**
- * Requirements in order for a Member to participate in the election as a Voter.
- */
-let voterPreconditions = ParticipantPreconditions.default;
+  // just to avoid double voting, but we can also ignore this for now
+  @prop hashVoted: Bool;
 
-/**
- * Defines the preconditions of an election.
- */
-let electionPreconditions = ElectionPreconditions.default;
+  @prop witness: MerkleWitness;
 
-interface VotingParams {
-  electionPreconditions: ElectionPreconditions;
-  voterPreconditions: ParticipantPreconditions;
-  candidatePreconditions: ParticipantPreconditions;
-  candidateAddress: PublicKey;
-  voterAddress: PublicKey;
-  contractAddress: PublicKey;
-  doProofs: boolean;
-}
+  constructor(
+    publicKey: PublicKey,
+    tokenId: Field,
+    balance: UInt64,
+    accountId: Field
+  ) {
+    super();
+    this.publicKey = publicKey;
+    this.tokenId = tokenId;
+    this.balance = balance;
+    this.hashVoted = Bool(false);
+    this.accountId = accountId;
+    this.isCandidate = Bool(false);
+    this.votes = Field.zero;
 
-/**
- * Returns a new contract instance that based on a set of preconditions.
- * @param params {@link Voting_}
- */
-export async function Voting(params: VotingParams): Promise<Voting_> {
-  electionPreconditions = params.electionPreconditions;
-  voterPreconditions = params.voterPreconditions;
-  candidatePreconditions = params.candidatePreconditions;
-  candidateAddress = params.candidateAddress;
-  voterAddress = params.voterAddress;
-
-  let contract = new Voting_(params.contractAddress);
-  if (params.doProofs) {
-    await Voting_.compile(params.contractAddress);
-  }
-  return contract;
-}
-
-export class Voting_ extends SmartContract {
-  /**
-   * Root of the merkle tree that stores all committed votes.
-   */
-  @state(Field) committedVotes = State<Field>();
-
-  /**
-   * Accumulator of all emitted votes.
-   */
-  @state(Field) accumulatedVotes = State<Field>();
-
-  reducer = Experimental.Reducer({ actionType: Member });
-
-  deploy(args: DeployArgs) {
-    super.deploy(args);
-    this.setPermissions({
-      ...Permissions.default(),
-      editState: Permissions.proofOrSignature(),
-      editSequenceState: Permissions.proofOrSignature(),
-    });
-    this.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
+    this.witness = new MerkleWitness(dummyWitness);
   }
 
-  /**
-   * Method used to register a new voter. Calls the `addEntry(member)` method of the Voter-Membership contract.
-   * @param member
-   */
-  @method
-  voterRegistration(member: Member) {
-    let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
-
-    // we can only register voters before the election has started
-    currentSlot.assertLte(electionPreconditions.startElection);
-
-    // ? should we also enforce preconditions here, or only on the membership SC side?
-    member.balance.assertGte(voterPreconditions.minMina);
-
-    let VoterContract: Membership_ = new Membership_(voterAddress);
-    VoterContract.addEntry(member);
+  // I am defining a custom toFields method here because some things arent important when e.g. hashing
+  toFields(): Field[] {
+    return this.publicKey
+      .toFields()
+      .concat(this.tokenId.toFields())
+      .concat(this.balance.toFields())
+      .concat(this.accountId.toFields())
+      .concat(this.votes.toFields())
+      .concat(this.isCandidate.toFields())
+      .concat(this.hashVoted.toFields());
   }
 
-  /**
-   * Method used to register a new candidate.
-   * Calls the `addEntry(member)` method of the Candidate-Membership contract.
-   * @param member
-   */
-  @method
-  candidateRegistration(member: Member) {
-    let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
-
-    // we can only register candidates before the election has started
-    currentSlot.assertLte(electionPreconditions.startElection);
-
-    // ! I dont think we can pull in the actually caller balance, right?
-    // ? should we also enforce preconditions here, or only on the membership SC side?
-    member.balance
-      .gte(candidatePreconditions.minMina)
-      .and(member.balance.lte(candidatePreconditions.maxMina))
-      .assertTrue();
-
-    let CandidateContract: Membership_ = new Membership_(candidateAddress);
-    CandidateContract.addEntry(member);
+  addVote(): Member {
+    this.votes = this.votes.add(1);
+    return this;
   }
 
-  /**
-   * Method used to register update all pending member registrations.
-   * Calls the `publish()` method of the Candidate-Membership and Voter-Membership contract.
-   */
-  @method
-  authorizeRegistrations() {
-    // Invokes the publish method of both Voter and Candidate Membership contracts.
-    let VoterContract: Membership_ = new Membership_(voterAddress);
-    VoterContract.publish();
-
-    let CandidateContract: Membership_ = new Membership_(candidateAddress);
-    CandidateContract.publish();
+  static empty() {
+    return new Member(PublicKey.empty(), Field.zero, UInt64.zero, Field.zero);
   }
 
-  /**
-   * Method used to cast a vote to a specific candidate.
-   * Dispatches a new vote sequence event.
-   * @param member
-   */
-  @method
-  vote(candidate: Member) {
-    let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
+  // TODO: ofFields(xs: Field[])
 
-    // we can only vote in the election period
-    currentSlot
-      .gte(electionPreconditions.startElection)
-      .and(currentSlot.lte(electionPreconditions.endElection))
-      .assertTrue();
-
-    // ! TODO: derive voter accountId - how? we should just pass in a voter Member
-    //this.VoterContract.isMember(Field.zero).assertTrue();
-
-    let CandidateContract: Membership_ = new Membership_(candidateAddress);
-    CandidateContract.isMember(candidate).assertTrue();
-
-    // emits a sequence event with the information about the candidate
-    this.reducer.dispatch(candidate);
-  }
-
-  /**
-   * Method used to accumulate all pending votes from open sequence events
-   * and applies state changes to the votes merkle tree.
-   */
-  @method
-  countVotes() {
-    // Save the Sequence Events accumulated so far within the account’s state accumulatedMembers (AppState 1 in doc).
-    // Update the committed storage with the Sequence Events accumulated so far.
-    // Returns the JSON with the Candidates to Votes Count mapping.
-
-    let accumulatedVotes = this.accumulatedVotes.get();
-    this.accumulatedVotes.assertEquals(accumulatedVotes);
-
-    let committedVotes = this.committedVotes.get();
-    this.committedVotes.assertEquals(committedVotes);
-
-    let { state: newCommittedVotes, actionsHash: newAccumulatedVotes } =
-      this.reducer.reduce(
-        this.reducer.getActions({ fromActionHash: accumulatedVotes }),
-        Field,
-        (state: Field, _action: Member) => {
-          // checking that the member is part of the merkle tree
-          let isValid = _action.witness
-            .calculateRoot(Poseidon.hash(_action.toFields()))
-            .equals(state);
-
-          // adding one additional vote to the member and calculating new root
-          _action = _action.addVote();
-          // this is the new root after we added one vote
-          let newRoot = _action.witness.calculateRoot(
-            Poseidon.hash(_action.toFields())
-          );
-
-          // checking if the account was part of the tree in the first place
-          // if it was, then return the new, adjusted, root
-          // otherwise, return the initial state
-          return Circuit.if(isValid, newRoot, state);
-        },
-        // initial state
-        { state: committedVotes, actionsHash: accumulatedVotes }
-      );
-
-    this.committedVotes.set(newCommittedVotes);
-    this.accumulatedVotes.set(newAccumulatedVotes);
+  static from(publicKey: PublicKey, tokenId: Field, balance: UInt64) {
+    this.count++;
+    return new Member(
+      publicKey,
+      tokenId,
+      balance,
+      Field.fromNumber(this.count)
+    );
   }
 }
