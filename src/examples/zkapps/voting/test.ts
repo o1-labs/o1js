@@ -70,20 +70,43 @@ export async function testSet(
   console.log('attempting to register a voter...')
 
   try {
-  tx = await Mina.transaction(feePayer, () => {
+    tx = await Mina.transaction(feePayer, () => {
     let newVoter = Member.from(
       PrivateKey.random().toPublicKey(),
       Field.zero,
       UInt64.from(50)
     );
+
     // register new member
     contracts.voting.voterRegistration(newVoter);
-    if (!params.doProofs) contracts.voting.sign(votingKey);
+    
   });
   if (params.doProofs) await tx.prove();
   tx.send();
-} catch (error) {
-  console.log(error);
+} catch (err: any) {
+  throw Error(err)
 }
+
+ console.log('attempting to register a candidate...')
+
+  try {
+    tx = await Mina.transaction(feePayer, () => {
+    let newCanidate = Member.from(
+      PrivateKey.random().toPublicKey(),
+      Field.zero,
+      UInt64.from(50)
+    );
+
+    // register new candidate
+    contracts.voting.candidateRegistration(newCanidate);
+    contracts.voting.sign(votingKey);
+  });
+  
+  tx.send();
+} catch (err: any) {
+  throw Error(err)
+}
+
+
   console.log('test successful!');
 }
