@@ -1,4 +1,4 @@
-import { Mina, PrivateKey, PublicKey } from 'snarkyjs';
+import { Experimental, Mina, PrivateKey, PublicKey } from 'snarkyjs';
 import { VotingApp, VotingAppParams } from './factory';
 import {
   ElectionPreconditions,
@@ -9,11 +9,12 @@ import { OffchainStorage } from './off_chain_storage';
 import { Member } from './member';
 import { testSet } from './test';
 
-const HeightCandidateTree = 8;
-const HeightVoterTree = 8;
-
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
+
+// ! should probably move this as well to avoid this circular import pattern
+const TreeHeight = 8;
+export class VotingMerkleTree extends Experimental.MerkleWitness(TreeHeight) {}
 
 console.log('Running Voting script...');
 
@@ -37,9 +38,9 @@ let params_set1: VotingAppParams = {
 };
 
 let storage_set1 = {
-  votesStore: new OffchainStorage<Member>(HeightVoterTree),
-  candidatesStore: new OffchainStorage<Member>(HeightCandidateTree),
-  votersStore: new OffchainStorage<Member>(HeightCandidateTree),
+  votesStore: new OffchainStorage<Member>(TreeHeight),
+  candidatesStore: new OffchainStorage<Member>(TreeHeight),
+  votersStore: new OffchainStorage<Member>(TreeHeight),
 };
 
 console.log('Building contracts for set 1...');

@@ -9,6 +9,8 @@ import {
   Bool,
   PublicKey,
   Experimental,
+  Circuit,
+  Poseidon,
 } from 'snarkyjs';
 import { Member } from './member';
 import { ParticipantPreconditions } from './preconditions';
@@ -81,23 +83,30 @@ export class Membership_ extends SmartContract {
       .gte(participantPreconditions.minMina)
       .and(member.balance.lte(participantPreconditions.maxMina)).assertTrue;
 
-    // TODO: check if member already exists within sequence states, probably something similar to
     let accumulatedMembers = this.accumulatedMembers.get();
     this.accumulatedMembers.assertEquals(accumulatedMembers);
 
+    // checking if the member already exists within the accumulator
     let { state: exists } = this.reducer.reduce(
       [], // TODO: sequence events
       Bool,
       (state: Bool, _action: Member) => {
-        // ! gotta fix the reducer first
         return _action.equals(member).or(state);
       },
       // initial state
       { state: Bool(false), actionsHash: accumulatedMembers }
     );
 
-    this.reducer.dispatch(member);
-    // TODO: we cant really branch logic, revisit this section to align with testing docs
+    /*
+    TODO: we cant really branch logic, revisit this section later to align with testing docs
+    we will always have to emit an event no matter what, 
+    so we emit an empty event if the member already exists
+    it the member doesnt exist, emit the "real" member
+    */
+
+    let toEmit = Circuit.if(exists, Member.empty(), member);
+
+    this.reducer.dispatch(toEmit);
 
     return exists;
   }
@@ -114,13 +123,9 @@ export class Membership_ extends SmartContract {
     let committedMembers = this.committedMembers.get();
     this.committedMembers.assertEquals(committedMembers);
 
-    // TODO: assert merkle path (?)
-
-    /*     return member.witness
-      .calculateRoot(Poseidong.hash(member.toFields()))
-      .equals(committedMembers); */
-
-    return Bool(true);
+    return member.witness
+      .calculateRoot(Poseidon.hash(member.toFields()))
+      .equals(committedMembers);
   }
 
   /**
@@ -140,9 +145,20 @@ export class Membership_ extends SmartContract {
         [], // TODO: sequence events
         Field,
         (state: Field, _action: Member) => {
-          // TODO: apply changes to merkle tree
-          // ! gotta fix the reducer first
-          return state.add(1);
+          // because we inserted empty members, we need to check if a member is empty or "real"
+          let isRealMember = Circuit.if(
+            _action.publicKey.equals(PublicKey.empty()),
+            Bool(false),
+            Bool(true)
+          );
+
+          // if the member is real and not empty, we calculate and return the new merkle root
+          // otherwise, we simply return the unmodified state
+          return Circuit.if(
+            isRealMember,
+            _action.witness.calculateRoot(Poseidon.hash(_action.toFields())),
+            state
+          );
         },
         // initial state
         { state: committedMembers, actionsHash: accumulatedMembers }

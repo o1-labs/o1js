@@ -1,4 +1,15 @@
-import { Bool, CircuitValue, Field, prop, PublicKey, UInt64 } from 'snarkyjs';
+import { isAsFields } from 'dist/server/lib/proof_system';
+import {
+  Bool,
+  CircuitValue,
+  Field,
+  prop,
+  PublicKey,
+  UInt64,
+  Experimental,
+  Token,
+} from 'snarkyjs';
+import { VotingMerkleTree } from './run';
 
 export class Member extends CircuitValue {
   private static count = 0;
@@ -15,8 +26,7 @@ export class Member extends CircuitValue {
   // just to avoid double voting, but we can also ignore this for now
   @prop hashVoted: Bool;
 
-  // TODO: make work
-  //@prop witness: typeof Experimental.MerkleWitness;
+  @prop witness: VotingMerkleTree;
 
   private constructor(
     publicKey: PublicKey,
@@ -32,6 +42,13 @@ export class Member extends CircuitValue {
     this.accountId = accountId;
     this.isCandidate = Bool(false);
     this.votes = Field.zero;
+    let w = {
+      isLeft: false,
+      sibling: Field.zero,
+    };
+    this.witness = new VotingMerkleTree(
+      Array.from(Array(VotingMerkleTree.height).keys()).map(() => w)
+    );
   }
 
   // I am defining a custom toFields method here because some things arent important when e.g. hashing
@@ -44,6 +61,15 @@ export class Member extends CircuitValue {
       .concat(this.votes.toFields())
       .concat(this.isCandidate.toFields())
       .concat(this.hashVoted.toFields());
+  }
+
+  addVote(): Member {
+    this.votes = this.votes.add(1);
+    return this;
+  }
+
+  static empty() {
+    return new Member(PublicKey.empty(), Field.zero, UInt64.zero, Field.zero);
   }
 
   // TODO: ofFields(xs: Field[])

@@ -8,6 +8,8 @@ import {
   Permissions,
   Experimental,
   PublicKey,
+  Poseidon,
+  Circuit,
 } from 'snarkyjs';
 
 import { Member } from './member';
@@ -195,9 +197,22 @@ export class Voting_ extends SmartContract {
         sequenceEvents,
         Field,
         (state: Field, _action: Member) => {
-          // TODO: apply changes to merkle tree
-          // ! gotta fix the reducer first
-          return state.add(1);
+          // checking that the member is part of the merkle tree
+          let isValid = _action.witness
+            .calculateRoot(Poseidon.hash(_action.toFields()))
+            .equals(state);
+
+          // adding one additional vote to the member and calculating new root
+          _action = _action.addVote();
+          // this is the new root after we added one vote
+          let newRoot = _action.witness.calculateRoot(
+            Poseidon.hash(_action.toFields())
+          );
+
+          // checking if the account was part of the tree in the first place
+          // if it was, then return the new, adjusted, root
+          // otherwise, return the initial state
+          return Circuit.if(isValid, newRoot, state);
         },
         // initial state
         { state: committedVotes, actionsHash: accumulatedVotes }
