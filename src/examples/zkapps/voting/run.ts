@@ -21,7 +21,7 @@ console.log('Running Voting script...');
 // ! the VotingApp() factory returns a set of compiled contract instances
 
 // dummy set to demonstrate how the script will function
-console.log('Starting run for set 1...');
+console.log('Starting set 1...');
 
 let params_set1: VotingAppParams = {
   candidatePreconditions: ParticipantPreconditions.default,
@@ -45,6 +45,9 @@ let contracts_set1 = await VotingApp(params_set1);
 console.log('Testing set 1...');
 await testSet(contracts_set1, params_set1, storage_set1);
 
+
+
+
 // ..
 
 // do our thing before we create another set
@@ -52,3 +55,22 @@ await testSet(contracts_set1, params_set1, storage_set1);
 // parallel creation of sets doesnt work with the current "factory" pattern
 
 // ..
+
+console.log('Starting run for set 2...');
+
+let params_set2: VotingAppParams = {
+  candidatePreconditions: ParticipantPreconditions.default,
+  voterPreconditions: ParticipantPreconditions.default,
+  electionPreconditions: ElectionPreconditions.default,
+  voterKey: PrivateKey.random(),
+  candidateKey: PrivateKey.random(),
+  votingKey: PrivateKey.random(),
+  doProofs: false,
+};
+
+let storage_set2 = {
+  votesStore: new OffchainStorage<Member>(8),
+  candidatesStore: new OffchainStorage<Member>(8),
+  votersStore: new OffchainStorage<Member>(8),
+};
+
