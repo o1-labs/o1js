@@ -139,7 +139,7 @@ function wrapMethod(
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
-    let isCallback = smartContractContext()?.isCallback;
+    let isCallback = smartContractContext()?.isCallback ?? false;
     if (!smartContractContext.has() || isCallback) {
       return smartContractContext.runWith(
         { this: this, methodCallDepth: 0, isCallback: false },
@@ -212,6 +212,12 @@ function wrapMethod(
             // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
             let clonedArgs = cloneCircuitValue(actualArgs);
             let party = this.self;
+
+            // If we are in a callback, an extra party is created from the callee that has an incorrect callDepth.
+            // We remove that duplicate party here and instead use the party that's created from the callback.
+            let transaction = Mina.currentTransaction();
+            if (transaction !== undefined && isCallback)
+              transaction.parties.pop();
 
             // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
             let blindingValue = getBlindingValue();
