@@ -1,4 +1,4 @@
-import { Experimental, Mina, Party } from 'snarkyjs';
+import { Experimental, Mina, Party, Field, PrivateKey, UInt64 } from 'snarkyjs';
 import { VotingAppParams } from './factory';
 import { Member } from './member';
 import { Membership_ } from './membership';
@@ -65,9 +65,25 @@ export async function testSet(
   });
   tx.send();
 
-  console.log('all contracts deployed');
+  console.log('all contracts deployed!');
 
-  // TODO: do our testing here
-  //throw new Error('Not implemented');
+  console.log('attempting to register a voter...')
+
+  try {
+  tx = await Mina.transaction(feePayer, () => {
+    let newVoter = Member.from(
+      PrivateKey.random().toPublicKey(),
+      Field.zero,
+      UInt64.from(50)
+    );
+    // register new member
+    contracts.voting.voterRegistration(newVoter);
+    if (!params.doProofs) contracts.voting.sign(votingKey);
+  });
+  if (params.doProofs) await tx.prove();
+  tx.send();
+} catch (error) {
+  console.log(error);
+}
   console.log('test successful!');
 }
