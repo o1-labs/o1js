@@ -66,6 +66,7 @@ export async function testSet(
   tx.send();
 
   console.log('all contracts deployed!');
+  
 
   console.log('attempting to register a voter...')
   let newVoter: Member;
@@ -121,6 +122,29 @@ let newCandidate: Member;
 } catch (err: any) {
   throw Error(err)
 }
+
+ console.log('attempting to register a candidate outside the time window ...')
+ // 
+ try {
+    tx = await Mina.transaction(feePayer, () => {
+   let lateCandidate = Member.from(
+      PrivateKey.random().toPublicKey(),
+      Field.zero,
+      UInt64.from(50)
+    );
+
+    // register late candidate
+    contracts.voting.candidateRegistration(lateCandidate);
+    contracts.voting.sign(votingKey);
+  });
+  
+  tx.send();
+} catch (err: any) {
+  // TODO: handle error when
+}
+
+// isMember test cases
+
 
 console.log('authrozing registrations...')
   try {
