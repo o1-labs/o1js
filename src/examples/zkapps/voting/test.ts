@@ -137,7 +137,7 @@ console.log('attempting to vote for a fake candidate...')
   try {
     tx = await Mina.transaction(feePayer, () => {
 
-  let fakkCanidate = Member.from(
+  let fakeCandidate = Member.from(
     PrivateKey.random().toPublicKey(),
     Field.zero,
     UInt64.from(50)
@@ -151,5 +151,27 @@ console.log('attempting to vote for a fake candidate...')
    // TODO: handle errors
 }
 
+console.log('counting votes ...')
+let voteCount;
+  try {
+    tx = await Mina.transaction(feePayer, () => {
+
+  let fakeCandidate = Member.from(
+    PrivateKey.random().toPublicKey(),
+    Field.zero,
+    UInt64.from(50)
+  );
+  voteCount  =  contracts.voting.countVotes();
+    
+  });
+  
+  tx.send();
+} catch (err: any) {
+   // TODO: handle errors
+}
+
+if(voteCount === '2') {
+  throw Error(`Vote count of ${voteCount} is incorrect`)
+}
   console.log('test successful!');
 }
