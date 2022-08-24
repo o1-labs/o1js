@@ -127,7 +127,7 @@ let newCandidate: Member;
  // 
  try {
     tx = await Mina.transaction(feePayer, () => {
-   let lateCandidate = Member.from(
+   let lateVoter = Member.from(
       PrivateKey.random().toPublicKey(),
       Field.zero,
       UInt64.from(50)
@@ -135,6 +135,26 @@ let newCandidate: Member;
 
     // register late candidate
     contracts.voting.candidateRegistration(lateCandidate);
+    contracts.voting.sign(votingKey);
+  });
+  
+  tx.send();
+} catch (err: any) {
+  // TODO: handle error when
+}
+
+ console.log('attempting to register a voter outside the time window ...')
+ // 
+ try {
+    tx = await Mina.transaction(feePayer, () => {
+   let lateVoter = Member.from(
+      PrivateKey.random().toPublicKey(),
+      Field.zero,
+      UInt64.from(50)
+    );
+
+    // register late candidate
+    contracts.voting.candidateRegistration(lateVoter);
     contracts.voting.sign(votingKey);
   });
   
