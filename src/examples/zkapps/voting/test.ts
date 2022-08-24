@@ -68,10 +68,10 @@ export async function testSet(
   console.log('all contracts deployed!');
 
   console.log('attempting to register a voter...')
-
+  let newVoter: Member;
   try {
     tx = await Mina.transaction(feePayer, () => {
-    let newVoter = Member.from(
+    newVoter = Member.from(
       PrivateKey.random().toPublicKey(),
       Field.zero,
       UInt64.from(50)
@@ -86,6 +86,21 @@ export async function testSet(
 } catch (err: any) {
   throw Error(err)
 }
+
+console.log('attempting to register the same voter twice...')
+
+  try {
+    tx = await Mina.transaction(feePayer, () => {
+    // register new member
+    contracts.voting.voterRegistration(newVoter);
+    
+  });
+  if (params.doProofs) await tx.prove();
+  tx.send();
+} catch (err: any) {
+  // Todo: handle expected error and throw otherwise
+}
+
 
  console.log('attempting to register a candidate...')
 let newCandidate: Member;
@@ -107,7 +122,7 @@ let newCandidate: Member;
   throw Error(err)
 }
 
-console.log('authroizing registrations...')
+console.log('authrozing registrations...')
   try {
     tx = await Mina.transaction(feePayer, () => {
     // register new candidate
@@ -168,6 +183,7 @@ let voteCount;
   tx.send();
 } catch (err: any) {
    // TODO: handle errors
+   throw Error(error);
 }
 
 if(voteCount === '2') {
