@@ -125,7 +125,7 @@ export class Voting_ extends SmartContract {
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
     // we can only register candidates before the election has started
-    currentSlot.assertLt(electionPreconditions.startElection);
+    currentSlot.assertLte(electionPreconditions.startElection);
 
     // ! I dont think we can pull in the actually caller balance, right?
     // ? should we also enforce preconditions here, or only on the membership SC side?
@@ -145,8 +145,11 @@ export class Voting_ extends SmartContract {
   @method
   authorizeRegistrations() {
     // Invokes the publish method of both Voter and Candidate Membership contracts.
-    //this.VoterContract.publish();
-    //this.CandidateContract.publish();
+    let VoterContract: Membership_ = new Membership_(voterAddress);
+    VoterContract.publish();
+
+    let CandidateContract: Membership_ = new Membership_(candidateAddress);
+    CandidateContract.publish();
   }
 
   /**

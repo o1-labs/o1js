@@ -10,12 +10,14 @@ import {
   Token,
 } from 'snarkyjs';
 
-class MerkleWitness extends Experimental.MerkleWitness(9) {}
+export class MerkleWitness extends Experimental.MerkleWitness(8) {}
 let w = {
   isLeft: false,
   sibling: Field.zero,
 };
-let dummyWitness = Array.from(Array(8).keys()).map(() => w);
+let dummyWitness = Array.from(Array(MerkleWitness.height - 1).keys()).map(
+  () => w
+);
 
 export class Member extends CircuitValue {
   private static count = 0;

@@ -61,7 +61,7 @@ export class Membership_ extends SmartContract {
     super.deploy(args);
     this.setPermissions({
       ...Permissions.default(),
-      editState: Permissions.proofOrSignature(),
+      editState: Permissions.none(), // TODO: fix permissions
       editSequenceState: Permissions.none(), // TODO: fix permissions
     });
   }
@@ -141,7 +141,7 @@ export class Membership_ extends SmartContract {
 
     let { state: newCommittedMembers, actionsHash: newAccumulatedMembers } =
       this.reducer.reduce(
-        [], // TODO: sequence events
+        this.reducer.getActions({ fromActionHash: accumulatedMembers }),
         Field,
         (state: Field, _action: Member) => {
           // because we inserted empty members, we need to check if a member is empty or "real"
