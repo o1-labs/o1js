@@ -171,7 +171,8 @@ export class Voting_ extends SmartContract {
     // TODO: derive voter accountId - how?
     //this.VoterContract.isMember(Field.zero).assertTrue();
 
-    //this.CandidateContract.isMember(candidate.accountId).assertTrue();
+    let CandidateContract: Membership_ = new Membership_(candidateAddress);
+    CandidateContract.isMember(candidate).assertTrue();
 
     // emits a sequence event with the information about the candidate
     this.reducer.dispatch(candidate);
