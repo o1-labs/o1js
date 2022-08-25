@@ -1,8 +1,18 @@
 // used to do a dry run, without tests
 // ./run ./src/examples/zkapps/voting/demo.ts
 
-import { Mina, Party, PrivateKey } from 'snarkyjs';
+import {
+  Field,
+  Mina,
+  Party,
+  PrivateKey,
+  Permissions,
+  UInt64,
+  Experimental,
+} from 'snarkyjs';
 import { VotingApp, VotingAppParams } from './factory';
+import { Member } from './member';
+import { OffchainStorage } from './off_chain_storage';
 import {
   ParticipantPreconditions,
   ElectionPreconditions,
@@ -40,14 +50,37 @@ let params: VotingAppParams = {
 
 let contracts = await VotingApp(params);
 
-tx = await Mina.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer, {
-    initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
+let voterStore = new OffchainStorage<Member>(8);
+let candidateStore = new OffchainStorage<Member>(8);
+let votesStore = new OffchainStorage<Member>(8);
+try {
+  tx = await Mina.transaction(feePayer, () => {
+    Party.fundNewAccount(feePayer, {
+      initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
+    });
+
+    contracts.voting.deploy({ zkappKey: votingKey });
+    contracts.voting.committedVotes.set(votesStore.getRoot());
+
+    contracts.candidateContract.deploy({ zkappKey: candidateKey });
+    contracts.candidateContract.committedMembers.set(candidateStore.getRoot());
+
+    contracts.voterContract.deploy({ zkappKey: voterKey });
+    contracts.voterContract.committedMembers.set(voterStore.getRoot());
   });
+  tx.send();
 
-  contracts.voting.deploy({ zkappKey: votingKey });
-  contracts.candidateContract.deploy({ zkappKey: candidateKey });
-  contracts.voterContract.deploy({ zkappKey: voterKey });
-});
-
-tx.send();
+  tx = await Mina.transaction(feePayer, () => {
+    let m = Member.from(
+      PrivateKey.random().toPublicKey(),
+      Field.zero,
+      UInt64.from(50)
+    );
+    contracts.voting.voterRegistration(m);
+    if (!params.doProofs) contracts.voting.sign(votingKey);
+  });
+  if (params.doProofs) await tx.prove();
+  tx.send();
+} catch (error) {
+  console.log(error);
+}
