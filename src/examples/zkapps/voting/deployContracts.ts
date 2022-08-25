@@ -17,4 +17,24 @@ export async function deployContracts(
     voting: Voting_;
   },
   params: VotingAppParams,
-) {}
+) {
+
+  let Local = Mina.LocalBlockchain();
+  Mina.setActiveInstance(Local);
+  let feePayer = Local.testAccounts[0].privateKey;
+
+  let {voterContract, candidateContract, voting } = contracts;
+
+  console.log('deploying set of 3 contracts');
+  let tx = await Mina.transaction(feePayer, () => {
+    Party.fundNewAccount(feePayer, {
+      initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
+    });
+
+ });
+
+ tx.send();
+
+ console.log('successfully deployed contracts')
+ return {voterContract, candidateContract, voting } 
+}
