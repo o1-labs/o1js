@@ -10,6 +10,8 @@ import {
   Party,
   isReady,
   Permissions,
+  Circuit,
+  Ledger,
 } from 'snarkyjs';
 
 await isReady;
@@ -39,9 +41,12 @@ class CounterZkapp extends SmartContract {
 
     // compute the new counter and hash from pending actions
     // remark: it's not feasible to pass in the pending actions as method arguments, because they have dynamic size
+
     let { state: newCounter, actionsHash: newActionsHash } =
       this.reducer.reduce(
-        pendingActions,
+        this.reducer.getActions({
+          fromActionHash: actionsHash,
+        }),
         // state type
         Field,
         // function that says how to apply an action
@@ -60,12 +65,6 @@ class CounterZkapp extends SmartContract {
 const doProofs = false;
 const initialCounter = Field.zero;
 
-// this is a data structure where we internally keep track of the pending actions
-// TODO: get these from a Mina node / the local blockchain
-// note: each entry in pendingActions is itself an array -- the list of actions dispatched by one method
-// this is the structure we need to do the hashing correctly
-let pendingActions: Field[][] = [];
-
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
@@ -77,7 +76,6 @@ let zkappKey = PrivateKey.fromBase58(
   'EKEQc95PPQZnMY9d9p1vq1MWLeDJKtvKj4V75UDG3rjnf32BerWD'
 );
 let zkappAddress = zkappKey.toPublicKey();
-
 let zkapp = new CounterZkapp(zkappAddress);
 if (doProofs) {
   console.log('compile');
@@ -100,15 +98,16 @@ let tx = await Mina.transaction(feePayer, () => {
 });
 tx.send();
 
+console.log('applying actions..');
+
 console.log('action 1');
+
 tx = await Mina.transaction(feePayer, () => {
   zkapp.incrementCounter();
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
 tx.send();
-// update internal state
-pendingActions.push([INCREMENT]);
 
 console.log('action 2');
 tx = await Mina.transaction(feePayer, () => {
@@ -117,21 +116,53 @@ tx = await Mina.transaction(feePayer, () => {
 });
 if (doProofs) await tx.prove();
 tx.send();
-// update internal state
-pendingActions.push([INCREMENT]);
 
-console.log('state (on-chain): ' + zkapp.counter.get());
-console.log('pending actions:', JSON.stringify(pendingActions));
+console.log('action 3');
+tx = await Mina.transaction(feePayer, () => {
+  zkapp.incrementCounter();
+  if (!doProofs) zkapp.sign(zkappKey);
+});
+if (doProofs) await tx.prove();
+tx.send();
 
-console.log('rollup transaction');
+console.log('rolling up pending actions..');
+
+console.log('state before: ' + zkapp.counter.get());
+
 tx = await Mina.transaction(feePayer, () => {
   zkapp.rollupIncrements();
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
 tx.send();
-// reset pending actions
-pendingActions = [];
 
-console.log('state (on-chain): ' + zkapp.counter.get());
-console.log('pending actions:', JSON.stringify(pendingActions));
+console.log('state after rollup: ' + zkapp.counter.get());
+
+console.log('applying more actions');
+
+console.log('action 4');
+tx = await Mina.transaction(feePayer, () => {
+  zkapp.incrementCounter();
+  if (!doProofs) zkapp.sign(zkappKey);
+});
+tx.send();
+
+console.log('action 5');
+tx = await Mina.transaction(feePayer, () => {
+  zkapp.incrementCounter();
+  if (!doProofs) zkapp.sign(zkappKey);
+});
+tx.send();
+
+console.log('rolling up pending actions..');
+
+console.log('state before: ' + zkapp.counter.get());
+
+tx = await Mina.transaction(feePayer, () => {
+  zkapp.rollupIncrements();
+  if (!doProofs) zkapp.sign(zkappKey);
+});
+if (doProofs) await tx.prove();
+tx.send();
+
+console.log('state after rollup: ' + zkapp.counter.get());
