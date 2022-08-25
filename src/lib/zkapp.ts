@@ -873,6 +873,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         actionsForAccount = actions
           .slice(startIndex, endIndex === 0 ? undefined : endIndex)
           .map((event: { hash: string; actions: string[][] }) =>
+            // putting our string-Fields back into the original action type
             event.actions.map((action: string[]) =>
               reducer.actionType.ofFields(
                 action.map((fieldAsString: string) =>
