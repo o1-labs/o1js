@@ -94,6 +94,7 @@ console.log('attempting to register the same voter twice...')
     tx = await Mina.transaction(feePayer, () => {
     // register new member
     contracts.voting.voterRegistration(newVoter);
+    contracts.voting.vote(candidate)
     
   });
   if (params.doProofs) await tx.prove();
@@ -254,6 +255,24 @@ console.log('attempting to vote for a fake candidate...')
     UInt64.from(50)
   );
     contracts.voting.vote(fakeCandidate);
+    contracts.voting.sign(votingKey);
+  });
+  
+  tx.send();
+} catch (err: any) {
+   // TODO: handle errors
+}
+
+console.log('candidate attempting to vote for voter...')
+  try {
+    tx = await Mina.transaction(feePayer, () => {
+
+  let voter = Member.from(
+    PrivateKey.random().toPublicKey(),
+    Field.zero,
+    UInt64.from(50)
+  );
+    contracts.voting.vote(voter);
     contracts.voting.sign(votingKey);
   });
   
