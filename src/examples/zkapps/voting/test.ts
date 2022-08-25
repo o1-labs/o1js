@@ -123,11 +123,30 @@ let newCandidate: Member;
   throw Error(err)
 }
 
- console.log('attempting to register a candidate outside the time window ...')
+ console.log('attempting to register a candidate before the time window ...')
  // 
  try {
     tx = await Mina.transaction(feePayer, () => {
-   let lateVoter = Member.from(
+   let earlyCandidate = Member.from(
+      PrivateKey.random().toPublicKey(),
+      Field.zero,
+      UInt64.from(50)
+    );
+
+    // register late candidate
+    contracts.voting.candidateRegistration(earlyCandidate);
+    contracts.voting.sign(votingKey);
+  });
+  
+  tx.send();
+} catch (err: any) {
+  // TODO: handle error when
+}
+
+ // 
+ try {
+    tx = await Mina.transaction(feePayer, () => {
+   let lateCandidate = Member.from(
       PrivateKey.random().toPublicKey(),
       Field.zero,
       UInt64.from(50)
@@ -200,16 +219,29 @@ console.log('authrozing registrations...')
 }
 
 console.log('attempting to vote for the new candidate...')
+  let candidateChoice;
   try {
     tx = await Mina.transaction(feePayer, () => {
   
-    contracts.voting.vote(newCandidate);
+    contracts.voting.vote(candidateChoice);
     contracts.voting.sign(votingKey);
   });
   
   tx.send();
 } catch (err: any) {
   throw Error(err)
+}
+console.log('attempting to vote for a candidate twice...')
+  try {
+    tx = await Mina.transaction(feePayer, () => {
+  
+    contracts.voting.vote(candidateChoice);
+    contracts.voting.sign(votingKey);
+  });
+  
+  tx.send();
+} catch (err: any) {
+  // should throw error if double voting
 }
 
 console.log('attempting to vote for a fake candidate...')
