@@ -337,10 +337,11 @@ function LocalBlockchain({
           actionList.map((e) => e.map((f) => Field(f)))
         );
 
-        latestActionsHash = Events.updateSequenceState(
-          latestActionsHash,
-          eventsHash
-        );
+        if (actionList.length > 0)
+          latestActionsHash = Events.updateSequenceState(
+            latestActionsHash,
+            eventsHash
+          );
 
         if (actions[addr] === undefined) {
           actions[addr] = {};
