@@ -184,14 +184,6 @@ class UInt64 extends CircuitValue {
   assertGt(y: UInt64) {
     y.assertLt(this);
   }
-
-  gte(y: UInt64) {
-    return this.lt(y).not();
-  }
-
-  assertGte(y: UInt64) {
-    y.assertLte(this);
-  }
 }
 
 class UInt32 extends CircuitValue {
@@ -354,14 +346,6 @@ class UInt32 extends CircuitValue {
 
   assertGt(y: UInt32) {
     y.assertLt(this);
-  }
-
-  gte(y: UInt32) {
-    return this.lt(y).not();
-  }
-
-  assertGte(y: UInt32) {
-    y.assertLte(this);
   }
 }
 

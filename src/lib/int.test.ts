@@ -641,64 +641,6 @@ describe('int', () => {
         });
       });
 
-      describe('assertGte', () => {
-        it('1<=1=true', () => {
-          expect(() => {
-            Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              x.assertGte(y);
-            });
-          }).not.toThrow();
-        });
-
-        it('1>=2=false', () => {
-          expect(() => {
-            Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field.one));
-              const y = Circuit.witness(UInt64, () => new UInt64(Field(2)));
-              x.assertGte(y);
-            });
-          }).toThrow();
-        });
-
-        it('100000>=1000=true', () => {
-          expect(() => {
-            Circuit.runAndCheck(() => {
-              const x = Circuit.witness(
-                UInt64,
-                () => new UInt64(Field(100000))
-              );
-              const y = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
-              x.assertGte(y);
-            });
-          }).not.toThrow();
-        });
-
-        it('1000>=100000=false', () => {
-          expect(() => {
-            Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
-              const y = Circuit.witness(
-                UInt64,
-                () => new UInt64(Field(100000))
-              );
-              x.assertGte(y);
-            });
-          }).toThrow();
-        });
-
-        it('MAXINT>=MAXINT=true', () => {
-          expect(() => {
-            Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
-              const y = Circuit.witness(UInt64, () => UInt64.MAXINT());
-              x.assertGte(y);
-            });
-          }).not.toThrow();
-        });
-      });
-
       describe('from() ', () => {
         describe('fromNumber()', () => {
           it('should be the same as Field.one', () => {
@@ -1006,42 +948,6 @@ describe('int', () => {
         });
       });
 
-      describe('gte', () => {
-        it('2>=1=true', () => {
-          expect(new UInt64(Field(2)).gte(new UInt64(Field.one))).toEqual(
-            Bool(true)
-          );
-        });
-
-        it('1>=1=true', () => {
-          expect(new UInt64(Field.one).gte(new UInt64(Field.one))).toEqual(
-            Bool(true)
-          );
-        });
-
-        it('1>=2=false', () => {
-          expect(new UInt64(Field.one).gte(new UInt64(Field(2)))).toEqual(
-            Bool(false)
-          );
-        });
-
-        it('100000>=1000=true', () => {
-          expect(
-            new UInt64(Field(100000)).gte(new UInt64(Field(1000)))
-          ).toEqual(Bool(true));
-        });
-
-        it('1000>=100000=false', () => {
-          expect(
-            new UInt64(Field(1000)).gte(new UInt64(Field(100000)))
-          ).toEqual(Bool(false));
-        });
-
-        it('MAXINT>=MAXINT=true', () => {
-          expect(UInt64.MAXINT().gte(UInt64.MAXINT())).toEqual(Bool(true));
-        });
-      });
-
       describe('assertGt', () => {
         it('1>1=false', () => {
           expect(() => {
@@ -1071,38 +977,6 @@ describe('int', () => {
           expect(() => {
             UInt64.MAXINT().assertGt(UInt64.MAXINT());
           }).toThrow();
-        });
-      });
-
-      describe('assertGte', () => {
-        it('1>=1=true', () => {
-          expect(() => {
-            new UInt64(Field.one).assertGte(new UInt64(Field.one));
-          }).not.toThrow();
-        });
-
-        it('2>=1=true', () => {
-          expect(() => {
-            new UInt64(Field(2)).assertGte(new UInt64(Field.one));
-          }).not.toThrow();
-        });
-
-        it('1000>=100000=false', () => {
-          expect(() => {
-            new UInt64(Field(1000)).assertGte(new UInt64(Field(100000)));
-          }).toThrow();
-        });
-
-        it('100000>=1000=true', () => {
-          expect(() => {
-            new UInt64(Field(100000)).assertGte(new UInt64(Field(1000)));
-          }).not.toThrow();
-        });
-
-        it('MAXINT>=MAXINT=true', () => {
-          expect(() => {
-            UInt64.MAXINT().assertGte(UInt64.MAXINT());
-          }).not.toThrow();
         });
       });
 
@@ -1580,64 +1454,6 @@ describe('int', () => {
         });
       });
 
-      describe('assertGte', () => {
-        it('1<=1=true', () => {
-          expect(() => {
-            Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              x.assertGte(y);
-            });
-          }).not.toThrow();
-        });
-
-        it('1>=2=false', () => {
-          expect(() => {
-            Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field.one));
-              const y = Circuit.witness(UInt32, () => new UInt32(Field(2)));
-              x.assertGte(y);
-            });
-          }).toThrow();
-        });
-
-        it('100000>=1000=true', () => {
-          expect(() => {
-            Circuit.runAndCheck(() => {
-              const x = Circuit.witness(
-                UInt32,
-                () => new UInt32(Field(100000))
-              );
-              const y = Circuit.witness(UInt32, () => new UInt32(Field(1000)));
-              x.assertGte(y);
-            });
-          }).not.toThrow();
-        });
-
-        it('1000>=100000=false', () => {
-          expect(() => {
-            Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => new UInt32(Field(1000)));
-              const y = Circuit.witness(
-                UInt32,
-                () => new UInt32(Field(100000))
-              );
-              x.assertGte(y);
-            });
-          }).toThrow();
-        });
-
-        it('MAXINT>=MAXINT=true', () => {
-          expect(() => {
-            Circuit.runAndCheck(() => {
-              const x = Circuit.witness(UInt32, () => UInt32.MAXINT());
-              const y = Circuit.witness(UInt32, () => UInt32.MAXINT());
-              x.assertGte(y);
-            });
-          }).not.toThrow();
-        });
-      });
-
       describe('from() ', () => {
         describe('fromNumber()', () => {
           it('should be the same as Field.one', () => {
@@ -1974,74 +1790,6 @@ describe('int', () => {
           expect(() => {
             UInt32.MAXINT().assertGt(UInt32.MAXINT());
           }).toThrow();
-        });
-      });
-
-      describe('gte', () => {
-        it('2>=1=true', () => {
-          expect(new UInt32(Field(2)).gte(new UInt32(Field.one))).toEqual(
-            Bool(true)
-          );
-        });
-
-        it('1>=1=true', () => {
-          expect(new UInt32(Field.one).gte(new UInt32(Field.one))).toEqual(
-            Bool(true)
-          );
-        });
-
-        it('1>=2=false', () => {
-          expect(new UInt32(Field.one).gte(new UInt32(Field(2)))).toEqual(
-            Bool(false)
-          );
-        });
-
-        it('100000>=1000=true', () => {
-          expect(
-            new UInt32(Field(100000)).gte(new UInt32(Field(1000)))
-          ).toEqual(Bool(true));
-        });
-
-        it('1000>=100000=false', () => {
-          expect(
-            new UInt32(Field(1000)).gte(new UInt32(Field(100000)))
-          ).toEqual(Bool(false));
-        });
-
-        it('MAXINT>=MAXINT=true', () => {
-          expect(UInt32.MAXINT().gte(UInt32.MAXINT())).toEqual(Bool(true));
-        });
-      });
-
-      describe('assertGte', () => {
-        it('1>=1=true', () => {
-          expect(() => {
-            new UInt32(Field.one).assertGte(new UInt32(Field.one));
-          }).not.toThrow();
-        });
-
-        it('2>=1=true', () => {
-          expect(() => {
-            new UInt32(Field(2)).assertGte(new UInt32(Field.one));
-          }).not.toThrow();
-        });
-
-        it('1000>=100000=false', () => {
-          expect(() => {
-            new UInt32(Field(1000)).assertGte(new UInt32(Field(100000)));
-          }).toThrow();
-        });
-
-        it('100000>=1000=true', () => {
-          expect(() => {
-            new UInt32(Field(100000)).assertGte(new UInt32(Field(1000)));
-          }).not.toThrow();
-        });
-
-        it('MAXINT>=MAXINT=true', () => {
-          expect(() => {
-            UInt32.MAXINT().assertGte(UInt32.MAXINT());
-          }).not.toThrow();
         });
       });
 

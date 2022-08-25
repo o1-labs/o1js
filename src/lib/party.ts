@@ -261,7 +261,7 @@ type Events = {
 
 const Events = {
   empty(): Events {
-    let hash = emptyHashWithPrefix('MinaZkappEventsEmpty');
+    let hash = emptyHashWithPrefix('MinaSnappEventsEmpty');
     return { hash, data: [] };
   },
 
@@ -276,7 +276,7 @@ const Events = {
   },
 
   emptySequenceState() {
-    return emptyHashWithPrefix('MinaZkappSequenceEmpty');
+    return emptyHashWithPrefix('MinaSnappSequenceEmpty');
   },
 
   updateSequenceState(state: Field, eventsHash: Field) {

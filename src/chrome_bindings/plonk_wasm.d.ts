@@ -2295,6 +2295,8 @@ export interface InitOutput {
   readonly caml_pasta_fq_plonk_proof_dummy: () => number;
   readonly __wbg_wasmfqopeningproof_free: (a: number) => void;
   readonly wasmfqopeningproof_set_sg: (a: number, b: number) => void;
+  readonly wasmfqprovercommitments_z_comm: (a: number) => number;
+  readonly wasmfqprovercommitments_t_comm: (a: number) => number;
   readonly wasmfqprovercommitments_set_t_comm: (a: number, b: number) => void;
   readonly wasmfqopeningproof_set_delta: (a: number, b: number) => void;
   readonly wasmfqproverproof_set_evals1: (a: number, b: number) => void;
@@ -2309,8 +2311,6 @@ export interface InitOutput {
   readonly caml_pasta_fq_plonk_proof_deep_copy: (a: number) => number;
   readonly __wbg_wasmfqproofevaluations_free: (a: number) => void;
   readonly wasmfqproverproof_set_commitments: (a: number, b: number) => void;
-  readonly wasmfqprovercommitments_z_comm: (a: number) => number;
-  readonly wasmfqprovercommitments_t_comm: (a: number) => number;
   readonly wasmfqproverproof_set_evals0: (a: number, b: number) => void;
   readonly wasmfqproverproof_set_proof: (a: number, b: number) => void;
   readonly wasmfqopeningproof_sg: (a: number) => number;
@@ -2476,6 +2476,12 @@ export interface InitOutput {
   readonly __wbg_set_wasmfqshifts_s0: (a: number, b: number, c: number) => void;
   readonly __wbg_set_wasmfqplonkverifierindex_shifts: (a: number, b: number) => void;
   readonly wasmfqplonkverifierindex_srs: (a: number) => number;
+  readonly wasmfqplonkverificationevals_generic_comm: (a: number) => number;
+  readonly wasmfqplonkverificationevals_psm_comm: (a: number) => number;
+  readonly wasmfqplonkverificationevals_complete_add_comm: (a: number) => number;
+  readonly wasmfqplonkverificationevals_mul_comm: (a: number) => number;
+  readonly wasmfqplonkverificationevals_emul_comm: (a: number) => number;
+  readonly wasmfqplonkverificationevals_endomul_scalar_comm: (a: number) => number;
   readonly wasmfqplonkverificationevals_set_psm_comm: (a: number, b: number) => void;
   readonly wasmfqplonkverificationevals_set_complete_add_comm: (a: number, b: number) => void;
   readonly wasmfqplonkverificationevals_set_mul_comm: (a: number, b: number) => void;
@@ -2493,12 +2499,6 @@ export interface InitOutput {
   readonly __wbg_get_wasmfqplonkverifierindex_max_quot_size: (a: number) => number;
   readonly __wbg_get_wasmfqplonkverifierindex_public_: (a: number) => number;
   readonly __wbg_get_wasmfqplonkverifierindex_prev_challenges: (a: number) => number;
-  readonly wasmfqplonkverificationevals_generic_comm: (a: number) => number;
-  readonly wasmfqplonkverificationevals_psm_comm: (a: number) => number;
-  readonly wasmfqplonkverificationevals_complete_add_comm: (a: number) => number;
-  readonly wasmfqplonkverificationevals_mul_comm: (a: number) => number;
-  readonly wasmfqplonkverificationevals_emul_comm: (a: number) => number;
-  readonly wasmfqplonkverificationevals_endomul_scalar_comm: (a: number) => number;
   readonly __wbg_wasmfqdomain_free: (a: number) => void;
   readonly __wbg_wasmfqshifts_free: (a: number) => void;
   readonly __wbg_get_wasmfqplonkverifierindex_shifts: (a: number) => number;

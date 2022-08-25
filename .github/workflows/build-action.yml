@@ -27,12 +27,12 @@ jobs:
           npm run test:integration
 
       - name: Publish to NPM if version has changed
-        uses: JS-DevTools/npm-publish@v1
-        if: github.ref == 'refs/heads/main'
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
-        env:
-          INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
+          uses: JS-DevTools/npm-publish@v1
+          if: github.ref == 'refs/heads/main'
+          with:
+            token: ${{ secrets.NPM_TOKEN }}
+          env:
+            INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   Build-Web:
     runs-on: ubuntu-latest
