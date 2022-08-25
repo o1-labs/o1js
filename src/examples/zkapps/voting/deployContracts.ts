@@ -28,9 +28,12 @@ export async function deployContracts(
   console.log('deploying set of 3 contracts');
   let tx = await Mina.transaction(feePayer, () => {
     Party.fundNewAccount(feePayer, {
-      initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
+      initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),  
     });
-
+    
+    voting.deploy({ zkappKey: params.votingKey });
+    candidateContract.deploy({ zkappKey: params.candidateKey });
+    voterContract.deploy({ zkappKey: params.voterKey });
  });
 
  tx.send();
