@@ -19,9 +19,6 @@ import {
 } from './preconditions';
 import { Membership_ } from './membership';
 
-// dummy value
-let sequenceEvents: Field[][] = [];
-
 /**
  * Address to the Membership instance that keeps track of Candidates.
  */
@@ -95,6 +92,7 @@ export class Voting_ extends SmartContract {
       editState: Permissions.proofOrSignature(),
       editSequenceState: Permissions.proofOrSignature(),
     });
+    this.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
   }
 
   /**
@@ -194,7 +192,7 @@ export class Voting_ extends SmartContract {
 
     let { state: newCommittedVotes, actionsHash: newAccumulatedVotes } =
       this.reducer.reduce(
-        sequenceEvents,
+        [Member.empty().toFields()], // TODO: sequence events
         Field,
         (state: Field, _action: Member) => {
           // checking that the member is part of the merkle tree
