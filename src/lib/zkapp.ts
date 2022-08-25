@@ -766,14 +766,15 @@ class ${contract.constructor.name} extends SmartContract {
 Use the optional \`maxTransactionsWithActions\` argument to increase this number.`
         );
       }
-      let methodData = (
+      /*    let methodData = (
         contract.constructor as typeof SmartContract
       ).analyzeMethods(contract.address);
       let possibleActionsPerTransaction = [
         ...new Set(Object.values(methodData).map((o) => o.sequenceEvents)).add(
           0
         ),
-      ].sort((x, y) => x - y);
+      ].sort((x, y) => x - y); */
+      let possibleActionsPerTransaction = [0, 1];
 
       let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
         circuitArray(reducer.actionType, n)
