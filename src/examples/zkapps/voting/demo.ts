@@ -9,6 +9,7 @@ import {
   Permissions,
   UInt64,
   Experimental,
+  UInt32,
 } from 'snarkyjs';
 import { VotingApp, VotingAppParams } from './factory';
 import { Member, MerkleWitness } from './member';
@@ -128,11 +129,11 @@ try {
 
   /*
 
-    Lets register one candidate
+    Lets register two candidates
 
   */
   tx = await Mina.transaction(feePayer, () => {
-    // creating and registering a new candidate
+    // creating and registering 1 new candidate
     let m = registerMember(
       0n,
       Member.from(
@@ -144,7 +145,25 @@ try {
     );
 
     contracts.voting.candidateRegistration(m);
+    if (!params.doProofs) contracts.voting.sign(votingKey);
+  });
 
+  if (params.doProofs) await tx.prove();
+  tx.send();
+
+  tx = await Mina.transaction(feePayer, () => {
+    // creating and registering 1 new candidate
+    let m = registerMember(
+      0n,
+      Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        UInt64.from(555)
+      ),
+      candidateStore
+    );
+
+    contracts.voting.candidateRegistration(m);
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
 
@@ -153,12 +172,12 @@ try {
   /*
   since the voting contact calls the candidate membership contract via invoking candidateRegister,
   the membership contract will then emit one event per new member
-  we should have emitted one new member, because we registered one new candidate
+  we should have emitted 2 new members, because we registered 2 new candidates
   */
   console.log(
-    '1 event?? ',
+    '2 events?? ',
     JSON.stringify(
-      contracts.candidateContract.reducer.getActions({}).length == 1
+      contracts.candidateContract.reducer.getActions({}).length == 2
     )
   );
 
@@ -216,9 +235,32 @@ try {
   /*
     lets vote for the one candidate we have
   */
-
+  // we have to up the slot so we are within our election period
+  Local.setGlobalSlotSinceHardfork(new UInt32(5));
   tx = await Mina.transaction(feePayer, () => {
-    contracts.voting.vote(candidateStore.get(0n)!);
+    let c = candidateStore.get(0n)!;
+    c.votesWitness = new MerkleWitness(votesStore.getWitness(0n));
+    contracts.voting.vote(c);
+    if (!params.doProofs) contracts.voting.sign(votingKey);
+  });
+
+  if (params.doProofs) await tx.prove();
+  tx.send();
+  // after the transaction went through, we have to update our off chain store as well
+  vote(0n);
+
+  // vote dispatches a new sequence events, so we should have one
+
+  console.log(
+    '1 vote sequence event? ',
+    contracts.voting.reducer.getActions({}).length == 1
+  );
+
+  /*
+    counting the votes
+  */
+  tx = await Mina.transaction(feePayer, () => {
+    contracts.voting.countVotes();
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
 
@@ -228,9 +270,14 @@ try {
   // vote dispatches a new sequence events, so we should have one
 
   console.log(
-    '1 vote sequence event? ',
-    contracts.voting.reducer.getActions({}).length == 1
+    'votes roots equal? ',
+    votesStore
+      .getRoot()
+      .equals(contracts.voting.committedVotes.get())
+      .toBoolean()
   );
+
+  printResult();
 } catch (error) {
   console.log(error);
 }
@@ -246,4 +293,34 @@ function registerMember(
   m.witness = new MerkleWitness(store.getWitness(i));
 
   return m;
+}
+
+function vote(i: bigint) {
+  let c_ = votesStore.get(i)!;
+  if (!c_) {
+    votesStore.set(i, candidateStore.get(i)!);
+    c_ = votesStore.get(i)!;
+  }
+  c_ = c_.addVote();
+  votesStore.set(i, c_);
+  return c_;
+}
+
+function printResult() {
+  if (
+    !contracts.voting.committedVotes
+      .get()
+      .equals(votesStore.getRoot())
+      .toBoolean()
+  ) {
+    throw new Error('On-chain root is not up to date with the off-chain tree');
+  }
+
+  let result: any = [];
+  votesStore.forEach((m, i) => {
+    result.push({
+      [m.publicKey.toBase58()]: m.votes.toString(),
+    });
+  });
+  console.log(result);
 }
