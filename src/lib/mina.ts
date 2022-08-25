@@ -41,6 +41,7 @@ export {
   accountCreationFee,
   sendTransaction,
   fetchEvents,
+  getActions,
   FeePayerSpec,
 };
 interface TransactionId {
@@ -197,6 +198,10 @@ interface Mina {
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): TransactionId;
   fetchEvents: (publicKey: PublicKey, tokenId?: Field) => any;
+  getActions: (
+    publicKey: PublicKey,
+    tokenId?: Field
+  ) => { hash: string; actions: string[][] }[];
 }
 
 interface MockMina extends Mina {
@@ -247,6 +252,7 @@ function LocalBlockchain({
   }
 
   const events: Record<string, any> = {};
+  const actions: Record<string, any> = {};
 
   return {
     accountCreationFee: () => UInt64.from(accountCreationFee),
@@ -318,8 +324,43 @@ function LocalBlockchain({
             slot: networkState.globalSlotSinceHardFork.toString(),
           });
         }
-      });
 
+        // actions/sequencing events
+
+        // gets the index of the most up to date sequence state from our sequence list
+        let n = actions[addr]?.[tokenId]?.length ?? 1;
+
+        // most recent sequence state
+        let sequenceState = actions?.[addr]?.[tokenId]?.[n - 1]?.hash;
+
+        // if there exists no hash, this means we initialize our latest hash with the empty state
+        let latestActionsHash =
+          sequenceState === undefined
+            ? Events.emptySequenceState()
+            : Ledger.fieldOfBase58(sequenceState);
+
+        let actionList = p.body.sequenceEvents;
+        let eventsHash = Events.hash(
+          actionList.map((e) => e.map((f) => Field(f)))
+        );
+
+        if (actions[addr] === undefined) {
+          actions[addr] = {};
+        }
+        if (p.body.sequenceEvents.length > 0) {
+          latestActionsHash = Events.updateSequenceState(
+            latestActionsHash,
+            eventsHash
+          );
+          if (actions[addr][tokenId] === undefined) {
+            actions[addr][tokenId] = [];
+          }
+          actions[addr][tokenId].push({
+            actions: actionList,
+            hash: Ledger.fieldToBase58(latestActionsHash),
+          });
+        }
+      });
       return { wait: async () => {} };
     },
     async transaction(sender: FeePayerSpec, f: () => void) {
@@ -349,6 +390,14 @@ function LocalBlockchain({
       tokenId: Field = TokenId.default
     ): Promise<any[]> {
       return events?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
+    },
+    getActions(
+      publicKey: PublicKey,
+      tokenId: Field = TokenId.default
+    ): { hash: string; actions: string[][] }[] {
+      return (
+        actions?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)] ?? []
+      );
     },
     addAccount,
     testAccounts,
@@ -477,6 +526,11 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         'fetchEvents() is not implemented yet for remote blockchains.'
       );
     },
+    getActions() {
+      throw Error(
+        'fetchEvents() is not implemented yet for remote blockchains.'
+      );
+    },
   };
 }
 
@@ -541,6 +595,9 @@ let activeInstance: Mina = {
     return createTransaction(sender, f);
   },
   fetchEvents() {
+    throw Error('must call Mina.setActiveInstance first');
+  },
+  getActions() {
     throw Error('must call Mina.setActiveInstance first');
   },
 };
@@ -628,6 +685,13 @@ function sendTransaction(txn: Transaction) {
  */
 async function fetchEvents(publicKey: PublicKey, tokenId: Field) {
   return await activeInstance.fetchEvents(publicKey, tokenId);
+}
+
+/**
+ * @return A list of emitted sequencing actions associated to the given public key.
+ */
+function getActions(publicKey: PublicKey, tokenId: Field) {
+  return activeInstance.getActions(publicKey, tokenId);
 }
 
 function dummyAccount(pubkey?: PublicKey): Account {

@@ -731,6 +731,13 @@ type ReducerReturn<Action> = {
     state: State;
     actionsHash: Field;
   };
+  getActions({
+    fromActionHash,
+    endActionHash,
+  }: {
+    fromActionHash?: Field;
+    endActionHash?: Field;
+  }): Action[][];
 };
 
 function getReducer<A>(contract: SmartContract): ReducerReturn<A> {
@@ -825,6 +832,57 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       }
       contract.account.sequenceState.assertEquals(actionsHash);
       return { state, actionsHash };
+    },
+    getActions({
+      fromActionHash,
+      endActionHash,
+    }: {
+      fromActionHash?: Field;
+      endActionHash?: Field;
+    }): A[][] {
+      let actionsForAccount: A[][] = [];
+
+      Circuit.asProver(() => {
+        // if the fromActionHash is the empty state, we fetch all events
+        fromActionHash = fromActionHash
+          ?.equals(Events.emptySequenceState())
+          .toBoolean()
+          ? undefined
+          : fromActionHash;
+
+        // used to determine start and end values in string
+        let start: string | undefined = fromActionHash
+          ? Ledger.fieldToBase58(fromActionHash)
+          : undefined;
+        let end: string | undefined = endActionHash
+          ? Ledger.fieldToBase58(endActionHash)
+          : undefined;
+
+        let actions = Mina.getActions(contract.address, contract.self.tokenId);
+
+        // gets the start/end indices of our array slice
+        let startIndex = start
+          ? actions.findIndex((e) => e.hash === start) + 1
+          : 0;
+        let endIndex = end
+          ? actions.findIndex((e) => e.hash === end) + 1
+          : undefined;
+
+        // slices the array so we only get the wanted range between fromActionHash and endActionHash
+        actionsForAccount = actions
+          .slice(startIndex, endIndex === 0 ? undefined : endIndex)
+          .map((event: { hash: string; actions: string[][] }) =>
+            // putting our string-Fields back into the original action type
+            event.actions.map((action: string[]) =>
+              reducer.actionType.ofFields(
+                action.map((fieldAsString: string) =>
+                  Field.fromString(fieldAsString)
+                )
+              )
+            )
+          );
+      });
+      return actionsForAccount;
     },
   };
 }
