@@ -195,7 +195,7 @@ export class Voting_ extends SmartContract {
 
     let { state: newCommittedVotes, actionsHash: newAccumulatedVotes } =
       this.reducer.reduce(
-        [Member.empty().toFields()], // TODO: sequence events
+        this.reducer.getActions({ fromActionHash: accumulatedVotes }),
         Field,
         (state: Field, _action: Member) => {
           // checking that the member is part of the merkle tree
