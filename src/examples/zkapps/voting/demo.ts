@@ -123,7 +123,7 @@ try {
   */
   console.log(
     '3 events?? ',
-    JSON.stringify(contracts.voterContract.reducer.getActions({}).length == 3)
+    contracts.voterContract.reducer.getActions({}).length == 3
   );
 
   /*
@@ -134,7 +134,7 @@ try {
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering a new candidate
     let m = registerMember(
-      1n,
+      0n,
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
@@ -211,6 +211,25 @@ try {
       .get()
       .equals(voterStore.getRoot())
       .toBoolean()
+  );
+
+  /*
+    lets vote for the one candidate we have
+  */
+
+  tx = await Mina.transaction(feePayer, () => {
+    contracts.voting.vote(candidateStore.get(0n)!);
+    if (!params.doProofs) contracts.voting.sign(votingKey);
+  });
+
+  if (params.doProofs) await tx.prove();
+  tx.send();
+
+  // vote dispatches a new sequence events, so we should have one
+
+  console.log(
+    '1 vote sequence event? ',
+    contracts.voting.reducer.getActions({}).length == 1
   );
 } catch (error) {
   console.log(error);

@@ -168,7 +168,7 @@ export class Voting_ extends SmartContract {
       .and(currentSlot.lte(electionPreconditions.endElection))
       .assertTrue();
 
-    // TODO: derive voter accountId - how?
+    // ! TODO: derive voter accountId - how? we should just pass in a voter Member
     //this.VoterContract.isMember(Field.zero).assertTrue();
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
