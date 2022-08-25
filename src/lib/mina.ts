@@ -326,27 +326,32 @@ function LocalBlockchain({
         }
 
         // actions/sequencing events
+
+        // gets the index of the most up to date sequence state from our sequence list
+        let n = actions[addr]?.[tokenId]?.length ?? 1;
+
+        // most recent sequence state
+        let sequenceState = actions?.[addr]?.[tokenId]?.[n - 1]?.hash;
+
+        // if there exists no hash, this means we initialize our latest hash with the empty state
         let latestActionsHash =
-          ledger.getAccount(
-            PublicKey.fromBase58(addr),
-            Ledger.fieldOfBase58(tokenId)
-          )?.zkapp?.sequenceState[0] ?? Events.emptySequenceState();
+          sequenceState === undefined
+            ? Events.emptySequenceState()
+            : Ledger.fieldOfBase58(sequenceState);
 
         let actionList = p.body.sequenceEvents;
         let eventsHash = Events.hash(
           actionList.map((e) => e.map((f) => Field(f)))
         );
 
-        if (actionList.length > 0)
-          latestActionsHash = Events.updateSequenceState(
-            latestActionsHash,
-            eventsHash
-          );
-
         if (actions[addr] === undefined) {
           actions[addr] = {};
         }
         if (p.body.sequenceEvents.length > 0) {
+          latestActionsHash = Events.updateSequenceState(
+            latestActionsHash,
+            eventsHash
+          );
           if (actions[addr][tokenId] === undefined) {
             actions[addr][tokenId] = [];
           }
