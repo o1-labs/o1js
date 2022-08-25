@@ -154,7 +154,7 @@ let newCandidate: Member;
     );
 
     // register early candidate
-    contracts.voting.candidateRegistration(earlyVoter);
+    contracts.voting.voterRegistration(earlyVoter);
     contracts.voting.sign(votingKey);
   });
   
@@ -174,7 +174,7 @@ let newCandidate: Member;
     );
 
     // register late candidate
-    contracts.voting.candidateRegistration(lateVoter);
+    contracts.voting.voterRegistration(lateVoter);
     contracts.voting.sign(votingKey);
   });
   
