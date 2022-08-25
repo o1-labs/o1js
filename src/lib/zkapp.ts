@@ -863,7 +863,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
 
         // gets the start/end indices of our array slice
         let startIndex = start
-          ? actions.findIndex((e) => e.hash === start) + 2
+          ? actions.findIndex((e) => e.hash === start) + 1
           : 0;
         let endIndex = end
           ? actions.findIndex((e) => e.hash === end) + 1
