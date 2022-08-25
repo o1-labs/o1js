@@ -62,7 +62,7 @@ export class Membership_ extends SmartContract {
     this.setPermissions({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
-      editSequenceState: Permissions.proofOrSignature(),
+      editSequenceState: Permissions.none(), // TODO: fix permissions
     });
   }
 
