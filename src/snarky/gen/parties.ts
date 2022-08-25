@@ -12,7 +12,6 @@ import {
   Sign,
   StringWithHash,
   Events,
-  SequenceEvents,
 } from '../parties-leaves';
 import { asFieldsAndAux, AsFieldsAndAux } from '../parties-helpers';
 import * as Json from './parties-json';
@@ -38,20 +37,8 @@ type CustomTypes = {
     },
     Json.TypeMap['Field'][][]
   >;
-  SequenceEvents: AsFieldsAndAux<
-    {
-      data: Field[][];
-      hash: Field;
-    },
-    Json.TypeMap['Field'][][]
-  >;
 };
-let customTypes: CustomTypes = {
-  StringWithHash,
-  TokenSymbol,
-  Events,
-  SequenceEvents,
-};
+let customTypes: CustomTypes = { StringWithHash, TokenSymbol, Events };
 
 type Parties = {
   feePayer: {
