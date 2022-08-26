@@ -41,29 +41,42 @@ export async function testSet(
 
   const initialRoot = votersStore.getRoot();
 
-  console.log('deploying set of 3 contracts');
+  console.log('deploying voting contract...');
   tx = await Mina.transaction(feePayer, () => {
     Party.fundNewAccount(feePayer, {
       initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
     });
 
     voting.deploy({ zkappKey: params.votingKey });
-    candidateContract.deploy({ zkappKey: params.candidateKey });
-    voterContract.deploy({ zkappKey: params.voterKey });
+    // setting the merkle root
+    voting.committedVotes.set(votesStore.getRoot());
+    // setting the initial sequence events hash
+    voting.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
+  });
+  tx.send();
 
+  console.log('deploying candidate membership contract...');
+  tx = await Mina.transaction(feePayer, () => {
+    candidateContract.deploy({ zkappKey: params.candidateKey });
+    // setting the merkle root
+    candidateContract.committedMembers.set(candidatesStore.getRoot());
+    // setting the initial sequence events hash
+    candidateContract.accumulatedMembers.set(
+      Experimental.Reducer.initialActionsHash
+    );
+  });
+  tx.send();
+
+  console.log('deploying voter membership contract...');
+
+  tx = await Mina.transaction(feePayer, () => {
+    voterContract.deploy({ zkappKey: params.voterKey });
     // setting the merkle root
     voterContract.committedMembers.set(votersStore.getRoot());
-    candidateContract.committedMembers.set(candidatesStore.getRoot());
-    voting.committedVotes.set(votesStore.getRoot());
-
     // setting the initial sequence events hash
     voterContract.accumulatedMembers.set(
       Experimental.Reducer.initialActionsHash
     );
-    candidateContract.accumulatedMembers.set(
-      Experimental.Reducer.initialActionsHash
-    );
-    voting.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
   });
   tx.send();
 
