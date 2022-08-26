@@ -17,6 +17,7 @@ import {
   CallForest,
   Authorization,
   Events,
+  SequenceEvents,
 } from './party';
 import * as Fetch from './fetch';
 import { assertPreconditionInvariants, NetworkValue } from './precondition';
@@ -289,7 +290,7 @@ function LocalBlockchain({
             ledgerAccount.delegate && PublicKey.from(ledgerAccount.delegate),
           sequenceState:
             ledgerAccount.zkapp?.sequenceState[0] ??
-            Events.emptySequenceState(),
+            SequenceEvents.emptySequenceState(),
         };
       }
     },
@@ -336,7 +337,7 @@ function LocalBlockchain({
         // if there exists no hash, this means we initialize our latest hash with the empty state
         let latestActionsHash =
           sequenceState === undefined
-            ? Events.emptySequenceState()
+            ? SequenceEvents.emptySequenceState()
             : Ledger.fieldOfBase58(sequenceState);
 
         let actionList = p.body.sequenceEvents;
@@ -348,7 +349,7 @@ function LocalBlockchain({
           actions[addr] = {};
         }
         if (p.body.sequenceEvents.length > 0) {
-          latestActionsHash = Events.updateSequenceState(
+          latestActionsHash = SequenceEvents.updateSequenceState(
             latestActionsHash,
             eventsHash
           );
@@ -705,7 +706,7 @@ function dummyAccount(pubkey?: PublicKey): Account {
     provedState: Bool(false),
     receiptChainHash: emptyReceiptChainHash(),
     delegate: undefined,
-    sequenceState: Events.emptySequenceState(),
+    sequenceState: SequenceEvents.emptySequenceState(),
   };
 }
 
