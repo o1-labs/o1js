@@ -1,4 +1,12 @@
-import { Experimental, Mina, Party, Field, PrivateKey, UInt64 } from 'snarkyjs';
+import {
+  Experimental,
+  Mina,
+  Party,
+  Field,
+  PrivateKey,
+  UInt64,
+  UInt32,
+} from 'snarkyjs';
 import { VotingAppParams } from './factory';
 import { Member, MerkleWitness } from './member';
 import { Membership_ } from './membership';
@@ -34,52 +42,32 @@ export async function testSet(
   let Local = Mina.LocalBlockchain();
   Mina.setActiveInstance(Local);
 
-  let feePayer = Local.testAccounts[0].privateKey;
+  let feePayer = Local.testAccounts[2].privateKey;
 
   let tx;
 
   let { votersStore, candidatesStore, votesStore } = storage;
   let { voterContract, candidateContract, voting } = contracts;
-  let { votingKey } = params;
+  let { votingKey, candidateKey, voterKey } = params;
 
   const initialRoot = votersStore.getRoot();
 
-  console.log('deploying voting contract...');
+  console.log('deploying 3 contracts ...');
+  Mina.accountCreationFee().add;
+
   tx = await Mina.transaction(feePayer, () => {
     Party.fundNewAccount(feePayer, {
       initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
     });
 
-    voting.deploy({ zkappKey: params.votingKey });
-    // setting the merkle root
+    voting.deploy({ zkappKey: votingKey });
     voting.committedVotes.set(votesStore.getRoot());
-    // setting the initial sequence events hash
-    voting.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
-  });
-  tx.send();
 
-  console.log('deploying candidate membership contract...');
-  tx = await Mina.transaction(feePayer, () => {
-    candidateContract.deploy({ zkappKey: params.candidateKey });
-    // setting the merkle root
+    candidateContract.deploy({ zkappKey: candidateKey });
     candidateContract.committedMembers.set(candidatesStore.getRoot());
-    // setting the initial sequence events hash
-    candidateContract.accumulatedMembers.set(
-      Experimental.Reducer.initialActionsHash
-    );
-  });
-  tx.send();
 
-  console.log('deploying voter membership contract...');
-
-  tx = await Mina.transaction(feePayer, () => {
-    voterContract.deploy({ zkappKey: params.voterKey });
-    // setting the merkle root
+    voterContract.deploy({ zkappKey: voterKey });
     voterContract.committedMembers.set(votersStore.getRoot());
-    // setting the initial sequence events hash
-    voterContract.accumulatedMembers.set(
-      Experimental.Reducer.initialActionsHash
-    );
   });
   tx.send();
 
@@ -117,7 +105,6 @@ export async function testSet(
   // This is currently not throwing an error
 
   console.log('attempting to register the same voter twice...');
-
   try {
     tx = await Mina.transaction(feePayer, () => {
       // attempt to register the same voter again
@@ -127,17 +114,8 @@ export async function testSet(
 
     tx.send();
   } catch (err: any) {
-    console.log(err);
-    // Todo: handle expected error and throw otherwise
+    console.log('error', err);
   }
-
-  numberOfEvents = voterContract.reducer.getActions({}).length;
-  console.log(numberOfEvents);
-  // if (numberOfEvents !== 1) {
-  //   throw Error(
-  //     'No event should be emmited after attempting to regester a voter twice'
-  //   );
-  // }
 
   console.log('attempting to register a candidate...');
 
@@ -166,7 +144,9 @@ export async function testSet(
 
   numberOfEvents = voterContract.reducer.getActions({}).length;
   if (numberOfEvents !== 2) {
-    throw Error('Should have emmited 1 event after regestering a candidate');
+    throw Error(
+      'Should have emmited 1 event after regestering a candidate for a total of 2 events'
+    );
   }
 
   // the merkel roots of both membership contract should still be the initial ones because publish hasn't been invoked
@@ -190,23 +170,34 @@ export async function testSet(
 
   console.log('attempting to register a candidate before the time window ...');
   //
+  Local.setGlobalSlotSinceHardfork(new UInt32(0));
   try {
+    // set the slot before the time window
     tx = await Mina.transaction(feePayer, () => {
       let earlyCandidate = Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(50)
+        UInt64.from(600)
       );
       // register late candidate
-      contracts.voting.candidateRegistration(earlyCandidate);
-      contracts.voting.sign(votingKey);
+      voting.candidateRegistration(earlyCandidate);
+      voting.sign(votingKey);
     });
 
     tx.send();
   } catch (err: any) {
     // TODO: handle error when
+    console.log('error', err);
   }
 
+  if (
+    !contracts.candidateContract.committedMembers
+      .get()
+      .equals(initialRoot)
+      .toBoolean()
+  ) {
+    throw Error('candidate merkle root is not the initialroot');
+  }
   //
   try {
     tx = await Mina.transaction(feePayer, () => {
