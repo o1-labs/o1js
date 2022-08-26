@@ -239,6 +239,7 @@ export async function testSet(
   console.log('attempting to register a voter after the time window ...');
   //
   try {
+    Local.setGlobalSlotSinceHardfork(new UInt32.MAXINT());
     tx = await Mina.transaction(feePayer, () => {
       let lateVoter = Member.from(
         PrivateKey.random().toPublicKey(),
@@ -253,9 +254,10 @@ export async function testSet(
 
     tx.send();
   } catch (err: any) {
-    // TODO: handle error when
+    console.log('err', err);
   }
 
+  // current stop
   console.log('authrozing registrations...');
   try {
     tx = await Mina.transaction(feePayer, () => {
@@ -325,6 +327,7 @@ export async function testSet(
     // TODO: handle errors
   }
 
+  // currently doesn't throw an error
   console.log('unregistered voter attempting to vote');
   try {
     tx = await Mina.transaction(feePayer, () => {
