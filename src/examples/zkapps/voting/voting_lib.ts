@@ -2,6 +2,12 @@ import { Member, MerkleWitness } from './member';
 import { OffchainStorage } from './off_chain_storage';
 import { Voting_ } from './voting';
 
+/**
+ * Updates off-chain storage when regestering a member or candidate
+ * @param {bigint} i                            index of memberStore or candidatesStore
+ * @param {OffchainStorage<Member>} votesStore  votes off-chain storage
+ * @param {OffchainStorage<Member>} votesStore  candidates off-chain storage
+ */
 export function registerMember(
   i: bigint,
   m: Member,
@@ -15,6 +21,12 @@ export function registerMember(
   return m;
 }
 
+/**
+ * Updates off-chain storage after voting
+ * @param {bigint} i                            index of candidateStore and votesStore
+ * @param {OffchainStorage<Member>} votesStore  votes off-chain storage
+ * @param {OffchainStorage<Member>} votesStore  candidates off-chain storage
+ */
 export function vote(
   i: bigint,
   votesStore: OffchainStorage<Member>,
@@ -30,6 +42,9 @@ export function vote(
   return c_;
 }
 
+/**
+ * Prints the voting results of an election
+ */
 export function printResult(
   voting: Voting_,
   votesStore: OffchainStorage<Member>

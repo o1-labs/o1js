@@ -337,18 +337,18 @@ export async function testSet(
   console.log('unregistered voter attempting to vote');
   try {
     tx = await Mina.transaction(feePayer, () => {
-      let fakeCandidate = Member.from(
+      let fakeVoter = Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
         UInt64.from(50)
       );
-      contracts.voting.vote(fakeCandidate);
+      contracts.voting.vote(fakeVoter);
       contracts.voting.sign(votingKey);
     });
 
     tx.send();
   } catch (err: any) {
-    // TODO: handle errors
+    handleError(err, '');
   }
 
   console.log('candidate attempting to vote for voter...');
@@ -392,6 +392,11 @@ export async function testSet(
   console.log('test successful!');
 }
 
+/**
+ * Test for expected failure case. Original error thrown if not expected failure case.
+ * @param {any} error  The error thrown in the catch block.
+ * @param {string} errorMessage  The expected error message.
+ */
 function handleError(error: any, errorMessage: string) {
   if (error.message.includes(errorMessage)) {
     correctlyFails = true;
