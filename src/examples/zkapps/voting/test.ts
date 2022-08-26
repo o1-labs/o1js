@@ -39,6 +39,8 @@ export async function testSet(
   let { voterContract, candidateContract, voting } = contracts;
   let { votingKey } = params;
 
+  const initialRoot = votersStore.getRoot();
+
   console.log('deploying set of 3 contracts');
   tx = await Mina.transaction(feePayer, () => {
     Party.fundNewAccount(feePayer, {
@@ -85,7 +87,7 @@ export async function testSet(
       voting.voterRegistration(newVoter1);
       voting.sign(votingKey);
     });
-    if (params.doProofs) await tx.prove();
+
     tx.send();
   } catch (err: any) {
     throw Error(err);
@@ -96,7 +98,7 @@ export async function testSet(
     throw Error('Should have emmited 1 event after regestering a voter');
   }
 
-  // This should throw an error but is not
+  // This is currently not throwing an error
   console.log('attempting to register the same voter twice...');
 
   try {
@@ -104,9 +106,9 @@ export async function testSet(
       // attempt to register the same voter again
 
       voting.voterRegistration(newVoter1);
-      voting.sign(params.votingKey);
+      voting.sign(votingKey);
     });
-    if (params.doProofs) await tx.prove();
+
     tx.send();
   } catch (err: any) {
     console.log(err);
@@ -115,6 +117,11 @@ export async function testSet(
 
   numberOfEvents = voterContract.reducer.getActions({}).length;
   console.log(numberOfEvents);
+  // if (numberOfEvents !== 1) {
+  //   throw Error(
+  //     'No event should be emmited after attempting to regester a voter twice'
+  //   );
+  // }
 
   console.log('attempting to register a candidate...');
 
@@ -139,6 +146,30 @@ export async function testSet(
     tx.send();
   } catch (err: any) {
     throw Error(err);
+  }
+
+  numberOfEvents = voterContract.reducer.getActions({}).length;
+  if (numberOfEvents !== 2) {
+    throw Error('Should have emmited 1 event after regestering a candidate');
+  }
+
+  // so the merkel roots of both membership contract should still be the initial ones because publish hasn't been invoked
+  if (
+    !contracts.candidateContract.committedMembers
+      .get()
+      .equals(initialRoot)
+      .toBoolean()
+  ) {
+    throw Error('candidate merkle root is not the initialroot');
+  }
+
+  if (
+    !contracts.voterContract.committedMembers
+      .get()
+      .equals(initialRoot)
+      .toBoolean()
+  ) {
+    throw Error('voter merkle root is not the initialroot');
   }
 
   console.log('attempting to register a candidate before the time window ...');
@@ -220,8 +251,6 @@ export async function testSet(
     // TODO: handle error when
   }
 
-  // isMember test cases
-
   console.log('authrozing registrations...');
   try {
     tx = await Mina.transaction(feePayer, () => {
@@ -235,103 +264,91 @@ export async function testSet(
     throw Error(err);
   }
 
-  console.log('attempting to vote for the new candidate...');
-  let candidateChoice;
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      contracts.voting.vote(candidateChoice);
-      contracts.voting.sign(votingKey);
-    });
+  // console.log('attempting to vote twice...');
+  // try {
+  //   tx = await Mina.transaction(feePayer, () => {
+  //     contracts.voting.vote(candidateChoice);
+  //     contracts.voting.sign(votingKey);
+  //   });
 
-    tx.send();
-  } catch (err: any) {
-    throw Error(err);
-  }
-  console.log('attempting to vote twice...');
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      contracts.voting.vote(candidateChoice);
-      contracts.voting.sign(votingKey);
-    });
+  //   tx.send();
+  // } catch (err: any) {
+  //   // should throw error if double voting
+  // }
 
-    tx.send();
-  } catch (err: any) {
-    // should throw error if double voting
-  }
+  // console.log('attempting to vote for a fake candidate...');
+  // try {
+  //   tx = await Mina.transaction(feePayer, () => {
+  //     let fakeCandidate = Member.from(
+  //       PrivateKey.random().toPublicKey(),
+  //       Field.zero,
+  //       UInt64.from(50)
+  //     );
+  //     contracts.voting.vote(fakeCandidate);
+  //     contracts.voting.sign(votingKey);
+  //   });
 
-  console.log('attempting to vote for a fake candidate...');
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      let fakeCandidate = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field.zero,
-        UInt64.from(50)
-      );
-      contracts.voting.vote(fakeCandidate);
-      contracts.voting.sign(votingKey);
-    });
+  //   tx.send();
+  // } catch (err: any) {
+  //   // TODO: handle errors
+  // }
 
-    tx.send();
-  } catch (err: any) {
-    // TODO: handle errors
-  }
+  // console.log('unregistered voter attempting to vote');
+  // try {
+  //   tx = await Mina.transaction(feePayer, () => {
+  //     let fakeCandidate = Member.from(
+  //       PrivateKey.random().toPublicKey(),
+  //       Field.zero,
+  //       UInt64.from(50)
+  //     );
+  //     contracts.voting.vote(fakeCandidate);
+  //     contracts.voting.sign(votingKey);
+  //   });
 
-  console.log('unregistered voter attempting to vote');
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      let fakeCandidate = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field.zero,
-        UInt64.from(50)
-      );
-      contracts.voting.vote(fakeCandidate);
-      contracts.voting.sign(votingKey);
-    });
+  //   tx.send();
+  // } catch (err: any) {
+  //   // TODO: handle errors
+  // }
 
-    tx.send();
-  } catch (err: any) {
-    // TODO: handle errors
-  }
+  // console.log('candidate attempting to vote for voter...');
+  // try {
+  //   tx = await Mina.transaction(feePayer, () => {
+  //     let voter = Member.from(
+  //       PrivateKey.random().toPublicKey(),
+  //       Field.zero,
+  //       UInt64.from(50)
+  //     );
+  //     contracts.voting.vote(voter);
+  //     contracts.voting.sign(votingKey);
+  //   });
 
-  console.log('candidate attempting to vote for voter...');
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      let voter = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field.zero,
-        UInt64.from(50)
-      );
-      contracts.voting.vote(voter);
-      contracts.voting.sign(votingKey);
-    });
+  //   tx.send();
+  // } catch (err: any) {
+  //   // TODO: handle errors
+  // }
 
-    tx.send();
-  } catch (err: any) {
-    // TODO: handle errors
-  }
+  // console.log('counting votes ...');
+  // let voteCount;
+  // try {
+  //   tx = await Mina.transaction(feePayer, () => {
+  //     let fakeCandidate = Member.from(
+  //       PrivateKey.random().toPublicKey(),
+  //       Field.zero,
+  //       UInt64.from(50)
+  //     );
+  //     voteCount = contracts.voting.countVotes();
+  //   });
 
-  console.log('counting votes ...');
-  let voteCount;
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      let fakeCandidate = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field.zero,
-        UInt64.from(50)
-      );
-      voteCount = contracts.voting.countVotes();
-    });
+  //   tx.send();
+  // } catch (err: any) {
+  //   // TODO: handle errors
+  //   throw Error(error);
+  // }
 
-    tx.send();
-  } catch (err: any) {
-    // TODO: handle errors
-    throw Error(error);
-  }
-
-  if (voteCount === '2') {
-    throw Error(`Vote count of ${voteCount} is incorrect`);
-  }
-  console.log('test successful!');
+  // if (voteCount === '2') {
+  //   throw Error(`Vote count of ${voteCount} is incorrect`);
+  // }
+  // console.log('test successful!');
 }
 
 function registerMember(
