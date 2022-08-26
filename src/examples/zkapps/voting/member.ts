@@ -77,6 +77,19 @@ export class Member extends CircuitValue {
     return new Member(PublicKey.empty(), Field.zero, UInt64.zero, Field.zero);
   }
 
+  clone(): Member {
+    let m = new Member(
+      this.publicKey,
+      this.tokenId,
+      this.balance,
+      this.accountId
+    );
+    m.votes = Field.fromString(this.votes.toString());
+    m.hashVoted = Bool(this.hashVoted.toBoolean());
+
+    return m;
+  }
+
   // TODO: ofFields(xs: Field[])
 
   static from(publicKey: PublicKey, tokenId: Field, balance: UInt64) {
