@@ -1,5 +1,6 @@
 import { Member, MerkleWitness } from './member';
 import { OffchainStorage } from './off_chain_storage';
+import { Voting_ } from './voting';
 
 export function registerMember(
   i: bigint,
@@ -27,4 +28,21 @@ export function vote(
   c_ = c_.addVote();
   votesStore.set(i, c_);
   return c_;
+}
+
+export function printResult(
+  voting: Voting_,
+  votesStore: OffchainStorage<Member>
+) {
+  if (!voting.committedVotes.get().equals(votesStore.getRoot()).toBoolean()) {
+    throw new Error('On-chain root is not up to date with the off-chain tree');
+  }
+
+  let result: any = [];
+  votesStore.forEach((m, i) => {
+    result.push({
+      [m.publicKey.toBase58()]: m.votes.toString(),
+    });
+  });
+  console.log(result);
 }
