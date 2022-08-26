@@ -112,12 +112,12 @@ export async function testSet(
   }
 
   // This is currently not throwing an error
+  let correctlyFails;
   console.log('attempting to register the same voter twice...');
 
   try {
     tx = await Mina.transaction(feePayer, () => {
       // attempt to register the same voter again
-
       voting.voterRegistration(newVoter1);
       voting.sign(votingKey);
     });
@@ -213,7 +213,6 @@ export async function testSet(
         Field.zero,
         UInt64.from(50)
       );
-
       // register late candidate
       contracts.voting.candidateRegistration(lateCandidate);
       contracts.voting.sign(votingKey);
@@ -395,4 +394,15 @@ function registerMember(
   m.witness = new MerkleWitness(store.getWitness(i));
 
   return m;
+}
+
+function handleError(error: any, errorMessage: string) {
+  if (error.message.includes(errorMessage)) {
+    correctlyFails = true;
+    console.log(
+      `Update correctly rejected with failing precondition. Current state is still ${currentState}.`
+    );
+  } else {
+    throw Error(error);
+  }
 }
