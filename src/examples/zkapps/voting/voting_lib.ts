@@ -1,7 +1,7 @@
 import { Member, MerkleWitness } from './member';
 import { OffchainStorage } from './off_chain_storage';
 
-function registerMember(
+export function registerMember(
   i: bigint,
   m: Member,
   store: OffchainStorage<Member>
@@ -12,4 +12,19 @@ function registerMember(
   m.witness = new MerkleWitness(store.getWitness(i));
 
   return m;
+}
+
+export function vote(
+  i: bigint,
+  votesStore: OffchainStorage<Member>,
+  candidateStore: OffchainStorage<Member>
+) {
+  let c_ = votesStore.get(i)!;
+  if (!c_) {
+    votesStore.set(i, candidateStore.get(i)!);
+    c_ = votesStore.get(i)!;
+  }
+  c_ = c_.addVote();
+  votesStore.set(i, c_);
+  return c_;
 }
