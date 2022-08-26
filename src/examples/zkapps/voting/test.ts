@@ -37,6 +37,7 @@ export async function testSet(
 
   let { votersStore, candidatesStore, votesStore } = storage;
   let { voterContract, candidateContract, voting } = contracts;
+  let { votingKey } = params;
 
   console.log('deploying set of 3 contracts');
   tx = await Mina.transaction(feePayer, () => {
@@ -82,7 +83,7 @@ export async function testSet(
 
       // register new member
       voting.voterRegistration(newVoter1);
-      voting.sign(params.votingKey);
+      voting.sign(votingKey);
     });
     if (params.doProofs) await tx.prove();
     tx.send();
@@ -116,15 +117,20 @@ export async function testSet(
   console.log(numberOfEvents);
 
   console.log('attempting to register a candidate...');
-  let newCandidate: Member;
+
   try {
     tx = await Mina.transaction(feePayer, () => {
-      newCandidate = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field.zero,
-        UInt64.from(50)
+      let newCandidate = registerMember(
+        0n,
+        Member.from(
+          PrivateKey.random().toPublicKey(),
+          Field.zero,
+          UInt64.from(600)
+        ),
+        candidatesStore
       );
 
+      voting.candidateRegistration(newCandidate);
       // register new candidate
       contracts.voting.candidateRegistration(newCandidate);
       contracts.voting.sign(votingKey);
