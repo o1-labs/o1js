@@ -67,10 +67,10 @@ export async function testSet(
   console.log('all contracts deployed!');
 
   console.log('attempting to register a voter...');
-  let newVoter: Member;
+  let newVoter1: Member;
   try {
     tx = await Mina.transaction(feePayer, () => {
-      const newVoter1 = registerMember(
+      newVoter1 = registerMember(
         0n,
         Member.from(
           PrivateKey.random().toPublicKey(),
@@ -81,7 +81,8 @@ export async function testSet(
       );
 
       // register new member
-      contracts.voting.voterRegistration(newVoter1);
+      voting.voterRegistration(newVoter1);
+      voting.sign(params.votingKey);
     });
     if (params.doProofs) await tx.prove();
     tx.send();
@@ -89,19 +90,30 @@ export async function testSet(
     throw Error(err);
   }
 
+  let numberOfEvents = voterContract.reducer.getActions({}).length;
+  if (numberOfEvents !== 1) {
+    throw Error('Should have emmited 1 event after regestering a voter');
+  }
+
+  // This should throw an error but is not
   console.log('attempting to register the same voter twice...');
 
   try {
     tx = await Mina.transaction(feePayer, () => {
-      // register new member
-      contracts.voting.voterRegistration(newVoter);
-      contracts.voting.vote(candidate);
+      // attempt to register the same voter again
+
+      voting.voterRegistration(newVoter1);
+      voting.sign(params.votingKey);
     });
     if (params.doProofs) await tx.prove();
     tx.send();
   } catch (err: any) {
+    console.log(err);
     // Todo: handle expected error and throw otherwise
   }
+
+  numberOfEvents = voterContract.reducer.getActions({}).length;
+  console.log(numberOfEvents);
 
   console.log('attempting to register a candidate...');
   let newCandidate: Member;
