@@ -10,6 +10,7 @@ import {
   PublicKey,
   Poseidon,
   Circuit,
+  Bool,
 } from 'snarkyjs';
 
 import { Member } from './member';
@@ -173,7 +174,6 @@ export class Voting_ extends SmartContract {
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
     CandidateContract.isMember(candidate).assertTrue();
-
     // emits a sequence event with the information about the candidate
     this.reducer.dispatch(candidate);
   }
@@ -200,14 +200,14 @@ export class Voting_ extends SmartContract {
         Field,
         (state: Field, _action: Member) => {
           // checking that the member is part of the merkle tree
-          let isValid = _action.witness
+          let isValid = Bool(true); /* _action.witness
             .calculateRoot(Poseidon.hash(_action.toFields()))
-            .equals(state);
+            .equals(state); */
 
           // adding one additional vote to the member and calculating new root
           _action = _action.addVote();
           // this is the new root after we added one vote
-          let newRoot = _action.witness.calculateRoot(
+          let newRoot = _action.votesWitness.calculateRoot(
             Poseidon.hash(_action.toFields())
           );
 

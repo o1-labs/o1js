@@ -35,6 +35,7 @@ export class Member extends CircuitValue {
   @prop hashVoted: Bool;
 
   @prop witness: MerkleWitness;
+  @prop votesWitness: MerkleWitness;
 
   constructor(
     publicKey: PublicKey,
@@ -52,6 +53,7 @@ export class Member extends CircuitValue {
     this.votes = Field.zero;
 
     this.witness = new MerkleWitness(dummyWitness);
+    this.votesWitness = new MerkleWitness(dummyWitness);
   }
 
   // I am defining a custom toFields method here because some things arent important when e.g. hashing
@@ -73,6 +75,19 @@ export class Member extends CircuitValue {
 
   static empty() {
     return new Member(PublicKey.empty(), Field.zero, UInt64.zero, Field.zero);
+  }
+
+  clone(): Member {
+    let m = new Member(
+      this.publicKey,
+      this.tokenId,
+      this.balance,
+      this.accountId
+    );
+    m.votes = Field.fromString(this.votes.toString());
+    m.hashVoted = Bool(this.hashVoted.toBoolean());
+
+    return m;
   }
 
   // TODO: ofFields(xs: Field[])

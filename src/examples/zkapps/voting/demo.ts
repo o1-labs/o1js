@@ -9,6 +9,7 @@ import {
   Permissions,
   UInt64,
   Experimental,
+  UInt32,
 } from 'snarkyjs';
 import { VotingApp, VotingAppParams } from './factory';
 import { Member, MerkleWitness } from './member';
@@ -217,8 +218,31 @@ try {
     lets vote for the one candidate we have
   */
 
+  Local.setGlobalSlotSinceHardfork(new UInt32(5));
   tx = await Mina.transaction(feePayer, () => {
-    contracts.voting.vote(candidateStore.get(0n)!);
+    let c = candidateStore.get(0n)!;
+    c.votesWitness = new MerkleWitness(votesStore.getWitness(0n));
+    contracts.voting.vote(c);
+    if (!params.doProofs) contracts.voting.sign(votingKey);
+  });
+
+  if (params.doProofs) await tx.prove();
+  tx.send();
+
+  vote(0n);
+
+  // vote dispatches a new sequence events, so we should have one
+
+  console.log(
+    '1 vote sequence event? ',
+    contracts.voting.reducer.getActions({}).length == 1
+  );
+
+  /*
+    counting the votes
+  */
+  tx = await Mina.transaction(feePayer, () => {
+    contracts.voting.countVotes();
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
 
@@ -228,9 +252,14 @@ try {
   // vote dispatches a new sequence events, so we should have one
 
   console.log(
-    '1 vote sequence event? ',
-    contracts.voting.reducer.getActions({}).length == 1
+    'votes roots equal? ',
+    votesStore
+      .getRoot()
+      .equals(contracts.voting.committedVotes.get())
+      .toBoolean()
   );
+
+  printResult();
 } catch (error) {
   console.log(error);
 }
@@ -246,4 +275,35 @@ function registerMember(
   m.witness = new MerkleWitness(store.getWitness(i));
 
   return m;
+}
+
+function vote(i: bigint) {
+  let c_ = votesStore.get(i)!;
+  if (!c_) {
+    console.log('undefined');
+    votesStore.set(i, candidateStore.get(i)!);
+    c_ = votesStore.get(i)!;
+  }
+  c_ = c_.addVote();
+  votesStore.set(i, c_);
+  return c_;
+}
+
+function printResult() {
+  if (
+    !contracts.voting.committedVotes
+      .get()
+      .equals(votesStore.getRoot())
+      .toBoolean()
+  ) {
+    throw new Error('On-chain root is not up to date with the off-chain tree');
+  }
+
+  let result: any = [];
+  votesStore.forEach((m, i) => {
+    result.push({
+      [m.publicKey.toBase58()]: m.votes.toString(),
+    });
+  });
+  console.log(result);
 }
