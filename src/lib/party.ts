@@ -46,6 +46,7 @@ export {
   signJsonTransaction,
   ZkappStateLength,
   Events,
+  SequenceEvents,
   partyToPublicInput,
   TokenId,
   Token,
@@ -274,13 +275,32 @@ const Events = {
   hash(events: Event[]) {
     return events.reduce(Events.pushEvent, Events.empty()).hash;
   },
+};
 
-  emptySequenceState() {
-    return emptyHashWithPrefix('MinaZkappSequenceEmpty');
+const emptySequenceStateElementSalt = 'MinaZkappSequenceStateEmptyElt';
+
+const SequenceEvents = {
+ empty(): Events {
+    let hash = emptyHashWithPrefix('MinaZkappSequenceEmpty');
+    return { hash, data: [] };
   },
 
-  updateSequenceState(state: Field, eventsHash: Field) {
-    return hashWithPrefix(prefixes.sequenceEvents, [state, eventsHash]);
+  pushEvent(sequenceEvents: Events, event: Event): Events {
+    let eventHash = hashWithPrefix(prefixes.sequenceEvents, event);
+    let hash = hashWithPrefix(prefixes.sequenceEvents, [sequenceEvents.hash, eventHash]);
+    return { hash, data: [...sequenceEvents.data, event] };
+  },
+
+  hash(events: Event[]) {
+    return events.reduce(SequenceEvents.pushEvent, SequenceEvents.empty()).hash;
+  },
+
+  emptySequenceState() {
+    return emptyHashWithPrefix(emptySequenceStateElementSalt);
+  },
+
+  updateSequenceState(state: Field, sequenceEventsHash: Field) {
+    return hashWithPrefix(emptySequenceStateElementSalt, [state, sequenceEventsHash]);
   },
 };
 
@@ -370,7 +390,7 @@ const Body = {
       tokenId: TokenId.default,
       balanceChange: Int64.zero,
       events: Events.empty(),
-      sequenceEvents: Events.empty(),
+      sequenceEvents: SequenceEvents.empty(),
       caller: TokenId.default,
       callData: Field.zero,
       callDepth: 0,
@@ -478,7 +498,7 @@ const AccountPrecondition = {
       receiptChainHash: ignore(Field.zero),
       delegate: ignore(PublicKey.empty()),
       state: appState,
-      sequenceState: ignore(Events.emptySequenceState()),
+      sequenceState: ignore(SequenceEvents.emptySequenceState()),
       provedState: ignore(Bool(false)),
       isNew: ignore(Bool(false)),
     };

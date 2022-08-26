@@ -25,6 +25,7 @@ import {
   SetOrKeep,
   ZkappPublicInput,
   Events,
+  SequenceEvents,
   partyToPublicInput,
   Authorization,
   CallForest,
@@ -805,7 +806,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           return Events.hash(events);
         });
         let eventsHash = Circuit.switch(lengths, Field, eventsHashes);
-        let newActionsHash = Events.updateSequenceState(
+        let newActionsHash = SequenceEvents.updateSequenceState(
           actionsHash,
           eventsHash
         );
@@ -845,7 +846,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       Circuit.asProver(() => {
         // if the fromActionHash is the empty state, we fetch all events
         fromActionHash = fromActionHash
-          ?.equals(Events.emptySequenceState())
+          ?.equals(SequenceEvents.emptySequenceState())
           .toBoolean()
           ? undefined
           : fromActionHash;
@@ -1044,5 +1045,5 @@ const Reducer: (<
     return reducer;
   },
   'initialActionsHash',
-  { get: Events.emptySequenceState }
+  { get: SequenceEvents.emptySequenceState }
 ) as any;
