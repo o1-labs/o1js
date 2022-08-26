@@ -173,7 +173,8 @@ export class Voting_ extends SmartContract {
     //this.VoterContract.isMember(Field.zero).assertTrue();
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
-    CandidateContract.isMember(candidate).assertTrue();
+    let a = CandidateContract.isMember(candidate);
+    Circuit.asProver(() => console.log(a.toBoolean()));
     // emits a sequence event with the information about the candidate
     this.reducer.dispatch(candidate);
   }
@@ -200,7 +201,8 @@ export class Voting_ extends SmartContract {
         Field,
         (state: Field, _action: Member) => {
           // checking that the member is part of the merkle tree
-          let isValid = Bool(true); /* _action.witness
+          // TODO: make work
+          let isValid = Bool(true); /*  _action.witness
             .calculateRoot(Poseidon.hash(_action.toFields()))
             .equals(state); */
 

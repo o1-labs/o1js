@@ -129,11 +129,11 @@ try {
 
   /*
 
-    Lets register one candidate
+    Lets register two candidates
 
   */
   tx = await Mina.transaction(feePayer, () => {
-    // creating and registering a new candidate
+    // creating and registering 1 new candidate
     let m = registerMember(
       0n,
       Member.from(
@@ -145,7 +145,25 @@ try {
     );
 
     contracts.voting.candidateRegistration(m);
+    if (!params.doProofs) contracts.voting.sign(votingKey);
+  });
 
+  if (params.doProofs) await tx.prove();
+  tx.send();
+
+  tx = await Mina.transaction(feePayer, () => {
+    // creating and registering 1 new candidate
+    let m = registerMember(
+      0n,
+      Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        UInt64.from(555)
+      ),
+      candidateStore
+    );
+
+    contracts.voting.candidateRegistration(m);
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
 
@@ -154,12 +172,12 @@ try {
   /*
   since the voting contact calls the candidate membership contract via invoking candidateRegister,
   the membership contract will then emit one event per new member
-  we should have emitted one new member, because we registered one new candidate
+  we should have emitted 2 new members, because we registered 2 new candidates
   */
   console.log(
-    '1 event?? ',
+    '2 events?? ',
     JSON.stringify(
-      contracts.candidateContract.reducer.getActions({}).length == 1
+      contracts.candidateContract.reducer.getActions({}).length == 2
     )
   );
 
