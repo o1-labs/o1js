@@ -217,7 +217,7 @@ try {
   /*
     lets vote for the one candidate we have
   */
-
+  // we have to up the slot so we are within our election period
   Local.setGlobalSlotSinceHardfork(new UInt32(5));
   tx = await Mina.transaction(feePayer, () => {
     let c = candidateStore.get(0n)!;
@@ -228,7 +228,7 @@ try {
 
   if (params.doProofs) await tx.prove();
   tx.send();
-
+  // after the transaction went through, we have to update our off chain store as well
   vote(0n);
 
   // vote dispatches a new sequence events, so we should have one
@@ -280,7 +280,6 @@ function registerMember(
 function vote(i: bigint) {
   let c_ = votesStore.get(i)!;
   if (!c_) {
-    console.log('undefined');
     votesStore.set(i, candidateStore.get(i)!);
     c_ = votesStore.get(i)!;
   }
