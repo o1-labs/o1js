@@ -33,8 +33,4 @@ class OffchainStorage<
   getRoot(): Field {
     return this.merkleTree.getRoot();
   }
-
-  clone() {
-    structuredClone(this);
-  }
 }
