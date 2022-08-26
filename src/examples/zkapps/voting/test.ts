@@ -4,6 +4,7 @@ import { Member, MerkleWitness } from './member';
 import { Membership_ } from './membership';
 import { OffchainStorage } from './off_chain_storage';
 import { Voting_ } from './voting';
+import { registerMember, printResult, vote } from './voting_lib';
 
 type Votes = OffchainStorage<Member>;
 type Candidates = OffchainStorage<Member>;
@@ -15,6 +16,8 @@ type Voters = OffchainStorage<Member>;
  * @param params A set of preconditions and parameters
  * @param storage A set of off-chain storage
  */
+let correctlyFails;
+
 export async function testSet(
   contracts: {
     voterContract: Membership_;
@@ -112,7 +115,7 @@ export async function testSet(
   }
 
   // This is currently not throwing an error
-  let correctlyFails;
+
   console.log('attempting to register the same voter twice...');
 
   try {
@@ -194,7 +197,6 @@ export async function testSet(
         Field.zero,
         UInt64.from(50)
       );
-
       // register late candidate
       contracts.voting.candidateRegistration(earlyCandidate);
       contracts.voting.sign(votingKey);
@@ -279,21 +281,28 @@ export async function testSet(
   console.log('attempting to vote for the new candidate...');
 
   try {
+    // setting the slot within our election period
+    Local.setGlobalSlotSinceHardfork(new UInt32(1));
     tx = await Mina.transaction(feePayer, () => {
       // attempting to vote for the registered candidate
-      console.log(candidatesStore.get(0n)!);
-      voting.vote(candidatesStore.get(0n)!);
+      const candidate = candidatesStore.get(0n)!;
+
+      candidate.votesWitness = new MerkleWitness(votesStore.getWitness(0n));
+      voting.vote(candidate);
       voting.sign(votingKey);
     });
 
     tx.send();
 
-    // console.log(
-    //   '1 vote sequence event? ',
-    //   contracts.voting.reducer.getActions({}).length == 1
-    // );
+    // update ofchain storage after transaction goes through
+    vote(0n, candidatesStore, votesStore);
+
+    numberOfEvents = voting.reducer.getActions({}).length;
+    if (numberOfEvents !== 1) {
+      throw Error('Should have emmited 1 event after voting for  a candidate');
+    }
   } catch (err: any) {
-    console.log('error', err.message);
+    throw Error(err);
   }
 
   console.log('attempting to vote twice...');
@@ -381,19 +390,6 @@ export async function testSet(
     throw Error(`Vote count of ${voteCount} is incorrect`);
   }
   console.log('test successful!');
-}
-
-function registerMember(
-  i: bigint,
-  m: Member,
-  store: OffchainStorage<Member>
-): Member {
-  // we will also have to keep track of new voters and candidates within our off-chain merkle tree
-  store.set(i, m); // setting voter 0n
-  // setting the merkle witness
-  m.witness = new MerkleWitness(store.getWitness(i));
-
-  return m;
 }
 
 function handleError(error: any, errorMessage: string) {
