@@ -82,7 +82,7 @@ export async function testSet(
         Member.from(
           PrivateKey.random().toPublicKey(),
           Field.zero,
-          UInt64.from(50)
+          UInt64.from(25)
         ),
         votersStore
       );
@@ -104,18 +104,18 @@ export async function testSet(
 
   // This is currently not throwing an error
 
-  console.log('attempting to register the same voter twice...');
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      // attempt to register the same voter again
-      voting.voterRegistration(newVoter1);
-      voting.sign(votingKey);
-    });
+  // console.log('attempting to register the same voter twice...');
+  // try {
+  //   tx = await Mina.transaction(feePayer, () => {
+  //     // attempt to register the same voter again
+  //     voting.voterRegistration(newVoter1);
+  //     voting.sign(votingKey);
+  //   });
 
-    tx.send();
-  } catch (err: any) {
-    console.log('error', err);
-  }
+  //   tx.send();
+  // } catch (err: any) {
+  //   console.log('error', err);
+  // }
 
   console.log('attempting to register a candidate...');
 
@@ -126,7 +126,7 @@ export async function testSet(
         Member.from(
           PrivateKey.random().toPublicKey(),
           Field.zero,
-          UInt64.from(600)
+          UInt64.from(100)
         ),
         candidatesStore
       );
@@ -143,9 +143,9 @@ export async function testSet(
   }
 
   numberOfEvents = voterContract.reducer.getActions({}).length;
-  if (numberOfEvents !== 2) {
+  if (numberOfEvents !== 1) {
     throw Error(
-      'Should have emmited 1 event after regestering a candidate for a total of 2 events'
+      `Should have emmited 1 event after regestering a candidate for a total of 1 events. ${numberOfEvents} emmitted`
     );
   }
 
@@ -168,6 +168,41 @@ export async function testSet(
     throw Error('voter merkle root is not the initialroot');
   }
 
+  console.log('authrozing registrations...');
+  try {
+    tx = await Mina.transaction(feePayer, () => {
+      // register new candidate
+      contracts.voting.authorizeRegistrations();
+      contracts.voting.sign(votingKey);
+    });
+
+    tx.send();
+  } catch (err: any) {
+    throw Error(err);
+  }
+
+  // authorizeVoters updates the committed members on both contracts by invoking the publish method. We check if offchain storage merkle roots match both on-chain committedMembers for voters and candidates
+  if (
+    !candidateContract.committedMembers
+      .get()
+      .equals(candidatesStore.getRoot())
+      .toBoolean()
+  ) {
+    throw Error(
+      'candidatesStore merkle root does not match on-chain committed members'
+    );
+  }
+
+  if (
+    !voterContract.committedMembers
+      .get()
+      .equals(votersStore.getRoot())
+      .toBoolean()
+  ) {
+    throw Error(
+      'votersStore merkle root does not match on-chain committed members'
+    );
+  }
   console.log('attempting to register a candidate before the time window ...');
   //
   Local.setGlobalSlotSinceHardfork(new UInt32(0));
@@ -258,42 +293,12 @@ export async function testSet(
   }
 
   // current stop
-  console.log('authrozing registrations...');
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      // register new candidate
-      contracts.voting.authorizeRegistrations();
-      contracts.voting.sign(votingKey);
-    });
-
-    tx.send();
-  } catch (err: any) {
-    throw Error(err);
-  }
-
-  // authorizeVoters updates the committed members on both contracts by invoking the publish method. We check if offchain storage merkle roots match both on-chain committedMembers for voters and candidates
-  if (
-    !candidateContract.committedMembers
-      .get()
-      .equals(candidatesStore.getRoot())
-      .toBoolean()
-  ) {
-    throw Error(
-      'candidatesStore merkle root does not match on-chain committed members'
-    );
-  }
-
-  if (!voterContract.committedMembers.get().equals(initialRoot).toBoolean()) {
-    throw Error(
-      'votersStore merkle root does not match on-chain committed members'
-    );
-  }
 
   console.log('attempting to vote for the new candidate...');
 
   try {
     // setting the slot within our election period
-    Local.setGlobalSlotSinceHardfork(new UInt32(1));
+    Local.setGlobalSlotSinceHardfork(new UInt32(10));
     tx = await Mina.transaction(feePayer, () => {
       // attempting to vote for the registered candidate
       const candidate = candidatesStore.get(0n)!;
@@ -311,10 +316,10 @@ export async function testSet(
     console.log('error', err);
     // throw Error(err);
   }
-  // numberOfEvents = voting.reducer.getActions({}).length;
-  // if (numberOfEvents !== 1) {
-  //   throw Error('Should have emmited 1 event after voting for  a candidate');
-  // }
+  numberOfEvents = voting.reducer.getActions({}).length;
+  if (numberOfEvents !== 1) {
+    throw Error('Should have emmited 1 event after voting for  a candidate');
+  }
 
   console.log('attempting to vote twice...');
   try {
@@ -344,9 +349,10 @@ export async function testSet(
     tx.send();
   } catch (err: any) {
     // TODO: handle errors
+    console.log('error', err);
   }
 
-  // currently doesn't throw an error
+  currently doesn't throw an error
   console.log('unregistered voter attempting to vote');
   try {
     tx = await Mina.transaction(feePayer, () => {
@@ -364,21 +370,20 @@ export async function testSet(
     handleError(err, '');
   }
 
-  console.log('candidate attempting to vote for voter...');
+  console.log('attempting to vote for voter...');
+  Local.setGlobalSlotSinceHardfork(new UInt32(5));
   try {
     tx = await Mina.transaction(feePayer, () => {
-      let voter = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field.zero,
-        UInt64.from(50)
-      );
+      // const candidate = candidatesStore.get(0n)!;
+      const voter = votersStore.get(0n)!;
+
       contracts.voting.vote(voter);
       contracts.voting.sign(votingKey);
     });
 
     tx.send();
   } catch (err: any) {
-    // TODO: handle errors
+    console.log('err', error);
   }
 
   console.log('counting votes ...');
