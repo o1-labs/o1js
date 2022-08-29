@@ -1,4 +1,4 @@
-import { default as snarky } from './node_bindings/snarky_js_node.bc.cjs';
+import { default as snarky } from '../_node_bindings/snarky_js_node.bc.cjs';
 
 export { getSnarky, getWasm, snarky_ready, shutdown };
 
