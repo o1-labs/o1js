@@ -1,4 +1,3 @@
-import { Group, Ledger, Circuit } from '../snarky';
 import { Field, Bool } from '../lib/core';
 import * as Json from './gen/parties-json';
 import { UInt32, UInt64, Sign } from '../lib/int';
@@ -13,7 +12,7 @@ import * as Encoding from '../lib/encoding';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
-export { Events, StringWithHash, TokenSymbol };
+export { Events, Events as SequenceEvents, StringWithHash, TokenSymbol };
 
 export { TypeMap };
 
