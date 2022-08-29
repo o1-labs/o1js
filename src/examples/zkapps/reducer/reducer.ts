@@ -10,8 +10,6 @@ import {
   Party,
   isReady,
   Permissions,
-  Circuit,
-  Ledger,
 } from 'snarkyjs';
 
 await isReady;
