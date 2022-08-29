@@ -38,7 +38,11 @@ class TokenContract extends SmartContract {
     let deployParty = Experimental.createChildParty(this.self, address);
     deployParty.body.tokenId = this.experimental.token.id;
     deployParty.body.caller = this.experimental.token.id;
-    Party.setValue(deployParty.update.permissions, Permissions.default());
+    Party.setValue(deployParty.update.permissions, {
+      ...Permissions.default(),
+      editState: Permissions.proofOrSignature(),
+      send: Permissions.proofOrSignature(),
+    });
     // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
     // Party.setValue(deployParty.update.verificationKey, verificationKey);
     // deployParty.balance.addInPlace(initialBalance);
