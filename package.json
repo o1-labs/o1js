@@ -22,7 +22,7 @@
     "src/**/*.d.ts"
   ],
   "bin": {
-    "snarky-run": "src/build/run.mjs"
+    "snarky-run": "src/build/run.js"
   },
   "engines": {
     "node": ">=16.4.0"
@@ -31,15 +31,15 @@
     "type-check": "tsc --noEmit",
     "dev": "npx tsc -p tsconfig.server.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "make": "make -C ../../../.. snarkyjs",
-    "build": "rm -rf dist/node && npx tsc -p tsconfig.server.json && cp -r src/node_bindings dist/node/_node_bindings && node src/build/buildNode.mjs && cp src/snarky.d.ts dist/node/snarky.d.ts",
+    "build": "rm -rf dist/node && npx tsc -p tsconfig.server.json && cp -r src/node_bindings dist/node/_node_bindings && node src/build/buildNode.js && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "build:node": "npm run build",
-    "build:web": "rm -rf dist/web && node src/build/buildWeb.mjs",
+    "build:web": "rm -rf dist/web && node src/build/buildWeb.js",
     "serve:web": "cp src/chrome_bindings/server.py src/chrome_bindings/index.html dist/web && cd dist/web && python3 server.py",
-    "prepublish:web": "NODE_ENV=production node src/build/buildWeb.mjs",
-    "prepublish:node": "npm run build && NODE_ENV=production node src/build/buildNode.mjs",
+    "prepublish:web": "NODE_ENV=production node src/build/buildWeb.js",
+    "prepublish:node": "npm run build && NODE_ENV=production node src/build/buildNode.js",
     "prepublish:both": "npm run prepublish:web && npm run prepublish:node",
     "prepublishOnly": "npm run prepublish:web && npm run prepublish:node",
-    "bootstrap": "npm run build && node src/build/extractJsooMethods.js && npm run build",
+    "bootstrap": "npm run build && node src/build/extractJsooMethods.cjs && npm run build",
     "format": "prettier --write --ignore-unknown **/*",
     "test": "for f in ./src/**/*.test.ts; do NODE_OPTIONS=--experimental-vm-modules npx jest $f; done",
     "clean": "rimraf ./dist",

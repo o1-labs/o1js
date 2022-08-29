@@ -19,7 +19,7 @@ async function buildAndImport(srcPath, { keepFile = false }) {
 async function build(srcPath) {
   let tsConfig = findTsConfig() ?? defaultTsConfig;
 
-  let outfile = srcPath.replace('.ts', '.tmp.mjs');
+  let outfile = srcPath.replace('.ts', '.tmp.js');
 
   await esbuild.build({
     entryPoints: [srcPath],

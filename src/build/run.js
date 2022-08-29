@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import minimist from 'minimist';
-import { buildAndImport } from './buildExample.mjs';
+import { buildAndImport } from './buildExample.js';
 import { shutdown } from '../../dist/node/index.js';
 
 let {
