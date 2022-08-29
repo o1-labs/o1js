@@ -32,6 +32,7 @@
     "dev": "npx tsc -p tsconfig.server.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "make": "make -C ../../../.. snarkyjs",
     "build": "rm -rf dist/node && npx tsc -p tsconfig.server.json && cp -r src/node_bindings dist/node/_node_bindings && node src/build/buildNode.js && cp src/snarky.d.ts dist/node/snarky.d.ts",
+    "build:test": "rm -rf dist/test && npx tsc -p tsconfig.test.json && cp -r src/node_bindings dist/test/snarky/node_bindings && cp src/snarky.d.ts dist/test/snarky.d.ts",
     "build:node": "npm run build",
     "build:web": "rm -rf dist/web && node src/build/buildWeb.js",
     "serve:web": "cp src/chrome_bindings/server.py src/chrome_bindings/index.html dist/web && cd dist/web && python3 server.py",
@@ -43,7 +44,8 @@
     "format": "prettier --write --ignore-unknown **/*",
     "test": "for f in ./src/**/*.test.ts; do NODE_OPTIONS=--experimental-vm-modules npx jest $f; done",
     "clean": "rimraf ./dist",
-    "test:integration": "./run-integration-tests.sh"
+    "test:integration": "./run-integration-tests.sh",
+    "test:unit": "npm run build:test && for f in ./dist/test/**/*.test.js; do node $f || (echo 'tests failed' && exit 1); done"
   },
   "author": "O(1) Labs",
   "devDependencies": {
