@@ -1,4 +1,3 @@
-import { Group, Ledger, Circuit } from '../snarky';
 import { Field, Bool } from '../lib/core';
 import * as Json from './gen/parties-json';
 import { UInt32, UInt64, Sign } from '../lib/int';
@@ -13,7 +12,7 @@ import * as Encoding from '../lib/encoding';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
-export { Events, SequenceEvents, StringWithHash, TokenSymbol };
+export { Events, Events as SequenceEvents, StringWithHash, TokenSymbol };
 
 export { TypeMap };
 
@@ -126,30 +125,6 @@ const TypeMap: {
 type DataAsHash<T> = { data: T; hash: Field };
 
 const Events: AsFieldsAndAux<DataAsHash<Field[][]>, string[][]> = {
-  sizeInFields() {
-    return 1;
-  },
-  toFields({ hash }) {
-    return [hash];
-  },
-  toAuxiliary(value) {
-    return [value?.data ?? []];
-  },
-  fromFields(fields, aux) {
-    let hash = fields.pop()!;
-    let data = aux.pop()!;
-    return { data, hash };
-  },
-  toJSON({ data }) {
-    return data.map((row) => row.map((e) => e.toString()));
-  },
-  check() {},
-  toInput({ hash }) {
-    return { fields: [hash] };
-  },
-};
-
-const SequenceEvents: AsFieldsAndAux<DataAsHash<Field[][]>, string[][]> = {
   sizeInFields() {
     return 1;
   },
