@@ -40,7 +40,6 @@ class CounterZkapp extends SmartContract {
     this.actionsHash.assertEquals(actionsHash);
 
     // compute the new counter and hash from pending actions
-    // remark: it's not feasible to pass in the pending actions as method arguments, because they have dynamic size
     let pendingActions = this.reducer.getActions({
       fromActionHash: actionsHash,
     });
