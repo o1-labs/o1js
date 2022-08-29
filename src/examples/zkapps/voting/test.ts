@@ -95,7 +95,7 @@ export async function testSet(
 
   // This is currently not throwing an error
 
-  /*   console.log('attempting to register the same voter twice...');
+  console.log('attempting to register the same voter twice...');
   try {
     tx = await Mina.transaction(feePayer, () => {
       voting.voterRegistration(newVoter1);
@@ -104,8 +104,9 @@ export async function testSet(
 
     tx.send();
   } catch (err: any) {
-    console.log('error', err);
-  } */
+    // TODO: handle error
+    console.log('expected to throw!');
+  }
 
   console.log('attempting to register a candidate...');
 
@@ -121,10 +122,9 @@ export async function testSet(
         candidatesStore
       );
 
-      voting.candidateRegistration(newCandidate);
       // register new candidate
-      contracts.voting.candidateRegistration(newCandidate);
-      contracts.voting.sign(votingKey);
+      voting.candidateRegistration(newCandidate);
+      voting.sign(votingKey);
     });
 
     tx.send();
@@ -141,20 +141,12 @@ export async function testSet(
 
   // the merkle roots of both membership contract should still be the initial ones because publish hasn't been invoked
   if (
-    !contracts.candidateContract.committedMembers
-      .get()
-      .equals(initialRoot)
-      .toBoolean()
+    !candidateContract.committedMembers.get().equals(initialRoot).toBoolean()
   ) {
     throw Error('candidate merkle root is not the initialroot');
   }
 
-  if (
-    !contracts.voterContract.committedMembers
-      .get()
-      .equals(initialRoot)
-      .toBoolean()
-  ) {
+  if (!voterContract.committedMembers.get().equals(initialRoot).toBoolean()) {
     throw Error('voter merkle root is not the initialroot');
   }
 
@@ -162,8 +154,8 @@ export async function testSet(
   try {
     tx = await Mina.transaction(feePayer, () => {
       // register new candidate
-      contracts.voting.authorizeRegistrations();
-      contracts.voting.sign(votingKey);
+      voting.authorizeRegistrations();
+      voting.sign(votingKey);
     });
 
     tx.send();
@@ -196,7 +188,7 @@ export async function testSet(
 
   console.log('attempting to register a candidate before the time window ...');
   //
-  Local.setGlobalSlotSinceHardfork(new UInt32(0));
+  Local.setGlobalSlot(new UInt32(0));
   try {
     // set the slot before the time window
     tx = await Mina.transaction(feePayer, () => {
@@ -212,12 +204,12 @@ export async function testSet(
 
     tx.send();
   } catch (err: any) {
-    // TODO: handle error when
+    // TODO: handle error
     console.log('error', err);
   }
 
   // if (
-  //   !contracts.candidateContract.committedMembers
+  //   !candidateContract.committedMembers
   //     .get()
   //     .equals(initialRoot)
   //     .toBoolean()
@@ -233,8 +225,8 @@ export async function testSet(
         UInt64.from(62)
       );
       // register late candidate
-      contracts.voting.candidateRegistration(lateCandidate);
-      contracts.voting.sign(votingKey);
+      voting.candidateRegistration(lateCandidate);
+      voting.sign(votingKey);
     });
 
     tx.send();
@@ -253,8 +245,8 @@ export async function testSet(
       );
 
       // register early candidate
-      contracts.voting.voterRegistration(earlyVoter);
-      contracts.voting.sign(votingKey);
+      voting.voterRegistration(earlyVoter);
+      voting.sign(votingKey);
     });
 
     tx.send();
@@ -274,8 +266,8 @@ export async function testSet(
       );
 
       // register late candidate
-      contracts.voting.voterRegistration(lateVoter);
-      contracts.voting.sign(votingKey);
+      voting.voterRegistration(lateVoter);
+      voting.sign(votingKey);
     });
 
     tx.send();
@@ -289,7 +281,7 @@ export async function testSet(
   let currentCandidate: Member;
   try {
     // setting the slot within our election period
-    Local.setGlobalSlotSinceHardfork(new UInt32(10));
+    Local.setGlobalSlot(params.electionPreconditions.startElection.add(1));
     tx = await Mina.transaction(feePayer, () => {
       // attempting to vote for the registered candidate
       currentCandidate = candidatesStore.get(0n)!;
@@ -317,14 +309,14 @@ export async function testSet(
   console.log('attempting to vote twice...');
   try {
     tx = await Mina.transaction(feePayer, () => {
-      contracts.voting.vote(currentCandidate, votersStore.get(0n)!);
-      contracts.voting.sign(votingKey);
+      voting.vote(currentCandidate, votersStore.get(0n)!);
+      voting.sign(votingKey);
     });
 
     tx.send();
   } catch (err: any) {
-    // should throw error if double voting
-    // throw Error(err);
+    // TODO: handle error
+    console.log('expected to throw!');
   }
 
   console.log('attempting to vote for a fake candidate...');
@@ -335,15 +327,15 @@ export async function testSet(
         Field.zero,
         UInt64.from(50)
       );
-      contracts.voting.vote(fakeCandidate, votersStore.get(0n)!);
-      contracts.voting.sign(votingKey);
+      voting.vote(fakeCandidate, votersStore.get(0n)!);
+      voting.sign(votingKey);
     });
 
     tx.send();
   } catch (err: any) {
     // TODO: handle errors
     //console.log('error', err);
-    console.log('expected to throw');
+    console.log('expected to throw!');
   }
 
   // currently doesn't throw an error
@@ -355,13 +347,13 @@ export async function testSet(
         Field.zero,
         UInt64.from(50)
       );
-      contracts.voting.vote(fakeVoter, votersStore.get(0n)!);
-      contracts.voting.sign(votingKey);
+      voting.vote(fakeVoter, votersStore.get(0n)!);
+      voting.sign(votingKey);
     });
 
     tx.send();
   } catch (err: any) {
-    console.log('expected to throw');
+    console.log('expected to throw!');
     //handleError(err, '');
   }
 
@@ -372,21 +364,21 @@ export async function testSet(
       // const candidate = candidatesStore.get(0n)!;
       const voter = votersStore.get(0n)!;
 
-      contracts.voting.vote(voter, votersStore.get(0n)!);
-      contracts.voting.sign(votingKey);
+      voting.vote(voter, votersStore.get(0n)!);
+      voting.sign(votingKey);
     });
 
     tx.send();
   } catch (err: any) {
     //console.log('err', err);
-    console.log('expected to throw');
+    console.log('expected to throw!');
   }
 
   console.log('counting votes...');
   let voteCount;
   try {
     tx = await Mina.transaction(feePayer, () => {
-      voteCount = contracts.voting.countVotes();
+      voteCount = voting.countVotes();
       voting.sign(votingKey);
     });
 
@@ -400,6 +392,12 @@ export async function testSet(
   if (voteCount === '2') {
     throw Error(`Vote count of ${voteCount} is incorrect`);
   }
+
+  console.log(
+    voting.committedVotes.get().equals(votesStore.getRoot()).toBoolean()
+  );
+
+  //printResult(voting, votesStore);
   console.log('test successful!');
 }
 

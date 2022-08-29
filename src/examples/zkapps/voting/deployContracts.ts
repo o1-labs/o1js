@@ -21,7 +21,11 @@ export async function deployContracts(
   voterRoot: Field,
   candidateRoot: Field,
   votesRoot: Field
-): Promise<any> {
+): Promise<{
+  voterContract: Membership_;
+  candidateContract: Membership_;
+  voting: Voting_;
+}> {
   let { voterContract, candidateContract, voting } = contracts;
 
   console.log('deploying set of 3 contracts');

@@ -1,4 +1,4 @@
-import { Experimental, Mina, PrivateKey, PublicKey } from 'snarkyjs';
+import { Experimental, Mina, PrivateKey, PublicKey, UInt64 } from 'snarkyjs';
 import { VotingApp, VotingAppParams } from './factory';
 import {
   ElectionPreconditions,
@@ -24,8 +24,14 @@ console.log('Running Voting script...');
 console.log('Starting set 1...');
 
 let params_set1: VotingAppParams = {
-  candidatePreconditions: ParticipantPreconditions.default,
-  voterPreconditions: ParticipantPreconditions.default,
+  candidatePreconditions: new ParticipantPreconditions(
+    UInt64.from(100),
+    UInt64.from(1500)
+  ),
+  voterPreconditions: new ParticipantPreconditions(
+    UInt64.from(0),
+    UInt64.from(500)
+  ),
   electionPreconditions: ElectionPreconditions.default,
   voterKey: PrivateKey.random(),
   candidateKey: PrivateKey.random(),
@@ -45,9 +51,6 @@ let contracts_set1 = await VotingApp(params_set1);
 console.log('Testing set 1...');
 await testSet(contracts_set1, params_set1, storage_set1);
 
-
-
-
 // ..
 
 // do our thing before we create another set
@@ -55,7 +58,7 @@ await testSet(contracts_set1, params_set1, storage_set1);
 // parallel creation of sets doesnt work with the current "factory" pattern
 
 // ..
-
+/* 
 console.log('Starting run for set 2...');
 
 let params_set2: VotingAppParams = {
@@ -78,4 +81,4 @@ console.log('Building contracts for set 2...');
 let contracts_set2 = await VotingApp(params_set2);
 
 console.log('Testing set 2...');
-await testSet(contracts_set2, params_set2, storage_set2);
+await testSet(contracts_set2, params_set2, storage_set2); */
