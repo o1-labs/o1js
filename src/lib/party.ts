@@ -265,42 +265,39 @@ const Events = {
     let hash = emptyHashWithPrefix('MinaZkappEventsEmpty');
     return { hash, data: [] };
   },
-
   pushEvent(events: Events, event: Event): Events {
     let eventHash = hashWithPrefix(prefixes.event, event);
     let hash = hashWithPrefix(prefixes.events, [events.hash, eventHash]);
     return { hash, data: [...events.data, event] };
   },
-
   hash(events: Event[]) {
     return events.reduce(Events.pushEvent, Events.empty()).hash;
   },
 };
 
-const emptySequenceStateElementSalt = 'MinaZkappSequenceStateEmptyElt';
-
 const SequenceEvents = {
- empty(): Events {
+  // same as events but w/ different hash prefixes
+  empty(): Events {
     let hash = emptyHashWithPrefix('MinaZkappSequenceEmpty');
     return { hash, data: [] };
   },
-
   pushEvent(sequenceEvents: Events, event: Event): Events {
-    let eventHash = hashWithPrefix(prefixes.sequenceEvents, event);
-    let hash = hashWithPrefix(prefixes.sequenceEvents, [sequenceEvents.hash, eventHash]);
+    let eventHash = hashWithPrefix(prefixes.event, event);
+    let hash = hashWithPrefix(prefixes.sequenceEvents, [
+      sequenceEvents.hash,
+      eventHash,
+    ]);
     return { hash, data: [...sequenceEvents.data, event] };
   },
-
   hash(events: Event[]) {
     return events.reduce(SequenceEvents.pushEvent, SequenceEvents.empty()).hash;
   },
-
+  // different than events
   emptySequenceState() {
-    return emptyHashWithPrefix(emptySequenceStateElementSalt);
+    return emptyHashWithPrefix('MinaZkappSequenceStateEmptyElt');
   },
-
   updateSequenceState(state: Field, sequenceEventsHash: Field) {
-    return hashWithPrefix(emptySequenceStateElementSalt, [state, sequenceEventsHash]);
+    return hashWithPrefix(prefixes.sequenceEvents, [state, sequenceEventsHash]);
   },
 };
 
