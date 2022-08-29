@@ -83,18 +83,14 @@ describe('party', () => {
     expect(publicInputOcaml).toEqual(publicInput);
   });
 
-  it('creates the right empty events', () => {
-    expect(party.body.events.hash.toString()).toEqual(
-      '23641812384071365026036270005604392899711718400522999453895455265440046333209'
-    );
-  });
   it('creates the right empty sequence state', () => {
     expect(
       party.body.preconditions.account.sequenceState.value.toString()
     ).toEqual(
-      '19777675955122618431670853529822242067051263606115426372178827525373304476695'
+      '12935064460869035604753254773225484359407575580289870070671311469994328713165'
     );
   });
+
   it('encodes token ids correctly', () => {
     let x = Field.random();
     let defaultTokenId = 'wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf';
