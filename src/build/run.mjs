@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import minimist from 'minimist';
 import { buildAndImport } from './buildExample.mjs';
-import { shutdown } from '../../dist/server/index.js';
+import { shutdown } from '../../dist/node/index.js';
 
 let {
   _: [filePath],
