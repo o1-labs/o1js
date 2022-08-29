@@ -313,7 +313,7 @@ export async function testSet(
 
     tx.send();
 
-    // update ofchain storage after transaction goes through
+    // update offchain storage after transaction goes through
     vote(0n, candidatesStore, votesStore);
   } catch (err: any) {
     console.log('error', err);
@@ -321,7 +321,7 @@ export async function testSet(
   }
   numberOfEvents = voting.reducer.getActions({}).length;
   if (numberOfEvents !== 1) {
-    throw Error('Should have emmited 1 event after voting for a candidate');
+    throw Error('Should have emitted 1 event after voting for a candidate');
   }
 
   console.log('attempting to vote twice...');
