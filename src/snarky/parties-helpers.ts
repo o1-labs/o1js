@@ -1,7 +1,7 @@
-import { TypeMap } from './parties-leaves';
-import { Field, Bool, Circuit } from '../snarky';
-import { circuitArray, AsFieldsAndAux } from '../lib/circuit_value';
-import { HashInput } from 'lib/hash';
+import { TypeMap } from './parties-leaves.js';
+import { Field, Bool, Circuit } from '../snarky.js';
+import { circuitArray, AsFieldsAndAux } from '../lib/circuit_value.js';
+import { HashInput } from 'lib/hash.js';
 
 export { asFieldsAndAux, Layout, AsFieldsAndAux };
 

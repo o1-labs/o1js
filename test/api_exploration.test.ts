@@ -19,7 +19,7 @@ describe('snarkyjs', () => {
   it('api_exploration successfully runs', async () => {
     await isReady;
 
-    /* This file demonstrates the classes and functions available in snarky.js */
+    /* This file demonstrates the classes and functions available in snarkyjs */
 
     /* # Field */
 

@@ -1,6 +1,6 @@
-import { AsFieldsAndAux } from './circuit_value';
-import { Poseidon as Poseidon_, Field } from '../snarky';
-import { inCheckedComputation } from './proof_system';
+import { AsFieldsAndAux } from './circuit_value.js';
+import { Poseidon as Poseidon_, Field } from '../snarky.js';
+import { inCheckedComputation } from './proof_system.js';
 
 // external API
 export { Poseidon };

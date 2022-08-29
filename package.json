@@ -3,12 +3,13 @@
   "description": "JavaScript bindings for SnarkyJS",
   "version": "0.5.1",
   "license": "Apache-2.0",
+  "type": "module",
   "main": "./dist/web/index.js",
   "exports": {
     "browser": "./dist/web/index.js",
     "node": {
-      "import": "./dist/server/index.mjs",
-      "require": "./dist/server/index.js"
+      "import": "./dist/server/index.js",
+      "require": "./dist/server/index.cjs"
     },
     "default": "./dist/web/index.js"
   },
@@ -27,10 +28,9 @@
   },
   "scripts": {
     "type-check": "tsc --noEmit",
-    "dev": "node --stack-trace-limit=100 src/build/buildNode.mjs --bindings=./dist/server/node_bindings/",
+    "dev": "npx tsc -p tsconfig.server.json",
     "make": "make -C ../../../.. snarkyjs",
-    "build": "node --stack-trace-limit=100 src/build/buildNode.mjs",
-    "build:node": "node --stack-trace-limit=100 src/build/buildNode.mjs",
+    "build": "rm -rf dist/server && npx tsc -p tsconfig.server.json && cp -r src/node_bindings dist/server/snarky/node_bindings && cp src/snarky.d.ts dist/server/snarky.d.ts",
     "build:web": "node src/build/buildWeb.mjs",
     "serve:web": "cp src/chrome_bindings/server.py src/chrome_bindings/index.html dist/web && cd dist/web && python3 server.py",
     "prepublish:node": "NODE_ENV=production node src/build/buildNode.mjs",
@@ -47,9 +47,11 @@
   "devDependencies": {
     "@types/isomorphic-fetch": "^0.0.36",
     "@types/jest": "^27.0.0",
+    "@types/node": "^18.7.13",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "esbuild": "^0.13.13",
     "eslint": "^8.0.0",
+    "expect": "^29.0.1",
     "fs-extra": "^10.0.0",
     "howslow": "^0.1.0",
     "jest": "^27.0.6",
@@ -58,7 +60,7 @@
     "rimraf": "^3.0.2",
     "ts-jest": "^27.0.4",
     "typedoc": "^0.22.15",
-    "typescript": "^4.6.4"
+    "typescript": "^4.8.2"
   },
   "dependencies": {
     "env": "^0.0.2",

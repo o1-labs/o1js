@@ -1,8 +1,8 @@
-import * as Helpers from './parties-helpers';
-import { customTypes } from './gen/parties';
+import * as Helpers from './parties-helpers.js';
+import { customTypes } from './gen/parties.js';
 
-export * as Types from './gen/parties';
-export { jsLayout } from './gen/js-layout';
+export * as Types from './gen/parties.js';
+export { jsLayout } from './gen/js-layout.js';
 
 export { asFieldsAndAux };
 

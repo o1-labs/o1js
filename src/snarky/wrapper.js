@@ -1,12 +1,22 @@
-import { initSnarkyJS } from '../chrome_bindings/plonk_init.js';
+import { default as snarky } from './node_bindings/snarky_js_node.bc.cjs';
 
 export { getSnarky, getWasm, snarky_ready, shutdown };
 
-let getSnarky = () => window.__snarky;
+let getSnarky = () => snarky;
+let snarky_ready = snarky.snarky_ready;
 
 function getWasm() {
-  return globalThis.plonk_wasm;
+  return globalThis.jsoo_runtime.plonk_wasm;
 }
 
-let snarky_ready = initSnarkyJS();
-let shutdown = () => {};
+// TODO get rid of shutdown
+let didShutdown = false;
+async function shutdown() {
+  process.exit(0);
+  // if (global.wasm_rayon_poolbuilder && !didShutdown) {
+  //   didShutdown = true;
+  //   global.wasm_rayon_poolbuilder.free();
+  //   await Promise.all(global.wasm_workers.map((worker) => worker.terminate()));
+  //   process.exit(0);
+  // }
+}
