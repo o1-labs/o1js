@@ -280,14 +280,17 @@ const Events = {
 const emptySequenceStateElementSalt = 'MinaZkappSequenceStateEmptyElt';
 
 const SequenceEvents = {
- empty(): Events {
+  empty(): Events {
     let hash = emptyHashWithPrefix('MinaZkappSequenceEmpty');
     return { hash, data: [] };
   },
 
   pushEvent(sequenceEvents: Events, event: Event): Events {
-    let eventHash = hashWithPrefix(prefixes.sequenceEvents, event);
-    let hash = hashWithPrefix(prefixes.sequenceEvents, [sequenceEvents.hash, eventHash]);
+    let eventHash = hashWithPrefix(prefixes.event, event);
+    let hash = hashWithPrefix(prefixes.sequenceEvents, [
+      sequenceEvents.hash,
+      eventHash,
+    ]);
     return { hash, data: [...sequenceEvents.data, event] };
   },
 
@@ -300,7 +303,7 @@ const SequenceEvents = {
   },
 
   updateSequenceState(state: Field, sequenceEventsHash: Field) {
-    return hashWithPrefix(emptySequenceStateElementSalt, [state, sequenceEventsHash]);
+    return hashWithPrefix(prefixes.sequenceEvents, [state, sequenceEventsHash]);
   },
 };
 

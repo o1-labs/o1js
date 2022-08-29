@@ -341,7 +341,7 @@ function LocalBlockchain({
             : Ledger.fieldOfBase58(sequenceState);
 
         let actionList = p.body.sequenceEvents;
-        let eventsHash = Events.hash(
+        let eventsHash = SequenceEvents.hash(
           actionList.map((e) => e.map((f) => Field(f)))
         );
 
