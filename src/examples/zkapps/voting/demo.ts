@@ -81,26 +81,42 @@ try {
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(50)
+        UInt64.from(910)
       ),
       voterStore
     );
 
     contracts.voting.voterRegistration(m);
 
-    m = registerMember(
+    if (!params.doProofs) contracts.voting.sign(votingKey);
+  });
+  if (params.doProofs) await tx.prove();
+  tx.send();
+
+  // lets register three voters
+  tx = await Mina.transaction(feePayer, () => {
+    // creating and registering a new voter
+    let m = registerMember(
       1n,
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(550)
+        UInt64.from(910)
       ),
       voterStore
     );
 
     contracts.voting.voterRegistration(m);
 
-    m = registerMember(
+    if (!params.doProofs) contracts.voting.sign(votingKey);
+  });
+  if (params.doProofs) await tx.prove();
+  tx.send();
+
+  // lets register three voters
+  tx = await Mina.transaction(feePayer, () => {
+    // creating and registering a new voter
+    let m = registerMember(
       2n,
       Member.from(
         PrivateKey.random().toPublicKey(),
@@ -114,7 +130,6 @@ try {
 
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
-
   if (params.doProofs) await tx.prove();
   tx.send();
   /*
