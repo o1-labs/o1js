@@ -14,6 +14,7 @@ import {
   Bool,
   Circuit,
 } from 'snarkyjs';
+import assert from 'node:assert/strict';
 
 await isReady;
 
@@ -146,6 +147,7 @@ if (doProofs) await tx.prove();
 tx.send();
 
 console.log('state after rollup: ' + zkapp.counter.get());
+assert.deepEqual(zkapp.counter.get().toString(), '3');
 
 console.log('applying more actions');
 
@@ -177,3 +179,4 @@ if (doProofs) await tx.prove();
 tx.send();
 
 console.log('state after rollup: ' + zkapp.counter.get());
+assert.equal(zkapp.counter.get().toString(), '4');
