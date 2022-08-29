@@ -7,6 +7,7 @@ import {
   UInt64,
   UInt32,
 } from 'snarkyjs';
+import { deployContracts } from './deployContracts';
 import { VotingAppParams } from './factory';
 import { Member, MerkleWitness } from './member';
 import { Membership_ } from './membership';
@@ -53,24 +54,34 @@ export async function testSet(
   const initialRoot = votersStore.getRoot();
 
   console.log('deploying 3 contracts ...');
-  Mina.accountCreationFee().add;
+  try {
+    tx = await Mina.transaction(feePayer, () => {
+      Party.fundNewAccount(feePayer, {
+        initialBalance: Mina.accountCreationFee().add(
+          Mina.accountCreationFee()
+        ),
+      });
 
-  tx = await Mina.transaction(feePayer, () => {
-    Party.fundNewAccount(feePayer, {
-      initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
+      voting.deploy({ zkappKey: votingKey });
+      voting.committedVotes.set(votesStore.getRoot());
+      voting.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
+
+      candidateContract.deploy({ zkappKey: candidateKey });
+      candidateContract.committedMembers.set(candidatesStore.getRoot());
+      candidateContract.accumulatedMembers.set(
+        Experimental.Reducer.initialActionsHash
+      );
+
+      voterContract.deploy({ zkappKey: voterKey });
+      voterContract.committedMembers.set(votersStore.getRoot());
+      voterContract.accumulatedMembers.set(
+        Experimental.Reducer.initialActionsHash
+      );
     });
-
-    voting.deploy({ zkappKey: votingKey });
-    voting.committedVotes.set(votesStore.getRoot());
-
-    candidateContract.deploy({ zkappKey: candidateKey });
-    candidateContract.committedMembers.set(candidatesStore.getRoot());
-
-    voterContract.deploy({ zkappKey: voterKey });
-    voterContract.committedMembers.set(votersStore.getRoot());
-  });
-  tx.send();
-
+    tx.send();
+  } catch (err: any) {
+    throw Error(err);
+  }
   console.log('all contracts deployed!');
 
   console.log('attempting to register a voter...');
@@ -104,18 +115,17 @@ export async function testSet(
 
   // This is currently not throwing an error
 
-  // console.log('attempting to register the same voter twice...');
-  // try {
-  //   tx = await Mina.transaction(feePayer, () => {
-  //     // attempt to register the same voter again
-  //     voting.voterRegistration(newVoter1);
-  //     voting.sign(votingKey);
-  //   });
+  /*   console.log('attempting to register the same voter twice...');
+  try {
+    tx = await Mina.transaction(feePayer, () => {
+      voting.voterRegistration(newVoter1);
+      voting.sign(votingKey);
+    });
 
-  //   tx.send();
-  // } catch (err: any) {
-  //   console.log('error', err);
-  // }
+    tx.send();
+  } catch (err: any) {
+    console.log('error', err);
+  } */
 
   console.log('attempting to register a candidate...');
 
@@ -303,11 +313,11 @@ export async function testSet(
     tx = await Mina.transaction(feePayer, () => {
       // attempting to vote for the registered candidate
       currentCandidate = candidatesStore.get(0n)!;
-      console.log('candidate', currentCandidate.isCandidate);
+      console.log('candidate', currentCandidate.isCandidate.toBoolean());
       currentCandidate.votesWitness = new MerkleWitness(
         votesStore.getWitness(0n)
       );
-      voting.vote(currentCandidate);
+      voting.vote(currentCandidate, votersStore.get(0n)!);
       voting.sign(votingKey);
     });
 
@@ -327,14 +337,14 @@ export async function testSet(
   console.log('attempting to vote twice...');
   try {
     tx = await Mina.transaction(feePayer, () => {
-      contracts.voting.vote(currentCandidate);
+      contracts.voting.vote(currentCandidate, votersStore.get(0n)!);
       contracts.voting.sign(votingKey);
     });
 
     tx.send();
   } catch (err: any) {
     // should throw error if double voting
-    throw Error(err);
+    // throw Error(err);
   }
 
   console.log('attempting to vote for a fake candidate...');
@@ -345,14 +355,15 @@ export async function testSet(
         Field.zero,
         UInt64.from(50)
       );
-      contracts.voting.vote(fakeCandidate);
+      contracts.voting.vote(fakeCandidate, votersStore.get(0n)!);
       contracts.voting.sign(votingKey);
     });
 
     tx.send();
   } catch (err: any) {
     // TODO: handle errors
-    console.log('error', err);
+    //console.log('error', err);
+    console.log('expected to throw');
   }
 
   // currently doesn't throw an error
@@ -364,13 +375,14 @@ export async function testSet(
         Field.zero,
         UInt64.from(50)
       );
-      contracts.voting.vote(fakeVoter);
+      contracts.voting.vote(fakeVoter, votersStore.get(0n)!);
       contracts.voting.sign(votingKey);
     });
 
     tx.send();
   } catch (err: any) {
-    handleError(err, '');
+    console.log('expected to throw');
+    //handleError(err, '');
   }
 
   console.log('attempting to vote for voter...');
@@ -380,13 +392,14 @@ export async function testSet(
       // const candidate = candidatesStore.get(0n)!;
       const voter = votersStore.get(0n)!;
 
-      contracts.voting.vote(voter);
+      contracts.voting.vote(voter, votersStore.get(0n)!);
       contracts.voting.sign(votingKey);
     });
 
     tx.send();
   } catch (err: any) {
-    console.log('err', err);
+    //console.log('err', err);
+    console.log('expected to throw');
   }
 
   console.log('counting votes...');
@@ -419,7 +432,7 @@ function handleError(error: any, errorMessage: string) {
   if (error.message.includes(errorMessage)) {
     correctlyFails = true;
     console.log(
-      `Update correctly rejected with failing precondition. Current state is still ${currentState}.`
+      `Update correctly rejected with failing precondition. Current state is still ${Field.zero}.`
     );
   } else {
     throw Error(error);
