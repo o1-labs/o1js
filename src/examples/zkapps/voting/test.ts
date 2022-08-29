@@ -296,7 +296,7 @@ export async function testSet(
     tx.send();
 
     // update offchain storage after transaction goes through
-    vote(0n, candidatesStore, votesStore);
+    vote(0n, votesStore, candidatesStore);
   } catch (err: any) {
     console.log('error', err);
     // throw Error(err);
@@ -375,10 +375,9 @@ export async function testSet(
   }
 
   console.log('counting votes...');
-  let voteCount;
   try {
     tx = await Mina.transaction(feePayer, () => {
-      voteCount = voting.countVotes();
+      voting.countVotes();
       voting.sign(votingKey);
     });
 
@@ -389,15 +388,7 @@ export async function testSet(
     console.log('error', err);
   }
 
-  if (voteCount === '2') {
-    throw Error(`Vote count of ${voteCount} is incorrect`);
-  }
-
-  console.log(
-    voting.committedVotes.get().equals(votesStore.getRoot()).toBoolean()
-  );
-
-  //printResult(voting, votesStore);
+  printResult(voting, votesStore);
   console.log('test successful!');
 }
 
