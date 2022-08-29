@@ -10,7 +10,9 @@ import {
   method,
   PublicKey,
   Bool,
-} from '../../dist/server';
+} from '../index.js';
+import { describe, it } from 'node:test';
+import { expect } from 'expect';
 
 class MyContract extends SmartContract {
   @method shouldMakeCompileThrow() {
@@ -23,24 +25,20 @@ let zkappAddress: PublicKey;
 let zkapp: MyContract;
 let feePayer: PrivateKey;
 
-beforeAll(async () => {
-  // set up local blockchain, create zkapp keys, deploy the contract
-  await isReady;
-  let Local = Mina.LocalBlockchain();
-  Mina.setActiveInstance(Local);
-  feePayer = Local.testAccounts[0].privateKey;
+await isReady;
+let Local = Mina.LocalBlockchain();
+Mina.setActiveInstance(Local);
+feePayer = Local.testAccounts[0].privateKey;
 
-  zkappKey = PrivateKey.random();
-  zkappAddress = zkappKey.toPublicKey();
-  zkapp = new MyContract(zkappAddress);
+zkappKey = PrivateKey.random();
+zkappAddress = zkappKey.toPublicKey();
+zkapp = new MyContract(zkappAddress);
 
-  let tx = await Mina.transaction(feePayer, () => {
-    Party.fundNewAccount(feePayer);
-    zkapp.deploy({ zkappKey });
-  });
-  tx.send();
+let tx = await Mina.transaction(feePayer, () => {
+  Party.fundNewAccount(feePayer);
+  zkapp.deploy({ zkappKey });
 });
-afterAll(() => setTimeout(shutdown, 0));
+tx.send();
 
 describe('preconditions', () => {
   it('get without constraint should throw', async () => {
@@ -180,14 +178,20 @@ describe('preconditions', () => {
   // TODO: is this a gotcha that should be addressed?
   // the test below fails, so it seems that nonce is applied successfully with a WRONG precondition..
   // however, this is just because `zkapp.sign()` overwrites the nonce precondition with one that is satisfied
-  it.skip('unsatisfied nonce precondition should be rejected', async () => {
-    let tx = await Mina.transaction(feePayer, () => {
-      zkapp.account.nonce.assertEquals(UInt32.from(1e8));
-      zkapp.sign(zkappKey);
-    });
-    expect(() => tx.send()).toThrow();
-  });
+  it(
+    'unsatisfied nonce precondition should be rejected',
+    { skip: true },
+    async () => {
+      let tx = await Mina.transaction(feePayer, () => {
+        zkapp.account.nonce.assertEquals(UInt32.from(1e8));
+        zkapp.sign(zkappKey);
+      });
+      expect(() => tx.send()).toThrow();
+    }
+  );
 });
+
+setImmediate(shutdown);
 
 let implementedNumber = [
   () => zkapp.account.balance,

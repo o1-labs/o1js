@@ -1,19 +1,9 @@
-import {
-  isReady,
-  shutdown,
-  Poseidon,
-  Field,
-  Experimental,
-} from '../../dist/server';
+import { isReady, shutdown, Poseidon, Field, Experimental } from '../index.js';
+import { describe, it } from 'node:test';
+import { expect } from 'expect';
+await isReady;
 
 describe('Merkle Tree', () => {
-  beforeAll(async () => {
-    await isReady;
-  });
-  afterAll(async () => {
-    setTimeout(shutdown, 0);
-  });
-
   it('root of empty tree of size 1', () => {
     const tree = new Experimental.MerkleTree(1);
     expect(tree.getRoot().toString()).toEqual(Field(0).toString());
@@ -90,3 +80,5 @@ describe('Merkle Tree', () => {
     expect(witness.toJSON()).toEqual(expectedWitness);
   });
 });
+
+setImmediate(shutdown);

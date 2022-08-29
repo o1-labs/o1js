@@ -1,9 +1,9 @@
-import { shutdown, isReady, Field } from '../../dist/server';
+import { shutdown, isReady, Field } from '../index.js';
+import { describe, it } from 'node:test';
+import { expect } from 'expect';
+await isReady;
 
 describe('Field constructor', () => {
-  beforeAll(() => isReady);
-  afterAll(() => setTimeout(shutdown, 0));
-
   // Field(number), Field.fromNumber
 
   it('handles small numbers', () => {
@@ -53,3 +53,5 @@ describe('Field serialization and static props', () => {
     expect(Field(0xff).toBigInt()).toEqual(0xffn);
   });
 });
+
+setImmediate(shutdown);

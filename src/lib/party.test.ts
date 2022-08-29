@@ -1,30 +1,17 @@
-import {
-  isReady,
-  Ledger,
-  Circuit,
-  Party,
-  PrivateKey,
-  shutdown,
-  Field,
-  PublicKey,
-  Mina,
-  Experimental,
-  Int64,
-  Encoding,
-} from '../../dist/server';
+import { Party } from './party.js';
+import { Circuit, Field, isReady, Ledger, shutdown } from '../snarky.js';
+import { PrivateKey } from './signature.js';
+import { Int64 } from './int.js';
+import { Encoding, Experimental, Mina } from '../index.js';
+import { describe, it } from 'node:test';
+import { expect } from 'expect';
 
-let address: PublicKey;
-let party: Party;
+await isReady;
+let address = PrivateKey.random().toPublicKey();
+let party = Party.defaultParty(address);
+party.body.balanceChange = Int64.from(1e9).neg();
 
 describe('party', () => {
-  beforeAll(async () => {
-    await isReady;
-    address = PrivateKey.random().toPublicKey();
-    party = Party.defaultParty(address);
-    party.body.balanceChange = Int64.from(1e9).neg();
-  });
-  afterAll(() => setTimeout(shutdown, 0));
-
   it('can convert party to fields consistently', () => {
     // convert party to fields in OCaml, going via Party.of_json
     let json = JSON.stringify(party.toJSON().body);
@@ -98,6 +85,8 @@ describe('party', () => {
     expect(Encoding.TokenId.fromBase58(defaultTokenId).toString()).toEqual('1');
   });
 });
+
+setImmediate(shutdown);
 
 // to check that we got something that looks like a Field
 // note: `instanceof Field` doesn't work

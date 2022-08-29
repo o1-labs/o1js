@@ -15,7 +15,10 @@ import {
   Permissions,
   Token,
   Ledger,
-} from '../../dist/server';
+} from '../index.js';
+import { describe, it } from 'node:test';
+import { expect } from 'expect';
+await isReady;
 
 const tokenSymbol = 'MY_TOKEN';
 
@@ -121,16 +124,10 @@ async function setupLocal() {
   ).send();
 }
 
+await setupLocal();
+
 describe('Token', () => {
-  beforeAll(async () => await isReady);
-
-  afterAll(() => setTimeout(shutdown, 0));
-
   describe('Create existing token', () => {
-    beforeEach(async () => {
-      await setupLocal();
-    });
-
     it('should have a valid custom token id', async () => {
       const tokenId = zkapp.experimental.token.id;
       const expectedTokenId = new Token({ tokenOwner: zkappAddress }).id;
@@ -153,6 +150,7 @@ describe('Token', () => {
     });
 
     it('should error if passing in an invalid tokenSymbol', async () => {
+      await setupLocal();
       await Mina.transaction(feePayer, () => {
         zkapp.setInvalidTokenSymbol();
         zkapp.sign(zkappKey);
@@ -163,11 +161,8 @@ describe('Token', () => {
   });
 
   describe('Mint token', () => {
-    beforeEach(async () => {
-      await setupLocal();
-    });
-
     it('should change the balance of a token account after token owner mints', async () => {
+      await setupLocal();
       (
         await Mina.transaction(feePayer, () => {
           Party.fundNewAccount(feePayer);
@@ -185,6 +180,7 @@ describe('Token', () => {
     });
 
     it('should error if token owner mints more tokens than allowed', async () => {
+      await setupLocal();
       await Mina.transaction(feePayer, () => {
         Party.fundNewAccount(feePayer);
         zkapp.mint(tokenAccount1, UInt64.from(100_000_000_000));
@@ -196,11 +192,8 @@ describe('Token', () => {
   });
 
   describe('Burn token', () => {
-    beforeEach(async () => {
-      await setupLocal();
-    });
-
     it('should change the balance of a token account after token owner burns', async () => {
+      await setupLocal();
       (
         await Mina.transaction(feePayer, () => {
           Party.fundNewAccount(feePayer);
@@ -226,6 +219,7 @@ describe('Token', () => {
     });
 
     it('should error if token owner burns more tokens than token account has', async () => {
+      await setupLocal();
       (
         await Mina.transaction(feePayer, () => {
           Party.fundNewAccount(feePayer);
@@ -247,11 +241,8 @@ describe('Token', () => {
     });
   });
   describe('Send token', () => {
-    beforeEach(async () => {
-      await setupLocal();
-    });
-
     it('should change the balance of a token account after sending', async () => {
+      await setupLocal();
       (
         await Mina.transaction(feePayer, () => {
           Party.fundNewAccount(feePayer);
@@ -284,6 +275,7 @@ describe('Token', () => {
     });
 
     it('should error creating a token account if no account creation fee is specified', async () => {
+      await setupLocal();
       (
         await Mina.transaction(feePayer, () => {
           Party.fundNewAccount(feePayer);
@@ -305,6 +297,7 @@ describe('Token', () => {
     });
 
     it('should error if sender sends more tokens than they have', async () => {
+      await setupLocal();
       (
         await Mina.transaction(feePayer, () => {
           Party.fundNewAccount(feePayer);
@@ -330,3 +323,5 @@ describe('Token', () => {
     });
   });
 });
+
+setImmediate(shutdown);

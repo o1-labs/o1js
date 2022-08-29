@@ -1,9 +1,9 @@
-import { Bool, Circuit, isReady, shutdown, Int64 } from '../../dist/server';
+import { Bool, Circuit, isReady, shutdown, Int64 } from '../index.js';
+import { describe, it } from 'node:test';
+import { expect } from 'expect';
+await isReady;
 
 describe('circuit', () => {
-  beforeAll(() => isReady);
-  afterAll(() => setTimeout(shutdown, 0));
-
   it('Circuit.switch picks the right value', () => {
     const x = Circuit.switch([Bool(false), Bool(true), Bool(false)], Int64, [
       Int64.from(-1),
@@ -32,3 +32,5 @@ describe('circuit', () => {
     ).toThrow(/`mask` must have 0 or 1 true element, found 2/);
   });
 });
+
+setImmediate(shutdown);

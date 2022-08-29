@@ -6,13 +6,13 @@ import {
   Field,
   shutdown,
   isReady,
-} from '../../dist/server';
+} from '../index.js';
+import { describe, test } from 'node:test';
+import { expect } from 'expect';
+await isReady;
 
 describe('Circuit String', () => {
-  beforeEach(() => isReady);
-  afterAll(() => setTimeout(shutdown, 0));
-
-  describe('#equals', () => {
+  describe('equals', () => {
     test('returns true when values are equal', () => {
       const str = CircuitString.fromString(
         'Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth'
@@ -50,7 +50,7 @@ describe('Circuit String', () => {
     });
   });
 
-  /*   describe('#contains', () => {
+  /*   describe('contains', () => {
     test('returns true when str contains other str', () => {
       const str = CircuitString.fromString(
         'Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth'
@@ -110,7 +110,7 @@ describe('Circuit String', () => {
     });
   }); */
 
-  describe('#toString', () => {
+  describe('toString', () => {
     test('serializes to string', () => {
       const js_str =
         'Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth';
@@ -126,7 +126,7 @@ describe('Circuit String', () => {
     });
   });
 
-  describe('#substring', () => {
+  describe('substring', () => {
     test('selects substring', () => {
       const str = CircuitString.fromString(
         'Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth'
@@ -146,7 +146,7 @@ describe('Circuit String', () => {
     });
   });
 
-  describe('#append', () => {
+  describe('append', () => {
     test('appends 2 strings', () => {
       const str1 = CircuitString.fromString('abcd');
       const str2 = CircuitString.fromString('efgh');
@@ -173,7 +173,7 @@ describe('Circuit String', () => {
   }); */
 
   describe('with invalid input', () => {
-    test.skip('cannot use a character out of range', () => {
+    test('cannot use a character out of range', { skip: true }, () => {
       expect(() => {
         Circuit.runAndCheck(() => {
           const str = Circuit.witness(CircuitString, () => {
@@ -188,3 +188,5 @@ describe('Circuit String', () => {
     });
   });
 });
+
+setImmediate(shutdown);

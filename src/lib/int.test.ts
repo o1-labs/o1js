@@ -8,21 +8,12 @@ import {
   Field,
   Bool,
   Sign,
-} from '../../dist/server';
+} from '../index.js';
+import { describe, it } from 'node:test';
+import { expect } from 'expect';
+await isReady;
 
 describe('int', () => {
-  beforeAll(async () => {
-    await isReady;
-  });
-
-  afterAll(async () => {
-    // Use a timeout to defer the execution of `shutdown()` until Jest processes all tests.
-    // `shutdown()` exits the process when it's done cleanup so we want to delay it's execution until Jest is done
-    setTimeout(async () => {
-      await shutdown();
-    }, 0);
-  });
-
   const NUMBERMAX = 2 ** 53 - 1; //  JavaScript numbers can only safely store integers in the range -(2^53 − 1) to 2^53 − 1
 
   describe('Int64', () => {
@@ -122,20 +113,24 @@ describe('int', () => {
       // but the result of an operation with a proper Int64 moves it into the range.
       // They would only get caught if we'd also check the range in the Int64 / UInt64 constructors,
       // which breaks out current practice of having a dumb constructor that only stores variables
-      it.skip('operations should throw on overflow of any input', () => {
-        expect(() => {
-          new Int64(new UInt64(Field(1n << 64n))).sub(1);
-        }).toThrow();
-        expect(() => {
-          new Int64(new UInt64(Field(-(1n << 64n)))).add(5);
-        }).toThrow();
-        expect(() => {
-          Int64.from(20).sub(new UInt64(Field((1n << 64n) + 10n)));
-        }).toThrow();
-        expect(() => {
-          Int64.from(6).add(new UInt64(Field(-(1n << 64n) - 5n)));
-        }).toThrow();
-      });
+      it(
+        'operations should throw on overflow of any input',
+        { skip: true },
+        () => {
+          expect(() => {
+            new Int64(new UInt64(Field(1n << 64n))).sub(1);
+          }).toThrow();
+          expect(() => {
+            new Int64(new UInt64(Field(-(1n << 64n)))).add(5);
+          }).toThrow();
+          expect(() => {
+            Int64.from(20).sub(new UInt64(Field((1n << 64n) + 10n)));
+          }).toThrow();
+          expect(() => {
+            Int64.from(6).add(new UInt64(Field(-(1n << 64n) - 5n)));
+          }).toThrow();
+        }
+      );
 
       it('should throw on overflow addition', () => {
         expect(() => {
@@ -2100,3 +2095,5 @@ describe('int', () => {
     });
   });
 });
+
+setImmediate(shutdown);

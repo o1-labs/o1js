@@ -1,17 +1,9 @@
-import { isReady, shutdown, Field, Bool, Circuit } from '../../dist/server';
+import { isReady, shutdown, Field, Bool, Circuit } from '../index.js';
+import { describe, it } from 'node:test';
+import { expect } from 'expect';
+await isReady;
 
 describe('bool', () => {
-  beforeAll(async () => {
-    await isReady;
-    return;
-  });
-
-  afterAll(async () => {
-    setTimeout(async () => {
-      await shutdown();
-    }, 0);
-  });
-
   describe('inside circuit', () => {
     describe('toField', () => {
       it('should return a Field', async () => {
@@ -407,3 +399,5 @@ describe('bool', () => {
     });
   });
 });
+
+setImmediate(shutdown);

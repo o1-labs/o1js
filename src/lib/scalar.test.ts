@@ -1,23 +1,9 @@
-import {
-  shutdown,
-  isReady,
-  Field,
-  Bool,
-  Circuit,
-  Scalar,
-} from '../../dist/server';
+import { shutdown, isReady, Field, Bool, Circuit, Scalar } from '../index.js';
+import { describe, it } from 'node:test';
+import { expect } from 'expect';
+await isReady;
 
 describe('scalar', () => {
-  beforeAll(async () => {
-    await isReady;
-  });
-
-  afterAll(async () => {
-    setTimeout(async () => {
-      await shutdown();
-    }, 0);
-  });
-
   describe('scalar', () => {
     describe('Inside circuit', () => {
       describe('toFields', () => {
@@ -244,14 +230,14 @@ describe('scalar', () => {
         });
 
         // Expected: "-1" Received: "28948022309329048855892746252171976963363056481941647379679742748393362948096"
-        it.skip('0-1=-1', () => {
+        it('0-1=-1', { skip: true }, () => {
           const x = Scalar.fromJSON(0)!;
           const y = Scalar.fromJSON(1)!;
           expect(x.sub(y).toJSON()).toEqual('-1');
         });
 
         // Expected: "2" Received: "28948022309329048855892746252171976963363056481941647379661296004319653396483"
-        it.skip('1-(-1)=2', () => {
+        it('1-(-1)=2', { skip: true }, () => {
           const x = Scalar.fromJSON(1)!;
           const y = Scalar.fromJSON(-1)!;
           expect(x.sub(y).toJSON()).toEqual('2');
@@ -314,3 +300,5 @@ describe('scalar', () => {
     });
   });
 });
+
+setImmediate(shutdown);
