@@ -99,7 +99,7 @@ export async function testSet(
 
   let numberOfEvents = voterContract.reducer.getActions({}).length;
   if (numberOfEvents !== 1) {
-    throw Error('Should have emmited 1 event after regestering a voter');
+    throw Error('Should have emitted 1 event after registering a voter');
   }
 
   // This is currently not throwing an error
@@ -145,11 +145,11 @@ export async function testSet(
   numberOfEvents = voterContract.reducer.getActions({}).length;
   if (numberOfEvents !== 1) {
     throw Error(
-      `Should have emmited 1 event after regestering a candidate for a total of 1 events. ${numberOfEvents} emmitted`
+      `Should have emitted 1 event after registering a candidate for a total of 1 events. ${numberOfEvents} emitted`
     );
   }
 
-  // the merkel roots of both membership contract should still be the initial ones because publish hasn't been invoked
+  // the merkle roots of both membership contract should still be the initial ones because publish hasn't been invoked
   if (
     !contracts.candidateContract.committedMembers
       .get()
