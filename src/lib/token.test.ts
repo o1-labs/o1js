@@ -15,7 +15,7 @@ import {
   Permissions,
   Token,
   Ledger,
-} from '../../dist/server';
+} from 'snarkyjs';
 
 const tokenSymbol = 'MY_TOKEN';
 

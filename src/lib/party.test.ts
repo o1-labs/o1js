@@ -11,7 +11,7 @@ import {
   Experimental,
   Int64,
   Encoding,
-} from '../../dist/server';
+} from 'snarkyjs';
 
 let address: PublicKey;
 let party: Party;
