@@ -96,8 +96,8 @@ try {
       voterStore
     );
 
-    contracts.voting.voterRegistration(m);
-
+    let res = contracts.voting.voterRegistration(m);
+    console.log(res);
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
   if (params.doProofs) await tx.prove();
