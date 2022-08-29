@@ -10,7 +10,6 @@ import {
   PublicKey,
   Experimental,
   Circuit,
-  Poseidon,
 } from 'snarkyjs';
 import { Member } from './member';
 import { ParticipantPreconditions } from './preconditions';
@@ -76,8 +75,8 @@ export class Membership_ extends SmartContract {
     // Preconditions: Restrict who can vote or who can be a candidate
 
     // since we need to keep this contract "generic", we always assert within a range
-    // even tho voters cant have a maximum balance, only candidate
-    // but for voter we simply use UInt64.MAXINT() as maximum
+    // even tho voters cant have a maximum balance, only candidates
+    // but for a voter we simply use UInt64.MAXINT() as the maximum
     member.balance
       .gte(participantPreconditions.minMina)
       .and(member.balance.lte(participantPreconditions.maxMina)).assertTrue;
@@ -87,7 +86,9 @@ export class Membership_ extends SmartContract {
 
     // checking if the member already exists within the accumulator
     let { state: exists } = this.reducer.reduce(
-      this.reducer.getActions({ fromActionHash: accumulatedMembers }),
+      this.reducer.getActions({
+        fromActionHash: accumulatedMembers,
+      }),
       Bool,
       (state: Bool, _action: Member) => {
         return _action.equals(member).or(state);
@@ -97,8 +98,7 @@ export class Membership_ extends SmartContract {
     );
 
     /*
-    TODO: we cant really branch logic, revisit this section later to align with testing docs
-    we will always have to emit an event no matter what, 
+    we cant really branch the control flow - we will always have to emit an event no matter what, 
     so we emit an empty event if the member already exists
     it the member doesnt exist, emit the "real" member
     */
@@ -123,7 +123,7 @@ export class Membership_ extends SmartContract {
     this.committedMembers.assertEquals(committedMembers);
 
     return member.witness
-      .calculateRoot(Poseidon.hash(member.toFields()))
+      .calculateRoot(member.getHash())
       .equals(committedMembers);
   }
 
@@ -141,7 +141,9 @@ export class Membership_ extends SmartContract {
 
     let { state: newCommittedMembers, actionsHash: newAccumulatedMembers } =
       this.reducer.reduce(
-        this.reducer.getActions({ fromActionHash: accumulatedMembers }),
+        this.reducer.getActions({
+          fromActionHash: accumulatedMembers,
+        }),
         Field,
         (state: Field, _action: Member) => {
           // because we inserted empty members, we need to check if a member is empty or "real"
@@ -152,10 +154,10 @@ export class Membership_ extends SmartContract {
           );
 
           // if the member is real and not empty, we calculate and return the new merkle root
-          // otherwise, we simply return the unmodified state
+          // otherwise, we simply return the unmodified state - this is our way of branching
           return Circuit.if(
             isRealMember,
-            _action.witness.calculateRoot(Poseidon.hash(_action.toFields())),
+            _action.witness.calculateRoot(_action.getHash()),
             state
           );
         },

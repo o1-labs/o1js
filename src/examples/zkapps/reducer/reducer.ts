@@ -10,6 +10,8 @@ import {
   Party,
   isReady,
   Permissions,
+  Circuit,
+  Ledger,
 } from 'snarkyjs';
 
 await isReady;
@@ -44,7 +46,9 @@ class CounterZkapp extends SmartContract {
 
     let { state: newCounter, actionsHash: newActionsHash } =
       this.reducer.reduce(
-        pendingActions,
+        this.reducer.getActions({
+          fromActionHash: actionsHash,
+        }),
         // state type
         Field,
         // function that says how to apply an action

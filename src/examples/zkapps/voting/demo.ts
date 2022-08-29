@@ -64,48 +64,33 @@ try {
 
     contracts.voting.deploy({ zkappKey: votingKey });
     contracts.voting.committedVotes.set(votesStore.getRoot());
+    contracts.voting.accumulatedVotes.set(
+      Experimental.Reducer.initialActionsHash
+    );
 
     contracts.candidateContract.deploy({ zkappKey: candidateKey });
     contracts.candidateContract.committedMembers.set(candidateStore.getRoot());
+    contracts.candidateContract.accumulatedMembers.set(
+      Experimental.Reducer.initialActionsHash
+    );
 
     contracts.voterContract.deploy({ zkappKey: voterKey });
     contracts.voterContract.committedMembers.set(voterStore.getRoot());
+    contracts.voterContract.accumulatedMembers.set(
+      Experimental.Reducer.initialActionsHash
+    );
   });
   tx.send();
-
+  let m: Member = Member.empty();
   // lets register three voters
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering a new voter
-    let m = registerMember(
+    m = registerMember(
       0n,
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(50)
-      ),
-      voterStore
-    );
-
-    contracts.voting.voterRegistration(m);
-
-    m = registerMember(
-      1n,
-      Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field.zero,
-        UInt64.from(550)
-      ),
-      voterStore
-    );
-
-    contracts.voting.voterRegistration(m);
-
-    m = registerMember(
-      2n,
-      Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field.zero,
-        UInt64.from(910)
+        UInt64.from(100)
       ),
       voterStore
     );
@@ -114,9 +99,49 @@ try {
 
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
-
   if (params.doProofs) await tx.prove();
   tx.send();
+
+  // lets register three voters
+  tx = await Mina.transaction(feePayer, () => {
+    // creating and registering a new voter
+    m = registerMember(
+      1n,
+      Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        UInt64.from(200)
+      ),
+      voterStore
+    );
+
+    contracts.voting.voterRegistration(m);
+
+    if (!params.doProofs) contracts.voting.sign(votingKey);
+  });
+  if (params.doProofs) await tx.prove();
+  tx.send();
+
+  // lets register three voters
+  tx = await Mina.transaction(feePayer, () => {
+    // creating and registering a new voter
+    m = registerMember(
+      2n,
+      Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        UInt64.from(300)
+      ),
+      voterStore
+    );
+
+    contracts.voting.voterRegistration(m);
+
+    if (!params.doProofs) contracts.voting.sign(votingKey);
+  });
+  if (params.doProofs) await tx.prove();
+  tx.send();
+
   /*
   since the voting contact calls the voter membership contract via invoking voterRegister,
   the membership contract will then emit one event per new member
@@ -150,7 +175,6 @@ try {
 
   if (params.doProofs) await tx.prove();
   tx.send();
-
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering 1 new candidate
     let m = registerMember(
@@ -158,7 +182,7 @@ try {
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(555)
+        UInt64.from(700)
       ),
       candidateStore
     );
@@ -176,9 +200,7 @@ try {
   */
   console.log(
     '2 events?? ',
-    JSON.stringify(
-      contracts.candidateContract.reducer.getActions({}).length == 2
-    )
+    contracts.candidateContract.reducer.getActions({}).length == 2
   );
 
   /*
@@ -240,7 +262,8 @@ try {
   tx = await Mina.transaction(feePayer, () => {
     let c = candidateStore.get(0n)!;
     c.votesWitness = new MerkleWitness(votesStore.getWitness(0n));
-    contracts.voting.vote(c);
+    // we are voting for candidate c, 0n, with voter 2n
+    contracts.voting.vote(c, voterStore.get(2n)!);
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
 
@@ -291,7 +314,6 @@ function registerMember(
   store.set(i, m); // setting voter 0n
   // setting the merkle witness
   m.witness = new MerkleWitness(store.getWitness(i));
-
   return m;
 }
 

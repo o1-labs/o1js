@@ -8,6 +8,7 @@ import {
   UInt64,
   Experimental,
   Token,
+  Poseidon,
 } from 'snarkyjs';
 
 export class MerkleWitness extends Experimental.MerkleWitness(8) {}
@@ -56,16 +57,17 @@ export class Member extends CircuitValue {
     this.votesWitness = new MerkleWitness(dummyWitness);
   }
 
-  // I am defining a custom toFields method here because some things arent important when e.g. hashing
-  toFields(): Field[] {
-    return this.publicKey
-      .toFields()
-      .concat(this.tokenId.toFields())
-      .concat(this.balance.toFields())
-      .concat(this.accountId.toFields())
-      .concat(this.votes.toFields())
-      .concat(this.isCandidate.toFields())
-      .concat(this.hashVoted.toFields());
+  getHash(): Field {
+    return Poseidon.hash(
+      this.publicKey
+        .toFields()
+        .concat(this.tokenId.toFields())
+        .concat(this.balance.toFields())
+        .concat(this.accountId.toFields())
+        .concat(this.votes.toFields())
+        .concat(this.isCandidate.toFields())
+        .concat(this.hashVoted.toFields())
+    );
   }
 
   addVote(): Member {
@@ -76,8 +78,6 @@ export class Member extends CircuitValue {
   static empty() {
     return new Member(PublicKey.empty(), Field.zero, UInt64.zero, Field.zero);
   }
-
-  // TODO: ofFields(xs: Field[])
 
   static from(publicKey: PublicKey, tokenId: Field, balance: UInt64) {
     this.count++;
