@@ -168,7 +168,7 @@ export async function testSet(
     throw Error('voter merkle root is not the initialroot');
   }
 
-  console.log('authrozing registrations...');
+  console.log('authorizing registrations...');
   try {
     tx = await Mina.transaction(feePayer, () => {
       // register new candidate
