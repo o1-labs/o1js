@@ -48,40 +48,20 @@ export async function testSet(
   let tx;
 
   let { votersStore, candidatesStore, votesStore } = storage;
-  let { voterContract, candidateContract, voting } = contracts;
+  // let { voterContract, candidateContract, voting } = contracts;
   let { votingKey, candidateKey, voterKey } = params;
 
   const initialRoot = votersStore.getRoot();
 
   console.log('deploying 3 contracts ...');
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      Party.fundNewAccount(feePayer, {
-        initialBalance: Mina.accountCreationFee().add(
-          Mina.accountCreationFee()
-        ),
-      });
-
-      voting.deploy({ zkappKey: votingKey });
-      voting.committedVotes.set(votesStore.getRoot());
-      voting.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
-
-      candidateContract.deploy({ zkappKey: candidateKey });
-      candidateContract.committedMembers.set(candidatesStore.getRoot());
-      candidateContract.accumulatedMembers.set(
-        Experimental.Reducer.initialActionsHash
-      );
-
-      voterContract.deploy({ zkappKey: voterKey });
-      voterContract.committedMembers.set(votersStore.getRoot());
-      voterContract.accumulatedMembers.set(
-        Experimental.Reducer.initialActionsHash
-      );
-    });
-    tx.send();
-  } catch (err: any) {
-    throw Error(err);
-  }
+  let { voterContract, candidateContract, voting } = await deployContracts(
+    feePayer,
+    contracts,
+    params,
+    votersStore.getRoot(),
+    candidatesStore.getRoot(),
+    votesStore.getRoot()
+  );
   console.log('all contracts deployed!');
 
   console.log('attempting to register a voter...');

@@ -1,4 +1,4 @@
-import { Experimental, Field, Mina, Party } from 'snarkyjs';
+import { Experimental, Field, Mina, Party, PrivateKey } from 'snarkyjs';
 import { VotingAppParams } from './factory';
 
 import { Membership_ } from './membership';
@@ -11,6 +11,7 @@ import { Voting_ } from './voting';
  * @param params A set of preconditions and parameters
  */
 export async function deployContracts(
+  feePayer: PrivateKey,
   contracts: {
     voterContract: Membership_;
     candidateContract: Membership_;
@@ -21,36 +22,37 @@ export async function deployContracts(
   candidateRoot: Field,
   votesRoot: Field
 ): Promise<any> {
-  let Local = Mina.LocalBlockchain();
-  Mina.setActiveInstance(Local);
-  let feePayer = Local.testAccounts[0].privateKey;
-
   let { voterContract, candidateContract, voting } = contracts;
 
   console.log('deploying set of 3 contracts');
-  let tx = await Mina.transaction(feePayer, () => {
-    Party.fundNewAccount(feePayer, {
-      initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
+  try {
+    let tx = await Mina.transaction(feePayer, () => {
+      Party.fundNewAccount(feePayer, {
+        initialBalance: Mina.accountCreationFee().add(
+          Mina.accountCreationFee()
+        ),
+      });
+
+      voting.deploy({ zkappKey: params.votingKey });
+      voting.committedVotes.set(votesRoot);
+      voting.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
+
+      candidateContract.deploy({ zkappKey: params.candidateKey });
+      candidateContract.committedMembers.set(candidateRoot);
+      candidateContract.accumulatedMembers.set(
+        Experimental.Reducer.initialActionsHash
+      );
+
+      voterContract.deploy({ zkappKey: params.voterKey });
+      voterContract.committedMembers.set(voterRoot);
+      voterContract.accumulatedMembers.set(
+        Experimental.Reducer.initialActionsHash
+      );
     });
-
-    voting.deploy({ zkappKey: params.votingKey });
-    voting.committedVotes.set(votesRoot);
-    voting.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
-
-    candidateContract.deploy({ zkappKey: params.candidateKey });
-    candidateContract.committedMembers.set(candidateRoot);
-    candidateContract.accumulatedMembers.set(
-      Experimental.Reducer.initialActionsHash
-    );
-
-    voterContract.deploy({ zkappKey: params.voterKey });
-    voterContract.committedMembers.set(voterRoot);
-    voterContract.accumulatedMembers.set(
-      Experimental.Reducer.initialActionsHash
-    );
-  });
-
-  tx.send();
+    tx.send();
+  } catch (err: any) {
+    throw Error(err);
+  }
 
   console.log('successfully deployed contracts');
   return { voterContract, candidateContract, voting };
