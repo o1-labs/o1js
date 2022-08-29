@@ -31,6 +31,7 @@
     "dev": "npx tsc -p tsconfig.server.json",
     "make": "make -C ../../../.. snarkyjs",
     "build": "rm -rf dist/server && npx tsc -p tsconfig.server.json && cp -r src/node_bindings dist/server/_node_bindings && cp src/snarky.d.ts dist/server/snarky.d.ts",
+    "build:node": "npm run build",
     "build:web": "node src/build/buildWeb.mjs",
     "serve:web": "cp src/chrome_bindings/server.py src/chrome_bindings/index.html dist/web && cd dist/web && python3 server.py",
     "prepublish:web": "NODE_ENV=production node src/build/buildWeb.mjs",
