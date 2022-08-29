@@ -10,8 +10,6 @@ import {
   Party,
   isReady,
   Permissions,
-  Circuit,
-  Ledger,
 } from 'snarkyjs';
 
 await isReady;
@@ -62,7 +60,7 @@ class CounterZkapp extends SmartContract {
   }
 }
 
-const doProofs = false;
+const doProofs = true;
 const initialCounter = Field.zero;
 
 let Local = Mina.LocalBlockchain();
@@ -145,6 +143,7 @@ tx = await Mina.transaction(feePayer, () => {
   zkapp.incrementCounter();
   if (!doProofs) zkapp.sign(zkappKey);
 });
+if (doProofs) await tx.prove();
 tx.send();
 
 console.log('action 5');
@@ -152,6 +151,7 @@ tx = await Mina.transaction(feePayer, () => {
   zkapp.incrementCounter();
   if (!doProofs) zkapp.sign(zkappKey);
 });
+if (doProofs) await tx.prove();
 tx.send();
 
 console.log('rolling up pending actions..');
