@@ -101,6 +101,6 @@ describe('party', () => {
 
 // to check that we got something that looks like a Field
 // note: `instanceof Field` doesn't work
-function isField(x: any): x is Field {
+function isField(x: any) {
   return x?.constructor === Field.one.constructor;
 }

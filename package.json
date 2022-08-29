@@ -40,7 +40,7 @@
     "prepublishOnly": "npm run prepublish:web && npm run prepublish:node",
     "bootstrap": "npm run build && node src/build/extractJsooMethods.js && npm run build",
     "format": "prettier --write --ignore-unknown **/*",
-    "test": "node --experimental-wasm-modules --experimental-modules --experimental-wasm-threads --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test": "npx jest",
     "clean": "rimraf ./dist",
     "test:integration": "./run-integration-tests.sh"
   },
