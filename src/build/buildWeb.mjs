@@ -48,13 +48,7 @@ async function buildWeb({ production }) {
   let copyPromise = copy({
     './src/chrome_bindings/': './dist/web/chrome_bindings/',
     './src/snarky.d.ts': './dist/web/snarky.d.ts',
-    ...Object.fromEntries(
-      (await readdir('./src/snarky/'))
-        .filter(
-          (f) => f.endsWith('.js') || f.endsWith('.json') || f.endsWith('.d.ts')
-        )
-        .map((f) => [`./src/snarky/${f}`, `./dist/web/snarky/${f}`])
-    ),
+    './src/snarky/wrapper.web.js': './dist/web/snarky/wrapper.js'
   });
 
   await Promise.all([tscPromise, copyPromise]);
