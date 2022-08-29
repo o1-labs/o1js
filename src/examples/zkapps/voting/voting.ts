@@ -8,7 +8,6 @@ import {
   Permissions,
   Experimental,
   PublicKey,
-  Poseidon,
   Circuit,
   Bool,
 } from 'snarkyjs';
@@ -173,8 +172,8 @@ export class Voting_ extends SmartContract {
     //this.VoterContract.isMember(Field.zero).assertTrue();
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
-    let a = CandidateContract.isMember(candidate);
-    Circuit.asProver(() => console.log(a.toBoolean()));
+    CandidateContract.isMember(candidate).assertTrue();
+
     // emits a sequence event with the information about the candidate
     this.reducer.dispatch(candidate);
   }
@@ -202,19 +201,17 @@ export class Voting_ extends SmartContract {
         (state: Field, _action: Member) => {
           // checking that the member is part of the merkle tree
           // TODO: make work
-          let isValid = Bool(true); /*  _action.witness
-            .calculateRoot(Poseidon.hash(_action.toFields()))
+          let isValid = Bool(true); /* _action.witness
+            .calculateRoot(_action.getHash())
             .equals(state); */
 
           // adding one additional vote to the member and calculating new root
           _action = _action.addVote();
           // this is the new root after we added one vote
-          let newRoot = _action.votesWitness.calculateRoot(
-            Poseidon.hash(_action.toFields())
-          );
+          let newRoot = _action.votesWitness.calculateRoot(_action.getHash());
 
           // checking if the account was part of the tree in the first place
-          // if it was, then return the new, adjusted, root
+          // if it was, then return the new, root
           // otherwise, return the initial state
           return Circuit.if(isValid, newRoot, state);
         },

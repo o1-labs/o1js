@@ -56,6 +56,7 @@ let candidateStore = new OffchainStorage<Member>(8);
 let votesStore = new OffchainStorage<Member>(8);
 
 let initialRoot = voterStore.getRoot();
+
 try {
   tx = await Mina.transaction(feePayer, () => {
     Party.fundNewAccount(feePayer, {
@@ -64,24 +65,33 @@ try {
 
     contracts.voting.deploy({ zkappKey: votingKey });
     contracts.voting.committedVotes.set(votesStore.getRoot());
+    contracts.voting.accumulatedVotes.set(
+      Experimental.Reducer.initialActionsHash
+    );
 
     contracts.candidateContract.deploy({ zkappKey: candidateKey });
     contracts.candidateContract.committedMembers.set(candidateStore.getRoot());
+    contracts.candidateContract.accumulatedMembers.set(
+      Experimental.Reducer.initialActionsHash
+    );
 
     contracts.voterContract.deploy({ zkappKey: voterKey });
     contracts.voterContract.committedMembers.set(voterStore.getRoot());
+    contracts.voterContract.accumulatedMembers.set(
+      Experimental.Reducer.initialActionsHash
+    );
   });
   tx.send();
-
+  let m: Member = Member.empty();
   // lets register three voters
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering a new voter
-    let m = registerMember(
+    m = registerMember(
       0n,
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(910)
+        UInt64.from(100)
       ),
       voterStore
     );
@@ -96,12 +106,12 @@ try {
   // lets register three voters
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering a new voter
-    let m = registerMember(
+    m = registerMember(
       1n,
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(910)
+        UInt64.from(200)
       ),
       voterStore
     );
@@ -116,12 +126,12 @@ try {
   // lets register three voters
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering a new voter
-    let m = registerMember(
+    m = registerMember(
       2n,
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(910)
+        UInt64.from(300)
       ),
       voterStore
     );
@@ -132,6 +142,7 @@ try {
   });
   if (params.doProofs) await tx.prove();
   tx.send();
+
   /*
   since the voting contact calls the voter membership contract via invoking voterRegister,
   the membership contract will then emit one event per new member
@@ -173,7 +184,7 @@ try {
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(555)
+        UInt64.from(700)
       ),
       candidateStore
     );
@@ -191,9 +202,7 @@ try {
   */
   console.log(
     '2 events?? ',
-    JSON.stringify(
-      contracts.candidateContract.reducer.getActions({}).length == 2
-    )
+    contracts.candidateContract.reducer.getActions({}).length == 2
   );
 
   /*
@@ -306,7 +315,6 @@ function registerMember(
   store.set(i, m); // setting voter 0n
   // setting the merkle witness
   m.witness = new MerkleWitness(store.getWitness(i));
-
   return m;
 }
 
