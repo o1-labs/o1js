@@ -25,6 +25,7 @@ import {
   SetOrKeep,
   ZkappPublicInput,
   Events,
+  SequenceEvents,
   partyToPublicInput,
   Authorization,
   CallForest,
@@ -754,7 +755,7 @@ class ${contract.constructor.name} extends SmartContract {
     dispatch(action: A) {
       let party = contract.self;
       let eventFields = reducer.actionType.toFields(action);
-      party.body.sequenceEvents = Events.pushEvent(
+      party.body.sequenceEvents = SequenceEvents.pushEvent(
         party.body.sequenceEvents,
         eventFields
       );
@@ -804,10 +805,10 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         // for each action length, compute the events hash and then pick the actual one
         let eventsHashes = actionss.map((actions) => {
           let events = actions.map((u) => reducer.actionType.toFields(u));
-          return Events.hash(events);
+          return SequenceEvents.hash(events);
         });
         let eventsHash = Circuit.switch(lengths, Field, eventsHashes);
-        let newActionsHash = Events.updateSequenceState(
+        let newActionsHash = SequenceEvents.updateSequenceState(
           actionsHash,
           eventsHash
         );
@@ -848,7 +849,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       Circuit.asProver(() => {
         // if the fromActionHash is the empty state, we fetch all events
         fromActionHash = fromActionHash
-          ?.equals(Events.emptySequenceState())
+          ?.equals(SequenceEvents.emptySequenceState())
           .toBoolean()
           ? undefined
           : fromActionHash;
@@ -1047,5 +1048,5 @@ const Reducer: (<
     return reducer;
   },
   'initialActionsHash',
-  { get: Events.emptySequenceState }
+  { get: SequenceEvents.emptySequenceState }
 ) as any;
