@@ -111,7 +111,12 @@ export class Voting_ extends SmartContract {
     member.balance.assertGte(voterPreconditions.minMina);
 
     let VoterContract: Membership_ = new Membership_(voterAddress);
-    VoterContract.addEntry(member);
+    let exists = VoterContract.addEntry(member);
+
+    // the check happens here because we want to see if the other contract returns a value
+    // if exists is true, that means the member already exists within the accumulated state
+    // if its false, its a new entry
+    exists.assertEquals(false);
   }
 
   /**
@@ -135,7 +140,12 @@ export class Voting_ extends SmartContract {
       .assertTrue();
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
-    CandidateContract.addEntry(member);
+    let exists = CandidateContract.addEntry(member);
+
+    // the check happens here because we want to see if the other contract returns a value
+    // if exists is true, that means the member already exists within the accumulated state
+    // if its false, its a new entry
+    exists.assertEquals(false);
   }
 
   /**

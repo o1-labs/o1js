@@ -96,7 +96,6 @@ try {
     );
 
     contracts.voting.voterRegistration(m);
-
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
   if (params.doProofs) await tx.prove();
