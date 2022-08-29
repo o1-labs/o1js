@@ -41,7 +41,7 @@
     "prepublishOnly": "npm run prepublish:web && npm run prepublish:node",
     "bootstrap": "npm run build && node src/build/extractJsooMethods.js && npm run build",
     "format": "prettier --write --ignore-unknown **/*",
-    "test": "NODE_OPTIONS=--experimental-vm-modules npx jest",
+    "test": "for f in ./src/**/*.test.ts; do NODE_OPTIONS=--experimental-vm-modules npx jest $f; done",
     "clean": "rimraf ./dist",
     "test:integration": "./run-integration-tests.sh"
   },
