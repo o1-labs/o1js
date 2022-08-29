@@ -4,7 +4,7 @@ import * as Mina from './mina.js';
 import { Events, SequenceEvents, Party, Preconditions } from './party.js';
 import { UInt32, UInt64 } from './int.js';
 import { inAnalyze, inCompile, inProver } from './proof_system.js';
-import { Layout } from 'snarky/parties-helpers.js';
+import { Layout } from '../snarky/parties-helpers.js';
 import { jsLayout } from '../snarky/types.js';
 import { emptyReceiptChainHash } from './hash.js';
 

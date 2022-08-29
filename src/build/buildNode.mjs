@@ -24,10 +24,7 @@ if (isMain) {
 }
 
 async function buildNode({ production }) {
-  // invoke TS to recreate .ts files as .js + d.ts in /dist/node
-  await execPromise('npx tsc -p tsconfig.server.json && cp src/snarky.d.ts dist/node/snarky.d.ts');
-
-  // bundle the new index.js file with esbuild and create a new index.js file which conforms to CJS
+  // bundle the index.js file with esbuild and create a new index.cjs file which conforms to CJS
   let jsEntry = path.resolve(
     'dist/node',
     path.basename(entry).replace('.ts', '.js')

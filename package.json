@@ -30,7 +30,7 @@
     "type-check": "tsc --noEmit",
     "dev": "npx tsc -p tsconfig.server.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "make": "make -C ../../../.. snarkyjs",
-    "build": "rm -rf dist/node && npx tsc -p tsconfig.server.json && cp -r src/node_bindings dist/node/_node_bindings && cp src/snarky.d.ts dist/node/snarky.d.ts",
+    "build": "rm -rf dist/node && npx tsc -p tsconfig.server.json && cp -r src/node_bindings dist/node/_node_bindings && node src/build/buildNode.mjs && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "build:node": "npm run build",
     "build:web": "rm -rf dist/web && node src/build/buildWeb.mjs",
     "serve:web": "cp src/chrome_bindings/server.py src/chrome_bindings/index.html dist/web && cd dist/web && python3 server.py",
@@ -40,7 +40,7 @@
     "prepublishOnly": "npm run prepublish:web && npm run prepublish:node",
     "bootstrap": "npm run build && node src/build/extractJsooMethods.js && npm run build",
     "format": "prettier --write --ignore-unknown **/*",
-    "test": "node src/build/buildNode.mjs && npx jest",
+    "test": "npx jest",
     "clean": "rimraf ./dist",
     "test:integration": "./run-integration-tests.sh"
   },
