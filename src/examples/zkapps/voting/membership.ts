@@ -75,8 +75,8 @@ export class Membership_ extends SmartContract {
     // Preconditions: Restrict who can vote or who can be a candidate
 
     // since we need to keep this contract "generic", we always assert within a range
-    // even tho voters cant have a maximum balance, only candidate
-    // but for voter we simply use UInt64.MAXINT() as maximum
+    // even tho voters cant have a maximum balance, only candidates
+    // but for a voter we simply use UInt64.MAXINT() as the maximum
     member.balance
       .gte(participantPreconditions.minMina)
       .and(member.balance.lte(participantPreconditions.maxMina)).assertTrue;
@@ -84,13 +84,11 @@ export class Membership_ extends SmartContract {
     let accumulatedMembers = this.accumulatedMembers.get();
     this.accumulatedMembers.assertEquals(accumulatedMembers);
 
-    let pendingActions = this.reducer.getActions({
-      fromActionHash: accumulatedMembers,
-    });
-
     // checking if the member already exists within the accumulator
     let { state: exists } = this.reducer.reduce(
-      pendingActions,
+      this.reducer.getActions({
+        fromActionHash: accumulatedMembers,
+      }),
       Bool,
       (state: Bool, _action: Member) => {
         return _action.equals(member).or(state);
@@ -100,8 +98,7 @@ export class Membership_ extends SmartContract {
     );
 
     /*
-    TODO: we cant really branch logic, revisit this section later to align with testing docs
-    we will always have to emit an event no matter what, 
+    we cant really branch the control flow - we will always have to emit an event no matter what, 
     so we emit an empty event if the member already exists
     it the member doesnt exist, emit the "real" member
     */
@@ -142,11 +139,11 @@ export class Membership_ extends SmartContract {
     let committedMembers = this.committedMembers.get();
     this.committedMembers.assertEquals(committedMembers);
 
-    let pendingActions = this.reducer.getActions({});
-
     let { state: newCommittedMembers, actionsHash: newAccumulatedMembers } =
       this.reducer.reduce(
-        pendingActions,
+        this.reducer.getActions({
+          fromActionHash: accumulatedMembers,
+        }),
         Field,
         (state: Field, _action: Member) => {
           // because we inserted empty members, we need to check if a member is empty or "real"

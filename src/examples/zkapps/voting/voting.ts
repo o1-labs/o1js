@@ -104,10 +104,10 @@ export class Voting_ extends SmartContract {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
-    // we can only register voters before the election has started
+    // can only register voters before the election has started
     currentSlot.assertLte(electionPreconditions.startElection);
 
-    // ? should we also enforce preconditions here, or only on the membership SC side?
+    // can only register voters if their balance is gte the minimum amount required
     member.balance.assertGte(voterPreconditions.minMina);
 
     let VoterContract: Membership_ = new Membership_(voterAddress);
@@ -124,11 +124,11 @@ export class Voting_ extends SmartContract {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
-    // we can only register candidates before the election has started
+    // can only register candidates before the election has started
     currentSlot.assertLte(electionPreconditions.startElection);
 
-    // ! I dont think we can pull in the actually caller balance, right?
-    // ? should we also enforce preconditions here, or only on the membership SC side?
+    // can only register candidates if their balance is gte the minimum amount required
+    // and lte the maximum amount
     member.balance
       .gte(candidatePreconditions.minMina)
       .and(member.balance.lte(candidatePreconditions.maxMina))
@@ -156,20 +156,23 @@ export class Voting_ extends SmartContract {
    * Method used to cast a vote to a specific candidate.
    * Dispatches a new vote sequence event.
    * @param member
+   * @param member
    */
   @method
-  vote(candidate: Member) {
+  vote(candidate: Member, voter: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
-    // we can only vote in the election period
+    // we can only vote in the election period time frame
     currentSlot
       .gte(electionPreconditions.startElection)
       .and(currentSlot.lte(electionPreconditions.endElection))
       .assertTrue();
 
-    // ! TODO: derive voter accountId - how? we should just pass in a voter Member
-    //this.VoterContract.isMember(Field.zero).assertTrue();
+    // verifying that both the voter and the candidate are actually part of our member set
+    // ideally we would also verify a signature here, but ignoring that for now
+    let VoterContract: Membership_ = new Membership_(voterAddress);
+    VoterContract.isMember(voter).assertTrue();
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
     CandidateContract.isMember(candidate).assertTrue();
@@ -179,15 +182,11 @@ export class Voting_ extends SmartContract {
   }
 
   /**
-   * Method used to accumulate all pending votes from open sequence events
+   * Method used to accumulate all pending votes from sequence events
    * and applies state changes to the votes merkle tree.
    */
   @method
   countVotes() {
-    // Save the Sequence Events accumulated so far within the account’s state accumulatedMembers (AppState 1 in doc).
-    // Update the committed storage with the Sequence Events accumulated so far.
-    // Returns the JSON with the Candidates to Votes Count mapping.
-
     let accumulatedVotes = this.accumulatedVotes.get();
     this.accumulatedVotes.assertEquals(accumulatedVotes);
 

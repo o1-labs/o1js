@@ -264,7 +264,8 @@ try {
   tx = await Mina.transaction(feePayer, () => {
     let c = candidateStore.get(0n)!;
     c.votesWitness = new MerkleWitness(votesStore.getWitness(0n));
-    contracts.voting.vote(c);
+    // we are voting for candidate c, 0n, with voter 2n
+    contracts.voting.vote(c, voterStore.get(2n)!);
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
 
