@@ -5,9 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/e0192f7...HEAD)
+<!--
+  Possible subsections:
+    _Added_ for new features.
+    _Changed_ for changes in existing functionality.
+    _Deprecated_ for soon-to-be removed features.
+    _Removed_ for now removed features.
+    _Fixed_ for any bug fixes.
+    _Security_ in case of vulnerabilities.
+ -->
 
-(no unreleased changes yet)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/4e8f94fa...HEAD)
+
+### Added
+
+- `reducer.getActions` partially implemented for local testing https://github.com/o1-labs/snarkyjs/pull/327
+- `gte` and `assertGte` methods on `UInt32`, `UInt64` https://github.com/o1-labs/snarkyjs/pull/349
+
+## [0.5.2](https://github.com/o1-labs/snarkyjs/compare/55c8ea0...4e8f94fa)
+
+### Fixed
+
+- Crash of the web version introduced in 0.5.0
+- Issue with `Experimental.MerkleWitness` https://github.com/o1-labs/snarkyjs/pull/368
+
+## [0.5.1](https://github.com/o1-labs/snarkyjs/compare/e0192f7...55c8ea0)
+
+### Fixed
+
+- `fetchAccount` https://github.com/o1-labs/snarkyjs/pull/350
 
 ## [0.5.0](https://github.com/o1-labs/snarkyjs/compare/2375f08...e0192f7)
 
@@ -77,13 +103,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - zkApp proving on web https://github.com/o1-labs/snarkyjs/issues/226
-
-<!--
-  Possible subsections:
-    Added for new features.
-    Changed for changes in existing functionality.
-    Deprecated for soon-to-be removed features.
-    Removed for now removed features.
-    Fixed for any bug fixes.
-    Security in case of vulnerabilities.
- -->
