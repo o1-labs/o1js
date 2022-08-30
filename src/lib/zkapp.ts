@@ -214,12 +214,6 @@ function wrapMethod(
             let clonedArgs = cloneCircuitValue(actualArgs);
             let party = this.self;
 
-            // If we are in a callback, an extra party is created from the callee that has an incorrect callDepth.
-            // We remove that duplicate party here and instead use the party that's created from the callback.
-            let transaction = Mina.currentTransaction();
-            if (transaction !== undefined && isCallback)
-              transaction.parties.pop();
-
             // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
             let blindingValue = getBlindingValue();
             let [{ memoized }, result] = memoizationContext.runWith(
@@ -467,6 +461,11 @@ function partyFromCallback(
         methodIntf.methodName as keyof SmartContract
       ] as Function;
       let party = instance.self;
+      // remove party from top level list, where it doesn't belong
+      // TODO: this shouldn't happen implicitly anyway
+      if (Mina.currentTransaction.has()) {
+        Mina.currentTransaction.get().parties.pop();
+      }
       smartContractContext.runWith(
         {
           this: instance,
