@@ -1,6 +1,6 @@
-import { Circuit, CircuitValue, arrayProp } from './circuit_value';
-import { Poseidon } from './hash';
-import { Bool, Field } from './core';
+import { Circuit, CircuitValue, arrayProp } from './circuit_value.js';
+import { Poseidon } from './hash.js';
+import { Bool, Field } from './core.js';
 
 // external API
 export { Witness, MerkleTree, MerkleWitness, BaseMerkleWitness };

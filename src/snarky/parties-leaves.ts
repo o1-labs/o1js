@@ -1,14 +1,14 @@
-import { Field, Bool } from '../lib/core';
-import * as Json from './gen/parties-json';
-import { UInt32, UInt64, Sign } from '../lib/int';
-import { TokenSymbol } from '../lib/hash';
-import { PublicKey } from '../lib/signature';
+import { Field, Bool } from '../lib/core.js';
+import * as Json from './gen/parties-json.js';
+import { UInt32, UInt64, Sign } from '../lib/int.js';
+import { TokenSymbol } from '../lib/hash.js';
+import { PublicKey } from '../lib/signature.js';
 import {
   AsFieldsAndAux,
   AsFieldsExtended,
   circuitValue,
-} from '../lib/circuit_value';
-import * as Encoding from '../lib/encoding';
+} from '../lib/circuit_value.js';
+import * as Encoding from '../lib/encoding.js';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 

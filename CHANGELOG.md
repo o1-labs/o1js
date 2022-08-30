@@ -15,11 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/55c8ea0...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/4e8f94fa...HEAD)
 
 ### Added
 
 - `reducer.getActions` partially implemented for local testing https://github.com/o1-labs/snarkyjs/pull/327
+- `gte` and `assertGte` methods on `UInt32`, `UInt64` https://github.com/o1-labs/snarkyjs/pull/349
+
+## [0.5.2](https://github.com/o1-labs/snarkyjs/compare/55c8ea0...4e8f94fa)
+
+### Fixed
+
+- Crash of the web version introduced in 0.5.0
+- Issue with `Experimental.MerkleWitness` https://github.com/o1-labs/snarkyjs/pull/368
 
 ## [0.5.1](https://github.com/o1-labs/snarkyjs/compare/e0192f7...55c8ea0)
 

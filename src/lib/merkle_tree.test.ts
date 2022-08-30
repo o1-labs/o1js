@@ -4,7 +4,7 @@ import {
   Poseidon,
   Field,
   Experimental,
-} from '../../dist/server';
+} from 'snarkyjs';
 
 describe('Merkle Tree', () => {
   beforeAll(async () => {

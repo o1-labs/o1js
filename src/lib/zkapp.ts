@@ -6,7 +6,7 @@ import {
   Pickles,
   InferAsFieldElements,
   Poseidon as Poseidon_,
-} from '../snarky';
+} from '../snarky.js';
 import {
   Circuit,
   circuitArray,
@@ -15,7 +15,7 @@ import {
   getBlindingValue,
   memoizationContext,
   toConstant,
-} from './circuit_value';
+} from './circuit_value.js';
 import {
   Body,
   Party,
@@ -31,14 +31,14 @@ import {
   CallForest,
   TokenId,
   SendParams,
-} from './party';
-import { PrivateKey, PublicKey } from './signature';
-import * as Mina from './mina';
-import { UInt32, UInt64 } from './int';
+} from './party.js';
+import { PrivateKey, PublicKey } from './signature.js';
+import * as Mina from './mina.js';
+import { UInt32, UInt64 } from './int.js';
 import {
   assertPreconditionInvariants,
   cleanPreconditionsCache,
-} from './precondition';
+} from './precondition.js';
 import {
   getPreviousProofsForProver,
   MethodInterface,
@@ -54,12 +54,12 @@ import {
   methodArgumentsToConstant,
   isAsFields,
   methodArgumentTypesAndValues,
-} from './proof_system';
-import { assertStatePrecondition, cleanStatePrecondition } from './state';
-import { Types } from '../snarky/types';
-import { Context } from './global-context';
-import { Poseidon } from './hash';
-import * as Encoding from './encoding';
+} from './proof_system.js';
+import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
+import { Types } from '../snarky/types.js';
+import { Context } from './global-context.js';
+import { Poseidon } from './hash.js';
+import * as Encoding from './encoding.js';
 
 // external API
 export {
