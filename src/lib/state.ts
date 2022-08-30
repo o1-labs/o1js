@@ -1,16 +1,16 @@
-import { Circuit, Field, AsFieldElements } from '../snarky';
-import { circuitArray } from './circuit_value';
-import { Party, TokenId } from './party';
-import { PublicKey } from './signature';
-import * as Mina from './mina';
-import { Account, fetchAccount } from './fetch';
+import { Circuit, Field, AsFieldElements } from '../snarky.js';
+import { circuitArray } from './circuit_value.js';
+import { Party, TokenId } from './party.js';
+import { PublicKey } from './signature.js';
+import * as Mina from './mina.js';
+import { Account, fetchAccount } from './fetch.js';
 import {
   inAnalyze,
   inCheckedComputation,
   inCompile,
   inProver,
-} from './proof_system';
-import { SmartContract } from './zkapp';
+} from './proof_system.js';
+import { SmartContract } from './zkapp.js';
 
 // external API
 export { State, state, declareState };

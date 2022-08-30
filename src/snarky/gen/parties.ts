@@ -12,14 +12,15 @@ import {
   Sign,
   StringWithHash,
   Events,
-} from '../parties-leaves';
-import { asFieldsAndAux, AsFieldsAndAux } from '../parties-helpers';
-import * as Json from './parties-json';
-import { jsLayout } from './js-layout';
+  SequenceEvents,
+} from '../parties-leaves.js';
+import { asFieldsAndAux, AsFieldsAndAux } from '../parties-helpers.js';
+import * as Json from './parties-json.js';
+import { jsLayout } from './js-layout.js';
 
 export { customTypes, Parties, Party };
 export { Json };
-export * from '../parties-leaves';
+export * from '../parties-leaves.js';
 
 type CustomTypes = {
   StringWithHash: AsFieldsAndAux<
@@ -37,8 +38,20 @@ type CustomTypes = {
     },
     Json.TypeMap['Field'][][]
   >;
+  SequenceEvents: AsFieldsAndAux<
+    {
+      data: Field[][];
+      hash: Field;
+    },
+    Json.TypeMap['Field'][][]
+  >;
 };
-let customTypes: CustomTypes = { StringWithHash, TokenSymbol, Events };
+let customTypes: CustomTypes = {
+  StringWithHash,
+  TokenSymbol,
+  Events,
+  SequenceEvents,
+};
 
 type Parties = {
   feePayer: {

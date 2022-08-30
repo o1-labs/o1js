@@ -1,12 +1,12 @@
-import { Circuit, AsFieldElements, Bool, Field } from '../snarky';
-import { circuitValueEquals } from './circuit_value';
-import * as Mina from './mina';
-import { Events, Party, Preconditions } from './party';
-import { UInt32, UInt64 } from './int';
-import { inAnalyze, inCompile, inProver } from './proof_system';
-import { Layout } from 'snarky/parties-helpers';
-import { jsLayout } from '../snarky/types';
-import { emptyReceiptChainHash } from './hash';
+import { Circuit, AsFieldElements, Bool, Field } from '../snarky.js';
+import { circuitValueEquals } from './circuit_value.js';
+import * as Mina from './mina.js';
+import { Events, SequenceEvents, Party, Preconditions } from './party.js';
+import { UInt32, UInt64 } from './int.js';
+import { inAnalyze, inCompile, inProver } from './proof_system.js';
+import { Layout } from '../snarky/parties-helpers.js';
+import { jsLayout } from '../snarky/types.js';
+import { emptyReceiptChainHash } from './hash.js';
 
 export {
   preconditions,
@@ -192,7 +192,7 @@ function getAccountPreconditions(party: Party): AccountValue {
       balance: UInt64.zero,
       nonce: UInt32.zero,
       receiptChainHash: emptyReceiptChainHash(),
-      sequenceState: Events.emptySequenceState(),
+      sequenceState: SequenceEvents.emptySequenceState(),
       delegate: publicKey,
       provedState: Bool(false),
       isNew: Bool(true),
@@ -203,7 +203,7 @@ function getAccountPreconditions(party: Party): AccountValue {
     balance: account.balance,
     nonce: account.nonce,
     receiptChainHash: account.receiptChainHash,
-    sequenceState: account.sequenceState ?? Events.emptySequenceState(),
+    sequenceState: account.sequenceState ?? SequenceEvents.emptySequenceState(),
     delegate: account.delegate ?? account.publicKey,
     provedState: account.provedState,
     isNew: Bool(false),

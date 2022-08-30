@@ -5,7 +5,7 @@ import {
   Bool,
   Circuit,
   Scalar,
-} from '../../dist/server';
+} from 'snarkyjs';
 
 describe('scalar', () => {
   beforeAll(async () => {

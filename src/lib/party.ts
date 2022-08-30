@@ -3,7 +3,7 @@ import {
   circuitValue,
   cloneCircuitValue,
   memoizationContext,
-} from './circuit_value';
+} from './circuit_value.js';
 import {
   Field,
   Bool,
@@ -11,22 +11,22 @@ import {
   Circuit,
   Pickles,
   AsFieldElements,
-} from '../snarky';
-import { Types } from '../snarky/types';
-import { PrivateKey, PublicKey } from './signature';
-import { UInt64, UInt32, Int64, Sign } from './int';
-import * as Mina from './mina';
-import { SmartContract } from './zkapp';
-import * as Precondition from './precondition';
-import { inCheckedComputation, Proof, snarkContext } from './proof_system';
+} from '../snarky.js';
+import { Types } from '../snarky/types.js';
+import { PrivateKey, PublicKey } from './signature.js';
+import { UInt64, UInt32, Int64, Sign } from './int.js';
+import * as Mina from './mina.js';
+import { SmartContract } from './zkapp.js';
+import * as Precondition from './precondition.js';
+import { inCheckedComputation, Proof, snarkContext } from './proof_system.js';
 import {
   emptyHashWithPrefix,
   hashWithPrefix,
   packToFields,
   prefixes,
   TokenSymbol,
-} from './hash';
-import * as Encoding from './encoding';
+} from './hash.js';
+import * as Encoding from './encoding.js';
 
 // external API
 export { Permissions, Party, ZkappPublicInput };
@@ -46,6 +46,7 @@ export {
   signJsonTransaction,
   ZkappStateLength,
   Events,
+  SequenceEvents,
   partyToPublicInput,
   TokenId,
   Token,
@@ -261,26 +262,42 @@ type Events = {
 
 const Events = {
   empty(): Events {
-    let hash = emptyHashWithPrefix('MinaSnappEventsEmpty');
+    let hash = emptyHashWithPrefix('MinaZkappEventsEmpty');
     return { hash, data: [] };
   },
-
   pushEvent(events: Events, event: Event): Events {
     let eventHash = hashWithPrefix(prefixes.event, event);
     let hash = hashWithPrefix(prefixes.events, [events.hash, eventHash]);
     return { hash, data: [...events.data, event] };
   },
-
   hash(events: Event[]) {
     return events.reduce(Events.pushEvent, Events.empty()).hash;
   },
+};
 
-  emptySequenceState() {
-    return emptyHashWithPrefix('MinaSnappSequenceEmpty');
+const SequenceEvents = {
+  // same as events but w/ different hash prefixes
+  empty(): Events {
+    let hash = emptyHashWithPrefix('MinaZkappSequenceEmpty');
+    return { hash, data: [] };
   },
-
-  updateSequenceState(state: Field, eventsHash: Field) {
-    return hashWithPrefix(prefixes.sequenceEvents, [state, eventsHash]);
+  pushEvent(sequenceEvents: Events, event: Event): Events {
+    let eventHash = hashWithPrefix(prefixes.event, event);
+    let hash = hashWithPrefix(prefixes.sequenceEvents, [
+      sequenceEvents.hash,
+      eventHash,
+    ]);
+    return { hash, data: [...sequenceEvents.data, event] };
+  },
+  hash(events: Event[]) {
+    return events.reduce(SequenceEvents.pushEvent, SequenceEvents.empty()).hash;
+  },
+  // different than events
+  emptySequenceState() {
+    return emptyHashWithPrefix('MinaZkappSequenceStateEmptyElt');
+  },
+  updateSequenceState(state: Field, sequenceEventsHash: Field) {
+    return hashWithPrefix(prefixes.sequenceEvents, [state, sequenceEventsHash]);
   },
 };
 
@@ -370,7 +387,7 @@ const Body = {
       tokenId: TokenId.default,
       balanceChange: Int64.zero,
       events: Events.empty(),
-      sequenceEvents: Events.empty(),
+      sequenceEvents: SequenceEvents.empty(),
       caller: TokenId.default,
       callData: Field.zero,
       callDepth: 0,
@@ -478,7 +495,7 @@ const AccountPrecondition = {
       receiptChainHash: ignore(Field.zero),
       delegate: ignore(PublicKey.empty()),
       state: appState,
-      sequenceState: ignore(Events.emptySequenceState()),
+      sequenceState: ignore(SequenceEvents.emptySequenceState()),
       provedState: ignore(Bool(false)),
       isNew: ignore(Bool(false)),
     };

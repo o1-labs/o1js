@@ -6,7 +6,7 @@ import {
   Pickles,
   InferAsFieldElements,
   Poseidon as Poseidon_,
-} from '../snarky';
+} from '../snarky.js';
 import {
   Circuit,
   circuitArray,
@@ -15,7 +15,7 @@ import {
   getBlindingValue,
   memoizationContext,
   toConstant,
-} from './circuit_value';
+} from './circuit_value.js';
 import {
   Body,
   Party,
@@ -25,19 +25,20 @@ import {
   SetOrKeep,
   ZkappPublicInput,
   Events,
+  SequenceEvents,
   partyToPublicInput,
   Authorization,
   CallForest,
   TokenId,
   SendParams,
-} from './party';
-import { PrivateKey, PublicKey } from './signature';
-import * as Mina from './mina';
-import { UInt32, UInt64 } from './int';
+} from './party.js';
+import { PrivateKey, PublicKey } from './signature.js';
+import * as Mina from './mina.js';
+import { UInt32, UInt64 } from './int.js';
 import {
   assertPreconditionInvariants,
   cleanPreconditionsCache,
-} from './precondition';
+} from './precondition.js';
 import {
   getPreviousProofsForProver,
   MethodInterface,
@@ -53,12 +54,12 @@ import {
   methodArgumentsToConstant,
   isAsFields,
   methodArgumentTypesAndValues,
-} from './proof_system';
-import { assertStatePrecondition, cleanStatePrecondition } from './state';
-import { Types } from '../snarky/types';
-import { Context } from './global-context';
-import { Poseidon } from './hash';
-import * as Encoding from './encoding';
+} from './proof_system.js';
+import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
+import { Types } from '../snarky/types.js';
+import { Context } from './global-context.js';
+import { Poseidon } from './hash.js';
+import * as Encoding from './encoding.js';
 
 // external API
 export {
@@ -731,6 +732,13 @@ type ReducerReturn<Action> = {
     state: State;
     actionsHash: Field;
   };
+  getActions({
+    fromActionHash,
+    endActionHash,
+  }: {
+    fromActionHash?: Field;
+    endActionHash?: Field;
+  }): Action[][];
 };
 
 function getReducer<A>(contract: SmartContract): ReducerReturn<A> {
@@ -747,7 +755,7 @@ class ${contract.constructor.name} extends SmartContract {
     dispatch(action: A) {
       let party = contract.self;
       let eventFields = reducer.actionType.toFields(action);
-      party.body.sequenceEvents = Events.pushEvent(
+      party.body.sequenceEvents = SequenceEvents.pushEvent(
         party.body.sequenceEvents,
         eventFields
       );
@@ -795,10 +803,10 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         // for each action length, compute the events hash and then pick the actual one
         let eventsHashes = actionss.map((actions) => {
           let events = actions.map((u) => reducer.actionType.toFields(u));
-          return Events.hash(events);
+          return SequenceEvents.hash(events);
         });
         let eventsHash = Circuit.switch(lengths, Field, eventsHashes);
-        let newActionsHash = Events.updateSequenceState(
+        let newActionsHash = SequenceEvents.updateSequenceState(
           actionsHash,
           eventsHash
         );
@@ -825,6 +833,57 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       }
       contract.account.sequenceState.assertEquals(actionsHash);
       return { state, actionsHash };
+    },
+    getActions({
+      fromActionHash,
+      endActionHash,
+    }: {
+      fromActionHash?: Field;
+      endActionHash?: Field;
+    }): A[][] {
+      let actionsForAccount: A[][] = [];
+
+      Circuit.asProver(() => {
+        // if the fromActionHash is the empty state, we fetch all events
+        fromActionHash = fromActionHash
+          ?.equals(SequenceEvents.emptySequenceState())
+          .toBoolean()
+          ? undefined
+          : fromActionHash;
+
+        // used to determine start and end values in string
+        let start: string | undefined = fromActionHash
+          ? Ledger.fieldToBase58(fromActionHash)
+          : undefined;
+        let end: string | undefined = endActionHash
+          ? Ledger.fieldToBase58(endActionHash)
+          : undefined;
+
+        let actions = Mina.getActions(contract.address, contract.self.tokenId);
+
+        // gets the start/end indices of our array slice
+        let startIndex = start
+          ? actions.findIndex((e) => e.hash === start) + 1
+          : 0;
+        let endIndex = end
+          ? actions.findIndex((e) => e.hash === end) + 1
+          : undefined;
+
+        // slices the array so we only get the wanted range between fromActionHash and endActionHash
+        actionsForAccount = actions
+          .slice(startIndex, endIndex === 0 ? undefined : endIndex)
+          .map((event: { hash: string; actions: string[][] }) =>
+            // putting our string-Fields back into the original action type
+            event.actions.map((action: string[]) =>
+              reducer.actionType.ofFields(
+                action.map((fieldAsString: string) =>
+                  Field.fromString(fieldAsString)
+                )
+              )
+            )
+          );
+      });
+      return actionsForAccount;
     },
   };
 }
@@ -986,5 +1045,5 @@ const Reducer: (<
     return reducer;
   },
   'initialActionsHash',
-  { get: Events.emptySequenceState }
+  { get: SequenceEvents.emptySequenceState }
 ) as any;

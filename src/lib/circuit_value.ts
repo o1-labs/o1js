@@ -1,9 +1,9 @@
 import 'reflect-metadata';
-import { Circuit, JSONValue, AsFieldElements } from '../snarky';
-import { Field, Bool } from './core';
-import { Context } from './global-context';
-import { HashInput } from './hash';
-import { snarkContext } from './proof_system';
+import { Circuit, JSONValue, AsFieldElements } from '../snarky.js';
+import { Field, Bool } from './core.js';
+import { Context } from './global-context.js';
+import { HashInput } from './hash.js';
+import { snarkContext } from './proof_system.js';
 
 // external API
 export {
@@ -573,8 +573,8 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
   }
 
   // equality test that works for plain objects AND classes whose constructor only assigns properties
-  let aEntries = Object.entries(a).filter(([, v]) => v !== undefined);
-  let bEntries = Object.entries(b).filter(([, v]) => v !== undefined);
+  let aEntries = Object.entries(a as any).filter(([, v]) => v !== undefined);
+  let bEntries = Object.entries(b as any).filter(([, v]) => v !== undefined);
   if (aEntries.length !== bEntries.length) return false;
   return aEntries.every(
     ([key, value]) => key in b && circuitValueEquals((b as any)[key], value)

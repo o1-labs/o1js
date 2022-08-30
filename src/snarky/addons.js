@@ -1,8 +1,8 @@
-import { Circuit } from '../snarky';
+import { Circuit } from '../snarky.js';
 /**
  * @type { import("./wrapper") }
  */
-import { getWasm } from './wrapper';
+import { getWasm } from './wrapper.js';
 
 export { getSrs, serializeVerificationKey, recoverVerificationKey };
 
