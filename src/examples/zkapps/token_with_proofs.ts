@@ -57,7 +57,7 @@ class TokenContract extends SmartContract {
     receiverAddress: PublicKey,
     callback: Experimental.Callback<any>
   ) {
-    let senderParty = Experimental.partyFromCallback(this, callback);
+    let senderParty = Experimental.partyFromCallback(this, callback, true);
     let amount = UInt64.from(1_000);
     let negativeAmount = Int64.fromObject(senderParty.body.balanceChange);
     negativeAmount.assertEquals(Int64.from(amount).neg());
