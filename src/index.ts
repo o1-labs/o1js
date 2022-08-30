@@ -55,12 +55,7 @@ export * as Encoding from './lib/encoding.js';
 export { Character, CircuitString } from './lib/string.js';
 
 // experimental APIs
-import {
-  Reducer,
-  Callback,
-  partyFromCallback,
-  SmartContract,
-} from './lib/zkapp.js';
+import { Reducer, Callback, partyFromCallback } from './lib/zkapp.js';
 import { createChildParty } from './lib/party.js';
 import {
   memoizeWitness,
