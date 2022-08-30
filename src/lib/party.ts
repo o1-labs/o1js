@@ -593,9 +593,6 @@ class Party implements Types.Party {
     this.isSelf = isSelf;
   }
 
-  static Events = Events;
-  static SequenceEvents = SequenceEvents;
-
   static clone(party: Party) {
     let body = cloneCircuitValue(party.body);
     let authorization = cloneCircuitValue(party.authorization);
