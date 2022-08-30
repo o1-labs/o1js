@@ -13,6 +13,7 @@ import {
   Sign,
   Token,
 } from 'snarkyjs';
+import { expect } from 'expect';
 
 await isReady;
 
@@ -112,6 +113,15 @@ body.incrementNonce = Bool(true);
 let tokenOwner = PrivateKey.random().toPublicKey();
 body.tokenId = new Token({ tokenOwner }).id;
 body.caller = body.tokenId;
+let events = Party.Events.empty();
+events = Party.Events.pushEvent(events, [Field.one]);
+events = Party.Events.pushEvent(events, [Field.zero]);
+body.events = events;
+let sequenceEvents = Party.SequenceEvents.empty();
+sequenceEvents = Party.SequenceEvents.pushEvent(sequenceEvents, [Field.one]);
+sequenceEvents = Party.SequenceEvents.pushEvent(sequenceEvents, [Field.zero]);
+body.sequenceEvents = sequenceEvents;
+
 testInput(Body, Ledger.hashInputFromJson.body, body);
 
 // party (should be same as body)
@@ -141,6 +151,9 @@ function testInput<T>(
   let fields1 = Ledger.hashInputFromJson.packInput(inputToOcaml(input1));
   let fields2 = packToFields(input2);
   let ok2 = JSON.stringify(fields1) === JSON.stringify(fields2);
+  expect(JSON.parse(JSON.stringify(fields1))).toEqual(
+    JSON.parse(JSON.stringify(fields2))
+  );
   // console.log('packed ok?', ok2);
   // console.log();
   if (!ok1 || !ok2) {
