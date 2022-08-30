@@ -200,8 +200,9 @@ describe('group', () => {
     describe('toJSON', () => {
       it("fromJSON('1','1') should be the same as Group(1,1)", () => {
         Circuit.runAndCheck(() => {
-          const x = Circuit.witness(Group, () =>
-            Group.fromJSON({ x: 1, y: 1 })
+          const x = Circuit.witness(
+            Group,
+            () => Group.fromJSON({ x: 1, y: 1 })!
           );
           expect(x).toEqual(new Group(1, 1));
         });
