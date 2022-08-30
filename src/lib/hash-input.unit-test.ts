@@ -12,7 +12,9 @@ import {
   Permissions,
   Sign,
   Token,
-} from 'snarkyjs';
+  shutdown,
+} from '../index.js';
+import { Events, SequenceEvents } from './party.js';
 import { expect } from 'expect';
 
 await isReady;
@@ -113,13 +115,13 @@ body.incrementNonce = Bool(true);
 let tokenOwner = PrivateKey.random().toPublicKey();
 body.tokenId = new Token({ tokenOwner }).id;
 body.caller = body.tokenId;
-let events = Party.Events.empty();
-events = Party.Events.pushEvent(events, [Field.one]);
-events = Party.Events.pushEvent(events, [Field.zero]);
+let events = Events.empty();
+events = Events.pushEvent(events, [Field.one]);
+events = Events.pushEvent(events, [Field.zero]);
 body.events = events;
-let sequenceEvents = Party.SequenceEvents.empty();
-sequenceEvents = Party.SequenceEvents.pushEvent(sequenceEvents, [Field.one]);
-sequenceEvents = Party.SequenceEvents.pushEvent(sequenceEvents, [Field.zero]);
+let sequenceEvents = SequenceEvents.empty();
+sequenceEvents = SequenceEvents.pushEvent(sequenceEvents, [Field.one]);
+sequenceEvents = SequenceEvents.pushEvent(sequenceEvents, [Field.zero]);
 body.sequenceEvents = sequenceEvents;
 
 testInput(Body, Ledger.hashInputFromJson.body, body);
@@ -133,6 +135,7 @@ testInput(
 );
 
 console.log('all hash inputs are consistent! 🎉');
+shutdown();
 
 function testInput<T>(
   Module: Experimental.AsFieldsAndAux<T, any>,
