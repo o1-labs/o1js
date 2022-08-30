@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import prettier from 'prettier';
-import prettierRc from '../../.prettierrc.js';
+import prettierRc from '../../.prettierrc.cjs';
 
 // let jsLayout = JSON.parse(process.argv[2]);
 let selfPath = fileURLToPath(import.meta.url);
