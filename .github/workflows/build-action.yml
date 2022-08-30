@@ -28,7 +28,7 @@ jobs:
 
       - name: Publish to NPM if version has changed
         uses: JS-DevTools/npm-publish@v1
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/releases'
         with:
           token: ${{ secrets.NPM_TOKEN }}
         env:
