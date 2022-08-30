@@ -1,4 +1,11 @@
-import { Experimental, Mina, PrivateKey, PublicKey, UInt64 } from 'snarkyjs';
+import {
+  Experimental,
+  Mina,
+  PrivateKey,
+  PublicKey,
+  UInt32,
+  UInt64,
+} from 'snarkyjs';
 import { VotingApp, VotingAppParams } from './factory';
 import {
   ElectionPreconditions,
@@ -26,13 +33,16 @@ console.log('Starting set 1...');
 let params_set1: VotingAppParams = {
   candidatePreconditions: new ParticipantPreconditions(
     UInt64.from(100),
-    UInt64.from(1500)
+    UInt64.from(1000)
   ),
   voterPreconditions: new ParticipantPreconditions(
-    UInt64.from(0),
-    UInt64.from(500)
+    UInt64.from(10),
+    UInt64.from(100)
   ),
-  electionPreconditions: ElectionPreconditions.default,
+  electionPreconditions: new ElectionPreconditions(
+    UInt32.from(5),
+    UInt32.from(15)
+  ),
   voterKey: PrivateKey.random(),
   candidateKey: PrivateKey.random(),
   votingKey: PrivateKey.random(),
@@ -56,29 +66,3 @@ await testSet(contracts_set1, params_set1, storage_set1);
 // do our thing before we create another set
 // sets need to be created and used in series,
 // parallel creation of sets doesnt work with the current "factory" pattern
-
-// ..
-/* 
-console.log('Starting run for set 2...');
-
-let params_set2: VotingAppParams = {
-  candidatePreconditions: ParticipantPreconditions.default,
-  voterPreconditions: ParticipantPreconditions.default,
-  electionPreconditions: ElectionPreconditions.default,
-  voterKey: PrivateKey.random(),
-  candidateKey: PrivateKey.random(),
-  votingKey: PrivateKey.random(),
-  doProofs: false,
-};
-
-let storage_set2 = {
-  votesStore: new OffchainStorage<Member>(8),
-  candidatesStore: new OffchainStorage<Member>(8),
-  votersStore: new OffchainStorage<Member>(8),
-};
-
-console.log('Building contracts for set 2...');
-let contracts_set2 = await VotingApp(params_set2);
-
-console.log('Testing set 2...');
-await testSet(contracts_set2, params_set2, storage_set2); */
