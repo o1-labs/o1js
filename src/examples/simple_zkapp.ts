@@ -58,10 +58,9 @@ class SimpleZkapp extends SmartContract {
     let callerAddress = caller.toPublicKey();
     callerAddress.assertEquals(privilegedAddress);
 
-    // assert that the caller nonce is 0, and increment the nonce - this way, payout can only happen once
-    let callerParty = Experimental.createChildParty(this.self, callerAddress);
-    callerParty.account.nonce.assertEquals(UInt32.zero);
-    callerParty.body.incrementNonce = Bool(true);
+    // assert that the caller account is new - this way, payout can only happen once
+    let callerParty = Party.defaultParty(callerAddress);
+    callerParty.account.isNew.assertEquals(Bool(true));
 
     // pay out half of the zkapp balance to the caller
     let balance = this.account.balance.get();
@@ -70,8 +69,7 @@ class SimpleZkapp extends SmartContract {
     let halfBalance = Circuit.witness(UInt64, () =>
       balance.toConstant().div(2)
     );
-    this.balance.subInPlace(halfBalance);
-    callerParty.balance.addInPlace(halfBalance);
+    this.send({ to: callerParty, amount: halfBalance });
 
     // emit some events
     this.emitEvent('payoutReceiver', callerAddress);
@@ -90,7 +88,7 @@ let zkappKey = PrivateKey.random();
 let zkappAddress = zkappKey.toPublicKey();
 
 // a special account that is allowed to pull out half of the zkapp balance, once
-let privilegedKey = Local.testAccounts[1].privateKey;
+let privilegedKey = PrivateKey.random();
 let privilegedAddress = privilegedKey.toPublicKey();
 
 let initialBalance = 10_000_000_000;
@@ -124,13 +122,13 @@ tx.send();
 console.log('receive');
 tx = await Mina.transaction(feePayer, () => {
   let payerParty = Party.createSigned(feePayer);
-  payerParty.balance.subInPlace(8e9);
-  zkapp.balance.addInPlace(8e9);
+  payerParty.send({ to: zkappAddress, amount: UInt64.from(8e9) });
 });
 tx.send();
 
 console.log('payout');
 tx = await Mina.transaction(feePayer, () => {
+  Party.fundNewAccount(feePayer);
   zkapp.payout(privilegedKey);
   if (!doProofs) zkapp.sign(zkappKey);
 });
