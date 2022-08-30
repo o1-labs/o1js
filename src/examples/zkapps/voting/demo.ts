@@ -179,7 +179,7 @@ try {
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering 1 new candidate
     let m = registerMember(
-      0n,
+      1n,
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
@@ -240,6 +240,10 @@ try {
   if (params.doProofs) await tx.prove();
   tx.send();
 
+  for (let a of candidateStore.values()) {
+    console.log(a.publicKey.toBase58());
+  }
+
   console.log(
     'candidate root? ',
     contracts.candidateContract.committedMembers
@@ -262,6 +266,7 @@ try {
   Local.setGlobalSlotSinceHardfork(new UInt32(5));
   tx = await Mina.transaction(feePayer, () => {
     let c = candidateStore.get(0n)!;
+    c.witness = new MerkleWitness(candidateStore.getWitness(0n));
     c.votesWitness = new MerkleWitness(votesStore.getWitness(0n));
     // we are voting for candidate c, 0n, with voter 2n
     contracts.voting.vote(c, voterStore.get(2n)!);

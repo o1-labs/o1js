@@ -108,7 +108,10 @@ export class Voting_ extends SmartContract {
     currentSlot.assertLte(electionPreconditions.startElection);
 
     // can only register voters if their balance is gte the minimum amount required
-    member.balance.assertGte(voterPreconditions.minMina);
+    member.balance
+      .gte(voterPreconditions.minMina)
+      .and(member.balance.lte(voterPreconditions.maxMina))
+      .assertTrue();
 
     let VoterContract: Membership_ = new Membership_(voterAddress);
     let exists = VoterContract.addEntry(member);
