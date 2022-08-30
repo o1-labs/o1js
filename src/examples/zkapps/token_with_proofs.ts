@@ -27,8 +27,7 @@ class TokenContract extends SmartContract {
     super.deploy(args);
     this.setPermissions({
       ...Permissions.default(),
-      editState: Permissions.proofOrSignature(),
-      send: Permissions.proofOrSignature(),
+      send: Permissions.proof(),
     });
     this.balance.addInPlace(UInt64.fromNumber(initialBalance));
   }
@@ -106,7 +105,6 @@ class ZkAppB extends SmartContract {
   @method authorizeSend() {
     let amount = UInt64.from(1_000);
     this.balance.subInPlace(amount);
-    this.sign();
   }
 }
 
@@ -121,7 +119,6 @@ class ZkAppC extends SmartContract {
   @method authorizeSend() {
     let amount = UInt64.from(1_000);
     this.balance.subInPlace(amount);
-    this.sign();
   }
 }
 
@@ -193,7 +190,7 @@ console.log('mint token to zkAppB');
 tx = await Local.transaction(feePayer, () => {
   tokenZkApp.mint(zkAppBAddress);
 });
-tx.sign([tokenZkAppKey]);
+await tx.prove();
 tx.send();
 
 console.log('authorize send from zkAppB');
@@ -206,7 +203,6 @@ tx = await Local.transaction(feePayer, () => {
   // we call the token contract with the callback
   tokenZkApp.sendTokens(zkAppBAddress, zkAppCAddress, authorizeSendingCallback);
 });
-tx.sign([zkAppBKey]);
 console.log('authorize send (proof)');
 await tx.prove();
 console.log('send (proof)');
@@ -229,8 +225,7 @@ tx = await Local.transaction(feePayer, () => {
   // we call the token contract with the callback
   tokenZkApp.sendTokens(zkAppCAddress, tokenAccount1, authorizeSendingCallback);
 });
-tx.sign([zkAppCKey]);
-//console.log(JSON.stringify(partiesToJson(tx.transaction)));
+// console.log(JSON.stringify(tx.transaction));
 console.log('authorize send (proof)');
 await tx.prove();
 console.log('send (proof)');
