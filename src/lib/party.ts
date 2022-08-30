@@ -267,10 +267,10 @@ const Events = {
   pushEvent(events: Events, event: Event): Events {
     let eventHash = hashWithPrefix(prefixes.event, event);
     let hash = hashWithPrefix(prefixes.events, [events.hash, eventHash]);
-    return { hash, data: [...events.data, event] };
+    return { hash, data: [event, ...events.data] };
   },
   hash(events: Event[]) {
-    return events.reduce(Events.pushEvent, Events.empty()).hash;
+    return events.reverse().reduce(Events.pushEvent, Events.empty()).hash;
   },
 };
 
@@ -286,10 +286,12 @@ const SequenceEvents = {
       sequenceEvents.hash,
       eventHash,
     ]);
-    return { hash, data: [...sequenceEvents.data, event] };
+    return { hash, data: [event, ...sequenceEvents.data] };
   },
   hash(events: Event[]) {
-    return events.reduce(SequenceEvents.pushEvent, SequenceEvents.empty()).hash;
+    return events
+      .reverse()
+      .reduce(SequenceEvents.pushEvent, SequenceEvents.empty()).hash;
   },
   // different than events
   emptySequenceState() {
