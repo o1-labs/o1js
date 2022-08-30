@@ -1,14 +1,11 @@
 import {
   Ledger,
-  Field,
   isReady,
   method,
   Mina,
   Party,
   PrivateKey,
   SmartContract,
-  state,
-  State,
   PublicKey,
   UInt64,
   shutdown,
@@ -21,8 +18,6 @@ import {
 await isReady;
 
 class TokenContract extends SmartContract {
-  @state(Field) x = State<Field>();
-
   deploy(args: DeployArgs) {
     super.deploy(args);
     this.setPermissions({
@@ -39,8 +34,7 @@ class TokenContract extends SmartContract {
     deployParty.body.caller = this.experimental.token.id;
     Party.setValue(deployParty.update.permissions, {
       ...Permissions.default(),
-      editState: Permissions.proofOrSignature(),
-      send: Permissions.proofOrSignature(),
+      send: Permissions.proof(),
     });
     // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
     // Party.setValue(deployParty.update.verificationKey, verificationKey);
@@ -48,29 +42,14 @@ class TokenContract extends SmartContract {
     deployParty.signInPlace(deployer, true);
   }
 
-  @method update(y: Field) {
-    this.x.assertEquals(this.x.get());
-    this.x.set(y);
-  }
-
-  @method initialize() {
-    this.x.set(Field.one);
-  }
-
   @method mint(receiverAddress: PublicKey) {
     let amount = UInt64.from(1_000_000);
-    this.experimental.token.mint({
-      address: receiverAddress,
-      amount,
-    });
+    this.experimental.token.mint({ address: receiverAddress, amount });
   }
 
   @method burn(receiverAddress: PublicKey) {
     let amount = UInt64.from(1_000);
-    this.experimental.token.burn({
-      address: receiverAddress,
-      amount,
-    });
+    this.experimental.token.burn({ address: receiverAddress, amount });
   }
 
   @method sendTokens(
@@ -95,13 +74,6 @@ class TokenContract extends SmartContract {
 }
 
 class ZkAppB extends SmartContract {
-  @state(Field) x = State<Field>();
-
-  @method update(y: Field) {
-    this.x.assertEquals(this.x.get());
-    this.x.set(y);
-  }
-
   @method authorizeSend() {
     let amount = UInt64.from(1_000);
     this.balance.subInPlace(amount);
@@ -109,13 +81,6 @@ class ZkAppB extends SmartContract {
 }
 
 class ZkAppC extends SmartContract {
-  @state(Field) x = State<Field>();
-
-  @method update(y: Field) {
-    this.x.assertEquals(this.x.get());
-    this.x.set(y);
-  }
-
   @method authorizeSend() {
     let amount = UInt64.from(1_000);
     this.balance.subInPlace(amount);
@@ -225,11 +190,11 @@ tx = await Local.transaction(feePayer, () => {
   // we call the token contract with the callback
   tokenZkApp.sendTokens(zkAppCAddress, tokenAccount1, authorizeSendingCallback);
 });
-// console.log(JSON.stringify(tx.transaction));
 console.log('authorize send (proof)');
 await tx.prove();
 console.log('send (proof)');
 tx.send();
+// console.log(tx.toJSON());
 
 console.log(
   `tokenAccount1's balance for tokenId: ${Ledger.fieldToBase58(tokenId)}`,
