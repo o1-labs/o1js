@@ -1,4 +1,4 @@
-import { Field, Ledger } from '../snarky';
+import { Field, Ledger } from '../snarky.js';
 
 export {
   stringToFields,

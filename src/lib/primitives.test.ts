@@ -1,5 +1,4 @@
-import { isReady, shutdown, Field, Bool, Circuit } from '../../dist/server';
-
+import { isReady, shutdown, Field, Bool, Circuit } from 'snarkyjs';
 describe('bool', () => {
   beforeAll(async () => {
     await isReady;

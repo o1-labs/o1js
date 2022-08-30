@@ -9,10 +9,10 @@ import {
   Bool,
   AuthRequired,
   Sign,
-} from '../parties-leaves-json';
+} from '../parties-leaves-json.js';
 
 export { Parties, Party };
-export * from '../parties-leaves-json';
+export * from '../parties-leaves-json.js';
 
 type Parties = {
   feePayer: {

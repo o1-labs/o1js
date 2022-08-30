@@ -1,6 +1,6 @@
-import { Group, Field, Scalar, Circuit } from '../snarky';
-import { Poseidon } from './hash';
-import { PrivateKey, PublicKey } from './signature';
+import { Group, Field, Scalar, Circuit } from '../snarky.js';
+import { Poseidon } from './hash.js';
+import { PrivateKey, PublicKey } from './signature.js';
 
 export { encrypt, decrypt };
 

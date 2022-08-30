@@ -128,23 +128,25 @@ function writeTsContent(types, isJson) {
   mergeSet(imports, dependencies);
   mergeSet(imports, new Set(customTypeNames));
 
-  let importPath = isJson ? '../parties-leaves-json' : '../parties-leaves';
+  let importPath = isJson
+    ? '../parties-leaves-json.js'
+    : '../parties-leaves.js';
   return `// @generated this file is auto-generated - don't edit it directly
 
 import { ${[...imports].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? "import { asFieldsAndAux, AsFieldsAndAux } from '../parties-helpers';\n" +
-      "import * as Json from './parties-json';\n" +
-      "import { jsLayout } from './js-layout';\n"
+    ? "import { asFieldsAndAux, AsFieldsAndAux } from '../parties-helpers.js';\n" +
+      "import * as Json from './parties-json.js';\n" +
+      "import { jsLayout } from './js-layout.js';\n"
     : ''
 }
 
 export { ${[...exports].join(', ')} };
 ${
   !isJson
-    ? 'export { Json };\n' + "export * from '../parties-leaves';\n"
-    : "export * from '../parties-leaves-json';\n"
+    ? 'export { Json };\n' + "export * from '../parties-leaves.js';\n"
+    : "export * from '../parties-leaves-json.js';\n"
 }
 
 ${

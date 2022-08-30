@@ -1,4 +1,4 @@
-import * as wasm from '../node_bindings/plonk_wasm';
+import * as wasm from '../node_bindings/plonk_wasm.js';
 
 export { WasmModule, getWasm, getSnarky, snarky_ready, shutdown };
 

@@ -1,6 +1,6 @@
-import { Group, Field, Bool, Scalar, Ledger, Circuit } from '../snarky';
-import { prop, CircuitValue, AnyConstructor } from './circuit_value';
-import { Poseidon } from './hash';
+import { Group, Field, Bool, Scalar, Ledger, Circuit } from '../snarky.js';
+import { prop, CircuitValue, AnyConstructor } from './circuit_value.js';
+import { Poseidon } from './hash.js';
 
 // external API
 export { PrivateKey, PublicKey, Signature };

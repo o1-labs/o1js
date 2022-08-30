@@ -2,11 +2,12 @@
   "include": ["./src/**/*.ts"],
   "exclude": ["./src/**/*.bc.js", "./src/build", "./src/examples"],
   "compilerOptions": {
+    "rootDir": "./src",
     "outDir": "dist",
-    "baseUrl": "./src", // affects where output files end up
+    "baseUrl": ".", // affects where output files end up
     "target": "es2020", // goal: ship *the most modern syntax* that is supported by *all* browsers that support our Wasm
     "module": "es2022", // allow top-level await
-    "moduleResolution": "node", // for nodenext, we'd have to migrate our package.json to "type": "module"
+    "moduleResolution": "nodenext", // comply with node + "type": "module"
     "esModuleInterop": true, // to silence jest
 
     "experimentalDecorators": true, // needed for decorators

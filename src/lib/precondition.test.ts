@@ -10,7 +10,7 @@ import {
   method,
   PublicKey,
   Bool,
-} from '../../dist/server';
+} from 'snarkyjs';
 
 class MyContract extends SmartContract {
   @method shouldMakeCompileThrow() {

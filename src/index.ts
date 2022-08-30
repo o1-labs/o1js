@@ -5,12 +5,12 @@ export {
   Ledger,
   isReady,
   shutdown,
-} from './snarky';
-export { Field, Bool } from './lib/core';
-export type { VerificationKey, Keypair } from './snarky';
-export * from './snarky/addons';
-export { Poseidon } from './lib/hash';
-export * from './lib/signature';
+} from './snarky.js';
+export { Field, Bool } from './lib/core.js';
+export type { VerificationKey, Keypair } from './snarky.js';
+export * from './snarky/addons.js';
+export { Poseidon } from './lib/hash.js';
+export * from './lib/signature.js';
 export {
   Circuit,
   CircuitValue,
@@ -20,11 +20,11 @@ export {
   public_,
   circuitMain,
   circuitValue,
-} from './lib/circuit_value';
-export { UInt32, UInt64, Int64, Sign } from './lib/int';
-export { Types } from './snarky/types';
+} from './lib/circuit_value.js';
+export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
+export { Types } from './snarky/types.js';
 
-export * as Mina from './lib/mina';
+export * as Mina from './lib/mina.js';
 export {
   SmartContract,
   method,
@@ -32,9 +32,9 @@ export {
   DeployArgs,
   signFeePayer,
   declareMethods,
-} from './lib/zkapp';
-export { state, State, declareState } from './lib/state';
-export { Proof, SelfProof, ZkProgram, verify } from './lib/proof_system';
+} from './lib/zkapp.js';
+export { state, State, declareState } from './lib/state.js';
+export { Proof, SelfProof, ZkProgram, verify } from './lib/proof_system.js';
 
 export {
   Token,
@@ -42,17 +42,17 @@ export {
   Permissions,
   ZkappPublicInput,
   partiesToJson,
-} from './lib/party';
+} from './lib/party.js';
 export {
   fetchAccount,
   fetchLastBlock,
   addCachedAccount,
   setGraphqlEndpoint,
   sendZkapp,
-} from './lib/fetch';
-export * as Encryption from './lib/encryption';
-export * as Encoding from './lib/encoding';
-export { Character, CircuitString } from './lib/string';
+} from './lib/fetch.js';
+export * as Encryption from './lib/encryption.js';
+export * as Encoding from './lib/encoding.js';
+export { Character, CircuitString } from './lib/string.js';
 
 // experimental APIs
 import {
@@ -60,15 +60,15 @@ import {
   Callback,
   partyFromCallback,
   SmartContract,
-} from './lib/zkapp';
-import { createChildParty } from './lib/party';
+} from './lib/zkapp.js';
+import { createChildParty } from './lib/party.js';
 import {
   memoizeWitness,
   AsFieldsAndAux as AsFieldsAndAux_,
-} from './lib/circuit_value';
-import { jsLayout, asFieldsAndAux } from './snarky/types';
-import { packToFields } from './lib/hash';
-import { MerkleTree, MerkleWitness } from './lib/merkle_tree';
+} from './lib/circuit_value.js';
+import { jsLayout, asFieldsAndAux } from './snarky/types.js';
+import { packToFields } from './lib/hash.js';
+import { MerkleTree, MerkleWitness } from './lib/merkle_tree.js';
 export { Experimental };
 
 const Experimental_ = {

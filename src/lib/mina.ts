@@ -1,9 +1,9 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, Ledger } from '../snarky';
-import { Field, Bool } from './core';
-import { UInt32, UInt64 } from './int';
-import { PrivateKey, PublicKey } from './signature';
+import { Circuit, Ledger } from '../snarky.js';
+import { Field, Bool } from './core.js';
+import { UInt32, UInt64 } from './int.js';
+import { PrivateKey, PublicKey } from './signature.js';
 import {
   addMissingProofs,
   addMissingSignatures,
@@ -18,13 +18,13 @@ import {
   Authorization,
   Events,
   SequenceEvents,
-} from './party';
-import * as Fetch from './fetch';
-import { assertPreconditionInvariants, NetworkValue } from './precondition';
-import { cloneCircuitValue } from './circuit_value';
-import { Proof, snarkContext } from './proof_system';
-import { Context } from './global-context';
-import { emptyReceiptChainHash } from './hash';
+} from './party.js';
+import * as Fetch from './fetch.js';
+import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
+import { cloneCircuitValue } from './circuit_value.js';
+import { Proof, snarkContext } from './proof_system.js';
+import { Context } from './global-context.js';
+import { emptyReceiptChainHash } from './hash.js';
 
 export {
   createTransaction,

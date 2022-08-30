@@ -3,7 +3,7 @@ import {
   circuitValue,
   cloneCircuitValue,
   memoizationContext,
-} from './circuit_value';
+} from './circuit_value.js';
 import {
   Field,
   Bool,
@@ -11,22 +11,22 @@ import {
   Circuit,
   Pickles,
   AsFieldElements,
-} from '../snarky';
-import { Types } from '../snarky/types';
-import { PrivateKey, PublicKey } from './signature';
-import { UInt64, UInt32, Int64, Sign } from './int';
-import * as Mina from './mina';
-import { SmartContract } from './zkapp';
-import * as Precondition from './precondition';
-import { inCheckedComputation, Proof, snarkContext } from './proof_system';
+} from '../snarky.js';
+import { Types } from '../snarky/types.js';
+import { PrivateKey, PublicKey } from './signature.js';
+import { UInt64, UInt32, Int64, Sign } from './int.js';
+import * as Mina from './mina.js';
+import { SmartContract } from './zkapp.js';
+import * as Precondition from './precondition.js';
+import { inCheckedComputation, Proof, snarkContext } from './proof_system.js';
 import {
   emptyHashWithPrefix,
   hashWithPrefix,
   packToFields,
   prefixes,
   TokenSymbol,
-} from './hash';
-import * as Encoding from './encoding';
+} from './hash.js';
+import * as Encoding from './encoding.js';
 
 // external API
 export { Permissions, Party, ZkappPublicInput };

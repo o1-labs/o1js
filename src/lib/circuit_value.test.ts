@@ -1,4 +1,4 @@
-import { Bool, Circuit, isReady, shutdown, Int64 } from '../../dist/server';
+import { Bool, Circuit, isReady, shutdown, Int64 } from 'snarkyjs';
 
 describe('circuit', () => {
   beforeAll(() => isReady);
