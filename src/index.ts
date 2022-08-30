@@ -85,7 +85,7 @@ const Experimental_ = {
   MerkleWitness,
 };
 
-type Callback_<T extends SmartContract> = Callback<T>;
+type Callback_ = Callback;
 
 /**
  * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
@@ -103,5 +103,5 @@ namespace Experimental {
   export let partyFromCallback = Experimental_.partyFromCallback;
   export type AsFieldsAndAux<T, TJson> = AsFieldsAndAux_<T, TJson>;
   export let Callback = Experimental_.Callback;
-  export type Callback<T extends SmartContract> = Callback_<T>;
+  export type Callback = Callback_;
 }

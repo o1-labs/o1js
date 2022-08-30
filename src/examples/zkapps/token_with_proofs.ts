@@ -55,7 +55,7 @@ class TokenContract extends SmartContract {
   @method sendTokens(
     senderAddress: PublicKey,
     receiverAddress: PublicKey,
-    callback: Experimental.Callback<any>
+    callback: Experimental.Callback
   ) {
     let senderParty = Experimental.partyFromCallback(this, callback, true);
     let amount = UInt64.from(1_000);

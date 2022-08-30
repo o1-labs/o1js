@@ -426,12 +426,12 @@ function computeCallData(
   ];
 }
 
-class Callback<T extends SmartContract> extends GenericArgument {
-  instance: T;
+class Callback extends GenericArgument {
+  instance: SmartContract;
   methodIntf: MethodInterface;
   args: any[];
 
-  constructor(instance: T, methodName: string, args: any[]) {
+  constructor(instance: SmartContract, methodName: string, args: any[]) {
     super();
     this.instance = instance;
     let ZkappClass = instance.constructor as typeof SmartContract;
@@ -449,7 +449,7 @@ class Callback<T extends SmartContract> extends GenericArgument {
 
 function partyFromCallback(
   parentZkapp: SmartContract,
-  callback: Callback<SmartContract>,
+  callback: Callback,
   disallowChildren = false
 ) {
   let { party } = Party.witness(
