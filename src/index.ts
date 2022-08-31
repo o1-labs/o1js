@@ -9,7 +9,7 @@ export {
 export { Field, Bool } from './lib/core.js';
 export type { VerificationKey, Keypair } from './snarky.js';
 export * from './snarky/addons.js';
-export { Poseidon } from './lib/hash.js';
+export { Poseidon, TokenSymbol } from './lib/hash.js';
 export * from './lib/signature.js';
 export {
   Circuit,
