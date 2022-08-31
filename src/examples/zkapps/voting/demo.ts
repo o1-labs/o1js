@@ -87,6 +87,11 @@ try {
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering a new voter
     m = registerMember(
+      /*
+      NOTE: it isn't wise to use an incremented integer as an
+      identifier for real world applications for your entries,
+      but instead a public key
+      */
       0n,
       Member.from(
         PrivateKey.random().toPublicKey(),
@@ -106,6 +111,11 @@ try {
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering a new voter
     m = registerMember(
+      /*
+      NOTE: it isn't wise to use an incremented integer as an
+      identifier for real world applications for your entries,
+      but instead a public key
+      */
       1n,
       Member.from(
         PrivateKey.random().toPublicKey(),
@@ -126,6 +136,11 @@ try {
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering a new voter
     m = registerMember(
+      /*
+      NOTE: it isn't wise to use an incremented integer as an
+      identifier for real world applications for your entries,
+      but instead a public key
+      */
       2n,
       Member.from(
         PrivateKey.random().toPublicKey(),
@@ -160,6 +175,11 @@ try {
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering 1 new candidate
     let m = registerMember(
+      /*
+      NOTE: it isn't wise to use an incremented integer as an
+      identifier for real world applications for your entries,
+      but instead a public key
+      */
       0n,
       Member.from(
         PrivateKey.random().toPublicKey(),
@@ -179,6 +199,11 @@ try {
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering 1 new candidate
     let m = registerMember(
+      /*
+      NOTE: it isn't wise to use an incremented integer as an
+      identifier for real world applications for your entries,
+      but instead a public key
+      */
       1n,
       Member.from(
         PrivateKey.random().toPublicKey(),
