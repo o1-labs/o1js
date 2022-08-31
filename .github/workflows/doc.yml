@@ -19,7 +19,7 @@ jobs:
       - name: run typedoc
         run: |
           npm ci
-          npx typedoc --tsconfig tsconfig.server.json src/index.ts
+          npx typedoc --tsconfig tsconfig.node.json src/index.ts
 
       - name: deploy
         uses: peaceiris/actions-gh-pages@v3
