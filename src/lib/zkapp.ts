@@ -996,7 +996,7 @@ async function deploy<S extends typeof SmartContract>(
     verificationKey: { data: string; hash: string | Field };
     initialBalance?: number | string;
     feePayer?: Mina.FeePayerSpec;
-    tokenId: Field;
+    tokenId?: Field;
   }
 ) {
   let address = zkappKey.toPublicKey();
