@@ -931,8 +931,8 @@ class Party implements Types.Party {
     return { body, authorization: Ledger.dummySignature() };
   }
 
-  static createUnsigned(publicKey: PublicKey) {
-    let party = Party.defaultParty(publicKey);
+  static create(publicKey: PublicKey, tokenId?: Field) {
+    let party = Party.defaultParty(publicKey, tokenId);
     Mina.currentTransaction()?.parties.push(party);
     return party;
   }

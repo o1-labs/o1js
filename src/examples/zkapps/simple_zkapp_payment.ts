@@ -95,7 +95,7 @@ console.log(
 
 console.log('----------MINA sending (with unsigned)----------');
 tx = await Local.transaction(feePayer, () => {
-  let party = Party.createUnsigned(zkappAddress);
+  let party = Party.create(zkappAddress);
   party.signInPlace(zkappKey);
   party.send({ to: account2Address, amount: UInt64.from(1_000_000) });
   zkapp.sign(zkappKey);

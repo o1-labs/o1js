@@ -69,13 +69,13 @@ describe('party', () => {
   it("converts party to a public input that's consistent with the ocaml implementation", async () => {
     let otherAddress = PrivateKey.random().toPublicKey();
 
-    let party = Party.createUnsigned(address);
+    let party = Party.create(address);
     Experimental.createChildParty(party, otherAddress);
     let publicInput = party.toPublicInput();
 
     // create transaction JSON with the same party structure, for ocaml version
     let tx = await Mina.transaction(() => {
-      let party = Party.createUnsigned(address);
+      let party = Party.create(address);
       Experimental.createChildParty(party, otherAddress);
     });
     let publicInputOcaml = Ledger.zkappPublicInput(tx.toJSON(), 0);
