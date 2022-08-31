@@ -90,8 +90,8 @@ export class Membership_ extends SmartContract {
         fromActionHash: accumulatedMembers,
       }),
       Bool,
-      (state: Bool, _action: Member) => {
-        return _action.equals(member).or(state);
+      (state: Bool, action: Member) => {
+        return action.equals(member).or(state);
       },
       // initial state
       { state: Bool(false), actionsHash: accumulatedMembers }
@@ -145,10 +145,10 @@ export class Membership_ extends SmartContract {
           fromActionHash: accumulatedMembers,
         }),
         Field,
-        (state: Field, _action: Member) => {
+        (state: Field, action: Member) => {
           // because we inserted empty members, we need to check if a member is empty or "real"
           let isRealMember = Circuit.if(
-            _action.publicKey.equals(PublicKey.empty()),
+            action.publicKey.equals(PublicKey.empty()),
             Bool(false),
             Bool(true)
           );
@@ -157,7 +157,7 @@ export class Membership_ extends SmartContract {
           // otherwise, we simply return the unmodified state - this is our way of branching
           return Circuit.if(
             isRealMember,
-            _action.witness.calculateRoot(_action.getHash()),
+            action.witness.calculateRoot(action.getHash()),
             state
           );
         },
