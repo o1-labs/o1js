@@ -904,8 +904,12 @@ class Party implements Types.Party {
     return { party, calls };
   }
 
-  static defaultParty(address: PublicKey) {
+  static defaultParty(address: PublicKey, tokenId = TokenId.default) {
     const body = Body.keepAll(address);
+    if (tokenId) {
+      body.tokenId = tokenId;
+      body.caller = tokenId;
+    }
     return new Party(body);
   }
 
