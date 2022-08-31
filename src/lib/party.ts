@@ -623,16 +623,14 @@ class Party implements Types.Party {
         address: PublicKey;
         amount: number | bigint | UInt64;
       }) {
-        let receiverParty = createChildParty(thisParty, address, {
-          caller: this.id,
-          tokenId: this.id,
-        });
+        let receiverParty = createChildParty(thisParty, address, this.id);
 
         // Add the amount to mint to the receiver's account
         let { magnitude, sgn } = receiverParty.body.balanceChange;
         receiverParty.body.balanceChange = new Int64(magnitude, sgn).add(
           amount
         );
+        return receiverParty;
       },
 
       burn({
@@ -642,11 +640,8 @@ class Party implements Types.Party {
         address: PublicKey;
         amount: number | bigint | UInt64;
       }) {
-        let senderParty = createChildParty(thisParty, address, {
-          caller: this.id,
-          tokenId: this.id,
-          useFullCommitment: Bool(true),
-        });
+        let senderParty = createChildParty(thisParty, address, this.id);
+        senderParty.body.useFullCommitment = Bool(true);
 
         // Sub the amount to burn from the sender's account
         let { magnitude, sgn } = senderParty.body.balanceChange;
@@ -666,11 +661,8 @@ class Party implements Types.Party {
         amount: number | bigint | UInt64;
       }) {
         // Create a new party for the sender to send the amount to the receiver
-        let senderParty = createChildParty(thisParty, from, {
-          caller: this.id,
-          tokenId: this.id,
-          useFullCommitment: Bool(true),
-        });
+        let senderParty = createChildParty(thisParty, from, this.id);
+        senderParty.body.useFullCommitment = Bool(true);
 
         let i0 = senderParty.body.balanceChange;
         senderParty.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(
@@ -680,16 +672,14 @@ class Party implements Types.Party {
         // Require signature from the sender party
         Authorization.setLazySignature(senderParty);
 
-        let receiverParty = createChildParty(thisParty, to, {
-          caller: this.id,
-          tokenId: this.id,
-        });
+        let receiverParty = createChildParty(thisParty, to, this.id);
 
         // Add the amount to send to the receiver's account
         let i1 = receiverParty.body.balanceChange;
         receiverParty.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
           amount
         );
+        return receiverParty;
       },
     };
   }
@@ -716,27 +706,24 @@ class Party implements Types.Party {
     amount: number | bigint | UInt64;
   }) {
     let party = this;
-
     let receiverParty;
-    if (to.constructor === Party) {
+    if (to instanceof Party) {
       receiverParty = to;
-      makeChildParty(party, receiverParty);
+      receiverParty.body.tokenId.assertEquals(party.body.tokenId);
     } else {
-      receiverParty = createChildParty(party, to as PublicKey, {
-        tokenId: party.body.tokenId,
-        caller: party.body.tokenId,
-      });
+      receiverParty = Party.defaultParty(to, party.body.tokenId);
     }
+    makeChildParty(party, receiverParty);
 
     // Sub the amount from the sender's account
-    let i0 = party.body.balanceChange;
-    party.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(amount);
-
-    // Add the amount to send to the receiver's account
-    let i1 = receiverParty.body.balanceChange;
-    receiverParty.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
+    party.body.balanceChange = Int64.fromObject(party.body.balanceChange).sub(
       amount
     );
+
+    // Add the amount to send to the receiver's account
+    receiverParty.body.balanceChange = Int64.fromObject(
+      receiverParty.body.balanceChange
+    ).add(amount);
   }
 
   get balance() {
@@ -1073,18 +1060,9 @@ const CallForest = {
 function createChildParty(
   parent: Party,
   childAddress: PublicKey,
-  options?: {
-    caller?: Field;
-    tokenId?: Field;
-    useFullCommitment?: Bool;
-  }
+  tokenId?: Field
 ) {
-  let child = Party.defaultParty(childAddress);
-  const { caller, tokenId, useFullCommitment } = options ?? {};
-  child.body.caller = caller ?? child.body.caller;
-  child.body.tokenId = tokenId ?? child.body.tokenId;
-  child.body.useFullCommitment =
-    useFullCommitment ?? child.body.useFullCommitment;
+  let child = Party.defaultParty(childAddress, tokenId);
   makeChildParty(parent, child);
   return child;
 }
