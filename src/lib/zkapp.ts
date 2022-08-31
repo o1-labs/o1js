@@ -30,7 +30,6 @@ import {
   Authorization,
   CallForest,
   TokenId,
-  SendParams,
 } from './party.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import * as Mina from './mina.js';
@@ -569,7 +568,7 @@ class SmartContract {
     };
   }
 
-  send(args: Omit<SendParams, 'from'>) {
+  send(args: { to: PublicKey | Party; amount: number | bigint | UInt64 }) {
     return this.self.send(args);
   }
 
