@@ -53,6 +53,7 @@ import {
   methodArgumentsToConstant,
   isAsFields,
   methodArgumentTypesAndValues,
+  GenericArgument,
 } from './proof_system.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import { Types } from '../snarky/types.js';
@@ -68,10 +69,11 @@ export {
   DeployArgs,
   signFeePayer,
   declareMethods,
+  Callback,
 };
 
 // internal API
-export { Reducer };
+export { Reducer, partyFromCallback };
 
 const reservedPropNames = new Set(['_methods', '_']);
 
@@ -124,8 +126,11 @@ function method<T extends SmartContract>(
   descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
 }
 
-let smartContractContext =
-  Context.create<{ this: SmartContract; methodCallDepth: number }>();
+let smartContractContext = Context.create<{
+  this: SmartContract;
+  methodCallDepth: number;
+  isCallback: boolean;
+}>();
 
 // do different things when calling a method, depending on the circumstance
 function wrapMethod(
@@ -135,11 +140,12 @@ function wrapMethod(
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
-    if (!smartContractContext.has()) {
+    let isCallback = smartContractContext()?.isCallback ?? false;
+    if (!smartContractContext.has() || isCallback) {
       return smartContractContext.runWith(
-        { this: this, methodCallDepth: 0 },
+        { this: this, methodCallDepth: 0, isCallback: false },
         () => {
-          if (inCheckedComputation()) {
+          if (inCheckedComputation() && !isCallback) {
             // important to run this with a fresh party everytime, otherwise compile messes up our circuits
             // because it runs this multiple times
             let [, result] = Mina.currentTransaction.runWith(
@@ -250,11 +256,12 @@ function wrapMethod(
         }
       )[1];
     }
+
     // if we're here, this method was called inside _another_ smart contract method
     let parentParty = smartContractContext.get().this.self;
     let methodCallDepth = smartContractContext.get().methodCallDepth;
     let [, result] = smartContractContext.runWith(
-      { this: this, methodCallDepth: methodCallDepth + 1 },
+      { this: this, methodCallDepth: methodCallDepth + 1, isCallback: false },
       () => {
         // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
         // so we have to explain to the user how to do that
@@ -419,6 +426,72 @@ function computeCallData(
   ];
 }
 
+class Callback extends GenericArgument {
+  instance: SmartContract;
+  methodIntf: MethodInterface;
+  args: any[];
+
+  constructor(instance: SmartContract, methodName: string, args: any[]) {
+    super();
+    this.instance = instance;
+    let ZkappClass = instance.constructor as typeof SmartContract;
+    let methodIntf = (ZkappClass._methods ?? []).find(
+      (i) => i.methodName === methodName
+    );
+    if (methodIntf === undefined)
+      throw Error(
+        `Callback: could not find method ${ZkappClass.name}.${methodName}`
+      );
+    this.methodIntf = methodIntf;
+    this.args = args;
+  }
+}
+
+function partyFromCallback(
+  parentZkapp: SmartContract,
+  callback: Callback,
+  disallowChildren = false
+) {
+  let { party } = Party.witness(
+    circuitValue<null>(null),
+    () => {
+      if (callback.isEmpty) throw Error('bug: empty callback');
+      let { instance, methodIntf, args } = callback;
+      let method = instance[
+        methodIntf.methodName as keyof SmartContract
+      ] as Function;
+      let party = instance.self;
+      // remove party from top level list, where it doesn't belong
+      // TODO: this shouldn't happen implicitly anyway
+      if (Mina.currentTransaction.has()) {
+        Mina.currentTransaction.get().parties.pop();
+      }
+      smartContractContext.runWith(
+        {
+          this: instance,
+          methodCallDepth: (smartContractContext()?.methodCallDepth ?? 0) + 1,
+          isCallback: true,
+        },
+        () => method.apply(instance, args)
+      );
+      return { party, result: null };
+    },
+    true
+  );
+  // connect party to our own. outside Circuit.witness so compile knows the right structure when hashing children
+  let parentParty = parentZkapp.self;
+  party.body.callDepth = parentParty.body.callDepth + 1;
+  party.parent = parentParty;
+  if (disallowChildren) {
+    let calls = Circuit.witness(Field, () => CallForest.hashChildren(party));
+    calls.assertEquals(CallForest.emptyHash());
+    parentParty.children.push({ party, calls });
+  } else {
+    parentParty.children.push({ party });
+  }
+  return party;
+}
+
 /**
  * The main zkapp class. To write a zkapp, extend this class as such:
  *
@@ -431,6 +504,7 @@ function computeCallData(
  */
 class SmartContract {
   address: PublicKey;
+  nativeToken: Field;
 
   private _executionState: ExecutionState | undefined;
   static _methods?: MethodInterface[];
@@ -442,7 +516,7 @@ class SmartContract {
   static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
 
-  static get Proof() {
+  static Proof() {
     let Contract = this;
     return class extends Proof<ZkappPublicInput> {
       static publicInputType = ZkappPublicInput;
@@ -450,8 +524,9 @@ class SmartContract {
     };
   }
 
-  constructor(address: PublicKey) {
+  constructor(address: PublicKey, nativeToken?: Field) {
     this.address = address;
+    this.nativeToken = nativeToken ?? TokenId.default;
     Object.defineProperty(this, 'reducer', {
       set(this, reducer: Reducer<any>) {
         ((this as any)._ ??= {}).reducer = reducer;
@@ -462,24 +537,24 @@ class SmartContract {
     });
   }
 
-  static async compile(address: PublicKey) {
+  static async compile(address: PublicKey, tokenId: Field = TokenId.default) {
     // TODO: think about how address should be passed in
     // TODO: maybe PublicKey should just become a variable? Then compile doesn't need to know the address, which seems more natural
     let methodIntfs = this._methods ?? [];
     let methods = methodIntfs.map(({ methodName }) => {
       return (...args: unknown[]) => {
-        let instance = new this(address);
+        let instance = new this(address, tokenId);
         (instance as any)[methodName](...args);
       };
     });
     // run methods once to get information that we need already at compile time
-    this.analyzeMethods(address);
-    let { getVerificationKeyArtifact, provers, verify } = compileProgram(
+    this.analyzeMethods(address, tokenId);
+    let { getVerificationKeyArtifact, provers, verify, tag } = compileProgram(
       ZkappPublicInput,
       methodIntfs,
       methods,
       this,
-      { self: selfParty(address) }
+      { self: selfParty(address, tokenId) }
     );
 
     let verificationKey = getVerificationKeyArtifact();
@@ -492,8 +567,9 @@ class SmartContract {
     return { verificationKey, provers, verify };
   }
 
-  static digest(address: PublicKey) {
-    let methodData = this.analyzeMethods(address);
+  static digest(address: PublicKey, tokenId: Field = TokenId.default) {
+    // TODO: this should use the method digests in a deterministic order!
+    let methodData = this.analyzeMethods(address, tokenId);
     let hash = Poseidon_.hash(
       Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest))),
       false
@@ -528,7 +604,7 @@ class SmartContract {
       // or even expose the .get() methods independently of any party (they don't need one)
       return {
         transactionId: NaN,
-        party: selfParty(this.address),
+        party: selfParty(this.address, this.nativeToken),
       };
     }
     let executionState = this._executionState;
@@ -540,7 +616,7 @@ class SmartContract {
     }
     let transaction = Mina.currentTransaction.get();
     let id = Mina.currentTransaction.id();
-    let party = selfParty(this.address);
+    let party = selfParty(this.address, this.nativeToken);
     transaction.parties.push(party);
     executionState = { transactionId: id, party };
     this._executionState = executionState;
@@ -672,9 +748,9 @@ class SmartContract {
 
   // run all methods to collect metadata like how many sequence events they use -- if we don't have this information yet
   // TODO: this could also be used to quickly perform any invariant checks on parties construction
-  static analyzeMethods(address: PublicKey) {
+  static analyzeMethods(address: PublicKey, tokenId: Field = TokenId.default) {
     let ZkappClass = this as typeof SmartContract;
-    let instance = new ZkappClass(address);
+    let instance = new ZkappClass(address, tokenId);
     let methodIntfs = ZkappClass._methods ?? [];
     if (
       !methodIntfs.every((m) => m.methodName in ZkappClass._methodMetadata) &&
@@ -685,7 +761,8 @@ class SmartContract {
           'Can not analyze methods inside Circuit.runAndCheck, because this creates a circuit nested in another circuit'
         );
         // EXCEPT if the code that calls this knows that it can first run `analyzeMethods` OUTSIDE runAndCheck and try again
-        (err as any).bootstrap = () => ZkappClass.analyzeMethods(address);
+        (err as any).bootstrap = () =>
+          ZkappClass.analyzeMethods(address, tokenId);
         throw err;
       }
       for (let methodIntf of methodIntfs) {
@@ -887,8 +964,12 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
   };
 }
 
-function selfParty(address: PublicKey) {
+function selfParty(address: PublicKey, tokenId?: Field) {
   let body = Body.keepAll(address);
+  if (tokenId) {
+    body.tokenId = tokenId;
+    body.caller = tokenId;
+  }
   return new (Party as any)(body, {}, true) as Party;
 }
 
@@ -909,11 +990,13 @@ async function deploy<S extends typeof SmartContract>(
     verificationKey,
     initialBalance,
     feePayer,
+    tokenId = TokenId.default,
   }: {
     zkappKey: PrivateKey;
     verificationKey: { data: string; hash: string | Field };
     initialBalance?: number | string;
     feePayer?: Mina.FeePayerSpec;
+    tokenId: Field;
   }
 ) {
   let address = zkappKey.toPublicKey();
@@ -936,7 +1019,7 @@ async function deploy<S extends typeof SmartContract>(
       Mina.currentTransaction()?.parties.push(party);
     }
     // main party: the zkapp account
-    let zkapp = new SmartContract(address);
+    let zkapp = new SmartContract(address, tokenId);
     zkapp.deploy({ verificationKey, zkappKey });
     // TODO: add send / receive methods on SmartContract which create separate parties
     // no need to bundle receive in the same party as deploy

@@ -35,6 +35,7 @@ export {
 } from './lib/zkapp.js';
 export { state, State, declareState } from './lib/state.js';
 export { Proof, SelfProof, ZkProgram, verify } from './lib/proof_system.js';
+
 export {
   Token,
   Party,
@@ -54,7 +55,7 @@ export * as Encoding from './lib/encoding.js';
 export { Character, CircuitString } from './lib/string.js';
 
 // experimental APIs
-import { Reducer } from './lib/zkapp.js';
+import { Reducer, Callback, partyFromCallback } from './lib/zkapp.js';
 import { createChildParty } from './lib/party.js';
 import {
   memoizeWitness,
@@ -67,6 +68,8 @@ export { Experimental };
 
 const Experimental_ = {
   Reducer,
+  Callback,
+  partyFromCallback,
   createChildParty,
   memoizeWitness,
   // TODO: for testing, maybe remove later
@@ -76,6 +79,8 @@ const Experimental_ = {
   MerkleTree,
   MerkleWitness,
 };
+
+type Callback_ = Callback;
 
 /**
  * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
@@ -90,5 +95,8 @@ namespace Experimental {
   export let packToFields = Experimental_.packToFields;
   export let MerkleTree = Experimental_.MerkleTree;
   export let MerkleWitness = Experimental_.MerkleWitness;
+  export let partyFromCallback = Experimental_.partyFromCallback;
   export type AsFieldsAndAux<T, TJson> = AsFieldsAndAux_<T, TJson>;
+  export let Callback = Experimental_.Callback;
+  export type Callback = Callback_;
 }

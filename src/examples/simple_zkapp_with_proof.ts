@@ -20,10 +20,7 @@ class TrivialZkapp extends SmartContract {
     hasToBe1.assertEquals(1);
   }
 }
-// very unfortunate that TS can't handle this directly:
-// class TrivialProof extends TrivialZkapp.Proof {}
-let TrivialProof_ = TrivialZkapp.Proof;
-class TrivialProof extends TrivialProof_ {}
+class TrivialProof extends TrivialZkapp.Proof() {}
 
 class NotSoSimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
@@ -101,7 +98,7 @@ let [proof] = await tx.prove();
 tx.send();
 
 proof = await testJsonRoundtripAndVerify(
-  NotSoSimpleZkapp.Proof,
+  NotSoSimpleZkapp.Proof(),
   proof,
   verificationKey
 );
@@ -116,7 +113,7 @@ tx = await Mina.transaction(feePayerKey, () => {
 tx.send();
 
 proof = await testJsonRoundtripAndVerify(
-  NotSoSimpleZkapp.Proof,
+  NotSoSimpleZkapp.Proof(),
   proof,
   verificationKey
 );
@@ -131,7 +128,7 @@ tx = await Mina.transaction(feePayerKey, () => {
 tx.send();
 
 proof = await testJsonRoundtripAndVerify(
-  NotSoSimpleZkapp.Proof,
+  NotSoSimpleZkapp.Proof(),
   proof,
   verificationKey
 );
