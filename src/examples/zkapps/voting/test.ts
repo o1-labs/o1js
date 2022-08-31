@@ -20,6 +20,7 @@ type Candidates = OffchainStorage<Member>;
 type Voters = OffchainStorage<Member>;
 
 let correctlyFails;
+let feePayer: PrivateKey;
 
 /**
  * Function used to test a set of contracts and precondition
@@ -43,7 +44,7 @@ export async function testSet(
   let Local = Mina.LocalBlockchain();
   Mina.setActiveInstance(Local);
 
-  let feePayer = Local.testAccounts[2].privateKey;
+  feePayer = Local.testAccounts[2].privateKey;
 
   let tx;
 
@@ -66,67 +67,57 @@ export async function testSet(
   console.log('setting slot to 0');
   Local.setGlobalSlot(UInt32.from(0));
 
-  console.log('attempting to register a voter...');
+  console.log('attempting to register a voter... ');
+
   let newVoter1: Member;
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      newVoter1 = registerMember(
-        0n,
-        Member.from(
-          PrivateKey.random().toPublicKey(),
-          Field.zero,
-          UInt64.from(25)
-        ),
-        votersStore
-      );
-
-      // register new member
-      voting.voterRegistration(newVoter1);
-      voting.sign(votingKey);
-    });
-
-    tx.send();
-  } catch (err: any) {
-    throw Error(err);
-  }
+  await assertValidTx(true, () => {
+    newVoter1 = registerMember(
+      0n,
+      Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        UInt64.from(25)
+      ),
+      votersStore
+    );
+    // register new member
+    voting.voterRegistration(newVoter1);
+    voting.sign(votingKey);
+  });
 
   console.log('attempting to register a voter with not enough balance...');
-  try {
-    tx = await Mina.transaction(feePayer, () => {
+
+  await assertValidTx(
+    false,
+    () => {
       let v = Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
         params.voterPreconditions.minMina.sub(1)
       );
 
-      // register new member
       voting.voterRegistration(v);
       voting.sign(votingKey);
-    });
-
-    tx.send();
-  } catch (err: any) {
-    handleError(err, 'assert_equal');
-  }
+    },
+    'assert_equal'
+  );
 
   console.log('attempting to register a voter with too high balance...');
-  try {
-    tx = await Mina.transaction(feePayer, () => {
+
+  await assertValidTx(
+    false,
+    () => {
       let v = Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
         params.voterPreconditions.maxMina.add(1)
       );
 
-      // register new member
       voting.voterRegistration(v);
       voting.sign(votingKey);
-    });
-
-    tx.send();
-  } catch (err: any) {
-    handleError(err, 'assert_equal');
-  }
+    },
+    'assert_equal'
+  );
 
   let numberOfEvents = voterContract.reducer.getActions({}).length;
   if (numberOfEvents !== 1) {
@@ -136,52 +127,23 @@ export async function testSet(
   }
 
   console.log('attempting to register another voter...');
-  let newVoter2: Member;
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      newVoter2 = registerMember(
-        1n,
-        Member.from(
-          PrivateKey.random().toPublicKey(),
-          Field.zero,
-          UInt64.from(25)
-        ),
-        votersStore
-      );
 
-      // register new member
-      voting.voterRegistration(newVoter2);
-      voting.sign(votingKey);
-    });
+  let newVoter2;
+  await assertValidTx(true, () => {
+    newVoter2 = registerMember(
+      1n,
+      Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        UInt64.from(25)
+      ),
+      votersStore
+    );
 
-    tx.send();
-  } catch (err: any) {
-    throw Error(err);
-  }
-  /* 
-  console.log('attempting to register another voter...');
-  let newVoter3: Member;
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      newVoter3 = registerMember(
-        3n,
-        Member.from(
-          PrivateKey.random().toPublicKey(),
-          Field.zero,
-          UInt64.from(60)
-        ),
-        votersStore
-      );
-
-      // register new member
-      voting.voterRegistration(newVoter3);
-      voting.sign(votingKey);
-    });
-
-    tx.send();
-  } catch (err: any) {
-    throw Error(err);
-  } */
+    // register new member
+    voting.voterRegistration(newVoter2);
+    voting.sign(votingKey);
+  });
 
   numberOfEvents = voterContract.reducer.getActions({}).length;
   if (numberOfEvents !== 2) {
@@ -190,64 +152,50 @@ export async function testSet(
 
   console.log('attempting to register the same voter twice...');
 
-  try {
-    tx = await Mina.transaction(feePayer, () => {
+  await assertValidTx(
+    false,
+    () => {
       voting.voterRegistration(newVoter1);
       voting.sign(votingKey);
-    });
-
-    tx.send();
-  } catch (err: any) {
-    handleError(err, 'assert_equal: 1 != 0');
-  }
+    },
+    'assert_equal: 1 != 0'
+  );
 
   console.log('attempting to register a candidate...');
 
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      let newCandidate = registerMember(
-        0n,
-        Member.from(
-          PrivateKey.random().toPublicKey(),
-          Field.zero,
-          params.candidatePreconditions.minMina.add(1)
-        ),
-        candidatesStore
-      );
+  await assertValidTx(true, () => {
+    let newCandidate = registerMember(
+      0n,
+      Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        params.candidatePreconditions.minMina.add(1)
+      ),
+      candidatesStore
+    );
 
-      // register new candidate
-      voting.candidateRegistration(newCandidate);
-      voting.sign(votingKey);
-    });
-
-    tx.send();
-  } catch (err: any) {
-    throw Error(err);
-  }
+    // register new candidate
+    voting.candidateRegistration(newCandidate);
+    voting.sign(votingKey);
+  });
 
   console.log('attempting to register another candidate...');
 
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      let newCandidate = registerMember(
-        1n,
-        Member.from(
-          PrivateKey.random().toPublicKey(),
-          Field.zero,
-          params.candidatePreconditions.minMina.add(1)
-        ),
-        candidatesStore
-      );
+  await assertValidTx(true, () => {
+    let newCandidate = registerMember(
+      1n,
+      Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        params.candidatePreconditions.minMina.add(1)
+      ),
+      candidatesStore
+    );
 
-      // register new candidate
-      voting.candidateRegistration(newCandidate);
-      voting.sign(votingKey);
-    });
-
-    tx.send();
-  } catch (err: any) {
-    throw Error(err);
-  }
+    // register new candidate
+    voting.candidateRegistration(newCandidate);
+    voting.sign(votingKey);
+  });
 
   numberOfEvents = candidateContract.reducer.getActions({}).length;
   if (numberOfEvents !== 2) {
@@ -269,17 +217,12 @@ export async function testSet(
   }
 
   console.log('authorizing registrations...');
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      // register new candidate
-      voting.authorizeRegistrations();
-      voting.sign(votingKey);
-    });
 
-    tx.send();
-  } catch (err: any) {
-    throw Error(err);
-  }
+  await assertValidTx(true, () => {
+    // register new candidate
+    voting.authorizeRegistrations();
+    voting.sign(votingKey);
+  });
 
   // authorizeVoters updates the committed members on both contracts by invoking the publish method.
   // We check if offchain storage merkle roots match both on-chain committedMembers for voters and candidates
@@ -310,8 +253,9 @@ export async function testSet(
   );
   Local.setGlobalSlot(params.electionPreconditions.startElection.add(1));
 
-  try {
-    tx = await Mina.transaction(feePayer, () => {
+  await assertValidTx(
+    false,
+    () => {
       let lateCandidate = Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
@@ -320,17 +264,15 @@ export async function testSet(
       // register late candidate
       voting.candidateRegistration(lateCandidate);
       voting.sign(votingKey);
-    });
-
-    tx.send();
-  } catch (err: any) {
-    handleError(err, 'rangeCheckHelper');
-  }
+    },
+    'rangeCheckHelper'
+  );
 
   console.log('attempting to register a voter within the election period ...');
-  Local.setGlobalSlot(params.electionPreconditions.startElection.add(1));
-  try {
-    tx = await Mina.transaction(feePayer, () => {
+
+  await assertValidTx(
+    false,
+    () => {
       let lateVoter = Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
@@ -340,12 +282,9 @@ export async function testSet(
       // register late candidate
       voting.voterRegistration(lateVoter);
       voting.sign(votingKey);
-    });
-
-    tx.send();
-  } catch (err: any) {
-    handleError(err, 'rangeCheckHelper');
-  }
+    },
+    'rangeCheckHelper'
+  );
 
   if (
     !candidateContract.committedMembers
@@ -372,30 +311,25 @@ export async function testSet(
   console.log('attempting to vote for the candidate...');
 
   let currentCandidate: Member;
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      // attempting to vote for the registered candidate
-      currentCandidate = candidatesStore.get(0n)!;
-      currentCandidate.witness = new MerkleWitness(
-        candidatesStore.getWitness(0n)
-      );
-      currentCandidate.votesWitness = new MerkleWitness(
-        votesStore.getWitness(0n)
-      );
 
-      let v = votersStore.get(0n)!;
-      v.witness = new MerkleWitness(votersStore.getWitness(0n));
+  await assertValidTx(true, () => {
+    // attempting to vote for the registered candidate
+    currentCandidate = candidatesStore.get(0n)!;
+    currentCandidate.witness = new MerkleWitness(
+      candidatesStore.getWitness(0n)
+    );
+    currentCandidate.votesWitness = new MerkleWitness(
+      votesStore.getWitness(0n)
+    );
 
-      voting.vote(currentCandidate, v);
-      voting.sign(votingKey);
-    });
+    let v = votersStore.get(0n)!;
+    v.witness = new MerkleWitness(votersStore.getWitness(0n));
 
-    tx.send();
-    // update offchain storage after transaction goes through
-    vote(0n, votesStore, candidatesStore);
-  } catch (err: any) {
-    throw Error(err);
-  }
+    voting.vote(currentCandidate, v);
+    voting.sign(votingKey);
+  });
+
+  vote(0n, votesStore, candidatesStore);
 
   numberOfEvents = voting.reducer.getActions({}).length;
   if (numberOfEvents !== 1) {
@@ -403,25 +337,27 @@ export async function testSet(
   }
 
   console.log('attempting to vote for a fake candidate...');
-  try {
-    tx = await Mina.transaction(feePayer, () => {
+
+  await assertValidTx(
+    false,
+    () => {
+      // attempting to vote for the registered candidate
       let fakeCandidate = Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(50)
+        params.candidatePreconditions.minMina.add(1)
       );
       voting.vote(fakeCandidate, votersStore.get(0n)!);
       voting.sign(votingKey);
-    });
-
-    tx.send();
-  } catch (err: any) {
-    handleError(err, 'assert_equal');
-  }
+    },
+    'assert_equal'
+  );
 
   console.log('unregistered voter attempting to vote');
-  try {
-    tx = await Mina.transaction(feePayer, () => {
+
+  await assertValidTx(
+    false,
+    () => {
       let fakeVoter = Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
@@ -429,55 +365,63 @@ export async function testSet(
       );
       voting.vote(fakeVoter, votersStore.get(0n)!);
       voting.sign(votingKey);
-    });
-
-    tx.send();
-  } catch (err: any) {
-    handleError(err, 'assert_equal');
-  }
+    },
+    'assert_equal'
+  );
 
   console.log('attempting to vote for voter...');
-  Local.setGlobalSlotSinceHardfork(new UInt32(5));
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      // const candidate = candidatesStore.get(0n)!;
+
+  await assertValidTx(
+    false,
+    () => {
       const voter = votersStore.get(0n)!;
 
       voting.vote(voter, votersStore.get(0n)!);
       voting.sign(votingKey);
-    });
-
-    tx.send();
-  } catch (err: any) {
-    handleError(err, 'assert_equal');
-  }
+    },
+    'assert_equal'
+  );
 
   console.log('counting votes...');
-  try {
-    tx = await Mina.transaction(feePayer, () => {
-      voting.countVotes();
-      voting.sign(votingKey);
-    });
 
-    tx.send();
-  } catch (err: any) {
-    throw Error(err);
-  }
+  await assertValidTx(true, () => {
+    voting.countVotes();
+    voting.sign(votingKey);
+  });
 
   printResult(voting, votesStore);
   console.log('test successful!');
 }
 
-/**
- * Test for expected failure case. Original error thrown if not expected failure case.
- * @param {any} error  The error thrown in the catch block.
- * @param {string} errorMessage  The expected error message.
- */
-function handleError(error: any, errorMessage: string) {
-  if (error.message.includes(errorMessage)) {
-    correctlyFails = true;
-    console.log(`Update correctly rejected with failing precondition.`);
+async function assertValidTx(
+  expectToBeValid: boolean,
+  cb: () => void,
+  msg?: string
+) {
+  let failed = false;
+  let err;
+  try {
+    let tx = await Mina.transaction(feePayer, cb);
+    tx.send();
+  } catch (e: any) {
+    failed = true;
+    err = e;
+  }
+
+  if (!failed && expectToBeValid) {
+    console.log('> transaction valid!');
+  } else if (failed && expectToBeValid) {
+    console.error('transaction failed but should have passed');
+    console.log(cb.toString());
+    console.error('with error message: ');
+    throw Error(err);
+  } else if (failed && !expectToBeValid) {
+    if (err.message.includes(msg ?? 'NO__EXPECTED_ERROR_MESSAGE_SET')) {
+      console.log('> transaction failed, as expected!');
+    } else {
+      throw Error('transaction failed, but got a different error message!');
+    }
   } else {
-    throw Error(error);
+    throw Error('transaction was expected to fail but it passed');
   }
 }
