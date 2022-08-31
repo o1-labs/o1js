@@ -644,6 +644,10 @@ class SmartContract {
     };
   }
 
+  send(args: { to: PublicKey | Party; amount: number | bigint | UInt64 }) {
+    return this.self.send(args);
+  }
+
   get tokenId() {
     return this.self.tokenId;
   }

@@ -52,7 +52,6 @@ export {
   Token,
   CallForest,
   createChildParty,
-  SendParams,
 };
 
 const ZkappStateLength = 8;
@@ -268,10 +267,10 @@ const Events = {
   pushEvent(events: Events, event: Event): Events {
     let eventHash = hashWithPrefix(prefixes.event, event);
     let hash = hashWithPrefix(prefixes.events, [events.hash, eventHash]);
-    return { hash, data: [...events.data, event] };
+    return { hash, data: [event, ...events.data] };
   },
   hash(events: Event[]) {
-    return events.reduce(Events.pushEvent, Events.empty()).hash;
+    return events.reverse().reduce(Events.pushEvent, Events.empty()).hash;
   },
 };
 
@@ -287,10 +286,12 @@ const SequenceEvents = {
       sequenceEvents.hash,
       eventHash,
     ]);
-    return { hash, data: [...sequenceEvents.data, event] };
+    return { hash, data: [event, ...sequenceEvents.data] };
   },
   hash(events: Event[]) {
-    return events.reduce(SequenceEvents.pushEvent, SequenceEvents.empty()).hash;
+    return events
+      .reverse()
+      .reduce(SequenceEvents.pushEvent, SequenceEvents.empty()).hash;
   },
   // different than events
   emptySequenceState() {
@@ -571,17 +572,6 @@ class Token {
   }
 }
 
-type SendParams = {
-  from: PublicKey;
-  to: PublicKey;
-  amount: UInt32 | UInt64;
-};
-
-type MintOrBurnParams = {
-  address: PublicKey;
-  amount: UInt32 | UInt64;
-};
-
 class Party implements Types.Party {
   body: Body;
   authorization: Control;
@@ -625,7 +615,13 @@ class Party implements Types.Party {
       parentTokenId: customToken.parentTokenId,
       tokenOwner: customToken.tokenOwner,
 
-      mint({ address, amount }: MintOrBurnParams) {
+      mint({
+        address,
+        amount,
+      }: {
+        address: PublicKey;
+        amount: number | bigint | UInt64;
+      }) {
         let receiverParty = createChildParty(thisParty, address, {
           caller: this.id,
           tokenId: this.id,
@@ -638,7 +634,13 @@ class Party implements Types.Party {
         );
       },
 
-      burn({ address, amount }: MintOrBurnParams) {
+      burn({
+        address,
+        amount,
+      }: {
+        address: PublicKey;
+        amount: number | bigint | UInt64;
+      }) {
         let senderParty = createChildParty(thisParty, address, {
           caller: this.id,
           tokenId: this.id,
@@ -653,7 +655,15 @@ class Party implements Types.Party {
         Authorization.setLazySignature(senderParty);
       },
 
-      send({ from, to, amount }: SendParams) {
+      send({
+        from,
+        to,
+        amount,
+      }: {
+        from: PublicKey;
+        to: PublicKey;
+        amount: number | bigint | UInt64;
+      }) {
         // Create a new party for the sender to send the amount to the receiver
         let senderParty = createChildParty(thisParty, from, {
           caller: this.id,
@@ -697,12 +707,25 @@ class Party implements Types.Party {
     };
   }
 
-  send({ to, amount }: Omit<SendParams, 'from'>) {
+  send({
+    to,
+    amount,
+  }: {
+    to: PublicKey | Party;
+    amount: number | bigint | UInt64;
+  }) {
     let party = this;
-    let receiverParty = createChildParty(party, to, {
-      tokenId: party.body.tokenId,
-      caller: party.body.tokenId,
-    });
+
+    let receiverParty;
+    if (to.constructor === Party) {
+      receiverParty = to;
+      makeChildParty(party, receiverParty);
+    } else {
+      receiverParty = createChildParty(party, to as PublicKey, {
+        tokenId: party.body.tokenId,
+        caller: party.body.tokenId,
+      });
+    }
 
     // Sub the amount from the sender's account
     let i0 = party.body.balanceChange;
@@ -1053,14 +1076,19 @@ function createChildParty(
 ) {
   let child = Party.defaultParty(childAddress);
   const { caller, tokenId, useFullCommitment } = options ?? {};
-  child.body.callDepth = parent.body.callDepth + 1;
   child.body.caller = caller ?? child.body.caller;
   child.body.tokenId = tokenId ?? child.body.tokenId;
   child.body.useFullCommitment =
     useFullCommitment ?? child.body.useFullCommitment;
-  child.parent = parent;
-  parent.children.push({ party: child, calls: undefined });
+  makeChildParty(parent, child);
   return child;
+}
+function makeChildParty(parent: Party, child: Party) {
+  child.body.callDepth = parent.body.callDepth + 1;
+  child.parent = parent;
+  if (!parent.children.find(({ party }) => party === child)) {
+    parent.children.push({ party: child, calls: undefined });
+  }
 }
 
 // authorization

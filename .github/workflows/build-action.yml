@@ -3,9 +3,11 @@ on:
   push:
     branches:
       - main
+      - releases
   pull_request:
     branches:
       - main
+      - releases
 
 jobs:
   Build-And-Test-Server:
@@ -23,12 +25,13 @@ jobs:
         run: |
           npm ci
           npm run build:node
+          npm run test:unit
           npm run test
           npm run test:integration
 
       - name: Publish to NPM if version has changed
         uses: JS-DevTools/npm-publish@v1
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/releases'
         with:
           token: ${{ secrets.NPM_TOKEN }}
         env:
