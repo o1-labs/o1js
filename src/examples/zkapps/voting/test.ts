@@ -64,10 +64,35 @@ export async function testSet(
   );
   console.log('all contracts deployed!');
 
-  console.log('setting slot to 0');
-  Local.setGlobalSlot(UInt32.from(0));
+  /*
+    test case description:
+      Happy path - invokes addEntry on voter membership SC
+    
+    preconditions:
+      - no such member exists within the accumulator
+      - the member passed in is a valid voter that passes the required preconditions
+      - time window is before election has started
 
-  console.log('attempting to register a voter... ');
+    expected results:
+      - no state change at all
+      - voter SC emits one sequence event
+      - -> invoked addEntry method on voter SC
+
+  */
+
+  let initialAccumulatedMembers = voterContract.accumulatedMembers.get();
+  let initialCommittedMembers = voterContract.committedMembers.get();
+
+  console.log(
+    `setting slot to ${params.electionPreconditions.startElection
+      .sub(1)
+      .toString()}, before election has started`
+  );
+  Local.setGlobalSlot(
+    UInt32.from(params.electionPreconditions.startElection.sub(1))
+  );
+
+  console.log('attempting to register a valid voter... ');
 
   let newVoter1: Member;
   await assertValidTx(true, () => {
@@ -85,6 +110,37 @@ export async function testSet(
     voting.sign(votingKey);
   });
 
+  if (voterContract.reducer.getActions({}).length !== 1) {
+    throw Error(
+      'Should have emitted 1 event after registering only one valid voter'
+    );
+  }
+
+  if (
+    !initialAccumulatedMembers
+      .equals(voterContract.accumulatedMembers.get())
+      .toBoolean() ||
+    !initialCommittedMembers
+      .equals(voterContract.committedMembers.get())
+      .toBoolean()
+  ) {
+    throw Error('State changed, but should not have!');
+  }
+
+  /*
+    test case description:
+      checking the methods failure, depending on different predefined preconditions
+      (voterPreconditions - minimum balance and maximum balance)
+    
+    preconditions:
+      - voter has not enough balance
+      - voter has a too high balance  
+      - voter already exists within the sequence state
+      - .. ??
+    expected results:
+      - no state change at all
+      - voter SC emits one sequence event
+  */
   console.log('attempting to register a voter with not enough balance...');
 
   await assertValidTx(
@@ -119,37 +175,6 @@ export async function testSet(
     'assert_equal'
   );
 
-  let numberOfEvents = voterContract.reducer.getActions({}).length;
-  if (numberOfEvents !== 1) {
-    throw Error(
-      'Should have emitted 1 event after registering only one valid voter'
-    );
-  }
-
-  console.log('attempting to register another voter...');
-
-  let newVoter2;
-  await assertValidTx(true, () => {
-    newVoter2 = registerMember(
-      1n,
-      Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field.zero,
-        UInt64.from(25)
-      ),
-      votersStore
-    );
-
-    // register new member
-    voting.voterRegistration(newVoter2);
-    voting.sign(votingKey);
-  });
-
-  numberOfEvents = voterContract.reducer.getActions({}).length;
-  if (numberOfEvents !== 2) {
-    throw Error('Should have emitted 2 event after registering 2 valid voter');
-  }
-
   console.log('attempting to register the same voter twice...');
 
   await assertValidTx(
@@ -160,6 +185,12 @@ export async function testSet(
     },
     'assert_equal: 1 != 0'
   );
+
+  if (voterContract.reducer.getActions({}).length !== 1) {
+    throw Error(
+      'Should have emitted 1 event after registering only one valid voter'
+    );
+  }
 
   console.log('attempting to register a candidate...');
 
@@ -197,8 +228,8 @@ export async function testSet(
     voting.sign(votingKey);
   });
 
-  numberOfEvents = candidateContract.reducer.getActions({}).length;
-  if (numberOfEvents !== 2) {
+  let numberOfEvents = candidateContract.reducer.getActions({}).length;
+  if (candidateContract.reducer.getActions({}).length !== 2) {
     throw Error(
       `Should have emitted 2 event after registering 2 candidates. ${numberOfEvents} emitted`
     );
@@ -216,6 +247,19 @@ export async function testSet(
     throw Error('voter merkle root is not the initialroot');
   }
 
+  /*
+    test case description:
+      authorize registrations, invoked publish on both membership SCs
+    
+    preconditions:
+      - votes and candidates were registered previously
+
+    expected results:
+      - publish invoked
+      - sequence events executed and committed state updates on both membership contracts
+        - committed state should now equal off-chain state
+      - voting contract state unchanged
+  */
   console.log('authorizing registrations...');
 
   await assertValidTx(true, () => {
@@ -226,6 +270,11 @@ export async function testSet(
 
   // authorizeVoters updates the committed members on both contracts by invoking the publish method.
   // We check if offchain storage merkle roots match both on-chain committedMembers for voters and candidates
+
+  if (!voting.committedVotes.get().equals(initialRoot).toBoolean()) {
+    throw Error('voter contract state changed, but should not have');
+  }
+
   if (
     !candidateContract.committedMembers
       .get()
@@ -247,6 +296,8 @@ export async function testSet(
       'votersStore merkle root does not match on-chain committed members'
     );
   }
+
+  // TODO
 
   console.log(
     'attempting to register a candidate within the election period ...'
@@ -308,6 +359,20 @@ export async function testSet(
     );
   }
 
+  /*
+    test case description:
+      happy path voting for candidate
+    
+    preconditions:
+      - slot is within predefine precondition slot
+      - voters and candidates have been registered previously
+
+    expected results:
+      - isMember check on voter and candidate
+      - vote invoked
+      - vote sequence event emitted
+      - state unchanged
+  */
   console.log('attempting to vote for the candidate...');
 
   let currentCandidate: Member;
@@ -336,6 +401,22 @@ export async function testSet(
     throw Error('Should have emitted 1 event after voting for a candidate');
   }
 
+  /*
+    test case description:
+      voting for invalid candidate
+    
+    preconditions:
+      - slot is within predefine precondition slot
+      - candidate is invalid (not registered)
+      - voting for voter
+      - unregistered voter
+
+
+    expected results:
+      - isMember check on voter and candidate -> fails and tx fails
+      - no state changes and no emitted events
+
+  */
   console.log('attempting to vote for a fake candidate...');
 
   await assertValidTx(
@@ -382,12 +463,31 @@ export async function testSet(
     'assert_equal'
   );
 
+  /*
+    test case description:
+      happy path - vote counting
+
+    preconditions:
+      - votes were emitted
+
+    expected results:
+      - counts all emitted votes through sequence events
+      - updates on-chain state to equal off-chain state
+      - prints final result (helper function)
+
+  */
   console.log('counting votes...');
 
   await assertValidTx(true, () => {
     voting.countVotes();
     voting.sign(votingKey);
   });
+
+  if (!voting.committedVotes.get().equals(votesStore.getRoot()).toBoolean()) {
+    throw Error(
+      'votesStore merkle root does not match on-chain committed votes'
+    );
+  }
 
   printResult(voting, votesStore);
   console.log('test successful!');
