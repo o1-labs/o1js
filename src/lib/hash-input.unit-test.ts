@@ -16,10 +16,10 @@ import {
 } from '../index.js';
 import { Events, SequenceEvents } from './party.js';
 import { expect } from 'expect';
+import { asFieldsAndAux, jsLayout } from 'src/snarky/types.js';
+import { packToFields } from './hash.js';
 
 await isReady;
-
-let { asFieldsAndAux, jsLayout, packToFields } = Experimental;
 
 let party = Party.defaultParty(PrivateKey.random().toPublicKey());
 

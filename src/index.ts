@@ -61,8 +61,6 @@ import {
   memoizeWitness,
   AsFieldsAndAux as AsFieldsAndAux_,
 } from './lib/circuit_value.js';
-import { jsLayout, asFieldsAndAux } from './snarky/types.js';
-import { packToFields } from './lib/hash.js';
 import { MerkleTree, MerkleWitness } from './lib/merkle_tree.js';
 export { Experimental };
 
@@ -72,10 +70,6 @@ const Experimental_ = {
   partyFromCallback,
   createChildParty,
   memoizeWitness,
-  // TODO: for testing, maybe remove later
-  jsLayout,
-  asFieldsAndAux,
-  packToFields,
   MerkleTree,
   MerkleWitness,
 };
@@ -90,9 +84,6 @@ namespace Experimental {
   export let Reducer = Experimental_.Reducer;
   export let createChildParty = Experimental_.createChildParty;
   export let memoizeWitness = Experimental_.memoizeWitness;
-  export let jsLayout = Experimental_.jsLayout;
-  export let asFieldsAndAux = Experimental_.asFieldsAndAux;
-  export let packToFields = Experimental_.packToFields;
   export let MerkleTree = Experimental_.MerkleTree;
   export let MerkleWitness = Experimental_.MerkleWitness;
   export let partyFromCallback = Experimental_.partyFromCallback;
