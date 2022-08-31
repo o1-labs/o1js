@@ -30,6 +30,7 @@ import {
   Authorization,
   CallForest,
   TokenId,
+  makeChildParty,
 } from './party.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import * as Mina from './mina.js';
@@ -70,6 +71,7 @@ export {
   signFeePayer,
   declareMethods,
   Callback,
+  Account,
 };
 
 // internal API
@@ -1029,6 +1031,15 @@ async function deploy<S extends typeof SmartContract>(
     }
   });
   return tx.sign().toJSON();
+}
+
+function Account(address: PublicKey, tokenId?: Field) {
+  let party = Party.create(address, tokenId);
+  if (smartContractContext.has()) {
+    // in a smart contract, attach party to transaction as a child
+    makeChildParty(smartContractContext.get().this.self, party);
+  }
+  return party.account;
 }
 
 function addFeePayer(

@@ -32,6 +32,7 @@ export {
   DeployArgs,
   signFeePayer,
   declareMethods,
+  Account,
 } from './lib/zkapp.js';
 export { state, State, declareState } from './lib/state.js';
 export { Proof, SelfProof, ZkProgram, verify } from './lib/proof_system.js';

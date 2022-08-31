@@ -52,6 +52,7 @@ export {
   Token,
   CallForest,
   createChildParty,
+  makeChildParty,
 };
 
 const ZkappStateLength = 8;
