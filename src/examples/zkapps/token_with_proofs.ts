@@ -29,9 +29,12 @@ class TokenContract extends SmartContract {
 
   @method tokenDeploy(deployer: PrivateKey) {
     let address = deployer.toPublicKey();
-    let deployParty = Experimental.createChildParty(this.self, address);
-    deployParty.body.tokenId = this.experimental.token.id;
-    deployParty.body.caller = this.experimental.token.id;
+    let tokenId = this.experimental.token.id;
+    let deployParty = Experimental.createChildParty(
+      this.self,
+      address,
+      tokenId
+    );
     Party.setValue(deployParty.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
@@ -67,7 +70,7 @@ class TokenContract extends SmartContract {
     let receiverParty = Experimental.createChildParty(
       this.self,
       receiverAddress,
-      { caller: tokenId, tokenId }
+      tokenId
     );
     receiverParty.balance.addInPlace(amount);
   }

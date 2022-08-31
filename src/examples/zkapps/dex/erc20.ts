@@ -9,11 +9,13 @@ import {
   Party,
   PublicKey,
   SmartContract,
-  State,
-  state,
   UInt64,
   Account,
   Experimental,
+  Permissions,
+  Mina,
+  Int64,
+  PrivateKey,
 } from 'snarkyjs';
 
 /**
@@ -56,14 +58,60 @@ type Erc20 = {
 //    which creates the transaction.
 // => can keep mode where sender is unknown, but then methods relying on msg.sender have to FAIL
 
-class SomeCoin extends SmartContract implements Erc20 {
-  @state(UInt64) supply = State<UInt64>();
+/**
+ * A simple ERC20 token
+ *
+ * Tokenomics:
+ * The supply is constant and the entire supply is initially sent to an account controlled by the zkApp developer
+ * After that, tokens can be sent around with authorization from their owner, but new ones can't be minted.
+ *
+ * Functionality:
+ * Just enough to be swapped by the DEX contract, and be secure
+ */
+class TrivialCoin extends SmartContract implements Erc20 {
+  // constant supply
+  SUPPLY = UInt64.from(10n ** 18n);
 
   deploy(args: DeployArgs) {
     super.deploy(args);
     this.tokenSymbol.set('SOM');
+    this.setPermissions({
+      ...Permissions.default(),
+      setPermissions: Permissions.proof(),
+      send: Permissions.proof(),
+    });
+  }
+  @method init() {
+    // mint the entire supply to the token account with the same address as this contract
+    let address = this.self.body.publicKey;
+    let receiver = this.experimental.token.mint({
+      address,
+      amount: this.SUPPLY,
+    });
+    // assert that the receiving account is new, so this can be only done once
+    receiver.account.isNew.assertEquals(Bool(true));
+    // pay fees for opened account
+    this.balance.subInPlace(Mina.accountCreationFee());
+
+    // reset the entire state, so that we get provedState: true
+    // TODO: implement doing this automatically in super.init()
+    for (let i = 0; i < 8; i++) {
+      let state = this.self.update.appState[i];
+      state.isSome = Bool(true);
+      state.value = Field.zero;
+    }
+    // since this is the only method of this zkApp that resets the entire state, provedState: true implies
+    // that this function was run. Since it can be run only once, this implies it was run exactly once
+
+    // make account non-upgradable forever
+    this.setPermissions({
+      ...Permissions.default(),
+      setVerificationKey: Permissions.impossible(),
+      setPermissions: Permissions.impossible(),
+    });
   }
 
+  // ERC20 API
   name(): CircuitString {
     return CircuitString.fromString('SomeCoin');
   }
@@ -74,7 +122,7 @@ class SomeCoin extends SmartContract implements Erc20 {
     return Field(9);
   }
   totalSupply(): UInt64 {
-    return this.supply.get();
+    return this.SUPPLY;
   }
   balanceOf(owner: PublicKey): UInt64 {
     let account = Account(owner, this.experimental.token.id);
@@ -92,6 +140,8 @@ class SomeCoin extends SmartContract implements Erc20 {
   }
   @method transferFrom(from: PublicKey, to: PublicKey, value: UInt64): Bool {
     this.experimental.token.send({ from, to, amount: value });
+    this.emitEvent('Transfer', { from, to, value });
+    // we don't have to check the balance of the sender -- this is done by the zkApp protocol
     return Bool(true);
   }
   @method approve(spender: PublicKey, value: UInt64): Bool {
@@ -111,4 +161,50 @@ class SomeCoin extends SmartContract implements Erc20 {
       value: UInt64;
     }>({ owner: PublicKey, spender: PublicKey, value: UInt64 }),
   };
+
+  // additional API needed for zkApp token accounts
+
+  @method transferFromZkapp(
+    from: PublicKey,
+    to: PublicKey,
+    value: UInt64,
+    authorize: Experimental.Callback
+  ): Bool {
+    // TODO: need to be able to witness a certain layout of parties, in this case
+    // tokenContract --> sender --> receiver
+    let fromParty = Experimental.partyFromCallback(this, authorize, true);
+
+    let negativeAmount = Int64.fromObject(fromParty.body.balanceChange);
+    negativeAmount.assertEquals(Int64.from(value).neg());
+    let tokenId = this.experimental.token.id;
+    fromParty.body.tokenId.assertEquals(tokenId);
+    fromParty.body.publicKey.assertEquals(from);
+
+    let toParty = Experimental.createChildParty(this.self, to, tokenId);
+    toParty.balance.addInPlace(value);
+    this.emitEvent('Transfer', { from, to, value });
+    return Bool(true);
+  }
+
+  // this is a very standardized deploy method. instead, we could also take the party from a callback
+  @method deployZkapp(zkappKey: PrivateKey) {
+    let address = zkappKey.toPublicKey();
+    let tokenId = this.experimental.token.id;
+    let zkapp = Experimental.createChildParty(this.self, address, tokenId);
+    Party.setValue(zkapp.update.permissions, {
+      ...Permissions.default(),
+      send: Permissions.proof(),
+    });
+    // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
+    // Party.setValue(zkapp.update.verificationKey, verificationKey);
+    zkapp.signInPlace(zkappKey, true);
+  }
+
+  // for letting a zkapp do whatever it wants, as long as no tokens are transfered
+  // TODO: atm, we have to restrict the zkapp to have no children
+  //       -> need to be able to witness a general layout of parties
+  @method authorizeZkapp(callback: Experimental.Callback) {
+    let zkappParty = Experimental.partyFromCallback(this, callback, true);
+    Int64.fromObject(zkappParty.body.balanceChange).assertEquals(UInt64.zero);
+  }
 }
