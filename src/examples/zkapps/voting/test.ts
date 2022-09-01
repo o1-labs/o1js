@@ -13,14 +13,13 @@ import { Member, MerkleWitness } from './member';
 import { Membership_ } from './membership';
 import { OffchainStorage } from './off_chain_storage';
 import { Voting_ } from './voting';
-import { registerMember, printResult, vote } from './voting_lib';
+import { printResult, registerMember, vote } from './voting_lib';
 
 type Votes = OffchainStorage<Member>;
 type Candidates = OffchainStorage<Member>;
 type Voters = OffchainStorage<Member>;
 
 let feePayer: PrivateKey;
-
 /**
  * Function used to test a set of contracts and precondition
  * @param set A set of contracts
@@ -92,15 +91,17 @@ export async function testSet(
   console.log('attempting to register a valid voter... ');
 
   let newVoter1: Member;
+
   await assertValidTx(true, () => {
     newVoter1 = registerMember(
       0n,
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(25)
+        UInt64.from(15)
       ),
-      votersStore
+      votersStore,
+      Local
     );
     // register new member
     voting.voterRegistration(newVoter1);
@@ -199,7 +200,8 @@ export async function testSet(
         Field.zero,
         params.candidatePreconditions.minMina.add(1)
       ),
-      candidatesStore
+      candidatesStore,
+      Local
     );
 
     // register new candidate
@@ -217,7 +219,8 @@ export async function testSet(
         Field.zero,
         params.candidatePreconditions.minMina.add(1)
       ),
-      candidatesStore
+      candidatesStore,
+      Local
     );
 
     // register new candidate
@@ -487,6 +490,7 @@ export async function testSet(
   }
 
   printResult(voting, votesStore);
+
   console.log('test successful!');
 }
 

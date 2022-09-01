@@ -11,10 +11,9 @@ import { Mina } from 'snarkyjs';
 export function registerMember(
   i: bigint,
   m: Member,
-  store: OffchainStorage<Member>
+  store: OffchainStorage<Member>,
+  Local: any
 ): Member {
-  let Local = Mina.LocalBlockchain();
-
   Local.addAccount(m.publicKey, m.balance.toString());
 
   // we will also have to keep track of new voters and candidates within our off-chain merkle tree

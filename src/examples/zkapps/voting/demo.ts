@@ -40,8 +40,14 @@ let votingKey = PrivateKey.fromBase58(
 );
 
 let params: VotingAppParams = {
-  candidatePreconditions: ParticipantPreconditions.default,
-  voterPreconditions: ParticipantPreconditions.default,
+  candidatePreconditions: new ParticipantPreconditions(
+    UInt64.from(100),
+    UInt64.from(1000)
+  ),
+  voterPreconditions: new ParticipantPreconditions(
+    UInt64.from(10),
+    UInt64.from(100)
+  ),
   electionPreconditions: ElectionPreconditions.default,
   voterKey,
   candidateKey,

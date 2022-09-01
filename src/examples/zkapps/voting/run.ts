@@ -29,12 +29,12 @@ console.log('Starting set 1...');
 
 let params_set1: VotingAppParams = {
   candidatePreconditions: new ParticipantPreconditions(
-    UInt64.from(100),
-    UInt64.from(1000)
+    UInt64.from(10),
+    UInt64.from(5000)
   ),
   voterPreconditions: new ParticipantPreconditions(
     UInt64.from(10),
-    UInt64.from(100)
+    UInt64.from(50)
   ),
   electionPreconditions: new ElectionPreconditions(
     UInt32.from(5),
