@@ -69,6 +69,9 @@ export async function testSet(
       - the member passed in is a valid voter that passes the required preconditions
       - time window is before election has started
 
+    tested cases:
+      - voter is valid and can be registered
+
     expected results:
       - no state change at all
       - voter SC emits one sequence event
@@ -135,6 +138,13 @@ export async function testSet(
       - voter has a too high balance  
       - voter already exists within the sequence state
       - .. ??
+
+    tested cases:
+      - voter has not enough balance -> failure
+      - voter has too high balance -> failure
+      - voter registered twice -> failure
+
+
     expected results:
       - no state change at all
       - voter SC emits one sequence event
@@ -190,6 +200,24 @@ export async function testSet(
     );
   }
 
+  /*
+
+    test case description:
+      Happy path - invokes addEntry on candidate membership SC
+    
+    preconditions:
+      - no such member exists within the accumulator
+      - the member passed in is a valid candidate that passes the required preconditions
+      - time window is before election has started
+
+    tested cases:
+      - candidate is valid and can be registered -> success  
+
+    expected results:
+      - no state change at all
+      - voter SC emits one sequence event
+      - -> invoked addEntry method on voter SC
+  */
   console.log('attempting to register a candidate...');
 
   await assertValidTx(true, () => {
@@ -254,6 +282,9 @@ export async function testSet(
     preconditions:
       - votes and candidates were registered previously
 
+    tested cases:
+      - authorizing all members -> success
+  
     expected results:
       - publish invoked
       - sequence events executed and committed state updates on both membership contracts
@@ -297,12 +328,29 @@ export async function testSet(
     );
   }
 
-  // TODO
+  /*
+    test case description:
+      registering candidate within the election period
+    
+    preconditions:
+      - slot has been set to within the election period
+
+    tested cases:
+      - registering candidate -> failure
+      - registering voter -> failure
+  
+    expected results:
+      - no new events emitted
+      - no state changes
+  */
 
   console.log(
     'attempting to register a candidate within the election period ...'
   );
   Local.setGlobalSlot(params.electionPreconditions.startElection.add(1));
+
+  let previousEventsVoter = voterContract.reducer.getActions({}).length;
+  let previousEventsCandidate = candidateContract.reducer.getActions({}).length;
 
   await assertValidTx(
     false,
@@ -330,12 +378,21 @@ export async function testSet(
         UInt64.from(50)
       );
 
-      // register late candidate
+      // register late voter
       voting.voterRegistration(lateVoter);
       voting.sign(votingKey);
     },
     'rangeCheckHelper'
   );
+
+  if (previousEventsVoter !== voterContract.reducer.getActions({}).length) {
+    throw Error('events emitted but should not have been');
+  }
+  if (
+    previousEventsCandidate !== candidateContract.reducer.getActions({}).length
+  ) {
+    throw Error('events emitted but should not have been');
+  }
 
   if (
     !candidateContract.committedMembers
@@ -361,11 +418,43 @@ export async function testSet(
 
   /*
     test case description:
+      attempting to count votes before any votes were casted
+    
+    preconditions:
+      - no votes have been casted
+
+    tested cases:
+      - count votes -> success, but no state change
+
+    expected results:
+      - no state change
+  */
+  console.log('attempting to count votes but no votes were casted...');
+
+  let beforeAccumulator = voting.accumulatedVotes.get();
+  let beforeCommitted = voting.committedVotes.get();
+  await assertValidTx(true, () => {
+    voting.countVotes();
+    voting.sign(votingKey);
+  });
+
+  if (!beforeAccumulator.equals(voting.accumulatedVotes.get()).toBoolean()) {
+    throw Error('state changed but it should not have!');
+  }
+  if (!beforeCommitted.equals(voting.committedVotes.get()).toBoolean()) {
+    throw Error('state changed but it should not have!');
+  }
+
+  /*
+    test case description:
       happy path voting for candidate
     
     preconditions:
       - slot is within predefine precondition slot
       - voters and candidates have been registered previously
+
+    tested cases:
+      - voting for candidate -> success
 
     expected results:
       - isMember check on voter and candidate
@@ -411,6 +500,10 @@ export async function testSet(
       - voting for voter
       - unregistered voter
 
+    tested cases:
+      - voting for fake candidate -> failure
+      - unregistered voter voting for candidate -> failure
+      - voter voting for voter -> failure
 
     expected results:
       - isMember check on voter and candidate -> fails and tx fails
@@ -470,6 +563,9 @@ export async function testSet(
     preconditions:
       - votes were emitted
 
+    tested cases:
+      - counting votes -> success
+
     expected results:
       - counts all emitted votes through sequence events
       - updates on-chain state to equal off-chain state
@@ -489,7 +585,58 @@ export async function testSet(
     );
   }
 
+  console.log('election is over, printing results');
   printResult(voting, votesStore);
+
+  console.log('testing after election state');
+
+  /*
+    test case description:
+      registering voter and candidates AFTER election has ended
+    
+    preconditions:
+      - election ended
+
+    tested cases:
+      - registering voter -> failure
+      - registering candidate -> failure
+
+    expected results:
+      - no state changes
+      - no events emitted
+
+  */
+  console.log('attempting to register voter after election has ended');
+
+  await assertValidTx(
+    false,
+    () => {
+      let voter = Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        params.voterPreconditions.minMina.add(1)
+      );
+      voting.voterRegistration(voter);
+      voting.sign(votingKey);
+    },
+    'Expected'
+  );
+
+  console.log('attempting to register candidate after election has ended');
+
+  await assertValidTx(
+    false,
+    () => {
+      let candidate = Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        params.candidatePreconditions.minMina.add(1)
+      );
+      voting.candidateRegistration(candidate);
+      voting.sign(votingKey);
+    },
+    'Expected'
+  );
 
   console.log('test successful!');
 }
