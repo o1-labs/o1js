@@ -31,6 +31,8 @@ import {
   CallForest,
   TokenId,
   makeChildParty,
+  PartiesLayout,
+  smartContractContext,
 } from './party.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import * as Mina from './mina.js';
@@ -127,12 +129,6 @@ function method<T extends SmartContract>(
   let func = descriptor.value;
   descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
 }
-
-let smartContractContext = Context.create<{
-  this: SmartContract;
-  methodCallDepth: number;
-  isCallback: boolean;
-}>();
 
 // do different things when calling a method, depending on the circumstance
 function wrapMethod(
@@ -451,10 +447,9 @@ class Callback extends GenericArgument {
 
 function partyFromCallback(
   parentZkapp: SmartContract,
-  callback: Callback,
-  disallowChildren = false
+  childLayout: PartiesLayout,
+  callback: Callback
 ) {
-  let childLayout = disallowChildren ? 0 : undefined;
   let party = Party.witnessTree(
     childLayout,
     () => {
@@ -1029,12 +1024,11 @@ async function deploy<S extends typeof SmartContract>(
 }
 
 function Account(address: PublicKey, tokenId?: Field) {
-  let party = Party.create(address, tokenId);
   if (smartContractContext.has()) {
-    // in a smart contract, attach party to transaction as a child
-    makeChildParty(smartContractContext.get().this.self, party);
+    return Party.create(address, tokenId).account;
+  } else {
+    return Party.defaultParty(address, tokenId).account;
   }
-  return party.account;
 }
 
 function addFeePayer(

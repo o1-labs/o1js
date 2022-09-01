@@ -27,12 +27,14 @@ import {
   TokenSymbol,
 } from './hash.js';
 import * as Encoding from './encoding.js';
+import { Context } from './global-context.js';
 
 // external API
 export { Permissions, Party, ZkappPublicInput };
 
 // internal API
 export {
+  smartContractContext,
   SetOrKeep,
   Permission,
   Preconditions,
@@ -53,9 +55,16 @@ export {
   CallForest,
   createChildParty,
   makeChildParty,
+  PartiesLayout,
 };
 
 const ZkappStateLength = 8;
+
+let smartContractContext = Context.create<{
+  this: SmartContract;
+  methodCallDepth: number;
+  isCallback: boolean;
+}>();
 
 type PartyBody = Types.Party['body'];
 type Update = PartyBody['update'];
@@ -216,7 +225,7 @@ let Permissions = {
    * Default permissions are:
    *   [[ Permissions.editState ]]=[[ Permission.proof ]]
    *   [[ Permissions.send ]]=[[ Permission.signature ]]
-   *   [[ Permissions.receive ]]=[[ Permission.proof ]]
+   *   [[ Permissions.receive ]]=[[ Permission.none ]]
    *   [[ Permissions.setDelegate ]]=[[ Permission.signature ]]
    *   [[ Permissions.setPermissions ]]=[[ Permission.signature ]]
    *   [[ Permissions.setVerificationKey ]]=[[ Permission.signature ]]
@@ -545,30 +554,29 @@ class Token {
 
   static Id = TokenId;
 
-  constructor(options: { tokenOwner: PublicKey; parentTokenId?: Field }) {
-    let { tokenOwner, parentTokenId } = options ?? {};
+  static getId(tokenOwner: PublicKey, parentTokenId = TokenId.default) {
+    if (tokenOwner.isConstant() && parentTokenId.isConstant()) {
+      return Ledger.customTokenId(tokenOwner, parentTokenId);
+    } else {
+      return Ledger.customTokenIdChecked(tokenOwner, parentTokenId);
+    }
+  }
 
-    // Reassign to default tokenId if undefined
-    parentTokenId ??= TokenId.default;
-
-    // Check if we can create a custom tokenId
+  constructor({
+    tokenOwner,
+    parentTokenId = TokenId.default,
+  }: {
+    tokenOwner: PublicKey;
+    parentTokenId?: Field;
+  }) {
+    this.parentTokenId = parentTokenId;
+    this.tokenOwner = tokenOwner;
     try {
-      Ledger.customTokenId(tokenOwner, parentTokenId);
+      this.id = Token.getId(tokenOwner, parentTokenId);
     } catch (e) {
       throw new Error(
         `Could not create a custom token id:\nError: ${(e as Error).message}`
       );
-    }
-
-    this.parentTokenId = parentTokenId;
-    this.tokenOwner = tokenOwner;
-    if (
-      tokenOwner.toFields().every((x) => x.isConstant()) &&
-      parentTokenId.isConstant()
-    ) {
-      this.id = Ledger.customTokenId(tokenOwner, this.parentTokenId);
-    } else {
-      this.id = Ledger.customTokenIdChecked(tokenOwner, this.parentTokenId);
     }
   }
 }
@@ -626,10 +634,9 @@ class Party implements Types.Party {
         let receiverParty = createChildParty(thisParty, address, this.id);
 
         // Add the amount to mint to the receiver's account
-        let { magnitude, sgn } = receiverParty.body.balanceChange;
-        receiverParty.body.balanceChange = new Int64(magnitude, sgn).add(
-          amount
-        );
+        receiverParty.body.balanceChange = Int64.fromObject(
+          receiverParty.body.balanceChange
+        ).add(amount);
         return receiverParty;
       },
 
@@ -644,8 +651,9 @@ class Party implements Types.Party {
         senderParty.body.useFullCommitment = Bool(true);
 
         // Sub the amount to burn from the sender's account
-        let { magnitude, sgn } = senderParty.body.balanceChange;
-        senderParty.body.balanceChange = new Int64(magnitude, sgn).sub(amount);
+        senderParty.body.balanceChange = Int64.fromObject(
+          senderParty.body.balanceChange
+        ).sub(amount);
 
         // Require signature from the sender account being deducted
         Authorization.setLazySignature(senderParty);
@@ -927,7 +935,11 @@ class Party implements Types.Party {
 
   static create(publicKey: PublicKey, tokenId?: Field) {
     let party = Party.defaultParty(publicKey, tokenId);
-    Mina.currentTransaction()?.parties.push(party);
+    if (smartContractContext.has()) {
+      makeChildParty(smartContractContext.get().this.self, party);
+    } else {
+      Mina.currentTransaction()?.parties.push(party);
+    }
     return party;
   }
 
