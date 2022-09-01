@@ -57,7 +57,7 @@ class Dex extends SmartContract {
     let tokenY = new TokenContract(addresses.tokenY);
 
     // get balances of X and Y token
-    // TODO: this creates extra parties. we need to reuse these by passing them to transfer()
+    // TODO: this creates extra parties. we need to reuse these by passing them to or returning them from transfer()
     // but for that, we need the @method argument generalization
     let dexX = Party.create(addresses.dex, tokenX.experimental.token.id);
     let x = dexX.account.balance.get();
@@ -79,7 +79,6 @@ class Dex extends SmartContract {
     // => maintains ratio x/l, y/l
     let dl = dy.add(dx);
     this.experimental.token.mint({ address: user, amount: dl });
-
     return dl;
   }
 
@@ -140,7 +139,29 @@ class UInt64x2 extends CircuitValue {
   @prop 1: UInt64;
 }
 
-class DexTokenHolder extends SmartContract {}
+class DexTokenHolder extends SmartContract {
+  // simpler circuit for redeeming liquidity -- direct trade between token and lq token
+  @method redeemLiquidityY(user: PublicKey, dl: UInt64) {
+    let dex = Party.create(addresses.dex);
+    let l = dex.account.balance.get();
+    dex.account.balance.assertEquals(l);
+
+    // user sends dl to dex
+    let idlXY = Token.getId(addresses.dex);
+    let userParty = Party.create(user, idlXY);
+    userParty.send({ to: dex, amount: dl });
+
+    // in return, we give dy back
+    let y = this.account.balance.get();
+    this.account.balance.assertEquals(y);
+    let dy = y.mul(dl).div(l);
+    this.send({ to: user, amount: dy });
+  }
+
+  // more complicated circuit, where we have to trigger the Y-lqXY trade in our child parties
+  // and then add the X part
+  @method redeemLiquidityX(user: PublicKey, dl: UInt64) {}
+}
 
 /**
  * Simple token with API flexible enough to handle all our use cases
@@ -186,7 +207,7 @@ class TokenContract extends SmartContract {
 
   // let a zkapp do whatever it wants, as long as the token supply stays constant
   @method authorize(callback: Experimental.Callback) {
-    let layout = [[2, 0], 0]; // these are 7 child parties we allow, in a left-biased tree
+    let layout = [[3, 0, 0], 0, 0]; // these are 10 child parties we allow, in a left-biased tree of width 3
     let zkappParty = Experimental.partyFromCallback(this, layout, callback);
     // walk parties to see if balances for this token cancel
     let balance = balanceSum(zkappParty, this.experimental.token.id);
@@ -202,6 +223,7 @@ await isReady;
 let { keys, addresses } = randomAccounts('tokenX', 'tokenY', 'dex', 'user');
 let idX = Token.getId(addresses.tokenX);
 let idY = Token.getId(addresses.tokenY);
+let idlXY = Token.getId(addresses.dex);
 
 /**
  * Sum of balances of the party and all its descendants

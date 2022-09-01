@@ -57,7 +57,7 @@ export { Character, CircuitString } from './lib/string.js';
 
 // experimental APIs
 import { Reducer, Callback, partyFromCallback } from './lib/zkapp.js';
-import { createChildParty } from './lib/party.js';
+import { createChildParty, makeChildParty } from './lib/party.js';
 import {
   memoizeWitness,
   AsFieldsAndAux as AsFieldsAndAux_,
@@ -72,6 +72,7 @@ const Experimental_ = {
   Callback,
   partyFromCallback,
   createChildParty,
+  makeChildParty,
   memoizeWitness,
   // TODO: for testing, maybe remove later
   jsLayout,
@@ -90,6 +91,7 @@ type Callback_ = Callback;
 namespace Experimental {
   export let Reducer = Experimental_.Reducer;
   export let createChildParty = Experimental_.createChildParty;
+  export let makeChildParty = Experimental_.makeChildParty;
   export let memoizeWitness = Experimental_.memoizeWitness;
   export let jsLayout = Experimental_.jsLayout;
   export let asFieldsAndAux = Experimental_.asFieldsAndAux;
