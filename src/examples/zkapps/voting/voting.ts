@@ -18,6 +18,7 @@ import {
   ParticipantPreconditions,
 } from './preconditions';
 import { Membership_ } from './membership';
+import { circuit } from 'src/examples/matrix_mul';
 
 /**
  * Address to the Membership instance that keeps track of Candidates.
@@ -108,9 +109,14 @@ export class Voting_ extends SmartContract {
     currentSlot.assertLte(electionPreconditions.startElection);
 
     // can only register voters if their balance is gte the minimum amount required
-    member.balance
+    // this snippet pulls the account data of an address from the network
+    let party = Experimental.createChildParty(this.self, member.publicKey);
+    party.account.balance.assertEquals(party.account.balance.get());
+    let balance = party.account.balance.get();
+
+    balance
       .gte(voterPreconditions.minMina)
-      .and(member.balance.lte(voterPreconditions.maxMina))
+      .and(balance.lte(voterPreconditions.maxMina))
       .assertTrue();
 
     let VoterContract: Membership_ = new Membership_(voterAddress);
@@ -137,9 +143,14 @@ export class Voting_ extends SmartContract {
 
     // can only register candidates if their balance is gte the minimum amount required
     // and lte the maximum amount
-    member.balance
+    // this snippet pulls the account data of an address from the network
+    let party = Experimental.createChildParty(this.self, member.publicKey);
+    party.account.balance.assertEquals(party.account.balance.get());
+    let balance = party.account.balance.get();
+
+    balance
       .gte(candidatePreconditions.minMina)
-      .and(member.balance.lte(candidatePreconditions.maxMina))
+      .and(balance.lte(candidatePreconditions.maxMina))
       .assertTrue();
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
@@ -210,17 +221,17 @@ export class Voting_ extends SmartContract {
       this.reducer.reduce(
         this.reducer.getActions({ fromActionHash: accumulatedVotes }),
         Field,
-        (state: Field, _action: Member) => {
+        (state: Field, action: Member) => {
           // checking that the member is part of the merkle tree
           // TODO: make work
-          let isValid = Bool(true); /* _action.witness
-            .calculateRoot(_action.getHash())
+          let isValid = Bool(true); /* action.witness
+            .calculateRoot(action.getHash())
             .equals(state); */
 
           // adding one additional vote to the member and calculating new root
-          _action = _action.addVote();
+          action = action.addVote();
           // this is the new root after we added one vote
-          let newRoot = _action.votesWitness.calculateRoot(_action.getHash());
+          let newRoot = action.votesWitness.calculateRoot(action.getHash());
 
           // checking if the account was part of the tree in the first place
           // if it was, then return the new, root
