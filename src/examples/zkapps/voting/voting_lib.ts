@@ -1,7 +1,8 @@
 import { Member, MerkleWitness } from './member';
 import { OffchainStorage } from './off_chain_storage';
 import { Voting_ } from './voting';
-import { Mina } from 'snarkyjs';
+import { Mina, PrivateKey } from 'snarkyjs';
+import { Printer } from 'prettier';
 /**
  * Updates off-chain storage when regestering a member or candidate
  * @param {bigint} i                            index of memberStore or candidatesStore
@@ -63,4 +64,43 @@ export function printResult(
     });
   });
   console.log(result);
+}
+
+/**
+ * Checks if a transaction is valid.
+ * If it is expected to fail, an expected error message needs to be provided
+ * @boolean expectedToBeValid - true if the transaction is expected to pass without error
+ */
+export async function assertValidTx(
+  expectToBeValid: boolean,
+  cb: () => void,
+  feePayer: PrivateKey,
+  msg?: string
+) {
+  let failed = false;
+  let err;
+  try {
+    let tx = await Mina.transaction(feePayer, cb);
+    tx.send();
+  } catch (e: any) {
+    failed = true;
+    err = e;
+  }
+
+  if (!failed && expectToBeValid) {
+    console.log('> transaction valid!');
+  } else if (failed && expectToBeValid) {
+    console.error('transaction failed but should have passed');
+    console.log(cb.toString());
+    console.error('with error message: ');
+    throw Error(err);
+  } else if (failed && !expectToBeValid) {
+    if (err.message.includes(msg ?? 'NO__EXPECTED_ERROR_MESSAGE_SET')) {
+      console.log('> transaction failed, as expected!');
+    } else {
+      throw Error('transaction failed, but got a different error message!');
+    }
+  } else {
+    throw Error('transaction was expected to fail but it passed');
+  }
 }

@@ -13,7 +13,7 @@ import { Member, MerkleWitness } from './member';
 import { Membership_ } from './membership';
 import { OffchainStorage } from './off_chain_storage';
 import { Voting_ } from './voting';
-import { printResult, registerMember, vote } from './voting_lib';
+import { assertValidTx, printResult, registerMember, vote } from './voting_lib';
 
 type Votes = OffchainStorage<Member>;
 type Candidates = OffchainStorage<Member>;
@@ -95,21 +95,25 @@ export async function testSet(
 
   let newVoter1: Member;
 
-  await assertValidTx(true, () => {
-    newVoter1 = registerMember(
-      0n,
-      Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field.zero,
-        UInt64.from(15)
-      ),
-      votersStore,
-      Local
-    );
-    // register new member
-    voting.voterRegistration(newVoter1);
-    voting.sign(votingKey);
-  });
+  await assertValidTx(
+    true,
+    () => {
+      newVoter1 = registerMember(
+        0n,
+        Member.from(
+          PrivateKey.random().toPublicKey(),
+          Field.zero,
+          UInt64.from(15)
+        ),
+        votersStore,
+        Local
+      );
+      // register new member
+      voting.voterRegistration(newVoter1);
+      voting.sign(votingKey);
+    },
+    feePayer
+  );
 
   if (voterContract.reducer.getActions({}).length !== 1) {
     throw Error(
@@ -163,6 +167,7 @@ export async function testSet(
       voting.voterRegistration(v);
       voting.sign(votingKey);
     },
+    feePayer,
     'assert_equal'
   );
 
@@ -180,6 +185,7 @@ export async function testSet(
       voting.voterRegistration(v);
       voting.sign(votingKey);
     },
+    feePayer,
     'assert_equal'
   );
 
@@ -191,6 +197,7 @@ export async function testSet(
       voting.voterRegistration(newVoter1);
       voting.sign(votingKey);
     },
+    feePayer,
     'assert_equal: 1 != 0'
   );
 
@@ -220,41 +227,49 @@ export async function testSet(
   */
   console.log('attempting to register a candidate...');
 
-  await assertValidTx(true, () => {
-    let newCandidate = registerMember(
-      0n,
-      Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field.zero,
-        params.candidatePreconditions.minMina.add(1)
-      ),
-      candidatesStore,
-      Local
-    );
+  await assertValidTx(
+    true,
+    () => {
+      let newCandidate = registerMember(
+        0n,
+        Member.from(
+          PrivateKey.random().toPublicKey(),
+          Field.zero,
+          params.candidatePreconditions.minMina.add(1)
+        ),
+        candidatesStore,
+        Local
+      );
 
-    // register new candidate
-    voting.candidateRegistration(newCandidate);
-    voting.sign(votingKey);
-  });
+      // register new candidate
+      voting.candidateRegistration(newCandidate);
+      voting.sign(votingKey);
+    },
+    feePayer
+  );
 
   console.log('attempting to register another candidate...');
 
-  await assertValidTx(true, () => {
-    let newCandidate = registerMember(
-      1n,
-      Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field.zero,
-        params.candidatePreconditions.minMina.add(1)
-      ),
-      candidatesStore,
-      Local
-    );
+  await assertValidTx(
+    true,
+    () => {
+      let newCandidate = registerMember(
+        1n,
+        Member.from(
+          PrivateKey.random().toPublicKey(),
+          Field.zero,
+          params.candidatePreconditions.minMina.add(1)
+        ),
+        candidatesStore,
+        Local
+      );
 
-    // register new candidate
-    voting.candidateRegistration(newCandidate);
-    voting.sign(votingKey);
-  });
+      // register new candidate
+      voting.candidateRegistration(newCandidate);
+      voting.sign(votingKey);
+    },
+    feePayer
+  );
 
   let numberOfEvents = candidateContract.reducer.getActions({}).length;
   if (candidateContract.reducer.getActions({}).length !== 2) {
@@ -293,11 +308,15 @@ export async function testSet(
   */
   console.log('authorizing registrations...');
 
-  await assertValidTx(true, () => {
-    // register new candidate
-    voting.authorizeRegistrations();
-    voting.sign(votingKey);
-  });
+  await assertValidTx(
+    true,
+    () => {
+      // register new candidate
+      voting.authorizeRegistrations();
+      voting.sign(votingKey);
+    },
+    feePayer
+  );
 
   // authorizeVoters updates the committed members on both contracts by invoking the publish method.
   // We check if offchain storage merkle roots match both on-chain committedMembers for voters and candidates
@@ -364,6 +383,7 @@ export async function testSet(
       voting.candidateRegistration(lateCandidate);
       voting.sign(votingKey);
     },
+    feePayer,
     'rangeCheckHelper'
   );
 
@@ -382,6 +402,7 @@ export async function testSet(
       voting.voterRegistration(lateVoter);
       voting.sign(votingKey);
     },
+    feePayer,
     'rangeCheckHelper'
   );
 
@@ -433,10 +454,14 @@ export async function testSet(
 
   let beforeAccumulator = voting.accumulatedVotes.get();
   let beforeCommitted = voting.committedVotes.get();
-  await assertValidTx(true, () => {
-    voting.countVotes();
-    voting.sign(votingKey);
-  });
+  await assertValidTx(
+    true,
+    () => {
+      voting.countVotes();
+      voting.sign(votingKey);
+    },
+    feePayer
+  );
 
   if (!beforeAccumulator.equals(voting.accumulatedVotes.get()).toBoolean()) {
     throw Error('state changed but it should not have!');
@@ -466,22 +491,26 @@ export async function testSet(
 
   let currentCandidate: Member;
 
-  await assertValidTx(true, () => {
-    // attempting to vote for the registered candidate
-    currentCandidate = candidatesStore.get(0n)!;
-    currentCandidate.witness = new MerkleWitness(
-      candidatesStore.getWitness(0n)
-    );
-    currentCandidate.votesWitness = new MerkleWitness(
-      votesStore.getWitness(0n)
-    );
+  await assertValidTx(
+    true,
+    () => {
+      // attempting to vote for the registered candidate
+      currentCandidate = candidatesStore.get(0n)!;
+      currentCandidate.witness = new MerkleWitness(
+        candidatesStore.getWitness(0n)
+      );
+      currentCandidate.votesWitness = new MerkleWitness(
+        votesStore.getWitness(0n)
+      );
 
-    let v = votersStore.get(0n)!;
-    v.witness = new MerkleWitness(votersStore.getWitness(0n));
+      let v = votersStore.get(0n)!;
+      v.witness = new MerkleWitness(votersStore.getWitness(0n));
 
-    voting.vote(currentCandidate, v);
-    voting.sign(votingKey);
-  });
+      voting.vote(currentCandidate, v);
+      voting.sign(votingKey);
+    },
+    feePayer
+  );
 
   vote(0n, votesStore, candidatesStore);
 
@@ -524,6 +553,7 @@ export async function testSet(
       voting.vote(fakeCandidate, votersStore.get(0n)!);
       voting.sign(votingKey);
     },
+    feePayer,
     'assert_equal'
   );
 
@@ -540,6 +570,7 @@ export async function testSet(
       voting.vote(fakeVoter, votersStore.get(0n)!);
       voting.sign(votingKey);
     },
+    feePayer,
     'assert_equal'
   );
 
@@ -553,6 +584,7 @@ export async function testSet(
       voting.vote(voter, votersStore.get(0n)!);
       voting.sign(votingKey);
     },
+    feePayer,
     'assert_equal'
   );
 
@@ -574,10 +606,14 @@ export async function testSet(
   */
   console.log('counting votes...');
 
-  await assertValidTx(true, () => {
-    voting.countVotes();
-    voting.sign(votingKey);
-  });
+  await assertValidTx(
+    true,
+    () => {
+      voting.countVotes();
+      voting.sign(votingKey);
+    },
+    feePayer
+  );
 
   if (!voting.committedVotes.get().equals(votesStore.getRoot()).toBoolean()) {
     throw Error(
@@ -619,6 +655,7 @@ export async function testSet(
       voting.voterRegistration(voter);
       voting.sign(votingKey);
     },
+    feePayer,
     'Expected'
   );
 
@@ -635,41 +672,9 @@ export async function testSet(
       voting.candidateRegistration(candidate);
       voting.sign(votingKey);
     },
+    feePayer,
     'Expected'
   );
 
   console.log('test successful!');
-}
-
-async function assertValidTx(
-  expectToBeValid: boolean,
-  cb: () => void,
-  msg?: string
-) {
-  let failed = false;
-  let err;
-  try {
-    let tx = await Mina.transaction(feePayer, cb);
-    tx.send();
-  } catch (e: any) {
-    failed = true;
-    err = e;
-  }
-
-  if (!failed && expectToBeValid) {
-    console.log('> transaction valid!');
-  } else if (failed && expectToBeValid) {
-    console.error('transaction failed but should have passed');
-    console.log(cb.toString());
-    console.error('with error message: ');
-    throw Error(err);
-  } else if (failed && !expectToBeValid) {
-    if (err.message.includes(msg ?? 'NO__EXPECTED_ERROR_MESSAGE_SET')) {
-      console.log('> transaction failed, as expected!');
-    } else {
-      throw Error('transaction failed, but got a different error message!');
-    }
-  } else {
-    throw Error('transaction was expected to fail but it passed');
-  }
 }
