@@ -222,21 +222,10 @@ export class Voting_ extends SmartContract {
         this.reducer.getActions({ fromActionHash: accumulatedVotes }),
         Field,
         (state: Field, action: Member) => {
-          // checking that the member is part of the merkle tree
-          // TODO: make work
-          let isValid = Bool(true); /* action.witness
-            .calculateRoot(action.getHash())
-            .equals(state); */
-
-          // adding one additional vote to the member and calculating new root
+          // apply one vote
           action = action.addVote();
           // this is the new root after we added one vote
-          let newRoot = action.votesWitness.calculateRoot(action.getHash());
-
-          // checking if the account was part of the tree in the first place
-          // if it was, then return the new, root
-          // otherwise, return the initial state
-          return Circuit.if(isValid, newRoot, state);
+          return action.votesWitness.calculateRoot(action.getHash());
         },
         // initial state
         { state: committedVotes, actionsHash: accumulatedVotes }
