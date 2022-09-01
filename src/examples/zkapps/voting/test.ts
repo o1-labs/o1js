@@ -45,7 +45,7 @@ export async function testSet(
   feePayer = Local.testAccounts[0].privateKey;
 
   let { votersStore, candidatesStore, votesStore } = storage;
-  let { votingKey, candidateKey, voterKey } = params;
+  let { votingKey } = params;
 
   const initialRoot = votersStore.getRoot();
 
@@ -211,6 +211,7 @@ export async function testSet(
 
     test case description:
       Happy path - invokes addEntry on candidate membership SC
+      (similar to voter contract)
     
     preconditions:
       - no such member exists within the accumulator

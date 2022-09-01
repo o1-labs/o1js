@@ -59,7 +59,3 @@ console.log('Testing set 1...');
 await testSet(contracts_set1, params_set1, storage_set1);
 
 // ..
-
-// do our thing before we create another set
-// sets need to be created and used in series,
-// parallel creation of sets doesnt work with the current "factory" pattern
