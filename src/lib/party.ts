@@ -579,7 +579,7 @@ class Party implements Types.Party {
   lazyAuthorization: LazySignature | LazyProof | undefined = undefined;
   account: Precondition.Account;
   network: Precondition.Network;
-  children: { party: Party; calls?: Field }[] = [];
+  children: { calls?: Field; parties: Party[] } = { parties: [] };
   parent: Party | undefined = undefined;
 
   private isSelf: boolean;
@@ -892,13 +892,19 @@ class Party implements Types.Party {
     return { party, calls };
   }
 
-  static defaultParty(address: PublicKey, tokenId = TokenId.default) {
+  static defaultParty(address: PublicKey, tokenId?: Field) {
     const body = Body.keepAll(address);
     if (tokenId) {
       body.tokenId = tokenId;
       body.caller = tokenId;
     }
     return new Party(body);
+  }
+  static dummy() {
+    return this.defaultParty(PublicKey.empty());
+  }
+  isDummy() {
+    return this.body.publicKey.isEmpty();
   }
 
   static defaultFeePayer(
@@ -986,7 +992,7 @@ class Party implements Types.Party {
   static witness<T>(
     type: AsFieldElements<T>,
     compute: () => { party: Party; result: T },
-    skipCheck = false
+    { skipCheck = false } = {}
   ) {
     // construct the circuit type for a party + other result
     let partyType = circuitArray(Field, Types.Party.sizeInFields());
@@ -1017,21 +1023,88 @@ class Party implements Types.Party {
     let party = new Party(rawParty.body, rawParty.authorization);
     party.lazyAuthorization =
       proverParty && cloneCircuitValue(proverParty.lazyAuthorization);
-    party.children = proverParty?.children ?? [];
+    party.children = proverParty?.children ?? { parties: [] };
     party.parent = proverParty?.parent;
     return { party, result: fieldsAndResult.result };
   }
+
+  /**
+   * Like Party.witness, but lets you specify a layout for the party's children,
+   * which also get witnessed
+   */
+  static witnessTree(
+    childLayout: PartiesLayout,
+    compute: () => Party,
+    options?: { skipCheck: boolean }
+  ): Party {
+    // witness the root party
+    let Null = circuitValue<null>(null);
+    let { party } = Party.witness(
+      Null,
+      () => ({
+        party: compute(),
+        result: null,
+      }),
+      options
+    );
+    // stop early if children === undefined
+    if (childLayout === undefined) {
+      let calls = Circuit.witness(Field, () => CallForest.hashChildren(party));
+      party.children.calls = calls;
+      return party;
+    }
+    let childArray: PartiesLayout[] =
+      typeof childLayout === 'number'
+        ? Array(childLayout).fill(0)
+        : childLayout;
+    let n = childArray.length;
+    for (let i = 0; i < n; i++) {
+      party.children.parties[i] = Party.witnessTree(
+        childArray[i],
+        () => party.children.parties[i] ?? Party.dummy(),
+        options
+      );
+    }
+    party.children.calls = CallForest.hashChildren(party);
+    if (n === 0) {
+      party.children.calls.assertEquals(CallForest.emptyHash());
+    }
+    return party;
+  }
 }
+
+/**
+ * Describes list of parties (call forest) to be witnessed.
+ *
+ * A parties list is represented by either
+ * - an array, whose entries are parties, each represented by their list of children
+ * - a positive integer, which gives the number of top-level parties, which aren't allowed to have further children
+ * - `undefined`, which means just the `calls` (call forest hash) is witnessed, allowing arbitrary parties but no access to them in the circuit
+ *
+ * Examples:
+ * ```ts
+ * []              // an empty parties list
+ * 0               // same as []
+ * [0]             // a list of one party, which doesn't have children
+ * 1               // same as [0]
+ * 2               // same as [0, 0]
+ * undefined       // an arbitrary list of parties
+ * [undefined, 1]  // a list of 2 parties, of which one has arbitrary children and the other has exactly 1 child
+ * ```
+ */
+type PartiesLayout = number | undefined | PartiesLayout[];
 
 const CallForest = {
   // similar to Mina_base.Parties.Call_forest.to_parties_list
   // takes a list of parties, which each can have children, so they form a "forest" (list of trees)
   // returns a flattened list, with `party.body.callDepth` specifying positions in the forest
+  // also removes any "dummy" parties
   toFlatList(forest: Party[], depth = 0): Party[] {
     let parties = [];
     for (let party of forest) {
+      if (party.isDummy().toBoolean()) continue;
       party.body.callDepth = depth;
-      let children = party.children.map((c) => c.party);
+      let children = party.children.parties;
       parties.push(party, ...CallForest.toFlatList(children, depth + 1));
     }
     return parties;
@@ -1044,14 +1117,18 @@ const CallForest = {
 
   // similar to Mina_base.Parties.Call_forest.accumulate_hashes
   // hashes a party's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
-  hashChildren(parent: Party) {
+  hashChildren({ children }: Party): Field {
+    // only compute calls if it's not there yet --
+    // this gives us the flexibility to witness a specific layout of parties
+    if (children.calls !== undefined) return children.calls;
     let stackHash = CallForest.emptyHash();
-    for (let { party, calls } of parent.children.reverse()) {
-      // only compute calls if it's not there yet --
-      // this gives us the flexibility to witness only direct children of a zkApp
-      calls ??= CallForest.hashChildren(party);
+    for (let party of children.parties.reverse()) {
+      let calls = CallForest.hashChildren(party);
       let nodeHash = hashWithPrefix(prefixes.partyNode, [party.hash(), calls]);
-      stackHash = hashWithPrefix(prefixes.partyCons, [nodeHash, stackHash]);
+      // stackHash = hashWithPrefix(prefixes.partyCons, [nodeHash, stackHash]);
+      let newHash = hashWithPrefix(prefixes.partyCons, [nodeHash, stackHash]);
+      // skip party if it's a dummy
+      stackHash = Circuit.if(party.isDummy(), stackHash, newHash);
     }
     return stackHash;
   },
@@ -1069,8 +1146,8 @@ function createChildParty(
 function makeChildParty(parent: Party, child: Party) {
   child.body.callDepth = parent.body.callDepth + 1;
   child.parent = parent;
-  if (!parent.children.find(({ party }) => party === child)) {
-    parent.children.push({ party: child, calls: undefined });
+  if (!parent.children.parties.find((party) => party === child)) {
+    parent.children.parties.push(child);
   }
 }
 

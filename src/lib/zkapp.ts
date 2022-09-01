@@ -348,7 +348,7 @@ function wrapMethod(
             ? Party.witness<any>(
                 returnType ?? circuitValue<null>(null),
                 runCalledContract,
-                true
+                { skipCheck: true }
               )
             : runCalledContract();
 
@@ -359,10 +359,10 @@ function wrapMethod(
         party.parent = parentParty;
         // beware: we don't include the callee's children in the caller circuit
         // nothing is asserted about them -- it's the callee's task to check their children
-        let calls = Circuit.witness(Field, () =>
+        party.children.calls = Circuit.witness(Field, () =>
           CallForest.hashChildren(party)
         );
-        parentParty.children.push({ party, calls });
+        parentParty.children.parties.push(party);
 
         // assert that we really called the right zkapp
         party.body.publicKey.assertEquals(this.address);
@@ -454,8 +454,9 @@ function partyFromCallback(
   callback: Callback,
   disallowChildren = false
 ) {
-  let { party } = Party.witness(
-    circuitValue<null>(null),
+  let childLayout = disallowChildren ? 0 : undefined;
+  let party = Party.witnessTree(
+    childLayout,
     () => {
       if (callback.isEmpty) throw Error('bug: empty callback');
       let { instance, methodIntf, args } = callback;
@@ -476,21 +477,15 @@ function partyFromCallback(
         },
         () => method.apply(instance, args)
       );
-      return { party, result: null };
+      return party;
     },
-    true
+    { skipCheck: true }
   );
   // connect party to our own. outside Circuit.witness so compile knows the right structure when hashing children
   let parentParty = parentZkapp.self;
   party.body.callDepth = parentParty.body.callDepth + 1;
   party.parent = parentParty;
-  if (disallowChildren) {
-    let calls = Circuit.witness(Field, () => CallForest.hashChildren(party));
-    calls.assertEquals(CallForest.emptyHash());
-    parentParty.children.push({ party, calls });
-  } else {
-    parentParty.children.push({ party });
-  }
+  parentParty.children.parties.push(party);
   return party;
 }
 
