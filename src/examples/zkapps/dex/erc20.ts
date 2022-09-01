@@ -57,6 +57,7 @@ type Erc20 = {
 //    because the private key sits in a wallet and shouldn't be accessible to the website
 //    which creates the transaction.
 // => can keep mode where sender is unknown, but then methods relying on msg.sender have to FAIL
+// NB: we can't constrain msg.sender to the fee payer's public key. it would be just a convenience feature and should come with a disclaimer
 
 /**
  * A simple ERC20 token
