@@ -1,7 +1,7 @@
 import { Member, MerkleWitness } from './member';
 import { OffchainStorage } from './off_chain_storage';
 import { Voting_ } from './voting';
-
+import { Mina } from 'snarkyjs';
 /**
  * Updates off-chain storage when regestering a member or candidate
  * @param {bigint} i                            index of memberStore or candidatesStore
@@ -13,6 +13,10 @@ export function registerMember(
   m: Member,
   store: OffchainStorage<Member>
 ): Member {
+  let Local = Mina.LocalBlockchain();
+
+  Local.addAccount(m.publicKey, m.balance.toString());
+
   // we will also have to keep track of new voters and candidates within our off-chain merkle tree
   store.set(i, m); // setting voter 0n
   // setting the merkle witness

@@ -309,6 +309,8 @@ function registerMember(
   m: Member,
   store: OffchainStorage<Member>
 ): Member {
+  Local.addAccount(m.publicKey, m.balance.toString());
+
   // we will also have to keep track of new voters and candidates within our off-chain merkle tree
   store.set(i, m); // setting voter 0n
   // setting the merkle witness

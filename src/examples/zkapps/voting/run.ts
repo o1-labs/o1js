@@ -16,9 +16,6 @@ import { OffchainStorage } from './off_chain_storage';
 import { Member } from './member';
 import { testSet } from './test';
 
-let Local = Mina.LocalBlockchain();
-Mina.setActiveInstance(Local);
-
 console.log('Running Voting script...');
 
 // I really hope this factory pattern works with SnarkyJS' contracts

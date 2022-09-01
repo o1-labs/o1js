@@ -19,7 +19,6 @@ type Votes = OffchainStorage<Member>;
 type Candidates = OffchainStorage<Member>;
 type Voters = OffchainStorage<Member>;
 
-let correctlyFails;
 let feePayer: PrivateKey;
 
 /**
@@ -44,9 +43,7 @@ export async function testSet(
   let Local = Mina.LocalBlockchain();
   Mina.setActiveInstance(Local);
 
-  feePayer = Local.testAccounts[2].privateKey;
-
-  let tx;
+  feePayer = Local.testAccounts[0].privateKey;
 
   let { votersStore, candidatesStore, votesStore } = storage;
   let { votingKey, candidateKey, voterKey } = params;
