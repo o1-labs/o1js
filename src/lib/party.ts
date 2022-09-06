@@ -1131,7 +1131,7 @@ const CallForest = {
     // this gives us the flexibility to witness a specific layout of parties
     if (children.calls !== undefined) return children.calls;
     let stackHash = CallForest.emptyHash();
-    for (let party of children.parties.reverse()) {
+    for (let party of [...children.parties].reverse()) {
       let calls = CallForest.hashChildren(party);
       let nodeHash = hashWithPrefix(prefixes.partyNode, [party.hash(), calls]);
       // stackHash = hashWithPrefix(prefixes.partyCons, [nodeHash, stackHash]);
