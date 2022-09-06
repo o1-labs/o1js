@@ -1223,8 +1223,8 @@ function addMissingSignatures(
     if (lazyAuthorization === undefined) return { body, authorization };
     let { privateKey } = lazyAuthorization;
     if (privateKey === undefined) {
-      let i = additionalPublicKeys.findIndex(
-        (pk) => pk === party.body.publicKey
+      let i = additionalPublicKeys.findIndex((pk) =>
+        pk.equals(party.body.publicKey).toBoolean()
       );
       if (i === -1) {
         let pk = PublicKey.toBase58(party.body.publicKey);
@@ -1246,7 +1246,7 @@ function addMissingSignatures(
     let { privateKey } = party.lazyAuthorization;
     if (privateKey === undefined) {
       let i = additionalPublicKeys.findIndex((pk) =>
-        pk.equals(party.body.publicKey)
+        pk.equals(party.body.publicKey).toBoolean()
       );
       if (i === -1)
         throw Error(
