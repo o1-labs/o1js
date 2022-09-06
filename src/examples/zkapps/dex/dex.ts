@@ -141,15 +141,15 @@ class DexTokenHolder extends SmartContract {
   // simpler circuit for redeeming liquidity -- direct trade between token and lq token
   // it's incomplete, as it gives the user only the Y part for an lqXY token; but doesn't matter as there's no incentive to call it directly
   @method redeemLiquidityY(user: PublicKey, dl: UInt64): UInt64 {
+    // TODO: wrong to bake in the address of the lq token here?
     let dex = Party.create(addresses.dex);
     let l = dex.account.balance.get();
     dex.account.balance.assertEquals(l);
 
     // user sends dl to dex
     let idlXY = Token.getId(addresses.dex);
-    // TODO: it seems wrong to bake in the ID of the lq token here
     let userParty = Party.create(user, idlXY);
-    userParty.send({ to: dex, amount: dl });
+    userParty.balance.subInPlace(dl);
 
     // in return, we give dy back
     let y = this.account.balance.get();
