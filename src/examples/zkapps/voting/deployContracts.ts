@@ -15,7 +15,6 @@ import { Voting_ } from './voting';
  * @param votesRoot the initial root of the votes store
  */
 export async function deployContracts(
-  feePayer: PrivateKey,
   contracts: {
     voterContract: Membership_;
     candidateContract: Membership_;
@@ -29,7 +28,13 @@ export async function deployContracts(
   voterContract: Membership_;
   candidateContract: Membership_;
   voting: Voting_;
+  Local: any;
+  feePayer: PrivateKey;
 }> {
+  let Local = Mina.LocalBlockchain();
+  Mina.setActiveInstance(Local);
+
+  let feePayer = Local.testAccounts[0].privateKey;
   let { voterContract, candidateContract, voting } = contracts;
 
   console.log('deploying set of 3 contracts');
@@ -63,5 +68,5 @@ export async function deployContracts(
   }
 
   console.log('successfully deployed contracts');
-  return { voterContract, candidateContract, voting };
+  return { voterContract, candidateContract, voting, feePayer, Local };
 }

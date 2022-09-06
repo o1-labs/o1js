@@ -19,7 +19,6 @@ type Votes = OffchainStorage<Member>;
 type Candidates = OffchainStorage<Member>;
 type Voters = OffchainStorage<Member>;
 
-let feePayer: PrivateKey;
 /**
  * Function used to test a set of contracts and precondition
  * @param contracts A set of contracts
@@ -39,25 +38,77 @@ export async function testSet(
     votersStore: Voters;
   }
 ) {
-  let Local = Mina.LocalBlockchain();
-  Mina.setActiveInstance(Local);
-
-  feePayer = Local.testAccounts[0].privateKey;
-
   let { votersStore, candidatesStore, votesStore } = storage;
   let { votingKey } = params;
 
   const initialRoot = votersStore.getRoot();
 
+  console.log('starting testing phase 1');
   console.log('deploying 3 contracts ...');
-  let { voterContract, candidateContract, voting } = await deployContracts(
-    feePayer,
+  let set1 = await deployContracts(
     contracts,
     params,
     votersStore.getRoot(),
     candidatesStore.getRoot(),
     votesStore.getRoot()
   );
+  console.log('all contracts deployed!');
+
+  console.log('trying to overflow sequence events (default 32)');
+
+  console.log(
+    'emitting more than 32 sequence events without periodically updating them'
+  );
+  for (let index = 0; index <= 32; index++) {
+    try {
+      let tx = await Mina.transaction(set1.feePayer, () => {
+        let m = Member.from(
+          PrivateKey.random().toPublicKey(),
+          Field.zero,
+          UInt64.from(15)
+        );
+        set1.Local.addAccount(m.publicKey, m.balance.toString());
+
+        set1.voting.voterRegistration(m);
+
+        set1.voting.sign(votingKey);
+      });
+      tx.send();
+    } catch (error) {
+      throw new Error('Transaction failed!');
+    }
+  }
+
+  if (set1.voterContract.reducer.getActions({}).length < 32) {
+    throw Error(
+      `Did not emitted expected sequence events! Only emitted ${
+        set1.voterContract.reducer.getActions({}).length
+      }`
+    );
+  }
+
+  try {
+    let tx = await Mina.transaction(set1.feePayer, () => {
+      set1.voting.authorizeRegistrations();
+      set1.voting.sign(votingKey);
+    });
+    tx.send();
+  } catch (err: any) {
+    if (!err.toString().includes('the maximum number of lists of actions')) {
+      throw Error('Transaction should have failed but went through!');
+    }
+  }
+
+  console.log('starting testing phase 2');
+  console.log('deploying 3 contracts ...');
+  let { voterContract, candidateContract, voting, feePayer, Local } =
+    await deployContracts(
+      contracts,
+      params,
+      votersStore.getRoot(),
+      candidatesStore.getRoot(),
+      votesStore.getRoot()
+    );
   console.log('all contracts deployed!');
 
   /*
