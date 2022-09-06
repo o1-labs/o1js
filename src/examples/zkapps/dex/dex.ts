@@ -2,6 +2,7 @@ import {
   Account,
   Bool,
   Circuit,
+  circuitValue,
   CircuitValue,
   DeployArgs,
   Experimental,
@@ -20,23 +21,7 @@ import {
   UInt64,
 } from 'snarkyjs';
 
-/*
-Supply Liquidity:
-Action: Supply liquidity for X and Y tokens (extension: with vesting) + 1 MINA to optionally create the lqXY token
-At the start: Your wallet must have two tokens (X and Y) in proportion to each other (based on the current balance of the liquidity pool)
-At the end: Your wallet does not have custody of those two tokens, and instead has custody of a “coat-check-claim-ticket”
-(lqXY token) token that can be redeemed later for your two tokens
-
-Redeem Liquidity:
-Action: Redeem original liquidity for lqXY tokens
-At the start: Your wallet has a balance for lqXY
-At the end: Your wallet has a balance for the equivalent amount of X and Y tokens and fewer lqXY tokens
-
-Swap:
-Action: Swap some amount of token X for an equivalent amount of token Y
-At the start: Your wallet must have that amount of token X that you want to swap
-At the end: Your wallet as less of token X (the amount you swapped) and more on the proportional amount of token Y
-*/
+export { Dex, DexTokenHolder, TokenContract, keys, addresses, tokenIds };
 
 class Dex extends SmartContract {
   /**
@@ -96,8 +81,8 @@ class Dex extends SmartContract {
    */
   supplyLiquidity(user: PublicKey, dx: UInt64): UInt64 {
     // calculate dy outside circuit
-    let x = Account(addresses.dex, idX).balance.get();
-    let y = Account(addresses.dex, idY).balance.get();
+    let x = Account(addresses.dex, tokenIds.X).balance.get();
+    let y = Account(addresses.dex, tokenIds.Y).balance.get();
     if (x.value.isZero().toBoolean()) {
       throw Error(
         'Cannot call `supplyLiquidity` when reserves are zero. Use `supplyLiquidityBase`.'
@@ -115,7 +100,16 @@ class Dex extends SmartContract {
    *
    * The transaction needs to be signed by the user's private key.
    */
-  @method redeemLiquidity(user: PublicKey, dl: UInt64): UInt64x2 {}
+  @method redeemLiquidity(user: PublicKey, dl: UInt64) /* : UInt64x2 */ {
+    // call the token X holder inside a token X-authorized callback
+    let tokenX = new TokenContract(addresses.tokenX);
+    let dexX = new DexTokenHolder(addresses.dex, tokenIds.X);
+    let callback = Experimental.Callback.create(dexX, 'redeemLiquidityX', [
+      user,
+      dl,
+    ]);
+    tokenX.authorize(callback);
+  }
 
   /**
    * Swap X and Y tokens
@@ -128,7 +122,7 @@ class Dex extends SmartContract {
    * To swap X for Y, pass in inputY = 0, and inputX = the amount of X tokens you want to spend.
    * To swap Y for X, pass in inputX = 0, and inputY = the amount of Y tokens you want to spend.
    */
-  @method swap(user: PublicKey, inputX: UInt64, inputY: UInt64): UInt64x2 {}
+  // @method swap(user: PublicKey, inputX: UInt64, inputY: UInt64): UInt64x2 {}
 }
 
 // TODO: this is a pain -- let's define circuit values in one line, with a factory pattern
@@ -137,17 +131,23 @@ class Dex extends SmartContract {
 class UInt64x2 extends CircuitValue {
   @prop 0: UInt64;
   @prop 1: UInt64;
+
+  static from([a0, a1]: [UInt64, UInt64]) {
+    return UInt64x2.fromObject({ 0: a0, 1: a1 });
+  }
 }
 
 class DexTokenHolder extends SmartContract {
   // simpler circuit for redeeming liquidity -- direct trade between token and lq token
-  @method redeemLiquidityY(user: PublicKey, dl: UInt64) {
+  // it's incomplete, as it gives the user only the Y part for an lqXY token; but doesn't matter as there's no incentive to call it directly
+  @method redeemLiquidityY(user: PublicKey, dl: UInt64): UInt64 {
     let dex = Party.create(addresses.dex);
     let l = dex.account.balance.get();
     dex.account.balance.assertEquals(l);
 
     // user sends dl to dex
     let idlXY = Token.getId(addresses.dex);
+    // TODO: it seems wrong to bake in the ID of the lq token here
     let userParty = Party.create(user, idlXY);
     userParty.send({ to: dex, amount: dl });
 
@@ -156,11 +156,68 @@ class DexTokenHolder extends SmartContract {
     this.account.balance.assertEquals(y);
     let dy = y.mul(dl).div(l);
     this.send({ to: user, amount: dy });
+
+    // return l so callers don't have to walk their child parties to get it
+    return l;
   }
 
-  // more complicated circuit, where we have to trigger the Y-lqXY trade in our child parties
-  // and then add the X part
-  @method redeemLiquidityX(user: PublicKey, dl: UInt64) {}
+  // more complicated circuit, where we trigger the Y-lqXY trade in our child parties and then add the X part
+  @method redeemLiquidityX(user: PublicKey, dl: UInt64): UInt64x2 {
+    // first call the Y token holder, authorized by the Y token contract; this makes sure we get dl, the user's lqXY
+    // TODO: it seems wrong to bake in the address and ID of the other token here
+    let tokenY = new TokenContract(addresses.tokenY);
+    let dexY = new DexTokenHolder(addresses.dex, tokenIds.Y);
+    // TODO: THIS IS A SECURITY HOLE
+    // there's nothing proving that we really call that callback and pass in [user, dl]
+    // also, there needs to be a way to get the callback _result_ to the caller's caller
+    // right now, we can hack around that by extracting balance changes here
+    tokenY.authorize(
+      Experimental.Callback.create(dexY, 'redeemLiquidityY', [user, dl])
+    );
+    let l: UInt64;
+    let dy;
+    {
+      // NOTHING IN THIS BLOCK SHOULD BE NECESSARY if we're properly proving the callback call.
+      // walk into child parties, to assert the callback was called correctly
+
+      // TODO: getting the party here w/o messing up the parties structure is error-prone and non-obvious
+      let tokenYParty = Party.witnessTree(
+        circuitValue<null>(null),
+        // need to walk two layers deeper, and need to respect the actual max number of child parties
+        [[undefined, undefined, undefined], undefined, undefined],
+        () => {
+          // remove existing calls hash, because tokenY.authorize just witnesses it, which would mess up our circuit and
+          // make us unable to make assertions about the party tree
+          this.self.children.parties[0].children.calls = undefined;
+          return { party: this.self.children.parties[0], result: null };
+        }
+      ).party;
+      let [dexYParty] = tokenYParty.children.parties;
+      let [dexParty, userPartyL] = dexYParty.children.parties;
+      // confirm we really got `dl` tokens from `user`
+      // 1. passed in the right user
+      userPartyL.body.publicKey.assertEquals(user);
+      // 2. deducted the right balance from user
+      Int64.fromObject(userPartyL.body.balanceChange).assertEquals(
+        Int64.from(dl).neg()
+      );
+      // get lq pool balance
+      l = dexParty.account.balance.get();
+      dexParty.account.balance.assertEquals(l);
+      // in return for dl, we give back dx, the X token part
+      let y = dexYParty.account.balance.get();
+      dexYParty.account.balance.assertEquals(y);
+      dy = y.mul(dl).div(l);
+    }
+
+    // in return for dl, we give back dx, the X token part
+    let x = this.account.balance.get();
+    this.account.balance.assertEquals(x);
+    let dx = x.mul(dl).div(l);
+    this.send({ to: user, amount: dx });
+
+    return UInt64x2.from([dx, dy]);
+  }
 }
 
 /**
@@ -206,8 +263,9 @@ class TokenContract extends SmartContract {
   }
 
   // let a zkapp do whatever it wants, as long as the token supply stays constant
-  @method authorize(callback: Experimental.Callback) {
+  @method authorize(callback: Experimental.Callback<any>) {
     let layout = [[3, 0, 0], 0, 0]; // these are 10 child parties we allow, in a left-biased tree of width 3
+    // TODO: this should also return what the callback returns, and authorize should pass it on!
     let zkappParty = Experimental.partyFromCallback(this, layout, callback);
     // walk parties to see if balances for this token cancel
     let balance = balanceSum(zkappParty, this.experimental.token.id);
@@ -221,9 +279,11 @@ class TokenContract extends SmartContract {
 
 await isReady;
 let { keys, addresses } = randomAccounts('tokenX', 'tokenY', 'dex', 'user');
-let idX = Token.getId(addresses.tokenX);
-let idY = Token.getId(addresses.tokenY);
-let idlXY = Token.getId(addresses.dex);
+let tokenIds = {
+  X: Token.getId(addresses.tokenX),
+  Y: Token.getId(addresses.tokenY),
+  lqXY: Token.getId(addresses.dex),
+};
 
 /**
  * Sum of balances of the party and all its descendants
