@@ -13,7 +13,7 @@ import { Member, MerkleWitness } from './member';
 import { Membership_ } from './membership';
 import { OffchainStorage } from './off_chain_storage';
 import { Voting_ } from './voting';
-import { assertValidTx, printResult, registerMember, vote } from './voting_lib';
+import { assertValidTx, getResults, registerMember, vote } from './voting_lib';
 
 type Votes = OffchainStorage<Member>;
 type Candidates = OffchainStorage<Member>;
@@ -22,7 +22,7 @@ type Voters = OffchainStorage<Member>;
 let feePayer: PrivateKey;
 /**
  * Function used to test a set of contracts and precondition
- * @param set A set of contracts
+ * @param contracts A set of contracts
  * @param params A set of preconditions and parameters
  * @param storage A set of off-chain storage
  */
@@ -623,7 +623,17 @@ export async function testSet(
   }
 
   console.log('election is over, printing results');
-  printResult(voting, votesStore);
+
+  let results = getResults(voting, votesStore);
+  console.log(results);
+
+  if (results[currentCandidate!.publicKey.toBase58()] != 1) {
+    throw Error(
+      `Candidate ${currentCandidate!.publicKey.toBase58()} should have one vote, but has ${
+        results[currentCandidate!.publicKey.toBase58()]
+      } `
+    );
+  }
 
   console.log('testing after election state');
 

@@ -4,10 +4,11 @@ import { Voting_ } from './voting';
 import { Mina, PrivateKey } from 'snarkyjs';
 import { Printer } from 'prettier';
 /**
- * Updates off-chain storage when regestering a member or candidate
- * @param {bigint} i                            index of memberStore or candidatesStore
- * @param {OffchainStorage<Member>} votesStore  votes off-chain storage
- * @param {OffchainStorage<Member>} votesStore  candidates off-chain storage
+ * Updates off-chain storage when registering a member or candidate
+ * @param {bigint} i index of memberStore or candidatesStore
+ * @param {Member} m member to register
+ * @param {OffchainStorage<Member>} store  off-chain store which should be used when registering a new member
+ * @param {any} Local  local blockchain instance in use
  */
 export function registerMember(
   i: bigint,
@@ -49,7 +50,7 @@ export function vote(
 /**
  * Prints the voting results of an election
  */
-export function printResult(
+export function getResults(
   voting: Voting_,
   votesStore: OffchainStorage<Member>
 ) {
@@ -57,13 +58,11 @@ export function printResult(
     throw new Error('On-chain root is not up to date with the off-chain tree');
   }
 
-  let result: any = [];
+  let result: Record<string, number> = {};
   votesStore.forEach((m, i) => {
-    result.push({
-      [m.publicKey.toBase58()]: m.votes.toString(),
-    });
+    result[m.publicKey.toBase58()] = Number(m.votes.toString());
   });
-  console.log(result);
+  return result;
 }
 
 /**
@@ -100,6 +99,8 @@ export async function assertValidTx(
     } else {
       throw Error('transaction failed, but got a different error message!');
     }
+  } else if (!failed && !expectToBeValid) {
+    throw Error('transaction passed but should have failed');
   } else {
     throw Error('transaction was expected to fail but it passed');
   }

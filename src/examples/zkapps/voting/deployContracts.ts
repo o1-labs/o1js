@@ -7,8 +7,12 @@ import { Voting_ } from './voting';
 
 /**
  * Function used to deploy a set of contracts for a given set of preconditions
+ * @param feePayer the private key used to pay the fees
  * @param contracts A set of contracts to deploy
  * @param params A set of preconditions and parameters
+ * @param voterRoot the initial root of the voter store
+ * @param candidateRoot the initial root of the voter store
+ * @param votesRoot the initial root of the votes store
  */
 export async function deployContracts(
   feePayer: PrivateKey,
