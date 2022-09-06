@@ -593,7 +593,7 @@ class SmartContract {
   }: {
     verificationKey?: { data: string; hash: Field | string };
     zkappKey?: PrivateKey;
-  }) {
+  } = {}) {
     verificationKey ??= (this.constructor as any)._verificationKey;
     if (verificationKey !== undefined) {
       let { hash: hash_, data } = verificationKey;
@@ -986,10 +986,12 @@ function selfParty(address: PublicKey, tokenId?: Field) {
 // per-smart-contract context for transaction construction
 type ExecutionState = { transactionId: number; party: Party };
 
-type DeployArgs = {
-  verificationKey?: { data: string; hash: string | Field };
-  zkappKey?: PrivateKey;
-};
+type DeployArgs =
+  | {
+      verificationKey?: { data: string; hash: string | Field };
+      zkappKey?: PrivateKey;
+    }
+  | undefined;
 
 // functions designed to be called from a CLI
 // TODO: this function is currently not used by the zkapp CLI, because it doesn't handle nonces properly in all cases
