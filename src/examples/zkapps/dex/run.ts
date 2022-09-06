@@ -44,10 +44,11 @@ let tx = await Mina.transaction(feePayer, () => {
   Party.createSigned(feePayer).balance.subInPlace(
     Mina.accountCreationFee().mul(5)
   );
-  tokenX.deploy({ zkappKey: keys.tokenX });
-  tokenY.deploy({ zkappKey: keys.tokenY });
-  tokenX.deployZkapp(keys.dex);
-  tokenY.deployZkapp(keys.dex);
-  dex.deploy({ zkappKey: keys.dex });
+  tokenX.deploy();
+  tokenY.deploy();
+  tokenX.deployZkapp(addresses.dex);
+  tokenY.deployZkapp(addresses.dex);
+  dex.deploy();
 });
-await tx.send().wait();
+await tx.prove();
+await tx.sign([keys.tokenX, keys.tokenY, keys.dex]).send().wait();

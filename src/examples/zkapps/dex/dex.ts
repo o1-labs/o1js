@@ -227,7 +227,7 @@ class TokenContract extends SmartContract {
   // constant supply
   SUPPLY = UInt64.from(10n ** 18n);
 
-  deploy(args: DeployArgs) {
+  deploy(args?: DeployArgs) {
     super.deploy(args);
     this.setPermissions({
       ...Permissions.default(),
@@ -249,8 +249,7 @@ class TokenContract extends SmartContract {
 
   // this is a very standardized deploy method. instead, we could also take the party from a callback
   // => need callbacks for signatures
-  @method deployZkapp(zkappKey: PrivateKey) {
-    let address = zkappKey.toPublicKey();
+  @method deployZkapp(address: PublicKey) {
     let tokenId = this.experimental.token.id;
     let zkapp = Experimental.createChildParty(this.self, address, tokenId);
     Party.setValue(zkapp.update.permissions, {
@@ -259,7 +258,7 @@ class TokenContract extends SmartContract {
     });
     // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
     // Party.setValue(zkapp.update.verificationKey, verificationKey);
-    zkapp.signInPlace(zkappKey, true);
+    zkapp.signInPlace(undefined, true);
   }
 
   // let a zkapp do whatever it wants, as long as the token supply stays constant
