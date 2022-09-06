@@ -82,7 +82,7 @@ const Experimental_ = {
   MerkleWitness,
 };
 
-type Callback_ = Callback;
+type Callback_<Result> = Callback<Result>;
 
 /**
  * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
@@ -101,5 +101,5 @@ namespace Experimental {
   export let partyFromCallback = Experimental_.partyFromCallback;
   export type AsFieldsAndAux<T, TJson> = AsFieldsAndAux_<T, TJson>;
   export let Callback = Experimental_.Callback;
-  export type Callback = Callback_;
+  export type Callback<Result> = Callback_<Result>;
 }

@@ -1044,26 +1044,19 @@ class Party implements Types.Party {
    * Like Party.witness, but lets you specify a layout for the party's children,
    * which also get witnessed
    */
-  static witnessTree(
+  static witnessTree<T>(
+    resultType: AsFieldElements<T>,
     childLayout: PartiesLayout,
-    compute: () => Party,
+    compute: () => { party: Party; result: T },
     options?: { skipCheck: boolean }
-  ): Party {
+  ) {
     // witness the root party
-    let Null = circuitValue<null>(null);
-    let { party } = Party.witness(
-      Null,
-      () => ({
-        party: compute(),
-        result: null,
-      }),
-      options
-    );
+    let { party, result } = Party.witness(resultType, compute, options);
     // stop early if children === undefined
     if (childLayout === undefined) {
       let calls = Circuit.witness(Field, () => CallForest.hashChildren(party));
       party.children.calls = calls;
-      return party;
+      return { party, result };
     }
     let childArray: PartiesLayout[] =
       typeof childLayout === 'number'
@@ -1072,16 +1065,20 @@ class Party implements Types.Party {
     let n = childArray.length;
     for (let i = 0; i < n; i++) {
       party.children.parties[i] = Party.witnessTree(
+        circuitValue<null>(null),
         childArray[i],
-        () => party.children.parties[i] ?? Party.dummy(),
+        () => ({
+          party: party.children.parties[i] ?? Party.dummy(),
+          result: null,
+        }),
         options
-      );
+      ).party;
     }
     party.children.calls = CallForest.hashChildren(party);
     if (n === 0) {
       party.children.calls.assertEquals(CallForest.emptyHash());
     }
-    return party;
+    return { party, result };
   }
 }
 

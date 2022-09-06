@@ -424,12 +424,22 @@ function computeCallData(
   ];
 }
 
-class Callback extends GenericArgument {
+class Callback<Result> extends GenericArgument {
   instance: SmartContract;
-  methodIntf: MethodInterface;
+  methodIntf: MethodInterface & { returnType: AsFieldElements<Result> };
   args: any[];
 
-  constructor(instance: SmartContract, methodName: string, args: any[]) {
+  static create<T extends SmartContract, K extends keyof T>(
+    instance: T,
+    methodName: K,
+    args: T[K] extends (...args: infer A) => any ? A : never
+  ) {
+    let callback: Callback<T[K] extends (...args: any) => infer R ? R : never> =
+      new this(instance, methodName, args);
+    return callback;
+  }
+
+  private constructor(instance: any, methodName: any, args: any[]) {
     super();
     this.instance = instance;
     let ZkappClass = instance.constructor as typeof SmartContract;
@@ -440,17 +450,25 @@ class Callback extends GenericArgument {
       throw Error(
         `Callback: could not find method ${ZkappClass.name}.${methodName}`
       );
-    this.methodIntf = methodIntf;
+    methodIntf = {
+      ...methodIntf,
+      returnType:
+        methodIntf.returnType ??
+        (circuitValue<null>(null) as AsFieldElements<null> as any),
+    };
+    this.methodIntf = methodIntf as any;
     this.args = args;
   }
 }
 
+// TODO: prove call signature in the outer circuit, just like for composability!
 function partyFromCallback(
   parentZkapp: SmartContract,
   childLayout: PartiesLayout,
-  callback: Callback
+  callback: Callback<any>
 ) {
-  let party = Party.witnessTree(
+  let { party } = Party.witnessTree(
+    circuitValue<null>(null),
     childLayout,
     () => {
       if (callback.isEmpty) throw Error('bug: empty callback');
@@ -472,7 +490,7 @@ function partyFromCallback(
         },
         () => method.apply(instance, args)
       );
-      return party;
+      return { party, result: null };
     },
     { skipCheck: true }
   );
