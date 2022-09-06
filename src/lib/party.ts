@@ -280,7 +280,7 @@ const Events = {
     return { hash, data: [event, ...events.data] };
   },
   hash(events: Event[]) {
-    return events.reverse().reduce(Events.pushEvent, Events.empty()).hash;
+    return [...events].reverse().reduce(Events.pushEvent, Events.empty()).hash;
   },
 };
 
@@ -299,7 +299,7 @@ const SequenceEvents = {
     return { hash, data: [event, ...sequenceEvents.data] };
   },
   hash(events: Event[]) {
-    return events
+    return [...events]
       .reverse()
       .reduce(SequenceEvents.pushEvent, SequenceEvents.empty()).hash;
   },
