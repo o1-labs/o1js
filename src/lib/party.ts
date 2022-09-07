@@ -18,7 +18,14 @@ import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
-import { inCheckedComputation, Proof, snarkContext } from './proof_system.js';
+import {
+  emptyWitness,
+  inCheckedComputation,
+  inCompileMode,
+  inProver,
+  Proof,
+  snarkContext,
+} from './proof_system.js';
 import {
   emptyHashWithPrefix,
   hashWithPrefix,
@@ -816,57 +823,48 @@ class Party implements Types.Party {
     return this.body.publicKey;
   }
 
-  signInPlace(privateKey?: PrivateKey, fallbackToZeroNonce = false) {
-    this.setNoncePrecondition(fallbackToZeroNonce);
+  sign(privateKey?: PrivateKey) {
+    let nonce = Party.getNonce(this);
+    this.account.nonce.assertEquals(nonce);
     this.body.incrementNonce = Bool(true);
     Authorization.setLazySignature(this, { privateKey });
   }
 
-  sign(privateKey?: PrivateKey) {
-    let party = Party.clone(this);
-    party.signInPlace(privateKey);
-    return party;
-  }
-
   static signFeePayerInPlace(
     feePayer: FeePayerUnsigned,
-    privateKey?: PrivateKey,
-    fallbackToZeroNonce = false
+    privateKey?: PrivateKey
   ) {
-    feePayer.body.nonce = this.getNonce(feePayer, fallbackToZeroNonce);
+    feePayer.body.nonce = this.getNonce(feePayer);
     feePayer.authorization = Ledger.dummySignature();
     feePayer.lazyAuthorization = { kind: 'lazy-signature', privateKey };
   }
 
-  // TODO this needs to be more intelligent about previous nonces in the transaction, similar to Party.createSigned
-  static getNonce(party: Party | FeePayerUnsigned, fallbackToZero = false) {
-    let nonce: UInt32;
-    let inProver = Circuit.inProver();
-    if (inProver || !Circuit.inCheckedComputation()) {
-      try {
-        let account = Mina.getAccount(
-          party.body.publicKey as PublicKey,
-          (party as Party).body.tokenId ?? TokenId.default
-        );
-        nonce = account.nonce;
-      } catch (err) {
-        if (fallbackToZero) nonce = UInt32.zero;
-        else throw err;
-      }
-      nonce = inProver ? Circuit.witness(UInt32, () => nonce) : nonce;
-    } else {
-      nonce = Circuit.witness(UInt32, (): UInt32 => {
-        throw Error('this should never happen');
-      });
+  static getNonce(party: Party | FeePayerUnsigned) {
+    if (inCompileMode()) {
+      return emptyWitness(UInt32);
     }
-    return nonce;
+    return inProver()
+      ? Circuit.witness(UInt32, () => Party.getNonceUnchecked(party))
+      : Party.getNonceUnchecked(party);
   }
 
-  setNoncePrecondition(fallbackToZero = false) {
-    let nonce = Party.getNonce(this, fallbackToZero);
-    let accountPrecondition = this.body.preconditions.account;
-    Party.assertEquals(accountPrecondition.nonce, nonce);
-    return nonce;
+  private static getNonceUnchecked(update: Party | FeePayerUnsigned) {
+    let publicKey = update.body.publicKey;
+    let nonce = Number(
+      Precondition.getAccountPreconditions(update.body).nonce.toString()
+    );
+    // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher,
+    // bc the fee payer already increases its nonce
+    let isFeePayer = Mina.currentTransaction()?.sender?.equals(publicKey);
+    if (isFeePayer?.toBoolean()) nonce++;
+    // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
+    CallForest.forEach(Mina.currentTransaction.get().parties, (update) => {
+      let shouldIncreaseNonce = update.publicKey
+        .equals(publicKey)
+        .and(update.body.incrementNonce);
+      if (shouldIncreaseNonce.toBoolean()) nonce++;
+    });
+    return UInt32.from(nonce);
   }
 
   toFields() {
@@ -946,34 +944,17 @@ class Party implements Types.Party {
 
   static createSigned(signer: PrivateKey) {
     let publicKey = signer.toPublicKey();
-    let body = Body.keepAll(publicKey);
     if (!Mina.currentTransaction.has()) {
       throw new Error(
         'Party.createSigned: Cannot run outside of a transaction'
       );
     }
+    let party = Party.defaultParty(publicKey);
     // it's fine to compute the nonce outside the circuit, because we're constraining it with a precondition
-    let nonce = Circuit.witness(UInt32, () => {
-      let nonce = Number(
-        Mina.getAccount(publicKey, body.tokenId).nonce.toString()
-      );
-      // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher,
-      // bc the fee payer already increases its nonce
-      let isFeePayer = Mina.currentTransaction()?.sender?.equals(signer);
-      if (isFeePayer?.toBoolean()) nonce++;
-      // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
-      for (let party of Mina.currentTransaction.get().parties) {
-        let shouldIncreaseNonce = party.publicKey
-          .equals(publicKey)
-          .and(party.body.incrementNonce);
-        if (shouldIncreaseNonce.toBoolean()) nonce++;
-      }
-      return UInt32.from(nonce);
-    });
-    Party.assertEquals(body.preconditions.account.nonce, nonce);
-    body.incrementNonce = Bool(true);
+    let nonce = Circuit.witness(UInt32, () => Party.getNonceUnchecked(party));
+    party.account.nonce.assertEquals(nonce);
+    party.body.incrementNonce = Bool(true);
 
-    let party = new Party(body);
     Authorization.setLazySignature(party, { privateKey: signer });
     Mina.currentTransaction.get().parties.push(party);
     return party;
@@ -1141,6 +1122,13 @@ const CallForest = {
       stackHash = Circuit.if(party.isDummy(), stackHash, newHash);
     }
     return stackHash;
+  },
+
+  forEach(updates: Party[], callback: (update: Party) => void) {
+    for (let update of updates) {
+      callback(update);
+      CallForest.forEach(update.children.parties, callback);
+    }
   },
 };
 

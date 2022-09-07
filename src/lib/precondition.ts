@@ -1,12 +1,13 @@
 import { Circuit, AsFieldElements, Bool, Field } from '../snarky.js';
 import { circuitValueEquals } from './circuit_value.js';
 import * as Mina from './mina.js';
-import { Events, SequenceEvents, Party, Preconditions } from './party.js';
+import { SequenceEvents, Party, Preconditions } from './party.js';
 import { UInt32, UInt64 } from './int.js';
-import { inAnalyze, inCompile, inProver } from './proof_system.js';
+import { inCompileMode, inProver } from './proof_system.js';
 import { Layout } from '../snarky/parties-helpers.js';
 import { jsLayout } from '../snarky/types.js';
 import { emptyReceiptChainHash } from './hash.js';
+import { PublicKey } from './signature.js';
 
 export {
   preconditions,
@@ -16,6 +17,7 @@ export {
   cleanPreconditionsCache,
   AccountValue,
   NetworkValue,
+  getAccountPreconditions,
 };
 
 function preconditions(party: Party, isSelf: boolean) {
@@ -151,7 +153,7 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   fieldType: AsFieldElements<U>
 ): U {
   // in compile, just return an empty variable
-  if (inCompile() || inAnalyze()) {
+  if (inCompileMode()) {
     return Circuit.witness(fieldType, (): U => {
       // TODO this error is never thrown. instead, reading the value with e.g. `toString` ends up
       // calling snarky's eval_as_prover, which throws "Can't evaluate prover code outside an as_prover block"
@@ -167,7 +169,7 @@ To write a correct circuit, you must avoid any dependency on the concrete value 
   let key = rest.join('.');
   let value: U;
   if (accountOrNetwork === 'account') {
-    let account = getAccountPreconditions(party);
+    let account = getAccountPreconditions(party.body);
     value = account[key as keyof AccountValue] as U;
   } else if (accountOrNetwork === 'network') {
     let networkState = Mina.getNetworkState();
@@ -184,8 +186,11 @@ To write a correct circuit, you must avoid any dependency on the concrete value 
   }
 }
 
-function getAccountPreconditions(party: Party): AccountValue {
-  let { publicKey, tokenId } = party.body;
+function getAccountPreconditions(body: {
+  publicKey: PublicKey;
+  tokenId?: Field;
+}): AccountValue {
+  let { publicKey, tokenId } = body;
   let hasAccount = Mina.hasAccount(publicKey, tokenId);
   if (!hasAccount) {
     return {

@@ -609,11 +609,11 @@ class SmartContract {
       this.setValue(this.self.update.verificationKey, { hash, data });
     }
     this.setValue(this.self.update.permissions, Permissions.default());
-    this.sign(zkappKey, true);
+    this.sign(zkappKey);
   }
 
-  sign(zkappKey?: PrivateKey, fallbackToZeroNonce?: boolean) {
-    this.self.signInPlace(zkappKey, fallbackToZeroNonce);
+  sign(zkappKey?: PrivateKey) {
+    this.self.sign(zkappKey);
   }
 
   private executionState(): Party {
@@ -687,10 +687,6 @@ class SmartContract {
 
   get balance() {
     return this.self.balance;
-  }
-
-  get nonce() {
-    return this.self.setNoncePrecondition();
   }
 
   events: { [key: string]: AsFieldElements<any> } = {};

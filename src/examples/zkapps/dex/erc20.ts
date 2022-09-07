@@ -198,7 +198,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
     });
     // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
     // Party.setValue(zkapp.update.verificationKey, verificationKey);
-    zkapp.signInPlace(zkappKey, true);
+    zkapp.sign(zkappKey);
   }
 
   // for letting a zkapp do whatever it wants, as long as no tokens are transfered

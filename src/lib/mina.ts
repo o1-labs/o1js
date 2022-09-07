@@ -62,7 +62,7 @@ type Account = Fetch.Account;
 
 type FetchMode = 'fetch' | 'cached' | 'test';
 type CurrentTransaction = {
-  sender?: PrivateKey;
+  sender?: PublicKey;
   parties: Party[];
   fetchMode: FetchMode;
   isFinalRunOutsideCircuit: boolean;
@@ -97,7 +97,7 @@ function createTransaction(
   let memo = feePayer instanceof PrivateKey ? '' : feePayer?.memo ?? '';
 
   let transactionId = currentTransaction.enter({
-    sender: feePayerKey,
+    sender: feePayerKey?.toPublicKey(),
     parties: [],
     fetchMode,
     isFinalRunOutsideCircuit,

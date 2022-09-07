@@ -258,7 +258,7 @@ class TokenContract extends SmartContract {
     });
     // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
     // Party.setValue(zkapp.update.verificationKey, verificationKey);
-    zkapp.signInPlace(undefined, true);
+    zkapp.sign();
   }
 
   // let a zkapp do whatever it wants, as long as the token supply stays constant
