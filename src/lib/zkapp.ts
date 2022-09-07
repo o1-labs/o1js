@@ -146,11 +146,8 @@ function wrapMethod(
           isCallback: false,
           selfUpdate: selfParty(this.address, this.nativeToken),
         },
-        () => {
-          if (
-            inCheckedComputation() &&
-            !smartContractContext.get().isCallback
-          ) {
+        (context) => {
+          if (inCheckedComputation() && !context.isCallback) {
             // important to run this with a fresh party everytime, otherwise compile messes up our circuits
             // because it runs this multiple times
             let [, result] = Mina.currentTransaction.runWith(
@@ -213,8 +210,8 @@ function wrapMethod(
           } else {
             // called smart contract at the top level, in a transaction!
             // => attach ours to the current list of parties
-            let party = smartContractContext.get().selfUpdate;
-            if (!smartContractContext.get().isCallback) {
+            let party = context.selfUpdate;
+            if (!context.isCallback) {
               Mina.currentTransaction()?.parties.push(party);
             }
 
@@ -649,10 +646,9 @@ class SmartContract {
     // to do at least the attaching explicitly, and remove implicit attaching
     // also, implicit creation is questionable
     let transaction = Mina.currentTransaction.get();
-    let id = Mina.currentTransaction.id();
     let party = selfParty(this.address, this.nativeToken);
     transaction.parties.push(party);
-    this._executionState = { transactionId: id, party };
+    this._executionState = { transactionId, party };
     return party;
   }
 
