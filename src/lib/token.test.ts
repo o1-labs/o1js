@@ -115,8 +115,8 @@ async function setupLocal() {
   (
     await Mina.transaction(feePayer, () => {
       Party.fundNewAccount(feePayer);
-      zkapp.deploy({ zkappKey });
       zkapp.init();
+      zkapp.deploy({ zkappKey });
     })
   ).send();
 }
