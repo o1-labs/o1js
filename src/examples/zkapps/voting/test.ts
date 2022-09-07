@@ -54,6 +54,21 @@ export async function testSet(
   );
   console.log('all contracts deployed!');
 
+  /*
+    test case description:
+      overflowing maximum amount of sequence events allowed in the reducer (32 default)
+    
+    preconditions:
+      - x
+
+    tested cases:
+      - emitted 33 sequence events and trying to reduce them
+
+    expected results:
+      - throws an error
+
+  */
+
   console.log('trying to overflow sequence events (default 32)');
 
   console.log(
