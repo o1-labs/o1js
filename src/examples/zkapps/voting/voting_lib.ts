@@ -97,6 +97,7 @@ export async function assertValidTx(
     if (err.message.includes(msg ?? 'NO__EXPECTED_ERROR_MESSAGE_SET')) {
       console.log('> transaction failed, as expected!');
     } else {
+      console.log(err);
       throw Error('transaction failed, but got a different error message!');
     }
   } else if (!failed && !expectToBeValid) {

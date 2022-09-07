@@ -72,9 +72,10 @@ export async function testSet(
     votesStore.getRoot()
   );
 
-  assertValidTx(
-    false,
-    () => {
+  console.log('trying to invoke invalid contract method...');
+
+  try {
+    let tx = await Mina.transaction(invalidSet.feePayer, () => {
       let m = Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
@@ -85,10 +86,14 @@ export async function testSet(
       invalidSet.voting.voterRegistration(m);
 
       invalidSet.voting.sign(votingKey);
-    },
-    invalidSet.feePayer,
-    'unsatisfied'
-  );
+    });
+
+    tx.send();
+  } catch (err: any) {
+    if (!err.toString().includes('precondition_unsatisfied')) {
+      throw Error('Transaction should have failed but went through!');
+    }
+  }
 
   const initialRoot = votersStore.getRoot();
 
