@@ -64,6 +64,7 @@ let smartContractContext = Context.create<{
   this: SmartContract;
   methodCallDepth: number;
   isCallback: boolean;
+  selfUpdate: Party;
 }>();
 
 type PartyBody = Types.Party['body'];

@@ -30,7 +30,6 @@ import {
   Authorization,
   CallForest,
   TokenId,
-  makeChildParty,
   PartiesLayout,
   smartContractContext,
 } from './party.js';
@@ -60,7 +59,6 @@ import {
 } from './proof_system.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import { Types } from '../snarky/types.js';
-import { Context } from './global-context.js';
 import { Poseidon } from './hash.js';
 import * as Encoding from './encoding.js';
 
@@ -138,12 +136,21 @@ function wrapMethod(
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
-    let isCallback = smartContractContext()?.isCallback ?? false;
-    if (!smartContractContext.has() || isCallback) {
+    // TODO: the callback case is actually more similar to the composability case below,
+    // should reconcile with that to get the same callData hashing
+    if (!smartContractContext.has() || smartContractContext()?.isCallback) {
       return smartContractContext.runWith(
-        { this: this, methodCallDepth: 0, isCallback: false },
+        smartContractContext() ?? {
+          this: this,
+          methodCallDepth: 0,
+          isCallback: false,
+          selfUpdate: selfParty(this.address, this.nativeToken),
+        },
         () => {
-          if (inCheckedComputation() && !isCallback) {
+          if (
+            inCheckedComputation() &&
+            !smartContractContext.get().isCallback
+          ) {
             // important to run this with a fresh party everytime, otherwise compile messes up our circuits
             // because it runs this multiple times
             let [, result] = Mina.currentTransaction.runWith(
@@ -204,13 +211,16 @@ function wrapMethod(
             assertStatePrecondition(this);
             return result;
           } else {
-            // in a transaction, also add a lazy proof to the self party
-            // (if there's no other authorization set)
+            // called smart contract at the top level, in a transaction!
+            // => attach ours to the current list of parties
+            let party = smartContractContext.get().selfUpdate;
+            if (!smartContractContext.get().isCallback) {
+              Mina.currentTransaction()?.parties.push(party);
+            }
 
             // first, clone to protect against the method modifying arguments!
             // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
             let clonedArgs = cloneCircuitValue(actualArgs);
-            let party = this.self;
 
             // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
             let blindingValue = getBlindingValue();
@@ -259,7 +269,12 @@ function wrapMethod(
     let parentParty = smartContractContext.get().this.self;
     let methodCallDepth = smartContractContext.get().methodCallDepth;
     let [, result] = smartContractContext.runWith(
-      { this: this, methodCallDepth: methodCallDepth + 1, isCallback: false },
+      {
+        this: this,
+        methodCallDepth: methodCallDepth + 1,
+        isCallback: false,
+        selfUpdate: selfParty(this.address, this.nativeToken),
+      },
       () => {
         // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
         // so we have to explain to the user how to do that
@@ -290,8 +305,8 @@ function wrapMethod(
           // so we remove it again
           // TODO: since we wrap all method calls now anyway, should remove that hidden logic in this.self
           // and add parties to transactions more explicitly
-          let transaction = Mina.currentTransaction();
-          if (transaction !== undefined) transaction.parties.pop();
+          // let transaction = Mina.currentTransaction();
+          // if (transaction !== undefined) transaction.parties.pop();
 
           let [{ memoized }, result] = memoizationContext.runWith(
             {
@@ -476,17 +491,13 @@ function partyFromCallback(
       let method = instance[
         methodIntf.methodName as keyof SmartContract
       ] as Function;
-      let party = instance.self;
-      // remove party from top level list, where it doesn't belong
-      // TODO: this shouldn't happen implicitly anyway
-      if (Mina.currentTransaction.has()) {
-        Mina.currentTransaction.get().parties.pop();
-      }
+      let party = selfParty(instance.address, instance.nativeToken);
       smartContractContext.runWith(
         {
           this: instance,
           methodCallDepth: (smartContractContext()?.methodCallDepth ?? 0) + 1,
           isCallback: true,
+          selfUpdate: party,
         },
         () => method.apply(instance, args)
       );
@@ -608,33 +619,45 @@ class SmartContract {
     this.self.signInPlace(zkappKey, fallbackToZeroNonce);
   }
 
-  private executionState(): ExecutionState {
-    if (!Mina.currentTransaction.has()) {
+  private executionState(): Party {
+    let inTransaction = Mina.currentTransaction.has();
+    let inSmartContract = smartContractContext.has();
+    if (!inTransaction && !inSmartContract) {
       // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
       // or even expose the .get() methods independently of any party (they don't need one)
-      return {
-        transactionId: NaN,
-        party: selfParty(this.address, this.nativeToken),
-      };
+      return selfParty(this.address, this.nativeToken);
+    }
+    let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
+    // running a method changes which is the "current account update" of this smart contract
+    // this logic also implies that when calling `this.self` inside a method, it will always
+    // return the same account update uniquely associated with that method call.
+    // it won't create new updates and add them to a transaction implicitly
+    if (inSmartContract) {
+      let party = smartContractContext.get().selfUpdate;
+      this._executionState = { party, transactionId };
+      return party;
     }
     let executionState = this._executionState;
     if (
       executionState !== undefined &&
-      executionState.transactionId === Mina.currentTransaction.id()
+      executionState.transactionId === transactionId
     ) {
-      return executionState;
+      return executionState.party;
     }
+    // TODO: here, we are creating a new party & attaching it implicitly
+    // we should refactor some methods which rely on that, such as `deploy()`,
+    // to do at least the attaching explicitly, and remove implicit attaching
+    // also, implicit creation is questionable
     let transaction = Mina.currentTransaction.get();
     let id = Mina.currentTransaction.id();
     let party = selfParty(this.address, this.nativeToken);
     transaction.parties.push(party);
-    executionState = { transactionId: id, party };
-    this._executionState = executionState;
-    return executionState;
+    this._executionState = { transactionId: id, party };
+    return party;
   }
 
   get self() {
-    return this.executionState().party;
+    return this.executionState();
   }
 
   get account() {
