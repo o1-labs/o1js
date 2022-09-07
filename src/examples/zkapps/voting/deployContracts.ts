@@ -1,4 +1,13 @@
-import { Experimental, Field, Mina, Party, PrivateKey } from 'snarkyjs';
+import {
+  DeployArgs,
+  Experimental,
+  Field,
+  Permissions,
+  Mina,
+  Party,
+  PrivateKey,
+  SmartContract,
+} from 'snarkyjs';
 import { VotingAppParams } from './factory';
 
 import { Membership_ } from './membership';
@@ -69,4 +78,87 @@ export async function deployContracts(
 
   console.log('successfully deployed contracts');
   return { voterContract, candidateContract, voting, feePayer, Local };
+}
+
+/**
+ * Function used to deploy a set of **invalid** membership contracts for a given set of preconditions
+ * @param feePayer the private key used to pay the fees
+ * @param contracts A set of contracts to deploy
+ * @param params A set of preconditions and parameters
+ * @param voterRoot the initial root of the voter store
+ * @param candidateRoot the initial root of the voter store
+ * @param votesRoot the initial root of the votes store
+ */
+export async function deployInvalidContracts(
+  contracts: {
+    voterContract: Membership_;
+    candidateContract: Membership_;
+    voting: Voting_;
+  },
+  params: VotingAppParams,
+  voterRoot: Field,
+  candidateRoot: Field,
+  votesRoot: Field
+): Promise<{
+  voterContract: Membership_;
+  candidateContract: Membership_;
+  voting: Voting_;
+  Local: any;
+  feePayer: PrivateKey;
+}> {
+  let Local = Mina.LocalBlockchain();
+  Mina.setActiveInstance(Local);
+
+  let feePayer = Local.testAccounts[0].privateKey;
+  let { voterContract, candidateContract, voting } = contracts;
+
+  console.log('deploying set of 3 contracts');
+  try {
+    let tx = await Mina.transaction(feePayer, () => {
+      Party.fundNewAccount(feePayer, {
+        initialBalance: Mina.accountCreationFee().add(
+          Mina.accountCreationFee()
+        ),
+      });
+
+      voting.deploy({ zkappKey: params.votingKey });
+      voting.committedVotes.set(votesRoot);
+      voting.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
+
+      // invalid contracts
+
+      let invalidCandidateContract = new InvalidContract(
+        params.candidateKey.toPublicKey()
+      );
+
+      invalidCandidateContract.deploy({ zkappKey: params.candidateKey });
+
+      candidateContract = invalidCandidateContract as Membership_;
+
+      let invalidVoterContract = new InvalidContract(
+        params.voterKey.toPublicKey()
+      );
+
+      invalidVoterContract.deploy({ zkappKey: params.voterKey });
+
+      voterContract = invalidVoterContract as Membership_;
+    });
+    tx.send();
+  } catch (err: any) {
+    throw Error(err);
+  }
+
+  console.log('successfully deployed contracts');
+  return { voterContract, candidateContract, voting, feePayer, Local };
+}
+
+class InvalidContract extends SmartContract {
+  deploy(args: DeployArgs) {
+    super.deploy(args);
+    this.setPermissions({
+      ...Permissions.default(),
+      editState: Permissions.none(),
+      editSequenceState: Permissions.none(),
+    });
+  }
 }

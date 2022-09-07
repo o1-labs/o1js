@@ -6,8 +6,11 @@ import {
   PrivateKey,
   UInt64,
   UInt32,
+  SmartContract,
+  DeployArgs,
+  Permissions,
 } from 'snarkyjs';
-import { deployContracts } from './deployContracts';
+import { deployContracts, deployInvalidContracts } from './deployContracts';
 import { VotingAppParams } from './factory';
 import { Member, MerkleWitness } from './member';
 import { Membership_ } from './membership';
@@ -41,18 +44,63 @@ export async function testSet(
   let { votersStore, candidatesStore, votesStore } = storage;
   let { votingKey } = params;
 
-  const initialRoot = votersStore.getRoot();
+  /*
+    test case description:
+      voting contract is trying to call methods of an invalid contract 
+    
+    preconditions:
+      - real voting contract deployed
+      - voter and candidate membership contracts are faulty (empty/dummy contracts)
+      - trying to register a valid voter member
 
-  console.log('starting testing phase 1');
-  console.log('deploying 3 contracts ...');
-  let set1 = await deployContracts(
+    tested cases:
+      - deploying set of invalid contracts
+        - trying to invoke a non-existent method -> failure
+
+    expected results:
+      - throws an error
+
+  */
+
+  console.log('deploying testing phase 1 contracts');
+
+  let invalidSet = await deployInvalidContracts(
     contracts,
     params,
     votersStore.getRoot(),
     candidatesStore.getRoot(),
     votesStore.getRoot()
   );
-  console.log('all contracts deployed!');
+
+  assertValidTx(
+    false,
+    () => {
+      let m = Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        UInt64.from(15)
+      );
+      invalidSet.Local.addAccount(m.publicKey, m.balance.toString());
+
+      invalidSet.voting.voterRegistration(m);
+
+      invalidSet.voting.sign(votingKey);
+    },
+    invalidSet.feePayer,
+    'unsatisfied'
+  );
+
+  const initialRoot = votersStore.getRoot();
+
+  console.log('deploying testing phase 2 contracts');
+
+  let sequenceOverflowSet = await deployContracts(
+    contracts,
+    params,
+    votersStore.getRoot(),
+    candidatesStore.getRoot(),
+    votesStore.getRoot()
+  );
 
   /*
     test case description:
@@ -76,17 +124,17 @@ export async function testSet(
   );
   for (let index = 0; index <= 32; index++) {
     try {
-      let tx = await Mina.transaction(set1.feePayer, () => {
+      let tx = await Mina.transaction(sequenceOverflowSet.feePayer, () => {
         let m = Member.from(
           PrivateKey.random().toPublicKey(),
           Field.zero,
           UInt64.from(15)
         );
-        set1.Local.addAccount(m.publicKey, m.balance.toString());
+        sequenceOverflowSet.Local.addAccount(m.publicKey, m.balance.toString());
 
-        set1.voting.voterRegistration(m);
+        sequenceOverflowSet.voting.voterRegistration(m);
 
-        set1.voting.sign(votingKey);
+        sequenceOverflowSet.voting.sign(votingKey);
       });
       tx.send();
     } catch (error) {
@@ -94,18 +142,18 @@ export async function testSet(
     }
   }
 
-  if (set1.voterContract.reducer.getActions({}).length < 32) {
+  if (sequenceOverflowSet.voterContract.reducer.getActions({}).length < 32) {
     throw Error(
       `Did not emitted expected sequence events! Only emitted ${
-        set1.voterContract.reducer.getActions({}).length
+        sequenceOverflowSet.voterContract.reducer.getActions({}).length
       }`
     );
   }
 
   try {
-    let tx = await Mina.transaction(set1.feePayer, () => {
-      set1.voting.authorizeRegistrations();
-      set1.voting.sign(votingKey);
+    let tx = await Mina.transaction(sequenceOverflowSet.feePayer, () => {
+      sequenceOverflowSet.voting.authorizeRegistrations();
+      sequenceOverflowSet.voting.sign(votingKey);
     });
     tx.send();
   } catch (err: any) {
@@ -114,8 +162,8 @@ export async function testSet(
     }
   }
 
-  console.log('starting testing phase 2');
-  console.log('deploying 3 contracts ...');
+  console.log('deploying testing phase 3 contracts');
+
   let { voterContract, candidateContract, voting, feePayer, Local } =
     await deployContracts(
       contracts,
@@ -124,7 +172,6 @@ export async function testSet(
       candidatesStore.getRoot(),
       votesStore.getRoot()
     );
-  console.log('all contracts deployed!');
 
   /*
     test case description:
