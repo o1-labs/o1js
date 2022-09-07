@@ -2,7 +2,7 @@ import { initSnarkyJS } from '../chrome_bindings/plonk_init.js';
 
 export { getSnarky, getWasm, snarky_ready, shutdown };
 
-let getSnarky = () => window.__snarky;
+let getSnarky = () => globalThis.__snarky;
 
 function getWasm() {
   return globalThis.plonk_wasm;
