@@ -39,53 +39,16 @@ Circuit.runAndCheck(() => {
   );
 });
 
-let result;
-let hash = party.hash();
-
-result = Circuit.constraintSystem(() => {
-  let partyWitness = AccountUpdate.witness(
-    Null,
-    () => ({ party, result: null }),
-    {
-      skipCheck: true,
-    }
-  ).party;
+let result = Circuit.constraintSystem(() => {
+  let partyWitness = AccountUpdate.witness(Null, () => ({
+    party,
+    result: null,
+  })).party;
   console.assert(partyWitness.body.callDepth === 0);
   Circuit.assertEqual(Types.Party, partyWitness, party);
-  // let fieldsWitness = Types.Party.toFields(partyWitness);
-  // let fieldsConstant = Types.Party.toFields(party);
-  // for (let i = 0; i < 5; i++) {
-  //   fieldsWitness[i].assertEquals(fieldsConstant[i]);
-  // }
 });
 
 console.log(`a party has ${Types.Party.sizeInFields()} fields`);
 console.log(
-  `witnessing a party and comparing it to a constant one creates ${result.rows} rows`
-);
-
-result = Circuit.constraintSystem(() => {
-  AccountUpdate.witness(Null, () => ({ party, result: null })).party;
-});
-console.log(`witnessing a party and running check creates ${result.rows} rows`);
-
-result = Circuit.constraintSystem(() => {
-  let partyWitness = AccountUpdate.witness(
-    Null,
-    () => ({ party, result: null }),
-    {
-      skipCheck: true,
-    }
-  ).party;
-  partyWitness.hash().assertEquals(hash);
-});
-console.log(
-  `witnessing a party, hashing it and comparing the hash creates ${result.rows} rows`
-);
-
-result = Circuit.constraintSystem(() => {
-  party.hash().assertEquals(hash);
-});
-console.log(
-  `hashing a constant party and comparing the hash creates ${result.rows} rows`
+  `witnessing a party and comparing it to another one creates ${result.rows} rows`
 );
