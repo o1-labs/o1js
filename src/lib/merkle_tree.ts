@@ -28,8 +28,8 @@ class MerkleTree {
 
   /**
    * Creates a new, empty [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree).
-   * @param {number} height The height of Merkle Tree.
-   * @returns {MerkleTree} A new MerkleTree
+   * @param height The height of Merkle Tree.
+   * @returns A new MerkleTree
    */
   constructor(public readonly height: number) {
     this.zeroes = [Field(0)];
@@ -40,9 +40,9 @@ class MerkleTree {
 
   /**
    * Returns a node which lives at a given index and level.
-   * @param {number} level Level of the node.
-   * @param {bigint} index Index of the node.
-   * @returns {Field} The data of the node.
+   * @param level Level of the node.
+   * @param index Index of the node.
+   * @returns The data of the node.
    */
   getNode(level: number, index: bigint): Field {
     return this.nodes[level]?.[index.toString()] ?? this.zeroes[level];
@@ -50,7 +50,7 @@ class MerkleTree {
 
   /**
    * Returns the root of the [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree).
-   * @returns {Field} The root of the Merkle Tree.
+   * @returns The root of the Merkle Tree.
    */
   getRoot(): Field {
     return this.getNode(this.height - 1, 0n);
@@ -64,8 +64,8 @@ class MerkleTree {
   // TODO: if this is passed an index bigger than the max, it will set a couple of out-of-bounds nodes but not affect the real Merkle root. OK?
   /**
    * Sets the value of a leaf node at a given index to a given value.
-   * @param {bigint} index Position of the leaf node.
-   * @param {Field} leaf New value.
+   * @param index Position of the leaf node.
+   * @param leaf New value.
    */
   setLeaf(index: bigint, leaf: Field) {
     if (index >= this.leafCount) {
@@ -87,8 +87,8 @@ class MerkleTree {
 
   /**
    * Returns the witness (also known as [Merkle Proof or Merkle Witness](https://computersciencewiki.org/index.php/Merkle_proof)) for the leaf at the given index.
-   * @param {bigint} index Position of the leaf node.
-   * @returns {Witness} The witness that belongs to the leaf.
+   * @param index Position of the leaf node.
+   * @returns The witness that belongs to the leaf.
    */
   getWitness(index: bigint): Witness {
     if (index >= this.leafCount) {
@@ -109,8 +109,8 @@ class MerkleTree {
   // TODO: this will always return true if the merkle tree was constructed normally; seems to be only useful for testing. remove?
   /**
    * Checks if the witness that belongs to the leaf at the given index is a valid witness.
-   * @param {bigint} index Position of the leaf node.
-   * @returns {boolean} True if the witness for the leaf node is valid.
+   * @param index Position of the leaf node.
+   * @returns True if the witness for the leaf node is valid.
    */
   validate(index: bigint): boolean {
     const path = this.getWitness(index);
@@ -127,7 +127,7 @@ class MerkleTree {
   // TODO: should this take an optional offset? should it fail if the array is too long?
   /**
    * Fills all leaves of the tree.
-   * @param {Field[]} leaves Values to fill the leaves with.
+   * @param leaves Values to fill the leaves with.
    */
   fill(leaves: Field[]) {
     leaves.forEach((value, index) => {
@@ -137,7 +137,7 @@ class MerkleTree {
 
   /**
    * Returns the amount of leaf nodes.
-   * @returns {bigint} Amount of leaf nodes.
+   * @returns Amount of leaf nodes.
    */
   get leafCount(): bigint {
     return 2n ** BigInt(this.height - 1);
@@ -157,8 +157,8 @@ class BaseMerkleWitness extends CircuitValue {
 
   /**
    * Takes a {@link Witness} and turns it into a circuit-compatible Witness.
-   * @param {Witness} witness Witness.
-   * @returns {BaseMerkleWitness} A circuit-compatible Witness.
+   * @param witness Witness.
+   * @returns A circuit-compatible Witness.
    */
   constructor(witness: Witness) {
     super();
@@ -174,8 +174,8 @@ class BaseMerkleWitness extends CircuitValue {
 
   /**
    * Calculates a root depending on the leaf value.
-   * @param {Field} leaf Value of the leaf node that belongs to this Witness.
-   * @returns {Field} The calculated root.
+   * @param leaf Value of the leaf node that belongs to this Witness.
+   * @returns The calculated root.
    */
   calculateRoot(leaf: Field): Field {
     let hash = leaf;
@@ -192,7 +192,7 @@ class BaseMerkleWitness extends CircuitValue {
 
   /**
    * Calculates the index of the leaf node that belongs to this Witness.
-   * @returns {Field} Index of the leaf.
+   * @returns Index of the leaf.
    */
   calculateIndex(): Field {
     let powerOfTwo = Field(1);
@@ -210,8 +210,8 @@ class BaseMerkleWitness extends CircuitValue {
 
 /**
  * Returns a circuit-compatible Witness for a specific Tree height.
- * @param {number} height Height of the Merkle Tree that this Witness belongs to.
- * @returns {BaseMerkleWitness} A circuit-compatible Merkle Witness.
+ * @param height Height of the Merkle Tree that this Witness belongs to.
+ * @returns A circuit-compatible Merkle Witness.
  */
 function MerkleWitness(height: number): typeof BaseMerkleWitness {
   class MerkleWitness_ extends BaseMerkleWitness {
