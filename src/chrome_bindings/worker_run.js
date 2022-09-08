@@ -19,6 +19,7 @@ export default function workerRun() {
         args: [
           plonk_wasm.WasmFpGateVector,
           undefined /* number */,
+          undefined,
           plonk_wasm.WasmFpSrs,
         ],
         res: plonk_wasm.WasmPastaFpPlonkIndex,
@@ -27,6 +28,7 @@ export default function workerRun() {
         args: [
           plonk_wasm.WasmFqGateVector,
           undefined /* number */,
+          undefined,
           plonk_wasm.WasmFqSrs,
         ],
         res: plonk_wasm.WasmPastaFqPlonkIndex,
