@@ -2,21 +2,21 @@
 export { jsLayout };
 
 let jsLayout = {
-  Parties: {
+  ZkappCommand: {
     type: 'object',
-    name: 'Parties',
+    name: 'Zkapp_command',
     docs: null,
-    keys: ['feePayer', 'otherParties', 'memo'],
+    keys: ['feePayer', 'accountUpdates', 'memo'],
     entries: {
       feePayer: {
         type: 'object',
-        name: 'ZkappPartyFeePayer',
+        name: 'ZkappAccountUpdateFeePayer',
         docs: null,
         keys: ['body', 'authorization'],
         entries: {
           body: {
             type: 'object',
-            name: 'FeePayerPartyBody',
+            name: 'FeePayerAccountUpdateBody',
             docs: null,
             keys: ['publicKey', 'fee', 'validUntil', 'nonce'],
             entries: {
@@ -40,17 +40,17 @@ let jsLayout = {
         },
         docEntries: { body: null, authorization: null },
       },
-      otherParties: {
+      accountUpdates: {
         type: 'array',
         inner: {
           type: 'object',
-          name: 'ZkappParty',
-          docs: 'A party to a zkApp transaction',
+          name: 'ZkappAccountUpdate',
+          docs: 'An account update in a zkApp transaction',
           keys: ['body', 'authorization'],
           entries: {
             body: {
               type: 'object',
-              name: 'PartyBody',
+              name: 'AccountUpdateBody',
               docs: null,
               keys: [
                 'publicKey',
@@ -71,7 +71,7 @@ let jsLayout = {
                 tokenId: { type: 'TokenId' },
                 update: {
                   type: 'object',
-                  name: 'PartyUpdate',
+                  name: 'AccountUpdateUpdate',
                   docs: null,
                   keys: [
                     'appState',
@@ -736,17 +736,17 @@ let jsLayout = {
       },
       memo: { type: 'string' },
     },
-    docEntries: { feePayer: null, otherParties: null, memo: null },
+    docEntries: { feePayer: null, accountUpdates: null, memo: null },
   },
-  Party: {
+  AccountUpdate: {
     type: 'object',
-    name: 'ZkappParty',
-    docs: 'A party to a zkApp transaction',
+    name: 'ZkappAccountUpdate',
+    docs: 'An account update in a zkApp transaction',
     keys: ['body', 'authorization'],
     entries: {
       body: {
         type: 'object',
-        name: 'PartyBody',
+        name: 'AccountUpdateBody',
         docs: null,
         keys: [
           'publicKey',
@@ -767,7 +767,7 @@ let jsLayout = {
           tokenId: { type: 'TokenId' },
           update: {
             type: 'object',
-            name: 'PartyUpdate',
+            name: 'AccountUpdateUpdate',
             docs: null,
             keys: [
               'appState',

@@ -3,7 +3,7 @@ import {
   isReady,
   method,
   Mina,
-  Party,
+  AccountUpdate,
   PrivateKey,
   SmartContract,
   PublicKey,
@@ -29,17 +29,17 @@ class TokenContract extends SmartContract {
 
   @method tokenDeploy(deployer: PrivateKey) {
     let address = deployer.toPublicKey();
-    let deployParty = Experimental.createChildParty(this.self, address);
-    deployParty.body.tokenId = this.experimental.token.id;
-    deployParty.body.caller = this.experimental.token.id;
-    Party.setValue(deployParty.update.permissions, {
+    let deployAccountUpdate = Experimental.createChildAccountUpdate(this.self, address);
+    deployAccountUpdate.body.tokenId = this.experimental.token.id;
+    deployAccountUpdate.body.caller = this.experimental.token.id;
+    AccountUpdate.setValue(deployAccountUpdate.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
     });
     // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
-    // Party.setValue(deployParty.update.verificationKey, verificationKey);
-    // deployParty.balance.addInPlace(initialBalance);
-    deployParty.signInPlace(deployer, true);
+    // AccountUpdate.setValue(deployAccountUpdate.update.verificationKey, verificationKey);
+    // deployAccountUpdate.balance.addInPlace(initialBalance);
+    deployAccountUpdate.signInPlace(deployer, true);
   }
 
   @method mint(receiverAddress: PublicKey) {
@@ -57,19 +57,19 @@ class TokenContract extends SmartContract {
     receiverAddress: PublicKey,
     callback: Experimental.Callback
   ) {
-    let senderParty = Experimental.partyFromCallback(this, callback, true);
+    let senderAccountUpdate = Experimental.accountUpdateFromCallback(this, callback, true);
     let amount = UInt64.from(1_000);
-    let negativeAmount = Int64.fromObject(senderParty.body.balanceChange);
+    let negativeAmount = Int64.fromObject(senderAccountUpdate.body.balanceChange);
     negativeAmount.assertEquals(Int64.from(amount).neg());
     let tokenId = this.experimental.token.id;
-    senderParty.body.tokenId.assertEquals(tokenId);
-    senderParty.body.publicKey.assertEquals(senderAddress);
-    let receiverParty = Experimental.createChildParty(
+    senderAccountUpdate.body.tokenId.assertEquals(tokenId);
+    senderAccountUpdate.body.publicKey.assertEquals(senderAddress);
+    let receiverAccountUpdate = Experimental.createChildAccountUpdate(
       this.self,
       receiverAddress,
       { caller: tokenId, tokenId }
     );
-    receiverParty.balance.addInPlace(amount);
+    receiverAccountUpdate.balance.addInPlace(amount);
   }
 }
 
@@ -128,14 +128,14 @@ await ZkAppC.compile(zkAppCAddress, tokenId);
 
 console.log('deploy tokenZkApp');
 tx = await Local.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer, { initialBalance });
+  AccountUpdate.fundNewAccount(feePayer, { initialBalance });
   tokenZkApp.deploy({ zkappKey: tokenZkAppKey });
 });
 tx.send();
 
 console.log('deploy zkAppB');
 tx = await Local.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer);
+  AccountUpdate.fundNewAccount(feePayer);
   tokenZkApp.tokenDeploy(zkAppBKey);
 });
 console.log('deploy zkAppB (proof)');
@@ -144,7 +144,7 @@ tx.send();
 
 console.log('deploy zkAppC');
 tx = await Local.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer);
+  AccountUpdate.fundNewAccount(feePayer);
   tokenZkApp.tokenDeploy(zkAppCKey);
 });
 console.log('deploy zkAppC (proof)');
@@ -181,7 +181,7 @@ console.log(
 console.log('authorize send from zkAppC');
 tx = await Local.transaction(feePayer, () => {
   // Pay for tokenAccount1's account creation
-  Party.fundNewAccount(feePayer);
+  AccountUpdate.fundNewAccount(feePayer);
   let authorizeSendingCallback = new Experimental.Callback(
     zkAppC,
     'authorizeSend',

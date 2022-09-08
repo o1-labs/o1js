@@ -5,7 +5,7 @@ import {
   PrivateKey,
   PublicKey,
   Signature,
-  Party,
+  AccountUpdate,
   Permissions,
   State,
   SmartContract,
@@ -292,7 +292,7 @@ class RollupZkapp extends SmartContract {
   }
 
   @method depositFunds(
-    depositor: Party & { predicate: UInt32 },
+    depositor: AccountUpdate & { predicate: UInt32 },
     depositAmount: UInt64
   ) {
     const self = this.self;
@@ -400,7 +400,7 @@ function main() {
       Mina.transaction(minaSender, () => {
         const amount = UInt64.fromNumber(1000000000);
 
-        return Party.createSigned(depositorPrivkey).then((p) => {
+        return AccountUpdate.createSigned(depositorPrivkey).then((p) => {
           p.body.delta = Int64.fromUnsigned(amount).neg();
           RollupInstance = new RollupZkapp(zkappPubkey);
           RollupInstance.deploy(
@@ -445,8 +445,8 @@ function main() {
         .then(() => {
           console.log('main', 6);
           return Mina.transaction(minaSender, () => {
-            return Party.createSigned(depositorPrivkey).then((depositor) => {
-              // TODO: Figure out nicer way to have a second party.
+            return AccountUpdate.createSigned(depositorPrivkey).then((depositor) => {
+              // TODO: Figure out nicer way to have a second accountUpdate.
 
               return Mina.getBalance(depositorPubkey).then(
                 (depositorBalance) => {

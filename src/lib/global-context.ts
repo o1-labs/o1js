@@ -1,4 +1,4 @@
-import { Party } from './party.js';
+import { AccountUpdate } from './account_update.js';
 
 export { Context };
 

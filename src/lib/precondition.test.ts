@@ -6,7 +6,7 @@ import {
   SmartContract,
   Mina,
   PrivateKey,
-  Party,
+  AccountUpdate,
   method,
   PublicKey,
   Bool,
@@ -35,7 +35,7 @@ beforeAll(async () => {
   zkapp = new MyContract(zkappAddress);
 
   let tx = await Mina.transaction(feePayer, () => {
-    Party.fundNewAccount(feePayer);
+    AccountUpdate.fundNewAccount(feePayer);
     zkapp.deploy({ zkappKey });
   });
   tx.send();

@@ -29,7 +29,7 @@ import {
 import * as Encoding from './encoding.js';
 
 // external API
-export { Permissions, Party, ZkappPublicInput };
+export { Permissions, AccountUpdate, ZkappPublicInput };
 
 // internal API
 export {
@@ -39,30 +39,30 @@ export {
   Body,
   Authorization,
   FeePayerUnsigned,
-  Parties,
-  partiesToJson,
+  ZkappCommand,
+  zkappCommandToJson,
   addMissingSignatures,
   addMissingProofs,
   signJsonTransaction,
   ZkappStateLength,
   Events,
   SequenceEvents,
-  partyToPublicInput,
+  accountUpdateToPublicInput,
   TokenId,
   Token,
   CallForest,
-  createChildParty,
+  createChildAccountUpdate,
 };
 
 const ZkappStateLength = 8;
 
-type PartyBody = Types.Party['body'];
-type Update = PartyBody['update'];
+type AccountUpdateBody = Types.AccountUpdate['body'];
+type Update = AccountUpdateBody['update'];
 
 /**
  * Preconditions for the network and accounts
  */
-type Preconditions = PartyBody['preconditions'];
+type Preconditions = AccountUpdateBody['preconditions'];
 
 /**
  * Timing info inside an account.
@@ -304,11 +304,11 @@ const SequenceEvents = {
 
 // TODO: get docstrings from OCaml and delete this interface
 /**
- * The body of describing how some [[ Party ]] should change.
+ * The body of describing how some [[ AccountUpdate ]] should change.
  *
  * TODO: We need to rename this still.
  */
-interface Body extends PartyBody {
+interface Body extends AccountUpdateBody {
   /**
    * The address for this body.
    */
@@ -406,7 +406,7 @@ const Body = {
   },
 };
 
-type FeePayer = Types.Parties['feePayer'];
+type FeePayer = Types.ZkappCommand['feePayer'];
 type FeePayerBody = FeePayer['body'];
 const FeePayerBody = {
   keepAll(publicKey: PublicKey, nonce: UInt32): FeePayerBody {
@@ -503,7 +503,7 @@ const AccountPrecondition = {
   },
   nonce(nonce: UInt32): AccountPrecondition {
     let p = AccountPrecondition.ignoreAll();
-    Party.assertEquals(p.nonce, nonce);
+    AccountUpdate.assertEquals(p.nonce, nonce);
     return p;
   },
 };
@@ -517,7 +517,7 @@ const Preconditions = {
   },
 };
 
-type Control = Types.Party['authorization'];
+type Control = Types.AccountUpdate['authorization'];
 type LazySignature = { kind: 'lazy-signature'; privateKey?: PrivateKey };
 type LazyProof = {
   kind: 'lazy-proof';
@@ -572,14 +572,14 @@ class Token {
   }
 }
 
-class Party implements Types.Party {
+class AccountUpdate implements Types.AccountUpdate {
   body: Body;
   authorization: Control;
   lazyAuthorization: LazySignature | LazyProof | undefined = undefined;
   account: Precondition.Account;
   network: Precondition.Network;
-  children: { party: Party; calls?: Field }[] = [];
-  parent: Party | undefined = undefined;
+  children: { accountUpdate: AccountUpdate; calls?: Field }[] = [];
+  parent: AccountUpdate | undefined = undefined;
 
   private isSelf: boolean;
 
@@ -593,21 +593,21 @@ class Party implements Types.Party {
     this.isSelf = isSelf;
   }
 
-  static clone(party: Party) {
-    let body = cloneCircuitValue(party.body);
-    let authorization = cloneCircuitValue(party.authorization);
-    let clonedParty = new (Party as any)(body, authorization, party.isSelf);
-    clonedParty.lazyAuthorization = cloneCircuitValue(party.lazyAuthorization);
-    clonedParty.children = party.children;
-    clonedParty.parent = party.parent;
-    return clonedParty;
+  static clone(accountUpdate: AccountUpdate) {
+    let body = cloneCircuitValue(accountUpdate.body);
+    let authorization = cloneCircuitValue(accountUpdate.authorization);
+    let clonedAccountUpdate = new (AccountUpdate as any)(body, authorization, accountUpdate.isSelf);
+    clonedAccountUpdate.lazyAuthorization = cloneCircuitValue(accountUpdate.lazyAuthorization);
+    clonedAccountUpdate.children = accountUpdate.children;
+    clonedAccountUpdate.parent = accountUpdate.parent;
+    return clonedAccountUpdate;
   }
 
   token() {
-    let thisParty = this;
+    let thisAccountUpdate = this;
     let customToken = new Token({
-      tokenOwner: thisParty.body.publicKey,
-      parentTokenId: thisParty.body.tokenId,
+      tokenOwner: thisAccountUpdate.body.publicKey,
+      parentTokenId: thisAccountUpdate.body.tokenId,
     });
 
     return {
@@ -622,14 +622,14 @@ class Party implements Types.Party {
         address: PublicKey;
         amount: number | bigint | UInt64;
       }) {
-        let receiverParty = createChildParty(thisParty, address, {
+        let receiverAccountUpdate = createChildAccountUpdate(thisAccountUpdate, address, {
           caller: this.id,
           tokenId: this.id,
         });
 
         // Add the amount to mint to the receiver's account
-        let { magnitude, sgn } = receiverParty.body.balanceChange;
-        receiverParty.body.balanceChange = new Int64(magnitude, sgn).add(
+        let { magnitude, sgn } = receiverAccountUpdate.body.balanceChange;
+        receiverAccountUpdate.body.balanceChange = new Int64(magnitude, sgn).add(
           amount
         );
       },
@@ -641,18 +641,18 @@ class Party implements Types.Party {
         address: PublicKey;
         amount: number | bigint | UInt64;
       }) {
-        let senderParty = createChildParty(thisParty, address, {
+        let senderAccountUpdate = createChildAccountUpdate(thisAccountUpdate, address, {
           caller: this.id,
           tokenId: this.id,
           useFullCommitment: Bool(true),
         });
 
         // Sub the amount to burn from the sender's account
-        let { magnitude, sgn } = senderParty.body.balanceChange;
-        senderParty.body.balanceChange = new Int64(magnitude, sgn).sub(amount);
+        let { magnitude, sgn } = senderAccountUpdate.body.balanceChange;
+        senderAccountUpdate.body.balanceChange = new Int64(magnitude, sgn).sub(amount);
 
         // Require signature from the sender account being deducted
-        Authorization.setLazySignature(senderParty);
+        Authorization.setLazySignature(senderAccountUpdate);
       },
 
       send({
@@ -664,29 +664,29 @@ class Party implements Types.Party {
         to: PublicKey;
         amount: number | bigint | UInt64;
       }) {
-        // Create a new party for the sender to send the amount to the receiver
-        let senderParty = createChildParty(thisParty, from, {
+        // Create a new accountUpdate for the sender to send the amount to the receiver
+        let senderAccountUpdate = createChildAccountUpdate(thisAccountUpdate, from, {
           caller: this.id,
           tokenId: this.id,
           useFullCommitment: Bool(true),
         });
 
-        let i0 = senderParty.body.balanceChange;
-        senderParty.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(
+        let i0 = senderAccountUpdate.body.balanceChange;
+        senderAccountUpdate.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(
           amount
         );
 
-        // Require signature from the sender party
-        Authorization.setLazySignature(senderParty);
+        // Require signature from the sender accountUpdate
+        Authorization.setLazySignature(senderAccountUpdate);
 
-        let receiverParty = createChildParty(thisParty, to, {
+        let receiverAccountUpdate = createChildAccountUpdate(thisAccountUpdate, to, {
           caller: this.id,
           tokenId: this.id,
         });
 
         // Add the amount to send to the receiver's account
-        let i1 = receiverParty.body.balanceChange;
-        receiverParty.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
+        let i1 = receiverAccountUpdate.body.balanceChange;
+        receiverAccountUpdate.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
           amount
         );
       },
@@ -698,11 +698,11 @@ class Party implements Types.Party {
   }
 
   get tokenSymbol() {
-    let party = this;
+    let accountUpdate = this;
 
     return {
       set(tokenSymbol: string) {
-        Party.setValue(party.update.tokenSymbol, TokenSymbol.from(tokenSymbol));
+        AccountUpdate.setValue(accountUpdate.update.tokenSymbol, TokenSymbol.from(tokenSymbol));
       },
     };
   }
@@ -711,44 +711,44 @@ class Party implements Types.Party {
     to,
     amount,
   }: {
-    to: PublicKey | Party;
+    to: PublicKey | AccountUpdate;
     amount: number | bigint | UInt64;
   }) {
-    let party = this;
+    let accountUpdate = this;
 
-    let receiverParty;
-    if (to.constructor === Party) {
-      receiverParty = to;
-      makeChildParty(party, receiverParty);
+    let receiverAccountUpdate;
+    if (to.constructor === AccountUpdate) {
+      receiverAccountUpdate = to;
+      makeChildAccountUpdate(accountUpdate, receiverAccountUpdate);
     } else {
-      receiverParty = createChildParty(party, to as PublicKey, {
-        tokenId: party.body.tokenId,
-        caller: party.body.tokenId,
+      receiverAccountUpdate = createChildAccountUpdate(accountUpdate, to as PublicKey, {
+        tokenId: accountUpdate.body.tokenId,
+        caller: accountUpdate.body.tokenId,
       });
     }
 
     // Sub the amount from the sender's account
-    let i0 = party.body.balanceChange;
-    party.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(amount);
+    let i0 = accountUpdate.body.balanceChange;
+    accountUpdate.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(amount);
 
     // Add the amount to send to the receiver's account
-    let i1 = receiverParty.body.balanceChange;
-    receiverParty.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
+    let i1 = receiverAccountUpdate.body.balanceChange;
+    receiverAccountUpdate.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
       amount
     );
   }
 
   get balance() {
-    let party = this;
+    let accountUpdate = this;
 
     return {
       addInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
-        let { magnitude, sgn } = party.body.balanceChange;
-        party.body.balanceChange = new Int64(magnitude, sgn).add(x);
+        let { magnitude, sgn } = accountUpdate.body.balanceChange;
+        accountUpdate.body.balanceChange = new Int64(magnitude, sgn).add(x);
       },
       subInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
-        let { magnitude, sgn } = party.body.balanceChange;
-        party.body.balanceChange = new Int64(magnitude, sgn).sub(x);
+        let { magnitude, sgn } = accountUpdate.body.balanceChange;
+        accountUpdate.body.balanceChange = new Int64(magnitude, sgn).sub(x);
       },
     };
   }
@@ -774,7 +774,7 @@ class Party implements Types.Party {
    * @method onlyRunsWhenBalanceIsLow() {
    *   let lower = UInt64.zero;
    *   let upper = UInt64.fromNumber(20e9);
-   *   Party.assertBetween(this.self.body.preconditions.account.balance, lower, upper);
+   *   AccountUpdate.assertBetween(this.self.body.preconditions.account.balance, lower, upper);
    *   // ...
    * }
    * ```
@@ -800,7 +800,7 @@ class Party implements Types.Party {
    *
    * ```ts
    * @method onlyRunsWhenNonceIsZero() {
-   *   Party.assertEquals(this.self.body.preconditions.account.nonce, UInt32.zero);
+   *   AccountUpdate.assertEquals(this.self.body.preconditions.account.nonce, UInt32.zero);
    *   // ...
    * }
    * ```
@@ -826,9 +826,9 @@ class Party implements Types.Party {
   }
 
   sign(privateKey?: PrivateKey) {
-    let party = Party.clone(this);
-    party.signInPlace(privateKey);
-    return party;
+    let accountUpdate = AccountUpdate.clone(this);
+    accountUpdate.signInPlace(privateKey);
+    return accountUpdate;
   }
 
   static signFeePayerInPlace(
@@ -841,15 +841,15 @@ class Party implements Types.Party {
     feePayer.lazyAuthorization = { kind: 'lazy-signature', privateKey };
   }
 
-  // TODO this needs to be more intelligent about previous nonces in the transaction, similar to Party.createSigned
-  static getNonce(party: Party | FeePayerUnsigned, fallbackToZero = false) {
+  // TODO this needs to be more intelligent about previous nonces in the transaction, similar to AccountUpdate.createSigned
+  static getNonce(accountUpdate: AccountUpdate | FeePayerUnsigned, fallbackToZero = false) {
     let nonce: UInt32;
     let inProver = Circuit.inProver();
     if (inProver || !Circuit.inCheckedComputation()) {
       try {
         let account = Mina.getAccount(
-          party.body.publicKey as PublicKey,
-          (party as Party).body.tokenId ?? TokenId.default
+          accountUpdate.body.publicKey as PublicKey,
+          (accountUpdate as AccountUpdate).body.tokenId ?? TokenId.default
         );
         nonce = account.nonce;
       } catch (err) {
@@ -866,18 +866,18 @@ class Party implements Types.Party {
   }
 
   setNoncePrecondition(fallbackToZero = false) {
-    let nonce = Party.getNonce(this, fallbackToZero);
+    let nonce = AccountUpdate.getNonce(this, fallbackToZero);
     let accountPrecondition = this.body.preconditions.account;
-    Party.assertEquals(accountPrecondition.nonce, nonce);
+    AccountUpdate.assertEquals(accountPrecondition.nonce, nonce);
     return nonce;
   }
 
   toFields() {
-    return Types.Party.toFields(this);
+    return Types.AccountUpdate.toFields(this);
   }
 
   toJSON() {
-    return Types.Party.toJSON(this);
+    return Types.AccountUpdate.toJSON(this);
   }
 
   hash() {
@@ -885,28 +885,28 @@ class Party implements Types.Party {
     // TODO: there's no reason anymore to use two different hashing methods here!
     // -- the "inCheckedComputation" branch works in all circumstances now
     // we just leave this here for a couple more weeks, because it checks consistency between
-    // JS & OCaml hashing on *every single party proof* we create. It will give us 100%
+    // JS & OCaml hashing on *every single accountUpdate proof* we create. It will give us 100%
     // confidence that the two implementations are equivalent, and catch regressions quickly
     if (inCheckedComputation()) {
-      let input = Types.Party.toInput(this);
+      let input = Types.AccountUpdate.toInput(this);
       return hashWithPrefix(prefixes.body, packToFields(input));
     } else {
-      let json = Types.Party.toJSON(this);
-      return Ledger.hashPartyFromJson(JSON.stringify(json));
+      let json = Types.AccountUpdate.toJSON(this);
+      return Ledger.hashAccountUpdateFromJson(JSON.stringify(json));
     }
   }
 
   // TODO: this was only exposed to be used in a unit test
   // consider removing when we have inline unit tests
   toPublicInput(): ZkappPublicInput {
-    let party = this.hash();
+    let accountUpdate = this.hash();
     let calls = CallForest.hashChildren(this);
-    return { party, calls };
+    return { accountUpdate, calls };
   }
 
-  static defaultParty(address: PublicKey) {
+  static defaultAccountUpdate(address: PublicKey) {
     const body = Body.keepAll(address);
-    return new Party(body);
+    return new AccountUpdate(body);
   }
 
   static defaultFeePayer(
@@ -928,9 +928,9 @@ class Party implements Types.Party {
   }
 
   static createUnsigned(publicKey: PublicKey) {
-    let party = Party.defaultParty(publicKey);
-    Mina.currentTransaction()?.parties.push(party);
-    return party;
+    let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey);
+    Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
+    return accountUpdate;
   }
 
   static createSigned(signer: PrivateKey) {
@@ -938,7 +938,7 @@ class Party implements Types.Party {
     let body = Body.keepAll(publicKey);
     if (!Mina.currentTransaction.has()) {
       throw new Error(
-        'Party.createSigned: Cannot run outside of a transaction'
+        'AccountUpdate.createSigned: Cannot run outside of a transaction'
       );
     }
     // it's fine to compute the nonce outside the circuit, because we're constraining it with a precondition
@@ -946,26 +946,26 @@ class Party implements Types.Party {
       let nonce = Number(
         Mina.getAccount(publicKey, body.tokenId).nonce.toString()
       );
-      // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher,
+      // if the fee payer is the same accountUpdate as this one, we have to start the nonce predicate at one higher,
       // bc the fee payer already increases its nonce
       let isFeePayer = Mina.currentTransaction()?.sender?.equals(signer);
       if (isFeePayer?.toBoolean()) nonce++;
-      // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
-      for (let party of Mina.currentTransaction.get().parties) {
-        let shouldIncreaseNonce = party.publicKey
+      // now, we check how often this accountUpdate already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
+      for (let accountUpdate of Mina.currentTransaction.get().accountUpdates) {
+        let shouldIncreaseNonce = accountUpdate.publicKey
           .equals(publicKey)
-          .and(party.body.incrementNonce);
+          .and(accountUpdate.body.incrementNonce);
         if (shouldIncreaseNonce.toBoolean()) nonce++;
       }
       return UInt32.from(nonce);
     });
-    Party.assertEquals(body.preconditions.account.nonce, nonce);
+    AccountUpdate.assertEquals(body.preconditions.account.nonce, nonce);
     body.incrementNonce = Bool(true);
 
-    let party = new Party(body);
-    Authorization.setLazySignature(party, { privateKey: signer });
-    Mina.currentTransaction.get().parties.push(party);
-    return party;
+    let accountUpdate = new AccountUpdate(body);
+    Authorization.setLazySignature(accountUpdate, { privateKey: signer });
+    Mina.currentTransaction.get().accountUpdates.push(accountUpdate);
+    return accountUpdate;
   }
 
   /**
@@ -983,90 +983,90 @@ class Party implements Types.Party {
     feePayerKey: PrivateKey,
     { initialBalance = UInt64.zero as number | string | UInt64 } = {}
   ) {
-    let party = Party.createSigned(feePayerKey);
+    let accountUpdate = AccountUpdate.createSigned(feePayerKey);
     let amount =
       initialBalance instanceof UInt64
         ? initialBalance
         : UInt64.fromString(`${initialBalance}`);
-    party.balance.subInPlace(amount.add(Mina.accountCreationFee()));
+    accountUpdate.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 
   static witness<T>(
     type: AsFieldElements<T>,
-    compute: () => { party: Party; result: T },
+    compute: () => { accountUpdate: AccountUpdate; result: T },
     skipCheck = false
   ) {
-    // construct the circuit type for a party + other result
-    let partyType = circuitArray(Field, Types.Party.sizeInFields());
-    type combinedType = { party: Field[]; result: T };
+    // construct the circuit type for a accountUpdate + other result
+    let accountUpdateType = circuitArray(Field, Types.AccountUpdate.sizeInFields());
+    type combinedType = { accountUpdate: Field[]; result: T };
     let combinedType = circuitValue<combinedType>({
-      party: partyType,
+      accountUpdate: accountUpdateType,
       result: type,
     });
 
-    // compute the witness, with the party represented as plain field elements
-    // (in the prover, also store the actual party)
-    let proverParty: Party | undefined;
+    // compute the witness, with the accountUpdate represented as plain field elements
+    // (in the prover, also store the actual accountUpdate)
+    let proverAccountUpdate: AccountUpdate | undefined;
     let fieldsAndResult = Circuit.witness<combinedType>(combinedType, () => {
-      let { party, result } = compute();
-      proverParty = party;
-      return { party: Types.Party.toFields(party), result };
+      let { accountUpdate, result } = compute();
+      proverAccountUpdate = accountUpdate;
+      return { accountUpdate: Types.AccountUpdate.toFields(accountUpdate), result };
     });
 
-    // get back a Types.Party from the fields + aux (where aux is just the default in compile)
-    let aux = Types.Party.toAuxiliary(proverParty);
-    let rawParty = Types.Party.fromFields(fieldsAndResult.party, aux);
+    // get back a Types.AccountUpdate from the fields + aux (where aux is just the default in compile)
+    let aux = Types.AccountUpdate.toAuxiliary(proverAccountUpdate);
+    let rawAccountUpdate = Types.AccountUpdate.fromFields(fieldsAndResult.accountUpdate, aux);
     // usually when we introduce witnesses, we add checks for their type-specific properties (e.g., booleanness).
-    // a party, however, might already be forced to be valid by the on-chain transaction logic,
+    // a accountUpdate, however, might already be forced to be valid by the on-chain transaction logic,
     // allowing us to skip expensive checks in user proofs.
-    if (!skipCheck) Types.Party.check(rawParty);
+    if (!skipCheck) Types.AccountUpdate.check(rawAccountUpdate);
 
-    // construct the full Party instance from the raw party + (maybe) the prover party
-    let party = new Party(rawParty.body, rawParty.authorization);
-    party.lazyAuthorization =
-      proverParty && cloneCircuitValue(proverParty.lazyAuthorization);
-    party.children = proverParty?.children ?? [];
-    party.parent = proverParty?.parent;
-    return { party, result: fieldsAndResult.result };
+    // construct the full AccountUpdate instance from the raw accountUpdate + (maybe) the prover accountUpdate
+    let accountUpdate = new AccountUpdate(rawAccountUpdate.body, rawAccountUpdate.authorization);
+    accountUpdate.lazyAuthorization =
+      proverAccountUpdate && cloneCircuitValue(proverAccountUpdate.lazyAuthorization);
+    accountUpdate.children = proverAccountUpdate?.children ?? [];
+    accountUpdate.parent = proverAccountUpdate?.parent;
+    return { accountUpdate, result: fieldsAndResult.result };
   }
 }
 
 const CallForest = {
-  // similar to Mina_base.Parties.Call_forest.to_parties_list
+  // similar to Mina_base.Zkapp_command.Call_forest.to_parties_list
   // takes a list of parties, which each can have children, so they form a "forest" (list of trees)
-  // returns a flattened list, with `party.body.callDepth` specifying positions in the forest
-  toFlatList(forest: Party[], depth = 0): Party[] {
-    let parties = [];
-    for (let party of forest) {
-      party.body.callDepth = depth;
-      let children = party.children.map((c) => c.party);
-      parties.push(party, ...CallForest.toFlatList(children, depth + 1));
+  // returns a flattened list, with `accountUpdate.body.callDepth` specifying positions in the forest
+  toFlatList(forest: AccountUpdate[], depth = 0): AccountUpdate[] {
+    let accountUpdates = [];
+    for (let accountUpdate of forest) {
+      accountUpdate.body.callDepth = depth;
+      let children = accountUpdate.children.map((c) => c.accountUpdate);
+      accountUpdates.push(accountUpdate, ...CallForest.toFlatList(children, depth + 1));
     }
-    return parties;
+    return accountUpdates;
   },
 
-  // Mina_base.Parties.Digest.Forest.empty
+  // Mina_base.Zkapp_command.Digest.Forest.empty
   emptyHash() {
     return Field.zero;
   },
 
-  // similar to Mina_base.Parties.Call_forest.accumulate_hashes
-  // hashes a party's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
-  hashChildren(parent: Party) {
+  // similar to Mina_base.Zkapp_command.Call_forest.accumulate_hashes
+  // hashes a accountUpdate's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
+  hashChildren(parent: AccountUpdate) {
     let stackHash = CallForest.emptyHash();
-    for (let { party, calls } of parent.children.reverse()) {
+    for (let { accountUpdate, calls } of parent.children.reverse()) {
       // only compute calls if it's not there yet --
       // this gives us the flexibility to witness only direct children of a zkApp
-      calls ??= CallForest.hashChildren(party);
-      let nodeHash = hashWithPrefix(prefixes.partyNode, [party.hash(), calls]);
-      stackHash = hashWithPrefix(prefixes.partyCons, [nodeHash, stackHash]);
+      calls ??= CallForest.hashChildren(accountUpdate);
+      let nodeHash = hashWithPrefix(prefixes.accountUpdateNode, [accountUpdate.hash(), calls]);
+      stackHash = hashWithPrefix(prefixes.accountUpdateCons, [nodeHash, stackHash]);
     }
     return stackHash;
   },
 };
 
-function createChildParty(
-  parent: Party,
+function createChildAccountUpdate(
+  parent: AccountUpdate,
   childAddress: PublicKey,
   options?: {
     caller?: Field;
@@ -1074,91 +1074,91 @@ function createChildParty(
     useFullCommitment?: Bool;
   }
 ) {
-  let child = Party.defaultParty(childAddress);
+  let child = AccountUpdate.defaultAccountUpdate(childAddress);
   const { caller, tokenId, useFullCommitment } = options ?? {};
   child.body.caller = caller ?? child.body.caller;
   child.body.tokenId = tokenId ?? child.body.tokenId;
   child.body.useFullCommitment =
     useFullCommitment ?? child.body.useFullCommitment;
-  makeChildParty(parent, child);
+  makeChildAccountUpdate(parent, child);
   return child;
 }
-function makeChildParty(parent: Party, child: Party) {
+function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
   child.body.callDepth = parent.body.callDepth + 1;
   child.parent = parent;
-  if (!parent.children.find(({ party }) => party === child)) {
-    parent.children.push({ party: child, calls: undefined });
+  if (!parent.children.find(({ accountUpdate }) => accountUpdate === child)) {
+    parent.children.push({ accountUpdate: child, calls: undefined });
   }
 }
 
 // authorization
 
-type Parties = {
+type ZkappCommand = {
   feePayer: FeePayerUnsigned;
-  otherParties: Party[];
+  accountUpdates: AccountUpdate[];
   memo: string;
 };
-type PartiesSigned = {
+type ZkappCommandSigned = {
   feePayer: FeePayer;
-  otherParties: (Party & { lazyAuthorization?: LazyProof })[];
+  accountUpdates: (AccountUpdate & { lazyAuthorization?: LazyProof })[];
   memo: string;
 };
-type PartiesProved = {
+type ZkappCommandProved = {
   feePayer: FeePayerUnsigned;
-  otherParties: (Party & { lazyAuthorization?: LazySignature })[];
+  accountUpdates: (AccountUpdate & { lazyAuthorization?: LazySignature })[];
   memo: string;
 };
 
-function partiesToJson({ feePayer, otherParties, memo }: Parties) {
+function zkappCommandToJson({ feePayer, accountUpdates, memo }: ZkappCommand) {
   memo = Ledger.memoToBase58(memo);
-  return Types.Parties.toJSON({ feePayer, otherParties, memo });
+  return Types.ZkappCommand.toJSON({ feePayer, accountUpdates, memo });
 }
 
 const Authorization = {
-  hasLazyProof(party: Party) {
-    return party.lazyAuthorization?.kind === 'lazy-proof';
+  hasLazyProof(accountUpdate: AccountUpdate) {
+    return accountUpdate.lazyAuthorization?.kind === 'lazy-proof';
   },
-  hasAny(party: Party) {
-    let { authorization: auth, lazyAuthorization: lazyAuth } = party;
+  hasAny(accountUpdate: AccountUpdate) {
+    let { authorization: auth, lazyAuthorization: lazyAuth } = accountUpdate;
     return !!(lazyAuth || 'proof' in auth || 'signature' in auth);
   },
-  setSignature(party: Party, signature: string) {
-    party.authorization = { signature };
-    party.lazyAuthorization = undefined;
+  setSignature(accountUpdate: AccountUpdate, signature: string) {
+    accountUpdate.authorization = { signature };
+    accountUpdate.lazyAuthorization = undefined;
   },
-  setProof(party: Party, proof: string) {
-    party.authorization = { proof };
-    party.lazyAuthorization = undefined;
+  setProof(accountUpdate: AccountUpdate, proof: string) {
+    accountUpdate.authorization = { proof };
+    accountUpdate.lazyAuthorization = undefined;
   },
-  setLazySignature(party: Party, signature?: Omit<LazySignature, 'kind'>) {
+  setLazySignature(accountUpdate: AccountUpdate, signature?: Omit<LazySignature, 'kind'>) {
     signature ??= {};
-    party.authorization = {};
-    party.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
+    accountUpdate.authorization = {};
+    accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
-  setLazyProof(party: Party, proof: Omit<LazyProof, 'kind'>) {
-    party.authorization = {};
-    party.lazyAuthorization = { ...proof, kind: 'lazy-proof' };
+  setLazyProof(accountUpdate: AccountUpdate, proof: Omit<LazyProof, 'kind'>) {
+    accountUpdate.authorization = {};
+    accountUpdate.lazyAuthorization = { ...proof, kind: 'lazy-proof' };
   },
 };
 
 function addMissingSignatures(
-  parties: Parties,
+  zkappCommand: ZkappCommand,
   additionalKeys = [] as PrivateKey[]
-): PartiesSigned {
+): ZkappCommandSigned {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
   let { commitment, fullCommitment } = Ledger.transactionCommitments(
-    JSON.stringify(partiesToJson(parties))
+    JSON.stringify(zkappCommandToJson(zkappCommand))
   );
-  function addFeePayerSignature(party: FeePayerUnsigned): FeePayer {
-    let { body, authorization, lazyAuthorization } = cloneCircuitValue(party);
+  function addFeePayerSignature(accountUpdate: FeePayerUnsigned): FeePayer {
+    let { body, authorization, lazyAuthorization } = cloneCircuitValue(accountUpdate);
     if (lazyAuthorization === undefined) return { body, authorization };
     let { privateKey } = lazyAuthorization;
     if (privateKey === undefined) {
       let i = additionalPublicKeys.findIndex(
-        (pk) => pk === party.body.publicKey
+        (pk) => pk === accountUpdate.body.publicKey
       );
       if (i === -1) {
-        let pk = PublicKey.toBase58(party.body.publicKey);
+        let pk = PublicKey.toBase58(accountUpdate.body.publicKey);
         throw Error(
           `addMissingSignatures: Cannot add signature for fee payer (${pk}), private key is missing.`
         );
@@ -1169,67 +1169,67 @@ function addMissingSignatures(
     return { body, authorization: signature };
   }
 
-  function addSignature(party: Party) {
-    party = Party.clone(party);
-    if (party.lazyAuthorization?.kind !== 'lazy-signature') {
-      return party as Party & { lazyAuthorization?: LazyProof };
+  function addSignature(accountUpdate: AccountUpdate) {
+    accountUpdate = AccountUpdate.clone(accountUpdate);
+    if (accountUpdate.lazyAuthorization?.kind !== 'lazy-signature') {
+      return accountUpdate as AccountUpdate & { lazyAuthorization?: LazyProof };
     }
-    let { privateKey } = party.lazyAuthorization;
+    let { privateKey } = accountUpdate.lazyAuthorization;
     if (privateKey === undefined) {
       let i = additionalPublicKeys.findIndex((pk) =>
-        pk.equals(party.body.publicKey)
+        pk.equals(accountUpdate.body.publicKey)
       );
       if (i === -1)
         throw Error(
-          `addMissingSignatures: Cannot add signature for ${party.publicKey.toBase58()}, private key is missing.`
+          `addMissingSignatures: Cannot add signature for ${accountUpdate.publicKey.toBase58()}, private key is missing.`
         );
       privateKey = additionalKeys[i];
     }
-    let transactionCommitment = party.body.useFullCommitment.toBoolean()
+    let transactionCommitment = accountUpdate.body.useFullCommitment.toBoolean()
       ? fullCommitment
       : commitment;
     let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
-    Authorization.setSignature(party, signature);
-    return party as Party & { lazyAuthorization: undefined };
+    Authorization.setSignature(accountUpdate, signature);
+    return accountUpdate as AccountUpdate & { lazyAuthorization: undefined };
   }
-  let { feePayer, otherParties, memo } = parties;
+  let { feePayer, accountUpdates, memo } = zkappCommand;
   return {
     feePayer: addFeePayerSignature(feePayer),
-    otherParties: otherParties.map(addSignature),
+    accountUpdates: accountUpdates.map(addSignature),
     memo,
   };
 }
 
 /**
- * The public input for zkApps consists of certain hashes of the proving Party (and its child parties) which is constructed during method execution.
+ * The public input for zkApps consists of certain hashes of the proving AccountUpdate (and its child parties) which is constructed during method execution.
 
   For SmartContract proving, a method is run twice: First outside the proof, to obtain the public input, and once in the prover,
   which takes the public input as input. The current transaction is hashed again inside the prover, which asserts that the result equals the input public input,
   as part of the snark circuit. The block producer will also hash the transaction they receive and pass it as a public input to the verifier.
   Thus, the transaction is fully constrained by the proof - the proof couldn't be used to attest to a different transaction.
  */
-type ZkappPublicInput = { party: Field; calls: Field };
+type ZkappPublicInput = { accountUpdate: Field; calls: Field };
 let ZkappPublicInput = circuitValue<ZkappPublicInput>(
-  { party: Field, calls: Field },
-  { customObjectKeys: ['party', 'calls'] }
+  { accountUpdate: Field, calls: Field },
+  { customObjectKeys: ['accountUpdate', 'calls'] }
 );
 
-function partyToPublicInput(self: Party): ZkappPublicInput {
-  let party = self.hash();
+function accountUpdateToPublicInput(self: AccountUpdate): ZkappPublicInput {
+  let accountUpdate = self.hash();
   let calls = CallForest.hashChildren(self);
-  return { party, calls };
+  return { accountUpdate, calls };
 }
 
-async function addMissingProofs(parties: Parties): Promise<{
-  parties: PartiesProved;
+async function addMissingProofs(parties: ZkappCommand): Promise<{
+  zkappCommand: ZkappCommandProved;
   proofs: (Proof<ZkappPublicInput> | undefined)[];
 }> {
-  type PartyProved = Party & { lazyAuthorization?: LazySignature };
+  type AccountUpdateProved = AccountUpdate & { lazyAuthorization?: LazySignature };
 
-  async function addProof(party: Party) {
-    party = Party.clone(party);
-    if (party.lazyAuthorization?.kind !== 'lazy-proof') {
-      return { partyProved: party as PartyProved, proof: undefined };
+  async function addProof(accountUpdate: AccountUpdate) {
+    accountUpdate = AccountUpdate.clone(accountUpdate);
+    if (accountUpdate.lazyAuthorization?.kind !== 'lazy-proof') {
+      return { accountUpdateProved: accountUpdate as AccountUpdateProved, proof: undefined };
     }
     let {
       methodName,
@@ -1238,8 +1238,8 @@ async function addMissingProofs(parties: Parties): Promise<{
       ZkappClass,
       memoized,
       blindingValue,
-    } = party.lazyAuthorization;
-    let publicInput = partyToPublicInput(party);
+    } = accountUpdate.lazyAuthorization;
+    let publicInput = accountUpdateToPublicInput(accountUpdate);
     let publicInputFields = ZkappPublicInput.toFields(publicInput);
     if (ZkappClass._provers === undefined)
       throw Error(
@@ -1261,26 +1261,26 @@ async function addMissingProofs(parties: Parties): Promise<{
           () => provers[i](publicInputFields, previousProofs)
         )
     );
-    Authorization.setProof(party, Pickles.proofToBase64Transaction(proof));
+    Authorization.setProof(accountUpdate, Pickles.proofToBase64Transaction(proof));
     let maxProofsVerified = ZkappClass._maxProofsVerified!;
     const Proof = ZkappClass.Proof();
     return {
-      partyProved: party as PartyProved,
+      accountUpdateProved: accountUpdate as AccountUpdateProved,
       proof: new Proof({ publicInput, proof, maxProofsVerified }),
     };
   }
 
-  let { feePayer, otherParties, memo } = parties;
+  let { feePayer, accountUpdates, memo } = parties;
   // compute proofs serially. in parallel would clash with our global variable hacks
-  let otherPartiesProved: PartyProved[] = [];
+  let accountUpdatesProved: AccountUpdateProved[] = [];
   let proofs: (Proof<ZkappPublicInput> | undefined)[] = [];
-  for (let party of otherParties) {
-    let { partyProved, proof } = await addProof(party);
-    otherPartiesProved.push(partyProved);
+  for (let accountUpdate of accountUpdates) {
+    let { accountUpdateProved, proof } = await addProof(accountUpdate);
+    accountUpdatesProved.push(accountUpdateProved);
     proofs.push(proof);
   }
   return {
-    parties: { feePayer, otherParties: otherPartiesProved, memo },
+    zkappCommand: { feePayer, accountUpdates: accountUpdatesProved, memo },
     proofs,
   };
 }
@@ -1296,23 +1296,23 @@ function signJsonTransaction(
   if (typeof privateKey === 'string')
     privateKey = PrivateKey.fromBase58(privateKey);
   let publicKey = privateKey.toPublicKey().toBase58();
-  let parties: Types.Json.Parties = JSON.parse(transactionJson);
-  let feePayer = parties.feePayer;
+  let zkappCommand: Types.Json.ZkappCommand = JSON.parse(transactionJson);
+  let feePayer = zkappCommand.feePayer;
   if (feePayer.body.publicKey === publicKey) {
-    parties = JSON.parse(
-      Ledger.signFeePayer(JSON.stringify(parties), privateKey)
+    zkappCommand = JSON.parse(
+      Ledger.signFeePayer(JSON.stringify(zkappCommand), privateKey)
     );
   }
-  for (let i = 0; i < parties.otherParties.length; i++) {
-    let party = parties.otherParties[i];
+  for (let i = 0; i < zkappCommand.accountUpdates.length; i++) {
+    let accountUpdate = zkappCommand.accountUpdates[i];
     if (
-      party.body.publicKey === publicKey &&
-      party.authorization.proof === null
+      accountUpdate.body.publicKey === publicKey &&
+      accountUpdate.authorization.proof === null
     ) {
-      parties = JSON.parse(
-        Ledger.signOtherParty(JSON.stringify(parties), privateKey, i)
+      zkappCommand = JSON.parse(
+        Ledger.signAccountUpdate(JSON.stringify(zkappCommand), privateKey, i)
       );
     }
   }
-  return JSON.stringify(parties);
+    return JSON.stringify(zkappCommand);
 }

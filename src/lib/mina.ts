@@ -8,9 +8,9 @@ import {
   addMissingProofs,
   addMissingSignatures,
   FeePayerUnsigned,
-  Parties,
-  partiesToJson,
-  Party,
+  ZkappCommand,
+  zkappCommandToJson,
+  AccountUpdate,
   ZkappStateLength,
   ZkappPublicInput,
   TokenId,
@@ -18,7 +18,7 @@ import {
   Authorization,
   Events,
   SequenceEvents,
-} from './party.js';
+} from './account_update.js';
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue } from './circuit_value.js';
@@ -50,7 +50,7 @@ interface TransactionId {
 }
 
 interface Transaction {
-  transaction: Parties;
+  transaction: ZkappCommand;
   toJSON(): string;
   toGraphqlQuery(): string;
   sign(additionalKeys?: PrivateKey[]): Transaction;
@@ -63,7 +63,7 @@ type Account = Fetch.Account;
 type FetchMode = 'fetch' | 'cached' | 'test';
 type CurrentTransaction = {
   sender?: PrivateKey;
-  parties: Party[];
+  accountUpdates: AccountUpdate[];
   fetchMode: FetchMode;
   isFinalRunOutsideCircuit: boolean;
 };
@@ -98,7 +98,7 @@ function createTransaction(
 
   let transactionId = currentTransaction.enter({
     sender: feePayerKey,
-    parties: [],
+    accountUpdates: [],
     fetchMode,
     isFinalRunOutsideCircuit,
   });
@@ -127,37 +127,37 @@ function createTransaction(
     currentTransaction.leave(transactionId);
     throw err;
   }
-  let otherParties = CallForest.toFlatList(currentTransaction.get().parties);
+  let accountUpdates = CallForest.toFlatList(currentTransaction.get().accountUpdates);
   try {
     // check that on-chain values weren't used without setting a precondition
-    for (let party of otherParties) {
-      assertPreconditionInvariants(party);
+    for (let accountUpdate of accountUpdates) {
+      assertPreconditionInvariants(accountUpdate);
     }
   } catch (err) {
     currentTransaction.leave(transactionId);
     throw err;
   }
 
-  let feePayerParty: FeePayerUnsigned;
+  let feePayerAccountUpdate: FeePayerUnsigned;
   if (feePayerKey !== undefined) {
     // if senderKey is provided, fetch account to get nonce and mark to be signed
     let senderAddress = feePayerKey.toPublicKey();
     let senderAccount = getAccount(senderAddress, TokenId.default);
-    feePayerParty = Party.defaultFeePayer(
+    feePayerAccountUpdate = AccountUpdate.defaultFeePayer(
       senderAddress,
       feePayerKey,
       senderAccount.nonce
     );
     if (fee !== undefined) {
-      feePayerParty.body.fee =
+      feePayerAccountUpdate.body.fee =
         fee instanceof UInt64 ? fee : UInt64.fromString(String(fee));
     }
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
-    feePayerParty = Party.dummyFeePayer();
+    feePayerAccountUpdate = AccountUpdate.dummyFeePayer();
   }
 
-  let transaction: Parties = { otherParties, feePayer: feePayerParty, memo };
+  let transaction: ZkappCommand = { accountUpdates, feePayer: feePayerAccountUpdate, memo };
 
   currentTransaction.leave(transactionId);
   let self: Transaction = {
@@ -169,13 +169,13 @@ function createTransaction(
     },
 
     async prove() {
-      let { parties, proofs } = await addMissingProofs(self.transaction);
-      self.transaction = parties;
+      let { zkappCommand, proofs } = await addMissingProofs(self.transaction);
+      self.transaction = zkappCommand;
       return proofs;
     },
 
     toJSON() {
-      let json = partiesToJson(self.transaction);
+      let json = zkappCommandToJson(self.transaction);
       return JSON.stringify(json);
     },
 
@@ -300,17 +300,17 @@ function LocalBlockchain({
     sendTransaction(txn: Transaction) {
       txn.sign();
 
-      let partiesJson = partiesToJson(txn.transaction);
+      let zkappCommandJson = zkappCommandToJson(txn.transaction);
 
       ledger.applyJsonTransaction(
-        JSON.stringify(partiesJson),
+        JSON.stringify(zkappCommandJson),
         String(accountCreationFee),
         JSON.stringify(networkState)
       );
 
       // fetches all events from the transaction and stores them
       // events are identified and associated with a publicKey and tokenId
-      partiesJson.otherParties.forEach((p) => {
+      zkappCommandJson.accountUpdates.forEach((p) => {
         let addr = p.body.publicKey;
         let tokenId = p.body.tokenId;
         if (events[addr] === undefined) {
@@ -367,12 +367,12 @@ function LocalBlockchain({
     async transaction(sender: FeePayerSpec, f: () => void) {
       // bad hack: run transaction just to see whether it creates proofs
       // if it doesn't, this is the last chance to run SmartContract.runOutsideCircuit, which is supposed to run only once
-      // TODO: this has obvious holes if multiple zkapps are involved, but not relevant currently because we can't prove with multiple parties
+      // TODO: this has obvious holes if multiple zkapps are involved, but not relevant currently because we can't prove with multiple account updates
       // and hopefully with upcoming work by Matt we can just run everything in the prover, and nowhere else
       let tx = createTransaction(sender, f, {
         isFinalRunOutsideCircuit: false,
       });
-      let hasProofs = tx.transaction.otherParties.some(
+      let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
       return createTransaction(sender, f, {
@@ -514,7 +514,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         isFinalRunOutsideCircuit: false,
       });
       await Fetch.fetchMissingData(graphqlEndpoint);
-      let hasProofs = tx.transaction.otherParties.some(
+      let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
       return createTransaction(sender, f, {

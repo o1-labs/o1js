@@ -6,7 +6,7 @@ import {
   isReady,
   method,
   Mina,
-  Party,
+  AccountUpdate,
   Permissions,
   PrivateKey,
   SmartContract,
@@ -84,7 +84,7 @@ if (doProofs) {
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, () => {
   // TODO: enable funding multiple accounts properly
-  Party.fundNewAccount(feePayer, {
+  AccountUpdate.fundNewAccount(feePayer, {
     initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
   });
   zkapp.deploy({ zkappKey });

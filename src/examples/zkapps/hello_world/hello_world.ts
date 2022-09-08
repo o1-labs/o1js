@@ -3,7 +3,7 @@ import {
   SmartContract,
   state,
   State,
-  Party,
+  AccountUpdate,
   method,
   DeployArgs,
   PrivateKey,
@@ -24,7 +24,7 @@ export class HelloWorld extends SmartContract {
     });
     this.x.set(Field(2));
 
-    Party.setValue(this.self.update.delegate, adminPublicKey);
+    AccountUpdate.setValue(this.self.update.delegate, adminPublicKey);
   }
 
   @method update(squared: Field, admin: PrivateKey) {
