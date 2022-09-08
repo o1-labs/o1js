@@ -24,6 +24,10 @@ import {
 export { Dex, DexTokenHolder, TokenContract, keys, addresses, tokenIds };
 
 class Dex extends SmartContract {
+  // addresses of token contracts are constants
+  tokenX = addresses.tokenX;
+  tokenY = addresses.tokenY;
+
   /**
    * Mint liquidity tokens in exchange for X and Y tokens
    * @param user caller address
@@ -38,17 +42,17 @@ class Dex extends SmartContract {
    * The transaction needs to be signed by the user's private key.
    */
   @method supplyLiquidityBase(user: PublicKey, dx: UInt64, dy: UInt64): UInt64 {
-    let tokenX = new TokenContract(addresses.tokenX);
-    let tokenY = new TokenContract(addresses.tokenY);
+    let tokenX = new TokenContract(this.tokenX);
+    let tokenY = new TokenContract(this.tokenY);
 
     // get balances of X and Y token
     // TODO: this creates extra parties. we need to reuse these by passing them to or returning them from transfer()
     // but for that, we need the @method argument generalization
-    let dexX = Party.create(addresses.dex, tokenX.experimental.token.id);
+    let dexX = Party.create(this.address, tokenX.experimental.token.id);
     let x = dexX.account.balance.get();
     dexX.account.balance.assertEquals(x);
 
-    let dexY = Party.create(addresses.dex, tokenY.experimental.token.id);
+    let dexY = Party.create(this.address, tokenY.experimental.token.id);
     let y = dexY.account.balance.get();
     dexY.account.balance.assertEquals(y);
 
@@ -57,8 +61,8 @@ class Dex extends SmartContract {
     let xSafe = Circuit.if(isXZero, UInt64.one, x);
     dy.equals(dx.mul(y).div(xSafe)).or(isXZero).assertTrue();
 
-    tokenX.transfer(user, addresses.dex, dx);
-    tokenY.transfer(user, addresses.dex, dy);
+    tokenX.transfer(user, this.address, dx);
+    tokenY.transfer(user, this.address, dy);
 
     // calculate liquidity token output simply as dl = dx + dx
     // => maintains ratio x/l, y/l
@@ -81,8 +85,8 @@ class Dex extends SmartContract {
    */
   supplyLiquidity(user: PublicKey, dx: UInt64): UInt64 {
     // calculate dy outside circuit
-    let x = Account(addresses.dex, tokenIds.X).balance.get();
-    let y = Account(addresses.dex, tokenIds.Y).balance.get();
+    let x = Account(this.address, Token.getId(this.tokenX)).balance.get();
+    let y = Account(this.address, Token.getId(this.tokenY)).balance.get();
     if (x.value.isZero().toBoolean()) {
       throw Error(
         'Cannot call `supplyLiquidity` when reserves are zero. Use `supplyLiquidityBase`.'
@@ -102,27 +106,62 @@ class Dex extends SmartContract {
    */
   @method redeemLiquidity(user: PublicKey, dl: UInt64) /* : UInt64x2 */ {
     // call the token X holder inside a token X-authorized callback
-    let tokenX = new TokenContract(addresses.tokenX);
-    let dexX = new DexTokenHolder(addresses.dex, tokenIds.X);
-    let callback = Experimental.Callback.create(dexX, 'redeemLiquidityX', [
+    let tokenX = new TokenContract(this.tokenX);
+    let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
+    // TODO: as long as we're not proving anything about the callback, this allows users to
+    // construct any party, e.g. draining all our lq tokens -.-
+    let callback = Experimental.Callback.create(dexX, 'redeemLiquidity', [
       user,
       dl,
+      this.tokenY,
     ]);
     tokenX.authorize(callback);
+    // TODO: get return value from callback and return here
   }
 
   /**
-   * Swap X and Y tokens
+   * Swap X tokens for Y tokens
    * @param user caller address
-   * @param inputX input amount of X tokens
-   * @param inputY input amount of Y tokens
-   * @return output amount of X and Y tokens, as a tuple [outputX, outputY]
+   * @param dx input amount of X tokens
+   * @return output amount Y tokens
    *
-   * This can be used to swap X for Y OR swap Y for X.
-   * To swap X for Y, pass in inputY = 0, and inputX = the amount of X tokens you want to spend.
-   * To swap Y for X, pass in inputX = 0, and inputY = the amount of Y tokens you want to spend.
+   * The transaction needs to be signed by the user's private key.
    */
-  // @method swap(user: PublicKey, inputX: UInt64, inputY: UInt64): UInt64x2 {}
+  @method swapX(user: PublicKey, dx: UInt64) /* : UInt64 */ {
+    let tokenY = new TokenContract(this.tokenY);
+    let dexY = new DexTokenHolder(this.address, tokenY.experimental.token.id);
+    // TODO: as long as we're not proving anything about the callback, this allows users to
+    // construct any party, for example draining all our lq tokens -.-
+    let callback = Experimental.Callback.create(dexY, 'swap', [
+      user,
+      dx,
+      this.tokenX,
+    ]);
+    tokenY.authorize(callback);
+    // TODO: get return value from callback and return here
+  }
+
+  /**
+   * Swap Y tokens for X tokens
+   * @param user caller address
+   * @param dy input amount of Y tokens
+   * @return output amount Y tokens
+   *
+   * The transaction needs to be signed by the user's private key.
+   */
+  @method swapY(user: PublicKey, dy: UInt64) /* : UInt64 */ {
+    let tokenX = new TokenContract(this.tokenX);
+    let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
+    // TODO: as long as we're not proving anything about the callback, this allows users to
+    // construct any party, for example draining all our lq tokens -.-
+    let callback = Experimental.Callback.create(dexX, 'swap', [
+      user,
+      dy,
+      this.tokenY,
+    ]);
+    tokenX.authorize(callback);
+    // TODO: get return value from callback and return here
+  }
 }
 
 // TODO: this is a pain -- let's define circuit values in one line, with a factory pattern
@@ -138,16 +177,17 @@ class UInt64x2 extends CircuitValue {
 }
 
 class DexTokenHolder extends SmartContract {
-  // simpler circuit for redeeming liquidity -- direct trade between token and lq token
+  // simpler circuit for redeeming liquidity -- direct trade between our token and lq token
   // it's incomplete, as it gives the user only the Y part for an lqXY token; but doesn't matter as there's no incentive to call it directly
-  @method redeemLiquidityY(user: PublicKey, dl: UInt64): UInt64 {
-    // TODO: wrong to bake in the address of the lq token here?
-    let dex = Party.create(addresses.dex);
+  // see the more complicated method `redeemLiquidity` below which gives back both tokens, by calling this method,
+  // for the other token, in a callback
+  @method redeemLiquidityPartial(user: PublicKey, dl: UInt64): UInt64 {
+    let dex = Party.create(this.address);
     let l = dex.account.balance.get();
     dex.account.balance.assertEquals(l);
 
     // user sends dl to dex
-    let idlXY = Token.getId(addresses.dex);
+    let idlXY = Token.getId(this.address);
     let userParty = Party.create(user, idlXY);
     userParty.balance.subInPlace(dl);
 
@@ -161,18 +201,21 @@ class DexTokenHolder extends SmartContract {
     return l;
   }
 
-  // more complicated circuit, where we trigger the Y-lqXY trade in our child parties and then add the X part
-  @method redeemLiquidityX(user: PublicKey, dl: UInt64): UInt64x2 {
+  // more complicated circuit, where we trigger the Y(other)-lqXY trade in our child parties and then add the X(our) part
+  @method redeemLiquidity(
+    user: PublicKey,
+    dl: UInt64,
+    otherTokenAddress: PublicKey
+  ): UInt64x2 {
     // first call the Y token holder, authorized by the Y token contract; this makes sure we get dl, the user's lqXY
-    // TODO: it seems wrong to bake in the address and ID of the other token here
-    let tokenY = new TokenContract(addresses.tokenY);
-    let dexY = new DexTokenHolder(addresses.dex, tokenIds.Y);
+    let tokenY = new TokenContract(otherTokenAddress);
+    let dexY = new DexTokenHolder(this.address, tokenY.experimental.token.id);
     // TODO: THIS IS A SECURITY HOLE
     // there's nothing proving that we really call that callback and pass in [user, dl]
     // also, there needs to be a way to get the callback _result_ to the caller's caller
     // right now, we can hack around that by extracting balance changes here
     tokenY.authorize(
-      Experimental.Callback.create(dexY, 'redeemLiquidityY', [user, dl])
+      Experimental.Callback.create(dexY, 'redeemLiquidityPartial', [user, dl])
     );
     let l: UInt64;
     let dy;
@@ -217,6 +260,32 @@ class DexTokenHolder extends SmartContract {
     this.send({ to: user, amount: dx });
 
     return UInt64x2.from([dx, dy]);
+  }
+
+  // this works for both directions (in our case where both tokens use the same contract)
+  @method swap(
+    user: PublicKey,
+    otherTokenAmount: UInt64,
+    otherTokenAddress: PublicKey
+  ): UInt64 {
+    // we're writing this as if our token == y and other token == x
+    let dx = otherTokenAmount;
+    let tokenX = new TokenContract(otherTokenAddress);
+    // send x from user to us (i.e., to the same address as this but with the other token)
+    let dexX = tokenX.experimental.token.send({
+      from: user,
+      to: this.address,
+      amount: dx,
+    });
+    // get balances
+    let x = dexX.account.balance.get();
+    dexX.account.balance.assertEquals(x);
+    let y = this.account.balance.get();
+    this.account.balance.assertEquals(y);
+    // compute and send dy
+    let dy = y.mul(dx).div(x.add(dx));
+    this.send({ to: user, amount: dy });
+    return dy;
   }
 }
 
