@@ -1,7 +1,7 @@
 import { Circuit, AsFieldElements, Bool, Field } from '../snarky.js';
 import { circuitValueEquals } from './circuit_value.js';
 import * as Mina from './mina.js';
-import { SequenceEvents, Party, Preconditions } from './party.js';
+import { SequenceEvents, AccountUpdate, Preconditions } from './party.js';
 import { UInt32, UInt64 } from './int.js';
 import { inCompileMode, inProver } from './proof_system.js';
 import { Layout } from '../snarky/parties-helpers.js';
@@ -20,7 +20,7 @@ export {
   getAccountPreconditions,
 };
 
-function preconditions(party: Party, isSelf: boolean) {
+function preconditions(party: AccountUpdate, isSelf: boolean) {
   initializePreconditions(party, isSelf);
   return { account: Account(party), network: Network(party) };
 }
@@ -28,14 +28,14 @@ function preconditions(party: Party, isSelf: boolean) {
 // note: please keep the two precondition implementations separate
 // so we can add customized fields easily
 
-function Network(party: Party): Network {
+function Network(party: AccountUpdate): Network {
   let layout =
     jsLayout.Party.entries.body.entries.preconditions.entries.network;
   let context = getPreconditionContextExn(party);
   return preconditionClass(layout as Layout, 'network', party, context);
 }
 
-function Account(party: Party): Account {
+function Account(party: AccountUpdate): Account {
   let layout =
     jsLayout.Party.entries.body.entries.preconditions.entries.account;
   let context = getPreconditionContextExn(party);
@@ -57,7 +57,7 @@ let baseMap = { UInt64, UInt32, Field, Bool };
 function preconditionClass(
   layout: Layout,
   baseKey: any,
-  party: Party,
+  party: AccountUpdate,
   context: PreconditionContext
 ): any {
   if (layout.type === 'option') {
@@ -108,7 +108,7 @@ function preconditionSubclass<
   K extends LongKey,
   U extends FlatPreconditionValue[K]
 >(
-  party: Party,
+  party: AccountUpdate,
   longKey: K,
   fieldType: AsFieldElements<U>,
   context: PreconditionContext
@@ -148,7 +148,7 @@ function preconditionSubclass<
 }
 
 function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
-  party: Party,
+  party: AccountUpdate,
   longKey: K,
   fieldType: AsFieldElements<U>
 ): U {
@@ -223,7 +223,7 @@ type PreconditionContext = {
   constrained: Set<LongKey>;
 };
 
-function initializePreconditions(party: Party, isSelf: boolean) {
+function initializePreconditions(party: AccountUpdate, isSelf: boolean) {
   preconditionContexts.set(party, {
     read: new Set(),
     constrained: new Set(),
@@ -232,12 +232,12 @@ function initializePreconditions(party: Party, isSelf: boolean) {
   });
 }
 
-function cleanPreconditionsCache(party: Party) {
+function cleanPreconditionsCache(party: AccountUpdate) {
   let context = preconditionContexts.get(party);
   if (context !== undefined) context.vars = {};
 }
 
-function assertPreconditionInvariants(party: Party) {
+function assertPreconditionInvariants(party: AccountUpdate) {
   let context = getPreconditionContextExn(party);
   let self = context.isSelf ? 'this' : 'party';
   let dummyPreconditions = Preconditions.ignoreAll();
@@ -265,13 +265,13 @@ You can also add more flexible preconditions with \`${self}.${preconditionPath}.
   }
 }
 
-function getPreconditionContextExn(party: Party) {
+function getPreconditionContextExn(party: AccountUpdate) {
   let c = preconditionContexts.get(party);
   if (c === undefined) throw Error('bug: precondition context not found');
   return c;
 }
 
-const preconditionContexts = new WeakMap<Party, PreconditionContext>();
+const preconditionContexts = new WeakMap<AccountUpdate, PreconditionContext>();
 
 // exported types
 

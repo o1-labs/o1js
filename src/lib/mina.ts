@@ -10,13 +10,12 @@ import {
   FeePayerUnsigned,
   Parties,
   partiesToJson,
-  Party,
+  AccountUpdate,
   ZkappStateLength,
   ZkappPublicInput,
   TokenId,
   CallForest,
   Authorization,
-  Events,
   SequenceEvents,
 } from './party.js';
 import * as Fetch from './fetch.js';
@@ -63,7 +62,7 @@ type Account = Fetch.Account;
 type FetchMode = 'fetch' | 'cached' | 'test';
 type CurrentTransaction = {
   sender?: PublicKey;
-  parties: Party[];
+  parties: AccountUpdate[];
   fetchMode: FetchMode;
   isFinalRunOutsideCircuit: boolean;
 };
@@ -143,7 +142,7 @@ function createTransaction(
     // if senderKey is provided, fetch account to get nonce and mark to be signed
     let senderAddress = feePayerKey.toPublicKey();
     let senderAccount = getAccount(senderAddress, TokenId.default);
-    feePayerParty = Party.defaultFeePayer(
+    feePayerParty = AccountUpdate.defaultFeePayer(
       senderAddress,
       feePayerKey,
       senderAccount.nonce
@@ -154,7 +153,7 @@ function createTransaction(
     }
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
-    feePayerParty = Party.dummyFeePayer();
+    feePayerParty = AccountUpdate.dummyFeePayer();
   }
 
   let transaction: Parties = { otherParties, feePayer: feePayerParty, memo };

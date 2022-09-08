@@ -1,5 +1,3 @@
-import { Party } from './party.js';
-
 export { Context };
 
 namespace Context {

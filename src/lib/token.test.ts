@@ -8,7 +8,7 @@ import {
   SmartContract,
   Mina,
   PrivateKey,
-  Party,
+  AccountUpdate,
   method,
   PublicKey,
   DeployArgs,
@@ -114,7 +114,7 @@ async function setupLocal() {
 
   (
     await Mina.transaction(feePayer, () => {
-      Party.fundNewAccount(feePayer);
+      AccountUpdate.fundNewAccount(feePayer);
       zkapp.init();
       zkapp.deploy({ zkappKey });
     })
@@ -170,7 +170,7 @@ describe('Token', () => {
     it('should change the balance of a token account after token owner mints', async () => {
       (
         await Mina.transaction(feePayer, () => {
-          Party.fundNewAccount(feePayer);
+          AccountUpdate.fundNewAccount(feePayer);
           zkapp.mint(tokenAccount1, UInt64.from(100_000));
           zkapp.sign(zkappKey);
         })
@@ -186,7 +186,7 @@ describe('Token', () => {
 
     it('should error if token owner mints more tokens than allowed', async () => {
       await Mina.transaction(feePayer, () => {
-        Party.fundNewAccount(feePayer);
+        AccountUpdate.fundNewAccount(feePayer);
         zkapp.mint(tokenAccount1, UInt64.from(100_000_000_000));
         zkapp.sign(zkappKey);
       }).catch((e) => {
@@ -203,7 +203,7 @@ describe('Token', () => {
     it('should change the balance of a token account after token owner burns', async () => {
       (
         await Mina.transaction(feePayer, () => {
-          Party.fundNewAccount(feePayer);
+          AccountUpdate.fundNewAccount(feePayer);
           zkapp.mint(tokenAccount1, UInt64.from(100_000));
           zkapp.sign(zkappKey);
         })
@@ -228,7 +228,7 @@ describe('Token', () => {
     it('should error if token owner burns more tokens than token account has', async () => {
       (
         await Mina.transaction(feePayer, () => {
-          Party.fundNewAccount(feePayer);
+          AccountUpdate.fundNewAccount(feePayer);
           zkapp.mint(tokenAccount1, UInt64.from(1_000));
           zkapp.sign(zkappKey);
         })
@@ -254,14 +254,14 @@ describe('Token', () => {
     it('should change the balance of a token account after sending', async () => {
       (
         await Mina.transaction(feePayer, () => {
-          Party.fundNewAccount(feePayer);
+          AccountUpdate.fundNewAccount(feePayer);
           zkapp.mint(tokenAccount1, UInt64.from(100_000));
           zkapp.sign(zkappKey);
         })
       ).send();
       (
         await Mina.transaction(feePayer, () => {
-          Party.fundNewAccount(feePayer);
+          AccountUpdate.fundNewAccount(feePayer);
           zkapp.sendTokens(tokenAccount1, tokenAccount2, UInt64.from(10_000));
           zkapp.sign(zkappKey);
         })
@@ -286,7 +286,7 @@ describe('Token', () => {
     it('should error creating a token account if no account creation fee is specified', async () => {
       (
         await Mina.transaction(feePayer, () => {
-          Party.fundNewAccount(feePayer);
+          AccountUpdate.fundNewAccount(feePayer);
           zkapp.mint(tokenAccount1, UInt64.from(100_000));
           zkapp.sign(zkappKey);
         })
@@ -307,7 +307,7 @@ describe('Token', () => {
     it('should error if sender sends more tokens than they have', async () => {
       (
         await Mina.transaction(feePayer, () => {
-          Party.fundNewAccount(feePayer);
+          AccountUpdate.fundNewAccount(feePayer);
           zkapp.mint(tokenAccount1, UInt64.from(100_000));
           zkapp.sign(zkappKey);
         })

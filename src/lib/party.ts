@@ -37,7 +37,7 @@ import * as Encoding from './encoding.js';
 import { Context } from './global-context.js';
 
 // external API
-export { Permissions, Party, ZkappPublicInput };
+export { Permissions, AccountUpdate, ZkappPublicInput };
 
 // internal API
 export {
@@ -71,7 +71,7 @@ let smartContractContext = Context.create<{
   this: SmartContract;
   methodCallDepth: number;
   isCallback: boolean;
-  selfUpdate: Party;
+  selfUpdate: AccountUpdate;
 }>();
 
 type PartyBody = Types.Party['body'];
@@ -322,7 +322,7 @@ const SequenceEvents = {
 
 // TODO: get docstrings from OCaml and delete this interface
 /**
- * The body of describing how some [[ Party ]] should change.
+ * The body of describing how some [[ AccountUpdate ]] should change.
  *
  * TODO: We need to rename this still.
  */
@@ -521,7 +521,7 @@ const AccountPrecondition = {
   },
   nonce(nonce: UInt32): AccountPrecondition {
     let p = AccountPrecondition.ignoreAll();
-    Party.assertEquals(p.nonce, nonce);
+    AccountUpdate.assertEquals(p.nonce, nonce);
     return p;
   },
 };
@@ -589,14 +589,14 @@ class Token {
   }
 }
 
-class Party implements Types.Party {
+class AccountUpdate implements Types.Party {
   body: Body;
   authorization: Control;
   lazyAuthorization: LazySignature | LazyProof | undefined = undefined;
   account: Precondition.Account;
   network: Precondition.Network;
-  children: { calls?: Field; parties: Party[] } = { parties: [] };
-  parent: Party | undefined = undefined;
+  children: { calls?: Field; parties: AccountUpdate[] } = { parties: [] };
+  parent: AccountUpdate | undefined = undefined;
 
   private isSelf: boolean;
 
@@ -610,10 +610,14 @@ class Party implements Types.Party {
     this.isSelf = isSelf;
   }
 
-  static clone(party: Party) {
+  static clone(party: AccountUpdate) {
     let body = cloneCircuitValue(party.body);
     let authorization = cloneCircuitValue(party.authorization);
-    let clonedParty = new (Party as any)(body, authorization, party.isSelf);
+    let clonedParty = new (AccountUpdate as any)(
+      body,
+      authorization,
+      party.isSelf
+    );
     clonedParty.lazyAuthorization = cloneCircuitValue(party.lazyAuthorization);
     clonedParty.children = party.children;
     clonedParty.parent = party.parent;
@@ -709,7 +713,10 @@ class Party implements Types.Party {
 
     return {
       set(tokenSymbol: string) {
-        Party.setValue(party.update.tokenSymbol, TokenSymbol.from(tokenSymbol));
+        AccountUpdate.setValue(
+          party.update.tokenSymbol,
+          TokenSymbol.from(tokenSymbol)
+        );
       },
     };
   }
@@ -718,16 +725,16 @@ class Party implements Types.Party {
     to,
     amount,
   }: {
-    to: PublicKey | Party;
+    to: PublicKey | AccountUpdate;
     amount: number | bigint | UInt64;
   }) {
     let party = this;
     let receiverParty;
-    if (to instanceof Party) {
+    if (to instanceof AccountUpdate) {
       receiverParty = to;
       receiverParty.body.tokenId.assertEquals(party.body.tokenId);
     } else {
-      receiverParty = Party.defaultParty(to, party.body.tokenId);
+      receiverParty = AccountUpdate.defaultParty(to, party.body.tokenId);
     }
     makeChildParty(party, receiverParty);
 
@@ -778,7 +785,7 @@ class Party implements Types.Party {
    * @method onlyRunsWhenBalanceIsLow() {
    *   let lower = UInt64.zero;
    *   let upper = UInt64.fromNumber(20e9);
-   *   Party.assertBetween(this.self.body.preconditions.account.balance, lower, upper);
+   *   AccountUpdate.assertBetween(this.self.body.preconditions.account.balance, lower, upper);
    *   // ...
    * }
    * ```
@@ -804,7 +811,7 @@ class Party implements Types.Party {
    *
    * ```ts
    * @method onlyRunsWhenNonceIsZero() {
-   *   Party.assertEquals(this.self.body.preconditions.account.nonce, UInt32.zero);
+   *   AccountUpdate.assertEquals(this.self.body.preconditions.account.nonce, UInt32.zero);
    *   // ...
    * }
    * ```
@@ -824,7 +831,7 @@ class Party implements Types.Party {
   }
 
   sign(privateKey?: PrivateKey) {
-    let nonce = Party.getNonce(this);
+    let nonce = AccountUpdate.getNonce(this);
     this.account.nonce.assertEquals(nonce);
     this.body.incrementNonce = Bool(true);
     Authorization.setLazySignature(this, { privateKey });
@@ -839,16 +846,16 @@ class Party implements Types.Party {
     feePayer.lazyAuthorization = { kind: 'lazy-signature', privateKey };
   }
 
-  static getNonce(party: Party | FeePayerUnsigned) {
+  static getNonce(party: AccountUpdate | FeePayerUnsigned) {
     if (inCompileMode()) {
       return emptyWitness(UInt32);
     }
     return inProver()
-      ? Circuit.witness(UInt32, () => Party.getNonceUnchecked(party))
-      : Party.getNonceUnchecked(party);
+      ? Circuit.witness(UInt32, () => AccountUpdate.getNonceUnchecked(party))
+      : AccountUpdate.getNonceUnchecked(party);
   }
 
-  private static getNonceUnchecked(update: Party | FeePayerUnsigned) {
+  private static getNonceUnchecked(update: AccountUpdate | FeePayerUnsigned) {
     let publicKey = update.body.publicKey;
     let nonce = Number(
       Precondition.getAccountPreconditions(update.body).nonce.toString()
@@ -905,7 +912,7 @@ class Party implements Types.Party {
       body.tokenId = tokenId;
       body.caller = tokenId;
     }
-    return new Party(body);
+    return new AccountUpdate(body);
   }
   static dummy() {
     return this.defaultParty(PublicKey.empty());
@@ -933,7 +940,7 @@ class Party implements Types.Party {
   }
 
   static create(publicKey: PublicKey, tokenId?: Field) {
-    let party = Party.defaultParty(publicKey, tokenId);
+    let party = AccountUpdate.defaultParty(publicKey, tokenId);
     if (smartContractContext.has()) {
       makeChildParty(smartContractContext.get().this.self, party);
     } else {
@@ -946,12 +953,14 @@ class Party implements Types.Party {
     let publicKey = signer.toPublicKey();
     if (!Mina.currentTransaction.has()) {
       throw new Error(
-        'Party.createSigned: Cannot run outside of a transaction'
+        'AccountUpdate.createSigned: Cannot run outside of a transaction'
       );
     }
-    let party = Party.defaultParty(publicKey);
+    let party = AccountUpdate.defaultParty(publicKey);
     // it's fine to compute the nonce outside the circuit, because we're constraining it with a precondition
-    let nonce = Circuit.witness(UInt32, () => Party.getNonceUnchecked(party));
+    let nonce = Circuit.witness(UInt32, () =>
+      AccountUpdate.getNonceUnchecked(party)
+    );
     party.account.nonce.assertEquals(nonce);
     party.body.incrementNonce = Bool(true);
 
@@ -975,7 +984,7 @@ class Party implements Types.Party {
     feePayerKey: PrivateKey,
     { initialBalance = UInt64.zero as number | string | UInt64 } = {}
   ) {
-    let party = Party.createSigned(feePayerKey);
+    let party = AccountUpdate.createSigned(feePayerKey);
     let amount =
       initialBalance instanceof UInt64
         ? initialBalance
@@ -985,7 +994,7 @@ class Party implements Types.Party {
 
   static witness<T>(
     type: AsFieldElements<T>,
-    compute: () => { party: Party; result: T },
+    compute: () => { party: AccountUpdate; result: T },
     { skipCheck = false } = {}
   ) {
     // construct the circuit type for a party + other result
@@ -998,7 +1007,7 @@ class Party implements Types.Party {
 
     // compute the witness, with the party represented as plain field elements
     // (in the prover, also store the actual party)
-    let proverParty: Party | undefined;
+    let proverParty: AccountUpdate | undefined;
     let fieldsAndResult = Circuit.witness<combinedType>(combinedType, () => {
       let { party, result } = compute();
       proverParty = party;
@@ -1013,8 +1022,8 @@ class Party implements Types.Party {
     // allowing us to skip expensive checks in user proofs.
     if (!skipCheck) Types.Party.check(rawParty);
 
-    // construct the full Party instance from the raw party + (maybe) the prover party
-    let party = new Party(rawParty.body, rawParty.authorization);
+    // construct the full AccountUpdate instance from the raw party + (maybe) the prover party
+    let party = new AccountUpdate(rawParty.body, rawParty.authorization);
     party.lazyAuthorization =
       proverParty && cloneCircuitValue(proverParty.lazyAuthorization);
     party.children = proverParty?.children ?? { parties: [] };
@@ -1023,17 +1032,17 @@ class Party implements Types.Party {
   }
 
   /**
-   * Like Party.witness, but lets you specify a layout for the party's children,
+   * Like AccountUpdate.witness, but lets you specify a layout for the party's children,
    * which also get witnessed
    */
   static witnessTree<T>(
     resultType: AsFieldElements<T>,
     childLayout: PartiesLayout,
-    compute: () => { party: Party; result: T },
+    compute: () => { party: AccountUpdate; result: T },
     options?: { skipCheck: boolean }
   ) {
     // witness the root party
-    let { party, result } = Party.witness(resultType, compute, options);
+    let { party, result } = AccountUpdate.witness(resultType, compute, options);
     // stop early if children === undefined
     if (childLayout === undefined) {
       let calls = Circuit.witness(Field, () => CallForest.hashChildren(party));
@@ -1046,11 +1055,11 @@ class Party implements Types.Party {
         : childLayout;
     let n = childArray.length;
     for (let i = 0; i < n; i++) {
-      party.children.parties[i] = Party.witnessTree(
+      party.children.parties[i] = AccountUpdate.witnessTree(
         circuitValue<null>(null),
         childArray[i],
         () => ({
-          party: party.children.parties[i] ?? Party.dummy(),
+          party: party.children.parties[i] ?? AccountUpdate.dummy(),
           result: null,
         }),
         options
@@ -1090,7 +1099,7 @@ const CallForest = {
   // takes a list of parties, which each can have children, so they form a "forest" (list of trees)
   // returns a flattened list, with `party.body.callDepth` specifying positions in the forest
   // also removes any "dummy" parties
-  toFlatList(forest: Party[], depth = 0): Party[] {
+  toFlatList(forest: AccountUpdate[], depth = 0): AccountUpdate[] {
     let parties = [];
     for (let party of forest) {
       if (party.isDummy().toBoolean()) continue;
@@ -1108,7 +1117,7 @@ const CallForest = {
 
   // similar to Mina_base.Parties.Call_forest.accumulate_hashes
   // hashes a party's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
-  hashChildren({ children }: Party): Field {
+  hashChildren({ children }: AccountUpdate): Field {
     // only compute calls if it's not there yet --
     // this gives us the flexibility to witness a specific layout of parties
     if (children.calls !== undefined) return children.calls;
@@ -1124,7 +1133,7 @@ const CallForest = {
     return stackHash;
   },
 
-  forEach(updates: Party[], callback: (update: Party) => void) {
+  forEach(updates: AccountUpdate[], callback: (update: AccountUpdate) => void) {
     for (let update of updates) {
       callback(update);
       CallForest.forEach(update.children.parties, callback);
@@ -1133,15 +1142,15 @@ const CallForest = {
 };
 
 function createChildParty(
-  parent: Party,
+  parent: AccountUpdate,
   childAddress: PublicKey,
   tokenId?: Field
 ) {
-  let child = Party.defaultParty(childAddress, tokenId);
+  let child = AccountUpdate.defaultParty(childAddress, tokenId);
   makeChildParty(parent, child);
   return child;
 }
-function makeChildParty(parent: Party, child: Party) {
+function makeChildParty(parent: AccountUpdate, child: AccountUpdate) {
   child.body.callDepth = parent.body.callDepth + 1;
   child.parent = parent;
   if (!parent.children.parties.find((party) => party === child)) {
@@ -1153,17 +1162,17 @@ function makeChildParty(parent: Party, child: Party) {
 
 type Parties = {
   feePayer: FeePayerUnsigned;
-  otherParties: Party[];
+  otherParties: AccountUpdate[];
   memo: string;
 };
 type PartiesSigned = {
   feePayer: FeePayer;
-  otherParties: (Party & { lazyAuthorization?: LazyProof })[];
+  otherParties: (AccountUpdate & { lazyAuthorization?: LazyProof })[];
   memo: string;
 };
 type PartiesProved = {
   feePayer: FeePayerUnsigned;
-  otherParties: (Party & { lazyAuthorization?: LazySignature })[];
+  otherParties: (AccountUpdate & { lazyAuthorization?: LazySignature })[];
   memo: string;
 };
 
@@ -1173,27 +1182,30 @@ function partiesToJson({ feePayer, otherParties, memo }: Parties) {
 }
 
 const Authorization = {
-  hasLazyProof(party: Party) {
+  hasLazyProof(party: AccountUpdate) {
     return party.lazyAuthorization?.kind === 'lazy-proof';
   },
-  hasAny(party: Party) {
+  hasAny(party: AccountUpdate) {
     let { authorization: auth, lazyAuthorization: lazyAuth } = party;
     return !!(lazyAuth || 'proof' in auth || 'signature' in auth);
   },
-  setSignature(party: Party, signature: string) {
+  setSignature(party: AccountUpdate, signature: string) {
     party.authorization = { signature };
     party.lazyAuthorization = undefined;
   },
-  setProof(party: Party, proof: string) {
+  setProof(party: AccountUpdate, proof: string) {
     party.authorization = { proof };
     party.lazyAuthorization = undefined;
   },
-  setLazySignature(party: Party, signature?: Omit<LazySignature, 'kind'>) {
+  setLazySignature(
+    party: AccountUpdate,
+    signature?: Omit<LazySignature, 'kind'>
+  ) {
     signature ??= {};
     party.authorization = {};
     party.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
-  setLazyProof(party: Party, proof: Omit<LazyProof, 'kind'>) {
+  setLazyProof(party: AccountUpdate, proof: Omit<LazyProof, 'kind'>) {
     party.authorization = {};
     party.lazyAuthorization = { ...proof, kind: 'lazy-proof' };
   },
@@ -1227,10 +1239,10 @@ function addMissingSignatures(
     return { body, authorization: signature };
   }
 
-  function addSignature(party: Party) {
-    party = Party.clone(party);
+  function addSignature(party: AccountUpdate) {
+    party = AccountUpdate.clone(party);
     if (party.lazyAuthorization?.kind !== 'lazy-signature') {
-      return party as Party & { lazyAuthorization?: LazyProof };
+      return party as AccountUpdate & { lazyAuthorization?: LazyProof };
     }
     let { privateKey } = party.lazyAuthorization;
     if (privateKey === undefined) {
@@ -1248,7 +1260,7 @@ function addMissingSignatures(
       : commitment;
     let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
     Authorization.setSignature(party, signature);
-    return party as Party & { lazyAuthorization: undefined };
+    return party as AccountUpdate & { lazyAuthorization: undefined };
   }
   let { feePayer, otherParties, memo } = parties;
   return {
@@ -1259,7 +1271,7 @@ function addMissingSignatures(
 }
 
 /**
- * The public input for zkApps consists of certain hashes of the proving Party (and its child parties) which is constructed during method execution.
+ * The public input for zkApps consists of certain hashes of the proving AccountUpdate (and its child parties) which is constructed during method execution.
 
   For SmartContract proving, a method is run twice: First outside the proof, to obtain the public input, and once in the prover,
   which takes the public input as input. The current transaction is hashed again inside the prover, which asserts that the result equals the input public input,
@@ -1272,7 +1284,7 @@ let ZkappPublicInput = circuitValue<ZkappPublicInput>(
   { customObjectKeys: ['party', 'calls'] }
 );
 
-function partyToPublicInput(self: Party): ZkappPublicInput {
+function partyToPublicInput(self: AccountUpdate): ZkappPublicInput {
   let party = self.hash();
   let calls = CallForest.hashChildren(self);
   return { party, calls };
@@ -1282,10 +1294,10 @@ async function addMissingProofs(parties: Parties): Promise<{
   parties: PartiesProved;
   proofs: (Proof<ZkappPublicInput> | undefined)[];
 }> {
-  type PartyProved = Party & { lazyAuthorization?: LazySignature };
+  type PartyProved = AccountUpdate & { lazyAuthorization?: LazySignature };
 
-  async function addProof(party: Party) {
-    party = Party.clone(party);
+  async function addProof(party: AccountUpdate) {
+    party = AccountUpdate.clone(party);
     if (party.lazyAuthorization?.kind !== 'lazy-proof') {
       return { partyProved: party as PartyProved, proof: undefined };
     }

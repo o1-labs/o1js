@@ -39,7 +39,7 @@ export { Proof, SelfProof, ZkProgram, verify } from './lib/proof_system.js';
 
 export {
   Token,
-  Party,
+  AccountUpdate,
   Permissions,
   ZkappPublicInput,
   partiesToJson,

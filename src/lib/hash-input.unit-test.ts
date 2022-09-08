@@ -1,6 +1,6 @@
 import {
   isReady,
-  Party,
+  AccountUpdate,
   PrivateKey,
   Types,
   Field,
@@ -21,7 +21,7 @@ import { packToFields } from './hash.js';
 
 await isReady;
 
-let party = Party.defaultParty(PrivateKey.random().toPublicKey());
+let party = AccountUpdate.defaultParty(PrivateKey.random().toPublicKey());
 
 // types
 type Body = Types.Party['body'];
