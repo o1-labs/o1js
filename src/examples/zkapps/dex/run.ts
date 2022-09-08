@@ -1,4 +1,4 @@
-import { isReady, Mina, Party } from 'snarkyjs';
+import { isReady, Mina, AccountUpdate } from 'snarkyjs';
 import {
   Dex,
   DexTokenHolder,
@@ -56,7 +56,7 @@ let dexY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 console.log('deploy (x5)...');
 tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
   // fund 2 new accounts, and fund token contracts so each can create 1 token account
-  let feePayerUpdate = Party.createSigned(feePayerKey);
+  let feePayerUpdate = AccountUpdate.createSigned(feePayerKey);
   feePayerUpdate.balance.subInPlace(accountFee.mul(3));
   feePayerUpdate.send({ to: addresses.tokenX, amount: accountFee });
   feePayerUpdate.send({ to: addresses.tokenY, amount: accountFee });
@@ -80,7 +80,7 @@ tx.send();
 console.log('deploy tokens...');
 tx = await Mina.transaction(feePayerKey, () => {
   // fund 5 new accounts
-  Party.createSigned(feePayerKey).balance.subInPlace(
+  AccountUpdate.createSigned(feePayerKey).balance.subInPlace(
     Mina.accountCreationFee().mul(1)
   );
   // initialize tokens

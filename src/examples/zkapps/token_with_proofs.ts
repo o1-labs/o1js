@@ -3,7 +3,7 @@ import {
   isReady,
   method,
   Mina,
-  Party,
+  AccountUpdate,
   PrivateKey,
   SmartContract,
   PublicKey,
@@ -35,12 +35,12 @@ class TokenContract extends SmartContract {
       address,
       tokenId
     );
-    Party.setValue(deployParty.update.permissions, {
+    AccountUpdate.setValue(deployParty.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
     });
     // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
-    // Party.setValue(deployParty.update.verificationKey, verificationKey);
+    // AccountUpdate.setValue(deployParty.update.verificationKey, verificationKey);
     // deployParty.balance.addInPlace(initialBalance);
     deployParty.sign(deployer);
   }
@@ -135,14 +135,14 @@ await ZkAppC.compile(zkAppCAddress, tokenId);
 
 console.log('deploy tokenZkApp');
 tx = await Local.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer, { initialBalance });
+  AccountUpdate.fundNewAccount(feePayer, { initialBalance });
   tokenZkApp.deploy({ zkappKey: tokenZkAppKey });
 });
 tx.send();
 
 console.log('deploy zkAppB');
 tx = await Local.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer);
+  AccountUpdate.fundNewAccount(feePayer);
   tokenZkApp.tokenDeploy(zkAppBKey);
 });
 console.log('deploy zkAppB (proof)');
@@ -151,7 +151,7 @@ tx.send();
 
 console.log('deploy zkAppC');
 tx = await Local.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer);
+  AccountUpdate.fundNewAccount(feePayer);
   tokenZkApp.tokenDeploy(zkAppCKey);
 });
 console.log('deploy zkAppC (proof)');
@@ -188,7 +188,7 @@ console.log(
 console.log('authorize send from zkAppC');
 tx = await Local.transaction(feePayer, () => {
   // Pay for tokenAccount1's account creation
-  Party.fundNewAccount(feePayer);
+  AccountUpdate.fundNewAccount(feePayer);
   let authorizeSendingCallback = Experimental.Callback.create(
     zkAppC,
     'authorizeSend',

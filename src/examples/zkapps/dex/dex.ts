@@ -11,7 +11,7 @@ import {
   isReady,
   method,
   Mina,
-  Party,
+  AccountUpdate,
   Permissions,
   PrivateKey,
   prop,
@@ -48,11 +48,11 @@ class Dex extends SmartContract {
     // get balances of X and Y token
     // TODO: this creates extra parties. we need to reuse these by passing them to or returning them from transfer()
     // but for that, we need the @method argument generalization
-    let dexX = Party.create(this.address, tokenX.experimental.token.id);
+    let dexX = AccountUpdate.create(this.address, tokenX.experimental.token.id);
     let x = dexX.account.balance.get();
     dexX.account.balance.assertEquals(x);
 
-    let dexY = Party.create(this.address, tokenY.experimental.token.id);
+    let dexY = AccountUpdate.create(this.address, tokenY.experimental.token.id);
     let y = dexY.account.balance.get();
     dexY.account.balance.assertEquals(y);
 
@@ -182,13 +182,13 @@ class DexTokenHolder extends SmartContract {
   // see the more complicated method `redeemLiquidity` below which gives back both tokens, by calling this method,
   // for the other token, in a callback
   @method redeemLiquidityPartial(user: PublicKey, dl: UInt64): UInt64 {
-    let dex = Party.create(this.address);
+    let dex = AccountUpdate.create(this.address);
     let l = dex.account.balance.get();
     dex.account.balance.assertEquals(l);
 
     // user sends dl to dex
     let idlXY = Token.getId(this.address);
-    let userParty = Party.create(user, idlXY);
+    let userParty = AccountUpdate.create(user, idlXY);
     userParty.balance.subInPlace(dl);
 
     // in return, we give dy back
@@ -224,7 +224,7 @@ class DexTokenHolder extends SmartContract {
       // walk into child parties, to assert the callback was called correctly
 
       // TODO: getting the party here w/o messing up the parties structure is error-prone and non-obvious
-      let tokenYParty = Party.witnessTree(
+      let tokenYParty = AccountUpdate.witnessTree(
         circuitValue<null>(null),
         // need to walk two layers deeper, and need to respect the actual max number of child parties
         [[undefined, undefined, undefined], undefined, undefined],
@@ -321,12 +321,12 @@ class TokenContract extends SmartContract {
   @method deployZkapp(address: PublicKey) {
     let tokenId = this.experimental.token.id;
     let zkapp = Experimental.createChildParty(this.self, address, tokenId);
-    Party.setValue(zkapp.update.permissions, {
+    AccountUpdate.setValue(zkapp.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
     });
     // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
-    // Party.setValue(zkapp.update.verificationKey, verificationKey);
+    // AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
     zkapp.sign();
   }
 
@@ -356,7 +356,7 @@ let tokenIds = {
 /**
  * Sum of balances of the party and all its descendants
  */
-function balanceSum(party: Party, tokenId: Field) {
+function balanceSum(party: AccountUpdate, tokenId: Field) {
   let myTokenId = party.body.tokenId;
   let myBalance = Int64.fromObject(party.body.balanceChange);
   let balance = Circuit.if(myTokenId.equals(tokenId), myBalance, Int64.zero);
