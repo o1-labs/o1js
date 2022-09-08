@@ -298,12 +298,6 @@ function wrapMethod(
           let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
           let constantBlindingValue = blindingValue.toConstant();
           let party = this.self;
-          // the line above adds the callee's self party into the wrong place in the transaction structure
-          // so we remove it again
-          // TODO: since we wrap all method calls now anyway, should remove that hidden logic in this.self
-          // and add parties to transactions more explicitly
-          // let transaction = Mina.currentTransaction();
-          // if (transaction !== undefined) transaction.parties.pop();
 
           let [{ memoized }, result] = memoizationContext.runWith(
             {
