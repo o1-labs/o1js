@@ -16,7 +16,7 @@ import {
 } from '../index.js';
 import { Events, SequenceEvents } from './party.js';
 import { expect } from 'expect';
-import { asFieldsAndAux, jsLayout } from 'src/snarky/types.js';
+import { asFieldsAndAux, jsLayout } from '../snarky/types.js';
 import { packToFields } from './hash.js';
 
 await isReady;
