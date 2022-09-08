@@ -16,7 +16,7 @@ export async function initSnarkyJS() {
 
   let workersReady = new Promise((resolve) => (worker.onmessage = resolve));
   await workersReady;
-  window.plonk_wasm = override_bindings(plonk_wasm, worker);
+  globalThis.plonk_wasm = override_bindings(plonk_wasm, worker);
 
   // we have two approaches to run the .bc.js code after its dependencies are ready, without fetching an additional script:
 
