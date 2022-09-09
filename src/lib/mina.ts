@@ -1,30 +1,29 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, Ledger } from '../snarky';
-import { Field, Bool } from './core';
-import { UInt32, UInt64 } from './int';
-import { PrivateKey, PublicKey } from './signature';
+import { Circuit, Ledger } from '../snarky.js';
+import { Field, Bool } from './core.js';
+import { UInt32, UInt64 } from './int.js';
+import { PrivateKey, PublicKey } from './signature.js';
 import {
   addMissingProofs,
   addMissingSignatures,
   FeePayerUnsigned,
   Parties,
   partiesToJson,
-  Party,
+  AccountUpdate,
   ZkappStateLength,
   ZkappPublicInput,
   TokenId,
   CallForest,
   Authorization,
-  Events,
   SequenceEvents,
-} from './party';
-import * as Fetch from './fetch';
-import { assertPreconditionInvariants, NetworkValue } from './precondition';
-import { cloneCircuitValue } from './circuit_value';
-import { Proof, snarkContext } from './proof_system';
-import { Context } from './global-context';
-import { emptyReceiptChainHash } from './hash';
+} from './party.js';
+import * as Fetch from './fetch.js';
+import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
+import { cloneCircuitValue } from './circuit_value.js';
+import { Proof, snarkContext } from './proof_system.js';
+import { Context } from './global-context.js';
+import { emptyReceiptChainHash } from './hash.js';
 
 export {
   createTransaction,
@@ -47,6 +46,7 @@ export {
 };
 interface TransactionId {
   wait(): Promise<void>;
+  hash(): Promise<string>;
 }
 
 interface Transaction {
@@ -62,8 +62,8 @@ type Account = Fetch.Account;
 
 type FetchMode = 'fetch' | 'cached' | 'test';
 type CurrentTransaction = {
-  sender?: PrivateKey;
-  parties: Party[];
+  sender?: PublicKey;
+  parties: AccountUpdate[];
   fetchMode: FetchMode;
   isFinalRunOutsideCircuit: boolean;
 };
@@ -97,7 +97,7 @@ function createTransaction(
   let memo = feePayer instanceof PrivateKey ? '' : feePayer?.memo ?? '';
 
   let transactionId = currentTransaction.enter({
-    sender: feePayerKey,
+    sender: feePayerKey?.toPublicKey(),
     parties: [],
     fetchMode,
     isFinalRunOutsideCircuit,
@@ -143,7 +143,7 @@ function createTransaction(
     // if senderKey is provided, fetch account to get nonce and mark to be signed
     let senderAddress = feePayerKey.toPublicKey();
     let senderAccount = getAccount(senderAddress, TokenId.default);
-    feePayerParty = Party.defaultFeePayer(
+    feePayerParty = AccountUpdate.defaultFeePayer(
       senderAddress,
       feePayerKey,
       senderAccount.nonce
@@ -154,7 +154,7 @@ function createTransaction(
     }
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
-    feePayerParty = Party.dummyFeePayer();
+    feePayerParty = AccountUpdate.dummyFeePayer();
   }
 
   let transaction: Parties = { otherParties, feePayer: feePayerParty, memo };
@@ -301,12 +301,21 @@ function LocalBlockchain({
       txn.sign();
 
       let partiesJson = partiesToJson(txn.transaction);
-
-      ledger.applyJsonTransaction(
-        JSON.stringify(partiesJson),
-        String(accountCreationFee),
-        JSON.stringify(networkState)
-      );
+      try {
+        ledger.applyJsonTransaction(
+          JSON.stringify(partiesJson),
+          String(accountCreationFee),
+          JSON.stringify(networkState)
+        );
+      } catch (err: any) {
+        try {
+          // reverse errors so they match order of account updates
+          // TODO: label updates, and try to give precise explanations about what went wrong
+          err.message = JSON.stringify(JSON.parse(err.message).reverse());
+        } finally {
+          throw err;
+        }
+      }
 
       // fetches all events from the transaction and stores them
       // events are identified and associated with a publicKey and tokenId
@@ -362,7 +371,15 @@ function LocalBlockchain({
           });
         }
       });
-      return { wait: async () => {} };
+      return {
+        wait: async () => {},
+        hash: async (): Promise<string> => {
+          const message =
+            'Txn Hash retrieving is not supported for LocalBlockchain.';
+          console.log(message);
+          return message;
+        },
+      };
     },
     async transaction(sender: FeePayerSpec, f: () => void) {
       // bad hack: run transaction just to see whether it creates proofs
@@ -383,7 +400,7 @@ function LocalBlockchain({
       return ledger.applyJsonTransaction(
         json,
         String(accountCreationFee),
-        JSON.stringify(defaultNetworkState())
+        JSON.stringify(networkState)
       );
     },
     async fetchEvents(
@@ -501,6 +518,22 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
               console.log(
                 'Info: waiting for inclusion in a block is not implemented yet.'
               );
+            }
+          } else {
+            console.log('got fetch error', error);
+          }
+        },
+        async hash() {
+          let [response, error] = await sendPromise;
+          if (error === undefined) {
+            if (
+              response!.data === null &&
+              (response as any).errors?.length > 0
+            ) {
+              console.log('got graphql errors', (response as any).errors);
+            } else {
+              console.log('got graphql response', response?.data);
+              return response?.data?.sendZkapp?.zkapp?.hash;
             }
           } else {
             console.log('got fetch error', error);

@@ -1,13 +1,13 @@
 import { Experimental, Mina, PrivateKey, PublicKey } from 'snarkyjs';
-import { VotingApp, VotingAppParams } from './factory';
+import { VotingApp, VotingAppParams } from './factory.js';
 import {
   ElectionPreconditions,
   ParticipantPreconditions,
-} from './preconditions';
+} from './preconditions.js';
 
-import { OffchainStorage } from './off_chain_storage';
-import { Member } from './member';
-import { testSet } from './test';
+import { OffchainStorage } from './off_chain_storage.js';
+import { Member } from './member.js';
+import { testSet } from './test.js';
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);

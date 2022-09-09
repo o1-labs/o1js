@@ -1,12 +1,13 @@
-import { Circuit, AsFieldElements, Bool, Field } from '../snarky';
-import { circuitValueEquals } from './circuit_value';
-import * as Mina from './mina';
-import { Events, SequenceEvents, Party, Preconditions } from './party';
-import { UInt32, UInt64 } from './int';
-import { inAnalyze, inCompile, inProver } from './proof_system';
-import { Layout } from 'snarky/parties-helpers';
-import { jsLayout } from '../snarky/types';
-import { emptyReceiptChainHash } from './hash';
+import { Circuit, AsFieldElements, Bool, Field } from '../snarky.js';
+import { circuitValueEquals } from './circuit_value.js';
+import * as Mina from './mina.js';
+import { SequenceEvents, AccountUpdate, Preconditions } from './party.js';
+import { UInt32, UInt64 } from './int.js';
+import { inCompileMode, inProver } from './proof_system.js';
+import { Layout } from '../snarky/parties-helpers.js';
+import { jsLayout } from '../snarky/types.js';
+import { emptyReceiptChainHash } from './hash.js';
+import { PublicKey } from './signature.js';
 
 export {
   preconditions,
@@ -16,9 +17,10 @@ export {
   cleanPreconditionsCache,
   AccountValue,
   NetworkValue,
+  getAccountPreconditions,
 };
 
-function preconditions(party: Party, isSelf: boolean) {
+function preconditions(party: AccountUpdate, isSelf: boolean) {
   initializePreconditions(party, isSelf);
   return { account: Account(party), network: Network(party) };
 }
@@ -26,14 +28,14 @@ function preconditions(party: Party, isSelf: boolean) {
 // note: please keep the two precondition implementations separate
 // so we can add customized fields easily
 
-function Network(party: Party): Network {
+function Network(party: AccountUpdate): Network {
   let layout =
     jsLayout.Party.entries.body.entries.preconditions.entries.network;
   let context = getPreconditionContextExn(party);
   return preconditionClass(layout as Layout, 'network', party, context);
 }
 
-function Account(party: Party): Account {
+function Account(party: AccountUpdate): Account {
   let layout =
     jsLayout.Party.entries.body.entries.preconditions.entries.account;
   let context = getPreconditionContextExn(party);
@@ -55,7 +57,7 @@ let baseMap = { UInt64, UInt32, Field, Bool };
 function preconditionClass(
   layout: Layout,
   baseKey: any,
-  party: Party,
+  party: AccountUpdate,
   context: PreconditionContext
 ): any {
   if (layout.type === 'option') {
@@ -106,7 +108,7 @@ function preconditionSubclass<
   K extends LongKey,
   U extends FlatPreconditionValue[K]
 >(
-  party: Party,
+  party: AccountUpdate,
   longKey: K,
   fieldType: AsFieldElements<U>,
   context: PreconditionContext
@@ -146,12 +148,12 @@ function preconditionSubclass<
 }
 
 function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
-  party: Party,
+  party: AccountUpdate,
   longKey: K,
   fieldType: AsFieldElements<U>
 ): U {
   // in compile, just return an empty variable
-  if (inCompile() || inAnalyze()) {
+  if (inCompileMode()) {
     return Circuit.witness(fieldType, (): U => {
       // TODO this error is never thrown. instead, reading the value with e.g. `toString` ends up
       // calling snarky's eval_as_prover, which throws "Can't evaluate prover code outside an as_prover block"
@@ -167,7 +169,7 @@ To write a correct circuit, you must avoid any dependency on the concrete value 
   let key = rest.join('.');
   let value: U;
   if (accountOrNetwork === 'account') {
-    let account = getAccountPreconditions(party);
+    let account = getAccountPreconditions(party.body);
     value = account[key as keyof AccountValue] as U;
   } else if (accountOrNetwork === 'network') {
     let networkState = Mina.getNetworkState();
@@ -184,8 +186,11 @@ To write a correct circuit, you must avoid any dependency on the concrete value 
   }
 }
 
-function getAccountPreconditions(party: Party): AccountValue {
-  let { publicKey, tokenId } = party.body;
+function getAccountPreconditions(body: {
+  publicKey: PublicKey;
+  tokenId?: Field;
+}): AccountValue {
+  let { publicKey, tokenId } = body;
   let hasAccount = Mina.hasAccount(publicKey, tokenId);
   if (!hasAccount) {
     return {
@@ -218,7 +223,7 @@ type PreconditionContext = {
   constrained: Set<LongKey>;
 };
 
-function initializePreconditions(party: Party, isSelf: boolean) {
+function initializePreconditions(party: AccountUpdate, isSelf: boolean) {
   preconditionContexts.set(party, {
     read: new Set(),
     constrained: new Set(),
@@ -227,12 +232,12 @@ function initializePreconditions(party: Party, isSelf: boolean) {
   });
 }
 
-function cleanPreconditionsCache(party: Party) {
+function cleanPreconditionsCache(party: AccountUpdate) {
   let context = preconditionContexts.get(party);
   if (context !== undefined) context.vars = {};
 }
 
-function assertPreconditionInvariants(party: Party) {
+function assertPreconditionInvariants(party: AccountUpdate) {
   let context = getPreconditionContextExn(party);
   let self = context.isSelf ? 'this' : 'party';
   let dummyPreconditions = Preconditions.ignoreAll();
@@ -260,13 +265,13 @@ You can also add more flexible preconditions with \`${self}.${preconditionPath}.
   }
 }
 
-function getPreconditionContextExn(party: Party) {
+function getPreconditionContextExn(party: AccountUpdate) {
   let c = preconditionContexts.get(party);
   if (c === undefined) throw Error('bug: precondition context not found');
   return c;
 }
 
-const preconditionContexts = new WeakMap<Party, PreconditionContext>();
+const preconditionContexts = new WeakMap<AccountUpdate, PreconditionContext>();
 
 // exported types
 

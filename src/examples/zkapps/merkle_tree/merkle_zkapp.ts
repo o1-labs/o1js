@@ -30,7 +30,7 @@ import {
   method,
   UInt32,
   PrivateKey,
-  Party,
+  AccountUpdate,
 } from 'snarkyjs';
 
 await isReady;
@@ -149,7 +149,7 @@ if (doProofs) {
   await Leaderboard.compile(zkappAddress);
 }
 let tx = await Mina.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer, { initialBalance });
+  AccountUpdate.fundNewAccount(feePayer, { initialBalance });
   leaderboardZkApp.deploy({ zkappKey });
 });
 tx.send();

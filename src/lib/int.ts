@@ -1,7 +1,7 @@
-import { Circuit, Field, Bool } from '../snarky';
-import { CircuitValue, prop } from './circuit_value';
-import { Types } from '../snarky/types';
-import { HashInput } from './hash';
+import { Circuit, Field, Bool } from '../snarky.js';
+import { CircuitValue, prop } from './circuit_value.js';
+import { Types } from '../snarky/types.js';
+import { HashInput } from './hash.js';
 
 // external API
 export { UInt32, UInt64, Int64, Sign };

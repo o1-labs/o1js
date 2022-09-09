@@ -8,7 +8,7 @@ import {
   Field,
   Bool,
   Sign,
-} from '../../dist/server';
+} from 'snarkyjs';
 
 describe('int', () => {
   beforeAll(async () => {

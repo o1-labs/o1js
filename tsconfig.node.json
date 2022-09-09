@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["./src/index.ts", "./src/snarky.js", "./src/snarky/wrapper.js"],
+  "compilerOptions": {
+    "outDir": "dist/node"
+  }
+}

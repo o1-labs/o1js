@@ -1,8 +1,14 @@
-import { Types, Party, PrivateKey, Circuit, circuitValue } from 'snarkyjs';
+import {
+  Types,
+  AccountUpdate,
+  PrivateKey,
+  Circuit,
+  circuitValue,
+} from 'snarkyjs';
 
 let address = PrivateKey.random().toPublicKey();
 
-let party = Party.defaultParty(address);
+let party = AccountUpdate.defaultParty(address);
 party.body.callDepth = 5;
 party.lazyAuthorization = {
   kind: 'lazy-signature',
@@ -20,7 +26,10 @@ if (address.toBase58() !== json.body.publicKey) throw Error('fail');
 let Null = circuitValue<null>(null);
 
 Circuit.runAndCheck(() => {
-  let partyWitness = Party.witness(Null, () => ({ party, result: null })).party;
+  let partyWitness = AccountUpdate.witness(Null, () => ({
+    party,
+    result: null,
+  })).party;
   console.assert(partyWitness.body.callDepth === 5);
   Circuit.assertEqual(Types.Party, partyWitness, party);
   Circuit.assertEqual(
@@ -31,7 +40,10 @@ Circuit.runAndCheck(() => {
 });
 
 let result = Circuit.constraintSystem(() => {
-  let partyWitness = Party.witness(Null, () => ({ party, result: null })).party;
+  let partyWitness = AccountUpdate.witness(Null, () => ({
+    party,
+    result: null,
+  })).party;
   console.assert(partyWitness.body.callDepth === 0);
   Circuit.assertEqual(Types.Party, partyWitness, party);
 });
