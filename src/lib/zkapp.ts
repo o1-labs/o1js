@@ -18,7 +18,7 @@ import {
 } from './circuit_value.js';
 import {
   Body,
-  Party,
+  AccountUpdate,
   signJsonTransaction,
   Parties,
   Permissions,
@@ -347,7 +347,7 @@ function wrapMethod(
         // then we're already in a witness block, and shouldn't open another one
         let { party, result } =
           methodCallDepth === 0
-            ? Party.witness<any>(
+            ? AccountUpdate.witness<any>(
                 returnType ?? circuitValue<null>(null),
                 runCalledContract,
                 { skipCheck: true }
@@ -386,7 +386,10 @@ function wrapMethod(
   };
 }
 
-function checkPublicInput({ party, calls }: ZkappPublicInput, self: Party) {
+function checkPublicInput(
+  { party, calls }: ZkappPublicInput,
+  self: AccountUpdate
+) {
   let otherInput = partyToPublicInput(self);
   party.assertEquals(otherInput.party);
   calls.assertEquals(otherInput.calls);
@@ -473,7 +476,7 @@ function partyFromCallback(
   childLayout: PartiesLayout,
   callback: Callback<any>
 ) {
-  let { party } = Party.witnessTree(
+  let { party } = AccountUpdate.witnessTree(
     circuitValue<null>(null),
     childLayout,
     () => {
@@ -610,7 +613,7 @@ class SmartContract {
     this.self.sign(zkappKey);
   }
 
-  private executionState(): Party {
+  private executionState(): AccountUpdate {
     let inTransaction = Mina.currentTransaction.has();
     let inSmartContract = smartContractContext.has();
     if (!inTransaction && !inSmartContract) {
@@ -667,7 +670,10 @@ class SmartContract {
     };
   }
 
-  send(args: { to: PublicKey | Party; amount: number | bigint | UInt64 }) {
+  send(args: {
+    to: PublicKey | AccountUpdate;
+    amount: number | bigint | UInt64;
+  }) {
     return this.self.send(args);
   }
 
@@ -803,7 +809,7 @@ class SmartContract {
   }
 
   setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
-    Party.setValue(maybeValue, value);
+    AccountUpdate.setValue(maybeValue, value);
   }
 
   // TBD: do we want to have setters for updates, e.g. this.permissions = ... ?
@@ -989,11 +995,11 @@ function selfParty(address: PublicKey, tokenId?: Field) {
     body.tokenId = tokenId;
     body.caller = tokenId;
   }
-  return new (Party as any)(body, {}, true) as Party;
+  return new (AccountUpdate as any)(body, {}, true) as AccountUpdate;
 }
 
 // per-smart-contract context for transaction construction
-type ExecutionState = { transactionId: number; party: Party };
+type ExecutionState = { transactionId: number; party: AccountUpdate };
 
 type DeployArgs =
   | {
@@ -1034,7 +1040,7 @@ async function deploy<S extends typeof SmartContract>(
         Mina.accountCreationFee()
       );
       let feePayerAddress = feePayerKey.toPublicKey();
-      let party = Party.defaultParty(feePayerAddress);
+      let party = AccountUpdate.defaultParty(feePayerAddress);
       party.body.useFullCommitment = Bool(true);
       party.balance.subInPlace(amount);
       Mina.currentTransaction()?.parties.push(party);
@@ -1054,9 +1060,9 @@ async function deploy<S extends typeof SmartContract>(
 
 function Account(address: PublicKey, tokenId?: Field) {
   if (smartContractContext.has()) {
-    return Party.create(address, tokenId).account;
+    return AccountUpdate.create(address, tokenId).account;
   } else {
-    return Party.defaultParty(address, tokenId).account;
+    return AccountUpdate.defaultParty(address, tokenId).account;
   }
 }
 
@@ -1082,7 +1088,7 @@ function addFeePayer(
   feePayer.body.nonce = UInt32.fromString(`${feePayerNonce}`);
   feePayer.body.publicKey = senderAddress;
   feePayer.body.fee = UInt64.fromString(`${transactionFee}`);
-  Party.signFeePayerInPlace(feePayer, feePayerKey);
+  AccountUpdate.signFeePayerInPlace(feePayer, feePayerKey);
   return { feePayer, otherParties, memo: newMemo };
 }
 

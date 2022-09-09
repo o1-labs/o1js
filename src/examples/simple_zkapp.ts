@@ -7,15 +7,13 @@ import {
   PrivateKey,
   SmartContract,
   Mina,
-  Party,
+  AccountUpdate,
   isReady,
   Permissions,
   DeployArgs,
-  UInt32,
   Bool,
   PublicKey,
   Circuit,
-  Experimental,
 } from 'snarkyjs';
 
 const doProofs = true;
@@ -59,7 +57,7 @@ class SimpleZkapp extends SmartContract {
     callerAddress.assertEquals(privilegedAddress);
 
     // assert that the caller account is new - this way, payout can only happen once
-    let callerParty = Party.defaultParty(callerAddress);
+    let callerParty = AccountUpdate.defaultParty(callerAddress);
     callerParty.account.isNew.assertEquals(Bool(true));
 
     // pay out half of the zkapp balance to the caller
@@ -102,7 +100,7 @@ if (doProofs) {
 
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer, { initialBalance });
+  AccountUpdate.fundNewAccount(feePayer, { initialBalance });
   zkapp.deploy({ zkappKey });
 });
 tx.send();
@@ -121,14 +119,14 @@ tx.send();
 // pay more into the zkapp -- this doesn't need a proof
 console.log('receive');
 tx = await Mina.transaction(feePayer, () => {
-  let payerParty = Party.createSigned(feePayer);
+  let payerParty = AccountUpdate.createSigned(feePayer);
   payerParty.send({ to: zkappAddress, amount: UInt64.from(8e9) });
 });
 tx.send();
 
 console.log('payout');
 tx = await Mina.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer);
+  AccountUpdate.fundNewAccount(feePayer);
   zkapp.payout(privilegedKey);
   if (!doProofs) zkapp.sign(zkappKey);
 });

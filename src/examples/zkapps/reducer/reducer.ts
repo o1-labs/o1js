@@ -7,7 +7,7 @@ import {
   SmartContract,
   Experimental,
   Mina,
-  Party,
+  AccountUpdate,
   isReady,
   Permissions,
 } from 'snarkyjs';
@@ -82,7 +82,7 @@ if (doProofs) {
 
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer);
+  AccountUpdate.fundNewAccount(feePayer);
   zkapp.deploy({ zkappKey });
   if (!doProofs) {
     zkapp.setPermissions({

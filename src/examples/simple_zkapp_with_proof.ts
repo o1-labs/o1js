@@ -6,7 +6,7 @@ import {
   PrivateKey,
   SmartContract,
   Mina,
-  Party,
+  AccountUpdate,
   isReady,
   ZkappPublicInput,
   SelfProof,
@@ -85,7 +85,7 @@ let zkapp = new NotSoSimpleZkapp(zkappAddress);
 
 console.log('deploy');
 let tx = await Mina.transaction(feePayerKey, () => {
-  Party.fundNewAccount(feePayerKey);
+  AccountUpdate.fundNewAccount(feePayerKey);
   zkapp.deploy({ zkappKey });
 });
 tx.send();

@@ -6,7 +6,7 @@ import {
   DeployArgs,
   Field,
   method,
-  Party,
+  AccountUpdate,
   PublicKey,
   SmartContract,
   UInt64,
@@ -192,12 +192,12 @@ class TrivialCoin extends SmartContract implements Erc20 {
     let address = zkappKey.toPublicKey();
     let tokenId = this.experimental.token.id;
     let zkapp = Experimental.createChildParty(this.self, address, tokenId);
-    Party.setValue(zkapp.update.permissions, {
+    AccountUpdate.setValue(zkapp.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
     });
     // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
-    // Party.setValue(zkapp.update.verificationKey, verificationKey);
+    // AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
     zkapp.sign(zkappKey);
   }
 

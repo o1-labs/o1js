@@ -1,6 +1,6 @@
 import { Circuit, Field, AsFieldElements } from '../snarky.js';
 import { circuitArray } from './circuit_value.js';
-import { Party, TokenId } from './party.js';
+import { AccountUpdate, TokenId } from './party.js';
 import { PublicKey } from './signature.js';
 import * as Mina from './mina.js';
 import { Account, fetchAccount } from './fetch.js';
@@ -152,7 +152,10 @@ function createState<T>(): InternalStateType<T> {
       let stateAsFields = this._contract.stateType.toFields(state);
       let party = this._contract.instance.self;
       stateAsFields.forEach((x, i) => {
-        Party.setValue(party.body.update.appState[layout.offset + i], x);
+        AccountUpdate.setValue(
+          party.body.update.appState[layout.offset + i],
+          x
+        );
       });
     },
 
@@ -165,7 +168,7 @@ function createState<T>(): InternalStateType<T> {
       let stateAsFields = this._contract.stateType.toFields(state);
       let party = this._contract.instance.self;
       stateAsFields.forEach((x, i) => {
-        Party.assertEquals(
+        AccountUpdate.assertEquals(
           party.body.preconditions.account.state[layout.offset + i],
           x
         );
