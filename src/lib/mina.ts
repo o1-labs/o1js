@@ -301,6 +301,7 @@ function LocalBlockchain({
       txn.sign();
 
       let partiesJson = partiesToJson(txn.transaction);
+
       try {
         ledger.applyJsonTransaction(
           JSON.stringify(partiesJson),
