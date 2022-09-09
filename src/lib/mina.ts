@@ -46,6 +46,7 @@ export {
 };
 interface TransactionId {
   wait(): Promise<void>;
+  hash(): Promise<string>;
 }
 
 interface Transaction {
@@ -370,7 +371,15 @@ function LocalBlockchain({
           });
         }
       });
-      return { wait: async () => {} };
+      return {
+        wait: async () => {},
+        hash: async (): Promise<string> => {
+          const message =
+            'Txn Hash retrieving is not supported for LocalBlockchain.';
+          console.log(message);
+          return message;
+        },
+      };
     },
     async transaction(sender: FeePayerSpec, f: () => void) {
       // bad hack: run transaction just to see whether it creates proofs
@@ -509,6 +518,22 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
               console.log(
                 'Info: waiting for inclusion in a block is not implemented yet.'
               );
+            }
+          } else {
+            console.log('got fetch error', error);
+          }
+        },
+        async hash() {
+          let [response, error] = await sendPromise;
+          if (error === undefined) {
+            if (
+              response!.data === null &&
+              (response as any).errors?.length > 0
+            ) {
+              console.log('got graphql errors', (response as any).errors);
+            } else {
+              console.log('got graphql response', response?.data);
+              return response?.data?.sendZkapp?.zkapp?.hash;
             }
           } else {
             console.log('got fetch error', error);
