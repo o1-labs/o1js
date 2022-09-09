@@ -61,7 +61,7 @@ type Account = Fetch.Account;
 
 type FetchMode = 'fetch' | 'cached' | 'test';
 type CurrentTransaction = {
-  sender?: PrivateKey;
+  sender?: PublicKey;
   accountUpdates: AccountUpdate[];
   fetchMode: FetchMode;
   isFinalRunOutsideCircuit: boolean;
