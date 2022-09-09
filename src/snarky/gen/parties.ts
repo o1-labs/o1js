@@ -61,7 +61,10 @@ type Parties = {
       validUntil?: UInt32;
       nonce: UInt32;
     };
-    authorization: string;
+    authorization: {
+      proof?: string;
+      signature?: string;
+    };
   };
   otherParties: {
     body: {

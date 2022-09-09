@@ -22,7 +22,10 @@ type Parties = {
       validUntil: UInt32 | null;
       nonce: UInt32;
     };
-    authorization: string;
+    authorization: {
+      proof: string | null;
+      signature: string | null;
+    };
   };
   otherParties: {
     body: {

@@ -36,7 +36,25 @@ let jsLayout = {
               nonce: null,
             },
           },
-          authorization: { type: 'string' },
+          authorization: {
+            type: 'object',
+            name: 'Control',
+            docs: null,
+            keys: ['proof', 'signature'],
+            entries: {
+              proof: {
+                type: 'option',
+                optionType: 'orUndefined',
+                inner: { type: 'string' },
+              },
+              signature: {
+                type: 'option',
+                optionType: 'orUndefined',
+                inner: { type: 'string' },
+              },
+            },
+            docEntries: { proof: null, signature: null },
+          },
         },
         docEntries: { body: null, authorization: null },
       },
