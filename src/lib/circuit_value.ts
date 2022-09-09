@@ -3,7 +3,7 @@ import { Circuit, JSONValue, AsFieldElements } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
 import { HashInput } from './hash.js';
-import { snarkContext } from './proof_system.js';
+import { inCheckedComputation, snarkContext } from './proof_system.js';
 
 // external API
 export {
@@ -29,6 +29,7 @@ export {
   memoizeWitness,
   getBlindingValue,
   toConstant,
+  witness,
 };
 
 type AnyConstructor = new (...args: any) => any;
@@ -640,6 +641,11 @@ Circuit.constraintSystem = function <T>(f: () => T) {
   );
   return result;
 };
+
+// TODO: very likely, this is how Circuit.witness should behave
+function witness<T>(type: AsFieldElements<T>, compute: () => T) {
+  return inCheckedComputation() ? Circuit.witness(type, compute) : compute();
+}
 
 let memoizationContext = Context.create<{
   memoized: Field[][];

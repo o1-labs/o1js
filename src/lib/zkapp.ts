@@ -13,6 +13,7 @@ import {
   circuitValue,
   cloneCircuitValue,
   getBlindingValue,
+  witness,
   memoizationContext,
   toConstant,
 } from './circuit_value.js';
@@ -136,6 +137,9 @@ function wrapMethod(
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
+    // witness address and tokenId so the circuit doesn't depend on them
+    let address = witness<PublicKey>(PublicKey, () => (this as any)._address);
+    let tokenId = witness<Field>(Field, () => (this as any)._tokenId);
     // TODO: the callback case is actually more similar to the composability case below,
     // should reconcile with that to get the same callData hashing
     if (!smartContractContext.has() || smartContractContext()?.isCallback) {
@@ -144,7 +148,7 @@ function wrapMethod(
           this: this,
           methodCallDepth: 0,
           isCallback: false,
-          selfUpdate: selfParty(this.address, this.nativeToken),
+          selfUpdate: selfParty(address, tokenId),
         },
         (context) => {
           if (inCheckedComputation() && !context.isCallback) {
@@ -270,7 +274,7 @@ function wrapMethod(
         this: this,
         methodCallDepth: methodCallDepth + 1,
         isCallback: false,
-        selfUpdate: selfParty(this.address, this.nativeToken),
+        selfUpdate: selfParty(address, tokenId),
       },
       () => {
         // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
@@ -485,7 +489,7 @@ function partyFromCallback(
       let method = instance[
         methodIntf.methodName as keyof SmartContract
       ] as Function;
-      let party = selfParty(instance.address, instance.nativeToken);
+      let party = selfParty(instance.address, instance.tokenId);
       smartContractContext.runWith(
         {
           this: instance,
@@ -518,8 +522,8 @@ function partyFromCallback(
  *
  */
 class SmartContract {
-  address: PublicKey;
-  nativeToken: Field;
+  private _address: PublicKey;
+  private _tokenId: Field;
 
   private _executionState: ExecutionState | undefined;
   static _methods?: MethodInterface[];
@@ -539,9 +543,9 @@ class SmartContract {
     };
   }
 
-  constructor(address: PublicKey, nativeToken?: Field) {
-    this.address = address;
-    this.nativeToken = nativeToken ?? TokenId.default;
+  constructor(address: PublicKey, tokenId?: Field) {
+    this._address = address;
+    this._tokenId = tokenId ?? TokenId.default;
     Object.defineProperty(this, 'reducer', {
       set(this, reducer: Reducer<any>) {
         ((this as any)._ ??= {}).reducer = reducer;
@@ -550,6 +554,13 @@ class SmartContract {
         return getReducer(this);
       },
     });
+  }
+
+  get address() {
+    return smartContractContext()?.selfUpdate.publicKey ?? this._address;
+  }
+  get tokenId() {
+    return smartContractContext()?.selfUpdate.tokenId ?? this._tokenId;
   }
 
   static async compile(address: PublicKey, tokenId: Field = TokenId.default) {
@@ -619,7 +630,7 @@ class SmartContract {
     if (!inTransaction && !inSmartContract) {
       // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
       // or even expose the .get() methods independently of any party (they don't need one)
-      return selfParty(this.address, this.nativeToken);
+      return selfParty(this._address, this._tokenId);
     }
     let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
     // running a method changes which is the "current account update" of this smart contract
@@ -643,7 +654,7 @@ class SmartContract {
     // to do at least the attaching explicitly, and remove implicit attaching
     // also, implicit creation is questionable
     let transaction = Mina.currentTransaction.get();
-    let party = selfParty(this.address, this.nativeToken);
+    let party = selfParty(this._address, this._tokenId);
     transaction.parties.push(party);
     this._executionState = { transactionId, party };
     return party;
@@ -675,10 +686,6 @@ class SmartContract {
     amount: number | bigint | UInt64;
   }) {
     return this.self.send(args);
-  }
-
-  get tokenId() {
-    return this.self.tokenId;
   }
 
   get tokenSymbol() {
