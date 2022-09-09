@@ -11,8 +11,8 @@ import {
   Experimental,
   Circuit,
 } from 'snarkyjs';
-import { Member } from './member';
-import { ParticipantPreconditions } from './preconditions';
+import { Member } from './member.js';
+import { ParticipantPreconditions } from './preconditions.js';
 
 let participantPreconditions = ParticipantPreconditions.default;
 

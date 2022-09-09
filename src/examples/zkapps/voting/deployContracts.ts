@@ -4,15 +4,15 @@ import {
   Field,
   Permissions,
   Mina,
-  Party,
+  AccountUpdate,
   PrivateKey,
   SmartContract,
 } from 'snarkyjs';
-import { VotingAppParams } from './factory';
+import { VotingAppParams } from './factory.js';
 
-import { Membership_ } from './membership';
+import { Membership_ } from './membership.js';
 
-import { Voting_ } from './voting';
+import { Voting_ } from './voting.js';
 
 /**
  * Function used to deploy a set of contracts for a given set of preconditions
@@ -49,7 +49,7 @@ export async function deployContracts(
   console.log('deploying set of 3 contracts');
   try {
     let tx = await Mina.transaction(feePayer, () => {
-      Party.fundNewAccount(feePayer, {
+      AccountUpdate.fundNewAccount(feePayer, {
         initialBalance: Mina.accountCreationFee().add(
           Mina.accountCreationFee()
         ),
@@ -115,7 +115,7 @@ export async function deployInvalidContracts(
   console.log('deploying set of 3 contracts');
   try {
     let tx = await Mina.transaction(feePayer, () => {
-      Party.fundNewAccount(feePayer, {
+      AccountUpdate.fundNewAccount(feePayer, {
         initialBalance: Mina.accountCreationFee().add(
           Mina.accountCreationFee()
         ),

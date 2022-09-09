@@ -12,13 +12,12 @@ import {
   Bool,
 } from 'snarkyjs';
 
-import { Member } from './member';
+import { Member } from './member.js';
 import {
   ElectionPreconditions,
   ParticipantPreconditions,
-} from './preconditions';
-import { Membership_ } from './membership';
-import { circuit } from 'src/examples/matrix_mul';
+} from './preconditions.js';
+import { Membership_ } from './membership.js';
 
 /**
  * Address to the Membership instance that keeps track of Candidates.

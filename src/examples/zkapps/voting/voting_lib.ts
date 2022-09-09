@@ -1,6 +1,6 @@
-import { Member, MerkleWitness } from './member';
-import { OffchainStorage } from './off_chain_storage';
-import { Voting_ } from './voting';
+import { Member, MerkleWitness } from './member.js';
+import { OffchainStorage } from './off_chain_storage.js';
+import { Voting_ } from './voting.js';
 import { Mina, PrivateKey } from 'snarkyjs';
 import { Printer } from 'prettier';
 /**

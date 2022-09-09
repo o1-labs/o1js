@@ -4,20 +4,20 @@
 import {
   Field,
   Mina,
-  Party,
+  AccountUpdate,
   PrivateKey,
   Permissions,
   UInt64,
   Experimental,
   UInt32,
 } from 'snarkyjs';
-import { VotingApp, VotingAppParams } from './factory';
-import { Member, MerkleWitness } from './member';
-import { OffchainStorage } from './off_chain_storage';
+import { VotingApp, VotingAppParams } from './factory.js';
+import { Member, MerkleWitness } from './member.js';
+import { OffchainStorage } from './off_chain_storage.js';
 import {
   ParticipantPreconditions,
   ElectionPreconditions,
-} from './preconditions';
+} from './preconditions.js';
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
@@ -64,7 +64,7 @@ let votesStore = new OffchainStorage<Member>(8);
 let initialRoot = voterStore.getRoot();
 try {
   tx = await Mina.transaction(feePayer, () => {
-    Party.fundNewAccount(feePayer, {
+    AccountUpdate.fundNewAccount(feePayer, {
       initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
     });
 

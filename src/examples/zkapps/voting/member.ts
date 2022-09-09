@@ -1,4 +1,3 @@
-import { isAsFields } from 'dist/server/lib/proof_system';
 import {
   Bool,
   CircuitValue,

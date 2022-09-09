@@ -1,22 +1,16 @@
+import { Mina, Field, PrivateKey, UInt64, UInt32 } from 'snarkyjs';
+import { deployContracts, deployInvalidContracts } from './deployContracts.js';
+import { VotingAppParams } from './factory.js';
+import { Member, MerkleWitness } from './member.js';
+import { Membership_ } from './membership.js';
+import { OffchainStorage } from './off_chain_storage.js';
+import { Voting_ } from './voting.js';
 import {
-  Experimental,
-  Mina,
-  Party,
-  Field,
-  PrivateKey,
-  UInt64,
-  UInt32,
-  SmartContract,
-  DeployArgs,
-  Permissions,
-} from 'snarkyjs';
-import { deployContracts, deployInvalidContracts } from './deployContracts';
-import { VotingAppParams } from './factory';
-import { Member, MerkleWitness } from './member';
-import { Membership_ } from './membership';
-import { OffchainStorage } from './off_chain_storage';
-import { Voting_ } from './voting';
-import { assertValidTx, getResults, registerMember, vote } from './voting_lib';
+  assertValidTx,
+  getResults,
+  registerMember,
+  vote,
+} from './voting_lib.js';
 
 type Votes = OffchainStorage<Member>;
 type Candidates = OffchainStorage<Member>;
@@ -92,6 +86,9 @@ export async function testSet(
   } catch (err: any) {
     if (!err.toString().includes('precondition_unsatisfied')) {
       throw Error('Transaction should have failed but went through!');
+    } else {
+      // Throw an error on all unexpected failure cases
+      throw Error(err);
     }
   }
 
@@ -164,6 +161,9 @@ export async function testSet(
   } catch (err: any) {
     if (!err.toString().includes('the maximum number of lists of actions')) {
       throw Error('Transaction should have failed but went through!');
+    } else {
+      // Throw an error on all unexpected failure cases
+      throw Error(err);
     }
   }
 

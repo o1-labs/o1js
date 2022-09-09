@@ -4,12 +4,12 @@
  */
 
 import { PrivateKey } from 'snarkyjs';
-import { Membership, Membership_ } from './membership';
+import { Membership, Membership_ } from './membership.js';
 import {
   ElectionPreconditions,
   ParticipantPreconditions,
-} from './preconditions';
-import { Voting, Voting_ } from './voting';
+} from './preconditions.js';
+import { Voting, Voting_ } from './voting.js';
 
 export interface VotingAppParams {
   candidatePreconditions: ParticipantPreconditions;
