@@ -173,7 +173,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
   ): Bool {
     // TODO: need to be able to witness a certain layout of parties, in this case
     // tokenContract --> sender --> receiver
-    let fromParty = Experimental.partyFromCallback(this, 0, authorize);
+    let fromParty = Experimental.accountUpdateFromCallback(this, 0, authorize);
 
     let negativeAmount = Int64.fromObject(fromParty.body.balanceChange);
     negativeAmount.assertEquals(Int64.from(value).neg());
@@ -181,7 +181,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
     fromParty.body.tokenId.assertEquals(tokenId);
     fromParty.body.publicKey.assertEquals(from);
 
-    let toParty = Experimental.createChildParty(this.self, to, tokenId);
+    let toParty = Experimental.createChildAccountUpdate(this.self, to, tokenId);
     toParty.balance.addInPlace(value);
     this.emitEvent('Transfer', { from, to, value });
     return Bool(true);
@@ -191,7 +191,11 @@ class TrivialCoin extends SmartContract implements Erc20 {
   @method deployZkapp(zkappKey: PrivateKey) {
     let address = zkappKey.toPublicKey();
     let tokenId = this.experimental.token.id;
-    let zkapp = Experimental.createChildParty(this.self, address, tokenId);
+    let zkapp = Experimental.createChildAccountUpdate(
+      this.self,
+      address,
+      tokenId
+    );
     AccountUpdate.setValue(zkapp.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
@@ -205,7 +209,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
   // TODO: atm, we have to restrict the zkapp to have no children
   //       -> need to be able to witness a general layout of parties
   @method authorizeZkapp(callback: Experimental.Callback<any>) {
-    let zkappParty = Experimental.partyFromCallback(this, 0, callback);
+    let zkappParty = Experimental.accountUpdateFromCallback(this, 0, callback);
     Int64.fromObject(zkappParty.body.balanceChange).assertEquals(UInt64.zero);
   }
 }

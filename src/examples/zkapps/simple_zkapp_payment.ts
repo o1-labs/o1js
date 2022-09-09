@@ -95,8 +95,8 @@ console.log(
 
 console.log('----------MINA sending (with unsigned)----------');
 tx = await Local.transaction(feePayer, () => {
-  let accountUpdate = AccountUpdate.createUnsigned(zkappAddress);
-  accountUpdate.signInPlace(zkappKey);
+  let accountUpdate = AccountUpdate.create(zkappAddress);
+  accountUpdate.sign(zkappKey);
   accountUpdate.send({ to: account2Address, amount: UInt64.from(1_000_000) });
   zkapp.sign(zkappKey);
   zkapp.account.nonce.assertEquals(zkapp.account.nonce.get().add(1));

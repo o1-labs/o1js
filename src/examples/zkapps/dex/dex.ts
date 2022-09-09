@@ -231,12 +231,15 @@ class DexTokenHolder extends SmartContract {
         () => {
           // remove existing calls hash, because tokenY.authorize just witnesses it, which would mess up our circuit and
           // make us unable to make assertions about the party tree
-          this.self.children.parties[0].children.calls = undefined;
-          return { party: this.self.children.parties[0], result: null };
+          this.self.children.accountUpdates[0].children.calls = undefined;
+          return {
+            accountUpdate: this.self.children.accountUpdates[0],
+            result: null,
+          };
         }
-      ).party;
-      let [dexYParty] = tokenYParty.children.parties;
-      let [dexParty, userPartyL] = dexYParty.children.parties;
+      ).accountUpdate;
+      let [dexYParty] = tokenYParty.children.accountUpdates;
+      let [dexParty, userPartyL] = dexYParty.children.accountUpdates;
       // confirm we really got `dl` tokens from `user`
       // 1. passed in the right user
       userPartyL.body.publicKey.assertEquals(user);
@@ -320,7 +323,11 @@ class TokenContract extends SmartContract {
   // => need callbacks for signatures
   @method deployZkapp(address: PublicKey) {
     let tokenId = this.experimental.token.id;
-    let zkapp = Experimental.createChildParty(this.self, address, tokenId);
+    let zkapp = Experimental.createChildAccountUpdate(
+      this.self,
+      address,
+      tokenId
+    );
     AccountUpdate.setValue(zkapp.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
@@ -334,7 +341,11 @@ class TokenContract extends SmartContract {
   @method authorize(callback: Experimental.Callback<any>) {
     let layout = [[3, 0, 0], 0, 0]; // these are 10 child parties we allow, in a left-biased tree of width 3
     // TODO: this should also return what the callback returns, and authorize should pass it on!
-    let zkappParty = Experimental.partyFromCallback(this, layout, callback);
+    let zkappParty = Experimental.accountUpdateFromCallback(
+      this,
+      layout,
+      callback
+    );
     // walk parties to see if balances for this token cancel
     let balance = balanceSum(zkappParty, this.experimental.token.id);
     balance.assertEquals(Int64.zero);
@@ -360,7 +371,7 @@ function balanceSum(party: AccountUpdate, tokenId: Field) {
   let myTokenId = party.body.tokenId;
   let myBalance = Int64.fromObject(party.body.balanceChange);
   let balance = Circuit.if(myTokenId.equals(tokenId), myBalance, Int64.zero);
-  for (let child of party.children.parties) {
+  for (let child of party.children.accountUpdates) {
     balance.add(balanceSum(child, tokenId));
   }
   return balance;
