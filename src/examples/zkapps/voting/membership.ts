@@ -62,6 +62,7 @@ export class Membership_ extends SmartContract {
       ...Permissions.default(),
       editState: Permissions.none(), // TODO: fix permissions
       editSequenceState: Permissions.none(), // TODO: fix permissions
+      setPermissions: Permissions.none(),
     });
   }
 

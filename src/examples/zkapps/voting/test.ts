@@ -1,4 +1,4 @@
-import { Mina, Field, PrivateKey, UInt64, UInt32 } from 'snarkyjs';
+import { Mina, Field, PrivateKey, UInt64, UInt32, Permissions } from 'snarkyjs';
 import { deployContracts, deployInvalidContracts } from './deployContracts.js';
 import { VotingAppParams } from './factory.js';
 import { Member, MerkleWitness } from './member.js';
@@ -36,7 +36,142 @@ export async function testSet(
   }
 ) {
   let { votersStore, candidatesStore, votesStore } = storage;
-  let { votingKey } = params;
+  let { votingKey, voterKey } = params;
+
+  /*
+    test case description:
+      permissions of the zkapp account change in the middle of a transaction
+    
+    preconditions:
+      - set of voting contracts deployed
+      - permissions allow the transaction to pass
+      - trying to register a valid member
+      - changing permissions mid-transaction
+
+    tested cases:
+      - making sure a transaction passed with default permissions -> tx success
+      - changing the permissions to disallow the transaction to pass -> tx failure
+      - changing permissions back to default that allows the transaction to pass -> tx success
+      - changing permissions back to default on its own -> tx success
+      - invoking a method on its own -> success
+
+    expected results:
+      - transaction fails or succeeds, depending on the ordering of permissions changes
+
+  */
+  console.log('deploying contracts with dynamic permission changes..');
+
+  let permissionedSet = await deployContracts(
+    contracts,
+    params,
+    Field.zero,
+    Field.zero,
+    Field.zero
+  );
+  console.log('checking that the tx is valid using default permissions');
+
+  await assertValidTx(
+    true,
+    () => {
+      let m = Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        UInt64.from(15)
+      );
+      permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
+
+      permissionedSet.voting.voterRegistration(m);
+      permissionedSet.voting.sign(votingKey);
+    },
+    permissionedSet.feePayer
+  );
+
+  console.log('trying to change permissions and invoking a method...');
+
+  await assertValidTx(
+    false,
+    () => {
+      permissionedSet.voterContract.setPermissions({
+        ...Permissions.default(),
+        editSequenceState: Permissions.impossible(),
+      });
+
+      permissionedSet.voterContract.sign(voterKey);
+
+      let m = Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        UInt64.from(15)
+      );
+      permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
+
+      permissionedSet.voting.voterRegistration(m);
+      permissionedSet.voting.sign(votingKey);
+    },
+    permissionedSet.feePayer,
+    'sequence_state'
+  );
+
+  console.log(
+    'trying to change permissions back to default and invoking a method...'
+  );
+
+  await assertValidTx(
+    true,
+    () => {
+      permissionedSet.voterContract.setPermissions({
+        ...Permissions.default(),
+        editSequenceState: Permissions.none(),
+      });
+
+      permissionedSet.voterContract.sign(voterKey);
+
+      let m = Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        UInt64.from(15)
+      );
+      permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
+
+      permissionedSet.voting.voterRegistration(m);
+      permissionedSet.voting.sign(votingKey);
+    },
+    permissionedSet.feePayer
+  );
+
+  console.log('changing permissions back to default');
+
+  await assertValidTx(
+    true,
+    () => {
+      permissionedSet.voterContract.setPermissions({
+        ...Permissions.default(),
+        editSequenceState: Permissions.none(),
+      });
+
+      permissionedSet.voterContract.sign(voterKey);
+    },
+    permissionedSet.feePayer
+  );
+
+  console.log('trying to invoke method...');
+
+  await assertValidTx(
+    true,
+    () => {
+      let m = Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        UInt64.from(15)
+      );
+      permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
+
+      permissionedSet.voting.voterRegistration(m);
+
+      permissionedSet.voting.sign(votingKey);
+    },
+    permissionedSet.feePayer
+  );
 
   /*
     test case description:
@@ -85,10 +220,9 @@ export async function testSet(
     tx.send();
   } catch (err: any) {
     if (!err.toString().includes('precondition_unsatisfied')) {
-      throw Error('Transaction should have failed but went through!');
-    } else {
-      // Throw an error on all unexpected failure cases
-      throw Error(err);
+      throw Error(
+        `Transaction should have failed but went through! Error: ${err}`
+      );
     }
   }
 
@@ -160,10 +294,9 @@ export async function testSet(
     tx.send();
   } catch (err: any) {
     if (!err.toString().includes('the maximum number of lists of actions')) {
-      throw Error('Transaction should have failed but went through!');
-    } else {
-      // Throw an error on all unexpected failure cases
-      throw Error(err);
+      throw Error(
+        `Transaction should have failed but went through! Error: ${err}`
+      );
     }
   }
 
