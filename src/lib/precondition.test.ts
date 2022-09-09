@@ -6,11 +6,11 @@ import {
   SmartContract,
   Mina,
   PrivateKey,
-  Party,
+  AccountUpdate,
   method,
   PublicKey,
   Bool,
-} from '../../dist/server';
+} from 'snarkyjs';
 
 class MyContract extends SmartContract {
   @method shouldMakeCompileThrow() {
@@ -35,7 +35,7 @@ beforeAll(async () => {
   zkapp = new MyContract(zkappAddress);
 
   let tx = await Mina.transaction(feePayer, () => {
-    Party.fundNewAccount(feePayer);
+    AccountUpdate.fundNewAccount(feePayer);
     zkapp.deploy({ zkappKey });
   });
   tx.send();

@@ -15,7 +15,7 @@ import {
   PrivateKey,
   SmartContract,
   Mina,
-  Party,
+  AccountUpdate,
   isReady,
   shutdown,
   DeployArgs,
@@ -85,7 +85,7 @@ if (!isDeployed) {
   let transaction = await Mina.transaction(
     { feePayerKey, fee: transactionFee },
     () => {
-      Party.fundNewAccount(feePayerKey);
+      AccountUpdate.fundNewAccount(feePayerKey);
       zkapp.deploy({ zkappKey, verificationKey });
     }
   );

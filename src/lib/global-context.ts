@@ -1,5 +1,3 @@
-import { Party } from './party';
-
 export { Context };
 
 namespace Context {
@@ -11,10 +9,13 @@ namespace Context {
 
     get(): Context;
     has(): boolean;
-    runWith<Result>(context: Context, func: () => Result): [Context, Result];
+    runWith<Result>(
+      context: Context,
+      func: (context: Context) => Result
+    ): [Context, Result];
     runWithAsync<Result>(
       context: Context,
-      func: () => Promise<Result>
+      func: (context: Context) => Promise<Result>
     ): Promise<[Context, Result]>;
     enter(context: Context): id;
     leave(id: id): Context;
@@ -38,8 +39,9 @@ function create<C>(
       allowsNesting: options.allowsNesting ?? true,
       get: () => get(t),
       has: () => t.data.length !== 0,
-      runWith: <R>(context: C, func: () => R) => runWith(t, context, func),
-      runWithAsync: <R>(context: C, func: () => Promise<R>) =>
+      runWith: <R>(context: C, func: (context: C) => R) =>
+        runWith(t, context, func),
+      runWithAsync: <R>(context: C, func: (context: C) => Promise<R>) =>
         runWithAsync(t, context, func),
       enter: (context: C) => enter(t, context),
       leave: (id: Context.id) => leave(t, id),
@@ -78,13 +80,13 @@ function get<C>(t: Context.t<C>): C {
 function runWith<C, Result>(
   t: Context.t<C>,
   context: C,
-  func: () => Result
+  func: (context: C) => Result
 ): [C, Result] {
   let id = enter(t, context);
   let result: Result;
   let resultContext: C;
   try {
-    result = func();
+    result = func(context);
   } finally {
     resultContext = leave(t, id);
   }
@@ -94,13 +96,13 @@ function runWith<C, Result>(
 async function runWithAsync<C, Result>(
   t: Context.t<C>,
   context: C,
-  func: () => Promise<Result>
+  func: (context: C) => Promise<Result>
 ): Promise<[C, Result]> {
   let id = enter(t, context);
   let result: Result;
   let resultContext: C;
   try {
-    result = await func();
+    result = await func(context);
   } finally {
     resultContext = leave(t, id);
   }

@@ -3,6 +3,7 @@
   "include": ["."],
   "exclude": [],
   "compilerOptions": {
+    "rootDir": ".",
     "baseUrl": "../..",
     "paths": {
       "snarkyjs": ["."]

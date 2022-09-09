@@ -1,9 +1,9 @@
-import { AsFieldsAndAux } from './circuit_value';
-import { Poseidon as Poseidon_, Field } from '../snarky';
-import { inCheckedComputation } from './proof_system';
+import { AsFieldsAndAux } from './circuit_value.js';
+import { Poseidon as Poseidon_, Field } from '../snarky.js';
+import { inCheckedComputation } from './proof_system.js';
 
 // external API
-export { Poseidon };
+export { Poseidon, TokenSymbol };
 
 // internal API
 export {
@@ -12,7 +12,6 @@ export {
   emptyHashWithPrefix,
   hashWithPrefix,
   salt,
-  TokenSymbol,
   packToFields,
   emptyReceiptChainHash,
 };
@@ -62,7 +61,15 @@ function hashWithPrefix(prefix: string, input: Field[]) {
   let init = salt(prefix);
   return Poseidon.update(init, input)[0];
 }
-const prefixes = Poseidon_.prefixes;
+
+const prefixes: typeof Poseidon_.prefixes = new Proxy({} as any, {
+  // hack bc Poseidon_.prefixes is not available at start-up
+  get(_target, prop) {
+    return Poseidon_.prefixes[
+      prop as keyof typeof Poseidon_.prefixes
+    ] as string;
+  },
+});
 
 function salt(prefix: string) {
   return Poseidon_.update(

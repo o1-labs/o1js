@@ -2,7 +2,7 @@ import {
   isReady,
   Ledger,
   Circuit,
-  Party,
+  AccountUpdate,
   PrivateKey,
   shutdown,
   Field,
@@ -11,16 +11,16 @@ import {
   Experimental,
   Int64,
   Encoding,
-} from '../../dist/server';
+} from 'snarkyjs';
 
 let address: PublicKey;
-let party: Party;
+let party: AccountUpdate;
 
 describe('party', () => {
   beforeAll(async () => {
     await isReady;
     address = PrivateKey.random().toPublicKey();
-    party = Party.defaultParty(address);
+    party = AccountUpdate.defaultParty(address);
     party.body.balanceChange = Int64.from(1e9).neg();
   });
   afterAll(() => setTimeout(shutdown, 0));
@@ -57,11 +57,11 @@ describe('party', () => {
       expect(isField(hash)).toBeTruthy();
 
       // if we clone the party, hash should be the same
-      let party2 = Party.clone(party);
+      let party2 = AccountUpdate.clone(party);
       expect(party2.hash()).toEqual(hash);
 
       // if we change something on the cloned party, the hash should become different
-      Party.setValue(party2.update.appState[0], Field.one);
+      AccountUpdate.setValue(party2.update.appState[0], Field.one);
       expect(party2.hash()).not.toEqual(hash);
     });
   });
@@ -69,13 +69,13 @@ describe('party', () => {
   it("converts party to a public input that's consistent with the ocaml implementation", async () => {
     let otherAddress = PrivateKey.random().toPublicKey();
 
-    let party = Party.createUnsigned(address);
+    let party = AccountUpdate.create(address);
     Experimental.createChildParty(party, otherAddress);
     let publicInput = party.toPublicInput();
 
     // create transaction JSON with the same party structure, for ocaml version
     let tx = await Mina.transaction(() => {
-      let party = Party.createUnsigned(address);
+      let party = AccountUpdate.create(address);
       Experimental.createChildParty(party, otherAddress);
     });
     let publicInputOcaml = Ledger.zkappPublicInput(tx.toJSON(), 0);
@@ -101,6 +101,6 @@ describe('party', () => {
 
 // to check that we got something that looks like a Field
 // note: `instanceof Field` doesn't work
-function isField(x: any): x is Field {
+function isField(x: any) {
   return x?.constructor === Field.one.constructor;
 }

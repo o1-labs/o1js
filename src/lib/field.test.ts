@@ -1,4 +1,4 @@
-import { shutdown, isReady, Field } from '../../dist/server';
+import { shutdown, isReady, Field } from 'snarkyjs';
 
 describe('Field constructor', () => {
   beforeAll(() => isReady);

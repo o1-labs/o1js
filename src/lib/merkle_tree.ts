@@ -1,24 +1,35 @@
-import { Circuit, CircuitValue, arrayProp } from './circuit_value';
-import { Poseidon } from './hash';
-import { Bool, Field } from './core';
+/**
+ * This file contains all code related to the [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree) implementation available in SnarkyJS.
+ */
+
+import { Circuit, CircuitValue, arrayProp } from './circuit_value.js';
+import { Poseidon } from './hash.js';
+import { Bool, Field } from './core.js';
 
 // external API
-export {
-  Witness,
-  MerkleTree,
-  MerkleWitness,
-  BaseMerkleWitness /* need to export BaseMerkleWitness so we can export classes that extend it as well*/,
-};
+export { Witness, MerkleTree, MerkleWitness, BaseMerkleWitness };
 
 type Witness = { isLeft: boolean; sibling: Field }[];
 
 /**
- * Levels are indexed from leafs (level 0) to root (level N - 1).
+ * A [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree) is a binary tree in which every leaf is the cryptography hash of a piece of data,
+ * and every node is the hash of the concatenation of its two child nodes.
+ *
+ * A Merkle Tree allows developers to easily and securely verify the integrity of large amounts of data.
+ *
+ * Take a look at our [documentation](https://docs.minaprotocol.com/en/zkapps) on how to use Merkle Trees in combination with zkApps and zero knowledge programming!
+ *
+ * Levels are indexed from leaves (level 0) to root (level N - 1).
  */
 class MerkleTree {
   private nodes: Record<number, Record<string, Field>> = {};
   private zeroes: Field[];
 
+  /**
+   * Creates a new, empty [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree).
+   * @param height The height of Merkle Tree.
+   * @returns A new MerkleTree
+   */
   constructor(public readonly height: number) {
     this.zeroes = [Field(0)];
     for (let i = 1; i < height; i++) {
@@ -26,10 +37,20 @@ class MerkleTree {
     }
   }
 
+  /**
+   * Returns a node which lives at a given index and level.
+   * @param level Level of the node.
+   * @param index Index of the node.
+   * @returns The data of the node.
+   */
   getNode(level: number, index: bigint): Field {
     return this.nodes[level]?.[index.toString()] ?? this.zeroes[level];
   }
 
+  /**
+   * Returns the root of the [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree).
+   * @returns The root of the Merkle Tree.
+   */
   getRoot(): Field {
     return this.getNode(this.height - 1, 0n);
   }
@@ -40,6 +61,11 @@ class MerkleTree {
   }
 
   // TODO: if this is passed an index bigger than the max, it will set a couple of out-of-bounds nodes but not affect the real Merkle root. OK?
+  /**
+   * Sets the value of a leaf node at a given index to a given value.
+   * @param index Position of the leaf node.
+   * @param leaf New value.
+   */
   setLeaf(index: bigint, leaf: Field) {
     if (index >= this.leafCount) {
       throw new Error(
@@ -58,6 +84,11 @@ class MerkleTree {
     }
   }
 
+  /**
+   * Returns the witness (also known as [Merkle Proof or Merkle Witness](https://computersciencewiki.org/index.php/Merkle_proof)) for the leaf at the given index.
+   * @param index Position of the leaf node.
+   * @returns The witness that belongs to the leaf.
+   */
   getWitness(index: bigint): Witness {
     if (index >= this.leafCount) {
       throw new Error(
@@ -75,6 +106,11 @@ class MerkleTree {
   }
 
   // TODO: this will always return true if the merkle tree was constructed normally; seems to be only useful for testing. remove?
+  /**
+   * Checks if the witness that belongs to the leaf at the given index is a valid witness.
+   * @param index Position of the leaf node.
+   * @returns True if the witness for the leaf node is valid.
+   */
   validate(index: bigint): boolean {
     const path = this.getWitness(index);
     let hash = this.getNode(0, index);
@@ -88,17 +124,28 @@ class MerkleTree {
   }
 
   // TODO: should this take an optional offset? should it fail if the array is too long?
+  /**
+   * Fills all leaves of the tree.
+   * @param leaves Values to fill the leaves with.
+   */
   fill(leaves: Field[]) {
     leaves.forEach((value, index) => {
       this.setLeaf(BigInt(index), value);
     });
   }
 
+  /**
+   * Returns the amount of leaf nodes.
+   * @returns Amount of leaf nodes.
+   */
   get leafCount(): bigint {
     return 2n ** BigInt(this.height - 1);
   }
 }
 
+/**
+ * The {@link BaseMerkleWitness} class defines a circuit-compatible base class for [Merkle Witness'](https://computersciencewiki.org/index.php/Merkle_proof).
+ */
 class BaseMerkleWitness extends CircuitValue {
   static height: number;
   path: Field[];
@@ -107,6 +154,11 @@ class BaseMerkleWitness extends CircuitValue {
     return (this.constructor as any).height;
   }
 
+  /**
+   * Takes a {@link Witness} and turns it into a circuit-compatible Witness.
+   * @param witness Witness.
+   * @returns A circuit-compatible Witness.
+   */
   constructor(witness: Witness) {
     super();
     let height = witness.length + 1;
@@ -119,6 +171,11 @@ class BaseMerkleWitness extends CircuitValue {
     this.isLeft = witness.map((item) => Bool(item.isLeft));
   }
 
+  /**
+   * Calculates a root depending on the leaf value.
+   * @param leaf Value of the leaf node that belongs to this Witness.
+   * @returns The calculated root.
+   */
   calculateRoot(leaf: Field): Field {
     let hash = leaf;
     let n = this.height();
@@ -132,6 +189,10 @@ class BaseMerkleWitness extends CircuitValue {
     return hash;
   }
 
+  /**
+   * Calculates the index of the leaf node that belongs to this Witness.
+   * @returns Index of the leaf.
+   */
   calculateIndex(): Field {
     let powerOfTwo = Field(1);
     let index = Field(0);
@@ -146,6 +207,11 @@ class BaseMerkleWitness extends CircuitValue {
   }
 }
 
+/**
+ * Returns a circuit-compatible Witness for a specific Tree height.
+ * @param height Height of the Merkle Tree that this Witness belongs to.
+ * @returns A circuit-compatible Merkle Witness.
+ */
 function MerkleWitness(height: number): typeof BaseMerkleWitness {
   class MerkleWitness_ extends BaseMerkleWitness {
     static height = height;
