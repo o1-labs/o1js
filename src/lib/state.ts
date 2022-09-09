@@ -153,7 +153,10 @@ function createState<T>(): InternalStateType<T> {
       let stateAsFields = this._contract.stateType.toFields(state);
       let accountUpdate = this._contract.instance.self;
       stateAsFields.forEach((x, i) => {
-        AccountUpdate.setValue(accountUpdate.body.update.appState[layout.offset + i], x);
+        AccountUpdate.setValue(
+          accountUpdate.body.update.appState[layout.offset + i],
+          x
+        );
       });
     },
 

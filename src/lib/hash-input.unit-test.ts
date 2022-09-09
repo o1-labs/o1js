@@ -21,7 +21,9 @@ import { packToFields } from './hash.js';
 
 await isReady;
 
-let accountUpdate = AccountUpdate.defaultAccountUpdate(PrivateKey.random().toPublicKey());
+let accountUpdate = AccountUpdate.defaultAccountUpdate(
+  PrivateKey.random().toPublicKey()
+);
 
 // types
 type Body = Types.AccountUpdate['body'];
@@ -130,7 +132,9 @@ testInput(Body, Ledger.hashInputFromJson.body, body);
 testInput(
   Types.AccountUpdate,
   (accountUpdateJson) =>
-    Ledger.hashInputFromJson.body(JSON.stringify(JSON.parse(accountUpdateJson).body)),
+    Ledger.hashInputFromJson.body(
+      JSON.stringify(JSON.parse(accountUpdateJson).body)
+    ),
   accountUpdate
 );
 

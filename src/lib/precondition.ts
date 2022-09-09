@@ -1,7 +1,12 @@
 import { Circuit, AsFieldElements, Bool, Field } from '../snarky.js';
 import { circuitValueEquals } from './circuit_value.js';
 import * as Mina from './mina.js';
-import { Events, SequenceEvents, AccountUpdate, Preconditions } from './account_update.js';
+import {
+  Events,
+  SequenceEvents,
+  AccountUpdate,
+  Preconditions,
+} from './account_update.js';
 import { UInt32, UInt64 } from './int.js';
 import { inAnalyze, inCompile, inProver } from './proof_system.js';
 import { Layout } from '../snarky/parties-helpers.js';
@@ -68,7 +73,12 @@ function preconditionClass(
       let lower = layout.inner.entries.lower.type as BaseType;
       let baseType = baseMap[lower];
       return {
-        ...preconditionSubclass(accountUpdate, baseKey, baseType as any, context),
+        ...preconditionSubclass(
+          accountUpdate,
+          baseKey,
+          baseType as any,
+          context
+        ),
         assertBetween(lower: any, upper: any) {
           context.constrained.add(baseKey);
           let property: RangeCondition<any> = getPath(
@@ -84,7 +94,12 @@ function preconditionClass(
     // value condition
     else if (layout.optionType === 'flaggedOption') {
       let baseType = baseMap[layout.inner.type as BaseType];
-      return preconditionSubclass(accountUpdate, baseKey, baseType as any, context);
+      return preconditionSubclass(
+        accountUpdate,
+        baseKey,
+        baseType as any,
+        context
+      );
     }
   } else if (layout.type === 'array') {
     return {}; // not applicable yet, TODO if we implement state
@@ -119,7 +134,11 @@ function preconditionSubclass<
       }
       let { read, vars } = context;
       read.add(longKey);
-      return (vars[longKey] ??= getVariable(accountUpdate, longKey, fieldType)) as U;
+      return (vars[longKey] ??= getVariable(
+        accountUpdate,
+        longKey,
+        fieldType
+      )) as U;
     },
     assertEquals(value: U) {
       context.constrained.add(longKey);
@@ -218,7 +237,10 @@ type PreconditionContext = {
   constrained: Set<LongKey>;
 };
 
-function initializePreconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
+function initializePreconditions(
+  accountUpdate: AccountUpdate,
+  isSelf: boolean
+) {
   preconditionContexts.set(accountUpdate, {
     read: new Set(),
     constrained: new Set(),
@@ -241,7 +263,10 @@ function assertPreconditionInvariants(accountUpdate: AccountUpdate) {
     if (context.constrained.has(preconditionPath)) continue;
 
     // check if the precondition was modified manually, which is also a valid way of avoiding an error
-    let precondition = getPath(accountUpdate.body.preconditions, preconditionPath);
+    let precondition = getPath(
+      accountUpdate.body.preconditions,
+      preconditionPath
+    );
     let dummy = getPath(dummyPreconditions, preconditionPath);
     if (!circuitValueEquals(precondition, dummy)) continue;
 

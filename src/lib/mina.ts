@@ -127,7 +127,9 @@ function createTransaction(
     currentTransaction.leave(transactionId);
     throw err;
   }
-  let accountUpdates = CallForest.toFlatList(currentTransaction.get().accountUpdates);
+  let accountUpdates = CallForest.toFlatList(
+    currentTransaction.get().accountUpdates
+  );
   try {
     // check that on-chain values weren't used without setting a precondition
     for (let accountUpdate of accountUpdates) {
@@ -157,7 +159,11 @@ function createTransaction(
     feePayerAccountUpdate = AccountUpdate.dummyFeePayer();
   }
 
-  let transaction: ZkappCommand = { accountUpdates, feePayer: feePayerAccountUpdate, memo };
+  let transaction: ZkappCommand = {
+    accountUpdates,
+    feePayer: feePayerAccountUpdate,
+    memo,
+  };
 
   currentTransaction.leave(transactionId);
   let self: Transaction = {

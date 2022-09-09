@@ -37,23 +37,23 @@ Circuit.runAndCheck(() => {
 
 // With a longer message
 message = JSON.stringify({
-  'coinbase': {
-    'btc': 40000.00,
-    'eth': 3000.00,
-    'usdc': 1.00,
-    'ada': 1.02,
-    'avax': 70.43,
-    'mina': 2.13,
+  coinbase: {
+    btc: 40000.0,
+    eth: 3000.0,
+    usdc: 1.0,
+    ada: 1.02,
+    avax: 70.43,
+    mina: 2.13,
   },
-  'binance': {
-    'btc': 39999.00,
-    'eth': 3001.00,
-    'usdc': 1.01,
-    'ada': 0.99,
-    'avax': 70.21,
-    'mina': 2.07,
-  }
-})
+  binance: {
+    btc: 39999.0,
+    eth: 3001.0,
+    usdc: 1.01,
+    ada: 0.99,
+    avax: 70.21,
+    mina: 2.07,
+  },
+});
 messageFields = Encoding.stringToFields(message);
 
 // encrypt
@@ -80,6 +80,5 @@ Circuit.runAndCheck(() => {
     m.assertEquals(decryptedFields[i]);
   });
 });
-
 
 console.log('everything works!');

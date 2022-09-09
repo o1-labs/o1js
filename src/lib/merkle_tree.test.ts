@@ -1,10 +1,4 @@
-import {
-  isReady,
-  shutdown,
-  Poseidon,
-  Field,
-  Experimental,
-} from 'snarkyjs';
+import { isReady, shutdown, Poseidon, Field, Experimental } from 'snarkyjs';
 
 describe('Merkle Tree', () => {
   beforeAll(async () => {

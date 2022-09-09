@@ -382,7 +382,10 @@ function wrapMethod(
   };
 }
 
-function checkPublicInput({ accountUpdate, calls }: ZkappPublicInput, self: AccountUpdate) {
+function checkPublicInput(
+  { accountUpdate, calls }: ZkappPublicInput,
+  self: AccountUpdate
+) {
   let otherInput = accountUpdateToPublicInput(self);
   accountUpdate.assertEquals(otherInput.accountUpdate);
   calls.assertEquals(otherInput.calls);
@@ -483,7 +486,9 @@ function accountUpdateFromCallback(
   accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
   accountUpdate.parent = parentAccountUpdate;
   if (disallowChildren) {
-    let calls = Circuit.witness(Field, () => CallForest.hashChildren(accountUpdate));
+    let calls = Circuit.witness(Field, () =>
+      CallForest.hashChildren(accountUpdate)
+    );
     calls.assertEquals(CallForest.emptyHash());
     parentAccountUpdate.children.push({ accountUpdate, calls });
   } else {
@@ -644,7 +649,10 @@ class SmartContract {
     };
   }
 
-  send(args: { to: PublicKey | AccountUpdate; amount: number | bigint | UInt64 }) {
+  send(args: {
+    to: PublicKey | AccountUpdate;
+    amount: number | bigint | UInt64;
+  }) {
     return this.self.send(args);
   }
 
@@ -694,7 +702,10 @@ class SmartContract {
       // if there is more than one event type, also store its index, like in an enum, to identify the type later
       eventFields = [Field(eventNumber), ...eventType.toFields(event)];
     }
-    accountUpdate.body.events = Events.pushEvent(accountUpdate.body.events, eventFields);
+    accountUpdate.body.events = Events.pushEvent(
+      accountUpdate.body.events,
+      eventFields
+    );
   }
 
   async fetchEvents(
@@ -1076,7 +1087,8 @@ function signFeePayer(
   }
   if (feePayerMemo) zkappCommand.memo = Ledger.memoToBase58(feePayerMemo);
   zkappCommand.feePayer.body.nonce = `${feePayerNonce}`;
-  zkappCommand.feePayer.body.publicKey = Ledger.publicKeyToString(senderAddress);
+  zkappCommand.feePayer.body.publicKey =
+    Ledger.publicKeyToString(senderAddress);
   zkappCommand.feePayer.body.fee = `${transactionFee}`;
   return signJsonTransaction(JSON.stringify(zkappCommand), feePayerKey);
 }

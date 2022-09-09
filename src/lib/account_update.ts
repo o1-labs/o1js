@@ -596,8 +596,14 @@ class AccountUpdate implements Types.AccountUpdate {
   static clone(accountUpdate: AccountUpdate) {
     let body = cloneCircuitValue(accountUpdate.body);
     let authorization = cloneCircuitValue(accountUpdate.authorization);
-    let clonedAccountUpdate = new (AccountUpdate as any)(body, authorization, accountUpdate.isSelf);
-    clonedAccountUpdate.lazyAuthorization = cloneCircuitValue(accountUpdate.lazyAuthorization);
+    let clonedAccountUpdate = new (AccountUpdate as any)(
+      body,
+      authorization,
+      accountUpdate.isSelf
+    );
+    clonedAccountUpdate.lazyAuthorization = cloneCircuitValue(
+      accountUpdate.lazyAuthorization
+    );
     clonedAccountUpdate.children = accountUpdate.children;
     clonedAccountUpdate.parent = accountUpdate.parent;
     return clonedAccountUpdate;
@@ -622,16 +628,21 @@ class AccountUpdate implements Types.AccountUpdate {
         address: PublicKey;
         amount: number | bigint | UInt64;
       }) {
-        let receiverAccountUpdate = createChildAccountUpdate(thisAccountUpdate, address, {
-          caller: this.id,
-          tokenId: this.id,
-        });
+        let receiverAccountUpdate = createChildAccountUpdate(
+          thisAccountUpdate,
+          address,
+          {
+            caller: this.id,
+            tokenId: this.id,
+          }
+        );
 
         // Add the amount to mint to the receiver's account
         let { magnitude, sgn } = receiverAccountUpdate.body.balanceChange;
-        receiverAccountUpdate.body.balanceChange = new Int64(magnitude, sgn).add(
-          amount
-        );
+        receiverAccountUpdate.body.balanceChange = new Int64(
+          magnitude,
+          sgn
+        ).add(amount);
       },
 
       burn({
@@ -641,15 +652,21 @@ class AccountUpdate implements Types.AccountUpdate {
         address: PublicKey;
         amount: number | bigint | UInt64;
       }) {
-        let senderAccountUpdate = createChildAccountUpdate(thisAccountUpdate, address, {
-          caller: this.id,
-          tokenId: this.id,
-          useFullCommitment: Bool(true),
-        });
+        let senderAccountUpdate = createChildAccountUpdate(
+          thisAccountUpdate,
+          address,
+          {
+            caller: this.id,
+            tokenId: this.id,
+            useFullCommitment: Bool(true),
+          }
+        );
 
         // Sub the amount to burn from the sender's account
         let { magnitude, sgn } = senderAccountUpdate.body.balanceChange;
-        senderAccountUpdate.body.balanceChange = new Int64(magnitude, sgn).sub(amount);
+        senderAccountUpdate.body.balanceChange = new Int64(magnitude, sgn).sub(
+          amount
+        );
 
         // Require signature from the sender account being deducted
         Authorization.setLazySignature(senderAccountUpdate);
@@ -665,30 +682,40 @@ class AccountUpdate implements Types.AccountUpdate {
         amount: number | bigint | UInt64;
       }) {
         // Create a new accountUpdate for the sender to send the amount to the receiver
-        let senderAccountUpdate = createChildAccountUpdate(thisAccountUpdate, from, {
-          caller: this.id,
-          tokenId: this.id,
-          useFullCommitment: Bool(true),
-        });
+        let senderAccountUpdate = createChildAccountUpdate(
+          thisAccountUpdate,
+          from,
+          {
+            caller: this.id,
+            tokenId: this.id,
+            useFullCommitment: Bool(true),
+          }
+        );
 
         let i0 = senderAccountUpdate.body.balanceChange;
-        senderAccountUpdate.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(
-          amount
-        );
+        senderAccountUpdate.body.balanceChange = new Int64(
+          i0.magnitude,
+          i0.sgn
+        ).sub(amount);
 
         // Require signature from the sender accountUpdate
         Authorization.setLazySignature(senderAccountUpdate);
 
-        let receiverAccountUpdate = createChildAccountUpdate(thisAccountUpdate, to, {
-          caller: this.id,
-          tokenId: this.id,
-        });
+        let receiverAccountUpdate = createChildAccountUpdate(
+          thisAccountUpdate,
+          to,
+          {
+            caller: this.id,
+            tokenId: this.id,
+          }
+        );
 
         // Add the amount to send to the receiver's account
         let i1 = receiverAccountUpdate.body.balanceChange;
-        receiverAccountUpdate.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
-          amount
-        );
+        receiverAccountUpdate.body.balanceChange = new Int64(
+          i1.magnitude,
+          i1.sgn
+        ).add(amount);
       },
     };
   }
@@ -702,7 +729,10 @@ class AccountUpdate implements Types.AccountUpdate {
 
     return {
       set(tokenSymbol: string) {
-        AccountUpdate.setValue(accountUpdate.update.tokenSymbol, TokenSymbol.from(tokenSymbol));
+        AccountUpdate.setValue(
+          accountUpdate.update.tokenSymbol,
+          TokenSymbol.from(tokenSymbol)
+        );
       },
     };
   }
@@ -721,21 +751,28 @@ class AccountUpdate implements Types.AccountUpdate {
       receiverAccountUpdate = to;
       makeChildAccountUpdate(accountUpdate, receiverAccountUpdate);
     } else {
-      receiverAccountUpdate = createChildAccountUpdate(accountUpdate, to as PublicKey, {
-        tokenId: accountUpdate.body.tokenId,
-        caller: accountUpdate.body.tokenId,
-      });
+      receiverAccountUpdate = createChildAccountUpdate(
+        accountUpdate,
+        to as PublicKey,
+        {
+          tokenId: accountUpdate.body.tokenId,
+          caller: accountUpdate.body.tokenId,
+        }
+      );
     }
 
     // Sub the amount from the sender's account
     let i0 = accountUpdate.body.balanceChange;
-    accountUpdate.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(amount);
+    accountUpdate.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(
+      amount
+    );
 
     // Add the amount to send to the receiver's account
     let i1 = receiverAccountUpdate.body.balanceChange;
-    receiverAccountUpdate.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
-      amount
-    );
+    receiverAccountUpdate.body.balanceChange = new Int64(
+      i1.magnitude,
+      i1.sgn
+    ).add(amount);
   }
 
   get balance() {
@@ -842,7 +879,10 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   // TODO this needs to be more intelligent about previous nonces in the transaction, similar to AccountUpdate.createSigned
-  static getNonce(accountUpdate: AccountUpdate | FeePayerUnsigned, fallbackToZero = false) {
+  static getNonce(
+    accountUpdate: AccountUpdate | FeePayerUnsigned,
+    fallbackToZero = false
+  ) {
     let nonce: UInt32;
     let inProver = Circuit.inProver();
     if (inProver || !Circuit.inCheckedComputation()) {
@@ -997,7 +1037,10 @@ class AccountUpdate implements Types.AccountUpdate {
     skipCheck = false
   ) {
     // construct the circuit type for a accountUpdate + other result
-    let accountUpdateType = circuitArray(Field, Types.AccountUpdate.sizeInFields());
+    let accountUpdateType = circuitArray(
+      Field,
+      Types.AccountUpdate.sizeInFields()
+    );
     type combinedType = { accountUpdate: Field[]; result: T };
     let combinedType = circuitValue<combinedType>({
       accountUpdate: accountUpdateType,
@@ -1010,21 +1053,31 @@ class AccountUpdate implements Types.AccountUpdate {
     let fieldsAndResult = Circuit.witness<combinedType>(combinedType, () => {
       let { accountUpdate, result } = compute();
       proverAccountUpdate = accountUpdate;
-      return { accountUpdate: Types.AccountUpdate.toFields(accountUpdate), result };
+      return {
+        accountUpdate: Types.AccountUpdate.toFields(accountUpdate),
+        result,
+      };
     });
 
     // get back a Types.AccountUpdate from the fields + aux (where aux is just the default in compile)
     let aux = Types.AccountUpdate.toAuxiliary(proverAccountUpdate);
-    let rawAccountUpdate = Types.AccountUpdate.fromFields(fieldsAndResult.accountUpdate, aux);
+    let rawAccountUpdate = Types.AccountUpdate.fromFields(
+      fieldsAndResult.accountUpdate,
+      aux
+    );
     // usually when we introduce witnesses, we add checks for their type-specific properties (e.g., booleanness).
     // a accountUpdate, however, might already be forced to be valid by the on-chain transaction logic,
     // allowing us to skip expensive checks in user proofs.
     if (!skipCheck) Types.AccountUpdate.check(rawAccountUpdate);
 
     // construct the full AccountUpdate instance from the raw accountUpdate + (maybe) the prover accountUpdate
-    let accountUpdate = new AccountUpdate(rawAccountUpdate.body, rawAccountUpdate.authorization);
+    let accountUpdate = new AccountUpdate(
+      rawAccountUpdate.body,
+      rawAccountUpdate.authorization
+    );
     accountUpdate.lazyAuthorization =
-      proverAccountUpdate && cloneCircuitValue(proverAccountUpdate.lazyAuthorization);
+      proverAccountUpdate &&
+      cloneCircuitValue(proverAccountUpdate.lazyAuthorization);
     accountUpdate.children = proverAccountUpdate?.children ?? [];
     accountUpdate.parent = proverAccountUpdate?.parent;
     return { accountUpdate, result: fieldsAndResult.result };
@@ -1040,7 +1093,10 @@ const CallForest = {
     for (let accountUpdate of forest) {
       accountUpdate.body.callDepth = depth;
       let children = accountUpdate.children.map((c) => c.accountUpdate);
-      accountUpdates.push(accountUpdate, ...CallForest.toFlatList(children, depth + 1));
+      accountUpdates.push(
+        accountUpdate,
+        ...CallForest.toFlatList(children, depth + 1)
+      );
     }
     return accountUpdates;
   },
@@ -1058,8 +1114,14 @@ const CallForest = {
       // only compute calls if it's not there yet --
       // this gives us the flexibility to witness only direct children of a zkApp
       calls ??= CallForest.hashChildren(accountUpdate);
-      let nodeHash = hashWithPrefix(prefixes.accountUpdateNode, [accountUpdate.hash(), calls]);
-      stackHash = hashWithPrefix(prefixes.accountUpdateCons, [nodeHash, stackHash]);
+      let nodeHash = hashWithPrefix(prefixes.accountUpdateNode, [
+        accountUpdate.hash(),
+        calls,
+      ]);
+      stackHash = hashWithPrefix(prefixes.accountUpdateCons, [
+        nodeHash,
+        stackHash,
+      ]);
     }
     return stackHash;
   },
@@ -1130,7 +1192,10 @@ const Authorization = {
     accountUpdate.authorization = { proof };
     accountUpdate.lazyAuthorization = undefined;
   },
-  setLazySignature(accountUpdate: AccountUpdate, signature?: Omit<LazySignature, 'kind'>) {
+  setLazySignature(
+    accountUpdate: AccountUpdate,
+    signature?: Omit<LazySignature, 'kind'>
+  ) {
     signature ??= {};
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
@@ -1150,7 +1215,8 @@ function addMissingSignatures(
     JSON.stringify(zkappCommandToJson(zkappCommand))
   );
   function addFeePayerSignature(accountUpdate: FeePayerUnsigned): FeePayer {
-    let { body, authorization, lazyAuthorization } = cloneCircuitValue(accountUpdate);
+    let { body, authorization, lazyAuthorization } =
+      cloneCircuitValue(accountUpdate);
     if (lazyAuthorization === undefined) return { body, authorization };
     let { privateKey } = lazyAuthorization;
     if (privateKey === undefined) {
@@ -1224,12 +1290,17 @@ async function addMissingProofs(parties: ZkappCommand): Promise<{
   zkappCommand: ZkappCommandProved;
   proofs: (Proof<ZkappPublicInput> | undefined)[];
 }> {
-  type AccountUpdateProved = AccountUpdate & { lazyAuthorization?: LazySignature };
+  type AccountUpdateProved = AccountUpdate & {
+    lazyAuthorization?: LazySignature;
+  };
 
   async function addProof(accountUpdate: AccountUpdate) {
     accountUpdate = AccountUpdate.clone(accountUpdate);
     if (accountUpdate.lazyAuthorization?.kind !== 'lazy-proof') {
-      return { accountUpdateProved: accountUpdate as AccountUpdateProved, proof: undefined };
+      return {
+        accountUpdateProved: accountUpdate as AccountUpdateProved,
+        proof: undefined,
+      };
     }
     let {
       methodName,
@@ -1261,7 +1332,10 @@ async function addMissingProofs(parties: ZkappCommand): Promise<{
           () => provers[i](publicInputFields, previousProofs)
         )
     );
-    Authorization.setProof(accountUpdate, Pickles.proofToBase64Transaction(proof));
+    Authorization.setProof(
+      accountUpdate,
+      Pickles.proofToBase64Transaction(proof)
+    );
     let maxProofsVerified = ZkappClass._maxProofsVerified!;
     const Proof = ZkappClass.Proof();
     return {
@@ -1314,5 +1388,5 @@ function signJsonTransaction(
       );
     }
   }
-    return JSON.stringify(zkappCommand);
+  return JSON.stringify(zkappCommand);
 }

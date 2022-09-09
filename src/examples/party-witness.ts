@@ -1,4 +1,10 @@
-import { Types, AccountUpdate, PrivateKey, Circuit, circuitValue } from 'snarkyjs';
+import {
+  Types,
+  AccountUpdate,
+  PrivateKey,
+  Circuit,
+  circuitValue,
+} from 'snarkyjs';
 
 let address = PrivateKey.random().toPublicKey();
 
@@ -20,7 +26,10 @@ if (address.toBase58() !== json.body.publicKey) throw Error('fail');
 let Null = circuitValue<null>(null);
 
 Circuit.runAndCheck(() => {
-  let accountUpdateWitness = AccountUpdate.witness(Null, () => ({ accountUpdate, result: null })).accountUpdate;
+  let accountUpdateWitness = AccountUpdate.witness(Null, () => ({
+    accountUpdate,
+    result: null,
+  })).accountUpdate;
   console.assert(accountUpdateWitness.body.callDepth === 5);
   Circuit.assertEqual(Types.AccountUpdate, accountUpdateWitness, accountUpdate);
   Circuit.assertEqual(
@@ -31,7 +40,10 @@ Circuit.runAndCheck(() => {
 });
 
 let result = Circuit.constraintSystem(() => {
-  let accountUpdateWitness = AccountUpdate.witness(Null, () => ({ accountUpdate, result: null })).accountUpdate;
+  let accountUpdateWitness = AccountUpdate.witness(Null, () => ({
+    accountUpdate,
+    result: null,
+  })).accountUpdate;
   console.assert(accountUpdateWitness.body.callDepth === 0);
   Circuit.assertEqual(Types.AccountUpdate, accountUpdateWitness, accountUpdate);
 });
