@@ -59,7 +59,7 @@ export async function testSet(
       - transaction fails or succeeds, depending on the ordering of permissions changes
 
   */
-  console.log('deploying contracts with dynamic permission changes..');
+  console.log('deploying testing phase 1 contracts');
 
   let permissionedSet = await deployContracts(
     contracts,
@@ -191,7 +191,7 @@ export async function testSet(
 
   */
 
-  console.log('deploying testing phase 1 contracts');
+  console.log('deploying testing phase 2 contracts');
 
   let invalidSet = await deployInvalidContracts(
     contracts,
@@ -228,7 +228,7 @@ export async function testSet(
 
   const initialRoot = votersStore.getRoot();
 
-  console.log('deploying testing phase 2 contracts');
+  console.log('deploying testing phase 3 contracts');
 
   let sequenceOverflowSet = await deployContracts(
     contracts,
@@ -300,7 +300,7 @@ export async function testSet(
     }
   }
 
-  console.log('deploying testing phase 3 contracts');
+  console.log('deploying testing phase 4 contracts');
 
   let { voterContract, candidateContract, voting, feePayer, Local } =
     await deployContracts(
