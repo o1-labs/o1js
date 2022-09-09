@@ -3,6 +3,7 @@ import {
   circuitValue,
   cloneCircuitValue,
   memoizationContext,
+  witness,
 } from './circuit_value.js';
 import {
   Field,
@@ -847,12 +848,7 @@ class AccountUpdate implements Types.Party {
   }
 
   static getNonce(party: AccountUpdate | FeePayerUnsigned) {
-    if (inCompileMode()) {
-      return emptyWitness(UInt32);
-    }
-    return inProver()
-      ? Circuit.witness(UInt32, () => AccountUpdate.getNonceUnchecked(party))
-      : AccountUpdate.getNonceUnchecked(party);
+    return witness(UInt32, () => AccountUpdate.getNonceUnchecked(party));
   }
 
   private static getNonceUnchecked(update: AccountUpdate | FeePayerUnsigned) {
@@ -1011,7 +1007,8 @@ class AccountUpdate implements Types.Party {
     let fieldsAndResult = Circuit.witness<combinedType>(combinedType, () => {
       let { party, result } = compute();
       proverParty = party;
-      return { party: Types.Party.toFields(party), result };
+      let fields = Types.Party.toFields(party).map((x) => x.toConstant());
+      return { party: fields, result };
     });
 
     // get back a Types.Party from the fields + aux (where aux is just the default in compile)
