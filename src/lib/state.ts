@@ -5,9 +5,8 @@ import { PublicKey } from './signature.js';
 import * as Mina from './mina.js';
 import { Account, fetchAccount } from './fetch.js';
 import {
-  inAnalyze,
   inCheckedComputation,
-  inCompile,
+  inCompileMode,
   inProver,
 } from './proof_system.js';
 import { SmartContract } from './zkapp.js';
@@ -204,7 +203,7 @@ function createState<T>(): InternalStateType<T> {
       let stateAsFields: Field[];
       let inProver_ = inProver();
       let stateFieldsType = circuitArray(Field, layout.length);
-      if (!inCompile() && !inAnalyze()) {
+      if (!inCompileMode()) {
         let account: Account;
         try {
           account = Mina.getAccount(

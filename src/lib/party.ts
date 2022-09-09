@@ -18,7 +18,14 @@ import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
-import { inCheckedComputation, Proof, snarkContext } from './proof_system.js';
+import {
+  emptyWitness,
+  inCheckedComputation,
+  inCompileMode,
+  inProver,
+  Proof,
+  snarkContext,
+} from './proof_system.js';
 import {
   emptyHashWithPrefix,
   hashWithPrefix,
@@ -27,12 +34,14 @@ import {
   TokenSymbol,
 } from './hash.js';
 import * as Encoding from './encoding.js';
+import { Context } from './global-context.js';
 
 // external API
 export { Permissions, Party, ZkappPublicInput };
 
 // internal API
 export {
+  smartContractContext,
   SetOrKeep,
   Permission,
   Preconditions,
@@ -52,9 +61,18 @@ export {
   Token,
   CallForest,
   createChildParty,
+  makeChildParty,
+  PartiesLayout,
 };
 
 const ZkappStateLength = 8;
+
+let smartContractContext = Context.create<{
+  this: SmartContract;
+  methodCallDepth: number;
+  isCallback: boolean;
+  selfUpdate: Party;
+}>();
 
 type PartyBody = Types.Party['body'];
 type Update = PartyBody['update'];
@@ -215,7 +233,7 @@ let Permissions = {
    * Default permissions are:
    *   [[ Permissions.editState ]]=[[ Permission.proof ]]
    *   [[ Permissions.send ]]=[[ Permission.signature ]]
-   *   [[ Permissions.receive ]]=[[ Permission.proof ]]
+   *   [[ Permissions.receive ]]=[[ Permission.none ]]
    *   [[ Permissions.setDelegate ]]=[[ Permission.signature ]]
    *   [[ Permissions.setPermissions ]]=[[ Permission.signature ]]
    *   [[ Permissions.setVerificationKey ]]=[[ Permission.signature ]]
@@ -270,7 +288,7 @@ const Events = {
     return { hash, data: [event, ...events.data] };
   },
   hash(events: Event[]) {
-    return events.reverse().reduce(Events.pushEvent, Events.empty()).hash;
+    return [...events].reverse().reduce(Events.pushEvent, Events.empty()).hash;
   },
 };
 
@@ -289,7 +307,7 @@ const SequenceEvents = {
     return { hash, data: [event, ...sequenceEvents.data] };
   },
   hash(events: Event[]) {
-    return events
+    return [...events]
       .reverse()
       .reduce(SequenceEvents.pushEvent, SequenceEvents.empty()).hash;
   },
@@ -544,30 +562,29 @@ class Token {
 
   static Id = TokenId;
 
-  constructor(options: { tokenOwner: PublicKey; parentTokenId?: Field }) {
-    let { tokenOwner, parentTokenId } = options ?? {};
+  static getId(tokenOwner: PublicKey, parentTokenId = TokenId.default) {
+    if (tokenOwner.isConstant() && parentTokenId.isConstant()) {
+      return Ledger.customTokenId(tokenOwner, parentTokenId);
+    } else {
+      return Ledger.customTokenIdChecked(tokenOwner, parentTokenId);
+    }
+  }
 
-    // Reassign to default tokenId if undefined
-    parentTokenId ??= TokenId.default;
-
-    // Check if we can create a custom tokenId
+  constructor({
+    tokenOwner,
+    parentTokenId = TokenId.default,
+  }: {
+    tokenOwner: PublicKey;
+    parentTokenId?: Field;
+  }) {
+    this.parentTokenId = parentTokenId;
+    this.tokenOwner = tokenOwner;
     try {
-      Ledger.customTokenId(tokenOwner, parentTokenId);
+      this.id = Token.getId(tokenOwner, parentTokenId);
     } catch (e) {
       throw new Error(
         `Could not create a custom token id:\nError: ${(e as Error).message}`
       );
-    }
-
-    this.parentTokenId = parentTokenId;
-    this.tokenOwner = tokenOwner;
-    if (
-      tokenOwner.toFields().every((x) => x.isConstant()) &&
-      parentTokenId.isConstant()
-    ) {
-      this.id = Ledger.customTokenId(tokenOwner, this.parentTokenId);
-    } else {
-      this.id = Ledger.customTokenIdChecked(tokenOwner, this.parentTokenId);
     }
   }
 }
@@ -578,7 +595,7 @@ class Party implements Types.Party {
   lazyAuthorization: LazySignature | LazyProof | undefined = undefined;
   account: Precondition.Account;
   network: Precondition.Network;
-  children: { party: Party; calls?: Field }[] = [];
+  children: { calls?: Field; parties: Party[] } = { parties: [] };
   parent: Party | undefined = undefined;
 
   private isSelf: boolean;
@@ -622,16 +639,13 @@ class Party implements Types.Party {
         address: PublicKey;
         amount: number | bigint | UInt64;
       }) {
-        let receiverParty = createChildParty(thisParty, address, {
-          caller: this.id,
-          tokenId: this.id,
-        });
+        let receiverParty = createChildParty(thisParty, address, this.id);
 
         // Add the amount to mint to the receiver's account
-        let { magnitude, sgn } = receiverParty.body.balanceChange;
-        receiverParty.body.balanceChange = new Int64(magnitude, sgn).add(
-          amount
-        );
+        receiverParty.body.balanceChange = Int64.fromObject(
+          receiverParty.body.balanceChange
+        ).add(amount);
+        return receiverParty;
       },
 
       burn({
@@ -641,15 +655,13 @@ class Party implements Types.Party {
         address: PublicKey;
         amount: number | bigint | UInt64;
       }) {
-        let senderParty = createChildParty(thisParty, address, {
-          caller: this.id,
-          tokenId: this.id,
-          useFullCommitment: Bool(true),
-        });
+        let senderParty = createChildParty(thisParty, address, this.id);
+        senderParty.body.useFullCommitment = Bool(true);
 
         // Sub the amount to burn from the sender's account
-        let { magnitude, sgn } = senderParty.body.balanceChange;
-        senderParty.body.balanceChange = new Int64(magnitude, sgn).sub(amount);
+        senderParty.body.balanceChange = Int64.fromObject(
+          senderParty.body.balanceChange
+        ).sub(amount);
 
         // Require signature from the sender account being deducted
         Authorization.setLazySignature(senderParty);
@@ -665,11 +677,8 @@ class Party implements Types.Party {
         amount: number | bigint | UInt64;
       }) {
         // Create a new party for the sender to send the amount to the receiver
-        let senderParty = createChildParty(thisParty, from, {
-          caller: this.id,
-          tokenId: this.id,
-          useFullCommitment: Bool(true),
-        });
+        let senderParty = createChildParty(thisParty, from, this.id);
+        senderParty.body.useFullCommitment = Bool(true);
 
         let i0 = senderParty.body.balanceChange;
         senderParty.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(
@@ -679,16 +688,14 @@ class Party implements Types.Party {
         // Require signature from the sender party
         Authorization.setLazySignature(senderParty);
 
-        let receiverParty = createChildParty(thisParty, to, {
-          caller: this.id,
-          tokenId: this.id,
-        });
+        let receiverParty = createChildParty(thisParty, to, this.id);
 
         // Add the amount to send to the receiver's account
         let i1 = receiverParty.body.balanceChange;
         receiverParty.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
           amount
         );
+        return receiverParty;
       },
     };
   }
@@ -715,27 +722,24 @@ class Party implements Types.Party {
     amount: number | bigint | UInt64;
   }) {
     let party = this;
-
     let receiverParty;
-    if (to.constructor === Party) {
+    if (to instanceof Party) {
       receiverParty = to;
-      makeChildParty(party, receiverParty);
+      receiverParty.body.tokenId.assertEquals(party.body.tokenId);
     } else {
-      receiverParty = createChildParty(party, to as PublicKey, {
-        tokenId: party.body.tokenId,
-        caller: party.body.tokenId,
-      });
+      receiverParty = Party.defaultParty(to, party.body.tokenId);
     }
+    makeChildParty(party, receiverParty);
 
     // Sub the amount from the sender's account
-    let i0 = party.body.balanceChange;
-    party.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(amount);
-
-    // Add the amount to send to the receiver's account
-    let i1 = receiverParty.body.balanceChange;
-    receiverParty.body.balanceChange = new Int64(i1.magnitude, i1.sgn).add(
+    party.body.balanceChange = Int64.fromObject(party.body.balanceChange).sub(
       amount
     );
+
+    // Add the amount to send to the receiver's account
+    receiverParty.body.balanceChange = Int64.fromObject(
+      receiverParty.body.balanceChange
+    ).add(amount);
   }
 
   get balance() {
@@ -819,57 +823,48 @@ class Party implements Types.Party {
     return this.body.publicKey;
   }
 
-  signInPlace(privateKey?: PrivateKey, fallbackToZeroNonce = false) {
-    this.setNoncePrecondition(fallbackToZeroNonce);
+  sign(privateKey?: PrivateKey) {
+    let nonce = Party.getNonce(this);
+    this.account.nonce.assertEquals(nonce);
     this.body.incrementNonce = Bool(true);
     Authorization.setLazySignature(this, { privateKey });
   }
 
-  sign(privateKey?: PrivateKey) {
-    let party = Party.clone(this);
-    party.signInPlace(privateKey);
-    return party;
-  }
-
   static signFeePayerInPlace(
     feePayer: FeePayerUnsigned,
-    privateKey?: PrivateKey,
-    fallbackToZeroNonce = false
+    privateKey?: PrivateKey
   ) {
-    feePayer.body.nonce = this.getNonce(feePayer, fallbackToZeroNonce);
+    feePayer.body.nonce = this.getNonce(feePayer);
     feePayer.authorization = Ledger.dummySignature();
     feePayer.lazyAuthorization = { kind: 'lazy-signature', privateKey };
   }
 
-  // TODO this needs to be more intelligent about previous nonces in the transaction, similar to Party.createSigned
-  static getNonce(party: Party | FeePayerUnsigned, fallbackToZero = false) {
-    let nonce: UInt32;
-    let inProver = Circuit.inProver();
-    if (inProver || !Circuit.inCheckedComputation()) {
-      try {
-        let account = Mina.getAccount(
-          party.body.publicKey as PublicKey,
-          (party as Party).body.tokenId ?? TokenId.default
-        );
-        nonce = account.nonce;
-      } catch (err) {
-        if (fallbackToZero) nonce = UInt32.zero;
-        else throw err;
-      }
-      nonce = inProver ? Circuit.witness(UInt32, () => nonce) : nonce;
-    } else {
-      nonce = Circuit.witness(UInt32, (): UInt32 => {
-        throw Error('this should never happen');
-      });
+  static getNonce(party: Party | FeePayerUnsigned) {
+    if (inCompileMode()) {
+      return emptyWitness(UInt32);
     }
-    return nonce;
+    return inProver()
+      ? Circuit.witness(UInt32, () => Party.getNonceUnchecked(party))
+      : Party.getNonceUnchecked(party);
   }
 
-  setNoncePrecondition(fallbackToZero = false) {
-    let nonce = Party.getNonce(this, fallbackToZero);
-    let accountPrecondition = this.body.preconditions.account;
-    Party.assertEquals(accountPrecondition.nonce, nonce);
-    return nonce;
+  private static getNonceUnchecked(update: Party | FeePayerUnsigned) {
+    let publicKey = update.body.publicKey;
+    let nonce = Number(
+      Precondition.getAccountPreconditions(update.body).nonce.toString()
+    );
+    // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher,
+    // bc the fee payer already increases its nonce
+    let isFeePayer = Mina.currentTransaction()?.sender?.equals(publicKey);
+    if (isFeePayer?.toBoolean()) nonce++;
+    // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
+    CallForest.forEach(Mina.currentTransaction.get().parties, (update) => {
+      let shouldIncreaseNonce = update.publicKey
+        .equals(publicKey)
+        .and(update.body.incrementNonce);
+      if (shouldIncreaseNonce.toBoolean()) nonce++;
+    });
+    return UInt32.from(nonce);
   }
 
   toFields() {
@@ -904,9 +899,19 @@ class Party implements Types.Party {
     return { party, calls };
   }
 
-  static defaultParty(address: PublicKey) {
+  static defaultParty(address: PublicKey, tokenId?: Field) {
     const body = Body.keepAll(address);
+    if (tokenId) {
+      body.tokenId = tokenId;
+      body.caller = tokenId;
+    }
     return new Party(body);
+  }
+  static dummy() {
+    return this.defaultParty(PublicKey.empty());
+  }
+  isDummy() {
+    return this.body.publicKey.isEmpty();
   }
 
   static defaultFeePayer(
@@ -927,42 +932,29 @@ class Party implements Types.Party {
     return { body, authorization: Ledger.dummySignature() };
   }
 
-  static createUnsigned(publicKey: PublicKey) {
-    let party = Party.defaultParty(publicKey);
-    Mina.currentTransaction()?.parties.push(party);
+  static create(publicKey: PublicKey, tokenId?: Field) {
+    let party = Party.defaultParty(publicKey, tokenId);
+    if (smartContractContext.has()) {
+      makeChildParty(smartContractContext.get().this.self, party);
+    } else {
+      Mina.currentTransaction()?.parties.push(party);
+    }
     return party;
   }
 
   static createSigned(signer: PrivateKey) {
     let publicKey = signer.toPublicKey();
-    let body = Body.keepAll(publicKey);
     if (!Mina.currentTransaction.has()) {
       throw new Error(
         'Party.createSigned: Cannot run outside of a transaction'
       );
     }
+    let party = Party.defaultParty(publicKey);
     // it's fine to compute the nonce outside the circuit, because we're constraining it with a precondition
-    let nonce = Circuit.witness(UInt32, () => {
-      let nonce = Number(
-        Mina.getAccount(publicKey, body.tokenId).nonce.toString()
-      );
-      // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher,
-      // bc the fee payer already increases its nonce
-      let isFeePayer = Mina.currentTransaction()?.sender?.equals(signer);
-      if (isFeePayer?.toBoolean()) nonce++;
-      // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
-      for (let party of Mina.currentTransaction.get().parties) {
-        let shouldIncreaseNonce = party.publicKey
-          .equals(publicKey)
-          .and(party.body.incrementNonce);
-        if (shouldIncreaseNonce.toBoolean()) nonce++;
-      }
-      return UInt32.from(nonce);
-    });
-    Party.assertEquals(body.preconditions.account.nonce, nonce);
-    body.incrementNonce = Bool(true);
+    let nonce = Circuit.witness(UInt32, () => Party.getNonceUnchecked(party));
+    party.account.nonce.assertEquals(nonce);
+    party.body.incrementNonce = Bool(true);
 
-    let party = new Party(body);
     Authorization.setLazySignature(party, { privateKey: signer });
     Mina.currentTransaction.get().parties.push(party);
     return party;
@@ -994,7 +986,7 @@ class Party implements Types.Party {
   static witness<T>(
     type: AsFieldElements<T>,
     compute: () => { party: Party; result: T },
-    skipCheck = false
+    { skipCheck = false } = {}
   ) {
     // construct the circuit type for a party + other result
     let partyType = circuitArray(Field, Types.Party.sizeInFields());
@@ -1025,21 +1017,85 @@ class Party implements Types.Party {
     let party = new Party(rawParty.body, rawParty.authorization);
     party.lazyAuthorization =
       proverParty && cloneCircuitValue(proverParty.lazyAuthorization);
-    party.children = proverParty?.children ?? [];
+    party.children = proverParty?.children ?? { parties: [] };
     party.parent = proverParty?.parent;
     return { party, result: fieldsAndResult.result };
   }
+
+  /**
+   * Like Party.witness, but lets you specify a layout for the party's children,
+   * which also get witnessed
+   */
+  static witnessTree<T>(
+    resultType: AsFieldElements<T>,
+    childLayout: PartiesLayout,
+    compute: () => { party: Party; result: T },
+    options?: { skipCheck: boolean }
+  ) {
+    // witness the root party
+    let { party, result } = Party.witness(resultType, compute, options);
+    // stop early if children === undefined
+    if (childLayout === undefined) {
+      let calls = Circuit.witness(Field, () => CallForest.hashChildren(party));
+      party.children.calls = calls;
+      return { party, result };
+    }
+    let childArray: PartiesLayout[] =
+      typeof childLayout === 'number'
+        ? Array(childLayout).fill(0)
+        : childLayout;
+    let n = childArray.length;
+    for (let i = 0; i < n; i++) {
+      party.children.parties[i] = Party.witnessTree(
+        circuitValue<null>(null),
+        childArray[i],
+        () => ({
+          party: party.children.parties[i] ?? Party.dummy(),
+          result: null,
+        }),
+        options
+      ).party;
+    }
+    party.children.calls = CallForest.hashChildren(party);
+    if (n === 0) {
+      party.children.calls.assertEquals(CallForest.emptyHash());
+    }
+    return { party, result };
+  }
 }
+
+/**
+ * Describes list of parties (call forest) to be witnessed.
+ *
+ * A parties list is represented by either
+ * - an array, whose entries are parties, each represented by their list of children
+ * - a positive integer, which gives the number of top-level parties, which aren't allowed to have further children
+ * - `undefined`, which means just the `calls` (call forest hash) is witnessed, allowing arbitrary parties but no access to them in the circuit
+ *
+ * Examples:
+ * ```ts
+ * []              // an empty parties list
+ * 0               // same as []
+ * [0]             // a list of one party, which doesn't have children
+ * 1               // same as [0]
+ * 2               // same as [0, 0]
+ * undefined       // an arbitrary list of parties
+ * [undefined, 1]  // a list of 2 parties, of which one has arbitrary children and the other has exactly 1 child
+ * ```
+ */
+type PartiesLayout = number | undefined | PartiesLayout[];
 
 const CallForest = {
   // similar to Mina_base.Parties.Call_forest.to_parties_list
   // takes a list of parties, which each can have children, so they form a "forest" (list of trees)
   // returns a flattened list, with `party.body.callDepth` specifying positions in the forest
+  // also removes any "dummy" parties
   toFlatList(forest: Party[], depth = 0): Party[] {
     let parties = [];
     for (let party of forest) {
+      if (party.isDummy().toBoolean()) continue;
       party.body.callDepth = depth;
-      let children = party.children.map((c) => c.party);
+      let children = party.children.parties;
       parties.push(party, ...CallForest.toFlatList(children, depth + 1));
     }
     return parties;
@@ -1052,42 +1108,44 @@ const CallForest = {
 
   // similar to Mina_base.Parties.Call_forest.accumulate_hashes
   // hashes a party's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
-  hashChildren(parent: Party) {
+  hashChildren({ children }: Party): Field {
+    // only compute calls if it's not there yet --
+    // this gives us the flexibility to witness a specific layout of parties
+    if (children.calls !== undefined) return children.calls;
     let stackHash = CallForest.emptyHash();
-    for (let { party, calls } of parent.children.reverse()) {
-      // only compute calls if it's not there yet --
-      // this gives us the flexibility to witness only direct children of a zkApp
-      calls ??= CallForest.hashChildren(party);
+    for (let party of [...children.parties].reverse()) {
+      let calls = CallForest.hashChildren(party);
       let nodeHash = hashWithPrefix(prefixes.partyNode, [party.hash(), calls]);
-      stackHash = hashWithPrefix(prefixes.partyCons, [nodeHash, stackHash]);
+      // stackHash = hashWithPrefix(prefixes.partyCons, [nodeHash, stackHash]);
+      let newHash = hashWithPrefix(prefixes.partyCons, [nodeHash, stackHash]);
+      // skip party if it's a dummy
+      stackHash = Circuit.if(party.isDummy(), stackHash, newHash);
     }
     return stackHash;
+  },
+
+  forEach(updates: Party[], callback: (update: Party) => void) {
+    for (let update of updates) {
+      callback(update);
+      CallForest.forEach(update.children.parties, callback);
+    }
   },
 };
 
 function createChildParty(
   parent: Party,
   childAddress: PublicKey,
-  options?: {
-    caller?: Field;
-    tokenId?: Field;
-    useFullCommitment?: Bool;
-  }
+  tokenId?: Field
 ) {
-  let child = Party.defaultParty(childAddress);
-  const { caller, tokenId, useFullCommitment } = options ?? {};
-  child.body.caller = caller ?? child.body.caller;
-  child.body.tokenId = tokenId ?? child.body.tokenId;
-  child.body.useFullCommitment =
-    useFullCommitment ?? child.body.useFullCommitment;
+  let child = Party.defaultParty(childAddress, tokenId);
   makeChildParty(parent, child);
   return child;
 }
 function makeChildParty(parent: Party, child: Party) {
   child.body.callDepth = parent.body.callDepth + 1;
   child.parent = parent;
-  if (!parent.children.find(({ party }) => party === child)) {
-    parent.children.push({ party: child, calls: undefined });
+  if (!parent.children.parties.find((party) => party === child)) {
+    parent.children.parties.push(child);
   }
 }
 
@@ -1154,8 +1212,8 @@ function addMissingSignatures(
     if (lazyAuthorization === undefined) return { body, authorization };
     let { privateKey } = lazyAuthorization;
     if (privateKey === undefined) {
-      let i = additionalPublicKeys.findIndex(
-        (pk) => pk === party.body.publicKey
+      let i = additionalPublicKeys.findIndex((pk) =>
+        pk.equals(party.body.publicKey).toBoolean()
       );
       if (i === -1) {
         let pk = PublicKey.toBase58(party.body.publicKey);
@@ -1177,7 +1235,7 @@ function addMissingSignatures(
     let { privateKey } = party.lazyAuthorization;
     if (privateKey === undefined) {
       let i = additionalPublicKeys.findIndex((pk) =>
-        pk.equals(party.body.publicKey)
+        pk.equals(party.body.publicKey).toBoolean()
       );
       if (i === -1)
         throw Error(

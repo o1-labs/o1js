@@ -29,9 +29,12 @@ class TokenContract extends SmartContract {
 
   @method tokenDeploy(deployer: PrivateKey) {
     let address = deployer.toPublicKey();
-    let deployParty = Experimental.createChildParty(this.self, address);
-    deployParty.body.tokenId = this.experimental.token.id;
-    deployParty.body.caller = this.experimental.token.id;
+    let tokenId = this.experimental.token.id;
+    let deployParty = Experimental.createChildParty(
+      this.self,
+      address,
+      tokenId
+    );
     Party.setValue(deployParty.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
@@ -39,7 +42,7 @@ class TokenContract extends SmartContract {
     // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
     // Party.setValue(deployParty.update.verificationKey, verificationKey);
     // deployParty.balance.addInPlace(initialBalance);
-    deployParty.signInPlace(deployer, true);
+    deployParty.sign(deployer);
   }
 
   @method mint(receiverAddress: PublicKey) {
@@ -55,9 +58,13 @@ class TokenContract extends SmartContract {
   @method sendTokens(
     senderAddress: PublicKey,
     receiverAddress: PublicKey,
-    callback: Experimental.Callback
+    callback: Experimental.Callback<any>
   ) {
-    let senderParty = Experimental.partyFromCallback(this, callback, true);
+    let senderParty = Experimental.partyFromCallback(
+      this,
+      [undefined],
+      callback
+    );
     let amount = UInt64.from(1_000);
     let negativeAmount = Int64.fromObject(senderParty.body.balanceChange);
     negativeAmount.assertEquals(Int64.from(amount).neg());
@@ -67,7 +74,7 @@ class TokenContract extends SmartContract {
     let receiverParty = Experimental.createChildParty(
       this.self,
       receiverAddress,
-      { caller: tokenId, tokenId }
+      tokenId
     );
     receiverParty.balance.addInPlace(amount);
   }
@@ -160,7 +167,7 @@ tx.send();
 
 console.log('authorize send from zkAppB');
 tx = await Local.transaction(feePayer, () => {
-  let authorizeSendingCallback = new Experimental.Callback(
+  let authorizeSendingCallback = Experimental.Callback.create(
     zkAppB,
     'authorizeSend',
     []
@@ -182,7 +189,7 @@ console.log('authorize send from zkAppC');
 tx = await Local.transaction(feePayer, () => {
   // Pay for tokenAccount1's account creation
   Party.fundNewAccount(feePayer);
-  let authorizeSendingCallback = new Experimental.Callback(
+  let authorizeSendingCallback = Experimental.Callback.create(
     zkAppC,
     'authorizeSend',
     []

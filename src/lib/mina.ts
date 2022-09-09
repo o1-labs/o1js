@@ -62,7 +62,7 @@ type Account = Fetch.Account;
 
 type FetchMode = 'fetch' | 'cached' | 'test';
 type CurrentTransaction = {
-  sender?: PrivateKey;
+  sender?: PublicKey;
   parties: Party[];
   fetchMode: FetchMode;
   isFinalRunOutsideCircuit: boolean;
@@ -97,7 +97,7 @@ function createTransaction(
   let memo = feePayer instanceof PrivateKey ? '' : feePayer?.memo ?? '';
 
   let transactionId = currentTransaction.enter({
-    sender: feePayerKey,
+    sender: feePayerKey?.toPublicKey(),
     parties: [],
     fetchMode,
     isFinalRunOutsideCircuit,
@@ -301,12 +301,21 @@ function LocalBlockchain({
       txn.sign();
 
       let partiesJson = partiesToJson(txn.transaction);
-
-      ledger.applyJsonTransaction(
-        JSON.stringify(partiesJson),
-        String(accountCreationFee),
-        JSON.stringify(networkState)
-      );
+      try {
+        ledger.applyJsonTransaction(
+          JSON.stringify(partiesJson),
+          String(accountCreationFee),
+          JSON.stringify(networkState)
+        );
+      } catch (err: any) {
+        try {
+          // reverse errors so they match order of account updates
+          // TODO: label updates, and try to give precise explanations about what went wrong
+          err.message = JSON.stringify(JSON.parse(err.message).reverse());
+        } finally {
+          throw err;
+        }
+      }
 
       // fetches all events from the transaction and stores them
       // events are identified and associated with a publicKey and tokenId
@@ -383,7 +392,7 @@ function LocalBlockchain({
       return ledger.applyJsonTransaction(
         json,
         String(accountCreationFee),
-        JSON.stringify(defaultNetworkState())
+        JSON.stringify(networkState)
       );
     },
     async fetchEvents(
