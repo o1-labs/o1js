@@ -1,6 +1,5 @@
 /**
  * This file contains all code related to the [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree) implementation available in SnarkyJS.
- * @author TODO: should we add authors? Some Name <name@o1labs.org>
  */
 
 import { Circuit, CircuitValue, arrayProp } from './circuit_value.js';
