@@ -62,7 +62,7 @@ export {
   CallForest,
   createChildAccountUpdate,
   makeChildAccountUpdate,
-  PartiesLayout,
+  AccountUpdatesLayout,
 };
 
 const ZkappStateLength = 8;
@@ -414,7 +414,7 @@ const Body = {
       // the default assumption is that snarkyjs transactions don't include the fee payer
       // so useFullCommitment has to be false for signatures to be correct
       useFullCommitment: Bool(false),
-      // this should be set to true if parties are signed
+      // this should be set to true if accountUpdates are signed
       incrementNonce: Bool(false),
     };
   },
@@ -692,7 +692,7 @@ class AccountUpdate implements Types.AccountUpdate {
         to: PublicKey;
         amount: number | bigint | UInt64;
       }) {
-        // Create a new party for the sender to send the amount to the receiver
+        // Create a new accountUpdate for the sender to send the amount to the receiver
         let senderAccountUpdate = createChildAccountUpdate(
           thisAccountUpdate,
           from,
@@ -706,7 +706,7 @@ class AccountUpdate implements Types.AccountUpdate {
           i0.sgn
         ).sub(amount);
 
-        // Require signature from the sender party
+        // Require signature from the sender accountUpdate
         Authorization.setLazySignature(senderAccountUpdate);
 
         let receiverAccountUpdate = createChildAccountUpdate(
@@ -889,11 +889,11 @@ class AccountUpdate implements Types.AccountUpdate {
     let nonce = Number(
       Precondition.getAccountPreconditions(update.body).nonce.toString()
     );
-    // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher,
+    // if the fee payer is the same accountUpdate as this one, we have to start the nonce predicate at one higher,
     // bc the fee payer already increases its nonce
     let isFeePayer = Mina.currentTransaction()?.sender?.equals(publicKey);
     if (isFeePayer?.toBoolean()) nonce++;
-    // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
+    // now, we check how often this accountUpdate already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
     CallForest.forEach(
       Mina.currentTransaction.get().accountUpdates,
       (update) => {
@@ -1080,32 +1080,80 @@ class AccountUpdate implements Types.AccountUpdate {
     accountUpdate.parent = proverAccountUpdate?.parent;
     return { accountUpdate, result: fieldsAndResult.result };
   }
+
+  /**
+   * Like AccountUpdate.witness, but lets you specify a layout for the accountUpdate's children,
+   * which also get witnessed
+   */
+  static witnessTree<T>(
+    resultType: AsFieldElements<T>,
+    childLayout: AccountUpdatesLayout,
+    compute: () => { accountUpdate: AccountUpdate; result: T },
+    options?: { skipCheck: boolean }
+  ) {
+    // witness the root accountUpdate
+    let { accountUpdate, result } = AccountUpdate.witness(
+      resultType,
+      compute,
+      options
+    );
+    // stop early if children === undefined
+    if (childLayout === undefined) {
+      let calls = Circuit.witness(Field, () =>
+        CallForest.hashChildren(accountUpdate)
+      );
+      accountUpdate.children.calls = calls;
+      return { accountUpdate, result };
+    }
+    let childArray: AccountUpdatesLayout[] =
+      typeof childLayout === 'number'
+        ? Array(childLayout).fill(0)
+        : childLayout;
+    let n = childArray.length;
+    for (let i = 0; i < n; i++) {
+      accountUpdate.children.accountUpdates[i] = AccountUpdate.witnessTree(
+        circuitValue<null>(null),
+        childArray[i],
+        () => ({
+          accountUpdate:
+            accountUpdate.children.accountUpdates[i] ?? AccountUpdate.dummy(),
+          result: null,
+        }),
+        options
+      ).accountUpdate;
+    }
+    accountUpdate.children.calls = CallForest.hashChildren(accountUpdate);
+    if (n === 0) {
+      accountUpdate.children.calls.assertEquals(CallForest.emptyHash());
+    }
+    return { accountUpdate, result };
+  }
 }
 
 /**
- * Describes list of parties (call forest) to be witnessed.
+ * Describes list of accountUpdates (call forest) to be witnessed.
  *
- * A parties list is represented by either
- * - an array, whose entries are parties, each represented by their list of children
- * - a positive integer, which gives the number of top-level parties, which aren't allowed to have further children
- * - `undefined`, which means just the `calls` (call forest hash) is witnessed, allowing arbitrary parties but no access to them in the circuit
+ * An accountUpdates list is represented by either
+ * - an array, whose entries are accountUpdates, each represented by their list of children
+ * - a positive integer, which gives the number of top-level accountUpdates, which aren't allowed to have further children
+ * - `undefined`, which means just the `calls` (call forest hash) is witnessed, allowing arbitrary accountUpdates but no access to them in the circuit
  *
  * Examples:
  * ```ts
- * []              // an empty parties list
+ * []              // an empty accountUpdates list
  * 0               // same as []
- * [0]             // a list of one party, which doesn't have children
+ * [0]             // a list of one accountUpdate, which doesn't have children
  * 1               // same as [0]
  * 2               // same as [0, 0]
- * undefined       // an arbitrary list of parties
- * [undefined, 1]  // a list of 2 parties, of which one has arbitrary children and the other has exactly 1 child
+ * undefined       // an arbitrary list of accountUpdates
+ * [undefined, 1]  // a list of 2 accountUpdates, of which one has arbitrary children and the other has exactly 1 child
  * ```
  */
-type PartiesLayout = number | undefined | PartiesLayout[];
+type AccountUpdatesLayout = number | undefined | AccountUpdatesLayout[];
 
 const CallForest = {
-  // similar to Mina_base.Zkapp_command.Call_forest.to_parties_list
-  // takes a list of parties, which each can have children, so they form a "forest" (list of trees)
+  // similar to Mina_base.ZkappCommand.Call_forest.to_account_updates_list
+  // takes a list of accountUpdates, which each can have children, so they form a "forest" (list of trees)
   // returns a flattened list, with `accountUpdate.body.callDepth` specifying positions in the forest
   // also removes any "dummy" accountUpdates
   toFlatList(forest: AccountUpdate[], depth = 0): AccountUpdate[] {
@@ -1127,11 +1175,11 @@ const CallForest = {
     return Field.zero;
   },
 
-  // similar to Mina_base.Parties.Call_forest.accumulate_hashes
-  // hashes a party's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
+  // similar to Mina_base.Zkapp_command.Call_forest.accumulate_hashes
+  // hashes a accountUpdate's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
   hashChildren({ children }: AccountUpdate): Field {
     // only compute calls if it's not there yet --
-    // this gives us the flexibility to witness a specific layout of parties
+    // this gives us the flexibility to witness a specific layout of accountUpdates
     if (children.calls !== undefined) return children.calls;
     let stackHash = CallForest.emptyHash();
     for (let accountUpdate of [...children.accountUpdates].reverse()) {
@@ -1293,7 +1341,7 @@ function addMissingSignatures(
 }
 
 /**
- * The public input for zkApps consists of certain hashes of the proving AccountUpdate (and its child parties) which is constructed during method execution.
+ * The public input for zkApps consists of certain hashes of the proving AccountUpdate (and its child accountUpdates) which is constructed during method execution.
 
   For SmartContract proving, a method is run twice: First outside the proof, to obtain the public input, and once in the prover,
   which takes the public input as input. The current transaction is hashed again inside the prover, which asserts that the result equals the input public input,
@@ -1312,7 +1360,7 @@ function accountUpdateToPublicInput(self: AccountUpdate): ZkappPublicInput {
   return { accountUpdate, calls };
 }
 
-async function addMissingProofs(parties: ZkappCommand): Promise<{
+async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
   zkappCommand: ZkappCommandProved;
   proofs: (Proof<ZkappPublicInput> | undefined)[];
 }> {
@@ -1370,7 +1418,7 @@ async function addMissingProofs(parties: ZkappCommand): Promise<{
     };
   }
 
-  let { feePayer, accountUpdates, memo } = parties;
+  let { feePayer, accountUpdates, memo } = zkappCommand;
   // compute proofs serially. in parallel would clash with our global variable hacks
   let accountUpdatesProved: AccountUpdateProved[] = [];
   let proofs: (Proof<ZkappPublicInput> | undefined)[] = [];
@@ -1386,7 +1434,7 @@ async function addMissingProofs(parties: ZkappCommand): Promise<{
 }
 
 /**
- * Sign all parties of a transaction which belong to the account determined by [[ `privateKey` ]].
+ * Sign all accountUpdates of a transaction which belong to the account determined by [[ `privateKey` ]].
  * @returns the modified transaction JSON
  */
 function signJsonTransaction(

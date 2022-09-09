@@ -30,7 +30,7 @@ import {
   Authorization,
   CallForest,
   TokenId,
-  PartiesLayout,
+  AccountUpdatesLayout,
   smartContractContext,
 } from './account_update.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -473,7 +473,7 @@ class Callback<Result> extends GenericArgument {
 // TODO: prove call signature in the outer circuit, just like for composability!
 function accountUpdateFromCallback(
   parentZkapp: SmartContract,
-  childLayout: PartiesLayout,
+  childLayout: AccountUpdatesLayout,
   callback: Callback<any>
 ) {
   let { accountUpdate } = AccountUpdate.witnessTree(

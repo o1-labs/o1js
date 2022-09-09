@@ -69,13 +69,13 @@ describe('accountUpdate', () => {
   it("converts accountUpdate to a public input that's consistent with the ocaml implementation", async () => {
     let otherAddress = PrivateKey.random().toPublicKey();
 
-    let accountUpdate = AccountUpdate.createUnsigned(address);
+    let accountUpdate = AccountUpdate.create(address);
     Experimental.createChildAccountUpdate(accountUpdate, otherAddress);
     let publicInput = accountUpdate.toPublicInput();
 
     // create transaction JSON with the same accountUpdate structure, for ocaml version
     let tx = await Mina.transaction(() => {
-      let accountUpdate = AccountUpdate.createUnsigned(address);
+      let accountUpdate = AccountUpdate.create(address);
       Experimental.createChildAccountUpdate(accountUpdate, otherAddress);
     });
     let publicInputOcaml = Ledger.zkappPublicInput(tx.toJSON(), 0);
