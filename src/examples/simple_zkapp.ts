@@ -11,11 +11,9 @@ import {
   isReady,
   Permissions,
   DeployArgs,
-  UInt32,
   Bool,
   PublicKey,
   Circuit,
-  Experimental,
 } from 'snarkyjs';
 
 const doProofs = true;

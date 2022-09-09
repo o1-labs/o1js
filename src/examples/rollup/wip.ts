@@ -445,19 +445,21 @@ function main() {
         .then(() => {
           console.log('main', 6);
           return Mina.transaction(minaSender, () => {
-            return AccountUpdate.createSigned(depositorPrivkey).then((depositor) => {
-              // TODO: Figure out nicer way to have a second accountUpdate.
+            return AccountUpdate.createSigned(depositorPrivkey).then(
+              (depositor) => {
+                // TODO: Figure out nicer way to have a second party.
 
-              return Mina.getBalance(depositorPubkey).then(
-                (depositorBalance) => {
-                  // Deposit some funds into the rollup
-                  RollupInstance.depositFunds(
-                    depositor,
-                    depositorBalance.div(2)
-                  );
-                }
-              );
-            });
+                return Mina.getBalance(depositorPubkey).then(
+                  (depositorBalance) => {
+                    // Deposit some funds into the rollup
+                    RollupInstance.depositFunds(
+                      depositor,
+                      depositorBalance.div(2)
+                    );
+                  }
+                );
+              }
+            );
           })
             .send()
             .wait()

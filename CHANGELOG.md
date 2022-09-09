@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `reducer.getActions` partially implemented for local testing https://github.com/o1-labs/snarkyjs/pull/327
 - `gte` and `assertGte` methods on `UInt32`, `UInt64` https://github.com/o1-labs/snarkyjs/pull/349
 
+### Changed
+
+- **Breaking change:** Rename the `Party` class to `AccountUpdate`
+
 ## [0.5.2](https://github.com/o1-labs/snarkyjs/compare/55c8ea0...4f0dd40)
 
 ### Fixed

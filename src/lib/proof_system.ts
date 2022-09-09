@@ -33,6 +33,7 @@ export {
   inCompile,
   inAnalyze,
   inCheckedComputation,
+  inCompileMode,
 };
 
 // global circuit-related context
@@ -596,11 +597,12 @@ function inAnalyze() {
   return !!snarkContext.get().inAnalyze;
 }
 function inCheckedComputation() {
-  return (
-    !!snarkContext.get().inCompile ||
-    !!snarkContext.get().inProver ||
-    !!snarkContext.get().inCheckedComputation
-  );
+  let ctx = snarkContext.get();
+  return !!ctx.inCompile || !!ctx.inProver || !!ctx.inCheckedComputation;
+}
+function inCompileMode() {
+  let ctx = snarkContext.get();
+  return !!ctx.inCompile || !!ctx.inAnalyze;
 }
 
 // helper types

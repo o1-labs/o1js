@@ -5,7 +5,6 @@ import {
   isReady,
   Mina,
   AccountUpdate,
-  Permissions,
   PrivateKey,
   shutdown,
 } from 'snarkyjs';

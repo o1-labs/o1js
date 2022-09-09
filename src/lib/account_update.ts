@@ -18,7 +18,14 @@ import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
-import { inCheckedComputation, Proof, snarkContext } from './proof_system.js';
+import {
+  emptyWitness,
+  inCheckedComputation,
+  inCompileMode,
+  inProver,
+  Proof,
+  snarkContext,
+} from './proof_system.js';
 import {
   emptyHashWithPrefix,
   hashWithPrefix,
@@ -27,12 +34,14 @@ import {
   TokenSymbol,
 } from './hash.js';
 import * as Encoding from './encoding.js';
+import { Context } from './global-context.js';
 
 // external API
 export { Permissions, AccountUpdate, ZkappPublicInput };
 
 // internal API
 export {
+  smartContractContext,
   SetOrKeep,
   Permission,
   Preconditions,
@@ -52,9 +61,18 @@ export {
   Token,
   CallForest,
   createChildAccountUpdate,
+  makeChildAccountUpdate,
+  PartiesLayout,
 };
 
 const ZkappStateLength = 8;
+
+let smartContractContext = Context.create<{
+  this: SmartContract;
+  methodCallDepth: number;
+  isCallback: boolean;
+  selfUpdate: AccountUpdate;
+}>();
 
 type AccountUpdateBody = Types.AccountUpdate['body'];
 type Update = AccountUpdateBody['update'];
@@ -215,7 +233,7 @@ let Permissions = {
    * Default permissions are:
    *   [[ Permissions.editState ]]=[[ Permission.proof ]]
    *   [[ Permissions.send ]]=[[ Permission.signature ]]
-   *   [[ Permissions.receive ]]=[[ Permission.proof ]]
+   *   [[ Permissions.receive ]]=[[ Permission.none ]]
    *   [[ Permissions.setDelegate ]]=[[ Permission.signature ]]
    *   [[ Permissions.setPermissions ]]=[[ Permission.signature ]]
    *   [[ Permissions.setVerificationKey ]]=[[ Permission.signature ]]
@@ -270,7 +288,7 @@ const Events = {
     return { hash, data: [event, ...events.data] };
   },
   hash(events: Event[]) {
-    return events.reverse().reduce(Events.pushEvent, Events.empty()).hash;
+    return [...events].reverse().reduce(Events.pushEvent, Events.empty()).hash;
   },
 };
 
@@ -289,7 +307,7 @@ const SequenceEvents = {
     return { hash, data: [event, ...sequenceEvents.data] };
   },
   hash(events: Event[]) {
-    return events
+    return [...events]
       .reverse()
       .reduce(SequenceEvents.pushEvent, SequenceEvents.empty()).hash;
   },
@@ -544,30 +562,29 @@ class Token {
 
   static Id = TokenId;
 
-  constructor(options: { tokenOwner: PublicKey; parentTokenId?: Field }) {
-    let { tokenOwner, parentTokenId } = options ?? {};
+  static getId(tokenOwner: PublicKey, parentTokenId = TokenId.default) {
+    if (tokenOwner.isConstant() && parentTokenId.isConstant()) {
+      return Ledger.customTokenId(tokenOwner, parentTokenId);
+    } else {
+      return Ledger.customTokenIdChecked(tokenOwner, parentTokenId);
+    }
+  }
 
-    // Reassign to default tokenId if undefined
-    parentTokenId ??= TokenId.default;
-
-    // Check if we can create a custom tokenId
+  constructor({
+    tokenOwner,
+    parentTokenId = TokenId.default,
+  }: {
+    tokenOwner: PublicKey;
+    parentTokenId?: Field;
+  }) {
+    this.parentTokenId = parentTokenId;
+    this.tokenOwner = tokenOwner;
     try {
-      Ledger.customTokenId(tokenOwner, parentTokenId);
+      this.id = Token.getId(tokenOwner, parentTokenId);
     } catch (e) {
       throw new Error(
         `Could not create a custom token id:\nError: ${(e as Error).message}`
       );
-    }
-
-    this.parentTokenId = parentTokenId;
-    this.tokenOwner = tokenOwner;
-    if (
-      tokenOwner.toFields().every((x) => x.isConstant()) &&
-      parentTokenId.isConstant()
-    ) {
-      this.id = Ledger.customTokenId(tokenOwner, this.parentTokenId);
-    } else {
-      this.id = Ledger.customTokenIdChecked(tokenOwner, this.parentTokenId);
     }
   }
 }
@@ -578,7 +595,9 @@ class AccountUpdate implements Types.AccountUpdate {
   lazyAuthorization: LazySignature | LazyProof | undefined = undefined;
   account: Precondition.Account;
   network: Precondition.Network;
-  children: { accountUpdate: AccountUpdate; calls?: Field }[] = [];
+  children: { calls?: Field; accountUpdates: AccountUpdate[] } = {
+    accountUpdates: [],
+  };
   parent: AccountUpdate | undefined = undefined;
 
   private isSelf: boolean;
@@ -631,18 +650,14 @@ class AccountUpdate implements Types.AccountUpdate {
         let receiverAccountUpdate = createChildAccountUpdate(
           thisAccountUpdate,
           address,
-          {
-            caller: this.id,
-            tokenId: this.id,
-          }
+          this.id
         );
 
         // Add the amount to mint to the receiver's account
-        let { magnitude, sgn } = receiverAccountUpdate.body.balanceChange;
-        receiverAccountUpdate.body.balanceChange = new Int64(
-          magnitude,
-          sgn
+        receiverAccountUpdate.body.balanceChange = Int64.fromObject(
+          receiverAccountUpdate.body.balanceChange
         ).add(amount);
+        return receiverAccountUpdate;
       },
 
       burn({
@@ -655,18 +670,14 @@ class AccountUpdate implements Types.AccountUpdate {
         let senderAccountUpdate = createChildAccountUpdate(
           thisAccountUpdate,
           address,
-          {
-            caller: this.id,
-            tokenId: this.id,
-            useFullCommitment: Bool(true),
-          }
+          this.id
         );
+        senderAccountUpdate.body.useFullCommitment = Bool(true);
 
         // Sub the amount to burn from the sender's account
-        let { magnitude, sgn } = senderAccountUpdate.body.balanceChange;
-        senderAccountUpdate.body.balanceChange = new Int64(magnitude, sgn).sub(
-          amount
-        );
+        senderAccountUpdate.body.balanceChange = Int64.fromObject(
+          senderAccountUpdate.body.balanceChange
+        ).sub(amount);
 
         // Require signature from the sender account being deducted
         Authorization.setLazySignature(senderAccountUpdate);
@@ -681,16 +692,13 @@ class AccountUpdate implements Types.AccountUpdate {
         to: PublicKey;
         amount: number | bigint | UInt64;
       }) {
-        // Create a new accountUpdate for the sender to send the amount to the receiver
+        // Create a new party for the sender to send the amount to the receiver
         let senderAccountUpdate = createChildAccountUpdate(
           thisAccountUpdate,
           from,
-          {
-            caller: this.id,
-            tokenId: this.id,
-            useFullCommitment: Bool(true),
-          }
+          this.id
         );
+        senderAccountUpdate.body.useFullCommitment = Bool(true);
 
         let i0 = senderAccountUpdate.body.balanceChange;
         senderAccountUpdate.body.balanceChange = new Int64(
@@ -698,16 +706,13 @@ class AccountUpdate implements Types.AccountUpdate {
           i0.sgn
         ).sub(amount);
 
-        // Require signature from the sender accountUpdate
+        // Require signature from the sender party
         Authorization.setLazySignature(senderAccountUpdate);
 
         let receiverAccountUpdate = createChildAccountUpdate(
           thisAccountUpdate,
           to,
-          {
-            caller: this.id,
-            tokenId: this.id,
-          }
+          this.id
         );
 
         // Add the amount to send to the receiver's account
@@ -716,6 +721,7 @@ class AccountUpdate implements Types.AccountUpdate {
           i1.magnitude,
           i1.sgn
         ).add(amount);
+        return receiverAccountUpdate;
       },
     };
   }
@@ -745,33 +751,28 @@ class AccountUpdate implements Types.AccountUpdate {
     amount: number | bigint | UInt64;
   }) {
     let accountUpdate = this;
-
     let receiverAccountUpdate;
-    if (to.constructor === AccountUpdate) {
+    if (to instanceof AccountUpdate) {
       receiverAccountUpdate = to;
-      makeChildAccountUpdate(accountUpdate, receiverAccountUpdate);
+      receiverAccountUpdate.body.tokenId.assertEquals(
+        accountUpdate.body.tokenId
+      );
     } else {
-      receiverAccountUpdate = createChildAccountUpdate(
-        accountUpdate,
-        to as PublicKey,
-        {
-          tokenId: accountUpdate.body.tokenId,
-          caller: accountUpdate.body.tokenId,
-        }
+      receiverAccountUpdate = AccountUpdate.defaultAccountUpdate(
+        to,
+        accountUpdate.body.tokenId
       );
     }
+    makeChildAccountUpdate(accountUpdate, receiverAccountUpdate);
 
     // Sub the amount from the sender's account
-    let i0 = accountUpdate.body.balanceChange;
-    accountUpdate.body.balanceChange = new Int64(i0.magnitude, i0.sgn).sub(
-      amount
-    );
+    accountUpdate.body.balanceChange = Int64.fromObject(
+      accountUpdate.body.balanceChange
+    ).sub(amount);
 
     // Add the amount to send to the receiver's account
-    let i1 = receiverAccountUpdate.body.balanceChange;
-    receiverAccountUpdate.body.balanceChange = new Int64(
-      i1.magnitude,
-      i1.sgn
+    receiverAccountUpdate.body.balanceChange = Int64.fromObject(
+      receiverAccountUpdate.body.balanceChange
     ).add(amount);
   }
 
@@ -856,60 +857,53 @@ class AccountUpdate implements Types.AccountUpdate {
     return this.body.publicKey;
   }
 
-  signInPlace(privateKey?: PrivateKey, fallbackToZeroNonce = false) {
-    this.setNoncePrecondition(fallbackToZeroNonce);
+  sign(privateKey?: PrivateKey) {
+    let nonce = AccountUpdate.getNonce(this);
+    this.account.nonce.assertEquals(nonce);
     this.body.incrementNonce = Bool(true);
     Authorization.setLazySignature(this, { privateKey });
   }
 
-  sign(privateKey?: PrivateKey) {
-    let accountUpdate = AccountUpdate.clone(this);
-    accountUpdate.signInPlace(privateKey);
-    return accountUpdate;
-  }
-
   static signFeePayerInPlace(
     feePayer: FeePayerUnsigned,
-    privateKey?: PrivateKey,
-    fallbackToZeroNonce = false
+    privateKey?: PrivateKey
   ) {
-    feePayer.body.nonce = this.getNonce(feePayer, fallbackToZeroNonce);
+    feePayer.body.nonce = this.getNonce(feePayer);
     feePayer.authorization = Ledger.dummySignature();
     feePayer.lazyAuthorization = { kind: 'lazy-signature', privateKey };
   }
 
-  // TODO this needs to be more intelligent about previous nonces in the transaction, similar to AccountUpdate.createSigned
-  static getNonce(
-    accountUpdate: AccountUpdate | FeePayerUnsigned,
-    fallbackToZero = false
-  ) {
-    let nonce: UInt32;
-    let inProver = Circuit.inProver();
-    if (inProver || !Circuit.inCheckedComputation()) {
-      try {
-        let account = Mina.getAccount(
-          accountUpdate.body.publicKey as PublicKey,
-          (accountUpdate as AccountUpdate).body.tokenId ?? TokenId.default
-        );
-        nonce = account.nonce;
-      } catch (err) {
-        if (fallbackToZero) nonce = UInt32.zero;
-        else throw err;
-      }
-      nonce = inProver ? Circuit.witness(UInt32, () => nonce) : nonce;
-    } else {
-      nonce = Circuit.witness(UInt32, (): UInt32 => {
-        throw Error('this should never happen');
-      });
+  static getNonce(accountUpdate: AccountUpdate | FeePayerUnsigned) {
+    if (inCompileMode()) {
+      return emptyWitness(UInt32);
     }
-    return nonce;
+    return inProver()
+      ? Circuit.witness(UInt32, () =>
+          AccountUpdate.getNonceUnchecked(accountUpdate)
+        )
+      : AccountUpdate.getNonceUnchecked(accountUpdate);
   }
 
-  setNoncePrecondition(fallbackToZero = false) {
-    let nonce = AccountUpdate.getNonce(this, fallbackToZero);
-    let accountPrecondition = this.body.preconditions.account;
-    AccountUpdate.assertEquals(accountPrecondition.nonce, nonce);
-    return nonce;
+  private static getNonceUnchecked(update: AccountUpdate | FeePayerUnsigned) {
+    let publicKey = update.body.publicKey;
+    let nonce = Number(
+      Precondition.getAccountPreconditions(update.body).nonce.toString()
+    );
+    // if the fee payer is the same party as this one, we have to start the nonce predicate at one higher,
+    // bc the fee payer already increases its nonce
+    let isFeePayer = Mina.currentTransaction()?.sender?.equals(publicKey);
+    if (isFeePayer?.toBoolean()) nonce++;
+    // now, we check how often this party already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
+    CallForest.forEach(
+      Mina.currentTransaction.get().accountUpdates,
+      (update) => {
+        let shouldIncreaseNonce = update.publicKey
+          .equals(publicKey)
+          .and(update.body.incrementNonce);
+        if (shouldIncreaseNonce.toBoolean()) nonce++;
+      }
+    );
+    return UInt32.from(nonce);
   }
 
   toFields() {
@@ -944,9 +938,19 @@ class AccountUpdate implements Types.AccountUpdate {
     return { accountUpdate, calls };
   }
 
-  static defaultAccountUpdate(address: PublicKey) {
+  static defaultAccountUpdate(address: PublicKey, tokenId?: Field) {
     const body = Body.keepAll(address);
+    if (tokenId) {
+      body.tokenId = tokenId;
+      body.caller = tokenId;
+    }
     return new AccountUpdate(body);
+  }
+  static dummy() {
+    return this.defaultAccountUpdate(PublicKey.empty());
+  }
+  isDummy() {
+    return this.body.publicKey.isEmpty();
   }
 
   static defaultFeePayer(
@@ -967,42 +971,34 @@ class AccountUpdate implements Types.AccountUpdate {
     return { body, authorization: Ledger.dummySignature() };
   }
 
-  static createUnsigned(publicKey: PublicKey) {
-    let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey);
-    Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
+  static create(publicKey: PublicKey, tokenId?: Field) {
+    let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey, tokenId);
+    if (smartContractContext.has()) {
+      makeChildAccountUpdate(
+        smartContractContext.get().this.self,
+        accountUpdate
+      );
+    } else {
+      Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
+    }
     return accountUpdate;
   }
 
   static createSigned(signer: PrivateKey) {
     let publicKey = signer.toPublicKey();
-    let body = Body.keepAll(publicKey);
     if (!Mina.currentTransaction.has()) {
       throw new Error(
         'AccountUpdate.createSigned: Cannot run outside of a transaction'
       );
     }
+    let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey);
     // it's fine to compute the nonce outside the circuit, because we're constraining it with a precondition
-    let nonce = Circuit.witness(UInt32, () => {
-      let nonce = Number(
-        Mina.getAccount(publicKey, body.tokenId).nonce.toString()
-      );
-      // if the fee payer is the same accountUpdate as this one, we have to start the nonce predicate at one higher,
-      // bc the fee payer already increases its nonce
-      let isFeePayer = Mina.currentTransaction()?.sender?.equals(signer);
-      if (isFeePayer?.toBoolean()) nonce++;
-      // now, we check how often this accountUpdate already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
-      for (let accountUpdate of Mina.currentTransaction.get().accountUpdates) {
-        let shouldIncreaseNonce = accountUpdate.publicKey
-          .equals(publicKey)
-          .and(accountUpdate.body.incrementNonce);
-        if (shouldIncreaseNonce.toBoolean()) nonce++;
-      }
-      return UInt32.from(nonce);
-    });
-    AccountUpdate.assertEquals(body.preconditions.account.nonce, nonce);
-    body.incrementNonce = Bool(true);
+    let nonce = Circuit.witness(UInt32, () =>
+      AccountUpdate.getNonceUnchecked(accountUpdate)
+    );
+    accountUpdate.account.nonce.assertEquals(nonce);
+    accountUpdate.body.incrementNonce = Bool(true);
 
-    let accountUpdate = new AccountUpdate(body);
     Authorization.setLazySignature(accountUpdate, { privateKey: signer });
     Mina.currentTransaction.get().accountUpdates.push(accountUpdate);
     return accountUpdate;
@@ -1034,7 +1030,7 @@ class AccountUpdate implements Types.AccountUpdate {
   static witness<T>(
     type: AsFieldElements<T>,
     compute: () => { accountUpdate: AccountUpdate; result: T },
-    skipCheck = false
+    { skipCheck = false } = {}
   ) {
     // construct the circuit type for a accountUpdate + other result
     let accountUpdateType = circuitArray(
@@ -1078,21 +1074,46 @@ class AccountUpdate implements Types.AccountUpdate {
     accountUpdate.lazyAuthorization =
       proverAccountUpdate &&
       cloneCircuitValue(proverAccountUpdate.lazyAuthorization);
-    accountUpdate.children = proverAccountUpdate?.children ?? [];
+    accountUpdate.children = proverAccountUpdate?.children ?? {
+      accountUpdates: [],
+    };
     accountUpdate.parent = proverAccountUpdate?.parent;
     return { accountUpdate, result: fieldsAndResult.result };
   }
 }
 
+/**
+ * Describes list of parties (call forest) to be witnessed.
+ *
+ * A parties list is represented by either
+ * - an array, whose entries are parties, each represented by their list of children
+ * - a positive integer, which gives the number of top-level parties, which aren't allowed to have further children
+ * - `undefined`, which means just the `calls` (call forest hash) is witnessed, allowing arbitrary parties but no access to them in the circuit
+ *
+ * Examples:
+ * ```ts
+ * []              // an empty parties list
+ * 0               // same as []
+ * [0]             // a list of one party, which doesn't have children
+ * 1               // same as [0]
+ * 2               // same as [0, 0]
+ * undefined       // an arbitrary list of parties
+ * [undefined, 1]  // a list of 2 parties, of which one has arbitrary children and the other has exactly 1 child
+ * ```
+ */
+type PartiesLayout = number | undefined | PartiesLayout[];
+
 const CallForest = {
   // similar to Mina_base.Zkapp_command.Call_forest.to_parties_list
   // takes a list of parties, which each can have children, so they form a "forest" (list of trees)
   // returns a flattened list, with `accountUpdate.body.callDepth` specifying positions in the forest
+  // also removes any "dummy" accountUpdates
   toFlatList(forest: AccountUpdate[], depth = 0): AccountUpdate[] {
     let accountUpdates = [];
     for (let accountUpdate of forest) {
+      if (accountUpdate.isDummy().toBoolean()) continue;
       accountUpdate.body.callDepth = depth;
-      let children = accountUpdate.children.map((c) => c.accountUpdate);
+      let children = accountUpdate.children.accountUpdates;
       accountUpdates.push(
         accountUpdate,
         ...CallForest.toFlatList(children, depth + 1)
@@ -1106,50 +1127,55 @@ const CallForest = {
     return Field.zero;
   },
 
-  // similar to Mina_base.Zkapp_command.Call_forest.accumulate_hashes
-  // hashes a accountUpdate's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
-  hashChildren(parent: AccountUpdate) {
+  // similar to Mina_base.Parties.Call_forest.accumulate_hashes
+  // hashes a party's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
+  hashChildren({ children }: AccountUpdate): Field {
+    // only compute calls if it's not there yet --
+    // this gives us the flexibility to witness a specific layout of parties
+    if (children.calls !== undefined) return children.calls;
     let stackHash = CallForest.emptyHash();
-    for (let { accountUpdate, calls } of parent.children.reverse()) {
-      // only compute calls if it's not there yet --
-      // this gives us the flexibility to witness only direct children of a zkApp
-      calls ??= CallForest.hashChildren(accountUpdate);
+    for (let accountUpdate of [...children.accountUpdates].reverse()) {
+      let calls = CallForest.hashChildren(accountUpdate);
       let nodeHash = hashWithPrefix(prefixes.accountUpdateNode, [
         accountUpdate.hash(),
         calls,
       ]);
-      stackHash = hashWithPrefix(prefixes.accountUpdateCons, [
+      let newHash = hashWithPrefix(prefixes.accountUpdateCons, [
         nodeHash,
         stackHash,
       ]);
+      // skip accountUpdate if it's a dummy
+      stackHash = Circuit.if(accountUpdate.isDummy(), stackHash, newHash);
     }
     return stackHash;
+  },
+
+  forEach(updates: AccountUpdate[], callback: (update: AccountUpdate) => void) {
+    for (let update of updates) {
+      callback(update);
+      CallForest.forEach(update.children.accountUpdates, callback);
+    }
   },
 };
 
 function createChildAccountUpdate(
   parent: AccountUpdate,
   childAddress: PublicKey,
-  options?: {
-    caller?: Field;
-    tokenId?: Field;
-    useFullCommitment?: Bool;
-  }
+  tokenId?: Field
 ) {
-  let child = AccountUpdate.defaultAccountUpdate(childAddress);
-  const { caller, tokenId, useFullCommitment } = options ?? {};
-  child.body.caller = caller ?? child.body.caller;
-  child.body.tokenId = tokenId ?? child.body.tokenId;
-  child.body.useFullCommitment =
-    useFullCommitment ?? child.body.useFullCommitment;
+  let child = AccountUpdate.defaultAccountUpdate(childAddress, tokenId);
   makeChildAccountUpdate(parent, child);
   return child;
 }
 function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
   child.body.callDepth = parent.body.callDepth + 1;
   child.parent = parent;
-  if (!parent.children.find(({ accountUpdate }) => accountUpdate === child)) {
-    parent.children.push({ accountUpdate: child, calls: undefined });
+  if (
+    !parent.children.accountUpdates.find(
+      (accountUpdate) => accountUpdate === child
+    )
+  ) {
+    parent.children.accountUpdates.push(child);
   }
 }
 
@@ -1220,8 +1246,8 @@ function addMissingSignatures(
     if (lazyAuthorization === undefined) return { body, authorization };
     let { privateKey } = lazyAuthorization;
     if (privateKey === undefined) {
-      let i = additionalPublicKeys.findIndex(
-        (pk) => pk === accountUpdate.body.publicKey
+      let i = additionalPublicKeys.findIndex((pk) =>
+        pk.equals(accountUpdate.body.publicKey).toBoolean()
       );
       if (i === -1) {
         let pk = PublicKey.toBase58(accountUpdate.body.publicKey);
@@ -1243,7 +1269,7 @@ function addMissingSignatures(
     let { privateKey } = accountUpdate.lazyAuthorization;
     if (privateKey === undefined) {
       let i = additionalPublicKeys.findIndex((pk) =>
-        pk.equals(accountUpdate.body.publicKey)
+        pk.equals(accountUpdate.body.publicKey).toBoolean()
       );
       if (i === -1)
         throw Error(

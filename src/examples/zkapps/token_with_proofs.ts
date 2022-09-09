@@ -29,9 +29,12 @@ class TokenContract extends SmartContract {
 
   @method tokenDeploy(deployer: PrivateKey) {
     let address = deployer.toPublicKey();
-    let deployAccountUpdate = Experimental.createChildAccountUpdate(this.self, address);
-    deployAccountUpdate.body.tokenId = this.experimental.token.id;
-    deployAccountUpdate.body.caller = this.experimental.token.id;
+    let tokenId = this.experimental.token.id;
+    let deployAccountUpdate = Experimental.createChildAccountUpdate(
+      this.self,
+      address,
+      tokenId
+    );
     AccountUpdate.setValue(deployAccountUpdate.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
@@ -39,7 +42,7 @@ class TokenContract extends SmartContract {
     // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
     // AccountUpdate.setValue(deployAccountUpdate.update.verificationKey, verificationKey);
     // deployAccountUpdate.balance.addInPlace(initialBalance);
-    deployAccountUpdate.signInPlace(deployer, true);
+    deployAccountUpdate.sign(deployer);
   }
 
   @method mint(receiverAddress: PublicKey) {
@@ -55,11 +58,17 @@ class TokenContract extends SmartContract {
   @method sendTokens(
     senderAddress: PublicKey,
     receiverAddress: PublicKey,
-    callback: Experimental.Callback
+    callback: Experimental.Callback<any>
   ) {
-    let senderAccountUpdate = Experimental.accountUpdateFromCallback(this, callback, true);
+    let senderAccountUpdate = Experimental.accountUpdateFromCallback(
+      this,
+      [undefined],
+      callback
+    );
     let amount = UInt64.from(1_000);
-    let negativeAmount = Int64.fromObject(senderAccountUpdate.body.balanceChange);
+    let negativeAmount = Int64.fromObject(
+      senderAccountUpdate.body.balanceChange
+    );
     negativeAmount.assertEquals(Int64.from(amount).neg());
     let tokenId = this.experimental.token.id;
     senderAccountUpdate.body.tokenId.assertEquals(tokenId);
@@ -67,7 +76,7 @@ class TokenContract extends SmartContract {
     let receiverAccountUpdate = Experimental.createChildAccountUpdate(
       this.self,
       receiverAddress,
-      { caller: tokenId, tokenId }
+      tokenId
     );
     receiverAccountUpdate.balance.addInPlace(amount);
   }
@@ -160,7 +169,7 @@ tx.send();
 
 console.log('authorize send from zkAppB');
 tx = await Local.transaction(feePayer, () => {
-  let authorizeSendingCallback = new Experimental.Callback(
+  let authorizeSendingCallback = Experimental.Callback.create(
     zkAppB,
     'authorizeSend',
     []
@@ -182,7 +191,7 @@ console.log('authorize send from zkAppC');
 tx = await Local.transaction(feePayer, () => {
   // Pay for tokenAccount1's account creation
   AccountUpdate.fundNewAccount(feePayer);
-  let authorizeSendingCallback = new Experimental.Callback(
+  let authorizeSendingCallback = Experimental.Callback.create(
     zkAppC,
     'authorizeSend',
     []

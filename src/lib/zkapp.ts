@@ -30,6 +30,8 @@ import {
   Authorization,
   CallForest,
   TokenId,
+  PartiesLayout,
+  smartContractContext,
 } from './account_update.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import * as Mina from './mina.js';
@@ -57,7 +59,6 @@ import {
 } from './proof_system.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import { Types } from '../snarky/types.js';
-import { Context } from './global-context.js';
 import { Poseidon } from './hash.js';
 import * as Encoding from './encoding.js';
 
@@ -70,6 +71,7 @@ export {
   signFeePayer,
   declareMethods,
   Callback,
+  Account,
 };
 
 // internal API
@@ -126,12 +128,6 @@ function method<T extends SmartContract>(
   descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
 }
 
-let smartContractContext = Context.create<{
-  this: SmartContract;
-  methodCallDepth: number;
-  isCallback: boolean;
-}>();
-
 // do different things when calling a method, depending on the circumstance
 function wrapMethod(
   method: Function,
@@ -140,12 +136,18 @@ function wrapMethod(
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
-    let isCallback = smartContractContext()?.isCallback ?? false;
-    if (!smartContractContext.has() || isCallback) {
+    // TODO: the callback case is actually more similar to the composability case below,
+    // should reconcile with that to get the same callData hashing
+    if (!smartContractContext.has() || smartContractContext()?.isCallback) {
       return smartContractContext.runWith(
-        { this: this, methodCallDepth: 0, isCallback: false },
-        () => {
-          if (inCheckedComputation() && !isCallback) {
+        smartContractContext() ?? {
+          this: this,
+          methodCallDepth: 0,
+          isCallback: false,
+          selfUpdate: selfAccountUpdate(this.address, this.nativeToken),
+        },
+        (context) => {
+          if (inCheckedComputation() && !context.isCallback) {
             // important to run this with a fresh accountUpdate everytime, otherwise compile messes up our circuits
             // because it runs this multiple times
             let [, result] = Mina.currentTransaction.runWith(
@@ -206,13 +208,16 @@ function wrapMethod(
             assertStatePrecondition(this);
             return result;
           } else {
-            // in a transaction, also add a lazy proof to the self accountUpdate
-            // (if there's no other authorization set)
+            // called smart contract at the top level, in a transaction!
+            // => attach ours to the current list of parties
+            let accountUpdate = context.selfUpdate;
+            if (!context.isCallback) {
+              Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
+            }
 
             // first, clone to protect against the method modifying arguments!
             // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
             let clonedArgs = cloneCircuitValue(actualArgs);
-            let accountUpdate = this.self;
 
             // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
             let blindingValue = getBlindingValue();
@@ -261,7 +266,12 @@ function wrapMethod(
     let parentAccountUpdate = smartContractContext.get().this.self;
     let methodCallDepth = smartContractContext.get().methodCallDepth;
     let [, result] = smartContractContext.runWith(
-      { this: this, methodCallDepth: methodCallDepth + 1, isCallback: false },
+      {
+        this: this,
+        methodCallDepth: methodCallDepth + 1,
+        isCallback: false,
+        selfUpdate: selfAccountUpdate(this.address, this.nativeToken),
+      },
       () => {
         // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
         // so we have to explain to the user how to do that
@@ -288,12 +298,6 @@ function wrapMethod(
           let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
           let constantBlindingValue = blindingValue.toConstant();
           let accountUpdate = this.self;
-          // the line above adds the callee's self accountUpdate into the wrong place in the transaction structure
-          // so we remove it again
-          // TODO: since we wrap all method calls now anyway, should remove that hidden logic in this.self
-          // and add account updates to transactions more explicitly
-          let transaction = Mina.currentTransaction();
-          if (transaction !== undefined) transaction.accountUpdates.pop();
 
           let [{ memoized }, result] = memoizationContext.runWith(
             {
@@ -346,7 +350,7 @@ function wrapMethod(
             ? AccountUpdate.witness<any>(
                 returnType ?? circuitValue<null>(null),
                 runCalledContract,
-                true
+                { skipCheck: true }
               )
             : runCalledContract();
 
@@ -357,10 +361,10 @@ function wrapMethod(
         accountUpdate.parent = parentAccountUpdate;
         // beware: we don't include the callee's children in the caller circuit
         // nothing is asserted about them -- it's the callee's task to check their children
-        let calls = Circuit.witness(Field, () =>
+        accountUpdate.children.calls = Circuit.witness(Field, () =>
           CallForest.hashChildren(accountUpdate)
         );
-        parentAccountUpdate.children.push({ accountUpdate, calls });
+        parentAccountUpdate.children.accountUpdates.push(accountUpdate);
 
         // assert that we really called the right zkapp
         accountUpdate.body.publicKey.assertEquals(this.address);
@@ -429,12 +433,22 @@ function computeCallData(
   ];
 }
 
-class Callback extends GenericArgument {
+class Callback<Result> extends GenericArgument {
   instance: SmartContract;
-  methodIntf: MethodInterface;
+  methodIntf: MethodInterface & { returnType: AsFieldElements<Result> };
   args: any[];
 
-  constructor(instance: SmartContract, methodName: string, args: any[]) {
+  static create<T extends SmartContract, K extends keyof T>(
+    instance: T,
+    methodName: K,
+    args: T[K] extends (...args: infer A) => any ? A : never
+  ) {
+    let callback: Callback<T[K] extends (...args: any) => infer R ? R : never> =
+      new this(instance, methodName, args);
+    return callback;
+  }
+
+  private constructor(instance: any, methodName: any, args: any[]) {
     super();
     this.instance = instance;
     let ZkappClass = instance.constructor as typeof SmartContract;
@@ -445,55 +459,54 @@ class Callback extends GenericArgument {
       throw Error(
         `Callback: could not find method ${ZkappClass.name}.${methodName}`
       );
-    this.methodIntf = methodIntf;
+    methodIntf = {
+      ...methodIntf,
+      returnType:
+        methodIntf.returnType ??
+        (circuitValue<null>(null) as AsFieldElements<null> as any),
+    };
+    this.methodIntf = methodIntf as any;
     this.args = args;
   }
 }
 
+// TODO: prove call signature in the outer circuit, just like for composability!
 function accountUpdateFromCallback(
   parentZkapp: SmartContract,
-  callback: Callback,
-  disallowChildren = false
+  childLayout: PartiesLayout,
+  callback: Callback<any>
 ) {
-  let { accountUpdate } = AccountUpdate.witness(
+  let { accountUpdate } = AccountUpdate.witnessTree(
     circuitValue<null>(null),
+    childLayout,
     () => {
       if (callback.isEmpty) throw Error('bug: empty callback');
       let { instance, methodIntf, args } = callback;
       let method = instance[
         methodIntf.methodName as keyof SmartContract
       ] as Function;
-      let accountUpdate = instance.self;
-      // remove accountUpdate from top level list, where it doesn't belong
-      // TODO: this shouldn't happen implicitly anyway
-      if (Mina.currentTransaction.has()) {
-        Mina.currentTransaction.get().accountUpdates.pop();
-      }
+      let accountUpdate = selfAccountUpdate(
+        instance.address,
+        instance.nativeToken
+      );
       smartContractContext.runWith(
         {
           this: instance,
           methodCallDepth: (smartContractContext()?.methodCallDepth ?? 0) + 1,
           isCallback: true,
+          selfUpdate: accountUpdate,
         },
         () => method.apply(instance, args)
       );
       return { accountUpdate, result: null };
     },
-    true
+    { skipCheck: true }
   );
   // connect accountUpdate to our own. outside Circuit.witness so compile knows the right structure when hashing children
   let parentAccountUpdate = parentZkapp.self;
   accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
   accountUpdate.parent = parentAccountUpdate;
-  if (disallowChildren) {
-    let calls = Circuit.witness(Field, () =>
-      CallForest.hashChildren(accountUpdate)
-    );
-    calls.assertEquals(CallForest.emptyHash());
-    parentAccountUpdate.children.push({ accountUpdate, calls });
-  } else {
-    parentAccountUpdate.children.push({ accountUpdate });
-  }
+  parentAccountUpdate.children.accountUpdates.push(accountUpdate);
   return accountUpdate;
 }
 
@@ -588,7 +601,7 @@ class SmartContract {
   }: {
     verificationKey?: { data: string; hash: Field | string };
     zkappKey?: PrivateKey;
-  }) {
+  } = {}) {
     verificationKey ??= (this.constructor as any)._verificationKey;
     if (verificationKey !== undefined) {
       let { hash: hash_, data } = verificationKey;
@@ -596,40 +609,51 @@ class SmartContract {
       this.setValue(this.self.update.verificationKey, { hash, data });
     }
     this.setValue(this.self.update.permissions, Permissions.default());
-    this.sign(zkappKey, true);
+    this.sign(zkappKey);
   }
 
-  sign(zkappKey?: PrivateKey, fallbackToZeroNonce?: boolean) {
-    this.self.signInPlace(zkappKey, fallbackToZeroNonce);
+  sign(zkappKey?: PrivateKey) {
+    this.self.sign(zkappKey);
   }
 
-  private executionState(): ExecutionState {
-    if (!Mina.currentTransaction.has()) {
-      // TODO: it's inefficient to return a fresh accountUpdate everytime, would be better to return a constant "non-writable" accountUpdate,
-      // or even expose the .get() methods independently of any accountUpdate (they don't need one)
-      return {
-        transactionId: NaN,
-        accountUpdate: selfAccountUpdate(this.address, this.nativeToken),
-      };
+  private executionState(): AccountUpdate {
+    let inTransaction = Mina.currentTransaction.has();
+    let inSmartContract = smartContractContext.has();
+    if (!inTransaction && !inSmartContract) {
+      // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
+      // or even expose the .get() methods independently of any party (they don't need one)
+      return selfAccountUpdate(this.address, this.nativeToken);
+    }
+    let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
+    // running a method changes which is the "current account update" of this smart contract
+    // this logic also implies that when calling `this.self` inside a method, it will always
+    // return the same account update uniquely associated with that method call.
+    // it won't create new updates and add them to a transaction implicitly
+    if (inSmartContract) {
+      let accountUpdate = smartContractContext.get().selfUpdate;
+      this._executionState = { accountUpdate, transactionId };
+      return accountUpdate;
     }
     let executionState = this._executionState;
     if (
       executionState !== undefined &&
-      executionState.transactionId === Mina.currentTransaction.id()
+      executionState.transactionId === transactionId
     ) {
-      return executionState;
+      return executionState.accountUpdate;
     }
+    // TODO: here, we are creating a new party & attaching it implicitly
+    // we should refactor some methods which rely on that, such as `deploy()`,
+    // to do at least the attaching explicitly, and remove implicit attaching
+    // also, implicit creation is questionable
     let transaction = Mina.currentTransaction.get();
-    let id = Mina.currentTransaction.id();
     let accountUpdate = selfAccountUpdate(this.address, this.nativeToken);
     transaction.accountUpdates.push(accountUpdate);
-    executionState = { transactionId: id, accountUpdate };
-    this._executionState = executionState;
-    return executionState;
+    this._executionState = { transactionId, accountUpdate };
+    return accountUpdate;
   }
 
   get self() {
-    return this.executionState().accountUpdate;
+    return this.executionState();
   }
 
   get account() {
@@ -666,10 +690,6 @@ class SmartContract {
 
   get balance() {
     return this.self.balance;
-  }
-
-  get nonce() {
-    return this.self.setNoncePrecondition();
   }
 
   events: { [key: string]: AsFieldElements<any> } = {};
@@ -987,10 +1007,12 @@ function selfAccountUpdate(address: PublicKey, tokenId?: Field) {
 // per-smart-contract context for transaction construction
 type ExecutionState = { transactionId: number; accountUpdate: AccountUpdate };
 
-type DeployArgs = {
-  verificationKey?: { data: string; hash: string | Field };
-  zkappKey?: PrivateKey;
-};
+type DeployArgs =
+  | {
+      verificationKey?: { data: string; hash: string | Field };
+      zkappKey?: PrivateKey;
+    }
+  | undefined;
 
 // functions designed to be called from a CLI
 // TODO: this function is currently not used by the zkapp CLI, because it doesn't handle nonces properly in all cases
@@ -1040,6 +1062,14 @@ async function deploy<S extends typeof SmartContract>(
     }
   });
   return tx.sign().toJSON();
+}
+
+function Account(address: PublicKey, tokenId?: Field) {
+  if (smartContractContext.has()) {
+    return AccountUpdate.create(address, tokenId).account;
+  } else {
+    return AccountUpdate.defaultAccountUpdate(address, tokenId).account;
+  }
 }
 
 function addFeePayer(

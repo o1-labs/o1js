@@ -16,7 +16,6 @@ import {
   TokenId,
   CallForest,
   Authorization,
-  Events,
   SequenceEvents,
 } from './account_update.js';
 import * as Fetch from './fetch.js';
@@ -97,7 +96,7 @@ function createTransaction(
   let memo = feePayer instanceof PrivateKey ? '' : feePayer?.memo ?? '';
 
   let transactionId = currentTransaction.enter({
-    sender: feePayerKey,
+    sender: feePayerKey?.toPublicKey(),
     accountUpdates: [],
     fetchMode,
     isFinalRunOutsideCircuit,
@@ -307,12 +306,21 @@ function LocalBlockchain({
       txn.sign();
 
       let zkappCommandJson = zkappCommandToJson(txn.transaction);
-
-      ledger.applyJsonTransaction(
-        JSON.stringify(zkappCommandJson),
-        String(accountCreationFee),
-        JSON.stringify(networkState)
-      );
+      try {
+        ledger.applyJsonTransaction(
+          JSON.stringify(zkappCommandJson),
+          String(accountCreationFee),
+          JSON.stringify(networkState)
+        );
+      } catch (err: any) {
+        try {
+          // reverse errors so they match order of account updates
+          // TODO: label updates, and try to give precise explanations about what went wrong
+          err.message = JSON.stringify(JSON.parse(err.message).reverse());
+        } finally {
+          throw err;
+        }
+      }
 
       // fetches all events from the transaction and stores them
       // events are identified and associated with a publicKey and tokenId
@@ -389,7 +397,7 @@ function LocalBlockchain({
       return ledger.applyJsonTransaction(
         json,
         String(accountCreationFee),
-        JSON.stringify(defaultNetworkState())
+        JSON.stringify(networkState)
       );
     },
     async fetchEvents(
