@@ -1,4 +1,4 @@
-import { isReady, Mina, AccountUpdate } from 'snarkyjs';
+import { isReady, Mina, AccountUpdate, UInt64 } from 'snarkyjs';
 import {
   Dex,
   DexTokenHolder,
@@ -16,6 +16,9 @@ Mina.setActiveInstance(Local);
 let accountFee = Mina.accountCreationFee();
 
 let [{ privateKey: feePayerKey }] = Local.testAccounts;
+
+let tokenAccount1 = Local.testAccounts[1];
+let tokenAccount2 = Local.testAccounts[2];
 let tx;
 
 // analyze methods for quick error feedback
@@ -63,17 +66,6 @@ tx.sign([keys.tokenX, keys.tokenY, keys.dex]);
 console.log(tx.toJSON());
 tx.send();
 
-console.log('attempting to transfer tokenX...');
-
-try {
-  tx = await Mina.transaction(feePayer, () => {
-    tokenX.transfer(tokenAccount1, tokenAccount2, UInt64.from(100_000));
-    tokenX.sign(zkappKey);
-  });
-} catch (err) {
-  console.log(err);
-}
-
 console.log('deploy tokens...');
 
 tx = await Mina.transaction(feePayerKey, () => {
@@ -90,3 +82,37 @@ console.log(tx.toJSON());
 tx.sign([keys.dex, keys.tokenX]);
 
 tx.send();
+
+console.log('attempting to transfer tokenX...');
+
+try {
+  tx = await Mina.transaction(feePayerKey, () => {
+    tokenX.transfer(
+      tokenAccount1.publicKey,
+      tokenAccount2.publicKey,
+      UInt64.from(100_000)
+    );
+    tokenX.sign(feePayerKey);
+  });
+
+  tx.send();
+} catch (err) {
+  throw Error(err);
+}
+
+console.log('attempting to transfer tokenY...');
+
+try {
+  tx = await Mina.transaction(feePayerKey, () => {
+    tokenY.transfer(
+      tokenAccount2.publicKey,
+      tokenAccount1.publicKey,
+      UInt64.from(100_000)
+    );
+    tokenY.sign(feePayerKey);
+  });
+
+  tx.send();
+} catch (err) {
+  throw Error(err);
+}
