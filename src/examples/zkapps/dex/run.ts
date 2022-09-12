@@ -55,10 +55,6 @@ tx = await Mina.transaction({ feePayerKey }, () => {
   tokenX.deployZkapp(addresses.dex);
   tokenY.deployZkapp(addresses.dex);
   dex.deploy();
-
-  // initialize tokens
-  tokenX.init();
-  tokenY.init();
 });
 
 // await tx.prove();
@@ -82,6 +78,19 @@ console.log(tx.toJSON());
 tx.sign([keys.dex, keys.tokenX]);
 
 tx.send();
+
+console.log('minting tokenX...');
+
+try {
+  tx = await Mina.transaction(feePayerKey, () => {
+    tokenX.init();
+    tokenX.sign(feePayerKey);
+  });
+
+  tx.send();
+} catch (err) {
+  throw Error(err);
+}
 
 console.log('attempting to transfer tokenX...');
 
