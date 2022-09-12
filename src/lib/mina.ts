@@ -306,8 +306,7 @@ function LocalBlockchain({
     },
     sendTransaction(txn: Transaction) {
       txn.sign();
-      console.log(txn.toJSON());
-      console.log('---------------');
+
       // checking permissions and authorization for each party
       txn.transaction.otherParties.forEach((party) => {
         try {
@@ -316,13 +315,7 @@ function LocalBlockchain({
             party.body.tokenId
           );
           if (account) {
-            console.log(party.toJSON());
-            console.log('perm ', account!.permissions);
-            console.log('-------------------------');
-            let isValid = verifyAccountUpdate(account!, party);
-            if (!isValid) {
-              throw Error('Not a valid account update.');
-            }
+            async () => await await verifyAccountUpdate(account!, party);
           }
         } catch (error) {
           console.log(error);
@@ -797,11 +790,11 @@ function defaultNetworkState(): NetworkValue {
 async function verifyAccountUpdate(
   account: LedgerAccount,
   accountUpdate: AccountUpdate
-): Promise<boolean> {
+): Promise<void> {
   let perm = account.permissions;
 
   // we are essentially only checking if the update is empty or an actual update
-  function isUpdate(val: any): boolean {
+  function includesChange(val: any): boolean {
     if (val?.constructor === Array) {
       return !(val as Array<any>).every((v) => v == null);
     } else {
@@ -812,7 +805,7 @@ async function verifyAccountUpdate(
   function permissionForUpdate(key: string): string {
     switch (key) {
       case 'appState':
-        return perm.editSequenceState;
+        return perm.editState;
       case 'delegate':
         return perm.setDelegate;
       case 'verificationKey':
@@ -827,6 +820,14 @@ async function verifyAccountUpdate(
         return 'None'; // TODO: do timing?
       case 'votingFor':
         return perm.setVotingFor; // TODO: do timing?
+      case 'sequenceEvents':
+        return perm.editSequenceState;
+      case 'incrementNonce':
+        return perm.incrementNonce;
+      case 'send':
+        return perm.send;
+      case 'receive':
+        return perm.receive;
       default:
         return '';
     }
@@ -873,11 +874,22 @@ async function verifyAccountUpdate(
     }
   }
 
+  // goes through the update field on a transaction
   Object.entries(update).forEach(async ([key, value]) => {
-    if (isUpdate(value)) {
+    if (includesChange(value)) {
       let p = permissionForUpdate(key);
       checkPermission(p, key);
     }
   });
-  return true;
+
+  // checks the sequence events (which result in an updated sequence state)
+  if (accountUpdate.body.sequenceEvents.data.length > 0) {
+    let p = permissionForUpdate('sequenceEvents');
+    checkPermission(p, 'sequenceEvents');
+  }
+
+  if (accountUpdate.body.incrementNonce.toBoolean()) {
+    let p = permissionForUpdate('incrementNonce');
+    checkPermission(p, 'incrementNonce');
+  }
 }
