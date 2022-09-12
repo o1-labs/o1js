@@ -35,6 +35,7 @@ import {
 } from './hash.js';
 import * as Encoding from './encoding.js';
 import { Context } from './global-context.js';
+import { Account } from './fetch.js';
 
 // external API
 export { Permissions, AccountUpdate, ZkappPublicInput };
@@ -98,6 +99,53 @@ function keep<T>(dummy: T): SetOrKeep<T> {
 
 const True = () => Bool(true);
 const False = () => Bool(false);
+
+export function PermissionFromString(permission: string): Permission {
+  switch (permission) {
+    case 'None':
+      return Permission.none();
+    case 'Either':
+      return Permission.proofOrSignature();
+    case 'Proof':
+      return Permission.proof();
+    case 'Signature':
+      return Permission.signature();
+    case 'Impossible':
+      return Permission.impossible();
+    default:
+      throw Error(
+        `Cannot parse invalid permission. ${permission} does not exist.`
+      );
+  }
+}
+
+export function PermissionsFromJSON(permissions: {
+  editState: string;
+  send: string;
+  receive: string;
+  setDelegate: string;
+  setPermissions: string;
+  setVerificationKey: string;
+  setZkappUri: string;
+  editSequenceState: string;
+  setTokenSymbol: string;
+  incrementNonce: string;
+  setVotingFor: string;
+}): Permissions {
+  return {
+    editState: PermissionFromString(permissions.editState),
+    send: PermissionFromString(permissions.send),
+    receive: PermissionFromString(permissions.receive),
+    setDelegate: PermissionFromString(permissions.setDelegate),
+    setPermissions: PermissionFromString(permissions.setPermissions),
+    setVerificationKey: PermissionFromString(permissions.setVerificationKey),
+    setZkappUri: PermissionFromString(permissions.setZkappUri),
+    editSequenceState: PermissionFromString(permissions.editSequenceState),
+    setTokenSymbol: PermissionFromString(permissions.setTokenSymbol),
+    setVotingFor: PermissionFromString(permissions.setVotingFor),
+    incrementNonce: PermissionFromString(permissions.incrementNonce),
+  };
+}
 
 /**
  * One specific permission value.

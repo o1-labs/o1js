@@ -15,6 +15,7 @@ export {
   Pickles,
   JSONValue,
   InferAsFieldElements,
+  Account as LedgerAccount,
 };
 
 /**
