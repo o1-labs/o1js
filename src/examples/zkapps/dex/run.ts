@@ -57,11 +57,25 @@ tx = await Mina.transaction({ feePayerKey }, () => {
   tokenX.init();
   tokenY.init();
 });
-await tx.prove();
-tx.sign([keys.tokenX, keys.tokenY]);
+
+// await tx.prove();
+tx.sign([keys.tokenX, keys.tokenY, keys.dex]);
+console.log(tx.toJSON());
 tx.send();
 
-console.log('deploy dex contracts...');
+console.log('attempting to transfer tokenX...');
+
+try {
+  tx = await Mina.transaction(feePayer, () => {
+    tokenX.transfer(tokenAccount1, tokenAccount2, UInt64.from(100_000));
+    tokenX.sign(zkappKey);
+  });
+} catch (err) {
+  console.log(err);
+}
+
+console.log('deploy tokens...');
+
 tx = await Mina.transaction(feePayerKey, () => {
   // pay fees for creating 3 dex accounts
   AccountUpdate.createSigned(feePayerKey).balance.subInPlace(accountFee.mul(3));
@@ -69,6 +83,10 @@ tx = await Mina.transaction(feePayerKey, () => {
   tokenX.deployZkapp(addresses.dex);
   tokenY.deployZkapp(addresses.dex);
 });
-await tx.prove();
-tx.sign([keys.dex]);
+
+console.log(tx.toJSON());
+
+// await tx.prove();
+tx.sign([keys.dex, keys.tokenX]);
+
 tx.send();
