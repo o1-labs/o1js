@@ -1,6 +1,6 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, Ledger } from '../snarky.js';
+import { Circuit, Ledger, LedgerAccount } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -17,11 +17,14 @@ import {
   CallForest,
   Authorization,
   SequenceEvents,
+  Permission,
+  PermissionsFromJSON,
+  partyToPublicInput,
 } from './party.js';
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue } from './circuit_value.js';
-import { Proof, snarkContext } from './proof_system.js';
+import { Proof, snarkContext, verify } from './proof_system.js';
 import { Context } from './global-context.js';
 import { emptyReceiptChainHash } from './hash.js';
 
@@ -227,6 +230,7 @@ const defaultAccountCreationFee = 1_000_000_000;
  */
 function LocalBlockchain({
   accountCreationFee = defaultAccountCreationFee as string | number,
+  proofsEnabled: boolean = true,
 } = {}): MockMina {
   const msPerSlot = 3 * 60 * 1000;
   const startTime = new Date().valueOf();
@@ -291,6 +295,9 @@ function LocalBlockchain({
           sequenceState:
             ledgerAccount.zkapp?.sequenceState[0] ??
             SequenceEvents.emptySequenceState(),
+          permissions: ledgerAccount.permissions
+            ? PermissionsFromJSON(ledgerAccount.permissions)
+            : undefined,
         };
       }
     },
@@ -299,6 +306,28 @@ function LocalBlockchain({
     },
     sendTransaction(txn: Transaction) {
       txn.sign();
+      console.log(txn.toJSON());
+      console.log('---------------');
+      // checking permissions and authorization for each party
+      txn.transaction.otherParties.forEach((party) => {
+        try {
+          let account = ledger.getAccount(
+            party.body.publicKey,
+            party.body.tokenId
+          );
+          if (account) {
+            console.log(party.toJSON());
+            console.log('perm ', account!.permissions);
+            console.log('-------------------------');
+            let isValid = verifyAccountUpdate(account!, party);
+            if (!isValid) {
+              throw Error('Not a valid account update.');
+            }
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      });
 
       let partiesJson = partiesToJson(txn.transaction);
 
@@ -763,4 +792,92 @@ function defaultNetworkState(): NetworkValue {
     stakingEpochData: epochData,
     nextEpochData: cloneCircuitValue(epochData),
   };
+}
+
+async function verifyAccountUpdate(
+  account: LedgerAccount,
+  accountUpdate: AccountUpdate
+): Promise<boolean> {
+  let perm = account.permissions;
+
+  // we are essentially only checking if the update is empty or an actual update
+  function isUpdate(val: any): boolean {
+    if (val?.constructor === Array) {
+      return !(val as Array<any>).every((v) => v == null);
+    } else {
+      return val != null;
+    }
+  }
+
+  function permissionForUpdate(key: string): string {
+    switch (key) {
+      case 'appState':
+        return perm.editSequenceState;
+      case 'delegate':
+        return perm.setDelegate;
+      case 'verificationKey':
+        return perm.setVerificationKey;
+      case 'permissions':
+        return perm.setPermissions;
+      case 'zkappUri':
+        return perm.setZkappUri;
+      case 'tokenSymbol':
+        return perm.setTokenSymbol;
+      case 'timing':
+        return 'None'; // TODO: do timing?
+      case 'votingFor':
+        return perm.setVotingFor; // TODO: do timing?
+      default:
+        return '';
+    }
+  }
+
+  const update = accountUpdate.update;
+
+  let publicInput = partyToPublicInput(accountUpdate);
+  let publicInputFields = ZkappPublicInput.toFields(publicInput);
+
+  const proof = Proof.fromJSON({
+    maxProofsVerified: 2,
+    proof: accountUpdate.authorization.proof!,
+    publicInput: publicInputFields.map((f) => f.toString()),
+  });
+
+  let verificationKey = account.zkapp?.verificationKey?.data as string;
+
+  let isValidProof = await verify(proof, verificationKey);
+  let isValidSignature = true; // TODO: verify signature
+
+  function checkPermission(p: string, field: string) {
+    if (p == 'None') return;
+
+    if (p == 'Impossible') {
+      throw Error(
+        `Transaction failed: Cannot update field ${field} because permission for this field is ${p}`
+      );
+    }
+
+    let verified = false;
+    if (p == 'Signature' || p == 'Either') {
+      verified = isValidSignature;
+    }
+
+    if (p == 'Proof' || p == 'Either') {
+      verified = isValidProof;
+    }
+
+    if (!verified) {
+      throw Error(
+        `Transaction failed: Cannot update field ${field} because permission for this field is ${p}, but neither a valid Signature or valid Proof was provided.`
+      );
+    }
+  }
+
+  Object.entries(update).forEach(async ([key, value]) => {
+    if (isUpdate(value)) {
+      let p = permissionForUpdate(key);
+      checkPermission(p, key);
+    }
+  });
+  return true;
 }
