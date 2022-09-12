@@ -82,9 +82,24 @@ tx.send();
 console.log('minting tokenX...');
 
 try {
+  let tokenXbalance;
   tx = await Mina.transaction(feePayerKey, () => {
     tokenX.init();
     tokenX.sign(feePayerKey);
+  });
+
+  tx.send();
+} catch (err) {
+  throw Error(err);
+}
+
+console.log('minting tokenY...');
+
+try {
+  let tokenYbalance;
+  tx = await Mina.transaction(feePayerKey, () => {
+    tokenY.init();
+    tokenY.sign(feePayerKey);
   });
 
   tx.send();
