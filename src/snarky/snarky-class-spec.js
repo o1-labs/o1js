@@ -425,7 +425,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'signOtherParty',
+        name: 'signOtherAccountUpdate',
         type: 'function',
       },
       {
@@ -461,11 +461,11 @@ export default [
         type: 'function',
       },
       {
-        name: 'hashPartyFromFields',
+        name: 'hashAccountUpdateFromFields',
         type: 'function',
       },
       {
-        name: 'hashPartyFromJson',
+        name: 'hashAccountUpdateFromJson',
         type: 'function',
       },
       {

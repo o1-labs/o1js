@@ -42,8 +42,8 @@ export {
   AccountUpdate,
   Permissions,
   ZkappPublicInput,
-  partiesToJson,
-} from './lib/party.js';
+  zkappCommandToJson,
+} from './lib/account_update.js';
 export {
   fetchAccount,
   fetchLastBlock,
@@ -56,8 +56,11 @@ export * as Encoding from './lib/encoding.js';
 export { Character, CircuitString } from './lib/string.js';
 
 // experimental APIs
-import { Reducer, Callback, partyFromCallback } from './lib/zkapp.js';
-import { createChildParty, makeChildParty } from './lib/party.js';
+import { Reducer, Callback, accountUpdateFromCallback } from './lib/zkapp.js';
+import {
+  createChildAccountUpdate,
+  makeChildAccountUpdate,
+} from './lib/account_update.js';
 import {
   memoizeWitness,
   AsFieldsAndAux as AsFieldsAndAux_,
@@ -68,9 +71,9 @@ export { Experimental };
 const Experimental_ = {
   Reducer,
   Callback,
-  partyFromCallback,
-  createChildParty,
-  makeChildParty,
+  accountUpdateFromCallback,
+  createChildAccountUpdate,
+  makeChildAccountUpdate,
   memoizeWitness,
   MerkleTree,
   MerkleWitness,
@@ -84,12 +87,13 @@ type Callback_<Result> = Callback<Result>;
  */
 namespace Experimental {
   export let Reducer = Experimental_.Reducer;
-  export let createChildParty = Experimental_.createChildParty;
-  export let makeChildParty = Experimental_.makeChildParty;
+  export let createChildAccountUpdate = Experimental_.createChildAccountUpdate;
+  export let makeChildAccountUpdate = Experimental_.makeChildAccountUpdate;
   export let memoizeWitness = Experimental_.memoizeWitness;
   export let MerkleTree = Experimental_.MerkleTree;
   export let MerkleWitness = Experimental_.MerkleWitness;
-  export let partyFromCallback = Experimental_.partyFromCallback;
+  export let accountUpdateFromCallback =
+    Experimental_.accountUpdateFromCallback;
   export type AsFieldsAndAux<T, TJson> = AsFieldsAndAux_<T, TJson>;
   export let Callback = Experimental_.Callback;
   export type Callback<Result> = Callback_<Result>;

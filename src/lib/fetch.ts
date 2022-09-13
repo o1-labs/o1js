@@ -1,7 +1,12 @@
 import 'isomorphic-fetch';
 import { Bool, Field, Ledger } from '../snarky.js';
 import { UInt32, UInt64 } from './int.js';
-import { TokenId, Permission, Permissions, ZkappStateLength } from './party.js';
+import {
+  TokenId,
+  Permission,
+  Permissions,
+  ZkappStateLength,
+} from './account_update.js';
 import { PublicKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
 import { Types } from '../snarky/types.js';

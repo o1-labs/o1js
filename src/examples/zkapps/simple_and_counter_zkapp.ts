@@ -123,9 +123,9 @@ class SimpleZkapp extends SmartContract {
     callerAddress.assertEquals(privilegedAddress);
 
     // assert that the caller nonce is 0, and increment the nonce - this way, payout can only happen once
-    let callerParty = Experimental.createChildParty(this.self, callerAddress);
-    callerParty.account.nonce.assertEquals(UInt32.zero);
-    callerParty.body.incrementNonce = Bool(true);
+    let callerAccountUpdate = Experimental.createChildAccountUpdate(this.self, callerAddress);
+    callerAccountUpdate.account.nonce.assertEquals(UInt32.zero);
+    callerAccountUpdate.body.incrementNonce = Bool(true);
 
     // pay out half of the zkapp balance to the caller
     let balance = this.account.balance.get();
@@ -135,7 +135,7 @@ class SimpleZkapp extends SmartContract {
       balance.toConstant().div(2)
     );
     this.balance.subInPlace(halfBalance);
-    callerParty.balance.addInPlace(halfBalance);
+    callerAccountUpdate.balance.addInPlace(halfBalance);
 
     // emit some events
     this.emitEvent('payoutReceiver', callerAddress);

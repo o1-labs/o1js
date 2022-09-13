@@ -18,7 +18,7 @@ import { asFieldsAndAux, AsFieldsAndAux } from '../parties-helpers.js';
 import * as Json from './parties-json.js';
 import { jsLayout } from './js-layout.js';
 
-export { customTypes, Parties, Party };
+export { customTypes, ZkappCommand, AccountUpdate };
 export { Json };
 export * from '../parties-leaves.js';
 
@@ -53,7 +53,7 @@ let customTypes: CustomTypes = {
   SequenceEvents,
 };
 
-type Parties = {
+type ZkappCommand = {
   feePayer: {
     body: {
       publicKey: PublicKey;
@@ -63,7 +63,7 @@ type Parties = {
     };
     authorization: string;
   };
-  otherParties: {
+  accountUpdates: {
     body: {
       publicKey: PublicKey;
       tokenId: TokenId;
@@ -252,12 +252,12 @@ type Parties = {
   memo: string;
 };
 
-let Parties = asFieldsAndAux<Parties, Json.Parties>(
-  jsLayout.Parties as any,
+let ZkappCommand = asFieldsAndAux<ZkappCommand, Json.ZkappCommand>(
+  jsLayout.ZkappCommand as any,
   customTypes
 );
 
-type Party = {
+type AccountUpdate = {
   body: {
     publicKey: PublicKey;
     tokenId: TokenId;
@@ -444,7 +444,7 @@ type Party = {
   };
 };
 
-let Party = asFieldsAndAux<Party, Json.Party>(
-  jsLayout.Party as any,
+let AccountUpdate = asFieldsAndAux<AccountUpdate, Json.AccountUpdate>(
+  jsLayout.AccountUpdate as any,
   customTypes
 );

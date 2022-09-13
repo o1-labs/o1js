@@ -1,10 +1,4 @@
-import {
-  Poseidon,
-  Field,
-  Circuit,
-  circuitMain,
-  public_,
-} from 'snarkyjs';
+import { Poseidon, Field, Circuit, circuitMain, public_ } from 'snarkyjs';
 
 export default class Main extends Circuit {
   @circuitMain
