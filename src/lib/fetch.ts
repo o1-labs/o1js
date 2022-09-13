@@ -539,15 +539,33 @@ function sendZkapp(
   });
 }
 
-// TODO response useful?
+// TODO: Decide an appropriate response structure.
 function sendZkappQuery(json: string) {
   return `mutation {
   sendZkapp(input: {
     parties: ${removeJsonQuotes(json)}
   }) {
     zkapp {
+      hash
+      id
+      failureReason {
+        failures
+        index
+      }
       parties {
         memo
+        feePayer {
+          body {
+            publicKey
+          }
+        }
+        otherParties {
+          body {
+            publicKey
+            useFullCommitment
+            incrementNonce
+          }
+        }
       }
     }
   }

@@ -739,6 +739,19 @@ interface Account {
     lastSequenceSlot: number;
     provedState: boolean;
   };
+  permissions: {
+    editState: string;
+    send: string;
+    receive: string;
+    setDelegate: string;
+    setPermissions: string;
+    setVerificationKey: string;
+    setZkappUri: string;
+    editSequenceState: string;
+    setTokenSymbol: string;
+    incrementNonce: string;
+    setVotingFor: string;
+  };
 }
 
 // TODO would be nice to document these, at least the parts that end up being used in the public API
