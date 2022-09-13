@@ -45,12 +45,12 @@
     "bootstrap": "npm run build && node src/build/extractJsooMethods.cjs && npm run build",
     "format": "prettier --write --ignore-unknown **/*",
     "test": "for f in ./src/**/*.test.ts; do NODE_OPTIONS=--experimental-vm-modules npx jest $f || exit 1; done",
-    "clean": "rimraf ./dist",
+    "clean": "rimraf ./dist && rimraf ./tests/report",
     "test:integration": "./run-integration-tests.sh",
     "test:unit": "./run-unit-tests.sh",
-    "test:e2e": "npx playwright test",
+    "test:e2e": "npx playwright test --project=chromium-desktop",
     "e2e:install": "npx playwright install --with-deps",
-    "e2e:show-report": "npx playwright show-report"
+    "e2e:show-report": "npx playwright show-report tests/report"
   },
   "author": "O(1) Labs",
   "devDependencies": {
