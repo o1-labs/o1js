@@ -24,6 +24,7 @@ import { cloneCircuitValue } from './circuit_value.js';
 import { Proof, snarkContext } from './proof_system.js';
 import { Context } from './global-context.js';
 import { emptyReceiptChainHash } from './hash.js';
+import { invalidTransactionError } from './errors.js';
 
 export {
   createTransaction,
@@ -317,7 +318,10 @@ function LocalBlockchain({
         try {
           // reverse errors so they match order of account updates
           // TODO: label updates, and try to give precise explanations about what went wrong
-          err.message = JSON.stringify(JSON.parse(err.message).reverse());
+          let errors = JSON.parse(err.message).reverse();
+          err.message = invalidTransactionError(txn.transaction, errors, {
+            accountCreationFee,
+          });
         } finally {
           throw err;
         }
