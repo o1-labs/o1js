@@ -45,7 +45,7 @@
     "bootstrap": "npm run build && node src/build/extractJsooMethods.cjs && npm run build",
     "format": "prettier --write --ignore-unknown **/*",
     "test": "for f in ./src/**/*.test.ts; do NODE_OPTIONS=--experimental-vm-modules npx jest $f || exit 1; done",
-    "clean": "rimraf ./dist && rimraf ./tests/report",
+    "clean": "rimraf ./dist && rimraf ./tests/report && rimraf ./tests/test-artifacts",
     "test:integration": "./run-integration-tests.sh",
     "test:unit": "./run-unit-tests.sh",
     "test:e2e": "npx playwright test --project=chromium-desktop",

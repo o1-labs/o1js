@@ -12,7 +12,7 @@ import { devices } from '@playwright/test';
  */
 const config: PlaywrightTestConfig = {
   testDir: './tests',
-  outputDir: './tests/report/test-artifacts',
+  outputDir: './tests/test-artifacts',
   /* Maximum time one test can run for. */
   timeout: 25 * 60 * 1000,
   expect: {
