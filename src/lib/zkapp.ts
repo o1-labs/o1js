@@ -156,9 +156,6 @@ function wrapMethod(
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
-    let address = (this as any)._address;
-    let tokenId = (this as any)._tokenId;
-
     // TODO: the callback case is actually more similar to the composability case below,
     // should reconcile with that to get the same callData hashing
     if (!smartContractContext.has() || smartContractContext()?.isCallback) {
@@ -167,7 +164,7 @@ function wrapMethod(
           this: this,
           methodCallDepth: 0,
           isCallback: false,
-          selfUpdate: selfAccountUpdate(address, tokenId),
+          selfUpdate: selfAccountUpdate(this.address, this.tokenId),
         },
         (context) => {
           if (inCheckedComputation() && !context.isCallback) {
@@ -292,7 +289,7 @@ function wrapMethod(
         this: this,
         methodCallDepth: methodCallDepth + 1,
         isCallback: false,
-        selfUpdate: selfAccountUpdate(address, tokenId),
+        selfUpdate: selfAccountUpdate(this.address, this.tokenId),
       },
       () => {
         // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
@@ -507,9 +504,7 @@ function accountUpdateFromCallback(
       let method = instance[
         methodIntf.methodName as keyof SmartContract
       ] as Function;
-      let address = (instance as any)._address;
-      let tokenId = (instance as any)._tokenId;
-      let accountUpdate = selfAccountUpdate(address, tokenId);
+      let accountUpdate = selfAccountUpdate(instance.address, instance.tokenId);
       smartContractContext.runWith(
         {
           this: instance,
@@ -542,8 +537,8 @@ function accountUpdateFromCallback(
  *
  */
 class SmartContract {
-  private _address: PublicKey;
-  private _tokenId: Field;
+  address: PublicKey;
+  tokenId: Field;
 
   private _executionState: ExecutionState | undefined;
   static _methods?: MethodInterface[];
@@ -564,8 +559,8 @@ class SmartContract {
   }
 
   constructor(address: PublicKey, tokenId?: Field) {
-    this._address = address;
-    this._tokenId = tokenId ?? TokenId.default;
+    this.address = address;
+    this.tokenId = tokenId ?? TokenId.default;
     Object.defineProperty(this, 'reducer', {
       set(this, reducer: Reducer<any>) {
         ((this as any)._ ??= {}).reducer = reducer;
@@ -574,21 +569,6 @@ class SmartContract {
         return getReducer(this);
       },
     });
-  }
-
-  // these should be equivalent to `this.self.body.publicKey` and `this.self.body.tokenId`,
-  // just more efficient
-  get address() {
-    if (smartContractContext()?.this === this) {
-      return smartContractContext.get().selfUpdate.publicKey;
-    }
-    return this._address;
-  }
-  get tokenId() {
-    if (smartContractContext()?.this === this) {
-      return smartContractContext.get().selfUpdate.tokenId;
-    }
-    return smartContractContext()?.selfUpdate.tokenId ?? this._tokenId;
   }
 
   static async compile() {
@@ -662,7 +642,7 @@ class SmartContract {
     if (!inTransaction && !inSmartContract) {
       // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
       // or even expose the .get() methods independently of any party (they don't need one)
-      return selfAccountUpdate(this._address, this._tokenId);
+      return selfAccountUpdate(this.address, this.tokenId);
     }
     let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
     // running a method changes which is the "current account update" of this smart contract
@@ -686,7 +666,7 @@ class SmartContract {
     // to do at least the attaching explicitly, and remove implicit attaching
     // also, implicit creation is questionable
     let transaction = Mina.currentTransaction.get();
-    let accountUpdate = selfAccountUpdate(this._address, this._tokenId);
+    let accountUpdate = selfAccountUpdate(this.address, this.tokenId);
     transaction.accountUpdates.push(accountUpdate);
     this._executionState = { transactionId, accountUpdate };
     return accountUpdate;
