@@ -104,20 +104,39 @@ function method<T extends SmartContract>(
       `@method decorator was applied to \`${methodName}\`, which is not a function.`
     );
   }
-  let paramTypes = Reflect.getMetadata('design:paramtypes', target, methodName);
-  let returnType = Reflect.getMetadata('design:returntype', target, methodName);
+  let paramTypes: AsFieldElements<any>[] = Reflect.getMetadata(
+    'design:paramtypes',
+    target,
+    methodName
+  );
+  let returnType: AsFieldElements<any> = Reflect.getMetadata(
+    'design:returntype',
+    target,
+    methodName
+  );
 
   class SelfProof extends Proof<ZkappPublicInput> {
     static publicInputType = ZkappPublicInput;
     static tag = () => ZkappClass;
   }
-  let methodEntry = sortMethodArguments(
+  let internalMethodEntry = sortMethodArguments(
     ZkappClass.name,
     methodName,
     paramTypes,
     SelfProof
   );
-  if (isAsFields(returnType)) methodEntry.returnType = returnType;
+  // add witness arguments for the publicKey (address) and tokenId
+  let methodEntry = sortMethodArguments(
+    ZkappClass.name,
+    methodName,
+    [PublicKey, Field, ...paramTypes],
+    SelfProof
+  );
+
+  if (isAsFields(returnType)) {
+    internalMethodEntry.returnType = returnType;
+    methodEntry.returnType = returnType;
+  }
   ZkappClass._methods ??= [];
   ZkappClass._methods.push(methodEntry);
   ZkappClass._maxProofsVerified ??= 0;
@@ -126,7 +145,7 @@ function method<T extends SmartContract>(
     methodEntry.proofArgs.length
   );
   let func = descriptor.value;
-  descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
+  descriptor.value = wrapMethod(func, ZkappClass, internalMethodEntry);
 }
 
 // do different things when calling a method, depending on the circumstance
@@ -137,13 +156,9 @@ function wrapMethod(
 ) {
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
-    // witness address and tokenId so the circuit doesn't depend on them
-    let address = witness<PublicKey>(PublicKey, () =>
-      (this as any)._address.toConstant()
-    );
-    let tokenId = witness<Field>(Field, () =>
-      (this as any)._tokenId.toConstant()
-    );
+    let address = (this as any)._address;
+    let tokenId = (this as any)._tokenId;
+
     // TODO: the callback case is actually more similar to the composability case below,
     // should reconcile with that to get the same callData hashing
     if (!smartContractContext.has() || smartContractContext()?.isCallback) {
@@ -168,8 +183,7 @@ function wrapMethod(
               () => {
                 // inside prover / compile, the method is always called with the public input as first argument
                 // -- so we can add assertions about it
-                let publicInput = actualArgs[0];
-                actualArgs = actualArgs.slice(1);
+                let publicInput = actualArgs.shift();
                 let accountUpdate = this.self;
 
                 // the blinding value is important because otherwise, putting callData on the transaction would leak information about the private inputs
@@ -493,13 +507,8 @@ function accountUpdateFromCallback(
       let method = instance[
         methodIntf.methodName as keyof SmartContract
       ] as Function;
-      // witness address and tokenId so the circuit doesn't depend on them
-      let address = witness<PublicKey>(PublicKey, () =>
-        (instance as any)._address.toConstant()
-      );
-      let tokenId = witness<Field>(Field, () =>
-        (instance as any)._tokenId.toConstant()
-      );
+      let address = (instance as any)._address;
+      let tokenId = (instance as any)._tokenId;
       let accountUpdate = selfAccountUpdate(address, tokenId);
       smartContractContext.runWith(
         {
@@ -582,24 +591,28 @@ class SmartContract {
     return smartContractContext()?.selfUpdate.tokenId ?? this._tokenId;
   }
 
-  static async compile(address: PublicKey, tokenId: Field = TokenId.default) {
+  static async compile() {
     // TODO: think about how address should be passed in
     // TODO: maybe PublicKey should just become a variable? Then compile doesn't need to know the address, which seems more natural
     let methodIntfs = this._methods ?? [];
     let methods = methodIntfs.map(({ methodName }) => {
-      return (...args: unknown[]) => {
-        let instance = new this(address, tokenId);
-        (instance as any)[methodName](...args);
+      return (
+        publicInput: unknown,
+        publicKey: PublicKey,
+        tokenId: Field,
+        ...args: unknown[]
+      ) => {
+        let instance = new this(publicKey, tokenId);
+        (instance as any)[methodName](publicInput, ...args);
       };
     });
     // run methods once to get information that we need already at compile time
-    this.analyzeMethods(address, tokenId);
-    let { getVerificationKeyArtifact, provers, verify, tag } = compileProgram(
+    this.analyzeMethods();
+    let { getVerificationKeyArtifact, provers, verify } = compileProgram(
       ZkappPublicInput,
       methodIntfs,
       methods,
-      this,
-      { self: selfAccountUpdate(address, tokenId) }
+      this
     );
 
     let verificationKey = getVerificationKeyArtifact();
@@ -612,9 +625,9 @@ class SmartContract {
     return { verificationKey, provers, verify };
   }
 
-  static digest(address: PublicKey, tokenId: Field = TokenId.default) {
+  static digest() {
     // TODO: this should use the method digests in a deterministic order!
-    let methodData = this.analyzeMethods(address, tokenId);
+    let methodData = this.analyzeMethods();
     let hash = Poseidon_.hash(
       Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest))),
       false
@@ -802,9 +815,8 @@ class SmartContract {
 
   // run all methods to collect metadata like how many sequence events they use -- if we don't have this information yet
   // TODO: this could also be used to quickly perform any invariant checks on account updates construction
-  static analyzeMethods(address: PublicKey, tokenId: Field = TokenId.default) {
+  static analyzeMethods() {
     let ZkappClass = this as typeof SmartContract;
-    let instance = new ZkappClass(address, tokenId);
     let methodIntfs = ZkappClass._methods ?? [];
     if (
       !methodIntfs.every((m) => m.methodName in ZkappClass._methodMetadata) &&
@@ -815,19 +827,26 @@ class SmartContract {
           'Can not analyze methods inside Circuit.runAndCheck, because this creates a circuit nested in another circuit'
         );
         // EXCEPT if the code that calls this knows that it can first run `analyzeMethods` OUTSIDE runAndCheck and try again
-        (err as any).bootstrap = () =>
-          ZkappClass.analyzeMethods(address, tokenId);
+        (err as any).bootstrap = () => ZkappClass.analyzeMethods();
         throw err;
       }
       for (let methodIntf of methodIntfs) {
+        let accountUpdate: AccountUpdate;
         let { rows, digest, result } = analyzeMethod(
           ZkappPublicInput,
           methodIntf,
-          (...args) => (instance as any)[methodIntf.methodName](...args)
+          (publicInput, publicKey, tokenId, ...args) => {
+            let instance = new ZkappClass(publicKey, tokenId);
+            let result = (instance as any)[methodIntf.methodName](
+              publicInput,
+              ...args
+            );
+            accountUpdate = instance._executionState!.accountUpdate;
+            return result;
+          }
         );
-        let accountUpdate = instance._executionState?.accountUpdate!;
         ZkappClass._methodMetadata[methodIntf.methodName] = {
-          sequenceEvents: accountUpdate.body.sequenceEvents.data.length,
+          sequenceEvents: accountUpdate!.body.sequenceEvents.data.length,
           rows,
           digest,
           hasReturn: result !== undefined,
@@ -906,7 +925,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       }
       let methodData = (
         contract.constructor as typeof SmartContract
-      ).analyzeMethods(contract.address);
+      ).analyzeMethods();
       let possibleActionsPerTransaction = [
         ...new Set(Object.values(methodData).map((o) => o.sequenceEvents)).add(
           0

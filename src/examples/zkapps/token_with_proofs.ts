@@ -129,11 +129,11 @@ console.log('feePayer', feePayer.toPublicKey().toBase58());
 console.log('-------------------------------------------');
 
 console.log('compile (TokenContract)');
-await TokenContract.compile(tokenZkAppAddress);
+await TokenContract.compile();
 console.log('compile (ZkAppB)');
-await ZkAppB.compile(zkAppBAddress, tokenId);
+await ZkAppB.compile();
 console.log('compile (ZkAppC)');
-await ZkAppC.compile(zkAppCAddress, tokenId);
+await ZkAppC.compile();
 
 console.log('deploy tokenZkApp');
 tx = await Local.transaction(feePayer, () => {

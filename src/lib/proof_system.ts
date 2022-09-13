@@ -391,8 +391,7 @@ function compileProgram(
   publicInputType: AsFieldElements<any>,
   methodIntfs: MethodInterface[],
   methods: ((...args: any) => void)[],
-  proofSystemTag: { name: string },
-  additionalContext?: { self: any } | undefined
+  proofSystemTag: { name: string }
 ) {
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
@@ -403,7 +402,7 @@ function compileProgram(
     )
   );
   let [, { getVerificationKeyArtifact, provers, verify, tag }] =
-    snarkContext.runWith({ inCompile: true, ...additionalContext }, () =>
+    snarkContext.runWith({ inCompile: true }, () =>
       Pickles.compile(rules, publicInputType.sizeInFields())
     );
   CompiledTag.store(proofSystemTag, tag);

@@ -146,7 +146,7 @@ initialCommitment = Tree.getRoot();
 let leaderboardZkApp = new Leaderboard(zkappAddress);
 console.log('Deploying leaderboard..');
 if (doProofs) {
-  await Leaderboard.compile(zkappAddress);
+  await Leaderboard.compile();
 }
 let tx = await Mina.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer, { initialBalance });

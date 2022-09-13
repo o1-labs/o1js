@@ -1383,7 +1383,7 @@ async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
     if (ZkappClass._provers === undefined)
       throw Error(
         `Cannot prove execution of ${methodName}(), no prover found. ` +
-          `Try calling \`await ${ZkappClass.name}.compile(address)\` first, this will cache provers in the background.`
+          `Try calling \`await ${ZkappClass.name}.compile()\` first, this will cache provers in the background.`
       );
     let provers = ZkappClass._provers;
     let methodError =
@@ -1393,7 +1393,10 @@ async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
     let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
     if (i === -1) throw Error(methodError);
     let [, [, proof]] = await snarkContext.runWithAsync(
-      { inProver: true, witnesses: args },
+      {
+        inProver: true,
+        witnesses: [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
+      },
       () =>
         memoizationContext.runWithAsync(
           { memoized, currentIndex: 0, blindingValue },

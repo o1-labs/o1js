@@ -59,9 +59,7 @@ let zkappAddress2 = zkappKey2.toPublicKey();
 
 // compile and prove trivial zkapp
 console.log('compile (trivial zkapp)');
-let { verificationKey: trivialVerificationKey } = await TrivialZkapp.compile(
-  zkappAddress2
-);
+let { verificationKey: trivialVerificationKey } = await TrivialZkapp.compile();
 // TODO: should we have a simpler API for zkapp proving without
 // submitting transactions? or is this an irrelevant use case?
 // would also improve the return type -- `Proof` instead of `(Proof | undefined)[]`
@@ -79,7 +77,7 @@ trivialProof = await testJsonRoundtripAndVerify(
 );
 
 console.log('compile');
-let { verificationKey } = await NotSoSimpleZkapp.compile(zkappAddress);
+let { verificationKey } = await NotSoSimpleZkapp.compile();
 
 let zkapp = new NotSoSimpleZkapp(zkappAddress);
 

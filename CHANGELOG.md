@@ -24,7 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Breaking change:** Rename the `Party` class to `AccountUpdate`
+- **Breaking change:** Rename the `Party` class to `AccountUpdate`. Also, rename other occurrences of "party" to "account update". https://github.com/o1-labs/snarkyjs/pull/393
+- **Breaking change:** Don't require the account address as input to `SmartContract.compile()`, `SmartContract.digest()` and `SmartContract.analyzeMethods()` https://github.com/o1-labs/snarkyjs/pull/406
+  - This works because the address / public key is now a variable in the method circuit; it used to be a constant
 
 ## [0.5.2](https://github.com/o1-labs/snarkyjs/compare/55c8ea0...4f0dd40)
 

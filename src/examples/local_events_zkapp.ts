@@ -84,7 +84,7 @@ let zkapp = new SimpleZkapp(zkappAddress);
 
 if (doProofs) {
   console.log('compile');
-  await SimpleZkapp.compile(zkappAddress);
+  await SimpleZkapp.compile();
 }
 
 console.log('deploy');

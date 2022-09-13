@@ -28,24 +28,18 @@ let [{ privateKey: feePayerKey }] = Local.testAccounts;
 let tx;
 
 // analyze methods for quick error feedback
-TokenContract.analyzeMethods(addresses.tokenX);
-TokenContract.analyzeMethods(addresses.tokenY);
-DexTokenHolder.analyzeMethods(addresses.dex, tokenIds.X);
-DexTokenHolder.analyzeMethods(addresses.dex, tokenIds.Y);
-Dex.analyzeMethods(addresses.dex);
+TokenContract.analyzeMethods();
+DexTokenHolder.analyzeMethods();
+Dex.analyzeMethods();
 
 if (doProofs) {
   // compile & deploy all 5 zkApps
-  console.log('compile (token X)...');
-  await TokenContract.compile(addresses.tokenX);
-  // console.log('compile (token Y)...');
-  // await TokenContract.compile(addresses.tokenY);
-  console.log('compile (dex token holder X)...');
-  await DexTokenHolder.compile(addresses.dex, tokenIds.X);
-  // console.log('compile (dex token holder Y)...');
-  // await DexTokenHolder.compile(addresses.dex, tokenIds.Y);
+  console.log('compile (token)...');
+  await TokenContract.compile();
+  console.log('compile (dex token holder)...');
+  await DexTokenHolder.compile();
   console.log('compile (dex main contract)...');
-  await Dex.compile(addresses.dex);
+  await Dex.compile();
 }
 let tokenX = new TokenContract(addresses.tokenX);
 let tokenY = new TokenContract(addresses.tokenY);
