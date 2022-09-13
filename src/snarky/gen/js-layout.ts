@@ -4,19 +4,19 @@ export { jsLayout };
 let jsLayout = {
   ZkappCommand: {
     type: 'object',
-    name: 'Zkapp_command',
+    name: 'ZkappCommand',
     docs: null,
     keys: ['feePayer', 'accountUpdates', 'memo'],
     entries: {
       feePayer: {
         type: 'object',
-        name: 'ZkappAccountUpdateFeePayer',
+        name: 'ZkappFeePayer',
         docs: null,
         keys: ['body', 'authorization'],
         entries: {
           body: {
             type: 'object',
-            name: 'FeePayerAccountUpdateBody',
+            name: 'FeePayerBody',
             docs: null,
             keys: ['publicKey', 'fee', 'validUntil', 'nonce'],
             entries: {
@@ -71,7 +71,7 @@ let jsLayout = {
                 tokenId: { type: 'TokenId' },
                 update: {
                   type: 'object',
-                  name: 'AccountUpdateUpdate',
+                  name: 'AccountUpdateModification',
                   docs: null,
                   keys: [
                     'appState',
@@ -767,7 +767,7 @@ let jsLayout = {
           tokenId: { type: 'TokenId' },
           update: {
             type: 'object',
-            name: 'AccountUpdateUpdate',
+            name: 'AccountUpdateModification',
             docs: null,
             keys: [
               'appState',
