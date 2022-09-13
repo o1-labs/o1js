@@ -53,9 +53,7 @@ jobs:
           npm run clean
           npm run build:web
           npm run build:examples
-      - name: Run simple Web Server with Testing artifacts available
-        run: npm run serve:web-e2e
-      - name: Execute E2E In-Browser Tests
+      - name: Execute E2E Tests
         run: npm run test:e2e
       - name: Upload E2E Test Results
         uses: actions/upload-artifact@v2
