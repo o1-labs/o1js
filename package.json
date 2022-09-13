@@ -37,7 +37,7 @@
     "build:web": "rimraf ./dist/web && node src/build/buildWeb.js",
     "build:examples": "rimraf ./dist/examples && npx tsc -p tsconfig.examples.json || exit 0",
     "serve:web": "cp src/chrome_bindings/server.py src/chrome_bindings/index.html dist/web && cd dist/web && python3 server.py",
-    "serve:web-e2e": "(cp -rf dist/examples dist/web || :) ; node src/build/e2eTestsBuildHelper.js ; cp -rf src/chrome_bindings/server.py tests/artifacts/html/*.html tests/artifacts/javascript/*.js dist/web && cd dist/web && python3 server.py",
+    "serve:web-e2e": "(cp -rf dist/examples dist/web || :) ; node src/build/e2eTestsBuildHelper.js ; cp -rf src/chrome_bindings/server.py tests/artifacts/html/*.html tests/artifacts/javascript/*.js dist/web && cd dist/web && python server.py",
     "prepublish:web": "NODE_ENV=production node src/build/buildWeb.js",
     "prepublish:node": "npm run build && NODE_ENV=production node src/build/buildNode.js",
     "prepublish:both": "npm run prepublish:web && npm run prepublish:node",
