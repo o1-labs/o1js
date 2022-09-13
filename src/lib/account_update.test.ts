@@ -14,23 +14,23 @@ import {
 } from 'snarkyjs';
 
 let address: PublicKey;
-let party: AccountUpdate;
+let accountUpdate: AccountUpdate;
 
-describe('party', () => {
+describe('accountUpdate', () => {
   beforeAll(async () => {
     await isReady;
     address = PrivateKey.random().toPublicKey();
-    party = AccountUpdate.defaultParty(address);
-    party.body.balanceChange = Int64.from(1e9).neg();
+    accountUpdate = AccountUpdate.defaultAccountUpdate(address);
+    accountUpdate.body.balanceChange = Int64.from(1e9).neg();
   });
   afterAll(() => setTimeout(shutdown, 0));
 
-  it('can convert party to fields consistently', () => {
-    // convert party to fields in OCaml, going via Party.of_json
-    let json = JSON.stringify(party.toJSON().body);
+  it('can convert accountUpdate to fields consistently', () => {
+    // convert accountUpdate to fields in OCaml, going via AccountUpdate.of_json
+    let json = JSON.stringify(accountUpdate.toJSON().body);
     let fields1 = Ledger.fieldsOfJson(json);
-    // convert party to fields in pure JS, leveraging generated code
-    let fields2 = party.toFields();
+    // convert accountUpdate to fields in pure JS, leveraging generated code
+    let fields2 = accountUpdate.toFields();
 
     // this is useful console output in the case the test should fail
     if (fields1.length !== fields2.length) {
@@ -50,33 +50,33 @@ describe('party', () => {
     expect(fields1).toEqual(fields2);
   });
 
-  it('can hash a party', () => {
+  it('can hash a accountUpdate', () => {
     // TODO remove restriction "This function can't be run outside of a checked computation."
     Circuit.runAndCheck(() => {
-      let hash = party.hash();
+      let hash = accountUpdate.hash();
       expect(isField(hash)).toBeTruthy();
 
-      // if we clone the party, hash should be the same
-      let party2 = AccountUpdate.clone(party);
-      expect(party2.hash()).toEqual(hash);
+      // if we clone the accountUpdate, hash should be the same
+      let accountUpdate2 = AccountUpdate.clone(accountUpdate);
+      expect(accountUpdate2.hash()).toEqual(hash);
 
-      // if we change something on the cloned party, the hash should become different
-      AccountUpdate.setValue(party2.update.appState[0], Field.one);
-      expect(party2.hash()).not.toEqual(hash);
+      // if we change something on the cloned accountUpdate, the hash should become different
+      AccountUpdate.setValue(accountUpdate2.update.appState[0], Field.one);
+      expect(accountUpdate2.hash()).not.toEqual(hash);
     });
   });
 
-  it("converts party to a public input that's consistent with the ocaml implementation", async () => {
+  it("converts accountUpdate to a public input that's consistent with the ocaml implementation", async () => {
     let otherAddress = PrivateKey.random().toPublicKey();
 
-    let party = AccountUpdate.create(address);
-    Experimental.createChildParty(party, otherAddress);
-    let publicInput = party.toPublicInput();
+    let accountUpdate = AccountUpdate.create(address);
+    Experimental.createChildAccountUpdate(accountUpdate, otherAddress);
+    let publicInput = accountUpdate.toPublicInput();
 
-    // create transaction JSON with the same party structure, for ocaml version
+    // create transaction JSON with the same accountUpdate structure, for ocaml version
     let tx = await Mina.transaction(() => {
-      let party = AccountUpdate.create(address);
-      Experimental.createChildParty(party, otherAddress);
+      let accountUpdate = AccountUpdate.create(address);
+      Experimental.createChildAccountUpdate(accountUpdate, otherAddress);
     });
     let publicInputOcaml = Ledger.zkappPublicInput(tx.toJSON(), 0);
 
@@ -85,7 +85,7 @@ describe('party', () => {
 
   it('creates the right empty sequence state', () => {
     expect(
-      party.body.preconditions.account.sequenceState.value.toString()
+      accountUpdate.body.preconditions.account.sequenceState.value.toString()
     ).toEqual(
       '12935064460869035604753254773225484359407575580289870070671311469994328713165'
     );

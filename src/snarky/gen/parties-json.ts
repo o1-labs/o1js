@@ -11,10 +11,10 @@ import {
   Sign,
 } from '../parties-leaves-json.js';
 
-export { Parties, Party };
+export { ZkappCommand, AccountUpdate };
 export * from '../parties-leaves-json.js';
 
-type Parties = {
+type ZkappCommand = {
   feePayer: {
     body: {
       publicKey: PublicKey;
@@ -24,7 +24,7 @@ type Parties = {
     };
     authorization: string;
   };
-  otherParties: {
+  accountUpdates: {
     body: {
       publicKey: PublicKey;
       tokenId: TokenId;
@@ -156,7 +156,7 @@ type Parties = {
   memo: string;
 };
 
-type Party = {
+type AccountUpdate = {
   body: {
     publicKey: PublicKey;
     tokenId: TokenId;

@@ -30,19 +30,19 @@ class TokenContract extends SmartContract {
   @method tokenDeploy(deployer: PrivateKey) {
     let address = deployer.toPublicKey();
     let tokenId = this.experimental.token.id;
-    let deployParty = Experimental.createChildParty(
+    let deployAccountUpdate = Experimental.createChildAccountUpdate(
       this.self,
       address,
       tokenId
     );
-    AccountUpdate.setValue(deployParty.update.permissions, {
+    AccountUpdate.setValue(deployAccountUpdate.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
     });
     // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
-    // AccountUpdate.setValue(deployParty.update.verificationKey, verificationKey);
-    // deployParty.balance.addInPlace(initialBalance);
-    deployParty.sign(deployer);
+    // AccountUpdate.setValue(deployAccountUpdate.update.verificationKey, verificationKey);
+    // deployAccountUpdate.balance.addInPlace(initialBalance);
+    deployAccountUpdate.sign(deployer);
   }
 
   @method mint(receiverAddress: PublicKey) {
@@ -60,23 +60,25 @@ class TokenContract extends SmartContract {
     receiverAddress: PublicKey,
     callback: Experimental.Callback<any>
   ) {
-    let senderParty = Experimental.partyFromCallback(
+    let senderAccountUpdate = Experimental.accountUpdateFromCallback(
       this,
       [undefined],
       callback
     );
     let amount = UInt64.from(1_000);
-    let negativeAmount = Int64.fromObject(senderParty.body.balanceChange);
+    let negativeAmount = Int64.fromObject(
+      senderAccountUpdate.body.balanceChange
+    );
     negativeAmount.assertEquals(Int64.from(amount).neg());
     let tokenId = this.experimental.token.id;
-    senderParty.body.tokenId.assertEquals(tokenId);
-    senderParty.body.publicKey.assertEquals(senderAddress);
-    let receiverParty = Experimental.createChildParty(
+    senderAccountUpdate.body.tokenId.assertEquals(tokenId);
+    senderAccountUpdate.body.publicKey.assertEquals(senderAddress);
+    let receiverAccountUpdate = Experimental.createChildAccountUpdate(
       this.self,
       receiverAddress,
       tokenId
     );
-    receiverParty.balance.addInPlace(amount);
+    receiverAccountUpdate.balance.addInPlace(amount);
   }
 }
 

@@ -78,8 +78,8 @@ console.log(
 console.log('----------MINA sending (with signed)----------');
 tx = await Local.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer);
-  let party = AccountUpdate.createSigned(zkappKey);
-  party.send({ to: account2Address, amount: UInt64.from(1_000_000) });
+  let accountUpdate = AccountUpdate.createSigned(zkappKey);
+  accountUpdate.send({ to: account2Address, amount: UInt64.from(1_000_000) });
   zkapp.sign(zkappKey);
   zkapp.account.nonce.assertEquals(zkapp.account.nonce.get().add(1));
 });
@@ -95,9 +95,9 @@ console.log(
 
 console.log('----------MINA sending (with unsigned)----------');
 tx = await Local.transaction(feePayer, () => {
-  let party = AccountUpdate.create(zkappAddress);
-  party.sign(zkappKey);
-  party.send({ to: account2Address, amount: UInt64.from(1_000_000) });
+  let accountUpdate = AccountUpdate.create(zkappAddress);
+  accountUpdate.sign(zkappKey);
+  accountUpdate.send({ to: account2Address, amount: UInt64.from(1_000_000) });
   zkapp.sign(zkappKey);
   zkapp.account.nonce.assertEquals(zkapp.account.nonce.get().add(1));
 });
@@ -113,8 +113,8 @@ console.log(
 
 console.log('----------MINA sending (with proof)----------');
 tx = await Local.transaction(feePayer, () => {
-  let party = AccountUpdate.createSigned(zkappKey);
-  party.send({ to: account2Address, amount: UInt64.from(1_000_000) });
+  let accountUpdate = AccountUpdate.createSigned(zkappKey);
+  accountUpdate.send({ to: account2Address, amount: UInt64.from(1_000_000) });
   zkapp.account.nonce.assertEquals(zkapp.account.nonce.get().add(1));
 });
 await tx.prove();

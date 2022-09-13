@@ -1,7 +1,11 @@
 import { AsFieldElements, Bool, Field } from '../snarky.js';
 import { circuitValueEquals, witness } from './circuit_value.js';
 import * as Mina from './mina.js';
-import { SequenceEvents, AccountUpdate, Preconditions } from './party.js';
+import {
+  SequenceEvents,
+  AccountUpdate,
+  Preconditions,
+} from './account_update.js';
 import { UInt32, UInt64 } from './int.js';
 import { Layout } from '../snarky/parties-helpers.js';
 import { jsLayout } from '../snarky/types.js';
@@ -19,26 +23,26 @@ export {
   getAccountPreconditions,
 };
 
-function preconditions(party: AccountUpdate, isSelf: boolean) {
-  initializePreconditions(party, isSelf);
-  return { account: Account(party), network: Network(party) };
+function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
+  initializePreconditions(accountUpdate, isSelf);
+  return { account: Account(accountUpdate), network: Network(accountUpdate) };
 }
 
 // note: please keep the two precondition implementations separate
 // so we can add customized fields easily
 
-function Network(party: AccountUpdate): Network {
+function Network(accountUpdate: AccountUpdate): Network {
   let layout =
-    jsLayout.Party.entries.body.entries.preconditions.entries.network;
-  let context = getPreconditionContextExn(party);
-  return preconditionClass(layout as Layout, 'network', party, context);
+    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.network;
+  let context = getPreconditionContextExn(accountUpdate);
+  return preconditionClass(layout as Layout, 'network', accountUpdate, context);
 }
 
-function Account(party: AccountUpdate): Account {
+function Account(accountUpdate: AccountUpdate): Account {
   let layout =
-    jsLayout.Party.entries.body.entries.preconditions.entries.account;
-  let context = getPreconditionContextExn(party);
-  return preconditionClass(layout as Layout, 'account', party, context);
+    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.account;
+  let context = getPreconditionContextExn(accountUpdate);
+  return preconditionClass(layout as Layout, 'account', accountUpdate, context);
 }
 
 let unimplementedPreconditions: LongKey[] = [
@@ -56,7 +60,7 @@ let baseMap = { UInt64, UInt32, Field, Bool };
 function preconditionClass(
   layout: Layout,
   baseKey: any,
-  party: AccountUpdate,
+  accountUpdate: AccountUpdate,
   context: PreconditionContext
 ): any {
   if (layout.type === 'option') {
@@ -69,11 +73,16 @@ function preconditionClass(
       let lower = layout.inner.entries.lower.type as BaseType;
       let baseType = baseMap[lower];
       return {
-        ...preconditionSubclass(party, baseKey, baseType as any, context),
+        ...preconditionSubclass(
+          accountUpdate,
+          baseKey,
+          baseType as any,
+          context
+        ),
         assertBetween(lower: any, upper: any) {
           context.constrained.add(baseKey);
           let property: RangeCondition<any> = getPath(
-            party.body.preconditions,
+            accountUpdate.body.preconditions,
             baseKey
           );
           property.isSome = Bool(true);
@@ -85,7 +94,12 @@ function preconditionClass(
     // value condition
     else if (layout.optionType === 'flaggedOption') {
       let baseType = baseMap[layout.inner.type as BaseType];
-      return preconditionSubclass(party, baseKey, baseType as any, context);
+      return preconditionSubclass(
+        accountUpdate,
+        baseKey,
+        baseType as any,
+        context
+      );
     }
   } else if (layout.type === 'array') {
     return {}; // not applicable yet, TODO if we implement state
@@ -96,7 +110,7 @@ function preconditionClass(
         let value = layout.entries[key];
         return [
           key,
-          preconditionClass(value, `${baseKey}.${key}`, party, context),
+          preconditionClass(value, `${baseKey}.${key}`, accountUpdate, context),
         ];
       })
     );
@@ -107,7 +121,7 @@ function preconditionSubclass<
   K extends LongKey,
   U extends FlatPreconditionValue[K]
 >(
-  party: AccountUpdate,
+  accountUpdate: AccountUpdate,
   longKey: K,
   fieldType: AsFieldElements<U>,
   context: PreconditionContext
@@ -115,17 +129,21 @@ function preconditionSubclass<
   return {
     get() {
       if (unimplementedPreconditions.includes(longKey)) {
-        let self = context.isSelf ? 'this' : 'party';
+        let self = context.isSelf ? 'this' : 'accountUpdate';
         throw Error(`${self}.${longKey}.get() is not implemented yet.`);
       }
       let { read, vars } = context;
       read.add(longKey);
-      return (vars[longKey] ??= getVariable(party, longKey, fieldType)) as U;
+      return (vars[longKey] ??= getVariable(
+        accountUpdate,
+        longKey,
+        fieldType
+      )) as U;
     },
     assertEquals(value: U) {
       context.constrained.add(longKey);
       let property = getPath(
-        party.body.preconditions,
+        accountUpdate.body.preconditions,
         longKey
       ) as AnyCondition<U>;
       if ('isSome' in property) {
@@ -137,7 +155,7 @@ function preconditionSubclass<
           property.value = value;
         }
       } else {
-        setPath(party.body.preconditions, longKey, value);
+        setPath(accountUpdate.body.preconditions, longKey, value);
       }
     },
     assertNothing() {
@@ -147,7 +165,7 @@ function preconditionSubclass<
 }
 
 function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
-  party: AccountUpdate,
+  accountUpdate: AccountUpdate,
   longKey: K,
   fieldType: AsFieldElements<U>
 ): U {
@@ -156,7 +174,7 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
     let key = rest.join('.');
     let value: U;
     if (accountOrNetwork === 'account') {
-      let account = getAccountPreconditions(party.body);
+      let account = getAccountPreconditions(accountUpdate.body);
       value = account[key as keyof AccountValue] as U;
     } else if (accountOrNetwork === 'network') {
       let networkState = Mina.getNetworkState();
@@ -197,7 +215,7 @@ function getAccountPreconditions(body: {
   };
 }
 
-// per-party context for checking invariants on precondition construction
+// per-accountUpdate context for checking invariants on precondition construction
 type PreconditionContext = {
   isSelf: boolean;
   vars: Partial<FlatPreconditionValue>;
@@ -205,8 +223,11 @@ type PreconditionContext = {
   constrained: Set<LongKey>;
 };
 
-function initializePreconditions(party: AccountUpdate, isSelf: boolean) {
-  preconditionContexts.set(party, {
+function initializePreconditions(
+  accountUpdate: AccountUpdate,
+  isSelf: boolean
+) {
+  preconditionContexts.set(accountUpdate, {
     read: new Set(),
     constrained: new Set(),
     vars: {},
@@ -214,21 +235,24 @@ function initializePreconditions(party: AccountUpdate, isSelf: boolean) {
   });
 }
 
-function cleanPreconditionsCache(party: AccountUpdate) {
-  let context = preconditionContexts.get(party);
+function cleanPreconditionsCache(accountUpdate: AccountUpdate) {
+  let context = preconditionContexts.get(accountUpdate);
   if (context !== undefined) context.vars = {};
 }
 
-function assertPreconditionInvariants(party: AccountUpdate) {
-  let context = getPreconditionContextExn(party);
-  let self = context.isSelf ? 'this' : 'party';
+function assertPreconditionInvariants(accountUpdate: AccountUpdate) {
+  let context = getPreconditionContextExn(accountUpdate);
+  let self = context.isSelf ? 'this' : 'accountUpdate';
   let dummyPreconditions = Preconditions.ignoreAll();
   for (let preconditionPath of context.read) {
     // check if every precondition that was read was also contrained
     if (context.constrained.has(preconditionPath)) continue;
 
     // check if the precondition was modified manually, which is also a valid way of avoiding an error
-    let precondition = getPath(party.body.preconditions, preconditionPath);
+    let precondition = getPath(
+      accountUpdate.body.preconditions,
+      preconditionPath
+    );
     let dummy = getPath(dummyPreconditions, preconditionPath);
     if (!circuitValueEquals(precondition, dummy)) continue;
 
@@ -247,8 +271,8 @@ You can also add more flexible preconditions with \`${self}.${preconditionPath}.
   }
 }
 
-function getPreconditionContextExn(party: AccountUpdate) {
-  let c = preconditionContexts.get(party);
+function getPreconditionContextExn(accountUpdate: AccountUpdate) {
+  let c = preconditionContexts.get(accountUpdate);
   if (c === undefined) throw Error('bug: precondition context not found');
   return c;
 }

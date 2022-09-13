@@ -128,14 +128,14 @@ class PrivateMultisig extends Zkapp {
 
     self.balance.subInPlace(w.amount);
 
-    // Get the second party (index 1) in this transaction, which will be the receiver
+    // Get the second accountUpdate (index 1) in this transaction, which will be the receiver
     const receiverAccount = transaction.parties.get(1);
     receiverAccount.balance.addInPlace(w.amount.sub(w.fee));
   }
 
   // This method is redundant given permissions
   @method receive(amount: Amount) {
-    // The zkapp statement also contains the zkapp party-list at the current position,
+    // The zkapp statement also contains the zkapp accountUpdate-list at the current position,
     // accessible via transaction.self()
     const self = this.transaction().self();
     self.nonce.ignore();
