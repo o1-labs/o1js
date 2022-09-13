@@ -447,7 +447,7 @@ function main() {
           return Mina.transaction(minaSender, () => {
             return AccountUpdate.createSigned(depositorPrivkey).then(
               (depositor) => {
-                // TODO: Figure out nicer way to have a second party.
+                // TODO: Figure out nicer way to have a second account update.
 
                 return Mina.getBalance(depositorPubkey).then(
                   (depositorBalance) => {

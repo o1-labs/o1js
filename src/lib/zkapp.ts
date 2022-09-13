@@ -620,8 +620,8 @@ class SmartContract {
     let inTransaction = Mina.currentTransaction.has();
     let inSmartContract = smartContractContext.has();
     if (!inTransaction && !inSmartContract) {
-      // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
-      // or even expose the .get() methods independently of any party (they don't need one)
+      // TODO: it's inefficient to return a fresh account update everytime, would be better to return a constant "non-writable" account update,
+      // or even expose the .get() methods independently of any account update (they don't need one)
       return selfAccountUpdate(this.address, this.nativeToken);
     }
     let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
@@ -641,7 +641,7 @@ class SmartContract {
     ) {
       return executionState.accountUpdate;
     }
-    // TODO: here, we are creating a new party & attaching it implicitly
+    // TODO: here, we are creating a new account update & attaching it implicitly
     // we should refactor some methods which rely on that, such as `deploy()`,
     // to do at least the attaching explicitly, and remove implicit attaching
     // also, implicit creation is questionable
