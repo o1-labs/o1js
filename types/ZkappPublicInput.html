@@ -13,8 +13,8 @@
 <li><a href="../modules.html">snarkyjs</a></li>
 <li><a href="ZkappPublicInput.html">ZkappPublicInput</a></li></ul>
 <h1>Type alias ZkappPublicInput</h1></div>
-<div class="tsd-signature">Zkapp<wbr/>Public<wbr/>Input<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{ </span>calls<span class="tsd-signature-symbol">: </span><a href="../classes/Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a><span class="tsd-signature-symbol">; </span>party<span class="tsd-signature-symbol">: </span><a href="../classes/Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a><span class="tsd-signature-symbol"> }</span></div>
-<div class="tsd-comment tsd-typography"><p>The public input for zkApps consists of certain hashes of the proving AccountUpdate (and its child parties) which is constructed during method execution.</p>
+<div class="tsd-signature">Zkapp<wbr/>Public<wbr/>Input<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{ </span>accountUpdate<span class="tsd-signature-symbol">: </span><a href="../classes/Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a><span class="tsd-signature-symbol">; </span>calls<span class="tsd-signature-symbol">: </span><a href="../classes/Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a><span class="tsd-signature-symbol"> }</span></div>
+<div class="tsd-comment tsd-typography"><p>The public input for zkApps consists of certain hashes of the proving AccountUpdate (and its child accountUpdates) which is constructed during method execution.</p>
 <p> For SmartContract proving, a method is run twice: First outside the proof, to obtain the public input, and once in the prover,
  which takes the public input as input. The current transaction is hashed again inside the prover, which asserts that the result equals the input public input,
  as part of the snark circuit. The block producer will also hash the transaction they receive and pass it as a public input to the verifier.
@@ -24,12 +24,12 @@
 <h4>Type declaration</h4>
 <ul class="tsd-parameters">
 <li class="tsd-parameter">
-<h5>calls<span class="tsd-signature-symbol">: </span><a href="../classes/Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a></h5></li>
+<h5>account<wbr/>Update<span class="tsd-signature-symbol">: </span><a href="../classes/Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a></h5></li>
 <li class="tsd-parameter">
-<h5>party<span class="tsd-signature-symbol">: </span><a href="../classes/Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a></h5></li></ul></div><aside class="tsd-sources">
+<h5>calls<span class="tsd-signature-symbol">: </span><a href="../classes/Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a></h5></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5c144b/src/lib/party.ts#L1281">lib/party.ts:1281</a></li>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5c144b/src/lib/party.ts#L1282">lib/party.ts:1282</a></li></ul></aside></div>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/3cf7dbd/src/lib/account_update.ts#L1351">lib/account_update.ts:1351</a></li>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/3cf7dbd/src/lib/account_update.ts#L1352">lib/account_update.ts:1352</a></li></ul></aside></div>
 <div class="col-4 col-menu menu-sticky-wrap menu-highlight">
 <div class="tsd-navigation settings">
 <details class="tsd-index-accordion"><summary class="tsd-accordion-summary">
@@ -110,7 +110,6 @@
 <li class="tsd-kind-function"><a href="../functions/getSrs.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg>get<wbr/>Srs</a></li>
 <li class="tsd-kind-function"><a href="../functions/matrixProp.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg>matrix<wbr/>Prop</a></li>
 <li class="tsd-kind-function"><a href="../functions/method.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg>method</a></li>
-<li class="tsd-kind-function"><a href="../functions/partiesToJson.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg>parties<wbr/>To<wbr/>Json</a></li>
 <li class="tsd-kind-function"><a href="../functions/prop.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg>prop</a></li>
 <li class="tsd-kind-function"><a href="../functions/public_.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg>public_</a></li>
 <li class="tsd-kind-function"><a href="../functions/recoverVerificationKey.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg>recover<wbr/>Verification<wbr/>Key</a></li>
@@ -120,7 +119,8 @@
 <li class="tsd-kind-function"><a href="../functions/shutdown.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg>shutdown</a></li>
 <li class="tsd-kind-function"><a href="../functions/signFeePayer.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg>sign<wbr/>Fee<wbr/>Payer</a></li>
 <li class="tsd-kind-function"><a href="../functions/state-2.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg>state</a></li>
-<li class="tsd-kind-function"><a href="../functions/verify.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg>verify</a></li></ul></nav></div></div>
+<li class="tsd-kind-function"><a href="../functions/verify.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg>verify</a></li>
+<li class="tsd-kind-function"><a href="../functions/zkappCommandToJson.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg>zkapp<wbr/>Command<wbr/>To<wbr/>Json</a></li></ul></nav></div></div>
 <div class="container tsd-generator">
 <p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></div>
 <div class="overlay"></div><script src="../assets/main.js"></script></body></html>
