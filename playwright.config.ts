@@ -46,7 +46,7 @@ const config: PlaywrightTestConfig = {
     screenshot: 'only-on-failure',
     video: 'on-first-retry',
     trace: 'retain-on-failure',
-    storageState: 'storageState.json',
+    storageState: './tests/artifacts/config/storageState.json',
   },
   testIgnore: ['*.js'],
   /* Configure projects for major browsers */
