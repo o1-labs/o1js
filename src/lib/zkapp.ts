@@ -138,8 +138,12 @@ function wrapMethod(
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
     // witness address and tokenId so the circuit doesn't depend on them
-    let address = witness<PublicKey>(PublicKey, () => (this as any)._address);
-    let tokenId = witness<Field>(Field, () => (this as any)._tokenId);
+    let address = witness<PublicKey>(PublicKey, () =>
+      (this as any)._address.toConstant()
+    );
+    let tokenId = witness<Field>(Field, () =>
+      (this as any)._tokenId.toConstant()
+    );
     // TODO: the callback case is actually more similar to the composability case below,
     // should reconcile with that to get the same callData hashing
     if (!smartContractContext.has() || smartContractContext()?.isCallback) {
@@ -489,7 +493,14 @@ function partyFromCallback(
       let method = instance[
         methodIntf.methodName as keyof SmartContract
       ] as Function;
-      let party = selfParty(instance.address, instance.tokenId);
+      // witness address and tokenId so the circuit doesn't depend on them
+      let address = witness<PublicKey>(PublicKey, () =>
+        (instance as any)._address.toConstant()
+      );
+      let tokenId = witness<Field>(Field, () =>
+        (instance as any)._tokenId.toConstant()
+      );
+      let party = selfParty(address, tokenId);
       smartContractContext.runWith(
         {
           this: instance,
@@ -556,10 +567,18 @@ class SmartContract {
     });
   }
 
+  // these should be equivalent to `this.self.body.publicKey` and `this.self.body.tokenId`,
+  // just more efficient
   get address() {
-    return smartContractContext()?.selfUpdate.publicKey ?? this._address;
+    if (smartContractContext()?.this === this) {
+      return smartContractContext.get().selfUpdate.publicKey;
+    }
+    return this._address;
   }
   get tokenId() {
+    if (smartContractContext()?.this === this) {
+      return smartContractContext.get().selfUpdate.tokenId;
+    }
     return smartContractContext()?.selfUpdate.tokenId ?? this._tokenId;
   }
 
@@ -634,10 +653,10 @@ class SmartContract {
     }
     let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
     // running a method changes which is the "current account update" of this smart contract
-    // this logic also implies that when calling `this.self` inside a method, it will always
+    // this logic also implies that when calling `this.self` inside a method on `this`, it will always
     // return the same account update uniquely associated with that method call.
     // it won't create new updates and add them to a transaction implicitly
-    if (inSmartContract) {
+    if (inSmartContract && smartContractContext.get().this === this) {
       let party = smartContractContext.get().selfUpdate;
       this._executionState = { party, transactionId };
       return party;
