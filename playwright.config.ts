@@ -63,6 +63,7 @@ const config: PlaywrightTestConfig = {
   webServer: {
     command: 'npm run serve:web-e2e',
     url: 'http://localhost:8000',
+    timeout: 3 * 60 * 1000,
   },
 };
 

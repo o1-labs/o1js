@@ -42,12 +42,13 @@ Then go to `http://localhost:8000/`
 - E2E tests
 
   ```sh
+  npm install
+  npm run e2e:install
+
   npm run clean
   npm run build:web
   npm run build:examples
-  npm run serve:web-e2e
 
-  npm run e2e:install
   npm run test:e2e
   npm run e2e:show-report
   ```
