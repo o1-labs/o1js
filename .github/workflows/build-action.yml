@@ -15,11 +15,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
-      - name: Setup node
+      - name: Setup Node
         uses: actions/setup-node@v2
         with:
           node-version: "18"
-      - name: run build:node & tests
+      - name: Build SnarkyJS and Execute Tests
         run: |
           npm ci
           npm run build:node
@@ -40,11 +40,15 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
-      - name: Setup node
+      - name: Setup Node
         uses: actions/setup-node@v2
         with:
           node-version: "18"
-      - name: Install dependencies
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: Install Node Dependencies
         run: npm ci
       - name: Install Playwright Browsers
         run: npm run e2e:install
@@ -55,7 +59,7 @@ jobs:
           npm run build:examples
       - name: Execute E2E Tests
         run: npm run test:e2e
-      - name: Upload E2E Test Results
+      - name: Upload E2E Test Artifacts
         uses: actions/upload-artifact@v2
         if: always()
         with:
