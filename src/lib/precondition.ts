@@ -1,14 +1,12 @@
-import { Circuit, AsFieldElements, Bool, Field } from '../snarky.js';
-import { circuitValueEquals } from './circuit_value.js';
+import { AsFieldElements, Bool, Field } from '../snarky.js';
+import { circuitValueEquals, witness } from './circuit_value.js';
 import * as Mina from './mina.js';
 import {
-  Events,
   SequenceEvents,
   AccountUpdate,
   Preconditions,
 } from './account_update.js';
 import { UInt32, UInt64 } from './int.js';
-import { inCompileMode, inProver } from './proof_system.js';
 import { Layout } from '../snarky/parties-helpers.js';
 import { jsLayout } from '../snarky/types.js';
 import { emptyReceiptChainHash } from './hash.js';
@@ -171,38 +169,21 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   longKey: K,
   fieldType: AsFieldElements<U>
 ): U {
-  // in compile, just return an empty variable
-  if (inCompileMode()) {
-    return Circuit.witness(fieldType, (): U => {
-      // TODO this error is never thrown. instead, reading the value with e.g. `toString` ends up
-      // calling snarky's eval_as_prover, which throws "Can't evaluate prover code outside an as_prover block"
-      // this should be caught and replaced with a better error message
-      throw Error(
-        `This error is thrown because you are reading out the value of a variable, when that value is not known.
-To write a correct circuit, you must avoid any dependency on the concrete value of variables.`
-      );
-    });
-  }
-  // if not in compile, get the variable's value first
-  let [accountOrNetwork, ...rest] = longKey.split('.');
-  let key = rest.join('.');
-  let value: U;
-  if (accountOrNetwork === 'account') {
-    let account = getAccountPreconditions(accountUpdate.body);
-    value = account[key as keyof AccountValue] as U;
-  } else if (accountOrNetwork === 'network') {
-    let networkState = Mina.getNetworkState();
-    value = getPath(networkState, key);
-  } else {
-    throw Error('impossible');
-  }
-  // in prover, return a new variable which holds the value
-  // outside, just return the value
-  if (inProver()) {
-    return Circuit.witness(fieldType, () => value);
-  } else {
+  return witness(fieldType, () => {
+    let [accountOrNetwork, ...rest] = longKey.split('.');
+    let key = rest.join('.');
+    let value: U;
+    if (accountOrNetwork === 'account') {
+      let account = getAccountPreconditions(accountUpdate.body);
+      value = account[key as keyof AccountValue] as U;
+    } else if (accountOrNetwork === 'network') {
+      let networkState = Mina.getNetworkState();
+      value = getPath(networkState, key);
+    } else {
+      throw Error('impossible');
+    }
     return value;
-  }
+  });
 }
 
 function getAccountPreconditions(body: {

@@ -123,7 +123,10 @@ class SimpleZkapp extends SmartContract {
     callerAddress.assertEquals(privilegedAddress);
 
     // assert that the caller nonce is 0, and increment the nonce - this way, payout can only happen once
-    let callerAccountUpdate = Experimental.createChildAccountUpdate(this.self, callerAddress);
+    let callerAccountUpdate = Experimental.createChildAccountUpdate(
+      this.self,
+      callerAddress
+    );
     callerAccountUpdate.account.nonce.assertEquals(UInt32.zero);
     callerAccountUpdate.body.incrementNonce = Bool(true);
 
@@ -167,8 +170,8 @@ let counterZkapp = new CounterZkapp(counterZkappAddress);
 
 if (doProofs) {
   console.log('compile');
-  await SimpleZkapp.compile(zkappAddress);
-  await CounterZkapp.compile(counterZkappAddress);
+  await SimpleZkapp.compile();
+  await CounterZkapp.compile();
 }
 
 console.log('deploy');

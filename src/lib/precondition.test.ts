@@ -54,7 +54,7 @@ describe('preconditions', () => {
   });
 
   it('get without constraint should throw during compile', async () => {
-    let err = await MyContract.compile(zkappAddress).catch((err) => err);
+    let err = await MyContract.compile().catch((err) => err);
     // TODO: err is an Array thrown from OCaml -.-
     // which is also why expect(..).rejects.toThrow doesn't work
     expect(err[2]).toBeInstanceOf(Error);

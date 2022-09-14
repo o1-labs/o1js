@@ -1,14 +1,10 @@
-import { Circuit, Field, AsFieldElements } from '../snarky.js';
-import { circuitArray } from './circuit_value.js';
+import { Field, AsFieldElements } from '../snarky.js';
+import { circuitArray, witness } from './circuit_value.js';
 import { AccountUpdate, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import * as Mina from './mina.js';
 import { Account, fetchAccount } from './fetch.js';
-import {
-  inCheckedComputation,
-  inCompileMode,
-  inProver,
-} from './proof_system.js';
+import { inCheckedComputation, inProver } from './proof_system.js';
 import { SmartContract } from './zkapp.js';
 
 // external API
@@ -202,16 +198,15 @@ function createState<T>(): InternalStateType<T> {
         return this._contract.cachedVariable;
       }
       let layout = getLayoutPosition(this._contract);
-      let address: PublicKey = this._contract.instance.address;
-      let stateAsFields: Field[];
+      let contract = this._contract;
       let inProver_ = inProver();
       let stateFieldsType = circuitArray(Field, layout.length);
-      if (!inCompileMode()) {
+      let stateAsFields = witness(stateFieldsType, () => {
         let account: Account;
         try {
           account = Mina.getAccount(
-            address,
-            this._contract.instance.self.body.tokenId
+            contract.instance.address,
+            contract.instance.self.body.tokenId
           );
         } catch (err) {
           // TODO: there should also be a reasonable error here
@@ -219,34 +214,22 @@ function createState<T>(): InternalStateType<T> {
             throw err;
           }
           throw Error(
-            `${this._contract.key}.get() failed, because the zkapp account was not found in the cache. ` +
+            `${contract.key}.get() failed, because the zkapp account was not found in the cache. ` +
               `Try calling \`await fetchAccount(zkappAddress)\` first.`
           );
         }
         if (account.appState === undefined) {
           // if the account is not a zkapp account, let the default state be all zeroes
-          stateAsFields = Array(layout.length).fill(Field.zero);
+          return Array(layout.length).fill(Field.zero);
         } else {
-          stateAsFields = [];
+          let stateAsFields: Field[] = [];
           for (let i = 0; i < layout.length; ++i) {
             stateAsFields.push(account.appState[layout.offset + i]);
           }
+          return stateAsFields;
         }
-        // in prover, create a new witness with the state values
-        // outside, just return the state values
-        stateAsFields = inProver_
-          ? Circuit.witness(stateFieldsType, () => stateAsFields)
-          : stateAsFields;
-      } else {
-        // in compile/analyze, we don't need the witness values
-        stateAsFields = Circuit.witness(stateFieldsType, (): Field[] => {
-          // TODO this error is never thrown. instead, reading the value with e.g. `toString` ends up
-          // calling snarky's eval_as_prover, which throws "Can't evaluate prover code outside an as_prover block"
-          // this should be caught and replaced with a better error message
-          throw Error(`This error is thrown because you are reading out the value of a variable, when that value is not known.
-To write a correct circuit, you must avoid any dependency on the concrete value of variables.`);
-        });
-      }
+      });
+
       let state = this._contract.stateType.ofFields(stateAsFields);
       this._contract.stateType.check?.(state);
       this._contract.wasRead = true;

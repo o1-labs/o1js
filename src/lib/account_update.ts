@@ -3,6 +3,7 @@ import {
   circuitValue,
   cloneCircuitValue,
   memoizationContext,
+  memoizeWitness,
 } from './circuit_value.js';
 import {
   Field,
@@ -18,14 +19,7 @@ import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
-import {
-  emptyWitness,
-  inCheckedComputation,
-  inCompileMode,
-  inProver,
-  Proof,
-  snarkContext,
-} from './proof_system.js';
+import { inCheckedComputation, Proof, snarkContext } from './proof_system.js';
 import {
   emptyHashWithPrefix,
   hashWithPrefix,
@@ -874,32 +868,31 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   static getNonce(accountUpdate: AccountUpdate | FeePayerUnsigned) {
-    if (inCompileMode()) {
-      return emptyWitness(UInt32);
-    }
-    return inProver()
-      ? Circuit.witness(UInt32, () =>
-          AccountUpdate.getNonceUnchecked(accountUpdate)
-        )
-      : AccountUpdate.getNonceUnchecked(accountUpdate);
+    return memoizeWitness(UInt32, () =>
+      AccountUpdate.getNonceUnchecked(accountUpdate)
+    );
   }
 
   private static getNonceUnchecked(update: AccountUpdate | FeePayerUnsigned) {
     let publicKey = update.body.publicKey;
+    let tokenId =
+      update instanceof AccountUpdate ? update.body.tokenId : TokenId.default;
     let nonce = Number(
       Precondition.getAccountPreconditions(update.body).nonce.toString()
     );
-    // if the fee payer is the same accountUpdate as this one, we have to start the nonce predicate at one higher,
+    // if the fee payer is the same account update as this one, we have to start the nonce predicate at one higher,
     // bc the fee payer already increases its nonce
     let isFeePayer = Mina.currentTransaction()?.sender?.equals(publicKey);
     if (isFeePayer?.toBoolean()) nonce++;
     // now, we check how often this accountUpdate already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
-    CallForest.forEach(
+    CallForest.forEachPredecessor(
       Mina.currentTransaction.get().accountUpdates,
-      (update) => {
-        let shouldIncreaseNonce = update.publicKey
+      update as AccountUpdate,
+      (otherUpdate) => {
+        let shouldIncreaseNonce = otherUpdate.publicKey
           .equals(publicKey)
-          .and(update.body.incrementNonce);
+          .and(otherUpdate.tokenId.equals(tokenId))
+          .and(otherUpdate.body.incrementNonce);
         if (shouldIncreaseNonce.toBoolean()) nonce++;
       }
     );
@@ -1049,10 +1042,10 @@ class AccountUpdate implements Types.AccountUpdate {
     let fieldsAndResult = Circuit.witness<combinedType>(combinedType, () => {
       let { accountUpdate, result } = compute();
       proverAccountUpdate = accountUpdate;
-      return {
-        accountUpdate: Types.AccountUpdate.toFields(accountUpdate),
-        result,
-      };
+      let fields = Types.AccountUpdate.toFields(accountUpdate).map((x) =>
+        x.toConstant()
+      );
+      return { accountUpdate: fields, result };
     });
 
     // get back a Types.AccountUpdate from the fields + aux (where aux is just the default in compile)
@@ -1203,6 +1196,18 @@ const CallForest = {
       callback(update);
       CallForest.forEach(update.children.accountUpdates, callback);
     }
+  },
+
+  forEachPredecessor(
+    updates: AccountUpdate[],
+    update: AccountUpdate,
+    callback: (update: AccountUpdate) => void
+  ) {
+    let isPredecessor = true;
+    CallForest.forEach(updates, (otherUpdate) => {
+      if (otherUpdate === update) isPredecessor = false;
+      if (isPredecessor) callback(otherUpdate);
+    });
   },
 };
 
@@ -1389,7 +1394,7 @@ async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
     if (ZkappClass._provers === undefined)
       throw Error(
         `Cannot prove execution of ${methodName}(), no prover found. ` +
-          `Try calling \`await ${ZkappClass.name}.compile(address)\` first, this will cache provers in the background.`
+          `Try calling \`await ${ZkappClass.name}.compile()\` first, this will cache provers in the background.`
       );
     let provers = ZkappClass._provers;
     let methodError =
@@ -1399,7 +1404,11 @@ async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
     let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
     if (i === -1) throw Error(methodError);
     let [, [, proof]] = await snarkContext.runWithAsync(
-      { inProver: true, witnesses: args },
+      {
+        inProver: true,
+        witnesses: [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
+        proverData: accountUpdate,
+      },
       () =>
         memoizationContext.runWithAsync(
           { memoized, currentIndex: 0, blindingValue },
