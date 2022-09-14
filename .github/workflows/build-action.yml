@@ -52,7 +52,7 @@ jobs:
         run: npm ci
       - name: Install Playwright Browsers
         run: npm run e2e:install
-      - name: Build SnarkyJS Web
+      - name: Build SnarkyJS and Prepare the Web Server
         run: |
           npm run clean
           npm run build:web
