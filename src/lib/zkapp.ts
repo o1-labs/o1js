@@ -62,6 +62,7 @@ import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import { Types } from '../snarky/types.js';
 import { Poseidon } from './hash.js';
 import * as Encoding from './encoding.js';
+import { expect } from 'expect';
 
 // external API
 export {
@@ -206,6 +207,24 @@ function wrapMethod(
                 accountUpdate.body.callData = Poseidon.hash(callDataFields);
 
                 // connect the public input to the accountUpdate & child account updates we created
+                if (DEBUG_PUBLIC_INPUT_CHECK) {
+                  Circuit.asProver(() => {
+                    let inputAccountUpdate: AccountUpdate =
+                      snarkContext.get().proverData;
+                    expect(accountUpdate.toJSON()).toEqual(
+                      inputAccountUpdate.toJSON()
+                    );
+                    let nChildren =
+                      inputAccountUpdate.children.accountUpdates.length;
+                    for (let i = 0; i < nChildren; i++) {
+                      let inputChild =
+                        inputAccountUpdate.children.accountUpdates[i].toJSON();
+                      let child =
+                        accountUpdate.children.accountUpdates[i].toJSON();
+                      expect({ i, child }).toEqual({ i, child: inputChild });
+                    }
+                  });
+                }
                 checkPublicInput(publicInput, accountUpdate);
 
                 // check the self accountUpdate right after calling the method
@@ -1229,3 +1248,14 @@ const Reducer: (<
   'initialActionsHash',
   { get: SequenceEvents.emptySequenceState }
 ) as any;
+
+/**
+ * this is useful to debug a very common error: when the consistency check between
+ * -) the account update that went into the public input, and
+ * -) the account update constructed by the prover
+ * fails.
+ * toggling this will print an `expect` diff instead of an unhelpful failed assertion error when the check fails,
+ * making it easy to see where the two updates differ.
+ * TODO refine this into a good error message that's always used, not just for debugging
+ */
+const DEBUG_PUBLIC_INPUT_CHECK = false;
