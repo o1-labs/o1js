@@ -867,8 +867,10 @@ class AccountUpdate implements Types.AccountUpdate {
     feePayer.lazyAuthorization = { kind: 'lazy-signature', privateKey };
   }
 
-  static getNonce(party: AccountUpdate | FeePayerUnsigned) {
-    return memoizeWitness(UInt32, () => AccountUpdate.getNonceUnchecked(party));
+  static getNonce(accountUpdate: AccountUpdate | FeePayerUnsigned) {
+    return memoizeWitness(UInt32, () =>
+      AccountUpdate.getNonceUnchecked(accountUpdate)
+    );
   }
 
   private static getNonceUnchecked(update: AccountUpdate | FeePayerUnsigned) {

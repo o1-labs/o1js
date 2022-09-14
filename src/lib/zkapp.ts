@@ -571,9 +571,22 @@ class SmartContract {
     });
   }
 
+  /**
+   * Compile your smart contract.
+   *
+   * This generates both the prover functions, needed to create proofs for running `@method`s,
+   * and the verification key, needed to deploy your zkApp.
+   *
+   * Although provers and verification key are returned by this method, they are also cached internally and used when needed,
+   * so you don't actually have to use the return value of this function.
+   *
+   * Under the hood, "compiling" means calling into the lower-level [Pickles and Kimchi libraries](https://o1-labs.github.io/proof-systems/kimchi/overview.html) to
+   * create two prover & verifier indices (one for the "step circuit" which combines all of your smart contract methods into one circuit,
+   * and one for the "wrap circuit" which wraps it so that proofs end up in the original finite field). These are fairly expensive
+   * operations, so **expect compiling to take at least 20 seconds**, up to several minutes if your circuit is large or your hardware
+   * is not optimal for these operations.
+   */
   static async compile() {
-    // TODO: think about how address should be passed in
-    // TODO: maybe PublicKey should just become a variable? Then compile doesn't need to know the address, which seems more natural
     let methodIntfs = this._methods ?? [];
     let methods = methodIntfs.map(({ methodName }) => {
       return (
@@ -605,6 +618,12 @@ class SmartContract {
     return { verificationKey, provers, verify };
   }
 
+  /**
+   * Computes a hash of your smart contract, which will reliably change _whenever one of your method circuits changes_.
+   * This digest is quick to compute. it is designed to help with deciding whether a contract should be re-compiled or
+   * a cached verification key can be used.
+   * @returns the digest, as a hex string
+   */
   static digest() {
     // TODO: this should use the method digests in a deterministic order!
     let methodData = this.analyzeMethods();
@@ -640,8 +659,8 @@ class SmartContract {
     let inTransaction = Mina.currentTransaction.has();
     let inSmartContract = smartContractContext.has();
     if (!inTransaction && !inSmartContract) {
-      // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
-      // or even expose the .get() methods independently of any party (they don't need one)
+      // TODO: it's inefficient to return a fresh account update everytime, would be better to return a constant "non-writable" account update,
+      // or even expose the .get() methods independently of any account update (they don't need one)
       return selfAccountUpdate(this.address, this.tokenId);
     }
     let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
@@ -793,8 +812,25 @@ class SmartContract {
       Circuit.asProver(run);
   }
 
-  // run all methods to collect metadata like how many sequence events they use -- if we don't have this information yet
   // TODO: this could also be used to quickly perform any invariant checks on account updates construction
+  /**
+   * This function is run internally before compiling a smart contract, to collect metadata about what each of your
+   * smart contract methods does.
+   *
+   * For external usage, this function can be handy because calling it involves running all methods in the same "mode" as `compile()` does,
+   * so it serves as a quick-to-run check for whether your contract can be compiled without errors, which can greatly speed up iterating.
+   *
+   * `analyzeMethods()` will also return the number of `rows` of each of your method circuits (i.e., the number of constraints in the underlying proof system),
+   * which is a good indicator for circuit size and the time it will take to create proofs.
+   *
+   * Note: If this function was already called before, it will short-circuit and just return the metadata collected the first time.
+   *
+   * @returns an object, keyed by method name, each entry containing:
+   *  - `rows` the size of the constraint system created by this method
+   *  - `digest` a digest of the method circuit
+   *  - `hasReturn` a boolean indicating whether the method returns a value
+   *  - `sequenceEvents` the number of actions the method dispatches
+   */
   static analyzeMethods() {
     let ZkappClass = this as typeof SmartContract;
     let methodIntfs = ZkappClass._methods ?? [];

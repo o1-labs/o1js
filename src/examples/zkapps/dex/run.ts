@@ -8,15 +8,6 @@ import {
   tokenIds,
 } from './dex.js';
 
-/**
- * TODOs
- *
- * - make address a variable, or make smart contract store multiple vks/provers, one per address & tokenId
- *   to fix proving for X and Y token contracts
- * - get rid of nonce increments
- *
- */
-
 await isReady;
 let doProofs = true;
 
