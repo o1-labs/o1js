@@ -9,10 +9,10 @@ import {
   Bool,
   AuthRequired,
   Sign,
-} from '../parties-leaves-json.js';
+} from '../transaction-leaves-json.js';
 
 export { ZkappCommand, AccountUpdate };
-export * from '../parties-leaves-json.js';
+export * from '../transaction-leaves-json.js';
 
 type ZkappCommand = {
   feePayer: {

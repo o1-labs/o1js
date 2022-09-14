@@ -7,7 +7,7 @@ import {
   Preconditions,
 } from './account_update.js';
 import { UInt32, UInt64 } from './int.js';
-import { Layout } from '../snarky/parties-helpers.js';
+import { Layout } from '../snarky/transaction-helpers.js';
 import { jsLayout } from '../snarky/types.js';
 import { emptyReceiptChainHash } from './hash.js';
 import { PublicKey } from './signature.js';
