@@ -47,7 +47,7 @@
     "clean": "rimraf ./dist && rimraf ./tests/report && rimraf ./tests/test-artifacts",
     "test:integration": "./run-integration-tests.sh",
     "test:unit": "./run-unit-tests.sh",
-    "test:e2e": "npx playwright test --project=chromium-desktop",
+    "test:e2e": "npx playwright test",
     "e2e:prepare-server": "(cp -rf dist/examples dist/web || :) ; node src/build/e2eTestsBuildHelper.js ; cp -rf src/chrome_bindings/server.py tests/artifacts/html/*.html tests/artifacts/javascript/*.js dist/web",
     "e2e:run-server": "python dist/web/server.py",
     "e2e:install": "npx playwright install --with-deps",

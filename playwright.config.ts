@@ -37,7 +37,6 @@ const config: PlaywrightTestConfig = {
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    channel: 'chrome',
     browserName: 'chromium',
     actionTimeout: 0,
     baseURL: 'http://localhost:8000/dist/web/',
@@ -59,13 +58,20 @@ const config: PlaywrightTestConfig = {
         ...devices['Desktop Chrome'],
       },
     },
+    {
+      name: 'firefox-desktop',
+      use: {
+        browserName: 'firefox',
+        ...devices['Desktop Firefox'],
+      },
+    },
   ],
   /* Run your local dev server before starting the tests */
   webServer: {
     command: 'npm run e2e:run-server',
     url: 'http://localhost:8000',
     timeout: 3 * 60 * 1000,
-    reuseExistingServer: !!process.env.CI,
+    reuseExistingServer: Boolean(process.env.CI),
   },
 };
 
