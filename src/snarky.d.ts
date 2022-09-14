@@ -4,6 +4,7 @@ export {
   Group,
   Scalar,
   AsFieldElements,
+  AsFieldsAndAux,
   Circuit,
   CircuitMain,
   Poseidon,
@@ -15,6 +16,7 @@ export {
   Pickles,
   JSONValue,
   InferAsFieldElements,
+  InferAsFieldsAndAux,
 };
 
 /**
@@ -299,6 +301,7 @@ declare class Field {
   static fromFields(fields: Field[]): Field;
   static sizeInFields(): number;
   static toFields(x: Field): Field[];
+  static toAuxiliary(x?: Field): [];
 
   /*
   static assertEqual(
@@ -453,6 +456,7 @@ declare class Bool {
 
   static sizeInFields(): number;
   static toFields(x: Bool): Field[];
+  static toAuxiliary(x?: Bool): [];
   static fromFields(fields: Field[]): Bool;
 
   static toJSON(x: Bool): JSONValue;
@@ -465,13 +469,22 @@ declare class Bool {
 
 declare interface AsFieldElements<T> {
   toFields: (x: T) => Field[];
-  fromFields: (x: Field[]) => T;
+  fromFields(x: Field[], aux?: any[]): T;
+  sizeInFields(): number;
+  check: (x: T) => void;
+}
+declare interface AsFieldsAndAux<T> {
+  toFields: (x: T) => Field[];
+  toAuxiliary: (x?: T) => any[];
+  fromFields: (x: Field[], aux: any[]) => T;
   sizeInFields(): number;
   check: (x: T) => void;
 }
 
 type InferAsFieldElements<T extends AsFieldElements<any>> =
   T extends AsFieldElements<infer U> ? U : never;
+type InferAsFieldsAndAux<T extends AsFieldsAndAux<any>> =
+  T extends AsFieldsAndAux<infer U> ? U : never;
 
 declare interface CircuitMain<W, P> {
   snarkyWitnessTyp: AsFieldElements<W>;
@@ -512,10 +525,14 @@ declare class Circuit {
   static newVariable(f: () => Field | number | string | boolean): Field;
 
   // this convoluted generic typing is needed to give type inference enough flexibility
-  static witness<T, S extends AsFieldElements<T> = AsFieldElements<T>>(
+  static _witness<T, S extends AsFieldElements<T> = AsFieldElements<T>>(
     ctor: S,
     f: () => T
-  ): T;
+  ): Field[];
+  static witness<
+    T,
+    S extends AsFieldsAndAux<T> | AsFieldElements<T> = AsFieldsAndAux<T>
+  >(ctor: S, f: () => T): T;
 
   static asProver(f: () => void): void;
 
@@ -609,6 +626,7 @@ declare class Scalar {
   toJSON(): JSONValue;
 
   static toFields(x: Scalar): Field[];
+  static toAuxiliary(x?: Scalar): [];
   static fromFields(fields: Field[]): Scalar;
   static sizeInFields(): number;
   static fromBits(bits: Bool[]): Scalar;
@@ -661,6 +679,7 @@ declare class Group {
   static equal(x: Group, y: Group): Bool;
 
   static toFields(x: Group): Field[];
+  static toAuxiliary(x?: Group): [];
   static fromFields(fields: Field[]): Group;
   static sizeInFields(): number;
 

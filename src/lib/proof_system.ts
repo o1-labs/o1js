@@ -5,6 +5,7 @@ import {
   Pickles,
   Circuit,
   Poseidon,
+  AsFieldsAndAux,
 } from '../snarky.js';
 import { circuitValue, toConstant } from './circuit_value.js';
 import { Context } from './global-context.js';
@@ -277,7 +278,7 @@ function sortMethodArguments(
   privateInputs: unknown[],
   selfProof: Subclass<typeof Proof>
 ): MethodInterface {
-  let witnessArgs: AsFieldElements<unknown>[] = [];
+  let witnessArgs: AsFieldsAndAux<unknown>[] = [];
   let proofArgs: Subclass<typeof Proof>[] = [];
   let allArgs: { type: 'proof' | 'witness' | 'generic'; index: number }[] = [];
   let genericArgs: Subclass<typeof GenericArgument>[] = [];
@@ -327,11 +328,13 @@ function sortMethodArguments(
 
 function isAsFields(
   type: unknown
-): type is AsFieldElements<unknown> & ObjectConstructor {
+): type is AsFieldsAndAux<unknown> & ObjectConstructor {
   return (
     (typeof type === 'function' || typeof type === 'object') &&
     type !== null &&
-    ['toFields', 'fromFields', 'sizeInFields'].every((s) => s in type)
+    ['toFields', 'fromFields', 'sizeInFields', 'toAuxiliary'].every(
+      (s) => s in type
+    )
   );
 }
 function isProof(type: unknown): type is typeof Proof {
@@ -381,11 +384,11 @@ type MethodInterface = {
   methodName: string;
   // TODO: unify types of arguments
   // "circuit types" should be flexible enough to encompass proofs and callback arguments
-  witnessArgs: AsFieldElements<unknown>[];
+  witnessArgs: AsFieldsAndAux<unknown>[];
   proofArgs: Subclass<typeof Proof>[];
   genericArgs: Subclass<typeof GenericArgument>[];
   allArgs: { type: 'witness' | 'proof' | 'generic'; index: number }[];
-  returnType?: AsFieldElements<unknown>;
+  returnType?: AsFieldsAndAux<unknown>;
 };
 
 function compileProgram(
@@ -555,11 +558,16 @@ function methodArgumentTypesAndValues(
   return typesAndValues;
 }
 
-function emptyValue<T>(type: AsFieldElements<T>) {
+function emptyValue<T>(type: AsFieldsAndAux<T> | AsFieldElements<T>) {
+  if ('toAuxiliary' in type)
+    return type.fromFields(
+      Array(type.sizeInFields()).fill(Field.zero),
+      type.toAuxiliary()
+    );
   return type.fromFields(Array(type.sizeInFields()).fill(Field.zero));
 }
 
-function emptyWitness<T>(type: AsFieldElements<T>) {
+function emptyWitness<T>(type: AsFieldsAndAux<T> | AsFieldElements<T>) {
   return Circuit.witness(type, () => emptyValue(type));
 }
 

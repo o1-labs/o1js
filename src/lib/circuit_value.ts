@@ -1,5 +1,10 @@
 import 'reflect-metadata';
-import { Circuit, JSONValue, AsFieldElements } from '../snarky.js';
+import {
+  Circuit,
+  JSONValue,
+  AsFieldElements,
+  AsFieldsAndAux,
+} from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
 import { HashInput } from './hash.js';
@@ -20,7 +25,7 @@ export {
 // internal API
 export {
   AsFieldsExtended,
-  AsFieldsAndAux,
+  AsFieldsAndAuxExtended as AsFieldsAndAux,
   AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,
@@ -86,6 +91,10 @@ abstract class CircuitValue {
     return res;
   }
 
+  static toAuxiliary(x?: any) {
+    return [];
+  }
+
   static toInput<T extends AnyConstructor>(
     this: T,
     v: InstanceType<T>
@@ -134,7 +143,8 @@ abstract class CircuitValue {
 
   static fromFields<T extends AnyConstructor>(
     this: T,
-    xs: Field[]
+    xs: Field[],
+    _aux?: any
   ): InstanceType<T> {
     const fields: [string, any][] = (this as any).prototype._fields;
     if (xs.length < fields.length) {
@@ -147,7 +157,10 @@ abstract class CircuitValue {
     for (let i = 0; i < fields.length; ++i) {
       const [key, propType] = fields[i];
       const propSize = propType.sizeInFields();
-      const propVal = propType.fromFields(xs.slice(offset, offset + propSize));
+      const propVal = propType.fromFields(
+        xs.slice(offset, offset + propSize),
+        []
+      );
       props[key] = propVal;
       offset += propSize;
     }
@@ -238,7 +251,7 @@ function prop(this: any, target: any, key: string) {
 }
 
 function circuitArray<T>(
-  elementType: AsFieldElements<T> | AsFieldsExtended<T>,
+  elementType: AsFieldsAndAux<T> | AsFieldsExtended<T>,
   length: number
 ): AsFieldsExtended<T[]> {
   return {
@@ -249,12 +262,19 @@ function circuitArray<T>(
     toFields(array: T[]) {
       return array.map((e) => elementType.toFields(e)).flat();
     },
-    fromFields(fields: Field[]) {
+    toAuxiliary(array?) {
+      let array_ = array ?? Array<undefined>(length).fill(undefined);
+      return array_?.map((e) => elementType.toAuxiliary(e));
+    },
+    fromFields(fields: Field[], aux: any[]) {
       let array = [];
-      let elementLength = elementType.sizeInFields();
-      let n = elementLength * length;
-      for (let i = 0; i < n; i += elementLength) {
-        array.push(elementType.fromFields(fields.slice(i, i + elementLength)));
+      let size = elementType.sizeInFields();
+      let n = length;
+      for (let i = 0, offset = 0; i < n; i++, offset += size) {
+        array[i] = elementType.fromFields(
+          fields.slice(offset, offset + size),
+          aux[i]
+        );
       }
       return array;
     },
@@ -281,7 +301,7 @@ function circuitArray<T>(
   };
 }
 
-function arrayProp<T>(elementType: AsFieldElements<T>, length: number) {
+function arrayProp<T>(elementType: AsFieldsAndAux<T>, length: number) {
   return function (target: any, key: string) {
     if (!target.hasOwnProperty('_fields')) {
       target._fields = [];
@@ -291,7 +311,7 @@ function arrayProp<T>(elementType: AsFieldElements<T>, length: number) {
 }
 
 function matrixProp<T>(
-  elementType: AsFieldElements<T>,
+  elementType: AsFieldsAndAux<T>,
   nRows: number,
   nColumns: number
 ) {
@@ -396,10 +416,18 @@ function circuitMain(
 let primitives = new Set(['Field', 'Bool', 'Scalar', 'Group']);
 let complexTypes = new Set(['object', 'function']);
 
-type AsFieldsExtended<T> = AsFieldElements<T> & {
+type AsFieldsExtended<T> = AsFieldsAndAux<T> & {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
   toJSON: (x: T) => JSONValue;
 };
+
+type JSONCircuitType<T> = T extends [infer U, ...infer R]
+  ? [AsFieldsExtended<U>, ...JSONCircuitType<R>]
+  : T extends (infer U)[]
+  ? JSONCircuitType<U>[]
+  : T extends Record<string, any>
+  ? { [K in keyof T]: JSONCircuitType<T[K]> }
+  : AsFieldsExtended<T>[];
 
 // TODO properly type this at the interface
 // create recursive type that describes JSON-like structures of circuit types
@@ -429,6 +457,17 @@ function circuitValue<T>(
     if ('toFields' in typeObj) return typeObj.toFields(obj);
     return objectKeys.map((k) => toFields(typeObj[k], obj[k])).flat();
   }
+  function toAuxiliary(typeObj: any, obj?: any): any[] {
+    if (typeObj === Number || typeObj === String || typeObj === BigInt)
+      return [obj];
+    if (typeObj === undefined || typeObj === null) return [];
+    if (!complexTypes.has(typeof typeObj))
+      throw Error(`circuitValue: unsupported type "${typeObj}"`);
+    if (Array.isArray(typeObj))
+      return typeObj.map((t, i) => toAuxiliary(t, obj?.[i]));
+    if ('toAuxiliary' in typeObj) return typeObj.toAuxiliary(obj);
+    return objectKeys.map((k) => toAuxiliary(typeObj[k], obj?.[k]));
+  }
   function toInput(typeObj: any, obj: any): HashInput {
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return {};
     if (Array.isArray(typeObj)) {
@@ -445,6 +484,7 @@ function circuitValue<T>(
       .reduce(HashInput.append, {});
   }
   function toJSON(typeObj: any, obj: any): JSONValue {
+    if (typeObj === BigInt) return obj.toString();
     if (!complexTypes.has(typeof typeObj) || typeObj === null)
       return obj ?? null;
     if (Array.isArray(typeObj)) return typeObj.map((t, i) => toJSON(t, obj[i]));
@@ -453,22 +493,32 @@ function circuitValue<T>(
       objectKeys.map((k) => [k, toJSON(typeObj[k], obj[k])])
     );
   }
-  function fromFields(typeObj: any, fields: Field[]): any {
+  function fromFields(typeObj: any, fields: Field[], aux: any[] = []): any {
+    if (typeObj === Number || typeObj === String || typeObj === BigInt)
+      return aux[0];
+    if (typeObj === undefined || typeObj === null) return typeObj;
+    if (!complexTypes.has(typeof typeObj))
+      throw Error(`circuitValue: unsupported type "${typeObj}"`);
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return null;
     if (Array.isArray(typeObj)) {
       let array = [];
+      let i = 0;
       let offset = 0;
       for (let subObj of typeObj) {
         let size = sizeInFields(subObj);
-        array.push(fromFields(subObj, fields.slice(offset, offset + size)));
+        array.push(
+          fromFields(subObj, fields.slice(offset, offset + size), aux[i])
+        );
         offset += size;
+        i++;
       }
       return array;
     }
-    if ('fromFields' in typeObj) return typeObj.fromFields(fields);
+    if ('fromFields' in typeObj) return typeObj.fromFields(fields, aux);
     let values = fromFields(
       objectKeys.map((k) => typeObj[k]),
-      fields
+      fields,
+      aux
     );
     return Object.fromEntries(objectKeys.map((k, i) => [k, values[i]]));
   }
@@ -482,9 +532,11 @@ function circuitValue<T>(
   return {
     sizeInFields: () => sizeInFields(typeObj),
     toFields: (obj: T) => toFields(typeObj, obj),
+    toAuxiliary: (obj?) => toAuxiliary(typeObj, obj),
     toInput: (obj: T) => toInput(typeObj, obj),
     toJSON: (obj: T) => toJSON(typeObj, obj),
-    fromFields: (fields: Field[]) => fromFields(typeObj, fields) as T,
+    fromFields: (fields: Field[], aux: any[]) =>
+      fromFields(typeObj, fields, aux) as T,
     check: (obj: T) => check(typeObj, obj),
   };
 }
@@ -594,6 +646,19 @@ function toConstant<T>(type: AsFieldElements<T>, value: T): T {
 }
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
+Circuit.witness = function <
+  T,
+  S extends AsFieldsAndAux<T> | AsFieldElements<T> = AsFieldsAndAux<T>
+>(type: S, compute: () => T) {
+  let value: T | undefined;
+  let fields = Circuit._witness(type, () => {
+    value = compute();
+    return value;
+  });
+  let aux = 'toAuxiliary' in type ? type.toAuxiliary(value) : [];
+  return type.fromFields(fields, aux);
+};
+
 Circuit.array = circuitArray;
 
 Circuit.switch = function <T, A extends AsFieldElements<T>>(
@@ -645,7 +710,10 @@ Circuit.constraintSystem = function <T>(f: () => T) {
 };
 
 // TODO: very likely, this is how Circuit.witness should behave
-function witness<T>(type: AsFieldElements<T>, compute: () => T) {
+function witness<T>(
+  type: AsFieldsAndAux<T> | AsFieldElements<T>,
+  compute: () => T
+) {
   return inCheckedComputation() ? Circuit.witness(type, compute) : compute();
 }
 
@@ -659,7 +727,7 @@ let memoizationContext = Context.create<{
  * Like Circuit.witness, but memoizes the witness during transaction construction
  * for reuse by the prover. This is needed to witness non-deterministic values.
  */
-function memoizeWitness<T>(type: AsFieldElements<T>, compute: () => T) {
+function memoizeWitness<T>(type: AsFieldsAndAux<T>, compute: () => T) {
   return witness(type, () => {
     if (!memoizationContext.has()) return compute();
     let context = memoizationContext.get();
@@ -671,7 +739,8 @@ function memoizeWitness<T>(type: AsFieldElements<T>, compute: () => T) {
       memoized[currentIndex] = currentValue;
     }
     context.currentIndex += 1;
-    return type.fromFields(currentValue);
+    // FIXME
+    return type.fromFields(currentValue, []);
   });
 }
 
@@ -686,7 +755,7 @@ function getBlindingValue() {
 
 // "complex" circuit values which have auxiliary data, and have to be hashed
 
-type AsFieldsAndAux<T, TJson> = {
+type AsFieldsAndAuxExtended<T, TJson> = {
   sizeInFields(): number;
   toFields(value: T): Field[];
   toAuxiliary(value?: T): any[];
@@ -699,7 +768,7 @@ type AsFieldsAndAux<T, TJson> = {
 // convert from circuit values
 function fromCircuitValue<T, A extends AsFieldsExtended<T>, TJson = JSONValue>(
   type: A
-): AsFieldsAndAux<T, TJson> {
+): AsFieldsAndAuxExtended<T, TJson> {
   return {
     sizeInFields() {
       return type.sizeInFields();
@@ -707,11 +776,11 @@ function fromCircuitValue<T, A extends AsFieldsExtended<T>, TJson = JSONValue>(
     toFields(value) {
       return type.toFields(value);
     },
-    toAuxiliary(_) {
-      return [];
+    toAuxiliary(value) {
+      return type.toAuxiliary(value);
     },
-    fromFields(fields) {
-      return type.fromFields(fields);
+    fromFields(fields, aux) {
+      return type.fromFields(fields, aux);
     },
     check(value) {
       type.check(value);
@@ -725,6 +794,6 @@ function fromCircuitValue<T, A extends AsFieldsExtended<T>, TJson = JSONValue>(
   };
 }
 
-const AsFieldsAndAux = {
+const AsFieldsAndAuxExtended = {
   fromCircuitValue,
 };

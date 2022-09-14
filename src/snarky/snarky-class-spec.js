@@ -205,7 +205,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'witness',
+        name: '_witness',
         type: 'function',
       },
       {

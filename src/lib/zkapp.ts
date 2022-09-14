@@ -4,9 +4,10 @@ import {
   AsFieldElements,
   Ledger,
   Pickles,
-  InferAsFieldElements,
   Poseidon as Poseidon_,
   JSONValue,
+  AsFieldsAndAux,
+  InferAsFieldsAndAux,
 } from '../snarky.js';
 import {
   Circuit,
@@ -910,13 +911,13 @@ class SmartContract {
   }
 }
 
-type Reducer<Action> = { actionType: AsFieldElements<Action> };
+type Reducer<Action> = { actionType: AsFieldsAndAux<Action> };
 
 type ReducerReturn<Action> = {
   dispatch(action: Action): void;
   reduce<State>(
     actions: Action[][],
-    stateType: AsFieldElements<State>,
+    stateType: AsFieldsAndAux<State>,
     reduce: (state: State, action: Action) => State,
     initial: { state: State; actionsHash: Field },
     options?: { maxTransactionsWithActions?: number }
@@ -955,7 +956,7 @@ class ${contract.constructor.name} extends SmartContract {
 
     reduce<S>(
       actionLists: A[][],
-      stateType: AsFieldElements<S>,
+      stateType: AsFieldsAndAux<S>,
       reduce: (state: S, action: A) => S,
       { state, actionsHash }: { state: S; actionsHash: Field },
       { maxTransactionsWithActions = 32 } = {}
@@ -1010,8 +1011,11 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
           let newState = Circuit.witness(stateType, () => {
             // TODO: why doesn't this work without the toConstant mapping?
-            let { toFields, fromFields } = stateType;
-            return fromFields(toFields(state).map((x) => x.toConstant()));
+            let { toFields, fromFields, toAuxiliary } = stateType;
+            return fromFields(
+              toFields(state).map((x) => x.toConstant()),
+              toAuxiliary(state)
+            );
             // return state;
           });
           Circuit.assertEqual(newState, state);
@@ -1070,7 +1074,9 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
               reducer.actionType.fromFields(
                 action.map((fieldAsString: string) =>
                   Field.fromString(fieldAsString)
-                )
+                ),
+                // FIXME
+                []
               )
             )
           );
@@ -1228,7 +1234,7 @@ function signFeePayer(
  */
 function declareMethods<T extends typeof SmartContract>(
   SmartContract: T,
-  methodArguments: Record<string, AsFieldElements<unknown>[]>
+  methodArguments: Record<string, AsFieldsAndAux<unknown>[]>
 ) {
   for (let key in methodArguments) {
     let argumentTypes = methodArguments[key];
@@ -1241,8 +1247,8 @@ function declareMethods<T extends typeof SmartContract>(
 }
 
 const Reducer: (<
-  T extends AsFieldElements<any>,
-  A extends InferAsFieldElements<T>
+  T extends AsFieldsAndAux<any>,
+  A extends InferAsFieldsAndAux<T>
 >(reducer: {
   actionType: T;
 }) => ReducerReturn<A>) & {

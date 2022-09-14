@@ -2,6 +2,7 @@ export {
   Group,
   Scalar,
   AsFieldElements,
+  AsFieldsAndAux,
   Ledger,
   isReady,
   shutdown,
