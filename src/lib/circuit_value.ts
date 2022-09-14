@@ -594,6 +594,8 @@ function toConstant<T>(type: AsFieldElements<T>, value: T): T {
 }
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
+Circuit.array = circuitArray;
+
 Circuit.switch = function <T, A extends AsFieldElements<T>>(
   mask: Bool[],
   type: A,

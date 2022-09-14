@@ -536,6 +536,11 @@ declare class Circuit {
     result: T;
   };
 
+  static array<T>(
+    elementType: AsFieldElements<T>,
+    length: number
+  ): AsFieldElements<T[]>;
+
   static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
 
   static assertEqual<T>(x: T, y: T): void;
@@ -687,7 +692,12 @@ declare const Poseidon: {
     isChecked: boolean
   ): [Field, Field, Field];
   prefixes: Record<
-    'event' | 'events' | 'sequenceEvents' | 'body' | 'accountUpdateCons' | 'accountUpdateNode',
+    | 'event'
+    | 'events'
+    | 'sequenceEvents'
+    | 'body'
+    | 'accountUpdateCons'
+    | 'accountUpdateNode',
     string
   >;
   spongeCreate(isChecked: boolean): unknown;
