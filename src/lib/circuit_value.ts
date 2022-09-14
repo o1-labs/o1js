@@ -711,12 +711,7 @@ function fromCircuitValue<T, A extends AsFieldsExtended<T>, TJson = JSONValue>(
       return [];
     },
     fromFields(fields) {
-      let myFields: Field[] = [];
-      let size = type.sizeInFields();
-      for (let i = 0; i < size; i++) {
-        myFields.push(fields.pop()!);
-      }
-      return type.ofFields(myFields);
+      return type.ofFields(fields);
     },
     check(value) {
       type.check(value);

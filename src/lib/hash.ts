@@ -146,8 +146,7 @@ const TokenSymbolPure: AsFieldsAndAux<TokenSymbol, string> = {
   toAuxiliary(value) {
     return [value?.symbol ?? ''];
   },
-  fromFields(fields, [symbol]) {
-    let field = fields.pop()!;
+  fromFields([field], [symbol]) {
     return { symbol, field };
   },
   sizeInFields() {

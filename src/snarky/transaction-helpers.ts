@@ -151,15 +151,6 @@ function fromFields(
   fields: Field[],
   aux: any[],
   customTypes: CustomTypes
-) {
-  return fromFieldsReversed(typeData, [...fields].reverse(), aux, customTypes);
-}
-
-function fromFieldsReversed(
-  typeData: Layout,
-  fields: Field[],
-  aux: any[],
-  customTypes: CustomTypes
 ): any {
   let { checkedTypeName } = typeData;
   if (checkedTypeName) {
@@ -167,22 +158,32 @@ function fromFieldsReversed(
     return customTypes[checkedTypeName].fromFields(fields, aux);
   }
   if (typeData.type === 'array') {
-    return aux.map((aux) =>
-      fromFieldsReversed(typeData.inner, fields, aux, customTypes)
-    );
+    let size = sizeInFields(typeData.inner, customTypes);
+    let length = aux.length;
+    let value = [];
+    for (let i = 0, offset = 0; i < length; i++, offset += size) {
+      value[i] = fromFields(
+        typeData.inner,
+        fields.slice(offset, offset + size),
+        aux[i],
+        customTypes
+      );
+    }
+    return value;
   }
   if (typeData.type === 'option') {
     let { optionType, inner } = typeData;
     switch (optionType) {
       case 'flaggedOption': {
-        let isSome = Bool.Unsafe.ofField(fields.pop()!);
-        let value = fromFieldsReversed(inner, fields, aux, customTypes);
+        let [first, ...rest] = fields;
+        let isSome = Bool.Unsafe.ofField(first);
+        let value = fromFields(inner, rest, aux, customTypes);
         return { isSome, value };
       }
       case 'orUndefined': {
         let [isDefined, value] = aux;
         return isDefined
-          ? fromFieldsReversed(inner, fields, value, customTypes)
+          ? fromFields(inner, fields, value, customTypes)
           : undefined;
       }
       default:
@@ -192,13 +193,17 @@ function fromFieldsReversed(
   if (typeData.type === 'object') {
     let { name, keys, entries } = typeData;
     let values: Record<string, any> = {};
+    let offset = 0;
     for (let i = 0; i < keys.length; i++) {
-      values[keys[i]] = fromFieldsReversed(
-        entries[keys[i]],
-        fields,
+      let typeEntry = entries[keys[i]];
+      let size = sizeInFields(typeEntry, customTypes);
+      values[keys[i]] = fromFields(
+        typeEntry,
+        fields.slice(offset, offset + size),
         aux[i],
         customTypes
       );
+      offset += size;
     }
     return values;
   }

@@ -134,8 +134,7 @@ const Events: AsFieldsAndAux<DataAsHash<Field[][]>, string[][]> = {
   toAuxiliary(value) {
     return [value?.data ?? []];
   },
-  fromFields(fields, [data]) {
-    let hash = fields.pop()!;
+  fromFields([hash], [data]) {
     return { data, hash };
   },
   toJSON({ data }) {
@@ -157,8 +156,7 @@ const StringWithHash: AsFieldsAndAux<DataAsHash<string>, string> = {
   toAuxiliary(value) {
     return [value?.data ?? ''];
   },
-  fromFields(fields, [data]) {
-    let hash = fields.pop()!;
+  fromFields([hash], [data]) {
     return { data, hash };
   },
   toJSON({ data }) {
