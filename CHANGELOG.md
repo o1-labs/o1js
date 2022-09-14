@@ -71,7 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `CircuitValue.fromObject({ prop1, prop2 })` is a new, better-typed alternative for using the base constructor.
   - Fixed: the overridden constructor is now free to have any argument structure -- previously, arguments had to be the props in their declared order. I.e., the behaviour that's now used by the base constructor used to be forced on all constructors, which is no longer the case.
 - `Mina.transaction` improvements
-  - Support zkApp proofs when there are other parties in the same transaction block https://github.com/o1-labs/snarkyjs/pull/280
+  - Support zkApp proofs when there are other account updates in the same transaction block https://github.com/o1-labs/snarkyjs/pull/280
   - Support multiple independent zkApp proofs in one transaction block https://github.com/o1-labs/snarkyjs/pull/296
 - Add previously unimplemented preconditions, like `this.network.timestamp` https://github.com/o1-labs/snarkyjs/pull/324 https://github.com/MinaProtocol/mina/pull/11577
 - Improve error messages thrown from Wasm, by making Rust's `panic` log to the JS console https://github.com/MinaProtocol/mina/pull/11644

@@ -228,7 +228,7 @@ function wrapMethod(
                 checkPublicInput(publicInput, accountUpdate);
 
                 // check the self accountUpdate right after calling the method
-                // TODO: this needs to be done in a unified way for all parties that are created
+                // TODO: this needs to be done in a unified way for all account updates that are created
                 assertPreconditionInvariants(accountUpdate);
                 cleanPreconditionsCache(accountUpdate);
                 assertStatePrecondition(this);
@@ -247,7 +247,7 @@ function wrapMethod(
             return result;
           } else {
             // called smart contract at the top level, in a transaction!
-            // => attach ours to the current list of parties
+            // => attach ours to the current list of account updates
             let accountUpdate = context.selfUpdate;
             if (!context.isCallback) {
               Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
