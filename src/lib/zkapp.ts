@@ -6,6 +6,7 @@ import {
   Pickles,
   InferAsFieldElements,
   Poseidon as Poseidon_,
+  JSONValue,
 } from '../snarky.js';
 import {
   Circuit,
@@ -206,10 +207,36 @@ function wrapMethod(
                 accountUpdate.body.callData = Poseidon.hash(callDataFields);
 
                 // connect the public input to the accountUpdate & child account updates we created
+                if (DEBUG_PUBLIC_INPUT_CHECK) {
+                  // TODO: print a nice diff string instead of the two objects
+                  // something like `expect` or `json-diff`, but web-compatible
+                  function diff(a: JSONValue, b: JSONValue) {
+                    if (JSON.stringify(a) !== JSON.stringify(b)) {
+                      console.log('inconsistent account updates:');
+                      console.dir(a, { depth: Infinity });
+                      console.dir(b, { depth: Infinity });
+                    }
+                  }
+                  Circuit.asProver(() => {
+                    let inputAccountUpdate: AccountUpdate =
+                      snarkContext.get().proverData;
+                    diff(accountUpdate.toJSON(), inputAccountUpdate.toJSON());
+
+                    let nChildren =
+                      inputAccountUpdate.children.accountUpdates.length;
+                    for (let i = 0; i < nChildren; i++) {
+                      let inputChild =
+                        inputAccountUpdate.children.accountUpdates[i].toJSON();
+                      let child =
+                        accountUpdate.children.accountUpdates[i].toJSON();
+                      diff(child, inputChild);
+                    }
+                  });
+                }
                 checkPublicInput(publicInput, accountUpdate);
 
                 // check the self accountUpdate right after calling the method
-                // TODO: this needs to be done in a unified way for all parties that are created
+                // TODO: this needs to be done in a unified way for all account updates that are created
                 assertPreconditionInvariants(accountUpdate);
                 cleanPreconditionsCache(accountUpdate);
                 assertStatePrecondition(this);
@@ -228,7 +255,7 @@ function wrapMethod(
             return result;
           } else {
             // called smart contract at the top level, in a transaction!
-            // => attach ours to the current list of parties
+            // => attach ours to the current list of account updates
             let accountUpdate = context.selfUpdate;
             if (!context.isCallback) {
               Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
@@ -1229,3 +1256,15 @@ const Reducer: (<
   'initialActionsHash',
   { get: SequenceEvents.emptySequenceState }
 ) as any;
+
+/**
+ * this is useful to debug a very common error: when the consistency check between
+ * -) the account update that went into the public input, and
+ * -) the account update constructed by the prover
+ * fails.
+ * toggling this will print the two account updates in addition to the unhelpful failed assertion error when the check fails,
+ * making it easier to see where the problem lies.
+ * TODO refine this into a good error message that's always used, not just for debugging
+ * TODO find or write library that can print nice JS object diffs
+ */
+const DEBUG_PUBLIC_INPUT_CHECK = false;

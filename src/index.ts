@@ -35,7 +35,7 @@ export {
   Account,
 } from './lib/zkapp.js';
 export { state, State, declareState } from './lib/state.js';
-export { Proof, SelfProof, ZkProgram, verify } from './lib/proof_system.js';
+export { Proof, SelfProof, verify } from './lib/proof_system.js';
 
 export {
   Token,
@@ -56,6 +56,7 @@ export * as Encoding from './lib/encoding.js';
 export { Character, CircuitString } from './lib/string.js';
 
 // experimental APIs
+import { ZkProgram } from './lib/proof_system.js';
 import { Reducer, Callback, accountUpdateFromCallback } from './lib/zkapp.js';
 import {
   createChildAccountUpdate,
@@ -77,6 +78,7 @@ const Experimental_ = {
   memoizeWitness,
   MerkleTree,
   MerkleWitness,
+  ZkProgram,
 };
 
 type Callback_<Result> = Callback<Result>;
@@ -86,6 +88,7 @@ type Callback_<Result> = Callback<Result>;
  * (Not unstable in the sense that they are less functional or tested than other parts.)
  */
 namespace Experimental {
+  export let ZkProgram = Experimental_.ZkProgram;
   export let Reducer = Experimental_.Reducer;
   export let createChildAccountUpdate = Experimental_.createChildAccountUpdate;
   export let makeChildAccountUpdate = Experimental_.makeChildAccountUpdate;

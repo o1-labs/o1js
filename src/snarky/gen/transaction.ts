@@ -13,14 +13,14 @@ import {
   StringWithHash,
   Events,
   SequenceEvents,
-} from '../parties-leaves.js';
-import { asFieldsAndAux, AsFieldsAndAux } from '../parties-helpers.js';
-import * as Json from './parties-json.js';
+} from '../transaction-leaves.js';
+import { asFieldsAndAux, AsFieldsAndAux } from '../transaction-helpers.js';
+import * as Json from './transaction-json.js';
 import { jsLayout } from './js-layout.js';
 
 export { customTypes, ZkappCommand, AccountUpdate };
 export { Json };
-export * from '../parties-leaves.js';
+export * from '../transaction-leaves.js';
 
 type CustomTypes = {
   StringWithHash: AsFieldsAndAux<

@@ -1,5 +1,5 @@
 import { Field, Bool } from '../lib/core.js';
-import * as Json from './gen/parties-json.js';
+import * as Json from './gen/transaction-json.js';
 import { UInt32, UInt64, Sign } from '../lib/int.js';
 import { TokenSymbol } from '../lib/hash.js';
 import { PublicKey } from '../lib/signature.js';

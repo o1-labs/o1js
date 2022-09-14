@@ -46,7 +46,7 @@ class Dex extends SmartContract {
     let tokenY = new TokenContract(this.tokenY);
 
     // get balances of X and Y token
-    // TODO: this creates extra parties. we need to reuse these by passing them to or returning them from transfer()
+    // TODO: this creates extra account updates. we need to reuse these by passing them to or returning them from transfer()
     // but for that, we need the @method argument generalization
     let dexX = AccountUpdate.create(this.address, tokenX.experimental.token.id);
     let x = dexX.account.balance.get();
@@ -197,11 +197,11 @@ class DexTokenHolder extends SmartContract {
     let dy = y.mul(dl).div(l);
     this.send({ to: user, amount: dy });
 
-    // return l so callers don't have to walk their child parties to get it
+    // return l so callers don't have to walk their child account updates to get it
     return l;
   }
 
-  // more complicated circuit, where we trigger the Y(other)-lqXY trade in our child parties and then add the X(our) part
+  // more complicated circuit, where we trigger the Y(other)-lqXY trade in our child account updates and then add the X(our) part
   @method redeemLiquidity(
     user: PublicKey,
     dl: UInt64,
@@ -221,12 +221,12 @@ class DexTokenHolder extends SmartContract {
     let dy;
     {
       // NOTHING IN THIS BLOCK SHOULD BE NECESSARY if we're properly proving the callback call.
-      // walk into child parties, to assert the callback was called correctly
+      // walk into child account updates, to assert the callback was called correctly
 
-      // TODO: getting the account update here w/o messing up the parties structure is error-prone and non-obvious
+      // TODO: getting the account update here w/o messing up the account updates structure is error-prone and non-obvious
       let tokenYUpdate = AccountUpdate.witnessTree(
         circuitValue<null>(null),
-        // need to walk two layers deeper, and need to respect the actual max number of child parties
+        // need to walk two layers deeper, and need to respect the actual max number of child account updates
         [[undefined, undefined, undefined], undefined, undefined],
         () => {
           // remove existing calls hash, because tokenY.authorize just witnesses it, which would mess up our circuit and
@@ -339,14 +339,14 @@ class TokenContract extends SmartContract {
 
   // let a zkapp do whatever it wants, as long as the token supply stays constant
   @method authorize(callback: Experimental.Callback<any>) {
-    let layout = [[3, 0, 0], 0, 0]; // these are 10 child parties we allow, in a left-biased tree of width 3
+    let layout = [[3, 0, 0], 0, 0]; // these are 10 child account updates we allow, in a left-biased tree of width 3
     // TODO: this should also return what the callback returns, and authorize should pass it on!
     let zkappUpdate = Experimental.accountUpdateFromCallback(
       this,
       layout,
       callback
     );
-    // walk parties to see if balances for this token cancel
+    // walk account updates to see if balances for this token cancel
     let balance = balanceSum(zkappUpdate, this.experimental.token.id);
     balance.assertEquals(Int64.zero);
   }

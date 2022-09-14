@@ -1,7 +1,7 @@
 /**
  * This is just two zkapps mixed together in one file, with their respective interactions bundled
  * in the same transaction, to check that this actually works.
- * -) "simple zkapp", testing state updates + events + account preconditions + child parties
+ * -) "simple zkapp", testing state updates + events + account preconditions + child account updates
  * -) "counter rollup", testing state updates + sequence events / reducer
  */
 

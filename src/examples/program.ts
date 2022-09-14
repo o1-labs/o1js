@@ -1,6 +1,6 @@
-import { SelfProof, Field, ZkProgram, verify } from 'snarkyjs';
+import { SelfProof, Field, Experimental, verify } from 'snarkyjs';
 
-let MyProgram = ZkProgram({
+let MyProgram = Experimental.ZkProgram({
   publicInput: Field,
 
   methods: {
@@ -23,7 +23,7 @@ let MyProgram = ZkProgram({
   },
 });
 
-let MyProof = ZkProgram.Proof(MyProgram);
+let MyProof = Experimental.ZkProgram.Proof(MyProgram);
 
 console.log('program digest', MyProgram.digest());
 

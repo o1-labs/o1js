@@ -1,3 +1,8 @@
+/**
+ * Demonstrates how to use snarkyjs in pure JavaScript
+ *
+ * Decorators `@method` and `@state` are replaced by `declareState` and `declareMethods`.
+ */
 import {
   Field,
   State,

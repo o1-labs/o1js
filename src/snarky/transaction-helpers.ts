@@ -1,4 +1,4 @@
-import { TypeMap } from './parties-leaves.js';
+import { TypeMap } from './transaction-leaves.js';
 import { Field, Bool, Circuit } from '../snarky.js';
 import { circuitArray, AsFieldsAndAux } from '../lib/circuit_value.js';
 import { HashInput } from '../lib/hash.js';

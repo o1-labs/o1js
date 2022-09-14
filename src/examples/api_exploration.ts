@@ -41,7 +41,6 @@ const z = x0.mul(x1).add(b).div(234).square().neg().sub('67').add(false);
 
 /* Field elements can be converted to their full, little endian binary representation. */
 let bits: Bool[] = z.toBits();
-console.log(bits.length);
 
 /* If you know (or want to assert) that a field element fits in fewer bits, you can
    also unpack to a sequence of bits of a specified length. This is useful for doing
@@ -165,4 +164,3 @@ let g3 = g0.add(g1).neg().sub(g2);
    are distinct and represent elements of distinct fields. */
 let s0: Scalar = Scalar.random();
 let g4: Group = g3.scale(s0);
-console.log(Group.toJSON(g4));
