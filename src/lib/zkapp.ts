@@ -1262,8 +1262,9 @@ const Reducer: (<
  * -) the account update that went into the public input, and
  * -) the account update constructed by the prover
  * fails.
- * toggling this will print an `expect` diff instead of an unhelpful failed assertion error when the check fails,
- * making it easy to see where the two updates differ.
+ * toggling this will print the two account updates in addition to the unhelpful failed assertion error when the check fails,
+ * making it easier to see where the problem lies.
  * TODO refine this into a good error message that's always used, not just for debugging
+ * TODO find or write library that can print nice JS object diffs
  */
 const DEBUG_PUBLIC_INPUT_CHECK = false;
