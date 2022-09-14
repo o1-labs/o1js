@@ -62,7 +62,7 @@ const config: PlaywrightTestConfig = {
   ],
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run e2e:run-server',
+    command: process.env.CI ? '' : 'npm run e2e:run-server',
     url: 'http://localhost:8000',
     timeout: 3 * 60 * 1000,
   },
