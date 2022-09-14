@@ -543,7 +543,7 @@ function sendZkapp(
 function sendZkappQuery(json: string) {
   return `mutation {
   sendZkapp(input: {
-    parties: ${removeJsonQuotes(json)}
+    zkappCommand: ${removeJsonQuotes(json)}
   }) {
     zkapp {
       hash
@@ -552,14 +552,14 @@ function sendZkappQuery(json: string) {
         failures
         index
       }
-      parties {
+      zkappCommand {
         memo
         feePayer {
           body {
             publicKey
           }
         }
-        otherParties {
+        accountUpdates {
           body {
             publicKey
             useFullCommitment
