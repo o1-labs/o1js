@@ -48,7 +48,9 @@ let result = Circuit.constraintSystem(() => {
   Circuit.assertEqual(Types.AccountUpdate, accountUpdateWitness, accountUpdate);
 });
 
-console.log(`a accountUpdate has ${Types.AccountUpdate.sizeInFields()} fields`);
 console.log(
-  `witnessing a accountUpdate and comparing it to another one creates ${result.rows} rows`
+  `an account update has ${Types.AccountUpdate.sizeInFields()} fields`
+);
+console.log(
+  `witnessing an account update and comparing it to another one creates ${result.rows} rows`
 );

@@ -104,18 +104,17 @@ function toAuxiliary(typeData: Layout, value: any, customTypes: CustomTypes) {
       map(type, value) {
         return type.toAuxiliary(value);
       },
-      reduceArray(array, { staticLength }) {
-        let length = staticLength ?? array.length;
-        return [length].concat(array.flat());
+      reduceArray(array) {
+        return array;
       },
       reduceObject(keys, object) {
-        return keys.map((key) => object[key]).flat();
+        return keys.map((key) => object[key]);
       },
-      reduceFlaggedOption({ isSome, value }) {
-        return [isSome, value].flat();
+      reduceFlaggedOption({ value }) {
+        return value;
       },
       reduceOrUndefined(value) {
-        return value === undefined ? [false] : [true].concat(value);
+        return value === undefined ? [false] : [true, value];
       },
       customTypes,
     },
@@ -153,12 +152,7 @@ function fromFields(
   aux: any[],
   customTypes: CustomTypes
 ) {
-  return fromFieldsReversed(
-    typeData,
-    [...fields].reverse(),
-    [...aux].reverse(),
-    customTypes
-  );
+  return fromFieldsReversed(typeData, [...fields].reverse(), aux, customTypes);
 }
 
 function fromFieldsReversed(
@@ -173,25 +167,24 @@ function fromFieldsReversed(
     return customTypes[checkedTypeName].fromFields(fields, aux);
   }
   if (typeData.type === 'array') {
-    let value = [];
-    let length = aux.pop()!;
-    for (let i = 0; i < length; i++) {
-      value[i] = fromFieldsReversed(typeData.inner, fields, aux, customTypes);
-    }
-    return value;
+    return aux.map((aux) =>
+      fromFieldsReversed(typeData.inner, fields, aux, customTypes)
+    );
   }
   if (typeData.type === 'option') {
     let { optionType, inner } = typeData;
     switch (optionType) {
-      case 'flaggedOption':
+      case 'flaggedOption': {
         let isSome = Bool.Unsafe.ofField(fields.pop()!);
         let value = fromFieldsReversed(inner, fields, aux, customTypes);
         return { isSome, value };
-      case 'orUndefined':
-        let isDefined = aux.pop()!;
+      }
+      case 'orUndefined': {
+        let [isDefined, value] = aux;
         return isDefined
-          ? fromFieldsReversed(inner, fields, aux, customTypes)
+          ? fromFieldsReversed(inner, fields, value, customTypes)
           : undefined;
+      }
       default:
         throw Error('bug');
     }
@@ -199,8 +192,13 @@ function fromFieldsReversed(
   if (typeData.type === 'object') {
     let { name, keys, entries } = typeData;
     let values: Record<string, any> = {};
-    for (let key of keys) {
-      values[key] = fromFieldsReversed(entries[key], fields, aux, customTypes);
+    for (let i = 0; i < keys.length; i++) {
+      values[keys[i]] = fromFieldsReversed(
+        entries[keys[i]],
+        fields,
+        aux[i],
+        customTypes
+      );
     }
     return values;
   }
@@ -283,8 +281,11 @@ function layoutFold<T, R>(
     return spec.map(spec.customTypes[checkedTypeName], value);
   }
   if (typeData.type === 'array') {
-    let v: T[] | undefined = value as any;
-    let array = v?.map((x: T) => layoutFold(spec, typeData.inner, x)) ?? [];
+    let v: T[] | undefined[] | undefined = value as any;
+    if (typeData.staticLength != null && v === undefined) {
+      v = Array<undefined>(typeData.staticLength).fill(undefined);
+    }
+    let array = v?.map((x) => layoutFold(spec, typeData.inner, x)) ?? [];
     return spec.reduceArray(array, typeData);
   }
   if (typeData.type === 'option') {

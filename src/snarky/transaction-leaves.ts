@@ -105,13 +105,13 @@ const TypeMap: {
     ...emptyType,
     toAuxiliary: (value = 0) => [value],
     toJSON: (value) => value,
-    fromFields: (_, aux) => aux.pop()!,
+    fromFields: (_, [value]) => value,
   },
   string: {
     ...emptyType,
     toAuxiliary: (value = '') => [value],
     toJSON: (value) => value,
-    fromFields: (_, aux) => aux.pop()!,
+    fromFields: (_, [value]) => value,
   },
   null: emptyType,
   undefined: {
@@ -134,9 +134,8 @@ const Events: AsFieldsAndAux<DataAsHash<Field[][]>, string[][]> = {
   toAuxiliary(value) {
     return [value?.data ?? []];
   },
-  fromFields(fields, aux) {
+  fromFields(fields, [data]) {
     let hash = fields.pop()!;
-    let data = aux.pop()!;
     return { data, hash };
   },
   toJSON({ data }) {
@@ -158,9 +157,8 @@ const StringWithHash: AsFieldsAndAux<DataAsHash<string>, string> = {
   toAuxiliary(value) {
     return [value?.data ?? ''];
   },
-  fromFields(fields, aux) {
+  fromFields(fields, [data]) {
     let hash = fields.pop()!;
-    let data = aux.pop()!;
     return { data, hash };
   },
   toJSON({ data }) {
