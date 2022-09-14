@@ -35,7 +35,6 @@ jobs:
           INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   Build-And-Test-Web:
-    timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
