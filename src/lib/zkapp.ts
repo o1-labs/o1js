@@ -6,6 +6,7 @@ import {
   Pickles,
   InferAsFieldElements,
   Poseidon as Poseidon_,
+  JSONValue,
 } from '../snarky.js';
 import {
   Circuit,
@@ -62,7 +63,6 @@ import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import { Types } from '../snarky/types.js';
 import { Poseidon } from './hash.js';
 import * as Encoding from './encoding.js';
-import { expect } from 'expect';
 
 // external API
 export {
@@ -208,12 +208,20 @@ function wrapMethod(
 
                 // connect the public input to the accountUpdate & child account updates we created
                 if (DEBUG_PUBLIC_INPUT_CHECK) {
+                  // TODO: print a nice diff string instead of the two objects
+                  // something like `expect` or `json-diff`, but web-compatible
+                  function diff(a: JSONValue, b: JSONValue) {
+                    if (JSON.stringify(a) !== JSON.stringify(b)) {
+                      console.log('inconsistent account updates:');
+                      console.dir(a, { depth: Infinity });
+                      console.dir(b, { depth: Infinity });
+                    }
+                  }
                   Circuit.asProver(() => {
                     let inputAccountUpdate: AccountUpdate =
                       snarkContext.get().proverData;
-                    expect(accountUpdate.toJSON()).toEqual(
-                      inputAccountUpdate.toJSON()
-                    );
+                    diff(accountUpdate.toJSON(), inputAccountUpdate.toJSON());
+
                     let nChildren =
                       inputAccountUpdate.children.accountUpdates.length;
                     for (let i = 0; i < nChildren; i++) {
@@ -221,7 +229,7 @@ function wrapMethod(
                         inputAccountUpdate.children.accountUpdates[i].toJSON();
                       let child =
                         accountUpdate.children.accountUpdates[i].toJSON();
-                      expect({ i, child }).toEqual({ i, child: inputChild });
+                      diff(child, inputChild);
                     }
                   });
                 }
