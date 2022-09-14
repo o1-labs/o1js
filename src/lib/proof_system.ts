@@ -39,6 +39,7 @@ export {
 // global circuit-related context
 type SnarkContext = {
   witnesses?: unknown[];
+  proverData?: any;
   inProver?: boolean;
   inCompile?: boolean;
   inCheckedComputation?: boolean;

@@ -18,7 +18,7 @@ import {
  */
 
 await isReady;
-let doProofs = false;
+let doProofs = true;
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
@@ -47,50 +47,34 @@ let dex = new Dex(addresses.dex);
 let dexX = new DexTokenHolder(addresses.dex, tokenIds.X);
 let dexY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
-console.log('deploy (x5)...');
-tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
+console.log('deploy & init token contracts...');
+tx = await Mina.transaction({ feePayerKey }, () => {
   // fund 2 new accounts, and fund token contracts so each can create 1 token account
   let feePayerUpdate = AccountUpdate.createSigned(feePayerKey);
-  feePayerUpdate.balance.subInPlace(accountFee.mul(3));
+  feePayerUpdate.balance.subInPlace(accountFee.mul(2));
   feePayerUpdate.send({ to: addresses.tokenX, amount: accountFee });
   feePayerUpdate.send({ to: addresses.tokenY, amount: accountFee });
 
   tokenX.deploy();
-  // tokenY.deploy();
-  // tokenX.deployZkapp(addresses.dex);
-  // tokenY.deployZkapp(addresses.dex);
-  dex.deploy();
-
-  // initialize tokens
-  // tokenX.init();
-  // tokenY.init();
+  tokenY.deploy();
+  tokenX.init();
+  tokenY.init();
 });
-
 await tx.prove();
-tx.sign([keys.tokenX, keys.tokenY, keys.dex]);
-console.log(tx.toJSON());
+tx.sign([keys.tokenX, keys.tokenY]);
 tx.send();
 
-console.log('deploy tokens...');
+console.log('deploy dex contracts...');
 tx = await Mina.transaction(feePayerKey, () => {
   // fund 5 new accounts
   AccountUpdate.createSigned(feePayerKey).balance.subInPlace(
-    Mina.accountCreationFee().mul(1)
+    Mina.accountCreationFee().mul(3)
   );
-  // initialize tokens
-  tokenX.init();
-  if (!doProofs) tokenX.sign();
-  // tokenY.init();
-
-  // tokenX.deploy();
-  // tokenY.deploy();
+  dex.deploy();
   tokenX.deployZkapp(addresses.dex);
-  if (!doProofs) tokenX.sign();
-  // tokenY.deployZkapp(addresses.dex);
-  // dex.deploy();
+  tokenY.deployZkapp(addresses.dex);
 });
-console.log(tx.toJSON());
-
 await tx.prove();
-tx.sign([keys.dex, keys.tokenX]);
+tx.sign([keys.dex]);
+console.log(tx.toJSON());
 tx.send();

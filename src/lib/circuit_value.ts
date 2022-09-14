@@ -658,7 +658,7 @@ let memoizationContext = Context.create<{
  * for reuse by the prover. This is needed to witness non-deterministic values.
  */
 function memoizeWitness<T>(type: AsFieldElements<T>, compute: () => T) {
-  return Circuit.witness(type, () => {
+  return witness(type, () => {
     if (!memoizationContext.has()) return compute();
     let context = memoizationContext.get();
     let { memoized, currentIndex } = context;

@@ -3,7 +3,7 @@ import {
   circuitValue,
   cloneCircuitValue,
   memoizationContext,
-  witness,
+  memoizeWitness,
 } from './circuit_value.js';
 import {
   Field,
@@ -19,14 +19,7 @@ import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
-import {
-  emptyWitness,
-  inCheckedComputation,
-  inCompileMode,
-  inProver,
-  Proof,
-  snarkContext,
-} from './proof_system.js';
+import { inCheckedComputation, Proof, snarkContext } from './proof_system.js';
 import {
   emptyHashWithPrefix,
   hashWithPrefix,
@@ -875,25 +868,29 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   static getNonce(party: AccountUpdate | FeePayerUnsigned) {
-    return witness(UInt32, () => AccountUpdate.getNonceUnchecked(party));
+    return memoizeWitness(UInt32, () => AccountUpdate.getNonceUnchecked(party));
   }
 
   private static getNonceUnchecked(update: AccountUpdate | FeePayerUnsigned) {
     let publicKey = update.body.publicKey;
+    let tokenId =
+      update instanceof AccountUpdate ? update.body.tokenId : TokenId.default;
     let nonce = Number(
       Precondition.getAccountPreconditions(update.body).nonce.toString()
     );
-    // if the fee payer is the same accountUpdate as this one, we have to start the nonce predicate at one higher,
+    // if the fee payer is the same account update as this one, we have to start the nonce predicate at one higher,
     // bc the fee payer already increases its nonce
     let isFeePayer = Mina.currentTransaction()?.sender?.equals(publicKey);
     if (isFeePayer?.toBoolean()) nonce++;
     // now, we check how often this accountUpdate already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
-    CallForest.forEach(
+    CallForest.forEachPredecessor(
       Mina.currentTransaction.get().accountUpdates,
-      (update) => {
-        let shouldIncreaseNonce = update.publicKey
+      update as AccountUpdate,
+      (otherUpdate) => {
+        let shouldIncreaseNonce = otherUpdate.publicKey
           .equals(publicKey)
-          .and(update.body.incrementNonce);
+          .and(otherUpdate.tokenId.equals(tokenId))
+          .and(otherUpdate.body.incrementNonce);
         if (shouldIncreaseNonce.toBoolean()) nonce++;
       }
     );
@@ -1198,6 +1195,18 @@ const CallForest = {
       CallForest.forEach(update.children.accountUpdates, callback);
     }
   },
+
+  forEachPredecessor(
+    updates: AccountUpdate[],
+    update: AccountUpdate,
+    callback: (update: AccountUpdate) => void
+  ) {
+    let isPredecessor = true;
+    CallForest.forEach(updates, (otherUpdate) => {
+      if (otherUpdate === update) isPredecessor = false;
+      if (isPredecessor) callback(otherUpdate);
+    });
+  },
 };
 
 function createChildAccountUpdate(
@@ -1396,6 +1405,7 @@ async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
       {
         inProver: true,
         witnesses: [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
+        proverData: accountUpdate,
       },
       () =>
         memoizationContext.runWithAsync(
