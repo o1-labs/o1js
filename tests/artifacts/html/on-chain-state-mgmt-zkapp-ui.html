@@ -40,6 +40,7 @@
 
     const deployButton = document.querySelector('#deployButton')
     const updateButton = document.querySelector('#updateButton')
+    const clearEventsButton = document.querySelector('#clearEventsButton')
     const eventsContainer = document.querySelector('#eventsContainer')
     const zkAppStateContainer = document.querySelector('#zkAppStateContainer')
 
@@ -66,7 +67,10 @@
       try {
         const { verificationKey } = await HelloWorld.compile(zkAppAddress)
         const deploymentTransaction = await Mina.transaction(feePayer, () => {
-          AccountUpdate.fundNewAccount(feePayer)
+          if (!eventsContainer.innerHTML.includes('zkApp Deployed successfully')) {
+            AccountUpdate.fundNewAccount(feePayer)
+          }
+
           zkAppInstance.deploy({
             verificationKey,
             zkappKey: zkAppPrivateKey
@@ -119,6 +123,10 @@
 
       updateButton.disabled = false
       return false
+    })
+
+    clearEventsButton.addEventListener('click', async () => {
+      eventsContainer.innerHTML = 'No data available yet.'
     })
   </script>
 </head>
@@ -173,6 +181,8 @@
           </tr>
         </tbody>
       </table>
+      <br />
+      <button type="button" id="clearEventsButton">Clear Events</button>
     </div>
   </div>
 </body>

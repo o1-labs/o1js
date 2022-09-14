@@ -60,9 +60,9 @@ jobs:
           npm run e2e:prepare-server
       - name: Run Web Server
         run: |
-          npm install -g wait-on
+          # npm install -g wait-on
           python dist/web/server.py &
-          wait-on http://localhost:8000
+          # wait-on http://localhost:8000
       - name: Execute E2E Tests
         run: npm run test:e2e
       - name: Upload E2E Test Artifacts
