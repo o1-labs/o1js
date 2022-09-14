@@ -48,6 +48,7 @@ Then go to `http://localhost:8000/`
   npm run clean
   npm run build:web
   npm run build:examples
+  npm run e2e:prepare-server
 
   npm run test:e2e
   npm run e2e:show-report

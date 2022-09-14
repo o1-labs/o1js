@@ -10,7 +10,7 @@ export class OnChainStateMgmtZkAppPage {
   }
 
   async goto() {
-    await this.page.goto('/on-chain-state-mgmt-zkapp-ui.html');
+    await this.page.goto('./on-chain-state-mgmt-zkapp-ui.html');
   }
 
   // async getStarted() {
