@@ -49,7 +49,7 @@ let dexY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
 console.log('deploy & init token contracts...');
 tx = await Mina.transaction({ feePayerKey }, () => {
-  // fund 2 new accounts, and fund token contracts so each can create 1 token account
+  // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
   let feePayerUpdate = AccountUpdate.createSigned(feePayerKey);
   feePayerUpdate.balance.subInPlace(accountFee.mul(2));
   feePayerUpdate.send({ to: addresses.tokenX, amount: accountFee });
@@ -66,15 +66,12 @@ tx.send();
 
 console.log('deploy dex contracts...');
 tx = await Mina.transaction(feePayerKey, () => {
-  // fund 5 new accounts
-  AccountUpdate.createSigned(feePayerKey).balance.subInPlace(
-    Mina.accountCreationFee().mul(3)
-  );
+  // pay fees for creating 3 dex accounts
+  AccountUpdate.createSigned(feePayerKey).balance.subInPlace(accountFee.mul(3));
   dex.deploy();
   tokenX.deployZkapp(addresses.dex);
   tokenY.deployZkapp(addresses.dex);
 });
 await tx.prove();
 tx.sign([keys.dex]);
-console.log(tx.toJSON());
 tx.send();
