@@ -44,10 +44,6 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: "18"
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
       - name: Install Node Dependencies
         run: npm ci
       - name: Install Playwright Browsers
@@ -58,11 +54,6 @@ jobs:
           npm run build:web
           npm run build:examples
           npm run e2e:prepare-server
-      - name: Run Web Server
-        run: |
-          # npm install -g wait-on
-          python dist/web/server.py &
-          # wait-on http://localhost:8000
       - name: Execute E2E Tests
         run: npm run test:e2e
       - name: Upload E2E Test Artifacts

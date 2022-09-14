@@ -39,7 +39,7 @@ const config: PlaywrightTestConfig = {
   use: {
     browserName: 'chromium',
     actionTimeout: 0,
-    baseURL: 'http://localhost:8000/dist/web/',
+    baseURL: 'http://localhost:8000',
     headless: process.env.CI ? true : false,
     viewport: { width: 1280, height: 720 },
     ignoreHTTPSErrors: true,
@@ -71,7 +71,6 @@ const config: PlaywrightTestConfig = {
     command: 'npm run e2e:run-server',
     url: 'http://localhost:8000',
     timeout: 3 * 60 * 1000,
-    reuseExistingServer: Boolean(process.env.CI),
   },
 };
 
