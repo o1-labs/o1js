@@ -65,7 +65,7 @@ const config: PlaywrightTestConfig = {
     command: 'npm run e2e:run-server',
     url: 'http://localhost:8000',
     timeout: 3 * 60 * 1000,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !!process.env.CI,
   },
 };
 
