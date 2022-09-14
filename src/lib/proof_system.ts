@@ -85,7 +85,7 @@ class Proof<T> {
     }: JsonProof
   ): Proof<InferInstance<S['publicInputType']>> {
     let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
-    let publicInput = getPublicInputType(this).ofFields(
+    let publicInput = getPublicInputType(this).fromFields(
       publicInputJson.map(Field.fromString)
     );
     return new this({ publicInput, proof, maxProofsVerified }) as any;
@@ -331,7 +331,7 @@ function isAsFields(
   return (
     (typeof type === 'function' || typeof type === 'object') &&
     type !== null &&
-    ['toFields', 'ofFields', 'sizeInFields'].every((s) => s in type)
+    ['toFields', 'fromFields', 'sizeInFields'].every((s) => s in type)
   );
 }
 function isProof(type: unknown): type is typeof Proof {
@@ -444,7 +444,7 @@ function picklesRuleFromFunction(
           : emptyWitness(type);
       } else if (arg.type === 'proof') {
         let Proof = proofArgs[arg.index];
-        let publicInput = getPublicInputType(Proof).ofFields(
+        let publicInput = getPublicInputType(Proof).fromFields(
           previousInputs[arg.index]
         );
         let proofInstance: Proof<any>;
@@ -460,7 +460,7 @@ function picklesRuleFromFunction(
         finalArgs[i] = argsWithoutPublicInput?.[i] ?? emptyGeneric();
       }
     }
-    func(publicInputType.ofFields(publicInput), ...finalArgs);
+    func(publicInputType.fromFields(publicInput), ...finalArgs);
     return proofs.map((proof) => proof.shouldVerify);
   }
 
@@ -556,7 +556,7 @@ function methodArgumentTypesAndValues(
 }
 
 function emptyValue<T>(type: AsFieldElements<T>) {
-  return type.ofFields(Array(type.sizeInFields()).fill(Field.zero));
+  return type.fromFields(Array(type.sizeInFields()).fill(Field.zero));
 }
 
 function emptyWitness<T>(type: AsFieldElements<T>) {

@@ -93,7 +93,7 @@ function prefixToField(prefix: string) {
       return bits;
     })
     .flat();
-  return Field.ofBits(bits);
+  return Field.fromBits(bits);
 }
 
 /**

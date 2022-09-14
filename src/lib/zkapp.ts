@@ -815,7 +815,7 @@ class SmartContract {
         let type = sortedEventTypes[0];
         return {
           type,
-          event: this.events[type].ofFields(
+          event: this.events[type].fromFields(
             event.map((f: string) => Field.fromString(f))
           ),
         };
@@ -826,7 +826,7 @@ class SmartContract {
         event.shift();
         return {
           type,
-          event: this.events[type].ofFields(
+          event: this.events[type].fromFields(
             event.map((f: string) => Field.fromString(f))
           ),
         };
@@ -1010,8 +1010,8 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
           let newState = Circuit.witness(stateType, () => {
             // TODO: why doesn't this work without the toConstant mapping?
-            let { toFields, ofFields } = stateType;
-            return ofFields(toFields(state).map((x) => x.toConstant()));
+            let { toFields, fromFields } = stateType;
+            return fromFields(toFields(state).map((x) => x.toConstant()));
             // return state;
           });
           Circuit.assertEqual(newState, state);
@@ -1067,7 +1067,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           .map((event: { hash: string; actions: string[][] }) =>
             // putting our string-Fields back into the original action type
             event.actions.map((action: string[]) =>
-              reducer.actionType.ofFields(
+              reducer.actionType.fromFields(
                 action.map((fieldAsString: string) =>
                   Field.fromString(fieldAsString)
                 )

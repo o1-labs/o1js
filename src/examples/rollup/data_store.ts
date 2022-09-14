@@ -66,7 +66,7 @@ export class Keyed {
       for (var i = 0; i < n; ++i) {
         xs.push(Field.zero);
       }
-      return eltTyp.ofFields(xs);
+      return eltTyp.fromFields(xs);
     })();
 
     const getValue = (k: K): { value: V; empty: boolean } => {

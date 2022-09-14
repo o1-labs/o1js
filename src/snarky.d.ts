@@ -105,9 +105,7 @@ declare class Field {
    */
   toJSON(): JSONValue;
 
-  // TODO: Rename to size()
   sizeInFields(): number;
-  // TODO: Rename to toFields()
   toFields(): Field[];
 
   // TODO: Make these long form version
@@ -297,14 +295,9 @@ declare class Field {
   static toString(x: Field | number | string | boolean): string;
   */
 
-  // TODO: Ask izzy/matthew why we need this non-static version?
-  ofFields(fields: Field[]): Field;
-  // TODO: Rename to fromFields(fields: Field[])
-  // TODO: (bkase) Refactor AsFieldElements to not need these redundant static things
-  static ofFields(fields: Field[]): Field;
-  // TODO: Rename to size()
+  fromFields(fields: Field[]): Field;
+  static fromFields(fields: Field[]): Field;
   static sizeInFields(): number;
-  // TODO: Rename to toFields
   static toFields(x: Field): Field[];
 
   /*
@@ -319,10 +312,8 @@ declare class Field {
   /**
    * Converts a bit array into a field element (little endian)
    * Fails if the field element cannot fit given too many bits.
-   *
-   * TODO: Rename to fromBits
    */
-  static ofBits(x: (Bool | boolean)[]): Field;
+  static fromBits(x: (Bool | boolean)[]): Field;
   /*
   static toBits(x: Field | number | string | boolean): Bool[];
   */
@@ -462,7 +453,7 @@ declare class Bool {
 
   static sizeInFields(): number;
   static toFields(x: Bool): Field[];
-  static ofFields(fields: Field[]): Bool;
+  static fromFields(fields: Field[]): Bool;
 
   static toJSON(x: Bool): JSONValue;
   static fromJSON(x: JSONValue): Bool | null;
@@ -474,7 +465,7 @@ declare class Bool {
 
 declare interface AsFieldElements<T> {
   toFields: (x: T) => Field[];
-  ofFields: (x: Field[]) => T;
+  fromFields: (x: Field[]) => T;
   sizeInFields(): number;
   check: (x: T) => void;
 }
@@ -618,9 +609,9 @@ declare class Scalar {
   toJSON(): JSONValue;
 
   static toFields(x: Scalar): Field[];
-  static ofFields(fields: Field[]): Scalar;
+  static fromFields(fields: Field[]): Scalar;
   static sizeInFields(): number;
-  static ofBits(bits: Bool[]): Scalar;
+  static fromBits(bits: Bool[]): Scalar;
   static random(): Scalar;
 
   static toJSON(x: Scalar): JSONValue;
@@ -631,7 +622,7 @@ declare class Scalar {
 // TODO: Add this when OCaml bindings are implemented:
 // declare class EndoScalar {
 //   static toFields(x: Scalar): Field[];
-//   static ofFields(fields: Field[]): Scalar;
+//   static fromFields(fields: Field[]): Scalar;
 //   static sizeInFields(): number;
 // }
 
@@ -670,7 +661,7 @@ declare class Group {
   static equal(x: Group, y: Group): Bool;
 
   static toFields(x: Group): Field[];
-  static ofFields(fields: Field[]): Group;
+  static fromFields(fields: Field[]): Group;
   static sizeInFields(): number;
 
   static toJSON(x: Group): JSONValue;

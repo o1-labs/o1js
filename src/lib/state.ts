@@ -230,7 +230,7 @@ function createState<T>(): InternalStateType<T> {
         }
       });
 
-      let state = this._contract.stateType.ofFields(stateAsFields);
+      let state = this._contract.stateType.fromFields(stateAsFields);
       this._contract.stateType.check?.(state);
       this._contract.wasRead = true;
       this._contract.cachedVariable = state;
@@ -262,7 +262,7 @@ function createState<T>(): InternalStateType<T> {
           stateAsFields.push(account.appState[layout.offset + i]);
         }
       }
-      return this._contract.stateType.ofFields(stateAsFields);
+      return this._contract.stateType.fromFields(stateAsFields);
     },
   };
 }

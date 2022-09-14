@@ -56,7 +56,7 @@ export function MerkleAccumulatorFactory<A extends CircuitValue>(
       return [x.root];
     }
 
-    static ofFields(xs: Field[]): MerkleAccumulator {
+    static fromFields(xs: Field[]): MerkleAccumulator {
       return new MerkleAccumulator(xs[0]);
     }
 
@@ -168,7 +168,7 @@ export function KeyedAccumulatorFactory<
       return [x.root];
     }
 
-    static ofFields(xs: Field[]): KeyedAccumulator {
+    static fromFields(xs: Field[]): KeyedAccumulator {
       return new KeyedAccumulator(xs[0]);
     }
 
@@ -258,10 +258,10 @@ export function MerkleProofFactory(depth: number) {
       return x.path;
     }
 
-    static ofFields(xs: Array<Field>): MerkleProof {
+    static fromFields(xs: Array<Field>): MerkleProof {
       if (xs.length !== depth) {
         throw new Error(
-          `MerkleTree: ofFields expected array of length ${depth}, got ${xs.length}`
+          `MerkleTree: fromFields expected array of length ${depth}, got ${xs.length}`
         );
       }
       return new MerkleProof(xs);
@@ -290,7 +290,7 @@ export function IndexFactory(depth: number) {
       return new Index(res);
     }
 
-    static ofFields(xs: Field[]): Index {
+    static fromFields(xs: Field[]): Index {
       return new Index(xs.map((x) => Bool.Unsafe.ofField(x)));
     }
 

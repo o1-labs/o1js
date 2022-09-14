@@ -132,14 +132,14 @@ abstract class CircuitValue {
     return this.toFields().every((x) => x.isConstant());
   }
 
-  static ofFields<T extends AnyConstructor>(
+  static fromFields<T extends AnyConstructor>(
     this: T,
     xs: Field[]
   ): InstanceType<T> {
     const fields: [string, any][] = (this as any).prototype._fields;
     if (xs.length < fields.length) {
       throw Error(
-        `${this.name}.ofFields: Expected ${fields.length} field elements, got ${xs?.length}`
+        `${this.name}.fromFields: Expected ${fields.length} field elements, got ${xs?.length}`
       );
     }
     let offset = 0;
@@ -147,7 +147,7 @@ abstract class CircuitValue {
     for (let i = 0; i < fields.length; ++i) {
       const [key, propType] = fields[i];
       const propSize = propType.sizeInFields();
-      const propVal = propType.ofFields(xs.slice(offset, offset + propSize));
+      const propVal = propType.fromFields(xs.slice(offset, offset + propSize));
       props[key] = propVal;
       offset += propSize;
     }
@@ -173,7 +173,7 @@ abstract class CircuitValue {
     t: InstanceType<T>
   ): InstanceType<T> {
     const xs: Field[] = (this as any).toFields(t);
-    return (this as any).ofFields(xs.map((x) => x.toConstant()));
+    return (this as any).fromFields(xs.map((x) => x.toConstant()));
   }
 
   static toJSON<T extends AnyConstructor>(
@@ -228,7 +228,7 @@ function prop(this: any, target: any, key: string) {
     target._fields = [];
   }
   if (fieldType === undefined) {
-  } else if (fieldType.toFields && fieldType.ofFields) {
+  } else if (fieldType.toFields && fieldType.fromFields) {
     target._fields.push([key, fieldType]);
   } else {
     console.log(
@@ -249,12 +249,12 @@ function circuitArray<T>(
     toFields(array: T[]) {
       return array.map((e) => elementType.toFields(e)).flat();
     },
-    ofFields(fields: Field[]) {
+    fromFields(fields: Field[]) {
       let array = [];
       let elementLength = elementType.sizeInFields();
       let n = elementLength * length;
       for (let i = 0; i < n; i += elementLength) {
-        array.push(elementType.ofFields(fields.slice(i, i + elementLength)));
+        array.push(elementType.fromFields(fields.slice(i, i + elementLength)));
       }
       return array;
     },
@@ -333,12 +333,12 @@ function typeOfArray(typs: Array<AsFieldElements<any>>): AsFieldElements<any> {
       return res;
     },
 
-    ofFields: (xs: Array<any>) => {
+    fromFields: (xs: Array<any>) => {
       let offset = 0;
       let res: Array<any> = [];
       typs.forEach((typ) => {
         const n = typ.sizeInFields();
-        res.push(typ.ofFields(xs.slice(offset, offset + n)));
+        res.push(typ.fromFields(xs.slice(offset, offset + n)));
         offset += n;
       });
       return res;
@@ -453,20 +453,20 @@ function circuitValue<T>(
       objectKeys.map((k) => [k, toJSON(typeObj[k], obj[k])])
     );
   }
-  function ofFields(typeObj: any, fields: Field[]): any {
+  function fromFields(typeObj: any, fields: Field[]): any {
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return null;
     if (Array.isArray(typeObj)) {
       let array = [];
       let offset = 0;
       for (let subObj of typeObj) {
         let size = sizeInFields(subObj);
-        array.push(ofFields(subObj, fields.slice(offset, offset + size)));
+        array.push(fromFields(subObj, fields.slice(offset, offset + size)));
         offset += size;
       }
       return array;
     }
-    if ('ofFields' in typeObj) return typeObj.ofFields(fields);
-    let values = ofFields(
+    if ('fromFields' in typeObj) return typeObj.fromFields(fields);
+    let values = fromFields(
       objectKeys.map((k) => typeObj[k]),
       fields
     );
@@ -484,7 +484,7 @@ function circuitValue<T>(
     toFields: (obj: T) => toFields(typeObj, obj),
     toInput: (obj: T) => toInput(typeObj, obj),
     toJSON: (obj: T) => toJSON(typeObj, obj),
-    ofFields: (fields: Field[]) => ofFields(typeObj, fields) as T,
+    fromFields: (fields: Field[]) => fromFields(typeObj, fields) as T,
     check: (obj: T) => check(typeObj, obj),
   };
 }
@@ -590,7 +590,7 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
 }
 
 function toConstant<T>(type: AsFieldElements<T>, value: T): T {
-  return type.ofFields(type.toFields(value).map((x) => x.toConstant()));
+  return type.fromFields(type.toFields(value).map((x) => x.toConstant()));
 }
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
@@ -627,7 +627,7 @@ Circuit.switch = function <T, A extends AsFieldElements<T>>(
       fields[j] = fields[j].add(maybeField);
     }
   }
-  return type.ofFields(fields);
+  return type.fromFields(fields);
 };
 
 Circuit.constraintSystem = function <T>(f: () => T) {
@@ -671,7 +671,7 @@ function memoizeWitness<T>(type: AsFieldElements<T>, compute: () => T) {
       memoized[currentIndex] = currentValue;
     }
     context.currentIndex += 1;
-    return type.ofFields(currentValue);
+    return type.fromFields(currentValue);
   });
 }
 
@@ -711,7 +711,7 @@ function fromCircuitValue<T, A extends AsFieldsExtended<T>, TJson = JSONValue>(
       return [];
     },
     fromFields(fields) {
-      return type.ofFields(fields);
+      return type.fromFields(fields);
     },
     check(value) {
       type.check(value);

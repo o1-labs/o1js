@@ -67,7 +67,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofFields',
+        name: 'fromFields',
         type: 'function',
       },
       {
@@ -83,7 +83,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofBits',
+        name: 'fromBits',
         type: 'function',
       },
       {
@@ -172,7 +172,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofFields',
+        name: 'fromFields',
         type: 'function',
       },
       {
@@ -319,7 +319,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofFields',
+        name: 'fromFields',
         type: 'function',
       },
       {
@@ -352,7 +352,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofFields',
+        name: 'fromFields',
         type: 'function',
       },
       {
@@ -360,7 +360,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofBits',
+        name: 'fromBits',
         type: 'function',
       },
       {
