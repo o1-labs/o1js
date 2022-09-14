@@ -59,7 +59,7 @@ jobs:
           npm run build:examples
           npm run e2e:prepare-server
       - name: Run Web Server
-        run: python dist/web/server.py &
+        run: python dist/web/server.py
       - name: Execute E2E Tests
         run: npm run test:e2e
       - name: Upload E2E Test Artifacts
