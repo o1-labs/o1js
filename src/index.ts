@@ -3,6 +3,7 @@ export {
   Scalar,
   AsFieldElements,
   AsFieldsAndAux,
+  JSONValue,
   Ledger,
   isReady,
   shutdown,
@@ -65,9 +66,10 @@ import {
 } from './lib/account_update.js';
 import {
   memoizeWitness,
-  AsFieldsAndAuxExtended as AsFieldsAndAuxExtended_,
+  AsFieldsExtended as AsFieldsExtended_,
 } from './lib/circuit_value.js';
 import { MerkleTree, MerkleWitness } from './lib/merkle_tree.js';
+import { JSONValue } from './snarky.js';
 export { Experimental };
 
 const Experimental_ = {
@@ -98,7 +100,7 @@ namespace Experimental {
   export let MerkleWitness = Experimental_.MerkleWitness;
   export let accountUpdateFromCallback =
     Experimental_.accountUpdateFromCallback;
-  export type AsFieldsAndAuxExtended<T, TJson> = AsFieldsAndAuxExtended_<
+  export type AsFieldsExtended<T, TJson = JSONValue> = AsFieldsExtended_<
     T,
     TJson
   >;

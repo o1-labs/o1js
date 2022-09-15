@@ -136,7 +136,7 @@ function writeTsContent(types, isJson) {
 import { ${[...imports].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? "import { asFieldsAndAux, AsFieldsAndAuxExtended } from '../transaction-helpers.js';\n" +
+    ? "import { asFieldsAndAux, AsFieldsExtended } from '../transaction-helpers.js';\n" +
       "import * as Json from './transaction-json.js';\n" +
       "import { jsLayout } from './js-layout.js';\n"
     : ''
@@ -153,9 +153,7 @@ ${
   (!isJson || '') &&
   `
 type CustomTypes = { ${customTypes
-    .map(
-      (c) => `${c.typeName}: AsFieldsAndAuxExtended<${c.type}, ${c.jsonType}>;`
-    )
+    .map((c) => `${c.typeName}: AsFieldsExtended<${c.type}, ${c.jsonType}>;`)
     .join(' ')} }
 let customTypes: CustomTypes = { ${customTypeNames.join(', ')} };
 `

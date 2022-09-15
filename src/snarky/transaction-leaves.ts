@@ -3,11 +3,7 @@ import * as Json from './gen/transaction-json.js';
 import { UInt32, UInt64, Sign } from '../lib/int.js';
 import { TokenSymbol } from '../lib/hash.js';
 import { PublicKey } from '../lib/signature.js';
-import {
-  AsFieldsAndAuxExtended,
-  AsFieldsExtended,
-  circuitValue,
-} from '../lib/circuit_value.js';
+import { AsFieldsExtended, circuitValue } from '../lib/circuit_value.js';
 import * as Encoding from '../lib/encoding.js';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
@@ -53,14 +49,14 @@ let emptyType = {
   toJSON: () => null,
 };
 
-const TokenId: AsFieldsExtended<TokenId> = {
+const TokenId = {
   ...circuitValue<TokenId>(Field),
   toJSON(x: TokenId): Json.TokenId {
     return Encoding.TokenId.toBase58(x);
   },
 };
 
-const AuthRequired: AsFieldsExtended<AuthRequired> = {
+const AuthRequired = {
   ...circuitValue<AuthRequired>(
     { constant: Bool, signatureNecessary: Bool, signatureSufficient: Bool },
     {
@@ -71,7 +67,7 @@ const AuthRequired: AsFieldsExtended<AuthRequired> = {
       ],
     }
   ),
-  toJSON(x): Json.AuthRequired {
+  toJSON(x: AuthRequired): Json.AuthRequired {
     let c = Number(x.constant.toBoolean());
     let n = Number(x.signatureNecessary.toBoolean());
     let s = Number(x.signatureSufficient.toBoolean());
@@ -87,19 +83,17 @@ const AuthRequired: AsFieldsExtended<AuthRequired> = {
   },
 };
 
-let { fromCircuitValue } = AsFieldsAndAuxExtended;
-
 const TypeMap: {
-  [K in keyof TypeMap]: AsFieldsAndAuxExtended<TypeMap[K], Json.TypeMap[K]>;
+  [K in keyof TypeMap]: AsFieldsExtended<TypeMap[K], Json.TypeMap[K]>;
 } = {
-  Field: fromCircuitValue(Field),
-  Bool: fromCircuitValue(Bool),
-  UInt32: fromCircuitValue(UInt32),
-  UInt64: fromCircuitValue(UInt64),
-  Sign: fromCircuitValue(Sign),
-  TokenId: fromCircuitValue(TokenId),
-  AuthRequired: fromCircuitValue(AuthRequired),
-  PublicKey: fromCircuitValue(PublicKey),
+  Field,
+  Bool,
+  UInt32,
+  UInt64,
+  Sign,
+  TokenId,
+  AuthRequired,
+  PublicKey,
   // primitive JS types
   number: {
     ...emptyType,
@@ -124,7 +118,7 @@ const TypeMap: {
 
 type DataAsHash<T> = { data: T; hash: Field };
 
-const Events: AsFieldsAndAuxExtended<DataAsHash<Field[][]>, string[][]> = {
+const Events: AsFieldsExtended<DataAsHash<Field[][]>, string[][]> = {
   sizeInFields() {
     return 1;
   },
@@ -146,7 +140,7 @@ const Events: AsFieldsAndAuxExtended<DataAsHash<Field[][]>, string[][]> = {
   },
 };
 
-const StringWithHash: AsFieldsAndAuxExtended<DataAsHash<string>, string> = {
+const StringWithHash: AsFieldsExtended<DataAsHash<string>, string> = {
   sizeInFields() {
     return 1;
   },

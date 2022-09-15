@@ -105,7 +105,7 @@ declare class Field {
    * Serialize the [[`Field`]] to a JSON string.
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
-  toJSON(): JSONValue;
+  toJSON(): string;
 
   sizeInFields(): number;
   toFields(): Field[];
@@ -328,7 +328,7 @@ declare class Field {
   ): Bool;
   */
 
-  static toJSON(x: Field): JSONValue;
+  static toJSON(x: Field): string;
   static fromJSON(x: JSONValue): Field | null;
 
   static fromString(x: string): Field;
@@ -414,7 +414,7 @@ declare class Bool {
    * Serialize the [[`Bool`]] to a JSON string.
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
-  toJSON(): JSONValue;
+  toJSON(): boolean;
 
   /**
    * This converts the [[`Bool`]] to a javascript [[boolean]].
@@ -459,7 +459,7 @@ declare class Bool {
   static toAuxiliary(x?: Bool): [];
   static fromFields(fields: Field[]): Bool;
 
-  static toJSON(x: Bool): JSONValue;
+  static toJSON(x: Bool): boolean;
   static fromJSON(x: JSONValue): Bool | null;
   static check(x: Bool): void;
 
@@ -629,7 +629,7 @@ declare class Scalar {
    * */
   div(y: Scalar): Scalar;
 
-  toJSON(): JSONValue;
+  toJSON(): string;
 
   static toFields(x: Scalar): Field[];
   static toAuxiliary(x?: Scalar): [];
@@ -638,7 +638,7 @@ declare class Scalar {
   static fromBits(bits: Bool[]): Scalar;
   static random(): Scalar;
 
-  static toJSON(x: Scalar): JSONValue;
+  static toJSON(x: Scalar): string;
   static fromJSON(x: JSONValue): Scalar | null;
   static check(x: Scalar): void;
 }
@@ -663,7 +663,7 @@ declare class Group {
   assertEquals(y: Group): void;
   equals(y: Group): Bool;
 
-  toJSON(): JSONValue;
+  toJSON(): { x: string; y: string };
 
   constructor(args: {
     x: Field | number | string | boolean;
@@ -689,7 +689,7 @@ declare class Group {
   static fromFields(fields: Field[]): Group;
   static sizeInFields(): number;
 
-  static toJSON(x: Group): JSONValue;
+  static toJSON(x: Group): { x: string; y: string };
   static fromJSON({
     x,
     y,

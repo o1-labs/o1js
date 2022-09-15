@@ -25,7 +25,6 @@ export {
 // internal API
 export {
   AsFieldsExtended,
-  AsFieldsAndAuxExtended,
   AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,
@@ -419,18 +418,20 @@ function circuitMain(
 let primitives = new Set(['Field', 'Bool', 'Scalar', 'Group']);
 let complexTypes = new Set(['object', 'function']);
 
-type AsFieldsExtended<T> = AsFieldsAndAux<T> & {
+type AsFieldsExtension<T, TJson = JSONValue> = {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
-  toJSON: (x: T) => JSONValue;
+  toJSON: (x: T) => TJson;
 };
+type AsFieldsExtended<T, TJson = JSONValue> = AsFieldsAndAux<T> &
+  AsFieldsExtension<T, TJson>;
 
-type JSONCircuitType<T> = T extends [infer U, ...infer R]
-  ? [AsFieldsExtended<U>, ...JSONCircuitType<R>]
+type CircuitType<T> = T extends [infer U, ...infer R]
+  ? [AsFieldsExtended<U>, ...CircuitType<R>]
   : T extends (infer U)[]
-  ? JSONCircuitType<U>[]
+  ? CircuitType<U>[]
   : T extends Record<string, any>
-  ? { [K in keyof T]: JSONCircuitType<T[K]> }
-  : AsFieldsExtended<T>[];
+  ? { [K in keyof T]: CircuitType<T[K]> }
+  : AsFieldsExtended<T>;
 
 // TODO properly type this at the interface
 // create recursive type that describes JSON-like structures of circuit types
@@ -438,7 +439,7 @@ type JSONCircuitType<T> = T extends [infer U, ...infer R]
 function circuitValue<T>(
   typeObj: any,
   options: { customObjectKeys?: string[]; isPure: true }
-): AsFieldElements<T>;
+): AsFieldElements<T> & AsFieldsExtension<T>;
 function circuitValue<T>(
   typeObj: any,
   options?: { customObjectKeys?: string[]; isPure?: false }
@@ -788,48 +789,3 @@ function getBlindingValue() {
   }
   return context.blindingValue;
 }
-
-// "complex" circuit values which have auxiliary data, and have to be hashed
-
-type AsFieldsAndAuxExtended<T, TJson> = {
-  sizeInFields(): number;
-  toFields(value: T): Field[];
-  toAuxiliary(value?: T): any[];
-  fromFields(fields: Field[], aux: any[]): T;
-  toJSON(value: T): TJson;
-  check(value: T): void;
-  toInput(value: T): HashInput;
-};
-
-// convert from circuit values
-function fromCircuitValue<T, A extends AsFieldsExtended<T>, TJson = JSONValue>(
-  type: A
-): AsFieldsAndAuxExtended<T, TJson> {
-  return {
-    sizeInFields() {
-      return type.sizeInFields();
-    },
-    toFields(value) {
-      return type.toFields(value);
-    },
-    toAuxiliary(value) {
-      return type.toAuxiliary(value);
-    },
-    fromFields(fields, aux) {
-      return type.fromFields(fields, aux);
-    },
-    check(value) {
-      type.check(value);
-    },
-    toInput(value) {
-      return type.toInput(value);
-    },
-    toJSON(value) {
-      return type.toJSON(value) as any;
-    },
-  };
-}
-
-const AsFieldsAndAuxExtended = {
-  fromCircuitValue,
-};
