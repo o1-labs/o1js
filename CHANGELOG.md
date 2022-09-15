@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `reducer.getActions` partially implemented for local testing https://github.com/o1-labs/snarkyjs/pull/327
 - `gte` and `assertGte` methods on `UInt32`, `UInt64` https://github.com/o1-labs/snarkyjs/pull/349
+- Return sent transaction `hash` for `RemoteBlockchain` https://github.com/o1-labs/snarkyjs/pull/399
 
 ### Changed
 
