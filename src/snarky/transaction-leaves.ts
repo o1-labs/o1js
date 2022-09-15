@@ -50,14 +50,14 @@ let emptyType = {
 };
 
 const TokenId = {
-  ...circuitValue<TokenId>(Field),
+  ...circuitValue(Field),
   toJSON(x: TokenId): Json.TokenId {
     return Encoding.TokenId.toBase58(x);
   },
 };
 
 const AuthRequired = {
-  ...circuitValue<AuthRequired>(
+  ...circuitValue(
     { constant: Bool, signatureNecessary: Bool, signatureSufficient: Bool },
     {
       customObjectKeys: [

@@ -23,7 +23,7 @@ let json = Types.AccountUpdate.toJSON(accountUpdateRaw);
 
 if (address.toBase58() !== json.body.publicKey) throw Error('fail');
 
-let Null = circuitValue<null>(null);
+let Null = circuitValue(null);
 
 Circuit.runAndCheck(() => {
   let accountUpdateWitness = AccountUpdate.witness(Null, () => ({

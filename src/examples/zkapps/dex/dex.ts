@@ -225,7 +225,7 @@ class DexTokenHolder extends SmartContract {
 
       // TODO: getting the account update here w/o messing up the account updates structure is error-prone and non-obvious
       let tokenYUpdate = AccountUpdate.witnessTree(
-        circuitValue<null>(null),
+        circuitValue(null),
         // need to walk two layers deeper, and need to respect the actual max number of child account updates
         [[undefined, undefined, undefined], undefined, undefined],
         () => {

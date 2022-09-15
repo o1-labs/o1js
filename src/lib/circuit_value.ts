@@ -9,6 +9,7 @@ import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
 import { HashInput } from './hash.js';
 import { inCheckedComputation, snarkContext } from './proof_system.js';
+import { PublicKey } from './signature.js';
 
 // external API
 export {
@@ -20,6 +21,7 @@ export {
   public_,
   circuitMain,
   circuitValue,
+  circuitValuePure,
 };
 
 // internal API
@@ -34,9 +36,11 @@ export {
   getBlindingValue,
   toConstant,
   witness,
+  InferCircuitValue,
 };
 
-type AnyConstructor = new (...args: any) => any;
+type Constructor<T> = new (...args: any) => T;
+type AnyConstructor = Constructor<any>;
 
 type NonMethodKeys<T> = {
   [K in keyof T]: T[K] extends Function ? never : K;
@@ -425,36 +429,27 @@ type AsFieldsExtension<T, TJson = JSONValue> = {
 type AsFieldsExtended<T, TJson = JSONValue> = AsFieldsAndAux<T> &
   AsFieldsExtension<T, TJson>;
 
-type CircuitType<T> = T extends [infer U, ...infer R]
-  ? [AsFieldsExtended<U>, ...CircuitType<R>]
-  : T extends (infer U)[]
-  ? CircuitType<U>[]
-  : T extends Record<string, any>
-  ? { [K in keyof T]: CircuitType<T[K]> }
-  : AsFieldsExtended<T>;
-
-// TODO properly type this at the interface
-// create recursive type that describes JSON-like structures of circuit types
 // TODO unit-test this
-function circuitValue<T>(
-  typeObj: any,
-  options: { customObjectKeys?: string[]; isPure: true }
-): AsFieldElements<T> & AsFieldsExtension<T>;
-function circuitValue<T>(
-  typeObj: any,
-  options?: { customObjectKeys?: string[]; isPure?: false }
-): AsFieldsExtended<T>;
-function circuitValue<T>(
-  typeObj: any,
+function circuitValue<A>(
+  typeObj: A,
   options?: { customObjectKeys?: string[]; isPure?: boolean }
-): any {
+): AsFieldsExtended<InferCircuitValue<A>, InferJson<A>> {
+  type T = InferCircuitValue<A>;
+  type J = InferJson<A>;
   let objectKeys =
     typeof typeObj === 'object' && typeObj !== null
       ? options?.customObjectKeys ?? Object.keys(typeObj).sort()
       : [];
+  let nonCircuitPrimitives = new Set([Number, String, BigInt, null, undefined]);
+  if (
+    !nonCircuitPrimitives.has(typeObj as any) &&
+    !complexTypes.has(typeof typeObj)
+  ) {
+    throw Error(`circuitValue: unsupported type "${typeObj}"`);
+  }
 
   function sizeInFields(typeObj: any): number {
-    if (!complexTypes.has(typeof typeObj) || typeObj === null) return 0;
+    if (nonCircuitPrimitives.has(typeObj)) return 0;
     if (Array.isArray(typeObj))
       return typeObj.map(sizeInFields).reduce((a, b) => a + b, 0);
     if ('sizeInFields' in typeObj) return typeObj.sizeInFields();
@@ -463,6 +458,7 @@ function circuitValue<T>(
       .reduce((a, b) => a + b, 0);
   }
   function toFields(typeObj: any, obj: any): Field[] {
+    if (nonCircuitPrimitives.has(typeObj)) return [];
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return [];
     if (Array.isArray(typeObj))
       return typeObj.map((t, i) => toFields(t, obj[i])).flat();
@@ -473,15 +469,13 @@ function circuitValue<T>(
     if (typeObj === Number || typeObj === String || typeObj === BigInt)
       return [obj];
     if (typeObj === undefined || typeObj === null) return [];
-    if (!complexTypes.has(typeof typeObj))
-      throw Error(`circuitValue: unsupported type "${typeObj}"`);
     if (Array.isArray(typeObj))
       return typeObj.map((t, i) => toAuxiliary(t, obj?.[i]));
     if ('toAuxiliary' in typeObj) return typeObj.toAuxiliary(obj);
     return objectKeys.map((k) => toAuxiliary(typeObj[k], obj?.[k]));
   }
   function toInput(typeObj: any, obj: any): HashInput {
-    if (!complexTypes.has(typeof typeObj) || typeObj === null) return {};
+    if (nonCircuitPrimitives.has(typeObj)) return {};
     if (Array.isArray(typeObj)) {
       return typeObj
         .map((t, i) => toInput(t, obj[i]))
@@ -497,6 +491,8 @@ function circuitValue<T>(
   }
   function toJSON(typeObj: any, obj: any): JSONValue {
     if (typeObj === BigInt) return obj.toString();
+    if (typeObj === String || typeObj === Number) return obj;
+    if (typeObj === undefined || typeObj === null) return null;
     if (!complexTypes.has(typeof typeObj) || typeObj === null)
       return obj ?? null;
     if (Array.isArray(typeObj)) return typeObj.map((t, i) => toJSON(t, obj[i]));
@@ -509,8 +505,6 @@ function circuitValue<T>(
     if (typeObj === Number || typeObj === String || typeObj === BigInt)
       return aux[0];
     if (typeObj === undefined || typeObj === null) return typeObj;
-    if (!complexTypes.has(typeof typeObj))
-      throw Error(`circuitValue: unsupported type "${typeObj}"`);
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return null;
     if (Array.isArray(typeObj)) {
       let array = [];
@@ -535,7 +529,7 @@ function circuitValue<T>(
     return Object.fromEntries(objectKeys.map((k, i) => [k, values[i]]));
   }
   function check(typeObj: any, obj: any): void {
-    if (!complexTypes.has(typeof typeObj) || typeObj === null) return;
+    if (nonCircuitPrimitives.has(typeObj)) return;
     if (Array.isArray(typeObj))
       return typeObj.forEach((t, i) => check(t, obj[i]));
     if ('check' in typeObj) return typeObj.check(obj);
@@ -548,21 +542,29 @@ function circuitValue<T>(
       toFields: (obj: T) => toFields(typeObj, obj),
       toAuxiliary: () => [],
       toInput: (obj: T) => toInput(typeObj, obj),
-      toJSON: (obj: T) => toJSON(typeObj, obj),
+      toJSON: (obj: T) => toJSON(typeObj, obj) as J,
       fromFields: (fields: Field[]) => fromFields(typeObj, fields, []) as T,
       check: (obj: T) => check(typeObj, obj),
-    } as any;
+    };
   }
   return {
     sizeInFields: () => sizeInFields(typeObj),
     toFields: (obj: T) => toFields(typeObj, obj),
     toAuxiliary: (obj?: T) => toAuxiliary(typeObj, obj),
     toInput: (obj: T) => toInput(typeObj, obj),
-    toJSON: (obj: T) => toJSON(typeObj, obj),
+    toJSON: (obj: T) => toJSON(typeObj, obj) as J,
     fromFields: (fields: Field[], aux: any[]) =>
       fromFields(typeObj, fields, aux) as T,
     check: (obj: T) => check(typeObj, obj),
   };
+}
+
+function circuitValuePure<A>(
+  typeObj: A,
+  options: { customObjectKeys?: string[] } = {}
+): AsFieldElements<InferCircuitValue<A>> &
+  AsFieldsExtension<InferCircuitValue<A>, InferJson<A>> {
+  return circuitValue(typeObj, { ...options, isPure: true }) as any;
 }
 
 // FIXME: the logic in here to check for obj.constructor.name actually doesn't work
@@ -789,3 +791,82 @@ function getBlindingValue() {
   }
   return context.blindingValue;
 }
+
+// some type inference helpers
+
+type Tuple<T> = [T, ...T[]] | [];
+
+type Primitive =
+  | typeof String
+  | typeof Number
+  | typeof BigInt
+  | null
+  | undefined;
+type InferPrimitive<P extends Primitive> = P extends typeof String
+  ? string
+  : P extends typeof Number
+  ? number
+  : P extends typeof BigInt
+  ? bigint
+  : P extends null
+  ? null
+  : P extends undefined
+  ? undefined
+  : any;
+type InferPrimitiveJson<P extends Primitive> = P extends typeof String
+  ? string
+  : P extends typeof Number
+  ? number
+  : P extends typeof BigInt
+  ? string
+  : P extends null
+  ? null
+  : P extends undefined
+  ? null
+  : JSONValue;
+
+type InferCircuitValue<A> = A extends Constructor<infer U>
+  ? A extends AsFieldsAndAux<U>
+    ? U
+    : InferCircuitValueBase<A>
+  : InferCircuitValueBase<A>;
+
+type InferCircuitValueBase<A> = A extends AsFieldsAndAux<infer U>
+  ? U
+  : A extends Primitive
+  ? InferPrimitive<A>
+  : A extends Tuple<any>
+  ? {
+      [I in keyof A]: InferCircuitValue<A[I]>;
+    }
+  : A extends Constructor<infer U>[]
+  ? A extends AsFieldsAndAux<U>
+    ? U[]
+    : A extends Record<any, any>
+    ? {
+        [K in keyof A]: InferCircuitValue<A[K]>;
+      }
+    : never
+  : A extends Record<any, any>
+  ? {
+      [K in keyof A]: InferCircuitValue<A[K]>;
+    }
+  : never;
+
+type WithJson<J> = { toJSON: (x: any) => J };
+
+type InferJson<A> = A extends WithJson<infer J>
+  ? J
+  : A extends Primitive
+  ? InferPrimitiveJson<A>
+  : A extends Tuple<any>
+  ? {
+      [I in keyof A]: InferJson<A[I]>;
+    }
+  : A extends WithJson<infer U>[]
+  ? U[]
+  : A extends Record<any, any>
+  ? {
+      [K in keyof A]: InferJson<A[K]>;
+    }
+  : JSONValue;

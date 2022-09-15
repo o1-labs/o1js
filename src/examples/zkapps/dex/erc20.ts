@@ -2,7 +2,7 @@ import {
   AsFieldElements,
   Bool,
   CircuitString,
-  circuitValue,
+  circuitValuePure,
   DeployArgs,
   Field,
   method,
@@ -151,16 +151,16 @@ class TrivialCoin extends SmartContract implements Erc20 {
   }
 
   events = {
-    Transfer: circuitValue<{ from: PublicKey; to: PublicKey; value: UInt64 }>({
+    Transfer: circuitValuePure({
       from: PublicKey,
       to: PublicKey,
       value: UInt64,
     }),
-    Approval: circuitValue<{
-      owner: PublicKey;
-      spender: PublicKey;
-      value: UInt64;
-    }>({ owner: PublicKey, spender: PublicKey, value: UInt64 }),
+    Approval: circuitValuePure({
+      owner: PublicKey,
+      spender: PublicKey,
+      value: UInt64,
+    }),
   };
 
   // additional API needed for zkApp token accounts

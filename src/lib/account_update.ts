@@ -1,6 +1,7 @@
 import {
   circuitArray,
   circuitValue,
+  circuitValuePure,
   cloneCircuitValue,
   memoizationContext,
   memoizeWitness,
@@ -1031,7 +1032,7 @@ class AccountUpdate implements Types.AccountUpdate {
       Types.AccountUpdate.sizeInFields()
     );
     type combinedType = { accountUpdate: Field[]; result: T };
-    let combinedType = circuitValue<combinedType>({
+    let combinedType = circuitValue({
       accountUpdate: accountUpdateType,
       result: type,
     });
@@ -1105,7 +1106,7 @@ class AccountUpdate implements Types.AccountUpdate {
     let n = childArray.length;
     for (let i = 0; i < n; i++) {
       accountUpdate.children.accountUpdates[i] = AccountUpdate.witnessTree(
-        circuitValue<null>(null),
+        circuitValue(null),
         childArray[i],
         () => ({
           accountUpdate:
@@ -1354,9 +1355,9 @@ function addMissingSignatures(
   Thus, the transaction is fully constrained by the proof - the proof couldn't be used to attest to a different transaction.
  */
 type ZkappPublicInput = { accountUpdate: Field; calls: Field };
-let ZkappPublicInput = circuitValue<ZkappPublicInput>(
+let ZkappPublicInput = circuitValuePure(
   { accountUpdate: Field, calls: Field },
-  { customObjectKeys: ['accountUpdate', 'calls'], isPure: true }
+  { customObjectKeys: ['accountUpdate', 'calls'] }
 );
 
 function accountUpdateToPublicInput(self: AccountUpdate): ZkappPublicInput {

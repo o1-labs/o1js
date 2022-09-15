@@ -388,7 +388,7 @@ type MethodInterface = {
   proofArgs: Subclass<typeof Proof>[];
   genericArgs: Subclass<typeof GenericArgument>[];
   allArgs: { type: 'witness' | 'proof' | 'generic'; index: number }[];
-  returnType?: AsFieldsAndAux<unknown>;
+  returnType?: AsFieldsAndAux<any>;
 };
 
 function compileProgram(
@@ -531,7 +531,7 @@ function methodArgumentsToConstant(
   return constArgs;
 }
 
-let Generic = circuitValue<null>(null);
+let Generic = circuitValue(null);
 
 type TypeAndValue<T> = { type: AsFieldsAndAux<T>; value: T };
 

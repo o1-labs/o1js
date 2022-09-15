@@ -3,7 +3,7 @@ import { Field, circuitValue, Circuit } from 'snarkyjs';
 // there are two ways of specifying an n*m matrix
 
 // circuitValue
-let Matrix3x3 = circuitValue<Field[][]>([
+let Matrix3x3 = circuitValue([
   [Field, Field, Field],
   [Field, Field, Field],
   [Field, Field, Field],

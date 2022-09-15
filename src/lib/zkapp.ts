@@ -396,7 +396,7 @@ function wrapMethod(
         let { accountUpdate, result } =
           methodCallDepth === 0
             ? AccountUpdate.witness<any>(
-                returnType ?? circuitValue<null>(null),
+                returnType ?? circuitValue(null),
                 runCalledContract,
                 { skipCheck: true }
               )
@@ -509,7 +509,7 @@ class Callback<Result> extends GenericArgument {
       );
     methodIntf = {
       ...methodIntf,
-      returnType: methodIntf.returnType ?? (circuitValue<null>(null) as any),
+      returnType: methodIntf.returnType ?? circuitValue(null),
     };
     this.methodIntf = methodIntf as any;
     this.args = args;
@@ -523,7 +523,7 @@ function accountUpdateFromCallback(
   callback: Callback<any>
 ) {
   let { accountUpdate } = AccountUpdate.witnessTree(
-    circuitValue<null>(null),
+    circuitValue(null),
     childLayout,
     () => {
       if (callback.isEmpty) throw Error('bug: empty callback');
