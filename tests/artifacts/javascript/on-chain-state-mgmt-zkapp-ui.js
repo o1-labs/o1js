@@ -45,7 +45,7 @@ deployButton.addEventListener('click', async () => {
   logEvents('Deploying zkApp...', eventsContainer);
 
   try {
-    const { verificationKey } = await HelloWorld.compile(zkAppAddress);
+    const { verificationKey } = await HelloWorld.compile();
     const deploymentTransaction = await Mina.transaction(feePayer, () => {
       if (!eventsContainer.innerHTML.includes('zkApp Deployed successfully')) {
         AccountUpdate.fundNewAccount(feePayer);
