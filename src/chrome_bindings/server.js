@@ -28,6 +28,7 @@ const server = http.createServer(async (req, res) => {
   const contentType = {
     html: 'text/html',
     js: 'application/javascript',
+    map: 'application/json',
   }[extension];
   const headers = { ...defaultHeaders, 'content-type': contentType };
 
