@@ -14,7 +14,10 @@ import {
   Events,
   SequenceEvents,
 } from '../transaction-leaves.js';
-import { asFieldsAndAux, AsFieldsAndAux } from '../transaction-helpers.js';
+import {
+  asFieldsAndAux,
+  AsFieldsAndAuxExtended,
+} from '../transaction-helpers.js';
 import * as Json from './transaction-json.js';
 import { jsLayout } from './js-layout.js';
 
@@ -23,22 +26,22 @@ export { Json };
 export * from '../transaction-leaves.js';
 
 type CustomTypes = {
-  StringWithHash: AsFieldsAndAux<
+  StringWithHash: AsFieldsAndAuxExtended<
     {
       data: string;
       hash: Field;
     },
     Json.TypeMap['string']
   >;
-  TokenSymbol: AsFieldsAndAux<TokenSymbol, Json.TypeMap['string']>;
-  Events: AsFieldsAndAux<
+  TokenSymbol: AsFieldsAndAuxExtended<TokenSymbol, Json.TypeMap['string']>;
+  Events: AsFieldsAndAuxExtended<
     {
       data: Field[][];
       hash: Field;
     },
     Json.TypeMap['Field'][][]
   >;
-  SequenceEvents: AsFieldsAndAux<
+  SequenceEvents: AsFieldsAndAuxExtended<
     {
       data: Field[][];
       hash: Field;

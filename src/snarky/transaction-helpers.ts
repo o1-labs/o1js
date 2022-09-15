@@ -1,11 +1,11 @@
 import { TypeMap } from './transaction-leaves.js';
 import { Field, Bool, Circuit } from '../snarky.js';
-import { circuitArray, AsFieldsAndAux } from '../lib/circuit_value.js';
+import { circuitArray, AsFieldsAndAuxExtended } from '../lib/circuit_value.js';
 import { HashInput } from '../lib/hash.js';
 
-export { asFieldsAndAux, Layout, AsFieldsAndAux };
+export { asFieldsAndAux, Layout, AsFieldsAndAuxExtended };
 
-type CustomTypes = Record<string, AsFieldsAndAux<any, any>>;
+type CustomTypes = Record<string, AsFieldsAndAuxExtended<any, any>>;
 
 function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
   return {
@@ -268,7 +268,7 @@ function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
 
 type FoldSpec<T, R> = {
   customTypes: CustomTypes;
-  map: (type: AsFieldsAndAux<any, any>, value?: T) => R;
+  map: (type: AsFieldsAndAuxExtended<any, any>, value?: T) => R;
   reduceArray: (array: R[], typeData: ArrayLayout) => R;
   reduceObject: (keys: string[], record: Record<string, R>) => R;
   reduceFlaggedOption: (option: { isSome: R; value: R }) => R;

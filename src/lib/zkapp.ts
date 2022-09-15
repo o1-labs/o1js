@@ -8,6 +8,7 @@ import {
   JSONValue,
   AsFieldsAndAux,
   InferAsFieldsAndAux,
+  InferAsFieldElements,
 } from '../snarky.js';
 import {
   Circuit,
@@ -106,12 +107,12 @@ function method<T extends SmartContract>(
       `@method decorator was applied to \`${methodName}\`, which is not a function.`
     );
   }
-  let paramTypes: AsFieldElements<any>[] = Reflect.getMetadata(
+  let paramTypes: AsFieldsAndAux<any>[] = Reflect.getMetadata(
     'design:paramtypes',
     target,
     methodName
   );
-  let returnType: AsFieldElements<any> = Reflect.getMetadata(
+  let returnType: AsFieldsAndAux<any> = Reflect.getMetadata(
     'design:returntype',
     target,
     methodName
@@ -482,7 +483,7 @@ function computeCallData(
 
 class Callback<Result> extends GenericArgument {
   instance: SmartContract;
-  methodIntf: MethodInterface & { returnType: AsFieldElements<Result> };
+  methodIntf: MethodInterface & { returnType: AsFieldsAndAux<Result> };
   args: any[];
 
   static create<T extends SmartContract, K extends keyof T>(
@@ -508,9 +509,7 @@ class Callback<Result> extends GenericArgument {
       );
     methodIntf = {
       ...methodIntf,
-      returnType:
-        methodIntf.returnType ??
-        (circuitValue<null>(null) as AsFieldElements<null> as any),
+      returnType: methodIntf.returnType ?? (circuitValue<null>(null) as any),
     };
     this.methodIntf = methodIntf as any;
     this.args = args;
@@ -911,7 +910,7 @@ class SmartContract {
   }
 }
 
-type Reducer<Action> = { actionType: AsFieldsAndAux<Action> };
+type Reducer<Action> = { actionType: AsFieldElements<Action> };
 
 type ReducerReturn<Action> = {
   dispatch(action: Action): void;
@@ -1074,9 +1073,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
               reducer.actionType.fromFields(
                 action.map((fieldAsString: string) =>
                   Field.fromString(fieldAsString)
-                ),
-                // FIXME
-                []
+                )
               )
             )
           );
@@ -1247,8 +1244,8 @@ function declareMethods<T extends typeof SmartContract>(
 }
 
 const Reducer: (<
-  T extends AsFieldsAndAux<any>,
-  A extends InferAsFieldsAndAux<T>
+  T extends AsFieldElements<any>,
+  A extends InferAsFieldElements<T>
 >(reducer: {
   actionType: T;
 }) => ReducerReturn<A>) & {

@@ -65,7 +65,7 @@ import {
 } from './lib/account_update.js';
 import {
   memoizeWitness,
-  AsFieldsAndAux as AsFieldsAndAux_,
+  AsFieldsAndAuxExtended as AsFieldsAndAuxExtended_,
 } from './lib/circuit_value.js';
 import { MerkleTree, MerkleWitness } from './lib/merkle_tree.js';
 export { Experimental };
@@ -98,7 +98,10 @@ namespace Experimental {
   export let MerkleWitness = Experimental_.MerkleWitness;
   export let accountUpdateFromCallback =
     Experimental_.accountUpdateFromCallback;
-  export type AsFieldsAndAux<T, TJson> = AsFieldsAndAux_<T, TJson>;
+  export type AsFieldsAndAuxExtended<T, TJson> = AsFieldsAndAuxExtended_<
+    T,
+    TJson
+  >;
   export let Callback = Experimental_.Callback;
   export type Callback<Result> = Callback_<Result>;
 }

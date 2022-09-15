@@ -142,7 +142,7 @@ console.log('all hash inputs are consistent! 🎉');
 shutdown();
 
 function testInput<T>(
-  Module: Experimental.AsFieldsAndAux<T, any>,
+  Module: Experimental.AsFieldsAndAuxExtended<T, any>,
   toInputOcaml: (json: string) => InputOcaml,
   value: T
 ) {

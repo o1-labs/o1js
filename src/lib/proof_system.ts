@@ -533,7 +533,7 @@ function methodArgumentsToConstant(
 
 let Generic = circuitValue<null>(null);
 
-type TypeAndValue<T> = { type: AsFieldElements<T>; value: T };
+type TypeAndValue<T> = { type: AsFieldsAndAux<T>; value: T };
 
 function methodArgumentTypesAndValues(
   { allArgs, proofArgs, witnessArgs }: MethodInterface,
@@ -558,16 +558,14 @@ function methodArgumentTypesAndValues(
   return typesAndValues;
 }
 
-function emptyValue<T>(type: AsFieldsAndAux<T> | AsFieldElements<T>) {
-  if ('toAuxiliary' in type)
-    return type.fromFields(
-      Array(type.sizeInFields()).fill(Field.zero),
-      type.toAuxiliary()
-    );
-  return type.fromFields(Array(type.sizeInFields()).fill(Field.zero));
+function emptyValue<T>(type: AsFieldsAndAux<T>) {
+  return type.fromFields(
+    Array(type.sizeInFields()).fill(Field.zero),
+    type.toAuxiliary()
+  );
 }
 
-function emptyWitness<T>(type: AsFieldsAndAux<T> | AsFieldElements<T>) {
+function emptyWitness<T>(type: AsFieldsAndAux<T>) {
   return Circuit.witness(type, () => emptyValue(type));
 }
 
@@ -651,7 +649,7 @@ type Subclass<Class extends new (...args: any) => any> = (new (
   [K in keyof Class]: Class[K];
 } & { prototype: InstanceType<Class> };
 
-type PrivateInput = AsFieldElements<any> | Subclass<typeof Proof>;
+type PrivateInput = AsFieldsAndAux<any> | Subclass<typeof Proof>;
 
 type Method<PublicInput, Args extends Tuple<PrivateInput>> = {
   privateInputs: Args;

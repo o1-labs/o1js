@@ -347,10 +347,7 @@ type LongKey = keyof FlatPreconditionValue;
 // types for the two kinds of conditions
 type RangeCondition<T> = { isSome: Bool; value: { lower: T; upper: T } };
 type FlaggedOptionCondition<T> = { isSome: Bool; value: T };
-type AnyCondition<T> =
-  | RangeCondition<T>
-  | FlaggedOptionCondition<T>
-  | AsFieldElements<T>;
+type AnyCondition<T> = RangeCondition<T> | FlaggedOptionCondition<T>;
 
 function isRangeCondition<T>(
   condition: AnyCondition<T>

@@ -467,16 +467,22 @@ declare class Bool {
   static toInput(x: Bool): { packed: [Field, number][] };
 }
 
-declare interface AsFieldElements<T> {
-  toFields: (x: T) => Field[];
-  fromFields(x: Field[], aux?: any[]): T;
-  sizeInFields(): number;
-  check: (x: T) => void;
-}
+// AsFieldsAndAux<T> is the general circuit type
+// AsFieldElements<T> is a special kind of AsFieldsAndAux<T>, where the auxiliary data is empty
+// notably, AsFieldAndAux.fromFields(fields, aux) _requires_ and `aux` parameter, whereas AsFieldElements.fromFields(fields) doesn't
+// this means a function accepting AsFieldAndAux needs to do more work / make more assumptions than one accepting AsFieldElements
+// => "harder" to support a more general case than a more narrow one
 declare interface AsFieldsAndAux<T> {
   toFields: (x: T) => Field[];
   toAuxiliary: (x?: T) => any[];
   fromFields: (x: Field[], aux: any[]) => T;
+  sizeInFields(): number;
+  check: (x: T) => void;
+}
+declare interface AsFieldElements<T> extends AsFieldsAndAux<T> {
+  toFields: (x: T) => Field[];
+  toAuxiliary: (x?: T) => [];
+  fromFields: (x: Field[]) => T;
   sizeInFields(): number;
   check: (x: T) => void;
 }
@@ -525,14 +531,14 @@ declare class Circuit {
   static newVariable(f: () => Field | number | string | boolean): Field;
 
   // this convoluted generic typing is needed to give type inference enough flexibility
-  static _witness<T, S extends AsFieldElements<T> = AsFieldElements<T>>(
+  static _witness<T, S extends AsFieldsAndAux<T> = AsFieldsAndAux<T>>(
     ctor: S,
     f: () => T
   ): Field[];
-  static witness<
-    T,
-    S extends AsFieldsAndAux<T> | AsFieldElements<T> = AsFieldsAndAux<T>
-  >(ctor: S, f: () => T): T;
+  static witness<T, S extends AsFieldsAndAux<T> = AsFieldsAndAux<T>>(
+    ctor: S,
+    f: () => T
+  ): T;
 
   static asProver(f: () => void): void;
 
@@ -545,9 +551,9 @@ declare class Circuit {
   };
 
   static array<T>(
-    elementType: AsFieldElements<T>,
+    elementType: AsFieldsAndAux<T>,
     length: number
-  ): AsFieldElements<T[]>;
+  ): AsFieldsAndAux<T[]>;
 
   static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
 
@@ -571,7 +577,7 @@ declare class Circuit {
    * x.assertEquals(2);
    * ```
    */
-  static switch<T, A extends AsFieldElements<T>>(
+  static switch<T, A extends AsFieldsAndAux<T>>(
     mask: Bool[],
     type: A,
     values: T[]

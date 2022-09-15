@@ -11,7 +11,7 @@ import {
   Ledger,
   Circuit,
   Pickles,
-  AsFieldElements,
+  AsFieldsAndAux,
 } from '../snarky.js';
 import { Types } from '../snarky/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -537,7 +537,7 @@ type LazyProof = {
   args: any[];
   previousProofs: { publicInput: Field[]; proof: Pickles.Proof }[];
   ZkappClass: typeof SmartContract;
-  memoized: Field[][];
+  memoized: { fields: Field[]; aux: any[] }[];
   blindingValue: Field;
 };
 
@@ -1021,7 +1021,7 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   static witness<T>(
-    type: AsFieldElements<T>,
+    type: AsFieldsAndAux<T>,
     compute: () => { accountUpdate: AccountUpdate; result: T },
     { skipCheck = false } = {}
   ) {
@@ -1079,7 +1079,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * which also get witnessed
    */
   static witnessTree<T>(
-    resultType: AsFieldElements<T>,
+    resultType: AsFieldsAndAux<T>,
     childLayout: AccountUpdatesLayout,
     compute: () => { accountUpdate: AccountUpdate; result: T },
     options?: { skipCheck: boolean }
@@ -1356,7 +1356,7 @@ function addMissingSignatures(
 type ZkappPublicInput = { accountUpdate: Field; calls: Field };
 let ZkappPublicInput = circuitValue<ZkappPublicInput>(
   { accountUpdate: Field, calls: Field },
-  { customObjectKeys: ['accountUpdate', 'calls'] }
+  { customObjectKeys: ['accountUpdate', 'calls'], isPure: true }
 );
 
 function accountUpdateToPublicInput(self: AccountUpdate): ZkappPublicInput {

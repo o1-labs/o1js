@@ -4,7 +4,7 @@ import { UInt32, UInt64, Sign } from '../lib/int.js';
 import { TokenSymbol } from '../lib/hash.js';
 import { PublicKey } from '../lib/signature.js';
 import {
-  AsFieldsAndAux,
+  AsFieldsAndAuxExtended,
   AsFieldsExtended,
   circuitValue,
 } from '../lib/circuit_value.js';
@@ -87,10 +87,10 @@ const AuthRequired: AsFieldsExtended<AuthRequired> = {
   },
 };
 
-let { fromCircuitValue } = AsFieldsAndAux;
+let { fromCircuitValue } = AsFieldsAndAuxExtended;
 
 const TypeMap: {
-  [K in keyof TypeMap]: AsFieldsAndAux<TypeMap[K], Json.TypeMap[K]>;
+  [K in keyof TypeMap]: AsFieldsAndAuxExtended<TypeMap[K], Json.TypeMap[K]>;
 } = {
   Field: fromCircuitValue(Field),
   Bool: fromCircuitValue(Bool),
@@ -124,7 +124,7 @@ const TypeMap: {
 
 type DataAsHash<T> = { data: T; hash: Field };
 
-const Events: AsFieldsAndAux<DataAsHash<Field[][]>, string[][]> = {
+const Events: AsFieldsAndAuxExtended<DataAsHash<Field[][]>, string[][]> = {
   sizeInFields() {
     return 1;
   },
@@ -146,7 +146,7 @@ const Events: AsFieldsAndAux<DataAsHash<Field[][]>, string[][]> = {
   },
 };
 
-const StringWithHash: AsFieldsAndAux<DataAsHash<string>, string> = {
+const StringWithHash: AsFieldsAndAuxExtended<DataAsHash<string>, string> = {
   sizeInFields() {
     return 1;
   },

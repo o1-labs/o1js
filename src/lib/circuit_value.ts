@@ -25,7 +25,7 @@ export {
 // internal API
 export {
   AsFieldsExtended,
-  AsFieldsAndAuxExtended as AsFieldsAndAux,
+  AsFieldsAndAuxExtended,
   AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,
@@ -91,7 +91,7 @@ abstract class CircuitValue {
     return res;
   }
 
-  static toAuxiliary(x?: any) {
+  static toAuxiliary(): [] {
     return [];
   }
 
@@ -143,8 +143,7 @@ abstract class CircuitValue {
 
   static fromFields<T extends AnyConstructor>(
     this: T,
-    xs: Field[],
-    _aux?: any
+    xs: Field[]
   ): InstanceType<T> {
     const fields: [string, any][] = (this as any).prototype._fields;
     if (xs.length < fields.length) {
@@ -353,6 +352,10 @@ function typeOfArray(typs: Array<AsFieldElements<any>>): AsFieldElements<any> {
       return res;
     },
 
+    toAuxiliary() {
+      return [];
+    },
+
     fromFields: (xs: Array<any>) => {
       let offset = 0;
       let res: Array<any> = [];
@@ -434,8 +437,16 @@ type JSONCircuitType<T> = T extends [infer U, ...infer R]
 // TODO unit-test this
 function circuitValue<T>(
   typeObj: any,
-  options?: { customObjectKeys: string[] }
-): AsFieldsExtended<T> {
+  options: { customObjectKeys?: string[]; isPure: true }
+): AsFieldElements<T>;
+function circuitValue<T>(
+  typeObj: any,
+  options?: { customObjectKeys?: string[]; isPure?: false }
+): AsFieldsExtended<T>;
+function circuitValue<T>(
+  typeObj: any,
+  options?: { customObjectKeys?: string[]; isPure?: boolean }
+): any {
   let objectKeys =
     typeof typeObj === 'object' && typeObj !== null
       ? options?.customObjectKeys ?? Object.keys(typeObj).sort()
@@ -529,10 +540,22 @@ function circuitValue<T>(
     if ('check' in typeObj) return typeObj.check(obj);
     return objectKeys.forEach((k) => check(typeObj[k], obj[k]));
   }
+  let { isPure = false } = options ?? {};
+  if (isPure === true) {
+    return {
+      sizeInFields: () => sizeInFields(typeObj),
+      toFields: (obj: T) => toFields(typeObj, obj),
+      toAuxiliary: () => [],
+      toInput: (obj: T) => toInput(typeObj, obj),
+      toJSON: (obj: T) => toJSON(typeObj, obj),
+      fromFields: (fields: Field[]) => fromFields(typeObj, fields, []) as T,
+      check: (obj: T) => check(typeObj, obj),
+    } as any;
+  }
   return {
     sizeInFields: () => sizeInFields(typeObj),
     toFields: (obj: T) => toFields(typeObj, obj),
-    toAuxiliary: (obj?) => toAuxiliary(typeObj, obj),
+    toAuxiliary: (obj?: T) => toAuxiliary(typeObj, obj),
     toInput: (obj: T) => toInput(typeObj, obj),
     toJSON: (obj: T) => toJSON(typeObj, obj),
     fromFields: (fields: Field[], aux: any[]) =>
@@ -641,15 +664,18 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
   );
 }
 
-function toConstant<T>(type: AsFieldElements<T>, value: T): T {
-  return type.fromFields(type.toFields(value).map((x) => x.toConstant()));
+function toConstant<T>(type: AsFieldsAndAux<T>, value: T): T {
+  return type.fromFields(
+    type.toFields(value).map((x) => x.toConstant()),
+    type.toAuxiliary(value)
+  );
 }
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
-Circuit.witness = function <
-  T,
-  S extends AsFieldsAndAux<T> | AsFieldElements<T> = AsFieldsAndAux<T>
->(type: S, compute: () => T) {
+Circuit.witness = function <T, S extends AsFieldsAndAux<T> = AsFieldsAndAux<T>>(
+  type: S,
+  compute: () => T
+) {
   let value: T | undefined;
   let fields = Circuit._witness(type, () => {
     value = compute();
@@ -661,7 +687,7 @@ Circuit.witness = function <
 
 Circuit.array = circuitArray;
 
-Circuit.switch = function <T, A extends AsFieldElements<T>>(
+Circuit.switch = function <T, A extends AsFieldsAndAux<T>>(
   mask: Bool[],
   type: A,
   values: T[]
@@ -692,7 +718,12 @@ Circuit.switch = function <T, A extends AsFieldElements<T>>(
       fields[j] = fields[j].add(maybeField);
     }
   }
-  return type.fromFields(fields);
+  let aux = auxiliary(type, () => {
+    let i = mask.findIndex((b) => b.toBoolean());
+    if (i === -1) return type.toAuxiliary();
+    return type.toAuxiliary(values[i]);
+  });
+  return type.fromFields(fields, aux);
 };
 
 Circuit.constraintSystem = function <T>(f: () => T) {
@@ -709,16 +740,20 @@ Circuit.constraintSystem = function <T>(f: () => T) {
   return result;
 };
 
+function auxiliary<T>(type: AsFieldsAndAux<T>, compute: () => any[]) {
+  let aux;
+  if (inCheckedComputation()) Circuit.asProver(() => (aux = compute()));
+  else aux = compute();
+  return aux ?? type.toAuxiliary();
+}
+
 // TODO: very likely, this is how Circuit.witness should behave
-function witness<T>(
-  type: AsFieldsAndAux<T> | AsFieldElements<T>,
-  compute: () => T
-) {
+function witness<T>(type: AsFieldsAndAux<T>, compute: () => T) {
   return inCheckedComputation() ? Circuit.witness(type, compute) : compute();
 }
 
 let memoizationContext = Context.create<{
-  memoized: Field[][];
+  memoized: { fields: Field[]; aux: any[] }[];
   currentIndex: number;
   blindingValue: Field;
 }>();
@@ -735,12 +770,13 @@ function memoizeWitness<T>(type: AsFieldsAndAux<T>, compute: () => T) {
     let currentValue = memoized[currentIndex];
     if (currentValue === undefined) {
       let value = compute();
-      currentValue = type.toFields(value).map((x) => x.toConstant());
+      let fields = type.toFields(value).map((x) => x.toConstant());
+      let aux = type.toAuxiliary(value);
+      currentValue = { fields, aux };
       memoized[currentIndex] = currentValue;
     }
     context.currentIndex += 1;
-    // FIXME
-    return type.fromFields(currentValue, []);
+    return type.fromFields(currentValue.fields, currentValue.aux);
   });
 }
 
