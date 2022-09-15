@@ -2,7 +2,7 @@ import {
   isReady,
   method,
   Mina,
-  Party,
+  AccountUpdate,
   PrivateKey,
   SmartContract,
   PublicKey,
@@ -55,7 +55,7 @@ let tx;
 
 console.log('deploy');
 tx = await Mina.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer, { initialBalance });
+  AccountUpdate.fundNewAccount(feePayer, { initialBalance });
   zkapp.deploy({ zkappKey });
 });
 tx.send();
@@ -64,7 +64,7 @@ console.log(`zkApp balance: ${Mina.getBalance(zkappAddress)} MINA`);
 
 console.log('----------MINA sending----------');
 tx = await Local.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer);
+  AccountUpdate.fundNewAccount(feePayer);
   zkapp.sendMINA(account1Address, UInt64.from(1_000_000));
   zkapp.sign(zkappKey);
 });
@@ -77,9 +77,9 @@ console.log(
 
 console.log('----------MINA sending (with signed)----------');
 tx = await Local.transaction(feePayer, () => {
-  Party.fundNewAccount(feePayer);
-  let party = Party.createSigned(zkappKey);
-  party.send({ to: account2Address, amount: UInt64.from(1_000_000) });
+  AccountUpdate.fundNewAccount(feePayer);
+  let accountUpdate = AccountUpdate.createSigned(zkappKey);
+  accountUpdate.send({ to: account2Address, amount: UInt64.from(1_000_000) });
   zkapp.sign(zkappKey);
   zkapp.account.nonce.assertEquals(zkapp.account.nonce.get().add(1));
 });
@@ -95,9 +95,9 @@ console.log(
 
 console.log('----------MINA sending (with unsigned)----------');
 tx = await Local.transaction(feePayer, () => {
-  let party = Party.createUnsigned(zkappAddress);
-  party.signInPlace(zkappKey);
-  party.send({ to: account2Address, amount: UInt64.from(1_000_000) });
+  let accountUpdate = AccountUpdate.create(zkappAddress);
+  accountUpdate.sign(zkappKey);
+  accountUpdate.send({ to: account2Address, amount: UInt64.from(1_000_000) });
   zkapp.sign(zkappKey);
   zkapp.account.nonce.assertEquals(zkapp.account.nonce.get().add(1));
 });
@@ -113,8 +113,8 @@ console.log(
 
 console.log('----------MINA sending (with proof)----------');
 tx = await Local.transaction(feePayer, () => {
-  let party = Party.createSigned(zkappKey);
-  party.send({ to: account2Address, amount: UInt64.from(1_000_000) });
+  let accountUpdate = AccountUpdate.createSigned(zkappKey);
+  accountUpdate.send({ to: account2Address, amount: UInt64.from(1_000_000) });
   zkapp.account.nonce.assertEquals(zkapp.account.nonce.get().add(1));
 });
 await tx.prove();

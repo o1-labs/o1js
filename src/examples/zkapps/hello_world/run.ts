@@ -1,5 +1,5 @@
-import { HelloWorld, adminPrivateKey } from './hello_world';
-import { Mina, PrivateKey, Party, Field } from 'snarkyjs';
+import { HelloWorld, adminPrivateKey } from './hello_world.js';
+import { Mina, PrivateKey, AccountUpdate, Field } from 'snarkyjs';
 
 let txn, txn2, txn3, txn4;
 // setup local ledger
@@ -20,7 +20,7 @@ const zkAppInstance = new HelloWorld(zkAppAddress);
 console.log('Deploying Hello World ....');
 
 txn = await Mina.transaction(feePayer1, () => {
-  Party.fundNewAccount(feePayer1);
+  AccountUpdate.fundNewAccount(feePayer1);
   zkAppInstance.deploy({ zkappKey: zkAppPrivateKey });
 });
 

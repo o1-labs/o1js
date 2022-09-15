@@ -23,7 +23,7 @@ await isReady;
 let address = PrivateKey.random().toPublicKey();
 
 console.log('compile...');
-await MyContract.compile(address);
+await MyContract.compile();
 // should work
 console.log('prove...');
 let tx = await Mina.transaction(() => {

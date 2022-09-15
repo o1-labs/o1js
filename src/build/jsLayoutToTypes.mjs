@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import prettier from 'prettier';
-import prettierRc from '../../.prettierrc.js';
+import prettierRc from '../../.prettierrc.cjs';
 
 // let jsLayout = JSON.parse(process.argv[2]);
 let selfPath = fileURLToPath(import.meta.url);
@@ -128,23 +128,25 @@ function writeTsContent(types, isJson) {
   mergeSet(imports, dependencies);
   mergeSet(imports, new Set(customTypeNames));
 
-  let importPath = isJson ? '../parties-leaves-json' : '../parties-leaves';
+  let importPath = isJson
+    ? '../transaction-leaves-json.js'
+    : '../transaction-leaves.js';
   return `// @generated this file is auto-generated - don't edit it directly
 
 import { ${[...imports].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? "import { asFieldsAndAux, AsFieldsAndAux } from '../parties-helpers';\n" +
-      "import * as Json from './parties-json';\n" +
-      "import { jsLayout } from './js-layout';\n"
+    ? "import { asFieldsAndAux, AsFieldsAndAux } from '../transaction-helpers.js';\n" +
+      "import * as Json from './transaction-json.js';\n" +
+      "import { jsLayout } from './js-layout.js';\n"
     : ''
 }
 
 export { ${[...exports].join(', ')} };
 ${
   !isJson
-    ? 'export { Json };\n' + "export * from '../parties-leaves';\n"
-    : "export * from '../parties-leaves-json';\n"
+    ? 'export { Json };\n' + "export * from '../transaction-leaves.js';\n"
+    : "export * from '../transaction-leaves-json.js';\n"
 }
 
 ${
@@ -173,10 +175,10 @@ let genPath = '../../snarky/gen';
 await ensureDir(genPath);
 
 let jsonTypesContent = writeTsContent(jsLayout, true);
-await writeTsFile(jsonTypesContent, `${genPath}/parties-json.ts`);
+await writeTsFile(jsonTypesContent, `${genPath}/transaction-json.ts`);
 
 let jsTypesContent = writeTsContent(jsLayout, false);
-await writeTsFile(jsTypesContent, `${genPath}/parties.ts`);
+await writeTsFile(jsTypesContent, `${genPath}/transaction.ts`);
 
 await writeTsFile(
   `// @generated this file is auto-generated - don't edit it directly

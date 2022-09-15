@@ -1,11 +1,4 @@
-import {
-  shutdown,
-  isReady,
-  Field,
-  Bool,
-  Circuit,
-  Scalar,
-} from '../../dist/server';
+import { shutdown, isReady, Field, Bool, Circuit, Scalar } from 'snarkyjs';
 
 describe('scalar', () => {
   beforeAll(async () => {

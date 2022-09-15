@@ -1,11 +1,16 @@
 import 'isomorphic-fetch';
-import { Bool, Field, Ledger } from '../snarky';
-import { UInt32, UInt64 } from './int';
-import { TokenId, Permission, Permissions, ZkappStateLength } from './party';
-import { PublicKey } from './signature';
-import { NetworkValue } from './precondition';
-import { Types } from '../snarky/types';
-import * as Encoding from './encoding';
+import { Bool, Field, Ledger } from '../snarky.js';
+import { UInt32, UInt64 } from './int.js';
+import {
+  TokenId,
+  Permission,
+  Permissions,
+  ZkappStateLength,
+} from './account_update.js';
+import { PublicKey } from './signature.js';
+import { NetworkValue } from './precondition.js';
+import { Types } from '../snarky/types.js';
+import * as Encoding from './encoding.js';
 
 export {
   fetchAccount,
@@ -534,15 +539,33 @@ function sendZkapp(
   });
 }
 
-// TODO response useful?
+// TODO: Decide an appropriate response structure.
 function sendZkappQuery(json: string) {
   return `mutation {
   sendZkapp(input: {
-    parties: ${removeJsonQuotes(json)}
+    zkappCommand: ${removeJsonQuotes(json)}
   }) {
     zkapp {
-      parties {
+      hash
+      id
+      failureReason {
+        failures
+        index
+      }
+      zkappCommand {
         memo
+        feePayer {
+          body {
+            publicKey
+          }
+        }
+        accountUpdates {
+          body {
+            publicKey
+            useFullCommitment
+            incrementNonce
+          }
+        }
       }
     }
   }

@@ -15,19 +15,17 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
-
-      - name: Setup node
+      - name: Setup Node
         uses: actions/setup-node@v2
         with:
-          node-version: '16'
-
-      - name: run build:node & tests
+          node-version: "18"
+      - name: Build SnarkyJS and Execute Tests
         run: |
           npm ci
           npm run build:node
+          npm run test:unit
           npm run test
           npm run test:integration
-
       - name: Publish to NPM if version has changed
         uses: JS-DevTools/npm-publish@v1
         if: github.ref == 'refs/heads/releases'
@@ -36,18 +34,29 @@ jobs:
         env:
           INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  Build-Web:
+  Build-And-Test-Web:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
-
-      - name: Setup node
+      - name: Setup Node
         uses: actions/setup-node@v2
         with:
-          node-version: '16'
-
-      - name: run build:web
+          node-version: "18"
+      - name: Install Node Dependencies
+        run: npm ci
+      - name: Install Playwright Browsers
+        run: npm run e2e:install
+      - name: Build SnarkyJS and Prepare the Web Server
         run: |
-          npm ci
           npm run build:web
+          npm run e2e:prepare-server
+      - name: Execute E2E Tests
+        run: npm run test:e2e
+      - name: Upload E2E Test Artifacts
+        uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: e2e-tests-report
+          path: tests/report/
+          retention-days: 30

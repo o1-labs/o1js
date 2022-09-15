@@ -6,7 +6,7 @@ import {
   Field,
   shutdown,
   isReady,
-} from '../../dist/server';
+} from 'snarkyjs';
 
 describe('Circuit String', () => {
   beforeEach(() => isReady);

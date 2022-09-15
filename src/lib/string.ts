@@ -1,6 +1,6 @@
-import { Bool, Field } from '../snarky';
-import { Circuit, arrayProp, CircuitValue, prop } from './circuit_value';
-import { Poseidon } from './hash';
+import { Bool, Field } from '../snarky.js';
+import { Circuit, arrayProp, CircuitValue, prop } from './circuit_value.js';
+import { Poseidon } from './hash.js';
 
 export { Character, CircuitString };
 
