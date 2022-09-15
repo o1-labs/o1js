@@ -457,24 +457,29 @@ function circuitValue<A>(
       .map(sizeInFields)
       .reduce((a, b) => a + b, 0);
   }
-  function toFields(typeObj: any, obj: any): Field[] {
+  function toFields(typeObj: any, obj: any, isToplevel = false): Field[] {
     if (nonCircuitPrimitives.has(typeObj)) return [];
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return [];
     if (Array.isArray(typeObj))
       return typeObj.map((t, i) => toFields(t, obj[i])).flat();
     if ('toFields' in typeObj) return typeObj.toFields(obj);
-    return objectKeys.map((k) => toFields(typeObj[k], obj[k])).flat();
+    return (isToplevel ? objectKeys : Object.keys(typeObj).sort())
+      .map((k) => toFields(typeObj[k], obj[k]))
+      .flat();
   }
-  function toAuxiliary(typeObj: any, obj?: any): any[] {
-    if (typeObj === Number || typeObj === String || typeObj === BigInt)
-      return [obj];
+  function toAuxiliary(typeObj: any, obj?: any, isToplevel = false): any[] {
+    if (typeObj === Number) return [obj ?? 0];
+    if (typeObj === String) return [obj ?? ''];
+    if (typeObj === BigInt) return [obj ?? 0n];
     if (typeObj === undefined || typeObj === null) return [];
     if (Array.isArray(typeObj))
       return typeObj.map((t, i) => toAuxiliary(t, obj?.[i]));
     if ('toAuxiliary' in typeObj) return typeObj.toAuxiliary(obj);
-    return objectKeys.map((k) => toAuxiliary(typeObj[k], obj?.[k]));
+    return (isToplevel ? objectKeys : Object.keys(typeObj).sort()).map((k) =>
+      toAuxiliary(typeObj[k], obj?.[k])
+    );
   }
-  function toInput(typeObj: any, obj: any): HashInput {
+  function toInput(typeObj: any, obj: any, isToplevel = false): HashInput {
     if (nonCircuitPrimitives.has(typeObj)) return {};
     if (Array.isArray(typeObj)) {
       return typeObj
@@ -485,11 +490,11 @@ function circuitValue<A>(
     if ('toFields' in typeObj) {
       return { fields: typeObj.toFields(obj) };
     }
-    return objectKeys
+    return (isToplevel ? objectKeys : Object.keys(typeObj).sort())
       .map((k) => toInput(typeObj[k], obj[k]))
       .reduce(HashInput.append, {});
   }
-  function toJSON(typeObj: any, obj: any): JSONValue {
+  function toJSON(typeObj: any, obj: any, isToplevel = false): JSONValue {
     if (typeObj === BigInt) return obj.toString();
     if (typeObj === String || typeObj === Number) return obj;
     if (typeObj === undefined || typeObj === null) return null;
@@ -498,10 +503,18 @@ function circuitValue<A>(
     if (Array.isArray(typeObj)) return typeObj.map((t, i) => toJSON(t, obj[i]));
     if ('toJSON' in typeObj) return typeObj.toJSON(obj);
     return Object.fromEntries(
-      objectKeys.map((k) => [k, toJSON(typeObj[k], obj[k])])
+      (isToplevel ? objectKeys : Object.keys(typeObj).sort()).map((k) => [
+        k,
+        toJSON(typeObj[k], obj[k]),
+      ])
     );
   }
-  function fromFields(typeObj: any, fields: Field[], aux: any[] = []): any {
+  function fromFields(
+    typeObj: any,
+    fields: Field[],
+    aux: any[] = [],
+    isToplevel = false
+  ): any {
     if (typeObj === Number || typeObj === String || typeObj === BigInt)
       return aux[0];
     if (typeObj === undefined || typeObj === null) return typeObj;
@@ -521,41 +534,45 @@ function circuitValue<A>(
       return array;
     }
     if ('fromFields' in typeObj) return typeObj.fromFields(fields, aux);
+    let keys = isToplevel ? objectKeys : Object.keys(typeObj).sort();
     let values = fromFields(
-      objectKeys.map((k) => typeObj[k]),
+      keys.map((k) => typeObj[k]),
       fields,
       aux
     );
-    return Object.fromEntries(objectKeys.map((k, i) => [k, values[i]]));
+    return Object.fromEntries(keys.map((k, i) => [k, values[i]]));
   }
-  function check(typeObj: any, obj: any): void {
+  function check(typeObj: any, obj: any, isToplevel = false): void {
     if (nonCircuitPrimitives.has(typeObj)) return;
     if (Array.isArray(typeObj))
       return typeObj.forEach((t, i) => check(t, obj[i]));
     if ('check' in typeObj) return typeObj.check(obj);
-    return objectKeys.forEach((k) => check(typeObj[k], obj[k]));
+    return (isToplevel ? objectKeys : Object.keys(typeObj).sort()).forEach(
+      (k) => check(typeObj[k], obj[k])
+    );
   }
   let { isPure = false } = options ?? {};
   if (isPure === true) {
     return {
       sizeInFields: () => sizeInFields(typeObj),
-      toFields: (obj: T) => toFields(typeObj, obj),
+      toFields: (obj: T) => toFields(typeObj, obj, true),
       toAuxiliary: () => [],
-      toInput: (obj: T) => toInput(typeObj, obj),
-      toJSON: (obj: T) => toJSON(typeObj, obj) as J,
-      fromFields: (fields: Field[]) => fromFields(typeObj, fields, []) as T,
-      check: (obj: T) => check(typeObj, obj),
+      toInput: (obj: T) => toInput(typeObj, obj, true),
+      toJSON: (obj: T) => toJSON(typeObj, obj, true) as J,
+      fromFields: (fields: Field[]) =>
+        fromFields(typeObj, fields, [], true) as T,
+      check: (obj: T) => check(typeObj, obj, true),
     };
   }
   return {
     sizeInFields: () => sizeInFields(typeObj),
-    toFields: (obj: T) => toFields(typeObj, obj),
-    toAuxiliary: (obj?: T) => toAuxiliary(typeObj, obj),
-    toInput: (obj: T) => toInput(typeObj, obj),
-    toJSON: (obj: T) => toJSON(typeObj, obj) as J,
+    toFields: (obj: T) => toFields(typeObj, obj, true),
+    toAuxiliary: (obj?: T) => toAuxiliary(typeObj, obj, true),
+    toInput: (obj: T) => toInput(typeObj, obj, true),
+    toJSON: (obj: T) => toJSON(typeObj, obj, true) as J,
     fromFields: (fields: Field[], aux: any[]) =>
-      fromFields(typeObj, fields, aux) as T,
-    check: (obj: T) => check(typeObj, obj),
+      fromFields(typeObj, fields, aux, true) as T,
+    check: (obj: T) => check(typeObj, obj, true),
   };
 }
 
