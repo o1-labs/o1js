@@ -30,6 +30,7 @@ Then go to `http://localhost:8000/`
 - Unit tests
 
   ```sh
+  npm run test
   npm run test:unit
   ```
 
@@ -44,12 +45,9 @@ Then go to `http://localhost:8000/`
   ```sh
   npm install
   npm run e2e:install
-
-  npm run clean
   npm run build:web
-  npm run build:examples
-  npm run e2e:prepare-server
 
+  npm run e2e:prepare-server
   npm run test:e2e
   npm run e2e:show-report
   ```

@@ -49,9 +49,7 @@ jobs:
         run: npm run e2e:install
       - name: Build SnarkyJS and Prepare the Web Server
         run: |
-          npm run clean
           npm run build:web
-          npm run build:examples
           npm run e2e:prepare-server
       - name: Execute E2E Tests
         run: npm run test:e2e

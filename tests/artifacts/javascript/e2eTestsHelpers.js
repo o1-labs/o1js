@@ -1,5 +1,3 @@
-'use strict';
-
 const logEvents = (message, eventsContainer) => {
   const dateNow = new Date().toLocaleString();
   const previousMessage = eventsContainer.innerHTML.replace(
