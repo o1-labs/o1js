@@ -1,29 +1,30 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, Ledger } from '../snarky';
-import { Field, Bool } from './core';
-import { UInt32, UInt64 } from './int';
-import { PrivateKey, PublicKey } from './signature';
+import { Circuit, Ledger } from '../snarky.js';
+import { Field, Bool } from './core.js';
+import { UInt32, UInt64 } from './int.js';
+import { PrivateKey, PublicKey } from './signature.js';
 import {
   addMissingProofs,
   addMissingSignatures,
   FeePayerUnsigned,
-  Parties,
-  partiesToJson,
-  Party,
+  ZkappCommand,
+  zkappCommandToJson,
+  AccountUpdate,
   ZkappStateLength,
   ZkappPublicInput,
   TokenId,
   CallForest,
   Authorization,
-  Events,
-} from './party';
-import * as Fetch from './fetch';
-import { assertPreconditionInvariants, NetworkValue } from './precondition';
-import { cloneCircuitValue } from './circuit_value';
-import { Proof, snarkContext } from './proof_system';
-import { Context } from './global-context';
-import { emptyReceiptChainHash } from './hash';
+  SequenceEvents,
+} from './account_update.js';
+import * as Fetch from './fetch.js';
+import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
+import { cloneCircuitValue } from './circuit_value.js';
+import { Proof, snarkContext } from './proof_system.js';
+import { Context } from './global-context.js';
+import { emptyReceiptChainHash } from './hash.js';
+import { invalidTransactionError } from './errors.js';
 
 export {
   createTransaction,
@@ -41,14 +42,16 @@ export {
   accountCreationFee,
   sendTransaction,
   fetchEvents,
+  getActions,
   FeePayerSpec,
 };
 interface TransactionId {
   wait(): Promise<void>;
+  hash(): Promise<string>;
 }
 
 interface Transaction {
-  transaction: Parties;
+  transaction: ZkappCommand;
   toJSON(): string;
   toGraphqlQuery(): string;
   sign(additionalKeys?: PrivateKey[]): Transaction;
@@ -60,8 +63,8 @@ type Account = Fetch.Account;
 
 type FetchMode = 'fetch' | 'cached' | 'test';
 type CurrentTransaction = {
-  sender?: PrivateKey;
-  parties: Party[];
+  sender?: PublicKey;
+  accountUpdates: AccountUpdate[];
   fetchMode: FetchMode;
   isFinalRunOutsideCircuit: boolean;
 };
@@ -95,8 +98,8 @@ function createTransaction(
   let memo = feePayer instanceof PrivateKey ? '' : feePayer?.memo ?? '';
 
   let transactionId = currentTransaction.enter({
-    sender: feePayerKey,
-    parties: [],
+    sender: feePayerKey?.toPublicKey(),
+    accountUpdates: [],
     fetchMode,
     isFinalRunOutsideCircuit,
   });
@@ -125,37 +128,43 @@ function createTransaction(
     currentTransaction.leave(transactionId);
     throw err;
   }
-  let otherParties = CallForest.toFlatList(currentTransaction.get().parties);
+  let accountUpdates = CallForest.toFlatList(
+    currentTransaction.get().accountUpdates
+  );
   try {
     // check that on-chain values weren't used without setting a precondition
-    for (let party of otherParties) {
-      assertPreconditionInvariants(party);
+    for (let accountUpdate of accountUpdates) {
+      assertPreconditionInvariants(accountUpdate);
     }
   } catch (err) {
     currentTransaction.leave(transactionId);
     throw err;
   }
 
-  let feePayerParty: FeePayerUnsigned;
+  let feePayerAccountUpdate: FeePayerUnsigned;
   if (feePayerKey !== undefined) {
     // if senderKey is provided, fetch account to get nonce and mark to be signed
     let senderAddress = feePayerKey.toPublicKey();
     let senderAccount = getAccount(senderAddress, TokenId.default);
-    feePayerParty = Party.defaultFeePayer(
+    feePayerAccountUpdate = AccountUpdate.defaultFeePayer(
       senderAddress,
       feePayerKey,
       senderAccount.nonce
     );
     if (fee !== undefined) {
-      feePayerParty.body.fee =
+      feePayerAccountUpdate.body.fee =
         fee instanceof UInt64 ? fee : UInt64.fromString(String(fee));
     }
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
-    feePayerParty = Party.dummyFeePayer();
+    feePayerAccountUpdate = AccountUpdate.dummyFeePayer();
   }
 
-  let transaction: Parties = { otherParties, feePayer: feePayerParty, memo };
+  let transaction: ZkappCommand = {
+    accountUpdates,
+    feePayer: feePayerAccountUpdate,
+    memo,
+  };
 
   currentTransaction.leave(transactionId);
   let self: Transaction = {
@@ -167,13 +176,13 @@ function createTransaction(
     },
 
     async prove() {
-      let { parties, proofs } = await addMissingProofs(self.transaction);
-      self.transaction = parties;
+      let { zkappCommand, proofs } = await addMissingProofs(self.transaction);
+      self.transaction = zkappCommand;
       return proofs;
     },
 
     toJSON() {
-      let json = partiesToJson(self.transaction);
+      let json = zkappCommandToJson(self.transaction);
       return JSON.stringify(json);
     },
 
@@ -197,6 +206,10 @@ interface Mina {
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): TransactionId;
   fetchEvents: (publicKey: PublicKey, tokenId?: Field) => any;
+  getActions: (
+    publicKey: PublicKey,
+    tokenId?: Field
+  ) => { hash: string; actions: string[][] }[];
 }
 
 interface MockMina extends Mina {
@@ -247,6 +260,7 @@ function LocalBlockchain({
   }
 
   const events: Record<string, any> = {};
+  const actions: Record<string, any> = {};
 
   return {
     accountCreationFee: () => UInt64.from(accountCreationFee),
@@ -283,7 +297,7 @@ function LocalBlockchain({
             ledgerAccount.delegate && PublicKey.from(ledgerAccount.delegate),
           sequenceState:
             ledgerAccount.zkapp?.sequenceState[0] ??
-            Events.emptySequenceState(),
+            SequenceEvents.emptySequenceState(),
         };
       }
     },
@@ -293,17 +307,29 @@ function LocalBlockchain({
     sendTransaction(txn: Transaction) {
       txn.sign();
 
-      let partiesJson = partiesToJson(txn.transaction);
-
-      ledger.applyJsonTransaction(
-        JSON.stringify(partiesJson),
-        String(accountCreationFee),
-        JSON.stringify(networkState)
-      );
+      let zkappCommandJson = zkappCommandToJson(txn.transaction);
+      try {
+        ledger.applyJsonTransaction(
+          JSON.stringify(zkappCommandJson),
+          String(accountCreationFee),
+          JSON.stringify(networkState)
+        );
+      } catch (err: any) {
+        try {
+          // reverse errors so they match order of account updates
+          // TODO: label updates, and try to give precise explanations about what went wrong
+          let errors = JSON.parse(err.message).reverse();
+          err.message = invalidTransactionError(txn.transaction, errors, {
+            accountCreationFee,
+          });
+        } finally {
+          throw err;
+        }
+      }
 
       // fetches all events from the transaction and stores them
       // events are identified and associated with a publicKey and tokenId
-      partiesJson.otherParties.forEach((p) => {
+      zkappCommandJson.accountUpdates.forEach((p) => {
         let addr = p.body.publicKey;
         let tokenId = p.body.tokenId;
         if (events[addr] === undefined) {
@@ -318,19 +344,62 @@ function LocalBlockchain({
             slot: networkState.globalSlotSinceHardFork.toString(),
           });
         }
-      });
 
-      return { wait: async () => {} };
+        // actions/sequencing events
+
+        // gets the index of the most up to date sequence state from our sequence list
+        let n = actions[addr]?.[tokenId]?.length ?? 1;
+
+        // most recent sequence state
+        let sequenceState = actions?.[addr]?.[tokenId]?.[n - 1]?.hash;
+
+        // if there exists no hash, this means we initialize our latest hash with the empty state
+        let latestActionsHash =
+          sequenceState === undefined
+            ? SequenceEvents.emptySequenceState()
+            : Ledger.fieldOfBase58(sequenceState);
+
+        let actionList = p.body.sequenceEvents;
+        let eventsHash = SequenceEvents.hash(
+          actionList.map((e) => e.map((f) => Field(f)))
+        );
+
+        if (actions[addr] === undefined) {
+          actions[addr] = {};
+        }
+        if (p.body.sequenceEvents.length > 0) {
+          latestActionsHash = SequenceEvents.updateSequenceState(
+            latestActionsHash,
+            eventsHash
+          );
+          if (actions[addr][tokenId] === undefined) {
+            actions[addr][tokenId] = [];
+          }
+          actions[addr][tokenId].push({
+            actions: actionList,
+            hash: Ledger.fieldToBase58(latestActionsHash),
+          });
+        }
+      });
+      return {
+        wait: async () => {},
+        hash: async (): Promise<string> => {
+          const message =
+            'Txn Hash retrieving is not supported for LocalBlockchain.';
+          console.log(message);
+          return message;
+        },
+      };
     },
     async transaction(sender: FeePayerSpec, f: () => void) {
       // bad hack: run transaction just to see whether it creates proofs
       // if it doesn't, this is the last chance to run SmartContract.runOutsideCircuit, which is supposed to run only once
-      // TODO: this has obvious holes if multiple zkapps are involved, but not relevant currently because we can't prove with multiple parties
+      // TODO: this has obvious holes if multiple zkapps are involved, but not relevant currently because we can't prove with multiple account updates
       // and hopefully with upcoming work by Matt we can just run everything in the prover, and nowhere else
       let tx = createTransaction(sender, f, {
         isFinalRunOutsideCircuit: false,
       });
-      let hasProofs = tx.transaction.otherParties.some(
+      let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
       return createTransaction(sender, f, {
@@ -341,7 +410,7 @@ function LocalBlockchain({
       return ledger.applyJsonTransaction(
         json,
         String(accountCreationFee),
-        JSON.stringify(defaultNetworkState())
+        JSON.stringify(networkState)
       );
     },
     async fetchEvents(
@@ -349,6 +418,14 @@ function LocalBlockchain({
       tokenId: Field = TokenId.default
     ): Promise<any[]> {
       return events?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
+    },
+    getActions(
+      publicKey: PublicKey,
+      tokenId: Field = TokenId.default
+    ): { hash: string; actions: string[][] }[] {
+      return (
+        actions?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)] ?? []
+      );
     },
     addAccount,
     testAccounts,
@@ -456,6 +533,22 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
             console.log('got fetch error', error);
           }
         },
+        async hash() {
+          let [response, error] = await sendPromise;
+          if (error === undefined) {
+            if (
+              response!.data === null &&
+              (response as any).errors?.length > 0
+            ) {
+              console.log('got graphql errors', (response as any).errors);
+            } else {
+              console.log('got graphql response', response?.data);
+              return response?.data?.sendZkapp?.zkapp?.hash;
+            }
+          } else {
+            console.log('got fetch error', error);
+          }
+        },
       };
     },
     async transaction(sender: FeePayerSpec, f: () => void) {
@@ -464,7 +557,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         isFinalRunOutsideCircuit: false,
       });
       await Fetch.fetchMissingData(graphqlEndpoint);
-      let hasProofs = tx.transaction.otherParties.some(
+      let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
       return createTransaction(sender, f, {
@@ -473,6 +566,11 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       });
     },
     async fetchEvents() {
+      throw Error(
+        'fetchEvents() is not implemented yet for remote blockchains.'
+      );
+    },
+    getActions() {
       throw Error(
         'fetchEvents() is not implemented yet for remote blockchains.'
       );
@@ -541,6 +639,9 @@ let activeInstance: Mina = {
     return createTransaction(sender, f);
   },
   fetchEvents() {
+    throw Error('must call Mina.setActiveInstance first');
+  },
+  getActions() {
     throw Error('must call Mina.setActiveInstance first');
   },
 };
@@ -630,6 +731,13 @@ async function fetchEvents(publicKey: PublicKey, tokenId: Field) {
   return await activeInstance.fetchEvents(publicKey, tokenId);
 }
 
+/**
+ * @return A list of emitted sequencing actions associated to the given public key.
+ */
+function getActions(publicKey: PublicKey, tokenId: Field) {
+  return activeInstance.getActions(publicKey, tokenId);
+}
+
 function dummyAccount(pubkey?: PublicKey): Account {
   return {
     balance: UInt64.zero,
@@ -641,7 +749,7 @@ function dummyAccount(pubkey?: PublicKey): Account {
     provedState: Bool(false),
     receiptChainHash: emptyReceiptChainHash(),
     delegate: undefined,
-    sequenceState: Events.emptySequenceState(),
+    sequenceState: SequenceEvents.emptySequenceState(),
   };
 }
 

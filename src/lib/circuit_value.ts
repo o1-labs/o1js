@@ -1,9 +1,9 @@
 import 'reflect-metadata';
-import { Circuit, JSONValue, AsFieldElements } from '../snarky';
-import { Field, Bool } from './core';
-import { Context } from './global-context';
-import { HashInput } from './hash';
-import { snarkContext } from './proof_system';
+import { Circuit, JSONValue, AsFieldElements } from '../snarky.js';
+import { Field, Bool } from './core.js';
+import { Context } from './global-context.js';
+import { HashInput } from './hash.js';
+import { inCheckedComputation, snarkContext } from './proof_system.js';
 
 // external API
 export {
@@ -29,6 +29,7 @@ export {
   memoizeWitness,
   getBlindingValue,
   toConstant,
+  witness,
 };
 
 type AnyConstructor = new (...args: any) => any;
@@ -494,6 +495,13 @@ function cloneCircuitValue<T>(obj: T): T {
   // primitive JS types and functions aren't cloned
   if (typeof obj !== 'object' || obj === null) return obj;
 
+  // HACK: callbacks
+  if (
+    ['GenericArgument', 'Callback'].includes((obj as any).constructor?.name)
+  ) {
+    return obj;
+  }
+
   // built-in JS datatypes with custom cloning strategies
   if (Array.isArray(obj)) return obj.map(cloneCircuitValue) as any as T;
   if (obj instanceof Set)
@@ -573,8 +581,8 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
   }
 
   // equality test that works for plain objects AND classes whose constructor only assigns properties
-  let aEntries = Object.entries(a).filter(([, v]) => v !== undefined);
-  let bEntries = Object.entries(b).filter(([, v]) => v !== undefined);
+  let aEntries = Object.entries(a as any).filter(([, v]) => v !== undefined);
+  let bEntries = Object.entries(b as any).filter(([, v]) => v !== undefined);
   if (aEntries.length !== bEntries.length) return false;
   return aEntries.every(
     ([key, value]) => key in b && circuitValueEquals((b as any)[key], value)
@@ -586,6 +594,8 @@ function toConstant<T>(type: AsFieldElements<T>, value: T): T {
 }
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
+Circuit.array = circuitArray;
+
 Circuit.switch = function <T, A extends AsFieldElements<T>>(
   mask: Bool[],
   type: A,
@@ -634,6 +644,11 @@ Circuit.constraintSystem = function <T>(f: () => T) {
   return result;
 };
 
+// TODO: very likely, this is how Circuit.witness should behave
+function witness<T>(type: AsFieldElements<T>, compute: () => T) {
+  return inCheckedComputation() ? Circuit.witness(type, compute) : compute();
+}
+
 let memoizationContext = Context.create<{
   memoized: Field[][];
   currentIndex: number;
@@ -645,7 +660,7 @@ let memoizationContext = Context.create<{
  * for reuse by the prover. This is needed to witness non-deterministic values.
  */
 function memoizeWitness<T>(type: AsFieldElements<T>, compute: () => T) {
-  return Circuit.witness(type, () => {
+  return witness(type, () => {
     if (!memoizationContext.has()) return compute();
     let context = memoizationContext.get();
     let { memoized, currentIndex } = context;

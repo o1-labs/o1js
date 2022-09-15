@@ -1,6 +1,11 @@
-/** @type {import('@ts-jest/dist/types').InitialOptionsTsJest} */
-module.exports = {
-  preset: 'ts-jest',
+export default {
+  preset: 'ts-jest/presets/js-with-ts',
   testEnvironment: 'node',
-  collectCoverage: false,
+  extensionsToTreatAsEsm: ['.ts'],
+  transformIgnorePatterns: ["node_modules/", "dist/node/"],
+  globals: {
+    'ts-jest': {
+      useESM: true
+    }
+  }
 };

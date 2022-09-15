@@ -6,11 +6,11 @@ import {
   SmartContract,
   Mina,
   PrivateKey,
-  Party,
+  AccountUpdate,
   method,
   PublicKey,
   Bool,
-} from '../../dist/server';
+} from 'snarkyjs';
 
 class MyContract extends SmartContract {
   @method shouldMakeCompileThrow() {
@@ -35,7 +35,7 @@ beforeAll(async () => {
   zkapp = new MyContract(zkappAddress);
 
   let tx = await Mina.transaction(feePayer, () => {
-    Party.fundNewAccount(feePayer);
+    AccountUpdate.fundNewAccount(feePayer);
     zkapp.deploy({ zkappKey });
   });
   tx.send();
@@ -54,7 +54,7 @@ describe('preconditions', () => {
   });
 
   it('get without constraint should throw during compile', async () => {
-    let err = await MyContract.compile(zkappAddress).catch((err) => err);
+    let err = await MyContract.compile().catch((err) => err);
     // TODO: err is an Array thrown from OCaml -.-
     // which is also why expect(..).rejects.toThrow doesn't work
     expect(err[2]).toBeInstanceOf(Error);

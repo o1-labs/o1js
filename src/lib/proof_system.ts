@@ -5,9 +5,9 @@ import {
   Pickles,
   Circuit,
   Poseidon,
-} from '../snarky';
-import { toConstant } from './circuit_value';
-import { Context } from './global-context';
+} from '../snarky.js';
+import { circuitValue, toConstant } from './circuit_value.js';
+import { Context } from './global-context.js';
 
 // public API
 export { Proof, SelfProof, ZkProgram, verify };
@@ -18,6 +18,7 @@ export {
   sortMethodArguments,
   getPreviousProofsForProver,
   MethodInterface,
+  GenericArgument,
   picklesRuleFromFunction,
   compileProgram,
   analyzeMethod,
@@ -32,11 +33,13 @@ export {
   inCompile,
   inAnalyze,
   inCheckedComputation,
+  inCompileMode,
 };
 
 // global circuit-related context
 type SnarkContext = {
   witnesses?: unknown[];
+  proverData?: any;
   inProver?: boolean;
   inCompile?: boolean;
   inCheckedComputation?: boolean;
@@ -276,7 +279,8 @@ function sortMethodArguments(
 ): MethodInterface {
   let witnessArgs: AsFieldElements<unknown>[] = [];
   let proofArgs: Subclass<typeof Proof>[] = [];
-  let allArgs: { type: 'proof' | 'witness'; index: number }[] = [];
+  let allArgs: { type: 'proof' | 'witness' | 'generic'; index: number }[] = [];
+  let genericArgs: Subclass<typeof GenericArgument>[] = [];
   for (let i = 0; i < privateInputs.length; i++) {
     let privateInput = privateInputs[i];
     if (isProof(privateInput)) {
@@ -295,6 +299,9 @@ function sortMethodArguments(
     } else if (isAsFields(privateInput)) {
       allArgs.push({ type: 'witness', index: witnessArgs.length });
       witnessArgs.push(privateInput);
+    } else if (isGeneric(privateInput)) {
+      allArgs.push({ type: 'generic', index: genericArgs.length });
+      genericArgs.push(privateInput);
     } else {
       throw Error(
         `Argument ${
@@ -309,7 +316,13 @@ function sortMethodArguments(
         `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
-  return { methodName, witnessArgs, proofArgs, allArgs };
+  return {
+    methodName,
+    witnessArgs,
+    proofArgs,
+    allArgs,
+    genericArgs,
+  };
 }
 
 function isAsFields(
@@ -326,6 +339,22 @@ function isProof(type: unknown): type is typeof Proof {
   return (
     type === Proof ||
     (typeof type === 'function' && type.prototype instanceof Proof)
+  );
+}
+
+class GenericArgument {
+  isEmpty: boolean;
+  constructor(isEmpty = false) {
+    this.isEmpty = isEmpty;
+  }
+}
+let emptyGeneric = () => new GenericArgument(true);
+
+function isGeneric(type: unknown): type is typeof GenericArgument {
+  // the second case covers subclasses
+  return (
+    type === GenericArgument ||
+    (typeof type === 'function' && type.prototype instanceof GenericArgument)
   );
 }
 
@@ -350,9 +379,12 @@ function getPreviousProofsForProver(
 
 type MethodInterface = {
   methodName: string;
+  // TODO: unify types of arguments
+  // "circuit types" should be flexible enough to encompass proofs and callback arguments
   witnessArgs: AsFieldElements<unknown>[];
   proofArgs: Subclass<typeof Proof>[];
-  allArgs: { type: 'witness' | 'proof'; index: number }[];
+  genericArgs: Subclass<typeof GenericArgument>[];
+  allArgs: { type: 'witness' | 'proof' | 'generic'; index: number }[];
   returnType?: AsFieldElements<unknown>;
 };
 
@@ -360,8 +392,7 @@ function compileProgram(
   publicInputType: AsFieldElements<any>,
   methodIntfs: MethodInterface[],
   methods: ((...args: any) => void)[],
-  proofSystemTag: { name: string },
-  additionalContext?: { self: any } | undefined
+  proofSystemTag: { name: string }
 ) {
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
@@ -372,7 +403,7 @@ function compileProgram(
     )
   );
   let [, { getVerificationKeyArtifact, provers, verify, tag }] =
-    snarkContext.runWith({ inCompile: true, ...additionalContext }, () =>
+    snarkContext.runWith({ inCompile: true }, () =>
       Pickles.compile(rules, publicInputType.sizeInFields())
     );
   CompiledTag.store(proofSystemTag, tag);
@@ -411,7 +442,7 @@ function picklesRuleFromFunction(
         finalArgs[i] = argsWithoutPublicInput
           ? Circuit.witness(type, () => argsWithoutPublicInput![i])
           : emptyWitness(type);
-      } else {
+      } else if (arg.type === 'proof') {
         let Proof = proofArgs[arg.index];
         let publicInput = getPublicInputType(Proof).ofFields(
           previousInputs[arg.index]
@@ -425,6 +456,8 @@ function picklesRuleFromFunction(
         }
         finalArgs[i] = proofInstance;
         proofs.push(proofInstance);
+      } else if (arg.type === 'generic') {
+        finalArgs[i] = argsWithoutPublicInput?.[i] ?? emptyGeneric();
       }
     }
     func(publicInputType.ofFields(publicInput), ...finalArgs);
@@ -463,10 +496,12 @@ function synthesizeMethodArguments(
   for (let arg of allArgs) {
     if (arg.type === 'witness') {
       args.push(empty(witnessArgs[arg.index]));
-    } else {
+    } else if (arg.type === 'proof') {
       let Proof = proofArgs[arg.index];
       let publicInput = empty(getPublicInputType(Proof));
       args.push(new Proof({ publicInput, proof: undefined }));
+    } else if (arg.type === 'generic') {
+      args.push(emptyGeneric());
     }
   }
   return args;
@@ -482,14 +517,18 @@ function methodArgumentsToConstant(
     let { type, index } = allArgs[i];
     if (type === 'witness') {
       constArgs.push(toConstant(witnessArgs[index], arg));
-    } else {
+    } else if (type === 'proof') {
       let Proof = proofArgs[index];
       let publicInput = toConstant(getPublicInputType(Proof), arg.publicInput);
       constArgs.push(new Proof({ publicInput, proof: arg.proof }));
+    } else if (type === 'generic') {
+      constArgs.push(arg);
     }
   }
   return constArgs;
 }
+
+let Generic = circuitValue<null>(null);
 
 type TypeAndValue<T> = { type: AsFieldElements<T>; value: T };
 
@@ -503,12 +542,14 @@ function methodArgumentTypesAndValues(
     let { type, index } = allArgs[i];
     if (type === 'witness') {
       typesAndValues.push({ type: witnessArgs[index], value: arg });
-    } else {
+    } else if (type === 'proof') {
       let Proof = proofArgs[index];
       typesAndValues.push({
         type: getPublicInputType(Proof),
         value: (arg as Proof<any>).publicInput,
       });
+    } else if (type === 'generic') {
+      typesAndValues.push({ type: Generic, value: arg });
     }
   }
   return typesAndValues;
@@ -556,11 +597,12 @@ function inAnalyze() {
   return !!snarkContext.get().inAnalyze;
 }
 function inCheckedComputation() {
-  return (
-    !!snarkContext.get().inCompile ||
-    !!snarkContext.get().inProver ||
-    !!snarkContext.get().inCheckedComputation
-  );
+  let ctx = snarkContext.get();
+  return !!ctx.inCompile || !!ctx.inProver || !!ctx.inCheckedComputation;
+}
+function inCompileMode() {
+  let ctx = snarkContext.get();
+  return !!ctx.inCompile || !!ctx.inAnalyze;
 }
 
 // helper types

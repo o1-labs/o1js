@@ -6,7 +6,7 @@ import {
   Circuit,
   Group,
   Scalar,
-} from '../../dist/server';
+} from 'snarkyjs';
 
 describe('group', () => {
   beforeAll(async () => {

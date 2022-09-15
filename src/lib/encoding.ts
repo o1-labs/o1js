@@ -1,4 +1,4 @@
-import { Field, Ledger } from '../snarky';
+import { Field, Ledger } from '../snarky.js';
 
 export {
   stringToFields,
@@ -260,8 +260,13 @@ function bigIntArrayToBytes(bigints: bigint[], bytesPerBigInt: number) {
 // encoding of fields as base58, compatible with ocaml encodings (provided the versionByte and versionNumber are the same)
 
 function fieldToBase58(x: Field, versionByte: number, versionNumber?: number) {
-  if (!x.isConstant()) {
-    throw Error("encode: Field is not constant, can't read its value");
+  try {
+    x = x.toConstant();
+  } catch (err: any) {
+    err.message =
+      `Cannot read the value of a variable for base58 encoding.\n` +
+      err.message;
+    throw err;
   }
   let bytes = [...(x as any as InternalConstantField).value[1]];
   if (versionNumber !== undefined) bytes.unshift(versionNumber);

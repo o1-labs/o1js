@@ -1,7 +1,7 @@
-import { Circuit, Field, Bool } from '../snarky';
-import { CircuitValue, prop } from './circuit_value';
-import { Types } from '../snarky/types';
-import { HashInput } from './hash';
+import { Circuit, Field, Bool } from '../snarky.js';
+import { CircuitValue, prop } from './circuit_value.js';
+import { Types } from '../snarky/types.js';
+import { HashInput } from './hash.js';
 
 // external API
 export { UInt32, UInt64, Int64, Sign };
@@ -184,6 +184,14 @@ class UInt64 extends CircuitValue {
   assertGt(y: UInt64) {
     y.assertLt(this);
   }
+
+  gte(y: UInt64) {
+    return this.lt(y).not();
+  }
+
+  assertGte(y: UInt64) {
+    y.assertLte(this);
+  }
 }
 
 class UInt32 extends CircuitValue {
@@ -347,6 +355,14 @@ class UInt32 extends CircuitValue {
   assertGt(y: UInt32) {
     y.assertLt(this);
   }
+
+  gte(y: UInt32) {
+    return this.lt(y).not();
+  }
+
+  assertGte(y: UInt32) {
+    y.assertLte(this);
+  }
 }
 
 class Sign extends CircuitValue {
@@ -384,7 +400,7 @@ class Sign extends CircuitValue {
   }
 }
 
-type BalanceChange = Types.Party['body']['balanceChange'];
+type BalanceChange = Types.AccountUpdate['body']['balanceChange'];
 
 class Int64 extends CircuitValue implements BalanceChange {
   // * in the range [-2^64+1, 2^64-1], unlike a normal int64

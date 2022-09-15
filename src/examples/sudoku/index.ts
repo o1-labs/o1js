@@ -4,8 +4,7 @@ import {
   Bool,
   isReady,
   Mina,
-  Party,
-  Permissions,
+  AccountUpdate,
   PrivateKey,
   shutdown,
 } from 'snarkyjs';
@@ -23,9 +22,9 @@ let zkapp = new SudokuZkapp(zkappAddress);
 let sudoku = generateSudoku(0.5);
 
 console.log('Deploying Sudoku...');
-await SudokuZkapp.compile(zkappAddress);
+await SudokuZkapp.compile();
 let tx = await Mina.transaction(account1, () => {
-  Party.fundNewAccount(account1);
+  AccountUpdate.fundNewAccount(account1);
   let zkapp = new SudokuZkapp(zkappAddress);
   let sudokuInstance = new Sudoku(sudoku);
   zkapp.deploy({ zkappKey });

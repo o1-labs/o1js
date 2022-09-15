@@ -1,6 +1,6 @@
-import { Group, Field, Bool, Scalar, Ledger, Circuit } from '../snarky';
-import { prop, CircuitValue, AnyConstructor } from './circuit_value';
-import { Poseidon } from './hash';
+import { Group, Field, Bool, Scalar, Ledger, Circuit } from '../snarky.js';
+import { prop, CircuitValue, AnyConstructor } from './circuit_value.js';
+import { Poseidon } from './hash.js';
 
 // external API
 export { PrivateKey, PublicKey, Signature };
@@ -54,6 +54,7 @@ class PrivateKey extends CircuitValue {
   }
 }
 
+// TODO: this doesn't have a non-default check method yet. does it need one?
 class PublicKey extends CircuitValue {
   // compressed representation of a curve point, where `isOdd` is the least significant bit of `y`
   @prop x: Field;

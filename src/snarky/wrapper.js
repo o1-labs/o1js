@@ -1,4 +1,4 @@
-let snarky = require('./node_bindings/snarky_js_node.bc.js');
+import { default as snarky } from '../_node_bindings/snarky_js_node.bc.cjs';
 
 export { getSnarky, getWasm, snarky_ready, shutdown };
 
