@@ -26,7 +26,9 @@ export {
   setGraphqlEndpoint,
   sendZkappQuery,
   sendZkapp,
+  removeJsonQuotes,
 };
+
 export { Account };
 
 let defaultGraphqlEndpoint = 'none';
@@ -575,11 +577,8 @@ function sendZkappQuery(json: string) {
 
 // removes the quotes on JSON keys
 function removeJsonQuotes(json: string) {
-  // source: https://stackoverflow.com/a/65443215
   let cleaned = JSON.stringify(JSON.parse(json), null, 2);
-  return cleaned.replace(/^[\t ]*"[^:\n\r]+(?<!\\)":/gm, (match) =>
-    match.replace(/"/g, '')
-  );
+  return cleaned.replace(/\"(\S+)\"\s*:/gm, "$1 :");
 }
 
 // TODO it seems we're not actually catching most errors here
