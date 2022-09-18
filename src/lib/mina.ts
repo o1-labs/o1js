@@ -874,7 +874,6 @@ async function verifyAccountUpdate(
 
     try {
       isValidProof = await verify(proof, verificationKey);
-      console.log('isValid ', isValidProof);
     } catch (error) {
       isValidProof = false;
     }
