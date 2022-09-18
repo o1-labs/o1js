@@ -42,8 +42,7 @@ export {
   AccountUpdate,
   Permissions,
   ZkappPublicInput,
-  partiesToJson,
-  partyToPublicInput,
+  accountUpdateToPublicInput,
   zkappCommandToJson,
 } from './lib/account_update.js';
 

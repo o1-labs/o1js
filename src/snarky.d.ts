@@ -1,3 +1,5 @@
+import { ZkappCommand } from './lib/account_update.js';
+
 export {
   Field,
   Bool,
@@ -815,6 +817,11 @@ declare class Ledger {
   static memoToBase58(memoString: string): string;
 
   static verificationKeyToBase58(vr: unknown): string;
+
+  static checkAccountUpdateSignature(
+    updateJson: string,
+    commitment: Field
+  ): boolean;
 
   static fieldsOfJson(json: string): Field[];
   static hashAccountUpdateFromFields(fields: Field[]): Field;

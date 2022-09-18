@@ -1,6 +1,6 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, Ledger, LedgerAccount, Pickles } from '../snarky.js';
+import { Circuit, Ledger, LedgerAccount } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -315,7 +315,11 @@ function LocalBlockchain({
     },
     sendTransaction(txn: Transaction) {
       txn.sign();
-      // checking permissions and authorization for each party
+
+      let commitments = Ledger.transactionCommitments(
+        JSON.stringify(zkappCommandToJson(txn.transaction))
+      );
+
       txn.transaction.accountUpdates.forEach(async (party) => {
         try {
           let account = ledger.getAccount(
@@ -323,14 +327,7 @@ function LocalBlockchain({
             party.body.tokenId
           );
           if (account) {
-            console.log(account.permissions);
-            await verifyAccountUpdate(
-              account!,
-              party,
-              Ledger.transactionCommitments(
-                JSON.stringify(zkappCommandToJson(txn.transaction))
-              )
-            );
+            await verifyAccountUpdate(account!, party, commitments);
           }
         } catch (error) {
           console.log(error);
@@ -859,14 +856,14 @@ async function verifyAccountUpdate(
   const update = accountUpdate.update;
 
   let isValidProof = false;
-  let isValidSignature = true; // TODO: verify signature
+  let isValidSignature = false;
 
   if (accountUpdate.authorization.proof) {
     let publicInput = accountUpdateToPublicInput(accountUpdate);
     let publicInputFields = ZkappPublicInput.toFields(publicInput);
 
     const proof = SmartContract.Proof().fromJSON({
-      maxProofsVerified: 2,
+      maxProofsVerified: 2, // TODO: this can probably vary?
       proof: accountUpdate.authorization.proof!,
       publicInput: publicInputFields.map((f) => f.toString()),
     });
@@ -888,7 +885,15 @@ async function verifyAccountUpdate(
       ? fullCommitment
       : commitment;
 
-    //let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
+    // checking permissions and authorization for each party individually
+    try {
+      isValidProof = Ledger.checkAccountUpdateSignature(
+        JSON.stringify(accountUpdate.toJSON()),
+        txC
+      );
+    } catch (error) {
+      isValidProof = false;
+    }
   }
 
   function checkPermission(p: string, field: string) {
