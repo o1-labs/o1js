@@ -812,6 +812,8 @@ declare class Ledger {
   static fieldOfBase58(fieldBase58: string): Field;
   static memoToBase58(memoString: string): string;
 
+  static verificationKeyToBase58(vr: unknown): string;
+
   static fieldsOfJson(json: string): Field[];
   static hashAccountUpdateFromFields(fields: Field[]): Field;
   static hashAccountUpdateFromJson(json: string): Field;

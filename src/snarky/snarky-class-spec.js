@@ -457,6 +457,10 @@ export default [
         type: 'function',
       },
       {
+        name: 'verificationKeyToBase58',
+        type: 'function',
+      },
+      {
         name: 'fieldsOfJson',
         type: 'function',
       },
