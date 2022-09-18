@@ -19,7 +19,7 @@ import {
   SequenceEvents,
   Permission,
   PermissionsFromJSON,
-  partyToPublicInput,
+  accountUpdateToPublicInput,
 } from './account_update.js';
 
 import * as Fetch from './fetch.js';
@@ -316,7 +316,7 @@ function LocalBlockchain({
     sendTransaction(txn: Transaction) {
       txn.sign();
       // checking permissions and authorization for each party
-      txn.transaction.otherParties.forEach(async (party) => {
+      txn.transaction.accountUpdates.forEach(async (party) => {
         try {
           let account = ledger.getAccount(
             party.body.publicKey,
@@ -324,14 +324,18 @@ function LocalBlockchain({
           );
           if (account) {
             console.log(account.permissions);
-            await verifyAccountUpdate(account!, party);
+            await verifyAccountUpdate(
+              account!,
+              party,
+              Ledger.transactionCommitments(
+                JSON.stringify(zkappCommandToJson(txn.transaction))
+              )
+            );
           }
         } catch (error) {
           console.log(error);
         }
       });
-
-      let partiesJson = partiesToJson(txn.transaction);
 
       let zkappCommandJson = zkappCommandToJson(txn.transaction);
       try {
@@ -802,9 +806,15 @@ function defaultNetworkState(): NetworkValue {
 
 async function verifyAccountUpdate(
   account: LedgerAccount,
-  accountUpdate: AccountUpdate
+  accountUpdate: AccountUpdate,
+  transactionCommitments: {
+    commitment: Field;
+    fullCommitment: Field;
+  }
 ): Promise<void> {
   let perm = account.permissions;
+
+  let { commitment, fullCommitment } = transactionCommitments;
 
   // we are essentially only checking if the update is empty or an actual update
   function includesChange(val: any): boolean {
@@ -847,43 +857,38 @@ async function verifyAccountUpdate(
   }
 
   const update = accountUpdate.update;
-  console.log(2);
-  let isValidProof = true; // TODO: verify signature
-  let isValidSignature = true; // TODO: verify signature
-  if (accountUpdate.authorization.proof) {
-    class zkAppProof extends Proof<ZkappPublicInput> {
-      static publicInputType = ZkappPublicInput;
-      static tag = () => self;
-    }
 
-    let publicInput = partyToPublicInput(accountUpdate);
+  let isValidProof = false;
+  let isValidSignature = true; // TODO: verify signature
+
+  if (accountUpdate.authorization.proof) {
+    let publicInput = accountUpdateToPublicInput(accountUpdate);
     let publicInputFields = ZkappPublicInput.toFields(publicInput);
-    //console.log(publicInputFields.toString());
-    /*     console.log(4);
-    let [, picklesProof] = Pickles.proofOfBase64(
-      accountUpdate.authorization.proof!,
-      2
-    );
-    console.log('PICKLES PROOF', picklesProof);
-    console.log('proof base ', accountUpdate.authorization.proof!.length);
- */
-    const proof = zkAppProof.fromJSON({
+
+    const proof = SmartContract.Proof().fromJSON({
       maxProofsVerified: 2,
       proof: accountUpdate.authorization.proof!,
       publicInput: publicInputFields.map((f) => f.toString()),
     });
-    /*     let verificationKey = (
-      account.zkapp?.verificationKey?.data as Field
-    ).toString(); */
-    console.log('doing the unknow thing....');
-    let verificationKey = Ledger.verification_key_to_base58(
+
+    let verificationKey = Ledger.verificationKeyToBase58(
       account.zkapp?.verificationKey?.data
     );
-    console.log(verificationKey);
-    console.log(5);
-    isValidProof = await verify(proof, verificationKey);
-    console.log('isValid ', isValidProof);
-    console.log(6);
+
+    try {
+      isValidProof = await verify(proof, verificationKey);
+      console.log('isValid ', isValidProof);
+    } catch (error) {
+      isValidProof = false;
+    }
+  }
+
+  if (accountUpdate.authorization.signature) {
+    let txC = accountUpdate.body.useFullCommitment.toBoolean()
+      ? fullCommitment
+      : commitment;
+
+    //let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
   }
 
   function checkPermission(p: string, field: string) {
@@ -891,22 +896,22 @@ async function verifyAccountUpdate(
 
     if (p == 'Impossible') {
       throw Error(
-        `Transaction failed: Cannot update field ${field} because permission for this field is ${p}`
+        `Transaction verification failed: Cannot update field '${field}' because permission for this field is '${p}'`
       );
     }
 
     let verified = false;
     if (p == 'Signature' || p == 'Either') {
-      verified = isValidSignature;
+      verified ||= isValidSignature;
     }
 
     if (p == 'Proof' || p == 'Either') {
-      verified = isValidProof;
+      verified ||= isValidProof;
     }
 
     if (!verified) {
       throw Error(
-        `Transaction failed: Cannot update field ${field} because permission for this field is ${p}, but neither a valid Signature or valid Proof was provided.`
+        `Transaction verification failed: Cannot update field '${field}' because permission for this field is '${p}', but the required authorization was not provided or is invalid.`
       );
     }
   }
