@@ -61,8 +61,8 @@ class SimpleZkapp extends SmartContract {
     callerAddress.assertEquals(privilegedAddress);
 
     // assert that the caller account is new - this way, payout can only happen once
-    let callerParty = AccountUpdate.defaultParty(callerAddress);
-    callerParty.account.isNew.assertEquals(Bool(true));
+    let callerAccountUpdate = AccountUpdate.defaultAccountUpdate(callerAddress);
+    callerAccountUpdate.account.isNew.assertEquals(Bool(true));
 
     // pay out half of the zkapp balance to the caller
     let balance = this.account.balance.get();
@@ -71,7 +71,7 @@ class SimpleZkapp extends SmartContract {
     let halfBalance = Circuit.witness(UInt64, () =>
       balance.toConstant().div(2)
     );
-    this.send({ to: callerParty, amount: halfBalance });
+    this.send({ to: callerAccountUpdate, amount: halfBalance });
 
     // emit some events
     this.emitEvent('payoutReceiver', callerAddress);
@@ -112,24 +112,3 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 let [p] = await tx.prove();
-
-class zkAppProof extends Proof<ZkappPublicInput> {
-  static publicInputType = ZkappPublicInput;
-  static tag = () => self;
-}
-
-let publicInput = partyToPublicInput(tx.transaction.otherParties[0]);
-let publicInputFields = ZkappPublicInput.toFields(publicInput);
-/* console.log(p?.toJSON().proof);
-console.log(p?.toJSON().proof.length);
-console.log(tx.transaction.otherParties[0].authorization.proof?.length); */
-const proof = zkAppProof.fromJSON({
-  maxProofsVerified: 2,
-  proof: tx.transaction.otherParties[0].authorization.proof!,
-  publicInput: publicInputFields.map((f) => f.toString()),
-});
-
-let isValidProof = await verify(proof, verificationKey.data);
-console.log('isValid ', isValidProof);
-
-tx.send();

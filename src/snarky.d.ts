@@ -537,6 +537,11 @@ declare class Circuit {
     result: T;
   };
 
+  static array<T>(
+    elementType: AsFieldElements<T>,
+    length: number
+  ): AsFieldElements<T[]>;
+
   static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
 
   static assertEqual<T>(x: T, y: T): void;
@@ -688,7 +693,12 @@ declare const Poseidon: {
     isChecked: boolean
   ): [Field, Field, Field];
   prefixes: Record<
-    'event' | 'events' | 'sequenceEvents' | 'body' | 'partyCons' | 'partyNode',
+    | 'event'
+    | 'events'
+    | 'sequenceEvents'
+    | 'body'
+    | 'accountUpdateCons'
+    | 'accountUpdateNode',
     string
   >;
   spongeCreate(isChecked: boolean): unknown;
@@ -777,15 +787,15 @@ declare class Ledger {
   };
   static zkappPublicInput(
     txJson: string,
-    partyIndex: number
-  ): { party: Field; calls: Field };
+    accountUpdateIndex: number
+  ): { accountUpdate: Field; calls: Field };
   static signFieldElement(
     messageHash: Field,
     privateKey: { s: Scalar }
   ): string;
   static dummySignature(): string;
   static signFeePayer(txJson: string, privateKey: { s: Scalar }): string;
-  static signOtherParty(
+  static signAccountUpdate(
     txJson: string,
     privateKey: { s: Scalar },
     i: number
@@ -807,8 +817,8 @@ declare class Ledger {
   static verificationKeyToBase58(vr: unknown): string;
 
   static fieldsOfJson(json: string): Field[];
-  static hashPartyFromFields(fields: Field[]): Field;
-  static hashPartyFromJson(json: string): Field;
+  static hashAccountUpdateFromFields(fields: Field[]): Field;
+  static hashAccountUpdateFromJson(json: string): Field;
 
   static hashInputFromJson: {
     packInput(input: OcamlInput): Field[];
@@ -868,7 +878,7 @@ declare namespace Pickles {
 declare const Pickles: {
   /**
    * This is the core API of the `Pickles` library, exposed from OCaml to JS. It takes a list of circuits --
-   * each in the form of a function which takes a public input `{ party: Field; calls: Field }` as argument --,
+   * each in the form of a function which takes a public input `{ accountUpdate: Field; calls: Field }` as argument --,
    * and joins them into one single circuit which can not only provide proofs for any of the sub-circuits, but also
    * adds the necessary circuit logic to recursively merge in earlier proofs.
    *

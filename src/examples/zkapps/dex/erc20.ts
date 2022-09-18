@@ -171,27 +171,35 @@ class TrivialCoin extends SmartContract implements Erc20 {
     value: UInt64,
     authorize: Experimental.Callback<any>
   ): Bool {
-    // TODO: need to be able to witness a certain layout of parties, in this case
+    // TODO: need to be able to witness a certain layout of account updates, in this case
     // tokenContract --> sender --> receiver
-    let fromParty = Experimental.partyFromCallback(this, 0, authorize);
+    let fromUpdate = Experimental.accountUpdateFromCallback(this, 0, authorize);
 
-    let negativeAmount = Int64.fromObject(fromParty.body.balanceChange);
+    let negativeAmount = Int64.fromObject(fromUpdate.body.balanceChange);
     negativeAmount.assertEquals(Int64.from(value).neg());
     let tokenId = this.experimental.token.id;
-    fromParty.body.tokenId.assertEquals(tokenId);
-    fromParty.body.publicKey.assertEquals(from);
+    fromUpdate.body.tokenId.assertEquals(tokenId);
+    fromUpdate.body.publicKey.assertEquals(from);
 
-    let toParty = Experimental.createChildParty(this.self, to, tokenId);
-    toParty.balance.addInPlace(value);
+    let toUpdate = Experimental.createChildAccountUpdate(
+      this.self,
+      to,
+      tokenId
+    );
+    toUpdate.balance.addInPlace(value);
     this.emitEvent('Transfer', { from, to, value });
     return Bool(true);
   }
 
-  // this is a very standardized deploy method. instead, we could also take the party from a callback
+  // this is a very standardized deploy method. instead, we could also take the account update from a callback
   @method deployZkapp(zkappKey: PrivateKey) {
     let address = zkappKey.toPublicKey();
     let tokenId = this.experimental.token.id;
-    let zkapp = Experimental.createChildParty(this.self, address, tokenId);
+    let zkapp = Experimental.createChildAccountUpdate(
+      this.self,
+      address,
+      tokenId
+    );
     AccountUpdate.setValue(zkapp.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
@@ -203,9 +211,9 @@ class TrivialCoin extends SmartContract implements Erc20 {
 
   // for letting a zkapp do whatever it wants, as long as no tokens are transfered
   // TODO: atm, we have to restrict the zkapp to have no children
-  //       -> need to be able to witness a general layout of parties
+  //       -> need to be able to witness a general layout of account updates
   @method authorizeZkapp(callback: Experimental.Callback<any>) {
-    let zkappParty = Experimental.partyFromCallback(this, 0, callback);
-    Int64.fromObject(zkappParty.body.balanceChange).assertEquals(UInt64.zero);
+    let zkappUpdate = Experimental.accountUpdateFromCallback(this, 0, callback);
+    Int64.fromObject(zkappUpdate.body.balanceChange).assertEquals(UInt64.zero);
   }
 }
