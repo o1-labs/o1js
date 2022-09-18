@@ -1,6 +1,6 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, Ledger, LedgerAccount } from '../snarky.js';
+import { Circuit, Ledger, LedgerAccount, Pickles } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -27,6 +27,7 @@ import { cloneCircuitValue } from './circuit_value.js';
 import { Proof, snarkContext, verify } from './proof_system.js';
 import { Context } from './global-context.js';
 import { emptyReceiptChainHash } from './hash.js';
+import { SmartContract } from './zkapp.js';
 
 export {
   createTransaction,
@@ -308,14 +309,15 @@ function LocalBlockchain({
       txn.sign();
 
       // checking permissions and authorization for each party
-      txn.transaction.otherParties.forEach((party) => {
+      txn.transaction.otherParties.forEach(async (party) => {
         try {
           let account = ledger.getAccount(
             party.body.publicKey,
             party.body.tokenId
           );
           if (account) {
-            async () => await await verifyAccountUpdate(account!, party);
+            console.log(account.permissions);
+            await verifyAccountUpdate(account!, party);
           }
         } catch (error) {
           console.log(error);
@@ -834,20 +836,44 @@ async function verifyAccountUpdate(
   }
 
   const update = accountUpdate.update;
-
-  let publicInput = partyToPublicInput(accountUpdate);
-  let publicInputFields = ZkappPublicInput.toFields(publicInput);
-
-  const proof = Proof.fromJSON({
-    maxProofsVerified: 2,
-    proof: accountUpdate.authorization.proof!,
-    publicInput: publicInputFields.map((f) => f.toString()),
-  });
-
-  let verificationKey = account.zkapp?.verificationKey?.data as string;
-
-  let isValidProof = await verify(proof, verificationKey);
+  console.log(2);
+  let isValidProof = true; // TODO: verify signature
   let isValidSignature = true; // TODO: verify signature
+  if (accountUpdate.authorization.proof) {
+    class zkAppProof extends Proof<ZkappPublicInput> {
+      static publicInputType = ZkappPublicInput;
+      static tag = () => self;
+    }
+
+    let publicInput = partyToPublicInput(accountUpdate);
+    let publicInputFields = ZkappPublicInput.toFields(publicInput);
+    //console.log(publicInputFields.toString());
+    /*     console.log(4);
+    let [, picklesProof] = Pickles.proofOfBase64(
+      accountUpdate.authorization.proof!,
+      2
+    );
+    console.log('PICKLES PROOF', picklesProof);
+    console.log('proof base ', accountUpdate.authorization.proof!.length);
+ */
+    const proof = zkAppProof.fromJSON({
+      maxProofsVerified: 2,
+      proof: accountUpdate.authorization.proof!,
+      publicInput: publicInputFields.map((f) => f.toString()),
+    });
+    /*     let verificationKey = (
+      account.zkapp?.verificationKey?.data as Field
+    ).toString(); */
+    console.log('doing the unknow thing....');
+    let verificationKey = Ledger.verification_key_to_base58(
+      account.zkapp?.verificationKey?.data
+    );
+    console.log(verificationKey);
+    console.log(5);
+    isValidProof = await verify(proof, verificationKey);
+    console.log('isValid ', isValidProof);
+    console.log(6);
+  }
 
   function checkPermission(p: string, field: string) {
     if (p == 'None') return;

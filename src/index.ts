@@ -43,6 +43,7 @@ export {
   Permissions,
   ZkappPublicInput,
   partiesToJson,
+  partyToPublicInput,
 } from './lib/party.js';
 export {
   fetchAccount,
