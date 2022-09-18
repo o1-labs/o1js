@@ -887,12 +887,12 @@ async function verifyAccountUpdate(
 
     // checking permissions and authorization for each party individually
     try {
-      isValidProof = Ledger.checkAccountUpdateSignature(
+      isValidSignature = Ledger.checkAccountUpdateSignature(
         JSON.stringify(accountUpdate.toJSON()),
         txC
       );
     } catch (error) {
-      isValidProof = false;
+      isValidSignature = false;
     }
   }
 
