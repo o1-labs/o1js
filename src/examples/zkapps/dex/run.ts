@@ -8,17 +8,8 @@ import {
   tokenIds,
 } from './dex.js';
 
-/**
- * TODOs
- *
- * - make address a variable, or make smart contract store multiple vks/provers, one per address & tokenId
- *   to fix proving for X and Y token contracts
- * - get rid of nonce increments
- *
- */
-
 await isReady;
-let doProofs = false;
+let doProofs = true;
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
@@ -28,24 +19,18 @@ let [{ privateKey: feePayerKey }] = Local.testAccounts;
 let tx;
 
 // analyze methods for quick error feedback
-TokenContract.analyzeMethods(addresses.tokenX);
-TokenContract.analyzeMethods(addresses.tokenY);
-DexTokenHolder.analyzeMethods(addresses.dex, tokenIds.X);
-DexTokenHolder.analyzeMethods(addresses.dex, tokenIds.Y);
-Dex.analyzeMethods(addresses.dex);
+TokenContract.analyzeMethods();
+DexTokenHolder.analyzeMethods();
+Dex.analyzeMethods();
 
 if (doProofs) {
   // compile & deploy all 5 zkApps
-  console.log('compile (token X)...');
-  await TokenContract.compile(addresses.tokenX);
-  // console.log('compile (token Y)...');
-  // await TokenContract.compile(addresses.tokenY);
-  console.log('compile (dex token holder X)...');
-  await DexTokenHolder.compile(addresses.dex, tokenIds.X);
-  // console.log('compile (dex token holder Y)...');
-  // await DexTokenHolder.compile(addresses.dex, tokenIds.Y);
+  console.log('compile (token)...');
+  await TokenContract.compile();
+  console.log('compile (dex token holder)...');
+  await DexTokenHolder.compile();
   console.log('compile (dex main contract)...');
-  await Dex.compile(addresses.dex);
+  await Dex.compile();
 }
 let tokenX = new TokenContract(addresses.tokenX);
 let tokenY = new TokenContract(addresses.tokenY);
@@ -53,50 +38,31 @@ let dex = new Dex(addresses.dex);
 let dexX = new DexTokenHolder(addresses.dex, tokenIds.X);
 let dexY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
-console.log('deploy (x5)...');
-tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
-  // fund 2 new accounts, and fund token contracts so each can create 1 token account
+console.log('deploy & init token contracts...');
+tx = await Mina.transaction({ feePayerKey }, () => {
+  // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
   let feePayerUpdate = AccountUpdate.createSigned(feePayerKey);
-  feePayerUpdate.balance.subInPlace(accountFee.mul(3));
+  feePayerUpdate.balance.subInPlace(accountFee.mul(2));
   feePayerUpdate.send({ to: addresses.tokenX, amount: accountFee });
   feePayerUpdate.send({ to: addresses.tokenY, amount: accountFee });
 
   tokenX.deploy();
-  // tokenY.deploy();
-  // tokenX.deployZkapp(addresses.dex);
-  // tokenY.deployZkapp(addresses.dex);
-  dex.deploy();
-
-  // initialize tokens
-  // tokenX.init();
-  // tokenY.init();
+  tokenY.deploy();
+  tokenX.init();
+  tokenY.init();
 });
-
 await tx.prove();
-tx.sign([keys.tokenX, keys.tokenY, keys.dex]);
-console.log(tx.toJSON());
+tx.sign([keys.tokenX, keys.tokenY]);
 tx.send();
 
-console.log('deploy tokens...');
+console.log('deploy dex contracts...');
 tx = await Mina.transaction(feePayerKey, () => {
-  // fund 5 new accounts
-  AccountUpdate.createSigned(feePayerKey).balance.subInPlace(
-    Mina.accountCreationFee().mul(1)
-  );
-  // initialize tokens
-  tokenX.init();
-  if (!doProofs) tokenX.sign();
-  // tokenY.init();
-
-  // tokenX.deploy();
-  // tokenY.deploy();
+  // pay fees for creating 3 dex accounts
+  AccountUpdate.createSigned(feePayerKey).balance.subInPlace(accountFee.mul(3));
+  dex.deploy();
   tokenX.deployZkapp(addresses.dex);
-  if (!doProofs) tokenX.sign();
-  // tokenY.deployZkapp(addresses.dex);
-  // dex.deploy();
+  tokenY.deployZkapp(addresses.dex);
 });
-console.log(tx.toJSON());
-
 await tx.prove();
-tx.sign([keys.dex, keys.tokenX]);
+tx.sign([keys.dex]);
 tx.send();

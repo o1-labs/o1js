@@ -1,7 +1,12 @@
 import 'isomorphic-fetch';
 import { Bool, Field, Ledger } from '../snarky.js';
 import { UInt32, UInt64 } from './int.js';
-import { TokenId, Permission, Permissions, ZkappStateLength } from './party.js';
+import {
+  TokenId,
+  Permission,
+  Permissions,
+  ZkappStateLength,
+} from './account_update.js';
 import { PublicKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
 import { Types } from '../snarky/types.js';
@@ -538,7 +543,7 @@ function sendZkapp(
 function sendZkappQuery(json: string) {
   return `mutation {
   sendZkapp(input: {
-    parties: ${removeJsonQuotes(json)}
+    zkappCommand: ${removeJsonQuotes(json)}
   }) {
     zkapp {
       hash
@@ -547,14 +552,14 @@ function sendZkappQuery(json: string) {
         failures
         index
       }
-      parties {
+      zkappCommand {
         memo
         feePayer {
           body {
             publicKey
           }
         }
-        otherParties {
+        accountUpdates {
           body {
             publicKey
             useFullCommitment

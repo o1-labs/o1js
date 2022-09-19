@@ -14,17 +14,19 @@ import {
   Token,
   shutdown,
 } from '../index.js';
-import { Events, SequenceEvents } from './party.js';
+import { Events, SequenceEvents } from './account_update.js';
 import { expect } from 'expect';
 import { asFieldsAndAux, jsLayout } from '../snarky/types.js';
 import { packToFields } from './hash.js';
 
 await isReady;
 
-let party = AccountUpdate.defaultParty(PrivateKey.random().toPublicKey());
+let accountUpdate = AccountUpdate.defaultAccountUpdate(
+  PrivateKey.random().toPublicKey()
+);
 
 // types
-type Body = Types.Party['body'];
+type Body = Types.AccountUpdate['body'];
 type Update = Body['update'];
 type Timing = Update['timing']['value'];
 type AccountPrecondition = Body['preconditions']['account'];
@@ -32,9 +34,9 @@ type NetworkPrecondition = Body['preconditions']['network'];
 
 // timing
 let Timing = asFieldsAndAux<Timing, any>(
-  jsLayout.Party.entries.body.entries.update.entries.timing.inner
+  jsLayout.AccountUpdate.entries.body.entries.update.entries.timing.inner
 );
-let timing = party.body.update.timing.value;
+let timing = accountUpdate.body.update.timing.value;
 timing.initialMinimumBalance = UInt64.one;
 timing.vestingPeriod = UInt32.one;
 timing.vestingIncrement = UInt64.from(2);
@@ -42,9 +44,9 @@ testInput(Timing, Ledger.hashInputFromJson.timing, timing);
 
 // permissions
 let Permissions_ = asFieldsAndAux<Permissions, any>(
-  jsLayout.Party.entries.body.entries.update.entries.permissions.inner
+  jsLayout.AccountUpdate.entries.body.entries.update.entries.permissions.inner
 );
-let permissions = party.body.update.permissions;
+let permissions = accountUpdate.body.update.permissions;
 permissions.isSome = Bool(true);
 permissions.value = {
   ...Permissions.default(),
@@ -60,9 +62,9 @@ testInput(
 
 // update
 let Update = asFieldsAndAux<Update, any>(
-  jsLayout.Party.entries.body.entries.update
+  jsLayout.AccountUpdate.entries.body.entries.update
 );
-let update = party.body.update;
+let update = accountUpdate.body.update;
 
 update.timing.isSome = Bool(true);
 update.appState[0].isSome = Bool(true);
@@ -71,17 +73,17 @@ update.delegate.isSome = Bool(true);
 let delegate = PrivateKey.random().toPublicKey();
 update.delegate.value = delegate;
 
-party.tokenSymbol.set('BLABLA');
+accountUpdate.tokenSymbol.set('BLABLA');
 testInput(Update, Ledger.hashInputFromJson.update, update);
 
 // account precondition
 let AccountPrecondition = asFieldsAndAux<AccountPrecondition, any>(
-  jsLayout.Party.entries.body.entries.preconditions.entries.account
+  jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.account
 );
-let account = party.body.preconditions.account;
-party.account.balance.assertEquals(UInt64.from(1e9));
-party.account.isNew.assertEquals(Bool(true));
-party.account.delegate.assertEquals(delegate);
+let account = accountUpdate.body.preconditions.account;
+accountUpdate.account.balance.assertEquals(UInt64.from(1e9));
+accountUpdate.account.isNew.assertEquals(Bool(true));
+accountUpdate.account.delegate.assertEquals(delegate);
 account.state[0].isSome = Bool(true);
 account.state[0].value = Field(9);
 testInput(
@@ -92,11 +94,11 @@ testInput(
 
 // network precondition
 let NetworkPrecondition = asFieldsAndAux<NetworkPrecondition, any>(
-  jsLayout.Party.entries.body.entries.preconditions.entries.network
+  jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.network
 );
-let network = party.body.preconditions.network;
-party.network.stakingEpochData.ledger.hash.assertEquals(Field.random());
-party.network.nextEpochData.lockCheckpoint.assertEquals(Field.random());
+let network = accountUpdate.body.preconditions.network;
+accountUpdate.network.stakingEpochData.ledger.hash.assertEquals(Field.random());
+accountUpdate.network.nextEpochData.lockCheckpoint.assertEquals(Field.random());
 
 testInput(
   NetworkPrecondition,
@@ -105,8 +107,8 @@ testInput(
 );
 
 // body
-let Body = asFieldsAndAux<Body, any>(jsLayout.Party.entries.body);
-let body = party.body;
+let Body = asFieldsAndAux<Body, any>(jsLayout.AccountUpdate.entries.body);
+let body = accountUpdate.body;
 body.balanceChange.magnitude = UInt64.from(14197832);
 body.balanceChange.sgn = Sign.minusOne;
 body.callData = Field.random();
@@ -126,12 +128,14 @@ body.sequenceEvents = sequenceEvents;
 
 testInput(Body, Ledger.hashInputFromJson.body, body);
 
-// party (should be same as body)
+// accountUpdate (should be same as body)
 testInput(
-  Types.Party,
-  (partyJson) =>
-    Ledger.hashInputFromJson.body(JSON.stringify(JSON.parse(partyJson).body)),
-  party
+  Types.AccountUpdate,
+  (accountUpdateJson) =>
+    Ledger.hashInputFromJson.body(
+      JSON.stringify(JSON.parse(accountUpdateJson).body)
+    ),
+  accountUpdate
 );
 
 console.log('all hash inputs are consistent! 🎉');

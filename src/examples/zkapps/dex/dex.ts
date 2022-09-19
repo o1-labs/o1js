@@ -46,7 +46,7 @@ class Dex extends SmartContract {
     let tokenY = new TokenContract(this.tokenY);
 
     // get balances of X and Y token
-    // TODO: this creates extra parties. we need to reuse these by passing them to or returning them from transfer()
+    // TODO: this creates extra account updates. we need to reuse these by passing them to or returning them from transfer()
     // but for that, we need the @method argument generalization
     let dexX = AccountUpdate.create(this.address, tokenX.experimental.token.id);
     let x = dexX.account.balance.get();
@@ -109,7 +109,7 @@ class Dex extends SmartContract {
     let tokenX = new TokenContract(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
     // TODO: as long as we're not proving anything about the callback, this allows users to
-    // construct any party, e.g. draining all our lq tokens -.-
+    // construct any account update, e.g. draining all our lq tokens -.-
     let callback = Experimental.Callback.create(dexX, 'redeemLiquidity', [
       user,
       dl,
@@ -131,7 +131,7 @@ class Dex extends SmartContract {
     let tokenY = new TokenContract(this.tokenY);
     let dexY = new DexTokenHolder(this.address, tokenY.experimental.token.id);
     // TODO: as long as we're not proving anything about the callback, this allows users to
-    // construct any party, for example draining all our lq tokens -.-
+    // construct any account update, for example draining all our lq tokens -.-
     let callback = Experimental.Callback.create(dexY, 'swap', [
       user,
       dx,
@@ -153,7 +153,7 @@ class Dex extends SmartContract {
     let tokenX = new TokenContract(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
     // TODO: as long as we're not proving anything about the callback, this allows users to
-    // construct any party, for example draining all our lq tokens -.-
+    // construct any account update, for example draining all our lq tokens -.-
     let callback = Experimental.Callback.create(dexX, 'swap', [
       user,
       dy,
@@ -188,8 +188,8 @@ class DexTokenHolder extends SmartContract {
 
     // user sends dl to dex
     let idlXY = Token.getId(this.address);
-    let userParty = AccountUpdate.create(user, idlXY);
-    userParty.balance.subInPlace(dl);
+    let userUpdate = AccountUpdate.create(user, idlXY);
+    userUpdate.balance.subInPlace(dl);
 
     // in return, we give dy back
     let y = this.account.balance.get();
@@ -197,11 +197,11 @@ class DexTokenHolder extends SmartContract {
     let dy = y.mul(dl).div(l);
     this.send({ to: user, amount: dy });
 
-    // return l so callers don't have to walk their child parties to get it
+    // return l so callers don't have to walk their child account updates to get it
     return l;
   }
 
-  // more complicated circuit, where we trigger the Y(other)-lqXY trade in our child parties and then add the X(our) part
+  // more complicated circuit, where we trigger the Y(other)-lqXY trade in our child account updates and then add the X(our) part
   @method redeemLiquidity(
     user: PublicKey,
     dl: UInt64,
@@ -221,35 +221,38 @@ class DexTokenHolder extends SmartContract {
     let dy;
     {
       // NOTHING IN THIS BLOCK SHOULD BE NECESSARY if we're properly proving the callback call.
-      // walk into child parties, to assert the callback was called correctly
+      // walk into child account updates, to assert the callback was called correctly
 
-      // TODO: getting the party here w/o messing up the parties structure is error-prone and non-obvious
-      let tokenYParty = AccountUpdate.witnessTree(
+      // TODO: getting the account update here w/o messing up the account updates structure is error-prone and non-obvious
+      let tokenYUpdate = AccountUpdate.witnessTree(
         circuitValue<null>(null),
-        // need to walk two layers deeper, and need to respect the actual max number of child parties
+        // need to walk two layers deeper, and need to respect the actual max number of child account updates
         [[undefined, undefined, undefined], undefined, undefined],
         () => {
           // remove existing calls hash, because tokenY.authorize just witnesses it, which would mess up our circuit and
-          // make us unable to make assertions about the party tree
-          this.self.children.parties[0].children.calls = undefined;
-          return { party: this.self.children.parties[0], result: null };
+          // make us unable to make assertions about the account update tree
+          this.self.children.accountUpdates[0].children.calls = undefined;
+          return {
+            accountUpdate: this.self.children.accountUpdates[0],
+            result: null,
+          };
         }
-      ).party;
-      let [dexYParty] = tokenYParty.children.parties;
-      let [dexParty, userPartyL] = dexYParty.children.parties;
+      ).accountUpdate;
+      let [dexYUpdate] = tokenYUpdate.children.accountUpdates;
+      let [dexUpdate, userUpdateL] = dexYUpdate.children.accountUpdates;
       // confirm we really got `dl` tokens from `user`
       // 1. passed in the right user
-      userPartyL.body.publicKey.assertEquals(user);
+      userUpdateL.body.publicKey.assertEquals(user);
       // 2. deducted the right balance from user
-      Int64.fromObject(userPartyL.body.balanceChange).assertEquals(
+      Int64.fromObject(userUpdateL.body.balanceChange).assertEquals(
         Int64.from(dl).neg()
       );
       // get lq pool balance
-      l = dexParty.account.balance.get();
-      dexParty.account.balance.assertEquals(l);
+      l = dexUpdate.account.balance.get();
+      dexUpdate.account.balance.assertEquals(l);
       // in return for dl, we give back dx, the X token part
-      let y = dexYParty.account.balance.get();
-      dexYParty.account.balance.assertEquals(y);
+      let y = dexYUpdate.account.balance.get();
+      dexYUpdate.account.balance.assertEquals(y);
       dy = y.mul(dl).div(l);
     }
 
@@ -316,11 +319,15 @@ class TokenContract extends SmartContract {
     this.balance.subInPlace(Mina.accountCreationFee());
   }
 
-  // this is a very standardized deploy method. instead, we could also take the party from a callback
+  // this is a very standardized deploy method. instead, we could also take the account update from a callback
   // => need callbacks for signatures
   @method deployZkapp(address: PublicKey) {
     let tokenId = this.experimental.token.id;
-    let zkapp = Experimental.createChildParty(this.self, address, tokenId);
+    let zkapp = Experimental.createChildAccountUpdate(
+      this.self,
+      address,
+      tokenId
+    );
     AccountUpdate.setValue(zkapp.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
@@ -332,11 +339,15 @@ class TokenContract extends SmartContract {
 
   // let a zkapp do whatever it wants, as long as the token supply stays constant
   @method authorize(callback: Experimental.Callback<any>) {
-    let layout = [[3, 0, 0], 0, 0]; // these are 10 child parties we allow, in a left-biased tree of width 3
+    let layout = [[3, 0, 0], 0, 0]; // these are 10 child account updates we allow, in a left-biased tree of width 3
     // TODO: this should also return what the callback returns, and authorize should pass it on!
-    let zkappParty = Experimental.partyFromCallback(this, layout, callback);
-    // walk parties to see if balances for this token cancel
-    let balance = balanceSum(zkappParty, this.experimental.token.id);
+    let zkappUpdate = Experimental.accountUpdateFromCallback(
+      this,
+      layout,
+      callback
+    );
+    // walk account updates to see if balances for this token cancel
+    let balance = balanceSum(zkappUpdate, this.experimental.token.id);
     balance.assertEquals(Int64.zero);
   }
 
@@ -354,13 +365,13 @@ let tokenIds = {
 };
 
 /**
- * Sum of balances of the party and all its descendants
+ * Sum of balances of the account update and all its descendants
  */
-function balanceSum(party: AccountUpdate, tokenId: Field) {
-  let myTokenId = party.body.tokenId;
-  let myBalance = Int64.fromObject(party.body.balanceChange);
+function balanceSum(accountUpdate: AccountUpdate, tokenId: Field) {
+  let myTokenId = accountUpdate.body.tokenId;
+  let myBalance = Int64.fromObject(accountUpdate.body.balanceChange);
   let balance = Circuit.if(myTokenId.equals(tokenId), myBalance, Int64.zero);
-  for (let child of party.children.parties) {
+  for (let child of accountUpdate.children.accountUpdates) {
     balance.add(balanceSum(child, tokenId));
   }
   return balance;
