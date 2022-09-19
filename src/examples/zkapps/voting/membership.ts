@@ -13,7 +13,6 @@ import {
 } from 'snarkyjs';
 import { Member } from './member.js';
 import { ParticipantPreconditions } from './preconditions.js';
-import { upgradeMembershipContract } from './deployContracts.js';
 
 let participantPreconditions = ParticipantPreconditions.default;
 
@@ -85,6 +84,7 @@ export class Membership_ extends SmartContract {
       member.publicKey
     );
     party.account.balance.assertEquals(party.account.balance.get());
+
     let balance = party.account.balance.get();
 
     balance
