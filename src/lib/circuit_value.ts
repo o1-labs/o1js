@@ -9,7 +9,6 @@ import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
 import { HashInput } from './hash.js';
 import { inCheckedComputation, snarkContext } from './proof_system.js';
-import { PublicKey } from './signature.js';
 
 // external API
 export {
@@ -22,6 +21,7 @@ export {
   circuitMain,
   circuitValue,
   circuitValuePure,
+  circuitValueClass,
 };
 
 // internal API
@@ -429,7 +429,6 @@ type AsFieldsExtension<T, TJson = JSONValue> = {
 type AsFieldsExtended<T, TJson = JSONValue> = AsFieldsAndAux<T> &
   AsFieldsExtension<T, TJson>;
 
-// TODO unit-test this
 function circuitValue<A>(
   typeObj: A,
   options?: { customObjectKeys?: string[]; isPure?: boolean }
@@ -551,8 +550,7 @@ function circuitValue<A>(
       (k) => check(typeObj[k], obj[k])
     );
   }
-  let { isPure = false } = options ?? {};
-  if (isPure === true) {
+  if (options?.isPure === true) {
     return {
       sizeInFields: () => sizeInFields(typeObj),
       toFields: (obj: T) => toFields(typeObj, obj, true),
@@ -582,6 +580,52 @@ function circuitValuePure<A>(
 ): AsFieldElements<InferCircuitValue<A>> &
   AsFieldsExtension<InferCircuitValue<A>, InferJson<A>> {
   return circuitValue(typeObj, { ...options, isPure: true }) as any;
+}
+
+// class wrapping circuit value, to be able to use as method argument
+function circuitValueClass<
+  A,
+  T extends InferCircuitValue<A> = InferCircuitValue<A>,
+  J extends InferJson<A> = InferJson<A>
+>(typeObj: A, options?: { customObjectKeys?: string[]; isPure?: boolean }) {
+  class MyCircuitValue extends BaseCircuitValue {
+    static type = circuitValue<A>(typeObj, options);
+
+    constructor(value: T) {
+      super();
+      Object.assign(this, value);
+    }
+
+    static from(value: T): MyCircuitValue & T {
+      return new MyCircuitValue(value) as any;
+    }
+    static sizeInFields() {
+      return this.type.sizeInFields();
+    }
+    static toFields(value: MyCircuitValue & T): Field[] {
+      return this.type.toFields(value);
+    }
+    static toAuxiliary(value: MyCircuitValue & T): any[] {
+      return this.type.toAuxiliary(value);
+    }
+    static toInput(value: MyCircuitValue & T): HashInput {
+      return this.type.toInput(value);
+    }
+    static toJSON(value: MyCircuitValue & T): J {
+      return this.type.toJSON(value) as J;
+    }
+    static check(value: MyCircuitValue & T) {
+      return this.type.check(value);
+    }
+    static fromFields(fields: Field[], aux: any[]) {
+      return MyCircuitValue.from(this.type.fromFields(fields, aux) as T);
+    }
+  }
+  return MyCircuitValue as any as new (value: T) => T & MyCircuitValue;
+}
+
+class BaseCircuitValue {
+  static type: AsFieldsExtended<any, any>;
 }
 
 // FIXME: the logic in here to check for obj.constructor.name actually doesn't work

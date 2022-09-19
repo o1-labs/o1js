@@ -23,6 +23,7 @@ export {
   circuitMain,
   circuitValue,
   circuitValuePure,
+  circuitValueClass,
 } from './lib/circuit_value.js';
 export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
 export { Types } from './snarky/types.js';
