@@ -163,7 +163,7 @@ try {
   tx.send();
 
   /*
-  since the voting contact calls the voter membership contract via invoking voterRegister,
+  since the voting contract calls the voter membership contract via invoking voterRegister,
   the membership contract will then emit one event per new member
   we should have emitted three new members
   */

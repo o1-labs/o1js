@@ -184,8 +184,8 @@ export class Voting_ extends SmartContract {
   /**
    * Method used to cast a vote to a specific candidate.
    * Dispatches a new vote sequence event.
-   * @param member
-   * @param member
+   * @param candidate
+   * @param voter
    */
   @method
   vote(candidate: Member, voter: Member) {
