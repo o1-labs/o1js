@@ -14,10 +14,6 @@ import {
   Bool,
   PublicKey,
   Circuit,
-  Proof,
-  verify,
-  ZkappPublicInput,
-  partyToPublicInput,
 } from 'snarkyjs';
 
 const doProofs = true;
@@ -97,7 +93,10 @@ let initialBalance = 10_000_000_000;
 let initialState = Field(1);
 let zkapp = new SimpleZkapp(zkappAddress);
 
-let { verificationKey } = await SimpleZkapp.compile(zkappAddress);
+if (doProofs) {
+  console.log('compile');
+  await SimpleZkapp.compile();
+}
 
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, () => {
@@ -106,9 +105,63 @@ let tx = await Mina.transaction(feePayer, () => {
 });
 tx.send();
 
+console.log('initial state: ' + zkapp.x.get());
+console.log(`initial balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
+
 console.log('update');
 tx = await Mina.transaction(feePayer, () => {
   zkapp.update(Field(3));
   if (!doProofs) zkapp.sign(zkappKey);
 });
-let [p] = await tx.prove();
+if (doProofs) await tx.prove();
+tx.send();
+
+// pay more into the zkapp -- this doesn't need a proof
+console.log('receive');
+tx = await Mina.transaction(feePayer, () => {
+  let payerAccountUpdate = AccountUpdate.createSigned(feePayer);
+  payerAccountUpdate.send({ to: zkappAddress, amount: UInt64.from(8e9) });
+});
+tx.send();
+
+console.log('payout');
+tx = await Mina.transaction(feePayer, () => {
+  AccountUpdate.fundNewAccount(feePayer);
+  zkapp.payout(privilegedKey);
+  if (!doProofs) zkapp.sign(zkappKey);
+});
+if (doProofs) await tx.prove();
+tx.send();
+
+console.log('final state: ' + zkapp.x.get());
+console.log(`final balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
+
+console.log('try to payout a second time..');
+tx = await Mina.transaction(feePayer, () => {
+  zkapp.payout(privilegedKey);
+  if (!doProofs) zkapp.sign(zkappKey);
+});
+try {
+  if (doProofs) await tx.prove();
+  tx.send();
+} catch (err: any) {
+  console.log('Transaction failed with error', err.message);
+}
+
+console.log('try to payout to a different account..');
+try {
+  tx = await Mina.transaction(feePayer, () => {
+    zkapp.payout(Local.testAccounts[2].privateKey);
+    if (!doProofs) zkapp.sign(zkappKey);
+  });
+  if (doProofs) await tx.prove();
+  tx.send();
+} catch (err: any) {
+  console.log('Transaction failed with error', err.message);
+}
+
+console.log(
+  `should still be the same final balance: ${zkapp.account.balance
+    .get()
+    .div(1e9)} MINA`
+);

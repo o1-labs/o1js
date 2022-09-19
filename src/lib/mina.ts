@@ -853,7 +853,7 @@ async function verifyAccountUpdate(
     }
   }
 
-  const update = accountUpdate.update;
+  const update = accountUpdate.toJSON().body.update;
 
   let isValidProof = false;
   let isValidSignature = false;
@@ -868,11 +868,8 @@ async function verifyAccountUpdate(
       publicInput: publicInputFields.map((f) => f.toString()),
     });
 
-    let verificationKey = Ledger.verificationKeyToBase58(
-      account.zkapp?.verificationKey?.data
-    );
-
     try {
+      let verificationKey = account.zkapp?.verificationKey!;
       isValidProof = await verify(proof, verificationKey);
     } catch (error) {
       isValidProof = false;
