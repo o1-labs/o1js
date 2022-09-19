@@ -40,8 +40,14 @@ let votingKey = PrivateKey.fromBase58(
 );
 
 let params: VotingAppParams = {
-  candidatePreconditions: ParticipantPreconditions.default,
-  voterPreconditions: ParticipantPreconditions.default,
+  candidatePreconditions: new ParticipantPreconditions(
+    UInt64.from(100),
+    UInt64.from(1000)
+  ),
+  voterPreconditions: new ParticipantPreconditions(
+    UInt64.from(10),
+    UInt64.from(200)
+  ),
   electionPreconditions: ElectionPreconditions.default,
   voterKey,
   candidateKey,
@@ -56,7 +62,6 @@ let candidateStore = new OffchainStorage<Member>(8);
 let votesStore = new OffchainStorage<Member>(8);
 
 let initialRoot = voterStore.getRoot();
-
 try {
   tx = await Mina.transaction(feePayer, () => {
     AccountUpdate.fundNewAccount(feePayer, {
@@ -96,7 +101,7 @@ try {
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(100)
+        UInt64.from(150)
       ),
       voterStore
     );
@@ -120,7 +125,7 @@ try {
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(200)
+        UInt64.from(160)
       ),
       voterStore
     );
@@ -145,7 +150,7 @@ try {
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(300)
+        UInt64.from(170)
       ),
       voterStore
     );
@@ -184,7 +189,7 @@ try {
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(600)
+        UInt64.from(250)
       ),
       candidateStore
     );
@@ -195,7 +200,6 @@ try {
 
   if (params.doProofs) await tx.prove();
   tx.send();
-
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering 1 new candidate
     let m = registerMember(
@@ -208,7 +212,7 @@ try {
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(700)
+        UInt64.from(400)
       ),
       candidateStore
     );
@@ -341,6 +345,8 @@ function registerMember(
   m: Member,
   store: OffchainStorage<Member>
 ): Member {
+  Local.addAccount(m.publicKey, m.balance.toString());
+
   // we will also have to keep track of new voters and candidates within our off-chain merkle tree
   store.set(i, m); // setting voter 0n
   // setting the merkle witness
