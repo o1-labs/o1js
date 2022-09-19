@@ -109,12 +109,14 @@ export class Voting_ extends SmartContract {
 
     // can only register voters if their balance is gte the minimum amount required
     // this snippet pulls the account data of an address from the network
-    let party = Experimental.createChildAccountUpdate(
+    let accountUpdate = Experimental.createChildAccountUpdate(
       this.self,
       member.publicKey
     );
-    party.account.balance.assertEquals(party.account.balance.get());
-    let balance = party.account.balance.get();
+    accountUpdate.account.balance.assertEquals(
+      accountUpdate.account.balance.get()
+    );
+    let balance = accountUpdate.account.balance.get();
 
     balance
       .gte(voterPreconditions.minMina)
@@ -146,12 +148,14 @@ export class Voting_ extends SmartContract {
     // can only register candidates if their balance is gte the minimum amount required
     // and lte the maximum amount
     // this snippet pulls the account data of an address from the network
-    let party = Experimental.createChildAccountUpdate(
+    let accountUpdate = Experimental.createChildAccountUpdate(
       this.self,
       member.publicKey
     );
-    party.account.balance.assertEquals(party.account.balance.get());
-    let balance = party.account.balance.get();
+    accountUpdate.account.balance.assertEquals(
+      accountUpdate.account.balance.get()
+    );
+    let balance = accountUpdate.account.balance.get();
 
     balance
       .gte(candidatePreconditions.minMina)

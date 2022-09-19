@@ -77,13 +77,15 @@ export class Membership_ extends SmartContract {
     // since we need to keep this contract "generic", we always assert within a range
     // even tho voters cant have a maximum balance, only candidates
     // but for a voter we simply use UInt64.MAXINT() as the maximum
-    let party = Experimental.createChildAccountUpdate(
+    let accountUpdate = Experimental.createChildAccountUpdate(
       this.self,
       member.publicKey
     );
-    party.account.balance.assertEquals(party.account.balance.get());
+    accountUpdate.account.balance.assertEquals(
+      accountUpdate.account.balance.get()
+    );
 
-    let balance = party.account.balance.get();
+    let balance = accountUpdate.account.balance.get();
 
     balance
       .gte(participantPreconditions.minMina)
