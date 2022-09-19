@@ -74,11 +74,11 @@ let incrementerZkapp = new Incrementer(incrementerAddress);
 
 if (doProofs) {
   console.log('compile (incrementer)');
-  await Incrementer.compile(incrementerAddress);
+  await Incrementer.compile();
   console.log('compile (adder)');
-  await Adder.compile(adderAddress);
+  await Adder.compile();
   console.log('compile (caller)');
-  await Caller.compile(zkappAddress);
+  await Caller.compile();
 }
 
 console.log('deploy');

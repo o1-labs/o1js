@@ -1,4 +1,4 @@
-import { HelloWorld, adminPrivateKey } from './hello_world';
+import { HelloWorld, adminPrivateKey } from './hello_world.js';
 import { Mina, PrivateKey, AccountUpdate, Field } from 'snarkyjs';
 
 let txn, txn2, txn3, txn4;

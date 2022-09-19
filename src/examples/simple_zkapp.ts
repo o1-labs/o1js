@@ -57,8 +57,8 @@ class SimpleZkapp extends SmartContract {
     callerAddress.assertEquals(privilegedAddress);
 
     // assert that the caller account is new - this way, payout can only happen once
-    let callerParty = AccountUpdate.defaultParty(callerAddress);
-    callerParty.account.isNew.assertEquals(Bool(true));
+    let callerAccountUpdate = AccountUpdate.defaultAccountUpdate(callerAddress);
+    callerAccountUpdate.account.isNew.assertEquals(Bool(true));
 
     // pay out half of the zkapp balance to the caller
     let balance = this.account.balance.get();
@@ -67,7 +67,7 @@ class SimpleZkapp extends SmartContract {
     let halfBalance = Circuit.witness(UInt64, () =>
       balance.toConstant().div(2)
     );
-    this.send({ to: callerParty, amount: halfBalance });
+    this.send({ to: callerAccountUpdate, amount: halfBalance });
 
     // emit some events
     this.emitEvent('payoutReceiver', callerAddress);
@@ -95,7 +95,7 @@ let zkapp = new SimpleZkapp(zkappAddress);
 
 if (doProofs) {
   console.log('compile');
-  await SimpleZkapp.compile(zkappAddress);
+  await SimpleZkapp.compile();
 }
 
 console.log('deploy');
@@ -119,8 +119,8 @@ tx.send();
 // pay more into the zkapp -- this doesn't need a proof
 console.log('receive');
 tx = await Mina.transaction(feePayer, () => {
-  let payerParty = AccountUpdate.createSigned(feePayer);
-  payerParty.send({ to: zkappAddress, amount: UInt64.from(8e9) });
+  let payerAccountUpdate = AccountUpdate.createSigned(feePayer);
+  payerAccountUpdate.send({ to: zkappAddress, amount: UInt64.from(8e9) });
 });
 tx.send();
 

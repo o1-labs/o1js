@@ -1,7 +1,7 @@
-import * as Helpers from './parties-helpers.js';
-import { customTypes } from './gen/parties.js';
+import * as Helpers from './transaction-helpers.js';
+import { customTypes } from './gen/transaction.js';
 
-export * as Types from './gen/parties.js';
+export * as Types from './gen/transaction.js';
 export { jsLayout } from './gen/js-layout.js';
 
 export { asFieldsAndAux };

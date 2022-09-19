@@ -77,7 +77,7 @@ let zkappAddress = zkappKey.toPublicKey();
 let zkapp = new CounterZkapp(zkappAddress);
 if (doProofs) {
   console.log('compile');
-  await CounterZkapp.compile(zkappAddress);
+  await CounterZkapp.compile();
 }
 
 console.log('deploy');

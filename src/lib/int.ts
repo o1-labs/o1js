@@ -400,7 +400,7 @@ class Sign extends CircuitValue {
   }
 }
 
-type BalanceChange = Types.Party['body']['balanceChange'];
+type BalanceChange = Types.AccountUpdate['body']['balanceChange'];
 
 class Int64 extends CircuitValue implements BalanceChange {
   // * in the range [-2^64+1, 2^64-1], unlike a normal int64
