@@ -33,7 +33,7 @@ export async function Membership(
 
   let contract = new Membership_(params.contractAddress);
   if (params.doProofs) {
-    await Membership_.compile(params.contractAddress);
+    await Membership_.compile();
   }
 
   return contract;
@@ -78,7 +78,10 @@ export class Membership_ extends SmartContract {
     // since we need to keep this contract "generic", we always assert within a range
     // even tho voters cant have a maximum balance, only candidates
     // but for a voter we simply use UInt64.MAXINT() as the maximum
-    let party = Experimental.createChildParty(this.self, member.publicKey);
+    let party = Experimental.createChildAccountUpdate(
+      this.self,
+      member.publicKey
+    );
     party.account.balance.assertEquals(party.account.balance.get());
     let balance = party.account.balance.get();
 

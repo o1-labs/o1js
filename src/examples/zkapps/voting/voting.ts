@@ -67,7 +67,7 @@ export async function Voting(params: VotingParams): Promise<Voting_> {
 
   let contract = new Voting_(params.contractAddress);
   if (params.doProofs) {
-    await Voting_.compile(params.contractAddress);
+    await Voting_.compile();
   }
   return contract;
 }
@@ -109,7 +109,10 @@ export class Voting_ extends SmartContract {
 
     // can only register voters if their balance is gte the minimum amount required
     // this snippet pulls the account data of an address from the network
-    let party = Experimental.createChildParty(this.self, member.publicKey);
+    let party = Experimental.createChildAccountUpdate(
+      this.self,
+      member.publicKey
+    );
     party.account.balance.assertEquals(party.account.balance.get());
     let balance = party.account.balance.get();
 
@@ -143,7 +146,10 @@ export class Voting_ extends SmartContract {
     // can only register candidates if their balance is gte the minimum amount required
     // and lte the maximum amount
     // this snippet pulls the account data of an address from the network
-    let party = Experimental.createChildParty(this.self, member.publicKey);
+    let party = Experimental.createChildAccountUpdate(
+      this.self,
+      member.publicKey
+    );
     party.account.balance.assertEquals(party.account.balance.get());
     let balance = party.account.balance.get();
 
