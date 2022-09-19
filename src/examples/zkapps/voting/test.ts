@@ -1,9 +1,9 @@
-import { Experimental, Mina, Party } from 'snarkyjs';
-import { VotingAppParams } from './factory';
-import { Member } from './member';
-import { Membership_ } from './membership';
-import { OffchainStorage } from './off_chain_storage';
-import { Voting_ } from './voting';
+import { Experimental, Mina, AccountUpdate } from 'snarkyjs';
+import { VotingAppParams } from './factory.js';
+import { Member } from './member.js';
+import { Membership_ } from './membership.js';
+import { OffchainStorage } from './off_chain_storage.js';
+import { Voting_ } from './voting.js';
 
 type Votes = OffchainStorage<Member>;
 type Candidates = OffchainStorage<Member>;
@@ -41,7 +41,7 @@ export async function testSet(
 
   console.log('deploying set of 3 contracts');
   tx = await Mina.transaction(feePayer, () => {
-    Party.fundNewAccount(feePayer, {
+    AccountUpdate.fundNewAccount(feePayer, {
       initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
     });
 
