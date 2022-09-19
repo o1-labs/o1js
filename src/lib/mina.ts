@@ -239,7 +239,7 @@ const defaultAccountCreationFee = 1_000_000_000;
  */
 function LocalBlockchain({
   accountCreationFee = defaultAccountCreationFee as string | number,
-  proofsEnabled: boolean = true,
+  proofsEnabled = true,
 } = {}): MockMina {
   const msPerSlot = 3 * 60 * 1000;
   const startTime = new Date().valueOf();
@@ -327,7 +327,12 @@ function LocalBlockchain({
             party.body.tokenId
           );
           if (account) {
-            await verifyAccountUpdate(account!, party, commitments);
+            await verifyAccountUpdate(
+              account!,
+              party,
+              commitments,
+              proofsEnabled
+            );
           }
         } catch (error) {
           console.log(error);
@@ -807,7 +812,8 @@ async function verifyAccountUpdate(
   transactionCommitments: {
     commitment: Field;
     fullCommitment: Field;
-  }
+  },
+  proofsEnabled: boolean
 ): Promise<void> {
   let perm = account.permissions;
 
@@ -858,7 +864,10 @@ async function verifyAccountUpdate(
   let isValidProof = false;
   let isValidSignature = false;
 
-  if (accountUpdate.authorization.proof) {
+  // we don't check if proofs aren't enabled
+  if (!proofsEnabled) isValidProof = true;
+
+  if (accountUpdate.authorization.proof && proofsEnabled) {
     let publicInput = accountUpdateToPublicInput(accountUpdate);
     let publicInputFields = ZkappPublicInput.toFields(publicInput);
 
