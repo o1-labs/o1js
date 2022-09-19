@@ -1,4 +1,14 @@
-import { Mina, Field, PrivateKey, UInt64, UInt32, Permissions } from 'snarkyjs';
+import {
+  Mina,
+  AccountUpdate,
+  Field,
+  PrivateKey,
+  UInt64,
+  UInt32,
+  SmartContract,
+  DeployArgs,
+  Permissions,
+} from 'snarkyjs';
 import { deployContracts, deployInvalidContracts } from './deployContracts.js';
 import { VotingAppParams } from './factory.js';
 import { Member, MerkleWitness } from './member.js';

@@ -13,6 +13,7 @@ import {
 } from 'snarkyjs';
 import { Member } from './member.js';
 import { ParticipantPreconditions } from './preconditions.js';
+import { upgradeMembershipContract } from './deployContracts.js';
 
 let participantPreconditions = ParticipantPreconditions.default;
 
@@ -63,6 +64,7 @@ export class Membership_ extends SmartContract {
       editState: Permissions.none(), // TODO: fix permissions
       editSequenceState: Permissions.none(), // TODO: fix permissions
       setPermissions: Permissions.none(),
+      setVerificationKey: Permissions.none(),
     });
   }
 
@@ -176,5 +178,21 @@ export class Membership_ extends SmartContract {
 
     this.committedMembers.set(newCommittedMembers);
     this.accumulatedMembers.set(newAccumulatedMembers);
+  }
+}
+
+export class ModifiedMembership extends Membership_ {
+  /**
+   * Overwritten isMember method to always return Bool(true)
+   * @param member Member
+   * @returns true if member exists
+   */
+  @method isMember(member: Member) {
+    return Bool(true);
+  }
+
+  @method someNewMethod(a: Field) {
+    let b = a.add(2);
+    b.assertEquals(3);
   }
 }

@@ -10,9 +10,20 @@ import {
 } from 'snarkyjs';
 import { VotingAppParams } from './factory.js';
 
-import { Membership_ } from './membership.js';
+import { Membership_, ModifiedMembership } from './membership.js';
 
 import { Voting_ } from './voting.js';
+
+class InvalidContract extends SmartContract {
+  deploy(args: DeployArgs) {
+    super.deploy(args);
+    this.setPermissions({
+      ...Permissions.default(),
+      editState: Permissions.none(),
+      editSequenceState: Permissions.none(),
+    });
+  }
+}
 
 /**
  * Function used to deploy a set of contracts for a given set of preconditions
@@ -152,13 +163,25 @@ export async function deployInvalidContracts(
   return { voterContract, candidateContract, voting, feePayer, Local };
 }
 
-class InvalidContract extends SmartContract {
-  deploy(args: DeployArgs) {
-    super.deploy(args);
-    this.setPermissions({
-      ...Permissions.default(),
-      editState: Permissions.none(),
-      editSequenceState: Permissions.none(),
+/**
+ * Function used to upgrade a Membership contract with slightly modified methods, in order to manipulate the existing verification key
+ */
+export async function upgradeMembershipContract(
+  feePayer: PrivateKey,
+  contractKey: PrivateKey
+): Promise<ModifiedMembership> {
+  console.log('deploying an upgraded version to existing membership contract');
+  let modifiedContract = new ModifiedMembership(contractKey.toPublicKey());
+  try {
+    let tx = await Mina.transaction(feePayer, () => {
+      modifiedContract.deploy({ zkappKey: contractKey });
+      modifiedContract.sign(contractKey);
     });
+    tx.send();
+  } catch (err: any) {
+    throw Error(err);
   }
+
+  console.log('successfully deployed upgraded contract');
+  return modifiedContract;
 }
