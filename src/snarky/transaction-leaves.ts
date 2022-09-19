@@ -3,7 +3,11 @@ import * as Json from './gen/transaction-json.js';
 import { UInt32, UInt64, Sign } from '../lib/int.js';
 import { TokenSymbol } from '../lib/hash.js';
 import { PublicKey } from '../lib/signature.js';
-import { AsFieldsExtended, circuitValue } from '../lib/circuit_value.js';
+import {
+  AsFieldsExtended,
+  CircuitTypes,
+  circuitValue,
+} from '../lib/circuit_value.js';
 import * as Encoding from '../lib/encoding.js';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
@@ -116,48 +120,15 @@ const TypeMap: {
 
 // types which got an annotation about its circuit type in Ocaml
 
-type DataAsHash<T> = { data: T; hash: Field };
-
-const Events: AsFieldsExtended<DataAsHash<Field[][]>, string[][]> = {
-  sizeInFields() {
-    return 1;
-  },
-  toFields({ hash }) {
-    return [hash];
-  },
-  toAuxiliary(value) {
-    return [value?.data ?? []];
-  },
-  fromFields([hash], [data]) {
-    return { data, hash };
-  },
-  toJSON({ data }) {
+const Events = CircuitTypes.dataAsHash({
+  emptyValue: [],
+  toJSON(data: Field[][]) {
     return data.map((row) => row.map((e) => e.toString()));
   },
-  check() {},
-  toInput({ hash }) {
-    return { fields: [hash] };
-  },
-};
-
-const StringWithHash: AsFieldsExtended<DataAsHash<string>, string> = {
-  sizeInFields() {
-    return 1;
-  },
-  toFields({ hash }) {
-    return [hash];
-  },
-  toAuxiliary(value) {
-    return [value?.data ?? ''];
-  },
-  fromFields([hash], [data]) {
-    return { data, hash };
-  },
-  toJSON({ data }) {
+});
+const StringWithHash = CircuitTypes.dataAsHash({
+  emptyValue: '',
+  toJSON(data: string) {
     return data;
   },
-  check() {},
-  toInput({ hash }) {
-    return { fields: [hash] };
-  },
-};
+});

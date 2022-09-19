@@ -37,6 +37,7 @@ export {
   toConstant,
   witness,
   InferCircuitValue,
+  CircuitTypes,
 };
 
 type Constructor<T> = new (...args: any) => T;
@@ -626,6 +627,69 @@ function circuitValueClass<
 
 class BaseCircuitValue {
   static type: AsFieldsExtended<any, any>;
+}
+
+class VerificationKey extends circuitValueClass(
+  dataAsHash({
+    emptyValue: '',
+    toJSON: (data) => data,
+  })
+) {}
+
+// TODO: is there a place in the API for a collection of circuit type utilities?
+// right now it's an internal export
+const CircuitTypes = {
+  dataAsHash,
+  opaque,
+  VerificationKey,
+};
+
+function dataAsHash<T, J>({
+  emptyValue,
+  toJSON,
+}: {
+  emptyValue: T;
+  toJSON: (value: T) => J;
+}): AsFieldsExtended<{ data: T; hash: Field }, J> {
+  return {
+    sizeInFields() {
+      return 1;
+    },
+    toFields({ hash }) {
+      return [hash];
+    },
+    toAuxiliary(value) {
+      return [value?.data ?? emptyValue];
+    },
+    fromFields([hash], [data]) {
+      return { data, hash };
+    },
+    toJSON({ data }) {
+      return toJSON(data);
+    },
+    check() {},
+    toInput({ hash }) {
+      return { fields: [hash] };
+    },
+  };
+}
+
+function opaque<T, J>({
+  emptyValue,
+  toJSON,
+}: {
+  emptyValue: T;
+  toJSON: (value: T) => J;
+}): AsFieldsExtended<T, J> {
+  return {
+    sizeInFields: () => 0,
+    toFields: (value: T) => [],
+    toAuxiliary: (value?: T) => [value ?? emptyValue],
+    toInput: (value: T) => ({}),
+    toJSON: (value: T) => toJSON(value),
+    fromFields: (fields: Field[], [value]: any[]) => value,
+    check: (value: T) => {},
+  };
 }
 
 // FIXME: the logic in here to check for obj.constructor.name actually doesn't work
