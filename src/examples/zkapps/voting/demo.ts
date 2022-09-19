@@ -46,7 +46,7 @@ let params: VotingAppParams = {
   ),
   voterPreconditions: new ParticipantPreconditions(
     UInt64.from(10),
-    UInt64.from(100)
+    UInt64.from(200)
   ),
   electionPreconditions: ElectionPreconditions.default,
   voterKey,
@@ -101,7 +101,7 @@ try {
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(100)
+        UInt64.from(150)
       ),
       voterStore
     );
@@ -125,7 +125,7 @@ try {
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(200)
+        UInt64.from(160)
       ),
       voterStore
     );
@@ -150,7 +150,7 @@ try {
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(300)
+        UInt64.from(170)
       ),
       voterStore
     );
@@ -189,7 +189,7 @@ try {
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(600)
+        UInt64.from(250)
       ),
       candidateStore
     );
@@ -212,7 +212,7 @@ try {
       Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
-        UInt64.from(700)
+        UInt64.from(400)
       ),
       candidateStore
     );
