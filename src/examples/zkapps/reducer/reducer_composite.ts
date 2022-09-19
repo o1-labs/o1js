@@ -13,13 +13,14 @@ import {
   circuitValue,
   Bool,
   Circuit,
+  circuitValuePure,
 } from 'snarkyjs';
 import assert from 'node:assert/strict';
 
 await isReady;
 
 type MaybeIncrement = { isIncrement: Bool; otherData: Field };
-const MaybeIncrement = circuitValue<MaybeIncrement>({
+const MaybeIncrement = circuitValuePure({
   isIncrement: Bool,
   otherData: Field,
 });
