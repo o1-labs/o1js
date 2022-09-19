@@ -457,10 +457,6 @@ export default [
         type: 'function',
       },
       {
-        name: 'verificationKeyToBase58',
-        type: 'function',
-      },
-      {
         name: 'checkAccountUpdateSignature',
         type: 'function',
       },
