@@ -1,10 +1,11 @@
 import {
-  circuitArray,
+  AsFieldsExtended,
   circuitValue,
   circuitValuePure,
   cloneCircuitValue,
   memoizationContext,
   memoizeWitness,
+  toConstant,
 } from './circuit_value.js';
 import {
   Field,
@@ -1021,58 +1022,60 @@ class AccountUpdate implements Types.AccountUpdate {
     accountUpdate.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 
+  private static circuitType(
+    skipCheck = false
+  ): AsFieldsExtended<AccountUpdate> {
+    return {
+      sizeInFields() {
+        return Types.AccountUpdate.sizeInFields();
+      },
+      toFields(a) {
+        return Types.AccountUpdate.toFields(a);
+      },
+      toAuxiliary(a?) {
+        let aux = Types.AccountUpdate.toAuxiliary(a);
+        let lazyAuthorization = a && cloneCircuitValue(a.lazyAuthorization);
+        let children = a?.children ?? { accountUpdates: [] };
+        let parent = a?.parent;
+        return [{ lazyAuthorization, children, parent }, aux];
+      },
+      toInput(a) {
+        return Types.AccountUpdate.toInput(a);
+      },
+      toJSON(a) {
+        return Types.AccountUpdate.toJSON(a);
+      },
+      check(a) {
+        if (!skipCheck) Types.AccountUpdate.check(a);
+      },
+      fromFields(fields, [{ lazyAuthorization, children, parent }, aux]) {
+        let rawUpdate = Types.AccountUpdate.fromFields(fields, aux);
+        return Object.assign(
+          new AccountUpdate(rawUpdate.body, rawUpdate.authorization),
+          { lazyAuthorization, children, parent }
+        );
+      },
+    };
+  }
+
   static witness<T>(
     type: AsFieldsAndAux<T>,
     compute: () => { accountUpdate: AccountUpdate; result: T },
     { skipCheck = false } = {}
   ) {
     // construct the circuit type for a accountUpdate + other result
-    let accountUpdateType = circuitArray(
-      Field,
-      Types.AccountUpdate.sizeInFields()
-    );
-    type combinedType = { accountUpdate: Field[]; result: T };
+    let accountUpdateType = this.circuitType(skipCheck);
     let combinedType = circuitValue({
       accountUpdate: accountUpdateType,
       result: type,
     });
-
-    // compute the witness, with the accountUpdate represented as plain field elements
-    // (in the prover, also store the actual accountUpdate)
-    let proverAccountUpdate: AccountUpdate | undefined;
-    let fieldsAndResult = Circuit.witness<combinedType>(combinedType, () => {
+    return Circuit.witness(combinedType, () => {
       let { accountUpdate, result } = compute();
-      proverAccountUpdate = accountUpdate;
-      let fields = Types.AccountUpdate.toFields(accountUpdate).map((x) =>
-        x.toConstant()
-      );
-      return { accountUpdate: fields, result };
+      return {
+        accountUpdate: toConstant(accountUpdateType, accountUpdate),
+        result,
+      };
     });
-
-    // get back a Types.AccountUpdate from the fields + aux (where aux is just the default in compile)
-    let aux = Types.AccountUpdate.toAuxiliary(proverAccountUpdate);
-    let rawAccountUpdate = Types.AccountUpdate.fromFields(
-      fieldsAndResult.accountUpdate,
-      aux
-    );
-    // usually when we introduce witnesses, we add checks for their type-specific properties (e.g., booleanness).
-    // a accountUpdate, however, might already be forced to be valid by the on-chain transaction logic,
-    // allowing us to skip expensive checks in user proofs.
-    if (!skipCheck) Types.AccountUpdate.check(rawAccountUpdate);
-
-    // construct the full AccountUpdate instance from the raw accountUpdate + (maybe) the prover accountUpdate
-    let accountUpdate = new AccountUpdate(
-      rawAccountUpdate.body,
-      rawAccountUpdate.authorization
-    );
-    accountUpdate.lazyAuthorization =
-      proverAccountUpdate &&
-      cloneCircuitValue(proverAccountUpdate.lazyAuthorization);
-    accountUpdate.children = proverAccountUpdate?.children ?? {
-      accountUpdates: [],
-    };
-    accountUpdate.parent = proverAccountUpdate?.parent;
-    return { accountUpdate, result: fieldsAndResult.result };
   }
 
   /**

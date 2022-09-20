@@ -7,7 +7,6 @@ import {
   Poseidon as Poseidon_,
   JSONValue,
   AsFieldsAndAux,
-  InferAsFieldsAndAux,
   InferAsFieldElements,
 } from '../snarky.js';
 import {
