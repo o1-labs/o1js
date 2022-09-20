@@ -63,7 +63,21 @@ Circuit.runAndCheck(() => {
   type.check(value);
 });
 
-// easy circuit value which can hold extra data
+// should fail to create witness if `check` doesn't pass
+expect(() =>
+  Circuit.runAndCheck(() => {
+    Circuit.witness(type, () => ({
+      ...value,
+      uint: [
+        UInt32.zero,
+        // invalid Uint32
+        new UInt32(Field.minusOne),
+      ],
+    }));
+  })
+).toThrow(`Expected ${Field.minusOne} to fit in 32 bits`);
+
+// class version of `circuitValue`
 class MyCircuitValue extends circuitValueClass({
   nested: { a: Number, b: undefined },
   other: String,

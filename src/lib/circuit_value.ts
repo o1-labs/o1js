@@ -792,13 +792,15 @@ Circuit.witness = function <T, S extends AsFieldsAndAux<T> = AsFieldsAndAux<T>>(
   type: S,
   compute: () => T
 ) {
-  let value: T | undefined;
+  let proverValue: T | undefined;
   let fields = Circuit._witness(type, () => {
-    value = compute();
-    return value;
+    proverValue = compute();
+    return proverValue;
   });
-  let aux = 'toAuxiliary' in type ? type.toAuxiliary(value) : [];
-  return type.fromFields(fields, aux);
+  let aux = 'toAuxiliary' in type ? type.toAuxiliary(proverValue) : [];
+  let value = type.fromFields(fields, aux);
+  type.check(value);
+  return value;
 };
 
 Circuit.array = circuitArray;
