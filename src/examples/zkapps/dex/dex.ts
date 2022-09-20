@@ -333,7 +333,6 @@ class TokenContract extends SmartContract {
       ...Permissions.default(),
       send: Permissions.proof(),
     });
-    // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
     AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
     zkapp.sign();
   }
