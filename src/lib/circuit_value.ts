@@ -440,7 +440,14 @@ function circuitValue<A>(
     typeof typeObj === 'object' && typeObj !== null
       ? options?.customObjectKeys ?? Object.keys(typeObj).sort()
       : [];
-  let nonCircuitPrimitives = new Set([Number, String, BigInt, null, undefined]);
+  let nonCircuitPrimitives = new Set([
+    Number,
+    String,
+    Boolean,
+    BigInt,
+    null,
+    undefined,
+  ]);
   if (
     !nonCircuitPrimitives.has(typeObj as any) &&
     !complexTypes.has(typeof typeObj)
@@ -470,6 +477,7 @@ function circuitValue<A>(
   function toAuxiliary(typeObj: any, obj?: any, isToplevel = false): any[] {
     if (typeObj === Number) return [obj ?? 0];
     if (typeObj === String) return [obj ?? ''];
+    if (typeObj === Boolean) return [obj ?? false];
     if (typeObj === BigInt) return [obj ?? 0n];
     if (typeObj === undefined || typeObj === null) return [];
     if (Array.isArray(typeObj))
@@ -496,7 +504,8 @@ function circuitValue<A>(
   }
   function toJSON(typeObj: any, obj: any, isToplevel = false): JSONValue {
     if (typeObj === BigInt) return obj.toString();
-    if (typeObj === String || typeObj === Number) return obj;
+    if (typeObj === String || typeObj === Number || typeObj === Boolean)
+      return obj;
     if (typeObj === undefined || typeObj === null) return null;
     if (!complexTypes.has(typeof typeObj) || typeObj === null)
       return obj ?? null;
@@ -515,7 +524,12 @@ function circuitValue<A>(
     aux: any[] = [],
     isToplevel = false
   ): any {
-    if (typeObj === Number || typeObj === String || typeObj === BigInt)
+    if (
+      typeObj === Number ||
+      typeObj === String ||
+      typeObj === Boolean ||
+      typeObj === BigInt
+    )
       return aux[0];
     if (typeObj === undefined || typeObj === null) return typeObj;
     if (!complexTypes.has(typeof typeObj) || typeObj === null) return null;
@@ -914,6 +928,7 @@ type Tuple<T> = [T, ...T[]] | [];
 type Primitive =
   | typeof String
   | typeof Number
+  | typeof Boolean
   | typeof BigInt
   | null
   | undefined;
@@ -921,6 +936,8 @@ type InferPrimitive<P extends Primitive> = P extends typeof String
   ? string
   : P extends typeof Number
   ? number
+  : P extends typeof Boolean
+  ? boolean
   : P extends typeof BigInt
   ? bigint
   : P extends null
@@ -932,6 +949,8 @@ type InferPrimitiveJson<P extends Primitive> = P extends typeof String
   ? string
   : P extends typeof Number
   ? number
+  : P extends typeof Boolean
+  ? boolean
   : P extends typeof BigInt
   ? string
   : P extends null

@@ -9,14 +9,14 @@ import { LocalBlockchain, setActiveInstance, transaction } from './mina.js';
 await isReady;
 
 let type = circuitValue({
-  nested: { a: Number, b: undefined },
+  nested: { a: Number, b: Boolean },
   other: String,
   pk: PublicKey,
   uint: [UInt32, UInt32],
 });
 
 let value = {
-  nested: { a: 1, b: undefined },
+  nested: { a: 1, b: true },
   other: 'arbitrary data!!!',
   pk: PublicKey.empty(),
   uint: [UInt32.one, UInt32.from(2)],
@@ -33,7 +33,7 @@ expect(fields).toEqual([Field.zero, Field.zero, Field.one, Field(2)]);
 
 // toAuxiliary
 let aux = type.toAuxiliary(value);
-expect(aux).toEqual([[[1], []], ['arbitrary data!!!'], [], [[], []]]);
+expect(aux).toEqual([[[1], [true]], ['arbitrary data!!!'], [], [[], []]]);
 
 // toInput
 let input = type.toInput(value);
@@ -48,7 +48,7 @@ expect(input).toEqual({
 
 // toJSON
 expect(type.toJSON(value)).toEqual({
-  nested: { a: 1, b: null },
+  nested: { a: 1, b: true },
   other: 'arbitrary data!!!',
   pk: PublicKey.toBase58(PublicKey.empty()),
   uint: ['1', '2'],
@@ -79,7 +79,7 @@ expect(() =>
 
 // class version of `circuitValue`
 class MyCircuitValue extends circuitValueClass({
-  nested: { a: Number, b: undefined },
+  nested: { a: Number, b: Boolean },
   other: String,
   pk: PublicKey,
   uint: [UInt32, UInt32],
@@ -104,7 +104,7 @@ let contract = new MyContract(address);
 
 let tx = await transaction(() => {
   contract.myMethod({
-    nested: { a: 1, b: undefined },
+    nested: { a: 1, b: false },
     other: 'some particular string',
     pk: PublicKey.empty(),
     uint: [UInt32.from(0), UInt32.from(10)],
