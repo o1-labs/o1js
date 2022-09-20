@@ -82,13 +82,23 @@ tx.send();
 console.log('minting tokenX...');
 
 try {
-  let tokenXbalance;
   tx = await Mina.transaction(feePayerKey, () => {
     tokenX.init();
     tokenX.sign(feePayerKey);
   });
 
   tx.send();
+
+  const tokenXid = tokenY.experimental.token.id;
+
+  let tokenXbalance = Mina.getBalance(
+    feePayerKey.toPublicKey(),
+    tokenY.experimental.token.id
+  ).value.toBigInt();
+
+  if (tokenXbalance !== 10n ** 18n) {
+    throw Error('TokenX did not mint total supply');
+  }
 } catch (err) {
   throw Error(err);
 }
