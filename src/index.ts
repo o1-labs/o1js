@@ -9,7 +9,7 @@ export {
   shutdown,
 } from './snarky.js';
 export { Field, Bool } from './lib/core.js';
-export type { VerificationKey, Keypair } from './snarky.js';
+export type { Keypair } from './snarky.js';
 export * from './snarky/addons.js';
 export { Poseidon, TokenSymbol } from './lib/hash.js';
 export * from './lib/signature.js';
@@ -37,6 +37,7 @@ export {
   signFeePayer,
   declareMethods,
   Account,
+  VerificationKey,
 } from './lib/zkapp.js';
 export { state, State, declareState } from './lib/state.js';
 export { Proof, SelfProof, verify } from './lib/proof_system.js';

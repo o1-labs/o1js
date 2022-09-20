@@ -16,9 +16,9 @@ import {
   circuitValue,
   cloneCircuitValue,
   getBlindingValue,
-  witness,
   memoizationContext,
   toConstant,
+  circuitValueClass,
 } from './circuit_value.js';
 import {
   Body,
@@ -76,6 +76,7 @@ export {
   declareMethods,
   Callback,
   Account,
+  VerificationKey,
 };
 
 // internal API
@@ -1082,6 +1083,13 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
     },
   };
 }
+
+class VerificationKey extends circuitValueClass({
+  ...circuitValue({ data: String, hash: Field }),
+  toJSON({ data }: { data: string }) {
+    return data;
+  },
+}) {}
 
 function selfAccountUpdate(address: PublicKey, tokenId?: Field) {
   let body = Body.keepAll(address);

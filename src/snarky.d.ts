@@ -8,7 +8,6 @@ export {
   Circuit,
   CircuitMain,
   Poseidon,
-  VerificationKey,
   Keypair,
   Ledger,
   isReady,

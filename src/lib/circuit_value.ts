@@ -622,27 +622,15 @@ function circuitValueClass<
       return MyCircuitValue.from(this.type.fromFields(fields, aux) as T);
     }
   }
-  return MyCircuitValue as any as new (value: T) => T & MyCircuitValue;
+  return MyCircuitValue as any as (new (value: T) => T & MyCircuitValue) &
+    AsFieldsExtended<T, J>;
 }
 
 class BaseCircuitValue {
   static type: AsFieldsExtended<any, any>;
 }
 
-class VerificationKey extends circuitValueClass(
-  dataAsHash({
-    emptyValue: '',
-    toJSON: (data) => data,
-  })
-) {}
-
-// TODO: is there a place in the API for a collection of circuit type utilities?
-// right now it's an internal export
-const CircuitTypes = {
-  dataAsHash,
-  opaque,
-  VerificationKey,
-};
+const CircuitTypes = { dataAsHash, opaque };
 
 function dataAsHash<T, J>({
   emptyValue,
