@@ -19,6 +19,7 @@ import {
   SmartContract,
   Token,
   UInt64,
+  VerificationKey,
 } from 'snarkyjs';
 
 export { Dex, DexTokenHolder, TokenContract, keys, addresses, tokenIds };
@@ -321,7 +322,7 @@ class TokenContract extends SmartContract {
 
   // this is a very standardized deploy method. instead, we could also take the account update from a callback
   // => need callbacks for signatures
-  @method deployZkapp(address: PublicKey) {
+  @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
     let tokenId = this.experimental.token.id;
     let zkapp = Experimental.createChildAccountUpdate(
       this.self,
@@ -333,7 +334,7 @@ class TokenContract extends SmartContract {
       send: Permissions.proof(),
     });
     // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
-    // AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
+    AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
     zkapp.sign();
   }
 
