@@ -65,6 +65,4 @@ tx = await Mina.transaction(feePayerKey, () => {
 });
 await tx.prove();
 tx.sign([keys.dex]);
-
-console.log(tx.toJSON());
 tx.send();
