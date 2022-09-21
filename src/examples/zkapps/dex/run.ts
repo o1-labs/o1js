@@ -9,7 +9,7 @@ import {
 } from './dex.js';
 
 await isReady;
-let doProofs = true;
+let doProofs = false;
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
@@ -51,13 +51,10 @@ tx = await Mina.transaction({ feePayerKey }, () => {
 
   tokenX.deploy();
   tokenY.deploy();
-
-  tokenX.deployZkapp(addresses.dex);
-  tokenY.deployZkapp(addresses.dex);
   dex.deploy();
 });
 
-// await tx.prove();
+await tx.prove();
 tx.sign([keys.tokenX, keys.tokenY, keys.dex]);
 console.log(tx.toJSON());
 tx.send();
