@@ -59,7 +59,7 @@ tx.sign([keys.tokenX, keys.tokenY, keys.dex]);
 console.log(tx.toJSON());
 tx.send();
 
-console.log('deploy tokens...');
+console.log('deploy dex contracts...');
 
 tx = await Mina.transaction(feePayerKey, () => {
   // pay fees for creating 3 dex accounts
@@ -69,9 +69,7 @@ tx = await Mina.transaction(feePayerKey, () => {
   tokenY.deployZkapp(addresses.dex);
 });
 
-console.log(tx.toJSON());
-
-// await tx.prove();
+await tx.prove();
 tx.sign([keys.dex, keys.tokenX]);
 
 tx.send();
