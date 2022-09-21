@@ -743,7 +743,7 @@ interface Account {
   votingFor: Field;
   zkapp?: {
     appState: Field[];
-    verificationKey?: string; // base58 string
+    verificationKey?: { data: string; hash: string };
     zkappVersion: number;
     sequenceState: Field[];
     lastSequenceSlot: number;
