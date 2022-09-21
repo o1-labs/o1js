@@ -51,7 +51,6 @@ tx = await Mina.transaction({ feePayerKey }, () => {
 
   tokenX.deploy();
   tokenY.deploy();
-  dex.deploy();
 });
 
 await tx.prove();
