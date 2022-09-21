@@ -70,7 +70,7 @@ tx = await Mina.transaction(feePayerKey, () => {
 });
 
 await tx.prove();
-tx.sign([keys.dex, keys.tokenX]);
+tx.sign([keys.dex]);
 
 tx.send();
 
