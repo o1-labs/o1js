@@ -1,4 +1,4 @@
-import { isReady, Mina, AccountUpdate, UInt64 } from 'snarkyjs';
+import { isReady, Mina, AccountUpdate, UInt64, Token } from 'snarkyjs';
 import {
   Dex,
   DexTokenHolder,
@@ -9,7 +9,7 @@ import {
 } from './dex.js';
 
 await isReady;
-let doProofs = true;
+let doProofs = false;
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
@@ -22,6 +22,7 @@ let tokenAccount2 = Local.testAccounts[2];
 let tx;
 
 // analyze methods for quick error feedback
+console.log('analyze methods');
 TokenContract.analyzeMethods();
 DexTokenHolder.analyzeMethods();
 Dex.analyzeMethods();
@@ -53,9 +54,9 @@ tx = await Mina.transaction({ feePayerKey }, () => {
   tokenY.deploy();
 });
 
-await tx.prove();
+// await tx.prove();
 tx.sign([keys.tokenX, keys.tokenY, keys.dex]);
-console.log(tx.toJSON());
+
 tx.send();
 
 console.log('deploy dex contracts...');
@@ -68,7 +69,7 @@ tx = await Mina.transaction(feePayerKey, () => {
   tokenY.deployZkapp(addresses.dex);
 });
 
-await tx.prove();
+// await tx.prove();
 tx.sign([keys.dex]);
 
 tx.send();
@@ -78,17 +79,19 @@ console.log('minting tokenX...');
 try {
   tx = await Mina.transaction(feePayerKey, () => {
     tokenX.init();
+    tokenX.sign(keys.tokenX);
   });
-
+  // await tx.prove();
+  // tx.sign([keys.tokenX]);
   tx.send();
 
-  const tokenXid = tokenY.experimental.token.id;
+  const tokenXid = tokenX.experimental.token.id;
 
   let tokenXbalance = Mina.getBalance(
-    feePayerKey.toPublicKey(),
-    tokenY.experimental.token.id
+    keys.tokenX.toPublicKey(),
+    tokenX.experimental.token.id
   ).value.toBigInt();
-  console.log('token balance', tokenXbalance);
+
   if (tokenXbalance !== 10n ** 18n) {
     throw Error('TokenX did not mint total supply');
   }
@@ -131,6 +134,7 @@ try {
   });
 
   tx.send();
+  //
 } catch (err) {
   throw Error(err);
 }
