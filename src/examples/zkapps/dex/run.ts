@@ -42,7 +42,7 @@ let dex = new Dex(addresses.dex);
 let dexX = new DexTokenHolder(addresses.dex, tokenIds.X);
 let dexY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
-console.log('deploy & init token contracts...');
+console.log('deploy token contracts...');
 tx = await Mina.transaction({ feePayerKey }, () => {
   // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
   let feePayerUpdate = AccountUpdate.createSigned(feePayerKey);
@@ -77,6 +77,7 @@ tx.send();
 console.log('minting tokenX...');
 
 try {
+  // the entire supply of tokenX is minted to the token account with the same address after invoking init
   tx = await Mina.transaction(feePayerKey, () => {
     tokenX.init();
     tokenX.sign(keys.tokenX);
@@ -102,20 +103,22 @@ try {
 console.log('minting tokenY...');
 
 try {
+  // the entire supply of tokenY is minted to the token account with the same address after invoking init
   tx = await Mina.transaction(feePayerKey, () => {
     tokenY.init();
+    tokenY.sign(keys.tokenY);
   });
-  tx.sign([keys.tokenY]);
+  // tx.sign([keys.tokenY]);
   tx.send();
   const tokenYid = tokenY.experimental.token.id;
 
   let tokenYbalance = Mina.getBalance(
-    feePayerKey.toPublicKey(),
+    keys.tokenY.toPublicKey(),
     tokenY.experimental.token.id
   ).value.toBigInt();
 
   if (tokenYbalance !== 10n ** 18n) {
-    throw Error('TokenY did not mint total supply');
+    throw Error('TokenY contract did not mint total supply');
   }
 } catch (err) {
   throw Error(err);
