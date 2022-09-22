@@ -79,7 +79,7 @@ try {
   tx = await Mina.transaction(feePayerKey, () => {
     tokenX.init();
   });
-  tx.sign([keys.tokenX]);
+
   tx.send();
 
   const tokenXid = tokenY.experimental.token.id;
@@ -101,9 +101,8 @@ console.log('minting tokenY...');
 try {
   tx = await Mina.transaction(feePayerKey, () => {
     tokenY.init();
-    tokenY.sign(feePayerKey);
   });
-
+  tx.sign([keys.tokenY]);
   tx.send();
   const tokenYid = tokenY.experimental.token.id;
 
