@@ -9,7 +9,7 @@ import {
 } from './dex.js';
 
 await isReady;
-let doProofs = false;
+let doProofs = true;
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
@@ -78,9 +78,8 @@ console.log('minting tokenX...');
 try {
   tx = await Mina.transaction(feePayerKey, () => {
     tokenX.init();
-    tokenX.sign(feePayerKey);
   });
-
+  tx.sign([keys.tokenX]);
   tx.send();
 
   const tokenXid = tokenY.experimental.token.id;
@@ -89,7 +88,7 @@ try {
     feePayerKey.toPublicKey(),
     tokenY.experimental.token.id
   ).value.toBigInt();
-
+  console.log('token balance', tokenXbalance);
   if (tokenXbalance !== 10n ** 18n) {
     throw Error('TokenX did not mint total supply');
   }
