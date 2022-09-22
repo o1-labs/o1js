@@ -681,12 +681,15 @@ class AccountUpdate implements Types.AccountUpdate {
         from,
         to,
         amount,
+        caller,
       }: {
         from: PublicKey;
         to: PublicKey;
         amount: number | bigint | UInt64;
+        caller?: Field;
       }) {
         // Create a new accountUpdate for the sender to send the amount to the receiver
+        thisAccountUpdate.body.caller = caller ?? thisAccountUpdate.body.caller;
         let senderAccountUpdate = createChildAccountUpdate(
           thisAccountUpdate,
           from,
