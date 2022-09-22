@@ -17,9 +17,7 @@ import {
   CallForest,
   Authorization,
   SequenceEvents,
-  Permission,
-  PermissionsFromJSON,
-  accountUpdateToPublicInput,
+  Permissions,
 } from './account_update.js';
 
 import * as Fetch from './fetch.js';
@@ -30,6 +28,7 @@ import { Context } from './global-context.js';
 import { emptyReceiptChainHash } from './hash.js';
 import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './errors.js';
+import { Types } from 'src/index.js';
 
 export {
   createTransaction,
@@ -304,9 +303,7 @@ function LocalBlockchain({
           sequenceState:
             ledgerAccount.zkapp?.sequenceState[0] ??
             SequenceEvents.emptySequenceState(),
-          permissions: ledgerAccount.permissions
-            ? PermissionsFromJSON(ledgerAccount.permissions)
-            : undefined,
+          permissions: Permissions.fromJSON(ledgerAccount.permissions),
         };
       }
     },
@@ -821,14 +818,14 @@ async function verifyAccountUpdate(
 
   // we are essentially only checking if the update is empty or an actual update
   function includesChange(val: any): boolean {
-    if (val?.constructor === Array) {
-      return !(val as Array<any>).every((v) => v == null);
+    if (Array.isArray(val)) {
+      return !val.every((v) => v === null);
     } else {
       return val != null;
     }
   }
 
-  function permissionForUpdate(key: string): string {
+  function permissionForUpdate(key: string): Types.Json.AuthRequired {
     switch (key) {
       case 'appState':
         return perm.editState;
@@ -843,9 +840,9 @@ async function verifyAccountUpdate(
       case 'tokenSymbol':
         return perm.setTokenSymbol;
       case 'timing':
-        return 'None'; // TODO: do timing?
+        return 'None';
       case 'votingFor':
-        return perm.setVotingFor; // TODO: do timing?
+        return perm.setVotingFor;
       case 'sequenceEvents':
         return perm.editSequenceState;
       case 'incrementNonce':
@@ -855,7 +852,7 @@ async function verifyAccountUpdate(
       case 'receive':
         return perm.receive;
       default:
-        return '';
+        throw Error(`Invalid permission for field ${key}: does not exist.`);
     }
   }
 
@@ -868,11 +865,11 @@ async function verifyAccountUpdate(
   if (!proofsEnabled) isValidProof = true;
 
   if (accountUpdate.authorization.proof && proofsEnabled) {
-    let publicInput = accountUpdateToPublicInput(accountUpdate);
+    let publicInput = AccountUpdate.accountUpdateToPublicInput(accountUpdate);
     let publicInputFields = ZkappPublicInput.toFields(publicInput);
 
     const proof = SmartContract.Proof().fromJSON({
-      maxProofsVerified: 2, // TODO: this can probably vary?
+      maxProofsVerified: 2,
       proof: accountUpdate.authorization.proof!,
       publicInput: publicInputFields.map((f) => f.toString()),
     });
@@ -901,7 +898,7 @@ async function verifyAccountUpdate(
     }
   }
 
-  function checkPermission(p: string, field: string) {
+  function checkPermission(p: Types.Json.AuthRequired, field: string) {
     if (p == 'None') return;
 
     if (p == 'Impossible') {
@@ -927,7 +924,7 @@ async function verifyAccountUpdate(
   }
 
   // goes through the update field on a transaction
-  Object.entries(update).forEach(async ([key, value]) => {
+  Object.entries(update).forEach(([key, value]) => {
     if (includesChange(value)) {
       let p = permissionForUpdate(key);
       checkPermission(p, key);
