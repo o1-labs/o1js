@@ -100,6 +100,32 @@ try {
   throw Error(err);
 }
 
+console.log('minting tokenX again...');
+
+try {
+  // the entire supply of tokenX is minted to the token account with the same address after invoking init
+  tx = await Mina.transaction(feePayerKey, () => {
+    tokenX.init();
+    // tokenX.sign(keys.tokenX);
+  });
+  // await tx.prove();
+  // tx.sign([keys.tokenX]);
+  tx.send();
+
+  const tokenXid = tokenX.experimental.token.id;
+
+  let tokenXbalance = Mina.getBalance(
+    keys.tokenX.toPublicKey(),
+    tokenX.experimental.token.id
+  ).value.toBigInt();
+
+  // if (tokenXbalance !== 10n ** 18n) {
+  //   throw Error('TokenX did not mint total supply');
+  // }
+} catch (err) {
+  throw Error(err);
+}
+
 console.log('minting tokenY...');
 
 try {
