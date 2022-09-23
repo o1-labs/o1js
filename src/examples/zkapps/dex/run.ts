@@ -22,7 +22,7 @@ let tokenAccount2 = Local.testAccounts[2];
 let tx;
 
 // analyze methods for quick error feedback
-console.log('analyze methods');
+
 TokenContract.analyzeMethods();
 DexTokenHolder.analyzeMethods();
 Dex.analyzeMethods();
@@ -100,7 +100,7 @@ try {
   throw Error(err);
 }
 
-console.log('minting tokenX again...');
+// console.log('minting tokenX again...');
 
 try {
   // the entire supply of tokenX is minted to the token account with the same address after invoking init
@@ -122,7 +122,7 @@ try {
   // if (tokenXbalance !== 10n ** 18n) {
   //   throw Error('TokenX did not mint total supply');
   // }
-} catch (err) {
+} catch (err: any) {
   throw Error(err);
 }
 
@@ -146,7 +146,7 @@ try {
   if (tokenYbalance !== 10n ** 18n) {
     throw Error('TokenY contract did not mint total supply');
   }
-} catch (err) {
+} catch (err: any) {
   throw Error(err);
 }
 
@@ -159,15 +159,25 @@ try {
       tokenAccount2.publicKey,
       UInt64.from(100_000)
     );
-    tokenX.sign(feePayerKey);
+    tokenX.sign(tokenAccount1.privateKey);
   });
 
   tx.send();
   //
-} catch (err) {
+} catch (err: any) {
   throw Error(err);
 }
 
+let tokenAccount2balance = Mina.getBalance(
+  tokenAccount2.publicKey,
+  tokenX.experimental.token.id
+).value.toBigInt();
+
+if (tokenAccount2balance !== 100000n) {
+  throw Error(
+    `token transfer was not successfuly tokenAccount2 balance is ${tokenAccount2balance}`
+  );
+}
 console.log('attempting to transfer tokenY...');
 
 try {
@@ -181,6 +191,6 @@ try {
   });
 
   tx.send();
-} catch (err) {
+} catch (err: any) {
   throw Error(err);
 }
