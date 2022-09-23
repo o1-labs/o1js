@@ -875,9 +875,10 @@ async function verifyAccountUpdate(
     });
 
     try {
-      let verificationKey = account.zkapp?.verificationKey!;
-      isValidProof = await verify(proof, verificationKey);
+      let verificationKey = account.zkapp?.verificationKey?.data!;
+      isValidProof = await verify(proof.toJSON(), verificationKey);
     } catch (error) {
+      console.log(error);
       isValidProof = false;
     }
   }
@@ -894,6 +895,7 @@ async function verifyAccountUpdate(
         txC
       );
     } catch (error) {
+      console.log(error);
       isValidSignature = false;
     }
   }
