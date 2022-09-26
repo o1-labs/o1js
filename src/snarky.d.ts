@@ -743,7 +743,7 @@ interface Account {
   votingFor: Field;
   zkapp?: {
     appState: Field[];
-    verificationKey?: { hash: Field; data: unknown };
+    verificationKey?: { data: string; hash: string };
     zkappVersion: number;
     sequenceState: Field[];
     lastSequenceSlot: number;
@@ -810,7 +810,13 @@ declare class Ledger {
   static privateKeyOfString(privateKeyBase58: string): Scalar;
   static fieldToBase58(field: Field): string;
   static fieldOfBase58(fieldBase58: string): Field;
+
   static memoToBase58(memoString: string): string;
+
+  static checkAccountUpdateSignature(
+    updateJson: string,
+    commitment: Field
+  ): boolean;
 
   static fieldsOfJson(json: string): Field[];
   static hashAccountUpdateFromFields(fields: Field[]): Field;
