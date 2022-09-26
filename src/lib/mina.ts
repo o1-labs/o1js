@@ -318,21 +318,17 @@ function LocalBlockchain({
       );
 
       txn.transaction.accountUpdates.forEach(async (party) => {
-        try {
-          let account = ledger.getAccount(
-            party.body.publicKey,
-            party.body.tokenId
+        let account = ledger.getAccount(
+          party.body.publicKey,
+          party.body.tokenId
+        );
+        if (account) {
+          await verifyAccountUpdate(
+            account!,
+            party,
+            commitments,
+            proofsEnabled
           );
-          if (account) {
-            await verifyAccountUpdate(
-              account!,
-              party,
-              commitments,
-              proofsEnabled
-            );
-          }
-        } catch (error) {
-          console.log(error);
         }
       });
 
