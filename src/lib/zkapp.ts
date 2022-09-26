@@ -596,6 +596,8 @@ class SmartContract {
         return getReducer(this);
       },
     });
+
+    (this.constructor as typeof SmartContract).analyzeMethods();
   }
 
   /**
