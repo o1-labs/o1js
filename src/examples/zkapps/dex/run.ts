@@ -163,7 +163,6 @@ try {
   });
 
   tx.send();
-  //
 } catch (err: any) {
   throw Error(err);
 }
@@ -189,6 +188,17 @@ try {
     );
     tokenY.sign(feePayerKey);
   });
+
+  let tokenAccount1balance = Mina.getBalance(
+    tokenAccount1.publicKey,
+    tokenY.experimental.token.id
+  ).value.toBigInt();
+
+  if (tokenAccount1balance !== 100000n) {
+    throw Error(
+      `token transfer was not successfuly tokenAccount1 balance is ${tokenAccount1balance}`
+    );
+  }
 
   tx.send();
 } catch (err: any) {
