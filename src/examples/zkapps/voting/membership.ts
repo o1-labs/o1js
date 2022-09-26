@@ -79,13 +79,15 @@ export class Membership_ extends SmartContract {
     // since we need to keep this contract "generic", we always assert within a range
     // even tho voters cant have a maximum balance, only candidates
     // but for a voter we simply use UInt64.MAXINT() as the maximum
-    let party = Experimental.createChildAccountUpdate(
+    let accountUpdate = Experimental.createChildAccountUpdate(
       this.self,
       member.publicKey
     );
-    party.account.balance.assertEquals(party.account.balance.get());
+    accountUpdate.account.balance.assertEquals(
+      accountUpdate.account.balance.get()
+    );
 
-    let balance = party.account.balance.get();
+    let balance = accountUpdate.account.balance.get();
 
     balance
       .gte(participantPreconditions.minMina)
@@ -111,7 +113,7 @@ export class Membership_ extends SmartContract {
     /*
     we cant really branch the control flow - we will always have to emit an event no matter what, 
     so we emit an empty event if the member already exists
-    it the member doesnt exist, emit the "real" member
+    it the member doesn't exist, emit the "real" member
     */
 
     let toEmit = Circuit.if(exists, Member.empty(), member);
@@ -127,7 +129,7 @@ export class Membership_ extends SmartContract {
    * @returns true if member exists
    */
   @method isMember(member: Member): Bool {
-    // Verify membership (voter or candidate) with the accountId via merkletree committed to by the sequence events and returns a boolean
+    // Verify membership (voter or candidate) with the accountId via merkle tree committed to by the sequence events and returns a boolean
     // Preconditions: Item exists in committed storage
 
     let committedMembers = this.committedMembers.get();
