@@ -66,6 +66,7 @@ export async function Voting(params: VotingParams): Promise<Voting_> {
   voterAddress = params.voterAddress;
 
   let contract = new Voting_(params.contractAddress);
+  params.doProofs = true;
   if (params.doProofs) {
     await Voting_.compile();
   }

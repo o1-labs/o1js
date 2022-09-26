@@ -10,7 +10,7 @@ import {
 } from 'snarkyjs';
 import { VotingAppParams } from './factory.js';
 
-import { Membership_, ModifiedMembership } from './membership.js';
+import { Membership_ } from './membership.js';
 
 import { Voting_ } from './voting.js';
 
@@ -166,12 +166,13 @@ export async function deployInvalidContracts(
 /**
  * Function used to upgrade a Membership contract with slightly modified methods, in order to manipulate the existing verification key
  */
-export async function upgradeMembershipContract(
+/* export async function upgradeMembershipContract(
   feePayer: PrivateKey,
   contractKey: PrivateKey
 ): Promise<ModifiedMembership> {
   console.log('deploying an upgraded version to existing membership contract');
   let modifiedContract = new ModifiedMembership(contractKey.toPublicKey());
+  await ModifiedMembership.compile();
   try {
     let tx = await Mina.transaction(feePayer, () => {
       modifiedContract.deploy({ zkappKey: contractKey });
@@ -185,3 +186,4 @@ export async function upgradeMembershipContract(
   console.log('successfully deployed upgraded contract');
   return modifiedContract;
 }
+ */

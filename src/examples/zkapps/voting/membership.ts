@@ -32,6 +32,8 @@ export async function Membership(
   participantPreconditions = params.participantPreconditions;
 
   let contract = new Membership_(params.contractAddress);
+
+  params.doProofs = true;
   if (params.doProofs) {
     await Membership_.compile();
   }
@@ -183,12 +185,7 @@ export class Membership_ extends SmartContract {
   }
 }
 
-export class ModifiedMembership extends Membership_ {
-  /**
-   * Overwritten isMember method to always return Bool(true)
-   * @param member Member
-   * @returns true if member exists
-   */
+/* export class ModifiedMembership extends Membership_ {
   @method isMember(member: Member) {
     return Bool(true);
   }
@@ -198,3 +195,4 @@ export class ModifiedMembership extends Membership_ {
     b.assertEquals(3);
   }
 }
+ */
