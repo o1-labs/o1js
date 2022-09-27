@@ -14,8 +14,33 @@ export {
   shutdown,
   Pickles,
   JSONValue,
-  InferProvablePure,
 };
+
+/**
+ * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
+ *
+ * You will find this as the required input type in a few places in snarkyjs. One convenient way to create a `Provable<T>` is using `Struct`.
+ */
+declare interface Provable<T> {
+  toFields: (x: T) => Field[];
+  toAuxiliary: (x?: T) => any[];
+  fromFields: (x: Field[], aux: any[]) => T;
+  sizeInFields(): number;
+  check: (x: T) => void;
+}
+/**
+ * `ProvablePure<T>` is a special kind of `Provable<T>`, where the auxiliary data is empty. This means the type only consists of field elements,
+ * in that sense it is "pure".
+ *
+ * Examples where `ProvablePure<T>` is required are types of on-chain state, events and actions.
+ */
+declare interface ProvablePure<T> extends Provable<T> {
+  toFields: (x: T) => Field[];
+  toAuxiliary: (x?: T) => [];
+  fromFields: (x: Field[]) => T;
+  sizeInFields(): number;
+  check: (x: T) => void;
+}
 
 /**
  * An element of a finite field.
@@ -464,32 +489,6 @@ declare class Bool {
   // monkey-patched in JS
   static toInput(x: Bool): { packed: [Field, number][] };
 }
-
-// Provable<T> is the general circuit type
-// ProvablePure<T> is a special kind of Provable<T>, where the auxiliary data is empty
-// notably, Provable.fromFields(fields, aux) _requires_ an `aux` parameter, whereas ProvablePure.fromFields(fields) doesn't
-// this means a function accepting Provable needs to do more work / make more assumptions than one accepting ProvablePure
-// => "harder" to support a more general case than a more narrow one
-declare interface Provable<T> {
-  toFields: (x: T) => Field[];
-  toAuxiliary: (x?: T) => any[];
-  fromFields: (x: Field[], aux: any[]) => T;
-  sizeInFields(): number;
-  check: (x: T) => void;
-}
-declare interface ProvablePure<T> extends Provable<T> {
-  toFields: (x: T) => Field[];
-  toAuxiliary: (x?: T) => [];
-  fromFields: (x: Field[]) => T;
-  sizeInFields(): number;
-  check: (x: T) => void;
-}
-
-type InferProvablePure<T extends ProvablePure<any>> = T extends ProvablePure<
-  infer U
->
-  ? U
-  : never;
 
 declare interface CircuitMain<W, P> {
   snarkyWitnessTyp: ProvablePure<W>;

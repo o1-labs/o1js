@@ -7,7 +7,6 @@ import {
   Poseidon as Poseidon_,
   JSONValue,
   Provable,
-  InferProvablePure,
 } from '../snarky.js';
 import {
   Circuit,
@@ -1249,6 +1248,12 @@ function declareMethods<T extends typeof SmartContract>(
     Object.defineProperty(target, key, descriptor);
   }
 }
+
+type InferProvablePure<T extends ProvablePure<any>> = T extends ProvablePure<
+  infer U
+>
+  ? U
+  : never;
 
 const Reducer: (<
   T extends ProvablePure<any>,
