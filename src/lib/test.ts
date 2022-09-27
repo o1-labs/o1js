@@ -1,16 +1,15 @@
 import { TypeMap } from '../snarky/transaction-leaves.js';
-import { AsFieldElements, AsFieldsAndAux, Bool, Field } from '../snarky.js';
+import { ProvablePure, Provable, Bool, Field } from '../snarky.js';
 import { PublicKey } from './signature.js';
 
-let takesAsFields = <T>(type: AsFieldElements<T>, value: T) =>
+let takesAsFields = <T>(type: ProvablePure<T>, value: T) =>
   type.toFields(value);
-let takesAsBoth = <T>(type: AsFieldsAndAux<T>, value: T) =>
-  type.toFields(value);
+let takesAsBoth = <T>(type: Provable<T>, value: T) => type.toFields(value);
 
-function takesAsFields_<T>(type: AsFieldElements<T>, value: T) {
+function takesAsFields_<T>(type: ProvablePure<T>, value: T) {
   return type.toFields(value);
 }
-function takesAsBoth_<T>(type: AsFieldsAndAux<T>, value: T) {
+function takesAsBoth_<T>(type: Provable<T>, value: T) {
   return type.toFields(value);
 }
 
@@ -21,7 +20,7 @@ takesAsBoth(PublicKey, pk);
 takesAsFields_(PublicKey, pk);
 takesAsBoth_(PublicKey, pk);
 
-takesAsFields = <T>(type: AsFieldsAndAux<T>, value: T) => type.toFields(value);
+takesAsFields = <T>(type: Provable<T>, value: T) => type.toFields(value);
 
 type MyNumber = TypeMap['number'];
 const MyNumber = TypeMap['number'];
@@ -33,12 +32,12 @@ takesAsFields_(MyNumber, 1);
 takesAsBoth_(MyNumber, 3);
 
 type MyTypeA = {
-  canBeAsFields: AsFieldElements<Bool>;
-  canBeAsBoth: AsFieldsAndAux<Bool>;
+  canBeAsFields: ProvablePure<Bool>;
+  canBeAsBoth: Provable<Bool>;
 };
 type MyTypeB = {
-  canBeAsFields: AsFieldElements<number>;
-  canBeAsBoth: AsFieldsAndAux<number>;
+  canBeAsFields: ProvablePure<number>;
+  canBeAsBoth: Provable<number>;
 };
 
 let m1: MyTypeA = { canBeAsFields: Bool, canBeAsBoth: Bool };
@@ -49,7 +48,7 @@ let callbackWithMoreParams: (fields: Field[], aux: any[]) => PublicKey =
 let callbackWithLessParams: (fields: Field[]) => PublicKey =
   MyNumber.fromFields;
 
-function emptyValue<T>(type: AsFieldsAndAux<T>) {
+function emptyValue<T>(type: Provable<T>) {
   let size = type.sizeInFields();
   let fields = Array(size).fill(Field.zero);
   let aux = type.toAuxiliary();

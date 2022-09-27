@@ -4,9 +4,9 @@ import { UInt32, UInt64, Sign } from '../lib/int.js';
 import { TokenSymbol } from '../lib/hash.js';
 import { PublicKey } from '../lib/signature.js';
 import {
-  AsFieldsExtended,
+  ProvableExtended,
   CircuitTypes,
-  circuitValue,
+  provable,
 } from '../lib/circuit_value.js';
 import * as Encoding from '../lib/encoding.js';
 
@@ -54,14 +54,14 @@ let emptyType = {
 };
 
 const TokenId = {
-  ...circuitValue(Field),
+  ...provable(Field),
   toJSON(x: TokenId): Json.TokenId {
     return Encoding.TokenId.toBase58(x);
   },
 };
 
 const AuthRequired = {
-  ...circuitValue(
+  ...provable(
     { constant: Bool, signatureNecessary: Bool, signatureSufficient: Bool },
     {
       customObjectKeys: [
@@ -88,7 +88,7 @@ const AuthRequired = {
 };
 
 const TypeMap: {
-  [K in keyof TypeMap]: AsFieldsExtended<TypeMap[K], Json.TypeMap[K]>;
+  [K in keyof TypeMap]: ProvableExtended<TypeMap[K], Json.TypeMap[K]>;
 } = {
   Field,
   Bool,

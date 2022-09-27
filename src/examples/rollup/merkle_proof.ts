@@ -5,7 +5,7 @@ import {
   Field,
   Circuit,
   Poseidon,
-  AsFieldElements,
+  ProvablePure,
   Optional,
 } from 'snarkyjs';
 import { DataStore, KeyedDataStore } from './data_store';
@@ -554,7 +554,7 @@ function constantIndex(xs: Array<Bool>): Array<boolean> {
 }
 
 export class Collection<A> {
-  eltTyp: AsFieldElements<A>;
+  eltTyp: ProvablePure<A>;
   values:
     | { computed: true; value: MerkleTree<A> }
     | { computed: false; f: () => MerkleTree<A> };
@@ -572,7 +572,7 @@ export class Collection<A> {
     return this.root;
   }
 
-  constructor(eltTyp: AsFieldElements<A>, f: () => Tree<A>, root?: Field) {
+  constructor(eltTyp: ProvablePure<A>, f: () => Tree<A>, root?: Field) {
     this.eltTyp = eltTyp;
     this.cachedPaths = new Map();
     this.cachedValues = new Map();

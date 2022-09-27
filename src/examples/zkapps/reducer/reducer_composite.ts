@@ -10,17 +10,16 @@ import {
   AccountUpdate,
   isReady,
   Permissions,
-  circuitValue,
   Bool,
   Circuit,
-  circuitValuePure,
+  provablePure,
 } from 'snarkyjs';
 import assert from 'node:assert/strict';
 
 await isReady;
 
 type MaybeIncrement = { isIncrement: Bool; otherData: Field };
-const MaybeIncrement = circuitValuePure({
+const MaybeIncrement = provablePure({
   isIncrement: Bool,
   otherData: Field,
 });

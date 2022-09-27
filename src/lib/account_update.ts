@@ -1,19 +1,12 @@
 import {
   circuitArray,
-  circuitValue,
-  circuitValuePure,
+  provable,
+  provablePure,
   cloneCircuitValue,
   memoizationContext,
   memoizeWitness,
 } from './circuit_value.js';
-import {
-  Field,
-  Bool,
-  Ledger,
-  Circuit,
-  Pickles,
-  AsFieldsAndAux,
-} from '../snarky.js';
+import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
 import { Types } from '../snarky/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { UInt64, UInt32, Int64, Sign } from './int.js';
@@ -1022,7 +1015,7 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   static witness<T>(
-    type: AsFieldsAndAux<T>,
+    type: Provable<T>,
     compute: () => { accountUpdate: AccountUpdate; result: T },
     { skipCheck = false } = {}
   ) {
@@ -1032,7 +1025,7 @@ class AccountUpdate implements Types.AccountUpdate {
       Types.AccountUpdate.sizeInFields()
     );
     type combinedType = { accountUpdate: Field[]; result: T };
-    let combinedType = circuitValue({
+    let combinedType = provable({
       accountUpdate: accountUpdateType,
       result: type,
     });
@@ -1080,7 +1073,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * which also get witnessed
    */
   static witnessTree<T>(
-    resultType: AsFieldsAndAux<T>,
+    resultType: Provable<T>,
     childLayout: AccountUpdatesLayout,
     compute: () => { accountUpdate: AccountUpdate; result: T },
     options?: { skipCheck: boolean }
@@ -1106,7 +1099,7 @@ class AccountUpdate implements Types.AccountUpdate {
     let n = childArray.length;
     for (let i = 0; i < n; i++) {
       accountUpdate.children.accountUpdates[i] = AccountUpdate.witnessTree(
-        circuitValue(null),
+        provable(null),
         childArray[i],
         () => ({
           accountUpdate:
@@ -1355,7 +1348,7 @@ function addMissingSignatures(
   Thus, the transaction is fully constrained by the proof - the proof couldn't be used to attest to a different transaction.
  */
 type ZkappPublicInput = { accountUpdate: Field; calls: Field };
-let ZkappPublicInput = circuitValuePure(
+let ZkappPublicInput = provablePure(
   { accountUpdate: Field, calls: Field },
   { customObjectKeys: ['accountUpdate', 'calls'] }
 );

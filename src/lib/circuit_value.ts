@@ -1,10 +1,5 @@
 import 'reflect-metadata';
-import {
-  Circuit,
-  JSONValue,
-  AsFieldElements,
-  AsFieldsAndAux,
-} from '../snarky.js';
+import { Circuit, JSONValue, ProvablePure, Provable } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
 import { HashInput } from './hash.js';
@@ -14,19 +9,19 @@ import { inCheckedComputation, snarkContext } from './proof_system.js';
 export {
   Circuit,
   CircuitValue,
+  ProvableExtended,
   prop,
   arrayProp,
   matrixProp,
   public_,
   circuitMain,
-  circuitValue,
-  circuitValuePure,
-  circuitValueClass,
+  provable,
+  provablePure,
+  Struct,
 };
 
 // internal API
 export {
-  AsFieldsExtended,
   AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,
@@ -114,7 +109,7 @@ abstract class CircuitValue {
       }
       // as a fallback, use toFields on the type
       // TODO: this is problematic -- ignores if there's a toInput on a nested type
-      // so, remove this? should every circuit value define toInput?
+      // so, remove this? should every provable define toInput?
       let xs: Field[] = type.toFields(v[key]);
       input.fields!.push(...xs);
     }
@@ -179,7 +174,7 @@ abstract class CircuitValue {
       const [key, propType] = fields[i];
       const value = (v as any)[key];
       if (propType.check === undefined)
-        throw Error('bug: circuit value without .check()');
+        throw Error('bug: CircuitValue without .check()');
       propType.check(value);
     }
   }
@@ -254,9 +249,9 @@ function prop(this: any, target: any, key: string) {
 }
 
 function circuitArray<T>(
-  elementType: AsFieldsAndAux<T> | AsFieldsExtended<T>,
+  elementType: Provable<T> | ProvableExtended<T>,
   length: number
-): AsFieldsExtended<T[]> {
+): ProvableExtended<T[]> {
   return {
     sizeInFields() {
       let elementLength = elementType.sizeInFields();
@@ -304,7 +299,7 @@ function circuitArray<T>(
   };
 }
 
-function arrayProp<T>(elementType: AsFieldsAndAux<T>, length: number) {
+function arrayProp<T>(elementType: Provable<T>, length: number) {
   return function (target: any, key: string) {
     if (!target.hasOwnProperty('_fields')) {
       target._fields = [];
@@ -314,7 +309,7 @@ function arrayProp<T>(elementType: AsFieldsAndAux<T>, length: number) {
 }
 
 function matrixProp<T>(
-  elementType: AsFieldsAndAux<T>,
+  elementType: Provable<T>,
   nRows: number,
   nColumns: number
 ) {
@@ -338,7 +333,7 @@ function public_(target: any, _key: string | symbol, index: number) {
   target._public.push(index);
 }
 
-function typeOfArray(typs: Array<AsFieldElements<any>>): AsFieldElements<any> {
+function typeOfArray(typs: Array<ProvablePure<any>>): ProvablePure<any> {
   return {
     sizeInFields: () => {
       return typs.reduce((acc, typ) => acc + typ.sizeInFields(), 0);
@@ -427,13 +422,13 @@ type AsFieldsExtension<T, TJson = JSONValue> = {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
   toJSON: (x: T) => TJson;
 };
-type AsFieldsExtended<T, TJson = JSONValue> = AsFieldsAndAux<T> &
+type ProvableExtended<T, TJson = JSONValue> = Provable<T> &
   AsFieldsExtension<T, TJson>;
 
-function circuitValue<A>(
+function provable<A>(
   typeObj: A,
   options?: { customObjectKeys?: string[]; isPure?: boolean }
-): AsFieldsExtended<InferCircuitValue<A>, InferJson<A>> {
+): ProvableExtended<InferCircuitValue<A>, InferJson<A>> {
   type T = InferCircuitValue<A>;
   type J = InferJson<A>;
   let objectKeys =
@@ -452,7 +447,7 @@ function circuitValue<A>(
     !nonCircuitPrimitives.has(typeObj as any) &&
     !complexTypes.has(typeof typeObj)
   ) {
-    throw Error(`circuitValue: unsupported type "${typeObj}"`);
+    throw Error(`provable: unsupported type "${typeObj}"`);
   }
 
   function sizeInFields(typeObj: any): number {
@@ -589,22 +584,22 @@ function circuitValue<A>(
   };
 }
 
-function circuitValuePure<A>(
+function provablePure<A>(
   typeObj: A,
   options: { customObjectKeys?: string[] } = {}
-): AsFieldElements<InferCircuitValue<A>> &
+): ProvablePure<InferCircuitValue<A>> &
   AsFieldsExtension<InferCircuitValue<A>, InferJson<A>> {
-  return circuitValue(typeObj, { ...options, isPure: true }) as any;
+  return provable(typeObj, { ...options, isPure: true }) as any;
 }
 
-// class wrapping circuit value, to be able to use as method argument
-function circuitValueClass<
+// class wrapping provable, to be able to use as method argument
+function Struct<
   A,
   T extends InferCircuitValue<A> = InferCircuitValue<A>,
   J extends InferJson<A> = InferJson<A>
 >(typeObj: A, options?: { customObjectKeys?: string[]; isPure?: boolean }) {
   class MyCircuitValue extends BaseCircuitValue {
-    static type = circuitValue<A>(typeObj, options);
+    static type = provable<A>(typeObj, options);
 
     constructor(value: T) {
       super();
@@ -637,11 +632,11 @@ function circuitValueClass<
     }
   }
   return MyCircuitValue as any as (new (value: T) => T & MyCircuitValue) &
-    AsFieldsExtended<T, J>;
+    ProvableExtended<T, J>;
 }
 
 class BaseCircuitValue {
-  static type: AsFieldsExtended<any, any>;
+  static type: ProvableExtended<any, any>;
 }
 
 const CircuitTypes = { dataAsHash, opaque };
@@ -652,7 +647,7 @@ function dataAsHash<T, J>({
 }: {
   emptyValue: T;
   toJSON: (value: T) => J;
-}): AsFieldsExtended<{ data: T; hash: Field }, J> {
+}): ProvableExtended<{ data: T; hash: Field }, J> {
   return {
     sizeInFields() {
       return 1;
@@ -682,7 +677,7 @@ function opaque<T, J>({
 }: {
   emptyValue: T;
   toJSON: (value: T) => J;
-}): AsFieldsExtended<T, J> {
+}): ProvableExtended<T, J> {
   return {
     sizeInFields: () => 0,
     toFields: (value: T) => [],
@@ -794,7 +789,7 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
   );
 }
 
-function toConstant<T>(type: AsFieldsAndAux<T>, value: T): T {
+function toConstant<T>(type: Provable<T>, value: T): T {
   return type.fromFields(
     type.toFields(value).map((x) => x.toConstant()),
     type.toAuxiliary(value)
@@ -802,7 +797,7 @@ function toConstant<T>(type: AsFieldsAndAux<T>, value: T): T {
 }
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
-Circuit.witness = function <T, S extends AsFieldsAndAux<T> = AsFieldsAndAux<T>>(
+Circuit.witness = function <T, S extends Provable<T> = Provable<T>>(
   type: S,
   compute: () => T
 ) {
@@ -819,7 +814,7 @@ Circuit.witness = function <T, S extends AsFieldsAndAux<T> = AsFieldsAndAux<T>>(
 
 Circuit.array = circuitArray;
 
-Circuit.switch = function <T, A extends AsFieldsAndAux<T>>(
+Circuit.switch = function <T, A extends Provable<T>>(
   mask: Bool[],
   type: A,
   values: T[]
@@ -872,7 +867,7 @@ Circuit.constraintSystem = function <T>(f: () => T) {
   return result;
 };
 
-function auxiliary<T>(type: AsFieldsAndAux<T>, compute: () => any[]) {
+function auxiliary<T>(type: Provable<T>, compute: () => any[]) {
   let aux;
   if (inCheckedComputation()) Circuit.asProver(() => (aux = compute()));
   else aux = compute();
@@ -880,7 +875,7 @@ function auxiliary<T>(type: AsFieldsAndAux<T>, compute: () => any[]) {
 }
 
 // TODO: very likely, this is how Circuit.witness should behave
-function witness<T>(type: AsFieldsAndAux<T>, compute: () => T) {
+function witness<T>(type: Provable<T>, compute: () => T) {
   return inCheckedComputation() ? Circuit.witness(type, compute) : compute();
 }
 
@@ -894,7 +889,7 @@ let memoizationContext = Context.create<{
  * Like Circuit.witness, but memoizes the witness during transaction construction
  * for reuse by the prover. This is needed to witness non-deterministic values.
  */
-function memoizeWitness<T>(type: AsFieldsAndAux<T>, compute: () => T) {
+function memoizeWitness<T>(type: Provable<T>, compute: () => T) {
   return witness(type, () => {
     if (!memoizationContext.has()) return compute();
     let context = memoizationContext.get();
@@ -960,12 +955,12 @@ type InferPrimitiveJson<P extends Primitive> = P extends typeof String
   : JSONValue;
 
 type InferCircuitValue<A> = A extends Constructor<infer U>
-  ? A extends AsFieldsAndAux<U>
+  ? A extends Provable<U>
     ? U
     : InferCircuitValueBase<A>
   : InferCircuitValueBase<A>;
 
-type InferCircuitValueBase<A> = A extends AsFieldsAndAux<infer U>
+type InferCircuitValueBase<A> = A extends Provable<infer U>
   ? U
   : A extends Primitive
   ? InferPrimitive<A>
@@ -974,7 +969,7 @@ type InferCircuitValueBase<A> = A extends AsFieldsAndAux<infer U>
       [I in keyof A]: InferCircuitValue<A[I]>;
     }
   : A extends Constructor<infer U>[]
-  ? A extends AsFieldsAndAux<U>
+  ? A extends Provable<U>
     ? U[]
     : A extends Record<any, any>
     ? {

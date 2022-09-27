@@ -1,8 +1,8 @@
 export {
   Group,
   Scalar,
-  AsFieldElements,
-  AsFieldsAndAux,
+  ProvablePure,
+  Provable,
   JSONValue,
   Ledger,
   isReady,
@@ -16,14 +16,15 @@ export * from './lib/signature.js';
 export {
   Circuit,
   CircuitValue,
+  ProvableExtended,
   prop,
   arrayProp,
   matrixProp,
   public_,
   circuitMain,
-  circuitValue,
-  circuitValuePure,
-  circuitValueClass,
+  provable,
+  provablePure,
+  Struct,
 } from './lib/circuit_value.js';
 export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
 export { Types } from './snarky/types.js';
@@ -67,12 +68,8 @@ import {
   createChildAccountUpdate,
   makeChildAccountUpdate,
 } from './lib/account_update.js';
-import {
-  memoizeWitness,
-  AsFieldsExtended as AsFieldsExtended_,
-} from './lib/circuit_value.js';
+import { memoizeWitness } from './lib/circuit_value.js';
 import { MerkleTree, MerkleWitness } from './lib/merkle_tree.js';
-import { JSONValue } from './snarky.js';
 export { Experimental };
 
 const Experimental_ = {
@@ -103,10 +100,6 @@ namespace Experimental {
   export let MerkleWitness = Experimental_.MerkleWitness;
   export let accountUpdateFromCallback =
     Experimental_.accountUpdateFromCallback;
-  export type AsFieldsExtended<T, TJson = JSONValue> = AsFieldsExtended_<
-    T,
-    TJson
-  >;
   export let Callback = Experimental_.Callback;
   export type Callback<Result> = Callback_<Result>;
 }

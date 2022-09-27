@@ -2,7 +2,7 @@ import {
   Account,
   Bool,
   Circuit,
-  circuitValue,
+  provable,
   CircuitValue,
   DeployArgs,
   Experimental,
@@ -166,8 +166,8 @@ class Dex extends SmartContract {
 }
 
 // TODO: this is a pain -- let's define circuit values in one line, with a factory pattern
-// we just have to make circuitValue return a class, that's it!
-// class UInt64x2 extends circuitValue([UInt64, UInt64]) {}
+// we just have to make provable return a class, that's it!
+// class UInt64x2 extends provable([UInt64, UInt64]) {}
 class UInt64x2 extends CircuitValue {
   @prop 0: UInt64;
   @prop 1: UInt64;
@@ -226,7 +226,7 @@ class DexTokenHolder extends SmartContract {
 
       // TODO: getting the account update here w/o messing up the account updates structure is error-prone and non-obvious
       let tokenYUpdate = AccountUpdate.witnessTree(
-        circuitValue(null),
+        provable(null),
         // need to walk two layers deeper, and need to respect the actual max number of child account updates
         [[undefined, undefined, undefined], undefined, undefined],
         () => {

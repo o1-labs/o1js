@@ -1,5 +1,5 @@
 import { Circuit, Field, isReady, shutdown } from '../snarky.js';
-import { circuitValue, circuitValueClass } from './circuit_value.js';
+import { provable, Struct } from './circuit_value.js';
 import { UInt32 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { expect } from 'expect';
@@ -8,7 +8,7 @@ import { LocalBlockchain, setActiveInstance, transaction } from './mina.js';
 
 await isReady;
 
-let type = circuitValue({
+let type = provable({
   nested: { a: Number, b: Boolean },
   other: String,
   pk: PublicKey,
@@ -77,8 +77,8 @@ expect(() =>
   })
 ).toThrow(`Expected ${Field.minusOne} to fit in 32 bits`);
 
-// class version of `circuitValue`
-class MyCircuitValue extends circuitValueClass({
+// class version of `provable`
+class MyCircuitValue extends Struct({
   nested: { a: Number, b: Boolean },
   other: String,
   pk: PublicKey,

@@ -3,8 +3,8 @@ export {
   Bool,
   Group,
   Scalar,
-  AsFieldElements,
-  AsFieldsAndAux,
+  ProvablePure,
+  Provable,
   Circuit,
   CircuitMain,
   Poseidon,
@@ -14,8 +14,7 @@ export {
   shutdown,
   Pickles,
   JSONValue,
-  InferAsFieldElements,
-  InferAsFieldsAndAux,
+  InferProvablePure,
 };
 
 /**
@@ -466,19 +465,19 @@ declare class Bool {
   static toInput(x: Bool): { packed: [Field, number][] };
 }
 
-// AsFieldsAndAux<T> is the general circuit type
-// AsFieldElements<T> is a special kind of AsFieldsAndAux<T>, where the auxiliary data is empty
-// notably, AsFieldAndAux.fromFields(fields, aux) _requires_ and `aux` parameter, whereas AsFieldElements.fromFields(fields) doesn't
-// this means a function accepting AsFieldAndAux needs to do more work / make more assumptions than one accepting AsFieldElements
+// Provable<T> is the general circuit type
+// ProvablePure<T> is a special kind of Provable<T>, where the auxiliary data is empty
+// notably, Provable.fromFields(fields, aux) _requires_ an `aux` parameter, whereas ProvablePure.fromFields(fields) doesn't
+// this means a function accepting Provable needs to do more work / make more assumptions than one accepting ProvablePure
 // => "harder" to support a more general case than a more narrow one
-declare interface AsFieldsAndAux<T> {
+declare interface Provable<T> {
   toFields: (x: T) => Field[];
   toAuxiliary: (x?: T) => any[];
   fromFields: (x: Field[], aux: any[]) => T;
   sizeInFields(): number;
   check: (x: T) => void;
 }
-declare interface AsFieldElements<T> extends AsFieldsAndAux<T> {
+declare interface ProvablePure<T> extends Provable<T> {
   toFields: (x: T) => Field[];
   toAuxiliary: (x?: T) => [];
   fromFields: (x: Field[]) => T;
@@ -486,14 +485,15 @@ declare interface AsFieldElements<T> extends AsFieldsAndAux<T> {
   check: (x: T) => void;
 }
 
-type InferAsFieldElements<T extends AsFieldElements<any>> =
-  T extends AsFieldElements<infer U> ? U : never;
-type InferAsFieldsAndAux<T extends AsFieldsAndAux<any>> =
-  T extends AsFieldsAndAux<infer U> ? U : never;
+type InferProvablePure<T extends ProvablePure<any>> = T extends ProvablePure<
+  infer U
+>
+  ? U
+  : never;
 
 declare interface CircuitMain<W, P> {
-  snarkyWitnessTyp: AsFieldElements<W>;
-  snarkyPublicTyp: AsFieldElements<P>;
+  snarkyWitnessTyp: ProvablePure<W>;
+  snarkyPublicTyp: ProvablePure<P>;
   snarkyMain: (w: W, p: P) => void;
 }
 
@@ -530,11 +530,11 @@ declare class Circuit {
   static newVariable(f: () => Field | number | string | boolean): Field;
 
   // this convoluted generic typing is needed to give type inference enough flexibility
-  static _witness<T, S extends AsFieldsAndAux<T> = AsFieldsAndAux<T>>(
+  static _witness<T, S extends Provable<T> = Provable<T>>(
     ctor: S,
     f: () => T
   ): Field[];
-  static witness<T, S extends AsFieldsAndAux<T> = AsFieldsAndAux<T>>(
+  static witness<T, S extends Provable<T> = Provable<T>>(
     ctor: S,
     f: () => T
   ): T;
@@ -549,10 +549,7 @@ declare class Circuit {
     result: T;
   };
 
-  static array<T>(
-    elementType: AsFieldsAndAux<T>,
-    length: number
-  ): AsFieldsAndAux<T[]>;
+  static array<T>(elementType: Provable<T>, length: number): Provable<T[]>;
 
   static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
 
@@ -562,7 +559,7 @@ declare class Circuit {
 
   static equal<T>(x: T, y: T): Bool;
 
-  static if<T>(b: Bool | boolean, ctor: AsFieldElements<T>, x: T, y: T): T;
+  static if<T>(b: Bool | boolean, ctor: ProvablePure<T>, x: T, y: T): T;
 
   static if<T>(b: Bool | boolean, x: T, y: T): T;
 
@@ -576,7 +573,7 @@ declare class Circuit {
    * x.assertEquals(2);
    * ```
    */
-  static switch<T, A extends AsFieldsAndAux<T>>(
+  static switch<T, A extends Provable<T>>(
     mask: Bool[],
     type: A,
     values: T[]
