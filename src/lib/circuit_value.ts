@@ -609,11 +609,10 @@ function Struct<
     };
     toJSON: (x: T) => J;
   } {
-  class MyCircuitValue extends BaseCircuitValue {
+  class Struct_ {
     static type = provable<A>(typeObj, options);
 
     constructor(value: T) {
-      super();
       Object.assign(this, value);
     }
     static sizeInFields() {
@@ -635,14 +634,10 @@ function Struct<
       return this.type.check(value);
     }
     static fromFields(fields: Field[], aux: any[]) {
-      return new MyCircuitValue(this.type.fromFields(fields, aux) as T);
+      return new Struct_(this.type.fromFields(fields, aux) as T);
     }
   }
-  return MyCircuitValue as any;
-}
-
-class BaseCircuitValue {
-  static type: ProvableExtended<any, any>;
+  return Struct_ as any;
 }
 
 const CircuitTypes = { dataAsHash, opaque };
