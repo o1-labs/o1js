@@ -5,6 +5,7 @@ import { PrivateKey, PublicKey } from './signature.js';
 import { expect } from 'expect';
 import { method, SmartContract } from './zkapp.js';
 import { LocalBlockchain, setActiveInstance, transaction } from './mina.js';
+import { State, state } from './state.js';
 
 await isReady;
 
@@ -85,11 +86,24 @@ class MyCircuitValue extends Struct({
   uint: [UInt32, UInt32],
 }) {}
 
+class MyCircuitValuePure extends Struct({
+  nested: { a: Field, b: UInt32 },
+  other: Field,
+  pk: PublicKey,
+  uint: [UInt32, UInt32],
+}) {}
+
 let targetString = 'some particular string';
 let gotTargetString = false;
 
 // create a smart contract and pass auxiliary data to a method
 class MyContract extends SmartContract {
+  // this is correctly rejected by the compiler -- on-chain state can't have stuff like strings in it
+  // @state(MyCircuitValue) y = State<MyCircuitValue>();
+
+  // this works because MyCircuitValuePure only contains field elements
+  @state(MyCircuitValuePure) x = State<MyCircuitValuePure>();
+
   @method myMethod(value: MyCircuitValue) {
     if (value.other === targetString) gotTargetString = true;
     value.uint[0].assertEquals(UInt32.zero);

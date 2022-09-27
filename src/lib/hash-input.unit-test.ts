@@ -7,12 +7,12 @@ import {
   Ledger,
   UInt64,
   UInt32,
-  Experimental,
   Bool,
   Permissions,
   Sign,
   Token,
   shutdown,
+  ProvableExtended,
 } from '../index.js';
 import { Events, SequenceEvents } from './account_update.js';
 import { expect } from 'expect';
@@ -142,7 +142,7 @@ console.log('all hash inputs are consistent! 🎉');
 shutdown();
 
 function testInput<T>(
-  Module: Experimental.ProvableExtended<T>,
+  Module: ProvableExtended<T>,
   toInputOcaml: (json: string) => InputOcaml,
   value: T
 ) {

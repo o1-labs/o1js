@@ -418,12 +418,12 @@ function circuitMain(
 let primitives = new Set(['Field', 'Bool', 'Scalar', 'Group']);
 let complexTypes = new Set(['object', 'function']);
 
-type AsFieldsExtension<T, TJson = JSONValue> = {
+type ProvableExtension<T, TJson = JSONValue> = {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
   toJSON: (x: T) => TJson;
 };
 type ProvableExtended<T, TJson = JSONValue> = Provable<T> &
-  AsFieldsExtension<T, TJson>;
+  ProvableExtension<T, TJson>;
 
 function provable<A>(
   typeObj: A,
@@ -588,7 +588,7 @@ function provablePure<A>(
   typeObj: A,
   options: { customObjectKeys?: string[] } = {}
 ): ProvablePure<InferCircuitValue<A>> &
-  AsFieldsExtension<InferCircuitValue<A>, InferJson<A>> {
+  ProvableExtension<InferCircuitValue<A>, InferJson<A>> {
   return provable(typeObj, { ...options, isPure: true }) as any;
 }
 
@@ -596,8 +596,19 @@ function provablePure<A>(
 function Struct<
   A,
   T extends InferCircuitValue<A> = InferCircuitValue<A>,
-  J extends InferJson<A> = InferJson<A>
->(typeObj: A, options?: { customObjectKeys?: string[]; isPure?: boolean }) {
+  J extends InferJson<A> = InferJson<A>,
+  Pure extends boolean = IsPure<A>
+>(
+  typeObj: A,
+  options: { customObjectKeys?: string[]; isPure?: boolean } = {}
+): (new (value: T) => T) &
+  (Pure extends true ? ProvablePure<T> : Provable<T>) & {
+    toInput: (x: T) => {
+      fields?: Field[] | undefined;
+      packed?: [Field, number][] | undefined;
+    };
+    toJSON: (x: T) => J;
+  } {
   class MyCircuitValue extends BaseCircuitValue {
     static type = provable<A>(typeObj, options);
 
@@ -605,34 +616,29 @@ function Struct<
       super();
       Object.assign(this, value);
     }
-
-    static from(value: T): MyCircuitValue & T {
-      return new MyCircuitValue(value) as any;
-    }
     static sizeInFields() {
       return this.type.sizeInFields();
     }
-    static toFields(value: MyCircuitValue & T): Field[] {
+    static toFields(value: T): Field[] {
       return this.type.toFields(value);
     }
-    static toAuxiliary(value: MyCircuitValue & T): any[] {
+    static toAuxiliary(value: T): any[] {
       return this.type.toAuxiliary(value);
     }
-    static toInput(value: MyCircuitValue & T): HashInput {
+    static toInput(value: T): HashInput {
       return this.type.toInput(value);
     }
-    static toJSON(value: MyCircuitValue & T): J {
+    static toJSON(value: T): J {
       return this.type.toJSON(value) as J;
     }
-    static check(value: MyCircuitValue & T) {
+    static check(value: T) {
       return this.type.check(value);
     }
     static fromFields(fields: Field[], aux: any[]) {
-      return MyCircuitValue.from(this.type.fromFields(fields, aux) as T);
+      return new MyCircuitValue(this.type.fromFields(fields, aux) as T);
     }
   }
-  return MyCircuitValue as any as (new (value: T) => T & MyCircuitValue) &
-    ProvableExtended<T, J>;
+  return MyCircuitValue as any;
 }
 
 class BaseCircuitValue {
@@ -968,14 +974,8 @@ type InferCircuitValueBase<A> = A extends Provable<infer U>
   ? {
       [I in keyof A]: InferCircuitValue<A[I]>;
     }
-  : A extends Constructor<infer U>[]
-  ? A extends Provable<U>
-    ? U[]
-    : A extends Record<any, any>
-    ? {
-        [K in keyof A]: InferCircuitValue<A[K]>;
-      }
-    : never
+  : A extends (infer U)[]
+  ? InferCircuitValue<U>[]
   : A extends Record<any, any>
   ? {
       [K in keyof A]: InferCircuitValue<A[K]>;
@@ -999,3 +999,19 @@ type InferJson<A> = A extends WithJson<infer J>
       [K in keyof A]: InferJson<A[K]>;
     }
   : JSONValue;
+
+type IsPure<A> = IsPureBase<A> extends true ? true : false;
+
+type IsPureBase<A> = A extends ProvablePure<any>
+  ? true
+  : A extends Provable<any>
+  ? false
+  : A extends Primitive
+  ? false
+  : A extends (infer U)[]
+  ? IsPure<U>
+  : A extends Record<any, any>
+  ? {
+      [K in keyof A]: IsPure<A[K]>;
+    }[keyof A]
+  : false;
