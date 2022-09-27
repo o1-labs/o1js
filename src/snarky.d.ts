@@ -3,8 +3,8 @@ export {
   Bool,
   Group,
   Scalar,
-  AsFieldElements,
-  AsFieldsAndAux,
+  ProvablePure,
+  Provable,
   Circuit,
   CircuitMain,
   Poseidon,
@@ -14,9 +14,33 @@ export {
   shutdown,
   Pickles,
   JSONValue,
-  InferAsFieldElements,
-  InferAsFieldsAndAux,
 };
+
+/**
+ * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
+ *
+ * You will find this as the required input type in a few places in snarkyjs. One convenient way to create a `Provable<T>` is using `Struct`.
+ */
+declare interface Provable<T> {
+  toFields: (x: T) => Field[];
+  toAuxiliary: (x?: T) => any[];
+  fromFields: (x: Field[], aux: any[]) => T;
+  sizeInFields(): number;
+  check: (x: T) => void;
+}
+/**
+ * `ProvablePure<T>` is a special kind of `Provable<T>`, where the auxiliary data is empty. This means the type only consists of field elements,
+ * in that sense it is "pure".
+ *
+ * Examples where `ProvablePure<T>` is required are types of on-chain state, events and actions.
+ */
+declare interface ProvablePure<T> extends Provable<T> {
+  toFields: (x: T) => Field[];
+  toAuxiliary: (x?: T) => [];
+  fromFields: (x: Field[]) => T;
+  sizeInFields(): number;
+  check: (x: T) => void;
+}
 
 /**
  * An element of a finite field.
@@ -466,34 +490,9 @@ declare class Bool {
   static toInput(x: Bool): { packed: [Field, number][] };
 }
 
-// AsFieldsAndAux<T> is the general circuit type
-// AsFieldElements<T> is a special kind of AsFieldsAndAux<T>, where the auxiliary data is empty
-// notably, AsFieldAndAux.fromFields(fields, aux) _requires_ and `aux` parameter, whereas AsFieldElements.fromFields(fields) doesn't
-// this means a function accepting AsFieldAndAux needs to do more work / make more assumptions than one accepting AsFieldElements
-// => "harder" to support a more general case than a more narrow one
-declare interface AsFieldsAndAux<T> {
-  toFields: (x: T) => Field[];
-  toAuxiliary: (x?: T) => any[];
-  fromFields: (x: Field[], aux: any[]) => T;
-  sizeInFields(): number;
-  check: (x: T) => void;
-}
-declare interface AsFieldElements<T> extends AsFieldsAndAux<T> {
-  toFields: (x: T) => Field[];
-  toAuxiliary: (x?: T) => [];
-  fromFields: (x: Field[]) => T;
-  sizeInFields(): number;
-  check: (x: T) => void;
-}
-
-type InferAsFieldElements<T extends AsFieldElements<any>> =
-  T extends AsFieldElements<infer U> ? U : never;
-type InferAsFieldsAndAux<T extends AsFieldsAndAux<any>> =
-  T extends AsFieldsAndAux<infer U> ? U : never;
-
 declare interface CircuitMain<W, P> {
-  snarkyWitnessTyp: AsFieldElements<W>;
-  snarkyPublicTyp: AsFieldElements<P>;
+  snarkyWitnessTyp: ProvablePure<W>;
+  snarkyPublicTyp: ProvablePure<P>;
   snarkyMain: (w: W, p: P) => void;
 }
 
@@ -530,11 +529,11 @@ declare class Circuit {
   static newVariable(f: () => Field | number | string | boolean): Field;
 
   // this convoluted generic typing is needed to give type inference enough flexibility
-  static _witness<T, S extends AsFieldsAndAux<T> = AsFieldsAndAux<T>>(
+  static _witness<T, S extends Provable<T> = Provable<T>>(
     ctor: S,
     f: () => T
   ): Field[];
-  static witness<T, S extends AsFieldsAndAux<T> = AsFieldsAndAux<T>>(
+  static witness<T, S extends Provable<T> = Provable<T>>(
     ctor: S,
     f: () => T
   ): T;
@@ -549,10 +548,7 @@ declare class Circuit {
     result: T;
   };
 
-  static array<T>(
-    elementType: AsFieldsAndAux<T>,
-    length: number
-  ): AsFieldsAndAux<T[]>;
+  static array<T>(elementType: Provable<T>, length: number): Provable<T[]>;
 
   static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
 
@@ -562,7 +558,7 @@ declare class Circuit {
 
   static equal<T>(x: T, y: T): Bool;
 
-  static if<T>(b: Bool | boolean, ctor: AsFieldElements<T>, x: T, y: T): T;
+  static if<T>(b: Bool | boolean, ctor: ProvablePure<T>, x: T, y: T): T;
 
   static if<T>(b: Bool | boolean, x: T, y: T): T;
 
@@ -576,7 +572,7 @@ declare class Circuit {
    * x.assertEquals(2);
    * ```
    */
-  static switch<T, A extends AsFieldsAndAux<T>>(
+  static switch<T, A extends Provable<T>>(
     mask: Bool[],
     type: A,
     values: T[]
@@ -758,7 +754,7 @@ interface Account {
   votingFor: Field;
   zkapp?: {
     appState: Field[];
-    verificationKey?: { hash: Field; data: unknown };
+    verificationKey?: { data: string; hash: string };
     zkappVersion: number;
     sequenceState: Field[];
     lastSequenceSlot: number;
@@ -825,7 +821,13 @@ declare class Ledger {
   static privateKeyOfString(privateKeyBase58: string): Scalar;
   static fieldToBase58(field: Field): string;
   static fieldOfBase58(fieldBase58: string): Field;
+
   static memoToBase58(memoString: string): string;
+
+  static checkAccountUpdateSignature(
+    updateJson: string,
+    commitment: Field
+  ): boolean;
 
   static fieldsOfJson(json: string): Field[];
   static hashAccountUpdateFromFields(fields: Field[]): Field;

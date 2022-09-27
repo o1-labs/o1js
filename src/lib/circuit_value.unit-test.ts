@@ -1,14 +1,15 @@
 import { Circuit, Field, isReady, shutdown } from '../snarky.js';
-import { circuitValue, circuitValueClass } from './circuit_value.js';
+import { provable, Struct } from './circuit_value.js';
 import { UInt32 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { expect } from 'expect';
 import { method, SmartContract } from './zkapp.js';
 import { LocalBlockchain, setActiveInstance, transaction } from './mina.js';
+import { State, state } from './state.js';
 
 await isReady;
 
-let type = circuitValue({
+let type = provable({
   nested: { a: Number, b: Boolean },
   other: String,
   pk: PublicKey,
@@ -77,20 +78,35 @@ expect(() =>
   })
 ).toThrow(`Expected ${Field.minusOne} to fit in 32 bits`);
 
-// class version of `circuitValue`
-class MyCircuitValue extends circuitValueClass({
+// class version of `provable`
+class MyStruct extends Struct({
   nested: { a: Number, b: Boolean },
   other: String,
   pk: PublicKey,
   uint: [UInt32, UInt32],
 }) {}
 
+class MyStructPure extends Struct({
+  nested: { a: Field, b: UInt32 },
+  other: Field,
+  pk: PublicKey,
+  uint: [UInt32, UInt32],
+}) {}
+
+class MyArray extends Struct([String]) {}
+
 let targetString = 'some particular string';
 let gotTargetString = false;
 
 // create a smart contract and pass auxiliary data to a method
 class MyContract extends SmartContract {
-  @method myMethod(value: MyCircuitValue) {
+  // this is correctly rejected by the compiler -- on-chain state can't have stuff like strings in it
+  // @state(MyStruct) y = State<MyStruct>();
+
+  // this works because MyStructPure only contains field elements
+  @state(MyStructPure) x = State<MyStructPure>();
+
+  @method myMethod(value: MyStruct, arr: MyArray) {
     if (value.other === targetString) gotTargetString = true;
     value.uint[0].assertEquals(UInt32.zero);
   }
@@ -103,12 +119,15 @@ let address = PrivateKey.random().toPublicKey();
 let contract = new MyContract(address);
 
 let tx = await transaction(() => {
-  contract.myMethod({
-    nested: { a: 1, b: false },
-    other: 'some particular string',
-    pk: PublicKey.empty(),
-    uint: [UInt32.from(0), UInt32.from(10)],
-  });
+  contract.myMethod(
+    {
+      nested: { a: 1, b: false },
+      other: 'some particular string',
+      pk: PublicKey.empty(),
+      uint: [UInt32.from(0), UInt32.from(10)],
+    },
+    ['blub']
+  );
 });
 
 gotTargetString = false;

@@ -1,15 +1,9 @@
-import {
-  AsFieldElements,
-  Circuit,
-  Field,
-  Poseidon,
-  CircuitValue,
-} from 'snarkyjs';
+import { ProvablePure, Circuit, Field, Poseidon, CircuitValue } from 'snarkyjs';
 
-// TODO: Implement AsFieldElements
+// TODO: Implement ProvablePure
 export class MerkleStack<A extends CircuitValue> {
   commitment: Field;
-  eltTyp: AsFieldElements<A>;
+  eltTyp: ProvablePure<A>;
   values:
     | { computed: true; value: Array<[A, Field]> }
     | { computed: false; f: () => Array<[A, Field]> };
@@ -18,7 +12,7 @@ export class MerkleStack<A extends CircuitValue> {
     return Poseidon.hash([comm].concat(x.toFields()));
   }
 
-  constructor(eltTyp: AsFieldElements<A>, f: () => Array<[A, Field]>) {
+  constructor(eltTyp: ProvablePure<A>, f: () => Array<[A, Field]>) {
     this.values = { computed: false, f };
     this.eltTyp = eltTyp;
     // TODO

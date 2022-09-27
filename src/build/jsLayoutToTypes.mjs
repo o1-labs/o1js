@@ -118,7 +118,7 @@ function writeTsContent(types, isJson) {
     mergeObject(converters, inner.converters);
     output += `type ${Type} = ${inner.output};\n\n`;
     if (!isJson) {
-      output += `let ${Type} = asFieldsAndAux<${Type}, Json.${Type}>(jsLayout.${Type} as any, customTypes);\n\n`;
+      output += `let ${Type} = provableFromLayout<${Type}, Json.${Type}>(jsLayout.${Type} as any, customTypes);\n\n`;
     }
   }
 
@@ -136,7 +136,7 @@ function writeTsContent(types, isJson) {
 import { ${[...imports].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? "import { asFieldsAndAux, AsFieldsExtended } from '../transaction-helpers.js';\n" +
+    ? "import { provableFromLayout, ProvableExtended } from '../transaction-helpers.js';\n" +
       "import * as Json from './transaction-json.js';\n" +
       "import { jsLayout } from './js-layout.js';\n"
     : ''
@@ -153,7 +153,7 @@ ${
   (!isJson || '') &&
   `
 type CustomTypes = { ${customTypes
-    .map((c) => `${c.typeName}: AsFieldsExtended<${c.type}, ${c.jsonType}>;`)
+    .map((c) => `${c.typeName}: ProvableExtended<${c.type}, ${c.jsonType}>;`)
     .join(' ')} }
 let customTypes: CustomTypes = { ${customTypeNames.join(', ')} };
 `

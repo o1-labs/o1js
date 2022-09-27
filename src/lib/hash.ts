@@ -1,4 +1,4 @@
-import { AsFieldsExtended } from './circuit_value.js';
+import { ProvableExtended } from './circuit_value.js';
 import { Poseidon as Poseidon_, Field } from '../snarky.js';
 import { inCheckedComputation } from './proof_system.js';
 
@@ -139,7 +139,7 @@ const HashInput = {
 
 type TokenSymbol = { symbol: string; field: Field };
 
-const TokenSymbolPure: AsFieldsExtended<TokenSymbol, string> = {
+const TokenSymbolPure: ProvableExtended<TokenSymbol, string> = {
   toFields({ field }) {
     return [field];
   },

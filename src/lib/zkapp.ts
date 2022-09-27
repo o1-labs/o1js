@@ -1,23 +1,22 @@
 import {
   Field,
   Bool,
-  AsFieldElements,
+  ProvablePure,
   Ledger,
   Pickles,
   Poseidon as Poseidon_,
   JSONValue,
-  AsFieldsAndAux,
-  InferAsFieldElements,
+  Provable,
 } from '../snarky.js';
 import {
   Circuit,
   circuitArray,
-  circuitValue,
+  provable,
   cloneCircuitValue,
   getBlindingValue,
   memoizationContext,
   toConstant,
-  circuitValueClass,
+  Struct,
 } from './circuit_value.js';
 import {
   Body,
@@ -107,12 +106,12 @@ function method<T extends SmartContract>(
       `@method decorator was applied to \`${methodName}\`, which is not a function.`
     );
   }
-  let paramTypes: AsFieldsAndAux<any>[] = Reflect.getMetadata(
+  let paramTypes: Provable<any>[] = Reflect.getMetadata(
     'design:paramtypes',
     target,
     methodName
   );
-  let returnType: AsFieldsAndAux<any> = Reflect.getMetadata(
+  let returnType: Provable<any> = Reflect.getMetadata(
     'design:returntype',
     target,
     methodName
@@ -396,7 +395,7 @@ function wrapMethod(
         let { accountUpdate, result } =
           methodCallDepth === 0
             ? AccountUpdate.witness<any>(
-                returnType ?? circuitValue(null),
+                returnType ?? provable(null),
                 runCalledContract,
                 { skipCheck: true }
               )
@@ -483,7 +482,7 @@ function computeCallData(
 
 class Callback<Result> extends GenericArgument {
   instance: SmartContract;
-  methodIntf: MethodInterface & { returnType: AsFieldsAndAux<Result> };
+  methodIntf: MethodInterface & { returnType: Provable<Result> };
   args: any[];
 
   static create<T extends SmartContract, K extends keyof T>(
@@ -509,7 +508,7 @@ class Callback<Result> extends GenericArgument {
       );
     methodIntf = {
       ...methodIntf,
-      returnType: methodIntf.returnType ?? circuitValue(null),
+      returnType: methodIntf.returnType ?? provable(null),
     };
     this.methodIntf = methodIntf as any;
     this.args = args;
@@ -523,7 +522,7 @@ function accountUpdateFromCallback(
   callback: Callback<any>
 ) {
   let { accountUpdate } = AccountUpdate.witnessTree(
-    circuitValue(null),
+    provable(null),
     childLayout,
     () => {
       if (callback.isEmpty) throw Error('bug: empty callback');
@@ -754,7 +753,7 @@ class SmartContract {
     return this.self.balance;
   }
 
-  events: { [key: string]: AsFieldElements<any> } = {};
+  events: { [key: string]: ProvablePure<any> } = {};
 
   // TODO: not able to type event such that it is inferred correctly so far
   emitEvent<K extends keyof this['events']>(type: K, event: any) {
@@ -793,7 +792,7 @@ class SmartContract {
   async fetchEvents(
     start: UInt32 = UInt32.from(0),
     end?: UInt32
-  ): Promise<{ type: string; event: AsFieldElements<any> }[]> {
+  ): Promise<{ type: string; event: ProvablePure<any> }[]> {
     // filters all elements so that they are within the given range
     // only returns { type: "", event: [] } in a flat format
     let events = (await Mina.fetchEvents(this.address, this.self.body.tokenId))
@@ -910,13 +909,13 @@ class SmartContract {
   }
 }
 
-type Reducer<Action> = { actionType: AsFieldElements<Action> };
+type Reducer<Action> = { actionType: ProvablePure<Action> };
 
 type ReducerReturn<Action> = {
   dispatch(action: Action): void;
   reduce<State>(
     actions: Action[][],
-    stateType: AsFieldsAndAux<State>,
+    stateType: Provable<State>,
     reduce: (state: State, action: Action) => State,
     initial: { state: State; actionsHash: Field },
     options?: { maxTransactionsWithActions?: number }
@@ -955,7 +954,7 @@ class ${contract.constructor.name} extends SmartContract {
 
     reduce<S>(
       actionLists: A[][],
-      stateType: AsFieldsAndAux<S>,
+      stateType: Provable<S>,
       reduce: (state: S, action: A) => S,
       { state, actionsHash }: { state: S; actionsHash: Field },
       { maxTransactionsWithActions = 32 } = {}
@@ -1083,8 +1082,8 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
   };
 }
 
-class VerificationKey extends circuitValueClass({
-  ...circuitValue({ data: String, hash: Field }),
+class VerificationKey extends Struct({
+  ...provable({ data: String, hash: Field }),
   toJSON({ data }: { data: string }) {
     return data;
   },
@@ -1238,7 +1237,7 @@ function signFeePayer(
  */
 function declareMethods<T extends typeof SmartContract>(
   SmartContract: T,
-  methodArguments: Record<string, AsFieldsAndAux<unknown>[]>
+  methodArguments: Record<string, Provable<unknown>[]>
 ) {
   for (let key in methodArguments) {
     let argumentTypes = methodArguments[key];
@@ -1250,9 +1249,15 @@ function declareMethods<T extends typeof SmartContract>(
   }
 }
 
+type InferProvablePure<T extends ProvablePure<any>> = T extends ProvablePure<
+  infer U
+>
+  ? U
+  : never;
+
 const Reducer: (<
-  T extends AsFieldElements<any>,
-  A extends InferAsFieldElements<T>
+  T extends ProvablePure<any>,
+  A extends InferProvablePure<T>
 >(reducer: {
   actionType: T;
 }) => ReducerReturn<A>) & {

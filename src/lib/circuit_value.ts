@@ -1,10 +1,5 @@
 import 'reflect-metadata';
-import {
-  Circuit,
-  JSONValue,
-  AsFieldElements,
-  AsFieldsAndAux,
-} from '../snarky.js';
+import { Circuit, JSONValue, ProvablePure, Provable } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
 import { HashInput } from './hash.js';
@@ -14,19 +9,19 @@ import { inCheckedComputation, snarkContext } from './proof_system.js';
 export {
   Circuit,
   CircuitValue,
+  ProvableExtended,
   prop,
   arrayProp,
   matrixProp,
   public_,
   circuitMain,
-  circuitValue,
-  circuitValuePure,
-  circuitValueClass,
+  provable,
+  provablePure,
+  Struct,
 };
 
 // internal API
 export {
-  AsFieldsExtended,
   AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,
@@ -37,7 +32,7 @@ export {
   toConstant,
   witness,
   InferCircuitValue,
-  CircuitTypes,
+  Provables,
 };
 
 type Constructor<T> = new (...args: any) => T;
@@ -48,6 +43,9 @@ type NonMethodKeys<T> = {
 }[keyof T];
 type NonMethods<T> = Pick<T, NonMethodKeys<T>>;
 
+/**
+ * @deprecated `CircuitValue` is deprecated in favor of `Struct`, which features a simpler API and better typing.
+ */
 abstract class CircuitValue {
   constructor(...props: any[]) {
     // if this is called with no arguments, do nothing, to support simple super() calls
@@ -114,7 +112,7 @@ abstract class CircuitValue {
       }
       // as a fallback, use toFields on the type
       // TODO: this is problematic -- ignores if there's a toInput on a nested type
-      // so, remove this? should every circuit value define toInput?
+      // so, remove this? should every provable define toInput?
       let xs: Field[] = type.toFields(v[key]);
       input.fields!.push(...xs);
     }
@@ -179,7 +177,7 @@ abstract class CircuitValue {
       const [key, propType] = fields[i];
       const value = (v as any)[key];
       if (propType.check === undefined)
-        throw Error('bug: circuit value without .check()');
+        throw Error('bug: CircuitValue without .check()');
       propType.check(value);
     }
   }
@@ -254,9 +252,9 @@ function prop(this: any, target: any, key: string) {
 }
 
 function circuitArray<T>(
-  elementType: AsFieldsAndAux<T> | AsFieldsExtended<T>,
+  elementType: Provable<T> | ProvableExtended<T>,
   length: number
-): AsFieldsExtended<T[]> {
+): ProvableExtended<T[]> {
   return {
     sizeInFields() {
       let elementLength = elementType.sizeInFields();
@@ -304,7 +302,7 @@ function circuitArray<T>(
   };
 }
 
-function arrayProp<T>(elementType: AsFieldsAndAux<T>, length: number) {
+function arrayProp<T>(elementType: Provable<T>, length: number) {
   return function (target: any, key: string) {
     if (!target.hasOwnProperty('_fields')) {
       target._fields = [];
@@ -314,7 +312,7 @@ function arrayProp<T>(elementType: AsFieldsAndAux<T>, length: number) {
 }
 
 function matrixProp<T>(
-  elementType: AsFieldsAndAux<T>,
+  elementType: Provable<T>,
   nRows: number,
   nColumns: number
 ) {
@@ -338,7 +336,7 @@ function public_(target: any, _key: string | symbol, index: number) {
   target._public.push(index);
 }
 
-function typeOfArray(typs: Array<AsFieldElements<any>>): AsFieldElements<any> {
+function typeOfArray(typs: Array<ProvablePure<any>>): ProvablePure<any> {
   return {
     sizeInFields: () => {
       return typs.reduce((acc, typ) => acc + typ.sizeInFields(), 0);
@@ -423,17 +421,17 @@ function circuitMain(
 let primitives = new Set(['Field', 'Bool', 'Scalar', 'Group']);
 let complexTypes = new Set(['object', 'function']);
 
-type AsFieldsExtension<T, TJson = JSONValue> = {
+type ProvableExtension<T, TJson = JSONValue> = {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
   toJSON: (x: T) => TJson;
 };
-type AsFieldsExtended<T, TJson = JSONValue> = AsFieldsAndAux<T> &
-  AsFieldsExtension<T, TJson>;
+type ProvableExtended<T, TJson = JSONValue> = Provable<T> &
+  ProvableExtension<T, TJson>;
 
-function circuitValue<A>(
+function provable<A>(
   typeObj: A,
   options?: { customObjectKeys?: string[]; isPure?: boolean }
-): AsFieldsExtended<InferCircuitValue<A>, InferJson<A>> {
+): ProvableExtended<InferCircuitValue<A>, InferJson<A>> {
   type T = InferCircuitValue<A>;
   type J = InferJson<A>;
   let objectKeys =
@@ -452,7 +450,7 @@ function circuitValue<A>(
     !nonCircuitPrimitives.has(typeObj as any) &&
     !complexTypes.has(typeof typeObj)
   ) {
-    throw Error(`circuitValue: unsupported type "${typeObj}"`);
+    throw Error(`provable: unsupported type "${typeObj}"`);
   }
 
   function sizeInFields(typeObj: any): number {
@@ -589,62 +587,167 @@ function circuitValue<A>(
   };
 }
 
-function circuitValuePure<A>(
+function provablePure<A>(
   typeObj: A,
   options: { customObjectKeys?: string[] } = {}
-): AsFieldElements<InferCircuitValue<A>> &
-  AsFieldsExtension<InferCircuitValue<A>, InferJson<A>> {
-  return circuitValue(typeObj, { ...options, isPure: true }) as any;
+): ProvablePure<InferCircuitValue<A>> &
+  ProvableExtension<InferCircuitValue<A>, InferJson<A>> {
+  return provable(typeObj, { ...options, isPure: true }) as any;
 }
 
-// class wrapping circuit value, to be able to use as method argument
-function circuitValueClass<
+/**
+ * `Struct` lets you declare composite types for use in snarkyjs circuits.
+ *
+ * These composite types can be passed in as arguments to smart contract methods, used for on-chain state variables
+ * or as event / action types.
+ *
+ * Here's an example of creating a "Voter" struct, which holds a public key and a collection of votes on 3 different proposals:
+ * ```ts
+ * let Vote = { hasVoted: Bool, inFavor: Bool };
+ *
+ * class Voter extends Struct({
+ *   publicKey: PublicKey,
+ *   votes: [Vote, Vote, Vote]
+ * }) {}
+ *
+ * // use Voter as SmartContract input:
+ * class VoterContract extends SmartContract {
+ *   @method register(voter: Voter) {
+ *     // ...
+ *   }
+ * }
+ * ```
+ * In this example, there are no instance methods on the class. This makes `Voter` type-compatible with an anonymous object of the form
+ * `{ publicKey: PublicKey, votes: Vote[] }`.
+ * This mean you don't have to create instances by using `new Voter(...)`, you can operate with plain objects:
+ * ```ts
+ * voterContract.register({ publicKey, votes });
+ * ```
+ *
+ * On the other hand, you can also add your own methods:
+ * ```ts
+ * class Voter extends Struct({
+ *   publicKey: PublicKey,
+ *   votes: [Vote, Vote, Vote]
+ * }) {
+ *   vote(index: number, inFavor: Bool) {
+ *     let vote = this.votes[i];
+ *     vote.hasVoted = Bool(true);
+ *     vote.inFavor = inFavor;
+ *   }
+ * }
+ * ```
+ *
+ * In this case, you'll need the constructor to create instances of `Voter`. It always takes as input the plain object:
+ * ```ts
+ * let emptyVote = { hasVoted: Bool(false), inFavor: Bool(false) };
+ * let voter = new Voter({ publicKey, votes: Array(3).fill(emptyVote) });
+ * voter.vote(1, Bool(true));
+ * ```
+ *
+ * In addition to creating types composed of Field elements, you can also include auxiliary data which does not become part of the proof.
+ * This, for example, allows you to re-use the same type outside snarkyjs methods, where you might want to store additional metadata.
+ *
+ * To declare non-proof values of type `string`, `number`, etc, you can use the built-in objects `String`, `Number`, etc.
+ * Here's how we could add the voter's name (a string) as auxiliary data:
+ * ```ts
+ * class Voter extends Struct({
+ *   publicKey: PublicKey,
+ *   votes: [Vote, Vote, Vote],
+ *   fullName: String
+ * }) {}
+ * ```
+ *
+ * Again, it's important to note that this doesn't enable you to prove anything about the `fullName` string.
+ * From the circuit point of view, it simply doesn't exist!
+ *
+ * @param type Object specifying the layout of the `Struct`
+ * @param options Advanced option which allows you to force a certain order of object keys
+ * @returns Class which you can extend
+ */
+function Struct<
   A,
   T extends InferCircuitValue<A> = InferCircuitValue<A>,
-  J extends InferJson<A> = InferJson<A>
->(typeObj: A, options?: { customObjectKeys?: string[]; isPure?: boolean }) {
-  class MyCircuitValue extends BaseCircuitValue {
-    static type = circuitValue<A>(typeObj, options);
+  J extends InferJson<A> = InferJson<A>,
+  Pure extends boolean = IsPure<A>
+>(
+  type: A,
+  options: { customObjectKeys?: string[] } = {}
+): (new (value: T) => T) &
+  (Pure extends true ? ProvablePure<T> : Provable<T>) & {
+    toInput: (x: T) => {
+      fields?: Field[] | undefined;
+      packed?: [Field, number][] | undefined;
+    };
+    toJSON: (x: T) => J;
+  } {
+  class Struct_ {
+    static type = provable<A>(type, options);
 
     constructor(value: T) {
-      super();
       Object.assign(this, value);
     }
-
-    static from(value: T): MyCircuitValue & T {
-      return new MyCircuitValue(value) as any;
-    }
+    /**
+     * This method is for internal use, you will probably not need it.
+     * @returns the size of this struct in field elements
+     */
     static sizeInFields() {
       return this.type.sizeInFields();
     }
-    static toFields(value: MyCircuitValue & T): Field[] {
+    /**
+     * This method is for internal use, you will probably not need it.
+     * @param value
+     * @returns the raw list of field elements that represent this struct inside the proof
+     */
+    static toFields(value: T): Field[] {
       return this.type.toFields(value);
     }
-    static toAuxiliary(value: MyCircuitValue & T): any[] {
+    /**
+     * This method is for internal use, you will probably not need it.
+     * @param value
+     * @returns the raw non-field element data contained in the struct
+     */
+    static toAuxiliary(value: T): any[] {
       return this.type.toAuxiliary(value);
     }
-    static toInput(value: MyCircuitValue & T): HashInput {
+    /**
+     * This method is for internal use, you will probably not need it.
+     * @param value
+     * @returns a representation of this struct as field elements, which can be hashed efficiently
+     */
+    static toInput(value: T): HashInput {
       return this.type.toInput(value);
     }
-    static toJSON(value: MyCircuitValue & T): J {
+    /**
+     * Convert this struct to a JSON object, consisting only of numbers, strings, booleans, arrays and plain objects.
+     * @param value
+     * @returns a JSON representation of this struct
+     */
+    static toJSON(value: T): J {
       return this.type.toJSON(value) as J;
     }
-    static check(value: MyCircuitValue & T) {
+    /**
+     * This method is for internal use, you will probably not need it.
+     * Method to make assertions which should be always made whenever a struct of this type is created in a proof.
+     * @param value
+     */
+    static check(value: T) {
       return this.type.check(value);
     }
+    /**
+     * This method is for internal use, you will probably not need it.
+     * Recover a struct from its raw field elements and auxiliary data.
+     * @param fields the raw fields elements
+     * @param aux the raw non-field element data
+     */
     static fromFields(fields: Field[], aux: any[]) {
-      return MyCircuitValue.from(this.type.fromFields(fields, aux) as T);
+      return new Struct_(this.type.fromFields(fields, aux) as T);
     }
   }
-  return MyCircuitValue as any as (new (value: T) => T & MyCircuitValue) &
-    AsFieldsExtended<T, J>;
+  return Struct_ as any;
 }
 
-class BaseCircuitValue {
-  static type: AsFieldsExtended<any, any>;
-}
-
-const CircuitTypes = { dataAsHash, opaque };
+const Provables = { dataAsHash, opaque };
 
 function dataAsHash<T, J>({
   emptyValue,
@@ -652,7 +755,7 @@ function dataAsHash<T, J>({
 }: {
   emptyValue: T;
   toJSON: (value: T) => J;
-}): AsFieldsExtended<{ data: T; hash: Field }, J> {
+}): ProvableExtended<{ data: T; hash: Field }, J> {
   return {
     sizeInFields() {
       return 1;
@@ -682,7 +785,7 @@ function opaque<T, J>({
 }: {
   emptyValue: T;
   toJSON: (value: T) => J;
-}): AsFieldsExtended<T, J> {
+}): ProvableExtended<T, J> {
   return {
     sizeInFields: () => 0,
     toFields: (value: T) => [],
@@ -794,7 +897,7 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
   );
 }
 
-function toConstant<T>(type: AsFieldsAndAux<T>, value: T): T {
+function toConstant<T>(type: Provable<T>, value: T): T {
   return type.fromFields(
     type.toFields(value).map((x) => x.toConstant()),
     type.toAuxiliary(value)
@@ -802,7 +905,7 @@ function toConstant<T>(type: AsFieldsAndAux<T>, value: T): T {
 }
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
-Circuit.witness = function <T, S extends AsFieldsAndAux<T> = AsFieldsAndAux<T>>(
+Circuit.witness = function <T, S extends Provable<T> = Provable<T>>(
   type: S,
   compute: () => T
 ) {
@@ -819,7 +922,7 @@ Circuit.witness = function <T, S extends AsFieldsAndAux<T> = AsFieldsAndAux<T>>(
 
 Circuit.array = circuitArray;
 
-Circuit.switch = function <T, A extends AsFieldsAndAux<T>>(
+Circuit.switch = function <T, A extends Provable<T>>(
   mask: Bool[],
   type: A,
   values: T[]
@@ -872,7 +975,7 @@ Circuit.constraintSystem = function <T>(f: () => T) {
   return result;
 };
 
-function auxiliary<T>(type: AsFieldsAndAux<T>, compute: () => any[]) {
+function auxiliary<T>(type: Provable<T>, compute: () => any[]) {
   let aux;
   if (inCheckedComputation()) Circuit.asProver(() => (aux = compute()));
   else aux = compute();
@@ -880,7 +983,7 @@ function auxiliary<T>(type: AsFieldsAndAux<T>, compute: () => any[]) {
 }
 
 // TODO: very likely, this is how Circuit.witness should behave
-function witness<T>(type: AsFieldsAndAux<T>, compute: () => T) {
+function witness<T>(type: Provable<T>, compute: () => T) {
   return inCheckedComputation() ? Circuit.witness(type, compute) : compute();
 }
 
@@ -894,7 +997,7 @@ let memoizationContext = Context.create<{
  * Like Circuit.witness, but memoizes the witness during transaction construction
  * for reuse by the prover. This is needed to witness non-deterministic values.
  */
-function memoizeWitness<T>(type: AsFieldsAndAux<T>, compute: () => T) {
+function memoizeWitness<T>(type: Provable<T>, compute: () => T) {
   return witness(type, () => {
     if (!memoizationContext.has()) return compute();
     let context = memoizationContext.get();
@@ -960,12 +1063,12 @@ type InferPrimitiveJson<P extends Primitive> = P extends typeof String
   : JSONValue;
 
 type InferCircuitValue<A> = A extends Constructor<infer U>
-  ? A extends AsFieldsAndAux<U>
+  ? A extends Provable<U>
     ? U
     : InferCircuitValueBase<A>
   : InferCircuitValueBase<A>;
 
-type InferCircuitValueBase<A> = A extends AsFieldsAndAux<infer U>
+type InferCircuitValueBase<A> = A extends Provable<infer U>
   ? U
   : A extends Primitive
   ? InferPrimitive<A>
@@ -973,14 +1076,8 @@ type InferCircuitValueBase<A> = A extends AsFieldsAndAux<infer U>
   ? {
       [I in keyof A]: InferCircuitValue<A[I]>;
     }
-  : A extends Constructor<infer U>[]
-  ? A extends AsFieldsAndAux<U>
-    ? U[]
-    : A extends Record<any, any>
-    ? {
-        [K in keyof A]: InferCircuitValue<A[K]>;
-      }
-    : never
+  : A extends (infer U)[]
+  ? InferCircuitValue<U>[]
   : A extends Record<any, any>
   ? {
       [K in keyof A]: InferCircuitValue<A[K]>;
@@ -1004,3 +1101,19 @@ type InferJson<A> = A extends WithJson<infer J>
       [K in keyof A]: InferJson<A[K]>;
     }
   : JSONValue;
+
+type IsPure<A> = IsPureBase<A> extends true ? true : false;
+
+type IsPureBase<A> = A extends ProvablePure<any>
+  ? true
+  : A extends Provable<any>
+  ? false
+  : A extends Primitive
+  ? false
+  : A extends (infer U)[]
+  ? IsPure<U>
+  : A extends Record<any, any>
+  ? {
+      [K in keyof A]: IsPure<A[K]>;
+    }[keyof A]
+  : false;

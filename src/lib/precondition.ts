@@ -1,4 +1,4 @@
-import { AsFieldElements, AsFieldsAndAux, Bool, Field } from '../snarky.js';
+import { Provable, Bool, Field } from '../snarky.js';
 import { circuitValueEquals, witness } from './circuit_value.js';
 import * as Mina from './mina.js';
 import {
@@ -123,7 +123,7 @@ function preconditionSubclass<
 >(
   accountUpdate: AccountUpdate,
   longKey: K,
-  fieldType: AsFieldsAndAux<U>,
+  fieldType: Provable<U>,
   context: PreconditionContext
 ) {
   return {
@@ -167,7 +167,7 @@ function preconditionSubclass<
 function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   accountUpdate: AccountUpdate,
   longKey: K,
-  fieldType: AsFieldsAndAux<U>
+  fieldType: Provable<U>
 ): U {
   return witness(fieldType, () => {
     let [accountOrNetwork, ...rest] = longKey.split('.');

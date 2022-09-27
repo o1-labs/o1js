@@ -1,9 +1,9 @@
-import { Field, circuitValue, Circuit } from 'snarkyjs';
+import { Field, provable, Circuit } from 'snarkyjs';
 
 // there are two ways of specifying an n*m matrix
 
-// circuitValue
-let Matrix3x3 = circuitValue([
+// provable
+let Matrix3x3 = provable([
   [Field, Field, Field],
   [Field, Field, Field],
   [Field, Field, Field],

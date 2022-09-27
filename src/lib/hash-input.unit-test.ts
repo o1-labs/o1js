@@ -7,16 +7,16 @@ import {
   Ledger,
   UInt64,
   UInt32,
-  Experimental,
   Bool,
   Permissions,
   Sign,
   Token,
   shutdown,
+  ProvableExtended,
 } from '../index.js';
 import { Events, SequenceEvents } from './account_update.js';
 import { expect } from 'expect';
-import { asFieldsAndAux, jsLayout } from '../snarky/types.js';
+import { provableFromLayout, jsLayout } from '../snarky/types.js';
 import { packToFields } from './hash.js';
 
 await isReady;
@@ -33,7 +33,7 @@ type AccountPrecondition = Body['preconditions']['account'];
 type NetworkPrecondition = Body['preconditions']['network'];
 
 // timing
-let Timing = asFieldsAndAux<Timing, any>(
+let Timing = provableFromLayout<Timing, any>(
   jsLayout.AccountUpdate.entries.body.entries.update.entries.timing.inner
 );
 let timing = accountUpdate.body.update.timing.value;
@@ -43,7 +43,7 @@ timing.vestingIncrement = UInt64.from(2);
 testInput(Timing, Ledger.hashInputFromJson.timing, timing);
 
 // permissions
-let Permissions_ = asFieldsAndAux<Permissions, any>(
+let Permissions_ = provableFromLayout<Permissions, any>(
   jsLayout.AccountUpdate.entries.body.entries.update.entries.permissions.inner
 );
 let permissions = accountUpdate.body.update.permissions;
@@ -61,7 +61,7 @@ testInput(
 );
 
 // update
-let Update = asFieldsAndAux<Update, any>(
+let Update = provableFromLayout<Update, any>(
   jsLayout.AccountUpdate.entries.body.entries.update
 );
 let update = accountUpdate.body.update;
@@ -77,7 +77,7 @@ accountUpdate.tokenSymbol.set('BLABLA');
 testInput(Update, Ledger.hashInputFromJson.update, update);
 
 // account precondition
-let AccountPrecondition = asFieldsAndAux<AccountPrecondition, any>(
+let AccountPrecondition = provableFromLayout<AccountPrecondition, any>(
   jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.account
 );
 let account = accountUpdate.body.preconditions.account;
@@ -93,7 +93,7 @@ testInput(
 );
 
 // network precondition
-let NetworkPrecondition = asFieldsAndAux<NetworkPrecondition, any>(
+let NetworkPrecondition = provableFromLayout<NetworkPrecondition, any>(
   jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.network
 );
 let network = accountUpdate.body.preconditions.network;
@@ -107,7 +107,7 @@ testInput(
 );
 
 // body
-let Body = asFieldsAndAux<Body, any>(jsLayout.AccountUpdate.entries.body);
+let Body = provableFromLayout<Body, any>(jsLayout.AccountUpdate.entries.body);
 let body = accountUpdate.body;
 body.balanceChange.magnitude = UInt64.from(14197832);
 body.balanceChange.sgn = Sign.minusOne;
@@ -142,7 +142,7 @@ console.log('all hash inputs are consistent! 🎉');
 shutdown();
 
 function testInput<T>(
-  Module: Experimental.AsFieldsExtended<T>,
+  Module: ProvableExtended<T>,
   toInputOcaml: (json: string) => InputOcaml,
   value: T
 ) {

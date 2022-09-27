@@ -4,8 +4,8 @@ import { customTypes } from './gen/transaction.js';
 export * as Types from './gen/transaction.js';
 export { jsLayout } from './gen/js-layout.js';
 
-export { asFieldsAndAux };
+export { provableFromLayout };
 
-function asFieldsAndAux<T, JsonT>(layout: any) {
-  return Helpers.asFieldsAndAux<T, JsonT>(layout, customTypes);
+function provableFromLayout<T, JsonT>(layout: any) {
+  return Helpers.provableFromLayout<T, JsonT>(layout, customTypes);
 }

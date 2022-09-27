@@ -1,10 +1,4 @@
-import {
-  Types,
-  AccountUpdate,
-  PrivateKey,
-  Circuit,
-  circuitValue,
-} from 'snarkyjs';
+import { Types, AccountUpdate, PrivateKey, Circuit, provable } from 'snarkyjs';
 
 let address = PrivateKey.random().toPublicKey();
 
@@ -23,7 +17,7 @@ let json = Types.AccountUpdate.toJSON(accountUpdateRaw);
 
 if (address.toBase58() !== json.body.publicKey) throw Error('fail');
 
-let Null = circuitValue(null);
+let Null = provable(null);
 
 Circuit.runAndCheck(() => {
   let accountUpdateWitness = AccountUpdate.witness(Null, () => ({
