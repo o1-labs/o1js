@@ -410,6 +410,7 @@ const Body = {
       useFullCommitment: Bool(false),
       // this should be set to true if accountUpdates are signed
       incrementNonce: Bool(false),
+      authorizationKind: {isSigned: Bool(true), isProved: Bool(false)},
     };
   },
 

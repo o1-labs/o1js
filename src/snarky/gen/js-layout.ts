@@ -65,6 +65,7 @@ let jsLayout = {
                 'preconditions',
                 'useFullCommitment',
                 'caller',
+                'authorizationKind',
               ],
               entries: {
                 publicKey: { type: 'PublicKey' },
@@ -694,6 +695,7 @@ let jsLayout = {
                 },
                 useFullCommitment: { type: 'Bool' },
                 caller: { type: 'TokenId' },
+                authorizationKind: { type: 'AuthorizationKind' },
               },
               docEntries: {
                 publicKey: null,
@@ -708,6 +710,7 @@ let jsLayout = {
                 preconditions: null,
                 useFullCommitment: null,
                 caller: null,
+                authorizationKind: null,
               },
             },
             authorization: {
@@ -761,6 +764,7 @@ let jsLayout = {
           'preconditions',
           'useFullCommitment',
           'caller',
+          'authorizationKind',
         ],
         entries: {
           publicKey: { type: 'PublicKey' },
@@ -1387,6 +1391,7 @@ let jsLayout = {
           },
           useFullCommitment: { type: 'Bool' },
           caller: { type: 'TokenId' },
+          authorizationKind: { type: 'AuthorizationKind' },
         },
         docEntries: {
           publicKey: null,
@@ -1401,6 +1406,7 @@ let jsLayout = {
           preconditions: null,
           useFullCommitment: null,
           caller: null,
+          authorizationKind: null,
         },
       },
       authorization: {

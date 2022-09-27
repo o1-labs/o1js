@@ -9,6 +9,7 @@ import {
   Bool,
   AuthRequired,
   Sign,
+  AuthorizationKind,
 } from '../transaction-leaves-json.js';
 
 export { ZkappCommand, AccountUpdate };
@@ -147,6 +148,7 @@ type ZkappCommand = {
       };
       useFullCommitment: Bool;
       caller: TokenId;
+      authorizationKind: AuthorizationKind;
     };
     authorization: {
       proof: string | null;
@@ -279,6 +281,7 @@ type AccountUpdate = {
     };
     useFullCommitment: Bool;
     caller: TokenId;
+    authorizationKind: AuthorizationKind;
   };
   authorization: {
     proof: string | null;
