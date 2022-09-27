@@ -3,11 +3,7 @@ import * as Json from './gen/transaction-json.js';
 import { UInt32, UInt64, Sign } from '../lib/int.js';
 import { TokenSymbol } from '../lib/hash.js';
 import { PublicKey } from '../lib/signature.js';
-import {
-  ProvableExtended,
-  CircuitTypes,
-  provable,
-} from '../lib/circuit_value.js';
+import { ProvableExtended, Provables, provable } from '../lib/circuit_value.js';
 import * as Encoding from '../lib/encoding.js';
 
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
@@ -120,13 +116,13 @@ const TypeMap: {
 
 // types which got an annotation about its circuit type in Ocaml
 
-const Events = CircuitTypes.dataAsHash({
+const Events = Provables.dataAsHash({
   emptyValue: [],
   toJSON(data: Field[][]) {
     return data.map((row) => row.map((e) => e.toString()));
   },
 });
-const StringWithHash = CircuitTypes.dataAsHash({
+const StringWithHash = Provables.dataAsHash({
   emptyValue: '',
   toJSON(data: string) {
     return data;

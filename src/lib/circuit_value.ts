@@ -32,7 +32,7 @@ export {
   toConstant,
   witness,
   InferCircuitValue,
-  CircuitTypes,
+  Provables,
 };
 
 type Constructor<T> = new (...args: any) => T;
@@ -43,6 +43,9 @@ type NonMethodKeys<T> = {
 }[keyof T];
 type NonMethods<T> = Pick<T, NonMethodKeys<T>>;
 
+/**
+ * @deprecated `CircuitValue` is deprecated in favor of `Struct`, which features a simpler API and better typing.
+ */
 abstract class CircuitValue {
   constructor(...props: any[]) {
     // if this is called with no arguments, do nothing, to support simple super() calls
@@ -592,15 +595,84 @@ function provablePure<A>(
   return provable(typeObj, { ...options, isPure: true }) as any;
 }
 
-// class wrapping provable, to be able to use as method argument
+/**
+ * `Struct` lets you declare composite types for use in snarkyjs circuits.
+ *
+ * These composite types can be passed in as arguments to smart contract methods, used for on-chain state variables
+ * or as event / action types.
+ *
+ * Here's an example of creating a "Voter" struct, which holds a public key and a collection of votes on 3 different proposals:
+ * ```ts
+ * let Vote = { hasVoted: Bool, inFavor: Bool };
+ *
+ * class Voter extends Struct({
+ *   publicKey: PublicKey,
+ *   votes: [Vote, Vote, Vote]
+ * }) {}
+ *
+ * // use Voter as SmartContract input:
+ * class VoterContract extends SmartContract {
+ *   @method register(voter: Voter) {
+ *     // ...
+ *   }
+ * }
+ * ```
+ * In this example, there are no instance methods on the class. This makes `Voter` type-compatible with an anonymous object of the form
+ * `{ publicKey: PublicKey, votes: Vote[] }`.
+ * This mean you don't have to create instances by using `new Voter(...)`, you can operate with plain objects:
+ * ```ts
+ * voterContract.register({ publicKey, votes });
+ * ```
+ *
+ * On the other hand, you can also add your own methods:
+ * ```ts
+ * class Voter extends Struct({
+ *   publicKey: PublicKey,
+ *   votes: [Vote, Vote, Vote]
+ * }) {
+ *   vote(index: number, inFavor: Bool) {
+ *     let vote = this.votes[i];
+ *     vote.hasVoted = Bool(true);
+ *     vote.inFavor = inFavor;
+ *   }
+ * }
+ * ```
+ *
+ * In this case, you'll need the constructor to create instances of `Voter`. It always takes as input the plain object:
+ * ```ts
+ * let emptyVote = { hasVoted: Bool(false), inFavor: Bool(false) };
+ * let voter = new Voter({ publicKey, votes: Array(3).fill(emptyVote) });
+ * voter.vote(1, Bool(true));
+ * ```
+ *
+ * In addition to creating types composed of Field elements, you can also include auxiliary data which does not become part of the proof.
+ * This, for example, allows you to re-use the same type outside snarkyjs methods, where you might want to store additional metadata.
+ *
+ * To declare non-proof values of type `string`, `number`, etc, you can use the built-in objects `String`, `Number`, etc.
+ * Here's how we could add the voter's name (a string) as auxiliary data:
+ * ```ts
+ * class Voter extends Struct({
+ *   publicKey: PublicKey,
+ *   votes: [Vote, Vote, Vote],
+ *   fullName: String
+ * }) {}
+ * ```
+ *
+ * Again, it's important to note that this doesn't enable you to prove anything about the `fullName` string.
+ * From the circuit point of view, it simply doesn't exist!
+ *
+ * @param type Object specifying the layout of the `Struct`
+ * @param options Advanced option which allows you to force a certain order of object keys
+ * @returns Class which you can extend
+ */
 function Struct<
   A,
   T extends InferCircuitValue<A> = InferCircuitValue<A>,
   J extends InferJson<A> = InferJson<A>,
   Pure extends boolean = IsPure<A>
 >(
-  typeObj: A,
-  options: { customObjectKeys?: string[]; isPure?: boolean } = {}
+  type: A,
+  options: { customObjectKeys?: string[] } = {}
 ): (new (value: T) => T) &
   (Pure extends true ? ProvablePure<T> : Provable<T>) & {
     toInput: (x: T) => {
@@ -610,29 +682,64 @@ function Struct<
     toJSON: (x: T) => J;
   } {
   class Struct_ {
-    static type = provable<A>(typeObj, options);
+    static type = provable<A>(type, options);
 
     constructor(value: T) {
       Object.assign(this, value);
     }
+    /**
+     * This method is for internal use, you will probably not need it.
+     * @returns the size of this struct in field elements
+     */
     static sizeInFields() {
       return this.type.sizeInFields();
     }
+    /**
+     * This method is for internal use, you will probably not need it.
+     * @param value
+     * @returns the raw list of field elements that represent this struct inside the proof
+     */
     static toFields(value: T): Field[] {
       return this.type.toFields(value);
     }
+    /**
+     * This method is for internal use, you will probably not need it.
+     * @param value
+     * @returns the raw non-field element data contained in the struct
+     */
     static toAuxiliary(value: T): any[] {
       return this.type.toAuxiliary(value);
     }
+    /**
+     * This method is for internal use, you will probably not need it.
+     * @param value
+     * @returns a representation of this struct as field elements, which can be hashed efficiently
+     */
     static toInput(value: T): HashInput {
       return this.type.toInput(value);
     }
+    /**
+     * Convert this struct to a JSON object, consisting only of numbers, strings, booleans, arrays and plain objects.
+     * @param value
+     * @returns a JSON representation of this struct
+     */
     static toJSON(value: T): J {
       return this.type.toJSON(value) as J;
     }
+    /**
+     * This method is for internal use, you will probably not need it.
+     * Method to make assertions which should be always made whenever a struct of this type is created in a proof.
+     * @param value
+     */
     static check(value: T) {
       return this.type.check(value);
     }
+    /**
+     * This method is for internal use, you will probably not need it.
+     * Recover a struct from its raw field elements and auxiliary data.
+     * @param fields the raw fields elements
+     * @param aux the raw non-field element data
+     */
     static fromFields(fields: Field[], aux: any[]) {
       return new Struct_(this.type.fromFields(fields, aux) as T);
     }
@@ -640,7 +747,7 @@ function Struct<
   return Struct_ as any;
 }
 
-const CircuitTypes = { dataAsHash, opaque };
+const Provables = { dataAsHash, opaque };
 
 function dataAsHash<T, J>({
   emptyValue,
