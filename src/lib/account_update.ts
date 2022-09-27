@@ -1278,10 +1278,14 @@ const Authorization = {
     signature?: Omit<LazySignature, 'kind'>
   ) {
     signature ??= {};
+    accountUpdate.body.authorizationKind.isSigned = Bool(true);
+    accountUpdate.body.authorizationKind.isProved = Bool(false);
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
   setLazyProof(accountUpdate: AccountUpdate, proof: Omit<LazyProof, 'kind'>) {
+    accountUpdate.body.authorizationKind.isSigned = Bool(false);
+    accountUpdate.body.authorizationKind.isProved = Bool(true);
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...proof, kind: 'lazy-proof' };
   },
