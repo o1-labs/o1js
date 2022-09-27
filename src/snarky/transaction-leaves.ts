@@ -10,7 +10,17 @@ import {
 } from '../lib/circuit_value.js';
 import * as Encoding from '../lib/encoding.js';
 
-export { PublicKey, Field, Bool, AuthRequired, AuthorizationKind, UInt64, UInt32, Sign, TokenId };
+export {
+  PublicKey,
+  Field,
+  Bool,
+  AuthRequired,
+  AuthorizationKind,
+  UInt64,
+  UInt32,
+  Sign,
+  TokenId,
+};
 
 export { Events, Events as SequenceEvents, StringWithHash, TokenSymbol };
 
@@ -22,10 +32,7 @@ type AuthRequired = {
   signatureSufficient: Bool;
 };
 
-type AuthorizationKind = {
-  isSigned: Bool;
-  isProved: Bool;
-};
+type AuthorizationKind = { isSigned: Bool; isProved: Bool };
 
 type TokenId = Field;
 
@@ -35,6 +42,7 @@ type TypeMap = {
   Field: Field;
   Bool: Bool;
   AuthRequired: AuthRequired;
+  AuthorizationKind: AuthorizationKind;
   UInt32: UInt32;
   UInt64: UInt64;
   Sign: Sign;
@@ -97,10 +105,7 @@ const AuthorizationKind: AsFieldsExtended<AuthorizationKind> = {
   ...circuitValue<AuthorizationKind>(
     { isSigned: Bool, isProved: Bool },
     {
-      customObjectKeys: [
-        'isSigned',
-        'isProved',
-      ],
+      customObjectKeys: ['isSigned', 'isProved'],
     }
   ),
   toJSON(x): Json.AuthorizationKind {
@@ -128,6 +133,7 @@ const TypeMap: {
   Sign: fromCircuitValue(Sign),
   TokenId: fromCircuitValue(TokenId),
   AuthRequired: fromCircuitValue(AuthRequired),
+  AuthorizationKind: fromCircuitValue(AuthorizationKind),
   PublicKey: fromCircuitValue(PublicKey),
   // primitive JS types
   number: {

@@ -154,13 +154,11 @@ function testInput<T>(
   // console.log();
   // console.log('protocol', JSON.stringify(input1));
   let ok1 = JSON.stringify(input2) === JSON.stringify(input1);
+  expect(JSON.stringify(input2)).toEqual(JSON.stringify(input1));
   // console.log('ok?', ok1);
   let fields1 = Ledger.hashInputFromJson.packInput(inputToOcaml(input1));
   let fields2 = packToFields(input2);
   let ok2 = JSON.stringify(fields1) === JSON.stringify(fields2);
-  expect(JSON.parse(JSON.stringify(fields1))).toEqual(
-    JSON.parse(JSON.stringify(fields2))
-  );
   // console.log('packed ok?', ok2);
   // console.log();
   if (!ok1 || !ok2) {

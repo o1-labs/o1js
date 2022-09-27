@@ -359,6 +359,7 @@ interface Body extends AccountUpdateBody {
   preconditions: Preconditions;
   useFullCommitment: Bool;
   incrementNonce: Bool;
+  authorizationKind: AccountUpdateBody['authorizationKind'];
 }
 const Body = {
   noUpdate(): Update {
@@ -410,7 +411,7 @@ const Body = {
       useFullCommitment: Bool(false),
       // this should be set to true if accountUpdates are signed
       incrementNonce: Bool(false),
-      authorizationKind: {isSigned: Bool(true), isProved: Bool(false)},
+      authorizationKind: { isSigned: Bool(false), isProved: Bool(false) },
     };
   },
 

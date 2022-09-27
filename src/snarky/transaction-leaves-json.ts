@@ -1,4 +1,14 @@
-export { PublicKey, Field, Bool, AuthRequired, AuthorizationKind, UInt64, UInt32, Sign, TokenId };
+export {
+  PublicKey,
+  Field,
+  Bool,
+  AuthRequired,
+  AuthorizationKind,
+  UInt64,
+  UInt32,
+  Sign,
+  TokenId,
+};
 
 export { TypeMap };
 
@@ -18,6 +28,7 @@ type TypeMap = {
   Field: Field;
   Bool: Bool;
   AuthRequired: AuthRequired;
+  AuthorizationKind: AuthorizationKind;
   UInt32: UInt32;
   UInt64: UInt64;
   Sign: Sign;
