@@ -457,6 +457,10 @@ export default [
         type: 'function',
       },
       {
+        name: 'checkAccountUpdateSignature',
+        type: 'function',
+      },
+      {
         name: 'fieldsOfJson',
         type: 'function',
       },
