@@ -18,6 +18,7 @@ type TypeMap = {
   Field: Field;
   Bool: Bool;
   AuthRequired: AuthRequired;
+  AuthorizationKind: AuthorizationKind;
   UInt32: UInt32;
   UInt64: UInt64;
   Sign: Sign;
