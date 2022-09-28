@@ -1,7 +1,7 @@
 import {
   Circuit,
   Bool,
-  AsFieldElements,
+  ProvablePure,
   Field,
   Poseidon,
   asFieldElementsToConstant,
@@ -45,8 +45,8 @@ export interface KeyedDataStore<K, V, P> {
 
 export class Keyed {
   static InMemory<K, V>(
-    eltTyp: AsFieldElements<V>,
-    keyTyp: AsFieldElements<K>,
+    eltTyp: ProvablePure<V>,
+    keyTyp: ProvablePure<K>,
     key: (v: V) => K,
     depth: number
   ): KeyedDataStore<K, V, MerkleProof> {
@@ -66,7 +66,7 @@ export class Keyed {
       for (var i = 0; i < n; ++i) {
         xs.push(Field.zero);
       }
-      return eltTyp.ofFields(xs);
+      return eltTyp.fromFields(xs);
     })();
 
     const getValue = (k: K): { value: V; empty: boolean } => {
@@ -132,14 +132,14 @@ export class Keyed {
 }
 
 export function IPFS<A>(
-  eltTyp: AsFieldElements<A>,
+  eltTyp: ProvablePure<A>,
   ipfsRoot: string
 ): DataStore<A, MerkleProof> {
   throw 'ipfs';
 }
 
 export function InMemory<A>(
-  eltTyp: AsFieldElements<A>,
+  eltTyp: ProvablePure<A>,
   depth: number
 ): DataStore<A, MerkleProof> {
   const P = MerkleProofFactory(depth);
@@ -195,7 +195,7 @@ export function InMemory<A>(
 }
 
 export function OnDisk<A>(
-  eltTyp: AsFieldElements<A>,
+  eltTyp: ProvablePure<A>,
   path: string
 ): DataStore<A, MerkleProof> {
   throw 'ondisk';

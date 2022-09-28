@@ -3,11 +3,7 @@ import * as Json from './gen/transaction-json.js';
 import { UInt32, UInt64, Sign } from '../lib/int.js';
 import { TokenSymbol } from '../lib/hash.js';
 import { PublicKey } from '../lib/signature.js';
-import {
-  AsFieldsAndAux,
-  AsFieldsExtended,
-  circuitValue,
-} from '../lib/circuit_value.js';
+import { ProvableExtended, Provables, provable } from '../lib/circuit_value.js';
 import * as Encoding from '../lib/encoding.js';
 
 export {
@@ -67,15 +63,15 @@ let emptyType = {
   toJSON: () => null,
 };
 
-const TokenId: AsFieldsExtended<TokenId> = {
-  ...circuitValue<TokenId>(Field),
+const TokenId = {
+  ...provable(Field),
   toJSON(x: TokenId): Json.TokenId {
     return Encoding.TokenId.toBase58(x);
   },
 };
 
-const AuthRequired: AsFieldsExtended<AuthRequired> = {
-  ...circuitValue<AuthRequired>(
+const AuthRequired = {
+  ...provable(
     { constant: Bool, signatureNecessary: Bool, signatureSufficient: Bool },
     {
       customObjectKeys: [
@@ -85,7 +81,7 @@ const AuthRequired: AsFieldsExtended<AuthRequired> = {
       ],
     }
   ),
-  toJSON(x): Json.AuthRequired {
+  toJSON(x: AuthRequired): Json.AuthRequired {
     let c = Number(x.constant.toBoolean());
     let n = Number(x.signatureNecessary.toBoolean());
     let s = Number(x.signatureSufficient.toBoolean());
@@ -121,32 +117,30 @@ const AuthorizationKind: AsFieldsExtended<AuthorizationKind> = {
   },
 };
 
-let { fromCircuitValue } = AsFieldsAndAux;
-
 const TypeMap: {
-  [K in keyof TypeMap]: AsFieldsAndAux<TypeMap[K], Json.TypeMap[K]>;
+  [K in keyof TypeMap]: ProvableExtended<TypeMap[K], Json.TypeMap[K]>;
 } = {
-  Field: fromCircuitValue(Field),
-  Bool: fromCircuitValue(Bool),
-  UInt32: fromCircuitValue(UInt32),
-  UInt64: fromCircuitValue(UInt64),
-  Sign: fromCircuitValue(Sign),
-  TokenId: fromCircuitValue(TokenId),
-  AuthRequired: fromCircuitValue(AuthRequired),
-  AuthorizationKind: fromCircuitValue(AuthorizationKind),
-  PublicKey: fromCircuitValue(PublicKey),
+  Field,
+  Bool,
+  UInt32,
+  UInt64,
+  Sign,
+  TokenId,
+  AuthRequired,
+  AuthorizationKind,
+  PublicKey,
   // primitive JS types
   number: {
     ...emptyType,
     toAuxiliary: (value = 0) => [value],
     toJSON: (value) => value,
-    fromFields: (_, aux) => aux.pop()!,
+    fromFields: (_, [value]) => value,
   },
   string: {
     ...emptyType,
     toAuxiliary: (value = '') => [value],
     toJSON: (value) => value,
-    fromFields: (_, aux) => aux.pop()!,
+    fromFields: (_, [value]) => value,
   },
   null: emptyType,
   undefined: {
@@ -157,52 +151,15 @@ const TypeMap: {
 
 // types which got an annotation about its circuit type in Ocaml
 
-type DataAsHash<T> = { data: T; hash: Field };
-
-const Events: AsFieldsAndAux<DataAsHash<Field[][]>, string[][]> = {
-  sizeInFields() {
-    return 1;
-  },
-  toFields({ hash }) {
-    return [hash];
-  },
-  toAuxiliary(value) {
-    return [value?.data ?? []];
-  },
-  fromFields(fields, aux) {
-    let hash = fields.pop()!;
-    let data = aux.pop()!;
-    return { data, hash };
-  },
-  toJSON({ data }) {
+const Events = Provables.dataAsHash({
+  emptyValue: [],
+  toJSON(data: Field[][]) {
     return data.map((row) => row.map((e) => e.toString()));
   },
-  check() {},
-  toInput({ hash }) {
-    return { fields: [hash] };
-  },
-};
-
-const StringWithHash: AsFieldsAndAux<DataAsHash<string>, string> = {
-  sizeInFields() {
-    return 1;
-  },
-  toFields({ hash }) {
-    return [hash];
-  },
-  toAuxiliary(value) {
-    return [value?.data ?? ''];
-  },
-  fromFields(fields, aux) {
-    let hash = fields.pop()!;
-    let data = aux.pop()!;
-    return { data, hash };
-  },
-  toJSON({ data }) {
+});
+const StringWithHash = Provables.dataAsHash({
+  emptyValue: '',
+  toJSON(data: string) {
     return data;
   },
-  check() {},
-  toInput({ hash }) {
-    return { fields: [hash] };
-  },
-};
+});

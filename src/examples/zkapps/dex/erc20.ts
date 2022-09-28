@@ -1,8 +1,8 @@
 import {
-  AsFieldElements,
+  ProvablePure,
   Bool,
   CircuitString,
-  circuitValue,
+  provablePure,
   DeployArgs,
   Field,
   method,
@@ -38,12 +38,12 @@ type Erc20 = {
 
   // events
   events: {
-    Transfer: AsFieldElements<{
+    Transfer: ProvablePure<{
       from: PublicKey;
       to: PublicKey;
       value: UInt64;
     }>;
-    Approval: AsFieldElements<{
+    Approval: ProvablePure<{
       owner: PublicKey;
       spender: PublicKey;
       value: UInt64;
@@ -151,16 +151,16 @@ class TrivialCoin extends SmartContract implements Erc20 {
   }
 
   events = {
-    Transfer: circuitValue<{ from: PublicKey; to: PublicKey; value: UInt64 }>({
+    Transfer: provablePure({
       from: PublicKey,
       to: PublicKey,
       value: UInt64,
     }),
-    Approval: circuitValue<{
-      owner: PublicKey;
-      spender: PublicKey;
-      value: UInt64;
-    }>({ owner: PublicKey, spender: PublicKey, value: UInt64 }),
+    Approval: provablePure({
+      owner: PublicKey,
+      spender: PublicKey,
+      value: UInt64,
+    }),
   };
 
   // additional API needed for zkApp token accounts
@@ -204,7 +204,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
       ...Permissions.default(),
       send: Permissions.proof(),
     });
-    // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
+    // TODO pass in verification key
     // AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
     zkapp.sign(zkappKey);
   }

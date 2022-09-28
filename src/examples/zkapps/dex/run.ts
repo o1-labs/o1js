@@ -60,8 +60,8 @@ tx = await Mina.transaction(feePayerKey, () => {
   // pay fees for creating 3 dex accounts
   AccountUpdate.createSigned(feePayerKey).balance.subInPlace(accountFee.mul(3));
   dex.deploy();
-  tokenX.deployZkapp(addresses.dex);
-  tokenY.deployZkapp(addresses.dex);
+  tokenX.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
+  tokenY.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
 });
 await tx.prove();
 tx.sign([keys.dex]);
