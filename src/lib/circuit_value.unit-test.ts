@@ -6,6 +6,7 @@ import { expect } from 'expect';
 import { method, SmartContract } from './zkapp.js';
 import { LocalBlockchain, setActiveInstance, transaction } from './mina.js';
 import { State, state } from './state.js';
+import { AccountUpdate } from './account_update.js';
 
 await isReady;
 
@@ -93,7 +94,7 @@ class MyStructPure extends Struct({
   uint: [UInt32, UInt32],
 }) {}
 
-class MyArray extends Struct([String]) {}
+class MyTuple extends Struct([PublicKey, String]) {}
 
 let targetString = 'some particular string';
 let gotTargetString = false;
@@ -106,27 +107,42 @@ class MyContract extends SmartContract {
   // this works because MyStructPure only contains field elements
   @state(MyStructPure) x = State<MyStructPure>();
 
-  @method myMethod(value: MyStruct, arr: MyArray) {
+  @method myMethod(value: MyStruct, tuple: MyTuple, update: AccountUpdate) {
+    // check if we can pass in string values
     if (value.other === targetString) gotTargetString = true;
     value.uint[0].assertEquals(UInt32.zero);
+
+    Circuit.asProver(() => {
+      let err = 'wrong value in prover';
+      if (tuple[1] !== targetString) throw Error(err);
+
+      // check if we can pass in account updates
+      if (update.lazyAuthorization?.kind !== 'lazy-signature') throw Error(err);
+      if (update.lazyAuthorization.privateKey?.toBase58() !== key.toBase58())
+        throw Error(err);
+    });
   }
 }
 
 setActiveInstance(LocalBlockchain());
 
 MyContract.compile();
-let address = PrivateKey.random().toPublicKey();
+let key = PrivateKey.random();
+let address = key.toPublicKey();
 let contract = new MyContract(address);
 
 let tx = await transaction(() => {
+  let accountUpdate = AccountUpdate.createSigned(key);
+
   contract.myMethod(
     {
       nested: { a: 1, b: false },
-      other: 'some particular string',
+      other: targetString,
       pk: PublicKey.empty(),
       uint: [UInt32.from(0), UInt32.from(10)],
     },
-    ['blub']
+    [address, targetString],
+    accountUpdate
   );
 });
 
@@ -136,5 +152,7 @@ await tx.prove();
 
 // assert that prover got the target string
 expect(gotTargetString).toEqual(true);
+
+console.log('provable types work as expected! 🎉');
 
 shutdown();

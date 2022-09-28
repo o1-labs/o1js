@@ -1015,40 +1015,28 @@ class AccountUpdate implements Types.AccountUpdate {
     accountUpdate.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 
-  private static circuitType(
-    skipCheck = false
-  ): ProvableExtended<AccountUpdate> {
-    return {
-      sizeInFields() {
-        return Types.AccountUpdate.sizeInFields();
-      },
-      toFields(a) {
-        return Types.AccountUpdate.toFields(a);
-      },
-      toAuxiliary(a?) {
-        let aux = Types.AccountUpdate.toAuxiliary(a);
-        let lazyAuthorization = a && cloneCircuitValue(a.lazyAuthorization);
-        let children = a?.children ?? { accountUpdates: [] };
-        let parent = a?.parent;
-        return [{ lazyAuthorization, children, parent }, aux];
-      },
-      toInput(a) {
-        return Types.AccountUpdate.toInput(a);
-      },
-      toJSON(a) {
-        return Types.AccountUpdate.toJSON(a);
-      },
-      check(a) {
-        if (!skipCheck) Types.AccountUpdate.check(a);
-      },
-      fromFields(fields, [{ lazyAuthorization, children, parent }, aux]) {
-        let rawUpdate = Types.AccountUpdate.fromFields(fields, aux);
-        return Object.assign(
-          new AccountUpdate(rawUpdate.body, rawUpdate.authorization),
-          { lazyAuthorization, children, parent }
-        );
-      },
-    };
+  // static methods that implement Provable<AccountUpdate>
+  static sizeInFields = Types.AccountUpdate.sizeInFields;
+  static toFields = Types.AccountUpdate.toFields;
+  static toAuxiliary(a?: AccountUpdate) {
+    let aux = Types.AccountUpdate.toAuxiliary(a);
+    let lazyAuthorization = a && cloneCircuitValue(a.lazyAuthorization);
+    let children = a?.children ?? { accountUpdates: [] };
+    let parent = a?.parent;
+    return [{ lazyAuthorization, children, parent }, aux];
+  }
+  static toInput = Types.AccountUpdate.toInput;
+  static toJSON = Types.AccountUpdate.toJSON;
+  static check = Types.AccountUpdate.check;
+  static fromFields(
+    fields: Field[],
+    [{ lazyAuthorization, children, parent }, aux]: any[]
+  ) {
+    let rawUpdate = Types.AccountUpdate.fromFields(fields, aux);
+    return Object.assign(
+      new AccountUpdate(rawUpdate.body, rawUpdate.authorization),
+      { lazyAuthorization, children, parent }
+    );
   }
 
   static witness<T>(
@@ -1057,7 +1045,9 @@ class AccountUpdate implements Types.AccountUpdate {
     { skipCheck = false } = {}
   ) {
     // construct the circuit type for a accountUpdate + other result
-    let accountUpdateType = this.circuitType(skipCheck);
+    let accountUpdateType = skipCheck
+      ? { ...provable(AccountUpdate), check() {} }
+      : AccountUpdate;
     let combinedType = provable({
       accountUpdate: accountUpdateType,
       result: type,
