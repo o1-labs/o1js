@@ -105,7 +105,7 @@ let tx = await Mina.transaction(feePayer, () => {
   zkapp.counter.set(initialCounter);
   zkapp.actionsHash.set(Experimental.Reducer.initialActionsHash);
 });
-tx.send();
+await tx.send();
 
 console.log('applying actions..');
 
@@ -116,7 +116,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('action 2');
 tx = await Mina.transaction(feePayer, () => {
@@ -124,7 +124,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('action 3');
 tx = await Mina.transaction(feePayer, () => {
@@ -132,7 +132,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('rolling up pending actions..');
 
@@ -143,7 +143,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('state after rollup: ' + zkapp.counter.get());
 assert.deepEqual(zkapp.counter.get().toString(), '3');
@@ -156,7 +156,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('action 5');
 tx = await Mina.transaction(feePayer, () => {
@@ -164,7 +164,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('rolling up pending actions..');
 
@@ -175,7 +175,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('state after rollup: ' + zkapp.counter.get());
 assert.equal(zkapp.counter.get().toString(), '4');

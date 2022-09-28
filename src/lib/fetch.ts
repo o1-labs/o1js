@@ -117,22 +117,6 @@ type FetchError = {
 const defaultTimeout = 30000;
 
 type AuthRequired = Types.Json.AuthRequired;
-function toPermission(p: AuthRequired): Permission {
-  switch (p) {
-    case 'None':
-      return Permission.none();
-    case 'Proof':
-      return Permission.proof();
-    case 'Signature':
-      return Permission.signature();
-    case 'Either':
-      return Permission.proofOrSignature();
-    case 'Impossible':
-      return Permission.impossible();
-    default:
-      throw Error('unexpected permission');
-  }
-}
 
 type FetchedAccount = {
   publicKey: string;
@@ -246,7 +230,10 @@ function parseFetchedAccount({
     permissions:
       permissions &&
       (Object.fromEntries(
-        Object.entries(permissions).map(([k, v]) => [k, toPermission(v)])
+        Object.entries(permissions).map(([k, v]) => [
+          k,
+          Permissions.fromString(v),
+        ])
       ) as unknown as Permissions),
     sequenceState:
       sequenceEvents != undefined ? Field(sequenceEvents[0]) : undefined,

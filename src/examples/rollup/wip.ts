@@ -411,9 +411,7 @@ function main() {
             UInt32.fromNumber(0)
           );
         });
-      })
-        .send()
-        .wait()
+      }).send()
     )
     .then(() => {
       console.log('after init');
@@ -437,7 +435,6 @@ function main() {
         );
       })
         .send()
-        .wait()
         .catch((e) => {
           console.log('fuc', e);
           throw e;
@@ -462,7 +459,6 @@ function main() {
             );
           })
             .send()
-            .wait()
             .catch((e) => {
               console.log('fuc', e);
               throw e;
@@ -514,7 +510,6 @@ function main() {
             );
           })
             .send()
-            .wait()
             .catch((e) => {
               console.log('rrr', e);
               throw e;

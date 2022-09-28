@@ -63,14 +63,14 @@ let tx = await Mina.transaction(feePayerKey, () => {
   AccountUpdate.fundNewAccount(feePayerKey);
   zkapp.deploy({ zkappKey });
 });
-tx.send();
+await tx.send();
 
 console.log('initial state: ' + zkapp.x.get());
 
 console.log('update');
 tx = await Mina.transaction(feePayerKey, () => zkapp.update(Field(3)));
 await tx.prove();
-tx.send();
+await tx.send();
 console.log('final state: ' + zkapp.x.get());
 
 shutdown();

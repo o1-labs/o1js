@@ -62,6 +62,8 @@ let smartContractContext = Context.create<{
   selfUpdate: AccountUpdate;
 }>();
 
+type AuthRequired = Types.Json.AuthRequired;
+
 type AccountUpdateBody = Types.AccountUpdate['body'];
 type Update = AccountUpdateBody['update'];
 
@@ -256,6 +258,46 @@ let Permissions = {
     incrementNonce: Permissions.signature(),
     setVotingFor: Permission.signature(),
   }),
+
+  fromString: (permission: AuthRequired): Permission => {
+    switch (permission) {
+      case 'None':
+        return Permission.none();
+      case 'Either':
+        return Permission.proofOrSignature();
+      case 'Proof':
+        return Permission.proof();
+      case 'Signature':
+        return Permission.signature();
+      case 'Impossible':
+        return Permission.impossible();
+      default:
+        throw Error(
+          `Cannot parse invalid permission. ${permission} does not exist.`
+        );
+    }
+  },
+
+  fromJSON: (permissions: {
+    editState: AuthRequired;
+    send: AuthRequired;
+    receive: AuthRequired;
+    setDelegate: AuthRequired;
+    setPermissions: AuthRequired;
+    setVerificationKey: AuthRequired;
+    setZkappUri: AuthRequired;
+    editSequenceState: AuthRequired;
+    setTokenSymbol: AuthRequired;
+    incrementNonce: AuthRequired;
+    setVotingFor: AuthRequired;
+  }): Permissions => {
+    return Object.fromEntries(
+      Object.entries(permissions).map(([k, v]) => [
+        k,
+        Permissions.fromString(v),
+      ])
+    ) as unknown as Permissions;
+  },
 };
 
 type Event = Field[];
@@ -616,6 +658,12 @@ class AccountUpdate implements Types.AccountUpdate {
     clonedAccountUpdate.children = accountUpdate.children;
     clonedAccountUpdate.parent = accountUpdate.parent;
     return clonedAccountUpdate;
+  }
+
+  static accountUpdateToPublicInput(
+    accountUpdate: AccountUpdate
+  ): ZkappPublicInput {
+    return accountUpdateToPublicInput(accountUpdate);
   }
 
   token() {
