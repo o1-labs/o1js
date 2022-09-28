@@ -158,6 +158,7 @@ type FetchedAccount = {
   };
   delegateAccount?: { publicKey: string };
   sequenceEvents?: string[] | null;
+  verificationKey?: { verificationKey: string };
   // TODO: how to query provedState?
 };
 
@@ -173,6 +174,7 @@ type Account = {
   delegate?: PublicKey;
   sequenceState?: Field;
   provedState: Bool;
+  verificationKey?: string;
 };
 
 type FlexibleAccount = {
@@ -210,6 +212,9 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
     sequenceEvents
     token
     tokenSymbol
+    verificationKey {
+      verificationKey
+    }
   }
 }
 `;
@@ -230,6 +235,7 @@ function parseFetchedAccount({
   sequenceEvents,
   token,
   tokenSymbol,
+  verificationKey,
 }: Partial<FetchedAccount>): Partial<Account> {
   return {
     publicKey:
@@ -252,6 +258,7 @@ function parseFetchedAccount({
       delegateAccount && PublicKey.fromBase58(delegateAccount.publicKey),
     tokenId: token !== undefined ? Ledger.fieldOfBase58(token) : undefined,
     tokenSymbol: tokenSymbol !== undefined ? tokenSymbol : undefined,
+    verificationKey: verificationKey?.verificationKey,
   };
 }
 
