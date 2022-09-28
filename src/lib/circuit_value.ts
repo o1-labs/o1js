@@ -44,7 +44,7 @@ type NonMethodKeys<T> = {
 type NonMethods<T> = Pick<T, NonMethodKeys<T>>;
 
 /**
- * @deprecated `CircuitValue` is deprecated in favor of `Struct`, which features a simpler API and better typing.
+ * @deprecated `CircuitValue` is deprecated in favor of {@link Struct}, which features a simpler API and better typing.
  */
 abstract class CircuitValue {
   constructor(...props: any[]) {
