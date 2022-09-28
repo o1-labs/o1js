@@ -2,8 +2,6 @@ import {
   Account,
   Bool,
   Circuit,
-  provable,
-  CircuitValue,
   DeployArgs,
   Experimental,
   Field,
@@ -14,12 +12,12 @@ import {
   AccountUpdate,
   Permissions,
   PrivateKey,
-  prop,
   PublicKey,
   SmartContract,
   Token,
   UInt64,
   VerificationKey,
+  Struct,
 } from 'snarkyjs';
 
 export { Dex, DexTokenHolder, TokenContract, keys, addresses, tokenIds };
@@ -147,17 +145,7 @@ class Dex extends SmartContract {
   }
 }
 
-// TODO: this is a pain -- let's define circuit values in one line, with a factory pattern
-// we just have to make provable return a class, that's it!
-// class UInt64x2 extends provable([UInt64, UInt64]) {}
-class UInt64x2 extends CircuitValue {
-  @prop 0: UInt64;
-  @prop 1: UInt64;
-
-  static from([a0, a1]: [UInt64, UInt64]) {
-    return UInt64x2.fromObject({ 0: a0, 1: a1 });
-  }
-}
+class UInt64x2 extends Struct([UInt64, UInt64]) {}
 
 class DexTokenHolder extends SmartContract {
   // simpler circuit for redeeming liquidity -- direct trade between our token and lq token
@@ -181,7 +169,7 @@ class DexTokenHolder extends SmartContract {
     this.send({ to: user, amount: dy });
 
     // return l, dy so callers don't have to walk their child account updates to get it
-    return UInt64x2.from([l, dy]);
+    return [l, dy];
   }
 
   // more complicated circuit, where we trigger the Y(other)-lqXY trade in our child account updates and then add the X(our) part
@@ -204,7 +192,7 @@ class DexTokenHolder extends SmartContract {
     let dx = x.mul(dl).div(l);
     this.send({ to: user, amount: dx });
 
-    return UInt64x2.from([dx, dy]);
+    return [dx, dy];
   }
 
   // this works for both directions (in our case where both tokens use the same contract)
