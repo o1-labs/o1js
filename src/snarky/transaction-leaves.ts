@@ -97,14 +97,14 @@ const AuthRequired = {
   },
 };
 
-const AuthorizationKind: AsFieldsExtended<AuthorizationKind> = {
-  ...circuitValue<AuthorizationKind>(
+const AuthorizationKind = {
+  ...provable(
     { isSigned: Bool, isProved: Bool },
     {
       customObjectKeys: ['isSigned', 'isProved'],
     }
   ),
-  toJSON(x): Json.AuthorizationKind {
+  toJSON(x: AuthorizationKind): Json.AuthorizationKind {
     let isSigned = Number(x.isSigned.toBoolean());
     let isProved = Number(x.isProved.toBoolean());
     // prettier-ignore
