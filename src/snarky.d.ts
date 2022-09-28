@@ -529,10 +529,7 @@ declare class Circuit {
   static newVariable(f: () => Field | number | string | boolean): Field;
 
   // this convoluted generic typing is needed to give type inference enough flexibility
-  static _witness<T, S extends Provable<T> = Provable<T>>(
-    ctor: S,
-    f: () => T
-  ): Field[];
+  static _witness<S extends Provable<any>>(ctor: S, f: () => Field[]): Field[];
   static witness<T, S extends Provable<T> = Provable<T>>(
     ctor: S,
     f: () => T

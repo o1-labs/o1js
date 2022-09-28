@@ -912,9 +912,17 @@ Circuit.witness = function <T, S extends Provable<T> = Provable<T>>(
   let proverValue: T | undefined;
   let fields = Circuit._witness(type, () => {
     proverValue = compute();
-    return proverValue;
+    let fields = type.toFields(proverValue);
+    if (fields.length !== type.sizeInFields()) {
+      throw Error(
+        `Invalid witness. Expected ${type.sizeInFields()} field elements, got ${
+          fields.length
+        }.`
+      );
+    }
+    return fields;
   });
-  let aux = 'toAuxiliary' in type ? type.toAuxiliary(proverValue) : [];
+  let aux = type.toAuxiliary(proverValue);
   let value = type.fromFields(fields, aux);
   type.check(value);
   return value;
