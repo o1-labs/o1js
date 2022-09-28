@@ -214,8 +214,11 @@ function createState<T>(): InternalStateType<T> {
             throw err;
           }
           throw Error(
-            `${contract.key}.get() failed, because the zkapp account was not found in the cache. ` +
-              `Try calling \`await fetchAccount(zkappAddress)\` first.`
+            `${contract.key}.get() failed, either:\n` +
+            `1. We can't find this zkapp account in the ledger\n` +
+            `2. Because the zkapp account was not found in the cache. ` +
+              `Try calling \`await fetchAccount(zkappAddress)\` first.\n` +
+            `If none of these are the case, then please reach out on Discord at #zkapp-developers and/or open an issue to tell us!`
           );
         }
         if (account.appState === undefined) {
