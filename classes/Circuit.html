@@ -18,7 +18,7 @@
 <ul class="tsd-hierarchy">
 <li><span class="target">Circuit</span></li></ul></section><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L491">snarky.d.ts:491</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L499">snarky.d.ts:499</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-index-accordion" open><summary class="tsd-accordion-summary tsd-index-summary">
@@ -30,7 +30,8 @@
 </div></section>
 <section class="tsd-index-section">
 <h3 class="tsd-index-heading">Methods</h3>
-<div class="tsd-index-list"><a href="Circuit.html#addConstraint" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><rect fill="var(--color-icon-background)" stroke="#FF4DB8" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="12" id="icon-2048-path"></rect><path d="M9.162 16V7.24H10.578L11.514 10.072C11.602 10.328 11.674 10.584 11.73 10.84C11.794 11.088 11.842 11.28 11.874 11.416C11.906 11.28 11.954 11.088 12.018 10.84C12.082 10.584 12.154 10.324 12.234 10.06L13.122 7.24H14.538V16H13.482V12.82C13.482 12.468 13.49 12.068 13.506 11.62C13.53 11.172 13.558 10.716 13.59 10.252C13.622 9.78 13.654 9.332 13.686 8.908C13.726 8.476 13.762 8.1 13.794 7.78L12.366 12.16H11.334L9.894 7.78C9.934 8.092 9.97 8.456 10.002 8.872C10.042 9.28 10.078 9.716 10.11 10.18C10.142 10.636 10.166 11.092 10.182 11.548C10.206 12.004 10.218 12.428 10.218 12.82V16H9.162Z" fill="var(--color-text)" id="icon-2048-text"></path></svg><span>add<wbr/>Constraint</span></a>
+<div class="tsd-index-list"><a href="Circuit.html#_witness" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><rect fill="var(--color-icon-background)" stroke="#FF4DB8" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="12" id="icon-2048-path"></rect><path d="M9.162 16V7.24H10.578L11.514 10.072C11.602 10.328 11.674 10.584 11.73 10.84C11.794 11.088 11.842 11.28 11.874 11.416C11.906 11.28 11.954 11.088 12.018 10.84C12.082 10.584 12.154 10.324 12.234 10.06L13.122 7.24H14.538V16H13.482V12.82C13.482 12.468 13.49 12.068 13.506 11.62C13.53 11.172 13.558 10.716 13.59 10.252C13.622 9.78 13.654 9.332 13.686 8.908C13.726 8.476 13.762 8.1 13.794 7.78L12.366 12.16H11.334L9.894 7.78C9.934 8.092 9.97 8.456 10.002 8.872C10.042 9.28 10.078 9.716 10.11 10.18C10.142 10.636 10.166 11.092 10.182 11.548C10.206 12.004 10.218 12.428 10.218 12.82V16H9.162Z" fill="var(--color-text)" id="icon-2048-text"></path></svg><span>_witness</span></a>
+<a href="Circuit.html#addConstraint" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>add<wbr/>Constraint</span></a>
 <a href="Circuit.html#array" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>array</span></a>
 <a href="Circuit.html#asProver" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>as<wbr/>Prover</span></a>
 <a href="Circuit.html#assertEqual" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>assert<wbr/>Equal</span></a>
@@ -58,6 +59,36 @@
 <h4 class="tsd-returns-title">Returns <a href="Circuit.html" class="tsd-signature-type" data-tsd-kind="Class">Circuit</a></h4></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group">
 <h2>Methods</h2>
+<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="_witness" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>_witness</span><a href="#_witness" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+<li class="tsd-signature tsd-anchor-link" id="_witness._witness-1">_witness<span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">S</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">(</span>ctor<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">S</span>, f<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a><span class="tsd-signature-symbol">[]</span><a href="#_witness._witness-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
+<li class="tsd-description">
+<div class="tsd-type-parameters">
+<h4 class="tsd-type-parameters-title">Type Parameters</h4>
+<section class="tsd-panel tsd-type-parameters">
+<h4>Type Parameters</h4>
+<ul class="tsd-type-parameters">
+<li>
+<h4>T</h4></li>
+<li>
+<h4>S<span class="tsd-signature-symbol"> extends </span><a href="../interfaces/Provable.html" class="tsd-signature-type" data-tsd-kind="Interface">Provable</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">S</span><span class="tsd-signature-symbol">&gt;</span> = <a href="../interfaces/Provable.html" class="tsd-signature-type" data-tsd-kind="Interface">Provable</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span></h4></li></ul></section></div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li>
+<h5>ctor: <span class="tsd-signature-type" data-tsd-kind="Type parameter">S</span></h5></li>
+<li>
+<h5>f: <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">)</span></h5>
+<ul class="tsd-parameters">
+<li class="tsd-parameter-signature">
+<ul class="tsd-signatures tsd-kind-type-literal">
+<li class="tsd-signature"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></li>
+<li class="tsd-description">
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h4></li></ul></li></ul></li></ul></div>
+<h4 class="tsd-returns-title">Returns <a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a><span class="tsd-signature-symbol">[]</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L532">snarky.d.ts:532</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="addConstraint" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>add<wbr/>Constraint</span><a href="#addConstraint" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -78,7 +109,7 @@
 <h5>z: <a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L492">snarky.d.ts:492</a></li></ul></aside></li>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L500">snarky.d.ts:500</a></li></ul></aside></li>
 <li class="tsd-signature tsd-anchor-link" id="addConstraint.addConstraint-2">add<wbr/>Constraint<span class="tsd-signature-symbol">(</span>this<span class="tsd-signature-symbol">: </span><a href="Circuit.html" class="tsd-signature-type" data-tsd-kind="Class">Circuit</a>, kind<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">&quot;add&quot;</span>, x<span class="tsd-signature-symbol">: </span><a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a>, y<span class="tsd-signature-symbol">: </span><a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a>, z<span class="tsd-signature-symbol">: </span><a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span><a href="#addConstraint.addConstraint-2" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-parameters">
@@ -96,7 +127,7 @@
 <h5>z: <a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L499">snarky.d.ts:499</a></li></ul></aside></li>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L507">snarky.d.ts:507</a></li></ul></aside></li>
 <li class="tsd-signature tsd-anchor-link" id="addConstraint.addConstraint-3">add<wbr/>Constraint<span class="tsd-signature-symbol">(</span>this<span class="tsd-signature-symbol">: </span><a href="Circuit.html" class="tsd-signature-type" data-tsd-kind="Class">Circuit</a>, kind<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">&quot;equal&quot;</span>, x<span class="tsd-signature-symbol">: </span><a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a>, y<span class="tsd-signature-symbol">: </span><a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a>, z<span class="tsd-signature-symbol">: </span><a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span><a href="#addConstraint.addConstraint-3" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-parameters">
@@ -114,7 +145,7 @@
 <h5>z: <a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L506">snarky.d.ts:506</a></li></ul></aside></li>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L514">snarky.d.ts:514</a></li></ul></aside></li>
 <li class="tsd-signature tsd-anchor-link" id="addConstraint.addConstraint-4">add<wbr/>Constraint<span class="tsd-signature-symbol">(</span>this<span class="tsd-signature-symbol">: </span><a href="Circuit.html" class="tsd-signature-type" data-tsd-kind="Class">Circuit</a>, kind<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">&quot;boolean&quot;</span>, x<span class="tsd-signature-symbol">: </span><a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a>, y<span class="tsd-signature-symbol">: </span><a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a>, z<span class="tsd-signature-symbol">: </span><a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span><a href="#addConstraint.addConstraint-4" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-parameters">
@@ -132,11 +163,11 @@
 <h5>z: <a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L513">snarky.d.ts:513</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L521">snarky.d.ts:521</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="array" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>array</span><a href="#array" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-<li class="tsd-signature tsd-anchor-link" id="array.array-1">array<span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">(</span>elementType<span class="tsd-signature-symbol">: </span><a href="../interfaces/AsFieldElements.html" class="tsd-signature-type" data-tsd-kind="Interface">AsFieldElements</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span>, length<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/AsFieldElements.html" class="tsd-signature-type" data-tsd-kind="Interface">AsFieldElements</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span><a href="#array.array-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
+<li class="tsd-signature tsd-anchor-link" id="array.array-1">array<span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">(</span>elementType<span class="tsd-signature-symbol">: </span><a href="../interfaces/Provable.html" class="tsd-signature-type" data-tsd-kind="Interface">Provable</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span>, length<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/Provable.html" class="tsd-signature-type" data-tsd-kind="Interface">Provable</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span><a href="#array.array-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-type-parameters">
 <h4 class="tsd-type-parameters-title">Type Parameters</h4>
@@ -149,12 +180,12 @@
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
 <li>
-<h5>elementType: <a href="../interfaces/AsFieldElements.html" class="tsd-signature-type" data-tsd-kind="Interface">AsFieldElements</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span></h5></li>
+<h5>elementType: <a href="../interfaces/Provable.html" class="tsd-signature-type" data-tsd-kind="Interface">Provable</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span></h5></li>
 <li>
 <h5>length: <span class="tsd-signature-type">number</span></h5></li></ul></div>
-<h4 class="tsd-returns-title">Returns <a href="../interfaces/AsFieldElements.html" class="tsd-signature-type" data-tsd-kind="Interface">AsFieldElements</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
+<h4 class="tsd-returns-title">Returns <a href="../interfaces/Provable.html" class="tsd-signature-type" data-tsd-kind="Interface">Provable</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L539">snarky.d.ts:539</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L551">snarky.d.ts:551</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="asProver" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>as<wbr/>Prover</span><a href="#asProver" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -173,7 +204,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4></li></ul></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L529">snarky.d.ts:529</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L541">snarky.d.ts:541</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="assertEqual" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>assert<wbr/>Equal</span><a href="#assertEqual" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -204,14 +235,14 @@
 <h5>x: <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a><span class="tsd-signature-symbol">[]</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L544">snarky.d.ts:544</a></li></ul></aside></li></ul></li></ul></li>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L553">snarky.d.ts:553</a></li></ul></aside></li></ul></li></ul></li>
 <li>
 <h5>x: <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h5></li>
 <li>
 <h5>y: <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L544">snarky.d.ts:544</a></li></ul></aside></li>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L553">snarky.d.ts:553</a></li></ul></aside></li>
 <li class="tsd-signature tsd-anchor-link" id="assertEqual.assertEqual-2">assert<wbr/>Equal<span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">(</span>x<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span>, y<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span><a href="#assertEqual.assertEqual-2" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-type-parameters">
@@ -230,7 +261,7 @@
 <h5>y: <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L546">snarky.d.ts:546</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L555">snarky.d.ts:555</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="constraintSystem" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>constraint<wbr/>System</span><a href="#constraintSystem" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -263,7 +294,7 @@
 <li class="tsd-parameter">
 <h5>rows<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5></li></ul><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L533">snarky.d.ts:533</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L545">snarky.d.ts:545</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="equal" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>equal</span><a href="#equal" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -294,14 +325,14 @@
 <h5>x: <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a><span class="tsd-signature-symbol">[]</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L548">snarky.d.ts:548</a></li></ul></aside></li></ul></li></ul></li>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L557">snarky.d.ts:557</a></li></ul></aside></li></ul></li></ul></li>
 <li>
 <h5>x: <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h5></li>
 <li>
 <h5>y: <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="Bool.html" class="tsd-signature-type" data-tsd-kind="Class">Bool</a></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L548">snarky.d.ts:548</a></li></ul></aside></li>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L557">snarky.d.ts:557</a></li></ul></aside></li>
 <li class="tsd-signature tsd-anchor-link" id="equal.equal-2">equal<span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">(</span>x<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span>, y<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="Bool.html" class="tsd-signature-type" data-tsd-kind="Class">Bool</a><a href="#equal.equal-2" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-type-parameters">
@@ -320,7 +351,7 @@
 <h5>y: <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="Bool.html" class="tsd-signature-type" data-tsd-kind="Class">Bool</a></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L550">snarky.d.ts:550</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L559">snarky.d.ts:559</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="generateKeypair" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>generate<wbr/>Keypair</span><a href="#generateKeypair" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -328,11 +359,11 @@
 <li class="tsd-description">
 <h4 class="tsd-returns-title">Returns <a href="Keypair.html" class="tsd-signature-type" data-tsd-kind="Class">Keypair</a></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L572">snarky.d.ts:572</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L581">snarky.d.ts:581</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="if" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>if</span><a href="#if" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-<li class="tsd-signature tsd-anchor-link" id="if.if-1">if<span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">(</span>b<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> | </span><a href="Bool.html" class="tsd-signature-type" data-tsd-kind="Class">Bool</a>, ctor<span class="tsd-signature-symbol">: </span><a href="../interfaces/AsFieldElements.html" class="tsd-signature-type" data-tsd-kind="Interface">AsFieldElements</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span>, x<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span>, y<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><a href="#if.if-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
+<li class="tsd-signature tsd-anchor-link" id="if.if-1">if<span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">(</span>b<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> | </span><a href="Bool.html" class="tsd-signature-type" data-tsd-kind="Class">Bool</a>, ctor<span class="tsd-signature-symbol">: </span><a href="../interfaces/ProvablePure.html" class="tsd-signature-type" data-tsd-kind="Interface">ProvablePure</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span>, x<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span>, y<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><a href="#if.if-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-type-parameters">
 <h4 class="tsd-type-parameters-title">Type Parameters</h4>
@@ -347,14 +378,14 @@
 <li>
 <h5>b: <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> | </span><a href="Bool.html" class="tsd-signature-type" data-tsd-kind="Class">Bool</a></h5></li>
 <li>
-<h5>ctor: <a href="../interfaces/AsFieldElements.html" class="tsd-signature-type" data-tsd-kind="Interface">AsFieldElements</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span></h5></li>
+<h5>ctor: <a href="../interfaces/ProvablePure.html" class="tsd-signature-type" data-tsd-kind="Interface">ProvablePure</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span></h5></li>
 <li>
 <h5>x: <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h5></li>
 <li>
 <h5>y: <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L552">snarky.d.ts:552</a></li></ul></aside></li>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L561">snarky.d.ts:561</a></li></ul></aside></li>
 <li class="tsd-signature tsd-anchor-link" id="if.if-2">if<span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">(</span>b<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> | </span><a href="Bool.html" class="tsd-signature-type" data-tsd-kind="Class">Bool</a>, x<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span>, y<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><a href="#if.if-2" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-type-parameters">
@@ -375,7 +406,7 @@
 <h5>y: <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L554">snarky.d.ts:554</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L563">snarky.d.ts:563</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="inCheckedComputation" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>in<wbr/>Checked<wbr/>Computation</span><a href="#inCheckedComputation" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -383,7 +414,7 @@
 <li class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L582">snarky.d.ts:582</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L591">snarky.d.ts:591</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="inProver" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>in<wbr/>Prover</span><a href="#inProver" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -391,7 +422,7 @@
 <li class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L580">snarky.d.ts:580</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L589">snarky.d.ts:589</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="newVariable" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>new<wbr/>Variable</span><a href="#newVariable" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -410,7 +441,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> | </span><a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a></h4></li></ul></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L521">snarky.d.ts:521</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L529">snarky.d.ts:529</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="prove" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>prove</span><a href="#prove" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -427,7 +458,7 @@
 <h5>kp: <a href="Keypair.html" class="tsd-signature-type" data-tsd-kind="Class">Keypair</a></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Proof</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L574">snarky.d.ts:574</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L583">snarky.d.ts:583</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="runAndCheck" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>run<wbr/>And<wbr/>Check</span><a href="#runAndCheck" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -453,7 +484,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h4></li></ul></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L531">snarky.d.ts:531</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L543">snarky.d.ts:543</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="switch" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>switch</span><a href="#switch" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -473,7 +504,7 @@ The result is that value which corresponds to the true element of the mask. Exam
 <li>
 <h4>T</h4></li>
 <li>
-<h4>A<span class="tsd-signature-symbol"> extends </span><a href="../interfaces/AsFieldElements.html" class="tsd-signature-type" data-tsd-kind="Interface">AsFieldElements</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">A</span><span class="tsd-signature-symbol">&gt;</span></h4></li></ul></section></div>
+<h4>A<span class="tsd-signature-symbol"> extends </span><a href="../interfaces/Provable.html" class="tsd-signature-type" data-tsd-kind="Interface">Provable</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">A</span><span class="tsd-signature-symbol">&gt;</span></h4></li></ul></section></div>
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
@@ -485,7 +516,7 @@ The result is that value which corresponds to the true element of the mask. Exam
 <h5>values: <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">[]</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L566">snarky.d.ts:566</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L575">snarky.d.ts:575</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="toFields" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>to<wbr/>Fields</span><a href="#toFields" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -505,11 +536,11 @@ The result is that value which corresponds to the true element of the mask. Exam
 <h5>a: <span class="tsd-signature-type" data-tsd-kind="Type parameter">A</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a><span class="tsd-signature-symbol">[]</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L578">snarky.d.ts:578</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L587">snarky.d.ts:587</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="verify" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>verify</span><a href="#verify" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-<li class="tsd-signature tsd-anchor-link" id="verify.verify-1">verify<span class="tsd-signature-symbol">(</span>publicInput<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span>, vk<span class="tsd-signature-symbol">: </span><a href="VerificationKey.html" class="tsd-signature-type" data-tsd-kind="Class">VerificationKey</a>, pi<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Proof</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span><a href="#verify.verify-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
+<li class="tsd-signature tsd-anchor-link" id="verify.verify-1">verify<span class="tsd-signature-symbol">(</span>publicInput<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span>, vk<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">VerificationKey</span>, pi<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Proof</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span><a href="#verify.verify-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
@@ -517,12 +548,12 @@ The result is that value which corresponds to the true element of the mask. Exam
 <li>
 <h5>publicInput: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h5></li>
 <li>
-<h5>vk: <a href="VerificationKey.html" class="tsd-signature-type" data-tsd-kind="Class">VerificationKey</a></h5></li>
+<h5>vk: <span class="tsd-signature-type">VerificationKey</span></h5></li>
 <li>
 <h5>pi: <span class="tsd-signature-type">Proof</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L576">snarky.d.ts:576</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L585">snarky.d.ts:585</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="witness" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>witness</span><a href="#witness" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -536,7 +567,7 @@ The result is that value which corresponds to the true element of the mask. Exam
 <li>
 <h4>T</h4></li>
 <li>
-<h4>S<span class="tsd-signature-symbol"> extends </span><a href="../interfaces/AsFieldElements.html" class="tsd-signature-type" data-tsd-kind="Interface">AsFieldElements</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">S</span><span class="tsd-signature-symbol">&gt;</span> = <a href="../interfaces/AsFieldElements.html" class="tsd-signature-type" data-tsd-kind="Interface">AsFieldElements</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span></h4></li></ul></section></div>
+<h4>S<span class="tsd-signature-symbol"> extends </span><a href="../interfaces/Provable.html" class="tsd-signature-type" data-tsd-kind="Interface">Provable</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">S</span><span class="tsd-signature-symbol">&gt;</span> = <a href="../interfaces/Provable.html" class="tsd-signature-type" data-tsd-kind="Interface">Provable</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span></h4></li></ul></section></div>
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
@@ -552,7 +583,7 @@ The result is that value which corresponds to the true element of the mask. Exam
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h4></li></ul></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f5838dd/src/snarky.d.ts#L524">snarky.d.ts:524</a></li></ul></aside></li></ul></section></section></div>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/f11008b/src/snarky.d.ts#L536">snarky.d.ts:536</a></li></ul></aside></li></ul></section></section></div>
 <div class="col-4 col-menu menu-sticky-wrap menu-highlight">
 <div class="tsd-navigation settings">
 <details class="tsd-index-accordion"><summary class="tsd-accordion-summary">
@@ -586,6 +617,7 @@ The result is that value which corresponds to the true element of the mask. Exam
 <li class="current tsd-kind-class"><a href="Circuit.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><rect fill="var(--color-icon-background)" stroke="var(--color-ts-class)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6" id="icon-128-path"></rect><path d="M11.898 16.1201C11.098 16.1201 10.466 15.8961 10.002 15.4481C9.53803 15.0001 9.30603 14.3841 9.30603 13.6001V9.64012C9.30603 8.85612 9.53803 8.24012 10.002 7.79212C10.466 7.34412 11.098 7.12012 11.898 7.12012C12.682 7.12012 13.306 7.34812 13.77 7.80412C14.234 8.25212 14.466 8.86412 14.466 9.64012H13.386C13.386 9.14412 13.254 8.76412 12.99 8.50012C12.734 8.22812 12.37 8.09212 11.898 8.09212C11.426 8.09212 11.054 8.22412 10.782 8.48812C10.518 8.75212 10.386 9.13212 10.386 9.62812V13.6001C10.386 14.0961 10.518 14.4801 10.782 14.7521C11.054 15.0161 11.426 15.1481 11.898 15.1481C12.37 15.1481 12.734 15.0161 12.99 14.7521C13.254 14.4801 13.386 14.0961 13.386 13.6001H14.466C14.466 14.3761 14.234 14.9921 13.77 15.4481C13.306 15.8961 12.682 16.1201 11.898 16.1201Z" fill="var(--color-text)" id="icon-128-text"></path></svg><span>Circuit</span></a>
 <ul>
 <li class="tsd-kind-constructor tsd-parent-kind-class"><a href="Circuit.html#constructor" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-512-path"></use><use href="#icon-512-text"></use></svg>constructor</a></li>
+<li class="tsd-kind-method tsd-parent-kind-class"><a href="Circuit.html#_witness" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>_witness</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="Circuit.html#addConstraint" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>add<wbr/>Constraint</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="Circuit.html#array" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>array</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="Circuit.html#asProver" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>as<wbr/>Prover</a></li>
