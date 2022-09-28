@@ -64,7 +64,7 @@ class TokenContract extends SmartContract {
   ) {
     let senderAccountUpdate = Experimental.accountUpdateFromCallback(
       this,
-      [undefined],
+      [null],
       callback
     );
     let amount = UInt64.from(1_000);
