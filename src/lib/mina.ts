@@ -317,7 +317,7 @@ function LocalBlockchain({
         JSON.stringify(zkappCommandToJson(txn.transaction))
       );
 
-      txn.transaction.accountUpdates.forEach(async (update) => {
+      for (const update of txn.transaction.accountUpdates) {
         let account = ledger.getAccount(
           update.body.publicKey,
           update.body.tokenId
@@ -330,7 +330,7 @@ function LocalBlockchain({
             proofsEnabled
           );
         }
-      });
+      }
 
       let zkappCommandJson = zkappCommandToJson(txn.transaction);
       try {
@@ -839,6 +839,8 @@ async function verifyAccountUpdate(
 
   const update = accountUpdate.toJSON().body.update;
 
+  let errorTrace = '';
+
   let isValidProof = false;
   let isValidSignature = false;
 
@@ -846,20 +848,20 @@ async function verifyAccountUpdate(
   if (!proofsEnabled) isValidProof = true;
 
   if (accountUpdate.authorization.proof && proofsEnabled) {
-    let publicInput = AccountUpdate.accountUpdateToPublicInput(accountUpdate);
-    let publicInputFields = ZkappPublicInput.toFields(publicInput);
-
-    const proof = SmartContract.Proof().fromJSON({
-      maxProofsVerified: 2,
-      proof: accountUpdate.authorization.proof!,
-      publicInput: publicInputFields.map((f) => f.toString()),
-    });
-
     try {
+      let publicInput = AccountUpdate.accountUpdateToPublicInput(accountUpdate);
+      let publicInputFields = ZkappPublicInput.toFields(publicInput);
+
+      const proof = SmartContract.Proof().fromJSON({
+        maxProofsVerified: 2,
+        proof: accountUpdate.authorization.proof!,
+        publicInput: publicInputFields.map((f) => f.toString()),
+      });
+
       let verificationKey = account.zkapp?.verificationKey?.data!;
       isValidProof = await verify(proof.toJSON(), verificationKey);
     } catch (error) {
-      console.log(error);
+      errorTrace += '\n\n' + (error as Error).message;
       isValidProof = false;
     }
   }
@@ -876,7 +878,7 @@ async function verifyAccountUpdate(
         txC
       );
     } catch (error) {
-      console.log(error);
+      errorTrace += '\n\n' + (error as Error).message;
       isValidSignature = false;
     }
   }
@@ -901,7 +903,8 @@ async function verifyAccountUpdate(
 
     if (!verified) {
       throw Error(
-        `Transaction verification failed: Cannot update field '${field}' because permission for this field is '${p}', but the required authorization was not provided or is invalid.`
+        `Transaction verification failed: Cannot update field '${field}' because permission for this field is '${p}', but the required authorization was not provided or is invalid.
+        ${errorTrace != '' ? 'Error trace: ' + errorTrace : ''}`
       );
     }
   }
