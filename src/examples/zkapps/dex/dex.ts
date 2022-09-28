@@ -42,25 +42,24 @@ class Dex extends SmartContract {
    *
    * The transaction needs to be signed by the user's private key.
    */
-  @method supplyLiquidityBase(user: PublicKey, dx: UInt64, dy: UInt64): UInt64 {
+  @method supplyLiquidityBase(
+    user: PublicKey,
+    dx: UInt64,
+    dy: UInt64
+  ) /*: UInt64 */ {
     let tokenX = new TokenContract(this.tokenX);
     let tokenY = new TokenContract(this.tokenY);
 
     // get balances of X and Y token
     // TODO: this creates extra account updates. we need to reuse these by passing them to or returning them from transfer()
     // but for that, we need the @method argument generalization
-    let dexX = AccountUpdate.create(this.address, tokenX.experimental.token.id);
-    let x = dexX.account.balance.get();
-    dexX.account.balance.assertEquals(x);
-
-    let dexY = AccountUpdate.create(this.address, tokenY.experimental.token.id);
-    let y = dexY.account.balance.get();
-    dexY.account.balance.assertEquals(y);
+    let dexX = tokenX.getBalance(this.address);
+    let dexY = tokenY.getBalance(this.address);
 
     // assert dy == [dx * y/x], or x == 0
-    let isXZero = x.equals(UInt64.zero);
-    let xSafe = Circuit.if(isXZero, UInt64.one, x);
-    dy.equals(dx.mul(y).div(xSafe)).or(isXZero).assertTrue();
+    let isXZero = dexX.equals(UInt64.zero);
+    let xSafe = Circuit.if(isXZero, UInt64.one, dexX);
+    dy.equals(dx.mul(dexY).div(xSafe)).or(isXZero).assertTrue();
 
     tokenX.transfer(user, this.address, dx);
     tokenY.transfer(user, this.address, dy);
@@ -69,7 +68,7 @@ class Dex extends SmartContract {
     // => maintains ratio x/l, y/l
     let dl = dy.add(dx);
     this.experimental.token.mint({ address: user, amount: dl });
-    return dl;
+    // return dl;
   }
 
   /**
@@ -84,7 +83,7 @@ class Dex extends SmartContract {
    *
    * The transaction needs to be signed by the user's private key.
    */
-  supplyLiquidity(user: PublicKey, dx: UInt64): UInt64 {
+  supplyLiquidity(user: PublicKey, dx: UInt64) /*: UInt64 */ {
     // calculate dy outside circuit
     let x = Account(this.address, Token.getId(this.tokenX)).balance.get();
     let y = Account(this.address, Token.getId(this.tokenY)).balance.get();
@@ -94,7 +93,8 @@ class Dex extends SmartContract {
       );
     }
     let dy = dx.mul(y).div(x);
-    return this.supplyLiquidityBase(user, dx, dy);
+    this.supplyLiquidityBase(user, dx, dy);
+    // return this.supplyLiquidityBase(user, dx, dy);
   }
 
   /**
