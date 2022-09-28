@@ -860,7 +860,7 @@ async function verifyAccountUpdate(
 
   if (accountUpdate.authorization.proof && proofsEnabled) {
     try {
-      let publicInput = AccountUpdate.accountUpdateToPublicInput(accountUpdate);
+      let publicInput = accountUpdate.toPublicInput();
       let publicInputFields = ZkappPublicInput.toFields(publicInput);
 
       const proof = SmartContract.Proof().fromJSON({

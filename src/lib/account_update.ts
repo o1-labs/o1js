@@ -665,12 +665,6 @@ class AccountUpdate implements Types.AccountUpdate {
     return clonedAccountUpdate;
   }
 
-  static accountUpdateToPublicInput(
-    accountUpdate: AccountUpdate
-  ): ZkappPublicInput {
-    return accountUpdateToPublicInput(accountUpdate);
-  }
-
   token() {
     let thisAccountUpdate = this;
     let customToken = new Token({

@@ -913,13 +913,15 @@ Circuit.witness = function <T, S extends Provable<T> = Provable<T>>(
   let fields = Circuit._witness(type, () => {
     proverValue = compute();
     let fields = type.toFields(proverValue);
-    if (fields.length !== type.sizeInFields()) {
-      throw Error(
-        `Invalid witness. Expected ${type.sizeInFields()} field elements, got ${
-          fields.length
-        }.`
-      );
-    }
+    // TODO: enable this check
+    // currently it throws for Scalar.. which seems to be flexible about what length is returned by toFields
+    // if (fields.length !== type.sizeInFields()) {
+    //   throw Error(
+    //     `Invalid witness. Expected ${type.sizeInFields()} field elements, got ${
+    //       fields.length
+    //     }.`
+    //   );
+    // }
     return fields;
   });
   let aux = type.toAuxiliary(proverValue);
