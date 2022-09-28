@@ -51,7 +51,7 @@ export {
 };
 interface TransactionId {
   wait(): Promise<void>;
-  hash(): Promise<string>;
+  hash(): string;
 }
 
 interface Transaction {
@@ -60,7 +60,7 @@ interface Transaction {
   toGraphqlQuery(): string;
   sign(additionalKeys?: PrivateKey[]): Transaction;
   prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;
-  send(): TransactionId;
+  send(): Promise<TransactionId>;
 }
 
 type Account = Fetch.Account;
@@ -194,8 +194,8 @@ function createTransaction(
       return Fetch.sendZkappQuery(self.toJSON());
     },
 
-    send() {
-      return sendTransaction(self);
+    async send() {
+      return await sendTransaction(self);
     },
   };
   return self;
@@ -208,7 +208,7 @@ interface Mina {
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
   accountCreationFee(): UInt64;
-  sendTransaction(transaction: Transaction): TransactionId;
+  sendTransaction(transaction: Transaction): Promise<TransactionId>;
   fetchEvents: (publicKey: PublicKey, tokenId?: Field) => any;
   getActions: (
     publicKey: PublicKey,
@@ -310,22 +310,22 @@ function LocalBlockchain({
     getNetworkState() {
       return networkState;
     },
-    sendTransaction(txn: Transaction) {
+    async sendTransaction(txn: Transaction) {
       txn.sign();
 
       let commitments = Ledger.transactionCommitments(
         JSON.stringify(zkappCommandToJson(txn.transaction))
       );
 
-      txn.transaction.accountUpdates.forEach(async (party) => {
+      txn.transaction.accountUpdates.forEach(async (update) => {
         let account = ledger.getAccount(
-          party.body.publicKey,
-          party.body.tokenId
+          update.body.publicKey,
+          update.body.tokenId
         );
         if (account) {
           await verifyAccountUpdate(
             account!,
-            party,
+            update,
             commitments,
             proofsEnabled
           );
@@ -408,7 +408,7 @@ function LocalBlockchain({
       });
       return {
         wait: async () => {},
-        hash: async (): Promise<string> => {
+        hash: (): string => {
           const message =
             'Txn Hash retrieving is not supported for LocalBlockchain.';
           console.log(message);
@@ -536,43 +536,28 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         `getNetworkState: Could not fetch network state from graphql endpoint ${graphqlEndpoint}`
       );
     },
-    sendTransaction(txn: Transaction) {
+    async sendTransaction(txn: Transaction) {
       txn.sign();
-      let sendPromise = Fetch.sendZkapp(txn.toJSON());
+
+      let [response, error] = await Fetch.sendZkapp(txn.toJSON());
+      if (error === undefined) {
+        if (response!.data === null && (response as any).errors?.length > 0) {
+          console.log('got graphql errors', (response as any).errors);
+        } else {
+          console.log('got graphql response', response?.data);
+        }
+      } else {
+        console.log('got fetch error', error);
+      }
+
       return {
         async wait() {
-          let [response, error] = await sendPromise;
-          if (error === undefined) {
-            if (
-              response!.data === null &&
-              (response as any).errors?.length > 0
-            ) {
-              console.log('got graphql errors', (response as any).errors);
-            } else {
-              console.log('got graphql response', response?.data);
-              console.log(
-                'Info: waiting for inclusion in a block is not implemented yet.'
-              );
-            }
-          } else {
-            console.log('got fetch error', error);
-          }
+          console.log(
+            'Info: waiting for inclusion in a block is not implemented yet.'
+          );
         },
-        async hash() {
-          let [response, error] = await sendPromise;
-          if (error === undefined) {
-            if (
-              response!.data === null &&
-              (response as any).errors?.length > 0
-            ) {
-              console.log('got graphql errors', (response as any).errors);
-            } else {
-              console.log('got graphql response', response?.data);
-              return response?.data?.sendZkapp?.zkapp?.hash;
-            }
-          } else {
-            console.log('got fetch error', error);
-          }
+        hash() {
+          return response?.data?.sendZkapp?.zkapp?.hash;
         },
       };
     },
@@ -745,8 +730,8 @@ function accountCreationFee() {
   return activeInstance.accountCreationFee();
 }
 
-function sendTransaction(txn: Transaction) {
-  return activeInstance.sendTransaction(txn);
+async function sendTransaction(txn: Transaction) {
+  return await activeInstance.sendTransaction(txn);
 }
 
 /**
