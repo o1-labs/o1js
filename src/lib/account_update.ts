@@ -1,14 +1,13 @@
 import {
   provable,
   provablePure,
-  ProvableExtended,
   cloneCircuitValue,
   memoizationContext,
   memoizeWitness,
   toConstant,
 } from './circuit_value.js';
 import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
-import { Types } from '../snarky/types.js';
+import { jsLayout, Types } from '../snarky/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
@@ -24,6 +23,8 @@ import {
 } from './hash.js';
 import * as Encoding from './encoding.js';
 import { Context } from './global-context.js';
+import { toJSONEssential } from '../snarky/transaction-helpers.js';
+import { customTypes } from '../snarky/gen/transaction.js';
 
 // external API
 export { Permissions, AccountUpdate, ZkappPublicInput };
@@ -1113,6 +1114,46 @@ class AccountUpdate implements Types.AccountUpdate {
     // witness child account updates
     AccountUpdate.witnessChildren(accountUpdate, childLayout, options);
     return { accountUpdate, result };
+  }
+
+  toPretty() {
+    let jsonUpdate = toJSONEssential(
+      jsLayout.AccountUpdate as any,
+      this,
+      customTypes
+    );
+    let body: Partial<Types.Json.AccountUpdate['body']> = jsonUpdate.body;
+    if (body.balanceChange?.magnitude === '0') delete body.balanceChange;
+    if (body.tokenId === TokenId.toBase58(TokenId.default)) delete body.tokenId;
+    if (body.caller === TokenId.toBase58(TokenId.default)) delete body.caller;
+    if (body.incrementNonce === false) delete body.incrementNonce;
+    if (body.useFullCommitment === false) delete body.useFullCommitment;
+    if (body.events?.length === 0) delete body.events;
+    if (body.sequenceEvents?.length === 0) delete body.sequenceEvents;
+    if (body.preconditions?.account) {
+      body.preconditions.account = JSON.stringify(
+        body.preconditions.account
+      ) as any;
+    }
+    if (body.preconditions?.network) {
+      body.preconditions.network = JSON.stringify(
+        body.preconditions.network
+      ) as any;
+    }
+    if (jsonUpdate.authorization?.proof) {
+      jsonUpdate.authorization.proof =
+        jsonUpdate.authorization.proof.slice(0, 6) + '...';
+    }
+    if (body.update?.verificationKey) {
+      body.update.verificationKey = JSON.stringify({
+        data: body.update.verificationKey.data.slice(0, 6) + '...',
+        hash: body.update.verificationKey.hash.slice(0, 6) + '...',
+      }) as any;
+    }
+    if (body.update?.permissions) {
+      body.update.permissions = JSON.stringify(body.update.permissions) as any;
+    }
+    return jsonUpdate;
   }
 }
 
