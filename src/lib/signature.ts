@@ -28,8 +28,8 @@ class PrivateKey extends CircuitValue {
    * @param bs a list of [[Bool]]s.
    * @returns a [[PrivateKey]].
    */
-  static ofBits(bs: Bool[]): PrivateKey {
-    return new PrivateKey(Scalar.ofBits(bs));
+  static fromBits(bs: Bool[]): PrivateKey {
+    return new PrivateKey(Scalar.fromBits(bs));
   }
 
   /**
@@ -125,7 +125,7 @@ class Signature extends CircuitValue {
     const kPrime = Scalar.random();
     let { x: r, y: ry } = Group.generator.scale(kPrime);
     const k = ry.toBits()[0].toBoolean() ? kPrime.neg() : kPrime;
-    const e = Scalar.ofBits(
+    const e = Scalar.fromBits(
       Poseidon.hash(msg.concat([publicKey.x, publicKey.y, r])).toBits()
     );
     const s = e.mul(d).add(k);
@@ -134,7 +134,7 @@ class Signature extends CircuitValue {
 
   verify(publicKey: PublicKey, msg: Field[]): Bool {
     const point = publicKey.toGroup();
-    let e = Scalar.ofBits(
+    let e = Scalar.fromBits(
       Poseidon.hash(msg.concat([point.x, point.y, this.r])).toBits()
     );
     let r = point.scale(e).neg().add(Group.generator.scale(this.s));

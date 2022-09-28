@@ -2,7 +2,7 @@ import {
   Account,
   Bool,
   Circuit,
-  circuitValue,
+  provable,
   CircuitValue,
   DeployArgs,
   Experimental,
@@ -19,6 +19,7 @@ import {
   SmartContract,
   Token,
   UInt64,
+  VerificationKey,
 } from 'snarkyjs';
 
 export { Dex, DexTokenHolder, TokenContract, keys, addresses, tokenIds };
@@ -165,8 +166,8 @@ class Dex extends SmartContract {
 }
 
 // TODO: this is a pain -- let's define circuit values in one line, with a factory pattern
-// we just have to make circuitValue return a class, that's it!
-// class UInt64x2 extends circuitValue([UInt64, UInt64]) {}
+// we just have to make provable return a class, that's it!
+// class UInt64x2 extends provable([UInt64, UInt64]) {}
 class UInt64x2 extends CircuitValue {
   @prop 0: UInt64;
   @prop 1: UInt64;
@@ -225,7 +226,7 @@ class DexTokenHolder extends SmartContract {
 
       // TODO: getting the account update here w/o messing up the account updates structure is error-prone and non-obvious
       let tokenYUpdate = AccountUpdate.witnessTree(
-        circuitValue<null>(null),
+        provable(null),
         // need to walk two layers deeper, and need to respect the actual max number of child account updates
         [[undefined, undefined, undefined], undefined, undefined],
         () => {
@@ -321,7 +322,7 @@ class TokenContract extends SmartContract {
 
   // this is a very standardized deploy method. instead, we could also take the account update from a callback
   // => need callbacks for signatures
-  @method deployZkapp(address: PublicKey) {
+  @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
     let tokenId = this.experimental.token.id;
     let zkapp = Experimental.createChildAccountUpdate(
       this.self,
@@ -332,8 +333,7 @@ class TokenContract extends SmartContract {
       ...Permissions.default(),
       send: Permissions.proof(),
     });
-    // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
-    // AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
+    AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
     zkapp.sign();
   }
 

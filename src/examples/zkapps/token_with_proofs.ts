@@ -13,6 +13,7 @@ import {
   Experimental,
   Permissions,
   DeployArgs,
+  VerificationKey,
 } from 'snarkyjs';
 
 await isReady;
@@ -27,22 +28,23 @@ class TokenContract extends SmartContract {
     this.balance.addInPlace(UInt64.fromNumber(initialBalance));
   }
 
-  @method tokenDeploy(deployer: PrivateKey) {
+  @method tokenDeploy(deployer: PrivateKey, verificationKey: VerificationKey) {
     let address = deployer.toPublicKey();
     let tokenId = this.experimental.token.id;
-    let deployAccountUpdate = Experimental.createChildAccountUpdate(
+    let deployUpdate = Experimental.createChildAccountUpdate(
       this.self,
       address,
       tokenId
     );
-    AccountUpdate.setValue(deployAccountUpdate.update.permissions, {
+    AccountUpdate.setValue(deployUpdate.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
     });
-    // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
-    // AccountUpdate.setValue(deployAccountUpdate.update.verificationKey, verificationKey);
-    // deployAccountUpdate.balance.addInPlace(initialBalance);
-    deployAccountUpdate.sign(deployer);
+    AccountUpdate.setValue(
+      deployUpdate.update.verificationKey,
+      verificationKey
+    );
+    deployUpdate.sign(deployer);
   }
 
   @method mint(receiverAddress: PublicKey) {
@@ -145,7 +147,7 @@ tx.send();
 console.log('deploy zkAppB');
 tx = await Local.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer);
-  tokenZkApp.tokenDeploy(zkAppBKey);
+  tokenZkApp.tokenDeploy(zkAppBKey, ZkAppB._verificationKey!);
 });
 console.log('deploy zkAppB (proof)');
 await tx.prove();
@@ -154,7 +156,7 @@ tx.send();
 console.log('deploy zkAppC');
 tx = await Local.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer);
-  tokenZkApp.tokenDeploy(zkAppCKey);
+  tokenZkApp.tokenDeploy(zkAppCKey, ZkAppC._verificationKey!);
 });
 console.log('deploy zkAppC (proof)');
 await tx.prove();

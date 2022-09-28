@@ -15,7 +15,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/4f0dd40...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/ba688523...HEAD)
+
+### Added
+
+- `Struct`, a new primitive for declaring composite, SNARK-compatible types https://github.com/o1-labs/snarkyjs/pull/416
+  - With this, we also added a way to include auxiliary, non-field element data in composite types
+  - Added `VerificationKey`, which is a `Struct` with auxiliary data, to pass verification keys to a `@method`
+  - BREAKING CHANGE: Change names related to circuit types: `AsFieldsAndAux<T>` -> `Provable<T>`, `AsFieldElement<T>` -> `ProvablePure<T>`, `circuitValue` -> `provable`
+  - BREAKING CHANGE: Change all `ofFields` and `ofBits` methods on circuit types to `fromFields` and `fromBits`
+
+### Deprecated
+
+- `CircuitValue` deprecated in favor of `Struct` https://github.com/o1-labs/snarkyjs/pull/416
+
+## [0.6.0](https://github.com/o1-labs/snarkyjs/compare/f2ad423...ba688523)
 
 ### Added
 
@@ -25,10 +39,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Breaking change:** Rename the `Party` class to `AccountUpdate`. Also, rename other occurrences of "party" to "account update". https://github.com/o1-labs/snarkyjs/pull/393
-- **Breaking change:** Don't require the account address as input to `SmartContract.compile()`, `SmartContract.digest()` and `SmartContract.analyzeMethods()` https://github.com/o1-labs/snarkyjs/pull/406
+- BREAKING CHANGE: Rename the `Party` class to `AccountUpdate`. Also, rename other occurrences of "party" to "account update". https://github.com/o1-labs/snarkyjs/pull/393
+- BREAKING CHANGE: Don't require the account address as input to `SmartContract.compile()`, `SmartContract.digest()` and `SmartContract.analyzeMethods()` https://github.com/o1-labs/snarkyjs/pull/406
   - This works because the address / public key is now a variable in the method circuit; it used to be a constant
-- **Breaking change:** Move `ZkProgram` to `Experimental.ZkProgram`
+- BREAKING CHANGE: Move `ZkProgram` to `Experimental.ZkProgram`
+
+## [0.5.4](https://github.com/o1-labs/snarkyjs/compare/3461333...f2ad423)
+
+### Fixed
+
+- Running snarkyjs inside a web worker https://github.com/o1-labs/snarkyjs/issues/378
+
+## [0.5.3](https://github.com/o1-labs/snarkyjs/compare/4f0dd40...3461333)
+
+### Fixed
+
+- Infinite loop when compiling in web version https://github.com/o1-labs/snarkyjs/issues/379, by @maht0rz
 
 ## [0.5.2](https://github.com/o1-labs/snarkyjs/compare/55c8ea0...4f0dd40)
 

@@ -3,20 +3,45 @@ export {
   Bool,
   Group,
   Scalar,
-  AsFieldElements,
+  ProvablePure,
+  Provable,
   Circuit,
   CircuitMain,
   Poseidon,
-  VerificationKey,
   Keypair,
   Ledger,
   isReady,
   shutdown,
   Pickles,
   JSONValue,
-  InferAsFieldElements,
   Account as LedgerAccount,
 };
+
+/**
+ * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
+ *
+ * You will find this as the required input type in a few places in snarkyjs. One convenient way to create a `Provable<T>` is using `Struct`.
+ */
+declare interface Provable<T> {
+  toFields: (x: T) => Field[];
+  toAuxiliary: (x?: T) => any[];
+  fromFields: (x: Field[], aux: any[]) => T;
+  sizeInFields(): number;
+  check: (x: T) => void;
+}
+/**
+ * `ProvablePure<T>` is a special kind of `Provable<T>`, where the auxiliary data is empty. This means the type only consists of field elements,
+ * in that sense it is "pure".
+ *
+ * Examples where `ProvablePure<T>` is required are types of on-chain state, events and actions.
+ */
+declare interface ProvablePure<T> extends Provable<T> {
+  toFields: (x: T) => Field[];
+  toAuxiliary: (x?: T) => [];
+  fromFields: (x: Field[]) => T;
+  sizeInFields(): number;
+  check: (x: T) => void;
+}
 
 /**
  * An element of a finite field.
@@ -104,11 +129,9 @@ declare class Field {
    * Serialize the [[`Field`]] to a JSON string.
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
-  toJSON(): JSONValue;
+  toJSON(): string;
 
-  // TODO: Rename to size()
   sizeInFields(): number;
-  // TODO: Rename to toFields()
   toFields(): Field[];
 
   // TODO: Make these long form version
@@ -298,15 +321,11 @@ declare class Field {
   static toString(x: Field | number | string | boolean): string;
   */
 
-  // TODO: Ask izzy/matthew why we need this non-static version?
-  ofFields(fields: Field[]): Field;
-  // TODO: Rename to fromFields(fields: Field[])
-  // TODO: (bkase) Refactor AsFieldElements to not need these redundant static things
-  static ofFields(fields: Field[]): Field;
-  // TODO: Rename to size()
+  fromFields(fields: Field[]): Field;
+  static fromFields(fields: Field[]): Field;
   static sizeInFields(): number;
-  // TODO: Rename to toFields
   static toFields(x: Field): Field[];
+  static toAuxiliary(x?: Field): [];
 
   /*
   static assertEqual(
@@ -320,10 +339,8 @@ declare class Field {
   /**
    * Converts a bit array into a field element (little endian)
    * Fails if the field element cannot fit given too many bits.
-   *
-   * TODO: Rename to fromBits
    */
-  static ofBits(x: (Bool | boolean)[]): Field;
+  static fromBits(x: (Bool | boolean)[]): Field;
   /*
   static toBits(x: Field | number | string | boolean): Bool[];
   */
@@ -335,7 +352,7 @@ declare class Field {
   ): Bool;
   */
 
-  static toJSON(x: Field): JSONValue;
+  static toJSON(x: Field): string;
   static fromJSON(x: JSONValue): Field | null;
 
   static fromString(x: string): Field;
@@ -421,7 +438,7 @@ declare class Bool {
    * Serialize the [[`Bool`]] to a JSON string.
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
-  toJSON(): JSONValue;
+  toJSON(): boolean;
 
   /**
    * This converts the [[`Bool`]] to a javascript [[boolean]].
@@ -463,9 +480,10 @@ declare class Bool {
 
   static sizeInFields(): number;
   static toFields(x: Bool): Field[];
-  static ofFields(fields: Field[]): Bool;
+  static toAuxiliary(x?: Bool): [];
+  static fromFields(fields: Field[]): Bool;
 
-  static toJSON(x: Bool): JSONValue;
+  static toJSON(x: Bool): boolean;
   static fromJSON(x: JSONValue): Bool | null;
   static check(x: Bool): void;
 
@@ -473,19 +491,9 @@ declare class Bool {
   static toInput(x: Bool): { packed: [Field, number][] };
 }
 
-declare interface AsFieldElements<T> {
-  toFields: (x: T) => Field[];
-  ofFields: (x: Field[]) => T;
-  sizeInFields(): number;
-  check: (x: T) => void;
-}
-
-type InferAsFieldElements<T extends AsFieldElements<any>> =
-  T extends AsFieldElements<infer U> ? U : never;
-
 declare interface CircuitMain<W, P> {
-  snarkyWitnessTyp: AsFieldElements<W>;
-  snarkyPublicTyp: AsFieldElements<P>;
+  snarkyWitnessTyp: ProvablePure<W>;
+  snarkyPublicTyp: ProvablePure<P>;
   snarkyMain: (w: W, p: P) => void;
 }
 
@@ -522,7 +530,11 @@ declare class Circuit {
   static newVariable(f: () => Field | number | string | boolean): Field;
 
   // this convoluted generic typing is needed to give type inference enough flexibility
-  static witness<T, S extends AsFieldElements<T> = AsFieldElements<T>>(
+  static _witness<T, S extends Provable<T> = Provable<T>>(
+    ctor: S,
+    f: () => T
+  ): Field[];
+  static witness<T, S extends Provable<T> = Provable<T>>(
     ctor: S,
     f: () => T
   ): T;
@@ -537,10 +549,7 @@ declare class Circuit {
     result: T;
   };
 
-  static array<T>(
-    elementType: AsFieldElements<T>,
-    length: number
-  ): AsFieldElements<T[]>;
+  static array<T>(elementType: Provable<T>, length: number): Provable<T[]>;
 
   static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
 
@@ -550,7 +559,7 @@ declare class Circuit {
 
   static equal<T>(x: T, y: T): Bool;
 
-  static if<T>(b: Bool | boolean, ctor: AsFieldElements<T>, x: T, y: T): T;
+  static if<T>(b: Bool | boolean, ctor: ProvablePure<T>, x: T, y: T): T;
 
   static if<T>(b: Bool | boolean, x: T, y: T): T;
 
@@ -564,7 +573,7 @@ declare class Circuit {
    * x.assertEquals(2);
    * ```
    */
-  static switch<T, A extends AsFieldElements<T>>(
+  static switch<T, A extends Provable<T>>(
     mask: Bool[],
     type: A,
     values: T[]
@@ -616,15 +625,16 @@ declare class Scalar {
    * */
   div(y: Scalar): Scalar;
 
-  toJSON(): JSONValue;
+  toJSON(): string;
 
   static toFields(x: Scalar): Field[];
-  static ofFields(fields: Field[]): Scalar;
+  static toAuxiliary(x?: Scalar): [];
+  static fromFields(fields: Field[]): Scalar;
   static sizeInFields(): number;
-  static ofBits(bits: Bool[]): Scalar;
+  static fromBits(bits: Bool[]): Scalar;
   static random(): Scalar;
 
-  static toJSON(x: Scalar): JSONValue;
+  static toJSON(x: Scalar): string;
   static fromJSON(x: JSONValue): Scalar | null;
   static check(x: Scalar): void;
 }
@@ -632,7 +642,7 @@ declare class Scalar {
 // TODO: Add this when OCaml bindings are implemented:
 // declare class EndoScalar {
 //   static toFields(x: Scalar): Field[];
-//   static ofFields(fields: Field[]): Scalar;
+//   static fromFields(fields: Field[]): Scalar;
 //   static sizeInFields(): number;
 // }
 
@@ -649,7 +659,7 @@ declare class Group {
   assertEquals(y: Group): void;
   equals(y: Group): Bool;
 
-  toJSON(): JSONValue;
+  toJSON(): { x: string; y: string };
 
   constructor(args: {
     x: Field | number | string | boolean;
@@ -671,10 +681,11 @@ declare class Group {
   static equal(x: Group, y: Group): Bool;
 
   static toFields(x: Group): Field[];
-  static ofFields(fields: Field[]): Group;
+  static toAuxiliary(x?: Group): [];
+  static fromFields(fields: Field[]): Group;
   static sizeInFields(): number;
 
-  static toJSON(x: Group): JSONValue;
+  static toJSON(x: Group): { x: string; y: string };
   static fromJSON({
     x,
     y,

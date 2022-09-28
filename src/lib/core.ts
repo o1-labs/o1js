@@ -1,6 +1,11 @@
-import { Bool, Field } from '../snarky.js';
+import { Bool, Field, Scalar, Group } from '../snarky.js';
 
 export { Field, Bool };
+
+Field.toAuxiliary = () => [];
+Bool.toAuxiliary = () => [];
+Scalar.toAuxiliary = () => [];
+Group.toAuxiliary = () => [];
 
 Field.toInput = function (x) {
   return { fields: [x] };

@@ -1,10 +1,4 @@
-import {
-  Types,
-  AccountUpdate,
-  PrivateKey,
-  Circuit,
-  circuitValue,
-} from 'snarkyjs';
+import { Types, AccountUpdate, PrivateKey, Circuit, provable } from 'snarkyjs';
 
 let address = PrivateKey.random().toPublicKey();
 
@@ -23,7 +17,7 @@ let json = Types.AccountUpdate.toJSON(accountUpdateRaw);
 
 if (address.toBase58() !== json.body.publicKey) throw Error('fail');
 
-let Null = circuitValue<null>(null);
+let Null = provable(null);
 
 Circuit.runAndCheck(() => {
   let accountUpdateWitness = AccountUpdate.witness(Null, () => ({
@@ -48,7 +42,9 @@ let result = Circuit.constraintSystem(() => {
   Circuit.assertEqual(Types.AccountUpdate, accountUpdateWitness, accountUpdate);
 });
 
-console.log(`a accountUpdate has ${Types.AccountUpdate.sizeInFields()} fields`);
 console.log(
-  `witnessing a accountUpdate and comparing it to another one creates ${result.rows} rows`
+  `an account update has ${Types.AccountUpdate.sizeInFields()} fields`
+);
+console.log(
+  `witnessing an account update and comparing it to another one creates ${result.rows} rows`
 );

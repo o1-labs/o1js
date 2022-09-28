@@ -1,4 +1,4 @@
-import { AsFieldsAndAux } from './circuit_value.js';
+import { ProvableExtended } from './circuit_value.js';
 import { Poseidon as Poseidon_, Field } from '../snarky.js';
 import { inCheckedComputation } from './proof_system.js';
 
@@ -93,7 +93,7 @@ function prefixToField(prefix: string) {
       return bits;
     })
     .flat();
-  return Field.ofBits(bits);
+  return Field.fromBits(bits);
 }
 
 /**
@@ -139,16 +139,14 @@ const HashInput = {
 
 type TokenSymbol = { symbol: string; field: Field };
 
-const TokenSymbolPure: AsFieldsAndAux<TokenSymbol, string> = {
+const TokenSymbolPure: ProvableExtended<TokenSymbol, string> = {
   toFields({ field }) {
     return [field];
   },
   toAuxiliary(value) {
     return [value?.symbol ?? ''];
   },
-  fromFields(fields, aux) {
-    let field = fields.pop()!;
-    let symbol = aux.pop()!;
+  fromFields([field], [symbol]) {
     return { symbol, field };
   },
   sizeInFields() {
