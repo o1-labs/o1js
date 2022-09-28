@@ -70,7 +70,7 @@ describe('preconditions', () => {
         precondition().assertEquals(p as any);
       }
     });
-    await tx.send().wait();
+    await tx.send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
@@ -95,7 +95,7 @@ describe('preconditions', () => {
       }
       zkapp.sign(zkappKey);
     });
-    await tx.send().wait();
+    await tx.send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
@@ -109,7 +109,7 @@ describe('preconditions', () => {
       }
       zkapp.sign(zkappKey);
     });
-    await tx.send().wait();
+    await tx.send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
@@ -135,18 +135,20 @@ describe('preconditions', () => {
         UInt64.from(1e9 * 1e9);
       zkapp.sign(zkappKey);
     });
-    await tx.send().wait();
+    await tx.send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
 
+  // THINGS BELOW THIS FIAL?
   it('unsatisfied assertEquals should be rejected (numbers)', async () => {
     for (let precondition of implementedNumber) {
       let tx = await Mina.transaction(feePayer, () => {
         let p = precondition().get();
         precondition().assertEquals(p.add(1) as any);
       });
-      expect(() => tx.send()).toThrow(/unsatisfied/);
+
+      await expect(tx.send()).rejects.toThrow(/unsatisfied/);
     }
   });
 
@@ -156,7 +158,7 @@ describe('preconditions', () => {
         let p = precondition().get();
         precondition().assertEquals(p.not());
       });
-      expect(() => tx.send()).toThrow(/unsatisfied/);
+      await expect(tx.send()).rejects.toThrow(/unsatisfied/);
     }
   });
 
@@ -164,7 +166,7 @@ describe('preconditions', () => {
     let tx = await Mina.transaction(feePayer, () => {
       zkapp.account.delegate.assertEquals(PublicKey.empty());
     });
-    expect(() => tx.send()).toThrow(/unsatisfied/);
+    await expect(tx.send()).rejects.toThrow(/unsatisfied/);
   });
 
   it('unsatisfied assertBetween should be rejected', async () => {
@@ -173,7 +175,7 @@ describe('preconditions', () => {
         let p: any = precondition().get();
         precondition().assertBetween(p.add(20), p.add(30));
       });
-      expect(() => tx.send()).toThrow(/unsatisfied/);
+      await expect(tx.send()).rejects.toThrow(/unsatisfied/);
     }
   });
 

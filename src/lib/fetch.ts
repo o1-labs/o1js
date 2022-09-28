@@ -117,22 +117,6 @@ type FetchError = {
 const defaultTimeout = 30000;
 
 type AuthRequired = Types.Json.AuthRequired;
-function toPermission(p: AuthRequired): Permission {
-  switch (p) {
-    case 'None':
-      return Permission.none();
-    case 'Proof':
-      return Permission.proof();
-    case 'Signature':
-      return Permission.signature();
-    case 'Either':
-      return Permission.proofOrSignature();
-    case 'Impossible':
-      return Permission.impossible();
-    default:
-      throw Error('unexpected permission');
-  }
-}
 
 type FetchedAccount = {
   publicKey: string;
@@ -158,6 +142,7 @@ type FetchedAccount = {
   };
   delegateAccount?: { publicKey: string };
   sequenceEvents?: string[] | null;
+  verificationKey?: { verificationKey: string };
   // TODO: how to query provedState?
 };
 
@@ -173,6 +158,7 @@ type Account = {
   delegate?: PublicKey;
   sequenceState?: Field;
   provedState: Bool;
+  verificationKey?: string;
 };
 
 type FlexibleAccount = {
@@ -210,6 +196,9 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
     sequenceEvents
     token
     tokenSymbol
+    verificationKey {
+      verificationKey
+    }
   }
 }
 `;
@@ -230,6 +219,7 @@ function parseFetchedAccount({
   sequenceEvents,
   token,
   tokenSymbol,
+  verificationKey,
 }: Partial<FetchedAccount>): Partial<Account> {
   return {
     publicKey:
@@ -240,7 +230,10 @@ function parseFetchedAccount({
     permissions:
       permissions &&
       (Object.fromEntries(
-        Object.entries(permissions).map(([k, v]) => [k, toPermission(v)])
+        Object.entries(permissions).map(([k, v]) => [
+          k,
+          Permissions.fromString(v),
+        ])
       ) as unknown as Permissions),
     sequenceState:
       sequenceEvents != undefined ? Field(sequenceEvents[0]) : undefined,
@@ -252,6 +245,7 @@ function parseFetchedAccount({
       delegateAccount && PublicKey.fromBase58(delegateAccount.publicKey),
     tokenId: token !== undefined ? Ledger.fieldOfBase58(token) : undefined,
     tokenSymbol: tokenSymbol !== undefined ? tokenSymbol : undefined,
+    verificationKey: verificationKey?.verificationKey,
   };
 }
 

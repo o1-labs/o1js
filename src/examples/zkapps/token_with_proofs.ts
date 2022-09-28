@@ -142,7 +142,7 @@ tx = await Local.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer, { initialBalance });
   tokenZkApp.deploy({ zkappKey: tokenZkAppKey });
 });
-tx.send();
+await tx.send();
 
 console.log('deploy zkAppB');
 tx = await Local.transaction(feePayer, () => {
@@ -151,7 +151,7 @@ tx = await Local.transaction(feePayer, () => {
 });
 console.log('deploy zkAppB (proof)');
 await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('deploy zkAppC');
 tx = await Local.transaction(feePayer, () => {
@@ -160,14 +160,14 @@ tx = await Local.transaction(feePayer, () => {
 });
 console.log('deploy zkAppC (proof)');
 await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('mint token to zkAppB');
 tx = await Local.transaction(feePayer, () => {
   tokenZkApp.mint(zkAppBAddress);
 });
 await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('authorize send from zkAppB');
 tx = await Local.transaction(feePayer, () => {
@@ -182,7 +182,7 @@ tx = await Local.transaction(feePayer, () => {
 console.log('authorize send (proof)');
 await tx.prove();
 console.log('send (proof)');
-tx.send();
+await tx.send();
 
 console.log(
   `zkAppC's balance for tokenId: ${Ledger.fieldToBase58(tokenId)}`,
@@ -204,7 +204,7 @@ tx = await Local.transaction(feePayer, () => {
 console.log('authorize send (proof)');
 await tx.prove();
 console.log('send (proof)');
-tx.send();
+await tx.send();
 
 console.log(
   `tokenAccount1's balance for tokenId: ${Ledger.fieldToBase58(tokenId)}`,

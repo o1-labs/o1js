@@ -14,6 +14,7 @@ export {
   shutdown,
   Pickles,
   JSONValue,
+  Account as LedgerAccount,
 };
 
 /**
@@ -758,17 +759,17 @@ interface Account {
     provedState: boolean;
   };
   permissions: {
-    editState: string;
-    send: string;
-    receive: string;
-    setDelegate: string;
-    setPermissions: string;
-    setVerificationKey: string;
-    setZkappUri: string;
-    editSequenceState: string;
-    setTokenSymbol: string;
-    incrementNonce: string;
-    setVotingFor: string;
+    editState: AuthRequired;
+    send: AuthRequired;
+    receive: AuthRequired;
+    setDelegate: AuthRequired;
+    setPermissions: AuthRequired;
+    setVerificationKey: AuthRequired;
+    setZkappUri: AuthRequired;
+    editSequenceState: AuthRequired;
+    setTokenSymbol: AuthRequired;
+    incrementNonce: AuthRequired;
+    setVotingFor: AuthRequired;
   };
 }
 
@@ -949,3 +950,5 @@ type JSONValue =
   | null
   | Array<JSONValue>
   | { [key: string]: JSONValue };
+
+type AuthRequired = 'Signature' | 'Proof' | 'Either' | 'None' | 'Impossible';

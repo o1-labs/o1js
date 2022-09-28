@@ -53,7 +53,7 @@ tx = await Mina.transaction({ feePayerKey }, () => {
 });
 await tx.prove();
 tx.sign([keys.tokenX, keys.tokenY]);
-tx.send();
+await tx.send();
 
 console.log('deploy dex contracts...');
 tx = await Mina.transaction(feePayerKey, () => {
@@ -65,4 +65,4 @@ tx = await Mina.transaction(feePayerKey, () => {
 });
 await tx.prove();
 tx.sign([keys.dex]);
-tx.send();
+await tx.send();

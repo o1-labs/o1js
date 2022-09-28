@@ -63,6 +63,8 @@ let smartContractContext = Context.create<{
   selfUpdate: AccountUpdate;
 }>();
 
+type AuthRequired = Types.Json.AuthRequired;
+
 type AccountUpdateBody = Types.AccountUpdate['body'];
 type Update = AccountUpdateBody['update'];
 
@@ -257,6 +259,46 @@ let Permissions = {
     incrementNonce: Permissions.signature(),
     setVotingFor: Permission.signature(),
   }),
+
+  fromString: (permission: AuthRequired): Permission => {
+    switch (permission) {
+      case 'None':
+        return Permission.none();
+      case 'Either':
+        return Permission.proofOrSignature();
+      case 'Proof':
+        return Permission.proof();
+      case 'Signature':
+        return Permission.signature();
+      case 'Impossible':
+        return Permission.impossible();
+      default:
+        throw Error(
+          `Cannot parse invalid permission. ${permission} does not exist.`
+        );
+    }
+  },
+
+  fromJSON: (permissions: {
+    editState: AuthRequired;
+    send: AuthRequired;
+    receive: AuthRequired;
+    setDelegate: AuthRequired;
+    setPermissions: AuthRequired;
+    setVerificationKey: AuthRequired;
+    setZkappUri: AuthRequired;
+    editSequenceState: AuthRequired;
+    setTokenSymbol: AuthRequired;
+    incrementNonce: AuthRequired;
+    setVotingFor: AuthRequired;
+  }): Permissions => {
+    return Object.fromEntries(
+      Object.entries(permissions).map(([k, v]) => [
+        k,
+        Permissions.fromString(v),
+      ])
+    ) as unknown as Permissions;
+  },
 };
 
 type Event = Field[];
@@ -354,6 +396,7 @@ interface Body extends AccountUpdateBody {
   preconditions: Preconditions;
   useFullCommitment: Bool;
   incrementNonce: Bool;
+  authorizationKind: AccountUpdateBody['authorizationKind'];
 }
 const Body = {
   noUpdate(): Update {
@@ -405,6 +448,7 @@ const Body = {
       useFullCommitment: Bool(false),
       // this should be set to true if accountUpdates are signed
       incrementNonce: Bool(false),
+      authorizationKind: { isSigned: Bool(false), isProved: Bool(false) },
     };
   },
 
@@ -619,6 +663,12 @@ class AccountUpdate implements Types.AccountUpdate {
       accountUpdate.children.accountUpdates.map(AccountUpdate.clone);
     clonedAccountUpdate.parent = accountUpdate.parent;
     return clonedAccountUpdate;
+  }
+
+  static accountUpdateToPublicInput(
+    accountUpdate: AccountUpdate
+  ): ZkappPublicInput {
+    return accountUpdateToPublicInput(accountUpdate);
   }
 
   token() {
@@ -1324,10 +1374,14 @@ const Authorization = {
     signature?: Omit<LazySignature, 'kind'>
   ) {
     signature ??= {};
+    accountUpdate.body.authorizationKind.isSigned = Bool(true);
+    accountUpdate.body.authorizationKind.isProved = Bool(false);
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
   setLazyProof(accountUpdate: AccountUpdate, proof: Omit<LazyProof, 'kind'>) {
+    accountUpdate.body.authorizationKind.isSigned = Bool(false);
+    accountUpdate.body.authorizationKind.isProved = Bool(true);
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...proof, kind: 'lazy-proof' };
   },
