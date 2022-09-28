@@ -484,37 +484,52 @@ class Callback<Result> extends GenericArgument {
   methodIntf: MethodInterface & { returnType: Provable<Result> };
   args: any[];
 
+  result?: Result;
+  accountUpdate: AccountUpdate;
+
   static create<T extends SmartContract, K extends keyof T>(
     instance: T,
     methodName: K,
     args: T[K] extends (...args: infer A) => any ? A : never
   ) {
-    let callback: Callback<T[K] extends (...args: any) => infer R ? R : never> =
-      new this(instance, methodName, args);
+    let ZkappClass = instance.constructor as typeof SmartContract;
+    let methodIntf_ = (ZkappClass._methods ?? []).find(
+      (i) => i.methodName === methodName
+    );
+    if (methodIntf_ === undefined)
+      throw Error(
+        `Callback: could not find method ${ZkappClass.name}.${String(
+          methodName
+        )}`
+      );
+    let methodIntf = {
+      ...methodIntf_,
+      returnType: methodIntf_.returnType ?? provable(null),
+    };
+
+    // call the callback, leveraging composability (if this is inside a smart contract method)
+    // to prove to the outer circuit that we called it
+    let result = (instance[methodName] as Function)();
+    let accountUpdate = instance.self;
+
+    let callback = new Callback<any>({
+      instance,
+      methodIntf,
+      args,
+      result,
+      accountUpdate,
+      isEmpty: false,
+    });
+
     return callback;
   }
 
-  private constructor(instance: any, methodName: any, args: any[]) {
+  private constructor(self: Callback<any>) {
     super();
-    this.instance = instance;
-    let ZkappClass = instance.constructor as typeof SmartContract;
-    let methodIntf = (ZkappClass._methods ?? []).find(
-      (i) => i.methodName === methodName
-    );
-    if (methodIntf === undefined)
-      throw Error(
-        `Callback: could not find method ${ZkappClass.name}.${methodName}`
-      );
-    methodIntf = {
-      ...methodIntf,
-      returnType: methodIntf.returnType ?? provable(null),
-    };
-    this.methodIntf = methodIntf as any;
-    this.args = args;
+    Object.assign(this, self);
   }
 }
 
-// TODO: prove call signature in the outer circuit, just like for composability!
 function accountUpdateFromCallback(
   parentZkapp: SmartContract,
   childLayout: AccountUpdatesLayout,
@@ -525,21 +540,11 @@ function accountUpdateFromCallback(
     childLayout,
     () => {
       if (callback.isEmpty) throw Error('bug: empty callback');
-      let { instance, methodIntf, args } = callback;
-      let method = instance[
-        methodIntf.methodName as keyof SmartContract
-      ] as Function;
-      let accountUpdate = selfAccountUpdate(instance.address, instance.tokenId);
-      smartContractContext.runWith(
-        {
-          this: instance,
-          methodCallDepth: (smartContractContext()?.methodCallDepth ?? 0) + 1,
-          isCallback: true,
-          selfUpdate: accountUpdate,
-        },
-        () => method.apply(instance, args)
+      console.log(
+        'returning from witness block:',
+        callback.accountUpdate.toJSON()
       );
-      return { accountUpdate, result: null };
+      return { accountUpdate: callback.accountUpdate, result: null };
     },
     { skipCheck: true }
   );
