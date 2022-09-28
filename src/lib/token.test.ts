@@ -1,5 +1,4 @@
 import {
-  Field,
   shutdown,
   isReady,
   State,
@@ -112,13 +111,13 @@ async function setupLocal() {
   tokenAccount2Key = Local.testAccounts[2].privateKey;
   tokenAccount2 = tokenAccount2Key.toPublicKey();
 
-  await (
-    await Mina.transaction(feePayer, () => {
-      AccountUpdate.fundNewAccount(feePayer);
-      zkapp.init();
-      zkapp.deploy({ zkappKey });
-    })
-  ).send();
+  let tx = await Mina.transaction(feePayer, () => {
+    AccountUpdate.fundNewAccount(feePayer);
+    zkapp.init();
+    zkapp.deploy({ zkappKey });
+  });
+
+  await tx.send();
 }
 
 describe('Token', () => {
@@ -241,9 +240,10 @@ describe('Token', () => {
         })
       ).sign([tokenAccount1Key]);
 
-      expect(async () => await tx.send()).toThrow();
+      await expect(tx.send()).rejects.toThrow();
     });
   });
+
   describe('Send token', () => {
     beforeEach(async () => {
       await setupLocal();
@@ -297,7 +297,7 @@ describe('Token', () => {
         })
       ).sign([tokenAccount1Key]);
 
-      expect(async () => await tx.send()).toThrow();
+      await expect(tx.send()).rejects.toThrow();
     });
 
     it('should error if sender sends more tokens than they have', async () => {
@@ -320,7 +320,7 @@ describe('Token', () => {
         })
       ).sign([tokenAccount1Key]);
 
-      expect(async () => await tx.send()).toThrow();
+      await expect(tx.send()).rejects.toThrow();
     });
   });
 });
