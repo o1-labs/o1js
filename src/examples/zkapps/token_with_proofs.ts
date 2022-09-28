@@ -64,7 +64,7 @@ class TokenContract extends SmartContract {
   ) {
     let senderAccountUpdate = Experimental.accountUpdateFromCallback(
       this,
-      [null],
+      null,
       callback
     );
     let amount = UInt64.from(1_000);
@@ -205,7 +205,6 @@ console.log('authorize send (proof)');
 await tx.prove();
 console.log('send (proof)');
 tx.send();
-// console.log(tx.toJSON());
 
 console.log(
   `tokenAccount1's balance for tokenId: ${Ledger.fieldToBase58(tokenId)}`,

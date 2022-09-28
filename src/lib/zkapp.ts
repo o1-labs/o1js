@@ -535,24 +535,10 @@ function accountUpdateFromCallback(
   childLayout: AccountUpdatesLayout,
   callback: Callback<any>
 ) {
-  let { accountUpdate } = AccountUpdate.witnessTree(
-    provable(null),
-    childLayout,
-    () => {
-      if (callback.isEmpty) throw Error('bug: empty callback');
-      console.log(
-        'returning from witness block:',
-        callback.accountUpdate.toJSON()
-      );
-      return { accountUpdate: callback.accountUpdate, result: null };
-    },
-    { skipCheck: true }
-  );
-  // connect accountUpdate to our own. outside Circuit.witness so compile knows the right structure when hashing children
-  let parentAccountUpdate = parentZkapp.self;
-  accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
-  accountUpdate.parent = parentAccountUpdate;
-  parentAccountUpdate.children.accountUpdates.push(accountUpdate);
+  let accountUpdate = Circuit.witness(AccountUpdate, () => {
+    return callback.accountUpdate;
+  });
+  parentZkapp.experimental.authorize(accountUpdate, childLayout);
   return accountUpdate;
 }
 

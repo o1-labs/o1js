@@ -579,6 +579,7 @@ class Token {
 }
 
 class AccountUpdate implements Types.AccountUpdate {
+  id: number;
   body: Body;
   authorization: Control;
   lazyAuthorization: LazySignature | LazyProof | undefined = undefined;
@@ -593,6 +594,7 @@ class AccountUpdate implements Types.AccountUpdate {
 
   constructor(body: Body, authorization?: Control);
   constructor(body: Body, authorization = {} as Control, isSelf = false) {
+    this.id = Math.random();
     this.body = body;
     this.authorization = authorization;
     let { account, network } = Precondition.preconditions(this, isSelf);
@@ -604,7 +606,7 @@ class AccountUpdate implements Types.AccountUpdate {
   static clone(accountUpdate: AccountUpdate) {
     let body = cloneCircuitValue(accountUpdate.body);
     let authorization = cloneCircuitValue(accountUpdate.authorization);
-    let clonedAccountUpdate = new (AccountUpdate as any)(
+    let clonedAccountUpdate: AccountUpdate = new (AccountUpdate as any)(
       body,
       authorization,
       accountUpdate.isSelf
@@ -612,7 +614,9 @@ class AccountUpdate implements Types.AccountUpdate {
     clonedAccountUpdate.lazyAuthorization = cloneCircuitValue(
       accountUpdate.lazyAuthorization
     );
-    clonedAccountUpdate.children = accountUpdate.children;
+    clonedAccountUpdate.children.calls = accountUpdate.children.calls;
+    clonedAccountUpdate.children.accountUpdates =
+      accountUpdate.children.accountUpdates.map(AccountUpdate.clone);
     clonedAccountUpdate.parent = accountUpdate.parent;
     return clonedAccountUpdate;
   }
@@ -762,7 +766,7 @@ class AccountUpdate implements Types.AccountUpdate {
   authorize(childUpdate: AccountUpdate, layout?: AccountUpdatesLayout) {
     makeChildAccountUpdate(this, childUpdate);
     if (layout !== undefined) {
-      AccountUpdate.witnessChildren(childUpdate, layout);
+      AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
     }
   }
 
@@ -1019,21 +1023,28 @@ class AccountUpdate implements Types.AccountUpdate {
   static toAuxiliary(a?: AccountUpdate) {
     let aux = Types.AccountUpdate.toAuxiliary(a);
     let lazyAuthorization = a && cloneCircuitValue(a.lazyAuthorization);
-    let children = a?.children ?? { accountUpdates: [] };
+    let children: AccountUpdate['children'] = { accountUpdates: [] };
+    children.calls = a?.children.calls;
+    if (a) {
+      children.accountUpdates = a.children.accountUpdates.map(
+        AccountUpdate.clone
+      );
+    }
     let parent = a?.parent;
-    return [{ lazyAuthorization, children, parent }, aux];
+    let id = a?.id ?? 0;
+    return [{ lazyAuthorization, children, parent, id }, aux];
   }
   static toInput = Types.AccountUpdate.toInput;
   static toJSON = Types.AccountUpdate.toJSON;
   static check = Types.AccountUpdate.check;
   static fromFields(
     fields: Field[],
-    [{ lazyAuthorization, children, parent }, aux]: any[]
+    [{ lazyAuthorization, children, parent, id }, aux]: any[]
   ) {
     let rawUpdate = Types.AccountUpdate.fromFields(fields, aux);
     return Object.assign(
       new AccountUpdate(rawUpdate.body, rawUpdate.authorization),
-      { lazyAuthorization, children, parent }
+      { lazyAuthorization, children, parent, id }
     );
   }
 
@@ -1048,15 +1059,9 @@ class AccountUpdate implements Types.AccountUpdate {
       : AccountUpdate;
     let combinedType = provable({
       accountUpdate: accountUpdateType,
-      result: type,
+      result: type as any,
     });
-    return Circuit.witness(combinedType, () => {
-      let { accountUpdate, result } = compute();
-      return {
-        accountUpdate: toConstant(accountUpdateType, accountUpdate),
-        result,
-      };
-    });
+    return Circuit.witness(combinedType, compute);
   }
 
   static witnessChildren(
@@ -1117,12 +1122,13 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   toPretty() {
-    let jsonUpdate = toJSONEssential(
+    let jsonUpdate: Partial<Types.Json.AccountUpdate> = toJSONEssential(
       jsLayout.AccountUpdate as any,
       this,
       customTypes
     );
-    let body: Partial<Types.Json.AccountUpdate['body']> = jsonUpdate.body;
+    let body: Partial<Types.Json.AccountUpdate['body']> =
+      jsonUpdate.body as any;
     if (body.balanceChange?.magnitude === '0') delete body.balanceChange;
     if (body.tokenId === TokenId.toBase58(TokenId.default)) delete body.tokenId;
     if (body.caller === TokenId.toBase58(TokenId.default)) delete body.caller;
@@ -1153,7 +1159,8 @@ class AccountUpdate implements Types.AccountUpdate {
     if (body.update?.permissions) {
       body.update.permissions = JSON.stringify(body.update.permissions) as any;
     }
-    return jsonUpdate;
+    (body as any).authorization = jsonUpdate.authorization;
+    return body;
   }
 }
 
@@ -1239,7 +1246,7 @@ const CallForest = {
   ) {
     let isPredecessor = true;
     CallForest.forEach(updates, (otherUpdate) => {
-      if (otherUpdate === update) isPredecessor = false;
+      if (otherUpdate.id === update.id) isPredecessor = false;
       if (isPredecessor) callback(otherUpdate);
     });
   },
@@ -1256,21 +1263,21 @@ function createChildAccountUpdate(
 }
 function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
   child.body.callDepth = parent.body.callDepth + 1;
-  child.parent = parent;
   // add to our children if not already here
-  if (!parent.children.accountUpdates.find((update) => update === child)) {
+  if (
+    !parent.children.accountUpdates.find((update) => update.id === child.id)
+  ) {
     parent.children.accountUpdates.push(child);
   }
   // remove the child from the top level list / its current parent
   if (child.parent === undefined) {
     let topLevelUpdates = Mina.currentTransaction()?.accountUpdates;
-    let i = topLevelUpdates?.findIndex((update) => update === child);
+    let i = topLevelUpdates?.findIndex((update) => update.id === child.id);
     if (i !== undefined && i !== -1) {
       topLevelUpdates!.splice(i, 1);
     }
-  } else {
-    child.parent = undefined;
   }
+  child.parent = parent;
 }
 
 // authorization

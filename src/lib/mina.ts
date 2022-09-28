@@ -1,6 +1,6 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, Ledger } from '../snarky.js';
+import { Circuit, JSONValue, Ledger } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -53,6 +53,7 @@ interface TransactionId {
 interface Transaction {
   transaction: ZkappCommand;
   toJSON(): string;
+  toPretty(): JSONValue;
   toGraphqlQuery(): string;
   sign(additionalKeys?: PrivateKey[]): Transaction;
   prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;
@@ -184,6 +185,16 @@ function createTransaction(
     toJSON() {
       let json = zkappCommandToJson(self.transaction);
       return JSON.stringify(json);
+    },
+
+    toPretty() {
+      let feePayer = zkappCommandToJson(self.transaction).feePayer as any;
+      feePayer.body.authorization = feePayer.authorization.slice(0, 6) + '...';
+      if (feePayer.body.validUntil === null) delete feePayer.body.validUntil;
+      return [
+        feePayer.body,
+        ...self.transaction.accountUpdates.map((a) => a.toPretty()),
+      ];
     },
 
     toGraphqlQuery() {
