@@ -45,7 +45,6 @@ export {
   ZkappStateLength,
   Events,
   SequenceEvents,
-  accountUpdateToPublicInput,
   TokenId,
   Token,
   CallForest,
@@ -1360,12 +1359,6 @@ let ZkappPublicInput = provablePure(
   { customObjectKeys: ['accountUpdate', 'calls'] }
 );
 
-function accountUpdateToPublicInput(self: AccountUpdate): ZkappPublicInput {
-  let accountUpdate = self.hash();
-  let calls = CallForest.hashChildren(self);
-  return { accountUpdate, calls };
-}
-
 async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
   zkappCommand: ZkappCommandProved;
   proofs: (Proof<ZkappPublicInput> | undefined)[];
@@ -1390,7 +1383,7 @@ async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
       memoized,
       blindingValue,
     } = accountUpdate.lazyAuthorization;
-    let publicInput = accountUpdateToPublicInput(accountUpdate);
+    let publicInput = accountUpdate.toPublicInput();
     let publicInputFields = ZkappPublicInput.toFields(publicInput);
     if (ZkappClass._provers === undefined)
       throw Error(

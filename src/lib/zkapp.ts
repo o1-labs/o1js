@@ -28,7 +28,6 @@ import {
   ZkappPublicInput,
   Events,
   SequenceEvents,
-  accountUpdateToPublicInput,
   Authorization,
   CallForest,
   TokenId,
@@ -437,7 +436,7 @@ function checkPublicInput(
   { accountUpdate, calls }: ZkappPublicInput,
   self: AccountUpdate
 ) {
-  let otherInput = accountUpdateToPublicInput(self);
+  let otherInput = self.toPublicInput();
   accountUpdate.assertEquals(otherInput.accountUpdate);
   calls.assertEquals(otherInput.calls);
 }
