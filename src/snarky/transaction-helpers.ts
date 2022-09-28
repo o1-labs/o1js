@@ -1,13 +1,16 @@
 import { TypeMap } from './transaction-leaves.js';
 import { Field, Bool, Circuit } from '../snarky.js';
-import { circuitArray, AsFieldsAndAux } from '../lib/circuit_value.js';
+import { circuitArray, ProvableExtended } from '../lib/circuit_value.js';
 import { HashInput } from '../lib/hash.js';
 
-export { asFieldsAndAux, Layout, AsFieldsAndAux };
+export { provableFromLayout, Layout, ProvableExtended };
 
-type CustomTypes = Record<string, AsFieldsAndAux<any, any>>;
+type CustomTypes = Record<string, ProvableExtended<any, any>>;
 
-function asFieldsAndAux<T, TJson>(typeData: Layout, customTypes: CustomTypes) {
+function provableFromLayout<T, TJson>(
+  typeData: Layout,
+  customTypes: CustomTypes
+) {
   return {
     sizeInFields(): number {
       return sizeInFields(typeData, customTypes);
@@ -104,18 +107,17 @@ function toAuxiliary(typeData: Layout, value: any, customTypes: CustomTypes) {
       map(type, value) {
         return type.toAuxiliary(value);
       },
-      reduceArray(array, { staticLength }) {
-        let length = staticLength ?? array.length;
-        return [length].concat(array.flat());
+      reduceArray(array) {
+        return array;
       },
       reduceObject(keys, object) {
-        return keys.map((key) => object[key]).flat();
+        return keys.map((key) => object[key]);
       },
-      reduceFlaggedOption({ isSome, value }) {
-        return [isSome, value].flat();
+      reduceFlaggedOption({ value }) {
+        return value;
       },
       reduceOrUndefined(value) {
-        return value === undefined ? [false] : [true].concat(value);
+        return value === undefined ? [false] : [true, value];
       },
       customTypes,
     },
@@ -152,20 +154,6 @@ function fromFields(
   fields: Field[],
   aux: any[],
   customTypes: CustomTypes
-) {
-  return fromFieldsReversed(
-    typeData,
-    [...fields].reverse(),
-    [...aux].reverse(),
-    customTypes
-  );
-}
-
-function fromFieldsReversed(
-  typeData: Layout,
-  fields: Field[],
-  aux: any[],
-  customTypes: CustomTypes
 ): any {
   let { checkedTypeName } = typeData;
   if (checkedTypeName) {
@@ -173,25 +161,34 @@ function fromFieldsReversed(
     return customTypes[checkedTypeName].fromFields(fields, aux);
   }
   if (typeData.type === 'array') {
+    let size = sizeInFields(typeData.inner, customTypes);
+    let length = aux.length;
     let value = [];
-    let length = aux.pop()!;
-    for (let i = 0; i < length; i++) {
-      value[i] = fromFieldsReversed(typeData.inner, fields, aux, customTypes);
+    for (let i = 0, offset = 0; i < length; i++, offset += size) {
+      value[i] = fromFields(
+        typeData.inner,
+        fields.slice(offset, offset + size),
+        aux[i],
+        customTypes
+      );
     }
     return value;
   }
   if (typeData.type === 'option') {
     let { optionType, inner } = typeData;
     switch (optionType) {
-      case 'flaggedOption':
-        let isSome = Bool.Unsafe.ofField(fields.pop()!);
-        let value = fromFieldsReversed(inner, fields, aux, customTypes);
+      case 'flaggedOption': {
+        let [first, ...rest] = fields;
+        let isSome = Bool.Unsafe.ofField(first);
+        let value = fromFields(inner, rest, aux, customTypes);
         return { isSome, value };
-      case 'orUndefined':
-        let isDefined = aux.pop()!;
+      }
+      case 'orUndefined': {
+        let [isDefined, value] = aux;
         return isDefined
-          ? fromFieldsReversed(inner, fields, aux, customTypes)
+          ? fromFields(inner, fields, value, customTypes)
           : undefined;
+      }
       default:
         throw Error('bug');
     }
@@ -199,8 +196,17 @@ function fromFieldsReversed(
   if (typeData.type === 'object') {
     let { name, keys, entries } = typeData;
     let values: Record<string, any> = {};
-    for (let key of keys) {
-      values[key] = fromFieldsReversed(entries[key], fields, aux, customTypes);
+    let offset = 0;
+    for (let i = 0; i < keys.length; i++) {
+      let typeEntry = entries[keys[i]];
+      let size = sizeInFields(typeEntry, customTypes);
+      values[keys[i]] = fromFields(
+        typeEntry,
+        fields.slice(offset, offset + size),
+        aux[i],
+        customTypes
+      );
+      offset += size;
     }
     return values;
   }
@@ -265,7 +271,7 @@ function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
 
 type FoldSpec<T, R> = {
   customTypes: CustomTypes;
-  map: (type: AsFieldsAndAux<any, any>, value?: T) => R;
+  map: (type: ProvableExtended<any, any>, value?: T) => R;
   reduceArray: (array: R[], typeData: ArrayLayout) => R;
   reduceObject: (keys: string[], record: Record<string, R>) => R;
   reduceFlaggedOption: (option: { isSome: R; value: R }) => R;
@@ -283,8 +289,11 @@ function layoutFold<T, R>(
     return spec.map(spec.customTypes[checkedTypeName], value);
   }
   if (typeData.type === 'array') {
-    let v: T[] | undefined = value as any;
-    let array = v?.map((x: T) => layoutFold(spec, typeData.inner, x)) ?? [];
+    let v: T[] | undefined[] | undefined = value as any;
+    if (typeData.staticLength != null && v === undefined) {
+      v = Array<undefined>(typeData.staticLength).fill(undefined);
+    }
+    let array = v?.map((x) => layoutFold(spec, typeData.inner, x)) ?? [];
     return spec.reduceArray(array, typeData);
   }
   if (typeData.type === 'option') {

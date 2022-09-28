@@ -10,19 +10,18 @@ import {
   AccountUpdate,
   isReady,
   Permissions,
-  circuitValue,
   Bool,
   Circuit,
+  Struct,
 } from 'snarkyjs';
 import assert from 'node:assert/strict';
 
 await isReady;
 
-type MaybeIncrement = { isIncrement: Bool; otherData: Field };
-const MaybeIncrement = circuitValue<MaybeIncrement>({
+class MaybeIncrement extends Struct({
   isIncrement: Bool,
   otherData: Field,
-});
+}) {}
 const INCREMENT = { isIncrement: Bool(true), otherData: Field.zero };
 
 class CounterZkapp extends SmartContract {

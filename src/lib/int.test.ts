@@ -186,13 +186,13 @@ describe('int', () => {
         ]);
       });
     });
-    describe('ofFields', () => {
-      it('ofFields([1, 1]) should be the same as Int64.one', () => {
-        expect(Int64.ofFields([Field.one, Field.one])).toEqual(Int64.one);
+    describe('fromFields', () => {
+      it('fromFields([1, 1]) should be the same as Int64.one', () => {
+        expect(Int64.fromFields([Field.one, Field.one])).toEqual(Int64.one);
       });
 
-      it('ofFields(2^53-1) should be the same as Field(2^53-1)', () => {
-        expect(Int64.ofFields([Field(String(NUMBERMAX)), Field.one])).toEqual(
+      it('fromFields(2^53-1) should be the same as Field(2^53-1)', () => {
+        expect(Int64.fromFields([Field(String(NUMBERMAX)), Field.one])).toEqual(
           Int64.fromNumber(NUMBERMAX)
         );
       });

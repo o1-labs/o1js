@@ -1,4 +1,4 @@
-import { Field, AsFieldElements } from '../snarky.js';
+import { Field, ProvablePure } from '../snarky.js';
 import { circuitArray, witness } from './circuit_value.js';
 import { AccountUpdate, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
@@ -36,7 +36,7 @@ function State<A>(): State<A> {
  * ```
  *
  */
-function state<A>(stateType: AsFieldElements<A>) {
+function state<A>(stateType: ProvablePure<A>) {
   return function (
     target: SmartContract & { constructor: any },
     key: string,
@@ -114,7 +114,7 @@ function state<A>(stateType: AsFieldElements<A>) {
  */
 function declareState<T extends typeof SmartContract>(
   SmartContract: T,
-  states: Record<string, AsFieldElements<unknown>>
+  states: Record<string, ProvablePure<unknown>>
 ) {
   for (let key in states) {
     let CircuitValue = states[key];
@@ -125,7 +125,7 @@ function declareState<T extends typeof SmartContract>(
 // metadata defined by @state, which link state to a particular SmartContract
 type StateAttachedContract<A> = {
   key: string;
-  stateType: AsFieldElements<A>;
+  stateType: ProvablePure<A>;
   instance: SmartContract;
   class: typeof SmartContract;
   wasRead: boolean;
@@ -230,7 +230,7 @@ function createState<T>(): InternalStateType<T> {
         }
       });
 
-      let state = this._contract.stateType.ofFields(stateAsFields);
+      let state = this._contract.stateType.fromFields(stateAsFields);
       this._contract.stateType.check?.(state);
       this._contract.wasRead = true;
       this._contract.cachedVariable = state;
@@ -262,7 +262,7 @@ function createState<T>(): InternalStateType<T> {
           stateAsFields.push(account.appState[layout.offset + i]);
         }
       }
-      return this._contract.stateType.ofFields(stateAsFields);
+      return this._contract.stateType.fromFields(stateAsFields);
     },
   };
 }
@@ -299,7 +299,7 @@ function getLayout(scClass: typeof SmartContract) {
 const smartContracts = new WeakMap<
   typeof SmartContract,
   {
-    states: [string, AsFieldElements<any>][];
+    states: [string, ProvablePure<any>][];
     layout: Map<string, { offset: number; length: number }> | undefined;
   }
 >();
