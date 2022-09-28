@@ -378,13 +378,20 @@ function balanceSum(accountUpdate: AccountUpdate, tokenId: Field) {
 }
 
 /**
- * Random accounts keys, labeled by the input strings
+ * Predefined accounts keys, labeled by the input strings. Useful for testing/debugging with consistent keys.
  */
 function randomAccounts<K extends string>(
   ...names: [K, ...K[]]
 ): { keys: Record<K, PrivateKey>; addresses: Record<K, PublicKey> } {
+  let savedKeys = [
+    'EKFV5T1zG13ksXKF4kDFx4bew2w4t27V3Hx1VTsbb66AKYVGL1Eu',
+    'EKFE2UKugtoVMnGTxTakF2M9wwL9sp4zrxSLhuzSn32ZAYuiKh5R',
+    'EKEn2s1jSNADuC8CmvCQP5CYMSSoNtx5o65H7Lahqkqp2AVdsd12',
+    'EKE21kTAb37bekHbLvQpz2kvDYeKG4hB21x8VTQCbhy6m2BjFuxA',
+  ];
+
   let keys = Object.fromEntries(
-    names.map((name) => [name, PrivateKey.random()])
+    names.map((name, idx) => [name, PrivateKey.fromBase58(savedKeys[idx])])
   ) as Record<K, PrivateKey>;
   let addresses = Object.fromEntries(
     names.map((name) => [name, keys[name].toPublicKey()])
