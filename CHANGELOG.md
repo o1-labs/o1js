@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - With this, we also added a way to include auxiliary, non-field element data in composite types
   - Added `VerificationKey`, which is a `Struct` with auxiliary data, to pass verification keys to a `@method`
   - BREAKING CHANGE: Change names related to circuit types: `AsFieldsAndAux<T>` -> `Provable<T>`, `AsFieldElement<T>` -> `ProvablePure<T>`, `circuitValue` -> `provable`
+  - BREAKING CHANGE: Change all `ofFields` and `ofBits` methods on circuit types to `fromFields` and `fromBits`
 
 ### Deprecated
 
