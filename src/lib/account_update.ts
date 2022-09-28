@@ -739,30 +739,31 @@ class AccountUpdate implements Types.AccountUpdate {
     to: PublicKey | AccountUpdate;
     amount: number | bigint | UInt64;
   }) {
-    let accountUpdate = this;
-    let receiverAccountUpdate;
+    let receiver;
     if (to instanceof AccountUpdate) {
-      receiverAccountUpdate = to;
-      receiverAccountUpdate.body.tokenId.assertEquals(
-        accountUpdate.body.tokenId
-      );
+      receiver = to;
+      receiver.body.tokenId.assertEquals(this.body.tokenId);
     } else {
-      receiverAccountUpdate = AccountUpdate.defaultAccountUpdate(
-        to,
-        accountUpdate.body.tokenId
-      );
+      receiver = AccountUpdate.defaultAccountUpdate(to, this.body.tokenId);
     }
-    makeChildAccountUpdate(accountUpdate, receiverAccountUpdate);
+    this.authorize(receiver);
 
     // Sub the amount from the sender's account
-    accountUpdate.body.balanceChange = Int64.fromObject(
-      accountUpdate.body.balanceChange
-    ).sub(amount);
+    this.body.balanceChange = Int64.fromObject(this.body.balanceChange).sub(
+      amount
+    );
 
     // Add the amount to send to the receiver's account
-    receiverAccountUpdate.body.balanceChange = Int64.fromObject(
-      receiverAccountUpdate.body.balanceChange
+    receiver.body.balanceChange = Int64.fromObject(
+      receiver.body.balanceChange
     ).add(amount);
+  }
+
+  authorize(childUpdate: AccountUpdate, layout?: AccountUpdatesLayout) {
+    makeChildAccountUpdate(this, childUpdate);
+    if (layout !== undefined) {
+      AccountUpdate.witnessChildren(childUpdate, layout);
+    }
   }
 
   get balance() {
@@ -962,10 +963,7 @@ class AccountUpdate implements Types.AccountUpdate {
   static create(publicKey: PublicKey, tokenId?: Field) {
     let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey, tokenId);
     if (smartContractContext.has()) {
-      makeChildAccountUpdate(
-        smartContractContext.get().this.self,
-        accountUpdate
-      );
+      smartContractContext.get().this.self.authorize(accountUpdate);
     } else {
       Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
     }
@@ -1061,29 +1059,18 @@ class AccountUpdate implements Types.AccountUpdate {
     });
   }
 
-  /**
-   * Like AccountUpdate.witness, but lets you specify a layout for the accountUpdate's children,
-   * which also get witnessed
-   */
-  static witnessTree<T>(
-    resultType: Provable<T>,
+  static witnessChildren(
+    accountUpdate: AccountUpdate,
     childLayout: AccountUpdatesLayout,
-    compute: () => { accountUpdate: AccountUpdate; result: T },
     options?: { skipCheck: boolean }
   ) {
-    // witness the root accountUpdate
-    let { accountUpdate, result } = AccountUpdate.witness(
-      resultType,
-      compute,
-      options
-    );
-    // stop early if children === undefined
-    if (childLayout === undefined) {
+    // just witness children's hash if childLayout === null
+    if (childLayout === null) {
       let calls = Circuit.witness(Field, () =>
         CallForest.hashChildren(accountUpdate)
       );
       accountUpdate.children.calls = calls;
-      return { accountUpdate, result };
+      return;
     }
     let childArray: AccountUpdatesLayout[] =
       typeof childLayout === 'number'
@@ -1106,6 +1093,26 @@ class AccountUpdate implements Types.AccountUpdate {
     if (n === 0) {
       accountUpdate.children.calls.assertEquals(CallForest.emptyHash());
     }
+  }
+
+  /**
+   * Like AccountUpdate.witness, but lets you specify a layout for the accountUpdate's children,
+   * which also get witnessed
+   */
+  static witnessTree<T>(
+    resultType: Provable<T>,
+    childLayout: AccountUpdatesLayout,
+    compute: () => { accountUpdate: AccountUpdate; result: T },
+    options?: { skipCheck: boolean }
+  ) {
+    // witness the root accountUpdate
+    let { accountUpdate, result } = AccountUpdate.witness(
+      resultType,
+      compute,
+      options
+    );
+    // witness child account updates
+    AccountUpdate.witnessChildren(accountUpdate, childLayout, options);
     return { accountUpdate, result };
   }
 }
@@ -1116,20 +1123,20 @@ class AccountUpdate implements Types.AccountUpdate {
  * An accountUpdates list is represented by either
  * - an array, whose entries are accountUpdates, each represented by their list of children
  * - a positive integer, which gives the number of top-level accountUpdates, which aren't allowed to have further children
- * - `undefined`, which means just the `calls` (call forest hash) is witnessed, allowing arbitrary accountUpdates but no access to them in the circuit
+ * - `null`, which means just the `calls` (call forest hash) is witnessed, allowing arbitrary accountUpdates but no access to them in the circuit
  *
  * Examples:
  * ```ts
- * []              // an empty accountUpdates list
- * 0               // same as []
- * [0]             // a list of one accountUpdate, which doesn't have children
- * 1               // same as [0]
- * 2               // same as [0, 0]
- * undefined       // an arbitrary list of accountUpdates
- * [undefined, 1]  // a list of 2 accountUpdates, of which one has arbitrary children and the other has exactly 1 child
+ * []         // an empty accountUpdates list
+ * 0          // same as []
+ * [0]        // a list of one accountUpdate, which doesn't have children
+ * 1          // same as [0]
+ * 2          // same as [0, 0]
+ * null       // an arbitrary list of accountUpdates
+ * [null, 1]  // a list of 2 accountUpdates, of which one has arbitrary children and the other has exactly 1 child
  * ```
  */
-type AccountUpdatesLayout = number | undefined | AccountUpdatesLayout[];
+type AccountUpdatesLayout = number | null | AccountUpdatesLayout[];
 
 const CallForest = {
   // similar to Mina_base.ZkappCommand.Call_forest.to_account_updates_list
@@ -1210,12 +1217,19 @@ function createChildAccountUpdate(
 function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
   child.body.callDepth = parent.body.callDepth + 1;
   child.parent = parent;
-  if (
-    !parent.children.accountUpdates.find(
-      (accountUpdate) => accountUpdate === child
-    )
-  ) {
+  // add to our children if not already here
+  if (!parent.children.accountUpdates.find((update) => update === child)) {
     parent.children.accountUpdates.push(child);
+  }
+  // remove the child from the top level list / its current parent
+  if (child.parent === undefined) {
+    let topLevelUpdates = Mina.currentTransaction()?.accountUpdates;
+    let i = topLevelUpdates?.findIndex((update) => update === child);
+    if (i !== undefined && i !== -1) {
+      topLevelUpdates!.splice(i, 1);
+    }
+  } else {
+    child.parent = undefined;
   }
 }
 

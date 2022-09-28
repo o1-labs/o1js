@@ -735,6 +735,9 @@ class SmartContract {
       get token() {
         return zkapp.self.token();
       },
+      authorize(childUpdate: AccountUpdate, layout?: AccountUpdatesLayout) {
+        zkapp.self.authorize(childUpdate, layout);
+      },
     };
   }
 
