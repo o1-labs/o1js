@@ -63,7 +63,7 @@ export async function testSet(
     );
     voting.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
   });
-  tx.send();
+  await tx.send();
 
   console.log('all contracts deployed');
 

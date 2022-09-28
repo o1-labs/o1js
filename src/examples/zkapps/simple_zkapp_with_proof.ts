@@ -86,14 +86,14 @@ let tx = await Mina.transaction(feePayerKey, () => {
   AccountUpdate.fundNewAccount(feePayerKey);
   zkapp.deploy({ zkappKey });
 });
-tx.send();
+await tx.send();
 
 console.log('init');
 tx = await Mina.transaction(feePayerKey, () => {
   zkapp.init(trivialProof!);
 });
 let [proof] = await tx.prove();
-tx.send();
+await tx.send();
 
 proof = await testJsonRoundtripAndVerify(
   NotSoSimpleZkapp.Proof(),
@@ -108,7 +108,7 @@ tx = await Mina.transaction(feePayerKey, () => {
   zkapp.update(Field(3), proof!, trivialProof!);
 });
 [proof] = await tx.prove();
-tx.send();
+await tx.send();
 
 proof = await testJsonRoundtripAndVerify(
   NotSoSimpleZkapp.Proof(),
@@ -123,7 +123,7 @@ tx = await Mina.transaction(feePayerKey, () => {
   zkapp.update(Field(3), proof!, trivialProof!);
 });
 [proof] = await tx.prove();
-tx.send();
+await tx.send();
 
 proof = await testJsonRoundtripAndVerify(
   NotSoSimpleZkapp.Proof(),

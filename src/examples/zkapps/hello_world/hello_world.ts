@@ -24,7 +24,6 @@ export class HelloWorld extends SmartContract {
     this.setPermissions({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
-      setDelegate: Permissions.proofOrSignature();
     });
     this.x.set(Field(2));
 

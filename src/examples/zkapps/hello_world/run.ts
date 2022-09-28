@@ -24,7 +24,7 @@ txn = await Mina.transaction(feePayer1, () => {
   zkAppInstance.deploy({ zkappKey: zkAppPrivateKey });
 });
 
-txn.send();
+await txn.send();
 
 const initialState = Mina.getAccount(zkAppAddress).appState?.[0].toString();
 
@@ -42,7 +42,7 @@ txn = await Mina.transaction(feePayer1, () => {
   zkAppInstance.sign(zkAppPrivateKey);
 });
 
-txn.send();
+await txn.send();
 
 currentState = Mina.getAccount(zkAppAddress).appState?.[0].toString();
 
@@ -68,7 +68,7 @@ try {
     zkAppInstance.sign(zkAppPrivateKey);
   });
 
-  txn.send();
+  await txn.send();
 } catch (err: any) {
   handleError(err, 'Account_delegate_precondition_unsatisfied');
 }
@@ -90,7 +90,7 @@ try {
     zkAppInstance.sign(zkAppPrivateKey);
   });
 
-  txn.send();
+  await txn.send();
 } catch (err: any) {
   handleError(err, 'assert_equal');
 }
@@ -115,7 +115,7 @@ try {
     zkAppInstance.sign(zkAppPrivateKey);
   });
 
-  txn.send();
+  await txn.send();
 } catch (err: any) {
   handleError(err, 'assert_equal');
 }
@@ -132,7 +132,7 @@ txn2 = await Mina.transaction({ feePayerKey: feePayer2, fee: '2' }, () => {
   zkAppInstance.sign(zkAppPrivateKey);
 });
 
-txn2.send();
+await txn2.send();
 
 currentState = Mina.getAccount(zkAppAddress).appState?.[0].toString();
 
@@ -150,7 +150,7 @@ txn3 = await Mina.transaction({ feePayerKey: feePayer3, fee: '1' }, () => {
   zkAppInstance.sign(zkAppPrivateKey);
 });
 
-txn3.send();
+await txn3.send();
 
 currentState = Mina.getAccount(zkAppAddress).appState?.[0].toString();
 
@@ -171,7 +171,7 @@ try {
     zkAppInstance.sign(zkAppPrivateKey);
   });
 
-  txn4.send();
+  await txn4.send();
 } catch (err: any) {
   handleError(err, 'assert_equal');
 }
