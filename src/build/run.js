@@ -7,6 +7,7 @@ let {
   main,
   default: runDefault,
   keep,
+  bundle,
 } = minimist(process.argv.slice(2));
 
 if (!filePath) {
@@ -14,8 +15,7 @@ if (!filePath) {
 npx snarky-run [file]`);
   process.exit(0);
 }
-
-try {
+if (!bundle) {
   let absPath = await buildOne(filePath);
   console.log(`running ${absPath}`);
   let module = await import(absPath);
@@ -23,7 +23,7 @@ try {
   if (runDefault) await module.default();
   let { shutdown } = await import('../../dist/node/index.js');
   shutdown();
-} catch {
+} else {
   let { isReady, shutdown } = await import('../../dist/node/index.js');
   await isReady;
   let module = await buildAndImport(filePath, { keepFile: !!keep });
