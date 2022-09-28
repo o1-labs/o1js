@@ -354,6 +354,18 @@ class TokenContract extends SmartContract {
   @method transfer(from: PublicKey, to: PublicKey, value: UInt64) {
     this.experimental.token.send({ from, to, amount: value });
   }
+
+  @method getBalance(publicKey: PublicKey): UInt64 {
+    let accountUpdate = AccountUpdate.create(
+      publicKey,
+      this.experimental.token.id
+    );
+    let balance = accountUpdate.account.balance.get();
+    accountUpdate.account.balance.assertEquals(
+      accountUpdate.account.balance.get()
+    );
+    return balance;
+  }
 }
 
 await isReady;
