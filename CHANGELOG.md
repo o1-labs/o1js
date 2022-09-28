@@ -15,7 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/4f0dd40...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/ba688523...HEAD)
+
+(no unreleased changes yet)
+
+## [0.6.0](https://github.com/o1-labs/snarkyjs/compare/f2ad423...ba688523)
 
 ### Added
 
@@ -29,6 +33,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking change:** Don't require the account address as input to `SmartContract.compile()`, `SmartContract.digest()` and `SmartContract.analyzeMethods()` https://github.com/o1-labs/snarkyjs/pull/406
   - This works because the address / public key is now a variable in the method circuit; it used to be a constant
 - **Breaking change:** Move `ZkProgram` to `Experimental.ZkProgram`
+
+## [0.5.4](https://github.com/o1-labs/snarkyjs/compare/3461333...f2ad423)
+
+### Fixed
+
+- Running snarkyjs inside a web worker https://github.com/o1-labs/snarkyjs/issues/378
+
+## [0.5.3](https://github.com/o1-labs/snarkyjs/compare/4f0dd40...3461333)
+
+### Fixed
+
+- Infinite loop when compiling in web version https://github.com/o1-labs/snarkyjs/issues/379, by @maht0rz
 
 ## [0.5.2](https://github.com/o1-labs/snarkyjs/compare/55c8ea0...4f0dd40)
 
