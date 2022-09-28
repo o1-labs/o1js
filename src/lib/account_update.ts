@@ -353,6 +353,7 @@ interface Body extends AccountUpdateBody {
   preconditions: Preconditions;
   useFullCommitment: Bool;
   incrementNonce: Bool;
+  authorizationKind: AccountUpdateBody['authorizationKind'];
 }
 const Body = {
   noUpdate(): Update {
@@ -404,6 +405,7 @@ const Body = {
       useFullCommitment: Bool(false),
       // this should be set to true if accountUpdates are signed
       incrementNonce: Bool(false),
+      authorizationKind: { isSigned: Bool(false), isProved: Bool(false) },
     };
   },
 
@@ -1270,10 +1272,14 @@ const Authorization = {
     signature?: Omit<LazySignature, 'kind'>
   ) {
     signature ??= {};
+    accountUpdate.body.authorizationKind.isSigned = Bool(true);
+    accountUpdate.body.authorizationKind.isProved = Bool(false);
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
   setLazyProof(accountUpdate: AccountUpdate, proof: Omit<LazyProof, 'kind'>) {
+    accountUpdate.body.authorizationKind.isSigned = Bool(false);
+    accountUpdate.body.authorizationKind.isProved = Bool(true);
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...proof, kind: 'lazy-proof' };
   },

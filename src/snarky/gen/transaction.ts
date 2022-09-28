@@ -10,6 +10,7 @@ import {
   AuthRequired,
   TokenSymbol,
   Sign,
+  AuthorizationKind,
   StringWithHash,
   Events,
   SequenceEvents,
@@ -246,6 +247,7 @@ type ZkappCommand = {
       };
       useFullCommitment: Bool;
       caller: TokenId;
+      authorizationKind: AuthorizationKind;
     };
     authorization: {
       proof?: string;
@@ -440,6 +442,7 @@ type AccountUpdate = {
     };
     useFullCommitment: Bool;
     caller: TokenId;
+    authorizationKind: AuthorizationKind;
   };
   authorization: {
     proof?: string;

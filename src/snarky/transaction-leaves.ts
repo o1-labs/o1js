@@ -6,7 +6,17 @@ import { PublicKey } from '../lib/signature.js';
 import { ProvableExtended, Provables, provable } from '../lib/circuit_value.js';
 import * as Encoding from '../lib/encoding.js';
 
-export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
+export {
+  PublicKey,
+  Field,
+  Bool,
+  AuthRequired,
+  AuthorizationKind,
+  UInt64,
+  UInt32,
+  Sign,
+  TokenId,
+};
 
 export { Events, Events as SequenceEvents, StringWithHash, TokenSymbol };
 
@@ -17,6 +27,9 @@ type AuthRequired = {
   signatureNecessary: Bool;
   signatureSufficient: Bool;
 };
+
+type AuthorizationKind = { isSigned: Bool; isProved: Bool };
+
 type TokenId = Field;
 
 // to what types in the js layout are mapped
@@ -25,6 +38,7 @@ type TypeMap = {
   Field: Field;
   Bool: Bool;
   AuthRequired: AuthRequired;
+  AuthorizationKind: AuthorizationKind;
   UInt32: UInt32;
   UInt64: UInt64;
   Sign: Sign;
@@ -83,6 +97,26 @@ const AuthRequired = {
   },
 };
 
+const AuthorizationKind = {
+  ...provable(
+    { isSigned: Bool, isProved: Bool },
+    {
+      customObjectKeys: ['isSigned', 'isProved'],
+    }
+  ),
+  toJSON(x: AuthorizationKind): Json.AuthorizationKind {
+    let isSigned = Number(x.isSigned.toBoolean());
+    let isProved = Number(x.isProved.toBoolean());
+    // prettier-ignore
+    switch (`${isSigned}${isProved}`) {
+      case '00': return 'None_given';
+      case '10': return 'Signature';
+      case '01': return 'Proof';
+      default: throw Error('Unexpected authorization kind');
+    }
+  },
+};
+
 const TypeMap: {
   [K in keyof TypeMap]: ProvableExtended<TypeMap[K], Json.TypeMap[K]>;
 } = {
@@ -93,6 +127,7 @@ const TypeMap: {
   Sign,
   TokenId,
   AuthRequired,
+  AuthorizationKind,
   PublicKey,
   // primitive JS types
   number: {

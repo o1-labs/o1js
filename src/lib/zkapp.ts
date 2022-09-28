@@ -206,16 +206,20 @@ function wrapMethod(
                   blindingValue
                 );
                 accountUpdate.body.callData = Poseidon.hash(callDataFields);
+                accountUpdate.body.authorizationKind.isSigned = Bool(false);
+                accountUpdate.body.authorizationKind.isProved = Bool(true);
 
                 // connect the public input to the accountUpdate & child account updates we created
                 if (DEBUG_PUBLIC_INPUT_CHECK) {
                   // TODO: print a nice diff string instead of the two objects
                   // something like `expect` or `json-diff`, but web-compatible
-                  function diff(a: JSONValue, b: JSONValue) {
-                    if (JSON.stringify(a) !== JSON.stringify(b)) {
+                  function diff(prover: JSONValue, input: JSONValue) {
+                    if (JSON.stringify(prover) !== JSON.stringify(input)) {
                       console.log('inconsistent account updates:');
-                      console.dir(a, { depth: Infinity });
-                      console.dir(b, { depth: Infinity });
+                      console.log('update created by the prover:');
+                      console.dir(prover, { depth: Infinity });
+                      console.log('update created in transaction block:');
+                      console.dir(input, { depth: Infinity });
                     }
                   }
                   Circuit.asProver(() => {
