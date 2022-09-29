@@ -612,7 +612,7 @@ function provablePure<A>(
  *
  * // use Voter as SmartContract input:
  * class VoterContract extends SmartContract {
- *   @method register(voter: Voter) {
+ *   \@method register(voter: Voter) {
  *     // ...
  *   }
  * }

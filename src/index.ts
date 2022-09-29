@@ -64,11 +64,8 @@ export { Character, CircuitString } from './lib/string.js';
 
 // experimental APIs
 import { ZkProgram } from './lib/proof_system.js';
-import { Reducer, Callback, accountUpdateFromCallback } from './lib/zkapp.js';
-import {
-  createChildAccountUpdate,
-  makeChildAccountUpdate,
-} from './lib/account_update.js';
+import { Reducer, Callback } from './lib/zkapp.js';
+import { createChildAccountUpdate } from './lib/account_update.js';
 import { memoizeWitness } from './lib/circuit_value.js';
 import { MerkleTree, MerkleWitness } from './lib/merkle_tree.js';
 export { Experimental };
@@ -76,9 +73,7 @@ export { Experimental };
 const Experimental_ = {
   Reducer,
   Callback,
-  accountUpdateFromCallback,
   createChildAccountUpdate,
-  makeChildAccountUpdate,
   memoizeWitness,
   MerkleTree,
   MerkleWitness,
@@ -95,12 +90,9 @@ namespace Experimental {
   export let ZkProgram = Experimental_.ZkProgram;
   export let Reducer = Experimental_.Reducer;
   export let createChildAccountUpdate = Experimental_.createChildAccountUpdate;
-  export let makeChildAccountUpdate = Experimental_.makeChildAccountUpdate;
   export let memoizeWitness = Experimental_.memoizeWitness;
   export let MerkleTree = Experimental_.MerkleTree;
   export let MerkleWitness = Experimental_.MerkleWitness;
-  export let accountUpdateFromCallback =
-    Experimental_.accountUpdateFromCallback;
   export let Callback = Experimental_.Callback;
   export type Callback<Result> = Callback_<Result>;
 }

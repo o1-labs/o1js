@@ -77,7 +77,7 @@ export {
 };
 
 // internal API
-export { Reducer, accountUpdateFromCallback };
+export { Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
 
@@ -86,8 +86,8 @@ const reservedPropNames = new Set(['_methods', '_']);
  * You can use inside your zkapp class as:
  *
  * ```
- * @method myMethod(someArg: Field) {
- *  // your code here
+ * \@method myMethod(someArg: Field) {
+ *   // your code here
  * }
  * ```
  */
@@ -534,18 +534,6 @@ class Callback<Result> extends GenericArgument {
   }
 }
 
-function accountUpdateFromCallback(
-  parentZkapp: SmartContract,
-  childLayout: AccountUpdatesLayout,
-  callback: Callback<any>
-) {
-  let accountUpdate = Circuit.witness(AccountUpdate, () => {
-    return callback.accountUpdate;
-  });
-  parentZkapp.experimental.authorize(accountUpdate, childLayout);
-  return accountUpdate;
-}
-
 /**
  * The main zkapp class. To write a zkapp, extend this class as such:
  *
@@ -729,8 +717,41 @@ class SmartContract {
       get token() {
         return zkapp.self.token();
       },
-      authorize(childUpdate: AccountUpdate, layout?: AccountUpdatesLayout) {
-        zkapp.self.authorize(childUpdate, layout);
+      /**
+       * Authorize an account update or callback. This will include the account update in the zkApp's public input,
+       * which means it allows you to read and use its content in a proof, make assertions about it, and modify it.
+       *
+       * If this is called with a callback as the first parameter, it will first extract the account update produced by that callback.
+       * The extracted account update is returned.
+       *
+       * ```ts
+       * \@method myAuthorizingMethod(callback: Callback) {
+       *   let authorizedUpdate = this.experimental.authorize(callback);
+       * }
+       * ```
+       *
+       * Under the hood, "authorizing" just means that the account update is made a child of the zkApp in the
+       * tree of account updates that forms the transaction.
+       * The second parameter `layout` allows you to also make assertions about the authorized update's _own_ children,
+       * by specifying a certain expected layout of children. See {@link AccountUpdatesLayout}.
+       *
+       * @param updateOrCallback
+       * @param layout
+       * @returns The account update that was authorized (needed when passing in a Callback)
+       */
+      authorize(
+        updateOrCallback: AccountUpdate | Callback<any>,
+        layout?: AccountUpdatesLayout
+      ) {
+        let accountUpdate =
+          updateOrCallback instanceof AccountUpdate
+            ? updateOrCallback
+            : Circuit.witness(
+                AccountUpdate,
+                () => updateOrCallback.accountUpdate
+              );
+        zkapp.self.authorize(accountUpdate, layout);
+        return accountUpdate;
       },
     };
   }

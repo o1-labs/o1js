@@ -50,7 +50,6 @@ export {
   Token,
   CallForest,
   createChildAccountUpdate,
-  makeChildAccountUpdate,
   AccountUpdatesLayout,
 };
 
@@ -847,7 +846,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * Example: To constrain the account balance of a SmartContract to lie between 0 and 20 MINA, you can use
    *
    * ```ts
-   * @method onlyRunsWhenBalanceIsLow() {
+   * \@method onlyRunsWhenBalanceIsLow() {
    *   let lower = UInt64.zero;
    *   let upper = UInt64.fromNumber(20e9);
    *   AccountUpdate.assertBetween(this.self.body.preconditions.account.balance, lower, upper);
@@ -875,7 +874,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * Example: To fix the account nonce of a SmartContract to 0, you can use
    *
    * ```ts
-   * @method onlyRunsWhenNonceIsZero() {
+   * \@method onlyRunsWhenNonceIsZero() {
    *   AccountUpdate.assertEquals(this.self.body.preconditions.account.nonce, UInt32.zero);
    *   // ...
    * }
