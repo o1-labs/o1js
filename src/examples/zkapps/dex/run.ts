@@ -1,4 +1,4 @@
-import { isReady, Mina, AccountUpdate } from 'snarkyjs';
+import { isReady, Mina, AccountUpdate, UInt64 } from 'snarkyjs';
 import {
   Dex,
   DexTokenHolder,
@@ -53,6 +53,7 @@ tx = await Mina.transaction({ feePayerKey }, () => {
 });
 await tx.prove();
 tx.sign([keys.tokenX, keys.tokenY]);
+console.log(tx.toPretty());
 await tx.send();
 
 console.log('deploy dex contracts...');
@@ -65,4 +66,17 @@ tx = await Mina.transaction(feePayerKey, () => {
 });
 await tx.prove();
 tx.sign([keys.dex]);
+console.log(tx.toPretty());
+await tx.send();
+
+// send tokens
+tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
+  dex.supplyTokenX(
+    addresses.user, // Predefined static address
+    UInt64.from(100_000)
+  );
+});
+await tx.prove();
+tx.sign([keys.dex, keys.user]);
+console.log(tx.toPretty());
 await tx.send();

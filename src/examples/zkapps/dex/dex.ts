@@ -143,6 +143,11 @@ class Dex extends SmartContract {
     tokenX.authorizeUpdate(dexX.self);
     return dx;
   }
+
+  @method supplyTokenX(user: PublicKey, dx: UInt64) {
+    let tokenX = new TokenContract(this.tokenX);
+    tokenX.transfer(user, this.address, dx);
+  }
 }
 
 class UInt64x2 extends Struct([UInt64, UInt64]) {}
@@ -253,11 +258,8 @@ class TokenContract extends SmartContract {
   // => need callbacks for signatures
   @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
     let tokenId = this.experimental.token.id;
-    let zkapp = Experimental.createChildAccountUpdate(
-      this.self,
-      address,
-      tokenId
-    );
+    let zkapp = AccountUpdate.defaultAccountUpdate(address, tokenId);
+    this.experimental.authorize(zkapp);
     AccountUpdate.setValue(zkapp.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
