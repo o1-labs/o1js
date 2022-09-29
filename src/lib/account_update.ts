@@ -1113,7 +1113,7 @@ class AccountUpdate implements Types.AccountUpdate {
     options?: { skipCheck: boolean }
   ) {
     // just witness children's hash if childLayout === null
-    if (childLayout === null) {
+    if (childLayout === AccountUpdate.Layout.AnyChildren) {
       let calls = Circuit.witness(Field, () =>
         CallForest.hashChildren(accountUpdate)
       );
@@ -1122,7 +1122,7 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     let childArray: AccountUpdatesLayout[] =
       typeof childLayout === 'number'
-        ? Array(childLayout).fill(0)
+        ? Array(childLayout).fill(AccountUpdate.Layout.NoChildren)
         : childLayout;
     let n = childArray.length;
     for (let i = 0; i < n; i++) {
@@ -1163,6 +1163,44 @@ class AccountUpdate implements Types.AccountUpdate {
     AccountUpdate.witnessChildren(accountUpdate, childLayout, options);
     return { accountUpdate, result };
   }
+
+  /**
+   * Describes the children of an account update, which are laid out in a tree.
+   *
+   * The tree layout is described recursively by using a combination of `AccountUpdate.Layout.NoChildren`, `AccountUpdate.Layout.StaticChildren(...)` and `AccountUpdate.Layout.AnyChildren`.
+   * - `NoChildren` means an account update that can't have children
+   * - `AnyChildren` means an account update can have an arbitrary amount of children, which means you can't access those children in your circuit (because the circuit is static).
+   * - `StaticChildren` means the account update must have a certain static amount of children and expects as arguments a description of each of those children.
+   *   As a shortcut, you can also pass `StaticChildren` a number, which means it has that amount of children but no grandchildren.
+   *
+   * This is best understood by examples:
+   *
+   * ```ts
+   * let { NoChildren, AnyChildren, StaticChildren } = AccounUpdate.Layout;
+   *
+   * NoChildren                 // an account updates with no children
+   * AnyChildren                // an account update with arbitrary children
+   * StaticChildren(NoChildren) // an account update with 1 child, which doesn't have children itself
+   * StaticChildren(1)          // shortcut for StaticChildren(NoChildren)
+   * StaticChildren(2)          // shortcut for StaticChildren(NoChildren, NoChildren)
+   * StaticChildren(0)          // equivalent to NoChildren
+   *
+   * // an update with 2 children, of which one has arbitrary children and the other has exactly 1 descendant
+   * StaticChildren(AnyChildren, StaticChildren(1))
+   * ```
+   */
+  static Layout = {
+    StaticChildren: ((...args: any[]) => {
+      if (args.length === 1 && typeof args[0] === 'number') return args[0];
+      if (args.length === 0) return 0;
+      return args;
+    }) as {
+      (n: number): AccountUpdatesLayout;
+      (...args: AccountUpdatesLayout[]): AccountUpdatesLayout;
+    },
+    NoChildren: 0,
+    AnyChildren: null,
+  };
 
   toPretty() {
     let jsonUpdate: Partial<Types.Json.AccountUpdate> = toJSONEssential(
@@ -1207,25 +1245,6 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 }
 
-/**
- * Describes list of accountUpdates (call forest) to be witnessed.
- *
- * An accountUpdates list is represented by either
- * - an array, whose entries are accountUpdates, each represented by their list of children
- * - a positive integer, which gives the number of top-level accountUpdates, which aren't allowed to have further children
- * - `null`, which means just the `calls` (call forest hash) is witnessed, allowing arbitrary accountUpdates but no access to them in the circuit
- *
- * Examples:
- * ```ts
- * []         // an empty accountUpdates list
- * 0          // same as []
- * [0]        // a list of one accountUpdate, which doesn't have children
- * 1          // same as [0]
- * 2          // same as [0, 0]
- * null       // an arbitrary list of accountUpdates
- * [null, 1]  // a list of 2 accountUpdates, of which one has arbitrary children and the other has exactly 1 child
- * ```
- */
 type AccountUpdatesLayout = number | null | AccountUpdatesLayout[];
 
 const CallForest = {

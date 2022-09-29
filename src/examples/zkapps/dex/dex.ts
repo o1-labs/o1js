@@ -268,9 +268,14 @@ class TokenContract extends SmartContract {
 
   // let a zkapp do whatever it wants, as long as the token supply stays constant
   @method authorizeUpdate(zkappUpdate: AccountUpdate) {
-    let layout = [[[3, 0, 0], 0, 0]]; // these are 10 child account updates we allow, in a left-biased tree of width 3
-
     // adopt this account update as a child, allowing a certain layout for its own children
+    // we allow 10 child account updates, in a left-biased tree of width 3
+    let { NoChildren, StaticChildren } = AccountUpdate.Layout;
+    let layout = StaticChildren(
+      StaticChildren(StaticChildren(3), NoChildren, NoChildren),
+      NoChildren,
+      NoChildren
+    );
     this.experimental.authorize(zkappUpdate, layout);
 
     // walk account updates to see if balances for this token cancel

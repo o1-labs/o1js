@@ -733,7 +733,7 @@ class SmartContract {
        * Under the hood, "authorizing" just means that the account update is made a child of the zkApp in the
        * tree of account updates that forms the transaction.
        * The second parameter `layout` allows you to also make assertions about the authorized update's _own_ children,
-       * by specifying a certain expected layout of children. See {@link AccountUpdatesLayout}.
+       * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
        *
        * @param updateOrCallback
        * @param layout
