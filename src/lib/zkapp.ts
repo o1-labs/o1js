@@ -217,27 +217,32 @@ function wrapMethod(
                     return CallForest.computeCallerContext(accountUpdate);
                   }
                 );
-                accountUpdate.body.caller = Circuit.if(
-                  accountUpdate.isDelegateCall,
-                  callerContext.caller,
-                  callerContext.self
-                ).seal();
+                CallForest.addCallers([accountUpdate], callerContext);
 
                 // connect the public input to the accountUpdate & child account updates we created
                 if (DEBUG_PUBLIC_INPUT_CHECK) {
-                  // TODO: print a nice diff string instead of the two objects
-                  // something like `expect` or `json-diff`, but web-compatible
-                  function diff(prover: JSONValue, input: JSONValue) {
-                    if (JSON.stringify(prover) !== JSON.stringify(input)) {
-                      console.log('inconsistent account updates:');
-                      console.log('update created by the prover:');
-                      console.log(prover);
-                      console.log('update created in transaction block:');
-                      console.log(input);
-                    }
-                  }
                   Circuit.asProver(() => {
-                    let inputUpdate = zkAppProver.getData().accountUpdate;
+                    // TODO: print a nice diff string instead of the two objects
+                    // something like `expect` or `json-diff`, but web-compatible
+                    function diff(prover: JSONValue, input: JSONValue) {
+                      if (JSON.stringify(prover) !== JSON.stringify(input)) {
+                        console.log(
+                          'transaction:',
+                          ZkappCommand.toPretty(transaction)
+                        );
+                        console.log('index', index);
+                        console.log('inconsistent account updates:');
+                        console.log('update created by the prover:');
+                        console.log(prover);
+                        console.log('update created in transaction block:');
+                        console.log(input);
+                      }
+                    }
+                    let {
+                      accountUpdate: inputUpdate,
+                      transaction,
+                      index,
+                    } = zkAppProver.getData();
                     diff(accountUpdate.toPretty(), inputUpdate.toPretty());
 
                     // TODO: this doesn't walk the whole tree
@@ -1314,4 +1319,4 @@ const Reducer: (<
  * TODO refine this into a good error message that's always used, not just for debugging
  * TODO find or write library that can print nice JS object diffs
  */
-const DEBUG_PUBLIC_INPUT_CHECK = false;
+const DEBUG_PUBLIC_INPUT_CHECK = true;

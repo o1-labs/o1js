@@ -1312,12 +1312,17 @@ const CallForest = {
     }
   ) {
     for (let update of updates) {
-      let childContext = update.isDelegateCall.toBoolean()
-        ? context
-        : {
-            caller: context.self,
-            self: Token.getId(update.body.publicKey, update.body.tokenId),
-          };
+      let childContext = Circuit.if(
+        update.isDelegateCall,
+        CallForest.callerContextType,
+        context,
+        {
+          caller: context.self,
+          self: Token.getId(update.body.publicKey, update.body.tokenId),
+        }
+      );
+      childContext.caller = childContext.caller.seal();
+      childContext.self = childContext.self.seal();
       update.body.caller = childContext.caller;
       CallForest.addCallers(update.children.accountUpdates, childContext);
     }
@@ -1345,15 +1350,6 @@ const CallForest = {
     return context;
   },
   callerContextType: provablePure({ self: Field, caller: Field }),
-  /**
-   * Used in the prover circuit to compute `caller` from witnessed context
-   */
-  computeCallerFromContext(
-    isDelegateCall: Bool,
-    { self, caller }: { self: Field; caller: Field }
-  ) {
-    return Circuit.if(isDelegateCall, caller, self);
-  },
 
   forEach(updates: AccountUpdate[], callback: (update: AccountUpdate) => void) {
     for (let update of updates) {
@@ -1419,6 +1415,18 @@ type ZkappCommandProved = {
   feePayer: FeePayerUnsigned;
   accountUpdates: (AccountUpdate & { lazyAuthorization?: LazySignature })[];
   memo: string;
+};
+
+const ZkappCommand = {
+  toPretty(transaction: ZkappCommand) {
+    let feePayer = zkappCommandToJson(transaction).feePayer as any;
+    feePayer.body.authorization = feePayer.authorization.slice(0, 6) + '...';
+    if (feePayer.body.validUntil === null) delete feePayer.body.validUntil;
+    return [
+      feePayer.body,
+      ...transaction.accountUpdates.map((a) => a.toPretty()),
+    ];
+  },
 };
 
 function zkappCommandToJson({ feePayer, accountUpdates, memo }: ZkappCommand) {

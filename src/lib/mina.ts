@@ -192,13 +192,7 @@ function createTransaction(
     },
 
     toPretty() {
-      let feePayer = zkappCommandToJson(self.transaction).feePayer as any;
-      feePayer.body.authorization = feePayer.authorization.slice(0, 6) + '...';
-      if (feePayer.body.validUntil === null) delete feePayer.body.validUntil;
-      return [
-        feePayer.body,
-        ...self.transaction.accountUpdates.map((a) => a.toPretty()),
-      ];
+      return ZkappCommand.toPretty(self.transaction);
     },
 
     toGraphqlQuery() {
