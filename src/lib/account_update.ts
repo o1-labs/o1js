@@ -1056,8 +1056,17 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   // static methods that implement Provable<AccountUpdate>
-  static sizeInFields = Types.AccountUpdate.sizeInFields;
-  static toFields = Types.AccountUpdate.toFields;
+  private static type = provable({
+    isDelegateCall: Bool,
+    self: Types.AccountUpdate,
+  });
+  private toType() {
+    return { isDelegateCall: this.isDelegateCall, self: this };
+  }
+  static sizeInFields = this.type.sizeInFields;
+  static toFields(a: AccountUpdate) {
+    return this.type.toFields(a.toType());
+  }
   static toAuxiliary(a?: AccountUpdate) {
     let aux = Types.AccountUpdate.toAuxiliary(a);
     let lazyAuthorization = a && cloneCircuitValue(a.lazyAuthorization);
