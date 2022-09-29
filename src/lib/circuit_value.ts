@@ -44,7 +44,7 @@ type NonMethodKeys<T> = {
 type NonMethods<T> = Pick<T, NonMethodKeys<T>>;
 
 /**
- * @deprecated `CircuitValue` is deprecated in favor of `Struct`, which features a simpler API and better typing.
+ * @deprecated `CircuitValue` is deprecated in favor of {@link Struct}, which features a simpler API and better typing.
  */
 abstract class CircuitValue {
   constructor(...props: any[]) {
@@ -612,7 +612,7 @@ function provablePure<A>(
  *
  * // use Voter as SmartContract input:
  * class VoterContract extends SmartContract {
- *   @method register(voter: Voter) {
+ *   \@method register(voter: Voter) {
  *     // ...
  *   }
  * }
@@ -912,9 +912,19 @@ Circuit.witness = function <T, S extends Provable<T> = Provable<T>>(
   let proverValue: T | undefined;
   let fields = Circuit._witness(type, () => {
     proverValue = compute();
-    return proverValue;
+    let fields = type.toFields(proverValue);
+    // TODO: enable this check
+    // currently it throws for Scalar.. which seems to be flexible about what length is returned by toFields
+    // if (fields.length !== type.sizeInFields()) {
+    //   throw Error(
+    //     `Invalid witness. Expected ${type.sizeInFields()} field elements, got ${
+    //       fields.length
+    //     }.`
+    //   );
+    // }
+    return fields;
   });
-  let aux = 'toAuxiliary' in type ? type.toAuxiliary(proverValue) : [];
+  let aux = type.toAuxiliary(proverValue);
   let value = type.fromFields(fields, aux);
   type.check(value);
   return value;

@@ -3,7 +3,7 @@ import path from 'path';
 import ts from 'typescript';
 import esbuild from 'esbuild';
 
-export { buildAndImport, build };
+export { buildAndImport, build, buildOne };
 
 async function buildAndImport(srcPath, { keepFile = false }) {
   let absPath = await build(srcPath);
@@ -31,6 +31,29 @@ async function build(srcPath) {
     resolveExtensions: ['.node.js', '.ts', '.js'],
     logLevel: 'error',
     plugins: [typescriptPlugin(tsConfig), makeNodeModulesExternal()],
+  });
+
+  let absPath = path.resolve('.', outfile);
+  return absPath;
+}
+
+async function buildOne(srcPath) {
+  let tsConfig = findTsConfig() ?? defaultTsConfig;
+
+  let outfile = path.resolve(
+    './dist/node',
+    srcPath.replace('.ts', '.js').replace('src', '.')
+  );
+
+  await esbuild.build({
+    entryPoints: [srcPath],
+    format: 'esm',
+    platform: 'node',
+    outfile,
+    target: 'esnext',
+    resolveExtensions: ['.node.js', '.ts', '.js'],
+    logLevel: 'error',
+    plugins: [typescriptPlugin(tsConfig)],
   });
 
   let absPath = path.resolve('.', outfile);

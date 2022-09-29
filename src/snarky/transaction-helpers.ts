@@ -3,7 +3,7 @@ import { Field, Bool, Circuit } from '../snarky.js';
 import { circuitArray, ProvableExtended } from '../lib/circuit_value.js';
 import { HashInput } from '../lib/hash.js';
 
-export { provableFromLayout, Layout, ProvableExtended };
+export { provableFromLayout, Layout, ProvableExtended, toJSONEssential };
 
 type CustomTypes = Record<string, ProvableExtended<any, any>>;
 
@@ -323,6 +323,44 @@ function layoutFold<T, R>(
     return spec.reduceObject(keys, object);
   }
   return spec.map(TypeMap[typeData.type], value);
+}
+
+// helper for pretty-printing / debugging
+
+function toJSONEssential(
+  typeData: Layout,
+  value: any,
+  customTypes: CustomTypes
+) {
+  return layoutFold<any, any>(
+    {
+      map(type, value) {
+        return type.toJSON(value);
+      },
+      reduceArray(array) {
+        if (array.length === 0 || array.every((x) => x === null)) return null;
+        return array;
+      },
+      reduceObject(_, object) {
+        for (let key in object) {
+          if (object[key] === null) {
+            delete object[key];
+          }
+        }
+        if (Object.keys(object).length === 0) return null;
+        return object;
+      },
+      reduceFlaggedOption({ isSome, value }) {
+        return isSome ? value : null;
+      },
+      reduceOrUndefined(value) {
+        return value ?? null;
+      },
+      customTypes,
+    },
+    typeData,
+    value
+  );
 }
 
 // types

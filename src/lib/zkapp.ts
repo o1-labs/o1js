@@ -28,7 +28,6 @@ import {
   ZkappPublicInput,
   Events,
   SequenceEvents,
-  accountUpdateToPublicInput,
   Authorization,
   CallForest,
   TokenId,
@@ -78,7 +77,7 @@ export {
 };
 
 // internal API
-export { Reducer, accountUpdateFromCallback };
+export { Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
 
@@ -87,8 +86,8 @@ const reservedPropNames = new Set(['_methods', '_']);
  * You can use inside your zkapp class as:
  *
  * ```
- * @method myMethod(someArg: Field) {
- *  // your code here
+ * \@method myMethod(someArg: Field) {
+ *   // your code here
  * }
  * ```
  */
@@ -441,7 +440,7 @@ function checkPublicInput(
   { accountUpdate, calls }: ZkappPublicInput,
   self: AccountUpdate
 ) {
-  let otherInput = accountUpdateToPublicInput(self);
+  let otherInput = self.toPublicInput();
   accountUpdate.assertEquals(otherInput.accountUpdate);
   calls.assertEquals(otherInput.calls);
 }
@@ -489,71 +488,50 @@ class Callback<Result> extends GenericArgument {
   methodIntf: MethodInterface & { returnType: Provable<Result> };
   args: any[];
 
+  result?: Result;
+  accountUpdate: AccountUpdate;
+
   static create<T extends SmartContract, K extends keyof T>(
     instance: T,
     methodName: K,
     args: T[K] extends (...args: infer A) => any ? A : never
   ) {
-    let callback: Callback<T[K] extends (...args: any) => infer R ? R : never> =
-      new this(instance, methodName, args);
+    let ZkappClass = instance.constructor as typeof SmartContract;
+    let methodIntf_ = (ZkappClass._methods ?? []).find(
+      (i) => i.methodName === methodName
+    );
+    if (methodIntf_ === undefined)
+      throw Error(
+        `Callback: could not find method ${ZkappClass.name}.${String(
+          methodName
+        )}`
+      );
+    let methodIntf = {
+      ...methodIntf_,
+      returnType: methodIntf_.returnType ?? provable(null),
+    };
+
+    // call the callback, leveraging composability (if this is inside a smart contract method)
+    // to prove to the outer circuit that we called it
+    let result = (instance[methodName] as Function)();
+    let accountUpdate = instance.self;
+
+    let callback = new Callback<any>({
+      instance,
+      methodIntf,
+      args,
+      result,
+      accountUpdate,
+      isEmpty: false,
+    });
+
     return callback;
   }
 
-  private constructor(instance: any, methodName: any, args: any[]) {
+  private constructor(self: Callback<any>) {
     super();
-    this.instance = instance;
-    let ZkappClass = instance.constructor as typeof SmartContract;
-    let methodIntf = (ZkappClass._methods ?? []).find(
-      (i) => i.methodName === methodName
-    );
-    if (methodIntf === undefined)
-      throw Error(
-        `Callback: could not find method ${ZkappClass.name}.${methodName}`
-      );
-    methodIntf = {
-      ...methodIntf,
-      returnType: methodIntf.returnType ?? provable(null),
-    };
-    this.methodIntf = methodIntf as any;
-    this.args = args;
+    Object.assign(this, self);
   }
-}
-
-// TODO: prove call signature in the outer circuit, just like for composability!
-function accountUpdateFromCallback(
-  parentZkapp: SmartContract,
-  childLayout: AccountUpdatesLayout,
-  callback: Callback<any>
-) {
-  let { accountUpdate } = AccountUpdate.witnessTree(
-    provable(null),
-    childLayout,
-    () => {
-      if (callback.isEmpty) throw Error('bug: empty callback');
-      let { instance, methodIntf, args } = callback;
-      let method = instance[
-        methodIntf.methodName as keyof SmartContract
-      ] as Function;
-      let accountUpdate = selfAccountUpdate(instance.address, instance.tokenId);
-      smartContractContext.runWith(
-        {
-          this: instance,
-          methodCallDepth: (smartContractContext()?.methodCallDepth ?? 0) + 1,
-          isCallback: true,
-          selfUpdate: accountUpdate,
-        },
-        () => method.apply(instance, args)
-      );
-      return { accountUpdate, result: null };
-    },
-    { skipCheck: true }
-  );
-  // connect accountUpdate to our own. outside Circuit.witness so compile knows the right structure when hashing children
-  let parentAccountUpdate = parentZkapp.self;
-  accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
-  accountUpdate.parent = parentAccountUpdate;
-  parentAccountUpdate.children.accountUpdates.push(accountUpdate);
-  return accountUpdate;
 }
 
 /**
@@ -738,6 +716,42 @@ class SmartContract {
     return {
       get token() {
         return zkapp.self.token();
+      },
+      /**
+       * Authorize an account update or callback. This will include the account update in the zkApp's public input,
+       * which means it allows you to read and use its content in a proof, make assertions about it, and modify it.
+       *
+       * If this is called with a callback as the first parameter, it will first extract the account update produced by that callback.
+       * The extracted account update is returned.
+       *
+       * ```ts
+       * \@method myAuthorizingMethod(callback: Callback) {
+       *   let authorizedUpdate = this.experimental.authorize(callback);
+       * }
+       * ```
+       *
+       * Under the hood, "authorizing" just means that the account update is made a child of the zkApp in the
+       * tree of account updates that forms the transaction.
+       * The second parameter `layout` allows you to also make assertions about the authorized update's _own_ children,
+       * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
+       *
+       * @param updateOrCallback
+       * @param layout
+       * @returns The account update that was authorized (needed when passing in a Callback)
+       */
+      authorize(
+        updateOrCallback: AccountUpdate | Callback<any>,
+        layout?: AccountUpdatesLayout
+      ) {
+        let accountUpdate =
+          updateOrCallback instanceof AccountUpdate
+            ? updateOrCallback
+            : Circuit.witness(
+                AccountUpdate,
+                () => updateOrCallback.accountUpdate
+              );
+        zkapp.self.authorize(accountUpdate, layout);
+        return accountUpdate;
       },
     };
   }
