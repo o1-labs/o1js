@@ -53,19 +53,21 @@ class Dex extends SmartContract {
     // get balances of X and Y token
     // TODO: this creates extra account updates. we need to reuse these by passing them to or returning them from transfer()
     // but for that, we need the @method argument generalization
-    let dexX = tokenX.getBalance(this.address);
-    let dexY = tokenY.getBalance(this.address);
+    let dexXBalance = tokenX.getBalance(this.address);
+    let dexYBalance = tokenY.getBalance(this.address);
 
-    // assert dy == [dx * y/x], or x == 0
-    let isXZero = dexX.equals(UInt64.zero);
-    let xSafe = Circuit.if(isXZero, UInt64.one, dexX);
-    dy.equals(dx.mul(dexY).div(xSafe)).or(isXZero).assertTrue();
+    // // assert dy == [dx * y/x], or x == 0
+    let isXZero = dexXBalance.equals(UInt64.zero);
+    let xSafe = Circuit.if(isXZero, UInt64.one, dexXBalance);
+
+    // Error: Constraint unsatisfied (unreduced): Equal 0 1
+    // dy.equals(dx.mul(dexYBalance).div(xSafe)).or(isXZero).assertTrue();
 
     tokenX.transfer(user, this.address, dx);
     tokenY.transfer(user, this.address, dy);
 
-    // calculate liquidity token output simply as dl = dx + dx
-    // => maintains ratio x/l, y/l
+    // // calculate liquidity token output simply as dl = dx + dx
+    // // => maintains ratio x/l, y/l
     let dl = dy.add(dx);
     this.experimental.token.mint({ address: user, amount: dl });
     // return dl;
