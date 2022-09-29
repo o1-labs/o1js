@@ -1,6 +1,6 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, Ledger } from '../snarky.js';
+import { Circuit, JSONValue, Ledger, LedgerAccount } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -17,14 +17,18 @@ import {
   CallForest,
   Authorization,
   SequenceEvents,
+  Permissions,
 } from './account_update.js';
+
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue } from './circuit_value.js';
-import { Proof, snarkContext } from './proof_system.js';
+import { Proof, snarkContext, verify } from './proof_system.js';
 import { Context } from './global-context.js';
 import { emptyReceiptChainHash } from './hash.js';
+import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './errors.js';
+import { Types } from 'src/index.js';
 
 export {
   createTransaction,
@@ -47,16 +51,17 @@ export {
 };
 interface TransactionId {
   wait(): Promise<void>;
-  hash(): Promise<string>;
+  hash(): string;
 }
 
 interface Transaction {
   transaction: ZkappCommand;
   toJSON(): string;
+  toPretty(): JSONValue;
   toGraphqlQuery(): string;
   sign(additionalKeys?: PrivateKey[]): Transaction;
   prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;
-  send(): TransactionId;
+  send(): Promise<TransactionId>;
 }
 
 type Account = Fetch.Account;
@@ -186,12 +191,22 @@ function createTransaction(
       return JSON.stringify(json);
     },
 
+    toPretty() {
+      let feePayer = zkappCommandToJson(self.transaction).feePayer as any;
+      feePayer.body.authorization = feePayer.authorization.slice(0, 6) + '...';
+      if (feePayer.body.validUntil === null) delete feePayer.body.validUntil;
+      return [
+        feePayer.body,
+        ...self.transaction.accountUpdates.map((a) => a.toPretty()),
+      ];
+    },
+
     toGraphqlQuery() {
       return Fetch.sendZkappQuery(self.toJSON());
     },
 
-    send() {
-      return sendTransaction(self);
+    async send() {
+      return await sendTransaction(self);
     },
   };
   return self;
@@ -204,7 +219,7 @@ interface Mina {
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
   accountCreationFee(): UInt64;
-  sendTransaction(transaction: Transaction): TransactionId;
+  sendTransaction(transaction: Transaction): Promise<TransactionId>;
   fetchEvents: (publicKey: PublicKey, tokenId?: Field) => any;
   getActions: (
     publicKey: PublicKey,
@@ -234,6 +249,7 @@ const defaultAccountCreationFee = 1_000_000_000;
  */
 function LocalBlockchain({
   accountCreationFee = defaultAccountCreationFee as string | number,
+  proofsEnabled = true,
 } = {}): MockMina {
   const msPerSlot = 3 * 60 * 1000;
   const startTime = new Date().valueOf();
@@ -298,14 +314,34 @@ function LocalBlockchain({
           sequenceState:
             ledgerAccount.zkapp?.sequenceState[0] ??
             SequenceEvents.emptySequenceState(),
+          permissions: Permissions.fromJSON(ledgerAccount.permissions),
         };
       }
     },
     getNetworkState() {
       return networkState;
     },
-    sendTransaction(txn: Transaction) {
+    async sendTransaction(txn: Transaction) {
       txn.sign();
+
+      let commitments = Ledger.transactionCommitments(
+        JSON.stringify(zkappCommandToJson(txn.transaction))
+      );
+
+      for (const update of txn.transaction.accountUpdates) {
+        let account = ledger.getAccount(
+          update.body.publicKey,
+          update.body.tokenId
+        );
+        if (account) {
+          await verifyAccountUpdate(
+            account!,
+            update,
+            commitments,
+            proofsEnabled
+          );
+        }
+      }
 
       let zkappCommandJson = zkappCommandToJson(txn.transaction);
       try {
@@ -383,7 +419,7 @@ function LocalBlockchain({
       });
       return {
         wait: async () => {},
-        hash: async (): Promise<string> => {
+        hash: (): string => {
           const message =
             'Txn Hash retrieving is not supported for LocalBlockchain.';
           console.log(message);
@@ -511,43 +547,28 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         `getNetworkState: Could not fetch network state from graphql endpoint ${graphqlEndpoint}`
       );
     },
-    sendTransaction(txn: Transaction) {
+    async sendTransaction(txn: Transaction) {
       txn.sign();
-      let sendPromise = Fetch.sendZkapp(txn.toJSON());
+
+      let [response, error] = await Fetch.sendZkapp(txn.toJSON());
+      if (error === undefined) {
+        if (response!.data === null && (response as any).errors?.length > 0) {
+          console.log('got graphql errors', (response as any).errors);
+        } else {
+          console.log('got graphql response', response?.data);
+        }
+      } else {
+        console.log('got fetch error', error);
+      }
+
       return {
         async wait() {
-          let [response, error] = await sendPromise;
-          if (error === undefined) {
-            if (
-              response!.data === null &&
-              (response as any).errors?.length > 0
-            ) {
-              console.log('got graphql errors', (response as any).errors);
-            } else {
-              console.log('got graphql response', response?.data);
-              console.log(
-                'Info: waiting for inclusion in a block is not implemented yet.'
-              );
-            }
-          } else {
-            console.log('got fetch error', error);
-          }
+          console.log(
+            'Info: waiting for inclusion in a block is not implemented yet.'
+          );
         },
-        async hash() {
-          let [response, error] = await sendPromise;
-          if (error === undefined) {
-            if (
-              response!.data === null &&
-              (response as any).errors?.length > 0
-            ) {
-              console.log('got graphql errors', (response as any).errors);
-            } else {
-              console.log('got graphql response', response?.data);
-              return response?.data?.sendZkapp?.zkapp?.hash;
-            }
-          } else {
-            console.log('got fetch error', error);
-          }
+        hash() {
+          return response?.data?.sendZkapp?.zkapp?.hash;
         },
       };
     },
@@ -720,8 +741,8 @@ function accountCreationFee() {
   return activeInstance.accountCreationFee();
 }
 
-function sendTransaction(txn: Transaction) {
-  return activeInstance.sendTransaction(txn);
+async function sendTransaction(txn: Transaction) {
+  return await activeInstance.sendTransaction(txn);
 }
 
 /**
@@ -772,4 +793,149 @@ function defaultNetworkState(): NetworkValue {
     stakingEpochData: epochData,
     nextEpochData: cloneCircuitValue(epochData),
   };
+}
+
+async function verifyAccountUpdate(
+  account: LedgerAccount,
+  accountUpdate: AccountUpdate,
+  transactionCommitments: {
+    commitment: Field;
+    fullCommitment: Field;
+  },
+  proofsEnabled: boolean
+): Promise<void> {
+  let perm = account.permissions;
+
+  let { commitment, fullCommitment } = transactionCommitments;
+
+  // we are essentially only checking if the update is empty or an actual update
+  function includesChange(val: any): boolean {
+    if (Array.isArray(val)) {
+      return !val.every((v) => v === null);
+    } else {
+      return val != null;
+    }
+  }
+
+  function permissionForUpdate(key: string): Types.Json.AuthRequired {
+    switch (key) {
+      case 'appState':
+        return perm.editState;
+      case 'delegate':
+        return perm.setDelegate;
+      case 'verificationKey':
+        return perm.setVerificationKey;
+      case 'permissions':
+        return perm.setPermissions;
+      case 'zkappUri':
+        return perm.setZkappUri;
+      case 'tokenSymbol':
+        return perm.setTokenSymbol;
+      case 'timing':
+        return 'None';
+      case 'votingFor':
+        return perm.setVotingFor;
+      case 'sequenceEvents':
+        return perm.editSequenceState;
+      case 'incrementNonce':
+        return perm.incrementNonce;
+      case 'send':
+        return perm.send;
+      case 'receive':
+        return perm.receive;
+      default:
+        throw Error(`Invalid permission for field ${key}: does not exist.`);
+    }
+  }
+
+  const update = accountUpdate.toJSON().body.update;
+
+  let errorTrace = '';
+
+  let isValidProof = false;
+  let isValidSignature = false;
+
+  // we don't check if proofs aren't enabled
+  if (!proofsEnabled) isValidProof = true;
+
+  if (accountUpdate.authorization.proof && proofsEnabled) {
+    try {
+      let publicInput = accountUpdate.toPublicInput();
+      let publicInputFields = ZkappPublicInput.toFields(publicInput);
+
+      const proof = SmartContract.Proof().fromJSON({
+        maxProofsVerified: 2,
+        proof: accountUpdate.authorization.proof!,
+        publicInput: publicInputFields.map((f) => f.toString()),
+      });
+
+      let verificationKey = account.zkapp?.verificationKey?.data!;
+      isValidProof = await verify(proof.toJSON(), verificationKey);
+    } catch (error) {
+      errorTrace += '\n\n' + (error as Error).message;
+      isValidProof = false;
+    }
+  }
+
+  if (accountUpdate.authorization.signature) {
+    let txC = accountUpdate.body.useFullCommitment.toBoolean()
+      ? fullCommitment
+      : commitment;
+
+    // checking permissions and authorization for each party individually
+    try {
+      isValidSignature = Ledger.checkAccountUpdateSignature(
+        JSON.stringify(accountUpdate.toJSON()),
+        txC
+      );
+    } catch (error) {
+      errorTrace += '\n\n' + (error as Error).message;
+      isValidSignature = false;
+    }
+  }
+
+  function checkPermission(p: Types.Json.AuthRequired, field: string) {
+    if (p == 'None') return;
+
+    if (p == 'Impossible') {
+      throw Error(
+        `Transaction verification failed: Cannot update field '${field}' because permission for this field is '${p}'`
+      );
+    }
+
+    let verified = false;
+    if (p == 'Signature' || p == 'Either') {
+      verified ||= isValidSignature;
+    }
+
+    if (p == 'Proof' || p == 'Either') {
+      verified ||= isValidProof;
+    }
+
+    if (!verified) {
+      throw Error(
+        `Transaction verification failed: Cannot update field '${field}' because permission for this field is '${p}', but the required authorization was not provided or is invalid.
+        ${errorTrace != '' ? 'Error trace: ' + errorTrace : ''}`
+      );
+    }
+  }
+
+  // goes through the update field on a transaction
+  Object.entries(update).forEach(([key, value]) => {
+    if (includesChange(value)) {
+      let p = permissionForUpdate(key);
+      checkPermission(p, key);
+    }
+  });
+
+  // checks the sequence events (which result in an updated sequence state)
+  if (accountUpdate.body.sequenceEvents.data.length > 0) {
+    let p = permissionForUpdate('sequenceEvents');
+    checkPermission(p, 'sequenceEvents');
+  }
+
+  if (accountUpdate.body.incrementNonce.toBoolean()) {
+    let p = permissionForUpdate('incrementNonce');
+    checkPermission(p, 'incrementNonce');
+  }
 }

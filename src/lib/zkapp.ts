@@ -1,22 +1,22 @@
 import {
   Field,
   Bool,
-  AsFieldElements,
+  ProvablePure,
   Ledger,
   Pickles,
-  InferAsFieldElements,
   Poseidon as Poseidon_,
   JSONValue,
+  Provable,
 } from '../snarky.js';
 import {
   Circuit,
   circuitArray,
-  circuitValue,
+  provable,
   cloneCircuitValue,
   getBlindingValue,
-  witness,
   memoizationContext,
   toConstant,
+  Struct,
 } from './circuit_value.js';
 import {
   Body,
@@ -28,7 +28,6 @@ import {
   ZkappPublicInput,
   Events,
   SequenceEvents,
-  accountUpdateToPublicInput,
   Authorization,
   CallForest,
   TokenId,
@@ -74,10 +73,11 @@ export {
   declareMethods,
   Callback,
   Account,
+  VerificationKey,
 };
 
 // internal API
-export { Reducer, accountUpdateFromCallback };
+export { Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
 
@@ -86,8 +86,8 @@ const reservedPropNames = new Set(['_methods', '_']);
  * You can use inside your zkapp class as:
  *
  * ```
- * @method myMethod(someArg: Field) {
- *  // your code here
+ * \@method myMethod(someArg: Field) {
+ *   // your code here
  * }
  * ```
  */
@@ -105,12 +105,12 @@ function method<T extends SmartContract>(
       `@method decorator was applied to \`${methodName}\`, which is not a function.`
     );
   }
-  let paramTypes: AsFieldElements<any>[] = Reflect.getMetadata(
+  let paramTypes: Provable<any>[] = Reflect.getMetadata(
     'design:paramtypes',
     target,
     methodName
   );
-  let returnType: AsFieldElements<any> = Reflect.getMetadata(
+  let returnType: Provable<any> = Reflect.getMetadata(
     'design:returntype',
     target,
     methodName
@@ -205,16 +205,20 @@ function wrapMethod(
                   blindingValue
                 );
                 accountUpdate.body.callData = Poseidon.hash(callDataFields);
+                accountUpdate.body.authorizationKind.isSigned = Bool(false);
+                accountUpdate.body.authorizationKind.isProved = Bool(true);
 
                 // connect the public input to the accountUpdate & child account updates we created
                 if (DEBUG_PUBLIC_INPUT_CHECK) {
                   // TODO: print a nice diff string instead of the two objects
                   // something like `expect` or `json-diff`, but web-compatible
-                  function diff(a: JSONValue, b: JSONValue) {
-                    if (JSON.stringify(a) !== JSON.stringify(b)) {
+                  function diff(prover: JSONValue, input: JSONValue) {
+                    if (JSON.stringify(prover) !== JSON.stringify(input)) {
                       console.log('inconsistent account updates:');
-                      console.dir(a, { depth: Infinity });
-                      console.dir(b, { depth: Infinity });
+                      console.log('update created by the prover:');
+                      console.dir(prover, { depth: Infinity });
+                      console.log('update created in transaction block:');
+                      console.dir(input, { depth: Infinity });
                     }
                   }
                   Circuit.asProver(() => {
@@ -394,7 +398,7 @@ function wrapMethod(
         let { accountUpdate, result } =
           methodCallDepth === 0
             ? AccountUpdate.witness<any>(
-                returnType ?? circuitValue<null>(null),
+                returnType ?? provable(null),
                 runCalledContract,
                 { skipCheck: true }
               )
@@ -436,7 +440,7 @@ function checkPublicInput(
   { accountUpdate, calls }: ZkappPublicInput,
   self: AccountUpdate
 ) {
-  let otherInput = accountUpdateToPublicInput(self);
+  let otherInput = self.toPublicInput();
   accountUpdate.assertEquals(otherInput.accountUpdate);
   calls.assertEquals(otherInput.calls);
 }
@@ -481,76 +485,53 @@ function computeCallData(
 
 class Callback<Result> extends GenericArgument {
   instance: SmartContract;
-  methodIntf: MethodInterface & { returnType: AsFieldElements<Result> };
+  methodIntf: MethodInterface & { returnType: Provable<Result> };
   args: any[];
+
+  result?: Result;
+  accountUpdate: AccountUpdate;
 
   static create<T extends SmartContract, K extends keyof T>(
     instance: T,
     methodName: K,
     args: T[K] extends (...args: infer A) => any ? A : never
   ) {
-    let callback: Callback<T[K] extends (...args: any) => infer R ? R : never> =
-      new this(instance, methodName, args);
+    let ZkappClass = instance.constructor as typeof SmartContract;
+    let methodIntf_ = (ZkappClass._methods ?? []).find(
+      (i) => i.methodName === methodName
+    );
+    if (methodIntf_ === undefined)
+      throw Error(
+        `Callback: could not find method ${ZkappClass.name}.${String(
+          methodName
+        )}`
+      );
+    let methodIntf = {
+      ...methodIntf_,
+      returnType: methodIntf_.returnType ?? provable(null),
+    };
+
+    // call the callback, leveraging composability (if this is inside a smart contract method)
+    // to prove to the outer circuit that we called it
+    let result = (instance[methodName] as Function)();
+    let accountUpdate = instance.self;
+
+    let callback = new Callback<any>({
+      instance,
+      methodIntf,
+      args,
+      result,
+      accountUpdate,
+      isEmpty: false,
+    });
+
     return callback;
   }
 
-  private constructor(instance: any, methodName: any, args: any[]) {
+  private constructor(self: Callback<any>) {
     super();
-    this.instance = instance;
-    let ZkappClass = instance.constructor as typeof SmartContract;
-    let methodIntf = (ZkappClass._methods ?? []).find(
-      (i) => i.methodName === methodName
-    );
-    if (methodIntf === undefined)
-      throw Error(
-        `Callback: could not find method ${ZkappClass.name}.${methodName}`
-      );
-    methodIntf = {
-      ...methodIntf,
-      returnType:
-        methodIntf.returnType ??
-        (circuitValue<null>(null) as AsFieldElements<null> as any),
-    };
-    this.methodIntf = methodIntf as any;
-    this.args = args;
+    Object.assign(this, self);
   }
-}
-
-// TODO: prove call signature in the outer circuit, just like for composability!
-function accountUpdateFromCallback(
-  parentZkapp: SmartContract,
-  childLayout: AccountUpdatesLayout,
-  callback: Callback<any>
-) {
-  let { accountUpdate } = AccountUpdate.witnessTree(
-    circuitValue<null>(null),
-    childLayout,
-    () => {
-      if (callback.isEmpty) throw Error('bug: empty callback');
-      let { instance, methodIntf, args } = callback;
-      let method = instance[
-        methodIntf.methodName as keyof SmartContract
-      ] as Function;
-      let accountUpdate = selfAccountUpdate(instance.address, instance.tokenId);
-      smartContractContext.runWith(
-        {
-          this: instance,
-          methodCallDepth: (smartContractContext()?.methodCallDepth ?? 0) + 1,
-          isCallback: true,
-          selfUpdate: accountUpdate,
-        },
-        () => method.apply(instance, args)
-      );
-      return { accountUpdate, result: null };
-    },
-    { skipCheck: true }
-  );
-  // connect accountUpdate to our own. outside Circuit.witness so compile knows the right structure when hashing children
-  let parentAccountUpdate = parentZkapp.self;
-  accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
-  accountUpdate.parent = parentAccountUpdate;
-  parentAccountUpdate.children.accountUpdates.push(accountUpdate);
-  return accountUpdate;
 }
 
 /**
@@ -736,6 +717,42 @@ class SmartContract {
       get token() {
         return zkapp.self.token();
       },
+      /**
+       * Authorize an account update or callback. This will include the account update in the zkApp's public input,
+       * which means it allows you to read and use its content in a proof, make assertions about it, and modify it.
+       *
+       * If this is called with a callback as the first parameter, it will first extract the account update produced by that callback.
+       * The extracted account update is returned.
+       *
+       * ```ts
+       * \@method myAuthorizingMethod(callback: Callback) {
+       *   let authorizedUpdate = this.experimental.authorize(callback);
+       * }
+       * ```
+       *
+       * Under the hood, "authorizing" just means that the account update is made a child of the zkApp in the
+       * tree of account updates that forms the transaction.
+       * The second parameter `layout` allows you to also make assertions about the authorized update's _own_ children,
+       * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
+       *
+       * @param updateOrCallback
+       * @param layout
+       * @returns The account update that was authorized (needed when passing in a Callback)
+       */
+      authorize(
+        updateOrCallback: AccountUpdate | Callback<any>,
+        layout?: AccountUpdatesLayout
+      ) {
+        let accountUpdate =
+          updateOrCallback instanceof AccountUpdate
+            ? updateOrCallback
+            : Circuit.witness(
+                AccountUpdate,
+                () => updateOrCallback.accountUpdate
+              );
+        zkapp.self.authorize(accountUpdate, layout);
+        return accountUpdate;
+      },
     };
   }
 
@@ -754,7 +771,7 @@ class SmartContract {
     return this.self.balance;
   }
 
-  events: { [key: string]: AsFieldElements<any> } = {};
+  events: { [key: string]: ProvablePure<any> } = {};
 
   // TODO: not able to type event such that it is inferred correctly so far
   emitEvent<K extends keyof this['events']>(type: K, event: any) {
@@ -793,7 +810,7 @@ class SmartContract {
   async fetchEvents(
     start: UInt32 = UInt32.from(0),
     end?: UInt32
-  ): Promise<{ type: string; event: AsFieldElements<any> }[]> {
+  ): Promise<{ type: string; event: ProvablePure<any> }[]> {
     // filters all elements so that they are within the given range
     // only returns { type: "", event: [] } in a flat format
     let events = (await Mina.fetchEvents(this.address, this.self.body.tokenId))
@@ -815,7 +832,7 @@ class SmartContract {
         let type = sortedEventTypes[0];
         return {
           type,
-          event: this.events[type].ofFields(
+          event: this.events[type].fromFields(
             event.map((f: string) => Field.fromString(f))
           ),
         };
@@ -826,7 +843,7 @@ class SmartContract {
         event.shift();
         return {
           type,
-          event: this.events[type].ofFields(
+          event: this.events[type].fromFields(
             event.map((f: string) => Field.fromString(f))
           ),
         };
@@ -910,13 +927,13 @@ class SmartContract {
   }
 }
 
-type Reducer<Action> = { actionType: AsFieldElements<Action> };
+type Reducer<Action> = { actionType: ProvablePure<Action> };
 
 type ReducerReturn<Action> = {
   dispatch(action: Action): void;
   reduce<State>(
     actions: Action[][],
-    stateType: AsFieldElements<State>,
+    stateType: Provable<State>,
     reduce: (state: State, action: Action) => State,
     initial: { state: State; actionsHash: Field },
     options?: { maxTransactionsWithActions?: number }
@@ -955,7 +972,7 @@ class ${contract.constructor.name} extends SmartContract {
 
     reduce<S>(
       actionLists: A[][],
-      stateType: AsFieldElements<S>,
+      stateType: Provable<S>,
       reduce: (state: S, action: A) => S,
       { state, actionsHash }: { state: S; actionsHash: Field },
       { maxTransactionsWithActions = 32 } = {}
@@ -1010,8 +1027,11 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
           let newState = Circuit.witness(stateType, () => {
             // TODO: why doesn't this work without the toConstant mapping?
-            let { toFields, ofFields } = stateType;
-            return ofFields(toFields(state).map((x) => x.toConstant()));
+            let { toFields, fromFields, toAuxiliary } = stateType;
+            return fromFields(
+              toFields(state).map((x) => x.toConstant()),
+              toAuxiliary(state)
+            );
             // return state;
           });
           Circuit.assertEqual(newState, state);
@@ -1067,7 +1087,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           .map((event: { hash: string; actions: string[][] }) =>
             // putting our string-Fields back into the original action type
             event.actions.map((action: string[]) =>
-              reducer.actionType.ofFields(
+              reducer.actionType.fromFields(
                 action.map((fieldAsString: string) =>
                   Field.fromString(fieldAsString)
                 )
@@ -1079,6 +1099,13 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
     },
   };
 }
+
+class VerificationKey extends Struct({
+  ...provable({ data: String, hash: Field }),
+  toJSON({ data }: { data: string }) {
+    return data;
+  },
+}) {}
 
 function selfAccountUpdate(address: PublicKey, tokenId?: Field) {
   let body = Body.keepAll(address);
@@ -1228,7 +1255,7 @@ function signFeePayer(
  */
 function declareMethods<T extends typeof SmartContract>(
   SmartContract: T,
-  methodArguments: Record<string, AsFieldElements<unknown>[]>
+  methodArguments: Record<string, Provable<unknown>[]>
 ) {
   for (let key in methodArguments) {
     let argumentTypes = methodArguments[key];
@@ -1240,9 +1267,15 @@ function declareMethods<T extends typeof SmartContract>(
   }
 }
 
+type InferProvablePure<T extends ProvablePure<any>> = T extends ProvablePure<
+  infer U
+>
+  ? U
+  : never;
+
 const Reducer: (<
-  T extends AsFieldElements<any>,
-  A extends InferAsFieldElements<T>
+  T extends ProvablePure<any>,
+  A extends InferProvablePure<T>
 >(reducer: {
   actionType: T;
 }) => ReducerReturn<A>) & {

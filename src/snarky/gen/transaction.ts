@@ -10,11 +10,15 @@ import {
   AuthRequired,
   TokenSymbol,
   Sign,
+  AuthorizationKind,
   StringWithHash,
   Events,
   SequenceEvents,
 } from '../transaction-leaves.js';
-import { asFieldsAndAux, AsFieldsAndAux } from '../transaction-helpers.js';
+import {
+  provableFromLayout,
+  ProvableExtended,
+} from '../transaction-helpers.js';
 import * as Json from './transaction-json.js';
 import { jsLayout } from './js-layout.js';
 
@@ -23,22 +27,22 @@ export { Json };
 export * from '../transaction-leaves.js';
 
 type CustomTypes = {
-  StringWithHash: AsFieldsAndAux<
+  StringWithHash: ProvableExtended<
     {
       data: string;
       hash: Field;
     },
     Json.TypeMap['string']
   >;
-  TokenSymbol: AsFieldsAndAux<TokenSymbol, Json.TypeMap['string']>;
-  Events: AsFieldsAndAux<
+  TokenSymbol: ProvableExtended<TokenSymbol, Json.TypeMap['string']>;
+  Events: ProvableExtended<
     {
       data: Field[][];
       hash: Field;
     },
     Json.TypeMap['Field'][][]
   >;
-  SequenceEvents: AsFieldsAndAux<
+  SequenceEvents: ProvableExtended<
     {
       data: Field[][];
       hash: Field;
@@ -243,6 +247,7 @@ type ZkappCommand = {
       };
       useFullCommitment: Bool;
       caller: TokenId;
+      authorizationKind: AuthorizationKind;
     };
     authorization: {
       proof?: string;
@@ -252,7 +257,7 @@ type ZkappCommand = {
   memo: string;
 };
 
-let ZkappCommand = asFieldsAndAux<ZkappCommand, Json.ZkappCommand>(
+let ZkappCommand = provableFromLayout<ZkappCommand, Json.ZkappCommand>(
   jsLayout.ZkappCommand as any,
   customTypes
 );
@@ -437,6 +442,7 @@ type AccountUpdate = {
     };
     useFullCommitment: Bool;
     caller: TokenId;
+    authorizationKind: AuthorizationKind;
   };
   authorization: {
     proof?: string;
@@ -444,7 +450,7 @@ type AccountUpdate = {
   };
 };
 
-let AccountUpdate = asFieldsAndAux<AccountUpdate, Json.AccountUpdate>(
+let AccountUpdate = provableFromLayout<AccountUpdate, Json.AccountUpdate>(
   jsLayout.AccountUpdate as any,
   customTypes
 );

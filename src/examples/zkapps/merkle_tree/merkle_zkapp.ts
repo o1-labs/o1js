@@ -152,7 +152,7 @@ let tx = await Mina.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer, { initialBalance });
   leaderboardZkApp.deploy({ zkappKey });
 });
-tx.send();
+await tx.send();
 
 console.log('Initial points: ' + Accounts.get('Bob')?.points);
 
@@ -173,7 +173,7 @@ async function makeGuess(name: Names, index: bigint, guess: number) {
   if (doProofs) {
     await tx.prove();
   }
-  tx.send();
+  await tx.send();
 
   // if the transaction was successful, we can update our off-chain storage as well
   account.points = account.points.add(1);

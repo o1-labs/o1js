@@ -182,7 +182,7 @@ let tx = await Mina.transaction(feePayer, () => {
   zkapp.deploy({ zkappKey });
   counterZkapp.deploy({ zkappKey: counterZkappKey });
 });
-tx.send();
+await tx.send();
 
 console.log('initial state: ' + zkapp.x.get());
 console.log(`initial balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
@@ -197,7 +197,7 @@ tx = await Mina.transaction(feePayer, () => {
   }
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 offchainStorage.pendingActions.push([INCREMENT]);
 console.log('state (on-chain): ' + counterZkapp.counter.get());
 console.log('pending actions:', JSON.stringify(offchainStorage.pendingActions));
@@ -213,7 +213,7 @@ tx = await Mina.transaction(feePayer, () => {
 });
 if (doProofs) await tx.prove();
 console.log(tx.toJSON());
-tx.send();
+await tx.send();
 offchainStorage.pendingActions = [];
 
 console.log('final state: ' + zkapp.x.get());
@@ -228,7 +228,7 @@ tx = await Mina.transaction(feePayer, () => {
 });
 try {
   if (doProofs) await tx.prove();
-  tx.send();
+  await tx.send();
 } catch (err: any) {
   console.log('Transaction failed with error', err.message);
 }
@@ -240,7 +240,7 @@ try {
     if (!doProofs) zkapp.sign(zkappKey);
   });
   if (doProofs) await tx.prove();
-  tx.send();
+  await tx.send();
 } catch (err: any) {
   console.log('Transaction failed with error', err.message);
 }

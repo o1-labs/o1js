@@ -1,8 +1,8 @@
 import {
-  AsFieldElements,
+  ProvablePure,
   Bool,
   CircuitString,
-  circuitValue,
+  provablePure,
   DeployArgs,
   Field,
   method,
@@ -38,12 +38,12 @@ type Erc20 = {
 
   // events
   events: {
-    Transfer: AsFieldElements<{
+    Transfer: ProvablePure<{
       from: PublicKey;
       to: PublicKey;
       value: UInt64;
     }>;
-    Approval: AsFieldElements<{
+    Approval: ProvablePure<{
       owner: PublicKey;
       spender: PublicKey;
       value: UInt64;
@@ -151,16 +151,16 @@ class TrivialCoin extends SmartContract implements Erc20 {
   }
 
   events = {
-    Transfer: circuitValue<{ from: PublicKey; to: PublicKey; value: UInt64 }>({
+    Transfer: provablePure({
       from: PublicKey,
       to: PublicKey,
       value: UInt64,
     }),
-    Approval: circuitValue<{
-      owner: PublicKey;
-      spender: PublicKey;
-      value: UInt64;
-    }>({ owner: PublicKey, spender: PublicKey, value: UInt64 }),
+    Approval: provablePure({
+      owner: PublicKey,
+      spender: PublicKey,
+      value: UInt64,
+    }),
   };
 
   // additional API needed for zkApp token accounts
@@ -173,7 +173,10 @@ class TrivialCoin extends SmartContract implements Erc20 {
   ): Bool {
     // TODO: need to be able to witness a certain layout of account updates, in this case
     // tokenContract --> sender --> receiver
-    let fromUpdate = Experimental.accountUpdateFromCallback(this, 0, authorize);
+    let fromUpdate = this.experimental.authorize(
+      authorize,
+      AccountUpdate.Layout.NoChildren
+    );
 
     let negativeAmount = Int64.fromObject(fromUpdate.body.balanceChange);
     negativeAmount.assertEquals(Int64.from(value).neg());
@@ -204,7 +207,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
       ...Permissions.default(),
       send: Permissions.proof(),
     });
-    // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
+    // TODO pass in verification key
     // AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
     zkapp.sign(zkappKey);
   }
@@ -213,7 +216,10 @@ class TrivialCoin extends SmartContract implements Erc20 {
   // TODO: atm, we have to restrict the zkapp to have no children
   //       -> need to be able to witness a general layout of account updates
   @method authorizeZkapp(callback: Experimental.Callback<any>) {
-    let zkappUpdate = Experimental.accountUpdateFromCallback(this, 0, callback);
+    let zkappUpdate = this.experimental.authorize(
+      callback,
+      AccountUpdate.Layout.NoChildren
+    );
     Int64.fromObject(zkappUpdate.body.balanceChange).assertEquals(UInt64.zero);
   }
 }

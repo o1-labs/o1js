@@ -17,7 +17,7 @@ class Main extends Circuit {
 
 const kp = Main.generateKeypair();
 
-const preimage = Field.ofBits(Field.random().toBits().slice(0, 32));
+const preimage = Field.fromBits(Field.random().toBits().slice(0, 32));
 const hash = Poseidon.hash([preimage]);
 const pi = Main.prove([preimage], [hash], kp);
 console.log('proof', pi);

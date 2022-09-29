@@ -1,19 +1,13 @@
 import {
-  circuitArray,
-  circuitValue,
+  provable,
+  provablePure,
   cloneCircuitValue,
   memoizationContext,
   memoizeWitness,
+  toConstant,
 } from './circuit_value.js';
-import {
-  Field,
-  Bool,
-  Ledger,
-  Circuit,
-  Pickles,
-  AsFieldElements,
-} from '../snarky.js';
-import { Types } from '../snarky/types.js';
+import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
+import { jsLayout, Types } from '../snarky/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
@@ -29,6 +23,8 @@ import {
 } from './hash.js';
 import * as Encoding from './encoding.js';
 import { Context } from './global-context.js';
+import { toJSONEssential } from '../snarky/transaction-helpers.js';
+import { customTypes } from '../snarky/gen/transaction.js';
 
 // external API
 export { Permissions, AccountUpdate, ZkappPublicInput };
@@ -50,12 +46,10 @@ export {
   ZkappStateLength,
   Events,
   SequenceEvents,
-  accountUpdateToPublicInput,
   TokenId,
   Token,
   CallForest,
   createChildAccountUpdate,
-  makeChildAccountUpdate,
   AccountUpdatesLayout,
 };
 
@@ -67,6 +61,8 @@ let smartContractContext = Context.create<{
   isCallback: boolean;
   selfUpdate: AccountUpdate;
 }>();
+
+type AuthRequired = Types.Json.AuthRequired;
 
 type AccountUpdateBody = Types.AccountUpdate['body'];
 type Update = AccountUpdateBody['update'];
@@ -262,6 +258,46 @@ let Permissions = {
     incrementNonce: Permissions.signature(),
     setVotingFor: Permission.signature(),
   }),
+
+  fromString: (permission: AuthRequired): Permission => {
+    switch (permission) {
+      case 'None':
+        return Permission.none();
+      case 'Either':
+        return Permission.proofOrSignature();
+      case 'Proof':
+        return Permission.proof();
+      case 'Signature':
+        return Permission.signature();
+      case 'Impossible':
+        return Permission.impossible();
+      default:
+        throw Error(
+          `Cannot parse invalid permission. ${permission} does not exist.`
+        );
+    }
+  },
+
+  fromJSON: (permissions: {
+    editState: AuthRequired;
+    send: AuthRequired;
+    receive: AuthRequired;
+    setDelegate: AuthRequired;
+    setPermissions: AuthRequired;
+    setVerificationKey: AuthRequired;
+    setZkappUri: AuthRequired;
+    editSequenceState: AuthRequired;
+    setTokenSymbol: AuthRequired;
+    incrementNonce: AuthRequired;
+    setVotingFor: AuthRequired;
+  }): Permissions => {
+    return Object.fromEntries(
+      Object.entries(permissions).map(([k, v]) => [
+        k,
+        Permissions.fromString(v),
+      ])
+    ) as unknown as Permissions;
+  },
 };
 
 type Event = Field[];
@@ -359,6 +395,7 @@ interface Body extends AccountUpdateBody {
   preconditions: Preconditions;
   useFullCommitment: Bool;
   incrementNonce: Bool;
+  authorizationKind: AccountUpdateBody['authorizationKind'];
 }
 const Body = {
   noUpdate(): Update {
@@ -410,6 +447,7 @@ const Body = {
       useFullCommitment: Bool(false),
       // this should be set to true if accountUpdates are signed
       incrementNonce: Bool(false),
+      authorizationKind: { isSigned: Bool(false), isProved: Bool(false) },
     };
   },
 
@@ -537,7 +575,7 @@ type LazyProof = {
   args: any[];
   previousProofs: { publicInput: Field[]; proof: Pickles.Proof }[];
   ZkappClass: typeof SmartContract;
-  memoized: Field[][];
+  memoized: { fields: Field[]; aux: any[] }[];
   blindingValue: Field;
 };
 
@@ -584,6 +622,7 @@ class Token {
 }
 
 class AccountUpdate implements Types.AccountUpdate {
+  id: number;
   body: Body;
   authorization: Control;
   lazyAuthorization: LazySignature | LazyProof | undefined = undefined;
@@ -598,6 +637,7 @@ class AccountUpdate implements Types.AccountUpdate {
 
   constructor(body: Body, authorization?: Control);
   constructor(body: Body, authorization = {} as Control, isSelf = false) {
+    this.id = Math.random();
     this.body = body;
     this.authorization = authorization;
     let { account, network } = Precondition.preconditions(this, isSelf);
@@ -609,7 +649,7 @@ class AccountUpdate implements Types.AccountUpdate {
   static clone(accountUpdate: AccountUpdate) {
     let body = cloneCircuitValue(accountUpdate.body);
     let authorization = cloneCircuitValue(accountUpdate.authorization);
-    let clonedAccountUpdate = new (AccountUpdate as any)(
+    let clonedAccountUpdate: AccountUpdate = new (AccountUpdate as any)(
       body,
       authorization,
       accountUpdate.isSelf
@@ -617,7 +657,9 @@ class AccountUpdate implements Types.AccountUpdate {
     clonedAccountUpdate.lazyAuthorization = cloneCircuitValue(
       accountUpdate.lazyAuthorization
     );
-    clonedAccountUpdate.children = accountUpdate.children;
+    clonedAccountUpdate.children.calls = accountUpdate.children.calls;
+    clonedAccountUpdate.children.accountUpdates =
+      accountUpdate.children.accountUpdates.map(AccountUpdate.clone);
     clonedAccountUpdate.parent = accountUpdate.parent;
     return clonedAccountUpdate;
   }
@@ -744,30 +786,31 @@ class AccountUpdate implements Types.AccountUpdate {
     to: PublicKey | AccountUpdate;
     amount: number | bigint | UInt64;
   }) {
-    let accountUpdate = this;
-    let receiverAccountUpdate;
+    let receiver;
     if (to instanceof AccountUpdate) {
-      receiverAccountUpdate = to;
-      receiverAccountUpdate.body.tokenId.assertEquals(
-        accountUpdate.body.tokenId
-      );
+      receiver = to;
+      receiver.body.tokenId.assertEquals(this.body.tokenId);
     } else {
-      receiverAccountUpdate = AccountUpdate.defaultAccountUpdate(
-        to,
-        accountUpdate.body.tokenId
-      );
+      receiver = AccountUpdate.defaultAccountUpdate(to, this.body.tokenId);
     }
-    makeChildAccountUpdate(accountUpdate, receiverAccountUpdate);
+    this.authorize(receiver);
 
     // Sub the amount from the sender's account
-    accountUpdate.body.balanceChange = Int64.fromObject(
-      accountUpdate.body.balanceChange
-    ).sub(amount);
+    this.body.balanceChange = Int64.fromObject(this.body.balanceChange).sub(
+      amount
+    );
 
     // Add the amount to send to the receiver's account
-    receiverAccountUpdate.body.balanceChange = Int64.fromObject(
-      receiverAccountUpdate.body.balanceChange
+    receiver.body.balanceChange = Int64.fromObject(
+      receiver.body.balanceChange
     ).add(amount);
+  }
+
+  authorize(childUpdate: AccountUpdate, layout?: AccountUpdatesLayout) {
+    makeChildAccountUpdate(this, childUpdate);
+    if (layout !== undefined) {
+      AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
+    }
   }
 
   get balance() {
@@ -803,7 +846,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * Example: To constrain the account balance of a SmartContract to lie between 0 and 20 MINA, you can use
    *
    * ```ts
-   * @method onlyRunsWhenBalanceIsLow() {
+   * \@method onlyRunsWhenBalanceIsLow() {
    *   let lower = UInt64.zero;
    *   let upper = UInt64.fromNumber(20e9);
    *   AccountUpdate.assertBetween(this.self.body.preconditions.account.balance, lower, upper);
@@ -831,7 +874,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * Example: To fix the account nonce of a SmartContract to 0, you can use
    *
    * ```ts
-   * @method onlyRunsWhenNonceIsZero() {
+   * \@method onlyRunsWhenNonceIsZero() {
    *   AccountUpdate.assertEquals(this.self.body.preconditions.account.nonce, UInt32.zero);
    *   // ...
    * }
@@ -967,10 +1010,7 @@ class AccountUpdate implements Types.AccountUpdate {
   static create(publicKey: PublicKey, tokenId?: Field) {
     let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey, tokenId);
     if (smartContractContext.has()) {
-      makeChildAccountUpdate(
-        smartContractContext.get().this.self,
-        accountUpdate
-      );
+      smartContractContext.get().this.self.authorize(accountUpdate);
     } else {
       Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
     }
@@ -1020,92 +1060,74 @@ class AccountUpdate implements Types.AccountUpdate {
     accountUpdate.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 
+  // static methods that implement Provable<AccountUpdate>
+  static sizeInFields = Types.AccountUpdate.sizeInFields;
+  static toFields = Types.AccountUpdate.toFields;
+  static toAuxiliary(a?: AccountUpdate) {
+    let aux = Types.AccountUpdate.toAuxiliary(a);
+    let lazyAuthorization = a && cloneCircuitValue(a.lazyAuthorization);
+    let children: AccountUpdate['children'] = { accountUpdates: [] };
+    children.calls = a?.children.calls;
+    if (a) {
+      children.accountUpdates = a.children.accountUpdates.map(
+        AccountUpdate.clone
+      );
+    }
+    let parent = a?.parent;
+    let id = a?.id ?? 0;
+    return [{ lazyAuthorization, children, parent, id }, aux];
+  }
+  static toInput = Types.AccountUpdate.toInput;
+  static toJSON = Types.AccountUpdate.toJSON;
+  static check = Types.AccountUpdate.check;
+  static fromFields(
+    fields: Field[],
+    [{ lazyAuthorization, children, parent, id }, aux]: any[]
+  ) {
+    let rawUpdate = Types.AccountUpdate.fromFields(fields, aux);
+    return Object.assign(
+      new AccountUpdate(rawUpdate.body, rawUpdate.authorization),
+      { lazyAuthorization, children, parent, id }
+    );
+  }
+
   static witness<T>(
-    type: AsFieldElements<T>,
+    type: Provable<T>,
     compute: () => { accountUpdate: AccountUpdate; result: T },
     { skipCheck = false } = {}
   ) {
     // construct the circuit type for a accountUpdate + other result
-    let accountUpdateType = circuitArray(
-      Field,
-      Types.AccountUpdate.sizeInFields()
-    );
-    type combinedType = { accountUpdate: Field[]; result: T };
-    let combinedType = circuitValue<combinedType>({
+    let accountUpdateType = skipCheck
+      ? { ...provable(AccountUpdate), check() {} }
+      : AccountUpdate;
+    let combinedType = provable({
       accountUpdate: accountUpdateType,
-      result: type,
+      result: type as any,
     });
-
-    // compute the witness, with the accountUpdate represented as plain field elements
-    // (in the prover, also store the actual accountUpdate)
-    let proverAccountUpdate: AccountUpdate | undefined;
-    let fieldsAndResult = Circuit.witness<combinedType>(combinedType, () => {
-      let { accountUpdate, result } = compute();
-      proverAccountUpdate = accountUpdate;
-      let fields = Types.AccountUpdate.toFields(accountUpdate).map((x) =>
-        x.toConstant()
-      );
-      return { accountUpdate: fields, result };
-    });
-
-    // get back a Types.AccountUpdate from the fields + aux (where aux is just the default in compile)
-    let aux = Types.AccountUpdate.toAuxiliary(proverAccountUpdate);
-    let rawAccountUpdate = Types.AccountUpdate.fromFields(
-      fieldsAndResult.accountUpdate,
-      aux
-    );
-    // usually when we introduce witnesses, we add checks for their type-specific properties (e.g., booleanness).
-    // a accountUpdate, however, might already be forced to be valid by the on-chain transaction logic,
-    // allowing us to skip expensive checks in user proofs.
-    if (!skipCheck) Types.AccountUpdate.check(rawAccountUpdate);
-
-    // construct the full AccountUpdate instance from the raw accountUpdate + (maybe) the prover accountUpdate
-    let accountUpdate = new AccountUpdate(
-      rawAccountUpdate.body,
-      rawAccountUpdate.authorization
-    );
-    accountUpdate.lazyAuthorization =
-      proverAccountUpdate &&
-      cloneCircuitValue(proverAccountUpdate.lazyAuthorization);
-    accountUpdate.children = proverAccountUpdate?.children ?? {
-      accountUpdates: [],
-    };
-    accountUpdate.parent = proverAccountUpdate?.parent;
-    return { accountUpdate, result: fieldsAndResult.result };
+    return Circuit.witness(combinedType, compute);
   }
 
-  /**
-   * Like AccountUpdate.witness, but lets you specify a layout for the accountUpdate's children,
-   * which also get witnessed
-   */
-  static witnessTree<T>(
-    resultType: AsFieldElements<T>,
+  static witnessChildren(
+    accountUpdate: AccountUpdate,
     childLayout: AccountUpdatesLayout,
-    compute: () => { accountUpdate: AccountUpdate; result: T },
     options?: { skipCheck: boolean }
   ) {
-    // witness the root accountUpdate
-    let { accountUpdate, result } = AccountUpdate.witness(
-      resultType,
-      compute,
-      options
-    );
-    // stop early if children === undefined
-    if (childLayout === undefined) {
+    // just witness children's hash if childLayout === null
+    if (childLayout === AccountUpdate.Layout.AnyChildren) {
       let calls = Circuit.witness(Field, () =>
         CallForest.hashChildren(accountUpdate)
       );
       accountUpdate.children.calls = calls;
-      return { accountUpdate, result };
+      return;
     }
     let childArray: AccountUpdatesLayout[] =
       typeof childLayout === 'number'
-        ? Array(childLayout).fill(0)
+        ? Array(childLayout).fill(AccountUpdate.Layout.NoChildren)
         : childLayout;
     let n = childArray.length;
     for (let i = 0; i < n; i++) {
       accountUpdate.children.accountUpdates[i] = AccountUpdate.witnessTree(
-        circuitValue<null>(null),
+        provable(null),
         childArray[i],
         () => ({
           accountUpdate:
@@ -1119,30 +1141,111 @@ class AccountUpdate implements Types.AccountUpdate {
     if (n === 0) {
       accountUpdate.children.calls.assertEquals(CallForest.emptyHash());
     }
+  }
+
+  /**
+   * Like AccountUpdate.witness, but lets you specify a layout for the accountUpdate's children,
+   * which also get witnessed
+   */
+  static witnessTree<T>(
+    resultType: Provable<T>,
+    childLayout: AccountUpdatesLayout,
+    compute: () => { accountUpdate: AccountUpdate; result: T },
+    options?: { skipCheck: boolean }
+  ) {
+    // witness the root accountUpdate
+    let { accountUpdate, result } = AccountUpdate.witness(
+      resultType,
+      compute,
+      options
+    );
+    // witness child account updates
+    AccountUpdate.witnessChildren(accountUpdate, childLayout, options);
     return { accountUpdate, result };
+  }
+
+  /**
+   * Describes the children of an account update, which are laid out in a tree.
+   *
+   * The tree layout is described recursively by using a combination of `AccountUpdate.Layout.NoChildren`, `AccountUpdate.Layout.StaticChildren(...)` and `AccountUpdate.Layout.AnyChildren`.
+   * - `NoChildren` means an account update that can't have children
+   * - `AnyChildren` means an account update can have an arbitrary amount of children, which means you can't access those children in your circuit (because the circuit is static).
+   * - `StaticChildren` means the account update must have a certain static amount of children and expects as arguments a description of each of those children.
+   *   As a shortcut, you can also pass `StaticChildren` a number, which means it has that amount of children but no grandchildren.
+   *
+   * This is best understood by examples:
+   *
+   * ```ts
+   * let { NoChildren, AnyChildren, StaticChildren } = AccounUpdate.Layout;
+   *
+   * NoChildren                 // an account updates with no children
+   * AnyChildren                // an account update with arbitrary children
+   * StaticChildren(NoChildren) // an account update with 1 child, which doesn't have children itself
+   * StaticChildren(1)          // shortcut for StaticChildren(NoChildren)
+   * StaticChildren(2)          // shortcut for StaticChildren(NoChildren, NoChildren)
+   * StaticChildren(0)          // equivalent to NoChildren
+   *
+   * // an update with 2 children, of which one has arbitrary children and the other has exactly 1 descendant
+   * StaticChildren(AnyChildren, StaticChildren(1))
+   * ```
+   */
+  static Layout = {
+    StaticChildren: ((...args: any[]) => {
+      if (args.length === 1 && typeof args[0] === 'number') return args[0];
+      if (args.length === 0) return 0;
+      return args;
+    }) as {
+      (n: number): AccountUpdatesLayout;
+      (...args: AccountUpdatesLayout[]): AccountUpdatesLayout;
+    },
+    NoChildren: 0,
+    AnyChildren: null,
+  };
+
+  toPretty() {
+    let jsonUpdate: Partial<Types.Json.AccountUpdate> = toJSONEssential(
+      jsLayout.AccountUpdate as any,
+      this,
+      customTypes
+    );
+    let body: Partial<Types.Json.AccountUpdate['body']> =
+      jsonUpdate.body as any;
+    if (body.balanceChange?.magnitude === '0') delete body.balanceChange;
+    if (body.tokenId === TokenId.toBase58(TokenId.default)) delete body.tokenId;
+    if (body.caller === TokenId.toBase58(TokenId.default)) delete body.caller;
+    if (body.incrementNonce === false) delete body.incrementNonce;
+    if (body.useFullCommitment === false) delete body.useFullCommitment;
+    if (body.events?.length === 0) delete body.events;
+    if (body.sequenceEvents?.length === 0) delete body.sequenceEvents;
+    if (body.preconditions?.account) {
+      body.preconditions.account = JSON.stringify(
+        body.preconditions.account
+      ) as any;
+    }
+    if (body.preconditions?.network) {
+      body.preconditions.network = JSON.stringify(
+        body.preconditions.network
+      ) as any;
+    }
+    if (jsonUpdate.authorization?.proof) {
+      jsonUpdate.authorization.proof =
+        jsonUpdate.authorization.proof.slice(0, 6) + '...';
+    }
+    if (body.update?.verificationKey) {
+      body.update.verificationKey = JSON.stringify({
+        data: body.update.verificationKey.data.slice(0, 6) + '...',
+        hash: body.update.verificationKey.hash.slice(0, 6) + '...',
+      }) as any;
+    }
+    if (body.update?.permissions) {
+      body.update.permissions = JSON.stringify(body.update.permissions) as any;
+    }
+    (body as any).authorization = jsonUpdate.authorization;
+    return body;
   }
 }
 
-/**
- * Describes list of accountUpdates (call forest) to be witnessed.
- *
- * An accountUpdates list is represented by either
- * - an array, whose entries are accountUpdates, each represented by their list of children
- * - a positive integer, which gives the number of top-level accountUpdates, which aren't allowed to have further children
- * - `undefined`, which means just the `calls` (call forest hash) is witnessed, allowing arbitrary accountUpdates but no access to them in the circuit
- *
- * Examples:
- * ```ts
- * []              // an empty accountUpdates list
- * 0               // same as []
- * [0]             // a list of one accountUpdate, which doesn't have children
- * 1               // same as [0]
- * 2               // same as [0, 0]
- * undefined       // an arbitrary list of accountUpdates
- * [undefined, 1]  // a list of 2 accountUpdates, of which one has arbitrary children and the other has exactly 1 child
- * ```
- */
-type AccountUpdatesLayout = number | undefined | AccountUpdatesLayout[];
+type AccountUpdatesLayout = number | null | AccountUpdatesLayout[];
 
 const CallForest = {
   // similar to Mina_base.ZkappCommand.Call_forest.to_account_updates_list
@@ -1205,7 +1308,7 @@ const CallForest = {
   ) {
     let isPredecessor = true;
     CallForest.forEach(updates, (otherUpdate) => {
-      if (otherUpdate === update) isPredecessor = false;
+      if (otherUpdate.id === update.id) isPredecessor = false;
       if (isPredecessor) callback(otherUpdate);
     });
   },
@@ -1222,14 +1325,21 @@ function createChildAccountUpdate(
 }
 function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
   child.body.callDepth = parent.body.callDepth + 1;
-  child.parent = parent;
+  // add to our children if not already here
   if (
-    !parent.children.accountUpdates.find(
-      (accountUpdate) => accountUpdate === child
-    )
+    !parent.children.accountUpdates.find((update) => update.id === child.id)
   ) {
     parent.children.accountUpdates.push(child);
   }
+  // remove the child from the top level list / its current parent
+  if (child.parent === undefined) {
+    let topLevelUpdates = Mina.currentTransaction()?.accountUpdates;
+    let i = topLevelUpdates?.findIndex((update) => update.id === child.id);
+    if (i !== undefined && i !== -1) {
+      topLevelUpdates!.splice(i, 1);
+    }
+  }
+  child.parent = parent;
 }
 
 // authorization
@@ -1276,10 +1386,14 @@ const Authorization = {
     signature?: Omit<LazySignature, 'kind'>
   ) {
     signature ??= {};
+    accountUpdate.body.authorizationKind.isSigned = Bool(true);
+    accountUpdate.body.authorizationKind.isProved = Bool(false);
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
   setLazyProof(accountUpdate: AccountUpdate, proof: Omit<LazyProof, 'kind'>) {
+    accountUpdate.body.authorizationKind.isSigned = Bool(false);
+    accountUpdate.body.authorizationKind.isProved = Bool(true);
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...proof, kind: 'lazy-proof' };
   },
@@ -1354,16 +1468,10 @@ function addMissingSignatures(
   Thus, the transaction is fully constrained by the proof - the proof couldn't be used to attest to a different transaction.
  */
 type ZkappPublicInput = { accountUpdate: Field; calls: Field };
-let ZkappPublicInput = circuitValue<ZkappPublicInput>(
+let ZkappPublicInput = provablePure(
   { accountUpdate: Field, calls: Field },
   { customObjectKeys: ['accountUpdate', 'calls'] }
 );
-
-function accountUpdateToPublicInput(self: AccountUpdate): ZkappPublicInput {
-  let accountUpdate = self.hash();
-  let calls = CallForest.hashChildren(self);
-  return { accountUpdate, calls };
-}
 
 async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
   zkappCommand: ZkappCommandProved;
@@ -1389,7 +1497,7 @@ async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
       memoized,
       blindingValue,
     } = accountUpdate.lazyAuthorization;
-    let publicInput = accountUpdateToPublicInput(accountUpdate);
+    let publicInput = accountUpdate.toPublicInput();
     let publicInputFields = ZkappPublicInput.toFields(publicInput);
     if (ZkappClass._provers === undefined)
       throw Error(

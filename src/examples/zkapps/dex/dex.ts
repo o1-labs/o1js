@@ -2,8 +2,6 @@ import {
   Account,
   Bool,
   Circuit,
-  circuitValue,
-  CircuitValue,
   DeployArgs,
   Experimental,
   Field,
@@ -14,11 +12,12 @@ import {
   AccountUpdate,
   Permissions,
   PrivateKey,
-  prop,
   PublicKey,
   SmartContract,
   Token,
   UInt64,
+  VerificationKey,
+  Struct,
 } from 'snarkyjs';
 
 export { Dex, DexTokenHolder, TokenContract, keys, addresses, tokenIds };
@@ -104,19 +103,13 @@ class Dex extends SmartContract {
    *
    * The transaction needs to be signed by the user's private key.
    */
-  @method redeemLiquidity(user: PublicKey, dl: UInt64) /* : UInt64x2 */ {
+  @method redeemLiquidity(user: PublicKey, dl: UInt64): UInt64x2 {
     // call the token X holder inside a token X-authorized callback
     let tokenX = new TokenContract(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
-    // TODO: as long as we're not proving anything about the callback, this allows users to
-    // construct any account update, e.g. draining all our lq tokens -.-
-    let callback = Experimental.Callback.create(dexX, 'redeemLiquidity', [
-      user,
-      dl,
-      this.tokenY,
-    ]);
-    tokenX.authorize(callback);
-    // TODO: get return value from callback and return here
+    let dxdy = dexX.redeemLiquidity(user, dl, this.tokenY);
+    tokenX.authorizeUpdate(dexX.self);
+    return dxdy;
   }
 
   /**
@@ -127,18 +120,12 @@ class Dex extends SmartContract {
    *
    * The transaction needs to be signed by the user's private key.
    */
-  @method swapX(user: PublicKey, dx: UInt64) /* : UInt64 */ {
+  @method swapX(user: PublicKey, dx: UInt64): UInt64 {
     let tokenY = new TokenContract(this.tokenY);
     let dexY = new DexTokenHolder(this.address, tokenY.experimental.token.id);
-    // TODO: as long as we're not proving anything about the callback, this allows users to
-    // construct any account update, for example draining all our lq tokens -.-
-    let callback = Experimental.Callback.create(dexY, 'swap', [
-      user,
-      dx,
-      this.tokenX,
-    ]);
-    tokenY.authorize(callback);
-    // TODO: get return value from callback and return here
+    let dy = dexY.swap(user, dx, this.tokenX);
+    tokenY.authorizeUpdate(dexY.self);
+    return dy;
   }
 
   /**
@@ -149,39 +136,23 @@ class Dex extends SmartContract {
    *
    * The transaction needs to be signed by the user's private key.
    */
-  @method swapY(user: PublicKey, dy: UInt64) /* : UInt64 */ {
+  @method swapY(user: PublicKey, dy: UInt64): UInt64 {
     let tokenX = new TokenContract(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
-    // TODO: as long as we're not proving anything about the callback, this allows users to
-    // construct any account update, for example draining all our lq tokens -.-
-    let callback = Experimental.Callback.create(dexX, 'swap', [
-      user,
-      dy,
-      this.tokenY,
-    ]);
-    tokenX.authorize(callback);
-    // TODO: get return value from callback and return here
+    let dx = dexX.swap(user, dy, this.tokenY);
+    tokenX.authorizeUpdate(dexX.self);
+    return dx;
   }
 }
 
-// TODO: this is a pain -- let's define circuit values in one line, with a factory pattern
-// we just have to make circuitValue return a class, that's it!
-// class UInt64x2 extends circuitValue([UInt64, UInt64]) {}
-class UInt64x2 extends CircuitValue {
-  @prop 0: UInt64;
-  @prop 1: UInt64;
-
-  static from([a0, a1]: [UInt64, UInt64]) {
-    return UInt64x2.fromObject({ 0: a0, 1: a1 });
-  }
-}
+class UInt64x2 extends Struct([UInt64, UInt64]) {}
 
 class DexTokenHolder extends SmartContract {
   // simpler circuit for redeeming liquidity -- direct trade between our token and lq token
   // it's incomplete, as it gives the user only the Y part for an lqXY token; but doesn't matter as there's no incentive to call it directly
   // see the more complicated method `redeemLiquidity` below which gives back both tokens, by calling this method,
   // for the other token, in a callback
-  @method redeemLiquidityPartial(user: PublicKey, dl: UInt64): UInt64 {
+  @method redeemLiquidityPartial(user: PublicKey, dl: UInt64): UInt64x2 {
     let dex = AccountUpdate.create(this.address);
     let l = dex.account.balance.get();
     dex.account.balance.assertEquals(l);
@@ -197,8 +168,8 @@ class DexTokenHolder extends SmartContract {
     let dy = y.mul(dl).div(l);
     this.send({ to: user, amount: dy });
 
-    // return l so callers don't have to walk their child account updates to get it
-    return l;
+    // return l, dy so callers don't have to walk their child account updates to get it
+    return [l, dy];
   }
 
   // more complicated circuit, where we trigger the Y(other)-lqXY trade in our child account updates and then add the X(our) part
@@ -210,51 +181,10 @@ class DexTokenHolder extends SmartContract {
     // first call the Y token holder, authorized by the Y token contract; this makes sure we get dl, the user's lqXY
     let tokenY = new TokenContract(otherTokenAddress);
     let dexY = new DexTokenHolder(this.address, tokenY.experimental.token.id);
-    // TODO: THIS IS A SECURITY HOLE
-    // there's nothing proving that we really call that callback and pass in [user, dl]
-    // also, there needs to be a way to get the callback _result_ to the caller's caller
-    // right now, we can hack around that by extracting balance changes here
-    tokenY.authorize(
-      Experimental.Callback.create(dexY, 'redeemLiquidityPartial', [user, dl])
-    );
-    let l: UInt64;
-    let dy;
-    {
-      // NOTHING IN THIS BLOCK SHOULD BE NECESSARY if we're properly proving the callback call.
-      // walk into child account updates, to assert the callback was called correctly
-
-      // TODO: getting the account update here w/o messing up the account updates structure is error-prone and non-obvious
-      let tokenYUpdate = AccountUpdate.witnessTree(
-        circuitValue<null>(null),
-        // need to walk two layers deeper, and need to respect the actual max number of child account updates
-        [[undefined, undefined, undefined], undefined, undefined],
-        () => {
-          // remove existing calls hash, because tokenY.authorize just witnesses it, which would mess up our circuit and
-          // make us unable to make assertions about the account update tree
-          this.self.children.accountUpdates[0].children.calls = undefined;
-          return {
-            accountUpdate: this.self.children.accountUpdates[0],
-            result: null,
-          };
-        }
-      ).accountUpdate;
-      let [dexYUpdate] = tokenYUpdate.children.accountUpdates;
-      let [dexUpdate, userUpdateL] = dexYUpdate.children.accountUpdates;
-      // confirm we really got `dl` tokens from `user`
-      // 1. passed in the right user
-      userUpdateL.body.publicKey.assertEquals(user);
-      // 2. deducted the right balance from user
-      Int64.fromObject(userUpdateL.body.balanceChange).assertEquals(
-        Int64.from(dl).neg()
-      );
-      // get lq pool balance
-      l = dexUpdate.account.balance.get();
-      dexUpdate.account.balance.assertEquals(l);
-      // in return for dl, we give back dx, the X token part
-      let y = dexYUpdate.account.balance.get();
-      dexYUpdate.account.balance.assertEquals(y);
-      dy = y.mul(dl).div(l);
-    }
+    let result = dexY.redeemLiquidityPartial(user, dl);
+    let l = result[0];
+    let dy = result[1];
+    tokenY.authorizeUpdate(dexY.self);
 
     // in return for dl, we give back dx, the X token part
     let x = this.account.balance.get();
@@ -262,7 +192,7 @@ class DexTokenHolder extends SmartContract {
     let dx = x.mul(dl).div(l);
     this.send({ to: user, amount: dx });
 
-    return UInt64x2.from([dx, dy]);
+    return [dx, dy];
   }
 
   // this works for both directions (in our case where both tokens use the same contract)
@@ -321,7 +251,7 @@ class TokenContract extends SmartContract {
 
   // this is a very standardized deploy method. instead, we could also take the account update from a callback
   // => need callbacks for signatures
-  @method deployZkapp(address: PublicKey) {
+  @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
     let tokenId = this.experimental.token.id;
     let zkapp = Experimental.createChildAccountUpdate(
       this.self,
@@ -332,20 +262,22 @@ class TokenContract extends SmartContract {
       ...Permissions.default(),
       send: Permissions.proof(),
     });
-    // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
-    // AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
+    AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
     zkapp.sign();
   }
 
   // let a zkapp do whatever it wants, as long as the token supply stays constant
-  @method authorize(callback: Experimental.Callback<any>) {
-    let layout = [[3, 0, 0], 0, 0]; // these are 10 child account updates we allow, in a left-biased tree of width 3
-    // TODO: this should also return what the callback returns, and authorize should pass it on!
-    let zkappUpdate = Experimental.accountUpdateFromCallback(
-      this,
-      layout,
-      callback
+  @method authorizeUpdate(zkappUpdate: AccountUpdate) {
+    // adopt this account update as a child, allowing a certain layout for its own children
+    // we allow 10 child account updates, in a left-biased tree of width 3
+    let { NoChildren, StaticChildren } = AccountUpdate.Layout;
+    let layout = StaticChildren(
+      StaticChildren(StaticChildren(3), NoChildren, NoChildren),
+      NoChildren,
+      NoChildren
     );
+    this.experimental.authorize(zkappUpdate, layout);
+
     // walk account updates to see if balances for this token cancel
     let balance = balanceSum(zkappUpdate, this.experimental.token.id);
     balance.assertEquals(Int64.zero);

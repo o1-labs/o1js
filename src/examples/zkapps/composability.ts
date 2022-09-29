@@ -97,7 +97,7 @@ let tx = await Mina.transaction(feePayer, () => {
   adderZkapp.deploy({ zkappKey: adderKey });
   incrementerZkapp.deploy({ zkappKey: incrementerKey });
 });
-tx.send();
+await tx.send();
 
 console.log('call interaction');
 tx = await Mina.transaction(feePayer, () => {
@@ -112,7 +112,7 @@ if (doProofs) {
 
 console.dir(JSON.parse(tx.toJSON()), { depth: 5 });
 
-tx.send();
+await tx.send();
 
 // should hopefully be 12 since we added 5 + 6 + 1
 console.log('state: ' + zkapp.sum.get());

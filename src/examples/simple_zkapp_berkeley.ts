@@ -94,7 +94,7 @@ if (!isDeployed) {
 
   // send the transaction to the graphql endpoint
   console.log('Sending the transaction...');
-  await transaction.send().wait();
+  await transaction.send();
 }
 
 // if the zkapp is not deployed yet, create an update transaction
@@ -116,7 +116,7 @@ if (isDeployed) {
 
   // send the transaction to the graphql endpoint
   console.log('Sending the transaction...');
-  await transaction.send().wait();
+  await transaction.send();
 }
 
 shutdown();

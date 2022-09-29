@@ -86,7 +86,7 @@ try {
       Experimental.Reducer.initialActionsHash
     );
   });
-  tx.send();
+  await tx.send();
   let m: Member = Member.empty();
   // lets register three voters
   tx = await Mina.transaction(feePayer, () => {
@@ -110,7 +110,7 @@ try {
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
   if (params.doProofs) await tx.prove();
-  tx.send();
+  await tx.send();
 
   // lets register three voters
   tx = await Mina.transaction(feePayer, () => {
@@ -135,7 +135,7 @@ try {
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
   if (params.doProofs) await tx.prove();
-  tx.send();
+  await tx.send();
 
   // lets register three voters
   tx = await Mina.transaction(feePayer, () => {
@@ -160,7 +160,7 @@ try {
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
   if (params.doProofs) await tx.prove();
-  tx.send();
+  await tx.send();
 
   /*
   since the voting contract calls the voter membership contract via invoking voterRegister,
@@ -199,7 +199,7 @@ try {
   });
 
   if (params.doProofs) await tx.prove();
-  tx.send();
+  await tx.send();
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering 1 new candidate
     let m = registerMember(
@@ -222,7 +222,7 @@ try {
   });
 
   if (params.doProofs) await tx.prove();
-  tx.send();
+  await tx.send();
   /*
   since the voting contact calls the candidate membership contract via invoking candidateRegister,
   the membership contract will then emit one event per new member
@@ -267,7 +267,7 @@ try {
   });
 
   if (params.doProofs) await tx.prove();
-  tx.send();
+  await tx.send();
 
   for (let a of candidateStore.values()) {
     console.log(a.publicKey.toBase58());
@@ -303,7 +303,7 @@ try {
   });
 
   if (params.doProofs) await tx.prove();
-  tx.send();
+  await tx.send();
   // after the transaction went through, we have to update our off chain store as well
   vote(0n);
 
@@ -323,7 +323,7 @@ try {
   });
 
   if (params.doProofs) await tx.prove();
-  tx.send();
+  await tx.send();
 
   // vote dispatches a new sequence events, so we should have one
 
