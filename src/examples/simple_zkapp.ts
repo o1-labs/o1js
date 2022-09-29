@@ -40,11 +40,13 @@ class SimpleZkapp extends SmartContract {
     this.x.set(initialState);
   }
 
-  @method update(y: Field) {
+  @method update(y: Field): Field {
     this.emitEvent('update', y);
     let x = this.x.get();
     this.x.assertEquals(x);
-    this.x.set(x.add(y));
+    let newX = x.add(y);
+    this.x.set(newX);
+    return newX;
   }
 
   /**

@@ -277,9 +277,7 @@ function wrapMethod(
                 currentIndex: 0,
                 blindingValue,
               },
-              () => {
-                method.apply(this, actualArgs);
-              }
+              () => method.apply(this, actualArgs)
             );
             assertStatePrecondition(this);
 
