@@ -133,9 +133,9 @@ function createTransaction(
     currentTransaction.leave(transactionId);
     throw err;
   }
-  let accountUpdates = CallForest.toFlatList(
-    currentTransaction.get().accountUpdates
-  );
+  let accountUpdates = currentTransaction.get().accountUpdates;
+  CallForest.addCallers(accountUpdates);
+  accountUpdates = CallForest.toFlatList(accountUpdates);
   try {
     // check that on-chain values weren't used without setting a precondition
     for (let accountUpdate of accountUpdates) {

@@ -30,6 +30,7 @@ export {
   methodArgumentTypesAndValues,
   isAsFields,
   snarkContext,
+  Prover,
   inProver,
   inCompile,
   inAnalyze,
@@ -592,6 +593,24 @@ ZkProgram.Proof = function <
 };
 
 // helpers for circuit context
+
+function Prover<ProverData>() {
+  return {
+    async run<Result>(
+      witnesses: unknown[],
+      proverData: ProverData,
+      callback: () => Promise<Result>
+    ) {
+      return snarkContext.runWithAsync(
+        { witnesses, proverData, inProver: true },
+        callback
+      );
+    },
+    getData(): ProverData {
+      return snarkContext.get().proverData;
+    },
+  };
+}
 
 function inProver() {
   return !!snarkContext.get().inProver;

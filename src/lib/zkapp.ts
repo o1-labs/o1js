@@ -33,6 +33,7 @@ import {
   TokenId,
   AccountUpdatesLayout,
   smartContractContext,
+  zkAppProver,
 } from './account_update.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import * as Mina from './mina.js';
@@ -208,6 +209,20 @@ function wrapMethod(
                 accountUpdate.body.authorizationKind.isSigned = Bool(false);
                 accountUpdate.body.authorizationKind.isProved = Bool(true);
 
+                // compute `caller` field from `isDelegateCall` and a context determined by the transaction
+                let callerContext = Circuit.witness(
+                  CallForest.callerContextType,
+                  () => {
+                    let { accountUpdate } = zkAppProver.getData();
+                    return CallForest.computeCallerContext(accountUpdate);
+                  }
+                );
+                accountUpdate.body.caller = Circuit.if(
+                  accountUpdate.isDelegateCall,
+                  callerContext.caller,
+                  callerContext.self
+                ).seal();
+
                 // connect the public input to the accountUpdate & child account updates we created
                 if (DEBUG_PUBLIC_INPUT_CHECK) {
                   // TODO: print a nice diff string instead of the two objects
@@ -222,8 +237,7 @@ function wrapMethod(
                     }
                   }
                   Circuit.asProver(() => {
-                    let inputUpdate: AccountUpdate =
-                      snarkContext.get().proverData;
+                    let inputUpdate = zkAppProver.getData().accountUpdate;
                     diff(accountUpdate.toPretty(), inputUpdate.toPretty());
 
                     // TODO: this doesn't walk the whole tree

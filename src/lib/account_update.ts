@@ -4,7 +4,6 @@ import {
   cloneCircuitValue,
   memoizationContext,
   memoizeWitness,
-  toConstant,
 } from './circuit_value.js';
 import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
 import { jsLayout, Types } from '../snarky/types.js';
@@ -13,7 +12,7 @@ import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
-import { inCheckedComputation, Proof, snarkContext } from './proof_system.js';
+import { inCheckedComputation, Proof, Prover } from './proof_system.js';
 import {
   emptyHashWithPrefix,
   hashWithPrefix,
@@ -51,6 +50,7 @@ export {
   CallForest,
   createChildAccountUpdate,
   AccountUpdatesLayout,
+  zkAppProver,
 };
 
 const ZkappStateLength = 8;
@@ -60,6 +60,12 @@ let smartContractContext = Context.create<{
   methodCallDepth: number;
   isCallback: boolean;
   selfUpdate: AccountUpdate;
+}>();
+
+let zkAppProver = Prover<{
+  transaction: ZkappCommand;
+  accountUpdate: AccountUpdate;
+  index: number;
 }>();
 
 type AuthRequired = Types.Json.AuthRequired;
@@ -625,6 +631,7 @@ class Token {
 class AccountUpdate implements Types.AccountUpdate {
   id: number;
   body: Body;
+  isDelegateCall = Bool(true);
   authorization: Control;
   lazyAuthorization: LazySignature | LazyProof | LazyNone | undefined =
     undefined;
@@ -1296,6 +1303,58 @@ const CallForest = {
     return stackHash;
   },
 
+  // Mina_base.Zkapp_command.Call_forest.add_callers
+  addCallers(
+    updates: AccountUpdate[],
+    context: { self: Field; caller: Field } = {
+      self: TokenId.default,
+      caller: TokenId.default,
+    }
+  ) {
+    for (let update of updates) {
+      let childContext = update.isDelegateCall.toBoolean()
+        ? context
+        : {
+            caller: context.self,
+            self: Token.getId(update.body.publicKey, update.body.tokenId),
+          };
+      update.body.caller = childContext.caller;
+      CallForest.addCallers(update.children.accountUpdates, childContext);
+    }
+  },
+  /**
+   * Used in the prover to witness the context from which to compute its caller
+   */
+  computeCallerContext(update: AccountUpdate) {
+    // compute the line of ancestors
+    let current = update;
+    let ancestors = [];
+    while (true) {
+      let parent = current.parent;
+      if (parent === undefined) break;
+      ancestors.unshift(parent);
+      current = parent;
+    }
+    let context = { self: TokenId.default, caller: TokenId.default };
+    for (let update of ancestors) {
+      if (!update.isDelegateCall.toBoolean()) {
+        context.caller = context.self;
+        context.self = Token.getId(update.body.publicKey, update.body.tokenId);
+      }
+    }
+    return context;
+  },
+  callerContextType: provablePure({ self: Field, caller: Field }),
+  /**
+   * Used in the prover circuit to compute `caller` from witnessed context
+   */
+  computeCallerFromContext(
+    isDelegateCall: Bool,
+    { self, caller }: { self: Field; caller: Field }
+  ) {
+    return Circuit.if(isDelegateCall, caller, self);
+  },
+
   forEach(updates: AccountUpdate[], callback: (update: AccountUpdate) => void) {
     for (let update of updates) {
       callback(update);
@@ -1489,7 +1548,7 @@ async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
     lazyAuthorization?: LazySignature;
   };
 
-  async function addProof(accountUpdate: AccountUpdate) {
+  async function addProof(index: number, accountUpdate: AccountUpdate) {
     accountUpdate = AccountUpdate.clone(accountUpdate);
     if (accountUpdate.lazyAuthorization?.kind !== 'lazy-proof') {
       return {
@@ -1519,12 +1578,9 @@ async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
     if (ZkappClass._methods === undefined) throw Error(methodError);
     let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
     if (i === -1) throw Error(methodError);
-    let [, [, proof]] = await snarkContext.runWithAsync(
-      {
-        inProver: true,
-        witnesses: [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
-        proverData: accountUpdate,
-      },
+    let [, [, proof]] = await zkAppProver.run(
+      [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
+      { transaction: zkappCommand, accountUpdate, index },
       () =>
         memoizationContext.runWithAsync(
           { memoized, currentIndex: 0, blindingValue },
@@ -1547,8 +1603,8 @@ async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
   // compute proofs serially. in parallel would clash with our global variable hacks
   let accountUpdatesProved: AccountUpdateProved[] = [];
   let proofs: (Proof<ZkappPublicInput> | undefined)[] = [];
-  for (let accountUpdate of accountUpdates) {
-    let { accountUpdateProved, proof } = await addProof(accountUpdate);
+  for (let i = 0; i < accountUpdates.length; i++) {
+    let { accountUpdateProved, proof } = await addProof(i, accountUpdates[i]);
     accountUpdatesProved.push(accountUpdateProved);
     proofs.push(proof);
   }
