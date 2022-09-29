@@ -24,7 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `VerificationKey`, which is a `Struct` with auxiliary data, to pass verification keys to a `@method`
   - BREAKING CHANGE: Change names related to circuit types: `AsFieldsAndAux<T>` -> `Provable<T>`, `AsFieldElement<T>` -> `ProvablePure<T>`, `circuitValue` -> `provable`
   - BREAKING CHANGE: Change all `ofFields` and `ofBits` methods on circuit types to `fromFields` and `fromBits`
-  - BREAKING CHANGE: `tx.send()` is now asynchronous: old: `send(): TransactionId` new: `send(): Promise<TransactionId>` and `tx.send()` now directly sends the transaction to the network, as opposed to `tx.send().wait()`
+- `SmartContract.experimental.authorize` to authorize a tree of child account updates https://github.com/o1-labs/snarkyjs/pull/428
+  - AccountUpdates are now valid `@method` arguments, and `authorize` is intended to be used on them when passed to a method
+  - Also replaces `Experimental.accountUpdateFromCallback`
+
+### Changed
+
+- BREAKING CHANGE: `tx.send()` is now asynchronous: old: `send(): TransactionId` new: `send(): Promise<TransactionId>` and `tx.send()` now directly waits for the network response, as opposed to `tx.send().wait()`
 
 ### Deprecated
 
