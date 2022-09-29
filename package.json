@@ -32,7 +32,7 @@
     "dev": "npx tsc -p tsconfig.node.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "make": "make -C ../../../.. snarkyjs",
     "build": "rimraf ./dist/node && npx tsc -p tsconfig.node.json && cp -r src/node_bindings dist/node/_node_bindings && node src/build/buildNode.js && cp src/snarky.d.ts dist/node/snarky.d.ts",
-    "build:test": "rimraf ./dist/test && npx tsc -p tsconfig.test.json && cp -r src/node_bindings dist/test/_node_bindings && cp src/snarky.d.ts dist/test/snarky.d.ts",
+    "build:test": "npx tsc -p tsconfig.test.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "build:node": "npm run build",
     "build:web": "rimraf ./dist/web && node src/build/buildWeb.js",
     "build:examples": "rimraf ./dist/examples && npx tsc -p tsconfig.examples.json || exit 0",
