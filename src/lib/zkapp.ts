@@ -216,24 +216,23 @@ function wrapMethod(
                     if (JSON.stringify(prover) !== JSON.stringify(input)) {
                       console.log('inconsistent account updates:');
                       console.log('update created by the prover:');
-                      console.dir(prover, { depth: Infinity });
+                      console.log(prover);
                       console.log('update created in transaction block:');
-                      console.dir(input, { depth: Infinity });
+                      console.log(input);
                     }
                   }
                   Circuit.asProver(() => {
-                    let inputAccountUpdate: AccountUpdate =
+                    let inputUpdate: AccountUpdate =
                       snarkContext.get().proverData;
-                    diff(accountUpdate.toJSON(), inputAccountUpdate.toJSON());
+                    diff(accountUpdate.toPretty(), inputUpdate.toPretty());
 
-                    let nChildren =
-                      inputAccountUpdate.children.accountUpdates.length;
+                    // TODO: this doesn't walk the whole tree
+                    let nChildren = inputUpdate.children.accountUpdates.length;
                     for (let i = 0; i < nChildren; i++) {
-                      let inputChild =
-                        inputAccountUpdate.children.accountUpdates[i].toJSON();
-                      let child =
-                        accountUpdate.children.accountUpdates[i].toJSON();
-                      diff(child, inputChild);
+                      let inputChild = inputUpdate.children.accountUpdates[i];
+                      let child = accountUpdate.children.accountUpdates[i];
+                      if (!inputChild || !child) return;
+                      diff(child.toPretty(), inputChild.toPretty());
                     }
                   });
                 }
@@ -659,6 +658,9 @@ class SmartContract {
 
   sign(zkappKey?: PrivateKey) {
     this.self.sign(zkappKey);
+  }
+  skipAuthorization() {
+    Authorization.setLazyNone(this.self);
   }
 
   private executionState(): AccountUpdate {

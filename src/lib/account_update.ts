@@ -568,6 +568,7 @@ const Preconditions = {
 };
 
 type Control = Types.AccountUpdate['authorization'];
+type LazyNone = { kind: 'lazy-none' };
 type LazySignature = { kind: 'lazy-signature'; privateKey?: PrivateKey };
 type LazyProof = {
   kind: 'lazy-proof';
@@ -625,7 +626,8 @@ class AccountUpdate implements Types.AccountUpdate {
   id: number;
   body: Body;
   authorization: Control;
-  lazyAuthorization: LazySignature | LazyProof | undefined = undefined;
+  lazyAuthorization: LazySignature | LazyProof | LazyNone | undefined =
+    undefined;
   account: Precondition.Account;
   network: Precondition.Network;
   children: { calls?: Field; accountUpdates: AccountUpdate[] } = {
@@ -1396,6 +1398,12 @@ const Authorization = {
     accountUpdate.body.authorizationKind.isProved = Bool(true);
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...proof, kind: 'lazy-proof' };
+  },
+  setLazyNone(accountUpdate: AccountUpdate) {
+    accountUpdate.body.authorizationKind.isSigned = Bool(false);
+    accountUpdate.body.authorizationKind.isProved = Bool(false);
+    accountUpdate.authorization = {};
+    accountUpdate.lazyAuthorization = { kind: 'lazy-none' };
   },
 };
 

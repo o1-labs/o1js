@@ -21,6 +21,7 @@ await isReady;
 // contract which can add 1 to a number
 class Incrementer extends SmartContract {
   @method increment(x: Field): Field {
+    if (!doProofs) this.skipAuthorization();
     return x.add(1);
   }
 }
@@ -29,6 +30,7 @@ class Incrementer extends SmartContract {
 // incrementing by one is outsourced to another contract (it's cleaner that way, we want to stick to the single responsibility principle)
 class Adder extends SmartContract {
   @method addPlus1(x: Field, y: Field): Field {
+    if (!doProofs) this.skipAuthorization();
     // compute result
     let sum = x.add(y);
     // call the other contract to increment
@@ -47,6 +49,7 @@ class Caller extends SmartContract {
     let sum = adder.addPlus1(x, y);
     this.emitEvent('sum', sum);
     this.sum.set(sum);
+    adder.skipAuthorization();
   }
 }
 
@@ -103,14 +106,16 @@ console.log('call interaction');
 tx = await Mina.transaction(feePayer, () => {
   // we just call one contract here, nothing special to do
   zkapp.callAddAndEmit(Field(5), Field(6));
-  if (!doProofs) zkapp.sign(zkappKey);
+  if (!doProofs) {
+    zkapp.sign(zkappKey);
+  }
 });
 if (doProofs) {
   console.log('proving (3 proofs.. can take a bit!)');
   await tx.prove();
 }
-
-console.dir(JSON.parse(tx.toJSON()), { depth: 5 });
+tx.sign();
+console.log(tx.toPretty());
 
 await tx.send();
 
