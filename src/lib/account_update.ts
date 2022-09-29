@@ -658,19 +658,21 @@ class AccountUpdate implements Types.AccountUpdate {
   static clone(accountUpdate: AccountUpdate) {
     let body = cloneCircuitValue(accountUpdate.body);
     let authorization = cloneCircuitValue(accountUpdate.authorization);
-    let clonedAccountUpdate: AccountUpdate = new (AccountUpdate as any)(
+    let cloned: AccountUpdate = new (AccountUpdate as any)(
       body,
       authorization,
       accountUpdate.isSelf
     );
-    clonedAccountUpdate.lazyAuthorization = cloneCircuitValue(
+    cloned.lazyAuthorization = cloneCircuitValue(
       accountUpdate.lazyAuthorization
     );
-    clonedAccountUpdate.children.calls = accountUpdate.children.calls;
-    clonedAccountUpdate.children.accountUpdates =
-      accountUpdate.children.accountUpdates.map(AccountUpdate.clone);
-    clonedAccountUpdate.parent = accountUpdate.parent;
-    return clonedAccountUpdate;
+    cloned.children.calls = accountUpdate.children.calls;
+    cloned.children.accountUpdates = accountUpdate.children.accountUpdates.map(
+      AccountUpdate.clone
+    );
+    cloned.parent = accountUpdate.parent;
+    cloned.isDelegateCall = accountUpdate.isDelegateCall;
+    return cloned;
   }
 
   token() {
@@ -692,17 +694,13 @@ class AccountUpdate implements Types.AccountUpdate {
         address: PublicKey;
         amount: number | bigint | UInt64;
       }) {
-        let receiverAccountUpdate = createChildAccountUpdate(
-          thisAccountUpdate,
-          address,
-          this.id
-        );
-
+        let receiver = AccountUpdate.defaultAccountUpdate(address, this.id);
+        thisAccountUpdate.authorize(receiver);
         // Add the amount to mint to the receiver's account
-        receiverAccountUpdate.body.balanceChange = Int64.fromObject(
-          receiverAccountUpdate.body.balanceChange
+        receiver.body.balanceChange = Int64.fromObject(
+          receiver.body.balanceChange
         ).add(amount);
-        return receiverAccountUpdate;
+        return receiver;
       },
 
       burn({
@@ -712,20 +710,17 @@ class AccountUpdate implements Types.AccountUpdate {
         address: PublicKey;
         amount: number | bigint | UInt64;
       }) {
-        let senderAccountUpdate = createChildAccountUpdate(
-          thisAccountUpdate,
-          address,
-          this.id
-        );
-        senderAccountUpdate.body.useFullCommitment = Bool(true);
+        let sender = AccountUpdate.defaultAccountUpdate(address, this.id);
+        thisAccountUpdate.authorize(sender);
+        sender.body.useFullCommitment = Bool(true);
 
         // Sub the amount to burn from the sender's account
-        senderAccountUpdate.body.balanceChange = Int64.fromObject(
-          senderAccountUpdate.body.balanceChange
+        sender.body.balanceChange = Int64.fromObject(
+          sender.body.balanceChange
         ).sub(amount);
 
         // Require signature from the sender account being deducted
-        Authorization.setLazySignature(senderAccountUpdate);
+        Authorization.setLazySignature(sender);
       },
 
       send({
@@ -738,21 +733,15 @@ class AccountUpdate implements Types.AccountUpdate {
         amount: number | bigint | UInt64;
       }) {
         // Create a new accountUpdate for the sender to send the amount to the receiver
-        let senderAccountUpdate = createChildAccountUpdate(
-          thisAccountUpdate,
-          from,
-          this.id
-        );
-        senderAccountUpdate.body.useFullCommitment = Bool(true);
-
-        let i0 = senderAccountUpdate.body.balanceChange;
-        senderAccountUpdate.body.balanceChange = new Int64(
-          i0.magnitude,
-          i0.sgn
+        let sender = AccountUpdate.defaultAccountUpdate(from, this.id);
+        thisAccountUpdate.authorize(sender);
+        sender.body.useFullCommitment = Bool(true);
+        sender.body.balanceChange = Int64.fromObject(
+          sender.body.balanceChange
         ).sub(amount);
 
         // Require signature from the sender accountUpdate
-        Authorization.setLazySignature(senderAccountUpdate);
+        Authorization.setLazySignature(sender);
 
         let receiverAccountUpdate = createChildAccountUpdate(
           thisAccountUpdate,
@@ -817,6 +806,7 @@ class AccountUpdate implements Types.AccountUpdate {
 
   authorize(childUpdate: AccountUpdate, layout?: AccountUpdatesLayout) {
     makeChildAccountUpdate(this, childUpdate);
+    this.isDelegateCall = Bool(false);
     if (layout !== undefined) {
       AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
     }
@@ -949,10 +939,6 @@ class AccountUpdate implements Types.AccountUpdate {
       }
     );
     return UInt32.from(nonce);
-  }
-
-  toFields() {
-    return Types.AccountUpdate.toFields(this);
   }
 
   toJSON() {
@@ -1250,6 +1236,7 @@ class AccountUpdate implements Types.AccountUpdate {
       body.update.permissions = JSON.stringify(body.update.permissions) as any;
     }
     (body as any).authorization = jsonUpdate.authorization;
+    (body as any).isDelegateCall = this.isDelegateCall.toBoolean();
     return body;
   }
 }
