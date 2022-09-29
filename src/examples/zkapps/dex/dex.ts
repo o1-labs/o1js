@@ -108,7 +108,7 @@ class Dex extends SmartContract {
     let tokenX = new TokenContract(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
     let dxdy = dexX.redeemLiquidity(user, dl, this.tokenY);
-    tokenX.authorize(dexX.self);
+    tokenX.authorizeUpdate(dexX.self);
     return dxdy;
   }
 
@@ -124,7 +124,7 @@ class Dex extends SmartContract {
     let tokenY = new TokenContract(this.tokenY);
     let dexY = new DexTokenHolder(this.address, tokenY.experimental.token.id);
     let dy = dexY.swap(user, dx, this.tokenX);
-    tokenY.authorize(dexY.self);
+    tokenY.authorizeUpdate(dexY.self);
     return dy;
   }
 
@@ -140,7 +140,7 @@ class Dex extends SmartContract {
     let tokenX = new TokenContract(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
     let dx = dexX.swap(user, dy, this.tokenY);
-    tokenX.authorize(dexX.self);
+    tokenX.authorizeUpdate(dexX.self);
     return dx;
   }
 }
@@ -184,7 +184,7 @@ class DexTokenHolder extends SmartContract {
     let result = dexY.redeemLiquidityPartial(user, dl);
     let l = result[0];
     let dy = result[1];
-    tokenY.authorize(dexY.self);
+    tokenY.authorizeUpdate(dexY.self);
 
     // in return for dl, we give back dx, the X token part
     let x = this.account.balance.get();
@@ -267,7 +267,7 @@ class TokenContract extends SmartContract {
   }
 
   // let a zkapp do whatever it wants, as long as the token supply stays constant
-  @method authorize(zkappUpdate: AccountUpdate) {
+  @method authorizeUpdate(zkappUpdate: AccountUpdate) {
     let layout = [[[3, 0, 0], 0, 0]]; // these are 10 child account updates we allow, in a left-biased tree of width 3
 
     // adopt this account update as a child, allowing a certain layout for its own children
