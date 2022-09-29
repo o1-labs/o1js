@@ -934,6 +934,8 @@ declare const Pickles: {
     verificationKey: string
   ): Promise<boolean>;
 
+  dummyBase64Proof: () => string;
+
   proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
   proofOfBase64: (
     base64: string,
