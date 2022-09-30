@@ -70,11 +70,13 @@ console.log(tx.toPretty());
 await tx.send();
 
 // send tokens
-console.log('send tokens...');
+console.log('send X tokens from user to dex...');
 tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
+  AccountUpdate.fundNewAccount(feePayerKey);
+  tokenX.transfer(addresses.tokenX, addresses.user, UInt64.from(100_000));
   dex.supplyTokenX(addresses.user, UInt64.from(100_000));
 });
 await tx.prove();
-tx.sign([keys.dex, keys.user]);
+tx.sign([keys.dex, keys.user, keys.tokenX]);
 console.log(tx.toPretty());
 await tx.send();
