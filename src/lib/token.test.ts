@@ -58,6 +58,18 @@ class TokenContract extends SmartContract {
   }
 
   @method burn(receiverAddress: PublicKey, amount: UInt64) {
+    let totalAmountInCirculation = this.totalAmountInCirculation.get();
+    this.totalAmountInCirculation.assertEquals(totalAmountInCirculation);
+
+    let maxAmountInCirculation = this.maxAmountInCirculation.get();
+    this.maxAmountInCirculation.assertEquals(maxAmountInCirculation);
+
+    let newTotalAmountInCirculation = totalAmountInCirculation.sub(amount);
+
+    newTotalAmountInCirculation.value
+      .lte(maxAmountInCirculation.value)
+      .assertTrue();
+    
     this.experimental.token.burn({
       address: receiverAddress,
       amount,
