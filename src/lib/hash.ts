@@ -170,6 +170,7 @@ const TokenSymbol = {
   },
 
   from(symbol: string): TokenSymbol {
+    if (symbol.length > 6) throw Error('Token symbol length should be less than 6');
     let field = prefixToField(symbol);
     return { symbol, field };
   },
