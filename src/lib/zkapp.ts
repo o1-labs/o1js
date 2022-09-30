@@ -156,6 +156,7 @@ function wrapMethod(
   ZkappClass: typeof SmartContract,
   methodIntf: MethodInterface
 ) {
+  let methodName = methodIntf.methodName;
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
     // TODO: the callback case is actually more similar to the composability case below,
@@ -166,7 +167,7 @@ function wrapMethod(
           this: this,
           methodCallDepth: 0,
           isCallback: false,
-          selfUpdate: selfAccountUpdate(this.address, this.tokenId),
+          selfUpdate: selfAccountUpdate(this, methodName),
         },
         (context) => {
           if (inCheckedComputation() && !context.isCallback) {
@@ -340,7 +341,7 @@ function wrapMethod(
         this: this,
         methodCallDepth: methodCallDepth + 1,
         isCallback: false,
-        selfUpdate: selfAccountUpdate(this.address, this.tokenId),
+        selfUpdate: selfAccountUpdate(this, methodName),
       },
       () => {
         // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
@@ -696,7 +697,7 @@ class SmartContract {
     if (!inTransaction && !inSmartContract) {
       // TODO: it's inefficient to return a fresh account update everytime, would be better to return a constant "non-writable" account update,
       // or even expose the .get() methods independently of any account update (they don't need one)
-      return selfAccountUpdate(this.address, this.tokenId);
+      return selfAccountUpdate(this);
     }
     let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
     // running a method changes which is the "current account update" of this smart contract
@@ -720,7 +721,7 @@ class SmartContract {
     // to do at least the attaching explicitly, and remove implicit attaching
     // also, implicit creation is questionable
     let transaction = Mina.currentTransaction.get();
-    let accountUpdate = selfAccountUpdate(this.address, this.tokenId);
+    let accountUpdate = selfAccountUpdate(this);
     transaction.accountUpdates.push(accountUpdate);
     this._executionState = { transactionId, accountUpdate };
     return accountUpdate;
@@ -1134,13 +1135,17 @@ class VerificationKey extends Struct({
   },
 }) {}
 
-function selfAccountUpdate(address: PublicKey, tokenId?: Field) {
-  let body = Body.keepAll(address);
-  if (tokenId) {
-    body.tokenId = tokenId;
-    body.caller = tokenId;
+function selfAccountUpdate(zkapp: SmartContract, methodName?: string) {
+  let body = Body.keepAll(zkapp.address);
+  if (zkapp.tokenId) {
+    body.tokenId = zkapp.tokenId;
+    body.caller = zkapp.tokenId;
   }
-  return new (AccountUpdate as any)(body, {}, true) as AccountUpdate;
+  let update = new (AccountUpdate as any)(body, {}, true) as AccountUpdate;
+  update.label = methodName
+    ? `${zkapp.constructor.name}.${methodName}()`
+    : `${zkapp.constructor.name}, no method`;
+  return update;
 }
 
 // per-smart-contract context for transaction construction

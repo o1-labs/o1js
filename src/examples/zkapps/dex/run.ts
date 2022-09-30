@@ -70,11 +70,9 @@ console.log(tx.toPretty());
 await tx.send();
 
 // send tokens
+console.log('send tokens...');
 tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
-  dex.supplyTokenX(
-    addresses.user, // Predefined static address
-    UInt64.from(100_000)
-  );
+  dex.supplyTokenX(addresses.user, UInt64.from(100_000));
 });
 await tx.prove();
 tx.sign([keys.dex, keys.user]);

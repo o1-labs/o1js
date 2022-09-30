@@ -630,6 +630,11 @@ class Token {
 
 class AccountUpdate implements Types.AccountUpdate {
   id: number;
+  /**
+   * A human-readable label for the account update, indicating how that update was created.
+   * Can be modified by applications to add richer information.
+   */
+  label: string = '';
   body: Body;
   isDelegateCall = false;
   authorization: Control;
@@ -671,6 +676,7 @@ class AccountUpdate implements Types.AccountUpdate {
       AccountUpdate.clone
     );
     cloned.id = accountUpdate.id;
+    cloned.label = accountUpdate.label;
     cloned.parent = accountUpdate.parent;
     cloned.isDelegateCall = accountUpdate.isDelegateCall;
     return cloned;
@@ -1075,19 +1081,20 @@ class AccountUpdate implements Types.AccountUpdate {
     // will always have isDelegateCall = false
     // probably means isDelegateCall should be a variable
     let isDelegateCall = a?.isDelegateCall ?? false;
-    return [{ lazyAuthorization, children, parent, id, isDelegateCall }, aux];
+    let label = a?.label ?? '';
+    return [
+      { lazyAuthorization, children, parent, id, isDelegateCall, label },
+      aux,
+    ];
   }
   static toInput = Types.AccountUpdate.toInput;
   static toJSON = Types.AccountUpdate.toJSON;
   static check = Types.AccountUpdate.check;
-  static fromFields(
-    fields: Field[],
-    [{ lazyAuthorization, children, parent, id, isDelegateCall }, aux]: any[]
-  ) {
+  static fromFields(fields: Field[], [other, aux]: any[]) {
     let rawUpdate = Types.AccountUpdate.fromFields(fields, aux);
     return Object.assign(
       new AccountUpdate(rawUpdate.body, rawUpdate.authorization),
-      { lazyAuthorization, children, parent, id, isDelegateCall }
+      other
     );
   }
 
@@ -1203,6 +1210,9 @@ class AccountUpdate implements Types.AccountUpdate {
   };
 
   toPretty() {
+    function short(s: string) {
+      return '..' + s.slice(-4);
+    }
     let jsonUpdate: Partial<Types.Json.AccountUpdate> = toJSONEssential(
       jsLayout.AccountUpdate as any,
       this,
@@ -1210,9 +1220,19 @@ class AccountUpdate implements Types.AccountUpdate {
     );
     let body: Partial<Types.Json.AccountUpdate['body']> =
       jsonUpdate.body as any;
+    delete body.callData;
+    body.publicKey = short(body.publicKey!);
     if (body.balanceChange?.magnitude === '0') delete body.balanceChange;
-    if (body.tokenId === TokenId.toBase58(TokenId.default)) delete body.tokenId;
-    if (body.caller === TokenId.toBase58(TokenId.default)) delete body.caller;
+    if (body.tokenId === TokenId.toBase58(TokenId.default)) {
+      delete body.tokenId;
+    } else {
+      body.tokenId = short(body.tokenId!);
+    }
+    if (body.caller === TokenId.toBase58(TokenId.default)) {
+      delete body.caller;
+    } else {
+      body.caller = short(body.caller!);
+    }
     if (body.incrementNonce === false) delete body.incrementNonce;
     if (body.useFullCommitment === false) delete body.useFullCommitment;
     if (body.events?.length === 0) delete body.events;
@@ -1228,21 +1248,32 @@ class AccountUpdate implements Types.AccountUpdate {
       ) as any;
     }
     if (jsonUpdate.authorization?.proof) {
-      jsonUpdate.authorization.proof =
-        jsonUpdate.authorization.proof.slice(0, 6) + '...';
+      jsonUpdate.authorization.proof = short(jsonUpdate.authorization.proof);
+    }
+    if (jsonUpdate.authorization?.signature) {
+      jsonUpdate.authorization.signature = short(
+        jsonUpdate.authorization.signature
+      );
     }
     if (body.update?.verificationKey) {
       body.update.verificationKey = JSON.stringify({
-        data: body.update.verificationKey.data.slice(0, 6) + '...',
-        hash: body.update.verificationKey.hash.slice(0, 6) + '...',
+        data: short(body.update.verificationKey.data),
+        hash: short(body.update.verificationKey.hash),
       }) as any;
     }
     if (body.update?.permissions) {
       body.update.permissions = JSON.stringify(body.update.permissions) as any;
     }
-    (body as any).authorization = jsonUpdate.authorization;
-    (body as any).isDelegateCall = this.isDelegateCall;
-    return { id: Math.floor(this.id * 1000), ...body };
+    if (
+      jsonUpdate.authorization !== undefined ||
+      body.authorizationKind !== 'None_given'
+    ) {
+      (body as any).authorization = jsonUpdate.authorization;
+    }
+    if (this.isDelegateCall) (body as any).isDelegateCall = this.isDelegateCall;
+    if (this.label)
+      return { label: this.label, id: Math.floor(this.id * 1000), ...body };
+    else return { id: Math.floor(this.id * 1000), ...body };
   }
 }
 
@@ -1407,7 +1438,8 @@ type ZkappCommandProved = {
 const ZkappCommand = {
   toPretty(transaction: ZkappCommand) {
     let feePayer = zkappCommandToJson(transaction).feePayer as any;
-    feePayer.body.authorization = feePayer.authorization.slice(0, 6) + '...';
+    feePayer.body.publicKey = '..' + feePayer.body.publicKey.slice(-4);
+    feePayer.body.authorization = '..' + feePayer.authorization.slice(-4);
     if (feePayer.body.validUntil === null) delete feePayer.body.validUntil;
     return [
       feePayer.body,
