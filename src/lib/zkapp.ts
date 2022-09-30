@@ -224,7 +224,11 @@ function wrapMethod(
                   Circuit.asProver(() => {
                     // TODO: print a nice diff string instead of the two objects
                     // something like `expect` or `json-diff`, but web-compatible
-                    function diff(prover: JSONValue, input: JSONValue) {
+                    function diff(prover: any, input: any) {
+                      delete prover.id;
+                      delete prover.callDepth;
+                      delete input.id;
+                      delete input.callDepth;
                       if (JSON.stringify(prover) !== JSON.stringify(input)) {
                         console.log(
                           'transaction:',
@@ -445,6 +449,10 @@ function wrapMethod(
         );
         let callData = Poseidon.hash(callDataFields);
         accountUpdate.body.callData.assertEquals(callData);
+
+        // caller circuits should be Delegate_call by default
+        parentAccountUpdate.isDelegateCall = true;
+
         return result;
       }
     );
