@@ -1271,9 +1271,11 @@ class AccountUpdate implements Types.AccountUpdate {
       (body as any).authorization = jsonUpdate.authorization;
     }
     if (this.isDelegateCall) (body as any).isDelegateCall = this.isDelegateCall;
-    if (this.label)
-      return { label: this.label, id: Math.floor(this.id * 1000), ...body };
-    else return { id: Math.floor(this.id * 1000), ...body };
+    let pretty: any = { ...body };
+    let withId = false;
+    if (withId) pretty = { id: Math.floor(this.id * 1000), ...pretty };
+    if (this.label) pretty = { label: this.label, ...pretty };
+    return pretty;
   }
 }
 

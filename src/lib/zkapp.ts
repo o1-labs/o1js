@@ -451,8 +451,9 @@ function wrapMethod(
         let callData = Poseidon.hash(callDataFields);
         accountUpdate.body.callData.assertEquals(callData);
 
-        // caller circuits should be Delegate_call by default
-        parentAccountUpdate.isDelegateCall = true;
+        // caller circuits should be Delegate_call by default, except if they're called at the top level
+        // this means "is_top_level" has to become a witness
+        parentAccountUpdate.isDelegateCall = methodCallDepth !== 0;
 
         return result;
       }
