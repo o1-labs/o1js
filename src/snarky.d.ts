@@ -226,7 +226,7 @@ declare class Field {
    * Field.one.assertEquals(1);
    * ```
    */
-  assertEquals(y: Field | number | string | boolean): void;
+  assertEquals(y: Field | number | string | boolean, message?: string): void;
   /**
    * Assert that this [[`Field`]] is either 0 or 1.
    *
