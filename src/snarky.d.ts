@@ -413,12 +413,12 @@ declare class Bool {
   /**
    * Proves that this [[`Bool`]] is `true`.
    */
-  assertTrue(): void;
+  assertTrue(message?: string): void;
 
   /**
    * Proves that this [[`Bool`]] is `false`.
    */
-  assertFalse(): void;
+  assertFalse(message?: string): void;
 
   /**
    * Returns true if this [[`Bool`]] is equal to `y`.
