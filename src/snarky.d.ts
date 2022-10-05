@@ -655,7 +655,7 @@ declare class Group {
   scale(y: Scalar): Group;
   // TODO: Add this function when OCaml bindings are implemented : endoScale(y: EndoScalar): Group;
 
-  assertEquals(y: Group): void;
+  assertEquals(y: Group, message?: string): void;
   equals(y: Group): Bool;
 
   toJSON(): { x: string; y: string };
