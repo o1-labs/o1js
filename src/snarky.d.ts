@@ -237,7 +237,7 @@ declare class Field {
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and throws an error if the assertion fails.
    */
-  assertBoolean(): void;
+  assertBoolean(message?: string): void;
   isZero(): Bool;
 
   /**
