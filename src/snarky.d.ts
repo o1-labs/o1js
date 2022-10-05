@@ -408,7 +408,7 @@ declare class Bool {
    * Proves that this [[`Bool`]] is equal to `y`.
    * @param y a [[`Bool`]].
    */
-  assertEquals(y: Bool | boolean): void;
+  assertEquals(y: Bool | boolean, message?: string): void;
 
   /**
    * Proves that this [[`Bool`]] is `true`.
