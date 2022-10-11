@@ -96,7 +96,8 @@ updateButton.addEventListener('click', async (event) => {
     const proof = await transaction.prove();
 
     if (verificationKey) {
-      verify(proof[0], verificationKey.data);
+      let isVerified = await verify(proof[0], verificationKey.data);
+      if (!isVerified) throw Error('Proof verification failed');
     }
 
     await transaction.send();
