@@ -1,4 +1,4 @@
-import { ProvableExtended, Struct } from './circuit_value.js';
+import { HashInput, ProvableExtended, Struct } from './circuit_value.js';
 import { Poseidon as Poseidon_, Field } from '../snarky.js';
 import { inCheckedComputation } from './proof_system.js';
 
@@ -120,22 +120,6 @@ function packToFields({ fields = [], packed = [] }: HashInput) {
   packedBits.push(currentPackedField);
   return fields.concat(packedBits);
 }
-
-type HashInput = { fields?: Field[]; packed?: [Field, number][] };
-const HashInput = {
-  get empty() {
-    return {};
-  },
-  append(input1: HashInput, input2: HashInput) {
-    if (input2.fields !== undefined) {
-      (input1.fields ??= []).push(...input2.fields);
-    }
-    if (input2.packed !== undefined) {
-      (input1.packed ??= []).push(...input2.packed);
-    }
-    return input1;
-  },
-};
 
 const TokenSymbolPure: ProvableExtended<
   { symbol: string; field: Field },

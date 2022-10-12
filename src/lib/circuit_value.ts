@@ -2,7 +2,6 @@ import 'reflect-metadata';
 import { Circuit, JSONValue, ProvablePure, Provable } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
-import { HashInput } from './hash.js';
 import { inCheckedComputation, snarkContext } from './proof_system.js';
 
 // external API
@@ -33,6 +32,7 @@ export {
   witness,
   InferCircuitValue,
   Provables,
+  HashInput,
 };
 
 type Constructor<T> = new (...args: any) => T;
@@ -42,6 +42,22 @@ type NonMethodKeys<T> = {
   [K in keyof T]: T[K] extends Function ? never : K;
 }[keyof T];
 type NonMethods<T> = Pick<T, NonMethodKeys<T>>;
+
+type HashInput = { fields?: Field[]; packed?: [Field, number][] };
+const HashInput = {
+  get empty() {
+    return {};
+  },
+  append(input1: HashInput, input2: HashInput) {
+    if (input2.fields !== undefined) {
+      (input1.fields ??= []).push(...input2.fields);
+    }
+    if (input2.packed !== undefined) {
+      (input1.packed ??= []).push(...input2.packed);
+    }
+    return input1;
+  },
+};
 
 /**
  * @deprecated `CircuitValue` is deprecated in favor of {@link Struct}, which features a simpler API and better typing.
