@@ -1335,4 +1335,4 @@ const Reducer: (<
  * TODO refine this into a good error message that's always used, not just for debugging
  * TODO find or write library that can print nice JS object diffs
  */
-const DEBUG_PUBLIC_INPUT_CHECK = true;
+const DEBUG_PUBLIC_INPUT_CHECK = false;
