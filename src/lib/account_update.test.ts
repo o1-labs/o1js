@@ -11,6 +11,8 @@ import {
   Experimental,
   Int64,
   Encoding,
+  Types,
+  Token,
 } from 'snarkyjs';
 
 let address: PublicKey;
@@ -30,7 +32,7 @@ describe('accountUpdate', () => {
     let json = JSON.stringify(accountUpdate.toJSON().body);
     let fields1 = Ledger.fieldsOfJson(json);
     // convert accountUpdate to fields in pure JS, leveraging generated code
-    let fields2 = accountUpdate.toFields();
+    let fields2 = Types.AccountUpdate.toFields(accountUpdate);
 
     // this is useful console output in the case the test should fail
     if (fields1.length !== fields2.length) {
@@ -71,6 +73,11 @@ describe('accountUpdate', () => {
 
     let accountUpdate = AccountUpdate.create(address);
     Experimental.createChildAccountUpdate(accountUpdate, otherAddress);
+    accountUpdate.children.accountUpdates[0].body.caller = Token.getId(
+      accountUpdate.body.publicKey,
+      accountUpdate.body.tokenId
+    );
+
     let publicInput = accountUpdate.toPublicInput();
 
     // create transaction JSON with the same accountUpdate structure, for ocaml version
