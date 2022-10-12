@@ -92,7 +92,11 @@ function reportGetAccountError(publicKey: string, tokenId: string) {
 function createTransaction(
   feePayer: FeePayerSpec,
   f: () => unknown,
-  { fetchMode = 'cached' as FetchMode, isFinalRunOutsideCircuit = true } = {}
+  {
+    fetchMode = 'cached' as FetchMode,
+    isFinalRunOutsideCircuit = true,
+    proofsEnabled = true,
+  } = {}
 ): Transaction {
   if (currentTransaction.has()) {
     throw new Error('Cannot start new transaction within another transaction');
@@ -181,7 +185,9 @@ function createTransaction(
     },
 
     async prove() {
-      let { zkappCommand, proofs } = await addMissingProofs(self.transaction);
+      let { zkappCommand, proofs } = await addMissingProofs(self.transaction, {
+        proofsEnabled,
+      });
       self.transaction = zkappCommand;
       return proofs;
     },
@@ -428,12 +434,14 @@ function LocalBlockchain({
       // and hopefully with upcoming work by Matt we can just run everything in the prover, and nowhere else
       let tx = createTransaction(sender, f, {
         isFinalRunOutsideCircuit: false,
+        proofsEnabled,
       });
       let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
       return createTransaction(sender, f, {
         isFinalRunOutsideCircuit: !hasProofs,
+        proofsEnabled,
       });
     },
     applyJsonTransaction(json: string) {

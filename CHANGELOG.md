@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/ba688523...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/f0837188...HEAD)
 
 ### Added
 
@@ -35,6 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 
 - `CircuitValue` deprecated in favor of `Struct` https://github.com/o1-labs/snarkyjs/pull/416
+
+## [0.6.1](https://github.com/o1-labs/snarkyjs/compare/ba688523...f0837188)
+
+### Fixed
+
+- Proof verification on the web version https://github.com/o1-labs/snarkyjs/pull/476
 
 ## [0.6.0](https://github.com/o1-labs/snarkyjs/compare/f2ad423...ba688523)
 

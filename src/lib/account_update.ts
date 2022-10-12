@@ -1569,7 +1569,10 @@ let ZkappPublicInput = provablePure(
   { customObjectKeys: ['accountUpdate', 'calls'] }
 );
 
-async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
+async function addMissingProofs(
+  zkappCommand: ZkappCommand,
+  { proofsEnabled = true }
+): Promise<{
   zkappCommand: ZkappCommandProved;
   proofs: (Proof<ZkappPublicInput> | undefined)[];
 }> {
@@ -1579,6 +1582,14 @@ async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
 
   async function addProof(index: number, accountUpdate: AccountUpdate) {
     accountUpdate = AccountUpdate.clone(accountUpdate);
+
+    if (!proofsEnabled) {
+      Authorization.setProof(accountUpdate, Pickles.dummyBase64Proof());
+      return {
+        accountUpdateProved: accountUpdate as AccountUpdateProved,
+        proof: undefined,
+      };
+    }
     if (accountUpdate.lazyAuthorization?.kind !== 'lazy-proof') {
       return {
         accountUpdateProved: accountUpdate as AccountUpdateProved,
