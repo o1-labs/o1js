@@ -90,7 +90,7 @@ updateButton.addEventListener('click', async (event) => {
         Field(parseInt(zkAppStateValue.value)),
         adminPrivateKey
       );
-      zkAppInstance.sign(zkAppPrivateKey);
+      // zkAppInstance.sign(zkAppPrivateKey);
     });
 
     const proof = await transaction.prove();
