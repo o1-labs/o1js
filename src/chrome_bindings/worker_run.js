@@ -19,7 +19,7 @@ export default function workerRun() {
         args: [
           plonk_wasm.WasmFpGateVector,
           undefined /* number */,
-          undefined,
+          undefined /* number */,
           plonk_wasm.WasmFpSrs,
         ],
         res: plonk_wasm.WasmPastaFpPlonkIndex,
@@ -28,7 +28,7 @@ export default function workerRun() {
         args: [
           plonk_wasm.WasmFqGateVector,
           undefined /* number */,
-          undefined,
+          undefined /* number */,
           plonk_wasm.WasmFqSrs,
         ],
         res: plonk_wasm.WasmPastaFqPlonkIndex,
@@ -61,7 +61,6 @@ export default function workerRun() {
       },
       caml_pasta_fp_plonk_proof_verify: {
         args: [
-          undefined /*Uint32Array*/,
           plonk_wasm.WasmFpPlonkVerifierIndex,
           plonk_wasm.WasmFpProverProof,
         ],
@@ -69,10 +68,17 @@ export default function workerRun() {
       },
       caml_pasta_fq_plonk_proof_verify: {
         args: [
-          undefined /*Uint32Array*/,
           plonk_wasm.WasmFqPlonkVerifierIndex,
           plonk_wasm.WasmFqProverProof,
         ],
+        res: bool,
+      },
+      caml_pasta_fp_plonk_proof_batch_verify: {
+        args: [undefined /* UintXArray */, undefined /* UintXArray */],
+        res: bool,
+      },
+      caml_pasta_fq_plonk_proof_batch_verify: {
+        args: [undefined /* UintXArray */, undefined /* UintXArray */],
         res: bool,
       },
       caml_fp_srs_b_poly_commitment: {
@@ -98,6 +104,22 @@ export default function workerRun() {
           plonk_wasm.WasmFqProverProof,
         ],
         res: plonk_wasm.WasmFqOracles,
+      },
+      caml_fp_srs_batch_accumulator_check: {
+        args: [
+          plonk_wasm.WasmFpSrs,
+          undefined /* UintXArray */,
+          undefined /* UintXArray */,
+        ],
+        res: bool,
+      },
+      caml_fq_srs_batch_accumulator_check: {
+        args: [
+          plonk_wasm.WasmFqSrs,
+          undefined /* UintXArray */,
+          undefined /* UintXArray */,
+        ],
+        res: bool,
       },
     };
   };
