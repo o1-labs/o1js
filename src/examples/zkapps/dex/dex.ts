@@ -145,11 +145,6 @@ class Dex extends SmartContract {
     tokenX.authorizeUpdate(dexX.self);
     return dx;
   }
-
-  @method supplyTokenX(user: PublicKey, dx: UInt64) {
-    let tokenX = new TokenContract(this.tokenX);
-    tokenX.transfer(user, this.address, dx);
-  }
 }
 
 class UInt64x2 extends Struct([UInt64, UInt64]) {}
