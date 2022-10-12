@@ -1,4 +1,4 @@
-import { ProvableExtended } from './circuit_value.js';
+import { ProvableExtended, Struct } from './circuit_value.js';
 import { Poseidon as Poseidon_, Field } from '../snarky.js';
 import { inCheckedComputation } from './proof_system.js';
 
@@ -137,9 +137,10 @@ const HashInput = {
   },
 };
 
-type TokenSymbol = { symbol: string; field: Field };
-
-const TokenSymbolPure: ProvableExtended<TokenSymbol, string> = {
+const TokenSymbolPure: ProvableExtended<
+  { symbol: string; field: Field },
+  string
+> = {
   toFields({ field }) {
     return [field];
   },
@@ -163,17 +164,18 @@ const TokenSymbolPure: ProvableExtended<TokenSymbol, string> = {
     return { packed: [[field, 48]] };
   },
 };
-const TokenSymbol = {
-  ...TokenSymbolPure,
-  get empty() {
+class TokenSymbol extends Struct(TokenSymbolPure) {
+  static get empty() {
     return { symbol: '', field: Field.zero };
-  },
+  }
 
-  from(symbol: string): TokenSymbol {
+  static from(symbol: string): TokenSymbol {
+    if (symbol.length > 6)
+      throw Error('Token symbol length should be a maximum of 6');
     let field = prefixToField(symbol);
     return { symbol, field };
-  },
-};
+  }
+}
 
 function emptyReceiptChainHash() {
   return emptyHashWithPrefix('CodaReceiptEmpty');
