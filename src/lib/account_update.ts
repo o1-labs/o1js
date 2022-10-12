@@ -636,7 +636,7 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   label: string = '';
   body: Body;
-  isDelegateCall = false;
+  isDelegateCall = Bool(false);
   authorization: Control;
   lazyAuthorization: LazySignature | LazyProof | LazyNone | undefined =
     undefined;
@@ -813,7 +813,7 @@ class AccountUpdate implements Types.AccountUpdate {
 
   authorize(childUpdate: AccountUpdate, layout?: AccountUpdatesLayout) {
     makeChildAccountUpdate(this, childUpdate);
-    this.isDelegateCall = false;
+    this.isDelegateCall = Bool(false);
     if (layout !== undefined) {
       AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
     }
@@ -1062,11 +1062,22 @@ class AccountUpdate implements Types.AccountUpdate {
     accountUpdate.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 
-  // static methods that implement Provable<AccountUpdate>
-  static sizeInFields = Types.AccountUpdate.sizeInFields;
-  static toFields = Types.AccountUpdate.toFields;
+  // static methods that implement Provable<[AccountUpdate, Bool]>, where he Bool is for `isDelegateCall`
+  private static provable = provable({
+    accountUpdate: Types.AccountUpdate,
+    isDelegateCall: Bool,
+  });
+  private toProvable() {
+    return { accountUpdate: this, isDelegateCall: this.isDelegateCall };
+  }
+
+  static sizeInFields = AccountUpdate.provable.sizeInFields;
+
+  static toFields(a: AccountUpdate) {
+    return AccountUpdate.provable.toFields(a.toProvable());
+  }
   static toAuxiliary(a?: AccountUpdate) {
-    let aux = Types.AccountUpdate.toAuxiliary(a);
+    let aux = AccountUpdate.provable.toAuxiliary(a?.toProvable());
     let children: AccountUpdate['children'] = { accountUpdates: [] };
     let lazyAuthorization = a && cloneCircuitValue(a.lazyAuthorization);
     children.calls = a?.children.calls;
@@ -1077,23 +1088,26 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     let parent = a?.parent;
     let id = a?.id ?? Math.random();
-    // FIXME this is wrong. means in compile mode, a witnessed account update
-    // will always have isDelegateCall = false
-    // probably means isDelegateCall should be a variable
-    let isDelegateCall = a?.isDelegateCall ?? false;
     let label = a?.label ?? '';
-    return [
-      { lazyAuthorization, children, parent, id, isDelegateCall, label },
-      aux,
-    ];
+    return [{ lazyAuthorization, children, parent, id, label }, aux];
   }
-  static toInput = Types.AccountUpdate.toInput;
-  static toJSON = Types.AccountUpdate.toJSON;
-  static check = Types.AccountUpdate.check;
-  static fromFields(fields: Field[], [other, aux]: any[]) {
-    let rawUpdate = Types.AccountUpdate.fromFields(fields, aux);
+  static toInput(a: AccountUpdate) {
+    return AccountUpdate.provable.toInput(a.toProvable());
+  }
+  static toJSON(a: AccountUpdate) {
+    return AccountUpdate.provable.toJSON(a.toProvable());
+  }
+  static check(a: AccountUpdate) {
+    AccountUpdate.provable.check(a.toProvable());
+  }
+  static fromFields(fields: Field[], [other, aux]: any[]): AccountUpdate {
+    let { accountUpdate, isDelegateCall } = AccountUpdate.provable.fromFields(
+      fields,
+      aux
+    );
     return Object.assign(
-      new AccountUpdate(rawUpdate.body, rawUpdate.authorization),
+      new AccountUpdate(accountUpdate.body, accountUpdate.authorization),
+      { isDelegateCall },
       other
     );
   }
@@ -1270,7 +1284,7 @@ class AccountUpdate implements Types.AccountUpdate {
     ) {
       (body as any).authorization = jsonUpdate.authorization;
     }
-    if (this.isDelegateCall) (body as any).isDelegateCall = this.isDelegateCall;
+    if (this.isDelegateCall.toBoolean()) (body as any).isDelegateCall = true;
     let pretty: any = { ...body };
     let withId = false;
     if (withId) pretty = { id: Math.floor(this.id * 1000), ...pretty };
@@ -1337,13 +1351,15 @@ const CallForest = {
     }
   ) {
     for (let update of updates) {
-      let childContext = update.isDelegateCall
-        ? { ...context }
-        : {
-            caller: context.self,
-            self: Token.getId(update.body.publicKey, update.body.tokenId),
-          };
-      update.body.caller = childContext.caller;
+      let { isDelegateCall } = update;
+      let caller = Circuit.if(isDelegateCall, context.caller, context.self);
+      let self = Circuit.if(
+        isDelegateCall,
+        context.self,
+        Token.getId(update.body.publicKey, update.body.tokenId)
+      );
+      update.body.caller = caller;
+      let childContext = { caller, self };
       CallForest.addCallers(update.children.accountUpdates, childContext);
     }
   },
@@ -1362,7 +1378,7 @@ const CallForest = {
     }
     let context = { self: TokenId.default, caller: TokenId.default };
     for (let update of ancestors) {
-      if (!update.isDelegateCall) {
+      if (!update.isDelegateCall.toBoolean()) {
         context.caller = context.self;
         context.self = Token.getId(update.body.publicKey, update.body.tokenId);
       }

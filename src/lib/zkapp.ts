@@ -452,8 +452,10 @@ function wrapMethod(
         accountUpdate.body.callData.assertEquals(callData);
 
         // caller circuits should be Delegate_call by default, except if they're called at the top level
-        // this means "is_top_level" has to become a witness
-        parentAccountUpdate.isDelegateCall = methodCallDepth !== 0;
+        let isTopLevel = Circuit.witness(Bool, () =>
+          Bool(methodCallDepth === 0)
+        );
+        parentAccountUpdate.isDelegateCall = isTopLevel.not();
 
         return result;
       }
