@@ -635,6 +635,8 @@ class AccountUpdate implements Types.AccountUpdate {
 
   private isSelf: boolean;
 
+  static SequenceEvents = SequenceEvents;
+
   constructor(body: Body, authorization?: Control);
   constructor(body: Body, authorization = {} as Control, isSelf = false) {
     this.id = Math.random();
