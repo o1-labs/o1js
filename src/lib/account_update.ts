@@ -678,9 +678,7 @@ class AccountUpdate implements Types.AccountUpdate {
       authorization,
       accountUpdate.isSelf
     );
-    cloned.lazyAuthorization = cloneCircuitValue(
-      accountUpdate.lazyAuthorization
-    );
+    cloned.lazyAuthorization = accountUpdate.lazyAuthorization;
     cloned.children.callsType = accountUpdate.children.callsType;
     cloned.children.accountUpdates = accountUpdate.children.accountUpdates.map(
       AccountUpdate.clone
@@ -1092,7 +1090,7 @@ class AccountUpdate implements Types.AccountUpdate {
       callsType: { type: 'None' },
       accountUpdates: [],
     };
-    let lazyAuthorization = a && cloneCircuitValue(a.lazyAuthorization);
+    let lazyAuthorization = a && a.lazyAuthorization;
     if (a) {
       children.callsType = a.children.callsType;
       children.accountUpdates = a.children.accountUpdates.map(
