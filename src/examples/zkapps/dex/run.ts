@@ -61,7 +61,6 @@ tx = await Mina.transaction({ feePayerKey }, () => {
 });
 await tx.prove();
 tx.sign([keys.tokenX, keys.tokenY]);
-console.log(tx.toPretty());
 await tx.send();
 
 console.log(
@@ -81,10 +80,9 @@ tx = await Mina.transaction(feePayerKey, () => {
 });
 await tx.prove();
 tx.sign([keys.dex]);
-console.log(tx.toPretty());
 await tx.send();
 
-console.log('transfer X and Y tokens to a user...');
+console.log('transfer to a user');
 tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
   AccountUpdate.createSigned(feePayerKey).balance.subInPlace(
     Mina.accountCreationFee().mul(2)
@@ -113,7 +111,6 @@ tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
 });
 
 await tx.prove();
-
 tx.sign([keys.dex, keys.user, keys.tokenX]);
 await tx.send();
 
@@ -133,6 +130,35 @@ tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
 });
 
 await tx.prove();
+tx.sign([keys.dex, keys.user, keys.tokenX]);
+await tx.send();
+
+console.log(
+  'DEX liquidity (X, Y): ',
+  Mina.getBalance(addresses.dex, tokenIds.X).value.toBigInt(),
+  Mina.getBalance(addresses.dex, tokenIds.Y).value.toBigInt()
+);
+
+console.log(
+  'DEBUG DEX tokenholder liquidity (X, Y): ',
+  Mina.getBalance(dexX.address, tokenIds.X).value.toBigInt(),
+  Mina.getBalance(dexY.address, tokenIds.Y).value.toBigInt()
+);
+
+console.log(
+  'user DEX tokens: ',
+  Mina.getBalance(addresses.user, tokenIds.lqXY).value.toBigInt()
+);
+
+console.log('user redeem liquidity');
+tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
+  dex.redeemLiquidity(addresses.user, UInt64.from(100));
+});
+
+console.log('boom');
+console.log(tx.toPretty());
+await tx.prove();
+console.log('goes the dynamite');
 
 tx.sign([keys.dex, keys.user, keys.tokenX]);
 await tx.send();

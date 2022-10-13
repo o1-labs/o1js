@@ -22,6 +22,8 @@ import {
 
 export { Dex, DexTokenHolder, TokenContract, keys, addresses, tokenIds };
 
+class UInt64x2 extends Struct([UInt64, UInt64]) {}
+
 class Dex extends SmartContract {
   // addresses of token contracts are constants
   tokenX = addresses.tokenX;
@@ -40,11 +42,7 @@ class Dex extends SmartContract {
    *
    * The transaction needs to be signed by the user's private key.
    */
-  @method supplyLiquidityBase(
-    user: PublicKey,
-    dx: UInt64,
-    dy: UInt64
-  ) /*: UInt64 */ {
+  @method supplyLiquidityBase(user: PublicKey, dx: UInt64, dy: UInt64): UInt64 {
     let tokenX = new TokenContract(this.tokenX);
     let tokenY = new TokenContract(this.tokenY);
 
@@ -68,7 +66,7 @@ class Dex extends SmartContract {
     // // => maintains ratio x/l, y/l
     let dl = dy.add(dx);
     this.experimental.token.mint({ address: user, amount: dl });
-    // return dl;
+    return dl;
   }
 
   /**
@@ -83,7 +81,7 @@ class Dex extends SmartContract {
    *
    * The transaction needs to be signed by the user's private key.
    */
-  supplyLiquidity(user: PublicKey, dx: UInt64) /*: UInt64 */ {
+  supplyLiquidity(user: PublicKey, dx: UInt64): UInt64 {
     // calculate dy outside circuit
     let x = Account(this.address, Token.getId(this.tokenX)).balance.get();
     let y = Account(this.address, Token.getId(this.tokenY)).balance.get();
@@ -93,8 +91,7 @@ class Dex extends SmartContract {
       );
     }
     let dy = dx.mul(y).div(x);
-    this.supplyLiquidityBase(user, dx, dy);
-    // return this.supplyLiquidityBase(user, dx, dy);
+    return this.supplyLiquidityBase(user, dx, dy);
   }
 
   /**
@@ -105,13 +102,13 @@ class Dex extends SmartContract {
    *
    * The transaction needs to be signed by the user's private key.
    */
-  @method redeemLiquidity(user: PublicKey, dl: UInt64): UInt64x2 {
+  @method redeemLiquidity(user: PublicKey, dl: UInt64) {
     // call the token X holder inside a token X-authorized callback
     let tokenX = new TokenContract(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
     let dxdy = dexX.redeemLiquidity(user, dl, this.tokenY);
     tokenX.authorizeUpdate(dexX.self);
-    return dxdy;
+    // return dxdy;
   }
 
   /**
@@ -147,8 +144,6 @@ class Dex extends SmartContract {
   }
 }
 
-class UInt64x2 extends Struct([UInt64, UInt64]) {}
-
 class DexTokenHolder extends SmartContract {
   // simpler circuit for redeeming liquidity -- direct trade between our token and lq token
   // it's incomplete, as it gives the user only the Y part for an lqXY token; but doesn't matter as there's no incentive to call it directly
@@ -158,6 +153,8 @@ class DexTokenHolder extends SmartContract {
     let dex = AccountUpdate.create(this.address);
     let l = dex.account.balance.get();
     dex.account.balance.assertEquals(l);
+    let isLZero = l.equals(UInt64.zero);
+    let lSafe = Circuit.if(isLZero, UInt64.one, l);
 
     // user sends dl to dex
     let idlXY = Token.getId(this.address);
@@ -167,11 +164,12 @@ class DexTokenHolder extends SmartContract {
     // in return, we give dy back
     let y = this.account.balance.get();
     this.account.balance.assertEquals(y);
-    let dy = y.mul(dl).div(l);
+
+    let dy = y.mul(dl).div(lSafe);
     this.send({ to: user, amount: dy });
 
     // return l, dy so callers don't have to walk their child account updates to get it
-    return [l, dy];
+    return [lSafe, dy];
   }
 
   // more complicated circuit, where we trigger the Y(other)-lqXY trade in our child account updates and then add the X(our) part
@@ -186,14 +184,15 @@ class DexTokenHolder extends SmartContract {
     let result = dexY.redeemLiquidityPartial(user, dl);
     let l = result[0];
     let dy = result[1];
+
     tokenY.authorizeUpdate(dexY.self);
 
     // in return for dl, we give back dx, the X token part
     let x = this.account.balance.get();
     this.account.balance.assertEquals(x);
     let dx = x.mul(dl).div(l);
-    this.send({ to: user, amount: dx });
 
+    this.send({ to: user, amount: dx });
     return [dx, dy];
   }
 
@@ -255,8 +254,11 @@ class TokenContract extends SmartContract {
   // => need callbacks for signatures
   @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
     let tokenId = this.experimental.token.id;
-    let zkapp = AccountUpdate.defaultAccountUpdate(address, tokenId);
-    this.experimental.authorize(zkapp);
+    let zkapp = Experimental.createChildAccountUpdate(
+      this.self,
+      address,
+      tokenId
+    );
     AccountUpdate.setValue(zkapp.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
@@ -275,11 +277,11 @@ class TokenContract extends SmartContract {
       NoChildren,
       NoChildren
     );
-    this.experimental.authorize(zkappUpdate, layout);
+    this.experimental.authorize(zkappUpdate);
 
     // walk account updates to see if balances for this token cancel
-    let balance = balanceSum(zkappUpdate, this.experimental.token.id);
-    balance.assertEquals(Int64.zero);
+    // let balance = balanceSum(zkappUpdate, this.experimental.token.id);
+    // balance.assertEquals(Int64.zero);
   }
 
   @method transfer(from: PublicKey, to: PublicKey, value: UInt64) {
@@ -300,10 +302,17 @@ class TokenContract extends SmartContract {
 }
 
 await isReady;
-let { keys, addresses } = randomAccounts('tokenX', 'tokenY', 'dex', 'user');
+let { keys, addresses } = randomAccounts(
+  'tokenX',
+  'tokenY',
+  'dex',
+  'user',
+  'tokenZ'
+);
 let tokenIds = {
   X: Token.getId(addresses.tokenX),
   Y: Token.getId(addresses.tokenY),
+  Z: Token.getId(addresses.tokenZ),
   lqXY: Token.getId(addresses.dex),
 };
 
@@ -331,6 +340,7 @@ function randomAccounts<K extends string>(
     'EKFE2UKugtoVMnGTxTakF2M9wwL9sp4zrxSLhuzSn32ZAYuiKh5R',
     'EKEn2s1jSNADuC8CmvCQP5CYMSSoNtx5o65H7Lahqkqp2AVdsd12',
     'EKE21kTAb37bekHbLvQpz2kvDYeKG4hB21x8VTQCbhy6m2BjFuxA',
+    'EKF9JA8WiEAk7o3ENnvgMHg5XKwgQfyMowNFFrEDCevoSozSgLTn',
   ];
 
   let keys = Object.fromEntries(
