@@ -757,7 +757,7 @@ function Struct<
      * @param aux the raw non-field element data
      */
     static fromFields(fields: Field[], aux: any[]) {
-      return new Struct_(this.type.fromFields(fields, aux) as T);
+      return new this(this.type.fromFields(fields, aux) as T);
     }
   }
   return Struct_ as any;
