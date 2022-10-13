@@ -7,7 +7,6 @@ import {
   method,
   Mina,
   AccountUpdate,
-  Permissions,
   PrivateKey,
   SmartContract,
   state,
@@ -21,7 +20,6 @@ await isReady;
 // contract which can add 1 to a number
 class Incrementer extends SmartContract {
   @method increment(x: Field): Field {
-    if (!doProofs) this.skipAuthorization();
     return x.add(1);
   }
 }
@@ -30,7 +28,6 @@ class Incrementer extends SmartContract {
 // incrementing by one is outsourced to another contract (it's cleaner that way, we want to stick to the single responsibility principle)
 class Adder extends SmartContract {
   @method addPlus1(x: Field, y: Field): Field {
-    if (!doProofs) this.skipAuthorization();
     // compute result
     let sum = x.add(y);
     // call the other contract to increment
@@ -49,13 +46,12 @@ class Caller extends SmartContract {
     let sum = adder.addPlus1(x, y);
     this.emitEvent('sum', sum);
     this.sum.set(sum);
-    adder.skipAuthorization();
   }
 }
 
 // script to deploy zkapps and do interactions
 
-let Local = Mina.LocalBlockchain();
+let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp
@@ -91,12 +87,6 @@ let tx = await Mina.transaction(feePayer, () => {
     initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
   });
   zkapp.deploy({ zkappKey });
-  if (!doProofs) {
-    zkapp.setPermissions({
-      ...Permissions.default(),
-      editState: Permissions.proofOrSignature(),
-    });
-  }
   adderZkapp.deploy({ zkappKey: adderKey });
   incrementerZkapp.deploy({ zkappKey: incrementerKey });
 });
@@ -106,14 +96,9 @@ console.log('call interaction');
 tx = await Mina.transaction(feePayer, () => {
   // we just call one contract here, nothing special to do
   zkapp.callAddAndEmit(Field(5), Field(6));
-  if (!doProofs) {
-    zkapp.sign(zkappKey);
-  }
 });
-if (doProofs) {
-  console.log('proving (3 proofs.. can take a bit!)');
-  await tx.prove();
-}
+console.log('proving (3 proofs.. can take a bit!)');
+await tx.prove();
 tx.sign();
 console.log(tx.toPretty());
 

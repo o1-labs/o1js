@@ -243,21 +243,26 @@ function wrapMethod(
                         console.log(input);
                       }
                     }
+                    function diffRecursive(
+                      prover: AccountUpdate,
+                      input: AccountUpdate
+                    ) {
+                      diff(prover.toPretty(), input.toPretty());
+                      let nChildren = input.children.accountUpdates.length;
+                      for (let i = 0; i < nChildren; i++) {
+                        let inputChild = input.children.accountUpdates[i];
+                        let child = prover.children.accountUpdates[i];
+                        if (!inputChild || !child) return;
+                        diffRecursive(child, inputChild);
+                      }
+                    }
+
                     let {
                       accountUpdate: inputUpdate,
                       transaction,
                       index,
                     } = zkAppProver.getData();
-                    diff(accountUpdate.toPretty(), inputUpdate.toPretty());
-
-                    // TODO: this doesn't walk the whole tree
-                    let nChildren = inputUpdate.children.accountUpdates.length;
-                    for (let i = 0; i < nChildren; i++) {
-                      let inputChild = inputUpdate.children.accountUpdates[i];
-                      let child = accountUpdate.children.accountUpdates[i];
-                      if (!inputChild || !child) return;
-                      diff(child.toPretty(), inputChild.toPretty());
-                    }
+                    diffRecursive(accountUpdate, inputUpdate);
                   });
                 }
                 checkPublicInput(publicInput, accountUpdate);
@@ -369,6 +374,8 @@ function wrapMethod(
           let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
           let constantBlindingValue = blindingValue.toConstant();
           let accountUpdate = this.self;
+          accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
+          accountUpdate.parent = parentAccountUpdate;
 
           let [{ memoized }, result] = memoizationContext.runWith(
             {
@@ -432,9 +439,7 @@ function wrapMethod(
         accountUpdate.parent = parentAccountUpdate;
         // beware: we don't include the callee's children in the caller circuit
         // nothing is asserted about them -- it's the callee's task to check their children
-        accountUpdate.children.calls = Circuit.witness(Field, () =>
-          CallForest.hashChildren(accountUpdate)
-        );
+        accountUpdate.children.callsType = { type: 'Witness' };
         parentAccountUpdate.children.accountUpdates.push(accountUpdate);
 
         // assert that we really called the right zkapp
@@ -452,9 +457,21 @@ function wrapMethod(
         accountUpdate.body.callData.assertEquals(callData);
 
         // caller circuits should be Delegate_call by default, except if they're called at the top level
-        let isTopLevel = Circuit.witness(Bool, () =>
-          Bool(methodCallDepth === 0)
-        );
+        let isTopLevel = Circuit.witness(Bool, () => {
+          // TODO: this logic is fragile.. need better way of finding out if parent is the prover account update or not
+          let isProverUpdate =
+            inProver() &&
+            zkAppProver
+              .getData()
+              .accountUpdate.body.publicKey.equals(
+                parentAccountUpdate.body.publicKey
+              )
+              .toBoolean();
+          let parentCallDepth = isProverUpdate
+            ? zkAppProver.getData().accountUpdate.body.callDepth
+            : CallForest.computeCallDepth(parentAccountUpdate);
+          return Bool(parentCallDepth === 0);
+        });
         parentAccountUpdate.isDelegateCall = isTopLevel.not();
 
         return result;

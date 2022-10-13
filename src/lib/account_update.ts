@@ -4,6 +4,7 @@ import {
   cloneCircuitValue,
   memoizationContext,
   memoizeWitness,
+  witness,
 } from './circuit_value.js';
 import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
 import { jsLayout, Types } from '../snarky/types.js';
@@ -642,7 +643,14 @@ class AccountUpdate implements Types.AccountUpdate {
     undefined;
   account: Precondition.Account;
   network: Precondition.Network;
-  children: { calls?: Field; accountUpdates: AccountUpdate[] } = {
+  children: {
+    callsType:
+      | { type: 'None' }
+      | { type: 'Witness' }
+      | { type: 'Equals'; value: Field };
+    accountUpdates: AccountUpdate[];
+  } = {
+    callsType: { type: 'None' },
     accountUpdates: [],
   };
   parent: AccountUpdate | undefined = undefined;
@@ -671,7 +679,7 @@ class AccountUpdate implements Types.AccountUpdate {
     cloned.lazyAuthorization = cloneCircuitValue(
       accountUpdate.lazyAuthorization
     );
-    cloned.children.calls = accountUpdate.children.calls;
+    cloned.children.callsType = accountUpdate.children.callsType;
     cloned.children.accountUpdates = accountUpdate.children.accountUpdates.map(
       AccountUpdate.clone
     );
@@ -1078,10 +1086,13 @@ class AccountUpdate implements Types.AccountUpdate {
   }
   static toAuxiliary(a?: AccountUpdate) {
     let aux = AccountUpdate.provable.toAuxiliary(a?.toProvable());
-    let children: AccountUpdate['children'] = { accountUpdates: [] };
+    let children: AccountUpdate['children'] = {
+      callsType: { type: 'None' },
+      accountUpdates: [],
+    };
     let lazyAuthorization = a && cloneCircuitValue(a.lazyAuthorization);
-    children.calls = a?.children.calls;
     if (a) {
+      children.callsType = a.children.callsType;
       children.accountUpdates = a.children.accountUpdates.map(
         AccountUpdate.clone
       );
@@ -1135,10 +1146,7 @@ class AccountUpdate implements Types.AccountUpdate {
   ) {
     // just witness children's hash if childLayout === null
     if (childLayout === AccountUpdate.Layout.AnyChildren) {
-      let calls = Circuit.witness(Field, () =>
-        CallForest.hashChildren(accountUpdate)
-      );
-      accountUpdate.children.calls = calls;
+      accountUpdate.children.callsType = { type: 'Witness' };
       return;
     }
     let childArray: AccountUpdatesLayout[] =
@@ -1158,9 +1166,11 @@ class AccountUpdate implements Types.AccountUpdate {
         options
       ).accountUpdate;
     }
-    accountUpdate.children.calls = CallForest.hashChildren(accountUpdate);
     if (n === 0) {
-      accountUpdate.children.calls.assertEquals(CallForest.emptyHash());
+      accountUpdate.children.callsType = {
+        type: 'Equals',
+        value: CallForest.emptyHash(),
+      };
     }
   }
 
@@ -1321,10 +1331,21 @@ const CallForest = {
 
   // similar to Mina_base.Zkapp_command.Call_forest.accumulate_hashes
   // hashes a accountUpdate's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
-  hashChildren({ children }: AccountUpdate): Field {
-    // only compute calls if it's not there yet --
-    // this gives us the flexibility to witness a specific layout of accountUpdates
-    if (children.calls !== undefined) return children.calls;
+  hashChildren(update: AccountUpdate): Field {
+    let { callsType } = update.children;
+    // compute hash outside the circuit if callsType is "Witness"
+    // i.e., allowing accountUpdates with arbitrary children
+    if (callsType.type === 'Witness') {
+      return witness(Field, () => CallForest.hashChildrenBase(update));
+    }
+    let calls = CallForest.hashChildrenBase(update);
+    if (callsType.type === 'Equals') {
+      calls.assertEquals(callsType.value);
+    }
+    return calls;
+  },
+
+  hashChildrenBase({ children }: AccountUpdate) {
     let stackHash = CallForest.emptyHash();
     for (let accountUpdate of [...children.accountUpdates].reverse()) {
       let calls = CallForest.hashChildren(accountUpdate);
@@ -1386,6 +1407,13 @@ const CallForest = {
     return context;
   },
   callerContextType: provablePure({ self: Field, caller: Field }),
+
+  computeCallDepth(update: AccountUpdate) {
+    for (let callDepth = 0; ; callDepth++) {
+      if (update.parent === undefined) return callDepth;
+      update = update.parent;
+    }
+  },
 
   forEach(updates: AccountUpdate[], callback: (update: AccountUpdate) => void) {
     for (let update of updates) {
