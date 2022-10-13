@@ -61,6 +61,7 @@ tx = await Mina.transaction({ feePayerKey }, () => {
 });
 await tx.prove();
 tx.sign([keys.tokenX, keys.tokenY]);
+console.log(tx.toPretty());
 await tx.send();
 
 console.log(
@@ -80,9 +81,10 @@ tx = await Mina.transaction(feePayerKey, () => {
 });
 await tx.prove();
 tx.sign([keys.dex]);
+console.log(tx.toPretty());
 await tx.send();
 
-console.log('transfer to a user');
+console.log('transfer X and Y tokens to a user...');
 tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
   AccountUpdate.createSigned(feePayerKey).balance.subInPlace(
     Mina.accountCreationFee().mul(2)
@@ -111,13 +113,6 @@ tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
 });
 
 await tx.prove();
-// TODO: This is a hack to get around the fact that `caller` is wrong when creating
-// child accountUpdates with the token API. We manually set the caller to the DEX in this case.
-// Should be fixed with https://github.com/o1-labs/snarkyjs/issues/431
-tx.transaction.accountUpdates[2].body.caller = dex.experimental.token.id;
-tx.transaction.accountUpdates[4].body.caller = dex.experimental.token.id;
-tx.transaction.accountUpdates[6].body.caller = dex.experimental.token.id;
-tx.transaction.accountUpdates[9].body.caller = dex.experimental.token.id;
 
 tx.sign([keys.dex, keys.user, keys.tokenX]);
 await tx.send();
@@ -138,11 +133,6 @@ tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
 });
 
 await tx.prove();
-// Should be fixed with https://github.com/o1-labs/snarkyjs/issues/431
-tx.transaction.accountUpdates[1].body.caller = dex.experimental.token.id;
-tx.transaction.accountUpdates[3].body.caller = dex.experimental.token.id;
-tx.transaction.accountUpdates[5].body.caller = dex.experimental.token.id;
-tx.transaction.accountUpdates[8].body.caller = dex.experimental.token.id;
 
 tx.sign([keys.dex, keys.user, keys.tokenX]);
 await tx.send();

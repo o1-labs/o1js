@@ -255,11 +255,8 @@ class TokenContract extends SmartContract {
   // => need callbacks for signatures
   @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
     let tokenId = this.experimental.token.id;
-    let zkapp = Experimental.createChildAccountUpdate(
-      this.self,
-      address,
-      tokenId
-    );
+    let zkapp = AccountUpdate.defaultAccountUpdate(address, tokenId);
+    this.experimental.authorize(zkapp);
     AccountUpdate.setValue(zkapp.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
