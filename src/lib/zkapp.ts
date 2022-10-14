@@ -33,6 +33,7 @@ import {
   TokenId,
   AccountUpdatesLayout,
   smartContractContext,
+  zkAppProver,
 } from './account_update.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import * as Mina from './mina.js';
@@ -155,6 +156,7 @@ function wrapMethod(
   ZkappClass: typeof SmartContract,
   methodIntf: MethodInterface
 ) {
+  let methodName = methodIntf.methodName;
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
     // TODO: the callback case is actually more similar to the composability case below,
@@ -165,7 +167,7 @@ function wrapMethod(
           this: this,
           methodCallDepth: 0,
           isCallback: false,
-          selfUpdate: selfAccountUpdate(this.address, this.tokenId),
+          selfUpdate: selfAccountUpdate(this, methodName),
         },
         (context) => {
           if (inCheckedComputation() && !context.isCallback) {
@@ -208,33 +210,59 @@ function wrapMethod(
                 accountUpdate.body.authorizationKind.isSigned = Bool(false);
                 accountUpdate.body.authorizationKind.isProved = Bool(true);
 
+                // compute `caller` field from `isDelegateCall` and a context determined by the transaction
+                let callerContext = Circuit.witness(
+                  CallForest.callerContextType,
+                  () => {
+                    let { accountUpdate } = zkAppProver.getData();
+                    return CallForest.computeCallerContext(accountUpdate);
+                  }
+                );
+                CallForest.addCallers([accountUpdate], callerContext);
+
                 // connect the public input to the accountUpdate & child account updates we created
                 if (DEBUG_PUBLIC_INPUT_CHECK) {
-                  // TODO: print a nice diff string instead of the two objects
-                  // something like `expect` or `json-diff`, but web-compatible
-                  function diff(prover: JSONValue, input: JSONValue) {
-                    if (JSON.stringify(prover) !== JSON.stringify(input)) {
-                      console.log('inconsistent account updates:');
-                      console.log('update created by the prover:');
-                      console.dir(prover, { depth: Infinity });
-                      console.log('update created in transaction block:');
-                      console.dir(input, { depth: Infinity });
-                    }
-                  }
                   Circuit.asProver(() => {
-                    let inputAccountUpdate: AccountUpdate =
-                      snarkContext.get().proverData;
-                    diff(accountUpdate.toJSON(), inputAccountUpdate.toJSON());
-
-                    let nChildren =
-                      inputAccountUpdate.children.accountUpdates.length;
-                    for (let i = 0; i < nChildren; i++) {
-                      let inputChild =
-                        inputAccountUpdate.children.accountUpdates[i].toJSON();
-                      let child =
-                        accountUpdate.children.accountUpdates[i].toJSON();
-                      diff(child, inputChild);
+                    // TODO: print a nice diff string instead of the two objects
+                    // something like `expect` or `json-diff`, but web-compatible
+                    function diff(prover: any, input: any) {
+                      delete prover.id;
+                      delete prover.callDepth;
+                      delete input.id;
+                      delete input.callDepth;
+                      if (JSON.stringify(prover) !== JSON.stringify(input)) {
+                        console.log(
+                          'transaction:',
+                          ZkappCommand.toPretty(transaction)
+                        );
+                        console.log('index', index);
+                        console.log('inconsistent account updates:');
+                        console.log('update created by the prover:');
+                        console.log(prover);
+                        console.log('update created in transaction block:');
+                        console.log(input);
+                      }
                     }
+                    function diffRecursive(
+                      prover: AccountUpdate,
+                      input: AccountUpdate
+                    ) {
+                      diff(prover.toPretty(), input.toPretty());
+                      let nChildren = input.children.accountUpdates.length;
+                      for (let i = 0; i < nChildren; i++) {
+                        let inputChild = input.children.accountUpdates[i];
+                        let child = prover.children.accountUpdates[i];
+                        if (!inputChild || !child) return;
+                        diffRecursive(child, inputChild);
+                      }
+                    }
+
+                    let {
+                      accountUpdate: inputUpdate,
+                      transaction,
+                      index,
+                    } = zkAppProver.getData();
+                    diffRecursive(accountUpdate, inputUpdate);
                   });
                 }
                 checkPublicInput(publicInput, accountUpdate);
@@ -277,9 +305,7 @@ function wrapMethod(
                 currentIndex: 0,
                 blindingValue,
               },
-              () => {
-                method.apply(this, actualArgs);
-              }
+              () => method.apply(this, actualArgs)
             );
             assertStatePrecondition(this);
 
@@ -320,7 +346,7 @@ function wrapMethod(
         this: this,
         methodCallDepth: methodCallDepth + 1,
         isCallback: false,
-        selfUpdate: selfAccountUpdate(this.address, this.tokenId),
+        selfUpdate: selfAccountUpdate(this, methodName),
       },
       () => {
         // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
@@ -348,6 +374,8 @@ function wrapMethod(
           let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
           let constantBlindingValue = blindingValue.toConstant();
           let accountUpdate = this.self;
+          accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
+          accountUpdate.parent = parentAccountUpdate;
 
           let [{ memoized }, result] = memoizationContext.runWith(
             {
@@ -411,9 +439,7 @@ function wrapMethod(
         accountUpdate.parent = parentAccountUpdate;
         // beware: we don't include the callee's children in the caller circuit
         // nothing is asserted about them -- it's the callee's task to check their children
-        accountUpdate.children.calls = Circuit.witness(Field, () =>
-          CallForest.hashChildren(accountUpdate)
-        );
+        accountUpdate.children.callsType = { type: 'Witness' };
         parentAccountUpdate.children.accountUpdates.push(accountUpdate);
 
         // assert that we really called the right zkapp
@@ -429,6 +455,25 @@ function wrapMethod(
         );
         let callData = Poseidon.hash(callDataFields);
         accountUpdate.body.callData.assertEquals(callData);
+
+        // caller circuits should be Delegate_call by default, except if they're called at the top level
+        let isTopLevel = Circuit.witness(Bool, () => {
+          // TODO: this logic is fragile.. need better way of finding out if parent is the prover account update or not
+          let isProverUpdate =
+            inProver() &&
+            zkAppProver
+              .getData()
+              .accountUpdate.body.publicKey.equals(
+                parentAccountUpdate.body.publicKey
+              )
+              .toBoolean();
+          let parentCallDepth = isProverUpdate
+            ? zkAppProver.getData().accountUpdate.body.callDepth
+            : CallForest.computeCallDepth(parentAccountUpdate);
+          return Bool(parentCallDepth === 0);
+        });
+        parentAccountUpdate.isDelegateCall = isTopLevel.not();
+
         return result;
       }
     );
@@ -662,6 +707,9 @@ class SmartContract {
   sign(zkappKey?: PrivateKey) {
     this.self.sign(zkappKey);
   }
+  skipAuthorization() {
+    Authorization.setLazyNone(this.self);
+  }
 
   private executionState(): AccountUpdate {
     let inTransaction = Mina.currentTransaction.has();
@@ -669,7 +717,7 @@ class SmartContract {
     if (!inTransaction && !inSmartContract) {
       // TODO: it's inefficient to return a fresh account update everytime, would be better to return a constant "non-writable" account update,
       // or even expose the .get() methods independently of any account update (they don't need one)
-      return selfAccountUpdate(this.address, this.tokenId);
+      return selfAccountUpdate(this);
     }
     let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
     // running a method changes which is the "current account update" of this smart contract
@@ -693,7 +741,7 @@ class SmartContract {
     // to do at least the attaching explicitly, and remove implicit attaching
     // also, implicit creation is questionable
     let transaction = Mina.currentTransaction.get();
-    let accountUpdate = selfAccountUpdate(this.address, this.tokenId);
+    let accountUpdate = selfAccountUpdate(this);
     transaction.accountUpdates.push(accountUpdate);
     this._executionState = { transactionId, accountUpdate };
     return accountUpdate;
@@ -1107,13 +1155,17 @@ class VerificationKey extends Struct({
   },
 }) {}
 
-function selfAccountUpdate(address: PublicKey, tokenId?: Field) {
-  let body = Body.keepAll(address);
-  if (tokenId) {
-    body.tokenId = tokenId;
-    body.caller = tokenId;
+function selfAccountUpdate(zkapp: SmartContract, methodName?: string) {
+  let body = Body.keepAll(zkapp.address);
+  if (zkapp.tokenId) {
+    body.tokenId = zkapp.tokenId;
+    body.caller = zkapp.tokenId;
   }
-  return new (AccountUpdate as any)(body, {}, true) as AccountUpdate;
+  let update = new (AccountUpdate as any)(body, {}, true) as AccountUpdate;
+  update.label = methodName
+    ? `${zkapp.constructor.name}.${methodName}()`
+    : `${zkapp.constructor.name}, no method`;
+  return update;
 }
 
 // per-smart-contract context for transaction construction

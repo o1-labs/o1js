@@ -4,7 +4,7 @@ import {
   cloneCircuitValue,
   memoizationContext,
   memoizeWitness,
-  toConstant,
+  witness,
 } from './circuit_value.js';
 import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
 import { jsLayout, Types } from '../snarky/types.js';
@@ -13,7 +13,7 @@ import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
-import { inCheckedComputation, Proof, snarkContext } from './proof_system.js';
+import { inCheckedComputation, Proof, Prover } from './proof_system.js';
 import {
   emptyHashWithPrefix,
   hashWithPrefix,
@@ -51,6 +51,7 @@ export {
   CallForest,
   createChildAccountUpdate,
   AccountUpdatesLayout,
+  zkAppProver,
 };
 
 const ZkappStateLength = 8;
@@ -60,6 +61,12 @@ let smartContractContext = Context.create<{
   methodCallDepth: number;
   isCallback: boolean;
   selfUpdate: AccountUpdate;
+}>();
+
+let zkAppProver = Prover<{
+  transaction: ZkappCommand;
+  accountUpdate: AccountUpdate;
+  index: number;
 }>();
 
 type AuthRequired = Types.Json.AuthRequired;
@@ -568,6 +575,7 @@ const Preconditions = {
 };
 
 type Control = Types.AccountUpdate['authorization'];
+type LazyNone = { kind: 'lazy-none' };
 type LazySignature = { kind: 'lazy-signature'; privateKey?: PrivateKey };
 type LazyProof = {
   kind: 'lazy-proof';
@@ -623,17 +631,33 @@ class Token {
 
 class AccountUpdate implements Types.AccountUpdate {
   id: number;
+  /**
+   * A human-readable label for the account update, indicating how that update was created.
+   * Can be modified by applications to add richer information.
+   */
+  label: string = '';
   body: Body;
+  isDelegateCall = Bool(false);
   authorization: Control;
-  lazyAuthorization: LazySignature | LazyProof | undefined = undefined;
+  lazyAuthorization: LazySignature | LazyProof | LazyNone | undefined =
+    undefined;
   account: Precondition.Account;
   network: Precondition.Network;
-  children: { calls?: Field; accountUpdates: AccountUpdate[] } = {
+  children: {
+    callsType:
+      | { type: 'None' }
+      | { type: 'Witness' }
+      | { type: 'Equals'; value: Field };
+    accountUpdates: AccountUpdate[];
+  } = {
+    callsType: { type: 'None' },
     accountUpdates: [],
   };
   parent: AccountUpdate | undefined = undefined;
 
   private isSelf: boolean;
+
+  static SequenceEvents = SequenceEvents;
 
   constructor(body: Body, authorization?: Control);
   constructor(body: Body, authorization = {} as Control, isSelf = false) {
@@ -649,19 +673,23 @@ class AccountUpdate implements Types.AccountUpdate {
   static clone(accountUpdate: AccountUpdate) {
     let body = cloneCircuitValue(accountUpdate.body);
     let authorization = cloneCircuitValue(accountUpdate.authorization);
-    let clonedAccountUpdate: AccountUpdate = new (AccountUpdate as any)(
+    let cloned: AccountUpdate = new (AccountUpdate as any)(
       body,
       authorization,
       accountUpdate.isSelf
     );
-    clonedAccountUpdate.lazyAuthorization = cloneCircuitValue(
+    cloned.lazyAuthorization = cloneCircuitValue(
       accountUpdate.lazyAuthorization
     );
-    clonedAccountUpdate.children.calls = accountUpdate.children.calls;
-    clonedAccountUpdate.children.accountUpdates =
-      accountUpdate.children.accountUpdates.map(AccountUpdate.clone);
-    clonedAccountUpdate.parent = accountUpdate.parent;
-    return clonedAccountUpdate;
+    cloned.children.callsType = accountUpdate.children.callsType;
+    cloned.children.accountUpdates = accountUpdate.children.accountUpdates.map(
+      AccountUpdate.clone
+    );
+    cloned.id = accountUpdate.id;
+    cloned.label = accountUpdate.label;
+    cloned.parent = accountUpdate.parent;
+    cloned.isDelegateCall = accountUpdate.isDelegateCall;
+    return cloned;
   }
 
   token() {
@@ -683,17 +711,13 @@ class AccountUpdate implements Types.AccountUpdate {
         address: PublicKey;
         amount: number | bigint | UInt64;
       }) {
-        let receiverAccountUpdate = createChildAccountUpdate(
-          thisAccountUpdate,
-          address,
-          this.id
-        );
-
+        let receiver = AccountUpdate.defaultAccountUpdate(address, this.id);
+        thisAccountUpdate.authorize(receiver);
         // Add the amount to mint to the receiver's account
-        receiverAccountUpdate.body.balanceChange = Int64.fromObject(
-          receiverAccountUpdate.body.balanceChange
+        receiver.body.balanceChange = Int64.fromObject(
+          receiver.body.balanceChange
         ).add(amount);
-        return receiverAccountUpdate;
+        return receiver;
       },
 
       burn({
@@ -703,20 +727,17 @@ class AccountUpdate implements Types.AccountUpdate {
         address: PublicKey;
         amount: number | bigint | UInt64;
       }) {
-        let senderAccountUpdate = createChildAccountUpdate(
-          thisAccountUpdate,
-          address,
-          this.id
-        );
-        senderAccountUpdate.body.useFullCommitment = Bool(true);
+        let sender = AccountUpdate.defaultAccountUpdate(address, this.id);
+        thisAccountUpdate.authorize(sender);
+        sender.body.useFullCommitment = Bool(true);
 
         // Sub the amount to burn from the sender's account
-        senderAccountUpdate.body.balanceChange = Int64.fromObject(
-          senderAccountUpdate.body.balanceChange
+        sender.body.balanceChange = Int64.fromObject(
+          sender.body.balanceChange
         ).sub(amount);
 
         // Require signature from the sender account being deducted
-        Authorization.setLazySignature(senderAccountUpdate);
+        Authorization.setLazySignature(sender);
       },
 
       send({
@@ -729,21 +750,15 @@ class AccountUpdate implements Types.AccountUpdate {
         amount: number | bigint | UInt64;
       }) {
         // Create a new accountUpdate for the sender to send the amount to the receiver
-        let senderAccountUpdate = createChildAccountUpdate(
-          thisAccountUpdate,
-          from,
-          this.id
-        );
-        senderAccountUpdate.body.useFullCommitment = Bool(true);
-
-        let i0 = senderAccountUpdate.body.balanceChange;
-        senderAccountUpdate.body.balanceChange = new Int64(
-          i0.magnitude,
-          i0.sgn
+        let sender = AccountUpdate.defaultAccountUpdate(from, this.id);
+        thisAccountUpdate.authorize(sender);
+        sender.body.useFullCommitment = Bool(true);
+        sender.body.balanceChange = Int64.fromObject(
+          sender.body.balanceChange
         ).sub(amount);
 
         // Require signature from the sender accountUpdate
-        Authorization.setLazySignature(senderAccountUpdate);
+        Authorization.setLazySignature(sender);
 
         let receiverAccountUpdate = createChildAccountUpdate(
           thisAccountUpdate,
@@ -808,6 +823,7 @@ class AccountUpdate implements Types.AccountUpdate {
 
   authorize(childUpdate: AccountUpdate, layout?: AccountUpdatesLayout) {
     makeChildAccountUpdate(this, childUpdate);
+    this.isDelegateCall = Bool(false);
     if (layout !== undefined) {
       AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
     }
@@ -942,10 +958,6 @@ class AccountUpdate implements Types.AccountUpdate {
     return UInt32.from(nonce);
   }
 
-  toFields() {
-    return Types.AccountUpdate.toFields(this);
-  }
-
   toJSON() {
     return Types.AccountUpdate.toJSON(this);
   }
@@ -1060,34 +1072,56 @@ class AccountUpdate implements Types.AccountUpdate {
     accountUpdate.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 
-  // static methods that implement Provable<AccountUpdate>
-  static sizeInFields = Types.AccountUpdate.sizeInFields;
-  static toFields = Types.AccountUpdate.toFields;
+  // static methods that implement Provable<[AccountUpdate, Bool]>, where he Bool is for `isDelegateCall`
+  private static provable = provable({
+    accountUpdate: Types.AccountUpdate,
+    isDelegateCall: Bool,
+  });
+  private toProvable() {
+    return { accountUpdate: this, isDelegateCall: this.isDelegateCall };
+  }
+
+  static sizeInFields = AccountUpdate.provable.sizeInFields;
+
+  static toFields(a: AccountUpdate) {
+    return AccountUpdate.provable.toFields(a.toProvable());
+  }
   static toAuxiliary(a?: AccountUpdate) {
-    let aux = Types.AccountUpdate.toAuxiliary(a);
+    let aux = AccountUpdate.provable.toAuxiliary(a?.toProvable());
+    let children: AccountUpdate['children'] = {
+      callsType: { type: 'None' },
+      accountUpdates: [],
+    };
     let lazyAuthorization = a && cloneCircuitValue(a.lazyAuthorization);
-    let children: AccountUpdate['children'] = { accountUpdates: [] };
-    children.calls = a?.children.calls;
     if (a) {
+      children.callsType = a.children.callsType;
       children.accountUpdates = a.children.accountUpdates.map(
         AccountUpdate.clone
       );
     }
     let parent = a?.parent;
-    let id = a?.id ?? 0;
-    return [{ lazyAuthorization, children, parent, id }, aux];
+    let id = a?.id ?? Math.random();
+    let label = a?.label ?? '';
+    return [{ lazyAuthorization, children, parent, id, label }, aux];
   }
-  static toInput = Types.AccountUpdate.toInput;
-  static toJSON = Types.AccountUpdate.toJSON;
-  static check = Types.AccountUpdate.check;
-  static fromFields(
-    fields: Field[],
-    [{ lazyAuthorization, children, parent, id }, aux]: any[]
-  ) {
-    let rawUpdate = Types.AccountUpdate.fromFields(fields, aux);
+  static toInput(a: AccountUpdate) {
+    return AccountUpdate.provable.toInput(a.toProvable());
+  }
+  static toJSON(a: AccountUpdate) {
+    return AccountUpdate.provable.toJSON(a.toProvable());
+  }
+  static check(a: AccountUpdate) {
+    AccountUpdate.provable.check(a.toProvable());
+  }
+  static fromFields(fields: Field[], [other, aux]: any[]): AccountUpdate {
+    let { accountUpdate, isDelegateCall } = AccountUpdate.provable.fromFields(
+      fields,
+      aux
+    );
     return Object.assign(
-      new AccountUpdate(rawUpdate.body, rawUpdate.authorization),
-      { lazyAuthorization, children, parent, id }
+      new AccountUpdate(accountUpdate.body, accountUpdate.authorization),
+      { isDelegateCall },
+      other
     );
   }
 
@@ -1114,10 +1148,7 @@ class AccountUpdate implements Types.AccountUpdate {
   ) {
     // just witness children's hash if childLayout === null
     if (childLayout === AccountUpdate.Layout.AnyChildren) {
-      let calls = Circuit.witness(Field, () =>
-        CallForest.hashChildren(accountUpdate)
-      );
-      accountUpdate.children.calls = calls;
+      accountUpdate.children.callsType = { type: 'Witness' };
       return;
     }
     let childArray: AccountUpdatesLayout[] =
@@ -1137,9 +1168,11 @@ class AccountUpdate implements Types.AccountUpdate {
         options
       ).accountUpdate;
     }
-    accountUpdate.children.calls = CallForest.hashChildren(accountUpdate);
     if (n === 0) {
-      accountUpdate.children.calls.assertEquals(CallForest.emptyHash());
+      accountUpdate.children.callsType = {
+        type: 'Equals',
+        value: CallForest.emptyHash(),
+      };
     }
   }
 
@@ -1203,6 +1236,9 @@ class AccountUpdate implements Types.AccountUpdate {
   };
 
   toPretty() {
+    function short(s: string) {
+      return '..' + s.slice(-4);
+    }
     let jsonUpdate: Partial<Types.Json.AccountUpdate> = toJSONEssential(
       jsLayout.AccountUpdate as any,
       this,
@@ -1210,9 +1246,19 @@ class AccountUpdate implements Types.AccountUpdate {
     );
     let body: Partial<Types.Json.AccountUpdate['body']> =
       jsonUpdate.body as any;
+    delete body.callData;
+    body.publicKey = short(body.publicKey!);
     if (body.balanceChange?.magnitude === '0') delete body.balanceChange;
-    if (body.tokenId === TokenId.toBase58(TokenId.default)) delete body.tokenId;
-    if (body.caller === TokenId.toBase58(TokenId.default)) delete body.caller;
+    if (body.tokenId === TokenId.toBase58(TokenId.default)) {
+      delete body.tokenId;
+    } else {
+      body.tokenId = short(body.tokenId!);
+    }
+    if (body.caller === TokenId.toBase58(TokenId.default)) {
+      delete body.caller;
+    } else {
+      body.caller = short(body.caller!);
+    }
     if (body.incrementNonce === false) delete body.incrementNonce;
     if (body.useFullCommitment === false) delete body.useFullCommitment;
     if (body.events?.length === 0) delete body.events;
@@ -1228,20 +1274,34 @@ class AccountUpdate implements Types.AccountUpdate {
       ) as any;
     }
     if (jsonUpdate.authorization?.proof) {
-      jsonUpdate.authorization.proof =
-        jsonUpdate.authorization.proof.slice(0, 6) + '...';
+      jsonUpdate.authorization.proof = short(jsonUpdate.authorization.proof);
+    }
+    if (jsonUpdate.authorization?.signature) {
+      jsonUpdate.authorization.signature = short(
+        jsonUpdate.authorization.signature
+      );
     }
     if (body.update?.verificationKey) {
       body.update.verificationKey = JSON.stringify({
-        data: body.update.verificationKey.data.slice(0, 6) + '...',
-        hash: body.update.verificationKey.hash.slice(0, 6) + '...',
+        data: short(body.update.verificationKey.data),
+        hash: short(body.update.verificationKey.hash),
       }) as any;
     }
     if (body.update?.permissions) {
       body.update.permissions = JSON.stringify(body.update.permissions) as any;
     }
-    (body as any).authorization = jsonUpdate.authorization;
-    return body;
+    if (
+      jsonUpdate.authorization !== undefined ||
+      body.authorizationKind !== 'None_given'
+    ) {
+      (body as any).authorization = jsonUpdate.authorization;
+    }
+    if (this.isDelegateCall.toBoolean()) (body as any).isDelegateCall = true;
+    let pretty: any = { ...body };
+    let withId = false;
+    if (withId) pretty = { id: Math.floor(this.id * 1000), ...pretty };
+    if (this.label) pretty = { label: this.label, ...pretty };
+    return pretty;
   }
 }
 
@@ -1273,10 +1333,21 @@ const CallForest = {
 
   // similar to Mina_base.Zkapp_command.Call_forest.accumulate_hashes
   // hashes a accountUpdate's children (and their children, and ...) to compute the `calls` field of ZkappPublicInput
-  hashChildren({ children }: AccountUpdate): Field {
-    // only compute calls if it's not there yet --
-    // this gives us the flexibility to witness a specific layout of accountUpdates
-    if (children.calls !== undefined) return children.calls;
+  hashChildren(update: AccountUpdate): Field {
+    let { callsType } = update.children;
+    // compute hash outside the circuit if callsType is "Witness"
+    // i.e., allowing accountUpdates with arbitrary children
+    if (callsType.type === 'Witness') {
+      return witness(Field, () => CallForest.hashChildrenBase(update));
+    }
+    let calls = CallForest.hashChildrenBase(update);
+    if (callsType.type === 'Equals') {
+      calls.assertEquals(callsType.value);
+    }
+    return calls;
+  },
+
+  hashChildrenBase({ children }: AccountUpdate) {
     let stackHash = CallForest.emptyHash();
     for (let accountUpdate of [...children.accountUpdates].reverse()) {
       let calls = CallForest.hashChildren(accountUpdate);
@@ -1292,6 +1363,58 @@ const CallForest = {
       stackHash = Circuit.if(accountUpdate.isDummy(), stackHash, newHash);
     }
     return stackHash;
+  },
+
+  // Mina_base.Zkapp_command.Call_forest.add_callers
+  addCallers(
+    updates: AccountUpdate[],
+    context: { self: Field; caller: Field } = {
+      self: TokenId.default,
+      caller: TokenId.default,
+    }
+  ) {
+    for (let update of updates) {
+      let { isDelegateCall } = update;
+      let caller = Circuit.if(isDelegateCall, context.caller, context.self);
+      let self = Circuit.if(
+        isDelegateCall,
+        context.self,
+        Token.getId(update.body.publicKey, update.body.tokenId)
+      );
+      update.body.caller = caller;
+      let childContext = { caller, self };
+      CallForest.addCallers(update.children.accountUpdates, childContext);
+    }
+  },
+  /**
+   * Used in the prover to witness the context from which to compute its caller
+   */
+  computeCallerContext(update: AccountUpdate) {
+    // compute the line of ancestors
+    let current = update;
+    let ancestors = [];
+    while (true) {
+      let parent = current.parent;
+      if (parent === undefined) break;
+      ancestors.unshift(parent);
+      current = parent;
+    }
+    let context = { self: TokenId.default, caller: TokenId.default };
+    for (let update of ancestors) {
+      if (!update.isDelegateCall.toBoolean()) {
+        context.caller = context.self;
+        context.self = Token.getId(update.body.publicKey, update.body.tokenId);
+      }
+    }
+    return context;
+  },
+  callerContextType: provablePure({ self: Field, caller: Field }),
+
+  computeCallDepth(update: AccountUpdate) {
+    for (let callDepth = 0; ; callDepth++) {
+      if (update.parent === undefined) return callDepth;
+      update = update.parent;
+    }
   },
 
   forEach(updates: AccountUpdate[], callback: (update: AccountUpdate) => void) {
@@ -1360,6 +1483,19 @@ type ZkappCommandProved = {
   memo: string;
 };
 
+const ZkappCommand = {
+  toPretty(transaction: ZkappCommand) {
+    let feePayer = zkappCommandToJson(transaction).feePayer as any;
+    feePayer.body.publicKey = '..' + feePayer.body.publicKey.slice(-4);
+    feePayer.body.authorization = '..' + feePayer.authorization.slice(-4);
+    if (feePayer.body.validUntil === null) delete feePayer.body.validUntil;
+    return [
+      feePayer.body,
+      ...transaction.accountUpdates.map((a) => a.toPretty()),
+    ];
+  },
+};
+
 function zkappCommandToJson({ feePayer, accountUpdates, memo }: ZkappCommand) {
   memo = Ledger.memoToBase58(memo);
   return Types.ZkappCommand.toJSON({ feePayer, accountUpdates, memo });
@@ -1396,6 +1532,12 @@ const Authorization = {
     accountUpdate.body.authorizationKind.isProved = Bool(true);
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...proof, kind: 'lazy-proof' };
+  },
+  setLazyNone(accountUpdate: AccountUpdate) {
+    accountUpdate.body.authorizationKind.isSigned = Bool(false);
+    accountUpdate.body.authorizationKind.isProved = Bool(false);
+    accountUpdate.authorization = {};
+    accountUpdate.lazyAuthorization = { kind: 'lazy-none' };
   },
 };
 
@@ -1473,7 +1615,10 @@ let ZkappPublicInput = provablePure(
   { customObjectKeys: ['accountUpdate', 'calls'] }
 );
 
-async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
+async function addMissingProofs(
+  zkappCommand: ZkappCommand,
+  { proofsEnabled = true }
+): Promise<{
   zkappCommand: ZkappCommandProved;
   proofs: (Proof<ZkappPublicInput> | undefined)[];
 }> {
@@ -1481,8 +1626,16 @@ async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
     lazyAuthorization?: LazySignature;
   };
 
-  async function addProof(accountUpdate: AccountUpdate) {
+  async function addProof(index: number, accountUpdate: AccountUpdate) {
     accountUpdate = AccountUpdate.clone(accountUpdate);
+
+    if (!proofsEnabled) {
+      Authorization.setProof(accountUpdate, Pickles.dummyBase64Proof());
+      return {
+        accountUpdateProved: accountUpdate as AccountUpdateProved,
+        proof: undefined,
+      };
+    }
     if (accountUpdate.lazyAuthorization?.kind !== 'lazy-proof') {
       return {
         accountUpdateProved: accountUpdate as AccountUpdateProved,
@@ -1511,12 +1664,9 @@ async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
     if (ZkappClass._methods === undefined) throw Error(methodError);
     let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
     if (i === -1) throw Error(methodError);
-    let [, [, proof]] = await snarkContext.runWithAsync(
-      {
-        inProver: true,
-        witnesses: [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
-        proverData: accountUpdate,
-      },
+    let [, [, proof]] = await zkAppProver.run(
+      [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
+      { transaction: zkappCommand, accountUpdate, index },
       () =>
         memoizationContext.runWithAsync(
           { memoized, currentIndex: 0, blindingValue },
@@ -1539,8 +1689,8 @@ async function addMissingProofs(zkappCommand: ZkappCommand): Promise<{
   // compute proofs serially. in parallel would clash with our global variable hacks
   let accountUpdatesProved: AccountUpdateProved[] = [];
   let proofs: (Proof<ZkappPublicInput> | undefined)[] = [];
-  for (let accountUpdate of accountUpdates) {
-    let { accountUpdateProved, proof } = await addProof(accountUpdate);
+  for (let i = 0; i < accountUpdates.length; i++) {
+    let { accountUpdateProved, proof } = await addProof(i, accountUpdates[i]);
     accountUpdatesProved.push(accountUpdateProved);
     proofs.push(proof);
   }

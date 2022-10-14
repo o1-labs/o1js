@@ -16,7 +16,7 @@ import {
   Ledger,
 } from 'snarkyjs';
 
-const tokenSymbol = 'MY_TOKEN';
+const tokenSymbol = 'TOKEN';
 
 class TokenContract extends SmartContract {
   @state(UInt64) totalAmountInCirculation = State<UInt64>();

@@ -495,6 +495,10 @@ export default [
         type: 'function',
       },
       {
+        name: 'dummyBase64Proof',
+        type: 'function',
+      },
+      {
         name: 'proofToBase64',
         type: 'function',
       },
