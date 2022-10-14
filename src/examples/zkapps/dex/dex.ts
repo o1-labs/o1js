@@ -196,7 +196,7 @@ class DexTokenHolder extends SmartContract {
     this.send({ to: user, amount: dy });
 
     // TODO: something's still off here
-    // this has to be a delegate call, to make it authoritable by the token owner
+    // this has to be a delegate call, to make it authorizable by the token owner
     this.self.isDelegateCall = Bool(true);
 
     // return l, dy so callers don't have to walk their child account updates to get it
@@ -224,7 +224,7 @@ class DexTokenHolder extends SmartContract {
     this.send({ to: user, amount: dx });
 
     // TODO: something's still off here
-    // this has to be a delegate call, to make it authoritable by the token owner
+    // this has to be a delegate call, to make it authorizable by the token owner
     this.self.isDelegateCall = Bool(true);
 
     return [dx, dy];
