@@ -150,11 +150,9 @@ tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
   dex.redeemLiquidity(addresses.user, UInt64.from(100));
 });
 
-console.log('boom');
 await tx.prove();
 tx.sign([keys.user]);
 console.log(tx.toPretty());
-console.log('goes the dynamite');
 await tx.send();
 
 console.log(

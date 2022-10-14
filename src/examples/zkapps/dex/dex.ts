@@ -121,7 +121,8 @@ class Dex extends SmartContract {
     let tokenX = new TokenContract(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
     let dxdy = dexX.redeemLiquidity(user, dl, this.tokenY);
-    tokenX.authorizeUpdate(dexX.self);
+    let dx = dxdy[0];
+    tokenX.authorizeUpdateAndSend(dexX.self, user, dx);
     return dxdy;
   }
 
@@ -193,11 +194,11 @@ class DexTokenHolder extends SmartContract {
     this.account.balance.assertEquals(y);
     // we can safely divide by l here because the Dex contract logic wouldn't allow burnLiquidity if not l>0
     let dy = y.mul(dl).div(l);
-    this.send({ to: user, amount: dy });
+    // just subtract the balance, user gets their part one level higher
+    this.balance.subInPlace(dy);
 
-    // TODO: something's still off here
-    // this has to be a delegate call, to make it authorizable by the token owner
-    this.self.isDelegateCall = Bool(true);
+    // this can't be a delegate call, or it won't be authorized by the token owner
+    this.self.isDelegateCall = Bool(false);
 
     // return l, dy so callers don't have to walk their child account updates to get it
     return [l, dy];
@@ -215,17 +216,17 @@ class DexTokenHolder extends SmartContract {
     let result = dexY.redeemLiquidityPartial(user, dl);
     let l = result[0];
     let dy = result[1];
-    tokenY.authorizeUpdate(dexY.self);
+    tokenY.authorizeUpdateAndSend(dexY.self, user, dy);
 
     // in return for dl, we give back dx, the X token part
     let x = this.account.balance.get();
     this.account.balance.assertEquals(x);
     let dx = x.mul(dl).div(l);
-    this.send({ to: user, amount: dx });
+    // just subtract the balance, user gets their part one level higher
+    this.balance.subInPlace(dx);
 
-    // TODO: something's still off here
-    // this has to be a delegate call, to make it authorizable by the token owner
-    this.self.isDelegateCall = Bool(true);
+    // this can't be a delegate call, or it won't be authorized by the token owner
+    this.self.isDelegateCall = Bool(false);
 
     return [dx, dy];
   }
@@ -318,6 +319,29 @@ class TokenContract extends SmartContract {
     // walk account updates to see if balances for this token cancel
     let balance = balanceSum(zkappUpdate, this.experimental.token.id);
     balance.assertEquals(Int64.zero);
+  }
+
+  // let a zkapp send tokens to someone, provided the token supply stays constant
+  @method authorizeUpdateAndSend(
+    zkappUpdate: AccountUpdate,
+    to: PublicKey,
+    amount: UInt64
+  ) {
+    // adopt this account update as a child, allowing a certain layout for its own children
+    // we allow 10 child account updates, in a left-biased tree of width 3
+    let { NoChildren, StaticChildren } = AccountUpdate.Layout;
+    let layout = StaticChildren(
+      StaticChildren(StaticChildren(3), NoChildren, NoChildren),
+      NoChildren,
+      NoChildren
+    );
+    this.experimental.authorize(zkappUpdate, layout);
+
+    // walk account updates to see if balances cancel the amount sent
+    let balance = balanceSum(zkappUpdate, this.experimental.token.id);
+    balance.assertEquals(Int64.from(amount).neg());
+    // add same amount of tokens to the receiving address
+    this.experimental.token.mint({ address: to, amount });
   }
 
   @method transfer(from: PublicKey, to: PublicKey, value: UInt64) {
