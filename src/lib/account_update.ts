@@ -1209,7 +1209,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * ```ts
    * let { NoChildren, AnyChildren, StaticChildren } = AccounUpdate.Layout;
    *
-   * NoChildren                 // an account updates with no children
+   * NoChildren                 // an account update with no children
    * AnyChildren                // an account update with arbitrary children
    * StaticChildren(NoChildren) // an account update with 1 child, which doesn't have children itself
    * StaticChildren(1)          // shortcut for StaticChildren(NoChildren)
@@ -1287,6 +1287,9 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     if (body.update?.permissions) {
       body.update.permissions = JSON.stringify(body.update.permissions) as any;
+    }
+    if (body.update?.appState) {
+      body.update.appState = JSON.stringify(body.update.appState) as any;
     }
     if (
       jsonUpdate.authorization !== undefined ||
