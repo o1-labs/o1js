@@ -151,11 +151,10 @@ tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
 });
 
 console.log('boom');
-console.log(tx.toPretty());
 await tx.prove();
-console.log('goes the dynamite');
-
 tx.sign([keys.user]);
+console.log(tx.toPretty());
+console.log('goes the dynamite');
 await tx.send();
 
 console.log(
