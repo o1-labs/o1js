@@ -757,7 +757,9 @@ function Struct<
      * @param aux the raw non-field element data
      */
     static fromFields(fields: Field[], aux: any[]) {
-      return new this(this.type.fromFields(fields, aux) as T);
+      let value = this.type.fromFields(fields, aux) as T;
+      let struct = Object.create(this.prototype);
+      return Object.assign(struct, value);
     }
   }
   return Struct_ as any;
