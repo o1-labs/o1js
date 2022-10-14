@@ -1459,6 +1459,12 @@ function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
     if (i !== undefined && i !== -1) {
       topLevelUpdates!.splice(i, 1);
     }
+  } else {
+    let siblings = child.parent.children.accountUpdates;
+    let i = siblings?.findIndex((update) => update.id === child.id);
+    if (i !== undefined && i !== -1) {
+      siblings!.splice(i, 1);
+    }
   }
   child.parent = parent;
 }
