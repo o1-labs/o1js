@@ -195,6 +195,10 @@ class DexTokenHolder extends SmartContract {
     let dy = y.mul(dl).div(l);
     this.send({ to: user, amount: dy });
 
+    // TODO: something's still off here
+    // this has to be a delegate call, to make it authoritable by the token owner
+    this.self.isDelegateCall = Bool(true);
+
     // return l, dy so callers don't have to walk their child account updates to get it
     return [l, dy];
   }
@@ -218,6 +222,10 @@ class DexTokenHolder extends SmartContract {
     this.account.balance.assertEquals(x);
     let dx = x.mul(dl).div(l);
     this.send({ to: user, amount: dx });
+
+    // TODO: something's still off here
+    // this has to be a delegate call, to make it authoritable by the token owner
+    this.self.isDelegateCall = Bool(true);
 
     return [dx, dy];
   }
