@@ -9,9 +9,9 @@ import {
 } from './dex.js';
 
 await isReady;
-let doProofs = true;
+let doProofs = false;
 
-let Local = Mina.LocalBlockchain();
+let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 let accountFee = Mina.accountCreationFee();
 
@@ -31,7 +31,7 @@ TokenContract.analyzeMethods();
 DexTokenHolder.analyzeMethods();
 Dex.analyzeMethods();
 
-if (doProofs) {
+if (true) {
   // compile & deploy all 5 zkApps
   console.log('compile (token)...');
   await TokenContract.compile();
@@ -82,7 +82,7 @@ await tx.prove();
 tx.sign([keys.dex]);
 await tx.send();
 
-console.log('transfer to a user');
+console.log('transfer tokens to user');
 tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
   AccountUpdate.createSigned(feePayerKey).balance.subInPlace(
     Mina.accountCreationFee().mul(2)
@@ -104,6 +104,7 @@ console.log(
 
 console.log('user supply liquidity -- base');
 tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
+  // needed because the user account for the liquidity token is created
   AccountUpdate.createSigned(feePayerKey).balance.subInPlace(
     Mina.accountCreationFee().mul(1)
   );
@@ -111,7 +112,7 @@ tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
 });
 
 await tx.prove();
-tx.sign([keys.dex, keys.user, keys.tokenX]);
+tx.sign([keys.user]);
 await tx.send();
 
 console.log(
@@ -130,19 +131,13 @@ tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
 });
 
 await tx.prove();
-tx.sign([keys.dex, keys.user, keys.tokenX]);
+tx.sign([keys.user]);
 await tx.send();
 
 console.log(
   'DEX liquidity (X, Y): ',
   Mina.getBalance(addresses.dex, tokenIds.X).value.toBigInt(),
   Mina.getBalance(addresses.dex, tokenIds.Y).value.toBigInt()
-);
-
-console.log(
-  'DEBUG DEX tokenholder liquidity (X, Y): ',
-  Mina.getBalance(dexX.address, tokenIds.X).value.toBigInt(),
-  Mina.getBalance(dexY.address, tokenIds.Y).value.toBigInt()
 );
 
 console.log(
@@ -160,7 +155,7 @@ console.log(tx.toPretty());
 await tx.prove();
 console.log('goes the dynamite');
 
-tx.sign([keys.dex, keys.user, keys.tokenX]);
+tx.sign([keys.user]);
 await tx.send();
 
 console.log(
