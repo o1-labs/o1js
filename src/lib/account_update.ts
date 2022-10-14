@@ -1627,14 +1627,14 @@ async function addMissingProofs(
   async function addProof(index: number, accountUpdate: AccountUpdate) {
     accountUpdate = AccountUpdate.clone(accountUpdate);
 
-    if (!proofsEnabled) {
-      Authorization.setProof(accountUpdate, Pickles.dummyBase64Proof());
+    if (accountUpdate.lazyAuthorization?.kind !== 'lazy-proof') {
       return {
         accountUpdateProved: accountUpdate as AccountUpdateProved,
         proof: undefined,
       };
     }
-    if (accountUpdate.lazyAuthorization?.kind !== 'lazy-proof') {
+    if (!proofsEnabled) {
+      Authorization.setProof(accountUpdate, Pickles.dummyBase64Proof());
       return {
         accountUpdateProved: accountUpdate as AccountUpdateProved,
         proof: undefined,
