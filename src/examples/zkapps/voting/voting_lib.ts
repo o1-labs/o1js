@@ -80,7 +80,8 @@ export async function assertValidTx(
   let err;
   try {
     let tx = await Mina.transaction(feePayer, cb);
-    tx.send();
+    await tx.prove();
+    await tx.send();
   } catch (e: any) {
     failed = true;
     err = e;

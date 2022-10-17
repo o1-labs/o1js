@@ -82,7 +82,7 @@ export async function deployContracts(
         Experimental.Reducer.initialActionsHash
       );
     });
-    tx.send();
+    await tx.send();
   } catch (err: any) {
     throw Error(err);
   }
@@ -154,7 +154,7 @@ export async function deployInvalidContracts(
 
       voterContract = invalidVoterContract as Membership_;
     });
-    tx.send();
+    await tx.send();
   } catch (err: any) {
     throw Error(err);
   }
