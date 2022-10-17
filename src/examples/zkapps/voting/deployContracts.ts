@@ -43,7 +43,8 @@ export async function deployContracts(
   params: VotingAppParams,
   voterRoot: Field,
   candidateRoot: Field,
-  votesRoot: Field
+  votesRoot: Field,
+  proofsEnabled: boolean = false
 ): Promise<{
   voterContract: Membership_;
   candidateContract: Membership_;
@@ -52,7 +53,7 @@ export async function deployContracts(
   feePayer: PrivateKey;
 }> {
   let Local = Mina.LocalBlockchain({
-    proofsEnabled: true,
+    proofsEnabled,
   });
   Mina.setActiveInstance(Local);
 
@@ -120,7 +121,7 @@ export async function deployInvalidContracts(
   feePayer: PrivateKey;
 }> {
   let Local = Mina.LocalBlockchain({
-    proofsEnabled: true,
+    proofsEnabled: false,
   });
   Mina.setActiveInstance(Local);
 

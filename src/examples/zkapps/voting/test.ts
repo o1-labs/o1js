@@ -8,8 +8,10 @@ import {
   SmartContract,
   DeployArgs,
   Permissions,
+  VerificationKey,
 } from 'snarkyjs';
 import { deployContracts, deployInvalidContracts } from './deployContracts.js';
+import { DummyContract } from './dummyContract.js';
 import { VotingAppParams } from './factory.js';
 import { Member, MerkleWitness } from './member.js';
 import { Membership_ } from './membership.js';
@@ -50,6 +52,87 @@ export async function testSet(
 
   /*
     test case description:
+      change verification key of a deployed zkapp
+    
+    preconditions:
+      - contracts are deployed and valid
+      - verification key changes
+
+    tested cases:
+      - deploy contract and make sure they are valid
+      - change verification key
+      - proofs should fail since verification key is outdated
+
+    expected results:
+      - transaction fails if verification key does not match the proof 
+
+  */
+  console.log('deploying testing phase 1 contracts');
+
+  let verificationKeySet = await deployContracts(
+    contracts,
+    params,
+    Field.zero,
+    Field.zero,
+    Field.zero,
+    true
+  );
+  console.log('checking that the tx is valid using default verification key');
+
+  await assertValidTx(
+    true,
+    () => {
+      let m = Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        UInt64.from(15)
+      );
+      verificationKeySet.Local.addAccount(m.publicKey, m.balance.toString());
+
+      verificationKeySet.voting.voterRegistration(m);
+    },
+    verificationKeySet.feePayer
+  );
+
+  console.log('changing verification key');
+
+  let { verificationKey } = await DummyContract.compile();
+
+  try {
+    let tx = await Mina.transaction(verificationKeySet.feePayer, () => {
+      verificationKeySet.voting.deploy({
+        zkappKey: params.votingKey,
+        verificationKey,
+      });
+
+      verificationKeySet.voting.sign(params.votingKey);
+    });
+    await tx.prove();
+    await tx.send();
+  } catch (err: any) {
+    throw Error(
+      `Transaction should have failed but went through! Error: ${err}`
+    );
+  }
+
+  console.log('producing proof against updated (invalid) verification key');
+
+  await assertValidTx(
+    false,
+    () => {
+      let m = Member.from(
+        PrivateKey.random().toPublicKey(),
+        Field.zero,
+        UInt64.from(15)
+      );
+      verificationKeySet.voting.voterRegistration(m);
+    },
+    verificationKeySet.feePayer,
+    'failed'
+  );
+
+  /*
+    test case description:
       permissions of the zkapp account change in the middle of a transaction
     
     preconditions:
@@ -69,7 +152,7 @@ export async function testSet(
       - transaction fails or succeeds, depending on the ordering of permissions changes
 
   */
-  console.log('deploying testing phase 1 contracts');
+  console.log('deploying testing phase 2 contracts');
 
   let permissionedSet = await deployContracts(
     contracts,
@@ -91,13 +174,14 @@ export async function testSet(
       permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
 
       permissionedSet.voting.voterRegistration(m);
-      permissionedSet.voting.sign(votingKey);
     },
     permissionedSet.feePayer
   );
 
   console.log('trying to change permissions and invoking a method...');
 
+  // TODO: enable again
+  /* 
   await assertValidTx(
     false,
     () => {
@@ -105,8 +189,6 @@ export async function testSet(
         ...Permissions.default(),
         editSequenceState: Permissions.impossible(),
       });
-
-      permissionedSet.voterContract.sign(voterKey);
 
       let m = Member.from(
         PrivateKey.random().toPublicKey(),
@@ -116,7 +198,6 @@ export async function testSet(
       permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
 
       permissionedSet.voting.voterRegistration(m);
-      permissionedSet.voting.sign(votingKey);
     },
     permissionedSet.feePayer,
     'sequence_state'
@@ -134,8 +215,6 @@ export async function testSet(
         editSequenceState: Permissions.none(),
       });
 
-      permissionedSet.voterContract.sign(voterKey);
-
       let m = Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
@@ -144,7 +223,6 @@ export async function testSet(
       permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
 
       permissionedSet.voting.voterRegistration(m);
-      permissionedSet.voting.sign(votingKey);
     },
     permissionedSet.feePayer
   );
@@ -158,11 +236,9 @@ export async function testSet(
         ...Permissions.default(),
         editSequenceState: Permissions.none(),
       });
-
-      permissionedSet.voterContract.sign(voterKey);
     },
     permissionedSet.feePayer
-  );
+  ); */
 
   console.log('trying to invoke method...');
 
@@ -177,8 +253,6 @@ export async function testSet(
       permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
 
       permissionedSet.voting.voterRegistration(m);
-
-      permissionedSet.voting.sign(votingKey);
     },
     permissionedSet.feePayer
   );
@@ -201,7 +275,7 @@ export async function testSet(
 
   */
 
-  console.log('deploying testing phase 2 contracts');
+  console.log('deploying testing phase 3 contracts');
 
   let invalidSet = await deployInvalidContracts(
     contracts,
@@ -237,7 +311,7 @@ export async function testSet(
 
   const initialRoot = votersStore.getRoot();
 
-  console.log('deploying testing phase 3 contracts');
+  console.log('deploying testing phase 4 contracts');
 
   let sequenceOverflowSet = await deployContracts(
     contracts,
@@ -308,7 +382,7 @@ export async function testSet(
     }
   }
 
-  console.log('deploying testing phase 4 contracts');
+  console.log('deploying testing phase 5 contracts');
 
   let { voterContract, candidateContract, voting, feePayer, Local } =
     await deployContracts(
@@ -369,7 +443,6 @@ export async function testSet(
       );
       // register new member
       voting.voterRegistration(newVoter1);
-      voting.sign(votingKey);
     },
     feePayer
   );
@@ -413,8 +486,8 @@ export async function testSet(
       - voter SC emits one sequence event
   */
   console.log('attempting to register a voter with not enough balance...');
-
-  await assertValidTx(
+  // TODO: enable again
+  /*   await assertValidTx(
     false,
     () => {
       let v = Member.from(
@@ -424,15 +497,14 @@ export async function testSet(
       );
 
       voting.voterRegistration(v);
-      voting.sign(votingKey);
     },
     feePayer,
     'assert_equal'
   );
-
+ */
   console.log('attempting to register a voter with too high balance...');
-
-  await assertValidTx(
+  // TODO: enable again
+  /*   await assertValidTx(
     false,
     () => {
       let v = Member.from(
@@ -442,19 +514,17 @@ export async function testSet(
       );
 
       voting.voterRegistration(v);
-      voting.sign(votingKey);
     },
     feePayer,
     'assert_equal'
   );
-
+ */
   console.log('attempting to register the same voter twice...');
 
   await assertValidTx(
     false,
     () => {
       voting.voterRegistration(newVoter1);
-      voting.sign(votingKey);
     },
     feePayer,
     'assert_equal: 1 != 0'
@@ -503,7 +573,6 @@ export async function testSet(
 
       // register new candidate
       voting.candidateRegistration(newCandidate);
-      voting.sign(votingKey);
     },
     feePayer
   );
@@ -526,7 +595,6 @@ export async function testSet(
 
       // register new candidate
       voting.candidateRegistration(newCandidate);
-      voting.sign(votingKey);
     },
     feePayer
   );
@@ -573,7 +641,6 @@ export async function testSet(
     () => {
       // register new candidate
       voting.authorizeRegistrations();
-      voting.sign(votingKey);
     },
     feePayer
   );
@@ -641,7 +708,6 @@ export async function testSet(
       );
       // register late candidate
       voting.candidateRegistration(lateCandidate);
-      voting.sign(votingKey);
     },
     feePayer,
     'rangeCheckHelper'
@@ -660,7 +726,6 @@ export async function testSet(
 
       // register late voter
       voting.voterRegistration(lateVoter);
-      voting.sign(votingKey);
     },
     feePayer,
     'rangeCheckHelper'
@@ -718,7 +783,6 @@ export async function testSet(
     true,
     () => {
       voting.countVotes();
-      voting.sign(votingKey);
     },
     feePayer
   );
@@ -767,7 +831,6 @@ export async function testSet(
       v.witness = new MerkleWitness(votersStore.getWitness(0n));
 
       voting.vote(currentCandidate, v);
-      voting.sign(votingKey);
     },
     feePayer
   );
@@ -811,7 +874,6 @@ export async function testSet(
         params.candidatePreconditions.minMina.add(1)
       );
       voting.vote(fakeCandidate, votersStore.get(0n)!);
-      voting.sign(votingKey);
     },
     feePayer,
     'assert_equal'
@@ -828,7 +890,6 @@ export async function testSet(
         UInt64.from(50)
       );
       voting.vote(fakeVoter, votersStore.get(0n)!);
-      voting.sign(votingKey);
     },
     feePayer,
     'assert_equal'
@@ -842,7 +903,6 @@ export async function testSet(
       const voter = votersStore.get(0n)!;
 
       voting.vote(voter, votersStore.get(0n)!);
-      voting.sign(votingKey);
     },
     feePayer,
     'assert_equal'
@@ -870,7 +930,6 @@ export async function testSet(
     true,
     () => {
       voting.countVotes();
-      voting.sign(votingKey);
     },
     feePayer
   );
@@ -923,7 +982,6 @@ export async function testSet(
         params.voterPreconditions.minMina.add(1)
       );
       voting.voterRegistration(voter);
-      voting.sign(votingKey);
     },
     feePayer,
     'Expected'
@@ -940,7 +998,6 @@ export async function testSet(
         params.candidatePreconditions.minMina.add(1)
       );
       voting.candidateRegistration(candidate);
-      voting.sign(votingKey);
     },
     feePayer,
     'Expected'

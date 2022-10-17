@@ -111,6 +111,7 @@ export class Voting_ extends SmartContract {
 
     // can only register voters if their balance is gte the minimum amount required
     // this snippet pulls the account data of an address from the network
+    // TODO: enable fetching account data once we figured out why it fails
 
     /*     let accountUpdate = Experimental.createChildAccountUpdate(
       this.self,
@@ -152,6 +153,9 @@ export class Voting_ extends SmartContract {
     // can only register candidates if their balance is gte the minimum amount required
     // and lte the maximum amount
     // this snippet pulls the account data of an address from the network
+
+    // TODO: enable fetching account data once we figured out why it fails
+
     /*     let accountUpdate = Experimental.createChildAccountUpdate(
       this.self,
       member.publicKey
