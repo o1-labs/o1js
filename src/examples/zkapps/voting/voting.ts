@@ -110,19 +110,21 @@ export class Voting_ extends SmartContract {
 
     // can only register voters if their balance is gte the minimum amount required
     // this snippet pulls the account data of an address from the network
-    let accountUpdate = Experimental.createChildAccountUpdate(
+
+    /*     let accountUpdate = Experimental.createChildAccountUpdate(
       this.self,
       member.publicKey
     );
+
     accountUpdate.account.balance.assertEquals(
       accountUpdate.account.balance.get()
-    );
-    let balance = accountUpdate.account.balance.get();
+    ); */
 
+    /*     let balance = accountUpdate.account.balance.get();
     balance
       .gte(voterPreconditions.minMina)
       .and(balance.lte(voterPreconditions.maxMina))
-      .assertTrue();
+      .assertTrue(); */
 
     let VoterContract: Membership_ = new Membership_(voterAddress);
     let exists = VoterContract.addEntry(member);
@@ -149,19 +151,19 @@ export class Voting_ extends SmartContract {
     // can only register candidates if their balance is gte the minimum amount required
     // and lte the maximum amount
     // this snippet pulls the account data of an address from the network
-    let accountUpdate = Experimental.createChildAccountUpdate(
+    /*     let accountUpdate = Experimental.createChildAccountUpdate(
       this.self,
       member.publicKey
     );
     accountUpdate.account.balance.assertEquals(
       accountUpdate.account.balance.get()
-    );
-    let balance = accountUpdate.account.balance.get();
+    ); */
 
+    /*     let balance = accountUpdate.account.balance.get();
     balance
       .gte(candidatePreconditions.minMina)
       .and(balance.lte(candidatePreconditions.maxMina))
-      .assertTrue();
+      .assertTrue(); */
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
     let exists = CandidateContract.addEntry(member);
@@ -194,14 +196,14 @@ export class Voting_ extends SmartContract {
    */
   @method
   vote(candidate: Member, voter: Member) {
-    let currentSlot = this.network.globalSlotSinceGenesis.get();
+    /*     let currentSlot = this.network.globalSlotSinceGenesis.get();
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
     // we can only vote in the election period time frame
     currentSlot
       .gte(electionPreconditions.startElection)
       .and(currentSlot.lte(electionPreconditions.endElection))
-      .assertTrue();
+      .assertTrue(); */
 
     // verifying that both the voter and the candidate are actually part of our member set
     // ideally we would also verify a signature here, but ignoring that for now
