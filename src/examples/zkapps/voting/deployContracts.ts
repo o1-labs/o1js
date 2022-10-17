@@ -51,7 +51,9 @@ export async function deployContracts(
   Local: any;
   feePayer: PrivateKey;
 }> {
-  let Local = Mina.LocalBlockchain();
+  let Local = Mina.LocalBlockchain({
+    proofsEnabled: true,
+  });
   Mina.setActiveInstance(Local);
 
   let feePayer = Local.testAccounts[0].privateKey;
@@ -117,7 +119,9 @@ export async function deployInvalidContracts(
   Local: any;
   feePayer: PrivateKey;
 }> {
-  let Local = Mina.LocalBlockchain();
+  let Local = Mina.LocalBlockchain({
+    proofsEnabled: true,
+  });
   Mina.setActiveInstance(Local);
 
   let feePayer = Local.testAccounts[0].privateKey;

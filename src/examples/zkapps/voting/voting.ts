@@ -92,6 +92,7 @@ export class Voting_ extends SmartContract {
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
       editSequenceState: Permissions.proofOrSignature(),
+      incrementNonce: Permissions.proofOrSignature(),
     });
     this.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
   }

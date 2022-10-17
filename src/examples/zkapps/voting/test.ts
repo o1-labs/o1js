@@ -223,11 +223,10 @@ export async function testSet(
       invalidSet.Local.addAccount(m.publicKey, m.balance.toString());
 
       invalidSet.voting.voterRegistration(m);
-
-      invalidSet.voting.sign(votingKey);
     });
 
-    tx.send();
+    await tx.prove();
+    await tx.send();
   } catch (err: any) {
     if (!err.toString().includes('precondition_unsatisfied')) {
       throw Error(
@@ -279,10 +278,9 @@ export async function testSet(
         sequenceOverflowSet.Local.addAccount(m.publicKey, m.balance.toString());
 
         sequenceOverflowSet.voting.voterRegistration(m);
-
-        sequenceOverflowSet.voting.sign(votingKey);
       });
-      tx.send();
+      await tx.prove();
+      await tx.send();
     } catch (error) {
       throw new Error('Transaction failed!');
     }
@@ -299,9 +297,9 @@ export async function testSet(
   try {
     let tx = await Mina.transaction(sequenceOverflowSet.feePayer, () => {
       sequenceOverflowSet.voting.authorizeRegistrations();
-      sequenceOverflowSet.voting.sign(votingKey);
     });
-    tx.send();
+    await tx.prove();
+    await tx.send();
   } catch (err: any) {
     if (!err.toString().includes('the maximum number of lists of actions')) {
       throw Error(
