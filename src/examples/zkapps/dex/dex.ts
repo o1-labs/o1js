@@ -310,8 +310,10 @@ class TokenContract extends SmartContract {
     // we allow 10 child account updates, in a left-biased tree of width 3
     let { NoChildren, StaticChildren } = AccountUpdate.Layout;
     let layout = StaticChildren(
-      StaticChildren(StaticChildren(3), NoChildren, NoChildren),
-      NoChildren,
+      StaticChildren(
+        StaticChildren(StaticChildren(NoChildren), NoChildren),
+        NoChildren
+      ),
       NoChildren
     );
     this.experimental.authorize(zkappUpdate, layout);
@@ -331,8 +333,10 @@ class TokenContract extends SmartContract {
     // we allow 10 child account updates, in a left-biased tree of width 3
     let { NoChildren, StaticChildren } = AccountUpdate.Layout;
     let layout = StaticChildren(
-      StaticChildren(StaticChildren(3), NoChildren, NoChildren),
-      NoChildren,
+      StaticChildren(
+        StaticChildren(StaticChildren(NoChildren), NoChildren),
+        NoChildren
+      ),
       NoChildren
     );
     this.experimental.authorize(zkappUpdate, layout);

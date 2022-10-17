@@ -31,20 +31,17 @@ TokenContract.analyzeMethods();
 DexTokenHolder.analyzeMethods();
 Dex.analyzeMethods();
 
-if (true) {
-  // compile & deploy all 5 zkApps
-  console.log('compile (token)...');
-  await TokenContract.compile();
-  console.log('compile (dex token holder)...');
-  await DexTokenHolder.compile();
-  console.log('compile (dex main contract)...');
-  await Dex.compile();
-}
+// compile & deploy all 5 zkApps
+console.log('compile (token)...');
+await TokenContract.compile();
+console.log('compile (dex token holder)...');
+await DexTokenHolder.compile();
+console.log('compile (dex main contract)...');
+await Dex.compile();
+
 let tokenX = new TokenContract(addresses.tokenX);
 let tokenY = new TokenContract(addresses.tokenY);
 let dex = new Dex(addresses.dex);
-let dexX = new DexTokenHolder(addresses.dex, tokenIds.X);
-let dexY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
 console.log('deploy & init token contracts...');
 tx = await Mina.transaction({ feePayerKey }, () => {
@@ -146,9 +143,11 @@ console.log(
 );
 
 console.log('user redeem liquidity');
+Local.setProofsEnabled(true);
 tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
   dex.redeemLiquidity(addresses.user, UInt64.from(100));
 });
+console.log(tx.toPretty());
 
 await tx.prove();
 tx.sign([keys.user]);
