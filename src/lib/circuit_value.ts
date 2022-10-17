@@ -928,7 +928,7 @@ Circuit.witness = function <T, S extends Provable<T> = Provable<T>>(
   compute: () => T
 ) {
   let proverValue: T | undefined;
-  let fields = Circuit._witness(type, () => {
+  let createFields = () => {
     proverValue = compute();
     let fields = type.toFields(proverValue);
     // TODO: enable this check
@@ -941,7 +941,17 @@ Circuit.witness = function <T, S extends Provable<T> = Provable<T>>(
     //   );
     // }
     return fields;
-  });
+  };
+
+  let fields = inCheckedComputation()
+    ? snarkContext.runWith(
+        {
+          proverData: snarkContext()?.proverData,
+          witnesses: snarkContext()?.witnesses,
+        },
+        () => Circuit._witness(type, createFields)
+      )[1]
+    : createFields();
   let aux = type.toAuxiliary(proverValue);
   let value = type.fromFields(fields, aux);
   type.check(value);
