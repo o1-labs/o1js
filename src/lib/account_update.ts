@@ -824,6 +824,9 @@ class AccountUpdate implements Types.AccountUpdate {
     this.isDelegateCall = Bool(false);
     if (layout !== undefined) {
       AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
+    } else {
+      // if there is no explicit child layout, then we don't allow the child to delegate our authority to their children
+      childUpdate.isDelegateCall.assertFalse();
     }
   }
 
@@ -1342,7 +1345,7 @@ const CallForest = {
       return witness(Field, () => CallForest.hashChildrenBase(update));
     }
     let calls = CallForest.hashChildrenBase(update);
-    if (callsType.type === 'Equals') {
+    if (callsType.type === 'Equals' && inCheckedComputation()) {
       calls.assertEquals(callsType.value);
     }
     return calls;
