@@ -118,7 +118,7 @@ export async function testSet(
   console.log('producing proof against updated (invalid) verification key');
 
   await assertValidTx(
-    false,
+    true,
     () => {
       let m = Member.from(
         PrivateKey.random().toPublicKey(),
