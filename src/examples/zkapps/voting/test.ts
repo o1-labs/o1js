@@ -200,37 +200,6 @@ export async function testSet(
     permissionedSet.feePayer,
     'sequence_state'
   );
-  /* 
-  console.log('changing permissions back to default');
-
-  await assertValidTx(
-    true,
-    () => {
-      permissionedSet.voterContract.setPermissions({
-        ...Permissions.default(),
-        setPermissions: Permissions.none(),
-        editSequenceState: Permissions.none(),
-      });
-    },
-    permissionedSet.feePayer
-  );
-
-  console.log('trying to invoke method...');
-
-  await assertValidTx(
-    true,
-    () => {
-      let m = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field.zero,
-        UInt64.from(15)
-      );
-      permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
-
-      permissionedSet.voting.voterRegistration(m);
-    },
-    permissionedSet.feePayer
-  ); */
 
   /*
     test case description:
