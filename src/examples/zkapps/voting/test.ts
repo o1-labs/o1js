@@ -179,13 +179,12 @@ export async function testSet(
 
   console.log('trying to change permissions and invoking a method...');
 
-  // TODO: enable again
-  /* 
   await assertValidTx(
     false,
     () => {
       permissionedSet.voterContract.setPermissions({
         ...Permissions.default(),
+        setPermissions: Permissions.none(),
         editSequenceState: Permissions.impossible(),
       });
 
@@ -201,31 +200,7 @@ export async function testSet(
     permissionedSet.feePayer,
     'sequence_state'
   );
-
-  console.log(
-    'trying to change permissions back to default and invoking a method...'
-  );
-
-  await assertValidTx(
-    true,
-    () => {
-      permissionedSet.voterContract.setPermissions({
-        ...Permissions.default(),
-        editSequenceState: Permissions.none(),
-      });
-
-      let m = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field.zero,
-        UInt64.from(15)
-      );
-      permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
-
-      permissionedSet.voting.voterRegistration(m);
-    },
-    permissionedSet.feePayer
-  );
-
+  /* 
   console.log('changing permissions back to default');
 
   await assertValidTx(
@@ -233,11 +208,12 @@ export async function testSet(
     () => {
       permissionedSet.voterContract.setPermissions({
         ...Permissions.default(),
+        setPermissions: Permissions.none(),
         editSequenceState: Permissions.none(),
       });
     },
     permissionedSet.feePayer
-  ); */
+  );
 
   console.log('trying to invoke method...');
 
@@ -254,7 +230,7 @@ export async function testSet(
       permissionedSet.voting.voterRegistration(m);
     },
     permissionedSet.feePayer
-  );
+  ); */
 
   /*
     test case description:
@@ -485,8 +461,7 @@ export async function testSet(
       - voter SC emits one sequence event
   */
   console.log('attempting to register a voter with not enough balance...');
-  // TODO: enable again
-  /*   await assertValidTx(
+  await assertValidTx(
     false,
     () => {
       let v = Member.from(
@@ -500,10 +475,9 @@ export async function testSet(
     feePayer,
     'assert_equal'
   );
- */
+
   console.log('attempting to register a voter with too high balance...');
-  // TODO: enable again
-  /*   await assertValidTx(
+  await assertValidTx(
     false,
     () => {
       let v = Member.from(
@@ -517,7 +491,7 @@ export async function testSet(
     feePayer,
     'assert_equal'
   );
- */
+
   console.log('attempting to register the same voter twice...');
 
   await assertValidTx(
