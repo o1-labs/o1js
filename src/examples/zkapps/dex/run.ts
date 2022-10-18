@@ -1,4 +1,11 @@
-import { isReady, Mina, AccountUpdate, UInt64, shutdown } from 'snarkyjs';
+import {
+  isReady,
+  Mina,
+  AccountUpdate,
+  UInt64,
+  shutdown,
+  Token,
+} from 'snarkyjs';
 import {
   Dex,
   DexTokenHolder,
@@ -24,6 +31,9 @@ console.log('TOKEN X ADDRESS\t', addresses.tokenX.toBase58());
 console.log('TOKEN Y ADDRESS\t', addresses.tokenY.toBase58());
 console.log('DEX ADDRESS\t', addresses.dex.toBase58());
 console.log('USER ADDRESS\t', addresses.user.toBase58());
+console.log('-------------------------------------------------');
+console.log('TOKEN X ID\t', Token.Id.toBase58(tokenIds.X));
+console.log('TOKEN Y ID\t', Token.Id.toBase58(tokenIds.Y));
 console.log('-------------------------------------------------');
 
 // analyze methods for quick error feedback
@@ -143,15 +153,11 @@ console.log(
 );
 
 console.log('user redeem liquidity');
-Local.setProofsEnabled(true);
 tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
   dex.redeemLiquidity(addresses.user, UInt64.from(100));
 });
-console.log(tx.toPretty());
-
 await tx.prove();
 tx.sign([keys.user]);
-console.log(tx.toPretty());
 await tx.send();
 
 console.log(
@@ -163,6 +169,28 @@ console.log(
 console.log(
   'user DEX tokens: ',
   Mina.getBalance(addresses.user, tokenIds.lqXY).value.toBigInt()
+);
+console.log(
+  'User tokens X: ',
+  Mina.getBalance(addresses.user, tokenIds.X).value.toBigInt(),
+  '\nUser tokens Y: ',
+  Mina.getBalance(addresses.user, tokenIds.Y).value.toBigInt()
+);
+
+console.log('swap 10 X for Y');
+tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
+  dex.swapX(addresses.user, UInt64.from(10));
+});
+await tx.prove();
+tx.sign([keys.user]);
+console.log(tx.toPretty());
+await tx.send();
+
+console.log(
+  'User tokens X: ',
+  Mina.getBalance(addresses.user, tokenIds.X).value.toBigInt(),
+  '\nUser tokens Y: ',
+  Mina.getBalance(addresses.user, tokenIds.Y).value.toBigInt()
 );
 
 shutdown();

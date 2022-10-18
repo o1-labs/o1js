@@ -138,7 +138,7 @@ class Dex extends SmartContract {
     let tokenY = new TokenContract(this.tokenY);
     let dexY = new DexTokenHolder(this.address, tokenY.experimental.token.id);
     let dy = dexY.swap(user, dx, this.tokenX);
-    tokenY.authorizeUpdate(dexY.self);
+    tokenY.authorizeUpdateAndSend(dexY.self, user, dy);
     return dy;
   }
 
@@ -154,7 +154,7 @@ class Dex extends SmartContract {
     let tokenX = new TokenContract(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
     let dx = dexX.swap(user, dy, this.tokenY);
-    tokenX.authorizeUpdate(dexX.self);
+    tokenX.authorizeUpdateAndSend(dexX.self, user, dx);
     return dx;
   }
 
@@ -241,19 +241,17 @@ class DexTokenHolder extends SmartContract {
     let dx = otherTokenAmount;
     let tokenX = new TokenContract(otherTokenAddress);
     // send x from user to us (i.e., to the same address as this but with the other token)
-    let dexX = tokenX.experimental.token.send({
-      from: user,
-      to: this.address,
-      amount: dx,
-    });
+    tokenX.transfer(user, this.address, dx);
     // get balances
-    let x = dexX.account.balance.get();
-    dexX.account.balance.assertEquals(x);
+    let x = tokenX.getBalance(this.address);
     let y = this.account.balance.get();
     this.account.balance.assertEquals(y);
     // compute and send dy
     let dy = y.mul(dx).div(x.add(dx));
-    this.send({ to: user, amount: dy });
+    // just subtract dy balance and let adding balance be handled one level higher
+    this.balance.subInPlace(dy);
+    // not be a delegate call
+    this.self.isDelegateCall = Bool(false);
     return dy;
   }
 }
@@ -269,7 +267,8 @@ class TokenContract extends SmartContract {
     super.deploy(args);
     this.setPermissions({
       ...Permissions.default(),
-      send: Permissions.proofOrSignature(),
+      send: Permissions.proof(),
+      receive: Permissions.proof(),
     });
   }
   @method init() {
@@ -299,15 +298,6 @@ class TokenContract extends SmartContract {
     zkapp.sign();
   }
 
-  // let a zkapp do whatever it wants, as long as the token supply stays constant
-  @method authorizeUpdate(zkappUpdate: AccountUpdate) {
-    this.experimental.authorize(zkappUpdate);
-
-    // walk account updates to see if balances for this token cancel
-    let balance = balanceSum(zkappUpdate, this.experimental.token.id);
-    balance.assertEquals(Int64.zero);
-  }
-
   // let a zkapp send tokens to someone, provided the token supply stays constant
   @method authorizeUpdateAndSend(
     zkappUpdate: AccountUpdate,
@@ -316,9 +306,9 @@ class TokenContract extends SmartContract {
   ) {
     this.experimental.authorize(zkappUpdate);
 
-    // walk account updates to see if balances cancel the amount sent
-    let balance = balanceSum(zkappUpdate, this.experimental.token.id);
-    balance.assertEquals(Int64.from(amount).neg());
+    // see if balance change cancels the amount sent
+    let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);
+    balanceChange.assertEquals(Int64.from(amount).neg());
     // add same amount of tokens to the receiving address
     this.experimental.token.mint({ address: to, amount });
   }
