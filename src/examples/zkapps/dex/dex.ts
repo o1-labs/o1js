@@ -289,11 +289,6 @@ class TokenContract extends SmartContract {
   // => need callbacks for signatures
   @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
     let tokenId = this.experimental.token.id;
-    // let zkapp = Experimental.createChildAccountUpdate(
-    //   this.self,
-    //   address,
-    //   tokenId
-    // );
     let zkapp = AccountUpdate.defaultAccountUpdate(address, tokenId);
     this.experimental.authorize(zkapp);
     AccountUpdate.setValue(zkapp.update.permissions, {
@@ -306,11 +301,7 @@ class TokenContract extends SmartContract {
 
   // let a zkapp do whatever it wants, as long as the token supply stays constant
   @method authorizeUpdate(zkappUpdate: AccountUpdate) {
-    // adopt this account update as a child, allowing a certain layout for its own children
-    // we allow 10 child account updates, in a left-biased tree of width 3
-    let { NoChildren, StaticChildren, AnyChildren } = AccountUpdate.Layout;
-    let layout = AnyChildren;
-    this.experimental.authorize(zkappUpdate, layout);
+    this.experimental.authorize(zkappUpdate);
 
     // walk account updates to see if balances for this token cancel
     let balance = balanceSum(zkappUpdate, this.experimental.token.id);
@@ -323,11 +314,7 @@ class TokenContract extends SmartContract {
     to: PublicKey,
     amount: UInt64
   ) {
-    // adopt this account update as a child, allowing a certain layout for its own children
-    // we allow 10 child account updates, in a left-biased tree of width 3
-    let { NoChildren, StaticChildren, AnyChildren } = AccountUpdate.Layout;
-    let layout = AnyChildren;
-    this.experimental.authorize(zkappUpdate, layout);
+    this.experimental.authorize(zkappUpdate);
 
     // walk account updates to see if balances cancel the amount sent
     let balance = balanceSum(zkappUpdate, this.experimental.token.id);

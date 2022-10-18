@@ -819,15 +819,13 @@ class AccountUpdate implements Types.AccountUpdate {
     ).add(amount);
   }
 
-  authorize(childUpdate: AccountUpdate, layout?: AccountUpdatesLayout) {
+  authorize(
+    childUpdate: AccountUpdate,
+    layout: AccountUpdatesLayout = AccountUpdate.Layout.NoDelegation
+  ) {
     makeChildAccountUpdate(this, childUpdate);
     this.isDelegateCall = Bool(false);
-    if (layout !== undefined) {
-      AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
-    } else {
-      // if there is no explicit child layout, then we don't allow the child to delegate our authority to their children
-      childUpdate.isDelegateCall.assertFalse();
-    }
+    AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
   }
 
   get balance() {
@@ -1152,6 +1150,11 @@ class AccountUpdate implements Types.AccountUpdate {
       accountUpdate.children.callsType = { type: 'Witness' };
       return;
     }
+    if (childLayout === AccountUpdate.Layout.NoDelegation) {
+      accountUpdate.children.callsType = { type: 'Witness' };
+      accountUpdate.isDelegateCall.assertFalse();
+      return;
+    }
     let childArray: AccountUpdatesLayout[] =
       typeof childLayout === 'number'
         ? Array(childLayout).fill(AccountUpdate.Layout.NoChildren)
@@ -1233,7 +1236,8 @@ class AccountUpdate implements Types.AccountUpdate {
       (...args: AccountUpdatesLayout[]): AccountUpdatesLayout;
     },
     NoChildren: 0,
-    AnyChildren: null,
+    AnyChildren: 'AnyChildren' as const,
+    NoDelegation: 'NoDelegation' as const,
   };
 
   toPretty() {
@@ -1309,7 +1313,11 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 }
 
-type AccountUpdatesLayout = number | null | AccountUpdatesLayout[];
+type AccountUpdatesLayout =
+  | number
+  | 'AnyChildren'
+  | 'NoDelegation'
+  | AccountUpdatesLayout[];
 
 const CallForest = {
   // similar to Mina_base.ZkappCommand.Call_forest.to_account_updates_list
@@ -1680,7 +1688,16 @@ async function addMissingProofs(
       () =>
         memoizationContext.runWithAsync(
           { memoized, currentIndex: 0, blindingValue },
-          () => provers[i](publicInputFields, previousProofs)
+          async () => {
+            try {
+              return await provers[i](publicInputFields, previousProofs);
+            } catch (err) {
+              console.error(
+                `Error when proving ${ZkappClass.name}.${methodName}()`
+              );
+              throw err;
+            }
+          }
         )
     );
     Authorization.setProof(
