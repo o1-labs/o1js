@@ -240,12 +240,12 @@ class DexTokenHolder extends SmartContract {
     // we're writing this as if our token == y and other token == x
     let dx = otherTokenAmount;
     let tokenX = new TokenContract(otherTokenAddress);
-    // send x from user to us (i.e., to the same address as this but with the other token)
-    tokenX.transfer(user, this.address, dx);
     // get balances
     let x = tokenX.getBalance(this.address);
     let y = this.account.balance.get();
     this.account.balance.assertEquals(y);
+    // send x from user to us (i.e., to the same address as this but with the other token)
+    tokenX.transfer(user, this.address, dx);
     // compute and send dy
     let dy = y.mul(dx).div(x.add(dx));
     // just subtract dy balance and let adding balance be handled one level higher
