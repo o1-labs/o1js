@@ -1629,7 +1629,7 @@ async function addMissingProofs(
   async function addProof(index: number, accountUpdate: AccountUpdate) {
     accountUpdate = AccountUpdate.clone(accountUpdate);
 
-    if (!proofsEnabled) {
+    if (!proofsEnabled && accountUpdate.lazyAuthorization) {
       Authorization.setProof(accountUpdate, Pickles.dummyBase64Proof());
       return {
         accountUpdateProved: accountUpdate as AccountUpdateProved,
