@@ -83,8 +83,7 @@ export class Membership_ extends SmartContract {
     // even tho voters cant have a maximum balance, only candidates
     // but for a voter we simply use UInt64.MAXINT() as the maximum
 
-    // TODO: enable fetching account data once we figured out why it fails
-    /*     let accountUpdate = Experimental.createChildAccountUpdate(
+    let accountUpdate = Experimental.createChildAccountUpdate(
       this.self,
       member.publicKey
     );
@@ -99,7 +98,6 @@ export class Membership_ extends SmartContract {
       .gte(participantPreconditions.minMina)
       .and(balance.lte(participantPreconditions.maxMina))
       .assertTrue();
- */
 
     let accumulatedMembers = this.accumulatedMembers.get();
     this.accumulatedMembers.assertEquals(accumulatedMembers);

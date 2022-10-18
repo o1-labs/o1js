@@ -75,7 +75,7 @@ export async function testSet(
     Field.zero,
     Field.zero,
     Field.zero,
-    true
+    false
   );
   console.log('checking that the tx is valid using default verification key');
 
@@ -100,25 +100,24 @@ export async function testSet(
 
   try {
     let tx = await Mina.transaction(verificationKeySet.feePayer, () => {
-      verificationKeySet.voting.deploy({
-        zkappKey: params.votingKey,
-        verificationKey,
-      });
-
-      verificationKeySet.voting.sign(params.votingKey);
+      let update = AccountUpdate.create(params.votingKey.toPublicKey());
+      update.update.verificationKey.value = {
+        ...verificationKey,
+        hash: Field.fromString(verificationKey.hash),
+      };
     });
     await tx.prove();
     await tx.send();
   } catch (err: any) {
-    throw Error(
-      `Transaction should have failed but went through! Error: ${err}`
-    );
+    throw Error(`Transaction failed! Error: ${err}`);
   }
 
-  console.log('producing proof against updated (invalid) verification key');
+  console.log(
+    'producing proof against updated (invalid) verification key - expecting to fail'
+  );
 
   await assertValidTx(
-    true,
+    false,
     () => {
       let m = Member.from(
         PrivateKey.random().toPublicKey(),
@@ -128,7 +127,7 @@ export async function testSet(
       verificationKeySet.voting.voterRegistration(m);
     },
     verificationKeySet.feePayer,
-    'failed'
+    'assert_equal'
   );
 
   /*
