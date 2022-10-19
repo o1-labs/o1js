@@ -54,8 +54,8 @@ let unimplementedPreconditions: LongKey[] = [
   'account.provedState',
 ];
 
-type BaseType = 'UInt64' | 'UInt32' | 'Field' | 'Bool';
-let baseMap = { UInt64, UInt32, Field, Bool };
+type BaseType = 'UInt64' | 'UInt32' | 'Field' | 'Bool' | 'PublicKey';
+let baseMap = { UInt64, UInt32, Field, Bool, PublicKey };
 
 function preconditionClass(
   layout: Layout,
@@ -126,6 +126,9 @@ function preconditionSubclass<
   fieldType: Provable<U>,
   context: PreconditionContext
 ) {
+  if (fieldType === undefined) {
+    throw Error(`this.${longKey}: fieldType undefined`);
+  }
   return {
     get() {
       if (unimplementedPreconditions.includes(longKey)) {
