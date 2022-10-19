@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - AccountUpdates are now valid `@method` arguments, and `authorize()` is intended to be used on them when passed to a method
   - Also replaces `Experimental.accountUpdateFromCallback()`
 - `Circuit.log()` to easily log Fields and other provable types inside a method, with the same API as `console.log()`
+- `AccountUpdate.attachToTransaction()` for explicitly adding an account update to the current transaction. This replaces some previous behaviour where an account update got attached implicitly.
 
 ### Changed
 
