@@ -1010,6 +1010,23 @@ Circuit.constraintSystem = function <T>(f: () => T) {
   return result;
 };
 
+Circuit.log = function (...args: any) {
+  Circuit.asProver(() => {
+    let prettyArgs = [];
+    for (let arg of args) {
+      if (arg?.toPretty !== undefined) prettyArgs.push(arg.toPretty());
+      else {
+        try {
+          prettyArgs.push(JSON.parse(JSON.stringify(arg)));
+        } catch {
+          prettyArgs.push(arg);
+        }
+      }
+    }
+    console.log(...prettyArgs);
+  });
+};
+
 function auxiliary<T>(type: Provable<T>, compute: () => any[]) {
   let aux;
   if (inCheckedComputation()) Circuit.asProver(() => (aux = compute()));
