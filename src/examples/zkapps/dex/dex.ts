@@ -331,17 +331,10 @@ class TokenContract extends SmartContract {
 }
 
 await isReady;
-let { keys, addresses } = randomAccounts(
-  'tokenX',
-  'tokenY',
-  'dex',
-  'user',
-  'tokenZ'
-);
+let { keys, addresses } = randomAccounts('tokenX', 'tokenY', 'dex', 'user');
 let tokenIds = {
   X: Token.getId(addresses.tokenX),
   Y: Token.getId(addresses.tokenY),
-  Z: Token.getId(addresses.tokenZ),
   lqXY: Token.getId(addresses.dex),
 };
 
