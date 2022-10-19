@@ -1030,7 +1030,11 @@ class AccountUpdate implements Types.AccountUpdate {
     if (smartContractContext.has()) {
       smartContractContext.get().this.self.authorize(accountUpdate);
     } else {
-      Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
+      if (!Mina.currentTransaction.has()) return;
+      let updates = Mina.currentTransaction.get().accountUpdates;
+      if (!updates.find((update) => update.id === accountUpdate.id)) {
+        updates.push(accountUpdate);
+      }
     }
   }
 
