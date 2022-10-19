@@ -29,7 +29,6 @@ export {
   memoizeWitness,
   getBlindingValue,
   toConstant,
-  witness,
   InferCircuitValue,
   Provables,
   HashInput,
@@ -1034,11 +1033,6 @@ function auxiliary<T>(type: Provable<T>, compute: () => any[]) {
   return aux ?? type.toAuxiliary();
 }
 
-// TODO: very likely, this is how Circuit.witness should behave
-function witness<T>(type: Provable<T>, compute: () => T) {
-  return inCheckedComputation() ? Circuit.witness(type, compute) : compute();
-}
-
 let memoizationContext = Context.create<{
   memoized: { fields: Field[]; aux: any[] }[];
   currentIndex: number;
@@ -1050,7 +1044,7 @@ let memoizationContext = Context.create<{
  * for reuse by the prover. This is needed to witness non-deterministic values.
  */
 function memoizeWitness<T>(type: Provable<T>, compute: () => T) {
-  return witness(type, () => {
+  return Circuit.witness(type, () => {
     if (!memoizationContext.has()) return compute();
     let context = memoizationContext.get();
     let { memoized, currentIndex } = context;

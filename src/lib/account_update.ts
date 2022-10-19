@@ -4,7 +4,6 @@ import {
   cloneCircuitValue,
   memoizationContext,
   memoizeWitness,
-  witness,
 } from './circuit_value.js';
 import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
 import { jsLayout, Types } from '../snarky/types.js';
@@ -1357,7 +1356,7 @@ const CallForest = {
     // compute hash outside the circuit if callsType is "Witness"
     // i.e., allowing accountUpdates with arbitrary children
     if (callsType.type === 'Witness') {
-      return witness(Field, () => CallForest.hashChildrenBase(update));
+      return Circuit.witness(Field, () => CallForest.hashChildrenBase(update));
     }
     let calls = CallForest.hashChildrenBase(update);
     if (callsType.type === 'Equals' && inCheckedComputation()) {

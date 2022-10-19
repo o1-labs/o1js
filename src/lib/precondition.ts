@@ -1,5 +1,5 @@
 import { Provable, Bool, Field } from '../snarky.js';
-import { circuitValueEquals, witness } from './circuit_value.js';
+import { circuitValueEquals, Circuit } from './circuit_value.js';
 import * as Mina from './mina.js';
 import {
   SequenceEvents,
@@ -169,7 +169,7 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   longKey: K,
   fieldType: Provable<U>
 ): U {
-  return witness(fieldType, () => {
+  return Circuit.witness(fieldType, () => {
     let [accountOrNetwork, ...rest] = longKey.split('.');
     let key = rest.join('.');
     let value: U;

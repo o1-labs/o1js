@@ -1,5 +1,5 @@
 import { Field, ProvablePure } from '../snarky.js';
-import { circuitArray, witness } from './circuit_value.js';
+import { circuitArray, Circuit } from './circuit_value.js';
 import { AccountUpdate, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import * as Mina from './mina.js';
@@ -201,7 +201,7 @@ function createState<T>(): InternalStateType<T> {
       let contract = this._contract;
       let inProver_ = inProver();
       let stateFieldsType = circuitArray(Field, layout.length);
-      let stateAsFields = witness(stateFieldsType, () => {
+      let stateAsFields = Circuit.witness(stateFieldsType, () => {
         let account: Account;
         try {
           account = Mina.getAccount(
@@ -215,10 +215,10 @@ function createState<T>(): InternalStateType<T> {
           }
           throw Error(
             `${contract.key}.get() failed, either:\n` +
-            `1. We can't find this zkapp account in the ledger\n` +
-            `2. Because the zkapp account was not found in the cache. ` +
+              `1. We can't find this zkapp account in the ledger\n` +
+              `2. Because the zkapp account was not found in the cache. ` +
               `Try calling \`await fetchAccount(zkappAddress)\` first.\n` +
-            `If none of these are the case, then please reach out on Discord at #zkapp-developers and/or open an issue to tell us!`
+              `If none of these are the case, then please reach out on Discord at #zkapp-developers and/or open an issue to tell us!`
           );
         }
         if (account.appState === undefined) {
