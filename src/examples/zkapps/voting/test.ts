@@ -75,7 +75,7 @@ export async function testSet(
     Field.zero,
     Field.zero,
     Field.zero,
-    false
+    true
   );
   console.log('checking that the tx is valid using default verification key');
 
@@ -95,25 +95,19 @@ export async function testSet(
   );
 
   console.log('changing verification key');
-
   let { verificationKey } = await DummyContract.compile();
 
-  try {
-    let tx = await Mina.transaction(verificationKeySet.feePayer, () => {
-      let update = AccountUpdate.create(params.votingKey.toPublicKey());
-      update.update.verificationKey.value = {
+  await assertValidTx(
+    true,
+    () => {
+      let vkUpdate = AccountUpdate.createSigned(params.votingKey);
+
+      AccountUpdate.setValue(vkUpdate.update.verificationKey, {
         ...verificationKey,
         hash: Field.fromString(verificationKey.hash),
-      };
-    });
-    await tx.prove();
-    await tx.send();
-  } catch (err: any) {
-    throw Error(`Transaction failed! Error: ${err}`);
-  }
-
-  console.log(
-    'producing proof against updated (invalid) verification key - expecting to fail'
+      });
+    },
+    verificationKeySet.feePayer
   );
 
   await assertValidTx(
@@ -124,10 +118,12 @@ export async function testSet(
         Field.zero,
         UInt64.from(15)
       );
+      verificationKeySet.Local.addAccount(m.publicKey, m.balance.toString());
+
       verificationKeySet.voting.voterRegistration(m);
     },
     verificationKeySet.feePayer,
-    'assert_equal'
+    'Invalid proof'
   );
 
   /*
@@ -177,17 +173,27 @@ export async function testSet(
     permissionedSet.feePayer
   );
 
-  console.log('trying to change permissions and invoking a method...');
+  console.log('trying to change permissions...');
 
   await assertValidTx(
-    false,
+    true,
     () => {
-      permissionedSet.voterContract.setPermissions({
+      let permUpdate = AccountUpdate.createSigned(params.voterKey);
+
+      AccountUpdate.setValue(permUpdate.update.permissions, {
         ...Permissions.default(),
         setPermissions: Permissions.none(),
         editSequenceState: Permissions.impossible(),
       });
+    },
+    permissionedSet.feePayer
+  );
 
+  console.log('trying to invoke method with invalid permissions...');
+
+  await assertValidTx(
+    false,
+    () => {
       let m = Member.from(
         PrivateKey.random().toPublicKey(),
         Field.zero,
@@ -198,7 +204,7 @@ export async function testSet(
       permissionedSet.voting.voterRegistration(m);
     },
     permissionedSet.feePayer,
-    'sequence_state'
+    'sequenceEvents'
   );
 
   /*
@@ -442,7 +448,7 @@ export async function testSet(
       voting.voterRegistration(v);
     },
     feePayer,
-    'assert_equal'
+    'rangeCheckHelper'
   );
 
   console.log('attempting to register a voter with too high balance...');
@@ -458,7 +464,7 @@ export async function testSet(
       voting.voterRegistration(v);
     },
     feePayer,
-    'assert_equal'
+    'rangeCheckHelper'
   );
 
   console.log('attempting to register the same voter twice...');
