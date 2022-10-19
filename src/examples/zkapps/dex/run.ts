@@ -1,4 +1,11 @@
-import { isReady, Mina, AccountUpdate, UInt64, shutdown } from 'snarkyjs';
+import {
+  isReady,
+  Mina,
+  AccountUpdate,
+  UInt64,
+  shutdown,
+  Token,
+} from 'snarkyjs';
 import {
   Dex,
   DexTokenHolder,
@@ -9,9 +16,9 @@ import {
 } from './dex.js';
 
 await isReady;
-let doProofs = true;
+let doProofs = false;
 
-let Local = Mina.LocalBlockchain();
+let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 let accountFee = Mina.accountCreationFee();
 
@@ -25,26 +32,26 @@ console.log('TOKEN Y ADDRESS\t', addresses.tokenY.toBase58());
 console.log('DEX ADDRESS\t', addresses.dex.toBase58());
 console.log('USER ADDRESS\t', addresses.user.toBase58());
 console.log('-------------------------------------------------');
+console.log('TOKEN X ID\t', Token.Id.toBase58(tokenIds.X));
+console.log('TOKEN Y ID\t', Token.Id.toBase58(tokenIds.Y));
+console.log('-------------------------------------------------');
 
 // analyze methods for quick error feedback
 TokenContract.analyzeMethods();
 DexTokenHolder.analyzeMethods();
 Dex.analyzeMethods();
 
-if (doProofs) {
-  // compile & deploy all 5 zkApps
-  console.log('compile (token)...');
-  await TokenContract.compile();
-  console.log('compile (dex token holder)...');
-  await DexTokenHolder.compile();
-  console.log('compile (dex main contract)...');
-  await Dex.compile();
-}
+// compile & deploy all 5 zkApps
+console.log('compile (token)...');
+await TokenContract.compile();
+console.log('compile (dex token holder)...');
+await DexTokenHolder.compile();
+console.log('compile (dex main contract)...');
+await Dex.compile();
+
 let tokenX = new TokenContract(addresses.tokenX);
 let tokenY = new TokenContract(addresses.tokenY);
 let dex = new Dex(addresses.dex);
-let dexX = new DexTokenHolder(addresses.dex, tokenIds.X);
-let dexY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
 console.log('deploy & init token contracts...');
 tx = await Mina.transaction({ feePayerKey }, () => {
@@ -61,7 +68,6 @@ tx = await Mina.transaction({ feePayerKey }, () => {
 });
 await tx.prove();
 tx.sign([keys.tokenX, keys.tokenY]);
-console.log(tx.toPretty());
 await tx.send();
 
 console.log(
@@ -81,10 +87,9 @@ tx = await Mina.transaction(feePayerKey, () => {
 });
 await tx.prove();
 tx.sign([keys.dex]);
-console.log(tx.toPretty());
 await tx.send();
 
-console.log('transfer X and Y tokens to a user...');
+console.log('transfer tokens to user');
 tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
   AccountUpdate.createSigned(feePayerKey).balance.subInPlace(
     Mina.accountCreationFee().mul(2)
@@ -106,6 +111,7 @@ console.log(
 
 console.log('user supply liquidity -- base');
 tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
+  // needed because the user account for the liquidity token is created
   AccountUpdate.createSigned(feePayerKey).balance.subInPlace(
     Mina.accountCreationFee().mul(1)
   );
@@ -113,8 +119,7 @@ tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
 });
 
 await tx.prove();
-
-tx.sign([keys.dex, keys.user, keys.tokenX]);
+tx.sign([keys.user]);
 await tx.send();
 
 console.log(
@@ -133,8 +138,7 @@ tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
 });
 
 await tx.prove();
-
-tx.sign([keys.dex, keys.user, keys.tokenX]);
+tx.sign([keys.user]);
 await tx.send();
 
 console.log(
@@ -146,6 +150,46 @@ console.log(
 console.log(
   'user DEX tokens: ',
   Mina.getBalance(addresses.user, tokenIds.lqXY).value.toBigInt()
+);
+
+console.log('user redeem liquidity');
+tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
+  dex.redeemLiquidity(addresses.user, UInt64.from(100));
+});
+await tx.prove();
+tx.sign([keys.user]);
+await tx.send();
+
+console.log(
+  'DEX liquidity (X, Y): ',
+  Mina.getBalance(addresses.dex, tokenIds.X).value.toBigInt(),
+  Mina.getBalance(addresses.dex, tokenIds.Y).value.toBigInt()
+);
+
+console.log(
+  'user DEX tokens: ',
+  Mina.getBalance(addresses.user, tokenIds.lqXY).value.toBigInt()
+);
+console.log(
+  'User tokens X: ',
+  Mina.getBalance(addresses.user, tokenIds.X).value.toBigInt(),
+  '\nUser tokens Y: ',
+  Mina.getBalance(addresses.user, tokenIds.Y).value.toBigInt()
+);
+
+console.log('swap 10 X for Y');
+tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
+  dex.swapX(addresses.user, UInt64.from(10));
+});
+await tx.prove();
+tx.sign([keys.user]);
+await tx.send();
+
+console.log(
+  'User tokens X: ',
+  Mina.getBalance(addresses.user, tokenIds.X).value.toBigInt(),
+  '\nUser tokens Y: ',
+  Mina.getBalance(addresses.user, tokenIds.Y).value.toBigInt()
 );
 
 shutdown();

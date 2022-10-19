@@ -3,7 +3,6 @@ import {
   Bool,
   Circuit,
   DeployArgs,
-  Experimental,
   Field,
   Int64,
   isReady,
@@ -18,14 +17,25 @@ import {
   UInt64,
   VerificationKey,
   Struct,
+  State,
+  state,
 } from 'snarkyjs';
 
 export { Dex, DexTokenHolder, TokenContract, keys, addresses, tokenIds };
+
+class UInt64x2 extends Struct([UInt64, UInt64]) {}
 
 class Dex extends SmartContract {
   // addresses of token contracts are constants
   tokenX = addresses.tokenX;
   tokenY = addresses.tokenY;
+
+  /**
+   * state which keeps track of total lqXY supply -- this is needed to calculate what to return when redeeming liquidity
+   *
+   * total supply is zero initially; it increases when supplying liquidity and decreases when redeeming it
+   */
+  @state(UInt64) totalSupply = State<UInt64>();
 
   /**
    * Mint liquidity tokens in exchange for X and Y tokens
@@ -40,11 +50,7 @@ class Dex extends SmartContract {
    *
    * The transaction needs to be signed by the user's private key.
    */
-  @method supplyLiquidityBase(
-    user: PublicKey,
-    dx: UInt64,
-    dy: UInt64
-  ) /*: UInt64 */ {
+  @method supplyLiquidityBase(user: PublicKey, dx: UInt64, dy: UInt64): UInt64 {
     let tokenX = new TokenContract(this.tokenX);
     let tokenY = new TokenContract(this.tokenY);
 
@@ -58,6 +64,7 @@ class Dex extends SmartContract {
     let isXZero = dexXBalance.equals(UInt64.zero);
     let xSafe = Circuit.if(isXZero, UInt64.one, dexXBalance);
 
+    // FIXME
     // Error: Constraint unsatisfied (unreduced): Equal 0 1
     // dy.equals(dx.mul(dexYBalance).div(xSafe)).or(isXZero).assertTrue();
 
@@ -68,7 +75,12 @@ class Dex extends SmartContract {
     // // => maintains ratio x/l, y/l
     let dl = dy.add(dx);
     this.experimental.token.mint({ address: user, amount: dl });
-    // return dl;
+
+    // update l supply
+    let l = this.totalSupply.get();
+    this.totalSupply.assertEquals(l);
+    this.totalSupply.set(l.add(dl));
+    return dl;
   }
 
   /**
@@ -83,7 +95,7 @@ class Dex extends SmartContract {
    *
    * The transaction needs to be signed by the user's private key.
    */
-  supplyLiquidity(user: PublicKey, dx: UInt64) /*: UInt64 */ {
+  supplyLiquidity(user: PublicKey, dx: UInt64): UInt64 {
     // calculate dy outside circuit
     let x = Account(this.address, Token.getId(this.tokenX)).balance.get();
     let y = Account(this.address, Token.getId(this.tokenY)).balance.get();
@@ -93,8 +105,7 @@ class Dex extends SmartContract {
       );
     }
     let dy = dx.mul(y).div(x);
-    this.supplyLiquidityBase(user, dx, dy);
-    // return this.supplyLiquidityBase(user, dx, dy);
+    return this.supplyLiquidityBase(user, dx, dy);
   }
 
   /**
@@ -105,12 +116,13 @@ class Dex extends SmartContract {
    *
    * The transaction needs to be signed by the user's private key.
    */
-  @method redeemLiquidity(user: PublicKey, dl: UInt64): UInt64x2 {
+  @method redeemLiquidity(user: PublicKey, dl: UInt64) {
     // call the token X holder inside a token X-authorized callback
     let tokenX = new TokenContract(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
     let dxdy = dexX.redeemLiquidity(user, dl, this.tokenY);
-    tokenX.authorizeUpdate(dexX.self);
+    let dx = dxdy[0];
+    tokenX.authorizeUpdateAndSend(dexX.self, user, dx);
     return dxdy;
   }
 
@@ -126,7 +138,7 @@ class Dex extends SmartContract {
     let tokenY = new TokenContract(this.tokenY);
     let dexY = new DexTokenHolder(this.address, tokenY.experimental.token.id);
     let dy = dexY.swap(user, dx, this.tokenX);
-    tokenY.authorizeUpdate(dexY.self);
+    tokenY.authorizeUpdateAndSend(dexY.self, user, dy);
     return dy;
   }
 
@@ -142,12 +154,30 @@ class Dex extends SmartContract {
     let tokenX = new TokenContract(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
     let dx = dexX.swap(user, dy, this.tokenY);
-    tokenX.authorizeUpdate(dexX.self);
+    tokenX.authorizeUpdateAndSend(dexX.self, user, dx);
     return dx;
   }
-}
 
-class UInt64x2 extends Struct([UInt64, UInt64]) {}
+  /**
+   * helper method to authorize burning of user's liquidity.
+   * this just burns user tokens, so there is no incentive to call this directly.
+   * instead, the dex token holders call this and in turn pay back tokens.
+   *
+   * @param user caller address
+   * @param dl input amount of lq tokens
+   * @returns total supply of lq tokens _before_ burning dl, so that caller can calculate how much dx / dx to returns
+   *
+   * The transaction needs to be signed by the user's private key.
+   */
+  @method burnLiquidity(user: PublicKey, dl: UInt64): UInt64 {
+    // this makes sure there is enough l to burn (user balance stays >= 0), so l stays >= 0, so l was >0 before
+    this.experimental.token.burn({ address: user, amount: dl });
+    let l = this.totalSupply.get();
+    this.totalSupply.assertEquals(l);
+    this.totalSupply.set(l.sub(dl));
+    return l;
+  }
+}
 
 class DexTokenHolder extends SmartContract {
   // simpler circuit for redeeming liquidity -- direct trade between our token and lq token
@@ -155,20 +185,20 @@ class DexTokenHolder extends SmartContract {
   // see the more complicated method `redeemLiquidity` below which gives back both tokens, by calling this method,
   // for the other token, in a callback
   @method redeemLiquidityPartial(user: PublicKey, dl: UInt64): UInt64x2 {
-    let dex = AccountUpdate.create(this.address);
-    let l = dex.account.balance.get();
-    dex.account.balance.assertEquals(l);
-
-    // user sends dl to dex
-    let idlXY = Token.getId(this.address);
-    let userUpdate = AccountUpdate.create(user, idlXY);
-    userUpdate.balance.subInPlace(dl);
+    // user burns dl, authorized by the Dex main contract
+    let dex = new Dex(addresses.dex);
+    let l = dex.burnLiquidity(user, dl);
 
     // in return, we give dy back
     let y = this.account.balance.get();
     this.account.balance.assertEquals(y);
+    // we can safely divide by l here because the Dex contract logic wouldn't allow burnLiquidity if not l>0
     let dy = y.mul(dl).div(l);
-    this.send({ to: user, amount: dy });
+    // just subtract the balance, user gets their part one level higher
+    this.balance.subInPlace(dy);
+
+    // this can't be a delegate call, or it won't be authorized by the token owner
+    this.self.isDelegateCall = Bool(false);
 
     // return l, dy so callers don't have to walk their child account updates to get it
     return [l, dy];
@@ -186,13 +216,17 @@ class DexTokenHolder extends SmartContract {
     let result = dexY.redeemLiquidityPartial(user, dl);
     let l = result[0];
     let dy = result[1];
-    tokenY.authorizeUpdate(dexY.self);
+    tokenY.authorizeUpdateAndSend(dexY.self, user, dy);
 
     // in return for dl, we give back dx, the X token part
     let x = this.account.balance.get();
     this.account.balance.assertEquals(x);
     let dx = x.mul(dl).div(l);
-    this.send({ to: user, amount: dx });
+    // just subtract the balance, user gets their part one level higher
+    this.balance.subInPlace(dx);
+
+    // this can't be a delegate call, or it won't be authorized by the token owner
+    this.self.isDelegateCall = Bool(false);
 
     return [dx, dy];
   }
@@ -206,20 +240,18 @@ class DexTokenHolder extends SmartContract {
     // we're writing this as if our token == y and other token == x
     let dx = otherTokenAmount;
     let tokenX = new TokenContract(otherTokenAddress);
-    // send x from user to us (i.e., to the same address as this but with the other token)
-    let dexX = tokenX.experimental.token.send({
-      from: user,
-      to: this.address,
-      amount: dx,
-    });
     // get balances
-    let x = dexX.account.balance.get();
-    dexX.account.balance.assertEquals(x);
+    let x = tokenX.getBalance(this.address);
     let y = this.account.balance.get();
     this.account.balance.assertEquals(y);
+    // send x from user to us (i.e., to the same address as this but with the other token)
+    tokenX.transfer(user, this.address, dx);
     // compute and send dy
     let dy = y.mul(dx).div(x.add(dx));
-    this.send({ to: user, amount: dy });
+    // just subtract dy balance and let adding balance be handled one level higher
+    this.balance.subInPlace(dy);
+    // not be a delegate call
+    this.self.isDelegateCall = Bool(false);
     return dy;
   }
 }
@@ -235,7 +267,8 @@ class TokenContract extends SmartContract {
     super.deploy(args);
     this.setPermissions({
       ...Permissions.default(),
-      send: Permissions.proofOrSignature(),
+      send: Permissions.proof(),
+      receive: Permissions.proof(),
     });
   }
   @method init() {
@@ -265,21 +298,19 @@ class TokenContract extends SmartContract {
     zkapp.sign();
   }
 
-  // let a zkapp do whatever it wants, as long as the token supply stays constant
-  @method authorizeUpdate(zkappUpdate: AccountUpdate) {
-    // adopt this account update as a child, allowing a certain layout for its own children
-    // we allow 10 child account updates, in a left-biased tree of width 3
-    let { NoChildren, StaticChildren } = AccountUpdate.Layout;
-    let layout = StaticChildren(
-      StaticChildren(StaticChildren(3), NoChildren, NoChildren),
-      NoChildren,
-      NoChildren
-    );
-    this.experimental.authorize(zkappUpdate, layout);
+  // let a zkapp send tokens to someone, provided the token supply stays constant
+  @method authorizeUpdateAndSend(
+    zkappUpdate: AccountUpdate,
+    to: PublicKey,
+    amount: UInt64
+  ) {
+    this.experimental.authorize(zkappUpdate);
 
-    // walk account updates to see if balances for this token cancel
-    let balance = balanceSum(zkappUpdate, this.experimental.token.id);
-    balance.assertEquals(Int64.zero);
+    // see if balance change cancels the amount sent
+    let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);
+    balanceChange.assertEquals(Int64.from(amount).neg());
+    // add same amount of tokens to the receiving address
+    this.experimental.token.mint({ address: to, amount });
   }
 
   @method transfer(from: PublicKey, to: PublicKey, value: UInt64) {
@@ -315,7 +346,7 @@ function balanceSum(accountUpdate: AccountUpdate, tokenId: Field) {
   let myBalance = Int64.fromObject(accountUpdate.body.balanceChange);
   let balance = Circuit.if(myTokenId.equals(tokenId), myBalance, Int64.zero);
   for (let child of accountUpdate.children.accountUpdates) {
-    balance.add(balanceSum(child, tokenId));
+    balance = balance.add(balanceSum(child, tokenId));
   }
   return balance;
 }
@@ -331,6 +362,7 @@ function randomAccounts<K extends string>(
     'EKFE2UKugtoVMnGTxTakF2M9wwL9sp4zrxSLhuzSn32ZAYuiKh5R',
     'EKEn2s1jSNADuC8CmvCQP5CYMSSoNtx5o65H7Lahqkqp2AVdsd12',
     'EKE21kTAb37bekHbLvQpz2kvDYeKG4hB21x8VTQCbhy6m2BjFuxA',
+    'EKF9JA8WiEAk7o3ENnvgMHg5XKwgQfyMowNFFrEDCevoSozSgLTn',
   ];
 
   let keys = Object.fromEntries(

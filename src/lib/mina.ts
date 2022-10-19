@@ -227,21 +227,6 @@ interface Mina {
   ) => { hash: string; actions: string[][] }[];
 }
 
-interface MockMina extends Mina {
-  addAccount(publicKey: PublicKey, balance: string): void;
-  /**
-   * An array of 10 test accounts that have been pre-filled with
-   * 30000000000 units of currency.
-   */
-  testAccounts: Array<{ publicKey: PublicKey; privateKey: PrivateKey }>;
-  applyJsonTransaction: (tx: string) => void;
-  setTimestamp: (ms: UInt64) => void;
-  setGlobalSlot: (slot: UInt32) => void;
-  setGlobalSlotSinceHardfork: (slot: UInt32) => void;
-  setBlockchainLength: (height: UInt32) => void;
-  setTotalCurrency: (currency: UInt64) => void;
-}
-
 const defaultAccountCreationFee = 1_000_000_000;
 
 /**
@@ -250,7 +235,7 @@ const defaultAccountCreationFee = 1_000_000_000;
 function LocalBlockchain({
   accountCreationFee = defaultAccountCreationFee as string | number,
   proofsEnabled = true,
-} = {}): MockMina {
+} = {}) {
   const msPerSlot = 3 * 60 * 1000;
   const startTime = new Date().valueOf();
 
@@ -466,6 +451,10 @@ function LocalBlockchain({
       );
     },
     addAccount,
+    /**
+     * An array of 10 test accounts that have been pre-filled with
+     * 30000000000 units of currency.
+     */
     testAccounts,
     setTimestamp(ms: UInt64) {
       networkState.timestamp = ms;
@@ -481,6 +470,9 @@ function LocalBlockchain({
     },
     setTotalCurrency(currency: UInt64) {
       networkState.totalCurrency = currency;
+    },
+    setProofsEnabled(newProofsEnabled: boolean) {
+      proofsEnabled = newProofsEnabled;
     },
   };
 }

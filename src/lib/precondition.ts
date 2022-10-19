@@ -1,5 +1,5 @@
 import { Provable, Bool, Field } from '../snarky.js';
-import { circuitValueEquals, witness } from './circuit_value.js';
+import { circuitValueEquals, Circuit } from './circuit_value.js';
 import * as Mina from './mina.js';
 import {
   SequenceEvents,
@@ -54,8 +54,8 @@ let unimplementedPreconditions: LongKey[] = [
   'account.provedState',
 ];
 
-type BaseType = 'UInt64' | 'UInt32' | 'Field' | 'Bool';
-let baseMap = { UInt64, UInt32, Field, Bool };
+type BaseType = 'UInt64' | 'UInt32' | 'Field' | 'Bool' | 'PublicKey';
+let baseMap = { UInt64, UInt32, Field, Bool, PublicKey };
 
 function preconditionClass(
   layout: Layout,
@@ -126,6 +126,9 @@ function preconditionSubclass<
   fieldType: Provable<U>,
   context: PreconditionContext
 ) {
+  if (fieldType === undefined) {
+    throw Error(`this.${longKey}: fieldType undefined`);
+  }
   return {
     get() {
       if (unimplementedPreconditions.includes(longKey)) {
@@ -169,7 +172,7 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   longKey: K,
   fieldType: Provable<U>
 ): U {
-  return witness(fieldType, () => {
+  return Circuit.witness(fieldType, () => {
     let [accountOrNetwork, ...rest] = longKey.split('.');
     let key = rest.join('.');
     let value: U;

@@ -29,7 +29,6 @@ export {
   memoizeWitness,
   getBlindingValue,
   toConstant,
-  witness,
   InferCircuitValue,
   Provables,
   HashInput,
@@ -928,7 +927,7 @@ Circuit.witness = function <T, S extends Provable<T> = Provable<T>>(
   compute: () => T
 ) {
   let proverValue: T | undefined;
-  let fields = Circuit._witness(type, () => {
+  let createFields = () => {
     proverValue = compute();
     let fields = type.toFields(proverValue);
     // TODO: enable this check
@@ -941,7 +940,14 @@ Circuit.witness = function <T, S extends Provable<T> = Provable<T>>(
     //   );
     // }
     return fields;
-  });
+  };
+  let ctx = snarkContext.get();
+  let fields =
+    inCheckedComputation() && !ctx.inWitnessBlock
+      ? snarkContext.runWith({ ...ctx, inWitnessBlock: true }, () =>
+          Circuit._witness(type, createFields)
+        )[1]
+      : createFields();
   let aux = type.toAuxiliary(proverValue);
   let value = type.fromFields(fields, aux);
   type.check(value);
@@ -1003,16 +1009,28 @@ Circuit.constraintSystem = function <T>(f: () => T) {
   return result;
 };
 
+Circuit.log = function (...args: any) {
+  Circuit.asProver(() => {
+    let prettyArgs = [];
+    for (let arg of args) {
+      if (arg?.toPretty !== undefined) prettyArgs.push(arg.toPretty());
+      else {
+        try {
+          prettyArgs.push(JSON.parse(JSON.stringify(arg)));
+        } catch {
+          prettyArgs.push(arg);
+        }
+      }
+    }
+    console.log(...prettyArgs);
+  });
+};
+
 function auxiliary<T>(type: Provable<T>, compute: () => any[]) {
   let aux;
   if (inCheckedComputation()) Circuit.asProver(() => (aux = compute()));
   else aux = compute();
   return aux ?? type.toAuxiliary();
-}
-
-// TODO: very likely, this is how Circuit.witness should behave
-function witness<T>(type: Provable<T>, compute: () => T) {
-  return inCheckedComputation() ? Circuit.witness(type, compute) : compute();
 }
 
 let memoizationContext = Context.create<{
@@ -1026,7 +1044,7 @@ let memoizationContext = Context.create<{
  * for reuse by the prover. This is needed to witness non-deterministic values.
  */
 function memoizeWitness<T>(type: Provable<T>, compute: () => T) {
-  return witness(type, () => {
+  return Circuit.witness(type, () => {
     if (!memoizationContext.has()) return compute();
     let context = memoizationContext.get();
     let { memoized, currentIndex } = context;

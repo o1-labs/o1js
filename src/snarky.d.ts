@@ -587,6 +587,8 @@ declare class Circuit {
   static inProver(): boolean;
 
   static inCheckedComputation(): boolean;
+
+  static log(...args: any): void;
 }
 
 declare class Scalar {
