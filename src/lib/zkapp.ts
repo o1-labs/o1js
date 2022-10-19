@@ -702,6 +702,7 @@ class SmartContract {
     }
     this.setValue(this.self.update.permissions, Permissions.default());
     this.sign(zkappKey);
+    AccountUpdate.attachToTransaction(this.self);
   }
 
   sign(zkappKey?: PrivateKey) {
@@ -736,13 +737,9 @@ class SmartContract {
     ) {
       return executionState.accountUpdate;
     }
-    // TODO: here, we are creating a new account update & attaching it implicitly
-    // we should refactor some methods which rely on that, such as `deploy()`,
-    // to do at least the attaching explicitly, and remove implicit attaching
-    // also, implicit creation is questionable
-    let transaction = Mina.currentTransaction.get();
+    // if in a transaction, but outside a @method call, we implicitly create an account update
+    // which is stable during the current transaction -- as long as it doesn't get overridden by a method call
     let accountUpdate = selfAccountUpdate(this);
-    transaction.accountUpdates.push(accountUpdate);
     this._executionState = { transactionId, accountUpdate };
     return accountUpdate;
   }

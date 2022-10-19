@@ -24,13 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `VerificationKey`, which is a `Struct` with auxiliary data, to pass verification keys to a `@method`
   - BREAKING CHANGE: Change names related to circuit types: `AsFieldsAndAux<T>` -> `Provable<T>`, `AsFieldElement<T>` -> `ProvablePure<T>`, `circuitValue` -> `provable`
   - BREAKING CHANGE: Change all `ofFields` and `ofBits` methods on circuit types to `fromFields` and `fromBits`
-- `SmartContract.experimental.authorize` to authorize a tree of child account updates https://github.com/o1-labs/snarkyjs/pull/428
-  - AccountUpdates are now valid `@method` arguments, and `authorize` is intended to be used on them when passed to a method
-  - Also replaces `Experimental.accountUpdateFromCallback`
+- `SmartContract.experimental.authorize()` to authorize a tree of child account updates https://github.com/o1-labs/snarkyjs/pull/428
+  - AccountUpdates are now valid `@method` arguments, and `authorize()` is intended to be used on them when passed to a method
+  - Also replaces `Experimental.accountUpdateFromCallback()`
+- `Circuit.log()` to easily log Fields and other provable types inside a method, with the same API as `console.log()`
+- `AccountUpdate.attachToTransaction()` for explicitly adding an account update to the current transaction. This replaces some previous behaviour where an account update got attached implicitly.
 
 ### Changed
 
 - BREAKING CHANGE: `tx.send()` is now asynchronous: old: `send(): TransactionId` new: `send(): Promise<TransactionId>` and `tx.send()` now directly waits for the network response, as opposed to `tx.send().wait()`
+- `Circuit.witness` can now be called outside circuits, where it will just directly return the callback result
 
 ### Deprecated
 

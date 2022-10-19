@@ -4,7 +4,6 @@ import {
   cloneCircuitValue,
   memoizationContext,
   memoizeWitness,
-  witness,
 } from './circuit_value.js';
 import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
 import { jsLayout, Types } from '../snarky/types.js';
@@ -678,9 +677,7 @@ class AccountUpdate implements Types.AccountUpdate {
       authorization,
       accountUpdate.isSelf
     );
-    cloned.lazyAuthorization = cloneCircuitValue(
-      accountUpdate.lazyAuthorization
-    );
+    cloned.lazyAuthorization = accountUpdate.lazyAuthorization;
     cloned.children.callsType = accountUpdate.children.callsType;
     cloned.children.accountUpdates = accountUpdate.children.accountUpdates.map(
       AccountUpdate.clone
@@ -821,12 +818,13 @@ class AccountUpdate implements Types.AccountUpdate {
     ).add(amount);
   }
 
-  authorize(childUpdate: AccountUpdate, layout?: AccountUpdatesLayout) {
+  authorize(
+    childUpdate: AccountUpdate,
+    layout: AccountUpdatesLayout = AccountUpdate.Layout.NoDelegation
+  ) {
     makeChildAccountUpdate(this, childUpdate);
     this.isDelegateCall = Bool(false);
-    if (layout !== undefined) {
-      AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
-    }
+    AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
   }
 
   get balance() {
@@ -1028,6 +1026,17 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     return accountUpdate;
   }
+  static attachToTransaction(accountUpdate: AccountUpdate) {
+    if (smartContractContext.has()) {
+      smartContractContext.get().this.self.authorize(accountUpdate);
+    } else {
+      if (!Mina.currentTransaction.has()) return;
+      let updates = Mina.currentTransaction.get().accountUpdates;
+      if (!updates.find((update) => update.id === accountUpdate.id)) {
+        updates.push(accountUpdate);
+      }
+    }
+  }
 
   static createSigned(signer: PrivateKey) {
     let publicKey = signer.toPublicKey();
@@ -1092,7 +1101,7 @@ class AccountUpdate implements Types.AccountUpdate {
       callsType: { type: 'None' },
       accountUpdates: [],
     };
-    let lazyAuthorization = a && cloneCircuitValue(a.lazyAuthorization);
+    let lazyAuthorization = a && a.lazyAuthorization;
     if (a) {
       children.callsType = a.children.callsType;
       children.accountUpdates = a.children.accountUpdates.map(
@@ -1149,6 +1158,11 @@ class AccountUpdate implements Types.AccountUpdate {
     // just witness children's hash if childLayout === null
     if (childLayout === AccountUpdate.Layout.AnyChildren) {
       accountUpdate.children.callsType = { type: 'Witness' };
+      return;
+    }
+    if (childLayout === AccountUpdate.Layout.NoDelegation) {
+      accountUpdate.children.callsType = { type: 'Witness' };
+      accountUpdate.isDelegateCall.assertFalse();
       return;
     }
     let childArray: AccountUpdatesLayout[] =
@@ -1211,7 +1225,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * ```ts
    * let { NoChildren, AnyChildren, StaticChildren } = AccounUpdate.Layout;
    *
-   * NoChildren                 // an account updates with no children
+   * NoChildren                 // an account update with no children
    * AnyChildren                // an account update with arbitrary children
    * StaticChildren(NoChildren) // an account update with 1 child, which doesn't have children itself
    * StaticChildren(1)          // shortcut for StaticChildren(NoChildren)
@@ -1232,7 +1246,8 @@ class AccountUpdate implements Types.AccountUpdate {
       (...args: AccountUpdatesLayout[]): AccountUpdatesLayout;
     },
     NoChildren: 0,
-    AnyChildren: null,
+    AnyChildren: 'AnyChildren' as const,
+    NoDelegation: 'NoDelegation' as const,
   };
 
   toPretty() {
@@ -1290,6 +1305,9 @@ class AccountUpdate implements Types.AccountUpdate {
     if (body.update?.permissions) {
       body.update.permissions = JSON.stringify(body.update.permissions) as any;
     }
+    if (body.update?.appState) {
+      body.update.appState = JSON.stringify(body.update.appState) as any;
+    }
     if (
       jsonUpdate.authorization !== undefined ||
       body.authorizationKind !== 'None_given'
@@ -1305,7 +1323,11 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 }
 
-type AccountUpdatesLayout = number | null | AccountUpdatesLayout[];
+type AccountUpdatesLayout =
+  | number
+  | 'AnyChildren'
+  | 'NoDelegation'
+  | AccountUpdatesLayout[];
 
 const CallForest = {
   // similar to Mina_base.ZkappCommand.Call_forest.to_account_updates_list
@@ -1338,10 +1360,10 @@ const CallForest = {
     // compute hash outside the circuit if callsType is "Witness"
     // i.e., allowing accountUpdates with arbitrary children
     if (callsType.type === 'Witness') {
-      return witness(Field, () => CallForest.hashChildrenBase(update));
+      return Circuit.witness(Field, () => CallForest.hashChildrenBase(update));
     }
     let calls = CallForest.hashChildrenBase(update);
-    if (callsType.type === 'Equals') {
+    if (callsType.type === 'Equals' && inCheckedComputation()) {
       calls.assertEquals(callsType.value);
     }
     return calls;
@@ -1460,6 +1482,12 @@ function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
     let i = topLevelUpdates?.findIndex((update) => update.id === child.id);
     if (i !== undefined && i !== -1) {
       topLevelUpdates!.splice(i, 1);
+    }
+  } else {
+    let siblings = child.parent.children.accountUpdates;
+    let i = siblings?.findIndex((update) => update.id === child.id);
+    if (i !== undefined && i !== -1) {
+      siblings!.splice(i, 1);
     }
   }
   child.parent = parent;
@@ -1629,14 +1657,14 @@ async function addMissingProofs(
   async function addProof(index: number, accountUpdate: AccountUpdate) {
     accountUpdate = AccountUpdate.clone(accountUpdate);
 
-    if (!proofsEnabled) {
-      Authorization.setProof(accountUpdate, Pickles.dummyBase64Proof());
+    if (accountUpdate.lazyAuthorization?.kind !== 'lazy-proof') {
       return {
         accountUpdateProved: accountUpdate as AccountUpdateProved,
         proof: undefined,
       };
     }
-    if (accountUpdate.lazyAuthorization?.kind !== 'lazy-proof') {
+    if (!proofsEnabled) {
+      Authorization.setProof(accountUpdate, Pickles.dummyBase64Proof());
       return {
         accountUpdateProved: accountUpdate as AccountUpdateProved,
         proof: undefined,
@@ -1670,7 +1698,16 @@ async function addMissingProofs(
       () =>
         memoizationContext.runWithAsync(
           { memoized, currentIndex: 0, blindingValue },
-          () => provers[i](publicInputFields, previousProofs)
+          async () => {
+            try {
+              return await provers[i](publicInputFields, previousProofs);
+            } catch (err) {
+              console.error(
+                `Error when proving ${ZkappClass.name}.${methodName}()`
+              );
+              throw err;
+            }
+          }
         )
     );
     Authorization.setProof(
