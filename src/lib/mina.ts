@@ -162,7 +162,7 @@ function createTransaction(
     let senderAddress = feePayerKey.toPublicKey();
 
     let nonce_;
-    if (!nonce) {
+    if (nonce === undefined) {
       let senderAccount = getAccount(senderAddress, TokenId.default);
       nonce_ = senderAccount.nonce;
     } else {
