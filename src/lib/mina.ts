@@ -78,7 +78,12 @@ let currentTransaction = Context.create<CurrentTransaction>();
 
 type FeePayerSpec =
   | PrivateKey
-  | { feePayerKey: PrivateKey; fee?: number | string | UInt64; memo?: string }
+  | {
+      feePayerKey: PrivateKey;
+      fee?: number | string | UInt64;
+      memo?: string;
+      nonce?: number;
+    }
   | undefined;
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
@@ -105,6 +110,7 @@ function createTransaction(
     feePayer instanceof PrivateKey ? feePayer : feePayer?.feePayerKey;
   let fee = feePayer instanceof PrivateKey ? undefined : feePayer?.fee;
   let memo = feePayer instanceof PrivateKey ? '' : feePayer?.memo ?? '';
+  let nonce = feePayer instanceof PrivateKey ? undefined : feePayer?.nonce;
 
   let transactionId = currentTransaction.enter({
     sender: feePayerKey?.toPublicKey(),
@@ -158,7 +164,7 @@ function createTransaction(
     feePayerAccountUpdate = AccountUpdate.defaultFeePayer(
       senderAddress,
       feePayerKey,
-      senderAccount.nonce
+      nonce ? UInt32.fromNumber(nonce) : senderAccount.nonce
     );
     if (fee !== undefined) {
       feePayerAccountUpdate.body.fee =
