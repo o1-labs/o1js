@@ -94,10 +94,8 @@ export class Membership_ extends SmartContract {
 
     let balance = accountUpdate.account.balance.get();
 
-    balance
-      .gte(participantPreconditions.minMina)
-      .and(balance.lte(participantPreconditions.maxMina))
-      .assertTrue();
+    balance.assertGte(participantPreconditions.minMina);
+    balance.assertLte(participantPreconditions.maxMina);
 
     let accumulatedMembers = this.accumulatedMembers.get();
     this.accumulatedMembers.assertEquals(accumulatedMembers);
@@ -187,15 +185,3 @@ export class Membership_ extends SmartContract {
     this.accumulatedMembers.set(newAccumulatedMembers);
   }
 }
-
-/* export class ModifiedMembership extends Membership_ {
-  @method isMember(member: Member) {
-    return Bool(true);
-  }
-
-  @method someNewMethod(a: Field) {
-    let b = a.add(2);
-    b.assertEquals(3);
-  }
-}
- */

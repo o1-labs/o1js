@@ -167,28 +167,3 @@ export async function deployInvalidContracts(
   console.log('successfully deployed contracts');
   return { voterContract, candidateContract, voting, feePayer, Local };
 }
-
-/**
- * Function used to upgrade a Membership contract with slightly modified methods, in order to manipulate the existing verification key
- */
-/* export async function upgradeMembershipContract(
-  feePayer: PrivateKey,
-  contractKey: PrivateKey
-): Promise<ModifiedMembership> {
-  console.log('deploying an upgraded version to existing membership contract');
-  let modifiedContract = new ModifiedMembership(contractKey.toPublicKey());
-  await ModifiedMembership.compile();
-  try {
-    let tx = await Mina.transaction(feePayer, () => {
-      modifiedContract.deploy({ zkappKey: contractKey });
-      modifiedContract.sign(contractKey);
-    });
-    tx.send();
-  } catch (err: any) {
-    throw Error(err);
-  }
-
-  console.log('successfully deployed upgraded contract');
-  return modifiedContract;
-}
- */
