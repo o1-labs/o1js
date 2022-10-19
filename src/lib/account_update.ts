@@ -1027,6 +1027,13 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     return accountUpdate;
   }
+  static attachToTransaction(accountUpdate: AccountUpdate) {
+    if (smartContractContext.has()) {
+      smartContractContext.get().this.self.authorize(accountUpdate);
+    } else {
+      Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
+    }
+  }
 
   static createSigned(signer: PrivateKey) {
     let publicKey = signer.toPublicKey();
