@@ -164,33 +164,33 @@ class UInt64 extends CircuitValue {
     }
   }
 
-  assertLte(y: UInt64) {
+  assertLte(y: UInt64, message?: string) {
     let yMinusX = y.value.sub(this.value).seal();
-    yMinusX.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(yMinusX);
+    yMinusX.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(yMinusX, message);
   }
 
   lt(y: UInt64) {
     return this.lte(y).and(this.value.equals(y.value).not());
   }
 
-  assertLt(y: UInt64) {
-    this.lt(y).assertEquals(true);
+  assertLt(y: UInt64, message?: string) {
+    this.lt(y).assertEquals(true, message);
   }
 
   gt(y: UInt64) {
     return y.lt(this);
   }
 
-  assertGt(y: UInt64) {
-    y.assertLt(this);
+  assertGt(y: UInt64, message?: string) {
+    y.assertLt(this, message);
   }
 
   gte(y: UInt64) {
     return this.lt(y).not();
   }
 
-  assertGte(y: UInt64) {
-    y.assertLte(this);
+  assertGte(y: UInt64, message?: string) {
+    y.assertLte(this, message);
   }
 }
 
