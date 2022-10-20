@@ -1,12 +1,7 @@
 import 'isomorphic-fetch';
 import { Bool, Field, Ledger } from '../snarky.js';
 import { UInt32, UInt64 } from './int.js';
-import {
-  TokenId,
-  Permission,
-  Permissions,
-  ZkappStateLength,
-} from './account_update.js';
+import { TokenId, Permissions, ZkappStateLength } from './account_update.js';
 import { PublicKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
 import { Types } from '../snarky/types.js';
@@ -127,19 +122,9 @@ type FetchedAccount = {
   zkappState: string[] | null;
   receiptChainHash?: string;
   balance: { total: string };
-  permissions?: {
-    editState: AuthRequired;
-    send: AuthRequired;
-    receive: AuthRequired;
-    setDelegate: AuthRequired;
-    setPermissions: AuthRequired;
-    setVerificationKey: AuthRequired;
-    setZkappUri: AuthRequired;
-    editSequenceState: AuthRequired;
-    setTokenSymbol: AuthRequired;
-    incrementNonce: AuthRequired;
-    setVotingFor: AuthRequired;
-  };
+  permissions?: NonNullable<
+    Types.Json.AccountUpdate['body']['update']['permissions']
+  >;
   delegateAccount?: { publicKey: string };
   sequenceEvents?: string[] | null;
   verificationKey?: { verificationKey: string };

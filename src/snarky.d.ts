@@ -1,3 +1,5 @@
+import type { Types } from './index.js';
+
 export {
   Field,
   Bool,
@@ -743,6 +745,7 @@ type UInt64_ = { value: Field };
 type PublicKey_ = { x: Field; isOdd: Bool };
 
 // this closely corresponds to Mina_base.Account.t
+// TODO: auto-generate from the OCaml type
 interface Account {
   publicKey: PublicKey_;
   balance: UInt64_;
@@ -760,19 +763,9 @@ interface Account {
     lastSequenceSlot: number;
     provedState: boolean;
   };
-  permissions: {
-    editState: AuthRequired;
-    send: AuthRequired;
-    receive: AuthRequired;
-    setDelegate: AuthRequired;
-    setPermissions: AuthRequired;
-    setVerificationKey: AuthRequired;
-    setZkappUri: AuthRequired;
-    editSequenceState: AuthRequired;
-    setTokenSymbol: AuthRequired;
-    incrementNonce: AuthRequired;
-    setVotingFor: AuthRequired;
-  };
+  permissions: NonNullable<
+    Types.Json.AccountUpdate['body']['update']['permissions']
+  >;
 }
 
 // TODO would be nice to document these, at least the parts that end up being used in the public API

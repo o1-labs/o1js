@@ -222,6 +222,13 @@ interface Permissions extends Permissions_ {
   // TODO: doccomments
   incrementNonce: Permission;
   setVotingFor: Permission;
+
+  /**
+   * Permission to control the ability to include _any_ account update for this account in a transaction. Note that this is more restrictive than
+   * all other permissions combined. For normal accounts it can safely be set to `none`, but for token contracts this has to be more restrictive, to
+   * prevent unauthorized token interactions -- for example, it could be `proofOrSignature`.
+   */
+  access: Permission;
 }
 let Permissions = {
   ...Permission,
@@ -249,6 +256,7 @@ let Permissions = {
     setTokenSymbol: Permission.signature(),
     incrementNonce: Permissions.signature(),
     setVotingFor: Permission.signature(),
+    access: Permission.none(),
   }),
 
   initial: (): Permissions => ({
@@ -263,6 +271,7 @@ let Permissions = {
     setTokenSymbol: Permission.signature(),
     incrementNonce: Permissions.signature(),
     setVotingFor: Permission.signature(),
+    access: Permission.none(),
   }),
 
   fromString: (permission: AuthRequired): Permission => {
@@ -284,19 +293,11 @@ let Permissions = {
     }
   },
 
-  fromJSON: (permissions: {
-    editState: AuthRequired;
-    send: AuthRequired;
-    receive: AuthRequired;
-    setDelegate: AuthRequired;
-    setPermissions: AuthRequired;
-    setVerificationKey: AuthRequired;
-    setZkappUri: AuthRequired;
-    editSequenceState: AuthRequired;
-    setTokenSymbol: AuthRequired;
-    incrementNonce: AuthRequired;
-    setVotingFor: AuthRequired;
-  }): Permissions => {
+  fromJSON: (
+    permissions: NonNullable<
+      Types.Json.AccountUpdate['body']['update']['permissions']
+    >
+  ): Permissions => {
     return Object.fromEntries(
       Object.entries(permissions).map(([k, v]) => [
         k,
