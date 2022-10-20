@@ -383,7 +383,7 @@ function randomAccounts<K extends string>(
 }
 
 /**
- * helper to get the various token balances for checks in tests
+ * Helper to get the various token balances for checks in tests
  */
 function getTokenBalances() {
   let balances = {

@@ -203,9 +203,22 @@ expect(balances.user.lqXY).toEqual(
   oldBalances.user.lqXY + (USER_DX * oldBalances.total.lqXY) / oldBalances.dex.X
 );
 
+/**
+ * REDEEM LIQUIDITY
+ *
+ * Happy path (no vesting applied)
+ *
+ * Test Preconditions:
+ * - The "Supply Liquidity" happy path case was processed with no vesting period for lqXY tokens applied.
+ * - User has some lqXY tokens
+ *
+ * Actions:
+ * - User calls the “Liquidity Redemption” SC method providing the amount of lqXY tokens one is willing to redeem.
+ */
+let USER_DL = 100n;
 console.log('user redeem liquidity');
-tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
-  dex.redeemLiquidity(addresses.user, UInt64.from(100));
+tx = await Mina.transaction(keys.user, () => {
+  dex.redeemLiquidity(addresses.user, UInt64.from(USER_DL));
 });
 await tx.prove();
 tx.sign([keys.user]);
@@ -215,8 +228,28 @@ console.log('DEX liquidity (X, Y):', balances.dex.X, balances.dex.Y);
 console.log('user DEX tokens:', balances.user.lqXY);
 console.log('User tokens (X, Y):', balances.user.X, balances.user.Y);
 
+/**
+ * Expected results:
+ * - Asked amount of lqXY tokens is burned off the user's account;
+ *   - Check the balance before and after.
+ * - The pool's liquidity will reflect the changes of lqXY tokens supply upon the next "Swap" operation;
+ *   - We probably don’t need to check it here?
+ * - Calculated amount of X and Y tokens are transferred to user’s tokens accounts;
+ *   - Check balances on sender and receiver sides.
+ */
+expect(balances.user.lqXY).toEqual(oldBalances.user.lqXY - USER_DL);
+expect(balances.total.lqXY).toEqual(oldBalances.total.lqXY - USER_DL);
+let [dx, dy] = [
+  (USER_DL * oldBalances.dex.X) / oldBalances.total.lqXY,
+  (USER_DL * oldBalances.dex.Y) / oldBalances.total.lqXY,
+];
+expect(balances.user.X).toEqual(oldBalances.user.X + dx);
+expect(balances.user.Y).toEqual(oldBalances.user.Y + dy);
+expect(balances.dex.X).toEqual(oldBalances.dex.X - dx);
+expect(balances.dex.Y).toEqual(oldBalances.dex.Y - dy);
+
 console.log('swap 10 X for Y');
-tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
+tx = await Mina.transaction(keys.user, () => {
   dex.swapX(addresses.user, UInt64.from(10));
 });
 await tx.prove();
