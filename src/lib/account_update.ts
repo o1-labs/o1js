@@ -940,7 +940,8 @@ class AccountUpdate implements Types.AccountUpdate {
     // if the fee payer is the same account update as this one, we have to start the nonce predicate at one higher,
     // bc the fee payer already increases its nonce
     let isFeePayer = Mina.currentTransaction()?.sender?.equals(publicKey);
-    if (isFeePayer?.toBoolean()) nonce++;
+    let shouldIncreaseNonce = isFeePayer?.and(tokenId.equals(TokenId.default));
+    if (shouldIncreaseNonce?.toBoolean()) nonce++;
     // now, we check how often this accountUpdate already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
     CallForest.forEachPredecessor(
       Mina.currentTransaction.get().accountUpdates,
