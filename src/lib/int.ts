@@ -21,6 +21,9 @@ class UInt64 extends CircuitValue {
   toString() {
     return this.value.toString();
   }
+  toBigInt() {
+    return this.value.toBigInt();
+  }
 
   static check(x: UInt64) {
     let actual = x.value.rangeCheckHelper(64);
@@ -208,6 +211,9 @@ class UInt32 extends CircuitValue {
 
   toString(): string {
     return this.value.toString();
+  }
+  toBigint() {
+    return this.value.toBigInt();
   }
 
   toUInt64(): UInt64 {

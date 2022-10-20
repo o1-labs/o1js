@@ -146,7 +146,6 @@ describe('preconditions', () => {
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
 
-  // THINGS BELOW THIS FIAL?
   it('unsatisfied assertEquals should be rejected (numbers)', async () => {
     for (let precondition of implementedNumber) {
       let tx = await Mina.transaction(feePayer, () => {
