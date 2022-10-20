@@ -27,6 +27,7 @@ class TokenContract extends SmartContract {
     this.setPermissions({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
+      access: Permissions.proofOrSignature(),
     });
   }
 

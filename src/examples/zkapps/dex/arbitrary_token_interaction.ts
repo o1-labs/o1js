@@ -52,6 +52,7 @@ tx = await Mina.transaction(userKey, () => {
     address: userAddress,
     amount: UInt64.from(1e18),
   });
+  AccountUpdate.attachToTransaction(tokenContract.self);
 });
 await tx.prove();
 console.log(tx.toPretty());

@@ -24,6 +24,7 @@ class TokenContract extends SmartContract {
     this.setPermissions({
       ...Permissions.default(),
       send: Permissions.proof(),
+      access: Permissions.proofOrSignature(),
     });
     this.balance.addInPlace(UInt64.fromNumber(initialBalance));
   }
@@ -180,7 +181,6 @@ tx = await Local.transaction(feePayer, () => {
 });
 console.log('authorize send (proof)');
 await tx.prove();
-console.log('send (proof)');
 await tx.send();
 
 console.log(
@@ -202,7 +202,6 @@ tx = await Local.transaction(feePayer, () => {
 });
 console.log('authorize send (proof)');
 await tx.prove();
-console.log('send (proof)');
 await tx.send();
 
 console.log(
