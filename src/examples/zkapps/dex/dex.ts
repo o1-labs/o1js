@@ -387,10 +387,15 @@ function randomAccounts<K extends string>(
  */
 function getTokenBalances() {
   let balances = {
-    user: { X: 0n, Y: 0n, lqXY: 0n },
+    user: { MINA: 0n, X: 0n, Y: 0n, lqXY: 0n },
     dex: { X: 0n, Y: 0n },
     tokenContract: { X: 0n, Y: 0n },
+    total: { lqXY: 0n },
   };
+  try {
+    balances.user.MINA =
+      Mina.getBalance(addresses.user).toBigInt() / 1_000_000_000n;
+  } catch {}
   try {
     balances.user.X = Mina.getBalance(addresses.user, tokenIds.X).toBigInt();
   } catch {}
@@ -420,6 +425,10 @@ function getTokenBalances() {
       addresses.tokenY,
       tokenIds.Y
     ).toBigInt();
+  } catch {}
+  try {
+    let dex = new Dex(addresses.dex);
+    balances.total.lqXY = dex.totalSupply.get().toBigInt();
   } catch {}
   return balances;
 }

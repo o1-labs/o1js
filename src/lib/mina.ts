@@ -253,10 +253,11 @@ function LocalBlockchain({
   }[] = [];
 
   for (let i = 0; i < 10; ++i) {
-    const largeValue = '30000000000';
+    let MINA = 10n ** 9n;
+    const largeValue = 1000n * MINA;
     const k = PrivateKey.random();
     const pk = k.toPublicKey();
-    addAccount(pk, largeValue);
+    addAccount(pk, largeValue.toString());
     testAccounts.push({ privateKey: k, publicKey: pk });
   }
 
