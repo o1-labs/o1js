@@ -193,6 +193,20 @@ describe('Token', () => {
         expect(e).toBeDefined();
       });
     });
+
+    it('should reject tx if user bypasses the token contract by using an empty account update', async () => {
+      let tx = await Mina.transaction(feePayer, () => {
+        // pay fees for creating user's token X account
+        AccountUpdate.fundNewAccount(feePayer);
+        // 😈😈😈 mint tokens without authorization 😈😈😈
+        zkapp.experimental.token.mint({
+          address: tokenAccount1,
+          amount: UInt64.from(100_000),
+        });
+        AccountUpdate.attachToTransaction(zkapp.self);
+      });
+      await expect(tx.send()).rejects.toThrow(/Update_not_permitted_access/);
+    });
   });
 
   describe('Burn token', () => {
