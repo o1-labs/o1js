@@ -120,6 +120,7 @@ tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
 });
 await tx.prove();
 tx.sign([feePayerKey]);
+console.log(tx.toPretty());
 await tx.send();
 [oldBalances, balances] = [balances, getTokenBalances()];
 console.log('DEX liquidity (X, Y):', balances.dex.X, balances.dex.Y);
@@ -155,6 +156,7 @@ tx = await Mina.transaction(keys.user, () => {
 });
 await tx.prove();
 tx.sign([keys.user]);
+console.log(tx.toPretty());
 await tx.send();
 [oldBalances, balances] = [balances, getTokenBalances()];
 console.log('DEX liquidity (X, Y):', balances.dex.X, balances.dex.Y);
@@ -183,12 +185,14 @@ expect(balances.user.lqXY).toEqual(
  *
  * Same case but we are checking that no token creation fee is paid by the liquidity supplier.
  */
+USER_DX = 200n;
 console.log('user supply liquidity (2)');
 tx = await Mina.transaction(keys.user, () => {
   dex.supplyLiquidity(addresses.user, UInt64.from(USER_DX));
 });
 await tx.prove();
 tx.sign([keys.user]);
+console.log(tx.toPretty());
 await tx.send();
 [oldBalances, balances] = [balances, getTokenBalances()];
 console.log('DEX liquidity (X, Y):', balances.dex.X, balances.dex.Y);

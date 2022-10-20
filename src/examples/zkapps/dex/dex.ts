@@ -19,6 +19,7 @@ import {
   Struct,
   State,
   state,
+  UInt32,
 } from 'snarkyjs';
 
 export {
@@ -32,6 +33,22 @@ export {
 };
 
 class UInt64x2 extends Struct([UInt64, UInt64]) {}
+
+function lockedAmountTiming(
+  amount: UInt64,
+  time: UInt32
+): AccountUpdate['body']['update']['timing'] {
+  return {
+    isSome: Bool(true),
+    value: {
+      initialMinimumBalance: amount,
+      cliffAmount: amount,
+      cliffTime: time,
+      vestingIncrement: UInt64.zero,
+      vestingPeriod: UInt32.one,
+    },
+  };
+}
 
 class Dex extends SmartContract {
   // addresses of token contracts are constants
@@ -74,15 +91,20 @@ class Dex extends SmartContract {
 
     // FIXME
     // Error: Constraint unsatisfied (unreduced): Equal 0 1
-    // dy.equals(dx.mul(dexYBalance).div(xSafe)).or(isXZero).assertTrue();
+    dy.equals(dx.mul(dexYBalance).div(xSafe)).or(isXZero).assertTrue();
 
     tokenX.transfer(user, this.address, dx);
     tokenY.transfer(user, this.address, dy);
 
-    // // calculate liquidity token output simply as dl = dx + dx
-    // // => maintains ratio x/l, y/l
+    // calculate liquidity token output simply as dl = dx + dx
+    // => maintains ratio x/l, y/l
     let dl = dy.add(dx);
-    this.experimental.token.mint({ address: user, amount: dl });
+    let userUpdate = this.experimental.token.mint({
+      address: user,
+      amount: dl,
+    });
+    userUpdate.update.timing = lockedAmountTiming(dl, UInt32.zero);
+    userUpdate.sign();
 
     // update l supply
     let l = this.totalSupply.get();
