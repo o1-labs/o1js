@@ -335,33 +335,33 @@ class UInt32 extends CircuitValue {
     }
   }
 
-  assertLte(y: UInt32) {
+  assertLte(y: UInt32, message?: string) {
     let yMinusX = y.value.sub(this.value).seal();
-    yMinusX.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(yMinusX);
+    yMinusX.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(yMinusX, message);
   }
 
   lt(y: UInt32) {
     return this.lte(y).and(this.value.equals(y.value).not());
   }
 
-  assertLt(y: UInt32) {
-    this.lt(y).assertEquals(true);
+  assertLt(y: UInt32, message?: string) {
+    this.lt(y).assertEquals(true, message);
   }
 
   gt(y: UInt32) {
     return y.lt(this);
   }
 
-  assertGt(y: UInt32) {
-    y.assertLt(this);
+  assertGt(y: UInt32, message?: string) {
+    y.assertLt(this, message);
   }
 
   gte(y: UInt32) {
     return this.lt(y).not();
   }
 
-  assertGte(y: UInt32) {
-    y.assertLte(this);
+  assertGte(y: UInt32, message?: string) {
+    y.assertLte(this, message);
   }
 }
 
