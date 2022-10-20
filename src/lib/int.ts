@@ -540,9 +540,12 @@ class Int64 extends CircuitValue implements BalanceChange {
     let y_ = Int64.from(y);
     return this.toField().equals(y_.toField());
   }
-  assertEquals(y: Int64 | number | string | bigint | UInt64 | UInt32) {
+  assertEquals(
+    y: Int64 | number | string | bigint | UInt64 | UInt32,
+    message?: string
+  ) {
     let y_ = Int64.from(y);
-    this.toField().assertEquals(y_.toField());
+    this.toField().assertEquals(y_.toField(), message);
   }
   isPositive() {
     return this.sgn.isPositive();
