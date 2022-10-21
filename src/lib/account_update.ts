@@ -1303,11 +1303,15 @@ class AccountUpdate implements Types.AccountUpdate {
         hash: short(body.update.verificationKey.hash),
       }) as any;
     }
-    if (body.update?.permissions) {
-      body.update.permissions = JSON.stringify(body.update.permissions) as any;
+    for (let key of ['permissions', 'appState', 'timing'] as const) {
+      if (body.update?.[key]) {
+        body.update[key] = JSON.stringify(body.update[key]) as any;
+      }
     }
-    if (body.update?.appState) {
-      body.update.appState = JSON.stringify(body.update.appState) as any;
+    for (let key of ['events', 'sequenceEvents'] as const) {
+      if (body[key]) {
+        body[key] = JSON.stringify(body[key]) as any;
+      }
     }
     if (
       jsonUpdate.authorization !== undefined ||
