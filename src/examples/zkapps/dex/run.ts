@@ -6,19 +6,12 @@ import {
   shutdown,
   Token,
 } from 'snarkyjs';
-import {
-  Dex,
-  DexTokenHolder,
-  TokenContract,
-  addresses,
-  keys,
-  tokenIds,
-  getTokenBalances,
-} from './dex.js';
+import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
 
 await isReady;
 let doProofs = false;
+let withVesting = true;
 
 let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
@@ -38,6 +31,9 @@ console.log('-------------------------------------------------');
 console.log('TOKEN X ID\t', Token.Id.toBase58(tokenIds.X));
 console.log('TOKEN Y ID\t', Token.Id.toBase58(tokenIds.Y));
 console.log('-------------------------------------------------');
+
+let options = withVesting ? { lockedLiquiditySlots: 2 } : undefined;
+let { Dex, DexTokenHolder, getTokenBalances } = createDex(options);
 
 // analyze methods for quick error feedback
 TokenContract.analyzeMethods();
@@ -120,7 +116,6 @@ tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
 });
 await tx.prove();
 tx.sign([feePayerKey]);
-console.log(tx.toPretty());
 await tx.send();
 [oldBalances, balances] = [balances, getTokenBalances()];
 console.log('DEX liquidity (X, Y):', balances.dex.X, balances.dex.Y);
@@ -156,7 +151,6 @@ tx = await Mina.transaction(keys.user, () => {
 });
 await tx.prove();
 tx.sign([keys.user]);
-console.log(tx.toPretty());
 await tx.send();
 [oldBalances, balances] = [balances, getTokenBalances()];
 console.log('DEX liquidity (X, Y):', balances.dex.X, balances.dex.Y);
@@ -180,36 +174,64 @@ expect(balances.user.lqXY).toEqual(
   (USER_DX * oldBalances.total.lqXY) / oldBalances.dex.X
 );
 
-/**
- * Happy path (lqXY token exists for users account)
- *
- * Same case but we are checking that no token creation fee is paid by the liquidity supplier.
- */
-USER_DX = 200n;
-console.log('user supply liquidity (2)');
-tx = await Mina.transaction(keys.user, () => {
-  dex.supplyLiquidity(addresses.user, UInt64.from(USER_DX));
-});
-await tx.prove();
-tx.sign([keys.user]);
-console.log(tx.toPretty());
-await tx.send();
-[oldBalances, balances] = [balances, getTokenBalances()];
-console.log('DEX liquidity (X, Y):', balances.dex.X, balances.dex.Y);
-console.log('user DEX tokens:', balances.user.lqXY);
+if (!withVesting) {
+  /**
+   * Happy path (lqXY token exists for users account)
+   *
+   * Same case but we are checking that no token creation fee is paid by the liquidity supplier.
+   *
+   * Note: this is skipped in the vesting case, because we can't change timing on an account that currently has an active timing
+   */
+  USER_DX = 200n;
+  console.log('user supply liquidity (2)');
+  tx = await Mina.transaction(keys.user, () => {
+    dex.supplyLiquidity(addresses.user, UInt64.from(USER_DX));
+  });
+  await tx.prove();
+  tx.sign([keys.user]);
+  await tx.send();
+  [oldBalances, balances] = [balances, getTokenBalances()];
+  console.log('DEX liquidity (X, Y):', balances.dex.X, balances.dex.Y);
+  console.log('user DEX tokens:', balances.user.lqXY);
 
-expect(balances.user.X).toEqual(oldBalances.user.X - USER_DX);
-expect(balances.user.Y).toEqual(
-  oldBalances.user.Y - (USER_DX * oldBalances.dex.Y) / oldBalances.dex.X
-);
-expect(balances.user.MINA).toEqual(oldBalances.user.MINA);
-expect(balances.user.lqXY).toEqual(
-  oldBalances.user.lqXY + (USER_DX * oldBalances.total.lqXY) / oldBalances.dex.X
-);
+  expect(balances.user.X).toEqual(oldBalances.user.X - USER_DX);
+  expect(balances.user.Y).toEqual(
+    oldBalances.user.Y - (USER_DX * oldBalances.dex.Y) / oldBalances.dex.X
+  );
+  expect(balances.user.MINA).toEqual(oldBalances.user.MINA);
+  expect(balances.user.lqXY).toEqual(
+    oldBalances.user.lqXY +
+      (USER_DX * oldBalances.total.lqXY) / oldBalances.dex.X
+  );
+}
 
 /**
  * REDEEM LIQUIDITY
- *
+ */
+if (withVesting) {
+  /**
+   * Happy path (vesting period applied)
+   * - Same case but this time the “Supply Liquidity” happy path case was processed with vesting period
+   *   applied for lqXY tokens. We’re checking that it is impossible to redeem lqXY tokens without respecting
+   *   the timing first and then we check that tokens can be redeemed once timing conditions are met.
+   */
+
+  // liquidity is locked for 2 slots
+  // step forward 1 slot => liquidity not unlocked yet
+  Local.incrementGlobalSlot(1);
+  let USER_DL = 100n;
+  console.log('user redeem liquidity (before liquidity token unlocks)');
+  tx = await Mina.transaction(keys.user, () => {
+    dex.redeemLiquidity(addresses.user, UInt64.from(USER_DL));
+  });
+  await tx.prove();
+  tx.sign([keys.user]);
+  await expect(tx.send()).rejects.toThrow(/Source_minimum_balance_violation/);
+
+  // another slot => now it should work
+  Local.incrementGlobalSlot(1);
+}
+/**
  * Happy path (no vesting applied)
  *
  * Test Preconditions:
@@ -218,6 +240,8 @@ expect(balances.user.lqXY).toEqual(
  *
  * Actions:
  * - User calls the “Liquidity Redemption” SC method providing the amount of lqXY tokens one is willing to redeem.
+ *
+ * Note: we reuse this logic for successful redemption in the vesting case
  */
 let USER_DL = 100n;
 console.log('user redeem liquidity');
