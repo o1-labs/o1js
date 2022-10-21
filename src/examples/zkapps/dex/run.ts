@@ -179,26 +179,25 @@ expect(balances.user.lqXY).toEqual(
   (USER_DX * oldBalances.total.lqXY) / oldBalances.dex.X
 );
 
+/**
+ * Happy path (lqXY token exists for users account)
+ *
+ * Same case but we are checking that no token creation fee is paid by the liquidity supplier.
+ *
+ * Note: with vesting, this is a failure case because we can't change timing on an account that currently has an active timing
+ */
+USER_DX = 1000n;
+console.log('user supply liquidity (2)');
+tx = await Mina.transaction(keys.user, () => {
+  dex.supplyLiquidity(addresses.user, UInt64.from(USER_DX));
+});
+await tx.prove();
+tx.sign([keys.user]);
 if (!withVesting) {
-  /**
-   * Happy path (lqXY token exists for users account)
-   *
-   * Same case but we are checking that no token creation fee is paid by the liquidity supplier.
-   *
-   * Note: this is skipped in the vesting case, because we can't change timing on an account that currently has an active timing
-   */
-  USER_DX = 1000n;
-  console.log('user supply liquidity (2)');
-  tx = await Mina.transaction(keys.user, () => {
-    dex.supplyLiquidity(addresses.user, UInt64.from(USER_DX));
-  });
-  await tx.prove();
-  tx.sign([keys.user]);
   await tx.send();
   [oldBalances, balances] = [balances, getTokenBalances()];
   console.log('DEX liquidity (X, Y):', balances.dex.X, balances.dex.Y);
   console.log('user DEX tokens:', balances.user.lqXY);
-
   expect(balances.user.X).toEqual(oldBalances.user.X - USER_DX);
   expect(balances.user.Y).toEqual(
     oldBalances.user.Y - (USER_DX * oldBalances.dex.Y) / oldBalances.dex.X
@@ -207,6 +206,10 @@ if (!withVesting) {
   expect(balances.user.lqXY).toEqual(
     oldBalances.user.lqXY +
       (USER_DX * oldBalances.total.lqXY) / oldBalances.dex.X
+  );
+} else {
+  await expect(tx.send()).rejects.toThrow(
+    /Update_not_permitted_timing_existing_account/
   );
 }
 
@@ -363,6 +366,25 @@ expect(balances.user.X).toEqual(oldBalances.user.X + dx);
 expect(balances.user.Y).toEqual(oldBalances.user.Y + dy);
 expect(balances.dex.X).toEqual(oldBalances.dex.X - dx);
 expect(balances.dex.Y).toEqual(oldBalances.dex.Y - dy);
+
+/**
+ * Bonus test (supply liquidity): check that now that the lock period is over, we can supply liquidity again
+ */
+if (withVesting) {
+  USER_DX = 1000n;
+  console.log('user supply liquidity -- again, after lock period ended');
+  tx = await Mina.transaction(keys.user, () => {
+    dex.supplyLiquidity(addresses.user, UInt64.from(USER_DX));
+  });
+  await tx.prove();
+  await tx.sign([keys.user]).send();
+  [oldBalances, balances] = [balances, getTokenBalances()];
+  console.log('User tokens (X, Y):', balances.user.X, balances.user.Y);
+  expect(balances.user.X).toEqual(oldBalances.user.X - USER_DX);
+  expect(balances.user.Y).toEqual(
+    oldBalances.user.Y - (USER_DX * oldBalances.dex.Y) / oldBalances.dex.X
+  );
+}
 
 /**
  * Happy path (tokens creation on receiver side in case of their absence)
