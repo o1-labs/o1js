@@ -595,7 +595,7 @@ class SmartContract {
 
   #executionState: ExecutionState | undefined;
   static _methods?: MethodInterface[];
-  static #methodMetadata: Record<
+  static _methodMetadata: Record<
     string,
     { sequenceEvents: number; rows: number; digest: string; hasReturn: boolean }
   > = {}; // keyed by method name
@@ -917,10 +917,11 @@ class SmartContract {
    *  - `sequenceEvents` the number of actions the method dispatches
    */
   static analyzeMethods() {
+    let methodMetaData = this._methodMetadata;
     let ZkappClass = this as typeof SmartContract;
     let methodIntfs = ZkappClass._methods ?? [];
     if (
-      !methodIntfs.every((m) => m.methodName in ZkappClass.#methodMetadata) &&
+      !methodIntfs.every((m) => m.methodName in methodMetaData) &&
       !inAnalyze()
     ) {
       if (snarkContext.get().inRunAndCheck) {
@@ -946,7 +947,7 @@ class SmartContract {
             return result;
           }
         );
-        ZkappClass.#methodMetadata[methodIntf.methodName] = {
+        ZkappClass._methodMetadata[methodIntf.methodName] = {
           sequenceEvents: accountUpdate!.body.sequenceEvents.data.length,
           rows,
           digest,
@@ -954,7 +955,7 @@ class SmartContract {
         };
       }
     }
-    return ZkappClass.#methodMetadata;
+    return ZkappClass._methodMetadata;
   }
 
   setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
