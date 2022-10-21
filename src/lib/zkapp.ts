@@ -593,9 +593,9 @@ class SmartContract {
   address: PublicKey;
   tokenId: Field;
 
-  private _executionState: ExecutionState | undefined;
+  #executionState: ExecutionState | undefined;
   static _methods?: MethodInterface[];
-  private static _methodMetadata: Record<
+  static #methodMetadata: Record<
     string,
     { sequenceEvents: number; rows: number; digest: string; hasReturn: boolean }
   > = {}; // keyed by method name
@@ -712,7 +712,7 @@ class SmartContract {
     Authorization.setLazyNone(this.self);
   }
 
-  private executionState(): AccountUpdate {
+  get self(): AccountUpdate {
     let inTransaction = Mina.currentTransaction.has();
     let inSmartContract = smartContractContext.has();
     if (!inTransaction && !inSmartContract) {
@@ -727,10 +727,10 @@ class SmartContract {
     // it won't create new updates and add them to a transaction implicitly
     if (inSmartContract && smartContractContext.get().this === this) {
       let accountUpdate = smartContractContext.get().selfUpdate;
-      this._executionState = { accountUpdate, transactionId };
+      this.#executionState = { accountUpdate, transactionId };
       return accountUpdate;
     }
-    let executionState = this._executionState;
+    let executionState = this.#executionState;
     if (
       executionState !== undefined &&
       executionState.transactionId === transactionId
@@ -740,12 +740,8 @@ class SmartContract {
     // if in a transaction, but outside a @method call, we implicitly create an account update
     // which is stable during the current transaction -- as long as it doesn't get overridden by a method call
     let accountUpdate = selfAccountUpdate(this);
-    this._executionState = { transactionId, accountUpdate };
+    this.#executionState = { transactionId, accountUpdate };
     return accountUpdate;
-  }
-
-  get self() {
-    return this.executionState();
   }
 
   get account() {
@@ -924,7 +920,7 @@ class SmartContract {
     let ZkappClass = this as typeof SmartContract;
     let methodIntfs = ZkappClass._methods ?? [];
     if (
-      !methodIntfs.every((m) => m.methodName in ZkappClass._methodMetadata) &&
+      !methodIntfs.every((m) => m.methodName in ZkappClass.#methodMetadata) &&
       !inAnalyze()
     ) {
       if (snarkContext.get().inRunAndCheck) {
@@ -941,16 +937,16 @@ class SmartContract {
           ZkappPublicInput,
           methodIntf,
           (publicInput, publicKey, tokenId, ...args) => {
-            let instance = new ZkappClass(publicKey, tokenId);
+            let instance: SmartContract = new ZkappClass(publicKey, tokenId);
             let result = (instance as any)[methodIntf.methodName](
               publicInput,
               ...args
             );
-            accountUpdate = instance._executionState!.accountUpdate;
+            accountUpdate = instance.#executionState!.accountUpdate;
             return result;
           }
         );
-        ZkappClass._methodMetadata[methodIntf.methodName] = {
+        ZkappClass.#methodMetadata[methodIntf.methodName] = {
           sequenceEvents: accountUpdate!.body.sequenceEvents.data.length,
           rows,
           digest,
@@ -958,7 +954,7 @@ class SmartContract {
         };
       }
     }
-    return ZkappClass._methodMetadata;
+    return ZkappClass.#methodMetadata;
   }
 
   setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
