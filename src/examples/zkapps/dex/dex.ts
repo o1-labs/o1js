@@ -352,9 +352,6 @@ function createDex({
  * Simple token with API flexible enough to handle all our use cases
  */
 class TokenContract extends SmartContract {
-  // constant supply
-  SUPPLY = UInt64.from(10n ** 18n);
-
   deploy(args?: DeployArgs) {
     super.deploy(args);
     this.setPermissions({
@@ -365,10 +362,30 @@ class TokenContract extends SmartContract {
   }
   @method init() {
     // mint the entire supply to the token account with the same address as this contract
-    let address = this.self.body.publicKey;
+    /**
+     * DUMB STUFF FOR TESTING (change in real app)
+     *
+     * we mint the max uint64 of tokens here, so that we can overflow it in tests if we just mint a bit more
+     */
     let receiver = this.experimental.token.mint({
-      address,
-      amount: this.SUPPLY,
+      address: this.address,
+      amount: UInt64.MAXINT(),
+    });
+    // assert that the receiving account is new, so this can be only done once
+    receiver.account.isNew.assertEquals(Bool(true));
+    // pay fees for opened account
+    this.balance.subInPlace(Mina.accountCreationFee());
+  }
+
+  /**
+   * DUMB STUFF FOR TESTING (delete in real app)
+   *
+   * mint additional tokens to some user, so we can overflow token balances
+   */
+  @method init2() {
+    let receiver = this.experimental.token.mint({
+      address: addresses.user,
+      amount: UInt64.from(10n ** 6n),
     });
     // assert that the receiving account is new, so this can be only done once
     receiver.account.isNew.assertEquals(Bool(true));
@@ -428,7 +445,8 @@ let { keys, addresses } = randomAccounts(
   'tokenY',
   'dex',
   'user',
-  'user2'
+  'user2',
+  'user3'
 );
 let tokenIds = {
   X: Token.getId(addresses.tokenX),
@@ -461,6 +479,7 @@ function randomAccounts<K extends string>(
     'EKEn2s1jSNADuC8CmvCQP5CYMSSoNtx5o65H7Lahqkqp2AVdsd12',
     'EKE21kTAb37bekHbLvQpz2kvDYeKG4hB21x8VTQCbhy6m2BjFuxA',
     'EKF9JA8WiEAk7o3ENnvgMHg5XKwgQfyMowNFFrEDCevoSozSgLTn',
+    'EKFZ41h3EDiTXAkwD3Mh2gVfy4CdeRGUzDPrEfXPgZR85J3KZ3WA',
   ];
 
   let keys = Object.fromEntries(

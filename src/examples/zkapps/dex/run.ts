@@ -54,11 +54,11 @@ let dex = new Dex(addresses.dex);
 
 console.log('deploy & init token contracts...');
 tx = await Mina.transaction({ feePayerKey }, () => {
-  // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
+  // pay fees for creating 2 token contract accounts, and fund them so each can create 2 accounts themselves
   let feePayerUpdate = AccountUpdate.createSigned(feePayerKey);
   feePayerUpdate.balance.subInPlace(accountFee.mul(2));
-  feePayerUpdate.send({ to: addresses.tokenX, amount: accountFee });
-  feePayerUpdate.send({ to: addresses.tokenY, amount: accountFee });
+  feePayerUpdate.send({ to: addresses.tokenX, amount: accountFee.mul(2) });
+  feePayerUpdate.send({ to: addresses.tokenY, amount: accountFee.mul(2) });
   tokenX.deploy();
   tokenY.deploy();
   tokenX.init();
@@ -89,14 +89,15 @@ await tx.send();
 console.log('transfer tokens to user');
 tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
   let feePayer = AccountUpdate.createSigned(feePayerKey);
-  feePayer.balance.subInPlace(Mina.accountCreationFee().mul(6));
+  feePayer.balance.subInPlace(Mina.accountCreationFee().mul(4));
   feePayer.send({ to: addresses.user, amount: 20e9 }); // give users MINA to pay fees
   feePayer.send({ to: addresses.user2, amount: 20e9 });
-  tokenX.transfer(addresses.tokenX, addresses.user, UInt64.from(10_000));
-  tokenY.transfer(addresses.tokenY, addresses.user, UInt64.from(10_000));
   // transfer to fee payer so they can provide initial liquidity
   tokenX.transfer(addresses.tokenX, feePayerAddress, UInt64.from(10_000));
   tokenY.transfer(addresses.tokenY, feePayerAddress, UInt64.from(10_000));
+  // mint tokens to the user (this is additional to the tokens minted at the beginning, so we can overflow the balance
+  tokenX.init2();
+  tokenY.init2();
 });
 await tx.prove();
 tx.sign([keys.tokenX, keys.tokenY]);
@@ -143,8 +144,10 @@ expect(balances.total.lqXY).toBeGreaterThan(0n);
  * - User calls the “Supply Liquidity” smart contract method providing the required tokens
  *   account information (if not derived automatically) and tokens amounts one is willing to supply.
  * - User provides the account creation fee, to be subtracted from its Mina account
+ *
+ * note: we supply much more liquidity here, so we can exercise the overflow failure case after that
  */
-let USER_DX = 200n;
+let USER_DX = 500_000n;
 console.log('user supply liquidity (1)');
 tx = await Mina.transaction(keys.user, () => {
   AccountUpdate.fundNewAccount(keys.user);
@@ -183,7 +186,7 @@ if (!withVesting) {
    *
    * Note: this is skipped in the vesting case, because we can't change timing on an account that currently has an active timing
    */
-  USER_DX = 300n;
+  USER_DX = 1000n;
   console.log('user supply liquidity (2)');
   tx = await Mina.transaction(keys.user, () => {
     dex.supplyLiquidity(addresses.user, UInt64.from(USER_DX));
@@ -205,6 +208,48 @@ if (!withVesting) {
       (USER_DX * oldBalances.total.lqXY) / oldBalances.dex.X
   );
 }
+
+/**
+ * Check the method failures during an attempts to supply liquidity when:
+ * - There is no token X or Y (or both) created yet for user’s account;
+ * - There is not enough tokens available for user’s tokens accounts, one is willing to supply;
+ * - User is trying to supply tokens which are not supported by current liquidity pool;
+ * - Resulting operation will overflow the SC’s receiving token by type or by any other applicable limits;
+ * - Value transfer is restricted (supplier end: withdrawal is prohibited, receiver end: receiving is prohibited) for one or both accounts.
+ */
+
+/**
+ * - Resulting operation will overflow the SC’s receiving token by type or by any other applicable limits;
+ *
+ * note: this throws not at the protocol level, but because the smart contract multiplies two UInt64s which overflow.
+ * explicitly constructing the target account updates might be the better strategy to test overflow
+ */
+console.log('prepare supplying overflowing liquidity');
+tx = await Mina.transaction(feePayerKey, () => {
+  AccountUpdate.fundNewAccount(feePayerKey);
+  tokenY.transfer(
+    addresses.tokenY,
+    addresses.tokenX,
+    UInt64.MAXINT().sub(200_000)
+  );
+});
+await tx.prove();
+await tx.sign([keys.tokenY]).send();
+console.log('supply overflowing liquidity');
+await expect(async () => {
+  tx = await Mina.transaction(feePayerKey, () => {
+    dex.supplyLiquidityBase(
+      addresses.tokenX,
+      UInt64.MAXINT().sub(200_000),
+      UInt64.MAXINT().sub(200_000)
+    );
+  });
+  await tx.prove();
+  tx.sign([keys.tokenX]);
+  await tx.send();
+}).rejects.toThrow();
+
+[oldBalances, balances] = [balances, getTokenBalances()];
 
 /**
  * REDEEM LIQUIDITY
@@ -386,4 +431,11 @@ expect(balances.dex.X * balances.dex.Y).toBeGreaterThanOrEqual(
   oldBalances.dex.X * oldBalances.dex.Y
 );
 
+/**
+ * Check the method failures during an attempts to Swap tokens when:
+ * - There are not enough X or Y tokens available on the caller side in order to complete the requested operation.
+ * - User is trying to Swap tokens which are not supported by current liquidity pool.
+ * - Overflow of some token balance (caller, SC sides) occurs upon the operation completion.
+ */
+// TODO
 shutdown();
