@@ -183,7 +183,7 @@ declare class Field {
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and causes it to fail if the assertion fails.
    */
-  assertLt(y: Field | number | string | boolean): void;
+  assertLt(y: Field | number | string | boolean, message?: string): void;
   /**
    * Assert that this [[`Field`]] is lower than or equal to another Field-like value.
    *
@@ -194,7 +194,7 @@ declare class Field {
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and causes it to fail if the assertion fails.
    */
-  assertLte(y: Field | number | string | boolean): void;
+  assertLte(y: Field | number | string | boolean, message?: string): void;
   /**
    * Assert that this [[`Field`]] is greater than another Field-like value.
    *
@@ -205,7 +205,7 @@ declare class Field {
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and causes it to fail if the assertion fails.
    */
-  assertGt(y: Field | number | string | boolean): void;
+  assertGt(y: Field | number | string | boolean, message?: string): void;
   /**
    * Assert that this [[`Field`]] is greater than or equal to another Field-like value.
    *
@@ -216,7 +216,7 @@ declare class Field {
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and causes it to fail if the assertion fails.
    */
-  assertGte(y: Field | number | string | boolean): void;
+  assertGte(y: Field | number | string | boolean, message?: string): void;
 
   /**
    * Assert that this [[`Field`]] equals another Field-like value.
@@ -226,7 +226,7 @@ declare class Field {
    * Field.one.assertEquals(1);
    * ```
    */
-  assertEquals(y: Field | number | string | boolean): void;
+  assertEquals(y: Field | number | string | boolean, message?: string): void;
   /**
    * Assert that this [[`Field`]] is either 0 or 1.
    *
@@ -237,7 +237,7 @@ declare class Field {
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and throws an error if the assertion fails.
    */
-  assertBoolean(): void;
+  assertBoolean(message?: string): void;
   isZero(): Bool;
 
   /**
@@ -408,17 +408,17 @@ declare class Bool {
    * Proves that this [[`Bool`]] is equal to `y`.
    * @param y a [[`Bool`]].
    */
-  assertEquals(y: Bool | boolean): void;
+  assertEquals(y: Bool | boolean, message?: string): void;
 
   /**
    * Proves that this [[`Bool`]] is `true`.
    */
-  assertTrue(): void;
+  assertTrue(message?: string): void;
 
   /**
    * Proves that this [[`Bool`]] is `false`.
    */
-  assertFalse(): void;
+  assertFalse(message?: string): void;
 
   /**
    * Returns true if this [[`Bool`]] is equal to `y`.
@@ -655,7 +655,7 @@ declare class Group {
   scale(y: Scalar): Group;
   // TODO: Add this function when OCaml bindings are implemented : endoScale(y: EndoScalar): Group;
 
-  assertEquals(y: Group): void;
+  assertEquals(y: Group, message?: string): void;
   equals(y: Group): Bool;
 
   toJSON(): { x: string; y: string };
