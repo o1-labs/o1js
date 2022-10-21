@@ -292,7 +292,7 @@ try {
     lets vote for the one candidate we have
   */
   // we have to up the slot so we are within our election period
-  Local.setGlobalSlotSinceHardfork(new UInt32(5));
+  Local.incrementGlobalSlot(5);
   tx = await Mina.transaction(feePayer, () => {
     let c = candidateStore.get(0n)!;
     c.witness = new MerkleWitness(candidateStore.getWitness(0n));

@@ -471,11 +471,11 @@ function LocalBlockchain({
     setTimestamp(ms: UInt64) {
       networkState.timestamp = ms;
     },
-    setGlobalSlot(slot: UInt32) {
-      networkState.globalSlotSinceGenesis = slot;
-    },
-    setGlobalSlotSinceHardfork(slot: UInt32) {
-      networkState.globalSlotSinceHardFork = slot;
+    incrementGlobalSlot(increment: UInt32 | number) {
+      networkState.globalSlotSinceGenesis =
+        networkState.globalSlotSinceGenesis.add(increment);
+      networkState.globalSlotSinceHardFork =
+        networkState.globalSlotSinceHardFork.add(increment);
     },
     setBlockchainLength(height: UInt32) {
       networkState.blockchainLength = height;
