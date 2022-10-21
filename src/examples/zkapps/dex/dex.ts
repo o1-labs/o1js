@@ -212,6 +212,10 @@ function createDex({
       this.totalSupply.set(l.sub(dl));
       return l;
     }
+
+    @method transfer(from: PublicKey, to: PublicKey, amount: UInt64) {
+      this.experimental.token.send({ from, to, amount });
+    }
   }
 
   class DexTokenHolder extends SmartContract {
@@ -297,26 +301,25 @@ function createDex({
   function getTokenBalances() {
     let balances = {
       user: { MINA: 0n, X: 0n, Y: 0n, lqXY: 0n },
+      user2: { MINA: 0n, X: 0n, Y: 0n, lqXY: 0n },
       dex: { X: 0n, Y: 0n },
       tokenContract: { X: 0n, Y: 0n },
       total: { lqXY: 0n },
     };
-    try {
-      balances.user.MINA =
-        Mina.getBalance(addresses.user).toBigInt() / 1_000_000_000n;
-    } catch {}
-    try {
-      balances.user.X = Mina.getBalance(addresses.user, tokenIds.X).toBigInt();
-    } catch {}
-    try {
-      balances.user.Y = Mina.getBalance(addresses.user, tokenIds.Y).toBigInt();
-    } catch {}
-    try {
-      balances.user.lqXY = Mina.getBalance(
-        addresses.user,
-        tokenIds.lqXY
-      ).toBigInt();
-    } catch {}
+    for (let user of ['user', 'user2'] as const) {
+      try {
+        balances[user].MINA =
+          Mina.getBalance(addresses[user]).toBigInt() / 1_000_000_000n;
+      } catch {}
+      for (let token of ['X', 'Y', 'lqXY'] as const) {
+        try {
+          balances[user][token] = Mina.getBalance(
+            addresses[user],
+            tokenIds[token]
+          ).toBigInt();
+        } catch {}
+      }
+    }
     try {
       balances.dex.X = Mina.getBalance(addresses.dex, tokenIds.X).toBigInt();
     } catch {}
@@ -420,7 +423,13 @@ class TokenContract extends SmartContract {
 }
 
 await isReady;
-let { keys, addresses } = randomAccounts('tokenX', 'tokenY', 'dex', 'user');
+let { keys, addresses } = randomAccounts(
+  'tokenX',
+  'tokenY',
+  'dex',
+  'user',
+  'user2'
+);
 let tokenIds = {
   X: Token.getId(addresses.tokenX),
   Y: Token.getId(addresses.tokenY),

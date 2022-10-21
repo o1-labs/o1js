@@ -89,8 +89,9 @@ await tx.send();
 console.log('transfer tokens to user');
 tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
   let feePayer = AccountUpdate.createSigned(feePayerKey);
-  feePayer.balance.subInPlace(Mina.accountCreationFee().mul(5));
-  feePayer.send({ to: addresses.user, amount: 20e9 }); // give user MINA to pay fees
+  feePayer.balance.subInPlace(Mina.accountCreationFee().mul(6));
+  feePayer.send({ to: addresses.user, amount: 20e9 }); // give users MINA to pay fees
+  feePayer.send({ to: addresses.user2, amount: 20e9 });
   tokenX.transfer(addresses.tokenX, addresses.user, UInt64.from(10_000));
   tokenY.transfer(addresses.tokenY, addresses.user, UInt64.from(10_000));
   // transfer to fee payer so they can provide initial liquidity
@@ -143,7 +144,7 @@ expect(balances.total.lqXY).toBeGreaterThan(0n);
  *   account information (if not derived automatically) and tokens amounts one is willing to supply.
  * - User provides the account creation fee, to be subtracted from its Mina account
  */
-let USER_DX = 100n;
+let USER_DX = 200n;
 console.log('user supply liquidity (1)');
 tx = await Mina.transaction(keys.user, () => {
   AccountUpdate.fundNewAccount(keys.user);
@@ -182,7 +183,7 @@ if (!withVesting) {
    *
    * Note: this is skipped in the vesting case, because we can't change timing on an account that currently has an active timing
    */
-  USER_DX = 200n;
+  USER_DX = 300n;
   console.log('user supply liquidity (2)');
   tx = await Mina.transaction(keys.user, () => {
     dex.supplyLiquidity(addresses.user, UInt64.from(USER_DX));
@@ -276,13 +277,79 @@ expect(balances.user.Y).toEqual(oldBalances.user.Y + dy);
 expect(balances.dex.X).toEqual(oldBalances.dex.X - dx);
 expect(balances.dex.Y).toEqual(oldBalances.dex.Y - dy);
 
+/**
+ * Happy path (tokens creation on receiver side in case of their absence)
+ * - Same case but we are checking that one of the tokens will be created for the user
+ *   (including fee payment for token creation) in case when it doesn’t exist yet.
+ *
+ * Check the method failures during an attempts to redeem lqXY tokens when:
+ * - Emulate conflicting balance preconditions due to concurrent user interactions
+ *   by packing multiple redemptions into one transaction
+ *
+ * note: we transfer some lqXY tokens from `user` to `user2`, then we try to redeem the with both users
+ * -- which exercises a failure case -- and then redeem them all with `user2` (creating their token accounts)
+ */
+USER_DL = 80n;
+console.log('transfer liquidity tokens to user2');
+tx = await Mina.transaction(keys.user, () => {
+  AccountUpdate.fundNewAccount(keys.user);
+  dex.transfer(addresses.user, addresses.user2, UInt64.from(USER_DL));
+});
+await tx.prove();
+await tx.sign([keys.user]).send();
+[oldBalances, balances] = [balances, getTokenBalances()];
+
+console.log(
+  'redeem liquidity with both users in one tx (fails because of conflicting balance preconditions)'
+);
+tx = await Mina.transaction(keys.user2, () => {
+  AccountUpdate.createSigned(keys.user2).balance.subInPlace(accountFee.mul(2));
+  dex.redeemLiquidity(addresses.user, UInt64.from(USER_DL));
+  dex.redeemLiquidity(addresses.user2, UInt64.from(USER_DL));
+});
+await tx.prove();
+tx.sign([keys.user, keys.user2]);
+await expect(tx.send()).rejects.toThrow(
+  /Account_balance_precondition_unsatisfied/
+);
+
+console.log('user2 redeem liquidity');
+tx = await Mina.transaction(keys.user2, () => {
+  AccountUpdate.createSigned(keys.user2).balance.subInPlace(accountFee.mul(2));
+  dex.redeemLiquidity(addresses.user2, UInt64.from(USER_DL));
+});
+await tx.prove();
+await tx.sign([keys.user2]).send();
+[oldBalances, balances] = [balances, getTokenBalances()];
+
+expect(balances.user2.lqXY).toEqual(oldBalances.user2.lqXY - USER_DL);
+[dx, dy] = [
+  (USER_DL * oldBalances.dex.X) / oldBalances.total.lqXY,
+  (USER_DL * oldBalances.dex.Y) / oldBalances.total.lqXY,
+];
+expect(balances.user2.X).toEqual(oldBalances.user2.X + dx);
+expect(balances.user2.Y).toEqual(oldBalances.user2.Y + dy);
+expect(balances.user2.MINA).toEqual(oldBalances.user2.MINA - 2n);
+
+/**
+ * Check the method failures during an attempts to redeem lqXY tokens when:
+ * - There is not enough lqXY tokens available for user’s account;
+ *
+ * note: user2's account is empty now, so redeeming more liquidity fails
+ */
+console.log('user2 redeem liquidity (fails because insufficient balance)');
+tx = await Mina.transaction(keys.user2, () => {
+  dex.redeemLiquidity(addresses.user2, UInt64.from(1n));
+});
+await tx.prove();
+await expect(tx.sign([keys.user2]).send()).rejects.toThrow(/Overflow/);
+
 console.log('swap 10 X for Y');
 tx = await Mina.transaction(keys.user, () => {
   dex.swapX(addresses.user, UInt64.from(10));
 });
 await tx.prove();
-tx.sign([keys.user]);
-await tx.send();
+await tx.sign([keys.user]).send();
 [oldBalances, balances] = [balances, getTokenBalances()];
 console.log('User tokens (X, Y):', balances.user.X, balances.user.Y);
 
