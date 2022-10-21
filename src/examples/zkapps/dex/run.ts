@@ -5,6 +5,7 @@ import {
   UInt64,
   shutdown,
   Token,
+  Permissions,
 } from 'snarkyjs';
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
@@ -213,16 +214,29 @@ if (!withVesting) {
  * Check the method failures during an attempts to supply liquidity when:
  * - There is no token X or Y (or both) created yet for user’s account;
  * - There is not enough tokens available for user’s tokens accounts, one is willing to supply;
- * - User is trying to supply tokens which are not supported by current liquidity pool;
- * - Resulting operation will overflow the SC’s receiving token by type or by any other applicable limits;
- * - Value transfer is restricted (supplier end: withdrawal is prohibited, receiver end: receiving is prohibited) for one or both accounts.
  */
+console.log('supplying with no tokens (should fail)');
+tx = await Mina.transaction(keys.user2, () => {
+  AccountUpdate.fundNewAccount(keys.user2);
+  dex.supplyLiquidityBase(addresses.user2, UInt64.from(100), UInt64.from(100));
+});
+await tx.prove();
+tx.sign([keys.user2]);
+await expect(tx.send()).rejects.toThrow(/Overflow/);
+console.log('supplying with insufficient tokens (should fail)');
+tx = await Mina.transaction(keys.user, () => {
+  dex.supplyLiquidityBase(addresses.user, UInt64.from(1e9), UInt64.from(1e9));
+});
+await tx.prove();
+tx.sign([keys.user]);
+await expect(tx.send()).rejects.toThrow(/Overflow/);
 
 /**
  * - Resulting operation will overflow the SC’s receiving token by type or by any other applicable limits;
  *
  * note: this throws not at the protocol level, but because the smart contract multiplies two UInt64s which overflow.
- * explicitly constructing the target account updates might be the better strategy to test overflow
+ * this happens in all DEX contract methods!
+ * => a targeted test with explicitly constructed account updates might be the better strategy to test overflow
  */
 console.log('prepare supplying overflowing liquidity');
 tx = await Mina.transaction(feePayerKey, () => {
@@ -248,6 +262,34 @@ await expect(async () => {
   tx.sign([keys.tokenX]);
   await tx.send();
 }).rejects.toThrow();
+
+/**
+ * - Value transfer is restricted (supplier end: withdrawal is prohibited, receiver end: receiving is prohibited) for one or both accounts.
+ */
+console.log('prepare test with forbidden send');
+tx = await Mina.transaction(keys.tokenX, () => {
+  let tokenXtokenAccount = AccountUpdate.create(addresses.tokenX, tokenIds.X);
+  AccountUpdate.setValue(tokenXtokenAccount.update.permissions, {
+    ...Permissions.initial(),
+    send: Permissions.impossible(),
+  });
+  tokenXtokenAccount.sign();
+  // token X owner authorizes w/ signature so we don't need another method for this test
+  let tokenX = AccountUpdate.create(addresses.tokenX);
+  tokenX.authorize(tokenXtokenAccount);
+  tokenX.sign();
+});
+await tx.prove();
+await tx.sign([keys.tokenX]).send();
+console.log('supply with forbidden withdrawal (should fail)');
+tx = await Mina.transaction(keys.tokenX, () => {
+  AccountUpdate.fundNewAccount(feePayerKey);
+  dex.supplyLiquidity(addresses.tokenX, UInt64.from(10));
+});
+await tx.prove();
+await expect(tx.sign([keys.tokenX]).send()).rejects.toThrow(
+  /Update_not_permitted_balance/
+);
 
 [oldBalances, balances] = [balances, getTokenBalances()];
 
@@ -431,11 +473,4 @@ expect(balances.dex.X * balances.dex.Y).toBeGreaterThanOrEqual(
   oldBalances.dex.X * oldBalances.dex.Y
 );
 
-/**
- * Check the method failures during an attempts to Swap tokens when:
- * - There are not enough X or Y tokens available on the caller side in order to complete the requested operation.
- * - User is trying to Swap tokens which are not supported by current liquidity pool.
- * - Overflow of some token balance (caller, SC sides) occurs upon the operation completion.
- */
-// TODO
 shutdown();
