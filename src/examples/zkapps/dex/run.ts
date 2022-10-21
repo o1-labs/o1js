@@ -343,14 +343,47 @@ tx = await Mina.transaction(keys.user2, () => {
 });
 await tx.prove();
 await expect(tx.sign([keys.user2]).send()).rejects.toThrow(/Overflow/);
+[oldBalances, balances] = [balances, getTokenBalances()];
 
+/**
+ * SWAP
+ *
+ * Happy path (both tokens (X and Y) were created for user)
+ *
+ * Test Preconditions:
+ * - User has token accounts;
+ * - Balance of token X is > 0
+ * - Liquidity Pool is capable of covering the Swap operation.
+ *
+ * Actions:
+ * - User calls the “Swap” SC method providing the token (X for example) and amount it wants to swap.
+ */
+USER_DX = 10n;
 console.log('swap 10 X for Y');
 tx = await Mina.transaction(keys.user, () => {
-  dex.swapX(addresses.user, UInt64.from(10));
+  dex.swapX(addresses.user, UInt64.from(USER_DX));
 });
 await tx.prove();
 await tx.sign([keys.user]).send();
 [oldBalances, balances] = [balances, getTokenBalances()];
 console.log('User tokens (X, Y):', balances.user.X, balances.user.Y);
+/**
+ * Expected results:
+ * - SC calculates (using AMM formula and current pool state) the resulting amount of Y token user should receive as the result of the Swap operation;
+ * - SC withdraws requested amount of X token from user’s account;
+ * - SC sends to user previously calculated amount of Y tokens;
+ * - It will be good to check if calculation was done correctly but correctness is not a major concern since we’re checking
+ *   the zkApps/SnarkyJS on/off-chain features, not the current application's logic;
+ *   We're checking the balances of both tokens on caller and SC sides.
+ */
+dy = (USER_DX * oldBalances.dex.Y) / (oldBalances.dex.X + USER_DX);
+expect(balances.user.X).toEqual(oldBalances.user.X - USER_DX);
+expect(balances.user.Y).toEqual(oldBalances.user.Y + dy);
+expect(balances.dex.X).toEqual(oldBalances.dex.X + USER_DX);
+expect(balances.dex.Y).toEqual(oldBalances.dex.Y - dy);
+// x*y is increasing (the dex doesn't lose money from rounding errors -- the user does)
+expect(balances.dex.X * balances.dex.Y).toBeGreaterThanOrEqual(
+  oldBalances.dex.X * oldBalances.dex.Y
+);
 
 shutdown();
