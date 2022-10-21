@@ -284,6 +284,7 @@ function LocalBlockchain({
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
         );
       } else {
+        let { timing } = ledgerAccount;
         return {
           publicKey: publicKey,
           tokenId,
@@ -301,6 +302,16 @@ function LocalBlockchain({
             ledgerAccount.zkapp?.sequenceState[0] ??
             SequenceEvents.emptySequenceState(),
           permissions: Permissions.fromJSON(ledgerAccount.permissions),
+          timing: {
+            isTimed: timing.isTimed,
+            initialMinimumBalance: UInt64.fromObject(
+              timing.initialMinimumBalance
+            ),
+            cliffAmount: UInt64.fromObject(timing.cliffAmount),
+            cliffTime: UInt32.fromObject(timing.cliffTime),
+            vestingPeriod: UInt32.fromObject(timing.vestingPeriod),
+            vestingIncrement: UInt64.fromObject(timing.vestingIncrement),
+          },
         };
       }
     },
