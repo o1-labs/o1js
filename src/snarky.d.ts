@@ -773,6 +773,14 @@ interface Account {
     incrementNonce: AuthRequired;
     setVotingFor: AuthRequired;
   };
+  timing: {
+    isTimed: Bool;
+    initialMinimumBalance: UInt64_;
+    cliffTime: UInt32_;
+    cliffAmount: UInt64_;
+    vestingPeriod: UInt32_;
+    vestingIncrement: UInt64_;
+  };
 }
 
 // TODO would be nice to document these, at least the parts that end up being used in the public API
