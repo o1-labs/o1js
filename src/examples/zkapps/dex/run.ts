@@ -35,6 +35,13 @@ console.log('compile (token)...');
 await TokenContract.compile();
 
 await main({ withVesting: false });
+
+// swap out ledger so we can start fresh
+Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+Mina.setActiveInstance(Local);
+[{ privateKey: feePayerKey }] = Local.testAccounts;
+feePayerAddress = feePayerKey.toPublicKey();
+
 await main({ withVesting: true });
 console.log('all dex tests were successful! 🎉');
 
