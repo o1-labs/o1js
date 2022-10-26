@@ -471,6 +471,12 @@ function LocalBlockchain({
     setTimestamp(ms: UInt64) {
       networkState.timestamp = ms;
     },
+    setGlobalSlot(slot: UInt32 | number) {
+      networkState.globalSlotSinceGenesis = UInt32.from(slot);
+      let difference = networkState.globalSlotSinceGenesis.sub(slot);
+      networkState.globalSlotSinceHardFork =
+        networkState.globalSlotSinceHardFork.add(difference);
+    },
     incrementGlobalSlot(increment: UInt32 | number) {
       networkState.globalSlotSinceGenesis =
         networkState.globalSlotSinceGenesis.add(increment);
