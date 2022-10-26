@@ -12,7 +12,7 @@ import { expect } from 'expect';
 import { atomicActionsTest, upgradeabilityTests } from './upgradability.js';
 
 await isReady;
-let doProofs = true;
+let doProofs = false;
 
 let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
@@ -44,7 +44,7 @@ await atomicActionsTest({
   withVesting: false,
 });
 
-console.log('all atomic actions tests were successful! 🎉');
+console.log('all atomic actions tests were successful!');
 
 console.log('starting upgradeability tests');
 
