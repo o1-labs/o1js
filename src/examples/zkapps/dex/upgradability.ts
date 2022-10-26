@@ -17,12 +17,10 @@ await isReady;
 let doProofs = false;
 console.log('starting atomic actions tests');
 
-/*
 await atomicActionsTest({
   withVesting: false,
 });
 
-*/
 console.log('all atomic actions tests were successful! 🎉');
 
 console.log('starting upgradeability tests');
