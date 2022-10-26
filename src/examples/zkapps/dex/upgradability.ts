@@ -405,4 +405,53 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   // the user should have a balance of 1_000_024 Y
   expect(oldBalances.user.Y).toEqual(1_000_000n);
   expect(balances.user.Y).toEqual(1_000_024n);
+
+  /**
+   * # Upgradeability 2 and 3 - Upgrading forbidden, previous methods should still be valid
+   *
+   * Preconditions:
+   *  - DEX contract deployed, but upgrading forbidden
+   *
+   * Actions:
+   *  - setVerificationKey permission to impossible
+   *  - try upgrading contract
+   *
+   * Expected:
+   *  - tx fails and contract cannot be upgraded
+   *  - methods from the previous contract should still be valid
+   */
+
+  console.log('changing upgrade permissions to impossible');
+
+  tx = await Mina.transaction(feePayerKey, () => {
+    // pay fees for creating 3 dex accounts
+    let update = AccountUpdate.createSigned(keys.dex);
+    AccountUpdate.setValue(update.update.permissions, {
+      ...Permissions.initial(),
+      setVerificationKey: Permissions.impossible(),
+    });
+  });
+  await tx.prove();
+  tx.sign([keys.dex]);
+  await tx.send();
+
+  console.log('trying to upgrade contract - should fail');
+
+  tx = await Mina.transaction(feePayerKey, () => {
+    modifiedDex.deploy(); // cannot deploy new VK because its forbidden
+  });
+  await tx.prove();
+  await expect(tx.sign([keys.dex]).send()).rejects.toThrow(
+    /Cannot update field 'verificationKey'/
+  );
+
+  console.log('trying to invoke modified swap method');
+  // method should still be valid since the upgrade was forbidden
+  USER_DX = 10n;
+  console.log('swap 10 X for Y');
+  tx = await Mina.transaction(keys.user, () => {
+    modifiedDex.swapX(addresses.user, UInt64.from(USER_DX));
+  });
+  await tx.prove();
+  await tx.sign([keys.user]).send();
 }
