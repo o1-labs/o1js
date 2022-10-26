@@ -13,22 +13,8 @@ import {
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
 
-await isReady;
+export { atomicActionsTest, upgradeabilityTests };
 let doProofs = false;
-console.log('starting atomic actions tests');
-
-await atomicActionsTest({
-  withVesting: false,
-});
-
-console.log('all atomic actions tests were successful! 🎉');
-
-console.log('starting upgradeability tests');
-
-await upgradeabilityTests({
-  withVesting: false,
-});
-console.log('all upgradeability tests were successful! 🎉');
 
 async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });

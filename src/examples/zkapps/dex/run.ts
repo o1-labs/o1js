@@ -9,6 +9,7 @@ import {
 } from 'snarkyjs';
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
+import { atomicActionsTest, upgradeabilityTests } from './upgradability.js';
 
 await isReady;
 let doProofs = true;
@@ -36,6 +37,22 @@ await TokenContract.compile();
 
 await main({ withVesting: false });
 await main({ withVesting: true });
+
+console.log('starting atomic actions tests');
+
+await atomicActionsTest({
+  withVesting: false,
+});
+
+console.log('all atomic actions tests were successful! 🎉');
+
+console.log('starting upgradeability tests');
+
+await upgradeabilityTests({
+  withVesting: false,
+});
+console.log('all upgradeability tests were successful! 🎉');
+
 console.log('all dex tests were successful! 🎉');
 
 async function main({ withVesting }: { withVesting: boolean }) {
