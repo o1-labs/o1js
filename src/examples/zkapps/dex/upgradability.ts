@@ -4,6 +4,11 @@ import {
   isReady,
   Permissions,
   PrivateKey,
+  Bool,
+  method,
+  PublicKey,
+  UInt64,
+  Field,
 } from 'snarkyjs';
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
@@ -240,7 +245,13 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   let feePayerAddress = feePayerKey.toPublicKey();
 
   let options = withVesting ? { lockedLiquiditySlots: 2 } : undefined;
-  let { Dex, DexTokenHolder, getTokenBalances } = createDex(options);
+  let {
+    Dex,
+    DexTokenHolder,
+    ModifiedDexTokenHolder,
+    ModifiedDex,
+    getTokenBalances,
+  } = createDex(options);
 
   // analyze methods for quick error feedback
   DexTokenHolder.analyzeMethods();
@@ -296,6 +307,7 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
    */
 
   console.log('deploy dex contracts...');
+
   tx = await Mina.transaction(feePayerKey, () => {
     // pay fees for creating 3 dex accounts
     AccountUpdate.createSigned(feePayerKey).balance.subInPlace(
@@ -304,18 +316,84 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     dex.deploy();
     tokenX.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
     tokenY.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
-
-    // setting the setDelegate permission field to impossible
-    let dexAccount = AccountUpdate.create(addresses.dex);
-    AccountUpdate.setValue(dexAccount.update.permissions, {
-      ...Permissions.initial(),
-      setDelegate: Permissions.impossible(),
-    });
-    dexAccount.sign();
   });
   await tx.prove();
   tx.sign([keys.dex]);
   await tx.send();
 
-  console.log('deploying an upgraded DEX contract');
+  console.log('transfer tokens to user');
+  tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
+    let feePayer = AccountUpdate.createSigned(feePayerKey);
+    feePayer.balance.subInPlace(Mina.accountCreationFee().mul(4));
+    feePayer.send({ to: addresses.user, amount: 20e9 }); // give users MINA to pay fees
+    feePayer.send({ to: addresses.user2, amount: 20e9 });
+    // transfer to fee payer so they can provide initial liquidity
+    tokenX.transfer(addresses.tokenX, feePayerAddress, UInt64.from(10_000));
+    tokenY.transfer(addresses.tokenY, feePayerAddress, UInt64.from(10_000));
+    // mint tokens to the user (this is additional to the tokens minted at the beginning, so we can overflow the balance
+    tokenX.init2();
+    tokenY.init2();
+  });
+  await tx.prove();
+  tx.sign([keys.tokenX, keys.tokenY]);
+  await tx.send();
+  [oldBalances, balances] = [balances, getTokenBalances()];
+  console.log('User tokens (X, Y):', balances.user.X, balances.user.Y);
+  console.log('User MINA:', balances.user.MINA);
+
+  console.log(
+    'deploying an upgraded DexTokenHolder contract (adjusted swap method) and Dex contract'
+  );
+
+  console.log('compiling modified Dex contract...');
+  await ModifiedDex.compile();
+  let modifiedDex = new ModifiedDex(addresses.dex);
+
+  console.log('compiling modified DexTokenHolder contract...');
+  await ModifiedDexTokenHolder.compile();
+
+  tx = await Mina.transaction(feePayerKey, () => {
+    modifiedDex.deploy();
+    tokenX.deployZkapp(addresses.dex, ModifiedDexTokenHolder._verificationKey!);
+    tokenY.deployZkapp(addresses.dex, ModifiedDexTokenHolder._verificationKey!);
+  });
+  await tx.prove();
+  tx.sign([keys.dex]);
+  await tx.send();
+
+  // Making sure that both token holder accounts have been updated with the new modified verification key
+  expect(
+    Mina.getAccount(addresses.dex, tokenX.experimental.token.id).verificationKey
+  ).toEqual(ModifiedDexTokenHolder._verificationKey?.data);
+
+  expect(
+    Mina.getAccount(addresses.dex, tokenY.experimental.token.id).verificationKey
+  ).toEqual(ModifiedDexTokenHolder._verificationKey?.data);
+
+  // this is important; we have to re-enable proof production (and verification) to make sure the proofs are valid against the newly deployed VK
+  Local.setProofsEnabled(true);
+
+  console.log('supply liquidity -- base');
+  tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {
+    AccountUpdate.fundNewAccount(feePayerKey);
+    modifiedDex.supplyLiquidityBase(
+      feePayerAddress,
+      UInt64.from(10_000),
+      UInt64.from(10_000)
+    );
+  });
+  await tx.prove();
+  tx.sign([feePayerKey]);
+  await tx.send();
+
+  let USER_DX = 10n;
+  console.log('swap 10 X for Y');
+  tx = await Mina.transaction(keys.user, () => {
+    modifiedDex.swapX(addresses.user, UInt64.from(USER_DX));
+  });
+  await tx.prove();
+  await tx.sign([keys.user]).send();
+  [oldBalances, balances] = [balances, getTokenBalances()];
+  console.log('User tokens (X, Y):', balances.user.X, balances.user.Y);
+  console.log('User MINA:', balances.user.MINA);
 }

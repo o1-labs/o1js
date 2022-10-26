@@ -218,6 +218,19 @@ function createDex({
     }
   }
 
+  class ModifiedDex extends Dex {
+    @method swapX(user: PublicKey, dx: UInt64): UInt64 {
+      let tokenY = new TokenContract(this.tokenY);
+      let dexY = new ModifiedDexTokenHolder(
+        this.address,
+        tokenY.experimental.token.id
+      );
+      let dy = dexY.swap(user, dx, this.tokenX);
+      tokenY.authorizeUpdateAndSend(dexY.self, user, dy);
+      return dy;
+    }
+  }
+
   class DexTokenHolder extends SmartContract {
     // simpler circuit for redeeming liquidity -- direct trade between our token and lq token
     // it's incomplete, as it gives the user only the Y part for an lqXY token; but doesn't matter as there's no incentive to call it directly
@@ -296,6 +309,35 @@ function createDex({
   }
 
   /**
+   * A modified DexTokenHolder contract to test upgradeability.
+   * The swap formula has been slightly changed.
+   */
+  class ModifiedDexTokenHolder extends DexTokenHolder {
+    /**
+     * This swap method has a slightly changed formula
+     */
+    @method swap(
+      user: PublicKey,
+      otherTokenAmount: UInt64,
+      otherTokenAddress: PublicKey
+    ): UInt64 {
+      let dx = otherTokenAmount;
+      let tokenX = new TokenContract(otherTokenAddress);
+      let x = tokenX.getBalance(this.address);
+      let y = this.account.balance.get();
+      this.account.balance.assertEquals(y);
+      tokenX.transfer(user, this.address, dx);
+
+      // this formula has been changed
+      let dy = y.mul(dx).div(x.add(dx)).add(5);
+
+      this.balance.subInPlace(dy);
+      this.self.isDelegateCall = Bool(false);
+      return dy;
+    }
+  }
+
+  /**
    * Helper to get the various token balances for checks in tests
    */
   function getTokenBalances() {
@@ -345,7 +387,13 @@ function createDex({
     return balances;
   }
 
-  return { Dex, DexTokenHolder, getTokenBalances };
+  return {
+    Dex,
+    DexTokenHolder,
+    ModifiedDexTokenHolder,
+    ModifiedDex,
+    getTokenBalances,
+  };
 }
 
 /**

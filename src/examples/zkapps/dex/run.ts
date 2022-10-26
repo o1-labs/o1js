@@ -11,7 +11,7 @@ import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
 
 await isReady;
-let doProofs = false;
+let doProofs = true;
 
 let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
