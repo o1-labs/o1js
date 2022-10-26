@@ -558,7 +558,7 @@ class Callback<Result> extends GenericArgument {
 
     // call the callback, leveraging composability (if this is inside a smart contract method)
     // to prove to the outer circuit that we called it
-    let result = (instance[methodName] as Function)();
+    let result = (instance[methodName] as Function)(...args);
     let accountUpdate = instance.self;
 
     let callback = new Callback<any>({
