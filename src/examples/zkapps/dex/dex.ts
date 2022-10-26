@@ -71,10 +71,8 @@ function createDex({
       // // assert dy == [dx * y/x], or x == 0
       let isXZero = dexXBalance.equals(UInt64.zero);
       let xSafe = Circuit.if(isXZero, UInt64.one, dexXBalance);
-
-      // FIXME
-      // Error: Constraint unsatisfied (unreduced): Equal 0 1
-      dy.equals(dx.mul(dexYBalance).div(xSafe)).or(isXZero).assertTrue();
+      let isDyCorrect = dy.equals(dx.mul(dexYBalance).div(xSafe));
+      isDyCorrect.or(isXZero).assertTrue();
 
       tokenX.transfer(user, this.address, dx);
       tokenY.transfer(user, this.address, dy);
