@@ -306,10 +306,6 @@ function createDex({
     }
   }
 
-  /**
-   * A modified DexTokenHolder contract to test upgradeability.
-   * The swap formula has been slightly changed.
-   */
   class ModifiedDexTokenHolder extends DexTokenHolder {
     /**
      * This swap method has a slightly changed formula
@@ -326,8 +322,8 @@ function createDex({
       this.account.balance.assertEquals(y);
       tokenX.transfer(user, this.address, dx);
 
-      // this formula has been changed
-      let dy = y.mul(dx).div(x.add(dx)).add(5);
+      // this formula has been changed - we just give the user an additional 15 token
+      let dy = y.mul(dx).div(x.add(dx)).add(15);
 
       this.balance.subInPlace(dy);
       this.self.isDelegateCall = Bool(false);
