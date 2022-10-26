@@ -10,19 +10,31 @@ import { expect } from 'expect';
 
 await isReady;
 let doProofs = false;
+console.log('starting atomic actions tests');
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
-Mina.setActiveInstance(Local);
-let accountFee = Mina.accountCreationFee();
-let [{ privateKey: feePayerKey }] = Local.testAccounts;
-let tx, balances, oldBalances;
-let feePayerAddress = feePayerKey.toPublicKey();
-
-await main({
+/*
+await atomicActionsTest({
   withVesting: false,
 });
 
-async function main({ withVesting }: { withVesting: boolean }) {
+*/
+console.log('all atomic actions tests were successful! 🎉');
+
+console.log('starting upgradeability tests');
+
+await upgradeabilityTests({
+  withVesting: false,
+});
+console.log('all upgradeability tests were successful! 🎉');
+
+async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
+  let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+  Mina.setActiveInstance(Local);
+  let accountFee = Mina.accountCreationFee();
+  let [{ privateKey: feePayerKey }] = Local.testAccounts;
+  let tx, balances, oldBalances;
+  let feePayerAddress = feePayerKey.toPublicKey();
+
   let options = withVesting ? { lockedLiquiditySlots: 2 } : undefined;
   let { Dex, DexTokenHolder, getTokenBalances } = createDex(options);
 
@@ -186,7 +198,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
    * # Atomic Actions 3
    *
    * Preconditions:
-   *  - Similar to happy path (SC deployed), but editing fields and changing permissions will be successful
+   *  - Similar to happy path (SC deployed) and the test before, but editing fields and changing permissions will be successful
    *
    * Actions:
    *  - Include multiple actions in one transaction
@@ -217,4 +229,93 @@ async function main({ withVesting }: { withVesting: boolean }) {
   await tx.sign([keys.dex]).send();
 
   Mina.getAccount(addresses.dex).delegate?.assertEquals(newDelegate);
+}
+
+async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
+  let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+  Mina.setActiveInstance(Local);
+  let accountFee = Mina.accountCreationFee();
+  let [{ privateKey: feePayerKey }] = Local.testAccounts;
+  let tx, balances, oldBalances;
+  let feePayerAddress = feePayerKey.toPublicKey();
+
+  let options = withVesting ? { lockedLiquiditySlots: 2 } : undefined;
+  let { Dex, DexTokenHolder, getTokenBalances } = createDex(options);
+
+  // analyze methods for quick error feedback
+  DexTokenHolder.analyzeMethods();
+  Dex.analyzeMethods();
+
+  // compile & deploy all zkApps
+  console.log('compile (dex token holder)...');
+  await DexTokenHolder.compile();
+  console.log('compile (dex main contract)...');
+  await Dex.compile();
+
+  let tokenX = new TokenContract(addresses.tokenX);
+  let tokenY = new TokenContract(addresses.tokenY);
+  let dex = new Dex(addresses.dex);
+
+  console.log('deploy & init token contracts...');
+  tx = await Mina.transaction({ feePayerKey }, () => {
+    // pay fees for creating 2 token contract accounts, and fund them so each can create 2 accounts themselves
+    let feePayerUpdate = AccountUpdate.createSigned(feePayerKey);
+    feePayerUpdate.balance.subInPlace(accountFee.mul(2));
+    feePayerUpdate.send({ to: addresses.tokenX, amount: accountFee.mul(2) });
+    feePayerUpdate.send({ to: addresses.tokenY, amount: accountFee.mul(2) });
+    tokenX.deploy();
+    tokenY.deploy();
+    tokenX.init();
+    tokenY.init();
+  });
+  await tx.prove();
+  tx.sign([keys.tokenX, keys.tokenY]);
+  await tx.send();
+  balances = getTokenBalances();
+  console.log(
+    'Token contract tokens (X, Y):',
+    balances.tokenContract.X,
+    balances.tokenContract.Y
+  );
+
+  /**
+   * # Upgradeability 1 - Happy Path
+   *
+   * Preconditions:
+   *  - Initially the SC was deployed with the ability to be upgradable
+   *
+   * Actions:
+   *  - deploy valid SC with upgradeable permissions
+   *  - compile and upgrade new contract with different source code
+   *  - set permissions to be non upgradeable
+   *
+   * Expected:
+   *  - upgrade is successful
+   *  - updates to the source code and methods are recognized
+   *    (e.g. new formula applies to the swap)
+   */
+
+  console.log('deploy dex contracts...');
+  tx = await Mina.transaction(feePayerKey, () => {
+    // pay fees for creating 3 dex accounts
+    AccountUpdate.createSigned(feePayerKey).balance.subInPlace(
+      accountFee.mul(3)
+    );
+    dex.deploy();
+    tokenX.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
+    tokenY.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
+
+    // setting the setDelegate permission field to impossible
+    let dexAccount = AccountUpdate.create(addresses.dex);
+    AccountUpdate.setValue(dexAccount.update.permissions, {
+      ...Permissions.initial(),
+      setDelegate: Permissions.impossible(),
+    });
+    dexAccount.sign();
+  });
+  await tx.prove();
+  tx.sign([keys.dex]);
+  await tx.send();
+
+  console.log('deploying an upgraded DEX contract');
 }
