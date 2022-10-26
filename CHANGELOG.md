@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Proof verification on the web version https://github.com/o1-labs/snarkyjs/pull/476
+- Callback arguments are properly passed into method invocations https://github.com/o1-labs/snarkyjs/pull/516
 
 ## [0.6.0](https://github.com/o1-labs/snarkyjs/compare/f2ad423...ba688523)
 
