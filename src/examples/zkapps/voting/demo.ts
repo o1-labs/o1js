@@ -19,7 +19,9 @@ import {
   ElectionPreconditions,
 } from './preconditions.js';
 
-let Local = Mina.LocalBlockchain();
+let Local = Mina.LocalBlockchain({
+  proofsEnabled: false,
+});
 Mina.setActiveInstance(Local);
 
 let feePayer = Local.testAccounts[0].privateKey;
@@ -52,7 +54,7 @@ let params: VotingAppParams = {
   voterKey,
   candidateKey,
   votingKey,
-  doProofs: false,
+  doProofs: true,
 };
 
 let contracts = await VotingApp(params);
@@ -87,6 +89,7 @@ try {
     );
   });
   await tx.send();
+
   let m: Member = Member.empty();
   // lets register three voters
   tx = await Mina.transaction(feePayer, () => {
@@ -200,6 +203,7 @@ try {
 
   if (params.doProofs) await tx.prove();
   await tx.send();
+
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering 1 new candidate
     let m = registerMember(
@@ -223,6 +227,7 @@ try {
 
   if (params.doProofs) await tx.prove();
   await tx.send();
+
   /*
   since the voting contact calls the candidate membership contract via invoking candidateRegister,
   the membership contract will then emit one event per new member

@@ -66,6 +66,7 @@ export async function Voting(params: VotingParams): Promise<Voting_> {
   voterAddress = params.voterAddress;
 
   let contract = new Voting_(params.contractAddress);
+  params.doProofs = true;
   if (params.doProofs) {
     await Voting_.compile();
   }
@@ -91,6 +92,9 @@ export class Voting_ extends SmartContract {
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
       editSequenceState: Permissions.proofOrSignature(),
+      incrementNonce: Permissions.proofOrSignature(),
+      setVerificationKey: Permissions.none(),
+      setPermissions: Permissions.proofOrSignature(),
     });
     this.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
   }
@@ -109,19 +113,20 @@ export class Voting_ extends SmartContract {
 
     // can only register voters if their balance is gte the minimum amount required
     // this snippet pulls the account data of an address from the network
+
     let accountUpdate = Experimental.createChildAccountUpdate(
       this.self,
       member.publicKey
     );
+
     accountUpdate.account.balance.assertEquals(
       accountUpdate.account.balance.get()
     );
+
     let balance = accountUpdate.account.balance.get();
 
-    balance
-      .gte(voterPreconditions.minMina)
-      .and(balance.lte(voterPreconditions.maxMina))
-      .assertTrue();
+    balance.assertGte(voterPreconditions.minMina);
+    balance.assertLte(voterPreconditions.maxMina);
 
     let VoterContract: Membership_ = new Membership_(voterAddress);
     let exists = VoterContract.addEntry(member);
@@ -148,6 +153,7 @@ export class Voting_ extends SmartContract {
     // can only register candidates if their balance is gte the minimum amount required
     // and lte the maximum amount
     // this snippet pulls the account data of an address from the network
+
     let accountUpdate = Experimental.createChildAccountUpdate(
       this.self,
       member.publicKey
@@ -155,12 +161,11 @@ export class Voting_ extends SmartContract {
     accountUpdate.account.balance.assertEquals(
       accountUpdate.account.balance.get()
     );
+
     let balance = accountUpdate.account.balance.get();
 
-    balance
-      .gte(candidatePreconditions.minMina)
-      .and(balance.lte(candidatePreconditions.maxMina))
-      .assertTrue();
+    balance.assertGte(candidatePreconditions.minMina);
+    balance.assertLte(candidatePreconditions.maxMina);
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
     let exists = CandidateContract.addEntry(member);

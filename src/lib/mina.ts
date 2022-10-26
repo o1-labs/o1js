@@ -877,6 +877,11 @@ async function verifyAccountUpdate(
 
       let verificationKey = account.zkapp?.verificationKey?.data!;
       isValidProof = await verify(proof.toJSON(), verificationKey);
+      if (!isValidProof) {
+        throw Error(
+          `Invalid proof for account update\n${JSON.stringify(update)}`
+        );
+      }
     } catch (error) {
       errorTrace += '\n\n' + (error as Error).message;
       isValidProof = false;
@@ -900,6 +905,8 @@ async function verifyAccountUpdate(
     }
   }
 
+  let verified = false;
+
   function checkPermission(p: Types.Json.AuthRequired, field: string) {
     if (p == 'None') return;
 
@@ -909,7 +916,6 @@ async function verifyAccountUpdate(
       );
     }
 
-    let verified = false;
     if (p == 'Signature' || p == 'Either') {
       verified ||= isValidSignature;
     }
@@ -943,5 +949,15 @@ async function verifyAccountUpdate(
   if (accountUpdate.body.incrementNonce.toBoolean()) {
     let p = permissionForUpdate('incrementNonce');
     checkPermission(p, 'incrementNonce');
+  }
+
+  // this checks for an edge case where an account update can be authorized using proofs but
+  // a) the proof is invalid (bad verification key)
+  // and b) there are no state changes initiate so no permissions will be checked
+  // however, if the verification key changes, the proof should still be invalid
+  if (errorTrace && !verified) {
+    throw Error(
+      `One or more proofs were invalid and no other form of authorization was provided.\n${errorTrace}`
+    );
   }
 }
