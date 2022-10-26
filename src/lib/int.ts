@@ -155,12 +155,13 @@ class UInt64 extends CircuitValue {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
     } else {
       let xMinusY = this.value.sub(y.value).seal();
+      let yMinusX = xMinusY.neg();
       let xMinusYFits = xMinusY
         .rangeCheckHelper(UInt64.NUM_BITS)
         .equals(xMinusY);
-      let yMinusXFits = xMinusY
+      let yMinusXFits = yMinusX
         .rangeCheckHelper(UInt64.NUM_BITS)
-        .equals(xMinusY.neg());
+        .equals(yMinusX);
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
@@ -329,12 +330,13 @@ class UInt32 extends CircuitValue {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
     } else {
       let xMinusY = this.value.sub(y.value).seal();
+      let yMinusX = xMinusY.neg();
       let xMinusYFits = xMinusY
         .rangeCheckHelper(UInt32.NUM_BITS)
         .equals(xMinusY);
-      let yMinusXFits = xMinusY
+      let yMinusXFits = yMinusX
         .rangeCheckHelper(UInt32.NUM_BITS)
-        .equals(xMinusY.neg());
+        .equals(yMinusX);
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
