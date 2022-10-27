@@ -414,12 +414,7 @@ const Body = {
       verificationKey: keep({ data: '', hash: Field.zero }),
       permissions: keep(Permissions.initial()),
       // TODO don't hard code
-      zkappUri: keep({
-        data: '',
-        hash: Field(
-          '22930868938364086394602058221028773520482901241511717002947639863679740444066'
-        ),
-      }),
+      zkappUri: keep({ data: '', hash: Field.one }),
       // TODO
       tokenSymbol: keep(TokenSymbol.empty),
       timing: keep<Timing>({
