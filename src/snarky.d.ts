@@ -131,7 +131,14 @@ declare class Field {
    */
   toJSON(): string;
 
+  /**
+   * Returns the size of this type.
+   */
   sizeInFields(): number;
+
+  /**
+   * Serializes the data structure into {@link Field} elements.
+   */
   toFields(): Field[];
 
   // TODO: Make these long form version
@@ -321,8 +328,19 @@ declare class Field {
   static toString(x: Field | number | string | boolean): string;
   */
 
+  /**
+   * Creates a data structure from an array of serialized {@link Field} elements.
+   */
   fromFields(fields: Field[]): Field;
+
+  /**
+   * Creates a data structure from an array of serialized {@link Field} elements.
+   */
   static fromFields(fields: Field[]): Field;
+
+  /**
+   * Returns the size of this type.
+   */
   static sizeInFields(): number;
   static toFields(x: Field): Field[];
   static toAuxiliary(x?: Field): [];
@@ -352,7 +370,15 @@ declare class Field {
   ): Bool;
   */
 
+  /**
+   * Serialize a {@link Field} to a JSON string.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   static toJSON(x: Field): string;
+
+  /**
+   * Deserialize a {@link JSONValue} to a Field.
+   */
   static fromJSON(x: JSONValue): Field | null;
 
   static fromString(x: string): Field;
@@ -426,7 +452,14 @@ declare class Bool {
    */
   equals(y: Bool | boolean): Bool;
 
+  /**
+   * Returns the size of this type.
+   */
   sizeInFields(): number;
+
+  /**
+   * Serializes this {@link Bool} into {@link Field} elements.
+   */
   toFields(): Field[];
 
   /**
@@ -468,12 +501,29 @@ declare class Bool {
     ofField(x: Field | number | string | boolean): Bool;
   };
 
+  /**
+   * Boolean negation.
+   */
   static not(x: Bool | boolean): Bool;
+
+  /**
+   * Boolean AND operation.
+   */
   static and(x: Bool | boolean, y: Bool | boolean): Bool;
+
+  /**
+   * Boolean OR operation.
+   */
   static or(x: Bool | boolean, y: Bool | boolean): Bool;
 
+  /**
+   * Asserts if both {@link Bool} are equal.
+   */
   static assertEqual(x: Bool | boolean, y: Bool | boolean): void;
 
+  /**
+   * Checks two {@link Bool} for equality.
+   */
   static equal(x: Bool | boolean, y: Bool | boolean): Bool;
 
   static count(x: Bool | boolean[]): Field;
@@ -496,8 +546,13 @@ declare interface CircuitMain<W, P> {
   snarkyPublicTyp: ProvablePure<P>;
   snarkyMain: (w: W, p: P) => void;
 }
-
+/**
+ * The {@link Circuit} API is a low level interface to interact and build circuits with
+ */
 declare class Circuit {
+  /**
+   * Adds a constraint to the circuit.
+   */
   static addConstraint(
     this: Circuit,
     kind: 'multiply',
@@ -536,10 +591,16 @@ declare class Circuit {
     f: () => T
   ): T;
 
+  /**
+   * Runs code as a prover.
+   */
   static asProver(f: () => void): void;
 
   static runAndCheck<T>(f: () => T): T;
 
+  /**
+   * Returns information about the constraint system in the callback function.
+   */
   static constraintSystem<T>(f: () => T): {
     rows: number;
     digest: string;
