@@ -205,8 +205,8 @@ describe('int', () => {
           .mul(2)
           .mul('2')
           .mul(2n)
-          .mul(UInt32.fromNumber(2))
-          .mul(UInt64.fromNumber(2));
+          .mul(UInt32.from(2))
+          .mul(UInt64.from(2));
         expect(`${x}`).toBe('64');
 
         // 64 * (-64) === -64**2
@@ -704,7 +704,7 @@ describe('int', () => {
           it('should be the same as Field.one', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
-                const x = Circuit.witness(UInt64, () => UInt64.fromNumber(1));
+                const x = Circuit.witness(UInt64, () => UInt64.from(1));
                 const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
                 x.assertEquals(y);
               });
@@ -714,9 +714,7 @@ describe('int', () => {
           it('should be the same as 2^53-1', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
-                const x = Circuit.witness(UInt64, () =>
-                  UInt64.fromNumber(NUMBERMAX)
-                );
+                const x = Circuit.witness(UInt64, () => UInt64.from(NUMBERMAX));
                 const y = Circuit.witness(
                   UInt64,
                   () => new UInt64(Field(String(NUMBERMAX)))
@@ -730,7 +728,7 @@ describe('int', () => {
           it('should be the same as Field.one', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
-                const x = Circuit.witness(UInt64, () => UInt64.fromString('1'));
+                const x = Circuit.witness(UInt64, () => UInt64.from('1'));
                 const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
                 x.assertEquals(y);
               });
@@ -741,7 +739,7 @@ describe('int', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
                 const x = Circuit.witness(UInt64, () =>
-                  UInt64.fromString(String(NUMBERMAX))
+                  UInt64.from(String(NUMBERMAX))
                 );
                 const y = Circuit.witness(
                   UInt64,
@@ -793,7 +791,7 @@ describe('int', () => {
 
         it('should throw on sub if results in negative number', () => {
           expect(() => {
-            UInt64.fromNumber(0).sub(1);
+            UInt64.from(0).sub(1);
           }).toThrow();
         });
       });
@@ -1137,23 +1135,23 @@ describe('int', () => {
       describe('from() ', () => {
         describe('fromNumber()', () => {
           it('should be the same as Field.one', () => {
-            const uint = UInt64.fromNumber(1);
+            const uint = UInt64.from(1);
             expect(uint.value).toEqual(new UInt64(Field.one).value);
           });
 
           it('should be the same as 2^53-1', () => {
-            const uint = UInt64.fromNumber(NUMBERMAX);
+            const uint = UInt64.from(NUMBERMAX);
             expect(uint.value).toEqual(Field(String(NUMBERMAX)));
           });
         });
         describe('fromString()', () => {
           it('should be the same as Field.one', () => {
-            const uint = UInt64.fromString('1');
+            const uint = UInt64.from('1');
             expect(uint.value).toEqual(new UInt64(Field.one).value);
           });
 
           it('should be the same as 2^53-1', () => {
-            const uint = UInt64.fromString(String(NUMBERMAX));
+            const uint = UInt64.from(String(NUMBERMAX));
             expect(uint.value).toEqual(Field(String(NUMBERMAX)));
           });
         });
@@ -1643,7 +1641,7 @@ describe('int', () => {
           it('should be the same as Field.one', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
-                const x = Circuit.witness(UInt32, () => UInt32.fromNumber(1));
+                const x = Circuit.witness(UInt32, () => UInt32.from(1));
                 const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
                 x.assertEquals(y);
               });
@@ -1653,9 +1651,7 @@ describe('int', () => {
           it('should be the same as 2^53-1', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
-                const x = Circuit.witness(UInt32, () =>
-                  UInt32.fromNumber(NUMBERMAX)
-                );
+                const x = Circuit.witness(UInt32, () => UInt32.from(NUMBERMAX));
                 const y = Circuit.witness(
                   UInt32,
                   () => new UInt32(Field(String(NUMBERMAX)))
@@ -1669,7 +1665,7 @@ describe('int', () => {
           it('should be the same as Field.one', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
-                const x = Circuit.witness(UInt32, () => UInt32.fromString('1'));
+                const x = Circuit.witness(UInt32, () => UInt32.from('1'));
                 const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
                 x.assertEquals(y);
               });
@@ -1680,7 +1676,7 @@ describe('int', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
                 const x = Circuit.witness(UInt32, () =>
-                  UInt32.fromString(String(NUMBERMAX))
+                  UInt32.from(String(NUMBERMAX))
                 );
                 const y = Circuit.witness(
                   UInt32,
@@ -1732,7 +1728,7 @@ describe('int', () => {
 
         it('should throw on sub if results in negative number', () => {
           expect(() => {
-            UInt32.fromNumber(0).sub(1);
+            UInt32.from(0).sub(1);
           }).toThrow();
         });
       });
@@ -2076,23 +2072,23 @@ describe('int', () => {
       describe('from() ', () => {
         describe('fromNumber()', () => {
           it('should be the same as Field.one', () => {
-            const x = UInt32.fromNumber(1);
+            const x = UInt32.from(1);
             expect(x.value).toEqual(new UInt32(Field.one).value);
           });
 
           it('should be the same as 2^53-1', () => {
-            const x = UInt32.fromNumber(NUMBERMAX);
+            const x = UInt32.from(NUMBERMAX);
             expect(x.value).toEqual(Field(String(NUMBERMAX)));
           });
         });
         describe('fromString()', () => {
           it('should be the same as Field.one', () => {
-            const x = UInt32.fromString('1');
+            const x = UInt32.from('1');
             expect(x.value).toEqual(new UInt32(Field.one).value);
           });
 
           it('should be the same as 2^53-1', () => {
-            const x = UInt32.fromString(String(NUMBERMAX));
+            const x = UInt32.from(String(NUMBERMAX));
             expect(x.value).toEqual(Field(String(NUMBERMAX)));
           });
         });
