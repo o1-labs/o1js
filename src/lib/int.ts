@@ -21,6 +21,9 @@ class UInt64 extends CircuitValue {
   toString() {
     return this.value.toString();
   }
+  toBigInt() {
+    return this.value.toBigInt();
+  }
 
   static check(x: UInt64) {
     let actual = x.value.rangeCheckHelper(64);
@@ -152,45 +155,46 @@ class UInt64 extends CircuitValue {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
     } else {
       let xMinusY = this.value.sub(y.value).seal();
+      let yMinusX = xMinusY.neg();
       let xMinusYFits = xMinusY
         .rangeCheckHelper(UInt64.NUM_BITS)
         .equals(xMinusY);
-      let yMinusXFits = xMinusY
+      let yMinusXFits = yMinusX
         .rangeCheckHelper(UInt64.NUM_BITS)
-        .equals(xMinusY.neg());
+        .equals(yMinusX);
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
     }
   }
 
-  assertLte(y: UInt64) {
+  assertLte(y: UInt64, message?: string) {
     let yMinusX = y.value.sub(this.value).seal();
-    yMinusX.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(yMinusX);
+    yMinusX.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(yMinusX, message);
   }
 
   lt(y: UInt64) {
     return this.lte(y).and(this.value.equals(y.value).not());
   }
 
-  assertLt(y: UInt64) {
-    this.lt(y).assertEquals(true);
+  assertLt(y: UInt64, message?: string) {
+    this.lt(y).assertEquals(true, message);
   }
 
   gt(y: UInt64) {
     return y.lt(this);
   }
 
-  assertGt(y: UInt64) {
-    y.assertLt(this);
+  assertGt(y: UInt64, message?: string) {
+    y.assertLt(this, message);
   }
 
   gte(y: UInt64) {
     return this.lt(y).not();
   }
 
-  assertGte(y: UInt64) {
-    y.assertLte(this);
+  assertGte(y: UInt64, message?: string) {
+    y.assertLte(this, message);
   }
 }
 
@@ -208,6 +212,9 @@ class UInt32 extends CircuitValue {
 
   toString(): string {
     return this.value.toString();
+  }
+  toBigint() {
+    return this.value.toBigInt();
   }
 
   toUInt64(): UInt64 {
@@ -323,45 +330,46 @@ class UInt32 extends CircuitValue {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
     } else {
       let xMinusY = this.value.sub(y.value).seal();
+      let yMinusX = xMinusY.neg();
       let xMinusYFits = xMinusY
         .rangeCheckHelper(UInt32.NUM_BITS)
         .equals(xMinusY);
-      let yMinusXFits = xMinusY
+      let yMinusXFits = yMinusX
         .rangeCheckHelper(UInt32.NUM_BITS)
-        .equals(xMinusY.neg());
+        .equals(yMinusX);
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
     }
   }
 
-  assertLte(y: UInt32) {
+  assertLte(y: UInt32, message?: string) {
     let yMinusX = y.value.sub(this.value).seal();
-    yMinusX.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(yMinusX);
+    yMinusX.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(yMinusX, message);
   }
 
   lt(y: UInt32) {
     return this.lte(y).and(this.value.equals(y.value).not());
   }
 
-  assertLt(y: UInt32) {
-    this.lt(y).assertEquals(true);
+  assertLt(y: UInt32, message?: string) {
+    this.lt(y).assertEquals(true, message);
   }
 
   gt(y: UInt32) {
     return y.lt(this);
   }
 
-  assertGt(y: UInt32) {
-    y.assertLt(this);
+  assertGt(y: UInt32, message?: string) {
+    y.assertLt(this, message);
   }
 
   gte(y: UInt32) {
     return this.lt(y).not();
   }
 
-  assertGte(y: UInt32) {
-    y.assertLte(this);
+  assertGte(y: UInt32, message?: string) {
+    y.assertLte(this, message);
   }
 }
 
@@ -540,9 +548,12 @@ class Int64 extends CircuitValue implements BalanceChange {
     let y_ = Int64.from(y);
     return this.toField().equals(y_.toField());
   }
-  assertEquals(y: Int64 | number | string | bigint | UInt64 | UInt32) {
+  assertEquals(
+    y: Int64 | number | string | bigint | UInt64 | UInt32,
+    message?: string
+  ) {
     let y_ = Int64.from(y);
-    this.toField().assertEquals(y_.toField());
+    this.toField().assertEquals(y_.toField(), message);
   }
   isPositive() {
     return this.sgn.isPositive();

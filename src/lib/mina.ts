@@ -253,10 +253,11 @@ function LocalBlockchain({
   }[] = [];
 
   for (let i = 0; i < 10; ++i) {
-    const largeValue = '30000000000';
+    let MINA = 10n ** 9n;
+    const largeValue = 1000n * MINA;
     const k = PrivateKey.random();
     const pk = k.toPublicKey();
-    addAccount(pk, largeValue);
+    addAccount(pk, largeValue.toString());
     testAccounts.push({ privateKey: k, publicKey: pk });
   }
 
@@ -283,6 +284,7 @@ function LocalBlockchain({
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
         );
       } else {
+        let { timing } = ledgerAccount;
         return {
           publicKey: publicKey,
           tokenId,
@@ -300,6 +302,16 @@ function LocalBlockchain({
             ledgerAccount.zkapp?.sequenceState[0] ??
             SequenceEvents.emptySequenceState(),
           permissions: Permissions.fromJSON(ledgerAccount.permissions),
+          timing: {
+            isTimed: timing.isTimed,
+            initialMinimumBalance: UInt64.fromObject(
+              timing.initialMinimumBalance
+            ),
+            cliffAmount: UInt64.fromObject(timing.cliffAmount),
+            cliffTime: UInt32.fromObject(timing.cliffTime),
+            vestingPeriod: UInt32.fromObject(timing.vestingPeriod),
+            vestingIncrement: UInt64.fromObject(timing.vestingIncrement),
+          },
         };
       }
     },
@@ -459,11 +471,17 @@ function LocalBlockchain({
     setTimestamp(ms: UInt64) {
       networkState.timestamp = ms;
     },
-    setGlobalSlot(slot: UInt32) {
-      networkState.globalSlotSinceGenesis = slot;
+    setGlobalSlot(slot: UInt32 | number) {
+      networkState.globalSlotSinceGenesis = UInt32.from(slot);
+      let difference = networkState.globalSlotSinceGenesis.sub(slot);
+      networkState.globalSlotSinceHardFork =
+        networkState.globalSlotSinceHardFork.add(difference);
     },
-    setGlobalSlotSinceHardfork(slot: UInt32) {
-      networkState.globalSlotSinceHardFork = slot;
+    incrementGlobalSlot(increment: UInt32 | number) {
+      networkState.globalSlotSinceGenesis =
+        networkState.globalSlotSinceGenesis.add(increment);
+      networkState.globalSlotSinceHardFork =
+        networkState.globalSlotSinceHardFork.add(increment);
     },
     setBlockchainLength(height: UInt32) {
       networkState.blockchainLength = height;
@@ -865,6 +883,11 @@ async function verifyAccountUpdate(
 
       let verificationKey = account.zkapp?.verificationKey?.data!;
       isValidProof = await verify(proof.toJSON(), verificationKey);
+      if (!isValidProof) {
+        throw Error(
+          `Invalid proof for account update\n${JSON.stringify(update)}`
+        );
+      }
     } catch (error) {
       errorTrace += '\n\n' + (error as Error).message;
       isValidProof = false;
@@ -888,6 +911,8 @@ async function verifyAccountUpdate(
     }
   }
 
+  let verified = false;
+
   function checkPermission(p: Types.Json.AuthRequired, field: string) {
     if (p == 'None') return;
 
@@ -897,7 +922,6 @@ async function verifyAccountUpdate(
       );
     }
 
-    let verified = false;
     if (p == 'Signature' || p == 'Either') {
       verified ||= isValidSignature;
     }
@@ -931,5 +955,15 @@ async function verifyAccountUpdate(
   if (accountUpdate.body.incrementNonce.toBoolean()) {
     let p = permissionForUpdate('incrementNonce');
     checkPermission(p, 'incrementNonce');
+  }
+
+  // this checks for an edge case where an account update can be authorized using proofs but
+  // a) the proof is invalid (bad verification key)
+  // and b) there are no state changes initiate so no permissions will be checked
+  // however, if the verification key changes, the proof should still be invalid
+  if (errorTrace && !verified) {
+    throw Error(
+      `One or more proofs were invalid and no other form of authorization was provided.\n${errorTrace}`
+    );
   }
 }

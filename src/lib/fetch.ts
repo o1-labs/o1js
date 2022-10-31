@@ -144,6 +144,11 @@ type Account = {
   sequenceState?: Field;
   provedState: Bool;
   verificationKey?: string;
+  timing?: NonNullable<
+    Types.AccountUpdate['body']['update']['timing']['value']
+  > & {
+    isTimed: Bool;
+  };
 };
 
 type FlexibleAccount = {

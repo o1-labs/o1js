@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added an optional string parameter to certain `assert` methods https://github.com/o1-labs/snarkyjs/pull/470
 - `Struct`, a new primitive for declaring composite, SNARK-compatible types https://github.com/o1-labs/snarkyjs/pull/416
   - With this, we also added a way to include auxiliary, non-field element data in composite types
   - Added `VerificationKey`, which is a `Struct` with auxiliary data, to pass verification keys to a `@method`
@@ -44,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Proof verification on the web version https://github.com/o1-labs/snarkyjs/pull/476
+- Callback arguments are properly passed into method invocations https://github.com/o1-labs/snarkyjs/pull/516
 
 ## [0.6.0](https://github.com/o1-labs/snarkyjs/compare/f2ad423...ba688523)
 

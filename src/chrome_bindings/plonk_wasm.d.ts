@@ -9,16 +9,6 @@ export function caml_pallas_affine_one(): WasmGPallas;
 */
 export function caml_vesta_affine_one(): WasmGVesta;
 /**
-* @param {Uint8Array} state
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_poseidon_block_cipher(state: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} state
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fq_poseidon_block_cipher(state: Uint8Array): Uint8Array;
-/**
 * @returns {WasmPallasGProjective}
 */
 export function caml_pallas_one(): WasmPallasGProjective;
@@ -158,6 +148,16 @@ export function caml_vesta_of_affine_coordinates(x: Uint8Array, y: Uint8Array): 
 * @returns {WasmGVesta}
 */
 export function caml_vesta_affine_deep_copy(x: WasmGVesta): WasmGVesta;
+/**
+* @param {Uint8Array} state
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_poseidon_block_cipher(state: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} state
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fq_poseidon_block_cipher(state: Uint8Array): Uint8Array;
 /**
 * @param {number} depth
 * @returns {WasmFpSrs}
@@ -457,6 +457,68 @@ export function fq_oracles_dummy(): WasmFqOracles;
 */
 export function fq_oracles_deep_copy(x: WasmFqProverProof): WasmFqProverProof;
 /**
+* @param {string} s
+* @param {number} _len
+* @param {number} base
+* @returns {Uint8Array}
+*/
+export function caml_bigint_256_of_numeral(s: string, _len: number, base: number): Uint8Array;
+/**
+* @param {string} s
+* @returns {Uint8Array}
+*/
+export function caml_bigint_256_of_decimal_string(s: string): Uint8Array;
+/**
+* @returns {number}
+*/
+export function caml_bigint_256_num_limbs(): number;
+/**
+* @returns {number}
+*/
+export function caml_bigint_256_bytes_per_limb(): number;
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {Uint8Array}
+*/
+export function caml_bigint_256_div(x: Uint8Array, y: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {number}
+*/
+export function caml_bigint_256_compare(x: Uint8Array, y: Uint8Array): number;
+/**
+* @param {Uint8Array} x
+*/
+export function caml_bigint_256_print(x: Uint8Array): void;
+/**
+* @param {Uint8Array} x
+* @returns {string}
+*/
+export function caml_bigint_256_to_string(x: Uint8Array): string;
+/**
+* @param {Uint8Array} x
+* @param {number} i
+* @returns {boolean}
+*/
+export function caml_bigint_256_test_bit(x: Uint8Array, i: number): boolean;
+/**
+* @param {Uint8Array} x
+* @returns {Uint8Array}
+*/
+export function caml_bigint_256_to_bytes(x: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @returns {Uint8Array}
+*/
+export function caml_bigint_256_of_bytes(x: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @returns {Uint8Array}
+*/
+export function caml_bigint_256_deep_copy(x: Uint8Array): Uint8Array;
+/**
 * @returns {WasmFpGateVector}
 */
 export function caml_pasta_fp_plonk_gate_vector_create(): WasmFpGateVector;
@@ -636,68 +698,6 @@ export function set_u32_ptr(ptr: number, arg: number): void;
 * @returns {number}
 */
 export function wait_until_non_zero(ptr: number): number;
-/**
-* @param {string} s
-* @param {number} _len
-* @param {number} base
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_of_numeral(s: string, _len: number, base: number): Uint8Array;
-/**
-* @param {string} s
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_of_decimal_string(s: string): Uint8Array;
-/**
-* @returns {number}
-*/
-export function caml_bigint_256_num_limbs(): number;
-/**
-* @returns {number}
-*/
-export function caml_bigint_256_bytes_per_limb(): number;
-/**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_div(x: Uint8Array, y: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
-* @returns {number}
-*/
-export function caml_bigint_256_compare(x: Uint8Array, y: Uint8Array): number;
-/**
-* @param {Uint8Array} x
-*/
-export function caml_bigint_256_print(x: Uint8Array): void;
-/**
-* @param {Uint8Array} x
-* @returns {string}
-*/
-export function caml_bigint_256_to_string(x: Uint8Array): string;
-/**
-* @param {Uint8Array} x
-* @param {number} i
-* @returns {boolean}
-*/
-export function caml_bigint_256_test_bit(x: Uint8Array, i: number): boolean;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_to_bytes(x: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_of_bytes(x: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_deep_copy(x: Uint8Array): Uint8Array;
 /**
 * @returns {number}
 */
@@ -2022,11 +2022,6 @@ export interface InitOutput {
   readonly __wbg_set_wasmgvesta_y: (a: number, b: number, c: number) => void;
   readonly caml_pallas_affine_one: () => number;
   readonly caml_vesta_affine_one: () => number;
-  readonly caml_pasta_fp_poseidon_block_cipher: (a: number, b: number, c: number) => void;
-  readonly caml_pasta_fq_poseidon_block_cipher: (a: number, b: number, c: number) => void;
-  readonly __wbg_wasmgvesta_free: (a: number) => void;
-  readonly __wbg_set_wasmgvesta_infinity: (a: number, b: number) => void;
-  readonly __wbg_get_wasmgvesta_infinity: (a: number) => number;
   readonly caml_pallas_one: () => number;
   readonly caml_pallas_add: (a: number, b: number) => number;
   readonly caml_pallas_sub: (a: number, b: number) => number;
@@ -2054,7 +2049,12 @@ export interface InitOutput {
   readonly caml_vesta_to_affine: (a: number) => number;
   readonly caml_vesta_of_affine: (a: number) => number;
   readonly caml_vesta_of_affine_coordinates: (a: number, b: number, c: number, d: number) => number;
+  readonly caml_pasta_fp_poseidon_block_cipher: (a: number, b: number, c: number) => void;
+  readonly caml_pasta_fq_poseidon_block_cipher: (a: number, b: number, c: number) => void;
+  readonly __wbg_wasmgvesta_free: (a: number) => void;
+  readonly __wbg_set_wasmgvesta_infinity: (a: number, b: number) => void;
   readonly caml_vesta_affine_deep_copy: (a: number) => number;
+  readonly __wbg_get_wasmgvesta_infinity: (a: number) => number;
   readonly __wbg_wasmgatewires_free: (a: number) => void;
   readonly __wbg_get_wasmgatewires_0: (a: number) => number;
   readonly __wbg_set_wasmgatewires_0: (a: number, b: number) => void;
@@ -2196,6 +2196,7 @@ export interface InitOutput {
   readonly wasmvecvecfqpolycomm_push: (a: number, b: number, c: number) => void;
   readonly caml_pasta_fq_plonk_proof_batch_verify: (a: number, b: number, c: number, d: number) => number;
   readonly caml_pasta_fq_plonk_proof_dummy: () => number;
+  readonly caml_fq_srs_read: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly wasmfqopeningproof_sg: (a: number) => number;
   readonly wasmfqproofevaluations_set_s: (a: number, b: number) => void;
   readonly wasmfqproverproof_set_prev_challenges_scalars: (a: number, b: number) => void;
@@ -2205,25 +2206,24 @@ export interface InitOutput {
   readonly __wbg_wasmfqopeningproof_free: (a: number) => void;
   readonly wasmfqproverproof_set_evals0: (a: number, b: number) => void;
   readonly wasmfqproverproof_set_evals1: (a: number, b: number) => void;
-  readonly wasmfqprovercommitments_z_comm: (a: number) => number;
   readonly wasmfqopeningproof_set_sg: (a: number, b: number) => void;
   readonly wasmfqproverproof_set_commitments: (a: number, b: number) => void;
   readonly wasmfqproverproof_set_proof: (a: number, b: number) => void;
-  readonly wasmfqproverproof_proof: (a: number) => number;
-  readonly wasmfqprovercommitments_t_comm: (a: number) => number;
   readonly caml_pasta_fq_plonk_proof_deep_copy: (a: number) => number;
-  readonly wasmfqopeningproof_delta: (a: number) => number;
+  readonly wasmfqprovercommitments_z_comm: (a: number) => number;
   readonly caml_fq_srs_h: (a: number) => number;
   readonly __wbg_wasmfqprovercommitments_free: (a: number) => void;
   readonly __wbg_wasmfqproofevaluations_free: (a: number) => void;
   readonly wasmfqproofevaluations_set_w: (a: number, b: number) => void;
   readonly wasmfqprovercommitments_set_t_comm: (a: number, b: number) => void;
+  readonly wasmfqopeningproof_delta: (a: number) => number;
   readonly wasmvecvecfppolycomm_create: (a: number) => number;
   readonly wasmvecvecfq_create: (a: number) => number;
   readonly wasmvecvecfqpolycomm_create: (a: number) => number;
   readonly __wbg_wasmvecvecfqpolycomm_free: (a: number) => void;
   readonly __wbg_wasmfqproverproof_free: (a: number) => void;
-  readonly caml_fq_srs_read: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly wasmfqproverproof_proof: (a: number) => number;
+  readonly wasmfqprovercommitments_t_comm: (a: number) => number;
   readonly __wbg_wasmvecvecfq_free: (a: number) => void;
   readonly __wbg_wasmfqdomain_free: (a: number) => void;
   readonly __wbg_get_wasmfqdomain_log_size_of_group: (a: number) => number;
@@ -2440,11 +2440,22 @@ export interface InitOutput {
   readonly __wbg_wasmfqoracles_free: (a: number) => void;
   readonly __wbg_set_wasmfpshifts_s0: (a: number, b: number, c: number) => void;
   readonly __wbg_get_wasmfpshifts_s0: (a: number, b: number) => void;
-  readonly fq_oracles_dummy: () => number;
   readonly __wbg_set_wasmfqoracles_o: (a: number, b: number) => void;
+  readonly fq_oracles_dummy: () => number;
   readonly fq_oracles_deep_copy: (a: number) => number;
+  readonly caml_bigint_256_of_numeral: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly caml_bigint_256_of_decimal_string: (a: number, b: number, c: number) => void;
+  readonly caml_bigint_256_num_limbs: () => number;
+  readonly caml_bigint_256_bytes_per_limb: () => number;
+  readonly caml_bigint_256_div: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly caml_bigint_256_compare: (a: number, b: number, c: number, d: number) => number;
+  readonly caml_bigint_256_print: (a: number, b: number) => void;
+  readonly caml_bigint_256_to_string: (a: number, b: number, c: number) => void;
+  readonly caml_bigint_256_test_bit: (a: number, b: number, c: number) => number;
+  readonly caml_bigint_256_to_bytes: (a: number, b: number, c: number) => void;
+  readonly caml_bigint_256_of_bytes: (a: number, b: number, c: number) => void;
+  readonly caml_bigint_256_deep_copy: (a: number, b: number, c: number) => void;
   readonly __wbg_wasmpallasgprojective_free: (a: number) => void;
-  readonly __wbg_wasmvestagprojective_free: (a: number) => void;
   readonly __wbg_wasmfpgatevector_free: (a: number) => void;
   readonly __wbg_wasmfpgate_free: (a: number) => void;
   readonly __wbg_get_wasmfpgate_typ: (a: number) => number;
@@ -2472,6 +2483,7 @@ export interface InitOutput {
   readonly caml_pasta_fp_plonk_index_read: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
   readonly caml_pasta_fp_plonk_index_write: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly caml_pasta_fp_plonk_index_serialize: (a: number, b: number) => void;
+  readonly __wbg_wasmpastafqplonkindex_free: (a: number) => void;
   readonly caml_pasta_fq_plonk_index_create: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly caml_pasta_fq_plonk_index_read: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
   readonly caml_pasta_fq_plonk_index_write: (a: number, b: number, c: number, d: number, e: number) => void;
@@ -2487,6 +2499,7 @@ export interface InitOutput {
   readonly wasmfqpolycomm_set_unshifted: (a: number, b: number, c: number) => void;
   readonly __wbg_get_wasmfqgate_typ: (a: number) => number;
   readonly __wbg_get_wasmfqgate_wires: (a: number) => number;
+  readonly __wbg_wasmvestagprojective_free: (a: number) => void;
   readonly __wbg_wasmfqpolycomm_free: (a: number) => void;
   readonly caml_pasta_fq_plonk_index_max_degree: (a: number) => number;
   readonly __wbg_set_wasmfqgate_typ: (a: number, b: number) => void;
@@ -2500,25 +2513,12 @@ export interface InitOutput {
   readonly caml_pasta_fq_plonk_index_domain_d8_size: (a: number) => number;
   readonly __wbg_wasmfqgatevector_free: (a: number) => void;
   readonly __wbg_get_wasmfqpolycomm_shifted: (a: number) => number;
-  readonly __wbg_wasmpastafqplonkindex_free: (a: number) => void;
   readonly greet: (a: number, b: number) => void;
   readonly console_log: (a: number, b: number) => void;
   readonly create_zero_u32_ptr: () => number;
   readonly free_u32_ptr: (a: number) => void;
   readonly set_u32_ptr: (a: number, b: number) => void;
   readonly wait_until_non_zero: (a: number) => number;
-  readonly caml_bigint_256_of_numeral: (a: number, b: number, c: number, d: number, e: number) => void;
-  readonly caml_bigint_256_of_decimal_string: (a: number, b: number, c: number) => void;
-  readonly caml_bigint_256_num_limbs: () => number;
-  readonly caml_bigint_256_bytes_per_limb: () => number;
-  readonly caml_bigint_256_div: (a: number, b: number, c: number, d: number, e: number) => void;
-  readonly caml_bigint_256_compare: (a: number, b: number, c: number, d: number) => number;
-  readonly caml_bigint_256_print: (a: number, b: number) => void;
-  readonly caml_bigint_256_to_string: (a: number, b: number, c: number) => void;
-  readonly caml_bigint_256_test_bit: (a: number, b: number, c: number) => number;
-  readonly caml_bigint_256_to_bytes: (a: number, b: number, c: number) => void;
-  readonly caml_bigint_256_of_bytes: (a: number, b: number, c: number) => void;
-  readonly caml_bigint_256_deep_copy: (a: number, b: number, c: number) => void;
   readonly caml_pasta_fp_size_in_bits: () => number;
   readonly caml_pasta_fp_size: (a: number) => void;
   readonly caml_pasta_fp_add: (a: number, b: number, c: number, d: number, e: number) => void;
@@ -2594,15 +2594,17 @@ export interface InitOutput {
   readonly __wbindgen_start: () => void;
 }
 
+export type SyncInitInput = BufferSource | WebAssembly.Module;
 /**
-* Synchronously compiles the given `bytes` and instantiates the WebAssembly module.
+* Instantiates the given `module`, which can either be bytes or
+* a precompiled `WebAssembly.Module`.
 *
-* @param {BufferSource} bytes
+* @param {SyncInitInput} module
 * @param {WebAssembly.Memory} maybe_memory
 *
 * @returns {InitOutput}
 */
-export function initSync(bytes: BufferSource, maybe_memory?: WebAssembly.Memory): InitOutput;
+export function initSync(module: SyncInitInput, maybe_memory?: WebAssembly.Memory): InitOutput;
 
 /**
 * If `module_or_path` is {RequestInfo} or {URL}, makes a request and
