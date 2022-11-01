@@ -273,6 +273,24 @@ declare class Field {
 
   /* Self members */
   /**
+   * @deprecated Static constant values on Field are deprecated in favor of using the constructor `Field(1)`.
+   *
+   * The number 1 as a [[`Field`]].
+   */
+  static one: Field;
+  /**
+   * @deprecated Static constant values on Field are deprecated in favor of using the constructor `Field(0)`.
+   *
+   * The number 0 as a [[`Field`]].
+   */
+  static zero: Field;
+  /**
+   * @deprecated Static constant values on Field are deprecated in favor of using the constructor `Field(-1)`.
+   *
+   * The number -1 as a [[`Field`]].
+   */
+  static minusOne: Field;
+  /**
    * The field order as a `bigint`.
    */
   static ORDER: bigint;
