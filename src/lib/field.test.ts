@@ -21,9 +21,9 @@ describe('Field constructor', () => {
   });
 
   it('handles negative numbers', () => {
-    expect(Field(-1)).toEqual(Field.one.neg());
+    expect(Field(-1)).toEqual(Field(1).neg());
     expect(Field(-(2 ** 31))).toEqual(Field(2 ** 31).neg());
-    expect(Field.fromNumber(-1)).toEqual(Field.one.neg());
+    expect(Field.fromNumber(-1)).toEqual(Field(1).neg());
   });
 
   it('throws on fractional numbers', () => {
@@ -35,9 +35,9 @@ describe('Field constructor', () => {
   // Field(bigint), Field.fromBigInt, toBigInt
 
   it('handles bigints', () => {
-    expect(Field(-1n)).toEqual(Field.one.neg());
+    expect(Field(-1n)).toEqual(Field(1).neg());
     expect(Field.fromBigInt(-1n)).toEqual(Field.fromNumber(-1));
-    expect(Field(Field.ORDER - 1n)).toEqual(Field.one.neg());
+    expect(Field(Field.ORDER - 1n)).toEqual(Field(1).neg());
     expect(Field(1n << 64n).toString()).toEqual('18446744073709551616');
     expect(Field.fromBigInt(1n << 64n)).toEqual(Field('18446744073709551616'));
   });
@@ -47,9 +47,9 @@ describe('Field constructor', () => {
 
 describe('Field serialization and static props', () => {
   it('toBigInt works on static props', () => {
-    expect(Field.one.toBigInt()).toEqual(1n);
-    expect(Field.zero.toBigInt()).toEqual(0n);
-    expect(Field.minusOne.toBigInt()).toEqual(Field.ORDER - 1n);
+    expect(Field(1).toBigInt()).toEqual(1n);
+    expect(Field(0).toBigInt()).toEqual(0n);
+    expect(Field(-1).toBigInt()).toEqual(Field.ORDER - 1n);
     expect(Field(0xff).toBigInt()).toEqual(0xffn);
   });
 });

@@ -13,7 +13,7 @@ import {
 export class MerkleWitness extends Experimental.MerkleWitness(8) {}
 let w = {
   isLeft: false,
-  sibling: Field.zero,
+  sibling: Field(0),
 };
 let dummyWitness = Array.from(Array(MerkleWitness.height - 1).keys()).map(
   () => w
@@ -50,7 +50,7 @@ export class Member extends CircuitValue {
     this.hashVoted = Bool(false);
     this.accountId = accountId;
     this.isCandidate = Bool(false);
-    this.votes = Field.zero;
+    this.votes = Field(0);
 
     this.witness = new MerkleWitness(dummyWitness);
     this.votesWitness = new MerkleWitness(dummyWitness);
@@ -75,7 +75,7 @@ export class Member extends CircuitValue {
   }
 
   static empty() {
-    return new Member(PublicKey.empty(), Field.zero, UInt64.zero, Field.zero);
+    return new Member(PublicKey.empty(), Field(0), UInt64.zero, Field(0));
   }
 
   static from(publicKey: PublicKey, tokenId: Field, balance: UInt64) {

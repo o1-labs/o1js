@@ -11,11 +11,11 @@ class UInt64 extends CircuitValue {
   static NUM_BITS = 64;
 
   static get zero() {
-    return new UInt64(Field.zero);
+    return new UInt64(Field(0));
   }
 
   static get one() {
-    return new UInt64(Field.one);
+    return new UInt64(Field(1));
   }
 
   toString() {
@@ -203,11 +203,11 @@ class UInt32 extends CircuitValue {
   static NUM_BITS = 32;
 
   static get zero(): UInt32 {
-    return new UInt32(Field.zero);
+    return new UInt32(Field(0));
   }
 
   static get one(): UInt32 {
-    return new UInt32(Field.one);
+    return new UInt32(Field(1));
   }
 
   toString(): string {
@@ -377,14 +377,14 @@ class Sign extends CircuitValue {
   @prop value: Field; // +/- 1
 
   static get one() {
-    return new Sign(Field.one);
+    return new Sign(Field(1));
   }
   static get minusOne() {
-    return new Sign(Field.minusOne);
+    return new Sign(Field(-1));
   }
   static check(x: Sign) {
     // x^2 == 1  <=>  x == 1 or x == -1
-    x.value.square().assertEquals(Field.one);
+    x.value.square().assertEquals(Field(1));
   }
   static toInput(x: Sign): HashInput {
     return { packed: [[x.isPositive().toField(), 1]] };
@@ -401,7 +401,7 @@ class Sign extends CircuitValue {
     return new Sign(this.value.mul(y.value));
   }
   isPositive() {
-    return this.value.equals(Field.one);
+    return this.value.equals(Field(1));
   }
   toString() {
     return this.value.toString();
