@@ -118,12 +118,12 @@ let tokenOwner = PrivateKey.random().toPublicKey();
 body.tokenId = new Token({ tokenOwner }).id;
 body.caller = body.tokenId;
 let events = Events.empty();
-events = Events.pushEvent(events, [Field.one]);
-events = Events.pushEvent(events, [Field.zero]);
+events = Events.pushEvent(events, [Field(1)]);
+events = Events.pushEvent(events, [Field(0)]);
 body.events = events;
 let sequenceEvents = SequenceEvents.empty();
-sequenceEvents = SequenceEvents.pushEvent(sequenceEvents, [Field.one]);
-sequenceEvents = SequenceEvents.pushEvent(sequenceEvents, [Field.zero]);
+sequenceEvents = SequenceEvents.pushEvent(sequenceEvents, [Field(1)]);
+sequenceEvents = SequenceEvents.pushEvent(sequenceEvents, [Field(0)]);
 body.sequenceEvents = sequenceEvents;
 
 testInput(Body, Ledger.hashInputFromJson.body, body);

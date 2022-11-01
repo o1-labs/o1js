@@ -103,7 +103,7 @@ try {
       0n,
       Member.from(
         PrivateKey.random().toPublicKey(),
-        Field.zero,
+        Field(0),
         UInt64.from(150)
       ),
       voterStore
@@ -127,7 +127,7 @@ try {
       1n,
       Member.from(
         PrivateKey.random().toPublicKey(),
-        Field.zero,
+        Field(0),
         UInt64.from(160)
       ),
       voterStore
@@ -152,7 +152,7 @@ try {
       2n,
       Member.from(
         PrivateKey.random().toPublicKey(),
-        Field.zero,
+        Field(0),
         UInt64.from(170)
       ),
       voterStore
@@ -191,7 +191,7 @@ try {
       0n,
       Member.from(
         PrivateKey.random().toPublicKey(),
-        Field.zero,
+        Field(0),
         UInt64.from(250)
       ),
       candidateStore
@@ -215,7 +215,7 @@ try {
       1n,
       Member.from(
         PrivateKey.random().toPublicKey(),
-        Field.zero,
+        Field(0),
         UInt64.from(400)
       ),
       candidateStore

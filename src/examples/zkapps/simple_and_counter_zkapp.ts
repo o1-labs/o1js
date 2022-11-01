@@ -29,7 +29,7 @@ const doProofs = true;
 
 await isReady;
 
-const INCREMENT = Field.one;
+const INCREMENT = Field(1);
 
 let offchainStorage = {
   pendingActions: [] as Field[][],

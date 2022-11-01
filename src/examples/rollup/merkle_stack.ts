@@ -16,7 +16,7 @@ export class MerkleStack<A extends CircuitValue> {
     this.values = { computed: false, f };
     this.eltTyp = eltTyp;
     // TODO
-    this.commitment = Field.zero;
+    this.commitment = Field(0);
   }
 
   getValues(): Array<[A, Field]> {

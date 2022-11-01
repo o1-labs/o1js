@@ -14,7 +14,7 @@ import {
 
 await isReady;
 
-const INCREMENT = Field.one;
+const INCREMENT = Field(1);
 
 class CounterZkapp extends SmartContract {
   // the "reducer" field describes a type of action that we can dispatch, and reduce later
@@ -61,7 +61,7 @@ class CounterZkapp extends SmartContract {
 }
 
 const doProofs = true;
-const initialCounter = Field.zero;
+const initialCounter = Field(0);
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);

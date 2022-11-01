@@ -22,7 +22,7 @@ class MaybeIncrement extends Struct({
   isIncrement: Bool,
   otherData: Field,
 }) {}
-const INCREMENT = { isIncrement: Bool(true), otherData: Field.zero };
+const INCREMENT = { isIncrement: Bool(true), otherData: Field(0) };
 
 class CounterZkapp extends SmartContract {
   // the "reducer" field describes a type of action that we can dispatch, and reduce later
@@ -72,7 +72,7 @@ class CounterZkapp extends SmartContract {
 }
 
 const doProofs = true;
-const initialCounter = Field.zero;
+const initialCounter = Field(0);
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);

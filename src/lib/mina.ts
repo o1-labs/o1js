@@ -292,7 +292,7 @@ function LocalBlockchain({
           nonce: new UInt32(ledgerAccount.nonce.value),
           appState:
             ledgerAccount.zkapp?.appState ??
-            Array(ZkappStateLength).fill(Field.zero),
+            Array(ZkappStateLength).fill(Field(0)),
           tokenSymbol: ledgerAccount.tokenSymbol,
           receiptChainHash: ledgerAccount.receiptChainHash,
           provedState: Bool(ledgerAccount.zkapp?.provedState ?? false),
@@ -777,7 +777,7 @@ function dummyAccount(pubkey?: PublicKey): Account {
     nonce: UInt32.zero,
     publicKey: pubkey ?? PublicKey.empty(),
     tokenId: TokenId.default,
-    appState: Array(ZkappStateLength).fill(Field.zero),
+    appState: Array(ZkappStateLength).fill(Field(0)),
     tokenSymbol: '',
     provedState: Bool(false),
     receiptChainHash: emptyReceiptChainHash(),
@@ -788,14 +788,14 @@ function dummyAccount(pubkey?: PublicKey): Account {
 
 function defaultNetworkState(): NetworkValue {
   let epochData: NetworkValue['stakingEpochData'] = {
-    ledger: { hash: Field.zero, totalCurrency: UInt64.zero },
-    seed: Field.zero,
-    startCheckpoint: Field.zero,
-    lockCheckpoint: Field.zero,
+    ledger: { hash: Field(0), totalCurrency: UInt64.zero },
+    seed: Field(0),
+    startCheckpoint: Field(0),
+    lockCheckpoint: Field(0),
     epochLength: UInt32.zero,
   };
   return {
-    snarkedLedgerHash: Field.zero,
+    snarkedLedgerHash: Field(0),
     timestamp: UInt64.zero,
     blockchainLength: UInt32.zero,
     minWindowDensity: UInt32.zero,

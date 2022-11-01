@@ -29,7 +29,7 @@ describe('scalar', () => {
         it('should return a Scalar', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              Circuit.witness(Scalar, () => Scalar.fromFields([Field.one]));
+              Circuit.witness(Scalar, () => Scalar.fromFields([Field(1)]));
             });
           }).not.toThrow();
         });
@@ -128,7 +128,7 @@ describe('scalar', () => {
       describe('fromFields', () => {
         it('should return a Scalar', () => {
           expect(() => {
-            Scalar.fromFields([Field.one]);
+            Scalar.fromFields([Field(1)]);
           }).not.toThrow();
         });
       });
