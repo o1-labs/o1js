@@ -29,7 +29,7 @@ const doProofs = true;
 
 await isReady;
 
-const INCREMENT = Field.one;
+const INCREMENT = Field(1);
 
 let offchainStorage = {
   pendingActions: [] as Field[][],
@@ -133,10 +133,7 @@ class SimpleZkapp extends SmartContract {
     // pay out half of the zkapp balance to the caller
     let balance = this.account.balance.get();
     this.account.balance.assertEquals(balance);
-    // FIXME UInt64.div() doesn't work on variables
-    let halfBalance = Circuit.witness(UInt64, () =>
-      balance.toConstant().div(2)
-    );
+    let halfBalance = balance.div(2);
     this.balance.subInPlace(halfBalance);
     callerAccountUpdate.balance.addInPlace(halfBalance);
 

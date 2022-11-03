@@ -815,7 +815,7 @@ function opaque<T, J>({
 }
 
 // FIXME: the logic in here to check for obj.constructor.name actually doesn't work
-// something that works is Field.one.constructor === obj.constructor etc
+// something that works is Field(1).constructor === obj.constructor etc
 function cloneCircuitValue<T>(obj: T): T {
   // primitive JS types and functions aren't cloned
   if (typeof obj !== 'object' || obj === null) return obj;
@@ -978,7 +978,7 @@ Circuit.switch = function <T, A extends Provable<T>>(
   if (mask.every((b) => b.toField().isConstant())) checkMask();
   else Circuit.asProver(checkMask);
   let size = type.sizeInFields();
-  let fields = Array(size).fill(Field.zero);
+  let fields = Array(size).fill(Field(0));
   for (let i = 0; i < nValues; i++) {
     let valueFields = type.toFields(values[i]);
     let maskField = mask[i].toField();

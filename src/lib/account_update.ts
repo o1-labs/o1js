@@ -408,10 +408,10 @@ const Body = {
     return {
       appState: Array(ZkappStateLength)
         .fill(0)
-        .map(() => keep(Field.zero)),
+        .map(() => keep(Field(0))),
       delegate: keep(PublicKey.empty()),
       // TODO
-      verificationKey: keep({ data: '', hash: Field.zero }),
+      verificationKey: keep({ data: '', hash: Field(0) }),
       permissions: keep(Permissions.initial()),
       // TODO don't hard code
       zkappUri: keep({
@@ -429,7 +429,7 @@ const Body = {
         vestingIncrement: UInt64.zero,
         vestingPeriod: UInt32.zero,
       }),
-      votingFor: keep(Field.zero),
+      votingFor: keep(Field(0)),
     };
   },
 
@@ -445,7 +445,7 @@ const Body = {
       events: Events.empty(),
       sequenceEvents: SequenceEvents.empty(),
       caller: TokenId.default,
-      callData: Field.zero,
+      callData: Field(0),
       callDepth: 0,
       preconditions: Preconditions.ignoreAll(),
       // the default assumption is that snarkyjs transactions don't include the fee payer
@@ -498,15 +498,15 @@ type NetworkPrecondition = Preconditions['network'];
 let NetworkPrecondition = {
   ignoreAll(): NetworkPrecondition {
     let stakingEpochData = {
-      ledger: { hash: ignore(Field.zero), totalCurrency: ignore(uint64()) },
-      seed: ignore(Field.zero),
-      startCheckpoint: ignore(Field.zero),
-      lockCheckpoint: ignore(Field.zero),
+      ledger: { hash: ignore(Field(0)), totalCurrency: ignore(uint64()) },
+      seed: ignore(Field(0)),
+      startCheckpoint: ignore(Field(0)),
+      lockCheckpoint: ignore(Field(0)),
       epochLength: ignore(uint32()),
     };
     let nextEpochData = cloneCircuitValue(stakingEpochData);
     return {
-      snarkedLedgerHash: ignore(Field.zero),
+      snarkedLedgerHash: ignore(Field(0)),
       timestamp: ignore(uint64()),
       blockchainLength: ignore(uint32()),
       minWindowDensity: ignore(uint32()),
@@ -544,12 +544,12 @@ const AccountPrecondition = {
   ignoreAll(): AccountPrecondition {
     let appState: Array<OrIgnore<Field>> = [];
     for (let i = 0; i < ZkappStateLength; ++i) {
-      appState.push(ignore(Field.zero));
+      appState.push(ignore(Field(0)));
     }
     return {
       balance: ignore(uint64()),
       nonce: ignore(uint32()),
-      receiptChainHash: ignore(Field.zero),
+      receiptChainHash: ignore(Field(0)),
       delegate: ignore(PublicKey.empty()),
       state: appState,
       sequenceState: ignore(SequenceEvents.emptySequenceState()),
@@ -590,7 +590,7 @@ const TokenId = {
   ...Types.TokenId,
   ...Encoding.TokenId,
   get default() {
-    return Field.one;
+    return Field(1);
   },
 };
 
@@ -940,7 +940,8 @@ class AccountUpdate implements Types.AccountUpdate {
     // if the fee payer is the same account update as this one, we have to start the nonce predicate at one higher,
     // bc the fee payer already increases its nonce
     let isFeePayer = Mina.currentTransaction()?.sender?.equals(publicKey);
-    if (isFeePayer?.toBoolean()) nonce++;
+    let shouldIncreaseNonce = isFeePayer?.and(tokenId.equals(TokenId.default));
+    if (shouldIncreaseNonce?.toBoolean()) nonce++;
     // now, we check how often this accountUpdate already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
     CallForest.forEachPredecessor(
       Mina.currentTransaction.get().accountUpdates,
@@ -1302,11 +1303,15 @@ class AccountUpdate implements Types.AccountUpdate {
         hash: short(body.update.verificationKey.hash),
       }) as any;
     }
-    if (body.update?.permissions) {
-      body.update.permissions = JSON.stringify(body.update.permissions) as any;
+    for (let key of ['permissions', 'appState', 'timing'] as const) {
+      if (body.update?.[key]) {
+        body.update[key] = JSON.stringify(body.update[key]) as any;
+      }
     }
-    if (body.update?.appState) {
-      body.update.appState = JSON.stringify(body.update.appState) as any;
+    for (let key of ['events', 'sequenceEvents'] as const) {
+      if (body[key]) {
+        body[key] = JSON.stringify(body[key]) as any;
+      }
     }
     if (
       jsonUpdate.authorization !== undefined ||
@@ -1350,7 +1355,7 @@ const CallForest = {
 
   // Mina_base.Zkapp_command.Digest.Forest.empty
   emptyHash() {
-    return Field.zero;
+    return Field(0);
   },
 
   // similar to Mina_base.Zkapp_command.Call_forest.accumulate_hashes

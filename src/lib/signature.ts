@@ -88,7 +88,7 @@ class PublicKey extends CircuitValue {
   }
 
   static empty() {
-    return PublicKey.from({ x: Field.zero, isOdd: Bool(false) });
+    return PublicKey.from({ x: Field(0), isOdd: Bool(false) });
   }
 
   isEmpty() {

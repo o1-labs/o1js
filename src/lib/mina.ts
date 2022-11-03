@@ -253,10 +253,11 @@ function LocalBlockchain({
   }[] = [];
 
   for (let i = 0; i < 10; ++i) {
-    const largeValue = '30000000000';
+    let MINA = 10n ** 9n;
+    const largeValue = 1000n * MINA;
     const k = PrivateKey.random();
     const pk = k.toPublicKey();
-    addAccount(pk, largeValue);
+    addAccount(pk, largeValue.toString());
     testAccounts.push({ privateKey: k, publicKey: pk });
   }
 
@@ -283,6 +284,7 @@ function LocalBlockchain({
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
         );
       } else {
+        let { timing } = ledgerAccount;
         return {
           publicKey: publicKey,
           tokenId,
@@ -290,7 +292,7 @@ function LocalBlockchain({
           nonce: new UInt32(ledgerAccount.nonce.value),
           appState:
             ledgerAccount.zkapp?.appState ??
-            Array(ZkappStateLength).fill(Field.zero),
+            Array(ZkappStateLength).fill(Field(0)),
           tokenSymbol: ledgerAccount.tokenSymbol,
           receiptChainHash: ledgerAccount.receiptChainHash,
           provedState: Bool(ledgerAccount.zkapp?.provedState ?? false),
@@ -300,6 +302,16 @@ function LocalBlockchain({
             ledgerAccount.zkapp?.sequenceState[0] ??
             SequenceEvents.emptySequenceState(),
           permissions: Permissions.fromJSON(ledgerAccount.permissions),
+          timing: {
+            isTimed: timing.isTimed,
+            initialMinimumBalance: UInt64.fromObject(
+              timing.initialMinimumBalance
+            ),
+            cliffAmount: UInt64.fromObject(timing.cliffAmount),
+            cliffTime: UInt32.fromObject(timing.cliffTime),
+            vestingPeriod: UInt32.fromObject(timing.vestingPeriod),
+            vestingIncrement: UInt64.fromObject(timing.vestingIncrement),
+          },
         };
       }
     },
@@ -459,11 +471,17 @@ function LocalBlockchain({
     setTimestamp(ms: UInt64) {
       networkState.timestamp = ms;
     },
-    setGlobalSlot(slot: UInt32) {
-      networkState.globalSlotSinceGenesis = slot;
+    setGlobalSlot(slot: UInt32 | number) {
+      networkState.globalSlotSinceGenesis = UInt32.from(slot);
+      let difference = networkState.globalSlotSinceGenesis.sub(slot);
+      networkState.globalSlotSinceHardFork =
+        networkState.globalSlotSinceHardFork.add(difference);
     },
-    setGlobalSlotSinceHardfork(slot: UInt32) {
-      networkState.globalSlotSinceHardFork = slot;
+    incrementGlobalSlot(increment: UInt32 | number) {
+      networkState.globalSlotSinceGenesis =
+        networkState.globalSlotSinceGenesis.add(increment);
+      networkState.globalSlotSinceHardFork =
+        networkState.globalSlotSinceHardFork.add(increment);
     },
     setBlockchainLength(height: UInt32) {
       networkState.blockchainLength = height;
@@ -759,7 +777,7 @@ function dummyAccount(pubkey?: PublicKey): Account {
     nonce: UInt32.zero,
     publicKey: pubkey ?? PublicKey.empty(),
     tokenId: TokenId.default,
-    appState: Array(ZkappStateLength).fill(Field.zero),
+    appState: Array(ZkappStateLength).fill(Field(0)),
     tokenSymbol: '',
     provedState: Bool(false),
     receiptChainHash: emptyReceiptChainHash(),
@@ -770,14 +788,14 @@ function dummyAccount(pubkey?: PublicKey): Account {
 
 function defaultNetworkState(): NetworkValue {
   let epochData: NetworkValue['stakingEpochData'] = {
-    ledger: { hash: Field.zero, totalCurrency: UInt64.zero },
-    seed: Field.zero,
-    startCheckpoint: Field.zero,
-    lockCheckpoint: Field.zero,
+    ledger: { hash: Field(0), totalCurrency: UInt64.zero },
+    seed: Field(0),
+    startCheckpoint: Field(0),
+    lockCheckpoint: Field(0),
     epochLength: UInt32.zero,
   };
   return {
-    snarkedLedgerHash: Field.zero,
+    snarkedLedgerHash: Field(0),
     timestamp: UInt64.zero,
     blockchainLength: UInt32.zero,
     minWindowDensity: UInt32.zero,

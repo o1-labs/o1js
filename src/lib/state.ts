@@ -223,7 +223,7 @@ function createState<T>(): InternalStateType<T> {
         }
         if (account.appState === undefined) {
           // if the account is not a zkapp account, let the default state be all zeroes
-          return Array(layout.length).fill(Field.zero);
+          return Array(layout.length).fill(Field(0));
         } else {
           let stateAsFields: Field[] = [];
           for (let i = 0; i < layout.length; ++i) {
@@ -258,7 +258,7 @@ function createState<T>(): InternalStateType<T> {
       if (account === undefined) return undefined;
       let stateAsFields: Field[];
       if (account.appState === undefined) {
-        stateAsFields = Array(layout.length).fill(Field.zero);
+        stateAsFields = Array(layout.length).fill(Field(0));
       } else {
         stateAsFields = [];
         for (let i = 0; i < layout.length; i++) {
