@@ -7,7 +7,6 @@ import {
   isReady,
   Ledger,
 } from 'snarkyjs';
-import fs from 'node:fs/promises';
 
 /* Exercise 0:
 
@@ -35,11 +34,6 @@ type Gate = {
   wires: any;
   coeffs: number[][];
 };
-type NiceGate = {
-  typ: string;
-  wires: any;
-  coeffs: bigint[];
-};
 
 function coeffsToBigint(gate: Gate) {
   let coeffs = [];
@@ -53,7 +47,7 @@ function coeffsToBigint(gate: Gate) {
 let cs: { gates: Gate[] } = JSON.parse(Ledger.keypairToJson((kp as any).value));
 let gates = cs.gates.map(coeffsToBigint);
 
-await fs.writeFile('./cs.json', JSON.stringify(gates), 'utf8');
+console.log(JSON.stringify(gates));
 
 function bytesToBigInt(bytes: Uint8Array) {
   let x = 0n;
