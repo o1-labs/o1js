@@ -29,4 +29,37 @@ const kp = Main.generateKeypair();
 
 // console.dir((kp as any).value, { depth: 4 });
 
-console.log(Ledger.keypairToJson((kp as any).value));
+type Gate = {
+  typ: string;
+  wires: any;
+  coeffs: number[][];
+};
+type NiceGate = {
+  typ: string;
+  wires: any;
+  coeffs: bigint[];
+};
+
+function coeffsToBigint(gate: Gate) {
+  let coeffs = [];
+  for (let coefficient of gate.coeffs) {
+    let arr = new Uint8Array(coefficient);
+    coeffs.push(bytesToBigInt(arr));
+  }
+  return { typ: gate.typ, wires: gate.wires, coeffs };
+}
+
+let cs: { gates: Gate[] } = JSON.parse(Ledger.keypairToJson((kp as any).value));
+let gates = cs.gates;
+
+console.log(gates.map(coeffsToBigint));
+
+function bytesToBigInt(bytes: Uint8Array) {
+  let x = 0n;
+  let bitPosition = 0n;
+  for (let byte of bytes) {
+    x += BigInt(byte) << bitPosition;
+    bitPosition += 8n;
+  }
+  return x;
+}
