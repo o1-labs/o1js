@@ -1,4 +1,8 @@
-import { GenericProvableExtended } from './generic.js';
+import {
+  GenericProvableExtended,
+  primitiveTypeMap,
+  primitiveTypes,
+} from './generic.js';
 
 export { ProvableFromLayout, GenericLayout };
 
@@ -22,10 +26,6 @@ type GenericTypeMap<
   AuthRequired: AuthRequired;
   AuthorizationKind: AuthorizationKind;
   TokenId: TokenId;
-  // builtin
-  number: number;
-  null: null;
-  string: string;
 };
 type AnyTypeMap = GenericTypeMap<any, any, any, any, any, any, any, any, any>;
 type TypeMapValues<TypeMap extends AnyTypeMap, JsonMap extends AnyTypeMap> = {
@@ -49,6 +49,8 @@ function ProvableFromLayout<
   type Field = TypeMap['Field'];
   type HashInput = { fields?: Field[]; packed?: [Field, number][] };
   type Layout = GenericLayout<TypeMap>;
+
+  const PrimitiveMap = primitiveTypeMap<Field>();
 
   function provableFromLayout<T, TJson>(typeData: Layout) {
     return {
@@ -223,6 +225,9 @@ function ProvableFromLayout<
       }
       return values;
     }
+    if (primitiveTypes.has(typeData.type as string)) {
+      return (PrimitiveMap as any)[typeData.type].fromFields(fields, aux);
+    }
     return (TypeMap as any)[typeData.type].fromFields(fields, aux);
   }
 
@@ -332,6 +337,9 @@ function ProvableFromLayout<
         object[key] = layoutFold(spec, entries[key], v?.[key]);
       });
       return spec.reduceObject(keys, object);
+    }
+    if (primitiveTypes.has(typeData.type as string)) {
+      return spec.map((PrimitiveMap as any)[typeData.type], value);
     }
     return spec.map((TypeMap as any)[typeData.type], value);
   }

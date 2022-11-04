@@ -46,10 +46,6 @@ type TypeMap = {
   UInt64: UInt64;
   Sign: Sign;
   TokenId: TokenId;
-  // builtin
-  number: number;
-  null: null;
-  string: string;
 };
 
 // types that implement AsFieldAndAux, and so can be left out of the conversion maps below
@@ -131,20 +127,6 @@ const TypeMap: {
   AuthRequired,
   AuthorizationKind,
   PublicKey,
-  // primitive JS types
-  number: {
-    ...emptyType,
-    toAuxiliary: (value = 0) => [value],
-    toJSON: (value) => value,
-    fromFields: (_, [value]) => value,
-  },
-  string: {
-    ...emptyType,
-    toAuxiliary: (value = '') => [value],
-    toJSON: (value) => value,
-    fromFields: (_, [value]) => value,
-  },
-  null: emptyType,
 };
 
 // types which got an annotation about its circuit type in Ocaml

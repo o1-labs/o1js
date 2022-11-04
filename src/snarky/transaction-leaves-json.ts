@@ -33,8 +33,4 @@ type TypeMap = {
   UInt64: UInt64;
   Sign: Sign;
   TokenId: TokenId;
-  // builtin
-  number: number;
-  null: null;
-  string: string;
 };
