@@ -137,7 +137,7 @@ import { ${[...imports, 'TypeMap'].join(', ')} } from '${importPath}';
 ${
   !isJson
     ? "import { GenericProvableExtended } from '../../generic/provable.js';\n" +
-      "import { ProvableFromLayout, GenericLayout } from '../transaction-helpers.js';\n" +
+      "import { ProvableFromLayout, GenericLayout } from '../../generic/provable-from-layout.js';\n" +
       "import * as Json from './transaction-json.js';\n" +
       "import { jsLayout } from './js-layout.js';\n"
     : ''
