@@ -43,9 +43,9 @@ type CustomTypes = {
       data: string;
       hash: Field;
     },
-    Json.TypeMap['string']
+    string
   >;
-  TokenSymbol: ProvableExtended<TokenSymbol, Json.TypeMap['string']>;
+  TokenSymbol: ProvableExtended<TokenSymbol, string>;
   Events: ProvableExtended<
     {
       data: Field[][];

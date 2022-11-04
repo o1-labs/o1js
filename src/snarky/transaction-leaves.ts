@@ -49,7 +49,6 @@ type TypeMap = {
   // builtin
   number: number;
   null: null;
-  undefined: undefined;
   string: string;
 };
 
@@ -146,10 +145,6 @@ const TypeMap: {
     fromFields: (_, [value]) => value,
   },
   null: emptyType,
-  undefined: {
-    ...emptyType,
-    fromFields: () => undefined,
-  },
 };
 
 // types which got an annotation about its circuit type in Ocaml

@@ -93,7 +93,7 @@ function writeType(typeData, isJson, withTypeMap) {
     output += indent + '}';
     return { output, dependencies, converters };
   }
-  if (withTypeMap) {
+  if (withTypeMap & !builtinLeafTypes.has(type)) {
     type = `${isJson ? 'Json.' : ''}TypeMap["${type}"]`;
   }
   // built in type

@@ -36,6 +36,5 @@ type TypeMap = {
   // builtin
   number: number;
   null: null;
-  undefined: null;
   string: string;
 };

@@ -11,8 +11,7 @@ type GenericTypeMap<
   PublicKey,
   AuthRequired,
   AuthorizationKind,
-  TokenId,
-  Undefined
+  TokenId
 > = {
   Field: Field;
   Bool: Bool;
@@ -26,21 +25,9 @@ type GenericTypeMap<
   // builtin
   number: number;
   null: null;
-  undefined: Undefined;
   string: string;
 };
-type AnyTypeMap = GenericTypeMap<
-  any,
-  any,
-  any,
-  any,
-  any,
-  any,
-  any,
-  any,
-  any,
-  any
->;
+type AnyTypeMap = GenericTypeMap<any, any, any, any, any, any, any, any, any>;
 type TypeMapValues<TypeMap extends AnyTypeMap, JsonMap extends AnyTypeMap> = {
   [K in keyof TypeMap & keyof JsonMap]: GenericProvableExtended<
     TypeMap[K],
