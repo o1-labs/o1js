@@ -1,4 +1,4 @@
-import { GenericProvableExtended } from './provable.js';
+import { GenericProvableExtended } from './generic.js';
 
 export { ProvableFromLayout, GenericLayout };
 
