@@ -9,7 +9,7 @@ import {
 } from './account_update.js';
 import { PublicKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
-import { Types } from '../snarky/types.js';
+import { Types } from '../provable/types.js';
 import * as Encoding from './encoding.js';
 
 export {

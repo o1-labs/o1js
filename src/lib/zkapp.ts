@@ -60,7 +60,7 @@ import {
   GenericArgument,
 } from './proof_system.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
-import { Types } from '../snarky/types.js';
+import { Types } from '../provable/types.js';
 import { Poseidon } from './hash.js';
 import * as Encoding from './encoding.js';
 

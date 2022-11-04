@@ -6,8 +6,8 @@ import {
   memoizeWitness,
 } from './circuit_value.js';
 import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
-import { jsLayout } from '../snarky/gen/js-layout.js';
-import { Types, toJSONEssential } from '../snarky/types.js';
+import { jsLayout } from '../provable/gen/js-layout.js';
+import { Types, toJSONEssential } from '../provable/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';

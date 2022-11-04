@@ -197,7 +197,7 @@ async function writeTsFile(content, relPath) {
   await fs.writeFile(absPath, content);
 }
 
-let genPath = '../../snarky/gen';
+let genPath = '../../provable/gen';
 await ensureDir(genPath);
 
 let jsonTypesContent = writeTsContent(jsLayout, true);

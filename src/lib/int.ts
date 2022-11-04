@@ -1,6 +1,6 @@
 import { Circuit, Field, Bool } from '../snarky.js';
 import { CircuitValue, prop } from './circuit_value.js';
-import { Types } from '../snarky/types.js';
+import { Types } from '../provable/types.js';
 import { HashInput } from './hash.js';
 
 // external API
