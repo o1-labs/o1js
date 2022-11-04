@@ -7,6 +7,7 @@ import {
   isReady,
   Ledger,
 } from 'snarkyjs';
+import fs from 'node:fs/promises';
 
 /* Exercise 0:
 
@@ -44,15 +45,15 @@ function coeffsToBigint(gate: Gate) {
   let coeffs = [];
   for (let coefficient of gate.coeffs) {
     let arr = new Uint8Array(coefficient);
-    coeffs.push(bytesToBigInt(arr));
+    coeffs.push(bytesToBigInt(arr).toString());
   }
   return { typ: gate.typ, wires: gate.wires, coeffs };
 }
 
 let cs: { gates: Gate[] } = JSON.parse(Ledger.keypairToJson((kp as any).value));
-let gates = cs.gates;
+let gates = cs.gates.map(coeffsToBigint);
 
-console.log(gates.map(coeffsToBigint));
+await fs.writeFile('./cs.json', JSON.stringify(gates), 'utf8');
 
 function bytesToBigInt(bytes: Uint8Array) {
   let x = 0n;
