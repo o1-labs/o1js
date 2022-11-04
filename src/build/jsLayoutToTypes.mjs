@@ -118,7 +118,7 @@ function writeTsContent(types, isJson) {
     mergeObject(converters, inner.converters);
     output += `type ${Type} = ${inner.output};\n\n`;
     if (!isJson) {
-      output += `let ${Type} = provableFromLayout<${Type}, Json.${Type}>(jsLayout.${Type} as any, customTypes);\n\n`;
+      output += `let ${Type} = provableFromLayout<${Type}, Json.${Type}>(jsLayout.${Type} as any);\n\n`;
     }
   }
 
@@ -156,16 +156,16 @@ ${
 export { provableFromLayout, toJSONEssential, Layout };
 
 type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, TypeMap['Field']>;
-const { provableFromLayout, toJSONEssential } = ProvableFromLayout<
-  TypeMap,
-  Json.TypeMap
->(TypeMap);
 type Layout = GenericLayout<TypeMap>;
 
 type CustomTypes = { ${customTypes
     .map((c) => `${c.typeName}: ProvableExtended<${c.type}, ${c.jsonType}>;`)
     .join(' ')} }
 let customTypes: CustomTypes = { ${customTypeNames.join(', ')} };
+let { provableFromLayout, toJSONEssential } = ProvableFromLayout<
+  TypeMap,
+  Json.TypeMap
+>(TypeMap, customTypes);
 `
 }
 

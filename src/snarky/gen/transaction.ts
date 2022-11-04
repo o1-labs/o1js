@@ -32,10 +32,6 @@ type ProvableExtended<T, TJson> = GenericProvableExtended<
   TJson,
   TypeMap['Field']
 >;
-const { provableFromLayout, toJSONEssential } = ProvableFromLayout<
-  TypeMap,
-  Json.TypeMap
->(TypeMap);
 type Layout = GenericLayout<TypeMap>;
 
 type CustomTypes = {
@@ -68,6 +64,10 @@ let customTypes: CustomTypes = {
   Events,
   SequenceEvents,
 };
+let { provableFromLayout, toJSONEssential } = ProvableFromLayout<
+  TypeMap,
+  Json.TypeMap
+>(TypeMap, customTypes);
 
 type ZkappCommand = {
   feePayer: {
@@ -270,8 +270,7 @@ type ZkappCommand = {
 };
 
 let ZkappCommand = provableFromLayout<ZkappCommand, Json.ZkappCommand>(
-  jsLayout.ZkappCommand as any,
-  customTypes
+  jsLayout.ZkappCommand as any
 );
 
 type AccountUpdate = {
@@ -463,6 +462,5 @@ type AccountUpdate = {
 };
 
 let AccountUpdate = provableFromLayout<AccountUpdate, Json.AccountUpdate>(
-  jsLayout.AccountUpdate as any,
-  customTypes
+  jsLayout.AccountUpdate as any
 );

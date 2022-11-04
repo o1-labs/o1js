@@ -52,42 +52,44 @@ type TypeMapValues<TypeMap extends AnyTypeMap, JsonMap extends AnyTypeMap> = {
 function ProvableFromLayout<
   TypeMap extends AnyTypeMap,
   JsonMap extends AnyTypeMap
->(TypeMap: TypeMapValues<TypeMap, JsonMap>) {
+>(
+  TypeMap: TypeMapValues<TypeMap, JsonMap>,
+  customTypes: Record<
+    string,
+    GenericProvableExtended<any, any, TypeMap['Field']>
+  >
+) {
   type Field = TypeMap['Field'];
-  type CustomTypes = Record<string, GenericProvableExtended<any, any, Field>>;
   type HashInput = { fields?: Field[]; packed?: [Field, number][] };
   type Layout = GenericLayout<TypeMap>;
 
-  function provableFromLayout<T, TJson>(
-    typeData: Layout,
-    customTypes: CustomTypes
-  ) {
+  function provableFromLayout<T, TJson>(typeData: Layout) {
     return {
       sizeInFields(): number {
-        return sizeInFields(typeData, customTypes);
+        return sizeInFields(typeData);
       },
       toFields(value: T): Field[] {
-        return toFields(typeData, value, customTypes);
+        return toFields(typeData, value);
       },
       toAuxiliary(value?: T): any[] {
-        return toAuxiliary(typeData, value, customTypes);
+        return toAuxiliary(typeData, value);
       },
       fromFields(fields: Field[], aux: any[]): T {
-        return fromFields(typeData, fields, aux, customTypes);
+        return fromFields(typeData, fields, aux);
       },
       toJSON(value: T): TJson {
-        return toJSON(typeData, value, customTypes);
+        return toJSON(typeData, value);
       },
       check(value: T): void {
-        check(typeData, value, customTypes);
+        check(typeData, value);
       },
       toInput(value: T): HashInput {
-        return toInput(typeData, value, customTypes);
+        return toInput(typeData, value);
       },
     };
   }
 
-  function toJSON(typeData: Layout, value: any, customTypes: CustomTypes) {
+  function toJSON(typeData: Layout, value: any) {
     return layoutFold<any, any>(
       {
         map(type, value) {
@@ -105,14 +107,13 @@ function ProvableFromLayout<
         reduceOrUndefined(value) {
           return value ?? null;
         },
-        customTypes,
       },
       typeData,
       value
     );
   }
 
-  function toFields(typeData: Layout, value: any, customTypes: CustomTypes) {
+  function toFields(typeData: Layout, value: any) {
     return layoutFold<any, Field[]>(
       {
         map(type, value) {
@@ -130,14 +131,13 @@ function ProvableFromLayout<
         reduceOrUndefined(_) {
           return [];
         },
-        customTypes,
       },
       typeData,
       value
     );
   }
 
-  function toAuxiliary(typeData: Layout, value: any, customTypes: CustomTypes) {
+  function toAuxiliary(typeData: Layout, value: any) {
     return layoutFold<any, any[]>(
       {
         map(type, value) {
@@ -155,14 +155,13 @@ function ProvableFromLayout<
         reduceOrUndefined(value) {
           return value === undefined ? [false] : [true, value];
         },
-        customTypes,
       },
       typeData,
       value
     );
   }
 
-  function sizeInFields(typeData: Layout, customTypes: CustomTypes) {
+  function sizeInFields(typeData: Layout) {
     let spec: FoldSpec<any, number> = {
       map(type) {
         return type.sizeInFields();
@@ -180,17 +179,11 @@ function ProvableFromLayout<
       reduceOrUndefined(_) {
         return 0;
       },
-      customTypes,
     };
     return layoutFold<any, number>(spec, typeData);
   }
 
-  function fromFields(
-    typeData: Layout,
-    fields: Field[],
-    aux: any[],
-    customTypes: CustomTypes
-  ): any {
+  function fromFields(typeData: Layout, fields: Field[], aux: any[]): any {
     let { checkedTypeName } = typeData;
     if (checkedTypeName) {
       // there's a custom type!
@@ -198,15 +191,14 @@ function ProvableFromLayout<
     }
     if (typeData.type === 'array') {
       let arrayTypeData = typeData as ArrayLayout<TypeMap>;
-      let size = sizeInFields(arrayTypeData.inner, customTypes);
+      let size = sizeInFields(arrayTypeData.inner);
       let length = aux.length;
       let value = [];
       for (let i = 0, offset = 0; i < length; i++, offset += size) {
         value[i] = fromFields(
           arrayTypeData.inner,
           fields.slice(offset, offset + size),
-          aux[i],
-          customTypes
+          aux[i]
         );
       }
       return value;
@@ -217,14 +209,12 @@ function ProvableFromLayout<
         case 'flaggedOption': {
           let [first, ...rest] = fields;
           let isSome = TypeMap.Bool.fromFields([first], []);
-          let value = fromFields(inner, rest, aux, customTypes);
+          let value = fromFields(inner, rest, aux);
           return { isSome, value };
         }
         case 'orUndefined': {
           let [isDefined, value] = aux;
-          return isDefined
-            ? fromFields(inner, fields, value, customTypes)
-            : undefined;
+          return isDefined ? fromFields(inner, fields, value) : undefined;
         }
         default:
           throw Error('bug');
@@ -236,12 +226,11 @@ function ProvableFromLayout<
       let offset = 0;
       for (let i = 0; i < keys.length; i++) {
         let typeEntry = entries[keys[i]];
-        let size = sizeInFields(typeEntry, customTypes);
+        let size = sizeInFields(typeEntry);
         values[keys[i]] = fromFields(
           typeEntry,
           fields.slice(offset, offset + size),
-          aux[i],
-          customTypes
+          aux[i]
         );
         offset += size;
       }
@@ -250,7 +239,7 @@ function ProvableFromLayout<
     return (TypeMap as any)[typeData.type].fromFields(fields, aux);
   }
 
-  function check(typeData: Layout, value: any, customTypes: CustomTypes) {
+  function check(typeData: Layout, value: any) {
     return layoutFold<any, void>(
       {
         map(type, value) {
@@ -260,14 +249,13 @@ function ProvableFromLayout<
         reduceObject() {},
         reduceFlaggedOption() {},
         reduceOrUndefined() {},
-        customTypes,
       },
       typeData,
       value
     );
   }
 
-  function toInput(typeData: Layout, value: any, customTypes: CustomTypes) {
+  function toInput(typeData: Layout, value: any) {
     return layoutFold<any, HashInput>(
       {
         map(type, value) {
@@ -299,7 +287,6 @@ function ProvableFromLayout<
         reduceOrUndefined(_) {
           return {};
         },
-        customTypes,
       },
       typeData,
       value
@@ -307,7 +294,6 @@ function ProvableFromLayout<
   }
 
   type FoldSpec<T, R> = {
-    customTypes: CustomTypes;
     map: (type: GenericProvableExtended<any, any, Field>, value?: T) => R;
     reduceArray: (array: R[], typeData: ArrayLayout<TypeMap>) => R;
     reduceObject: (keys: string[], record: Record<string, R>) => R;
@@ -323,7 +309,7 @@ function ProvableFromLayout<
     let { checkedTypeName } = typeData;
     if (checkedTypeName) {
       // there's a custom type!
-      return spec.map(spec.customTypes[checkedTypeName], value);
+      return spec.map(customTypes[checkedTypeName], value);
     }
     if (typeData.type === 'array') {
       let arrayTypeData = typeData as ArrayLayout<TypeMap>;
@@ -365,11 +351,7 @@ function ProvableFromLayout<
 
   // helper for pretty-printing / debugging
 
-  function toJSONEssential(
-    typeData: Layout,
-    value: any,
-    customTypes: CustomTypes
-  ) {
+  function toJSONEssential(typeData: Layout, value: any) {
     return layoutFold<any, any>(
       {
         map(type, value) {
@@ -394,7 +376,6 @@ function ProvableFromLayout<
         reduceOrUndefined(value) {
           return value ?? null;
         },
-        customTypes,
       },
       typeData,
       value

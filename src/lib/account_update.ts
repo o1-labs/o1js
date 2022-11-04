@@ -23,7 +23,6 @@ import {
 } from './hash.js';
 import * as Encoding from './encoding.js';
 import { Context } from './global-context.js';
-import { customTypes } from '../snarky/gen/transaction.js';
 
 // external API
 export { Permissions, AccountUpdate, ZkappPublicInput };
@@ -1257,8 +1256,7 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     let jsonUpdate: Partial<Types.Json.AccountUpdate> = toJSONEssential(
       jsLayout.AccountUpdate as any,
-      this,
-      customTypes
+      this
     );
     let body: Partial<Types.Json.AccountUpdate['body']> =
       jsonUpdate.body as any;
