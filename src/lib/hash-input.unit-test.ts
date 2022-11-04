@@ -16,7 +16,8 @@ import {
 } from '../index.js';
 import { Events, SequenceEvents } from './account_update.js';
 import { expect } from 'expect';
-import { provableFromLayout, jsLayout } from '../snarky/types.js';
+import { jsLayout } from '../snarky/gen/js-layout.js';
+import { provableFromLayout } from '../snarky/types.js';
 import { packToFields } from './hash.js';
 
 await isReady;

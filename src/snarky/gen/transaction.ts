@@ -14,10 +14,12 @@ import {
   StringWithHash,
   Events,
   SequenceEvents,
+  TypeMap,
 } from '../transaction-leaves.js';
 import {
-  provableFromLayout,
+  ProvableFromLayout,
   ProvableExtended,
+  GenericLayout,
 } from '../transaction-helpers.js';
 import * as Json from './transaction-json.js';
 import { jsLayout } from './js-layout.js';
@@ -25,6 +27,14 @@ import { jsLayout } from './js-layout.js';
 export { customTypes, ZkappCommand, AccountUpdate };
 export { Json };
 export * from '../transaction-leaves.js';
+
+export { provableFromLayout, toJSONEssential, Layout };
+
+const { provableFromLayout, toJSONEssential } = ProvableFromLayout<
+  TypeMap,
+  Json.TypeMap
+>(TypeMap);
+type Layout = GenericLayout<TypeMap>;
 
 type CustomTypes = {
   StringWithHash: ProvableExtended<

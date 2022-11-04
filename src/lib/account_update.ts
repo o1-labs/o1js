@@ -6,7 +6,8 @@ import {
   memoizeWitness,
 } from './circuit_value.js';
 import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
-import { jsLayout, Types } from '../snarky/types.js';
+import { jsLayout } from '../snarky/gen/js-layout.js';
+import { Types, toJSONEssential } from '../snarky/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
@@ -22,7 +23,6 @@ import {
 } from './hash.js';
 import * as Encoding from './encoding.js';
 import { Context } from './global-context.js';
-import { toJSONEssential } from '../snarky/transaction-helpers.js';
 import { customTypes } from '../snarky/gen/transaction.js';
 
 // external API

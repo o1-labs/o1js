@@ -133,10 +133,10 @@ function writeTsContent(types, isJson) {
     : '../transaction-leaves.js';
   return `// @generated this file is auto-generated - don't edit it directly
 
-import { ${[...imports].join(', ')} } from '${importPath}';
+import { ${[...imports, 'TypeMap'].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? "import { provableFromLayout, ProvableExtended } from '../transaction-helpers.js';\n" +
+    ? "import { ProvableFromLayout, ProvableExtended, GenericLayout } from '../transaction-helpers.js';\n" +
       "import * as Json from './transaction-json.js';\n" +
       "import { jsLayout } from './js-layout.js';\n"
     : ''
@@ -152,6 +152,14 @@ ${
 ${
   (!isJson || '') &&
   `
+export { provableFromLayout, toJSONEssential, Layout };
+
+const { provableFromLayout, toJSONEssential } = ProvableFromLayout<
+  TypeMap,
+  Json.TypeMap
+>(TypeMap);
+type Layout = GenericLayout<TypeMap>;
+
 type CustomTypes = { ${customTypes
     .map((c) => `${c.typeName}: ProvableExtended<${c.type}, ${c.jsonType}>;`)
     .join(' ')} }

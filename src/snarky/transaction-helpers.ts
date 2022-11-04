@@ -1,12 +1,8 @@
-import { TypeMap } from './transaction-leaves.js';
 import { ProvableExtended } from '../lib/circuit_value.js';
-import { HashInput } from '../lib/hash.js';
-import { Json } from './gen/transaction.js';
 
-export { provableFromLayout, ProvableExtended, toJSONEssential };
+export { ProvableExtended, ProvableFromLayout };
 
-type Layout = GenericLayout<TypeMap>;
-export { Layout };
+export { GenericLayout };
 
 type GenericTypeMap<
   Field,
@@ -54,20 +50,14 @@ type TypeMapValues<TypeMap extends AnyTypeMap, JsonMap extends AnyTypeMap> = {
   >;
 };
 
-const { provableFromLayout, toJSONEssential } = ProvableFromLayout<
-  TypeMap,
-  Json.TypeMap
->(TypeMap);
-
 function ProvableFromLayout<
   TypeMap extends AnyTypeMap,
   JsonMap extends AnyTypeMap
 >(TypeMap: TypeMapValues<TypeMap, JsonMap>) {
   type Field = TypeMap['Field'];
   type CustomTypes = Record<string, ProvableExtended<any, any>>;
-
-  // FIXME
-  type Layout = any;
+  type HashInput = { fields?: Field[]; packed?: [Field, number][] };
+  type Layout = GenericLayout<TypeMap>;
 
   function provableFromLayout<T, TJson>(
     typeData: Layout,
@@ -208,12 +198,13 @@ function ProvableFromLayout<
       return customTypes[checkedTypeName].fromFields(fields, aux);
     }
     if (typeData.type === 'array') {
-      let size = sizeInFields(typeData.inner, customTypes);
+      let arrayTypeData = typeData as ArrayLayout<TypeMap>;
+      let size = sizeInFields(arrayTypeData.inner, customTypes);
       let length = aux.length;
       let value = [];
       for (let i = 0, offset = 0; i < length; i++, offset += size) {
         value[i] = fromFields(
-          typeData.inner,
+          arrayTypeData.inner,
           fields.slice(offset, offset + size),
           aux[i],
           customTypes
@@ -222,7 +213,7 @@ function ProvableFromLayout<
       return value;
     }
     if (typeData.type === 'option') {
-      let { optionType, inner } = typeData;
+      let { optionType, inner } = typeData as OptionLayout<TypeMap>;
       switch (optionType) {
         case 'flaggedOption': {
           let [first, ...rest] = fields;
@@ -241,7 +232,7 @@ function ProvableFromLayout<
       }
     }
     if (typeData.type === 'object') {
-      let { name, keys, entries } = typeData;
+      let { keys, entries } = typeData as ObjectLayout<TypeMap>;
       let values: Record<string, any> = {};
       let offset = 0;
       for (let i = 0; i < keys.length; i++) {
@@ -336,15 +327,16 @@ function ProvableFromLayout<
       return spec.map(spec.customTypes[checkedTypeName], value);
     }
     if (typeData.type === 'array') {
+      let arrayTypeData = typeData as ArrayLayout<TypeMap>;
       let v: T[] | undefined[] | undefined = value as any;
-      if (typeData.staticLength != null && v === undefined) {
-        v = Array<undefined>(typeData.staticLength).fill(undefined);
+      if (arrayTypeData.staticLength != null && v === undefined) {
+        v = Array<undefined>(arrayTypeData.staticLength).fill(undefined);
       }
-      let array = v?.map((x) => layoutFold(spec, typeData.inner, x)) ?? [];
-      return spec.reduceArray(array, typeData);
+      let array = v?.map((x) => layoutFold(spec, arrayTypeData.inner, x)) ?? [];
+      return spec.reduceArray(array, arrayTypeData);
     }
     if (typeData.type === 'option') {
-      let { optionType, inner } = typeData;
+      let { optionType, inner } = typeData as OptionLayout<TypeMap>;
       switch (optionType) {
         case 'flaggedOption':
           let v: { isSome: T; value: T } | undefined = value as any;
@@ -361,10 +353,10 @@ function ProvableFromLayout<
       }
     }
     if (typeData.type === 'object') {
-      let { keys, entries } = typeData;
+      let { keys, entries } = typeData as ObjectLayout<TypeMap>;
       let v: Record<string, T> | undefined = value as any;
       let object: Record<string, R> = {};
-      keys.forEach((key: any) => {
+      keys.forEach((key) => {
         object[key] = layoutFold(spec, entries[key], v?.[key]);
       });
       return spec.reduceObject(keys, object);
@@ -455,14 +447,15 @@ type ArrayLayout<TypeMap extends AnyTypeMap> = {
   staticLength: number | null;
 } & WithChecked<TypeMap>;
 
-// TODO
+type ObjectLayout<TypeMap extends AnyTypeMap> = {
+  type: 'object';
+  name: string;
+  keys: string[];
+  entries: Record<string, GenericLayout<TypeMap>>;
+} & WithChecked<TypeMap>;
+
 type GenericLayout<TypeMap extends AnyTypeMap> =
   | OptionLayout<TypeMap>
   | BaseLayout<TypeMap>
-  | ({
-      type: 'object';
-      name: string;
-      keys: string[];
-      entries: Record<string, GenericLayout<TypeMap>>;
-    } & WithChecked<TypeMap>)
+  | ObjectLayout<TypeMap>
   | ArrayLayout<TypeMap>;

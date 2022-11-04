@@ -16,11 +16,14 @@ export {
   UInt32,
   Sign,
   TokenId,
+  Undefined,
 };
 
 export { Events, Events as SequenceEvents, StringWithHash, TokenSymbol };
 
 export { TypeMap };
+
+type Undefined = undefined;
 
 type AuthRequired = {
   constant: Bool;
