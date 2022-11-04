@@ -789,6 +789,8 @@ declare class Ledger {
     genesisAccounts: Array<{ publicKey: PublicKey_; balance: string }>
   ): Ledger;
 
+  static keypairToJson(keypair: Keypair): string;
+
   addAccount(publicKey: PublicKey_, balance: string): void;
 
   applyJsonTransaction(
