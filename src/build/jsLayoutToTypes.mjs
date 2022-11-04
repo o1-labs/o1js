@@ -136,7 +136,8 @@ function writeTsContent(types, isJson) {
 import { ${[...imports, 'TypeMap'].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? "import { ProvableFromLayout, ProvableExtended, GenericLayout } from '../transaction-helpers.js';\n" +
+    ? "import { GenericProvableExtended } from '../../generic/provable.js';\n" +
+      "import { ProvableFromLayout, GenericLayout } from '../transaction-helpers.js';\n" +
       "import * as Json from './transaction-json.js';\n" +
       "import { jsLayout } from './js-layout.js';\n"
     : ''
@@ -154,6 +155,7 @@ ${
   `
 export { provableFromLayout, toJSONEssential, Layout };
 
+type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, TypeMap['Field']>;
 const { provableFromLayout, toJSONEssential } = ProvableFromLayout<
   TypeMap,
   Json.TypeMap

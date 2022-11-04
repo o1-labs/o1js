@@ -1,8 +1,6 @@
-import { ProvableExtended } from '../lib/circuit_value.js';
+import { GenericProvableExtended } from 'src/generic/provable.js';
 
-export { ProvableExtended, ProvableFromLayout };
-
-export { GenericLayout };
+export { ProvableFromLayout, GenericLayout };
 
 type GenericTypeMap<
   Field,
@@ -44,9 +42,10 @@ type AnyTypeMap = GenericTypeMap<
   any
 >;
 type TypeMapValues<TypeMap extends AnyTypeMap, JsonMap extends AnyTypeMap> = {
-  [K in keyof TypeMap & keyof JsonMap]: ProvableExtended<
+  [K in keyof TypeMap & keyof JsonMap]: GenericProvableExtended<
     TypeMap[K],
-    JsonMap[K]
+    JsonMap[K],
+    TypeMap['Field']
   >;
 };
 
@@ -55,7 +54,7 @@ function ProvableFromLayout<
   JsonMap extends AnyTypeMap
 >(TypeMap: TypeMapValues<TypeMap, JsonMap>) {
   type Field = TypeMap['Field'];
-  type CustomTypes = Record<string, ProvableExtended<any, any>>;
+  type CustomTypes = Record<string, GenericProvableExtended<any, any, Field>>;
   type HashInput = { fields?: Field[]; packed?: [Field, number][] };
   type Layout = GenericLayout<TypeMap>;
 
@@ -309,7 +308,7 @@ function ProvableFromLayout<
 
   type FoldSpec<T, R> = {
     customTypes: CustomTypes;
-    map: (type: ProvableExtended<any, any>, value?: T) => R;
+    map: (type: GenericProvableExtended<any, any, Field>, value?: T) => R;
     reduceArray: (array: R[], typeData: ArrayLayout<TypeMap>) => R;
     reduceObject: (keys: string[], record: Record<string, R>) => R;
     reduceFlaggedOption: (option: { isSome: R; value: R }) => R;

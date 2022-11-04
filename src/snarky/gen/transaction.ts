@@ -16,11 +16,8 @@ import {
   SequenceEvents,
   TypeMap,
 } from '../transaction-leaves.js';
-import {
-  ProvableFromLayout,
-  ProvableExtended,
-  GenericLayout,
-} from '../transaction-helpers.js';
+import { GenericProvableExtended } from '../../generic/provable.js';
+import { ProvableFromLayout, GenericLayout } from '../transaction-helpers.js';
 import * as Json from './transaction-json.js';
 import { jsLayout } from './js-layout.js';
 
@@ -30,6 +27,11 @@ export * from '../transaction-leaves.js';
 
 export { provableFromLayout, toJSONEssential, Layout };
 
+type ProvableExtended<T, TJson> = GenericProvableExtended<
+  T,
+  TJson,
+  TypeMap['Field']
+>;
 const { provableFromLayout, toJSONEssential } = ProvableFromLayout<
   TypeMap,
   Json.TypeMap
