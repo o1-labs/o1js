@@ -3,7 +3,7 @@ import * as Json from './gen/transaction-json.js';
 import { UInt32, UInt64, Sign } from '../lib/int.js';
 import { TokenSymbol } from '../lib/hash.js';
 import { PublicKey } from '../lib/signature.js';
-import { ProvableExtended, Provables, provable } from '../lib/circuit_value.js';
+import { Provables, provable } from '../lib/circuit_value.js';
 import * as Encoding from '../lib/encoding.js';
 
 export {
@@ -16,50 +16,17 @@ export {
   UInt32,
   Sign,
   TokenId,
-  Undefined,
 };
 
 export { Events, Events as SequenceEvents, StringWithHash, TokenSymbol };
-
-export { TypeMap };
-
-type Undefined = undefined;
 
 type AuthRequired = {
   constant: Bool;
   signatureNecessary: Bool;
   signatureSufficient: Bool;
 };
-
 type AuthorizationKind = { isSigned: Bool; isProved: Bool };
-
 type TokenId = Field;
-
-// to what types in the js layout are mapped
-type TypeMap = {
-  PublicKey: PublicKey;
-  Field: Field;
-  Bool: Bool;
-  AuthRequired: AuthRequired;
-  AuthorizationKind: AuthorizationKind;
-  UInt32: UInt32;
-  UInt64: UInt64;
-  Sign: Sign;
-  TokenId: TokenId;
-};
-
-// types that implement AsFieldAndAux, and so can be left out of the conversion maps below
-// sort of a "transposed" representation
-
-let emptyType = {
-  sizeInFields: () => 0,
-  toFields: () => [],
-  toAuxiliary: () => [],
-  fromFields: () => null,
-  check: () => {},
-  toInput: () => ({}),
-  toJSON: () => null,
-};
 
 const TokenId = {
   ...provable(Field),
@@ -113,20 +80,6 @@ const AuthorizationKind = {
       default: throw Error('Unexpected authorization kind');
     }
   },
-};
-
-const TypeMap: {
-  [K in keyof TypeMap]: ProvableExtended<TypeMap[K], Json.TypeMap[K]>;
-} = {
-  Field,
-  Bool,
-  UInt32,
-  UInt64,
-  Sign,
-  TokenId,
-  AuthRequired,
-  AuthorizationKind,
-  PublicKey,
 };
 
 // types which got an annotation about its circuit type in Ocaml

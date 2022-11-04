@@ -127,13 +127,14 @@ function writeTsContent(types, isJson) {
   let imports = new Set();
   mergeSet(imports, dependencies);
   mergeSet(imports, new Set(customTypeNames));
+  let typeMapKeys = diffSets(dependencies, new Set(customTypeNames));
 
   let importPath = isJson
     ? '../transaction-leaves-json.js'
     : '../transaction-leaves.js';
   return `// @generated this file is auto-generated - don't edit it directly
 
-import { ${[...imports, 'TypeMap'].join(', ')} } from '${importPath}';
+import { ${[...imports].join(', ')} } from '${importPath}';
 ${
   !isJson
     ? "import { GenericProvableExtended } from '../../provable/generic.js';\n" +
@@ -146,16 +147,31 @@ ${
 export { ${[...exports].join(', ')} };
 ${
   !isJson
-    ? 'export { Json };\n' + "export * from '../transaction-leaves.js';\n"
-    : "export * from '../transaction-leaves-json.js';\n"
+    ? 'export { Json };\n' +
+      "export * from '../transaction-leaves.js';\n" +
+      'export { provableFromLayout, toJSONEssential, Layout };\n'
+    : "export * from '../transaction-leaves-json.js';\n" +
+      'export { TypeMap };\n'
+}
+
+type TypeMap = {
+  ${[...typeMapKeys].map((type) => `${type}: ${type};`).join('\n')}
+}
+${
+  (!isJson || '') &&
+  `
+const TypeMap: {
+  [K in keyof TypeMap]: ProvableExtended<TypeMap[K], Json.TypeMap[K]>;
+} = {
+  ${[...typeMapKeys].join(', ')}
+}
+`
 }
 
 ${
   (!isJson || '') &&
   `
-export { provableFromLayout, toJSONEssential, Layout };
-
-type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, TypeMap['Field']>;
+type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, Field>;
 type Layout = GenericLayout<TypeMap>;
 
 type CustomTypes = { ${customTypes
@@ -204,6 +220,13 @@ function mergeSet(target, source) {
   for (let x of source) {
     target.add(x);
   }
+}
+function diffSets(s0, s1) {
+  let s = new Set(s0);
+  for (let x of s1) {
+    s.delete(x);
+  }
+  return s;
 }
 
 function mergeObject(target, source) {
