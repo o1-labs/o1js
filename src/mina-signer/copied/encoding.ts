@@ -1,4 +1,4 @@
-import { Field } from "./field.js";
+import { Field } from '../../provable/field-bigint.js';
 
 export {
   stringToFields,
@@ -60,7 +60,7 @@ function bytesFromFields(fields: Field[]) {
   if (lastChunk === undefined) return new Uint8Array();
   let lastChunkBytes = bytesOfConstantField(lastChunk);
   let i = lastChunkBytes.lastIndexOf(STOP, 30);
-  if (i === -1) throw Error("Error (bytesFromFields): Invalid encoding.");
+  if (i === -1) throw Error('Error (bytesFromFields): Invalid encoding.');
   let bytes = new Uint8Array(fields.length * 31 + i);
   bytes.set(lastChunkBytes.subarray(0, i), fields.length * 31);
   // convert the remaining fields
@@ -195,7 +195,7 @@ function toBase(x: bigint, base: bigint) {
 // a constant field is internally represented as {value: [0, Uint8Array(32)]}
 function bytesOfConstantField(field: Field): Uint8Array {
   let value = (field as any).value;
-  if (value[0] !== 0) throw Error("Field is not constant");
+  if (value[0] !== 0) throw Error('Field is not constant');
   return value[1];
 }
 
@@ -262,10 +262,10 @@ function bigIntArrayToBytes(bigints: bigint[], bytesPerBigInt: number) {
 const Ledger = {
   encoding: {
     toBase58(ocamlBytes: any, versionByte: number): string {
-      throw "unimplemented";
+      throw 'unimplemented';
     },
     ofBase58(base58: string, versionByte: number): any {
-      throw "unimplemented";
+      throw 'unimplemented';
     },
     versionBytes: {
       tokenIdKey: 0,

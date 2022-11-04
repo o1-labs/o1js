@@ -1,13 +1,16 @@
-import { Field, Bool, UInt32, UInt64, Sign } from "./field.js";
-import * as Json from "./gen/transaction-json.js";
-import { PublicKey } from "./curve.js";
 import {
-  ProvableExtended,
-  dataAsHash,
-  provable,
+  Field,
+  Bool,
+  UInt32,
+  UInt64,
+  Sign,
   HashInput,
-} from "./provable.js";
-import * as Encoding from "./encoding.js";
+  ProvableExtended,
+} from './field-bigint.js';
+import * as Json from './gen/transaction-json.js';
+import { PublicKey } from './curve-bigint.js';
+import * as Encoding from '../mina-signer/copied/encoding.js';
+import { provable } from './provable-bigint.js';
 
 export {
   PublicKey,
@@ -23,8 +26,6 @@ export {
 
 export { Events, Events as SequenceEvents, StringWithHash, TokenSymbol };
 
-export { TypeMap };
-
 type AuthRequired = {
   constant: Bool;
   signatureNecessary: Bool;
@@ -37,37 +38,6 @@ type TokenId = Field;
 
 type TokenSymbol = { symbol: string; field: Field };
 
-// to what types in the js layout are mapped
-type TypeMap = {
-  PublicKey: PublicKey;
-  Field: Field;
-  Bool: Bool;
-  AuthRequired: AuthRequired;
-  AuthorizationKind: AuthorizationKind;
-  UInt32: UInt32;
-  UInt64: UInt64;
-  Sign: Sign;
-  TokenId: TokenId;
-  // builtin
-  number: number;
-  null: null;
-  undefined: undefined;
-  string: string;
-};
-
-// types that implement AsFieldAndAux, and so can be left out of the conversion maps below
-// sort of a "transposed" representation
-
-let emptyType = {
-  sizeInFields: () => 0,
-  toFields: () => [],
-  toAuxiliary: () => [],
-  fromFields: () => null,
-  check: () => {},
-  toInput: () => ({}),
-  toJSON: () => null,
-};
-
 const TokenId = {
   ...provable(Field),
   toJSON(x: TokenId): Json.TokenId {
@@ -78,7 +48,7 @@ const TokenId = {
 const TokenSymbol = {
   ...provable({ field: Field, symbol: String }),
   toInput({ field }: TokenSymbol): HashInput {
-    return { packed: [{ field, bits: 48 }] };
+    return { packed: [[field, 48]] };
   },
   toJSON({ symbol }: TokenSymbol) {
     return symbol;
@@ -90,9 +60,9 @@ const AuthRequired = {
     { constant: Bool, signatureNecessary: Bool, signatureSufficient: Bool },
     {
       customObjectKeys: [
-        "constant",
-        "signatureNecessary",
-        "signatureSufficient",
+        'constant',
+        'signatureNecessary',
+        'signatureSufficient',
       ],
     }
   ),
@@ -116,7 +86,7 @@ const AuthorizationKind = {
   ...provable(
     { isSigned: Bool, isProved: Bool },
     {
-      customObjectKeys: ["isSigned", "isProved"],
+      customObjectKeys: ['isSigned', 'isProved'],
     }
   ),
   toJSON(x: AuthorizationKind): Json.AuthorizationKind {
@@ -130,38 +100,6 @@ const AuthorizationKind = {
   },
 };
 
-const TypeMap: {
-  [K in keyof TypeMap]: ProvableExtended<TypeMap[K], Json.TypeMap[K]>;
-} = {
-  Field,
-  Bool,
-  UInt32,
-  UInt64,
-  Sign,
-  TokenId,
-  AuthRequired,
-  AuthorizationKind,
-  PublicKey,
-  // primitive JS types
-  number: {
-    ...emptyType,
-    toAuxiliary: (value = 0) => [value],
-    toJSON: (value) => value,
-    fromFields: (_, [value]) => value,
-  },
-  string: {
-    ...emptyType,
-    toAuxiliary: (value = "") => [value],
-    toJSON: (value) => value,
-    fromFields: (_, [value]) => value,
-  },
-  null: emptyType,
-  undefined: {
-    ...emptyType,
-    fromFields: () => undefined,
-  },
-};
-
 // types which got an annotation about its circuit type in Ocaml
 
 const Events = dataAsHash({
@@ -171,8 +109,38 @@ const Events = dataAsHash({
   },
 });
 const StringWithHash = dataAsHash({
-  emptyValue: "",
+  emptyValue: '',
   toJSON(data: string) {
     return data;
   },
 });
+
+function dataAsHash<T, J>({
+  emptyValue,
+  toJSON,
+}: {
+  emptyValue: T;
+  toJSON: (value: T) => J;
+}): ProvableExtended<{ data: T; hash: Field }, J> {
+  return {
+    sizeInFields() {
+      return 1;
+    },
+    toFields({ hash }) {
+      return [hash];
+    },
+    toAuxiliary(value) {
+      return [value?.data ?? emptyValue];
+    },
+    fromFields([hash], [data]) {
+      return { data, hash };
+    },
+    toJSON({ data }) {
+      return toJSON(data);
+    },
+    check() {},
+    toInput({ hash }) {
+      return { fields: [hash] };
+    },
+  };
+}

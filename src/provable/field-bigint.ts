@@ -1,13 +1,16 @@
-import { HashInput, ProvableExtended } from './provable.js';
+import { GenericHashInput, GenericProvableExtended } from './generic.js';
 
 export { Field, Bool, UInt32, UInt64, Sign };
-export { pseudoClass };
+export { pseudoClass, ProvableExtended, HashInput };
 
 type Field = bigint;
 type Bool = 0n | 1n;
 type UInt32 = bigint;
 type UInt64 = bigint;
 type Sign = -1n | 1n;
+
+type HashInput = GenericHashInput<Field>;
+type ProvableExtended<T, J> = GenericProvableExtended<T, J, Field>;
 
 // TODO: auto-generate
 const MODULUS =
@@ -29,7 +32,7 @@ const Bool = pseudoClass(
     toInput(x: Bool): HashInput {
       return {
         fields: [],
-        packed: [{ field: x, bits: 1 }],
+        packed: [[x, 1]],
       };
     },
     toJSON(x: Bool) {
@@ -57,7 +60,7 @@ function Unsigned(bits: number) {
       toInput(x: bigint): HashInput {
         return {
           fields: [],
-          packed: [{ field: x, bits }],
+          packed: [[x, bits]],
         };
       },
     }
@@ -77,7 +80,7 @@ const Sign = pseudoClass(
     toInput(x: Sign): HashInput {
       return {
         fields: [],
-        packed: [{ field: x, bits: 1 }],
+        packed: [[x, 1]],
       };
     },
     toJSON(x: Sign) {

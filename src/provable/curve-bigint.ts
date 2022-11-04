@@ -1,5 +1,5 @@
-import { Bool, Field } from './field.js';
-import { provable } from './provable.js';
+import { Bool, Field } from './field-bigint.js';
+import { provable } from './provable-bigint.js';
 
 export { PublicKey };
 
