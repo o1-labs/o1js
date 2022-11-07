@@ -408,10 +408,10 @@ const Body = {
     return {
       appState: Array(ZkappStateLength)
         .fill(0)
-        .map(() => keep(Field.zero)),
+        .map(() => keep(Field(0))),
       delegate: keep(PublicKey.empty()),
       // TODO
-      verificationKey: keep({ data: '', hash: Field.zero }),
+      verificationKey: keep({ data: '', hash: Field(0) }),
       permissions: keep(Permissions.initial()),
       // TODO don't hard code
       zkappUri: keep({
@@ -429,7 +429,7 @@ const Body = {
         vestingIncrement: UInt64.zero,
         vestingPeriod: UInt32.zero,
       }),
-      votingFor: keep(Field.zero),
+      votingFor: keep(Field(0)),
     };
   },
 
@@ -445,7 +445,7 @@ const Body = {
       events: Events.empty(),
       sequenceEvents: SequenceEvents.empty(),
       caller: TokenId.default,
-      callData: Field.zero,
+      callData: Field(0),
       callDepth: 0,
       preconditions: Preconditions.ignoreAll(),
       // the default assumption is that snarkyjs transactions don't include the fee payer
@@ -498,15 +498,15 @@ type NetworkPrecondition = Preconditions['network'];
 let NetworkPrecondition = {
   ignoreAll(): NetworkPrecondition {
     let stakingEpochData = {
-      ledger: { hash: ignore(Field.zero), totalCurrency: ignore(uint64()) },
-      seed: ignore(Field.zero),
-      startCheckpoint: ignore(Field.zero),
-      lockCheckpoint: ignore(Field.zero),
+      ledger: { hash: ignore(Field(0)), totalCurrency: ignore(uint64()) },
+      seed: ignore(Field(0)),
+      startCheckpoint: ignore(Field(0)),
+      lockCheckpoint: ignore(Field(0)),
       epochLength: ignore(uint32()),
     };
     let nextEpochData = cloneCircuitValue(stakingEpochData);
     return {
-      snarkedLedgerHash: ignore(Field.zero),
+      snarkedLedgerHash: ignore(Field(0)),
       timestamp: ignore(uint64()),
       blockchainLength: ignore(uint32()),
       minWindowDensity: ignore(uint32()),
@@ -544,12 +544,12 @@ const AccountPrecondition = {
   ignoreAll(): AccountPrecondition {
     let appState: Array<OrIgnore<Field>> = [];
     for (let i = 0; i < ZkappStateLength; ++i) {
-      appState.push(ignore(Field.zero));
+      appState.push(ignore(Field(0)));
     }
     return {
       balance: ignore(uint64()),
       nonce: ignore(uint32()),
-      receiptChainHash: ignore(Field.zero),
+      receiptChainHash: ignore(Field(0)),
       delegate: ignore(PublicKey.empty()),
       state: appState,
       sequenceState: ignore(SequenceEvents.emptySequenceState()),
@@ -590,7 +590,7 @@ const TokenId = {
   ...Types.TokenId,
   ...Encoding.TokenId,
   get default() {
-    return Field.one;
+    return Field(1);
   },
 };
 
@@ -1355,7 +1355,7 @@ const CallForest = {
 
   // Mina_base.Zkapp_command.Digest.Forest.empty
   emptyHash() {
-    return Field.zero;
+    return Field(0);
   },
 
   // similar to Mina_base.Zkapp_command.Call_forest.accumulate_hashes

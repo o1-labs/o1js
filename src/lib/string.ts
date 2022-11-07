@@ -57,7 +57,7 @@ class CircuitString extends CircuitValue {
   private computeLengthAndMask() {
     let n = this.values.length;
     // length is the actual, dynamic length
-    let length = Field.zero;
+    let length = Field(0);
     // mask is an array that is true where `this` has its first null character, false elsewhere
     let mask = [];
     let wasntNullAlready = Bool(true);
@@ -152,7 +152,7 @@ class CircuitString extends CircuitValue {
 
 // note: this used to be a custom class, which doesn't work
 // NullCharacter must use the same circuits as normal Characters
-let NullCharacter = () => new Character(Field.zero);
+let NullCharacter = () => new Character(Field(0));
 
 function fillWithNull([...values]: Character[], length: number) {
   let nullChar = NullCharacter();

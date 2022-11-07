@@ -31,7 +31,7 @@ console.assert(x0.equals(x1).toBoolean());
 
 // When initializing with booleans, true corresponds to the field element 1, and false corresponds to 0
 const b = new Field(true);
-console.assert(b.equals(Field.one).toBoolean());
+console.assert(b.equals(Field(1)).toBoolean());
 
 /* You can perform arithmetic operations on field elements.
    The arithmetic methods can take any "fieldy" values as inputs: 

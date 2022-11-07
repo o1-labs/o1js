@@ -47,7 +47,7 @@ const Poseidon = {
   },
 
   get initialState(): [Field, Field, Field] {
-    return [Field.zero, Field.zero, Field.zero];
+    return [Field(0), Field(0), Field(0)];
   },
 
   Sponge,
@@ -103,7 +103,7 @@ function prefixToField(prefix: string) {
 function packToFields({ fields = [], packed = [] }: HashInput) {
   if (packed.length === 0) return fields;
   let packedBits = [];
-  let currentPackedField = Field.zero;
+  let currentPackedField = Field(0);
   let currentSize = 0;
   for (let [field, size] of packed) {
     currentSize += size;
@@ -150,7 +150,7 @@ const TokenSymbolPure: ProvableExtended<
 };
 class TokenSymbol extends Struct(TokenSymbolPure) {
   static get empty() {
-    return { symbol: '', field: Field.zero };
+    return { symbol: '', field: Field(0) };
   }
 
   static from(symbol: string): TokenSymbol {

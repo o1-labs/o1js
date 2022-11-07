@@ -560,7 +560,7 @@ function methodArgumentTypesAndValues(
 
 function emptyValue<T>(type: Provable<T>) {
   return type.fromFields(
-    Array(type.sizeInFields()).fill(Field.zero),
+    Array(type.sizeInFields()).fill(Field(0)),
     type.toAuxiliary()
   );
 }
