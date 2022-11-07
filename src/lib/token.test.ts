@@ -220,6 +220,15 @@ describe('Token', () => {
   afterAll(() => setTimeout(shutdown, 0));
 
   describe('Signature Authorization', () => {
+    /*
+      test case description:
+      Check token contract can be deployed and initialized
+      tested cases:
+        - create a new token
+        - deploy a zkApp under a custom token
+        - create a new valid token with a different parentTokenId
+        - set the token symbol after deployment
+    */
     describe('Token Contract Creation/Deployment', () => {
       beforeEach(async () => {
         await setupLocal();
@@ -254,6 +263,13 @@ describe('Token', () => {
       });
     });
 
+    /*
+      test case description:
+      token contract can mint new tokens with a signature
+      tested cases:
+        - mints and updates the token balance of the receiver
+        - fails if we mint over an overflow amount
+    */
     describe('Mint token', () => {
       beforeEach(async () => {
         await setupLocal();
@@ -272,19 +288,6 @@ describe('Token', () => {
         ).toEqual(100_000n);
       });
 
-      test('token contract can succesfully mint and updates the balances in the ledger (proof)', async () => {
-        let tx = await Mina.transaction(feePayerKey, () => {
-          AccountUpdate.fundNewAccount(feePayerKey);
-          tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
-        });
-        await tx.prove();
-        tx.sign([tokenZkappKey]);
-        await tx.send();
-        expect(
-          Mina.getBalance(zkAppBAddress, tokenId).value.toBigInt()
-        ).toEqual(100_000n);
-      });
-
       test('minting should fail if overflow occurs ', async () => {
         await Mina.transaction(feePayerKey, () => {
           AccountUpdate.fundNewAccount(feePayerKey);
@@ -296,6 +299,13 @@ describe('Token', () => {
       });
     });
 
+    /*
+      test case description:
+      token contract can burn tokens with a signature
+      tested cases:
+        - burns and updates the token balance of the receiver
+        - fails if we burn more than the balance amount
+    */
     describe('Burn token', () => {
       beforeEach(async () => {
         await setupLocal();
@@ -321,26 +331,6 @@ describe('Token', () => {
         ).toEqual(90_000n);
       });
 
-      test('token contract can succesfully burn and updates the balances in the ledger (proof)', async () => {
-        await (
-          await Mina.transaction(feePayerKey, () => {
-            AccountUpdate.fundNewAccount(feePayerKey);
-            tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
-            tokenZkapp.sign(tokenZkappKey);
-          })
-        ).send();
-        let tx = await Mina.transaction(feePayerKey, () => {
-          tokenZkapp.burn(zkAppBAddress, UInt64.from(10_000));
-          tokenZkapp.sign(tokenZkappKey);
-        });
-        await tx.prove();
-        tx.sign([zkAppBKey]);
-        await tx.send();
-        expect(
-          Mina.getBalance(zkAppBAddress, tokenId).value.toBigInt()
-        ).toEqual(90_000n);
-      });
-
       test('throw error if token owner burns more tokens than token account has', async () => {
         await (
           await Mina.transaction(feePayerKey, () => {
@@ -359,6 +349,14 @@ describe('Token', () => {
       });
     });
 
+    /*
+      test case description:
+      token contract can transfer tokens with a signature
+      tested cases:
+        - sends tokens and updates the balance of the receiver
+        - fails if no account creation fee is payed for the new token account
+        - fails if we transfer more than the balance amount
+    */
     describe('Transfer', () => {
       beforeEach(async () => {
         await setupLocal();
@@ -440,7 +438,14 @@ describe('Token', () => {
       });
     });
   });
+
   describe('Proof Authorization', () => {
+    /*
+      test case description:
+      Check token contract can be deployed and initialized with proofs
+      tested cases:
+        - can deploy and initialize child contracts of the parent token contract
+    */
     describe('Token Contract Creation/Deployment', () => {
       beforeEach(async () => {
         await setupLocalProofs();
@@ -458,6 +463,71 @@ describe('Token', () => {
       });
     });
 
+    /*
+      test case description:
+      token contract can mint new tokens with a proof
+      tested cases:
+        - mints and updates the token balance of the receiver
+    */
+    describe('Mint token', () => {
+      beforeEach(async () => {
+        await setupLocal();
+      });
+
+      test('token contract can succesfully mint and updates the balances in the ledger (proof)', async () => {
+        let tx = await Mina.transaction(feePayerKey, () => {
+          AccountUpdate.fundNewAccount(feePayerKey);
+          tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
+        });
+        await tx.prove();
+        tx.sign([tokenZkappKey]);
+        await tx.send();
+        expect(
+          Mina.getBalance(zkAppBAddress, tokenId).value.toBigInt()
+        ).toEqual(100_000n);
+      });
+    });
+
+    describe('Burn token', () => {
+      beforeEach(async () => {
+        await setupLocal();
+      });
+
+      /*
+      test case description:
+      token contract can burn tokens with a proof 
+      tested cases:
+        - burns and updates the token balance of the receiver
+    */
+      test('token contract can succesfully burn and updates the balances in the ledger (proof)', async () => {
+        await (
+          await Mina.transaction(feePayerKey, () => {
+            AccountUpdate.fundNewAccount(feePayerKey);
+            tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
+            tokenZkapp.sign(tokenZkappKey);
+          })
+        ).send();
+        let tx = await Mina.transaction(feePayerKey, () => {
+          tokenZkapp.burn(zkAppBAddress, UInt64.from(10_000));
+          tokenZkapp.sign(tokenZkappKey);
+        });
+        await tx.prove();
+        tx.sign([zkAppBKey]);
+        await tx.send();
+        expect(
+          Mina.getBalance(zkAppBAddress, tokenId).value.toBigInt()
+        ).toEqual(90_000n);
+      });
+    });
+
+    /*
+      test case description:
+      token contract can transfer tokens with a proof
+      tested cases:
+        - authorizes a transfer and updates the token balance of the sender and receiver
+        - fails if we specify an incorrect layout to witness when authorizing a transfer
+        - fails if we specify an empty parent accountUpdate to bypass authorization
+    */
     describe('Transfer', () => {
       beforeEach(async () => {
         await setupLocalProofs();
