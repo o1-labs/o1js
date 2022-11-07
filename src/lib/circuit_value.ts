@@ -30,7 +30,6 @@ export {
   getBlindingValue,
   toConstant,
   InferCircuitValue,
-  Provables,
   HashInput,
 };
 
@@ -800,43 +799,6 @@ function Struct<
     }
   }
   return Struct_ as any;
-}
-
-const Provables = { dataAsHash };
-
-function dataAsHash<T, J>({
-  emptyValue,
-  toJSON,
-  fromJSON,
-}: {
-  emptyValue: T;
-  toJSON: (value: T) => J;
-  fromJSON: (json: J) => { data: T; hash: Field };
-}): ProvableExtended<{ data: T; hash: Field }, J> {
-  return {
-    sizeInFields() {
-      return 1;
-    },
-    toFields({ hash }) {
-      return [hash];
-    },
-    toAuxiliary(value) {
-      return [value?.data ?? emptyValue];
-    },
-    fromFields([hash], [data]) {
-      return { data, hash };
-    },
-    toJSON({ data }) {
-      return toJSON(data);
-    },
-    fromJSON(json) {
-      return fromJSON(json);
-    },
-    check() {},
-    toInput({ hash }) {
-      return { fields: [hash] };
-    },
-  };
 }
 
 // FIXME: the logic in here to check for obj.constructor.name actually doesn't work

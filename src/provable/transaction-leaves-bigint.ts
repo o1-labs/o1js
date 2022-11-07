@@ -1,7 +1,8 @@
 import { Field, Bool, UInt32, UInt64, Sign } from './field-bigint.js';
 import { PublicKey } from './curve-bigint.js';
-import { dataAsHash } from './provable-bigint.js';
 import { derivedLeafTypes } from './derived-leaves.js';
+import { createEvents, dataAsHash } from '../lib/events.js';
+import { Poseidon } from './poseidon-bigint.js';
 
 export {
   PublicKey,
@@ -15,7 +16,7 @@ export {
   TokenId,
 };
 
-export { Events, Events as SequenceEvents, StringWithHash, TokenSymbol };
+export { Events, SequenceEvents, StringWithHash, TokenSymbol };
 
 type AuthRequired = {
   constant: Bool;
@@ -31,18 +32,15 @@ const { TokenId, TokenSymbol, AuthRequired, AuthorizationKind } =
 
 // types which got an annotation about its circuit type in Ocaml
 
-const Events = dataAsHash({
-  emptyValue: [],
-  toJSON(data: Field[][]) {
-    return data.map((row) => row.map((e) => e.toString()));
-  },
-  fromJSON(json: string[][]) {
-    let data = json.map((row) => row.map((e) => Field(e)));
-    // TODO compute hash
-    throw Error('unimplemented');
-  },
-});
-const StringWithHash = dataAsHash({
+type Event = Field[];
+type Events = {
+  hash: Field;
+  data: Event[];
+};
+type SequenceEvents = Events;
+const { Events, SequenceEvents } = createEvents({ Field, Poseidon });
+
+const StringWithHash = dataAsHash<string, string, Field>({
   emptyValue: '',
   toJSON(data: string) {
     return data;
