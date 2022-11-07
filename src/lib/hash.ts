@@ -144,9 +144,9 @@ const TokenSymbolPure: ProvableExtended<
   toJSON({ symbol }) {
     return symbol;
   },
-  fromJSON(json: string) {
-    // TODO re-derive field from token symbol
-    throw Error('unimplemented');
+  fromJSON(symbol: string) {
+    let field = prefixToField(symbol);
+    return { symbol, field };
   },
   toInput({ field }) {
     return { packed: [[field, 48]] };

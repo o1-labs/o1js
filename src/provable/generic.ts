@@ -1,8 +1,11 @@
+import { Binable } from './binable.js';
+
 export {
   GenericProvable,
   GenericProvablePure,
   GenericProvableExtended,
   GenericField,
+  GenericBool,
   GenericHashInput,
   primitiveTypes,
   primitiveTypeMap,
@@ -30,7 +33,11 @@ type GenericProvableExtended<T, TJson, Field> = GenericProvable<T, Field> & {
 };
 
 type GenericField<Field> = ((value: number | string | bigint) => Field) &
-  GenericProvableExtended<Field, string, Field>;
+  GenericProvableExtended<Field, string, Field> &
+  Binable<Field>;
+type GenericBool<Field, Bool = unknown> = ((value: boolean) => Bool) &
+  GenericProvableExtended<Bool, boolean, Field> &
+  Binable<Bool>;
 
 type GenericHashInput<Field> = { fields?: Field[]; packed?: [Field, number][] };
 
