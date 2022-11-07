@@ -872,7 +872,8 @@ declare class Ledger {
       | 'receiptChainHash'
       | 'ledgerHash'
       | 'epochSeed'
-      | 'stateHash',
+      | 'stateHash'
+      | 'publicKey',
       number
     >;
   };
