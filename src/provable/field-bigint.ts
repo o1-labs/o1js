@@ -2,7 +2,13 @@ import { Binable } from './binable.js';
 import { GenericHashInput, GenericProvableExtended } from './generic.js';
 
 export { Field, Bool, UInt32, UInt64, Sign };
-export { pseudoClass, ProvableExtended, HashInput };
+export {
+  pseudoClass,
+  ProvableExtended,
+  HashInput,
+  ProvableBigint,
+  BinableBigint,
+};
 
 type Field = bigint;
 type Bool = 0n | 1n;
