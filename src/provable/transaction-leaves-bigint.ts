@@ -9,7 +9,7 @@ import {
 } from './field-bigint.js';
 import * as Json from './gen/transaction-json.js';
 import { PublicKey } from './curve-bigint.js';
-import * as Encoding from '../mina-signer/copied/encoding.js';
+import { fieldEncodings } from './binable.js';
 import { provable } from './provable-bigint.js';
 
 export {
@@ -25,6 +25,8 @@ export {
 };
 
 export { Events, Events as SequenceEvents, StringWithHash, TokenSymbol };
+
+const Encoding = fieldEncodings(Field);
 
 type AuthRequired = {
   constant: Bool;
