@@ -42,6 +42,9 @@ const Bool = pseudoClass(
     toJSON(x: Bool) {
       return !!x;
     },
+    fromJSON(x: boolean) {
+      return BigInt(x) as Bool;
+    },
     sizeInBytes() {
       return 1;
     },
@@ -84,7 +87,7 @@ const Sign = pseudoClass(
     return BigInt(value) as Sign;
   },
   {
-    ...ProvableBigint<Sign>(),
+    ...ProvableBigint<Sign, 'Positive' | 'Negative'>(),
     ...BinableBigint<Sign>(1),
     toInput(x: Sign): HashInput {
       return {
@@ -94,6 +97,9 @@ const Sign = pseudoClass(
     },
     toJSON(x: Sign) {
       return x === 1n ? 'Positive' : 'Negative';
+    },
+    fromJSON(x: 'Positive' | 'Negative') {
+      return x === 'Positive' ? 1n : -1n;
     },
   }
 );
@@ -110,7 +116,7 @@ function pseudoClass<
 
 function ProvableBigint<
   T extends bigint = bigint,
-  TJSON = string
+  TJSON extends string = string
 >(): ProvableExtended<T, TJSON> {
   return {
     sizeInFields() {
@@ -131,6 +137,9 @@ function ProvableBigint<
     },
     toJSON(x) {
       return x.toString() as TJSON;
+    },
+    fromJSON(x) {
+      return BigInt(x) as T;
     },
   };
 }

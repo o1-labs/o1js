@@ -47,6 +47,7 @@ function ProvableFromLayout<
   >
 ) {
   type Field = TypeMap['Field'];
+  const Field = TypeMap.Field;
   type HashInput = { fields?: Field[]; packed?: [Field, number][] };
   type Layout = GenericLayout<TypeMap>;
 
@@ -68,6 +69,9 @@ function ProvableFromLayout<
       },
       toJSON(value: T): TJson {
         return toJSON(typeData, value);
+      },
+      fromJSON(json: TJson): T {
+        return fromJSON(typeData, json);
       },
       check(value: T): void {
         check(typeData, value);
@@ -102,6 +106,56 @@ function ProvableFromLayout<
     );
   }
 
+  function emptyValue(typeData: Layout) {
+    let zero = Field.fromJSON('0');
+    let fields: Field[] = Array(sizeInFields(typeData)).fill(() => zero);
+    return fromFields(typeData, fields, toAuxiliary(typeData));
+  }
+
+  function fromJSON(typeData: Layout, json: any): any {
+    let { checkedTypeName } = typeData;
+    if (checkedTypeName) {
+      // there's a custom type!
+      return customTypes[checkedTypeName].fromJSON(json);
+    }
+    if (typeData.type === 'array') {
+      let arrayTypeData = typeData as ArrayLayout<TypeMap>;
+      return json.map((json: any) => fromJSON(arrayTypeData.inner, json));
+    }
+    if (typeData.type === 'option') {
+      let { optionType, inner } = typeData as OptionLayout<TypeMap>;
+      switch (optionType) {
+        case 'flaggedOption': {
+          if (json === null) {
+            return { isSome: false, value: emptyValue(inner) };
+          }
+          return {
+            isSome: TypeMap.Bool.fromJSON(true),
+            value: fromJSON(inner, json),
+          };
+        }
+        case 'orUndefined': {
+          return json === null ? undefined : fromJSON(inner, json);
+        }
+        default:
+          throw Error('bug');
+      }
+    }
+    if (typeData.type === 'object') {
+      let { keys, entries } = typeData as ObjectLayout<TypeMap>;
+      let values: Record<string, any> = {};
+      for (let i = 0; i < keys.length; i++) {
+        let typeEntry = entries[keys[i]];
+        values[keys[i]] = fromJSON(typeEntry, json[keys[i]]);
+      }
+      return values;
+    }
+    if (primitiveTypes.has(typeData.type as string)) {
+      return (PrimitiveMap as any)[typeData.type].fromJSON(json);
+    }
+    return (TypeMap as any)[typeData.type].fromJSON(json);
+  }
+
   function toFields(typeData: Layout, value: any) {
     return layoutFold<any, Field[]>(
       {
@@ -126,7 +180,7 @@ function ProvableFromLayout<
     );
   }
 
-  function toAuxiliary(typeData: Layout, value: any) {
+  function toAuxiliary(typeData: Layout, value?: any) {
     return layoutFold<any, any[]>(
       {
         map(type, value) {

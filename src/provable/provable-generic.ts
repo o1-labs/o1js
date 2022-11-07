@@ -13,13 +13,11 @@ type ProvableConstructor<Field> = <A>(
 ) => GenericProvableExtended<InferCircuitValue<A, Field>, InferJson<A>, Field>;
 
 function createProvable<Field>(): ProvableConstructor<Field> {
-  type Provable<T> = GenericProvable<T, Field>;
-  type ProvableExtension<T, TJson = JSONValue> = {
-    toInput: (x: T) => GenericHashInput<Field>;
-    toJSON: (x: T) => TJson;
-  };
-  type ProvableExtended<T, TJson = JSONValue> = Provable<T> &
-    ProvableExtension<T, TJson>;
+  type ProvableExtended<T, TJson = JSONValue> = GenericProvableExtended<
+    T,
+    TJson,
+    Field
+  >;
   type HashInput = GenericHashInput<Field>;
   const HashInput = {
     get empty() {
@@ -141,7 +139,7 @@ function createProvable<Field>(): ProvableConstructor<Field> {
       )
         return aux[0];
       if (typeObj === undefined || typeObj === null) return typeObj;
-      if (!complexTypes.has(typeof typeObj) || typeObj === null) return null;
+      if (!complexTypes.has(typeof typeObj)) return null;
       if (Array.isArray(typeObj)) {
         let array: any[] = [];
         let i = 0;
@@ -165,6 +163,22 @@ function createProvable<Field>(): ProvableConstructor<Field> {
       );
       return Object.fromEntries(keys.map((k, i) => [k, values[i]]));
     }
+    function fromJSON(typeObj: any, json: any, isToplevel = false): any {
+      if (typeObj === BigInt) return BigInt(json as string);
+      if (typeObj === String || typeObj === Number || typeObj === Boolean)
+        return json;
+      if (typeObj === null) return undefined;
+      if (!complexTypes.has(typeof typeObj)) return json ?? undefined;
+      if (Array.isArray(typeObj))
+        return typeObj.map((t, i) => fromJSON(t, json[i]));
+      if ('fromJSON' in typeObj) return typeObj.fromJSON(json);
+      let keys = isToplevel ? objectKeys : Object.keys(typeObj).sort();
+      let values = fromJSON(
+        keys.map((k) => typeObj[k]),
+        json
+      );
+      return Object.fromEntries(keys.map((k, i) => [k, values[i]]));
+    }
     function check(typeObj: any, obj: any, isToplevel = false): void {
       if (nonCircuitPrimitives.has(typeObj)) return;
       if (Array.isArray(typeObj))
@@ -179,10 +193,11 @@ function createProvable<Field>(): ProvableConstructor<Field> {
         sizeInFields: () => sizeInFields(typeObj),
         toFields: (obj: T) => toFields(typeObj, obj, true),
         toAuxiliary: () => [],
-        toInput: (obj: T) => toInput(typeObj, obj, true),
-        toJSON: (obj: T) => toJSON(typeObj, obj, true) as J,
         fromFields: (fields: Field[]) =>
           fromFields(typeObj, fields, [], true) as T,
+        toInput: (obj: T) => toInput(typeObj, obj, true),
+        toJSON: (obj: T) => toJSON(typeObj, obj, true) as J,
+        fromJSON: (json: J) => fromJSON(typeObj, json, true),
         check: (obj: T) => check(typeObj, obj, true),
       };
     }
@@ -190,10 +205,11 @@ function createProvable<Field>(): ProvableConstructor<Field> {
       sizeInFields: () => sizeInFields(typeObj),
       toFields: (obj: T) => toFields(typeObj, obj, true),
       toAuxiliary: (obj?: T) => toAuxiliary(typeObj, obj, true),
-      toInput: (obj: T) => toInput(typeObj, obj, true),
-      toJSON: (obj: T) => toJSON(typeObj, obj, true) as J,
       fromFields: (fields: Field[], aux: any[]) =>
         fromFields(typeObj, fields, aux, true) as T,
+      toInput: (obj: T) => toInput(typeObj, obj, true),
+      toJSON: (obj: T) => toJSON(typeObj, obj, true) as J,
+      fromJSON: (json: J) => fromJSON(typeObj, json, true),
       check: (obj: T) => check(typeObj, obj, true),
     };
   }

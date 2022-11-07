@@ -8,9 +8,11 @@ let provable = createProvable<Field>();
 function dataAsHash<T, J>({
   emptyValue,
   toJSON,
+  fromJSON,
 }: {
   emptyValue: T;
   toJSON: (value: T) => J;
+  fromJSON: (json: J) => { data: T; hash: Field };
 }): ProvableExtended<{ data: T; hash: Field }, J> {
   return {
     sizeInFields() {
@@ -27,6 +29,9 @@ function dataAsHash<T, J>({
     },
     toJSON({ data }) {
       return toJSON(data);
+    },
+    fromJSON(json) {
+      return fromJSON(json);
     },
     check() {},
     toInput({ hash }) {

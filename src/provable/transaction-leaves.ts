@@ -33,6 +33,9 @@ const TokenId = {
   toJSON(x: TokenId): Json.TokenId {
     return Encoding.TokenId.toBase58(x);
   },
+  fromJSON(x: Json.TokenId) {
+    return Encoding.TokenId.fromBase58(x);
+  },
 };
 
 const AuthRequired = {
@@ -60,6 +63,21 @@ const AuthRequired = {
       default: throw Error('Unexpected permission');
     }
   },
+  fromJSON(json: Json.AuthRequired): AuthRequired {
+    let map: Record<Json.AuthRequired, string> = {
+      Impossible: '110',
+      None: '101',
+      Proof: '000',
+      Signature: '011',
+      Either: '001',
+    };
+    let code = map[json];
+    if (code === undefined) throw Error('Unexpected permission');
+    let [constant, signatureNecessary, signatureSufficient] = code
+      .split('')
+      .map((s) => Bool(!!Number(s)));
+    return { constant, signatureNecessary, signatureSufficient };
+  },
 };
 
 const AuthorizationKind = {
@@ -80,6 +98,16 @@ const AuthorizationKind = {
       default: throw Error('Unexpected authorization kind');
     }
   },
+  fromJSON(json: Json.AuthorizationKind): AuthorizationKind {
+    let booleans = {
+      None_given: [false, false],
+      Signature: [true, false],
+      Proof: [false, true],
+    }[json];
+    if (booleans === undefined) throw Error('Unexpected authorization kind');
+    let [isSigned, isProved] = booleans.map(Bool);
+    return { isSigned, isProved };
+  },
 };
 
 // types which got an annotation about its circuit type in Ocaml
@@ -89,10 +117,20 @@ const Events = Provables.dataAsHash({
   toJSON(data: Field[][]) {
     return data.map((row) => row.map((e) => e.toString()));
   },
+  fromJSON(json: string[][]) {
+    let data = json.map((row) => row.map((e) => Field(e)));
+    // TODO compute hash
+    throw 'unimplemented';
+  },
 });
 const StringWithHash = Provables.dataAsHash({
   emptyValue: '',
   toJSON(data: string) {
     return data;
+  },
+  fromJSON(json: string) {
+    let data = json;
+    // TODO compute hash
+    throw 'unimplemented';
   },
 });

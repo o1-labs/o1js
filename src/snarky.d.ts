@@ -359,7 +359,7 @@ declare class Field {
   */
 
   static toJSON(x: Field): string;
-  static fromJSON(x: JSONValue): Field | null;
+  static fromJSON(x: string): Field;
 
   static fromString(x: string): Field;
   static fromNumber(x: number): Field;
@@ -493,7 +493,7 @@ declare class Bool {
   static fromFields(fields: Field[]): Bool;
 
   static toJSON(x: Bool): boolean;
-  static fromJSON(x: JSONValue): Bool | null;
+  static fromJSON(x: boolean): Bool;
   static check(x: Bool): void;
 
   // monkey-patched in JS
