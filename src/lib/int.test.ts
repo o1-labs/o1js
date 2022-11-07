@@ -1135,7 +1135,7 @@ describe('int', () => {
       describe('from() ', () => {
         describe('fromNumber()', () => {
           it('should be the same as Field(1)', () => {
-            const uint = UInt64.fromNumber(1);
+            const uint = UInt64.from(1);
             expect(uint.value).toEqual(new UInt64(Field(1)).value);
           });
 
@@ -1146,7 +1146,7 @@ describe('int', () => {
         });
         describe('fromString()', () => {
           it('should be the same as Field(1)', () => {
-            const uint = UInt64.fromString('1');
+            const uint = UInt64.from('1');
             expect(uint.value).toEqual(new UInt64(Field(1)).value);
           });
 
