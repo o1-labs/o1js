@@ -59,7 +59,7 @@ const TokenSymbol = {
   },
   fromJSON(symbol: string): TokenSymbol {
     // TODO re-derive field from token symbol
-    throw 'unimplemented';
+    throw Error('unimplemented');
   },
 };
 
@@ -143,7 +143,7 @@ const Events = dataAsHash({
   fromJSON(json: string[][]) {
     let data = json.map((row) => row.map((e) => Field(e)));
     // TODO compute hash
-    throw 'unimplemented';
+    throw Error('unimplemented');
   },
 });
 const StringWithHash = dataAsHash({
@@ -154,6 +154,6 @@ const StringWithHash = dataAsHash({
   fromJSON(json: string) {
     let data = json;
     // TODO compute hash
-    throw 'unimplemented';
+    throw Error('unimplemented');
   },
 });

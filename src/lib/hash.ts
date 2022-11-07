@@ -146,7 +146,7 @@ const TokenSymbolPure: ProvableExtended<
   },
   fromJSON(json: string) {
     // TODO re-derive field from token symbol
-    throw 'unimplemented';
+    throw Error('unimplemented');
   },
   toInput({ field }) {
     return { packed: [[field, 48]] };

@@ -120,7 +120,7 @@ const Events = Provables.dataAsHash({
   fromJSON(json: string[][]) {
     let data = json.map((row) => row.map((e) => Field(e)));
     // TODO compute hash
-    throw 'unimplemented';
+    throw Error('unimplemented');
   },
 });
 const StringWithHash = Provables.dataAsHash({
@@ -131,6 +131,6 @@ const StringWithHash = Provables.dataAsHash({
   fromJSON(json: string) {
     let data = json;
     // TODO compute hash
-    throw 'unimplemented';
+    throw Error('unimplemented');
   },
 });

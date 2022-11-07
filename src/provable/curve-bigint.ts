@@ -9,6 +9,9 @@ const PublicKey = {
   ...provable({ x: Field, isOdd: Bool }),
 
   toJSON(x: PublicKey) {
-    throw 'unimplemented';
+    throw Error('unimplemented');
+  },
+  fromJSON(json: string): PublicKey {
+    throw Error('unimplemented');
   },
 };

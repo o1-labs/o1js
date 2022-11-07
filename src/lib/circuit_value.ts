@@ -771,7 +771,7 @@ function Struct<
     }
     /**
      * Convert from a JSON object to an instance of this struct.
-     * @param value
+     * @param json
      * @returns a JSON representation of this struct
      */
     static fromJSON(json: J): T {
