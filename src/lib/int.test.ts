@@ -702,7 +702,7 @@ describe('int', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
                 const x = Circuit.witness(UInt64, () => UInt64.from(1));
-                const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+                const y = Circuit.witness(UInt64, () => new UInt64(Field(1)));
                 x.assertEquals(y);
               });
             }).not.toThrow();
@@ -726,7 +726,7 @@ describe('int', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
                 const x = Circuit.witness(UInt64, () => UInt64.from('1'));
-                const y = Circuit.witness(UInt64, () => new UInt64(Field.one));
+                const y = Circuit.witness(UInt64, () => new UInt64(Field(1)));
                 x.assertEquals(y);
               });
             }).not.toThrow();
@@ -1639,7 +1639,7 @@ describe('int', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
                 const x = Circuit.witness(UInt32, () => UInt32.from(1));
-                const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
+                const y = Circuit.witness(UInt32, () => new UInt32(Field(1)));
                 x.assertEquals(y);
               });
             }).not.toThrow();
@@ -1663,7 +1663,7 @@ describe('int', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
                 const x = Circuit.witness(UInt32, () => UInt32.from('1'));
-                const y = Circuit.witness(UInt32, () => new UInt32(Field.one));
+                const y = Circuit.witness(UInt32, () => new UInt32(Field(1)));
                 x.assertEquals(y);
               });
             }).not.toThrow();
@@ -2068,9 +2068,9 @@ describe('int', () => {
 
       describe('from() ', () => {
         describe('fromNumber()', () => {
-          it('should be the same as Field.one', () => {
+          it('should be the same as Field(1)', () => {
             const x = UInt32.from(1);
-            expect(x.value).toEqual(new UInt32(Field.one).value);
+            expect(x.value).toEqual(new UInt32(Field(1)).value);
           });
 
           it('should be the same as 2^53-1', () => {
@@ -2079,9 +2079,9 @@ describe('int', () => {
           });
         });
         describe('fromString()', () => {
-          it('should be the same as Field.one', () => {
+          it('should be the same as Field(1)', () => {
             const x = UInt32.from('1');
-            expect(x.value).toEqual(new UInt32(Field.one).value);
+            expect(x.value).toEqual(new UInt32(Field(1)).value);
           });
 
           it('should be the same as 2^53-1', () => {
