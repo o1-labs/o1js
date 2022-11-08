@@ -16,7 +16,7 @@ export {
   TokenId,
 };
 
-export { Events, SequenceEvents, StringWithHash, TokenSymbol };
+export { Events, SequenceEvents, StringWithHash, TokenSymbol, SequenceState };
 
 type AuthRequired = {
   constant: Bool;
@@ -39,6 +39,12 @@ type Events = {
 };
 type SequenceEvents = Events;
 const { Events, SequenceEvents } = createEvents({ Field, Poseidon });
+
+type SequenceState = Field;
+const SequenceState = {
+  ...Field,
+  emptyValue: SequenceEvents.emptySequenceState,
+};
 
 const StringWithHash = dataAsHash<string, string, Field>({
   emptyValue() {

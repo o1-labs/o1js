@@ -666,7 +666,11 @@ let jsLayout = {
                         sequenceState: {
                           type: 'option',
                           optionType: 'flaggedOption',
-                          inner: { type: 'Field' },
+                          inner: {
+                            type: 'Field',
+                            checkedType: { type: 'Field' },
+                            checkedTypeName: 'SequenceState',
+                          },
                         },
                         provedState: {
                           type: 'option',
@@ -1362,7 +1366,11 @@ let jsLayout = {
                   sequenceState: {
                     type: 'option',
                     optionType: 'flaggedOption',
-                    inner: { type: 'Field' },
+                    inner: {
+                      type: 'Field',
+                      checkedType: { type: 'Field' },
+                      checkedTypeName: 'SequenceState',
+                    },
                   },
                   provedState: {
                     type: 'option',
