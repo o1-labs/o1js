@@ -20,10 +20,8 @@ import {
   packToFields,
   prefixes,
 } from '../provable/poseidon-bigint.js';
-import {
-  packToFields as packToFieldsSnarky,
-  hashWithPrefix as hashWithPrefixSnarky,
-} from '../lib/hash.js';
+import { packToFields as packToFieldsSnarky } from '../lib/hash.js';
+import { Memo } from './memo.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
@@ -79,13 +77,20 @@ let feePayerAddress = feePayerAddressSnarky.toBase58();
 let nonce = 1n;
 let fee = 100_000_000n;
 // TODO: generate in JS
-let memo = Ledger.memoToBase58('hello world');
+let memo = Memo.fromString('hello world');
+let memoBase58 = Memo.toBase58(memo);
+let memoBase581 = Ledger.memoToBase58('hello world');
+expect(memoBase58).toEqual(memoBase581);
 
 let feePayer: ZkappCommand['feePayer'] = {
   body: { publicKey: PublicKey.fromJSON(feePayerAddress), nonce, fee },
   authorization: Ledger.dummySignature(),
 };
-let zkappCommand = { feePayer, memo, accountUpdates: [accountUpdate] };
+let zkappCommand = {
+  feePayer,
+  memo: memoBase58,
+  accountUpdates: [accountUpdate],
+};
 let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
 
 // snarkyjs fromJSON -> toJSON roundtrip, + consistency with mina-signer
@@ -97,7 +102,7 @@ let feePayerSnarky = AccountUpdateSnarky.defaultFeePayer(
 feePayerSnarky.body.fee = UInt64.from(fee);
 let zkappCommandSnarky = {
   feePayer: feePayerSnarky,
-  memo,
+  memo: memoBase58,
   accountUpdates: [accountUpdateSnarky],
 };
 let zkappCommandJsonSnarky =
@@ -115,8 +120,10 @@ let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
 let commitment = callForestHash(callForest);
 expect(commitment).toEqual(ocamlCommitments.commitment.toBigInt());
 
-// TODO memo hash
-let memoHash = 0n;
+// TODO test memo hash
+let memoHash = Memo.hash(memo);
+console.log(memoHash);
+
 // TODO turn feepayer into account update and hash
 let feePayerHash = 0n;
 let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [

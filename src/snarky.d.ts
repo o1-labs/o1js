@@ -720,7 +720,8 @@ declare const Poseidon: {
     | 'sequenceEvents'
     | 'body'
     | 'accountUpdateCons'
-    | 'accountUpdateNode',
+    | 'accountUpdateNode'
+    | 'zkappMemo',
     string
   >;
   spongeCreate(isChecked: boolean): unknown;
@@ -873,7 +874,8 @@ declare class Ledger {
       | 'ledgerHash'
       | 'epochSeed'
       | 'stateHash'
-      | 'publicKey',
+      | 'publicKey'
+      | 'userCommandMemo',
       number
     >;
   };

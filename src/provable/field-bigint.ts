@@ -8,6 +8,7 @@ export {
   HashInput,
   ProvableBigint,
   BinableBigint,
+  sizeInBits,
 };
 
 type Field = bigint;
@@ -18,8 +19,8 @@ type UInt64 = bigint;
 // TODO: auto-generate
 const MODULUS =
   0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001n;
-const SIZE_IN_BITS = MODULUS.toString(2).length;
-const SIZE_IN_BYTES = Math.ceil(SIZE_IN_BITS / 8);
+const sizeInBits = MODULUS.toString(2).length;
+const sizeInBytes = Math.ceil(sizeInBits / 8);
 
 type minusOne =
   0x40000000000000000000000000000000224698fc094cf91b992d30ed00000000n;
@@ -34,7 +35,7 @@ const Field = pseudoClass(
   function Field(value: bigint | number | string): Field {
     return BigInt(value) % MODULUS;
   },
-  { ...ProvableBigint(), ...BinableBigint(SIZE_IN_BYTES) }
+  { ...ProvableBigint(), ...BinableBigint(sizeInBytes) }
 );
 
 const Bool = pseudoClass(

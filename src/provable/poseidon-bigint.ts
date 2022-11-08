@@ -1,9 +1,9 @@
 import { Field as FieldSnarky } from '../snarky.js';
 import { Poseidon as PoseidonSnarky, prefixes } from '../lib/hash.js';
-import { Field, HashInput } from './field-bigint.js';
-import { prefixToField } from './binable.js';
+import { Field, HashInput, sizeInBits } from './field-bigint.js';
+import { bitsToBytes, prefixToField } from './binable.js';
 
-export { Poseidon, prefixes, packToFields, hashWithPrefix };
+export { Poseidon, prefixes, packToFields, hashWithPrefix, packToFieldsLegacy };
 
 const Poseidon = {
   update(state: [Field, Field, Field], input: Field[]): [Field, Field, Field] {
@@ -22,6 +22,16 @@ const Poseidon = {
     return [Field(0), Field(0), Field(0)] as [Field, Field, Field];
   },
 };
+
+function salt(prefix: string) {
+  return Poseidon.update(Poseidon.initialState(), [
+    prefixToField(Field, prefix),
+  ]);
+}
+function hashWithPrefix(prefix: string, input: Field[]) {
+  let init = salt(prefix);
+  return Poseidon.update(init, input)[0];
+}
 
 /**
  * Convert the {fields, packed} hash input representation to a list of field elements
@@ -45,13 +55,15 @@ function packToFields({ fields = [], packed = [] }: HashInput) {
   packedBits.push(currentPackedField);
   return fields.concat(packedBits);
 }
-
-function salt(prefix: string) {
-  return Poseidon.update(Poseidon.initialState(), [
-    prefixToField(Field, prefix),
-  ]);
-}
-function hashWithPrefix(prefix: string, input: Field[]) {
-  let init = salt(prefix);
-  return Poseidon.update(init, input)[0];
+/**
+ * Random_oracle_input.Legacy.pack_to_fields, for the special case of a single bitstring
+ */
+function packToFieldsLegacy([...bits]: boolean[]) {
+  let fields = [];
+  while (bits.length > 0) {
+    let fieldBits = bits.splice(0, sizeInBits);
+    let field = Field.fromBytes(bitsToBytes(fieldBits));
+    fields.push(field);
+  }
+  return fields;
 }
