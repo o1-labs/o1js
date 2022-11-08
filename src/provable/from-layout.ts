@@ -107,6 +107,16 @@ function ProvableFromLayout<
   }
 
   function emptyValue(typeData: Layout) {
+    let { checkedTypeName } = typeData;
+    if (checkedTypeName) {
+      let checkedType = customTypes[checkedTypeName];
+      if (checkedType.emptyValue) return checkedType.emptyValue();
+    }
+    let typeName = typeData.type as keyof TypeMap & keyof JsonMap;
+    if (TypeMap[typeName]) {
+      let type = TypeMap[typeName];
+      if (type.emptyValue) return type.emptyValue();
+    }
     let zero = Field.fromJSON('0');
     let fields: Field[] = Array(sizeInFields(typeData)).fill(zero);
     return fromFields(typeData, fields, toAuxiliary(typeData));

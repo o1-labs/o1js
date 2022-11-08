@@ -64,7 +64,7 @@ function createEvents<Field>({
   const EventsProvable = {
     ...Events,
     ...dataAsHash({
-      emptyValue: [],
+      emptyValue: Events.empty,
       toJSON(data: Field[][]) {
         return data.map((row) => row.map((e) => Field.toJSON(e)));
       },
@@ -110,7 +110,7 @@ function createEvents<Field>({
   const SequenceEventsProvable = {
     ...SequenceEvents,
     ...dataAsHash({
-      emptyValue: [],
+      emptyValue: SequenceEvents.empty,
       toJSON(data: Field[][]) {
         return data.map((row) => row.map((e) => Field.toJSON(e)));
       },
@@ -130,11 +130,12 @@ function dataAsHash<T, J, Field>({
   toJSON,
   fromJSON,
 }: {
-  emptyValue: T;
+  emptyValue: () => { data: T; hash: Field };
   toJSON: (value: T) => J;
   fromJSON: (json: J) => { data: T; hash: Field };
 }): GenericProvableExtended<{ data: T; hash: Field }, J, Field> {
   return {
+    emptyValue,
     sizeInFields() {
       return 1;
     },
@@ -142,7 +143,7 @@ function dataAsHash<T, J, Field>({
       return [hash];
     },
     toAuxiliary(value) {
-      return [value?.data ?? emptyValue];
+      return [value?.data ?? emptyValue().data];
     },
     fromFields([hash], [data]) {
       return { data, hash };

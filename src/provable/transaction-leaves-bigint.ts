@@ -41,7 +41,12 @@ type SequenceEvents = Events;
 const { Events, SequenceEvents } = createEvents({ Field, Poseidon });
 
 const StringWithHash = dataAsHash<string, string, Field>({
-  emptyValue: '',
+  emptyValue() {
+    return {
+      data: '',
+      hash: 22930868938364086394602058221028773520482901241511717002947639863679740444066n,
+    };
+  },
   toJSON(data: string) {
     return data;
   },
