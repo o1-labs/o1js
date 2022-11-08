@@ -22,7 +22,7 @@ import {
 
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
-import { cloneCircuitValue, JSONValue } from './circuit_value.js';
+import { cloneCircuitValue } from './circuit_value.js';
 import { Proof, snarkContext, verify } from './proof_system.js';
 import { Context } from './global-context.js';
 import { emptyReceiptChainHash } from './hash.js';
@@ -57,7 +57,7 @@ interface TransactionId {
 interface Transaction {
   transaction: ZkappCommand;
   toJSON(): string;
-  toPretty(): JSONValue;
+  toPretty(): any;
   toGraphqlQuery(): string;
   sign(additionalKeys?: PrivateKey[]): Transaction;
   prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;

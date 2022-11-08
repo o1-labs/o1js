@@ -139,7 +139,7 @@ abstract class CircuitValue {
     return (this.constructor as any).toFields(this);
   }
 
-  toJSON(): JSONValue {
+  toJSON(): any {
     return (this.constructor as any).toJSON(this);
   }
 
@@ -206,11 +206,8 @@ abstract class CircuitValue {
     return (this as any).fromFields(xs.map((x) => x.toConstant()));
   }
 
-  static toJSON<T extends AnyConstructor>(
-    this: T,
-    v: InstanceType<T>
-  ): JSONValue {
-    const res: { [key: string]: JSONValue } = {};
+  static toJSON<T extends AnyConstructor>(this: T, v: InstanceType<T>) {
+    const res: { [key: string]: any } = {};
     if ((this as any).prototype._fields !== undefined) {
       const fields: [string, any][] = (this as any).prototype._fields;
       fields.forEach(([key, propType]) => {
@@ -222,7 +219,7 @@ abstract class CircuitValue {
 
   static fromJSON<T extends AnyConstructor>(
     this: T,
-    value: JSONValue
+    value: any
   ): InstanceType<T> | null {
     const props: any = {};
     const fields: [string, any][] = (this as any).prototype._fields;
