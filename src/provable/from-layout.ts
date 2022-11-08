@@ -108,7 +108,7 @@ function ProvableFromLayout<
 
   function emptyValue(typeData: Layout) {
     let zero = Field.fromJSON('0');
-    let fields: Field[] = Array(sizeInFields(typeData)).fill(() => zero);
+    let fields: Field[] = Array(sizeInFields(typeData)).fill(zero);
     return fromFields(typeData, fields, toAuxiliary(typeData));
   }
 
@@ -127,7 +127,10 @@ function ProvableFromLayout<
       switch (optionType) {
         case 'flaggedOption': {
           if (json === null) {
-            return { isSome: false, value: emptyValue(inner) };
+            return {
+              isSome: TypeMap.Bool.fromJSON(false),
+              value: emptyValue(inner),
+            };
           }
           return {
             isSome: TypeMap.Bool.fromJSON(true),
