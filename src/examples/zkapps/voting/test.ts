@@ -104,7 +104,7 @@ export async function testSet(
 
       AccountUpdate.setValue(vkUpdate.update.verificationKey, {
         ...verificationKey,
-        hash: Field.fromString(verificationKey.hash),
+        hash: Field(verificationKey.hash),
       });
     },
     verificationKeySet.feePayer

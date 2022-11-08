@@ -25,7 +25,7 @@ class TokenContract extends SmartContract {
       ...Permissions.default(),
       send: Permissions.proof(),
     });
-    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
+    this.balance.addInPlace(UInt64.from(initialBalance));
   }
 
   @method tokenDeploy(deployer: PrivateKey, verificationKey: VerificationKey) {

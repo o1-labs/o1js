@@ -361,10 +361,6 @@ declare class Field {
   static toJSON(x: Field): string;
   static fromJSON(x: JSONValue): Field | null;
 
-  static fromString(x: string): Field;
-  static fromNumber(x: number): Field;
-  static fromBigInt(x: bigint): Field;
-
   static check(x: Field): void;
 
   // monkey-patched in JS
