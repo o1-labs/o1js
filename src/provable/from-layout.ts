@@ -133,22 +133,30 @@ function ProvableFromLayout<
       return json.map((json: any) => fromJSON(arrayTypeData.inner, json));
     }
     if (typeData.type === 'option') {
-      let { optionType, inner } = typeData as OptionLayout<TypeMap>;
-      switch (optionType) {
+      let optionTypeData = typeData as OptionLayout<TypeMap>;
+      switch (optionTypeData.optionType) {
+        case 'closedInterval':
         case 'flaggedOption': {
-          if (json === null) {
-            return {
-              isSome: TypeMap.Bool.fromJSON(false),
-              value: emptyValue(inner),
-            };
+          let isSome = TypeMap.Bool.fromJSON(json !== null);
+          let value;
+          if (json !== null) {
+            value = fromJSON(optionTypeData.inner, json);
+          } else {
+            value = emptyValue(optionTypeData.inner);
+            if (optionTypeData.optionType === 'closedInterval') {
+              let innerInner = optionTypeData.inner.entries.lower;
+              let innerType =
+                TypeMap[innerInner.type as keyof TypeMap & keyof JsonMap];
+              value.lower = innerType.fromJSON(optionTypeData.rangeMin);
+              value.upper = innerType.fromJSON(optionTypeData.rangeMax);
+            }
           }
-          return {
-            isSome: TypeMap.Bool.fromJSON(true),
-            value: fromJSON(inner, json),
-          };
+          return { isSome, value };
         }
         case 'orUndefined': {
-          return json === null ? undefined : fromJSON(inner, json);
+          return json === null
+            ? undefined
+            : fromJSON(optionTypeData.inner, json);
         }
         default:
           throw Error('bug');
@@ -262,6 +270,7 @@ function ProvableFromLayout<
     if (typeData.type === 'option') {
       let { optionType, inner } = typeData as OptionLayout<TypeMap>;
       switch (optionType) {
+        case 'closedInterval':
         case 'flaggedOption': {
           let [first, ...rest] = fields;
           let isSome = TypeMap.Bool.fromFields([first], []);
@@ -382,6 +391,7 @@ function ProvableFromLayout<
     if (typeData.type === 'option') {
       let { optionType, inner } = typeData as OptionLayout<TypeMap>;
       switch (optionType) {
+        case 'closedInterval':
         case 'flaggedOption':
           let v: { isSome: T; value: T } | undefined = value as any;
           return spec.reduceFlaggedOption({
@@ -469,7 +479,9 @@ type OptionLayout<TypeMap extends AnyTypeMap, T = BaseLayout<AnyTypeMap>> = {
   type: 'option';
 } & (
   | {
-      optionType: 'flaggedOption';
+      optionType: 'closedInterval';
+      rangeMin: any;
+      rangeMax: any;
       inner: RangeLayout<TypeMap, T>;
     }
   | {

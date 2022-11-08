@@ -51,7 +51,7 @@ function writeType(typeData, isJson, withTypeMap) {
       dependencies,
       converters: j,
     } = writeType(inner, isJson, withTypeMap);
-    if (optionType === 'flaggedOption') {
+    if (optionType === 'flaggedOption' || optionType === 'closedInterval') {
       dependencies ??= new Set();
       dependencies.add('Bool');
     }
@@ -61,7 +61,7 @@ function writeType(typeData, isJson, withTypeMap) {
         ? `(${output} | null)`
         : optionType === 'implicit'
         ? output
-        : optionType === 'flaggedOption'
+        : optionType === 'flaggedOption' || optionType === 'closedInterval'
         ? `{isSome: Bool, value: ${output}}`
         : `(${output} | undefined)`,
       dependencies,
