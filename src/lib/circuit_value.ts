@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Circuit, JSONValue, ProvablePure, Provable } from '../snarky.js';
+import { Circuit, ProvablePure, Provable } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
 import { inCheckedComputation, snarkContext } from './proof_system.js';
@@ -32,6 +32,7 @@ export {
   InferCircuitValue,
   Provables,
   HashInput,
+  JSONValue,
 };
 
 type Constructor<T> = new (...args: any) => T;
@@ -1073,6 +1074,14 @@ function getBlindingValue() {
 // some type inference helpers
 
 type Tuple<T> = [T, ...T[]] | [];
+
+type JSONValue =
+  | number
+  | string
+  | boolean
+  | null
+  | Array<JSONValue>
+  | { [key: string]: JSONValue };
 
 type Primitive =
   | typeof String
