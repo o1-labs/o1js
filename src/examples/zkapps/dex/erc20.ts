@@ -169,12 +169,12 @@ class TrivialCoin extends SmartContract implements Erc20 {
     from: PublicKey,
     to: PublicKey,
     value: UInt64,
-    authorize: Experimental.Callback<any>
+    approve: Experimental.Callback<any>
   ): Bool {
     // TODO: need to be able to witness a certain layout of account updates, in this case
     // tokenContract --> sender --> receiver
-    let fromUpdate = this.experimental.authorize(
-      authorize,
+    let fromUpdate = this.experimental.approve(
+      approve,
       AccountUpdate.Layout.NoChildren
     );
 
@@ -215,8 +215,8 @@ class TrivialCoin extends SmartContract implements Erc20 {
   // for letting a zkapp do whatever it wants, as long as no tokens are transfered
   // TODO: atm, we have to restrict the zkapp to have no children
   //       -> need to be able to witness a general layout of account updates
-  @method authorizeZkapp(callback: Experimental.Callback<any>) {
-    let zkappUpdate = this.experimental.authorize(
+  @method approveZkapp(callback: Experimental.Callback<any>) {
+    let zkappUpdate = this.experimental.approve(
       callback,
       AccountUpdate.Layout.NoChildren
     );
