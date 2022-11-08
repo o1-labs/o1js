@@ -904,6 +904,13 @@ class AccountUpdate implements Types.AccountUpdate {
   toJSON() {
     return Types.AccountUpdate.toJSON(this);
   }
+  static toJSON(a: AccountUpdate) {
+    return Types.AccountUpdate.toJSON(a);
+  }
+  static fromJSON(json: Types.Json.AccountUpdate) {
+    let accountUpdate = Types.AccountUpdate.fromJSON(json);
+    return new AccountUpdate(accountUpdate.body, accountUpdate.authorization);
+  }
 
   hash() {
     // these two ways of hashing are (and have to be) consistent / produce the same hash
@@ -1060,9 +1067,6 @@ class AccountUpdate implements Types.AccountUpdate {
   }
   static toInput(a: AccountUpdate) {
     return AccountUpdate.provable.toInput(a.toProvable());
-  }
-  static toJSON(a: AccountUpdate) {
-    return AccountUpdate.provable.toJSON(a.toProvable());
   }
   static check(a: AccountUpdate) {
     AccountUpdate.provable.check(a.toProvable());

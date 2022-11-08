@@ -14,16 +14,21 @@ type Field = bigint;
 type Bool = 0n | 1n;
 type UInt32 = bigint;
 type UInt64 = bigint;
-type Sign = -1n | 1n;
-
-type HashInput = GenericHashInput<Field>;
-type ProvableExtended<T, J> = GenericProvableExtended<T, J, Field>;
 
 // TODO: auto-generate
 const MODULUS =
   0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001n;
 const SIZE_IN_BITS = MODULUS.toString(2).length;
 const SIZE_IN_BYTES = Math.ceil(SIZE_IN_BITS / 8);
+
+type minusOne =
+  0x40000000000000000000000000000000224698fc094cf91b992d30ed00000000n;
+const minusOne: minusOne =
+  0x40000000000000000000000000000000224698fc094cf91b992d30ed00000000n;
+type Sign = 1n | minusOne;
+
+type HashInput = GenericHashInput<Field>;
+type ProvableExtended<T, J> = GenericProvableExtended<T, J, Field>;
 
 const Field = pseudoClass(
   function Field(value: bigint | number | string): Field {
@@ -90,7 +95,7 @@ const Sign = pseudoClass(
   function Sign(value: 1 | -1): Sign {
     if (value !== 1 && value !== -1)
       throw Error('Sign: input must be 1 or -1.');
-    return BigInt(value) as Sign;
+    return (BigInt(value) % MODULUS) as Sign;
   },
   {
     ...ProvableBigint<Sign, 'Positive' | 'Negative'>(),
@@ -98,14 +103,14 @@ const Sign = pseudoClass(
     toInput(x: Sign): HashInput {
       return {
         fields: [],
-        packed: [[x, 1]],
+        packed: [[x === 1n ? 1n : 0n, 1]],
       };
     },
     toJSON(x: Sign) {
       return x === 1n ? 'Positive' : 'Negative';
     },
-    fromJSON(x: 'Positive' | 'Negative') {
-      return x === 'Positive' ? 1n : -1n;
+    fromJSON(x: 'Positive' | 'Negative'): Sign {
+      return x === 'Positive' ? 1n : minusOne;
     },
   }
 );

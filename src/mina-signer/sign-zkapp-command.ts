@@ -13,6 +13,8 @@ import {
   prefixes,
 } from '../provable/poseidon-bigint.js';
 
+export { accountUpdatesToCallForest, callForestHash, accountUpdateHash };
+
 function signZkappCommand(
   zkappCommand: Json.ZkappCommand,
   privateKey: PrivateKey
@@ -61,8 +63,7 @@ function accountUpdatesToCallForest(updates: AccountUpdate[], callDepth = 0) {
 function accountUpdateHash(update: AccountUpdate) {
   let input = AccountUpdate.toInput(update);
   let fields = packToFields(input);
-  let state = Poseidon.update(Poseidon.initialState(), fields);
-  return state[0];
+  return hashWithPrefix(prefixes.body, fields);
 }
 
 function callForestHash(forest: CallForest): Field {
