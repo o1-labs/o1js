@@ -64,20 +64,9 @@ let packed = packToFields(input);
 let packedSnarky = packToFieldsSnarky(inputSnarky);
 expect(toJSON(packed)).toEqual(toJSON(packedSnarky));
 
-let hash = hashWithPrefix(prefixes.body, packed);
-let hashSnarky = hashWithPrefixSnarky(prefixes.body, packedSnarky);
+let hash = accountUpdateHash(accountUpdate);
+let hashSnarky = accountUpdateSnarky.hash();
 expect(hash).toEqual(hashSnarky.toBigInt());
-
-let accountUpdateJsonSnarky =
-  TypesSnarky.AccountUpdate.toJSON(accountUpdateSnarky);
-expect(accountUpdateJsonSnarky).toEqual(accountUpdateJson);
-let hashSnarky2 = Ledger.hashAccountUpdateFromJson(
-  JSON.stringify(accountUpdateJsonSnarky)
-);
-
-expect(hashSnarky2.toBigInt()).toEqual(hashSnarky.toBigInt());
-// let hash = accountUpdateHash(accountUpdate);
-// expect(hash).toEqual(hashSnarky.toBigInt());
 
 // example tx
 // TODO: generate in JS
@@ -123,7 +112,6 @@ let ocamlCommitments = Ledger.transactionCommitments(
   JSON.stringify(zkappCommandJson)
 );
 let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
-console.dir(callForest, { depth: Infinity });
 let commitment = callForestHash(callForest);
 expect(commitment).toEqual(ocamlCommitments.commitment.toBigInt());
 
@@ -136,3 +124,5 @@ let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
   feePayerHash,
   commitment,
 ]);
+
+console.log('to/from json, hashes & signatures are consistent! 🎉');
