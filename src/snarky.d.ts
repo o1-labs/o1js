@@ -358,7 +358,7 @@ declare class Field {
   */
 
   static toJSON(x: Field): string;
-  static fromJSON(x: string): Field;
+  static fromJSON(x: string | number): Field;
 
   static check(x: Field): void;
 
@@ -635,7 +635,7 @@ declare class Scalar {
   static random(): Scalar;
 
   static toJSON(x: Scalar): string;
-  static fromJSON(x: string): Scalar;
+  static fromJSON(x: string | number | boolean): Scalar;
   static check(x: Scalar): void;
 }
 
