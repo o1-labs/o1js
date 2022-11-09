@@ -1,4 +1,4 @@
-export { Fp, Fq, p, q, mod, inverse };
+export { Fp, Fq, p, q, mod, inverse, bytesToBigInt };
 
 // CONSTANTS
 

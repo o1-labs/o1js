@@ -1,4 +1,5 @@
-import { inverse, mod } from './finite_field.js';
+import { bytesToBigInt, inverse, mod, p, q } from './finite_field.js';
+export { Pallas, Vesta };
 
 // TODO: constants, like generator points and cube roots for endomorphisms, should be drawn from
 // a common source, i.e. generated from the Rust code
@@ -126,85 +127,73 @@ function projectiveToAffine(g: GroupProjective, p: bigint): GroupAffine {
   }
 }
 
-function caml_pallas_one() {
-  return pallasGeneratorProjective;
-}
-function caml_vesta_one() {
-  return vestaGeneratorProjective;
-}
+function createCurveProjective(
+  p: bigint,
+  generator: GroupProjective,
+  endoBase: bigint,
+  endoScalar: bigint
+) {
+  return {
+    one: generator,
+    endoBase,
+    endoScalar,
 
-function caml_pallas_add(g, h) {
-  return projectiveAdd(g, h, p);
-}
-function caml_vesta_add(g, h) {
-  return projectiveAdd(g, h, q);
-}
-
-function caml_pallas_negate(g) {
-  return projectiveNeg(g, p);
-}
-function caml_vesta_negate(g) {
-  return projectiveNeg(g, q);
-}
-
-function caml_pallas_sub(x, y) {
-  return projectiveSub(x, y, p);
-}
-function caml_vesta_sub(x, y) {
-  return projectiveSub(x, y, q);
-}
-
-function caml_pallas_scale(g, x) {
-  return projectiveScale(g, x[0], p);
-}
-function caml_vesta_scale(g, x) {
-  return projectiveScale(g, x[0], q);
-}
-
-function caml_pallas_endo_base() {
-  return [caml_bigint_of_bytes(pallasEndoBase)];
-}
-function caml_vesta_endo_base() {
-  return [caml_bigint_of_bytes(vestaEndoBase)];
-}
-
-function caml_pallas_endo_scalar() {
-  return [caml_bigint_of_bytes(pallasEndoScalar)];
-}
-function caml_vesta_endo_scalar() {
-  return [caml_bigint_of_bytes(vestaEndoScalar)];
-}
-
-function caml_pallas_to_affine(g) {
-  let ga = projectiveToAffine(g, p);
-  return caml_affine_of_js_affine(ga);
-}
-function caml_vesta_to_affine(g) {
-  let ga = projectiveToAffine(g, q);
-  return caml_affine_of_js_affine(ga);
-}
-
-function caml_pallas_of_affine_coordinates(x, y) {
-  return new GroupProjective({ x: x[0], y: y[0], z: 1n });
-}
-function caml_vesta_of_affine_coordinates(x, y) {
-  return new GroupProjective({ x: x[0], y: y[0], z: 1n });
+    add(g: GroupProjective, h: GroupProjective) {
+      return projectiveAdd(g, h, p);
+    },
+    negate(g: GroupProjective) {
+      return projectiveNeg(g, p);
+    },
+    sub(g: GroupProjective, h: GroupProjective) {
+      return projectiveSub(g, h, p);
+    },
+    scale(g: GroupProjective, s: bigint) {
+      return projectiveScale(g, s, p);
+    },
+    toAffine(g: GroupProjective) {
+      return projectiveToAffine(g, p);
+    },
+    ofAffine({ x, y }: GroupAffine) {
+      return { x, y, z: 1n };
+    },
+  };
 }
 
 // TODO check if these really should be hardcoded, otherwise compute them
-const vestaEndoBase = new Uint8Array([
-  79, 14, 170, 80, 224, 210, 169, 42, 175, 51, 192, 71, 125, 70, 237, 15, 90,
-  15, 247, 28, 216, 180, 29, 81, 142, 82, 62, 40, 88, 154, 129, 6,
-]);
-const pallasEndoBase = new Uint8Array([
-  71, 181, 1, 2, 47, 210, 127, 123, 210, 199, 159, 209, 41, 13, 39, 5, 80, 78,
-  85, 168, 35, 42, 85, 211, 142, 69, 50, 181, 124, 53, 51, 45,
-]);
-const vestaEndoScalar = new Uint8Array([
-  185, 74, 254, 253, 189, 94, 173, 29, 73, 49, 173, 55, 210, 139, 31, 29, 176,
-  177, 170, 87, 220, 213, 170, 44, 113, 186, 205, 74, 131, 202, 204, 18,
-]);
-const pallasEndoScalar = new Uint8Array([
-  177, 241, 85, 175, 64, 24, 157, 97, 46, 117, 212, 193, 126, 82, 89, 18, 166,
-  240, 8, 227, 39, 75, 226, 174, 113, 173, 193, 215, 167, 101, 126, 57,
-]);
+const vestaEndoBase = bytesToBigInt(
+  new Uint8Array([
+    79, 14, 170, 80, 224, 210, 169, 42, 175, 51, 192, 71, 125, 70, 237, 15, 90,
+    15, 247, 28, 216, 180, 29, 81, 142, 82, 62, 40, 88, 154, 129, 6,
+  ])
+);
+const pallasEndoBase = bytesToBigInt(
+  new Uint8Array([
+    71, 181, 1, 2, 47, 210, 127, 123, 210, 199, 159, 209, 41, 13, 39, 5, 80, 78,
+    85, 168, 35, 42, 85, 211, 142, 69, 50, 181, 124, 53, 51, 45,
+  ])
+);
+const vestaEndoScalar = bytesToBigInt(
+  new Uint8Array([
+    185, 74, 254, 253, 189, 94, 173, 29, 73, 49, 173, 55, 210, 139, 31, 29, 176,
+    177, 170, 87, 220, 213, 170, 44, 113, 186, 205, 74, 131, 202, 204, 18,
+  ])
+);
+const pallasEndoScalar = bytesToBigInt(
+  new Uint8Array([
+    177, 241, 85, 175, 64, 24, 157, 97, 46, 117, 212, 193, 126, 82, 89, 18, 166,
+    240, 8, 227, 39, 75, 226, 174, 113, 173, 193, 215, 167, 101, 126, 57,
+  ])
+);
+
+const Pallas = createCurveProjective(
+  p,
+  pallasGeneratorProjective,
+  pallasEndoBase,
+  pallasEndoScalar
+);
+const Vesta = createCurveProjective(
+  q,
+  vestaGeneratorProjective,
+  vestaEndoBase,
+  vestaEndoScalar
+);
