@@ -122,7 +122,8 @@ expect(commitment).toEqual(ocamlCommitments.commitment.toBigInt());
 
 // TODO test memo hash
 let memoHash = Memo.hash(memo);
-console.log(memoHash);
+let memoHashSnarky = Ledger.memoHashBase58(memoBase58);
+expect(memoHash).toEqual(memoHashSnarky.toBigInt());
 
 // TODO turn feepayer into account update and hash
 let feePayerHash = 0n;
