@@ -1,3 +1,5 @@
+export { p, q, mod, inverse };
+
 // CONSTANTS
 
 // the modulus. called `p` in most of our code.
@@ -17,14 +19,14 @@ const twoadicRootFq =
 
 // GENERAL FINITE FIELD ALGORITHMS
 
-function mod(x, p) {
+function mod(x: bigint, p: bigint) {
   x = x % p;
   if (x < 0) return x + p;
   return x;
 }
 
 // modular exponentiation, a^n % p
-function power(a, n, p) {
+function power(a: bigint, n: bigint, p: bigint) {
   a = mod(a, p);
   // this assumes that p is prime, so that a^(p-1) % p = 1
   n = mod(n, p - 1n);
@@ -37,7 +39,7 @@ function power(a, n, p) {
 }
 
 // inverting with EGCD, 1/a in Z_p
-function inverse(a, p) {
+function inverse(a: bigint, p: bigint) {
   a = mod(a, p);
   if (a === 0n) return undefined;
   let b = p;
@@ -61,41 +63,40 @@ function inverse(a, p) {
   return mod(x, p);
 }
 
-let sqrt = (function () {
-  let precomputed_c = {};
-  return function sqrt(n, p, Q, z) {
-    // https://en.wikipedia.org/wiki/Tonelli-Shanks_algorithm#The_algorithm
-    // variable naming is the same as in that link ^
-    // Q is what we call `t` elsewhere - the odd factor in p - 1
-    // z is a known non-square mod p. we pass in the primitive root of unity
-    let M = 32n;
-    let c =
-      precomputed_c[p.toString()] ||
-      (precomputed_c[p.toString()] = power(z, Q, p)); // z^Q
-    // TODO: can we save work by sharing computation between t and R?
-    let t = power(n, Q, p); // n^Q
-    let R = power(n, (Q + 1n) / 2n, p); // n^((Q + 1)/2)
-    while (true) {
-      if (t === 0n) return 0n;
-      if (t === 1n) return R;
-      // use repeated squaring to find the least i, 0 < i < M, such that t^(2^i) = 1
-      let i = 0n;
-      let s = t;
-      while (s !== 1n) {
-        s = mod(s * s, p);
-        i = i + 1n;
-      }
-      if (i === M) return undefined; // no solution
-      let b = power(c, 1n << (M - i - 1n), p); // c^(2^(M-i-1))
-      M = i;
-      c = mod(b * b, p);
-      t = mod(t * c, p);
-      R = mod(R * b, p);
-    }
-  };
-})();
+let precomputed_c: Record<string, bigint> = {};
 
-function isSquare(x, p) {
+function sqrt(n: bigint, p: bigint, Q: bigint, z: bigint) {
+  // https://en.wikipedia.org/wiki/Tonelli-Shanks_algorithm#The_algorithm
+  // variable naming is the same as in that link ^
+  // Q is what we call `t` elsewhere - the odd factor in p - 1
+  // z is a known non-square mod p. we pass in the primitive root of unity
+  let M = 32n;
+  let c =
+    precomputed_c[p.toString()] ||
+    (precomputed_c[p.toString()] = power(z, Q, p)); // z^Q
+  // TODO: can we save work by sharing computation between t and R?
+  let t = power(n, Q, p); // n^Q
+  let R = power(n, (Q + 1n) / 2n, p); // n^((Q + 1)/2)
+  while (true) {
+    if (t === 0n) return 0n;
+    if (t === 1n) return R;
+    // use repeated squaring to find the least i, 0 < i < M, such that t^(2^i) = 1
+    let i = 0n;
+    let s = t;
+    while (s !== 1n) {
+      s = mod(s * s, p);
+      i = i + 1n;
+    }
+    if (i === M) return undefined; // no solution
+    let b = power(c, 1n << (M - i - 1n), p); // c^(2^(M-i-1))
+    M = i;
+    c = mod(b * b, p);
+    t = mod(t * c, p);
+    R = mod(R * b, p);
+  }
+}
+
+function isSquare(x: bigint, p: bigint) {
   if (x === 0n) return 1;
   let sqrt_1 = power(x, (p - 1n) / 2n, p);
   return Number(sqrt_1 === 1n);
@@ -103,17 +104,17 @@ function isSquare(x, p) {
 
 let randomBytes = (function () {
   // have to use platform-dependent secure randomness
-  let crypto = joo_global_object.crypto;
+  let crypto = globalThis.crypto;
   if (crypto !== undefined && crypto.getRandomValues !== undefined) {
     // browser / deno
-    return function randomBytes(n) {
+    return function randomBytes(n: number) {
       return crypto.getRandomValues(new Uint8Array(n));
     };
   } else if (typeof require !== 'undefined') {
     // node (common JS)
-    crypto = require('crypto');
-    return function randomBytes(n) {
-      return new Uint8Array(crypto.randomBytes(n));
+    let nodeCrypto = require('crypto');
+    return function randomBytes(n: number) {
+      return new Uint8Array(nodeCrypto.randomBytes(n));
     };
   } else {
     throw Error(
@@ -122,14 +123,23 @@ let randomBytes = (function () {
   }
 })();
 
-function randomField(p) {
+function randomField(p: bigint) {
   // strategy: find random 255-bit bigints and use the first that's smaller than p
   while (true) {
     let bytes = randomBytes(32);
     bytes[31] &= 0x7f; // zero highest bit, so we get 255 random bits
-    let x = caml_bigint_of_bytes(bytes);
+    let x = bytesToBigInt(bytes);
     if (x < p) return x;
   }
+}
+function bytesToBigInt(bytes: Uint8Array) {
+  let x = 0n;
+  let bitPosition = 0n;
+  for (let byte of bytes) {
+    x += BigInt(byte) << bitPosition;
+    bitPosition += 8n;
+  }
+  return x;
 }
 
 // SPECIALIZATIONS TO FP, FQ
@@ -297,34 +307,34 @@ function caml_pasta_fq_mut_square(x) {
 
 let caml_bindings_debug = false;
 
-let _test_finite_field =
-  caml_bindings_debug &&
-  (function test() {
-    // t is computed correctly from p = 2^32 * t + 1
-    console.assert(pMinusOneOddFactor * (1n << 32n) + 1n === p);
-    console.assert(qMinusOneOddFactor * (1n << 32n) + 1n === q);
+if (caml_bindings_debug) test();
 
-    // the primitive root of unity is computed correctly as 5^t
-    let generator = 5n;
-    let root_fp = power(generator, pMinusOneOddFactor, p);
-    console.assert(root_fp === twoadicRootFp);
-    let root_fq = power(generator, qMinusOneOddFactor, q);
-    console.assert(root_fq === twoadicRootFq);
+function test() {
+  // t is computed correctly from p = 2^32 * t + 1
+  console.assert(pMinusOneOddFactor * (1n << 32n) + 1n === p);
+  console.assert(qMinusOneOddFactor * (1n << 32n) + 1n === q);
 
-    // the primitive roots of unity `r` actually satisfy the equations defining them:
-    // r^(2^32) = 1, r^(2^31) != 1
-    let should_be_1 = power(twoadicRootFp, 1n << 32n, p);
-    let should_be_minus_1 = power(twoadicRootFp, 1n << 31n, p);
-    console.assert(should_be_1 === 1n);
-    console.assert(should_be_minus_1 + 1n === p);
+  // the primitive root of unity is computed correctly as 5^t
+  let generator = 5n;
+  let root_fp = power(generator, pMinusOneOddFactor, p);
+  console.assert(root_fp === twoadicRootFp);
+  let root_fq = power(generator, qMinusOneOddFactor, q);
+  console.assert(root_fq === twoadicRootFq);
 
-    should_be_1 = power(twoadicRootFq, 1n << 32n, q);
-    should_be_minus_1 = power(twoadicRootFq, 1n << 31n, q);
-    console.assert(should_be_1 === 1n);
-    console.assert(should_be_minus_1 + 1n === q);
+  // the primitive roots of unity `r` actually satisfy the equations defining them:
+  // r^(2^32) = 1, r^(2^31) != 1
+  let should_be_1 = power(twoadicRootFp, 1n << 32n, p);
+  let should_be_minus_1 = power(twoadicRootFp, 1n << 31n, p);
+  console.assert(should_be_1 === 1n);
+  console.assert(should_be_minus_1 + 1n === p);
 
-    // the primitive roots of unity are non-squares
-    // -> verifies that the two-adicity is 32, and that they can be used as non-squares in the sqrt algorithm
-    console.assert(caml_pasta_fp_is_square([twoadicRootFp]) === 0);
-    console.assert(caml_pasta_fq_is_square([twoadicRootFq]) === 0);
-  })();
+  should_be_1 = power(twoadicRootFq, 1n << 32n, q);
+  should_be_minus_1 = power(twoadicRootFq, 1n << 31n, q);
+  console.assert(should_be_1 === 1n);
+  console.assert(should_be_minus_1 + 1n === q);
+
+  // the primitive roots of unity are non-squares
+  // -> verifies that the two-adicity is 32, and that they can be used as non-squares in the sqrt algorithm
+  console.assert(caml_pasta_fp_is_square([twoadicRootFp]) === 0);
+  console.assert(caml_pasta_fq_is_square([twoadicRootFq]) === 0);
+}

@@ -1,3 +1,5 @@
+import { inverse, mod } from './finite_field.js';
+
 // TODO: constants, like generator points and cube roots for endomorphisms, should be drawn from
 // a common source, i.e. generated from the Rust code
 const pallasGeneratorProjective = {
@@ -11,41 +13,20 @@ const vestaGeneratorProjective = {
   z: 1n,
 };
 
-// projective repr: { x: bigint, y: bigint, z: bigint }
-let GroupProjective = (function () {
-  let GroupProjective = function (obj) {
-    this.x = obj.x;
-    this.y = obj.y;
-    this.z = obj.z;
-    // this.ptr = obj;
-  };
-  GroupProjective.prototype.free = function () {};
-  return GroupProjective;
-})();
-
-// affine repr: { x: bigint, y: bigint, infinity: boolean }
-let GroupAffine = (function () {
-  let GroupAffine = function (obj) {
-    this.x = obj.x;
-    this.y = obj.y;
-    this.infinity = obj.infinity;
-    // this.ptr = obj;
-  };
-  GroupAffine.prototype.free = function () {};
-  return GroupAffine;
-})();
+type GroupProjective = { x: bigint; y: bigint; z: bigint };
+type GroupAffine = { x: bigint; y: bigint; infinity: boolean };
 
 function projectiveZero() {
-  return new GroupProjective({ x: 1n, y: 1n, z: 0n });
+  return { x: 1n, y: 1n, z: 0n };
 }
 
-function projectiveNeg(g, p) {
-  return new GroupProjective({ x: g.x, y: p - g.y, z: g.z });
+function projectiveNeg({ x, y, z }: GroupProjective, p: bigint) {
+  return { x, y: y === 0n ? 0n : p - y, z };
 }
 
-function projectiveAdd(g, h, p) {
-  if (g.z === 0n) return new GroupProjective(h);
-  if (h.z === 0n) return new GroupProjective(g);
+function projectiveAdd(g: GroupProjective, h: GroupProjective, p: bigint) {
+  if (g.z === 0n) return h;
+  if (h.z === 0n) return g;
   let X1 = g.x,
     Y1 = g.y,
     Z1 = g.z,
@@ -81,11 +62,11 @@ function projectiveAdd(g, h, p) {
   let Y3 = mod(r * (V - X3) - 2n * S1 * J, p);
   // Z3 = ((Z1+Z2)^2-Z1Z1-Z2Z2)*H
   let Z3 = mod(((Z1 + Z2) * (Z1 + Z2) - Z1Z1 - Z2Z2) * H, p);
-  return new GroupProjective({ x: X3, y: Y3, z: Z3 });
+  return { x: X3, y: Y3, z: Z3 };
 }
 
-function projectiveDouble(g, p) {
-  if (g.z === 0n) return new GroupProjective(g);
+function projectiveDouble(g: GroupProjective, p: bigint) {
+  if (g.z === 0n) return g;
   let X1 = g.x,
     Y1 = g.y,
     Z1 = g.z;
@@ -109,14 +90,14 @@ function projectiveDouble(g, p) {
   let Y3 = mod(E * (D - X3) - 8n * C, p);
   // Z3 = 2*Y1*Z1
   let Z3 = mod(2n * Y1 * Z1, p);
-  return new GroupProjective({ x: X3, y: Y3, z: Z3 });
+  return { x: X3, y: Y3, z: Z3 };
 }
 
-function projectiveSub(g, h, p) {
+function projectiveSub(g: GroupProjective, h: GroupProjective, p: bigint) {
   return projectiveAdd(g, projectiveNeg(h, p), p);
 }
 
-function projectiveScale(g, x, p) {
+function projectiveScale(g: GroupProjective, x: bigint, p: bigint) {
   let h = projectiveZero();
   while (x > 0n) {
     if (x & 1n) h = projectiveAdd(h, g, p);
@@ -126,30 +107,30 @@ function projectiveScale(g, x, p) {
   return h;
 }
 
-function projectiveToAffine(g, p) {
+function projectiveToAffine(g: GroupProjective, p: bigint): GroupAffine {
   let z = g.z;
   if (z === 0n) {
     // infinity
-    return new GroupAffine({ x: 1n, y: 1n, infinity: true });
+    return { x: 1n, y: 1n, infinity: true };
   } else if (z === 1n) {
     // already normalized affine form
-    return new GroupAffine({ x: g.x, y: g.y, infinity: false });
+    return { x: g.x, y: g.y, infinity: false };
   } else {
-    let zinv = inverse(z, p);
+    let zinv = inverse(z, p)!; // we checked for z === 0, so inverse exists
     let zinv_squared = mod(zinv * zinv, p);
     // x/z^2
     let x = mod(g.x * zinv_squared, p);
     // y/z^3
     let y = mod(g.y * zinv * zinv_squared, p);
-    return new GroupAffine({ x: x, y: y, infinity: false });
+    return { x: x, y: y, infinity: false };
   }
 }
 
 function caml_pallas_one() {
-  return new GroupProjective(pallasGeneratorProjective);
+  return pallasGeneratorProjective;
 }
 function caml_vesta_one() {
-  return new GroupProjective(vestaGeneratorProjective);
+  return vestaGeneratorProjective;
 }
 
 function caml_pallas_add(g, h) {
