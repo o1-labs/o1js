@@ -9,7 +9,6 @@ describe('Field constructor', () => {
   it('handles small numbers', () => {
     expect(Field(5).toString()).toEqual('5');
     expect(Field(1313).toString()).toEqual('1313');
-    expect(Field(5).toString()).toEqual('5');
   });
 
   it('handles large numbers 2^31 <= x < 2^53', () => {
@@ -17,19 +16,16 @@ describe('Field constructor', () => {
     expect(Field(Number.MAX_SAFE_INTEGER).toString()).toEqual(
       String(Number.MAX_SAFE_INTEGER)
     );
-    expect(Field(2 ** 31).toString()).toEqual('2147483648');
   });
 
   it('handles negative numbers', () => {
     expect(Field(-1)).toEqual(Field(1).neg());
     expect(Field(-(2 ** 31))).toEqual(Field(2 ** 31).neg());
-    expect(Field(-1)).toEqual(Field(1).neg());
   });
 
   it('throws on fractional numbers', () => {
     expect(() => Field(0.5)).toThrow();
     expect(() => Field(-1.1)).toThrow();
-    expect(() => Field(0.5)).toThrow();
   });
 
   // Field(bigint), Field.fromBigInt, toBigInt

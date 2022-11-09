@@ -5,7 +5,6 @@ import {
   Ledger,
   Pickles,
   Poseidon as Poseidon_,
-  JSONValue,
   Provable,
 } from '../snarky.js';
 import {
