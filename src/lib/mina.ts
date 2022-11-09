@@ -957,7 +957,7 @@ async function verifyAccountUpdate(
     checkPermission(p, 'incrementNonce');
   }
 
-  // this checks for an edge case where an account update can be authorized using proofs but
+  // this checks for an edge case where an account update can be approved using proofs but
   // a) the proof is invalid (bad verification key)
   // and b) there are no state changes initiate so no permissions will be checked
   // however, if the verification key changes, the proof should still be invalid
