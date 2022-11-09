@@ -42,7 +42,7 @@ class TokenContract extends SmartContract {
   @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
     let tokenId = this.experimental.token.id;
     let zkapp = AccountUpdate.defaultAccountUpdate(address, tokenId);
-    this.experimental.authorize(zkapp);
+    this.experimental.approve(zkapp);
     AccountUpdate.setValue(zkapp.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
@@ -92,14 +92,14 @@ class TokenContract extends SmartContract {
     this.totalAmountInCirculation.set(newTotalAmountInCirculation);
   }
 
-  @method authorizeTransferCallback(
+  @method approveTransferCallback(
     senderAddress: PublicKey,
     receiverAddress: PublicKey,
     amount: UInt64,
     callback: Experimental.Callback<any>
   ) {
     let layout = AccountUpdate.Layout.NoChildren; // Allow only 1 accountUpdate with no children
-    let senderAccountUpdate = this.experimental.authorize(callback, layout);
+    let senderAccountUpdate = this.experimental.approve(callback, layout);
     let negativeAmount = Int64.fromObject(
       senderAccountUpdate.body.balanceChange
     );
@@ -134,7 +134,7 @@ class ZkAppC extends SmartContract {
   @method approveIncorrectLayout(amount: UInt64) {
     this.balance.subInPlace(amount);
     let update = AccountUpdate.defaultAccountUpdate(this.address);
-    this.self.authorize(update);
+    this.self.approve(update);
   }
 }
 
@@ -524,7 +524,7 @@ describe('Token', () => {
       test case description:
       token contract can transfer tokens with a proof
       tested cases:
-        - authorizes a transfer and updates the token balance of the sender and receiver
+        - approves a transfer and updates the token balance of the sender and receiver
         - fails if we specify an incorrect layout to witness when authorizing a transfer
         - fails if we specify an empty parent accountUpdate to bypass authorization
     */
@@ -533,7 +533,7 @@ describe('Token', () => {
         await setupLocalProofs();
       });
 
-      test('should authorize and the balance of a token account after sending', async () => {
+      test('should approve and the balance of a token account after sending', async () => {
         await (
           await Mina.transaction(feePayerKey, () => {
             tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
@@ -542,16 +542,16 @@ describe('Token', () => {
         ).send();
 
         let tx = await Mina.transaction(feePayerKey, () => {
-          let authorizeSendingCallback = Experimental.Callback.create(
+          let approveSendingCallback = Experimental.Callback.create(
             zkAppB,
             'approve',
             [UInt64.from(10_000)]
           );
-          tokenZkapp.authorizeTransferCallback(
+          tokenZkapp.approveTransferCallback(
             zkAppBAddress,
             zkAppCAddress,
             UInt64.from(10_000),
-            authorizeSendingCallback
+            approveSendingCallback
           );
         });
         await tx.prove();
@@ -565,7 +565,7 @@ describe('Token', () => {
         ).toEqual(10_000n);
       });
 
-      test('should fail to authorize with an incorrect layout', async () => {
+      test('should fail to approve with an incorrect layout', async () => {
         await (
           await Mina.transaction(feePayerKey, () => {
             tokenZkapp.mint(zkAppCAddress, UInt64.from(100_000));
@@ -574,17 +574,17 @@ describe('Token', () => {
         ).send();
 
         await Mina.transaction(feePayerKey, () => {
-          let authorizeSendingCallback = Experimental.Callback.create(
+          let approveSendingCallback = Experimental.Callback.create(
             zkAppC,
             'approveIncorrectLayout',
             [UInt64.from(10_000)]
           );
           expect(() => {
-            tokenZkapp.authorizeTransferCallback(
+            tokenZkapp.approveTransferCallback(
               zkAppBAddress,
               zkAppCAddress,
               UInt64.from(10_000),
-              authorizeSendingCallback
+              approveSendingCallback
             );
           }).toThrow();
         });
