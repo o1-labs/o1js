@@ -32,7 +32,6 @@ export {
   InferCircuitValue,
   Provables,
   HashInput,
-  JSONValue,
 };
 
 type Constructor<T> = new (...args: any) => T;
@@ -207,7 +206,7 @@ abstract class CircuitValue {
   }
 
   static toJSON<T extends AnyConstructor>(this: T, v: InstanceType<T>) {
-    const res: { [key: string]: any } = {};
+    const res: any = {};
     if ((this as any).prototype._fields !== undefined) {
       const fields: [string, any][] = (this as any).prototype._fields;
       fields.forEach(([key, propType]) => {
@@ -434,11 +433,11 @@ function circuitMain(
 let primitives = new Set(['Field', 'Bool', 'Scalar', 'Group']);
 let complexTypes = new Set(['object', 'function']);
 
-type ProvableExtension<T, TJson = JSONValue> = {
+type ProvableExtension<T, TJson = any> = {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
   toJSON: (x: T) => TJson;
 };
-type ProvableExtended<T, TJson = JSONValue> = Provable<T> &
+type ProvableExtended<T, TJson = any> = Provable<T> &
   ProvableExtension<T, TJson>;
 
 function provable<A>(
@@ -513,7 +512,7 @@ function provable<A>(
       .map((k) => toInput(typeObj[k], obj[k]))
       .reduce(HashInput.append, {});
   }
-  function toJSON(typeObj: any, obj: any, isToplevel = false): JSONValue {
+  function toJSON(typeObj: any, obj: any, isToplevel = false): any {
     if (typeObj === BigInt) return obj.toString();
     if (typeObj === String || typeObj === Number || typeObj === Boolean)
       return obj;
@@ -1072,14 +1071,6 @@ function getBlindingValue() {
 
 type Tuple<T> = [T, ...T[]] | [];
 
-type JSONValue =
-  | number
-  | string
-  | boolean
-  | null
-  | Array<JSONValue>
-  | { [key: string]: JSONValue };
-
 type Primitive =
   | typeof String
   | typeof Number
@@ -1112,7 +1103,7 @@ type InferPrimitiveJson<P extends Primitive> = P extends typeof String
   ? null
   : P extends undefined
   ? null
-  : JSONValue;
+  : any;
 
 type InferCircuitValue<A> = A extends Constructor<infer U>
   ? A extends Provable<U>
@@ -1152,7 +1143,7 @@ type InferJson<A> = A extends WithJson<infer J>
   ? {
       [K in keyof A]: InferJson<A[K]>;
     }
-  : JSONValue;
+  : any;
 
 type IsPure<A> = IsPureBase<A> extends true ? true : false;
 
