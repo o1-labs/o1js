@@ -1,10 +1,11 @@
-export { p, q, mod, inverse };
+export { Fp, Fq, p, q, mod, inverse };
 
 // CONSTANTS
 
 // the modulus. called `p` in most of our code.
 const p = 0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001n;
 const q = 0x40000000000000000000000000000000224698fc0994a8dd8c46eb2100000001n;
+
 // this is `t`, where p = 2^32 * t + 1
 const pMinusOneOddFactor =
   0x40000000000000000000000000000000224698fc094cf91b992d30edn;
@@ -97,9 +98,9 @@ function sqrt(n: bigint, p: bigint, Q: bigint, z: bigint) {
 }
 
 function isSquare(x: bigint, p: bigint) {
-  if (x === 0n) return 1;
-  let sqrt_1 = power(x, (p - 1n) / 2n, p);
-  return Number(sqrt_1 === 1n);
+  if (x === 0n) return true;
+  let sqrt1 = power(x, (p - 1n) / 2n, p);
+  return sqrt1 === 1n;
 }
 
 let randomBytes = (function () {
@@ -143,164 +144,62 @@ function bytesToBigInt(bytes: Uint8Array) {
 }
 
 // SPECIALIZATIONS TO FP, FQ
-// these get exported to ocaml, and should be mostly trivial
+// these should be mostly trivial
 
-function caml_pasta_fp_add(x, y) {
-  return [mod(x[0] + y[0], p)];
-}
+const Fp = createField(p, pMinusOneOddFactor, twoadicRootFp);
+const Fq = createField(q, qMinusOneOddFactor, twoadicRootFq);
 
-function caml_pasta_fq_add(x, y) {
-  return [mod(x[0] + y[0], q)];
-}
+function createField(
+  p: bigint,
+  pMinusOneOddFactor: bigint,
+  twoadicRootFp: bigint
+) {
+  return {
+    modulus: p,
+    sizeInBits: 255,
 
-function caml_pasta_fp_negate(x) {
-  if (!x[0]) return [x[0]];
-  return [p - x[0]];
-}
-function caml_pasta_fq_negate(x) {
-  if (!x[0]) return [x[0]];
-  return [q - x[0]];
-}
-
-function caml_pasta_fp_sub(x, y) {
-  return [mod(x[0] - y[0], p)];
-}
-function caml_pasta_fq_sub(x, y) {
-  return [mod(x[0] - y[0], q)];
-}
-
-function caml_pasta_fp_mul(x, y) {
-  return [mod(x[0] * y[0], p)];
-}
-function caml_pasta_fq_mul(x, y) {
-  return [mod(x[0] * y[0], q)];
-}
-
-function caml_pasta_option(x) {
-  if (x === undefined || x[0] === undefined) return 0; // None
-  return [0, x]; // Some(x)
-}
-
-let caml_pasta_fp_option = caml_pasta_option;
-let caml_pasta_fq_option = caml_pasta_option;
-
-function caml_pasta_fp_inv(x) {
-  let xinv = [inverse(x[0], p)];
-  return caml_pasta_fp_option(xinv);
-}
-function caml_pasta_fq_inv(x) {
-  let xinv = [inverse(x[0], q)];
-  return caml_pasta_fq_option(xinv);
-}
-
-function caml_pasta_fp_div(x, y) {
-  return [mod(x[0] * inverse(y[0], p), p)];
-}
-function caml_pasta_fq_div(x, y) {
-  return [mod(x[0] * inverse(y[0], q), q)];
-}
-
-function caml_pasta_fp_square(x) {
-  return caml_pasta_fp_mul(x, x);
-}
-function caml_pasta_fq_square(x) {
-  return caml_pasta_fq_mul(x, x);
-}
-
-function caml_pasta_fp_is_square(x) {
-  let is_square = isSquare(x[0], p);
-  return caml_js_to_bool(is_square);
-}
-function caml_pasta_fq_is_square(x) {
-  let is_square = isSquare(x[0], q);
-  return caml_js_to_bool(is_square);
-}
-
-function caml_pasta_fp_sqrt(x) {
-  let sqrt = [sqrt(x[0], p, pMinusOneOddFactor, twoadicRootFp)];
-  return caml_pasta_fp_option(sqrt);
-}
-function caml_pasta_fq_sqrt(x) {
-  let sqrt = [sqrt(x[0], q, qMinusOneOddFactor, twoadicRootFq)];
-  return caml_pasta_fq_option(sqrt);
-}
-
-function caml_pasta_fp_equal(x, y) {
-  return Number(x[0] === y[0]);
-}
-function caml_pasta_fq_equal(x, y) {
-  return Number(x[0] === y[0]);
-}
-
-function caml_pasta_fp_random() {
-  return [randomField(p)];
-}
-function caml_pasta_fq_random() {
-  return [randomField(q)];
-}
-
-function caml_pasta_fp_of_int(i) {
-  return [BigInt(i)];
-}
-function caml_pasta_fq_of_int(i) {
-  return [BigInt(i)];
-}
-
-function caml_pasta_fp_of_bigint(x) {
-  return x;
-}
-function caml_pasta_fq_of_bigint(x) {
-  return x;
-}
-function caml_pasta_fp_to_bigint(x) {
-  return x;
-}
-function caml_pasta_fq_to_bigint(x) {
-  return x;
-}
-
-function caml_pasta_fp_to_string(x) {
-  return caml_string_of_jsstring(x[0].toString());
-}
-function caml_pasta_fq_to_string(x) {
-  return caml_string_of_jsstring(x[0].toString());
-}
-
-function caml_pasta_fp_size() {
-  return [p];
-}
-function caml_pasta_fq_size() {
-  return [q];
-}
-function caml_pasta_fp_size_in_bits() {
-  return 255;
-}
-function caml_pasta_fq_size_in_bits() {
-  return 255;
-}
-
-function caml_pasta_fp_copy(x, y) {
-  x[0] = y[0];
-}
-function caml_pasta_fq_copy(x, y) {
-  x[0] = y[0];
-}
-function operation_to_mutation(op) {
-  return function (x, y) {
-    x[0] = op(x, y)[0];
+    add(x: bigint, y: bigint) {
+      return mod(x + y, p);
+    },
+    negate(x: bigint) {
+      return x === 0n ? 0n : p - x;
+    },
+    sub(x: bigint, y: bigint) {
+      return mod(x - y, p);
+    },
+    mul(x: bigint, y: bigint) {
+      return mod(x * y, p);
+    },
+    inverse(x: bigint) {
+      return inverse(x, p);
+    },
+    div(x: bigint, y: bigint) {
+      let yinv = inverse(y, p);
+      if (yinv === undefined) return;
+      return mod(x * yinv, p);
+    },
+    square(x: bigint) {
+      return mod(x * x, p);
+    },
+    isSquare(x: bigint) {
+      return isSquare(x, p);
+    },
+    sqrt(x: bigint) {
+      return sqrt(x, p, pMinusOneOddFactor, twoadicRootFp);
+    },
+    equal(x: bigint, y: bigint) {
+      return mod(x - y, p) === 0n;
+    },
+    random() {
+      return randomField(p);
+    },
+    fromNumber(x: number) {
+      return mod(BigInt(x), p);
+    },
+    fromBigint(x: bigint) {
+      return mod(x, p);
+    },
   };
-}
-let caml_pasta_fp_mut_add = operation_to_mutation(caml_pasta_fp_add);
-let caml_pasta_fq_mut_add = operation_to_mutation(caml_pasta_fq_add);
-let caml_pasta_fp_mut_sub = operation_to_mutation(caml_pasta_fp_sub);
-let caml_pasta_fq_mut_sub = operation_to_mutation(caml_pasta_fq_sub);
-let caml_pasta_fp_mut_mul = operation_to_mutation(caml_pasta_fp_mul);
-let caml_pasta_fq_mut_mul = operation_to_mutation(caml_pasta_fq_mul);
-function caml_pasta_fp_mut_square(x) {
-  caml_pasta_fp_copy(x, caml_pasta_fp_square(x));
-}
-function caml_pasta_fq_mut_square(x) {
-  caml_pasta_fq_copy(x, caml_pasta_fq_square(x));
 }
 
 // TESTS (activate by setting caml_bindings_debug = true)
@@ -312,29 +211,20 @@ if (caml_bindings_debug) test();
 function test() {
   // t is computed correctly from p = 2^32 * t + 1
   console.assert(pMinusOneOddFactor * (1n << 32n) + 1n === p);
-  console.assert(qMinusOneOddFactor * (1n << 32n) + 1n === q);
 
   // the primitive root of unity is computed correctly as 5^t
   let generator = 5n;
-  let root_fp = power(generator, pMinusOneOddFactor, p);
-  console.assert(root_fp === twoadicRootFp);
-  let root_fq = power(generator, qMinusOneOddFactor, q);
-  console.assert(root_fq === twoadicRootFq);
+  let rootFp = power(generator, pMinusOneOddFactor, p);
+  console.assert(rootFp === twoadicRootFp);
 
   // the primitive roots of unity `r` actually satisfy the equations defining them:
   // r^(2^32) = 1, r^(2^31) != 1
-  let should_be_1 = power(twoadicRootFp, 1n << 32n, p);
-  let should_be_minus_1 = power(twoadicRootFp, 1n << 31n, p);
-  console.assert(should_be_1 === 1n);
-  console.assert(should_be_minus_1 + 1n === p);
-
-  should_be_1 = power(twoadicRootFq, 1n << 32n, q);
-  should_be_minus_1 = power(twoadicRootFq, 1n << 31n, q);
-  console.assert(should_be_1 === 1n);
-  console.assert(should_be_minus_1 + 1n === q);
+  let shouldBe1 = power(twoadicRootFp, 1n << 32n, p);
+  let shouldBeMinus1 = power(twoadicRootFp, 1n << 31n, p);
+  console.assert(shouldBe1 === 1n);
+  console.assert(shouldBeMinus1 + 1n === p);
 
   // the primitive roots of unity are non-squares
   // -> verifies that the two-adicity is 32, and that they can be used as non-squares in the sqrt algorithm
-  console.assert(caml_pasta_fp_is_square([twoadicRootFp]) === 0);
-  console.assert(caml_pasta_fq_is_square([twoadicRootFq]) === 0);
+  console.assert(!Fp.isSquare(twoadicRootFp));
 }
