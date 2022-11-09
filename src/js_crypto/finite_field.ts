@@ -1,3 +1,5 @@
+import { randomBytes } from './random.js';
+
 export { Fp, Fq, p, q, mod, inverse, bytesToBigInt };
 
 // CONSTANTS
@@ -103,27 +105,6 @@ function isSquare(x: bigint, p: bigint) {
   return sqrt1 === 1n;
 }
 
-let randomBytes = (function () {
-  // have to use platform-dependent secure randomness
-  let crypto = globalThis.crypto;
-  if (crypto !== undefined && crypto.getRandomValues !== undefined) {
-    // browser / deno
-    return function randomBytes(n: number) {
-      return crypto.getRandomValues(new Uint8Array(n));
-    };
-  } else if (typeof require !== 'undefined') {
-    // node (common JS)
-    let nodeCrypto = require('crypto');
-    return function randomBytes(n: number) {
-      return new Uint8Array(nodeCrypto.randomBytes(n));
-    };
-  } else {
-    throw Error(
-      "don't know how to find random number generator for this platform without breaking other platforms"
-    );
-  }
-})();
-
 function randomField(p: bigint) {
   // strategy: find random 255-bit bigints and use the first that's smaller than p
   while (true) {
@@ -149,14 +130,12 @@ function bytesToBigInt(bytes: Uint8Array) {
 const Fp = createField(p, pMinusOneOddFactor, twoadicRootFp);
 const Fq = createField(q, qMinusOneOddFactor, twoadicRootFq);
 
-function createField(
-  p: bigint,
-  pMinusOneOddFactor: bigint,
-  twoadicRootFp: bigint
-) {
+function createField(p: bigint, t: bigint, twoadicRoot: bigint) {
   return {
     modulus: p,
     sizeInBits: 255,
+    t,
+    twoadicRoot,
 
     add(x: bigint, y: bigint) {
       return mod(x + y, p);
@@ -185,7 +164,10 @@ function createField(
       return isSquare(x, p);
     },
     sqrt(x: bigint) {
-      return sqrt(x, p, pMinusOneOddFactor, twoadicRootFp);
+      return sqrt(x, p, t, twoadicRoot);
+    },
+    power(x: bigint, n: bigint) {
+      return power(x, n, p);
     },
     equal(x: bigint, y: bigint) {
       return mod(x - y, p) === 0n;
