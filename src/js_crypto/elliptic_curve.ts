@@ -1,12 +1,5 @@
-/* global Uint8Array, BigInt, caml_bigint_modulo, caml_bigint_of_bytes, 
-   caml_finite_field_inverse, caml_pasta_p_bigint, caml_pasta_q_bigint, 
-*/
-
 // TODO: constants, like generator points and cube roots for endomorphisms, should be drawn from
 // a common source, i.e. generated from the Rust code
-
-// Provides: caml_pallas_generator_projective
-// Requires: BigInt
 var caml_pallas_generator_projective = {
   x: BigInt(1),
   y: BigInt(
@@ -14,8 +7,6 @@ var caml_pallas_generator_projective = {
   ),
   z: BigInt(1),
 };
-// Provides: caml_vesta_generator_projective
-// Requires: BigInt
 var caml_vesta_generator_projective = {
   x: BigInt(1),
   y: BigInt(
@@ -25,7 +16,6 @@ var caml_vesta_generator_projective = {
 };
 
 // projective repr: { x: bigint, y: bigint, z: bigint }
-// Provides: GroupProjective
 var GroupProjective = (function () {
   var GroupProjective = function (obj) {
     this.x = obj.x;
@@ -38,7 +28,6 @@ var GroupProjective = (function () {
 })();
 
 // affine repr: { x: bigint, y: bigint, infinity: boolean }
-// Provides: GroupAffine
 var GroupAffine = (function () {
   var GroupAffine = function (obj) {
     this.x = obj.x;
@@ -50,20 +39,14 @@ var GroupAffine = (function () {
   return GroupAffine;
 })();
 
-// Provides: caml_group_projective_zero
-// Requires: GroupProjective, BigInt
 function caml_group_projective_zero() {
   return new GroupProjective({ x: BigInt(1), y: BigInt(1), z: BigInt(0) });
 }
 
-// Provides: caml_group_projective_neg
-// Requires: GroupProjective
 function caml_group_projective_neg(g, p) {
   return new GroupProjective({ x: g.x, y: p - g.y, z: g.z });
 }
 
-// Provides: caml_group_projective_add
-// Requires: BigInt, GroupProjective, caml_bigint_modulo
 function caml_group_projective_add(g, h, p) {
   if (g.z === BigInt(0)) return new GroupProjective(h);
   if (h.z === BigInt(0)) return new GroupProjective(g);
@@ -105,8 +88,6 @@ function caml_group_projective_add(g, h, p) {
   return new GroupProjective({ x: X3, y: Y3, z: Z3 });
 }
 
-// Provides: caml_group_projective_double
-// Requires: BigInt, GroupProjective, caml_bigint_modulo
 function caml_group_projective_double(g, p) {
   if (g.z === BigInt(0)) return new GroupProjective(g);
   var X1 = g.x,
@@ -135,14 +116,10 @@ function caml_group_projective_double(g, p) {
   return new GroupProjective({ x: X3, y: Y3, z: Z3 });
 }
 
-// Provides: caml_group_projective_sub
-// Requires: caml_group_projective_add, caml_group_projective_neg
 function caml_group_projective_sub(g, h, p) {
   return caml_group_projective_add(g, caml_group_projective_neg(h, p), p);
 }
 
-// Provides: caml_group_projective_scale
-// Requires: caml_group_projective_add, caml_group_projective_double, caml_group_projective_zero, BigInt
 function caml_group_projective_scale(g, x, p) {
   var h = caml_group_projective_zero();
   while (x > BigInt(0)) {
@@ -153,8 +130,6 @@ function caml_group_projective_scale(g, x, p) {
   return h;
 }
 
-// Provides: caml_group_projective_to_affine
-// Requires: caml_finite_field_inverse, caml_bigint_modulo, GroupAffine, BigInt
 function caml_group_projective_to_affine(g, p) {
   var z = g.z;
   if (z === BigInt(0)) {
@@ -174,134 +149,89 @@ function caml_group_projective_to_affine(g, p) {
   }
 }
 
-// Provides: caml_pallas_one
-// Requires: GroupProjective, caml_pallas_generator_projective
 function caml_pallas_one() {
   return new GroupProjective(caml_pallas_generator_projective);
 }
-// Provides: caml_vesta_one
-// Requires: GroupProjective, caml_vesta_generator_projective
 function caml_vesta_one() {
   return new GroupProjective(caml_vesta_generator_projective);
 }
 
-// Provides: caml_pallas_add
-// Requires: caml_group_projective_add, caml_pasta_p_bigint
 function caml_pallas_add(g, h) {
   return caml_group_projective_add(g, h, caml_pasta_p_bigint);
 }
-// Provides: caml_vesta_add
-// Requires: caml_group_projective_add, caml_pasta_q_bigint
 function caml_vesta_add(g, h) {
   return caml_group_projective_add(g, h, caml_pasta_q_bigint);
 }
 
-// Provides: caml_pallas_negate
-// Requires: caml_group_projective_neg, caml_pasta_p_bigint
 function caml_pallas_negate(g) {
   return caml_group_projective_neg(g, caml_pasta_p_bigint);
 }
-// Provides: caml_vesta_negate
-// Requires: caml_group_projective_neg, caml_pasta_q_bigint
 function caml_vesta_negate(g) {
   return caml_group_projective_neg(g, caml_pasta_q_bigint);
 }
 
-// Provides: caml_pallas_sub
-// Requires: caml_group_projective_sub, caml_pasta_p_bigint
 function caml_pallas_sub(x, y) {
   return caml_group_projective_sub(x, y, caml_pasta_p_bigint);
 }
-// Provides: caml_vesta_sub
-// Requires: caml_group_projective_sub, caml_pasta_q_bigint
 function caml_vesta_sub(x, y) {
   return caml_group_projective_sub(x, y, caml_pasta_q_bigint);
 }
 
-// Provides: caml_pallas_scale
-// Requires: caml_group_projective_scale, caml_pasta_p_bigint
 function caml_pallas_scale(g, x) {
   return caml_group_projective_scale(g, x[0], caml_pasta_p_bigint);
 }
-// Provides: caml_vesta_scale
-// Requires: caml_group_projective_scale, caml_pasta_q_bigint
 function caml_vesta_scale(g, x) {
   return caml_group_projective_scale(g, x[0], caml_pasta_q_bigint);
 }
 
-// Provides: caml_pallas_endo_base
-// Requires: caml_bigint_of_bytes, caml_pallas_endo_base_const
 function caml_pallas_endo_base() {
   return [caml_bigint_of_bytes(caml_pallas_endo_base_const)];
 }
-// Provides: caml_vesta_endo_base
-// Requires: caml_bigint_of_bytes, caml_vesta_endo_base_const
 function caml_vesta_endo_base() {
   return [caml_bigint_of_bytes(caml_vesta_endo_base_const)];
 }
 
-// Provides: caml_pallas_endo_scalar
-// Requires: caml_bigint_of_bytes, caml_pallas_endo_scalar_const
 function caml_pallas_endo_scalar() {
   return [caml_bigint_of_bytes(caml_pallas_endo_scalar_const)];
 }
-// Provides: caml_vesta_endo_scalar
-// Requires: caml_bigint_of_bytes, caml_vesta_endo_scalar_const
 function caml_vesta_endo_scalar() {
   return [caml_bigint_of_bytes(caml_vesta_endo_scalar_const)];
 }
 
-// Provides: caml_pallas_to_affine
-// Requires: caml_group_projective_to_affine, caml_affine_of_js_affine, caml_pasta_p_bigint
 function caml_pallas_to_affine(g) {
   var ga = caml_group_projective_to_affine(g, caml_pasta_p_bigint);
   return caml_affine_of_js_affine(ga);
 }
-// Provides: caml_vesta_to_affine
-// Requires: caml_group_projective_to_affine, caml_affine_of_js_affine, caml_pasta_q_bigint
 function caml_vesta_to_affine(g) {
   var ga = caml_group_projective_to_affine(g, caml_pasta_q_bigint);
   return caml_affine_of_js_affine(ga);
 }
 
-// Provides: caml_pallas_of_affine_coordinates
-// Requires: GroupProjective, BigInt
 function caml_pallas_of_affine_coordinates(x, y) {
   return new GroupProjective({ x: x[0], y: y[0], z: BigInt(1) });
 }
-// Provides: caml_vesta_of_affine_coordinates
-// Requires: GroupProjective, BigInt
 function caml_vesta_of_affine_coordinates(x, y) {
   return new GroupProjective({ x: x[0], y: y[0], z: BigInt(1) });
 }
 
-// Provides: caml_affine_of_js_affine
 var caml_affine_of_js_affine = function (g) {
   if (g.infinity) return 0;
   return [0, [0, [g.x], [g.y]]];
 };
 
 // TODO check if these really should be hardcoded, otherwise compute them
-// Provides: caml_vesta_endo_base_const
-// Requires: Uint8Array
 var caml_vesta_endo_base_const = new Uint8Array([
   79, 14, 170, 80, 224, 210, 169, 42, 175, 51, 192, 71, 125, 70, 237, 15, 90,
   15, 247, 28, 216, 180, 29, 81, 142, 82, 62, 40, 88, 154, 129, 6,
 ]);
-// Provides: caml_pallas_endo_base_const
-// Requires: Uint8Array
 var caml_pallas_endo_base_const = new Uint8Array([
   71, 181, 1, 2, 47, 210, 127, 123, 210, 199, 159, 209, 41, 13, 39, 5, 80, 78,
   85, 168, 35, 42, 85, 211, 142, 69, 50, 181, 124, 53, 51, 45,
 ]);
-// Provides: caml_vesta_endo_scalar_const
-// Requires: Uint8Array
 var caml_vesta_endo_scalar_const = new Uint8Array([
   185, 74, 254, 253, 189, 94, 173, 29, 73, 49, 173, 55, 210, 139, 31, 29, 176,
   177, 170, 87, 220, 213, 170, 44, 113, 186, 205, 74, 131, 202, 204, 18,
 ]);
-// Provides: caml_pallas_endo_scalar_const
-// Requires: Uint8Array
 var caml_pallas_endo_scalar_const = new Uint8Array([
   177, 241, 85, 175, 64, 24, 157, 97, 46, 117, 212, 193, 126, 82, 89, 18, 166,
   240, 8, 227, 39, 75, 226, 174, 113, 173, 193, 215, 167, 101, 126, 57,

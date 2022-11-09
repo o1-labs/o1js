@@ -1,48 +1,31 @@
-/* global joo_global_object, Uint8Array, BigInt
-   caml_bigint_of_bytes, caml_js_to_bool, caml_string_of_jsstring
-*/
-
 // CONSTANTS
 
 // the modulus. called `p` in most of our code.
-// Provides: caml_pasta_p_bigint
-// Requires: BigInt
 var caml_pasta_p_bigint = BigInt(
   '0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001'
 );
-// Provides: caml_pasta_q_bigint
-// Requires: BigInt
 var caml_pasta_q_bigint = BigInt(
   '0x40000000000000000000000000000000224698fc0994a8dd8c46eb2100000001'
 );
 
 // this is `t`, where p = 2^32 * t + 1
-// Provides: caml_pasta_pm1_odd_factor
-// Requires: BigInt
 var caml_pasta_pm1_odd_factor = BigInt(
   '0x40000000000000000000000000000000224698fc094cf91b992d30ed'
 );
-// Provides: caml_pasta_qm1_odd_factor
-// Requires: BigInt
 var caml_pasta_qm1_odd_factor = BigInt(
   '0x40000000000000000000000000000000224698fc0994a8dd8c46eb21'
 );
 
 // primitive roots of unity, computed as (5^t mod p). this works because 5 generates the multiplicative group mod p
-// Provides: caml_twoadic_root_fp
-// Requires: BigInt
 var caml_twoadic_root_fp = BigInt(
   '0x2bce74deac30ebda362120830561f81aea322bf2b7bb7584bdad6fabd87ea32f'
 );
-// Provides: caml_twoadic_root_fq
-// Requires: BigInt
 var caml_twoadic_root_fq = BigInt(
   '0x2de6a9b8746d3f589e5c4dfd492ae26e9bb97ea3c106f049a70e2c1102b6d05f'
 );
 
 // GENERAL FINITE FIELD ALGORITHMS
 
-// Provides: caml_bigint_modulo
 function caml_bigint_modulo(x, p) {
   x = x % p;
   if (x < 0) return x + p;
@@ -50,8 +33,6 @@ function caml_bigint_modulo(x, p) {
 }
 
 // modular exponentiation, a^n % p
-// Provides: caml_finite_field_power
-// Requires: caml_bigint_modulo, BigInt
 function caml_finite_field_power(a, n, p) {
   a = caml_bigint_modulo(a, p);
   // this assumes that p is prime, so that a^(p-1) % p = 1
@@ -65,8 +46,6 @@ function caml_finite_field_power(a, n, p) {
 }
 
 // inverting with EGCD, 1/a in Z_p
-// Provides: caml_finite_field_inverse
-// Requires: caml_bigint_modulo, BigInt
 function caml_finite_field_inverse(a, p) {
   a = caml_bigint_modulo(a, p);
   if (a === BigInt(0)) return undefined;
@@ -91,8 +70,6 @@ function caml_finite_field_inverse(a, p) {
   return caml_bigint_modulo(x, p);
 }
 
-// Provides: caml_finite_field_sqrt
-// Requires: BigInt, caml_finite_field_power, caml_bigint_modulo, caml_pasta_p_bigint, caml_pasta_q_bigint, caml_twoadic_root_fp, caml_twoadic_root_fq, caml_pasta_pm1_odd_factor, caml_pasta_qm1_odd_factor, caml_pasta_p_bigint, caml_pasta_q_bigint
 var caml_finite_field_sqrt = (function () {
   var precomputed_c = {};
   return function caml_finite_field_sqrt(n, p, Q, z) {
@@ -127,16 +104,12 @@ var caml_finite_field_sqrt = (function () {
   };
 })();
 
-// Provides: caml_finite_field_is_square
-// Requires: caml_finite_field_power, BigInt
 function caml_finite_field_is_square(x, p) {
   if (x === BigInt(0)) return 1;
   var sqrt_1 = caml_finite_field_power(x, (p - BigInt(1)) / BigInt(2), p);
   return Number(sqrt_1 === BigInt(1));
 }
 
-// Provides: caml_random_bytes
-// Requires: Uint8Array
 var caml_random_bytes = (function () {
   // have to use platform-dependent secure randomness
   var crypto = joo_global_object.crypto;
@@ -158,8 +131,6 @@ var caml_random_bytes = (function () {
   }
 })();
 
-// Provides: caml_finite_field_random
-// Requires: caml_random_bytes, caml_bigint_of_bytes
 function caml_finite_field_random(p) {
   // strategy: find random 255-bit bigints and use the first that's smaller than p
   while (true) {
@@ -170,8 +141,6 @@ function caml_finite_field_random(p) {
   }
 }
 
-// Provides: caml_finite_field_domain_generator
-// Requires: caml_bigint_modulo, caml_bindings_debug, BigInt
 function caml_finite_field_domain_generator(i, p, primitive_root_of_unity) {
   // this takes an integer i and returns the 2^ith root of unity, i.e. a number `w` with
   // w^(2^i) = 1, w^(2^(i-1)) = -1
@@ -189,80 +158,54 @@ function caml_finite_field_domain_generator(i, p, primitive_root_of_unity) {
 // SPECIALIZATIONS TO FP, FQ
 // these get exported to ocaml, and should be mostly trivial
 
-// Provides: caml_pasta_fp_add
-// Requires: caml_bigint_modulo, caml_pasta_p_bigint
 function caml_pasta_fp_add(x, y) {
   return [caml_bigint_modulo(x[0] + y[0], caml_pasta_p_bigint)];
 }
-// Provides: caml_pasta_fq_add
-// Requires: caml_bigint_modulo, caml_pasta_q_bigint
+
 function caml_pasta_fq_add(x, y) {
   return [caml_bigint_modulo(x[0] + y[0], caml_pasta_q_bigint)];
 }
 
-// Provides: caml_pasta_fp_negate
-// Requires: caml_pasta_p_bigint
 function caml_pasta_fp_negate(x) {
   if (!x[0]) return [x[0]];
   return [caml_pasta_p_bigint - x[0]];
 }
-// Provides: caml_pasta_fq_negate
-// Requires: caml_pasta_q_bigint
 function caml_pasta_fq_negate(x) {
   if (!x[0]) return [x[0]];
   return [caml_pasta_q_bigint - x[0]];
 }
 
-// Provides: caml_pasta_fp_sub
-// Requires: caml_bigint_modulo, caml_pasta_p_bigint
 function caml_pasta_fp_sub(x, y) {
   return [caml_bigint_modulo(x[0] - y[0], caml_pasta_p_bigint)];
 }
-// Provides: caml_pasta_fq_sub
-// Requires: caml_bigint_modulo, caml_pasta_q_bigint
 function caml_pasta_fq_sub(x, y) {
   return [caml_bigint_modulo(x[0] - y[0], caml_pasta_q_bigint)];
 }
 
-// Provides: caml_pasta_fp_mul
-// Requires: caml_bigint_modulo, caml_pasta_p_bigint
 function caml_pasta_fp_mul(x, y) {
   return [caml_bigint_modulo(x[0] * y[0], caml_pasta_p_bigint)];
 }
-// Provides: caml_pasta_fq_mul
-// Requires: caml_bigint_modulo, caml_pasta_q_bigint
 function caml_pasta_fq_mul(x, y) {
   return [caml_bigint_modulo(x[0] * y[0], caml_pasta_q_bigint)];
 }
 
-// Provides: caml_pasta_option
 function caml_pasta_option(x) {
   if (x === undefined || x[0] === undefined) return 0; // None
   return [0, x]; // Some(x)
 }
 
-// Provides: caml_pasta_fp_option
-// Requires: caml_pasta_option
 var caml_pasta_fp_option = caml_pasta_option;
-// Provides: caml_pasta_fq_option
-// Requires: caml_pasta_option
 var caml_pasta_fq_option = caml_pasta_option;
 
-// Provides: caml_pasta_fp_inv
-// Requires: caml_finite_field_inverse, caml_pasta_p_bigint, caml_pasta_fp_option
 function caml_pasta_fp_inv(x) {
   var xinv = [caml_finite_field_inverse(x[0], caml_pasta_p_bigint)];
   return caml_pasta_fp_option(xinv);
 }
-// Provides: caml_pasta_fq_inv
-// Requires: caml_finite_field_inverse, caml_pasta_q_bigint, caml_pasta_fq_option
 function caml_pasta_fq_inv(x) {
   var xinv = [caml_finite_field_inverse(x[0], caml_pasta_q_bigint)];
   return caml_pasta_fq_option(xinv);
 }
 
-// Provides: caml_pasta_fp_div
-// Requires: caml_bigint_modulo, caml_finite_field_inverse, caml_pasta_p_bigint
 function caml_pasta_fp_div(x, y) {
   return [
     caml_bigint_modulo(
@@ -271,8 +214,6 @@ function caml_pasta_fp_div(x, y) {
     ),
   ];
 }
-// Provides: caml_pasta_fq_div
-// Requires: caml_bigint_modulo, caml_finite_field_inverse, caml_pasta_q_bigint
 function caml_pasta_fq_div(x, y) {
   return [
     caml_bigint_modulo(
@@ -282,32 +223,22 @@ function caml_pasta_fq_div(x, y) {
   ];
 }
 
-// Provides: caml_pasta_fp_square
-// Requires: caml_pasta_fp_mul
 function caml_pasta_fp_square(x) {
   return caml_pasta_fp_mul(x, x);
 }
-// Provides: caml_pasta_fq_square
-// Requires: caml_pasta_fq_mul
 function caml_pasta_fq_square(x) {
   return caml_pasta_fq_mul(x, x);
 }
 
-// Provides: caml_pasta_fp_is_square
-// Requires: caml_finite_field_is_square, caml_pasta_p_bigint, caml_js_to_bool
 function caml_pasta_fp_is_square(x) {
   var is_square = caml_finite_field_is_square(x[0], caml_pasta_p_bigint);
   return caml_js_to_bool(is_square);
 }
-// Provides: caml_pasta_fq_is_square
-// Requires: caml_finite_field_is_square, caml_pasta_q_bigint, caml_js_to_bool
 function caml_pasta_fq_is_square(x) {
   var is_square = caml_finite_field_is_square(x[0], caml_pasta_q_bigint);
   return caml_js_to_bool(is_square);
 }
 
-// Provides: caml_pasta_fp_sqrt
-// Requires: caml_finite_field_sqrt, caml_pasta_fp_option, caml_pasta_p_bigint, caml_pasta_pm1_odd_factor, caml_twoadic_root_fp
 function caml_pasta_fp_sqrt(x) {
   var sqrt = [
     caml_finite_field_sqrt(
@@ -319,8 +250,6 @@ function caml_pasta_fp_sqrt(x) {
   ];
   return caml_pasta_fp_option(sqrt);
 }
-// Provides: caml_pasta_fq_sqrt
-// Requires: caml_finite_field_sqrt, caml_pasta_fq_option, caml_pasta_q_bigint, caml_pasta_qm1_odd_factor, caml_twoadic_root_fq
 function caml_pasta_fq_sqrt(x) {
   var sqrt = [
     caml_finite_field_sqrt(
@@ -333,131 +262,84 @@ function caml_pasta_fq_sqrt(x) {
   return caml_pasta_fq_option(sqrt);
 }
 
-// Provides: caml_pasta_fp_equal
-// Requires: caml_pasta_fp_sub, BigInt
 function caml_pasta_fp_equal(x, y) {
   return Number(x[0] === y[0]);
 }
-// Provides: caml_pasta_fq_equal
-// Requires: caml_pasta_fq_sub, BigInt
 function caml_pasta_fq_equal(x, y) {
   return Number(x[0] === y[0]);
 }
 
-// Provides: caml_pasta_fp_random
-// Requires: caml_finite_field_random, caml_pasta_p_bigint
 function caml_pasta_fp_random() {
   return [caml_finite_field_random(caml_pasta_p_bigint)];
 }
-// Provides: caml_pasta_fq_random
-// Requires: caml_finite_field_random, caml_pasta_q_bigint
 function caml_pasta_fq_random() {
   return [caml_finite_field_random(caml_pasta_q_bigint)];
 }
 
-// Provides: caml_pasta_fp_of_int
-// Requires: BigInt
 function caml_pasta_fp_of_int(i) {
   return [BigInt(i)];
 }
-// Provides: caml_pasta_fq_of_int
-// Requires: BigInt
 function caml_pasta_fq_of_int(i) {
   return [BigInt(i)];
 }
 
-// Provides: caml_pasta_fp_of_bigint
 function caml_pasta_fp_of_bigint(x) {
   return x;
 }
-// Provides: caml_pasta_fq_of_bigint
 function caml_pasta_fq_of_bigint(x) {
   return x;
 }
-// Provides: caml_pasta_fp_to_bigint
 function caml_pasta_fp_to_bigint(x) {
   return x;
 }
-// Provides: caml_pasta_fq_to_bigint
 function caml_pasta_fq_to_bigint(x) {
   return x;
 }
 
-// Provides: caml_pasta_fp_to_string
-// Requires: caml_string_of_jsstring
 function caml_pasta_fp_to_string(x) {
   return caml_string_of_jsstring(x[0].toString());
 }
-// Provides: caml_pasta_fq_to_string
-// Requires: caml_string_of_jsstring
 function caml_pasta_fq_to_string(x) {
   return caml_string_of_jsstring(x[0].toString());
 }
 
-// Provides: caml_pasta_fp_size
-// Requires: caml_pasta_p_bigint
 function caml_pasta_fp_size() {
   return [caml_pasta_p_bigint];
 }
-// Provides: caml_pasta_fq_size
-// Requires: caml_pasta_q_bigint
 function caml_pasta_fq_size() {
   return [caml_pasta_q_bigint];
 }
-// Provides: caml_pasta_fp_size_in_bits
 function caml_pasta_fp_size_in_bits() {
   return 255;
 }
-// Provides: caml_pasta_fq_size_in_bits
 function caml_pasta_fq_size_in_bits() {
   return 255;
 }
 
-// Provides: caml_pasta_fp_copy
 function caml_pasta_fp_copy(x, y) {
   x[0] = y[0];
 }
-// Provides: caml_pasta_fq_copy
 function caml_pasta_fq_copy(x, y) {
   x[0] = y[0];
 }
-// Provides: operation_to_mutation
 function operation_to_mutation(op) {
   return function (x, y) {
     x[0] = op(x, y)[0];
   };
 }
-// Provides: caml_pasta_fp_mut_add
-// Requires: operation_to_mutation, caml_pasta_fp_add
 var caml_pasta_fp_mut_add = operation_to_mutation(caml_pasta_fp_add);
-// Provides: caml_pasta_fq_mut_add
-// Requires: operation_to_mutation, caml_pasta_fq_add
 var caml_pasta_fq_mut_add = operation_to_mutation(caml_pasta_fq_add);
-// Provides: caml_pasta_fp_mut_sub
-// Requires: operation_to_mutation, caml_pasta_fp_sub
 var caml_pasta_fp_mut_sub = operation_to_mutation(caml_pasta_fp_sub);
-// Provides: caml_pasta_fq_mut_sub
-// Requires: operation_to_mutation, caml_pasta_fq_sub
 var caml_pasta_fq_mut_sub = operation_to_mutation(caml_pasta_fq_sub);
-// Provides: caml_pasta_fp_mut_mul
-// Requires: operation_to_mutation, caml_pasta_fp_mul
 var caml_pasta_fp_mut_mul = operation_to_mutation(caml_pasta_fp_mul);
-// Provides: caml_pasta_fq_mut_mul
-// Requires: operation_to_mutation, caml_pasta_fq_mul
 var caml_pasta_fq_mut_mul = operation_to_mutation(caml_pasta_fq_mul);
-// Provides: caml_pasta_fp_mut_square
-// Requires: caml_pasta_fp_copy, caml_pasta_fp_square
 function caml_pasta_fp_mut_square(x) {
   caml_pasta_fp_copy(x, caml_pasta_fp_square(x));
 }
-// Provides: caml_pasta_fq_mut_square
-// Requires: caml_pasta_fq_copy, caml_pasta_fq_square
 function caml_pasta_fq_mut_square(x) {
   caml_pasta_fq_copy(x, caml_pasta_fq_square(x));
 }
 
-// Provides: caml_pasta_fp_domain_generator
-// Requires: caml_finite_field_domain_generator, caml_pasta_p_bigint, caml_twoadic_root_fp
 function caml_pasta_fp_domain_generator(i) {
   return [
     caml_finite_field_domain_generator(
@@ -467,8 +349,6 @@ function caml_pasta_fp_domain_generator(i) {
     ),
   ];
 }
-// Provides: caml_pasta_fq_domain_generator
-// Requires: caml_finite_field_domain_generator, caml_pasta_q_bigint, caml_twoadic_root_fq
 function caml_pasta_fq_domain_generator(i) {
   return [
     caml_finite_field_domain_generator(
