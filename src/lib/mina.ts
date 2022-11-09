@@ -162,7 +162,7 @@ function createTransaction(
     );
     if (fee !== undefined) {
       feePayerAccountUpdate.body.fee =
-        fee instanceof UInt64 ? fee : UInt64.fromString(String(fee));
+        fee instanceof UInt64 ? fee : UInt64.from(String(fee));
     }
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
@@ -267,7 +267,7 @@ function LocalBlockchain({
   return {
     accountCreationFee: () => UInt64.from(accountCreationFee),
     currentSlot() {
-      return UInt32.fromNumber(
+      return UInt32.from(
         Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
       );
     },

@@ -490,12 +490,12 @@ function ignore<T>(dummy: T): OrIgnore<T> {
 /**
  * Ranges between all uint32 values
  */
-const uint32 = () => ({ lower: UInt32.fromNumber(0), upper: UInt32.MAXINT() });
+const uint32 = () => ({ lower: UInt32.from(0), upper: UInt32.MAXINT() });
 
 /**
  * Ranges between all uint64 values
  */
-const uint64 = () => ({ lower: UInt64.fromNumber(0), upper: UInt64.MAXINT() });
+const uint64 = () => ({ lower: UInt64.from(0), upper: UInt64.MAXINT() });
 
 type AccountPrecondition = Preconditions['account'];
 const AccountPrecondition = {
@@ -820,7 +820,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * ```ts
    * \@method onlyRunsWhenBalanceIsLow() {
    *   let lower = UInt64.zero;
-   *   let upper = UInt64.fromNumber(20e9);
+   *   let upper = UInt64.from(20e9);
    *   AccountUpdate.assertBetween(this.self.body.preconditions.account.balance, lower, upper);
    *   // ...
    * }
@@ -1043,7 +1043,7 @@ class AccountUpdate implements Types.AccountUpdate {
     let amount =
       initialBalance instanceof UInt64
         ? initialBalance
-        : UInt64.fromString(`${initialBalance}`);
+        : UInt64.from(`${initialBalance}`);
     accountUpdate.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 

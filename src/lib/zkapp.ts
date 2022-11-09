@@ -874,7 +874,7 @@ class SmartContract {
         return {
           type,
           event: this.events[type].fromFields(
-            event.map((f: string) => Field.fromString(f))
+            event.map((f: string) => Field(f))
           ),
         };
       } else {
@@ -885,7 +885,7 @@ class SmartContract {
         return {
           type,
           event: this.events[type].fromFields(
-            event.map((f: string) => Field.fromString(f))
+            event.map((f: string) => Field(f))
           ),
         };
       }
@@ -1130,9 +1130,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
             // putting our string-Fields back into the original action type
             event.actions.map((action: string[]) =>
               reducer.actionType.fromFields(
-                action.map((fieldAsString: string) =>
-                  Field.fromString(fieldAsString)
-                )
+                action.map((fieldAsString: string) => Field(fieldAsString))
               )
             )
           );
@@ -1200,7 +1198,7 @@ async function deploy<S extends typeof SmartContract>(
           `When using the optional initialBalance argument, you need to also supply the fee payer's private key as part of the \`feePayer\` argument, to sign the initial balance funding.`
         );
       // optional first accountUpdate: the sender/fee payer who also funds the zkapp
-      let amount = UInt64.fromString(String(initialBalance)).add(
+      let amount = UInt64.from(String(initialBalance)).add(
         Mina.accountCreationFee()
       );
       let feePayerAddress = feePayerKey.toPublicKey();
@@ -1215,7 +1213,7 @@ async function deploy<S extends typeof SmartContract>(
     // TODO: add send / receive methods on SmartContract which create separate account updates
     // no need to bundle receive in the same accountUpdate as deploy
     if (initialBalance !== undefined) {
-      let amount = UInt64.fromString(String(initialBalance));
+      let amount = UInt64.from(String(initialBalance));
       zkapp.self.balance.addInPlace(amount);
     }
   });
@@ -1249,9 +1247,9 @@ function addFeePayer(
   }
   let newMemo = memo;
   if (feePayerMemo) newMemo = Ledger.memoToBase58(feePayerMemo);
-  feePayer.body.nonce = UInt32.fromString(`${feePayerNonce}`);
+  feePayer.body.nonce = UInt32.from(`${feePayerNonce}`);
   feePayer.body.publicKey = senderAddress;
-  feePayer.body.fee = UInt64.fromString(`${transactionFee}`);
+  feePayer.body.fee = UInt64.from(`${transactionFee}`);
   AccountUpdate.signFeePayerInPlace(feePayer, feePayerKey);
   return { feePayer, accountUpdates, memo: newMemo };
 }
