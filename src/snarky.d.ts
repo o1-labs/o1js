@@ -815,6 +815,7 @@ declare class Ledger {
   static transactionCommitments(txJson: string): {
     commitment: Field;
     fullCommitment: Field;
+    feePayerHash: Field;
   };
   static zkappPublicInput(
     txJson: string,
