@@ -69,11 +69,13 @@ const Bool = pseudoClass(
 );
 
 function Unsigned(bits: number) {
+  let maxValue = (1n << BigInt(bits)) - 1n;
+
   return pseudoClass(
     function Unsigned(value: bigint | number | string) {
       let x = BigInt(value);
       if (x < 0n) throw Error('Unsigned: input must be positive.');
-      if (x >= 1n << BigInt(bits))
+      if (x > maxValue)
         throw Error(`Unsigned: input must fit in ${bits} bits.`);
       return BigInt(value);
     },
@@ -86,6 +88,7 @@ function Unsigned(bits: number) {
           packed: [[x, bits]],
         };
       },
+      maxValue,
     }
   );
 }
@@ -101,11 +104,20 @@ const Sign = pseudoClass(
   {
     ...ProvableBigint<Sign, 'Positive' | 'Negative'>(),
     ...BinableBigint<Sign>(1),
+    emptyValue() {
+      return 1n;
+    },
     toInput(x: Sign): HashInput {
       return {
         fields: [],
         packed: [[x === 1n ? 1n : 0n, 1]],
       };
+    },
+    fromFields([x]: Field[]): Sign {
+      if (x === 0n) return 1n;
+      if (x !== 1n && x !== minusOne)
+        throw Error('Sign.fromFields: input must be 0, 1 or -1.');
+      return x;
     },
     toJSON(x: Sign) {
       return x === 1n ? 'Positive' : 'Negative';

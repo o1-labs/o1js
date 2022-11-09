@@ -241,7 +241,7 @@ let Permissions = {
     setZkappUri: Permission.signature(),
     editSequenceState: Permission.proof(),
     setTokenSymbol: Permission.signature(),
-    incrementNonce: Permissions.signature(),
+    incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
   }),
 
@@ -255,8 +255,22 @@ let Permissions = {
     setZkappUri: Permission.signature(),
     editSequenceState: Permission.signature(),
     setTokenSymbol: Permission.signature(),
-    incrementNonce: Permissions.signature(),
+    incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
+  }),
+
+  dummy: (): Permissions => ({
+    editState: Permission.none(),
+    send: Permission.none(),
+    receive: Permission.none(),
+    setDelegate: Permission.none(),
+    setPermissions: Permission.none(),
+    setVerificationKey: Permission.none(),
+    setZkappUri: Permission.none(),
+    editSequenceState: Permission.none(),
+    setTokenSymbol: Permission.none(),
+    incrementNonce: Permission.none(),
+    setVotingFor: Permission.none(),
   }),
 
   fromString: (permission: AuthRequired): Permission => {
