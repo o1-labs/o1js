@@ -1,7 +1,8 @@
 import * as Fetch from './fetch.js';
 import { expect } from 'expect';
+import { shutdown } from '../index.js';
 
-console.log('testing fetch regex helper');
+console.log('testing regex helpers');
 
 let input, output, actual, expected;
 input = `{ 
@@ -63,3 +64,6 @@ expected = `{
 actual = Fetch.removeJsonQuotes(input);
 
 expect(actual).toEqual(expected);
+
+console.log('regex tests complete 🎉');
+shutdown();
