@@ -79,7 +79,12 @@ let currentTransaction = Context.create<CurrentTransaction>();
 
 type FeePayerSpec =
   | PrivateKey
-  | { feePayerKey: PrivateKey; fee?: number | string | UInt64; memo?: string }
+  | {
+      feePayerKey: PrivateKey;
+      fee?: number | string | UInt64;
+      memo?: string;
+      nonce?: number;
+    }
   | undefined;
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
@@ -107,6 +112,7 @@ function createTransaction(
     feePayer instanceof PrivateKey ? feePayer : feePayer?.feePayerKey;
   let fee = feePayer instanceof PrivateKey ? undefined : feePayer?.fee;
   let memo = feePayer instanceof PrivateKey ? '' : feePayer?.memo ?? '';
+  let nonce = feePayer instanceof PrivateKey ? undefined : feePayer?.nonce;
 
   let transactionId = currentTransaction.enter({
     sender: feePayerKey?.toPublicKey(),
@@ -159,11 +165,29 @@ function createTransaction(
   if (feePayerKey !== undefined) {
     // if senderKey is provided, fetch account to get nonce and mark to be signed
     let senderAddress = feePayerKey.toPublicKey();
+
+    let nonce_;
     let senderAccount = getAccount(senderAddress, TokenId.default);
+
+    if (nonce === undefined) {
+      nonce_ = senderAccount.nonce;
+    } else {
+      nonce_ = UInt32.from(nonce);
+      senderAccount.nonce = nonce_;
+      Fetch.addCachedAccount({
+        nonce: senderAccount.nonce,
+        publicKey: senderAccount.publicKey,
+        tokenId: senderAccount.tokenId.toString(),
+        balance: senderAccount.balance,
+        zkapp: {
+          appState: senderAccount.appState ?? [],
+        },
+      });
+    }
     feePayerAccountUpdate = AccountUpdate.defaultFeePayer(
       senderAddress,
       feePayerKey,
-      senderAccount.nonce
+      nonce_
     );
     if (fee !== undefined) {
       feePayerAccountUpdate.body.fee =
