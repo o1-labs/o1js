@@ -64,7 +64,7 @@ export class Keyed {
       const n = eltTyp.sizeInFields();
       const xs = [];
       for (var i = 0; i < n; ++i) {
-        xs.push(Field.zero);
+        xs.push(Field(0));
       }
       return eltTyp.fromFields(xs);
     })();

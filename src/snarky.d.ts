@@ -13,7 +13,6 @@ export {
   isReady,
   shutdown,
   Pickles,
-  JSONValue,
   Account as LedgerAccount,
 };
 
@@ -58,7 +57,7 @@ declare class Field {
    * by -1.
    *
    * ```typescript
-   * const negOne = Field.one.neg();
+   * const negOne = Field(1).neg();
    * negOne.assertEquals(-1);
    * ```
    */
@@ -69,7 +68,7 @@ declare class Field {
    *
    * ```typescript
    * const invX = x.inv();
-   * invX.assertEquals(Field.one.div(x));
+   * invX.assertEquals(Field(1).div(x));
    * ```
    *
    * @return A field element that is equivalent to one divided by this element.
@@ -177,67 +176,67 @@ declare class Field {
    * Assert that this [[`Field`]] is lower than another Field-like value.
    *
    * ```ts
-   * Field.one.assertLt(2);
+   * Field(1).assertLt(2);
    * ```
    *
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and causes it to fail if the assertion fails.
    */
-  assertLt(y: Field | number | string | boolean): void;
+  assertLt(y: Field | number | string | boolean, message?: string): void;
   /**
    * Assert that this [[`Field`]] is lower than or equal to another Field-like value.
    *
    * ```ts
-   * Field.one.assertLte(2);
+   * Field(1).assertLte(2);
    * ```
    *
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and causes it to fail if the assertion fails.
    */
-  assertLte(y: Field | number | string | boolean): void;
+  assertLte(y: Field | number | string | boolean, message?: string): void;
   /**
    * Assert that this [[`Field`]] is greater than another Field-like value.
    *
    * ```ts
-   * Field.one.assertGt(0);
+   * Field(1).assertGt(0);
    * ```
    *
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and causes it to fail if the assertion fails.
    */
-  assertGt(y: Field | number | string | boolean): void;
+  assertGt(y: Field | number | string | boolean, message?: string): void;
   /**
    * Assert that this [[`Field`]] is greater than or equal to another Field-like value.
    *
    * ```ts
-   * Field.one.assertGte(0);
+   * Field(1).assertGte(0);
    * ```
    *
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and causes it to fail if the assertion fails.
    */
-  assertGte(y: Field | number | string | boolean): void;
+  assertGte(y: Field | number | string | boolean, message?: string): void;
 
   /**
    * Assert that this [[`Field`]] equals another Field-like value.
    * Throws an error if the assertion fails.
    *
    * ```ts
-   * Field.one.assertEquals(1);
+   * Field(1).assertEquals(1);
    * ```
    */
-  assertEquals(y: Field | number | string | boolean): void;
+  assertEquals(y: Field | number | string | boolean, message?: string): void;
   /**
    * Assert that this [[`Field`]] is either 0 or 1.
    *
    * ```ts
-   * Field.zero.assertBoolean();
+   * Field(0).assertBoolean();
    * ```
    *
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and throws an error if the assertion fails.
    */
-  assertBoolean(): void;
+  assertBoolean(message?: string): void;
   isZero(): Bool;
 
   /**
@@ -273,14 +272,20 @@ declare class Field {
 
   /* Self members */
   /**
+   * @deprecated Static constant values on Field are deprecated in favor of using the constructor `Field(1)`.
+   *
    * The number 1 as a [[`Field`]].
    */
   static one: Field;
   /**
+   * @deprecated Static constant values on Field are deprecated in favor of using the constructor `Field(0)`.
+   *
    * The number 0 as a [[`Field`]].
    */
   static zero: Field;
   /**
+   * @deprecated Static constant values on Field are deprecated in favor of using the constructor `Field(-1)`.
+   *
    * The number -1 as a [[`Field`]].
    */
   static minusOne: Field;
@@ -353,11 +358,7 @@ declare class Field {
   */
 
   static toJSON(x: Field): string;
-  static fromJSON(x: JSONValue): Field | null;
-
-  static fromString(x: string): Field;
-  static fromNumber(x: number): Field;
-  static fromBigInt(x: bigint): Field;
+  static fromJSON(x: string | number): Field;
 
   static check(x: Field): void;
 
@@ -408,17 +409,17 @@ declare class Bool {
    * Proves that this [[`Bool`]] is equal to `y`.
    * @param y a [[`Bool`]].
    */
-  assertEquals(y: Bool | boolean): void;
+  assertEquals(y: Bool | boolean, message?: string): void;
 
   /**
    * Proves that this [[`Bool`]] is `true`.
    */
-  assertTrue(): void;
+  assertTrue(message?: string): void;
 
   /**
    * Proves that this [[`Bool`]] is `false`.
    */
-  assertFalse(): void;
+  assertFalse(message?: string): void;
 
   /**
    * Returns true if this [[`Bool`]] is equal to `y`.
@@ -484,7 +485,7 @@ declare class Bool {
   static fromFields(fields: Field[]): Bool;
 
   static toJSON(x: Bool): boolean;
-  static fromJSON(x: JSONValue): Bool | null;
+  static fromJSON(x: boolean): Bool;
   static check(x: Bool): void;
 
   // monkey-patched in JS
@@ -634,7 +635,7 @@ declare class Scalar {
   static random(): Scalar;
 
   static toJSON(x: Scalar): string;
-  static fromJSON(x: JSONValue): Scalar | null;
+  static fromJSON(x: string | number | boolean): Scalar;
   static check(x: Scalar): void;
 }
 
@@ -655,7 +656,7 @@ declare class Group {
   scale(y: Scalar): Group;
   // TODO: Add this function when OCaml bindings are implemented : endoScale(y: EndoScalar): Group;
 
-  assertEquals(y: Group): void;
+  assertEquals(y: Group, message?: string): void;
   equals(y: Group): Bool;
 
   toJSON(): { x: string; y: string };
@@ -772,6 +773,14 @@ interface Account {
     setTokenSymbol: AuthRequired;
     incrementNonce: AuthRequired;
     setVotingFor: AuthRequired;
+  };
+  timing: {
+    isTimed: Bool;
+    initialMinimumBalance: UInt64_;
+    cliffTime: UInt32_;
+    cliffAmount: UInt64_;
+    vestingPeriod: UInt32_;
+    vestingIncrement: UInt64_;
   };
 }
 
@@ -946,13 +955,5 @@ declare const Pickles: {
 
   proofToBase64Transaction: (proof: Pickles.Proof) => string;
 };
-
-type JSONValue =
-  | number
-  | string
-  | boolean
-  | null
-  | Array<JSONValue>
-  | { [key: string]: JSONValue };
 
 type AuthRequired = 'Signature' | 'Proof' | 'Either' | 'None' | 'Impossible';

@@ -1,6 +1,6 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, JSONValue, Ledger, LedgerAccount } from '../snarky.js';
+import { Circuit, Ledger, LedgerAccount } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -57,7 +57,7 @@ interface TransactionId {
 interface Transaction {
   transaction: ZkappCommand;
   toJSON(): string;
-  toPretty(): JSONValue;
+  toPretty(): any;
   toGraphqlQuery(): string;
   sign(additionalKeys?: PrivateKey[]): Transaction;
   prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;
@@ -186,7 +186,7 @@ function createTransaction(
     );
     if (fee !== undefined) {
       feePayerAccountUpdate.body.fee =
-        fee instanceof UInt64 ? fee : UInt64.fromString(String(fee));
+        fee instanceof UInt64 ? fee : UInt64.from(String(fee));
     }
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
@@ -277,10 +277,11 @@ function LocalBlockchain({
   }[] = [];
 
   for (let i = 0; i < 10; ++i) {
-    const largeValue = '30000000000';
+    let MINA = 10n ** 9n;
+    const largeValue = 1000n * MINA;
     const k = PrivateKey.random();
     const pk = k.toPublicKey();
-    addAccount(pk, largeValue);
+    addAccount(pk, largeValue.toString());
     testAccounts.push({ privateKey: k, publicKey: pk });
   }
 
@@ -290,7 +291,7 @@ function LocalBlockchain({
   return {
     accountCreationFee: () => UInt64.from(accountCreationFee),
     currentSlot() {
-      return UInt32.fromNumber(
+      return UInt32.from(
         Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
       );
     },
@@ -307,6 +308,7 @@ function LocalBlockchain({
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
         );
       } else {
+        let { timing } = ledgerAccount;
         return {
           publicKey: publicKey,
           tokenId,
@@ -314,7 +316,7 @@ function LocalBlockchain({
           nonce: new UInt32(ledgerAccount.nonce.value),
           appState:
             ledgerAccount.zkapp?.appState ??
-            Array(ZkappStateLength).fill(Field.zero),
+            Array(ZkappStateLength).fill(Field(0)),
           tokenSymbol: ledgerAccount.tokenSymbol,
           receiptChainHash: ledgerAccount.receiptChainHash,
           provedState: Bool(ledgerAccount.zkapp?.provedState ?? false),
@@ -324,6 +326,16 @@ function LocalBlockchain({
             ledgerAccount.zkapp?.sequenceState[0] ??
             SequenceEvents.emptySequenceState(),
           permissions: Permissions.fromJSON(ledgerAccount.permissions),
+          timing: {
+            isTimed: timing.isTimed,
+            initialMinimumBalance: UInt64.fromObject(
+              timing.initialMinimumBalance
+            ),
+            cliffAmount: UInt64.fromObject(timing.cliffAmount),
+            cliffTime: UInt32.fromObject(timing.cliffTime),
+            vestingPeriod: UInt32.fromObject(timing.vestingPeriod),
+            vestingIncrement: UInt64.fromObject(timing.vestingIncrement),
+          },
         };
       }
     },
@@ -483,11 +495,17 @@ function LocalBlockchain({
     setTimestamp(ms: UInt64) {
       networkState.timestamp = ms;
     },
-    setGlobalSlot(slot: UInt32) {
-      networkState.globalSlotSinceGenesis = slot;
+    setGlobalSlot(slot: UInt32 | number) {
+      networkState.globalSlotSinceGenesis = UInt32.from(slot);
+      let difference = networkState.globalSlotSinceGenesis.sub(slot);
+      networkState.globalSlotSinceHardFork =
+        networkState.globalSlotSinceHardFork.add(difference);
     },
-    setGlobalSlotSinceHardfork(slot: UInt32) {
-      networkState.globalSlotSinceHardFork = slot;
+    incrementGlobalSlot(increment: UInt32 | number) {
+      networkState.globalSlotSinceGenesis =
+        networkState.globalSlotSinceGenesis.add(increment);
+      networkState.globalSlotSinceHardFork =
+        networkState.globalSlotSinceHardFork.add(increment);
     },
     setBlockchainLength(height: UInt32) {
       networkState.blockchainLength = height;
@@ -783,7 +801,7 @@ function dummyAccount(pubkey?: PublicKey): Account {
     nonce: UInt32.zero,
     publicKey: pubkey ?? PublicKey.empty(),
     tokenId: TokenId.default,
-    appState: Array(ZkappStateLength).fill(Field.zero),
+    appState: Array(ZkappStateLength).fill(Field(0)),
     tokenSymbol: '',
     provedState: Bool(false),
     receiptChainHash: emptyReceiptChainHash(),
@@ -794,14 +812,14 @@ function dummyAccount(pubkey?: PublicKey): Account {
 
 function defaultNetworkState(): NetworkValue {
   let epochData: NetworkValue['stakingEpochData'] = {
-    ledger: { hash: Field.zero, totalCurrency: UInt64.zero },
-    seed: Field.zero,
-    startCheckpoint: Field.zero,
-    lockCheckpoint: Field.zero,
+    ledger: { hash: Field(0), totalCurrency: UInt64.zero },
+    seed: Field(0),
+    startCheckpoint: Field(0),
+    lockCheckpoint: Field(0),
     epochLength: UInt32.zero,
   };
   return {
-    snarkedLedgerHash: Field.zero,
+    snarkedLedgerHash: Field(0),
     timestamp: UInt64.zero,
     blockchainLength: UInt32.zero,
     minWindowDensity: UInt32.zero,
@@ -889,6 +907,11 @@ async function verifyAccountUpdate(
 
       let verificationKey = account.zkapp?.verificationKey?.data!;
       isValidProof = await verify(proof.toJSON(), verificationKey);
+      if (!isValidProof) {
+        throw Error(
+          `Invalid proof for account update\n${JSON.stringify(update)}`
+        );
+      }
     } catch (error) {
       errorTrace += '\n\n' + (error as Error).message;
       isValidProof = false;
@@ -912,6 +935,8 @@ async function verifyAccountUpdate(
     }
   }
 
+  let verified = false;
+
   function checkPermission(p: Types.Json.AuthRequired, field: string) {
     if (p == 'None') return;
 
@@ -921,7 +946,6 @@ async function verifyAccountUpdate(
       );
     }
 
-    let verified = false;
     if (p == 'Signature' || p == 'Either') {
       verified ||= isValidSignature;
     }
@@ -955,5 +979,15 @@ async function verifyAccountUpdate(
   if (accountUpdate.body.incrementNonce.toBoolean()) {
     let p = permissionForUpdate('incrementNonce');
     checkPermission(p, 'incrementNonce');
+  }
+
+  // this checks for an edge case where an account update can be approved using proofs but
+  // a) the proof is invalid (bad verification key)
+  // and b) there are no state changes initiate so no permissions will be checked
+  // however, if the verification key changes, the proof should still be invalid
+  if (errorTrace && !verified) {
+    throw Error(
+      `One or more proofs were invalid and no other form of authorization was provided.\n${errorTrace}`
+    );
   }
 }
