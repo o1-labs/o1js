@@ -162,11 +162,22 @@ function createTransaction(
     let senderAddress = feePayerKey.toPublicKey();
 
     let nonce_;
+    let senderAccount = getAccount(senderAddress, TokenId.default);
+
     if (nonce === undefined) {
-      let senderAccount = getAccount(senderAddress, TokenId.default);
       nonce_ = senderAccount.nonce;
     } else {
       nonce_ = UInt32.fromNumber(nonce);
+      senderAccount.nonce = nonce_;
+      Fetch.addCachedAccount({
+        nonce: senderAccount.nonce,
+        publicKey: senderAccount.publicKey,
+        tokenId: senderAccount.tokenId.toString(),
+        balance: senderAccount.balance,
+        zkapp: {
+          appState: senderAccount.appState ?? [],
+        },
+      });
     }
     feePayerAccountUpdate = AccountUpdate.defaultFeePayer(
       senderAddress,
