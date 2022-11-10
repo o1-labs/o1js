@@ -1,6 +1,6 @@
+import { shutdown } from '../index.js';
 import * as Fetch from './fetch.js';
 import { expect } from 'expect';
-import { shutdown } from '../index.js';
 
 console.log('testing regex helpers');
 
