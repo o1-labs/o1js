@@ -224,7 +224,7 @@ function createDex({
         tokenY.experimental.token.id
       );
       let dy = dexY.swap(user, dx, this.tokenX);
-      tokenY.authorizeUpdateAndSend(dexY.self, user, dy);
+      tokenY.approveUpdateAndSend(dexY.self, user, dy);
       return dy;
     }
   }
