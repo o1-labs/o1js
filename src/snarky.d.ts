@@ -13,7 +13,6 @@ export {
   isReady,
   shutdown,
   Pickles,
-  JSONValue,
   Account as LedgerAccount,
 };
 
@@ -642,7 +641,7 @@ declare class Scalar {
   static random(): Scalar;
 
   static toJSON(x: Scalar): string;
-  static fromJSON(x: JSONValue): Scalar | null;
+  static fromJSON(x: string | number | boolean): Scalar;
   static check(x: Scalar): void;
 }
 
@@ -967,13 +966,5 @@ declare const Pickles: {
 
   proofToBase64Transaction: (proof: Pickles.Proof) => string;
 };
-
-type JSONValue =
-  | number
-  | string
-  | boolean
-  | null
-  | Array<JSONValue>
-  | { [key: string]: JSONValue };
 
 type AuthRequired = 'Signature' | 'Proof' | 'Either' | 'None' | 'Impossible';

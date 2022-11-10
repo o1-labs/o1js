@@ -667,7 +667,7 @@ class AccountUpdate implements Types.AccountUpdate {
         amount: number | bigint | UInt64;
       }) {
         let receiver = AccountUpdate.defaultAccountUpdate(address, this.id);
-        thisAccountUpdate.authorize(receiver);
+        thisAccountUpdate.approve(receiver);
         // Add the amount to mint to the receiver's account
         receiver.body.balanceChange = Int64.fromObject(
           receiver.body.balanceChange
@@ -683,7 +683,7 @@ class AccountUpdate implements Types.AccountUpdate {
         amount: number | bigint | UInt64;
       }) {
         let sender = AccountUpdate.defaultAccountUpdate(address, this.id);
-        thisAccountUpdate.authorize(sender);
+        thisAccountUpdate.approve(sender);
         sender.body.useFullCommitment = Bool(true);
 
         // Sub the amount to burn from the sender's account
@@ -706,7 +706,7 @@ class AccountUpdate implements Types.AccountUpdate {
       }) {
         // Create a new accountUpdate for the sender to send the amount to the receiver
         let sender = AccountUpdate.defaultAccountUpdate(from, this.id);
-        thisAccountUpdate.authorize(sender);
+        thisAccountUpdate.approve(sender);
         sender.body.useFullCommitment = Bool(true);
         sender.body.balanceChange = Int64.fromObject(
           sender.body.balanceChange
@@ -763,7 +763,7 @@ class AccountUpdate implements Types.AccountUpdate {
     } else {
       receiver = AccountUpdate.defaultAccountUpdate(to, this.body.tokenId);
     }
-    this.authorize(receiver);
+    this.approve(receiver);
 
     // Sub the amount from the sender's account
     this.body.balanceChange = Int64.fromObject(this.body.balanceChange).sub(
@@ -776,7 +776,7 @@ class AccountUpdate implements Types.AccountUpdate {
     ).add(amount);
   }
 
-  authorize(
+  approve(
     childUpdate: AccountUpdate,
     layout: AccountUpdatesLayout = AccountUpdate.Layout.NoDelegation
   ) {
@@ -986,7 +986,7 @@ class AccountUpdate implements Types.AccountUpdate {
   static create(publicKey: PublicKey, tokenId?: Field) {
     let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey, tokenId);
     if (smartContractContext.has()) {
-      smartContractContext.get().this.self.authorize(accountUpdate);
+      smartContractContext.get().this.self.approve(accountUpdate);
     } else {
       Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
     }
@@ -994,7 +994,7 @@ class AccountUpdate implements Types.AccountUpdate {
   }
   static attachToTransaction(accountUpdate: AccountUpdate) {
     if (smartContractContext.has()) {
-      smartContractContext.get().this.self.authorize(accountUpdate);
+      smartContractContext.get().this.self.approve(accountUpdate);
     } else {
       if (!Mina.currentTransaction.has()) return;
       let updates = Mina.currentTransaction.get().accountUpdates;
