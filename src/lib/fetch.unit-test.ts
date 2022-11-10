@@ -9,6 +9,25 @@ let input, actual, expected;
 input = `{
   "array": [
     {
+      "data": "string with \\"escaped quotes\\": 1"
+    }
+  ]
+}`;
+
+expected = `{
+  array: [
+    {
+      data: "string with \\"escaped quotes\\": 1"
+    }
+  ]
+}`;
+
+actual = Fetch.removeJsonQuotes(input);
+expect(actual).toEqual(expected);
+
+input = `{
+  "array": [
+    {
       "data"     : "x"
     },
     {
