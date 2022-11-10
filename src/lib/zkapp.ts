@@ -727,8 +727,8 @@ class SmartContract {
         initUpdate.update.appState.some(({ isSome }) => !isSome.toBoolean())
       ) {
         console.warn(`WARNING: the \`init()\` method was called without overwriting the entire state. This means that your zkApp will lack
-the \`isProved\` status which certifies that the current state was verifiably produced by proofs (and not arbitrarily set by the zkApp developer).
-To make sure the entire state is wiped, consider adding this line to your \`init()\` method:
+the \`provedState === true\` status which certifies that the current state was verifiably produced by proofs (and not arbitrarily set by the zkApp developer).
+To make sure the entire state is reset, consider adding this line to the beginning of your \`init()\` method:
 super.init();
 `);
       }
