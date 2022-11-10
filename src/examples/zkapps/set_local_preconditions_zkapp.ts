@@ -31,7 +31,7 @@ class SimpleZkapp extends SmartContract {
       editState: Permissions.proofOrSignature(),
       send: Permissions.proofOrSignature(),
     });
-    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
+    this.balance.addInPlace(UInt64.from(initialBalance));
   }
 
   @method blockheightEquals(y: UInt32) {
@@ -65,7 +65,7 @@ let tx = await Mina.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer, { initialBalance });
   zkapp.deploy({ zkappKey });
 });
-tx.send();
+await tx.send();
 
 let blockHeight: UInt32 = UInt32.zero;
 
@@ -76,7 +76,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 blockHeight = UInt32.from(500);
 Local.setBlockchainLength(blockHeight);
@@ -87,7 +87,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 blockHeight = UInt32.from(300);
 Local.setBlockchainLength(UInt32.from(5));
@@ -98,7 +98,7 @@ try {
     if (!doProofs) zkapp.sign(zkappKey);
   });
   if (doProofs) await tx.prove();
-  tx.send();
+  await tx.send();
 } catch (error) {
   console.log(
     `Expected to fail! block height is ${Local.getNetworkState().blockchainLength.toString()}, but trying to assert ${blockHeight.toString()}`

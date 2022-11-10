@@ -48,6 +48,7 @@ describe('preconditions', () => {
       await expect(
         Mina.transaction(feePayer, () => {
           precondition().get();
+          AccountUpdate.attachToTransaction(zkapp.self);
         })
       ).rejects.toThrow(/precondition/);
     }
@@ -69,8 +70,9 @@ describe('preconditions', () => {
         let p = precondition().get();
         precondition().assertEquals(p as any);
       }
+      AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await tx.send().wait();
+    await tx.send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
@@ -81,6 +83,7 @@ describe('preconditions', () => {
         Mina.transaction(feePayer, () => {
           let p = precondition();
           p.assertEquals(p.get() as any);
+          AccountUpdate.attachToTransaction(zkapp.self);
         })
       ).rejects.toThrow(/not implemented/);
     }
@@ -94,8 +97,9 @@ describe('preconditions', () => {
         precondition().assertBetween(p.constructor.zero, p);
       }
       zkapp.sign(zkappKey);
+      AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await tx.send().wait();
+    await tx.send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
@@ -108,8 +112,9 @@ describe('preconditions', () => {
         precondition().assertNothing();
       }
       zkapp.sign(zkappKey);
+      AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await tx.send().wait();
+    await tx.send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
@@ -134,8 +139,9 @@ describe('preconditions', () => {
       zkapp.self.body.preconditions.network.totalCurrency.value.upper =
         UInt64.from(1e9 * 1e9);
       zkapp.sign(zkappKey);
+      AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await tx.send().wait();
+    await tx.send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
@@ -145,8 +151,10 @@ describe('preconditions', () => {
       let tx = await Mina.transaction(feePayer, () => {
         let p = precondition().get();
         precondition().assertEquals(p.add(1) as any);
+        AccountUpdate.attachToTransaction(zkapp.self);
       });
-      expect(() => tx.send()).toThrow(/unsatisfied/);
+
+      await expect(tx.send()).rejects.toThrow(/unsatisfied/);
     }
   });
 
@@ -155,16 +163,18 @@ describe('preconditions', () => {
       let tx = await Mina.transaction(feePayer, () => {
         let p = precondition().get();
         precondition().assertEquals(p.not());
+        AccountUpdate.attachToTransaction(zkapp.self);
       });
-      expect(() => tx.send()).toThrow(/unsatisfied/);
+      await expect(tx.send()).rejects.toThrow(/unsatisfied/);
     }
   });
 
   it('unsatisfied assertEquals should be rejected (public key)', async () => {
     let tx = await Mina.transaction(feePayer, () => {
       zkapp.account.delegate.assertEquals(PublicKey.empty());
+      AccountUpdate.attachToTransaction(zkapp.self);
     });
-    expect(() => tx.send()).toThrow(/unsatisfied/);
+    await expect(tx.send()).rejects.toThrow(/unsatisfied/);
   });
 
   it('unsatisfied assertBetween should be rejected', async () => {
@@ -172,8 +182,9 @@ describe('preconditions', () => {
       let tx = await Mina.transaction(feePayer, () => {
         let p: any = precondition().get();
         precondition().assertBetween(p.add(20), p.add(30));
+        AccountUpdate.attachToTransaction(zkapp.self);
       });
-      expect(() => tx.send()).toThrow(/unsatisfied/);
+      await expect(tx.send()).rejects.toThrow(/unsatisfied/);
     }
   });
 
@@ -184,6 +195,7 @@ describe('preconditions', () => {
     let tx = await Mina.transaction(feePayer, () => {
       zkapp.account.nonce.assertEquals(UInt32.from(1e8));
       zkapp.sign(zkappKey);
+      AccountUpdate.attachToTransaction(zkapp.self);
     });
     expect(() => tx.send()).toThrow();
   });

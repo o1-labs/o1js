@@ -1,20 +1,16 @@
+import { logEvents } from './e2eTestsHelpers.js';
 import {
-  Mina,
-  PrivateKey,
+  adminPrivateKey,
+  HelloWorld,
+} from './examples/zkapps/hello_world/hello_world.js';
+import {
   AccountUpdate,
   Field,
   isReady,
-  SmartContract,
-  state,
-  State,
-  method,
-  Permissions,
+  Mina,
+  PrivateKey,
+  verify,
 } from './index.js';
-import {
-  HelloWorld,
-  adminPrivateKey,
-} from './examples/zkapps/hello_world/hello_world.js';
-import { logEvents } from './e2eTestsHelpers.js';
 
 await isReady;
 
@@ -38,6 +34,7 @@ const feePayer = Local.testAccounts[0].privateKey;
 const zkAppPrivateKey = PrivateKey.random();
 const zkAppAddress = zkAppPrivateKey.toPublicKey();
 const zkAppInstance = new HelloWorld(zkAppAddress);
+let verificationKey = null;
 
 deployButton.addEventListener('click', async () => {
   deployButton.disabled = true;
@@ -45,7 +42,7 @@ deployButton.addEventListener('click', async () => {
   logEvents('Deploying zkApp...', eventsContainer);
 
   try {
-    const { verificationKey } = await HelloWorld.compile(zkAppAddress);
+    verificationKey = (await HelloWorld.compile()).verificationKey;
     const deploymentTransaction = await Mina.transaction(feePayer, () => {
       if (!eventsContainer.innerHTML.includes('zkApp Deployed successfully')) {
         AccountUpdate.fundNewAccount(feePayer);
@@ -93,10 +90,16 @@ updateButton.addEventListener('click', async (event) => {
         Field(parseInt(zkAppStateValue.value)),
         adminPrivateKey
       );
-      zkAppInstance.sign(zkAppPrivateKey);
+      // zkAppInstance.sign(zkAppPrivateKey);
     });
 
-    await transaction.prove();
+    const proof = await transaction.prove();
+
+    if (verificationKey) {
+      let isVerified = await verify(proof[0], verificationKey.data);
+      if (!isVerified) throw Error('Proof verification failed');
+    }
+
     await transaction.send();
 
     const newState = Mina.getAccount(zkAppAddress).appState?.[0].toString();

@@ -11,6 +11,8 @@ import {
   Experimental,
   Int64,
   Encoding,
+  Types,
+  Token,
 } from 'snarkyjs';
 
 let address: PublicKey;
@@ -30,7 +32,7 @@ describe('accountUpdate', () => {
     let json = JSON.stringify(accountUpdate.toJSON().body);
     let fields1 = Ledger.fieldsOfJson(json);
     // convert accountUpdate to fields in pure JS, leveraging generated code
-    let fields2 = accountUpdate.toFields();
+    let fields2 = Types.AccountUpdate.toFields(accountUpdate);
 
     // this is useful console output in the case the test should fail
     if (fields1.length !== fields2.length) {
@@ -61,7 +63,7 @@ describe('accountUpdate', () => {
       expect(accountUpdate2.hash()).toEqual(hash);
 
       // if we change something on the cloned accountUpdate, the hash should become different
-      AccountUpdate.setValue(accountUpdate2.update.appState[0], Field.one);
+      AccountUpdate.setValue(accountUpdate2.update.appState[0], Field(1));
       expect(accountUpdate2.hash()).not.toEqual(hash);
     });
   });
@@ -71,6 +73,11 @@ describe('accountUpdate', () => {
 
     let accountUpdate = AccountUpdate.create(address);
     Experimental.createChildAccountUpdate(accountUpdate, otherAddress);
+    accountUpdate.children.accountUpdates[0].body.caller = Token.getId(
+      accountUpdate.body.publicKey,
+      accountUpdate.body.tokenId
+    );
+
     let publicInput = accountUpdate.toPublicInput();
 
     // create transaction JSON with the same accountUpdate structure, for ocaml version
@@ -102,5 +109,5 @@ describe('accountUpdate', () => {
 // to check that we got something that looks like a Field
 // note: `instanceof Field` doesn't work
 function isField(x: any) {
-  return x?.constructor === Field.one.constructor;
+  return x?.constructor === Field(1).constructor;
 }

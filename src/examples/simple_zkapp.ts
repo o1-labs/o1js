@@ -36,15 +36,17 @@ class SimpleZkapp extends SmartContract {
       editState: Permissions.proofOrSignature(),
       send: Permissions.proofOrSignature(),
     });
-    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
+    this.balance.addInPlace(UInt64.from(initialBalance));
     this.x.set(initialState);
   }
 
-  @method update(y: Field) {
+  @method update(y: Field): Field {
     this.emitEvent('update', y);
     let x = this.x.get();
     this.x.assertEquals(x);
-    this.x.set(x.add(y));
+    let newX = x.add(y);
+    this.x.set(newX);
+    return newX;
   }
 
   /**
@@ -63,10 +65,7 @@ class SimpleZkapp extends SmartContract {
     // pay out half of the zkapp balance to the caller
     let balance = this.account.balance.get();
     this.account.balance.assertEquals(balance);
-    // FIXME UInt64.div() doesn't work on variables
-    let halfBalance = Circuit.witness(UInt64, () =>
-      balance.toConstant().div(2)
-    );
+    let halfBalance = balance.div(2);
     this.send({ to: callerAccountUpdate, amount: halfBalance });
 
     // emit some events
@@ -103,7 +102,7 @@ let tx = await Mina.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer, { initialBalance });
   zkapp.deploy({ zkappKey });
 });
-tx.send();
+await tx.send();
 
 console.log('initial state: ' + zkapp.x.get());
 console.log(`initial balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
@@ -114,7 +113,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 // pay more into the zkapp -- this doesn't need a proof
 console.log('receive');
@@ -122,7 +121,7 @@ tx = await Mina.transaction(feePayer, () => {
   let payerAccountUpdate = AccountUpdate.createSigned(feePayer);
   payerAccountUpdate.send({ to: zkappAddress, amount: UInt64.from(8e9) });
 });
-tx.send();
+await tx.send();
 
 console.log('payout');
 tx = await Mina.transaction(feePayer, () => {
@@ -131,7 +130,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('final state: ' + zkapp.x.get());
 console.log(`final balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
@@ -143,7 +142,7 @@ tx = await Mina.transaction(feePayer, () => {
 });
 try {
   if (doProofs) await tx.prove();
-  tx.send();
+  await tx.send();
 } catch (err: any) {
   console.log('Transaction failed with error', err.message);
 }
@@ -155,7 +154,7 @@ try {
     if (!doProofs) zkapp.sign(zkappKey);
   });
   if (doProofs) await tx.prove();
-  tx.send();
+  await tx.send();
 } catch (err: any) {
   console.log('Transaction failed with error', err.message);
 }

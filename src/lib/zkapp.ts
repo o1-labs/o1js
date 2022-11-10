@@ -1,22 +1,21 @@
 import {
   Field,
   Bool,
-  AsFieldElements,
+  ProvablePure,
   Ledger,
   Pickles,
-  InferAsFieldElements,
   Poseidon as Poseidon_,
-  JSONValue,
+  Provable,
 } from '../snarky.js';
 import {
   Circuit,
   circuitArray,
-  circuitValue,
+  provable,
   cloneCircuitValue,
   getBlindingValue,
-  witness,
   memoizationContext,
   toConstant,
+  Struct,
 } from './circuit_value.js';
 import {
   Body,
@@ -28,12 +27,12 @@ import {
   ZkappPublicInput,
   Events,
   SequenceEvents,
-  accountUpdateToPublicInput,
   Authorization,
   CallForest,
   TokenId,
   AccountUpdatesLayout,
   smartContractContext,
+  zkAppProver,
 } from './account_update.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import * as Mina from './mina.js';
@@ -74,10 +73,11 @@ export {
   declareMethods,
   Callback,
   Account,
+  VerificationKey,
 };
 
 // internal API
-export { Reducer, accountUpdateFromCallback };
+export { Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
 
@@ -86,8 +86,8 @@ const reservedPropNames = new Set(['_methods', '_']);
  * You can use inside your zkapp class as:
  *
  * ```
- * @method myMethod(someArg: Field) {
- *  // your code here
+ * \@method myMethod(someArg: Field) {
+ *   // your code here
  * }
  * ```
  */
@@ -105,12 +105,12 @@ function method<T extends SmartContract>(
       `@method decorator was applied to \`${methodName}\`, which is not a function.`
     );
   }
-  let paramTypes: AsFieldElements<any>[] = Reflect.getMetadata(
+  let paramTypes: Provable<any>[] = Reflect.getMetadata(
     'design:paramtypes',
     target,
     methodName
   );
-  let returnType: AsFieldElements<any> = Reflect.getMetadata(
+  let returnType: Provable<any> = Reflect.getMetadata(
     'design:returntype',
     target,
     methodName
@@ -155,6 +155,7 @@ function wrapMethod(
   ZkappClass: typeof SmartContract,
   methodIntf: MethodInterface
 ) {
+  let methodName = methodIntf.methodName;
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
     // TODO: the callback case is actually more similar to the composability case below,
@@ -165,7 +166,7 @@ function wrapMethod(
           this: this,
           methodCallDepth: 0,
           isCallback: false,
-          selfUpdate: selfAccountUpdate(this.address, this.tokenId),
+          selfUpdate: selfAccountUpdate(this, methodName),
         },
         (context) => {
           if (inCheckedComputation() && !context.isCallback) {
@@ -205,32 +206,62 @@ function wrapMethod(
                   blindingValue
                 );
                 accountUpdate.body.callData = Poseidon.hash(callDataFields);
+                accountUpdate.body.authorizationKind.isSigned = Bool(false);
+                accountUpdate.body.authorizationKind.isProved = Bool(true);
+
+                // compute `caller` field from `isDelegateCall` and a context determined by the transaction
+                let callerContext = Circuit.witness(
+                  CallForest.callerContextType,
+                  () => {
+                    let { accountUpdate } = zkAppProver.getData();
+                    return CallForest.computeCallerContext(accountUpdate);
+                  }
+                );
+                CallForest.addCallers([accountUpdate], callerContext);
 
                 // connect the public input to the accountUpdate & child account updates we created
                 if (DEBUG_PUBLIC_INPUT_CHECK) {
-                  // TODO: print a nice diff string instead of the two objects
-                  // something like `expect` or `json-diff`, but web-compatible
-                  function diff(a: JSONValue, b: JSONValue) {
-                    if (JSON.stringify(a) !== JSON.stringify(b)) {
-                      console.log('inconsistent account updates:');
-                      console.dir(a, { depth: Infinity });
-                      console.dir(b, { depth: Infinity });
-                    }
-                  }
                   Circuit.asProver(() => {
-                    let inputAccountUpdate: AccountUpdate =
-                      snarkContext.get().proverData;
-                    diff(accountUpdate.toJSON(), inputAccountUpdate.toJSON());
-
-                    let nChildren =
-                      inputAccountUpdate.children.accountUpdates.length;
-                    for (let i = 0; i < nChildren; i++) {
-                      let inputChild =
-                        inputAccountUpdate.children.accountUpdates[i].toJSON();
-                      let child =
-                        accountUpdate.children.accountUpdates[i].toJSON();
-                      diff(child, inputChild);
+                    // TODO: print a nice diff string instead of the two objects
+                    // something like `expect` or `json-diff`, but web-compatible
+                    function diff(prover: any, input: any) {
+                      delete prover.id;
+                      delete prover.callDepth;
+                      delete input.id;
+                      delete input.callDepth;
+                      if (JSON.stringify(prover) !== JSON.stringify(input)) {
+                        console.log(
+                          'transaction:',
+                          ZkappCommand.toPretty(transaction)
+                        );
+                        console.log('index', index);
+                        console.log('inconsistent account updates:');
+                        console.log('update created by the prover:');
+                        console.log(prover);
+                        console.log('update created in transaction block:');
+                        console.log(input);
+                      }
                     }
+                    function diffRecursive(
+                      prover: AccountUpdate,
+                      input: AccountUpdate
+                    ) {
+                      diff(prover.toPretty(), input.toPretty());
+                      let nChildren = input.children.accountUpdates.length;
+                      for (let i = 0; i < nChildren; i++) {
+                        let inputChild = input.children.accountUpdates[i];
+                        let child = prover.children.accountUpdates[i];
+                        if (!inputChild || !child) return;
+                        diffRecursive(child, inputChild);
+                      }
+                    }
+
+                    let {
+                      accountUpdate: inputUpdate,
+                      transaction,
+                      index,
+                    } = zkAppProver.getData();
+                    diffRecursive(accountUpdate, inputUpdate);
                   });
                 }
                 checkPublicInput(publicInput, accountUpdate);
@@ -273,9 +304,7 @@ function wrapMethod(
                 currentIndex: 0,
                 blindingValue,
               },
-              () => {
-                method.apply(this, actualArgs);
-              }
+              () => method.apply(this, actualArgs)
             );
             assertStatePrecondition(this);
 
@@ -316,7 +345,7 @@ function wrapMethod(
         this: this,
         methodCallDepth: methodCallDepth + 1,
         isCallback: false,
-        selfUpdate: selfAccountUpdate(this.address, this.tokenId),
+        selfUpdate: selfAccountUpdate(this, methodName),
       },
       () => {
         // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
@@ -344,6 +373,8 @@ function wrapMethod(
           let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
           let constantBlindingValue = blindingValue.toConstant();
           let accountUpdate = this.self;
+          accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
+          accountUpdate.parent = parentAccountUpdate;
 
           let [{ memoized }, result] = memoizationContext.runWith(
             {
@@ -394,7 +425,7 @@ function wrapMethod(
         let { accountUpdate, result } =
           methodCallDepth === 0
             ? AccountUpdate.witness<any>(
-                returnType ?? circuitValue<null>(null),
+                returnType ?? provable(null),
                 runCalledContract,
                 { skipCheck: true }
               )
@@ -407,9 +438,7 @@ function wrapMethod(
         accountUpdate.parent = parentAccountUpdate;
         // beware: we don't include the callee's children in the caller circuit
         // nothing is asserted about them -- it's the callee's task to check their children
-        accountUpdate.children.calls = Circuit.witness(Field, () =>
-          CallForest.hashChildren(accountUpdate)
-        );
+        accountUpdate.children.callsType = { type: 'Witness' };
         parentAccountUpdate.children.accountUpdates.push(accountUpdate);
 
         // assert that we really called the right zkapp
@@ -425,6 +454,25 @@ function wrapMethod(
         );
         let callData = Poseidon.hash(callDataFields);
         accountUpdate.body.callData.assertEquals(callData);
+
+        // caller circuits should be Delegate_call by default, except if they're called at the top level
+        let isTopLevel = Circuit.witness(Bool, () => {
+          // TODO: this logic is fragile.. need better way of finding out if parent is the prover account update or not
+          let isProverUpdate =
+            inProver() &&
+            zkAppProver
+              .getData()
+              .accountUpdate.body.publicKey.equals(
+                parentAccountUpdate.body.publicKey
+              )
+              .toBoolean();
+          let parentCallDepth = isProverUpdate
+            ? zkAppProver.getData().accountUpdate.body.callDepth
+            : CallForest.computeCallDepth(parentAccountUpdate);
+          return Bool(parentCallDepth === 0);
+        });
+        parentAccountUpdate.isDelegateCall = isTopLevel.not();
+
         return result;
       }
     );
@@ -436,7 +484,7 @@ function checkPublicInput(
   { accountUpdate, calls }: ZkappPublicInput,
   self: AccountUpdate
 ) {
-  let otherInput = accountUpdateToPublicInput(self);
+  let otherInput = self.toPublicInput();
   accountUpdate.assertEquals(otherInput.accountUpdate);
   calls.assertEquals(otherInput.calls);
 }
@@ -481,76 +529,53 @@ function computeCallData(
 
 class Callback<Result> extends GenericArgument {
   instance: SmartContract;
-  methodIntf: MethodInterface & { returnType: AsFieldElements<Result> };
+  methodIntf: MethodInterface & { returnType: Provable<Result> };
   args: any[];
+
+  result?: Result;
+  accountUpdate: AccountUpdate;
 
   static create<T extends SmartContract, K extends keyof T>(
     instance: T,
     methodName: K,
     args: T[K] extends (...args: infer A) => any ? A : never
   ) {
-    let callback: Callback<T[K] extends (...args: any) => infer R ? R : never> =
-      new this(instance, methodName, args);
+    let ZkappClass = instance.constructor as typeof SmartContract;
+    let methodIntf_ = (ZkappClass._methods ?? []).find(
+      (i) => i.methodName === methodName
+    );
+    if (methodIntf_ === undefined)
+      throw Error(
+        `Callback: could not find method ${ZkappClass.name}.${String(
+          methodName
+        )}`
+      );
+    let methodIntf = {
+      ...methodIntf_,
+      returnType: methodIntf_.returnType ?? provable(null),
+    };
+
+    // call the callback, leveraging composability (if this is inside a smart contract method)
+    // to prove to the outer circuit that we called it
+    let result = (instance[methodName] as Function)(...args);
+    let accountUpdate = instance.self;
+
+    let callback = new Callback<any>({
+      instance,
+      methodIntf,
+      args,
+      result,
+      accountUpdate,
+      isEmpty: false,
+    });
+
     return callback;
   }
 
-  private constructor(instance: any, methodName: any, args: any[]) {
+  private constructor(self: Callback<any>) {
     super();
-    this.instance = instance;
-    let ZkappClass = instance.constructor as typeof SmartContract;
-    let methodIntf = (ZkappClass._methods ?? []).find(
-      (i) => i.methodName === methodName
-    );
-    if (methodIntf === undefined)
-      throw Error(
-        `Callback: could not find method ${ZkappClass.name}.${methodName}`
-      );
-    methodIntf = {
-      ...methodIntf,
-      returnType:
-        methodIntf.returnType ??
-        (circuitValue<null>(null) as AsFieldElements<null> as any),
-    };
-    this.methodIntf = methodIntf as any;
-    this.args = args;
+    Object.assign(this, self);
   }
-}
-
-// TODO: prove call signature in the outer circuit, just like for composability!
-function accountUpdateFromCallback(
-  parentZkapp: SmartContract,
-  childLayout: AccountUpdatesLayout,
-  callback: Callback<any>
-) {
-  let { accountUpdate } = AccountUpdate.witnessTree(
-    circuitValue<null>(null),
-    childLayout,
-    () => {
-      if (callback.isEmpty) throw Error('bug: empty callback');
-      let { instance, methodIntf, args } = callback;
-      let method = instance[
-        methodIntf.methodName as keyof SmartContract
-      ] as Function;
-      let accountUpdate = selfAccountUpdate(instance.address, instance.tokenId);
-      smartContractContext.runWith(
-        {
-          this: instance,
-          methodCallDepth: (smartContractContext()?.methodCallDepth ?? 0) + 1,
-          isCallback: true,
-          selfUpdate: accountUpdate,
-        },
-        () => method.apply(instance, args)
-      );
-      return { accountUpdate, result: null };
-    },
-    { skipCheck: true }
-  );
-  // connect accountUpdate to our own. outside Circuit.witness so compile knows the right structure when hashing children
-  let parentAccountUpdate = parentZkapp.self;
-  accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
-  accountUpdate.parent = parentAccountUpdate;
-  parentAccountUpdate.children.accountUpdates.push(accountUpdate);
-  return accountUpdate;
 }
 
 /**
@@ -567,9 +592,9 @@ class SmartContract {
   address: PublicKey;
   tokenId: Field;
 
-  private _executionState: ExecutionState | undefined;
+  #executionState: ExecutionState | undefined;
   static _methods?: MethodInterface[];
-  private static _methodMetadata: Record<
+  static _methodMetadata: Record<
     string,
     { sequenceEvents: number; rows: number; digest: string; hasReturn: boolean }
   > = {}; // keyed by method name
@@ -676,19 +701,23 @@ class SmartContract {
     }
     this.setValue(this.self.update.permissions, Permissions.default());
     this.sign(zkappKey);
+    AccountUpdate.attachToTransaction(this.self);
   }
 
   sign(zkappKey?: PrivateKey) {
     this.self.sign(zkappKey);
   }
+  skipAuthorization() {
+    Authorization.setLazyNone(this.self);
+  }
 
-  private executionState(): AccountUpdate {
+  get self(): AccountUpdate {
     let inTransaction = Mina.currentTransaction.has();
     let inSmartContract = smartContractContext.has();
     if (!inTransaction && !inSmartContract) {
       // TODO: it's inefficient to return a fresh account update everytime, would be better to return a constant "non-writable" account update,
       // or even expose the .get() methods independently of any account update (they don't need one)
-      return selfAccountUpdate(this.address, this.tokenId);
+      return selfAccountUpdate(this);
     }
     let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
     // running a method changes which is the "current account update" of this smart contract
@@ -697,29 +726,21 @@ class SmartContract {
     // it won't create new updates and add them to a transaction implicitly
     if (inSmartContract && smartContractContext.get().this === this) {
       let accountUpdate = smartContractContext.get().selfUpdate;
-      this._executionState = { accountUpdate, transactionId };
+      this.#executionState = { accountUpdate, transactionId };
       return accountUpdate;
     }
-    let executionState = this._executionState;
+    let executionState = this.#executionState;
     if (
       executionState !== undefined &&
       executionState.transactionId === transactionId
     ) {
       return executionState.accountUpdate;
     }
-    // TODO: here, we are creating a new account update & attaching it implicitly
-    // we should refactor some methods which rely on that, such as `deploy()`,
-    // to do at least the attaching explicitly, and remove implicit attaching
-    // also, implicit creation is questionable
-    let transaction = Mina.currentTransaction.get();
-    let accountUpdate = selfAccountUpdate(this.address, this.tokenId);
-    transaction.accountUpdates.push(accountUpdate);
-    this._executionState = { transactionId, accountUpdate };
+    // if in a transaction, but outside a @method call, we implicitly create an account update
+    // which is stable during the current transaction -- as long as it doesn't get overridden by a method call
+    let accountUpdate = selfAccountUpdate(this);
+    this.#executionState = { transactionId, accountUpdate };
     return accountUpdate;
-  }
-
-  get self() {
-    return this.executionState();
   }
 
   get account() {
@@ -735,6 +756,42 @@ class SmartContract {
     return {
       get token() {
         return zkapp.self.token();
+      },
+      /**
+       * Approve an account update or callback. This will include the account update in the zkApp's public input,
+       * which means it allows you to read and use its content in a proof, make assertions about it, and modify it.
+       *
+       * If this is called with a callback as the first parameter, it will first extract the account update produced by that callback.
+       * The extracted account update is returned.
+       *
+       * ```ts
+       * \@method myApprovingMethod(callback: Callback) {
+       *   let approvedUpdate = this.experimental.approve(callback);
+       * }
+       * ```
+       *
+       * Under the hood, "approving" just means that the account update is made a child of the zkApp in the
+       * tree of account updates that forms the transaction.
+       * The second parameter `layout` allows you to also make assertions about the approved update's _own_ children,
+       * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
+       *
+       * @param updateOrCallback
+       * @param layout
+       * @returns The account update that was approved (needed when passing in a Callback)
+       */
+      approve(
+        updateOrCallback: AccountUpdate | Callback<any>,
+        layout?: AccountUpdatesLayout
+      ) {
+        let accountUpdate =
+          updateOrCallback instanceof AccountUpdate
+            ? updateOrCallback
+            : Circuit.witness(
+                AccountUpdate,
+                () => updateOrCallback.accountUpdate
+              );
+        zkapp.self.approve(accountUpdate, layout);
+        return accountUpdate;
       },
     };
   }
@@ -754,7 +811,7 @@ class SmartContract {
     return this.self.balance;
   }
 
-  events: { [key: string]: AsFieldElements<any> } = {};
+  events: { [key: string]: ProvablePure<any> } = {};
 
   // TODO: not able to type event such that it is inferred correctly so far
   emitEvent<K extends keyof this['events']>(type: K, event: any) {
@@ -793,7 +850,7 @@ class SmartContract {
   async fetchEvents(
     start: UInt32 = UInt32.from(0),
     end?: UInt32
-  ): Promise<{ type: string; event: AsFieldElements<any> }[]> {
+  ): Promise<{ type: string; event: ProvablePure<any> }[]> {
     // filters all elements so that they are within the given range
     // only returns { type: "", event: [] } in a flat format
     let events = (await Mina.fetchEvents(this.address, this.self.body.tokenId))
@@ -815,8 +872,8 @@ class SmartContract {
         let type = sortedEventTypes[0];
         return {
           type,
-          event: this.events[type].ofFields(
-            event.map((f: string) => Field.fromString(f))
+          event: this.events[type].fromFields(
+            event.map((f: string) => Field(f))
           ),
         };
       } else {
@@ -826,8 +883,8 @@ class SmartContract {
         event.shift();
         return {
           type,
-          event: this.events[type].ofFields(
-            event.map((f: string) => Field.fromString(f))
+          event: this.events[type].fromFields(
+            event.map((f: string) => Field(f))
           ),
         };
       }
@@ -859,10 +916,11 @@ class SmartContract {
    *  - `sequenceEvents` the number of actions the method dispatches
    */
   static analyzeMethods() {
+    let methodMetaData = this._methodMetadata;
     let ZkappClass = this as typeof SmartContract;
     let methodIntfs = ZkappClass._methods ?? [];
     if (
-      !methodIntfs.every((m) => m.methodName in ZkappClass._methodMetadata) &&
+      !methodIntfs.every((m) => m.methodName in methodMetaData) &&
       !inAnalyze()
     ) {
       if (snarkContext.get().inRunAndCheck) {
@@ -879,12 +937,12 @@ class SmartContract {
           ZkappPublicInput,
           methodIntf,
           (publicInput, publicKey, tokenId, ...args) => {
-            let instance = new ZkappClass(publicKey, tokenId);
+            let instance: SmartContract = new ZkappClass(publicKey, tokenId);
             let result = (instance as any)[methodIntf.methodName](
               publicInput,
               ...args
             );
-            accountUpdate = instance._executionState!.accountUpdate;
+            accountUpdate = instance.#executionState!.accountUpdate;
             return result;
           }
         );
@@ -910,13 +968,13 @@ class SmartContract {
   }
 }
 
-type Reducer<Action> = { actionType: AsFieldElements<Action> };
+type Reducer<Action> = { actionType: ProvablePure<Action> };
 
 type ReducerReturn<Action> = {
   dispatch(action: Action): void;
   reduce<State>(
     actions: Action[][],
-    stateType: AsFieldElements<State>,
+    stateType: Provable<State>,
     reduce: (state: State, action: Action) => State,
     initial: { state: State; actionsHash: Field },
     options?: { maxTransactionsWithActions?: number }
@@ -955,7 +1013,7 @@ class ${contract.constructor.name} extends SmartContract {
 
     reduce<S>(
       actionLists: A[][],
-      stateType: AsFieldElements<S>,
+      stateType: Provable<S>,
       reduce: (state: S, action: A) => S,
       { state, actionsHash }: { state: S; actionsHash: Field },
       { maxTransactionsWithActions = 32 } = {}
@@ -1010,8 +1068,11 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
           let newState = Circuit.witness(stateType, () => {
             // TODO: why doesn't this work without the toConstant mapping?
-            let { toFields, ofFields } = stateType;
-            return ofFields(toFields(state).map((x) => x.toConstant()));
+            let { toFields, fromFields, toAuxiliary } = stateType;
+            return fromFields(
+              toFields(state).map((x) => x.toConstant()),
+              toAuxiliary(state)
+            );
             // return state;
           });
           Circuit.assertEqual(newState, state);
@@ -1067,10 +1128,8 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           .map((event: { hash: string; actions: string[][] }) =>
             // putting our string-Fields back into the original action type
             event.actions.map((action: string[]) =>
-              reducer.actionType.ofFields(
-                action.map((fieldAsString: string) =>
-                  Field.fromString(fieldAsString)
-                )
+              reducer.actionType.fromFields(
+                action.map((fieldAsString: string) => Field(fieldAsString))
               )
             )
           );
@@ -1080,13 +1139,24 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
   };
 }
 
-function selfAccountUpdate(address: PublicKey, tokenId?: Field) {
-  let body = Body.keepAll(address);
-  if (tokenId) {
-    body.tokenId = tokenId;
-    body.caller = tokenId;
+class VerificationKey extends Struct({
+  ...provable({ data: String, hash: Field }),
+  toJSON({ data }: { data: string }) {
+    return data;
+  },
+}) {}
+
+function selfAccountUpdate(zkapp: SmartContract, methodName?: string) {
+  let body = Body.keepAll(zkapp.address);
+  if (zkapp.tokenId) {
+    body.tokenId = zkapp.tokenId;
+    body.caller = zkapp.tokenId;
   }
-  return new (AccountUpdate as any)(body, {}, true) as AccountUpdate;
+  let update = new (AccountUpdate as any)(body, {}, true) as AccountUpdate;
+  update.label = methodName
+    ? `${zkapp.constructor.name}.${methodName}()`
+    : `${zkapp.constructor.name}, no method`;
+  return update;
 }
 
 // per-smart-contract context for transaction construction
@@ -1127,7 +1197,7 @@ async function deploy<S extends typeof SmartContract>(
           `When using the optional initialBalance argument, you need to also supply the fee payer's private key as part of the \`feePayer\` argument, to sign the initial balance funding.`
         );
       // optional first accountUpdate: the sender/fee payer who also funds the zkapp
-      let amount = UInt64.fromString(String(initialBalance)).add(
+      let amount = UInt64.from(String(initialBalance)).add(
         Mina.accountCreationFee()
       );
       let feePayerAddress = feePayerKey.toPublicKey();
@@ -1142,7 +1212,7 @@ async function deploy<S extends typeof SmartContract>(
     // TODO: add send / receive methods on SmartContract which create separate account updates
     // no need to bundle receive in the same accountUpdate as deploy
     if (initialBalance !== undefined) {
-      let amount = UInt64.fromString(String(initialBalance));
+      let amount = UInt64.from(String(initialBalance));
       zkapp.self.balance.addInPlace(amount);
     }
   });
@@ -1176,9 +1246,9 @@ function addFeePayer(
   }
   let newMemo = memo;
   if (feePayerMemo) newMemo = Ledger.memoToBase58(feePayerMemo);
-  feePayer.body.nonce = UInt32.fromString(`${feePayerNonce}`);
+  feePayer.body.nonce = UInt32.from(`${feePayerNonce}`);
   feePayer.body.publicKey = senderAddress;
-  feePayer.body.fee = UInt64.fromString(`${transactionFee}`);
+  feePayer.body.fee = UInt64.from(`${transactionFee}`);
   AccountUpdate.signFeePayerInPlace(feePayer, feePayerKey);
   return { feePayer, accountUpdates, memo: newMemo };
 }
@@ -1228,7 +1298,7 @@ function signFeePayer(
  */
 function declareMethods<T extends typeof SmartContract>(
   SmartContract: T,
-  methodArguments: Record<string, AsFieldElements<unknown>[]>
+  methodArguments: Record<string, Provable<unknown>[]>
 ) {
   for (let key in methodArguments) {
     let argumentTypes = methodArguments[key];
@@ -1240,9 +1310,15 @@ function declareMethods<T extends typeof SmartContract>(
   }
 }
 
+type InferProvablePure<T extends ProvablePure<any>> = T extends ProvablePure<
+  infer U
+>
+  ? U
+  : never;
+
 const Reducer: (<
-  T extends AsFieldElements<any>,
-  A extends InferAsFieldElements<T>
+  T extends ProvablePure<any>,
+  A extends InferProvablePure<T>
 >(reducer: {
   actionType: T;
 }) => ReducerReturn<A>) & {

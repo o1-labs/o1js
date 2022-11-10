@@ -8,7 +8,7 @@ let MyProgram = Experimental.ZkProgram({
       privateInputs: [],
 
       method(publicInput: Field) {
-        publicInput.assertEquals(Field.zero);
+        publicInput.assertEquals(Field(0));
       },
     },
 
@@ -32,7 +32,7 @@ let { verificationKey } = await MyProgram.compile();
 console.log('verification key', verificationKey.slice(0, 10) + '..');
 
 console.log('proving base case...');
-let proof = await MyProgram.baseCase(Field.zero);
+let proof = await MyProgram.baseCase(Field(0));
 proof = testJsonRoundtrip(proof);
 
 console.log('verify...');
@@ -40,7 +40,7 @@ let ok = await verify(proof.toJSON(), verificationKey);
 console.log('ok?', ok);
 
 console.log('proving step 1...');
-proof = await MyProgram.inductiveCase(Field.one, proof);
+proof = await MyProgram.inductiveCase(Field(1), proof);
 proof = testJsonRoundtrip(proof);
 
 console.log('verify alternative...');

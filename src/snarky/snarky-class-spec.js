@@ -67,7 +67,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofFields',
+        name: 'fromFields',
         type: 'function',
       },
       {
@@ -83,7 +83,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofBits',
+        name: 'fromBits',
         type: 'function',
       },
       {
@@ -172,7 +172,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofFields',
+        name: 'fromFields',
         type: 'function',
       },
       {
@@ -205,7 +205,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'witness',
+        name: '_witness',
         type: 'function',
       },
       {
@@ -319,7 +319,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofFields',
+        name: 'fromFields',
         type: 'function',
       },
       {
@@ -352,7 +352,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofFields',
+        name: 'fromFields',
         type: 'function',
       },
       {
@@ -360,7 +360,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofBits',
+        name: 'fromBits',
         type: 'function',
       },
       {
@@ -457,6 +457,10 @@ export default [
         type: 'function',
       },
       {
+        name: 'checkAccountUpdateSignature',
+        type: 'function',
+      },
+      {
         name: 'fieldsOfJson',
         type: 'function',
       },
@@ -488,6 +492,10 @@ export default [
       },
       {
         name: 'verify',
+        type: 'function',
+      },
+      {
+        name: 'dummyBase64Proof',
         type: 'function',
       },
       {

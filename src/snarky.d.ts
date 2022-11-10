@@ -3,19 +3,44 @@ export {
   Bool,
   Group,
   Scalar,
-  AsFieldElements,
+  ProvablePure,
+  Provable,
   Circuit,
   CircuitMain,
   Poseidon,
-  VerificationKey,
   Keypair,
   Ledger,
   isReady,
   shutdown,
   Pickles,
-  JSONValue,
-  InferAsFieldElements,
+  Account as LedgerAccount,
 };
+
+/**
+ * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
+ *
+ * You will find this as the required input type in a few places in snarkyjs. One convenient way to create a `Provable<T>` is using `Struct`.
+ */
+declare interface Provable<T> {
+  toFields: (x: T) => Field[];
+  toAuxiliary: (x?: T) => any[];
+  fromFields: (x: Field[], aux: any[]) => T;
+  sizeInFields(): number;
+  check: (x: T) => void;
+}
+/**
+ * `ProvablePure<T>` is a special kind of `Provable<T>`, where the auxiliary data is empty. This means the type only consists of field elements,
+ * in that sense it is "pure".
+ *
+ * Examples where `ProvablePure<T>` is required are types of on-chain state, events and actions.
+ */
+declare interface ProvablePure<T> extends Provable<T> {
+  toFields: (x: T) => Field[];
+  toAuxiliary: (x?: T) => [];
+  fromFields: (x: Field[]) => T;
+  sizeInFields(): number;
+  check: (x: T) => void;
+}
 
 /**
  * An element of a finite field.
@@ -32,7 +57,7 @@ declare class Field {
    * by -1.
    *
    * ```typescript
-   * const negOne = Field.one.neg();
+   * const negOne = Field(1).neg();
    * negOne.assertEquals(-1);
    * ```
    */
@@ -43,7 +68,7 @@ declare class Field {
    *
    * ```typescript
    * const invX = x.inv();
-   * invX.assertEquals(Field.one.div(x));
+   * invX.assertEquals(Field(1).div(x));
    * ```
    *
    * @return A field element that is equivalent to one divided by this element.
@@ -103,11 +128,9 @@ declare class Field {
    * Serialize the [[`Field`]] to a JSON string.
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
-  toJSON(): JSONValue;
+  toJSON(): string;
 
-  // TODO: Rename to size()
   sizeInFields(): number;
-  // TODO: Rename to toFields()
   toFields(): Field[];
 
   // TODO: Make these long form version
@@ -153,67 +176,67 @@ declare class Field {
    * Assert that this [[`Field`]] is lower than another Field-like value.
    *
    * ```ts
-   * Field.one.assertLt(2);
+   * Field(1).assertLt(2);
    * ```
    *
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and causes it to fail if the assertion fails.
    */
-  assertLt(y: Field | number | string | boolean): void;
+  assertLt(y: Field | number | string | boolean, message?: string): void;
   /**
    * Assert that this [[`Field`]] is lower than or equal to another Field-like value.
    *
    * ```ts
-   * Field.one.assertLte(2);
+   * Field(1).assertLte(2);
    * ```
    *
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and causes it to fail if the assertion fails.
    */
-  assertLte(y: Field | number | string | boolean): void;
+  assertLte(y: Field | number | string | boolean, message?: string): void;
   /**
    * Assert that this [[`Field`]] is greater than another Field-like value.
    *
    * ```ts
-   * Field.one.assertGt(0);
+   * Field(1).assertGt(0);
    * ```
    *
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and causes it to fail if the assertion fails.
    */
-  assertGt(y: Field | number | string | boolean): void;
+  assertGt(y: Field | number | string | boolean, message?: string): void;
   /**
    * Assert that this [[`Field`]] is greater than or equal to another Field-like value.
    *
    * ```ts
-   * Field.one.assertGte(0);
+   * Field(1).assertGte(0);
    * ```
    *
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and causes it to fail if the assertion fails.
    */
-  assertGte(y: Field | number | string | boolean): void;
+  assertGte(y: Field | number | string | boolean, message?: string): void;
 
   /**
    * Assert that this [[`Field`]] equals another Field-like value.
    * Throws an error if the assertion fails.
    *
    * ```ts
-   * Field.one.assertEquals(1);
+   * Field(1).assertEquals(1);
    * ```
    */
-  assertEquals(y: Field | number | string | boolean): void;
+  assertEquals(y: Field | number | string | boolean, message?: string): void;
   /**
    * Assert that this [[`Field`]] is either 0 or 1.
    *
    * ```ts
-   * Field.zero.assertBoolean();
+   * Field(0).assertBoolean();
    * ```
    *
    * This function can only be called inside a checked computation, like a
    * SmartContract method, and throws an error if the assertion fails.
    */
-  assertBoolean(): void;
+  assertBoolean(message?: string): void;
   isZero(): Bool;
 
   /**
@@ -249,14 +272,20 @@ declare class Field {
 
   /* Self members */
   /**
+   * @deprecated Static constant values on Field are deprecated in favor of using the constructor `Field(1)`.
+   *
    * The number 1 as a [[`Field`]].
    */
   static one: Field;
   /**
+   * @deprecated Static constant values on Field are deprecated in favor of using the constructor `Field(0)`.
+   *
    * The number 0 as a [[`Field`]].
    */
   static zero: Field;
   /**
+   * @deprecated Static constant values on Field are deprecated in favor of using the constructor `Field(-1)`.
+   *
    * The number -1 as a [[`Field`]].
    */
   static minusOne: Field;
@@ -297,15 +326,11 @@ declare class Field {
   static toString(x: Field | number | string | boolean): string;
   */
 
-  // TODO: Ask izzy/matthew why we need this non-static version?
-  ofFields(fields: Field[]): Field;
-  // TODO: Rename to fromFields(fields: Field[])
-  // TODO: (bkase) Refactor AsFieldElements to not need these redundant static things
-  static ofFields(fields: Field[]): Field;
-  // TODO: Rename to size()
+  fromFields(fields: Field[]): Field;
+  static fromFields(fields: Field[]): Field;
   static sizeInFields(): number;
-  // TODO: Rename to toFields
   static toFields(x: Field): Field[];
+  static toAuxiliary(x?: Field): [];
 
   /*
   static assertEqual(
@@ -319,10 +344,8 @@ declare class Field {
   /**
    * Converts a bit array into a field element (little endian)
    * Fails if the field element cannot fit given too many bits.
-   *
-   * TODO: Rename to fromBits
    */
-  static ofBits(x: (Bool | boolean)[]): Field;
+  static fromBits(x: (Bool | boolean)[]): Field;
   /*
   static toBits(x: Field | number | string | boolean): Bool[];
   */
@@ -334,12 +357,8 @@ declare class Field {
   ): Bool;
   */
 
-  static toJSON(x: Field): JSONValue;
-  static fromJSON(x: JSONValue): Field | null;
-
-  static fromString(x: string): Field;
-  static fromNumber(x: number): Field;
-  static fromBigInt(x: bigint): Field;
+  static toJSON(x: Field): string;
+  static fromJSON(x: string | number): Field;
 
   static check(x: Field): void;
 
@@ -390,17 +409,17 @@ declare class Bool {
    * Proves that this [[`Bool`]] is equal to `y`.
    * @param y a [[`Bool`]].
    */
-  assertEquals(y: Bool | boolean): void;
+  assertEquals(y: Bool | boolean, message?: string): void;
 
   /**
    * Proves that this [[`Bool`]] is `true`.
    */
-  assertTrue(): void;
+  assertTrue(message?: string): void;
 
   /**
    * Proves that this [[`Bool`]] is `false`.
    */
-  assertFalse(): void;
+  assertFalse(message?: string): void;
 
   /**
    * Returns true if this [[`Bool`]] is equal to `y`.
@@ -420,7 +439,7 @@ declare class Bool {
    * Serialize the [[`Bool`]] to a JSON string.
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
-  toJSON(): JSONValue;
+  toJSON(): boolean;
 
   /**
    * This converts the [[`Bool`]] to a javascript [[boolean]].
@@ -462,29 +481,20 @@ declare class Bool {
 
   static sizeInFields(): number;
   static toFields(x: Bool): Field[];
-  static ofFields(fields: Field[]): Bool;
+  static toAuxiliary(x?: Bool): [];
+  static fromFields(fields: Field[]): Bool;
 
-  static toJSON(x: Bool): JSONValue;
-  static fromJSON(x: JSONValue): Bool | null;
+  static toJSON(x: Bool): boolean;
+  static fromJSON(x: boolean): Bool;
   static check(x: Bool): void;
 
   // monkey-patched in JS
   static toInput(x: Bool): { packed: [Field, number][] };
 }
 
-declare interface AsFieldElements<T> {
-  toFields: (x: T) => Field[];
-  ofFields: (x: Field[]) => T;
-  sizeInFields(): number;
-  check: (x: T) => void;
-}
-
-type InferAsFieldElements<T extends AsFieldElements<any>> =
-  T extends AsFieldElements<infer U> ? U : never;
-
 declare interface CircuitMain<W, P> {
-  snarkyWitnessTyp: AsFieldElements<W>;
-  snarkyPublicTyp: AsFieldElements<P>;
+  snarkyWitnessTyp: ProvablePure<W>;
+  snarkyPublicTyp: ProvablePure<P>;
   snarkyMain: (w: W, p: P) => void;
 }
 
@@ -521,7 +531,8 @@ declare class Circuit {
   static newVariable(f: () => Field | number | string | boolean): Field;
 
   // this convoluted generic typing is needed to give type inference enough flexibility
-  static witness<T, S extends AsFieldElements<T> = AsFieldElements<T>>(
+  static _witness<S extends Provable<any>>(ctor: S, f: () => Field[]): Field[];
+  static witness<T, S extends Provable<T> = Provable<T>>(
     ctor: S,
     f: () => T
   ): T;
@@ -536,10 +547,7 @@ declare class Circuit {
     result: T;
   };
 
-  static array<T>(
-    elementType: AsFieldElements<T>,
-    length: number
-  ): AsFieldElements<T[]>;
+  static array<T>(elementType: Provable<T>, length: number): Provable<T[]>;
 
   static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
 
@@ -549,7 +557,7 @@ declare class Circuit {
 
   static equal<T>(x: T, y: T): Bool;
 
-  static if<T>(b: Bool | boolean, ctor: AsFieldElements<T>, x: T, y: T): T;
+  static if<T>(b: Bool | boolean, ctor: ProvablePure<T>, x: T, y: T): T;
 
   static if<T>(b: Bool | boolean, x: T, y: T): T;
 
@@ -563,7 +571,7 @@ declare class Circuit {
    * x.assertEquals(2);
    * ```
    */
-  static switch<T, A extends AsFieldElements<T>>(
+  static switch<T, A extends Provable<T>>(
     mask: Bool[],
     type: A,
     values: T[]
@@ -580,6 +588,8 @@ declare class Circuit {
   static inProver(): boolean;
 
   static inCheckedComputation(): boolean;
+
+  static log(...args: any): void;
 }
 
 declare class Scalar {
@@ -615,23 +625,24 @@ declare class Scalar {
    * */
   div(y: Scalar): Scalar;
 
-  toJSON(): JSONValue;
+  toJSON(): string;
 
   static toFields(x: Scalar): Field[];
-  static ofFields(fields: Field[]): Scalar;
+  static toAuxiliary(x?: Scalar): [];
+  static fromFields(fields: Field[]): Scalar;
   static sizeInFields(): number;
-  static ofBits(bits: Bool[]): Scalar;
+  static fromBits(bits: Bool[]): Scalar;
   static random(): Scalar;
 
-  static toJSON(x: Scalar): JSONValue;
-  static fromJSON(x: JSONValue): Scalar | null;
+  static toJSON(x: Scalar): string;
+  static fromJSON(x: string | number | boolean): Scalar;
   static check(x: Scalar): void;
 }
 
 // TODO: Add this when OCaml bindings are implemented:
 // declare class EndoScalar {
 //   static toFields(x: Scalar): Field[];
-//   static ofFields(fields: Field[]): Scalar;
+//   static fromFields(fields: Field[]): Scalar;
 //   static sizeInFields(): number;
 // }
 
@@ -645,10 +656,10 @@ declare class Group {
   scale(y: Scalar): Group;
   // TODO: Add this function when OCaml bindings are implemented : endoScale(y: EndoScalar): Group;
 
-  assertEquals(y: Group): void;
+  assertEquals(y: Group, message?: string): void;
   equals(y: Group): Bool;
 
-  toJSON(): JSONValue;
+  toJSON(): { x: string; y: string };
 
   constructor(args: {
     x: Field | number | string | boolean;
@@ -670,10 +681,11 @@ declare class Group {
   static equal(x: Group, y: Group): Bool;
 
   static toFields(x: Group): Field[];
-  static ofFields(fields: Field[]): Group;
+  static toAuxiliary(x?: Group): [];
+  static fromFields(fields: Field[]): Group;
   static sizeInFields(): number;
 
-  static toJSON(x: Group): JSONValue;
+  static toJSON(x: Group): { x: string; y: string };
   static fromJSON({
     x,
     y,
@@ -743,24 +755,32 @@ interface Account {
   votingFor: Field;
   zkapp?: {
     appState: Field[];
-    verificationKey?: { hash: Field; data: unknown };
+    verificationKey?: { data: string; hash: string };
     zkappVersion: number;
     sequenceState: Field[];
     lastSequenceSlot: number;
     provedState: boolean;
   };
   permissions: {
-    editState: string;
-    send: string;
-    receive: string;
-    setDelegate: string;
-    setPermissions: string;
-    setVerificationKey: string;
-    setZkappUri: string;
-    editSequenceState: string;
-    setTokenSymbol: string;
-    incrementNonce: string;
-    setVotingFor: string;
+    editState: AuthRequired;
+    send: AuthRequired;
+    receive: AuthRequired;
+    setDelegate: AuthRequired;
+    setPermissions: AuthRequired;
+    setVerificationKey: AuthRequired;
+    setZkappUri: AuthRequired;
+    editSequenceState: AuthRequired;
+    setTokenSymbol: AuthRequired;
+    incrementNonce: AuthRequired;
+    setVotingFor: AuthRequired;
+  };
+  timing: {
+    isTimed: Bool;
+    initialMinimumBalance: UInt64_;
+    cliffTime: UInt32_;
+    cliffAmount: UInt64_;
+    vestingPeriod: UInt32_;
+    vestingIncrement: UInt64_;
   };
 }
 
@@ -810,7 +830,13 @@ declare class Ledger {
   static privateKeyOfString(privateKeyBase58: string): Scalar;
   static fieldToBase58(field: Field): string;
   static fieldOfBase58(fieldBase58: string): Field;
+
   static memoToBase58(memoString: string): string;
+
+  static checkAccountUpdateSignature(
+    updateJson: string,
+    commitment: Field
+  ): boolean;
 
   static fieldsOfJson(json: string): Field[];
   static hashAccountUpdateFromFields(fields: Field[]): Field;
@@ -919,6 +945,8 @@ declare const Pickles: {
     verificationKey: string
   ): Promise<boolean>;
 
+  dummyBase64Proof: () => string;
+
   proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
   proofOfBase64: (
     base64: string,
@@ -928,10 +956,4 @@ declare const Pickles: {
   proofToBase64Transaction: (proof: Pickles.Proof) => string;
 };
 
-type JSONValue =
-  | number
-  | string
-  | boolean
-  | null
-  | Array<JSONValue>
-  | { [key: string]: JSONValue };
+type AuthRequired = 'Signature' | 'Proof' | 'Either' | 'None' | 'Impossible';

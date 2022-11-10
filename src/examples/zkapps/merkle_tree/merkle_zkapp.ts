@@ -58,7 +58,7 @@ class Account extends CircuitValue {
   }
 }
 // we need the initiate tree root in order to tell the contract about our off-chain storage
-let initialCommitment: Field = Field.zero;
+let initialCommitment: Field = Field(0);
 /*
   We want to write a smart contract that serves as a leaderboard,
   but only has the commitment of the off-chain storage stored in an on-chain variable.
@@ -76,7 +76,7 @@ class Leaderboard extends SmartContract {
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
     });
-    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
+    this.balance.addInPlace(UInt64.from(initialBalance));
     this.commitment.set(initialCommitment);
   }
 
@@ -152,7 +152,7 @@ let tx = await Mina.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer, { initialBalance });
   leaderboardZkApp.deploy({ zkappKey });
 });
-tx.send();
+await tx.send();
 
 console.log('Initial points: ' + Accounts.get('Bob')?.points);
 
@@ -173,7 +173,7 @@ async function makeGuess(name: Names, index: bigint, guess: number) {
   if (doProofs) {
     await tx.prove();
   }
-  tx.send();
+  await tx.send();
 
   // if the transaction was successful, we can update our off-chain storage as well
   account.points = account.points.add(1);

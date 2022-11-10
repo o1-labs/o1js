@@ -25,21 +25,21 @@ describe('scalar', () => {
         });
       });
 
-      describe('ofFields', () => {
+      describe('fromFields', () => {
         it('should return a Scalar', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              Circuit.witness(Scalar, () => Scalar.ofFields([Field.one]));
+              Circuit.witness(Scalar, () => Scalar.fromFields([Field(1)]));
             });
           }).not.toThrow();
         });
       });
 
-      describe('ofBits', () => {
+      describe('fromBits', () => {
         it('should return a Scalar', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
-              Circuit.witness(Scalar, () => Scalar.ofBits([Bool(true)]));
+              Circuit.witness(Scalar, () => Scalar.fromBits([Bool(true)]));
             });
           }).not.toThrow();
         });
@@ -125,18 +125,18 @@ describe('scalar', () => {
         });
       });
 
-      describe('ofFields', () => {
+      describe('fromFields', () => {
         it('should return a Scalar', () => {
           expect(() => {
-            Scalar.ofFields([Field.one]);
+            Scalar.fromFields([Field(1)]);
           }).not.toThrow();
         });
       });
 
-      describe('ofBits', () => {
+      describe('fromBits', () => {
         it('should return a Scalar', () => {
           expect(() => {
-            Scalar.ofBits([Bool(true)]);
+            Scalar.fromBits([Bool(true)]);
           }).not.toThrow();
         });
       });
@@ -174,10 +174,6 @@ describe('scalar', () => {
 
         it('fromJSON(false) should be 0', () => {
           expect(Scalar.fromJSON(false)!.toJSON()).toEqual('0');
-        });
-
-        it('fromJSON([]) should be undefined', () => {
-          expect(Scalar.fromJSON([])).toBeNull();
         });
       });
 

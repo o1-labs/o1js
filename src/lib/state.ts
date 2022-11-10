@@ -1,5 +1,5 @@
-import { Field, AsFieldElements } from '../snarky.js';
-import { circuitArray, witness } from './circuit_value.js';
+import { Field, ProvablePure } from '../snarky.js';
+import { circuitArray, Circuit } from './circuit_value.js';
 import { AccountUpdate, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import * as Mina from './mina.js';
@@ -36,7 +36,7 @@ function State<A>(): State<A> {
  * ```
  *
  */
-function state<A>(stateType: AsFieldElements<A>) {
+function state<A>(stateType: ProvablePure<A>) {
   return function (
     target: SmartContract & { constructor: any },
     key: string,
@@ -114,7 +114,7 @@ function state<A>(stateType: AsFieldElements<A>) {
  */
 function declareState<T extends typeof SmartContract>(
   SmartContract: T,
-  states: Record<string, AsFieldElements<unknown>>
+  states: Record<string, ProvablePure<unknown>>
 ) {
   for (let key in states) {
     let CircuitValue = states[key];
@@ -125,7 +125,7 @@ function declareState<T extends typeof SmartContract>(
 // metadata defined by @state, which link state to a particular SmartContract
 type StateAttachedContract<A> = {
   key: string;
-  stateType: AsFieldElements<A>;
+  stateType: ProvablePure<A>;
   instance: SmartContract;
   class: typeof SmartContract;
   wasRead: boolean;
@@ -201,7 +201,7 @@ function createState<T>(): InternalStateType<T> {
       let contract = this._contract;
       let inProver_ = inProver();
       let stateFieldsType = circuitArray(Field, layout.length);
-      let stateAsFields = witness(stateFieldsType, () => {
+      let stateAsFields = Circuit.witness(stateFieldsType, () => {
         let account: Account;
         try {
           account = Mina.getAccount(
@@ -214,13 +214,16 @@ function createState<T>(): InternalStateType<T> {
             throw err;
           }
           throw Error(
-            `${contract.key}.get() failed, because the zkapp account was not found in the cache. ` +
-              `Try calling \`await fetchAccount(zkappAddress)\` first.`
+            `${contract.key}.get() failed, either:\n` +
+              `1. We can't find this zkapp account in the ledger\n` +
+              `2. Because the zkapp account was not found in the cache. ` +
+              `Try calling \`await fetchAccount(zkappAddress)\` first.\n` +
+              `If none of these are the case, then please reach out on Discord at #zkapp-developers and/or open an issue to tell us!`
           );
         }
         if (account.appState === undefined) {
           // if the account is not a zkapp account, let the default state be all zeroes
-          return Array(layout.length).fill(Field.zero);
+          return Array(layout.length).fill(Field(0));
         } else {
           let stateAsFields: Field[] = [];
           for (let i = 0; i < layout.length; ++i) {
@@ -230,7 +233,7 @@ function createState<T>(): InternalStateType<T> {
         }
       });
 
-      let state = this._contract.stateType.ofFields(stateAsFields);
+      let state = this._contract.stateType.fromFields(stateAsFields);
       this._contract.stateType.check?.(state);
       this._contract.wasRead = true;
       this._contract.cachedVariable = state;
@@ -255,14 +258,14 @@ function createState<T>(): InternalStateType<T> {
       if (account === undefined) return undefined;
       let stateAsFields: Field[];
       if (account.appState === undefined) {
-        stateAsFields = Array(layout.length).fill(Field.zero);
+        stateAsFields = Array(layout.length).fill(Field(0));
       } else {
         stateAsFields = [];
         for (let i = 0; i < layout.length; i++) {
           stateAsFields.push(account.appState[layout.offset + i]);
         }
       }
-      return this._contract.stateType.ofFields(stateAsFields);
+      return this._contract.stateType.fromFields(stateAsFields);
     },
   };
 }
@@ -299,7 +302,7 @@ function getLayout(scClass: typeof SmartContract) {
 const smartContracts = new WeakMap<
   typeof SmartContract,
   {
-    states: [string, AsFieldElements<any>][];
+    states: [string, ProvablePure<any>][];
     layout: Map<string, { offset: number; length: number }> | undefined;
   }
 >();
