@@ -359,6 +359,7 @@ class TokenContract extends SmartContract {
     });
   }
   @method init() {
+    super.init();
     // mint the entire supply to the token account with the same address as this contract
     /**
      * DUMB STUFF FOR TESTING (change in real app)
