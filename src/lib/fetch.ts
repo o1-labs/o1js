@@ -497,7 +497,6 @@ function parseFetchedBlock({
   return {
     snarkedLedgerHash: Encoding.LedgerHash.fromBase58(snarkedLedgerHash),
     // TODO: use date or utcDate?
-    timestamp: UInt64.from(utcDate),
     blockchainLength: UInt32.from(blockHeight),
     minWindowDensity: UInt32.from(minWindowDensity),
     totalCurrency: UInt64.from(totalCurrency),

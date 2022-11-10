@@ -507,7 +507,6 @@ let NetworkPrecondition = {
     let nextEpochData = cloneCircuitValue(stakingEpochData);
     return {
       snarkedLedgerHash: ignore(Field(0)),
-      timestamp: ignore(uint64()),
       blockchainLength: ignore(uint32()),
       minWindowDensity: ignore(uint32()),
       totalCurrency: ignore(uint64()),

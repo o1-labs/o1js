@@ -72,10 +72,6 @@ type ZkappCommand = {
       preconditions: {
         network: {
           snarkedLedgerHash: Field | null;
-          timestamp: {
-            lower: UInt64;
-            upper: UInt64;
-          } | null;
           blockchainLength: {
             lower: UInt32;
             upper: UInt32;
@@ -205,10 +201,6 @@ type AccountUpdate = {
     preconditions: {
       network: {
         snarkedLedgerHash: Field | null;
-        timestamp: {
-          lower: UInt64;
-          upper: UInt64;
-        } | null;
         blockchainLength: {
           lower: UInt32;
           upper: UInt32;

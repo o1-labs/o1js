@@ -468,9 +468,6 @@ function LocalBlockchain({
      * 30000000000 units of currency.
      */
     testAccounts,
-    setTimestamp(ms: UInt64) {
-      networkState.timestamp = ms;
-    },
     setGlobalSlot(slot: UInt32 | number) {
       networkState.globalSlotSinceGenesis = UInt32.from(slot);
       let difference = networkState.globalSlotSinceGenesis.sub(slot);
@@ -796,7 +793,6 @@ function defaultNetworkState(): NetworkValue {
   };
   return {
     snarkedLedgerHash: Field(0),
-    timestamp: UInt64.zero,
     blockchainLength: UInt32.zero,
     minWindowDensity: UInt32.zero,
     totalCurrency: UInt64.zero,
