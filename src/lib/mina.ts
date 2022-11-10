@@ -167,7 +167,7 @@ function createTransaction(
     if (nonce === undefined) {
       nonce_ = senderAccount.nonce;
     } else {
-      nonce_ = UInt32.fromNumber(nonce);
+      nonce_ = UInt32.from(nonce);
       senderAccount.nonce = nonce_;
       Fetch.addCachedAccount({
         nonce: senderAccount.nonce,
