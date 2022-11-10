@@ -72,7 +72,7 @@ type CurrentTransaction = {
   accountUpdates: AccountUpdate[];
   fetchMode: FetchMode;
   isFinalRunOutsideCircuit: boolean;
-  numberOfRuns: number;
+  numberOfRuns: 0 | 1 | undefined;
 };
 
 let currentTransaction = Context.create<CurrentTransaction>();
@@ -98,7 +98,7 @@ function reportGetAccountError(publicKey: string, tokenId: string) {
 function createTransaction(
   feePayer: FeePayerSpec,
   f: () => unknown,
-  numberOfRuns: number,
+  numberOfRuns: 0 | 1 | undefined,
   {
     fetchMode = 'cached' as FetchMode,
     isFinalRunOutsideCircuit = true,
@@ -139,9 +139,7 @@ function createTransaction(
         break;
       } catch (err_) {
         if ((err_ as any)?.bootstrap) err = err_;
-        else {
-          throw err_;
-        }
+        else throw err_;
       }
     }
   } catch (err) {
