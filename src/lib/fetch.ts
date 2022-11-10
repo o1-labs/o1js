@@ -578,7 +578,7 @@ function sendZkappQuery(json: string) {
 // removes the quotes on JSON keys
 function removeJsonQuotes(json: string) {
   let cleaned = JSON.stringify(JSON.parse(json), null, 2);
-  return cleaned.replace(/\"(\S+)\"\s*:/gm, "$1 :");
+  return cleaned.replace(/\"(\S+)\"\s*:/gm, '$1:');
 }
 
 // TODO it seems we're not actually catching most errors here
