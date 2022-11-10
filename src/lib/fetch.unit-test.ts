@@ -8,16 +8,16 @@ let input, actual, expected;
 
 input = `{
   "array": [
-    {
-      "data": "string with \\"escaped quotes\\": 1"
-    }
-  ]
+    {"data": "string with \\"escaped quotes\\": 1"}, { "otherdata": "otherstrin\\"g"}]
 }`;
 
 expected = `{
   array: [
     {
       data: "string with \\"escaped quotes\\": 1"
+    },
+    {
+      otherdata: "otherstrin\\"g"
     }
   ]
 }`;
