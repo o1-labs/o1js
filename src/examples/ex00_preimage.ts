@@ -26,7 +26,7 @@ await isReady;
 console.log('generating keypair...');
 const kp = Main.generateKeypair();
 
-const preimage = Field.one;
+const preimage = Field(1);
 const hash = Poseidon.hash([preimage]);
 
 console.log('prove...');

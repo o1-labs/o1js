@@ -284,7 +284,7 @@ function fieldFromBase58(
   if (versionNumber !== undefined) bytes.shift();
   let uint8array = new Uint8Array(32);
   uint8array.set(bytes);
-  return Object.assign(Object.create(Field.one.constructor.prototype), {
+  return Object.assign(Object.create(Field(1).constructor.prototype), {
     value: [0, uint8array],
   });
 }

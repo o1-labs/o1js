@@ -5,7 +5,6 @@ import {
   Ledger,
   Pickles,
   Poseidon as Poseidon_,
-  JSONValue,
   Provable,
 } from '../snarky.js';
 import {
@@ -558,7 +557,7 @@ class Callback<Result> extends GenericArgument {
 
     // call the callback, leveraging composability (if this is inside a smart contract method)
     // to prove to the outer circuit that we called it
-    let result = (instance[methodName] as Function)();
+    let result = (instance[methodName] as Function)(...args);
     let accountUpdate = instance.self;
 
     let callback = new Callback<any>({
@@ -759,28 +758,28 @@ class SmartContract {
         return zkapp.self.token();
       },
       /**
-       * Authorize an account update or callback. This will include the account update in the zkApp's public input,
+       * Approve an account update or callback. This will include the account update in the zkApp's public input,
        * which means it allows you to read and use its content in a proof, make assertions about it, and modify it.
        *
        * If this is called with a callback as the first parameter, it will first extract the account update produced by that callback.
        * The extracted account update is returned.
        *
        * ```ts
-       * \@method myAuthorizingMethod(callback: Callback) {
-       *   let authorizedUpdate = this.experimental.authorize(callback);
+       * \@method myApprovingMethod(callback: Callback) {
+       *   let approvedUpdate = this.experimental.approve(callback);
        * }
        * ```
        *
-       * Under the hood, "authorizing" just means that the account update is made a child of the zkApp in the
+       * Under the hood, "approving" just means that the account update is made a child of the zkApp in the
        * tree of account updates that forms the transaction.
-       * The second parameter `layout` allows you to also make assertions about the authorized update's _own_ children,
+       * The second parameter `layout` allows you to also make assertions about the approved update's _own_ children,
        * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
        *
        * @param updateOrCallback
        * @param layout
-       * @returns The account update that was authorized (needed when passing in a Callback)
+       * @returns The account update that was approved (needed when passing in a Callback)
        */
-      authorize(
+      approve(
         updateOrCallback: AccountUpdate | Callback<any>,
         layout?: AccountUpdatesLayout
       ) {
@@ -791,7 +790,7 @@ class SmartContract {
                 AccountUpdate,
                 () => updateOrCallback.accountUpdate
               );
-        zkapp.self.authorize(accountUpdate, layout);
+        zkapp.self.approve(accountUpdate, layout);
         return accountUpdate;
       },
     };
@@ -874,7 +873,7 @@ class SmartContract {
         return {
           type,
           event: this.events[type].fromFields(
-            event.map((f: string) => Field.fromString(f))
+            event.map((f: string) => Field(f))
           ),
         };
       } else {
@@ -885,7 +884,7 @@ class SmartContract {
         return {
           type,
           event: this.events[type].fromFields(
-            event.map((f: string) => Field.fromString(f))
+            event.map((f: string) => Field(f))
           ),
         };
       }
@@ -1130,9 +1129,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
             // putting our string-Fields back into the original action type
             event.actions.map((action: string[]) =>
               reducer.actionType.fromFields(
-                action.map((fieldAsString: string) =>
-                  Field.fromString(fieldAsString)
-                )
+                action.map((fieldAsString: string) => Field(fieldAsString))
               )
             )
           );
@@ -1200,7 +1197,7 @@ async function deploy<S extends typeof SmartContract>(
           `When using the optional initialBalance argument, you need to also supply the fee payer's private key as part of the \`feePayer\` argument, to sign the initial balance funding.`
         );
       // optional first accountUpdate: the sender/fee payer who also funds the zkapp
-      let amount = UInt64.fromString(String(initialBalance)).add(
+      let amount = UInt64.from(String(initialBalance)).add(
         Mina.accountCreationFee()
       );
       let feePayerAddress = feePayerKey.toPublicKey();
@@ -1215,7 +1212,7 @@ async function deploy<S extends typeof SmartContract>(
     // TODO: add send / receive methods on SmartContract which create separate account updates
     // no need to bundle receive in the same accountUpdate as deploy
     if (initialBalance !== undefined) {
-      let amount = UInt64.fromString(String(initialBalance));
+      let amount = UInt64.from(String(initialBalance));
       zkapp.self.balance.addInPlace(amount);
     }
   });
@@ -1249,9 +1246,9 @@ function addFeePayer(
   }
   let newMemo = memo;
   if (feePayerMemo) newMemo = Ledger.memoToBase58(feePayerMemo);
-  feePayer.body.nonce = UInt32.fromString(`${feePayerNonce}`);
+  feePayer.body.nonce = UInt32.from(`${feePayerNonce}`);
   feePayer.body.publicKey = senderAddress;
-  feePayer.body.fee = UInt64.fromString(`${transactionFee}`);
+  feePayer.body.fee = UInt64.from(`${transactionFee}`);
   AccountUpdate.signFeePayerInPlace(feePayer, feePayerKey);
   return { feePayer, accountUpdates, memo: newMemo };
 }

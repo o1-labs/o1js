@@ -181,7 +181,7 @@ export class Voting_ extends SmartContract {
    * Calls the `publish()` method of the Candidate-Membership and Voter-Membership contract.
    */
   @method
-  authorizeRegistrations() {
+  approveRegistrations() {
     // Invokes the publish method of both Voter and Candidate Membership contracts.
     let VoterContract: Membership_ = new Membership_(voterAddress);
     VoterContract.publish();

@@ -21,7 +21,7 @@ export class DummyContract extends SmartContract {
       setVerificationKey: Permissions.proofOrSignature(),
       incrementNonce: Permissions.proofOrSignature(),
     });
-    this.sum.set(Field.zero);
+    this.sum.set(Field(0));
   }
 
   /**
