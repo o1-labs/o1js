@@ -36,8 +36,8 @@ class SimpleZkapp extends SmartContract {
     });
   }
 
-  @method init() {
-    super.init();
+  @method init(zkappKey: PrivateKey) {
+    super.init(zkappKey);
     this.balance.addInPlace(UInt64.from(initialBalance));
     this.x.set(initialState);
   }

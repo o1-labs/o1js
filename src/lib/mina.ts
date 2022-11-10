@@ -134,7 +134,6 @@ function createTransaction(
       } catch (err_) {
         if ((err_ as any)?.bootstrap) err = err_;
         else {
-          currentTransaction.leave(transactionId);
           throw err_;
         }
       }

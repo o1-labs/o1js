@@ -711,7 +711,8 @@ class SmartContract {
       !Mina.hasAccount(this.address) ||
       Mina.getAccount(this.address).verificationKey !== undefined;
     if (!shouldInit) return;
-    this.init();
+    if (zkappKey) this.init(zkappKey);
+    else this.init();
     let initUpdate = this.self;
     // switch back to the deploy account update so the user can make modifications to it
     this.#executionState = {
@@ -734,8 +735,11 @@ super.init();
     });
   }
   // TODO make this a @method and create a proof during `zk deploy` (+ add mechanism to skip this)
-  init() {
+  init(zkappKey?: PrivateKey) {
     // let accountUpdate = this.newSelf(); // this would emulate the behaviour of init() being a @method
+    // TODO: enable this if provedState is available, to make this callable only once
+    // this.account.provedState.assertEquals(Bool(false));
+    zkappKey?.toPublicKey().assertEquals(this.address);
     let accountUpdate = this.self;
     for (let i = 0; i < ZkappStateLength; i++) {
       AccountUpdate.setValue(accountUpdate.body.update.appState[i], Field(0));
