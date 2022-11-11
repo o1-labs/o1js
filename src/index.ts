@@ -67,6 +67,7 @@ import { Reducer, Callback } from './lib/zkapp.js';
 import { createChildAccountUpdate } from './lib/account_update.js';
 import { memoizeWitness } from './lib/circuit_value.js';
 import { MerkleTree, MerkleWitness } from './lib/merkle_tree.js';
+import { MerkleMap, MerkleMapWitness } from './lib/merkle_map.js';
 export { Experimental };
 
 const Experimental_ = {
@@ -76,6 +77,8 @@ const Experimental_ = {
   memoizeWitness,
   MerkleTree,
   MerkleWitness,
+  MerkleMap,
+  MerkleMapWitness,
   ZkProgram,
 };
 
@@ -92,6 +95,8 @@ namespace Experimental {
   export let memoizeWitness = Experimental_.memoizeWitness;
   export let MerkleTree = Experimental_.MerkleTree;
   export let MerkleWitness = Experimental_.MerkleWitness;
+  export let MerkleMap = Experimental_.MerkleMap;
+  export let MerkleMapWitness = Experimental_.MerkleMapWitness;
   export let Callback = Experimental_.Callback;
   export type Callback<Result> = Callback_<Result>;
 }
