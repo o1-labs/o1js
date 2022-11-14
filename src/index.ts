@@ -3,7 +3,6 @@ export {
   Scalar,
   ProvablePure,
   Provable,
-  JSONValue,
   Ledger,
   isReady,
   shutdown,

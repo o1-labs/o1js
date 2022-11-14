@@ -150,12 +150,12 @@ function createDex({
      * The transaction needs to be signed by the user's private key.
      */
     @method redeemLiquidity(user: PublicKey, dl: UInt64) {
-      // call the token X holder inside a token X-authorized callback
+      // call the token X holder inside a token X-approved callback
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
       let dxdy = dexX.redeemLiquidity(user, dl, this.tokenY);
       let dx = dxdy[0];
-      tokenX.authorizeUpdateAndSend(dexX.self, user, dx);
+      tokenX.approveUpdateAndSend(dexX.self, user, dx);
       return dxdy;
     }
 
@@ -171,7 +171,7 @@ function createDex({
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new DexTokenHolder(this.address, tokenY.experimental.token.id);
       let dy = dexY.swap(user, dx, this.tokenX);
-      tokenY.authorizeUpdateAndSend(dexY.self, user, dy);
+      tokenY.approveUpdateAndSend(dexY.self, user, dy);
       return dy;
     }
 
@@ -187,12 +187,12 @@ function createDex({
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
       let dx = dexX.swap(user, dy, this.tokenY);
-      tokenX.authorizeUpdateAndSend(dexX.self, user, dx);
+      tokenX.approveUpdateAndSend(dexX.self, user, dx);
       return dx;
     }
 
     /**
-     * helper method to authorize burning of user's liquidity.
+     * helper method to approve burning of user's liquidity.
      * this just burns user tokens, so there is no incentive to call this directly.
      * instead, the dex token holders call this and in turn pay back tokens.
      *
@@ -222,7 +222,7 @@ function createDex({
     // see the more complicated method `redeemLiquidity` below which gives back both tokens, by calling this method,
     // for the other token, in a callback
     @method redeemLiquidityPartial(user: PublicKey, dl: UInt64): UInt64x2 {
-      // user burns dl, authorized by the Dex main contract
+      // user burns dl, approved by the Dex main contract
       let dex = new Dex(addresses.dex);
       let l = dex.burnLiquidity(user, dl);
 
@@ -234,7 +234,7 @@ function createDex({
       // just subtract the balance, user gets their part one level higher
       this.balance.subInPlace(dy);
 
-      // this can't be a delegate call, or it won't be authorized by the token owner
+      // this can't be a delegate call, or it won't be approved by the token owner
       this.self.isDelegateCall = Bool(false);
 
       // return l, dy so callers don't have to walk their child account updates to get it
@@ -247,13 +247,13 @@ function createDex({
       dl: UInt64,
       otherTokenAddress: PublicKey
     ): UInt64x2 {
-      // first call the Y token holder, authorized by the Y token contract; this makes sure we get dl, the user's lqXY
+      // first call the Y token holder, approved by the Y token contract; this makes sure we get dl, the user's lqXY
       let tokenY = new TokenContract(otherTokenAddress);
       let dexY = new DexTokenHolder(this.address, tokenY.experimental.token.id);
       let result = dexY.redeemLiquidityPartial(user, dl);
       let l = result[0];
       let dy = result[1];
-      tokenY.authorizeUpdateAndSend(dexY.self, user, dy);
+      tokenY.approveUpdateAndSend(dexY.self, user, dy);
 
       // in return for dl, we give back dx, the X token part
       let x = this.account.balance.get();
@@ -262,7 +262,7 @@ function createDex({
       // just subtract the balance, user gets their part one level higher
       this.balance.subInPlace(dx);
 
-      // this can't be a delegate call, or it won't be authorized by the token owner
+      // this can't be a delegate call, or it won't be approved by the token owner
       this.self.isDelegateCall = Bool(false);
 
       return [dx, dy];
@@ -396,7 +396,7 @@ class TokenContract extends SmartContract {
   @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
     let tokenId = this.experimental.token.id;
     let zkapp = AccountUpdate.defaultAccountUpdate(address, tokenId);
-    this.experimental.authorize(zkapp);
+    this.experimental.approve(zkapp);
     AccountUpdate.setValue(zkapp.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
@@ -406,12 +406,12 @@ class TokenContract extends SmartContract {
   }
 
   // let a zkapp send tokens to someone, provided the token supply stays constant
-  @method authorizeUpdateAndSend(
+  @method approveUpdateAndSend(
     zkappUpdate: AccountUpdate,
     to: PublicKey,
     amount: UInt64
   ) {
-    this.experimental.authorize(zkappUpdate);
+    this.experimental.approve(zkappUpdate);
 
     // see if balance change cancels the amount sent
     let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);

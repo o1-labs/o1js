@@ -80,11 +80,6 @@ export class Member extends CircuitValue {
 
   static from(publicKey: PublicKey, tokenId: Field, balance: UInt64) {
     this.count++;
-    return new Member(
-      publicKey,
-      tokenId,
-      balance,
-      Field.fromNumber(this.count)
-    );
+    return new Member(publicKey, tokenId, balance, Field(this.count));
   }
 }

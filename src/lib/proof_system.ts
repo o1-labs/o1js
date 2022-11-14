@@ -89,7 +89,7 @@ class Proof<T> {
   ): Proof<InferInstance<S['publicInputType']>> {
     let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
     let publicInput = getPublicInputType(this).fromFields(
-      publicInputJson.map(Field.fromString)
+      publicInputJson.map(Field)
     );
     return new this({ publicInput, proof, maxProofsVerified }) as any;
   }
@@ -116,9 +116,7 @@ function verify(proof: Proof<any> | JsonProof, verificationKey: string) {
       proof.proof,
       proof.maxProofsVerified
     );
-    let publicInputFields = (proof as JsonProof).publicInput.map(
-      Field.fromString
-    );
+    let publicInputFields = (proof as JsonProof).publicInput.map(Field);
     return Pickles.verify(publicInputFields, picklesProof, verificationKey);
   } else {
     // proof class
