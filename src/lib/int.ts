@@ -52,15 +52,6 @@ class UInt64 extends CircuitValue {
     if (x instanceof UInt64 || x instanceof UInt32) x = x.value;
     return new this(this.checkConstant(Field(x)));
   }
-  static fromNumber(x: number) {
-    return this.from(x);
-  }
-  static fromString(x: string) {
-    return this.from(x);
-  }
-  static fromBigInt(x: bigint) {
-    return this.from(x);
-  }
 
   static MAXINT() {
     return new UInt64(Field((1n << 64n) - 1n));
@@ -248,15 +239,6 @@ class UInt32 extends CircuitValue {
   static from(x: UInt32 | Field | number | string | bigint) {
     if (x instanceof UInt32) x = x.value;
     return new this(this.checkConstant(Field(x)));
-  }
-  static fromNumber(x: number) {
-    return this.from(x);
-  }
-  static fromString(x: string) {
-    return this.from(x);
-  }
-  static fromBigInt(x: bigint) {
-    return this.from(x);
   }
 
   static MAXINT() {
@@ -464,15 +446,6 @@ class Int64 extends CircuitValue implements BalanceChange {
     if (x instanceof UInt64 || x instanceof UInt32) {
       return Int64.fromUnsigned(x);
     }
-    return Int64.fromFieldUnchecked(Field(x));
-  }
-  static fromNumber(x: number) {
-    return Int64.fromFieldUnchecked(Field(x));
-  }
-  static fromString(x: string) {
-    return Int64.fromFieldUnchecked(Field(x));
-  }
-  static fromBigInt(x: bigint) {
     return Int64.fromFieldUnchecked(Field(x));
   }
 

@@ -22,7 +22,7 @@ class SendMINAExample extends SmartContract {
       editState: Permissions.proofOrSignature(),
       editSequenceState: Permissions.proofOrSignature(),
     });
-    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
+    this.balance.addInPlace(UInt64.from(initialBalance));
   }
 
   @method sendMINA(receiverAddress: PublicKey, amount: UInt64) {
