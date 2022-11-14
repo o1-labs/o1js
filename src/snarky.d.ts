@@ -49,12 +49,12 @@ declare interface ProvablePure<T> extends Provable<T> {
 declare function Field(x: Field | number | string | boolean | bigint): Field;
 declare class Field {
   /**
-   * Coerces anything field-like to a [[`Field`]].
+   * Coerces anything field-like to a {@link Field}.
    */
   constructor(x: Field | number | string | boolean | bigint);
 
   /**
-   * Negates this [[`Field`]]. This is equivalent to multiplying the [[`Field`]]
+   * Negates this {@link Field}. This is equivalent to multiplying the {@link Field}
    * by -1.
    *
    * ```typescript
@@ -65,39 +65,44 @@ declare class Field {
   neg(): Field;
 
   /**
-   * Inverts this [[`Field`]] element.
+   * Inverts this {@link Field} element.
    *
    * ```typescript
    * const invX = x.inv();
    * invX.assertEquals(Field.one.div(x));
    * ```
    *
-   * @return A field element that is equivalent to one divided by this element.
+   * @return A {@link Field} element that is equivalent to one divided by this element.
    */
   inv(): Field;
 
   /**
-   * Adds this [[`Field`]] element to another coercible to a field.
+   * Adds this {@link Field} element to another to a {@link Field} element.
+   *
+   * ```ts
+   * let a = Field(3);
+   * let sum = a.add(5)
+   * ```
    */
   add(y: Field | number | string | boolean): Field;
 
   /**
-   * Subtracts another [[`Field`]]-like element from this one.
+   * Subtracts another {@link Field}-like element from this one.
    */
   sub(y: Field | number | string | boolean): Field;
 
   /**
-   * Multiplies this [[`Field`]] element with another coercible to a field.
+   * Multiplies this {@link Field} element with another coercible to a field.
    */
   mul(y: Field | number | string | boolean): Field;
 
   /**
-   * Divides this [[`Field`]] element through another coercible to a field.
+   * Divides this {@link Field} element through another coercible to a field.
    */
   div(y: Field | number | string | boolean): Field;
 
   /**
-   * Squares this [[`Field`]] element.
+   * Squares this {@link Field} element.
    *
    * ```typescript
    * const x2 = x.square();
@@ -107,7 +112,7 @@ declare class Field {
   square(): Field;
 
   /**
-   * Square roots this [[`Field`]] element.
+   * Square roots this {@link Field} element.
    *
    * ```typescript
    * x.square().sqrt().assertEquals(x);
@@ -116,17 +121,17 @@ declare class Field {
   sqrt(): Field;
 
   /**
-   * Serialize the [[`Field`]] to a string, e.g. for printing.
+   * Serialize the {@link Field} to a string, e.g. for printing.
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
   toString(): string;
   /**
-   * Serialize the [[`Field`]] to a bigint.
+   * Serialize this instance of a {@link Field} to a bigint.
    * This operation does NOT affect the circuit and can't be used to prove anything about the bigint representation of the Field.
    */
   toBigInt(): bigint;
   /**
-   * Serialize the [[`Field`]] to a JSON string.
+   * Serialize this instance of a {@link Field} to a JSON string.
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
   toJSON(): string;
@@ -137,14 +142,14 @@ declare class Field {
   sizeInFields(): number;
 
   /**
-   * Serializes the data structure into {@link Field} elements.
+   * Serializes this data structure into {@link Field} elements.
    */
   toFields(): Field[];
 
   // TODO: Make these long form version
   /**
-   * Check if this [[`Field`]] is lower than another Field-like value.
-   * Returns a [[`Bool`]].
+   * Check if this {@link Field} is lower than another Field-like value.
+   * Returns a {@link Bool}.
    *
    * ```ts
    * Field(2).lt(3); // Bool(true)
@@ -152,8 +157,8 @@ declare class Field {
    */
   lt(y: Field | number | string | boolean): Bool;
   /**
-   * Check if this [[`Field`]] is lower than or equal to another Field-like value.
-   * Returns a [[`Bool`]].
+   * Check if this {@link Field} is lower than or equal to another Field-like value.
+   * Returns a {@link Bool}.
    *
    * ```ts
    * Field(2).lte(3); // Bool(true)
@@ -161,8 +166,8 @@ declare class Field {
    */
   lte(y: Field | number | string | boolean): Bool;
   /**
-   * Check if this [[`Field`]] is greater than another Field-like value.
-   * Returns a [[`Bool`]].
+   * Check if this {@link Field} is greater than another Field-like value.
+   * Returns a {@link Bool}.
    *
    * ```ts
    * Field(2).gt(1); // Bool(true)
@@ -170,8 +175,8 @@ declare class Field {
    */
   gt(y: Field | number | string | boolean): Bool;
   /**
-   * Check if this [[`Field`]] is greater than or equal to another Field-like value.
-   * Returns a [[`Bool`]].
+   * Check if this {@link Field} is greater than or equal to another Field-like value.
+   * Returns a {@link Bool}.
    *
    * ```ts
    * Field(2).gte(1); // Bool(true)
@@ -181,7 +186,7 @@ declare class Field {
 
   // TODO: Make these long form version
   /**
-   * Assert that this [[`Field`]] is lower than another Field-like value.
+   * Assert that this {@link Field} is lower than another Field-like value.
    *
    * ```ts
    * Field.one.assertLt(2);
@@ -192,7 +197,7 @@ declare class Field {
    */
   assertLt(y: Field | number | string | boolean, message?: string): void;
   /**
-   * Assert that this [[`Field`]] is lower than or equal to another Field-like value.
+   * Assert that this {@link Field} is lower than or equal to another Field-like value.
    *
    * ```ts
    * Field.one.assertLte(2);
@@ -203,7 +208,7 @@ declare class Field {
    */
   assertLte(y: Field | number | string | boolean, message?: string): void;
   /**
-   * Assert that this [[`Field`]] is greater than another Field-like value.
+   * Assert that this {@link Field} is greater than another Field-like value.
    *
    * ```ts
    * Field.one.assertGt(0);
@@ -214,7 +219,7 @@ declare class Field {
    */
   assertGt(y: Field | number | string | boolean, message?: string): void;
   /**
-   * Assert that this [[`Field`]] is greater than or equal to another Field-like value.
+   * Assert that this {@link Field} is greater than or equal to another Field-like value.
    *
    * ```ts
    * Field.one.assertGte(0);
@@ -226,7 +231,7 @@ declare class Field {
   assertGte(y: Field | number | string | boolean, message?: string): void;
 
   /**
-   * Assert that this [[`Field`]] equals another Field-like value.
+   * Assert that this {@link Field} equals another Field-like value.
    * Throws an error if the assertion fails.
    *
    * ```ts
@@ -235,7 +240,7 @@ declare class Field {
    */
   assertEquals(y: Field | number | string | boolean, message?: string): void;
   /**
-   * Assert that this [[`Field`]] is either 0 or 1.
+   * Assert that this {@link Field} is either 0 or 1.
    *
    * ```ts
    * Field.zero.assertBoolean();
@@ -259,8 +264,8 @@ declare class Field {
   toBits(length: number): Bool[];
 
   /**
-   * Check if this [[`Field`]] equals another [[`Field`]]-like value.
-   * Returns a [[`Bool`]].
+   * Check if this {@link Field} equals another {@link Field}-like value.
+   * Returns a {@link Bool}.
    *
    * ```ts
    * Field(2).equals(2); // Bool(true)
@@ -280,15 +285,15 @@ declare class Field {
 
   /* Self members */
   /**
-   * The number 1 as a [[`Field`]].
+   * The number 1 as a {@link Field}.
    */
   static one: Field;
   /**
-   * The number 0 as a [[`Field`]].
+   * The number 0 as a {@link Field}.
    */
   static zero: Field;
   /**
-   * The number -1 as a [[`Field`]].
+   * The number -1 as a {@link Field}.
    */
   static minusOne: Field;
   /**
@@ -407,48 +412,48 @@ declare class Bool {
   constructor(x: Bool | boolean);
 
   /**
-   * Converts a [[`Bool`]] to a [[`Field`]]. `false` becomes 0 and `true` becomes 1.
+   * Converts a {@link Bool} to a {@link Field}. `false` becomes 0 and `true` becomes 1.
    */
   toField(): Field;
 
   /**
-   * @returns a new [[`Bool`]] that is the negation of this [[`Bool`]].
+   * @returns a new {@link Bool} that is the negation of this {@link Bool}.
    */
   not(): Bool;
 
   /**
-   * @param y A [[`Bool`]] to AND with this [[`Bool`]].
-   * @returns a new [[`Bool`]] that is set to true only if
-   * this [[`Bool`]] and `y` are also true.
+   * @param y A {@link Bool} to AND with this {@link Bool}.
+   * @returns a new {@link Bool} that is set to true only if
+   * this {@link Bool} and `y` are also true.
    */
   and(y: Bool | boolean): Bool;
 
   /**
-   * @param y a [[`Bool`]] to OR with this [[`Bool`]].
-   * @returns a new [[`Bool`]] that is set to true if either
-   * this [[`Bool`]] or `y` is true.
+   * @param y a {@link Bool} to OR with this {@link Bool}.
+   * @returns a new {@link Bool} that is set to true if either
+   * this {@link Bool} or `y` is true.
    */
   or(y: Bool | boolean): Bool;
 
   /**
-   * Proves that this [[`Bool`]] is equal to `y`.
-   * @param y a [[`Bool`]].
+   * Proves that this {@link Bool} is equal to `y`.
+   * @param y a {@link Bool}.
    */
   assertEquals(y: Bool | boolean, message?: string): void;
 
   /**
-   * Proves that this [[`Bool`]] is `true`.
+   * Proves that this {@link Bool} is `true`.
    */
   assertTrue(message?: string): void;
 
   /**
-   * Proves that this [[`Bool`]] is `false`.
+   * Proves that this {@link Bool} is `false`.
    */
   assertFalse(message?: string): void;
 
   /**
-   * Returns true if this [[`Bool`]] is equal to `y`.
-   * @param y a [[`Bool`]].
+   * Returns true if this {@link Bool} is equal to `y`.
+   * @param y a {@link Bool}.
    */
   equals(y: Bool | boolean): Bool;
 
@@ -463,29 +468,29 @@ declare class Bool {
   toFields(): Field[];
 
   /**
-   * Serialize the [[`Bool`]] to a string, e.g. for printing.
+   * Serialize the {@link Bool} to a string, e.g. for printing.
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
   toString(): string;
   /**
-   * Serialize the [[`Bool`]] to a JSON string.
+   * Serialize the {@link Bool} to a JSON string.
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
   toJSON(): boolean;
 
   /**
-   * This converts the [[`Bool`]] to a javascript [[boolean]].
+   * This converts the {@link Bool} to a javascript [[boolean]].
    * This can only be called on non-witness values.
    */
   toBoolean(): boolean;
 
   /* static members */
   /**
-   * The constant [[`Bool`]] that is `true`.
+   * The constant {@link Bool} that is `true`.
    */
   //static true: Bool;
   /**
-   * The constant [[`Bool`]] that is `false`.
+   * The constant {@link Bool} that is `false`.
    */
   //static false: Bool;
 
@@ -493,10 +498,10 @@ declare class Bool {
 
   static Unsafe: {
     /**
-     * Converts a [[`Field`]] into a [[`Bool`]]. This is a **dangerous** operation
+     * Converts a {@link Field} into a {@link Bool}. This is a **dangerous** operation
      * as it assumes that the field element is either 1 or 0
      * (which might not be true).
-     * @param x a [[`Field`]]
+     * @param x a {@link Field}
      */
     ofField(x: Field | number | string | boolean): Bool;
   };
