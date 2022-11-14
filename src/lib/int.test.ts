@@ -59,7 +59,7 @@ describe('int', () => {
       });
 
       it('should be the same as UInt64.MAXINT', async () => {
-        expect(Int64.fromBigInt((1n << 64n) - 1n)).toEqual(
+        expect(Int64.from((1n << 64n) - 1n)).toEqual(
           Int64.fromUnsigned(UInt64.MAXINT())
         );
       });
@@ -71,19 +71,19 @@ describe('int', () => {
         expect(int.neg().toField()).toEqual(Field(-1));
       });
       it('neg(2^53-1)=-2^53-1', () => {
-        const int = Int64.fromNumber(NUMBERMAX);
+        const int = Int64.from(NUMBERMAX);
         expect(int.neg().toString()).toEqual(`${-NUMBERMAX}`);
       });
     });
 
     describe('add', () => {
       it('1+1=2', () => {
-        expect(Int64.one.add(Int64.fromString('1')).toString()).toEqual('2');
+        expect(Int64.one.add(Int64.from('1')).toString()).toEqual('2');
       });
 
       it('5000+(-4000)=1000', () => {
         expect(
-          Int64.fromNumber(5000)
+          Int64.from(5000)
             .add(Int64.fromField(Field(-4000)))
             .toString()
         ).toEqual('1000');
@@ -92,19 +92,16 @@ describe('int', () => {
       it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
         const value = ((1n << 64n) - 2n) / 2n;
         expect(
-          Int64.fromBigInt(value)
-            .add(Int64.fromBigInt(value))
-            .add(Int64.one)
-            .toString()
+          Int64.from(value).add(Int64.from(value)).add(Int64.one).toString()
         ).toEqual(UInt64.MAXINT().toString());
       });
 
       it('should throw on overflow', () => {
         expect(() => {
-          Int64.fromBigInt(1n << 64n);
+          Int64.from(1n << 64n);
         }).toThrow();
         expect(() => {
-          Int64.fromBigInt(-(1n << 64n));
+          Int64.from(-(1n << 64n));
         }).toThrow();
         expect(() => {
           Int64.from(100).add(1n << 64n);
@@ -147,19 +144,19 @@ describe('int', () => {
       });
       it('should not throw on non-overflowing addition', () => {
         expect(() => {
-          Int64.fromBigInt((1n << 64n) - 1n).add(Int64.zero);
+          Int64.from((1n << 64n) - 1n).add(Int64.zero);
         }).not.toThrow();
       });
     });
 
     describe('sub', () => {
       it('1-1=0', () => {
-        expect(Int64.one.sub(Int64.fromNumber(1)).toString()).toEqual('0');
+        expect(Int64.one.sub(Int64.from(1)).toString()).toEqual('0');
       });
 
       it('10000-5000=5000', () => {
         expect(
-          Int64.fromField(Field(10000)).sub(Int64.fromString('5000')).toString()
+          Int64.fromField(Field(10000)).sub(Int64.from('5000')).toString()
         ).toEqual('5000');
       });
 
@@ -180,7 +177,7 @@ describe('int', () => {
       });
 
       it('toFields(2^53-1) should be the same as Field(2^53-1)', () => {
-        expect(Int64.toFields(Int64.fromNumber(NUMBERMAX))).toEqual([
+        expect(Int64.toFields(Int64.from(NUMBERMAX))).toEqual([
           Field(String(NUMBERMAX)),
           Field(1),
         ]);
@@ -193,7 +190,7 @@ describe('int', () => {
 
       it('fromFields(2^53-1) should be the same as Field(2^53-1)', () => {
         expect(Int64.fromFields([Field(String(NUMBERMAX)), Field(1)])).toEqual(
-          Int64.fromNumber(NUMBERMAX)
+          Int64.from(NUMBERMAX)
         );
       });
     });
@@ -205,12 +202,12 @@ describe('int', () => {
           .mul(2)
           .mul('2')
           .mul(2n)
-          .mul(UInt32.fromNumber(2))
-          .mul(UInt64.fromNumber(2));
+          .mul(UInt32.from(2))
+          .mul(UInt64.from(2));
         expect(`${x}`).toBe('64');
 
         // 64 * (-64) === -64**2
-        let y = Int64.fromNumber(-64);
+        let y = Int64.from(-64);
         expect(`${x.mul(y)}`).toEqual(`${-(64 ** 2)}`);
         // (-64) // 64 === -1
         expect(y.div(x).toString()).toEqual('-1');
@@ -704,7 +701,7 @@ describe('int', () => {
           it('should be the same as Field(1)', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
-                const x = Circuit.witness(UInt64, () => UInt64.fromNumber(1));
+                const x = Circuit.witness(UInt64, () => UInt64.from(1));
                 const y = Circuit.witness(UInt64, () => new UInt64(Field(1)));
                 x.assertEquals(y);
               });
@@ -714,9 +711,7 @@ describe('int', () => {
           it('should be the same as 2^53-1', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
-                const x = Circuit.witness(UInt64, () =>
-                  UInt64.fromNumber(NUMBERMAX)
-                );
+                const x = Circuit.witness(UInt64, () => UInt64.from(NUMBERMAX));
                 const y = Circuit.witness(
                   UInt64,
                   () => new UInt64(Field(String(NUMBERMAX)))
@@ -730,7 +725,7 @@ describe('int', () => {
           it('should be the same as Field(1)', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
-                const x = Circuit.witness(UInt64, () => UInt64.fromString('1'));
+                const x = Circuit.witness(UInt64, () => UInt64.from('1'));
                 const y = Circuit.witness(UInt64, () => new UInt64(Field(1)));
                 x.assertEquals(y);
               });
@@ -741,7 +736,7 @@ describe('int', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
                 const x = Circuit.witness(UInt64, () =>
-                  UInt64.fromString(String(NUMBERMAX))
+                  UInt64.from(String(NUMBERMAX))
                 );
                 const y = Circuit.witness(
                   UInt64,
@@ -793,7 +788,7 @@ describe('int', () => {
 
         it('should throw on sub if results in negative number', () => {
           expect(() => {
-            UInt64.fromNumber(0).sub(1);
+            UInt64.from(0).sub(1);
           }).toThrow();
         });
       });
@@ -1137,23 +1132,23 @@ describe('int', () => {
       describe('from() ', () => {
         describe('fromNumber()', () => {
           it('should be the same as Field(1)', () => {
-            const uint = UInt64.fromNumber(1);
+            const uint = UInt64.from(1);
             expect(uint.value).toEqual(new UInt64(Field(1)).value);
           });
 
           it('should be the same as 2^53-1', () => {
-            const uint = UInt64.fromNumber(NUMBERMAX);
+            const uint = UInt64.from(NUMBERMAX);
             expect(uint.value).toEqual(Field(String(NUMBERMAX)));
           });
         });
         describe('fromString()', () => {
           it('should be the same as Field(1)', () => {
-            const uint = UInt64.fromString('1');
+            const uint = UInt64.from('1');
             expect(uint.value).toEqual(new UInt64(Field(1)).value);
           });
 
           it('should be the same as 2^53-1', () => {
-            const uint = UInt64.fromString(String(NUMBERMAX));
+            const uint = UInt64.from(String(NUMBERMAX));
             expect(uint.value).toEqual(Field(String(NUMBERMAX)));
           });
         });
@@ -1643,7 +1638,7 @@ describe('int', () => {
           it('should be the same as Field(1)', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
-                const x = Circuit.witness(UInt32, () => UInt32.fromNumber(1));
+                const x = Circuit.witness(UInt32, () => UInt32.from(1));
                 const y = Circuit.witness(UInt32, () => new UInt32(Field(1)));
                 x.assertEquals(y);
               });
@@ -1653,9 +1648,7 @@ describe('int', () => {
           it('should be the same as 2^53-1', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
-                const x = Circuit.witness(UInt32, () =>
-                  UInt32.fromNumber(NUMBERMAX)
-                );
+                const x = Circuit.witness(UInt32, () => UInt32.from(NUMBERMAX));
                 const y = Circuit.witness(
                   UInt32,
                   () => new UInt32(Field(String(NUMBERMAX)))
@@ -1669,7 +1662,7 @@ describe('int', () => {
           it('should be the same as Field(1)', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
-                const x = Circuit.witness(UInt32, () => UInt32.fromString('1'));
+                const x = Circuit.witness(UInt32, () => UInt32.from('1'));
                 const y = Circuit.witness(UInt32, () => new UInt32(Field(1)));
                 x.assertEquals(y);
               });
@@ -1680,7 +1673,7 @@ describe('int', () => {
             expect(() => {
               Circuit.runAndCheck(() => {
                 const x = Circuit.witness(UInt32, () =>
-                  UInt32.fromString(String(NUMBERMAX))
+                  UInt32.from(String(NUMBERMAX))
                 );
                 const y = Circuit.witness(
                   UInt32,
@@ -1732,7 +1725,7 @@ describe('int', () => {
 
         it('should throw on sub if results in negative number', () => {
           expect(() => {
-            UInt32.fromNumber(0).sub(1);
+            UInt32.from(0).sub(1);
           }).toThrow();
         });
       });
@@ -2076,23 +2069,23 @@ describe('int', () => {
       describe('from() ', () => {
         describe('fromNumber()', () => {
           it('should be the same as Field(1)', () => {
-            const x = UInt32.fromNumber(1);
+            const x = UInt32.from(1);
             expect(x.value).toEqual(new UInt32(Field(1)).value);
           });
 
           it('should be the same as 2^53-1', () => {
-            const x = UInt32.fromNumber(NUMBERMAX);
+            const x = UInt32.from(NUMBERMAX);
             expect(x.value).toEqual(Field(String(NUMBERMAX)));
           });
         });
         describe('fromString()', () => {
           it('should be the same as Field(1)', () => {
-            const x = UInt32.fromString('1');
+            const x = UInt32.from('1');
             expect(x.value).toEqual(new UInt32(Field(1)).value);
           });
 
           it('should be the same as 2^53-1', () => {
-            const x = UInt32.fromString(String(NUMBERMAX));
+            const x = UInt32.from(String(NUMBERMAX));
             expect(x.value).toEqual(Field(String(NUMBERMAX)));
           });
         });

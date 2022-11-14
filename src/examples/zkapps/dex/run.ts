@@ -296,9 +296,9 @@ async function main({ withVesting }: { withVesting: boolean }) {
       send: Permissions.impossible(),
     });
     tokenXtokenAccount.sign();
-    // token X owner authorizes w/ signature so we don't need another method for this test
+    // token X owner approves w/ signature so we don't need another method for this test
     let tokenX = AccountUpdate.create(addresses.tokenX);
-    tokenX.authorize(tokenXtokenAccount);
+    tokenX.approve(tokenXtokenAccount);
     tokenX.sign();
   });
   await tx.prove();

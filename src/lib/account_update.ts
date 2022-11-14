@@ -476,12 +476,12 @@ function ignore<T>(dummy: T): OrIgnore<T> {
 /**
  * Ranges between all uint32 values
  */
-const uint32 = () => ({ lower: UInt32.fromNumber(0), upper: UInt32.MAXINT() });
+const uint32 = () => ({ lower: UInt32.from(0), upper: UInt32.MAXINT() });
 
 /**
  * Ranges between all uint64 values
  */
-const uint64 = () => ({ lower: UInt64.fromNumber(0), upper: UInt64.MAXINT() });
+const uint64 = () => ({ lower: UInt64.from(0), upper: UInt64.MAXINT() });
 
 type AccountPrecondition = Preconditions['account'];
 const AccountPrecondition = {
@@ -653,7 +653,7 @@ class AccountUpdate implements Types.AccountUpdate {
         amount: number | bigint | UInt64;
       }) {
         let receiver = AccountUpdate.defaultAccountUpdate(address, this.id);
-        thisAccountUpdate.authorize(receiver);
+        thisAccountUpdate.approve(receiver);
         // Add the amount to mint to the receiver's account
         receiver.body.balanceChange = Int64.fromObject(
           receiver.body.balanceChange
@@ -669,7 +669,7 @@ class AccountUpdate implements Types.AccountUpdate {
         amount: number | bigint | UInt64;
       }) {
         let sender = AccountUpdate.defaultAccountUpdate(address, this.id);
-        thisAccountUpdate.authorize(sender);
+        thisAccountUpdate.approve(sender);
         sender.body.useFullCommitment = Bool(true);
 
         // Sub the amount to burn from the sender's account
@@ -692,7 +692,7 @@ class AccountUpdate implements Types.AccountUpdate {
       }) {
         // Create a new accountUpdate for the sender to send the amount to the receiver
         let sender = AccountUpdate.defaultAccountUpdate(from, this.id);
-        thisAccountUpdate.authorize(sender);
+        thisAccountUpdate.approve(sender);
         sender.body.useFullCommitment = Bool(true);
         sender.body.balanceChange = Int64.fromObject(
           sender.body.balanceChange
@@ -749,7 +749,7 @@ class AccountUpdate implements Types.AccountUpdate {
     } else {
       receiver = AccountUpdate.defaultAccountUpdate(to, this.body.tokenId);
     }
-    this.authorize(receiver);
+    this.approve(receiver);
 
     // Sub the amount from the sender's account
     this.body.balanceChange = Int64.fromObject(this.body.balanceChange).sub(
@@ -762,7 +762,7 @@ class AccountUpdate implements Types.AccountUpdate {
     ).add(amount);
   }
 
-  authorize(
+  approve(
     childUpdate: AccountUpdate,
     layout: AccountUpdatesLayout = AccountUpdate.Layout.NoDelegation
   ) {
@@ -806,7 +806,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * ```ts
    * \@method onlyRunsWhenBalanceIsLow() {
    *   let lower = UInt64.zero;
-   *   let upper = UInt64.fromNumber(20e9);
+   *   let upper = UInt64.from(20e9);
    *   AccountUpdate.assertBetween(this.self.body.preconditions.account.balance, lower, upper);
    *   // ...
    * }
@@ -965,7 +965,7 @@ class AccountUpdate implements Types.AccountUpdate {
   static create(publicKey: PublicKey, tokenId?: Field) {
     let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey, tokenId);
     if (smartContractContext.has()) {
-      smartContractContext.get().this.self.authorize(accountUpdate);
+      smartContractContext.get().this.self.approve(accountUpdate);
     } else {
       Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
     }
@@ -973,7 +973,7 @@ class AccountUpdate implements Types.AccountUpdate {
   }
   static attachToTransaction(accountUpdate: AccountUpdate) {
     if (smartContractContext.has()) {
-      smartContractContext.get().this.self.authorize(accountUpdate);
+      smartContractContext.get().this.self.approve(accountUpdate);
     } else {
       if (!Mina.currentTransaction.has()) return;
       let updates = Mina.currentTransaction.get().accountUpdates;
@@ -1022,7 +1022,7 @@ class AccountUpdate implements Types.AccountUpdate {
     let amount =
       initialBalance instanceof UInt64
         ? initialBalance
-        : UInt64.fromString(`${initialBalance}`);
+        : UInt64.from(`${initialBalance}`);
     accountUpdate.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 

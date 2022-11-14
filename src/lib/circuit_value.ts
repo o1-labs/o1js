@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Circuit, JSONValue, ProvablePure, Provable } from '../snarky.js';
+import { Circuit, ProvablePure, Provable } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
 import { inCheckedComputation, snarkContext } from './proof_system.js';
@@ -137,7 +137,7 @@ abstract class CircuitValue {
     return (this.constructor as any).toFields(this);
   }
 
-  toJSON(): JSONValue {
+  toJSON(): any {
     return (this.constructor as any).toJSON(this);
   }
 
@@ -204,11 +204,8 @@ abstract class CircuitValue {
     return (this as any).fromFields(xs.map((x) => x.toConstant()));
   }
 
-  static toJSON<T extends AnyConstructor>(
-    this: T,
-    v: InstanceType<T>
-  ): JSONValue {
-    const res: { [key: string]: JSONValue } = {};
+  static toJSON<T extends AnyConstructor>(this: T, v: InstanceType<T>) {
+    const res: any = {};
     if ((this as any).prototype._fields !== undefined) {
       const fields: [string, any][] = (this as any).prototype._fields;
       fields.forEach(([key, propType]) => {
@@ -220,7 +217,7 @@ abstract class CircuitValue {
 
   static fromJSON<T extends AnyConstructor>(
     this: T,
-    value: JSONValue
+    value: any
   ): InstanceType<T> | null {
     const props: any = {};
     const fields: [string, any][] = (this as any).prototype._fields;
@@ -443,12 +440,12 @@ function circuitMain(
 let primitives = new Set(['Field', 'Bool', 'Scalar', 'Group']);
 let complexTypes = new Set(['object', 'function']);
 
-type ProvableExtension<T, TJson = JSONValue> = {
+type ProvableExtension<T, TJson = any> = {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
   toJSON: (x: T) => TJson;
   fromJSON: (x: TJson) => T;
 };
-type ProvableExtended<T, TJson = JSONValue> = Provable<T> &
+type ProvableExtended<T, TJson = any> = Provable<T> &
   ProvableExtension<T, TJson>;
 
 function provable<A>(
@@ -523,7 +520,7 @@ function provable<A>(
       .map((k) => toInput(typeObj[k], obj[k]))
       .reduce(HashInput.append, {});
   }
-  function toJSON(typeObj: any, obj: any, isToplevel = false): JSONValue {
+  function toJSON(typeObj: any, obj: any, isToplevel = false): any {
     if (typeObj === BigInt) return obj.toString();
     if (typeObj === String || typeObj === Number || typeObj === Boolean)
       return obj;
@@ -1093,7 +1090,7 @@ type InferPrimitiveJson<P extends Primitive> = P extends typeof String
   ? null
   : P extends undefined
   ? null
-  : JSONValue;
+  : any;
 
 type InferCircuitValue<A> = A extends Constructor<infer U>
   ? A extends Provable<U>
@@ -1133,7 +1130,7 @@ type InferJson<A> = A extends WithJson<infer J>
   ? {
       [K in keyof A]: InferJson<A[K]>;
     }
-  : JSONValue;
+  : any;
 
 type IsPure<A> = IsPureBase<A> extends true ? true : false;
 
