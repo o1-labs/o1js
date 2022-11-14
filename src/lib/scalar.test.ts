@@ -175,10 +175,6 @@ describe('scalar', () => {
         it('fromJSON(false) should be 0', () => {
           expect(Scalar.fromJSON(false)!.toJSON()).toEqual('0');
         });
-
-        it('fromJSON([]) should be undefined', () => {
-          expect(Scalar.fromJSON([])).toBeNull();
-        });
       });
 
       describe('neg', () => {

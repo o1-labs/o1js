@@ -1,6 +1,6 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, JSONValue, Ledger, LedgerAccount } from '../snarky.js';
+import { Circuit, Ledger, LedgerAccount } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -57,7 +57,7 @@ interface TransactionId {
 interface Transaction {
   transaction: ZkappCommand;
   toJSON(): string;
-  toPretty(): JSONValue;
+  toPretty(): any;
   toGraphqlQuery(): string;
   sign(additionalKeys?: PrivateKey[]): Transaction;
   prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;
@@ -78,7 +78,12 @@ let currentTransaction = Context.create<CurrentTransaction>();
 
 type FeePayerSpec =
   | PrivateKey
-  | { feePayerKey: PrivateKey; fee?: number | string | UInt64; memo?: string }
+  | {
+      feePayerKey: PrivateKey;
+      fee?: number | string | UInt64;
+      memo?: string;
+      nonce?: number;
+    }
   | undefined;
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
@@ -105,6 +110,7 @@ function createTransaction(
     feePayer instanceof PrivateKey ? feePayer : feePayer?.feePayerKey;
   let fee = feePayer instanceof PrivateKey ? undefined : feePayer?.fee;
   let memo = feePayer instanceof PrivateKey ? '' : feePayer?.memo ?? '';
+  let nonce = feePayer instanceof PrivateKey ? undefined : feePayer?.nonce;
 
   let transactionId = currentTransaction.enter({
     sender: feePayerKey?.toPublicKey(),
@@ -154,15 +160,33 @@ function createTransaction(
   if (feePayerKey !== undefined) {
     // if senderKey is provided, fetch account to get nonce and mark to be signed
     let senderAddress = feePayerKey.toPublicKey();
+
+    let nonce_;
     let senderAccount = getAccount(senderAddress, TokenId.default);
+
+    if (nonce === undefined) {
+      nonce_ = senderAccount.nonce;
+    } else {
+      nonce_ = UInt32.from(nonce);
+      senderAccount.nonce = nonce_;
+      Fetch.addCachedAccount({
+        nonce: senderAccount.nonce,
+        publicKey: senderAccount.publicKey,
+        tokenId: senderAccount.tokenId.toString(),
+        balance: senderAccount.balance,
+        zkapp: {
+          appState: senderAccount.appState ?? [],
+        },
+      });
+    }
     feePayerAccountUpdate = AccountUpdate.defaultFeePayer(
       senderAddress,
       feePayerKey,
-      senderAccount.nonce
+      nonce_
     );
     if (fee !== undefined) {
       feePayerAccountUpdate.body.fee =
-        fee instanceof UInt64 ? fee : UInt64.fromString(String(fee));
+        fee instanceof UInt64 ? fee : UInt64.from(String(fee));
     }
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
@@ -267,7 +291,7 @@ function LocalBlockchain({
   return {
     accountCreationFee: () => UInt64.from(accountCreationFee),
     currentSlot() {
-      return UInt32.fromNumber(
+      return UInt32.from(
         Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
       );
     },
@@ -957,7 +981,7 @@ async function verifyAccountUpdate(
     checkPermission(p, 'incrementNonce');
   }
 
-  // this checks for an edge case where an account update can be authorized using proofs but
+  // this checks for an edge case where an account update can be approved using proofs but
   // a) the proof is invalid (bad verification key)
   // and b) there are no state changes initiate so no permissions will be checked
   // however, if the verification key changes, the proof should still be invalid

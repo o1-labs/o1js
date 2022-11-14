@@ -104,7 +104,7 @@ export async function testSet(
 
       AccountUpdate.setValue(vkUpdate.update.verificationKey, {
         ...verificationKey,
-        hash: Field.fromString(verificationKey.hash),
+        hash: Field(verificationKey.hash),
       });
     },
     verificationKeySet.feePayer
@@ -320,7 +320,7 @@ export async function testSet(
 
   try {
     let tx = await Mina.transaction(sequenceOverflowSet.feePayer, () => {
-      sequenceOverflowSet.voting.authorizeRegistrations();
+      sequenceOverflowSet.voting.approveRegistrations();
     });
     await tx.prove();
     await tx.send();
@@ -568,7 +568,7 @@ export async function testSet(
 
   /*
     test case description:
-      authorize registrations, invoked publish on both membership SCs
+      approve registrations, invoked publish on both membership SCs
     
     preconditions:
       - votes and candidates were registered previously
@@ -588,12 +588,12 @@ export async function testSet(
     true,
     () => {
       // register new candidate
-      voting.authorizeRegistrations();
+      voting.approveRegistrations();
     },
     feePayer
   );
 
-  // authorizeVoters updates the committed members on both contracts by invoking the publish method.
+  // approve updates the committed members on both contracts by invoking the publish method.
   // We check if offchain storage merkle roots match both on-chain committedMembers for voters and candidates
 
   if (!voting.committedVotes.get().equals(initialRoot).toBoolean()) {

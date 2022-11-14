@@ -260,14 +260,14 @@ try {
   );
 
   /*
-  if we now call authorizeVoters, which invokes publish on both membership contracts,
+  if we now call approveVoters, which invokes publish on both membership contracts,
   we will also update the committed members!
   and since we keep track of voters and candidates in our off-chain storage,
   both the on-chain committedMembers variable and the off-chain merkle tree root need to be equal
   */
 
   tx = await Mina.transaction(feePayer, () => {
-    contracts.voting.authorizeRegistrations();
+    contracts.voting.approveRegistrations();
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
 
