@@ -12,8 +12,6 @@ import {
   Circuit,
 } from 'snarkyjs'
 
-import assert from 'assert';
-
 const bits = 255;
 
 const printDebugs = false;
@@ -23,8 +21,14 @@ export class MerkleMap {
 
   // ------------------------------------------------
 
+  /**
+   * Creates a new, empty Merkle Map.
+   * @returns A new MerkleMap
+   */
   constructor() {
-    assert(bits <= 255, 'bits must be <= 255')
+    if (bits > 255) {
+      throw Error('bits must be <= 255');
+    }
     if (bits != 255) {
       console.warn('bits set to', bits + '. Should be set to 255 in production to avoid collisions');
     }
@@ -37,17 +41,22 @@ export class MerkleMap {
     // the bit map is reversed to make reconstructing the key during proving more convenient
     let keyBits = key.toBits().slice(0,bits).reverse().map((b) => b.toBoolean());
 
-    var n = BigInt(0);
-    for (var i = 0; i < keyBits.length; i++) {
-      var b = keyBits[i] ? 1 : 0;
+    let n = BigInt(0);
+    for (let i = 0; i < keyBits.length; i++) {
+      const b = keyBits[i] ? 1 : 0;
       n += BigInt(2)**BigInt(i) * BigInt(b);
     }
 
-    return BigInt(n)
+    return n;
   }
 
   // ------------------------------------------------
 
+  /**
+   * Sets a key of the merkle map to a given value.
+   * @param key The key to set in the map.
+   * @param key The value to set.
+   */
   set(key: Field, value: Field) {
     const index = this._keyToIndex(key);
     this.tree.setLeaf(index, value);
@@ -55,6 +64,11 @@ export class MerkleMap {
 
   // ------------------------------------------------
 
+  /**
+   * Returns a value given a key. Values are by default Field(0).
+   * @param key The key to get the value from.
+   * @returns The value stored at the key.
+   */
   get(key: Field) {
     const index = this._keyToIndex(key);
     return this.tree.getNode(0, index);
@@ -62,10 +76,19 @@ export class MerkleMap {
 
   // ------------------------------------------------
 
+  /**
+   * Returns the root of the Merkle Map.
+   * @returns The root of the Merkle Map.
+   */
   getRoot() {
     return this.tree.getRoot();
   }
 
+  /**
+   * Returns a circuit-compatible witness (also known as [Merkle Proof or Merkle Witness](https://computersciencewiki.org/index.php/Merkle_proof)) for the given key.
+   * @param key The key to make a witness for.
+   * @returns A MerkleMapWitness, which can be used to assert changes to the MerkleMap, and the witness's key.
+   */
   getWitness(key: Field) {
     const index = this._keyToIndex(key);
     const value = this.tree.getNode(0, index);
@@ -100,6 +123,11 @@ export class MerkleMapWitness extends CircuitValue {
     this.siblings = siblings;
   }
 
+  /**
+   * computes the merkle tree root for a given value and the key for this witness
+   * @param value The value to compute the root for.
+   * @returns A tuple of the computed merkle root, and the key that is connected to the path updated by this witness.
+   */
   computeRootAndKey(value: Field) {
     let hash = value;
 
@@ -108,12 +136,12 @@ export class MerkleMapWitness extends CircuitValue {
 
     let key = Field(0);
 
-    for (let i = 1; i <= bits; ++i) {
-      const left = Circuit.if(isLeft[i - 1], hash, siblings[i - 1]);
-      const right = Circuit.if(isLeft[i - 1], siblings[i - 1], hash);
+    for (let i = 0; i < bits; i++) {
+      const left = Circuit.if(isLeft[i], hash, siblings[i]);
+      const right = Circuit.if(isLeft[i], siblings[i], hash);
       hash = Poseidon.hash([left, right]);
 
-      const bit = Circuit.if(isLeft[i - 1], Field(0), Field(1))
+      const bit = Circuit.if(isLeft[i], Field(0), Field(1))
 
       key = key.mul(2).add(bit);
     }
