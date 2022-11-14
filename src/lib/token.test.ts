@@ -52,6 +52,7 @@ class TokenContract extends SmartContract {
   }
 
   @method init() {
+    super.init();
     let address = this.self.body.publicKey;
     let receiver = this.experimental.token.mint({
       address,
@@ -182,7 +183,6 @@ async function setupLocal() {
       amount: Mina.accountCreationFee(),
     });
     tokenZkapp.deploy();
-    tokenZkapp.init();
   });
   await tx.prove();
   tx.sign([tokenZkappKey]);
@@ -200,7 +200,6 @@ async function setupLocalProofs() {
       amount: Mina.accountCreationFee(),
     });
     tokenZkapp.deploy();
-    tokenZkapp.init();
     tokenZkapp.deployZkapp(zkAppBAddress, ZkAppB._verificationKey!);
     tokenZkapp.deployZkapp(zkAppCAddress, ZkAppC._verificationKey!);
   });

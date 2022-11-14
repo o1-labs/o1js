@@ -1029,6 +1029,11 @@ class AccountUpdate implements Types.AccountUpdate {
   }
   static attachToTransaction(accountUpdate: AccountUpdate) {
     if (smartContractContext.has()) {
+      let selfUpdate = smartContractContext.get().this.self;
+      // avoid redundant attaching & cycle in account update structure, happens
+      // when calling attachToTransaction(this.self) inside a @method
+      // TODO avoid account update cycles more generally
+      if (selfUpdate === accountUpdate) return;
       smartContractContext.get().this.self.approve(accountUpdate);
     } else {
       if (!Mina.currentTransaction.has()) return;

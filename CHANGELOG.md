@@ -29,8 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - AccountUpdates are now valid `@method` arguments, and `approve()` is intended to be used on them when passed to a method
   - Also replaces `Experimental.accountUpdateFromCallback()`
 - `Circuit.log()` to easily log Fields and other provable types inside a method, with the same API as `console.log()`
+- `SmartContract.init()` is a new method on the base `SmartContract` that will be called only during the first deploy (not if you re-deploy later to upgrade the contract). Overriding `init()` is the new recommended way to add custom state initialization logic.
+- `transaction.toPretty()` and `accountUpdate.toPretty()` for debugging transactions by printing only the pieces that differ from default account updates
 - `AccountUpdate.attachToTransaction()` for explicitly adding an account update to the current transaction. This replaces some previous behaviour where an account update got attached implicitly.
--
 
 ### Changed
 
@@ -43,12 +44,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `CircuitValue` deprecated in favor of `Struct` https://github.com/o1-labs/snarkyjs/pull/416
 
+### Fixed
+
+- Callback arguments are properly passed into method invocations https://github.com/o1-labs/snarkyjs/pull/516
+
 ## [0.6.1](https://github.com/o1-labs/snarkyjs/compare/ba688523...f0837188)
 
 ### Fixed
 
 - Proof verification on the web version https://github.com/o1-labs/snarkyjs/pull/476
-- Callback arguments are properly passed into method invocations https://github.com/o1-labs/snarkyjs/pull/516
 
 ## [0.6.0](https://github.com/o1-labs/snarkyjs/compare/f2ad423...ba688523)
 

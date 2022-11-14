@@ -33,6 +33,7 @@ import {
   AccountUpdatesLayout,
   smartContractContext,
   zkAppProver,
+  ZkappStateLength,
 } from './account_update.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import * as Mina from './mina.js';
@@ -178,6 +179,7 @@ function wrapMethod(
                 accountUpdates: [],
                 fetchMode: inProver() ? 'cached' : 'test',
                 isFinalRunOutsideCircuit: false,
+                numberOfRuns: undefined,
               },
               () => {
                 // inside prover / compile, the method is always called with the public input as first argument
@@ -693,15 +695,56 @@ class SmartContract {
     verificationKey?: { data: string; hash: Field | string };
     zkappKey?: PrivateKey;
   } = {}) {
+    let accountUpdate = this.newSelf();
     verificationKey ??= (this.constructor as any)._verificationKey;
     if (verificationKey !== undefined) {
       let { hash: hash_, data } = verificationKey;
       let hash = typeof hash_ === 'string' ? Field(hash_) : hash_;
-      this.setValue(this.self.update.verificationKey, { hash, data });
+      this.setValue(accountUpdate.update.verificationKey, { hash, data });
     }
-    this.setValue(this.self.update.permissions, Permissions.default());
-    this.sign(zkappKey);
-    AccountUpdate.attachToTransaction(this.self);
+    this.setValue(accountUpdate.update.permissions, Permissions.default());
+    accountUpdate.sign(zkappKey);
+    AccountUpdate.attachToTransaction(accountUpdate);
+
+    // init if this account is not yet deployed or has no verification key on it
+    let shouldInit =
+      !Mina.hasAccount(this.address) ||
+      Mina.getAccount(this.address).verificationKey !== undefined;
+    if (!shouldInit) return;
+    if (zkappKey) this.init(zkappKey);
+    else this.init();
+    let initUpdate = this.self;
+    // switch back to the deploy account update so the user can make modifications to it
+    this.#executionState = {
+      transactionId: this.#executionState!.transactionId,
+      accountUpdate,
+    };
+    // check if the entire state was overwritten, show a warning if not
+    let isFirstRun = Mina.currentTransaction()?.numberOfRuns === 0;
+    if (!isFirstRun) return;
+    Circuit.asProver(() => {
+      if (
+        initUpdate.update.appState.some(({ isSome }) => !isSome.toBoolean())
+      ) {
+        console.warn(`WARNING: the \`init()\` method was called without overwriting the entire state. This means that your zkApp will lack
+the \`provedState === true\` status which certifies that the current state was verifiably produced by proofs (and not arbitrarily set by the zkApp developer).
+To make sure the entire state is reset, consider adding this line to the beginning of your \`init()\` method:
+super.init();
+`);
+      }
+    });
+  }
+  // TODO make this a @method and create a proof during `zk deploy` (+ add mechanism to skip this)
+  init(zkappKey?: PrivateKey) {
+    // let accountUpdate = this.newSelf(); // this would emulate the behaviour of init() being a @method
+    // TODO: enable this if provedState is available, to make this callable only once
+    // this.account.provedState.assertEquals(Bool(false));
+    zkappKey?.toPublicKey().assertEquals(this.address);
+    let accountUpdate = this.self;
+    for (let i = 0; i < ZkappStateLength; i++) {
+      AccountUpdate.setValue(accountUpdate.body.update.appState[i], Field(0));
+    }
+    AccountUpdate.attachToTransaction(accountUpdate);
   }
 
   sign(zkappKey?: PrivateKey) {
@@ -738,6 +781,14 @@ class SmartContract {
     }
     // if in a transaction, but outside a @method call, we implicitly create an account update
     // which is stable during the current transaction -- as long as it doesn't get overridden by a method call
+    let accountUpdate = selfAccountUpdate(this);
+    this.#executionState = { transactionId, accountUpdate };
+    return accountUpdate;
+  }
+  // same as this.self, but explicitly creates a _new_ account update
+  newSelf(): AccountUpdate {
+    let inTransaction = Mina.currentTransaction.has();
+    let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
     let accountUpdate = selfAccountUpdate(this);
     this.#executionState = { transactionId, accountUpdate };
     return accountUpdate;
