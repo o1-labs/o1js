@@ -372,7 +372,7 @@ function LocalBlockchain({
         try {
           // reverse errors so they match order of account updates
           // TODO: label updates, and try to give precise explanations about what went wrong
-          let errors = JSON.parse(err.message).reverse();
+          let errors = JSON.parse(err.message);
           err.message = invalidTransactionError(txn.transaction, errors, {
             accountCreationFee,
           });
