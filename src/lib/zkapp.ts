@@ -800,49 +800,42 @@ super.init();
     return this.self.network;
   }
 
-  get experimental() {
-    let zkapp = this;
-    return {
-      get token() {
-        return zkapp.self.token();
-      },
-      /**
-       * Approve an account update or callback. This will include the account update in the zkApp's public input,
-       * which means it allows you to read and use its content in a proof, make assertions about it, and modify it.
-       *
-       * If this is called with a callback as the first parameter, it will first extract the account update produced by that callback.
-       * The extracted account update is returned.
-       *
-       * ```ts
-       * \@method myApprovingMethod(callback: Callback) {
-       *   let approvedUpdate = this.experimental.approve(callback);
-       * }
-       * ```
-       *
-       * Under the hood, "approving" just means that the account update is made a child of the zkApp in the
-       * tree of account updates that forms the transaction.
-       * The second parameter `layout` allows you to also make assertions about the approved update's _own_ children,
-       * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
-       *
-       * @param updateOrCallback
-       * @param layout
-       * @returns The account update that was approved (needed when passing in a Callback)
-       */
-      approve(
-        updateOrCallback: AccountUpdate | Callback<any>,
-        layout?: AccountUpdatesLayout
-      ) {
-        let accountUpdate =
-          updateOrCallback instanceof AccountUpdate
-            ? updateOrCallback
-            : Circuit.witness(
-                AccountUpdate,
-                () => updateOrCallback.accountUpdate
-              );
-        zkapp.self.approve(accountUpdate, layout);
-        return accountUpdate;
-      },
-    };
+  get token() {
+    return this.self.token();
+  }
+
+  /**
+   * Approve an account update or callback. This will include the account update in the zkApp's public input,
+   * which means it allows you to read and use its content in a proof, make assertions about it, and modify it.
+   *
+   * If this is called with a callback as the first parameter, it will first extract the account update produced by that callback.
+   * The extracted account update is returned.
+   *
+   * ```ts
+   * \@method myApprovingMethod(callback: Callback) {
+   *   let approvedUpdate = this.approve(callback);
+   * }
+   * ```
+   *
+   * Under the hood, "approving" just means that the account update is made a child of the zkApp in the
+   * tree of account updates that forms the transaction.
+   * The second parameter `layout` allows you to also make assertions about the approved update's _own_ children,
+   * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
+   *
+   * @param updateOrCallback
+   * @param layout
+   * @returns The account update that was approved (needed when passing in a Callback)
+   */
+  approve(
+    updateOrCallback: AccountUpdate | Callback<any>,
+    layout?: AccountUpdatesLayout
+  ) {
+    let accountUpdate =
+      updateOrCallback instanceof AccountUpdate
+        ? updateOrCallback
+        : Circuit.witness(AccountUpdate, () => updateOrCallback.accountUpdate);
+    this.self.approve(accountUpdate, layout);
+    return accountUpdate;
   }
 
   send(args: {
