@@ -263,7 +263,7 @@ function prop(this: any, target: any, key: string) {
   }
 }
 
-function circuitArray<T, TJson = JSONValue>(
+function circuitArray<T, TJson = any>(
   elementType: Provable<T> | ProvableExtended<T, TJson>,
   length: number
 ): ProvableExtended<T[], TJson[]> {
