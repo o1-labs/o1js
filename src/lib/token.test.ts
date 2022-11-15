@@ -122,13 +122,13 @@ class TokenContract extends SmartContract {
 }
 
 class ZkAppB extends SmartContract {
-  @method approve(amount: UInt64) {
+  @method approveZkapp(amount: UInt64) {
     this.balance.subInPlace(amount);
   }
 }
 
 class ZkAppC extends SmartContract {
-  @method approve(amount: UInt64) {
+  @method approveZkapp(amount: UInt64) {
     this.balance.subInPlace(amount);
   }
 
@@ -543,7 +543,7 @@ describe('Token', () => {
         let tx = await Mina.transaction(feePayerKey, () => {
           let approveSendingCallback = Experimental.Callback.create(
             zkAppB,
-            'approve',
+            'approveZkapp',
             [UInt64.from(10_000)]
           );
           tokenZkapp.approveTransferCallback(
