@@ -21,15 +21,15 @@ import {
   UInt32,
   Bool,
   PublicKey,
-  Circuit,
   Experimental,
+  Reducer,
 } from 'snarkyjs';
 
 const doProofs = true;
 
 await isReady;
 
-const INCREMENT = Field.one;
+const INCREMENT = Field(1);
 
 let offchainStorage = {
   pendingActions: [] as Field[][],
@@ -37,7 +37,7 @@ let offchainStorage = {
 
 class CounterZkapp extends SmartContract {
   // the "reducer" field describes a type of action that we can dispatch, and reduce later
-  reducer = Experimental.Reducer({ actionType: Field });
+  reducer = Reducer({ actionType: Field });
 
   // on-chain version of our state. it will typically lag behind the
   // version that's implicitly represented by the list of actions
@@ -52,7 +52,7 @@ class CounterZkapp extends SmartContract {
       editState: Permissions.proofOrSignature(),
       editSequenceState: Permissions.proofOrSignature(),
     });
-    this.actionsHash.set(Experimental.Reducer.initialActionsHash);
+    this.actionsHash.set(Reducer.initialActionsHash);
   }
 
   @method incrementCounter() {
@@ -102,7 +102,7 @@ class SimpleZkapp extends SmartContract {
       editState: Permissions.proofOrSignature(),
       send: Permissions.proofOrSignature(),
     });
-    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
+    this.balance.addInPlace(UInt64.from(initialBalance));
     this.x.set(initialState);
   }
 
@@ -133,10 +133,7 @@ class SimpleZkapp extends SmartContract {
     // pay out half of the zkapp balance to the caller
     let balance = this.account.balance.get();
     this.account.balance.assertEquals(balance);
-    // FIXME UInt64.div() doesn't work on variables
-    let halfBalance = Circuit.witness(UInt64, () =>
-      balance.toConstant().div(2)
-    );
+    let halfBalance = balance.div(2);
     this.balance.subInPlace(halfBalance);
     callerAccountUpdate.balance.addInPlace(halfBalance);
 
@@ -182,7 +179,7 @@ let tx = await Mina.transaction(feePayer, () => {
   zkapp.deploy({ zkappKey });
   counterZkapp.deploy({ zkappKey: counterZkappKey });
 });
-tx.send();
+await tx.send();
 
 console.log('initial state: ' + zkapp.x.get());
 console.log(`initial balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
@@ -197,7 +194,7 @@ tx = await Mina.transaction(feePayer, () => {
   }
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 offchainStorage.pendingActions.push([INCREMENT]);
 console.log('state (on-chain): ' + counterZkapp.counter.get());
 console.log('pending actions:', JSON.stringify(offchainStorage.pendingActions));
@@ -213,7 +210,7 @@ tx = await Mina.transaction(feePayer, () => {
 });
 if (doProofs) await tx.prove();
 console.log(tx.toJSON());
-tx.send();
+await tx.send();
 offchainStorage.pendingActions = [];
 
 console.log('final state: ' + zkapp.x.get());
@@ -228,7 +225,7 @@ tx = await Mina.transaction(feePayer, () => {
 });
 try {
   if (doProofs) await tx.prove();
-  tx.send();
+  await tx.send();
 } catch (err: any) {
   console.log('Transaction failed with error', err.message);
 }
@@ -240,7 +237,7 @@ try {
     if (!doProofs) zkapp.sign(zkappKey);
   });
   if (doProofs) await tx.prove();
-  tx.send();
+  await tx.send();
 } catch (err: any) {
   console.log('Transaction failed with error', err.message);
 }

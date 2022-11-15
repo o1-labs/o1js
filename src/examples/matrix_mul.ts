@@ -1,9 +1,9 @@
-import { Field, circuitValue, Circuit } from 'snarkyjs';
+import { Field, provable, Circuit } from 'snarkyjs';
 
 // there are two ways of specifying an n*m matrix
 
-// circuitValue
-let Matrix3x3 = circuitValue<Field[][]>([
+// provable
+let Matrix3x3 = provable([
   [Field, Field, Field],
   [Field, Field, Field],
   [Field, Field, Field],
@@ -27,7 +27,7 @@ function matrixMul(x: Field[][], y: Field[][]): Field[][] {
   for (let i = 0; i < n; i++) {
     result[i] = [];
     for (let j = 0; j < o; j++) {
-      result[i][j] = Field.zero;
+      result[i][j] = Field(0);
       for (let k = 0; k < m; k++) {
         result[i][j] = result[i][j].add(x[i][k].mul(y[k][j]));
       }

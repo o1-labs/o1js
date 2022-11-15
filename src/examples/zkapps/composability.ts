@@ -7,7 +7,6 @@ import {
   method,
   Mina,
   AccountUpdate,
-  Permissions,
   PrivateKey,
   SmartContract,
   state,
@@ -52,7 +51,7 @@ class Caller extends SmartContract {
 
 // script to deploy zkapps and do interactions
 
-let Local = Mina.LocalBlockchain();
+let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp
@@ -88,31 +87,22 @@ let tx = await Mina.transaction(feePayer, () => {
     initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
   });
   zkapp.deploy({ zkappKey });
-  if (!doProofs) {
-    zkapp.setPermissions({
-      ...Permissions.default(),
-      editState: Permissions.proofOrSignature(),
-    });
-  }
   adderZkapp.deploy({ zkappKey: adderKey });
   incrementerZkapp.deploy({ zkappKey: incrementerKey });
 });
-tx.send();
+await tx.send();
 
 console.log('call interaction');
 tx = await Mina.transaction(feePayer, () => {
   // we just call one contract here, nothing special to do
   zkapp.callAddAndEmit(Field(5), Field(6));
-  if (!doProofs) zkapp.sign(zkappKey);
 });
-if (doProofs) {
-  console.log('proving (3 proofs.. can take a bit!)');
-  await tx.prove();
-}
+console.log('proving (3 proofs.. can take a bit!)');
+await tx.prove();
+tx.sign();
+console.log(tx.toPretty());
 
-console.dir(JSON.parse(tx.toJSON()), { depth: 5 });
-
-tx.send();
+await tx.send();
 
 // should hopefully be 12 since we added 5 + 6 + 1
 console.log('state: ' + zkapp.sum.get());

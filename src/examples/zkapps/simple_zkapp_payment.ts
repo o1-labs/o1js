@@ -22,7 +22,7 @@ class SendMINAExample extends SmartContract {
       editState: Permissions.proofOrSignature(),
       editSequenceState: Permissions.proofOrSignature(),
     });
-    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
+    this.balance.addInPlace(UInt64.from(initialBalance));
   }
 
   @method sendMINA(receiverAddress: PublicKey, amount: UInt64) {
@@ -58,7 +58,7 @@ tx = await Mina.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer, { initialBalance });
   zkapp.deploy({ zkappKey });
 });
-tx.send();
+await tx.send();
 
 console.log(`zkApp balance: ${Mina.getBalance(zkappAddress)} MINA`);
 
@@ -68,7 +68,7 @@ tx = await Local.transaction(feePayer, () => {
   zkapp.sendMINA(account1Address, UInt64.from(1_000_000));
   zkapp.sign(zkappKey);
 });
-tx.send();
+await tx.send();
 
 console.log(`zkApp balance: ${Mina.getBalance(zkappAddress)} MINA`);
 console.log(
@@ -83,7 +83,7 @@ tx = await Local.transaction(feePayer, () => {
   zkapp.sign(zkappKey);
   zkapp.account.nonce.assertEquals(zkapp.account.nonce.get().add(1));
 });
-tx.send();
+await tx.send();
 
 console.log(`zkApp balance: ${Mina.getBalance(zkappAddress)} MINA`);
 console.log(
@@ -101,7 +101,7 @@ tx = await Local.transaction(feePayer, () => {
   zkapp.sign(zkappKey);
   zkapp.account.nonce.assertEquals(zkapp.account.nonce.get().add(1));
 });
-tx.send();
+await tx.send();
 
 console.log(`zkApp balance: ${Mina.getBalance(zkappAddress)} MINA`);
 console.log(
@@ -118,7 +118,7 @@ tx = await Local.transaction(feePayer, () => {
   zkapp.account.nonce.assertEquals(zkapp.account.nonce.get().add(1));
 });
 await tx.prove();
-tx.send();
+await tx.send();
 
 console.log(`zkApp balance: ${Mina.getBalance(zkappAddress)} MINA`);
 console.log(

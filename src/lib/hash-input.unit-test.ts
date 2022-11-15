@@ -7,16 +7,17 @@ import {
   Ledger,
   UInt64,
   UInt32,
-  Experimental,
   Bool,
   Permissions,
   Sign,
   Token,
   shutdown,
+  ProvableExtended,
 } from '../index.js';
 import { Events, SequenceEvents } from './account_update.js';
 import { expect } from 'expect';
-import { asFieldsAndAux, jsLayout } from '../snarky/types.js';
+import { jsLayout } from '../provable/gen/js-layout.js';
+import { provableFromLayout } from '../provable/gen/transaction.js';
 import { packToFields } from './hash.js';
 
 await isReady;
@@ -33,8 +34,8 @@ type AccountPrecondition = Body['preconditions']['account'];
 type NetworkPrecondition = Body['preconditions']['network'];
 
 // timing
-let Timing = asFieldsAndAux<Timing, any>(
-  jsLayout.AccountUpdate.entries.body.entries.update.entries.timing.inner
+let Timing = provableFromLayout<Timing, any>(
+  jsLayout.AccountUpdate.entries.body.entries.update.entries.timing.inner as any
 );
 let timing = accountUpdate.body.update.timing.value;
 timing.initialMinimumBalance = UInt64.one;
@@ -43,8 +44,9 @@ timing.vestingIncrement = UInt64.from(2);
 testInput(Timing, Ledger.hashInputFromJson.timing, timing);
 
 // permissions
-let Permissions_ = asFieldsAndAux<Permissions, any>(
-  jsLayout.AccountUpdate.entries.body.entries.update.entries.permissions.inner
+let Permissions_ = provableFromLayout<Permissions, any>(
+  jsLayout.AccountUpdate.entries.body.entries.update.entries.permissions
+    .inner as any
 );
 let permissions = accountUpdate.body.update.permissions;
 permissions.isSome = Bool(true);
@@ -61,8 +63,8 @@ testInput(
 );
 
 // update
-let Update = asFieldsAndAux<Update, any>(
-  jsLayout.AccountUpdate.entries.body.entries.update
+let Update = provableFromLayout<Update, any>(
+  jsLayout.AccountUpdate.entries.body.entries.update as any
 );
 let update = accountUpdate.body.update;
 
@@ -77,8 +79,9 @@ accountUpdate.tokenSymbol.set('BLABLA');
 testInput(Update, Ledger.hashInputFromJson.update, update);
 
 // account precondition
-let AccountPrecondition = asFieldsAndAux<AccountPrecondition, any>(
-  jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.account
+let AccountPrecondition = provableFromLayout<AccountPrecondition, any>(
+  jsLayout.AccountUpdate.entries.body.entries.preconditions.entries
+    .account as any
 );
 let account = accountUpdate.body.preconditions.account;
 accountUpdate.account.balance.assertEquals(UInt64.from(1e9));
@@ -93,8 +96,9 @@ testInput(
 );
 
 // network precondition
-let NetworkPrecondition = asFieldsAndAux<NetworkPrecondition, any>(
-  jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.network
+let NetworkPrecondition = provableFromLayout<NetworkPrecondition, any>(
+  jsLayout.AccountUpdate.entries.body.entries.preconditions.entries
+    .network as any
 );
 let network = accountUpdate.body.preconditions.network;
 accountUpdate.network.stakingEpochData.ledger.hash.assertEquals(Field.random());
@@ -107,7 +111,9 @@ testInput(
 );
 
 // body
-let Body = asFieldsAndAux<Body, any>(jsLayout.AccountUpdate.entries.body);
+let Body = provableFromLayout<Body, any>(
+  jsLayout.AccountUpdate.entries.body as any
+);
 let body = accountUpdate.body;
 body.balanceChange.magnitude = UInt64.from(14197832);
 body.balanceChange.sgn = Sign.minusOne;
@@ -118,12 +124,12 @@ let tokenOwner = PrivateKey.random().toPublicKey();
 body.tokenId = new Token({ tokenOwner }).id;
 body.caller = body.tokenId;
 let events = Events.empty();
-events = Events.pushEvent(events, [Field.one]);
-events = Events.pushEvent(events, [Field.zero]);
+events = Events.pushEvent(events, [Field(1)]);
+events = Events.pushEvent(events, [Field(0)]);
 body.events = events;
 let sequenceEvents = SequenceEvents.empty();
-sequenceEvents = SequenceEvents.pushEvent(sequenceEvents, [Field.one]);
-sequenceEvents = SequenceEvents.pushEvent(sequenceEvents, [Field.zero]);
+sequenceEvents = SequenceEvents.pushEvent(sequenceEvents, [Field(1)]);
+sequenceEvents = SequenceEvents.pushEvent(sequenceEvents, [Field(0)]);
 body.sequenceEvents = sequenceEvents;
 
 testInput(Body, Ledger.hashInputFromJson.body, body);
@@ -142,7 +148,7 @@ console.log('all hash inputs are consistent! 🎉');
 shutdown();
 
 function testInput<T>(
-  Module: Experimental.AsFieldsAndAux<T, any>,
+  Module: ProvableExtended<T>,
   toInputOcaml: (json: string) => InputOcaml,
   value: T
 ) {
@@ -154,13 +160,11 @@ function testInput<T>(
   // console.log();
   // console.log('protocol', JSON.stringify(input1));
   let ok1 = JSON.stringify(input2) === JSON.stringify(input1);
+  expect(JSON.stringify(input2)).toEqual(JSON.stringify(input1));
   // console.log('ok?', ok1);
   let fields1 = Ledger.hashInputFromJson.packInput(inputToOcaml(input1));
   let fields2 = packToFields(input2);
   let ok2 = JSON.stringify(fields1) === JSON.stringify(fields2);
-  expect(JSON.parse(JSON.stringify(fields1))).toEqual(
-    JSON.parse(JSON.stringify(fields2))
-  );
   // console.log('packed ok?', ok2);
   // console.log();
   if (!ok1 || !ok2) {

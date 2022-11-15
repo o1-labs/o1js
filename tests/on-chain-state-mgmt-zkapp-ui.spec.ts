@@ -1,104 +1,105 @@
-import { test } from '@playwright/test';
-import { OnChainStateMgmtZkAppPage } from './page/on-chain-state-mgmt-zkapp-ui.js';
+import { test } from './fixtures/on-chain-state-mgmt-zkapp.js';
 
 test.describe('On-Chain State Management zkApp UI', () => {
-  test('should load page and initialize SnarkyJS', async ({ page }) => {
-    const onChainStateMgmtZkApp = new OnChainStateMgmtZkAppPage(page);
-    await onChainStateMgmtZkApp.goto();
-    await onChainStateMgmtZkApp.checkSnarkyJsInitialization();
+  test('should load page and initialize SnarkyJS', async ({
+    onChainStateMgmtZkAppPage,
+  }) => {
+    await onChainStateMgmtZkAppPage.goto();
+    await onChainStateMgmtZkAppPage.checkSnarkyJsInitialization();
   });
 
   test('should fail to update account state since zkApp was not yet deployed', async ({
-    page,
+    onChainStateMgmtZkAppPage,
   }) => {
-    test.skip(Boolean(process.env.CI));
+    test.skip(process.env.CI === 'true', 'Skipping test in CI');
 
-    const onChainStateMgmtZkApp = new OnChainStateMgmtZkAppPage(page);
-    await onChainStateMgmtZkApp.goto();
-    await onChainStateMgmtZkApp.checkSnarkyJsInitialization();
-    await onChainStateMgmtZkApp.updateZkAppState('3');
-    await onChainStateMgmtZkApp.checkZkAppStateUpdateFailureByUnknownAccount();
+    await onChainStateMgmtZkAppPage.goto();
+    await onChainStateMgmtZkAppPage.checkSnarkyJsInitialization();
+    await onChainStateMgmtZkAppPage.updateZkAppState('3');
+    await onChainStateMgmtZkAppPage.checkZkAppStateUpdateFailureByUnknownAccount();
   });
 
-  test('should compile and deploy zkApp', async ({ page }) => {
-    const onChainStateMgmtZkApp = new OnChainStateMgmtZkAppPage(page);
-    await onChainStateMgmtZkApp.goto();
-    await onChainStateMgmtZkApp.checkSnarkyJsInitialization();
-    await onChainStateMgmtZkApp.compileAndDeployZkApp();
-    await onChainStateMgmtZkApp.checkDeployedZkApp();
+  test('should compile and deploy zkApp', async ({
+    onChainStateMgmtZkAppPage,
+  }) => {
+    await onChainStateMgmtZkAppPage.goto();
+    await onChainStateMgmtZkAppPage.checkSnarkyJsInitialization();
+    await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
+    await onChainStateMgmtZkAppPage.checkDeployedZkApp();
   });
 
   test('should prove transaction and update zkApp account state', async ({
-    page,
+    onChainStateMgmtZkAppPage,
   }) => {
     const currentAccountState = '2';
     const newAccountState = '4';
-    const onChainStateMgmtZkApp = new OnChainStateMgmtZkAppPage(page);
-    await onChainStateMgmtZkApp.goto();
-    await onChainStateMgmtZkApp.checkSnarkyJsInitialization();
-    await onChainStateMgmtZkApp.compileAndDeployZkApp();
-    await onChainStateMgmtZkApp.checkDeployedZkApp();
-    await onChainStateMgmtZkApp.updateZkAppState(newAccountState);
-    await onChainStateMgmtZkApp.checkUpdatedZkAppState(
+
+    await onChainStateMgmtZkAppPage.goto();
+    await onChainStateMgmtZkAppPage.checkSnarkyJsInitialization();
+    await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
+    await onChainStateMgmtZkAppPage.checkDeployedZkApp();
+    await onChainStateMgmtZkAppPage.updateZkAppState(newAccountState);
+    await onChainStateMgmtZkAppPage.checkUpdatedZkAppState(
       currentAccountState,
       newAccountState
     );
   });
 
-  test('should re-deploy zkApp', async ({ page }) => {
-    test.skip(Boolean(process.env.CI));
+  test('should re-deploy zkApp', async ({ onChainStateMgmtZkAppPage }) => {
+    test.skip(process.env.CI === 'true', 'Skipping test in CI');
 
     const currentAccountState = '2';
     const newAccountState = '4';
-    const onChainStateMgmtZkApp = new OnChainStateMgmtZkAppPage(page);
-    await onChainStateMgmtZkApp.goto();
-    await onChainStateMgmtZkApp.checkSnarkyJsInitialization();
-    await onChainStateMgmtZkApp.compileAndDeployZkApp();
-    await onChainStateMgmtZkApp.checkDeployedZkApp();
-    await onChainStateMgmtZkApp.updateZkAppState(newAccountState);
-    await onChainStateMgmtZkApp.checkUpdatedZkAppState(
+
+    await onChainStateMgmtZkAppPage.goto();
+    await onChainStateMgmtZkAppPage.checkSnarkyJsInitialization();
+    await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
+    await onChainStateMgmtZkAppPage.checkDeployedZkApp();
+    await onChainStateMgmtZkAppPage.updateZkAppState(newAccountState);
+    await onChainStateMgmtZkAppPage.checkUpdatedZkAppState(
       currentAccountState,
       newAccountState
     );
-    await onChainStateMgmtZkApp.compileAndDeployZkApp();
-    await onChainStateMgmtZkApp.checkDeployedZkApp();
+    await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
+    await onChainStateMgmtZkAppPage.checkDeployedZkApp();
   });
 
-  test('should fail to re-deploy zkApp by fee excess', async ({ page }) => {
-    test.skip(Boolean(process.env.CI));
+  test('should fail to re-deploy zkApp by fee excess', async ({
+    onChainStateMgmtZkAppPage,
+  }) => {
+    test.skip(process.env.CI === 'true', 'Skipping test in CI');
 
-    const onChainStateMgmtZkApp = new OnChainStateMgmtZkAppPage(page);
-    await onChainStateMgmtZkApp.goto();
-    await onChainStateMgmtZkApp.checkSnarkyJsInitialization();
-    await onChainStateMgmtZkApp.compileAndDeployZkApp();
-    await onChainStateMgmtZkApp.checkDeployedZkApp();
-    await onChainStateMgmtZkApp.clearEvents();
-    await onChainStateMgmtZkApp.compileAndDeployZkApp();
-    await onChainStateMgmtZkApp.checkZkAppDeploymentFailureByFeeExcess();
+    await onChainStateMgmtZkAppPage.goto();
+    await onChainStateMgmtZkAppPage.checkSnarkyJsInitialization();
+    await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
+    await onChainStateMgmtZkAppPage.checkDeployedZkApp();
+    await onChainStateMgmtZkAppPage.clearEvents();
+    await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
+    await onChainStateMgmtZkAppPage.checkZkAppDeploymentFailureByFeeExcess();
   });
 
   test('should fail to update account state by zkApp constraint', async ({
-    page,
+    onChainStateMgmtZkAppPage,
   }) => {
-    test.skip(Boolean(process.env.CI));
+    test.skip(process.env.CI === 'true', 'Skipping test in CI');
 
     let currentAccountState = '2';
     let newAccountState = '4';
     const nextAccountState = '16';
-    const onChainStateMgmtZkApp = new OnChainStateMgmtZkAppPage(page);
-    await onChainStateMgmtZkApp.goto();
-    await onChainStateMgmtZkApp.checkSnarkyJsInitialization();
-    await onChainStateMgmtZkApp.compileAndDeployZkApp();
-    await onChainStateMgmtZkApp.checkDeployedZkApp();
-    await onChainStateMgmtZkApp.updateZkAppState(newAccountState);
-    await onChainStateMgmtZkApp.checkUpdatedZkAppState(
+
+    await onChainStateMgmtZkAppPage.goto();
+    await onChainStateMgmtZkAppPage.checkSnarkyJsInitialization();
+    await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
+    await onChainStateMgmtZkAppPage.checkDeployedZkApp();
+    await onChainStateMgmtZkAppPage.updateZkAppState(newAccountState);
+    await onChainStateMgmtZkAppPage.checkUpdatedZkAppState(
       currentAccountState,
       newAccountState
     );
     currentAccountState = newAccountState;
     newAccountState = '1';
-    await onChainStateMgmtZkApp.updateZkAppState(newAccountState);
-    await onChainStateMgmtZkApp.checkZkAppStateUpdateFailureByStateConstraint(
+    await onChainStateMgmtZkAppPage.updateZkAppState(newAccountState);
+    await onChainStateMgmtZkAppPage.checkZkAppStateUpdateFailureByStateConstraint(
       currentAccountState,
       nextAccountState,
       newAccountState

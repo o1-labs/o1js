@@ -1,5 +1,5 @@
-import { AsFieldElements, Bool, Field } from '../snarky.js';
-import { circuitValueEquals, witness } from './circuit_value.js';
+import { Provable, Bool, Field } from '../snarky.js';
+import { circuitValueEquals, Circuit } from './circuit_value.js';
 import * as Mina from './mina.js';
 import {
   SequenceEvents,
@@ -7,8 +7,8 @@ import {
   Preconditions,
 } from './account_update.js';
 import { UInt32, UInt64 } from './int.js';
-import { Layout } from '../snarky/transaction-helpers.js';
-import { jsLayout } from '../snarky/types.js';
+import { Layout } from '../provable/gen/transaction.js';
+import { jsLayout } from '../provable/gen/js-layout.js';
 import { emptyReceiptChainHash } from './hash.js';
 import { PublicKey } from './signature.js';
 
@@ -54,8 +54,8 @@ let unimplementedPreconditions: LongKey[] = [
   'account.provedState',
 ];
 
-type BaseType = 'UInt64' | 'UInt32' | 'Field' | 'Bool';
-let baseMap = { UInt64, UInt32, Field, Bool };
+type BaseType = 'UInt64' | 'UInt32' | 'Field' | 'Bool' | 'PublicKey';
+let baseMap = { UInt64, UInt32, Field, Bool, PublicKey };
 
 function preconditionClass(
   layout: Layout,
@@ -123,9 +123,12 @@ function preconditionSubclass<
 >(
   accountUpdate: AccountUpdate,
   longKey: K,
-  fieldType: AsFieldElements<U>,
+  fieldType: Provable<U>,
   context: PreconditionContext
 ) {
+  if (fieldType === undefined) {
+    throw Error(`this.${longKey}: fieldType undefined`);
+  }
   return {
     get() {
       if (unimplementedPreconditions.includes(longKey)) {
@@ -167,9 +170,9 @@ function preconditionSubclass<
 function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   accountUpdate: AccountUpdate,
   longKey: K,
-  fieldType: AsFieldElements<U>
+  fieldType: Provable<U>
 ): U {
-  return witness(fieldType, () => {
+  return Circuit.witness(fieldType, () => {
     let [accountOrNetwork, ...rest] = longKey.split('.');
     let key = rest.join('.');
     let value: U;
@@ -347,10 +350,7 @@ type LongKey = keyof FlatPreconditionValue;
 // types for the two kinds of conditions
 type RangeCondition<T> = { isSome: Bool; value: { lower: T; upper: T } };
 type FlaggedOptionCondition<T> = { isSome: Bool; value: T };
-type AnyCondition<T> =
-  | RangeCondition<T>
-  | FlaggedOptionCondition<T>
-  | AsFieldElements<T>;
+type AnyCondition<T> = RangeCondition<T> | FlaggedOptionCondition<T>;
 
 function isRangeCondition<T>(
   condition: AnyCondition<T>

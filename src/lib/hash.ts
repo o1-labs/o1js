@@ -1,4 +1,4 @@
-import { AsFieldsAndAux } from './circuit_value.js';
+import { HashInput, ProvableExtended, Struct } from './circuit_value.js';
 import { Poseidon as Poseidon_, Field } from '../snarky.js';
 import { inCheckedComputation } from './proof_system.js';
 
@@ -47,7 +47,7 @@ const Poseidon = {
   },
 
   get initialState(): [Field, Field, Field] {
-    return [Field.zero, Field.zero, Field.zero];
+    return [Field(0), Field(0), Field(0)];
   },
 
   Sponge,
@@ -93,7 +93,7 @@ function prefixToField(prefix: string) {
       return bits;
     })
     .flat();
-  return Field.ofBits(bits);
+  return Field.fromBits(bits);
 }
 
 /**
@@ -103,7 +103,7 @@ function prefixToField(prefix: string) {
 function packToFields({ fields = [], packed = [] }: HashInput) {
   if (packed.length === 0) return fields;
   let packedBits = [];
-  let currentPackedField = Field.zero;
+  let currentPackedField = Field(0);
   let currentSize = 0;
   for (let [field, size] of packed) {
     currentSize += size;
@@ -121,34 +121,17 @@ function packToFields({ fields = [], packed = [] }: HashInput) {
   return fields.concat(packedBits);
 }
 
-type HashInput = { fields?: Field[]; packed?: [Field, number][] };
-const HashInput = {
-  get empty() {
-    return {};
-  },
-  append(input1: HashInput, input2: HashInput) {
-    if (input2.fields !== undefined) {
-      (input1.fields ??= []).push(...input2.fields);
-    }
-    if (input2.packed !== undefined) {
-      (input1.packed ??= []).push(...input2.packed);
-    }
-    return input1;
-  },
-};
-
-type TokenSymbol = { symbol: string; field: Field };
-
-const TokenSymbolPure: AsFieldsAndAux<TokenSymbol, string> = {
+const TokenSymbolPure: ProvableExtended<
+  { symbol: string; field: Field },
+  string
+> = {
   toFields({ field }) {
     return [field];
   },
   toAuxiliary(value) {
     return [value?.symbol ?? ''];
   },
-  fromFields(fields, aux) {
-    let field = fields.pop()!;
-    let symbol = aux.pop()!;
+  fromFields([field], [symbol]) {
     return { symbol, field };
   },
   sizeInFields() {
@@ -165,17 +148,18 @@ const TokenSymbolPure: AsFieldsAndAux<TokenSymbol, string> = {
     return { packed: [[field, 48]] };
   },
 };
-const TokenSymbol = {
-  ...TokenSymbolPure,
-  get empty() {
-    return { symbol: '', field: Field.zero };
-  },
+class TokenSymbol extends Struct(TokenSymbolPure) {
+  static get empty() {
+    return { symbol: '', field: Field(0) };
+  }
 
-  from(symbol: string): TokenSymbol {
+  static from(symbol: string): TokenSymbol {
+    if (symbol.length > 6)
+      throw Error('Token symbol length should be a maximum of 6');
     let field = prefixToField(symbol);
     return { symbol, field };
-  },
-};
+  }
+}
 
 function emptyReceiptChainHash() {
   return emptyHashWithPrefix('CodaReceiptEmpty');

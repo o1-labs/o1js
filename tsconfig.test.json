@@ -6,6 +6,6 @@
     "./src/snarky/wrapper.js"
   ],
   "compilerOptions": {
-    "outDir": "dist/test"
+    "outDir": "dist/node"
   }
 }

@@ -48,7 +48,7 @@ class SimpleZkapp extends SmartContract {
       editState: Permissions.proofOrSignature(),
       send: Permissions.proofOrSignature(),
     });
-    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
+    this.balance.addInPlace(UInt64.from(initialBalance));
     this.x.set(initialState);
   }
 
@@ -92,7 +92,7 @@ let tx = await Mina.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer, { initialBalance });
   zkapp.deploy({ zkappKey });
 });
-tx.send();
+await tx.send();
 
 console.log('call update');
 tx = await Mina.transaction(feePayer, () => {
@@ -100,7 +100,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('call update');
 tx = await Mina.transaction(feePayer, () => {
@@ -108,7 +108,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('---- emitted events: ----');
 // fetches all events from zkapp starting slot 0

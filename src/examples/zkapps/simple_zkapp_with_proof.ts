@@ -27,7 +27,7 @@ class NotSoSimpleZkapp extends SmartContract {
 
   @method init(proof: TrivialProof) {
     proof.verify();
-    this.x.set(Field.one);
+    this.x.set(Field(1));
   }
 
   @method update(
@@ -86,14 +86,14 @@ let tx = await Mina.transaction(feePayerKey, () => {
   AccountUpdate.fundNewAccount(feePayerKey);
   zkapp.deploy({ zkappKey });
 });
-tx.send();
+await tx.send();
 
 console.log('init');
 tx = await Mina.transaction(feePayerKey, () => {
   zkapp.init(trivialProof!);
 });
 let [proof] = await tx.prove();
-tx.send();
+await tx.send();
 
 proof = await testJsonRoundtripAndVerify(
   NotSoSimpleZkapp.Proof(),
@@ -108,7 +108,7 @@ tx = await Mina.transaction(feePayerKey, () => {
   zkapp.update(Field(3), proof!, trivialProof!);
 });
 [proof] = await tx.prove();
-tx.send();
+await tx.send();
 
 proof = await testJsonRoundtripAndVerify(
   NotSoSimpleZkapp.Proof(),
@@ -123,7 +123,7 @@ tx = await Mina.transaction(feePayerKey, () => {
   zkapp.update(Field(3), proof!, trivialProof!);
 });
 [proof] = await tx.prove();
-tx.send();
+await tx.send();
 
 proof = await testJsonRoundtripAndVerify(
   NotSoSimpleZkapp.Proof(),

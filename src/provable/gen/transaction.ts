@@ -10,35 +10,70 @@ import {
   AuthRequired,
   TokenSymbol,
   Sign,
+  AuthorizationKind,
   StringWithHash,
   Events,
   SequenceEvents,
 } from '../transaction-leaves.js';
-import { asFieldsAndAux, AsFieldsAndAux } from '../transaction-helpers.js';
+import { GenericProvableExtended } from '../../provable/generic.js';
+import {
+  ProvableFromLayout,
+  GenericLayout,
+} from '../../provable/from-layout.js';
 import * as Json from './transaction-json.js';
 import { jsLayout } from './js-layout.js';
 
 export { customTypes, ZkappCommand, AccountUpdate };
 export { Json };
 export * from '../transaction-leaves.js';
+export { provableFromLayout, toJSONEssential, Layout };
+
+type TypeMap = {
+  PublicKey: PublicKey;
+  UInt64: UInt64;
+  UInt32: UInt32;
+  TokenId: TokenId;
+  Field: Field;
+  Bool: Bool;
+  AuthRequired: AuthRequired;
+  Sign: Sign;
+  AuthorizationKind: AuthorizationKind;
+};
+
+const TypeMap: {
+  [K in keyof TypeMap]: ProvableExtended<TypeMap[K], Json.TypeMap[K]>;
+} = {
+  PublicKey,
+  UInt64,
+  UInt32,
+  TokenId,
+  Field,
+  Bool,
+  AuthRequired,
+  Sign,
+  AuthorizationKind,
+};
+
+type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, Field>;
+type Layout = GenericLayout<TypeMap>;
 
 type CustomTypes = {
-  StringWithHash: AsFieldsAndAux<
+  StringWithHash: ProvableExtended<
     {
       data: string;
       hash: Field;
     },
-    Json.TypeMap['string']
+    string
   >;
-  TokenSymbol: AsFieldsAndAux<TokenSymbol, Json.TypeMap['string']>;
-  Events: AsFieldsAndAux<
+  TokenSymbol: ProvableExtended<TokenSymbol, string>;
+  Events: ProvableExtended<
     {
       data: Field[][];
       hash: Field;
     },
     Json.TypeMap['Field'][][]
   >;
-  SequenceEvents: AsFieldsAndAux<
+  SequenceEvents: ProvableExtended<
     {
       data: Field[][];
       hash: Field;
@@ -52,6 +87,10 @@ let customTypes: CustomTypes = {
   Events,
   SequenceEvents,
 };
+let { provableFromLayout, toJSONEssential } = ProvableFromLayout<
+  TypeMap,
+  Json.TypeMap
+>(TypeMap, customTypes);
 
 type ZkappCommand = {
   feePayer: {
@@ -243,6 +282,7 @@ type ZkappCommand = {
       };
       useFullCommitment: Bool;
       caller: TokenId;
+      authorizationKind: AuthorizationKind;
     };
     authorization: {
       proof?: string;
@@ -252,9 +292,8 @@ type ZkappCommand = {
   memo: string;
 };
 
-let ZkappCommand = asFieldsAndAux<ZkappCommand, Json.ZkappCommand>(
-  jsLayout.ZkappCommand as any,
-  customTypes
+let ZkappCommand = provableFromLayout<ZkappCommand, Json.ZkappCommand>(
+  jsLayout.ZkappCommand as any
 );
 
 type AccountUpdate = {
@@ -437,6 +476,7 @@ type AccountUpdate = {
     };
     useFullCommitment: Bool;
     caller: TokenId;
+    authorizationKind: AuthorizationKind;
   };
   authorization: {
     proof?: string;
@@ -444,7 +484,6 @@ type AccountUpdate = {
   };
 };
 
-let AccountUpdate = asFieldsAndAux<AccountUpdate, Json.AccountUpdate>(
-  jsLayout.AccountUpdate as any,
-  customTypes
+let AccountUpdate = provableFromLayout<AccountUpdate, Json.AccountUpdate>(
+  jsLayout.AccountUpdate as any
 );

@@ -15,9 +15,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/f0837188...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/9a94231c...HEAD)
 
-(no unreleased changes yet)
+## [0.7.0](https://github.com/o1-labs/snarkyjs/compare/f0837188...9a94231c)
+
+### Added
+
+- Added an optional string parameter to certain `assert` methods https://github.com/o1-labs/snarkyjs/pull/470
+- `Struct`, a new primitive for declaring composite, SNARK-compatible types https://github.com/o1-labs/snarkyjs/pull/416
+  - With this, we also added a way to include auxiliary, non-field element data in composite types
+  - Added `VerificationKey`, which is a `Struct` with auxiliary data, to pass verification keys to a `@method`
+  - BREAKING CHANGE: Change names related to circuit types: `AsFieldsAndAux<T>` -> `Provable<T>`, `AsFieldElement<T>` -> `ProvablePure<T>`, `circuitValue` -> `provable`
+  - BREAKING CHANGE: Change all `ofFields` and `ofBits` methods on circuit types to `fromFields` and `fromBits`
+- New option `proofsEnabled` for `LocalBlockchain` (default value: `true`), to quickly test transaction logic with proofs disabled https://github.com/o1-labs/snarkyjs/pull/462
+  - with `proofsEnabled: true`, proofs now get verified locally https://github.com/o1-labs/snarkyjs/pull/423
+- `SmartContract.approve()` to approve a tree of child account updates https://github.com/o1-labs/snarkyjs/pull/428 https://github.com/o1-labs/snarkyjs/pull/534
+  - AccountUpdates are now valid `@method` arguments, and `approve()` is intended to be used on them when passed to a method
+  - Also replaces `Experimental.accountUpdateFromCallback()`
+- `Circuit.log()` to easily log Fields and other provable types inside a method, with the same API as `console.log()` https://github.com/o1-labs/snarkyjs/pull/484
+- `SmartContract.init()` is a new method on the base `SmartContract` that will be called only during the first deploy (not if you re-deploy later to upgrade the contract) https://github.com/o1-labs/snarkyjs/pull/543
+  - Overriding `init()` is the new recommended way to add custom state initialization logic.
+- `transaction.toPretty()` and `accountUpdate.toPretty()` for debugging transactions by printing only the pieces that differ from default account updates https://github.com/o1-labs/snarkyjs/pull/428
+- `AccountUpdate.attachToTransaction()` for explicitly adding an account update to the current transaction. This replaces some previous behaviour where an account update got attached implicitly https://github.com/o1-labs/snarkyjs/pull/484
+- `SmartContract.requireSignature()` and `AccountUpdate.requireSignature()` as a simpler, better-named replacement for `.sign()` https://github.com/o1-labs/snarkyjs/pull/558
+
+### Changed
+
+- BREAKING CHANGE: `tx.send()` is now asynchronous: old: `send(): TransactionId` new: `send(): Promise<TransactionId>` and `tx.send()` now directly waits for the network response, as opposed to `tx.send().wait()` https://github.com/o1-labs/snarkyjs/pull/423
+- Sending transactions to `LocalBlockchain` now involves
+- `Circuit.witness` can now be called outside circuits, where it will just directly return the callback result https://github.com/o1-labs/snarkyjs/pull/484
+- The `FeePayerSpec`, which is used to specify properties of the transaction via `Mina.transaction()`, now has another optional parameter to specify the nonce manually. `Mina.transaction({ feePayerKey: feePayer, nonce: 1 }, () => {})` https://github.com/o1-labs/snarkyjs/pull/497
+- BREAKING CHANGE: Static methods of type `.fromString()`, `.fromNumber()` and `.fromBigInt()` on `Field`, `UInt64`, `UInt32` and `Int64` are no longer supported https://github.com/o1-labs/snarkyjs/pull/519
+  - use `Field(number | string | bigint)` and `UInt64.from(number | string | bigint)`
+- Move several features out of 'experimental' https://github.com/o1-labs/snarkyjs/pull/555
+  - `Reducer` replaces `Experimental.Reducer`
+  - `MerkleTree` and `MerkleWitness` replace `Experimental.{MerkleTree,MerkleWitness}`
+  - In a `SmartContract`, `this.token` replaces `this.experimental.token`
+
+### Deprecated
+
+- `CircuitValue` deprecated in favor of `Struct` https://github.com/o1-labs/snarkyjs/pull/416
+- Static props `Field.zero`, `Field.one`, `Field.minusOne` deprecated in favor of `Field(number)` https://github.com/o1-labs/snarkyjs/pull/524
+- `SmartContract.sign()` and `AccountUpdate.sign()` in favor of `.requireSignature()` https://github.com/o1-labs/snarkyjs/pull/558
+
+### Fixed
+
+- Uint comparisons and division fixed inside the prover https://github.com/o1-labs/snarkyjs/pull/503
+- Callback arguments are properly passed into method invocations https://github.com/o1-labs/snarkyjs/pull/516
+- Removed internal type `JSONValue` from public interfaces https://github.com/o1-labs/snarkyjs/pull/536
+- Returning values from a zkApp https://github.com/o1-labs/snarkyjs/pull/461
 
 ## [0.6.1](https://github.com/o1-labs/snarkyjs/compare/ba688523...f0837188)
 
@@ -35,10 +81,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Breaking change:** Rename the `Party` class to `AccountUpdate`. Also, rename other occurrences of "party" to "account update". https://github.com/o1-labs/snarkyjs/pull/393
-- **Breaking change:** Don't require the account address as input to `SmartContract.compile()`, `SmartContract.digest()` and `SmartContract.analyzeMethods()` https://github.com/o1-labs/snarkyjs/pull/406
+- BREAKING CHANGE: Rename the `Party` class to `AccountUpdate`. Also, rename other occurrences of "party" to "account update". https://github.com/o1-labs/snarkyjs/pull/393
+- BREAKING CHANGE: Don't require the account address as input to `SmartContract.compile()`, `SmartContract.digest()` and `SmartContract.analyzeMethods()` https://github.com/o1-labs/snarkyjs/pull/406
   - This works because the address / public key is now a variable in the method circuit; it used to be a constant
-- **Breaking change:** Move `ZkProgram` to `Experimental.ZkProgram`
+- BREAKING CHANGE: Move `ZkProgram` to `Experimental.ZkProgram`
 
 ## [0.5.4](https://github.com/o1-labs/snarkyjs/compare/3461333...f2ad423)
 
@@ -83,7 +129,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `this.account.isNew` to assert that an account did not (or did) exist before the transaction https://github.com/MinaProtocol/mina/pull/11524
 - `LocalBlockchain.setTimestamp` and other setters for network state, to test network preconditions locally https://github.com/o1-labs/snarkyjs/pull/329
 - **Experimental APIs** are now collected under the `Experimental` import, or on `this.experimental` in a smart contract.
-- Custom tokens (_experimental_), via `this.experimental.token`. RFC: https://github.com/o1-labs/snarkyjs/issues/233, PR: https://github.com/o1-labs/snarkyjs/pull/273,
+- Custom tokens (_experimental_), via `this.token`. RFC: https://github.com/o1-labs/snarkyjs/issues/233, PR: https://github.com/o1-labs/snarkyjs/pull/273,
 - Actions / sequence events support (_experimental_), via `Experimental.Reducer`. RFC: https://github.com/o1-labs/snarkyjs/issues/265, PR: https://github.com/o1-labs/snarkyjs/pull/274
 - Merkle tree implementation (_experimental_) via `Experimental.MerkleTree` https://github.com/o1-labs/snarkyjs/pull/343
 

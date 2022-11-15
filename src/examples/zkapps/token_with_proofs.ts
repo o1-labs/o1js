@@ -13,6 +13,7 @@ import {
   Experimental,
   Permissions,
   DeployArgs,
+  VerificationKey,
 } from 'snarkyjs';
 
 await isReady;
@@ -24,35 +25,36 @@ class TokenContract extends SmartContract {
       ...Permissions.default(),
       send: Permissions.proof(),
     });
-    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
+    this.balance.addInPlace(UInt64.from(initialBalance));
   }
 
-  @method tokenDeploy(deployer: PrivateKey) {
+  @method tokenDeploy(deployer: PrivateKey, verificationKey: VerificationKey) {
     let address = deployer.toPublicKey();
-    let tokenId = this.experimental.token.id;
-    let deployAccountUpdate = Experimental.createChildAccountUpdate(
+    let tokenId = this.token.id;
+    let deployUpdate = Experimental.createChildAccountUpdate(
       this.self,
       address,
       tokenId
     );
-    AccountUpdate.setValue(deployAccountUpdate.update.permissions, {
+    AccountUpdate.setValue(deployUpdate.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
     });
-    // TODO pass in verification key --> make it a circuit value --> make circuit values able to hold auxiliary data
-    // AccountUpdate.setValue(deployAccountUpdate.update.verificationKey, verificationKey);
-    // deployAccountUpdate.balance.addInPlace(initialBalance);
-    deployAccountUpdate.sign(deployer);
+    AccountUpdate.setValue(
+      deployUpdate.update.verificationKey,
+      verificationKey
+    );
+    deployUpdate.sign(deployer);
   }
 
   @method mint(receiverAddress: PublicKey) {
     let amount = UInt64.from(1_000_000);
-    this.experimental.token.mint({ address: receiverAddress, amount });
+    this.token.mint({ address: receiverAddress, amount });
   }
 
   @method burn(receiverAddress: PublicKey) {
     let amount = UInt64.from(1_000);
-    this.experimental.token.burn({ address: receiverAddress, amount });
+    this.token.burn({ address: receiverAddress, amount });
   }
 
   @method sendTokens(
@@ -60,17 +62,16 @@ class TokenContract extends SmartContract {
     receiverAddress: PublicKey,
     callback: Experimental.Callback<any>
   ) {
-    let senderAccountUpdate = Experimental.accountUpdateFromCallback(
-      this,
-      [undefined],
-      callback
+    let senderAccountUpdate = this.approve(
+      callback,
+      AccountUpdate.Layout.AnyChildren
     );
     let amount = UInt64.from(1_000);
     let negativeAmount = Int64.fromObject(
       senderAccountUpdate.body.balanceChange
     );
     negativeAmount.assertEquals(Int64.from(amount).neg());
-    let tokenId = this.experimental.token.id;
+    let tokenId = this.token.id;
     senderAccountUpdate.body.tokenId.assertEquals(tokenId);
     senderAccountUpdate.body.publicKey.assertEquals(senderAddress);
     let receiverAccountUpdate = Experimental.createChildAccountUpdate(
@@ -83,14 +84,14 @@ class TokenContract extends SmartContract {
 }
 
 class ZkAppB extends SmartContract {
-  @method authorizeSend() {
+  @method approveSend() {
     let amount = UInt64.from(1_000);
     this.balance.subInPlace(amount);
   }
 }
 
 class ZkAppC extends SmartContract {
-  @method authorizeSend() {
+  @method approveSend() {
     let amount = UInt64.from(1_000);
     this.balance.subInPlace(amount);
   }
@@ -115,7 +116,7 @@ let tokenAccount1Key = Local.testAccounts[1].privateKey;
 let tokenAccount1 = tokenAccount1Key.toPublicKey();
 
 let tokenZkApp = new TokenContract(tokenZkAppAddress);
-let tokenId = tokenZkApp.experimental.token.id;
+let tokenId = tokenZkApp.token.id;
 
 let zkAppB = new ZkAppB(zkAppBAddress, tokenId);
 let zkAppC = new ZkAppC(zkAppCAddress, tokenId);
@@ -140,70 +141,69 @@ tx = await Local.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer, { initialBalance });
   tokenZkApp.deploy({ zkappKey: tokenZkAppKey });
 });
-tx.send();
+await tx.send();
 
 console.log('deploy zkAppB');
 tx = await Local.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer);
-  tokenZkApp.tokenDeploy(zkAppBKey);
+  tokenZkApp.tokenDeploy(zkAppBKey, ZkAppB._verificationKey!);
 });
 console.log('deploy zkAppB (proof)');
 await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('deploy zkAppC');
 tx = await Local.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer);
-  tokenZkApp.tokenDeploy(zkAppCKey);
+  tokenZkApp.tokenDeploy(zkAppCKey, ZkAppC._verificationKey!);
 });
 console.log('deploy zkAppC (proof)');
 await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('mint token to zkAppB');
 tx = await Local.transaction(feePayer, () => {
   tokenZkApp.mint(zkAppBAddress);
 });
 await tx.prove();
-tx.send();
+await tx.send();
 
-console.log('authorize send from zkAppB');
+console.log('approve send from zkAppB');
 tx = await Local.transaction(feePayer, () => {
-  let authorizeSendingCallback = Experimental.Callback.create(
+  let approveSendingCallback = Experimental.Callback.create(
     zkAppB,
-    'authorizeSend',
+    'approveSend',
     []
   );
   // we call the token contract with the callback
-  tokenZkApp.sendTokens(zkAppBAddress, zkAppCAddress, authorizeSendingCallback);
+  tokenZkApp.sendTokens(zkAppBAddress, zkAppCAddress, approveSendingCallback);
 });
-console.log('authorize send (proof)');
+console.log('approve send (proof)');
 await tx.prove();
 console.log('send (proof)');
-tx.send();
+await tx.send();
 
 console.log(
   `zkAppC's balance for tokenId: ${Ledger.fieldToBase58(tokenId)}`,
   Mina.getBalance(zkAppCAddress, tokenId).value.toBigInt()
 );
 
-console.log('authorize send from zkAppC');
+console.log('approve send from zkAppC');
 tx = await Local.transaction(feePayer, () => {
   // Pay for tokenAccount1's account creation
   AccountUpdate.fundNewAccount(feePayer);
-  let authorizeSendingCallback = Experimental.Callback.create(
+  let approveSendingCallback = Experimental.Callback.create(
     zkAppC,
-    'authorizeSend',
+    'approveSend',
     []
   );
   // we call the token contract with the callback
-  tokenZkApp.sendTokens(zkAppCAddress, tokenAccount1, authorizeSendingCallback);
+  tokenZkApp.sendTokens(zkAppCAddress, tokenAccount1, approveSendingCallback);
 });
-console.log('authorize send (proof)');
+console.log('approve send (proof)');
 await tx.prove();
 console.log('send (proof)');
-tx.send();
-// console.log(tx.toJSON());
+await tx.send();
 
 console.log(
   `tokenAccount1's balance for tokenId: ${Ledger.fieldToBase58(tokenId)}`,
