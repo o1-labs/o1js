@@ -93,7 +93,7 @@ function writeType(typeData, isJson, withTypeMap) {
     output += indent + '}';
     return { output, dependencies, converters };
   }
-  if (withTypeMap) {
+  if (withTypeMap & !builtinLeafTypes.has(type)) {
     type = `${isJson ? 'Json.' : ''}TypeMap["${type}"]`;
   }
   // built in type
@@ -118,7 +118,7 @@ function writeTsContent(types, isJson) {
     mergeObject(converters, inner.converters);
     output += `type ${Type} = ${inner.output};\n\n`;
     if (!isJson) {
-      output += `let ${Type} = provableFromLayout<${Type}, Json.${Type}>(jsLayout.${Type} as any, customTypes);\n\n`;
+      output += `let ${Type} = provableFromLayout<${Type}, Json.${Type}>(jsLayout.${Type} as any);\n\n`;
     }
   }
 
@@ -127,6 +127,7 @@ function writeTsContent(types, isJson) {
   let imports = new Set();
   mergeSet(imports, dependencies);
   mergeSet(imports, new Set(customTypeNames));
+  let typeMapKeys = diffSets(dependencies, new Set(customTypeNames));
 
   let importPath = isJson
     ? '../transaction-leaves-json.js'
@@ -136,7 +137,8 @@ function writeTsContent(types, isJson) {
 import { ${[...imports].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? "import { provableFromLayout, ProvableExtended } from '../transaction-helpers.js';\n" +
+    ? "import { GenericProvableExtended } from '../../provable/generic.js';\n" +
+      "import { ProvableFromLayout, GenericLayout } from '../../provable/from-layout.js';\n" +
       "import * as Json from './transaction-json.js';\n" +
       "import { jsLayout } from './js-layout.js';\n"
     : ''
@@ -145,17 +147,41 @@ ${
 export { ${[...exports].join(', ')} };
 ${
   !isJson
-    ? 'export { Json };\n' + "export * from '../transaction-leaves.js';\n"
-    : "export * from '../transaction-leaves-json.js';\n"
+    ? 'export { Json };\n' +
+      "export * from '../transaction-leaves.js';\n" +
+      'export { provableFromLayout, toJSONEssential, Layout };\n'
+    : "export * from '../transaction-leaves-json.js';\n" +
+      'export { TypeMap };\n'
+}
+
+type TypeMap = {
+  ${[...typeMapKeys].map((type) => `${type}: ${type};`).join('\n')}
+}
+${
+  (!isJson || '') &&
+  `
+const TypeMap: {
+  [K in keyof TypeMap]: ProvableExtended<TypeMap[K], Json.TypeMap[K]>;
+} = {
+  ${[...typeMapKeys].join(', ')}
+}
+`
 }
 
 ${
   (!isJson || '') &&
   `
+type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, Field>;
+type Layout = GenericLayout<TypeMap>;
+
 type CustomTypes = { ${customTypes
     .map((c) => `${c.typeName}: ProvableExtended<${c.type}, ${c.jsonType}>;`)
     .join(' ')} }
 let customTypes: CustomTypes = { ${customTypeNames.join(', ')} };
+let { provableFromLayout, toJSONEssential } = ProvableFromLayout<
+  TypeMap,
+  Json.TypeMap
+>(TypeMap, customTypes);
 `
 }
 
@@ -171,7 +197,7 @@ async function writeTsFile(content, relPath) {
   await fs.writeFile(absPath, content);
 }
 
-let genPath = '../../snarky/gen';
+let genPath = '../../provable/gen';
 await ensureDir(genPath);
 
 let jsonTypesContent = writeTsContent(jsLayout, true);
@@ -194,6 +220,13 @@ function mergeSet(target, source) {
   for (let x of source) {
     target.add(x);
   }
+}
+function diffSets(s0, s1) {
+  let s = new Set(s0);
+  for (let x of s1) {
+    s.delete(x);
+  }
+  return s;
 }
 
 function mergeObject(target, source) {

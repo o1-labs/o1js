@@ -1,7 +1,6 @@
 import { TypeMap } from './transaction-leaves.js';
-import { Field, Bool, Circuit } from '../snarky.js';
-import { circuitArray, ProvableExtended } from '../lib/circuit_value.js';
-import { HashInput } from '../lib/hash.js';
+import { Field, Bool } from './field.js';
+import { ProvableExtended, HashInput } from './provable.js';
 
 export { provableFromLayout, Layout, ProvableExtended, toJSONEssential };
 
@@ -32,21 +31,6 @@ function provableFromLayout<T, TJson>(
     },
     toInput(value: T): HashInput {
       return toInput(typeData, value, customTypes);
-    },
-    witness(f: () => T): T {
-      let aux: any[];
-      let fields = Circuit.witness<Field[]>(
-        circuitArray(Field, this.sizeInFields()),
-        () => {
-          let value = f();
-          aux = this.toAuxiliary(value);
-          return this.toFields(value);
-        }
-      );
-      aux ??= this.toAuxiliary();
-      let witness = this.fromFields(fields, aux);
-      this.check(witness);
-      return witness;
     },
   };
 }
@@ -163,7 +147,7 @@ function fromFields(
   if (typeData.type === 'array') {
     let size = sizeInFields(typeData.inner, customTypes);
     let length = aux.length;
-    let value = [];
+    let value: any[] = [];
     for (let i = 0, offset = 0; i < length; i++, offset += size) {
       value[i] = fromFields(
         typeData.inner,
@@ -179,7 +163,7 @@ function fromFields(
     switch (optionType) {
       case 'flaggedOption': {
         let [first, ...rest] = fields;
-        let isSome = Bool.Unsafe.ofField(first);
+        let isSome = Bool.Unsafe.fromField(first);
         let value = fromFields(inner, rest, aux, customTypes);
         return { isSome, value };
       }
@@ -194,7 +178,7 @@ function fromFields(
     }
   }
   if (typeData.type === 'object') {
-    let { name, keys, entries } = typeData;
+    let { keys, entries } = typeData;
     let values: Record<string, any> = {};
     let offset = 0;
     for (let i = 0; i < keys.length; i++) {

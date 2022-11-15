@@ -1,6 +1,11 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["./src/index.ts", "./src/snarky.js", "./src/snarky/wrapper.js"],
+  "include": [
+    "./src/index.ts",
+    "./src/snarky.js",
+    "./src/snarky/wrapper.js",
+    "./src/mina-signer"
+  ],
   "compilerOptions": {
     "outDir": "dist/node"
   }

@@ -10,6 +10,7 @@ import {
   PublicKey,
   Circuit,
   Bool,
+  Reducer,
 } from 'snarkyjs';
 
 import { Member } from './member.js';
@@ -84,7 +85,7 @@ export class Voting_ extends SmartContract {
    */
   @state(Field) accumulatedVotes = State<Field>();
 
-  reducer = Experimental.Reducer({ actionType: Member });
+  reducer = Reducer({ actionType: Member });
 
   deploy(args: DeployArgs) {
     super.deploy(args);
@@ -96,7 +97,7 @@ export class Voting_ extends SmartContract {
       setVerificationKey: Permissions.none(),
       setPermissions: Permissions.proofOrSignature(),
     });
-    this.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
+    this.accumulatedVotes.set(Reducer.initialActionsHash);
   }
 
   /**
@@ -181,7 +182,7 @@ export class Voting_ extends SmartContract {
    * Calls the `publish()` method of the Candidate-Membership and Voter-Membership contract.
    */
   @method
-  authorizeRegistrations() {
+  approveRegistrations() {
     // Invokes the publish method of both Voter and Candidate Membership contracts.
     let VoterContract: Membership_ = new Membership_(voterAddress);
     VoterContract.publish();

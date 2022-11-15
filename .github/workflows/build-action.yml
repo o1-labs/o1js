@@ -8,10 +8,11 @@ on:
     branches:
       - main
       - releases
+  workflow_dispatch: {}
 
 jobs:
   Build-And-Test-Server:
-    timeout-minutes: 90
+    timeout-minutes: 180
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository

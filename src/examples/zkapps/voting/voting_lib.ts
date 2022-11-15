@@ -1,4 +1,4 @@
-import { Member, MerkleWitness } from './member.js';
+import { Member, MyMerkleWitness } from './member.js';
 import { OffchainStorage } from './off_chain_storage.js';
 import { Voting_ } from './voting.js';
 import { Mina, PrivateKey } from 'snarkyjs';
@@ -21,7 +21,7 @@ export function registerMember(
   // we will also have to keep track of new voters and candidates within our off-chain merkle tree
   store.set(i, m); // setting voter 0n
   // setting the merkle witness
-  m.witness = new MerkleWitness(store.getWitness(i));
+  m.witness = new MyMerkleWitness(store.getWitness(i));
 
   return m;
 }
