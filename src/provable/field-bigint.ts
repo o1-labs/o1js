@@ -2,7 +2,13 @@ import { Binable } from './binable.js';
 import { GenericHashInput, GenericProvableExtended } from './generic.js';
 
 export { Field, Bool, UInt32, UInt64, Sign };
-export { pseudoClass, ProvableExtended, HashInput };
+export {
+  pseudoClass,
+  ProvableExtended,
+  HashInput,
+  bigIntToBytes,
+  bytesToBigInt,
+};
 
 type Field = bigint;
 type Bool = 0n | 1n;
@@ -23,7 +29,7 @@ const Field = pseudoClass(
   function Field(value: bigint | number | string): Field {
     return BigInt(value) % MODULUS;
   },
-  { ...ProvableBigint(), ...BinableBigint(SIZE_IN_BYTES) }
+  { MODULUS, ...ProvableBigint(), ...BinableBigint(SIZE_IN_BYTES) }
 );
 
 const Bool = pseudoClass(
@@ -162,6 +168,9 @@ function bytesToBigInt(bytes: Uint8Array | number[]) {
 }
 
 function bigIntToBytes(x: bigint, length: number) {
+  if (x < 0n) {
+    throw Error(`bigIntToBytes: negative numbers are not supported, got ${x}`);
+  }
   let bytes: number[] = Array(length);
   for (let i = 0; i < length; i++, x >>= 8n) {
     bytes[i] = Number(x & 0xffn);
