@@ -10,6 +10,7 @@ import {
   PublicKey,
   Experimental,
   Circuit,
+  Reducer,
 } from 'snarkyjs';
 import { Member } from './member.js';
 import { ParticipantPreconditions } from './preconditions.js';
@@ -56,7 +57,7 @@ export class Membership_ extends SmartContract {
    */
   @state(Field) accumulatedMembers = State<Field>();
 
-  reducer = Experimental.Reducer({ actionType: Member });
+  reducer = Reducer({ actionType: Member });
 
   deploy(args: DeployArgs) {
     super.deploy(args);

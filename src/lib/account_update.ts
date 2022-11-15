@@ -907,6 +907,29 @@ class AccountUpdate implements Types.AccountUpdate {
     return this.body.publicKey;
   }
 
+  /**
+   * Use this command if this account update should be signed by the account owner,
+   * instead of not having any authorization.
+   *
+   * If you use this and are not relying on a wallet to sign your transaction, then you should use the following code
+   * before sending your transaction:
+   *
+   * ```ts
+   * let tx = Mina.transaction(...); // create transaction as usual, using `requireSignature()` somewhere
+   * tx.sign([privateKey]); // pass the private key of this account to `sign()`!
+   * ```
+   *
+   * Note that an account's {@link Permissions} determine which updates have to be (can be) authorized by a signature.
+   */
+  requireSignature() {
+    let nonce = AccountUpdate.getNonce(this);
+    this.account.nonce.assertEquals(nonce);
+    this.body.incrementNonce = Bool(true);
+    Authorization.setLazySignature(this, {});
+  }
+  /**
+   * @deprecated `.sign()` is deprecated in favor of `.requireSignature()`
+   */
   sign(privateKey?: PrivateKey) {
     let nonce = AccountUpdate.getNonce(this);
     this.account.nonce.assertEquals(nonce);
@@ -1028,6 +1051,11 @@ class AccountUpdate implements Types.AccountUpdate {
   }
   static attachToTransaction(accountUpdate: AccountUpdate) {
     if (smartContractContext.has()) {
+      let selfUpdate = smartContractContext.get().this.self;
+      // avoid redundant attaching & cycle in account update structure, happens
+      // when calling attachToTransaction(this.self) inside a @method
+      // TODO avoid account update cycles more generally
+      if (selfUpdate === accountUpdate) return;
       smartContractContext.get().this.self.approve(accountUpdate);
     } else {
       if (!Mina.currentTransaction.has()) return;
