@@ -8,7 +8,7 @@ on:
     branches:
       - main
       - releases
-  workflow_dispatch
+  workflow_dispatch: {}
 
 jobs:
   Build-And-Test-Server:
