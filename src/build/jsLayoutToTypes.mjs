@@ -118,7 +118,7 @@ function writeTsContent(types, isJson) {
     mergeObject(converters, inner.converters);
     output += `type ${Type} = ${inner.output};\n\n`;
     if (!isJson) {
-      output += `let ${Type} = provableFromLayout<${Type}, Json.${Type}>(jsLayout.${Type} as any, customTypes);\n\n`;
+      output += `let ${Type} = provableFromLayout<${Type}, Json.${Type}>(jsLayout.${Type} as any);\n\n`;
     }
   }
 
@@ -133,10 +133,11 @@ function writeTsContent(types, isJson) {
     : '../transaction-leaves.js';
   return `// @generated this file is auto-generated - don't edit it directly
 
-import { ${[...imports].join(', ')} } from '${importPath}';
+import { ${[...imports, 'TypeMap'].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? "import { provableFromLayout, ProvableExtended } from '../transaction-helpers.js';\n" +
+    ? "import { GenericProvableExtended } from '../../generic/provable.js';\n" +
+      "import { ProvableFromLayout, GenericLayout } from '../transaction-helpers.js';\n" +
       "import * as Json from './transaction-json.js';\n" +
       "import { jsLayout } from './js-layout.js';\n"
     : ''
@@ -152,10 +153,19 @@ ${
 ${
   (!isJson || '') &&
   `
+export { provableFromLayout, toJSONEssential, Layout };
+
+type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, TypeMap['Field']>;
+type Layout = GenericLayout<TypeMap>;
+
 type CustomTypes = { ${customTypes
     .map((c) => `${c.typeName}: ProvableExtended<${c.type}, ${c.jsonType}>;`)
     .join(' ')} }
 let customTypes: CustomTypes = { ${customTypeNames.join(', ')} };
+let { provableFromLayout, toJSONEssential } = ProvableFromLayout<
+  TypeMap,
+  Json.TypeMap
+>(TypeMap, customTypes);
 `
 }
 

@@ -14,25 +14,17 @@ import {
   StringWithHash,
   Events,
   SequenceEvents,
-  TypeMap,
 } from '../transaction-leaves.js';
-import { GenericProvableExtended } from '../../generic/provable.js';
-import { ProvableFromLayout, GenericLayout } from '../transaction-helpers.js';
+import {
+  provableFromLayout,
+  ProvableExtended,
+} from '../transaction-helpers.js';
 import * as Json from './transaction-json.js';
 import { jsLayout } from './js-layout.js';
 
 export { customTypes, ZkappCommand, AccountUpdate };
 export { Json };
 export * from '../transaction-leaves.js';
-
-export { provableFromLayout, toJSONEssential, Layout };
-
-type ProvableExtended<T, TJson> = GenericProvableExtended<
-  T,
-  TJson,
-  TypeMap['Field']
->;
-type Layout = GenericLayout<TypeMap>;
 
 type CustomTypes = {
   StringWithHash: ProvableExtended<
@@ -64,10 +56,6 @@ let customTypes: CustomTypes = {
   Events,
   SequenceEvents,
 };
-let { provableFromLayout, toJSONEssential } = ProvableFromLayout<
-  TypeMap,
-  Json.TypeMap
->(TypeMap, customTypes);
 
 type ZkappCommand = {
   feePayer: {
@@ -270,7 +258,8 @@ type ZkappCommand = {
 };
 
 let ZkappCommand = provableFromLayout<ZkappCommand, Json.ZkappCommand>(
-  jsLayout.ZkappCommand as any
+  jsLayout.ZkappCommand as any,
+  customTypes
 );
 
 type AccountUpdate = {
@@ -462,5 +451,6 @@ type AccountUpdate = {
 };
 
 let AccountUpdate = provableFromLayout<AccountUpdate, Json.AccountUpdate>(
-  jsLayout.AccountUpdate as any
+  jsLayout.AccountUpdate as any,
+  customTypes
 );

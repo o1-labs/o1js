@@ -10,7 +10,6 @@ import {
   AuthRequired,
   Sign,
   AuthorizationKind,
-  TypeMap,
 } from '../transaction-leaves-json.js';
 
 export { ZkappCommand, AccountUpdate };
