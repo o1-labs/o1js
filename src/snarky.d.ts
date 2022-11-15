@@ -749,6 +749,9 @@ declare class Circuit {
   static log(...args: any): void;
 }
 
+/**
+ * Represents a {@link Scalar}.
+ */
 declare class Scalar {
   toFields(this: Scalar): Field[];
 
@@ -784,14 +787,40 @@ declare class Scalar {
 
   toJSON(): string;
 
+  /**
+   * Static method to serialize a {@link Scalar} into an array of {@link Field} elements.
+   */
   static toFields(x: Scalar): Field[];
+  /**
+   * Static method to serialize a {@link Scalar} into its auxiliary data.
+   */
   static toAuxiliary(x?: Scalar): [];
+  /**
+   * Creates a data structure from an array of serialized {@link Field} elements.
+   */
   static fromFields(fields: Field[]): Scalar;
+  /**
+   * Returns the size of this type.
+   */
   static sizeInFields(): number;
+  /**
+   * Creates a data structure from an array of serialized {@link Bool}.
+   */
   static fromBits(bits: Bool[]): Scalar;
+  /**
+   * Returns a random {@link Scalar}.
+   *Randomness can not be proven inside a circuit!
+   */
   static random(): Scalar;
-
+  /**
+   * Serialize a {@link Scalar} to a JSON string.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   static toJSON(x: Scalar): string;
+  /**
+   * Deserialize a JSON structure into a {@link Scalar}.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   static fromJSON(x: string | number | boolean): Scalar;
   static check(x: Scalar): void;
 }
@@ -803,19 +832,47 @@ declare class Scalar {
 //   static sizeInFields(): number;
 // }
 
+/**
+ * Represents a point with x and y coordinates on an elliptic curve.
+ */
 declare class Group {
   x: Field;
   y: Field;
 
+  /**
+   * Adds two {@link Group} elements together.
+   */
   add(y: Group): Group;
+
+  /**
+   * Subtracts one {@link Group} element from the other.
+   */
   sub(y: Group): Group;
+
+  /**
+   * Negates this {@link Group} elements and returns a new instance.
+   */
   neg(): Group;
+
+  /**
+   * Scales this {@link Group} element using a {@link Scalar}.
+   */
   scale(y: Scalar): Group;
   // TODO: Add this function when OCaml bindings are implemented : endoScale(y: EndoScalar): Group;
 
+  /**
+   * Asserts that two {@link Group} elements are equal.
+   */
   assertEquals(y: Group, message?: string): void;
+
+  /**
+   * Checks if two {@link Group} elements are equal.
+   */
   equals(y: Group): Bool;
 
+  /**
+   * Returns the JSON representation of this {@link Group} element.
+   */
   toJSON(): { x: string; y: string };
 
   constructor(args: {
@@ -828,21 +885,59 @@ declare class Group {
   );
 
   static generator: Group;
+  /**
+   * Adds two {@link Group} elements together.
+   */
   static add(x: Group, y: Group): Group;
+  /**
+   * Subtracts one {@link Group} element from the other.
+   */
   static sub(x: Group, y: Group): Group;
+  /**
+   * Negates a {@link Group} elements and returns a new instance.
+   */
   static neg(x: Group): Group;
+
+  /**
+   * Scales this {@link Group} element using a {@link Scalar}.
+   */
   static scale(x: Group, y: Scalar): Group;
   // TODO: Add this function when OCaml bindings are implemented : static endoScale(x: Group, y: EndoScalar): Group;
 
+  /**
+   * Asserts that two {@link Group} elements are equal.
+   */
   static assertEqual(x: Group, y: Group): void;
+
+  /**
+   * Checks if two {@link Group} elements are equal.
+   */
   static equal(x: Group, y: Group): Bool;
-
+  /**
+   * Static method to serialize a {@link Group} into an array of {@link Field} elements.
+   */
   static toFields(x: Group): Field[];
+  /**
+   * Static method to serialize a {@link Group} into its auxiliary data.
+   */
   static toAuxiliary(x?: Group): [];
+  /**
+   * Creates a data structure from an array of serialized {@link Field} elements.
+   */
   static fromFields(fields: Field[]): Group;
+  /**
+   * Returns the size of this type.
+   */
   static sizeInFields(): number;
-
+  /**
+   * Serialize a {@link Group} to a JSON string.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   static toJSON(x: Group): { x: string; y: string };
+  /**
+   * Deserialize a JSON structure into a {@link Group}.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   static fromJSON({
     x,
     y,
@@ -942,35 +1037,74 @@ interface Account {
 }
 
 // TODO would be nice to document these, at least the parts that end up being used in the public API
+
+/**
+ * Represents the Mina ledger.
+ */
 declare class Ledger {
+  /**
+   * Creates a fresh ledger.
+   */
   static create(
     genesisAccounts: Array<{ publicKey: PublicKey_; balance: string }>
   ): Ledger;
 
+  /**
+   * Adds an account and its balance to the ledger.
+   */
   addAccount(publicKey: PublicKey_, balance: string): void;
 
+  /**
+   * Applies a JSON transaction to the ledger.
+   */
   applyJsonTransaction(
     txJson: string,
     accountCreationFee: string,
     networkState: string
   ): Account[];
 
+  /**
+   * Returns an account.
+   */
   getAccount(publicKey: PublicKey_, tokenId: Field): Account | undefined;
 
+  /**
+   * Returns the commitment of a JSON transaction.
+   */
   static transactionCommitments(txJson: string): {
     commitment: Field;
     fullCommitment: Field;
   };
+
+  /**
+   * Returns the public input of a zkApp transaction.
+   */
   static zkappPublicInput(
     txJson: string,
     accountUpdateIndex: number
   ): { accountUpdate: Field; calls: Field };
+
+  /**
+   * Signs a {@link Field} element.
+   */
   static signFieldElement(
     messageHash: Field,
     privateKey: { s: Scalar }
   ): string;
+
+  /**
+   * Returns a dummy signature.
+   */
   static dummySignature(): string;
+
+  /**
+   * Signs a transaction as the fee payer.
+   */
   static signFeePayer(txJson: string, privateKey: { s: Scalar }): string;
+
+  /**
+   * Signs an account update.
+   */
   static signAccountUpdate(
     txJson: string,
     privateKey: { s: Scalar },
