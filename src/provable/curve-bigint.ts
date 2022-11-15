@@ -1,5 +1,5 @@
 import { Ledger } from '../snarky.js';
-import { base58, compose, withVersionNumber } from './binable.js';
+import { base58, tuple, withVersionNumber } from './binable.js';
 import { Bool, Field } from './field-bigint.js';
 import { provable } from './provable-bigint.js';
 
@@ -13,7 +13,7 @@ let PUBLIC_KEY_VERSION = 1;
 
 let FieldWithVersion = withVersionNumber(Field, FIELD_VERSION);
 let BinablePublicKey = withVersionNumber(
-  compose([FieldWithVersion, Bool]),
+  tuple([FieldWithVersion, Bool]),
   PUBLIC_KEY_VERSION
 );
 let Base58PublicKey = base58(
@@ -24,8 +24,8 @@ let Base58PublicKey = base58(
 const PublicKey = {
   ...provable({ x: Field, isOdd: Bool }),
 
-  toJSON(pk: PublicKey) {
-    return Base58PublicKey.toBase58([pk.x, pk.isOdd]);
+  toJSON({ x, isOdd }: PublicKey) {
+    return Base58PublicKey.toBase58([x, isOdd]);
   },
   fromJSON(json: string): PublicKey {
     let [x, isOdd] = Base58PublicKey.fromBase58(json);

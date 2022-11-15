@@ -1,7 +1,7 @@
 // generic encoding infrastructure
 import { Ledger } from '../snarky.js';
 
-export { Binable, Base58, withVersionNumber, compose, base58, fieldEncodings };
+export { Binable, Base58, withVersionNumber, tuple, base58, fieldEncodings };
 
 type Binable<T> = {
   toBytes(t: T): number[];
@@ -32,7 +32,7 @@ function withVersionNumber<T>(
 
 type Tuple<T> = [T, ...T[]] | [];
 
-function compose<Types extends Tuple<any>>(
+function tuple<Types extends Tuple<any>>(
   binables: Array<any> & {
     [i in keyof Types]: Binable<Types[i]>;
   }

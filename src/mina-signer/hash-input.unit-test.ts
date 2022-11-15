@@ -4,7 +4,7 @@ import { PublicKey as PublicKeySnarky } from '../lib/signature.js';
 import { PublicKey } from '../provable/curve-bigint.js';
 import { Bool } from '../provable/field-bigint.js';
 import { AccountUpdate, Json } from '../provable/gen/transaction-bigint.js';
-import { compose, withVersionNumber } from '../provable/binable.js';
+import { tuple, withVersionNumber } from '../provable/binable.js';
 
 await isReady;
 
