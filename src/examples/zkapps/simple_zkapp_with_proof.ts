@@ -27,7 +27,7 @@ class NotSoSimpleZkapp extends SmartContract {
 
   @method init(proof: TrivialProof) {
     proof.verify();
-    this.x.set(Field.one);
+    this.x.set(Field(1));
   }
 
   @method update(

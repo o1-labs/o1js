@@ -48,7 +48,7 @@ tx = await Mina.transaction(userKey, () => {
   AccountUpdate.createSigned(userKey).balance.subInPlace(accountFee.mul(1));
   // 😈😈😈 mint any number of tokens to our account 😈😈😈
   let tokenContract = new TokenContract(addresses.tokenX);
-  tokenContract.experimental.token.mint({
+  tokenContract.token.mint({
     address: userAddress,
     amount: UInt64.from(1e18),
   });

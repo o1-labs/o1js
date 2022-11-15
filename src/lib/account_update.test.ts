@@ -63,7 +63,7 @@ describe('accountUpdate', () => {
       expect(accountUpdate2.hash()).toEqual(hash);
 
       // if we change something on the cloned accountUpdate, the hash should become different
-      AccountUpdate.setValue(accountUpdate2.update.appState[0], Field.one);
+      AccountUpdate.setValue(accountUpdate2.update.appState[0], Field(1));
       expect(accountUpdate2.hash()).not.toEqual(hash);
     });
   });
@@ -109,5 +109,5 @@ describe('accountUpdate', () => {
 // to check that we got something that looks like a Field
 // note: `instanceof Field` doesn't work
 function isField(x: any) {
-  return x?.constructor === Field.one.constructor;
+  return x?.constructor === Field(1).constructor;
 }

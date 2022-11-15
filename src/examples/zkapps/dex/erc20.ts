@@ -85,7 +85,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
   @method init() {
     // mint the entire supply to the token account with the same address as this contract
     let address = this.self.body.publicKey;
-    let receiver = this.experimental.token.mint({
+    let receiver = this.token.mint({
       address,
       amount: this.SUPPLY,
     });
@@ -99,7 +99,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
     for (let i = 0; i < 8; i++) {
       let state = this.self.update.appState[i];
       state.isSome = Bool(true);
-      state.value = Field.zero;
+      state.value = Field(0);
     }
     // since this is the only method of this zkApp that resets the entire state, provedState: true implies
     // that this function was run. Since it can be run only once, this implies it was run exactly once
@@ -126,7 +126,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
     return this.SUPPLY;
   }
   balanceOf(owner: PublicKey): UInt64 {
-    let account = Account(owner, this.experimental.token.id);
+    let account = Account(owner, this.token.id);
     let balance = account.balance.get();
     account.balance.assertEquals(balance);
     return balance;
@@ -140,7 +140,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
     throw Error('TODO: reliably get msg.sender');
   }
   @method transferFrom(from: PublicKey, to: PublicKey, value: UInt64): Bool {
-    this.experimental.token.send({ from, to, amount: value });
+    this.token.send({ from, to, amount: value });
     this.emitEvent('Transfer', { from, to, value });
     // we don't have to check the balance of the sender -- this is done by the zkApp protocol
     return Bool(true);
@@ -169,18 +169,15 @@ class TrivialCoin extends SmartContract implements Erc20 {
     from: PublicKey,
     to: PublicKey,
     value: UInt64,
-    authorize: Experimental.Callback<any>
+    approve: Experimental.Callback<any>
   ): Bool {
     // TODO: need to be able to witness a certain layout of account updates, in this case
     // tokenContract --> sender --> receiver
-    let fromUpdate = this.experimental.authorize(
-      authorize,
-      AccountUpdate.Layout.NoChildren
-    );
+    let fromUpdate = this.approve(approve, AccountUpdate.Layout.NoChildren);
 
     let negativeAmount = Int64.fromObject(fromUpdate.body.balanceChange);
     negativeAmount.assertEquals(Int64.from(value).neg());
-    let tokenId = this.experimental.token.id;
+    let tokenId = this.token.id;
     fromUpdate.body.tokenId.assertEquals(tokenId);
     fromUpdate.body.publicKey.assertEquals(from);
 
@@ -197,7 +194,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
   // this is a very standardized deploy method. instead, we could also take the account update from a callback
   @method deployZkapp(zkappKey: PrivateKey) {
     let address = zkappKey.toPublicKey();
-    let tokenId = this.experimental.token.id;
+    let tokenId = this.token.id;
     let zkapp = Experimental.createChildAccountUpdate(
       this.self,
       address,
@@ -215,11 +212,8 @@ class TrivialCoin extends SmartContract implements Erc20 {
   // for letting a zkapp do whatever it wants, as long as no tokens are transfered
   // TODO: atm, we have to restrict the zkapp to have no children
   //       -> need to be able to witness a general layout of account updates
-  @method authorizeZkapp(callback: Experimental.Callback<any>) {
-    let zkappUpdate = this.experimental.authorize(
-      callback,
-      AccountUpdate.Layout.NoChildren
-    );
+  @method approveZkapp(callback: Experimental.Callback<any>) {
+    let zkappUpdate = this.approve(callback, AccountUpdate.Layout.NoChildren);
     Int64.fromObject(zkappUpdate.body.balanceChange).assertEquals(UInt64.zero);
   }
 }

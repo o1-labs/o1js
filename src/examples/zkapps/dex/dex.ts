@@ -80,7 +80,7 @@ function createDex({
       // calculate liquidity token output simply as dl = dx + dx
       // => maintains ratio x/l, y/l
       let dl = dy.add(dx);
-      let userUpdate = this.experimental.token.mint({
+      let userUpdate = this.token.mint({
         address: user,
         amount: dl,
       });
@@ -150,12 +150,12 @@ function createDex({
      * The transaction needs to be signed by the user's private key.
      */
     @method redeemLiquidity(user: PublicKey, dl: UInt64) {
-      // call the token X holder inside a token X-authorized callback
+      // call the token X holder inside a token X-approved callback
       let tokenX = new TokenContract(this.tokenX);
-      let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
+      let dexX = new DexTokenHolder(this.address, tokenX.token.id);
       let dxdy = dexX.redeemLiquidity(user, dl, this.tokenY);
       let dx = dxdy[0];
-      tokenX.authorizeUpdateAndSend(dexX.self, user, dx);
+      tokenX.approveUpdateAndSend(dexX.self, user, dx);
       return dxdy;
     }
 
@@ -169,9 +169,9 @@ function createDex({
      */
     @method swapX(user: PublicKey, dx: UInt64): UInt64 {
       let tokenY = new TokenContract(this.tokenY);
-      let dexY = new DexTokenHolder(this.address, tokenY.experimental.token.id);
+      let dexY = new DexTokenHolder(this.address, tokenY.token.id);
       let dy = dexY.swap(user, dx, this.tokenX);
-      tokenY.authorizeUpdateAndSend(dexY.self, user, dy);
+      tokenY.approveUpdateAndSend(dexY.self, user, dy);
       return dy;
     }
 
@@ -185,14 +185,14 @@ function createDex({
      */
     @method swapY(user: PublicKey, dy: UInt64): UInt64 {
       let tokenX = new TokenContract(this.tokenX);
-      let dexX = new DexTokenHolder(this.address, tokenX.experimental.token.id);
+      let dexX = new DexTokenHolder(this.address, tokenX.token.id);
       let dx = dexX.swap(user, dy, this.tokenY);
-      tokenX.authorizeUpdateAndSend(dexX.self, user, dx);
+      tokenX.approveUpdateAndSend(dexX.self, user, dx);
       return dx;
     }
 
     /**
-     * helper method to authorize burning of user's liquidity.
+     * helper method to approve burning of user's liquidity.
      * this just burns user tokens, so there is no incentive to call this directly.
      * instead, the dex token holders call this and in turn pay back tokens.
      *
@@ -204,7 +204,7 @@ function createDex({
      */
     @method burnLiquidity(user: PublicKey, dl: UInt64): UInt64 {
       // this makes sure there is enough l to burn (user balance stays >= 0), so l stays >= 0, so l was >0 before
-      this.experimental.token.burn({ address: user, amount: dl });
+      this.token.burn({ address: user, amount: dl });
       let l = this.totalSupply.get();
       this.totalSupply.assertEquals(l);
       this.totalSupply.set(l.sub(dl));
@@ -212,7 +212,7 @@ function createDex({
     }
 
     @method transfer(from: PublicKey, to: PublicKey, amount: UInt64) {
-      this.experimental.token.send({ from, to, amount });
+      this.token.send({ from, to, amount });
     }
   }
 
@@ -222,7 +222,7 @@ function createDex({
     // see the more complicated method `redeemLiquidity` below which gives back both tokens, by calling this method,
     // for the other token, in a callback
     @method redeemLiquidityPartial(user: PublicKey, dl: UInt64): UInt64x2 {
-      // user burns dl, authorized by the Dex main contract
+      // user burns dl, approved by the Dex main contract
       let dex = new Dex(addresses.dex);
       let l = dex.burnLiquidity(user, dl);
 
@@ -234,7 +234,7 @@ function createDex({
       // just subtract the balance, user gets their part one level higher
       this.balance.subInPlace(dy);
 
-      // this can't be a delegate call, or it won't be authorized by the token owner
+      // this can't be a delegate call, or it won't be approved by the token owner
       this.self.isDelegateCall = Bool(false);
 
       // return l, dy so callers don't have to walk their child account updates to get it
@@ -247,13 +247,13 @@ function createDex({
       dl: UInt64,
       otherTokenAddress: PublicKey
     ): UInt64x2 {
-      // first call the Y token holder, authorized by the Y token contract; this makes sure we get dl, the user's lqXY
+      // first call the Y token holder, approved by the Y token contract; this makes sure we get dl, the user's lqXY
       let tokenY = new TokenContract(otherTokenAddress);
-      let dexY = new DexTokenHolder(this.address, tokenY.experimental.token.id);
+      let dexY = new DexTokenHolder(this.address, tokenY.token.id);
       let result = dexY.redeemLiquidityPartial(user, dl);
       let l = result[0];
       let dy = result[1];
-      tokenY.authorizeUpdateAndSend(dexY.self, user, dy);
+      tokenY.approveUpdateAndSend(dexY.self, user, dy);
 
       // in return for dl, we give back dx, the X token part
       let x = this.account.balance.get();
@@ -262,7 +262,7 @@ function createDex({
       // just subtract the balance, user gets their part one level higher
       this.balance.subInPlace(dx);
 
-      // this can't be a delegate call, or it won't be authorized by the token owner
+      // this can't be a delegate call, or it won't be approved by the token owner
       this.self.isDelegateCall = Bool(false);
 
       return [dx, dy];
@@ -359,13 +359,14 @@ class TokenContract extends SmartContract {
     });
   }
   @method init() {
+    super.init();
     // mint the entire supply to the token account with the same address as this contract
     /**
      * DUMB STUFF FOR TESTING (change in real app)
      *
      * we mint the max uint64 of tokens here, so that we can overflow it in tests if we just mint a bit more
      */
-    let receiver = this.experimental.token.mint({
+    let receiver = this.token.mint({
       address: this.address,
       amount: UInt64.MAXINT(),
     });
@@ -381,7 +382,7 @@ class TokenContract extends SmartContract {
    * mint additional tokens to some user, so we can overflow token balances
    */
   @method init2() {
-    let receiver = this.experimental.token.mint({
+    let receiver = this.token.mint({
       address: addresses.user,
       amount: UInt64.from(10n ** 6n),
     });
@@ -394,9 +395,9 @@ class TokenContract extends SmartContract {
   // this is a very standardized deploy method. instead, we could also take the account update from a callback
   // => need callbacks for signatures
   @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
-    let tokenId = this.experimental.token.id;
+    let tokenId = this.token.id;
     let zkapp = AccountUpdate.defaultAccountUpdate(address, tokenId);
-    this.experimental.authorize(zkapp);
+    this.approve(zkapp);
     AccountUpdate.setValue(zkapp.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
@@ -406,29 +407,26 @@ class TokenContract extends SmartContract {
   }
 
   // let a zkapp send tokens to someone, provided the token supply stays constant
-  @method authorizeUpdateAndSend(
+  @method approveUpdateAndSend(
     zkappUpdate: AccountUpdate,
     to: PublicKey,
     amount: UInt64
   ) {
-    this.experimental.authorize(zkappUpdate);
+    this.approve(zkappUpdate);
 
     // see if balance change cancels the amount sent
     let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);
     balanceChange.assertEquals(Int64.from(amount).neg());
     // add same amount of tokens to the receiving address
-    this.experimental.token.mint({ address: to, amount });
+    this.token.mint({ address: to, amount });
   }
 
   @method transfer(from: PublicKey, to: PublicKey, value: UInt64) {
-    this.experimental.token.send({ from, to, amount: value });
+    this.token.send({ from, to, amount: value });
   }
 
   @method getBalance(publicKey: PublicKey): UInt64 {
-    let accountUpdate = AccountUpdate.create(
-      publicKey,
-      this.experimental.token.id
-    );
+    let accountUpdate = AccountUpdate.create(publicKey, this.token.id);
     let balance = accountUpdate.account.balance.get();
     accountUpdate.account.balance.assertEquals(
       accountUpdate.account.balance.get()

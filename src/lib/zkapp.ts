@@ -5,7 +5,6 @@ import {
   Ledger,
   Pickles,
   Poseidon as Poseidon_,
-  JSONValue,
   Provable,
 } from '../snarky.js';
 import {
@@ -34,6 +33,7 @@ import {
   AccountUpdatesLayout,
   smartContractContext,
   zkAppProver,
+  ZkappStateLength,
 } from './account_update.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import * as Mina from './mina.js';
@@ -60,7 +60,7 @@ import {
   GenericArgument,
 } from './proof_system.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
-import { Types } from '../snarky/types.js';
+import { Types } from '../provable/types.js';
 import { Poseidon } from './hash.js';
 import * as Encoding from './encoding.js';
 
@@ -75,10 +75,8 @@ export {
   Callback,
   Account,
   VerificationKey,
+  Reducer,
 };
-
-// internal API
-export { Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
 
@@ -179,6 +177,7 @@ function wrapMethod(
                 accountUpdates: [],
                 fetchMode: inProver() ? 'cached' : 'test',
                 isFinalRunOutsideCircuit: false,
+                numberOfRuns: undefined,
               },
               () => {
                 // inside prover / compile, the method is always called with the public input as first argument
@@ -694,15 +693,56 @@ class SmartContract {
     verificationKey?: { data: string; hash: Field | string };
     zkappKey?: PrivateKey;
   } = {}) {
+    let accountUpdate = this.newSelf();
     verificationKey ??= (this.constructor as any)._verificationKey;
     if (verificationKey !== undefined) {
       let { hash: hash_, data } = verificationKey;
       let hash = typeof hash_ === 'string' ? Field(hash_) : hash_;
-      this.setValue(this.self.update.verificationKey, { hash, data });
+      this.setValue(accountUpdate.update.verificationKey, { hash, data });
     }
-    this.setValue(this.self.update.permissions, Permissions.default());
-    this.sign(zkappKey);
-    AccountUpdate.attachToTransaction(this.self);
+    this.setValue(accountUpdate.update.permissions, Permissions.default());
+    accountUpdate.sign(zkappKey);
+    AccountUpdate.attachToTransaction(accountUpdate);
+
+    // init if this account is not yet deployed or has no verification key on it
+    let shouldInit =
+      !Mina.hasAccount(this.address) ||
+      Mina.getAccount(this.address).verificationKey !== undefined;
+    if (!shouldInit) return;
+    if (zkappKey) this.init(zkappKey);
+    else this.init();
+    let initUpdate = this.self;
+    // switch back to the deploy account update so the user can make modifications to it
+    this.#executionState = {
+      transactionId: this.#executionState!.transactionId,
+      accountUpdate,
+    };
+    // check if the entire state was overwritten, show a warning if not
+    let isFirstRun = Mina.currentTransaction()?.numberOfRuns === 0;
+    if (!isFirstRun) return;
+    Circuit.asProver(() => {
+      if (
+        initUpdate.update.appState.some(({ isSome }) => !isSome.toBoolean())
+      ) {
+        console.warn(`WARNING: the \`init()\` method was called without overwriting the entire state. This means that your zkApp will lack
+the \`provedState === true\` status which certifies that the current state was verifiably produced by proofs (and not arbitrarily set by the zkApp developer).
+To make sure the entire state is reset, consider adding this line to the beginning of your \`init()\` method:
+super.init();
+`);
+      }
+    });
+  }
+  // TODO make this a @method and create a proof during `zk deploy` (+ add mechanism to skip this)
+  init(zkappKey?: PrivateKey) {
+    // let accountUpdate = this.newSelf(); // this would emulate the behaviour of init() being a @method
+    // TODO: enable this if provedState is available, to make this callable only once
+    // this.account.provedState.assertEquals(Bool(false));
+    zkappKey?.toPublicKey().assertEquals(this.address);
+    let accountUpdate = this.self;
+    for (let i = 0; i < ZkappStateLength; i++) {
+      AccountUpdate.setValue(accountUpdate.body.update.appState[i], Field(0));
+    }
+    AccountUpdate.attachToTransaction(accountUpdate);
   }
 
   sign(zkappKey?: PrivateKey) {
@@ -743,6 +783,14 @@ class SmartContract {
     this.#executionState = { transactionId, accountUpdate };
     return accountUpdate;
   }
+  // same as this.self, but explicitly creates a _new_ account update
+  newSelf(): AccountUpdate {
+    let inTransaction = Mina.currentTransaction.has();
+    let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
+    let accountUpdate = selfAccountUpdate(this);
+    this.#executionState = { transactionId, accountUpdate };
+    return accountUpdate;
+  }
 
   get account() {
     return this.self.account;
@@ -752,49 +800,42 @@ class SmartContract {
     return this.self.network;
   }
 
-  get experimental() {
-    let zkapp = this;
-    return {
-      get token() {
-        return zkapp.self.token();
-      },
-      /**
-       * Authorize an account update or callback. This will include the account update in the zkApp's public input,
-       * which means it allows you to read and use its content in a proof, make assertions about it, and modify it.
-       *
-       * If this is called with a callback as the first parameter, it will first extract the account update produced by that callback.
-       * The extracted account update is returned.
-       *
-       * ```ts
-       * \@method myAuthorizingMethod(callback: Callback) {
-       *   let authorizedUpdate = this.experimental.authorize(callback);
-       * }
-       * ```
-       *
-       * Under the hood, "authorizing" just means that the account update is made a child of the zkApp in the
-       * tree of account updates that forms the transaction.
-       * The second parameter `layout` allows you to also make assertions about the authorized update's _own_ children,
-       * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
-       *
-       * @param updateOrCallback
-       * @param layout
-       * @returns The account update that was authorized (needed when passing in a Callback)
-       */
-      authorize(
-        updateOrCallback: AccountUpdate | Callback<any>,
-        layout?: AccountUpdatesLayout
-      ) {
-        let accountUpdate =
-          updateOrCallback instanceof AccountUpdate
-            ? updateOrCallback
-            : Circuit.witness(
-                AccountUpdate,
-                () => updateOrCallback.accountUpdate
-              );
-        zkapp.self.authorize(accountUpdate, layout);
-        return accountUpdate;
-      },
-    };
+  get token() {
+    return this.self.token();
+  }
+
+  /**
+   * Approve an account update or callback. This will include the account update in the zkApp's public input,
+   * which means it allows you to read and use its content in a proof, make assertions about it, and modify it.
+   *
+   * If this is called with a callback as the first parameter, it will first extract the account update produced by that callback.
+   * The extracted account update is returned.
+   *
+   * ```ts
+   * \@method myApprovingMethod(callback: Callback) {
+   *   let approvedUpdate = this.approve(callback);
+   * }
+   * ```
+   *
+   * Under the hood, "approving" just means that the account update is made a child of the zkApp in the
+   * tree of account updates that forms the transaction.
+   * The second parameter `layout` allows you to also make assertions about the approved update's _own_ children,
+   * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
+   *
+   * @param updateOrCallback
+   * @param layout
+   * @returns The account update that was approved (needed when passing in a Callback)
+   */
+  approve(
+    updateOrCallback: AccountUpdate | Callback<any>,
+    layout?: AccountUpdatesLayout
+  ) {
+    let accountUpdate =
+      updateOrCallback instanceof AccountUpdate
+        ? updateOrCallback
+        : Circuit.witness(AccountUpdate, () => updateOrCallback.accountUpdate);
+    this.self.approve(accountUpdate, layout);
+    return accountUpdate;
   }
 
   send(args: {
@@ -874,7 +915,7 @@ class SmartContract {
         return {
           type,
           event: this.events[type].fromFields(
-            event.map((f: string) => Field.fromString(f))
+            event.map((f: string) => Field(f))
           ),
         };
       } else {
@@ -885,7 +926,7 @@ class SmartContract {
         return {
           type,
           event: this.events[type].fromFields(
-            event.map((f: string) => Field.fromString(f))
+            event.map((f: string) => Field(f))
           ),
         };
       }
@@ -1130,9 +1171,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
             // putting our string-Fields back into the original action type
             event.actions.map((action: string[]) =>
               reducer.actionType.fromFields(
-                action.map((fieldAsString: string) =>
-                  Field.fromString(fieldAsString)
-                )
+                action.map((fieldAsString: string) => Field(fieldAsString))
               )
             )
           );
@@ -1200,7 +1239,7 @@ async function deploy<S extends typeof SmartContract>(
           `When using the optional initialBalance argument, you need to also supply the fee payer's private key as part of the \`feePayer\` argument, to sign the initial balance funding.`
         );
       // optional first accountUpdate: the sender/fee payer who also funds the zkapp
-      let amount = UInt64.fromString(String(initialBalance)).add(
+      let amount = UInt64.from(String(initialBalance)).add(
         Mina.accountCreationFee()
       );
       let feePayerAddress = feePayerKey.toPublicKey();
@@ -1215,7 +1254,7 @@ async function deploy<S extends typeof SmartContract>(
     // TODO: add send / receive methods on SmartContract which create separate account updates
     // no need to bundle receive in the same accountUpdate as deploy
     if (initialBalance !== undefined) {
-      let amount = UInt64.fromString(String(initialBalance));
+      let amount = UInt64.from(String(initialBalance));
       zkapp.self.balance.addInPlace(amount);
     }
   });
@@ -1249,9 +1288,9 @@ function addFeePayer(
   }
   let newMemo = memo;
   if (feePayerMemo) newMemo = Ledger.memoToBase58(feePayerMemo);
-  feePayer.body.nonce = UInt32.fromString(`${feePayerNonce}`);
+  feePayer.body.nonce = UInt32.from(`${feePayerNonce}`);
   feePayer.body.publicKey = senderAddress;
-  feePayer.body.fee = UInt64.fromString(`${transactionFee}`);
+  feePayer.body.fee = UInt64.from(`${transactionFee}`);
   AccountUpdate.signFeePayerInPlace(feePayer, feePayerKey);
   return { feePayer, accountUpdates, memo: newMemo };
 }

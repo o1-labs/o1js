@@ -1,6 +1,6 @@
 import { Circuit, Field, Bool } from '../snarky.js';
 import { CircuitValue, prop } from './circuit_value.js';
-import { Types } from '../snarky/types.js';
+import { Types } from '../provable/types.js';
 import { HashInput } from './hash.js';
 
 // external API
@@ -11,11 +11,11 @@ class UInt64 extends CircuitValue {
   static NUM_BITS = 64;
 
   static get zero() {
-    return new UInt64(Field.zero);
+    return new UInt64(Field(0));
   }
 
   static get one() {
-    return new UInt64(Field.one);
+    return new UInt64(Field(1));
   }
 
   toString() {
@@ -51,15 +51,6 @@ class UInt64 extends CircuitValue {
   static from(x: UInt64 | UInt32 | Field | number | string | bigint) {
     if (x instanceof UInt64 || x instanceof UInt32) x = x.value;
     return new this(this.checkConstant(Field(x)));
-  }
-  static fromNumber(x: number) {
-    return this.from(x);
-  }
-  static fromString(x: string) {
-    return this.from(x);
-  }
-  static fromBigInt(x: bigint) {
-    return this.from(x);
   }
 
   static MAXINT() {
@@ -203,11 +194,11 @@ class UInt32 extends CircuitValue {
   static NUM_BITS = 32;
 
   static get zero(): UInt32 {
-    return new UInt32(Field.zero);
+    return new UInt32(Field(0));
   }
 
   static get one(): UInt32 {
-    return new UInt32(Field.one);
+    return new UInt32(Field(1));
   }
 
   toString(): string {
@@ -248,15 +239,6 @@ class UInt32 extends CircuitValue {
   static from(x: UInt32 | Field | number | string | bigint) {
     if (x instanceof UInt32) x = x.value;
     return new this(this.checkConstant(Field(x)));
-  }
-  static fromNumber(x: number) {
-    return this.from(x);
-  }
-  static fromString(x: string) {
-    return this.from(x);
-  }
-  static fromBigInt(x: bigint) {
-    return this.from(x);
   }
 
   static MAXINT() {
@@ -377,14 +359,14 @@ class Sign extends CircuitValue {
   @prop value: Field; // +/- 1
 
   static get one() {
-    return new Sign(Field.one);
+    return new Sign(Field(1));
   }
   static get minusOne() {
-    return new Sign(Field.minusOne);
+    return new Sign(Field(-1));
   }
   static check(x: Sign) {
     // x^2 == 1  <=>  x == 1 or x == -1
-    x.value.square().assertEquals(Field.one);
+    x.value.square().assertEquals(Field(1));
   }
   static toInput(x: Sign): HashInput {
     return { packed: [[x.isPositive().toField(), 1]] };
@@ -401,7 +383,7 @@ class Sign extends CircuitValue {
     return new Sign(this.value.mul(y.value));
   }
   isPositive() {
-    return this.value.equals(Field.one);
+    return this.value.equals(Field(1));
   }
   toString() {
     return this.value.toString();
@@ -464,15 +446,6 @@ class Int64 extends CircuitValue implements BalanceChange {
     if (x instanceof UInt64 || x instanceof UInt32) {
       return Int64.fromUnsigned(x);
     }
-    return Int64.fromFieldUnchecked(Field(x));
-  }
-  static fromNumber(x: number) {
-    return Int64.fromFieldUnchecked(Field(x));
-  }
-  static fromString(x: string) {
-    return Int64.fromFieldUnchecked(Field(x));
-  }
-  static fromBigInt(x: bigint) {
     return Int64.fromFieldUnchecked(Field(x));
   }
 

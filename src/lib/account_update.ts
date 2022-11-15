@@ -6,7 +6,8 @@ import {
   memoizeWitness,
 } from './circuit_value.js';
 import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
-import { jsLayout, Types } from '../snarky/types.js';
+import { jsLayout } from '../provable/gen/js-layout.js';
+import { Types, toJSONEssential } from '../provable/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
@@ -22,8 +23,6 @@ import {
 } from './hash.js';
 import * as Encoding from './encoding.js';
 import { Context } from './global-context.js';
-import { toJSONEssential } from '../snarky/transaction-helpers.js';
-import { customTypes } from '../snarky/gen/transaction.js';
 
 // external API
 export { Permissions, AccountUpdate, ZkappPublicInput };
@@ -408,10 +407,10 @@ const Body = {
     return {
       appState: Array(ZkappStateLength)
         .fill(0)
-        .map(() => keep(Field.zero)),
+        .map(() => keep(Field(0))),
       delegate: keep(PublicKey.empty()),
       // TODO
-      verificationKey: keep({ data: '', hash: Field.zero }),
+      verificationKey: keep({ data: '', hash: Field(0) }),
       permissions: keep(Permissions.initial()),
       // TODO don't hard code
       zkappUri: keep({
@@ -429,7 +428,7 @@ const Body = {
         vestingIncrement: UInt64.zero,
         vestingPeriod: UInt32.zero,
       }),
-      votingFor: keep(Field.zero),
+      votingFor: keep(Field(0)),
     };
   },
 
@@ -445,7 +444,7 @@ const Body = {
       events: Events.empty(),
       sequenceEvents: SequenceEvents.empty(),
       caller: TokenId.default,
-      callData: Field.zero,
+      callData: Field(0),
       callDepth: 0,
       preconditions: Preconditions.ignoreAll(),
       // the default assumption is that snarkyjs transactions don't include the fee payer
@@ -498,15 +497,15 @@ type NetworkPrecondition = Preconditions['network'];
 let NetworkPrecondition = {
   ignoreAll(): NetworkPrecondition {
     let stakingEpochData = {
-      ledger: { hash: ignore(Field.zero), totalCurrency: ignore(uint64()) },
-      seed: ignore(Field.zero),
-      startCheckpoint: ignore(Field.zero),
-      lockCheckpoint: ignore(Field.zero),
+      ledger: { hash: ignore(Field(0)), totalCurrency: ignore(uint64()) },
+      seed: ignore(Field(0)),
+      startCheckpoint: ignore(Field(0)),
+      lockCheckpoint: ignore(Field(0)),
       epochLength: ignore(uint32()),
     };
     let nextEpochData = cloneCircuitValue(stakingEpochData);
     return {
-      snarkedLedgerHash: ignore(Field.zero),
+      snarkedLedgerHash: ignore(Field(0)),
       timestamp: ignore(uint64()),
       blockchainLength: ignore(uint32()),
       minWindowDensity: ignore(uint32()),
@@ -532,24 +531,24 @@ function ignore<T>(dummy: T): OrIgnore<T> {
 /**
  * Ranges between all uint32 values
  */
-const uint32 = () => ({ lower: UInt32.fromNumber(0), upper: UInt32.MAXINT() });
+const uint32 = () => ({ lower: UInt32.from(0), upper: UInt32.MAXINT() });
 
 /**
  * Ranges between all uint64 values
  */
-const uint64 = () => ({ lower: UInt64.fromNumber(0), upper: UInt64.MAXINT() });
+const uint64 = () => ({ lower: UInt64.from(0), upper: UInt64.MAXINT() });
 
 type AccountPrecondition = Preconditions['account'];
 const AccountPrecondition = {
   ignoreAll(): AccountPrecondition {
     let appState: Array<OrIgnore<Field>> = [];
     for (let i = 0; i < ZkappStateLength; ++i) {
-      appState.push(ignore(Field.zero));
+      appState.push(ignore(Field(0)));
     }
     return {
       balance: ignore(uint64()),
       nonce: ignore(uint32()),
-      receiptChainHash: ignore(Field.zero),
+      receiptChainHash: ignore(Field(0)),
       delegate: ignore(PublicKey.empty()),
       state: appState,
       sequenceState: ignore(SequenceEvents.emptySequenceState()),
@@ -590,7 +589,7 @@ const TokenId = {
   ...Types.TokenId,
   ...Encoding.TokenId,
   get default() {
-    return Field.one;
+    return Field(1);
   },
 };
 
@@ -709,7 +708,7 @@ class AccountUpdate implements Types.AccountUpdate {
         amount: number | bigint | UInt64;
       }) {
         let receiver = AccountUpdate.defaultAccountUpdate(address, this.id);
-        thisAccountUpdate.authorize(receiver);
+        thisAccountUpdate.approve(receiver);
         // Add the amount to mint to the receiver's account
         receiver.body.balanceChange = Int64.fromObject(
           receiver.body.balanceChange
@@ -725,7 +724,7 @@ class AccountUpdate implements Types.AccountUpdate {
         amount: number | bigint | UInt64;
       }) {
         let sender = AccountUpdate.defaultAccountUpdate(address, this.id);
-        thisAccountUpdate.authorize(sender);
+        thisAccountUpdate.approve(sender);
         sender.body.useFullCommitment = Bool(true);
 
         // Sub the amount to burn from the sender's account
@@ -748,7 +747,7 @@ class AccountUpdate implements Types.AccountUpdate {
       }) {
         // Create a new accountUpdate for the sender to send the amount to the receiver
         let sender = AccountUpdate.defaultAccountUpdate(from, this.id);
-        thisAccountUpdate.authorize(sender);
+        thisAccountUpdate.approve(sender);
         sender.body.useFullCommitment = Bool(true);
         sender.body.balanceChange = Int64.fromObject(
           sender.body.balanceChange
@@ -805,7 +804,7 @@ class AccountUpdate implements Types.AccountUpdate {
     } else {
       receiver = AccountUpdate.defaultAccountUpdate(to, this.body.tokenId);
     }
-    this.authorize(receiver);
+    this.approve(receiver);
 
     // Sub the amount from the sender's account
     this.body.balanceChange = Int64.fromObject(this.body.balanceChange).sub(
@@ -818,7 +817,7 @@ class AccountUpdate implements Types.AccountUpdate {
     ).add(amount);
   }
 
-  authorize(
+  approve(
     childUpdate: AccountUpdate,
     layout: AccountUpdatesLayout = AccountUpdate.Layout.NoDelegation
   ) {
@@ -862,7 +861,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * ```ts
    * \@method onlyRunsWhenBalanceIsLow() {
    *   let lower = UInt64.zero;
-   *   let upper = UInt64.fromNumber(20e9);
+   *   let upper = UInt64.from(20e9);
    *   AccountUpdate.assertBetween(this.self.body.preconditions.account.balance, lower, upper);
    *   // ...
    * }
@@ -1021,7 +1020,7 @@ class AccountUpdate implements Types.AccountUpdate {
   static create(publicKey: PublicKey, tokenId?: Field) {
     let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey, tokenId);
     if (smartContractContext.has()) {
-      smartContractContext.get().this.self.authorize(accountUpdate);
+      smartContractContext.get().this.self.approve(accountUpdate);
     } else {
       Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
     }
@@ -1029,7 +1028,12 @@ class AccountUpdate implements Types.AccountUpdate {
   }
   static attachToTransaction(accountUpdate: AccountUpdate) {
     if (smartContractContext.has()) {
-      smartContractContext.get().this.self.authorize(accountUpdate);
+      let selfUpdate = smartContractContext.get().this.self;
+      // avoid redundant attaching & cycle in account update structure, happens
+      // when calling attachToTransaction(this.self) inside a @method
+      // TODO avoid account update cycles more generally
+      if (selfUpdate === accountUpdate) return;
+      smartContractContext.get().this.self.approve(accountUpdate);
     } else {
       if (!Mina.currentTransaction.has()) return;
       let updates = Mina.currentTransaction.get().accountUpdates;
@@ -1078,7 +1082,7 @@ class AccountUpdate implements Types.AccountUpdate {
     let amount =
       initialBalance instanceof UInt64
         ? initialBalance
-        : UInt64.fromString(`${initialBalance}`);
+        : UInt64.from(`${initialBalance}`);
     accountUpdate.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 
@@ -1257,8 +1261,7 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     let jsonUpdate: Partial<Types.Json.AccountUpdate> = toJSONEssential(
       jsLayout.AccountUpdate as any,
-      this,
-      customTypes
+      this
     );
     let body: Partial<Types.Json.AccountUpdate['body']> =
       jsonUpdate.body as any;
@@ -1355,7 +1358,7 @@ const CallForest = {
 
   // Mina_base.Zkapp_command.Digest.Forest.empty
   emptyHash() {
-    return Field.zero;
+    return Field(0);
   },
 
   // similar to Mina_base.Zkapp_command.Call_forest.accumulate_hashes

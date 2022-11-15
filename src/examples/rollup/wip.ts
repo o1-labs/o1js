@@ -398,7 +398,7 @@ function main() {
     })
     .then(() =>
       Mina.transaction(minaSender, () => {
-        const amount = UInt64.fromNumber(1000000000);
+        const amount = UInt64.from(1000000000);
 
         return AccountUpdate.createSigned(depositorPrivkey).then((p) => {
           p.body.delta = Int64.fromUnsigned(amount).neg();
@@ -408,7 +408,7 @@ function main() {
             operatorsDb,
             accountDb,
             pendingDeposits,
-            UInt32.fromNumber(0)
+            UInt32.from(0)
           );
         });
       }).send()
@@ -466,8 +466,8 @@ function main() {
         })
         .then(() => {
           console.log('main', 7);
-          let rollupAmount = UInt64.fromNumber(10);
-          let rollupNonce = UInt32.fromNumber(0);
+          let rollupAmount = UInt64.from(10);
+          let rollupNonce = UInt32.from(0);
           let rollupSender = depositorPubkey;
           let rollupReceiver = depositorPubkey;
           let rollupTransaction = new RollupTransaction(
