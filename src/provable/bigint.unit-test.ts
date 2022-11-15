@@ -14,8 +14,8 @@ testBigintRoundtrip(0n, fieldSize);
 testBigintRoundtrip(56n, 2);
 testBigintRoundtrip(40n, fieldSize);
 testBigintRoundtrip(1309180n, fieldSize);
-testBigintRoundtrip(0x10000000n, 8);
-testBigintRoundtrip(0xffffffffn, 8);
+testBigintRoundtrip(0x10000000n, 4);
+testBigintRoundtrip(0xffffffffn, 4);
 testBigintRoundtrip(0x10ff00ffffn, fieldSize);
 testBigintRoundtrip(Field.MODULUS, fieldSize);
 
