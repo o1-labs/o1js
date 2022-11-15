@@ -14,24 +14,47 @@ import {
   StringWithHash,
   Events,
   SequenceEvents,
-  TypeMap,
 } from '../transaction-leaves.js';
-import { GenericProvableExtended } from '../../generic/provable.js';
-import { ProvableFromLayout, GenericLayout } from '../transaction-helpers.js';
+import { GenericProvableExtended } from '../../provable/generic.js';
+import {
+  ProvableFromLayout,
+  GenericLayout,
+} from '../../provable/from-layout.js';
 import * as Json from './transaction-json.js';
 import { jsLayout } from './js-layout.js';
 
 export { customTypes, ZkappCommand, AccountUpdate };
 export { Json };
 export * from '../transaction-leaves.js';
-
 export { provableFromLayout, toJSONEssential, Layout };
 
-type ProvableExtended<T, TJson> = GenericProvableExtended<
-  T,
-  TJson,
-  TypeMap['Field']
->;
+type TypeMap = {
+  PublicKey: PublicKey;
+  UInt64: UInt64;
+  UInt32: UInt32;
+  TokenId: TokenId;
+  Field: Field;
+  Bool: Bool;
+  AuthRequired: AuthRequired;
+  Sign: Sign;
+  AuthorizationKind: AuthorizationKind;
+};
+
+const TypeMap: {
+  [K in keyof TypeMap]: ProvableExtended<TypeMap[K], Json.TypeMap[K]>;
+} = {
+  PublicKey,
+  UInt64,
+  UInt32,
+  TokenId,
+  Field,
+  Bool,
+  AuthRequired,
+  Sign,
+  AuthorizationKind,
+};
+
+type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, Field>;
 type Layout = GenericLayout<TypeMap>;
 
 type CustomTypes = {
@@ -40,9 +63,9 @@ type CustomTypes = {
       data: string;
       hash: Field;
     },
-    Json.TypeMap['string']
+    string
   >;
-  TokenSymbol: ProvableExtended<TokenSymbol, Json.TypeMap['string']>;
+  TokenSymbol: ProvableExtended<TokenSymbol, string>;
   Events: ProvableExtended<
     {
       data: Field[][];

@@ -26,7 +26,7 @@ export {
   Struct,
 } from './lib/circuit_value.js';
 export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
-export { Types } from './snarky/types.js';
+export { Types } from './provable/types.js';
 
 export * as Mina from './lib/mina.js';
 export {
