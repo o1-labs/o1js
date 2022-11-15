@@ -75,10 +75,8 @@ export {
   Callback,
   Account,
   VerificationKey,
+  Reducer,
 };
-
-// internal API
-export { Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
 
