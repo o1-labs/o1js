@@ -30,7 +30,7 @@ class TokenContract extends SmartContract {
 
   @method tokenDeploy(deployer: PrivateKey, verificationKey: VerificationKey) {
     let address = deployer.toPublicKey();
-    let tokenId = this.experimental.token.id;
+    let tokenId = this.token.id;
     let deployUpdate = Experimental.createChildAccountUpdate(
       this.self,
       address,
@@ -49,12 +49,12 @@ class TokenContract extends SmartContract {
 
   @method mint(receiverAddress: PublicKey) {
     let amount = UInt64.from(1_000_000);
-    this.experimental.token.mint({ address: receiverAddress, amount });
+    this.token.mint({ address: receiverAddress, amount });
   }
 
   @method burn(receiverAddress: PublicKey) {
     let amount = UInt64.from(1_000);
-    this.experimental.token.burn({ address: receiverAddress, amount });
+    this.token.burn({ address: receiverAddress, amount });
   }
 
   @method sendTokens(
@@ -62,7 +62,7 @@ class TokenContract extends SmartContract {
     receiverAddress: PublicKey,
     callback: Experimental.Callback<any>
   ) {
-    let senderAccountUpdate = this.experimental.approve(
+    let senderAccountUpdate = this.approve(
       callback,
       AccountUpdate.Layout.AnyChildren
     );
@@ -71,7 +71,7 @@ class TokenContract extends SmartContract {
       senderAccountUpdate.body.balanceChange
     );
     negativeAmount.assertEquals(Int64.from(amount).neg());
-    let tokenId = this.experimental.token.id;
+    let tokenId = this.token.id;
     senderAccountUpdate.body.tokenId.assertEquals(tokenId);
     senderAccountUpdate.body.publicKey.assertEquals(senderAddress);
     let receiverAccountUpdate = Experimental.createChildAccountUpdate(
@@ -116,7 +116,7 @@ let tokenAccount1Key = Local.testAccounts[1].privateKey;
 let tokenAccount1 = tokenAccount1Key.toPublicKey();
 
 let tokenZkApp = new TokenContract(tokenZkAppAddress);
-let tokenId = tokenZkApp.experimental.token.id;
+let tokenId = tokenZkApp.token.id;
 
 let zkAppB = new ZkAppB(zkAppBAddress, tokenId);
 let zkAppC = new ZkAppC(zkAppCAddress, tokenId);

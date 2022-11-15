@@ -5,17 +5,16 @@ import {
   prop,
   PublicKey,
   UInt64,
-  Experimental,
-  Token,
   Poseidon,
+  MerkleWitness,
 } from 'snarkyjs';
 
-export class MerkleWitness extends Experimental.MerkleWitness(8) {}
+export class MyMerkleWitness extends MerkleWitness(8) {}
 let w = {
   isLeft: false,
   sibling: Field(0),
 };
-let dummyWitness = Array.from(Array(MerkleWitness.height - 1).keys()).map(
+let dummyWitness = Array.from(Array(MyMerkleWitness.height - 1).keys()).map(
   () => w
 );
 
@@ -34,8 +33,8 @@ export class Member extends CircuitValue {
   // just to avoid double voting, but we can also ignore this for now
   @prop hashVoted: Bool;
 
-  @prop witness: MerkleWitness;
-  @prop votesWitness: MerkleWitness;
+  @prop witness: MyMerkleWitness;
+  @prop votesWitness: MyMerkleWitness;
 
   constructor(
     publicKey: PublicKey,
@@ -52,8 +51,8 @@ export class Member extends CircuitValue {
     this.isCandidate = Bool(false);
     this.votes = Field(0);
 
-    this.witness = new MerkleWitness(dummyWitness);
-    this.votesWitness = new MerkleWitness(dummyWitness);
+    this.witness = new MyMerkleWitness(dummyWitness);
+    this.votesWitness = new MyMerkleWitness(dummyWitness);
   }
 
   getHash(): Field {
