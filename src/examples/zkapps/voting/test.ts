@@ -13,7 +13,7 @@ import {
 import { deployContracts, deployInvalidContracts } from './deployContracts.js';
 import { DummyContract } from './dummyContract.js';
 import { VotingAppParams } from './factory.js';
-import { Member, MerkleWitness } from './member.js';
+import { Member, MyMerkleWitness } from './member.js';
 import { Membership_ } from './membership.js';
 import { OffchainStorage } from './off_chain_storage.js';
 import { Voting_ } from './voting.js';
@@ -768,15 +768,15 @@ export async function testSet(
     () => {
       // attempting to vote for the registered candidate
       currentCandidate = candidatesStore.get(0n)!;
-      currentCandidate.witness = new MerkleWitness(
+      currentCandidate.witness = new MyMerkleWitness(
         candidatesStore.getWitness(0n)
       );
-      currentCandidate.votesWitness = new MerkleWitness(
+      currentCandidate.votesWitness = new MyMerkleWitness(
         votesStore.getWitness(0n)
       );
 
       let v = votersStore.get(0n)!;
-      v.witness = new MerkleWitness(votersStore.getWitness(0n));
+      v.witness = new MyMerkleWitness(votersStore.getWitness(0n));
 
       voting.vote(currentCandidate, v);
     },
