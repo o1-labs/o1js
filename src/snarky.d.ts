@@ -277,7 +277,14 @@ declare class Field {
   // TODO: Izzy to document
   rangeCheckHelper(numBits: number): Field;
 
+  /**
+   * Checks whether this is a hard-coded constant in the Circuit.
+   */
   isConstant(): boolean;
+
+  /**
+   * Returns a constant.
+   */
   toConstant(): Field;
 
   // value(this: Field | number | string | boolean): Field;
@@ -352,7 +359,14 @@ declare class Field {
    * Returns the size of this type.
    */
   static sizeInFields(): number;
+
+  /**
+   * Static method to serialize a {@link Field} into an array of {@link Field} elements.
+   */
   static toFields(x: Field): Field[];
+  /**
+   * Static method to serialize a {@link Field} into its auxiliary data.
+   */
   static toAuxiliary(x?: Field): [];
 
   /*
@@ -385,6 +399,11 @@ declare class Field {
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
   static toJSON(x: Field): string;
+
+  /**
+   * Deserialize a JSON structure into a {@link Field}.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   static fromJSON(x: string | number): Field;
 
   static check(x: Field): void;
@@ -491,6 +510,9 @@ declare class Bool {
    */
   //static false: Bool;
 
+  /**
+   * Serializes a {@link Bool} into an array of {@link Field} elements.
+   */
   static toField(x: Bool | boolean): Field;
 
   static Unsafe: {
@@ -528,15 +550,41 @@ declare class Bool {
    */
   static equal(x: Bool | boolean, y: Bool | boolean): Bool;
 
+  /**
+   * Counts all elements of type {@link Bool}.
+   */
   static count(x: Bool | boolean[]): Field;
 
+  /**
+   * Returns the size of this type.
+   */
   static sizeInFields(): number;
+
+  /**
+   * Static method to serialize a {@link Bool} into an array of {@link Field} elements.
+   */
   static toFields(x: Bool): Field[];
+
+  /**
+   * Static method to serialize a {@link Bool} into its auxiliary data.
+   */
   static toAuxiliary(x?: Bool): [];
+  /**
+   * Creates a data structure from an array of serialized {@link Field} elements.
+   */
   static fromFields(fields: Field[]): Bool;
 
+  /**
+   * Serialize a {@link Bool} to a JSON string.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   static toJSON(x: Bool): boolean;
+  /**
+   * Deserialize a JSON structure into a {@link Bool}.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   */
   static fromJSON(x: boolean): Bool;
+
   static check(x: Bool): void;
 
   // monkey-patched in JS
@@ -584,6 +632,9 @@ declare class Circuit {
     z: Field
   ): void;
 
+  /**
+   * Creates a new variable inside the circuit.
+   */
   static newVariable(f: () => Field | number | string | boolean): Field;
 
   // this convoluted generic typing is needed to give type inference enough flexibility
@@ -598,6 +649,9 @@ declare class Circuit {
    */
   static asProver(f: () => void): void;
 
+  /**
+   * Runs code and checks its correctness.
+   */
   static runAndCheck<T>(f: () => T): T;
 
   /**
@@ -609,18 +663,38 @@ declare class Circuit {
     result: T;
   };
 
+  /**
+   * Creates a generic {@link Provable} array^.
+   */
   static array<T>(elementType: Provable<T>, length: number): Provable<T[]>;
 
+  /**
+   * Asserts that two values are equal.
+   */
   static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
 
+  /**
+   * Asserts that two values are equal.
+   */
   static assertEqual<T>(x: T, y: T): void;
 
+  /**
+   * Checks if two elements are equal.
+   */
   static equal<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): Bool;
 
+  /**
+   * Checks if two elements are equal.
+   */
   static equal<T>(x: T, y: T): Bool;
 
+  /**
+   * Circuit-compatible if-statement.
+   */
   static if<T>(b: Bool | boolean, ctor: ProvablePure<T>, x: T, y: T): T;
-
+  /**
+   * Circuit-compatible if-statement.
+   */
   static if<T>(b: Bool | boolean, x: T, y: T): T;
 
   /**
@@ -639,18 +713,39 @@ declare class Circuit {
     values: T[]
   ): T;
 
+  /**
+   * Generates a proving key and a verification key for this circuit.
+   */
   static generateKeypair(): Keypair;
 
+  /**
+   * Proves a statement using the private input, public input and the {@link Keypair} of the circuit.
+   */
   static prove(privateInput: any[], publicInput: any[], kp: Keypair): Proof;
 
+  /**
+   * Verifies a proof using the public input, the proof and the initial {@link Keypair} of the circuit.
+   */
   static verify(publicInput: any[], vk: VerificationKey, pi: Proof): boolean;
 
+  /**
+   * Serializes an element into {@link Field} elements.
+   */
   static toFields<A>(a: A): Field[];
 
+  /**
+   * Checks if the circuit is in prover mode.
+   */
   static inProver(): boolean;
 
+  /**
+   * Checks if the circuit is in checked computation mode.
+   */
   static inCheckedComputation(): boolean;
 
+  /**
+   * Interface to log elements within a circuit. Similar to `Console.log()`.
+   */
   static log(...args: any): void;
 }
 
