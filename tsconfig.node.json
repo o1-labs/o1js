@@ -4,7 +4,8 @@
     "./src/index.ts",
     "./src/snarky.js",
     "./src/snarky/wrapper.js",
-    "./src/mina-signer"
+    "./src/mina-signer",
+    "./src/provable"
   ],
   "compilerOptions": {
     "outDir": "dist/node"

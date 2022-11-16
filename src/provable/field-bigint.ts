@@ -1,7 +1,14 @@
-import { HashInput, ProvableExtended } from './provable.js';
+import { Binable } from './binable.js';
+import { GenericHashInput, GenericProvableExtended } from './generic.js';
 
 export { Field, Bool, UInt32, UInt64, Sign };
-export { pseudoClass };
+export {
+  pseudoClass,
+  ProvableExtended,
+  HashInput,
+  bigIntToBytes,
+  bytesToBigInt,
+};
 
 type Field = bigint;
 type Bool = 0n | 1n;
@@ -9,16 +16,21 @@ type UInt32 = bigint;
 type UInt64 = bigint;
 type Sign = -1n | 1n;
 
+type HashInput = GenericHashInput<Field>;
+type ProvableExtended<T, J> = GenericProvableExtended<T, J, Field>;
+
 // TODO: auto-generate
 const MODULUS =
   0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001n;
+const SIZE_IN_BITS = MODULUS.toString(2).length;
+const SIZE_IN_BYTES = Math.ceil(SIZE_IN_BITS / 8);
 
-const Field = pseudoClass(function Field(
-  value: bigint | number | string
-): Field {
-  return BigInt(value) % MODULUS;
-},
-ProvableBigint());
+const Field = pseudoClass(
+  function Field(value: bigint | number | string): Field {
+    return BigInt(value) % MODULUS;
+  },
+  { MODULUS, ...ProvableBigint(), ...BinableBigint(SIZE_IN_BYTES) }
+);
 
 const Bool = pseudoClass(
   function Bool(value: boolean): Bool {
@@ -26,14 +38,18 @@ const Bool = pseudoClass(
   },
   {
     ...ProvableBigint<Bool>(),
+    ...BinableBigint<Bool>(1),
     toInput(x: Bool): HashInput {
       return {
         fields: [],
-        packed: [{ field: x, bits: 1 }],
+        packed: [[x, 1]],
       };
     },
     toJSON(x: Bool) {
       return !!x;
+    },
+    sizeInBytes() {
+      return 1;
     },
     Unsafe: {
       fromField(x: Field) {
@@ -54,10 +70,11 @@ function Unsigned(bits: number) {
     },
     {
       ...ProvableBigint(),
+      ...BinableBigint(Math.ceil(bits / 8)),
       toInput(x: bigint): HashInput {
         return {
           fields: [],
-          packed: [{ field: x, bits }],
+          packed: [[x, bits]],
         };
       },
     }
@@ -74,10 +91,11 @@ const Sign = pseudoClass(
   },
   {
     ...ProvableBigint<Sign>(),
+    ...BinableBigint<Sign>(1),
     toInput(x: Sign): HashInput {
       return {
         fields: [],
-        packed: [{ field: x, bits: 1 }],
+        packed: [[x, 1]],
       };
     },
     toJSON(x: Sign) {
@@ -121,4 +139,41 @@ function ProvableBigint<
       return x.toString() as TJSON;
     },
   };
+}
+
+function BinableBigint<T extends bigint = bigint>(
+  sizeInBytes: number
+): Binable<T> {
+  return {
+    toBytes(x) {
+      return bigIntToBytes(x, sizeInBytes);
+    },
+    fromBytes(bytes) {
+      return bytesToBigInt(bytes) as T;
+    },
+    sizeInBytes() {
+      return sizeInBytes;
+    },
+  };
+}
+
+function bytesToBigInt(bytes: Uint8Array | number[]) {
+  let x = 0n;
+  let bitPosition = 0n;
+  for (let byte of bytes) {
+    x += BigInt(byte) << bitPosition;
+    bitPosition += 8n;
+  }
+  return x;
+}
+
+function bigIntToBytes(x: bigint, length: number) {
+  if (x < 0n) {
+    throw Error(`bigIntToBytes: negative numbers are not supported, got ${x}`);
+  }
+  let bytes: number[] = Array(length);
+  for (let i = 0; i < length; i++, x >>= 8n) {
+    bytes[i] = Number(x & 0xffn);
+  }
+  return bytes;
 }

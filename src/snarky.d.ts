@@ -410,6 +410,9 @@ declare class Field {
 
   // monkey-patched in JS
   static toInput(x: Field): { fields: Field[] };
+  static toBytes(x: Field): number[];
+  static fromBytes(bytes: number[]): Field;
+  static sizeInBytes(): number;
 }
 
 /**
@@ -589,6 +592,9 @@ declare class Bool {
 
   // monkey-patched in JS
   static toInput(x: Bool): { packed: [Field, number][] };
+  static toBytes(x: Bool): number[];
+  static fromBytes(bytes: number[]): Bool;
+  static sizeInBytes(): number;
 }
 
 declare interface CircuitMain<W, P> {

@@ -14,17 +14,48 @@ import {
   StringWithHash,
   Events,
   SequenceEvents,
-} from '../transaction-leaves.js';
+} from '../transaction-leaves-bigint.js';
+import { GenericProvableExtended } from '../../provable/generic.js';
 import {
-  provableFromLayout,
-  ProvableExtended,
-} from '../transaction-helpers.js';
+  ProvableFromLayout,
+  GenericLayout,
+} from '../../provable/from-layout.js';
 import * as Json from './transaction-json.js';
 import { jsLayout } from './js-layout.js';
 
 export { customTypes, ZkappCommand, AccountUpdate };
 export { Json };
-export * from '../transaction-leaves.js';
+export * from '../transaction-leaves-bigint.js';
+export { provableFromLayout, toJSONEssential, Layout };
+
+type TypeMap = {
+  PublicKey: PublicKey;
+  UInt64: UInt64;
+  UInt32: UInt32;
+  TokenId: TokenId;
+  Field: Field;
+  Bool: Bool;
+  AuthRequired: AuthRequired;
+  Sign: Sign;
+  AuthorizationKind: AuthorizationKind;
+};
+
+const TypeMap: {
+  [K in keyof TypeMap]: ProvableExtended<TypeMap[K], Json.TypeMap[K]>;
+} = {
+  PublicKey,
+  UInt64,
+  UInt32,
+  TokenId,
+  Field,
+  Bool,
+  AuthRequired,
+  Sign,
+  AuthorizationKind,
+};
+
+type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, Field>;
+type Layout = GenericLayout<TypeMap>;
 
 type CustomTypes = {
   StringWithHash: ProvableExtended<
@@ -32,9 +63,9 @@ type CustomTypes = {
       data: string;
       hash: Field;
     },
-    Json.TypeMap['string']
+    string
   >;
-  TokenSymbol: ProvableExtended<TokenSymbol, Json.TypeMap['string']>;
+  TokenSymbol: ProvableExtended<TokenSymbol, string>;
   Events: ProvableExtended<
     {
       data: Field[][];
@@ -56,6 +87,10 @@ let customTypes: CustomTypes = {
   Events,
   SequenceEvents,
 };
+let { provableFromLayout, toJSONEssential } = ProvableFromLayout<
+  TypeMap,
+  Json.TypeMap
+>(TypeMap, customTypes);
 
 type ZkappCommand = {
   feePayer: {
@@ -258,8 +293,7 @@ type ZkappCommand = {
 };
 
 let ZkappCommand = provableFromLayout<ZkappCommand, Json.ZkappCommand>(
-  jsLayout.ZkappCommand as any,
-  customTypes
+  jsLayout.ZkappCommand as any
 );
 
 type AccountUpdate = {
@@ -451,6 +485,5 @@ type AccountUpdate = {
 };
 
 let AccountUpdate = provableFromLayout<AccountUpdate, Json.AccountUpdate>(
-  jsLayout.AccountUpdate as any,
-  customTypes
+  jsLayout.AccountUpdate as any
 );
