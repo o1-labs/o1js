@@ -47,6 +47,7 @@ function ProvableFromLayout<
   >
 ) {
   type Field = TypeMap['Field'];
+  const Field = TypeMap.Field;
   type HashInput = { fields?: Field[]; packed?: [Field, number][] };
   type Layout = GenericLayout<TypeMap>;
 
@@ -69,11 +70,17 @@ function ProvableFromLayout<
       toJSON(value: T): TJson {
         return toJSON(typeData, value);
       },
+      fromJSON(json: TJson): T {
+        return fromJSON(typeData, json);
+      },
       check(value: T): void {
         check(typeData, value);
       },
       toInput(value: T): HashInput {
         return toInput(typeData, value);
+      },
+      emptyValue(): T {
+        return emptyValue(typeData);
       },
     };
   }
@@ -102,6 +109,61 @@ function ProvableFromLayout<
     );
   }
 
+  function fromJSON(typeData: Layout, json: any): any {
+    let { checkedTypeName } = typeData;
+    if (checkedTypeName) {
+      // there's a custom type!
+      return customTypes[checkedTypeName].fromJSON(json);
+    }
+    if (typeData.type === 'array') {
+      let arrayTypeData = typeData as ArrayLayout<TypeMap>;
+      return json.map((json: any) => fromJSON(arrayTypeData.inner, json));
+    }
+    if (typeData.type === 'option') {
+      let optionTypeData = typeData as OptionLayout<TypeMap>;
+      switch (optionTypeData.optionType) {
+        case 'closedInterval':
+        case 'flaggedOption': {
+          let isSome = TypeMap.Bool.fromJSON(json !== null);
+          let value;
+          if (json !== null) {
+            value = fromJSON(optionTypeData.inner, json);
+          } else {
+            value = emptyValue(optionTypeData.inner);
+            if (optionTypeData.optionType === 'closedInterval') {
+              let innerInner = optionTypeData.inner.entries.lower;
+              let innerType =
+                TypeMap[innerInner.type as keyof TypeMap & keyof JsonMap];
+              value.lower = innerType.fromJSON(optionTypeData.rangeMin);
+              value.upper = innerType.fromJSON(optionTypeData.rangeMax);
+            }
+          }
+          return { isSome, value };
+        }
+        case 'orUndefined': {
+          return json === null
+            ? undefined
+            : fromJSON(optionTypeData.inner, json);
+        }
+        default:
+          throw Error('bug');
+      }
+    }
+    if (typeData.type === 'object') {
+      let { keys, entries } = typeData as ObjectLayout<TypeMap>;
+      let values: Record<string, any> = {};
+      for (let i = 0; i < keys.length; i++) {
+        let typeEntry = entries[keys[i]];
+        values[keys[i]] = fromJSON(typeEntry, json[keys[i]]);
+      }
+      return values;
+    }
+    if (primitiveTypes.has(typeData.type as string)) {
+      return (PrimitiveMap as any)[typeData.type].fromJSON(json);
+    }
+    return (TypeMap as any)[typeData.type].fromJSON(json);
+  }
+
   function toFields(typeData: Layout, value: any) {
     return layoutFold<any, Field[]>(
       {
@@ -126,7 +188,7 @@ function ProvableFromLayout<
     );
   }
 
-  function toAuxiliary(typeData: Layout, value: any) {
+  function toAuxiliary(typeData: Layout, value?: any) {
     return layoutFold<any, any[]>(
       {
         map(type, value) {
@@ -195,6 +257,7 @@ function ProvableFromLayout<
     if (typeData.type === 'option') {
       let { optionType, inner } = typeData as OptionLayout<TypeMap>;
       switch (optionType) {
+        case 'closedInterval':
         case 'flaggedOption': {
           let [first, ...rest] = fields;
           let isSome = TypeMap.Bool.fromFields([first], []);
@@ -229,6 +292,67 @@ function ProvableFromLayout<
       return (PrimitiveMap as any)[typeData.type].fromFields(fields, aux);
     }
     return (TypeMap as any)[typeData.type].fromFields(fields, aux);
+  }
+
+  function emptyValue(typeData: Layout): any {
+    let { checkedTypeName } = typeData;
+    if (checkedTypeName) {
+      return emptyValueBase(typeData);
+    }
+    if (typeData.type === 'array') {
+      let arrayTypeData = typeData as ArrayLayout<TypeMap>;
+      let { inner, staticLength } = arrayTypeData;
+      if (staticLength == null) return [];
+      return Array(staticLength).fill(emptyValue(inner));
+    }
+    if (typeData.type === 'option') {
+      let optionTypeData = typeData as OptionLayout<TypeMap>;
+      switch (optionTypeData.optionType) {
+        case 'closedInterval':
+        case 'flaggedOption': {
+          let isSome = TypeMap.Bool.fromJSON(false);
+          let value = emptyValue(optionTypeData.inner);
+          if (optionTypeData.optionType === 'closedInterval') {
+            let innerInner = optionTypeData.inner.entries.lower;
+            let innerType =
+              TypeMap[innerInner.type as keyof TypeMap & keyof JsonMap];
+            value.lower = innerType.fromJSON(optionTypeData.rangeMin);
+            value.upper = innerType.fromJSON(optionTypeData.rangeMax);
+          }
+          return { isSome, value };
+        }
+        case 'orUndefined': {
+          return undefined;
+        }
+        default:
+          throw Error('bug');
+      }
+    }
+    if (typeData.type === 'object') {
+      let { keys, entries } = typeData as ObjectLayout<TypeMap>;
+      let values: Record<string, any> = {};
+      for (let i = 0; i < keys.length; i++) {
+        let typeEntry = entries[keys[i]];
+        values[keys[i]] = emptyValue(typeEntry);
+      }
+      return values;
+    }
+    return emptyValueBase(typeData);
+  }
+  function emptyValueBase(typeData: Layout) {
+    let { checkedTypeName } = typeData;
+    if (checkedTypeName) {
+      let checkedType = customTypes[checkedTypeName];
+      if (checkedType.emptyValue) return checkedType.emptyValue();
+    }
+    let typeName = typeData.type as keyof TypeMap & keyof JsonMap;
+    if (TypeMap[typeName]) {
+      let type = TypeMap[typeName];
+      if (type.emptyValue) return type.emptyValue();
+    }
+    let zero = Field.fromJSON('0');
+    let fields: Field[] = Array(sizeInFields(typeData)).fill(zero);
+    return fromFields(typeData, fields, toAuxiliary(typeData));
   }
 
   function check(typeData: Layout, value: any) {
@@ -315,6 +439,7 @@ function ProvableFromLayout<
     if (typeData.type === 'option') {
       let { optionType, inner } = typeData as OptionLayout<TypeMap>;
       switch (optionType) {
+        case 'closedInterval':
         case 'flaggedOption':
           let v: { isSome: T; value: T } | undefined = value as any;
           return spec.reduceFlaggedOption({
@@ -402,7 +527,9 @@ type OptionLayout<TypeMap extends AnyTypeMap, T = BaseLayout<AnyTypeMap>> = {
   type: 'option';
 } & (
   | {
-      optionType: 'flaggedOption';
+      optionType: 'closedInterval';
+      rangeMin: any;
+      rangeMax: any;
       inner: RangeLayout<TypeMap, T>;
     }
   | {

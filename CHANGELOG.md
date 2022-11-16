@@ -65,6 +65,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed internal type `JSONValue` from public interfaces https://github.com/o1-labs/snarkyjs/pull/536
 - Returning values from a zkApp https://github.com/o1-labs/snarkyjs/pull/461
 
+### Fixed
+
+- Callback arguments are properly passed into method invocations https://github.com/o1-labs/snarkyjs/pull/516
+
 ## [0.6.1](https://github.com/o1-labs/snarkyjs/compare/ba688523...f0837188)
 
 ### Fixed

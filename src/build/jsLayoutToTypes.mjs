@@ -51,7 +51,7 @@ function writeType(typeData, isJson, withTypeMap) {
       dependencies,
       converters: j,
     } = writeType(inner, isJson, withTypeMap);
-    if (optionType === 'flaggedOption') {
+    if (optionType === 'flaggedOption' || optionType === 'closedInterval') {
       dependencies ??= new Set();
       dependencies.add('Bool');
     }
@@ -61,7 +61,7 @@ function writeType(typeData, isJson, withTypeMap) {
         ? `(${output} | null)`
         : optionType === 'implicit'
         ? output
-        : optionType === 'flaggedOption'
+        : optionType === 'flaggedOption' || optionType === 'closedInterval'
         ? `{isSome: Bool, value: ${output}}`
         : `(${output} | undefined)`,
       dependencies,
@@ -106,7 +106,7 @@ function writeType(typeData, isJson, withTypeMap) {
   };
 }
 
-function writeTsContent(types, isJson) {
+function writeTsContent(types, isJson, leavesRelPath) {
   let output = '';
   let dependencies = new Set();
   let converters = {};
@@ -129,9 +129,7 @@ function writeTsContent(types, isJson) {
   mergeSet(imports, new Set(customTypeNames));
   let typeMapKeys = diffSets(dependencies, new Set(customTypeNames));
 
-  let importPath = isJson
-    ? '../transaction-leaves-json.js'
-    : '../transaction-leaves.js';
+  let importPath = leavesRelPath;
   return `// @generated this file is auto-generated - don't edit it directly
 
 import { ${[...imports].join(', ')} } from '${importPath}';
@@ -148,10 +146,9 @@ export { ${[...exports].join(', ')} };
 ${
   !isJson
     ? 'export { Json };\n' +
-      "export * from '../transaction-leaves.js';\n" +
+      `export * from '${leavesRelPath}';\n` +
       'export { provableFromLayout, toJSONEssential, Layout };\n'
-    : "export * from '../transaction-leaves-json.js';\n" +
-      'export { TypeMap };\n'
+    : `export * from '${leavesRelPath}';\n` + 'export { TypeMap };\n'
 }
 
 type TypeMap = {
@@ -196,15 +193,29 @@ async function writeTsFile(content, relPath) {
   });
   await fs.writeFile(absPath, content);
 }
-
 let genPath = '../../provable/gen';
 await ensureDir(genPath);
 
-let jsonTypesContent = writeTsContent(jsLayout, true);
+let jsonTypesContent = writeTsContent(
+  jsLayout,
+  true,
+  '../transaction-leaves-json.js'
+);
 await writeTsFile(jsonTypesContent, `${genPath}/transaction-json.ts`);
 
-let jsTypesContent = writeTsContent(jsLayout, false);
+let jsTypesContent = writeTsContent(
+  jsLayout,
+  false,
+  '../transaction-leaves.js'
+);
 await writeTsFile(jsTypesContent, `${genPath}/transaction.ts`);
+
+jsTypesContent = writeTsContent(
+  jsLayout,
+  false,
+  '../transaction-leaves-bigint.js'
+);
+await writeTsFile(jsTypesContent, `${genPath}/transaction-bigint.ts`);
 
 await writeTsFile(
   `// @generated this file is auto-generated - don't edit it directly

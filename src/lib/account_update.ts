@@ -14,15 +14,10 @@ import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
 import { inCheckedComputation, Proof, Prover } from './proof_system.js';
-import {
-  emptyHashWithPrefix,
-  hashWithPrefix,
-  packToFields,
-  prefixes,
-  TokenSymbol,
-} from './hash.js';
+import { hashWithPrefix, packToFields, prefixes, TokenSymbol } from './hash.js';
 import * as Encoding from './encoding.js';
 import { Context } from './global-context.js';
+import { Events, SequenceEvents } from '../provable/transaction-leaves.js';
 
 // external API
 export { Permissions, AccountUpdate, ZkappPublicInput };
@@ -246,7 +241,7 @@ let Permissions = {
     setZkappUri: Permission.signature(),
     editSequenceState: Permission.proof(),
     setTokenSymbol: Permission.signature(),
-    incrementNonce: Permissions.signature(),
+    incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
   }),
 
@@ -260,8 +255,22 @@ let Permissions = {
     setZkappUri: Permission.signature(),
     editSequenceState: Permission.signature(),
     setTokenSymbol: Permission.signature(),
-    incrementNonce: Permissions.signature(),
+    incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
+  }),
+
+  dummy: (): Permissions => ({
+    editState: Permission.none(),
+    send: Permission.none(),
+    receive: Permission.none(),
+    setDelegate: Permission.none(),
+    setPermissions: Permission.none(),
+    setVerificationKey: Permission.none(),
+    setZkappUri: Permission.none(),
+    editSequenceState: Permission.none(),
+    setTokenSymbol: Permission.none(),
+    incrementNonce: Permission.none(),
+    setVotingFor: Permission.none(),
   }),
 
   fromString: (permission: AuthRequired): Permission => {
@@ -302,56 +311,6 @@ let Permissions = {
         Permissions.fromString(v),
       ])
     ) as unknown as Permissions;
-  },
-};
-
-type Event = Field[];
-
-type Events = {
-  hash: Field;
-  data: Event[];
-};
-
-const Events = {
-  empty(): Events {
-    let hash = emptyHashWithPrefix('MinaZkappEventsEmpty');
-    return { hash, data: [] };
-  },
-  pushEvent(events: Events, event: Event): Events {
-    let eventHash = hashWithPrefix(prefixes.event, event);
-    let hash = hashWithPrefix(prefixes.events, [events.hash, eventHash]);
-    return { hash, data: [event, ...events.data] };
-  },
-  hash(events: Event[]) {
-    return [...events].reverse().reduce(Events.pushEvent, Events.empty()).hash;
-  },
-};
-
-const SequenceEvents = {
-  // same as events but w/ different hash prefixes
-  empty(): Events {
-    let hash = emptyHashWithPrefix('MinaZkappSequenceEmpty');
-    return { hash, data: [] };
-  },
-  pushEvent(sequenceEvents: Events, event: Event): Events {
-    let eventHash = hashWithPrefix(prefixes.event, event);
-    let hash = hashWithPrefix(prefixes.sequenceEvents, [
-      sequenceEvents.hash,
-      eventHash,
-    ]);
-    return { hash, data: [event, ...sequenceEvents.data] };
-  },
-  hash(events: Event[]) {
-    return [...events]
-      .reverse()
-      .reduce(SequenceEvents.pushEvent, SequenceEvents.empty()).hash;
-  },
-  // different than events
-  emptySequenceState() {
-    return emptyHashWithPrefix('MinaZkappSequenceStateEmptyElt');
-  },
-  updateSequenceState(state: Field, sequenceEventsHash: Field) {
-    return hashWithPrefix(prefixes.sequenceEvents, [state, sequenceEventsHash]);
   },
 };
 
@@ -982,6 +941,13 @@ class AccountUpdate implements Types.AccountUpdate {
   toJSON() {
     return Types.AccountUpdate.toJSON(this);
   }
+  static toJSON(a: AccountUpdate) {
+    return Types.AccountUpdate.toJSON(a);
+  }
+  static fromJSON(json: Types.Json.AccountUpdate) {
+    let accountUpdate = Types.AccountUpdate.fromJSON(json);
+    return new AccountUpdate(accountUpdate.body, accountUpdate.authorization);
+  }
 
   hash() {
     // these two ways of hashing are (and have to be) consistent / produce the same hash
@@ -1143,9 +1109,6 @@ class AccountUpdate implements Types.AccountUpdate {
   }
   static toInput(a: AccountUpdate) {
     return AccountUpdate.provable.toInput(a.toProvable());
-  }
-  static toJSON(a: AccountUpdate) {
-    return AccountUpdate.provable.toJSON(a.toProvable());
   }
   static check(a: AccountUpdate) {
     AccountUpdate.provable.check(a.toProvable());
