@@ -967,7 +967,8 @@ declare const Poseidon: {
     | 'sequenceEvents'
     | 'body'
     | 'accountUpdateCons'
-    | 'accountUpdateNode',
+    | 'accountUpdateNode'
+    | 'zkappMemo',
     string
   >;
   spongeCreate(isChecked: boolean): unknown;
@@ -1080,6 +1081,7 @@ declare class Ledger {
   static transactionCommitments(txJson: string): {
     commitment: Field;
     fullCommitment: Field;
+    feePayerHash: Field;
   };
 
   /**
@@ -1129,6 +1131,7 @@ declare class Ledger {
   static fieldOfBase58(fieldBase58: string): Field;
 
   static memoToBase58(memoString: string): string;
+  static memoHashBase58(memoBase58: string): Field;
 
   static checkAccountUpdateSignature(
     updateJson: string,
@@ -1159,7 +1162,8 @@ declare class Ledger {
       | 'ledgerHash'
       | 'epochSeed'
       | 'stateHash'
-      | 'publicKey',
+      | 'publicKey'
+      | 'userCommandMemo',
       number
     >;
   };

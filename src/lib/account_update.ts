@@ -241,7 +241,7 @@ let Permissions = {
     setZkappUri: Permission.signature(),
     editSequenceState: Permission.proof(),
     setTokenSymbol: Permission.signature(),
-    incrementNonce: Permissions.signature(),
+    incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
   }),
 
@@ -255,8 +255,22 @@ let Permissions = {
     setZkappUri: Permission.signature(),
     editSequenceState: Permission.signature(),
     setTokenSymbol: Permission.signature(),
-    incrementNonce: Permissions.signature(),
+    incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
+  }),
+
+  dummy: (): Permissions => ({
+    editState: Permission.none(),
+    send: Permission.none(),
+    receive: Permission.none(),
+    setDelegate: Permission.none(),
+    setPermissions: Permission.none(),
+    setVerificationKey: Permission.none(),
+    setZkappUri: Permission.none(),
+    editSequenceState: Permission.none(),
+    setTokenSymbol: Permission.none(),
+    incrementNonce: Permission.none(),
+    setVotingFor: Permission.none(),
   }),
 
   fromString: (permission: AuthRequired): Permission => {
@@ -927,6 +941,13 @@ class AccountUpdate implements Types.AccountUpdate {
   toJSON() {
     return Types.AccountUpdate.toJSON(this);
   }
+  static toJSON(a: AccountUpdate) {
+    return Types.AccountUpdate.toJSON(a);
+  }
+  static fromJSON(json: Types.Json.AccountUpdate) {
+    let accountUpdate = Types.AccountUpdate.fromJSON(json);
+    return new AccountUpdate(accountUpdate.body, accountUpdate.authorization);
+  }
 
   hash() {
     // these two ways of hashing are (and have to be) consistent / produce the same hash
@@ -1088,9 +1109,6 @@ class AccountUpdate implements Types.AccountUpdate {
   }
   static toInput(a: AccountUpdate) {
     return AccountUpdate.provable.toInput(a.toProvable());
-  }
-  static toJSON(a: AccountUpdate) {
-    return AccountUpdate.provable.toJSON(a.toProvable());
   }
   static check(a: AccountUpdate) {
     AccountUpdate.provable.check(a.toProvable());

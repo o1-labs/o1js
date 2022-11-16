@@ -65,11 +65,7 @@ function preconditionClass(
 ): any {
   if (layout.type === 'option') {
     // range condition
-    if (
-      layout.optionType === 'flaggedOption' &&
-      layout.inner.type === 'object' &&
-      layout.inner.keys.join(',') === 'lower,upper'
-    ) {
+    if (layout.optionType === 'closedInterval') {
       let lower = layout.inner.entries.lower.type as BaseType;
       let baseType = baseMap[lower];
       return {

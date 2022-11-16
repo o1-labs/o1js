@@ -30,6 +30,7 @@ type GenericProvableExtended<T, TJson, Field> = GenericProvable<T, Field> & {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
   toJSON: (x: T) => TJson;
   fromJSON: (x: TJson) => T;
+  emptyValue?: () => T;
 };
 
 type GenericField<Field> = ((value: number | string | bigint) => Field) &

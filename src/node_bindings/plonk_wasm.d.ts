@@ -457,68 +457,6 @@ export function fq_oracles_dummy(): WasmFqOracles;
 */
 export function fq_oracles_deep_copy(x: WasmFqProverProof): WasmFqProverProof;
 /**
-* @param {string} s
-* @param {number} _len
-* @param {number} base
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_of_numeral(s: string, _len: number, base: number): Uint8Array;
-/**
-* @param {string} s
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_of_decimal_string(s: string): Uint8Array;
-/**
-* @returns {number}
-*/
-export function caml_bigint_256_num_limbs(): number;
-/**
-* @returns {number}
-*/
-export function caml_bigint_256_bytes_per_limb(): number;
-/**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_div(x: Uint8Array, y: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
-* @returns {number}
-*/
-export function caml_bigint_256_compare(x: Uint8Array, y: Uint8Array): number;
-/**
-* @param {Uint8Array} x
-*/
-export function caml_bigint_256_print(x: Uint8Array): void;
-/**
-* @param {Uint8Array} x
-* @returns {string}
-*/
-export function caml_bigint_256_to_string(x: Uint8Array): string;
-/**
-* @param {Uint8Array} x
-* @param {number} i
-* @returns {boolean}
-*/
-export function caml_bigint_256_test_bit(x: Uint8Array, i: number): boolean;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_to_bytes(x: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_of_bytes(x: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_deep_copy(x: Uint8Array): Uint8Array;
-/**
 * @returns {WasmFpGateVector}
 */
 export function caml_pasta_fp_plonk_gate_vector_create(): WasmFpGateVector;
@@ -698,6 +636,68 @@ export function set_u32_ptr(ptr: number, arg: number): void;
 * @returns {number}
 */
 export function wait_until_non_zero(ptr: number): number;
+/**
+* @param {string} s
+* @param {number} _len
+* @param {number} base
+* @returns {Uint8Array}
+*/
+export function caml_bigint_256_of_numeral(s: string, _len: number, base: number): Uint8Array;
+/**
+* @param {string} s
+* @returns {Uint8Array}
+*/
+export function caml_bigint_256_of_decimal_string(s: string): Uint8Array;
+/**
+* @returns {number}
+*/
+export function caml_bigint_256_num_limbs(): number;
+/**
+* @returns {number}
+*/
+export function caml_bigint_256_bytes_per_limb(): number;
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {Uint8Array}
+*/
+export function caml_bigint_256_div(x: Uint8Array, y: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {number}
+*/
+export function caml_bigint_256_compare(x: Uint8Array, y: Uint8Array): number;
+/**
+* @param {Uint8Array} x
+*/
+export function caml_bigint_256_print(x: Uint8Array): void;
+/**
+* @param {Uint8Array} x
+* @returns {string}
+*/
+export function caml_bigint_256_to_string(x: Uint8Array): string;
+/**
+* @param {Uint8Array} x
+* @param {number} i
+* @returns {boolean}
+*/
+export function caml_bigint_256_test_bit(x: Uint8Array, i: number): boolean;
+/**
+* @param {Uint8Array} x
+* @returns {Uint8Array}
+*/
+export function caml_bigint_256_to_bytes(x: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @returns {Uint8Array}
+*/
+export function caml_bigint_256_of_bytes(x: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @returns {Uint8Array}
+*/
+export function caml_bigint_256_deep_copy(x: Uint8Array): Uint8Array;
 /**
 * @returns {number}
 */

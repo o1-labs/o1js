@@ -24,8 +24,12 @@ function derivedLeafTypes<Field, Bool>({
   };
   type AuthorizationKind = { isSigned: Bool; isProved: Bool };
 
+  const defaultTokenId = 1;
   const TokenId = {
     ...provable(Field),
+    emptyValue(): TokenId {
+      return Field(defaultTokenId);
+    },
     toJSON(x: TokenId): Json.TokenId {
       return Encoding.TokenId.toBase58(x);
     },
@@ -59,6 +63,13 @@ function derivedLeafTypes<Field, Bool>({
         ],
       }
     ),
+    emptyValue(): AuthRequired {
+      return {
+        constant: Bool(true),
+        signatureNecessary: Bool(false),
+        signatureSufficient: Bool(true),
+      };
+    },
     toJSON(x: AuthRequired): Json.AuthRequired {
       let c = Number(Bool.toJSON(x.constant));
       let n = Number(Bool.toJSON(x.signatureNecessary));

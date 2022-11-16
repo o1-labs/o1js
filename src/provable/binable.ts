@@ -10,6 +10,8 @@ export {
   base58,
   fieldEncodings,
   prefixToField,
+  bytesToBits,
+  bitsToBytes,
 };
 
 type Binable<T> = {
@@ -147,4 +149,31 @@ function prefixToField<Field>(Field: GenericField<Field>, prefix: string) {
   if (prefix.length >= Field.sizeInBytes()) throw Error('prefix too long');
   let bytes = [...prefix].map((char) => char.charCodeAt(0));
   return Field.fromBytes(bytes);
+}
+
+function bitsToBytes(bits: boolean[]) {
+  let bytes: number[] = [];
+  while (bits.length > 0) {
+    let byteBits = bits.splice(0, 8);
+    let byte = 0;
+    for (let i = 0; i < 8; i++) {
+      if (!byteBits[i]) continue;
+      byte |= 1 << i;
+    }
+    bytes.push(byte);
+  }
+  return bytes;
+}
+
+function bytesToBits(bytes: number[]) {
+  return bytes
+    .map((byte) => {
+      let bits: boolean[] = Array(8);
+      for (let i = 0; i < 8; i++) {
+        bits[i] = !!(byte & 1);
+        byte >>= 1;
+      }
+      return bits;
+    })
+    .flat();
 }

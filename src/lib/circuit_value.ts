@@ -218,31 +218,22 @@ abstract class CircuitValue {
   static fromJSON<T extends AnyConstructor>(
     this: T,
     value: any
-  ): InstanceType<T> | null {
-    const props: any = {};
-    const fields: [string, any][] = (this as any).prototype._fields;
-
-    switch (typeof value) {
-      case 'object':
-        if (value === null || Array.isArray(value)) {
-          return null;
-        }
-        break;
-      default:
-        return null;
+  ): InstanceType<T> {
+    let props: any = {};
+    let fields: [string, any][] = (this as any).prototype._fields;
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      throw Error(`${this.name}.fromJSON(): invalid input ${value}`);
     }
-
     if (fields !== undefined) {
       for (let i = 0; i < fields.length; ++i) {
-        const [key, propType] = fields[i];
+        let [key, propType] = fields[i];
         if (value[key] === undefined) {
-          return null;
+          throw Error(`${this.name}.fromJSON(): invalid input ${value}`);
         } else {
           props[key] = propType.fromJSON(value[key]);
         }
       }
     }
-
     return Object.assign(Object.create(this.prototype), props);
   }
 }

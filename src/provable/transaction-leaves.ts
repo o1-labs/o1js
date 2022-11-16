@@ -4,6 +4,7 @@ import { PublicKey } from '../lib/signature.js';
 import { derivedLeafTypes } from './derived-leaves.js';
 import { createEvents, dataAsHash } from '../lib/events.js';
 import { Poseidon } from '../lib/hash.js';
+import { provable } from '../lib/circuit_value.js';
 
 export {
   PublicKey,
@@ -17,7 +18,7 @@ export {
   TokenId,
 };
 
-export { Events, SequenceEvents, StringWithHash, TokenSymbol };
+export { Events, SequenceEvents, StringWithHash, TokenSymbol, SequenceState };
 
 type AuthRequired = {
   constant: Bool;
@@ -41,8 +42,21 @@ type Events = {
 type SequenceEvents = Events;
 const { Events, SequenceEvents } = createEvents({ Field, Poseidon });
 
+type SequenceState = Field;
+const SequenceState = {
+  ...provable(Field),
+  emptyValue: SequenceEvents.emptySequenceState,
+};
+
 const StringWithHash = dataAsHash<string, string, Field>({
-  emptyValue: '',
+  emptyValue() {
+    return {
+      data: '',
+      hash: Field(
+        '22930868938364086394602058221028773520482901241511717002947639863679740444066'
+      ),
+    };
+  },
   toJSON(data: string) {
     return data;
   },
