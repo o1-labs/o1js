@@ -99,7 +99,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
     for (let i = 0; i < 8; i++) {
       let state = this.self.update.appState[i];
       state.isSome = Bool(true);
-      state.value = Field.zero;
+      state.value = Field(0);
     }
     // since this is the only method of this zkApp that resets the entire state, provedState: true implies
     // that this function was run. Since it can be run only once, this implies it was run exactly once

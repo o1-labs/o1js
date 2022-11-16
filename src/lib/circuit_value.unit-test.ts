@@ -31,7 +31,7 @@ expect(type.sizeInFields()).toEqual(4);
 // toFields
 // note that alphabetical order of keys determines ordering here and elsewhere
 let fields = type.toFields(value);
-expect(fields).toEqual([Field.zero, Field.zero, Field.one, Field(2)]);
+expect(fields).toEqual([Field(0), Field(0), Field(1), Field(2)]);
 
 // toAuxiliary
 let aux = type.toAuxiliary(value);
@@ -40,10 +40,10 @@ expect(aux).toEqual([[[1], [true]], ['arbitrary data!!!'], [], [[], []]]);
 // toInput
 let input = type.toInput(value);
 expect(input).toEqual({
-  fields: [Field.zero],
+  fields: [Field(0)],
   packed: [
-    [Field.zero, 1],
-    [Field.one, 32],
+    [Field(0), 1],
+    [Field(1), 32],
     [Field(2), 32],
   ],
 });
@@ -73,11 +73,11 @@ expect(() =>
       uint: [
         UInt32.zero,
         // invalid Uint32
-        new UInt32(Field.minusOne),
+        new UInt32(Field(-1)),
       ],
     }));
   })
-).toThrow(`Expected ${Field.minusOne} to fit in 32 bits`);
+).toThrow(`Expected ${Field(-1)} to fit in 32 bits`);
 
 // class version of `provable`
 class MyStruct extends Struct({

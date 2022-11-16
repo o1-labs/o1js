@@ -60,7 +60,7 @@ declare class Field {
    * by -1.
    *
    * ```typescript
-   * const negOne = Field.one.neg();
+   * const negOne = Field(1).neg();
    * negOne.assertEquals(-1);
    * ```
    */
@@ -71,7 +71,7 @@ declare class Field {
    *
    * ```typescript
    * const invX = x.inv();
-   * invX.assertEquals(Field.one.div(x));
+   * invX.assertEquals(Field(1).div(x));
    * ```
    *
    * @return A field element that is equivalent to one divided by this element.
@@ -179,7 +179,7 @@ declare class Field {
    * Assert that this [[`Field`]] is lower than another Field-like value.
    *
    * ```ts
-   * Field.one.assertLt(2);
+   * Field(1).assertLt(2);
    * ```
    *
    * This function can only be called inside a checked computation, like a
@@ -190,7 +190,7 @@ declare class Field {
    * Assert that this [[`Field`]] is lower than or equal to another Field-like value.
    *
    * ```ts
-   * Field.one.assertLte(2);
+   * Field(1).assertLte(2);
    * ```
    *
    * This function can only be called inside a checked computation, like a
@@ -201,7 +201,7 @@ declare class Field {
    * Assert that this [[`Field`]] is greater than another Field-like value.
    *
    * ```ts
-   * Field.one.assertGt(0);
+   * Field(1).assertGt(0);
    * ```
    *
    * This function can only be called inside a checked computation, like a
@@ -212,7 +212,7 @@ declare class Field {
    * Assert that this [[`Field`]] is greater than or equal to another Field-like value.
    *
    * ```ts
-   * Field.one.assertGte(0);
+   * Field(1).assertGte(0);
    * ```
    *
    * This function can only be called inside a checked computation, like a
@@ -225,7 +225,7 @@ declare class Field {
    * Throws an error if the assertion fails.
    *
    * ```ts
-   * Field.one.assertEquals(1);
+   * Field(1).assertEquals(1);
    * ```
    */
   assertEquals(y: Field | number | string | boolean, message?: string): void;
@@ -233,7 +233,7 @@ declare class Field {
    * Assert that this [[`Field`]] is either 0 or 1.
    *
    * ```ts
-   * Field.zero.assertBoolean();
+   * Field(0).assertBoolean();
    * ```
    *
    * This function can only be called inside a checked computation, like a
@@ -275,14 +275,20 @@ declare class Field {
 
   /* Self members */
   /**
+   * @deprecated Static constant values on Field are deprecated in favor of using the constructor `Field(1)`.
+   *
    * The number 1 as a [[`Field`]].
    */
   static one: Field;
   /**
+   * @deprecated Static constant values on Field are deprecated in favor of using the constructor `Field(0)`.
+   *
    * The number 0 as a [[`Field`]].
    */
   static zero: Field;
   /**
+   * @deprecated Static constant values on Field are deprecated in favor of using the constructor `Field(-1)`.
+   *
    * The number -1 as a [[`Field`]].
    */
   static minusOne: Field;
@@ -356,10 +362,6 @@ declare class Field {
 
   static toJSON(x: Field): string;
   static fromJSON(x: JSONValue): Field | null;
-
-  static fromString(x: string): Field;
-  static fromNumber(x: number): Field;
-  static fromBigInt(x: bigint): Field;
 
   static check(x: Field): void;
 
