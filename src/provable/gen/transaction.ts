@@ -170,13 +170,6 @@ type ZkappCommand = {
       preconditions: {
         network: {
           snarkedLedgerHash: { isSome: Bool; value: Field };
-          timestamp: {
-            isSome: Bool;
-            value: {
-              lower: UInt64;
-              upper: UInt64;
-            };
-          };
           blockchainLength: {
             isSome: Bool;
             value: {
@@ -364,13 +357,6 @@ type AccountUpdate = {
     preconditions: {
       network: {
         snarkedLedgerHash: { isSome: Bool; value: Field };
-        timestamp: {
-          isSome: Bool;
-          value: {
-            lower: UInt64;
-            upper: UInt64;
-          };
-        };
         blockchainLength: {
           isSome: Bool;
           value: {
