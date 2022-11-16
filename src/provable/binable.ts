@@ -1,7 +1,7 @@
 // generic encoding infrastructure
 import { Ledger } from '../snarky.js';
 
-export { Binable, Base58, withVersionNumber, base58, fieldEncodings };
+export { Binable, Base58, withVersionNumber, tuple, base58, fieldEncodings };
 
 type Binable<T> = {
   toBytes(t: T): number[];
@@ -26,6 +26,44 @@ function withVersionNumber<T>(
     sizeInBytes() {
       let size = binable.sizeInBytes();
       return versionNumber !== undefined ? size + 1 : size;
+    },
+  };
+}
+
+type Tuple<T> = [T, ...T[]] | [];
+
+function tuple<Types extends Tuple<any>>(
+  binables: Array<any> & {
+    [i in keyof Types]: Binable<Types[i]>;
+  }
+): Binable<Types> {
+  let n = binables.length;
+  let sizes = binables.map((b) => b.sizeInBytes());
+  let totalSize = sizes.reduce((s, c) => s + c);
+  return {
+    toBytes(t) {
+      let bytes: number[] = [];
+      for (let i = 0; i < n; i++) {
+        let subBytes = binables[i].toBytes(t[i]);
+        bytes.push(...subBytes);
+      }
+
+      return bytes;
+    },
+    fromBytes(bytes): Types {
+      let offset = 0;
+      let values = [];
+      for (let i = 0; i < n; i++) {
+        let size = sizes[i];
+        let subBytes = bytes.slice(offset, offset + size);
+        let value = binables[i].fromBytes(subBytes);
+        values.push(value);
+        offset += size;
+      }
+      return values as any;
+    },
+    sizeInBytes() {
+      return totalSize;
     },
   };
 }

@@ -2,6 +2,7 @@ export {
   GenericProvable,
   GenericProvablePure,
   GenericProvableExtended,
+  GenericField,
   GenericHashInput,
   primitiveTypes,
   primitiveTypeMap,
@@ -25,7 +26,11 @@ interface GenericProvablePure<T, Field> extends GenericProvable<T, Field> {
 type GenericProvableExtended<T, TJson, Field> = GenericProvable<T, Field> & {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
   toJSON: (x: T) => TJson;
+  fromJSON: (x: TJson) => T;
 };
+
+type GenericField<Field> = ((value: number | string | bigint) => Field) &
+  GenericProvableExtended<Field, string, Field>;
 
 type GenericHashInput<Field> = { fields?: Field[]; packed?: [Field, number][] };
 
@@ -37,6 +42,7 @@ let emptyType = {
   check: () => {},
   toInput: () => ({}),
   toJSON: () => null,
+  fromJSON: () => null,
 };
 let primitiveTypes = new Set(['number', 'string', 'null']);
 
@@ -50,12 +56,14 @@ function primitiveTypeMap<Field>(): {
       ...emptyType,
       toAuxiliary: (value = 0) => [value],
       toJSON: (value) => value,
+      fromJSON: (value) => value,
       fromFields: (_, [value]) => value,
     },
     string: {
       ...emptyType,
       toAuxiliary: (value = '') => [value],
       toJSON: (value) => value,
+      fromJSON: (value) => value,
       fromFields: (_, [value]) => value,
     },
     null: emptyType,

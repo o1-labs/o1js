@@ -5,12 +5,11 @@ import {
   UInt64,
   Sign,
   HashInput,
-  ProvableExtended,
 } from './field-bigint.js';
 import * as Json from './gen/transaction-json.js';
 import { PublicKey } from './curve-bigint.js';
 import { fieldEncodings } from './binable.js';
-import { provable } from './provable-bigint.js';
+import { dataAsHash, provable } from './provable-bigint.js';
 
 export {
   PublicKey,
@@ -45,6 +44,9 @@ const TokenId = {
   toJSON(x: TokenId): Json.TokenId {
     return Encoding.TokenId.toBase58(x);
   },
+  fromJSON(x: Json.TokenId) {
+    return Encoding.TokenId.fromBase58(x);
+  },
 };
 
 const TokenSymbol = {
@@ -54,6 +56,10 @@ const TokenSymbol = {
   },
   toJSON({ symbol }: TokenSymbol) {
     return symbol;
+  },
+  fromJSON(symbol: string): TokenSymbol {
+    // TODO re-derive field from token symbol
+    throw Error('unimplemented');
   },
 };
 
@@ -82,6 +88,21 @@ const AuthRequired = {
       default: throw Error('Unexpected permission');
     }
   },
+  fromJSON(json: Json.AuthRequired): AuthRequired {
+    let map: Record<Json.AuthRequired, string> = {
+      Impossible: '110',
+      None: '101',
+      Proof: '000',
+      Signature: '011',
+      Either: '001',
+    };
+    let code = map[json];
+    if (code === undefined) throw Error('Unexpected permission');
+    let [constant, signatureNecessary, signatureSufficient] = code
+      .split('')
+      .map((s) => Bool(!!Number(s)));
+    return { constant, signatureNecessary, signatureSufficient };
+  },
 };
 
 const AuthorizationKind = {
@@ -100,6 +121,16 @@ const AuthorizationKind = {
       default: throw Error('Unexpected authorization kind');
     }
   },
+  fromJSON(json: Json.AuthorizationKind): AuthorizationKind {
+    let booleans = {
+      None_given: [false, false],
+      Signature: [true, false],
+      Proof: [false, true],
+    }[json];
+    if (booleans === undefined) throw Error('Unexpected authorization kind');
+    let [isSigned, isProved] = booleans.map(Bool);
+    return { isSigned, isProved };
+  },
 };
 
 // types which got an annotation about its circuit type in Ocaml
@@ -109,40 +140,20 @@ const Events = dataAsHash({
   toJSON(data: Field[][]) {
     return data.map((row) => row.map((e) => e.toString()));
   },
+  fromJSON(json: string[][]) {
+    let data = json.map((row) => row.map((e) => Field(e)));
+    // TODO compute hash
+    throw Error('unimplemented');
+  },
 });
 const StringWithHash = dataAsHash({
   emptyValue: '',
   toJSON(data: string) {
     return data;
   },
+  fromJSON(json: string) {
+    let data = json;
+    // TODO compute hash
+    throw Error('unimplemented');
+  },
 });
-
-function dataAsHash<T, J>({
-  emptyValue,
-  toJSON,
-}: {
-  emptyValue: T;
-  toJSON: (value: T) => J;
-}): ProvableExtended<{ data: T; hash: Field }, J> {
-  return {
-    sizeInFields() {
-      return 1;
-    },
-    toFields({ hash }) {
-      return [hash];
-    },
-    toAuxiliary(value) {
-      return [value?.data ?? emptyValue];
-    },
-    fromFields([hash], [data]) {
-      return { data, hash };
-    },
-    toJSON({ data }) {
-      return toJSON(data);
-    },
-    check() {},
-    toInput({ hash }) {
-      return { fields: [hash] };
-    },
-  };
-}

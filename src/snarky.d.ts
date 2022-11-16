@@ -404,7 +404,7 @@ declare class Field {
    * Deserialize a JSON structure into a {@link Field}.
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
-  static fromJSON(x: string | number): Field;
+  static fromJSON(x: string): Field;
 
   static check(x: Field): void;
 
@@ -1158,7 +1158,8 @@ declare class Ledger {
       | 'receiptChainHash'
       | 'ledgerHash'
       | 'epochSeed'
-      | 'stateHash',
+      | 'stateHash'
+      | 'publicKey',
       number
     >;
   };
