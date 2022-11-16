@@ -1,5 +1,5 @@
 import { expect } from 'expect';
-import { isReady, Ledger, Bool as BoolSnarky } from '../snarky.js';
+import { isReady, Ledger, Bool as BoolSnarky, shutdown } from '../snarky.js';
 import { UInt32, UInt64 } from '../lib/int.js';
 import { PrivateKey, PublicKey as PublicKeySnarky } from '../lib/signature.js';
 import {
@@ -179,6 +179,7 @@ let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
 expect(fullCommitment).toEqual(ocamlCommitments.fullCommitment.toBigInt());
 
 console.log('to/from json, hashes & signatures are consistent! 🎉');
+shutdown();
 
 function inputFromOcaml({
   fields,
