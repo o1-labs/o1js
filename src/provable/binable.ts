@@ -6,7 +6,7 @@ export {
   Binable,
   Base58,
   withVersionNumber,
-  compose,
+  tuple,
   base58,
   fieldEncodings,
   prefixToField,
@@ -41,7 +41,7 @@ function withVersionNumber<T>(
 
 type Tuple<T> = [T, ...T[]] | [];
 
-function compose<Types extends Tuple<any>>(
+function tuple<Types extends Tuple<any>>(
   binables: Array<any> & {
     [i in keyof Types]: Binable<Types[i]>;
   }
