@@ -1,6 +1,6 @@
 // Merkle Tree and off chain storage
 
-import { Experimental, Field, Poseidon } from 'snarkyjs';
+import { Field, MerkleTree } from 'snarkyjs';
 
 export { OffchainStorage };
 
@@ -13,7 +13,7 @@ class OffchainStorage<
 
   constructor(public readonly height: number) {
     super();
-    this.merkleTree = new Experimental.MerkleTree(height);
+    this.merkleTree = new MerkleTree(height);
   }
 
   set(key: bigint, value: V): this {

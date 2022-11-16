@@ -5,7 +5,6 @@ import {
   method,
   PrivateKey,
   SmartContract,
-  Experimental,
   Mina,
   AccountUpdate,
   isReady,
@@ -13,6 +12,7 @@ import {
   Bool,
   Circuit,
   Struct,
+  Reducer,
 } from 'snarkyjs';
 import assert from 'node:assert/strict';
 
@@ -26,7 +26,7 @@ const INCREMENT = { isIncrement: Bool(true), otherData: Field(0) };
 
 class CounterZkapp extends SmartContract {
   // the "reducer" field describes a type of action that we can dispatch, and reduce later
-  reducer = Experimental.Reducer({ actionType: MaybeIncrement });
+  reducer = Reducer({ actionType: MaybeIncrement });
 
   // on-chain version of our state. it will typically lag behind the
   // version that's implicitly represented by the list of actions
@@ -103,7 +103,7 @@ let tx = await Mina.transaction(feePayer, () => {
     });
   }
   zkapp.counter.set(initialCounter);
-  zkapp.actionsHash.set(Experimental.Reducer.initialActionsHash);
+  zkapp.actionsHash.set(Reducer.initialActionsHash);
 });
 await tx.send();
 

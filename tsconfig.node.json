@@ -5,7 +5,8 @@
     "./src/snarky.js",
     "./src/snarky/wrapper.js",
     "./src/mina-signer",
-    "./src/js_crypto"
+    "./src/js_crypto",
+    "./src/provable"
   ],
   "compilerOptions": {
     "outDir": "dist/node"

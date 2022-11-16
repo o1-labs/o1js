@@ -40,9 +40,9 @@ class TokenContract extends SmartContract {
    * This is important since we want the native token id of the deployed zkApp to be the token id of the token contract.
    */
   @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
-    let tokenId = this.experimental.token.id;
+    let tokenId = this.token.id;
     let zkapp = AccountUpdate.defaultAccountUpdate(address, tokenId);
-    this.experimental.authorize(zkapp);
+    this.approve(zkapp);
     AccountUpdate.setValue(zkapp.update.permissions, {
       ...Permissions.default(),
       send: Permissions.proof(),
@@ -52,8 +52,9 @@ class TokenContract extends SmartContract {
   }
 
   @method init() {
+    super.init();
     let address = this.self.body.publicKey;
-    let receiver = this.experimental.token.mint({
+    let receiver = this.token.mint({
       address,
       amount: this.SUPPLY,
     });
@@ -70,7 +71,7 @@ class TokenContract extends SmartContract {
       this.SUPPLY.value,
       "Can't mint more than the total supply"
     );
-    this.experimental.token.mint({
+    this.token.mint({
       address: receiverAddress,
       amount,
     });
@@ -85,26 +86,26 @@ class TokenContract extends SmartContract {
       UInt64.from(0).value,
       "Can't burn less than 0"
     );
-    this.experimental.token.burn({
+    this.token.burn({
       address: receiverAddress,
       amount,
     });
     this.totalAmountInCirculation.set(newTotalAmountInCirculation);
   }
 
-  @method authorizeTransferCallback(
+  @method approveTransferCallback(
     senderAddress: PublicKey,
     receiverAddress: PublicKey,
     amount: UInt64,
     callback: Experimental.Callback<any>
   ) {
     let layout = AccountUpdate.Layout.NoChildren; // Allow only 1 accountUpdate with no children
-    let senderAccountUpdate = this.experimental.authorize(callback, layout);
+    let senderAccountUpdate = this.approve(callback, layout);
     let negativeAmount = Int64.fromObject(
       senderAccountUpdate.body.balanceChange
     );
     negativeAmount.assertEquals(Int64.from(amount).neg());
-    let tokenId = this.experimental.token.id;
+    let tokenId = this.token.id;
     senderAccountUpdate.body.tokenId.assertEquals(tokenId);
     senderAccountUpdate.body.publicKey.assertEquals(senderAddress);
     let receiverAccountUpdate = Experimental.createChildAccountUpdate(
@@ -121,20 +122,20 @@ class TokenContract extends SmartContract {
 }
 
 class ZkAppB extends SmartContract {
-  @method approve(amount: UInt64) {
+  @method approveZkapp(amount: UInt64) {
     this.balance.subInPlace(amount);
   }
 }
 
 class ZkAppC extends SmartContract {
-  @method approve(amount: UInt64) {
+  @method approveZkapp(amount: UInt64) {
     this.balance.subInPlace(amount);
   }
 
   @method approveIncorrectLayout(amount: UInt64) {
     this.balance.subInPlace(amount);
     let update = AccountUpdate.defaultAccountUpdate(this.address);
-    this.self.authorize(update);
+    this.self.approve(update);
   }
 }
 
@@ -161,7 +162,7 @@ function setupAccounts() {
   tokenZkappAddress = tokenZkappKey.toPublicKey();
 
   tokenZkapp = new TokenContract(tokenZkappAddress);
-  tokenId = tokenZkapp.experimental.token.id;
+  tokenId = tokenZkapp.token.id;
 
   zkAppBKey = Local.testAccounts[1].privateKey;
   zkAppBAddress = zkAppBKey.toPublicKey();
@@ -182,7 +183,6 @@ async function setupLocal() {
       amount: Mina.accountCreationFee(),
     });
     tokenZkapp.deploy();
-    tokenZkapp.init();
   });
   await tx.prove();
   tx.sign([tokenZkappKey]);
@@ -200,7 +200,6 @@ async function setupLocalProofs() {
       amount: Mina.accountCreationFee(),
     });
     tokenZkapp.deploy();
-    tokenZkapp.init();
     tokenZkapp.deployZkapp(zkAppBAddress, ZkAppB._verificationKey!);
     tokenZkapp.deployZkapp(zkAppCAddress, ZkAppC._verificationKey!);
   });
@@ -372,7 +371,7 @@ describe('Token', () => {
 
         tx = await Mina.transaction(feePayerKey, () => {
           AccountUpdate.fundNewAccount(feePayerKey);
-          tokenZkapp.experimental.token.send({
+          tokenZkapp.token.send({
             from: zkAppBAddress,
             to: zkAppCAddress,
             amount: UInt64.from(10_000),
@@ -401,7 +400,7 @@ describe('Token', () => {
         ).send();
         let tx = (
           await Mina.transaction(feePayerKey, () => {
-            tokenZkapp.experimental.token.send({
+            tokenZkapp.token.send({
               from: zkAppBAddress,
               to: zkAppCAddress,
               amount: UInt64.from(10_000),
@@ -425,7 +424,7 @@ describe('Token', () => {
         ).send();
         let tx = (
           await Mina.transaction(feePayerKey, () => {
-            tokenZkapp.experimental.token.send({
+            tokenZkapp.token.send({
               from: zkAppBAddress,
               to: zkAppCAddress,
               amount: UInt64.from(100_000),
@@ -524,7 +523,7 @@ describe('Token', () => {
       test case description:
       token contract can transfer tokens with a proof
       tested cases:
-        - authorizes a transfer and updates the token balance of the sender and receiver
+        - approves a transfer and updates the token balance of the sender and receiver
         - fails if we specify an incorrect layout to witness when authorizing a transfer
         - fails if we specify an empty parent accountUpdate to bypass authorization
     */
@@ -533,7 +532,7 @@ describe('Token', () => {
         await setupLocalProofs();
       });
 
-      test('should authorize and the balance of a token account after sending', async () => {
+      test('should approve and the balance of a token account after sending', async () => {
         await (
           await Mina.transaction(feePayerKey, () => {
             tokenZkapp.mint(zkAppBAddress, UInt64.from(100_000));
@@ -542,16 +541,16 @@ describe('Token', () => {
         ).send();
 
         let tx = await Mina.transaction(feePayerKey, () => {
-          let authorizeSendingCallback = Experimental.Callback.create(
+          let approveSendingCallback = Experimental.Callback.create(
             zkAppB,
-            'approve',
+            'approveZkapp',
             [UInt64.from(10_000)]
           );
-          tokenZkapp.authorizeTransferCallback(
+          tokenZkapp.approveTransferCallback(
             zkAppBAddress,
             zkAppCAddress,
             UInt64.from(10_000),
-            authorizeSendingCallback
+            approveSendingCallback
           );
         });
         await tx.prove();
@@ -565,7 +564,7 @@ describe('Token', () => {
         ).toEqual(10_000n);
       });
 
-      test('should fail to authorize with an incorrect layout', async () => {
+      test('should fail to approve with an incorrect layout', async () => {
         await (
           await Mina.transaction(feePayerKey, () => {
             tokenZkapp.mint(zkAppCAddress, UInt64.from(100_000));
@@ -574,17 +573,17 @@ describe('Token', () => {
         ).send();
 
         await Mina.transaction(feePayerKey, () => {
-          let authorizeSendingCallback = Experimental.Callback.create(
+          let approveSendingCallback = Experimental.Callback.create(
             zkAppC,
             'approveIncorrectLayout',
             [UInt64.from(10_000)]
           );
           expect(() => {
-            tokenZkapp.authorizeTransferCallback(
+            tokenZkapp.approveTransferCallback(
               zkAppBAddress,
               zkAppCAddress,
               UInt64.from(10_000),
-              authorizeSendingCallback
+              approveSendingCallback
             );
           }).toThrow();
         });
@@ -593,7 +592,7 @@ describe('Token', () => {
       test.skip('should reject tx if user bypasses the token contract by using an empty account update', async () => {
         let tx = await Mina.transaction(feePayerKey, () => {
           AccountUpdate.fundNewAccount(feePayerKey);
-          tokenZkapp.experimental.token.mint({
+          tokenZkapp.token.mint({
             address: zkAppBAddress,
             amount: UInt64.from(100_000),
           });

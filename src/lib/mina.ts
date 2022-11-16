@@ -1,6 +1,6 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, JSONValue, Ledger, LedgerAccount } from '../snarky.js';
+import { Circuit, Ledger, LedgerAccount } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -57,7 +57,7 @@ interface TransactionId {
 interface Transaction {
   transaction: ZkappCommand;
   toJSON(): string;
-  toPretty(): JSONValue;
+  toPretty(): any;
   toGraphqlQuery(): string;
   sign(additionalKeys?: PrivateKey[]): Transaction;
   prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;
@@ -72,13 +72,19 @@ type CurrentTransaction = {
   accountUpdates: AccountUpdate[];
   fetchMode: FetchMode;
   isFinalRunOutsideCircuit: boolean;
+  numberOfRuns: 0 | 1 | undefined;
 };
 
 let currentTransaction = Context.create<CurrentTransaction>();
 
 type FeePayerSpec =
   | PrivateKey
-  | { feePayerKey: PrivateKey; fee?: number | string | UInt64; memo?: string }
+  | {
+      feePayerKey: PrivateKey;
+      fee?: number | string | UInt64;
+      memo?: string;
+      nonce?: number;
+    }
   | undefined;
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
@@ -92,6 +98,7 @@ function reportGetAccountError(publicKey: string, tokenId: string) {
 function createTransaction(
   feePayer: FeePayerSpec,
   f: () => unknown,
+  numberOfRuns: 0 | 1 | undefined,
   {
     fetchMode = 'cached' as FetchMode,
     isFinalRunOutsideCircuit = true,
@@ -105,12 +112,14 @@ function createTransaction(
     feePayer instanceof PrivateKey ? feePayer : feePayer?.feePayerKey;
   let fee = feePayer instanceof PrivateKey ? undefined : feePayer?.fee;
   let memo = feePayer instanceof PrivateKey ? '' : feePayer?.memo ?? '';
+  let nonce = feePayer instanceof PrivateKey ? undefined : feePayer?.nonce;
 
   let transactionId = currentTransaction.enter({
     sender: feePayerKey?.toPublicKey(),
     accountUpdates: [],
     fetchMode,
     isFinalRunOutsideCircuit,
+    numberOfRuns,
   });
 
   // run circuit
@@ -154,11 +163,29 @@ function createTransaction(
   if (feePayerKey !== undefined) {
     // if senderKey is provided, fetch account to get nonce and mark to be signed
     let senderAddress = feePayerKey.toPublicKey();
+
+    let nonce_;
     let senderAccount = getAccount(senderAddress, TokenId.default);
+
+    if (nonce === undefined) {
+      nonce_ = senderAccount.nonce;
+    } else {
+      nonce_ = UInt32.from(nonce);
+      senderAccount.nonce = nonce_;
+      Fetch.addCachedAccount({
+        nonce: senderAccount.nonce,
+        publicKey: senderAccount.publicKey,
+        tokenId: senderAccount.tokenId.toString(),
+        balance: senderAccount.balance,
+        zkapp: {
+          appState: senderAccount.appState ?? [],
+        },
+      });
+    }
     feePayerAccountUpdate = AccountUpdate.defaultFeePayer(
       senderAddress,
       feePayerKey,
-      senderAccount.nonce
+      nonce_
     );
     if (fee !== undefined) {
       feePayerAccountUpdate.body.fee =
@@ -178,12 +205,10 @@ function createTransaction(
   currentTransaction.leave(transactionId);
   let self: Transaction = {
     transaction,
-
     sign(additionalKeys?: PrivateKey[]) {
       self.transaction = addMissingSignatures(self.transaction, additionalKeys);
       return self;
     },
-
     async prove() {
       let { zkappCommand, proofs } = await addMissingProofs(self.transaction, {
         proofsEnabled,
@@ -191,20 +216,16 @@ function createTransaction(
       self.transaction = zkappCommand;
       return proofs;
     },
-
     toJSON() {
       let json = zkappCommandToJson(self.transaction);
       return JSON.stringify(json);
     },
-
     toPretty() {
       return ZkappCommand.toPretty(self.transaction);
     },
-
     toGraphqlQuery() {
       return Fetch.sendZkappQuery(self.toJSON());
     },
-
     async send() {
       return await sendTransaction(self);
     },
@@ -351,7 +372,7 @@ function LocalBlockchain({
         try {
           // reverse errors so they match order of account updates
           // TODO: label updates, and try to give precise explanations about what went wrong
-          let errors = JSON.parse(err.message).reverse();
+          let errors = JSON.parse(err.message);
           err.message = invalidTransactionError(txn.transaction, errors, {
             accountCreationFee,
           });
@@ -429,14 +450,14 @@ function LocalBlockchain({
       // if it doesn't, this is the last chance to run SmartContract.runOutsideCircuit, which is supposed to run only once
       // TODO: this has obvious holes if multiple zkapps are involved, but not relevant currently because we can't prove with multiple account updates
       // and hopefully with upcoming work by Matt we can just run everything in the prover, and nowhere else
-      let tx = createTransaction(sender, f, {
+      let tx = createTransaction(sender, f, 0, {
         isFinalRunOutsideCircuit: false,
         proofsEnabled,
       });
       let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
-      return createTransaction(sender, f, {
+      return createTransaction(sender, f, 1, {
         isFinalRunOutsideCircuit: !hasProofs,
         proofsEnabled,
       });
@@ -585,7 +606,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       };
     },
     async transaction(sender: FeePayerSpec, f: () => void) {
-      let tx = createTransaction(sender, f, {
+      let tx = createTransaction(sender, f, 0, {
         fetchMode: 'test',
         isFinalRunOutsideCircuit: false,
       });
@@ -593,7 +614,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
-      return createTransaction(sender, f, {
+      return createTransaction(sender, f, 1, {
         fetchMode: 'cached',
         isFinalRunOutsideCircuit: !hasProofs,
       });
@@ -669,7 +690,7 @@ let activeInstance: Mina = {
     throw new Error('must call Mina.setActiveInstance first');
   },
   async transaction(sender: FeePayerSpec, f: () => void) {
-    return createTransaction(sender, f);
+    return createTransaction(sender, f, 0);
   },
   fetchEvents() {
     throw Error('must call Mina.setActiveInstance first');
@@ -957,7 +978,7 @@ async function verifyAccountUpdate(
     checkPermission(p, 'incrementNonce');
   }
 
-  // this checks for an edge case where an account update can be authorized using proofs but
+  // this checks for an edge case where an account update can be approved using proofs but
   // a) the proof is invalid (bad verification key)
   // and b) there are no state changes initiate so no permissions will be checked
   // however, if the verification key changes, the proof should still be invalid

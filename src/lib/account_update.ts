@@ -667,7 +667,7 @@ class AccountUpdate implements Types.AccountUpdate {
         amount: number | bigint | UInt64;
       }) {
         let receiver = AccountUpdate.defaultAccountUpdate(address, this.id);
-        thisAccountUpdate.authorize(receiver);
+        thisAccountUpdate.approve(receiver);
         // Add the amount to mint to the receiver's account
         receiver.body.balanceChange = Int64.fromObject(
           receiver.body.balanceChange
@@ -683,7 +683,7 @@ class AccountUpdate implements Types.AccountUpdate {
         amount: number | bigint | UInt64;
       }) {
         let sender = AccountUpdate.defaultAccountUpdate(address, this.id);
-        thisAccountUpdate.authorize(sender);
+        thisAccountUpdate.approve(sender);
         sender.body.useFullCommitment = Bool(true);
 
         // Sub the amount to burn from the sender's account
@@ -706,7 +706,7 @@ class AccountUpdate implements Types.AccountUpdate {
       }) {
         // Create a new accountUpdate for the sender to send the amount to the receiver
         let sender = AccountUpdate.defaultAccountUpdate(from, this.id);
-        thisAccountUpdate.authorize(sender);
+        thisAccountUpdate.approve(sender);
         sender.body.useFullCommitment = Bool(true);
         sender.body.balanceChange = Int64.fromObject(
           sender.body.balanceChange
@@ -763,7 +763,7 @@ class AccountUpdate implements Types.AccountUpdate {
     } else {
       receiver = AccountUpdate.defaultAccountUpdate(to, this.body.tokenId);
     }
-    this.authorize(receiver);
+    this.approve(receiver);
 
     // Sub the amount from the sender's account
     this.body.balanceChange = Int64.fromObject(this.body.balanceChange).sub(
@@ -776,7 +776,7 @@ class AccountUpdate implements Types.AccountUpdate {
     ).add(amount);
   }
 
-  authorize(
+  approve(
     childUpdate: AccountUpdate,
     layout: AccountUpdatesLayout = AccountUpdate.Layout.NoDelegation
   ) {
@@ -866,6 +866,29 @@ class AccountUpdate implements Types.AccountUpdate {
     return this.body.publicKey;
   }
 
+  /**
+   * Use this command if this account update should be signed by the account owner,
+   * instead of not having any authorization.
+   *
+   * If you use this and are not relying on a wallet to sign your transaction, then you should use the following code
+   * before sending your transaction:
+   *
+   * ```ts
+   * let tx = Mina.transaction(...); // create transaction as usual, using `requireSignature()` somewhere
+   * tx.sign([privateKey]); // pass the private key of this account to `sign()`!
+   * ```
+   *
+   * Note that an account's {@link Permissions} determine which updates have to be (can be) authorized by a signature.
+   */
+  requireSignature() {
+    let nonce = AccountUpdate.getNonce(this);
+    this.account.nonce.assertEquals(nonce);
+    this.body.incrementNonce = Bool(true);
+    Authorization.setLazySignature(this, {});
+  }
+  /**
+   * @deprecated `.sign()` is deprecated in favor of `.requireSignature()`
+   */
   sign(privateKey?: PrivateKey) {
     let nonce = AccountUpdate.getNonce(this);
     this.account.nonce.assertEquals(nonce);
@@ -986,7 +1009,7 @@ class AccountUpdate implements Types.AccountUpdate {
   static create(publicKey: PublicKey, tokenId?: Field) {
     let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey, tokenId);
     if (smartContractContext.has()) {
-      smartContractContext.get().this.self.authorize(accountUpdate);
+      smartContractContext.get().this.self.approve(accountUpdate);
     } else {
       Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
     }
@@ -994,7 +1017,12 @@ class AccountUpdate implements Types.AccountUpdate {
   }
   static attachToTransaction(accountUpdate: AccountUpdate) {
     if (smartContractContext.has()) {
-      smartContractContext.get().this.self.authorize(accountUpdate);
+      let selfUpdate = smartContractContext.get().this.self;
+      // avoid redundant attaching & cycle in account update structure, happens
+      // when calling attachToTransaction(this.self) inside a @method
+      // TODO avoid account update cycles more generally
+      if (selfUpdate === accountUpdate) return;
+      smartContractContext.get().this.self.approve(accountUpdate);
     } else {
       if (!Mina.currentTransaction.has()) return;
       let updates = Mina.currentTransaction.get().accountUpdates;
