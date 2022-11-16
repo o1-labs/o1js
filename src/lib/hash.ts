@@ -35,14 +35,16 @@ class Sponge {
 
 const Poseidon = {
   hash(input: Field[]) {
-    let isChecked = inCheckedComputation();
+    let isChecked = !input.every((x) => x.isConstant());
     // this is the same:
     // return Poseidon_.update(this.initialState, input, isChecked)[0];
     return Poseidon_.hash(input, isChecked);
   },
 
   update(state: [Field, Field, Field], input: Field[]) {
-    let isChecked = inCheckedComputation();
+    let isChecked = !(
+      state.every((x) => x.isConstant()) && input.every((x) => x.isConstant())
+    );
     return Poseidon_.update(state, input, isChecked);
   },
 
@@ -72,12 +74,7 @@ const prefixes: typeof Poseidon_.prefixes = new Proxy({} as any, {
 });
 
 function salt(prefix: string) {
-  return Poseidon_.update(
-    Poseidon.initialState,
-    [prefixToField(prefix)],
-    // salt is never suppoesed to run in checked mode
-    false
-  );
+  return Poseidon.update(Poseidon.initialState, [prefixToField(prefix)]);
 }
 
 // same as Random_oracle.prefix_to_field in OCaml
@@ -144,9 +141,9 @@ const TokenSymbolPure: ProvableExtended<
   toJSON({ symbol }) {
     return symbol;
   },
-  fromJSON(json: string) {
-    // TODO re-derive field from token symbol
-    throw Error('unimplemented');
+  fromJSON(symbol: string) {
+    let field = prefixToField(symbol);
+    return { symbol, field };
   },
   toInput({ field }) {
     return { packed: [[field, 48]] };

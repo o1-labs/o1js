@@ -1,7 +1,16 @@
 // generic encoding infrastructure
 import { Ledger } from '../snarky.js';
+import { GenericField } from './generic.js';
 
-export { Binable, Base58, withVersionNumber, tuple, base58, fieldEncodings };
+export {
+  Binable,
+  Base58,
+  withVersionNumber,
+  tuple,
+  base58,
+  fieldEncodings,
+  prefixToField,
+};
 
 type Binable<T> = {
   toBytes(t: T): number[];
@@ -130,4 +139,12 @@ function fieldEncodings<Field>(Field: Binable<Field>) {
     STATE_HASH_VERSION
   );
   return { TokenId, ReceiptChainHash, LedgerHash, EpochSeed, StateHash };
+}
+
+// same as Random_oracle.prefix_to_field in OCaml
+// converts string to bytes and bytes to field; throws if bytes don't fit in one field
+function prefixToField<Field>(Field: GenericField<Field>, prefix: string) {
+  if (prefix.length >= Field.sizeInBytes()) throw Error('prefix too long');
+  let bytes = [...prefix].map((char) => char.charCodeAt(0));
+  return Field.fromBytes(bytes);
 }

@@ -1,10 +1,8 @@
 import { expect } from 'expect';
-import { Bool as BoolSnarky, Field, isReady, Ledger } from '../snarky.js';
+import { isReady } from '../snarky.js';
 import { PublicKey as PublicKeySnarky } from '../lib/signature.js';
 import { PublicKey } from '../provable/curve-bigint.js';
-import { Bool } from '../provable/field-bigint.js';
 import { AccountUpdate, Json } from '../provable/gen/transaction-bigint.js';
-import { tuple, withVersionNumber } from '../provable/binable.js';
 
 await isReady;
 
