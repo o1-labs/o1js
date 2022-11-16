@@ -2,6 +2,7 @@ import { Field as FieldSnarky } from '../snarky.js';
 import { Poseidon as PoseidonSnarky, prefixes } from '../lib/hash.js';
 import { Field, HashInput, sizeInBits } from './field-bigint.js';
 import { bitsToBytes, prefixToField } from './binable.js';
+import { FiniteField, Fp } from 'src/js_crypto/finite_field.js';
 
 export { Poseidon, prefixes, packToFields, hashWithPrefix, packToFieldsLegacy };
 
@@ -66,4 +67,27 @@ function packToFieldsLegacy([...bits]: boolean[]) {
     fields.push(field);
   }
   return fields;
+}
+
+let roundsFull = 55;
+let halfRoundsFull = roundsFull >> 1;
+let initialArk = false;
+let roundsPartial = 0;
+
+function blockCipher(
+  state: Field[],
+  { roundConstants, mds }: { roundConstants: Field[][]; mds: Field[][] }
+) {}
+
+// Ax + b
+function affineMap(x: Field[], A: Field[][], b: Field[]) {
+  let n = x.length;
+  let z = Array(n);
+  for (let i = 0; i < n; i++) {
+    let zi = b[i];
+    for (let j = 0; j < n; j++) {
+      zi = Fp.add(Fp.mul(A[i][j], x[j]), zi);
+    }
+    z[i] = zi;
+  }
 }

@@ -1,6 +1,6 @@
 import { randomBytes } from './random.js';
 
-export { Fp, Fq, p, q, mod, inverse, bytesToBigInt };
+export { Fp, Fq, FiniteField, p, q, mod, inverse, bytesToBigInt };
 
 // CONSTANTS
 
@@ -129,6 +129,7 @@ function bytesToBigInt(bytes: Uint8Array) {
 
 const Fp = createField(p, pMinusOneOddFactor, twoadicRootFp);
 const Fq = createField(q, qMinusOneOddFactor, twoadicRootFq);
+type FiniteField = ReturnType<typeof createField>;
 
 function createField(p: bigint, t: bigint, twoadicRoot: bigint) {
   return {
