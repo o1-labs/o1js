@@ -13,15 +13,12 @@ Merkle Trees give developers the power of storing large amounts of data off-chai
 import {
   SmartContract,
   isReady,
-  shutdown,
   Poseidon,
   Field,
-  Experimental,
   Permissions,
   DeployArgs,
   State,
   state,
-  Circuit,
   CircuitValue,
   PublicKey,
   UInt64,
@@ -31,13 +28,15 @@ import {
   UInt32,
   PrivateKey,
   AccountUpdate,
+  MerkleTree,
+  MerkleWitness,
 } from 'snarkyjs';
 
 await isReady;
 
 const doProofs = true;
 
-class MerkleWitness extends Experimental.MerkleWitness(8) {}
+class MyMerkleWitness extends MerkleWitness(8) {}
 
 class Account extends CircuitValue {
   @prop publicKey: PublicKey;
@@ -81,7 +80,7 @@ class Leaderboard extends SmartContract {
   }
 
   @method
-  guessPreimage(guess: Field, account: Account, path: MerkleWitness) {
+  guessPreimage(guess: Field, account: Account, path: MyMerkleWitness) {
     // this is our hash! its the hash of the preimage "22", but keep it a secret!
     let target = Field(
       '17057234437185175411792943285768571642343179330449434169483610110583519635705'
@@ -133,7 +132,7 @@ Accounts.set('Olivia', olivia);
 
 // we now need "wrap" the Merkle tree around our off-chain storage
 // we initialize a new Merkle Tree with height 8
-const Tree = new Experimental.MerkleTree(8);
+const Tree = new MerkleTree(8);
 
 Tree.setLeaf(0n, bob.hash());
 Tree.setLeaf(1n, alice.hash());
@@ -164,7 +163,7 @@ console.log('Final points: ' + Accounts.get('Bob')?.points);
 async function makeGuess(name: Names, index: bigint, guess: number) {
   let account = Accounts.get(name)!;
   let w = Tree.getWitness(index);
-  let witness = new MerkleWitness(w);
+  let witness = new MyMerkleWitness(w);
 
   let tx = await Mina.transaction(feePayer, () => {
     leaderboardZkApp.guessPreimage(Field(guess), account, witness);

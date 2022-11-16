@@ -72,6 +72,7 @@ type CurrentTransaction = {
   accountUpdates: AccountUpdate[];
   fetchMode: FetchMode;
   isFinalRunOutsideCircuit: boolean;
+  numberOfRuns: 0 | 1 | undefined;
 };
 
 let currentTransaction = Context.create<CurrentTransaction>();
@@ -97,6 +98,7 @@ function reportGetAccountError(publicKey: string, tokenId: string) {
 function createTransaction(
   feePayer: FeePayerSpec,
   f: () => unknown,
+  numberOfRuns: 0 | 1 | undefined,
   {
     fetchMode = 'cached' as FetchMode,
     isFinalRunOutsideCircuit = true,
@@ -117,6 +119,7 @@ function createTransaction(
     accountUpdates: [],
     fetchMode,
     isFinalRunOutsideCircuit,
+    numberOfRuns,
   });
 
   // run circuit
@@ -202,12 +205,10 @@ function createTransaction(
   currentTransaction.leave(transactionId);
   let self: Transaction = {
     transaction,
-
     sign(additionalKeys?: PrivateKey[]) {
       self.transaction = addMissingSignatures(self.transaction, additionalKeys);
       return self;
     },
-
     async prove() {
       let { zkappCommand, proofs } = await addMissingProofs(self.transaction, {
         proofsEnabled,
@@ -215,20 +216,16 @@ function createTransaction(
       self.transaction = zkappCommand;
       return proofs;
     },
-
     toJSON() {
       let json = zkappCommandToJson(self.transaction);
       return JSON.stringify(json);
     },
-
     toPretty() {
       return ZkappCommand.toPretty(self.transaction);
     },
-
     toGraphqlQuery() {
       return Fetch.sendZkappQuery(self.toJSON());
     },
-
     async send() {
       return await sendTransaction(self);
     },
@@ -375,7 +372,7 @@ function LocalBlockchain({
         try {
           // reverse errors so they match order of account updates
           // TODO: label updates, and try to give precise explanations about what went wrong
-          let errors = JSON.parse(err.message).reverse();
+          let errors = JSON.parse(err.message);
           err.message = invalidTransactionError(txn.transaction, errors, {
             accountCreationFee,
           });
@@ -453,14 +450,14 @@ function LocalBlockchain({
       // if it doesn't, this is the last chance to run SmartContract.runOutsideCircuit, which is supposed to run only once
       // TODO: this has obvious holes if multiple zkapps are involved, but not relevant currently because we can't prove with multiple account updates
       // and hopefully with upcoming work by Matt we can just run everything in the prover, and nowhere else
-      let tx = createTransaction(sender, f, {
+      let tx = createTransaction(sender, f, 0, {
         isFinalRunOutsideCircuit: false,
         proofsEnabled,
       });
       let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
-      return createTransaction(sender, f, {
+      return createTransaction(sender, f, 1, {
         isFinalRunOutsideCircuit: !hasProofs,
         proofsEnabled,
       });
@@ -609,7 +606,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       };
     },
     async transaction(sender: FeePayerSpec, f: () => void) {
-      let tx = createTransaction(sender, f, {
+      let tx = createTransaction(sender, f, 0, {
         fetchMode: 'test',
         isFinalRunOutsideCircuit: false,
       });
@@ -617,7 +614,7 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
-      return createTransaction(sender, f, {
+      return createTransaction(sender, f, 1, {
         fetchMode: 'cached',
         isFinalRunOutsideCircuit: !hasProofs,
       });
@@ -693,7 +690,7 @@ let activeInstance: Mina = {
     throw new Error('must call Mina.setActiveInstance first');
   },
   async transaction(sender: FeePayerSpec, f: () => void) {
-    return createTransaction(sender, f);
+    return createTransaction(sender, f, 0);
   },
   fetchEvents() {
     throw Error('must call Mina.setActiveInstance first');

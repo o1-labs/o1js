@@ -33,6 +33,7 @@ import {
   AccountUpdatesLayout,
   smartContractContext,
   zkAppProver,
+  ZkappStateLength,
 } from './account_update.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import * as Mina from './mina.js';
@@ -74,10 +75,8 @@ export {
   Callback,
   Account,
   VerificationKey,
+  Reducer,
 };
-
-// internal API
-export { Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
 
@@ -178,6 +177,7 @@ function wrapMethod(
                 accountUpdates: [],
                 fetchMode: inProver() ? 'cached' : 'test',
                 isFinalRunOutsideCircuit: false,
+                numberOfRuns: undefined,
               },
               () => {
                 // inside prover / compile, the method is always called with the public input as first argument
@@ -693,20 +693,86 @@ class SmartContract {
     verificationKey?: { data: string; hash: Field | string };
     zkappKey?: PrivateKey;
   } = {}) {
+    let accountUpdate = this.newSelf();
     verificationKey ??= (this.constructor as any)._verificationKey;
     if (verificationKey !== undefined) {
       let { hash: hash_, data } = verificationKey;
       let hash = typeof hash_ === 'string' ? Field(hash_) : hash_;
-      this.setValue(this.self.update.verificationKey, { hash, data });
+      this.setValue(accountUpdate.update.verificationKey, { hash, data });
     }
-    this.setValue(this.self.update.permissions, Permissions.default());
-    this.sign(zkappKey);
-    AccountUpdate.attachToTransaction(this.self);
+    this.setValue(accountUpdate.update.permissions, Permissions.default());
+    accountUpdate.sign(zkappKey);
+    AccountUpdate.attachToTransaction(accountUpdate);
+
+    // init if this account is not yet deployed or has no verification key on it
+    let shouldInit =
+      !Mina.hasAccount(this.address) ||
+      Mina.getAccount(this.address).verificationKey !== undefined;
+    if (!shouldInit) return;
+    if (zkappKey) this.init(zkappKey);
+    else this.init();
+    let initUpdate = this.self;
+    // switch back to the deploy account update so the user can make modifications to it
+    this.#executionState = {
+      transactionId: this.#executionState!.transactionId,
+      accountUpdate,
+    };
+    // check if the entire state was overwritten, show a warning if not
+    let isFirstRun = Mina.currentTransaction()?.numberOfRuns === 0;
+    if (!isFirstRun) return;
+    Circuit.asProver(() => {
+      if (
+        initUpdate.update.appState.some(({ isSome }) => !isSome.toBoolean())
+      ) {
+        console.warn(`WARNING: the \`init()\` method was called without overwriting the entire state. This means that your zkApp will lack
+the \`provedState === true\` status which certifies that the current state was verifiably produced by proofs (and not arbitrarily set by the zkApp developer).
+To make sure the entire state is reset, consider adding this line to the beginning of your \`init()\` method:
+super.init();
+`);
+      }
+    });
+  }
+  // TODO make this a @method and create a proof during `zk deploy` (+ add mechanism to skip this)
+  init(zkappKey?: PrivateKey) {
+    // let accountUpdate = this.newSelf(); // this would emulate the behaviour of init() being a @method
+    // TODO: enable this if provedState is available, to make this callable only once
+    // this.account.provedState.assertEquals(Bool(false));
+    zkappKey?.toPublicKey().assertEquals(this.address);
+    let accountUpdate = this.self;
+    for (let i = 0; i < ZkappStateLength; i++) {
+      AccountUpdate.setValue(accountUpdate.body.update.appState[i], Field(0));
+    }
+    AccountUpdate.attachToTransaction(accountUpdate);
   }
 
+  /**
+   * Use this command if the account update created by this SmartContract should be signed by the account owner,
+   * instead of authorized with a proof.
+   *
+   * Note that the smart contract's {@link Permissions} determine which updates have to be (can be) authorized by a signature.
+   *
+   * If you only want to avoid creating proofs for quicker testing, we advise you to
+   * use `LocalBlockchain({ proofsEnabled: false })` instead of `requireSignature()`. Setting
+   * `proofsEnabled` to `false` allows you to test your transactions with the same authorization flow as in production,
+   * with the only difference being that quick mock proofs are filled in instead of real proofs.
+   */
+  requireSignature() {
+    this.self.requireSignature();
+  }
+  /**
+   * @deprecated `this.sign()` is deprecated in favor of `this.requireSignature()`
+   */
   sign(zkappKey?: PrivateKey) {
     this.self.sign(zkappKey);
   }
+  /**
+   * Use this command if the account update created by this SmartContract should have no authorization on it,
+   * instead of being authorized with a proof.
+   *
+   * WARNING: This is a method that should rarely be useful. If you want to disable proofs for quicker testing, take a look
+   * at `LocalBlockchain({ proofsEnabled: false })`, which causes mock proofs to be created and doesn't require changing the
+   * authorization flow.
+   */
   skipAuthorization() {
     Authorization.setLazyNone(this.self);
   }
@@ -742,6 +808,14 @@ class SmartContract {
     this.#executionState = { transactionId, accountUpdate };
     return accountUpdate;
   }
+  // same as this.self, but explicitly creates a _new_ account update
+  newSelf(): AccountUpdate {
+    let inTransaction = Mina.currentTransaction.has();
+    let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
+    let accountUpdate = selfAccountUpdate(this);
+    this.#executionState = { transactionId, accountUpdate };
+    return accountUpdate;
+  }
 
   get account() {
     return this.self.account;
@@ -751,49 +825,42 @@ class SmartContract {
     return this.self.network;
   }
 
-  get experimental() {
-    let zkapp = this;
-    return {
-      get token() {
-        return zkapp.self.token();
-      },
-      /**
-       * Approve an account update or callback. This will include the account update in the zkApp's public input,
-       * which means it allows you to read and use its content in a proof, make assertions about it, and modify it.
-       *
-       * If this is called with a callback as the first parameter, it will first extract the account update produced by that callback.
-       * The extracted account update is returned.
-       *
-       * ```ts
-       * \@method myApprovingMethod(callback: Callback) {
-       *   let approvedUpdate = this.experimental.approve(callback);
-       * }
-       * ```
-       *
-       * Under the hood, "approving" just means that the account update is made a child of the zkApp in the
-       * tree of account updates that forms the transaction.
-       * The second parameter `layout` allows you to also make assertions about the approved update's _own_ children,
-       * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
-       *
-       * @param updateOrCallback
-       * @param layout
-       * @returns The account update that was approved (needed when passing in a Callback)
-       */
-      approve(
-        updateOrCallback: AccountUpdate | Callback<any>,
-        layout?: AccountUpdatesLayout
-      ) {
-        let accountUpdate =
-          updateOrCallback instanceof AccountUpdate
-            ? updateOrCallback
-            : Circuit.witness(
-                AccountUpdate,
-                () => updateOrCallback.accountUpdate
-              );
-        zkapp.self.approve(accountUpdate, layout);
-        return accountUpdate;
-      },
-    };
+  get token() {
+    return this.self.token();
+  }
+
+  /**
+   * Approve an account update or callback. This will include the account update in the zkApp's public input,
+   * which means it allows you to read and use its content in a proof, make assertions about it, and modify it.
+   *
+   * If this is called with a callback as the first parameter, it will first extract the account update produced by that callback.
+   * The extracted account update is returned.
+   *
+   * ```ts
+   * \@method myApprovingMethod(callback: Callback) {
+   *   let approvedUpdate = this.approve(callback);
+   * }
+   * ```
+   *
+   * Under the hood, "approving" just means that the account update is made a child of the zkApp in the
+   * tree of account updates that forms the transaction.
+   * The second parameter `layout` allows you to also make assertions about the approved update's _own_ children,
+   * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
+   *
+   * @param updateOrCallback
+   * @param layout
+   * @returns The account update that was approved (needed when passing in a Callback)
+   */
+  approve(
+    updateOrCallback: AccountUpdate | Callback<any>,
+    layout?: AccountUpdatesLayout
+  ) {
+    let accountUpdate =
+      updateOrCallback instanceof AccountUpdate
+        ? updateOrCallback
+        : Circuit.witness(AccountUpdate, () => updateOrCallback.accountUpdate);
+    this.self.approve(accountUpdate, layout);
+    return accountUpdate;
   }
 
   send(args: {

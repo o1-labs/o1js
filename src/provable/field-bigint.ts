@@ -8,7 +8,9 @@ export {
   HashInput,
   ProvableBigint,
   BinableBigint,
+  bigIntToBytes,
   sizeInBits,
+  bytesToBigInt,
 };
 
 type Field = bigint;
@@ -35,7 +37,7 @@ const Field = pseudoClass(
   function Field(value: bigint | number | string): Field {
     return BigInt(value) % MODULUS;
   },
-  { ...ProvableBigint(), ...BinableBigint(sizeInBytes) }
+  { MODULUS, ...ProvableBigint(), ...BinableBigint(sizeInBytes) }
 );
 
 const Bool = pseudoClass(
@@ -195,6 +197,9 @@ function bytesToBigInt(bytes: Uint8Array | number[]) {
 }
 
 function bigIntToBytes(x: bigint, length: number) {
+  if (x < 0n) {
+    throw Error(`bigIntToBytes: negative numbers are not supported, got ${x}`);
+  }
   let bytes: number[] = Array(length);
   for (let i = 0; i < length; i++, x >>= 8n) {
     bytes[i] = Number(x & 0xffn);
