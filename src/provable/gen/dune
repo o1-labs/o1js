@@ -1,5 +1,9 @@
 (rule
- (targets js-layout.ts transaction.ts transaction-json.ts)
+ (targets
+  js-layout.ts
+  transaction.ts
+  transaction-json.ts
+  transaction-bigint.ts)
  (mode promote)
  (deps
   (:script ../../build/jsLayoutToTypes.mjs)

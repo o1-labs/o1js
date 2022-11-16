@@ -6,24 +6,18 @@ import {
   memoizeWitness,
 } from './circuit_value.js';
 import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
-import { jsLayout, Types } from '../snarky/types.js';
+import { jsLayout } from '../provable/gen/js-layout.js';
+import { Types, toJSONEssential } from '../provable/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
 import { inCheckedComputation, Proof, Prover } from './proof_system.js';
-import {
-  emptyHashWithPrefix,
-  hashWithPrefix,
-  packToFields,
-  prefixes,
-  TokenSymbol,
-} from './hash.js';
+import { hashWithPrefix, packToFields, prefixes, TokenSymbol } from './hash.js';
 import * as Encoding from './encoding.js';
 import { Context } from './global-context.js';
-import { toJSONEssential } from '../snarky/transaction-helpers.js';
-import { customTypes } from '../snarky/gen/transaction.js';
+import { Events, SequenceEvents } from '../provable/transaction-leaves.js';
 
 // external API
 export { Permissions, AccountUpdate, ZkappPublicInput };
@@ -303,56 +297,6 @@ let Permissions = {
         Permissions.fromString(v),
       ])
     ) as unknown as Permissions;
-  },
-};
-
-type Event = Field[];
-
-type Events = {
-  hash: Field;
-  data: Event[];
-};
-
-const Events = {
-  empty(): Events {
-    let hash = emptyHashWithPrefix('MinaZkappEventsEmpty');
-    return { hash, data: [] };
-  },
-  pushEvent(events: Events, event: Event): Events {
-    let eventHash = hashWithPrefix(prefixes.event, event);
-    let hash = hashWithPrefix(prefixes.events, [events.hash, eventHash]);
-    return { hash, data: [event, ...events.data] };
-  },
-  hash(events: Event[]) {
-    return [...events].reverse().reduce(Events.pushEvent, Events.empty()).hash;
-  },
-};
-
-const SequenceEvents = {
-  // same as events but w/ different hash prefixes
-  empty(): Events {
-    let hash = emptyHashWithPrefix('MinaZkappSequenceEmpty');
-    return { hash, data: [] };
-  },
-  pushEvent(sequenceEvents: Events, event: Event): Events {
-    let eventHash = hashWithPrefix(prefixes.event, event);
-    let hash = hashWithPrefix(prefixes.sequenceEvents, [
-      sequenceEvents.hash,
-      eventHash,
-    ]);
-    return { hash, data: [event, ...sequenceEvents.data] };
-  },
-  hash(events: Event[]) {
-    return [...events]
-      .reverse()
-      .reduce(SequenceEvents.pushEvent, SequenceEvents.empty()).hash;
-  },
-  // different than events
-  emptySequenceState() {
-    return emptyHashWithPrefix('MinaZkappSequenceStateEmptyElt');
-  },
-  updateSequenceState(state: Field, sequenceEventsHash: Field) {
-    return hashWithPrefix(prefixes.sequenceEvents, [state, sequenceEventsHash]);
   },
 };
 
@@ -908,6 +852,29 @@ class AccountUpdate implements Types.AccountUpdate {
     return this.body.publicKey;
   }
 
+  /**
+   * Use this command if this account update should be signed by the account owner,
+   * instead of not having any authorization.
+   *
+   * If you use this and are not relying on a wallet to sign your transaction, then you should use the following code
+   * before sending your transaction:
+   *
+   * ```ts
+   * let tx = Mina.transaction(...); // create transaction as usual, using `requireSignature()` somewhere
+   * tx.sign([privateKey]); // pass the private key of this account to `sign()`!
+   * ```
+   *
+   * Note that an account's {@link Permissions} determine which updates have to be (can be) authorized by a signature.
+   */
+  requireSignature() {
+    let nonce = AccountUpdate.getNonce(this);
+    this.account.nonce.assertEquals(nonce);
+    this.body.incrementNonce = Bool(true);
+    Authorization.setLazySignature(this, {});
+  }
+  /**
+   * @deprecated `.sign()` is deprecated in favor of `.requireSignature()`
+   */
   sign(privateKey?: PrivateKey) {
     let nonce = AccountUpdate.getNonce(this);
     this.account.nonce.assertEquals(nonce);
@@ -1029,6 +996,11 @@ class AccountUpdate implements Types.AccountUpdate {
   }
   static attachToTransaction(accountUpdate: AccountUpdate) {
     if (smartContractContext.has()) {
+      let selfUpdate = smartContractContext.get().this.self;
+      // avoid redundant attaching & cycle in account update structure, happens
+      // when calling attachToTransaction(this.self) inside a @method
+      // TODO avoid account update cycles more generally
+      if (selfUpdate === accountUpdate) return;
       smartContractContext.get().this.self.approve(accountUpdate);
     } else {
       if (!Mina.currentTransaction.has()) return;
@@ -1257,8 +1229,7 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     let jsonUpdate: Partial<Types.Json.AccountUpdate> = toJSONEssential(
       jsLayout.AccountUpdate as any,
-      this,
-      customTypes
+      this
     );
     let body: Partial<Types.Json.AccountUpdate['body']> =
       jsonUpdate.body as any;

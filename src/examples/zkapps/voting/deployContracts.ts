@@ -7,6 +7,7 @@ import {
   AccountUpdate,
   PrivateKey,
   SmartContract,
+  Reducer,
 } from 'snarkyjs';
 import { VotingAppParams } from './factory.js';
 
@@ -71,19 +72,15 @@ export async function deployContracts(
 
       voting.deploy({ zkappKey: params.votingKey });
       voting.committedVotes.set(votesRoot);
-      voting.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
+      voting.accumulatedVotes.set(Reducer.initialActionsHash);
 
       candidateContract.deploy({ zkappKey: params.candidateKey });
       candidateContract.committedMembers.set(candidateRoot);
-      candidateContract.accumulatedMembers.set(
-        Experimental.Reducer.initialActionsHash
-      );
+      candidateContract.accumulatedMembers.set(Reducer.initialActionsHash);
 
       voterContract.deploy({ zkappKey: params.voterKey });
       voterContract.committedMembers.set(voterRoot);
-      voterContract.accumulatedMembers.set(
-        Experimental.Reducer.initialActionsHash
-      );
+      voterContract.accumulatedMembers.set(Reducer.initialActionsHash);
     });
     await tx.send();
   } catch (err: any) {
@@ -139,7 +136,7 @@ export async function deployInvalidContracts(
 
       voting.deploy({ zkappKey: params.votingKey });
       voting.committedVotes.set(votesRoot);
-      voting.accumulatedVotes.set(Experimental.Reducer.initialActionsHash);
+      voting.accumulatedVotes.set(Reducer.initialActionsHash);
 
       // invalid contracts
 

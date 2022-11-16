@@ -92,8 +92,6 @@ async function main({ withVesting }: { withVesting: boolean }) {
     feePayerUpdate.send({ to: addresses.tokenY, amount: accountFee.mul(2) });
     tokenX.deploy();
     tokenY.deploy();
-    tokenX.init();
-    tokenY.init();
   });
   await tx.prove();
   tx.sign([keys.tokenX, keys.tokenY]);
