@@ -1,5 +1,5 @@
 // @gen this file is generated - don't edit it directly
-export { prefixes, mds, roundConstants }
+export { prefixes, versionBytes, mds, roundConstants }
 
 let prefixes = {
   "event": "MinaZkappEvent******",
@@ -9,6 +9,15 @@ let prefixes = {
   "accountUpdateCons": "MinaAcctUpdateCons**",
   "accountUpdateNode": "MinaAcctUpdateNode**",
   "zkappMemo": "MinaZkappMemo*******"
+};
+let versionBytes = {
+  "tokenIdKey": 28,
+  "receiptChainHash": 12,
+  "ledgerHash": 5,
+  "epochSeed": 13,
+  "stateHash": 16,
+  "publicKey": 203,
+  "userCommandMemo": 20
 };
 let mds = [
   [
