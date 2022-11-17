@@ -191,13 +191,6 @@ type ZkappCommand = {
               upper: UInt64;
             };
           };
-          globalSlotSinceHardFork: {
-            isSome: Bool;
-            value: {
-              lower: UInt32;
-              upper: UInt32;
-            };
-          };
           globalSlotSinceGenesis: {
             isSome: Bool;
             value: {
@@ -376,13 +369,6 @@ type AccountUpdate = {
           value: {
             lower: UInt64;
             upper: UInt64;
-          };
-        };
-        globalSlotSinceHardFork: {
-          isSome: Bool;
-          value: {
-            lower: UInt32;
-            upper: UInt32;
           };
         };
         globalSlotSinceGenesis: {

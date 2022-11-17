@@ -509,7 +509,6 @@ let NetworkPrecondition = {
       blockchainLength: ignore(uint32()),
       minWindowDensity: ignore(uint32()),
       totalCurrency: ignore(uint64()),
-      globalSlotSinceHardFork: ignore(uint32()),
       globalSlotSinceGenesis: ignore(uint32()),
       stakingEpochData,
       nextEpochData,

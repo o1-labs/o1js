@@ -84,10 +84,6 @@ type ZkappCommand = {
             lower: UInt64;
             upper: UInt64;
           } | null;
-          globalSlotSinceHardFork: {
-            lower: UInt32;
-            upper: UInt32;
-          } | null;
           globalSlotSinceGenesis: {
             lower: UInt32;
             upper: UInt32;
@@ -212,10 +208,6 @@ type AccountUpdate = {
         totalCurrency: {
           lower: UInt64;
           upper: UInt64;
-        } | null;
-        globalSlotSinceHardFork: {
-          lower: UInt32;
-          upper: UInt32;
         } | null;
         globalSlotSinceGenesis: {
           lower: UInt32;
