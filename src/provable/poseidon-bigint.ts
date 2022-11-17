@@ -69,25 +69,100 @@ function packToFieldsLegacy([...bits]: boolean[]) {
   return fields;
 }
 
-let roundsFull = 55;
-let halfRoundsFull = roundsFull >> 1;
-let initialArk = false;
-let roundsPartial = 0;
+type PoseidonParameters = {
+  fullRounds: number;
+  partialRounds: number;
+  hasInitialRoundConstant: boolean;
+  stateSize: number;
+  rate: number;
+  power: number;
+  roundConstants: Field[][];
+  mds: Field[][];
+};
 
-function blockCipher(
-  state: Field[],
-  { roundConstants, mds }: { roundConstants: Field[][]; mds: Field[][] }
-) {}
+let fullRounds = 55;
+let poseidonStateSize = 3;
+let poseidonRate = 2;
+let power = 7;
 
-// Ax + b
-function affineMap(x: Field[], A: Field[][], b: Field[]) {
-  let n = x.length;
-  let z = Array(n);
-  for (let i = 0; i < n; i++) {
-    let zi = b[i];
-    for (let j = 0; j < n; j++) {
-      zi = Fp.add(Fp.mul(A[i][j], x[j]), zi);
-    }
-    z[i] = zi;
+function createPoseidon(
+  Fp: FiniteField,
+  {
+    fullRounds,
+    partialRounds,
+    hasInitialRoundConstant,
+    stateSize,
+    rate,
+    power: power_,
+    roundConstants,
+    mds,
+  }: PoseidonParameters
+) {
+  if (hasInitialRoundConstant) {
+    throw Error("we don't support an initial round constant");
   }
+  if (partialRounds !== 0) {
+    throw Error("we don't support partial rounds");
+  }
+  let power = Field(power_);
+
+  function initialState() {
+    return Array(stateSize).fill(Field(0));
+  }
+
+  function update([...state]: Field[], input: Field[]) {
+    // pad input with zeros so its length is a multiple of the rate
+    let n = Math.ceil(input.length / rate) * rate;
+    input = input.concat(Array(n - input.length).fill(Field(0)));
+    // for every block of length `rate`, add block to the first `rate` elements of the state, and apply the permutation
+    for (let blockIndex = 0; blockIndex < n; blockIndex += rate) {
+      for (let i = 0; i < rate; i++) {
+        state[i] = Fp.add(state[i], input[blockIndex + i]);
+      }
+      permutation(state);
+    }
+    return state;
+  }
+
+  /**
+   * Standard Poseidon (without "partial rounds") goes like this:
+   *
+   *    ARK_0 -> SBOX -> MDS
+   * -> ARK_1 -> SBOX -> MDS
+   * -> ...
+   * -> ARK_{rounds - 1} -> SBOX -> MDS
+   *
+   * where all computation operates on a vector of field elements, the "state", and
+   * - ARK  ... add vector of round constants to the state, element-wise (different vector in each round)
+   * - SBOX ... raise state to a power, element-wise
+   * - MDS  ... multiply the state by a constant matrix (same matrix every round)
+   * (these operations are done modulo p of course)
+   *
+   * For constraint efficiency reasons, in Mina's implementation the first round constant addition is left out
+   * and is done at the end instead, so that effectively the order of operations in each iteration is rotated:
+   *
+   *    SBOX -> MDS -> ARK_0
+   * -> SBOX -> MDS -> ARK_1
+   * -> ...
+   * -> SBOX -> MDS -> ARK_{rounds - 1}
+   *
+   * See also Snarky.Sponge.Poseidon.block_cipher
+   */
+  function permutation(state: Field[]) {
+    for (let round = 0; round < fullRounds; round++) {
+      // raise to a power
+      for (let i = 0; i < stateSize; i++) {
+        state[i] = Fp.power(state[i], power);
+      }
+      let oldState = [...state];
+      for (let i = 0; i < stateSize; i++) {
+        // multiply by mds matrix
+        state[i] = Fp.dot(mds[i], oldState);
+        // add round constants
+        state[i] = Fp.add(state[i], roundConstants[round][i]);
+      }
+    }
+  }
+
+  return { initialState, update };
 }
