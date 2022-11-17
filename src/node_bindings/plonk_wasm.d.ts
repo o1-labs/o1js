@@ -159,6 +159,64 @@ export function caml_pasta_fp_poseidon_block_cipher(state: Uint8Array): Uint8Arr
 */
 export function caml_pasta_fq_poseidon_block_cipher(state: Uint8Array): Uint8Array;
 /**
+* @param {WasmPastaFpPlonkIndex} index
+* @param {WasmVecVecFp} witness
+* @param {Uint8Array} prev_challenges
+* @param {Uint32Array} prev_sgs
+* @returns {WasmFpProverProof}
+*/
+export function caml_pasta_fp_plonk_proof_create(index: WasmPastaFpPlonkIndex, witness: WasmVecVecFp, prev_challenges: Uint8Array, prev_sgs: Uint32Array): WasmFpProverProof;
+/**
+* @param {WasmFpPlonkVerifierIndex} index
+* @param {WasmFpProverProof} proof
+* @returns {boolean}
+*/
+export function caml_pasta_fp_plonk_proof_verify(index: WasmFpPlonkVerifierIndex, proof: WasmFpProverProof): boolean;
+/**
+* @param {Uint32Array} indexes
+* @param {Uint32Array} proofs
+* @returns {boolean}
+*/
+export function caml_pasta_fp_plonk_proof_batch_verify(indexes: Uint32Array, proofs: Uint32Array): boolean;
+/**
+* @returns {WasmFpProverProof}
+*/
+export function caml_pasta_fp_plonk_proof_dummy(): WasmFpProverProof;
+/**
+* @param {WasmFpProverProof} x
+* @returns {WasmFpProverProof}
+*/
+export function caml_pasta_fp_plonk_proof_deep_copy(x: WasmFpProverProof): WasmFpProverProof;
+/**
+* @param {WasmPastaFqPlonkIndex} index
+* @param {WasmVecVecFq} witness
+* @param {Uint8Array} prev_challenges
+* @param {Uint32Array} prev_sgs
+* @returns {WasmFqProverProof}
+*/
+export function caml_pasta_fq_plonk_proof_create(index: WasmPastaFqPlonkIndex, witness: WasmVecVecFq, prev_challenges: Uint8Array, prev_sgs: Uint32Array): WasmFqProverProof;
+/**
+* @param {WasmFqPlonkVerifierIndex} index
+* @param {WasmFqProverProof} proof
+* @returns {boolean}
+*/
+export function caml_pasta_fq_plonk_proof_verify(index: WasmFqPlonkVerifierIndex, proof: WasmFqProverProof): boolean;
+/**
+* @param {Uint32Array} indexes
+* @param {Uint32Array} proofs
+* @returns {boolean}
+*/
+export function caml_pasta_fq_plonk_proof_batch_verify(indexes: Uint32Array, proofs: Uint32Array): boolean;
+/**
+* @returns {WasmFqProverProof}
+*/
+export function caml_pasta_fq_plonk_proof_dummy(): WasmFqProverProof;
+/**
+* @param {WasmFqProverProof} x
+* @returns {WasmFqProverProof}
+*/
+export function caml_pasta_fq_plonk_proof_deep_copy(x: WasmFqProverProof): WasmFqProverProof;
+/**
 * @param {number} depth
 * @returns {WasmFpSrs}
 */
@@ -281,64 +339,6 @@ export function caml_fq_srs_batch_accumulator_generate(srs: WasmFqSrs, comms: nu
 */
 export function caml_fq_srs_h(srs: WasmFqSrs): WasmGPallas;
 /**
-* @param {WasmPastaFpPlonkIndex} index
-* @param {WasmVecVecFp} witness
-* @param {Uint8Array} prev_challenges
-* @param {Uint32Array} prev_sgs
-* @returns {WasmFpProverProof}
-*/
-export function caml_pasta_fp_plonk_proof_create(index: WasmPastaFpPlonkIndex, witness: WasmVecVecFp, prev_challenges: Uint8Array, prev_sgs: Uint32Array): WasmFpProverProof;
-/**
-* @param {WasmFpPlonkVerifierIndex} index
-* @param {WasmFpProverProof} proof
-* @returns {boolean}
-*/
-export function caml_pasta_fp_plonk_proof_verify(index: WasmFpPlonkVerifierIndex, proof: WasmFpProverProof): boolean;
-/**
-* @param {Uint32Array} indexes
-* @param {Uint32Array} proofs
-* @returns {boolean}
-*/
-export function caml_pasta_fp_plonk_proof_batch_verify(indexes: Uint32Array, proofs: Uint32Array): boolean;
-/**
-* @returns {WasmFpProverProof}
-*/
-export function caml_pasta_fp_plonk_proof_dummy(): WasmFpProverProof;
-/**
-* @param {WasmFpProverProof} x
-* @returns {WasmFpProverProof}
-*/
-export function caml_pasta_fp_plonk_proof_deep_copy(x: WasmFpProverProof): WasmFpProverProof;
-/**
-* @param {WasmPastaFqPlonkIndex} index
-* @param {WasmVecVecFq} witness
-* @param {Uint8Array} prev_challenges
-* @param {Uint32Array} prev_sgs
-* @returns {WasmFqProverProof}
-*/
-export function caml_pasta_fq_plonk_proof_create(index: WasmPastaFqPlonkIndex, witness: WasmVecVecFq, prev_challenges: Uint8Array, prev_sgs: Uint32Array): WasmFqProverProof;
-/**
-* @param {WasmFqPlonkVerifierIndex} index
-* @param {WasmFqProverProof} proof
-* @returns {boolean}
-*/
-export function caml_pasta_fq_plonk_proof_verify(index: WasmFqPlonkVerifierIndex, proof: WasmFqProverProof): boolean;
-/**
-* @param {Uint32Array} indexes
-* @param {Uint32Array} proofs
-* @returns {boolean}
-*/
-export function caml_pasta_fq_plonk_proof_batch_verify(indexes: Uint32Array, proofs: Uint32Array): boolean;
-/**
-* @returns {WasmFqProverProof}
-*/
-export function caml_pasta_fq_plonk_proof_dummy(): WasmFqProverProof;
-/**
-* @param {WasmFqProverProof} x
-* @returns {WasmFqProverProof}
-*/
-export function caml_pasta_fq_plonk_proof_deep_copy(x: WasmFqProverProof): WasmFqProverProof;
-/**
 * @param {number | undefined} offset
 * @param {WasmFpSrs} srs
 * @param {string} path
@@ -457,6 +457,60 @@ export function fq_oracles_dummy(): WasmFqOracles;
 */
 export function fq_oracles_deep_copy(x: WasmFqProverProof): WasmFqProverProof;
 /**
+* @returns {WasmFpGateVector}
+*/
+export function caml_pasta_fp_plonk_gate_vector_create(): WasmFpGateVector;
+/**
+* @param {WasmFpGateVector} v
+* @param {WasmFpGate} gate
+*/
+export function caml_pasta_fp_plonk_gate_vector_add(v: WasmFpGateVector, gate: WasmFpGate): void;
+/**
+* @param {WasmFpGateVector} v
+* @param {number} i
+* @returns {WasmFpGate}
+*/
+export function caml_pasta_fp_plonk_gate_vector_get(v: WasmFpGateVector, i: number): WasmFpGate;
+/**
+* @param {WasmFpGateVector} v
+* @param {Wire} t
+* @param {Wire} h
+*/
+export function caml_pasta_fp_plonk_gate_vector_wrap(v: WasmFpGateVector, t: Wire, h: Wire): void;
+/**
+* @param {number} public_input_size
+* @param {WasmFpGateVector} v
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_plonk_gate_vector_digest(public_input_size: number, v: WasmFpGateVector): Uint8Array;
+/**
+* @returns {WasmFqGateVector}
+*/
+export function caml_pasta_fq_plonk_gate_vector_create(): WasmFqGateVector;
+/**
+* @param {WasmFqGateVector} v
+* @param {WasmFqGate} gate
+*/
+export function caml_pasta_fq_plonk_gate_vector_add(v: WasmFqGateVector, gate: WasmFqGate): void;
+/**
+* @param {WasmFqGateVector} v
+* @param {number} i
+* @returns {WasmFqGate}
+*/
+export function caml_pasta_fq_plonk_gate_vector_get(v: WasmFqGateVector, i: number): WasmFqGate;
+/**
+* @param {WasmFqGateVector} v
+* @param {Wire} t
+* @param {Wire} h
+*/
+export function caml_pasta_fq_plonk_gate_vector_wrap(v: WasmFqGateVector, t: Wire, h: Wire): void;
+/**
+* @param {number} public_input_size
+* @param {WasmFqGateVector} v
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fq_plonk_gate_vector_digest(public_input_size: number, v: WasmFqGateVector): Uint8Array;
+/**
 * @param {string} s
 * @param {number} _len
 * @param {number} base
@@ -518,58 +572,6 @@ export function caml_bigint_256_of_bytes(x: Uint8Array): Uint8Array;
 * @returns {Uint8Array}
 */
 export function caml_bigint_256_deep_copy(x: Uint8Array): Uint8Array;
-/**
-* @returns {WasmFpGateVector}
-*/
-export function caml_pasta_fp_plonk_gate_vector_create(): WasmFpGateVector;
-/**
-* @param {WasmFpGateVector} v
-* @param {WasmFpGate} gate
-*/
-export function caml_pasta_fp_plonk_gate_vector_add(v: WasmFpGateVector, gate: WasmFpGate): void;
-/**
-* @param {WasmFpGateVector} v
-* @param {number} i
-* @returns {WasmFpGate}
-*/
-export function caml_pasta_fp_plonk_gate_vector_get(v: WasmFpGateVector, i: number): WasmFpGate;
-/**
-* @param {WasmFpGateVector} v
-* @param {Wire} t
-* @param {Wire} h
-*/
-export function caml_pasta_fp_plonk_gate_vector_wrap(v: WasmFpGateVector, t: Wire, h: Wire): void;
-/**
-* @param {WasmFpGateVector} v
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_plonk_gate_vector_digest(v: WasmFpGateVector): Uint8Array;
-/**
-* @returns {WasmFqGateVector}
-*/
-export function caml_pasta_fq_plonk_gate_vector_create(): WasmFqGateVector;
-/**
-* @param {WasmFqGateVector} v
-* @param {WasmFqGate} gate
-*/
-export function caml_pasta_fq_plonk_gate_vector_add(v: WasmFqGateVector, gate: WasmFqGate): void;
-/**
-* @param {WasmFqGateVector} v
-* @param {number} i
-* @returns {WasmFqGate}
-*/
-export function caml_pasta_fq_plonk_gate_vector_get(v: WasmFqGateVector, i: number): WasmFqGate;
-/**
-* @param {WasmFqGateVector} v
-* @param {Wire} t
-* @param {Wire} h
-*/
-export function caml_pasta_fq_plonk_gate_vector_wrap(v: WasmFqGateVector, t: Wire, h: Wire): void;
-/**
-* @param {WasmFqGateVector} v
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fq_plonk_gate_vector_digest(v: WasmFqGateVector): Uint8Array;
 /**
 * @param {WasmFpGateVector} gates
 * @param {number} public_
@@ -1240,12 +1242,16 @@ export class WasmFpProofEvaluations {
   free(): void;
 /**
 * @param {WasmVecVecFp} w
+* @param {WasmVecVecFp} coefficients
 * @param {Uint8Array} z
 * @param {WasmVecVecFp} s
 * @param {Uint8Array} generic_selector
 * @param {Uint8Array} poseidon_selector
 */
-  constructor(w: WasmVecVecFp, z: Uint8Array, s: WasmVecVecFp, generic_selector: Uint8Array, poseidon_selector: Uint8Array);
+  constructor(w: WasmVecVecFp, coefficients: WasmVecVecFp, z: Uint8Array, s: WasmVecVecFp, generic_selector: Uint8Array, poseidon_selector: Uint8Array);
+/**
+*/
+  coefficients: WasmVecVecFp;
 /**
 */
   generic_selector: Uint8Array;
@@ -1626,12 +1632,16 @@ export class WasmFqProofEvaluations {
   free(): void;
 /**
 * @param {WasmVecVecFq} w
+* @param {WasmVecVecFq} coefficients
 * @param {Uint8Array} z
 * @param {WasmVecVecFq} s
 * @param {Uint8Array} generic_selector
 * @param {Uint8Array} poseidon_selector
 */
-  constructor(w: WasmVecVecFq, z: Uint8Array, s: WasmVecVecFq, generic_selector: Uint8Array, poseidon_selector: Uint8Array);
+  constructor(w: WasmVecVecFq, coefficients: WasmVecVecFq, z: Uint8Array, s: WasmVecVecFq, generic_selector: Uint8Array, poseidon_selector: Uint8Array);
+/**
+*/
+  coefficients: WasmVecVecFq;
 /**
 */
   generic_selector: Uint8Array;
