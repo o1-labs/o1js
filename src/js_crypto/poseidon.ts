@@ -1,4 +1,7 @@
-import { FiniteField } from './finite_field.js';
+import { constants } from './constants.js';
+import { FiniteField, Fp } from './finite_field.js';
+
+export { Poseidon };
 
 type PoseidonParameters = {
   fullRounds: number;
@@ -11,10 +14,21 @@ type PoseidonParameters = {
   mds: bigint[][];
 };
 
-let fullRounds = 55;
-let poseidonStateSize = 3;
-let poseidonRate = 2;
-let power = 7;
+let roundConstants = constants.roundConstants.map((arr) => arr.map(BigInt));
+let mds = constants.mds.map((arr) => arr.map(BigInt));
+
+const parameters: PoseidonParameters = {
+  fullRounds: 55,
+  partialRounds: 0,
+  hasInitialRoundConstant: false,
+  stateSize: 3,
+  rate: 2,
+  power: 7,
+  roundConstants,
+  mds,
+};
+
+const Poseidon = createPoseidon(Fp, parameters);
 
 function createPoseidon(
   Fp: FiniteField,
@@ -37,7 +51,7 @@ function createPoseidon(
   }
   let power = BigInt(power_);
 
-  function initialState() {
+  function initialState(): bigint[] {
     return Array(stateSize).fill(0n);
   }
 
