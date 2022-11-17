@@ -1,4 +1,4 @@
-import { constants } from './constants.js';
+import * as Constants from './constants.js';
 import { FiniteField, Fp } from './finite_field.js';
 
 export { Poseidon };
@@ -14,8 +14,8 @@ type PoseidonParameters = {
   mds: bigint[][];
 };
 
-let roundConstants = constants.roundConstants.map((arr) => arr.map(BigInt));
-let mds = constants.mds.map((arr) => arr.map(BigInt));
+let roundConstants = Constants.roundConstants.map((arr) => arr.map(BigInt));
+let mds = Constants.mds.map((arr) => arr.map(BigInt));
 
 const parameters: PoseidonParameters = {
   fullRounds: 55,

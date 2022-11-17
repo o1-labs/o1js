@@ -1,7 +1,7 @@
-import { prefixes } from '../lib/hash.js';
 import { Field, HashInput, sizeInBits } from './field-bigint.js';
 import { bitsToBytes, prefixToField } from './binable.js';
 import { Poseidon } from '../js_crypto/poseidon.js';
+import { prefixes } from '../js_crypto/constants.js';
 
 export { Poseidon, prefixes, packToFields, hashWithPrefix, packToFieldsLegacy };
 
