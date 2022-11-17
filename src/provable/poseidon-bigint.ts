@@ -1,27 +1,9 @@
-import { Field as FieldSnarky } from '../snarky.js';
-import { Poseidon as PoseidonSnarky, prefixes } from '../lib/hash.js';
+import { prefixes } from '../lib/hash.js';
 import { Field, HashInput, sizeInBits } from './field-bigint.js';
 import { bitsToBytes, prefixToField } from './binable.js';
+import { Poseidon } from '../js_crypto/poseidon.js';
 
 export { Poseidon, prefixes, packToFields, hashWithPrefix, packToFieldsLegacy };
-
-const Poseidon = {
-  update(state: [Field, Field, Field], input: Field[]): [Field, Field, Field] {
-    let stateSnarky = state.map(FieldSnarky) as [
-      FieldSnarky,
-      FieldSnarky,
-      FieldSnarky
-    ];
-    let inputSnarky = input.map(FieldSnarky);
-    let [s1, s2, s3] = PoseidonSnarky.update(stateSnarky, inputSnarky).map(
-      (x) => x.toBigInt()
-    );
-    return [Field(s1), Field(s2), Field(s3)];
-  },
-  initialState() {
-    return [Field(0), Field(0), Field(0)] as [Field, Field, Field];
-  },
-};
 
 function salt(prefix: string) {
   return Poseidon.update(Poseidon.initialState(), [

@@ -14,7 +14,7 @@ const prefixes: typeof Poseidon_.prefixes = new Proxy({} as any, {
 });
 
 type Poseidon<Field> = {
-  update(state: [Field, Field, Field], input: Field[]): [Field, Field, Field];
+  update(state: Field[], input: Field[]): Field[];
 };
 
 function createEvents<Field>({
