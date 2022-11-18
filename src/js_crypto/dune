@@ -7,16 +7,14 @@
    (run %{exe:../../../snarky_js_constants.exe}))))
 
 (rule
- (targets poseidonKimchiTestVectors.ts)
+ (target poseidonKimchiTestVectors.ts)
  (mode promote)
  (deps
   (:script ./dump-test-vectors.sh)
   (source_tree ../../../../crypto/proof-systems)
   ../../.prettierrc.cjs
-  ../../package.json
   (glob_files ../../node_modules/prettier/*))
- ;(locks /cargo-lock) ; lock for rustup
  (action
   (progn
    (run chmod -R +w ../../../../crypto/proof-systems/ .)
-   (run %{script} poseidonKimchiTestVectors.ts))))
+   (run %{script} %{target}))))
