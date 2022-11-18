@@ -1464,10 +1464,11 @@ function createChildAccountUpdate(
 }
 function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
   child.body.callDepth = parent.body.callDepth + 1;
+  let wasChildAlready = parent.children.accountUpdates.find(
+    (update) => update.id === child.id
+  );
   // add to our children if not already here
-  if (
-    !parent.children.accountUpdates.find((update) => update.id === child.id)
-  ) {
+  if (!wasChildAlready) {
     parent.children.accountUpdates.push(child);
   }
   // remove the child from the top level list / its current parent
@@ -1477,7 +1478,7 @@ function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
     if (i !== undefined && i !== -1) {
       topLevelUpdates!.splice(i, 1);
     }
-  } else {
+  } else if (!wasChildAlready) {
     let siblings = child.parent.children.accountUpdates;
     let i = siblings?.findIndex((update) => update.id === child.id);
     if (i !== undefined && i !== -1) {
