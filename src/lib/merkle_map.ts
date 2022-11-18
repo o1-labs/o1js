@@ -1,23 +1,13 @@
-import {
-  Experimental,
-  isReady,
-  shutdown,
-  Field,
-  Bool,
-  SelfProof,
-  CircuitValue,
-  arrayProp,
-  Poseidon,
-  prop,
-  Circuit,
-} from 'snarkyjs'
+import { arrayProp, CircuitValue, Circuit } from './circuit_value.js';
+import { Field, Bool } from './core.js';
+import { Poseidon } from './hash.js';
+import { MerkleTree, MerkleWitness } from './merkle_tree.js';
 
 const bits = 255;
-
 const printDebugs = false;
 
 export class MerkleMap {
-  tree: InstanceType<typeof Experimental.MerkleTree>;
+  tree: InstanceType<typeof MerkleTree>;
 
   // ------------------------------------------------
 
@@ -30,21 +20,28 @@ export class MerkleMap {
       throw Error('bits must be <= 255');
     }
     if (bits != 255) {
-      console.warn('bits set to', bits + '. Should be set to 255 in production to avoid collisions');
+      console.warn(
+        'bits set to',
+        bits + '. Should be set to 255 in production to avoid collisions'
+      );
     }
-    this.tree = new Experimental.MerkleTree(bits+1);
+    this.tree = new MerkleTree(bits + 1);
   }
 
   // ------------------------------------------------
 
   _keyToIndex(key: Field) {
     // the bit map is reversed to make reconstructing the key during proving more convenient
-    let keyBits = key.toBits().slice(0,bits).reverse().map((b) => b.toBoolean());
+    let keyBits = key
+      .toBits()
+      .slice(0, bits)
+      .reverse()
+      .map((b) => b.toBoolean());
 
-    let n = BigInt(0);
+    let n = 0n;
     for (let i = 0; i < keyBits.length; i++) {
       const b = keyBits[i] ? 1 : 0;
-      n += BigInt(2)**BigInt(i) * BigInt(b);
+      n += 2n ** BigInt(i) * BigInt(b);
     }
 
     return n;
@@ -91,23 +88,26 @@ export class MerkleMap {
    */
   getWitness(key: Field) {
     const index = this._keyToIndex(key);
-    const value = this.tree.getNode(0, index);
-    const root = this.tree.getRoot();
-
-    class MerkleWitness extends Experimental.MerkleWitness(bits + 1) {}
-
-    const witness = new MerkleWitness(this.tree.getWitness(index));
+    class MyMerkleWitness extends MerkleWitness(bits + 1) {}
+    const witness = new MyMerkleWitness(this.tree.getWitness(index));
 
     if (printDebugs) {
       // witness bits and key bits should be the reverse of each other, so
       // we can calculate the key during recursively traversing the path
-      console.log('witness bits', witness.isLeft.map((l) => l.toBoolean() ? '0' : '1').join(', '));
-      console.log('key bits', key.toBits().slice(0,bits).map((l) => l.toBoolean() ? '1' : '0').join(', '));
+      console.log(
+        'witness bits',
+        witness.isLeft.map((l) => (l.toBoolean() ? '0' : '1')).join(', ')
+      );
+      console.log(
+        'key bits',
+        key
+          .toBits()
+          .slice(0, bits)
+          .map((l) => (l.toBoolean() ? '1' : '0'))
+          .join(', ')
+      );
     }
-
-    const mapWitness = new MerkleMapWitness(witness.isLeft, witness.path);
-
-    return mapWitness;
+    return new MerkleMapWitness(witness.isLeft, witness.path);
   }
 }
 
@@ -141,14 +141,11 @@ export class MerkleMapWitness extends CircuitValue {
       const right = Circuit.if(isLeft[i], siblings[i], hash);
       hash = Poseidon.hash([left, right]);
 
-      const bit = Circuit.if(isLeft[i], Field(0), Field(1))
+      const bit = Circuit.if(isLeft[i], Field(0), Field(1));
 
       key = key.mul(2).add(bit);
     }
 
-    return [ hash, key ]
+    return [hash, key];
   }
 }
-
-// =======================================================
-
