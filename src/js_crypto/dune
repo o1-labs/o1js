@@ -5,16 +5,3 @@
   (with-stdout-to
    constants.ts
    (run %{exe:../../../snarky_js_constants.exe}))))
-
-(rule
- (target poseidonKimchiTestVectors.ts)
- (mode promote)
- (deps
-  (:script ./dump-test-vectors.sh)
-  (source_tree ../../../../crypto/proof-systems)
-  ../../.prettierrc.cjs
-  (glob_files ../../node_modules/prettier/*))
- (action
-  (progn
-   (run chmod -R +w ../../../../crypto/proof-systems/ .)
-   (run %{script} %{target}))))

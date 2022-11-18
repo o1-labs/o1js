@@ -1,6 +1,6 @@
 // @gen this file is generated - don't edit it directly
-export { testVectors };
-let testVectors = {
+export { testPoseidonKimchiFp };
+let testPoseidonKimchiFp = {
   name: 'kimchi',
   test_vectors: [
     {
