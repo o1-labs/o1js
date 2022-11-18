@@ -1,5 +1,5 @@
 // @gen this file is generated - don't edit it directly
-export { prefixes, versionBytes, poseidonParams }
+export { prefixes, versionBytes, poseidonParamsKimchiFp }
 
 let prefixes = {
   "event": "MinaZkappEvent******",
@@ -23,7 +23,7 @@ let versionBytes = {
   "privateKey": 90,
   "signature": 154
 };
-let poseidonParams = {
+let poseidonParamsKimchiFp = {
   "mds": [
     [
       "12035446894107573964500871153637039653510326950134440362813193268448863222019",

@@ -1,4 +1,4 @@
-import { poseidonParams } from './constants.js';
+import { poseidonParamsKimchiFp } from './constants.js';
 import { FiniteField, Fp } from './finite_field.js';
 
 export { Poseidon };
@@ -14,7 +14,7 @@ type PoseidonParameters = {
   mds: string[][];
 };
 
-const Poseidon = createPoseidon(Fp, poseidonParams);
+const Poseidon = createPoseidon(Fp, poseidonParamsKimchiFp);
 
 function createPoseidon(
   Fp: FiniteField,
