@@ -1,4 +1,4 @@
-import { Ledger } from '../snarky.js';
+import { versionBytes } from '../js_crypto/constants.js';
 import { base58, tuple, withVersionNumber } from './binable.js';
 import {
   BinableBigint,
@@ -24,10 +24,7 @@ let BinablePublicKey = withVersionNumber(
   tuple([FieldWithVersion, Bool]),
   PUBLIC_KEY_VERSION
 );
-let Base58PublicKey = base58(
-  BinablePublicKey,
-  () => Ledger.encoding.versionBytes.publicKey
-);
+let Base58PublicKey = base58(BinablePublicKey, versionBytes.publicKey);
 
 const PublicKey = {
   ...provable({ x: Field, isOdd: Bool }),
@@ -43,14 +40,14 @@ const PublicKey = {
 
 const OTHER_MODULUS =
   0x40000000000000000000000000000000224698fc0994a8dd8c46eb2100000001n;
-const SIZE_IN_BITS = OTHER_MODULUS.toString(2).length;
-const SIZE_IN_BYTES = Math.ceil(SIZE_IN_BITS / 8);
+const sizeInBits = OTHER_MODULUS.toString(2).length;
+const sizeInBytes = Math.ceil(sizeInBits / 8);
 
 const Scalar = pseudoClass(
   function Scalar(value: bigint | number | string): Scalar {
     return BigInt(value) % OTHER_MODULUS;
   },
-  { ...ProvableBigint(), ...BinableBigint(SIZE_IN_BYTES) }
+  { ...ProvableBigint(), ...BinableBigint(sizeInBytes) }
 );
 
 const PrivateKey = {

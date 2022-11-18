@@ -1,5 +1,6 @@
 // generic encoding infrastructure
 import { Ledger } from '../snarky.js';
+import { versionBytes } from '../js_crypto/constants.js';
 import { GenericField } from './generic.js';
 
 export {
@@ -84,16 +85,16 @@ type Base58<T> = {
   fromBase58(base58: string): T;
 };
 
-function base58<T>(binable: Binable<T>, versionByte: () => number): Base58<T> {
+function base58<T>(binable: Binable<T>, versionByte: number): Base58<T> {
   return {
     toBase58(t) {
       let bytes = binable.toBytes(t);
       let binaryString = String.fromCharCode(...bytes);
       let ocamlBytes = { t: 9, c: binaryString, l: bytes.length };
-      return Ledger.encoding.toBase58(ocamlBytes, versionByte());
+      return Ledger.encoding.toBase58(ocamlBytes, versionByte);
     },
     fromBase58(base58) {
-      let ocamlBytes = Ledger.encoding.ofBase58(base58, versionByte());
+      let ocamlBytes = Ledger.encoding.ofBase58(base58, versionByte);
       let bytes = [...ocamlBytes.c].map((_, i) => ocamlBytes.c.charCodeAt(i));
       return binable.fromBytes(bytes);
     },
@@ -104,7 +105,7 @@ function base58<T>(binable: Binable<T>, versionByte: () => number): Base58<T> {
 
 function customEncoding<Field>(
   Field: Binable<Field>,
-  versionByte: () => number,
+  versionByte: number,
   versionNumber?: number
 ) {
   return base58(withVersionNumber(Field, versionNumber), versionByte);
@@ -116,28 +117,25 @@ const EPOCH_SEED_VERSION = 1;
 const STATE_HASH_VERSION = 1;
 
 function fieldEncodings<Field>(Field: Binable<Field>) {
-  const TokenId = customEncoding(
-    Field,
-    () => Ledger.encoding.versionBytes.tokenIdKey
-  );
+  const TokenId = customEncoding(Field, versionBytes.tokenIdKey);
   const ReceiptChainHash = customEncoding(
     Field,
-    () => Ledger.encoding.versionBytes.receiptChainHash,
+    versionBytes.receiptChainHash,
     RECEIPT_CHAIN_HASH_VERSION
   );
   const LedgerHash = customEncoding(
     Field,
-    () => Ledger.encoding.versionBytes.ledgerHash,
+    versionBytes.ledgerHash,
     LEDGER_HASH_VERSION
   );
   const EpochSeed = customEncoding(
     Field,
-    () => Ledger.encoding.versionBytes.epochSeed,
+    versionBytes.epochSeed,
     EPOCH_SEED_VERSION
   );
   const StateHash = customEncoding(
     Field,
-    () => Ledger.encoding.versionBytes.stateHash,
+    versionBytes.stateHash,
     STATE_HASH_VERSION
   );
   return { TokenId, ReceiptChainHash, LedgerHash, EpochSeed, StateHash };

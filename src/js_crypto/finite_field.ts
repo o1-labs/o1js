@@ -1,6 +1,6 @@
 import { randomBytes } from './random.js';
 
-export { Fp, Fq, p, q, mod, inverse, bytesToBigInt };
+export { Fp, Fq, FiniteField, p, q, mod, inverse, bytesToBigInt };
 
 // CONSTANTS
 
@@ -31,8 +31,6 @@ function mod(x: bigint, p: bigint) {
 // modular exponentiation, a^n % p
 function power(a: bigint, n: bigint, p: bigint) {
   a = mod(a, p);
-  // this assumes that p is prime, so that a^(p-1) % p = 1
-  n = mod(n, p - 1n);
   let x = 1n;
   for (; n > 0n; n >>= 1n) {
     if (n & 1n) x = mod(x * a, p);
@@ -129,6 +127,7 @@ function bytesToBigInt(bytes: Uint8Array) {
 
 const Fp = createField(p, pMinusOneOddFactor, twoadicRootFp);
 const Fq = createField(q, qMinusOneOddFactor, twoadicRootFq);
+type FiniteField = ReturnType<typeof createField>;
 
 function createField(p: bigint, t: bigint, twoadicRoot: bigint) {
   return {
@@ -168,6 +167,14 @@ function createField(p: bigint, t: bigint, twoadicRoot: bigint) {
     },
     power(x: bigint, n: bigint) {
       return power(x, n, p);
+    },
+    dot(x: bigint[], y: bigint[]) {
+      let z = 0n;
+      let n = x.length;
+      for (let i = 0; i < n; i++) {
+        z += x[i] * y[i];
+      }
+      return mod(z, p);
     },
     equal(x: bigint, y: bigint) {
       return mod(x - y, p) === 0n;

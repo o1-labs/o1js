@@ -1,10 +1,10 @@
-import { Ledger } from '../snarky.js';
 import { base58, Binable, bytesToBits } from '../provable/binable.js';
 import {
   hashWithPrefix,
   packToFieldsLegacy,
   prefixes,
 } from '../provable/poseidon-bigint.js';
+import { versionBytes } from '../js_crypto/constants.js';
 
 export { Memo };
 
@@ -39,5 +39,5 @@ const Memo = {
   fromString,
   hash,
   ...Binable,
-  ...base58(Binable, () => Ledger.encoding.versionBytes.userCommandMemo),
+  ...base58(Binable, versionBytes.userCommandMemo),
 };
