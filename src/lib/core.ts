@@ -15,10 +15,7 @@ Field.toInput = function (x) {
 
 // binable
 Field.toBytes = function (x) {
-  if (!x.isConstant()) {
-    throw Error("toBytes: Field is not constant, can't read its value");
-  }
-  return [...(x as any as InternalConstantField).value[1]];
+  return [...(x.toConstant() as any as InternalConstantField).value[1]];
 };
 Field.fromBytes = function (bytes) {
   let uint8array = new Uint8Array(32);
