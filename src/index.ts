@@ -62,6 +62,7 @@ export * as Encryption from './lib/encryption.js';
 export * as Encoding from './lib/encoding.js';
 export { Character, CircuitString } from './lib/string.js';
 export { MerkleTree, MerkleWitness } from './lib/merkle_tree.js';
+export { MerkleMap, MerkleMapWitness } from './lib/merkle_map.js';
 
 // experimental APIs
 import { ZkProgram } from './lib/proof_system.js';
