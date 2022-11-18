@@ -1,4 +1,4 @@
-import { isReady, shutdown, Poseidon, Field, Experimental } from 'snarkyjs';
+import { isReady, shutdown, Field, MerkleMap } from 'snarkyjs';
 
 describe('Merkle Map', () => {
   beforeAll(async () => {
@@ -9,7 +9,7 @@ describe('Merkle Map', () => {
   });
 
   it('set and get a value from a key', () => {
-    const map = new Experimental.MerkleMap();
+    const map = new MerkleMap();
 
     const key = Field.random();
     const value = Field.random();
@@ -20,7 +20,7 @@ describe('Merkle Map', () => {
   });
 
   it('check merkle map witness computes the correct root and key', () => {
-    const map = new Experimental.MerkleMap();
+    const map = new MerkleMap();
 
     const key = Field.random();
     const value = Field.random();
@@ -29,17 +29,17 @@ describe('Merkle Map', () => {
 
     const witness = map.getWitness(key);
 
-    const emptyMap = new Experimental.MerkleMap();
+    const emptyMap = new MerkleMap();
 
-    const [ emptyLeafWitnessRoot, witnessKey ] = witness.computeRootAndKey(Field(0));
-    const [ witnessRoot, _ ] = witness.computeRootAndKey(value);
+    const [emptyLeafWitnessRoot, witnessKey] = witness.computeRootAndKey(
+      Field(0)
+    );
+    const [witnessRoot, _] = witness.computeRootAndKey(value);
 
     expect(
-      emptyLeafWitnessRoot.equals(emptyMap.getRoot()).toBoolean()
-    && witnessKey.equals(key).toBoolean()
-    && witnessRoot.equals(map.getRoot()).toBoolean()
-    )
-
+      emptyLeafWitnessRoot.equals(emptyMap.getRoot()).toBoolean() &&
+        witnessKey.equals(key).toBoolean() &&
+        witnessRoot.equals(map.getRoot()).toBoolean()
+    );
   });
 });
-
