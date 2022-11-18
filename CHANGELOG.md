@@ -15,7 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/9a94231c...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/705f58d3...HEAD)
+
+### Added
+
+- `MerkleMap` and `MerkleMapWitness` https://github.com/o1-labs/snarkyjs/pull/546
+
+## [0.7.1](https://github.com/o1-labs/snarkyjs/compare/f0837188...705f58d3)
+
+### Fixed
+
+- Testnet-incompatible signatures in v0.7.0 https://github.com/o1-labs/snarkyjs/pull/565
 
 ## [0.7.0](https://github.com/o1-labs/snarkyjs/compare/f0837188...9a94231c)
 
