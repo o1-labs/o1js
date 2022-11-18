@@ -62,21 +62,19 @@ export * as Encryption from './lib/encryption.js';
 export * as Encoding from './lib/encoding.js';
 export { Character, CircuitString } from './lib/string.js';
 export { MerkleTree, MerkleWitness } from './lib/merkle_tree.js';
+export { MerkleMap, MerkleMapWitness } from './lib/merkle_map.js';
 
 // experimental APIs
 import { ZkProgram } from './lib/proof_system.js';
 import { Callback } from './lib/zkapp.js';
 import { createChildAccountUpdate } from './lib/account_update.js';
 import { memoizeWitness } from './lib/circuit_value.js';
-import { MerkleMap, MerkleMapWitness } from './lib/merkle_map.js';
 export { Experimental };
 
 const Experimental_ = {
   Callback,
   createChildAccountUpdate,
   memoizeWitness,
-  MerkleMap,
-  MerkleMapWitness,
   ZkProgram,
 };
 
@@ -90,8 +88,6 @@ namespace Experimental {
   export let ZkProgram = Experimental_.ZkProgram;
   export let createChildAccountUpdate = Experimental_.createChildAccountUpdate;
   export let memoizeWitness = Experimental_.memoizeWitness;
-  export let MerkleMap = Experimental_.MerkleMap;
-  export let MerkleMapWitness = Experimental_.MerkleMapWitness;
   export let Callback = Experimental_.Callback;
   export type Callback<Result> = Callback_<Result>;
 }
