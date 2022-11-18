@@ -1,4 +1,4 @@
-import * as Constants from './constants.js';
+import { poseidonParams } from './constants.js';
 import { FiniteField, Fp } from './finite_field.js';
 
 export { Poseidon };
@@ -10,25 +10,11 @@ type PoseidonParameters = {
   stateSize: number;
   rate: number;
   power: number;
-  roundConstants: bigint[][];
-  mds: bigint[][];
+  roundConstants: string[][];
+  mds: string[][];
 };
 
-let roundConstants = Constants.roundConstants.map((arr) => arr.map(BigInt));
-let mds = Constants.mds.map((arr) => arr.map(BigInt));
-
-const parameters: PoseidonParameters = {
-  fullRounds: 55,
-  partialRounds: 0,
-  hasInitialRoundConstant: false,
-  stateSize: 3,
-  rate: 2,
-  power: 7,
-  roundConstants,
-  mds,
-};
-
-const Poseidon = createPoseidon(Fp, parameters);
+const Poseidon = createPoseidon(Fp, poseidonParams);
 
 function createPoseidon(
   Fp: FiniteField,
@@ -39,8 +25,8 @@ function createPoseidon(
     stateSize,
     rate,
     power: power_,
-    roundConstants,
-    mds,
+    roundConstants: roundConstants_,
+    mds: mds_,
   }: PoseidonParameters
 ) {
   if (hasInitialRoundConstant) {
@@ -50,6 +36,8 @@ function createPoseidon(
     throw Error("we don't support partial rounds");
   }
   let power = BigInt(power_);
+  let roundConstants = roundConstants_.map((arr) => arr.map(BigInt));
+  let mds = mds_.map((arr) => arr.map(BigInt));
 
   function initialState(): bigint[] {
     return Array(stateSize).fill(0n);
