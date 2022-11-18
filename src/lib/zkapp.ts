@@ -81,8 +81,8 @@ export {
 const reservedPropNames = new Set(['_methods', '_']);
 
 /**
- * A decorator to use in a zkapp to mark a method as callable by anyone.
- * You can use inside your zkapp class as:
+ * A decorator to use in a zkApp to mark a method as callable by anyone.
+ * You can use inside your zkApp class as:
  *
  * ```
  * \@method myMethod(someArg: Field) {
@@ -602,6 +602,9 @@ class SmartContract {
   static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
 
+  /**
+   * Returns a Proof type that belongs to this {@link SmartContract}.
+   */
   static Proof() {
     let Contract = this;
     return class extends Proof<ZkappPublicInput> {
@@ -686,6 +689,16 @@ class SmartContract {
     return hash.toBigInt().toString(16);
   }
 
+  /**
+   * Deploys a {@link SmartContract}.
+   *
+   * ```ts
+   * let tx = await Mina.transaction(feePayer, () => {
+   *    AccountUpdate.fundNewAccount(feePayer, { initialBalance });
+   *    zkapp.deploy({ zkappKey });
+   * });
+   * ```
+   */
   deploy({
     verificationKey,
     zkappKey,
@@ -733,6 +746,19 @@ super.init();
     });
   }
   // TODO make this a @method and create a proof during `zk deploy` (+ add mechanism to skip this)
+  /**
+   * `SmartContract.init()` will be called only when a {@link SmartContract} will be first deployed, not for redeployment.
+   * This method can be overridden as follows
+   * ```
+   * class MyContract extends SmartContract {
+   *  init() {
+   *    super.init();
+   *    this.setPermissions();
+   *    this.x.set(Field(1));
+   *  }
+   * }
+   * ```
+   */
   init(zkappKey?: PrivateKey) {
     // let accountUpdate = this.newSelf(); // this would emulate the behaviour of init() being a @method
     // TODO: enable this if provedState is available, to make this callable only once
@@ -752,6 +778,9 @@ super.init();
     Authorization.setLazyNone(this.self);
   }
 
+  /**
+   * Returns the current {@link AccountUpdate} associated to this {@link SmartContract}.
+   */
   get self(): AccountUpdate {
     let inTransaction = Mina.currentTransaction.has();
     let inSmartContract = smartContractContext.has();
@@ -784,6 +813,9 @@ super.init();
     return accountUpdate;
   }
   // same as this.self, but explicitly creates a _new_ account update
+  /**
+   * Same as `SmartContract.self` but explicitly creates a new {@link AccountUpdate}.
+   */
   newSelf(): AccountUpdate {
     let inTransaction = Mina.currentTransaction.has();
     let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
@@ -792,14 +824,21 @@ super.init();
     return accountUpdate;
   }
 
+  /**
+   * Current account of the {@link SmartContract}.
+   */
   get account() {
     return this.self.account;
   }
-
+  /**
+   * Current network state of the {@link SmartContract}.
+   */
   get network() {
     return this.self.network;
   }
-
+  /**
+   * Token of the {@link SmartContract}.
+   */
   get token() {
     return this.self.token();
   }
@@ -845,17 +884,27 @@ super.init();
     return this.self.send(args);
   }
 
+  /**
+   * Token symbol of this token.
+   */
   get tokenSymbol() {
     return this.self.tokenSymbol;
   }
-
+  /**
+   * Balance of this {@link SmartContract}.
+   */
   get balance() {
     return this.self.balance;
   }
-
+  /**
+   * A list of event types that can be emitted using this.emitEvent()`.
+   */
   events: { [key: string]: ProvablePure<any> } = {};
 
   // TODO: not able to type event such that it is inferred correctly so far
+  /**
+   * Emits an event. Events will be emitted as a part of the transaction and can be collected by archive nodes.
+   */
   emitEvent<K extends keyof this['events']>(type: K, event: any) {
     let accountUpdate = this.self;
     let eventTypes: (keyof this['events'])[] = Object.keys(this.events);
@@ -889,6 +938,9 @@ super.init();
     );
   }
 
+  /**
+   * Fetches a list of events that have been emitted by this {@link SmartContract}.
+   */
   async fetchEvents(
     start: UInt32 = UInt32.from(0),
     end?: UInt32
@@ -1005,6 +1057,9 @@ super.init();
 
   // TBD: do we want to have setters for updates, e.g. this.permissions = ... ?
   // I'm hesitant to make the API even more magical / less explicit
+  /**
+   * Changes the {@link Permissions} of this {@link SmartContract}.
+   */
   setPermissions(permissions: Permissions) {
     this.setValue(this.self.update.permissions, permissions);
   }
@@ -1013,7 +1068,37 @@ super.init();
 type Reducer<Action> = { actionType: ProvablePure<Action> };
 
 type ReducerReturn<Action> = {
+  /**
+   * Dispatches an {@link Action}. Similar to normal {@link Event}s,
+   * {@link Action}s can be stored by archive nodes and later reduced within a {@link SmartContract} method
+   * to change the state of the contract accordingly
+   *
+   * ```ts
+   * this.reducer.dispatch(Field(1)); // emits one action
+   * ```
+   *
+   * */
   dispatch(action: Action): void;
+  /**
+   * Reduces a list of {@link Action}s, similar to `Array.reduce()`.
+   *
+   * ```ts
+   *  let pendingActions = this.reducer.getActions({
+   *    fromActionHash: actionsHash,
+   *  });
+   *
+   *  let { state: newState, actionsHash: newActionsHash } =
+   *  this.reducer.reduce(
+   *     pendingActions,
+   *     Field,
+   *     (state: Field, _action: Field) => {
+   *       return state.add(1);
+   *     },
+   *     { state: initialState, actionsHash: initialActionsHash  }
+   *   );
+   * ```
+   *
+   */
   reduce<State>(
     actions: Action[][],
     stateType: Provable<State>,
@@ -1024,6 +1109,14 @@ type ReducerReturn<Action> = {
     state: State;
     actionsHash: Field;
   };
+  /**
+   * Fetches the list of previously emitted {@link Action}s by this {@link SmartContract}.
+   * ```ts
+   * let pendingActions = this.reducer.getActions({
+   *    fromActionHash: actionsHash,
+   * });
+   * ```
+   */
   getActions({
     fromActionHash,
     endActionHash,
