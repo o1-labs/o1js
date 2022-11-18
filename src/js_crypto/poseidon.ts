@@ -43,7 +43,17 @@ function createPoseidon(
     return Array(stateSize).fill(0n);
   }
 
+  function hash(input: bigint[]) {
+    let state = update(initialState(), input);
+    return state[0];
+  }
+
   function update([...state]: bigint[], input: bigint[]) {
+    // special case for empty input
+    if (input.length === 0) {
+      permutation(state);
+      return state;
+    }
     // pad input with zeros so its length is a multiple of the rate
     let n = Math.ceil(input.length / rate) * rate;
     input = input.concat(Array(n - input.length).fill(0n));
@@ -97,5 +107,5 @@ function createPoseidon(
     }
   }
 
-  return { initialState, update };
+  return { initialState, update, hash };
 }
