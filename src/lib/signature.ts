@@ -179,7 +179,7 @@ class PublicKey extends CircuitValue {
 }
 
 /**
- * A Schnorr {@link Signature}  over the Paste Curves.
+ * A Schnorr {@link Signature} over the Pasta Curves.
  */
 class Signature extends CircuitValue {
   @prop r: Field;

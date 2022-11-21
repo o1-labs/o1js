@@ -311,6 +311,10 @@ function circuitArray<T, TJson = any>(
       }
       return array.map((v) => elementType.toJSON(v));
     },
+
+    /**
+     * Decodes a JSON-like object into this structure.
+     */
     fromJSON(json) {
       if (!('fromJSON' in elementType)) {
         throw Error(

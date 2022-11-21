@@ -53,6 +53,10 @@ class UInt64 extends CircuitValue {
   static toJSON(x: UInt64) {
     return x.value.toString();
   }
+
+  /**
+   * Decodes a JSON-like object into this structure.
+   */
   static fromJSON<T extends AnyConstructor>(x: string): InstanceType<T> {
     return this.from(x) as any;
   }
@@ -129,7 +133,7 @@ class UInt64 extends CircuitValue {
    * Integer division.
    *
    * `x.div(y)` returns the floor of `x / y`, that is, the greatest
-   * `z` such that `x * y <= x`.
+   * `z` such that `z * y <= x`.
    *
    */
   div(y: UInt64 | number) {
@@ -260,21 +264,18 @@ class UInt32 extends CircuitValue {
   }
   /**
    * Turns the {@link UInt32} into a string.
-   * @returns
    */
   toString(): string {
     return this.value.toString();
   }
   /**
    * Turns the {@link UInt32} into a {@link BigInt}.
-   * @returns
    */
   toBigint() {
     return this.value.toBigInt();
   }
   /**
    * Turns the {@link UInt32} into a {@link UInt64}.
-   * @returns
    */
   toUInt64(): UInt64 {
     // this is safe, because the UInt32 range is included in the UInt64 range
@@ -294,6 +295,10 @@ class UInt32 extends CircuitValue {
   static toJSON(x: UInt32) {
     return x.value.toString();
   }
+
+  /**
+   * Decodes a JSON-like object into this structure.
+   */
   static fromJSON<T extends AnyConstructor>(x: string): InstanceType<T> {
     return this.from(x) as any;
   }
@@ -590,7 +595,6 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
   /**
    * Turns the {@link Int64} into a string.
-   * @returns
    */
   toString() {
     let abs = this.magnitude.toString();
@@ -677,7 +681,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    * Integer division.
    *
    * `x.div(y)` returns the floor of `x / y`, that is, the greatest
-   * `z` such that `x * y <= x`.
+   * `z` such that `z * y <= x`.
    *
    */
   div(y: Int64 | number | string | bigint | UInt64 | UInt32) {

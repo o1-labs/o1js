@@ -618,7 +618,7 @@ class Token {
 }
 /**
  * An {@link AccountUpdate} is a set of instructions for the Mina network.
- * It includes {@link Preconditions} and a list of state update, which need to be authorized by either a {@link Signature} or {@link Proof}.
+ * It includes {@link Preconditions} and a list of state updates, which need to be authorized by either a {@link Signature} or {@link Proof}.
  */
 class AccountUpdate implements Types.AccountUpdate {
   id: number;
@@ -1281,7 +1281,7 @@ class AccountUpdate implements Types.AccountUpdate {
     NoDelegation: 'NoDelegation' as const,
   };
   /**
-   * Returns a JSON representation of only the fields that differ from the original {@link AccountUpdate}.
+   * Returns a JSON representation of only the fields that differ from the default {@link AccountUpdate}.
    */
   toPretty() {
     function short(s: string) {

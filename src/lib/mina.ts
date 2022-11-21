@@ -64,7 +64,7 @@ interface Transaction {
    */
   toJSON(): string;
   /**
-   * Returns a JSON representation of only the fields that differ from the original {@link Transaction}.
+   * Returns a pretty-printed JSON representation of the {@link Transaction}.
    */
   toPretty(): any;
   /**
@@ -72,9 +72,9 @@ interface Transaction {
    */
   toGraphqlQuery(): string;
   /**
-   * Signs all {@link AccountUpdate}s and {@link SmartContract}s included in the {@link Transaction} that require a signature.
+   * Signs all {@link AccountUpdate}s included in the {@link Transaction} that require a signature.
    *
-   * {@link AccountUpdate}s and {@link SmartContract}s that require a signature can be specified with `{AccountUpdate|SmartContract}.requireSignature()`.
+   * {@link AccountUpdate}s that require a signature can be specified with `{AccountUpdate|SmartContract}.requireSignature()`.
    *
    * @param additionalKeys The list of keys that should be used to sign the {@link Transaction}
    */
