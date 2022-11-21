@@ -1,5 +1,5 @@
 import { Circuit, Field, Bool } from '../snarky.js';
-import { CircuitValue, prop } from './circuit_value.js';
+import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
 import { Types } from '../provable/types.js';
 import { HashInput } from './hash.js';
 
@@ -52,6 +52,9 @@ class UInt64 extends CircuitValue {
    */
   static toJSON(x: UInt64) {
     return x.value.toString();
+  }
+  static fromJSON<T extends AnyConstructor>(x: string): InstanceType<T> {
+    return this.from(x) as any;
   }
 
   private static checkConstant(x: Field) {
@@ -291,6 +294,9 @@ class UInt32 extends CircuitValue {
   static toJSON(x: UInt32) {
     return x.value.toString();
   }
+  static fromJSON<T extends AnyConstructor>(x: string): InstanceType<T> {
+    return this.from(x) as any;
+  }
 
   private static checkConstant(x: Field) {
     if (!x.isConstant()) return x;
@@ -486,6 +492,11 @@ class Sign extends CircuitValue {
     if (x.toString() === '1') return 'Positive';
     if (x.neg().toString() === '1') return 'Negative';
     throw Error(`Invalid Sign: ${x}`);
+  }
+  static fromJSON<T extends AnyConstructor>(
+    x: 'Positive' | 'Negative'
+  ): InstanceType<T> {
+    return (x === 'Positive' ? new Sign(Field(1)) : new Sign(Field(-1))) as any;
   }
   neg() {
     return new Sign(this.value.neg());

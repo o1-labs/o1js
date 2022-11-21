@@ -771,9 +771,34 @@ super.init();
     AccountUpdate.attachToTransaction(accountUpdate);
   }
 
+  /**
+   * Use this command if the account update created by this SmartContract should be signed by the account owner,
+   * instead of authorized with a proof.
+   *
+   * Note that the smart contract's {@link Permissions} determine which updates have to be (can be) authorized by a signature.
+   *
+   * If you only want to avoid creating proofs for quicker testing, we advise you to
+   * use `LocalBlockchain({ proofsEnabled: false })` instead of `requireSignature()`. Setting
+   * `proofsEnabled` to `false` allows you to test your transactions with the same authorization flow as in production,
+   * with the only difference being that quick mock proofs are filled in instead of real proofs.
+   */
+  requireSignature() {
+    this.self.requireSignature();
+  }
+  /**
+   * @deprecated `this.sign()` is deprecated in favor of `this.requireSignature()`
+   */
   sign(zkappKey?: PrivateKey) {
     this.self.sign(zkappKey);
   }
+  /**
+   * Use this command if the account update created by this SmartContract should have no authorization on it,
+   * instead of being authorized with a proof.
+   *
+   * WARNING: This is a method that should rarely be useful. If you want to disable proofs for quicker testing, take a look
+   * at `LocalBlockchain({ proofsEnabled: false })`, which causes mock proofs to be created and doesn't require changing the
+   * authorization flow.
+   */
   skipAuthorization() {
     Authorization.setLazyNone(this.self);
   }

@@ -147,8 +147,8 @@ testInput(
 console.log('all hash inputs are consistent! 🎉');
 shutdown();
 
-function testInput<T>(
-  Module: ProvableExtended<T>,
+function testInput<T, TJson>(
+  Module: ProvableExtended<T, TJson>,
   toInputOcaml: (json: string) => InputOcaml,
   value: T
 ) {

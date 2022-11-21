@@ -404,12 +404,15 @@ declare class Field {
    * Deserialize a JSON structure into a {@link Field}.
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
-  static fromJSON(x: string | number): Field;
+  static fromJSON(x: string): Field;
 
   static check(x: Field): void;
 
   // monkey-patched in JS
   static toInput(x: Field): { fields: Field[] };
+  static toBytes(x: Field): number[];
+  static fromBytes(bytes: number[]): Field;
+  static sizeInBytes(): number;
 }
 
 /**
@@ -589,6 +592,9 @@ declare class Bool {
 
   // monkey-patched in JS
   static toInput(x: Bool): { packed: [Field, number][] };
+  static toBytes(x: Bool): number[];
+  static fromBytes(bytes: number[]): Bool;
+  static sizeInBytes(): number;
 }
 
 declare interface CircuitMain<W, P> {
@@ -961,7 +967,8 @@ declare const Poseidon: {
     | 'sequenceEvents'
     | 'body'
     | 'accountUpdateCons'
-    | 'accountUpdateNode',
+    | 'accountUpdateNode'
+    | 'zkappMemo',
     string
   >;
   spongeCreate(isChecked: boolean): unknown;
@@ -1074,6 +1081,7 @@ declare class Ledger {
   static transactionCommitments(txJson: string): {
     commitment: Field;
     fullCommitment: Field;
+    feePayerHash: Field;
   };
 
   /**
@@ -1123,6 +1131,7 @@ declare class Ledger {
   static fieldOfBase58(fieldBase58: string): Field;
 
   static memoToBase58(memoString: string): string;
+  static memoHashBase58(memoBase58: string): Field;
 
   static checkAccountUpdateSignature(
     updateJson: string,
@@ -1152,7 +1161,9 @@ declare class Ledger {
       | 'receiptChainHash'
       | 'ledgerHash'
       | 'epochSeed'
-      | 'stateHash',
+      | 'stateHash'
+      | 'publicKey'
+      | 'userCommandMemo',
       number
     >;
   };

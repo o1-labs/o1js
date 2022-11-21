@@ -15,7 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/f0837188...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/705f58d3...HEAD)
+
+### Added
+
+- `MerkleMap` and `MerkleMapWitness` https://github.com/o1-labs/snarkyjs/pull/546
+
+## [0.7.1](https://github.com/o1-labs/snarkyjs/compare/f0837188...705f58d3)
+
+### Fixed
+
+- Testnet-incompatible signatures in v0.7.0 https://github.com/o1-labs/snarkyjs/pull/565
+
+## [0.7.0](https://github.com/o1-labs/snarkyjs/compare/f0837188...9a94231c)
 
 ### Added
 
@@ -35,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Overriding `init()` is the new recommended way to add custom state initialization logic.
 - `transaction.toPretty()` and `accountUpdate.toPretty()` for debugging transactions by printing only the pieces that differ from default account updates https://github.com/o1-labs/snarkyjs/pull/428
 - `AccountUpdate.attachToTransaction()` for explicitly adding an account update to the current transaction. This replaces some previous behaviour where an account update got attached implicitly https://github.com/o1-labs/snarkyjs/pull/484
+- `SmartContract.requireSignature()` and `AccountUpdate.requireSignature()` as a simpler, better-named replacement for `.sign()` https://github.com/o1-labs/snarkyjs/pull/558
 
 ### Changed
 
@@ -53,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `CircuitValue` deprecated in favor of `Struct` https://github.com/o1-labs/snarkyjs/pull/416
 - Static props `Field.zero`, `Field.one`, `Field.minusOne` deprecated in favor of `Field(number)` https://github.com/o1-labs/snarkyjs/pull/524
+- `SmartContract.sign()` and `AccountUpdate.sign()` in favor of `.requireSignature()` https://github.com/o1-labs/snarkyjs/pull/558
 
 ### Fixed
 
@@ -60,6 +74,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Callback arguments are properly passed into method invocations https://github.com/o1-labs/snarkyjs/pull/516
 - Removed internal type `JSONValue` from public interfaces https://github.com/o1-labs/snarkyjs/pull/536
 - Returning values from a zkApp https://github.com/o1-labs/snarkyjs/pull/461
+
+### Fixed
+
+- Callback arguments are properly passed into method invocations https://github.com/o1-labs/snarkyjs/pull/516
 
 ## [0.6.1](https://github.com/o1-labs/snarkyjs/compare/ba688523...f0837188)
 
