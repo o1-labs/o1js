@@ -13,7 +13,7 @@ import {
 import { deployContracts, deployInvalidContracts } from './deployContracts.js';
 import { DummyContract } from './dummyContract.js';
 import { VotingAppParams } from './factory.js';
-import { Member, MerkleWitness } from './member.js';
+import { Member, MyMerkleWitness } from './member.js';
 import { Membership_ } from './membership.js';
 import { OffchainStorage } from './off_chain_storage.js';
 import { Voting_ } from './voting.js';
@@ -320,7 +320,7 @@ export async function testSet(
 
   try {
     let tx = await Mina.transaction(sequenceOverflowSet.feePayer, () => {
-      sequenceOverflowSet.voting.authorizeRegistrations();
+      sequenceOverflowSet.voting.approveRegistrations();
     });
     await tx.prove();
     await tx.send();
@@ -568,7 +568,7 @@ export async function testSet(
 
   /*
     test case description:
-      authorize registrations, invoked publish on both membership SCs
+      approve registrations, invoked publish on both membership SCs
     
     preconditions:
       - votes and candidates were registered previously
@@ -588,12 +588,12 @@ export async function testSet(
     true,
     () => {
       // register new candidate
-      voting.authorizeRegistrations();
+      voting.approveRegistrations();
     },
     feePayer
   );
 
-  // authorizeVoters updates the committed members on both contracts by invoking the publish method.
+  // approve updates the committed members on both contracts by invoking the publish method.
   // We check if offchain storage merkle roots match both on-chain committedMembers for voters and candidates
 
   if (!voting.committedVotes.get().equals(initialRoot).toBoolean()) {
@@ -768,15 +768,15 @@ export async function testSet(
     () => {
       // attempting to vote for the registered candidate
       currentCandidate = candidatesStore.get(0n)!;
-      currentCandidate.witness = new MerkleWitness(
+      currentCandidate.witness = new MyMerkleWitness(
         candidatesStore.getWitness(0n)
       );
-      currentCandidate.votesWitness = new MerkleWitness(
+      currentCandidate.votesWitness = new MyMerkleWitness(
         votesStore.getWitness(0n)
       );
 
       let v = votersStore.get(0n)!;
-      v.witness = new MerkleWitness(votersStore.getWitness(0n));
+      v.witness = new MyMerkleWitness(votersStore.getWitness(0n));
 
       voting.vote(currentCandidate, v);
     },

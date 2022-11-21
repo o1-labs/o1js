@@ -4,7 +4,7 @@ import { UInt32, UInt64 } from './int.js';
 import { TokenId, Permissions, ZkappStateLength } from './account_update.js';
 import { PublicKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
-import { Types } from '../snarky/types.js';
+import { Types } from '../provable/types.js';
 import * as Encoding from './encoding.js';
 
 export {
@@ -21,7 +21,9 @@ export {
   setGraphqlEndpoint,
   sendZkappQuery,
   sendZkapp,
+  removeJsonQuotes,
 };
+
 export { Account };
 
 let defaultGraphqlEndpoint = 'none';
@@ -559,11 +561,8 @@ function sendZkappQuery(json: string) {
 
 // removes the quotes on JSON keys
 function removeJsonQuotes(json: string) {
-  // source: https://stackoverflow.com/a/65443215
   let cleaned = JSON.stringify(JSON.parse(json), null, 2);
-  return cleaned.replace(/^[\t ]*"[^:\n\r]+(?<!\\)":/gm, (match) =>
-    match.replace(/"/g, '')
-  );
+  return cleaned.replace(/\"(\S+)\"\s*:/gm, '$1:');
 }
 
 // TODO it seems we're not actually catching most errors here
