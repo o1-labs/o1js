@@ -51,6 +51,7 @@ type ZkappCommand = {
         } | null;
         permissions: {
           editState: AuthRequired;
+          access: AuthRequired;
           send: AuthRequired;
           receive: AuthRequired;
           setDelegate: AuthRequired;
@@ -184,6 +185,7 @@ type AccountUpdate = {
       } | null;
       permissions: {
         editState: AuthRequired;
+        access: AuthRequired;
         send: AuthRequired;
         receive: AuthRequired;
         setDelegate: AuthRequired;
