@@ -14,6 +14,7 @@ import {
   StringWithHash,
   Events,
   SequenceEvents,
+  SequenceState,
 } from '../transaction-leaves.js';
 import { GenericProvableExtended } from '../../provable/generic.js';
 import {
@@ -80,12 +81,14 @@ type CustomTypes = {
     },
     Json.TypeMap['Field'][][]
   >;
+  SequenceState: ProvableExtended<Field, Json.TypeMap['Field']>;
 };
 let customTypes: CustomTypes = {
   StringWithHash,
   TokenSymbol,
   Events,
   SequenceEvents,
+  SequenceState,
 };
 let { provableFromLayout, toJSONEssential } = ProvableFromLayout<
   TypeMap,
