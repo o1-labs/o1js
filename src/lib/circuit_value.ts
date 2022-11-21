@@ -258,17 +258,33 @@ function circuitArray<T, TJson = any>(
   length: number
 ): ProvableExtended<T[], TJson[]> {
   return {
+    /**
+     * Returns the size of this structure in {@link Field} elements.
+     * @returns size of this structure
+     */
     sizeInFields() {
       let elementLength = elementType.sizeInFields();
       return elementLength * length;
     },
+    /**
+     * Serializes this structure into {@link Field} elements.
+     * @returns an array of {@link Field} elements
+     */
     toFields(array: T[]) {
       return array.map((e) => elementType.toFields(e)).flat();
     },
+    /**
+     * Serializes this structure's auxiliary data.
+     * @returns auxiliary data
+     */
     toAuxiliary(array?) {
       let array_ = array ?? Array<undefined>(length).fill(undefined);
       return array_?.map((e) => elementType.toAuxiliary(e));
     },
+
+    /**
+     * Deserializes an array of {@link Field} elements into this structure.
+     */
     fromFields(fields: Field[], aux: any[]) {
       let array = [];
       let size = elementType.sizeInFields();
@@ -286,12 +302,19 @@ function circuitArray<T, TJson = any>(
         (elementType as any).check(array[i]);
       }
     },
+    /**
+     * Encodes this structure into a JSON-like object.
+     */
     toJSON(array) {
       if (!('toJSON' in elementType)) {
         throw Error('circuitArray.toJSON: element type has no toJSON method');
       }
       return array.map((v) => elementType.toJSON(v));
     },
+
+    /**
+     * Decodes a JSON-like object into this structure.
+     */
     fromJSON(json) {
       if (!('fromJSON' in elementType)) {
         throw Error(
