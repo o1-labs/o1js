@@ -194,7 +194,7 @@ interface Permissions extends Permissions_ {
   /**
    * The {@link Permission} corresponding to the ability to set the zkapp uri typically
    * pointing to the source code of the smart contract. Usually this should be
-   * changed whenever the [[ Permissions.setVerificationKey ]] is changed.
+   * changed whenever the {@link Permissions.setVerificationKey} is changed.
    * Effectively "upgradeability" of the smart contract.
    */
   setZkappUri: Permission;
@@ -616,7 +616,10 @@ class Token {
     }
   }
 }
-
+/**
+ * An {@link AccountUpdate} is a set of instructions for the Mina network.
+ * It includes {@link Preconditions} and a list of state update, which need to be authorized by either a {@link Signature} or {@link Proof}.
+ */
 class AccountUpdate implements Types.AccountUpdate {
   id: number;
   /**

@@ -977,21 +977,21 @@ declare const Poseidon: {
 };
 
 /**
- * Part of the circuit [[ Keypair ]]. A verification key can be used to verify a [[ Proof ]] when you provide the correct public input.
+ * Part of the circuit {@link Keypair}. A verification key can be used to verify a {@link Proof} when you provide the correct public input.
  */
 declare class VerificationKey {
   verify(publicInput: any[], proof: Proof): boolean;
 }
 
 /**
- * Contains a proving key and [[ VerificationKey ]] which can be used to verify proofs.
+ * Contains a proving key and {@link VerificationKey} which can be used to verify proofs.
  */
 declare class Keypair {
   verificationKey(): VerificationKey;
 }
 
 /**
- * Proofs can be verified using a [[ VerificationKey ]] and the public input.
+ * Proofs can be verified using a {@link VerificationKey} and the public input.
  */
 declare class Proof {
   verify(verificationKey: VerificationKey, publicInput: any[]): boolean;
