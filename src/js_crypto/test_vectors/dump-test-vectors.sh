@@ -2,7 +2,7 @@
 
 set -e
 
-pushd ../../../../../crypto/proof-systems/oracle/export_test_vectors
+pushd ../../../../../crypto/proof-systems/poseidon/export_test_vectors
   cargo run -p export_test_vectors -- b10 kimchi ../../../../snarky_js_bindings/snarkyjs/src/js_crypto/test_vectors/testVectors.json
 popd
 
