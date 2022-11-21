@@ -285,14 +285,14 @@ function circuitArray<T, TJson = any>(
     /**
      * Deserializes an array of {@link Field} elements into this structure.
      */
-    fromFields(fields: Field[], aux: any[]) {
+    fromFields(fields: Field[], aux?: any[]) {
       let array = [];
       let size = elementType.sizeInFields();
       let n = length;
       for (let i = 0, offset = 0; i < n; i++, offset += size) {
         array[i] = elementType.fromFields(
           fields.slice(offset, offset + size),
-          aux[i]
+          aux?.[i]
         );
       }
       return array;
