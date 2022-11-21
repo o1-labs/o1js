@@ -147,6 +147,7 @@ function accountUpdateFromFeePayer({
     setTokenSymbol: Signature,
     incrementNonce: Signature,
     setVotingFor: Signature,
+    access: None,
   };
   body.useFullCommitment = Bool(true);
   body.authorizationKind = { isProved: Bool(false), isSigned: Bool(true) };

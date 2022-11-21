@@ -280,6 +280,7 @@ let Permissions = {
     setTokenSymbol: Permission.none(),
     incrementNonce: Permission.none(),
     setVotingFor: Permission.none(),
+    access: Permission.none(),
   }),
 
   fromString: (permission: AuthRequired): Permission => {
