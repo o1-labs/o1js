@@ -15,11 +15,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/705f58d3...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/5f20f496...HEAD)
+
+(no unreleased changes yet)
+
+## [0.7.2](https://github.com/o1-labs/snarkyjs/compare/705f58d3...5f20f496)
 
 ### Added
 
 - `MerkleMap` and `MerkleMapWitness` https://github.com/o1-labs/snarkyjs/pull/546
+- Lots of doc comments! https://github.com/o1-labs/snarkyjs/pull/580
+
+### Fixed
+
+- Bug in `Circuit.log` printing account updates https://github.com/o1-labs/snarkyjs/pull/578
 
 ## [0.7.1](https://github.com/o1-labs/snarkyjs/compare/f0837188...705f58d3)
 
