@@ -3,12 +3,10 @@ on:
   push:
     branches:
       - main
-      - releases
       - berkeley
   pull_request:
     branches:
       - main
-      - releases
       - berkeley
   workflow_dispatch: {}
 
@@ -32,7 +30,7 @@ jobs:
           npm run test:integration
       - name: Publish to NPM if version has changed
         uses: JS-DevTools/npm-publish@v1
-        if: github.ref == 'refs/heads/releases'
+        if: github.ref == 'refs/heads/main'
         with:
           token: ${{ secrets.NPM_TOKEN }}
         env:
