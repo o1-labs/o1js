@@ -1,5 +1,6 @@
-import { Field, Circuit, Poseidon } from 'snarkyjs';
+import { isReady, Field, Circuit, Poseidon } from 'snarkyjs';
 
+await isReady;
 let hash = Poseidon.hash([Field(1), Field(-1)]);
 
 let { rows, digest } = Circuit.constraintSystem(() => {

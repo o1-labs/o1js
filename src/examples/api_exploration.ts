@@ -1,4 +1,5 @@
 import {
+  isReady,
   Field,
   Bool,
   Group,
@@ -11,6 +12,9 @@ import {
 } from 'snarkyjs';
 
 /* This file demonstrates the classes and functions available in snarkyjs */
+
+// Wait for SnarkyJS to load
+await isReady;
 
 /* # Field */
 
