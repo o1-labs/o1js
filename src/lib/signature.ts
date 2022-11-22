@@ -1,5 +1,5 @@
-import { Group, Field, Bool, Scalar, Ledger, Circuit } from '../snarky.js';
-import { prop, CircuitValue, AnyConstructor } from './circuit_value.js';
+import { Group, Field, Bool, Scalar, Ledger } from '../snarky.js';
+import { prop, CircuitValue, AnyConstructor, Struct } from './circuit_value.js';
 import { Poseidon } from './hash.js';
 
 // external API
@@ -8,9 +8,9 @@ export { PrivateKey, PublicKey, Signature };
 /**
  * A signing key. You can generate one via {@link PrivateKey.random}.
  */
-class PrivateKey extends CircuitValue {
-  @prop s: Scalar;
-
+class PrivateKey extends Struct({
+  s: Scalar,
+}) {
   /**
    * You can use this method to generate a private key. You can then obtain
    * the associated public key via {@link toPublicKey}. And generate signatures
@@ -19,7 +19,7 @@ class PrivateKey extends CircuitValue {
    * @returns a new {@link PrivateKey}.
    */
   static random(): PrivateKey {
-    return new PrivateKey(Scalar.random());
+    return new PrivateKey({ s: Scalar.random() });
   }
 
   /**
@@ -29,7 +29,7 @@ class PrivateKey extends CircuitValue {
    * @returns a {@link PrivateKey}.
    */
   static fromBits(bs: Bool[]): PrivateKey {
-    return new PrivateKey(Scalar.fromBits(bs));
+    return new PrivateKey({ s: Scalar.fromBits(bs) });
   }
 
   /**
@@ -48,7 +48,7 @@ class PrivateKey extends CircuitValue {
    */
   static fromBase58(privateKeyBase58: string) {
     let scalar = Ledger.privateKeyOfString(privateKeyBase58);
-    return new PrivateKey(scalar);
+    return new PrivateKey({ s: scalar });
   }
 
   /**
