@@ -1,4 +1,7 @@
-import type { FlexibleProvable } from './lib/circuit_value.js';
+import type {
+  FlexibleProvable,
+  InferCircuitValue,
+} from './lib/circuit_value.js';
 export {
   Field,
   Bool,
@@ -671,9 +674,12 @@ declare class Circuit {
   };
 
   /**
-   * Creates a generic {@link Provable} array^.
+   * Creates a {@link Provable} for a generic array.
    */
-  static array<T>(elementType: Provable<T>, length: number): Provable<T[]>;
+  static array<A extends FlexibleProvable<any>>(
+    elementType: A,
+    length: number
+  ): Provable<InferCircuitValue<A>[]>;
 
   /**
    * Asserts that two values are equal.

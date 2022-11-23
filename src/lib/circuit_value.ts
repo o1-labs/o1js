@@ -42,9 +42,9 @@ type NonMethodKeys<T> = {
 }[keyof T];
 type NonMethods<T> = Pick<T, NonMethodKeys<T>>;
 
-type FlexibleProvable<T> =
-  | Provable<T>
-  | (Provable<NonMethods<T>> & { _isStruct: true });
+type Struct<T> = ProvableExtended<NonMethods<T>> &
+  Constructor<T> & { _isStruct: true };
+type FlexibleProvable<T> = Provable<T> | Struct<T>;
 
 type HashInput = { fields?: Field[]; packed?: [Field, number][] };
 const HashInput = {
@@ -258,17 +258,19 @@ function prop(this: any, target: any, key: string) {
   }
 }
 
-function circuitArray<T, TJson = any>(
-  elementType: Provable<T> | ProvableExtended<T, TJson>,
-  length: number
-): ProvableExtended<T[], TJson[]> {
+function circuitArray<
+  A extends FlexibleProvable<any>,
+  T = InferCircuitValue<A>,
+  TJson = InferJson<A>
+>(elementType: A, length: number): ProvableExtended<T[], TJson[]> {
+  let type = elementType as ProvableExtended<T>;
   return {
     /**
      * Returns the size of this structure in {@link Field} elements.
      * @returns size of this structure
      */
     sizeInFields() {
-      let elementLength = elementType.sizeInFields();
+      let elementLength = type.sizeInFields();
       return elementLength * length;
     },
     /**
@@ -276,7 +278,7 @@ function circuitArray<T, TJson = any>(
      * @returns an array of {@link Field} elements
      */
     toFields(array: T[]) {
-      return array.map((e) => elementType.toFields(e)).flat();
+      return array.map((e) => type.toFields(e)).flat();
     },
     /**
      * Serializes this structure's auxiliary data.
@@ -284,7 +286,7 @@ function circuitArray<T, TJson = any>(
      */
     toAuxiliary(array?) {
       let array_ = array ?? Array<undefined>(length).fill(undefined);
-      return array_?.map((e) => elementType.toAuxiliary(e));
+      return array_?.map((e) => type.toAuxiliary(e));
     },
 
     /**
@@ -292,10 +294,10 @@ function circuitArray<T, TJson = any>(
      */
     fromFields(fields: Field[], aux?: any[]) {
       let array = [];
-      let size = elementType.sizeInFields();
+      let size = type.sizeInFields();
       let n = length;
       for (let i = 0, offset = 0; i < n; i++, offset += size) {
-        array[i] = elementType.fromFields(
+        array[i] = type.fromFields(
           fields.slice(offset, offset + size),
           aux?.[i]
         );
@@ -304,36 +306,36 @@ function circuitArray<T, TJson = any>(
     },
     check(array: T[]) {
       for (let i = 0; i < length; i++) {
-        (elementType as any).check(array[i]);
+        (type as any).check(array[i]);
       }
     },
     /**
      * Encodes this structure into a JSON-like object.
      */
     toJSON(array) {
-      if (!('toJSON' in elementType)) {
+      if (!('toJSON' in type)) {
         throw Error('circuitArray.toJSON: element type has no toJSON method');
       }
-      return array.map((v) => elementType.toJSON(v));
+      return array.map((v) => type.toJSON(v));
     },
 
     /**
      * Decodes a JSON-like object into this structure.
      */
     fromJSON(json) {
-      if (!('fromJSON' in elementType)) {
+      if (!('fromJSON' in type)) {
         throw Error(
           'circuitArray.fromJSON: element type has no fromJSON method'
         );
       }
-      return json.map((a) => elementType.fromJSON(a));
+      return json.map((a) => type.fromJSON(a));
     },
     toInput(array) {
-      if (!('toInput' in elementType)) {
+      if (!('toInput' in type)) {
         throw Error('circuitArray.toInput: element type has no toInput method');
       }
       return array.reduce(
-        (curr, value) => HashInput.append(curr, elementType.toInput(value)),
+        (curr, value) => HashInput.append(curr, type.toInput(value)),
         HashInput.empty
       );
     },
@@ -1116,7 +1118,7 @@ type InferPrimitiveJson<P extends Primitive> = P extends typeof String
 type InferCircuitValue<A> = A extends Constructor<infer U>
   ? A extends Provable<U>
     ? U
-    : A extends Provable<NonMethods<U>>
+    : A extends Struct<U>
     ? U
     : InferCircuitValueBase<A>
   : InferCircuitValueBase<A>;
