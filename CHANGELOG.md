@@ -15,9 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/5f20f496...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/0880a0d4...HEAD)
 
 (no unreleased changes yet)
+
+## [0.7.3](https://github.com/o1-labs/snarkyjs/compare/5f20f496...0880a0d4)
+
+### Fixed
+
+- Bug in `deploy()` when initializing a contract that already exists https://github.com/o1-labs/snarkyjs/pull/588
 
 ## [0.7.2](https://github.com/o1-labs/snarkyjs/compare/705f58d3...5f20f496)
 
