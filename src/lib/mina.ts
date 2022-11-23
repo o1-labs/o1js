@@ -614,17 +614,23 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       txn.sign();
 
       let [response, error] = await Fetch.sendZkapp(txn.toJSON());
+      let errors: any[] | undefined;
       if (error === undefined) {
         if (response!.data === null && (response as any).errors?.length > 0) {
-          console.log('got graphql errors', (response as any).errors);
-        } else {
-          console.log('got graphql response', response?.data);
+          console.log(
+            'got graphql errors',
+            JSON.stringify((response as any).errors, null, 2)
+          );
+          errors = (response as any).errors;
         }
       } else {
         console.log('got fetch error', error);
+        errors = [error];
       }
 
       return {
+        data: response?.data,
+        errors,
         async wait() {
           console.log(
             'Info: waiting for inclusion in a block is not implemented yet.'
