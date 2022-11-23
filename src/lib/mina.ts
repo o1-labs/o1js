@@ -33,6 +33,7 @@ import { Types } from 'src/index.js';
 export {
   createTransaction,
   BerkeleyQANet,
+  Network,
   LocalBlockchain,
   currentTransaction,
   CurrentTransaction,
@@ -546,7 +547,10 @@ function LocalBlockchain({
   };
 }
 
-function RemoteBlockchain(graphqlEndpoint: string): Mina {
+/**
+ * Represents the Mina blockchain running on a real network
+ */
+function Network(graphqlEndpoint: string): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
   Fetch.setGraphqlEndpoint(graphqlEndpoint);
   return {
@@ -668,8 +672,13 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
   };
 }
 
+/**
+ *
+ * @deprecated This is deprecated in favor of {@link Mina.Network}, which is exactly the same function.
+ * The name `BerkeleyQANet` was misleading because it suggested that this is specific to a particular network.
+ */
 function BerkeleyQANet(graphqlEndpoint: string) {
-  return RemoteBlockchain(graphqlEndpoint);
+  return Network(graphqlEndpoint);
 }
 
 let activeInstance: Mina = {

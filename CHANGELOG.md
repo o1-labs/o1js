@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Bug in `deploy()` when initializing a contract that already exists https://github.com/o1-labs/snarkyjs/pull/588
 
+### Deprecated
+
+- `Mina.BerkeleyQANet` in favor of the clearer-named `Mina.Network` https://github.com/o1-labs/snarkyjs/pull/588
+
 ## [0.7.2](https://github.com/o1-labs/snarkyjs/compare/705f58d3...5f20f496)
 
 ### Added
