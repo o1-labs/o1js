@@ -32,6 +32,7 @@ export {
   InferCircuitValue,
   HashInput,
   FlexibleProvable,
+  InferJson,
 };
 
 type Constructor<T> = new (...args: any) => T;
@@ -607,7 +608,7 @@ function provable<A>(
     let keys = isToplevel ? objectKeys : Object.keys(typeObj).sort();
     let values = fromJSON(
       keys.map((k) => typeObj[k]),
-      json
+      keys.map((k) => json[k])
     );
     return Object.fromEntries(keys.map((k, i) => [k, values[i]]));
   }
