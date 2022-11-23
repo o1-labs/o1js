@@ -32,6 +32,7 @@ export {
   InferCircuitValue,
   Provables,
   HashInput,
+  FlexibleProvable,
 };
 
 type Constructor<T> = new (...args: any) => T;
@@ -41,6 +42,10 @@ type NonMethodKeys<T> = {
   [K in keyof T]: T[K] extends Function ? never : K;
 }[keyof T];
 type NonMethods<T> = Pick<T, NonMethodKeys<T>>;
+
+type FlexibleProvable<T> =
+  | Provable<T>
+  | (Provable<NonMethods<T>> & { _isStruct: true });
 
 type HashInput = { fields?: Field[]; packed?: [Field, number][] };
 const HashInput = {
@@ -685,8 +690,9 @@ function Struct<
 >(
   type: A,
   options: { customObjectKeys?: string[] } = {}
-): (new (value: T) => T) &
-  (Pure extends true ? ProvablePure<T> : Provable<T>) & {
+): (new (value: T) => T) & { _isStruct: true } & (Pure extends true
+    ? ProvablePure<T>
+    : Provable<T>) & {
     toInput: (x: T) => {
       fields?: Field[] | undefined;
       packed?: [Field, number][] | undefined;
@@ -695,6 +701,7 @@ function Struct<
   } {
   class Struct_ {
     static type = provable<A>(type, options);
+    static _isStruct: true;
 
     constructor(value: T) {
       Object.assign(this, value);
@@ -919,10 +926,10 @@ function toConstant<T>(type: Provable<T>, value: T): T {
 }
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
-Circuit.witness = function <T, S extends Provable<T> = Provable<T>>(
-  type: S,
-  compute: () => T
-) {
+Circuit.witness = function <
+  T,
+  S extends FlexibleProvable<T> = FlexibleProvable<T>
+>(type: S, compute: () => T): T {
   let proverValue: T | undefined;
   let createFields = () => {
     proverValue = compute();
@@ -946,14 +953,14 @@ Circuit.witness = function <T, S extends Provable<T> = Provable<T>>(
         )[1]
       : createFields();
   let aux = type.toAuxiliary(proverValue);
-  let value = type.fromFields(fields, aux);
+  let value = type.fromFields(fields, aux) as T;
   type.check(value);
   return value;
 };
 
 Circuit.array = circuitArray;
 
-Circuit.switch = function <T, A extends Provable<T>>(
+Circuit.switch = function <T, A extends FlexibleProvable<T>>(
   mask: Bool[],
   type: A,
   values: T[]
@@ -984,12 +991,12 @@ Circuit.switch = function <T, A extends Provable<T>>(
       fields[j] = fields[j].add(maybeField);
     }
   }
-  let aux = auxiliary(type, () => {
+  let aux = auxiliary(type as Provable<T>, () => {
     let i = mask.findIndex((b) => b.toBoolean());
     if (i === -1) return type.toAuxiliary();
     return type.toAuxiliary(values[i]);
   });
-  return type.fromFields(fields, aux);
+  return type.fromFields(fields, aux) as T;
 };
 
 Circuit.constraintSystem = function <T>(f: () => T) {
