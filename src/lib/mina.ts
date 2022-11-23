@@ -55,12 +55,39 @@ interface TransactionId {
 }
 
 interface Transaction {
+  /**
+   * Transaction structure used to describe a state transition on the Mina blockchain.
+   */
   transaction: ZkappCommand;
+  /**
+   * Returns a JSON representation of the {@link Transaction}.
+   */
   toJSON(): string;
+  /**
+   * Returns a pretty-printed JSON representation of the {@link Transaction}.
+   */
   toPretty(): any;
+  /**
+   * Returns the GraphQL query for the Mina daemon.
+   */
   toGraphqlQuery(): string;
+  /**
+   * Signs all {@link AccountUpdate}s included in the {@link Transaction} that require a signature.
+   *
+   * {@link AccountUpdate}s that require a signature can be specified with `{AccountUpdate|SmartContract}.requireSignature()`.
+   *
+   * @param additionalKeys The list of keys that should be used to sign the {@link Transaction}
+   */
   sign(additionalKeys?: PrivateKey[]): Transaction;
+  /**
+   * Generates proofs for the {@link Transaction}.
+   *
+   * This can take some time.
+   */
   prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;
+  /**
+   * Sends the {@link Transaction} to the network.
+   */
   send(): Promise<TransactionId>;
 }
 
@@ -77,6 +104,9 @@ type CurrentTransaction = {
 
 let currentTransaction = Context.create<CurrentTransaction>();
 
+/**
+ * Allows you to specify information about the fee payer account and the transaction.
+ */
 type FeePayerSpec =
   | PrivateKey
   | {
@@ -752,6 +782,9 @@ function getAccount(publicKey: PublicKey, tokenId?: Field): Account {
   return activeInstance.getAccount(publicKey, tokenId);
 }
 
+/**
+ * Checks if an account exists within the ledger.
+ */
 function hasAccount(publicKey: PublicKey, tokenId?: Field): boolean {
   return activeInstance.hasAccount(publicKey, tokenId);
 }
@@ -770,6 +803,9 @@ function getBalance(publicKey: PublicKey, tokenId?: Field) {
   return activeInstance.getAccount(publicKey, tokenId).balance;
 }
 
+/**
+ * Returns the default account creation fee.
+ */
 function accountCreationFee() {
   return activeInstance.accountCreationFee();
 }

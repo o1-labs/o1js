@@ -1,6 +1,12 @@
+import { Binable } from './binable.js';
+
 export {
   GenericProvable,
+  GenericProvablePure,
   GenericProvableExtended,
+  GenericField,
+  GenericBool,
+  GenericHashInput,
   primitiveTypes,
   primitiveTypeMap,
 };
@@ -12,11 +18,29 @@ type GenericProvable<T, Field> = {
   sizeInFields(): number;
   check: (x: T) => void;
 };
+interface GenericProvablePure<T, Field> extends GenericProvable<T, Field> {
+  toFields: (x: T) => Field[];
+  toAuxiliary: (x?: T) => [];
+  fromFields: (x: Field[]) => T;
+  sizeInFields(): number;
+  check: (x: T) => void;
+}
 
 type GenericProvableExtended<T, TJson, Field> = GenericProvable<T, Field> & {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
   toJSON: (x: T) => TJson;
+  fromJSON: (x: TJson) => T;
+  emptyValue?: () => T;
 };
+
+type GenericField<Field> = ((value: number | string | bigint) => Field) &
+  GenericProvableExtended<Field, string, Field> &
+  Binable<Field>;
+type GenericBool<Field, Bool = unknown> = ((value: boolean) => Bool) &
+  GenericProvableExtended<Bool, boolean, Field> &
+  Binable<Bool>;
+
+type GenericHashInput<Field> = { fields?: Field[]; packed?: [Field, number][] };
 
 let emptyType = {
   sizeInFields: () => 0,
@@ -26,6 +50,7 @@ let emptyType = {
   check: () => {},
   toInput: () => ({}),
   toJSON: () => null,
+  fromJSON: () => null,
 };
 let primitiveTypes = new Set(['number', 'string', 'null']);
 
@@ -39,12 +64,14 @@ function primitiveTypeMap<Field>(): {
       ...emptyType,
       toAuxiliary: (value = 0) => [value],
       toJSON: (value) => value,
+      fromJSON: (value) => value,
       fromFields: (_, [value]) => value,
     },
     string: {
       ...emptyType,
       toAuxiliary: (value = '') => [value],
       toJSON: (value) => value,
+      fromJSON: (value) => value,
       fromFields: (_, [value]) => value,
     },
     null: emptyType,
