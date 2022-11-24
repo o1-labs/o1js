@@ -359,7 +359,7 @@ function getCachedNetwork(graphqlEndpoint = defaultGraphqlEndpoint) {
 }
 
 /**
- * Fetches an account from the GraphQL endpoint and adds it to the local cache.
+ * Adds an account to the local cache, indexed by a GraphQL endpoint.
  */
 function addCachedAccount(
   account: {
