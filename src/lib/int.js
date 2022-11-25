@@ -246,10 +246,10 @@ class UInt64 extends CircuitValue {
   static test() {}
 }
 
-var _old = UInt64;
+var _oldUInt64 = UInt64;
 // eslint-disable-next-line no-class-assign
 UInt64 = function (...args) {
-  return new _old(...args);
+  return new _oldUInt64(...args);
 };
 
 /**
@@ -490,10 +490,10 @@ class UInt32 extends CircuitValue {
     y.assertLte(this, message);
   }
 }
-var _old = UInt32;
+var _oldUInt32 = UInt32;
 // eslint-disable-next-line no-class-assign
 UInt32 = function (...args) {
-  return new _old(...args);
+  return new _oldUInt32(...args);
 };
 class Sign extends CircuitValue {
   @prop value; // +/- 1
@@ -738,8 +738,8 @@ class Int64 extends CircuitValue {
     return this.sgn.isPositive();
   }
 }
-var _old = Int64;
+var _oldInt64 = Int64;
 // eslint-disable-next-line no-class-assign
 Int64 = function (...args) {
-  return new _old(...args);
+  return new _oldInt64(...args);
 };

@@ -1,11 +1,14 @@
-import { Field, Bool } from './snarky.js';
-import { AnyConstructor, CircuitValue } from './lib/circuit_value.js';
-import { Types } from './provable/types.js';
-import { HashInput } from './lib/hash.js';
+import { Field, Bool } from '../snarky.js';
+import { AnyConstructor, CircuitValue } from './circuit_value.js';
+import { Types } from '../provable/types.js';
+import { HashInput } from './hash.js';
 export { UInt32, UInt64, Int64, Sign };
 /**
  * A 64 bit unsigned integer with values ranging from 0 to 18,446,744,073,709,551,615.
  */
+declare function UInt64(
+  x: UInt64 | UInt32 | Field | number | string | bigint
+): UInt64;
 declare class UInt64 extends CircuitValue {
   value: Field;
   static NUM_BITS: number;

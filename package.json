@@ -29,10 +29,10 @@
   },
   "scripts": {
     "type-check": "tsc --noEmit",
-    "dev": "npx tsc -p tsconfig.node.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
+    "dev": "npx tsc -p tsconfig.node.json && cp src/snarky.d.ts dist/node/snarky.d.ts && cp src/lib/int.js dist/node/lib/int.js && cp src/lib/int.d.ts dist/node/lib/int.d.ts",
     "make": "make -C ../../../.. snarkyjs",
-    "build": "rimraf ./dist/node && npx tsc -p tsconfig.node.json && cp -r src/node_bindings dist/node/_node_bindings && node src/build/buildNode.js && cp src/snarky.d.ts dist/node/snarky.d.ts",
-    "build:test": "npx tsc -p tsconfig.test.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
+    "build": "rimraf ./dist/node && npx tsc -p tsconfig.node.json && cp -r src/node_bindings dist/node/_node_bindings && node src/build/buildNode.js && cp src/snarky.d.ts dist/node/snarky.d.ts s && cp src/lib/int.js dist/node/lib/int.js && cp src/lib/int.d.ts dist/node/lib/int.d.ts",
+    "build:test": "npx tsc -p tsconfig.test.json && cp src/snarky.d.ts dist/node/snarky.d.ts && cp src/lib/int.js dist/node/lib/int.js && cp src/lib/int.d.ts dist/node/lib/int.d.ts",
     "build:node": "npm run build",
     "build:web": "rimraf ./dist/web && node src/build/buildWeb.js",
     "build:examples": "rimraf ./dist/examples && npx tsc -p tsconfig.examples.json || exit 0",
