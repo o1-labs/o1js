@@ -1,4 +1,6 @@
-import { prop, Field, CircuitValue } from './circuit_value.js';
+import { prop, CircuitValue } from './circuit_value.js';
+import { Field } from './core.js';
+import { __decorate, __metadata } from 'tslib';
 
 // external API
 export { UInt32, UInt64, Sign, Int64 };
@@ -7,11 +9,9 @@ export { UInt32, UInt64, Sign, Int64 };
  * A 64 bit unsigned integer with values ranging from 0 to 18,446,744,073,709,551,615.
  */
 class UInt64 extends CircuitValue {
-  @prop value;
-  static NUM_BITS = 64;
-
-  constructor(...args) {
-    super(...args);
+  constructor(x) {
+    if (x instanceof UInt64 || x instanceof UInt32) x = x.value;
+    super(UInt64.checkConstant(Field(x)));
   }
 
   /**
@@ -246,6 +246,14 @@ class UInt64 extends CircuitValue {
   static test() {}
 }
 
+UInt64.NUM_BITS = 64;
+__decorate(
+  [prop, __metadata('design:type', Field)],
+  UInt64.prototype,
+  'value',
+  void 0
+);
+
 var _oldUInt64 = UInt64;
 // eslint-disable-next-line no-class-assign
 UInt64 = function (...args) {
@@ -256,11 +264,9 @@ UInt64 = function (...args) {
  * A 32 bit unsigned integer with values ranging from 0 to 4,294,967,295.
  */
 class UInt32 extends CircuitValue {
-  @prop value;
-  static NUM_BITS = 32;
-
-  constructor(...args) {
-    super(...args);
+  constructor(x) {
+    if (x instanceof UInt32) x = x.value;
+    super(UInt32.checkConstant(Field(x)));
   }
 
   /**
@@ -490,13 +496,25 @@ class UInt32 extends CircuitValue {
     y.assertLte(this, message);
   }
 }
+
+UInt32.NUM_BITS = 32;
+__decorate(
+  [prop, __metadata('design:type', Field)],
+  UInt32.prototype,
+  'value',
+  void 0
+);
+
 var _oldUInt32 = UInt32;
 // eslint-disable-next-line no-class-assign
 UInt32 = function (...args) {
   return new _oldUInt32(...args);
 };
 class Sign extends CircuitValue {
-  @prop value; // +/- 1
+  constructor(...args) {
+    super(...args);
+    this.value = prop(this, 'value');
+  }
 
   static get one() {
     return new Sign(Field(1));
@@ -532,16 +550,18 @@ class Sign extends CircuitValue {
     return this.value.toString();
   }
 }
-
+__decorate(
+  [prop, __metadata('design:type', Field)],
+  Sign.prototype,
+  'value',
+  void 0
+);
 /**
  * A 64 bit signed integer with values ranging from -18,446,744,073,709,551,615 to 18,446,744,073,709,551,615.
  */
 class Int64 extends CircuitValue {
   // * in the range [-2^64+1, 2^64-1], unlike a normal int64
   // * under- and overflowing is disallowed, similar to UInt64, unlike a normal int64+
-
-  @prop magnitude; // absolute value
-  @prop sgn; // +/- 1
 
   // Some thoughts regarding the representation as field elements:
   // toFields returns the in-circuit representation, so the main objective is to minimize the number of constraints
@@ -563,8 +583,16 @@ class Int64 extends CircuitValue {
   // The second point is one of the main things an Int64 is used for, and was the original motivation to use 2 fields.
   // Overall, I think the existing implementation is the optimal one.
 
-  constructor(magnitude, sgn = Sign.one) {
-    super(magnitude, sgn);
+  constructor(x) {
+    let TWO64 = 1n << 64n;
+    let xBigInt = x.toBigInt();
+    let isValidPositive = xBigInt < TWO64; // covers {0,...,2^64 - 1}
+    let isValidNegative = Field.ORDER - xBigInt < TWO64; // {-2^64 + 1,...,-1}
+    if (!isValidPositive && !isValidNegative)
+      throw Error(`Int64: Expected a value between (-2^64, 2^64), got ${x}`);
+    let magnitude = Field(isValidPositive ? x.toString() : x.neg().toString());
+    let sign = isValidPositive ? Sign.one : Sign.minusOne;
+    super(new UInt64(magnitude), sign);
   }
 
   /**
@@ -738,6 +766,20 @@ class Int64 extends CircuitValue {
     return this.sgn.isPositive();
   }
 }
+
+__decorate(
+  [prop, __metadata('design:type', UInt64)],
+  Int64.prototype,
+  'magnitude',
+  void 0
+);
+__decorate(
+  [prop, __metadata('design:type', Sign)],
+  Int64.prototype,
+  'sgn',
+  void 0
+);
+
 var _oldInt64 = Int64;
 // eslint-disable-next-line no-class-assign
 Int64 = function (...args) {
