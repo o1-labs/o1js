@@ -1,3 +1,9 @@
+import type {
+  FlexibleProvable,
+  InferCircuitValue,
+  InferJson,
+  ProvableExtended,
+} from './lib/circuit_value.js';
 export {
   Field,
   Bool,
@@ -645,7 +651,7 @@ declare class Circuit {
 
   // this convoluted generic typing is needed to give type inference enough flexibility
   static _witness<S extends Provable<any>>(ctor: S, f: () => Field[]): Field[];
-  static witness<T, S extends Provable<T> = Provable<T>>(
+  static witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
     ctor: S,
     f: () => T
   ): T;
@@ -670,9 +676,12 @@ declare class Circuit {
   };
 
   /**
-   * Creates a generic {@link Provable} array^.
+   * Creates a {@link Provable} for a generic array.
    */
-  static array<T>(elementType: Provable<T>, length: number): Provable<T[]>;
+  static array<A extends FlexibleProvable<any>>(
+    elementType: A,
+    length: number
+  ): ProvableExtended<InferCircuitValue<A>[], InferJson<A>[]>;
 
   /**
    * Asserts that two values are equal.
@@ -713,7 +722,7 @@ declare class Circuit {
    * x.assertEquals(2);
    * ```
    */
-  static switch<T, A extends Provable<T>>(
+  static switch<T, A extends FlexibleProvable<T>>(
     mask: Bool[],
     type: A,
     values: T[]

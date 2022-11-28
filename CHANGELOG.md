@@ -17,7 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/d880bd6e...HEAD)
 
-(no unreleased changes yet)
+### Fixed
+
+- Type inference for Structs with instance methods https://github.com/o1-labs/snarkyjs/pull/567
+  - also fixes `Struct.fromJSON`
 
 ## [0.7.3](https://github.com/o1-labs/snarkyjs/compare/5f20f496...d880bd6e)
 
