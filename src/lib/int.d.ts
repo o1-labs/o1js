@@ -9,6 +9,7 @@ export { UInt32, UInt64, Int64, Sign };
 declare function UInt64(
   x: UInt64 | UInt32 | Field | number | string | bigint
 ): UInt64;
+
 declare class UInt64 extends CircuitValue {
   value: Field;
   static NUM_BITS: number;

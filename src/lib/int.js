@@ -1,7 +1,6 @@
-import { prop, CircuitValue } from './circuit_value.js';
-import { Field } from './core.js';
 import { __decorate, __metadata } from 'tslib';
-
+import { Circuit, Field, Bool } from '../snarky.js';
+import { CircuitValue, prop } from './circuit_value.js';
 // external API
 export { UInt32, UInt64, Sign, Int64 };
 
@@ -17,15 +16,19 @@ class UInt64 extends CircuitValue {
   /**
    * Static method to create a {@link UInt64} with value `0`.
    */
-  static get zero() {
+  // !TODO: make work with proxy function
+  /* static get zero() {
     return new UInt64(Field(0));
-  }
+  } */
   /**
    * Static method to create a {@link UInt64} with value `1`.
    */
-  static get one() {
+  // !TODO: make work with proxy function
+
+  /*   static get one() {
     return new UInt64(Field(1));
-  }
+  } */
+
   /**
    * Turns the {@link UInt64} into a string.
    * @returns
@@ -45,6 +48,7 @@ class UInt64 extends CircuitValue {
     let actual = x.value.rangeCheckHelper(64);
     actual.assertEquals(x.value);
   }
+
   static toInput(x) {
     return { packed: [[x.value, 64]] };
   }
@@ -246,7 +250,6 @@ class UInt64 extends CircuitValue {
   static test() {}
 }
 
-UInt64.NUM_BITS = 64;
 __decorate(
   [prop, __metadata('design:type', Field)],
   UInt64.prototype,
@@ -254,13 +257,28 @@ __decorate(
   void 0
 );
 
+UInt64.NUM_BITS = 64;
+
 var _oldUInt64 = UInt64;
 // eslint-disable-next-line no-class-assign
 UInt64 = function (...args) {
   return new _oldUInt64(...args);
 };
+/*
+  we can't access static methods on our "function class", so we have to explicitly define them like
+  UInt64.staticMethod = function(x) {
+    doSomething();
+  }
+*/
+Object.getOwnPropertyNames(_oldUInt64)
+  .filter((prop) => typeof _oldUInt64[prop] === 'function')
+  .forEach((f) => {
+    // this maps the static method's code from the original class to the new proxy one
+    UInt64[f] = _oldUInt64[f];
+  });
 
 /**
+ *
  * A 32 bit unsigned integer with values ranging from 0 to 4,294,967,295.
  */
 class UInt32 extends CircuitValue {
