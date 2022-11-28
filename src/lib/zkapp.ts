@@ -16,6 +16,8 @@ import {
   memoizationContext,
   toConstant,
   Struct,
+  FlexibleProvablePure,
+  InferCircuitValue,
 } from './circuit_value.js';
 import {
   Body,
@@ -924,7 +926,7 @@ super.init();
   /**
    * A list of event types that can be emitted using this.emitEvent()`.
    */
-  events: { [key: string]: ProvablePure<any> } = {};
+  events: { [key: string]: FlexibleProvablePure<any> } = {};
 
   // TODO: not able to type event such that it is inferred correctly so far
   /**
@@ -1090,7 +1092,7 @@ super.init();
   }
 }
 
-type Reducer<Action> = { actionType: ProvablePure<Action> };
+type Reducer<Action> = { actionType: FlexibleProvablePure<Action> };
 
 type ReducerReturn<Action> = {
   /**
@@ -1288,7 +1290,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           .map((event: { hash: string; actions: string[][] }) =>
             // putting our string-Fields back into the original action type
             event.actions.map((action: string[]) =>
-              reducer.actionType.fromFields(
+              (reducer.actionType as ProvablePure<A>).fromFields(
                 action.map((fieldAsString: string) => Field(fieldAsString))
               )
             )
@@ -1470,15 +1472,9 @@ function declareMethods<T extends typeof SmartContract>(
   }
 }
 
-type InferProvablePure<T extends ProvablePure<any>> = T extends ProvablePure<
-  infer U
->
-  ? U
-  : never;
-
 const Reducer: (<
-  T extends ProvablePure<any>,
-  A extends InferProvablePure<T>
+  T extends FlexibleProvablePure<any>,
+  A extends InferCircuitValue<T> = InferCircuitValue<T>
 >(reducer: {
   actionType: T;
 }) => ReducerReturn<A>) & {
