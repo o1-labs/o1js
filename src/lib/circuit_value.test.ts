@@ -55,13 +55,34 @@ describe('circuit', () => {
   });
 
   it('can serialize nested Struct', async () => {
-    class MyStruct extends Struct({ a: Field, b: PrivateKey }) {}
+    class OtherStruct extends Struct({
+      x: Field,
+    }) {
+      toString() {
+        return `other-struct:${this.x}`;
+      }
+    }
 
-    const original = new MyStruct({ a: Field(42), b: PrivateKey.random() });
+    class MyStruct extends Struct({
+      a: Field,
+      b: PrivateKey,
+      y: OtherStruct,
+    }) {
+      toString() {
+        return `my-struct:${this.a};${this.b.toBase58()};${this.y}`;
+      }
+    }
+
+    const original = new MyStruct({
+      a: Field(42),
+      b: PrivateKey.random(),
+      y: new OtherStruct({ x: Field(99) }),
+    });
 
     const serialized = MyStruct.toJSON(original);
     const reconstructed = MyStruct.fromJSON(serialized);
 
-    Circuit.assertEqual<MyStruct>(MyStruct, original, reconstructed);
+    Circuit.assertEqual(MyStruct, original, reconstructed);
+    expect(reconstructed.toString()).toEqual(original.toString());
   });
 });
