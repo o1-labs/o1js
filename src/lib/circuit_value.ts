@@ -32,6 +32,7 @@ export {
   InferCircuitValue,
   HashInput,
   FlexibleProvable,
+  FlexibleProvablePure,
   InferJson,
 };
 
@@ -45,7 +46,11 @@ type NonMethods<T> = Pick<T, NonMethodKeys<T>>;
 
 type Struct<T> = ProvableExtended<NonMethods<T>> &
   Constructor<T> & { _isStruct: true };
+type StructPure<T> = ProvablePure<NonMethods<T>> &
+  ProvableExtension<NonMethods<T>> &
+  Constructor<T> & { _isStruct: true };
 type FlexibleProvable<T> = Provable<T> | Struct<T>;
+type FlexibleProvablePure<T> = ProvablePure<T> | StructPure<T>;
 
 type HashInput = { fields?: Field[]; packed?: [Field, number][] };
 const HashInput = {
@@ -343,7 +348,7 @@ function circuitArray<
   };
 }
 
-function arrayProp<T>(elementType: Provable<T>, length: number) {
+function arrayProp<T>(elementType: FlexibleProvable<T>, length: number) {
   return function (target: any, key: string) {
     if (!target.hasOwnProperty('_fields')) {
       target._fields = [];
@@ -353,7 +358,7 @@ function arrayProp<T>(elementType: Provable<T>, length: number) {
 }
 
 function matrixProp<T>(
-  elementType: Provable<T>,
+  elementType: FlexibleProvable<T>,
   nRows: number,
   nColumns: number
 ) {
@@ -377,7 +382,7 @@ function public_(target: any, _key: string | symbol, index: number) {
   target._public.push(index);
 }
 
-function typeOfArray(typs: Array<ProvablePure<any>>): ProvablePure<any> {
+function provableFromTuple(typs: ProvablePure<any>[]): ProvablePure<any> {
   return {
     sizeInFields: () => {
       return typs.reduce((acc, typ) => acc + typ.sizeInFields(), 0);
@@ -451,10 +456,10 @@ function circuitMain(
     return result;
   };
 
-  target.snarkyWitnessTyp = typeOfArray(
+  target.snarkyWitnessTyp = provableFromTuple(
     Array.from(witnessIndexSet).map((i) => paramTypes[i])
   );
-  target.snarkyPublicTyp = typeOfArray(
+  target.snarkyPublicTyp = provableFromTuple(
     Array.from(publicIndexSet).map((i) => paramTypes[i])
   );
 }
@@ -922,6 +927,7 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
   );
 }
 
+function toConstant<T>(type: FlexibleProvable<T>, value: T): T;
 function toConstant<T>(type: Provable<T>, value: T): T {
   return type.fromFields(
     type.toFields(value).map((x) => x.toConstant()),
@@ -1034,7 +1040,7 @@ Circuit.log = function (...args: any) {
   });
 };
 
-function auxiliary<T>(type: Provable<T>, compute: () => any[]) {
+function auxiliary<T>(type: FlexibleProvable<T>, compute: () => any[]) {
   let aux;
   if (inCheckedComputation()) Circuit.asProver(() => (aux = compute()));
   else aux = compute();
@@ -1051,8 +1057,8 @@ let memoizationContext = Context.create<{
  * Like Circuit.witness, but memoizes the witness during transaction construction
  * for reuse by the prover. This is needed to witness non-deterministic values.
  */
-function memoizeWitness<T>(type: Provable<T>, compute: () => T) {
-  return Circuit.witness(type, () => {
+function memoizeWitness<T>(type: FlexibleProvable<T>, compute: () => T) {
+  return Circuit.witness<T>(type as Provable<T>, () => {
     if (!memoizationContext.has()) return compute();
     let context = memoizationContext.get();
     let { memoized, currentIndex } = context;
@@ -1065,7 +1071,10 @@ function memoizeWitness<T>(type: Provable<T>, compute: () => T) {
       memoized[currentIndex] = currentValue;
     }
     context.currentIndex += 1;
-    return type.fromFields(currentValue.fields, currentValue.aux);
+    return (type as Provable<T>).fromFields(
+      currentValue.fields,
+      currentValue.aux
+    );
   });
 }
 

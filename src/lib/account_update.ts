@@ -4,6 +4,7 @@ import {
   cloneCircuitValue,
   memoizationContext,
   memoizeWitness,
+  FlexibleProvable,
 } from './circuit_value.js';
 import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
 import { jsLayout } from '../provable/gen/js-layout.js';
@@ -1115,7 +1116,7 @@ class AccountUpdate implements Types.AccountUpdate {
     accountUpdate.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 
-  // static methods that implement Provable<[AccountUpdate, Bool]>, where he Bool is for `isDelegateCall`
+  // static methods that implement Provable<{ accountUpdate: AccountUpdate, isDelegateCall: Bool }>
   private static provable = provable({
     accountUpdate: Types.AccountUpdate,
     isDelegateCall: Bool,
@@ -1166,7 +1167,7 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   static witness<T>(
-    type: Provable<T>,
+    type: FlexibleProvable<T>,
     compute: () => { accountUpdate: AccountUpdate; result: T },
     { skipCheck = false } = {}
   ) {
@@ -1226,7 +1227,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * which also get witnessed
    */
   static witnessTree<T>(
-    resultType: Provable<T>,
+    resultType: FlexibleProvable<T>,
     childLayout: AccountUpdatesLayout,
     compute: () => { accountUpdate: AccountUpdate; result: T },
     options?: { skipCheck: boolean }
