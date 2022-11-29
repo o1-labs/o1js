@@ -11,7 +11,15 @@ import {
 } from './field-bigint.js';
 import { provable } from './provable-bigint.js';
 
-export { Group, PublicKey, Scalar, PrivateKey };
+export { Group, PublicKey, Scalar, PrivateKey, versionNumbers };
+
+// TODO generate
+const versionNumbers = {
+  field: 1,
+  scalar: 1,
+  publicKey: 1,
+  signature: 1,
+};
 
 type Group = { x: Field; y: Field };
 type PublicKey = { x: Field; isOdd: Bool };
@@ -35,14 +43,10 @@ const Group = {
   },
 };
 
-// TODO generate
-let FIELD_VERSION = 1;
-let PUBLIC_KEY_VERSION = 1;
-
-let FieldWithVersion = withVersionNumber(Field, FIELD_VERSION);
+let FieldWithVersion = withVersionNumber(Field, versionNumbers.field);
 let BinablePublicKey = withVersionNumber(
   tuple([FieldWithVersion, Bool]),
-  PUBLIC_KEY_VERSION
+  versionNumbers.publicKey
 );
 let Base58PublicKey = base58(BinablePublicKey, versionBytes.publicKey);
 
@@ -84,7 +88,12 @@ const Scalar = pseudoClass(
   { ...ProvableBigint(), ...BinableBigint(sizeInBytes), ...Fq }
 );
 
+let BinablePrivateKey = withVersionNumber(Scalar, versionNumbers.scalar);
+let Base58PrivateKey = base58(BinablePrivateKey, versionBytes.privateKey);
+
 const PrivateKey = {
   ...Scalar,
   ...provable(Scalar),
+  ...Base58PrivateKey,
+  ...BinablePrivateKey,
 };

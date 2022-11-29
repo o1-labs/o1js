@@ -1,20 +1,47 @@
 import { blake2b } from 'blakejs';
-import { Field } from '../provable/field-bigint.js';
-import { Group, Scalar, PrivateKey } from '../provable/curve-bigint.js';
+import { Field, ProvableExtended } from '../provable/field-bigint.js';
+import {
+  Group,
+  Scalar,
+  PrivateKey,
+  versionNumbers,
+} from '../provable/curve-bigint.js';
 import {
   HashInput,
   hashWithPrefix,
   packToFields,
   prefixes,
 } from '../provable/poseidon-bigint.js';
-import { bytesToBits } from '../provable/binable.js';
+import {
+  base58,
+  bytesToBits,
+  tuple,
+  withVersionNumber,
+} from '../provable/binable.js';
+import { versionBytes } from '../js_crypto/constants.js';
 
-export { sign, signFieldElement };
+export { sign, signFieldElement, Signature, NetworkId };
 
 const networkIdMainnet = 0x01;
 const networkIdTestnet = 0x00;
 type NetworkId = 'mainnet' | 'testnet';
 type Signature = { r: Field; s: Scalar };
+
+const BinableSignature = withVersionNumber(
+  tuple([Field, Scalar]),
+  versionNumbers.signature
+);
+const BinableBase58 = base58(BinableSignature, versionBytes.signature);
+
+const Signature = {
+  toBase58({ r, s }: Signature) {
+    return BinableBase58.toBase58([r, s]);
+  },
+  fromBase58(signatureBase58: string): Signature {
+    let [r, s] = BinableBase58.fromBase58(signatureBase58);
+    return { r, s };
+  },
+};
 
 function signFieldElement(
   message: Field,

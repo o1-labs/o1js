@@ -6,13 +6,13 @@ import {
   ZkappCommand,
   AuthRequired,
 } from '../provable/gen/transaction-bigint.js';
-import { Signed } from './TSTypes.js';
 import {
   hashWithPrefix,
   packToFields,
   prefixes,
 } from '../provable/poseidon-bigint.js';
 import { Memo } from './memo.js';
+import { NetworkId, Signature, signFieldElement } from './signature.js';
 
 export {
   accountUpdatesToCallForest,
@@ -21,25 +21,27 @@ export {
   feePayerHash,
   createFeePayer,
   accountUpdateFromFeePayer,
+  signZkappCommand,
 };
 
 function signZkappCommand(
-  zkappCommand: Json.ZkappCommand,
-  privateKey: PrivateKey
-): Signed<ZkappCommand> {
-  let zkAppCommmand_ = ZkappCommand.fromJSON(zkappCommand);
-  let callForest = accountUpdatesToCallForest(zkAppCommmand_.accountUpdates);
+  zkappCommand_: Json.ZkappCommand,
+  privateKey: PrivateKey,
+  networkId: NetworkId
+): { signature: Signature; zkappCommand: ZkappCommand } {
+  let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
+  let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
   let commitment = callForestHash(callForest);
-  let memoHash = Memo.hash(Memo.fromBase58(zkAppCommmand_.memo));
-  let feePayerDigest = feePayerHash(zkAppCommmand_.feePayer);
+  let memoHash = Memo.hash(Memo.fromBase58(zkappCommand.memo));
+  let feePayerDigest = feePayerHash(zkappCommand.feePayer);
   let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
     memoHash,
     feePayerDigest,
     commitment,
   ]);
-  // TODO create signature with privatekey on fullCommitment
-  // TODO serialize account updates back to JSON and return
-  throw Error('signZkappCommand unimplemented');
+  let signature = signFieldElement(fullCommitment, privateKey, networkId);
+  // TODO serialize signature back to string: return JSON
+  return { signature, zkappCommand };
 }
 
 type CallTree = {
