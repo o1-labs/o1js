@@ -76,16 +76,11 @@ const PublicKey = {
   },
 };
 
-const OTHER_MODULUS =
-  0x40000000000000000000000000000000224698fc0994a8dd8c46eb2100000001n;
-const sizeInBits = OTHER_MODULUS.toString(2).length;
-const sizeInBytes = Math.ceil(sizeInBits / 8);
-
 const Scalar = pseudoClass(
   function Scalar(value: bigint | number | string): Scalar {
-    return BigInt(value) % OTHER_MODULUS;
+    return BigInt(value) % Fq.modulus;
   },
-  { ...ProvableBigint(), ...BinableBigint(sizeInBytes), ...Fq }
+  { ...ProvableBigint(), ...BinableBigint(Fq.sizeInBits), ...Fq }
 );
 
 let BinablePrivateKey = withVersionNumber(Scalar, versionNumbers.scalar);

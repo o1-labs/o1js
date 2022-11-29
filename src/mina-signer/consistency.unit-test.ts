@@ -185,8 +185,8 @@ let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
 expect(fullCommitment).toEqual(ocamlCommitments.fullCommitment.toBigInt());
 
 let feePayerKey = PrivateKey.fromBase58(feePayerKeyBase58);
-console.dir((feePayerKeySnarky.s as any).constantValue, { depth: Infinity });
-console.log(PrivateKey.toBytes(feePayerKey));
+// console.dir((feePayerKeySnarky.s as any).constantValue, { depth: Infinity });
+// console.log(PrivateKey.toBytes(feePayerKey));
 
 let signature = signFieldElement(fullCommitment, feePayerKey, 'testnet');
 let signatureBase58 = Signature.toBase58(signature);
@@ -194,14 +194,14 @@ let signatureSnarky = Ledger.signFieldElement(
   ocamlCommitments.fullCommitment,
   feePayerKeySnarky
 );
-let signatureOcamlBytes = Ledger.encoding.ofBase58(
-  signatureSnarky,
-  versionBytes.signature
-);
-let signatureBytes = [...signatureOcamlBytes.c].map((_, i) =>
-  signatureOcamlBytes.c.charCodeAt(i)
-);
-console.log(signatureBytes, signatureBytes.length);
+// let signatureOcamlBytes = Ledger.encoding.ofBase58(
+//   signatureSnarky,
+//   versionBytes.signature
+// );
+// let signatureBytes = [...signatureOcamlBytes.c].map((_, i) =>
+//   signatureOcamlBytes.c.charCodeAt(i)
+// );
+// console.log(signatureBytes, signatureBytes.length);
 
 console.log(signatureBase58);
 console.log(signatureSnarky);

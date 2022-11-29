@@ -156,7 +156,7 @@ function prefixToField<Field>(Field: GenericField<Field>, prefix: string) {
   return Field.fromBytes(bytes);
 }
 
-function bitsToBytes(bits: boolean[]) {
+function bitsToBytes([...bits]: boolean[]) {
   let bytes: number[] = [];
   while (bits.length > 0) {
     let byteBits = bits.splice(0, 8);
@@ -183,17 +183,21 @@ function bytesToBits(bytes: number[]) {
     .flat();
 }
 
-function withBits<T>(binable: Binable<T>): BinableWithBits<T> {
+function withBits<T>(
+  binable: Binable<T>,
+  sizeInBits?: number
+): BinableWithBits<T> {
+  sizeInBits ??= binable.sizeInBytes() * 8;
   return {
     ...binable,
     toBits(t: T) {
-      return bytesToBits(binable.toBytes(t));
+      return bytesToBits(binable.toBytes(t)).slice(0, sizeInBits);
     },
     fromBits(bits: boolean[]) {
       return binable.fromBytes(bitsToBytes(bits));
     },
     sizeInBits() {
-      return binable.sizeInBytes() * 8;
+      return sizeInBits!;
     },
   };
 }

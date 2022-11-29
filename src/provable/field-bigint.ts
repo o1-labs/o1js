@@ -21,7 +21,6 @@ type UInt64 = bigint;
 
 const MODULUS = Fp.modulus;
 const sizeInBits = Fp.sizeInBits;
-const sizeInBytes = Math.ceil(Fp.sizeInBits / 8);
 
 type minusOne =
   0x40000000000000000000000000000000224698fc094cf91b992d30ed00000000n;
@@ -36,7 +35,7 @@ const Field = pseudoClass(
   function Field(value: bigint | number | string): Field {
     return BigInt(value) % MODULUS;
   },
-  { MODULUS, ...ProvableBigint(), ...BinableBigint(sizeInBytes), ...Fp }
+  { MODULUS, ...ProvableBigint(), ...BinableBigint(Fp.sizeInBits), ...Fp }
 );
 
 const Bool = pseudoClass(
@@ -82,7 +81,7 @@ function Unsigned(bits: number) {
     },
     {
       ...ProvableBigint(),
-      ...BinableBigint(Math.ceil(bits / 8)),
+      ...BinableBigint(bits),
       toInput(x: bigint): HashInput {
         return {
           fields: [],
@@ -170,19 +169,23 @@ function ProvableBigint<
 }
 
 function BinableBigint<T extends bigint = bigint>(
-  sizeInBytes: number
+  sizeInBits: number
 ): BinableWithBits<T> {
-  return withBits({
-    toBytes(x) {
-      return bigIntToBytes(x, sizeInBytes);
+  let sizeInBytes = Math.ceil(sizeInBits / 8);
+  return withBits(
+    {
+      toBytes(x) {
+        return bigIntToBytes(x, sizeInBytes);
+      },
+      fromBytes(bytes) {
+        return bytesToBigInt(bytes) as T;
+      },
+      sizeInBytes() {
+        return sizeInBytes;
+      },
     },
-    fromBytes(bytes) {
-      return bytesToBigInt(bytes) as T;
-    },
-    sizeInBytes() {
-      return sizeInBytes;
-    },
-  });
+    sizeInBits
+  );
 }
 
 function bytesToBigInt(bytes: Uint8Array | number[]) {
