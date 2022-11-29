@@ -1,4 +1,5 @@
-import { Binable } from './binable.js';
+import { Fp } from '../js_crypto/finite_field.js';
+import { Binable, BinableWithBits, withBits } from './binable.js';
 import { GenericHashInput, GenericProvableExtended } from './generic.js';
 
 export { Field, Bool, UInt32, UInt64, Sign };
@@ -18,11 +19,9 @@ type Bool = 0n | 1n;
 type UInt32 = bigint;
 type UInt64 = bigint;
 
-// TODO: auto-generate
-const MODULUS =
-  0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001n;
-const sizeInBits = MODULUS.toString(2).length;
-const sizeInBytes = Math.ceil(sizeInBits / 8);
+const MODULUS = Fp.modulus;
+const sizeInBits = Fp.sizeInBits;
+const sizeInBytes = Math.ceil(Fp.sizeInBits / 8);
 
 type minusOne =
   0x40000000000000000000000000000000224698fc094cf91b992d30ed00000000n;
@@ -37,7 +36,7 @@ const Field = pseudoClass(
   function Field(value: bigint | number | string): Field {
     return BigInt(value) % MODULUS;
   },
-  { MODULUS, ...ProvableBigint(), ...BinableBigint(sizeInBytes) }
+  { MODULUS, ...ProvableBigint(), ...BinableBigint(sizeInBytes), ...Fp }
 );
 
 const Bool = pseudoClass(
@@ -172,8 +171,8 @@ function ProvableBigint<
 
 function BinableBigint<T extends bigint = bigint>(
   sizeInBytes: number
-): Binable<T> {
-  return {
+): BinableWithBits<T> {
+  return withBits({
     toBytes(x) {
       return bigIntToBytes(x, sizeInBytes);
     },
@@ -183,7 +182,7 @@ function BinableBigint<T extends bigint = bigint>(
     sizeInBytes() {
       return sizeInBytes;
     },
-  };
+  });
 }
 
 function bytesToBigInt(bytes: Uint8Array | number[]) {

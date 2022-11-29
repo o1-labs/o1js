@@ -5,7 +5,7 @@ import {
   GenericProvableExtended,
 } from './generic.js';
 
-export { createProvable, ProvableConstructor };
+export { createProvable, createHashInput, ProvableConstructor };
 
 type ProvableConstructor<Field> = <A>(
   typeObj: A,
@@ -19,20 +19,7 @@ function createProvable<Field>(): ProvableConstructor<Field> {
     Field
   >;
   type HashInput = GenericHashInput<Field>;
-  const HashInput = {
-    get empty() {
-      return {};
-    },
-    append(input1: HashInput, input2: HashInput): HashInput {
-      if (input2.fields !== undefined) {
-        (input1.fields ??= []).push(...input2.fields);
-      }
-      if (input2.packed !== undefined) {
-        (input1.packed ??= []).push(...input2.packed);
-      }
-      return input1;
-    },
-  };
+  const HashInput = createHashInput<Field>();
 
   let complexTypes = new Set(['object', 'function']);
 
@@ -215,6 +202,24 @@ function createProvable<Field>(): ProvableConstructor<Field> {
   }
 
   return provable;
+}
+
+function createHashInput<Field>() {
+  type HashInput = GenericHashInput<Field>;
+  return {
+    get empty() {
+      return {};
+    },
+    append(input1: HashInput, input2: HashInput): HashInput {
+      if (input2.fields !== undefined) {
+        (input1.fields ??= []).push(...input2.fields);
+      }
+      if (input2.packed !== undefined) {
+        (input1.packed ??= []).push(...input2.packed);
+      }
+      return input1;
+    },
+  };
 }
 
 // some type inference helpers

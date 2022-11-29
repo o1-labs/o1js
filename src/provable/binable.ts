@@ -13,12 +13,19 @@ export {
   prefixToField,
   bytesToBits,
   bitsToBytes,
+  withBits,
+  BinableWithBits,
 };
 
 type Binable<T> = {
   toBytes(t: T): number[];
   fromBytes(bytes: number[]): T;
   sizeInBytes(): number;
+};
+type BinableWithBits<T> = Binable<T> & {
+  toBits(t: T): boolean[];
+  fromBits(bits: boolean[]): T;
+  sizeInBits(): number;
 };
 
 function withVersionNumber<T>(
@@ -174,4 +181,19 @@ function bytesToBits(bytes: number[]) {
       return bits;
     })
     .flat();
+}
+
+function withBits<T>(binable: Binable<T>): BinableWithBits<T> {
+  return {
+    ...binable,
+    toBits(t: T) {
+      return bytesToBits(binable.toBytes(t));
+    },
+    fromBits(bits: boolean[]) {
+      return binable.fromBytes(bitsToBytes(bits));
+    },
+    sizeInBits() {
+      return binable.sizeInBytes() * 8;
+    },
+  };
 }

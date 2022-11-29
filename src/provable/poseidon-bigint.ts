@@ -1,9 +1,21 @@
-import { Field, HashInput, sizeInBits } from './field-bigint.js';
+import { Field, sizeInBits } from './field-bigint.js';
 import { bitsToBytes, prefixToField } from './binable.js';
 import { Poseidon } from '../js_crypto/poseidon.js';
 import { prefixes } from '../js_crypto/constants.js';
+import { createHashInput } from './provable-generic.js';
+import { GenericHashInput } from './generic.js';
 
-export { Poseidon, prefixes, packToFields, hashWithPrefix, packToFieldsLegacy };
+export {
+  Poseidon,
+  HashInput,
+  prefixes,
+  packToFields,
+  hashWithPrefix,
+  packToFieldsLegacy,
+};
+
+type HashInput = GenericHashInput<Field>;
+const HashInput = createHashInput<Field>();
 
 function salt(prefix: string) {
   return Poseidon.update(Poseidon.initialState(), [
