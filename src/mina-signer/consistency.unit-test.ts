@@ -105,7 +105,6 @@ expect(hash).toEqual(hashSnarky.toBigInt());
 // example tx
 // TODO: generate in JS
 let feePayerKeyBase58 = 'EKDkKHit3WxjQ8SBSnP9zK7qfLtdi28tEDrzLtskTNJi1gyESTZ1';
-// let feePayerKeyBase58 = PrivateKeySnarky.random().toBase58();
 let feePayerKeySnarky = PrivateKeySnarky.fromBase58(feePayerKeyBase58);
 // TODO: to public key in JS
 let feePayerAddressSnarky = feePayerKeySnarky.toPublicKey();
@@ -185,8 +184,6 @@ let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
 expect(fullCommitment).toEqual(ocamlCommitments.fullCommitment.toBigInt());
 
 let feePayerKey = PrivateKey.fromBase58(feePayerKeyBase58);
-// console.dir((feePayerKeySnarky.s as any).constantValue, { depth: Infinity });
-// console.log(PrivateKey.toBytes(feePayerKey));
 
 let signature = signFieldElement(fullCommitment, feePayerKey, 'testnet');
 let signatureBase58 = Signature.toBase58(signature);
@@ -194,17 +191,7 @@ let signatureSnarky = Ledger.signFieldElement(
   ocamlCommitments.fullCommitment,
   feePayerKeySnarky
 );
-// let signatureOcamlBytes = Ledger.encoding.ofBase58(
-//   signatureSnarky,
-//   versionBytes.signature
-// );
-// let signatureBytes = [...signatureOcamlBytes.c].map((_, i) =>
-//   signatureOcamlBytes.c.charCodeAt(i)
-// );
-// console.log(signatureBytes, signatureBytes.length);
-
-console.log(signatureBase58);
-console.log(signatureSnarky);
+expect(signatureBase58).toEqual(signatureSnarky);
 
 console.log('to/from json, hashes & signatures are consistent! 🎉');
 shutdown();
