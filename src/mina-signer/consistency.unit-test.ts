@@ -188,11 +188,14 @@ let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
 ]);
 expect(fullCommitment).toEqual(ocamlCommitments.fullCommitment.toBigInt());
 
+// private key to/from base58
 let feePayerKey = PrivateKey.fromBase58(feePayerKeyBase58);
 
 let feePayerCompressed = ScalarSnarky.toFieldsCompressed(feePayerKeySnarky.s);
 expect(feePayerKey).toEqual(feePayerCompressed.field.toBigInt());
+expect(PrivateKey.toBase58(feePayerKey)).toEqual(feePayerKeyBase58);
 
+// signature
 let signature = signFieldElement(fullCommitment, feePayerKey, 'testnet');
 let signatureBase58 = Signature.toBase58(signature);
 let signatureOcaml = Ledger.signFieldElement(
@@ -201,6 +204,7 @@ let signatureOcaml = Ledger.signFieldElement(
 );
 expect(signatureBase58).toEqual(signatureOcaml);
 
+// full end-to-end test: sign a zkapp transaction
 let signedZkappCommand = signZkappCommand(
   zkappCommandJson,
   feePayerKey,
