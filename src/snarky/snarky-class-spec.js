@@ -460,6 +460,7 @@ export default [
         name: 'memoToBase58',
         type: 'function',
       },
+      { name: 'memoHashBase58', type: 'function' },
       {
         name: 'checkAccountUpdateSignature',
         type: 'function',

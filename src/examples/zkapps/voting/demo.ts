@@ -6,20 +6,21 @@ import {
   Mina,
   AccountUpdate,
   PrivateKey,
-  Permissions,
   UInt64,
-  Experimental,
-  UInt32,
+  SmartContract,
+  Reducer,
 } from 'snarkyjs';
 import { VotingApp, VotingAppParams } from './factory.js';
-import { Member, MerkleWitness } from './member.js';
+import { Member, MyMerkleWitness } from './member.js';
 import { OffchainStorage } from './off_chain_storage.js';
 import {
   ParticipantPreconditions,
   ElectionPreconditions,
 } from './preconditions.js';
 
-let Local = Mina.LocalBlockchain();
+let Local = Mina.LocalBlockchain({
+  proofsEnabled: false,
+});
 Mina.setActiveInstance(Local);
 
 let feePayer = Local.testAccounts[0].privateKey;
@@ -52,7 +53,7 @@ let params: VotingAppParams = {
   voterKey,
   candidateKey,
   votingKey,
-  doProofs: false,
+  doProofs: true,
 };
 
 let contracts = await VotingApp(params);
@@ -70,23 +71,20 @@ try {
 
     contracts.voting.deploy({ zkappKey: votingKey });
     contracts.voting.committedVotes.set(votesStore.getRoot());
-    contracts.voting.accumulatedVotes.set(
-      Experimental.Reducer.initialActionsHash
-    );
+    contracts.voting.accumulatedVotes.set(Reducer.initialActionsHash);
 
     contracts.candidateContract.deploy({ zkappKey: candidateKey });
     contracts.candidateContract.committedMembers.set(candidateStore.getRoot());
     contracts.candidateContract.accumulatedMembers.set(
-      Experimental.Reducer.initialActionsHash
+      Reducer.initialActionsHash
     );
 
     contracts.voterContract.deploy({ zkappKey: voterKey });
     contracts.voterContract.committedMembers.set(voterStore.getRoot());
-    contracts.voterContract.accumulatedMembers.set(
-      Experimental.Reducer.initialActionsHash
-    );
+    contracts.voterContract.accumulatedMembers.set(Reducer.initialActionsHash);
   });
   await tx.send();
+
   let m: Member = Member.empty();
   // lets register three voters
   tx = await Mina.transaction(feePayer, () => {
@@ -100,7 +98,7 @@ try {
       0n,
       Member.from(
         PrivateKey.random().toPublicKey(),
-        Field.zero,
+        Field(0),
         UInt64.from(150)
       ),
       voterStore
@@ -124,7 +122,7 @@ try {
       1n,
       Member.from(
         PrivateKey.random().toPublicKey(),
-        Field.zero,
+        Field(0),
         UInt64.from(160)
       ),
       voterStore
@@ -149,7 +147,7 @@ try {
       2n,
       Member.from(
         PrivateKey.random().toPublicKey(),
-        Field.zero,
+        Field(0),
         UInt64.from(170)
       ),
       voterStore
@@ -188,7 +186,7 @@ try {
       0n,
       Member.from(
         PrivateKey.random().toPublicKey(),
-        Field.zero,
+        Field(0),
         UInt64.from(250)
       ),
       candidateStore
@@ -200,6 +198,7 @@ try {
 
   if (params.doProofs) await tx.prove();
   await tx.send();
+
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering 1 new candidate
     let m = registerMember(
@@ -211,7 +210,7 @@ try {
       1n,
       Member.from(
         PrivateKey.random().toPublicKey(),
-        Field.zero,
+        Field(0),
         UInt64.from(400)
       ),
       candidateStore
@@ -223,6 +222,7 @@ try {
 
   if (params.doProofs) await tx.prove();
   await tx.send();
+
   /*
   since the voting contact calls the candidate membership contract via invoking candidateRegister,
   the membership contract will then emit one event per new member
@@ -255,14 +255,14 @@ try {
   );
 
   /*
-  if we now call authorizeVoters, which invokes publish on both membership contracts,
+  if we now call approveVoters, which invokes publish on both membership contracts,
   we will also update the committed members!
   and since we keep track of voters and candidates in our off-chain storage,
   both the on-chain committedMembers variable and the off-chain merkle tree root need to be equal
   */
 
   tx = await Mina.transaction(feePayer, () => {
-    contracts.voting.authorizeRegistrations();
+    contracts.voting.approveRegistrations();
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
 
@@ -295,8 +295,8 @@ try {
   Local.incrementGlobalSlot(5);
   tx = await Mina.transaction(feePayer, () => {
     let c = candidateStore.get(0n)!;
-    c.witness = new MerkleWitness(candidateStore.getWitness(0n));
-    c.votesWitness = new MerkleWitness(votesStore.getWitness(0n));
+    c.witness = new MyMerkleWitness(candidateStore.getWitness(0n));
+    c.votesWitness = new MyMerkleWitness(votesStore.getWitness(0n));
     // we are voting for candidate c, 0n, with voter 2n
     contracts.voting.vote(c, voterStore.get(2n)!);
     if (!params.doProofs) contracts.voting.sign(votingKey);
@@ -350,7 +350,7 @@ function registerMember(
   // we will also have to keep track of new voters and candidates within our off-chain merkle tree
   store.set(i, m); // setting voter 0n
   // setting the merkle witness
-  m.witness = new MerkleWitness(store.getWitness(i));
+  m.witness = new MyMerkleWitness(store.getWitness(i));
   return m;
 }
 

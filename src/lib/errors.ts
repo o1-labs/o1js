@@ -1,4 +1,4 @@
-import { Types } from '../snarky/types.js';
+import { Types } from '../provable/types.js';
 import { TokenId } from './account_update.js';
 import { Int64 } from './int.js';
 

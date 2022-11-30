@@ -13,7 +13,6 @@ import {
   DeployArgs,
   Bool,
   PublicKey,
-  Circuit,
 } from 'snarkyjs';
 
 const doProofs = true;
@@ -33,10 +32,13 @@ class SimpleZkapp extends SmartContract {
     super.deploy(args);
     this.setPermissions({
       ...Permissions.default(),
-      editState: Permissions.proofOrSignature(),
-      send: Permissions.proofOrSignature(),
+      send: Permissions.proof(),
     });
-    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
+  }
+
+  @method init(zkappKey: PrivateKey) {
+    super.init(zkappKey);
+    this.balance.addInPlace(UInt64.from(initialBalance));
     this.x.set(initialState);
   }
 
@@ -59,16 +61,12 @@ class SimpleZkapp extends SmartContract {
     callerAddress.assertEquals(privilegedAddress);
 
     // assert that the caller account is new - this way, payout can only happen once
-    let callerAccountUpdate = AccountUpdate.defaultAccountUpdate(callerAddress);
+    let callerAccountUpdate = AccountUpdate.create(callerAddress);
     callerAccountUpdate.account.isNew.assertEquals(Bool(true));
-
     // pay out half of the zkapp balance to the caller
     let balance = this.account.balance.get();
     this.account.balance.assertEquals(balance);
-    // FIXME UInt64.div() doesn't work on variables
-    let halfBalance = Circuit.witness(UInt64, () =>
-      balance.toConstant().div(2)
-    );
+    let halfBalance = balance.div(2);
     this.send({ to: callerAccountUpdate, amount: halfBalance });
 
     // emit some events
@@ -77,7 +75,7 @@ class SimpleZkapp extends SmartContract {
   }
 }
 
-let Local = Mina.LocalBlockchain();
+let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp
@@ -105,17 +103,20 @@ let tx = await Mina.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer, { initialBalance });
   zkapp.deploy({ zkappKey });
 });
+await tx.prove();
 await tx.send();
 
 console.log('initial state: ' + zkapp.x.get());
 console.log(`initial balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 
+let account = Mina.getAccount(zkappAddress);
+console.log('account is proved:', account.provedState.toBoolean());
+
 console.log('update');
 tx = await Mina.transaction(feePayer, () => {
   zkapp.update(Field(3));
-  if (!doProofs) zkapp.sign(zkappKey);
 });
-if (doProofs) await tx.prove();
+await tx.prove();
 await tx.send();
 
 // pay more into the zkapp -- this doesn't need a proof
@@ -130,9 +131,8 @@ console.log('payout');
 tx = await Mina.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer);
   zkapp.payout(privilegedKey);
-  if (!doProofs) zkapp.sign(zkappKey);
 });
-if (doProofs) await tx.prove();
+await tx.prove();
 await tx.send();
 
 console.log('final state: ' + zkapp.x.get());
@@ -141,10 +141,9 @@ console.log(`final balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 console.log('try to payout a second time..');
 tx = await Mina.transaction(feePayer, () => {
   zkapp.payout(privilegedKey);
-  if (!doProofs) zkapp.sign(zkappKey);
 });
 try {
-  if (doProofs) await tx.prove();
+  await tx.prove();
   await tx.send();
 } catch (err: any) {
   console.log('Transaction failed with error', err.message);
@@ -154,9 +153,8 @@ console.log('try to payout to a different account..');
 try {
   tx = await Mina.transaction(feePayer, () => {
     zkapp.payout(Local.testAccounts[2].privateKey);
-    if (!doProofs) zkapp.sign(zkappKey);
   });
-  if (doProofs) await tx.prove();
+  await tx.prove();
   await tx.send();
 } catch (err: any) {
   console.log('Transaction failed with error', err.message);

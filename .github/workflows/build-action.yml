@@ -3,14 +3,16 @@ on:
   push:
     branches:
       - main
-      - releases
+      - berkeley
   pull_request:
     branches:
       - main
-      - releases
+      - berkeley
+  workflow_dispatch: {}
 
 jobs:
   Build-And-Test-Server:
+    timeout-minutes: 180
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -18,7 +20,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v2
         with:
-          node-version: "18"
+          node-version: '18'
       - name: Build SnarkyJS and Execute Tests
         run: |
           npm ci
@@ -28,13 +30,14 @@ jobs:
           npm run test:integration
       - name: Publish to NPM if version has changed
         uses: JS-DevTools/npm-publish@v1
-        if: github.ref == 'refs/heads/releases'
+        if: github.ref == 'refs/heads/main'
         with:
           token: ${{ secrets.NPM_TOKEN }}
         env:
           INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   Build-And-Test-Web:
+    timeout-minutes: 90
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -42,7 +45,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v2
         with:
-          node-version: "18"
+          node-version: '18'
       - name: Install Node Dependencies
         run: npm ci
       - name: Install Playwright Browsers

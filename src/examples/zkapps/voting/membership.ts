@@ -10,6 +10,7 @@ import {
   PublicKey,
   Experimental,
   Circuit,
+  Reducer,
 } from 'snarkyjs';
 import { Member } from './member.js';
 import { ParticipantPreconditions } from './preconditions.js';
@@ -32,6 +33,8 @@ export async function Membership(
   participantPreconditions = params.participantPreconditions;
 
   let contract = new Membership_(params.contractAddress);
+
+  params.doProofs = true;
   if (params.doProofs) {
     await Membership_.compile();
   }
@@ -54,14 +57,17 @@ export class Membership_ extends SmartContract {
    */
   @state(Field) accumulatedMembers = State<Field>();
 
-  reducer = Experimental.Reducer({ actionType: Member });
+  reducer = Reducer({ actionType: Member });
 
   deploy(args: DeployArgs) {
     super.deploy(args);
     this.setPermissions({
       ...Permissions.default(),
-      editState: Permissions.none(), // TODO: fix permissions
-      editSequenceState: Permissions.none(), // TODO: fix permissions
+      editState: Permissions.proofOrSignature(),
+      editSequenceState: Permissions.proofOrSignature(),
+      setPermissions: Permissions.proofOrSignature(),
+      setVerificationKey: Permissions.proofOrSignature(),
+      incrementNonce: Permissions.proofOrSignature(),
     });
   }
 
@@ -77,20 +83,20 @@ export class Membership_ extends SmartContract {
     // since we need to keep this contract "generic", we always assert within a range
     // even tho voters cant have a maximum balance, only candidates
     // but for a voter we simply use UInt64.MAXINT() as the maximum
+
     let accountUpdate = Experimental.createChildAccountUpdate(
       this.self,
       member.publicKey
     );
+
     accountUpdate.account.balance.assertEquals(
       accountUpdate.account.balance.get()
     );
 
     let balance = accountUpdate.account.balance.get();
 
-    balance
-      .gte(participantPreconditions.minMina)
-      .and(balance.lte(participantPreconditions.maxMina))
-      .assertTrue();
+    balance.assertGte(participantPreconditions.minMina);
+    balance.assertLte(participantPreconditions.maxMina);
 
     let accumulatedMembers = this.accumulatedMembers.get();
     this.accumulatedMembers.assertEquals(accumulatedMembers);

@@ -9,6 +9,9 @@ type CipherText = {
   cipherText: Field[];
 };
 
+/**
+ * Public Key Encryption, using a given array of {@link Field} elements and encrypts it using a {@link PublicKey}.
+ */
 function encrypt(message: Field[], otherPublicKey: PublicKey) {
   // key exchange
   let privateKey = Circuit.witness(Scalar, () => Scalar.random());
@@ -35,6 +38,9 @@ function encrypt(message: Field[], otherPublicKey: PublicKey) {
   return { publicKey, cipherText };
 }
 
+/**
+ * Decrypts a {@link CipherText} using a {@link PrivateKey}.^
+ */
 function decrypt(
   { publicKey, cipherText }: CipherText,
   privateKey: PrivateKey

@@ -1,15 +1,10 @@
 import 'isomorphic-fetch';
 import { Bool, Field, Ledger } from '../snarky.js';
 import { UInt32, UInt64 } from './int.js';
-import {
-  TokenId,
-  Permission,
-  Permissions,
-  ZkappStateLength,
-} from './account_update.js';
+import { TokenId, Permissions, ZkappStateLength } from './account_update.js';
 import { PublicKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
-import { Types } from '../snarky/types.js';
+import { Types } from '../provable/types.js';
 import * as Encoding from './encoding.js';
 
 export {
@@ -26,10 +21,15 @@ export {
   setGraphqlEndpoint,
   sendZkappQuery,
   sendZkapp,
+  removeJsonQuotes,
 };
+
 export { Account };
 
 let defaultGraphqlEndpoint = 'none';
+/**
+ * Specifies the default GraphQL endpoint.
+ */
 function setGraphqlEndpoint(graphqlEndpoint: string) {
   defaultGraphqlEndpoint = graphqlEndpoint;
 }
@@ -229,8 +229,8 @@ function parseFetchedAccount({
   return {
     publicKey:
       publicKey !== undefined ? PublicKey.fromBase58(publicKey) : undefined,
-    nonce: nonce !== undefined ? UInt32.fromString(nonce) : undefined,
-    balance: balance && UInt64.fromString(balance.total),
+    nonce: nonce !== undefined ? UInt32.from(nonce) : undefined,
+    balance: balance && UInt64.from(balance.total),
     appState: (zkappState && zkappState.map(Field)) ?? undefined,
     permissions:
       permissions &&
@@ -358,6 +358,9 @@ function getCachedNetwork(graphqlEndpoint = defaultGraphqlEndpoint) {
   return networkCache[graphqlEndpoint]?.network;
 }
 
+/**
+ * Adds an account to the local cache, indexed by a GraphQL endpoint.
+ */
 function addCachedAccount(
   account: {
     publicKey: string | PublicKey;
@@ -384,6 +387,9 @@ function addCachedAccountInternal(
   };
 }
 
+/**
+ * Fetches the last block on the Mina network.
+ */
 async function fetchLastBlock(graphqlEndpoint = defaultGraphqlEndpoint) {
   let [resp, error] = await makeGraphqlRequest(lastBlockQuery, graphqlEndpoint);
   if (error) throw Error(error.statusText);
@@ -497,13 +503,13 @@ function parseFetchedBlock({
   return {
     snarkedLedgerHash: Encoding.LedgerHash.fromBase58(snarkedLedgerHash),
     // TODO: use date or utcDate?
-    timestamp: UInt64.fromString(utcDate),
-    blockchainLength: UInt32.fromString(blockHeight),
-    minWindowDensity: UInt32.fromString(minWindowDensity),
-    totalCurrency: UInt64.fromString(totalCurrency),
+    timestamp: UInt64.from(utcDate),
+    blockchainLength: UInt32.from(blockHeight),
+    minWindowDensity: UInt32.from(minWindowDensity),
+    totalCurrency: UInt64.from(totalCurrency),
     // is this really `slot`?
-    globalSlotSinceHardFork: UInt32.fromString(slot),
-    globalSlotSinceGenesis: UInt32.fromString(slotSinceGenesis),
+    globalSlotSinceHardFork: UInt32.from(slot),
+    globalSlotSinceGenesis: UInt32.from(slotSinceGenesis),
     nextEpochData: parseEpochData(nextEpochData),
     stakingEpochData: parseEpochData(stakingEpochData),
   };
@@ -519,15 +525,18 @@ function parseEpochData({
   return {
     ledger: {
       hash: Encoding.LedgerHash.fromBase58(hash),
-      totalCurrency: UInt64.fromString(totalCurrency),
+      totalCurrency: UInt64.from(totalCurrency),
     },
     seed: Encoding.EpochSeed.fromBase58(seed),
     startCheckpoint: Encoding.StateHash.fromBase58(startCheckpoint),
     lockCheckpoint: Encoding.StateHash.fromBase58(lockCheckpoint),
-    epochLength: UInt32.fromString(epochLength),
+    epochLength: UInt32.from(epochLength),
   };
 }
 
+/**
+ * Sends a zkApp command (transaction) to the specified GraphQL endpoint.
+ */
 function sendZkapp(
   json: string,
   graphqlEndpoint = defaultGraphqlEndpoint,
@@ -574,11 +583,8 @@ function sendZkappQuery(json: string) {
 
 // removes the quotes on JSON keys
 function removeJsonQuotes(json: string) {
-  // source: https://stackoverflow.com/a/65443215
   let cleaned = JSON.stringify(JSON.parse(json), null, 2);
-  return cleaned.replace(/^[\t ]*"[^:\n\r]+(?<!\\)":/gm, (match) =>
-    match.replace(/"/g, '')
-  );
+  return cleaned.replace(/\"(\S+)\"\s*:/gm, '$1:');
 }
 
 // TODO it seems we're not actually catching most errors here

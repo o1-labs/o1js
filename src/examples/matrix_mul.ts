@@ -1,4 +1,6 @@
-import { Field, provable, Circuit } from 'snarkyjs';
+import { Field, provable, Circuit, isReady } from 'snarkyjs';
+
+await isReady;
 
 // there are two ways of specifying an n*m matrix
 
@@ -27,7 +29,7 @@ function matrixMul(x: Field[][], y: Field[][]): Field[][] {
   for (let i = 0; i < n; i++) {
     result[i] = [];
     for (let j = 0; j < o; j++) {
-      result[i][j] = Field.zero;
+      result[i][j] = Field(0);
       for (let k = 0; k < m; k++) {
         result[i][j] = result[i][j].add(x[i][k].mul(y[k][j]));
       }
