@@ -1,5 +1,11 @@
 import { expect } from 'expect';
-import { isReady, Ledger, Bool as BoolSnarky, shutdown } from '../snarky.js';
+import {
+  isReady,
+  Ledger,
+  Bool as BoolSnarky,
+  Scalar as ScalarSnarky,
+  shutdown,
+} from '../snarky.js';
 import { UInt32, UInt64 } from '../lib/int.js';
 import {
   PrivateKey as PrivateKeySnarky,
@@ -23,7 +29,6 @@ import {
   callForestHash,
   createFeePayer,
   feePayerHash,
-  signZkappCommand,
 } from './sign-zkapp-command.js';
 import {
   hashWithPrefix,
@@ -33,7 +38,6 @@ import {
 import { packToFields as packToFieldsSnarky } from '../lib/hash.js';
 import { Memo } from './memo.js';
 import { Signature, signFieldElement } from './signature.js';
-import { versionBytes } from '../js_crypto/constants.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
@@ -184,6 +188,9 @@ let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
 expect(fullCommitment).toEqual(ocamlCommitments.fullCommitment.toBigInt());
 
 let feePayerKey = PrivateKey.fromBase58(feePayerKeyBase58);
+
+let feePayerCompressed = ScalarSnarky.toFieldsCompressed(feePayerKeySnarky.s);
+expect(feePayerKey).toEqual(feePayerCompressed.field.toBigInt());
 
 let signature = signFieldElement(fullCommitment, feePayerKey, 'testnet');
 let signatureBase58 = Signature.toBase58(signature);
