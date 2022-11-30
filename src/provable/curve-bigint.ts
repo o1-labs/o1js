@@ -1,7 +1,8 @@
 import { Fq } from '../js_crypto/finite_field.js';
 import { GroupProjective, Pallas } from '../js_crypto/elliptic_curve.js';
 import { versionBytes } from '../js_crypto/constants.js';
-import { base58, tuple, withVersionNumber } from './binable.js';
+import { tuple, withVersionNumber } from './binable.js';
+import { base58 } from './base58.js';
 import {
   BinableBigint,
   Bool,

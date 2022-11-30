@@ -13,12 +13,12 @@ import {
   prefixes,
 } from '../provable/poseidon-bigint.js';
 import {
-  base58,
   bitsToBytes,
   bytesToBits,
   tuple,
   withVersionNumber,
 } from '../provable/binable.js';
+import { base58 } from '../provable/base58.js';
 import { versionBytes } from '../js_crypto/constants.js';
 
 export { sign, signFieldElement, Signature, NetworkId };

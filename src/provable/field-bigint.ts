@@ -1,5 +1,5 @@
 import { Fp } from '../js_crypto/finite_field.js';
-import { Binable, BinableWithBits, withBits } from './binable.js';
+import { BinableWithBits, withBits } from './binable.js';
 import { GenericHashInput, GenericProvableExtended } from './generic.js';
 
 export { Field, Bool, UInt32, UInt64, Sign };
