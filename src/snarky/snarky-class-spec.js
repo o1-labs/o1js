@@ -381,10 +381,6 @@ export default [
     name: 'Ledger',
     props: [
       {
-        name: 'keypairToJson',
-        type: 'function',
-      },
-      {
         name: 'create',
         type: 'function',
       },

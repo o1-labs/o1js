@@ -20,6 +20,7 @@ export {
   shutdown,
   Pickles,
   Account as LedgerAccount,
+  Gate,
 };
 
 /**
@@ -608,6 +609,13 @@ declare interface CircuitMain<W, P> {
   snarkyPublicTyp: ProvablePure<P>;
   snarkyMain: (w: W, p: P) => void;
 }
+
+type Gate = {
+  typ: string;
+  wires: { row: number; col: number }[];
+  coeffs: string[];
+};
+
 /**
  * The {@link Circuit} API is a low level interface to interact and build circuits with
  */
@@ -674,6 +682,12 @@ declare class Circuit {
     digest: string;
     result: T;
   };
+
+  /**
+   * Returns a low-level JSON representation of the `Circuit` from its {@link Keypair}:
+   * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
+   */
+  static constraintSystemFromKeypair(keypair: Keypair): Gate[];
 
   /**
    * Creates a {@link Provable} for a generic array.
@@ -1064,8 +1078,6 @@ declare class Ledger {
   static create(
     genesisAccounts: Array<{ publicKey: PublicKey_; balance: string }>
   ): Ledger;
-
-  static keypairToJson(keypair: Keypair): string;
 
   /**
    * Adds an account and its balance to the ledger.
