@@ -105,7 +105,7 @@ function accountUpdateFromFeePayer({
   body: { fee, nonce, publicKey, validUntil },
   authorization: signature,
 }: FeePayer): AccountUpdate {
-  let { body } = AccountUpdate.fromJSON(JSON.parse(emptyUpdate));
+  let { body } = AccountUpdate.emptyValue();
   body.publicKey = publicKey;
   body.balanceChange = {
     magnitude: fee,
@@ -154,7 +154,3 @@ function accountUpdateFromFeePayer({
   body.authorizationKind = { isProved: Bool(false), isSigned: Bool(true) };
   return { body, authorization: { signature } };
 }
-
-// TODO generalize "emptyValue" to a layout fold method to create complex dummies
-const emptyUpdate =
-  '{"body":{"publicKey":"B62qiTKpEPjGTSHZrtM8uXiKgn8So916pLmNJKDhKeyBQL9TDb3nvBG","tokenId":"wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf","update":{"appState":[null,null,null,null,null,null,null,null],"delegate":null,"verificationKey":null,"permissions":null,"zkappUri":null,"tokenSymbol":null,"timing":null,"votingFor":null},"balanceChange":{"magnitude":"0","sgn":"Positive"},"incrementNonce":false,"events":[],"sequenceEvents":[],"callData":"0","callDepth":0,"preconditions":{"network":{"snarkedLedgerHash":null,"timestamp":null,"blockchainLength":null,"minWindowDensity":null,"totalCurrency":null,"globalSlotSinceHardFork":null,"globalSlotSinceGenesis":null,"stakingEpochData":{"ledger":{"hash":null,"totalCurrency":null},"seed":null,"startCheckpoint":null,"lockCheckpoint":null,"epochLength":null},"nextEpochData":{"ledger":{"hash":null,"totalCurrency":null},"seed":null,"startCheckpoint":null,"lockCheckpoint":null,"epochLength":null}},"account":{"balance":null,"nonce":null,"receiptChainHash":null,"delegate":null,"state":[null,null,null,null,null,null,null,null],"sequenceState":null,"provedState":null,"isNew":null}},"useFullCommitment":false,"caller":"wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf","authorizationKind":"None_given"},"authorization":{"proof":null,"signature":null}}';
