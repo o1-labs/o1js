@@ -29,6 +29,7 @@ import {
   callForestHash,
   createFeePayer,
   feePayerHash,
+  signZkappCommand,
 } from './sign-zkapp-command.js';
 import {
   hashWithPrefix,
@@ -194,11 +195,18 @@ expect(feePayerKey).toEqual(feePayerCompressed.field.toBigInt());
 
 let signature = signFieldElement(fullCommitment, feePayerKey, 'testnet');
 let signatureBase58 = Signature.toBase58(signature);
-let signatureSnarky = Ledger.signFieldElement(
+let signatureOcaml = Ledger.signFieldElement(
   ocamlCommitments.fullCommitment,
   feePayerKeySnarky
 );
-expect(signatureBase58).toEqual(signatureSnarky);
+expect(signatureBase58).toEqual(signatureOcaml);
+
+let signedZkappCommand = signZkappCommand(
+  zkappCommandJson,
+  feePayerKey,
+  'testnet'
+);
+expect(signedZkappCommand.feePayer.authorization).toEqual(signatureOcaml);
 
 console.log('to/from json, hashes & signatures are consistent! 🎉');
 shutdown();

@@ -28,7 +28,7 @@ function signZkappCommand(
   zkappCommand_: Json.ZkappCommand,
   privateKey: PrivateKey,
   networkId: NetworkId
-): { signature: Signature; zkappCommand: ZkappCommand } {
+): Json.ZkappCommand {
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
   let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
   let commitment = callForestHash(callForest);
@@ -40,8 +40,8 @@ function signZkappCommand(
     commitment,
   ]);
   let signature = signFieldElement(fullCommitment, privateKey, networkId);
-  // TODO serialize signature back to string: return JSON
-  return { signature, zkappCommand };
+  zkappCommand.feePayer.authorization = Signature.toBase58(signature);
+  return ZkappCommand.toJSON(zkappCommand);
 }
 
 type CallTree = {
