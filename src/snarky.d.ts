@@ -768,38 +768,56 @@ declare class Circuit {
  * Represents a {@link Scalar}.
  */
 declare class Scalar {
-  toFields(this: Scalar): Field[];
+  /**
+   * Serialize this Scalar to Field elements.
+   *
+   * WARNING: This function is for internal usage by the proof system. It returns 255 field elements
+   * which represent the Scalar in a shifted, bitwise format.
+   * Check out {@link Scalar.toFieldsCompressed} for a user-friendly serialization that can be used outside proofs.
+   */
+  toFields(): Field[];
+
+  /**
+   * Serialize a Scalar into a Field element plus one bit, where the bit is represented as a Bool.
+   *
+   * Note: Since the Scalar field is slightly larger than the base Field, an additional high bit
+   * is needed to represent all Scalars. However, for a random Scalar, the high bit will be `false` with overwhelming probability.
+   */
+  static toFieldsCompressed(s: Scalar): { field: Field; highBit: Bool };
 
   /**
    * Negate a scalar field element.
    * Can only be called outside of circuit execution
-   * */
+   */
   neg(): Scalar;
 
   /**
    * Add scalar field elements.
    * Can only be called outside of circuit execution
-   * */
+   */
   add(y: Scalar): Scalar;
 
   /**
    * Subtract scalar field elements.
    * Can only be called outside of circuit execution
-   * */
+   */
   sub(y: Scalar): Scalar;
 
   /**
    * Multiply scalar field elements.
    * Can only be called outside of circuit execution
-   * */
+   */
   mul(y: Scalar): Scalar;
 
   /**
    * Divide scalar field elements.
    * Can only be called outside of circuit execution
-   * */
+   */
   div(y: Scalar): Scalar;
 
+  /**
+   * Serializes this Scalar to a string
+   */
   toJSON(): string;
 
   /**
@@ -824,17 +842,17 @@ declare class Scalar {
   static fromBits(bits: Bool[]): Scalar;
   /**
    * Returns a random {@link Scalar}.
-   *Randomness can not be proven inside a circuit!
+   * Randomness can not be proven inside a circuit!
    */
   static random(): Scalar;
   /**
    * Serialize a {@link Scalar} to a JSON string.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Scalar.
    */
   static toJSON(x: Scalar): string;
   /**
    * Deserialize a JSON structure into a {@link Scalar}.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Scalar.
    */
   static fromJSON(x: string | number | boolean): Scalar;
   static check(x: Scalar): void;
@@ -946,12 +964,12 @@ declare class Group {
   static sizeInFields(): number;
   /**
    * Serialize a {@link Group} to a JSON string.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Group.
    */
   static toJSON(x: Group): { x: string; y: string };
   /**
    * Deserialize a JSON structure into a {@link Group}.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Group.
    */
   static fromJSON({
     x,
@@ -1051,8 +1069,6 @@ interface Account {
     vestingIncrement: UInt64_;
   };
 }
-
-// TODO would be nice to document these, at least the parts that end up being used in the public API
 
 /**
  * Represents the Mina ledger.
