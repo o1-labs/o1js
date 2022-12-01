@@ -21,15 +21,15 @@ import {
   UInt32,
   Bool,
   PublicKey,
-  Circuit,
   Experimental,
+  Reducer,
 } from 'snarkyjs';
 
 const doProofs = true;
 
 await isReady;
 
-const INCREMENT = Field.one;
+const INCREMENT = Field(1);
 
 let offchainStorage = {
   pendingActions: [] as Field[][],
@@ -37,7 +37,7 @@ let offchainStorage = {
 
 class CounterZkapp extends SmartContract {
   // the "reducer" field describes a type of action that we can dispatch, and reduce later
-  reducer = Experimental.Reducer({ actionType: Field });
+  reducer = Reducer({ actionType: Field });
 
   // on-chain version of our state. it will typically lag behind the
   // version that's implicitly represented by the list of actions
@@ -52,7 +52,7 @@ class CounterZkapp extends SmartContract {
       editState: Permissions.proofOrSignature(),
       editSequenceState: Permissions.proofOrSignature(),
     });
-    this.actionsHash.set(Experimental.Reducer.initialActionsHash);
+    this.actionsHash.set(Reducer.initialActionsHash);
   }
 
   @method incrementCounter() {
@@ -102,7 +102,7 @@ class SimpleZkapp extends SmartContract {
       editState: Permissions.proofOrSignature(),
       send: Permissions.proofOrSignature(),
     });
-    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
+    this.balance.addInPlace(UInt64.from(initialBalance));
     this.x.set(initialState);
   }
 

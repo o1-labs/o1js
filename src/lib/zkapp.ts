@@ -5,7 +5,6 @@ import {
   Ledger,
   Pickles,
   Poseidon as Poseidon_,
-  JSONValue,
   Provable,
 } from '../snarky.js';
 import {
@@ -17,6 +16,8 @@ import {
   memoizationContext,
   toConstant,
   Struct,
+  FlexibleProvablePure,
+  InferCircuitValue,
 } from './circuit_value.js';
 import {
   Body,
@@ -34,6 +35,7 @@ import {
   AccountUpdatesLayout,
   smartContractContext,
   zkAppProver,
+  ZkappStateLength,
 } from './account_update.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import * as Mina from './mina.js';
@@ -60,7 +62,7 @@ import {
   GenericArgument,
 } from './proof_system.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
-import { Types } from '../snarky/types.js';
+import { Types } from '../provable/types.js';
 import { Poseidon } from './hash.js';
 import * as Encoding from './encoding.js';
 
@@ -75,16 +77,14 @@ export {
   Callback,
   Account,
   VerificationKey,
+  Reducer,
 };
-
-// internal API
-export { Reducer };
 
 const reservedPropNames = new Set(['_methods', '_']);
 
 /**
- * A decorator to use in a zkapp to mark a method as callable by anyone.
- * You can use inside your zkapp class as:
+ * A decorator to use in a zkApp to mark a method as callable by anyone.
+ * You can use inside your zkApp class as:
  *
  * ```
  * \@method myMethod(someArg: Field) {
@@ -179,6 +179,7 @@ function wrapMethod(
                 accountUpdates: [],
                 fetchMode: inProver() ? 'cached' : 'test',
                 isFinalRunOutsideCircuit: false,
+                numberOfRuns: undefined,
               },
               () => {
                 // inside prover / compile, the method is always called with the public input as first argument
@@ -603,6 +604,9 @@ class SmartContract {
   static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
 
+  /**
+   * Returns a Proof type that belongs to this {@link SmartContract}.
+   */
   static Proof() {
     let Contract = this;
     return class extends Proof<ZkappPublicInput> {
@@ -687,6 +691,16 @@ class SmartContract {
     return hash.toBigInt().toString(16);
   }
 
+  /**
+   * Deploys a {@link SmartContract}.
+   *
+   * ```ts
+   * let tx = await Mina.transaction(feePayer, () => {
+   *    AccountUpdate.fundNewAccount(feePayer, { initialBalance });
+   *    zkapp.deploy({ zkappKey });
+   * });
+   * ```
+   */
   deploy({
     verificationKey,
     zkappKey,
@@ -694,24 +708,106 @@ class SmartContract {
     verificationKey?: { data: string; hash: Field | string };
     zkappKey?: PrivateKey;
   } = {}) {
+    let accountUpdate = this.newSelf();
     verificationKey ??= (this.constructor as any)._verificationKey;
     if (verificationKey !== undefined) {
       let { hash: hash_, data } = verificationKey;
       let hash = typeof hash_ === 'string' ? Field(hash_) : hash_;
-      this.setValue(this.self.update.verificationKey, { hash, data });
+      this.setValue(accountUpdate.update.verificationKey, { hash, data });
     }
-    this.setValue(this.self.update.permissions, Permissions.default());
-    this.sign(zkappKey);
-    AccountUpdate.attachToTransaction(this.self);
+    this.setValue(accountUpdate.update.permissions, Permissions.default());
+    accountUpdate.sign(zkappKey);
+    AccountUpdate.attachToTransaction(accountUpdate);
+
+    // init if this account is not yet deployed or has no verification key on it
+    let shouldInit =
+      !Mina.hasAccount(this.address) ||
+      Mina.getAccount(this.address).verificationKey === undefined;
+    if (!shouldInit) return;
+    if (zkappKey) this.init(zkappKey);
+    else this.init();
+    let initUpdate = this.self;
+    // switch back to the deploy account update so the user can make modifications to it
+    this.#executionState = {
+      transactionId: this.#executionState!.transactionId,
+      accountUpdate,
+    };
+    // check if the entire state was overwritten, show a warning if not
+    let isFirstRun = Mina.currentTransaction()?.numberOfRuns === 0;
+    if (!isFirstRun) return;
+    Circuit.asProver(() => {
+      if (
+        initUpdate.update.appState.some(({ isSome }) => !isSome.toBoolean())
+      ) {
+        console.warn(`WARNING: the \`init()\` method was called without overwriting the entire state. This means that your zkApp will lack
+the \`provedState === true\` status which certifies that the current state was verifiably produced by proofs (and not arbitrarily set by the zkApp developer).
+To make sure the entire state is reset, consider adding this line to the beginning of your \`init()\` method:
+super.init();
+`);
+      }
+    });
+  }
+  // TODO make this a @method and create a proof during `zk deploy` (+ add mechanism to skip this)
+  /**
+   * `SmartContract.init()` will be called only when a {@link SmartContract} will be first deployed, not for redeployment.
+   * This method can be overridden as follows
+   * ```
+   * class MyContract extends SmartContract {
+   *  init() {
+   *    super.init();
+   *    this.setPermissions();
+   *    this.x.set(Field(1));
+   *  }
+   * }
+   * ```
+   */
+  init(zkappKey?: PrivateKey) {
+    // let accountUpdate = this.newSelf(); // this would emulate the behaviour of init() being a @method
+    // TODO: enable this if provedState is available, to make this callable only once
+    // this.account.provedState.assertEquals(Bool(false));
+    zkappKey?.toPublicKey().assertEquals(this.address);
+    let accountUpdate = this.self;
+    for (let i = 0; i < ZkappStateLength; i++) {
+      AccountUpdate.setValue(accountUpdate.body.update.appState[i], Field(0));
+    }
+    AccountUpdate.attachToTransaction(accountUpdate);
   }
 
+  /**
+   * Use this command if the account update created by this SmartContract should be signed by the account owner,
+   * instead of authorized with a proof.
+   *
+   * Note that the smart contract's {@link Permissions} determine which updates have to be (can be) authorized by a signature.
+   *
+   * If you only want to avoid creating proofs for quicker testing, we advise you to
+   * use `LocalBlockchain({ proofsEnabled: false })` instead of `requireSignature()`. Setting
+   * `proofsEnabled` to `false` allows you to test your transactions with the same authorization flow as in production,
+   * with the only difference being that quick mock proofs are filled in instead of real proofs.
+   */
+  requireSignature() {
+    this.self.requireSignature();
+  }
+  /**
+   * @deprecated `this.sign()` is deprecated in favor of `this.requireSignature()`
+   */
   sign(zkappKey?: PrivateKey) {
     this.self.sign(zkappKey);
   }
+  /**
+   * Use this command if the account update created by this SmartContract should have no authorization on it,
+   * instead of being authorized with a proof.
+   *
+   * WARNING: This is a method that should rarely be useful. If you want to disable proofs for quicker testing, take a look
+   * at `LocalBlockchain({ proofsEnabled: false })`, which causes mock proofs to be created and doesn't require changing the
+   * authorization flow.
+   */
   skipAuthorization() {
     Authorization.setLazyNone(this.self);
   }
 
+  /**
+   * Returns the current {@link AccountUpdate} associated to this {@link SmartContract}.
+   */
   get self(): AccountUpdate {
     let inTransaction = Mina.currentTransaction.has();
     let inSmartContract = smartContractContext.has();
@@ -743,58 +839,69 @@ class SmartContract {
     this.#executionState = { transactionId, accountUpdate };
     return accountUpdate;
   }
+  // same as this.self, but explicitly creates a _new_ account update
+  /**
+   * Same as `SmartContract.self` but explicitly creates a new {@link AccountUpdate}.
+   */
+  newSelf(): AccountUpdate {
+    let inTransaction = Mina.currentTransaction.has();
+    let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
+    let accountUpdate = selfAccountUpdate(this);
+    this.#executionState = { transactionId, accountUpdate };
+    return accountUpdate;
+  }
 
+  /**
+   * Current account of the {@link SmartContract}.
+   */
   get account() {
     return this.self.account;
   }
-
+  /**
+   * Current network state of the {@link SmartContract}.
+   */
   get network() {
     return this.self.network;
   }
+  /**
+   * Token of the {@link SmartContract}.
+   */
+  get token() {
+    return this.self.token();
+  }
 
-  get experimental() {
-    let zkapp = this;
-    return {
-      get token() {
-        return zkapp.self.token();
-      },
-      /**
-       * Authorize an account update or callback. This will include the account update in the zkApp's public input,
-       * which means it allows you to read and use its content in a proof, make assertions about it, and modify it.
-       *
-       * If this is called with a callback as the first parameter, it will first extract the account update produced by that callback.
-       * The extracted account update is returned.
-       *
-       * ```ts
-       * \@method myAuthorizingMethod(callback: Callback) {
-       *   let authorizedUpdate = this.experimental.authorize(callback);
-       * }
-       * ```
-       *
-       * Under the hood, "authorizing" just means that the account update is made a child of the zkApp in the
-       * tree of account updates that forms the transaction.
-       * The second parameter `layout` allows you to also make assertions about the authorized update's _own_ children,
-       * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
-       *
-       * @param updateOrCallback
-       * @param layout
-       * @returns The account update that was authorized (needed when passing in a Callback)
-       */
-      authorize(
-        updateOrCallback: AccountUpdate | Callback<any>,
-        layout?: AccountUpdatesLayout
-      ) {
-        let accountUpdate =
-          updateOrCallback instanceof AccountUpdate
-            ? updateOrCallback
-            : Circuit.witness(
-                AccountUpdate,
-                () => updateOrCallback.accountUpdate
-              );
-        zkapp.self.authorize(accountUpdate, layout);
-        return accountUpdate;
-      },
-    };
+  /**
+   * Approve an account update or callback. This will include the account update in the zkApp's public input,
+   * which means it allows you to read and use its content in a proof, make assertions about it, and modify it.
+   *
+   * If this is called with a callback as the first parameter, it will first extract the account update produced by that callback.
+   * The extracted account update is returned.
+   *
+   * ```ts
+   * \@method myApprovingMethod(callback: Callback) {
+   *   let approvedUpdate = this.approve(callback);
+   * }
+   * ```
+   *
+   * Under the hood, "approving" just means that the account update is made a child of the zkApp in the
+   * tree of account updates that forms the transaction.
+   * The second parameter `layout` allows you to also make assertions about the approved update's _own_ children,
+   * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
+   *
+   * @param updateOrCallback
+   * @param layout
+   * @returns The account update that was approved (needed when passing in a Callback)
+   */
+  approve(
+    updateOrCallback: AccountUpdate | Callback<any>,
+    layout?: AccountUpdatesLayout
+  ) {
+    let accountUpdate =
+      updateOrCallback instanceof AccountUpdate
+        ? updateOrCallback
+        : Circuit.witness(AccountUpdate, () => updateOrCallback.accountUpdate);
+    this.self.approve(accountUpdate, layout);
+    return accountUpdate;
   }
 
   send(args: {
@@ -804,17 +911,27 @@ class SmartContract {
     return this.self.send(args);
   }
 
+  /**
+   * Token symbol of this token.
+   */
   get tokenSymbol() {
     return this.self.tokenSymbol;
   }
-
+  /**
+   * Balance of this {@link SmartContract}.
+   */
   get balance() {
     return this.self.balance;
   }
-
-  events: { [key: string]: ProvablePure<any> } = {};
+  /**
+   * A list of event types that can be emitted using this.emitEvent()`.
+   */
+  events: { [key: string]: FlexibleProvablePure<any> } = {};
 
   // TODO: not able to type event such that it is inferred correctly so far
+  /**
+   * Emits an event. Events will be emitted as a part of the transaction and can be collected by archive nodes.
+   */
   emitEvent<K extends keyof this['events']>(type: K, event: any) {
     let accountUpdate = this.self;
     let eventTypes: (keyof this['events'])[] = Object.keys(this.events);
@@ -848,6 +965,9 @@ class SmartContract {
     );
   }
 
+  /**
+   * Fetches a list of events that have been emitted by this {@link SmartContract}.
+   */
   async fetchEvents(
     start: UInt32 = UInt32.from(0),
     end?: UInt32
@@ -874,7 +994,7 @@ class SmartContract {
         return {
           type,
           event: this.events[type].fromFields(
-            event.map((f: string) => Field.fromString(f))
+            event.map((f: string) => Field(f))
           ),
         };
       } else {
@@ -885,7 +1005,7 @@ class SmartContract {
         return {
           type,
           event: this.events[type].fromFields(
-            event.map((f: string) => Field.fromString(f))
+            event.map((f: string) => Field(f))
           ),
         };
       }
@@ -964,15 +1084,48 @@ class SmartContract {
 
   // TBD: do we want to have setters for updates, e.g. this.permissions = ... ?
   // I'm hesitant to make the API even more magical / less explicit
+  /**
+   * Changes the {@link Permissions} of this {@link SmartContract}.
+   */
   setPermissions(permissions: Permissions) {
     this.setValue(this.self.update.permissions, permissions);
   }
 }
 
-type Reducer<Action> = { actionType: ProvablePure<Action> };
+type Reducer<Action> = { actionType: FlexibleProvablePure<Action> };
 
 type ReducerReturn<Action> = {
+  /**
+   * Dispatches an {@link Action}. Similar to normal {@link Event}s,
+   * {@link Action}s can be stored by archive nodes and later reduced within a {@link SmartContract} method
+   * to change the state of the contract accordingly
+   *
+   * ```ts
+   * this.reducer.dispatch(Field(1)); // emits one action
+   * ```
+   *
+   * */
   dispatch(action: Action): void;
+  /**
+   * Reduces a list of {@link Action}s, similar to `Array.reduce()`.
+   *
+   * ```ts
+   *  let pendingActions = this.reducer.getActions({
+   *    fromActionHash: actionsHash,
+   *  });
+   *
+   *  let { state: newState, actionsHash: newActionsHash } =
+   *  this.reducer.reduce(
+   *     pendingActions,
+   *     Field,
+   *     (state: Field, _action: Field) => {
+   *       return state.add(1);
+   *     },
+   *     { state: initialState, actionsHash: initialActionsHash  }
+   *   );
+   * ```
+   *
+   */
   reduce<State>(
     actions: Action[][],
     stateType: Provable<State>,
@@ -983,6 +1136,14 @@ type ReducerReturn<Action> = {
     state: State;
     actionsHash: Field;
   };
+  /**
+   * Fetches the list of previously emitted {@link Action}s by this {@link SmartContract}.
+   * ```ts
+   * let pendingActions = this.reducer.getActions({
+   *    fromActionHash: actionsHash,
+   * });
+   * ```
+   */
   getActions({
     fromActionHash,
     endActionHash,
@@ -1129,10 +1290,8 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           .map((event: { hash: string; actions: string[][] }) =>
             // putting our string-Fields back into the original action type
             event.actions.map((action: string[]) =>
-              reducer.actionType.fromFields(
-                action.map((fieldAsString: string) =>
-                  Field.fromString(fieldAsString)
-                )
+              (reducer.actionType as ProvablePure<A>).fromFields(
+                action.map((fieldAsString: string) => Field(fieldAsString))
               )
             )
           );
@@ -1200,7 +1359,7 @@ async function deploy<S extends typeof SmartContract>(
           `When using the optional initialBalance argument, you need to also supply the fee payer's private key as part of the \`feePayer\` argument, to sign the initial balance funding.`
         );
       // optional first accountUpdate: the sender/fee payer who also funds the zkapp
-      let amount = UInt64.fromString(String(initialBalance)).add(
+      let amount = UInt64.from(String(initialBalance)).add(
         Mina.accountCreationFee()
       );
       let feePayerAddress = feePayerKey.toPublicKey();
@@ -1215,7 +1374,7 @@ async function deploy<S extends typeof SmartContract>(
     // TODO: add send / receive methods on SmartContract which create separate account updates
     // no need to bundle receive in the same accountUpdate as deploy
     if (initialBalance !== undefined) {
-      let amount = UInt64.fromString(String(initialBalance));
+      let amount = UInt64.from(String(initialBalance));
       zkapp.self.balance.addInPlace(amount);
     }
   });
@@ -1249,9 +1408,9 @@ function addFeePayer(
   }
   let newMemo = memo;
   if (feePayerMemo) newMemo = Ledger.memoToBase58(feePayerMemo);
-  feePayer.body.nonce = UInt32.fromString(`${feePayerNonce}`);
+  feePayer.body.nonce = UInt32.from(`${feePayerNonce}`);
   feePayer.body.publicKey = senderAddress;
-  feePayer.body.fee = UInt64.fromString(`${transactionFee}`);
+  feePayer.body.fee = UInt64.from(`${transactionFee}`);
   AccountUpdate.signFeePayerInPlace(feePayer, feePayerKey);
   return { feePayer, accountUpdates, memo: newMemo };
 }
@@ -1313,15 +1472,9 @@ function declareMethods<T extends typeof SmartContract>(
   }
 }
 
-type InferProvablePure<T extends ProvablePure<any>> = T extends ProvablePure<
-  infer U
->
-  ? U
-  : never;
-
 const Reducer: (<
-  T extends ProvablePure<any>,
-  A extends InferProvablePure<T>
+  T extends FlexibleProvablePure<any>,
+  A extends InferCircuitValue<T> = InferCircuitValue<T>
 >(reducer: {
   actionType: T;
 }) => ReducerReturn<A>) & {

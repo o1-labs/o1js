@@ -26,12 +26,12 @@ class TokenContract extends SmartContract {
       send: Permissions.proof(),
       access: Permissions.proofOrSignature(),
     });
-    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
+    this.balance.addInPlace(UInt64.from(initialBalance));
   }
 
   @method tokenDeploy(deployer: PrivateKey, verificationKey: VerificationKey) {
     let address = deployer.toPublicKey();
-    let tokenId = this.experimental.token.id;
+    let tokenId = this.token.id;
     let deployUpdate = Experimental.createChildAccountUpdate(
       this.self,
       address,
@@ -50,12 +50,12 @@ class TokenContract extends SmartContract {
 
   @method mint(receiverAddress: PublicKey) {
     let amount = UInt64.from(1_000_000);
-    this.experimental.token.mint({ address: receiverAddress, amount });
+    this.token.mint({ address: receiverAddress, amount });
   }
 
   @method burn(receiverAddress: PublicKey) {
     let amount = UInt64.from(1_000);
-    this.experimental.token.burn({ address: receiverAddress, amount });
+    this.token.burn({ address: receiverAddress, amount });
   }
 
   @method sendTokens(
@@ -63,7 +63,7 @@ class TokenContract extends SmartContract {
     receiverAddress: PublicKey,
     callback: Experimental.Callback<any>
   ) {
-    let senderAccountUpdate = this.experimental.authorize(
+    let senderAccountUpdate = this.approve(
       callback,
       AccountUpdate.Layout.AnyChildren
     );
@@ -72,7 +72,7 @@ class TokenContract extends SmartContract {
       senderAccountUpdate.body.balanceChange
     );
     negativeAmount.assertEquals(Int64.from(amount).neg());
-    let tokenId = this.experimental.token.id;
+    let tokenId = this.token.id;
     senderAccountUpdate.body.tokenId.assertEquals(tokenId);
     senderAccountUpdate.body.publicKey.assertEquals(senderAddress);
     let receiverAccountUpdate = Experimental.createChildAccountUpdate(
@@ -85,14 +85,14 @@ class TokenContract extends SmartContract {
 }
 
 class ZkAppB extends SmartContract {
-  @method authorizeSend() {
+  @method approveSend() {
     let amount = UInt64.from(1_000);
     this.balance.subInPlace(amount);
   }
 }
 
 class ZkAppC extends SmartContract {
-  @method authorizeSend() {
+  @method approveSend() {
     let amount = UInt64.from(1_000);
     this.balance.subInPlace(amount);
   }
@@ -117,7 +117,7 @@ let tokenAccount1Key = Local.testAccounts[1].privateKey;
 let tokenAccount1 = tokenAccount1Key.toPublicKey();
 
 let tokenZkApp = new TokenContract(tokenZkAppAddress);
-let tokenId = tokenZkApp.experimental.token.id;
+let tokenId = tokenZkApp.token.id;
 
 let zkAppB = new ZkAppB(zkAppBAddress, tokenId);
 let zkAppC = new ZkAppC(zkAppCAddress, tokenId);
@@ -169,17 +169,17 @@ tx = await Local.transaction(feePayer, () => {
 await tx.prove();
 await tx.send();
 
-console.log('authorize send from zkAppB');
+console.log('approve send from zkAppB');
 tx = await Local.transaction(feePayer, () => {
-  let authorizeSendingCallback = Experimental.Callback.create(
+  let approveSendingCallback = Experimental.Callback.create(
     zkAppB,
-    'authorizeSend',
+    'approveSend',
     []
   );
   // we call the token contract with the callback
-  tokenZkApp.sendTokens(zkAppBAddress, zkAppCAddress, authorizeSendingCallback);
+  tokenZkApp.sendTokens(zkAppBAddress, zkAppCAddress, approveSendingCallback);
 });
-console.log('authorize send (proof)');
+console.log('approve send (proof)');
 await tx.prove();
 await tx.send();
 
@@ -188,19 +188,19 @@ console.log(
   Mina.getBalance(zkAppCAddress, tokenId).value.toBigInt()
 );
 
-console.log('authorize send from zkAppC');
+console.log('approve send from zkAppC');
 tx = await Local.transaction(feePayer, () => {
   // Pay for tokenAccount1's account creation
   AccountUpdate.fundNewAccount(feePayer);
-  let authorizeSendingCallback = Experimental.Callback.create(
+  let approveSendingCallback = Experimental.Callback.create(
     zkAppC,
-    'authorizeSend',
+    'approveSend',
     []
   );
   // we call the token contract with the callback
-  tokenZkApp.sendTokens(zkAppCAddress, tokenAccount1, authorizeSendingCallback);
+  tokenZkApp.sendTokens(zkAppCAddress, tokenAccount1, approveSendingCallback);
 });
-console.log('authorize send (proof)');
+console.log('approve send (proof)');
 await tx.prove();
 await tx.send();
 

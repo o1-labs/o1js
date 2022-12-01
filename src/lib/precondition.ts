@@ -7,8 +7,8 @@ import {
   Preconditions,
 } from './account_update.js';
 import { UInt32, UInt64 } from './int.js';
-import { Layout } from '../snarky/transaction-helpers.js';
-import { jsLayout } from '../snarky/types.js';
+import { Layout } from '../provable/gen/transaction.js';
+import { jsLayout } from '../provable/gen/js-layout.js';
 import { emptyReceiptChainHash } from './hash.js';
 import { PublicKey } from './signature.js';
 
@@ -65,11 +65,7 @@ function preconditionClass(
 ): any {
   if (layout.type === 'option') {
     // range condition
-    if (
-      layout.optionType === 'flaggedOption' &&
-      layout.inner.type === 'object' &&
-      layout.inner.keys.join(',') === 'lower,upper'
-    ) {
+    if (layout.optionType === 'closedInterval') {
       let lower = layout.inner.entries.lower.type as BaseType;
       let baseType = baseMap[lower];
       return {

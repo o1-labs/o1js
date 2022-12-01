@@ -1,4 +1,13 @@
-import { Bool, Circuit, isReady, shutdown, Int64 } from 'snarkyjs';
+import {
+  Bool,
+  Circuit,
+  isReady,
+  shutdown,
+  Int64,
+  Struct,
+  Field,
+  PrivateKey,
+} from 'snarkyjs';
 
 describe('circuit', () => {
   beforeAll(() => isReady);
@@ -30,5 +39,50 @@ describe('circuit', () => {
         Int64.from(-3),
       ])
     ).toThrow(/`mask` must have 0 or 1 true element, found 2/);
+  });
+
+  it('can serialize Struct with array', async () => {
+    class MyStruct extends Struct({
+      values: Circuit.array(Field, 2),
+    }) {}
+
+    const original = new MyStruct({ values: [Field(0), Field(1)] });
+
+    const serialized = MyStruct.toJSON(original);
+    const reconstructed = MyStruct.fromJSON(serialized);
+
+    Circuit.assertEqual<MyStruct>(MyStruct, original, reconstructed);
+  });
+
+  it('can serialize nested Struct', async () => {
+    class OtherStruct extends Struct({
+      x: Field,
+    }) {
+      toString() {
+        return `other-struct:${this.x}`;
+      }
+    }
+
+    class MyStruct extends Struct({
+      a: Field,
+      b: PrivateKey,
+      y: OtherStruct,
+    }) {
+      toString() {
+        return `my-struct:${this.a};${this.b.toBase58()};${this.y}`;
+      }
+    }
+
+    const original = new MyStruct({
+      a: Field(42),
+      b: PrivateKey.random(),
+      y: new OtherStruct({ x: Field(99) }),
+    });
+
+    const serialized = MyStruct.toJSON(original);
+    const reconstructed = MyStruct.fromJSON(serialized);
+
+    Circuit.assertEqual(MyStruct, original, reconstructed);
+    expect(reconstructed.toString()).toEqual(original.toString());
   });
 });

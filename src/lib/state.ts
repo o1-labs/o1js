@@ -1,5 +1,9 @@
 import { Field, ProvablePure } from '../snarky.js';
-import { circuitArray, Circuit } from './circuit_value.js';
+import {
+  circuitArray,
+  Circuit,
+  FlexibleProvablePure,
+} from './circuit_value.js';
 import { AccountUpdate, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import * as Mina from './mina.js';
@@ -36,7 +40,7 @@ function State<A>(): State<A> {
  * ```
  *
  */
-function state<A>(stateType: ProvablePure<A>) {
+function state<A>(stateType: FlexibleProvablePure<A>) {
   return function (
     target: SmartContract & { constructor: any },
     key: string,
@@ -65,7 +69,7 @@ function state<A>(stateType: ProvablePure<A>) {
         if (this._?.[key]) throw Error('A @state should only be assigned once');
         v._contract = {
           key,
-          stateType: stateType,
+          stateType: stateType as ProvablePure<A>,
           instance: this,
           class: ZkappClass,
           wasConstrained: false,
@@ -114,7 +118,7 @@ function state<A>(stateType: ProvablePure<A>) {
  */
 function declareState<T extends typeof SmartContract>(
   SmartContract: T,
-  states: Record<string, ProvablePure<unknown>>
+  states: Record<string, FlexibleProvablePure<unknown>>
 ) {
   for (let key in states) {
     let CircuitValue = states[key];
@@ -223,7 +227,7 @@ function createState<T>(): InternalStateType<T> {
         }
         if (account.appState === undefined) {
           // if the account is not a zkapp account, let the default state be all zeroes
-          return Array(layout.length).fill(Field.zero);
+          return Array(layout.length).fill(Field(0));
         } else {
           let stateAsFields: Field[] = [];
           for (let i = 0; i < layout.length; ++i) {
@@ -258,7 +262,7 @@ function createState<T>(): InternalStateType<T> {
       if (account === undefined) return undefined;
       let stateAsFields: Field[];
       if (account.appState === undefined) {
-        stateAsFields = Array(layout.length).fill(Field.zero);
+        stateAsFields = Array(layout.length).fill(Field(0));
       } else {
         stateAsFields = [];
         for (let i = 0; i < layout.length; i++) {
