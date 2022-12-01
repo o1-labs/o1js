@@ -5,20 +5,20 @@ import {
   method,
   PrivateKey,
   SmartContract,
-  Experimental,
   Mina,
   AccountUpdate,
   isReady,
   Permissions,
+  Reducer,
 } from 'snarkyjs';
 
 await isReady;
 
-const INCREMENT = Field.one;
+const INCREMENT = Field(1);
 
 class CounterZkapp extends SmartContract {
   // the "reducer" field describes a type of action that we can dispatch, and reduce later
-  reducer = Experimental.Reducer({ actionType: Field });
+  reducer = Reducer({ actionType: Field });
 
   // on-chain version of our state. it will typically lag behind the
   // version that's implicitly represented by the list of actions
@@ -61,7 +61,7 @@ class CounterZkapp extends SmartContract {
 }
 
 const doProofs = true;
-const initialCounter = Field.zero;
+const initialCounter = Field(0);
 
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
@@ -77,7 +77,7 @@ let zkappAddress = zkappKey.toPublicKey();
 let zkapp = new CounterZkapp(zkappAddress);
 if (doProofs) {
   console.log('compile');
-  await CounterZkapp.compile(zkappAddress);
+  await CounterZkapp.compile();
 }
 
 console.log('deploy');
@@ -92,9 +92,9 @@ let tx = await Mina.transaction(feePayer, () => {
     });
   }
   zkapp.counter.set(initialCounter);
-  zkapp.actionsHash.set(Experimental.Reducer.initialActionsHash);
+  zkapp.actionsHash.set(Reducer.initialActionsHash);
 });
-tx.send();
+await tx.send();
 
 console.log('applying actions..');
 
@@ -105,7 +105,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('action 2');
 tx = await Mina.transaction(feePayer, () => {
@@ -113,7 +113,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('action 3');
 tx = await Mina.transaction(feePayer, () => {
@@ -121,7 +121,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('rolling up pending actions..');
 
@@ -132,7 +132,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('state after rollup: ' + zkapp.counter.get());
 
@@ -144,7 +144,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('action 5');
 tx = await Mina.transaction(feePayer, () => {
@@ -152,7 +152,7 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('rolling up pending actions..');
 
@@ -163,6 +163,6 @@ tx = await Mina.transaction(feePayer, () => {
   if (!doProofs) zkapp.sign(zkappKey);
 });
 if (doProofs) await tx.prove();
-tx.send();
+await tx.send();
 
 console.log('state after rollup: ' + zkapp.counter.get());

@@ -22,7 +22,7 @@ let zkapp = new SudokuZkapp(zkappAddress);
 let sudoku = generateSudoku(0.5);
 
 console.log('Deploying Sudoku...');
-await SudokuZkapp.compile(zkappAddress);
+await SudokuZkapp.compile();
 let tx = await Mina.transaction(account1, () => {
   AccountUpdate.fundNewAccount(account1);
   let zkapp = new SudokuZkapp(zkappAddress);
@@ -31,7 +31,7 @@ let tx = await Mina.transaction(account1, () => {
   zkapp.sudokuHash.set(sudokuInstance.hash());
   zkapp.isSolved.set(Bool(false));
 });
-await tx.send().wait();
+await tx.send();
 console.log('Is the sudoku solved?', zkapp.isSolved.get().toBoolean());
 
 let solution = solveSudoku(sudoku);
@@ -60,5 +60,5 @@ async function submitSolution(sudoku: number[][], solution: number[][]) {
     zkapp.submitSolution(new Sudoku(sudoku), new Sudoku(solution));
   });
   await tx.prove();
-  await tx.send().wait();
+  await tx.send();
 }

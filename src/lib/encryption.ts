@@ -11,9 +11,7 @@ type CipherText = {
 
 function encrypt(message: Field[], otherPublicKey: PublicKey) {
   // key exchange
-  let privateKey = Circuit.inCheckedComputation()
-    ? Circuit.witness(Scalar, () => Scalar.random())
-    : Scalar.random();
+  let privateKey = Circuit.witness(Scalar, () => Scalar.random());
   let publicKey = Group.generator.scale(privateKey);
   let sharedSecret = otherPublicKey.toGroup().scale(privateKey);
 

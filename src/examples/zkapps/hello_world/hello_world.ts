@@ -8,7 +8,10 @@ import {
   DeployArgs,
   PrivateKey,
   Permissions,
+  isReady,
 } from 'snarkyjs';
+
+await isReady;
 
 export const adminPrivateKey = PrivateKey.random();
 export const adminPublicKey = adminPrivateKey.toPublicKey();

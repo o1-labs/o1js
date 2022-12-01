@@ -13,15 +13,12 @@ Merkle Trees give developers the power of storing large amounts of data off-chai
 import {
   SmartContract,
   isReady,
-  shutdown,
   Poseidon,
   Field,
-  Experimental,
   Permissions,
   DeployArgs,
   State,
   state,
-  Circuit,
   CircuitValue,
   PublicKey,
   UInt64,
@@ -31,13 +28,15 @@ import {
   UInt32,
   PrivateKey,
   AccountUpdate,
+  MerkleTree,
+  MerkleWitness,
 } from 'snarkyjs';
 
 await isReady;
 
 const doProofs = true;
 
-class MerkleWitness extends Experimental.MerkleWitness(8) {}
+class MyMerkleWitness extends MerkleWitness(8) {}
 
 class Account extends CircuitValue {
   @prop publicKey: PublicKey;
@@ -58,7 +57,7 @@ class Account extends CircuitValue {
   }
 }
 // we need the initiate tree root in order to tell the contract about our off-chain storage
-let initialCommitment: Field = Field.zero;
+let initialCommitment: Field = Field(0);
 /*
   We want to write a smart contract that serves as a leaderboard,
   but only has the commitment of the off-chain storage stored in an on-chain variable.
@@ -76,12 +75,12 @@ class Leaderboard extends SmartContract {
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
     });
-    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
+    this.balance.addInPlace(UInt64.from(initialBalance));
     this.commitment.set(initialCommitment);
   }
 
   @method
-  guessPreimage(guess: Field, account: Account, path: MerkleWitness) {
+  guessPreimage(guess: Field, account: Account, path: MyMerkleWitness) {
     // this is our hash! its the hash of the preimage "22", but keep it a secret!
     let target = Field(
       '17057234437185175411792943285768571642343179330449434169483610110583519635705'
@@ -133,7 +132,7 @@ Accounts.set('Olivia', olivia);
 
 // we now need "wrap" the Merkle tree around our off-chain storage
 // we initialize a new Merkle Tree with height 8
-const Tree = new Experimental.MerkleTree(8);
+const Tree = new MerkleTree(8);
 
 Tree.setLeaf(0n, bob.hash());
 Tree.setLeaf(1n, alice.hash());
@@ -146,13 +145,13 @@ initialCommitment = Tree.getRoot();
 let leaderboardZkApp = new Leaderboard(zkappAddress);
 console.log('Deploying leaderboard..');
 if (doProofs) {
-  await Leaderboard.compile(zkappAddress);
+  await Leaderboard.compile();
 }
 let tx = await Mina.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer, { initialBalance });
   leaderboardZkApp.deploy({ zkappKey });
 });
-tx.send();
+await tx.send();
 
 console.log('Initial points: ' + Accounts.get('Bob')?.points);
 
@@ -164,7 +163,7 @@ console.log('Final points: ' + Accounts.get('Bob')?.points);
 async function makeGuess(name: Names, index: bigint, guess: number) {
   let account = Accounts.get(name)!;
   let w = Tree.getWitness(index);
-  let witness = new MerkleWitness(w);
+  let witness = new MyMerkleWitness(w);
 
   let tx = await Mina.transaction(feePayer, () => {
     leaderboardZkApp.guessPreimage(Field(guess), account, witness);
@@ -173,7 +172,7 @@ async function makeGuess(name: Names, index: bigint, guess: number) {
   if (doProofs) {
     await tx.prove();
   }
-  tx.send();
+  await tx.send();
 
   // if the transaction was successful, we can update our off-chain storage as well
   account.points = account.points.add(1);

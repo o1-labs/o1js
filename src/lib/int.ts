@@ -1,6 +1,6 @@
 import { Circuit, Field, Bool } from '../snarky.js';
-import { CircuitValue, prop } from './circuit_value.js';
-import { Types } from '../snarky/types.js';
+import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
+import { Types } from '../provable/types.js';
 import { HashInput } from './hash.js';
 
 // external API
@@ -11,15 +11,18 @@ class UInt64 extends CircuitValue {
   static NUM_BITS = 64;
 
   static get zero() {
-    return new UInt64(Field.zero);
+    return new UInt64(Field(0));
   }
 
   static get one() {
-    return new UInt64(Field.one);
+    return new UInt64(Field(1));
   }
 
   toString() {
     return this.value.toString();
+  }
+  toBigInt() {
+    return this.value.toBigInt();
   }
 
   static check(x: UInt64) {
@@ -31,6 +34,9 @@ class UInt64 extends CircuitValue {
   }
   static toJSON(x: UInt64) {
     return x.value.toString();
+  }
+  static fromJSON<T extends AnyConstructor>(x: string): InstanceType<T> {
+    return this.from(x) as any;
   }
 
   private static checkConstant(x: Field) {
@@ -48,15 +54,6 @@ class UInt64 extends CircuitValue {
   static from(x: UInt64 | UInt32 | Field | number | string | bigint) {
     if (x instanceof UInt64 || x instanceof UInt32) x = x.value;
     return new this(this.checkConstant(Field(x)));
-  }
-  static fromNumber(x: number) {
-    return this.from(x);
-  }
-  static fromString(x: string) {
-    return this.from(x);
-  }
-  static fromBigInt(x: bigint) {
-    return this.from(x);
   }
 
   static MAXINT() {
@@ -152,45 +149,46 @@ class UInt64 extends CircuitValue {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
     } else {
       let xMinusY = this.value.sub(y.value).seal();
+      let yMinusX = xMinusY.neg();
       let xMinusYFits = xMinusY
         .rangeCheckHelper(UInt64.NUM_BITS)
         .equals(xMinusY);
-      let yMinusXFits = xMinusY
+      let yMinusXFits = yMinusX
         .rangeCheckHelper(UInt64.NUM_BITS)
-        .equals(xMinusY.neg());
+        .equals(yMinusX);
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
     }
   }
 
-  assertLte(y: UInt64) {
+  assertLte(y: UInt64, message?: string) {
     let yMinusX = y.value.sub(this.value).seal();
-    yMinusX.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(yMinusX);
+    yMinusX.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(yMinusX, message);
   }
 
   lt(y: UInt64) {
     return this.lte(y).and(this.value.equals(y.value).not());
   }
 
-  assertLt(y: UInt64) {
-    this.lt(y).assertEquals(true);
+  assertLt(y: UInt64, message?: string) {
+    this.lt(y).assertEquals(true, message);
   }
 
   gt(y: UInt64) {
     return y.lt(this);
   }
 
-  assertGt(y: UInt64) {
-    y.assertLt(this);
+  assertGt(y: UInt64, message?: string) {
+    y.assertLt(this, message);
   }
 
   gte(y: UInt64) {
     return this.lt(y).not();
   }
 
-  assertGte(y: UInt64) {
-    y.assertLte(this);
+  assertGte(y: UInt64, message?: string) {
+    y.assertLte(this, message);
   }
 }
 
@@ -199,15 +197,18 @@ class UInt32 extends CircuitValue {
   static NUM_BITS = 32;
 
   static get zero(): UInt32 {
-    return new UInt32(Field.zero);
+    return new UInt32(Field(0));
   }
 
   static get one(): UInt32 {
-    return new UInt32(Field.one);
+    return new UInt32(Field(1));
   }
 
   toString(): string {
     return this.value.toString();
+  }
+  toBigint() {
+    return this.value.toBigInt();
   }
 
   toUInt64(): UInt64 {
@@ -225,6 +226,9 @@ class UInt32 extends CircuitValue {
   static toJSON(x: UInt32) {
     return x.value.toString();
   }
+  static fromJSON<T extends AnyConstructor>(x: string): InstanceType<T> {
+    return this.from(x) as any;
+  }
 
   private static checkConstant(x: Field) {
     if (!x.isConstant()) return x;
@@ -241,15 +245,6 @@ class UInt32 extends CircuitValue {
   static from(x: UInt32 | Field | number | string | bigint) {
     if (x instanceof UInt32) x = x.value;
     return new this(this.checkConstant(Field(x)));
-  }
-  static fromNumber(x: number) {
-    return this.from(x);
-  }
-  static fromString(x: string) {
-    return this.from(x);
-  }
-  static fromBigInt(x: bigint) {
-    return this.from(x);
   }
 
   static MAXINT() {
@@ -323,45 +318,46 @@ class UInt32 extends CircuitValue {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
     } else {
       let xMinusY = this.value.sub(y.value).seal();
+      let yMinusX = xMinusY.neg();
       let xMinusYFits = xMinusY
         .rangeCheckHelper(UInt32.NUM_BITS)
         .equals(xMinusY);
-      let yMinusXFits = xMinusY
+      let yMinusXFits = yMinusX
         .rangeCheckHelper(UInt32.NUM_BITS)
-        .equals(xMinusY.neg());
+        .equals(yMinusX);
       xMinusYFits.or(yMinusXFits).assertEquals(true);
       // x <= y if y - x fits in 64 bits
       return yMinusXFits;
     }
   }
 
-  assertLte(y: UInt32) {
+  assertLte(y: UInt32, message?: string) {
     let yMinusX = y.value.sub(this.value).seal();
-    yMinusX.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(yMinusX);
+    yMinusX.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(yMinusX, message);
   }
 
   lt(y: UInt32) {
     return this.lte(y).and(this.value.equals(y.value).not());
   }
 
-  assertLt(y: UInt32) {
-    this.lt(y).assertEquals(true);
+  assertLt(y: UInt32, message?: string) {
+    this.lt(y).assertEquals(true, message);
   }
 
   gt(y: UInt32) {
     return y.lt(this);
   }
 
-  assertGt(y: UInt32) {
-    y.assertLt(this);
+  assertGt(y: UInt32, message?: string) {
+    y.assertLt(this, message);
   }
 
   gte(y: UInt32) {
     return this.lt(y).not();
   }
 
-  assertGte(y: UInt32) {
-    y.assertLte(this);
+  assertGte(y: UInt32, message?: string) {
+    y.assertLte(this, message);
   }
 }
 
@@ -369,14 +365,14 @@ class Sign extends CircuitValue {
   @prop value: Field; // +/- 1
 
   static get one() {
-    return new Sign(Field.one);
+    return new Sign(Field(1));
   }
   static get minusOne() {
-    return new Sign(Field.minusOne);
+    return new Sign(Field(-1));
   }
   static check(x: Sign) {
     // x^2 == 1  <=>  x == 1 or x == -1
-    x.value.square().assertEquals(Field.one);
+    x.value.square().assertEquals(Field(1));
   }
   static toInput(x: Sign): HashInput {
     return { packed: [[x.isPositive().toField(), 1]] };
@@ -386,6 +382,11 @@ class Sign extends CircuitValue {
     if (x.neg().toString() === '1') return 'Negative';
     throw Error(`Invalid Sign: ${x}`);
   }
+  static fromJSON<T extends AnyConstructor>(
+    x: 'Positive' | 'Negative'
+  ): InstanceType<T> {
+    return (x === 'Positive' ? new Sign(Field(1)) : new Sign(Field(-1))) as any;
+  }
   neg() {
     return new Sign(this.value.neg());
   }
@@ -393,14 +394,14 @@ class Sign extends CircuitValue {
     return new Sign(this.value.mul(y.value));
   }
   isPositive() {
-    return this.value.equals(Field.one);
+    return this.value.equals(Field(1));
   }
   toString() {
     return this.value.toString();
   }
 }
 
-type BalanceChange = Types.Party['body']['balanceChange'];
+type BalanceChange = Types.AccountUpdate['body']['balanceChange'];
 
 class Int64 extends CircuitValue implements BalanceChange {
   // * in the range [-2^64+1, 2^64-1], unlike a normal int64
@@ -456,15 +457,6 @@ class Int64 extends CircuitValue implements BalanceChange {
     if (x instanceof UInt64 || x instanceof UInt32) {
       return Int64.fromUnsigned(x);
     }
-    return Int64.fromFieldUnchecked(Field(x));
-  }
-  static fromNumber(x: number) {
-    return Int64.fromFieldUnchecked(Field(x));
-  }
-  static fromString(x: string) {
-    return Int64.fromFieldUnchecked(Field(x));
-  }
-  static fromBigInt(x: bigint) {
     return Int64.fromFieldUnchecked(Field(x));
   }
 
@@ -540,9 +532,12 @@ class Int64 extends CircuitValue implements BalanceChange {
     let y_ = Int64.from(y);
     return this.toField().equals(y_.toField());
   }
-  assertEquals(y: Int64 | number | string | bigint | UInt64 | UInt32) {
+  assertEquals(
+    y: Int64 | number | string | bigint | UInt64 | UInt32,
+    message?: string
+  ) {
     let y_ = Int64.from(y);
-    this.toField().assertEquals(y_.toField());
+    this.toField().assertEquals(y_.toField(), message);
   }
   isPositive() {
     return this.sgn.isPositive();

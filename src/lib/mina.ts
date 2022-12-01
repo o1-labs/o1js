@@ -1,6 +1,6 @@
 // This is for an account where any of a list of public keys can update the state
 
-import { Circuit, Ledger } from '../snarky.js';
+import { Circuit, Ledger, LedgerAccount } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -8,8 +8,8 @@ import {
   addMissingProofs,
   addMissingSignatures,
   FeePayerUnsigned,
-  Parties,
-  partiesToJson,
+  ZkappCommand,
+  zkappCommandToJson,
   AccountUpdate,
   ZkappStateLength,
   ZkappPublicInput,
@@ -17,13 +17,18 @@ import {
   CallForest,
   Authorization,
   SequenceEvents,
-} from './party.js';
+  Permissions,
+} from './account_update.js';
+
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue } from './circuit_value.js';
-import { Proof, snarkContext } from './proof_system.js';
+import { Proof, snarkContext, verify } from './proof_system.js';
 import { Context } from './global-context.js';
 import { emptyReceiptChainHash } from './hash.js';
+import { SmartContract } from './zkapp.js';
+import { invalidTransactionError } from './errors.js';
+import { Types } from 'src/index.js';
 
 export {
   createTransaction,
@@ -46,15 +51,17 @@ export {
 };
 interface TransactionId {
   wait(): Promise<void>;
+  hash(): string;
 }
 
 interface Transaction {
-  transaction: Parties;
+  transaction: ZkappCommand;
   toJSON(): string;
+  toPretty(): any;
   toGraphqlQuery(): string;
   sign(additionalKeys?: PrivateKey[]): Transaction;
   prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;
-  send(): TransactionId;
+  send(): Promise<TransactionId>;
 }
 
 type Account = Fetch.Account;
@@ -62,16 +69,22 @@ type Account = Fetch.Account;
 type FetchMode = 'fetch' | 'cached' | 'test';
 type CurrentTransaction = {
   sender?: PublicKey;
-  parties: AccountUpdate[];
+  accountUpdates: AccountUpdate[];
   fetchMode: FetchMode;
   isFinalRunOutsideCircuit: boolean;
+  numberOfRuns: 0 | 1 | undefined;
 };
 
 let currentTransaction = Context.create<CurrentTransaction>();
 
 type FeePayerSpec =
   | PrivateKey
-  | { feePayerKey: PrivateKey; fee?: number | string | UInt64; memo?: string }
+  | {
+      feePayerKey: PrivateKey;
+      fee?: number | string | UInt64;
+      memo?: string;
+      nonce?: number;
+    }
   | undefined;
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
@@ -85,7 +98,12 @@ function reportGetAccountError(publicKey: string, tokenId: string) {
 function createTransaction(
   feePayer: FeePayerSpec,
   f: () => unknown,
-  { fetchMode = 'cached' as FetchMode, isFinalRunOutsideCircuit = true } = {}
+  numberOfRuns: 0 | 1 | undefined,
+  {
+    fetchMode = 'cached' as FetchMode,
+    isFinalRunOutsideCircuit = true,
+    proofsEnabled = true,
+  } = {}
 ): Transaction {
   if (currentTransaction.has()) {
     throw new Error('Cannot start new transaction within another transaction');
@@ -94,12 +112,14 @@ function createTransaction(
     feePayer instanceof PrivateKey ? feePayer : feePayer?.feePayerKey;
   let fee = feePayer instanceof PrivateKey ? undefined : feePayer?.fee;
   let memo = feePayer instanceof PrivateKey ? '' : feePayer?.memo ?? '';
+  let nonce = feePayer instanceof PrivateKey ? undefined : feePayer?.nonce;
 
   let transactionId = currentTransaction.enter({
     sender: feePayerKey?.toPublicKey(),
-    parties: [],
+    accountUpdates: [],
     fetchMode,
     isFinalRunOutsideCircuit,
+    numberOfRuns,
   });
 
   // run circuit
@@ -126,64 +146,88 @@ function createTransaction(
     currentTransaction.leave(transactionId);
     throw err;
   }
-  let otherParties = CallForest.toFlatList(currentTransaction.get().parties);
+  let accountUpdates = currentTransaction.get().accountUpdates;
+  CallForest.addCallers(accountUpdates);
+  accountUpdates = CallForest.toFlatList(accountUpdates);
   try {
     // check that on-chain values weren't used without setting a precondition
-    for (let party of otherParties) {
-      assertPreconditionInvariants(party);
+    for (let accountUpdate of accountUpdates) {
+      assertPreconditionInvariants(accountUpdate);
     }
   } catch (err) {
     currentTransaction.leave(transactionId);
     throw err;
   }
 
-  let feePayerParty: FeePayerUnsigned;
+  let feePayerAccountUpdate: FeePayerUnsigned;
   if (feePayerKey !== undefined) {
     // if senderKey is provided, fetch account to get nonce and mark to be signed
     let senderAddress = feePayerKey.toPublicKey();
+
+    let nonce_;
     let senderAccount = getAccount(senderAddress, TokenId.default);
-    feePayerParty = AccountUpdate.defaultFeePayer(
+
+    if (nonce === undefined) {
+      nonce_ = senderAccount.nonce;
+    } else {
+      nonce_ = UInt32.from(nonce);
+      senderAccount.nonce = nonce_;
+      Fetch.addCachedAccount({
+        nonce: senderAccount.nonce,
+        publicKey: senderAccount.publicKey,
+        tokenId: senderAccount.tokenId.toString(),
+        balance: senderAccount.balance,
+        zkapp: {
+          appState: senderAccount.appState ?? [],
+        },
+      });
+    }
+    feePayerAccountUpdate = AccountUpdate.defaultFeePayer(
       senderAddress,
       feePayerKey,
-      senderAccount.nonce
+      nonce_
     );
     if (fee !== undefined) {
-      feePayerParty.body.fee =
-        fee instanceof UInt64 ? fee : UInt64.fromString(String(fee));
+      feePayerAccountUpdate.body.fee =
+        fee instanceof UInt64 ? fee : UInt64.from(String(fee));
     }
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
-    feePayerParty = AccountUpdate.dummyFeePayer();
+    feePayerAccountUpdate = AccountUpdate.dummyFeePayer();
   }
 
-  let transaction: Parties = { otherParties, feePayer: feePayerParty, memo };
+  let transaction: ZkappCommand = {
+    accountUpdates,
+    feePayer: feePayerAccountUpdate,
+    memo,
+  };
 
   currentTransaction.leave(transactionId);
   let self: Transaction = {
     transaction,
-
     sign(additionalKeys?: PrivateKey[]) {
       self.transaction = addMissingSignatures(self.transaction, additionalKeys);
       return self;
     },
-
     async prove() {
-      let { parties, proofs } = await addMissingProofs(self.transaction);
-      self.transaction = parties;
+      let { zkappCommand, proofs } = await addMissingProofs(self.transaction, {
+        proofsEnabled,
+      });
+      self.transaction = zkappCommand;
       return proofs;
     },
-
     toJSON() {
-      let json = partiesToJson(self.transaction);
+      let json = zkappCommandToJson(self.transaction);
       return JSON.stringify(json);
     },
-
+    toPretty() {
+      return ZkappCommand.toPretty(self.transaction);
+    },
     toGraphqlQuery() {
       return Fetch.sendZkappQuery(self.toJSON());
     },
-
-    send() {
-      return sendTransaction(self);
+    async send() {
+      return await sendTransaction(self);
     },
   };
   return self;
@@ -196,27 +240,12 @@ interface Mina {
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
   accountCreationFee(): UInt64;
-  sendTransaction(transaction: Transaction): TransactionId;
+  sendTransaction(transaction: Transaction): Promise<TransactionId>;
   fetchEvents: (publicKey: PublicKey, tokenId?: Field) => any;
   getActions: (
     publicKey: PublicKey,
     tokenId?: Field
   ) => { hash: string; actions: string[][] }[];
-}
-
-interface MockMina extends Mina {
-  addAccount(publicKey: PublicKey, balance: string): void;
-  /**
-   * An array of 10 test accounts that have been pre-filled with
-   * 30000000000 units of currency.
-   */
-  testAccounts: Array<{ publicKey: PublicKey; privateKey: PrivateKey }>;
-  applyJsonTransaction: (tx: string) => void;
-  setTimestamp: (ms: UInt64) => void;
-  setGlobalSlot: (slot: UInt32) => void;
-  setGlobalSlotSinceHardfork: (slot: UInt32) => void;
-  setBlockchainLength: (height: UInt32) => void;
-  setTotalCurrency: (currency: UInt64) => void;
 }
 
 const defaultAccountCreationFee = 1_000_000_000;
@@ -226,7 +255,8 @@ const defaultAccountCreationFee = 1_000_000_000;
  */
 function LocalBlockchain({
   accountCreationFee = defaultAccountCreationFee as string | number,
-} = {}): MockMina {
+  proofsEnabled = true,
+} = {}) {
   const msPerSlot = 3 * 60 * 1000;
   const startTime = new Date().valueOf();
 
@@ -244,10 +274,11 @@ function LocalBlockchain({
   }[] = [];
 
   for (let i = 0; i < 10; ++i) {
-    const largeValue = '30000000000';
+    let MINA = 10n ** 9n;
+    const largeValue = 1000n * MINA;
     const k = PrivateKey.random();
     const pk = k.toPublicKey();
-    addAccount(pk, largeValue);
+    addAccount(pk, largeValue.toString());
     testAccounts.push({ privateKey: k, publicKey: pk });
   }
 
@@ -257,7 +288,7 @@ function LocalBlockchain({
   return {
     accountCreationFee: () => UInt64.from(accountCreationFee),
     currentSlot() {
-      return UInt32.fromNumber(
+      return UInt32.from(
         Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
       );
     },
@@ -274,6 +305,7 @@ function LocalBlockchain({
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
         );
       } else {
+        let { timing } = ledgerAccount;
         return {
           publicKey: publicKey,
           tokenId,
@@ -281,7 +313,7 @@ function LocalBlockchain({
           nonce: new UInt32(ledgerAccount.nonce.value),
           appState:
             ledgerAccount.zkapp?.appState ??
-            Array(ZkappStateLength).fill(Field.zero),
+            Array(ZkappStateLength).fill(Field(0)),
           tokenSymbol: ledgerAccount.tokenSymbol,
           receiptChainHash: ledgerAccount.receiptChainHash,
           provedState: Bool(ledgerAccount.zkapp?.provedState ?? false),
@@ -290,19 +322,49 @@ function LocalBlockchain({
           sequenceState:
             ledgerAccount.zkapp?.sequenceState[0] ??
             SequenceEvents.emptySequenceState(),
+          permissions: Permissions.fromJSON(ledgerAccount.permissions),
+          timing: {
+            isTimed: timing.isTimed,
+            initialMinimumBalance: UInt64.fromObject(
+              timing.initialMinimumBalance
+            ),
+            cliffAmount: UInt64.fromObject(timing.cliffAmount),
+            cliffTime: UInt32.fromObject(timing.cliffTime),
+            vestingPeriod: UInt32.fromObject(timing.vestingPeriod),
+            vestingIncrement: UInt64.fromObject(timing.vestingIncrement),
+          },
         };
       }
     },
     getNetworkState() {
       return networkState;
     },
-    sendTransaction(txn: Transaction) {
+    async sendTransaction(txn: Transaction) {
       txn.sign();
 
-      let partiesJson = partiesToJson(txn.transaction);
+      let commitments = Ledger.transactionCommitments(
+        JSON.stringify(zkappCommandToJson(txn.transaction))
+      );
+
+      for (const update of txn.transaction.accountUpdates) {
+        let account = ledger.getAccount(
+          update.body.publicKey,
+          update.body.tokenId
+        );
+        if (account) {
+          await verifyAccountUpdate(
+            account!,
+            update,
+            commitments,
+            proofsEnabled
+          );
+        }
+      }
+
+      let zkappCommandJson = zkappCommandToJson(txn.transaction);
       try {
         ledger.applyJsonTransaction(
-          JSON.stringify(partiesJson),
+          JSON.stringify(zkappCommandJson),
           String(accountCreationFee),
           JSON.stringify(networkState)
         );
@@ -310,7 +372,10 @@ function LocalBlockchain({
         try {
           // reverse errors so they match order of account updates
           // TODO: label updates, and try to give precise explanations about what went wrong
-          err.message = JSON.stringify(JSON.parse(err.message).reverse());
+          let errors = JSON.parse(err.message);
+          err.message = invalidTransactionError(txn.transaction, errors, {
+            accountCreationFee,
+          });
         } finally {
           throw err;
         }
@@ -318,7 +383,7 @@ function LocalBlockchain({
 
       // fetches all events from the transaction and stores them
       // events are identified and associated with a publicKey and tokenId
-      partiesJson.otherParties.forEach((p) => {
+      zkappCommandJson.accountUpdates.forEach((p) => {
         let addr = p.body.publicKey;
         let tokenId = p.body.tokenId;
         if (events[addr] === undefined) {
@@ -370,21 +435,31 @@ function LocalBlockchain({
           });
         }
       });
-      return { wait: async () => {} };
+      return {
+        wait: async () => {},
+        hash: (): string => {
+          const message =
+            'Txn Hash retrieving is not supported for LocalBlockchain.';
+          console.log(message);
+          return message;
+        },
+      };
     },
     async transaction(sender: FeePayerSpec, f: () => void) {
       // bad hack: run transaction just to see whether it creates proofs
       // if it doesn't, this is the last chance to run SmartContract.runOutsideCircuit, which is supposed to run only once
-      // TODO: this has obvious holes if multiple zkapps are involved, but not relevant currently because we can't prove with multiple parties
+      // TODO: this has obvious holes if multiple zkapps are involved, but not relevant currently because we can't prove with multiple account updates
       // and hopefully with upcoming work by Matt we can just run everything in the prover, and nowhere else
-      let tx = createTransaction(sender, f, {
+      let tx = createTransaction(sender, f, 0, {
         isFinalRunOutsideCircuit: false,
+        proofsEnabled,
       });
-      let hasProofs = tx.transaction.otherParties.some(
+      let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
-      return createTransaction(sender, f, {
+      return createTransaction(sender, f, 1, {
         isFinalRunOutsideCircuit: !hasProofs,
+        proofsEnabled,
       });
     },
     applyJsonTransaction(json: string) {
@@ -409,21 +484,34 @@ function LocalBlockchain({
       );
     },
     addAccount,
+    /**
+     * An array of 10 test accounts that have been pre-filled with
+     * 30000000000 units of currency.
+     */
     testAccounts,
     setTimestamp(ms: UInt64) {
       networkState.timestamp = ms;
     },
-    setGlobalSlot(slot: UInt32) {
-      networkState.globalSlotSinceGenesis = slot;
+    setGlobalSlot(slot: UInt32 | number) {
+      networkState.globalSlotSinceGenesis = UInt32.from(slot);
+      let difference = networkState.globalSlotSinceGenesis.sub(slot);
+      networkState.globalSlotSinceHardFork =
+        networkState.globalSlotSinceHardFork.add(difference);
     },
-    setGlobalSlotSinceHardfork(slot: UInt32) {
-      networkState.globalSlotSinceHardFork = slot;
+    incrementGlobalSlot(increment: UInt32 | number) {
+      networkState.globalSlotSinceGenesis =
+        networkState.globalSlotSinceGenesis.add(increment);
+      networkState.globalSlotSinceHardFork =
+        networkState.globalSlotSinceHardFork.add(increment);
     },
     setBlockchainLength(height: UInt32) {
       networkState.blockchainLength = height;
     },
     setTotalCurrency(currency: UInt64) {
       networkState.totalCurrency = currency;
+    },
+    setProofsEnabled(newProofsEnabled: boolean) {
+      proofsEnabled = newProofsEnabled;
     },
   };
 }
@@ -492,40 +580,41 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
         `getNetworkState: Could not fetch network state from graphql endpoint ${graphqlEndpoint}`
       );
     },
-    sendTransaction(txn: Transaction) {
+    async sendTransaction(txn: Transaction) {
       txn.sign();
-      let sendPromise = Fetch.sendZkapp(txn.toJSON());
+
+      let [response, error] = await Fetch.sendZkapp(txn.toJSON());
+      if (error === undefined) {
+        if (response!.data === null && (response as any).errors?.length > 0) {
+          console.log('got graphql errors', (response as any).errors);
+        } else {
+          console.log('got graphql response', response?.data);
+        }
+      } else {
+        console.log('got fetch error', error);
+      }
+
       return {
         async wait() {
-          let [response, error] = await sendPromise;
-          if (error === undefined) {
-            if (
-              response!.data === null &&
-              (response as any).errors?.length > 0
-            ) {
-              console.log('got graphql errors', (response as any).errors);
-            } else {
-              console.log('got graphql response', response?.data);
-              console.log(
-                'Info: waiting for inclusion in a block is not implemented yet.'
-              );
-            }
-          } else {
-            console.log('got fetch error', error);
-          }
+          console.log(
+            'Info: waiting for inclusion in a block is not implemented yet.'
+          );
+        },
+        hash() {
+          return response?.data?.sendZkapp?.zkapp?.hash;
         },
       };
     },
     async transaction(sender: FeePayerSpec, f: () => void) {
-      let tx = createTransaction(sender, f, {
+      let tx = createTransaction(sender, f, 0, {
         fetchMode: 'test',
         isFinalRunOutsideCircuit: false,
       });
       await Fetch.fetchMissingData(graphqlEndpoint);
-      let hasProofs = tx.transaction.otherParties.some(
+      let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
-      return createTransaction(sender, f, {
+      return createTransaction(sender, f, 1, {
         fetchMode: 'cached',
         isFinalRunOutsideCircuit: !hasProofs,
       });
@@ -601,7 +690,7 @@ let activeInstance: Mina = {
     throw new Error('must call Mina.setActiveInstance first');
   },
   async transaction(sender: FeePayerSpec, f: () => void) {
-    return createTransaction(sender, f);
+    return createTransaction(sender, f, 0);
   },
   fetchEvents() {
     throw Error('must call Mina.setActiveInstance first');
@@ -685,8 +774,8 @@ function accountCreationFee() {
   return activeInstance.accountCreationFee();
 }
 
-function sendTransaction(txn: Transaction) {
-  return activeInstance.sendTransaction(txn);
+async function sendTransaction(txn: Transaction) {
+  return await activeInstance.sendTransaction(txn);
 }
 
 /**
@@ -709,7 +798,7 @@ function dummyAccount(pubkey?: PublicKey): Account {
     nonce: UInt32.zero,
     publicKey: pubkey ?? PublicKey.empty(),
     tokenId: TokenId.default,
-    appState: Array(ZkappStateLength).fill(Field.zero),
+    appState: Array(ZkappStateLength).fill(Field(0)),
     tokenSymbol: '',
     provedState: Bool(false),
     receiptChainHash: emptyReceiptChainHash(),
@@ -720,14 +809,14 @@ function dummyAccount(pubkey?: PublicKey): Account {
 
 function defaultNetworkState(): NetworkValue {
   let epochData: NetworkValue['stakingEpochData'] = {
-    ledger: { hash: Field.zero, totalCurrency: UInt64.zero },
-    seed: Field.zero,
-    startCheckpoint: Field.zero,
-    lockCheckpoint: Field.zero,
+    ledger: { hash: Field(0), totalCurrency: UInt64.zero },
+    seed: Field(0),
+    startCheckpoint: Field(0),
+    lockCheckpoint: Field(0),
     epochLength: UInt32.zero,
   };
   return {
-    snarkedLedgerHash: Field.zero,
+    snarkedLedgerHash: Field(0),
     timestamp: UInt64.zero,
     blockchainLength: UInt32.zero,
     minWindowDensity: UInt32.zero,
@@ -737,4 +826,165 @@ function defaultNetworkState(): NetworkValue {
     stakingEpochData: epochData,
     nextEpochData: cloneCircuitValue(epochData),
   };
+}
+
+async function verifyAccountUpdate(
+  account: LedgerAccount,
+  accountUpdate: AccountUpdate,
+  transactionCommitments: {
+    commitment: Field;
+    fullCommitment: Field;
+  },
+  proofsEnabled: boolean
+): Promise<void> {
+  let perm = account.permissions;
+
+  let { commitment, fullCommitment } = transactionCommitments;
+
+  // we are essentially only checking if the update is empty or an actual update
+  function includesChange(val: any): boolean {
+    if (Array.isArray(val)) {
+      return !val.every((v) => v === null);
+    } else {
+      return val != null;
+    }
+  }
+
+  function permissionForUpdate(key: string): Types.Json.AuthRequired {
+    switch (key) {
+      case 'appState':
+        return perm.editState;
+      case 'delegate':
+        return perm.setDelegate;
+      case 'verificationKey':
+        return perm.setVerificationKey;
+      case 'permissions':
+        return perm.setPermissions;
+      case 'zkappUri':
+        return perm.setZkappUri;
+      case 'tokenSymbol':
+        return perm.setTokenSymbol;
+      case 'timing':
+        return 'None';
+      case 'votingFor':
+        return perm.setVotingFor;
+      case 'sequenceEvents':
+        return perm.editSequenceState;
+      case 'incrementNonce':
+        return perm.incrementNonce;
+      case 'send':
+        return perm.send;
+      case 'receive':
+        return perm.receive;
+      default:
+        throw Error(`Invalid permission for field ${key}: does not exist.`);
+    }
+  }
+
+  const update = accountUpdate.toJSON().body.update;
+
+  let errorTrace = '';
+
+  let isValidProof = false;
+  let isValidSignature = false;
+
+  // we don't check if proofs aren't enabled
+  if (!proofsEnabled) isValidProof = true;
+
+  if (accountUpdate.authorization.proof && proofsEnabled) {
+    try {
+      let publicInput = accountUpdate.toPublicInput();
+      let publicInputFields = ZkappPublicInput.toFields(publicInput);
+
+      const proof = SmartContract.Proof().fromJSON({
+        maxProofsVerified: 2,
+        proof: accountUpdate.authorization.proof!,
+        publicInput: publicInputFields.map((f) => f.toString()),
+      });
+
+      let verificationKey = account.zkapp?.verificationKey?.data!;
+      isValidProof = await verify(proof.toJSON(), verificationKey);
+      if (!isValidProof) {
+        throw Error(
+          `Invalid proof for account update\n${JSON.stringify(update)}`
+        );
+      }
+    } catch (error) {
+      errorTrace += '\n\n' + (error as Error).message;
+      isValidProof = false;
+    }
+  }
+
+  if (accountUpdate.authorization.signature) {
+    let txC = accountUpdate.body.useFullCommitment.toBoolean()
+      ? fullCommitment
+      : commitment;
+
+    // checking permissions and authorization for each party individually
+    try {
+      isValidSignature = Ledger.checkAccountUpdateSignature(
+        JSON.stringify(accountUpdate.toJSON()),
+        txC
+      );
+    } catch (error) {
+      errorTrace += '\n\n' + (error as Error).message;
+      isValidSignature = false;
+    }
+  }
+
+  let verified = false;
+
+  function checkPermission(p: Types.Json.AuthRequired, field: string) {
+    if (p == 'None') return;
+
+    if (p == 'Impossible') {
+      throw Error(
+        `Transaction verification failed: Cannot update field '${field}' because permission for this field is '${p}'`
+      );
+    }
+
+    if (p == 'Signature' || p == 'Either') {
+      verified ||= isValidSignature;
+    }
+
+    if (p == 'Proof' || p == 'Either') {
+      verified ||= isValidProof;
+    }
+
+    if (!verified) {
+      throw Error(
+        `Transaction verification failed: Cannot update field '${field}' because permission for this field is '${p}', but the required authorization was not provided or is invalid.
+        ${errorTrace != '' ? 'Error trace: ' + errorTrace : ''}`
+      );
+    }
+  }
+
+  // goes through the update field on a transaction
+  Object.entries(update).forEach(([key, value]) => {
+    if (includesChange(value)) {
+      let p = permissionForUpdate(key);
+      checkPermission(p, key);
+    }
+  });
+
+  // checks the sequence events (which result in an updated sequence state)
+  if (accountUpdate.body.sequenceEvents.data.length > 0) {
+    let p = permissionForUpdate('sequenceEvents');
+    checkPermission(p, 'sequenceEvents');
+  }
+
+  if (accountUpdate.body.incrementNonce.toBoolean()) {
+    let p = permissionForUpdate('incrementNonce');
+    checkPermission(p, 'incrementNonce');
+  }
+
+  // this checks for an edge case where an account update can be approved using proofs but
+  // a) the proof is invalid (bad verification key)
+  // and b) there are no state changes initiate so no permissions will be checked
+  // however, if the verification key changes, the proof should still be invalid
+  if (errorTrace && !verified) {
+    throw Error(
+      `One or more proofs were invalid and no other form of authorization was provided.\n${errorTrace}`
+    );
+  }
 }

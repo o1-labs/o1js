@@ -398,7 +398,7 @@ function main() {
     })
     .then(() =>
       Mina.transaction(minaSender, () => {
-        const amount = UInt64.fromNumber(1000000000);
+        const amount = UInt64.from(1000000000);
 
         return AccountUpdate.createSigned(depositorPrivkey).then((p) => {
           p.body.delta = Int64.fromUnsigned(amount).neg();
@@ -408,12 +408,10 @@ function main() {
             operatorsDb,
             accountDb,
             pendingDeposits,
-            UInt32.fromNumber(0)
+            UInt32.from(0)
           );
         });
-      })
-        .send()
-        .wait()
+      }).send()
     )
     .then(() => {
       console.log('after init');
@@ -437,7 +435,6 @@ function main() {
         );
       })
         .send()
-        .wait()
         .catch((e) => {
           console.log('fuc', e);
           throw e;
@@ -447,7 +444,7 @@ function main() {
           return Mina.transaction(minaSender, () => {
             return AccountUpdate.createSigned(depositorPrivkey).then(
               (depositor) => {
-                // TODO: Figure out nicer way to have a second party.
+                // TODO: Figure out nicer way to have a second account update.
 
                 return Mina.getBalance(depositorPubkey).then(
                   (depositorBalance) => {
@@ -462,7 +459,6 @@ function main() {
             );
           })
             .send()
-            .wait()
             .catch((e) => {
               console.log('fuc', e);
               throw e;
@@ -470,8 +466,8 @@ function main() {
         })
         .then(() => {
           console.log('main', 7);
-          let rollupAmount = UInt64.fromNumber(10);
-          let rollupNonce = UInt32.fromNumber(0);
+          let rollupAmount = UInt64.from(10);
+          let rollupNonce = UInt32.from(0);
           let rollupSender = depositorPubkey;
           let rollupReceiver = depositorPubkey;
           let rollupTransaction = new RollupTransaction(
@@ -514,7 +510,6 @@ function main() {
             );
           })
             .send()
-            .wait()
             .catch((e) => {
               console.log('rrr', e);
               throw e;

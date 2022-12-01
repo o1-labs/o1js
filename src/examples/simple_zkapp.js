@@ -1,3 +1,8 @@
+/**
+ * Demonstrates how to use snarkyjs in pure JavaScript
+ *
+ * Decorators `@method` and `@state` are replaced by `declareState` and `declareMethods`.
+ */
 import {
   Field,
   State,
@@ -51,21 +56,21 @@ let initialState = Field(1);
 let zkapp = new SimpleZkapp(zkappAddress);
 
 console.log('compile');
-await SimpleZkapp.compile(zkappAddress);
+await SimpleZkapp.compile();
 
 console.log('deploy');
 let tx = await Mina.transaction(feePayerKey, () => {
   AccountUpdate.fundNewAccount(feePayerKey);
   zkapp.deploy({ zkappKey });
 });
-tx.send();
+await tx.send();
 
 console.log('initial state: ' + zkapp.x.get());
 
 console.log('update');
 tx = await Mina.transaction(feePayerKey, () => zkapp.update(Field(3)));
 await tx.prove();
-tx.send();
+await tx.send();
 console.log('final state: ' + zkapp.x.get());
 
 shutdown();

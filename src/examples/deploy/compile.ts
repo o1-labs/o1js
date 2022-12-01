@@ -9,7 +9,7 @@ await isReady;
 let zkappKey = PrivateKey.random();
 let zkappAddress = zkappKey.toPublicKey();
 
-let { verificationKey } = await SimpleZkapp.compile(zkappAddress);
+let { verificationKey } = await SimpleZkapp.compile();
 storeArtifact(SimpleZkapp, { verificationKey });
 
 shutdown();

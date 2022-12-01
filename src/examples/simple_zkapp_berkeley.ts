@@ -71,7 +71,7 @@ let initialState = Field(1);
 // compile the SmartContract to get the verification key (if deploying) or cache the provers (if updating)
 // this can take a while...
 console.log('Compiling smart contract...');
-let { verificationKey } = await SimpleZkapp.compile(zkappAddress);
+let { verificationKey } = await SimpleZkapp.compile();
 
 // check if the zkapp is already deployed, based on whether the account exists and its first zkapp state is != 0
 let zkapp = new SimpleZkapp(zkappAddress);
@@ -94,7 +94,7 @@ if (!isDeployed) {
 
   // send the transaction to the graphql endpoint
   console.log('Sending the transaction...');
-  await transaction.send().wait();
+  await transaction.send();
 }
 
 // if the zkapp is not deployed yet, create an update transaction
@@ -116,7 +116,7 @@ if (isDeployed) {
 
   // send the transaction to the graphql endpoint
   console.log('Sending the transaction...');
-  await transaction.send().wait();
+  await transaction.send();
 }
 
 shutdown();

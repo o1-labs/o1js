@@ -1,12 +1,13 @@
 import {
   Bool,
   Field,
-  AsFieldElements,
+  ProvablePure,
   Pickles,
   Circuit,
   Poseidon,
+  Provable,
 } from '../snarky.js';
-import { circuitValue, toConstant } from './circuit_value.js';
+import { provable, toConstant } from './circuit_value.js';
 import { Context } from './global-context.js';
 
 // public API
@@ -29,6 +30,7 @@ export {
   methodArgumentTypesAndValues,
   isAsFields,
   snarkContext,
+  Prover,
   inProver,
   inCompile,
   inAnalyze,
@@ -39,16 +41,18 @@ export {
 // global circuit-related context
 type SnarkContext = {
   witnesses?: unknown[];
+  proverData?: any;
   inProver?: boolean;
   inCompile?: boolean;
   inCheckedComputation?: boolean;
   inAnalyze?: boolean;
   inRunAndCheck?: boolean;
+  inWitnessBlock?: boolean;
 };
 let snarkContext = Context.create<SnarkContext>({ default: {} });
 
 class Proof<T> {
-  static publicInputType: AsFieldElements<any> = undefined as any;
+  static publicInputType: ProvablePure<any> = undefined as any;
   static tag: () => { name: string } = () => {
     throw Error(
       `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
@@ -84,8 +88,8 @@ class Proof<T> {
     }: JsonProof
   ): Proof<InferInstance<S['publicInputType']>> {
     let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
-    let publicInput = getPublicInputType(this).ofFields(
-      publicInputJson.map(Field.fromString)
+    let publicInput = getPublicInputType(this).fromFields(
+      publicInputJson.map(Field)
     );
     return new this({ publicInput, proof, maxProofsVerified }) as any;
   }
@@ -112,9 +116,7 @@ function verify(proof: Proof<any> | JsonProof, verificationKey: string) {
       proof.proof,
       proof.maxProofsVerified
     );
-    let publicInputFields = (proof as JsonProof).publicInput.map(
-      Field.fromString
-    );
+    let publicInputFields = (proof as JsonProof).publicInput.map(Field);
     return Pickles.verify(publicInputFields, picklesProof, verificationKey);
   } else {
     // proof class
@@ -144,7 +146,7 @@ let CompiledTag = {
 };
 
 function ZkProgram<
-  PublicInputType extends AsFieldElements<any>,
+  PublicInputType extends ProvablePure<any>,
   Types extends {
     // TODO: how to prevent a method called `compile` from type-checking?
     [I in string]: Tuple<PrivateInput>;
@@ -276,7 +278,7 @@ function sortMethodArguments(
   privateInputs: unknown[],
   selfProof: Subclass<typeof Proof>
 ): MethodInterface {
-  let witnessArgs: AsFieldElements<unknown>[] = [];
+  let witnessArgs: Provable<unknown>[] = [];
   let proofArgs: Subclass<typeof Proof>[] = [];
   let allArgs: { type: 'proof' | 'witness' | 'generic'; index: number }[] = [];
   let genericArgs: Subclass<typeof GenericArgument>[] = [];
@@ -305,7 +307,7 @@ function sortMethodArguments(
       throw Error(
         `Argument ${
           i + 1
-        } of method ${methodName} is not a valid circuit value: ${privateInput}`
+        } of method ${methodName} is not a provable type: ${privateInput}`
       );
     }
   }
@@ -326,11 +328,13 @@ function sortMethodArguments(
 
 function isAsFields(
   type: unknown
-): type is AsFieldElements<unknown> & ObjectConstructor {
+): type is Provable<unknown> & ObjectConstructor {
   return (
     (typeof type === 'function' || typeof type === 'object') &&
     type !== null &&
-    ['toFields', 'ofFields', 'sizeInFields'].every((s) => s in type)
+    ['toFields', 'fromFields', 'sizeInFields', 'toAuxiliary'].every(
+      (s) => s in type
+    )
   );
 }
 function isProof(type: unknown): type is typeof Proof {
@@ -380,19 +384,18 @@ type MethodInterface = {
   methodName: string;
   // TODO: unify types of arguments
   // "circuit types" should be flexible enough to encompass proofs and callback arguments
-  witnessArgs: AsFieldElements<unknown>[];
+  witnessArgs: Provable<unknown>[];
   proofArgs: Subclass<typeof Proof>[];
   genericArgs: Subclass<typeof GenericArgument>[];
   allArgs: { type: 'witness' | 'proof' | 'generic'; index: number }[];
-  returnType?: AsFieldElements<unknown>;
+  returnType?: Provable<any>;
 };
 
 function compileProgram(
-  publicInputType: AsFieldElements<any>,
+  publicInputType: ProvablePure<any>,
   methodIntfs: MethodInterface[],
   methods: ((...args: any) => void)[],
-  proofSystemTag: { name: string },
-  additionalContext?: { self: any } | undefined
+  proofSystemTag: { name: string }
 ) {
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
@@ -403,7 +406,7 @@ function compileProgram(
     )
   );
   let [, { getVerificationKeyArtifact, provers, verify, tag }] =
-    snarkContext.runWith({ inCompile: true, ...additionalContext }, () =>
+    snarkContext.runWith({ inCompile: true }, () =>
       Pickles.compile(rules, publicInputType.sizeInFields())
     );
   CompiledTag.store(proofSystemTag, tag);
@@ -411,7 +414,7 @@ function compileProgram(
 }
 
 function analyzeMethod<T>(
-  publicInputType: AsFieldElements<any>,
+  publicInputType: ProvablePure<any>,
   methodIntf: MethodInterface,
   method: (...args: any) => T
 ) {
@@ -423,7 +426,7 @@ function analyzeMethod<T>(
 }
 
 function picklesRuleFromFunction(
-  publicInputType: AsFieldElements<any>,
+  publicInputType: ProvablePure<any>,
   func: (...args: unknown[]) => void,
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface
@@ -444,7 +447,7 @@ function picklesRuleFromFunction(
           : emptyWitness(type);
       } else if (arg.type === 'proof') {
         let Proof = proofArgs[arg.index];
-        let publicInput = getPublicInputType(Proof).ofFields(
+        let publicInput = getPublicInputType(Proof).fromFields(
           previousInputs[arg.index]
         );
         let proofInstance: Proof<any>;
@@ -460,7 +463,7 @@ function picklesRuleFromFunction(
         finalArgs[i] = argsWithoutPublicInput?.[i] ?? emptyGeneric();
       }
     }
-    func(publicInputType.ofFields(publicInput), ...finalArgs);
+    func(publicInputType.fromFields(publicInput), ...finalArgs);
     return proofs.map((proof) => proof.shouldVerify);
   }
 
@@ -528,9 +531,9 @@ function methodArgumentsToConstant(
   return constArgs;
 }
 
-let Generic = circuitValue<null>(null);
+let Generic = provable(null);
 
-type TypeAndValue<T> = { type: AsFieldElements<T>; value: T };
+type TypeAndValue<T> = { type: Provable<T>; value: T };
 
 function methodArgumentTypesAndValues(
   { allArgs, proofArgs, witnessArgs }: MethodInterface,
@@ -555,17 +558,20 @@ function methodArgumentTypesAndValues(
   return typesAndValues;
 }
 
-function emptyValue<T>(type: AsFieldElements<T>) {
-  return type.ofFields(Array(type.sizeInFields()).fill(Field.zero));
+function emptyValue<T>(type: Provable<T>) {
+  return type.fromFields(
+    Array(type.sizeInFields()).fill(Field(0)),
+    type.toAuxiliary()
+  );
 }
 
-function emptyWitness<T>(type: AsFieldElements<T>) {
+function emptyWitness<T>(type: Provable<T>) {
   return Circuit.witness(type, () => emptyValue(type));
 }
 
 function getPublicInputType<T, P extends Subclass<typeof Proof> = typeof Proof>(
   Proof: P
-): AsFieldElements<T> {
+): ProvablePure<T> {
   if (Proof.publicInputType === undefined) {
     throw Error(
       `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
@@ -576,7 +582,7 @@ function getPublicInputType<T, P extends Subclass<typeof Proof> = typeof Proof>(
 }
 
 ZkProgram.Proof = function <
-  PublicInputType extends AsFieldElements<any>
+  PublicInputType extends ProvablePure<any>
 >(program: { name: string; publicInputType: PublicInputType }) {
   type PublicInput = InferInstance<PublicInputType>;
   return class ZkProgramProof extends Proof<PublicInput> {
@@ -586,6 +592,24 @@ ZkProgram.Proof = function <
 };
 
 // helpers for circuit context
+
+function Prover<ProverData>() {
+  return {
+    async run<Result>(
+      witnesses: unknown[],
+      proverData: ProverData,
+      callback: () => Promise<Result>
+    ) {
+      return snarkContext.runWithAsync(
+        { witnesses, proverData, inProver: true },
+        callback
+      );
+    },
+    getData(): ProverData {
+      return snarkContext.get().proverData;
+    },
+  };
+}
 
 function inProver() {
   return !!snarkContext.get().inProver;
@@ -609,7 +633,7 @@ function inCompileMode() {
 
 type Tuple<T> = [T, ...T[]] | [];
 
-// TODO: inference of AsFieldElements shouldn't just use InstanceType
+// TODO: inference of ProvablePure shouldn't just use InstanceType
 // but the alternatives will be messier (see commented code below for some ideas)
 type InferInstance<T> = T extends new (...args: any) => any
   ? InstanceType<T>
@@ -619,7 +643,7 @@ type TupleToInstances<T> = {
 };
 
 /* type TupleToInstances_<T> =
-  {[I in keyof T]: T[I] extends AsFieldElements<any> ? InferAsFields<T[I]> : T[I] extends typeof Proof<infer W> ? Proof<W> : T[I]}
+  {[I in keyof T]: T[I] extends ProvablePure<any> ? InferAsFields<T[I]> : T[I] extends typeof Proof<infer W> ? Proof<W> : T[I]}
 this is a workaround for TS bug https://github.com/microsoft/TypeScript/issues/29919
 type TupleToInstances<
   A extends AnyTuple,
@@ -630,7 +654,7 @@ if the bug is resolved, this should just be TupleToInstances_<P>
 // TODO: this only works for Field / Bool / UInt32 / UInt64 / Int64 because they have a custom `check` method
 // doesn't work for general CircuitValue
 // we need a robust method for infering the type from a CircuitValue subclass!
-type InferInstance<T extends AsFieldElements<any>> = T['check'] extends (
+type InferInstance<T extends ProvablePure<any>> = T['check'] extends (
   x: infer U
 ) => void
   ? U
@@ -643,7 +667,7 @@ type Subclass<Class extends new (...args: any) => any> = (new (
   [K in keyof Class]: Class[K];
 } & { prototype: InstanceType<Class> };
 
-type PrivateInput = AsFieldElements<any> | Subclass<typeof Proof>;
+type PrivateInput = Provable<any> | Subclass<typeof Proof>;
 
 type Method<PublicInput, Args extends Tuple<PrivateInput>> = {
   privateInputs: Args;

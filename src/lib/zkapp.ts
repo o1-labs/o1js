@@ -1,38 +1,40 @@
 import {
   Field,
   Bool,
-  AsFieldElements,
+  ProvablePure,
   Ledger,
   Pickles,
-  InferAsFieldElements,
   Poseidon as Poseidon_,
+  Provable,
 } from '../snarky.js';
 import {
   Circuit,
   circuitArray,
-  circuitValue,
+  provable,
   cloneCircuitValue,
   getBlindingValue,
   memoizationContext,
   toConstant,
+  Struct,
 } from './circuit_value.js';
 import {
   Body,
   AccountUpdate,
   signJsonTransaction,
-  Parties,
+  ZkappCommand,
   Permissions,
   SetOrKeep,
   ZkappPublicInput,
   Events,
   SequenceEvents,
-  partyToPublicInput,
   Authorization,
   CallForest,
   TokenId,
-  PartiesLayout,
+  AccountUpdatesLayout,
   smartContractContext,
-} from './party.js';
+  zkAppProver,
+  ZkappStateLength,
+} from './account_update.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import * as Mina from './mina.js';
 import { UInt32, UInt64 } from './int.js';
@@ -58,7 +60,7 @@ import {
   GenericArgument,
 } from './proof_system.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
-import { Types } from '../snarky/types.js';
+import { Types } from '../provable/types.js';
 import { Poseidon } from './hash.js';
 import * as Encoding from './encoding.js';
 
@@ -72,10 +74,9 @@ export {
   declareMethods,
   Callback,
   Account,
+  VerificationKey,
+  Reducer,
 };
-
-// internal API
-export { Reducer, partyFromCallback };
 
 const reservedPropNames = new Set(['_methods', '_']);
 
@@ -84,8 +85,8 @@ const reservedPropNames = new Set(['_methods', '_']);
  * You can use inside your zkapp class as:
  *
  * ```
- * @method myMethod(someArg: Field) {
- *  // your code here
+ * \@method myMethod(someArg: Field) {
+ *   // your code here
  * }
  * ```
  */
@@ -103,20 +104,39 @@ function method<T extends SmartContract>(
       `@method decorator was applied to \`${methodName}\`, which is not a function.`
     );
   }
-  let paramTypes = Reflect.getMetadata('design:paramtypes', target, methodName);
-  let returnType = Reflect.getMetadata('design:returntype', target, methodName);
+  let paramTypes: Provable<any>[] = Reflect.getMetadata(
+    'design:paramtypes',
+    target,
+    methodName
+  );
+  let returnType: Provable<any> = Reflect.getMetadata(
+    'design:returntype',
+    target,
+    methodName
+  );
 
   class SelfProof extends Proof<ZkappPublicInput> {
     static publicInputType = ZkappPublicInput;
     static tag = () => ZkappClass;
   }
-  let methodEntry = sortMethodArguments(
+  let internalMethodEntry = sortMethodArguments(
     ZkappClass.name,
     methodName,
     paramTypes,
     SelfProof
   );
-  if (isAsFields(returnType)) methodEntry.returnType = returnType;
+  // add witness arguments for the publicKey (address) and tokenId
+  let methodEntry = sortMethodArguments(
+    ZkappClass.name,
+    methodName,
+    [PublicKey, Field, ...paramTypes],
+    SelfProof
+  );
+
+  if (isAsFields(returnType)) {
+    internalMethodEntry.returnType = returnType;
+    methodEntry.returnType = returnType;
+  }
   ZkappClass._methods ??= [];
   ZkappClass._methods.push(methodEntry);
   ZkappClass._maxProofsVerified ??= 0;
@@ -125,7 +145,7 @@ function method<T extends SmartContract>(
     methodEntry.proofArgs.length
   );
   let func = descriptor.value;
-  descriptor.value = wrapMethod(func, ZkappClass, methodEntry);
+  descriptor.value = wrapMethod(func, ZkappClass, internalMethodEntry);
 }
 
 // do different things when calling a method, depending on the circumstance
@@ -134,6 +154,7 @@ function wrapMethod(
   ZkappClass: typeof SmartContract,
   methodIntf: MethodInterface
 ) {
+  let methodName = methodIntf.methodName;
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
     // TODO: the callback case is actually more similar to the composability case below,
@@ -144,25 +165,25 @@ function wrapMethod(
           this: this,
           methodCallDepth: 0,
           isCallback: false,
-          selfUpdate: selfParty(this.address, this.nativeToken),
+          selfUpdate: selfAccountUpdate(this, methodName),
         },
         (context) => {
           if (inCheckedComputation() && !context.isCallback) {
-            // important to run this with a fresh party everytime, otherwise compile messes up our circuits
+            // important to run this with a fresh accountUpdate everytime, otherwise compile messes up our circuits
             // because it runs this multiple times
             let [, result] = Mina.currentTransaction.runWith(
               {
                 sender: undefined,
-                parties: [],
+                accountUpdates: [],
                 fetchMode: inProver() ? 'cached' : 'test',
                 isFinalRunOutsideCircuit: false,
+                numberOfRuns: undefined,
               },
               () => {
                 // inside prover / compile, the method is always called with the public input as first argument
                 // -- so we can add assertions about it
-                let publicInput = actualArgs[0];
-                actualArgs = actualArgs.slice(1);
-                let party = this.self;
+                let publicInput = actualArgs.shift();
+                let accountUpdate = this.self;
 
                 // the blinding value is important because otherwise, putting callData on the transaction would leak information about the private inputs
                 let blindingValue = Circuit.witness(Field, getBlindingValue);
@@ -184,15 +205,71 @@ function wrapMethod(
                   result,
                   blindingValue
                 );
-                party.body.callData = Poseidon.hash(callDataFields);
+                accountUpdate.body.callData = Poseidon.hash(callDataFields);
+                accountUpdate.body.authorizationKind.isSigned = Bool(false);
+                accountUpdate.body.authorizationKind.isProved = Bool(true);
 
-                // connect the public input to the party & child parties we created
-                checkPublicInput(publicInput, party);
+                // compute `caller` field from `isDelegateCall` and a context determined by the transaction
+                let callerContext = Circuit.witness(
+                  CallForest.callerContextType,
+                  () => {
+                    let { accountUpdate } = zkAppProver.getData();
+                    return CallForest.computeCallerContext(accountUpdate);
+                  }
+                );
+                CallForest.addCallers([accountUpdate], callerContext);
 
-                // check the self party right after calling the method
-                // TODO: this needs to be done in a unified way for all parties that are created
-                assertPreconditionInvariants(party);
-                cleanPreconditionsCache(party);
+                // connect the public input to the accountUpdate & child account updates we created
+                if (DEBUG_PUBLIC_INPUT_CHECK) {
+                  Circuit.asProver(() => {
+                    // TODO: print a nice diff string instead of the two objects
+                    // something like `expect` or `json-diff`, but web-compatible
+                    function diff(prover: any, input: any) {
+                      delete prover.id;
+                      delete prover.callDepth;
+                      delete input.id;
+                      delete input.callDepth;
+                      if (JSON.stringify(prover) !== JSON.stringify(input)) {
+                        console.log(
+                          'transaction:',
+                          ZkappCommand.toPretty(transaction)
+                        );
+                        console.log('index', index);
+                        console.log('inconsistent account updates:');
+                        console.log('update created by the prover:');
+                        console.log(prover);
+                        console.log('update created in transaction block:');
+                        console.log(input);
+                      }
+                    }
+                    function diffRecursive(
+                      prover: AccountUpdate,
+                      input: AccountUpdate
+                    ) {
+                      diff(prover.toPretty(), input.toPretty());
+                      let nChildren = input.children.accountUpdates.length;
+                      for (let i = 0; i < nChildren; i++) {
+                        let inputChild = input.children.accountUpdates[i];
+                        let child = prover.children.accountUpdates[i];
+                        if (!inputChild || !child) return;
+                        diffRecursive(child, inputChild);
+                      }
+                    }
+
+                    let {
+                      accountUpdate: inputUpdate,
+                      transaction,
+                      index,
+                    } = zkAppProver.getData();
+                    diffRecursive(accountUpdate, inputUpdate);
+                  });
+                }
+                checkPublicInput(publicInput, accountUpdate);
+
+                // check the self accountUpdate right after calling the method
+                // TODO: this needs to be done in a unified way for all account updates that are created
+                assertPreconditionInvariants(accountUpdate);
+                cleanPreconditionsCache(accountUpdate);
                 assertStatePrecondition(this);
                 return result;
               }
@@ -201,18 +278,18 @@ function wrapMethod(
           } else if (!Mina.currentTransaction.has()) {
             // outside a transaction, just call the method, but check precondition invariants
             let result = method.apply(this, actualArgs);
-            // check the self party right after calling the method
-            // TODO: this needs to be done in a unified way for all parties that are created
+            // check the self accountUpdate right after calling the method
+            // TODO: this needs to be done in a unified way for all account updates that are created
             assertPreconditionInvariants(this.self);
             cleanPreconditionsCache(this.self);
             assertStatePrecondition(this);
             return result;
           } else {
             // called smart contract at the top level, in a transaction!
-            // => attach ours to the current list of parties
-            let party = context.selfUpdate;
+            // => attach ours to the current list of account updates
+            let accountUpdate = context.selfUpdate;
             if (!context.isCallback) {
-              Mina.currentTransaction()?.parties.push(party);
+              Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
             }
 
             // first, clone to protect against the method modifying arguments!
@@ -227,9 +304,7 @@ function wrapMethod(
                 currentIndex: 0,
                 blindingValue,
               },
-              () => {
-                method.apply(this, actualArgs);
-              }
+              () => method.apply(this, actualArgs)
             );
             assertStatePrecondition(this);
 
@@ -240,10 +315,10 @@ function wrapMethod(
               result,
               blindingValue
             );
-            party.body.callData = Poseidon.hash(callDataFields);
+            accountUpdate.body.callData = Poseidon.hash(callDataFields);
 
-            if (!Authorization.hasAny(party)) {
-              Authorization.setLazyProof(party, {
+            if (!Authorization.hasAny(accountUpdate)) {
+              Authorization.setLazyProof(accountUpdate, {
                 methodName: methodIntf.methodName,
                 args: clonedArgs,
                 // proofs actually don't have to be cloned
@@ -263,14 +338,14 @@ function wrapMethod(
     }
 
     // if we're here, this method was called inside _another_ smart contract method
-    let parentParty = smartContractContext.get().this.self;
+    let parentAccountUpdate = smartContractContext.get().this.self;
     let methodCallDepth = smartContractContext.get().methodCallDepth;
     let [, result] = smartContractContext.runWith(
       {
         this: this,
         methodCallDepth: methodCallDepth + 1,
         isCallback: false,
-        selfUpdate: selfParty(this.address, this.nativeToken),
+        selfUpdate: selfAccountUpdate(this, methodName),
       },
       () => {
         // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
@@ -297,7 +372,9 @@ function wrapMethod(
         let runCalledContract = () => {
           let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
           let constantBlindingValue = blindingValue.toConstant();
-          let party = this.self;
+          let accountUpdate = this.self;
+          accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
+          accountUpdate.parent = parentAccountUpdate;
 
           let [{ memoized }, result] = memoizationContext.runWith(
             {
@@ -324,10 +401,10 @@ function wrapMethod(
             result,
             constantBlindingValue
           );
-          party.body.callData = Poseidon_.hash(callDataFields, false);
+          accountUpdate.body.callData = Poseidon_.hash(callDataFields, false);
 
-          if (!Authorization.hasAny(party)) {
-            Authorization.setLazyProof(party, {
+          if (!Authorization.hasAny(accountUpdate)) {
+            Authorization.setLazyProof(accountUpdate, {
               methodName: methodIntf.methodName,
               args: constantArgs,
               previousProofs: getPreviousProofsForProver(
@@ -339,16 +416,16 @@ function wrapMethod(
               blindingValue: constantBlindingValue,
             });
           }
-          return { party, result: result ?? null };
+          return { accountUpdate, result: result ?? null };
         };
 
         // we have to run the called contract inside a witness block, to not affect the caller's circuit
         // however, if this is a nested call -- the caller is already called by another contract --,
         // then we're already in a witness block, and shouldn't open another one
-        let { party, result } =
+        let { accountUpdate, result } =
           methodCallDepth === 0
             ? AccountUpdate.witness<any>(
-                returnType ?? circuitValue<null>(null),
+                returnType ?? provable(null),
                 runCalledContract,
                 { skipCheck: true }
               )
@@ -356,19 +433,17 @@ function wrapMethod(
 
         // we're back in the _caller's_ circuit now, where we assert stuff about the method call
 
-        // connect party to our own. outside Circuit.witness so compile knows the right structure when hashing children
-        party.body.callDepth = parentParty.body.callDepth + 1;
-        party.parent = parentParty;
+        // connect accountUpdate to our own. outside Circuit.witness so compile knows the right structure when hashing children
+        accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
+        accountUpdate.parent = parentAccountUpdate;
         // beware: we don't include the callee's children in the caller circuit
         // nothing is asserted about them -- it's the callee's task to check their children
-        party.children.calls = Circuit.witness(Field, () =>
-          CallForest.hashChildren(party)
-        );
-        parentParty.children.parties.push(party);
+        accountUpdate.children.callsType = { type: 'Witness' };
+        parentAccountUpdate.children.accountUpdates.push(accountUpdate);
 
         // assert that we really called the right zkapp
-        party.body.publicKey.assertEquals(this.address);
-        party.body.tokenId.assertEquals(this.self.body.tokenId);
+        accountUpdate.body.publicKey.assertEquals(this.address);
+        accountUpdate.body.tokenId.assertEquals(this.self.body.tokenId);
 
         // assert that the inputs & outputs we have match what the callee put on its callData
         let callDataFields = computeCallData(
@@ -378,7 +453,26 @@ function wrapMethod(
           blindingValue
         );
         let callData = Poseidon.hash(callDataFields);
-        party.body.callData.assertEquals(callData);
+        accountUpdate.body.callData.assertEquals(callData);
+
+        // caller circuits should be Delegate_call by default, except if they're called at the top level
+        let isTopLevel = Circuit.witness(Bool, () => {
+          // TODO: this logic is fragile.. need better way of finding out if parent is the prover account update or not
+          let isProverUpdate =
+            inProver() &&
+            zkAppProver
+              .getData()
+              .accountUpdate.body.publicKey.equals(
+                parentAccountUpdate.body.publicKey
+              )
+              .toBoolean();
+          let parentCallDepth = isProverUpdate
+            ? zkAppProver.getData().accountUpdate.body.callDepth
+            : CallForest.computeCallDepth(parentAccountUpdate);
+          return Bool(parentCallDepth === 0);
+        });
+        parentAccountUpdate.isDelegateCall = isTopLevel.not();
+
         return result;
       }
     );
@@ -387,11 +481,11 @@ function wrapMethod(
 }
 
 function checkPublicInput(
-  { party, calls }: ZkappPublicInput,
+  { accountUpdate, calls }: ZkappPublicInput,
   self: AccountUpdate
 ) {
-  let otherInput = partyToPublicInput(self);
-  party.assertEquals(otherInput.party);
+  let otherInput = self.toPublicInput();
+  accountUpdate.assertEquals(otherInput.accountUpdate);
   calls.assertEquals(otherInput.calls);
 }
 
@@ -435,76 +529,53 @@ function computeCallData(
 
 class Callback<Result> extends GenericArgument {
   instance: SmartContract;
-  methodIntf: MethodInterface & { returnType: AsFieldElements<Result> };
+  methodIntf: MethodInterface & { returnType: Provable<Result> };
   args: any[];
+
+  result?: Result;
+  accountUpdate: AccountUpdate;
 
   static create<T extends SmartContract, K extends keyof T>(
     instance: T,
     methodName: K,
     args: T[K] extends (...args: infer A) => any ? A : never
   ) {
-    let callback: Callback<T[K] extends (...args: any) => infer R ? R : never> =
-      new this(instance, methodName, args);
+    let ZkappClass = instance.constructor as typeof SmartContract;
+    let methodIntf_ = (ZkappClass._methods ?? []).find(
+      (i) => i.methodName === methodName
+    );
+    if (methodIntf_ === undefined)
+      throw Error(
+        `Callback: could not find method ${ZkappClass.name}.${String(
+          methodName
+        )}`
+      );
+    let methodIntf = {
+      ...methodIntf_,
+      returnType: methodIntf_.returnType ?? provable(null),
+    };
+
+    // call the callback, leveraging composability (if this is inside a smart contract method)
+    // to prove to the outer circuit that we called it
+    let result = (instance[methodName] as Function)(...args);
+    let accountUpdate = instance.self;
+
+    let callback = new Callback<any>({
+      instance,
+      methodIntf,
+      args,
+      result,
+      accountUpdate,
+      isEmpty: false,
+    });
+
     return callback;
   }
 
-  private constructor(instance: any, methodName: any, args: any[]) {
+  private constructor(self: Callback<any>) {
     super();
-    this.instance = instance;
-    let ZkappClass = instance.constructor as typeof SmartContract;
-    let methodIntf = (ZkappClass._methods ?? []).find(
-      (i) => i.methodName === methodName
-    );
-    if (methodIntf === undefined)
-      throw Error(
-        `Callback: could not find method ${ZkappClass.name}.${methodName}`
-      );
-    methodIntf = {
-      ...methodIntf,
-      returnType:
-        methodIntf.returnType ??
-        (circuitValue<null>(null) as AsFieldElements<null> as any),
-    };
-    this.methodIntf = methodIntf as any;
-    this.args = args;
+    Object.assign(this, self);
   }
-}
-
-// TODO: prove call signature in the outer circuit, just like for composability!
-function partyFromCallback(
-  parentZkapp: SmartContract,
-  childLayout: PartiesLayout,
-  callback: Callback<any>
-) {
-  let { party } = AccountUpdate.witnessTree(
-    circuitValue<null>(null),
-    childLayout,
-    () => {
-      if (callback.isEmpty) throw Error('bug: empty callback');
-      let { instance, methodIntf, args } = callback;
-      let method = instance[
-        methodIntf.methodName as keyof SmartContract
-      ] as Function;
-      let party = selfParty(instance.address, instance.nativeToken);
-      smartContractContext.runWith(
-        {
-          this: instance,
-          methodCallDepth: (smartContractContext()?.methodCallDepth ?? 0) + 1,
-          isCallback: true,
-          selfUpdate: party,
-        },
-        () => method.apply(instance, args)
-      );
-      return { party, result: null };
-    },
-    { skipCheck: true }
-  );
-  // connect party to our own. outside Circuit.witness so compile knows the right structure when hashing children
-  let parentParty = parentZkapp.self;
-  party.body.callDepth = parentParty.body.callDepth + 1;
-  party.parent = parentParty;
-  parentParty.children.parties.push(party);
-  return party;
 }
 
 /**
@@ -519,11 +590,11 @@ function partyFromCallback(
  */
 class SmartContract {
   address: PublicKey;
-  nativeToken: Field;
+  tokenId: Field;
 
-  private _executionState: ExecutionState | undefined;
+  #executionState: ExecutionState | undefined;
   static _methods?: MethodInterface[];
-  private static _methodMetadata: Record<
+  static _methodMetadata: Record<
     string,
     { sequenceEvents: number; rows: number; digest: string; hasReturn: boolean }
   > = {}; // keyed by method name
@@ -539,9 +610,9 @@ class SmartContract {
     };
   }
 
-  constructor(address: PublicKey, nativeToken?: Field) {
+  constructor(address: PublicKey, tokenId?: Field) {
     this.address = address;
-    this.nativeToken = nativeToken ?? TokenId.default;
+    this.tokenId = tokenId ?? TokenId.default;
     Object.defineProperty(this, 'reducer', {
       set(this, reducer: Reducer<any>) {
         ((this as any)._ ??= {}).reducer = reducer;
@@ -552,24 +623,41 @@ class SmartContract {
     });
   }
 
-  static async compile(address: PublicKey, tokenId: Field = TokenId.default) {
-    // TODO: think about how address should be passed in
-    // TODO: maybe PublicKey should just become a variable? Then compile doesn't need to know the address, which seems more natural
+  /**
+   * Compile your smart contract.
+   *
+   * This generates both the prover functions, needed to create proofs for running `@method`s,
+   * and the verification key, needed to deploy your zkApp.
+   *
+   * Although provers and verification key are returned by this method, they are also cached internally and used when needed,
+   * so you don't actually have to use the return value of this function.
+   *
+   * Under the hood, "compiling" means calling into the lower-level [Pickles and Kimchi libraries](https://o1-labs.github.io/proof-systems/kimchi/overview.html) to
+   * create two prover & verifier indices (one for the "step circuit" which combines all of your smart contract methods into one circuit,
+   * and one for the "wrap circuit" which wraps it so that proofs end up in the original finite field). These are fairly expensive
+   * operations, so **expect compiling to take at least 20 seconds**, up to several minutes if your circuit is large or your hardware
+   * is not optimal for these operations.
+   */
+  static async compile() {
     let methodIntfs = this._methods ?? [];
     let methods = methodIntfs.map(({ methodName }) => {
-      return (...args: unknown[]) => {
-        let instance = new this(address, tokenId);
-        (instance as any)[methodName](...args);
+      return (
+        publicInput: unknown,
+        publicKey: PublicKey,
+        tokenId: Field,
+        ...args: unknown[]
+      ) => {
+        let instance = new this(publicKey, tokenId);
+        (instance as any)[methodName](publicInput, ...args);
       };
     });
     // run methods once to get information that we need already at compile time
-    this.analyzeMethods(address, tokenId);
-    let { getVerificationKeyArtifact, provers, verify, tag } = compileProgram(
+    this.analyzeMethods();
+    let { getVerificationKeyArtifact, provers, verify } = compileProgram(
       ZkappPublicInput,
       methodIntfs,
       methods,
-      this,
-      { self: selfParty(address, tokenId) }
+      this
     );
 
     let verificationKey = getVerificationKeyArtifact();
@@ -582,9 +670,15 @@ class SmartContract {
     return { verificationKey, provers, verify };
   }
 
-  static digest(address: PublicKey, tokenId: Field = TokenId.default) {
+  /**
+   * Computes a hash of your smart contract, which will reliably change _whenever one of your method circuits changes_.
+   * This digest is quick to compute. it is designed to help with deciding whether a contract should be re-compiled or
+   * a cached verification key can be used.
+   * @returns the digest, as a hex string
+   */
+  static digest() {
     // TODO: this should use the method digests in a deterministic order!
-    let methodData = this.analyzeMethods(address, tokenId);
+    let methodData = this.analyzeMethods();
     let hash = Poseidon_.hash(
       Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest))),
       false
@@ -599,58 +693,128 @@ class SmartContract {
     verificationKey?: { data: string; hash: Field | string };
     zkappKey?: PrivateKey;
   } = {}) {
+    let accountUpdate = this.newSelf();
     verificationKey ??= (this.constructor as any)._verificationKey;
     if (verificationKey !== undefined) {
       let { hash: hash_, data } = verificationKey;
       let hash = typeof hash_ === 'string' ? Field(hash_) : hash_;
-      this.setValue(this.self.update.verificationKey, { hash, data });
+      this.setValue(accountUpdate.update.verificationKey, { hash, data });
     }
-    this.setValue(this.self.update.permissions, Permissions.default());
-    this.sign(zkappKey);
+    this.setValue(accountUpdate.update.permissions, Permissions.default());
+    accountUpdate.sign(zkappKey);
+    AccountUpdate.attachToTransaction(accountUpdate);
+
+    // init if this account is not yet deployed or has no verification key on it
+    let shouldInit =
+      !Mina.hasAccount(this.address) ||
+      Mina.getAccount(this.address).verificationKey !== undefined;
+    if (!shouldInit) return;
+    if (zkappKey) this.init(zkappKey);
+    else this.init();
+    let initUpdate = this.self;
+    // switch back to the deploy account update so the user can make modifications to it
+    this.#executionState = {
+      transactionId: this.#executionState!.transactionId,
+      accountUpdate,
+    };
+    // check if the entire state was overwritten, show a warning if not
+    let isFirstRun = Mina.currentTransaction()?.numberOfRuns === 0;
+    if (!isFirstRun) return;
+    Circuit.asProver(() => {
+      if (
+        initUpdate.update.appState.some(({ isSome }) => !isSome.toBoolean())
+      ) {
+        console.warn(`WARNING: the \`init()\` method was called without overwriting the entire state. This means that your zkApp will lack
+the \`provedState === true\` status which certifies that the current state was verifiably produced by proofs (and not arbitrarily set by the zkApp developer).
+To make sure the entire state is reset, consider adding this line to the beginning of your \`init()\` method:
+super.init();
+`);
+      }
+    });
+  }
+  // TODO make this a @method and create a proof during `zk deploy` (+ add mechanism to skip this)
+  init(zkappKey?: PrivateKey) {
+    // let accountUpdate = this.newSelf(); // this would emulate the behaviour of init() being a @method
+    // TODO: enable this if provedState is available, to make this callable only once
+    // this.account.provedState.assertEquals(Bool(false));
+    zkappKey?.toPublicKey().assertEquals(this.address);
+    let accountUpdate = this.self;
+    for (let i = 0; i < ZkappStateLength; i++) {
+      AccountUpdate.setValue(accountUpdate.body.update.appState[i], Field(0));
+    }
+    AccountUpdate.attachToTransaction(accountUpdate);
   }
 
+  /**
+   * Use this command if the account update created by this SmartContract should be signed by the account owner,
+   * instead of authorized with a proof.
+   *
+   * Note that the smart contract's {@link Permissions} determine which updates have to be (can be) authorized by a signature.
+   *
+   * If you only want to avoid creating proofs for quicker testing, we advise you to
+   * use `LocalBlockchain({ proofsEnabled: false })` instead of `requireSignature()`. Setting
+   * `proofsEnabled` to `false` allows you to test your transactions with the same authorization flow as in production,
+   * with the only difference being that quick mock proofs are filled in instead of real proofs.
+   */
+  requireSignature() {
+    this.self.requireSignature();
+  }
+  /**
+   * @deprecated `this.sign()` is deprecated in favor of `this.requireSignature()`
+   */
   sign(zkappKey?: PrivateKey) {
     this.self.sign(zkappKey);
   }
+  /**
+   * Use this command if the account update created by this SmartContract should have no authorization on it,
+   * instead of being authorized with a proof.
+   *
+   * WARNING: This is a method that should rarely be useful. If you want to disable proofs for quicker testing, take a look
+   * at `LocalBlockchain({ proofsEnabled: false })`, which causes mock proofs to be created and doesn't require changing the
+   * authorization flow.
+   */
+  skipAuthorization() {
+    Authorization.setLazyNone(this.self);
+  }
 
-  private executionState(): AccountUpdate {
+  get self(): AccountUpdate {
     let inTransaction = Mina.currentTransaction.has();
     let inSmartContract = smartContractContext.has();
     if (!inTransaction && !inSmartContract) {
-      // TODO: it's inefficient to return a fresh party everytime, would be better to return a constant "non-writable" party,
-      // or even expose the .get() methods independently of any party (they don't need one)
-      return selfParty(this.address, this.nativeToken);
+      // TODO: it's inefficient to return a fresh account update everytime, would be better to return a constant "non-writable" account update,
+      // or even expose the .get() methods independently of any account update (they don't need one)
+      return selfAccountUpdate(this);
     }
     let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
     // running a method changes which is the "current account update" of this smart contract
-    // this logic also implies that when calling `this.self` inside a method, it will always
+    // this logic also implies that when calling `this.self` inside a method on `this`, it will always
     // return the same account update uniquely associated with that method call.
     // it won't create new updates and add them to a transaction implicitly
-    if (inSmartContract) {
-      let party = smartContractContext.get().selfUpdate;
-      this._executionState = { party, transactionId };
-      return party;
+    if (inSmartContract && smartContractContext.get().this === this) {
+      let accountUpdate = smartContractContext.get().selfUpdate;
+      this.#executionState = { accountUpdate, transactionId };
+      return accountUpdate;
     }
-    let executionState = this._executionState;
+    let executionState = this.#executionState;
     if (
       executionState !== undefined &&
       executionState.transactionId === transactionId
     ) {
-      return executionState.party;
+      return executionState.accountUpdate;
     }
-    // TODO: here, we are creating a new party & attaching it implicitly
-    // we should refactor some methods which rely on that, such as `deploy()`,
-    // to do at least the attaching explicitly, and remove implicit attaching
-    // also, implicit creation is questionable
-    let transaction = Mina.currentTransaction.get();
-    let party = selfParty(this.address, this.nativeToken);
-    transaction.parties.push(party);
-    this._executionState = { transactionId, party };
-    return party;
+    // if in a transaction, but outside a @method call, we implicitly create an account update
+    // which is stable during the current transaction -- as long as it doesn't get overridden by a method call
+    let accountUpdate = selfAccountUpdate(this);
+    this.#executionState = { transactionId, accountUpdate };
+    return accountUpdate;
   }
-
-  get self() {
-    return this.executionState();
+  // same as this.self, but explicitly creates a _new_ account update
+  newSelf(): AccountUpdate {
+    let inTransaction = Mina.currentTransaction.has();
+    let transactionId = inTransaction ? Mina.currentTransaction.id() : NaN;
+    let accountUpdate = selfAccountUpdate(this);
+    this.#executionState = { transactionId, accountUpdate };
+    return accountUpdate;
   }
 
   get account() {
@@ -661,13 +825,42 @@ class SmartContract {
     return this.self.network;
   }
 
-  get experimental() {
-    let zkapp = this;
-    return {
-      get token() {
-        return zkapp.self.token();
-      },
-    };
+  get token() {
+    return this.self.token();
+  }
+
+  /**
+   * Approve an account update or callback. This will include the account update in the zkApp's public input,
+   * which means it allows you to read and use its content in a proof, make assertions about it, and modify it.
+   *
+   * If this is called with a callback as the first parameter, it will first extract the account update produced by that callback.
+   * The extracted account update is returned.
+   *
+   * ```ts
+   * \@method myApprovingMethod(callback: Callback) {
+   *   let approvedUpdate = this.approve(callback);
+   * }
+   * ```
+   *
+   * Under the hood, "approving" just means that the account update is made a child of the zkApp in the
+   * tree of account updates that forms the transaction.
+   * The second parameter `layout` allows you to also make assertions about the approved update's _own_ children,
+   * by specifying a certain expected layout of children. See {@link AccountUpdate.Layout}.
+   *
+   * @param updateOrCallback
+   * @param layout
+   * @returns The account update that was approved (needed when passing in a Callback)
+   */
+  approve(
+    updateOrCallback: AccountUpdate | Callback<any>,
+    layout?: AccountUpdatesLayout
+  ) {
+    let accountUpdate =
+      updateOrCallback instanceof AccountUpdate
+        ? updateOrCallback
+        : Circuit.witness(AccountUpdate, () => updateOrCallback.accountUpdate);
+    this.self.approve(accountUpdate, layout);
+    return accountUpdate;
   }
 
   send(args: {
@@ -675,10 +868,6 @@ class SmartContract {
     amount: number | bigint | UInt64;
   }) {
     return this.self.send(args);
-  }
-
-  get tokenId() {
-    return this.self.tokenId;
   }
 
   get tokenSymbol() {
@@ -689,11 +878,11 @@ class SmartContract {
     return this.self.balance;
   }
 
-  events: { [key: string]: AsFieldElements<any> } = {};
+  events: { [key: string]: ProvablePure<any> } = {};
 
   // TODO: not able to type event such that it is inferred correctly so far
   emitEvent<K extends keyof this['events']>(type: K, event: any) {
-    let party = this.self;
+    let accountUpdate = this.self;
     let eventTypes: (keyof this['events'])[] = Object.keys(this.events);
     if (eventTypes.length === 0)
       throw Error(
@@ -719,13 +908,16 @@ class SmartContract {
       // if there is more than one event type, also store its index, like in an enum, to identify the type later
       eventFields = [Field(eventNumber), ...eventType.toFields(event)];
     }
-    party.body.events = Events.pushEvent(party.body.events, eventFields);
+    accountUpdate.body.events = Events.pushEvent(
+      accountUpdate.body.events,
+      eventFields
+    );
   }
 
   async fetchEvents(
     start: UInt32 = UInt32.from(0),
     end?: UInt32
-  ): Promise<{ type: string; event: AsFieldElements<any> }[]> {
+  ): Promise<{ type: string; event: ProvablePure<any> }[]> {
     // filters all elements so that they are within the given range
     // only returns { type: "", event: [] } in a flat format
     let events = (await Mina.fetchEvents(this.address, this.self.body.tokenId))
@@ -747,8 +939,8 @@ class SmartContract {
         let type = sortedEventTypes[0];
         return {
           type,
-          event: this.events[type].ofFields(
-            event.map((f: string) => Field.fromString(f))
+          event: this.events[type].fromFields(
+            event.map((f: string) => Field(f))
           ),
         };
       } else {
@@ -758,8 +950,8 @@ class SmartContract {
         event.shift();
         return {
           type,
-          event: this.events[type].ofFields(
-            event.map((f: string) => Field.fromString(f))
+          event: this.events[type].fromFields(
+            event.map((f: string) => Field(f))
           ),
         };
       }
@@ -771,14 +963,31 @@ class SmartContract {
       Circuit.asProver(run);
   }
 
-  // run all methods to collect metadata like how many sequence events they use -- if we don't have this information yet
-  // TODO: this could also be used to quickly perform any invariant checks on parties construction
-  static analyzeMethods(address: PublicKey, tokenId: Field = TokenId.default) {
+  // TODO: this could also be used to quickly perform any invariant checks on account updates construction
+  /**
+   * This function is run internally before compiling a smart contract, to collect metadata about what each of your
+   * smart contract methods does.
+   *
+   * For external usage, this function can be handy because calling it involves running all methods in the same "mode" as `compile()` does,
+   * so it serves as a quick-to-run check for whether your contract can be compiled without errors, which can greatly speed up iterating.
+   *
+   * `analyzeMethods()` will also return the number of `rows` of each of your method circuits (i.e., the number of constraints in the underlying proof system),
+   * which is a good indicator for circuit size and the time it will take to create proofs.
+   *
+   * Note: If this function was already called before, it will short-circuit and just return the metadata collected the first time.
+   *
+   * @returns an object, keyed by method name, each entry containing:
+   *  - `rows` the size of the constraint system created by this method
+   *  - `digest` a digest of the method circuit
+   *  - `hasReturn` a boolean indicating whether the method returns a value
+   *  - `sequenceEvents` the number of actions the method dispatches
+   */
+  static analyzeMethods() {
+    let methodMetaData = this._methodMetadata;
     let ZkappClass = this as typeof SmartContract;
-    let instance = new ZkappClass(address, tokenId);
     let methodIntfs = ZkappClass._methods ?? [];
     if (
-      !methodIntfs.every((m) => m.methodName in ZkappClass._methodMetadata) &&
+      !methodIntfs.every((m) => m.methodName in methodMetaData) &&
       !inAnalyze()
     ) {
       if (snarkContext.get().inRunAndCheck) {
@@ -786,19 +995,26 @@ class SmartContract {
           'Can not analyze methods inside Circuit.runAndCheck, because this creates a circuit nested in another circuit'
         );
         // EXCEPT if the code that calls this knows that it can first run `analyzeMethods` OUTSIDE runAndCheck and try again
-        (err as any).bootstrap = () =>
-          ZkappClass.analyzeMethods(address, tokenId);
+        (err as any).bootstrap = () => ZkappClass.analyzeMethods();
         throw err;
       }
       for (let methodIntf of methodIntfs) {
+        let accountUpdate: AccountUpdate;
         let { rows, digest, result } = analyzeMethod(
           ZkappPublicInput,
           methodIntf,
-          (...args) => (instance as any)[methodIntf.methodName](...args)
+          (publicInput, publicKey, tokenId, ...args) => {
+            let instance: SmartContract = new ZkappClass(publicKey, tokenId);
+            let result = (instance as any)[methodIntf.methodName](
+              publicInput,
+              ...args
+            );
+            accountUpdate = instance.#executionState!.accountUpdate;
+            return result;
+          }
         );
-        let party = instance._executionState?.party!;
         ZkappClass._methodMetadata[methodIntf.methodName] = {
-          sequenceEvents: party.body.sequenceEvents.data.length,
+          sequenceEvents: accountUpdate!.body.sequenceEvents.data.length,
           rows,
           digest,
           hasReturn: result !== undefined,
@@ -819,13 +1035,13 @@ class SmartContract {
   }
 }
 
-type Reducer<Action> = { actionType: AsFieldElements<Action> };
+type Reducer<Action> = { actionType: ProvablePure<Action> };
 
 type ReducerReturn<Action> = {
   dispatch(action: Action): void;
   reduce<State>(
     actions: Action[][],
-    stateType: AsFieldElements<State>,
+    stateType: Provable<State>,
     reduce: (state: State, action: Action) => State,
     initial: { state: State; actionsHash: Field },
     options?: { maxTransactionsWithActions?: number }
@@ -854,17 +1070,17 @@ class ${contract.constructor.name} extends SmartContract {
     );
   return {
     dispatch(action: A) {
-      let party = contract.self;
+      let accountUpdate = contract.self;
       let eventFields = reducer.actionType.toFields(action);
-      party.body.sequenceEvents = SequenceEvents.pushEvent(
-        party.body.sequenceEvents,
+      accountUpdate.body.sequenceEvents = SequenceEvents.pushEvent(
+        accountUpdate.body.sequenceEvents,
         eventFields
       );
     },
 
     reduce<S>(
       actionLists: A[][],
-      stateType: AsFieldElements<S>,
+      stateType: Provable<S>,
       reduce: (state: S, action: A) => S,
       { state, actionsHash }: { state: S; actionsHash: Field },
       { maxTransactionsWithActions = 32 } = {}
@@ -877,7 +1093,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       }
       let methodData = (
         contract.constructor as typeof SmartContract
-      ).analyzeMethods(contract.address);
+      ).analyzeMethods();
       let possibleActionsPerTransaction = [
         ...new Set(Object.values(methodData).map((o) => o.sequenceEvents)).add(
           0
@@ -919,8 +1135,11 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
           let newState = Circuit.witness(stateType, () => {
             // TODO: why doesn't this work without the toConstant mapping?
-            let { toFields, ofFields } = stateType;
-            return ofFields(toFields(state).map((x) => x.toConstant()));
+            let { toFields, fromFields, toAuxiliary } = stateType;
+            return fromFields(
+              toFields(state).map((x) => x.toConstant()),
+              toAuxiliary(state)
+            );
             // return state;
           });
           Circuit.assertEqual(newState, state);
@@ -976,10 +1195,8 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           .map((event: { hash: string; actions: string[][] }) =>
             // putting our string-Fields back into the original action type
             event.actions.map((action: string[]) =>
-              reducer.actionType.ofFields(
-                action.map((fieldAsString: string) =>
-                  Field.fromString(fieldAsString)
-                )
+              reducer.actionType.fromFields(
+                action.map((fieldAsString: string) => Field(fieldAsString))
               )
             )
           );
@@ -989,17 +1206,28 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
   };
 }
 
-function selfParty(address: PublicKey, tokenId?: Field) {
-  let body = Body.keepAll(address);
-  if (tokenId) {
-    body.tokenId = tokenId;
-    body.caller = tokenId;
+class VerificationKey extends Struct({
+  ...provable({ data: String, hash: Field }),
+  toJSON({ data }: { data: string }) {
+    return data;
+  },
+}) {}
+
+function selfAccountUpdate(zkapp: SmartContract, methodName?: string) {
+  let body = Body.keepAll(zkapp.address);
+  if (zkapp.tokenId) {
+    body.tokenId = zkapp.tokenId;
+    body.caller = zkapp.tokenId;
   }
-  return new (AccountUpdate as any)(body, {}, true) as AccountUpdate;
+  let update = new (AccountUpdate as any)(body, {}, true) as AccountUpdate;
+  update.label = methodName
+    ? `${zkapp.constructor.name}.${methodName}()`
+    : `${zkapp.constructor.name}, no method`;
+  return update;
 }
 
 // per-smart-contract context for transaction construction
-type ExecutionState = { transactionId: number; party: AccountUpdate };
+type ExecutionState = { transactionId: number; accountUpdate: AccountUpdate };
 
 type DeployArgs =
   | {
@@ -1035,23 +1263,23 @@ async function deploy<S extends typeof SmartContract>(
         throw Error(
           `When using the optional initialBalance argument, you need to also supply the fee payer's private key as part of the \`feePayer\` argument, to sign the initial balance funding.`
         );
-      // optional first party: the sender/fee payer who also funds the zkapp
-      let amount = UInt64.fromString(String(initialBalance)).add(
+      // optional first accountUpdate: the sender/fee payer who also funds the zkapp
+      let amount = UInt64.from(String(initialBalance)).add(
         Mina.accountCreationFee()
       );
       let feePayerAddress = feePayerKey.toPublicKey();
-      let party = AccountUpdate.defaultParty(feePayerAddress);
-      party.body.useFullCommitment = Bool(true);
-      party.balance.subInPlace(amount);
-      Mina.currentTransaction()?.parties.push(party);
+      let accountUpdate = AccountUpdate.defaultAccountUpdate(feePayerAddress);
+      accountUpdate.body.useFullCommitment = Bool(true);
+      accountUpdate.balance.subInPlace(amount);
+      Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
     }
-    // main party: the zkapp account
+    // main accountUpdate: the zkapp account
     let zkapp = new SmartContract(address, tokenId);
     zkapp.deploy({ verificationKey, zkappKey });
-    // TODO: add send / receive methods on SmartContract which create separate parties
-    // no need to bundle receive in the same party as deploy
+    // TODO: add send / receive methods on SmartContract which create separate account updates
+    // no need to bundle receive in the same accountUpdate as deploy
     if (initialBalance !== undefined) {
-      let amount = UInt64.fromString(String(initialBalance));
+      let amount = UInt64.from(String(initialBalance));
       zkapp.self.balance.addInPlace(amount);
     }
   });
@@ -1062,12 +1290,12 @@ function Account(address: PublicKey, tokenId?: Field) {
   if (smartContractContext.has()) {
     return AccountUpdate.create(address, tokenId).account;
   } else {
-    return AccountUpdate.defaultParty(address, tokenId).account;
+    return AccountUpdate.defaultAccountUpdate(address, tokenId).account;
   }
 }
 
 function addFeePayer(
-  { feePayer, otherParties, memo }: Parties,
+  { feePayer, accountUpdates, memo }: ZkappCommand,
   feePayerKey: PrivateKey | string,
   {
     transactionFee = 0 as number | string,
@@ -1085,11 +1313,11 @@ function addFeePayer(
   }
   let newMemo = memo;
   if (feePayerMemo) newMemo = Ledger.memoToBase58(feePayerMemo);
-  feePayer.body.nonce = UInt32.fromString(`${feePayerNonce}`);
+  feePayer.body.nonce = UInt32.from(`${feePayerNonce}`);
   feePayer.body.publicKey = senderAddress;
-  feePayer.body.fee = UInt64.fromString(`${transactionFee}`);
+  feePayer.body.fee = UInt64.from(`${transactionFee}`);
   AccountUpdate.signFeePayerInPlace(feePayer, feePayerKey);
-  return { feePayer, otherParties, memo: newMemo };
+  return { feePayer, accountUpdates, memo: newMemo };
 }
 
 function signFeePayer(
@@ -1101,7 +1329,7 @@ function signFeePayer(
     memo: feePayerMemo = undefined as string | undefined,
   }
 ) {
-  let parties: Types.Json.Parties = JSON.parse(transactionJson);
+  let zkappCommand: Types.Json.ZkappCommand = JSON.parse(transactionJson);
   if (typeof feePayerKey === 'string')
     feePayerKey = PrivateKey.fromBase58(feePayerKey);
   let senderAddress = feePayerKey.toPublicKey();
@@ -1109,11 +1337,12 @@ function signFeePayer(
     let senderAccount = Mina.getAccount(senderAddress, TokenId.default);
     feePayerNonce = senderAccount.nonce.toString();
   }
-  if (feePayerMemo) parties.memo = Ledger.memoToBase58(feePayerMemo);
-  parties.feePayer.body.nonce = `${feePayerNonce}`;
-  parties.feePayer.body.publicKey = Ledger.publicKeyToString(senderAddress);
-  parties.feePayer.body.fee = `${transactionFee}`;
-  return signJsonTransaction(JSON.stringify(parties), feePayerKey);
+  if (feePayerMemo) zkappCommand.memo = Ledger.memoToBase58(feePayerMemo);
+  zkappCommand.feePayer.body.nonce = `${feePayerNonce}`;
+  zkappCommand.feePayer.body.publicKey =
+    Ledger.publicKeyToString(senderAddress);
+  zkappCommand.feePayer.body.fee = `${transactionFee}`;
+  return signJsonTransaction(JSON.stringify(zkappCommand), feePayerKey);
 }
 
 // alternative API which can replace decorators, works in pure JS
@@ -1136,7 +1365,7 @@ function signFeePayer(
  */
 function declareMethods<T extends typeof SmartContract>(
   SmartContract: T,
-  methodArguments: Record<string, AsFieldElements<unknown>[]>
+  methodArguments: Record<string, Provable<unknown>[]>
 ) {
   for (let key in methodArguments) {
     let argumentTypes = methodArguments[key];
@@ -1148,9 +1377,15 @@ function declareMethods<T extends typeof SmartContract>(
   }
 }
 
+type InferProvablePure<T extends ProvablePure<any>> = T extends ProvablePure<
+  infer U
+>
+  ? U
+  : never;
+
 const Reducer: (<
-  T extends AsFieldElements<any>,
-  A extends InferAsFieldElements<T>
+  T extends ProvablePure<any>,
+  A extends InferProvablePure<T>
 >(reducer: {
   actionType: T;
 }) => ReducerReturn<A>) & {
@@ -1164,3 +1399,15 @@ const Reducer: (<
   'initialActionsHash',
   { get: SequenceEvents.emptySequenceState }
 ) as any;
+
+/**
+ * this is useful to debug a very common error: when the consistency check between
+ * -) the account update that went into the public input, and
+ * -) the account update constructed by the prover
+ * fails.
+ * toggling this will print the two account updates in addition to the unhelpful failed assertion error when the check fails,
+ * making it easier to see where the problem lies.
+ * TODO refine this into a good error message that's always used, not just for debugging
+ * TODO find or write library that can print nice JS object diffs
+ */
+const DEBUG_PUBLIC_INPUT_CHECK = false;

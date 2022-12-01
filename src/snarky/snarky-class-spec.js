@@ -67,7 +67,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofFields',
+        name: 'fromFields',
         type: 'function',
       },
       {
@@ -83,7 +83,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofBits',
+        name: 'fromBits',
         type: 'function',
       },
       {
@@ -172,7 +172,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofFields',
+        name: 'fromFields',
         type: 'function',
       },
       {
@@ -205,7 +205,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'witness',
+        name: '_witness',
         type: 'function',
       },
       {
@@ -319,7 +319,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofFields',
+        name: 'fromFields',
         type: 'function',
       },
       {
@@ -352,7 +352,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofFields',
+        name: 'fromFields',
         type: 'function',
       },
       {
@@ -360,7 +360,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'ofBits',
+        name: 'fromBits',
         type: 'function',
       },
       {
@@ -425,7 +425,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'signOtherParty',
+        name: 'signOtherAccountUpdate',
         type: 'function',
       },
       {
@@ -456,16 +456,21 @@ export default [
         name: 'memoToBase58',
         type: 'function',
       },
+      { name: 'memoHashBase58', type: 'function' },
+      {
+        name: 'checkAccountUpdateSignature',
+        type: 'function',
+      },
       {
         name: 'fieldsOfJson',
         type: 'function',
       },
       {
-        name: 'hashPartyFromFields',
+        name: 'hashAccountUpdateFromFields',
         type: 'function',
       },
       {
-        name: 'hashPartyFromJson',
+        name: 'hashAccountUpdateFromJson',
         type: 'function',
       },
       {
@@ -488,6 +493,10 @@ export default [
       },
       {
         name: 'verify',
+        type: 'function',
+      },
+      {
+        name: 'dummyBase64Proof',
         type: 'function',
       },
       {

@@ -1,54 +1,73 @@
 import {
-  Types,
   AccountUpdate,
   PrivateKey,
   Circuit,
-  circuitValue,
+  provable,
+  isReady,
 } from 'snarkyjs';
+
+await isReady;
 
 let address = PrivateKey.random().toPublicKey();
 
-let party = AccountUpdate.defaultParty(address);
-party.body.callDepth = 5;
-party.lazyAuthorization = {
+let accountUpdate = AccountUpdate.defaultAccountUpdate(address);
+accountUpdate.body.callDepth = 5;
+accountUpdate.lazyAuthorization = {
   kind: 'lazy-signature',
   privateKey: PrivateKey.random(),
 };
 
-let fields = Types.Party.toFields(party);
-let aux = Types.Party.toAuxiliary(party);
+let fields = AccountUpdate.toFields(accountUpdate);
+let aux = AccountUpdate.toAuxiliary(accountUpdate);
 
-let partyRaw = Types.Party.fromFields(fields, aux);
-let json = Types.Party.toJSON(partyRaw);
+let accountUpdateRaw = AccountUpdate.fromFields(fields, aux);
+let json = AccountUpdate.toJSON(accountUpdateRaw);
 
 if (address.toBase58() !== json.body.publicKey) throw Error('fail');
 
-let Null = circuitValue<null>(null);
+let Null = provable(null);
 
 Circuit.runAndCheck(() => {
-  let partyWitness = AccountUpdate.witness(Null, () => ({
-    party,
+  let accountUpdateWitness = AccountUpdate.witness(Null, () => ({
+    accountUpdate,
     result: null,
-  })).party;
-  console.assert(partyWitness.body.callDepth === 5);
-  Circuit.assertEqual(Types.Party, partyWitness, party);
+  })).accountUpdate;
+  console.assert(accountUpdateWitness.body.callDepth === 5);
+  Circuit.assertEqual(AccountUpdate, accountUpdateWitness, accountUpdate);
   Circuit.assertEqual(
     PrivateKey,
-    (partyWitness.lazyAuthorization as any).privateKey,
-    (party.lazyAuthorization as any).privateKey
+    (accountUpdateWitness.lazyAuthorization as any).privateKey,
+    (accountUpdate.lazyAuthorization as any).privateKey
   );
 });
 
 let result = Circuit.constraintSystem(() => {
-  let partyWitness = AccountUpdate.witness(Null, () => ({
-    party,
+  let accountUpdateWitness = AccountUpdate.witness(Null, () => ({
+    accountUpdate,
     result: null,
-  })).party;
-  console.assert(partyWitness.body.callDepth === 0);
-  Circuit.assertEqual(Types.Party, partyWitness, party);
+  })).accountUpdate;
+  console.assert(accountUpdateWitness.body.callDepth === 0);
+  Circuit.assertEqual(AccountUpdate, accountUpdateWitness, accountUpdate);
 });
 
-console.log(`a party has ${Types.Party.sizeInFields()} fields`);
+console.log(`an account update has ${AccountUpdate.sizeInFields()} fields`);
 console.log(
-  `witnessing a party and comparing it to another one creates ${result.rows} rows`
+  `witnessing an account update and comparing it to another one creates ${result.rows} rows`
+);
+
+result = Circuit.constraintSystem(() => {
+  let accountUpdateWitness = AccountUpdate.witness(
+    Null,
+    () => ({
+      accountUpdate,
+      result: null,
+    }),
+    { skipCheck: true }
+  ).accountUpdate;
+  console.assert(accountUpdateWitness.body.callDepth === 0);
+  Circuit.assertEqual(AccountUpdate, accountUpdateWitness, accountUpdate);
+});
+
+console.log(
+  `without all the checks on subfields, witnessing and comparing only creates ${result.rows} rows`
 );
