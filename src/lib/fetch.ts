@@ -27,6 +27,9 @@ export {
 export { Account };
 
 let defaultGraphqlEndpoint = 'none';
+/**
+ * Specifies the default GraphQL endpoint.
+ */
 function setGraphqlEndpoint(graphqlEndpoint: string) {
   defaultGraphqlEndpoint = graphqlEndpoint;
 }
@@ -355,6 +358,9 @@ function getCachedNetwork(graphqlEndpoint = defaultGraphqlEndpoint) {
   return networkCache[graphqlEndpoint]?.network;
 }
 
+/**
+ * Adds an account to the local cache, indexed by a GraphQL endpoint.
+ */
 function addCachedAccount(
   account: {
     publicKey: string | PublicKey;
@@ -381,6 +387,9 @@ function addCachedAccountInternal(
   };
 }
 
+/**
+ * Fetches the last block on the Mina network.
+ */
 async function fetchLastBlock(graphqlEndpoint = defaultGraphqlEndpoint) {
   let [resp, error] = await makeGraphqlRequest(lastBlockQuery, graphqlEndpoint);
   if (error) throw Error(error.statusText);
@@ -525,6 +534,9 @@ function parseEpochData({
   };
 }
 
+/**
+ * Sends a zkApp command (transaction) to the specified GraphQL endpoint.
+ */
 function sendZkapp(
   json: string,
   graphqlEndpoint = defaultGraphqlEndpoint,

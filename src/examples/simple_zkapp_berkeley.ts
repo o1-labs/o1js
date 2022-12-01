@@ -42,9 +42,7 @@ class SimpleZkapp extends SmartContract {
 }
 
 // you can use this with any spec-compliant graphql endpoint
-let Berkeley = Mina.BerkeleyQANet(
-  'https://proxy.berkeley.minaexplorer.com/graphql'
-);
+let Berkeley = Mina.Network('https://proxy.berkeley.minaexplorer.com/graphql');
 Mina.setActiveInstance(Berkeley);
 
 // to use this test, change this private key to an account which has enough MINA to pay fees

@@ -7,7 +7,13 @@ import {
   Poseidon,
   Provable,
 } from '../snarky.js';
-import { provable, toConstant } from './circuit_value.js';
+import {
+  FlexibleProvable,
+  FlexibleProvablePure,
+  InferCircuitValue,
+  provable,
+  toConstant,
+} from './circuit_value.js';
 import { Context } from './global-context.js';
 
 // public API
@@ -52,7 +58,7 @@ type SnarkContext = {
 let snarkContext = Context.create<SnarkContext>({ default: {} });
 
 class Proof<T> {
-  static publicInputType: ProvablePure<any> = undefined as any;
+  static publicInputType: FlexibleProvablePure<any> = undefined as any;
   static tag: () => { name: string } = () => {
     throw Error(
       `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
@@ -86,7 +92,7 @@ class Proof<T> {
       proof: proofString,
       publicInput: publicInputJson,
     }: JsonProof
-  ): Proof<InferInstance<S['publicInputType']>> {
+  ): Proof<InferCircuitValue<S['publicInputType']>> {
     let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
     let publicInput = getPublicInputType(this).fromFields(
       publicInputJson.map(Field)
@@ -146,7 +152,7 @@ let CompiledTag = {
 };
 
 function ZkProgram<
-  PublicInputType extends ProvablePure<any>,
+  PublicInputType extends FlexibleProvablePure<any>,
   Types extends {
     // TODO: how to prevent a method called `compile` from type-checking?
     [I in string]: Tuple<PrivateInput>;
@@ -157,20 +163,22 @@ function ZkProgram<
 }: {
   publicInput: PublicInputType;
   methods: {
-    [I in keyof Types]: Method<InferInstance<PublicInputType>, Types[I]>;
+    [I in keyof Types]: Method<InferCircuitValue<PublicInputType>, Types[I]>;
   };
 }): {
   name: string;
   compile: () => Promise<{ verificationKey: string }>;
-  verify: (proof: Proof<InferInstance<PublicInputType>>) => Promise<boolean>;
+  verify: (
+    proof: Proof<InferCircuitValue<PublicInputType>>
+  ) => Promise<boolean>;
   digest: () => string;
   publicInputType: PublicInputType;
 } & {
-  [I in keyof Types]: Prover<InferInstance<PublicInputType>, Types[I]>;
+  [I in keyof Types]: Prover<InferCircuitValue<PublicInputType>, Types[I]>;
 } {
   let selfTag = { name: `Program${i++}` };
 
-  type PublicInput = InferInstance<PublicInputType>;
+  type PublicInput = InferCircuitValue<PublicInputType>;
   class SelfProof extends Proof<PublicInput> {
     static publicInputType = publicInputType;
     static tag = () => selfTag;
@@ -558,6 +566,7 @@ function methodArgumentTypesAndValues(
   return typesAndValues;
 }
 
+function emptyValue<T>(type: FlexibleProvable<T>): T;
 function emptyValue<T>(type: Provable<T>) {
   return type.fromFields(
     Array(type.sizeInFields()).fill(Field(0)),
@@ -565,6 +574,7 @@ function emptyValue<T>(type: Provable<T>) {
   );
 }
 
+function emptyWitness<T>(type: FlexibleProvable<T>): T;
 function emptyWitness<T>(type: Provable<T>) {
   return Circuit.witness(type, () => emptyValue(type));
 }
@@ -578,13 +588,13 @@ function getPublicInputType<T, P extends Subclass<typeof Proof> = typeof Proof>(
         `class MyProof extends Proof<PublicInput> { ... }`
     );
   }
-  return Proof.publicInputType;
+  return Proof.publicInputType as any;
 }
 
 ZkProgram.Proof = function <
-  PublicInputType extends ProvablePure<any>
+  PublicInputType extends FlexibleProvablePure<any>
 >(program: { name: string; publicInputType: PublicInputType }) {
-  type PublicInput = InferInstance<PublicInputType>;
+  type PublicInput = InferCircuitValue<PublicInputType>;
   return class ZkProgramProof extends Proof<PublicInput> {
     static publicInputType = program.publicInputType;
     static tag = () => program;
@@ -632,34 +642,9 @@ function inCompileMode() {
 // helper types
 
 type Tuple<T> = [T, ...T[]] | [];
-
-// TODO: inference of ProvablePure shouldn't just use InstanceType
-// but the alternatives will be messier (see commented code below for some ideas)
-type InferInstance<T> = T extends new (...args: any) => any
-  ? InstanceType<T>
-  : never;
 type TupleToInstances<T> = {
-  [I in keyof T]: InferInstance<T[I]>;
-};
-
-/* type TupleToInstances_<T> =
-  {[I in keyof T]: T[I] extends ProvablePure<any> ? InferAsFields<T[I]> : T[I] extends typeof Proof<infer W> ? Proof<W> : T[I]}
-this is a workaround for TS bug https://github.com/microsoft/TypeScript/issues/29919
-type TupleToInstances<
-  A extends AnyTuple,
-  T extends (...args: A) => any
-> = T extends (...args: infer P) => any ? TupleToInstances_<P> : never;
-if the bug is resolved, this should just be TupleToInstances_<P>
-
-// TODO: this only works for Field / Bool / UInt32 / UInt64 / Int64 because they have a custom `check` method
-// doesn't work for general CircuitValue
-// we need a robust method for infering the type from a CircuitValue subclass!
-type InferInstance<T extends ProvablePure<any>> = T['check'] extends (
-  x: infer U
-) => void
-  ? U
-  : never;
-*/
+  [I in keyof T]: InferCircuitValue<T[I]>;
+} & any[];
 
 type Subclass<Class extends new (...args: any) => any> = (new (
   ...args: any
