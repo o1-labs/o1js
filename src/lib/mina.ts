@@ -1151,8 +1151,6 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
     eventElements['sequence'] <= maxSequenceEventElements;
 
   let error = '';
-  console.log(eventElements);
-  console.log(authTypes);
 
   if (!isWithinCostLimit) {
     error += `Error sending transaction: The transaction is too expensive, try reducing the number of AccountUpdates that are attached to the transaction.
