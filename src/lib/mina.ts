@@ -49,6 +49,8 @@ export {
   fetchEvents,
   getActions,
   FeePayerSpec,
+  // for internal testing only
+  filterGroups,
 };
 interface TransactionId {
   wait(): Promise<void>;
@@ -288,6 +290,7 @@ const defaultAccountCreationFee = 1_000_000_000;
 function LocalBlockchain({
   accountCreationFee = defaultAccountCreationFee as string | number,
   proofsEnabled = true,
+  enforceTransactionLimits = true,
 } = {}) {
   const msPerSlot = 3 * 60 * 1000;
   const startTime = new Date().valueOf();
@@ -378,7 +381,8 @@ function LocalBlockchain({
         JSON.stringify(zkappCommandToJson(txn.transaction))
       );
 
-      verifyTransactionLimits(txn.transaction.accountUpdates);
+      if (enforceTransactionLimits)
+        verifyTransactionLimits(txn.transaction.accountUpdates);
 
       for (const update of txn.transaction.accountUpdates) {
         let account = ledger.getAccount(
@@ -1056,75 +1060,12 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
   const maxSequenceEventElements = 16;
   const maxEventElements = 16;
 
-  let S = 'Signature';
-  let N = 'None_given';
-  let P = 'Proof';
-
-  const isPair = (pair: string) =>
-    pair == S + N || pair == N + S || pair == S + S || pair == N + N;
-
-  function filterPairs(xs: string[]): {
-    xs: string[];
-    pairs: number;
-  } {
-    if (xs.length <= 1)
-      return {
-        xs,
-        pairs: 0,
-      };
-    if (isPair(xs[0].concat(xs[1]))) {
-      let rec = filterPairs(xs.slice(2));
-      return {
-        xs: rec.xs,
-        pairs: rec.pairs + 1,
-      };
-    } else {
-      let rec = filterPairs(xs.slice(1));
-      return {
-        xs: [xs[0]].concat(rec.xs),
-        pairs: rec.pairs,
-      };
-    }
-  }
-
-  function filterGroups(xs: string[]): {
-    proof: number;
-    signedPair: number;
-    signedSingle: number;
-  } {
-    let pairs = filterPairs(xs);
-    xs = pairs.xs;
-
-    let singleCount = 0;
-    let proofCount = 0;
-
-    xs.forEach((t) => {
-      if (t == P) proofCount++;
-      else singleCount++;
-    });
-
-    return {
-      signedPair: pairs.pairs,
-      signedSingle: singleCount,
-      proof: proofCount,
-    };
-  }
-
-  let eventElements: {
-    events: number;
-    sequence: number;
-  } = {
+  let eventElements = {
     events: 0,
     sequence: 0,
   };
 
-  let authTypes: {
-    proof: number;
-    signedPair: number;
-    signedSingle: number;
-  };
-
-  authTypes = filterGroups(
+  let authTypes = filterGroups(
     accountUpdates.map((update) => {
       let json = update.toJSON();
       eventElements.events += update.body.events.data.length;
@@ -1174,4 +1115,54 @@ ${JSON.stringify(authTypes)}
   }
 
   if (error) throw Error('Error during transaction sending:\n\n' + error);
+}
+
+let S = 'Signature';
+let N = 'None_given';
+let P = 'Proof';
+
+const isPair = (pair: string) =>
+  pair == S + N || pair == N + S || pair == S + S || pair == N + N;
+
+function filterPairs(xs: string[]): {
+  xs: string[];
+  pairs: number;
+} {
+  if (xs.length <= 1)
+    return {
+      xs,
+      pairs: 0,
+    };
+  if (isPair(xs[0].concat(xs[1]))) {
+    let rec = filterPairs(xs.slice(2));
+    return {
+      xs: rec.xs,
+      pairs: rec.pairs + 1,
+    };
+  } else {
+    let rec = filterPairs(xs.slice(1));
+    return {
+      xs: [xs[0]].concat(rec.xs),
+      pairs: rec.pairs,
+    };
+  }
+}
+
+function filterGroups(xs: string[]) {
+  let pairs = filterPairs(xs);
+  xs = pairs.xs;
+
+  let singleCount = 0;
+  let proofCount = 0;
+
+  xs.forEach((t) => {
+    if (t == P) proofCount++;
+    else singleCount++;
+  });
+
+  return {
+    signedPair: pairs.pairs,
+    signedSingle: singleCount,
+    proof: proofCount,
+  };
 }
