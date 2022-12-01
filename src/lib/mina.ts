@@ -1153,6 +1153,7 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
   let error = '';
 
   if (!isWithinCostLimit) {
+    // TODO: we should add a link to the docs explaining the reasoning behind it once we have such an explainer
     error += `Error sending transaction: The transaction is too expensive, try reducing the number of AccountUpdates that are attached to the transaction.
 Each transaction needs to be processed by the snark workers on the network.
 Certain layouts of AccountUpdates require more proving time than others, and therefore are too expensive.\n\n`;
