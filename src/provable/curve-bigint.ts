@@ -27,6 +27,9 @@ type PublicKey = { x: Field; isOdd: Bool };
 type Scalar = bigint;
 type PrivateKey = bigint;
 
+/**
+ * A non-zero point on the Pallas curve in affine form { x, y }
+ */
 const Group = {
   toProjective({ x, y }: Group): GroupProjective {
     return Pallas.ofAffine({ x, y, infinity: false });
@@ -51,6 +54,9 @@ let BinablePublicKey = withVersionNumber(
 );
 let Base58PublicKey = base58(BinablePublicKey, versionBytes.publicKey);
 
+/**
+ * A public key, represented by a non-zero point on the Pallas curve, in compressed form { x, isOdd }
+ */
 const PublicKey = {
   ...provable({ x: Field, isOdd: Bool }),
 
@@ -77,6 +83,9 @@ const PublicKey = {
   },
 };
 
+/**
+ * The scalar field of the Pallas curve
+ */
 const Scalar = pseudoClass(
   function Scalar(value: bigint | number | string): Scalar {
     return BigInt(value) % Fq.modulus;
@@ -87,6 +96,9 @@ const Scalar = pseudoClass(
 let BinablePrivateKey = withVersionNumber(Scalar, versionNumbers.scalar);
 let Base58PrivateKey = base58(BinablePrivateKey, versionBytes.privateKey);
 
+/**
+ * A private key, represented by a scalar of the Pallas curve
+ */
 const PrivateKey = {
   ...Scalar,
   ...provable(Scalar),

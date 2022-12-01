@@ -31,6 +31,9 @@ type Sign = 1n | minusOne;
 type HashInput = GenericHashInput<Field>;
 type ProvableExtended<T, J> = GenericProvableExtended<T, J, Field>;
 
+/**
+ * The base field of the Pallas curve
+ */
 const Field = pseudoClass(
   function Field(value: bigint | number | string): Field {
     return BigInt(value) % MODULUS;
