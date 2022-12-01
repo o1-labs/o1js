@@ -117,11 +117,24 @@ function bytesToBits(bytes: number[]) {
     .flat();
 }
 
+/**
+ * This takes a `Binable<T>` plus an optional `sizeInBits`, and derives toBits() / fromBits() functions.
+ * - `sizeInBits` has to observe `Math.ceil(sizeInBits / 8) === sizeInBytes`, so the bit size can be slightly smaller than the byte size
+ * - If `sizeInBits` is `< sizeInBytes * 8`, then we assume that toBytes() returns a byte sequence where the bits
+ *   higher than `sizeInBits` are all 0. This assumption manifests in toBits(), where we slice off those higher bits,
+ *   to return a result that is of length `sizeInBits`.
+ *
+ * This is useful for serializing field elements, where -- depending on the circumstance -- we either want a
+ * 32-byte (= 256-bit) serialization, or a 255-bit serialization
+ */
 function withBits<T>(
   binable: Binable<T>,
   sizeInBits?: number
 ): BinableWithBits<T> {
-  sizeInBits ??= binable.sizeInBytes() * 8;
+  let sizeInBytes = binable.sizeInBytes();
+  sizeInBits ??= sizeInBytes * 8;
+  if (Math.ceil(sizeInBits / 8) !== sizeInBytes)
+    throw Error('withBits: sizeInBits does not match sizeInBytes');
   return {
     ...binable,
     toBits(t: T) {
