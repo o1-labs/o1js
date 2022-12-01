@@ -36,7 +36,7 @@ const Group = {
     if (infinity) throw Error('Group.fromProjective: point is infinity');
     return { x, y };
   },
-  get one(): Group {
+  get generatorMina(): Group {
     return this.fromProjective(Pallas.one);
   },
   scale(point: Group, scalar: Scalar): Group {

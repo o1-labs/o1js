@@ -12,19 +12,14 @@ import {
   packToFields,
   prefixes,
 } from '../provable/poseidon-bigint.js';
-import {
-  bitsToBytes,
-  bytesToBits,
-  tuple,
-  withVersionNumber,
-} from '../provable/binable.js';
+import { bitsToBytes, tuple, withVersionNumber } from '../provable/binable.js';
 import { base58 } from '../provable/base58.js';
 import { versionBytes } from '../js_crypto/constants.js';
 
 export { sign, signFieldElement, Signature, NetworkId };
 
-const networkIdMainnet = 0x01;
-const networkIdTestnet = 0x00;
+const networkIdMainnet = 0x01n;
+const networkIdTestnet = 0x00n;
 type NetworkId = 'mainnet' | 'testnet';
 type Signature = { r: Field; s: Scalar };
 
@@ -57,15 +52,15 @@ function sign(
   privateKey: PrivateKey,
   networkId: NetworkId
 ): Signature {
-  let publicKey = Group.scale(Group.one, privateKey);
+  let publicKey = Group.scale(Group.generatorMina, privateKey);
   let kPrime = deriveNonce(message, publicKey, privateKey, networkId);
   if (Scalar.equal(kPrime, 0n)) throw Error('sign: derived nonce is 0');
-  let { x: r, y: ry } = Group.scale(Group.one, kPrime);
+  let { x: rx, y: ry } = Group.scale(Group.generatorMina, kPrime);
   let isEven = !(ry & 1n);
   let k = isEven ? kPrime : Scalar.negate(kPrime);
-  let e = hashMessage(message, publicKey, r, networkId);
+  let e = hashMessage(message, publicKey, rx, networkId);
   let s = Scalar.add(k, Scalar.mul(e, privateKey));
-  return { r, s };
+  return { r: rx, s };
 }
 
 function deriveNonce(
@@ -76,11 +71,10 @@ function deriveNonce(
 ): Scalar {
   let { x, y } = publicKey;
   let d = Field.fromBits(Scalar.toBits(privateKey));
-  let idByte = networkId === 'mainnet' ? networkIdMainnet : networkIdTestnet;
-  let id = bytesToBits([idByte]);
+  let id = networkId === 'mainnet' ? networkIdMainnet : networkIdTestnet;
   let input = HashInput.append(message, {
     fields: [x, y, d],
-    packed: [[Field.fromBits(id), id.length]],
+    packed: [[id, 8]],
   });
   let packedInput = packToFields(input);
   let inputBits = packedInput.map(Field.toBits).flat();
