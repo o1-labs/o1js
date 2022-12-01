@@ -44,7 +44,10 @@ Scalar.toFieldsCompressed = function (s: Scalar) {
   let isConstant = s.toFields().every((x) => x.isConstant());
   let constantValue: Uint8Array | undefined = (s as any).constantValue;
   if (!isConstant || constantValue === undefined)
-    throw Error('Scalar.toFieldsCompressed is not available in provable code.');
+    throw Error(
+      `Scalar.toFieldsCompressed is not available in provable code.
+That means it can't be called in a @method or similar environment, and there's no alternative implemented to achieve that.`
+    );
   let x = bytesToBigInt(constantValue);
   let lowBitSize = BigInt(sizeInBits - 1);
   let lowBitMask = (1n << lowBitSize) - 1n;

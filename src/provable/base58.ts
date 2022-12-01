@@ -14,6 +14,9 @@ function base58<T>(binable: Binable<T>, versionByte: number): Base58<T> {
     toBase58(t) {
       let bytes = binable.toBytes(t);
       let binaryString = String.fromCharCode(...bytes);
+      // this `ocamlBytes` structure is the js_of_ocaml representation of a byte array.
+      // the `t: 9` is an integer tag that says the content is a full ASCII string,
+      // see https://github.com/ocsigen/js_of_ocaml/blob/master/runtime/mlBytes.js
       let ocamlBytes = { t: 9, c: binaryString, l: bytes.length };
       return Ledger.encoding.toBase58(ocamlBytes, versionByte);
     },

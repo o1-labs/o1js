@@ -1194,6 +1194,10 @@ declare class Ledger {
   };
 }
 
+/**
+ * js_of_ocaml representation of a byte array,
+ * see https://github.com/ocsigen/js_of_ocaml/blob/master/runtime/mlBytes.js
+ */
 type MlBytes = { t: number; c: string; l: number };
 type OcamlInput = { fields: Field[]; packed: { field: Field; size: number }[] };
 
