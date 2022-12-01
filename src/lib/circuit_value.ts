@@ -1050,7 +1050,7 @@ Circuit.constraintSystemFromKeypair = function (keypair: Keypair) {
       let arr = new Uint8Array(coefficient);
       coeffs.push(bytesToBigInt(arr).toString());
     }
-    return { typ, wires, coeffs };
+    return { type: typ, wires, coeffs };
   });
   return gates;
 };

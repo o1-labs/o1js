@@ -611,7 +611,7 @@ declare interface CircuitMain<W, P> {
 }
 
 type Gate = {
-  typ: string;
+  type: string;
   wires: { row: number; col: number }[];
   coeffs: string[];
 };
