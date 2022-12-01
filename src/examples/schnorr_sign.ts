@@ -8,7 +8,11 @@ import {
   prop,
   CircuitValue,
   Signature,
+  isReady,
 } from 'snarkyjs';
+
+await isReady;
+
 class Witness extends CircuitValue {
   @prop signature: Signature;
   @prop acc: Group;

@@ -1,5 +1,6 @@
 import 'reflect-metadata';
-import { Circuit, ProvablePure, Provable } from '../snarky.js';
+import { bytesToBigInt } from '../js_crypto/finite_field.js';
+import { Circuit, ProvablePure, Provable, Keypair } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
 import { inCheckedComputation, snarkContext } from './proof_system.js';
@@ -31,6 +32,9 @@ export {
   toConstant,
   InferCircuitValue,
   HashInput,
+  FlexibleProvable,
+  FlexibleProvablePure,
+  InferJson,
 };
 
 type Constructor<T> = new (...args: any) => T;
@@ -40,6 +44,14 @@ type NonMethodKeys<T> = {
   [K in keyof T]: T[K] extends Function ? never : K;
 }[keyof T];
 type NonMethods<T> = Pick<T, NonMethodKeys<T>>;
+
+type Struct<T> = ProvableExtended<NonMethods<T>> &
+  Constructor<T> & { _isStruct: true };
+type StructPure<T> = ProvablePure<NonMethods<T>> &
+  ProvableExtension<NonMethods<T>> &
+  Constructor<T> & { _isStruct: true };
+type FlexibleProvable<T> = Provable<T> | Struct<T>;
+type FlexibleProvablePure<T> = ProvablePure<T> | StructPure<T>;
 
 type HashInput = { fields?: Field[]; packed?: [Field, number][] };
 const HashInput = {
@@ -253,66 +265,91 @@ function prop(this: any, target: any, key: string) {
   }
 }
 
-function circuitArray<T, TJson = any>(
-  elementType: Provable<T> | ProvableExtended<T, TJson>,
-  length: number
-): ProvableExtended<T[], TJson[]> {
+function circuitArray<
+  A extends FlexibleProvable<any>,
+  T = InferCircuitValue<A>,
+  TJson = InferJson<A>
+>(elementType: A, length: number): ProvableExtended<T[], TJson[]> {
+  let type = elementType as ProvableExtended<T>;
   return {
+    /**
+     * Returns the size of this structure in {@link Field} elements.
+     * @returns size of this structure
+     */
     sizeInFields() {
-      let elementLength = elementType.sizeInFields();
+      let elementLength = type.sizeInFields();
       return elementLength * length;
     },
+    /**
+     * Serializes this structure into {@link Field} elements.
+     * @returns an array of {@link Field} elements
+     */
     toFields(array: T[]) {
-      return array.map((e) => elementType.toFields(e)).flat();
+      return array.map((e) => type.toFields(e)).flat();
     },
+    /**
+     * Serializes this structure's auxiliary data.
+     * @returns auxiliary data
+     */
     toAuxiliary(array?) {
       let array_ = array ?? Array<undefined>(length).fill(undefined);
-      return array_?.map((e) => elementType.toAuxiliary(e));
+      return array_?.map((e) => type.toAuxiliary(e));
     },
-    fromFields(fields: Field[], aux: any[]) {
+
+    /**
+     * Deserializes an array of {@link Field} elements into this structure.
+     */
+    fromFields(fields: Field[], aux?: any[]) {
       let array = [];
-      let size = elementType.sizeInFields();
+      let size = type.sizeInFields();
       let n = length;
       for (let i = 0, offset = 0; i < n; i++, offset += size) {
-        array[i] = elementType.fromFields(
+        array[i] = type.fromFields(
           fields.slice(offset, offset + size),
-          aux[i]
+          aux?.[i]
         );
       }
       return array;
     },
     check(array: T[]) {
       for (let i = 0; i < length; i++) {
-        (elementType as any).check(array[i]);
+        (type as any).check(array[i]);
       }
     },
+    /**
+     * Encodes this structure into a JSON-like object.
+     */
     toJSON(array) {
-      if (!('toJSON' in elementType)) {
+      if (!('toJSON' in type)) {
         throw Error('circuitArray.toJSON: element type has no toJSON method');
       }
-      return array.map((v) => elementType.toJSON(v));
+      return array.map((v) => type.toJSON(v));
     },
+
+    /**
+     * Decodes a JSON-like object into this structure.
+     */
     fromJSON(json) {
-      if (!('fromJSON' in elementType)) {
+      if (!('fromJSON' in type)) {
         throw Error(
           'circuitArray.fromJSON: element type has no fromJSON method'
         );
       }
-      return json.map((a) => elementType.fromJSON(a));
+      return json.map((a) => type.fromJSON(a));
     },
     toInput(array) {
-      if (!('toInput' in elementType)) {
+      if (!('toInput' in type)) {
         throw Error('circuitArray.toInput: element type has no toInput method');
       }
       return array.reduce(
-        (curr, value) => HashInput.append(curr, elementType.toInput(value)),
+        (curr, value) => HashInput.append(curr, type.toInput(value)),
         HashInput.empty
       );
     },
   };
 }
 
-function arrayProp<T>(elementType: Provable<T>, length: number) {
+function arrayProp<T>(elementType: FlexibleProvable<T>, length: number) {
   return function (target: any, key: string) {
     if (!target.hasOwnProperty('_fields')) {
       target._fields = [];
@@ -322,7 +359,7 @@ function arrayProp<T>(elementType: Provable<T>, length: number) {
 }
 
 function matrixProp<T>(
-  elementType: Provable<T>,
+  elementType: FlexibleProvable<T>,
   nRows: number,
   nColumns: number
 ) {
@@ -346,7 +383,7 @@ function public_(target: any, _key: string | symbol, index: number) {
   target._public.push(index);
 }
 
-function typeOfArray(typs: Array<ProvablePure<any>>): ProvablePure<any> {
+function provableFromTuple(typs: ProvablePure<any>[]): ProvablePure<any> {
   return {
     sizeInFields: () => {
       return typs.reduce((acc, typ) => acc + typ.sizeInFields(), 0);
@@ -420,10 +457,10 @@ function circuitMain(
     return result;
   };
 
-  target.snarkyWitnessTyp = typeOfArray(
+  target.snarkyWitnessTyp = provableFromTuple(
     Array.from(witnessIndexSet).map((i) => paramTypes[i])
   );
-  target.snarkyPublicTyp = typeOfArray(
+  target.snarkyPublicTyp = provableFromTuple(
     Array.from(publicIndexSet).map((i) => paramTypes[i])
   );
 }
@@ -577,7 +614,7 @@ function provable<A>(
     let keys = isToplevel ? objectKeys : Object.keys(typeObj).sort();
     let values = fromJSON(
       keys.map((k) => typeObj[k]),
-      json
+      keys.map((k) => json[k])
     );
     return Object.fromEntries(keys.map((k, i) => [k, values[i]]));
   }
@@ -702,8 +739,9 @@ function Struct<
 >(
   type: A,
   options: { customObjectKeys?: string[] } = {}
-): (new (value: T) => T) &
-  (Pure extends true ? ProvablePure<T> : Provable<T>) & {
+): (new (value: T) => T) & { _isStruct: true } & (Pure extends true
+    ? ProvablePure<T>
+    : Provable<T>) & {
     toInput: (x: T) => {
       fields?: Field[] | undefined;
       packed?: [Field, number][] | undefined;
@@ -713,6 +751,7 @@ function Struct<
   } {
   class Struct_ {
     static type = provable<A>(type, options);
+    static _isStruct: true;
 
     constructor(value: T) {
       Object.assign(this, value);
@@ -889,6 +928,7 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
   );
 }
 
+function toConstant<T>(type: FlexibleProvable<T>, value: T): T;
 function toConstant<T>(type: Provable<T>, value: T): T {
   return type.fromFields(
     type.toFields(value).map((x) => x.toConstant()),
@@ -897,10 +937,10 @@ function toConstant<T>(type: Provable<T>, value: T): T {
 }
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
-Circuit.witness = function <T, S extends Provable<T> = Provable<T>>(
-  type: S,
-  compute: () => T
-) {
+Circuit.witness = function <
+  T,
+  S extends FlexibleProvable<T> = FlexibleProvable<T>
+>(type: S, compute: () => T): T {
   let proverValue: T | undefined;
   let createFields = () => {
     proverValue = compute();
@@ -924,14 +964,14 @@ Circuit.witness = function <T, S extends Provable<T> = Provable<T>>(
         )[1]
       : createFields();
   let aux = type.toAuxiliary(proverValue);
-  let value = type.fromFields(fields, aux);
+  let value = type.fromFields(fields, aux) as T;
   type.check(value);
   return value;
 };
 
 Circuit.array = circuitArray;
 
-Circuit.switch = function <T, A extends Provable<T>>(
+Circuit.switch = function <T, A extends FlexibleProvable<T>>(
   mask: Bool[],
   type: A,
   values: T[]
@@ -962,12 +1002,12 @@ Circuit.switch = function <T, A extends Provable<T>>(
       fields[j] = fields[j].add(maybeField);
     }
   }
-  let aux = auxiliary(type, () => {
+  let aux = auxiliary(type as Provable<T>, () => {
     let i = mask.findIndex((b) => b.toBoolean());
     if (i === -1) return type.toAuxiliary();
     return type.toAuxiliary(values[i]);
   });
-  return type.fromFields(fields, aux);
+  return type.fromFields(fields, aux) as T;
 };
 
 Circuit.constraintSystem = function <T>(f: () => T) {
@@ -1001,7 +1041,21 @@ Circuit.log = function (...args: any) {
   });
 };
 
-function auxiliary<T>(type: Provable<T>, compute: () => any[]) {
+Circuit.constraintSystemFromKeypair = function (keypair: Keypair) {
+  let cs: { gates: { typ: string; wires: any; coeffs: number[][] }[] } =
+    JSON.parse((keypair as any)._constraintSystemJSON());
+  let gates = cs.gates.map(({ typ, wires, coeffs: byteCoeffs }) => {
+    let coeffs = [];
+    for (let coefficient of byteCoeffs) {
+      let arr = new Uint8Array(coefficient);
+      coeffs.push(bytesToBigInt(arr).toString());
+    }
+    return { type: typ, wires, coeffs };
+  });
+  return gates;
+};
+
+function auxiliary<T>(type: FlexibleProvable<T>, compute: () => any[]) {
   let aux;
   if (inCheckedComputation()) Circuit.asProver(() => (aux = compute()));
   else aux = compute();
@@ -1018,8 +1072,8 @@ let memoizationContext = Context.create<{
  * Like Circuit.witness, but memoizes the witness during transaction construction
  * for reuse by the prover. This is needed to witness non-deterministic values.
  */
-function memoizeWitness<T>(type: Provable<T>, compute: () => T) {
-  return Circuit.witness(type, () => {
+function memoizeWitness<T>(type: FlexibleProvable<T>, compute: () => T) {
+  return Circuit.witness<T>(type as Provable<T>, () => {
     if (!memoizationContext.has()) return compute();
     let context = memoizationContext.get();
     let { memoized, currentIndex } = context;
@@ -1032,7 +1086,10 @@ function memoizeWitness<T>(type: Provable<T>, compute: () => T) {
       memoized[currentIndex] = currentValue;
     }
     context.currentIndex += 1;
-    return type.fromFields(currentValue.fields, currentValue.aux);
+    return (type as Provable<T>).fromFields(
+      currentValue.fields,
+      currentValue.aux
+    );
   });
 }
 
@@ -1085,6 +1142,8 @@ type InferPrimitiveJson<P extends Primitive> = P extends typeof String
 
 type InferCircuitValue<A> = A extends Constructor<infer U>
   ? A extends Provable<U>
+    ? U
+    : A extends Struct<U>
     ? U
     : InferCircuitValueBase<A>
   : InferCircuitValueBase<A>;
