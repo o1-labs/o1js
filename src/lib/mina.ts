@@ -180,7 +180,7 @@ function createTransaction(
   let accountUpdates = currentTransaction.get().accountUpdates;
   CallForest.addCallers(accountUpdates);
   accountUpdates = CallForest.toFlatList(accountUpdates);
-  verifyTransactionLimits(accountUpdates);
+
   try {
     // check that on-chain values weren't used without setting a precondition
     for (let accountUpdate of accountUpdates) {
@@ -377,6 +377,8 @@ function LocalBlockchain({
       let commitments = Ledger.transactionCommitments(
         JSON.stringify(zkappCommandToJson(txn.transaction))
       );
+
+      verifyTransactionLimits(txn.transaction.accountUpdates);
 
       for (const update of txn.transaction.accountUpdates) {
         let account = ledger.getAccount(
@@ -617,6 +619,8 @@ function Network(graphqlEndpoint: string): Mina {
     },
     async sendTransaction(txn: Transaction) {
       txn.sign();
+
+      verifyTransactionLimits(txn.transaction.accountUpdates);
 
       let [response, error] = await Fetch.sendZkapp(txn.toJSON());
       let errors: any[] | undefined;
@@ -1128,7 +1132,6 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
       return json.body.authorizationKind;
     })
   );
-
   /*
   np := proof
   n2 := signedPair
@@ -1154,9 +1157,11 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
 
   if (!isWithinCostLimit) {
     // TODO: we should add a link to the docs explaining the reasoning behind it once we have such an explainer
-    error += `Error sending transaction: The transaction is too expensive, try reducing the number of AccountUpdates that are attached to the transaction.
+    error += `Error: The transaction is too expensive, try reducing the number of AccountUpdates that are attached to the transaction.
 Each transaction needs to be processed by the snark workers on the network.
-Certain layouts of AccountUpdates require more proving time than others, and therefore are too expensive.\n\n`;
+Certain layouts of AccountUpdates require more proving time than others, and therefore are too expensive.
+${authTypes.proof}
+\n\n`;
   }
 
   if (!isWithinEventsLimit) {
@@ -1167,8 +1172,5 @@ Certain layouts of AccountUpdates require more proving time than others, and the
     error += `Error: The AccountUpdates in your transaction are trying to emit too many actions. The maximum allowed amount of actions is ${maxSequenceEventElements}, but you tried to emit ${eventElements['sequence']}.\n\n`;
   }
 
-  if (error)
-    throw Error(
-      'An error occurred during transaction construction:\n\n' + error
-    );
+  if (error) throw Error('Error during transaction sending:\n\n' + error);
 }
