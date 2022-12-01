@@ -30,6 +30,7 @@ import {
   createFeePayer,
   feePayerHash,
   signZkappCommand,
+  verifyZkappCommandSignature,
 } from './sign-zkapp-command.js';
 import {
   hashWithPrefix,
@@ -224,12 +225,16 @@ let shouldBeInvalid = verifyFieldElement(
 expect(shouldBeInvalid).toEqual(false);
 
 // full end-to-end test: sign a zkapp transaction
-let signedZkappCommand = signZkappCommand(
-  zkappCommandJson,
-  feePayerKey,
-  'testnet'
-);
-expect(signedZkappCommand.feePayer.authorization).toEqual(signatureOcaml);
+let signed = signZkappCommand(zkappCommandJson, feePayerKeyBase58, 'testnet');
+expect(signed.feePayer.authorization).toEqual(signatureOcaml);
+
+let feePayerAddressBase58 = PublicKey.toBase58(feePayerAddress);
+expect(
+  verifyZkappCommandSignature(signed, feePayerAddressBase58, 'testnet')
+).toEqual(true);
+expect(
+  verifyZkappCommandSignature(signed, feePayerAddressBase58, 'mainnet')
+).toEqual(false);
 
 console.log('to/from json, hashes & signatures are consistent! 🎉');
 shutdown();

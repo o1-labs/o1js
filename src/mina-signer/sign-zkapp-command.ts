@@ -1,5 +1,5 @@
 import { Bool, Field, Sign, UInt32 } from '../provable/field-bigint.js';
-import { PrivateKey } from '../provable/curve-bigint.js';
+import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
 import {
   Json,
   AccountUpdate,
@@ -12,8 +12,17 @@ import {
   prefixes,
 } from '../provable/poseidon-bigint.js';
 import { Memo } from './memo.js';
-import { NetworkId, Signature, signFieldElement } from './signature.js';
+import {
+  NetworkId,
+  Signature,
+  signFieldElement,
+  verifyFieldElement,
+} from './signature.js';
 
+// external API
+export { signZkappCommand, verifyZkappCommandSignature };
+
+// internal API
 export {
   accountUpdatesToCallForest,
   callForestHash,
@@ -21,27 +30,43 @@ export {
   feePayerHash,
   createFeePayer,
   accountUpdateFromFeePayer,
-  signZkappCommand,
 };
 
 function signZkappCommand(
   zkappCommand_: Json.ZkappCommand,
-  privateKey: PrivateKey,
+  privateKeyBase58: string,
   networkId: NetworkId
 ): Json.ZkappCommand {
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
+  let fullCommitment = fullTransactionCommitment(zkappCommand);
+  let privateKey = PrivateKey.fromBase58(privateKeyBase58);
+  let signature = signFieldElement(fullCommitment, privateKey, networkId);
+  zkappCommand.feePayer.authorization = Signature.toBase58(signature);
+  return ZkappCommand.toJSON(zkappCommand);
+}
+
+function verifyZkappCommandSignature(
+  zkappCommand_: Json.ZkappCommand,
+  publicKeyBase58: string,
+  networkId: NetworkId
+) {
+  let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
+  let fullCommitment = fullTransactionCommitment(zkappCommand);
+  let publicKey = PublicKey.fromBase58(publicKeyBase58);
+  let signature = Signature.fromBase58(zkappCommand.feePayer.authorization);
+  return verifyFieldElement(signature, fullCommitment, publicKey, networkId);
+}
+
+function fullTransactionCommitment(zkappCommand: ZkappCommand) {
   let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
   let commitment = callForestHash(callForest);
   let memoHash = Memo.hash(Memo.fromBase58(zkappCommand.memo));
   let feePayerDigest = feePayerHash(zkappCommand.feePayer);
-  let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
+  return hashWithPrefix(prefixes.accountUpdateCons, [
     memoHash,
     feePayerDigest,
     commitment,
   ]);
-  let signature = signFieldElement(fullCommitment, privateKey, networkId);
-  zkappCommand.feePayer.authorization = Signature.toBase58(signature);
-  return ZkappCommand.toJSON(zkappCommand);
 }
 
 type CallTree = {

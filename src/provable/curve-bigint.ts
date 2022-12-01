@@ -60,13 +60,21 @@ let Base58PublicKey = base58(BinablePublicKey, versionBytes.publicKey);
 const PublicKey = {
   ...provable({ x: Field, isOdd: Bool }),
 
-  toJSON({ x, isOdd }: PublicKey) {
+  toBase58({ x, isOdd }: PublicKey) {
     return Base58PublicKey.toBase58([x, isOdd]);
   },
-  fromJSON(json: string): PublicKey {
+  fromBase58(json: string): PublicKey {
     let [x, isOdd] = Base58PublicKey.fromBase58(json);
     return { x, isOdd };
   },
+
+  toJSON(publicKey: PublicKey) {
+    return this.toBase58(publicKey);
+  },
+  fromJSON(json: string): PublicKey {
+    return this.fromBase58(json);
+  },
+
   toGroup({ x, isOdd }: PublicKey): Group {
     let { mul, add } = Field;
     let ySquared = add(mul(x, mul(x, x)), 5n);
