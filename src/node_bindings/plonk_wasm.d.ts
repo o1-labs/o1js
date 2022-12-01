@@ -382,6 +382,11 @@ export function caml_pasta_fp_plonk_verifier_index_dummy(): WasmFpPlonkVerifierI
 */
 export function caml_pasta_fp_plonk_verifier_index_deep_copy(x: WasmFpPlonkVerifierIndex): WasmFpPlonkVerifierIndex;
 /**
+* @param {WasmPastaFpPlonkIndex} prover_index
+* @returns {string}
+*/
+export function prover_to_json(prover_index: WasmPastaFpPlonkIndex): string;
+/**
 * @param {number | undefined} offset
 * @param {WasmFqSrs} srs
 * @param {string} path
@@ -1032,11 +1037,12 @@ export enum GateType {
   CairoFlags,
   CairoTransition,
 /**
-* Range check (16-24)
+* Range check
 */
   RangeCheck0,
   RangeCheck1,
   ForeignFieldAdd,
+  ForeignFieldMul,
   Xor16,
 }
 /**

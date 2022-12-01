@@ -1160,6 +1160,24 @@ module.exports.caml_pasta_fp_plonk_verifier_index_deep_copy = function(x) {
 };
 
 /**
+* @param {WasmPastaFpPlonkIndex} prover_index
+* @returns {string}
+*/
+module.exports.prover_to_json = function(prover_index) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        _assertClass(prover_index, WasmPastaFpPlonkIndex);
+        wasm.prover_to_json(retptr, prover_index.ptr);
+        var r0 = getInt32Memory0()[retptr / 4 + 0];
+        var r1 = getInt32Memory0()[retptr / 4 + 1];
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_free(r0, r1);
+    }
+};
+
+/**
 * @param {number | undefined} offset
 * @param {WasmFqSrs} srs
 * @param {string} path
@@ -3087,9 +3105,9 @@ ChaCha0:7,"7":"ChaCha0",ChaCha1:8,"8":"ChaCha1",ChaCha2:9,"9":"ChaCha2",ChaChaFi
 */
 CairoClaim:12,"12":"CairoClaim",CairoInstruction:13,"13":"CairoInstruction",CairoFlags:14,"14":"CairoFlags",CairoTransition:15,"15":"CairoTransition",
 /**
-* Range check (16-24)
+* Range check
 */
-RangeCheck0:16,"16":"RangeCheck0",RangeCheck1:17,"17":"RangeCheck1",ForeignFieldAdd:25,"25":"ForeignFieldAdd",Xor16:27,"27":"Xor16", });
+RangeCheck0:16,"16":"RangeCheck0",RangeCheck1:17,"17":"RangeCheck1",ForeignFieldAdd:18,"18":"ForeignFieldAdd",ForeignFieldMul:19,"19":"ForeignFieldMul",Xor16:20,"20":"Xor16", });
 /**
 */
 class WasmFpDomain {
@@ -5168,14 +5186,14 @@ class WasmFqDomain {
     * @returns {number}
     */
     get log_size_of_group() {
-        const ret = wasm.__wbg_get_wasmfpdomain_log_size_of_group(this.ptr);
+        const ret = wasm.__wbg_get_wasmfqdomain_log_size_of_group(this.ptr);
         return ret;
     }
     /**
     * @param {number} arg0
     */
     set log_size_of_group(arg0) {
-        wasm.__wbg_set_wasmfpdomain_log_size_of_group(this.ptr, arg0);
+        wasm.__wbg_set_wasmfqdomain_log_size_of_group(this.ptr, arg0);
     }
     /**
     * @returns {Uint8Array}
@@ -5738,7 +5756,7 @@ class WasmFqPlonkVerificationEvals {
     * @returns {WasmFqPolyComm}
     */
     get generic_comm() {
-        const ret = wasm.wasmfpplonkverificationevals_generic_comm(this.ptr);
+        const ret = wasm.wasmfqplonkverificationevals_generic_comm(this.ptr);
         return WasmFqPolyComm.__wrap(ret);
     }
     /**
@@ -5748,13 +5766,13 @@ class WasmFqPlonkVerificationEvals {
         _assertClass(x, WasmFqPolyComm);
         var ptr0 = x.ptr;
         x.ptr = 0;
-        wasm.wasmfpplonkverificationevals_set_generic_comm(this.ptr, ptr0);
+        wasm.wasmfqplonkverificationevals_set_generic_comm(this.ptr, ptr0);
     }
     /**
     * @returns {WasmFqPolyComm}
     */
     get psm_comm() {
-        const ret = wasm.wasmfpplonkverificationevals_psm_comm(this.ptr);
+        const ret = wasm.wasmfqplonkverificationevals_psm_comm(this.ptr);
         return WasmFqPolyComm.__wrap(ret);
     }
     /**
@@ -5764,13 +5782,13 @@ class WasmFqPlonkVerificationEvals {
         _assertClass(x, WasmFqPolyComm);
         var ptr0 = x.ptr;
         x.ptr = 0;
-        wasm.wasmfpplonkverificationevals_set_psm_comm(this.ptr, ptr0);
+        wasm.wasmfqplonkverificationevals_set_psm_comm(this.ptr, ptr0);
     }
     /**
     * @returns {WasmFqPolyComm}
     */
     get complete_add_comm() {
-        const ret = wasm.wasmfpplonkverificationevals_complete_add_comm(this.ptr);
+        const ret = wasm.wasmfqplonkverificationevals_complete_add_comm(this.ptr);
         return WasmFqPolyComm.__wrap(ret);
     }
     /**
@@ -5780,13 +5798,13 @@ class WasmFqPlonkVerificationEvals {
         _assertClass(x, WasmFqPolyComm);
         var ptr0 = x.ptr;
         x.ptr = 0;
-        wasm.wasmfpplonkverificationevals_set_complete_add_comm(this.ptr, ptr0);
+        wasm.wasmfqplonkverificationevals_set_complete_add_comm(this.ptr, ptr0);
     }
     /**
     * @returns {WasmFqPolyComm}
     */
     get mul_comm() {
-        const ret = wasm.wasmfpplonkverificationevals_mul_comm(this.ptr);
+        const ret = wasm.wasmfqplonkverificationevals_mul_comm(this.ptr);
         return WasmFqPolyComm.__wrap(ret);
     }
     /**
@@ -5796,13 +5814,13 @@ class WasmFqPlonkVerificationEvals {
         _assertClass(x, WasmFqPolyComm);
         var ptr0 = x.ptr;
         x.ptr = 0;
-        wasm.wasmfpplonkverificationevals_set_mul_comm(this.ptr, ptr0);
+        wasm.wasmfqplonkverificationevals_set_mul_comm(this.ptr, ptr0);
     }
     /**
     * @returns {WasmFqPolyComm}
     */
     get emul_comm() {
-        const ret = wasm.wasmfpplonkverificationevals_emul_comm(this.ptr);
+        const ret = wasm.wasmfqplonkverificationevals_emul_comm(this.ptr);
         return WasmFqPolyComm.__wrap(ret);
     }
     /**
@@ -5812,13 +5830,13 @@ class WasmFqPlonkVerificationEvals {
         _assertClass(x, WasmFqPolyComm);
         var ptr0 = x.ptr;
         x.ptr = 0;
-        wasm.wasmfpplonkverificationevals_set_emul_comm(this.ptr, ptr0);
+        wasm.wasmfqplonkverificationevals_set_emul_comm(this.ptr, ptr0);
     }
     /**
     * @returns {WasmFqPolyComm}
     */
     get endomul_scalar_comm() {
-        const ret = wasm.wasmfpplonkverificationevals_endomul_scalar_comm(this.ptr);
+        const ret = wasm.wasmfqplonkverificationevals_endomul_scalar_comm(this.ptr);
         return WasmFqPolyComm.__wrap(ret);
     }
     /**
@@ -5828,7 +5846,7 @@ class WasmFqPlonkVerificationEvals {
         _assertClass(x, WasmFqPolyComm);
         var ptr0 = x.ptr;
         x.ptr = 0;
-        wasm.wasmfpplonkverificationevals_set_endomul_scalar_comm(this.ptr, ptr0);
+        wasm.wasmfqplonkverificationevals_set_endomul_scalar_comm(this.ptr, ptr0);
     }
     /**
     * @returns {Uint32Array}
@@ -5882,7 +5900,7 @@ class WasmFqPlonkVerifierIndex {
     * @returns {WasmFqDomain}
     */
     get domain() {
-        const ret = wasm.__wbg_get_wasmfpplonkverifierindex_domain(this.ptr);
+        const ret = wasm.__wbg_get_wasmfqplonkverifierindex_domain(this.ptr);
         return WasmFqDomain.__wrap(ret);
     }
     /**
@@ -5892,65 +5910,65 @@ class WasmFqPlonkVerifierIndex {
         _assertClass(arg0, WasmFqDomain);
         var ptr0 = arg0.ptr;
         arg0.ptr = 0;
-        wasm.__wbg_set_wasmfpplonkverifierindex_domain(this.ptr, ptr0);
+        wasm.__wbg_set_wasmfqplonkverifierindex_domain(this.ptr, ptr0);
     }
     /**
     * @returns {number}
     */
     get max_poly_size() {
-        const ret = wasm.__wbg_get_wasmfpplonkverifierindex_max_poly_size(this.ptr);
+        const ret = wasm.__wbg_get_wasmfqplonkverifierindex_max_poly_size(this.ptr);
         return ret;
     }
     /**
     * @param {number} arg0
     */
     set max_poly_size(arg0) {
-        wasm.__wbg_set_wasmfpplonkverifierindex_max_poly_size(this.ptr, arg0);
+        wasm.__wbg_set_wasmfqplonkverifierindex_max_poly_size(this.ptr, arg0);
     }
     /**
     * @returns {number}
     */
     get max_quot_size() {
-        const ret = wasm.__wbg_get_wasmfpplonkverifierindex_max_quot_size(this.ptr);
+        const ret = wasm.__wbg_get_wasmfqplonkverifierindex_max_quot_size(this.ptr);
         return ret;
     }
     /**
     * @param {number} arg0
     */
     set max_quot_size(arg0) {
-        wasm.__wbg_set_wasmfpplonkverifierindex_max_quot_size(this.ptr, arg0);
+        wasm.__wbg_set_wasmfqplonkverifierindex_max_quot_size(this.ptr, arg0);
     }
     /**
     * @returns {number}
     */
     get public_() {
-        const ret = wasm.__wbg_get_wasmfpplonkverifierindex_public_(this.ptr);
+        const ret = wasm.__wbg_get_wasmfqplonkverifierindex_public_(this.ptr);
         return ret;
     }
     /**
     * @param {number} arg0
     */
     set public_(arg0) {
-        wasm.__wbg_set_wasmfpplonkverifierindex_public_(this.ptr, arg0);
+        wasm.__wbg_set_wasmfqplonkverifierindex_public_(this.ptr, arg0);
     }
     /**
     * @returns {number}
     */
     get prev_challenges() {
-        const ret = wasm.__wbg_get_wasmfpplonkverifierindex_prev_challenges(this.ptr);
+        const ret = wasm.__wbg_get_wasmfqplonkverifierindex_prev_challenges(this.ptr);
         return ret;
     }
     /**
     * @param {number} arg0
     */
     set prev_challenges(arg0) {
-        wasm.__wbg_set_wasmfpplonkverifierindex_prev_challenges(this.ptr, arg0);
+        wasm.__wbg_set_wasmfqplonkverifierindex_prev_challenges(this.ptr, arg0);
     }
     /**
     * @returns {WasmFqShifts}
     */
     get shifts() {
-        const ret = wasm.__wbg_get_wasmfpplonkverifierindex_shifts(this.ptr);
+        const ret = wasm.__wbg_get_wasmfqplonkverifierindex_shifts(this.ptr);
         return WasmFqShifts.__wrap(ret);
     }
     /**
@@ -5960,7 +5978,7 @@ class WasmFqPlonkVerifierIndex {
         _assertClass(arg0, WasmFqShifts);
         var ptr0 = arg0.ptr;
         arg0.ptr = 0;
-        wasm.__wbg_set_wasmfpplonkverifierindex_shifts(this.ptr, ptr0);
+        wasm.__wbg_set_wasmfqplonkverifierindex_shifts(this.ptr, ptr0);
     }
     /**
     * @param {WasmFqDomain} domain
@@ -5984,7 +6002,7 @@ class WasmFqPlonkVerifierIndex {
     * @returns {WasmFqSrs}
     */
     get srs() {
-        const ret = wasm.wasmfpplonkverifierindex_srs(this.ptr);
+        const ret = wasm.wasmfqplonkverifierindex_srs(this.ptr);
         return WasmFqSrs.__wrap(ret);
     }
     /**
@@ -6010,7 +6028,7 @@ class WasmFqPlonkVerifierIndex {
         _assertClass(x, WasmFqPlonkVerificationEvals);
         var ptr0 = x.ptr;
         x.ptr = 0;
-        wasm.wasmfpplonkverifierindex_set_evals(this.ptr, ptr0);
+        wasm.wasmfqplonkverifierindex_set_evals(this.ptr, ptr0);
     }
 }
 module.exports.WasmFqPlonkVerifierIndex = WasmFqPlonkVerifierIndex;
@@ -7946,13 +7964,13 @@ class wbg_rayon_PoolBuilder {
 }
 module.exports.wbg_rayon_PoolBuilder = wbg_rayon_PoolBuilder;
 
+module.exports.__wbg_log_bb81d0229855b402 = function(arg0, arg1) {
+    console.log(getStringFromWasm0(arg0, arg1));
+};
+
 module.exports.__wbindgen_string_new = function(arg0, arg1) {
     const ret = getStringFromWasm0(arg0, arg1);
     return addHeapObject(ret);
-};
-
-module.exports.__wbg_log_bb81d0229855b402 = function(arg0, arg1) {
-    console.log(getStringFromWasm0(arg0, arg1));
 };
 
 module.exports.__wbg_alert_ceb64c1bad1f3790 = function(arg0, arg1) {
@@ -7983,14 +8001,6 @@ module.exports.__wbg_error_f851667af71bcfc6 = function(arg0, arg1) {
         wasm.__wbindgen_free(arg0, arg1);
     }
 };
-
-module.exports.__wbg_randomFillSync_6894564c2c334c42 = function() { return handleError(function (arg0, arg1, arg2) {
-    getObject(arg0).randomFillSync(getArrayU8FromWasm0(arg1, arg2));
-}, arguments) };
-
-module.exports.__wbg_getRandomValues_805f1c3d65988a5a = function() { return handleError(function (arg0, arg1) {
-    getObject(arg0).getRandomValues(getObject(arg1));
-}, arguments) };
 
 module.exports.__wbg_crypto_e1d53a1d73fb10b8 = function(arg0) {
     const ret = getObject(arg0).crypto;
@@ -8037,6 +8047,14 @@ module.exports.__wbindgen_is_function = function(arg0) {
     const ret = typeof(getObject(arg0)) === 'function';
     return ret;
 };
+
+module.exports.__wbg_getRandomValues_805f1c3d65988a5a = function() { return handleError(function (arg0, arg1) {
+    getObject(arg0).getRandomValues(getObject(arg1));
+}, arguments) };
+
+module.exports.__wbg_randomFillSync_6894564c2c334c42 = function() { return handleError(function (arg0, arg1, arg2) {
+    getObject(arg0).randomFillSync(getArrayU8FromWasm0(arg1, arg2));
+}, arguments) };
 
 module.exports.__wbg_newnoargs_b5b063fc6c2f0376 = function(arg0, arg1) {
     const ret = new Function(getStringFromWasm0(arg0, arg1));
