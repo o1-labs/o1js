@@ -112,4 +112,7 @@ const PrivateKey = {
   ...provable(Scalar),
   ...Base58PrivateKey,
   ...BinablePrivateKey,
+  toPublicKey(key: PrivateKey) {
+    return PublicKey.fromGroup(Group.scale(Group.generatorMina, key));
+  },
 };
