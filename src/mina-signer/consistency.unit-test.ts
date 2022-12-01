@@ -38,7 +38,11 @@ import {
 } from '../provable/poseidon-bigint.js';
 import { packToFields as packToFieldsSnarky } from '../lib/hash.js';
 import { Memo } from './memo.js';
-import { Signature, signFieldElement } from './signature.js';
+import {
+  Signature,
+  signFieldElement,
+  verifyFieldElement,
+} from './signature.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
@@ -203,6 +207,21 @@ let signatureOcaml = Ledger.signFieldElement(
   feePayerKeySnarky
 );
 expect(signatureBase58).toEqual(signatureOcaml);
+
+let isValid = verifyFieldElement(
+  signature,
+  fullCommitment,
+  feePayerAddress,
+  'testnet'
+);
+expect(isValid).toEqual(true);
+let shouldBeInvalid = verifyFieldElement(
+  signature,
+  fullCommitment,
+  feePayerAddress,
+  'mainnet'
+);
+expect(shouldBeInvalid).toEqual(false);
 
 // full end-to-end test: sign a zkapp transaction
 let signedZkappCommand = signZkappCommand(

@@ -5,6 +5,7 @@ import {
   Scalar,
   PrivateKey,
   versionNumbers,
+  PublicKey,
 } from '../provable/curve-bigint.js';
 import {
   HashInput,
@@ -16,8 +17,16 @@ import {
 import { bitsToBytes, tuple, withVersionNumber } from '../provable/binable.js';
 import { base58 } from '../provable/base58.js';
 import { versionBytes } from '../js_crypto/constants.js';
+import { Pallas } from '../js_crypto/elliptic_curve.js';
 
-export { sign, signFieldElement, Signature, NetworkId };
+export {
+  sign,
+  verify,
+  signFieldElement,
+  verifyFieldElement,
+  Signature,
+  NetworkId,
+};
 
 const networkIdMainnet = 0x01n;
 const networkIdTestnet = 0x00n;
@@ -40,6 +49,9 @@ const Signature = {
   },
 };
 
+/**
+ * Convenience wrapper around {@link sign} where the message is a single {@link Field} element
+ */
 function signFieldElement(
   message: Field,
   privateKey: PrivateKey,
@@ -47,12 +59,25 @@ function signFieldElement(
 ) {
   return sign({ fields: [message] }, privateKey, networkId);
 }
+/**
+ * Convenience wrapper around {@link verify} where the message is a single {@link Field} element
+ */
+function verifyFieldElement(
+  signature: Signature,
+  message: Field,
+  publicKey: PublicKey,
+  networkId: NetworkId
+) {
+  return verify(signature, { fields: [message] }, publicKey, networkId);
+}
 
 /**
  * Schnorr signature algorithm consistent with the OCaml implementation in Schnorr.Chunked.sign, over
  * the Pallas curve with the original "Mina" generator.
  *
  * @see {@link https://github.com/MinaProtocol/mina/blob/develop/docs/specs/signatures/description.md detailed spec of the algorithm}
+ *
+ * In contrast to the spec above, this uses the "chunked" style of hash input packing, implemented in {@link packToFields}.
  *
  * @param message The `message` can be an arbitrary {@link HashInput}, that can be created with
  * `ProvableExtended<T>.toInput(t)` for any provable type `T`, and by concatenating multiple hash inputs
@@ -92,7 +117,7 @@ function sign(
  *
  * @see {@link https://github.com/MinaProtocol/mina/blob/develop/docs/specs/signatures/description.md detailed spec of the algorithm}
  *
- * In contrast to the spec above, this uses the "Chunked" style of hash input packing, implemented in {@link packToFields}.
+ * In contrast to the spec above, this uses the "chunked" style of hash input packing, implemented in {@link packToFields}.
  *
  * Input arguments are the same as for {@link sign}, with an additional `publicKey` (a non-zero, affine point on the Pallas curve),
  * which `sign` re-derives by scaling the Pallas "Mina" generator by the `privateKey`.
@@ -129,10 +154,10 @@ function deriveNonce(
  *
  * @see {@link https://github.com/MinaProtocol/mina/blob/develop/docs/specs/signatures/description.md detailed spec of the algorithm}
  *
- * In contrast to the spec above, this uses the "Chunked" style of hash input packing, implemented in {@link packToFields}.
+ * In contrast to the spec above, this uses the "chunked" style of hash input packing, implemented in {@link packToFields}.
  *
  * @param message an arbitrary {@link HashInput}
- * @param publicKey an affine, non-zero point on the Pallas curve
+ * @param publicKey an affine, non-zero point on the Pallas curve, derived by {@link sign} from the private key
  * @param r an element of the Pallas base field, computed by {@link sign} as the x-coordinate of the generator, scaled by the nonce.
  * @param networkId either "testnet" or "mainnet", determines the salt (initial state) in the Poseidon hash.
  */
@@ -149,4 +174,34 @@ function hashMessage(
       ? prefixes.signatureMainnet
       : prefixes.signatureTestnet;
   return hashWithPrefix(prefix, packToFields(input));
+}
+
+/**
+ * Verifies a signature created by {@link sign}, returns `true` if (and only if) the signature is valid.
+ *
+ * @see {@link https://github.com/MinaProtocol/mina/blob/develop/docs/specs/signatures/description.md detailed spec of the algorithm}
+ *
+ * In contrast to the spec above, this uses the "chunked" style of hash input packing, implemented in {@link packToFields}.
+ *
+ * @param publicKey the public key has to be passed in as a compressed {@link PublicKey}.
+ * It can be created from a base58 string with {@link PublicKey.fromBase58}.
+ */
+function verify(
+  signature: Signature,
+  message: HashInput,
+  publicKey: PublicKey,
+  networkId: NetworkId
+) {
+  let { r, s } = signature;
+  let pk = PublicKey.toGroup(publicKey);
+  let e = hashMessage(message, pk, r, networkId);
+  let { scale, one, sub } = Pallas;
+  let R = sub(scale(one, s), scale(Group.toProjective(pk), e));
+  try {
+    let { x: rx, y: ry } = Group.fromProjective(R);
+    let isEven = !(ry & 1n);
+    return isEven && Field.equal(rx, r);
+  } catch {
+    return false;
+  }
 }
