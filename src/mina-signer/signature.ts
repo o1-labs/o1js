@@ -11,6 +11,7 @@ import {
   hashWithPrefix,
   packToFields,
   prefixes,
+  Poseidon,
 } from '../provable/poseidon-bigint.js';
 import { bitsToBytes, tuple, withVersionNumber } from '../provable/binable.js';
 import { base58 } from '../provable/base58.js';
@@ -47,6 +48,26 @@ function signFieldElement(
   return sign({ fields: [message] }, privateKey, networkId);
 }
 
+/**
+ * Schnorr signature algorithm consistent with the OCaml implementation in Schnorr.Chunked.sign, over
+ * the Pallas curve with the original "Mina" generator.
+ *
+ * @see {@link https://github.com/MinaProtocol/mina/blob/develop/docs/specs/signatures/description.md detailed spec of the algorithm}
+ *
+ * @param message The `message` can be an arbitrary {@link HashInput}, that can be created with
+ * `ProvableExtended<T>.toInput(t)` for any provable type `T`, and by concatenating multiple hash inputs
+ * with {@link HashInput.append}.
+ * Currently, we only use the variant {@link signFieldElement} where the message is a single field element,
+ * which itself is the result of computing a hash.
+ *
+ * @param privateKey The `privateKey` represents an element of the Pallas scalar field, and should be given as a native bigint.
+ * It can be converted from the base58 string representation using {@link PrivateKey.fromBase58}.
+ *
+ * @param networkId The `networkId` is either "testnet" or "mainnet" and ensures that testnet transactions can
+ * never be used as valid mainnet transactions.
+ *
+ * @see {@link deriveNonce} and {@link hashMessage} for details on how the nonce and hash are computed.
+ */
 function sign(
   message: HashInput,
   privateKey: PrivateKey,
@@ -63,6 +84,19 @@ function sign(
   return { r: rx, s };
 }
 
+/**
+ * Deterministically derive the nonce for the Schnorr signature algorithm, by:
+ * - packing all inputs into a byte array,
+ * - applying the [blake2b](https://en.wikipedia.org/wiki/BLAKE_(hash_function)) hash function, and
+ * - interpreting the resulting 32 bytes as an element of the Pallas curve scalar field (by dropping bits 254 and 255).
+ *
+ * @see {@link https://github.com/MinaProtocol/mina/blob/develop/docs/specs/signatures/description.md detailed spec of the algorithm}
+ *
+ * In contrast to the spec above, this uses the "Chunked" style of hash input packing, implemented in {@link packToFields}.
+ *
+ * Input arguments are the same as for {@link sign}, with an additional `publicKey` (a non-zero, affine point on the Pallas curve),
+ * which `sign` re-derives by scaling the Pallas "Mina" generator by the `privateKey`.
+ */
 function deriveNonce(
   message: HashInput,
   publicKey: Group,
@@ -86,6 +120,22 @@ function deriveNonce(
   return Scalar.fromBytes([...bytes]);
 }
 
+/**
+ * Hash a message for use by the Schnorr signature algorithm, by:
+ * - packing the inputs `message`, `publicKey`, `r` into an array of Pallas base field elements,
+ * - apply a salted hash with the {@link Poseidon} hash function,
+ * - interpreting the resulting base field element as a scalar
+ *   (which is always possible, and is a no-op, since the scalar field is larger and both fields are represented with bigints).
+ *
+ * @see {@link https://github.com/MinaProtocol/mina/blob/develop/docs/specs/signatures/description.md detailed spec of the algorithm}
+ *
+ * In contrast to the spec above, this uses the "Chunked" style of hash input packing, implemented in {@link packToFields}.
+ *
+ * @param message an arbitrary {@link HashInput}
+ * @param publicKey an affine, non-zero point on the Pallas curve
+ * @param r an element of the Pallas base field, computed by {@link sign} as the x-coordinate of the generator, scaled by the nonce.
+ * @param networkId either "testnet" or "mainnet", determines the salt (initial state) in the Poseidon hash.
+ */
 function hashMessage(
   message: HashInput,
   publicKey: Group,
@@ -98,6 +148,5 @@ function hashMessage(
     networkId === 'mainnet'
       ? prefixes.signatureMainnet
       : prefixes.signatureTestnet;
-  let digest = hashWithPrefix(prefix, packToFields(input));
-  return Scalar.fromBits(Field.toBits(digest));
+  return hashWithPrefix(prefix, packToFields(input));
 }
