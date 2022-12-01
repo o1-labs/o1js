@@ -1160,7 +1160,8 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
     error += `Error: The transaction is too expensive, try reducing the number of AccountUpdates that are attached to the transaction.
 Each transaction needs to be processed by the snark workers on the network.
 Certain layouts of AccountUpdates require more proving time than others, and therefore are too expensive.
-${authTypes.proof}
+
+${JSON.stringify(authTypes)}
 \n\n`;
   }
 
