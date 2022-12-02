@@ -590,7 +590,7 @@ describe('Token', () => {
         });
       });
 
-      test.skip('should reject tx if user bypasses the token contract by using an empty account update', async () => {
+      test('should reject tx if user bypasses the token contract by using an empty account update', async () => {
         let tx = await Mina.transaction(feePayerKey, () => {
           AccountUpdate.fundNewAccount(feePayerKey);
           tokenZkapp.token.mint({
