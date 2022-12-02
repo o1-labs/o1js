@@ -139,6 +139,7 @@ function accountUpdateFromFeePayer({
     editState: Signature,
     send: Signature,
     receive: None,
+    access: None,
     setDelegate: Signature,
     setPermissions: Signature,
     setVerificationKey: Signature,

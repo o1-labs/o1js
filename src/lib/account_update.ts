@@ -283,6 +283,7 @@ let Permissions = {
     editState: Permission.none(),
     send: Permission.none(),
     receive: Permission.none(),
+    access: Permission.none(),
     setDelegate: Permission.none(),
     setPermissions: Permission.none(),
     setVerificationKey: Permission.none(),

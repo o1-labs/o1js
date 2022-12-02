@@ -1044,9 +1044,20 @@ interface Account {
     lastSequenceSlot: number;
     provedState: boolean;
   };
-  permissions: NonNullable<
-    Types.Json.AccountUpdate['body']['update']['permissions']
-  >;
+  permissions: {
+    editState: AuthRequired;
+    access: AuthRequired;
+    send: AuthRequired;
+    receive: AuthRequired;
+    setDelegate: AuthRequired;
+    setPermissions: AuthRequired;
+    setVerificationKey: AuthRequired;
+    setZkappUri: AuthRequired;
+    editSequenceState: AuthRequired;
+    setTokenSymbol: AuthRequired;
+    incrementNonce: AuthRequired;
+    setVotingFor: AuthRequired;
+  };
   timing: {
     isTimed: Bool;
     initialMinimumBalance: UInt64_;
