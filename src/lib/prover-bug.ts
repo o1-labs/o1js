@@ -52,13 +52,13 @@ class Caller extends SmartContract {
     this.self.children.accountUpdates.push(accountUpdate);
     accountUpdate.parent = this.self;
 
-    let adder = new Approver(approverAddress);
+    let approver = new Approver(approverAddress);
 
     // adder.approveX(accountUpdate);
 
     let methodIntf: MethodInterface = (Approver as any)._internalMethods![0];
     let methodName = methodIntf.methodName;
-    let method = (methodIntf as any).method as typeof adder.approveX;
+    let method = (methodIntf as any).method as typeof approver.approveX;
     callApprove(accountUpdate);
 
     function callApprove(...actualArgs: any[]) {
@@ -67,30 +67,15 @@ class Caller extends SmartContract {
       let methodCallDepth = smartContractContext.get().methodCallDepth;
       let [, result] = smartContractContext.runWith(
         {
-          this: adder,
+          this: approver,
           methodCallDepth: methodCallDepth + 1,
           isCallback: false,
-          selfUpdate: selfAccountUpdate(adder, methodName),
+          selfUpdate: selfAccountUpdate(approver, methodName),
         },
-        () => {
+        (context) => {
           // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
           // so we have to explain to the user how to do that
-          let { returnType } = methodIntf;
-          let noReturnTypeError =
-            `To return a result from ${methodIntf.methodName}() inside another zkApp, you need to declare the return type.\n` +
-            `This can be done by annotating the type at the end of the function signature. For example:\n\n` +
-            `@method ${methodIntf.methodName}(): Field {\n` +
-            `  // ...\n` +
-            `}\n\n` +
-            `Note: Only types built out of \`Field\` are valid return types. This includes snarkyjs primitive types and custom CircuitValues.`;
-          // if we're lucky, analyzeMethods was already run on the callee smart contract, and we can catch this error early
-          if (
-            (Approver as any)._methodMetadata[methodIntf.methodName]
-              ?.hasReturn &&
-            returnType === undefined
-          ) {
-            throw Error(noReturnTypeError);
-          }
+
           // we just reuse the blinding value of the caller for the callee
           let blindingValue = getBlindingValue();
 
@@ -100,7 +85,7 @@ class Caller extends SmartContract {
               actualArgs
             );
             let constantBlindingValue = blindingValue.toConstant();
-            let accountUpdate = adder.self;
+            let accountUpdate = context.selfUpdate;
             accountUpdate.body.callDepth =
               parentAccountUpdate.body.callDepth + 1;
             accountUpdate.parent = parentAccountUpdate;
@@ -111,17 +96,9 @@ class Caller extends SmartContract {
                 currentIndex: 0,
                 blindingValue: constantBlindingValue,
               },
-              () => method.apply(adder, constantArgs as [any])
+              () => method.apply(approver, constantArgs as [any])
             );
-            assertStatePrecondition(adder);
-
-            if (result !== undefined) {
-              if (returnType === undefined) {
-                throw Error(noReturnTypeError);
-              } else {
-                result = toConstant(returnType, result);
-              }
-            }
+            assertStatePrecondition(approver);
 
             // store inputs + result in callData
             let callDataFields = computeCallData(
@@ -151,14 +128,11 @@ class Caller extends SmartContract {
           // we have to run the called contract inside a witness block, to not affect the caller's circuit
           // however, if this is a nested call -- the caller is already called by another contract --,
           // then we're already in a witness block, and shouldn't open another one
-          let { accountUpdate, result } =
-            methodCallDepth === 0
-              ? AccountUpdate.witness<any>(
-                  returnType ?? provable(null),
-                  runCalledContract,
-                  { skipCheck: true }
-                )
-              : runCalledContract();
+          let { accountUpdate, result } = AccountUpdate.witness<any>(
+            provable(null),
+            runCalledContract,
+            { skipCheck: true }
+          );
 
           // we're back in the _caller's_ circuit now, where we assert stuff about the method call
 
@@ -171,38 +145,22 @@ class Caller extends SmartContract {
           parentAccountUpdate.children.accountUpdates.push(accountUpdate);
 
           // assert that we really called the right zkapp
-          accountUpdate.body.publicKey.assertEquals(adder.address);
-          accountUpdate.body.tokenId.assertEquals(adder.self.body.tokenId);
+          accountUpdate.body.publicKey.assertEquals(approver.address);
+          accountUpdate.body.tokenId.assertEquals(approver.self.body.tokenId);
 
           // assert that the inputs & outputs we have match what the callee put on its callData
-          let callDataFields = computeCallData(
-            methodIntf,
-            actualArgs,
-            result,
-            blindingValue
-          );
-          let callData = Poseidon.hash(callDataFields);
-          accountUpdate.body.callData.assertEquals(callData);
+          // let callDataFields = computeCallData(
+          //   methodIntf,
+          //   actualArgs,
+          //   result,
+          //   blindingValue
+          // );
+          // let callData = Poseidon.hash(callDataFields);
+          // accountUpdate.body.callData.assertEquals(callData);
 
           // caller circuits should be Delegate_call by default, except if they're called at the top level
-          let isTopLevel = Circuit.witness(Bool, () => {
-            // TODO: this logic is fragile.. need better way of finding out if parent is the prover account update or not
-            let isProverUpdate =
-              inProver() &&
-              zkAppProver
-                .getData()
-                .accountUpdate.body.publicKey.equals(
-                  parentAccountUpdate.body.publicKey
-                )
-                .toBoolean();
-            let parentCallDepth = isProverUpdate
-              ? zkAppProver.getData().accountUpdate.body.callDepth
-              : CallForest.computeCallDepth(parentAccountUpdate);
-            console.log({ parentCallDepth });
-            return Bool(parentCallDepth === 0);
-          });
-          console.log(isTopLevel);
-          parentAccountUpdate.isDelegateCall = isTopLevel.not();
+          // let isTopLevel = Circuit.witness(Bool, () => Bool(true));
+          // parentAccountUpdate.isDelegateCall = isTopLevel.not();
 
           return result;
         }
