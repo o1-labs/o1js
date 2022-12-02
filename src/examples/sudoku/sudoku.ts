@@ -1,23 +1,23 @@
 import {
-  matrixProp,
-  CircuitValue,
   Field,
   SmartContract,
   method,
   Bool,
   state,
   State,
+  isReady,
   Poseidon,
+  Struct,
+  Circuit,
 } from 'snarkyjs';
 
 export { SudokuZkapp, Sudoku };
 
-class Sudoku extends CircuitValue {
-  @matrixProp(Field, 9, 9) value: Field[][];
-
-  constructor(sudoku: number[][]) {
-    super();
-    this.value = sudoku.map((row) => row.map(Field));
+class Sudoku extends Struct({
+  value: Circuit.array(Circuit.array(Field, 9), 9),
+}) {
+  static from(value: number[][]) {
+    return new Sudoku({ value: value.map((row) => row.map(Field)) });
   }
 
   hash() {
