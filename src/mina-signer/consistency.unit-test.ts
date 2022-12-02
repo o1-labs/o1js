@@ -97,16 +97,14 @@ let hashSnarky = accountUpdateSnarky.hash();
 expect(hash).toEqual(hashSnarky.toBigInt());
 
 // example tx
-// TODO: generate in JS
 let feePayerKeySnarky = PrivateKey.fromBase58(
   'EKDkKHit3WxjQ8SBSnP9zK7qfLtdi28tEDrzLtskTNJi1gyESTZ1'
 );
-// TODO: to public key in JS
 let feePayerAddressSnarky = feePayerKeySnarky.toPublicKey();
 let feePayerAddress = PublicKey.fromJSON(feePayerAddressSnarky.toBase58());
 let nonce = 1n;
 let fee = 100_000_000n;
-// TODO: generate in JS
+
 let memo = Memo.fromString('hello world');
 let memoBase58 = Memo.toBase58(memo);
 let memoBase581 = Ledger.memoToBase58('hello world');
