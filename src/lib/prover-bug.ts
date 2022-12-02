@@ -6,38 +6,55 @@ import {
   PrivateKey,
   SmartContract,
   Circuit,
+  Bool,
 } from '../index.js';
-import { toConstant } from './circuit_value.js';
 
 await isReady;
 
-class Approver extends SmartContract {
-  @method approveX(update: AccountUpdate) {
-    Circuit.log('previousParent', update.parent);
-    console.log('previousParent undefined', update.parent === undefined);
-
-    this.approve(update, AccountUpdate.Layout.NoChildren);
+function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
+  child.body.callDepth = parent.body.callDepth + 1;
+  let wasChildAlready = parent.children.accountUpdates.find(
+    (update) => update.id === child.id
+  );
+  // add to our children if not already here
+  if (!wasChildAlready) {
+    parent.children.accountUpdates.push(child);
   }
+  // remove the child from the top level list / its current parent
+  if (child.parent === undefined) {
+    let topLevelUpdates = Mina.currentTransaction()?.accountUpdates;
+    let i = topLevelUpdates?.findIndex((update) => update.id === child.id);
+    if (i !== undefined && i !== -1) {
+      topLevelUpdates!.splice(i, 1);
+    }
+  } else if (!wasChildAlready) {
+    let siblings = child.parent.children.accountUpdates;
+    let i = siblings?.findIndex((update) => update.id === child.id);
+    if (i !== undefined && i !== -1) {
+      siblings!.splice(i, 1);
+    }
+  }
+  child.parent = parent;
 }
 
 class Caller extends SmartContract {
   @method call() {
     let accountUpdate = AccountUpdate.defaultAccountUpdate(otherAddress);
     this.self.children.accountUpdates.push(accountUpdate);
-    accountUpdate.parent = this.self; // commenting out this line makes it work
+    // accountUpdate.parent = this.self; // commenting out this line makes it work
 
     Circuit.witness(AccountUpdate, () => {
       let approverUpdate = AccountUpdate.defaultAccountUpdate(approverAddress);
-      approverUpdate.approve(
-        // toConstant(AccountUpdate, accountUpdate),
+
+      makeChildAccountUpdate(approverUpdate, accountUpdate);
+      approverUpdate.isDelegateCall = Bool(false);
+      AccountUpdate.witnessChildren(
         accountUpdate,
-        AccountUpdate.Layout.NoChildren
+        AccountUpdate.Layout.NoChildren,
+        { skipCheck: true }
       );
       return approverUpdate;
     });
-
-    // let approver = new Approver(approverAddress);
-    // approver.approveX(accountUpdate);
   }
 }
 
@@ -56,19 +73,15 @@ let otherKey = PrivateKey.random();
 let otherAddress = otherKey.toPublicKey();
 
 let zkapp = new Caller(zkappAddress);
-let adderZkapp = new Approver(approverAddress);
-console.log('compile (approver)');
-await Approver.compile();
 console.log('compile (caller)');
 await Caller.compile();
 
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer, {
-    initialBalance: Mina.accountCreationFee().mul(2),
+    initialBalance: Mina.accountCreationFee().mul(1),
   });
   zkapp.deploy({ zkappKey });
-  adderZkapp.deploy({ zkappKey: approverKey });
   AccountUpdate.create(otherAddress); // this is like "touch", to create an account
 });
 await tx.send();
