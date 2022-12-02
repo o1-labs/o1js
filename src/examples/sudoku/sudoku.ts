@@ -39,6 +39,11 @@ class SudokuZkapp extends SmartContract {
     super.init();
   }
 
+  @method update(sudokuInstance: Sudoku) {
+    this.sudokuHash.set(sudokuInstance.hash());
+    this.isSolved.set(Bool(false));
+  } . 
+
   @method submitSolution(sudokuInstance: Sudoku, solutionInstance: Sudoku) {
     let sudoku = sudokuInstance.value;
     let solution = solutionInstance.value;
@@ -53,7 +58,7 @@ class SudokuZkapp extends SmartContract {
       oneTo9
         .map((k) => range9.map((i) => array[i].equals(k)).reduce(Bool.or))
         .reduce(Bool.and)
-        .assertEquals(true);
+        .assertTrue('array contains the numbers 1...9');
     }
 
     // check all rows
