@@ -15,11 +15,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/705f58d3...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/d880bd6e...HEAD)
+
+### Added
+
+- `Circuit.constraintSystemFromKeypair(keypair)` to inspect the circuit at a low level https://github.com/o1-labs/snarkyjs/pull/529
+  - Works with a `keypair` (prover + verifier key) generated with the `Circuit` API
+
+### Fixed
+
+- Type inference for Structs with instance methods https://github.com/o1-labs/snarkyjs/pull/567
+  - also fixes `Struct.fromJSON`
+
+## [0.7.3](https://github.com/o1-labs/snarkyjs/compare/5f20f496...d880bd6e)
+
+### Fixed
+
+- Bug in `deploy()` when initializing a contract that already exists https://github.com/o1-labs/snarkyjs/pull/588
+
+### Deprecated
+
+- `Mina.BerkeleyQANet` in favor of the clearer-named `Mina.Network` https://github.com/o1-labs/snarkyjs/pull/588
+
+## [0.7.2](https://github.com/o1-labs/snarkyjs/compare/705f58d3...5f20f496)
 
 ### Added
 
 - `MerkleMap` and `MerkleMapWitness` https://github.com/o1-labs/snarkyjs/pull/546
+- Lots of doc comments! https://github.com/o1-labs/snarkyjs/pull/580
+
+### Fixed
+
+- Bug in `Circuit.log` printing account updates https://github.com/o1-labs/snarkyjs/pull/578
 
 ## [0.7.1](https://github.com/o1-labs/snarkyjs/compare/f0837188...705f58d3)
 

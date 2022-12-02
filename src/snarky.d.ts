@@ -1,3 +1,9 @@
+import type {
+  FlexibleProvable,
+  InferCircuitValue,
+  InferJson,
+  ProvableExtended,
+} from './lib/circuit_value.js';
 export {
   Field,
   Bool,
@@ -14,6 +20,7 @@ export {
   shutdown,
   Pickles,
   Account as LedgerAccount,
+  Gate,
 };
 
 /**
@@ -602,6 +609,13 @@ declare interface CircuitMain<W, P> {
   snarkyPublicTyp: ProvablePure<P>;
   snarkyMain: (w: W, p: P) => void;
 }
+
+type Gate = {
+  type: string;
+  wires: { row: number; col: number }[];
+  coeffs: string[];
+};
+
 /**
  * The {@link Circuit} API is a low level interface to interact and build circuits with
  */
@@ -645,7 +659,7 @@ declare class Circuit {
 
   // this convoluted generic typing is needed to give type inference enough flexibility
   static _witness<S extends Provable<any>>(ctor: S, f: () => Field[]): Field[];
-  static witness<T, S extends Provable<T> = Provable<T>>(
+  static witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
     ctor: S,
     f: () => T
   ): T;
@@ -670,9 +684,18 @@ declare class Circuit {
   };
 
   /**
-   * Creates a generic {@link Provable} array^.
+   * Returns a low-level JSON representation of the `Circuit` from its {@link Keypair}:
+   * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
    */
-  static array<T>(elementType: Provable<T>, length: number): Provable<T[]>;
+  static constraintSystemFromKeypair(keypair: Keypair): Gate[];
+
+  /**
+   * Creates a {@link Provable} for a generic array.
+   */
+  static array<A extends FlexibleProvable<any>>(
+    elementType: A,
+    length: number
+  ): ProvableExtended<InferCircuitValue<A>[], InferJson<A>[]>;
 
   /**
    * Asserts that two values are equal.
@@ -713,7 +736,7 @@ declare class Circuit {
    * x.assertEquals(2);
    * ```
    */
-  static switch<T, A extends Provable<T>>(
+  static switch<T, A extends FlexibleProvable<T>>(
     mask: Bool[],
     type: A,
     values: T[]
@@ -977,21 +1000,21 @@ declare const Poseidon: {
 };
 
 /**
- * Part of the circuit [[ Keypair ]]. A verification key can be used to verify a [[ Proof ]] when you provide the correct public input.
+ * Part of the circuit {@link Keypair}. A verification key can be used to verify a {@link Proof} when you provide the correct public input.
  */
 declare class VerificationKey {
   verify(publicInput: any[], proof: Proof): boolean;
 }
 
 /**
- * Contains a proving key and [[ VerificationKey ]] which can be used to verify proofs.
+ * Contains a proving key and {@link VerificationKey} which can be used to verify proofs.
  */
 declare class Keypair {
   verificationKey(): VerificationKey;
 }
 
 /**
- * Proofs can be verified using a [[ VerificationKey ]] and the public input.
+ * Proofs can be verified using a {@link VerificationKey} and the public input.
  */
 declare class Proof {
   verify(verificationKey: VerificationKey, publicInput: any[]): boolean;

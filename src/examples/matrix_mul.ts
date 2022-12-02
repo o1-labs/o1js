@@ -1,4 +1,6 @@
-import { Field, provable, Circuit } from 'snarkyjs';
+import { Field, provable, Circuit, isReady } from 'snarkyjs';
+
+await isReady;
 
 // there are two ways of specifying an n*m matrix
 

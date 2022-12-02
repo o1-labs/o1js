@@ -63,7 +63,6 @@ class SimpleZkapp extends SmartContract {
     // assert that the caller account is new - this way, payout can only happen once
     let callerAccountUpdate = AccountUpdate.create(callerAddress);
     callerAccountUpdate.account.isNew.assertEquals(Bool(true));
-
     // pay out half of the zkapp balance to the caller
     let balance = this.account.balance.get();
     this.account.balance.assertEquals(balance);

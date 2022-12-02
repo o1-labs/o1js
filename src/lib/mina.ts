@@ -33,6 +33,7 @@ import { Types } from 'src/index.js';
 export {
   createTransaction,
   BerkeleyQANet,
+  Network,
   LocalBlockchain,
   currentTransaction,
   CurrentTransaction,
@@ -55,12 +56,39 @@ interface TransactionId {
 }
 
 interface Transaction {
+  /**
+   * Transaction structure used to describe a state transition on the Mina blockchain.
+   */
   transaction: ZkappCommand;
+  /**
+   * Returns a JSON representation of the {@link Transaction}.
+   */
   toJSON(): string;
+  /**
+   * Returns a pretty-printed JSON representation of the {@link Transaction}.
+   */
   toPretty(): any;
+  /**
+   * Returns the GraphQL query for the Mina daemon.
+   */
   toGraphqlQuery(): string;
+  /**
+   * Signs all {@link AccountUpdate}s included in the {@link Transaction} that require a signature.
+   *
+   * {@link AccountUpdate}s that require a signature can be specified with `{AccountUpdate|SmartContract}.requireSignature()`.
+   *
+   * @param additionalKeys The list of keys that should be used to sign the {@link Transaction}
+   */
   sign(additionalKeys?: PrivateKey[]): Transaction;
+  /**
+   * Generates proofs for the {@link Transaction}.
+   *
+   * This can take some time.
+   */
   prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;
+  /**
+   * Sends the {@link Transaction} to the network.
+   */
   send(): Promise<TransactionId>;
 }
 
@@ -77,6 +105,9 @@ type CurrentTransaction = {
 
 let currentTransaction = Context.create<CurrentTransaction>();
 
+/**
+ * Allows you to specify information about the fee payer account and the transaction.
+ */
 type FeePayerSpec =
   | PrivateKey
   | {
@@ -509,7 +540,10 @@ function LocalBlockchain({
   };
 }
 
-function RemoteBlockchain(graphqlEndpoint: string): Mina {
+/**
+ * Represents the Mina blockchain running on a real network
+ */
+function Network(graphqlEndpoint: string): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
   Fetch.setGraphqlEndpoint(graphqlEndpoint);
   return {
@@ -577,17 +611,23 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
       txn.sign();
 
       let [response, error] = await Fetch.sendZkapp(txn.toJSON());
+      let errors: any[] | undefined;
       if (error === undefined) {
         if (response!.data === null && (response as any).errors?.length > 0) {
-          console.log('got graphql errors', (response as any).errors);
-        } else {
-          console.log('got graphql response', response?.data);
+          console.log(
+            'got graphql errors',
+            JSON.stringify((response as any).errors, null, 2)
+          );
+          errors = (response as any).errors;
         }
       } else {
         console.log('got fetch error', error);
+        errors = [error];
       }
 
       return {
+        data: response?.data,
+        errors,
         async wait() {
           console.log(
             'Info: waiting for inclusion in a block is not implemented yet.'
@@ -625,8 +665,13 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
   };
 }
 
+/**
+ *
+ * @deprecated This is deprecated in favor of {@link Mina.Network}, which is exactly the same function.
+ * The name `BerkeleyQANet` was misleading because it suggested that this is specific to a particular network.
+ */
 function BerkeleyQANet(graphqlEndpoint: string) {
-  return RemoteBlockchain(graphqlEndpoint);
+  return Network(graphqlEndpoint);
 }
 
 let activeInstance: Mina = {
@@ -745,6 +790,9 @@ function getAccount(publicKey: PublicKey, tokenId?: Field): Account {
   return activeInstance.getAccount(publicKey, tokenId);
 }
 
+/**
+ * Checks if an account exists within the ledger.
+ */
 function hasAccount(publicKey: PublicKey, tokenId?: Field): boolean {
   return activeInstance.hasAccount(publicKey, tokenId);
 }
@@ -763,6 +811,9 @@ function getBalance(publicKey: PublicKey, tokenId?: Field) {
   return activeInstance.getAccount(publicKey, tokenId).balance;
 }
 
+/**
+ * Returns the default account creation fee.
+ */
 function accountCreationFee() {
   return activeInstance.accountCreationFee();
 }

@@ -1,4 +1,6 @@
-import { SelfProof, Field, Experimental, verify } from 'snarkyjs';
+import { SelfProof, Field, Experimental, verify, isReady } from 'snarkyjs';
+
+await isReady;
 
 let MyProgram = Experimental.ZkProgram({
   publicInput: Field,
