@@ -2,6 +2,7 @@ import { expect } from 'expect';
 import { isReady, Ledger, Bool as BoolSnarky, shutdown } from '../snarky.js';
 import { UInt32, UInt64 } from '../lib/int.js';
 import { PrivateKey, PublicKey as PublicKeySnarky } from '../lib/signature.js';
+import { Bool } from '../provable/field-bigint.js';
 import {
   AccountUpdate as AccountUpdateSnarky,
   Permissions as PermissionsSnarky,
@@ -112,7 +113,7 @@ let memoBase58 = Memo.toBase58(memo);
 let memoBase581 = Ledger.memoToBase58('hello world');
 expect(memoBase58).toEqual(memoBase581);
 
-let feePayer = createFeePayer({ publicKey: feePayerAddress, nonce, fee });
+let feePayer = createFeePayer({ publicKey: feePayerAddress, nonce, fee, authorizationKind: { isProved: Bool(false), isSigned: Bool(true) } });
 feePayer.authorization = { signature: Ledger.dummySignature() };
 let zkappCommand = {
   feePayer,

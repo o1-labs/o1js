@@ -4,13 +4,13 @@ import {
   PublicKey,
   UInt64,
   UInt32,
+  AuthorizationKind,
   TokenId,
   Field,
   Bool,
   AuthRequired,
   TokenSymbol,
   Sign,
-  AuthorizationKind,
   StringWithHash,
   Events,
   SequenceEvents,
@@ -33,12 +33,12 @@ type TypeMap = {
   PublicKey: PublicKey;
   UInt64: UInt64;
   UInt32: UInt32;
+  AuthorizationKind: AuthorizationKind;
   TokenId: TokenId;
   Field: Field;
   Bool: Bool;
   AuthRequired: AuthRequired;
   Sign: Sign;
-  AuthorizationKind: AuthorizationKind;
 };
 
 const TypeMap: {
@@ -47,12 +47,12 @@ const TypeMap: {
   PublicKey,
   UInt64,
   UInt32,
+  AuthorizationKind,
   TokenId,
   Field,
   Bool,
   AuthRequired,
   Sign,
-  AuthorizationKind,
 };
 
 type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, Field>;
@@ -102,6 +102,7 @@ type ZkappCommand = {
       fee: UInt64;
       validUntil?: UInt32;
       nonce: UInt32;
+      authorizationKind: AuthorizationKind;
     };
     authorization: {
       proof?: string;

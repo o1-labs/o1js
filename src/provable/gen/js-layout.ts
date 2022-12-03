@@ -18,7 +18,13 @@ let jsLayout = {
             type: 'object',
             name: 'FeePayerBody',
             docs: null,
-            keys: ['publicKey', 'fee', 'validUntil', 'nonce'],
+            keys: [
+              'publicKey',
+              'fee',
+              'validUntil',
+              'nonce',
+              'authorizationKind',
+            ],
             entries: {
               publicKey: { type: 'PublicKey' },
               fee: { type: 'UInt64' },
@@ -28,12 +34,14 @@ let jsLayout = {
                 inner: { type: 'UInt32' },
               },
               nonce: { type: 'UInt32' },
+              authorizationKind: { type: 'AuthorizationKind' },
             },
             docEntries: {
               publicKey: null,
               fee: null,
               validUntil: null,
               nonce: null,
+              authorizationKind: null,
             },
           },
           authorization: {

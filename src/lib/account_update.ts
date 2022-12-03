@@ -461,6 +461,7 @@ const FeePayerBody = {
       nonce,
       fee: UInt64.zero,
       validUntil: undefined,
+      authorizationKind: { isProved: Bool(false), isSigned: Bool(true) }
     };
   },
 };
