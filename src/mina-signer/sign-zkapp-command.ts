@@ -92,7 +92,7 @@ function callForestHash(forest: CallForest): Field {
 type FeePayer = ZkappCommand['feePayer'];
 
 function createFeePayer(feePayer: FeePayer['body']): FeePayer {
-  return { authorization: '', body: feePayer };
+  return { authorization: { signature: '' }, body: feePayer };
 }
 function feePayerHash(feePayer: FeePayer) {
   let accountUpdate = accountUpdateFromFeePayer(feePayer);
@@ -101,7 +101,7 @@ function feePayerHash(feePayer: FeePayer) {
 
 function accountUpdateFromFeePayer({
   body: { fee, nonce, publicKey, validUntil },
-  authorization: signature,
+  authorization: authorization,
 }: FeePayer): AccountUpdate {
   let { body } = AccountUpdate.fromJSON(JSON.parse(emptyUpdate));
   body.publicKey = publicKey;
@@ -150,7 +150,7 @@ function accountUpdateFromFeePayer({
   };
   body.useFullCommitment = Bool(true);
   body.authorizationKind = { isProved: Bool(false), isSigned: Bool(true) };
-  return { body, authorization: { signature } };
+  return { body, authorization };
 }
 
 // TODO generalize "emptyValue" to a layout fold method to create complex dummies

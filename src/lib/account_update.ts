@@ -461,6 +461,7 @@ const FeePayerBody = {
       nonce,
       fee: UInt64.zero,
       validUntil: undefined,
+      authorizationKind: { isProved: Bool(false), isSigned: Bool(true) }
     };
   },
 };
@@ -942,7 +943,7 @@ class AccountUpdate implements Types.AccountUpdate {
     privateKey?: PrivateKey
   ) {
     feePayer.body.nonce = this.getNonce(feePayer);
-    feePayer.authorization = Ledger.dummySignature();
+    feePayer.authorization = {signature: Ledger.dummySignature()};
     feePayer.lazyAuthorization = { kind: 'lazy-signature', privateKey };
   }
 
@@ -1037,14 +1038,14 @@ class AccountUpdate implements Types.AccountUpdate {
     let body = FeePayerBody.keepAll(address, nonce);
     return {
       body,
-      authorization: Ledger.dummySignature(),
+      authorization: {signature: Ledger.dummySignature()},
       lazyAuthorization: { kind: 'lazy-signature', privateKey: key },
     };
   }
 
   static dummyFeePayer(): FeePayerUnsigned {
     let body = FeePayerBody.keepAll(PublicKey.empty(), UInt32.zero);
-    return { body, authorization: Ledger.dummySignature() };
+    return { body, authorization: { signature: Ledger.dummySignature() } };
   }
 
   static create(publicKey: PublicKey, tokenId?: Field) {
@@ -1633,7 +1634,7 @@ function addMissingSignatures(
       privateKey = additionalKeys[i];
     }
     let signature = Ledger.signFieldElement(fullCommitment, privateKey);
-    return { body, authorization: signature };
+    return { body, authorization: { signature } };
   }
 
   function addSignature(accountUpdate: AccountUpdate) {
