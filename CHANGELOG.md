@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Type inference for Structs with instance methods https://github.com/o1-labs/snarkyjs/pull/567
   - also fixes `Struct.fromJSON`
+- `SmartContract.fetchEvents` fixed when multiple event types existed https://github.com/o1-labs/snarkyjs/issues/627
 
 ### Changed
 
