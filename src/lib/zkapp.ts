@@ -1001,11 +1001,11 @@ super.init();
         // if there are multiple events we have to use the index event[0] to find the exact event type
         let type = sortedEventTypes[event[0]];
         // all other elements of the array are values used to construct the original object, we can drop the first value since its just an index
-        event.shift();
+        let eventProps = event.slice(1);
         return {
           type,
           event: this.events[type].fromFields(
-            event.map((f: string) => Field(f))
+            eventProps.map((f: string) => Field(f))
           ),
         };
       }
