@@ -11,42 +11,50 @@ import {
 
 await isReady;
 
-function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
-  child.body.callDepth = parent.body.callDepth + 1;
-  let wasChildAlready = parent.children.accountUpdates.find(
-    (update) => update.id === child.id
-  );
-  // add to our children if not already here
-  if (!wasChildAlready) {
-    parent.children.accountUpdates.push(child);
-  }
-  // remove the child from the top level list / its current parent
-  if (child.parent === undefined) {
-    let topLevelUpdates = Mina.currentTransaction()?.accountUpdates;
-    let i = topLevelUpdates?.findIndex((update) => update.id === child.id);
-    if (i !== undefined && i !== -1) {
-      topLevelUpdates!.splice(i, 1);
-    }
-  } else if (!wasChildAlready) {
-    let siblings = child.parent.children.accountUpdates;
-    let i = siblings?.findIndex((update) => update.id === child.id);
-    if (i !== undefined && i !== -1) {
-      siblings!.splice(i, 1);
-    }
-  }
-  child.parent = parent;
-}
-
 class Caller extends SmartContract {
   @method call() {
     let accountUpdate = AccountUpdate.defaultAccountUpdate(otherAddress);
-    this.self.children.accountUpdates.push(accountUpdate);
-    // accountUpdate.parent = this.self; // commenting out this line makes it work
 
+    /**
+     * this is the code that causes bug:
+     *
+     * this.approve(accountUpdate) // creates child
+     * Approver.approve(accountUpdate) // removes child, but *only in witness block* --> prove/compile discrepancy
+     *
+     * two problems:
+     *
+     * - calling a method can mutate our own children
+     *   - not pure, confusing/error-prone, shouldn't be possible
+     * - current API doesn't have a way to "declare" that we don't want the created accountUpdate as a child
+     *   - option to AccountUpdate.create?
+     *   - it's implicit in wanting to approve update by another contract, that we don't want it as a child
+     *
+     * quick fix solution: always remove account update from our children when we pass it into another method
+     */
+
+    this.self.children.accountUpdates.push(accountUpdate);
+    accountUpdate.parent = this.self;
+
+    AccountUpdate.unlink(accountUpdate);
     Circuit.witness(AccountUpdate, () => {
       let approverUpdate = AccountUpdate.defaultAccountUpdate(approverAddress);
+      approverUpdate.parent = this.self;
+      accountUpdate.body.callDepth = approverUpdate.body.callDepth + 1;
 
-      makeChildAccountUpdate(approverUpdate, accountUpdate);
+      // change children of witnessed (approver) update -- this is fine, this is where the update enters the circuit
+      approverUpdate.children.accountUpdates.push(accountUpdate);
+
+      // change siblings of approved account update === change children of this.self
+      // -- this is not fine, because there's a compile - prove discrepancy
+      // solution to clone account update?
+      let siblings = accountUpdate.parent!.children.accountUpdates;
+      let i = siblings?.findIndex((update) => update.id === accountUpdate.id);
+      if (i !== undefined && i !== -1) {
+        siblings!.splice(i, 1);
+      }
+
+      accountUpdate.parent = approverUpdate;
+
       approverUpdate.isDelegateCall = Bool(false);
       AccountUpdate.witnessChildren(
         accountUpdate,

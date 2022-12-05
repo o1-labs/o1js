@@ -1056,6 +1056,10 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     return accountUpdate;
   }
+  /**
+   * Attach account update to the current transaction
+   * -- if in a smart contract, to its children
+   */
   static attachToTransaction(accountUpdate: AccountUpdate) {
     if (smartContractContext.has()) {
       let selfUpdate = smartContractContext.get().this.self;
@@ -1071,6 +1075,20 @@ class AccountUpdate implements Types.AccountUpdate {
         updates.push(accountUpdate);
       }
     }
+  }
+  /**
+   * Disattach an account update from where it's currently located in the transaction
+   */
+  static unlink(accountUpdate: AccountUpdate) {
+    let siblings =
+      accountUpdate.parent?.children.accountUpdates ??
+      Mina.currentTransaction()?.accountUpdates;
+    if (siblings === undefined) return;
+    let i = siblings?.findIndex((update) => update.id === accountUpdate.id);
+    if (i !== undefined && i !== -1) {
+      siblings!.splice(i, 1);
+    }
+    accountUpdate.parent === undefined;
   }
 
   static createSigned(signer: PrivateKey) {
@@ -1513,20 +1531,8 @@ function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
   // add to our children if not already here
   if (!wasChildAlready) {
     parent.children.accountUpdates.push(child);
-  }
-  // remove the child from the top level list / its current parent
-  if (child.parent === undefined) {
-    let topLevelUpdates = Mina.currentTransaction()?.accountUpdates;
-    let i = topLevelUpdates?.findIndex((update) => update.id === child.id);
-    if (i !== undefined && i !== -1) {
-      topLevelUpdates!.splice(i, 1);
-    }
-  } else if (!wasChildAlready) {
-    let siblings = child.parent.children.accountUpdates;
-    let i = siblings?.findIndex((update) => update.id === child.id);
-    if (i !== undefined && i !== -1) {
-      siblings!.splice(i, 1);
-    }
+    // remove the child from the top level list / its current parent
+    AccountUpdate.unlink(child);
   }
   child.parent = parent;
 }

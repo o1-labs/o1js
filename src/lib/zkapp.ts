@@ -159,6 +159,14 @@ function wrapMethod(
   let methodName = methodIntf.methodName;
   return function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
+    // special case: any AccountUpdate that is passed as an argument to a method is unlinked
+    // from its current location, to allow the method to link it to itself
+    actualArgs.forEach((arg) => {
+      if (arg instanceof AccountUpdate) {
+        AccountUpdate.unlink(arg);
+      }
+    });
+
     // TODO: the callback case is actually more similar to the composability case below,
     // should reconcile with that to get the same callData hashing
     if (!smartContractContext.has() || smartContractContext()?.isCallback) {
@@ -434,6 +442,9 @@ function wrapMethod(
             : runCalledContract();
 
         // we're back in the _caller's_ circuit now, where we assert stuff about the method call
+
+        // overwrite this.self with the witnessed update, so it's this one we access later in the caller method
+        smartContractContext.get().selfUpdate = accountUpdate;
 
         // connect accountUpdate to our own. outside Circuit.witness so compile knows the right structure when hashing children
         accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
