@@ -49,6 +49,8 @@ export {
   fetchEvents,
   getActions,
   FeePayerSpec,
+  // for internal testing only
+  filterGroups,
 };
 interface TransactionId {
   wait(): Promise<void>;
@@ -180,6 +182,7 @@ function createTransaction(
   let accountUpdates = currentTransaction.get().accountUpdates;
   CallForest.addCallers(accountUpdates);
   accountUpdates = CallForest.toFlatList(accountUpdates);
+
   try {
     // check that on-chain values weren't used without setting a precondition
     for (let accountUpdate of accountUpdates) {
@@ -287,6 +290,7 @@ const defaultAccountCreationFee = 1_000_000_000;
 function LocalBlockchain({
   accountCreationFee = defaultAccountCreationFee as string | number,
   proofsEnabled = true,
+  enforceTransactionLimits = true,
 } = {}) {
   const msPerSlot = 3 * 60 * 1000;
   const startTime = new Date().valueOf();
@@ -376,6 +380,9 @@ function LocalBlockchain({
       let commitments = Ledger.transactionCommitments(
         JSON.stringify(zkappCommandToJson(txn.transaction))
       );
+
+      if (enforceTransactionLimits)
+        verifyTransactionLimits(txn.transaction.accountUpdates);
 
       for (const update of txn.transaction.accountUpdates) {
         let account = ledger.getAccount(
@@ -616,6 +623,8 @@ function Network(graphqlEndpoint: string): Mina {
     },
     async sendTransaction(txn: Transaction) {
       txn.sign();
+
+      verifyTransactionLimits(txn.transaction.accountUpdates);
 
       let [response, error] = await Fetch.sendZkapp(txn.toJSON());
       let errors: any[] | undefined;
@@ -1038,4 +1047,122 @@ async function verifyAccountUpdate(
       `One or more proofs were invalid and no other form of authorization was provided.\n${errorTrace}`
     );
   }
+}
+
+function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
+  // constants used to calculate cost of a transaction - originally defined in the genesis_constants file in the mina repo
+  const proofCost = 10.26;
+  const signedPairCost = 10.08;
+  const signedSingleCost = 9.14;
+  const costLimit = 69.45;
+
+  // constants that define the maximum number of events in one transaction
+  const maxSequenceEventElements = 16;
+  const maxEventElements = 16;
+
+  let eventElements = {
+    events: 0,
+    sequence: 0,
+  };
+
+  let authTypes = filterGroups(
+    accountUpdates.map((update) => {
+      let json = update.toJSON();
+      eventElements.events += update.body.events.data.length;
+      eventElements.sequence += update.body.sequenceEvents.data.length;
+      return json.body.authorizationKind;
+    })
+  );
+  /*
+  np := proof
+  n2 := signedPair
+  n1 := signedSingle
+  
+  10.26*np + 10.08*n2 + 9.14*n1 < 69.45
+
+  formula used to calculate how expensive a zkapp transaction is
+  */
+
+  let totalTimeRequired =
+    proofCost * authTypes['proof'] +
+    signedPairCost * authTypes['signedPair'] +
+    signedSingleCost * authTypes['signedSingle'];
+
+  let isWithinCostLimit = totalTimeRequired < costLimit;
+
+  let isWithinEventsLimit = eventElements['events'] <= maxEventElements;
+  let isWithinSequenceEventsLimit =
+    eventElements['sequence'] <= maxSequenceEventElements;
+
+  let error = '';
+
+  if (!isWithinCostLimit) {
+    // TODO: we should add a link to the docs explaining the reasoning behind it once we have such an explainer
+    error += `Error: The transaction is too expensive, try reducing the number of AccountUpdates that are attached to the transaction.
+Each transaction needs to be processed by the snark workers on the network.
+Certain layouts of AccountUpdates require more proving time than others, and therefore are too expensive.
+
+${JSON.stringify(authTypes)}
+\n\n`;
+  }
+
+  if (!isWithinEventsLimit) {
+    error += `Error: The AccountUpdates in your transaction are trying to emit too many events. The maximum allowed amount of events is ${maxEventElements}, but you tried to emit ${eventElements['events']}.\n\n`;
+  }
+
+  if (!isWithinSequenceEventsLimit) {
+    error += `Error: The AccountUpdates in your transaction are trying to emit too many actions. The maximum allowed amount of actions is ${maxSequenceEventElements}, but you tried to emit ${eventElements['sequence']}.\n\n`;
+  }
+
+  if (error) throw Error('Error during transaction sending:\n\n' + error);
+}
+
+let S = 'Signature';
+let N = 'None_given';
+let P = 'Proof';
+
+const isPair = (pair: string) =>
+  pair == S + N || pair == N + S || pair == S + S || pair == N + N;
+
+function filterPairs(xs: string[]): {
+  xs: string[];
+  pairs: number;
+} {
+  if (xs.length <= 1)
+    return {
+      xs,
+      pairs: 0,
+    };
+  if (isPair(xs[0].concat(xs[1]))) {
+    let rec = filterPairs(xs.slice(2));
+    return {
+      xs: rec.xs,
+      pairs: rec.pairs + 1,
+    };
+  } else {
+    let rec = filterPairs(xs.slice(1));
+    return {
+      xs: [xs[0]].concat(rec.xs),
+      pairs: rec.pairs,
+    };
+  }
+}
+
+function filterGroups(xs: string[]) {
+  let pairs = filterPairs(xs);
+  xs = pairs.xs;
+
+  let singleCount = 0;
+  let proofCount = 0;
+
+  xs.forEach((t) => {
+    if (t == P) proofCount++;
+    else singleCount++;
+  });
+
+  return {
+    signedPair: pairs.pairs,
+    signedSingle: singleCount,
+    proof: proofCount,
+  };
 }
