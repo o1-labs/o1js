@@ -15,7 +15,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/f0837188...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/d880bd6e...HEAD)
+
+### Fixed
+
+- Type inference for Structs with instance methods https://github.com/o1-labs/snarkyjs/pull/567
+  - also fixes `Struct.fromJSON`
+- `SmartContract.fetchEvents` fixed when multiple event types existed https://github.com/o1-labs/snarkyjs/issues/627
+
+### Changed
+
+- New option `enforceTransactionLimits` for `LocalBlockchain` (default value: `true`), to disable the enforcement of protocol transaction limits (maximum events, maximum sequence events and enforcing certain layout of `AccountUpdate`s depending on their authorization) https://github.com/o1-labs/snarkyjs/pull/620
+
+## [0.7.3](https://github.com/o1-labs/snarkyjs/compare/5f20f496...d880bd6e)
+
+### Fixed
+
+- Bug in `deploy()` when initializing a contract that already exists https://github.com/o1-labs/snarkyjs/pull/588
+
+### Deprecated
+
+- `Mina.BerkeleyQANet` in favor of the clearer-named `Mina.Network` https://github.com/o1-labs/snarkyjs/pull/588
+
+## [0.7.2](https://github.com/o1-labs/snarkyjs/compare/705f58d3...5f20f496)
+
+### Added
+
+- `MerkleMap` and `MerkleMapWitness` https://github.com/o1-labs/snarkyjs/pull/546
+- Lots of doc comments! https://github.com/o1-labs/snarkyjs/pull/580
+
+### Fixed
+
+- Bug in `Circuit.log` printing account updates https://github.com/o1-labs/snarkyjs/pull/578
+
+## [0.7.1](https://github.com/o1-labs/snarkyjs/compare/f0837188...705f58d3)
+
+### Fixed
+
+- Testnet-incompatible signatures in v0.7.0 https://github.com/o1-labs/snarkyjs/pull/565
+
+## [0.7.0](https://github.com/o1-labs/snarkyjs/compare/f0837188...9a94231c)
 
 ### Added
 

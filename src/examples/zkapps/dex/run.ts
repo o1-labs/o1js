@@ -14,7 +14,10 @@ import { atomicActionsTest, upgradeabilityTests } from './upgradability.js';
 await isReady;
 let doProofs = false;
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+let Local = Mina.LocalBlockchain({
+  proofsEnabled: doProofs,
+  enforceTransactionLimits: false,
+});
 Mina.setActiveInstance(Local);
 let accountFee = Mina.accountCreationFee();
 let [{ privateKey: feePayerKey }] = Local.testAccounts;
@@ -38,7 +41,10 @@ await TokenContract.compile();
 await main({ withVesting: false });
 
 // swap out ledger so we can start fresh
-Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+Local = Mina.LocalBlockchain({
+  proofsEnabled: doProofs,
+  enforceTransactionLimits: false,
+});
 Mina.setActiveInstance(Local);
 [{ privateKey: feePayerKey }] = Local.testAccounts;
 feePayerAddress = feePayerKey.toPublicKey();

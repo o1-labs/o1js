@@ -6,7 +6,10 @@ export {
   pseudoClass,
   ProvableExtended,
   HashInput,
+  ProvableBigint,
+  BinableBigint,
   bigIntToBytes,
+  sizeInBits,
   bytesToBigInt,
 };
 
@@ -14,22 +17,27 @@ type Field = bigint;
 type Bool = 0n | 1n;
 type UInt32 = bigint;
 type UInt64 = bigint;
-type Sign = -1n | 1n;
-
-type HashInput = GenericHashInput<Field>;
-type ProvableExtended<T, J> = GenericProvableExtended<T, J, Field>;
 
 // TODO: auto-generate
 const MODULUS =
   0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001n;
-const SIZE_IN_BITS = MODULUS.toString(2).length;
-const SIZE_IN_BYTES = Math.ceil(SIZE_IN_BITS / 8);
+const sizeInBits = MODULUS.toString(2).length;
+const sizeInBytes = Math.ceil(sizeInBits / 8);
+
+type minusOne =
+  0x40000000000000000000000000000000224698fc094cf91b992d30ed00000000n;
+const minusOne: minusOne =
+  0x40000000000000000000000000000000224698fc094cf91b992d30ed00000000n;
+type Sign = 1n | minusOne;
+
+type HashInput = GenericHashInput<Field>;
+type ProvableExtended<T, J> = GenericProvableExtended<T, J, Field>;
 
 const Field = pseudoClass(
   function Field(value: bigint | number | string): Field {
     return BigInt(value) % MODULUS;
   },
-  { MODULUS, ...ProvableBigint(), ...BinableBigint(SIZE_IN_BYTES) }
+  { MODULUS, ...ProvableBigint(), ...BinableBigint(sizeInBytes) }
 );
 
 const Bool = pseudoClass(
@@ -63,11 +71,13 @@ const Bool = pseudoClass(
 );
 
 function Unsigned(bits: number) {
+  let maxValue = (1n << BigInt(bits)) - 1n;
+
   return pseudoClass(
     function Unsigned(value: bigint | number | string) {
       let x = BigInt(value);
       if (x < 0n) throw Error('Unsigned: input must be positive.');
-      if (x >= 1n << BigInt(bits))
+      if (x > maxValue)
         throw Error(`Unsigned: input must fit in ${bits} bits.`);
       return BigInt(value);
     },
@@ -80,6 +90,7 @@ function Unsigned(bits: number) {
           packed: [[x, bits]],
         };
       },
+      maxValue,
     }
   );
 }
@@ -90,22 +101,31 @@ const Sign = pseudoClass(
   function Sign(value: 1 | -1): Sign {
     if (value !== 1 && value !== -1)
       throw Error('Sign: input must be 1 or -1.');
-    return BigInt(value) as Sign;
+    return (BigInt(value) % MODULUS) as Sign;
   },
   {
     ...ProvableBigint<Sign, 'Positive' | 'Negative'>(),
     ...BinableBigint<Sign>(1),
+    emptyValue() {
+      return 1n;
+    },
     toInput(x: Sign): HashInput {
       return {
         fields: [],
-        packed: [[x, 1]],
+        packed: [[x === 1n ? 1n : 0n, 1]],
       };
+    },
+    fromFields([x]: Field[]): Sign {
+      if (x === 0n) return 1n;
+      if (x !== 1n && x !== minusOne)
+        throw Error('Sign.fromFields: input must be 0, 1 or -1.');
+      return x;
     },
     toJSON(x: Sign) {
       return x === 1n ? 'Positive' : 'Negative';
     },
-    fromJSON(x: 'Positive' | 'Negative') {
-      return x === 'Positive' ? 1n : -1n;
+    fromJSON(x: 'Positive' | 'Negative'): Sign {
+      return x === 'Positive' ? 1n : minusOne;
     },
   }
 );

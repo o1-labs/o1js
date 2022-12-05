@@ -4,6 +4,7 @@ import {
   cloneCircuitValue,
   memoizationContext,
   memoizeWitness,
+  FlexibleProvable,
 } from './circuit_value.js';
 import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
 import { jsLayout } from '../provable/gen/js-layout.js';
@@ -92,7 +93,7 @@ const False = () => Bool(false);
 /**
  * One specific permission value.
  *
- * A [[ Permission ]] tells one specific permission for our zkapp how it should behave
+ * A {@link Permission} tells one specific permission for our zkapp how it should behave
  * when presented with requested modifications.
  *
  * Use static factory methods on this class to use a specific behavior. See
@@ -151,56 +152,56 @@ type Permissions_ = Update['permissions']['value'];
 
 /**
  * Permissions specify how specific aspects of the zkapp account are allowed to
- * be modified. All fields are denominated by a [[ Permission ]].
+ * be modified. All fields are denominated by a {@link Permission}.
  */
 interface Permissions extends Permissions_ {
   /**
-   * The [[ Permission ]] corresponding to the 8 state fields associated with an
+   * The {@link Permission} corresponding to the 8 state fields associated with an
    * account.
    */
   editState: Permission;
 
   /**
-   * The [[ Permission ]] corresponding to the ability to send transactions from this
+   * The {@link Permission} corresponding to the ability to send transactions from this
    * account.
    */
   send: Permission;
 
   /**
-   * The [[ Permission ]] corresponding to the ability to receive transactions to this
+   * The {@link Permission} corresponding to the ability to receive transactions to this
    * account.
    */
   receive: Permission;
 
   /**
-   * The [[ Permission ]] corresponding to the ability to set the delegate field of
+   * The {@link Permission} corresponding to the ability to set the delegate field of
    * the account.
    */
   setDelegate: Permission;
 
   /**
-   * The [[ Permission ]] corresponding to the ability to set the permissions field of
+   * The {@link Permission} corresponding to the ability to set the permissions field of
    * the account.
    */
   setPermissions: Permission;
 
   /**
-   * The [[ Permission ]] corresponding to the ability to set the verification key
+   * The {@link Permission} corresponding to the ability to set the verification key
    * associated with the circuit tied to this account. Effectively
-   * "upgradability" of the smart contract.
+   * "upgradeability" of the smart contract.
    */
   setVerificationKey: Permission;
 
   /**
-   * The [[ Permission ]] corresponding to the ability to set the zkapp uri typically
+   * The {@link Permission} corresponding to the ability to set the zkapp uri typically
    * pointing to the source code of the smart contract. Usually this should be
-   * changed whenever the [[ Permissions.setVerificationKey ]] is changed.
-   * Effectively "upgradability" of the smart contract.
+   * changed whenever the {@link Permissions.setVerificationKey} is changed.
+   * Effectively "upgradeability" of the smart contract.
    */
   setZkappUri: Permission;
 
   /**
-   * The [[ Permission ]] corresponding to the ability to change the sequence state
+   * The {@link Permission} corresponding to the ability to change the sequence state
    * associated with the account.
    *
    * TODO: Define sequence state here as well.
@@ -208,7 +209,7 @@ interface Permissions extends Permissions_ {
   editSequenceState: Permission;
 
   /**
-   * The [[ Permission ]] corresponding to the ability to set the token symbol for
+   * The {@link Permission} corresponding to the ability to set the token symbol for
    * this account.
    */
   setTokenSymbol: Permission;
@@ -221,15 +222,25 @@ let Permissions = {
   ...Permission,
   /**
    * Default permissions are:
-   *   [[ Permissions.editState ]]=[[ Permission.proof ]]
-   *   [[ Permissions.send ]]=[[ Permission.signature ]]
-   *   [[ Permissions.receive ]]=[[ Permission.none ]]
-   *   [[ Permissions.setDelegate ]]=[[ Permission.signature ]]
-   *   [[ Permissions.setPermissions ]]=[[ Permission.signature ]]
-   *   [[ Permissions.setVerificationKey ]]=[[ Permission.signature ]]
-   *   [[ Permissions.setZkappUri ]]=[[ Permission.signature ]]
-   *   [[ Permissions.editSequenceState ]]=[[ Permission.proof ]]
-   *   [[ Permissions.setTokenSymbol ]]=[[ Permission.signature ]]
+   *
+   *   {@link Permissions.editState} = {@link Permission.proof}
+   *
+   *   {@link Permissions.send} = {@link Permission.signature}
+   *
+   *   {@link Permissions.receive} = {@link Permission.none}
+   *
+   *   {@link Permissions.setDelegate} = {@link Permission.signature}
+   *
+   *   {@link Permissions.setPermissions} = {@link Permission.signature}
+   *
+   *   {@link Permissions.setVerificationKey} = {@link Permission.signature}
+   *
+   *   {@link Permissions.setZkappUri} = {@link Permission.signature}
+   *
+   *   {@link Permissions.editSequenceState} = {@link Permission.proof}
+   *
+   *   {@link Permissions.setTokenSymbol} = {@link Permission.signature}
+   *
    */
   default: (): Permissions => ({
     editState: Permission.proof(),
@@ -241,7 +252,7 @@ let Permissions = {
     setZkappUri: Permission.signature(),
     editSequenceState: Permission.proof(),
     setTokenSymbol: Permission.signature(),
-    incrementNonce: Permissions.signature(),
+    incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
   }),
 
@@ -255,8 +266,22 @@ let Permissions = {
     setZkappUri: Permission.signature(),
     editSequenceState: Permission.signature(),
     setTokenSymbol: Permission.signature(),
-    incrementNonce: Permissions.signature(),
+    incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
+  }),
+
+  dummy: (): Permissions => ({
+    editState: Permission.none(),
+    send: Permission.none(),
+    receive: Permission.none(),
+    setDelegate: Permission.none(),
+    setPermissions: Permission.none(),
+    setVerificationKey: Permission.none(),
+    setZkappUri: Permission.none(),
+    editSequenceState: Permission.none(),
+    setTokenSymbol: Permission.none(),
+    incrementNonce: Permission.none(),
+    setVotingFor: Permission.none(),
   }),
 
   fromString: (permission: AuthRequired): Permission => {
@@ -301,10 +326,10 @@ let Permissions = {
 };
 
 // TODO: get docstrings from OCaml and delete this interface
+// TODO: We need to rename this still.
+
 /**
  * The body of describing how some [[ AccountUpdate ]] should change.
- *
- * TODO: We need to rename this still.
  */
 interface Body extends AccountUpdateBody {
   /**
@@ -313,7 +338,7 @@ interface Body extends AccountUpdateBody {
   publicKey: PublicKey;
 
   /**
-   * Specify [[ Update ]]s to tweakable pieces of the account record backing
+   * Specify {@link Update}s to tweakable pieces of the account record backing
    * this address in the ledger.
    */
   update: Update;
@@ -324,7 +349,7 @@ interface Body extends AccountUpdateBody {
   tokenId: Field;
 
   /**
-   * By what [[ Int64 ]] should the balance of this account change. All
+   * By what {@link Int64} should the balance of this account change. All
    * balanceChanges must balance by the end of smart contract execution.
    */
   balanceChange: {
@@ -334,17 +359,38 @@ interface Body extends AccountUpdateBody {
 
   /**
    * Recent events that have been emitted from this account.
+   * Events can be collected by archive nodes.
    *
-   * TODO: Add a reference to general explanation of events.
+   * [Check out our documentation about Events!](https://docs.minaprotocol.com/zkapps/advanced-snarkyjs/events)
    */
   events: Events;
+  /**
+   * Recent sequence events (also know as {@link Action}s) emitted from this account.
+   * Sequence events can be collected by archive nodes and used in combination with a {@link Reducer}.
+   *
+   * [Check out our documentation about Actions!](https://docs.minaprotocol.com/zkapps/advanced-snarkyjs/actions-and-reducer)
+   */
   sequenceEvents: Events;
   caller: Field;
   callData: Field;
   callDepth: number;
+  /**
+   * A list of {@link Preconditions} that need to be fulfilled in order for the {@link AccountUpdate} to be valid.
+   */
   preconditions: Preconditions;
+  /**
+   * Defines if a full commitment is required for this transaction.
+   */
   useFullCommitment: Bool;
+  /**
+   * Defines if the nonce should be incremented with this {@link AccountUpdate}.
+   */
   incrementNonce: Bool;
+  /**
+   * Defines the type of authorization that is needed for this {@link AccountUpdate}.
+   *
+   * A authorization can be one of three types: None, Proof or Signature
+   */
   authorizationKind: AccountUpdateBody['authorizationKind'];
 }
 const Body = {
@@ -571,7 +617,10 @@ class Token {
     }
   }
 }
-
+/**
+ * An {@link AccountUpdate} is a set of instructions for the Mina network.
+ * It includes {@link Preconditions} and a list of state updates, which need to be authorized by either a {@link Signature} or {@link Proof}.
+ */
 class AccountUpdate implements Types.AccountUpdate {
   id: number;
   /**
@@ -613,6 +662,9 @@ class AccountUpdate implements Types.AccountUpdate {
     this.isSelf = isSelf;
   }
 
+  /**
+   * Clones the {@link AccountUpdate}.
+   */
   static clone(accountUpdate: AccountUpdate) {
     let body = cloneCircuitValue(accountUpdate.body);
     let authorization = cloneCircuitValue(accountUpdate.authorization);
@@ -762,6 +814,9 @@ class AccountUpdate implements Types.AccountUpdate {
     ).add(amount);
   }
 
+  /**
+   * Makes an {@link AccountUpdate} a child-{@link AccountUpdate} of this and approves it.
+   */
   approve(
     childUpdate: AccountUpdate,
     layout: AccountUpdatesLayout = AccountUpdate.Layout.NoDelegation
@@ -927,6 +982,13 @@ class AccountUpdate implements Types.AccountUpdate {
   toJSON() {
     return Types.AccountUpdate.toJSON(this);
   }
+  static toJSON(a: AccountUpdate) {
+    return Types.AccountUpdate.toJSON(a);
+  }
+  static fromJSON(json: Types.Json.AccountUpdate) {
+    let accountUpdate = Types.AccountUpdate.fromJSON(json);
+    return new AccountUpdate(accountUpdate.body, accountUpdate.authorization);
+  }
 
   hash() {
     // these two ways of hashing are (and have to be) consistent / produce the same hash
@@ -994,6 +1056,10 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     return accountUpdate;
   }
+  /**
+   * Attach account update to the current transaction
+   * -- if in a smart contract, to its children
+   */
   static attachToTransaction(accountUpdate: AccountUpdate) {
     if (smartContractContext.has()) {
       let selfUpdate = smartContractContext.get().this.self;
@@ -1009,6 +1075,20 @@ class AccountUpdate implements Types.AccountUpdate {
         updates.push(accountUpdate);
       }
     }
+  }
+  /**
+   * Disattach an account update from where it's currently located in the transaction
+   */
+  static unlink(accountUpdate: AccountUpdate) {
+    let siblings =
+      accountUpdate.parent?.children.accountUpdates ??
+      Mina.currentTransaction()?.accountUpdates;
+    if (siblings === undefined) return;
+    let i = siblings?.findIndex((update) => update.id === accountUpdate.id);
+    if (i !== undefined && i !== -1) {
+      siblings!.splice(i, 1);
+    }
+    accountUpdate.parent === undefined;
   }
 
   static createSigned(signer: PrivateKey) {
@@ -1054,7 +1134,7 @@ class AccountUpdate implements Types.AccountUpdate {
     accountUpdate.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 
-  // static methods that implement Provable<[AccountUpdate, Bool]>, where he Bool is for `isDelegateCall`
+  // static methods that implement Provable<{ accountUpdate: AccountUpdate, isDelegateCall: Bool }>
   private static provable = provable({
     accountUpdate: Types.AccountUpdate,
     isDelegateCall: Bool,
@@ -1089,9 +1169,6 @@ class AccountUpdate implements Types.AccountUpdate {
   static toInput(a: AccountUpdate) {
     return AccountUpdate.provable.toInput(a.toProvable());
   }
-  static toJSON(a: AccountUpdate) {
-    return AccountUpdate.provable.toJSON(a.toProvable());
-  }
   static check(a: AccountUpdate) {
     AccountUpdate.provable.check(a.toProvable());
   }
@@ -1108,7 +1185,7 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   static witness<T>(
-    type: Provable<T>,
+    type: FlexibleProvable<T>,
     compute: () => { accountUpdate: AccountUpdate; result: T },
     { skipCheck = false } = {}
   ) {
@@ -1168,7 +1245,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * which also get witnessed
    */
   static witnessTree<T>(
-    resultType: Provable<T>,
+    resultType: FlexibleProvable<T>,
     childLayout: AccountUpdatesLayout,
     compute: () => { accountUpdate: AccountUpdate; result: T },
     options?: { skipCheck: boolean }
@@ -1222,7 +1299,9 @@ class AccountUpdate implements Types.AccountUpdate {
     AnyChildren: 'AnyChildren' as const,
     NoDelegation: 'NoDelegation' as const,
   };
-
+  /**
+   * Returns a JSON representation of only the fields that differ from the default {@link AccountUpdate}.
+   */
   toPretty() {
     function short(s: string) {
       return '..' + s.slice(-4);
@@ -1446,25 +1525,14 @@ function createChildAccountUpdate(
 }
 function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
   child.body.callDepth = parent.body.callDepth + 1;
+  let wasChildAlready = parent.children.accountUpdates.find(
+    (update) => update.id === child.id
+  );
   // add to our children if not already here
-  if (
-    !parent.children.accountUpdates.find((update) => update.id === child.id)
-  ) {
+  if (!wasChildAlready) {
     parent.children.accountUpdates.push(child);
-  }
-  // remove the child from the top level list / its current parent
-  if (child.parent === undefined) {
-    let topLevelUpdates = Mina.currentTransaction()?.accountUpdates;
-    let i = topLevelUpdates?.findIndex((update) => update.id === child.id);
-    if (i !== undefined && i !== -1) {
-      topLevelUpdates!.splice(i, 1);
-    }
-  } else {
-    let siblings = child.parent.children.accountUpdates;
-    let i = siblings?.findIndex((update) => update.id === child.id);
-    if (i !== undefined && i !== -1) {
-      siblings!.splice(i, 1);
-    }
+    // remove the child from the top level list / its current parent
+    AccountUpdate.unlink(child);
   }
   child.parent = parent;
 }

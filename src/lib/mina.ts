@@ -33,6 +33,7 @@ import { Types } from 'src/index.js';
 export {
   createTransaction,
   BerkeleyQANet,
+  Network,
   LocalBlockchain,
   currentTransaction,
   CurrentTransaction,
@@ -48,6 +49,8 @@ export {
   fetchEvents,
   getActions,
   FeePayerSpec,
+  // for internal testing only
+  filterGroups,
 };
 interface TransactionId {
   wait(): Promise<void>;
@@ -55,12 +58,39 @@ interface TransactionId {
 }
 
 interface Transaction {
+  /**
+   * Transaction structure used to describe a state transition on the Mina blockchain.
+   */
   transaction: ZkappCommand;
+  /**
+   * Returns a JSON representation of the {@link Transaction}.
+   */
   toJSON(): string;
+  /**
+   * Returns a pretty-printed JSON representation of the {@link Transaction}.
+   */
   toPretty(): any;
+  /**
+   * Returns the GraphQL query for the Mina daemon.
+   */
   toGraphqlQuery(): string;
+  /**
+   * Signs all {@link AccountUpdate}s included in the {@link Transaction} that require a signature.
+   *
+   * {@link AccountUpdate}s that require a signature can be specified with `{AccountUpdate|SmartContract}.requireSignature()`.
+   *
+   * @param additionalKeys The list of keys that should be used to sign the {@link Transaction}
+   */
   sign(additionalKeys?: PrivateKey[]): Transaction;
+  /**
+   * Generates proofs for the {@link Transaction}.
+   *
+   * This can take some time.
+   */
   prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;
+  /**
+   * Sends the {@link Transaction} to the network.
+   */
   send(): Promise<TransactionId>;
 }
 
@@ -77,6 +107,9 @@ type CurrentTransaction = {
 
 let currentTransaction = Context.create<CurrentTransaction>();
 
+/**
+ * Allows you to specify information about the fee payer account and the transaction.
+ */
 type FeePayerSpec =
   | PrivateKey
   | {
@@ -149,6 +182,7 @@ function createTransaction(
   let accountUpdates = currentTransaction.get().accountUpdates;
   CallForest.addCallers(accountUpdates);
   accountUpdates = CallForest.toFlatList(accountUpdates);
+
   try {
     // check that on-chain values weren't used without setting a precondition
     for (let accountUpdate of accountUpdates) {
@@ -256,6 +290,7 @@ const defaultAccountCreationFee = 1_000_000_000;
 function LocalBlockchain({
   accountCreationFee = defaultAccountCreationFee as string | number,
   proofsEnabled = true,
+  enforceTransactionLimits = true,
 } = {}) {
   const msPerSlot = 3 * 60 * 1000;
   const startTime = new Date().valueOf();
@@ -346,6 +381,9 @@ function LocalBlockchain({
       let commitments = Ledger.transactionCommitments(
         JSON.stringify(zkappCommandToJson(txn.transaction))
       );
+
+      if (enforceTransactionLimits)
+        verifyTransactionLimits(txn.transaction.accountUpdates);
 
       for (const update of txn.transaction.accountUpdates) {
         let account = ledger.getAccount(
@@ -517,7 +555,10 @@ function LocalBlockchain({
   };
 }
 
-function RemoteBlockchain(graphqlEndpoint: string): Mina {
+/**
+ * Represents the Mina blockchain running on a real network
+ */
+function Network(graphqlEndpoint: string): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
   Fetch.setGraphqlEndpoint(graphqlEndpoint);
   return {
@@ -584,18 +625,26 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
     async sendTransaction(txn: Transaction) {
       txn.sign();
 
+      verifyTransactionLimits(txn.transaction.accountUpdates);
+
       let [response, error] = await Fetch.sendZkapp(txn.toJSON());
+      let errors: any[] | undefined;
       if (error === undefined) {
         if (response!.data === null && (response as any).errors?.length > 0) {
-          console.log('got graphql errors', (response as any).errors);
-        } else {
-          console.log('got graphql response', response?.data);
+          console.log(
+            'got graphql errors',
+            JSON.stringify((response as any).errors, null, 2)
+          );
+          errors = (response as any).errors;
         }
       } else {
         console.log('got fetch error', error);
+        errors = [error];
       }
 
       return {
+        data: response?.data,
+        errors,
         async wait() {
           console.log(
             'Info: waiting for inclusion in a block is not implemented yet.'
@@ -633,8 +682,13 @@ function RemoteBlockchain(graphqlEndpoint: string): Mina {
   };
 }
 
+/**
+ *
+ * @deprecated This is deprecated in favor of {@link Mina.Network}, which is exactly the same function.
+ * The name `BerkeleyQANet` was misleading because it suggested that this is specific to a particular network.
+ */
 function BerkeleyQANet(graphqlEndpoint: string) {
-  return RemoteBlockchain(graphqlEndpoint);
+  return Network(graphqlEndpoint);
 }
 
 let activeInstance: Mina = {
@@ -753,6 +807,9 @@ function getAccount(publicKey: PublicKey, tokenId?: Field): Account {
   return activeInstance.getAccount(publicKey, tokenId);
 }
 
+/**
+ * Checks if an account exists within the ledger.
+ */
 function hasAccount(publicKey: PublicKey, tokenId?: Field): boolean {
   return activeInstance.hasAccount(publicKey, tokenId);
 }
@@ -771,6 +828,9 @@ function getBalance(publicKey: PublicKey, tokenId?: Field) {
   return activeInstance.getAccount(publicKey, tokenId).balance;
 }
 
+/**
+ * Returns the default account creation fee.
+ */
 function accountCreationFee() {
   return activeInstance.accountCreationFee();
 }
@@ -988,4 +1048,122 @@ async function verifyAccountUpdate(
       `One or more proofs were invalid and no other form of authorization was provided.\n${errorTrace}`
     );
   }
+}
+
+function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
+  // constants used to calculate cost of a transaction - originally defined in the genesis_constants file in the mina repo
+  const proofCost = 10.26;
+  const signedPairCost = 10.08;
+  const signedSingleCost = 9.14;
+  const costLimit = 69.45;
+
+  // constants that define the maximum number of events in one transaction
+  const maxSequenceEventElements = 16;
+  const maxEventElements = 16;
+
+  let eventElements = {
+    events: 0,
+    sequence: 0,
+  };
+
+  let authTypes = filterGroups(
+    accountUpdates.map((update) => {
+      let json = update.toJSON();
+      eventElements.events += update.body.events.data.length;
+      eventElements.sequence += update.body.sequenceEvents.data.length;
+      return json.body.authorizationKind;
+    })
+  );
+  /*
+  np := proof
+  n2 := signedPair
+  n1 := signedSingle
+  
+  10.26*np + 10.08*n2 + 9.14*n1 < 69.45
+
+  formula used to calculate how expensive a zkapp transaction is
+  */
+
+  let totalTimeRequired =
+    proofCost * authTypes['proof'] +
+    signedPairCost * authTypes['signedPair'] +
+    signedSingleCost * authTypes['signedSingle'];
+
+  let isWithinCostLimit = totalTimeRequired < costLimit;
+
+  let isWithinEventsLimit = eventElements['events'] <= maxEventElements;
+  let isWithinSequenceEventsLimit =
+    eventElements['sequence'] <= maxSequenceEventElements;
+
+  let error = '';
+
+  if (!isWithinCostLimit) {
+    // TODO: we should add a link to the docs explaining the reasoning behind it once we have such an explainer
+    error += `Error: The transaction is too expensive, try reducing the number of AccountUpdates that are attached to the transaction.
+Each transaction needs to be processed by the snark workers on the network.
+Certain layouts of AccountUpdates require more proving time than others, and therefore are too expensive.
+
+${JSON.stringify(authTypes)}
+\n\n`;
+  }
+
+  if (!isWithinEventsLimit) {
+    error += `Error: The AccountUpdates in your transaction are trying to emit too many events. The maximum allowed amount of events is ${maxEventElements}, but you tried to emit ${eventElements['events']}.\n\n`;
+  }
+
+  if (!isWithinSequenceEventsLimit) {
+    error += `Error: The AccountUpdates in your transaction are trying to emit too many actions. The maximum allowed amount of actions is ${maxSequenceEventElements}, but you tried to emit ${eventElements['sequence']}.\n\n`;
+  }
+
+  if (error) throw Error('Error during transaction sending:\n\n' + error);
+}
+
+let S = 'Signature';
+let N = 'None_given';
+let P = 'Proof';
+
+const isPair = (pair: string) =>
+  pair == S + N || pair == N + S || pair == S + S || pair == N + N;
+
+function filterPairs(xs: string[]): {
+  xs: string[];
+  pairs: number;
+} {
+  if (xs.length <= 1)
+    return {
+      xs,
+      pairs: 0,
+    };
+  if (isPair(xs[0].concat(xs[1]))) {
+    let rec = filterPairs(xs.slice(2));
+    return {
+      xs: rec.xs,
+      pairs: rec.pairs + 1,
+    };
+  } else {
+    let rec = filterPairs(xs.slice(1));
+    return {
+      xs: [xs[0]].concat(rec.xs),
+      pairs: rec.pairs,
+    };
+  }
+}
+
+function filterGroups(xs: string[]) {
+  let pairs = filterPairs(xs);
+  xs = pairs.xs;
+
+  let singleCount = 0;
+  let proofCount = 0;
+
+  xs.forEach((t) => {
+    if (t == P) proofCount++;
+    else singleCount++;
+  });
+
+  return {
+    signedPair: pairs.pairs,
+    signedSingle: singleCount,
+    proof: proofCount,
+  };
 }
