@@ -11,7 +11,9 @@ import {
   Circuit,
 } from 'snarkyjs';
 
-export { SudokuZkapp, Sudoku };
+export { Sudoku, SudokuZkApp };
+
+await isReady;
 
 class Sudoku extends Struct({
   value: Circuit.array(Circuit.array(Field, 9), 9),
@@ -25,7 +27,7 @@ class Sudoku extends Struct({
   }
 }
 
-class SudokuZkapp extends SmartContract {
+class SudokuZkApp extends SmartContract {
   @state(Field) sudokuHash = State<Field>();
   @state(Bool) isSolved = State<Bool>();
 
@@ -106,7 +108,6 @@ class SudokuZkapp extends SmartContract {
   }
 }
 
-// helper
 function divmod(k: number, n: number) {
   let q = Math.floor(k / n);
   return [q, k - q * n];

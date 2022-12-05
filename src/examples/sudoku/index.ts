@@ -1,64 +1,64 @@
-import { Sudoku, SudokuZkapp } from './sudoku.js';
+import { Sudoku, SudokuZkApp } from './sudoku.js';
 import { cloneSudoku, generateSudoku, solveSudoku } from './sudoku-lib.js';
-import {
-  Bool,
-  isReady,
-  Mina,
-  AccountUpdate,
-  PrivateKey,
-  shutdown,
-} from 'snarkyjs';
+import { AccountUpdate, Mina, PrivateKey, shutdown } from 'snarkyjs';
 
 // setup
-await isReady;
 const Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
-const account1 = Local.testAccounts[0].privateKey;
-const zkappKey = PrivateKey.random();
-let zkappAddress = zkappKey.toPublicKey();
-let zkapp = new SudokuZkapp(zkappAddress);
 
-// generate sudoku, compile & deploy
-let sudoku = generateSudoku(0.5);
+const account = Local.testAccounts[0].privateKey;
+const sudoku = generateSudoku(0.5);
+const zkAppPrivateKey = PrivateKey.random();
+const zkAppAddress = zkAppPrivateKey.toPublicKey();
+// create an instance of the smart contract
+const zkApp = new SudokuZkApp(zkAppAddress);
 
-console.log('Deploying Sudoku...');
-await SudokuZkapp.compile();
-let tx = await Mina.transaction(account1, () => {
-  AccountUpdate.fundNewAccount(account1);
-  let zkapp = new SudokuZkapp(zkappAddress);
-  let sudokuInstance = new Sudoku(sudoku);
-  zkapp.deploy({ zkappKey });
-  zkapp.sudokuHash.set(sudokuInstance.hash());
-  zkapp.isSolved.set(Bool(false));
+console.log('Deploying and initializing Sudoku...');
+await SudokuZkApp.compile();
+let tx = await Mina.transaction(account, () => {
+  AccountUpdate.fundNewAccount(account);
+  zkApp.deploy();
+  zkApp.update(Sudoku.from(sudoku));
 });
-await tx.send();
-console.log('Is the sudoku solved?', zkapp.isSolved.get().toBoolean());
+await tx.prove();
+/**
+ * note: this tx needs to be signed with `tx.sign()`, because `deploy` uses `requireSignature()` under the hood,
+ * so one of the account updates in this tx has to be authorized with a signature (vs proof).
+ * this is necessary for the deploy tx because the initial permissions for all account fields are "signature".
+ * (but `deploy()` changes some of those permissions to "proof" and adds the verification key that enables proofs.
+ * that's why we don't need `tx.sign()` for the later transactions.)
+ */
+await tx.sign([zkAppPrivateKey]).send();
+
+console.log('Is the sudoku solved?', zkApp.isSolved.get().toBoolean());
 
 let solution = solveSudoku(sudoku);
 if (solution === undefined) throw Error('cannot happen');
 
-// submit a wrong solution (this runs quickly, because proof creation fails)
+// submit a wrong solution
 let noSolution = cloneSudoku(solution);
 noSolution[0][0] = (noSolution[0][0] % 9) + 1;
 
 console.log('Submitting wrong solution...');
 try {
-  await submitSolution(sudoku, noSolution);
-} catch {}
-console.log('Is the sudoku solved?', zkapp.isSolved.get().toBoolean());
-
-// submit the actual solution
-console.log('Submitting solution...');
-await submitSolution(sudoku, solution);
-console.log('Is the sudoku solved?', zkapp.isSolved.get().toBoolean());
-
-shutdown();
-
-async function submitSolution(sudoku: number[][], solution: number[][]) {
-  let tx = await Mina.transaction(account1, () => {
-    let zkapp = new SudokuZkapp(zkappAddress);
-    zkapp.submitSolution(new Sudoku(sudoku), new Sudoku(solution));
+  let tx = await Mina.transaction(account, () => {
+    zkApp.submitSolution(Sudoku.from(sudoku), Sudoku.from(noSolution));
   });
   await tx.prove();
   await tx.send();
+} catch {
+  console.log('There was an error submitting the solution, as expected');
 }
+console.log('Is the sudoku solved?', zkApp.isSolved.get().toBoolean());
+
+// submit the actual solution
+console.log('Submitting solution...');
+tx = await Mina.transaction(account, () => {
+  zkApp.submitSolution(Sudoku.from(sudoku), Sudoku.from(solution!));
+});
+await tx.prove();
+await tx.send();
+console.log('Is the sudoku solved?', zkApp.isSolved.get().toBoolean());
+
+// cleanup
+await shutdown();
