@@ -139,9 +139,6 @@ function method<T extends SmartContract>(
     internalMethodEntry.returnType = returnType;
     methodEntry.returnType = returnType;
   }
-  ZkappClass._internalMethods ??= [];
-  ZkappClass._internalMethods.push(internalMethodEntry);
-
   ZkappClass._methods ??= [];
   ZkappClass._methods.push(methodEntry);
   ZkappClass._maxProofsVerified ??= 0;
@@ -150,7 +147,6 @@ function method<T extends SmartContract>(
     methodEntry.proofArgs.length
   );
   let func = descriptor.value;
-  (internalMethodEntry as any).method = func;
   descriptor.value = wrapMethod(func, ZkappClass, internalMethodEntry);
 }
 
