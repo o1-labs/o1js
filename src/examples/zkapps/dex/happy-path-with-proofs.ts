@@ -9,7 +9,10 @@ let doProofs = true;
 tic('Happy path with proofs');
 console.log();
 
-let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+let Local = Mina.LocalBlockchain({
+  proofsEnabled: doProofs,
+  enforceTransactionLimits: false,
+});
 Mina.setActiveInstance(Local);
 let accountFee = Mina.accountCreationFee();
 let [{ privateKey: feePayerKey }] = Local.testAccounts;
