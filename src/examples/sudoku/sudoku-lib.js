@@ -62,7 +62,6 @@ function solveSudokuInternal(sudoku, deterministic, possible) {
       // no values possible! we failed to get a solution
       if (x === 0) return;
 
-      // console.log('chose', x, 'at', i, j);
       let sudoku_ = cloneSudoku(sudoku);
       let possible_ = cloneSudoku(possible);
       sudoku_[i][j] = x;
@@ -75,7 +74,6 @@ function solveSudokuInternal(sudoku, deterministic, possible) {
 
       // there is no solution with x at i, j!
       // mark this value as impossible and try again
-      // console.log('backtracking...');
       possible[i][j][x - 1] = 0;
     }
   }
@@ -117,8 +115,6 @@ function chooseRandomPossible(i, j, possible) {
     .filter((b) => b);
   let n = possibleValues.length;
   if (n === 0) return 0;
-  // if (j === 0) console.log();
-  // console.log('possible at', i, j, ':', possibleValues.join(','));
   let k = Math.floor(Math.random() * n);
   return possibleValues[k];
 }
