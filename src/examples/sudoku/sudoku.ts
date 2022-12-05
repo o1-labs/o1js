@@ -42,7 +42,7 @@ class SudokuZkapp extends SmartContract {
   @method update(sudokuInstance: Sudoku) {
     this.sudokuHash.set(sudokuInstance.hash());
     this.isSolved.set(Bool(false));
-  } . 
+  }
 
   @method submitSolution(sudokuInstance: Sudoku, solutionInstance: Sudoku) {
     let sudoku = sudokuInstance.value;
@@ -88,14 +88,18 @@ class SudokuZkapp extends SmartContract {
         let solutionCell = solution[i][j];
         // either the sudoku has nothing in it (indicated by a cell value of 0),
         // or it is equal to the solution
-        Bool.or(cell.equals(0), cell.equals(solutionCell)).assertEquals(true);
+        Bool.or(cell.equals(0), cell.equals(solutionCell)).assertTrue(
+          `solution cell (${i + 1},${j + 1}) matches the original sudoku`
+        );
       }
     }
 
     // finally, we check that the sudoku is the one that was originally deployed
     let sudokuHash = this.sudokuHash.get(); // get the hash from the blockchain
-    this.sudokuHash.assertEquals(sudokuHash);
-    sudokuInstance.hash().assertEquals(sudokuHash);
+    this.sudokuHash.assertEquals(sudokuHash); // precondition that links this.sudokuHash.get() to the actual on-chain state
+    sudokuInstance
+      .hash()
+      .assertEquals(sudokuHash, 'sudoku matches the one committed on-chain');
 
     // all checks passed => the sudoku is solved!
     this.isSolved.set(Bool(true));
@@ -103,7 +107,6 @@ class SudokuZkapp extends SmartContract {
 }
 
 // helper
-
 function divmod(k: number, n: number) {
   let q = Math.floor(k / n);
   return [q, k - q * n];

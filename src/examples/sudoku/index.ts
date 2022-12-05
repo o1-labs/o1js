@@ -1,4 +1,4 @@
-import { Sudoku, SudokuZkapp } from './sudoku-zkapp.js';
+import { Sudoku, SudokuZkapp } from './sudoku.js';
 import { cloneSudoku, generateSudoku, solveSudoku } from './sudoku-lib.js';
 import {
   Bool,
