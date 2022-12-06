@@ -303,7 +303,7 @@ function ProvableFromLayout<
       let arrayTypeData = typeData as ArrayLayout<TypeMap>;
       let { inner, staticLength } = arrayTypeData;
       if (staticLength == null) return [];
-      return Array(staticLength).fill(emptyValue(inner));
+      return Array.from({ length: staticLength }, () => emptyValue(inner));
     }
     if (typeData.type === 'option') {
       let optionTypeData = typeData as OptionLayout<TypeMap>;

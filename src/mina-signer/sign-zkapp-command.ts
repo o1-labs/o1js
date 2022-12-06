@@ -121,33 +121,6 @@ function accountUpdateFromFeePayer({
     isSome: Bool(true),
     value: { lower: nonce, upper: nonce },
   };
-  // TODO: special permission here is ugly and should be replaced with auto-generated thing
-  // could be removed if we either
-  // -) change the default hash input for permissions in the protocol
-  // -) create a way to add a custom dummy for permissions
-  let Signature: AuthRequired = {
-    constant: Bool(false),
-    signatureNecessary: Bool(true),
-    signatureSufficient: Bool(true),
-  };
-  let None: AuthRequired = {
-    constant: Bool(true),
-    signatureNecessary: Bool(false),
-    signatureSufficient: Bool(true),
-  };
-  body.update.permissions.value = {
-    editState: Signature,
-    send: Signature,
-    receive: None,
-    setDelegate: Signature,
-    setPermissions: Signature,
-    setVerificationKey: Signature,
-    setZkappUri: Signature,
-    editSequenceState: Signature,
-    setTokenSymbol: Signature,
-    incrementNonce: Signature,
-    setVotingFor: Signature,
-  };
   body.useFullCommitment = Bool(true);
   body.authorizationKind = { isProved: Bool(false), isSigned: Bool(true) };
   return { body, authorization: { signature } };
