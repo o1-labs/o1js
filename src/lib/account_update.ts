@@ -6,7 +6,7 @@ import {
   memoizeWitness,
   FlexibleProvable,
 } from './circuit_value.js';
-import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
+import { Field, Bool, Ledger, Circuit, Pickles } from '../snarky.js';
 import { jsLayout } from '../provable/gen/js-layout.js';
 import { Types, toJSONEssential } from '../provable/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -74,18 +74,9 @@ type Update = AccountUpdateBody['update'];
 type Preconditions = AccountUpdateBody['preconditions'];
 
 /**
- * Timing info inside an account.
- */
-type Timing = Update['timing']['value'];
-
-/**
  * Either set a value or keep it the same.
  */
 type SetOrKeep<T> = { isSome: Bool; value: T };
-
-function keep<T>(dummy: T): SetOrKeep<T> {
-  return { isSome: Bool(false), value: dummy };
-}
 
 const True = () => Bool(true);
 const False = () => Bool(false);
@@ -326,7 +317,6 @@ let Permissions = {
 };
 
 // TODO: get docstrings from OCaml and delete this interface
-// TODO: We need to rename this still.
 
 /**
  * The body of describing how some [[ AccountUpdate ]] should change.
@@ -394,61 +384,21 @@ interface Body extends AccountUpdateBody {
   authorizationKind: AccountUpdateBody['authorizationKind'];
 }
 const Body = {
-  noUpdate(): Update {
-    return {
-      appState: Array(ZkappStateLength)
-        .fill(0)
-        .map(() => keep(Field(0))),
-      delegate: keep(PublicKey.empty()),
-      // TODO
-      verificationKey: keep({ data: '', hash: Field(0) }),
-      permissions: keep(Permissions.initial()),
-      // TODO don't hard code
-      zkappUri: keep({
-        data: '',
-        hash: Field(
-          '22930868938364086394602058221028773520482901241511717002947639863679740444066'
-        ),
-      }),
-      // TODO
-      tokenSymbol: keep(TokenSymbol.empty),
-      timing: keep<Timing>({
-        cliffAmount: UInt64.zero,
-        cliffTime: UInt32.zero,
-        initialMinimumBalance: UInt64.zero,
-        vestingIncrement: UInt64.zero,
-        vestingPeriod: UInt32.zero,
-      }),
-      votingFor: keep(Field(0)),
-    };
-  },
-
   /**
-   * A body that Don't change part of the underlying account record.
+   * A body that doesn't change the underlying account record
    */
-  keepAll(publicKey: PublicKey): Body {
-    return {
-      publicKey,
-      update: Body.noUpdate(),
-      tokenId: TokenId.default,
-      balanceChange: Int64.zero,
-      events: Events.empty(),
-      sequenceEvents: SequenceEvents.empty(),
-      caller: TokenId.default,
-      callData: Field(0),
-      callDepth: 0,
-      preconditions: Preconditions.ignoreAll(),
-      // the default assumption is that snarkyjs transactions don't include the fee payer
-      // so useFullCommitment has to be false for signatures to be correct
-      useFullCommitment: Bool(false),
-      // this should be set to true if accountUpdates are signed
-      incrementNonce: Bool(false),
-      authorizationKind: { isSigned: Bool(false), isProved: Bool(false) },
-    };
+  keepAll(publicKey: PublicKey, tokenId?: Field): Body {
+    let { body } = Types.AccountUpdate.emptyValue();
+    body.publicKey = publicKey;
+    if (tokenId) {
+      body.tokenId = tokenId;
+      body.caller = tokenId;
+    }
+    return body;
   },
 
   dummy(): Body {
-    return Body.keepAll(PublicKey.empty());
+    return Types.AccountUpdate.emptyValue().body;
   },
 };
 
@@ -1015,15 +965,10 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   static defaultAccountUpdate(address: PublicKey, tokenId?: Field) {
-    const body = Body.keepAll(address);
-    if (tokenId) {
-      body.tokenId = tokenId;
-      body.caller = tokenId;
-    }
-    return new AccountUpdate(body);
+    return new AccountUpdate(Body.keepAll(address, tokenId));
   }
   static dummy() {
-    return this.defaultAccountUpdate(PublicKey.empty());
+    return new AccountUpdate(Body.dummy());
   }
   isDummy() {
     return this.body.publicKey.isEmpty();

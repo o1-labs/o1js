@@ -1309,11 +1309,7 @@ class VerificationKey extends Struct({
 }) {}
 
 function selfAccountUpdate(zkapp: SmartContract, methodName?: string) {
-  let body = Body.keepAll(zkapp.address);
-  if (zkapp.tokenId) {
-    body.tokenId = zkapp.tokenId;
-    body.caller = zkapp.tokenId;
-  }
+  let body = Body.keepAll(zkapp.address, zkapp.tokenId);
   let update = new (AccountUpdate as any)(body, {}, true) as AccountUpdate;
   update.label = methodName
     ? `${zkapp.constructor.name}.${methodName}()`

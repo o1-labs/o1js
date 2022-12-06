@@ -52,9 +52,6 @@ let dummySnarky = AccountUpdateSnarky.dummy();
 expect(AccountUpdate.toJSON(dummy)).toEqual(
   AccountUpdateSnarky.toJSON(dummySnarky)
 );
-dummy.body.update.permissions.isSome = 1n; // have to special-case permissions, protocol uses something custom
-dummySnarky.update.permissions.isSome = BoolSnarky(true);
-dummySnarky.update.permissions.value = PermissionsSnarky.dummy();
 let dummyInput = AccountUpdate.toInput(dummy);
 let dummyInputSnarky = inputFromOcaml(
   toJSON(
