@@ -155,8 +155,11 @@ class TokenSymbol extends Struct(TokenSymbolPure) {
   }
 
   static from(symbol: string): TokenSymbol {
-    if (symbol.length > 6)
-      throw Error('Token symbol length should be a maximum of 6');
+    let bytesLength = new TextEncoder().encode(symbol).length;
+    if (bytesLength > 6)
+      throw Error(
+        `Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`
+      );
     let field = prefixToField(symbol);
     return { symbol, field };
   }
