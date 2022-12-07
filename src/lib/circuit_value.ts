@@ -57,14 +57,11 @@ const HashInput = {
   get empty() {
     return {};
   },
-  append(input1: HashInput, input2: HashInput) {
-    if (input2.fields !== undefined) {
-      (input1.fields ??= []).push(...input2.fields);
-    }
-    if (input2.packed !== undefined) {
-      (input1.packed ??= []).push(...input2.packed);
-    }
-    return input1;
+  append(input1: HashInput, input2: HashInput): HashInput {
+    return {
+      fields: (input1.fields ?? []).concat(input2.fields ?? []),
+      packed: (input1.packed ?? []).concat(input2.packed ?? []),
+    };
   },
 };
 
@@ -132,7 +129,7 @@ abstract class CircuitValue {
     for (let i = 0, n = fields.length; i < n; ++i) {
       let [key, type] = fields[i];
       if ('toInput' in type) {
-        HashInput.append(input, type.toInput(v[key]));
+        input = HashInput.append(input, type.toInput(v[key]));
         continue;
       }
       // as a fallback, use toFields on the type
@@ -537,7 +534,7 @@ function provable<A>(
     if (Array.isArray(typeObj)) {
       return typeObj
         .map((t, i) => toInput(t, obj[i]))
-        .reduce(HashInput.append, {});
+        .reduce(HashInput.append, HashInput.empty);
     }
     if ('toInput' in typeObj) return typeObj.toInput(obj) as HashInput;
     if ('toFields' in typeObj) {
@@ -545,7 +542,7 @@ function provable<A>(
     }
     return (isToplevel ? objectKeys : Object.keys(typeObj).sort())
       .map((k) => toInput(typeObj[k], obj[k]))
-      .reduce(HashInput.append, {});
+      .reduce(HashInput.append, HashInput.empty);
   }
   function toJSON(typeObj: any, obj: any, isToplevel = false): any {
     if (typeObj === BigInt) return obj.toString();

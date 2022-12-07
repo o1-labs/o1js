@@ -1,9 +1,10 @@
 import esbuild from 'esbuild';
-import fse from 'fs-extra';
-import { readFile, writeFile, unlink, readdir } from 'node:fs/promises';
+import fse, { move } from 'fs-extra';
+import { readFile, writeFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { exec } from 'node:child_process';
+import glob from 'glob';
 
 export { buildWeb };
 
@@ -48,7 +49,7 @@ async function buildWeb({ production }) {
   let copyPromise = copy({
     './src/chrome_bindings/': './dist/web/chrome_bindings/',
     './src/snarky.d.ts': './dist/web/snarky.d.ts',
-    './src/snarky/wrapper.web.js': './dist/web/snarky/wrapper.js'
+    './src/snarky/wrapper.web.js': './dist/web/snarky/wrapper.js',
   });
 
   await Promise.all([tscPromise, copyPromise]);
@@ -69,6 +70,14 @@ async function buildWeb({ production }) {
   await copy({ [tmpBindingsPath]: './dist/web/chrome_bindings/plonk_wasm.js' });
   await unlink(tmpBindingsPath);
 
+  // move all .web.js files to their .js counterparts
+  let webFiles = glob.sync('./dist/web/**/*.web.js');
+  await Promise.all(
+    webFiles.map((file) =>
+      move(file, file.replace('.web.js', '.js'), { overwrite: true })
+    )
+  );
+
   // run esbuild on the js entrypoint
   let jsEntry = path.basename(entry).replace('.ts', '.js');
   await esbuild.build({
@@ -83,7 +92,6 @@ async function buildWeb({ production }) {
     allowOverwrite: true,
     logLevel: 'error',
     minify,
-    // watch: true,
   });
 }
 

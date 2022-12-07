@@ -1638,7 +1638,7 @@ function addMissingSignatures(
       }
       privateKey = additionalKeys[i];
     }
-    let signature = Ledger.signFieldElement(fullCommitment, privateKey);
+    let signature = Ledger.signFieldElement(fullCommitment, privateKey, false);
     return { body, authorization: signature };
   }
 
@@ -1661,7 +1661,11 @@ function addMissingSignatures(
     let transactionCommitment = accountUpdate.body.useFullCommitment.toBoolean()
       ? fullCommitment
       : commitment;
-    let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
+    let signature = Ledger.signFieldElement(
+      transactionCommitment,
+      privateKey,
+      false
+    );
     Authorization.setSignature(accountUpdate, signature);
     return accountUpdate as AccountUpdate & { lazyAuthorization: undefined };
   }

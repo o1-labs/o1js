@@ -1,24 +1,26 @@
 // generic encoding infrastructure
-import { Ledger } from '../snarky.js';
-import { versionBytes } from '../js_crypto/constants.js';
 import { GenericField } from './generic.js';
 
 export {
   Binable,
-  Base58,
   withVersionNumber,
   tuple,
-  base58,
-  fieldEncodings,
   prefixToField,
   bytesToBits,
   bitsToBytes,
+  withBits,
+  BinableWithBits,
 };
 
 type Binable<T> = {
   toBytes(t: T): number[];
   fromBytes(bytes: number[]): T;
   sizeInBytes(): number;
+};
+type BinableWithBits<T> = Binable<T> & {
+  toBits(t: T): boolean[];
+  fromBits(bits: boolean[]): T;
+  sizeInBits(): number;
 };
 
 function withVersionNumber<T>(
@@ -80,67 +82,6 @@ function tuple<Types extends Tuple<any>>(
   };
 }
 
-type Base58<T> = {
-  toBase58(t: T): string;
-  fromBase58(base58: string): T;
-};
-
-function base58<T>(binable: Binable<T>, versionByte: number): Base58<T> {
-  return {
-    toBase58(t) {
-      let bytes = binable.toBytes(t);
-      let binaryString = String.fromCharCode(...bytes);
-      let ocamlBytes = { t: 9, c: binaryString, l: bytes.length };
-      return Ledger.encoding.toBase58(ocamlBytes, versionByte);
-    },
-    fromBase58(base58) {
-      let ocamlBytes = Ledger.encoding.ofBase58(base58, versionByte);
-      let bytes = [...ocamlBytes.c].map((_, i) => ocamlBytes.c.charCodeAt(i));
-      return binable.fromBytes(bytes);
-    },
-  };
-}
-
-// encoding of fields as base58, compatible with ocaml encodings (provided the versionByte and versionNumber are the same)
-
-function customEncoding<Field>(
-  Field: Binable<Field>,
-  versionByte: number,
-  versionNumber?: number
-) {
-  return base58(withVersionNumber(Field, versionNumber), versionByte);
-}
-
-const RECEIPT_CHAIN_HASH_VERSION = 1;
-const LEDGER_HASH_VERSION = 1;
-const EPOCH_SEED_VERSION = 1;
-const STATE_HASH_VERSION = 1;
-
-function fieldEncodings<Field>(Field: Binable<Field>) {
-  const TokenId = customEncoding(Field, versionBytes.tokenIdKey);
-  const ReceiptChainHash = customEncoding(
-    Field,
-    versionBytes.receiptChainHash,
-    RECEIPT_CHAIN_HASH_VERSION
-  );
-  const LedgerHash = customEncoding(
-    Field,
-    versionBytes.ledgerHash,
-    LEDGER_HASH_VERSION
-  );
-  const EpochSeed = customEncoding(
-    Field,
-    versionBytes.epochSeed,
-    EPOCH_SEED_VERSION
-  );
-  const StateHash = customEncoding(
-    Field,
-    versionBytes.stateHash,
-    STATE_HASH_VERSION
-  );
-  return { TokenId, ReceiptChainHash, LedgerHash, EpochSeed, StateHash };
-}
-
 // same as Random_oracle.prefix_to_field in OCaml
 // converts string to bytes and bytes to field; throws if bytes don't fit in one field
 function prefixToField<Field>(Field: GenericField<Field>, prefix: string) {
@@ -149,7 +90,7 @@ function prefixToField<Field>(Field: GenericField<Field>, prefix: string) {
   return Field.fromBytes(bytes);
 }
 
-function bitsToBytes(bits: boolean[]) {
+function bitsToBytes([...bits]: boolean[]) {
   let bytes: number[] = [];
   while (bits.length > 0) {
     let byteBits = bits.splice(0, 8);
@@ -174,4 +115,36 @@ function bytesToBits(bytes: number[]) {
       return bits;
     })
     .flat();
+}
+
+/**
+ * This takes a `Binable<T>` plus an optional `sizeInBits`, and derives toBits() / fromBits() functions.
+ * - `sizeInBits` has to observe `Math.ceil(sizeInBits / 8) === sizeInBytes`, so the bit size can be slightly smaller than the byte size
+ * - If `sizeInBits` is `< sizeInBytes * 8`, then we assume that toBytes() returns a byte sequence where the bits
+ *   higher than `sizeInBits` are all 0. This assumption manifests in toBits(), where we slice off those higher bits,
+ *   to return a result that is of length `sizeInBits`.
+ *
+ * This is useful for serializing field elements, where -- depending on the circumstance -- we either want a
+ * 32-byte (= 256-bit) serialization, or a 255-bit serialization
+ */
+function withBits<T>(
+  binable: Binable<T>,
+  sizeInBits?: number
+): BinableWithBits<T> {
+  let sizeInBytes = binable.sizeInBytes();
+  sizeInBits ??= sizeInBytes * 8;
+  if (Math.ceil(sizeInBits / 8) !== sizeInBytes)
+    throw Error('withBits: sizeInBits does not match sizeInBytes');
+  return {
+    ...binable,
+    toBits(t: T) {
+      return bytesToBits(binable.toBytes(t)).slice(0, sizeInBits);
+    },
+    fromBits(bits: boolean[]) {
+      return binable.fromBytes(bitsToBytes(bits));
+    },
+    sizeInBits() {
+      return sizeInBits!;
+    },
+  };
 }

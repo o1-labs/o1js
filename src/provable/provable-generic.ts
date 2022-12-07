@@ -5,7 +5,7 @@ import {
   GenericProvableExtended,
 } from './generic.js';
 
-export { createProvable, ProvableConstructor };
+export { createProvable, createHashInput, ProvableConstructor };
 
 type ProvableConstructor<Field> = <A>(
   typeObj: A,
@@ -19,20 +19,7 @@ function createProvable<Field>(): ProvableConstructor<Field> {
     Field
   >;
   type HashInput = GenericHashInput<Field>;
-  const HashInput = {
-    get empty() {
-      return {};
-    },
-    append(input1: HashInput, input2: HashInput): HashInput {
-      if (input2.fields !== undefined) {
-        (input1.fields ??= []).push(...input2.fields);
-      }
-      if (input2.packed !== undefined) {
-        (input1.packed ??= []).push(...input2.packed);
-      }
-      return input1;
-    },
-  };
+  const HashInput = createHashInput<Field>();
 
   let complexTypes = new Set(['object', 'function']);
 
@@ -98,7 +85,7 @@ function createProvable<Field>(): ProvableConstructor<Field> {
       if (Array.isArray(typeObj)) {
         return typeObj
           .map((t, i) => toInput(t, obj[i]))
-          .reduce(HashInput.append, {});
+          .reduce(HashInput.append, HashInput.empty);
       }
       if ('toInput' in typeObj) return typeObj.toInput(obj) as HashInput;
       if ('toFields' in typeObj) {
@@ -106,7 +93,7 @@ function createProvable<Field>(): ProvableConstructor<Field> {
       }
       return (isToplevel ? objectKeys : Object.keys(typeObj).sort())
         .map((k) => toInput(typeObj[k], obj[k]))
-        .reduce(HashInput.append, {});
+        .reduce(HashInput.append, HashInput.empty);
     }
     function toJSON(typeObj: any, obj: any, isToplevel = false): JSONValue {
       if (typeObj === BigInt) return obj.toString();
@@ -215,6 +202,21 @@ function createProvable<Field>(): ProvableConstructor<Field> {
   }
 
   return provable;
+}
+
+function createHashInput<Field>() {
+  type HashInput = GenericHashInput<Field>;
+  return {
+    get empty() {
+      return {};
+    },
+    append(input1: HashInput, input2: HashInput): HashInput {
+      return {
+        fields: (input1.fields ?? []).concat(input2.fields ?? []),
+        packed: (input1.packed ?? []).concat(input2.packed ?? []),
+      };
+    },
+  };
 }
 
 // some type inference helpers

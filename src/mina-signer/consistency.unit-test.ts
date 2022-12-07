@@ -1,12 +1,21 @@
 import { expect } from 'expect';
-import { isReady, Ledger, Bool as BoolSnarky, shutdown } from '../snarky.js';
+import {
+  isReady,
+  Ledger,
+  Bool as BoolSnarky,
+  Scalar as ScalarSnarky,
+  shutdown,
+} from '../snarky.js';
 import { UInt32, UInt64 } from '../lib/int.js';
-import { PrivateKey, PublicKey as PublicKeySnarky } from '../lib/signature.js';
+import {
+  PrivateKey as PrivateKeySnarky,
+  PublicKey as PublicKeySnarky,
+} from '../lib/signature.js';
 import {
   AccountUpdate as AccountUpdateSnarky,
   Permissions as PermissionsSnarky,
 } from '../lib/account_update.js';
-import { PublicKey } from '../provable/curve-bigint.js';
+import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
 import {
   AccountUpdate,
   Json,
@@ -20,6 +29,8 @@ import {
   callForestHash,
   createFeePayer,
   feePayerHash,
+  signZkappCommand,
+  verifyZkappCommandSignature,
 } from './sign-zkapp-command.js';
 import {
   hashWithPrefix,
@@ -28,6 +39,12 @@ import {
 } from '../provable/poseidon-bigint.js';
 import { packToFields as packToFieldsSnarky } from '../lib/hash.js';
 import { Memo } from './memo.js';
+import {
+  NetworkId,
+  Signature,
+  signFieldElement,
+  verifyFieldElement,
+} from './signature.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
@@ -97,16 +114,12 @@ let hashSnarky = accountUpdateSnarky.hash();
 expect(hash).toEqual(hashSnarky.toBigInt());
 
 // example tx
-// TODO: generate in JS
-let feePayerKeySnarky = PrivateKey.fromBase58(
-  'EKDkKHit3WxjQ8SBSnP9zK7qfLtdi28tEDrzLtskTNJi1gyESTZ1'
-);
-// TODO: to public key in JS
+let feePayerKeyBase58 = 'EKDkKHit3WxjQ8SBSnP9zK7qfLtdi28tEDrzLtskTNJi1gyESTZ1';
+let feePayerKeySnarky = PrivateKeySnarky.fromBase58(feePayerKeyBase58);
 let feePayerAddressSnarky = feePayerKeySnarky.toPublicKey();
 let feePayerAddress = PublicKey.fromJSON(feePayerAddressSnarky.toBase58());
 let nonce = 1n;
 let fee = 100_000_000n;
-// TODO: generate in JS
 let memo = Memo.fromString('hello world');
 let memoBase58 = Memo.toBase58(memo);
 let memoBase581 = Ledger.memoToBase58('hello world');
@@ -177,6 +190,56 @@ let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
   commitment,
 ]);
 expect(fullCommitment).toEqual(ocamlCommitments.fullCommitment.toBigInt());
+
+// private key to/from base58
+let feePayerKey = PrivateKey.fromBase58(feePayerKeyBase58);
+
+let feePayerCompressed = ScalarSnarky.toFieldsCompressed(feePayerKeySnarky.s);
+expect(feePayerKey).toEqual(feePayerCompressed.field.toBigInt());
+expect(PrivateKey.toBase58(feePayerKey)).toEqual(feePayerKeyBase58);
+
+// signature
+let sigTestnet = signFieldElement(fullCommitment, feePayerKey, 'testnet');
+let sigMainnet = signFieldElement(fullCommitment, feePayerKey, 'mainnet');
+let sigTestnetOcaml = Ledger.signFieldElement(
+  ocamlCommitments.fullCommitment,
+  feePayerKeySnarky,
+  false
+);
+let sigMainnetOcaml = Ledger.signFieldElement(
+  ocamlCommitments.fullCommitment,
+  feePayerKeySnarky,
+  true
+);
+expect(Signature.toBase58(sigTestnet)).toEqual(sigTestnetOcaml);
+expect(Signature.toBase58(sigMainnet)).toEqual(sigMainnetOcaml);
+
+let verify = (s: Signature, id: NetworkId) =>
+  verifyFieldElement(s, fullCommitment, feePayerAddress, id);
+expect(verify(sigTestnet, 'testnet')).toEqual(true);
+expect(verify(sigTestnet, 'mainnet')).toEqual(false);
+expect(verify(sigMainnet, 'testnet')).toEqual(false);
+expect(verify(sigMainnet, 'mainnet')).toEqual(true);
+
+// full end-to-end test: sign a zkapp transaction
+let sTest = signZkappCommand(zkappCommandJson, feePayerKeyBase58, 'testnet');
+expect(sTest.feePayer.authorization).toEqual(sigTestnetOcaml);
+let sMain = signZkappCommand(zkappCommandJson, feePayerKeyBase58, 'mainnet');
+expect(sMain.feePayer.authorization).toEqual(sigMainnetOcaml);
+
+let feePayerAddressBase58 = PublicKey.toBase58(feePayerAddress);
+expect(
+  verifyZkappCommandSignature(sTest, feePayerAddressBase58, 'testnet')
+).toEqual(true);
+expect(
+  verifyZkappCommandSignature(sTest, feePayerAddressBase58, 'mainnet')
+).toEqual(false);
+expect(
+  verifyZkappCommandSignature(sMain, feePayerAddressBase58, 'testnet')
+).toEqual(false);
+expect(
+  verifyZkappCommandSignature(sMain, feePayerAddressBase58, 'mainnet')
+).toEqual(true);
 
 console.log('to/from json, hashes & signatures are consistent! 🎉');
 shutdown();
