@@ -102,8 +102,7 @@ function sign(
   let kPrime = deriveNonce(message, publicKey, privateKey, networkId);
   if (Scalar.equal(kPrime, 0n)) throw Error('sign: derived nonce is 0');
   let { x: rx, y: ry } = Group.scale(Group.generatorMina, kPrime);
-  let isEven = !(ry & 1n);
-  let k = isEven ? kPrime : Scalar.negate(kPrime);
+  let k = Field.isEven(ry) ? kPrime : Scalar.negate(kPrime);
   let e = hashMessage(message, publicKey, rx, networkId);
   let s = Scalar.add(k, Scalar.mul(e, privateKey));
   return { r: rx, s };
@@ -199,8 +198,7 @@ function verify(
   let R = sub(scale(one, s), scale(Group.toProjective(pk), e));
   try {
     let { x: rx, y: ry } = Group.fromProjective(R);
-    let isEven = !(ry & 1n);
-    return isEven && Field.equal(rx, r);
+    return Field.isEven(ry) && Field.equal(rx, r);
   } catch {
     return false;
   }
