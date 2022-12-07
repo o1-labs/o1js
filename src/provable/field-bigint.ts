@@ -1,4 +1,5 @@
-import { Binable } from './binable.js';
+import { Fp } from '../js_crypto/finite_field.js';
+import { BinableWithBits, withBits } from './binable.js';
 import { GenericHashInput, GenericProvableExtended } from './generic.js';
 
 export { Field, Bool, UInt32, UInt64, Sign };
@@ -18,11 +19,8 @@ type Bool = 0n | 1n;
 type UInt32 = bigint;
 type UInt64 = bigint;
 
-// TODO: auto-generate
-const MODULUS =
-  0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001n;
-const sizeInBits = MODULUS.toString(2).length;
-const sizeInBytes = Math.ceil(sizeInBits / 8);
+const MODULUS = Fp.modulus;
+const sizeInBits = Fp.sizeInBits;
 
 type minusOne =
   0x40000000000000000000000000000000224698fc094cf91b992d30ed00000000n;
@@ -33,11 +31,14 @@ type Sign = 1n | minusOne;
 type HashInput = GenericHashInput<Field>;
 type ProvableExtended<T, J> = GenericProvableExtended<T, J, Field>;
 
+/**
+ * The base field of the Pallas curve
+ */
 const Field = pseudoClass(
   function Field(value: bigint | number | string): Field {
     return BigInt(value) % MODULUS;
   },
-  { MODULUS, ...ProvableBigint(), ...BinableBigint(sizeInBytes) }
+  { MODULUS, ...ProvableBigint(), ...BinableBigint(Fp.sizeInBits), ...Fp }
 );
 
 const Bool = pseudoClass(
@@ -83,7 +84,7 @@ function Unsigned(bits: number) {
     },
     {
       ...ProvableBigint(),
-      ...BinableBigint(Math.ceil(bits / 8)),
+      ...BinableBigint(bits),
       toInput(x: bigint): HashInput {
         return {
           fields: [],
@@ -171,19 +172,23 @@ function ProvableBigint<
 }
 
 function BinableBigint<T extends bigint = bigint>(
-  sizeInBytes: number
-): Binable<T> {
-  return {
-    toBytes(x) {
-      return bigIntToBytes(x, sizeInBytes);
+  sizeInBits: number
+): BinableWithBits<T> {
+  let sizeInBytes = Math.ceil(sizeInBits / 8);
+  return withBits(
+    {
+      toBytes(x) {
+        return bigIntToBytes(x, sizeInBytes);
+      },
+      fromBytes(bytes) {
+        return bytesToBigInt(bytes) as T;
+      },
+      sizeInBytes() {
+        return sizeInBytes;
+      },
     },
-    fromBytes(bytes) {
-      return bytesToBigInt(bytes) as T;
-    },
-    sizeInBytes() {
-      return sizeInBytes;
-    },
-  };
+    sizeInBits
+  );
 }
 
 function bytesToBigInt(bytes: Uint8Array | number[]) {

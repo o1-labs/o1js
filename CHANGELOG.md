@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Type inference for Structs with instance methods https://github.com/o1-labs/snarkyjs/pull/567
   - also fixes `Struct.fromJSON`
+- `SmartContract.fetchEvents` fixed when multiple event types existed https://github.com/o1-labs/snarkyjs/issues/627
+
+### Changed
+
+- New option `enforceTransactionLimits` for `LocalBlockchain` (default value: `true`), to disable the enforcement of protocol transaction limits (maximum events, maximum sequence events and enforcing certain layout of `AccountUpdate`s depending on their authorization) https://github.com/o1-labs/snarkyjs/pull/620
 
 ## [0.7.3](https://github.com/o1-labs/snarkyjs/compare/5f20f496...d880bd6e)
 
