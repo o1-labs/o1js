@@ -929,7 +929,7 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   sign(privateKey?: PrivateKey) {
     let { nonce, isSameAsFeePayer } = AccountUpdate.getSigningInfo(this);
-    // if this account is the same as the fee payer, we use the "full commitment" for relay protection
+    // if this account is the same as the fee payer, we use the "full commitment" for replay protection
     this.body.useFullCommitment = isSameAsFeePayer;
     // otherwise, we increment the nonce
     let doIncrementNonce = isSameAsFeePayer.not();
