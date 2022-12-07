@@ -34,6 +34,10 @@ const Group = {
   toProjective({ x, y }: Group): GroupProjective {
     return Pallas.ofAffine({ x, y, infinity: false });
   },
+  /**
+   * Convert a projective point to a non-zero affine point.
+   * Throws an error if the point is zero / infinity, i.e. if z === 0
+   */
   fromProjective(point: GroupProjective): Group {
     let { x, y, infinity } = Pallas.toAffine(point);
     if (infinity) throw Error('Group.fromProjective: point is infinity');

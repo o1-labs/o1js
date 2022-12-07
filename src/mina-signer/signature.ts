@@ -197,6 +197,7 @@ function verify(
   let { scale, one, sub } = Pallas;
   let R = sub(scale(one, s), scale(Group.toProjective(pk), e));
   try {
+    // if `R` is infinity, Group.fromProjective throws an error, so `verify` returns false
     let { x: rx, y: ry } = Group.fromProjective(R);
     return Field.isEven(ry) && Field.equal(rx, r);
   } catch {
