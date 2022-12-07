@@ -1122,7 +1122,8 @@ declare class Ledger {
    */
   static signFieldElement(
     messageHash: Field,
-    privateKey: { s: Scalar }
+    privateKey: { s: Scalar },
+    isMainnet: boolean
   ): string;
 
   /**

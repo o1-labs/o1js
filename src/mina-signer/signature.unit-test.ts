@@ -35,8 +35,10 @@ function checkConsistentSingle(
   expect(okTestnetMainnet).toEqual(false);
   expect(okMainnetMainnet).toEqual(true);
   // consistent with OCaml
-  let actualSigTestnet = Ledger.signFieldElement(FieldSnarky(msg), keySnarky);
-  expect(Signature.toBase58(sigTest)).toEqual(actualSigTestnet);
+  let actualTest = Ledger.signFieldElement(FieldSnarky(msg), keySnarky, false);
+  let actualMain = Ledger.signFieldElement(FieldSnarky(msg), keySnarky, true);
+  expect(Signature.toBase58(sigTest)).toEqual(actualTest);
+  expect(Signature.toBase58(sigMain)).toEqual(actualMain);
 }
 
 // check that various multi-field hash inputs can be verified

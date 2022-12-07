@@ -40,6 +40,7 @@ import {
 import { packToFields as packToFieldsSnarky } from '../lib/hash.js';
 import { Memo } from './memo.js';
 import {
+  NetworkId,
   Signature,
   signFieldElement,
   verifyFieldElement,
@@ -198,40 +199,47 @@ expect(feePayerKey).toEqual(feePayerCompressed.field.toBigInt());
 expect(PrivateKey.toBase58(feePayerKey)).toEqual(feePayerKeyBase58);
 
 // signature
-let signature = signFieldElement(fullCommitment, feePayerKey, 'testnet');
-let signatureBase58 = Signature.toBase58(signature);
-let signatureOcaml = Ledger.signFieldElement(
+let sigTestnet = signFieldElement(fullCommitment, feePayerKey, 'testnet');
+let sigMainnet = signFieldElement(fullCommitment, feePayerKey, 'mainnet');
+let sigTestnetOcaml = Ledger.signFieldElement(
   ocamlCommitments.fullCommitment,
-  feePayerKeySnarky
+  feePayerKeySnarky,
+  false
 );
-expect(signatureBase58).toEqual(signatureOcaml);
+let sigMainnetOcaml = Ledger.signFieldElement(
+  ocamlCommitments.fullCommitment,
+  feePayerKeySnarky,
+  true
+);
+expect(Signature.toBase58(sigTestnet)).toEqual(sigTestnetOcaml);
+expect(Signature.toBase58(sigMainnet)).toEqual(sigMainnetOcaml);
 
-let isValid = verifyFieldElement(
-  signature,
-  fullCommitment,
-  feePayerAddress,
-  'testnet'
-);
-expect(isValid).toEqual(true);
-let shouldBeInvalid = verifyFieldElement(
-  signature,
-  fullCommitment,
-  feePayerAddress,
-  'mainnet'
-);
-expect(shouldBeInvalid).toEqual(false);
+let verify = (s: Signature, id: NetworkId) =>
+  verifyFieldElement(s, fullCommitment, feePayerAddress, id);
+expect(verify(sigTestnet, 'testnet')).toEqual(true);
+expect(verify(sigTestnet, 'mainnet')).toEqual(false);
+expect(verify(sigMainnet, 'testnet')).toEqual(false);
+expect(verify(sigMainnet, 'mainnet')).toEqual(true);
 
 // full end-to-end test: sign a zkapp transaction
-let signed = signZkappCommand(zkappCommandJson, feePayerKeyBase58, 'testnet');
-expect(signed.feePayer.authorization).toEqual(signatureOcaml);
+let sTest = signZkappCommand(zkappCommandJson, feePayerKeyBase58, 'testnet');
+expect(sTest.feePayer.authorization).toEqual(sigTestnetOcaml);
+let sMain = signZkappCommand(zkappCommandJson, feePayerKeyBase58, 'mainnet');
+expect(sMain.feePayer.authorization).toEqual(sigMainnetOcaml);
 
 let feePayerAddressBase58 = PublicKey.toBase58(feePayerAddress);
 expect(
-  verifyZkappCommandSignature(signed, feePayerAddressBase58, 'testnet')
+  verifyZkappCommandSignature(sTest, feePayerAddressBase58, 'testnet')
 ).toEqual(true);
 expect(
-  verifyZkappCommandSignature(signed, feePayerAddressBase58, 'mainnet')
+  verifyZkappCommandSignature(sTest, feePayerAddressBase58, 'mainnet')
 ).toEqual(false);
+expect(
+  verifyZkappCommandSignature(sMain, feePayerAddressBase58, 'testnet')
+).toEqual(false);
+expect(
+  verifyZkappCommandSignature(sMain, feePayerAddressBase58, 'mainnet')
+).toEqual(true);
 
 console.log('to/from json, hashes & signatures are consistent! 🎉');
 shutdown();
