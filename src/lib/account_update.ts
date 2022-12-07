@@ -922,7 +922,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * Note that an account's {@link Permissions} determine which updates have to be (can be) authorized by a signature.
    */
   requireSignature() {
-    let nonce = AccountUpdate.getNonce(this);
+    let { nonce } = AccountUpdate.getSigningInfo(this);
     this.account.nonce.assertEquals(nonce);
     this.body.incrementNonce = Bool(true);
     Authorization.setLazySignature(this, {});
@@ -931,7 +931,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * @deprecated `.sign()` is deprecated in favor of `.requireSignature()`
    */
   sign(privateKey?: PrivateKey) {
-    let nonce = AccountUpdate.getNonce(this);
+    let { nonce } = AccountUpdate.getSigningInfo(this);
     this.account.nonce.assertEquals(nonce);
     this.body.incrementNonce = Bool(true);
     Authorization.setLazySignature(this, { privateKey });
@@ -947,12 +947,20 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   static getNonce(accountUpdate: AccountUpdate | FeePayerUnsigned) {
-    return memoizeWitness(UInt32, () =>
-      AccountUpdate.getNonceUnchecked(accountUpdate)
+    return AccountUpdate.getSigningInfo(accountUpdate).nonce;
+  }
+
+  private static signingInfo = provable({ nonce: UInt32 });
+
+  static getSigningInfo(accountUpdate: AccountUpdate | FeePayerUnsigned) {
+    return memoizeWitness(AccountUpdate.signingInfo, () =>
+      AccountUpdate.getSigningInfoUnchecked(accountUpdate)
     );
   }
 
-  private static getNonceUnchecked(update: AccountUpdate | FeePayerUnsigned) {
+  private static getSigningInfoUnchecked(
+    update: AccountUpdate | FeePayerUnsigned
+  ) {
     let publicKey = update.body.publicKey;
     let tokenId =
       update instanceof AccountUpdate ? update.body.tokenId : TokenId.default;
@@ -964,7 +972,7 @@ class AccountUpdate implements Types.AccountUpdate {
     let isFeePayer = Mina.currentTransaction()?.sender?.equals(publicKey);
     let shouldIncreaseNonce = isFeePayer?.and(tokenId.equals(TokenId.default));
     if (shouldIncreaseNonce?.toBoolean()) nonce++;
-    // now, we check how often this accountUpdate already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
+    // now, we check how often this account update already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
     CallForest.forEachPredecessor(
       Mina.currentTransaction.get().accountUpdates,
       update as AccountUpdate,
@@ -976,7 +984,7 @@ class AccountUpdate implements Types.AccountUpdate {
         if (shouldIncreaseNonce.toBoolean()) nonce++;
       }
     );
-    return UInt32.from(nonce);
+    return { nonce: UInt32.from(nonce) };
   }
 
   toJSON() {
@@ -1006,8 +1014,6 @@ class AccountUpdate implements Types.AccountUpdate {
     }
   }
 
-  // TODO: this was only exposed to be used in a unit test
-  // consider removing when we have inline unit tests
   toPublicInput(): ZkappPublicInput {
     let accountUpdate = this.hash();
     let calls = CallForest.hashChildren(this);
@@ -1100,8 +1106,9 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey);
     // it's fine to compute the nonce outside the circuit, because we're constraining it with a precondition
-    let nonce = Circuit.witness(UInt32, () =>
-      AccountUpdate.getNonceUnchecked(accountUpdate)
+    let nonce = Circuit.witness(
+      UInt32,
+      () => AccountUpdate.getSigningInfoUnchecked(accountUpdate).nonce
     );
     accountUpdate.account.nonce.assertEquals(nonce);
     accountUpdate.body.incrementNonce = Bool(true);
