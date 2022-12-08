@@ -12,7 +12,7 @@ on:
 
 jobs:
   Build-And-Test-Server:
-    timeout-minutes: 180
+    timeout-minutes: 210
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
