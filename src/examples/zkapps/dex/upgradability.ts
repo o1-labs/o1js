@@ -16,11 +16,6 @@ import { expect } from 'expect';
 export { atomicActionsTest, upgradeabilityTests };
 let doProofs = false;
 
-// TODO: remove
-await upgradeabilityTests({
-  withVesting: false,
-});
-
 async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   let Local = Mina.LocalBlockchain({
     proofsEnabled: doProofs,
