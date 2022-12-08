@@ -1,5 +1,5 @@
 
-case $ci_node_index in
+case $CI_NODE_INDEX in
     0 ) 
       echo "Running basic integration tests";
       ./run src/examples/zkapps/hello_world/run.ts --bundle || exit 1
@@ -20,5 +20,5 @@ case $ci_node_index in
       npm run test:unit
       npm run test ;;
 
-    * ) echo "ERROR: Invalid enviroment variable, not clear what tests to run! $ci_node_index"; exit 1 ;;
+    * ) echo "ERROR: Invalid enviroment variable, not clear what tests to run! $CI_NODE_INDEX"; exit 1 ;;
 esac
