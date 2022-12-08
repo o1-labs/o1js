@@ -49,6 +49,7 @@ Mina.setActiveInstance(Local);
 feePayerAddress = feePayerKey.toPublicKey();
 
 await main({ withVesting: true });
+
 console.log('all dex tests were successful! 🎉');
 
 async function main({ withVesting }: { withVesting: boolean }) {
