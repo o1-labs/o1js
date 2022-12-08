@@ -1,4 +1,5 @@
-import { base58, Binable, bytesToBits } from '../provable/binable.js';
+import { Binable, bytesToBits } from '../provable/binable.js';
+import { base58 } from '../provable/base58.js';
 import {
   hashWithPrefix,
   packToFieldsLegacy,

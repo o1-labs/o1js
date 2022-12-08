@@ -179,6 +179,9 @@ function createField(p: bigint, t: bigint, twoadicRoot: bigint) {
     equal(x: bigint, y: bigint) {
       return mod(x - y, p) === 0n;
     },
+    isEven(x: bigint) {
+      return !(x & 1n);
+    },
     random() {
       return randomField(p);
     },
