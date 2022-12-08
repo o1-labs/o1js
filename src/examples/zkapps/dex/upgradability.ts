@@ -16,8 +16,16 @@ import { expect } from 'expect';
 export { atomicActionsTest, upgradeabilityTests };
 let doProofs = false;
 
+// TODO: remove
+await upgradeabilityTests({
+  withVesting: false,
+});
+
 async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
-  let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+  let Local = Mina.LocalBlockchain({
+    proofsEnabled: doProofs,
+    enforceTransactionLimits: false,
+  });
   Mina.setActiveInstance(Local);
   let accountFee = Mina.accountCreationFee();
   let [{ privateKey: feePayerKey }] = Local.testAccounts;
@@ -50,8 +58,6 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
     feePayerUpdate.send({ to: addresses.tokenY, amount: accountFee.mul(2) });
     tokenX.deploy();
     tokenY.deploy();
-    tokenX.init();
-    tokenY.init();
   });
   await tx.prove();
   tx.sign([keys.tokenX, keys.tokenY]);
@@ -221,7 +227,10 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
 }
 
 async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
-  let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
+  let Local = Mina.LocalBlockchain({
+    proofsEnabled: doProofs,
+    enforceTransactionLimits: false,
+  });
   Mina.setActiveInstance(Local);
   let accountFee = Mina.accountCreationFee();
   let [{ privateKey: feePayerKey }] = Local.testAccounts;
@@ -262,8 +271,6 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     feePayerUpdate.send({ to: addresses.tokenY, amount: accountFee.mul(2) });
     tokenX.deploy();
     tokenY.deploy();
-    tokenX.init();
-    tokenY.init();
   });
   await tx.prove();
   tx.sign([keys.tokenX, keys.tokenY]);
@@ -349,16 +356,15 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
 
   // Making sure that both token holder accounts have been updated with the new modified verification key
   expect(
-    Mina.getAccount(addresses.dex, tokenX.experimental.token.id).verificationKey
+    Mina.getAccount(addresses.dex, tokenX.token.id).verificationKey
   ).toEqual(ModifiedDexTokenHolder._verificationKey?.data);
 
   expect(
-    Mina.getAccount(addresses.dex, tokenY.experimental.token.id).verificationKey
+    Mina.getAccount(addresses.dex, tokenY.token.id).verificationKey
   ).toEqual(ModifiedDexTokenHolder._verificationKey?.data);
 
   // this is important; we have to re-enable proof production (and verification) to make sure the proofs are valid against the newly deployed VK
-  // TODO: set true once proving of .swap is fixed
-  Local.setProofsEnabled(false);
+  Local.setProofsEnabled(true);
 
   console.log('supply liquidity -- base');
   tx = await Mina.transaction({ feePayerKey, fee: accountFee.mul(1) }, () => {

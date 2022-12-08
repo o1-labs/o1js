@@ -219,10 +219,7 @@ function createDex({
   class ModifiedDex extends Dex {
     @method swapX(user: PublicKey, dx: UInt64): UInt64 {
       let tokenY = new TokenContract(this.tokenY);
-      let dexY = new ModifiedDexTokenHolder(
-        this.address,
-        tokenY.experimental.token.id
-      );
+      let dexY = new ModifiedDexTokenHolder(this.address, tokenY.token.id);
       let dy = dexY.swap(user, dx, this.tokenX);
       tokenY.approveUpdateAndSend(dexY.self, user, dy);
       return dy;
