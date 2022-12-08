@@ -101,7 +101,7 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
     dex.deploy();
     tokenX.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
     tokenY.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
-
+    console.log('manipulating setDelegate field to impossible...');
     // setting the setDelegate permission field to impossible
     let dexAccount = AccountUpdate.create(addresses.dex);
     AccountUpdate.setValue(dexAccount.update.permissions, {
