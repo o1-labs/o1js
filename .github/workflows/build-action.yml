@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ci_node_index:
+        test_type:
           [
             'Simple integration tests',
             'DEX integration tests',
@@ -33,7 +33,7 @@ jobs:
           node-version: '18'
       - name: Build SnarkyJS and Execute Tests
         env:
-          CI_NODE_INDEX: ${{ matrix.ci_node_index }}
+          TEST_TYPE: ${{ matrix.test_type }}
         continue-on-error: false
         run: |
           npm ci

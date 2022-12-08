@@ -1,5 +1,5 @@
 
-case $CI_NODE_INDEX in
+case $TEST_TYPE in
     "Simple integration tests" ) 
       echo "Running basic integration tests";
       ./run src/examples/zkapps/hello_world/run.ts --bundle || exit 1
