@@ -1,21 +1,22 @@
 
 case $CI_NODE_INDEX in
-    0 ) 
+    "Simple integration tests" ) 
       echo "Running basic integration tests";
       ./run src/examples/zkapps/hello_world/run.ts --bundle || exit 1
       ./run src/examples/simple_zkapp.ts || exit 1
       ./run src/examples/zkapps/reducer/reducer_composite.ts || exit 1
       ./run src/examples/zkapps/composability.ts || exit 1 ;; 
-    1 )
+
+    "Voting integration tests" )
       echo "Running voting integration tests";
       ./run src/examples/zkapps/voting/run.ts --bundle || exit 1 ;;
 
-    2 )
+    "DEX integration tests" )
       echo "Running DEX integration tests";
       ./run src/examples/zkapps/dex/run.ts --bundle || exit 1
       ./run src/examples/zkapps/dex/happy-path-with-proofs.ts --bundle || exit 1 ;;
 
-    3 )
+    "Unit tests" )
       echo "Running unit tests";
       npm run test:unit
       npm run test ;;

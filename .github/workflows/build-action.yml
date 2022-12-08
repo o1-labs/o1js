@@ -18,7 +18,13 @@ jobs:
       fail-fast: false
       matrix:
         ci_node_total: [4]
-        ci_node_index: [0, 1, 2, 3]
+        ci_node_index:
+          [
+            'Simple integration tests',
+            'DEX integration tests',
+            'Voting integration tests',
+            'Unit tests',
+          ]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
