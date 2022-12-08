@@ -17,7 +17,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ci_node_total: [4]
         ci_node_index:
           [
             'Simple integration tests',
@@ -34,7 +33,6 @@ jobs:
           node-version: '18'
       - name: Build SnarkyJS and Execute Tests
         env:
-          CI_NODE_TOTAL: ${{ matrix.ci_node_total }}
           CI_NODE_INDEX: ${{ matrix.ci_node_index }}
         continue-on-error: false
         run: |
