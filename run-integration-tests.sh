@@ -5,3 +5,4 @@
 ./run src/examples/zkapps/composability.ts || exit 1
 ./run src/examples/zkapps/dex/run.ts --bundle || exit 1
 ./run src/examples/zkapps/dex/happy-path-with-proofs.ts --bundle || exit 1
+./run src/examples/zkapps/dex/upgradability.ts --bundle || exit 1
