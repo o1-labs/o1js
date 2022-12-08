@@ -1,5 +1,5 @@
 import { bytesToBigInt, sizeInBits } from '../provable/field-bigint.js';
-import { Bool, Field, Scalar, Group } from '../snarky.js';
+import { Bool, Field, Scalar, Group, Keypair } from '../snarky.js';
 
 export { Field, Bool, Scalar, Group };
 

@@ -1,5 +1,6 @@
 import 'reflect-metadata';
-import { Circuit, ProvablePure, Provable } from '../snarky.js';
+import { bytesToBigInt } from '../js_crypto/finite_field.js';
+import { Circuit, ProvablePure, Provable, Keypair } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
 import { inCheckedComputation, snarkContext } from './proof_system.js';
@@ -1035,6 +1036,20 @@ Circuit.log = function (...args: any) {
     }
     console.log(...prettyArgs);
   });
+};
+
+Circuit.constraintSystemFromKeypair = function (keypair: Keypair) {
+  let cs: { gates: { typ: string; wires: any; coeffs: number[][] }[] } =
+    JSON.parse((keypair as any)._constraintSystemJSON());
+  let gates = cs.gates.map(({ typ, wires, coeffs: byteCoeffs }) => {
+    let coeffs = [];
+    for (let coefficient of byteCoeffs) {
+      let arr = new Uint8Array(coefficient);
+      coeffs.push(bytesToBigInt(arr).toString());
+    }
+    return { type: typ, wires, coeffs };
+  });
+  return gates;
 };
 
 function auxiliary<T>(type: FlexibleProvable<T>, compute: () => any[]) {

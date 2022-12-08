@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/d880bd6e...HEAD)
 
+### Added
+
+- `Circuit.constraintSystemFromKeypair(keypair)` to inspect the circuit at a low level https://github.com/o1-labs/snarkyjs/pull/529
+  - Works with a `keypair` (prover + verifier key) generated with the `Circuit` API
+
 ### Changed
 
 - BREAKING CHANGE: Constraint changes in `sign()`, `requireSignature()` and `createSigned()` on `AccountUpdate` / `SmartContract`. _This means that smart contracts using these methods in their proofs won't be able to create valid proofs against old deployed verification keys._
