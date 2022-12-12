@@ -104,11 +104,11 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
     console.log('manipulating setDelegate field to impossible...');
     // setting the setDelegate permission field to impossible
     let dexAccount = AccountUpdate.create(addresses.dex);
-    AccountUpdate.setValue(dexAccount.update.permissions, {
+    dexAccount.account.permissions.set({
       ...Permissions.initial(),
       setDelegate: Permissions.impossible(),
     });
-    dexAccount.sign();
+    dexAccount.requireSignature();
   });
   await tx.prove();
   tx.sign([keys.dex]);
@@ -120,11 +120,8 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   tx = await Mina.transaction(feePayerKey, () => {
     // setting the delegate field to something, although permissions forbid it
     let dexAccount = AccountUpdate.create(addresses.dex);
-    AccountUpdate.setValue(
-      dexAccount.update.delegate,
-      PrivateKey.random().toPublicKey()
-    );
-    dexAccount.sign();
+    dexAccount.account.delegate.set(PrivateKey.random().toPublicKey());
+    dexAccount.requireSignature();
   });
   await tx.prove();
 
@@ -136,11 +133,11 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
 
   tx = await Mina.transaction(feePayerKey, () => {
     let dexAccount = AccountUpdate.create(addresses.dex);
-    AccountUpdate.setValue(dexAccount.update.permissions, {
+    dexAccount.account.permissions.set({
       ...Permissions.initial(),
       setDelegate: Permissions.proofOrSignature(),
     });
-    dexAccount.sign();
+    dexAccount.requireSignature();
   });
   await tx.prove();
   await tx.sign([keys.dex]).send();
@@ -150,8 +147,8 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   let newDelegate = PrivateKey.random().toPublicKey();
   tx = await Mina.transaction(feePayerKey, () => {
     let dexAccount = AccountUpdate.create(addresses.dex);
-    AccountUpdate.setValue(dexAccount.update.delegate, newDelegate);
-    dexAccount.sign();
+    dexAccount.account.delegate.set(newDelegate);
+    dexAccount.requireSignature();
   });
   await tx.prove();
   await tx.sign([keys.dex]).send();
@@ -179,19 +176,15 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
     // changing the permission to impossible and then trying to change the delegate field
 
     let permissionUpdate = AccountUpdate.create(addresses.dex);
-    AccountUpdate.setValue(permissionUpdate.update.permissions, {
+    permissionUpdate.account.permissions.set({
       ...Permissions.initial(),
       setDelegate: Permissions.impossible(),
     });
-    permissionUpdate.sign();
+    permissionUpdate.requireSignature();
 
     let fieldUpdate = AccountUpdate.create(addresses.dex);
-    AccountUpdate.setValue(
-      fieldUpdate.update.delegate,
-      PrivateKey.random().toPublicKey()
-    );
-
-    fieldUpdate.sign();
+    fieldUpdate.account.delegate.set(PrivateKey.random().toPublicKey());
+    fieldUpdate.requireSignature();
   });
   await tx.prove();
   await expect(tx.sign([keys.dex]).send()).rejects.toThrow(
@@ -218,16 +211,16 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   tx = await Mina.transaction(feePayerKey, () => {
     // changing field
     let fieldUpdate = AccountUpdate.create(addresses.dex);
-    AccountUpdate.setValue(fieldUpdate.update.delegate, newDelegate);
-    fieldUpdate.sign();
+    fieldUpdate.account.delegate.set(newDelegate);
+    fieldUpdate.requireSignature();
 
     // changing permissions back to impossible
     let permissionUpdate2 = AccountUpdate.create(addresses.dex);
-    AccountUpdate.setValue(permissionUpdate2.update.permissions, {
+    permissionUpdate2.account.permissions.set({
       ...Permissions.initial(),
       setDelegate: Permissions.impossible(),
     });
-    permissionUpdate2.sign();
+    permissionUpdate2.requireSignature();
   });
   await tx.prove();
   await tx.sign([keys.dex]).send();
@@ -425,7 +418,7 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   tx = await Mina.transaction(feePayerKey, () => {
     // pay fees for creating 3 dex accounts
     let update = AccountUpdate.createSigned(keys.dex);
-    AccountUpdate.setValue(update.update.permissions, {
+    update.account.permissions.set({
       ...Permissions.initial(),
       setVerificationKey: Permissions.impossible(),
     });

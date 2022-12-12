@@ -18,7 +18,7 @@ import {
 let address: PublicKey;
 let accountUpdate: AccountUpdate;
 
-describe('accountUpdate', () => {
+describe('AccountUpdate', () => {
   beforeAll(async () => {
     await isReady;
     address = PrivateKey.random().toPublicKey();
@@ -27,7 +27,7 @@ describe('accountUpdate', () => {
   });
   afterAll(() => setTimeout(shutdown, 0));
 
-  it('can convert accountUpdate to fields consistently', () => {
+  it('can convert account update to fields consistently', () => {
     // convert accountUpdate to fields in OCaml, going via AccountUpdate.of_json
     let json = JSON.stringify(accountUpdate.toJSON().body);
     let fields1 = Ledger.fieldsOfJson(json);
@@ -52,7 +52,7 @@ describe('accountUpdate', () => {
     expect(fields1).toEqual(fields2);
   });
 
-  it('can hash a accountUpdate', () => {
+  it('can hash an account update', () => {
     // TODO remove restriction "This function can't be run outside of a checked computation."
     Circuit.runAndCheck(() => {
       let hash = accountUpdate.hash();
@@ -68,7 +68,7 @@ describe('accountUpdate', () => {
     });
   });
 
-  it("converts accountUpdate to a public input that's consistent with the ocaml implementation", async () => {
+  it("converts account update to a public input that's consistent with the ocaml implementation", async () => {
     let otherAddress = PrivateKey.random().toPublicKey();
 
     let accountUpdate = AccountUpdate.create(address);

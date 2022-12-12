@@ -26,7 +26,7 @@ await isReady;
 class SimpleZkapp extends SmartContract {
   deploy(args: DeployArgs) {
     super.deploy(args);
-    this.setPermissions({
+    this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
       send: Permissions.proofOrSignature(),

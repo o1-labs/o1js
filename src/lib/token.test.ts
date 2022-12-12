@@ -28,7 +28,7 @@ class TokenContract extends SmartContract {
 
   deploy(args?: DeployArgs) {
     super.deploy(args);
-    this.setPermissions({
+    this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
       send: Permissions.proof(),
@@ -43,12 +43,12 @@ class TokenContract extends SmartContract {
     let tokenId = this.token.id;
     let zkapp = AccountUpdate.defaultAccountUpdate(address, tokenId);
     this.approve(zkapp);
-    AccountUpdate.setValue(zkapp.update.permissions, {
+    zkapp.account.permissions.set({
       ...Permissions.default(),
       send: Permissions.proof(),
     });
-    AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
-    zkapp.sign();
+    zkapp.account.verificationKey.set(verificationKey);
+    zkapp.requireSignature();
   }
 
   @method init() {
@@ -117,7 +117,7 @@ class TokenContract extends SmartContract {
   }
 
   @method setValidTokenSymbol() {
-    this.tokenSymbol.set(tokenSymbol);
+    this.account.tokenSymbol.set(tokenSymbol);
   }
 }
 

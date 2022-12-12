@@ -774,15 +774,15 @@ class AccountUpdate implements Types.AccountUpdate {
     return this.body.tokenId;
   }
 
+  /**
+   * @deprecated use `this.account.tokenSymbol`
+   */
   get tokenSymbol() {
     let accountUpdate = this;
 
     return {
       set(tokenSymbol: string) {
-        AccountUpdate.setValue(
-          accountUpdate.update.tokenSymbol,
-          TokenSymbol.from(tokenSymbol)
-        );
+        accountUpdate.account.tokenSymbol.set(tokenSymbol);
       },
     };
   }
