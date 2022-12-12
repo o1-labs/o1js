@@ -348,7 +348,7 @@ type RangeCondition<T> = { isSome: Bool; value: { lower: T; upper: T } };
 type FlaggedOptionCondition<T> = { isSome: Bool; value: T };
 type AnyCondition<T> = RangeCondition<T> | FlaggedOptionCondition<T>;
 
-function isRangeCondition<T>(
+function isRangeCondition<T extends object>(
   condition: AnyCondition<T>
 ): condition is RangeCondition<T> {
   return 'isSome' in condition && 'lower' in condition.value;

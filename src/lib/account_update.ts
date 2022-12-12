@@ -893,7 +893,10 @@ class AccountUpdate implements Types.AccountUpdate {
    * }
    * ```
    */
-  static assertEquals<T>(property: OrIgnore<ClosedInterval<T> | T>, value: T) {
+  static assertEquals<T extends object>(
+    property: OrIgnore<ClosedInterval<T> | T>,
+    value: T
+  ) {
     property.isSome = Bool(true);
     if ('lower' in property.value && 'upper' in property.value) {
       property.value.lower = value;
