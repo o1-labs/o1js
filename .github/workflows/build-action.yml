@@ -39,6 +39,7 @@ jobs:
           npm ci
           npm run build:node
           sh run-ci-tests.sh
+          cat profiling.md >> $GITHUB_STEP_SUMMARY
 
   Build-And-Test-Web:
     timeout-minutes: 90
