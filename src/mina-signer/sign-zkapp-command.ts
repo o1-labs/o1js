@@ -1,19 +1,28 @@
 import { Bool, Field, Sign, UInt32 } from '../provable/field-bigint.js';
-import { PrivateKey } from '../provable/curve-bigint.js';
+import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
 import {
   Json,
   AccountUpdate,
   ZkappCommand,
   AuthRequired,
 } from '../provable/gen/transaction-bigint.js';
-import { Signed } from './TSTypes.js';
 import {
   hashWithPrefix,
   packToFields,
   prefixes,
 } from '../provable/poseidon-bigint.js';
 import { Memo } from './memo.js';
+import {
+  NetworkId,
+  Signature,
+  signFieldElement,
+  verifyFieldElement,
+} from './signature.js';
 
+// external API
+export { signZkappCommand, verifyZkappCommandSignature };
+
+// internal API
 export {
   accountUpdatesToCallForest,
   callForestHash,
@@ -24,22 +33,40 @@ export {
 };
 
 function signZkappCommand(
-  zkappCommand: Json.ZkappCommand,
-  privateKey: PrivateKey
-): Signed<ZkappCommand> {
-  let zkAppCommmand_ = ZkappCommand.fromJSON(zkappCommand);
-  let callForest = accountUpdatesToCallForest(zkAppCommmand_.accountUpdates);
+  zkappCommand_: Json.ZkappCommand,
+  privateKeyBase58: string,
+  networkId: NetworkId
+): Json.ZkappCommand {
+  let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
+  let fullCommitment = fullTransactionCommitment(zkappCommand);
+  let privateKey = PrivateKey.fromBase58(privateKeyBase58);
+  let signature = signFieldElement(fullCommitment, privateKey, networkId);
+  zkappCommand.feePayer.authorization = Signature.toBase58(signature);
+  return ZkappCommand.toJSON(zkappCommand);
+}
+
+function verifyZkappCommandSignature(
+  zkappCommand_: Json.ZkappCommand,
+  publicKeyBase58: string,
+  networkId: NetworkId
+) {
+  let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
+  let fullCommitment = fullTransactionCommitment(zkappCommand);
+  let publicKey = PublicKey.fromBase58(publicKeyBase58);
+  let signature = Signature.fromBase58(zkappCommand.feePayer.authorization);
+  return verifyFieldElement(signature, fullCommitment, publicKey, networkId);
+}
+
+function fullTransactionCommitment(zkappCommand: ZkappCommand) {
+  let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
   let commitment = callForestHash(callForest);
-  let memoHash = Memo.hash(Memo.fromBase58(zkAppCommmand_.memo));
-  let feePayerDigest = feePayerHash(zkAppCommmand_.feePayer);
-  let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
+  let memoHash = Memo.hash(Memo.fromBase58(zkappCommand.memo));
+  let feePayerDigest = feePayerHash(zkappCommand.feePayer);
+  return hashWithPrefix(prefixes.accountUpdateCons, [
     memoHash,
     feePayerDigest,
     commitment,
   ]);
-  // TODO create signature with privatekey on fullCommitment
-  // TODO serialize account updates back to JSON and return
-  throw Error('signZkappCommand unimplemented');
 }
 
 type CallTree = {
@@ -103,7 +130,7 @@ function accountUpdateFromFeePayer({
   body: { fee, nonce, publicKey, validUntil },
   authorization: signature,
 }: FeePayer): AccountUpdate {
-  let { body } = AccountUpdate.fromJSON(JSON.parse(emptyUpdate));
+  let { body } = AccountUpdate.emptyValue();
   body.publicKey = publicKey;
   body.balanceChange = {
     magnitude: fee,
@@ -125,7 +152,3 @@ function accountUpdateFromFeePayer({
   body.authorizationKind = { isProved: Bool(false), isSigned: Bool(true) };
   return { body, authorization: { signature } };
 }
-
-// TODO generalize "emptyValue" to a layout fold method to create complex dummies
-const emptyUpdate =
-  '{"body":{"publicKey":"B62qiTKpEPjGTSHZrtM8uXiKgn8So916pLmNJKDhKeyBQL9TDb3nvBG","tokenId":"wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf","update":{"appState":[null,null,null,null,null,null,null,null],"delegate":null,"verificationKey":null,"permissions":null,"zkappUri":null,"tokenSymbol":null,"timing":null,"votingFor":null},"balanceChange":{"magnitude":"0","sgn":"Positive"},"incrementNonce":false,"events":[],"sequenceEvents":[],"callData":"0","callDepth":0,"preconditions":{"network":{"snarkedLedgerHash":null,"blockchainLength":null,"minWindowDensity":null,"totalCurrency":null,"globalSlotSinceGenesis":null,"stakingEpochData":{"ledger":{"hash":null,"totalCurrency":null},"seed":null,"startCheckpoint":null,"lockCheckpoint":null,"epochLength":null},"nextEpochData":{"ledger":{"hash":null,"totalCurrency":null},"seed":null,"startCheckpoint":null,"lockCheckpoint":null,"epochLength":null}},"account":{"balance":null,"nonce":null,"receiptChainHash":null,"delegate":null,"state":[null,null,null,null,null,null,null,null],"sequenceState":null,"provedState":null,"isNew":null}},"useFullCommitment":false,"caller":"wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf","authorizationKind":"None_given"},"authorization":{"proof":null,"signature":null}}';

@@ -20,6 +20,7 @@ import {
 
 let Local = Mina.LocalBlockchain({
   proofsEnabled: false,
+  enforceTransactionLimits: false,
 });
 Mina.setActiveInstance(Local);
 

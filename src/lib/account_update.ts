@@ -870,18 +870,23 @@ class AccountUpdate implements Types.AccountUpdate {
    * Note that an account's {@link Permissions} determine which updates have to be (can be) authorized by a signature.
    */
   requireSignature() {
-    let nonce = AccountUpdate.getNonce(this);
-    this.account.nonce.assertEquals(nonce);
-    this.body.incrementNonce = Bool(true);
-    Authorization.setLazySignature(this, {});
+    this.sign();
   }
   /**
    * @deprecated `.sign()` is deprecated in favor of `.requireSignature()`
    */
   sign(privateKey?: PrivateKey) {
-    let nonce = AccountUpdate.getNonce(this);
-    this.account.nonce.assertEquals(nonce);
-    this.body.incrementNonce = Bool(true);
+    let { nonce, isSameAsFeePayer } = AccountUpdate.getSigningInfo(this);
+    // if this account is the same as the fee payer, we use the "full commitment" for replay protection
+    this.body.useFullCommitment = isSameAsFeePayer;
+    // otherwise, we increment the nonce
+    let doIncrementNonce = isSameAsFeePayer.not();
+    this.body.incrementNonce = doIncrementNonce;
+    // in this case, we also have to set a nonce precondition
+    this.body.preconditions.account.nonce.isSome = doIncrementNonce;
+    this.body.preconditions.account.nonce.value.lower = nonce;
+    this.body.preconditions.account.nonce.value.upper = nonce;
+    // set lazy signature
     Authorization.setLazySignature(this, { privateKey });
   }
 
@@ -895,12 +900,25 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   static getNonce(accountUpdate: AccountUpdate | FeePayerUnsigned) {
-    return memoizeWitness(UInt32, () =>
-      AccountUpdate.getNonceUnchecked(accountUpdate)
+    return AccountUpdate.getSigningInfo(accountUpdate).nonce;
+  }
+
+  private static signingInfo = provable({
+    nonce: UInt32,
+    isSameAsFeePayer: Bool,
+  });
+
+  private static getSigningInfo(
+    accountUpdate: AccountUpdate | FeePayerUnsigned
+  ) {
+    return memoizeWitness(AccountUpdate.signingInfo, () =>
+      AccountUpdate.getSigningInfoUnchecked(accountUpdate)
     );
   }
 
-  private static getNonceUnchecked(update: AccountUpdate | FeePayerUnsigned) {
+  private static getSigningInfoUnchecked(
+    update: AccountUpdate | FeePayerUnsigned
+  ) {
     let publicKey = update.body.publicKey;
     let tokenId =
       update instanceof AccountUpdate ? update.body.tokenId : TokenId.default;
@@ -910,9 +928,11 @@ class AccountUpdate implements Types.AccountUpdate {
     // if the fee payer is the same account update as this one, we have to start the nonce predicate at one higher,
     // bc the fee payer already increases its nonce
     let isFeePayer = Mina.currentTransaction()?.sender?.equals(publicKey);
-    let shouldIncreaseNonce = isFeePayer?.and(tokenId.equals(TokenId.default));
-    if (shouldIncreaseNonce?.toBoolean()) nonce++;
-    // now, we check how often this accountUpdate already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
+    let isSameAsFeePayer = !!isFeePayer
+      ?.and(tokenId.equals(TokenId.default))
+      .toBoolean();
+    if (isSameAsFeePayer) nonce++;
+    // now, we check how often this account update already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
     CallForest.forEachPredecessor(
       Mina.currentTransaction.get().accountUpdates,
       update as AccountUpdate,
@@ -924,7 +944,10 @@ class AccountUpdate implements Types.AccountUpdate {
         if (shouldIncreaseNonce.toBoolean()) nonce++;
       }
     );
-    return UInt32.from(nonce);
+    return {
+      nonce: UInt32.from(nonce),
+      isSameAsFeePayer: Bool(isSameAsFeePayer),
+    };
   }
 
   toJSON() {
@@ -954,8 +977,6 @@ class AccountUpdate implements Types.AccountUpdate {
     }
   }
 
-  // TODO: this was only exposed to be used in a unit test
-  // consider removing when we have inline unit tests
   toPublicInput(): ZkappPublicInput {
     let accountUpdate = this.hash();
     let calls = CallForest.hashChildren(this);
@@ -990,6 +1011,11 @@ class AccountUpdate implements Types.AccountUpdate {
     return { body, authorization: Ledger.dummySignature() };
   }
 
+  /**
+   * Creates an account update. If this is inside a transaction, the account update becomes part of the transaction.
+   * If this is inside a smart contract method, the account update will not only become part of the transaction, but
+   * also becomes available for the smart contract to modify, in a way that becomes part of the proof.
+   */
   static create(publicKey: PublicKey, tokenId?: Field) {
     let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey, tokenId);
     if (smartContractContext.has()) {
@@ -999,6 +1025,10 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     return accountUpdate;
   }
+  /**
+   * Attach account update to the current transaction
+   * -- if in a smart contract, to its children
+   */
   static attachToTransaction(accountUpdate: AccountUpdate) {
     if (smartContractContext.has()) {
       let selfUpdate = smartContractContext.get().this.self;
@@ -1015,24 +1045,54 @@ class AccountUpdate implements Types.AccountUpdate {
       }
     }
   }
+  /**
+   * Disattach an account update from where it's currently located in the transaction
+   */
+  static unlink(accountUpdate: AccountUpdate) {
+    let siblings =
+      accountUpdate.parent?.children.accountUpdates ??
+      Mina.currentTransaction()?.accountUpdates;
+    if (siblings === undefined) return;
+    let i = siblings?.findIndex((update) => update.id === accountUpdate.id);
+    if (i !== undefined && i !== -1) {
+      siblings!.splice(i, 1);
+    }
+    accountUpdate.parent === undefined;
+  }
 
-  static createSigned(signer: PrivateKey) {
-    let publicKey = signer.toPublicKey();
+  /**
+   * Creates an account update, like {@link AccountUpdate.create}, but also makes sure
+   * this account update will be authorized with a signature.
+   *
+   * If you use this and are not relying on a wallet to sign your transaction, then you should use the following code
+   * before sending your transaction:
+   *
+   * ```ts
+   * let tx = Mina.transaction(...); // create transaction as usual, using `createSigned()` somewhere
+   * tx.sign([privateKey]); // pass the private key of this account to `sign()`!
+   * ```
+   *
+   * Note that an account's {@link Permissions} determine which updates have to be (can be) authorized by a signature.
+   */
+  static createSigned(signer: PublicKey, tokenId?: Field): AccountUpdate;
+  /**
+   * @deprecated in favor of calling this function with a `PublicKey` as `signer`
+   */
+  static createSigned(signer: PrivateKey, tokenId?: Field): AccountUpdate;
+  static createSigned(signer: PrivateKey | PublicKey, tokenId?: Field) {
+    let publicKey =
+      signer instanceof PrivateKey ? signer.toPublicKey() : signer;
     if (!Mina.currentTransaction.has()) {
       throw new Error(
         'AccountUpdate.createSigned: Cannot run outside of a transaction'
       );
     }
-    let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey);
-    // it's fine to compute the nonce outside the circuit, because we're constraining it with a precondition
-    let nonce = Circuit.witness(UInt32, () =>
-      AccountUpdate.getNonceUnchecked(accountUpdate)
-    );
-    accountUpdate.account.nonce.assertEquals(nonce);
-    accountUpdate.body.incrementNonce = Bool(true);
-
-    Authorization.setLazySignature(accountUpdate, { privateKey: signer });
-    Mina.currentTransaction.get().accountUpdates.push(accountUpdate);
+    let accountUpdate = AccountUpdate.create(publicKey, tokenId);
+    if (signer instanceof PrivateKey) {
+      accountUpdate.sign(signer);
+    } else {
+      accountUpdate.requireSignature();
+    }
     return accountUpdate;
   }
 
@@ -1456,20 +1516,8 @@ function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
   // add to our children if not already here
   if (!wasChildAlready) {
     parent.children.accountUpdates.push(child);
-  }
-  // remove the child from the top level list / its current parent
-  if (child.parent === undefined) {
-    let topLevelUpdates = Mina.currentTransaction()?.accountUpdates;
-    let i = topLevelUpdates?.findIndex((update) => update.id === child.id);
-    if (i !== undefined && i !== -1) {
-      topLevelUpdates!.splice(i, 1);
-    }
-  } else if (!wasChildAlready) {
-    let siblings = child.parent.children.accountUpdates;
-    let i = siblings?.findIndex((update) => update.id === child.id);
-    if (i !== undefined && i !== -1) {
-      siblings!.splice(i, 1);
-    }
+    // remove the child from the top level list / its current parent
+    AccountUpdate.unlink(child);
   }
   child.parent = parent;
 }
@@ -1575,7 +1623,7 @@ function addMissingSignatures(
       }
       privateKey = additionalKeys[i];
     }
-    let signature = Ledger.signFieldElement(fullCommitment, privateKey);
+    let signature = Ledger.signFieldElement(fullCommitment, privateKey, false);
     return { body, authorization: signature };
   }
 
@@ -1598,7 +1646,11 @@ function addMissingSignatures(
     let transactionCommitment = accountUpdate.body.useFullCommitment.toBoolean()
       ? fullCommitment
       : commitment;
-    let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
+    let signature = Ledger.signFieldElement(
+      transactionCommitment,
+      privateKey,
+      false
+    );
     Authorization.setSignature(accountUpdate, signature);
     return accountUpdate as AccountUpdate & { lazyAuthorization: undefined };
   }

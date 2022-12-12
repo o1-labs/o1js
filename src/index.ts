@@ -1,13 +1,5 @@
-export {
-  Group,
-  Scalar,
-  ProvablePure,
-  Provable,
-  Ledger,
-  isReady,
-  shutdown,
-} from './snarky.js';
-export { Field, Bool } from './lib/core.js';
+export { ProvablePure, Provable, Ledger, isReady, shutdown } from './snarky.js';
+export { Field, Bool, Group, Scalar } from './lib/core.js';
 export type { Keypair } from './snarky.js';
 export * from './snarky/addons.js';
 export { Poseidon, TokenSymbol } from './lib/hash.js';

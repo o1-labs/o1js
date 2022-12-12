@@ -1,4 +1,4 @@
-import { fieldEncodings } from '../provable/binable.js';
+import { fieldEncodings } from '../provable/base58.js';
 import { Field } from '../snarky.js';
 
 export {

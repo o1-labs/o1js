@@ -1,7 +1,8 @@
 import { GenericBool, GenericField, GenericHashInput } from './generic.js';
 import { createProvable } from './provable-generic.js';
 import * as Json from './gen/transaction-json.js';
-import { fieldEncodings, prefixToField } from './binable.js';
+import { prefixToField } from './binable.js';
+import { fieldEncodings } from './base58.js';
 
 export { derivedLeafTypes };
 
