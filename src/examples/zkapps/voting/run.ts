@@ -1,11 +1,4 @@
-import {
-  Experimental,
-  Mina,
-  PrivateKey,
-  PublicKey,
-  UInt32,
-  UInt64,
-} from 'snarkyjs';
+import { PrivateKey, UInt32, UInt64 } from 'snarkyjs';
 import { VotingApp, VotingAppParams } from './factory.js';
 import {
   ElectionPreconditions,
@@ -15,6 +8,7 @@ import {
 import { OffchainStorage } from './off_chain_storage.js';
 import { Member } from './member.js';
 import { testSet } from './test.js';
+import { getProfiler } from '../../profiler.js';
 
 console.log('Running Voting script...');
 
@@ -56,6 +50,8 @@ console.log('Building contracts for set 1...');
 let contracts_set1 = await VotingApp(params_set1);
 
 console.log('Testing set 1...');
+const VotingProfiler = getProfiler('Voting profiler set 1');
+VotingProfiler.start('Voting test flow');
 await testSet(contracts_set1, params_set1, storage_set1);
-
+VotingProfiler.stop().store();
 // ..

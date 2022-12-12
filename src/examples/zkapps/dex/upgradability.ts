@@ -12,6 +12,7 @@ import {
 } from 'snarkyjs';
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
+import { getProfiler } from '../../profiler.js';
 
 let doProofs = false;
 
@@ -31,6 +32,8 @@ await atomicActionsTest({
 console.log('all atomic actions tests were successful!');
 
 async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
+  const DexProfiler = getProfiler('DEX profiler atomic actions');
+  DexProfiler.start('DEX test flow');
   let Local = Mina.LocalBlockchain({
     proofsEnabled: doProofs,
     enforceTransactionLimits: false,
@@ -233,9 +236,12 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   await tx.sign([keys.dex]).send();
 
   Mina.getAccount(addresses.dex).delegate?.assertEquals(newDelegate);
+  DexProfiler.stop().store();
 }
 
 async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
+  const DexProfiler = getProfiler('DEX profiler upgradeability tests');
+  DexProfiler.start('DEX test flow');
   let Local = Mina.LocalBlockchain({
     proofsEnabled: doProofs,
     enforceTransactionLimits: false,
@@ -453,4 +459,5 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   });
   await tx.prove();
   await tx.sign([keys.user]).send();
+  DexProfiler.stop().store();
 }

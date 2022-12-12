@@ -417,8 +417,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
   }
   // tests below are not specific to vesting
   if (withVesting) {
-    DexProfiler.stop();
-    DexProfiler.store();
+    DexProfiler.stop().store();
     return;
   }
 
@@ -535,8 +534,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
     oldBalances.dex.X * oldBalances.dex.Y
   );
 
-  DexProfiler.stop();
-  DexProfiler.store();
+  DexProfiler.stop().store();
 }
 
 shutdown();

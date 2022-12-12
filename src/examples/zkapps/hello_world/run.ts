@@ -205,5 +205,4 @@ function handleError(error: any, errorMessage: string) {
   }
 }
 
-HelloWorldProfier.stop();
-HelloWorldProfier.store();
+HelloWorldProfier.stop().store();
