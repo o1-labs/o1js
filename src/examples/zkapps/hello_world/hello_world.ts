@@ -3,7 +3,6 @@ import {
   SmartContract,
   state,
   State,
-  AccountUpdate,
   method,
   DeployArgs,
   PrivateKey,
