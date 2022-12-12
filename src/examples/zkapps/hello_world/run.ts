@@ -1,5 +1,9 @@
 import { HelloWorld, adminPrivateKey } from './hello_world.js';
 import { Mina, PrivateKey, AccountUpdate, Field } from 'snarkyjs';
+import { getProfiler } from '../../profiler.js';
+
+const HelloWorldProfier = getProfiler('Hello World');
+HelloWorldProfier.start('Hello World test flow');
 
 let txn, txn2, txn3, txn4;
 // setup local ledger
@@ -200,3 +204,6 @@ function handleError(error: any, errorMessage: string) {
     throw Error(error);
   }
 }
+
+HelloWorldProfier.stop();
+HelloWorldProfier.store();

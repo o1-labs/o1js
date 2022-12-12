@@ -10,6 +10,8 @@ import {
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
 
+import { getProfiler } from '../../profiler.js';
+
 await isReady;
 let doProofs = false;
 
@@ -53,6 +55,10 @@ await main({ withVesting: true });
 console.log('all dex tests were successful! 🎉');
 
 async function main({ withVesting }: { withVesting: boolean }) {
+  const DexProfiler = getProfiler(
+    `DEX testing ${withVesting ? 'with vesting' : ''}`
+  );
+  DexProfiler.start('DEX test flow');
   if (withVesting) console.log('\nWITH VESTING');
   else console.log('\nNO VESTING');
 
@@ -410,7 +416,11 @@ async function main({ withVesting }: { withVesting: boolean }) {
     );
   }
   // tests below are not specific to vesting
-  if (withVesting) return;
+  if (withVesting) {
+    DexProfiler.stop();
+    DexProfiler.store();
+    return;
+  }
 
   /**
    * Happy path (tokens creation on receiver side in case of their absence)
@@ -524,6 +534,9 @@ async function main({ withVesting }: { withVesting: boolean }) {
   expect(balances.dex.X * balances.dex.Y).toBeGreaterThanOrEqual(
     oldBalances.dex.X * oldBalances.dex.Y
   );
+
+  DexProfiler.stop();
+  DexProfiler.store();
 }
 
 shutdown();
