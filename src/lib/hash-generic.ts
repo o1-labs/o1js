@@ -15,12 +15,6 @@ function createHashHelpers<Field>(
   Hash: Hash<Field>,
   packToFields: (input: GenericHashInput<Field>) => Field[]
 ) {
-  function toBigInt(x: Field): bigint {
-    if (typeof x === 'bigint') return x;
-    if ((x as any).toBigInt) return (x as any).toBigInt();
-    throw Error(`toBigInt: not implemented for ${x}`);
-  }
-
   function salt(prefix: string) {
     return Hash.update(Hash.initialState(), [prefixToField(Field, prefix)]);
   }
