@@ -475,10 +475,14 @@ function LocalBlockchain({
         }
       });
       return {
-        wait: async () => {},
+        wait: async (options?: { maxAttempts?: number; interval?: number }) => {
+          console.log(
+            'Info: Waiting for inclusion in a block is not supported for LocalBlockchain.'
+          );
+        },
         hash: (): string => {
           const message =
-            'Txn Hash retrieving is not supported for LocalBlockchain.';
+            'Info: Txn Hash retrieving is not supported for LocalBlockchain.';
           console.log(message);
           return message;
         },
