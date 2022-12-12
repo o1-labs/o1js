@@ -2,7 +2,7 @@ import { Field, Bool, UInt32, UInt64, Sign } from './field-bigint.js';
 import { PublicKey } from './curve-bigint.js';
 import { derivedLeafTypes } from './derived-leaves.js';
 import { createEvents } from '../lib/events.js';
-import { Poseidon } from './poseidon-bigint.js';
+import { Poseidon, Hash } from './poseidon-bigint.js';
 
 export {
   PublicKey,
@@ -16,13 +16,7 @@ export {
   TokenId,
 };
 
-export {
-  Events,
-  SequenceEvents,
-  ZkappUri as StringWithHash,
-  TokenSymbol,
-  SequenceState,
-};
+export { Events, SequenceEvents, ZkappUri, TokenSymbol, SequenceState };
 
 type AuthRequired = {
   constant: Bool;
@@ -35,9 +29,7 @@ type TokenSymbol = { symbol: string; field: Field };
 type ZkappUri = { data: string; hash: Field };
 
 const { TokenId, TokenSymbol, AuthRequired, AuthorizationKind, ZkappUri } =
-  derivedLeafTypes({ Field, Bool });
-
-// types which got an annotation about its circuit type in Ocaml
+  derivedLeafTypes({ Field, Bool, Hash });
 
 type Event = Field[];
 type Events = {

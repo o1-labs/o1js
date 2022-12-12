@@ -1,10 +1,10 @@
 import { Field, sizeInBits } from './field-bigint.js';
-import { bitsToBytes, prefixToField } from './binable.js';
+import { bitsToBytes } from './binable.js';
 import { Poseidon } from '../js_crypto/poseidon.js';
 import { prefixes } from '../js_crypto/constants.js';
 import { createHashInput } from './provable-generic.js';
 import { GenericHashInput } from './generic.js';
-import { createHashHelpers } from 'src/lib/hash-generic.js';
+import { createHashHelpers } from '../lib/hash-generic.js';
 
 export {
   Poseidon,

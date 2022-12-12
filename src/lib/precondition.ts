@@ -11,6 +11,7 @@ import { Layout } from '../provable/gen/transaction.js';
 import { jsLayout } from '../provable/gen/js-layout.js';
 import { emptyReceiptChainHash, TokenSymbol } from './hash.js';
 import { PublicKey } from './signature.js';
+import { ZkappUri } from '../provable/transaction-leaves.js';
 
 export {
   preconditions,
@@ -55,9 +56,7 @@ function Account(accountUpdate: AccountUpdate): Account {
     },
     verificationKey: updateSubclass(accountUpdate, 'verificationKey', identity),
     permissions: updateSubclass(accountUpdate, 'permissions', identity),
-    zkappUri: updateSubclass(accountUpdate, 'zkappUri', () => {
-      throw Error('zkappUri.set is not implemented');
-    }),
+    zkappUri: updateSubclass(accountUpdate, 'zkappUri', ZkappUri.fromJSON),
     tokenSymbol: updateSubclass(accountUpdate, 'tokenSymbol', TokenSymbol.from),
     timing: updateSubclass(accountUpdate, 'timing', identity),
     votingFor: updateSubclass(accountUpdate, 'votingFor', identity),

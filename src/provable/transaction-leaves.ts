@@ -3,7 +3,7 @@ import { UInt32, UInt64, Sign } from '../lib/int.js';
 import { PublicKey } from '../lib/signature.js';
 import { derivedLeafTypes } from './derived-leaves.js';
 import { createEvents } from '../lib/events.js';
-import { Poseidon } from '../lib/hash.js';
+import { Poseidon, Hash } from '../lib/hash.js';
 import { provable } from '../lib/circuit_value.js';
 
 export {
@@ -18,13 +18,7 @@ export {
   TokenId,
 };
 
-export {
-  Events,
-  SequenceEvents,
-  ZkappUri as StringWithHash,
-  TokenSymbol,
-  SequenceState,
-};
+export { Events, SequenceEvents, ZkappUri, TokenSymbol, SequenceState };
 
 type AuthRequired = {
   constant: Bool;
@@ -37,9 +31,7 @@ type TokenSymbol = { symbol: string; field: Field };
 type ZkappUri = { data: string; hash: Field };
 
 const { TokenId, TokenSymbol, AuthRequired, AuthorizationKind, ZkappUri } =
-  derivedLeafTypes({ Field, Bool });
-
-// types which got an annotation about its circuit type in Ocaml
+  derivedLeafTypes({ Field, Bool, Hash });
 
 type Event = Field[];
 type Events = {
