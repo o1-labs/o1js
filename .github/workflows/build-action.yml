@@ -38,6 +38,7 @@ jobs:
         run: |
           npm ci
           npm run build:node
+          touch profiling.md
           sh run-ci-tests.sh
           cat profiling.md >> $GITHUB_STEP_SUMMARY
 
