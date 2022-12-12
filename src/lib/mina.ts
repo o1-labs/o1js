@@ -654,9 +654,11 @@ function Network(graphqlEndpoint: string): Mina {
         data: response?.data,
         errors,
         async wait(options?: { maxAttempts?: number; interval?: number }) {
-          // default is 900 attempts * 1s each = 15min
-          maxAttempts = options?.maxAttempts ?? 900;
-          interval = options?.interval ?? 1000;
+          // default is 45 attempts * 20s each = 15min
+          // the block time on berkeley is currently longer than the average 3-4min, so its better to target a higher block time
+          // fetching an update every 20s is more than enough with a current block time of 3min
+          maxAttempts = options?.maxAttempts ?? 45;
+          interval = options?.interval ?? 20000;
 
           const executePoll = async (
             resolve: (data?: any) => any,
