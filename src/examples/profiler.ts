@@ -3,6 +3,8 @@ import fs from 'fs';
 
 export { getProfiler };
 
+const round = (x: number) => Math.round(x * 100) / 100;
+
 function getProfiler(name: string) {
   let times: Record<string, any> = {};
   let label: string;
@@ -22,6 +24,7 @@ function getProfiler(name: string) {
     },
     stop() {
       times[label].end = performance.now();
+      return this;
     },
     store() {
       let profilingData = `## Times for ${name}\n\n`;
@@ -32,10 +35,12 @@ function getProfiler(name: string) {
         let timePassed = (times[k].end - times[k].start) / 1000;
         totalTimePassed += timePassed;
 
-        profilingData += `\n|${k}|${timePassed}|`;
+        profilingData += `\n|${k}|${round(timePassed)}|`;
       });
 
-      profilingData += `\n\nIn total, it took ${totalTimePassed} seconds to run the entire benchmark\n\n\n`;
+      profilingData += `\n\nIn total, it took ${round(
+        totalTimePassed
+      )} seconds to run the entire benchmark\n\n\n`;
 
       fs.appendFileSync('profiling.md', profilingData);
     },
