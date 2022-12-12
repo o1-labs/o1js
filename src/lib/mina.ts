@@ -53,7 +53,7 @@ export {
   filterGroups,
 };
 interface TransactionId {
-  wait(): Promise<void>;
+  wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;
   hash(): string;
 }
 
@@ -642,13 +642,35 @@ function Network(graphqlEndpoint: string): Mina {
         errors = [error];
       }
 
+      let maxAttempts: number;
+      let attempts = 0;
+      let interval: number;
+
       return {
         data: response?.data,
         errors,
-        async wait() {
-          console.log(
-            'Info: waiting for inclusion in a block is not implemented yet.'
-          );
+        async wait(options?: { maxAttempts?: number; interval?: number }) {
+          // default is 900 attempts * 1s each = 15min
+          maxAttempts = options?.maxAttempts ?? 900;
+          interval = options?.interval ?? 1000;
+
+          const executePoll = async (
+            resolve: (data?: any) => any,
+            reject: (err: any) => any
+          ) => {
+            let txId = response?.data?.sendZkapp?.zkapp?.id;
+            let res = await Fetch.fetchTransactionStatus(txId);
+            attempts++;
+            if (res == 'INCLUDED') {
+              return resolve();
+            } else if (maxAttempts && attempts === maxAttempts) {
+              return reject(new Error('Exceeded max attempts'));
+            } else {
+              setTimeout(executePoll, interval, resolve, reject);
+            }
+          };
+
+          return new Promise(executePoll);
         },
         hash() {
           return response?.data?.sendZkapp?.zkapp?.hash;
