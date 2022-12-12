@@ -321,11 +321,9 @@ let jsLayout = {
                       docs: null,
                       keys: [
                         'snarkedLedgerHash',
-                        'timestamp',
                         'blockchainLength',
                         'minWindowDensity',
                         'totalCurrency',
-                        'globalSlotSinceHardFork',
                         'globalSlotSinceGenesis',
                         'stakingEpochData',
                         'nextEpochData',
@@ -335,23 +333,6 @@ let jsLayout = {
                           type: 'option',
                           optionType: 'flaggedOption',
                           inner: { type: 'Field' },
-                        },
-                        timestamp: {
-                          type: 'option',
-                          optionType: 'closedInterval',
-                          rangeMin: '0',
-                          rangeMax: '18446744073709551615',
-                          inner: {
-                            type: 'object',
-                            name: 'BlockTimeInterval',
-                            docs: null,
-                            keys: ['lower', 'upper'],
-                            entries: {
-                              lower: { type: 'UInt64' },
-                              upper: { type: 'UInt64' },
-                            },
-                            docEntries: { lower: null, upper: null },
-                          },
                         },
                         blockchainLength: {
                           type: 'option',
@@ -400,23 +381,6 @@ let jsLayout = {
                             entries: {
                               lower: { type: 'UInt64' },
                               upper: { type: 'UInt64' },
-                            },
-                            docEntries: { lower: null, upper: null },
-                          },
-                        },
-                        globalSlotSinceHardFork: {
-                          type: 'option',
-                          optionType: 'closedInterval',
-                          rangeMin: '0',
-                          rangeMax: '4294967295',
-                          inner: {
-                            type: 'object',
-                            name: 'GlobalSlotInterval',
-                            docs: null,
-                            keys: ['lower', 'upper'],
-                            entries: {
-                              lower: { type: 'UInt32' },
-                              upper: { type: 'UInt32' },
                             },
                             docEntries: { lower: null, upper: null },
                           },
@@ -609,11 +573,9 @@ let jsLayout = {
                       },
                       docEntries: {
                         snarkedLedgerHash: null,
-                        timestamp: null,
                         blockchainLength: null,
                         minWindowDensity: null,
                         totalCurrency: null,
-                        globalSlotSinceHardFork: null,
                         globalSlotSinceGenesis: null,
                         stakingEpochData: null,
                         nextEpochData: null,
@@ -1045,11 +1007,9 @@ let jsLayout = {
                 docs: null,
                 keys: [
                   'snarkedLedgerHash',
-                  'timestamp',
                   'blockchainLength',
                   'minWindowDensity',
                   'totalCurrency',
-                  'globalSlotSinceHardFork',
                   'globalSlotSinceGenesis',
                   'stakingEpochData',
                   'nextEpochData',
@@ -1059,23 +1019,6 @@ let jsLayout = {
                     type: 'option',
                     optionType: 'flaggedOption',
                     inner: { type: 'Field' },
-                  },
-                  timestamp: {
-                    type: 'option',
-                    optionType: 'closedInterval',
-                    rangeMin: '0',
-                    rangeMax: '18446744073709551615',
-                    inner: {
-                      type: 'object',
-                      name: 'BlockTimeInterval',
-                      docs: null,
-                      keys: ['lower', 'upper'],
-                      entries: {
-                        lower: { type: 'UInt64' },
-                        upper: { type: 'UInt64' },
-                      },
-                      docEntries: { lower: null, upper: null },
-                    },
                   },
                   blockchainLength: {
                     type: 'option',
@@ -1124,23 +1067,6 @@ let jsLayout = {
                       entries: {
                         lower: { type: 'UInt64' },
                         upper: { type: 'UInt64' },
-                      },
-                      docEntries: { lower: null, upper: null },
-                    },
-                  },
-                  globalSlotSinceHardFork: {
-                    type: 'option',
-                    optionType: 'closedInterval',
-                    rangeMin: '0',
-                    rangeMax: '4294967295',
-                    inner: {
-                      type: 'object',
-                      name: 'GlobalSlotInterval',
-                      docs: null,
-                      keys: ['lower', 'upper'],
-                      entries: {
-                        lower: { type: 'UInt32' },
-                        upper: { type: 'UInt32' },
                       },
                       docEntries: { lower: null, upper: null },
                     },
@@ -1333,11 +1259,9 @@ let jsLayout = {
                 },
                 docEntries: {
                   snarkedLedgerHash: null,
-                  timestamp: null,
                   blockchainLength: null,
                   minWindowDensity: null,
                   totalCurrency: null,
-                  globalSlotSinceHardFork: null,
                   globalSlotSinceGenesis: null,
                   stakingEpochData: null,
                   nextEpochData: null,

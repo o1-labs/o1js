@@ -426,7 +426,7 @@ function LocalBlockchain({
           }
           events[addr][tokenId].push({
             events: p.body.events,
-            slot: networkState.globalSlotSinceHardFork.toString(),
+            slot: networkState.globalSlotSinceGenesis.toString(),
           });
         }
 
@@ -520,20 +520,13 @@ function LocalBlockchain({
      * 30000000000 units of currency.
      */
     testAccounts,
-    setTimestamp(ms: UInt64) {
-      networkState.timestamp = ms;
-    },
     setGlobalSlot(slot: UInt32 | number) {
       networkState.globalSlotSinceGenesis = UInt32.from(slot);
       let difference = networkState.globalSlotSinceGenesis.sub(slot);
-      networkState.globalSlotSinceHardFork =
-        networkState.globalSlotSinceHardFork.add(difference);
     },
     incrementGlobalSlot(increment: UInt32 | number) {
       networkState.globalSlotSinceGenesis =
         networkState.globalSlotSinceGenesis.add(increment);
-      networkState.globalSlotSinceHardFork =
-        networkState.globalSlotSinceHardFork.add(increment);
     },
     setBlockchainLength(height: UInt32) {
       networkState.blockchainLength = height;
@@ -868,11 +861,9 @@ function defaultNetworkState(): NetworkValue {
   };
   return {
     snarkedLedgerHash: Field(0),
-    timestamp: UInt64.zero,
     blockchainLength: UInt32.zero,
     minWindowDensity: UInt32.zero,
     totalCurrency: UInt64.zero,
-    globalSlotSinceHardFork: UInt32.zero,
     globalSlotSinceGenesis: UInt32.zero,
     stakingEpochData: epochData,
     nextEpochData: cloneCircuitValue(epochData),
