@@ -15,7 +15,7 @@ import {
   Reducer,
 } from 'snarkyjs';
 import assert from 'node:assert/strict';
-import { getProfiler } from 'src/examples/profiler.js';
+import { getProfiler } from '../../profiler.js';
 
 await isReady;
 
