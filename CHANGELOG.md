@@ -19,17 +19,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `this.account.<field>.set()` as a unified API to update fields on the account https://github.com/o1-labs/snarkyjs/pull/643
+  - covers `permissions`, `verificationKey`, `zkappUri`, `tokenSymbol`, `delegate`, `votingFor`
+  - exists on `SmartContract.account` and `AccountUpdate.account`
 - `Circuit.constraintSystemFromKeypair(keypair)` to inspect the circuit at a low level https://github.com/o1-labs/snarkyjs/pull/529
   - Works with a `keypair` (prover + verifier key) generated with the `Circuit` API
 
 ### Changed
 
-- BREAKING CHANGE: Constraint changes in `sign()`, `requireSignature()` and `createSigned()` on `AccountUpdate` / `SmartContract`. _This means that smart contracts using these methods in their proofs won't be able to create valid proofs against old deployed verification keys._
+- BREAKING CHANGE: Constraint changes in `sign()`, `requireSignature()` and `createSigned()` on `AccountUpdate` / `SmartContract`. _This means that smart contracts using these methods in their proofs won't be able to create valid proofs against old deployed verification keys._ https://github.com/o1-labs/snarkyjs/pull/637
 - New option `enforceTransactionLimits` for `LocalBlockchain` (default value: `true`), to disable the enforcement of protocol transaction limits (maximum events, maximum sequence events and enforcing certain layout of `AccountUpdate`s depending on their authorization) https://github.com/o1-labs/snarkyjs/pull/620
 
 ### Deprecated
 
-- `AccountUpdate.createSigned(privateKey: PrivateKey)` in favor of new signature `AccountUpdate.createSigned(publicKey: PublicKey)`
+- `this.setPermissions()` in favor of `this.account.permissions.set()` https://github.com/o1-labs/snarkyjs/pull/643
+  - `this.tokenSymbol.set()` in favor of `this.account.tokenSymbol.set()`
+  - `this.setValue()` in favor of `this.account.<field>.set()`
+- `AccountUpdate.createSigned(privateKey: PrivateKey)` in favor of new signature `AccountUpdate.createSigned(publicKey: PublicKey)` https://github.com/o1-labs/snarkyjs/pull/637
 
 ### Fixed
 
