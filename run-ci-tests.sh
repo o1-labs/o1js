@@ -3,9 +3,9 @@ case $TEST_TYPE in
     "Simple integration tests" ) 
       echo "Running basic integration tests";
       ./run src/examples/zkapps/hello_world/run.ts --bundle || exit 1
-      ./run src/examples/simple_zkapp.ts || exit 1
-      ./run src/examples/zkapps/reducer/reducer_composite.ts || exit 1
-      ./run src/examples/zkapps/composability.ts || exit 1 ;; 
+      ./run src/examples/simple_zkapp.ts --bundle || exit 1
+      ./run src/examples/zkapps/reducer/reducer_composite.ts --bundle || exit 1
+      ./run src/examples/zkapps/composability.ts --bundle || exit 1 ;; 
 
     "Voting integration tests" )
       echo "Running voting integration tests";

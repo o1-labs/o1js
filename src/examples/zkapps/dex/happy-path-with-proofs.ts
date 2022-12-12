@@ -2,8 +2,12 @@ import { isReady, Mina, AccountUpdate, UInt64 } from 'snarkyjs';
 import { createDex, TokenContract, addresses, keys } from './dex.js';
 import { expect } from 'expect';
 import { tic, toc } from '../tictoc.js';
+import { getProfiler } from '../../profiler.js';
 
 await isReady;
+
+const TokenProfiler = getProfiler('Token with Proofs');
+TokenProfiler.start('Token with proofs test flow');
 let doProofs = true;
 
 tic('Happy path with proofs');
@@ -119,3 +123,4 @@ expect(balances.user.X).toEqual(oldBalances.user.X - USER_DX);
 
 toc();
 console.log('dex happy path with proofs was successful! 🎉');
+TokenProfiler.stop().store();
