@@ -14,6 +14,7 @@ import {
   Bool,
   PublicKey,
 } from 'snarkyjs';
+import { getProfiler } from './profiler.js';
 
 const doProofs = true;
 
@@ -75,6 +76,8 @@ class SimpleZkapp extends SmartContract {
   }
 }
 
+const SimpleProfiler = getProfiler('Simple zkApp');
+SimpleProfiler.start('Simple zkApp test flow');
 let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
@@ -165,3 +168,5 @@ console.log(
     .get()
     .div(1e9)} MINA`
 );
+
+SimpleProfiler.stop().store();

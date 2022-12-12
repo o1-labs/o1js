@@ -12,6 +12,7 @@ import {
   state,
   State,
 } from 'snarkyjs';
+import { getProfiler } from '../profiler.js';
 
 const doProofs = true;
 
@@ -49,6 +50,8 @@ class Caller extends SmartContract {
   }
 }
 
+const ComposabilityProfiler = getProfiler('Composability zkApp');
+ComposabilityProfiler.start('Composability test flow');
 // script to deploy zkapps and do interactions
 
 let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
@@ -106,3 +109,4 @@ await tx.send();
 
 // should hopefully be 12 since we added 5 + 6 + 1
 console.log('state: ' + zkapp.sum.get());
+ComposabilityProfiler.stop().store();

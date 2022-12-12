@@ -15,6 +15,7 @@ import {
   Reducer,
 } from 'snarkyjs';
 import assert from 'node:assert/strict';
+import { getProfiler } from 'src/examples/profiler.js';
 
 await isReady;
 
@@ -71,6 +72,8 @@ class CounterZkapp extends SmartContract {
   }
 }
 
+const ReducerProfiler = getProfiler('Reducer zkApp');
+ReducerProfiler.start('Reducer zkApp test flow');
 const doProofs = true;
 const initialCounter = Field(0);
 
@@ -179,3 +182,4 @@ await tx.send();
 
 console.log('state after rollup: ' + zkapp.counter.get());
 assert.equal(zkapp.counter.get().toString(), '4');
+ReducerProfiler.stop().store();
