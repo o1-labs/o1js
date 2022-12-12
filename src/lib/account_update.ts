@@ -652,7 +652,7 @@ class AccountUpdate implements Types.AccountUpdate {
   static SequenceEvents = SequenceEvents;
 
   constructor(body: Body, authorization?: Control);
-  constructor(body: Body, authorization = {} as Control, isSelf = false) {
+  constructor(body: Body, authorization: Control = {}, isSelf = false) {
     this.id = Math.random();
     this.body = body;
     this.authorization = authorization;

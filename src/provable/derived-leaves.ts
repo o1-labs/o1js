@@ -3,6 +3,7 @@ import { createProvable } from './provable-generic.js';
 import * as Json from './gen/transaction-json.js';
 import { prefixToField } from './binable.js';
 import { fieldEncodings } from './base58.js';
+import { dataAsHash } from '../lib/events.js';
 
 export { derivedLeafTypes };
 
@@ -132,5 +133,30 @@ function derivedLeafTypes<Field, Bool>({
     },
   };
 
-  return { TokenId, TokenSymbol, AuthRequired, AuthorizationKind };
+  const ZkappUri = dataAsHash<string, string, Field>({
+    emptyValue() {
+      return {
+        data: '',
+        hash: Field(
+          22930868938364086394602058221028773520482901241511717002947639863679740444066n
+        ),
+      };
+    },
+    toJSON(data: string) {
+      return data;
+    },
+    fromJSON(json: string) {
+      let data = json;
+      // TODO compute hash
+      throw Error('unimplemented');
+    },
+  });
+
+  return {
+    TokenId,
+    TokenSymbol,
+    AuthRequired,
+    AuthorizationKind,
+    ZkappUri,
+  };
 }
