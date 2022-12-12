@@ -1,6 +1,7 @@
 import { HashInput, ProvableExtended, Struct } from './circuit_value.js';
 import { Poseidon as Poseidon_, Field } from '../snarky.js';
 import { inCheckedComputation } from './proof_system.js';
+import { createHashHelpers } from './hash-generic.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -8,6 +9,7 @@ export { Poseidon, TokenSymbol };
 // internal API
 export {
   HashInput,
+  Hash,
   prefixes,
   emptyHashWithPrefix,
   hashWithPrefix,
@@ -48,21 +50,15 @@ const Poseidon = {
     return Poseidon_.update(state, input, isChecked);
   },
 
-  get initialState(): [Field, Field, Field] {
+  initialState(): [Field, Field, Field] {
     return [Field(0), Field(0), Field(0)];
   },
 
   Sponge,
 };
 
-function emptyHashWithPrefix(prefix: string) {
-  return salt(prefix)[0];
-}
-
-function hashWithPrefix(prefix: string, input: Field[]) {
-  let init = salt(prefix);
-  return Poseidon.update(init, input)[0];
-}
+let Hash = createHashHelpers(Field, Poseidon);
+let { packToFields, salt, emptyHashWithPrefix, hashWithPrefix } = Hash;
 
 const prefixes: typeof Poseidon_.prefixes = new Proxy({} as any, {
   // hack bc Poseidon_.prefixes is not available at start-up
@@ -72,10 +68,6 @@ const prefixes: typeof Poseidon_.prefixes = new Proxy({} as any, {
     ] as string;
   },
 });
-
-function salt(prefix: string) {
-  return Poseidon.update(Poseidon.initialState, [prefixToField(prefix)]);
-}
 
 // same as Random_oracle.prefix_to_field in OCaml
 function prefixToField(prefix: string) {
@@ -91,31 +83,6 @@ function prefixToField(prefix: string) {
     })
     .flat();
   return Field.fromBits(bits);
-}
-
-/**
- * Convert the {fields, packed} hash input representation to a list of field elements
- * Random_oracle_input.Chunked.pack_to_fields
- */
-function packToFields({ fields = [], packed = [] }: HashInput) {
-  if (packed.length === 0) return fields;
-  let packedBits = [];
-  let currentPackedField = Field(0);
-  let currentSize = 0;
-  for (let [field, size] of packed) {
-    currentSize += size;
-    if (currentSize < 255) {
-      currentPackedField = currentPackedField
-        .mul(Field(1n << BigInt(size)))
-        .add(field);
-    } else {
-      packedBits.push(currentPackedField);
-      currentSize = size;
-      currentPackedField = field;
-    }
-  }
-  packedBits.push(currentPackedField);
-  return fields.concat(packedBits);
 }
 
 const TokenSymbolPure: ProvableExtended<
