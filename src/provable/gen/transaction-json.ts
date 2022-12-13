@@ -150,6 +150,10 @@ type ZkappCommand = {
           provedState: Bool | null;
           isNew: Bool | null;
         };
+        validUntil: {
+          lower: UInt32;
+          upper: UInt32;
+        } | null;
       };
       useFullCommitment: Bool;
       caller: TokenId;
@@ -275,6 +279,10 @@ type AccountUpdate = {
         provedState: Bool | null;
         isNew: Bool | null;
       };
+      validUntil: {
+        lower: UInt32;
+        upper: UInt32;
+      } | null;
     };
     useFullCommitment: Bool;
     caller: TokenId;

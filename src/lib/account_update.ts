@@ -502,11 +502,19 @@ const AccountPrecondition = {
   },
 };
 
+type ValidUntilPrecondition = Preconditions['validUntil'];
+const ValidUntilPrecondition = {
+  ignoreAll(): ValidUntilPrecondition {
+    return ignore(uint32())
+  }
+}
+
 const Preconditions = {
   ignoreAll(): Preconditions {
     return {
       account: AccountPrecondition.ignoreAll(),
       network: NetworkPrecondition.ignoreAll(),
+      validUntil : ValidUntilPrecondition.ignoreAll(),
     };
   },
 };

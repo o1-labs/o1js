@@ -268,6 +268,13 @@ type ZkappCommand = {
           provedState: { isSome: Bool; value: Bool };
           isNew: { isSome: Bool; value: Bool };
         };
+        validUntil: {
+          isSome: Bool;
+          value: {
+            lower: UInt32;
+            upper: UInt32;
+          };
+        };
       };
       useFullCommitment: Bool;
       caller: TokenId;
@@ -447,6 +454,13 @@ type AccountUpdate = {
         sequenceState: { isSome: Bool; value: Field };
         provedState: { isSome: Bool; value: Bool };
         isNew: { isSome: Bool; value: Bool };
+      };
+      validUntil: {
+        isSome: Bool;
+        value: {
+          lower: UInt32;
+          upper: UInt32;
+        };
       };
     };
     useFullCommitment: Bool;
