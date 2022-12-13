@@ -1138,7 +1138,9 @@ type InferPrimitiveJson<P extends Primitive> = P extends typeof String
   : any;
 
 type InferCircuitValue<A> = A extends Constructor<infer U>
-  ? A extends Provable<U>
+  ? A extends new (...args: any) => any
+    ? InstanceType<A>
+    : A extends Provable<U>
     ? U
     : A extends Struct<U>
     ? U
