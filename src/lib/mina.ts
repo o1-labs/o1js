@@ -475,7 +475,10 @@ function LocalBlockchain({
         }
       });
       return {
-        wait: async (options?: { maxAttempts?: number; interval?: number }) => {
+        wait: async (_options?: {
+          maxAttempts?: number;
+          interval?: number;
+        }) => {
           console.log(
             'Info: Waiting for inclusion in a block is not supported for LocalBlockchain.'
           );
@@ -661,16 +664,20 @@ function Network(graphqlEndpoint: string): Mina {
           interval = options?.interval ?? 20000;
 
           const executePoll = async (
-            resolve: (data?: any) => any,
-            reject: (err: any) => any
+            resolve: () => void,
+            reject: (err: Error) => void | Error
           ) => {
             let txId = response?.data?.sendZkapp?.zkapp?.id;
             let res = await Fetch.fetchTransactionStatus(txId);
             attempts++;
-            if (res == 'INCLUDED') {
+            if (res === 'INCLUDED') {
               return resolve();
             } else if (maxAttempts && attempts === maxAttempts) {
-              return reject(new Error('Exceeded max attempts'));
+              return reject(
+                new Error(
+                  `Exceeded max attempts. TransactionId: ${txId}, attempts: ${attempts}`
+                )
+              );
             } else {
               setTimeout(executePoll, interval, resolve, reject);
             }
