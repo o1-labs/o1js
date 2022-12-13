@@ -53,7 +53,7 @@ export {
   filterGroups,
 };
 interface TransactionId {
-  wait(): Promise<void>;
+  wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;
   hash(): string;
 }
 
@@ -475,10 +475,17 @@ function LocalBlockchain({
         }
       });
       return {
-        wait: async () => {},
+        wait: async (_options?: {
+          maxAttempts?: number;
+          interval?: number;
+        }) => {
+          console.log(
+            'Info: Waiting for inclusion in a block is not supported for LocalBlockchain.'
+          );
+        },
         hash: (): string => {
           const message =
-            'Txn Hash retrieving is not supported for LocalBlockchain.';
+            'Info: Txn Hash retrieving is not supported for LocalBlockchain.';
           console.log(message);
           return message;
         },
@@ -642,13 +649,41 @@ function Network(graphqlEndpoint: string): Mina {
         errors = [error];
       }
 
+      let maxAttempts: number;
+      let attempts = 0;
+      let interval: number;
+
       return {
         data: response?.data,
         errors,
-        async wait() {
-          console.log(
-            'Info: waiting for inclusion in a block is not implemented yet.'
-          );
+        async wait(options?: { maxAttempts?: number; interval?: number }) {
+          // default is 45 attempts * 20s each = 15min
+          // the block time on berkeley is currently longer than the average 3-4min, so its better to target a higher block time
+          // fetching an update every 20s is more than enough with a current block time of 3min
+          maxAttempts = options?.maxAttempts ?? 45;
+          interval = options?.interval ?? 20000;
+
+          const executePoll = async (
+            resolve: () => void,
+            reject: (err: Error) => void | Error
+          ) => {
+            let txId = response?.data?.sendZkapp?.zkapp?.id;
+            let res = await Fetch.fetchTransactionStatus(txId);
+            attempts++;
+            if (res === 'INCLUDED') {
+              return resolve();
+            } else if (maxAttempts && attempts === maxAttempts) {
+              return reject(
+                new Error(
+                  `Exceeded max attempts. TransactionId: ${txId}, attempts: ${attempts}`
+                )
+              );
+            } else {
+              setTimeout(executePoll, interval, resolve, reject);
+            }
+          };
+
+          return new Promise(executePoll);
         },
         hash() {
           return response?.data?.sendZkapp?.zkapp?.hash;
