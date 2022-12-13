@@ -244,7 +244,7 @@ let Permissions = {
    */
   default: (): Permissions => ({
     editState: Permission.proof(),
-    send: Permission.signature(),
+    send: Permission.proof(),
     receive: Permission.none(),
     setDelegate: Permission.signature(),
     setPermissions: Permission.signature(),
