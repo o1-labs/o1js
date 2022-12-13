@@ -16,15 +16,32 @@ import {
   fetchAccount,
 } from 'snarkyjs';
 import { adminPrivateKey, HelloWorld } from './hello_world.js';
-
+import http from 'https';
 await isReady;
 
 let Berkeley = Mina.Network('https://proxy.berkeley.minaexplorer.com/graphql');
 Mina.setActiveInstance(Berkeley);
 
+// address: B62qrLkAoevmde1ZonRLCtkU6BoX3fKwGXkT9BC2wSg8TMBpVdomQwZ
+// priv EKEr6V6V5VuyxUvkS8Ugye58ePQq6e8mKKXRvAMSrZKAY7vch8Kd
+
+async function faucet(feePayerAddress: string) {
+  let response = await fetch('https://faucet.minaprotocol.com/api/v1/faucet', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+
+    body: JSON.stringify({
+      network: 'berkeley-qanet',
+      address: 'B62qo2MyJCSEYDhpfdB2voKeNQ2ZT8DJLnpECjerf5oxXXTZxxzkyCU',
+    }),
+  });
+}
+
+console.log(PrivateKey.random().toPublicKey().toBase58());
 let feePayerKey = PrivateKey.fromBase58(
   'EKEr6V6V5VuyxUvkS8Ugye58ePQq6e8mKKXRvAMSrZKAY7vch8Kd'
 );
+
 let response = await fetchAccount({ publicKey: feePayerKey.toPublicKey() });
 if (response.error) throw Error(response.error.statusText);
 let { nonce, balance } = response.account;
