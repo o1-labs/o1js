@@ -18,7 +18,7 @@ import { Voting_ } from './voting.js';
 class InvalidContract extends SmartContract {
   deploy(args: DeployArgs) {
     super.deploy(args);
-    this.setPermissions({
+    this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.none(),
       editSequenceState: Permissions.none(),

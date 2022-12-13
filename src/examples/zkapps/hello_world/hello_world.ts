@@ -3,7 +3,6 @@ import {
   SmartContract,
   state,
   State,
-  AccountUpdate,
   method,
   DeployArgs,
   PrivateKey,
@@ -21,13 +20,13 @@ export class HelloWorld extends SmartContract {
 
   deploy(input: DeployArgs) {
     super.deploy(input);
-    this.setPermissions({
+    this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
     });
     this.x.set(Field(2));
 
-    AccountUpdate.setValue(this.self.update.delegate, adminPublicKey);
+    this.account.delegate.set(adminPublicKey);
   }
 
   @method update(squared: Field, admin: PrivateKey) {

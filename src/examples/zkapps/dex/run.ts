@@ -302,15 +302,15 @@ async function main({ withVesting }: { withVesting: boolean }) {
   console.log('prepare test with forbidden send');
   tx = await Mina.transaction(keys.tokenX, () => {
     let tokenXtokenAccount = AccountUpdate.create(addresses.tokenX, tokenIds.X);
-    AccountUpdate.setValue(tokenXtokenAccount.update.permissions, {
+    tokenXtokenAccount.account.permissions.set({
       ...Permissions.initial(),
       send: Permissions.impossible(),
     });
-    tokenXtokenAccount.sign();
+    tokenXtokenAccount.requireSignature();
     // token X owner approves w/ signature so we don't need another method for this test
     let tokenX = AccountUpdate.create(addresses.tokenX);
     tokenX.approve(tokenXtokenAccount);
-    tokenX.sign();
+    tokenX.requireSignature();
   });
   await tx.prove();
   await tx.sign([keys.tokenX]).send();

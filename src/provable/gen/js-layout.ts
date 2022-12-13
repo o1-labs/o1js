@@ -178,7 +178,7 @@ let jsLayout = {
                           },
                           docEntries: { data: null, hash: null },
                         },
-                        checkedTypeName: 'StringWithHash',
+                        checkedTypeName: 'ZkappUri',
                       },
                     },
                     tokenSymbol: {
@@ -905,7 +905,7 @@ let jsLayout = {
                     },
                     docEntries: { data: null, hash: null },
                   },
-                  checkedTypeName: 'StringWithHash',
+                  checkedTypeName: 'ZkappUri',
                 },
               },
               tokenSymbol: {
