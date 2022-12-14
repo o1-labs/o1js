@@ -113,11 +113,11 @@ let currentTransaction = Context.create<CurrentTransaction>();
 type FeePayerSpec =
   | PrivateKey
   | {
-      feePayerKey: PrivateKey;
-      fee?: number | string | UInt64;
-      memo?: string;
-      nonce?: number;
-    }
+    feePayerKey: PrivateKey;
+    fee?: number | string | UInt64;
+    memo?: string;
+    nonce?: number;
+  }
   | undefined;
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
@@ -452,7 +452,7 @@ function LocalBlockchain({
             ? SequenceEvents.emptySequenceState()
             : Ledger.fieldOfBase58(sequenceState);
 
-        let actionList = p.body.sequenceEvents;
+        let actionList = p.body.actions;
         let eventsHash = SequenceEvents.hash(
           actionList.map((e) => e.map((f) => Field(f)))
         );
@@ -460,7 +460,7 @@ function LocalBlockchain({
         if (actions[addr] === undefined) {
           actions[addr] = {};
         }
-        if (p.body.sequenceEvents.length > 0) {
+        if (p.body.actions.length > 0) {
           latestActionsHash = SequenceEvents.updateSequenceState(
             latestActionsHash,
             eventsHash
@@ -475,7 +475,7 @@ function LocalBlockchain({
         }
       });
       return {
-        wait: async () => {},
+        wait: async () => { },
         hash: (): string => {
           const message =
             'Txn Hash retrieving is not supported for LocalBlockchain.';
@@ -1020,7 +1020,7 @@ async function verifyAccountUpdate(
   });
 
   // checks the sequence events (which result in an updated sequence state)
-  if (accountUpdate.body.sequenceEvents.data.length > 0) {
+  if (accountUpdate.body.actions.data.length > 0) {
     let p = permissionForUpdate('sequenceEvents');
     checkPermission(p, 'sequenceEvents');
   }
@@ -1061,7 +1061,7 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
     accountUpdates.map((update) => {
       let json = update.toJSON();
       eventElements.events += update.body.events.data.length;
-      eventElements.sequence += update.body.sequenceEvents.data.length;
+      eventElements.sequence += update.body.actions.data.length;
       return json.body.authorizationKind;
     })
   );
