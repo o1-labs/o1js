@@ -9,8 +9,9 @@ import {
 import { UInt32, UInt64 } from './int.js';
 import { Layout } from '../provable/gen/transaction.js';
 import { jsLayout } from '../provable/gen/js-layout.js';
-import { emptyReceiptChainHash } from './hash.js';
+import { emptyReceiptChainHash, TokenSymbol } from './hash.js';
 import { PublicKey } from './signature.js';
+import { ZkappUri } from '../provable/transaction-leaves.js';
 
 export {
   preconditions,
@@ -42,7 +43,41 @@ function Account(accountUpdate: AccountUpdate): Account {
   let layout =
     jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.account;
   let context = getPreconditionContextExn(accountUpdate);
-  return preconditionClass(layout as Layout, 'account', accountUpdate, context);
+  let identity = (x: any) => x;
+  let update: Update = {
+    delegate: {
+      ...preconditionSubclass(
+        accountUpdate,
+        'account.delegate',
+        PublicKey,
+        context
+      ),
+      ...updateSubclass(accountUpdate, 'delegate', identity),
+    },
+    verificationKey: updateSubclass(accountUpdate, 'verificationKey', identity),
+    permissions: updateSubclass(accountUpdate, 'permissions', identity),
+    zkappUri: updateSubclass(accountUpdate, 'zkappUri', ZkappUri.fromJSON),
+    tokenSymbol: updateSubclass(accountUpdate, 'tokenSymbol', TokenSymbol.from),
+    timing: updateSubclass(accountUpdate, 'timing', identity),
+    votingFor: updateSubclass(accountUpdate, 'votingFor', identity),
+  };
+  return {
+    ...preconditionClass(layout as Layout, 'account', accountUpdate, context),
+    ...update,
+  };
+}
+
+function updateSubclass<K extends keyof Update>(
+  accountUpdate: AccountUpdate,
+  key: K,
+  transform: (value: UpdateValue[K]) => UpdateValueOriginal[K]
+) {
+  return {
+    set(value: UpdateValue[K]) {
+      accountUpdate.body.update[key].isSome = Bool(true);
+      accountUpdate.body.update[key].value = transform(value);
+    },
+  };
 }
 
 let unimplementedPreconditions: LongKey[] = [
@@ -280,20 +315,15 @@ const preconditionContexts = new WeakMap<AccountUpdate, PreconditionContext>();
 
 // exported types
 
-// TODO actually fetch network preconditions
 type NetworkPrecondition = Preconditions['network'];
 type NetworkValue = PreconditionBaseTypes<NetworkPrecondition>;
 type Network = PreconditionClassType<NetworkPrecondition>;
 
-// TODO: OK how we read delegate from delegateAccount?
-// TODO: no graphql field for provedState yet
-// TODO: figure out serialization of receiptChainHash
 // TODO: should we add account.state?
 // then can just use circuitArray(Field, 8) as the type
 type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
-// TODO to use this type as account type everywhere, need to add publicKey
 type AccountValue = PreconditionBaseTypes<AccountPrecondition>;
-type Account = PreconditionClassType<AccountPrecondition>;
+type Account = PreconditionClassType<AccountPrecondition> & Update;
 
 type PreconditionBaseTypes<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
@@ -323,6 +353,21 @@ type PreconditionClassType<T> = {
     : PreconditionClassType<T[K]>;
 };
 
+// update
+
+type Update_ = Omit<AccountUpdate['body']['update'], 'appState'>;
+type Update = {
+  [K in keyof Update_]: { set(value: UpdateValue[K]): void };
+};
+type UpdateValueOriginal = {
+  [K in keyof Update_]: Update_[K]['value'];
+};
+type UpdateValue = {
+  [K in keyof Update_]: K extends 'zkappUri' | 'tokenSymbol'
+    ? string
+    : Update_[K]['value'];
+};
+
 // TS magic for computing flattened precondition types
 
 type JoinEntries<K, P> = K extends string
@@ -348,7 +393,7 @@ type RangeCondition<T> = { isSome: Bool; value: { lower: T; upper: T } };
 type FlaggedOptionCondition<T> = { isSome: Bool; value: T };
 type AnyCondition<T> = RangeCondition<T> | FlaggedOptionCondition<T>;
 
-function isRangeCondition<T>(
+function isRangeCondition<T extends object>(
   condition: AnyCondition<T>
 ): condition is RangeCondition<T> {
   return 'isSome' in condition && 'lower' in condition.value;

@@ -393,7 +393,7 @@ function createDex({
 class TokenContract extends SmartContract {
   deploy(args?: DeployArgs) {
     super.deploy(args);
-    this.setPermissions({
+    this.account.permissions.set({
       ...Permissions.default(),
       send: Permissions.proof(),
       receive: Permissions.proof(),
@@ -437,14 +437,13 @@ class TokenContract extends SmartContract {
   // => need callbacks for signatures
   @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
     let tokenId = this.token.id;
-    let zkapp = AccountUpdate.defaultAccountUpdate(address, tokenId);
-    this.approve(zkapp);
-    AccountUpdate.setValue(zkapp.update.permissions, {
+    let zkapp = AccountUpdate.create(address, tokenId);
+    zkapp.account.permissions.set({
       ...Permissions.default(),
       send: Permissions.proof(),
     });
-    AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
-    zkapp.sign();
+    zkapp.account.verificationKey.set(verificationKey);
+    zkapp.requireSignature();
   }
 
   // let a zkapp send tokens to someone, provided the token supply stays constant

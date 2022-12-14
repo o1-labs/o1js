@@ -10,7 +10,8 @@ let prefixes = {
   "accountUpdateNode": "MinaAcctUpdateNode**",
   "zkappMemo": "MinaZkappMemo*******",
   "signatureMainnet": "MinaSignatureMainnet",
-  "signatureTestnet": "CodaSignature*******"
+  "signatureTestnet": "CodaSignature*******",
+  "zkappUri": "MinaZkappUri********"
 };
 let versionBytes = {
   "tokenIdKey": 28,

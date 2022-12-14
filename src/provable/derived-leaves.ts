@@ -1,17 +1,22 @@
 import { GenericBool, GenericField, GenericHashInput } from './generic.js';
 import { createProvable } from './provable-generic.js';
 import * as Json from './gen/transaction-json.js';
-import { prefixToField } from './binable.js';
+import { bytesToBits, prefixToField } from './binable.js';
 import { fieldEncodings } from './base58.js';
+import { dataAsHash } from '../lib/events.js';
+import { HashHelpers } from '../lib/hash-generic.js';
+import { prefixes } from '../js_crypto/constants.js';
 
 export { derivedLeafTypes };
 
 function derivedLeafTypes<Field, Bool>({
   Field,
   Bool,
+  Hash,
 }: {
   Field: GenericField<Field>;
   Bool: GenericBool<Field, Bool>;
+  Hash: HashHelpers<Field>;
 }) {
   let provable = createProvable<Field>();
   const Encoding = fieldEncodings<Field>(Field);
@@ -132,5 +137,33 @@ function derivedLeafTypes<Field, Bool>({
     },
   };
 
-  return { TokenId, TokenSymbol, AuthRequired, AuthorizationKind };
+  // Mina_base.Zkapp_account.hash_zkapp_uri_opt
+  function hashZkappUri(uri: string) {
+    let bits = bytesToBits([...uri].map((char) => char.charCodeAt(0)));
+    bits.push(true);
+    let input: HashInput = { packed: bits.map((b) => [Field(Number(b)), 1]) };
+    let packed = Hash.packToFields(input);
+    return Hash.hashWithPrefix(prefixes.zkappUri, packed);
+  }
+
+  const ZkappUri = dataAsHash<string, string, Field>({
+    emptyValue() {
+      let hash = Hash.hashWithPrefix(prefixes.zkappUri, [Field(0), Field(0)]);
+      return { data: '', hash };
+    },
+    toJSON(data: string) {
+      return data;
+    },
+    fromJSON(json: string) {
+      return { data: json, hash: hashZkappUri(json) };
+    },
+  });
+
+  return {
+    TokenId,
+    TokenSymbol,
+    AuthRequired,
+    AuthorizationKind,
+    ZkappUri,
+  };
 }

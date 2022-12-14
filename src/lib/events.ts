@@ -133,7 +133,9 @@ function dataAsHash<T, J, Field>({
   emptyValue: () => { data: T; hash: Field };
   toJSON: (value: T) => J;
   fromJSON: (json: J) => { data: T; hash: Field };
-}): GenericProvableExtended<{ data: T; hash: Field }, J, Field> {
+}): GenericProvableExtended<{ data: T; hash: Field }, J, Field> & {
+  emptyValue(): { data: T; hash: Field };
+} {
   return {
     emptyValue,
     sizeInFields() {
