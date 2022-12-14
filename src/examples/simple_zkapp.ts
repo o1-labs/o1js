@@ -29,14 +29,6 @@ class SimpleZkapp extends SmartContract {
     payoutReceiver: PublicKey,
   };
 
-  deploy(args: DeployArgs) {
-    super.deploy(args);
-    this.account.permissions.set({
-      ...Permissions.default(),
-      send: Permissions.proof(),
-    });
-  }
-
   @method init(zkappKey: PrivateKey) {
     super.init(zkappKey);
     this.balance.addInPlace(UInt64.from(initialBalance));

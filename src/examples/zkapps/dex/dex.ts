@@ -391,14 +391,6 @@ function createDex({
  * Simple token with API flexible enough to handle all our use cases
  */
 class TokenContract extends SmartContract {
-  deploy(args?: DeployArgs) {
-    super.deploy(args);
-    this.account.permissions.set({
-      ...Permissions.default(),
-      send: Permissions.proof(),
-      receive: Permissions.proof(),
-    });
-  }
   @method init() {
     super.init();
     // mint the entire supply to the token account with the same address as this contract
@@ -438,10 +430,7 @@ class TokenContract extends SmartContract {
   @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
     let tokenId = this.token.id;
     let zkapp = AccountUpdate.create(address, tokenId);
-    zkapp.account.permissions.set({
-      ...Permissions.default(),
-      send: Permissions.proof(),
-    });
+    zkapp.account.permissions.set(Permissions.default());
     zkapp.account.verificationKey.set(verificationKey);
     zkapp.requireSignature();
   }

@@ -31,7 +31,6 @@ class TokenContract extends SmartContract {
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
-      send: Permissions.proof(),
       receive: Permissions.proof(),
     });
   }
@@ -43,10 +42,7 @@ class TokenContract extends SmartContract {
     let tokenId = this.token.id;
     let zkapp = AccountUpdate.defaultAccountUpdate(address, tokenId);
     this.approve(zkapp);
-    zkapp.account.permissions.set({
-      ...Permissions.default(),
-      send: Permissions.proof(),
-    });
+    zkapp.account.permissions.set(Permissions.default());
     zkapp.account.verificationKey.set(verificationKey);
     zkapp.requireSignature();
   }

@@ -80,7 +80,6 @@ class TrivialCoin extends SmartContract implements Erc20 {
     this.account.permissions.set({
       ...Permissions.default(),
       setPermissions: Permissions.proof(),
-      send: Permissions.proof(),
     });
   }
   @method init() {
@@ -201,10 +200,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
       address,
       tokenId
     );
-    zkapp.account.permissions.set({
-      ...Permissions.default(),
-      send: Permissions.proof(),
-    });
+    zkapp.account.permissions.set(Permissions.default());
     zkapp.account.verificationKey.set(verificationKey);
     zkapp.sign(zkappKey);
   }

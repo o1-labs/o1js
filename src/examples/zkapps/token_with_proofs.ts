@@ -21,10 +21,6 @@ await isReady;
 class TokenContract extends SmartContract {
   deploy(args: DeployArgs) {
     super.deploy(args);
-    this.account.permissions.set({
-      ...Permissions.default(),
-      send: Permissions.proof(),
-    });
     this.balance.addInPlace(UInt64.from(initialBalance));
   }
 
@@ -36,10 +32,7 @@ class TokenContract extends SmartContract {
       address,
       tokenId
     );
-    deployUpdate.account.permissions.set({
-      ...Permissions.default(),
-      send: Permissions.proof(),
-    });
+    deployUpdate.account.permissions.set(Permissions.default());
     deployUpdate.account.verificationKey.set(verificationKey);
     deployUpdate.sign(deployer);
   }
