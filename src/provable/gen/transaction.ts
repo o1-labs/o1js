@@ -164,7 +164,7 @@ type ZkappCommand = {
         data: Field[][];
         hash: Field;
       };
-      sequenceEvents: {
+      actions: {
         data: Field[][];
         hash: Field;
       };
@@ -344,7 +344,7 @@ type AccountUpdate = {
       data: Field[][];
       hash: Field;
     };
-    sequenceEvents: {
+    actions: {
       data: Field[][];
       hash: Field;
     };
