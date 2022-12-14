@@ -17,6 +17,10 @@ case $TEST_TYPE in
       ./run src/examples/zkapps/dex/happy-path-with-proofs.ts --bundle || exit 1 
       ./run src/examples/zkapps/dex/upgradability.ts --bundle || exit 1 ;;
 
+    "Berkeley Live" )
+      echo "Running Berkeley Live integration tests";
+      ./run src/examples/zkapps/hello_world/run_berkeley.ts --bundle || exit 1
+
     "Unit tests" )
       echo "Running unit tests";
       npm run test:unit

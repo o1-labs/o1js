@@ -22,6 +22,7 @@ jobs:
             'Simple integration tests',
             'DEX integration tests',
             'Voting integration tests',
+            'Berkeley Live',
             'Unit tests',
           ]
     steps:
