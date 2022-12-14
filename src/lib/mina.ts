@@ -175,6 +175,8 @@ function createTransaction(
     feePayerSpec = { sender: feePayer };
   } else {
     feePayerSpec = feePayer;
+    if (feePayerSpec.sender === undefined)
+      feePayerSpec.sender = feePayerSpec.feePayerKey?.toPublicKey();
   }
   let { feePayerKey, sender, fee, memo = '', nonce } = feePayerSpec;
 
