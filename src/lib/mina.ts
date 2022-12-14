@@ -246,7 +246,7 @@ function createTransaction(
       });
     }
     feePayerAccountUpdate = AccountUpdate.defaultFeePayer(sender, nonce_);
-    if (feePayerKey === undefined)
+    if (feePayerKey !== undefined)
       feePayerAccountUpdate.lazyAuthorization!.privateKey = feePayerKey;
     if (fee !== undefined) {
       feePayerAccountUpdate.body.fee =
