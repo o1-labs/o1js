@@ -101,8 +101,7 @@ export async function testSet(
     true,
     () => {
       let vkUpdate = AccountUpdate.createSigned(params.votingKey);
-
-      AccountUpdate.setValue(vkUpdate.update.verificationKey, {
+      vkUpdate.account.verificationKey.set({
         ...verificationKey,
         hash: Field(verificationKey.hash),
       });
@@ -180,7 +179,7 @@ export async function testSet(
     () => {
       let permUpdate = AccountUpdate.createSigned(params.voterKey);
 
-      AccountUpdate.setValue(permUpdate.update.permissions, {
+      permUpdate.account.permissions.set({
         ...Permissions.default(),
         setPermissions: Permissions.none(),
         editSequenceState: Permissions.impossible(),

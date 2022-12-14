@@ -16,6 +16,7 @@ import {
   Mina,
   Int64,
   PrivateKey,
+  VerificationKey,
 } from 'snarkyjs';
 
 /**
@@ -75,11 +76,10 @@ class TrivialCoin extends SmartContract implements Erc20 {
 
   deploy(args: DeployArgs) {
     super.deploy(args);
-    this.tokenSymbol.set('SOM');
-    this.setPermissions({
+    this.account.tokenSymbol.set('SOM');
+    this.account.permissions.set({
       ...Permissions.default(),
       setPermissions: Permissions.proof(),
-      send: Permissions.proof(),
     });
   }
   @method init() {
@@ -105,7 +105,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
     // that this function was run. Since it can be run only once, this implies it was run exactly once
 
     // make account non-upgradable forever
-    this.setPermissions({
+    this.account.permissions.set({
       ...Permissions.default(),
       setVerificationKey: Permissions.impossible(),
       setPermissions: Permissions.impossible(),
@@ -145,7 +145,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
     // we don't have to check the balance of the sender -- this is done by the zkApp protocol
     return Bool(true);
   }
-  @method approve(spender: PublicKey, value: UInt64): Bool {
+  @method approveSpend(spender: PublicKey, value: UInt64): Bool {
     // TODO: implement allowances
     return Bool(false);
   }
@@ -192,7 +192,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
   }
 
   // this is a very standardized deploy method. instead, we could also take the account update from a callback
-  @method deployZkapp(zkappKey: PrivateKey) {
+  @method deployZkapp(zkappKey: PrivateKey, verificationKey: VerificationKey) {
     let address = zkappKey.toPublicKey();
     let tokenId = this.token.id;
     let zkapp = Experimental.createChildAccountUpdate(
@@ -200,12 +200,8 @@ class TrivialCoin extends SmartContract implements Erc20 {
       address,
       tokenId
     );
-    AccountUpdate.setValue(zkapp.update.permissions, {
-      ...Permissions.default(),
-      send: Permissions.proof(),
-    });
-    // TODO pass in verification key
-    // AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
+    zkapp.account.permissions.set(Permissions.default());
+    zkapp.account.verificationKey.set(verificationKey);
     zkapp.sign(zkappKey);
   }
 

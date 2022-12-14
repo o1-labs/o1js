@@ -244,7 +244,7 @@ let Permissions = {
    */
   default: (): Permissions => ({
     editState: Permission.proof(),
-    send: Permission.signature(),
+    send: Permission.proof(),
     receive: Permission.none(),
     setDelegate: Permission.signature(),
     setPermissions: Permission.signature(),
@@ -652,7 +652,7 @@ class AccountUpdate implements Types.AccountUpdate {
   static SequenceEvents = SequenceEvents;
 
   constructor(body: Body, authorization?: Control);
-  constructor(body: Body, authorization = {} as Control, isSelf = false) {
+  constructor(body: Body, authorization: Control = {}, isSelf = false) {
     this.id = Math.random();
     this.body = body;
     this.authorization = authorization;
@@ -774,15 +774,15 @@ class AccountUpdate implements Types.AccountUpdate {
     return this.body.tokenId;
   }
 
+  /**
+   * @deprecated use `this.account.tokenSymbol`
+   */
   get tokenSymbol() {
     let accountUpdate = this;
 
     return {
       set(tokenSymbol: string) {
-        AccountUpdate.setValue(
-          accountUpdate.update.tokenSymbol,
-          TokenSymbol.from(tokenSymbol)
-        );
+        accountUpdate.account.tokenSymbol.set(tokenSymbol);
       },
     };
   }
@@ -893,7 +893,10 @@ class AccountUpdate implements Types.AccountUpdate {
    * }
    * ```
    */
-  static assertEquals<T>(property: OrIgnore<ClosedInterval<T> | T>, value: T) {
+  static assertEquals<T extends object>(
+    property: OrIgnore<ClosedInterval<T> | T>,
+    value: T
+  ) {
     property.isSome = Bool(true);
     if ('lower' in property.value && 'upper' in property.value) {
       property.value.lower = value;

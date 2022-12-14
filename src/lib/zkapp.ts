@@ -724,9 +724,9 @@ class SmartContract {
     if (verificationKey !== undefined) {
       let { hash: hash_, data } = verificationKey;
       let hash = typeof hash_ === 'string' ? Field(hash_) : hash_;
-      this.setValue(accountUpdate.update.verificationKey, { hash, data });
+      accountUpdate.account.verificationKey.set({ hash, data });
     }
-    this.setValue(accountUpdate.update.permissions, Permissions.default());
+    accountUpdate.account.permissions.set(Permissions.default());
     accountUpdate.sign(zkappKey);
     AccountUpdate.attachToTransaction(accountUpdate);
 
@@ -766,7 +766,7 @@ super.init();
    * class MyContract extends SmartContract {
    *  init() {
    *    super.init();
-   *    this.setPermissions();
+   *    this.account.permissions.set(...);
    *    this.x.set(Field(1));
    *  }
    * }
@@ -923,7 +923,7 @@ super.init();
   }
 
   /**
-   * Token symbol of this token.
+   * @deprecated use `this.account.tokenSymbol`
    */
   get tokenSymbol() {
     return this.self.tokenSymbol;
@@ -1089,17 +1089,18 @@ super.init();
     return ZkappClass._methodMetadata;
   }
 
+  /**
+   * @deprecated use `this.account.<field>.set()`
+   */
   setValue<T>(maybeValue: SetOrKeep<T>, value: T) {
     AccountUpdate.setValue(maybeValue, value);
   }
 
-  // TBD: do we want to have setters for updates, e.g. this.permissions = ... ?
-  // I'm hesitant to make the API even more magical / less explicit
   /**
-   * Changes the {@link Permissions} of this {@link SmartContract}.
+   * @deprecated use `this.account.permissions.set()`
    */
   setPermissions(permissions: Permissions) {
-    this.setValue(this.self.update.permissions, permissions);
+    this.self.account.permissions.set(permissions);
   }
 }
 

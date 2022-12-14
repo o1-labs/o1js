@@ -554,7 +554,7 @@ async function fetchTransactionStatus(
   if (error) throw Error(error.statusText);
   let txStatus = resp?.data?.transactionStatus;
   if (txStatus === undefined || txStatus === null) {
-    throw Error('Failed to fetch transaction status.');
+    throw Error(`Failed to fetch transaction status. TransactionId: ${txId}`);
   }
   return txStatus as TransactionStatus;
 }
