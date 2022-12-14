@@ -14,45 +14,37 @@ import {
   shutdown,
   DeployArgs,
   fetchAccount,
+  PublicKey,
 } from 'snarkyjs';
 import { adminPrivateKey, HelloWorld } from './hello_world.js';
-import http from 'https';
 await isReady;
 
 let Berkeley = Mina.Network('https://proxy.berkeley.minaexplorer.com/graphql');
 Mina.setActiveInstance(Berkeley);
 
-// address: B62qrLkAoevmde1ZonRLCtkU6BoX3fKwGXkT9BC2wSg8TMBpVdomQwZ
-// priv EKEr6V6V5VuyxUvkS8Ugye58ePQq6e8mKKXRvAMSrZKAY7vch8Kd
+let feePayerKey = PrivateKey.random();
 
-async function faucet(feePayerAddress: string) {
-  let response = await fetch('https://faucet.minaprotocol.com/api/v1/faucet', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-
-    body: JSON.stringify({
-      network: 'berkeley-qanet',
-      address: 'B62qo2MyJCSEYDhpfdB2voKeNQ2ZT8DJLnpECjerf5oxXXTZxxzkyCU',
-    }),
-  });
-}
-
-console.log(PrivateKey.random().toPublicKey().toBase58());
-let feePayerKey = PrivateKey.fromBase58(
-  'EKEr6V6V5VuyxUvkS8Ugye58ePQq6e8mKKXRvAMSrZKAY7vch8Kd'
+console.log(
+  `Funding fee payer ${feePayerKey
+    .toPublicKey()
+    .toBase58()} and waiting for inclusion in a block..`
 );
 
-let response = await fetchAccount({ publicKey: feePayerKey.toPublicKey() });
-if (response.error) throw Error(response.error.statusText);
-let { nonce, balance } = response.account;
-console.log(`Using fee payer account with nonce ${nonce}, balance ${balance}`);
+await faucet(feePayerKey.toPublicKey());
+
+let { nonce, balance } = Berkeley.getAccount(feePayerKey.toPublicKey());
+console.log(
+  `Using fee payer ${feePayerKey
+    .toPublicKey()
+    .toBase58()} with nonce ${nonce}, balance ${balance}`
+);
 
 let zkappKey = PrivateKey.random();
 let zkappAddress = zkappKey.toPublicKey();
 
 let transactionFee = 100_000_000;
 
-console.log('Compiling smart contract...');
+console.log('Compiling smart contract..');
 let { verificationKey } = await HelloWorld.compile();
 
 let zkapp = new HelloWorld(zkappAddress);
@@ -70,10 +62,11 @@ if (!isDeployed) {
     }
   );
 
-  console.log('Sending the transaction...');
+  console.log('Sending the transaction..');
   await (await transaction.send()).wait();
 }
 
+console.log('Fetching updated accounts..');
 await fetchAccount({ publicKey: feePayerKey.toPublicKey() });
 await fetchAccount({ publicKey: zkappAddress });
 
@@ -86,11 +79,58 @@ let transaction = await Mina.transaction(
   }
 );
 await transaction.prove();
-console.log('Sending the transaction...');
+console.log('Sending the transaction..');
 await (await transaction.send()).wait();
 
 console.log('Checking if the update was valid..');
 
-(await zkapp.x.fetch())?.assertEquals(Field(4));
+try {
+  (await zkapp.x.fetch())?.assertEquals(Field(4));
+} catch (error) {
+  throw new Error(
+    `On-chain zkApp account doesn't match the expected state. ${error}`
+  );
+}
+console.log('Success!');
 
-console.log('success!');
+async function waitForFunding(address: string): Promise<void> {
+  let attempts = 0;
+  let maxAttempts = 30;
+  let interval = 30000;
+  const executePoll = async (
+    resolve: () => void,
+    reject: (err: Error) => void | Error
+  ) => {
+    let { account } = await fetchAccount({ publicKey: address });
+    attempts++;
+    if (account) {
+      return resolve();
+    } else if (maxAttempts && attempts === maxAttempts) {
+      return reject(new Error(`Exceeded max attempts`));
+    } else {
+      setTimeout(executePoll, interval, resolve, reject);
+    }
+  };
+  return new Promise(executePoll);
+}
+
+async function faucet(pub: PublicKey) {
+  let address = pub.toBase58();
+  let response = await fetch('https://faucet.minaprotocol.com/api/v1/faucet', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      network: 'berkeley-qanet',
+      address: address,
+    }),
+  });
+  response = await response.json();
+  if (response.status.toString() != 'success') {
+    throw new Error(
+      `Error funding account ${address}, got response status: ${response.status}, text: ${response.statusText}`
+    );
+  }
+  await waitForFunding(address);
+}
+
+shutdown();
