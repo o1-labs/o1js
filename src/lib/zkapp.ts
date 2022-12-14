@@ -1362,23 +1362,20 @@ async function deploy<S extends typeof SmartContract>(
   }
 ) {
   let address = zkappKey.toPublicKey();
-  let feePayerKey =
-    feePayer instanceof PrivateKey ? feePayer : feePayer?.feePayerKey;
+  let feePayerAddress =
+    feePayer instanceof PublicKey ? feePayer : feePayer?.sender;
   let tx = await Mina.transaction(feePayer, () => {
     if (initialBalance !== undefined) {
-      if (feePayerKey === undefined)
+      if (feePayerAddress === undefined)
         throw Error(
-          `When using the optional initialBalance argument, you need to also supply the fee payer's private key as part of the \`feePayer\` argument, to sign the initial balance funding.`
+          `When using the optional initialBalance argument, you need to also supply the fee payer's public key as part of the \`feePayer\` argument, to sign the initial balance funding.`
         );
       // optional first accountUpdate: the sender/fee payer who also funds the zkapp
       let amount = UInt64.from(String(initialBalance)).add(
         Mina.accountCreationFee()
       );
-      let feePayerAddress = feePayerKey.toPublicKey();
-      let accountUpdate = AccountUpdate.defaultAccountUpdate(feePayerAddress);
-      accountUpdate.body.useFullCommitment = Bool(true);
+      let accountUpdate = AccountUpdate.createSigned(feePayerAddress);
       accountUpdate.balance.subInPlace(amount);
-      Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
     }
     // main accountUpdate: the zkapp account
     let zkapp = new SmartContract(address, tokenId);

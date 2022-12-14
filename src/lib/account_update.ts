@@ -1053,16 +1053,12 @@ class AccountUpdate implements Types.AccountUpdate {
     return this.body.publicKey.isEmpty();
   }
 
-  static defaultFeePayer(
-    address: PublicKey,
-    key: PrivateKey,
-    nonce: UInt32
-  ): FeePayerUnsigned {
+  static defaultFeePayer(address: PublicKey, nonce: UInt32): FeePayerUnsigned {
     let body = FeePayerBody.keepAll(address, nonce);
     return {
       body,
       authorization: Ledger.dummySignature(),
-      lazyAuthorization: { kind: 'lazy-signature', privateKey: key },
+      lazyAuthorization: { kind: 'lazy-signature' },
     };
   }
 

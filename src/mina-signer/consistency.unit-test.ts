@@ -137,7 +137,6 @@ let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
 // snarkyjs fromJSON -> toJSON roundtrip, + consistency with mina-signer
 let feePayerSnarky = AccountUpdateSnarky.defaultFeePayer(
   feePayerAddressSnarky,
-  feePayerKeySnarky,
   UInt32.from(nonce)
 );
 feePayerSnarky.body.fee = UInt64.from(fee);
