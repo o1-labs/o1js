@@ -12,7 +12,7 @@ import {
 } from 'snarkyjs';
 
 await isReady;
-
+// test
 export const adminPrivateKey = PrivateKey.random();
 export const adminPublicKey = adminPrivateKey.toPublicKey();
 
