@@ -1,18 +1,11 @@
 // live Berkeley integration test
-
-import { chownSync } from 'fs';
 import {
   Field,
-  state,
-  State,
-  method,
   PrivateKey,
-  SmartContract,
   Mina,
   AccountUpdate,
   isReady,
   shutdown,
-  DeployArgs,
   fetchAccount,
   PublicKey,
 } from 'snarkyjs';

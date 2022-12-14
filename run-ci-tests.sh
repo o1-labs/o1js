@@ -19,7 +19,7 @@ case $TEST_TYPE in
 
     "Berkeley Live" )
       echo "Running Berkeley Live integration tests";
-      ./run src/examples/zkapps/hello_world/run_berkeley.ts --bundle || exit 1
+      ./run src/examples/zkapps/hello_world/run_berkeley.ts --bundle || exit 1 ;;
 
     "Unit tests" )
       echo "Running unit tests";
