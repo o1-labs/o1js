@@ -4,15 +4,13 @@ import {
   isReady,
   Permissions,
   PrivateKey,
-  Bool,
-  method,
-  PublicKey,
   UInt64,
-  Field,
 } from 'snarkyjs';
-import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
+import { createDex, TokenContract, addresses, keys } from './dex.js';
 import { expect } from 'expect';
 import { getProfiler } from '../../profiler.js';
+
+await isReady;
 
 let doProofs = false;
 
@@ -377,11 +375,7 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     { sender: feePayerAddress, fee: accountFee.mul(1) },
     () => {
       AccountUpdate.fundNewAccount(feePayerAddress);
-      modifiedDex.supplyLiquidityBase(
-        feePayerAddress,
-        UInt64.from(10_000),
-        UInt64.from(10_000)
-      );
+      modifiedDex.supplyLiquidityBase(UInt64.from(10_000), UInt64.from(10_000));
     }
   );
   await tx.prove();
@@ -393,7 +387,7 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   let USER_DX = 10n;
   console.log('swap 10 X for Y');
   tx = await Mina.transaction(addresses.user, () => {
-    modifiedDex.swapX(addresses.user, UInt64.from(USER_DX));
+    modifiedDex.swapX(UInt64.from(USER_DX));
   });
   await tx.prove();
   await tx.sign([keys.user]).send();
@@ -449,7 +443,7 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   USER_DX = 10n;
   console.log('swap 10 X for Y');
   tx = await Mina.transaction(addresses.user, () => {
-    modifiedDex.swapX(addresses.user, UInt64.from(USER_DX));
+    modifiedDex.swapX(UInt64.from(USER_DX));
   });
   await tx.prove();
   await tx.sign([keys.user]).send();
