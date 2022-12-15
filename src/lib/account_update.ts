@@ -1163,7 +1163,7 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   static fundNewAccount(
     feePayer: PublicKey,
-    numberOfAccounts: number
+    numberOfAccounts?: number
   ): AccountUpdate;
   /**
    * @deprecated Call this function with a `PublicKey` as `feePayer`, and remove the `initialBalance` option.
@@ -1174,8 +1174,8 @@ class AccountUpdate implements Types.AccountUpdate {
    * ```
    */
   static fundNewAccount(
-    feePayer: PrivateKey,
-    options?: { initialBalance: number | string | UInt64 }
+    feePayer: PrivateKey | PublicKey,
+    options?: { initialBalance: number | string | UInt64 } | number
   ): AccountUpdate;
   static fundNewAccount(
     feePayer: PrivateKey | PublicKey,
