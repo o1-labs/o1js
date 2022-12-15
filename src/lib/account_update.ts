@@ -1160,14 +1160,25 @@ class AccountUpdate implements Types.AccountUpdate {
    * If you provide an optional `initialBalance`, this will be subtracted from the fee-paying account as well,
    * but you have to separately ensure that it's added to the new account's balance.
    *
-   * @param feePayerKey the private key of the account that pays the fee
+   * @param feePayer the address of the account that pays the fee
    * @param initialBalance the initial balance of the new account (default: 0)
    */
   static fundNewAccount(
-    feePayerKey: PrivateKey,
+    feePayer: PublicKey,
+    options?: { initialBalance: number | string | UInt64 }
+  ): void;
+  /**
+   * @deprecated in favor of calling this function with a `PublicKey` as `signer`
+   */
+  static fundNewAccount(
+    feePayer: PrivateKey,
+    options?: { initialBalance: number | string | UInt64 }
+  ): void;
+  static fundNewAccount(
+    feePayer: PrivateKey | PublicKey,
     { initialBalance = UInt64.zero as number | string | UInt64 } = {}
   ) {
-    let accountUpdate = AccountUpdate.createSigned(feePayerKey);
+    let accountUpdate = AccountUpdate.createSigned(feePayer as PrivateKey);
     let amount =
       initialBalance instanceof UInt64
         ? initialBalance
