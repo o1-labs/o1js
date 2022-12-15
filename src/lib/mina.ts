@@ -39,6 +39,7 @@ export {
   CurrentTransaction,
   setActiveInstance,
   transaction,
+  sender,
   currentSlot,
   getAccount,
   hasAccount,
@@ -874,6 +875,32 @@ function transaction(
     f = senderOrF as () => void;
   }
   return activeInstance.transaction(sender, f);
+}
+
+/**
+ * Returns the public key of the current transaction's sender account.
+ *
+ * Throws an error if not inside a transaction, or the sender wasn't passed in.
+ */
+function sender() {
+  let tx = currentTransaction();
+  if (tx === undefined)
+    throw Error(
+      `The sender is not available outside a transaction. Make sure you only use it within \`Mina.transaction\` blocks or smart contract methods.`
+    );
+  let sender = currentTransaction()?.sender;
+  if (sender === undefined)
+    throw Error(
+      `The sender is not available, because the transaction block was created without the optional \`sender\` argument.
+Here's an example for how to pass in the sender and make it available:
+
+Mina.transaction(sender, // <-- pass in sender's public key here
+() => {
+  // methods can use this.sender
+});
+`
+    );
+  return sender;
 }
 
 /**

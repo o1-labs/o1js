@@ -181,9 +181,10 @@ function wrapMethod(
           if (inCheckedComputation() && !context.isCallback) {
             // important to run this with a fresh accountUpdate everytime, otherwise compile messes up our circuits
             // because it runs this multiple times
+            let proverData = inProver() ? zkAppProver.getData() : undefined;
             let [, result] = Mina.currentTransaction.runWith(
               {
-                sender: undefined,
+                sender: proverData?.transaction.feePayer.body.publicKey,
                 accountUpdates: [],
                 fetchMode: inProver() ? 'cached' : 'test',
                 isFinalRunOutsideCircuit: false,
@@ -860,6 +861,34 @@ super.init();
     let accountUpdate = selfAccountUpdate(this);
     this.#executionState = { transactionId, accountUpdate };
     return accountUpdate;
+  }
+
+  #_senderState: { sender: PublicKey; transactionId: number };
+
+  /**
+   * The public key of the current transaction's sender account.
+   *
+   * Throws an error if not inside a transaction, or the sender wasn't passed in.
+   *
+   * **Warning**: The fact that this public key equals the current sender is not part of the proof.
+   * A malicious prover could use any other public key without affecting the validity of the proof.
+   */
+  get sender(): PublicKey {
+    // TODO this logic now has some overlap with this.self, we should combine them somehow
+    // (but with care since the logic in this.self is a bit more complicated)
+    if (!Mina.currentTransaction.has()) {
+      throw Error(
+        `this.sender is not available outside a transaction. Make sure you only use it within \`Mina.transaction\` blocks or smart contract methods.`
+      );
+    }
+    let transactionId = Mina.currentTransaction.id();
+    if (this.#_senderState?.transactionId === transactionId) {
+      return this.#_senderState.sender;
+    } else {
+      let sender = Circuit.witness(PublicKey, () => Mina.sender());
+      this.#_senderState = { transactionId, sender };
+      return sender;
+    }
   }
 
   /**
