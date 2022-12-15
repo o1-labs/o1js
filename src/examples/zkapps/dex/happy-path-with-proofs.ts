@@ -89,11 +89,7 @@ expect(balances.user.X).toEqual(USER_DX);
 tic('supply liquidity');
 tx = await Mina.transaction(addresses.user, () => {
   AccountUpdate.fundNewAccount(addresses.user);
-  dex.supplyLiquidityBase(
-    addresses.user,
-    UInt64.from(USER_DX),
-    UInt64.from(USER_DX)
-  );
+  dex.supplyLiquidityBase(UInt64.from(USER_DX), UInt64.from(USER_DX));
 });
 await tx.prove();
 await tx.sign([keys.user]).send();
@@ -104,7 +100,7 @@ expect(balances.user.X).toEqual(0n);
 tic('redeem liquidity');
 let USER_DL = 100n;
 tx = await Mina.transaction(addresses.user, () => {
-  dex.redeemLiquidity(addresses.user, UInt64.from(USER_DL));
+  dex.redeemLiquidity(UInt64.from(USER_DL));
 });
 await tx.prove();
 await tx.sign([keys.user]).send();
@@ -115,7 +111,7 @@ expect(balances.user.X).toEqual(USER_DL / 2n);
 tic('swap 10 X for Y');
 USER_DX = 10n;
 tx = await Mina.transaction(addresses.user, () => {
-  dex.swapX(addresses.user, UInt64.from(USER_DX));
+  dex.swapX(UInt64.from(USER_DX));
 });
 await tx.prove();
 await tx.sign([keys.user]).send();

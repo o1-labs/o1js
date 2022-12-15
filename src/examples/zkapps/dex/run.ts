@@ -135,14 +135,10 @@ async function main({ withVesting }: { withVesting: boolean }) {
   // supply the initial liquidity where the token ratio can be arbitrary
   console.log('supply liquidity -- base');
   tx = await Mina.transaction(
-    { sender: feePayerAddress, fee: accountFee.mul(1) },
+    { sender: feePayerAddress, fee: accountFee },
     () => {
       AccountUpdate.fundNewAccount(feePayerAddress);
-      dex.supplyLiquidityBase(
-        feePayerAddress,
-        UInt64.from(10_000),
-        UInt64.from(10_000)
-      );
+      dex.supplyLiquidityBase(UInt64.from(10_000), UInt64.from(10_000));
     }
   );
   await tx.prove();
@@ -180,7 +176,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
   console.log('user supply liquidity (1)');
   tx = await Mina.transaction(addresses.user, () => {
     AccountUpdate.fundNewAccount(addresses.user);
-    dex.supplyLiquidity(addresses.user, UInt64.from(USER_DX));
+    dex.supplyLiquidity(UInt64.from(USER_DX));
   });
   await tx.prove();
   tx.sign([keys.user]);
@@ -217,7 +213,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
   USER_DX = 1000n;
   console.log('user supply liquidity (2)');
   tx = await Mina.transaction(addresses.user, () => {
-    dex.supplyLiquidity(addresses.user, UInt64.from(USER_DX));
+    dex.supplyLiquidity(UInt64.from(USER_DX));
   });
   await tx.prove();
   tx.sign([keys.user]);
@@ -249,18 +245,14 @@ async function main({ withVesting }: { withVesting: boolean }) {
   console.log('supplying with no tokens (should fail)');
   tx = await Mina.transaction(addresses.user2, () => {
     AccountUpdate.fundNewAccount(addresses.user2);
-    dex.supplyLiquidityBase(
-      addresses.user2,
-      UInt64.from(100),
-      UInt64.from(100)
-    );
+    dex.supplyLiquidityBase(UInt64.from(100), UInt64.from(100));
   });
   await tx.prove();
   tx.sign([keys.user2]);
   await expect(tx.send()).rejects.toThrow(/Overflow/);
   console.log('supplying with insufficient tokens (should fail)');
-  tx = await Mina.transaction(keys.user, () => {
-    dex.supplyLiquidityBase(addresses.user, UInt64.from(1e9), UInt64.from(1e9));
+  tx = await Mina.transaction(addresses.user, () => {
+    dex.supplyLiquidityBase(UInt64.from(1e9), UInt64.from(1e9));
   });
   await tx.prove();
   tx.sign([keys.user]);
@@ -286,15 +278,14 @@ async function main({ withVesting }: { withVesting: boolean }) {
   await tx.sign([feePayerKey, keys.tokenY]).send();
   console.log('supply overflowing liquidity');
   await expect(async () => {
-    tx = await Mina.transaction(feePayerAddress, () => {
+    tx = await Mina.transaction(addresses.tokenX, () => {
       dex.supplyLiquidityBase(
-        addresses.tokenX,
         UInt64.MAXINT().sub(200_000),
         UInt64.MAXINT().sub(200_000)
       );
     });
     await tx.prove();
-    tx.sign([feePayerKey, keys.tokenX]);
+    tx.sign([keys.tokenX]);
     await tx.send();
   }).rejects.toThrow();
 
@@ -319,7 +310,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
   console.log('supply with forbidden withdrawal (should fail)');
   tx = await Mina.transaction(addresses.tokenX, () => {
     AccountUpdate.fundNewAccount(addresses.tokenX);
-    dex.supplyLiquidity(addresses.tokenX, UInt64.from(10));
+    dex.supplyLiquidity(UInt64.from(10));
   });
   await tx.prove();
   await expect(tx.sign([keys.tokenX]).send()).rejects.toThrow(
@@ -345,7 +336,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
     let USER_DL = 100n;
     console.log('user redeem liquidity (before liquidity token unlocks)');
     tx = await Mina.transaction(addresses.user, () => {
-      dex.redeemLiquidity(addresses.user, UInt64.from(USER_DL));
+      dex.redeemLiquidity(UInt64.from(USER_DL));
     });
     await tx.prove();
     tx.sign([keys.user]);
@@ -369,7 +360,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
   let USER_DL = 100n;
   console.log('user redeem liquidity');
   tx = await Mina.transaction(addresses.user, () => {
-    dex.redeemLiquidity(addresses.user, UInt64.from(USER_DL));
+    dex.redeemLiquidity(UInt64.from(USER_DL));
   });
   await tx.prove();
   tx.sign([keys.user]);
@@ -406,7 +397,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
     USER_DX = 1000n;
     console.log('user supply liquidity -- again, after lock period ended');
     tx = await Mina.transaction(addresses.user, () => {
-      dex.supplyLiquidity(addresses.user, UInt64.from(USER_DX));
+      dex.supplyLiquidity(UInt64.from(USER_DX));
     });
     await tx.prove();
     await tx.sign([keys.user]).send();
@@ -452,8 +443,8 @@ async function main({ withVesting }: { withVesting: boolean }) {
     AccountUpdate.createSigned(addresses.user2).balance.subInPlace(
       accountFee.mul(2)
     );
-    dex.redeemLiquidity(addresses.user, UInt64.from(USER_DL));
-    dex.redeemLiquidity(addresses.user2, UInt64.from(USER_DL));
+    dex.redeemLiquidity(UInt64.from(USER_DL));
+    dex.redeemLiquidity(UInt64.from(USER_DL));
   });
   await tx.prove();
   tx.sign([keys.user, keys.user2]);
@@ -466,7 +457,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
     AccountUpdate.createSigned(addresses.user2).balance.subInPlace(
       accountFee.mul(2)
     );
-    dex.redeemLiquidity(addresses.user2, UInt64.from(USER_DL));
+    dex.redeemLiquidity(UInt64.from(USER_DL));
   });
   await tx.prove();
   await tx.sign([keys.user2]).send();
@@ -489,7 +480,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
    */
   console.log('user2 redeem liquidity (fails because insufficient balance)');
   tx = await Mina.transaction(addresses.user2, () => {
-    dex.redeemLiquidity(addresses.user2, UInt64.from(1n));
+    dex.redeemLiquidity(UInt64.from(1n));
   });
   await tx.prove();
   await expect(tx.sign([keys.user2]).send()).rejects.toThrow(/Overflow/);
@@ -511,7 +502,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
   USER_DX = 10n;
   console.log('swap 10 X for Y');
   tx = await Mina.transaction(addresses.user, () => {
-    dex.swapX(addresses.user, UInt64.from(USER_DX));
+    dex.swapX(UInt64.from(USER_DX));
   });
   await tx.prove();
   await tx.sign([keys.user]).send();
