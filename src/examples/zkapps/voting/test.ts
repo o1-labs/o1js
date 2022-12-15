@@ -5,10 +5,7 @@ import {
   PrivateKey,
   UInt64,
   UInt32,
-  SmartContract,
-  DeployArgs,
   Permissions,
-  VerificationKey,
 } from 'snarkyjs';
 import { deployContracts, deployInvalidContracts } from './deployContracts.js';
 import { DummyContract } from './dummyContract.js';
