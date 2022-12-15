@@ -1154,8 +1154,10 @@ class AccountUpdate implements Types.AccountUpdate {
 
   /**
    * Use this method to pay the account creation fee for another account (or, multiple accounts using the optional second argument).
-   * Beware that you _don't_ need to pass in the new account!
-   * Instead, the protocol will automatically identify accounts in your transaction that need funding.
+   *
+   * Beware that you _don't_ need to specify the account that is created!
+   * Instead, the protocol will automatically identify that accounts need to be created,
+   * and require that the net balance change of the transaction covers the account creation fee.
    *
    * @param feePayer the address of the account that pays the fee
    * @param numberOfAccounts the number of new accounts to fund (default: 1)
