@@ -3,18 +3,10 @@ on:
   push:
     branches:
       - main
-<<<<<<< HEAD
-      - releases
-=======
->>>>>>> f3bf87176ba45a011cd73cafad4e97890b6c398a
       - berkeley
   pull_request:
     branches:
       - main
-<<<<<<< HEAD
-      - releases
-=======
->>>>>>> f3bf87176ba45a011cd73cafad4e97890b6c398a
       - berkeley
   workflow_dispatch: {}
 
