@@ -155,7 +155,10 @@ let zkAppCAddress: PublicKey;
 let zkAppC: ZkAppC;
 
 function setupAccounts() {
-  let Local = Mina.LocalBlockchain({ proofsEnabled: true });
+  let Local = Mina.LocalBlockchain({
+    proofsEnabled: true,
+    enforceTransactionLimits: false,
+  });
   Mina.setActiveInstance(Local);
   feePayerKey = Local.testAccounts[0].privateKey;
 

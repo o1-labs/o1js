@@ -174,13 +174,6 @@ type ZkappCommand = {
       preconditions: {
         network: {
           snarkedLedgerHash: { isSome: Bool; value: Field };
-          timestamp: {
-            isSome: Bool;
-            value: {
-              lower: UInt64;
-              upper: UInt64;
-            };
-          };
           blockchainLength: {
             isSome: Bool;
             value: {
@@ -200,13 +193,6 @@ type ZkappCommand = {
             value: {
               lower: UInt64;
               upper: UInt64;
-            };
-          };
-          globalSlotSinceHardFork: {
-            isSome: Bool;
-            value: {
-              lower: UInt32;
-              upper: UInt32;
             };
           };
           globalSlotSinceGenesis: {
@@ -369,13 +355,6 @@ type AccountUpdate = {
     preconditions: {
       network: {
         snarkedLedgerHash: { isSome: Bool; value: Field };
-        timestamp: {
-          isSome: Bool;
-          value: {
-            lower: UInt64;
-            upper: UInt64;
-          };
-        };
         blockchainLength: {
           isSome: Bool;
           value: {
@@ -395,13 +374,6 @@ type AccountUpdate = {
           value: {
             lower: UInt64;
             upper: UInt64;
-          };
-        };
-        globalSlotSinceHardFork: {
-          isSome: Bool;
-          value: {
-            lower: UInt32;
-            upper: UInt32;
           };
         };
         globalSlotSinceGenesis: {

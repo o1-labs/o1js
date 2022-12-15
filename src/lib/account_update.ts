@@ -6,7 +6,7 @@ import {
   memoizeWitness,
   FlexibleProvable,
 } from './circuit_value.js';
-import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
+import { Field, Bool, Ledger, Circuit, Pickles } from '../snarky.js';
 import { jsLayout } from '../provable/gen/js-layout.js';
 import { Types, toJSONEssential } from '../provable/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -74,18 +74,9 @@ type Update = AccountUpdateBody['update'];
 type Preconditions = AccountUpdateBody['preconditions'];
 
 /**
- * Timing info inside an account.
- */
-type Timing = Update['timing']['value'];
-
-/**
  * Either set a value or keep it the same.
  */
 type SetOrKeep<T> = { isSome: Bool; value: T };
-
-function keep<T>(dummy: T): SetOrKeep<T> {
-  return { isSome: Bool(false), value: dummy };
-}
 
 const True = () => Bool(true);
 const False = () => Bool(false);
@@ -292,7 +283,6 @@ let Permissions = {
     setTokenSymbol: Permission.none(),
     incrementNonce: Permission.none(),
     setVotingFor: Permission.none(),
-    access: Permission.none(),
   }),
 
   fromString: (permission: AuthRequired): Permission => {
@@ -329,7 +319,6 @@ let Permissions = {
 };
 
 // TODO: get docstrings from OCaml and delete this interface
-// TODO: We need to rename this still.
 
 /**
  * The body of describing how some [[ AccountUpdate ]] should change.
@@ -397,61 +386,21 @@ interface Body extends AccountUpdateBody {
   authorizationKind: AccountUpdateBody['authorizationKind'];
 }
 const Body = {
-  noUpdate(): Update {
-    return {
-      appState: Array(ZkappStateLength)
-        .fill(0)
-        .map(() => keep(Field(0))),
-      delegate: keep(PublicKey.empty()),
-      // TODO
-      verificationKey: keep({ data: '', hash: Field(0) }),
-      permissions: keep(Permissions.initial()),
-      // TODO don't hard code
-      zkappUri: keep({
-        data: '',
-        hash: Field(
-          '22930868938364086394602058221028773520482901241511717002947639863679740444066'
-        ),
-      }),
-      // TODO
-      tokenSymbol: keep(TokenSymbol.empty),
-      timing: keep<Timing>({
-        cliffAmount: UInt64.zero,
-        cliffTime: UInt32.zero,
-        initialMinimumBalance: UInt64.zero,
-        vestingIncrement: UInt64.zero,
-        vestingPeriod: UInt32.zero,
-      }),
-      votingFor: keep(Field(0)),
-    };
-  },
-
   /**
-   * A body that Don't change part of the underlying account record.
+   * A body that doesn't change the underlying account record
    */
-  keepAll(publicKey: PublicKey): Body {
-    return {
-      publicKey,
-      update: Body.noUpdate(),
-      tokenId: TokenId.default,
-      balanceChange: Int64.zero,
-      events: Events.empty(),
-      sequenceEvents: SequenceEvents.empty(),
-      caller: TokenId.default,
-      callData: Field(0),
-      callDepth: 0,
-      preconditions: Preconditions.ignoreAll(),
-      // the default assumption is that snarkyjs transactions don't include the fee payer
-      // so useFullCommitment has to be false for signatures to be correct
-      useFullCommitment: Bool(false),
-      // this should be set to true if accountUpdates are signed
-      incrementNonce: Bool(false),
-      authorizationKind: { isSigned: Bool(false), isProved: Bool(false) },
-    };
+  keepAll(publicKey: PublicKey, tokenId?: Field): Body {
+    let { body } = Types.AccountUpdate.emptyValue();
+    body.publicKey = publicKey;
+    if (tokenId) {
+      body.tokenId = tokenId;
+      body.caller = tokenId;
+    }
+    return body;
   },
 
   dummy(): Body {
-    return Body.keepAll(PublicKey.empty());
+    return Types.AccountUpdate.emptyValue().body;
   },
 };
 
@@ -500,11 +449,9 @@ let NetworkPrecondition = {
     let nextEpochData = cloneCircuitValue(stakingEpochData);
     return {
       snarkedLedgerHash: ignore(Field(0)),
-      timestamp: ignore(uint64()),
       blockchainLength: ignore(uint32()),
       minWindowDensity: ignore(uint32()),
       totalCurrency: ignore(uint64()),
-      globalSlotSinceHardFork: ignore(uint32()),
       globalSlotSinceGenesis: ignore(uint32()),
       stakingEpochData,
       nextEpochData,
@@ -925,18 +872,23 @@ class AccountUpdate implements Types.AccountUpdate {
    * Note that an account's {@link Permissions} determine which updates have to be (can be) authorized by a signature.
    */
   requireSignature() {
-    let nonce = AccountUpdate.getNonce(this);
-    this.account.nonce.assertEquals(nonce);
-    this.body.incrementNonce = Bool(true);
-    Authorization.setLazySignature(this, {});
+    this.sign();
   }
   /**
    * @deprecated `.sign()` is deprecated in favor of `.requireSignature()`
    */
   sign(privateKey?: PrivateKey) {
-    let nonce = AccountUpdate.getNonce(this);
-    this.account.nonce.assertEquals(nonce);
-    this.body.incrementNonce = Bool(true);
+    let { nonce, isSameAsFeePayer } = AccountUpdate.getSigningInfo(this);
+    // if this account is the same as the fee payer, we use the "full commitment" for replay protection
+    this.body.useFullCommitment = isSameAsFeePayer;
+    // otherwise, we increment the nonce
+    let doIncrementNonce = isSameAsFeePayer.not();
+    this.body.incrementNonce = doIncrementNonce;
+    // in this case, we also have to set a nonce precondition
+    this.body.preconditions.account.nonce.isSome = doIncrementNonce;
+    this.body.preconditions.account.nonce.value.lower = nonce;
+    this.body.preconditions.account.nonce.value.upper = nonce;
+    // set lazy signature
     Authorization.setLazySignature(this, { privateKey });
   }
 
@@ -950,12 +902,25 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   static getNonce(accountUpdate: AccountUpdate | FeePayerUnsigned) {
-    return memoizeWitness(UInt32, () =>
-      AccountUpdate.getNonceUnchecked(accountUpdate)
+    return AccountUpdate.getSigningInfo(accountUpdate).nonce;
+  }
+
+  private static signingInfo = provable({
+    nonce: UInt32,
+    isSameAsFeePayer: Bool,
+  });
+
+  private static getSigningInfo(
+    accountUpdate: AccountUpdate | FeePayerUnsigned
+  ) {
+    return memoizeWitness(AccountUpdate.signingInfo, () =>
+      AccountUpdate.getSigningInfoUnchecked(accountUpdate)
     );
   }
 
-  private static getNonceUnchecked(update: AccountUpdate | FeePayerUnsigned) {
+  private static getSigningInfoUnchecked(
+    update: AccountUpdate | FeePayerUnsigned
+  ) {
     let publicKey = update.body.publicKey;
     let tokenId =
       update instanceof AccountUpdate ? update.body.tokenId : TokenId.default;
@@ -965,9 +930,11 @@ class AccountUpdate implements Types.AccountUpdate {
     // if the fee payer is the same account update as this one, we have to start the nonce predicate at one higher,
     // bc the fee payer already increases its nonce
     let isFeePayer = Mina.currentTransaction()?.sender?.equals(publicKey);
-    let shouldIncreaseNonce = isFeePayer?.and(tokenId.equals(TokenId.default));
-    if (shouldIncreaseNonce?.toBoolean()) nonce++;
-    // now, we check how often this accountUpdate already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
+    let isSameAsFeePayer = !!isFeePayer
+      ?.and(tokenId.equals(TokenId.default))
+      .toBoolean();
+    if (isSameAsFeePayer) nonce++;
+    // now, we check how often this account update already updated its nonce in this tx, and increase nonce from `getAccount` by that amount
     CallForest.forEachPredecessor(
       Mina.currentTransaction.get().accountUpdates,
       update as AccountUpdate,
@@ -979,7 +946,10 @@ class AccountUpdate implements Types.AccountUpdate {
         if (shouldIncreaseNonce.toBoolean()) nonce++;
       }
     );
-    return UInt32.from(nonce);
+    return {
+      nonce: UInt32.from(nonce),
+      isSameAsFeePayer: Bool(isSameAsFeePayer),
+    };
   }
 
   toJSON() {
@@ -1009,8 +979,6 @@ class AccountUpdate implements Types.AccountUpdate {
     }
   }
 
-  // TODO: this was only exposed to be used in a unit test
-  // consider removing when we have inline unit tests
   toPublicInput(): ZkappPublicInput {
     let accountUpdate = this.hash();
     let calls = CallForest.hashChildren(this);
@@ -1018,15 +986,10 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   static defaultAccountUpdate(address: PublicKey, tokenId?: Field) {
-    const body = Body.keepAll(address);
-    if (tokenId) {
-      body.tokenId = tokenId;
-      body.caller = tokenId;
-    }
-    return new AccountUpdate(body);
+    return new AccountUpdate(Body.keepAll(address, tokenId));
   }
   static dummy() {
-    return this.defaultAccountUpdate(PublicKey.empty());
+    return new AccountUpdate(Body.dummy());
   }
   isDummy() {
     return this.body.publicKey.isEmpty();
@@ -1050,6 +1013,11 @@ class AccountUpdate implements Types.AccountUpdate {
     return { body, authorization: Ledger.dummySignature() };
   }
 
+  /**
+   * Creates an account update. If this is inside a transaction, the account update becomes part of the transaction.
+   * If this is inside a smart contract method, the account update will not only become part of the transaction, but
+   * also becomes available for the smart contract to modify, in a way that becomes part of the proof.
+   */
   static create(publicKey: PublicKey, tokenId?: Field) {
     let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey, tokenId);
     if (smartContractContext.has()) {
@@ -1059,6 +1027,10 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     return accountUpdate;
   }
+  /**
+   * Attach account update to the current transaction
+   * -- if in a smart contract, to its children
+   */
   static attachToTransaction(accountUpdate: AccountUpdate) {
     if (smartContractContext.has()) {
       let selfUpdate = smartContractContext.get().this.self;
@@ -1075,24 +1047,54 @@ class AccountUpdate implements Types.AccountUpdate {
       }
     }
   }
+  /**
+   * Disattach an account update from where it's currently located in the transaction
+   */
+  static unlink(accountUpdate: AccountUpdate) {
+    let siblings =
+      accountUpdate.parent?.children.accountUpdates ??
+      Mina.currentTransaction()?.accountUpdates;
+    if (siblings === undefined) return;
+    let i = siblings?.findIndex((update) => update.id === accountUpdate.id);
+    if (i !== undefined && i !== -1) {
+      siblings!.splice(i, 1);
+    }
+    accountUpdate.parent === undefined;
+  }
 
-  static createSigned(signer: PrivateKey) {
-    let publicKey = signer.toPublicKey();
+  /**
+   * Creates an account update, like {@link AccountUpdate.create}, but also makes sure
+   * this account update will be authorized with a signature.
+   *
+   * If you use this and are not relying on a wallet to sign your transaction, then you should use the following code
+   * before sending your transaction:
+   *
+   * ```ts
+   * let tx = Mina.transaction(...); // create transaction as usual, using `createSigned()` somewhere
+   * tx.sign([privateKey]); // pass the private key of this account to `sign()`!
+   * ```
+   *
+   * Note that an account's {@link Permissions} determine which updates have to be (can be) authorized by a signature.
+   */
+  static createSigned(signer: PublicKey, tokenId?: Field): AccountUpdate;
+  /**
+   * @deprecated in favor of calling this function with a `PublicKey` as `signer`
+   */
+  static createSigned(signer: PrivateKey, tokenId?: Field): AccountUpdate;
+  static createSigned(signer: PrivateKey | PublicKey, tokenId?: Field) {
+    let publicKey =
+      signer instanceof PrivateKey ? signer.toPublicKey() : signer;
     if (!Mina.currentTransaction.has()) {
       throw new Error(
         'AccountUpdate.createSigned: Cannot run outside of a transaction'
       );
     }
-    let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey);
-    // it's fine to compute the nonce outside the circuit, because we're constraining it with a precondition
-    let nonce = Circuit.witness(UInt32, () =>
-      AccountUpdate.getNonceUnchecked(accountUpdate)
-    );
-    accountUpdate.account.nonce.assertEquals(nonce);
-    accountUpdate.body.incrementNonce = Bool(true);
-
-    Authorization.setLazySignature(accountUpdate, { privateKey: signer });
-    Mina.currentTransaction.get().accountUpdates.push(accountUpdate);
+    let accountUpdate = AccountUpdate.create(publicKey, tokenId);
+    if (signer instanceof PrivateKey) {
+      accountUpdate.sign(signer);
+    } else {
+      accountUpdate.requireSignature();
+    }
     return accountUpdate;
   }
 
@@ -1516,20 +1518,8 @@ function makeChildAccountUpdate(parent: AccountUpdate, child: AccountUpdate) {
   // add to our children if not already here
   if (!wasChildAlready) {
     parent.children.accountUpdates.push(child);
-  }
-  // remove the child from the top level list / its current parent
-  if (child.parent === undefined) {
-    let topLevelUpdates = Mina.currentTransaction()?.accountUpdates;
-    let i = topLevelUpdates?.findIndex((update) => update.id === child.id);
-    if (i !== undefined && i !== -1) {
-      topLevelUpdates!.splice(i, 1);
-    }
-  } else if (!wasChildAlready) {
-    let siblings = child.parent.children.accountUpdates;
-    let i = siblings?.findIndex((update) => update.id === child.id);
-    if (i !== undefined && i !== -1) {
-      siblings!.splice(i, 1);
-    }
+    // remove the child from the top level list / its current parent
+    AccountUpdate.unlink(child);
   }
   child.parent = parent;
 }
@@ -1635,7 +1625,7 @@ function addMissingSignatures(
       }
       privateKey = additionalKeys[i];
     }
-    let signature = Ledger.signFieldElement(fullCommitment, privateKey);
+    let signature = Ledger.signFieldElement(fullCommitment, privateKey, false);
     return { body, authorization: signature };
   }
 
@@ -1658,7 +1648,11 @@ function addMissingSignatures(
     let transactionCommitment = accountUpdate.body.useFullCommitment.toBoolean()
       ? fullCommitment
       : commitment;
-    let signature = Ledger.signFieldElement(transactionCommitment, privateKey);
+    let signature = Ledger.signFieldElement(
+      transactionCommitment,
+      privateKey,
+      false
+    );
     Authorization.setSignature(accountUpdate, signature);
     return accountUpdate as AccountUpdate & { lazyAuthorization: undefined };
   }
