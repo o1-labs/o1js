@@ -41,23 +41,19 @@ console.log('Compiling smart contract..');
 let { verificationKey } = await HelloWorld.compile();
 
 let zkapp = new HelloWorld(zkappAddress);
-let x = await zkapp.x.fetch();
-let isDeployed = x?.equals(0).not().toBoolean() ?? false;
 
-if (!isDeployed) {
-  console.log(`Deploying zkapp for public key ${zkappAddress.toBase58()}.`);
+console.log(`Deploying zkapp for public key ${zkappAddress.toBase58()}.`);
 
-  let transaction = await Mina.transaction(
-    { feePayerKey, fee: transactionFee },
-    () => {
-      AccountUpdate.fundNewAccount(feePayerKey);
-      zkapp.deploy({ zkappKey, verificationKey });
-    }
-  );
+let transaction = await Mina.transaction(
+  { feePayerKey, fee: transactionFee },
+  () => {
+    AccountUpdate.fundNewAccount(feePayerKey);
+    zkapp.deploy({ zkappKey, verificationKey });
+  }
+);
 
-  console.log('Sending the transaction..');
-  await (await transaction.send()).wait();
-}
+console.log('Sending the transaction..');
+await (await transaction.send()).wait();
 
 console.log('Fetching updated accounts..');
 await fetchAccount({ publicKey: feePayerKey.toPublicKey() });
@@ -65,7 +61,7 @@ await fetchAccount({ publicKey: zkappAddress });
 
 console.log('Trying to update deployed zkApp..');
 
-let transaction = await Mina.transaction(
+transaction = await Mina.transaction(
   { feePayerKey, fee: transactionFee },
   () => {
     zkapp.update(Field(4), adminPrivateKey);
