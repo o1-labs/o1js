@@ -1153,37 +1153,41 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   /**
-   * Use this method to pay the account creation fee for another account.
+   * Use this method to pay the account creation fee for another account (or, multiple accounts using the optional second argument).
    * Beware that you _don't_ need to pass in the new account!
    * Instead, the protocol will automatically identify accounts in your transaction that need funding.
    *
-   * If you provide an optional `initialBalance`, this will be subtracted from the fee-paying account as well,
-   * but you have to separately ensure that it's added to the new account's balance.
-   *
    * @param feePayer the address of the account that pays the fee
-   * @param initialBalance the initial balance of the new account (default: 0)
+   * @param numberOfAccounts the number of new accounts to fund (default: 1)
+   * @returns they {@link AccountUpdate} for the account which pays the fee
    */
   static fundNewAccount(
     feePayer: PublicKey,
-    options?: { initialBalance: number | string | UInt64 }
-  ): void;
+    numberOfAccounts: number
+  ): AccountUpdate;
   /**
-   * @deprecated in favor of calling this function with a `PublicKey` as `signer`
+   * @deprecated Call this function with a `PublicKey` as `feePayer`, and remove the `initialBalance` option.
+   * To send an initial balance to the new account, you can use the returned account update:
+   * ```
+   * let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer);
+   * feePayerUpdate.send({ to: receiverAddress, amount: initialBalance });
+   * ```
    */
   static fundNewAccount(
     feePayer: PrivateKey,
     options?: { initialBalance: number | string | UInt64 }
-  ): void;
+  ): AccountUpdate;
   static fundNewAccount(
     feePayer: PrivateKey | PublicKey,
-    { initialBalance = UInt64.zero as number | string | UInt64 } = {}
+    numberOfAccounts?: number | { initialBalance: number | string | UInt64 }
   ) {
     let accountUpdate = AccountUpdate.createSigned(feePayer as PrivateKey);
-    let amount =
-      initialBalance instanceof UInt64
-        ? initialBalance
-        : UInt64.from(`${initialBalance}`);
-    accountUpdate.balance.subInPlace(amount.add(Mina.accountCreationFee()));
+    let fee = Mina.accountCreationFee();
+    numberOfAccounts ??= 1;
+    if (typeof numberOfAccounts === 'number') fee = fee.mul(numberOfAccounts);
+    else fee = fee.add(UInt64.from(numberOfAccounts.initialBalance ?? 0));
+    accountUpdate.balance.subInPlace(fee);
+    return accountUpdate;
   }
 
   // static methods that implement Provable<{ accountUpdate: AccountUpdate, isDelegateCall: Bool }>
