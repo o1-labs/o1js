@@ -585,14 +585,14 @@ class AccountUpdate implements Types.AccountUpdate {
   network: Precondition.Network;
   children: {
     callsType:
-    | { type: 'None' }
-    | { type: 'Witness' }
-    | { type: 'Equals'; value: Field };
+      | { type: 'None' }
+      | { type: 'Witness' }
+      | { type: 'Equals'; value: Field };
     accountUpdates: AccountUpdate[];
   } = {
-      callsType: { type: 'None' },
-      accountUpdates: [],
-    };
+    callsType: { type: 'None' },
+    accountUpdates: [],
+  };
   parent: AccountUpdate | undefined = undefined;
 
   private isSelf: boolean;
@@ -1176,7 +1176,7 @@ class AccountUpdate implements Types.AccountUpdate {
   ) {
     // construct the circuit type for a accountUpdate + other result
     let accountUpdateType = skipCheck
-      ? { ...provable(AccountUpdate), check() { } }
+      ? { ...provable(AccountUpdate), check() {} }
       : AccountUpdate;
     let combinedType = provable({
       accountUpdate: accountUpdateType,
@@ -1716,7 +1716,7 @@ async function addMissingProofs(
     if (ZkappClass._provers === undefined)
       throw Error(
         `Cannot prove execution of ${methodName}(), no prover found. ` +
-        `Try calling \`await ${ZkappClass.name}.compile()\` first, this will cache provers in the background.`
+          `Try calling \`await ${ZkappClass.name}.compile()\` first, this will cache provers in the background.`
       );
     let provers = ZkappClass._provers;
     let methodError =

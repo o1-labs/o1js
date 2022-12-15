@@ -113,11 +113,11 @@ let currentTransaction = Context.create<CurrentTransaction>();
 type FeePayerSpec =
   | PrivateKey
   | {
-    feePayerKey: PrivateKey;
-    fee?: number | string | UInt64;
-    memo?: string;
-    nonce?: number;
-  }
+      feePayerKey: PrivateKey;
+      fee?: number | string | UInt64;
+      memo?: string;
+      nonce?: number;
+    }
   | undefined;
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
@@ -475,7 +475,7 @@ function LocalBlockchain({
         }
       });
       return {
-        wait: async () => { },
+        wait: async () => {},
         hash: (): string => {
           const message =
             'Txn Hash retrieving is not supported for LocalBlockchain.';

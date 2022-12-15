@@ -435,10 +435,10 @@ function wrapMethod(
         let { accountUpdate, result } =
           methodCallDepth === 0
             ? AccountUpdate.witness<any>(
-              returnType ?? provable(null),
-              runCalledContract,
-              { skipCheck: true }
-            )
+                returnType ?? provable(null),
+                runCalledContract,
+                { skipCheck: true }
+              )
             : runCalledContract();
 
         // we're back in the _caller's_ circuit now, where we assert stuff about the method call
@@ -949,15 +949,16 @@ super.init();
     if (eventTypes.length === 0)
       throw Error(
         'emitEvent: You are trying to emit an event without having declared the types of your events.\n' +
-        `Make sure to add a property \`events\` on ${this.constructor.name}, for example: \n` +
-        `class ${this.constructor.name} extends SmartContract {\n` +
-        `  events = { 'my-event': Field }\n` +
-        `}`
+          `Make sure to add a property \`events\` on ${this.constructor.name}, for example: \n` +
+          `class ${this.constructor.name} extends SmartContract {\n` +
+          `  events = { 'my-event': Field }\n` +
+          `}`
       );
     let eventNumber = eventTypes.sort().indexOf(type as string);
     if (eventNumber === -1)
       throw Error(
-        `emitEvent: Unknown event type "${type as string
+        `emitEvent: Unknown event type "${
+          type as string
         }". The declared event types are: ${eventTypes.join(', ')}.`
       );
     let eventType = (this.events as this['events'])[type];
@@ -1168,7 +1169,7 @@ function getReducer<A>(contract: SmartContract): ReducerReturn<A> {
   if (reducer === undefined)
     throw Error(
       'You are trying to use a reducer without having declared its type.\n' +
-      `Make sure to add a property \`reducer\` on ${contract.constructor.name}, for example:
+        `Make sure to add a property \`reducer\` on ${contract.constructor.name}, for example:
 class ${contract.constructor.name} extends SmartContract {
   reducer = { actionType: Field };
 }`
@@ -1316,7 +1317,7 @@ class VerificationKey extends Struct({
   toJSON({ data }: { data: string }) {
     return data;
   },
-}) { }
+}) {}
 
 function selfAccountUpdate(zkapp: SmartContract, methodName?: string) {
   let body = Body.keepAll(zkapp.address, zkapp.tokenId);
@@ -1332,9 +1333,9 @@ type ExecutionState = { transactionId: number; accountUpdate: AccountUpdate };
 
 type DeployArgs =
   | {
-    verificationKey?: { data: string; hash: string | Field };
-    zkappKey?: PrivateKey;
-  }
+      verificationKey?: { data: string; hash: string | Field };
+      zkappKey?: PrivateKey;
+    }
   | undefined;
 
 // functions designed to be called from a CLI
@@ -1486,7 +1487,7 @@ const Reducer: (<
 }) => ReducerReturn<A>) & {
   initialActionsHash: Field;
 } = Object.defineProperty(
-  function(reducer: any) {
+  function (reducer: any) {
     // we lie about the return value here, and instead overwrite this.reducer with a getter,
     // so we can get access to `this` inside functions on this.reducer (see constructor)
     return reducer;
