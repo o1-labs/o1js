@@ -1,6 +1,5 @@
 import {
   DeployArgs,
-  Experimental,
   Field,
   Permissions,
   Mina,
@@ -59,17 +58,14 @@ export async function deployContracts(
   });
   Mina.setActiveInstance(Local);
 
-  let feePayer = Local.testAccounts[0].privateKey;
+  let feePayerKey = Local.testAccounts[0].privateKey;
+  let feePayer = Local.testAccounts[0].publicKey;
   let { voterContract, candidateContract, voting } = contracts;
 
   console.log('deploying set of 3 contracts');
   try {
     let tx = await Mina.transaction(feePayer, () => {
-      AccountUpdate.fundNewAccount(feePayer, {
-        initialBalance: Mina.accountCreationFee().add(
-          Mina.accountCreationFee()
-        ),
-      });
+      AccountUpdate.fundNewAccount(feePayer, 3);
 
       voting.deploy({ zkappKey: params.votingKey });
       voting.committedVotes.set(votesRoot);
@@ -89,7 +85,13 @@ export async function deployContracts(
   }
 
   console.log('successfully deployed contracts');
-  return { voterContract, candidateContract, voting, feePayer, Local };
+  return {
+    voterContract,
+    candidateContract,
+    voting,
+    feePayer: feePayerKey,
+    Local,
+  };
 }
 
 /**
@@ -124,17 +126,14 @@ export async function deployInvalidContracts(
   });
   Mina.setActiveInstance(Local);
 
-  let feePayer = Local.testAccounts[0].privateKey;
+  let feePayerKey = Local.testAccounts[0].privateKey;
+  let feePayer = Local.testAccounts[0].publicKey;
   let { voterContract, candidateContract, voting } = contracts;
 
   console.log('deploying set of 3 contracts');
   try {
     let tx = await Mina.transaction(feePayer, () => {
-      AccountUpdate.fundNewAccount(feePayer, {
-        initialBalance: Mina.accountCreationFee().add(
-          Mina.accountCreationFee()
-        ),
-      });
+      AccountUpdate.fundNewAccount(feePayer, 3);
 
       voting.deploy({ zkappKey: params.votingKey });
       voting.committedVotes.set(votesRoot);
@@ -158,11 +157,17 @@ export async function deployInvalidContracts(
 
       voterContract = invalidVoterContract as Membership_;
     });
-    await tx.send();
+    await tx.sign([feePayerKey]).send();
   } catch (err: any) {
     throw Error(err);
   }
 
   console.log('successfully deployed contracts');
-  return { voterContract, candidateContract, voting, feePayer, Local };
+  return {
+    voterContract,
+    candidateContract,
+    voting,
+    feePayer: feePayerKey,
+    Local,
+  };
 }

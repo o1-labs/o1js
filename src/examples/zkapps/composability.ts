@@ -58,7 +58,8 @@ let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp
-let feePayer = Local.testAccounts[0].privateKey;
+let feePayerKey = Local.testAccounts[0].privateKey;
+let feePayer = Local.testAccounts[0].publicKey;
 
 // the first contract's address
 let incrementerKey = PrivateKey.random();
@@ -86,14 +87,12 @@ if (doProofs) {
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, () => {
   // TODO: enable funding multiple accounts properly
-  AccountUpdate.fundNewAccount(feePayer, {
-    initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
-  });
-  zkapp.deploy({ zkappKey });
-  adderZkapp.deploy({ zkappKey: adderKey });
-  incrementerZkapp.deploy({ zkappKey: incrementerKey });
+  AccountUpdate.fundNewAccount(feePayer, 3);
+  zkapp.deploy();
+  adderZkapp.deploy();
+  incrementerZkapp.deploy();
 });
-await tx.send();
+await tx.sign([feePayerKey, zkappKey, adderKey, incrementerKey]).send();
 
 console.log('call interaction');
 tx = await Mina.transaction(feePayer, () => {
@@ -102,10 +101,8 @@ tx = await Mina.transaction(feePayer, () => {
 });
 console.log('proving (3 proofs.. can take a bit!)');
 await tx.prove();
-tx.sign();
 console.log(tx.toPretty());
-
-await tx.send();
+await tx.sign([feePayerKey]).send();
 
 // should hopefully be 12 since we added 5 + 6 + 1
 console.log('state: ' + zkapp.sum.get());

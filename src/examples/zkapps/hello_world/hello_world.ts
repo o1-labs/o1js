@@ -18,14 +18,9 @@ export const adminPublicKey = adminPrivateKey.toPublicKey();
 export class HelloWorld extends SmartContract {
   @state(Field) x = State<Field>();
 
-  deploy(input: DeployArgs) {
-    super.deploy(input);
-    this.account.permissions.set({
-      ...Permissions.default(),
-      editState: Permissions.proofOrSignature(),
-    });
+  init() {
+    super.init();
     this.x.set(Field(2));
-
     this.account.delegate.set(adminPublicKey);
   }
 

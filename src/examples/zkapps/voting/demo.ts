@@ -24,7 +24,8 @@ let Local = Mina.LocalBlockchain({
 });
 Mina.setActiveInstance(Local);
 
-let feePayer = Local.testAccounts[0].privateKey;
+let feePayer = Local.testAccounts[0].publicKey;
+let feePayerKey = Local.testAccounts[0].privateKey;
 
 let tx;
 
@@ -66,9 +67,7 @@ let votesStore = new OffchainStorage<Member>(8);
 let initialRoot = voterStore.getRoot();
 try {
   tx = await Mina.transaction(feePayer, () => {
-    AccountUpdate.fundNewAccount(feePayer, {
-      initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
-    });
+    AccountUpdate.fundNewAccount(feePayer, 3);
 
     contracts.voting.deploy({ zkappKey: votingKey });
     contracts.voting.committedVotes.set(votesStore.getRoot());
@@ -84,7 +83,7 @@ try {
     contracts.voterContract.committedMembers.set(voterStore.getRoot());
     contracts.voterContract.accumulatedMembers.set(Reducer.initialActionsHash);
   });
-  await tx.send();
+  await tx.sign([feePayerKey]).send();
 
   let m: Member = Member.empty();
   // lets register three voters
@@ -108,8 +107,8 @@ try {
     contracts.voting.voterRegistration(m);
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
-  if (params.doProofs) await tx.prove();
-  await tx.send();
+  await tx.prove();
+  await tx.sign([feePayerKey]).send();
 
   // lets register three voters
   tx = await Mina.transaction(feePayer, () => {
@@ -133,8 +132,8 @@ try {
 
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
-  if (params.doProofs) await tx.prove();
-  await tx.send();
+  await tx.prove();
+  await tx.sign([feePayerKey]).send();
 
   // lets register three voters
   tx = await Mina.transaction(feePayer, () => {
@@ -158,8 +157,8 @@ try {
 
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
-  if (params.doProofs) await tx.prove();
-  await tx.send();
+  await tx.prove();
+  await tx.sign([feePayerKey]).send();
 
   /*
   since the voting contract calls the voter membership contract via invoking voterRegister,
@@ -197,8 +196,8 @@ try {
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
 
-  if (params.doProofs) await tx.prove();
-  await tx.send();
+  await tx.prove();
+  await tx.sign([feePayerKey]).send();
 
   tx = await Mina.transaction(feePayer, () => {
     // creating and registering 1 new candidate
@@ -221,8 +220,8 @@ try {
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
 
-  if (params.doProofs) await tx.prove();
-  await tx.send();
+  await tx.prove();
+  await tx.sign([feePayerKey]).send();
 
   /*
   since the voting contact calls the candidate membership contract via invoking candidateRegister,
@@ -267,8 +266,8 @@ try {
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
 
-  if (params.doProofs) await tx.prove();
-  await tx.send();
+  await tx.prove();
+  await tx.sign([feePayerKey]).send();
 
   for (let a of candidateStore.values()) {
     console.log(a.publicKey.toBase58());
@@ -303,8 +302,8 @@ try {
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
 
-  if (params.doProofs) await tx.prove();
-  await tx.send();
+  await tx.prove();
+  await tx.sign([feePayerKey]).send();
   // after the transaction went through, we have to update our off chain store as well
   vote(0n);
 
@@ -323,8 +322,8 @@ try {
     if (!params.doProofs) contracts.voting.sign(votingKey);
   });
 
-  if (params.doProofs) await tx.prove();
-  await tx.send();
+  await tx.prove();
+  await tx.sign([feePayerKey]).send();
 
   // vote dispatches a new sequence events, so we should have one
 

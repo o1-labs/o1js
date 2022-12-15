@@ -19,7 +19,8 @@ let Local = Mina.LocalBlockchain({
 });
 Mina.setActiveInstance(Local);
 let accountFee = Mina.accountCreationFee();
-let [{ privateKey: feePayerKey }] = Local.testAccounts;
+let [{ privateKey: feePayerKey, publicKey: feePayerAddress }] =
+  Local.testAccounts;
 let tx, balances, oldBalances;
 
 let { Dex, DexTokenHolder, getTokenBalances } = createDex();
@@ -43,9 +44,9 @@ let tokenY = new TokenContract(addresses.tokenY);
 let dex = new Dex(addresses.dex);
 
 tic('deploy & init token contracts');
-tx = await Mina.transaction({ feePayerKey }, () => {
+tx = await Mina.transaction(feePayerAddress, () => {
   // pay fees for creating 2 token contract accounts, and fund them so each can create 1 account themselves
-  let feePayerUpdate = AccountUpdate.createSigned(feePayerKey);
+  let feePayerUpdate = AccountUpdate.createSigned(feePayerAddress);
   feePayerUpdate.balance.subInPlace(accountFee.mul(2));
   feePayerUpdate.send({ to: addresses.tokenX, amount: accountFee });
   feePayerUpdate.send({ to: addresses.tokenY, amount: accountFee });
@@ -53,40 +54,41 @@ tx = await Mina.transaction({ feePayerKey }, () => {
   tokenY.deploy();
 });
 await tx.prove();
-await tx.sign([keys.tokenX, keys.tokenY]).send();
+await tx.sign([feePayerKey, keys.tokenX, keys.tokenY]).send();
 toc();
 
 tic('deploy dex contracts');
-tx = await Mina.transaction(feePayerKey, () => {
+tx = await Mina.transaction(feePayerAddress, () => {
   // pay fees for creating 3 dex accounts
-  AccountUpdate.createSigned(feePayerKey).balance.subInPlace(accountFee.mul(3));
+  AccountUpdate.createSigned(feePayerAddress).balance.subInPlace(
+    accountFee.mul(3)
+  );
   dex.deploy();
   tokenX.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
   tokenY.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
 });
 await tx.prove();
-await tx.sign([keys.dex]).send();
+await tx.sign([feePayerKey, keys.dex]).send();
 toc();
 
 tic('transfer tokens to user');
 let USER_DX = 1_000n;
-tx = await Mina.transaction(feePayerKey, () => {
-  let feePayer = AccountUpdate.createSigned(feePayerKey);
+tx = await Mina.transaction(feePayerAddress, () => {
   // pay fees for creating 3 user accounts
-  feePayer.balance.subInPlace(Mina.accountCreationFee().mul(3));
+  let feePayer = AccountUpdate.fundNewAccount(feePayerAddress, 3);
   feePayer.send({ to: addresses.user, amount: 20e9 }); // give users MINA to pay fees
   tokenX.transfer(addresses.tokenX, addresses.user, UInt64.from(USER_DX));
   tokenY.transfer(addresses.tokenY, addresses.user, UInt64.from(USER_DX));
 });
 await tx.prove();
-await tx.sign([keys.tokenX, keys.tokenY]).send();
+await tx.sign([feePayerKey, keys.tokenX, keys.tokenY]).send();
 toc();
 [oldBalances, balances] = [balances, getTokenBalances()];
 expect(balances.user.X).toEqual(USER_DX);
 
 tic('supply liquidity');
-tx = await Mina.transaction(keys.user, () => {
-  AccountUpdate.fundNewAccount(keys.user);
+tx = await Mina.transaction(addresses.user, () => {
+  AccountUpdate.fundNewAccount(addresses.user);
   dex.supplyLiquidityBase(
     addresses.user,
     UInt64.from(USER_DX),
@@ -101,7 +103,7 @@ expect(balances.user.X).toEqual(0n);
 
 tic('redeem liquidity');
 let USER_DL = 100n;
-tx = await Mina.transaction(keys.user, () => {
+tx = await Mina.transaction(addresses.user, () => {
   dex.redeemLiquidity(addresses.user, UInt64.from(USER_DL));
 });
 await tx.prove();
@@ -112,7 +114,7 @@ expect(balances.user.X).toEqual(USER_DL / 2n);
 
 tic('swap 10 X for Y');
 USER_DX = 10n;
-tx = await Mina.transaction(keys.user, () => {
+tx = await Mina.transaction(addresses.user, () => {
   dex.swapX(addresses.user, UInt64.from(USER_DX));
 });
 await tx.prove();
