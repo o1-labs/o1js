@@ -202,7 +202,12 @@ class UInt64 extends CircuitValue {
    * Asserts that a {@link UInt64} is less than or equal to another one.
    */
   assertLte(y: UInt64, message?: string) {
-    let yMinusX = y.value.sub(this.value).seal();
+    let yMinusX;
+    if (Circuit.inCheckedComputation()) {
+      yMinusX = y.value.sub(this.value).seal();
+    } else {
+      yMinusX = y.value.sub(this.value);
+    }
     yMinusX.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(yMinusX, message);
   }
   /**
@@ -435,7 +440,12 @@ class UInt32 extends CircuitValue {
    * Asserts that a {@link UInt32} is less than or equal to another one.
    */
   assertLte(y: UInt32, message?: string) {
-    let yMinusX = y.value.sub(this.value).seal();
+    let yMinusX;
+    if (Circuit.inCheckedComputation()) {
+      yMinusX = y.value.sub(this.value).seal();
+    } else {
+      yMinusX = y.value.sub(this.value);
+    }
     yMinusX.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(yMinusX, message);
   }
   /**
