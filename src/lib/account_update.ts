@@ -791,24 +791,26 @@ class AccountUpdate implements Types.AccountUpdate {
     to,
     amount,
   }: {
-    to: PublicKey | AccountUpdate;
+    to: PublicKey | AccountUpdate | SmartContract;
     amount: number | bigint | UInt64;
   }) {
-    let receiver;
+    let receiver: AccountUpdate;
     if (to instanceof AccountUpdate) {
       receiver = to;
       receiver.body.tokenId.assertEquals(this.body.tokenId);
+    } else if (to instanceof SmartContract) {
+      receiver = to.self;
+      receiver.body.tokenId.assertEquals(this.body.tokenId);
     } else {
       receiver = AccountUpdate.defaultAccountUpdate(to, this.body.tokenId);
+      this.approve(receiver);
     }
-    this.approve(receiver);
 
     // Sub the amount from the sender's account
     this.body.balanceChange = Int64.fromObject(this.body.balanceChange).sub(
       amount
     );
-
-    // Add the amount to send to the receiver's account
+    // Add the amount to the receiver's account
     receiver.body.balanceChange = Int64.fromObject(
       receiver.body.balanceChange
     ).add(amount);
@@ -938,9 +940,11 @@ class AccountUpdate implements Types.AccountUpdate {
     let doIncrementNonce = isSameAsFeePayer.not();
     this.body.incrementNonce = doIncrementNonce;
     // in this case, we also have to set a nonce precondition
+    let lower = Circuit.if(doIncrementNonce, UInt32, nonce, UInt32.zero);
+    let upper = Circuit.if(doIncrementNonce, UInt32, nonce, UInt32.MAXINT());
     this.body.preconditions.account.nonce.isSome = doIncrementNonce;
-    this.body.preconditions.account.nonce.value.lower = nonce;
-    this.body.preconditions.account.nonce.value.upper = nonce;
+    this.body.preconditions.account.nonce.value.lower = lower;
+    this.body.preconditions.account.nonce.value.upper = upper;
     // set lazy signature
     Authorization.setLazySignature(this, { privateKey });
   }

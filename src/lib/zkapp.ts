@@ -945,7 +945,7 @@ super.init();
   }
 
   send(args: {
-    to: PublicKey | AccountUpdate;
+    to: PublicKey | AccountUpdate | SmartContract;
     amount: number | bigint | UInt64;
   }) {
     return this.self.send(args);
