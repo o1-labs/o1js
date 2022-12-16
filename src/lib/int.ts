@@ -108,7 +108,7 @@ class UInt64 extends CircuitValue {
       };
     }
 
-    y_ = y_.seal(); //Circuit.inCheckedComputation() ? y_.seal() : y_;
+    y_ = y_.seal();
 
     let q = Circuit.witness(
       Field,
