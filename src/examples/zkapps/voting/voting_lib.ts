@@ -79,9 +79,9 @@ export async function assertValidTx(
   let failed = false;
   let err;
   try {
-    let tx = await Mina.transaction(feePayer, cb);
+    let tx = await Mina.transaction(feePayer.toPublicKey(), cb);
     await tx.prove();
-    await tx.send();
+    await tx.sign([feePayer]).send();
   } catch (e: any) {
     failed = true;
     err = e;

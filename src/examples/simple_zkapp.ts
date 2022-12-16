@@ -9,8 +9,6 @@ import {
   Mina,
   AccountUpdate,
   isReady,
-  Permissions,
-  DeployArgs,
   Bool,
   PublicKey,
 } from 'snarkyjs';
@@ -23,15 +21,10 @@ await isReady;
 class SimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
 
-  events = {
-    update: Field,
-    payout: UInt64,
-    payoutReceiver: PublicKey,
-  };
+  events = { update: Field, payout: UInt64, payoutReceiver: PublicKey };
 
   @method init(zkappKey: PrivateKey) {
     super.init(zkappKey);
-    this.balance.addInPlace(UInt64.from(initialBalance));
     this.x.set(initialState);
   }
 
@@ -74,7 +67,7 @@ let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp
-let feePayer = Local.testAccounts[0].privateKey;
+let { privateKey: senderKey, publicKey: sender } = Local.testAccounts[0];
 
 // the zkapp account
 let zkappKey = PrivateKey.random();
@@ -94,12 +87,13 @@ if (doProofs) {
 }
 
 console.log('deploy');
-let tx = await Mina.transaction(feePayer, () => {
-  AccountUpdate.fundNewAccount(feePayer, { initialBalance });
+let tx = await Mina.transaction(sender, () => {
+  let senderUpdate = AccountUpdate.fundNewAccount(sender);
+  senderUpdate.send({ to: zkappAddress, amount: initialBalance });
   zkapp.deploy({ zkappKey });
 });
 await tx.prove();
-await tx.send();
+await tx.sign([senderKey]).send();
 
 console.log('initial state: ' + zkapp.x.get());
 console.log(`initial balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
@@ -108,49 +102,50 @@ let account = Mina.getAccount(zkappAddress);
 console.log('account is proved:', account.provedState.toBoolean());
 
 console.log('update');
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(sender, () => {
   zkapp.update(Field(3));
 });
 await tx.prove();
-await tx.send();
+await tx.sign([senderKey]).send();
 
 // pay more into the zkapp -- this doesn't need a proof
 console.log('receive');
-tx = await Mina.transaction(feePayer, () => {
-  let payerAccountUpdate = AccountUpdate.createSigned(feePayer);
+tx = await Mina.transaction(sender, () => {
+  let payerAccountUpdate = AccountUpdate.createSigned(sender);
   payerAccountUpdate.send({ to: zkappAddress, amount: UInt64.from(8e9) });
 });
-await tx.send();
+await tx.sign([senderKey]).send();
 
 console.log('payout');
-tx = await Mina.transaction(feePayer, () => {
-  AccountUpdate.fundNewAccount(feePayer);
+tx = await Mina.transaction(sender, () => {
+  AccountUpdate.fundNewAccount(sender);
   zkapp.payout(privilegedKey);
 });
 await tx.prove();
-await tx.send();
+await tx.sign([senderKey]).send();
+sender;
 
 console.log('final state: ' + zkapp.x.get());
 console.log(`final balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 
 console.log('try to payout a second time..');
-tx = await Mina.transaction(feePayer, () => {
+tx = await Mina.transaction(sender, () => {
   zkapp.payout(privilegedKey);
 });
 try {
   await tx.prove();
-  await tx.send();
+  await tx.sign([senderKey]).send();
 } catch (err: any) {
   console.log('Transaction failed with error', err.message);
 }
 
 console.log('try to payout to a different account..');
 try {
-  tx = await Mina.transaction(feePayer, () => {
+  tx = await Mina.transaction(sender, () => {
     zkapp.payout(Local.testAccounts[2].privateKey);
   });
   await tx.prove();
-  await tx.send();
+  await tx.sign([senderKey]).send();
 } catch (err: any) {
   console.log('Transaction failed with error', err.message);
 }

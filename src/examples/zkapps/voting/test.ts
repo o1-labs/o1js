@@ -5,10 +5,7 @@ import {
   PrivateKey,
   UInt64,
   UInt32,
-  SmartContract,
-  DeployArgs,
   Permissions,
-  VerificationKey,
 } from 'snarkyjs';
 import { deployContracts, deployInvalidContracts } from './deployContracts.js';
 import { DummyContract } from './dummyContract.js';
@@ -237,7 +234,7 @@ export async function testSet(
   console.log('trying to invoke invalid contract method...');
 
   try {
-    let tx = await Mina.transaction(invalidSet.feePayer, () => {
+    let tx = await Mina.transaction(invalidSet.feePayer.toPublicKey(), () => {
       let m = Member.from(
         PrivateKey.random().toPublicKey(),
         Field(0),
@@ -249,7 +246,7 @@ export async function testSet(
     });
 
     await tx.prove();
-    await tx.send();
+    await tx.sign([invalidSet.feePayer]).send();
   } catch (err: any) {
     if (!err.toString().includes('precondition_unsatisfied')) {
       throw Error(
@@ -292,18 +289,24 @@ export async function testSet(
   );
   for (let index = 0; index <= 32; index++) {
     try {
-      let tx = await Mina.transaction(sequenceOverflowSet.feePayer, () => {
-        let m = Member.from(
-          PrivateKey.random().toPublicKey(),
-          Field(0),
-          UInt64.from(15)
-        );
-        sequenceOverflowSet.Local.addAccount(m.publicKey, m.balance.toString());
+      let tx = await Mina.transaction(
+        sequenceOverflowSet.feePayer.toPublicKey(),
+        () => {
+          let m = Member.from(
+            PrivateKey.random().toPublicKey(),
+            Field(0),
+            UInt64.from(15)
+          );
+          sequenceOverflowSet.Local.addAccount(
+            m.publicKey,
+            m.balance.toString()
+          );
 
-        sequenceOverflowSet.voting.voterRegistration(m);
-      });
+          sequenceOverflowSet.voting.voterRegistration(m);
+        }
+      );
       await tx.prove();
-      await tx.send();
+      await tx.sign([sequenceOverflowSet.feePayer]).send();
     } catch (error) {
       throw new Error('Transaction failed!');
     }
@@ -318,11 +321,14 @@ export async function testSet(
   }
 
   try {
-    let tx = await Mina.transaction(sequenceOverflowSet.feePayer, () => {
-      sequenceOverflowSet.voting.approveRegistrations();
-    });
+    let tx = await Mina.transaction(
+      sequenceOverflowSet.feePayer.toPublicKey(),
+      () => {
+        sequenceOverflowSet.voting.approveRegistrations();
+      }
+    );
     await tx.prove();
-    await tx.send();
+    await tx.sign([sequenceOverflowSet.feePayer]).send();
   } catch (err: any) {
     if (!err.toString().includes('the maximum number of lists of actions')) {
       throw Error(

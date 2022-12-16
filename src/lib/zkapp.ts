@@ -181,9 +181,10 @@ function wrapMethod(
           if (inCheckedComputation() && !context.isCallback) {
             // important to run this with a fresh accountUpdate everytime, otherwise compile messes up our circuits
             // because it runs this multiple times
+            let proverData = inProver() ? zkAppProver.getData() : undefined;
             let [, result] = Mina.currentTransaction.runWith(
               {
-                sender: undefined,
+                sender: proverData?.transaction.feePayer.body.publicKey,
                 accountUpdates: [],
                 fetchMode: inProver() ? 'cached' : 'test',
                 isFinalRunOutsideCircuit: false,
@@ -862,6 +863,34 @@ super.init();
     return accountUpdate;
   }
 
+  #_senderState: { sender: PublicKey; transactionId: number };
+
+  /**
+   * The public key of the current transaction's sender account.
+   *
+   * Throws an error if not inside a transaction, or the sender wasn't passed in.
+   *
+   * **Warning**: The fact that this public key equals the current sender is not part of the proof.
+   * A malicious prover could use any other public key without affecting the validity of the proof.
+   */
+  get sender(): PublicKey {
+    // TODO this logic now has some overlap with this.self, we should combine them somehow
+    // (but with care since the logic in this.self is a bit more complicated)
+    if (!Mina.currentTransaction.has()) {
+      throw Error(
+        `this.sender is not available outside a transaction. Make sure you only use it within \`Mina.transaction\` blocks or smart contract methods.`
+      );
+    }
+    let transactionId = Mina.currentTransaction.id();
+    if (this.#_senderState?.transactionId === transactionId) {
+      return this.#_senderState.sender;
+    } else {
+      let sender = Circuit.witness(PublicKey, () => Mina.sender());
+      this.#_senderState = { transactionId, sender };
+      return sender;
+    }
+  }
+
   /**
    * Current account of the {@link SmartContract}.
    */
@@ -1362,23 +1391,20 @@ async function deploy<S extends typeof SmartContract>(
   }
 ) {
   let address = zkappKey.toPublicKey();
-  let feePayerKey =
-    feePayer instanceof PrivateKey ? feePayer : feePayer?.feePayerKey;
+  let feePayerAddress =
+    feePayer instanceof PublicKey ? feePayer : feePayer?.sender;
   let tx = await Mina.transaction(feePayer, () => {
     if (initialBalance !== undefined) {
-      if (feePayerKey === undefined)
+      if (feePayerAddress === undefined)
         throw Error(
-          `When using the optional initialBalance argument, you need to also supply the fee payer's private key as part of the \`feePayer\` argument, to sign the initial balance funding.`
+          `When using the optional initialBalance argument, you need to also supply the fee payer's public key as part of the \`feePayer\` argument, to sign the initial balance funding.`
         );
       // optional first accountUpdate: the sender/fee payer who also funds the zkapp
       let amount = UInt64.from(String(initialBalance)).add(
         Mina.accountCreationFee()
       );
-      let feePayerAddress = feePayerKey.toPublicKey();
-      let accountUpdate = AccountUpdate.defaultAccountUpdate(feePayerAddress);
-      accountUpdate.body.useFullCommitment = Bool(true);
+      let accountUpdate = AccountUpdate.createSigned(feePayerAddress);
       accountUpdate.balance.subInPlace(amount);
-      Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
     }
     // main accountUpdate: the zkapp account
     let zkapp = new SmartContract(address, tokenId);

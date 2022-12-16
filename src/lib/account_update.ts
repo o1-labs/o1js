@@ -1053,16 +1053,12 @@ class AccountUpdate implements Types.AccountUpdate {
     return this.body.publicKey.isEmpty();
   }
 
-  static defaultFeePayer(
-    address: PublicKey,
-    key: PrivateKey,
-    nonce: UInt32
-  ): FeePayerUnsigned {
+  static defaultFeePayer(address: PublicKey, nonce: UInt32): FeePayerUnsigned {
     let body = FeePayerBody.keepAll(address, nonce);
     return {
       body,
       authorization: Ledger.dummySignature(),
-      lazyAuthorization: { kind: 'lazy-signature', privateKey: key },
+      lazyAuthorization: { kind: 'lazy-signature' },
     };
   }
 
@@ -1142,11 +1138,6 @@ class AccountUpdate implements Types.AccountUpdate {
   static createSigned(signer: PrivateKey | PublicKey, tokenId?: Field) {
     let publicKey =
       signer instanceof PrivateKey ? signer.toPublicKey() : signer;
-    if (!Mina.currentTransaction.has()) {
-      throw new Error(
-        'AccountUpdate.createSigned: Cannot run outside of a transaction'
-      );
-    }
     let accountUpdate = AccountUpdate.create(publicKey, tokenId);
     if (signer instanceof PrivateKey) {
       accountUpdate.sign(signer);
@@ -1157,26 +1148,43 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   /**
-   * Use this method to pay the account creation fee for another account.
-   * Beware that you _don't_ need to pass in the new account!
-   * Instead, the protocol will automatically identify accounts in your transaction that need funding.
+   * Use this method to pay the account creation fee for another account (or, multiple accounts using the optional second argument).
    *
-   * If you provide an optional `initialBalance`, this will be subtracted from the fee-paying account as well,
-   * but you have to separately ensure that it's added to the new account's balance.
+   * Beware that you _don't_ need to specify the account that is created!
+   * Instead, the protocol will automatically identify that accounts need to be created,
+   * and require that the net balance change of the transaction covers the account creation fee.
    *
-   * @param feePayerKey the private key of the account that pays the fee
-   * @param initialBalance the initial balance of the new account (default: 0)
+   * @param feePayer the address of the account that pays the fee
+   * @param numberOfAccounts the number of new accounts to fund (default: 1)
+   * @returns they {@link AccountUpdate} for the account which pays the fee
    */
   static fundNewAccount(
-    feePayerKey: PrivateKey,
-    { initialBalance = UInt64.zero as number | string | UInt64 } = {}
+    feePayer: PublicKey,
+    numberOfAccounts?: number
+  ): AccountUpdate;
+  /**
+   * @deprecated Call this function with a `PublicKey` as `feePayer`, and remove the `initialBalance` option.
+   * To send an initial balance to the new account, you can use the returned account update:
+   * ```
+   * let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer);
+   * feePayerUpdate.send({ to: receiverAddress, amount: initialBalance });
+   * ```
+   */
+  static fundNewAccount(
+    feePayer: PrivateKey | PublicKey,
+    options?: { initialBalance: number | string | UInt64 } | number
+  ): AccountUpdate;
+  static fundNewAccount(
+    feePayer: PrivateKey | PublicKey,
+    numberOfAccounts?: number | { initialBalance: number | string | UInt64 }
   ) {
-    let accountUpdate = AccountUpdate.createSigned(feePayerKey);
-    let amount =
-      initialBalance instanceof UInt64
-        ? initialBalance
-        : UInt64.from(`${initialBalance}`);
-    accountUpdate.balance.subInPlace(amount.add(Mina.accountCreationFee()));
+    let accountUpdate = AccountUpdate.createSigned(feePayer as PrivateKey);
+    let fee = Mina.accountCreationFee();
+    numberOfAccounts ??= 1;
+    if (typeof numberOfAccounts === 'number') fee = fee.mul(numberOfAccounts);
+    else fee = fee.add(UInt64.from(numberOfAccounts.initialBalance ?? 0));
+    accountUpdate.balance.subInPlace(fee);
+    return accountUpdate;
   }
 
   // static methods that implement Provable<{ accountUpdate: AccountUpdate, isDelegateCall: Bool }>

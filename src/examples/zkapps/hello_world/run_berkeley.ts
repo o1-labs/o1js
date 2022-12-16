@@ -15,21 +15,20 @@ await isReady;
 let Berkeley = Mina.Network('https://proxy.berkeley.minaexplorer.com/graphql');
 Mina.setActiveInstance(Berkeley);
 
-let feePayerKey = PrivateKey.random();
+let senderKey = PrivateKey.random();
+let sender = senderKey.toPublicKey();
 
 console.log(
-  `Funding fee payer ${feePayerKey
+  `Funding fee payer ${senderKey
     .toPublicKey()
     .toBase58()} and waiting for inclusion in a block..`
 );
 
-await faucet(feePayerKey.toPublicKey());
+await faucet(sender);
 
-let { nonce, balance } = Berkeley.getAccount(feePayerKey.toPublicKey());
+let { nonce, balance } = Berkeley.getAccount(sender);
 console.log(
-  `Using fee payer ${feePayerKey
-    .toPublicKey()
-    .toBase58()} with nonce ${nonce}, balance ${balance}`
+  `Using fee payer ${sender.toBase58()} with nonce ${nonce}, balance ${balance}`
 );
 
 let zkappKey = PrivateKey.random();
@@ -45,29 +44,28 @@ let zkapp = new HelloWorld(zkappAddress);
 console.log(`Deploying zkapp for public key ${zkappAddress.toBase58()}.`);
 
 let transaction = await Mina.transaction(
-  { feePayerKey, fee: transactionFee },
+  { sender, fee: transactionFee },
   () => {
-    AccountUpdate.fundNewAccount(feePayerKey);
-    zkapp.deploy({ zkappKey, verificationKey });
+    AccountUpdate.fundNewAccount(sender);
+    zkapp.deploy({ verificationKey });
   }
 );
+transaction.sign([senderKey, zkappKey]);
 
 console.log('Sending the transaction..');
 await (await transaction.send()).wait();
 
 console.log('Fetching updated accounts..');
-await fetchAccount({ publicKey: feePayerKey.toPublicKey() });
+await fetchAccount({ publicKey: senderKey.toPublicKey() });
 await fetchAccount({ publicKey: zkappAddress });
 
 console.log('Trying to update deployed zkApp..');
 
-transaction = await Mina.transaction(
-  { feePayerKey, fee: transactionFee },
-  () => {
-    zkapp.update(Field(4), adminPrivateKey);
-  }
-);
-await transaction.prove();
+transaction = await Mina.transaction({ sender, fee: transactionFee }, () => {
+  zkapp.update(Field(4), adminPrivateKey);
+});
+await transaction.sign([senderKey]).prove();
+
 console.log('Sending the transaction..');
 await (await transaction.send()).wait();
 

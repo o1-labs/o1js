@@ -1,6 +1,5 @@
 import {
   DeployArgs,
-  Experimental,
   Field,
   Permissions,
   Mina,
@@ -59,37 +58,36 @@ export async function deployContracts(
   });
   Mina.setActiveInstance(Local);
 
-  let feePayer = Local.testAccounts[0].privateKey;
+  let feePayerKey = Local.testAccounts[0].privateKey;
+  let feePayer = Local.testAccounts[0].publicKey;
   let { voterContract, candidateContract, voting } = contracts;
 
   console.log('deploying set of 3 contracts');
-  try {
-    let tx = await Mina.transaction(feePayer, () => {
-      AccountUpdate.fundNewAccount(feePayer, {
-        initialBalance: Mina.accountCreationFee().add(
-          Mina.accountCreationFee()
-        ),
-      });
+  let tx = await Mina.transaction(feePayer, () => {
+    AccountUpdate.fundNewAccount(feePayer, 3);
 
-      voting.deploy({ zkappKey: params.votingKey });
-      voting.committedVotes.set(votesRoot);
-      voting.accumulatedVotes.set(Reducer.initialActionsHash);
+    voting.deploy({ zkappKey: params.votingKey });
+    voting.committedVotes.set(votesRoot);
+    voting.accumulatedVotes.set(Reducer.initialActionsHash);
 
-      candidateContract.deploy({ zkappKey: params.candidateKey });
-      candidateContract.committedMembers.set(candidateRoot);
-      candidateContract.accumulatedMembers.set(Reducer.initialActionsHash);
+    candidateContract.deploy({ zkappKey: params.candidateKey });
+    candidateContract.committedMembers.set(candidateRoot);
+    candidateContract.accumulatedMembers.set(Reducer.initialActionsHash);
 
-      voterContract.deploy({ zkappKey: params.voterKey });
-      voterContract.committedMembers.set(voterRoot);
-      voterContract.accumulatedMembers.set(Reducer.initialActionsHash);
-    });
-    await tx.send();
-  } catch (err: any) {
-    throw Error(err);
-  }
+    voterContract.deploy({ zkappKey: params.voterKey });
+    voterContract.committedMembers.set(voterRoot);
+    voterContract.accumulatedMembers.set(Reducer.initialActionsHash);
+  });
+  await tx.sign([feePayerKey]).send();
 
   console.log('successfully deployed contracts');
-  return { voterContract, candidateContract, voting, feePayer, Local };
+  return {
+    voterContract,
+    candidateContract,
+    voting,
+    feePayer: feePayerKey,
+    Local,
+  };
 }
 
 /**
@@ -124,45 +122,44 @@ export async function deployInvalidContracts(
   });
   Mina.setActiveInstance(Local);
 
-  let feePayer = Local.testAccounts[0].privateKey;
+  let feePayerKey = Local.testAccounts[0].privateKey;
+  let feePayer = Local.testAccounts[0].publicKey;
   let { voterContract, candidateContract, voting } = contracts;
 
   console.log('deploying set of 3 contracts');
-  try {
-    let tx = await Mina.transaction(feePayer, () => {
-      AccountUpdate.fundNewAccount(feePayer, {
-        initialBalance: Mina.accountCreationFee().add(
-          Mina.accountCreationFee()
-        ),
-      });
+  let tx = await Mina.transaction(feePayer, () => {
+    AccountUpdate.fundNewAccount(feePayer, 3);
 
-      voting.deploy({ zkappKey: params.votingKey });
-      voting.committedVotes.set(votesRoot);
-      voting.accumulatedVotes.set(Reducer.initialActionsHash);
+    voting.deploy({ zkappKey: params.votingKey });
+    voting.committedVotes.set(votesRoot);
+    voting.accumulatedVotes.set(Reducer.initialActionsHash);
 
-      // invalid contracts
+    // invalid contracts
 
-      let invalidCandidateContract = new InvalidContract(
-        params.candidateKey.toPublicKey()
-      );
+    let invalidCandidateContract = new InvalidContract(
+      params.candidateKey.toPublicKey()
+    );
 
-      invalidCandidateContract.deploy({ zkappKey: params.candidateKey });
+    invalidCandidateContract.deploy({ zkappKey: params.candidateKey });
 
-      candidateContract = invalidCandidateContract as Membership_;
+    candidateContract = invalidCandidateContract as Membership_;
 
-      let invalidVoterContract = new InvalidContract(
-        params.voterKey.toPublicKey()
-      );
+    let invalidVoterContract = new InvalidContract(
+      params.voterKey.toPublicKey()
+    );
 
-      invalidVoterContract.deploy({ zkappKey: params.voterKey });
+    invalidVoterContract.deploy({ zkappKey: params.voterKey });
 
-      voterContract = invalidVoterContract as Membership_;
-    });
-    await tx.send();
-  } catch (err: any) {
-    throw Error(err);
-  }
+    voterContract = invalidVoterContract as Membership_;
+  });
+  await tx.sign([feePayerKey]).send();
 
   console.log('successfully deployed contracts');
-  return { voterContract, candidateContract, voting, feePayer, Local };
+  return {
+    voterContract,
+    candidateContract,
+    voting,
+    feePayer: feePayerKey,
+    Local,
+  };
 }
