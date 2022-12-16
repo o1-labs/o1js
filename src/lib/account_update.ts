@@ -1138,11 +1138,6 @@ class AccountUpdate implements Types.AccountUpdate {
   static createSigned(signer: PrivateKey | PublicKey, tokenId?: Field) {
     let publicKey =
       signer instanceof PrivateKey ? signer.toPublicKey() : signer;
-    if (!Mina.currentTransaction.has()) {
-      throw new Error(
-        'AccountUpdate.createSigned: Cannot run outside of a transaction'
-      );
-    }
     let accountUpdate = AccountUpdate.create(publicKey, tokenId);
     if (signer instanceof PrivateKey) {
       accountUpdate.sign(signer);
