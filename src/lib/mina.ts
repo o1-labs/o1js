@@ -708,7 +708,7 @@ function Network(graphqlEndpoint: string): Mina {
             } else if (maxAttempts && attempts === maxAttempts) {
               return reject(
                 new Error(
-                  `Exceeded max attempts. TransactionId: ${txId}, attempts: ${attempts}`
+                  `Exceeded max attempts. TransactionId: ${txId}, attempts: ${attempts}, last received status: ${res}`
                 )
               );
             } else {
