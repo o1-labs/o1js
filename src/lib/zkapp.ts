@@ -1269,7 +1269,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
     }): A[][] {
       let actionsForAccount: A[][] = [];
 
-      Circuit.asProver(() => {
+      function sortActions() {
         // if the fromActionHash is the empty state, we fetch all events
         fromActionHash = fromActionHash
           ?.equals(SequenceEvents.emptySequenceState())
@@ -1306,7 +1306,16 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
               )
             )
           );
-      });
+      }
+
+      if (Circuit.inCheckedComputation()) {
+        Circuit.asProver(() => {
+          sortActions();
+        });
+      } else {
+        sortActions();
+      }
+
       return actionsForAccount;
     },
   };
