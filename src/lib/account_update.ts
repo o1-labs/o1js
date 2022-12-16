@@ -1377,6 +1377,7 @@ class AccountUpdate implements Types.AccountUpdate {
     } else {
       body.tokenId = short(body.tokenId!);
     }
+    if (body.callDepth === 0) delete body.callDepth;
     if (body.caller === TokenId.toBase58(TokenId.default)) {
       delete body.caller;
     } else {
