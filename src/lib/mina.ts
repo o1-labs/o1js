@@ -368,7 +368,10 @@ function LocalBlockchain({
             vestingPeriod: UInt32.fromObject(timing.vestingPeriod),
             vestingIncrement: UInt64.fromObject(timing.vestingIncrement),
           },
-          verificationKey: ledgerAccount.zkapp?.verificationKey?.data,
+          verificationKey: ledgerAccount.zkapp?.verificationKey && {
+            data: ledgerAccount.zkapp?.verificationKey.data,
+            hash: Field(ledgerAccount.zkapp?.verificationKey.hash),
+          },
         };
       }
     },

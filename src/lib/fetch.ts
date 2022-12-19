@@ -142,7 +142,7 @@ type FetchedAccount = {
   };
   delegateAccount?: { publicKey: string };
   sequenceEvents?: string[] | null;
-  verificationKey?: { verificationKey: string };
+  verificationKey?: { verificationKey: string; hash: string };
   // TODO: how to query provedState?
 };
 
@@ -158,7 +158,7 @@ type Account = {
   delegate?: PublicKey;
   sequenceState?: Field;
   provedState: Bool;
-  verificationKey?: string;
+  verificationKey?: { data: string; hash: Field };
   timing?: NonNullable<
     Types.AccountUpdate['body']['update']['timing']['value']
   > & {
@@ -250,7 +250,10 @@ function parseFetchedAccount({
       delegateAccount && PublicKey.fromBase58(delegateAccount.publicKey),
     tokenId: token !== undefined ? Ledger.fieldOfBase58(token) : undefined,
     tokenSymbol: tokenSymbol !== undefined ? tokenSymbol : undefined,
-    verificationKey: verificationKey?.verificationKey,
+    verificationKey: verificationKey && {
+      data: verificationKey.verificationKey,
+      hash: Field(verificationKey.hash),
+    },
   };
 }
 

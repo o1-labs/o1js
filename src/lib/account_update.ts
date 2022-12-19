@@ -1588,6 +1588,12 @@ const Authorization = {
   setLazyProof(accountUpdate: AccountUpdate, proof: Omit<LazyProof, 'kind'>) {
     accountUpdate.body.authorizationKind.isSigned = Bool(false);
     accountUpdate.body.authorizationKind.isProved = Bool(true);
+    try {
+      let account = Mina.getAccount(accountUpdate.body.publicKey);
+      let hash = account.verificationKey?.hash;
+      if (hash === undefined) throw Error();
+      accountUpdate.body.authorizationKind.verificationKeyHash = hash;
+    } catch {}
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...proof, kind: 'lazy-proof' };
   },
