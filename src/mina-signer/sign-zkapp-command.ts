@@ -149,6 +149,10 @@ function accountUpdateFromFeePayer({
     value: { lower: nonce, upper: nonce },
   };
   body.useFullCommitment = Bool(true);
-  body.authorizationKind = { isProved: Bool(false), isSigned: Bool(true) };
+  body.authorizationKind = {
+    isProved: Bool(false),
+    isSigned: Bool(true),
+    verificationKeyHash: Field(0),
+  };
   return { body, authorization: { signature } };
 }

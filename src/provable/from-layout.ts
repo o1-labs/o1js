@@ -14,7 +14,6 @@ type GenericTypeMap<
   Sign,
   PublicKey,
   AuthRequired,
-  AuthorizationKind,
   TokenId
 > = {
   Field: Field;
@@ -24,10 +23,9 @@ type GenericTypeMap<
   Sign: Sign;
   PublicKey: PublicKey;
   AuthRequired: AuthRequired;
-  AuthorizationKind: AuthorizationKind;
   TokenId: TokenId;
 };
-type AnyTypeMap = GenericTypeMap<any, any, any, any, any, any, any, any, any>;
+type AnyTypeMap = GenericTypeMap<any, any, any, any, any, any, any, any>;
 type TypeMapValues<TypeMap extends AnyTypeMap, JsonMap extends AnyTypeMap> = {
   [K in keyof TypeMap & keyof JsonMap]: GenericProvableExtended<
     TypeMap[K],

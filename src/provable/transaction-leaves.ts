@@ -6,17 +6,7 @@ import { createEvents, dataAsHash } from '../lib/events.js';
 import { Poseidon } from '../lib/hash.js';
 import { provable } from '../lib/circuit_value.js';
 
-export {
-  PublicKey,
-  Field,
-  Bool,
-  AuthRequired,
-  AuthorizationKind,
-  UInt64,
-  UInt32,
-  Sign,
-  TokenId,
-};
+export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
 export { Events, SequenceEvents, StringWithHash, TokenSymbol, SequenceState };
 
@@ -25,12 +15,13 @@ type AuthRequired = {
   signatureNecessary: Bool;
   signatureSufficient: Bool;
 };
-type AuthorizationKind = { isSigned: Bool; isProved: Bool };
 type TokenId = Field;
 type TokenSymbol = { symbol: string; field: Field };
 
-const { TokenId, TokenSymbol, AuthRequired, AuthorizationKind } =
-  derivedLeafTypes({ Field, Bool });
+const { TokenId, TokenSymbol, AuthRequired } = derivedLeafTypes({
+  Field,
+  Bool,
+});
 
 // types which got an annotation about its circuit type in Ocaml
 

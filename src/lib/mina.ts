@@ -1109,38 +1109,26 @@ ${JSON.stringify(authTypes)}
   if (error) throw Error('Error during transaction sending:\n\n' + error);
 }
 
-let S = 'Signature';
-let N = 'None_given';
-let P = 'Proof';
+type AuthorizationKind = { isProved: boolean; isSigned: boolean };
 
-const isPair = (pair: string) =>
-  pair == S + N || pair == N + S || pair == S + S || pair == N + N;
+const isPair = (a: AuthorizationKind, b: AuthorizationKind) =>
+  !a.isProved && !b.isProved;
 
-function filterPairs(xs: string[]): {
-  xs: string[];
+function filterPairs(xs: AuthorizationKind[]): {
+  xs: { isProved: boolean; isSigned: boolean }[];
   pairs: number;
 } {
-  if (xs.length <= 1)
-    return {
-      xs,
-      pairs: 0,
-    };
-  if (isPair(xs[0].concat(xs[1]))) {
+  if (xs.length <= 1) return { xs, pairs: 0 };
+  if (isPair(xs[0], xs[1])) {
     let rec = filterPairs(xs.slice(2));
-    return {
-      xs: rec.xs,
-      pairs: rec.pairs + 1,
-    };
+    return { xs: rec.xs, pairs: rec.pairs + 1 };
   } else {
     let rec = filterPairs(xs.slice(1));
-    return {
-      xs: [xs[0]].concat(rec.xs),
-      pairs: rec.pairs,
-    };
+    return { xs: [xs[0]].concat(rec.xs), pairs: rec.pairs };
   }
 }
 
-function filterGroups(xs: string[]) {
+function filterGroups(xs: AuthorizationKind[]) {
   let pairs = filterPairs(xs);
   xs = pairs.xs;
 
@@ -1148,7 +1136,7 @@ function filterGroups(xs: string[]) {
   let proofCount = 0;
 
   xs.forEach((t) => {
-    if (t == P) proofCount++;
+    if (t.isProved) proofCount++;
     else singleCount++;
   });
 

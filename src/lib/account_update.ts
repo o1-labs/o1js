@@ -1350,7 +1350,8 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     if (
       jsonUpdate.authorization !== undefined ||
-      body.authorizationKind !== 'None_given'
+      body.authorizationKind?.isProved === true ||
+      body.authorizationKind?.isSigned === true
     ) {
       (body as any).authorization = jsonUpdate.authorization;
     }
