@@ -216,8 +216,7 @@ function wrapMethod(
                   blindingValue
                 );
                 accountUpdate.body.callData = Poseidon.hash(callDataFields);
-                accountUpdate.body.authorizationKind.isSigned = Bool(false);
-                accountUpdate.body.authorizationKind.isProved = Bool(true);
+                Authorization.setProofAuthorizationKind(accountUpdate);
 
                 // compute `caller` field from `isDelegateCall` and a context determined by the transaction
                 let callerContext = Circuit.witness(

@@ -1585,15 +1585,21 @@ const Authorization = {
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
+  setProofAuthorizationKind({ body }: AccountUpdate) {
+    body.authorizationKind.isSigned = Bool(false);
+    body.authorizationKind.isProved = Bool(true);
+    let hash = Circuit.witness(Field, () => {
+      try {
+        let account = Mina.getAccount(body.publicKey, body.tokenId);
+        return account.verificationKey?.hash ?? Field(0);
+      } catch {
+        return Field(0);
+      }
+    });
+    body.authorizationKind.verificationKeyHash = hash;
+  },
   setLazyProof(accountUpdate: AccountUpdate, proof: Omit<LazyProof, 'kind'>) {
-    accountUpdate.body.authorizationKind.isSigned = Bool(false);
-    accountUpdate.body.authorizationKind.isProved = Bool(true);
-    try {
-      let account = Mina.getAccount(accountUpdate.body.publicKey);
-      let hash = account.verificationKey?.hash;
-      if (hash === undefined) throw Error();
-      accountUpdate.body.authorizationKind.verificationKeyHash = hash;
-    } catch {}
+    Authorization.setProofAuthorizationKind(accountUpdate);
     accountUpdate.authorization = {};
     accountUpdate.lazyAuthorization = { ...proof, kind: 'lazy-proof' };
   },
