@@ -11,6 +11,7 @@ import {
   pseudoClass,
 } from './field-bigint.js';
 import { provable } from './provable-bigint.js';
+import { HashInputLegacy } from './poseidon-bigint.js';
 
 export { Group, PublicKey, Scalar, PrivateKey, versionNumbers };
 
@@ -92,6 +93,10 @@ const PublicKey = {
   fromGroup({ x, y }: Group): PublicKey {
     let isOdd = (y & 1n) as Bool;
     return { x, isOdd };
+  },
+
+  toInputLegacy({ x, isOdd }: PublicKey): HashInputLegacy {
+    return { fields: [x], bits: [!!isOdd] };
   },
 };
 

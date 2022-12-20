@@ -14,6 +14,7 @@ export {
   packToFields,
   hashWithPrefix,
   packToFieldsLegacy,
+  HashInputLegacy,
 };
 
 type HashInput = GenericHashInput<Field>;
@@ -43,15 +44,33 @@ function packToFields({ fields = [], packed = [] }: HashInput) {
   packedBits.push(currentPackedField);
   return fields.concat(packedBits);
 }
+
 /**
- * Random_oracle_input.Legacy.pack_to_fields, for the special case of a single bitstring
+ * Random_oracle_input.Legacy.pack_to_fields
  */
-function packToFieldsLegacy([...bits]: boolean[]) {
-  let fields = [];
+function packToFieldsLegacy({ fields, bits }: HashInputLegacy) {
+  let packedFields = [];
   while (bits.length > 0) {
     let fieldBits = bits.splice(0, sizeInBits);
-    let field = Field.fromBytes(bitsToBytes(fieldBits));
-    fields.push(field);
+    let field = Field.fromBits(fieldBits);
+    packedFields.push(field);
   }
-  return fields;
+  return fields.concat(packedFields);
 }
+
+type HashInputLegacy = { fields: Field[]; bits: boolean[] };
+
+const HashInputLegacy = {
+  empty(): HashInputLegacy {
+    return { fields: [], bits: [] };
+  },
+  bits(bits: boolean[]): HashInputLegacy {
+    return { fields: [], bits };
+  },
+  append(input1: HashInputLegacy, input2: HashInputLegacy): HashInputLegacy {
+    return {
+      fields: (input1.fields ?? []).concat(input2.fields ?? []),
+      bits: (input1.bits ?? []).concat(input2.bits ?? []),
+    };
+  },
+};

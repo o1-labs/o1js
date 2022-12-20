@@ -54,6 +54,9 @@ const Bool = pseudoClass(
         packed: [[x, 1]],
       };
     },
+    toBoolean(x: Bool) {
+      return !!x;
+    },
     toJSON(x: Bool) {
       return !!x;
     },

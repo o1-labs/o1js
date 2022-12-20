@@ -1,6 +1,7 @@
-import { Binable, bytesToBits } from '../provable/binable.js';
+import { Binable, withBits } from '../provable/binable.js';
 import { base58 } from '../provable/base58.js';
 import {
+  HashInputLegacy,
   hashWithPrefix,
   packToFieldsLegacy,
   prefixes,
@@ -18,9 +19,8 @@ function fromString(memo: string) {
 }
 
 function hash(memo: string) {
-  let bytes = Memo.toBytes(memo);
-  let bits = bytesToBits(bytes);
-  let fields = packToFieldsLegacy(bits);
+  let bits = Memo.toBits(memo);
+  let fields = packToFieldsLegacy(HashInputLegacy.bits(bits));
   return hashWithPrefix(prefixes.zkappMemo, fields);
 }
 
@@ -39,6 +39,6 @@ const Binable: Binable<string> = {
 const Memo = {
   fromString,
   hash,
-  ...Binable,
+  ...withBits(Binable),
   ...base58(Binable, versionBytes.userCommandMemo),
 };
