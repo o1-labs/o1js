@@ -1,39 +1,22 @@
-import { Poseidon, Group, Field, Scalar, Circuit } from '../snarky';
-import { PrivateKey, PublicKey } from './signature';
+import { Group, Field, Scalar, Circuit } from '../snarky.js';
+import { Poseidon } from './hash.js';
+import { PrivateKey, PublicKey } from './signature.js';
 
 export { encrypt, decrypt };
-
-class Sponge {
-  sponge: unknown;
-
-  constructor() {
-    this.sponge = (Poseidon as any).spongeCreate()();
-  }
-
-  absorb(x: Field) {
-    // console.log(this.sponge, x);
-    (Poseidon as any).spongeAbsorb(this.sponge, x);
-  }
-
-  squeeze() {
-    return (Poseidon as any).spongeSqueeze(this.sponge);
-  }
-}
-
-Poseidon.Sponge = Sponge;
 
 type CipherText = {
   publicKey: Group;
   cipherText: Field[];
 };
 
+/**
+ * Public Key Encryption, using a given array of {@link Field} elements and encrypts it using a {@link PublicKey}.
+ */
 function encrypt(message: Field[], otherPublicKey: PublicKey) {
   // key exchange
-  let privateKey = Circuit.inCheckedComputation()
-    ? Circuit.witness(Scalar, () => Scalar.random())
-    : Scalar.random();
+  let privateKey = Circuit.witness(Scalar, () => Scalar.random());
   let publicKey = Group.generator.scale(privateKey);
-  let sharedSecret = otherPublicKey.g.scale(privateKey);
+  let sharedSecret = otherPublicKey.toGroup().scale(privateKey);
 
   let sponge = new Poseidon.Sponge();
   sponge.absorb(sharedSecret.x); // don't think we need y, that's enough entropy
@@ -55,6 +38,9 @@ function encrypt(message: Field[], otherPublicKey: PublicKey) {
   return { publicKey, cipherText };
 }
 
+/**
+ * Decrypts a {@link CipherText} using a {@link PrivateKey}.^
+ */
 function decrypt(
   { publicKey, cipherText }: CipherText,
   privateKey: PrivateKey
@@ -73,7 +59,8 @@ function decrypt(
     let messageChunk = cipherText[i].sub(keyStream);
     message.push(messageChunk);
     if (i % 2 === 1) sponge.absorb(cipherText[i - 1]);
-    if (i % 2 === 1 || i === message.length - 1) sponge.absorb(cipherText[i]);
+    if (i % 2 === 1 || i === cipherText.length - 1)
+      sponge.absorb(cipherText[i]);
   }
   // authentication tag
   sponge.squeeze().assertEquals(authenticationTag!);

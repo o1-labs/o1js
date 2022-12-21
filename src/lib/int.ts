@@ -1,78 +1,118 @@
-import { Bool, Circuit, Field } from '../snarky';
-import { CircuitValue, prop } from './circuit_value';
+import { Circuit, Field, Bool } from '../snarky.js';
+import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
+import { Types } from '../provable/types.js';
+import { HashInput } from './hash.js';
 
-function argToField(
-  name: string,
-  x: { value: Field } | number | string
-): Field {
-  if (typeof x === 'number') {
-    if (!Number.isInteger(x)) {
-      throw new Error(`${name} expected integer argument. Got ${x}`);
-    }
-    // looks weird that we pass it as a string.. but this will cover far more cases without error than just passing in the number,
-    // because the number gets truncated to an int32, while the number -> string is accurate for numbers up to 2^53 - 1
-    return new Field(String(x));
-  } else if (typeof x === 'string') {
-    return new Field(x);
-  } else {
-    return x.value;
-  }
-}
+// external API
+export { UInt32, UInt64, Int64, Sign };
 
-export class UInt64 extends CircuitValue {
+/**
+ * A 64 bit unsigned integer with values ranging from 0 to 18,446,744,073,709,551,615.
+ */
+class UInt64 extends CircuitValue {
   @prop value: Field;
+  static NUM_BITS = 64;
 
-  static get zero(): UInt64 {
-    return new UInt64(Field.zero);
+  /**
+   * Static method to create a {@link UInt64} with value `0`.
+   */
+  static get zero() {
+    return new UInt64(Field(0));
   }
-  constructor(value: Field) {
-    super();
-    this.value = value;
+  /**
+   * Static method to create a {@link UInt64} with value `1`.
+   */
+  static get one() {
+    return new UInt64(Field(1));
   }
-
-  toString(): string {
+  /**
+   * Turns the {@link UInt64} into a string.
+   * @returns
+   */
+  toString() {
     return this.value.toString();
+  }
+  /**
+   * Turns the {@link UInt64} into a {@link BigInt}.
+   * @returns
+   */
+  toBigInt() {
+    return this.value.toBigInt();
   }
 
   static check(x: UInt64) {
     let actual = x.value.rangeCheckHelper(64);
     actual.assertEquals(x.value);
   }
-
-  static MAXINT(): UInt64 {
-    return new UInt64(Field(((1n << 64n) - 1n).toString()));
+  static toInput(x: UInt64): HashInput {
+    return { packed: [[x.value, 64]] };
+  }
+  /**
+   * Encodes this structure into a JSON-like object.
+   */
+  static toJSON(x: UInt64) {
+    return x.value.toString();
   }
 
-  static fromNumber(x: number): UInt64 {
-    return new UInt64(argToField('UInt64.fromNumber', x));
+  /**
+   * Decodes a JSON-like object into this structure.
+   */
+  static fromJSON<T extends AnyConstructor>(x: string): InstanceType<T> {
+    return this.from(x) as any;
   }
 
-  static fromString(s: string) {
-    return new UInt64(argToField('UInt64.fromString', s));
+  private static checkConstant(x: Field) {
+    if (!x.isConstant()) return x;
+    let xBig = x.toBigInt();
+    if (xBig < 0n || xBig >= 1n << BigInt(this.NUM_BITS)) {
+      throw Error(
+        `UInt64: Expected number between 0 and 2^64 - 1, got ${xBig}`
+      );
+    }
+    return x;
   }
 
-  static NUM_BITS = 64;
+  // this checks the range if the argument is a constant
+  /**
+   * Creates a new {@link UInt64}.
+   */
+  static from(x: UInt64 | UInt32 | Field | number | string | bigint) {
+    if (x instanceof UInt64 || x instanceof UInt32) x = x.value;
+    return new this(this.checkConstant(Field(x)));
+  }
 
-  divMod(y: UInt64 | number): [UInt64, UInt64] {
+  /**
+   * Creates a {@link UInt64} with a value of 18,446,744,073,709,551,615.
+   */
+  static MAXINT() {
+    return new UInt64(Field((1n << 64n) - 1n));
+  }
+
+  /**
+   * Integer division with remainder.
+   *
+   * `x.divMod(y)` returns the quotient and the remainder.
+   */
+  divMod(y: UInt64 | number | string) {
     let x = this.value;
-    let y_ = argToField('UInt64.div', y);
+    let y_ = UInt64.from(y).value;
 
     if (this.value.isConstant() && y_.isConstant()) {
-      let xn = BigInt(x.toString());
-      let yn = BigInt(y_.toString());
+      let xn = x.toBigInt();
+      let yn = y_.toBigInt();
       let q = xn / yn;
       let r = xn - q * yn;
-      return [
-        new UInt64(new Field(q.toString())),
-        new UInt64(new Field(r.toString())),
-      ];
+      return {
+        quotient: new UInt64(Field(q)),
+        rest: new UInt64(Field(r)),
+      };
     }
 
     y_ = y_.seal();
 
     let q = Circuit.witness(
       Field,
-      () => new Field((BigInt(x.toString()) / BigInt(y_.toString())).toString())
+      () => new Field(x.toBigInt() / y_.toBigInt())
     );
 
     q.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(q);
@@ -86,18 +126,18 @@ export class UInt64 extends CircuitValue {
 
     r_.assertLt(new UInt64(y_));
 
-    return [q_, r_];
+    return { quotient: q_, rest: r_ };
   }
 
   /**
    * Integer division.
    *
    * `x.div(y)` returns the floor of `x / y`, that is, the greatest
-   * `z` such that `x * y <= x`.
+   * `z` such that `z * y <= x`.
    *
    */
-  div(y: UInt64 | number): UInt64 {
-    return this.divMod(y)[0];
+  div(y: UInt64 | number) {
+    return this.divMod(y).quotient;
   }
 
   /**
@@ -106,15 +146,15 @@ export class UInt64 extends CircuitValue {
    * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
    * `x - z` is divisble by `y`.
    */
-  mod(y: UInt64 | number): UInt64 {
-    return this.divMod(y)[1];
+  mod(y: UInt64 | number) {
+    return this.divMod(y).rest;
   }
 
   /**
    * Multiplication with overflow checking.
    */
-  mul(y: UInt64 | number): UInt64 {
-    let z = this.value.mul(argToField('UInt64.mul', y));
+  mul(y: UInt64 | number) {
+    let z = this.value.mul(UInt64.from(y).value);
     z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
     return new UInt64(z);
   }
@@ -122,8 +162,8 @@ export class UInt64 extends CircuitValue {
   /**
    * Addition with overflow checking.
    */
-  add(y: UInt64 | number): UInt64 {
-    let z = this.value.add(argToField('UInt64.add', y));
+  add(y: UInt64 | number) {
+    let z = this.value.add(UInt64.from(y).value);
     z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
     return new UInt64(z);
   }
@@ -131,100 +171,191 @@ export class UInt64 extends CircuitValue {
   /**
    * Subtraction with underflow checking.
    */
-  sub(y: UInt64 | number): UInt64 {
-    let z = this.value.sub(argToField('UInt64.sub', y));
+  sub(y: UInt64 | number) {
+    let z = this.value.sub(UInt64.from(y).value);
     z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
     return new UInt64(z);
   }
 
-  lte(y: UInt64): Bool {
-    let xMinusY = this.value.sub(argToField('UInt64.lte', y)).seal();
-    let xMinusYFits = xMinusY.rangeCheckHelper(UInt64.NUM_BITS).equals(xMinusY);
-    let yMinusXFits = xMinusY
-      .rangeCheckHelper(UInt64.NUM_BITS)
-      .equals(xMinusY.neg());
-    xMinusYFits.or(yMinusXFits).assertEquals(true);
-    // x <= y if y - x fits in 64 bits
-    return yMinusXFits;
+  /**
+   * Checks if a {@link UInt64} is less than or equal to another one.
+   */
+  lte(y: UInt64) {
+    if (this.value.isConstant() && y.value.isConstant()) {
+      return Bool(this.value.toBigInt() <= y.value.toBigInt());
+    } else {
+      let xMinusY = this.value.sub(y.value).seal();
+      let yMinusX = xMinusY.neg();
+      let xMinusYFits = xMinusY
+        .rangeCheckHelper(UInt64.NUM_BITS)
+        .equals(xMinusY);
+      let yMinusXFits = yMinusX
+        .rangeCheckHelper(UInt64.NUM_BITS)
+        .equals(yMinusX);
+      xMinusYFits.or(yMinusXFits).assertEquals(true);
+      // x <= y if y - x fits in 64 bits
+      return yMinusXFits;
+    }
   }
 
-  assertLte(y: UInt64) {
-    let yMinusX = argToField('UInt64.lt', y).sub(this.value).seal();
-    yMinusX.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(yMinusX);
-  }
+  /**
+   * Asserts that a {@link UInt64} is less than or equal to another one.
+   */
+  assertLte(y: UInt64, message?: string) {
+    let yMinusX = Circuit.inCheckedComputation()
+      ? y.value.sub(this.value).seal()
+      : y.value.sub(this.value);
 
-  lt(y: UInt64): Bool {
+    yMinusX.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(yMinusX, message);
+  }
+  /**
+   * Checks if a {@link UInt64} is less than another one.
+   */
+  lt(y: UInt64) {
     return this.lte(y).and(this.value.equals(y.value).not());
   }
-
-  assertLt(y: UInt64) {
-    this.lt(y).assertEquals(true);
+  /**
+   * Asserts that a {@link UInt64} is less than another one.
+   */
+  assertLt(y: UInt64, message?: string) {
+    this.lt(y).assertEquals(true, message);
   }
-
-  gt(y: UInt64): Bool {
+  /**
+   * Checks if a {@link UInt64} is greater than another one.
+   */
+  gt(y: UInt64) {
     return y.lt(this);
   }
-
-  assertGt(y: UInt64) {
-    y.assertLt(this);
+  /**
+   * Asserts that a {@link UInt64} is greater than another one.
+   */
+  assertGt(y: UInt64, message?: string) {
+    y.assertLt(this, message);
+  }
+  /**
+   * Checks if a {@link UInt64} is greater than or equal to another one.
+   */
+  gte(y: UInt64) {
+    return this.lt(y).not();
+  }
+  /**
+   * Asserts that a {@link UInt64} is greater than or equal to another one.
+   */
+  assertGte(y: UInt64, message?: string) {
+    y.assertLte(this, message);
   }
 }
-
-export class UInt32 extends CircuitValue {
+/**
+ * A 32 bit unsigned integer with values ranging from 0 to 4,294,967,295.
+ */
+class UInt32 extends CircuitValue {
   @prop value: Field;
+  static NUM_BITS = 32;
 
+  /**
+   * Static method to create a {@link UInt32} with value `0`.
+   */
   static get zero(): UInt32 {
-    return new UInt32(Field.zero);
+    return new UInt32(Field(0));
   }
 
-  constructor(value: Field) {
-    super();
-    this.value = value;
+  /**
+   * Static method to create a {@link UInt32} with value `0`.
+   */
+  static get one(): UInt32 {
+    return new UInt32(Field(1));
   }
-
+  /**
+   * Turns the {@link UInt32} into a string.
+   */
   toString(): string {
     return this.value.toString();
+  }
+  /**
+   * Turns the {@link UInt32} into a {@link BigInt}.
+   */
+  toBigint() {
+    return this.value.toBigInt();
+  }
+  /**
+   * Turns the {@link UInt32} into a {@link UInt64}.
+   */
+  toUInt64(): UInt64 {
+    // this is safe, because the UInt32 range is included in the UInt64 range
+    return new UInt64(this.value);
   }
 
   static check(x: UInt32) {
     let actual = x.value.rangeCheckHelper(32);
     actual.assertEquals(x.value);
   }
-
-  static fromNumber(x: number): UInt32 {
-    return new UInt32(argToField('UInt32.fromNumber', x));
+  static toInput(x: UInt32): HashInput {
+    return { packed: [[x.value, 32]] };
+  }
+  /**
+   * Encodes this structure into a JSON-like object.
+   */
+  static toJSON(x: UInt32) {
+    return x.value.toString();
   }
 
-  static fromString(s: string) {
-    return new UInt32(argToField('UInt32.fromString', s));
+  /**
+   * Decodes a JSON-like object into this structure.
+   */
+  static fromJSON<T extends AnyConstructor>(x: string): InstanceType<T> {
+    return this.from(x) as any;
   }
 
-  static NUM_BITS = 32;
-
-  static MAXINT(): UInt32 {
-    return new UInt32(Field.fromJSON(((1n << 32n) - 1n).toString()) as Field);
+  private static checkConstant(x: Field) {
+    if (!x.isConstant()) return x;
+    let xBig = x.toBigInt();
+    if (xBig < 0n || xBig >= 1n << BigInt(this.NUM_BITS)) {
+      throw Error(
+        `UInt32: Expected number between 0 and 2^32 - 1, got ${xBig}`
+      );
+    }
+    return x;
   }
 
-  divMod(y: UInt32 | number): [UInt32, UInt32] {
+  // this checks the range if the argument is a constant
+  /**
+   * Creates a new {@link UInt32}.
+   */
+  static from(x: UInt32 | Field | number | string | bigint) {
+    if (x instanceof UInt32) x = x.value;
+    return new this(this.checkConstant(Field(x)));
+  }
+  /**
+   * Creates a {@link UInt32} with a value of 4,294,967,295.
+   */
+  static MAXINT() {
+    return new UInt32(Field((1n << 32n) - 1n));
+  }
+  /**
+   * Integer division with remainder.
+   *
+   * `x.divMod(y)` returns the quotient and the remainder.
+   */
+  divMod(y: UInt32 | number | string) {
     let x = this.value;
-    let y_ = argToField('UInt32.div', y);
+    let y_ = UInt32.from(y).value;
 
-    if (this.value.isConstant() && y_.isConstant()) {
-      let xn = BigInt(x.toString());
-      let yn = BigInt(y_.toString());
+    if (x.isConstant() && y_.isConstant()) {
+      let xn = x.toBigInt();
+      let yn = y_.toBigInt();
       let q = xn / yn;
       let r = xn - q * yn;
-      return [
-        new UInt32(new Field(q.toString())),
-        new UInt32(new Field(r.toString())),
-      ];
+      return {
+        quotient: new UInt32(new Field(q.toString())),
+        rest: new UInt32(new Field(r.toString())),
+      };
     }
 
     y_ = y_.seal();
 
     let q = Circuit.witness(
       Field,
-      () => new Field((BigInt(x.toString()) / BigInt(y_.toString())).toString())
+      () => new Field(x.toBigInt() / y_.toBigInt())
     );
 
     q.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(q);
@@ -238,174 +369,370 @@ export class UInt32 extends CircuitValue {
 
     r_.assertLt(new UInt32(y_));
 
-    return [q_, r_];
+    return { quotient: q_, rest: r_ };
   }
-
-  div(y: UInt32 | number): UInt32 {
-    const dm = this.divMod(y);
-    return dm[0];
+  /**
+   * Integer division.
+   *
+   * `x.div(y)` returns the floor of `x / y`, that is, the greatest
+   * `z` such that `x * y <= x`.
+   *
+   */
+  div(y: UInt32 | number) {
+    return this.divMod(y).quotient;
   }
-
-  mod(y: UInt32 | number): UInt32 {
-    return this.divMod(y)[1];
+  /**
+   * Integer remainder.
+   *
+   * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
+   * `x - z` is divisble by `y`.
+   */
+  mod(y: UInt32 | number) {
+    return this.divMod(y).rest;
   }
-
-  mul(y: UInt32 | number): UInt32 {
-    let z = this.value.mul(argToField('UInt32.mul', y));
+  /**
+   * Multiplication with overflow checking.
+   */
+  mul(y: UInt32 | number) {
+    let z = this.value.mul(UInt32.from(y).value);
     z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
     return new UInt32(z);
   }
-
-  add(y: UInt32 | number): UInt32 {
-    let z = this.value.add(argToField('UInt32.add', y));
+  /**
+   * Addition with overflow checking.
+   */
+  add(y: UInt32 | number) {
+    let z = this.value.add(UInt32.from(y).value);
     z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
     return new UInt32(z);
   }
-
-  sub(y: UInt32 | number): UInt32 {
-    let z = this.value.sub(argToField('UInt32.sub', y));
+  /**
+   * Subtraction with underflow checking.
+   */
+  sub(y: UInt32 | number) {
+    let z = this.value.sub(UInt32.from(y).value);
     z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
     return new UInt32(z);
   }
-
-  lte(y: UInt32): Bool {
-    let xMinusY = this.value.sub(argToField('UInt32.lte', y)).seal();
-    let xMinusYFits = xMinusY.rangeCheckHelper(UInt32.NUM_BITS).equals(xMinusY);
-    let yMinusXFits = xMinusY
-      .rangeCheckHelper(UInt32.NUM_BITS)
-      .equals(xMinusY.neg());
-    xMinusYFits.or(yMinusXFits).assertEquals(true);
-    // x <= y if y - x fits in 32 bits
-    return yMinusXFits;
+  /**
+   * Checks if a {@link UInt32} is less than or equal to another one.
+   */
+  lte(y: UInt32) {
+    if (this.value.isConstant() && y.value.isConstant()) {
+      return Bool(this.value.toBigInt() <= y.value.toBigInt());
+    } else {
+      let xMinusY = this.value.sub(y.value).seal();
+      let yMinusX = xMinusY.neg();
+      let xMinusYFits = xMinusY
+        .rangeCheckHelper(UInt32.NUM_BITS)
+        .equals(xMinusY);
+      let yMinusXFits = yMinusX
+        .rangeCheckHelper(UInt32.NUM_BITS)
+        .equals(yMinusX);
+      xMinusYFits.or(yMinusXFits).assertEquals(true);
+      // x <= y if y - x fits in 64 bits
+      return yMinusXFits;
+    }
   }
+  /**
+   * Asserts that a {@link UInt32} is less than or equal to another one.
+   */
+  assertLte(y: UInt32, message?: string) {
+    let yMinusX = Circuit.inCheckedComputation()
+      ? y.value.sub(this.value).seal()
+      : y.value.sub(this.value);
 
-  assertLte(y: UInt32) {
-    let yMinusX = argToField('UInt32.lt', y).sub(this.value).seal();
-    yMinusX.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(yMinusX);
+    yMinusX.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(yMinusX, message);
   }
-
-  lt(y: UInt32): Bool {
+  /**
+   * Checks if a {@link UInt32} is less than another one.
+   */
+  lt(y: UInt32) {
     return this.lte(y).and(this.value.equals(y.value).not());
   }
-
-  assertLt(y: UInt32) {
-    this.lt(y).assertEquals(true);
+  /**
+   * Asserts that a {@link UInt32} is less than another one.
+   */
+  assertLt(y: UInt32, message?: string) {
+    this.lt(y).assertEquals(true, message);
   }
-
-  gt(y: UInt32): Bool {
+  /**
+   * Checks if a {@link UInt32} is greater than another one.
+   */
+  gt(y: UInt32) {
     return y.lt(this);
   }
+  /**
+   * Asserts that a {@link UInt32} is greater than another one.
+   */
+  assertGt(y: UInt32, message?: string) {
+    y.assertLt(this, message);
+  }
 
-  assertGt(y: UInt32) {
-    y.assertLt(this);
+  /**
+   * Checks if a {@link UInt32} is greater than or equal to another one.
+   */
+  gte(y: UInt32) {
+    return this.lt(y).not();
+  }
+  /**
+   * Asserts that a {@link UInt32} is greater than or equal to another one.
+   */
+  assertGte(y: UInt32, message?: string) {
+    y.assertLte(this, message);
   }
 }
 
-class Sgn extends CircuitValue {
-  // +/- 1
-  @prop value: Field;
+class Sign extends CircuitValue {
+  @prop value: Field; // +/- 1
 
-  static check(x: Sgn) {
-    let x_ = x.value.seal();
-    x_.mul(x_).assertEquals(Field.one);
+  static get one() {
+    return new Sign(Field(1));
   }
-
-  constructor(value: Field) {
-    super();
-    this.value = value;
+  static get minusOne() {
+    return new Sign(Field(-1));
   }
-
-  static get Pos() {
-    return new Sgn(Field.one);
+  static check(x: Sign) {
+    // x^2 == 1  <=>  x == 1 or x == -1
+    x.value.square().assertEquals(Field(1));
   }
-  static get Neg() {
-    return new Sgn(Field.one.neg());
+  static emptyValue(): Sign {
+    return Sign.one;
+  }
+  static toInput(x: Sign): HashInput {
+    return { packed: [[x.isPositive().toField(), 1]] };
+  }
+  static toJSON(x: Sign) {
+    if (x.toString() === '1') return 'Positive';
+    if (x.neg().toString() === '1') return 'Negative';
+    throw Error(`Invalid Sign: ${x}`);
+  }
+  static fromJSON<T extends AnyConstructor>(
+    x: 'Positive' | 'Negative'
+  ): InstanceType<T> {
+    return (x === 'Positive' ? new Sign(Field(1)) : new Sign(Field(-1))) as any;
+  }
+  neg() {
+    return new Sign(this.value.neg());
+  }
+  mul(y: Sign) {
+    return new Sign(this.value.mul(y.value));
+  }
+  isPositive() {
+    return this.value.equals(Field(1));
+  }
+  toString() {
+    return this.value.toString();
   }
 }
 
-export class Int64 {
-  // In the range [-2^63, 2^63 - 1]
-  @prop value: Field;
+type BalanceChange = Types.AccountUpdate['body']['balanceChange'];
 
-  static check() {
-    throw 'todo: int64 check';
+/**
+ * A 64 bit signed integer with values ranging from -18,446,744,073,709,551,615 to 18,446,744,073,709,551,615.
+ */
+class Int64 extends CircuitValue implements BalanceChange {
+  // * in the range [-2^64+1, 2^64-1], unlike a normal int64
+  // * under- and overflowing is disallowed, similar to UInt64, unlike a normal int64+
+
+  @prop magnitude: UInt64; // absolute value
+  @prop sgn: Sign; // +/- 1
+
+  // Some thoughts regarding the representation as field elements:
+  // toFields returns the in-circuit representation, so the main objective is to minimize the number of constraints
+  // that result from this representation. Therefore, I think the only candidate for an efficient 1-field representation
+  // is the one where the Int64 is the field: toFields = Int64 => [Int64.magnitude.mul(Int64.sign)]. Anything else involving
+  // bit packing would just lead to very inefficient circuit operations.
+  //
+  // So, is magnitude * sign ("1-field") a more efficient representation than (magnitude, sign) ("2-field")?
+  // Several common operations like add, mul, etc, operate on 1-field so in 2-field they result in one additional multiplication
+  // constraint per operand. However, the check operation (constraining to 64 bits + a sign) which is called at the introduction
+  // of every witness, and also at the end of add, mul, etc, operates on 2-field. So here, the 1-field representation needs
+  // to add an additional magnitude * sign = Int64 multiplication constraint, which will typically cancel out most of the gains
+  // achieved by 1-field elsewhere.
+  // There are some notable operations for which 2-field is definitely better:
+  //
+  // * div and mod (which do integer division with rounding on the magnitude)
+  // * converting the Int64 to a Currency.Amount.Signed (for the zkapp balance), which has the exact same (magnitude, sign) representation we use here.
+  //
+  // The second point is one of the main things an Int64 is used for, and was the original motivation to use 2 fields.
+  // Overall, I think the existing implementation is the optimal one.
+
+  constructor(magnitude: UInt64, sgn = Sign.one) {
+    super(magnitude, sgn);
   }
 
-  /*
-  @prop magnitude: UInt64 | null;
-  @prop isPos: Sgn | null;
-  */
-
-  constructor(x: Field) {
-    this.value = x;
+  /**
+   * Creates a new {@link Int64} from a {@link Field}.
+   *
+   * Does check if the {@link Field} is within range.
+   */
+  private static fromFieldUnchecked(x: Field) {
+    let TWO64 = 1n << 64n;
+    let xBigInt = x.toBigInt();
+    let isValidPositive = xBigInt < TWO64; // covers {0,...,2^64 - 1}
+    let isValidNegative = Field.ORDER - xBigInt < TWO64; // {-2^64 + 1,...,-1}
+    if (!isValidPositive && !isValidNegative)
+      throw Error(`Int64: Expected a value between (-2^64, 2^64), got ${x}`);
+    let magnitude = Field(isValidPositive ? x.toString() : x.neg().toString());
+    let sign = isValidPositive ? Sign.one : Sign.minusOne;
+    return new Int64(new UInt64(magnitude), sign);
   }
 
-  toString(): string {
-    const s = this.value.toString();
-    const n = BigInt(s);
-    if (n < 1n << 64n) {
-      return s;
-    } else {
-      return '-' + this.value.neg().toString();
+  // this doesn't check ranges because we assume they're already checked on UInts
+  /**
+   * Creates a new {@link Int64} from a {@link Field}.
+   *
+   * **Does not** check if the {@link Field} is within range.
+   */
+  static fromUnsigned(x: UInt64 | UInt32) {
+    return new Int64(x instanceof UInt32 ? x.toUInt64() : x);
+  }
+
+  // this checks the range if the argument is a constant
+  /**
+   * Creates a new {@link Int64}.
+   *
+   * Check the range if the argument is a constant.
+   */
+  static from(x: Int64 | UInt32 | UInt64 | Field | number | string | bigint) {
+    if (x instanceof Int64) return x;
+    if (x instanceof UInt64 || x instanceof UInt32) {
+      return Int64.fromUnsigned(x);
     }
+    return Int64.fromFieldUnchecked(Field(x));
+  }
+  /**
+   * Turns the {@link Int64} into a string.
+   */
+  toString() {
+    let abs = this.magnitude.toString();
+    let sgn = this.isPositive().toBoolean() || abs === '0' ? '' : '-';
+    return sgn + abs;
   }
 
-  static get zero(): Int64 {
-    return new Int64(Field.zero);
+  isConstant() {
+    return this.magnitude.value.isConstant() && this.sgn.isConstant();
   }
 
-  static fromUnsigned(x: UInt64): Int64 {
-    return new Int64(x.value);
+  // --- circuit-compatible operations below ---
+  // the assumption here is that all Int64 values that appear in a circuit are already checked as valid
+  // this is because Circuit.witness calls .check, which calls .check on each prop, i.e. UInt64 and Sign
+  // so we only have to do additional checks if an operation on valid inputs can have an invalid outcome (example: overflow)
+  /**
+   * Static method to create a {@link Int64} with value `0`.
+   */
+  static get zero() {
+    return new Int64(UInt64.zero);
+  }
+  /**
+   * Static method to create a {@link Int64} with value `1`.
+   */
+  static get one() {
+    return new Int64(UInt64.one);
+  }
+  /**
+   * Static method to create a {@link Int64} with value `-1`.
+   */
+  static get minusOne() {
+    return new Int64(UInt64.one).neg();
   }
 
-  private static shift(): Field {
-    return Field.fromJSON((1n << 64n).toString()) as Field;
+  /**
+   * Returns the {@link Field} value.
+   */
+  toField() {
+    return this.magnitude.value.mul(this.sgn.value);
+  }
+  /**
+   * Static method to create a {@link Int64} from a {@link Field}.
+   */
+  static fromField(x: Field): Int64 {
+    // constant case - just return unchecked value
+    if (x.isConstant()) return Int64.fromFieldUnchecked(x);
+    // variable case - create a new checked witness and prove consistency with original field
+    let xInt = Circuit.witness(Int64, () => Int64.fromFieldUnchecked(x));
+    xInt.toField().assertEquals(x); // sign(x) * |x| === x
+    return xInt;
   }
 
-  uint64Value(): Field {
-    const n = BigInt(this.value.toString());
-    if (n < 1n << 64n) {
-      return this.value;
-    } else {
-      const x = this.value.add(Int64.shift());
-
-      return x;
-    }
+  /**
+   * Negates the value.
+   *
+   * `Int64.from(5).neg()` will turn into `Int64.from(-5)`
+   */
+  neg() {
+    // doesn't need further check if `this` is valid
+    return new Int64(this.magnitude, this.sgn.neg());
+  }
+  /**
+   * Addition with overflow checking.
+   */
+  add(y: Int64 | number | string | bigint | UInt64 | UInt32) {
+    let y_ = Int64.from(y);
+    return Int64.fromField(this.toField().add(y_.toField()));
+  }
+  /**
+   * Subtraction with underflow checking.
+   */
+  sub(y: Int64 | number | string | bigint | UInt64 | UInt32) {
+    let y_ = Int64.from(y);
+    return Int64.fromField(this.toField().sub(y_.toField()));
+  }
+  /**
+   * Multiplication with overflow checking.
+   */
+  mul(y: Int64 | number | string | bigint | UInt64 | UInt32) {
+    let y_ = Int64.from(y);
+    return Int64.fromField(this.toField().mul(y_.toField()));
+  }
+  /**
+   * Integer division.
+   *
+   * `x.div(y)` returns the floor of `x / y`, that is, the greatest
+   * `z` such that `z * y <= x`.
+   *
+   */
+  div(y: Int64 | number | string | bigint | UInt64 | UInt32) {
+    let y_ = Int64.from(y);
+    let { quotient } = this.magnitude.divMod(y_.magnitude);
+    let sign = this.sgn.mul(y_.sgn);
+    return new Int64(quotient, sign);
+  }
+  /**
+   * Integer remainder.
+   *
+   * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
+   * `x - z` is divisble by `y`.
+   */
+  mod(y: UInt64 | number | string | bigint | UInt32) {
+    let y_ = UInt64.from(y);
+    let rest = this.magnitude.divMod(y_).rest.value;
+    rest = Circuit.if(this.isPositive(), rest, y_.value.sub(rest));
+    return new Int64(new UInt64(rest));
   }
 
-  static sizeInFields(): number {
-    return 1;
+  /**
+   * Checks if two values are equal.
+   */
+  equals(y: Int64 | number | string | bigint | UInt64 | UInt32) {
+    let y_ = Int64.from(y);
+    return this.toField().equals(y_.toField());
   }
-
-  neg(): Int64 {
-    return new Int64(this.value.neg());
+  /**
+   * Asserts that two values are equal.
+   */
+  assertEquals(
+    y: Int64 | number | string | bigint | UInt64 | UInt32,
+    message?: string
+  ) {
+    let y_ = Int64.from(y);
+    this.toField().assertEquals(y_.toField(), message);
   }
-
-  add(y: Int64 | UInt32 | UInt64) {
-    return new Int64(this.value.add(y.value));
-  }
-
-  sub(y: Int64 | UInt32 | UInt64) {
-    return new Int64(this.value.sub(y.value));
-  }
-
-  repr(): { magnitude: Field; isPos: Sgn } {
-    throw 'repr';
-  }
-
-  static toFields(x: Int64): Field[] {
-    return [x.value];
-  }
-
-  static ofFields(xs: Field[]) {
-    return new Int64(xs[0]);
-  }
-
-  toFields(): Field[] {
-    return Int64.toFields(this);
-  }
-
-  sizeInFields(): number {
-    return Int64.sizeInFields();
+  /**
+   * Checks if the value is postive.
+   */
+  isPositive() {
+    return this.sgn.isPositive();
   }
 }

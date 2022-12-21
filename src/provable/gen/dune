@@ -1,0 +1,14 @@
+(rule
+ (targets
+  js-layout.ts
+  transaction.ts
+  transaction-json.ts
+  transaction-bigint.ts)
+ (mode promote)
+ (deps
+  (:script ../../build/jsLayoutToTypes.mjs)
+  ../../../../jsLayout.json
+  ../../../.prettierrc.cjs
+  (glob_files ../../../node_modules/prettier/*))
+ (action
+  (run node %{script})))

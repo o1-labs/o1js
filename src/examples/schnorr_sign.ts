@@ -8,18 +8,15 @@ import {
   prop,
   CircuitValue,
   Signature,
+  isReady,
 } from 'snarkyjs';
+
+await isReady;
+
 class Witness extends CircuitValue {
   @prop signature: Signature;
   @prop acc: Group;
   @prop r: Scalar;
-
-  constructor(sig: Signature, acc: Group, r: Scalar) {
-    super();
-    this.signature = sig;
-    this.acc = acc;
-    this.r = r;
-  }
 }
 
 // Public input:

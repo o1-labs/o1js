@@ -5,7 +5,7 @@ import {
   Field,
   Circuit,
   Poseidon,
-  AsFieldElements,
+  ProvablePure,
   Optional,
 } from 'snarkyjs';
 import { DataStore, KeyedDataStore } from './data_store';
@@ -56,7 +56,7 @@ export function MerkleAccumulatorFactory<A extends CircuitValue>(
       return [x.root];
     }
 
-    static ofFields(xs: Field[]): MerkleAccumulator {
+    static fromFields(xs: Field[]): MerkleAccumulator {
       return new MerkleAccumulator(xs[0]);
     }
 
@@ -125,11 +125,6 @@ export function MerkleAccumulatorFactory<A extends CircuitValue>(
 export abstract class IndexedAccumulator<A> extends CircuitValue {
   @prop commitment: Field;
 
-  constructor(commitment: Field) {
-    super();
-    this.commitment = commitment;
-  }
-
   abstract set(index: Index, a: A): void;
 
   abstract get(index: Index): A;
@@ -173,7 +168,7 @@ export function KeyedAccumulatorFactory<
       return [x.root];
     }
 
-    static ofFields(xs: Field[]): KeyedAccumulator {
+    static fromFields(xs: Field[]): KeyedAccumulator {
       return new KeyedAccumulator(xs[0]);
     }
 
@@ -263,10 +258,10 @@ export function MerkleProofFactory(depth: number) {
       return x.path;
     }
 
-    static ofFields(xs: Array<Field>): MerkleProof {
+    static fromFields(xs: Array<Field>): MerkleProof {
       if (xs.length !== depth) {
         throw new Error(
-          `MerkleTree: ofFields expected array of length ${depth}, got ${xs.length}`
+          `MerkleTree: fromFields expected array of length ${depth}, got ${xs.length}`
         );
       }
       return new MerkleProof(xs);
@@ -295,7 +290,7 @@ export function IndexFactory(depth: number) {
       return new Index(res);
     }
 
-    static ofFields(xs: Field[]): Index {
+    static fromFields(xs: Field[]): Index {
       return new Index(xs.map((x) => Bool.Unsafe.ofField(x)));
     }
 
@@ -559,7 +554,7 @@ function constantIndex(xs: Array<Bool>): Array<boolean> {
 }
 
 export class Collection<A> {
-  eltTyp: AsFieldElements<A>;
+  eltTyp: ProvablePure<A>;
   values:
     | { computed: true; value: MerkleTree<A> }
     | { computed: false; f: () => MerkleTree<A> };
@@ -577,7 +572,7 @@ export class Collection<A> {
     return this.root;
   }
 
-  constructor(eltTyp: AsFieldElements<A>, f: () => Tree<A>, root?: Field) {
+  constructor(eltTyp: ProvablePure<A>, f: () => Tree<A>, root?: Field) {
     this.eltTyp = eltTyp;
     this.cachedPaths = new Map();
     this.cachedValues = new Map();

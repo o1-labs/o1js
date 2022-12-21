@@ -1,5 +1,5 @@
-import { isReady, PrivateKey, deploy, shutdown, compile } from 'snarkyjs';
-import SimpleZkapp from './simple_zkapp';
+import { isReady, PrivateKey, deploy, shutdown } from 'snarkyjs';
+import SimpleZkapp from './simple_zkapp.js';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';

@@ -1,4 +1,5 @@
-import { Field } from '../snarky';
+import { fieldEncodings } from '../provable/base58.js';
+import { Field } from '../snarky.js';
 
 export {
   stringToFields,
@@ -6,7 +7,15 @@ export {
   bytesToFields,
   bytesFromFields,
   Bijective,
+  TokenId,
+  ReceiptChainHash,
+  LedgerHash,
+  EpochSeed,
+  StateHash,
 };
+
+const { TokenId, ReceiptChainHash, EpochSeed, LedgerHash, StateHash } =
+  fieldEncodings(Field);
 
 // functions for encoding data as field elements
 
@@ -16,12 +25,21 @@ export {
 
 // caveat: this is suitable for encoding arbitrary bytes as fields, but not the other way round
 // to encode fields as bytes in a recoverable way, you need different methods
-
+/**
+ * Encodes a JavaScript string into a list of {@link Field} elements.
+ *
+ * This function is not a valid in-snark computation.
+ */
 function stringToFields(message: string) {
   let bytes = new TextEncoder().encode(message);
   return bytesToFields(bytes);
 }
 
+/**
+ * Decodes a list of {@link Field} elements into a JavaScript string.
+ *
+ * This function is not a valid in-snark computation.
+ */
 function stringFromFields(fields: Field[]) {
   let bytes = bytesFromFields(fields);
   return new TextDecoder().decode(bytes);
@@ -29,6 +47,9 @@ function stringFromFields(fields: Field[]) {
 
 const STOP = 0x01;
 
+/**
+ * Encodes a {@link Uint8Array} into {@link Field} elements.
+ */
 function bytesToFields(bytes: Uint8Array) {
   // we encode 248 bits (31 bytes) at a time into one field element
   let fields = [];
@@ -48,7 +69,9 @@ function bytesToFields(bytes: Uint8Array) {
   fields.push(Field(currentBigInt.toString()));
   return fields;
 }
-
+/**
+ * Decodes a list of {@link Field} elements into a {@link Uint8Array}.
+ */
 function bytesFromFields(fields: Field[]) {
   // find STOP byte in last chunk to determine length of byte array
   let lastChunk = fields.pop();

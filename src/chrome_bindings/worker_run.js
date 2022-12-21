@@ -19,6 +19,7 @@ export default function workerRun() {
         args: [
           plonk_wasm.WasmFpGateVector,
           undefined /* number */,
+          undefined /* number */,
           plonk_wasm.WasmFpSrs,
         ],
         res: plonk_wasm.WasmPastaFpPlonkIndex,
@@ -26,6 +27,7 @@ export default function workerRun() {
       caml_pasta_fq_plonk_index_create: {
         args: [
           plonk_wasm.WasmFqGateVector,
+          undefined /* number */,
           undefined /* number */,
           plonk_wasm.WasmFqSrs,
         ],
@@ -59,7 +61,6 @@ export default function workerRun() {
       },
       caml_pasta_fp_plonk_proof_verify: {
         args: [
-          undefined /*Uint32Array*/,
           plonk_wasm.WasmFpPlonkVerifierIndex,
           plonk_wasm.WasmFpProverProof,
         ],
@@ -67,9 +68,56 @@ export default function workerRun() {
       },
       caml_pasta_fq_plonk_proof_verify: {
         args: [
-          undefined /*Uint32Array*/,
           plonk_wasm.WasmFqPlonkVerifierIndex,
           plonk_wasm.WasmFqProverProof,
+        ],
+        res: bool,
+      },
+      caml_pasta_fp_plonk_proof_batch_verify: {
+        args: [undefined /* UintXArray */, undefined /* UintXArray */],
+        res: bool,
+      },
+      caml_pasta_fq_plonk_proof_batch_verify: {
+        args: [undefined /* UintXArray */, undefined /* UintXArray */],
+        res: bool,
+      },
+      caml_fp_srs_b_poly_commitment: {
+        args: [plonk_wasm.WasmFpSrs, undefined /*Uint8Array*/],
+        res: plonk_wasm.WasmFpPolyComm,
+      },
+      caml_fq_srs_b_poly_commitment: {
+        args: [plonk_wasm.WasmFqSrs, undefined /*Uint8Array*/],
+        res: plonk_wasm.WasmFqPolyComm,
+      },
+      fp_oracles_create: {
+        args: [
+          undefined /* Uint32Array */,
+          plonk_wasm.WasmFpPlonkVerifierIndex,
+          plonk_wasm.WasmFpProverProof,
+        ],
+        res: plonk_wasm.WasmFpOracles,
+      },
+      fq_oracles_create: {
+        args: [
+          undefined /* Uint32Array */,
+          plonk_wasm.WasmFqPlonkVerifierIndex,
+          plonk_wasm.WasmFqProverProof,
+        ],
+        res: plonk_wasm.WasmFqOracles,
+      },
+      caml_fp_srs_batch_accumulator_check: {
+        args: [
+          plonk_wasm.WasmFpSrs,
+          undefined /* UintXArray */,
+          undefined /* UintXArray */,
+        ],
+        res: bool,
+      },
+      caml_fq_srs_batch_accumulator_check: {
+        args: [
+          plonk_wasm.WasmFqSrs,
+          undefined /* UintXArray */,
+          undefined /* UintXArray */,
         ],
         res: bool,
       },
@@ -85,13 +133,11 @@ export default function workerRun() {
     }
     for (let key in worker_spec_) {
       plonk_wasm_[key] = (...args) => {
-        // let old_onmessage = worker.onmessage;
         let u32_ptr = plonk_wasm.create_zero_u32_ptr();
         worker.postMessage({ type: 'run', name: key, args, u32_ptr });
         /* Here be undefined behavior dragons. */
         let res = plonk_wasm.wait_until_non_zero(u32_ptr);
         plonk_wasm.free_u32_ptr(u32_ptr);
-        // worker.onmessage = old_onmessage;
         let res_spec = worker_spec_[key].res;
         if (res_spec && res_spec.__wrap) {
           return worker_spec_[key].res.__wrap(res);

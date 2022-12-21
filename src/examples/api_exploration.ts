@@ -1,4 +1,5 @@
 import {
+  isReady,
   Field,
   Bool,
   Group,
@@ -7,9 +8,13 @@ import {
   PrivateKey,
   PublicKey,
   Signature,
+  Int64,
 } from 'snarkyjs';
 
-/* This file demonstrates the classes and functions available in snarky.js */
+/* This file demonstrates the classes and functions available in snarkyjs */
+
+// Wait for SnarkyJS to load
+await isReady;
 
 /* # Field */
 
@@ -30,7 +35,7 @@ console.assert(x0.equals(x1).toBoolean());
 
 // When initializing with booleans, true corresponds to the field element 1, and false corresponds to 0
 const b = new Field(true);
-console.assert(b.equals(Field.one).toBoolean());
+console.assert(b.equals(Field(1)).toBoolean());
 
 /* You can perform arithmetic operations on field elements.
    The arithmetic methods can take any "fieldy" values as inputs: 
@@ -40,7 +45,6 @@ const z = x0.mul(x1).add(b).div(234).square().neg().sub('67').add(false);
 
 /* Field elements can be converted to their full, little endian binary representation. */
 let bits: Bool[] = z.toBits();
-console.log(bits.length);
 
 /* If you know (or want to assert) that a field element fits in fewer bits, you can
    also unpack to a sequence of bits of a specified length. This is useful for doing
@@ -115,6 +119,14 @@ const c = Circuit.if(
 
 console.assert(c.bar.someFieldElt.equals(x1).toBoolean());
 
+// Circuit.switch is a generalization of Circuit.if, for when you need to distinguish between multiple cases.
+let x = Circuit.switch([Bool(false), Bool(true), Bool(false)], Int64, [
+  Int64.from(1),
+  Int64.from(2),
+  Int64.from(3),
+]);
+x.assertEquals(Int64.from(2));
+
 /* # Signature
  */
 
@@ -156,4 +168,3 @@ let g3 = g0.add(g1).neg().sub(g2);
    are distinct and represent elements of distinct fields. */
 let s0: Scalar = Scalar.random();
 let g4: Group = g3.scale(s0);
-console.log(Group.toJSON(g4));

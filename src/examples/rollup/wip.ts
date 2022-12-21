@@ -5,7 +5,7 @@ import {
   PrivateKey,
   PublicKey,
   Signature,
-  Party,
+  AccountUpdate,
   Permissions,
   State,
   SmartContract,
@@ -44,13 +44,6 @@ class RollupAccount extends CircuitValue {
   @prop balance: UInt64;
   @prop nonce: UInt32;
   @prop publicKey: PublicKey;
-
-  constructor(balance: UInt64, nonce: UInt32, publicKey: PublicKey) {
-    super();
-    this.balance = balance;
-    this.nonce = nonce;
-    this.publicKey = publicKey;
-  }
 }
 
 class RollupTransaction extends CircuitValue {
@@ -58,49 +51,21 @@ class RollupTransaction extends CircuitValue {
   @prop nonce: UInt32;
   @prop sender: PublicKey;
   @prop receiver: PublicKey;
-
-  constructor(
-    amount: UInt64,
-    nonce: UInt32,
-    sender: PublicKey,
-    receiver: PublicKey
-  ) {
-    super();
-    this.amount = amount;
-    this.nonce = nonce;
-    this.sender = sender;
-    this.receiver = receiver;
-  }
 }
 
 class RollupDeposit extends CircuitValue {
   @prop publicKey: PublicKey;
   @prop amount: UInt64;
-  constructor(publicKey: PublicKey, amount: UInt64) {
-    super();
-    this.publicKey = publicKey;
-    this.amount = amount;
-  }
 }
 
 class RollupState extends CircuitValue {
   @prop pendingDepositsCommitment: Field;
   @prop accountDbCommitment: Field;
-  constructor(p: Field, c: Field) {
-    super();
-    this.pendingDepositsCommitment = p;
-    this.accountDbCommitment = c;
-  }
 }
 
 class RollupStateTransition extends CircuitValue {
   @prop source: RollupState;
   @prop target: RollupState;
-  constructor(source: RollupState, target: RollupState) {
-    super();
-    this.source = source;
-    this.target = target;
-  }
 }
 
 // a recursive proof system is kind of like an "enum"
@@ -327,7 +292,7 @@ class RollupZkapp extends SmartContract {
   }
 
   @method depositFunds(
-    depositor: Party & { predicate: UInt32 },
+    depositor: AccountUpdate & { predicate: UInt32 },
     depositAmount: UInt64
   ) {
     const self = this.self;
@@ -433,9 +398,9 @@ function main() {
     })
     .then(() =>
       Mina.transaction(minaSender, () => {
-        const amount = UInt64.fromNumber(1000000000);
+        const amount = UInt64.from(1000000000);
 
-        return Party.createSigned(depositorPrivkey).then((p) => {
+        return AccountUpdate.createSigned(depositorPrivkey).then((p) => {
           p.body.delta = Int64.fromUnsigned(amount).neg();
           RollupInstance = new RollupZkapp(zkappPubkey);
           RollupInstance.deploy(
@@ -443,12 +408,10 @@ function main() {
             operatorsDb,
             accountDb,
             pendingDeposits,
-            UInt32.fromNumber(0)
+            UInt32.from(0)
           );
         });
-      })
-        .send()
-        .wait()
+      }).send()
     )
     .then(() => {
       console.log('after init');
@@ -472,7 +435,6 @@ function main() {
         );
       })
         .send()
-        .wait()
         .catch((e) => {
           console.log('fuc', e);
           throw e;
@@ -480,22 +442,23 @@ function main() {
         .then(() => {
           console.log('main', 6);
           return Mina.transaction(minaSender, () => {
-            return Party.createSigned(depositorPrivkey).then((depositor) => {
-              // TODO: Figure out nicer way to have a second party.
+            return AccountUpdate.createSigned(depositorPrivkey).then(
+              (depositor) => {
+                // TODO: Figure out nicer way to have a second account update.
 
-              return Mina.getBalance(depositorPubkey).then(
-                (depositorBalance) => {
-                  // Deposit some funds into the rollup
-                  RollupInstance.depositFunds(
-                    depositor,
-                    depositorBalance.div(2)
-                  );
-                }
-              );
-            });
+                return Mina.getBalance(depositorPubkey).then(
+                  (depositorBalance) => {
+                    // Deposit some funds into the rollup
+                    RollupInstance.depositFunds(
+                      depositor,
+                      depositorBalance.div(2)
+                    );
+                  }
+                );
+              }
+            );
           })
             .send()
-            .wait()
             .catch((e) => {
               console.log('fuc', e);
               throw e;
@@ -503,8 +466,8 @@ function main() {
         })
         .then(() => {
           console.log('main', 7);
-          let rollupAmount = UInt64.fromNumber(10);
-          let rollupNonce = UInt32.fromNumber(0);
+          let rollupAmount = UInt64.from(10);
+          let rollupNonce = UInt32.from(0);
           let rollupSender = depositorPubkey;
           let rollupReceiver = depositorPubkey;
           let rollupTransaction = new RollupTransaction(
@@ -547,7 +510,6 @@ function main() {
             );
           })
             .send()
-            .wait()
             .catch((e) => {
               console.log('rrr', e);
               throw e;
