@@ -1,7 +1,10 @@
 import { UInt32, UInt64 } from '../provable/field-bigint.js';
-import { PublicKey } from '../provable/curve-bigint.js';
+import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
 import { HashInputLegacy } from 'src/provable/poseidon-bigint.js';
 import { Memo } from './memo.js';
+import { NetworkId, Signature, signLegacy } from './signature.js';
+
+export { signUserCommand };
 
 type Tag = 'Payment' | 'StakeDelegation';
 
@@ -22,8 +25,15 @@ type Body = {
 
 type UserCommand = { common: Common; body: Body };
 
-function signUserCommand(command: UserCommand) {
+function signUserCommand(
+  command: UserCommand,
+  privateKeyBase58: string,
+  networkId: NetworkId
+) {
   let input = toInputLegacy(command);
+  let privateKey = PrivateKey.fromBase58(privateKeyBase58);
+  let signature = signLegacy(input, privateKey, networkId);
+  return Signature.toBase58(signature);
 }
 
 function toInputLegacy({ common, body }: UserCommand) {

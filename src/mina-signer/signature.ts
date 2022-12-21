@@ -16,6 +16,7 @@ import {
   HashInputLegacy,
   packToFieldsLegacy,
   inputToBitsLegacy,
+  HashLegacy,
 } from '../provable/poseidon-bigint.js';
 import {
   bitsToBytes,
@@ -34,6 +35,8 @@ export {
   verifyFieldElement,
   Signature,
   NetworkId,
+  signLegacy,
+  verifyLegacy,
 };
 
 const networkIdMainnet = 0x01n;
@@ -216,6 +219,47 @@ function verify(
 // legacy signatures
 
 /**
+ * Same as {@link sign}, but using the "legacy" style of hash input packing.
+ */
+function signLegacy(
+  message: HashInputLegacy,
+  privateKey: PrivateKey,
+  networkId: NetworkId
+): Signature {
+  let publicKey = Group.scale(Group.generatorMina, privateKey);
+  let kPrime = deriveNonceLegacy(message, publicKey, privateKey, networkId);
+  if (Scalar.equal(kPrime, 0n)) throw Error('sign: derived nonce is 0');
+  let { x: rx, y: ry } = Group.scale(Group.generatorMina, kPrime);
+  let k = Field.isEven(ry) ? kPrime : Scalar.negate(kPrime);
+  let e = hashMessageLegacy(message, publicKey, rx, networkId);
+  let s = Scalar.add(k, Scalar.mul(e, privateKey));
+  return { r: rx, s };
+}
+
+/**
+ * Same as {@link verify}, but using the "legacy" style of hash input packing.
+ */
+function verifyLegacy(
+  signature: Signature,
+  message: HashInputLegacy,
+  publicKey: PublicKey,
+  networkId: NetworkId
+) {
+  let { r, s } = signature;
+  let pk = PublicKey.toGroup(publicKey);
+  let e = hashMessageLegacy(message, pk, r, networkId);
+  let { scale, one, sub } = Pallas;
+  let R = sub(scale(one, s), scale(Group.toProjective(pk), e));
+  try {
+    // if `R` is infinity, Group.fromProjective throws an error, so `verify` returns false
+    let { x: rx, y: ry } = Group.fromProjective(R);
+    return Field.isEven(ry) && Field.equal(rx, r);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Same as {@link deriveNonce}, but using the "legacy" style of hash input packing.
  */
 function deriveNonceLegacy(
@@ -256,6 +300,5 @@ function hashMessageLegacy(
     networkId === 'mainnet'
       ? prefixes.signatureMainnet
       : prefixes.signatureTestnet;
-  // TODO: need legacy hashing!!
-  return hashWithPrefix(prefix, packToFieldsLegacy(input));
+  return HashLegacy.hashWithPrefix(prefix, packToFieldsLegacy(input));
 }

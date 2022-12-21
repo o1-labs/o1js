@@ -57,8 +57,9 @@ const Poseidon = {
   Sponge,
 };
 
-let Hash = createHashHelpers(Field, Poseidon, packToFields);
-let { salt, emptyHashWithPrefix, hashWithPrefix } = Hash;
+const HashHelpers = createHashHelpers(Field, Poseidon);
+let { salt, emptyHashWithPrefix, hashWithPrefix } = HashHelpers;
+const Hash = { ...HashHelpers, packToFields };
 
 const prefixes: typeof Poseidon_.prefixes = new Proxy({} as any, {
   // hack bc Poseidon_.prefixes is not available at start-up

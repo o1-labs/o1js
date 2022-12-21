@@ -1,5 +1,5 @@
 import { Field, sizeInBits } from './field-bigint.js';
-import { Poseidon } from '../js_crypto/poseidon.js';
+import { Poseidon, PoseidonLegacy } from '../js_crypto/poseidon.js';
 import { prefixes } from '../js_crypto/constants.js';
 import { createHashInput } from './provable-generic.js';
 import { GenericHashInput } from './generic.js';
@@ -15,12 +15,16 @@ export {
   packToFieldsLegacy,
   HashInputLegacy,
   inputToBitsLegacy,
+  HashLegacy,
 };
 
 type HashInput = GenericHashInput<Field>;
 const HashInput = createHashInput<Field>();
-let Hash = createHashHelpers(Field, Poseidon, packToFields);
-let { hashWithPrefix } = Hash;
+const HashHelpers = createHashHelpers(Field, Poseidon);
+let { hashWithPrefix } = HashHelpers;
+const Hash = { ...HashHelpers, packToFields };
+
+const HashLegacy = createHashHelpers(Field, PoseidonLegacy);
 
 /**
  * Convert the {fields, packed} hash input representation to a list of field elements
