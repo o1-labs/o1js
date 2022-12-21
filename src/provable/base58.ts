@@ -1,6 +1,6 @@
 import { versionBytes } from '../js_crypto/constants.js';
 import { Ledger } from '../snarky.js';
-import { Binable, withVersionNumber } from './binable.js';
+import { Binable, stringToBytes, withVersionNumber } from './binable.js';
 
 export { base58, fieldEncodings, Base58 };
 
@@ -22,7 +22,7 @@ function base58<T>(binable: Binable<T>, versionByte: number): Base58<T> {
     },
     fromBase58(base58) {
       let ocamlBytes = Ledger.encoding.ofBase58(base58, versionByte);
-      let bytes = [...ocamlBytes.c].map((_, i) => ocamlBytes.c.charCodeAt(i));
+      let bytes = stringToBytes(ocamlBytes.c);
       return binable.fromBytes(bytes);
     },
   };

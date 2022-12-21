@@ -10,6 +10,7 @@ export {
   bitsToBytes,
   withBits,
   BinableWithBits,
+  stringToBytes,
 };
 
 type Binable<T> = {
@@ -86,8 +87,7 @@ function tuple<Types extends Tuple<any>>(
 // converts string to bytes and bytes to field; throws if bytes don't fit in one field
 function prefixToField<Field>(Field: GenericField<Field>, prefix: string) {
   if (prefix.length >= Field.sizeInBytes()) throw Error('prefix too long');
-  let bytes = [...prefix].map((char) => char.charCodeAt(0));
-  return Field.fromBytes(bytes);
+  return Field.fromBytes(stringToBytes(prefix));
 }
 
 function bitsToBytes([...bits]: boolean[]) {
@@ -147,4 +147,8 @@ function withBits<T>(
       return sizeInBits!;
     },
   };
+}
+
+function stringToBytes(s: string) {
+  return [...s].map((_, i) => s.charCodeAt(i));
 }

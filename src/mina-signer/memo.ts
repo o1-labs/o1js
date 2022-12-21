@@ -1,4 +1,4 @@
-import { Binable, withBits } from '../provable/binable.js';
+import { Binable, stringToBytes, withBits } from '../provable/binable.js';
 import { base58 } from '../provable/base58.js';
 import {
   HashInputLegacy,
@@ -29,7 +29,7 @@ const Binable: Binable<string> = {
     return 34;
   },
   toBytes(memo) {
-    return [...memo].map((_, i) => memo.charCodeAt(i));
+    return stringToBytes(memo);
   },
   fromBytes(bytes) {
     return String.fromCharCode(...bytes);

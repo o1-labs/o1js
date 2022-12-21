@@ -1,7 +1,7 @@
 import { GenericBool, GenericField, GenericHashInput } from './generic.js';
 import { createProvable } from './provable-generic.js';
 import * as Json from './gen/transaction-json.js';
-import { bytesToBits, prefixToField } from './binable.js';
+import { bytesToBits, prefixToField, stringToBytes } from './binable.js';
 import { fieldEncodings } from './base58.js';
 import { dataAsHash } from '../lib/events.js';
 import { HashHelpers } from '../lib/hash-generic.js';
@@ -141,7 +141,7 @@ function derivedLeafTypes<Field, Bool>({
 
   // Mina_base.Zkapp_account.hash_zkapp_uri_opt
   function hashZkappUri(uri: string) {
-    let bits = bytesToBits([...uri].map((char) => char.charCodeAt(0)));
+    let bits = bytesToBits(stringToBytes(uri));
     bits.push(true);
     let input: HashInput = { packed: bits.map((b) => [Field(Number(b)), 1]) };
     let packed = packToFields(input);
