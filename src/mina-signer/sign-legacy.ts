@@ -1,11 +1,11 @@
 import { UInt32, UInt64 } from '../provable/field-bigint.js';
 import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
-import { HashInputLegacy } from 'src/provable/poseidon-bigint.js';
+import { HashInputLegacy } from '../provable/poseidon-bigint.js';
 import { Memo } from './memo.js';
 import { NetworkId, Signature, signLegacy } from './signature.js';
 import { Json } from '../provable/gen/transaction-bigint.js';
 
-export { signPayment, signStakeDelegation };
+export { signPayment, signStakeDelegation, PaymentJson, DelegationJson };
 
 function signPayment(
   payment: PaymentJson,

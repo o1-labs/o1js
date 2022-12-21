@@ -1,5 +1,7 @@
+import { DelegationJson, PaymentJson } from '../sign-legacy.js';
+
 // inputs and generated signatures from client_sdk/tests/test_signatures.js
-export { signatures, payments, delegations, strings };
+export { signatures, payments, delegations, strings, keypair };
 
 let keypair = {
   privateKey: 'EKFKgDtU3rcuFTVSEpmpXSkukjmX4cKefYREi6Sdsk7E7wsT7KRw',
@@ -10,9 +12,9 @@ let receiver = 'B62qrcFstkpqXww1EkSGrqMCwCNho86kuqBd4FrAAUsPxNKdiPzAUsy';
 
 let newDelegate = 'B62qkfHpLpELqpMK6ZvUTJ5wRqKDRF3UHyJ4Kv3FU79Sgs4qpBnx5RR';
 
-let payments = [
+let payments: PaymentJson[] = [
   {
-    paymentPayload: { source: keypair.publicKey, receiver, amount: '42' },
+    body: { source: keypair.publicKey, receiver, amount: '42' },
     common: {
       fee: '3',
       feePayer: keypair.publicKey,
@@ -22,7 +24,7 @@ let payments = [
     },
   },
   {
-    paymentPayload: { source: keypair.publicKey, receiver, amount: '2048' },
+    body: { source: keypair.publicKey, receiver, amount: '2048' },
     common: {
       fee: '15',
       feePayer: keypair.publicKey,
@@ -32,7 +34,7 @@ let payments = [
     },
   },
   {
-    paymentPayload: { source: keypair.publicKey, receiver, amount: '109' },
+    body: { source: keypair.publicKey, receiver, amount: '109' },
     common: {
       fee: '2001',
       feePayer: keypair.publicKey,
@@ -43,9 +45,9 @@ let payments = [
   },
 ];
 
-let delegations = [
+let delegations: DelegationJson[] = [
   {
-    delegationPayload: { delegator: keypair.publicKey, newDelegate },
+    body: { delegator: keypair.publicKey, newDelegate },
     common: {
       fee: '3',
       feePayer: keypair.publicKey,
@@ -55,7 +57,7 @@ let delegations = [
     },
   },
   {
-    delegationPayload: { delegator: keypair.publicKey, newDelegate },
+    body: { delegator: keypair.publicKey, newDelegate },
     common: {
       fee: '10',
       feePayer: keypair.publicKey,
@@ -65,7 +67,7 @@ let delegations = [
     },
   },
   {
-    delegationPayload: { delegator: keypair.publicKey, newDelegate },
+    body: { delegator: keypair.publicKey, newDelegate },
     common: {
       fee: '8',
       feePayer: keypair.publicKey,
