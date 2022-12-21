@@ -17,7 +17,7 @@ testBigintRoundtrip(1309180n, fieldSize);
 testBigintRoundtrip(0x10000000n, 4);
 testBigintRoundtrip(0xffffffffn, 4);
 testBigintRoundtrip(0x10ff00ffffn, fieldSize);
-testBigintRoundtrip(Field.MODULUS, fieldSize);
+testBigintRoundtrip(Field.modulus, fieldSize);
 
 console.log('bigint unit tests are passing! 🎉');
 shutdown();

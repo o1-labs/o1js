@@ -1,5 +1,4 @@
 import { Field, sizeInBits } from './field-bigint.js';
-import { bitsToBytes } from './binable.js';
 import { Poseidon } from '../js_crypto/poseidon.js';
 import { prefixes } from '../js_crypto/constants.js';
 import { createHashInput } from './provable-generic.js';
@@ -15,6 +14,7 @@ export {
   hashWithPrefix,
   packToFieldsLegacy,
   HashInputLegacy,
+  inputToBitsLegacy,
 };
 
 type HashInput = GenericHashInput<Field>;
@@ -56,6 +56,10 @@ function packToFieldsLegacy({ fields, bits }: HashInputLegacy) {
     packedFields.push(field);
   }
   return fields.concat(packedFields);
+}
+function inputToBitsLegacy({ fields, bits }: HashInputLegacy) {
+  let fieldBits = fields.map(Field.toBits).flat();
+  return fieldBits.concat(bits);
 }
 
 type HashInputLegacy = { fields: Field[]; bits: boolean[] };

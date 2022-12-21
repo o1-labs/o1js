@@ -19,7 +19,6 @@ type Bool = 0n | 1n;
 type UInt32 = bigint;
 type UInt64 = bigint;
 
-const MODULUS = Fp.modulus;
 const sizeInBits = Fp.sizeInBits;
 
 type minusOne =
@@ -36,9 +35,9 @@ type ProvableExtended<T, J> = GenericProvableExtended<T, J, Field>;
  */
 const Field = pseudoClass(
   function Field(value: bigint | number | string): Field {
-    return BigInt(value) % MODULUS;
+    return BigInt(value) % Fp.modulus;
   },
-  { MODULUS, ...ProvableBigint(), ...BinableBigint(Fp.sizeInBits), ...Fp }
+  { ...ProvableBigint(), ...BinableBigint(Fp.sizeInBits), ...Fp }
 );
 
 const Bool = pseudoClass(
@@ -49,10 +48,7 @@ const Bool = pseudoClass(
     ...ProvableBigint<Bool>(),
     ...BinableBigint<Bool>(1),
     toInput(x: Bool): HashInput {
-      return {
-        fields: [],
-        packed: [[x, 1]],
-      };
+      return { fields: [], packed: [[x, 1]] };
     },
     toBoolean(x: Bool) {
       return !!x;
@@ -89,10 +85,7 @@ function Unsigned(bits: number) {
       ...ProvableBigint(),
       ...BinableBigint(bits),
       toInput(x: bigint): HashInput {
-        return {
-          fields: [],
-          packed: [[x, bits]],
-        };
+        return { fields: [], packed: [[x, bits]] };
       },
       maxValue,
     }
@@ -105,7 +98,7 @@ const Sign = pseudoClass(
   function Sign(value: 1 | -1): Sign {
     if (value !== 1 && value !== -1)
       throw Error('Sign: input must be 1 or -1.');
-    return (BigInt(value) % MODULUS) as Sign;
+    return (BigInt(value) % Fp.modulus) as Sign;
   },
   {
     ...ProvableBigint<Sign, 'Positive' | 'Negative'>(),
@@ -114,10 +107,7 @@ const Sign = pseudoClass(
       return 1n;
     },
     toInput(x: Sign): HashInput {
-      return {
-        fields: [],
-        packed: [[x === 1n ? 1n : 0n, 1]],
-      };
+      return { fields: [], packed: [[x === 1n ? 1n : 0n, 1]] };
     },
     fromFields([x]: Field[]): Sign {
       if (x === 0n) return 1n;

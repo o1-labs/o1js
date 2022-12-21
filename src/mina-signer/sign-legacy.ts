@@ -22,7 +22,16 @@ type Body = {
 
 type UserCommand = { common: Common; body: Body };
 
-function toInputLegacy(payload: UserCommand) {}
+function signUserCommand(command: UserCommand) {
+  let input = toInputLegacy(command);
+}
+
+function toInputLegacy({ common, body }: UserCommand) {
+  return HashInputLegacy.append(
+    commonToInputLegacy(common),
+    bodyToInputLegacy(body)
+  );
+}
 
 // Mina_base.Transaction_union_payload.Body.to_input_legacy
 function bodyToInputLegacy({ tag, source, receiver, amount }: Body) {

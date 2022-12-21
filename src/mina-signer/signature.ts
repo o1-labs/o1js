@@ -13,8 +13,16 @@ import {
   packToFields,
   prefixes,
   Poseidon,
+  HashInputLegacy,
+  packToFieldsLegacy,
+  inputToBitsLegacy,
 } from '../provable/poseidon-bigint.js';
-import { bitsToBytes, tuple, withVersionNumber } from '../provable/binable.js';
+import {
+  bitsToBytes,
+  bytesToBits,
+  tuple,
+  withVersionNumber,
+} from '../provable/binable.js';
 import { base58 } from '../provable/base58.js';
 import { versionBytes } from '../js_crypto/constants.js';
 import { Pallas } from '../js_crypto/elliptic_curve.js';
@@ -128,7 +136,7 @@ function deriveNonce(
   networkId: NetworkId
 ): Scalar {
   let { x, y } = publicKey;
-  let d = Field.fromBits(Scalar.toBits(privateKey));
+  let d = Field(privateKey);
   let id = networkId === 'mainnet' ? networkIdMainnet : networkIdTestnet;
   let input = HashInput.append(message, {
     fields: [x, y, d],
@@ -203,4 +211,51 @@ function verify(
   } catch {
     return false;
   }
+}
+
+// legacy signatures
+
+/**
+ * Same as {@link deriveNonce}, but using the "legacy" style of hash input packing.
+ */
+function deriveNonceLegacy(
+  message: HashInputLegacy,
+  publicKey: Group,
+  privateKey: Scalar,
+  networkId: NetworkId
+): Scalar {
+  let { x, y } = publicKey;
+  let scalarBits = Scalar.toBits(privateKey);
+  let id = networkId === 'mainnet' ? networkIdMainnet : networkIdTestnet;
+  let idBits = bytesToBits([Number(id)]);
+  let input = HashInputLegacy.append(message, {
+    fields: [x, y],
+    bits: [...scalarBits, ...idBits],
+  });
+  let inputBits = inputToBitsLegacy(input);
+  let inputBytes = bitsToBytes(inputBits);
+  let bytes = blake2b(Uint8Array.from(inputBytes), undefined, 32);
+  // drop the top two bits to convert into a scalar field element
+  // (creates negligible bias because q = 2^254 + eps, eps << q)
+  bytes[bytes.length - 1] &= 0x3f;
+  return Scalar.fromBytes([...bytes]);
+}
+
+/**
+ * Same as {@link hashMessage}, but using the "legacy" style of hash input packing.
+ */
+function hashMessageLegacy(
+  message: HashInputLegacy,
+  publicKey: Group,
+  r: Field,
+  networkId: NetworkId
+): Scalar {
+  let { x, y } = publicKey;
+  let input = HashInputLegacy.append(message, { fields: [x, y, r], bits: [] });
+  let prefix =
+    networkId === 'mainnet'
+      ? prefixes.signatureMainnet
+      : prefixes.signatureTestnet;
+  // TODO: need legacy hashing!!
+  return hashWithPrefix(prefix, packToFieldsLegacy(input));
 }
