@@ -59,7 +59,7 @@ let jsLayout = {
                 'balanceChange',
                 'incrementNonce',
                 'events',
-                'sequenceEvents',
+                'actions',
                 'callData',
                 'callDepth',
                 'preconditions',
@@ -281,7 +281,7 @@ let jsLayout = {
                   },
                   checkedTypeName: 'Events',
                 },
-                sequenceEvents: {
+                actions: {
                   type: 'array',
                   inner: {
                     type: 'array',
@@ -697,7 +697,7 @@ let jsLayout = {
                 balanceChange: null,
                 incrementNonce: null,
                 events: null,
-                sequenceEvents: null,
+                actions: null,
                 callData: null,
                 callDepth: null,
                 preconditions: null,
@@ -751,7 +751,7 @@ let jsLayout = {
           'balanceChange',
           'incrementNonce',
           'events',
-          'sequenceEvents',
+          'actions',
           'callData',
           'callDepth',
           'preconditions',
@@ -970,7 +970,7 @@ let jsLayout = {
             },
             checkedTypeName: 'Events',
           },
-          sequenceEvents: {
+          actions: {
             type: 'array',
             inner: {
               type: 'array',
@@ -1386,7 +1386,7 @@ let jsLayout = {
           balanceChange: null,
           incrementNonce: null,
           events: null,
-          sequenceEvents: null,
+          actions: null,
           callData: null,
           callDepth: null,
           preconditions: null,

@@ -934,6 +934,16 @@ function toConstant<T>(type: Provable<T>, value: T): T {
 }
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
+
+let oldAsProver = Circuit.asProver;
+Circuit.asProver = function (f: () => void) {
+  if (Circuit.inCheckedComputation()) {
+    oldAsProver(f);
+  } else {
+    f();
+  }
+};
+
 Circuit.witness = function <
   T,
   S extends FlexibleProvable<T> = FlexibleProvable<T>

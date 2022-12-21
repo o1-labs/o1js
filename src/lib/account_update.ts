@@ -357,12 +357,12 @@ interface Body extends AccountUpdateBody {
    */
   events: Events;
   /**
-   * Recent sequence events (also know as {@link Action}s) emitted from this account.
-   * Sequence events can be collected by archive nodes and used in combination with a {@link Reducer}.
+   * Recent {@link Action}s emitted from this account.
+   * Actions can be collected by archive nodes and used in combination with a {@link Reducer}.
    *
    * [Check out our documentation about Actions!](https://docs.minaprotocol.com/zkapps/advanced-snarkyjs/actions-and-reducer)
    */
-  sequenceEvents: Events;
+  actions: Events;
   caller: Field;
   callData: Field;
   callDepth: number;
@@ -1315,7 +1315,7 @@ class AccountUpdate implements Types.AccountUpdate {
     if (body.incrementNonce === false) delete body.incrementNonce;
     if (body.useFullCommitment === false) delete body.useFullCommitment;
     if (body.events?.length === 0) delete body.events;
-    if (body.sequenceEvents?.length === 0) delete body.sequenceEvents;
+    if (body.actions?.length === 0) delete body.actions;
     if (body.preconditions?.account) {
       body.preconditions.account = JSON.stringify(
         body.preconditions.account
@@ -1345,7 +1345,7 @@ class AccountUpdate implements Types.AccountUpdate {
         body.update[key] = JSON.stringify(body.update[key]) as any;
       }
     }
-    for (let key of ['events', 'sequenceEvents'] as const) {
+    for (let key of ['events', 'actions'] as const) {
       if (body[key]) {
         body[key] = JSON.stringify(body[key]) as any;
       }
