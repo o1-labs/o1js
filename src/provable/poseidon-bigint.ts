@@ -54,7 +54,7 @@ function packToFields({ fields = [], packed = [] }: HashInput) {
 function packToFieldsLegacy({ fields, bits }: HashInputLegacy) {
   let packedFields = [];
   while (bits.length > 0) {
-    let fieldBits = bits.splice(0, sizeInBits);
+    let fieldBits = bits.splice(0, sizeInBits - 1);
     let field = Field.fromBits(fieldBits);
     packedFields.push(field);
   }

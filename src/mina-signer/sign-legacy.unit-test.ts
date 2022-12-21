@@ -19,10 +19,6 @@ for (let network of networks) {
     let signatureBase58 = signPayment(payment, privateKey, network);
     let signature = Signature.fromBase58(signatureBase58);
     let ref = reference[i++];
-    console.log({
-      signature,
-      ref,
-    });
     expect(signature.r).toEqual(BigInt(ref.field));
     expect(signature.s).toEqual(BigInt(ref.scalar));
   }
@@ -37,3 +33,5 @@ for (let network of networks) {
 
   // TODO strings
 }
+
+console.log('legacy signatures match the test vectors! 🎉');
