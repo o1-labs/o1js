@@ -42,3 +42,4 @@ for (let network of networks) {
 }
 
 console.log('legacy signatures match the test vectors! 🎉');
+process.exit(0);
