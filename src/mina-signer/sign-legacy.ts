@@ -3,27 +3,26 @@ import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
 import { HashInputLegacy } from 'src/provable/poseidon-bigint.js';
 import { Memo } from './memo.js';
 import { NetworkId, Signature, signLegacy } from './signature.js';
+import { Json } from '../provable/gen/transaction-bigint.js';
 
-export { signUserCommand };
+export { signPayment, signStakeDelegation };
 
-type Tag = 'Payment' | 'StakeDelegation';
-
-type Common = {
-  fee: UInt64;
-  feePayer: PublicKey;
-  nonce: UInt32;
-  validUntil: UInt32;
-  memo: string;
-};
-
-type Body = {
-  tag: Tag;
-  source: PublicKey;
-  receiver: PublicKey;
-  amount: UInt64;
-};
-
-type UserCommand = { common: Common; body: Body };
+function signPayment(
+  payment: PaymentJson,
+  privateKeyBase58: string,
+  networkId: NetworkId
+) {
+  let command = paymentFromJson(payment);
+  return signUserCommand(command, privateKeyBase58, networkId);
+}
+function signStakeDelegation(
+  delegation: DelegationJson,
+  privateKeyBase58: string,
+  networkId: NetworkId
+) {
+  let command = delegationFromJson(delegation);
+  return signUserCommand(command, privateKeyBase58, networkId);
+}
 
 function signUserCommand(
   command: UserCommand,
@@ -44,7 +43,12 @@ function toInputLegacy({ common, body }: UserCommand) {
 }
 
 // Mina_base.Transaction_union_payload.Body.to_input_legacy
-function bodyToInputLegacy({ tag, source, receiver, amount }: Body) {
+function bodyToInputLegacy({
+  tag,
+  source,
+  receiver,
+  amount,
+}: UserCommand['body']) {
   return [
     tagToInput(tag),
     PublicKey.toInputLegacy(source),
@@ -62,7 +66,7 @@ function commonToInputLegacy({
   nonce,
   validUntil,
   memo,
-}: Common) {
+}: UserCommand['common']) {
   return [
     HashInputLegacy.bits(UInt64.toBits(fee)),
     HashInputLegacy.bits(legacyTokenId),
@@ -79,3 +83,88 @@ function tagToInput(tag: Tag) {
   return HashInputLegacy.bits(bits);
 }
 const legacyTokenId = [true, ...Array<boolean>(63).fill(false)];
+
+function paymentFromJson({
+  common,
+  body: { source, receiver, amount },
+}: PaymentJson): UserCommand {
+  return {
+    common: commonFromJson(common),
+    body: {
+      tag: 'Payment',
+      source: PublicKey.fromJSON(source),
+      receiver: PublicKey.fromJSON(receiver),
+      amount: UInt64.fromJSON(amount),
+    },
+  };
+}
+
+function delegationFromJson({
+  common,
+  body: { delegator, newDelegate },
+}: DelegationJson): UserCommand {
+  return {
+    common: commonFromJson(common),
+    body: {
+      tag: 'StakeDelegation',
+      source: PublicKey.fromJSON(delegator),
+      receiver: PublicKey.fromJSON(newDelegate),
+      amount: UInt64(0),
+    },
+  };
+}
+
+function commonFromJson(c: CommonJson) {
+  return {
+    fee: UInt64.fromJSON(c.fee),
+    feePayer: PublicKey.fromJSON(c.feePayer),
+    nonce: UInt32.fromJSON(c.nonce),
+    validUntil: UInt32.fromJSON(c.validUntil),
+    memo: Memo.fromString(c.memo),
+  };
+}
+
+// types
+
+type Tag = 'Payment' | 'StakeDelegation';
+
+type UserCommand = {
+  common: {
+    fee: UInt64;
+    feePayer: PublicKey;
+    nonce: UInt32;
+    validUntil: UInt32;
+    memo: string;
+  };
+  body: {
+    tag: Tag;
+    source: PublicKey;
+    receiver: PublicKey;
+    amount: UInt64;
+  };
+};
+
+type CommonJson = {
+  fee: Json.UInt64;
+  feePayer: Json.PublicKey;
+  nonce: Json.UInt32;
+  validUntil: Json.UInt32;
+  memo: string;
+};
+
+type PaymentJson = {
+  common: CommonJson;
+  body: {
+    source: Json.PublicKey;
+    receiver: Json.PublicKey;
+    amount: Json.UInt64;
+  };
+};
+
+type DelegationJson = {
+  common: CommonJson;
+  body: {
+    delegator: Json.PublicKey;
+    newDelegate: Json.PublicKey;
+  };
+};
