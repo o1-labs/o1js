@@ -2,7 +2,7 @@ import { UInt32, UInt64 } from '../provable/field-bigint.js';
 import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
 import { HashInputLegacy } from '../provable/poseidon-bigint.js';
 import { Memo } from './memo.js';
-import { NetworkId, Signature, signLegacy } from './signature.js';
+import { NetworkId, Signature, signLegacy, verifyLegacy } from './signature.js';
 import { Json } from '../provable/gen/transaction-bigint.js';
 import { bytesToBits, stringToBytes } from '../provable/binable.js';
 
@@ -10,6 +10,9 @@ export {
   signPayment,
   signStakeDelegation,
   signString,
+  verifyPayment,
+  verifyStakeDelegation,
+  verifyStringSignature,
   PaymentJson,
   DelegationJson,
 };
@@ -40,6 +43,45 @@ function signUserCommand(
   let privateKey = PrivateKey.fromBase58(privateKeyBase58);
   let signature = signLegacy(input, privateKey, networkId);
   return Signature.toBase58(signature);
+}
+
+function verifyPayment(
+  payment: PaymentJson,
+  signatureBase58: string,
+  publicKeyBase58: string,
+  networkId: NetworkId
+) {
+  return verifyUserCommand(
+    paymentFromJson(payment),
+    signatureBase58,
+    publicKeyBase58,
+    networkId
+  );
+}
+function verifyStakeDelegation(
+  delegation: DelegationJson,
+  signatureBase58: string,
+  publicKeyBase58: string,
+  networkId: NetworkId
+) {
+  return verifyUserCommand(
+    delegationFromJson(delegation),
+    signatureBase58,
+    publicKeyBase58,
+    networkId
+  );
+}
+
+function verifyUserCommand(
+  command: UserCommand,
+  signatureBase58: string,
+  publicKeyBase58: string,
+  networkId: NetworkId
+) {
+  let input = toInputLegacy(command);
+  let signature = Signature.fromBase58(signatureBase58);
+  let publicKey = PublicKey.fromBase58(publicKeyBase58);
+  return verifyLegacy(signature, input, publicKey, networkId);
 }
 
 function toInputLegacy({ common, body }: UserCommand) {
@@ -136,13 +178,28 @@ function signString(
   privateKeyBase58: string,
   networkId: NetworkId
 ) {
-  let bits = stringToBytes(string)
-    .map((byte) => bytesToBits([byte]).reverse())
-    .flat();
-  let input = HashInputLegacy.bits(bits);
+  let input = stringToInput(string);
   let privateKey = PrivateKey.fromBase58(privateKeyBase58);
   let signature = signLegacy(input, privateKey, networkId);
   return Signature.toBase58(signature);
+}
+function verifyStringSignature(
+  string: string,
+  signatureBase58: string,
+  publicKeyBase58: string,
+  networkId: NetworkId
+) {
+  let input = stringToInput(string);
+  let signature = Signature.fromBase58(signatureBase58);
+  let publicKey = PublicKey.fromBase58(publicKeyBase58);
+  return verifyLegacy(signature, input, publicKey, networkId);
+}
+
+function stringToInput(string: string) {
+  let bits = stringToBytes(string)
+    .map((byte) => bytesToBits([byte]).reverse())
+    .flat();
+  return HashInputLegacy.bits(bits);
 }
 
 // types

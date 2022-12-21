@@ -5,11 +5,18 @@ import {
   keypair,
   signatures,
 } from './test-vectors/legacySignatures.js';
-import { signPayment, signStakeDelegation, signString } from './sign-legacy.js';
+import {
+  signPayment,
+  signStakeDelegation,
+  signString,
+  verifyPayment,
+  verifyStakeDelegation,
+  verifyStringSignature,
+} from './sign-legacy.js';
 import { NetworkId, Signature } from './signature.js';
 import { expect } from 'expect';
 
-let { privateKey } = keypair;
+let { privateKey, publicKey } = keypair;
 let networks: NetworkId[] = ['testnet', 'mainnet'];
 
 for (let network of networks) {
@@ -22,6 +29,8 @@ for (let network of networks) {
     let ref = reference[i++];
     expect(signature.r).toEqual(BigInt(ref.field));
     expect(signature.s).toEqual(BigInt(ref.scalar));
+    let ok = verifyPayment(payment, signatureBase58, publicKey, network);
+    expect(ok).toEqual(true);
   }
 
   for (let delegation of delegations) {
@@ -30,6 +39,13 @@ for (let network of networks) {
     let ref = reference[i++];
     expect(signature.r).toEqual(BigInt(ref.field));
     expect(signature.s).toEqual(BigInt(ref.scalar));
+    let ok = verifyStakeDelegation(
+      delegation,
+      signatureBase58,
+      publicKey,
+      network
+    );
+    expect(ok).toEqual(true);
   }
 
   for (let string of strings) {
@@ -38,8 +54,12 @@ for (let network of networks) {
     let ref = reference[i++];
     expect(signature.r).toEqual(BigInt(ref.field));
     expect(signature.s).toEqual(BigInt(ref.scalar));
+    let ok = verifyStringSignature(string, signatureBase58, publicKey, network);
+    expect(ok).toEqual(true);
   }
 }
 
-console.log('legacy signatures match the test vectors! 🎉');
+console.log(
+  'legacy signatures match the test vectors and successfully verify! 🎉'
+);
 process.exit(0);
