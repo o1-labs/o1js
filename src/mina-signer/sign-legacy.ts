@@ -4,8 +4,15 @@ import { HashInputLegacy } from '../provable/poseidon-bigint.js';
 import { Memo } from './memo.js';
 import { NetworkId, Signature, signLegacy } from './signature.js';
 import { Json } from '../provable/gen/transaction-bigint.js';
+import { bytesToBits, stringToBytes } from '../provable/binable.js';
 
-export { signPayment, signStakeDelegation, PaymentJson, DelegationJson };
+export {
+  signPayment,
+  signStakeDelegation,
+  signString,
+  PaymentJson,
+  DelegationJson,
+};
 
 function signPayment(
   payment: PaymentJson,
@@ -122,6 +129,20 @@ function commonFromJson(c: CommonJson) {
     validUntil: UInt32.fromJSON(c.validUntil),
     memo: Memo.fromString(c.memo),
   };
+}
+
+function signString(
+  string: string,
+  privateKeyBase58: string,
+  networkId: NetworkId
+) {
+  let bits = stringToBytes(string)
+    .map((byte) => bytesToBits([byte]).reverse())
+    .flat();
+  let input = HashInputLegacy.bits(bits);
+  let privateKey = PrivateKey.fromBase58(privateKeyBase58);
+  let signature = signLegacy(input, privateKey, networkId);
+  return Signature.toBase58(signature);
 }
 
 // types

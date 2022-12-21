@@ -1,10 +1,11 @@
 import {
   payments,
   delegations,
+  strings,
   keypair,
   signatures,
 } from './test-vectors/legacySignatures.js';
-import { signPayment, signStakeDelegation } from './sign-legacy.js';
+import { signPayment, signStakeDelegation, signString } from './sign-legacy.js';
 import { NetworkId, Signature } from './signature.js';
 import { expect } from 'expect';
 
@@ -31,7 +32,13 @@ for (let network of networks) {
     expect(signature.s).toEqual(BigInt(ref.scalar));
   }
 
-  // TODO strings
+  for (let string of strings) {
+    let signatureBase58 = signString(string, privateKey, network);
+    let signature = Signature.fromBase58(signatureBase58);
+    let ref = reference[i++];
+    expect(signature.r).toEqual(BigInt(ref.field));
+    expect(signature.s).toEqual(BigInt(ref.scalar));
+  }
 }
 
 console.log('legacy signatures match the test vectors! 🎉');
