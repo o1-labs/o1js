@@ -13,10 +13,12 @@ function derivedLeafTypes<Field, Bool>({
   Field,
   Bool,
   Hash,
+  packToFields,
 }: {
   Field: GenericField<Field>;
   Bool: GenericBool<Field, Bool>;
   Hash: HashHelpers<Field>;
+  packToFields: (input: GenericHashInput<Field>) => Field[];
 }) {
   let provable = createProvable<Field>();
   const Encoding = fieldEncodings<Field>(Field);
@@ -142,7 +144,7 @@ function derivedLeafTypes<Field, Bool>({
     let bits = bytesToBits([...uri].map((char) => char.charCodeAt(0)));
     bits.push(true);
     let input: HashInput = { packed: bits.map((b) => [Field(Number(b)), 1]) };
-    let packed = Hash.packToFields(input);
+    let packed = packToFields(input);
     return Hash.hashWithPrefix(prefixes.zkappUri, packed);
   }
 

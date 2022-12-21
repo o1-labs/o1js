@@ -20,9 +20,8 @@ export {
 
 type HashInput = GenericHashInput<Field>;
 const HashInput = createHashInput<Field>();
-const HashHelpers = createHashHelpers(Field, Poseidon);
-let { hashWithPrefix } = HashHelpers;
-const Hash = { ...HashHelpers, packToFields };
+const Hash = createHashHelpers(Field, Poseidon);
+let { hashWithPrefix } = Hash;
 
 const HashLegacy = createHashHelpers(Field, PoseidonLegacy);
 
