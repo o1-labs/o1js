@@ -172,7 +172,10 @@ type FlexibleAccount = {
   tokenId?: string;
   tokenSymbol?: string;
   balance?: UInt64 | string | number;
-  zkapp?: { appState: (Field | string | number)[] };
+  zkapp?: {
+    appState: (Field | string | number)[];
+    verificationKey?: { data: string; hash: string };
+  };
 };
 
 // TODO provedState
@@ -269,6 +272,10 @@ function stringifyAccount(account: FlexibleAccount): FetchedAccount {
     balance: { total: balance?.toString() ?? '0' },
     token: tokenId ?? TokenId.toBase58(TokenId.default),
     tokenSymbol: tokenSymbol ?? '',
+    verificationKey: zkapp?.verificationKey && {
+      verificationKey: zkapp?.verificationKey.data,
+      hash: zkapp?.verificationKey.hash,
+    },
   };
 }
 
@@ -371,6 +378,7 @@ function addCachedAccount(
     balance?: string | number | UInt64;
     zkapp?: {
       appState: (string | number | Field)[];
+      verificationKey?: { data: string; hash: string };
     };
     tokenId: string;
   },
