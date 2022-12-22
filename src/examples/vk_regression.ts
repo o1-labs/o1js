@@ -1,10 +1,9 @@
 import fs from 'fs';
-import { isReady, shutdown, SmartContract, VerificationKey } from 'snarkyjs';
+import { isReady, shutdown, SmartContract } from 'snarkyjs';
 import { Voting_ } from './zkapps/voting/voting.js';
 import { Membership_ } from './zkapps/voting/membership.js';
 import { HelloWorld } from './zkapps/hello_world/hello_world.js';
 import { TokenContract, createDex } from './zkapps/dex/dex.js';
-import { emptyWitness } from 'dist/node/lib/proof_system.js';
 
 await isReady;
 
