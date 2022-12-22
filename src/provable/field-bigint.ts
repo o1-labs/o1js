@@ -194,6 +194,10 @@ function bytesToBigInt(bytes: Uint8Array | number[]) {
   return x;
 }
 
+/**
+ * Transforms bigint to little-endian array of bytes (numbers between 0 and 255) of a given length.
+ * Throws an error if the bigint doesn't fit in the given number of bytes.
+ */
 function bigIntToBytes(x: bigint, length: number) {
   if (x < 0n) {
     throw Error(`bigIntToBytes: negative numbers are not supported, got ${x}`);
@@ -201,6 +205,9 @@ function bigIntToBytes(x: bigint, length: number) {
   let bytes: number[] = Array(length);
   for (let i = 0; i < length; i++, x >>= 8n) {
     bytes[i] = Number(x & 0xffn);
+  }
+  if (x > 0n) {
+    throw Error(`bigIntToBytes: input does not fit in ${length} bytes`);
   }
   return bytes;
 }
