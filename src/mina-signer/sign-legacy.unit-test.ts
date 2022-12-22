@@ -84,16 +84,16 @@ let signature = Signature.toBase58({ r: Field.random(), s: Scalar.random() });
 expect(() => signPayment(amountTooLarge, privateKey, 'mainnet')).toThrow(
   `inputs larger than ${2n ** 64n - 1n} are not allowed`
 );
-expect(() =>
-  verifyPayment(amountTooLarge, signature, publicKey, 'mainnet')
-).toThrow(`inputs larger than ${2n ** 64n - 1n} are not allowed`);
+expect(verifyPayment(amountTooLarge, signature, publicKey, 'mainnet')).toEqual(
+  false
+);
 
 expect(() => signPayment(invalidPublicKey, privateKey, 'mainnet')).toThrow(
   'not a valid group element'
 );
-expect(() =>
+expect(
   verifyPayment(invalidPublicKey, signature, publicKey, 'mainnet')
-).toThrow('not a valid group element');
+).toEqual(false);
 
 // negative tests with invalid signatures
 
@@ -107,15 +107,15 @@ let signatureScalarTooLarge = Signature.toBase58({
   s: Scalar.modulus,
 });
 
-expect(() =>
+expect(
   verifyPayment(validPayment, garbageSignature, publicKey, 'mainnet')
-).toThrow('Invalid_base58_checksum');
-expect(() =>
+).toEqual(false);
+expect(
   verifyPayment(validPayment, signatureFieldTooLarge, publicKey, 'mainnet')
-).toThrow(`inputs larger than ${Field.modulus - 1n} are not allowed`);
-expect(() =>
+).toEqual(false);
+expect(
   verifyPayment(validPayment, signatureScalarTooLarge, publicKey, 'mainnet')
-).toThrow(`inputs larger than ${Scalar.modulus - 1n} are not allowed`);
+).toEqual(false);
 
 console.log(
   'legacy signatures match the test vectors and successfully verify! 🎉'

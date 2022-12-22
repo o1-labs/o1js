@@ -51,12 +51,16 @@ function verifyPayment(
   publicKeyBase58: string,
   networkId: NetworkId
 ) {
-  return verifyUserCommand(
-    paymentFromJson(payment),
-    signatureBase58,
-    publicKeyBase58,
-    networkId
-  );
+  try {
+    return verifyUserCommand(
+      paymentFromJson(payment),
+      signatureBase58,
+      publicKeyBase58,
+      networkId
+    );
+  } catch {
+    return false;
+  }
 }
 function verifyStakeDelegation(
   delegation: DelegationJson,
@@ -64,12 +68,16 @@ function verifyStakeDelegation(
   publicKeyBase58: string,
   networkId: NetworkId
 ) {
-  return verifyUserCommand(
-    delegationFromJson(delegation),
-    signatureBase58,
-    publicKeyBase58,
-    networkId
-  );
+  try {
+    return verifyUserCommand(
+      delegationFromJson(delegation),
+      signatureBase58,
+      publicKeyBase58,
+      networkId
+    );
+  } catch {
+    return false;
+  }
 }
 
 function verifyUserCommand(
@@ -189,10 +197,14 @@ function verifyStringSignature(
   publicKeyBase58: string,
   networkId: NetworkId
 ) {
-  let input = stringToInput(string);
-  let signature = Signature.fromBase58(signatureBase58);
-  let publicKey = PublicKey.fromBase58(publicKeyBase58);
-  return verifyLegacy(signature, input, publicKey, networkId);
+  try {
+    let input = stringToInput(string);
+    let signature = Signature.fromBase58(signatureBase58);
+    let publicKey = PublicKey.fromBase58(publicKeyBase58);
+    return verifyLegacy(signature, input, publicKey, networkId);
+  } catch {
+    return false;
+  }
 }
 
 function stringToInput(string: string) {
