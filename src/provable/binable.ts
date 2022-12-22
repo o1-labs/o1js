@@ -9,6 +9,7 @@ export {
   bytesToBits,
   bitsToBytes,
   withBits,
+  withCheck,
   BinableWithBits,
   stringToBytes,
 };
@@ -41,6 +42,21 @@ function withVersionNumber<T>(
     sizeInBytes() {
       let size = binable.sizeInBytes();
       return versionNumber !== undefined ? size + 1 : size;
+    },
+  };
+}
+
+function withCheck<T>(
+  { toBytes, fromBytes, sizeInBytes }: Binable<T>,
+  check: (t: T) => void
+): Binable<T> {
+  return {
+    sizeInBytes,
+    toBytes,
+    fromBytes(bytes) {
+      let x = fromBytes(bytes);
+      check(x);
+      return x;
     },
   };
 }
