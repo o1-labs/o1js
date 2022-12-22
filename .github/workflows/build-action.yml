@@ -24,6 +24,7 @@ jobs:
             'Voting integration tests',
             'Berkeley Live',
             'Unit tests',
+            'Verification Key Regression Check',
           ]
     steps:
       - name: Checkout Repository
