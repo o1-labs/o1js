@@ -15,6 +15,8 @@ export {
   verifyStringSignature,
   PaymentJson,
   DelegationJson,
+  Tag,
+  UserCommand,
 };
 
 function signPayment(
