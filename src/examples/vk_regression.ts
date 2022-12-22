@@ -21,7 +21,6 @@ const Contracts: typeof SmartContract[] = [
 ];
 
 let filePath = jsonPath ? jsonPath : './src/examples/regression_test.json';
-let exists = false;
 let RegressionJson: {
   [contractName: string]: {
     verificationKey: {
@@ -33,11 +32,10 @@ let RegressionJson: {
 
 try {
   RegressionJson = JSON.parse(fs.readFileSync(filePath).toString());
-  exists = true;
 } catch (error) {
   if (!dump) {
     throw Error(
-      `The requested file ${filePath} does not yet exist, try dumping the verification keys fist. ./run ./src/examples/vk_regression.ts [--bundle] --dump `
+      `The requested file ${filePath} does not yet exist, try dumping the verification keys first. ./run ./src/examples/vk_regression.ts [--bundle] --dump `
     );
   }
 }
