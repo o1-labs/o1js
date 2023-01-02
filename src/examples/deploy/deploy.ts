@@ -1,4 +1,4 @@
-import { isReady, PrivateKey, deploy, shutdown } from 'snarkyjs';
+import { isReady, PrivateKey, deploy, shutdown, Mina } from 'snarkyjs';
 import SimpleZkapp from './simple_zkapp.js';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -17,7 +17,10 @@ if (artifact === undefined)
 let { verificationKey } = artifact;
 
 // produce and log the transaction json; the fee payer is a dummy which has to be added later, by the signing logic
-let transactionJson = await deploy(SimpleZkapp, { zkappKey, verificationKey });
+let tx = await Mina.transaction(() => {
+  new SimpleZkapp(zkappAddress).deploy({ verificationKey });
+});
+let transactionJson = tx.sign([zkappKey]).toJSON();
 
 console.log(transactionJson);
 
