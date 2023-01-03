@@ -1,4 +1,9 @@
-import { Binable, stringToBytes, withBits } from '../provable/binable.js';
+import {
+  Binable,
+  defineBinable,
+  stringToBytes,
+  withBits,
+} from '../provable/binable.js';
 import { base58 } from '../provable/base58.js';
 import {
   HashInputLegacy,
@@ -24,21 +29,24 @@ function hash(memo: string) {
   return hashWithPrefix(prefixes.zkappMemo, fields);
 }
 
-const Binable: Binable<string> = {
-  sizeInBytes() {
-    return 34;
-  },
+const SIZE = 34;
+const Binable: Binable<string> = defineBinable({
   toBytes(memo) {
     return stringToBytes(memo);
   },
-  fromBytes(bytes) {
-    return String.fromCharCode(...bytes);
+  fromBytesInternal(bytes, start) {
+    let end = start + SIZE;
+    let memo = String.fromCharCode(...bytes.slice(start, end));
+    return [memo, end];
   },
-};
+});
 
 const Memo = {
   fromString,
   hash,
-  ...withBits(Binable),
+  ...withBits(Binable, SIZE * 8),
   ...base58(Binable, versionBytes.userCommandMemo),
+  sizeInBytes() {
+    return SIZE;
+  },
 };
