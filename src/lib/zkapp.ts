@@ -70,7 +70,6 @@ import * as Encoding from './encoding.js';
 export {
   SmartContract,
   method,
-  deploy,
   DeployArgs,
   signFeePayer,
   declareMethods,
@@ -1372,85 +1371,12 @@ type DeployArgs =
     }
   | undefined;
 
-// functions designed to be called from a CLI
-// TODO: this function is currently not used by the zkapp CLI, because it doesn't handle nonces properly in all cases
-async function deploy<S extends typeof SmartContract>(
-  SmartContract: S,
-  {
-    zkappKey,
-    verificationKey,
-    initialBalance,
-    feePayer,
-    tokenId = TokenId.default,
-  }: {
-    zkappKey: PrivateKey;
-    verificationKey: { data: string; hash: string | Field };
-    initialBalance?: number | string;
-    feePayer?: Mina.FeePayerSpec;
-    tokenId?: Field;
-  }
-) {
-  let address = zkappKey.toPublicKey();
-  let feePayerAddress =
-    feePayer instanceof PublicKey ? feePayer : feePayer?.sender;
-  let tx = await Mina.transaction(feePayer, () => {
-    if (initialBalance !== undefined) {
-      if (feePayerAddress === undefined)
-        throw Error(
-          `When using the optional initialBalance argument, you need to also supply the fee payer's public key as part of the \`feePayer\` argument, to sign the initial balance funding.`
-        );
-      // optional first accountUpdate: the sender/fee payer who also funds the zkapp
-      let amount = UInt64.from(String(initialBalance)).add(
-        Mina.accountCreationFee()
-      );
-      let accountUpdate = AccountUpdate.createSigned(feePayerAddress);
-      accountUpdate.balance.subInPlace(amount);
-    }
-    // main accountUpdate: the zkapp account
-    let zkapp = new SmartContract(address, tokenId);
-    zkapp.deploy({ verificationKey, zkappKey });
-    // TODO: add send / receive methods on SmartContract which create separate account updates
-    // no need to bundle receive in the same accountUpdate as deploy
-    if (initialBalance !== undefined) {
-      let amount = UInt64.from(String(initialBalance));
-      zkapp.self.balance.addInPlace(amount);
-    }
-  });
-  return tx.sign().toJSON();
-}
-
 function Account(address: PublicKey, tokenId?: Field) {
   if (smartContractContext.has()) {
     return AccountUpdate.create(address, tokenId).account;
   } else {
     return AccountUpdate.defaultAccountUpdate(address, tokenId).account;
   }
-}
-
-function addFeePayer(
-  { feePayer, accountUpdates, memo }: ZkappCommand,
-  feePayerKey: PrivateKey | string,
-  {
-    transactionFee = 0 as number | string,
-    feePayerNonce = undefined as number | string | undefined,
-    memo: feePayerMemo = undefined as string | undefined,
-  }
-) {
-  feePayer = cloneCircuitValue(feePayer);
-  if (typeof feePayerKey === 'string')
-    feePayerKey = PrivateKey.fromBase58(feePayerKey);
-  let senderAddress = feePayerKey.toPublicKey();
-  if (feePayerNonce === undefined) {
-    let senderAccount = Mina.getAccount(senderAddress, TokenId.default);
-    feePayerNonce = senderAccount.nonce.toString();
-  }
-  let newMemo = memo;
-  if (feePayerMemo) newMemo = Ledger.memoToBase58(feePayerMemo);
-  feePayer.body.nonce = UInt32.from(`${feePayerNonce}`);
-  feePayer.body.publicKey = senderAddress;
-  feePayer.body.fee = UInt64.from(`${transactionFee}`);
-  AccountUpdate.signFeePayerInPlace(feePayer, feePayerKey);
-  return { feePayer, accountUpdates, memo: newMemo };
 }
 
 function signFeePayer(

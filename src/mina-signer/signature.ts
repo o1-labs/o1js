@@ -245,12 +245,12 @@ function verifyLegacy(
   publicKey: PublicKey,
   networkId: NetworkId
 ) {
-  let { r, s } = signature;
-  let pk = PublicKey.toGroup(publicKey);
-  let e = hashMessageLegacy(message, pk, r, networkId);
-  let { scale, one, sub } = Pallas;
-  let R = sub(scale(one, s), scale(Group.toProjective(pk), e));
   try {
+    let { r, s } = signature;
+    let pk = PublicKey.toGroup(publicKey);
+    let e = hashMessageLegacy(message, pk, r, networkId);
+    let { scale, one, sub } = Pallas;
+    let R = sub(scale(one, s), scale(Group.toProjective(pk), e));
     // if `R` is infinity, Group.fromProjective throws an error, so `verify` returns false
     let { x: rx, y: ry } = Group.fromProjective(R);
     return Field.isEven(ry) && Field.equal(rx, r);
