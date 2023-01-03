@@ -21,9 +21,8 @@ type Binable<T> = {
   fromBytesInternal(
     bytes: number[],
     offset: number
-  ): { value: T; offset: number };
+  ): [value: T, offset: number];
   fromBytes(bytes: number[]): T;
-  // sizeInBytes?: number;
 };
 type BinableWithBits<T> = Binable<T> & {
   toBits(t: T): boolean[];
@@ -40,14 +39,14 @@ function defineBinable<T>({
   fromBytesInternal(
     bytes: number[],
     offset: number
-  ): { value: T; offset: number };
+  ): [value: T, offset: number];
 }): Binable<T> {
   return {
     toBytes,
     fromBytesInternal,
     // spec: fromBytes throws if the input bytes are not all used
     fromBytes(bytes) {
-      let { value, offset } = fromBytesInternal(bytes, 0);
+      let [value, offset] = fromBytesInternal(bytes, 0);
       if (offset < bytes.length)
         throw Error('fromBytes: input bytes left over');
       return value;
@@ -79,9 +78,9 @@ function withCheck<T>(
   return defineBinable({
     toBytes,
     fromBytesInternal(bytes, start) {
-      let x = fromBytesInternal(bytes, start);
-      check(x.value);
-      return x;
+      let [value, end] = fromBytesInternal(bytes, start);
+      check(value);
+      return [value, end];
     },
   });
 }
@@ -101,12 +100,12 @@ function record<Types extends Record<string, any>>(
       let array = keys.map((key) => t[key]) as Tuple<any>;
       return tupleBinable.toBytes(array);
     },
-    fromBytesInternal(bytes, offset) {
-      let result = tupleBinable.fromBytesInternal(bytes, offset);
+    fromBytesInternal(bytes, start) {
+      let [tupleValue, end] = tupleBinable.fromBytesInternal(bytes, start);
       let value = Object.fromEntries(
-        keys.map((key, i) => [key, result.value[i]])
+        keys.map((key, i) => [key, tupleValue[i]])
       ) as any;
-      return { value, offset: result.offset };
+      return [value, end];
     },
   });
 }
@@ -127,11 +126,11 @@ function tuple<Types extends Tuple<any>>(binables: {
     fromBytesInternal(bytes, offset) {
       let values = [];
       for (let i = 0; i < n; i++) {
-        let result = binables[i].fromBytesInternal(bytes, offset);
-        ({ offset } = result);
-        values.push(result.value);
+        let [value, newOffset] = binables[i].fromBytesInternal(bytes, offset);
+        offset = newOffset;
+        values.push(value);
       }
-      return { value: values as Types, offset };
+      return [values as Types, offset];
     },
   });
 }
@@ -166,11 +165,10 @@ function enumWithArgument<Enum_ extends Tuple<AnyEnum>>(types: {
       offset++;
       let type = types[i];
       if ('value' in type) {
-        let value;
-        ({ value, offset } = type.value.fromBytesInternal(bytes, offset));
-        return { value: { type: type.type, value }, offset };
+        let [value, end] = type.value.fromBytesInternal(bytes, offset);
+        return [{ type: type.type, value }, end];
       }
-      return { value: { type: type.type }, offset };
+      return [{ type: type.type }, offset];
     },
   });
 }
