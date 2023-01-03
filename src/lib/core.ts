@@ -21,7 +21,8 @@ const FieldBinable = defineBinable({
     return [...(t.toConstant() as any as InternalConstantField).value[1]];
   },
   fromBytesInternal(bytes, offset) {
-    let uint8array = Uint8Array.from(bytes.slice(offset, offset + 32));
+    let uint8array = new Uint8Array(32);
+    uint8array.set(bytes.slice(offset, offset + 32));
     return [
       Object.assign(Object.create(Field(1).constructor.prototype), {
         value: [0, uint8array],
