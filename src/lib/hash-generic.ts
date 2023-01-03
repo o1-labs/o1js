@@ -1,4 +1,4 @@
-import { GenericField, GenericHashInput } from '../provable/generic.js';
+import { GenericField } from '../provable/generic.js';
 import { prefixToField } from '../provable/binable.js';
 
 export { createHashHelpers, HashHelpers };
@@ -12,8 +12,7 @@ type HashHelpers<Field> = ReturnType<typeof createHashHelpers<Field>>
 
 function createHashHelpers<Field>(
   Field: GenericField<Field>,
-  Hash: Hash<Field>,
-  packToFields: (input: GenericHashInput<Field>) => Field[]
+  Hash: Hash<Field>
 ) {
   function salt(prefix: string) {
     return Hash.update(Hash.initialState(), [prefixToField(Field, prefix)]);
@@ -25,14 +24,5 @@ function createHashHelpers<Field>(
     let init = salt(prefix);
     return Hash.update(init, input)[0];
   }
-  return {
-    salt,
-    emptyHashWithPrefix,
-    hashWithPrefix,
-    /**
-     * Convert the {fields, packed} hash input representation to a list of field elements
-     * Random_oracle_input.Chunked.pack_to_fields
-     */
-    packToFields,
-  };
+  return { salt, emptyHashWithPrefix, hashWithPrefix };
 }

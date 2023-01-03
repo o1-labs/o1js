@@ -13,8 +13,17 @@ import {
   packToFields,
   prefixes,
   Poseidon,
+  HashInputLegacy,
+  packToFieldsLegacy,
+  inputToBitsLegacy,
+  HashLegacy,
 } from '../provable/poseidon-bigint.js';
-import { bitsToBytes, tuple, withVersionNumber } from '../provable/binable.js';
+import {
+  bitsToBytes,
+  bytesToBits,
+  tuple,
+  withVersionNumber,
+} from '../provable/binable.js';
 import { base58 } from '../provable/base58.js';
 import { versionBytes } from '../js_crypto/constants.js';
 import { Pallas } from '../js_crypto/elliptic_curve.js';
@@ -26,6 +35,8 @@ export {
   verifyFieldElement,
   Signature,
   NetworkId,
+  signLegacy,
+  verifyLegacy,
 };
 
 const networkIdMainnet = 0x01n;
@@ -128,7 +139,7 @@ function deriveNonce(
   networkId: NetworkId
 ): Scalar {
   let { x, y } = publicKey;
-  let d = Field.fromBits(Scalar.toBits(privateKey));
+  let d = Field(privateKey);
   let id = networkId === 'mainnet' ? networkIdMainnet : networkIdTestnet;
   let input = HashInput.append(message, {
     fields: [x, y, d],
@@ -203,4 +214,91 @@ function verify(
   } catch {
     return false;
   }
+}
+
+// legacy signatures
+
+/**
+ * Same as {@link sign}, but using the "legacy" style of hash input packing.
+ */
+function signLegacy(
+  message: HashInputLegacy,
+  privateKey: PrivateKey,
+  networkId: NetworkId
+): Signature {
+  let publicKey = Group.scale(Group.generatorMina, privateKey);
+  let kPrime = deriveNonceLegacy(message, publicKey, privateKey, networkId);
+  if (Scalar.equal(kPrime, 0n)) throw Error('sign: derived nonce is 0');
+  let { x: rx, y: ry } = Group.scale(Group.generatorMina, kPrime);
+  let k = Field.isEven(ry) ? kPrime : Scalar.negate(kPrime);
+  let e = hashMessageLegacy(message, publicKey, rx, networkId);
+  let s = Scalar.add(k, Scalar.mul(e, privateKey));
+  return { r: rx, s };
+}
+
+/**
+ * Same as {@link verify}, but using the "legacy" style of hash input packing.
+ */
+function verifyLegacy(
+  signature: Signature,
+  message: HashInputLegacy,
+  publicKey: PublicKey,
+  networkId: NetworkId
+) {
+  try {
+    let { r, s } = signature;
+    let pk = PublicKey.toGroup(publicKey);
+    let e = hashMessageLegacy(message, pk, r, networkId);
+    let { scale, one, sub } = Pallas;
+    let R = sub(scale(one, s), scale(Group.toProjective(pk), e));
+    // if `R` is infinity, Group.fromProjective throws an error, so `verify` returns false
+    let { x: rx, y: ry } = Group.fromProjective(R);
+    return Field.isEven(ry) && Field.equal(rx, r);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Same as {@link deriveNonce}, but using the "legacy" style of hash input packing.
+ */
+function deriveNonceLegacy(
+  message: HashInputLegacy,
+  publicKey: Group,
+  privateKey: Scalar,
+  networkId: NetworkId
+): Scalar {
+  let { x, y } = publicKey;
+  let scalarBits = Scalar.toBits(privateKey);
+  let id = networkId === 'mainnet' ? networkIdMainnet : networkIdTestnet;
+  let idBits = bytesToBits([Number(id)]);
+  let input = HashInputLegacy.append(message, {
+    fields: [x, y],
+    bits: [...scalarBits, ...idBits],
+  });
+  let inputBits = inputToBitsLegacy(input);
+  let inputBytes = bitsToBytes(inputBits);
+  let bytes = blake2b(Uint8Array.from(inputBytes), undefined, 32);
+  // drop the top two bits to convert into a scalar field element
+  // (creates negligible bias because q = 2^254 + eps, eps << q)
+  bytes[bytes.length - 1] &= 0x3f;
+  return Scalar.fromBytes([...bytes]);
+}
+
+/**
+ * Same as {@link hashMessage}, but using the "legacy" style of hash input packing.
+ */
+function hashMessageLegacy(
+  message: HashInputLegacy,
+  publicKey: Group,
+  r: Field,
+  networkId: NetworkId
+): Scalar {
+  let { x, y } = publicKey;
+  let input = HashInputLegacy.append(message, { fields: [x, y, r], bits: [] });
+  let prefix =
+    networkId === 'mainnet'
+      ? prefixes.signatureMainnet
+      : prefixes.signatureTestnet;
+  return HashLegacy.hashWithPrefix(prefix, packToFieldsLegacy(input));
 }

@@ -7,7 +7,8 @@ const initialState = 10;
 class SimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
 
-  deploy() {
+  init() {
+    super.init();
     this.x.set(Field(initialState));
   }
 

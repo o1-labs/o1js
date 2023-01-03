@@ -17,7 +17,14 @@ testBigintRoundtrip(1309180n, fieldSize);
 testBigintRoundtrip(0x10000000n, 4);
 testBigintRoundtrip(0xffffffffn, 4);
 testBigintRoundtrip(0x10ff00ffffn, fieldSize);
-testBigintRoundtrip(Field.MODULUS, fieldSize);
+testBigintRoundtrip(Field.modulus, fieldSize);
+
+// failure cases
+expect(() => bigIntToBytes(256n, 1)).toThrow(/does not fit in 1 bytes/);
+expect(() => bigIntToBytes(100_000n, 2)).toThrow(/does not fit in 2 bytes/);
+expect(() => bigIntToBytes(4n * Field.modulus, 32)).toThrow(
+  /does not fit in 32 bytes/
+);
 
 console.log('bigint unit tests are passing! 🎉');
 shutdown();

@@ -3,7 +3,7 @@ import { UInt32, UInt64, Sign } from '../lib/int.js';
 import { PublicKey } from '../lib/signature.js';
 import { derivedLeafTypes } from './derived-leaves.js';
 import { createEvents } from '../lib/events.js';
-import { Poseidon, Hash } from '../lib/hash.js';
+import { Poseidon, Hash, packToFields } from '../lib/hash.js';
 import { provable } from '../lib/circuit_value.js';
 
 export {
@@ -31,7 +31,7 @@ type TokenSymbol = { symbol: string; field: Field };
 type ZkappUri = { data: string; hash: Field };
 
 const { TokenId, TokenSymbol, AuthRequired, AuthorizationKind, ZkappUri } =
-  derivedLeafTypes({ Field, Bool, Hash });
+  derivedLeafTypes({ Field, Bool, Hash, packToFields });
 
 type Event = Field[];
 type Events = {

@@ -57,7 +57,7 @@ const Poseidon = {
   Sponge,
 };
 
-let Hash = createHashHelpers(Field, Poseidon, packToFields);
+const Hash = createHashHelpers(Field, Poseidon);
 let { salt, emptyHashWithPrefix, hashWithPrefix } = Hash;
 
 const prefixes: typeof Poseidon_.prefixes = new Proxy({} as any, {

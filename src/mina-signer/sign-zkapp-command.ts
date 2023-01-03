@@ -69,10 +69,7 @@ function fullTransactionCommitment(zkappCommand: ZkappCommand) {
   ]);
 }
 
-type CallTree = {
-  accountUpdate: AccountUpdate;
-  children: CallForest;
-};
+type CallTree = { accountUpdate: AccountUpdate; children: CallForest };
 type CallForest = CallTree[];
 
 /**
@@ -132,17 +129,11 @@ function accountUpdateFromFeePayer({
 }: FeePayer): AccountUpdate {
   let { body } = AccountUpdate.emptyValue();
   body.publicKey = publicKey;
-  body.balanceChange = {
-    magnitude: fee,
-    sgn: Sign(-1),
-  };
+  body.balanceChange = { magnitude: fee, sgn: Sign(-1) };
   body.incrementNonce = Bool(true);
   body.preconditions.network.globalSlotSinceGenesis = {
     isSome: Bool(true),
-    value: {
-      lower: UInt32(0),
-      upper: validUntil ?? UInt32.maxValue,
-    },
+    value: { lower: UInt32(0), upper: validUntil ?? UInt32.maxValue },
   };
   body.preconditions.account.nonce = {
     isSome: Bool(true),

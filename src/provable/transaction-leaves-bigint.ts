@@ -2,7 +2,7 @@ import { Field, Bool, UInt32, UInt64, Sign } from './field-bigint.js';
 import { PublicKey } from './curve-bigint.js';
 import { derivedLeafTypes } from './derived-leaves.js';
 import { createEvents } from '../lib/events.js';
-import { Poseidon, Hash } from './poseidon-bigint.js';
+import { Poseidon, Hash, packToFields } from './poseidon-bigint.js';
 
 export {
   PublicKey,
@@ -29,7 +29,7 @@ type TokenSymbol = { symbol: string; field: Field };
 type ZkappUri = { data: string; hash: Field };
 
 const { TokenId, TokenSymbol, AuthRequired, AuthorizationKind, ZkappUri } =
-  derivedLeafTypes({ Field, Bool, Hash });
+  derivedLeafTypes({ Field, Bool, Hash, packToFields });
 
 type Event = Field[];
 type Events = {

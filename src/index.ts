@@ -24,7 +24,6 @@ export * as Mina from './lib/mina.js';
 export {
   SmartContract,
   method,
-  deploy,
   DeployArgs,
   signFeePayer,
   declareMethods,
