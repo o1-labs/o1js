@@ -18,49 +18,72 @@ export {
 
 type Binable<T> = {
   toBytes(t: T): number[];
+  fromBytesInternal(
+    bytes: number[],
+    offset: number
+  ): { value: T; offset: number };
   fromBytes(bytes: number[]): T;
-  sizeInBytes(): number;
+  // sizeInBytes?: number;
 };
 type BinableWithBits<T> = Binable<T> & {
   toBits(t: T): boolean[];
   fromBits(bits: boolean[]): T;
-  sizeInBits(): number;
+  sizeInBytes: number;
+  sizeInBits: number;
 };
+
+function defineBinable<T>({
+  toBytes,
+  fromBytesInternal,
+}: {
+  toBytes(t: T): number[];
+  fromBytesInternal(
+    bytes: number[],
+    offset: number
+  ): { value: T; offset: number };
+}): Binable<T> {
+  return {
+    toBytes,
+    fromBytesInternal,
+    // spec: fromBytes throws if the input bytes are not all used
+    fromBytes(bytes) {
+      let { value, offset } = fromBytesInternal(bytes, 0);
+      if (offset < bytes.length)
+        throw Error('fromBytes: input bytes left over');
+      return value;
+    },
+  };
+}
 
 function withVersionNumber<T>(
   binable: Binable<T>,
   versionNumber?: number
 ): Binable<T> {
-  return {
+  return defineBinable({
     toBytes(t) {
       let bytes = binable.toBytes(t);
       if (versionNumber !== undefined) bytes.unshift(versionNumber);
       return bytes;
     },
-    fromBytes(bytes) {
-      if (versionNumber !== undefined) bytes.shift();
-      return binable.fromBytes(bytes);
+    fromBytesInternal(bytes, offset) {
+      if (versionNumber !== undefined) offset++;
+      return binable.fromBytesInternal(bytes, offset);
     },
-    sizeInBytes() {
-      let size = binable.sizeInBytes();
-      return versionNumber !== undefined ? size + 1 : size;
-    },
-  };
+  });
 }
 
 function withCheck<T>(
-  { toBytes, fromBytes, sizeInBytes }: Binable<T>,
+  { toBytes, fromBytesInternal }: Binable<T>,
   check: (t: T) => void
 ): Binable<T> {
-  return {
-    sizeInBytes,
+  return defineBinable({
     toBytes,
-    fromBytes(bytes) {
-      let x = fromBytes(bytes);
-      check(x);
+    fromBytesInternal(bytes, start) {
+      let x = fromBytesInternal(bytes, start);
+      check(x.value);
       return x;
     },
-  };
+  });
 }
 
 type Tuple<T> = [T, ...T[]] | [];
@@ -73,57 +96,44 @@ function record<Types extends Record<string, any>>(
 ): Binable<Types> {
   let binablesTuple = keys.map((key) => binables[key]) as Tuple<Binable<any>>;
   let tupleBinable = tuple<Tuple<any>>(binablesTuple);
-  return {
+  return defineBinable({
     toBytes(t) {
       let array = keys.map((key) => t[key]) as Tuple<any>;
       return tupleBinable.toBytes(array);
     },
-    fromBytes(bytes) {
-      let tupleValues = tupleBinable.fromBytes(bytes);
-      return Object.fromEntries(
-        keys.map((key, i) => [key, tupleValues[i]])
+    fromBytesInternal(bytes, offset) {
+      let result = tupleBinable.fromBytesInternal(bytes, offset);
+      let value = Object.fromEntries(
+        keys.map((key, i) => [key, result.value[i]])
       ) as any;
+      return { value, offset: result.offset };
     },
-    sizeInBytes() {
-      return tupleBinable.sizeInBytes();
-    },
-  };
+  });
 }
 
-function tuple<Types extends Tuple<any>>(
-  binables: any[] & {
-    [i in keyof Types]: Binable<Types[i]>;
-  }
-): Binable<Types> {
-  let n = binables.length;
-  let sizes = binables.map((b) => b.sizeInBytes());
-  let totalSize = sizes.reduce((s, c) => s + c);
-  return {
+function tuple<Types extends Tuple<any>>(binables: {
+  [i in keyof Types]: Binable<Types[i]>;
+}): Binable<Types> {
+  let n = (binables as any[]).length;
+  return defineBinable({
     toBytes(t) {
       let bytes: number[] = [];
       for (let i = 0; i < n; i++) {
         let subBytes = binables[i].toBytes(t[i]);
         bytes.push(...subBytes);
       }
-
       return bytes;
     },
-    fromBytes(bytes): Types {
-      let offset = 0;
+    fromBytesInternal(bytes, offset) {
       let values = [];
       for (let i = 0; i < n; i++) {
-        let size = sizes[i];
-        let subBytes = bytes.slice(offset, offset + size);
-        let value = binables[i].fromBytes(subBytes);
-        values.push(value);
-        offset += size;
+        let result = binables[i].fromBytesInternal(bytes, offset);
+        ({ offset } = result);
+        values.push(result.value);
       }
-      return values as any;
+      return { value: values as Types, offset };
     },
-    sizeInBytes() {
-      return totalSize;
-    },
-  };
+  });
 }
 
 type EnumNoArgument<T extends string> = { type: T };
@@ -141,13 +151,7 @@ function enumWithArgument<Enum_ extends Tuple<AnyEnum>>(types: {
   let typeToIndex = Object.fromEntries(
     (types as { type: string; value: any }[]).map(({ type }, i) => [type, i])
   );
-  return {
-    sizeInBytes() {
-      // TODO: remove reliance on size in bytes in tuple `fromBytes`
-      // => implies there must be versions of `fromBytes` that accept a larger array!
-      // and some generic binable logic should throw an error if there are leftover bytes, at the very end
-      throw Error("enums don't have a well-defined size in bytes");
-    },
+  return defineBinable({
     toBytes(en) {
       let i = typeToIndex[en.type];
       let type = types[i];
@@ -157,15 +161,18 @@ function enumWithArgument<Enum_ extends Tuple<AnyEnum>>(types: {
       }
       return [i];
     },
-    fromBytes([i, ...bytes]) {
+    fromBytesInternal(bytes, offset) {
+      let i = bytes[offset];
+      offset++;
       let type = types[i];
       if ('value' in type) {
-        let binable = type.value;
-        return { type: type.type, value: binable.fromBytes(bytes) };
+        let value;
+        ({ value, offset } = type.value.fromBytesInternal(bytes, offset));
+        return { value: { type: type.type, value }, offset };
       }
-      return { type: type.type };
+      return { value: { type: type.type }, offset };
     },
-  };
+  });
 }
 
 // same as Random_oracle.prefix_to_field in OCaml
@@ -214,12 +221,8 @@ function bytesToBits(bytes: number[]) {
  */
 function withBits<T>(
   binable: Binable<T>,
-  sizeInBits?: number
+  sizeInBits: number
 ): BinableWithBits<T> {
-  let sizeInBytes = binable.sizeInBytes();
-  sizeInBits ??= sizeInBytes * 8;
-  if (Math.ceil(sizeInBits / 8) !== sizeInBytes)
-    throw Error('withBits: sizeInBits does not match sizeInBytes');
   return {
     ...binable,
     toBits(t: T) {
@@ -228,9 +231,8 @@ function withBits<T>(
     fromBits(bits: boolean[]) {
       return binable.fromBytes(bitsToBytes(bits));
     },
-    sizeInBits() {
-      return sizeInBits!;
-    },
+    sizeInBytes: Math.ceil(sizeInBits / 8),
+    sizeInBits,
   };
 }
 
