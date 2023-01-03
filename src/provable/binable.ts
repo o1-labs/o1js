@@ -6,6 +6,7 @@ export {
   withVersionNumber,
   tuple,
   record,
+  enumWithArgument,
   prefixToField,
   bytesToBits,
   bitsToBytes,
@@ -121,6 +122,48 @@ function tuple<Types extends Tuple<any>>(
     },
     sizeInBytes() {
       return totalSize;
+    },
+  };
+}
+
+type EnumNoArgument<T extends string> = { type: T };
+type EnumWithArgument<T extends string, V> = { type: T; value: V };
+type AnyEnum = EnumNoArgument<string> | EnumWithArgument<string, any>;
+
+function enumWithArgument<Enum_ extends Tuple<AnyEnum>>(types: {
+  [i in keyof Enum_]: Enum_[i] extends EnumWithArgument<string, any>
+    ? {
+        type: Enum_[i]['type'];
+        value: Binable<Enum_[i]['value']>;
+      }
+    : { type: Enum_[i]['type'] };
+}): Binable<Enum_[number]> {
+  let typeToIndex = Object.fromEntries(
+    (types as { type: string; value: any }[]).map(({ type }, i) => [type, i])
+  );
+  return {
+    sizeInBytes() {
+      // TODO: remove reliance on size in bytes in tuple `fromBytes`
+      // => implies there must be versions of `fromBytes` that accept a larger array!
+      // and some generic binable logic should throw an error if there are leftover bytes, at the very end
+      throw Error("enums don't have a well-defined size in bytes");
+    },
+    toBytes(en) {
+      let i = typeToIndex[en.type];
+      let type = types[i];
+      if ('value' in type) {
+        let binable = type.value;
+        return [i, ...binable.toBytes((en as any).value)];
+      }
+      return [i];
+    },
+    fromBytes([i, ...bytes]) {
+      let type = types[i];
+      if ('value' in type) {
+        let binable = type.value;
+        return { type: type.type, value: binable.fromBytes(bytes) };
+      }
+      return { type: type.type };
     },
   };
 }

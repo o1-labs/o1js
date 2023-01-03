@@ -17,6 +17,10 @@ export {
   DelegationJson,
   Tag,
   UserCommand,
+  UserCommandEnum,
+  BodyEnum,
+  Payment,
+  Delegation,
 };
 
 function signPayment(
@@ -221,19 +225,40 @@ function stringToInput(string: string) {
 type Tag = 'Payment' | 'StakeDelegation';
 
 type UserCommand = {
-  common: {
-    fee: UInt64;
-    feePayer: PublicKey;
-    nonce: UInt32;
-    validUntil: UInt32;
-    memo: string;
-  };
+  common: Common;
   body: {
     tag: Tag;
     source: PublicKey;
     receiver: PublicKey;
     amount: UInt64;
   };
+};
+
+type UserCommandEnum = {
+  common: Common;
+  body: BodyEnum;
+};
+
+type BodyEnum =
+  | { type: 'Payment'; value: Payment }
+  | { type: 'StakeDelegation'; value: Delegation };
+
+type Common = {
+  fee: UInt64;
+  feePayer: PublicKey;
+  nonce: UInt32;
+  validUntil: UInt32;
+  memo: string;
+};
+
+type Payment = {
+  source: PublicKey;
+  receiver: PublicKey;
+  amount: UInt64;
+};
+type Delegation = {
+  delegator: PublicKey;
+  newDelegate: PublicKey;
 };
 
 type CommonJson = {
