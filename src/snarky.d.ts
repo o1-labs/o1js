@@ -419,6 +419,10 @@ declare class Field {
   static toInput(x: Field): { fields: Field[] };
   static toBytes(x: Field): number[];
   static fromBytes(bytes: number[]): Field;
+  static fromBytesInternal(
+    bytes: number[],
+    offset: number
+  ): [value: Field, offset: number];
   static sizeInBytes(): number;
 }
 
@@ -601,6 +605,10 @@ declare class Bool {
   static toInput(x: Bool): { packed: [Field, number][] };
   static toBytes(x: Bool): number[];
   static fromBytes(bytes: number[]): Bool;
+  static fromBytesInternal(
+    bytes: number[],
+    offset: number
+  ): [value: Bool, offset: number];
   static sizeInBytes(): number;
 }
 

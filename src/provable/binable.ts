@@ -3,6 +3,7 @@ import { GenericField } from './generic.js';
 
 export {
   Binable,
+  defineBinable,
   withVersionNumber,
   tuple,
   record,
@@ -27,8 +28,8 @@ type Binable<T> = {
 type BinableWithBits<T> = Binable<T> & {
   toBits(t: T): boolean[];
   fromBits(bits: boolean[]): T;
-  sizeInBytes: number;
-  sizeInBits: number;
+  sizeInBytes(): number;
+  sizeInBits(): number;
 };
 
 function defineBinable<T>({
@@ -229,8 +230,12 @@ function withBits<T>(
     fromBits(bits: boolean[]) {
       return binable.fromBytes(bitsToBytes(bits));
     },
-    sizeInBytes: Math.ceil(sizeInBits / 8),
-    sizeInBits,
+    sizeInBytes() {
+      return Math.ceil(sizeInBits / 8);
+    },
+    sizeInBits() {
+      return sizeInBits;
+    },
   };
 }
 
