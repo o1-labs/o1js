@@ -14,6 +14,8 @@ export {
   markAccountToBeFetched,
   markNetworkToBeFetched,
   fetchMissingData,
+  fetchTransactionStatus,
+  TransactionStatus,
   getCachedAccount,
   getCachedNetwork,
   addCachedAccount,
@@ -530,6 +532,39 @@ function parseEpochData({
     epochLength: UInt32.from(epochLength),
   };
 }
+
+const transactionStatusQuery = (txId: string) => `query {
+  transactionStatus(zkappTransaction:"${txId}")
+}`;
+
+/**
+ * Fetches the status of a transaction.
+ */
+async function fetchTransactionStatus(
+  txId: string,
+  graphqlEndpoint = defaultGraphqlEndpoint
+): Promise<TransactionStatus> {
+  let [resp, error] = await makeGraphqlRequest(
+    transactionStatusQuery(txId),
+    graphqlEndpoint
+  );
+  if (error) throw Error(error.statusText);
+  let txStatus = resp?.data?.transactionStatus;
+  if (txStatus === undefined || txStatus === null) {
+    throw Error(`Failed to fetch transaction status. TransactionId: ${txId}`);
+  }
+  return txStatus as TransactionStatus;
+}
+
+/**
+ * INCLUDES: A transaction that is on the longest chain
+ *
+ * PENDING: A transaction either in the transition frontier or in transaction pool but is not on the longest chain
+ *
+ * UNKNOWN: The transaction has either been snarked, reached finality through consensus or has been dropped
+ *
+ */
+type TransactionStatus = 'INCLUDED' | 'PENDING' | 'UNKNOWN';
 
 /**
  * Sends a zkApp command (transaction) to the specified GraphQL endpoint.

@@ -15,7 +15,7 @@ import {
   Permissions,
   Mina,
   Int64,
-  PrivateKey,
+  VerificationKey,
 } from 'snarkyjs';
 
 /**
@@ -32,9 +32,9 @@ type Erc20 = {
   allowance(owner: PublicKey, spender: PublicKey): UInt64;
 
   // mutations which need @method
-  transfer(to: PublicKey, value: UInt64): Bool; // emits "Transfer" event; needs msg.sender
+  transfer(to: PublicKey, value: UInt64): Bool; // emits "Transfer" event
   transferFrom(from: PublicKey, to: PublicKey, value: UInt64): Bool; // emits "Transfer" event
-  approve(spender: PublicKey, value: UInt64): Bool; // emits "Approve" event; needs msg.sender
+  approve(spender: PublicKey, value: UInt64): Bool; // emits "Approve" event
 
   // events
   events: {
@@ -50,14 +50,6 @@ type Erc20 = {
     }>;
   };
 };
-
-// TODO: we need to expose msg.sender to implement transfer() and approve()
-// is this always === the fee payer? probably fine if it is
-// => need transaction interface which takes the PUBLIC key of the sender / fee payer
-//    because the private key sits in a wallet and shouldn't be accessible to the website
-//    which creates the transaction.
-// => can keep mode where sender is unknown, but then methods relying on msg.sender have to FAIL
-// NB: we can't constrain msg.sender to the fee payer's public key. it would be just a convenience feature and should come with a disclaimer
 
 /**
  * A simple ERC20 token
@@ -75,14 +67,15 @@ class TrivialCoin extends SmartContract implements Erc20 {
 
   deploy(args: DeployArgs) {
     super.deploy(args);
-    this.tokenSymbol.set('SOM');
-    this.setPermissions({
+    this.account.tokenSymbol.set('SOM');
+    this.account.permissions.set({
       ...Permissions.default(),
       setPermissions: Permissions.proof(),
-      send: Permissions.proof(),
     });
   }
   @method init() {
+    super.init();
+
     // mint the entire supply to the token account with the same address as this contract
     let address = this.self.body.publicKey;
     let receiver = this.token.mint({
@@ -94,18 +87,11 @@ class TrivialCoin extends SmartContract implements Erc20 {
     // pay fees for opened account
     this.balance.subInPlace(Mina.accountCreationFee());
 
-    // reset the entire state, so that we get provedState: true
-    // TODO: implement doing this automatically in super.init()
-    for (let i = 0; i < 8; i++) {
-      let state = this.self.update.appState[i];
-      state.isSome = Bool(true);
-      state.value = Field(0);
-    }
     // since this is the only method of this zkApp that resets the entire state, provedState: true implies
     // that this function was run. Since it can be run only once, this implies it was run exactly once
 
     // make account non-upgradable forever
-    this.setPermissions({
+    this.account.permissions.set({
       ...Permissions.default(),
       setVerificationKey: Permissions.impossible(),
       setPermissions: Permissions.impossible(),
@@ -137,7 +123,10 @@ class TrivialCoin extends SmartContract implements Erc20 {
   }
 
   @method transfer(to: PublicKey, value: UInt64): Bool {
-    throw Error('TODO: reliably get msg.sender');
+    this.token.send({ from: this.sender, to, amount: value });
+    this.emitEvent('Transfer', { from: this.sender, to, value });
+    // we don't have to check the balance of the sender -- this is done by the zkApp protocol
+    return Bool(true);
   }
   @method transferFrom(from: PublicKey, to: PublicKey, value: UInt64): Bool {
     this.token.send({ from, to, amount: value });
@@ -145,7 +134,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
     // we don't have to check the balance of the sender -- this is done by the zkApp protocol
     return Bool(true);
   }
-  @method approve(spender: PublicKey, value: UInt64): Bool {
+  @method approveSpend(spender: PublicKey, value: UInt64): Bool {
     // TODO: implement allowances
     return Bool(false);
   }
@@ -181,32 +170,26 @@ class TrivialCoin extends SmartContract implements Erc20 {
     fromUpdate.body.tokenId.assertEquals(tokenId);
     fromUpdate.body.publicKey.assertEquals(from);
 
-    let toUpdate = Experimental.createChildAccountUpdate(
-      this.self,
-      to,
-      tokenId
-    );
+    let toUpdate = AccountUpdate.create(to, tokenId);
     toUpdate.balance.addInPlace(value);
     this.emitEvent('Transfer', { from, to, value });
     return Bool(true);
   }
 
   // this is a very standardized deploy method. instead, we could also take the account update from a callback
-  @method deployZkapp(zkappKey: PrivateKey) {
-    let address = zkappKey.toPublicKey();
+  @method deployZkapp(
+    zkappAddress: PublicKey,
+    verificationKey: VerificationKey
+  ) {
     let tokenId = this.token.id;
     let zkapp = Experimental.createChildAccountUpdate(
       this.self,
-      address,
+      zkappAddress,
       tokenId
     );
-    AccountUpdate.setValue(zkapp.update.permissions, {
-      ...Permissions.default(),
-      send: Permissions.proof(),
-    });
-    // TODO pass in verification key
-    // AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
-    zkapp.sign(zkappKey);
+    zkapp.account.permissions.set(Permissions.default());
+    zkapp.account.verificationKey.set(verificationKey);
+    zkapp.requireSignature();
   }
 
   // for letting a zkapp do whatever it wants, as long as no tokens are transfered

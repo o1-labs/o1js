@@ -7,7 +7,6 @@ import {
   AccountUpdate,
   PrivateKey,
   UInt64,
-  SmartContract,
   Reducer,
 } from 'snarkyjs';
 import { VotingApp, VotingAppParams } from './factory.js';
@@ -24,7 +23,8 @@ let Local = Mina.LocalBlockchain({
 });
 Mina.setActiveInstance(Local);
 
-let feePayer = Local.testAccounts[0].privateKey;
+let feePayer = Local.testAccounts[0].publicKey;
+let feePayerKey = Local.testAccounts[0].privateKey;
 
 let tx;
 
@@ -64,282 +64,250 @@ let candidateStore = new OffchainStorage<Member>(8);
 let votesStore = new OffchainStorage<Member>(8);
 
 let initialRoot = voterStore.getRoot();
-try {
-  tx = await Mina.transaction(feePayer, () => {
-    AccountUpdate.fundNewAccount(feePayer, {
-      initialBalance: Mina.accountCreationFee().add(Mina.accountCreationFee()),
-    });
+tx = await Mina.transaction(feePayer, () => {
+  AccountUpdate.fundNewAccount(feePayer, 3);
 
-    contracts.voting.deploy({ zkappKey: votingKey });
-    contracts.voting.committedVotes.set(votesStore.getRoot());
-    contracts.voting.accumulatedVotes.set(Reducer.initialActionsHash);
+  contracts.voting.deploy({ zkappKey: votingKey });
+  contracts.voting.committedVotes.set(votesStore.getRoot());
+  contracts.voting.accumulatedVotes.set(Reducer.initialActionsHash);
 
-    contracts.candidateContract.deploy({ zkappKey: candidateKey });
-    contracts.candidateContract.committedMembers.set(candidateStore.getRoot());
-    contracts.candidateContract.accumulatedMembers.set(
-      Reducer.initialActionsHash
-    );
+  contracts.candidateContract.deploy({ zkappKey: candidateKey });
+  contracts.candidateContract.committedMembers.set(candidateStore.getRoot());
+  contracts.candidateContract.accumulatedMembers.set(
+    Reducer.initialActionsHash
+  );
 
-    contracts.voterContract.deploy({ zkappKey: voterKey });
-    contracts.voterContract.committedMembers.set(voterStore.getRoot());
-    contracts.voterContract.accumulatedMembers.set(Reducer.initialActionsHash);
-  });
-  await tx.send();
+  contracts.voterContract.deploy({ zkappKey: voterKey });
+  contracts.voterContract.committedMembers.set(voterStore.getRoot());
+  contracts.voterContract.accumulatedMembers.set(Reducer.initialActionsHash);
+});
+await tx.sign([feePayerKey]).send();
 
-  let m: Member = Member.empty();
-  // lets register three voters
-  tx = await Mina.transaction(feePayer, () => {
-    // creating and registering a new voter
-    m = registerMember(
-      /*
+let m: Member = Member.empty();
+// lets register three voters
+tx = await Mina.transaction(feePayer, () => {
+  // creating and registering a new voter
+  m = registerMember(
+    /*
       NOTE: it isn't wise to use an incremented integer as an
       identifier for real world applications for your entries,
       but instead a public key
       */
-      0n,
-      Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        UInt64.from(150)
-      ),
-      voterStore
-    );
+    0n,
+    Member.from(PrivateKey.random().toPublicKey(), Field(0), UInt64.from(150)),
+    voterStore
+  );
 
-    contracts.voting.voterRegistration(m);
-    if (!params.doProofs) contracts.voting.sign(votingKey);
-  });
-  if (params.doProofs) await tx.prove();
-  await tx.send();
+  contracts.voting.voterRegistration(m);
+  if (!params.doProofs) contracts.voting.sign(votingKey);
+});
+await tx.prove();
+await tx.sign([feePayerKey]).send();
 
-  // lets register three voters
-  tx = await Mina.transaction(feePayer, () => {
-    // creating and registering a new voter
-    m = registerMember(
-      /*
+// lets register three voters
+tx = await Mina.transaction(feePayer, () => {
+  // creating and registering a new voter
+  m = registerMember(
+    /*
       NOTE: it isn't wise to use an incremented integer as an
       identifier for real world applications for your entries,
       but instead a public key
       */
-      1n,
-      Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        UInt64.from(160)
-      ),
-      voterStore
-    );
+    1n,
+    Member.from(PrivateKey.random().toPublicKey(), Field(0), UInt64.from(160)),
+    voterStore
+  );
 
-    contracts.voting.voterRegistration(m);
+  contracts.voting.voterRegistration(m);
 
-    if (!params.doProofs) contracts.voting.sign(votingKey);
-  });
-  if (params.doProofs) await tx.prove();
-  await tx.send();
+  if (!params.doProofs) contracts.voting.sign(votingKey);
+});
+await tx.prove();
+await tx.sign([feePayerKey]).send();
 
-  // lets register three voters
-  tx = await Mina.transaction(feePayer, () => {
-    // creating and registering a new voter
-    m = registerMember(
-      /*
+// lets register three voters
+tx = await Mina.transaction(feePayer, () => {
+  // creating and registering a new voter
+  m = registerMember(
+    /*
       NOTE: it isn't wise to use an incremented integer as an
       identifier for real world applications for your entries,
       but instead a public key
       */
-      2n,
-      Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        UInt64.from(170)
-      ),
-      voterStore
-    );
+    2n,
+    Member.from(PrivateKey.random().toPublicKey(), Field(0), UInt64.from(170)),
+    voterStore
+  );
 
-    contracts.voting.voterRegistration(m);
+  contracts.voting.voterRegistration(m);
 
-    if (!params.doProofs) contracts.voting.sign(votingKey);
-  });
-  if (params.doProofs) await tx.prove();
-  await tx.send();
+  if (!params.doProofs) contracts.voting.sign(votingKey);
+});
+await tx.prove();
+await tx.sign([feePayerKey]).send();
 
-  /*
+/*
   since the voting contract calls the voter membership contract via invoking voterRegister,
   the membership contract will then emit one event per new member
   we should have emitted three new members
   */
-  console.log(
-    '3 events?? ',
-    contracts.voterContract.reducer.getActions({}).length == 3
-  );
+console.log(
+  '3 events?? ',
+  contracts.voterContract.reducer.getActions({}).length == 3
+);
 
-  /*
+/*
 
     Lets register two candidates
 
   */
-  tx = await Mina.transaction(feePayer, () => {
-    // creating and registering 1 new candidate
-    let m = registerMember(
-      /*
+tx = await Mina.transaction(feePayer, () => {
+  // creating and registering 1 new candidate
+  let m = registerMember(
+    /*
       NOTE: it isn't wise to use an incremented integer as an
       identifier for real world applications for your entries,
       but instead a public key
       */
-      0n,
-      Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        UInt64.from(250)
-      ),
-      candidateStore
-    );
+    0n,
+    Member.from(PrivateKey.random().toPublicKey(), Field(0), UInt64.from(250)),
+    candidateStore
+  );
 
-    contracts.voting.candidateRegistration(m);
-    if (!params.doProofs) contracts.voting.sign(votingKey);
-  });
+  contracts.voting.candidateRegistration(m);
+  if (!params.doProofs) contracts.voting.sign(votingKey);
+});
 
-  if (params.doProofs) await tx.prove();
-  await tx.send();
+await tx.prove();
+await tx.sign([feePayerKey]).send();
 
-  tx = await Mina.transaction(feePayer, () => {
-    // creating and registering 1 new candidate
-    let m = registerMember(
-      /*
+tx = await Mina.transaction(feePayer, () => {
+  // creating and registering 1 new candidate
+  let m = registerMember(
+    /*
       NOTE: it isn't wise to use an incremented integer as an
       identifier for real world applications for your entries,
       but instead a public key
       */
-      1n,
-      Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        UInt64.from(400)
-      ),
-      candidateStore
-    );
+    1n,
+    Member.from(PrivateKey.random().toPublicKey(), Field(0), UInt64.from(400)),
+    candidateStore
+  );
 
-    contracts.voting.candidateRegistration(m);
-    if (!params.doProofs) contracts.voting.sign(votingKey);
-  });
+  contracts.voting.candidateRegistration(m);
+  if (!params.doProofs) contracts.voting.sign(votingKey);
+});
 
-  if (params.doProofs) await tx.prove();
-  await tx.send();
+await tx.prove();
+await tx.sign([feePayerKey]).send();
 
-  /*
+/*
   since the voting contact calls the candidate membership contract via invoking candidateRegister,
   the membership contract will then emit one event per new member
   we should have emitted 2 new members, because we registered 2 new candidates
   */
-  console.log(
-    '2 events?? ',
-    contracts.candidateContract.reducer.getActions({}).length == 2
-  );
+console.log(
+  '2 events?? ',
+  contracts.candidateContract.reducer.getActions({}).length == 2
+);
 
-  /*
+/*
   we only emitted sequence events,
   so the merkel roots of both membership contract should still be the initial ones
   because the committed state should only change after publish has been invoked
   */
 
-  console.log(
-    'still initial root? ',
-    contracts.candidateContract.committedMembers
-      .get()
-      .equals(initialRoot)
-      .toBoolean()
-  );
-  console.log(
-    'still initial root? ',
-    contracts.voterContract.committedMembers
-      .get()
-      .equals(initialRoot)
-      .toBoolean()
-  );
+console.log(
+  'still initial root? ',
+  contracts.candidateContract.committedMembers
+    .get()
+    .equals(initialRoot)
+    .toBoolean()
+);
+console.log(
+  'still initial root? ',
+  contracts.voterContract.committedMembers.get().equals(initialRoot).toBoolean()
+);
 
-  /*
+/*
   if we now call approveVoters, which invokes publish on both membership contracts,
   we will also update the committed members!
   and since we keep track of voters and candidates in our off-chain storage,
   both the on-chain committedMembers variable and the off-chain merkle tree root need to be equal
   */
 
-  tx = await Mina.transaction(feePayer, () => {
-    contracts.voting.approveRegistrations();
-    if (!params.doProofs) contracts.voting.sign(votingKey);
-  });
+tx = await Mina.transaction(feePayer, () => {
+  contracts.voting.approveRegistrations();
+  if (!params.doProofs) contracts.voting.sign(votingKey);
+});
 
-  if (params.doProofs) await tx.prove();
-  await tx.send();
+await tx.prove();
+await tx.sign([feePayerKey]).send();
 
-  for (let a of candidateStore.values()) {
-    console.log(a.publicKey.toBase58());
-  }
+for (let a of candidateStore.values()) {
+  console.log(a.publicKey.toBase58());
+}
 
-  console.log(
-    'candidate root? ',
-    contracts.candidateContract.committedMembers
-      .get()
-      .equals(candidateStore.getRoot())
-      .toBoolean()
-  );
-  console.log(
-    'voter root? ',
-    contracts.voterContract.committedMembers
-      .get()
-      .equals(voterStore.getRoot())
-      .toBoolean()
-  );
+console.log(
+  'candidate root? ',
+  contracts.candidateContract.committedMembers
+    .get()
+    .equals(candidateStore.getRoot())
+    .toBoolean()
+);
+console.log(
+  'voter root? ',
+  contracts.voterContract.committedMembers
+    .get()
+    .equals(voterStore.getRoot())
+    .toBoolean()
+);
 
-  /*
+/*
     lets vote for the one candidate we have
   */
-  // we have to up the slot so we are within our election period
-  Local.incrementGlobalSlot(5);
-  tx = await Mina.transaction(feePayer, () => {
-    let c = candidateStore.get(0n)!;
-    c.witness = new MyMerkleWitness(candidateStore.getWitness(0n));
-    c.votesWitness = new MyMerkleWitness(votesStore.getWitness(0n));
-    // we are voting for candidate c, 0n, with voter 2n
-    contracts.voting.vote(c, voterStore.get(2n)!);
-    if (!params.doProofs) contracts.voting.sign(votingKey);
-  });
+// we have to up the slot so we are within our election period
+Local.incrementGlobalSlot(5);
+tx = await Mina.transaction(feePayer, () => {
+  let c = candidateStore.get(0n)!;
+  c.witness = new MyMerkleWitness(candidateStore.getWitness(0n));
+  c.votesWitness = new MyMerkleWitness(votesStore.getWitness(0n));
+  // we are voting for candidate c, 0n, with voter 2n
+  contracts.voting.vote(c, voterStore.get(2n)!);
+  if (!params.doProofs) contracts.voting.sign(votingKey);
+});
 
-  if (params.doProofs) await tx.prove();
-  await tx.send();
-  // after the transaction went through, we have to update our off chain store as well
-  vote(0n);
+await tx.prove();
+await tx.sign([feePayerKey]).send();
+// after the transaction went through, we have to update our off chain store as well
+vote(0n);
 
-  // vote dispatches a new sequence events, so we should have one
+// vote dispatches a new sequence events, so we should have one
 
-  console.log(
-    '1 vote sequence event? ',
-    contracts.voting.reducer.getActions({}).length == 1
-  );
+console.log(
+  '1 vote sequence event? ',
+  contracts.voting.reducer.getActions({}).length == 1
+);
 
-  /*
+/*
     counting the votes
   */
-  tx = await Mina.transaction(feePayer, () => {
-    contracts.voting.countVotes();
-    if (!params.doProofs) contracts.voting.sign(votingKey);
-  });
+tx = await Mina.transaction(feePayer, () => {
+  contracts.voting.countVotes();
+  if (!params.doProofs) contracts.voting.sign(votingKey);
+});
 
-  if (params.doProofs) await tx.prove();
-  await tx.send();
+await tx.prove();
+await tx.sign([feePayerKey]).send();
 
-  // vote dispatches a new sequence events, so we should have one
+// vote dispatches a new sequence events, so we should have one
 
-  console.log(
-    'votes roots equal? ',
-    votesStore
-      .getRoot()
-      .equals(contracts.voting.committedVotes.get())
-      .toBoolean()
-  );
+console.log(
+  'votes roots equal? ',
+  votesStore.getRoot().equals(contracts.voting.committedVotes.get()).toBoolean()
+);
 
-  printResult();
-} catch (error) {
-  console.log(error);
-}
+printResult();
 
 function registerMember(
   i: bigint,

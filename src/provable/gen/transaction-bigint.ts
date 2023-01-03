@@ -11,7 +11,7 @@ import {
   TokenSymbol,
   Sign,
   AuthorizationKind,
-  StringWithHash,
+  ZkappUri,
   Events,
   SequenceEvents,
   SequenceState,
@@ -59,7 +59,7 @@ type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, Field>;
 type Layout = GenericLayout<TypeMap>;
 
 type CustomTypes = {
-  StringWithHash: ProvableExtended<
+  ZkappUri: ProvableExtended<
     {
       data: string;
       hash: Field;
@@ -84,7 +84,7 @@ type CustomTypes = {
   SequenceState: ProvableExtended<Field, Json.TypeMap['Field']>;
 };
 let customTypes: CustomTypes = {
-  StringWithHash,
+  ZkappUri,
   TokenSymbol,
   Events,
   SequenceEvents,

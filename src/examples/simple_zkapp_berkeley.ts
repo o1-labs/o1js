@@ -28,8 +28,8 @@ await isReady;
 class SimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
 
-  deploy(args: DeployArgs) {
-    super.deploy(args);
+  init() {
+    super.init();
     this.x.set(initialState);
   }
 
@@ -49,12 +49,13 @@ Mina.setActiveInstance(Berkeley);
 let feePayerKey = PrivateKey.fromBase58(
   'EKEQc95PPQZnMY9d9p1vq1MWLeDJKtvKj4V75UDG3rjnf32BerWD'
 );
-let response = await fetchAccount({ publicKey: feePayerKey.toPublicKey() });
+let feePayerAddress = feePayerKey.toPublicKey();
+let response = await fetchAccount({ publicKey: feePayerAddress });
 if (response.error) throw Error(response.error.statusText);
 let { nonce, balance } = response.account;
 console.log(`Using fee payer account with nonce ${nonce}, balance ${balance}`);
 
-// this is an actual zkapp that was deployed and updated with this script:
+// this used to be an actual zkapp that was deployed and updated with this script:
 // https://berkeley.minaexplorer.com/wallet/B62qpRzFVjd56FiHnNfxokVbcHMQLT119My1FEdSq8ss7KomLiSZcan
 // replace this with a new zkapp key if you want to deploy another zkapp
 // and please never expose actual private keys in public code repositories like this!
@@ -81,10 +82,10 @@ if (!isDeployed) {
   console.log(`Deploying zkapp for public key ${zkappAddress.toBase58()}.`);
   // the `transaction()` interface is the same as when testing with a local blockchain
   let transaction = await Mina.transaction(
-    { feePayerKey, fee: transactionFee },
+    { sender: feePayerAddress, fee: transactionFee },
     () => {
-      AccountUpdate.fundNewAccount(feePayerKey);
-      zkapp.deploy({ zkappKey, verificationKey });
+      AccountUpdate.fundNewAccount(feePayerAddress);
+      zkapp.deploy({ verificationKey });
     }
   );
   // if you want to inspect the transaction, you can print it out:
@@ -92,7 +93,7 @@ if (!isDeployed) {
 
   // send the transaction to the graphql endpoint
   console.log('Sending the transaction...');
-  await transaction.send();
+  await transaction.sign([feePayerKey, zkappKey]).send();
 }
 
 // if the zkapp is not deployed yet, create an update transaction
@@ -100,7 +101,7 @@ if (isDeployed) {
   let x = zkapp.x.get();
   console.log(`Found deployed zkapp, updating state ${x} -> ${x.add(10)}.`);
   let transaction = await Mina.transaction(
-    { feePayerKey, fee: transactionFee },
+    { sender: feePayerAddress, fee: transactionFee },
     () => {
       zkapp.update(Field(10));
     }
@@ -114,7 +115,7 @@ if (isDeployed) {
 
   // send the transaction to the graphql endpoint
   console.log('Sending the transaction...');
-  await transaction.send();
+  await transaction.sign([feePayerKey]).send();
 }
 
 shutdown();

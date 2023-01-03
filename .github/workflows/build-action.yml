@@ -22,7 +22,9 @@ jobs:
             'Simple integration tests',
             'DEX integration tests',
             'Voting integration tests',
+            'Berkeley Live',
             'Unit tests',
+            'Verification Key Regression Check',
           ]
     steps:
       - name: Checkout Repository
@@ -38,7 +40,9 @@ jobs:
         run: |
           npm ci
           npm run build:node
+          touch profiling.md
           sh run-ci-tests.sh
+          cat profiling.md >> $GITHUB_STEP_SUMMARY
 
   Build-And-Test-Web:
     timeout-minutes: 90

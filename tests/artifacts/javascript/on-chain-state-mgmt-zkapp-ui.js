@@ -29,7 +29,8 @@ logEvents(
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 // Test account that pays all the fees
-const feePayer = Local.testAccounts[0].privateKey;
+const feePayerKey = Local.testAccounts[0].privateKey;
+const feePayer = Local.testAccounts[0].publicKey;
 // zkApp account
 const zkAppPrivateKey = PrivateKey.random();
 const zkAppAddress = zkAppPrivateKey.toPublicKey();
@@ -42,19 +43,15 @@ deployButton.addEventListener('click', async () => {
   logEvents('Deploying zkApp...', eventsContainer);
 
   try {
-    verificationKey = (await HelloWorld.compile()).verificationKey;
+    await HelloWorld.compile();
     const deploymentTransaction = await Mina.transaction(feePayer, () => {
       if (!eventsContainer.innerHTML.includes('zkApp Deployed successfully')) {
         AccountUpdate.fundNewAccount(feePayer);
       }
-
-      zkAppInstance.deploy({
-        verificationKey,
-        zkappKey: zkAppPrivateKey,
-      });
+      zkAppInstance.deploy();
     });
 
-    await deploymentTransaction.send();
+    await deploymentTransaction.sign([feePayerKey, zkAppPrivateKey]).send();
     const initialState = Mina.getAccount(zkAppAddress).appState?.[0].toString();
     zkAppStateContainer.innerHTML = initialState;
     logEvents(`Initial zkApp State: ${initialState}`, eventsContainer);
@@ -90,17 +87,16 @@ updateButton.addEventListener('click', async (event) => {
         Field(parseInt(zkAppStateValue.value)),
         adminPrivateKey
       );
-      // zkAppInstance.sign(zkAppPrivateKey);
     });
 
-    const proof = await transaction.prove();
+    const [proof] = await transaction.prove();
 
     if (verificationKey) {
-      let isVerified = await verify(proof[0], verificationKey.data);
+      let isVerified = await verify(proof, verificationKey.data);
       if (!isVerified) throw Error('Proof verification failed');
     }
 
-    await transaction.send();
+    await transaction.sign([feePayerKey]).send();
 
     const newState = Mina.getAccount(zkAppAddress).appState?.[0].toString();
     zkAppStateContainer.innerHTML = newState;

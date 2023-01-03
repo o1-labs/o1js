@@ -69,13 +69,12 @@ class Leaderboard extends SmartContract {
   // a commitment is a cryptographic primitive that allows us to commit to data, with the ability to "reveal" it later
   @state(Field) commitment = State<Field>();
 
-  deploy(args: DeployArgs) {
-    super.deploy(args);
-    this.setPermissions({
+  init() {
+    super.init();
+    this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
     });
-    this.balance.addInPlace(UInt64.from(initialBalance));
     this.commitment.set(initialCommitment);
   }
 
@@ -107,11 +106,12 @@ class Leaderboard extends SmartContract {
 
 type Names = 'Bob' | 'Alice' | 'Charlie' | 'Olivia';
 
-let Local = Mina.LocalBlockchain();
+let Local = Mina.LocalBlockchain({ proofsEnabled: doProofs });
 Mina.setActiveInstance(Local);
 let initialBalance = 10_000_000_000;
 
-let feePayer = Local.testAccounts[0].privateKey;
+let feePayerKey = Local.testAccounts[0].privateKey;
+let feePayer = Local.testAccounts[0].publicKey;
 
 // the zkapp account
 let zkappKey = PrivateKey.random();
@@ -148,10 +148,13 @@ if (doProofs) {
   await Leaderboard.compile();
 }
 let tx = await Mina.transaction(feePayer, () => {
-  AccountUpdate.fundNewAccount(feePayer, { initialBalance });
-  leaderboardZkApp.deploy({ zkappKey });
+  AccountUpdate.fundNewAccount(feePayer).send({
+    to: zkappAddress,
+    amount: initialBalance,
+  });
+  leaderboardZkApp.deploy();
 });
-await tx.send();
+await tx.sign([feePayerKey, zkappKey]).send();
 
 console.log('Initial points: ' + Accounts.get('Bob')?.points);
 
@@ -167,12 +170,9 @@ async function makeGuess(name: Names, index: bigint, guess: number) {
 
   let tx = await Mina.transaction(feePayer, () => {
     leaderboardZkApp.guessPreimage(Field(guess), account, witness);
-    if (!doProofs) leaderboardZkApp.sign(zkappKey);
   });
-  if (doProofs) {
-    await tx.prove();
-  }
-  await tx.send();
+  await tx.prove();
+  await tx.sign([feePayerKey, zkappKey]).send();
 
   // if the transaction was successful, we can update our off-chain storage as well
   account.points = account.points.add(1);

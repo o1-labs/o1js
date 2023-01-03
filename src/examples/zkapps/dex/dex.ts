@@ -43,7 +43,6 @@ function createDex({
 
     /**
      * Mint liquidity tokens in exchange for X and Y tokens
-     * @param user caller address
      * @param dx input amount of X tokens
      * @param dy input amount of Y tokens
      * @return output amount of lqXY tokens
@@ -51,14 +50,9 @@ function createDex({
      * This function fails if the X and Y token amounts don't match the current X/Y ratio in the pool.
      * This can also be used if the pool is empty. In that case, there is no check on X/Y;
      * instead, the input X and Y amounts determine the initial ratio.
-     *
-     * The transaction needs to be signed by the user's private key.
      */
-    @method supplyLiquidityBase(
-      user: PublicKey,
-      dx: UInt64,
-      dy: UInt64
-    ): UInt64 {
+    @method supplyLiquidityBase(dx: UInt64, dy: UInt64): UInt64 {
+      let user = this.sender;
       let tokenX = new TokenContract(this.tokenX);
       let tokenY = new TokenContract(this.tokenY);
 
@@ -80,10 +74,7 @@ function createDex({
       // calculate liquidity token output simply as dl = dx + dx
       // => maintains ratio x/l, y/l
       let dl = dy.add(dx);
-      let userUpdate = this.token.mint({
-        address: user,
-        amount: dl,
-      });
+      let userUpdate = this.token.mint({ address: user, amount: dl });
       if (lockedLiquiditySlots !== undefined) {
         /**
          * exercise the "timing" (vesting) feature to lock the received liquidity tokens.
@@ -106,7 +97,7 @@ function createDex({
             vestingPeriod: UInt32.one,
           },
         };
-        userUpdate.sign();
+        userUpdate.requireSignature();
       }
 
       // update l supply
@@ -118,17 +109,14 @@ function createDex({
 
     /**
      * Mint liquidity tokens in exchange for X and Y tokens
-     * @param user caller address
      * @param dx input amount of X tokens
      * @return output amount of lqXY tokens
      *
      * This uses supplyLiquidityBase as the circuit, but for convenience,
      * the input amount of Y tokens is calculated automatically from the X tokens.
      * Fails if the liquidity pool is empty, so can't be used for the first deposit.
-     *
-     * The transaction needs to be signed by the user's private key.
      */
-    supplyLiquidity(user: PublicKey, dx: UInt64): UInt64 {
+    supplyLiquidity(dx: UInt64): UInt64 {
       // calculate dy outside circuit
       let x = Account(this.address, Token.getId(this.tokenX)).balance.get();
       let y = Account(this.address, Token.getId(this.tokenY)).balance.get();
@@ -138,56 +126,53 @@ function createDex({
         );
       }
       let dy = dx.mul(y).div(x);
-      return this.supplyLiquidityBase(user, dx, dy);
+      return this.supplyLiquidityBase(dx, dy);
     }
 
     /**
      * Burn liquidity tokens to get back X and Y tokens
-     * @param user caller address
      * @param dl input amount of lqXY token
      * @return output amount of X and Y tokens, as a tuple [outputX, outputY]
      *
      * The transaction needs to be signed by the user's private key.
      */
-    @method redeemLiquidity(user: PublicKey, dl: UInt64) {
+    @method redeemLiquidity(dl: UInt64) {
       // call the token X holder inside a token X-approved callback
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.token.id);
-      let dxdy = dexX.redeemLiquidity(user, dl, this.tokenY);
+      let dxdy = dexX.redeemLiquidity(this.sender, dl, this.tokenY);
       let dx = dxdy[0];
-      tokenX.approveUpdateAndSend(dexX.self, user, dx);
+      tokenX.approveUpdateAndSend(dexX.self, this.sender, dx);
       return dxdy;
     }
 
     /**
      * Swap X tokens for Y tokens
-     * @param user caller address
      * @param dx input amount of X tokens
      * @return output amount Y tokens
      *
      * The transaction needs to be signed by the user's private key.
      */
-    @method swapX(user: PublicKey, dx: UInt64): UInt64 {
+    @method swapX(dx: UInt64): UInt64 {
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new DexTokenHolder(this.address, tokenY.token.id);
-      let dy = dexY.swap(user, dx, this.tokenX);
-      tokenY.approveUpdateAndSend(dexY.self, user, dy);
+      let dy = dexY.swap(this.sender, dx, this.tokenX);
+      tokenY.approveUpdateAndSend(dexY.self, this.sender, dy);
       return dy;
     }
 
     /**
      * Swap Y tokens for X tokens
-     * @param user caller address
      * @param dy input amount of Y tokens
      * @return output amount Y tokens
      *
      * The transaction needs to be signed by the user's private key.
      */
-    @method swapY(user: PublicKey, dy: UInt64): UInt64 {
+    @method swapY(dy: UInt64): UInt64 {
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.token.id);
-      let dx = dexX.swap(user, dy, this.tokenY);
-      tokenX.approveUpdateAndSend(dexX.self, user, dx);
+      let dx = dexX.swap(this.sender, dy, this.tokenY);
+      tokenX.approveUpdateAndSend(dexX.self, this.sender, dx);
       return dx;
     }
 
@@ -217,11 +202,11 @@ function createDex({
   }
 
   class ModifiedDex extends Dex {
-    @method swapX(user: PublicKey, dx: UInt64): UInt64 {
+    @method swapX(dx: UInt64): UInt64 {
       let tokenY = new TokenContract(this.tokenY);
       let dexY = new ModifiedDexTokenHolder(this.address, tokenY.token.id);
-      let dy = dexY.swap(user, dx, this.tokenX);
-      tokenY.approveUpdateAndSend(dexY.self, user, dy);
+      let dy = dexY.swap(this.sender, dx, this.tokenX);
+      tokenY.approveUpdateAndSend(dexY.self, this.sender, dy);
       return dy;
     }
   }
@@ -391,14 +376,6 @@ function createDex({
  * Simple token with API flexible enough to handle all our use cases
  */
 class TokenContract extends SmartContract {
-  deploy(args?: DeployArgs) {
-    super.deploy(args);
-    this.setPermissions({
-      ...Permissions.default(),
-      send: Permissions.proof(),
-      receive: Permissions.proof(),
-    });
-  }
   @method init() {
     super.init();
     // mint the entire supply to the token account with the same address as this contract
@@ -437,14 +414,10 @@ class TokenContract extends SmartContract {
   // => need callbacks for signatures
   @method deployZkapp(address: PublicKey, verificationKey: VerificationKey) {
     let tokenId = this.token.id;
-    let zkapp = AccountUpdate.defaultAccountUpdate(address, tokenId);
-    this.approve(zkapp);
-    AccountUpdate.setValue(zkapp.update.permissions, {
-      ...Permissions.default(),
-      send: Permissions.proof(),
-    });
-    AccountUpdate.setValue(zkapp.update.verificationKey, verificationKey);
-    zkapp.sign();
+    let zkapp = AccountUpdate.create(address, tokenId);
+    zkapp.account.permissions.set(Permissions.default());
+    zkapp.account.verificationKey.set(verificationKey);
+    zkapp.requireSignature();
   }
 
   // let a zkapp send tokens to someone, provided the token supply stays constant

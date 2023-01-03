@@ -5,39 +5,41 @@ import {
   AccountUpdate,
   PrivateKey,
   SmartContract,
-  PublicKey,
   UInt64,
   shutdown,
-  DeployArgs,
   Permissions,
 } from 'snarkyjs';
 
 await isReady;
 
 class SendMINAExample extends SmartContract {
-  deploy(args: DeployArgs) {
-    super.deploy(args);
-    this.setPermissions({
+  init() {
+    super.init();
+    this.account.permissions.set({
       ...Permissions.default(),
-      editState: Permissions.proofOrSignature(),
-      editSequenceState: Permissions.proofOrSignature(),
+      send: Permissions.proofOrSignature(),
     });
-    this.balance.addInPlace(UInt64.from(initialBalance));
   }
 
-  @method sendMINA(receiverAddress: PublicKey, amount: UInt64) {
-    this.send({
-      to: receiverAddress,
-      amount,
-    });
+  @method withdraw(amount: UInt64) {
+    this.send({ to: this.sender, amount });
+  }
+
+  @method deposit(amount: UInt64) {
+    let senderUpdate = AccountUpdate.createSigned(this.sender);
+    senderUpdate.send({ to: this, amount });
   }
 }
 
-let Local = Mina.LocalBlockchain();
+let proofsEnabled = false;
+if (proofsEnabled) await SendMINAExample.compile();
+
+let Local = Mina.LocalBlockchain({ proofsEnabled });
 Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp
-let feePayer = Local.testAccounts[0].privateKey;
+let feePayerKey = Local.testAccounts[0].privateKey;
+let feePayer = Local.testAccounts[0].publicKey;
 
 // the zkapp account
 let zkappKey = PrivateKey.random();
@@ -49,83 +51,55 @@ let account1Address = account1Key.toPublicKey();
 let account2Key = PrivateKey.random();
 let account2Address = account2Key.toPublicKey();
 
+function printBalances() {
+  console.log(
+    `zkApp balance:    ${Mina.getBalance(zkappAddress).div(1e9)} MINA`
+  );
+  console.log(
+    `account1 balance: ${Mina.getBalance(account1Address).div(1e9)} MINA`
+  );
+  console.log(
+    `account2 balance: ${Mina.getBalance(account2Address).div(1e9)} MINA\n`
+  );
+}
+
 let zkapp = new SendMINAExample(zkappAddress);
-let initialBalance = 10_000_000_000;
 let tx;
 
-console.log('deploy');
+console.log('deploy and fund user accounts');
 tx = await Mina.transaction(feePayer, () => {
-  AccountUpdate.fundNewAccount(feePayer, { initialBalance });
-  zkapp.deploy({ zkappKey });
+  let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer, 3);
+  feePayerUpdate.send({ to: account1Address, amount: 2e9 });
+  feePayerUpdate.send({ to: account2Address, amount: 0 }); // just touch account #2, so it's created
+  zkapp.deploy();
 });
-await tx.send();
+await tx.sign([feePayerKey, zkappKey]).send();
+printBalances();
 
-console.log(`zkApp balance: ${Mina.getBalance(zkappAddress)} MINA`);
-
-console.log('----------MINA sending----------');
-tx = await Local.transaction(feePayer, () => {
-  AccountUpdate.fundNewAccount(feePayer);
-  zkapp.sendMINA(account1Address, UInt64.from(1_000_000));
-  zkapp.sign(zkappKey);
-});
-await tx.send();
-
-console.log(`zkApp balance: ${Mina.getBalance(zkappAddress)} MINA`);
-console.log(
-  `account1Address balance: ${Mina.getBalance(account1Address)} MINA`
-);
-
-console.log('----------MINA sending (with signed)----------');
-tx = await Local.transaction(feePayer, () => {
-  AccountUpdate.fundNewAccount(feePayer);
-  let accountUpdate = AccountUpdate.createSigned(zkappKey);
-  accountUpdate.send({ to: account2Address, amount: UInt64.from(1_000_000) });
-  zkapp.sign(zkappKey);
-  zkapp.account.nonce.assertEquals(zkapp.account.nonce.get().add(1));
-});
-await tx.send();
-
-console.log(`zkApp balance: ${Mina.getBalance(zkappAddress)} MINA`);
-console.log(
-  `account1Address balance: ${Mina.getBalance(account1Address)} MINA`
-);
-console.log(
-  `account2Address balance: ${Mina.getBalance(account2Address)} MINA`
-);
-
-console.log('----------MINA sending (with unsigned)----------');
-tx = await Local.transaction(feePayer, () => {
-  let accountUpdate = AccountUpdate.create(zkappAddress);
-  accountUpdate.sign(zkappKey);
-  accountUpdate.send({ to: account2Address, amount: UInt64.from(1_000_000) });
-  zkapp.sign(zkappKey);
-  zkapp.account.nonce.assertEquals(zkapp.account.nonce.get().add(1));
-});
-await tx.send();
-
-console.log(`zkApp balance: ${Mina.getBalance(zkappAddress)} MINA`);
-console.log(
-  `account1Address balance: ${Mina.getBalance(account1Address)} MINA`
-);
-console.log(
-  `account2Address balance: ${Mina.getBalance(account2Address)} MINA`
-);
-
-console.log('----------MINA sending (with proof)----------');
-tx = await Local.transaction(feePayer, () => {
-  let accountUpdate = AccountUpdate.createSigned(zkappKey);
-  accountUpdate.send({ to: account2Address, amount: UInt64.from(1_000_000) });
-  zkapp.account.nonce.assertEquals(zkapp.account.nonce.get().add(1));
+console.log('---------- deposit MINA into zkApp (with proof) ----------');
+tx = await Mina.transaction(account1Address, () => {
+  zkapp.deposit(UInt64.from(1e9));
 });
 await tx.prove();
-await tx.send();
+await tx.sign([account1Key]).send();
+printBalances();
 
-console.log(`zkApp balance: ${Mina.getBalance(zkappAddress)} MINA`);
+console.log('---------- send MINA from zkApp (with proof) ----------');
+tx = await Mina.transaction(account1Address, () => {
+  zkapp.withdraw(UInt64.from(1e9));
+});
+await tx.prove();
+await tx.sign([account1Key]).send();
+printBalances();
+
 console.log(
-  `account1Address balance: ${Mina.getBalance(account1Address)} MINA`
+  '---------- send MINA between accounts (with signature) ----------'
 );
-console.log(
-  `account2Address balance: ${Mina.getBalance(account2Address)} MINA`
-);
+tx = await Mina.transaction(account1Address, () => {
+  let account1Update = AccountUpdate.createSigned(account1Address);
+  account1Update.send({ to: account2Address, amount: 1e9 });
+});
+await tx.sign([account1Key]).send();
+printBalances();
 
 shutdown();

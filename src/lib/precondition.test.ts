@@ -21,14 +21,16 @@ class MyContract extends SmartContract {
 let zkappKey: PrivateKey;
 let zkappAddress: PublicKey;
 let zkapp: MyContract;
-let feePayer: PrivateKey;
+let feePayer: PublicKey;
+let feePayerKey: PrivateKey;
 
 beforeAll(async () => {
   // set up local blockchain, create zkapp keys, deploy the contract
   await isReady;
   let Local = Mina.LocalBlockchain();
   Mina.setActiveInstance(Local);
-  feePayer = Local.testAccounts[0].privateKey;
+  feePayerKey = Local.testAccounts[0].privateKey;
+  feePayer = Local.testAccounts[0].publicKey;
 
   zkappKey = PrivateKey.random();
   zkappAddress = zkappKey.toPublicKey();
@@ -36,9 +38,9 @@ beforeAll(async () => {
 
   let tx = await Mina.transaction(feePayer, () => {
     AccountUpdate.fundNewAccount(feePayer);
-    zkapp.deploy({ zkappKey });
+    zkapp.deploy();
   });
-  tx.send();
+  tx.sign([feePayerKey, zkappKey]).send();
 });
 afterAll(() => setTimeout(shutdown, 0));
 
@@ -65,14 +67,14 @@ describe('preconditions', () => {
   it('get + assertEquals should not throw', async () => {
     let nonce = zkapp.account.nonce.get();
     let tx = await Mina.transaction(feePayer, () => {
-      zkapp.sign(zkappKey);
+      zkapp.requireSignature();
       for (let precondition of implemented) {
         let p = precondition().get();
         precondition().assertEquals(p as any);
       }
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await tx.send();
+    await tx.sign([feePayerKey, zkappKey]).send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
@@ -96,10 +98,10 @@ describe('preconditions', () => {
         let p: any = precondition().get();
         precondition().assertBetween(p.constructor.zero, p);
       }
-      zkapp.sign(zkappKey);
+      zkapp.requireSignature();
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await tx.send();
+    await tx.sign([feePayerKey, zkappKey]).send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
@@ -111,10 +113,10 @@ describe('preconditions', () => {
         precondition().get();
         precondition().assertNothing();
       }
-      zkapp.sign(zkappKey);
+      zkapp.requireSignature();
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await tx.send();
+    await tx.sign([feePayerKey, zkappKey]).send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
@@ -138,10 +140,10 @@ describe('preconditions', () => {
       zkapp.self.body.preconditions.network.totalCurrency.isSome = Bool(true);
       zkapp.self.body.preconditions.network.totalCurrency.value.upper =
         UInt64.from(1e9 * 1e9);
-      zkapp.sign(zkappKey);
+      zkapp.requireSignature();
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await tx.send();
+    await tx.sign([feePayerKey, zkappKey]).send();
     // check that tx was applied, by checking nonce was incremented
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
@@ -154,7 +156,9 @@ describe('preconditions', () => {
         AccountUpdate.attachToTransaction(zkapp.self);
       });
 
-      await expect(tx.send()).rejects.toThrow(/unsatisfied/);
+      await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
+        /unsatisfied/
+      );
     }
   });
 
@@ -165,7 +169,9 @@ describe('preconditions', () => {
         precondition().assertEquals(p.not());
         AccountUpdate.attachToTransaction(zkapp.self);
       });
-      await expect(tx.send()).rejects.toThrow(/unsatisfied/);
+      await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
+        /unsatisfied/
+      );
     }
   });
 
@@ -174,7 +180,7 @@ describe('preconditions', () => {
       zkapp.account.delegate.assertEquals(PublicKey.empty());
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    await expect(tx.send()).rejects.toThrow(/unsatisfied/);
+    await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(/unsatisfied/);
   });
 
   it('unsatisfied assertBetween should be rejected', async () => {
@@ -184,7 +190,9 @@ describe('preconditions', () => {
         precondition().assertBetween(p.add(20), p.add(30));
         AccountUpdate.attachToTransaction(zkapp.self);
       });
-      await expect(tx.send()).rejects.toThrow(/unsatisfied/);
+      await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
+        /unsatisfied/
+      );
     }
   });
 
@@ -194,10 +202,10 @@ describe('preconditions', () => {
   it.skip('unsatisfied nonce precondition should be rejected', async () => {
     let tx = await Mina.transaction(feePayer, () => {
       zkapp.account.nonce.assertEquals(UInt32.from(1e8));
-      zkapp.sign(zkappKey);
+      zkapp.requireSignature();
       AccountUpdate.attachToTransaction(zkapp.self);
     });
-    expect(() => tx.send()).toThrow();
+    expect(() => tx.sign([zkappKey, feePayerKey]).send()).toThrow();
   });
 });
 

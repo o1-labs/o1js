@@ -39,6 +39,7 @@ export {
   CurrentTransaction,
   setActiveInstance,
   transaction,
+  sender,
   currentSlot,
   getAccount,
   hasAccount,
@@ -53,7 +54,7 @@ export {
   filterGroups,
 };
 interface TransactionId {
-  wait(): Promise<void>;
+  wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;
   hash(): string;
 }
 
@@ -111,13 +112,32 @@ let currentTransaction = Context.create<CurrentTransaction>();
  * Allows you to specify information about the fee payer account and the transaction.
  */
 type FeePayerSpec =
-  | PrivateKey
+  | PublicKey
   | {
-      feePayerKey: PrivateKey;
+      sender: PublicKey;
       fee?: number | string | UInt64;
       memo?: string;
       nonce?: number;
     }
+  | undefined;
+
+type DeprecatedFeePayerSpec =
+  | PublicKey
+  | PrivateKey
+  | ((
+      | {
+          feePayerKey: PrivateKey;
+          sender?: PublicKey;
+        }
+      | {
+          feePayerKey?: PrivateKey;
+          sender: PublicKey;
+        }
+    ) & {
+      fee?: number | string | UInt64;
+      memo?: string;
+      nonce?: number;
+    })
   | undefined;
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
@@ -129,7 +149,7 @@ function reportGetAccountError(publicKey: string, tokenId: string) {
 }
 
 function createTransaction(
-  feePayer: FeePayerSpec,
+  feePayer: DeprecatedFeePayerSpec,
   f: () => unknown,
   numberOfRuns: 0 | 1 | undefined,
   {
@@ -141,14 +161,28 @@ function createTransaction(
   if (currentTransaction.has()) {
     throw new Error('Cannot start new transaction within another transaction');
   }
-  let feePayerKey =
-    feePayer instanceof PrivateKey ? feePayer : feePayer?.feePayerKey;
-  let fee = feePayer instanceof PrivateKey ? undefined : feePayer?.fee;
-  let memo = feePayer instanceof PrivateKey ? '' : feePayer?.memo ?? '';
-  let nonce = feePayer instanceof PrivateKey ? undefined : feePayer?.nonce;
+  let feePayerSpec: {
+    sender?: PublicKey;
+    feePayerKey?: PrivateKey;
+    fee?: number | string | UInt64;
+    memo?: string;
+    nonce?: number;
+  };
+  if (feePayer === undefined) {
+    feePayerSpec = {};
+  } else if (feePayer instanceof PrivateKey) {
+    feePayerSpec = { feePayerKey: feePayer, sender: feePayer.toPublicKey() };
+  } else if (feePayer instanceof PublicKey) {
+    feePayerSpec = { sender: feePayer };
+  } else {
+    feePayerSpec = feePayer;
+    if (feePayerSpec.sender === undefined)
+      feePayerSpec.sender = feePayerSpec.feePayerKey?.toPublicKey();
+  }
+  let { feePayerKey, sender, fee, memo = '', nonce } = feePayerSpec;
 
   let transactionId = currentTransaction.enter({
-    sender: feePayerKey?.toPublicKey(),
+    sender,
     accountUpdates: [],
     fetchMode,
     isFinalRunOutsideCircuit,
@@ -194,12 +228,10 @@ function createTransaction(
   }
 
   let feePayerAccountUpdate: FeePayerUnsigned;
-  if (feePayerKey !== undefined) {
+  if (sender !== undefined) {
     // if senderKey is provided, fetch account to get nonce and mark to be signed
-    let senderAddress = feePayerKey.toPublicKey();
-
     let nonce_;
-    let senderAccount = getAccount(senderAddress, TokenId.default);
+    let senderAccount = getAccount(sender, TokenId.default);
 
     if (nonce === undefined) {
       nonce_ = senderAccount.nonce;
@@ -216,11 +248,9 @@ function createTransaction(
         },
       });
     }
-    feePayerAccountUpdate = AccountUpdate.defaultFeePayer(
-      senderAddress,
-      feePayerKey,
-      nonce_
-    );
+    feePayerAccountUpdate = AccountUpdate.defaultFeePayer(sender, nonce_);
+    if (feePayerKey !== undefined)
+      feePayerAccountUpdate.lazyAuthorization!.privateKey = feePayerKey;
     if (fee !== undefined) {
       feePayerAccountUpdate.body.fee =
         fee instanceof UInt64 ? fee : UInt64.from(String(fee));
@@ -268,7 +298,10 @@ function createTransaction(
 }
 
 interface Mina {
-  transaction(sender: FeePayerSpec, f: () => void): Promise<Transaction>;
+  transaction(
+    sender: DeprecatedFeePayerSpec,
+    f: () => void
+  ): Promise<Transaction>;
   currentSlot(): UInt32;
   hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
@@ -475,16 +508,23 @@ function LocalBlockchain({
         }
       });
       return {
-        wait: async () => {},
+        wait: async (_options?: {
+          maxAttempts?: number;
+          interval?: number;
+        }) => {
+          console.log(
+            'Info: Waiting for inclusion in a block is not supported for LocalBlockchain.'
+          );
+        },
         hash: (): string => {
           const message =
-            'Txn Hash retrieving is not supported for LocalBlockchain.';
+            'Info: Txn Hash retrieving is not supported for LocalBlockchain.';
           console.log(message);
           return message;
         },
       };
     },
-    async transaction(sender: FeePayerSpec, f: () => void) {
+    async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
       // bad hack: run transaction just to see whether it creates proofs
       // if it doesn't, this is the last chance to run SmartContract.runOutsideCircuit, which is supposed to run only once
       // TODO: this has obvious holes if multiple zkapps are involved, but not relevant currently because we can't prove with multiple account updates
@@ -635,20 +675,48 @@ function Network(graphqlEndpoint: string): Mina {
         errors = [error];
       }
 
+      let maxAttempts: number;
+      let attempts = 0;
+      let interval: number;
+
       return {
         data: response?.data,
         errors,
-        async wait() {
-          console.log(
-            'Info: waiting for inclusion in a block is not implemented yet.'
-          );
+        async wait(options?: { maxAttempts?: number; interval?: number }) {
+          // default is 45 attempts * 20s each = 15min
+          // the block time on berkeley is currently longer than the average 3-4min, so its better to target a higher block time
+          // fetching an update every 20s is more than enough with a current block time of 3min
+          maxAttempts = options?.maxAttempts ?? 45;
+          interval = options?.interval ?? 20000;
+
+          const executePoll = async (
+            resolve: () => void,
+            reject: (err: Error) => void | Error
+          ) => {
+            let txId = response?.data?.sendZkapp?.zkapp?.id;
+            let res = await Fetch.fetchTransactionStatus(txId);
+            attempts++;
+            if (res === 'INCLUDED') {
+              return resolve();
+            } else if (maxAttempts && attempts === maxAttempts) {
+              return reject(
+                new Error(
+                  `Exceeded max attempts. TransactionId: ${txId}, attempts: ${attempts}, last received status: ${res}`
+                )
+              );
+            } else {
+              setTimeout(executePoll, interval, resolve, reject);
+            }
+          };
+
+          return new Promise(executePoll);
         },
         hash() {
           return response?.data?.sendZkapp?.zkapp?.hash;
         },
       };
     },
-    async transaction(sender: FeePayerSpec, f: () => void) {
+    async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
       let tx = createTransaction(sender, f, 0, {
         fetchMode: 'test',
         isFinalRunOutsideCircuit: false,
@@ -737,7 +805,7 @@ let activeInstance: Mina = {
   sendTransaction() {
     throw new Error('must call Mina.setActiveInstance first');
   },
-  async transaction(sender: FeePayerSpec, f: () => void) {
+  async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
     return createTransaction(sender, f, 0);
   },
   fetchEvents() {
@@ -759,31 +827,73 @@ function setActiveInstance(m: Mina) {
  * Construct a smart contract transaction. Within the callback passed to this function,
  * you can call into the methods of smart contracts.
  *
- * ```typescript
- * transaction(() => {
+ * ```
+ * let tx = await Mina.transaction(sender, () => {
  *   myZkapp.update();
  *   someOtherZkapp.someOtherMethod();
- * })
+ * });
  * ```
  *
  * @return A transaction that can subsequently be submitted to the chain.
  */
-function transaction(f: () => void): Promise<Transaction>;
 function transaction(sender: FeePayerSpec, f: () => void): Promise<Transaction>;
+function transaction(f: () => void): Promise<Transaction>;
+/**
+ * @deprecated It's deprecated to pass in the fee payer's private key. Pass in the public key instead.
+ * ```
+ * // good
+ * Mina.transaction(publicKey, ...);
+ * Mina.transaction({ sender: publicKey }, ...);
+ *
+ * // deprecated
+ * Mina.transaction(privateKey, ...);
+ * Mina.transaction({ feePayerKey: privateKey }, ...);
+ * ```
+ */
 function transaction(
-  senderOrF: FeePayerSpec | (() => void),
+  sender: DeprecatedFeePayerSpec,
+  f: () => void
+): Promise<Transaction>;
+function transaction(
+  senderOrF: DeprecatedFeePayerSpec | (() => void),
   fOrUndefined?: () => void
 ): Promise<Transaction> {
-  let sender: FeePayerSpec;
+  let sender: DeprecatedFeePayerSpec;
   let f: () => void;
   if (fOrUndefined !== undefined) {
-    sender = senderOrF as FeePayerSpec;
+    sender = senderOrF as DeprecatedFeePayerSpec;
     f = fOrUndefined;
   } else {
     sender = undefined;
     f = senderOrF as () => void;
   }
   return activeInstance.transaction(sender, f);
+}
+
+/**
+ * Returns the public key of the current transaction's sender account.
+ *
+ * Throws an error if not inside a transaction, or the sender wasn't passed in.
+ */
+function sender() {
+  let tx = currentTransaction();
+  if (tx === undefined)
+    throw Error(
+      `The sender is not available outside a transaction. Make sure you only use it within \`Mina.transaction\` blocks or smart contract methods.`
+    );
+  let sender = currentTransaction()?.sender;
+  if (sender === undefined)
+    throw Error(
+      `The sender is not available, because the transaction block was created without the optional \`sender\` argument.
+Here's an example for how to pass in the sender and make it available:
+
+Mina.transaction(sender, // <-- pass in sender's public key here
+() => {
+  // methods can use this.sender
+});
+`
+    );
+  return sender;
 }
 
 /**

@@ -19,17 +19,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `Circuit.constraintSystemFromKeypair(keypair)` to inspect the circuit at a low level https://github.com/o1-labs/snarkyjs/pull/529
+- `this.account.<field>.set()` as a unified API to update fields on the account https://github.com/o1-labs/snarkyjs/pull/643
+  - covers `permissions`, `verificationKey`, `zkappUri`, `tokenSymbol`, `delegate`, `votingFor`
+  - exists on `SmartContract.account` and `AccountUpdate.account`
+- `this.sender` to get the public key of the transaction's sender https://github.com/o1-labs/snarkyjs/pull/652
+  - To get the sender outside a smart contract, there's now `Mina.sender()`
+- `tx.wait()` is now implemented. It waits for the transactions inclusion in a block https://github.com/o1-labs/snarkyjs/pull/645
+  - `wait()` also now takes an optional `options` parameter to specify the polling interval or maximum attempts. `wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;`
+  - `Circuit.constraintSystemFromKeypair(keypair)` to inspect the circuit at a low level https://github.com/o1-labs/snarkyjs/pull/529
   - Works with a `keypair` (prover + verifier key) generated with the `Circuit` API
 
 ### Changed
 
-- BREAKING CHANGE: Constraint changes in `sign()`, `requireSignature()` and `createSigned()` on `AccountUpdate` / `SmartContract`. _This means that smart contracts using these methods in their proofs won't be able to create valid proofs against old deployed verification keys._
+- BREAKING CHANGE: Constraint changes in `sign()`, `requireSignature()` and `createSigned()` on `AccountUpdate` / `SmartContract`. _This means that smart contracts using these methods in their proofs won't be able to create valid proofs against old deployed verification keys._ https://github.com/o1-labs/snarkyjs/pull/637
+- `Mina.transaction` now takes a _public key_ as the fee payer argument (passing in a private key is deprecated) https://github.com/o1-labs/snarkyjs/pull/652
+  - Before: `Mina.transaction(privateKey, ...)`. Now: `Mina.transaction(publicKey, ...)`
+  - `AccountUpdate.fundNewAccount()` now enables funding multiple accounts at once, and deprecates the `initialBalance` argument
 - New option `enforceTransactionLimits` for `LocalBlockchain` (default value: `true`), to disable the enforcement of protocol transaction limits (maximum events, maximum sequence events and enforcing certain layout of `AccountUpdate`s depending on their authorization) https://github.com/o1-labs/snarkyjs/pull/620
+- Change the default `send` permissions (for sending MINA or tokens) that get set when deploying a zkApp, from `signature()` to `proof()` https://github.com/o1-labs/snarkyjs/pull/648
 
 ### Deprecated
 
-- `AccountUpdate.createSigned(privateKey: PrivateKey)` in favor of new signature `AccountUpdate.createSigned(publicKey: PublicKey)`
+- `this.setPermissions()` in favor of `this.account.permissions.set()` https://github.com/o1-labs/snarkyjs/pull/643
+  - `this.tokenSymbol.set()` in favor of `this.account.tokenSymbol.set()`
+  - `this.setValue()` in favor of `this.account.<field>.set()`
+- `Mina.transaction(privateKey: PrivateKey, ...)` in favor of new signature `Mina.transaction(publicKey: PublicKey, ...)`
+- `AccountUpdate.createSigned(privateKey: PrivateKey)` in favor of new signature `AccountUpdate.createSigned(publicKey: PublicKey)` https://github.com/o1-labs/snarkyjs/pull/637
 
 ### Fixed
 

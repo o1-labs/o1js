@@ -24,14 +24,13 @@ class SimpleZkapp extends SmartContract {
     this.x = State();
   }
 
-  events = {
-    update: Field,
-  };
+  events = { update: Field };
 
-  deploy(args) {
-    super.deploy(args);
+  init() {
+    super.init();
     this.x.set(initialState);
   }
+
   update(y) {
     this.emitEvent('update', y);
     this.emitEvent('update', y);
@@ -48,6 +47,7 @@ let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
 let feePayerKey = Local.testAccounts[0].privateKey;
+let feePayer = Local.testAccounts[0].publicKey;
 
 let zkappKey = PrivateKey.random();
 let zkappAddress = zkappKey.toPublicKey();
@@ -59,18 +59,18 @@ console.log('compile');
 await SimpleZkapp.compile();
 
 console.log('deploy');
-let tx = await Mina.transaction(feePayerKey, () => {
-  AccountUpdate.fundNewAccount(feePayerKey);
-  zkapp.deploy({ zkappKey });
+let tx = await Mina.transaction(feePayer, () => {
+  AccountUpdate.fundNewAccount(feePayer);
+  zkapp.deploy();
 });
-await tx.send();
+await tx.sign([feePayerKey, zkappKey]).send();
 
 console.log('initial state: ' + zkapp.x.get());
 
 console.log('update');
-tx = await Mina.transaction(feePayerKey, () => zkapp.update(Field(3)));
+tx = await Mina.transaction(feePayer, () => zkapp.update(Field(3)));
 await tx.prove();
-await tx.send();
+await tx.sign([feePayerKey]).send();
 console.log('final state: ' + zkapp.x.get());
 
 shutdown();

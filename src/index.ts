@@ -46,6 +46,8 @@ export {
 export {
   fetchAccount,
   fetchLastBlock,
+  fetchTransactionStatus,
+  TransactionStatus,
   addCachedAccount,
   setGraphqlEndpoint,
   sendZkapp,

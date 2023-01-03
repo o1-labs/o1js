@@ -866,7 +866,13 @@ function cloneCircuitValue<T>(obj: T): T {
 
 function circuitValueEquals<T>(a: T, b: T): boolean {
   // primitive JS types and functions are checked for exact equality
-  if (typeof a !== 'object' || a === null) return a === b;
+  if (
+    typeof a !== 'object' ||
+    a === null ||
+    typeof b !== 'object' ||
+    b === null
+  )
+    return a === b;
 
   // built-in JS datatypes with custom equality checks
   if (Array.isArray(a)) {
