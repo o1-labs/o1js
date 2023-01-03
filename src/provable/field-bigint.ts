@@ -194,7 +194,7 @@ function BinableBigint<T extends bigint = bigint>(
       fromBytesInternal(bytes, start) {
         let x = 0n;
         let bitPosition = 0n;
-        let end = start + sizeInBytes;
+        let end = Math.min(start + sizeInBytes, bytes.length);
         for (let i = start; i < end; i++) {
           x += BigInt(bytes[i]) << bitPosition;
           bitPosition += 8n;
