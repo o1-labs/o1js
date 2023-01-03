@@ -48,7 +48,10 @@ const BinableSignature = withVersionNumber(
   record({ r: Field, s: Scalar }, ['r', 's']),
   versionNumbers.signature
 );
-const Signature = base58(BinableSignature, versionBytes.signature);
+const Signature = {
+  ...BinableSignature,
+  ...base58(BinableSignature, versionBytes.signature),
+};
 
 /**
  * Convenience wrapper around {@link sign} where the message is a single {@link Field} element

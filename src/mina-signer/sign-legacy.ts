@@ -13,6 +13,8 @@ export {
   verifyPayment,
   verifyStakeDelegation,
   verifyStringSignature,
+  paymentFromJson,
+  delegationFromJson,
   PaymentJson,
   DelegationJson,
   Tag,
@@ -21,6 +23,7 @@ export {
   BodyEnum,
   Payment,
   Delegation,
+  Common,
 };
 
 function signPayment(
