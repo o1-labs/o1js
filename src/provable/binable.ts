@@ -5,6 +5,7 @@ export {
   Binable,
   withVersionNumber,
   tuple,
+  record,
   prefixToField,
   bytesToBits,
   bitsToBytes,
@@ -63,8 +64,33 @@ function withCheck<T>(
 
 type Tuple<T> = [T, ...T[]] | [];
 
+function record<Types extends Record<string, any>>(
+  binables: {
+    [i in keyof Types]: Binable<Types[i]>;
+  },
+  keys: Tuple<keyof Types>
+): Binable<Types> {
+  let binablesTuple = keys.map((key) => binables[key]) as Tuple<Binable<any>>;
+  let tupleBinable = tuple<Tuple<any>>(binablesTuple);
+  return {
+    toBytes(t) {
+      let array = keys.map((key) => t[key]) as Tuple<any>;
+      return tupleBinable.toBytes(array);
+    },
+    fromBytes(bytes) {
+      let tupleValues = tupleBinable.fromBytes(bytes);
+      return Object.fromEntries(
+        keys.map((key, i) => [key, tupleValues[i]])
+      ) as any;
+    },
+    sizeInBytes() {
+      return tupleBinable.sizeInBytes();
+    },
+  };
+}
+
 function tuple<Types extends Tuple<any>>(
-  binables: Array<any> & {
+  binables: any[] & {
     [i in keyof Types]: Binable<Types[i]>;
   }
 ): Binable<Types> {
