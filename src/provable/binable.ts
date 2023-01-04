@@ -1,4 +1,5 @@
 // generic encoding infrastructure
+import { bigIntToBytes } from './field-bigint.js';
 import { GenericField } from './generic.js';
 
 export {
@@ -15,6 +16,8 @@ export {
   withCheck,
   BinableWithBits,
   stringToBytes,
+  BinableString,
+  BinableBigintInteger,
 };
 
 type Binable<T> = {
@@ -173,6 +176,46 @@ function enumWithArgument<Enum_ extends Tuple<AnyEnum>>(types: {
     },
   });
 }
+
+const BinableString = defineBinable({
+  toBytes(t: string) {
+    return [t.length, ...stringToBytes(t)];
+  },
+  fromBytesInternal(bytes, offset) {
+    let length = bytes[offset++];
+    let end = offset + length;
+    let string = String.fromCharCode(...bytes.slice(offset, end));
+    return [string, end];
+  },
+});
+
+const CODE_NEG_INT8 = 0xff;
+const CODE_INT16 = 0xfe;
+const CODE_INT32 = 0xfd;
+const CODE_INT64 = 0xfc;
+
+const BinableBigintInteger = defineBinable({
+  toBytes(n: bigint) {
+    if (n >= 0) {
+      if (n < 0x80n) return bigIntToBytes(n, 1);
+      if (n < 0x8000n) return [CODE_INT16, ...bigIntToBytes(n, 2)];
+      if (n < 0x80000000) return [CODE_INT32, ...bigIntToBytes(n, 4)];
+      else return [CODE_INT64, ...bigIntToBytes(n, 8)];
+    } else {
+      let M = 1n << 64n;
+      if (n >= -0x80n)
+        return [CODE_NEG_INT8, ...bigIntToBytes((M + n) & 0xffn, 1)];
+      if (n >= -0x8000n)
+        return [CODE_INT16, ...bigIntToBytes((M + n) & 0xffffn, 2)];
+      if (n >= 0x80000000)
+        return [CODE_INT32, ...bigIntToBytes((M + n) & 0xffff_ffffn, 4)];
+      else return [CODE_INT64, ...bigIntToBytes(M + n, 8)];
+    }
+  },
+  fromBytesInternal(bytes, offset) {
+    throw 'todo';
+  },
+});
 
 // same as Random_oracle.prefix_to_field in OCaml
 // converts string to bytes and bytes to field; throws if bytes don't fit in one field
