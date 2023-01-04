@@ -14,6 +14,7 @@ let classNames = [
   'Scalar',
   'Ledger',
   'Pickles',
+  'Test',
 ];
 
 (async () => {

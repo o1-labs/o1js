@@ -23,6 +23,9 @@ export {
   Gate,
 };
 
+// internal
+export { Test };
+
 /**
  * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
  *
@@ -1216,6 +1219,14 @@ declare class Ledger {
     >;
   };
 }
+
+declare const Test: {
+  transactionHash: {
+    examplePayment(): string;
+    serializePayment(payment: string): { data: Uint8Array };
+    serializeCommon(common: string): { data: Uint8Array };
+  };
+};
 
 /**
  * js_of_ocaml representation of a byte array,
