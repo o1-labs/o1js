@@ -15,8 +15,11 @@ export {
   verifyStringSignature,
   paymentFromJson,
   delegationFromJson,
+  commonFromJson,
+  amountFromJson,
   PaymentJson,
   DelegationJson,
+  CommonJson,
   Tag,
   UserCommand,
   UserCommandEnum,
@@ -182,12 +185,21 @@ function delegationFromJson({
 
 function commonFromJson(c: CommonJson) {
   return {
-    fee: UInt64.fromJSON(c.fee),
+    fee: amountFromJson(c.fee),
     feePayer: PublicKey.fromJSON(c.feePayer),
     nonce: UInt32.fromJSON(c.nonce),
     validUntil: UInt32.fromJSON(c.validUntil),
+    // TODO: this might need to be fromBase58
     memo: Memo.fromString(c.memo),
   };
+}
+
+function amountFromJson(amount: string): UInt64 {
+  let a = BigInt(amount) * 1_000_000_000n;
+  if (a < 0n || a > UInt64.maxValue) {
+    throw Error('invalid token amount');
+  }
+  return a;
 }
 
 function signString(

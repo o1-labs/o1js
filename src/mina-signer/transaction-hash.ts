@@ -1,6 +1,7 @@
-import { Bool, Field, UInt32, UInt64 } from '../provable/field-bigint.js';
-import { Memo } from './memo.js';
+import { Bool, Field } from '../provable/field-bigint.js';
 import {
+  BinableBigintInteger,
+  BinableString,
   defineBinable,
   enumWithArgument,
   record,
@@ -16,13 +17,20 @@ import {
   delegationFromJson,
   paymentFromJson,
 } from './sign-legacy.js';
-import { PublicKey } from '../provable/curve-bigint.js';
+import { PublicKey, Scalar } from '../provable/curve-bigint.js';
 import { Signature } from './signature.js';
 import { blake2b } from 'blakejs';
 import { base58 } from '../provable/base58.js';
 import { versionBytes } from '../js_crypto/constants.js';
 
-export { hashPayment, hashStakeDelegation };
+export {
+  hashPayment,
+  hashStakeDelegation,
+  SignedCommand,
+  Common,
+  userCommandToEnum,
+  Signed,
+};
 
 type Signed<T> = { data: T; signature: string };
 
@@ -69,16 +77,20 @@ let BinablePublicKey = record({ x: Field, isOdd: Bool }, ['x', 'isOdd']);
 
 const Common = record<Common>(
   {
-    fee: UInt64,
+    fee: BinableBigintInteger,
     feePayer: BinablePublicKey,
-    nonce: UInt32,
-    validUntil: UInt32,
-    memo: Memo,
+    nonce: BinableBigintInteger,
+    validUntil: BinableBigintInteger,
+    memo: BinableString,
   },
   ['fee', 'feePayer', 'nonce', 'validUntil', 'memo']
 );
 const Payment = record<Payment>(
-  { source: BinablePublicKey, receiver: BinablePublicKey, amount: UInt64 },
+  {
+    source: BinablePublicKey,
+    receiver: BinablePublicKey,
+    amount: BinableBigintInteger,
+  },
   ['source', 'receiver', 'amount']
 );
 const Delegation = record<Delegation>(
@@ -96,6 +108,7 @@ const Body = enumWithArgument<
 ]);
 
 const UserCommand = record({ common: Common, body: Body }, ['common', 'body']);
+const BinableSignature = record({ r: Field, s: Scalar }, ['r', 's']);
 
 type SignedCommand = {
   payload: UserCommandEnum;
@@ -103,7 +116,11 @@ type SignedCommand = {
   signature: Signature;
 };
 const SignedCommand = record<SignedCommand>(
-  { payload: UserCommand, signer: BinablePublicKey, signature: Signature },
+  {
+    payload: UserCommand,
+    signer: BinablePublicKey,
+    signature: BinableSignature,
+  },
   ['payload', 'signer', 'signature']
 );
 
