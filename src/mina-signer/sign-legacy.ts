@@ -256,7 +256,10 @@ type UserCommandEnum = {
 
 type BodyEnum =
   | { type: 'Payment'; value: Payment }
-  | { type: 'StakeDelegation'; value: Delegation };
+  | {
+      type: 'StakeDelegation';
+      value: { type: 'SetDelegate'; value: Delegation };
+    };
 
 type Common = {
   fee: UInt64;

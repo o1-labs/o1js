@@ -1,11 +1,18 @@
-import { Test } from '../snarky.js';
+import { shutdown, Test } from '../snarky.js';
 import {
   Common,
   Signed,
   SignedCommand,
   userCommandToEnum,
 } from './transaction-hash.js';
-import { PaymentJson, commonFromJson, paymentFromJson } from './sign-legacy.js';
+import {
+  PaymentJson,
+  commonFromJson,
+  paymentFromJson,
+  CommonJson,
+  DelegationJson,
+  delegationFromJson,
+} from './sign-legacy.js';
 import { Signature } from './signature.js';
 import { PublicKey } from '../provable/curve-bigint.js';
 import { Memo } from './memo.js';
@@ -29,66 +36,94 @@ let payment: Signed<PaymentJson> = {
   signature:
     '7mWyu5cpHDvYj28RGuJKzBQkU35KgHwaM34oPxoxXbFddv1kpL3e6NdUsMZMhyrrgkgVYo5cNvfiXhtshF35ZqTmSdPcUToN',
 };
-
-let paymentOcaml = {
-  payload: {
-    common: {
-      fee: '8',
-      fee_payer_pk: 'B62qs2FVpaWkoNdEUgmSmUF8etXJWTnELboJK8MjLfeiSxP9MY7qjZr',
-      nonce: '600',
-      valid_until: '107',
-      memo: Memo.toBase58(Memo.fromString('blub')),
+let delegation: Signed<DelegationJson> = {
+  data: {
+    common: payment.data.common,
+    body: {
+      delegator: 'B62qs2FVpaWkoNdEUgmSmUF8etXJWTnELboJK8MjLfeiSxP9MY7qjZr',
+      newDelegate: 'B62qs2FVpaWkoNdEUgmSmUF8etXJWTnELboJK8MjLfeiSxP9MY7qjZr',
     },
-    body: [
-      'Payment',
-      {
-        source_pk: 'B62qs2FVpaWkoNdEUgmSmUF8etXJWTnELboJK8MjLfeiSxP9MY7qjZr',
-        receiver_pk: 'B62qs2FVpaWkoNdEUgmSmUF8etXJWTnELboJK8MjLfeiSxP9MY7qjZr',
-        amount: '99',
-      },
-    ],
   },
-  signer: 'B62qs2FVpaWkoNdEUgmSmUF8etXJWTnELboJK8MjLfeiSxP9MY7qjZr',
   signature:
     '7mWyu5cpHDvYj28RGuJKzBQkU35KgHwaM34oPxoxXbFddv1kpL3e6NdUsMZMhyrrgkgVYo5cNvfiXhtshF35ZqTmSdPcUToN',
 };
 
-console.log('--- comparing payment.common ---');
-
 let result = Test.transactionHash.serializeCommon(
-  JSON.stringify(paymentOcaml.payload.common)
+  JSON.stringify(commonToOcaml(payment.data.common))
 );
 let bytes0 = [...result.data];
-console.log();
-console.log(JSON.stringify(bytes0));
-console.log();
-
 let common = commonFromJson(payment.data.common);
 let bytes1 = Common.toBytes(common);
-console.log(JSON.stringify(bytes1));
-console.log();
+expect(JSON.stringify(bytes1)).toEqual(JSON.stringify(bytes0));
 
-console.log('equal?', JSON.stringify(bytes0) === JSON.stringify(bytes1));
-
-console.log('--- comparing payment ---');
-
-result = Test.transactionHash.serializePayment(JSON.stringify(paymentOcaml));
-let commandBytes0 = [...result.data];
-console.log();
-console.log(JSON.stringify(commandBytes0));
-console.log();
-
+result = Test.transactionHash.serializePayment(
+  JSON.stringify(paymentToOcaml(payment))
+);
+let paymentBytes0 = [...result.data];
 let payload = userCommandToEnum(paymentFromJson(payment.data));
 let command = {
   signer: PublicKey.fromBase58(payment.data.body.source),
   signature: Signature.fromBase58(payment.signature),
   payload,
 };
-let commandBytes1 = SignedCommand.toBytes(command);
-console.log(JSON.stringify(commandBytes1));
+let paymentBytes1 = SignedCommand.toBytes(command);
+expect(JSON.stringify(paymentBytes1)).toEqual(JSON.stringify(paymentBytes0));
 
-console.log(
-  'equal?',
-  JSON.stringify(commandBytes0) === JSON.stringify(commandBytes1)
+result = Test.transactionHash.serializePayment(
+  JSON.stringify(delegationToOcaml(delegation))
 );
-expect(JSON.stringify(commandBytes1)).toEqual(JSON.stringify(commandBytes0));
+let delegationBytes0 = [...result.data];
+payload = userCommandToEnum(delegationFromJson(delegation.data));
+command = {
+  signer: PublicKey.fromBase58(payment.data.body.source),
+  signature: Signature.fromBase58(payment.signature),
+  payload,
+};
+let delegationBytes1 = SignedCommand.toBytes(command);
+expect(JSON.stringify(delegationBytes1)).toEqual(
+  JSON.stringify(delegationBytes0)
+);
+
+shutdown();
+
+function paymentToOcaml({
+  data: {
+    common,
+    body: { source, receiver, amount },
+  },
+  signature,
+}: Signed<PaymentJson>) {
+  return {
+    payload: {
+      common: commonToOcaml(common),
+      body: ['Payment', { source_pk: source, receiver_pk: receiver, amount }],
+    },
+    signer: source,
+    signature,
+  };
+}
+
+function delegationToOcaml({
+  data: {
+    common,
+    body: { delegator, newDelegate },
+  },
+  signature,
+}: Signed<DelegationJson>) {
+  return {
+    payload: {
+      common: commonToOcaml(common),
+      body: [
+        'Stake_delegation',
+        ['Set_delegate', { delegator, new_delegate: newDelegate }],
+      ],
+    },
+    signer: delegator,
+    signature,
+  };
+}
+
+function commonToOcaml({ fee, feePayer, nonce, validUntil, memo }: CommonJson) {
+  memo = Memo.toBase58(Memo.fromString(memo));
+  return { fee, fee_payer_pk: feePayer, nonce, valid_until: validUntil, memo };
+}

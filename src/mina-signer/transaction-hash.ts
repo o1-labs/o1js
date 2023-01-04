@@ -67,7 +67,13 @@ function userCommandToEnum({ common, body }: UserCommand): UserCommandEnum {
       return { common, body: { type, value } };
     case 'StakeDelegation':
       let { source: delegator, receiver: newDelegate } = value;
-      return { common, body: { type, value: { delegator, newDelegate } } };
+      return {
+        common,
+        body: {
+          type,
+          value: { type: 'SetDelegate', value: { delegator, newDelegate } },
+        },
+      };
   }
 }
 
@@ -97,14 +103,19 @@ const Delegation = record<Delegation>(
   { delegator: BinablePublicKey, newDelegate: BinablePublicKey },
   ['delegator', 'newDelegate']
 );
+type DelegationEnum = { type: 'SetDelegate'; value: Delegation };
+const DelegationEnum = enumWithArgument<[DelegationEnum]>([
+  { type: 'SetDelegate', value: Delegation },
+]);
+
 const Body = enumWithArgument<
   [
     { type: 'Payment'; value: Payment },
-    { type: 'StakeDelegation'; value: Delegation }
+    { type: 'StakeDelegation'; value: DelegationEnum }
   ]
 >([
   { type: 'Payment', value: Payment },
-  { type: 'StakeDelegation', value: Delegation },
+  { type: 'StakeDelegation', value: DelegationEnum },
 ]);
 
 const UserCommand = record({ common: Common, body: Body }, ['common', 'body']);
