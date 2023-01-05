@@ -23,7 +23,8 @@ let versionBytes = {
   "userCommandMemo": 20,
   "privateKey": 90,
   "signature": 154,
-  "transactionHash": 18
+  "transactionHash": 18,
+  "signedCommandV1": 19
 };
 let poseidonParamsKimchiFp = {
   "mds": [

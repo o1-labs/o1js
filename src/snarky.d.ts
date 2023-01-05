@@ -1224,8 +1224,10 @@ declare const Test: {
   transactionHash: {
     examplePayment(): string;
     serializePayment(payment: string): { data: Uint8Array };
+    serializePaymentV1(payment: string): string;
     serializeCommon(common: string): { data: Uint8Array };
     hashPayment(payment: string): string;
+    hashPaymentV1(payment: string): string;
   };
 };
 

@@ -1,10 +1,12 @@
-import { Bool, Field } from '../provable/field-bigint.js';
+import { Bool, Field, UInt64 } from '../provable/field-bigint.js';
 import {
+  Binable,
   BinableBigintInteger,
   BinableString,
   defineBinable,
   enumWithArgument,
   record,
+  stringToBytes,
   withVersionNumber,
 } from '../provable/binable.js';
 import {
@@ -21,16 +23,21 @@ import {
 import { PublicKey, Scalar } from '../provable/curve-bigint.js';
 import { Signature } from './signature.js';
 import { blake2b } from 'blakejs';
-import { base58 } from '../provable/base58.js';
+import { base58, withBase58 } from '../provable/base58.js';
 import { versionBytes } from '../js_crypto/constants.js';
 
 export {
   hashPayment,
   hashStakeDelegation,
+  hashPaymentV1,
+  hashStakeDelegationV1,
   SignedCommand,
+  SignedCommandV1,
   Common,
   userCommandToEnum,
+  userCommandToV1,
   Signed,
+  HashBase58,
 };
 
 type Signed<T> = { data: T; signature: string };
@@ -150,4 +157,125 @@ const HashBase58 = base58(
     1
   ),
   versionBytes.transactionHash
+);
+
+// legacy / v1 stuff
+
+function hashPaymentV1({ data, signature }: Signed<PaymentJson>) {
+  let paymentV1 = userCommandToV1(paymentFromJson(data));
+  return hashSignedCommandV1({
+    signer: PublicKey.fromBase58(data.body.source),
+    signature: Signature.fromBase58(signature),
+    payload: paymentV1,
+  });
+}
+
+function hashStakeDelegationV1({ data, signature }: Signed<DelegationJson>) {
+  let payload = userCommandToV1(delegationFromJson(data));
+  return hashSignedCommandV1({
+    signer: PublicKey.fromBase58(data.body.delegator),
+    signature: Signature.fromBase58(signature),
+    payload,
+  });
+}
+
+function hashSignedCommandV1(command: SignedCommandV1) {
+  let base58 = SignedCommandV1.toBase58(command);
+  let inputBytes = stringToBytes(base58);
+  let bytes = blake2b(Uint8Array.from(inputBytes), undefined, 32);
+  return HashBase58.toBase58(bytes);
+}
+
+function userCommandToV1({ common, body }: UserCommand): UserCommandV1 {
+  let { tag: type, ...value } = body;
+  let commonV1: CommonV1 = { ...common, feeToken: 1n };
+  switch (type) {
+    case 'Payment':
+      let paymentV1: PaymentV1 = { ...value, tokenId: 1n };
+      return { common: commonV1, body: { type, value: paymentV1 } };
+    case 'StakeDelegation':
+      let { source: delegator, receiver: newDelegate } = value;
+      return {
+        common: commonV1,
+        body: {
+          type,
+          value: { type: 'SetDelegate', value: { delegator, newDelegate } },
+        },
+      };
+  }
+}
+const with1 = <T>(binable: Binable<T>) => withVersionNumber(binable, 1);
+const IntegerV1 = with1(with1(BinableBigintInteger));
+type CommonV1 = Common & { feeToken: UInt64 };
+const CommonV1 = with1(
+  record<CommonV1>(
+    {
+      fee: with1(with1(with1(IntegerV1))),
+      feeToken: with1(IntegerV1),
+      feePayer: PublicKey,
+      nonce: IntegerV1,
+      validUntil: IntegerV1,
+      memo: with1(BinableString),
+    },
+    ['fee', 'feeToken', 'feePayer', 'nonce', 'validUntil', 'memo']
+  )
+);
+type PaymentV1 = Payment & { tokenId: UInt64 };
+const PaymentV1 = with1(
+  with1(
+    record<PaymentV1>(
+      {
+        source: PublicKey,
+        receiver: PublicKey,
+        tokenId: IntegerV1,
+        amount: with1(IntegerV1),
+      },
+      ['source', 'receiver', 'tokenId', 'amount']
+    )
+  )
+);
+const DelegationV1 = record<Delegation>(
+  { delegator: PublicKey, newDelegate: PublicKey },
+  ['delegator', 'newDelegate']
+);
+const DelegationEnumV1 = with1(
+  enumWithArgument<[DelegationEnum]>([
+    { type: 'SetDelegate', value: DelegationV1 },
+  ])
+);
+type BodyV1 =
+  | { type: 'Payment'; value: PaymentV1 }
+  | { type: 'StakeDelegation'; value: DelegationEnum };
+const BodyV1 = with1(
+  enumWithArgument<
+    [
+      { type: 'Payment'; value: PaymentV1 },
+      { type: 'StakeDelegation'; value: DelegationEnum }
+    ]
+  >([
+    { type: 'Payment', value: PaymentV1 },
+    { type: 'StakeDelegation', value: DelegationEnumV1 },
+  ])
+);
+type UserCommandV1 = { common: CommonV1; body: BodyV1 };
+const UserCommandV1 = with1(
+  record<UserCommandV1>({ common: CommonV1, body: BodyV1 }, ['common', 'body'])
+);
+type SignedCommandV1 = {
+  payload: UserCommandV1;
+  signer: PublicKey;
+  signature: Signature;
+};
+const SignedCommandV1 = withBase58<SignedCommandV1>(
+  with1(
+    record(
+      {
+        payload: UserCommandV1,
+        signer: with1(PublicKey),
+        signature: with1(record({ r: with1(Field), s: Scalar }, ['r', 's'])),
+      },
+      ['payload', 'signer', 'signature']
+    )
+  ),
+  versionBytes.signedCommandV1
 );

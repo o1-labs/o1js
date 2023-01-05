@@ -2,7 +2,7 @@ import { Fq } from '../js_crypto/finite_field.js';
 import { GroupProjective, Pallas } from '../js_crypto/elliptic_curve.js';
 import { versionBytes } from '../js_crypto/constants.js';
 import { record, withCheck, withVersionNumber } from './binable.js';
-import { base58 } from './base58.js';
+import { base58, withBase58 } from './base58.js';
 import {
   BinableBigint,
   Bool,
@@ -75,7 +75,7 @@ let BinablePublicKey = withVersionNumber(
  */
 const PublicKey = {
   ...provable({ x: Field, isOdd: Bool }),
-  ...base58(BinablePublicKey, versionBytes.publicKey),
+  ...withBase58(BinablePublicKey, versionBytes.publicKey),
 
   toJSON(publicKey: PublicKey) {
     return PublicKey.toBase58(publicKey);
