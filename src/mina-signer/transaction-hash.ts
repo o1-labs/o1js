@@ -5,6 +5,7 @@ import {
   defineBinable,
   enumWithArgument,
   record,
+  withVersionNumber,
 } from '../provable/binable.js';
 import {
   Common,
@@ -33,21 +34,22 @@ export {
 };
 
 type Signed<T> = { data: T; signature: string };
+const dummySignature: Signature = { r: Field(1), s: Scalar(1) };
 
-function hashPayment({ signature, data }: Signed<PaymentJson>) {
+function hashPayment({ data }: Signed<PaymentJson>) {
   let payload = userCommandToEnum(paymentFromJson(data));
   return hashSignedCommand({
     signer: PublicKey.fromBase58(data.body.source),
-    signature: Signature.fromBase58(signature),
+    signature: dummySignature,
     payload,
   });
 }
 
-function hashStakeDelegation({ signature, data }: Signed<DelegationJson>) {
+function hashStakeDelegation({ data }: Signed<DelegationJson>) {
   let payload = userCommandToEnum(delegationFromJson(data));
   return hashSignedCommand({
     signer: PublicKey.fromBase58(data.body.delegator),
-    signature: Signature.fromBase58(signature),
+    signature: dummySignature,
     payload,
   });
 }
@@ -55,7 +57,7 @@ function hashStakeDelegation({ signature, data }: Signed<DelegationJson>) {
 function hashSignedCommand(command: SignedCommand) {
   let inputBytes = SignedCommand.toBytes(command);
   let bytes = blake2b(Uint8Array.from(inputBytes), undefined, 32);
-  return Base58Hash.toBase58(bytes);
+  return HashBase58.toBase58(bytes);
 }
 
 // helper
@@ -135,14 +137,17 @@ const SignedCommand = record<SignedCommand>(
   ['payload', 'signer', 'signature']
 );
 
-const Base58Hash = base58(
-  defineBinable<Uint8Array>({
-    toBytes(t: Uint8Array) {
-      return [...t];
-    },
-    fromBytesInternal(bytes, offset) {
-      return [Uint8Array.from(bytes), offset];
-    },
-  }),
+const HashBase58 = base58(
+  withVersionNumber(
+    defineBinable<Uint8Array>({
+      toBytes(t: Uint8Array) {
+        return [t.length, ...t];
+      },
+      fromBytesInternal(bytes) {
+        return [Uint8Array.from(bytes.slice(1)), bytes.length];
+      },
+    }),
+    1
+  ),
   versionBytes.transactionHash
 );

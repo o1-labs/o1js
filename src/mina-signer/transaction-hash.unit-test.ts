@@ -2,6 +2,7 @@ import { shutdown, Test } from '../snarky.js';
 import {
   Common,
   hashPayment,
+  hashStakeDelegation,
   Signed,
   SignedCommand,
   userCommandToEnum,
@@ -73,9 +74,8 @@ let digest0 = Test.transactionHash.hashPayment(ocamlPayment);
 let digest1 = hashPayment(payment);
 expect(digest1).toEqual(digest0);
 
-result = Test.transactionHash.serializePayment(
-  JSON.stringify(delegationToOcaml(delegation))
-);
+let ocamlDelegation = JSON.stringify(delegationToOcaml(delegation));
+result = Test.transactionHash.serializePayment(ocamlDelegation);
 let delegationBytes0 = [...result.data];
 payload = userCommandToEnum(delegationFromJson(delegation.data));
 command = {
@@ -87,6 +87,10 @@ let delegationBytes1 = SignedCommand.toBytes(command);
 expect(JSON.stringify(delegationBytes1)).toEqual(
   JSON.stringify(delegationBytes0)
 );
+
+digest0 = Test.transactionHash.hashPayment(ocamlDelegation);
+digest1 = hashStakeDelegation(delegation);
+expect(digest1).toEqual(digest0);
 
 shutdown();
 
