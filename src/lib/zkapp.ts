@@ -1079,7 +1079,7 @@ super.init();
           }
         );
         ZkappClass._methodMetadata[methodIntf.methodName] = {
-          sequenceEvents: accountUpdate!.body.sequenceEvents.data.length,
+          sequenceEvents: accountUpdate!.body.actions.data.length,
           rows,
           digest,
           hasReturn: result !== undefined,
@@ -1178,8 +1178,8 @@ class ${contract.constructor.name} extends SmartContract {
     dispatch(action: A) {
       let accountUpdate = contract.self;
       let eventFields = reducer.actionType.toFields(action);
-      accountUpdate.body.sequenceEvents = SequenceEvents.pushEvent(
-        accountUpdate.body.sequenceEvents,
+      accountUpdate.body.actions = SequenceEvents.pushEvent(
+        accountUpdate.body.actions,
         eventFields
       );
     },
@@ -1268,7 +1268,6 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       endActionHash?: Field;
     }): A[][] {
       let actionsForAccount: A[][] = [];
-
       Circuit.asProver(() => {
         // if the fromActionHash is the empty state, we fetch all events
         fromActionHash = fromActionHash
@@ -1307,6 +1306,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
             )
           );
       });
+
       return actionsForAccount;
     },
   };

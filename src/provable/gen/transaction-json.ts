@@ -79,7 +79,7 @@ type ZkappCommand = {
       };
       incrementNonce: Bool;
       events: Field[][];
-      sequenceEvents: Field[][];
+      actions: Field[][];
       callData: Field;
       callDepth: number;
       preconditions: {
@@ -208,7 +208,7 @@ type AccountUpdate = {
     };
     incrementNonce: Bool;
     events: Field[][];
-    sequenceEvents: Field[][];
+    actions: Field[][];
     callData: Field;
     callDepth: number;
     preconditions: {

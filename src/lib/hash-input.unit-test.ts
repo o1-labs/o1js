@@ -127,10 +127,10 @@ let events = Events.empty();
 events = Events.pushEvent(events, [Field(1)]);
 events = Events.pushEvent(events, [Field(0)]);
 body.events = events;
-let sequenceEvents = SequenceEvents.empty();
-sequenceEvents = SequenceEvents.pushEvent(sequenceEvents, [Field(1)]);
-sequenceEvents = SequenceEvents.pushEvent(sequenceEvents, [Field(0)]);
-body.sequenceEvents = sequenceEvents;
+let actions = SequenceEvents.empty();
+actions = SequenceEvents.pushEvent(actions, [Field(1)]);
+actions = SequenceEvents.pushEvent(actions, [Field(0)]);
+body.actions = actions;
 
 testInput(Body, Ledger.hashInputFromJson.body, body);
 
