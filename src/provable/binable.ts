@@ -1,5 +1,5 @@
 // generic encoding infrastructure
-import { bigIntToBytes } from './field-bigint.js';
+import { bigIntToBytes, bytesToBigInt } from './field-bigint.js';
 import { GenericField } from './generic.js';
 
 export {
@@ -201,15 +201,41 @@ const BinableBigintInteger = defineBinable({
         return [CODE_NEG_INT8, ...bigIntToBytes((M + n) & 0xffn, 1)];
       if (n >= -0x8000n)
         return [CODE_INT16, ...bigIntToBytes((M + n) & 0xffffn, 2)];
-      if (n >= 0x80000000)
+      if (n >= -0x80000000)
         return [CODE_INT32, ...bigIntToBytes((M + n) & 0xffff_ffffn, 4)];
       else return [CODE_INT64, ...bigIntToBytes(M + n, 8)];
     }
   },
   readBytes(bytes, offset) {
-    throw 'todo';
+    let code = bytes[offset++];
+    if (code < 0x80) return [BigInt(code), offset];
+    let size = {
+      [CODE_NEG_INT8]: 1,
+      [CODE_INT16]: 2,
+      [CODE_INT32]: 4,
+      [CODE_INT64]: 8,
+    }[code];
+    if (size === undefined) {
+      throw Error('binable integer: invalid start byte');
+    }
+    let end = offset + size;
+    let x = fillInt64(bytes.slice(offset, end));
+    return [x, end];
   },
 });
+
+function fillInt64(startBytes: number[]) {
+  let n = startBytes.length;
+  // fill up int64 with the highest bit of startBytes
+  let lastBit = startBytes[n - 1] >> 7;
+  let fillByte = lastBit === 1 ? 0xff : 0x00;
+  let intBytes = startBytes.concat(Array(8 - n).fill(fillByte));
+  // interpret result as a bigint > 0
+  let x = bytesToBigInt(intBytes);
+  // map from uint64 range to int64 range
+  if (x >= 1n << 63n) x -= 1n << 64n;
+  return x;
+}
 
 // same as Random_oracle.prefix_to_field in OCaml
 // converts string to bytes and bytes to field; throws if bytes don't fit in one field
