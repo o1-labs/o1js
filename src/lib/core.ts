@@ -20,7 +20,7 @@ const FieldBinable = defineBinable({
   toBytes(t: Field) {
     return [...(t.toConstant() as any as InternalConstantField).value[1]];
   },
-  fromBytesInternal(bytes, offset) {
+  readBytes(bytes, offset) {
     let uint8array = new Uint8Array(32);
     uint8array.set(bytes.slice(offset, offset + 32));
     return [
@@ -34,7 +34,7 @@ const FieldBinable = defineBinable({
 
 Field.toBytes = FieldBinable.toBytes;
 Field.fromBytes = FieldBinable.fromBytes;
-Field.fromBytesInternal = FieldBinable.fromBytesInternal;
+Field.readBytes = FieldBinable.readBytes;
 Field.sizeInBytes = () => 32;
 
 Bool.toInput = function (x) {
@@ -46,13 +46,13 @@ const BoolBinable = defineBinable({
   toBytes(b: Bool) {
     return [Number(b.toBoolean())];
   },
-  fromBytesInternal(bytes, offset) {
+  readBytes(bytes, offset) {
     return [Bool(!!bytes[offset]), offset + 1];
   },
 });
 Bool.toBytes = BoolBinable.toBytes;
 Bool.fromBytes = BoolBinable.fromBytes;
-Bool.fromBytesInternal = BoolBinable.fromBytesInternal;
+Bool.readBytes = BoolBinable.readBytes;
 Bool.sizeInBytes = () => 1;
 
 Scalar.toFieldsCompressed = function (s: Scalar) {

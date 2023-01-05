@@ -143,7 +143,7 @@ const HashBase58 = base58(
       toBytes(t: Uint8Array) {
         return [t.length, ...t];
       },
-      fromBytesInternal(bytes) {
+      readBytes(bytes) {
         return [Uint8Array.from(bytes.slice(1)), bytes.length];
       },
     }),

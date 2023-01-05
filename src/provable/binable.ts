@@ -22,10 +22,7 @@ export {
 
 type Binable<T> = {
   toBytes(t: T): number[];
-  fromBytesInternal(
-    bytes: number[],
-    offset: number
-  ): [value: T, offset: number];
+  readBytes(bytes: number[], offset: number): [value: T, offset: number];
   fromBytes(bytes: number[]): T;
 };
 type BinableWithBits<T> = Binable<T> & {
@@ -37,20 +34,17 @@ type BinableWithBits<T> = Binable<T> & {
 
 function defineBinable<T>({
   toBytes,
-  fromBytesInternal,
+  readBytes,
 }: {
   toBytes(t: T): number[];
-  fromBytesInternal(
-    bytes: number[],
-    offset: number
-  ): [value: T, offset: number];
+  readBytes(bytes: number[], offset: number): [value: T, offset: number];
 }): Binable<T> {
   return {
     toBytes,
-    fromBytesInternal,
+    readBytes,
     // spec: fromBytes throws if the input bytes are not all used
     fromBytes(bytes) {
-      let [value, offset] = fromBytesInternal(bytes, 0);
+      let [value, offset] = readBytes(bytes, 0);
       if (offset < bytes.length)
         throw Error('fromBytes: input bytes left over');
       return value;
@@ -68,21 +62,21 @@ function withVersionNumber<T>(
       if (versionNumber !== undefined) bytes.unshift(versionNumber);
       return bytes;
     },
-    fromBytesInternal(bytes, offset) {
+    readBytes(bytes, offset) {
       if (versionNumber !== undefined) offset++;
-      return binable.fromBytesInternal(bytes, offset);
+      return binable.readBytes(bytes, offset);
     },
   });
 }
 
 function withCheck<T>(
-  { toBytes, fromBytesInternal }: Binable<T>,
+  { toBytes, readBytes }: Binable<T>,
   check: (t: T) => void
 ): Binable<T> {
   return defineBinable({
     toBytes,
-    fromBytesInternal(bytes, start) {
-      let [value, end] = fromBytesInternal(bytes, start);
+    readBytes(bytes, start) {
+      let [value, end] = readBytes(bytes, start);
       check(value);
       return [value, end];
     },
@@ -104,8 +98,8 @@ function record<Types extends Record<string, any>>(
       let array = keys.map((key) => t[key]) as Tuple<any>;
       return tupleBinable.toBytes(array);
     },
-    fromBytesInternal(bytes, start) {
-      let [tupleValue, end] = tupleBinable.fromBytesInternal(bytes, start);
+    readBytes(bytes, start) {
+      let [tupleValue, end] = tupleBinable.readBytes(bytes, start);
       let value = Object.fromEntries(
         keys.map((key, i) => [key, tupleValue[i]])
       ) as any;
@@ -127,10 +121,10 @@ function tuple<Types extends Tuple<any>>(binables: {
       }
       return bytes;
     },
-    fromBytesInternal(bytes, offset) {
+    readBytes(bytes, offset) {
       let values = [];
       for (let i = 0; i < n; i++) {
-        let [value, newOffset] = binables[i].fromBytesInternal(bytes, offset);
+        let [value, newOffset] = binables[i].readBytes(bytes, offset);
         offset = newOffset;
         values.push(value);
       }
@@ -164,12 +158,12 @@ function enumWithArgument<Enum_ extends Tuple<AnyEnum>>(types: {
       }
       return [i];
     },
-    fromBytesInternal(bytes, offset) {
+    readBytes(bytes, offset) {
       let i = bytes[offset];
       offset++;
       let type = types[i];
       if ('value' in type) {
-        let [value, end] = type.value.fromBytesInternal(bytes, offset);
+        let [value, end] = type.value.readBytes(bytes, offset);
         return [{ type: type.type, value }, end];
       }
       return [{ type: type.type }, offset];
@@ -181,7 +175,7 @@ const BinableString = defineBinable({
   toBytes(t: string) {
     return [t.length, ...stringToBytes(t)];
   },
-  fromBytesInternal(bytes, offset) {
+  readBytes(bytes, offset) {
     let length = bytes[offset++];
     let end = offset + length;
     let string = String.fromCharCode(...bytes.slice(offset, end));
@@ -212,7 +206,7 @@ const BinableBigintInteger = defineBinable({
       else return [CODE_INT64, ...bigIntToBytes(M + n, 8)];
     }
   },
-  fromBytesInternal(bytes, offset) {
+  readBytes(bytes, offset) {
     throw 'todo';
   },
 });

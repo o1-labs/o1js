@@ -191,7 +191,7 @@ function BinableBigint<T extends bigint = bigint>(
       toBytes(x) {
         return bigIntToBytes(x, sizeInBytes);
       },
-      fromBytesInternal(bytes, start) {
+      readBytes(bytes, start) {
         let x = 0n;
         let bitPosition = 0n;
         let end = Math.min(start + sizeInBytes, bytes.length);

@@ -34,7 +34,7 @@ const Binable: Binable<string> = defineBinable({
   toBytes(memo) {
     return stringToBytes(memo);
   },
-  fromBytesInternal(bytes, start) {
+  readBytes(bytes, start) {
     let end = start + SIZE;
     let memo = String.fromCharCode(...bytes.slice(start, end));
     return [memo, end];
