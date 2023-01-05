@@ -50,6 +50,7 @@ let delegation: Signed<DelegationJson> = {
     '7mWyu5cpHDvYj28RGuJKzBQkU35KgHwaM34oPxoxXbFddv1kpL3e6NdUsMZMhyrrgkgVYo5cNvfiXhtshF35ZqTmSdPcUToN',
 };
 
+// common serialization
 let result = Test.transactionHash.serializeCommon(
   JSON.stringify(commonToOcaml(payment.data.common))
 );
@@ -58,6 +59,7 @@ let common = commonFromJson(payment.data.common);
 let bytes1 = Common.toBytes(common);
 expect(JSON.stringify(bytes1)).toEqual(JSON.stringify(bytes0));
 
+// payment serialization
 let ocamlPayment = JSON.stringify(paymentToOcaml(payment));
 result = Test.transactionHash.serializePayment(ocamlPayment);
 let paymentBytes0 = [...result.data];
@@ -70,10 +72,16 @@ let command = {
 let paymentBytes1 = SignedCommand.toBytes(command);
 expect(JSON.stringify(paymentBytes1)).toEqual(JSON.stringify(paymentBytes0));
 
+// payment roundtrip
+let commandRecovered = SignedCommand.fromBytes(paymentBytes1);
+expect(commandRecovered).toEqual(command);
+
+// payment hash
 let digest0 = Test.transactionHash.hashPayment(ocamlPayment);
 let digest1 = hashPayment(payment);
 expect(digest1).toEqual(digest0);
 
+// delegation serialization
 let ocamlDelegation = JSON.stringify(delegationToOcaml(delegation));
 result = Test.transactionHash.serializePayment(ocamlDelegation);
 let delegationBytes0 = [...result.data];
@@ -88,6 +96,12 @@ expect(JSON.stringify(delegationBytes1)).toEqual(
   JSON.stringify(delegationBytes0)
 );
 
+// delegation roundtrip
+commandRecovered = SignedCommand.fromBytes(delegationBytes1);
+console.log(commandRecovered);
+expect(commandRecovered).toEqual(command);
+
+// delegation hash
 digest0 = Test.transactionHash.hashPayment(ocamlDelegation);
 digest1 = hashStakeDelegation(delegation);
 expect(digest1).toEqual(digest0);
