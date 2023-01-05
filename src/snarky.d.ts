@@ -1225,6 +1225,7 @@ declare const Test: {
     examplePayment(): string;
     serializePayment(payment: string): { data: Uint8Array };
     serializeCommon(common: string): { data: Uint8Array };
+    hashPayment(payment: string): string;
   };
 };
 

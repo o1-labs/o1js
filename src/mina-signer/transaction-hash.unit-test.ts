@@ -1,6 +1,7 @@
 import { shutdown, Test } from '../snarky.js';
 import {
   Common,
+  hashPayment,
   Signed,
   SignedCommand,
   userCommandToEnum,
@@ -56,9 +57,8 @@ let common = commonFromJson(payment.data.common);
 let bytes1 = Common.toBytes(common);
 expect(JSON.stringify(bytes1)).toEqual(JSON.stringify(bytes0));
 
-result = Test.transactionHash.serializePayment(
-  JSON.stringify(paymentToOcaml(payment))
-);
+let ocamlPayment = JSON.stringify(paymentToOcaml(payment));
+result = Test.transactionHash.serializePayment(ocamlPayment);
 let paymentBytes0 = [...result.data];
 let payload = userCommandToEnum(paymentFromJson(payment.data));
 let command = {
@@ -68,6 +68,10 @@ let command = {
 };
 let paymentBytes1 = SignedCommand.toBytes(command);
 expect(JSON.stringify(paymentBytes1)).toEqual(JSON.stringify(paymentBytes0));
+
+let digest0 = Test.transactionHash.hashPayment(ocamlPayment);
+let digest1 = hashPayment(payment);
+expect(digest1).toEqual(digest0);
 
 result = Test.transactionHash.serializePayment(
   JSON.stringify(delegationToOcaml(delegation))
