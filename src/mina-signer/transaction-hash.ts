@@ -29,8 +29,6 @@ import { versionBytes } from '../js_crypto/constants.js';
 export {
   hashPayment,
   hashStakeDelegation,
-  hashPaymentV1,
-  hashStakeDelegationV1,
   SignedCommand,
   SignedCommandV1,
   Common,
@@ -43,19 +41,24 @@ export {
 type Signed<T> = { data: T; signature: string };
 const dummySignature: Signature = { r: Field(1), s: Scalar(1) };
 
-function hashPayment({ data }: Signed<PaymentJson>) {
-  let payload = userCommandToEnum(paymentFromJson(data));
+function hashPayment(signed: Signed<PaymentJson>, { berkeley = false } = {}) {
+  if (!berkeley) return hashPaymentV1(signed);
+  let payload = userCommandToEnum(paymentFromJson(signed.data));
   return hashSignedCommand({
-    signer: PublicKey.fromBase58(data.body.source),
+    signer: PublicKey.fromBase58(signed.data.body.source),
     signature: dummySignature,
     payload,
   });
 }
 
-function hashStakeDelegation({ data }: Signed<DelegationJson>) {
-  let payload = userCommandToEnum(delegationFromJson(data));
+function hashStakeDelegation(
+  signed: Signed<DelegationJson>,
+  { berkeley = false } = {}
+) {
+  if (!berkeley) return hashStakeDelegationV1(signed);
+  let payload = userCommandToEnum(delegationFromJson(signed.data));
   return hashSignedCommand({
-    signer: PublicKey.fromBase58(data.body.delegator),
+    signer: PublicKey.fromBase58(signed.data.body.delegator),
     signature: dummySignature,
     payload,
   });

@@ -2,9 +2,7 @@ import { Ledger, shutdown, Test } from '../snarky.js';
 import {
   Common,
   hashPayment,
-  hashPaymentV1,
   hashStakeDelegation,
-  hashStakeDelegationV1,
   Signed,
   SignedCommand,
   SignedCommandV1,
@@ -85,7 +83,7 @@ expect(commandRecovered).toEqual(command);
 
 // payment hash
 let digest0 = Test.transactionHash.hashPayment(ocamlPayment);
-let digest1 = hashPayment(payment);
+let digest1 = hashPayment(payment, { berkeley: true });
 expect(digest1).toEqual(digest0);
 
 // delegation serialization
@@ -109,7 +107,7 @@ expect(commandRecovered).toEqual(command);
 
 // delegation hash
 digest0 = Test.transactionHash.hashPayment(ocamlDelegation);
-digest1 = hashStakeDelegation(delegation);
+digest1 = hashStakeDelegation(delegation, { berkeley: true });
 expect(digest1).toEqual(digest0);
 
 // payment v1 serialization
@@ -129,7 +127,7 @@ expect(JSON.stringify(v1Bytes1)).toEqual(JSON.stringify(v1Bytes0));
 
 // payment v1 hash
 digest0 = Test.transactionHash.hashPaymentV1(ocamlPaymentV1);
-digest1 = hashPaymentV1(payment);
+digest1 = hashPayment(payment);
 expect(digest1).toEqual(digest0);
 
 // delegation v1 serialization
@@ -149,7 +147,7 @@ expect(JSON.stringify(v1Bytes1)).toEqual(JSON.stringify(v1Bytes0));
 
 // delegation v1 hash
 digest0 = Test.transactionHash.hashPaymentV1(ocamlDelegationV1);
-digest1 = hashStakeDelegationV1(delegation);
+digest1 = hashStakeDelegation(delegation);
 expect(digest1).toEqual(digest0);
 
 shutdown();
