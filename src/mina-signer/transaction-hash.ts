@@ -204,20 +204,29 @@ function userCommandToV1({ common, body }: UserCommand): UserCommandV1 {
       };
   }
 }
+// binables for v1 signed commands
+
+// TODO: Version numbers (of 1) were placed somewhat arbitrarily until it worked / matched serializations from OCaml.
+// I couldn't precisely explain each of them from following the OCaml type annotations, which I find hard to parse.
+// You could get an equivalent serialization by moving, for example, one of the version numbers on `common` one level down to become
+// another version number on `fee`, and I'm not sure what the correct answer is. I think this doesn't matter because
+// the type layout here, including version numbers, is frozen, so if it works once it'll work forever.
 const with1 = <T>(binable: Binable<T>) => withVersionNumber(binable, 1);
 const IntegerV1 = with1(with1(BinableBigintInteger));
 type CommonV1 = Common & { feeToken: UInt64 };
 const CommonV1 = with1(
-  record<CommonV1>(
-    {
-      fee: with1(with1(with1(IntegerV1))),
-      feeToken: with1(IntegerV1),
-      feePayer: PublicKey,
-      nonce: IntegerV1,
-      validUntil: IntegerV1,
-      memo: with1(BinableString),
-    },
-    ['fee', 'feeToken', 'feePayer', 'nonce', 'validUntil', 'memo']
+  with1(
+    record<CommonV1>(
+      {
+        fee: with1(IntegerV1),
+        feeToken: with1(IntegerV1),
+        feePayer: PublicKey,
+        nonce: IntegerV1,
+        validUntil: IntegerV1,
+        memo: with1(BinableString),
+      },
+      ['fee', 'feeToken', 'feePayer', 'nonce', 'validUntil', 'memo']
+    )
   )
 );
 type PaymentV1 = Payment & { tokenId: UInt64 };
@@ -268,13 +277,15 @@ type SignedCommandV1 = {
 };
 const SignedCommandV1 = withBase58<SignedCommandV1>(
   with1(
-    record(
-      {
-        payload: UserCommandV1,
-        signer: with1(PublicKey),
-        signature: with1(record({ r: with1(Field), s: Scalar }, ['r', 's'])),
-      },
-      ['payload', 'signer', 'signature']
+    with1(
+      record(
+        {
+          payload: UserCommandV1,
+          signer: with1(PublicKey),
+          signature: with1(record({ r: with1(Field), s: Scalar }, ['r', 's'])),
+        },
+        ['payload', 'signer', 'signature']
+      )
     )
   ),
   versionBytes.signedCommandV1
