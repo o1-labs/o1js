@@ -1,5 +1,6 @@
+import { bytesToBigInt } from '../js_crypto/bigint-helpers.js';
 import { defineBinable } from '../provable/binable.js';
-import { bytesToBigInt, sizeInBits } from '../provable/field-bigint.js';
+import { sizeInBits } from '../provable/field-bigint.js';
 import { Bool, Field, Scalar, Group } from '../snarky.js';
 
 export { Field, Bool, Scalar, Group };
