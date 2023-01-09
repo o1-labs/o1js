@@ -79,9 +79,9 @@
   "dependencies": {
     "@types/crypto-js": "^4.1.1",
     "blakejs": "1.2.1",
-    "crypto-js": "^4.1.1",
     "env": "^0.0.2",
     "isomorphic-fetch": "^3.0.0",
+    "js-sha256": "^0.9.0",
     "reflect-metadata": "^0.1.13",
     "tslib": "^2.3.0"
   }
