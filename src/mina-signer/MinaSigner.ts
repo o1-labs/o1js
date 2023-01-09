@@ -25,6 +25,7 @@ import {
 import { hashPayment, hashStakeDelegation } from './src/transaction-hash.js';
 import { Signature } from './src/signature.js';
 import { Memo } from './src/memo.js';
+import { publicKeyToHex } from './src/rosetta.js';
 
 export { Client as default };
 
@@ -365,9 +366,9 @@ class Client {
    * @param publicKey A valid public key
    * @returns A string that represents the hex encoding of a public key.
    */
-  public publicKeyToRaw(publicKey: string): string {
-    throw Error('unimplemented');
-    // return minaSDK.rawPublicKeyOfPublicKey(publicKey);
+  public publicKeyToRaw(publicKeyBase58: string): string {
+    let publicKey = PublicKey.fromBase58(publicKeyBase58);
+    return publicKeyToHex(publicKey);
   }
 
   /**
