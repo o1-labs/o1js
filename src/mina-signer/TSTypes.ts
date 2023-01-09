@@ -1,9 +1,11 @@
+import { ZkappCommand as ZkappCommandJson } from '../provable/gen/transaction-json.js';
+
 export type UInt32 = number | bigint | string;
 export type UInt64 = number | bigint | string;
 
 export type PublicKey = string;
 export type PrivateKey = string;
-export type Network = "mainnet" | "testnet";
+export type Network = 'mainnet' | 'testnet';
 
 export type Keypair = {
   readonly privateKey: PrivateKey;
@@ -40,15 +42,8 @@ export type Payment = {
   readonly validUntil?: UInt32;
 };
 
-export type AccountUpdates = {
-  body: any;
-  authorization: any;
-}[];
-
 export type ZkappCommand = {
-  readonly zkappCommand: {
-    accountUpdates : AccountUpdates;
-  };
+  readonly zkappCommand: ZkappCommandJson;
 
   readonly feePayer: {
     readonly feePayer: PublicKey;

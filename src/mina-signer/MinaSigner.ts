@@ -1,19 +1,6 @@
-const JSOfOCaml_SDK = require('./client_sdk.bc.js');
-const minaSDK = JSOfOCaml_SDK.minaSDK;
-
-import type {
-  Network,
-  PublicKey,
-  Keypair,
-  PrivateKey,
-  Signed,
-  Payment,
-  StakeDelegation,
-  Message,
-  ZkappCommand,
-  AccountUpdates,
-  SignableData,
-} from './TSTypes.js';
+import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
+import * as Json from './TSTypes.js';
+import type { Signed, Network } from './TSTypes.js';
 
 import {
   isPayment,
@@ -21,6 +8,7 @@ import {
   isStakeDelegation,
   isZkappCommand,
 } from './Utils.js';
+import { AccountUpdate } from '../provable/gen/transaction-json.js';
 
 export { Client as default };
 
@@ -31,11 +19,11 @@ class Client {
 
   constructor(options: { network: Network }) {
     if (!options?.network) {
-      throw 'Invalid Specified Network';
+      throw Error('Invalid Specified Network');
     }
     const specifiedNetwork = options.network.toLowerCase();
     if (specifiedNetwork !== 'mainnet' && specifiedNetwork !== 'testnet') {
-      throw 'Invalid Specified Network';
+      throw Error('Invalid Specified Network');
     }
     this.network = specifiedNetwork;
   }
@@ -45,8 +33,13 @@ class Client {
    *
    * @returns A Mina key pair
    */
-  public genKeys(): Keypair {
-    return minaSDK.genKeys();
+  public genKeys(): Json.Keypair {
+    let privateKey = PrivateKey.random();
+    let publicKey = PrivateKey.toPublicKey(privateKey);
+    return {
+      privateKey: PrivateKey.toBase58(privateKey),
+      publicKey: PublicKey.toBase58(publicKey),
+    };
   }
 
   /**
@@ -57,7 +50,7 @@ class Client {
    * @param keypair A key pair
    * @returns True if the `keypair` is a verifiable key pair, otherwise throw an exception
    */
-  public verifyKeypair(keypair: Keypair): boolean {
+  public verifyKeypair(keypair: Json.Keypair): boolean {
     return minaSDK.validKeypair(keypair);
   }
 
@@ -67,7 +60,7 @@ class Client {
    * @param privateKey The private key used to get the corresponding public key
    * @returns A public key
    */
-  public derivePublicKey(privateKey: PrivateKey): PublicKey {
+  public derivePublicKey(privateKey: Json.PrivateKey): Json.PublicKey {
     return minaSDK.publicKeyOfPrivateKey(privateKey);
   }
 
@@ -78,7 +71,7 @@ class Client {
    * @param key The key pair used to sign the message
    * @returns A signed message
    */
-  public signMessage(message: string, key: Keypair): Signed<Message> {
+  public signMessage(message: string, key: Json.Keypair): Signed<Json.Message> {
     return {
       signature: minaSDK.signString(this.network, key.privateKey, message),
       data: {
@@ -95,7 +88,7 @@ class Client {
    * @returns True if the `signedMessage` contains a valid signature matching
    * the message and publicKey.
    */
-  public verifyMessage(signedMessage: Signed<Message>): boolean {
+  public verifyMessage(signedMessage: Signed<Json.Message>): boolean {
     return minaSDK.verifyStringSignature(
       this.network,
       signedMessage.signature,
@@ -115,9 +108,9 @@ class Client {
    * @returns A signed payment transaction
    */
   public signPayment(
-    payment: Payment,
-    privateKey: PrivateKey
-  ): Signed<Payment> {
+    payment: Json.Payment,
+    privateKey: Json.PrivateKey
+  ): Signed<Json.Payment> {
     const memo = payment.memo ?? '';
     const fee = String(payment.fee);
     const nonce = String(payment.nonce);
@@ -156,7 +149,7 @@ class Client {
    * @param signedPayment A signed payment transaction
    * @returns True if the `signed(payment)` is a verifiable payment
    */
-  public verifyPayment(signedPayment: Signed<Payment>): boolean {
+  public verifyPayment(signedPayment: Signed<Json.Payment>): boolean {
     const payload = signedPayment.data;
     const memo = payload.memo ?? '';
     const fee = String(payload.fee);
@@ -196,9 +189,9 @@ class Client {
    * @returns A signed stake delegation
    */
   public signStakeDelegation(
-    stakeDelegation: StakeDelegation,
-    privateKey: PrivateKey
-  ): Signed<StakeDelegation> {
+    stakeDelegation: Json.StakeDelegation,
+    privateKey: Json.PrivateKey
+  ): Signed<Json.StakeDelegation> {
     const memo = stakeDelegation.memo ?? '';
     const fee = String(stakeDelegation.fee);
     const nonce = String(stakeDelegation.nonce);
@@ -235,7 +228,7 @@ class Client {
    * @returns True if the `signed(stakeDelegation)` is a verifiable stake delegation
    */
   public verifyStakeDelegation(
-    signedStakeDelegation: Signed<StakeDelegation>
+    signedStakeDelegation: Signed<Json.StakeDelegation>
   ): boolean {
     const payload = signedStakeDelegation.data;
     const memo = payload.memo ?? '';
@@ -267,7 +260,7 @@ class Client {
    * @param signedPayment A signed payment transaction
    * @returns A transaction hash
    */
-  public hashPayment(signedPayment: Signed<Payment>): string {
+  public hashPayment(signedPayment: Signed<Json.Payment>): string {
     const payload = signedPayment.data;
     const memo = payload.memo ?? '';
     const fee = String(payload.fee);
@@ -301,7 +294,7 @@ class Client {
    * @returns A transaction hash
    */
   public hashStakeDelegation(
-    signedStakeDelegation: Signed<StakeDelegation>
+    signedStakeDelegation: Signed<Json.StakeDelegation>
   ): string {
     const payload = signedStakeDelegation.data;
     const memo = payload.memo ?? '';
@@ -338,9 +331,9 @@ class Client {
    * @returns Signed ZkappCommand
    */
   public signZkappCommand(
-    zkappCommand: ZkappCommand,
-    privateKey: PrivateKey
-  ): Signed<ZkappCommand> {
+    zkappCommand: Json.ZkappCommand,
+    privateKey: Json.PrivateKey
+  ): Signed<Json.ZkappCommand> {
     const account_updates = JSON.stringify(
       zkappCommand.zkappCommand.accountUpdates
     );
@@ -418,9 +411,9 @@ class Client {
    * @returns A signed payload
    */
   public signTransaction(
-    payload: SignableData,
-    privateKey: PrivateKey
-  ): Signed<SignableData> {
+    payload: Json.SignableData,
+    privateKey: Json.PrivateKey
+  ): Signed<Json.SignableData> {
     if (isMessage(payload)) {
       return this.signMessage(payload.message, {
         publicKey: payload.publicKey,
@@ -448,7 +441,7 @@ class Client {
    * @param fee The fee per accountUpdate amount
    * @returns  The fee to be paid by the fee payer accountUpdate
    */
-  public getAccountUpdateMinimumFee(p: AccountUpdates, fee: number = 0.001) {
+  public getAccountUpdateMinimumFee(p: AccountUpdate[], fee: number = 0.001) {
     return p.reduce((accumulatedFee, _) => accumulatedFee + fee, 0);
   }
 }
