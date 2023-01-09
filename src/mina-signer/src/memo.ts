@@ -49,4 +49,7 @@ const Memo = {
   sizeInBytes() {
     return SIZE;
   },
+  emptyValue() {
+    return Memo.fromString('');
+  },
 };

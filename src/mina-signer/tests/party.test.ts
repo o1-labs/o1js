@@ -1,4 +1,4 @@
-import { ZkappCommand } from '../../../dist/node/provable/gen/transaction.js';
+import { ZkappCommand } from '../dist/provable/gen/transaction-bigint.js';
 import * as TransactionJson from '../dist/provable/gen/transaction-json.js';
 import Client from '../dist/mina-signer/src/MinaSigner.js';
 

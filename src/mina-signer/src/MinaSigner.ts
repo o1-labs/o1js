@@ -24,6 +24,7 @@ import {
 } from './sign-legacy.js';
 import { hashPayment, hashStakeDelegation } from './transaction-hash.js';
 import { Signature } from './signature.js';
+import { Memo } from './memo.js';
 
 export { Client as default };
 
@@ -77,6 +78,8 @@ class Client {
       throw Error('Public key not derivable from private key');
     }
     let dummy = ZkappCommand.toJSON(ZkappCommand.emptyValue());
+    dummy.feePayer.body.publicKey = publicKey;
+    dummy.memo = Memo.toBase58(Memo.emptyValue());
     let signed = signZkappCommand(dummy, privateKey, this.network);
     let ok = verifyZkappCommandSignature(signed, publicKey, this.network);
     if (!ok) throw Error('Could not sign a transaction with private key');
@@ -318,7 +321,7 @@ class Client {
     let fee = String(fee_);
     let nonce = String(feePayer.nonce);
     let validUntil = String(feePayer.validUntil ?? defaultValidUntil);
-    let memo = feePayer.memo ?? '';
+    let memo = Memo.toBase58(Memo.fromString(feePayer.memo ?? ''));
     let command: TransactionJson.ZkappCommand = {
       feePayer: {
         body: { publicKey, fee, nonce, validUntil },

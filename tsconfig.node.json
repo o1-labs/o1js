@@ -4,7 +4,7 @@
     "./src/index.ts",
     "./src/snarky.js",
     "./src/snarky/wrapper.js",
-    "./src/mina-signer",
+    "./src/mina-signer/src",
     "./src/js_crypto",
     "./src/provable"
   ],

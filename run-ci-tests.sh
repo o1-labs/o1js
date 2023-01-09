@@ -24,7 +24,11 @@ case $TEST_TYPE in
     "Unit tests" )
       echo "Running unit tests";
       npm run test:unit || exit 1
-      npm run test ;;
+      npm run test || exit 1
+      cd src/mina-signer
+      npm run build
+      npm run test
+      ;;
 
     * ) echo "ERROR: Invalid enviroment variable, not clear what tests to run! $CI_NODE_INDEX"; exit 1 ;;
 esac
