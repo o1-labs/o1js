@@ -1,7 +1,7 @@
 import { versionBytes } from '../js_crypto/constants.js';
 import { Ledger } from '../snarky.js';
 import { Binable, stringToBytes, withVersionNumber } from './binable.js';
-import sha256 from 'crypto-js/sha256.js';
+import { sha256 } from 'js-sha256';
 import { changeBase } from '../js_crypto/bigint-helpers.js';
 
 export {
@@ -32,7 +32,6 @@ function toBase58Check(input: number[] | Uint8Array, versionByte: number) {
 }
 
 function toBase58(bytes: number[] | Uint8Array) {
-  console.log('bytes js', bytes);
   // count the leading zeroes. these get turned into leading zeroes in the output
   let z = 0;
   while (bytes[z] === 0) z++;
@@ -45,12 +44,19 @@ function toBase58(bytes: number[] | Uint8Array) {
   return base58Digits.map((x) => alphabet[Number(x)]).join('');
 }
 
+async function computeChecksumAsync(input: number[]) {
+  let inputBytes = new Uint8Array(input);
+  let output1 = await crypto.subtle.digest('SHA-256', inputBytes);
+  let output = await crypto.subtle.digest('SHA-256', output1);
+  return [...new Uint8Array(output)].slice(0, 4);
+}
+
 function computeChecksum(input: number[] | Uint8Array) {
-  let inputString = String.fromCharCode(...input);
-  let hash = sha256(sha256(inputString));
-  // first 4 bytes = first int32 word
-  let int32Array = new Int32Array([hash.words[0]]);
-  return [...new Uint8Array(int32Array.buffer)].reverse();
+  let hash1 = sha256.create();
+  hash1.update(input);
+  let hash2 = sha256.create();
+  hash2.update(hash1.array());
+  return hash2.array().slice(0, 4);
 }
 
 type Base58<T> = {
@@ -63,12 +69,6 @@ function base58<T>(binable: Binable<T>, versionByte: number): Base58<T> {
     toBase58(t) {
       let bytes = binable.toBytes(t);
       return toBase58Check(bytes, versionByte);
-      // let binaryString = String.fromCharCode(...bytes);
-      // // this `ocamlBytes` structure is the js_of_ocaml representation of a byte array.
-      // // the `t: 9` is an integer tag that says the content is a full ASCII string,
-      // // see https://github.com/ocsigen/js_of_ocaml/blob/master/runtime/mlBytes.js
-      // let ocamlBytes = { t: 9, c: binaryString, l: bytes.length };
-      // return Ledger.encoding.toBase58(ocamlBytes, versionByte);
     },
     fromBase58(base58) {
       let ocamlBytes = Ledger.encoding.ofBase58(base58, versionByte);
