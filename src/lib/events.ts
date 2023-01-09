@@ -1,17 +1,8 @@
+import { prefixes } from '../js_crypto/constants.js';
 import { prefixToField } from '../provable/binable.js';
 import { GenericField, GenericProvableExtended } from '../provable/generic.js';
-import { Poseidon as Poseidon_ } from '../snarky.js';
 
 export { createEvents, dataAsHash };
-
-const prefixes: typeof Poseidon_.prefixes = new Proxy({} as any, {
-  // hack bc Poseidon_.prefixes is not available at start-up
-  get(_target, prop) {
-    return Poseidon_.prefixes[
-      prop as keyof typeof Poseidon_.prefixes
-    ] as string;
-  },
-});
 
 type Poseidon<Field> = {
   update(state: Field[], input: Field[]): Field[];
