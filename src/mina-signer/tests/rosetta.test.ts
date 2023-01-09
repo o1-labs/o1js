@@ -23,7 +23,7 @@ describe('Rosetta', () => {
     client = new Client({ network: 'mainnet' });
   });
 
-  it.skip('generates a valid rosetta transaction', () => {
+  it('generates a valid rosetta transaction', () => {
     const signedGraphQLCommand =
       client.signedRosettaTransactionToSignedCommand(signedRosettaTnxMock);
     const signedRosettaTnxMockJson = JSON.parse(signedRosettaTnxMock);

@@ -25,7 +25,10 @@ import {
 import { hashPayment, hashStakeDelegation } from './src/transaction-hash.js';
 import { Signature } from './src/signature.js';
 import { Memo } from './src/memo.js';
-import { publicKeyToHex } from './src/rosetta.js';
+import {
+  publicKeyToHex,
+  rosettaTransactionToSignedCommand,
+} from './src/rosetta.js';
 
 export { Client as default };
 
@@ -355,8 +358,9 @@ class Client {
   public signedRosettaTransactionToSignedCommand(
     signedRosettaTxn: string
   ): string {
-    throw Error('unimplemented');
-    // return minaSDK.signedRosettaTransactionToSignedCommand(signedRosettaTxn);
+    let parsedTx = JSON.parse(signedRosettaTxn);
+    let command = rosettaTransactionToSignedCommand(parsedTx);
+    return JSON.stringify({ data: command });
   }
 
   /**
