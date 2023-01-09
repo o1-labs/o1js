@@ -75,6 +75,10 @@ export default [
         type: 'function',
       },
       {
+        name: 'assertBool',
+        type: 'function',
+      },
+      {
         name: 'assertBoolean',
         type: 'function',
       },

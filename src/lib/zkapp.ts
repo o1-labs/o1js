@@ -989,8 +989,9 @@ super.init();
       .filter((el: any) => {
         let slot = UInt32.from(el.slot);
         return end === undefined
-          ? start.lte(slot).toBoolean()
-          : start.lte(slot).toBoolean() && slot.lte(end).toBoolean();
+          ? start.lessThanOrEqual(slot).toBoolean()
+          : start.lessThanOrEqual(slot).toBoolean() &&
+              slot.lessThanOrEqual(end).toBoolean();
       })
       .map((el: any) => el.events)
       .flat();

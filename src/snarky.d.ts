@@ -152,8 +152,109 @@ declare class Field {
    */
   toFields(): Field[];
 
+  /**
+   *
+   * Check if this {@link Field} is lower than another Field-like value.
+   * Returns a {@link Bool}.
+   *
+   * ```ts
+   * Field(2).lessThan(3); // Bool(true)
+   * ```
+   */
+  lessThan(y: Field | number | string | boolean): Bool;
+  /**
+   *
+   * Check if this {@link Field} is lower than or equal to another Field-like value.
+   * Returns a {@link Bool}.
+   *
+   * ```ts
+   * Field(2).lessThanOrEqual(3); // Bool(true)
+   * ```
+   */
+  lessThanOrEqual(y: Field | number | string | boolean): Bool;
+  /**
+   *
+   * Check if this {@link Field} is greater than another Field-like value.
+   * Returns a {@link Bool}.
+   *
+   * ```ts
+   * Field(2).greaterThan(1); // Bool(true)
+   * ```
+   */
+  greaterThan(y: Field | number | string | boolean): Bool;
+  /**
+   *
+   * Check if this {@link Field} is greater than or equal to another Field-like value.
+   * Returns a {@link Bool}.
+   *
+   * ```ts
+   * Field(2).greaterThanOrEqual(1); // Bool(true)
+   * ```
+   */
+  greaterThanOrEqual(y: Field | number | string | boolean): Bool;
+
   // TODO: Make these long form version
   /**
+   *
+   * Assert that this {@link Field} is lower than another Field-like value.
+   *
+   * ```ts
+   * Field(1).assertLessThan(2);
+   * ```
+   *
+   * This function can only be called inside a checked computation, like a
+   * SmartContract method, and causes it to fail if the assertion fails.
+   */
+  assertLessThan(y: Field | number | string | boolean, message?: string): void;
+  /**
+   *
+   * Assert that this {@link Field} is lower than or equal to another Field-like value.
+   *
+   * ```ts
+   * Field(1).assertLessThanOrEqual(2);
+   * ```
+   *
+   * This function can only be called inside a checked computation, like a
+   * SmartContract method, and causes it to fail if the assertion fails.
+   */
+  assertLessThanOrEqual(
+    y: Field | number | string | boolean,
+    message?: string
+  ): void;
+  /**
+   *
+   * Assert that this {@link Field} is greater than another Field-like value.
+   *
+   * ```ts
+   * Field(1).assertGt(0);
+   * ```
+   *
+   * This function can only be called inside a checked computation, like a
+   * SmartContract method, and causes it to fail if the assertion fails.
+   */
+  assertGreaterThan(
+    y: Field | number | string | boolean,
+    message?: string
+  ): void;
+  /**
+   *
+   * Assert that this {@link Field} is greater than or equal to another Field-like value.
+   *
+   * ```ts
+   * Field(1).assertGte(0);
+   * ```
+   *
+   * This function can only be called inside a checked computation, like a
+   * SmartContract method, and causes it to fail if the assertion fails.
+   */
+  assertGreaterThanOrEqual(
+    y: Field | number | string | boolean,
+    message?: string
+  ): void;
+
+  /**
+   * @deprecated Deprecated - use {@link lessThan} instead
+   *
    * Check if this {@link Field} is lower than another Field-like value.
    * Returns a {@link Bool}.
    *
@@ -163,6 +264,8 @@ declare class Field {
    */
   lt(y: Field | number | string | boolean): Bool;
   /**
+   * @deprecated Deprecated - use {@link lessThanOrEqual} instead
+   *
    * Check if this {@link Field} is lower than or equal to another Field-like value.
    * Returns a {@link Bool}.
    *
@@ -172,6 +275,8 @@ declare class Field {
    */
   lte(y: Field | number | string | boolean): Bool;
   /**
+   * @deprecated Deprecated - use `{@link greaterThan}` instead
+   *
    * Check if this {@link Field} is greater than another Field-like value.
    * Returns a {@link Bool}.
    *
@@ -181,6 +286,8 @@ declare class Field {
    */
   gt(y: Field | number | string | boolean): Bool;
   /**
+   * @deprecated Deprecated - use {@link greaterThanOrEqual} instead
+   *
    * Check if this {@link Field} is greater than or equal to another Field-like value.
    * Returns a {@link Bool}.
    *
@@ -192,10 +299,12 @@ declare class Field {
 
   // TODO: Make these long form version
   /**
+   * @deprecated Deprecated - use {@link assertLessThan} instead
+   *
    * Assert that this {@link Field} is lower than another Field-like value.
    *
    * ```ts
-   * Field(1).assertLt(2);
+   * Field(1).assertLessThan(2);
    * ```
    *
    * This function can only be called inside a checked computation, like a
@@ -203,6 +312,8 @@ declare class Field {
    */
   assertLt(y: Field | number | string | boolean, message?: string): void;
   /**
+   * @deprecated Deprecated - use {@link assertLessThanOrEqual}instead
+   *
    * Assert that this {@link Field} is lower than or equal to another Field-like value.
    *
    * ```ts
@@ -214,6 +325,8 @@ declare class Field {
    */
   assertLte(y: Field | number | string | boolean, message?: string): void;
   /**
+   * @deprecated Deprecated - use {@link assertGreaterThan} instead
+   *
    * Assert that this {@link Field} is greater than another Field-like value.
    *
    * ```ts
@@ -225,6 +338,8 @@ declare class Field {
    */
   assertGt(y: Field | number | string | boolean, message?: string): void;
   /**
+   *  @deprecated Deprecated - use {@link assertGreaterThanOrEqual} instead
+   *
    * Assert that this {@link Field} is greater than or equal to another Field-like value.
    *
    * ```ts
@@ -245,7 +360,22 @@ declare class Field {
    * ```
    */
   assertEquals(y: Field | number | string | boolean, message?: string): void;
+
   /**
+   * Assert that this {@link Field} is either 0 or 1.
+   *
+   * ```ts
+   * Field(0).assertBool();
+   * ```
+   *
+   * This function can only be called inside a checked computation, like a
+   * SmartContract method, and throws an error if the assertion fails.
+   */
+  assertBool(message?: string): void;
+
+  /**
+   * @deprecated Deprecated - use {@link assertBool} instead
+   *
    * Assert that this {@link Field} is either 0 or 1.
    *
    * ```ts
@@ -256,6 +386,7 @@ declare class Field {
    * SmartContract method, and throws an error if the assertion fails.
    */
   assertBoolean(message?: string): void;
+
   isZero(): Bool;
 
   /**

@@ -271,7 +271,7 @@ class RollupZkapp extends SmartContract {
     // Check it has been a while since the last addition of a new
     // operator
     /*
-    period.assertGt(
+    period.assertGreaterThan(
       this.lastUpdatedPeriod.get()
       .add(RollupZkapp.newOperatorGapPeriods)
     );
