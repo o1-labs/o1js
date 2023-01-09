@@ -44,13 +44,6 @@ function toBase58(bytes: number[] | Uint8Array) {
   return base58Digits.map((x) => alphabet[Number(x)]).join('');
 }
 
-async function computeChecksumAsync(input: number[]) {
-  let inputBytes = new Uint8Array(input);
-  let output1 = await crypto.subtle.digest('SHA-256', inputBytes);
-  let output = await crypto.subtle.digest('SHA-256', output1);
-  return [...new Uint8Array(output)].slice(0, 4);
-}
-
 function computeChecksum(input: number[] | Uint8Array) {
   let hash1 = sha256.create();
   hash1.update(input);
