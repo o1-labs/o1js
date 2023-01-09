@@ -232,7 +232,7 @@ function delegationToOcamlV1({
 function commonToOcaml({ fee, feePayer, nonce, validUntil, memo }: CommonJson) {
   memo = Memo.toBase58(Memo.fromString(memo));
   return {
-    fee: (BigInt(fee) / 1_000_000_000n).toString(),
+    fee: fee.slice(0, -9),
     fee_payer_pk: feePayer,
     nonce,
     valid_until: validUntil,
@@ -248,7 +248,7 @@ function commonToOcamlV1({
 }: CommonJson) {
   memo = Memo.toBase58(Memo.fromString(memo));
   return {
-    fee,
+    fee: fee.slice(0, -9),
     fee_payer_pk: feePayer,
     nonce,
     valid_until: validUntil,
