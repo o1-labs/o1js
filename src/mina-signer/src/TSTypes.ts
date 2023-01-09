@@ -1,4 +1,4 @@
-import { ZkappCommand as ZkappCommandJson } from '../provable/gen/transaction-json.js';
+import { ZkappCommand as ZkappCommandJson } from '../../provable/gen/transaction-json.js';
 
 export type UInt32 = number | bigint | string;
 export type UInt64 = number | bigint | string;

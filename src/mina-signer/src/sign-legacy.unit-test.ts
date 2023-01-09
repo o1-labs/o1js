@@ -16,8 +16,8 @@ import {
 } from './sign-legacy.js';
 import { NetworkId, Signature } from './signature.js';
 import { expect } from 'expect';
-import { PublicKey, Scalar } from '../provable/curve-bigint.js';
-import { Field } from '../provable/field-bigint.js';
+import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
+import { Field } from '../../provable/field-bigint.js';
 
 let { privateKey, publicKey } = keypair;
 let networks: NetworkId[] = ['testnet', 'mainnet'];

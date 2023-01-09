@@ -1,4 +1,4 @@
-import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
+import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
 import * as Json from './TSTypes.js';
 import type { Signed, Network } from './TSTypes.js';
 
@@ -8,8 +8,8 @@ import {
   isStakeDelegation,
   isZkappCommand,
 } from './Utils.js';
-import * as TransactionJson from '../provable/gen/transaction-json.js';
-import { ZkappCommand } from '../provable/gen/transaction-bigint.js';
+import * as TransactionJson from '../../provable/gen/transaction-json.js';
+import { ZkappCommand } from '../../provable/gen/transaction-bigint.js';
 import {
   signZkappCommand,
   verifyZkappCommandSignature,

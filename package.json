@@ -43,7 +43,7 @@
     "prepublishOnly": "npm run prepublish:web && npm run prepublish:node",
     "bootstrap": "npm run build && node src/build/extractJsooMethods.cjs && npm run build",
     "format": "prettier --write --ignore-unknown **/*",
-    "test": "for f in ./src/**/*.test.ts; do NODE_OPTIONS=--experimental-vm-modules npx jest $f || exit 1; done",
+    "test": "./run-jest-tests.sh",
     "clean": "rimraf ./dist",
     "clean-all": "rimraf ./dist && rimraf ./tests/report && rimraf ./tests/test-artifacts",
     "test:integration": "./run-integration-tests.sh",

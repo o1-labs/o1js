@@ -1,4 +1,4 @@
-import { Ledger, shutdown, Test } from '../snarky.js';
+import { Ledger, shutdown, Test } from '../../snarky.js';
 import {
   Common,
   hashPayment,
@@ -18,11 +18,11 @@ import {
   delegationFromJson,
 } from './sign-legacy.js';
 import { Signature } from './signature.js';
-import { PublicKey } from '../provable/curve-bigint.js';
+import { PublicKey } from '../../provable/curve-bigint.js';
 import { Memo } from './memo.js';
 import { expect } from 'expect';
-import { versionBytes } from '../js_crypto/constants.js';
-import { stringToBytes } from '../provable/binable.js';
+import { versionBytes } from '../../js_crypto/constants.js';
+import { stringToBytes } from '../../provable/binable.js';
 
 let signature = Signature.toJSON(
   Signature.fromBase58(

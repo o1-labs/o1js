@@ -1,4 +1,4 @@
-import { Bool, Field, UInt64 } from '../provable/field-bigint.js';
+import { Bool, Field, UInt64 } from '../../provable/field-bigint.js';
 import {
   Binable,
   BinableBigintInteger,
@@ -8,7 +8,7 @@ import {
   record,
   stringToBytes,
   withVersionNumber,
-} from '../provable/binable.js';
+} from '../../provable/binable.js';
 import {
   Common,
   Delegation,
@@ -20,11 +20,11 @@ import {
   delegationFromJson,
   paymentFromJson,
 } from './sign-legacy.js';
-import { PublicKey, Scalar } from '../provable/curve-bigint.js';
+import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
 import { Signature, SignatureJson } from './signature.js';
 import { blake2b } from 'blakejs';
-import { base58, withBase58 } from '../provable/base58.js';
-import { versionBytes } from '../js_crypto/constants.js';
+import { base58, withBase58 } from '../../provable/base58.js';
+import { versionBytes } from '../../js_crypto/constants.js';
 
 export {
   hashPayment,

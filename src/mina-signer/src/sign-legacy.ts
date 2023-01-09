@@ -1,6 +1,6 @@
-import { UInt32, UInt64 } from '../provable/field-bigint.js';
-import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
-import { HashInputLegacy } from '../provable/poseidon-bigint.js';
+import { UInt32, UInt64 } from '../../provable/field-bigint.js';
+import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
+import { HashInputLegacy } from '../../provable/poseidon-bigint.js';
 import { Memo } from './memo.js';
 import {
   NetworkId,
@@ -9,8 +9,8 @@ import {
   signLegacy,
   verifyLegacy,
 } from './signature.js';
-import { Json } from '../provable/gen/transaction-bigint.js';
-import { bytesToBits, stringToBytes } from '../provable/binable.js';
+import { Json } from '../../provable/gen/transaction-bigint.js';
+import { bytesToBits, stringToBytes } from '../../provable/binable.js';
 
 export {
   signPayment,
