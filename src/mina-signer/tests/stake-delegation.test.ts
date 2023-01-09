@@ -1,5 +1,9 @@
-import Client from '../src/MinaSigner.js';
-import type { Keypair, Signed, StakeDelegation } from '../src/TSTypes.js';
+import Client from '../dist/mina-signer/src/MinaSigner.js';
+import type {
+  Keypair,
+  Signed,
+  StakeDelegation,
+} from '../dist/mina-signer/src/TSTypes.js';
 
 describe('Stake Delegation', () => {
   describe('Mainnet network', () => {

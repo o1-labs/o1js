@@ -1,5 +1,9 @@
-import Client from '../src/MinaSigner.js';
-import type { Keypair, Signed, Message } from '../src/TSTypes.js';
+import Client from '../dist/mina-signer/src/MinaSigner.js';
+import type {
+  Keypair,
+  Signed,
+  Message,
+} from '../dist/mina-signer/src/TSTypes.js';
 
 describe('Message', () => {
   describe('Mainnet network', () => {

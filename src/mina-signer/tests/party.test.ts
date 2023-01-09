@@ -1,6 +1,6 @@
-import { ZkappCommand } from '../../provable/gen/transaction.js';
-import * as TransactionJson from '../../provable/gen/transaction-json.js';
-import Client from '../src/MinaSigner.js';
+import { ZkappCommand } from '../../../dist/node/provable/gen/transaction.js';
+import * as TransactionJson from '../dist/provable/gen/transaction-json.js';
+import Client from '../dist/mina-signer/src/MinaSigner.js';
 
 let dummyFeePayer = ZkappCommand.toJSON(ZkappCommand.emptyValue()).feePayer;
 

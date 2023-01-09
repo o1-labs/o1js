@@ -1,4 +1,4 @@
-import Client from '../../../dist/node/mina-signer/src/MinaSigner.js';
+import Client from '../dist/mina-signer/src/MinaSigner.js';
 
 describe('Client Class Initialization', () => {
   let client;
