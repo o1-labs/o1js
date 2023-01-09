@@ -23,7 +23,7 @@ case $TEST_TYPE in
 
     "Unit tests" )
       echo "Running unit tests";
-      npm run test:unit
+      npm run test:unit || exit 1
       npm run test ;;
 
     * ) echo "ERROR: Invalid enviroment variable, not clear what tests to run! $CI_NODE_INDEX"; exit 1 ;;
