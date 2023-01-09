@@ -1,19 +1,19 @@
-import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
-import * as Json from './TSTypes.js';
-import type { Signed, Network } from './TSTypes.js';
+import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
+import * as Json from './src/TSTypes.js';
+import type { Signed, Network } from './src/TSTypes.js';
 
 import {
   isPayment,
   isMessage,
   isStakeDelegation,
   isZkappCommand,
-} from './Utils.js';
-import * as TransactionJson from '../../provable/gen/transaction-json.js';
-import { ZkappCommand } from '../../provable/gen/transaction-bigint.js';
+} from './src/Utils.js';
+import * as TransactionJson from '../provable/gen/transaction-json.js';
+import { ZkappCommand } from '../provable/gen/transaction-bigint.js';
 import {
   signZkappCommand,
   verifyZkappCommandSignature,
-} from './sign-zkapp-command.js';
+} from './src/sign-zkapp-command.js';
 import {
   signPayment,
   signStakeDelegation,
@@ -21,10 +21,10 @@ import {
   verifyPayment,
   verifyStakeDelegation,
   verifyStringSignature,
-} from './sign-legacy.js';
-import { hashPayment, hashStakeDelegation } from './transaction-hash.js';
-import { Signature } from './signature.js';
-import { Memo } from './memo.js';
+} from './src/sign-legacy.js';
+import { hashPayment, hashStakeDelegation } from './src/transaction-hash.js';
+import { Signature } from './src/signature.js';
+import { Memo } from './src/memo.js';
 
 export { Client as default };
 
