@@ -1,6 +1,7 @@
 import plonkWasm from './plonk_wasm.js';
 import workerRun from './worker_run.js';
 import workerInit from './worker_init.js';
+import getEfficientNumWorkers from './getEfficientNumWorkers';
 import { srcFromFunctionModule, inlineWorker } from './workerHelpers.js';
 import snarkyJsChromeSrc from 'string:./snarky_js_chrome.bc.js';
 let plonk_wasm = plonkWasm();
@@ -10,9 +11,10 @@ let { override_bindings } = workerRun();
 export async function initSnarkyJS() {
   let { memory } = await init();
   let module = init.__wbindgen_wasm_module;
+  let numWorkers = await getEfficientNumWorkers();
 
   let worker = inlineWorker(srcFromFunctionModule(workerInit));
-  worker.postMessage({ type: 'init', memory, module });
+  worker.postMessage({ type: 'init', memory, module, numWorkers });
 
   let workersReady = new Promise((resolve) => (worker.onmessage = resolve));
   await workersReady;
