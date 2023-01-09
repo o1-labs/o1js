@@ -37,7 +37,9 @@ function fromBase58Check(base58: string, versionByte: number) {
     throw Error('fromBase58Check: invalid checksum');
   // check version byte
   if (originalBytes[0] !== versionByte)
-    throw Error('fromBase58Check: version byte does not match');
+    throw Error(
+      `fromBase58Check: input version byte ${versionByte} does not match encoded version byte ${originalBytes[0]}`
+    );
   // return result
   return originalBytes.slice(1);
 }
