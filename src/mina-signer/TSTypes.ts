@@ -20,10 +20,10 @@ export type Message = {
 export type Signature = {
   readonly field: string;
   readonly scalar: string;
-  readonly signer?: string;
+  readonly signer: string;
 };
 
-export type StakeDelegation = {
+export type Common = {
   readonly to: PublicKey;
   readonly from: PublicKey;
   readonly fee: UInt64;
@@ -31,16 +31,17 @@ export type StakeDelegation = {
   readonly memo?: string;
   readonly validUntil?: UInt32;
 };
-
-export type Payment = {
-  readonly to: PublicKey;
-  readonly from: PublicKey;
-  readonly fee: UInt64;
-  readonly amount: UInt64;
-  readonly nonce: UInt32;
-  readonly memo?: string;
-  readonly validUntil?: UInt32;
+export type StrictCommon = {
+  readonly to: string;
+  readonly from: string;
+  readonly fee: string;
+  readonly nonce: string;
+  readonly memo: string;
+  readonly validUntil: string;
 };
+
+export type StakeDelegation = Common;
+export type Payment = Common & { readonly amount: UInt64 };
 
 export type ZkappCommand = {
   readonly zkappCommand: ZkappCommandJson;
@@ -50,6 +51,7 @@ export type ZkappCommand = {
     readonly fee: UInt64;
     readonly nonce: UInt32;
     readonly memo?: string;
+    readonly validUntil?: UInt32;
   };
 };
 
