@@ -303,7 +303,7 @@ export function IndexFactory(depth: number) {
     }
 
     static check(i: Index) {
-      i.value.forEach((b) => b.toField().assertBoolean());
+      i.value.forEach((b) => b.toField().assertBool());
     }
   };
 }
