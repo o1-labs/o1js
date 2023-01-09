@@ -27,7 +27,7 @@ import { stringToBytes } from '../provable/binable.js';
 let payment: Signed<PaymentJson> = {
   data: {
     common: {
-      fee: '8',
+      fee: '8000000000',
       feePayer: 'B62qs2FVpaWkoNdEUgmSmUF8etXJWTnELboJK8MjLfeiSxP9MY7qjZr',
       nonce: '600',
       validUntil: '107',
@@ -231,7 +231,13 @@ function delegationToOcamlV1({
 
 function commonToOcaml({ fee, feePayer, nonce, validUntil, memo }: CommonJson) {
   memo = Memo.toBase58(Memo.fromString(memo));
-  return { fee, fee_payer_pk: feePayer, nonce, valid_until: validUntil, memo };
+  return {
+    fee: (BigInt(fee) / 1_000_000_000n).toString(),
+    fee_payer_pk: feePayer,
+    nonce,
+    valid_until: validUntil,
+    memo,
+  };
 }
 function commonToOcamlV1({
   fee,
