@@ -41,7 +41,7 @@ function changeBase(digits: bigint[], base: bigint, newBase: bigint) {
  * but that is for performance reasons.
  *
  * we'll explain it for `fromBase`. this function is about taking an array of digits
- * [x0, ..., xn]
+ * `[x0, ..., xn]`
  * and returning the integer (bigint) that has those digits in the given `base`:
  * ```
  * let x = x0 + x1*base + x2*base**2 + ... + xn*base**n
@@ -58,8 +58,8 @@ function changeBase(digits: bigint[], base: bigint, newBase: bigint) {
  * ```
  *
  * in the ith step, `p = base**i` which is multiplied with `xi` and added to the sum.
- * however, note that this algorithm is O(n^2): let `l = log2(base)`. the base power `p` is a bigint of bit length `i*l`,
- * which is multiplied by a "small" number `xi` (length l), which takes O(i) time in every step.
+ * however, note that this algorithm is `O(n^2)`: let `l = log2(base)`. the base power `p` is a bigint of bit length `i*l`,
+ * which is multiplied by a "small" number `xi` (length l), which takes `O(i)` time in every step.
  * since this is done for `i = 0,...,n`, we end up with an `O(n^2)` algorithm.
  *
  * HOWEVER, it turns out that there are fast multiplication algorithms, and JS bigints have them built in!
@@ -67,25 +67,28 @@ function changeBase(digits: bigint[], base: bigint, newBase: bigint) {
  * can multiply two n-bit numbers in time `O(n log(n) loglog(n))`, when n is large.
  *
  * to take advantage of asymptotically fast multiplication, we need to re-structure our algorithm such that it multiplies roughly equal-sized
- * numbers with each other (there is no asymptotic boost for mutliplying a small with a large number). so, what we do is to go from the
+ * numbers with each other (there is no asymptotic boost for multiplying a small with a large number). so, what we do is to go from the
  * original digit array to arrays of successively larger digits:
  * ```
  * step 0:                  step 1:                              step 2:
  * [x0, x1, x2, x3, ...] -> [x0 + base*x1, x2 + base*x3, ...] -> [x0 + base*x1 + base^2*(x2 + base*x3), ...] -> ...
  * ```
  *
- * ...until after a log number of steps we end with a single "digit" which is equal to the entire sum.
+ * ...until after a log(n) number of steps we end up with a single "digit" which is equal to the entire sum.
  *
- * in the ith step, we multiply n/2^i pairs of numbers of bit length i*l. each of these multiplications takes
- * time `O(i log(i) loglog(i))`. if we bound that with `O(i log(n) loglog(n))`, we see that our runtime is
+ * in the ith step, we multiply `n/2^i` pairs of numbers of bit length `2^i*l`. each of these multiplications takes
+ * time `O(2^i log(2^i) loglog(2^i))`. if we bound that with `O(2^i log(n) loglog(n))`, we get a runtime bounded by
  * ```
- * O( (n + 2n/2 ... + n*n/n) log(n) loglog(n) ) = O(n log(n)^2 loglog(n))
+ * O(n/2^i * 2^i log(n) loglog(n)) = O(n log(n) loglog(n))
  * ```
- * empirically, the result is a huge improvement over the naive `O(n^2)` algorithm and scales much better with length of the digit array.
+ * in each step. Since we have `log(n)` steps, the result is `O(n log(n)^2 loglog(n))`.
+ *
+ * empirically, this method is a huge improvement over the naive `O(n^2)` algorithm and scales much better with n (the number of digits).
  *
  * similar conclusions hold for `toBase`.
  */
 function fromBase(digits: bigint[], base: bigint) {
+  if (base <= 0n) throw Error('fromBase: base must be positive');
   // compute powers base, base^2, base^4, ..., base^(2^k)
   // with largest k s.t. n = 2^k < digits.length
   let basePowers = [];
@@ -95,7 +98,7 @@ function fromBase(digits: bigint[], base: bigint) {
   let k = basePowers.length;
   // pad digits array with zeros s.t. digits.length === 2^k
   digits = digits.concat(Array(2 ** k - digits.length).fill(0n));
-  // accumulate [x0, x1, x2, x3, ...] -> [x0 + base*x1, x2 + base*x3, ...] -> [x0 + base*x1 + base^2*(x2 + base*x3=, ...] -> ...
+  // accumulate [x0, x1, x2, x3, ...] -> [x0 + base*x1, x2 + base*x3, ...] -> [x0 + base*x1 + base^2*(x2 + base*x3), ...] -> ...
   // until we end up with a single element
   for (let i = 0; i < k; i++) {
     let newDigits = Array(digits.length >> 1);
@@ -111,6 +114,7 @@ function fromBase(digits: bigint[], base: bigint) {
 }
 
 function toBase(x: bigint, base: bigint) {
+  if (base <= 0n) throw Error('toBase: base must be positive');
   // compute powers base, base^2, base^4, ..., base^(2^k)
   // with largest k s.t. base^(2^k) < x
   let basePowers = [];
