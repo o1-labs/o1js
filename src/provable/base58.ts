@@ -2,7 +2,7 @@ import { versionBytes } from '../js_crypto/constants.js';
 import { Ledger } from '../snarky.js';
 import { Binable, stringToBytes, withVersionNumber } from './binable.js';
 
-export { base58, fieldEncodings, Base58 };
+export { base58, withBase58, fieldEncodings, Base58 };
 
 type Base58<T> = {
   toBase58(t: T): string;
@@ -26,6 +26,13 @@ function base58<T>(binable: Binable<T>, versionByte: number): Base58<T> {
       return binable.fromBytes(bytes);
     },
   };
+}
+
+function withBase58<T>(
+  binable: Binable<T>,
+  versionByte: number
+): Binable<T> & Base58<T> {
+  return { ...binable, ...base58(binable, versionByte) };
 }
 
 // encoding of fields as base58, compatible with ocaml encodings (provided the versionByte and versionNumber are the same)

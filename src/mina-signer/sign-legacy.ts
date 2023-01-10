@@ -13,8 +13,19 @@ export {
   verifyPayment,
   verifyStakeDelegation,
   verifyStringSignature,
+  paymentFromJson,
+  delegationFromJson,
+  commonFromJson,
   PaymentJson,
   DelegationJson,
+  CommonJson,
+  Tag,
+  UserCommand,
+  UserCommandEnum,
+  BodyEnum,
+  Payment,
+  Delegation,
+  Common,
 };
 
 function signPayment(
@@ -177,6 +188,7 @@ function commonFromJson(c: CommonJson) {
     feePayer: PublicKey.fromJSON(c.feePayer),
     nonce: UInt32.fromJSON(c.nonce),
     validUntil: UInt32.fromJSON(c.validUntil),
+    // TODO: this might need to be fromBase58
     memo: Memo.fromString(c.memo),
   };
 }
@@ -219,19 +231,43 @@ function stringToInput(string: string) {
 type Tag = 'Payment' | 'StakeDelegation';
 
 type UserCommand = {
-  common: {
-    fee: UInt64;
-    feePayer: PublicKey;
-    nonce: UInt32;
-    validUntil: UInt32;
-    memo: string;
-  };
+  common: Common;
   body: {
     tag: Tag;
     source: PublicKey;
     receiver: PublicKey;
     amount: UInt64;
   };
+};
+
+type UserCommandEnum = {
+  common: Common;
+  body: BodyEnum;
+};
+
+type BodyEnum =
+  | { type: 'Payment'; value: Payment }
+  | {
+      type: 'StakeDelegation';
+      value: { type: 'SetDelegate'; value: Delegation };
+    };
+
+type Common = {
+  fee: UInt64;
+  feePayer: PublicKey;
+  nonce: UInt32;
+  validUntil: UInt32;
+  memo: string;
+};
+
+type Payment = {
+  source: PublicKey;
+  receiver: PublicKey;
+  amount: UInt64;
+};
+type Delegation = {
+  delegator: PublicKey;
+  newDelegate: PublicKey;
 };
 
 type CommonJson = {

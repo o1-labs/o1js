@@ -1,5 +1,6 @@
+import { defineBinable } from '../provable/binable.js';
 import { bytesToBigInt, sizeInBits } from '../provable/field-bigint.js';
-import { Bool, Field, Scalar, Group, Keypair } from '../snarky.js';
+import { Bool, Field, Scalar, Group } from '../snarky.js';
 
 export { Field, Bool, Scalar, Group };
 
@@ -15,16 +16,25 @@ Field.toInput = function (x) {
 };
 
 // binable
-Field.toBytes = function (x) {
-  return [...(x.toConstant() as any as InternalConstantField).value[1]];
-};
-Field.fromBytes = function (bytes) {
-  let uint8array = new Uint8Array(32);
-  uint8array.set(bytes);
-  return Object.assign(Object.create(Field(1).constructor.prototype), {
-    value: [0, uint8array],
-  });
-};
+const FieldBinable = defineBinable({
+  toBytes(t: Field) {
+    return [...(t.toConstant() as any as InternalConstantField).value[1]];
+  },
+  readBytes(bytes, offset) {
+    let uint8array = new Uint8Array(32);
+    uint8array.set(bytes.slice(offset, offset + 32));
+    return [
+      Object.assign(Object.create(Field(1).constructor.prototype), {
+        value: [0, uint8array],
+      }) as Field,
+      offset + 32,
+    ];
+  },
+});
+
+Field.toBytes = FieldBinable.toBytes;
+Field.fromBytes = FieldBinable.fromBytes;
+Field.readBytes = FieldBinable.readBytes;
 Field.sizeInBytes = () => 32;
 
 Bool.toInput = function (x) {
@@ -32,12 +42,17 @@ Bool.toInput = function (x) {
 };
 
 // binable
-Bool.toBytes = function (b) {
-  return [Number(b.toBoolean())];
-};
-Bool.fromBytes = function ([b]) {
-  return Bool(!!b);
-};
+const BoolBinable = defineBinable({
+  toBytes(b: Bool) {
+    return [Number(b.toBoolean())];
+  },
+  readBytes(bytes, offset) {
+    return [Bool(!!bytes[offset]), offset + 1];
+  },
+});
+Bool.toBytes = BoolBinable.toBytes;
+Bool.fromBytes = BoolBinable.fromBytes;
+Bool.readBytes = BoolBinable.readBytes;
 Bool.sizeInBytes = () => 1;
 
 Scalar.toFieldsCompressed = function (s: Scalar) {

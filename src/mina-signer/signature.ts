@@ -21,7 +21,7 @@ import {
 import {
   bitsToBytes,
   bytesToBits,
-  tuple,
+  record,
   withVersionNumber,
 } from '../provable/binable.js';
 import { base58 } from '../provable/base58.js';
@@ -45,19 +45,12 @@ type NetworkId = 'mainnet' | 'testnet';
 type Signature = { r: Field; s: Scalar };
 
 const BinableSignature = withVersionNumber(
-  tuple([Field, Scalar]),
+  record({ r: Field, s: Scalar }, ['r', 's']),
   versionNumbers.signature
 );
-const BinableBase58 = base58(BinableSignature, versionBytes.signature);
-
 const Signature = {
-  toBase58({ r, s }: Signature) {
-    return BinableBase58.toBase58([r, s]);
-  },
-  fromBase58(signatureBase58: string): Signature {
-    let [r, s] = BinableBase58.fromBase58(signatureBase58);
-    return { r, s };
-  },
+  ...BinableSignature,
+  ...base58(BinableSignature, versionBytes.signature),
 };
 
 /**

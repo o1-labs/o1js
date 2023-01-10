@@ -1,5 +1,5 @@
 import { Fp, mod } from '../js_crypto/finite_field.js';
-import { BinableWithBits, withBits } from './binable.js';
+import { BinableWithBits, defineBinable, withBits } from './binable.js';
 import { GenericHashInput, GenericProvableExtended } from './generic.js';
 
 export { Field, Bool, UInt32, UInt64, Sign };
@@ -187,24 +187,22 @@ function BinableBigint<T extends bigint = bigint>(
 ): BinableWithBits<T> {
   let sizeInBytes = Math.ceil(sizeInBits / 8);
   return withBits(
-    {
+    defineBinable({
       toBytes(x) {
         return bigIntToBytes(x, sizeInBytes);
       },
-      fromBytes(bytes) {
-        if (bytes.length > sizeInBytes) {
-          throw Error(
-            `fromBytes: input bytes too long, max length is ${sizeInBytes}, got ${bytes.length}`
-          );
+      readBytes(bytes, start) {
+        let x = 0n;
+        let bitPosition = 0n;
+        let end = Math.min(start + sizeInBytes, bytes.length);
+        for (let i = start; i < end; i++) {
+          x += BigInt(bytes[i]) << bitPosition;
+          bitPosition += 8n;
         }
-        let x = bytesToBigInt(bytes) as T;
         check(x);
-        return x;
+        return [x as T, end];
       },
-      sizeInBytes() {
-        return sizeInBytes;
-      },
-    },
+    }),
     sizeInBits
   );
 }
