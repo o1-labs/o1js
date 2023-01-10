@@ -591,6 +591,7 @@ class AccountUpdate implements Types.AccountUpdate {
     undefined;
   account: Precondition.Account;
   network: Precondition.Network;
+  validUntil: Precondition.ValidUntil;
   children: {
     callsType:
       | { type: 'None' }
@@ -612,9 +613,10 @@ class AccountUpdate implements Types.AccountUpdate {
     this.id = Math.random();
     this.body = body;
     this.authorization = authorization;
-    let { account, network } = Precondition.preconditions(this, isSelf);
+    let { account, network, validUntil } = Precondition.preconditions(this, isSelf);
     this.account = account;
     this.network = network;
+    this.validUntil = validUntil;
     this.isSelf = isSelf;
   }
 
@@ -1330,6 +1332,11 @@ class AccountUpdate implements Types.AccountUpdate {
     if (body.preconditions?.network) {
       body.preconditions.network = JSON.stringify(
         body.preconditions.network
+      ) as any;
+    }
+    if (body.preconditions?.validUntil) {
+      body.preconditions.validUntil = JSON.stringify(
+        body.preconditions.validUntil
       ) as any;
     }
     if (jsonUpdate.authorization?.proof) {

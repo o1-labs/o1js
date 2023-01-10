@@ -16,16 +16,18 @@ export {
   preconditions,
   Account,
   Network,
+  ValidUntil,
   assertPreconditionInvariants,
   cleanPreconditionsCache,
   AccountValue,
   NetworkValue,
+  ValidUntilValue,
   getAccountPreconditions,
 };
 
 function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
   initializePreconditions(accountUpdate, isSelf);
-  return { account: Account(accountUpdate), network: Network(accountUpdate) };
+  return { account: Account(accountUpdate), network: Network(accountUpdate), validUntil: ValidUntil(accountUpdate) };
 }
 
 // note: please keep the two precondition implementations separate
@@ -43,6 +45,13 @@ function Account(accountUpdate: AccountUpdate): Account {
     jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.account;
   let context = getPreconditionContextExn(accountUpdate);
   return preconditionClass(layout as Layout, 'account', accountUpdate, context);
+}
+
+function ValidUntil(accountUpdate: AccountUpdate): ValidUntil {
+  let layout =
+    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.validUntil;
+  let context = getPreconditionContextExn(accountUpdate);
+  return preconditionClass(layout as Layout, 'validUntil', accountUpdate, context);
 }
 
 let unimplementedPreconditions: LongKey[] = [
@@ -294,6 +303,10 @@ type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
 // TODO to use this type as account type everywhere, need to add publicKey
 type AccountValue = PreconditionBaseTypes<AccountPrecondition>;
 type Account = PreconditionClassType<AccountPrecondition>;
+
+type ValidUntilPrecondition = Preconditions['validUntil'];
+type ValidUntilValue = PreconditionBaseTypes<ValidUntilPrecondition>;
+type ValidUntil = PreconditionClassType<ValidUntilPrecondition>;
 
 type PreconditionBaseTypes<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
