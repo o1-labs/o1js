@@ -16,8 +16,8 @@ import {
 } from './sign-legacy.js';
 import { NetworkId, Signature } from './signature.js';
 import { expect } from 'expect';
-import { PublicKey, Scalar } from '../provable/curve-bigint.js';
-import { Field } from '../provable/field-bigint.js';
+import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
+import { Field } from '../../provable/field-bigint.js';
 
 let { privateKey, publicKey } = keypair;
 let networks: NetworkId[] = ['testnet', 'mainnet'];
@@ -27,37 +27,29 @@ for (let network of networks) {
   let reference = signatures[network];
 
   for (let payment of payments) {
-    let signatureBase58 = signPayment(payment, privateKey, network);
-    let signature = Signature.fromBase58(signatureBase58);
+    let signature = signPayment(payment, privateKey, network);
     let ref = reference[i++];
-    expect(signature.r).toEqual(BigInt(ref.field));
-    expect(signature.s).toEqual(BigInt(ref.scalar));
-    let ok = verifyPayment(payment, signatureBase58, publicKey, network);
+    expect(signature.field).toEqual(ref.field);
+    expect(signature.scalar).toEqual(ref.scalar);
+    let ok = verifyPayment(payment, signature, publicKey, network);
     expect(ok).toEqual(true);
   }
 
   for (let delegation of delegations) {
-    let signatureBase58 = signStakeDelegation(delegation, privateKey, network);
-    let signature = Signature.fromBase58(signatureBase58);
+    let signature = signStakeDelegation(delegation, privateKey, network);
     let ref = reference[i++];
-    expect(signature.r).toEqual(BigInt(ref.field));
-    expect(signature.s).toEqual(BigInt(ref.scalar));
-    let ok = verifyStakeDelegation(
-      delegation,
-      signatureBase58,
-      publicKey,
-      network
-    );
+    expect(signature.field).toEqual(ref.field);
+    expect(signature.scalar).toEqual(ref.scalar);
+    let ok = verifyStakeDelegation(delegation, signature, publicKey, network);
     expect(ok).toEqual(true);
   }
 
   for (let string of strings) {
-    let signatureBase58 = signString(string, privateKey, network);
-    let signature = Signature.fromBase58(signatureBase58);
+    let signature = signString(string, privateKey, network);
     let ref = reference[i++];
-    expect(signature.r).toEqual(BigInt(ref.field));
-    expect(signature.s).toEqual(BigInt(ref.scalar));
-    let ok = verifyStringSignature(string, signatureBase58, publicKey, network);
+    expect(signature.field).toEqual(ref.field);
+    expect(signature.scalar).toEqual(ref.scalar);
+    let ok = verifyStringSignature(string, signature, publicKey, network);
     expect(ok).toEqual(true);
   }
 }
@@ -79,7 +71,7 @@ let invalidPublicKey: PaymentJson = {
     source: PublicKey.toBase58({ x: 0n, isOdd: 0n }),
   },
 };
-let signature = Signature.toBase58({ r: Field.random(), s: Scalar.random() });
+let signature = Signature.toJSON({ r: Field.random(), s: Scalar.random() });
 
 expect(() => signPayment(amountTooLarge, privateKey, 'mainnet')).toThrow(
   `inputs larger than ${2n ** 64n - 1n} are not allowed`
@@ -97,12 +89,12 @@ expect(
 
 // negative tests with invalid signatures
 
-let garbageSignature = 'garbage';
-let signatureFieldTooLarge = Signature.toBase58({
+let garbageSignature = { field: 'garbage', scalar: 'garbage' };
+let signatureFieldTooLarge = Signature.toJSON({
   r: Field.modulus,
   s: Scalar.random(),
 });
-let signatureScalarTooLarge = Signature.toBase58({
+let signatureScalarTooLarge = Signature.toJSON({
   r: Field.random(),
   s: Scalar.modulus,
 });

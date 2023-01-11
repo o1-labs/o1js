@@ -5,23 +5,23 @@ import {
   Bool as BoolSnarky,
   Scalar as ScalarSnarky,
   shutdown,
-} from '../snarky.js';
-import { UInt32, UInt64 } from '../lib/int.js';
+} from '../../snarky.js';
+import { UInt32, UInt64 } from '../../lib/int.js';
 import {
   PrivateKey as PrivateKeySnarky,
   PublicKey as PublicKeySnarky,
-} from '../lib/signature.js';
+} from '../../lib/signature.js';
 import {
   AccountUpdate as AccountUpdateSnarky,
   Permissions as PermissionsSnarky,
-} from '../lib/account_update.js';
-import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
+} from '../../lib/account_update.js';
+import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
 import {
   AccountUpdate,
   Json,
   ZkappCommand,
-} from '../provable/gen/transaction-bigint.js';
-import * as TypesSnarky from '../provable/gen/transaction.js';
+} from '../../provable/gen/transaction-bigint.js';
+import * as TypesSnarky from '../../provable/gen/transaction.js';
 import {
   accountUpdateFromFeePayer,
   accountUpdateHash,
@@ -36,8 +36,8 @@ import {
   hashWithPrefix,
   packToFields,
   prefixes,
-} from '../provable/poseidon-bigint.js';
-import { packToFields as packToFieldsSnarky } from '../lib/hash.js';
+} from '../../provable/poseidon-bigint.js';
+import { packToFields as packToFieldsSnarky } from '../../lib/hash.js';
 import { Memo } from './memo.js';
 import {
   NetworkId,

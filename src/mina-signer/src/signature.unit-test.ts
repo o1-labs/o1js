@@ -7,12 +7,17 @@ import {
   verify,
   verifyFieldElement,
 } from './signature.js';
-import { isReady, Ledger, Field as FieldSnarky, shutdown } from '../snarky.js';
-import { Field, HashInput } from '../provable/field-bigint.js';
-import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
-import { PrivateKey as PrivateKeySnarky } from '../lib/signature.js';
-import { p } from '../js_crypto/finite_field.js';
-import { AccountUpdate } from '../provable/gen/transaction-bigint.js';
+import {
+  isReady,
+  Ledger,
+  Field as FieldSnarky,
+  shutdown,
+} from '../../snarky.js';
+import { Field, HashInput } from '../../provable/field-bigint.js';
+import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
+import { PrivateKey as PrivateKeySnarky } from '../../lib/signature.js';
+import { p } from '../../js_crypto/finite_field.js';
+import { AccountUpdate } from '../../provable/gen/transaction-bigint.js';
 
 await isReady;
 

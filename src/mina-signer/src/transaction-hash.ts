@@ -1,4 +1,4 @@
-import { Bool, Field, UInt64 } from '../provable/field-bigint.js';
+import { Bool, Field, UInt64 } from '../../provable/field-bigint.js';
 import {
   Binable,
   BinableBigintInteger,
@@ -8,7 +8,7 @@ import {
   record,
   stringToBytes,
   withVersionNumber,
-} from '../provable/binable.js';
+} from '../../provable/binable.js';
 import {
   Common,
   Delegation,
@@ -20,11 +20,11 @@ import {
   delegationFromJson,
   paymentFromJson,
 } from './sign-legacy.js';
-import { PublicKey, Scalar } from '../provable/curve-bigint.js';
-import { Signature } from './signature.js';
+import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
+import { Signature, SignatureJson } from './signature.js';
 import { blake2b } from 'blakejs';
-import { base58, withBase58 } from '../provable/base58.js';
-import { versionBytes } from '../js_crypto/constants.js';
+import { base58, withBase58 } from '../../provable/base58.js';
+import { versionBytes } from '../../js_crypto/constants.js';
 
 export {
   hashPayment,
@@ -38,7 +38,7 @@ export {
   HashBase58,
 };
 
-type Signed<T> = { data: T; signature: string };
+type Signed<T> = { data: T; signature: SignatureJson };
 const dummySignature: Signature = { r: Field(1), s: Scalar(1) };
 
 function hashPayment(signed: Signed<PaymentJson>, { berkeley = false } = {}) {
@@ -168,7 +168,7 @@ function hashPaymentV1({ data, signature }: Signed<PaymentJson>) {
   let paymentV1 = userCommandToV1(paymentFromJson(data));
   return hashSignedCommandV1({
     signer: PublicKey.fromBase58(data.body.source),
-    signature: Signature.fromBase58(signature),
+    signature: Signature.fromJSON(signature),
     payload: paymentV1,
   });
 }
@@ -177,7 +177,7 @@ function hashStakeDelegationV1({ data, signature }: Signed<DelegationJson>) {
   let payload = userCommandToV1(delegationFromJson(data));
   return hashSignedCommandV1({
     signer: PublicKey.fromBase58(data.body.delegator),
-    signature: Signature.fromBase58(signature),
+    signature: Signature.fromJSON(signature),
     payload,
   });
 }

@@ -1,4 +1,4 @@
-import { Ledger, shutdown, Test } from '../snarky.js';
+import { Ledger, shutdown, Test } from '../../snarky.js';
 import {
   Common,
   hashPayment,
@@ -18,11 +18,17 @@ import {
   delegationFromJson,
 } from './sign-legacy.js';
 import { Signature } from './signature.js';
-import { PublicKey } from '../provable/curve-bigint.js';
+import { PublicKey } from '../../provable/curve-bigint.js';
 import { Memo } from './memo.js';
 import { expect } from 'expect';
-import { versionBytes } from '../js_crypto/constants.js';
-import { stringToBytes } from '../provable/binable.js';
+import { versionBytes } from '../../js_crypto/constants.js';
+import { stringToBytes } from '../../provable/binable.js';
+
+let signature = Signature.toJSON(
+  Signature.fromBase58(
+    '7mWyu5cpHDvYj28RGuJKzBQkU35KgHwaM34oPxoxXbFddv1kpL3e6NdUsMZMhyrrgkgVYo5cNvfiXhtshF35ZqTmSdPcUToN'
+  )
+);
 
 let payment: Signed<PaymentJson> = {
   data: {
@@ -39,8 +45,7 @@ let payment: Signed<PaymentJson> = {
       amount: '99',
     },
   },
-  signature:
-    '7mWyu5cpHDvYj28RGuJKzBQkU35KgHwaM34oPxoxXbFddv1kpL3e6NdUsMZMhyrrgkgVYo5cNvfiXhtshF35ZqTmSdPcUToN',
+  signature,
 };
 
 let delegation: Signed<DelegationJson> = {
@@ -51,8 +56,7 @@ let delegation: Signed<DelegationJson> = {
       newDelegate: 'B62qs2FVpaWkoNdEUgmSmUF8etXJWTnELboJK8MjLfeiSxP9MY7qjZr',
     },
   },
-  signature:
-    '7mWyu5cpHDvYj28RGuJKzBQkU35KgHwaM34oPxoxXbFddv1kpL3e6NdUsMZMhyrrgkgVYo5cNvfiXhtshF35ZqTmSdPcUToN',
+  signature,
 };
 
 // common serialization
@@ -71,7 +75,7 @@ let paymentBytes0 = [...result.data];
 let payload = userCommandToEnum(paymentFromJson(payment.data));
 let command = {
   signer: PublicKey.fromBase58(payment.data.body.source),
-  signature: Signature.fromBase58(payment.signature),
+  signature: Signature.fromJSON(payment.signature),
   payload,
 };
 let paymentBytes1 = SignedCommand.toBytes(command);
@@ -93,7 +97,7 @@ let delegationBytes0 = [...result.data];
 payload = userCommandToEnum(delegationFromJson(delegation.data));
 command = {
   signer: PublicKey.fromBase58(payment.data.body.source),
-  signature: Signature.fromBase58(payment.signature),
+  signature: Signature.fromJSON(payment.signature),
   payload,
 };
 let delegationBytes1 = SignedCommand.toBytes(command);
@@ -119,7 +123,7 @@ let v1Bytes0 = stringToBytes(
 let paymentV1Body = userCommandToV1(paymentFromJson(payment.data));
 let paymentV1 = {
   signer: PublicKey.fromBase58(payment.data.body.source),
-  signature: Signature.fromBase58(payment.signature),
+  signature: Signature.fromJSON(payment.signature),
   payload: paymentV1Body,
 };
 let v1Bytes1 = SignedCommandV1.toBytes(paymentV1);
@@ -139,7 +143,7 @@ v1Bytes0 = stringToBytes(
 let delegationV1Body = userCommandToV1(delegationFromJson(delegation.data));
 let delegationV1 = {
   signer: PublicKey.fromBase58(payment.data.body.source),
-  signature: Signature.fromBase58(payment.signature),
+  signature: Signature.fromJSON(payment.signature),
   payload: delegationV1Body,
 };
 v1Bytes1 = SignedCommandV1.toBytes(delegationV1);
@@ -165,7 +169,7 @@ function paymentToOcaml({
       body: ['Payment', { source_pk: source, receiver_pk: receiver, amount }],
     },
     signer: source,
-    signature,
+    signature: Signature.toBase58(Signature.fromJSON(signature)),
   };
 }
 
@@ -185,7 +189,7 @@ function paymentToOcamlV1({
       ],
     },
     signer: source,
-    signature,
+    signature: Signature.toBase58(Signature.fromJSON(signature)),
   };
 }
 
@@ -205,7 +209,7 @@ function delegationToOcaml({
       ],
     },
     signer: delegator,
-    signature,
+    signature: Signature.toBase58(Signature.fromJSON(signature)),
   };
 }
 
@@ -225,7 +229,7 @@ function delegationToOcamlV1({
       ],
     },
     signer: delegator,
-    signature,
+    signature: Signature.toBase58(Signature.fromJSON(signature)),
   };
 }
 
