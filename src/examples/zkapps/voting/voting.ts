@@ -127,7 +127,7 @@ export class Voting_ extends SmartContract {
     let balance = accountUpdate.account.balance.get();
 
     balance.assertGreaterThanOrEqual(voterPreconditions.minMina);
-    balance.assertGreaterThanOrEqual(voterPreconditions.maxMina);
+    balance.assertLessThanOrEqual(voterPreconditions.maxMina);
 
     let VoterContract: Membership_ = new Membership_(voterAddress);
     let exists = VoterContract.addEntry(member);
@@ -149,7 +149,7 @@ export class Voting_ extends SmartContract {
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
     // can only register candidates before the election has started
-    currentSlot.assertGreaterThanOrEqual(electionPreconditions.startElection);
+    currentSlot.assertLessThanOrEqual(electionPreconditions.startElection);
 
     // can only register candidates if their balance is gte the minimum amount required
     // and lte the maximum amount

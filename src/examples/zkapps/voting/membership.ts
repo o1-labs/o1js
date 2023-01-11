@@ -96,7 +96,7 @@ export class Membership_ extends SmartContract {
     let balance = accountUpdate.account.balance.get();
 
     balance.assertGreaterThanOrEqual(participantPreconditions.minMina);
-    balance.assertGreaterThanOrEqual(participantPreconditions.maxMina);
+    balance.assertLessThanOrEqual(participantPreconditions.maxMina);
 
     let accumulatedMembers = this.accumulatedMembers.get();
     this.accumulatedMembers.assertEquals(accumulatedMembers);
