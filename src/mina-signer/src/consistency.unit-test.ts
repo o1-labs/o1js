@@ -46,8 +46,6 @@ import {
   verifyFieldElement,
 } from './signature.js';
 
-throw Error('blub');
-
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
   return this.toString();
