@@ -1025,7 +1025,7 @@ Circuit.constraintSystem = function <T>(f: () => T) {
       let { rows, digest, json } = (Circuit as any)._constraintSystem(() => {
         result = f();
       });
-      return { rows, digest, result: result! };
+      return { rows, digest, result: result!, json };
     }
   );
   return result;

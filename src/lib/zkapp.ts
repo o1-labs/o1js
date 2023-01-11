@@ -611,7 +611,13 @@ class SmartContract {
   static _methods?: MethodInterface[];
   static _methodMetadata: Record<
     string,
-    { sequenceEvents: number; rows: number; digest: string; hasReturn: boolean }
+    {
+      sequenceEvents: number;
+      rows: number;
+      digest: string;
+      hasReturn: boolean;
+      json: any;
+    }
   > = {}; // keyed by method name
   static _provers?: Pickles.Prover[];
   static _maxProofsVerified?: 0 | 1 | 2;
@@ -1067,7 +1073,7 @@ super.init();
       }
       for (let methodIntf of methodIntfs) {
         let accountUpdate: AccountUpdate;
-        let { rows, digest, result } = analyzeMethod(
+        let { rows, digest, result, json } = analyzeMethod(
           ZkappPublicInput,
           methodIntf,
           (publicInput, publicKey, tokenId, ...args) => {
@@ -1085,6 +1091,7 @@ super.init();
           rows,
           digest,
           hasReturn: result !== undefined,
+          json,
         };
       }
     }
