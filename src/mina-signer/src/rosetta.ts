@@ -48,7 +48,7 @@ function fieldFromHex<T extends Field | Scalar>(
   return [binable.fromBytes(bytes), paddingBit];
 }
 
-// TODO: clean up this logic, was copied over from Ocaml code
+// TODO: clean up this logic, was copied over from OCaml code
 function rosettaTransactionToSignedCommand({
   signature,
   payment,
