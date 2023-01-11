@@ -917,7 +917,7 @@ async function verifyAccountUpdate(
       case 'tokenSymbol':
         return perm.setTokenSymbol;
       case 'timing':
-        return 'None';
+        return perm.setTiming;
       case 'votingFor':
         return perm.setVotingFor;
       case 'sequenceEvents':

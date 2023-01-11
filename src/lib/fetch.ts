@@ -139,6 +139,7 @@ type FetchedAccount = {
     setTokenSymbol: AuthRequired;
     incrementNonce: AuthRequired;
     setVotingFor: AuthRequired;
+    setTiming: AuthRequired;
   };
   delegateAccount?: { publicKey: string };
   sequenceEvents?: string[] | null;
@@ -194,6 +195,7 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
       setTokenSymbol
       incrementNonce
       setVotingFor
+      setTiming
     }
     receiptChainHash
     balance { total }

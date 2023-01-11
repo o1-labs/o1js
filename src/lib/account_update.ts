@@ -208,6 +208,7 @@ interface Permissions extends Permissions_ {
   // TODO: doccomments
   incrementNonce: Permission;
   setVotingFor: Permission;
+  setTiming: Permission;
 }
 let Permissions = {
   ...Permission,
@@ -245,6 +246,7 @@ let Permissions = {
     setTokenSymbol: Permission.signature(),
     incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
+    setTiming: Permission.signature(),
   }),
 
   initial: (): Permissions => ({
@@ -259,6 +261,7 @@ let Permissions = {
     setTokenSymbol: Permission.signature(),
     incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
+    setTiming: Permission.signature(),
   }),
 
   dummy: (): Permissions => ({
@@ -273,6 +276,7 @@ let Permissions = {
     setTokenSymbol: Permission.none(),
     incrementNonce: Permission.none(),
     setVotingFor: Permission.none(),
+    setTiming: Permission.none(),
   }),
 
   fromString: (permission: AuthRequired): Permission => {
@@ -306,6 +310,7 @@ let Permissions = {
     setTokenSymbol: AuthRequired;
     incrementNonce: AuthRequired;
     setVotingFor: AuthRequired;
+    setTiming: AuthRequired;
   }): Permissions => {
     return Object.fromEntries(
       Object.entries(permissions).map(([k, v]) => [

@@ -133,6 +133,7 @@ let jsLayout = {
                           'setTokenSymbol',
                           'incrementNonce',
                           'setVotingFor',
+                          'setTiming',
                         ],
                         entries: {
                           editState: { type: 'AuthRequired' },
@@ -146,6 +147,7 @@ let jsLayout = {
                           setTokenSymbol: { type: 'AuthRequired' },
                           incrementNonce: { type: 'AuthRequired' },
                           setVotingFor: { type: 'AuthRequired' },
+                          setTiming: { type: 'AuthRequired' },
                         },
                         docEntries: {
                           editState: null,
@@ -159,6 +161,7 @@ let jsLayout = {
                           setTokenSymbol: null,
                           incrementNonce: null,
                           setVotingFor: null,
+                          setTiming: null,
                         },
                       },
                     },
@@ -822,6 +825,7 @@ let jsLayout = {
                     'setTokenSymbol',
                     'incrementNonce',
                     'setVotingFor',
+                    'setTiming',
                   ],
                   entries: {
                     editState: { type: 'AuthRequired' },
@@ -835,6 +839,7 @@ let jsLayout = {
                     setTokenSymbol: { type: 'AuthRequired' },
                     incrementNonce: { type: 'AuthRequired' },
                     setVotingFor: { type: 'AuthRequired' },
+                    setTiming: { type: 'AuthRequired' },
                   },
                   docEntries: {
                     editState: null,
@@ -848,6 +853,7 @@ let jsLayout = {
                     setTokenSymbol: null,
                     incrementNonce: null,
                     setVotingFor: null,
+                    setTiming: null,
                   },
                 },
               },

@@ -1073,6 +1073,7 @@ interface Account {
     setTokenSymbol: AuthRequired;
     incrementNonce: AuthRequired;
     setVotingFor: AuthRequired;
+    setTiming: AuthRequired;
   };
   timing: {
     isTimed: Bool;

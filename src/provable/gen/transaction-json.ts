@@ -61,6 +61,7 @@ type ZkappCommand = {
           setTokenSymbol: AuthRequired;
           incrementNonce: AuthRequired;
           setVotingFor: AuthRequired;
+          setTiming: AuthRequired;
         } | null;
         zkappUri: string | null;
         tokenSymbol: string | null;
@@ -186,6 +187,7 @@ type AccountUpdate = {
         setTokenSymbol: AuthRequired;
         incrementNonce: AuthRequired;
         setVotingFor: AuthRequired;
+        setTiming: AuthRequired;
       } | null;
       zkappUri: string | null;
       tokenSymbol: string | null;
