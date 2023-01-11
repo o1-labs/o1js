@@ -28,7 +28,6 @@ describe('AccountUpdate', () => {
   afterAll(() => setTimeout(shutdown, 0));
 
   it('can convert account update to fields consistently', () => {
-    throw Error('haha');
     // convert accountUpdate to fields in OCaml, going via AccountUpdate.of_json
     let json = JSON.stringify(accountUpdate.toJSON().body);
     let fields1 = Ledger.fieldsOfJson(json);
