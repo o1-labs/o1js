@@ -1,5 +1,5 @@
 // generic encoding infrastructure
-import { bigIntToBytes, bytesToBigInt } from './field-bigint.js';
+import { bytesToBigInt, bigIntToBytes } from '../js_crypto/bigint-helpers.js';
 import { GenericField } from './generic.js';
 
 export {

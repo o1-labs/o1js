@@ -1,3 +1,4 @@
+import { bigIntToBytes } from '../js_crypto/bigint-helpers.js';
 import { Fp, mod } from '../js_crypto/finite_field.js';
 import { BinableWithBits, defineBinable, withBits } from './binable.js';
 import { GenericHashInput, GenericProvableExtended } from './generic.js';
@@ -9,9 +10,7 @@ export {
   HashInput,
   ProvableBigint,
   BinableBigint,
-  bigIntToBytes,
   sizeInBits,
-  bytesToBigInt,
   checkRange,
   checkField,
 };
@@ -205,34 +204,6 @@ function BinableBigint<T extends bigint = bigint>(
     }),
     sizeInBits
   );
-}
-
-function bytesToBigInt(bytes: Uint8Array | number[]) {
-  let x = 0n;
-  let bitPosition = 0n;
-  for (let byte of bytes) {
-    x += BigInt(byte) << bitPosition;
-    bitPosition += 8n;
-  }
-  return x;
-}
-
-/**
- * Transforms bigint to little-endian array of bytes (numbers between 0 and 255) of a given length.
- * Throws an error if the bigint doesn't fit in the given number of bytes.
- */
-function bigIntToBytes(x: bigint, length: number) {
-  if (x < 0n) {
-    throw Error(`bigIntToBytes: negative numbers are not supported, got ${x}`);
-  }
-  let bytes: number[] = Array(length);
-  for (let i = 0; i < length; i++, x >>= 8n) {
-    bytes[i] = Number(x & 0xffn);
-  }
-  if (x > 0n) {
-    throw Error(`bigIntToBytes: input does not fit in ${length} bytes`);
-  }
-  return bytes;
 }
 
 // validity checks
