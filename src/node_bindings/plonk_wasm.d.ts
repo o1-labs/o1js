@@ -281,10 +281,63 @@ export function caml_fq_srs_batch_accumulator_generate(srs: WasmFqSrs, comms: nu
 */
 export function caml_fq_srs_h(srs: WasmFqSrs): WasmGPallas;
 /**
-* @param {WasmPastaFpPlonkIndex} prover_index
-* @returns {string}
+* @param {WasmPastaFpPlonkIndex} index
+* @param {WasmVecVecFp} witness
+* @param {Uint8Array} prev_challenges
+* @param {Uint32Array} prev_sgs
+* @returns {WasmFpProverProof}
 */
-export function prover_to_json(prover_index: WasmPastaFpPlonkIndex): string;
+export function caml_pasta_fp_plonk_proof_create(index: WasmPastaFpPlonkIndex, witness: WasmVecVecFp, prev_challenges: Uint8Array, prev_sgs: Uint32Array): WasmFpProverProof;
+/**
+* @param {WasmFpPlonkVerifierIndex} index
+* @param {WasmFpProverProof} proof
+* @returns {boolean}
+*/
+export function caml_pasta_fp_plonk_proof_verify(index: WasmFpPlonkVerifierIndex, proof: WasmFpProverProof): boolean;
+/**
+* @param {Uint32Array} indexes
+* @param {Uint32Array} proofs
+* @returns {boolean}
+*/
+export function caml_pasta_fp_plonk_proof_batch_verify(indexes: Uint32Array, proofs: Uint32Array): boolean;
+/**
+* @returns {WasmFpProverProof}
+*/
+export function caml_pasta_fp_plonk_proof_dummy(): WasmFpProverProof;
+/**
+* @param {WasmFpProverProof} x
+* @returns {WasmFpProverProof}
+*/
+export function caml_pasta_fp_plonk_proof_deep_copy(x: WasmFpProverProof): WasmFpProverProof;
+/**
+* @param {WasmPastaFqPlonkIndex} index
+* @param {WasmVecVecFq} witness
+* @param {Uint8Array} prev_challenges
+* @param {Uint32Array} prev_sgs
+* @returns {WasmFqProverProof}
+*/
+export function caml_pasta_fq_plonk_proof_create(index: WasmPastaFqPlonkIndex, witness: WasmVecVecFq, prev_challenges: Uint8Array, prev_sgs: Uint32Array): WasmFqProverProof;
+/**
+* @param {WasmFqPlonkVerifierIndex} index
+* @param {WasmFqProverProof} proof
+* @returns {boolean}
+*/
+export function caml_pasta_fq_plonk_proof_verify(index: WasmFqPlonkVerifierIndex, proof: WasmFqProverProof): boolean;
+/**
+* @param {Uint32Array} indexes
+* @param {Uint32Array} proofs
+* @returns {boolean}
+*/
+export function caml_pasta_fq_plonk_proof_batch_verify(indexes: Uint32Array, proofs: Uint32Array): boolean;
+/**
+* @returns {WasmFqProverProof}
+*/
+export function caml_pasta_fq_plonk_proof_dummy(): WasmFqProverProof;
+/**
+* @param {WasmFqProverProof} x
+* @returns {WasmFqProverProof}
+*/
+export function caml_pasta_fq_plonk_proof_deep_copy(x: WasmFqProverProof): WasmFqProverProof;
 /**
 * @param {number | undefined} offset
 * @param {WasmFpSrs} srs
@@ -328,6 +381,11 @@ export function caml_pasta_fp_plonk_verifier_index_dummy(): WasmFpPlonkVerifierI
 * @returns {WasmFpPlonkVerifierIndex}
 */
 export function caml_pasta_fp_plonk_verifier_index_deep_copy(x: WasmFpPlonkVerifierIndex): WasmFpPlonkVerifierIndex;
+/**
+* @param {WasmPastaFpPlonkIndex} prover_index
+* @returns {string}
+*/
+export function prover_to_json(prover_index: WasmPastaFpPlonkIndex): string;
 /**
 * @param {number | undefined} offset
 * @param {WasmFqSrs} srs
@@ -404,63 +462,67 @@ export function fq_oracles_dummy(): WasmFqOracles;
 */
 export function fq_oracles_deep_copy(x: WasmFqProverProof): WasmFqProverProof;
 /**
-* @param {WasmPastaFpPlonkIndex} index
-* @param {WasmVecVecFp} witness
-* @param {Uint8Array} prev_challenges
-* @param {Uint32Array} prev_sgs
-* @returns {WasmFpProverProof}
+* @param {string} s
+* @param {number} _len
+* @param {number} base
+* @returns {Uint8Array}
 */
-export function caml_pasta_fp_plonk_proof_create(index: WasmPastaFpPlonkIndex, witness: WasmVecVecFp, prev_challenges: Uint8Array, prev_sgs: Uint32Array): WasmFpProverProof;
+export function caml_bigint_256_of_numeral(s: string, _len: number, base: number): Uint8Array;
 /**
-* @param {WasmFpPlonkVerifierIndex} index
-* @param {WasmFpProverProof} proof
+* @param {string} s
+* @returns {Uint8Array}
+*/
+export function caml_bigint_256_of_decimal_string(s: string): Uint8Array;
+/**
+* @returns {number}
+*/
+export function caml_bigint_256_num_limbs(): number;
+/**
+* @returns {number}
+*/
+export function caml_bigint_256_bytes_per_limb(): number;
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {Uint8Array}
+*/
+export function caml_bigint_256_div(x: Uint8Array, y: Uint8Array): Uint8Array;
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {number}
+*/
+export function caml_bigint_256_compare(x: Uint8Array, y: Uint8Array): number;
+/**
+* @param {Uint8Array} x
+*/
+export function caml_bigint_256_print(x: Uint8Array): void;
+/**
+* @param {Uint8Array} x
+* @returns {string}
+*/
+export function caml_bigint_256_to_string(x: Uint8Array): string;
+/**
+* @param {Uint8Array} x
+* @param {number} i
 * @returns {boolean}
 */
-export function caml_pasta_fp_plonk_proof_verify(index: WasmFpPlonkVerifierIndex, proof: WasmFpProverProof): boolean;
+export function caml_bigint_256_test_bit(x: Uint8Array, i: number): boolean;
 /**
-* @param {Uint32Array} indexes
-* @param {Uint32Array} proofs
-* @returns {boolean}
+* @param {Uint8Array} x
+* @returns {Uint8Array}
 */
-export function caml_pasta_fp_plonk_proof_batch_verify(indexes: Uint32Array, proofs: Uint32Array): boolean;
+export function caml_bigint_256_to_bytes(x: Uint8Array): Uint8Array;
 /**
-* @returns {WasmFpProverProof}
+* @param {Uint8Array} x
+* @returns {Uint8Array}
 */
-export function caml_pasta_fp_plonk_proof_dummy(): WasmFpProverProof;
+export function caml_bigint_256_of_bytes(x: Uint8Array): Uint8Array;
 /**
-* @param {WasmFpProverProof} x
-* @returns {WasmFpProverProof}
+* @param {Uint8Array} x
+* @returns {Uint8Array}
 */
-export function caml_pasta_fp_plonk_proof_deep_copy(x: WasmFpProverProof): WasmFpProverProof;
-/**
-* @param {WasmPastaFqPlonkIndex} index
-* @param {WasmVecVecFq} witness
-* @param {Uint8Array} prev_challenges
-* @param {Uint32Array} prev_sgs
-* @returns {WasmFqProverProof}
-*/
-export function caml_pasta_fq_plonk_proof_create(index: WasmPastaFqPlonkIndex, witness: WasmVecVecFq, prev_challenges: Uint8Array, prev_sgs: Uint32Array): WasmFqProverProof;
-/**
-* @param {WasmFqPlonkVerifierIndex} index
-* @param {WasmFqProverProof} proof
-* @returns {boolean}
-*/
-export function caml_pasta_fq_plonk_proof_verify(index: WasmFqPlonkVerifierIndex, proof: WasmFqProverProof): boolean;
-/**
-* @param {Uint32Array} indexes
-* @param {Uint32Array} proofs
-* @returns {boolean}
-*/
-export function caml_pasta_fq_plonk_proof_batch_verify(indexes: Uint32Array, proofs: Uint32Array): boolean;
-/**
-* @returns {WasmFqProverProof}
-*/
-export function caml_pasta_fq_plonk_proof_dummy(): WasmFqProverProof;
-/**
-* @param {WasmFqProverProof} x
-* @returns {WasmFqProverProof}
-*/
-export function caml_pasta_fq_plonk_proof_deep_copy(x: WasmFqProverProof): WasmFqProverProof;
+export function caml_bigint_256_deep_copy(x: Uint8Array): Uint8Array;
 /**
 * @returns {WasmFpGateVector}
 */
@@ -483,11 +545,10 @@ export function caml_pasta_fp_plonk_gate_vector_get(v: WasmFpGateVector, i: numb
 */
 export function caml_pasta_fp_plonk_gate_vector_wrap(v: WasmFpGateVector, t: Wire, h: Wire): void;
 /**
-* @param {number} public_input_size
 * @param {WasmFpGateVector} v
 * @returns {Uint8Array}
 */
-export function caml_pasta_fp_plonk_gate_vector_digest(public_input_size: number, v: WasmFpGateVector): Uint8Array;
+export function caml_pasta_fp_plonk_gate_vector_digest(v: WasmFpGateVector): Uint8Array;
 /**
 * @returns {WasmFqGateVector}
 */
@@ -510,11 +571,10 @@ export function caml_pasta_fq_plonk_gate_vector_get(v: WasmFqGateVector, i: numb
 */
 export function caml_pasta_fq_plonk_gate_vector_wrap(v: WasmFqGateVector, t: Wire, h: Wire): void;
 /**
-* @param {number} public_input_size
 * @param {WasmFqGateVector} v
 * @returns {Uint8Array}
 */
-export function caml_pasta_fq_plonk_gate_vector_digest(public_input_size: number, v: WasmFqGateVector): Uint8Array;
+export function caml_pasta_fq_plonk_gate_vector_digest(v: WasmFqGateVector): Uint8Array;
 /**
 * @param {WasmFpGateVector} gates
 * @param {number} public_
@@ -643,68 +703,6 @@ export function set_u32_ptr(ptr: number, arg: number): void;
 * @returns {number}
 */
 export function wait_until_non_zero(ptr: number): number;
-/**
-* @param {string} s
-* @param {number} _len
-* @param {number} base
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_of_numeral(s: string, _len: number, base: number): Uint8Array;
-/**
-* @param {string} s
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_of_decimal_string(s: string): Uint8Array;
-/**
-* @returns {number}
-*/
-export function caml_bigint_256_num_limbs(): number;
-/**
-* @returns {number}
-*/
-export function caml_bigint_256_bytes_per_limb(): number;
-/**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_div(x: Uint8Array, y: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
-* @returns {number}
-*/
-export function caml_bigint_256_compare(x: Uint8Array, y: Uint8Array): number;
-/**
-* @param {Uint8Array} x
-*/
-export function caml_bigint_256_print(x: Uint8Array): void;
-/**
-* @param {Uint8Array} x
-* @returns {string}
-*/
-export function caml_bigint_256_to_string(x: Uint8Array): string;
-/**
-* @param {Uint8Array} x
-* @param {number} i
-* @returns {boolean}
-*/
-export function caml_bigint_256_test_bit(x: Uint8Array, i: number): boolean;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_to_bytes(x: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_of_bytes(x: Uint8Array): Uint8Array;
-/**
-* @param {Uint8Array} x
-* @returns {Uint8Array}
-*/
-export function caml_bigint_256_deep_copy(x: Uint8Array): Uint8Array;
 /**
 * @returns {number}
 */
@@ -1037,14 +1035,12 @@ export enum GateType {
   CairoFlags,
   CairoTransition,
 /**
-* Range check
+* Range check (16-24)
 */
   RangeCheck0,
   RangeCheck1,
   ForeignFieldAdd,
-  ForeignFieldMul,
   Xor16,
-  Rot64,
 }
 /**
 */
@@ -1194,13 +1190,14 @@ export class WasmFpPlonkVerifierIndex {
 /**
 * @param {WasmFpDomain} domain
 * @param {number} max_poly_size
+* @param {number} max_quot_size
 * @param {number} public_
 * @param {number} prev_challenges
 * @param {WasmFpSrs} srs
 * @param {WasmFpPlonkVerificationEvals} evals
 * @param {WasmFpShifts} shifts
 */
-  constructor(domain: WasmFpDomain, max_poly_size: number, public_: number, prev_challenges: number, srs: WasmFpSrs, evals: WasmFpPlonkVerificationEvals, shifts: WasmFpShifts);
+  constructor(domain: WasmFpDomain, max_poly_size: number, max_quot_size: number, public_: number, prev_challenges: number, srs: WasmFpSrs, evals: WasmFpPlonkVerificationEvals, shifts: WasmFpShifts);
 /**
 */
   domain: WasmFpDomain;
@@ -1210,6 +1207,9 @@ export class WasmFpPlonkVerifierIndex {
 /**
 */
   max_poly_size: number;
+/**
+*/
+  max_quot_size: number;
 /**
 */
   prev_challenges: number;
@@ -1241,6 +1241,34 @@ export class WasmFpPolyComm {
 }
 /**
 */
+export class WasmFpProofEvaluations {
+  free(): void;
+/**
+* @param {WasmVecVecFp} w
+* @param {Uint8Array} z
+* @param {WasmVecVecFp} s
+* @param {Uint8Array} generic_selector
+* @param {Uint8Array} poseidon_selector
+*/
+  constructor(w: WasmVecVecFp, z: Uint8Array, s: WasmVecVecFp, generic_selector: Uint8Array, poseidon_selector: Uint8Array);
+/**
+*/
+  generic_selector: Uint8Array;
+/**
+*/
+  poseidon_selector: Uint8Array;
+/**
+*/
+  s: WasmVecVecFp;
+/**
+*/
+  w: WasmVecVecFp;
+/**
+*/
+  z: Uint8Array;
+}
+/**
+*/
 export class WasmFpProverCommitments {
   free(): void;
 /**
@@ -1266,13 +1294,14 @@ export class WasmFpProverProof {
 /**
 * @param {WasmFpProverCommitments} commitments
 * @param {WasmFpOpeningProof} proof
-* @param {any} evals
+* @param {WasmFpProofEvaluations} evals0
+* @param {WasmFpProofEvaluations} evals1
 * @param {Uint8Array} ft_eval1
 * @param {Uint8Array} public_
 * @param {WasmVecVecFp} prev_challenges_scalars
 * @param {Uint32Array} prev_challenges_comms
 */
-  constructor(commitments: WasmFpProverCommitments, proof: WasmFpOpeningProof, evals: any, ft_eval1: Uint8Array, public_: Uint8Array, prev_challenges_scalars: WasmVecVecFp, prev_challenges_comms: Uint32Array);
+  constructor(commitments: WasmFpProverCommitments, proof: WasmFpOpeningProof, evals0: WasmFpProofEvaluations, evals1: WasmFpProofEvaluations, ft_eval1: Uint8Array, public_: Uint8Array, prev_challenges_scalars: WasmVecVecFp, prev_challenges_comms: Uint32Array);
 /**
 * @returns {string}
 */
@@ -1282,7 +1311,10 @@ export class WasmFpProverProof {
   commitments: WasmFpProverCommitments;
 /**
 */
-  evals: any;
+  evals0: WasmFpProofEvaluations;
+/**
+*/
+  evals1: WasmFpProofEvaluations;
 /**
 */
   ft_eval1: Uint8Array;
@@ -1544,13 +1576,14 @@ export class WasmFqPlonkVerifierIndex {
 /**
 * @param {WasmFqDomain} domain
 * @param {number} max_poly_size
+* @param {number} max_quot_size
 * @param {number} public_
 * @param {number} prev_challenges
 * @param {WasmFqSrs} srs
 * @param {WasmFqPlonkVerificationEvals} evals
 * @param {WasmFqShifts} shifts
 */
-  constructor(domain: WasmFqDomain, max_poly_size: number, public_: number, prev_challenges: number, srs: WasmFqSrs, evals: WasmFqPlonkVerificationEvals, shifts: WasmFqShifts);
+  constructor(domain: WasmFqDomain, max_poly_size: number, max_quot_size: number, public_: number, prev_challenges: number, srs: WasmFqSrs, evals: WasmFqPlonkVerificationEvals, shifts: WasmFqShifts);
 /**
 */
   domain: WasmFqDomain;
@@ -1560,6 +1593,9 @@ export class WasmFqPlonkVerifierIndex {
 /**
 */
   max_poly_size: number;
+/**
+*/
+  max_quot_size: number;
 /**
 */
   prev_challenges: number;
@@ -1591,6 +1627,34 @@ export class WasmFqPolyComm {
 }
 /**
 */
+export class WasmFqProofEvaluations {
+  free(): void;
+/**
+* @param {WasmVecVecFq} w
+* @param {Uint8Array} z
+* @param {WasmVecVecFq} s
+* @param {Uint8Array} generic_selector
+* @param {Uint8Array} poseidon_selector
+*/
+  constructor(w: WasmVecVecFq, z: Uint8Array, s: WasmVecVecFq, generic_selector: Uint8Array, poseidon_selector: Uint8Array);
+/**
+*/
+  generic_selector: Uint8Array;
+/**
+*/
+  poseidon_selector: Uint8Array;
+/**
+*/
+  s: WasmVecVecFq;
+/**
+*/
+  w: WasmVecVecFq;
+/**
+*/
+  z: Uint8Array;
+}
+/**
+*/
 export class WasmFqProverCommitments {
   free(): void;
 /**
@@ -1616,13 +1680,14 @@ export class WasmFqProverProof {
 /**
 * @param {WasmFqProverCommitments} commitments
 * @param {WasmFqOpeningProof} proof
-* @param {any} evals
+* @param {WasmFqProofEvaluations} evals0
+* @param {WasmFqProofEvaluations} evals1
 * @param {Uint8Array} ft_eval1
 * @param {Uint8Array} public_
 * @param {WasmVecVecFq} prev_challenges_scalars
 * @param {Uint32Array} prev_challenges_comms
 */
-  constructor(commitments: WasmFqProverCommitments, proof: WasmFqOpeningProof, evals: any, ft_eval1: Uint8Array, public_: Uint8Array, prev_challenges_scalars: WasmVecVecFq, prev_challenges_comms: Uint32Array);
+  constructor(commitments: WasmFqProverCommitments, proof: WasmFqOpeningProof, evals0: WasmFqProofEvaluations, evals1: WasmFqProofEvaluations, ft_eval1: Uint8Array, public_: Uint8Array, prev_challenges_scalars: WasmVecVecFq, prev_challenges_comms: Uint32Array);
 /**
 * @returns {string}
 */
@@ -1632,7 +1697,10 @@ export class WasmFqProverProof {
   commitments: WasmFqProverCommitments;
 /**
 */
-  evals: any;
+  evals0: WasmFqProofEvaluations;
+/**
+*/
+  evals1: WasmFqProofEvaluations;
 /**
 */
   ft_eval1: Uint8Array;
