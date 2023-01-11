@@ -114,7 +114,7 @@ function rosettaTransactionToSignedCommand({
           ['Set_delegate', { delegator: source_pk, new_delegate: receiver_pk }],
         ],
       };
-    } else throw Error("can't happen");
+    } else throw Error('rosettaTransactionToSignedCommand has a bug');
   })();
   return {
     signature: signatureBase58,
