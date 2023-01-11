@@ -27,7 +27,7 @@ function toBase58Check(input: number[] | Uint8Array, versionByte: number) {
 }
 
 function fromBase58Check(base58: string, versionByte: number) {
-  // TODO: should raise on invalid character
+  // throws on invalid character
   let bytes = fromBase58(base58);
   // check checksum
   let checksum = bytes.slice(-4);
@@ -58,7 +58,11 @@ function toBase58(bytes: number[] | Uint8Array) {
 }
 
 function fromBase58(base58: string) {
-  let base58Digits = [...base58].map((c) => BigInt(inverseAlphabet[c]));
+  let base58Digits = [...base58].map((c) => {
+    let digit = inverseAlphabet[c];
+    if (digit === undefined) throw Error('fromBase58: invalid character');
+    return BigInt(digit);
+  });
   let z = 0;
   while (base58Digits[z] === 0n) z++;
   let digits = changeBase(base58Digits.reverse(), 58n, 256n).reverse();

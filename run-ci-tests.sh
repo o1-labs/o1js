@@ -30,5 +30,9 @@ case $TEST_TYPE in
       npm run test
       ;;
 
+    "Verification Key Regression Check" )
+      echo "Running Regression checks"
+      ./run ./src/examples/vk_regression.ts --bundle ;;
+
     * ) echo "ERROR: Invalid enviroment variable, not clear what tests to run! $CI_NODE_INDEX"; exit 1 ;;
 esac
