@@ -1,3 +1,5 @@
+#!/bin/bash
+set -e
 
 case $TEST_TYPE in
     "Simple integration tests" ) 
@@ -23,8 +25,8 @@ case $TEST_TYPE in
 
     "Unit tests" )
       echo "Running unit tests";
-      npm run test:unit || exit 1
-      npm run test || exit 1
+      npm run test:unit
+      npm run test
       cd src/mina-signer
       npm run build
       npm run test
