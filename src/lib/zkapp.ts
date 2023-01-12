@@ -1268,16 +1268,8 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         // also, for each action length, compute the new state and then pick the actual one
         let newStates = actionss.map((actions) => {
           // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
-          let newState = Circuit.witness(stateType, () => {
-            // TODO: why doesn't this work without the toConstant mapping?
-            let { toFields, fromFields, toAuxiliary } = stateType;
-            return fromFields(
-              toFields(state).map((x) => x.toConstant()),
-              toAuxiliary(state)
-            );
-            // return state;
-          });
-          Circuit.assertEqual(newState, state);
+          let newState = Circuit.witness(stateType, () => state);
+          Circuit.assertEqual(stateType, newState, state);
           actions.forEach((action) => {
             newState = reduce(newState, action);
           });
