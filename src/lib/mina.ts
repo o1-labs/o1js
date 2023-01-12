@@ -55,7 +55,7 @@ export {
 };
 interface TransactionId {
   wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;
-  hash(): string;
+  hash(): string | undefined;
 }
 
 interface Transaction {
