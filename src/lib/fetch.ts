@@ -292,7 +292,6 @@ let accountsToFetch = {} as Record<
   { publicKey: string; tokenId: string; graphqlEndpoint: string }
 >;
 let networksToFetch = {} as Record<string, { graphqlEndpoint: string }>;
-let cacheExpiry = 10 * 60 * 1000; // 10 minutes
 
 function markAccountToBeFetched(
   publicKey: PublicKey,
@@ -312,24 +311,17 @@ function markNetworkToBeFetched(graphqlEndpoint: string) {
 }
 
 async function fetchMissingData(graphqlEndpoint: string) {
-  let expired = Date.now() - cacheExpiry;
-  let accounts = Object.entries(accountsToFetch).filter(([key, account]) => {
-    if (account.graphqlEndpoint !== graphqlEndpoint) return false;
-    let cachedAccount = accountCache[key];
-    return cachedAccount === undefined || cachedAccount.timestamp < expired;
-  });
-  let promises = accounts.map(async ([key, { publicKey, tokenId }]) => {
-    let response = await fetchAccountInternal(
-      { publicKey, tokenId },
-      graphqlEndpoint
-    );
-    if (response.error === undefined) delete accountsToFetch[key];
-  });
-
-  let network = Object.entries(networksToFetch).find(([key, network]) => {
-    if (network.graphqlEndpoint !== graphqlEndpoint) return;
-    let cachedNetwork = networkCache[key];
-    return cachedNetwork === undefined || cachedNetwork.timestamp < expired;
+  let promises = Object.entries(accountsToFetch).map(
+    async ([key, { publicKey, tokenId }]) => {
+      let response = await fetchAccountInternal(
+        { publicKey, tokenId },
+        graphqlEndpoint
+      );
+      if (response.error === undefined) delete accountsToFetch[key];
+    }
+  );
+  let network = Object.entries(networksToFetch).find(([, network]) => {
+    return network.graphqlEndpoint === graphqlEndpoint;
   });
   if (network !== undefined) {
     promises.push(
@@ -341,7 +333,6 @@ async function fetchMissingData(graphqlEndpoint: string) {
       })()
     );
   }
-
   await Promise.all(promises);
 }
 

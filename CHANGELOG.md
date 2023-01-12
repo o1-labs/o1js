@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - also fixes `Struct.fromJSON`
 - `SmartContract.fetchEvents` fixed when multiple event types existed https://github.com/o1-labs/snarkyjs/issues/627
 - Error when using reduce with a `Struct` as state type https://github.com/o1-labs/snarkyjs/pull/689
+- Fix use of stale cached accounts in `Mina.transaction` https://github.com/o1-labs/snarkyjs/issues/430
 
 ## [0.7.3](https://github.com/o1-labs/snarkyjs/compare/5f20f496...d880bd6e)
 
