@@ -681,15 +681,23 @@ function Network(graphqlEndpoint: string): Mina {
         console.log('got fetch error', error);
         errors = [error];
       }
+      let isSuccess = errors === undefined;
 
       let maxAttempts: number;
       let attempts = 0;
       let interval: number;
 
       return {
+        isSuccess,
         data: response?.data,
         errors,
         async wait(options?: { maxAttempts?: number; interval?: number }) {
+          if (!isSuccess) {
+            console.warn(
+              'Transaction.wait(): returning immediately because the transaction was not successful.'
+            );
+            return;
+          }
           // default is 45 attempts * 20s each = 15min
           // the block time on berkeley is currently longer than the average 3-4min, so its better to target a higher block time
           // fetching an update every 20s is more than enough with a current block time of 3min
