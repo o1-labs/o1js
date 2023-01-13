@@ -78,6 +78,7 @@
   },
   "dependencies": {
     "blakejs": "1.2.1",
+    "detect-gpu": "^5.0.5",
     "env": "^0.0.2",
     "isomorphic-fetch": "^3.0.0",
     "js-sha256": "^0.9.0",
