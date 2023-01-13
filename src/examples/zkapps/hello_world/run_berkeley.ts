@@ -53,7 +53,11 @@ let transaction = await Mina.transaction(
 transaction.sign([senderKey, zkappKey]);
 
 console.log('Sending the transaction..');
-await (await transaction.send()).wait();
+await (
+  await transaction.send()
+).wait({
+  maxAttempts: 90,
+});
 
 console.log('Fetching updated accounts..');
 await fetchAccount({ publicKey: senderKey.toPublicKey() });
@@ -67,7 +71,11 @@ transaction = await Mina.transaction({ sender, fee: transactionFee }, () => {
 await transaction.sign([senderKey]).prove();
 
 console.log('Sending the transaction..');
-await (await transaction.send()).wait();
+await (
+  await transaction.send()
+).wait({
+  maxAttempts: 90,
+});
 
 console.log('Checking if the update was valid..');
 
