@@ -1,5 +1,6 @@
+import { bigIntToBytes } from '../js_crypto/bigint-helpers.js';
 import { Fp, mod } from '../js_crypto/finite_field.js';
-import { BinableWithBits, withBits } from './binable.js';
+import { BinableWithBits, defineBinable, withBits } from './binable.js';
 import { GenericHashInput, GenericProvableExtended } from './generic.js';
 
 export { Field, Bool, UInt32, UInt64, Sign };
@@ -9,9 +10,7 @@ export {
   HashInput,
   ProvableBigint,
   BinableBigint,
-  bigIntToBytes,
   sizeInBits,
-  bytesToBigInt,
   checkRange,
   checkField,
 };
@@ -187,54 +186,24 @@ function BinableBigint<T extends bigint = bigint>(
 ): BinableWithBits<T> {
   let sizeInBytes = Math.ceil(sizeInBits / 8);
   return withBits(
-    {
+    defineBinable({
       toBytes(x) {
         return bigIntToBytes(x, sizeInBytes);
       },
-      fromBytes(bytes) {
-        if (bytes.length > sizeInBytes) {
-          throw Error(
-            `fromBytes: input bytes too long, max length is ${sizeInBytes}, got ${bytes.length}`
-          );
+      readBytes(bytes, start) {
+        let x = 0n;
+        let bitPosition = 0n;
+        let end = Math.min(start + sizeInBytes, bytes.length);
+        for (let i = start; i < end; i++) {
+          x += BigInt(bytes[i]) << bitPosition;
+          bitPosition += 8n;
         }
-        let x = bytesToBigInt(bytes) as T;
         check(x);
-        return x;
+        return [x as T, end];
       },
-      sizeInBytes() {
-        return sizeInBytes;
-      },
-    },
+    }),
     sizeInBits
   );
-}
-
-function bytesToBigInt(bytes: Uint8Array | number[]) {
-  let x = 0n;
-  let bitPosition = 0n;
-  for (let byte of bytes) {
-    x += BigInt(byte) << bitPosition;
-    bitPosition += 8n;
-  }
-  return x;
-}
-
-/**
- * Transforms bigint to little-endian array of bytes (numbers between 0 and 255) of a given length.
- * Throws an error if the bigint doesn't fit in the given number of bytes.
- */
-function bigIntToBytes(x: bigint, length: number) {
-  if (x < 0n) {
-    throw Error(`bigIntToBytes: negative numbers are not supported, got ${x}`);
-  }
-  let bytes: number[] = Array(length);
-  for (let i = 0; i < length; i++, x >>= 8n) {
-    bytes[i] = Number(x & 0xffn);
-  }
-  if (x > 0n) {
-    throw Error(`bigIntToBytes: input does not fit in ${length} bytes`);
-  }
-  return bytes;
 }
 
 // validity checks

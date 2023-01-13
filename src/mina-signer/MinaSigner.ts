@@ -1,26 +1,34 @@
-const JSOfOCaml_SDK = require('./client_sdk.bc.js');
-const minaSDK = JSOfOCaml_SDK.minaSDK;
-
-import type {
-  Network,
-  PublicKey,
-  Keypair,
-  PrivateKey,
-  Signed,
-  Payment,
-  StakeDelegation,
-  Message,
-  ZkappCommand,
-  AccountUpdates,
-  SignableData,
-} from './TSTypes.js';
+import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
+import * as Json from './src/TSTypes.js';
+import type { Signed, Network } from './src/TSTypes.js';
 
 import {
   isPayment,
   isMessage,
   isStakeDelegation,
   isZkappCommand,
-} from './Utils.js';
+} from './src/Utils.js';
+import * as TransactionJson from '../provable/gen/transaction-json.js';
+import { ZkappCommand } from '../provable/gen/transaction-bigint.js';
+import {
+  signZkappCommand,
+  verifyZkappCommandSignature,
+} from './src/sign-zkapp-command.js';
+import {
+  signPayment,
+  signStakeDelegation,
+  signString,
+  verifyPayment,
+  verifyStakeDelegation,
+  verifyStringSignature,
+} from './src/sign-legacy.js';
+import { hashPayment, hashStakeDelegation } from './src/transaction-hash.js';
+import { Signature } from './src/signature.js';
+import { Memo } from './src/memo.js';
+import {
+  publicKeyToHex,
+  rosettaTransactionToSignedCommand,
+} from './src/rosetta.js';
 
 export { Client as default };
 
@@ -31,11 +39,11 @@ class Client {
 
   constructor(options: { network: Network }) {
     if (!options?.network) {
-      throw 'Invalid Specified Network';
+      throw Error('Invalid Specified Network');
     }
     const specifiedNetwork = options.network.toLowerCase();
     if (specifiedNetwork !== 'mainnet' && specifiedNetwork !== 'testnet') {
-      throw 'Invalid Specified Network';
+      throw Error('Invalid Specified Network');
     }
     this.network = specifiedNetwork;
   }
@@ -45,8 +53,13 @@ class Client {
    *
    * @returns A Mina key pair
    */
-  public genKeys(): Keypair {
-    return minaSDK.genKeys();
+  public genKeys(): Json.Keypair {
+    let privateKey = PrivateKey.random();
+    let publicKey = PrivateKey.toPublicKey(privateKey);
+    return {
+      privateKey: PrivateKey.toBase58(privateKey),
+      publicKey: PublicKey.toBase58(publicKey),
+    };
   }
 
   /**
@@ -57,8 +70,24 @@ class Client {
    * @param keypair A key pair
    * @returns True if the `keypair` is a verifiable key pair, otherwise throw an exception
    */
-  public verifyKeypair(keypair: Keypair): boolean {
-    return minaSDK.validKeypair(keypair);
+  public verifyKeypair({ privateKey, publicKey }: Json.Keypair): boolean {
+    let derivedPublicKey = PrivateKey.toPublicKey(
+      PrivateKey.fromBase58(privateKey)
+    );
+    let originalPublicKey = PublicKey.fromBase58(publicKey);
+    if (
+      derivedPublicKey.x !== originalPublicKey.x ||
+      derivedPublicKey.isOdd !== originalPublicKey.isOdd
+    ) {
+      throw Error('Public key not derivable from private key');
+    }
+    let dummy = ZkappCommand.toJSON(ZkappCommand.emptyValue());
+    dummy.feePayer.body.publicKey = publicKey;
+    dummy.memo = Memo.toBase58(Memo.emptyValue());
+    let signed = signZkappCommand(dummy, privateKey, this.network);
+    let ok = verifyZkappCommandSignature(signed, publicKey, this.network);
+    if (!ok) throw Error('Could not sign a transaction with private key');
+    return true;
   }
 
   /**
@@ -67,8 +96,10 @@ class Client {
    * @param privateKey The private key used to get the corresponding public key
    * @returns A public key
    */
-  public derivePublicKey(privateKey: PrivateKey): PublicKey {
-    return minaSDK.publicKeyOfPrivateKey(privateKey);
+  public derivePublicKey(privateKeyBase58: Json.PrivateKey): Json.PublicKey {
+    let privateKey = PrivateKey.fromBase58(privateKeyBase58);
+    let publicKey = PrivateKey.toPublicKey(privateKey);
+    return PublicKey.toBase58(publicKey);
   }
 
   /**
@@ -78,13 +109,16 @@ class Client {
    * @param key The key pair used to sign the message
    * @returns A signed message
    */
-  public signMessage(message: string, key: Keypair): Signed<Message> {
+  public signMessage(message: string, key: Json.Keypair): Signed<Json.Message> {
     return {
-      signature: minaSDK.signString(this.network, key.privateKey, message),
-      data: {
-        publicKey: key.publicKey,
-        message,
+      signature: {
+        ...signString(message, key.privateKey, this.network),
+        signer: key.publicKey,
       },
+      // TODO: returning the public key, which is an input, twice seems awfully redundant
+      // this should just be `data: message`
+      // and do we really need `signer` as part of `Signature`?
+      data: { publicKey: key.publicKey, message },
     };
   }
 
@@ -95,13 +129,24 @@ class Client {
    * @returns True if the `signedMessage` contains a valid signature matching
    * the message and publicKey.
    */
-  public verifyMessage(signedMessage: Signed<Message>): boolean {
-    return minaSDK.verifyStringSignature(
-      this.network,
+  public verifyMessage(signedMessage: Signed<Json.Message>): boolean {
+    return verifyStringSignature(
+      signedMessage.data.message,
       signedMessage.signature,
       signedMessage.data.publicKey,
-      signedMessage.data
+      this.network
     );
+  }
+
+  private normalizeCommon(common: Json.Common): Json.StrictCommon {
+    return {
+      to: common.to,
+      from: common.from,
+      fee: String(common.fee),
+      nonce: String(common.nonce),
+      memo: common.memo ?? '',
+      validUntil: String(common.validUntil ?? defaultValidUntil),
+    };
   }
 
   /**
@@ -115,38 +160,23 @@ class Client {
    * @returns A signed payment transaction
    */
   public signPayment(
-    payment: Payment,
-    privateKey: PrivateKey
-  ): Signed<Payment> {
-    const memo = payment.memo ?? '';
-    const fee = String(payment.fee);
-    const nonce = String(payment.nonce);
-    const amount = String(payment.amount);
-    const validUntil = String(payment.validUntil ?? defaultValidUntil);
-    return {
-      signature: minaSDK.signPayment(this.network, privateKey, {
-        common: {
-          fee,
-          feePayer: payment.from,
-          nonce,
-          validUntil,
-          memo,
-        },
-        paymentPayload: {
-          source: payment.from,
-          receiver: payment.to,
-          amount,
-        },
-      }).signature,
-      data: {
-        to: payment.to,
-        from: payment.from,
-        fee,
-        amount,
-        nonce,
-        memo,
-        validUntil,
+    payment: Json.Payment,
+    privateKey: Json.PrivateKey
+  ): Signed<Json.Payment> {
+    let { fee, to, from, nonce, validUntil, memo } =
+      this.normalizeCommon(payment);
+    let amount = String(payment.amount);
+    let signature = signPayment(
+      {
+        common: { fee, feePayer: from, nonce, validUntil, memo },
+        body: { source: from, receiver: to, amount },
       },
+      privateKey,
+      this.network
+    );
+    return {
+      signature: { ...signature, signer: from },
+      data: { to, from, fee, amount, nonce, memo, validUntil },
     };
   }
 
@@ -156,31 +186,18 @@ class Client {
    * @param signedPayment A signed payment transaction
    * @returns True if the `signed(payment)` is a verifiable payment
    */
-  public verifyPayment(signedPayment: Signed<Payment>): boolean {
-    const payload = signedPayment.data;
-    const memo = payload.memo ?? '';
-    const fee = String(payload.fee);
-    const amount = String(payload.amount);
-    const nonce = String(payload.nonce);
-    const validUntil = String(payload.validUntil ?? defaultValidUntil);
-    return minaSDK.verifyPaymentSignature(this.network, {
-      sender: signedPayment.data.from,
-      signature: signedPayment.signature,
-      payment: {
-        common: {
-          fee,
-          feePayer: payload.from,
-          nonce,
-          validUntil,
-          memo,
-        },
-        paymentPayload: {
-          source: payload.from,
-          receiver: payload.to,
-          amount,
-        },
+  public verifyPayment({ data, signature }: Signed<Json.Payment>): boolean {
+    let { fee, to, from, nonce, validUntil, memo } = this.normalizeCommon(data);
+    let amount = String(data.amount);
+    return verifyPayment(
+      {
+        common: { fee, feePayer: from, nonce, validUntil, memo },
+        body: { source: from, receiver: to, amount },
       },
-    });
+      signature,
+      signature.signer,
+      this.network
+    );
   }
 
   /**
@@ -196,35 +213,22 @@ class Client {
    * @returns A signed stake delegation
    */
   public signStakeDelegation(
-    stakeDelegation: StakeDelegation,
-    privateKey: PrivateKey
-  ): Signed<StakeDelegation> {
-    const memo = stakeDelegation.memo ?? '';
-    const fee = String(stakeDelegation.fee);
-    const nonce = String(stakeDelegation.nonce);
-    const validUntil = String(stakeDelegation.validUntil ?? defaultValidUntil);
-    return {
-      signature: minaSDK.signStakeDelegation(this.network, privateKey, {
-        common: {
-          fee,
-          feePayer: stakeDelegation.from,
-          nonce,
-          validUntil,
-          memo,
-        },
-        delegationPayload: {
-          newDelegate: stakeDelegation.to,
-          delegator: stakeDelegation.from,
-        },
-      }).signature,
-      data: {
-        to: stakeDelegation.to,
-        from: stakeDelegation.from,
-        fee,
-        nonce,
-        memo,
-        validUntil,
+    stakeDelegation: Json.StakeDelegation,
+    privateKey: Json.PrivateKey
+  ): Signed<Json.StakeDelegation> {
+    let { fee, to, from, nonce, validUntil, memo } =
+      this.normalizeCommon(stakeDelegation);
+    let signature = signStakeDelegation(
+      {
+        common: { fee, feePayer: from, nonce, validUntil, memo },
+        body: { newDelegate: to, delegator: from },
       },
+      privateKey,
+      this.network
+    );
+    return {
+      signature: { ...signature, signer: from },
+      data: { to, from, fee, nonce, memo, validUntil },
     };
   }
 
@@ -234,31 +238,20 @@ class Client {
    * @param signedStakeDelegation A signed stake delegation
    * @returns True if the `signed(stakeDelegation)` is a verifiable stake delegation
    */
-  public verifyStakeDelegation(
-    signedStakeDelegation: Signed<StakeDelegation>
-  ): boolean {
-    const payload = signedStakeDelegation.data;
-    const memo = payload.memo ?? '';
-    const fee = String(payload.fee);
-    const nonce = String(payload.nonce);
-    const validUntil = String(payload.validUntil ?? defaultValidUntil);
-    return minaSDK.verifyStakeDelegationSignature(this.network, {
-      sender: signedStakeDelegation.data.from,
-      signature: signedStakeDelegation.signature,
-      stakeDelegation: {
-        common: {
-          fee,
-          feePayer: payload.from,
-          nonce,
-          validUntil,
-          memo,
-        },
-        delegationPayload: {
-          newDelegate: payload.to,
-          delegator: payload.from,
-        },
+  public verifyStakeDelegation({
+    data,
+    signature,
+  }: Signed<Json.StakeDelegation>): boolean {
+    let { fee, to, from, nonce, validUntil, memo } = this.normalizeCommon(data);
+    return verifyStakeDelegation(
+      {
+        common: { fee, feePayer: from, nonce, validUntil, memo },
+        body: { newDelegate: to, delegator: from },
       },
-    });
+      signature,
+      signature.signer,
+      this.network
+    );
   }
 
   /**
@@ -267,31 +260,22 @@ class Client {
    * @param signedPayment A signed payment transaction
    * @returns A transaction hash
    */
-  public hashPayment(signedPayment: Signed<Payment>): string {
-    const payload = signedPayment.data;
-    const memo = payload.memo ?? '';
-    const fee = String(payload.fee);
-    const amount = String(payload.amount);
-    const nonce = String(payload.nonce);
-    const validUntil = String(payload.validUntil ?? defaultValidUntil);
-    return minaSDK.hashPayment({
-      sender: signedPayment.data.from,
-      signature: signedPayment.signature,
-      payment: {
-        common: {
-          fee: fee,
-          feePayer: payload.from,
-          nonce,
-          validUntil,
-          memo,
-        },
-        paymentPayload: {
-          source: payload.from,
-          receiver: payload.to,
-          amount,
+  public hashPayment(
+    { data, signature }: Signed<Json.Payment>,
+    options?: { berkeley?: boolean }
+  ): string {
+    let { fee, to, from, nonce, validUntil, memo } = this.normalizeCommon(data);
+    let amount = String(data.amount);
+    return hashPayment(
+      {
+        signature,
+        data: {
+          common: { fee, feePayer: from, nonce, validUntil, memo },
+          body: { source: from, receiver: to, amount },
         },
       },
-    });
+      options
+    );
   }
 
   /**
@@ -301,30 +285,20 @@ class Client {
    * @returns A transaction hash
    */
   public hashStakeDelegation(
-    signedStakeDelegation: Signed<StakeDelegation>
+    { data, signature }: Signed<Json.StakeDelegation>,
+    options?: { berkeley?: boolean }
   ): string {
-    const payload = signedStakeDelegation.data;
-    const memo = payload.memo ?? '';
-    const fee = String(payload.fee);
-    const nonce = String(payload.nonce);
-    const validUntil = String(payload.validUntil ?? defaultValidUntil);
-    return minaSDK.hashStakeDelegation({
-      sender: signedStakeDelegation.data.from,
-      signature: signedStakeDelegation.signature,
-      stakeDelegation: {
-        common: {
-          fee,
-          feePayer: payload.from,
-          nonce,
-          validUntil,
-          memo,
-        },
-        delegationPayload: {
-          newDelegate: payload.to,
-          delegator: payload.from,
+    let { fee, to, from, nonce, validUntil, memo } = this.normalizeCommon(data);
+    return hashStakeDelegation(
+      {
+        signature,
+        data: {
+          common: { fee, feePayer: from, nonce, validUntil, memo },
+          body: { newDelegate: to, delegator: from },
         },
       },
-    });
+      options
+    );
   }
 
   /**
@@ -338,47 +312,37 @@ class Client {
    * @returns Signed ZkappCommand
    */
   public signZkappCommand(
-    zkappCommand: ZkappCommand,
-    privateKey: PrivateKey
-  ): Signed<ZkappCommand> {
-    const account_updates = JSON.stringify(
-      zkappCommand.zkappCommand.accountUpdates
-    );
-    if (
-      zkappCommand.feePayer.fee === undefined ||
-      zkappCommand.feePayer.fee <
-        this.getAccountUpdateMinimumFee(
-          zkappCommand.zkappCommand.accountUpdates
-        )
-    ) {
-      throw `Fee must be greater than ${this.getAccountUpdateMinimumFee(
-        zkappCommand.zkappCommand.accountUpdates
-      )}`;
+    { feePayer, zkappCommand }: Json.ZkappCommand,
+    privateKey: Json.PrivateKey
+  ): Signed<Json.ZkappCommand> {
+    let accountUpdates = zkappCommand.accountUpdates;
+    let minimumFee = this.getAccountUpdateMinimumFee(accountUpdates);
+    let fee_ = Number(feePayer.fee);
+    if (Number.isNaN(fee_) || fee_ < minimumFee) {
+      throw Error(`Fee must be greater than ${minimumFee}`);
     }
-    const memo = zkappCommand.feePayer.memo ?? '';
-    const fee = String(zkappCommand.feePayer.fee);
-    const nonce = String(zkappCommand.feePayer.nonce);
-    const feePayer = String(zkappCommand.feePayer.feePayer);
-    const signedZkappCommand = minaSDK.signZkappCommand(
-      account_updates,
-      {
-        feePayer,
-        fee,
-        nonce,
-        memo,
+    let publicKey = feePayer.feePayer;
+    let fee = String(fee_);
+    let nonce = String(feePayer.nonce);
+    let validUntil = String(feePayer.validUntil ?? defaultValidUntil);
+    let memo = Memo.toBase58(Memo.fromString(feePayer.memo ?? ''));
+    let command: TransactionJson.ZkappCommand = {
+      feePayer: {
+        body: { publicKey, fee, nonce, validUntil },
+        authorization: '', // gets filled below
       },
-      privateKey
+      accountUpdates,
+      memo,
+    };
+    let signed = signZkappCommand(command, privateKey, this.network);
+    let signature = Signature.toJSON(
+      Signature.fromBase58(signed.feePayer.authorization)
     );
     return {
-      signature: JSON.parse(signedZkappCommand).feePayer.authorization,
+      signature: { ...signature, signer: publicKey },
       data: {
-        zkappCommand: signedZkappCommand,
-        feePayer: {
-          feePayer,
-          fee,
-          nonce,
-          memo,
-        },
+        zkappCommand: signed,
+        feePayer: { feePayer: publicKey, fee, nonce, memo, validUntil },
       },
     };
   }
@@ -394,7 +358,9 @@ class Client {
   public signedRosettaTransactionToSignedCommand(
     signedRosettaTxn: string
   ): string {
-    return minaSDK.signedRosettaTransactionToSignedCommand(signedRosettaTxn);
+    let parsedTx = JSON.parse(signedRosettaTxn);
+    let command = rosettaTransactionToSignedCommand(parsedTx);
+    return JSON.stringify({ data: command });
   }
 
   /**
@@ -404,8 +370,9 @@ class Client {
    * @param publicKey A valid public key
    * @returns A string that represents the hex encoding of a public key.
    */
-  public publicKeyToRaw(publicKey: string): string {
-    return minaSDK.rawPublicKeyOfPublicKey(publicKey);
+  public publicKeyToRaw(publicKeyBase58: string): string {
+    let publicKey = PublicKey.fromBase58(publicKeyBase58);
+    return publicKeyToHex(publicKey);
   }
 
   /**
@@ -418,9 +385,9 @@ class Client {
    * @returns A signed payload
    */
   public signTransaction(
-    payload: SignableData,
-    privateKey: PrivateKey
-  ): Signed<SignableData> {
+    payload: Json.SignableData,
+    privateKey: Json.PrivateKey
+  ): Signed<Json.SignableData> {
     if (isMessage(payload)) {
       return this.signMessage(payload.message, {
         publicKey: payload.publicKey,
@@ -448,7 +415,10 @@ class Client {
    * @param fee The fee per accountUpdate amount
    * @returns  The fee to be paid by the fee payer accountUpdate
    */
-  public getAccountUpdateMinimumFee(p: AccountUpdates, fee: number = 0.001) {
+  public getAccountUpdateMinimumFee(
+    p: TransactionJson.AccountUpdate[],
+    fee: number = 0.001
+  ) {
     return p.reduce((accumulatedFee, _) => accumulatedFee + fee, 0);
   }
 }

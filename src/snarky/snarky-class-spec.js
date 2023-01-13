@@ -513,4 +513,13 @@ export default [
       },
     ],
   },
+  {
+    name: 'Test',
+    props: [
+      {
+        name: 'transactionHash',
+        type: 'object',
+      },
+    ],
+  },
 ];

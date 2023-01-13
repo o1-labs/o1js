@@ -1,8 +1,8 @@
-import { bigIntToBytes } from '../provable/field-bigint.js';
 import { Poseidon, PoseidonLegacy } from './poseidon.js';
 import { testPoseidonKimchiFp } from './test_vectors/poseidonKimchi.js';
 import { testPoseidonLegacyFp } from './test_vectors/poseidonLegacy.js';
 import { expect } from 'expect';
+import { bigIntToBytes } from './bigint-helpers.js';
 
 let testVectors = testPoseidonKimchiFp.test_vectors;
 
