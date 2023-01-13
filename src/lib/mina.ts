@@ -54,6 +54,7 @@ export {
   filterGroups,
 };
 interface TransactionId {
+  isSuccess: boolean;
   wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;
   hash(): string | undefined;
 }
@@ -408,7 +409,7 @@ function LocalBlockchain({
     getNetworkState() {
       return networkState;
     },
-    async sendTransaction(txn: Transaction) {
+    async sendTransaction(txn: Transaction): Promise<TransactionId> {
       txn.sign();
 
       let commitments = Ledger.transactionCommitments(
@@ -508,6 +509,7 @@ function LocalBlockchain({
         }
       });
       return {
+        isSuccess: true,
         wait: async (_options?: {
           maxAttempts?: number;
           interval?: number;
