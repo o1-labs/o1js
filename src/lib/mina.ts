@@ -50,6 +50,8 @@ export {
   fetchEvents,
   getActions,
   FeePayerSpec,
+  faucet,
+  waitForFunding,
   // for internal testing only
   filterGroups,
 };
@@ -1286,4 +1288,47 @@ function filterGroups(xs: string[]) {
     signedSingle: singleCount,
     proof: proofCount,
   };
+}
+
+async function waitForFunding(address: string): Promise<void> {
+  let attempts = 0;
+  let maxAttempts = 30;
+  let interval = 30000;
+  const executePoll = async (
+    resolve: () => void,
+    reject: (err: Error) => void | Error
+  ) => {
+    let { account } = await Fetch.fetchAccount({ publicKey: address });
+    attempts++;
+    if (account) {
+      return resolve();
+    } else if (maxAttempts && attempts === maxAttempts) {
+      return reject(new Error(`Exceeded max attempts`));
+    } else {
+      setTimeout(executePoll, interval, resolve, reject);
+    }
+  };
+  return new Promise(executePoll);
+}
+
+/**
+ * Requests the [testnet faucet](https://faucet.minaprotocol.com/api/v1/faucet) to fund a public key.
+ */
+async function faucet(pub: PublicKey, network: string = 'berkeley-qanet') {
+  let address = pub.toBase58();
+  let response = await fetch('https://faucet.minaprotocol.com/api/v1/faucet', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      network,
+      address: address,
+    }),
+  });
+  response = await response.json();
+  if (response.status.toString() != 'success') {
+    throw new Error(
+      `Error funding account ${address}, got response status: ${response.status}, text: ${response.statusText}`
+    );
+  }
+  await waitForFunding(address);
 }
