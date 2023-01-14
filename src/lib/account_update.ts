@@ -18,7 +18,7 @@ import { inCheckedComputation, Proof, Prover } from './proof_system.js';
 import { hashWithPrefix, packToFields, prefixes, TokenSymbol } from './hash.js';
 import * as Encoding from './encoding.js';
 import { Context } from './global-context.js';
-import { Events, SequenceEvents } from '../provable/transaction-leaves.js';
+import { Events, SequenceEvents, CallType } from '../provable/transaction-leaves.js';
 
 // external API
 export { Permissions, AccountUpdate, ZkappPublicInput };
@@ -363,7 +363,10 @@ interface Body extends AccountUpdateBody {
    * [Check out our documentation about Actions!](https://docs.minaprotocol.com/zkapps/advanced-snarkyjs/actions-and-reducer)
    */
   actions: Events;
-  caller: Field;
+  /**
+   * The type of call.
+   */
+  callType: CallType;
   callData: Field;
   callDepth: number;
   /**
@@ -389,12 +392,14 @@ const Body = {
   /**
    * A body that doesn't change the underlying account record
    */
-  keepAll(publicKey: PublicKey, tokenId?: Field): Body {
+  keepAll(publicKey: PublicKey, tokenId?: Field, callType?: CallType): Body {
     let { body } = Types.AccountUpdate.emptyValue();
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
-      body.caller = tokenId;
+    }
+    if (callType) {
+        body.callType = callType;
     }
     return body;
   },
@@ -1307,11 +1312,6 @@ class AccountUpdate implements Types.AccountUpdate {
     } else {
       body.tokenId = short(body.tokenId!);
     }
-    if (body.caller === TokenId.toBase58(TokenId.default)) {
-      delete body.caller;
-    } else {
-      body.caller = short(body.caller!);
-    }
     if (body.incrementNonce === false) delete body.incrementNonce;
     if (body.useFullCommitment === false) delete body.useFullCommitment;
     if (body.events?.length === 0) delete body.events;
@@ -1429,7 +1429,8 @@ const CallForest = {
     return stackHash;
   },
 
-  // Mina_base.Zkapp_command.Call_forest.add_callers
+  /* Commenting, but this will be returning in a new form.. */
+  /*// Mina_base.Zkapp_command.Call_forest.add_callers
   addCallers(
     updates: AccountUpdate[],
     context: { self: Field; caller: Field } = {
@@ -1445,15 +1446,16 @@ const CallForest = {
         context.self,
         Token.getId(update.body.publicKey, update.body.tokenId)
       );
-      update.body.caller = caller;
+      update.body.callKind = { isDelegateCall };
       let childContext = { caller, self };
       CallForest.addCallers(update.children.accountUpdates, childContext);
     }
-  },
+  },*/
   /**
    * Used in the prover to witness the context from which to compute its caller
    */
-  computeCallerContext(update: AccountUpdate) {
+  /* Commenting, but this will be returning in a new form.. */
+  /*computeCallerContext(update: AccountUpdate) {
     // compute the line of ancestors
     let current = update;
     let ancestors = [];
@@ -1472,7 +1474,7 @@ const CallForest = {
     }
     return context;
   },
-  callerContextType: provablePure({ self: Field, caller: Field }),
+  callerContextType: provablePure({ self: Field, caller: Field }),*/
 
   computeCallDepth(update: AccountUpdate) {
     for (let callDepth = 0; ; callDepth++) {

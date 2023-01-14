@@ -64,7 +64,7 @@ let jsLayout = {
                 'callDepth',
                 'preconditions',
                 'useFullCommitment',
-                'caller',
+                'callType',
                 'authorizationKind',
               ],
               entries: {
@@ -687,7 +687,7 @@ let jsLayout = {
                   docEntries: { network: null, account: null },
                 },
                 useFullCommitment: { type: 'Bool' },
-                caller: { type: 'TokenId' },
+                callType: { type: 'CallType' },
                 authorizationKind: { type: 'AuthorizationKind' },
               },
               docEntries: {
@@ -702,7 +702,7 @@ let jsLayout = {
                 callDepth: null,
                 preconditions: null,
                 useFullCommitment: null,
-                caller: null,
+                callType: null,
                 authorizationKind: null,
               },
             },
@@ -756,7 +756,7 @@ let jsLayout = {
           'callDepth',
           'preconditions',
           'useFullCommitment',
-          'caller',
+          'callType',
           'authorizationKind',
         ],
         entries: {
@@ -1376,7 +1376,7 @@ let jsLayout = {
             docEntries: { network: null, account: null },
           },
           useFullCommitment: { type: 'Bool' },
-          caller: { type: 'TokenId' },
+          callType: { type: 'CallType' },
           authorizationKind: { type: 'AuthorizationKind' },
         },
         docEntries: {
@@ -1391,7 +1391,7 @@ let jsLayout = {
           callDepth: null,
           preconditions: null,
           useFullCommitment: null,
-          caller: null,
+          callType: null,
           authorizationKind: null,
         },
       },

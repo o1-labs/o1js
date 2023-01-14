@@ -24,6 +24,7 @@ function derivedLeafTypes<Field, Bool>({
     signatureSufficient: Bool;
   };
   type AuthorizationKind = { isSigned: Bool; isProved: Bool };
+  type CallType = { isDelegateCall: Bool };
 
   const defaultTokenId = 1;
   const TokenId = {
@@ -131,6 +132,32 @@ function derivedLeafTypes<Field, Bool>({
       return { isSigned, isProved };
     },
   };
+  const CallType = {
+    ...provable(
+      { isDelegateCall: Bool },
+      {
+        customObjectKeys: ['isDelegateCall'],
+      }
+    ),
+    toJSON(x: CallType): Json.CallType {
+      let isDelegateCall = Number(Bool.toJSON(x.isDelegateCall));
+      // prettier-ignore
+      switch (`${isDelegateCall}`) {
+        case '0': return 'call';
+        case '1': return 'delegate_call';
+        default: throw Error('Unexpected call kind');
+      }
+    },
+    fromJSON(json: Json.CallType): CallType {
+      let booleans = {
+        call: [false],
+        delegate_call: [true],
+      }[json];
+      if (booleans === undefined) throw Error(`Unexpected call type: ${json}`);
+      let [isDelegateCall] = booleans.map(Bool);
+      return { isDelegateCall };
+    },
+  };
 
-  return { TokenId, TokenSymbol, AuthRequired, AuthorizationKind };
+  return { TokenId, TokenSymbol, AuthRequired, AuthorizationKind, CallType };
 }
