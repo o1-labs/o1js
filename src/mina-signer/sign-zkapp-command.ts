@@ -149,6 +149,7 @@ function accountUpdateFromFeePayer({
     value: { lower: nonce, upper: nonce },
   };
   body.useFullCommitment = Bool(true);
+  body.callType = { isDelegateCall: Bool(false), isBlindCall: Bool(true) };
   body.authorizationKind = { isProved: Bool(false), isSigned: Bool(true) };
   return { body, authorization: { signature } };
 }

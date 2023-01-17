@@ -18,7 +18,7 @@ import { inCheckedComputation, Proof, Prover } from './proof_system.js';
 import { hashWithPrefix, packToFields, prefixes, TokenSymbol } from './hash.js';
 import * as Encoding from './encoding.js';
 import { Context } from './global-context.js';
-import { Events, SequenceEvents, CallType } from '../provable/transaction-leaves.js';
+import { Events, SequenceEvents } from '../provable/transaction-leaves.js';
 
 // external API
 export { Permissions, AccountUpdate, ZkappPublicInput };
@@ -67,6 +67,8 @@ type AuthRequired = Types.Json.AuthRequired;
 
 type AccountUpdateBody = Types.AccountUpdate['body'];
 type Update = AccountUpdateBody['update'];
+
+type CallType = AccountUpdateBody['callType'];
 
 /**
  * Preconditions for the network and accounts

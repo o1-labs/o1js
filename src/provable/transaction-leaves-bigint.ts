@@ -25,11 +25,11 @@ type AuthRequired = {
   signatureSufficient: Bool;
 };
 type AuthorizationKind = { isSigned: Bool; isProved: Bool };
-type CallType = { isDelegateCall: Bool };
+type CallType = { isDelegateCall: Bool, isBlindCall: Bool };
 type TokenId = Field;
 type TokenSymbol = { symbol: string; field: Field };
 
-const { TokenId, TokenSymbol, AuthRequired, AuthorizationKind, CallType } =
+const { TokenId, TokenSymbol, AuthRequired, AuthorizationKind } =
   derivedLeafTypes({ Field, Bool });
 
 // types which got an annotation about its circuit type in Ocaml

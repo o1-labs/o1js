@@ -273,6 +273,7 @@ type ZkappCommand = {
       useFullCommitment: Bool;
       callType: {
         isDelegateCall: Bool;
+        isBlindCall: Bool;
       };
       authorizationKind: AuthorizationKind;
     };
@@ -456,6 +457,7 @@ type AccountUpdate = {
     useFullCommitment: Bool;
     callType: {
       isDelegateCall: Bool;
+      isBlindCall: Bool;
     };
     authorizationKind: AuthorizationKind;
   };
