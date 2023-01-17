@@ -10,7 +10,6 @@ import {
   AuthRequired,
   TokenSymbol,
   Sign,
-  CallType,
   AuthorizationKind,
   StringWithHash,
   Events,
@@ -39,7 +38,6 @@ type TypeMap = {
   Bool: Bool;
   AuthRequired: AuthRequired;
   Sign: Sign;
-  CallType: CallType;
   AuthorizationKind: AuthorizationKind;
 };
 
@@ -54,7 +52,6 @@ const TypeMap: {
   Bool,
   AuthRequired,
   Sign,
-  CallType,
   AuthorizationKind,
 };
 
@@ -274,7 +271,9 @@ type ZkappCommand = {
         };
       };
       useFullCommitment: Bool;
-      callType: CallType;
+      callType: {
+        isDelegateCall: Bool;
+      };
       authorizationKind: AuthorizationKind;
     };
     authorization: {
@@ -455,7 +454,9 @@ type AccountUpdate = {
       };
     };
     useFullCommitment: Bool;
-    callType: CallType;
+    callType: {
+      isDelegateCall: Bool;
+    };
     authorizationKind: AuthorizationKind;
   };
   authorization: {

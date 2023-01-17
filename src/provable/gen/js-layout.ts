@@ -687,7 +687,14 @@ let jsLayout = {
                   docEntries: { network: null, account: null },
                 },
                 useFullCommitment: { type: 'Bool' },
-                callType: { type: 'CallType' },
+                callType: {
+                  type: 'object',
+                  name: 'CallType',
+                  docs: null,
+                  keys: ['isDelegateCall'],
+                  entries: { isDelegateCall: { type: 'Bool' } },
+                  docEntries: { isDelegateCall: null },
+                },
                 authorizationKind: { type: 'AuthorizationKind' },
               },
               docEntries: {
@@ -1376,7 +1383,14 @@ let jsLayout = {
             docEntries: { network: null, account: null },
           },
           useFullCommitment: { type: 'Bool' },
-          callType: { type: 'CallType' },
+          callType: {
+            type: 'object',
+            name: 'CallType',
+            docs: null,
+            keys: ['isDelegateCall'],
+            entries: { isDelegateCall: { type: 'Bool' } },
+            docEntries: { isDelegateCall: null },
+          },
           authorizationKind: { type: 'AuthorizationKind' },
         },
         docEntries: {
