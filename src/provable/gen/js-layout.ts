@@ -313,7 +313,7 @@ let jsLayout = {
                   type: 'object',
                   name: 'Preconditions',
                   docs: null,
-                  keys: ['network', 'account', 'validUntil'],
+                  keys: ['network', 'account', 'validWhile'],
                   entries: {
                     network: {
                       type: 'object',
@@ -680,7 +680,7 @@ let jsLayout = {
                         isNew: null,
                       },
                     },
-                    validUntil: {
+                    validWhile: {
                       type: 'option',
                       optionType: 'closedInterval',
                       rangeMin: '0',
@@ -701,7 +701,7 @@ let jsLayout = {
                   docEntries: {
                     network: null,
                     account: null,
-                    validUntil: null,
+                    validWhile: null,
                   },
                 },
                 useFullCommitment: { type: 'Bool' },
@@ -1020,7 +1020,7 @@ let jsLayout = {
             type: 'object',
             name: 'Preconditions',
             docs: null,
-            keys: ['network', 'account', 'validUntil'],
+            keys: ['network', 'account', 'validWhile'],
             entries: {
               network: {
                 type: 'object',
@@ -1387,7 +1387,7 @@ let jsLayout = {
                   isNew: null,
                 },
               },
-              validUntil: {
+              validWhile: {
                 type: 'option',
                 optionType: 'closedInterval',
                 rangeMin: '0',
@@ -1405,7 +1405,7 @@ let jsLayout = {
                 },
               },
             },
-            docEntries: { network: null, account: null, validUntil: null },
+            docEntries: { network: null, account: null, validWhile: null },
           },
           useFullCommitment: { type: 'Bool' },
           caller: { type: 'TokenId' },

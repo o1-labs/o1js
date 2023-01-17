@@ -16,18 +16,18 @@ export {
   preconditions,
   Account,
   Network,
-  ValidUntil,
+  ValidWhile,
   assertPreconditionInvariants,
   cleanPreconditionsCache,
   AccountValue,
   NetworkValue,
-  ValidUntilValue,
+  ValidWhileValue,
   getAccountPreconditions,
 };
 
 function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
   initializePreconditions(accountUpdate, isSelf);
-  return { account: Account(accountUpdate), network: Network(accountUpdate), validUntil: ValidUntil(accountUpdate) };
+  return { account: Account(accountUpdate), network: Network(accountUpdate), validWhile: ValidWhile(accountUpdate) };
 }
 
 // note: please keep the two precondition implementations separate
@@ -47,11 +47,11 @@ function Account(accountUpdate: AccountUpdate): Account {
   return preconditionClass(layout as Layout, 'account', accountUpdate, context);
 }
 
-function ValidUntil(accountUpdate: AccountUpdate): ValidUntil {
+function ValidWhile(accountUpdate: AccountUpdate): ValidWhile {
   let layout =
-    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.validUntil;
+    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.validWhile;
   let context = getPreconditionContextExn(accountUpdate);
-  return preconditionClass(layout as Layout, 'validUntil', accountUpdate, context);
+  return preconditionClass(layout as Layout, 'validWhile', accountUpdate, context);
 }
 
 let unimplementedPreconditions: LongKey[] = [
@@ -304,9 +304,9 @@ type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
 type AccountValue = PreconditionBaseTypes<AccountPrecondition>;
 type Account = PreconditionClassType<AccountPrecondition>;
 
-type ValidUntilPrecondition = Preconditions['validUntil'];
-type ValidUntilValue = PreconditionBaseTypes<ValidUntilPrecondition>;
-type ValidUntil = PreconditionClassType<ValidUntilPrecondition>;
+type ValidWhilePrecondition = Preconditions['validWhile'];
+type ValidWhileValue = PreconditionBaseTypes<ValidWhilePrecondition>;
+type ValidWhile = PreconditionClassType<ValidWhilePrecondition>;
 
 type PreconditionBaseTypes<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>

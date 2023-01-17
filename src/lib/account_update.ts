@@ -502,9 +502,9 @@ const AccountPrecondition = {
   },
 };
 
-type ValidUntilPrecondition = Preconditions['validUntil'];
-const ValidUntilPrecondition = {
-  ignoreAll(): ValidUntilPrecondition {
+type ValidWhilePrecondition = Preconditions['validWhile'];
+const ValidWhilePrecondition = {
+  ignoreAll(): ValidWhilePrecondition {
     return ignore(uint32())
   }
 }
@@ -514,7 +514,7 @@ const Preconditions = {
     return {
       account: AccountPrecondition.ignoreAll(),
       network: NetworkPrecondition.ignoreAll(),
-      validUntil : ValidUntilPrecondition.ignoreAll(),
+      validWhile : ValidWhilePrecondition.ignoreAll(),
     };
   },
 };
@@ -591,7 +591,7 @@ class AccountUpdate implements Types.AccountUpdate {
     undefined;
   account: Precondition.Account;
   network: Precondition.Network;
-  validUntil: Precondition.ValidUntil;
+  validWhile: Precondition.ValidWhile;
   children: {
     callsType:
       | { type: 'None' }
@@ -613,10 +613,10 @@ class AccountUpdate implements Types.AccountUpdate {
     this.id = Math.random();
     this.body = body;
     this.authorization = authorization;
-    let { account, network, validUntil } = Precondition.preconditions(this, isSelf);
+    let { account, network, validWhile } = Precondition.preconditions(this, isSelf);
     this.account = account;
     this.network = network;
-    this.validUntil = validUntil;
+    this.validWhile = validWhile;
     this.isSelf = isSelf;
   }
 
@@ -1334,9 +1334,9 @@ class AccountUpdate implements Types.AccountUpdate {
         body.preconditions.network
       ) as any;
     }
-    if (body.preconditions?.validUntil) {
-      body.preconditions.validUntil = JSON.stringify(
-        body.preconditions.validUntil
+    if (body.preconditions?.validWhile) {
+      body.preconditions.validWhile = JSON.stringify(
+        body.preconditions.validWhile
       ) as any;
     }
     if (jsonUpdate.authorization?.proof) {

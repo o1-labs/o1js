@@ -268,7 +268,7 @@ type ZkappCommand = {
           provedState: { isSome: Bool; value: Bool };
           isNew: { isSome: Bool; value: Bool };
         };
-        validUntil: {
+        validWhile: {
           isSome: Bool;
           value: {
             lower: UInt32;
@@ -455,7 +455,7 @@ type AccountUpdate = {
         provedState: { isSome: Bool; value: Bool };
         isNew: { isSome: Bool; value: Bool };
       };
-      validUntil: {
+      validWhile: {
         isSome: Bool;
         value: {
           lower: UInt32;
