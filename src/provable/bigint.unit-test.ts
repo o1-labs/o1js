@@ -1,6 +1,7 @@
-import { bigIntToBytes, bytesToBigInt, Field } from './field-bigint.js';
+import { Field } from './field-bigint.js';
 import { expect } from 'expect';
 import { shutdown } from '../snarky.js';
+import { bytesToBigInt, bigIntToBytes } from '../js_crypto/bigint-helpers.js';
 
 function testBigintRoundtrip(x: bigint, size: number) {
   let bytes = bigIntToBytes(x, size);

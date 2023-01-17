@@ -23,6 +23,9 @@ export {
   Gate,
 };
 
+// internal
+export { Test };
+
 /**
  * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
  *
@@ -550,6 +553,10 @@ declare class Field {
   static toInput(x: Field): { fields: Field[] };
   static toBytes(x: Field): number[];
   static fromBytes(bytes: number[]): Field;
+  static readBytes(
+    bytes: number[],
+    offset: number
+  ): [value: Field, offset: number];
   static sizeInBytes(): number;
 }
 
@@ -732,6 +739,10 @@ declare class Bool {
   static toInput(x: Bool): { packed: [Field, number][] };
   static toBytes(x: Bool): number[];
   static fromBytes(bytes: number[]): Bool;
+  static readBytes(
+    bytes: number[],
+    offset: number
+  ): [value: Bool, offset: number];
   static sizeInBytes(): number;
 }
 
@@ -1339,6 +1350,17 @@ declare class Ledger {
     >;
   };
 }
+
+declare const Test: {
+  transactionHash: {
+    examplePayment(): string;
+    serializePayment(payment: string): { data: Uint8Array };
+    serializePaymentV1(payment: string): string;
+    serializeCommon(common: string): { data: Uint8Array };
+    hashPayment(payment: string): string;
+    hashPaymentV1(payment: string): string;
+  };
+};
 
 /**
  * js_of_ocaml representation of a byte array,

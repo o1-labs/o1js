@@ -1,16 +1,16 @@
-import { Bool, Field, Sign, UInt32 } from '../provable/field-bigint.js';
-import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
+import { Bool, Field, Sign, UInt32 } from '../../provable/field-bigint.js';
+import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
 import {
   Json,
   AccountUpdate,
   ZkappCommand,
   AuthRequired,
-} from '../provable/gen/transaction-bigint.js';
+} from '../../provable/gen/transaction-bigint.js';
 import {
   hashWithPrefix,
   packToFields,
   prefixes,
-} from '../provable/poseidon-bigint.js';
+} from '../../provable/poseidon-bigint.js';
 import { Memo } from './memo.js';
 import {
   NetworkId,

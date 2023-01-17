@@ -1,8 +1,8 @@
 import { Fq } from '../js_crypto/finite_field.js';
 import { GroupProjective, Pallas } from '../js_crypto/elliptic_curve.js';
 import { versionBytes } from '../js_crypto/constants.js';
-import { tuple, withCheck, withVersionNumber } from './binable.js';
-import { base58 } from './base58.js';
+import { record, withCheck, withVersionNumber } from './binable.js';
+import { base58, withBase58 } from './base58.js';
 import {
   BinableBigint,
   Bool,
@@ -57,30 +57,25 @@ const Group = {
 
 let FieldWithVersion = withVersionNumber(Field, versionNumbers.field);
 let BinablePublicKey = withVersionNumber(
-  withCheck(tuple([FieldWithVersion, Bool]), ([x]) => {
-    let { mul, add } = Field;
-    let ySquared = add(mul(x, mul(x, x)), 5n);
-    if (!Field.isSquare(ySquared)) {
-      throw Error('PublicKey: not a valid group element');
+  withCheck(
+    record({ x: FieldWithVersion, isOdd: Bool }, ['x', 'isOdd']),
+    ({ x }) => {
+      let { mul, add } = Field;
+      let ySquared = add(mul(x, mul(x, x)), 5n);
+      if (!Field.isSquare(ySquared)) {
+        throw Error('PublicKey: not a valid group element');
+      }
     }
-  }),
+  ),
   versionNumbers.publicKey
 );
-let Base58PublicKey = base58(BinablePublicKey, versionBytes.publicKey);
 
 /**
  * A public key, represented by a non-zero point on the Pallas curve, in compressed form { x, isOdd }
  */
 const PublicKey = {
   ...provable({ x: Field, isOdd: Bool }),
-
-  toBase58({ x, isOdd }: PublicKey) {
-    return Base58PublicKey.toBase58([x, isOdd]);
-  },
-  fromBase58(json: string): PublicKey {
-    let [x, isOdd] = Base58PublicKey.fromBase58(json);
-    return { x, isOdd };
-  },
+  ...withBase58(BinablePublicKey, versionBytes.publicKey),
 
   toJSON(publicKey: PublicKey) {
     return PublicKey.toBase58(publicKey);

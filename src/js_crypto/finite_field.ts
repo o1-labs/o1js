@@ -1,6 +1,7 @@
+import { bytesToBigInt } from './bigint-helpers.js';
 import { randomBytes } from './random.js';
 
-export { Fp, Fq, FiniteField, p, q, mod, inverse, bytesToBigInt };
+export { Fp, Fq, FiniteField, p, q, mod, inverse };
 
 // CONSTANTS
 
@@ -111,15 +112,6 @@ function randomField(p: bigint) {
     let x = bytesToBigInt(bytes);
     if (x < p) return x;
   }
-}
-function bytesToBigInt(bytes: Uint8Array) {
-  let x = 0n;
-  let bitPosition = 0n;
-  for (let byte of bytes) {
-    x += BigInt(byte) << bitPosition;
-    bitPosition += 8n;
-  }
-  return x;
 }
 
 // SPECIALIZATIONS TO FP, FQ

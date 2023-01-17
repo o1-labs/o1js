@@ -44,7 +44,7 @@ async function workerInit() {
 
   message = await message;
   await init(message.data.module, message.data.memory);
-  await plonk_wasm.initThreadPool(navigator.hardwareConcurrency);
+  await plonk_wasm.initThreadPool(message.data.numWorkers);
   postMessage({ type: 'wasm_bindgen_rayon_threads_ready' });
 }
 workerInit.deps = [plonkWasm, workerRun];

@@ -26,8 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - To get the sender outside a smart contract, there's now `Mina.sender()`
 - `tx.wait()` is now implemented. It waits for the transactions inclusion in a block https://github.com/o1-labs/snarkyjs/pull/645
   - `wait()` also now takes an optional `options` parameter to specify the polling interval or maximum attempts. `wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;`
-  - `Circuit.constraintSystemFromKeypair(keypair)` to inspect the circuit at a low level https://github.com/o1-labs/snarkyjs/pull/529
+- `Circuit.constraintSystemFromKeypair(keypair)` to inspect the circuit at a low level https://github.com/o1-labs/snarkyjs/pull/529
   - Works with a `keypair` (prover + verifier key) generated with the `Circuit` API
+- `Mina.faucet()` can now be used to programmatically fund an address on the testnet, using the faucet provided by MinaExplorer https://github.com/o1-labs/snarkyjs/pull/693
 
 ### Changed
 
@@ -62,6 +63,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Type inference for Structs with instance methods https://github.com/o1-labs/snarkyjs/pull/567
   - also fixes `Struct.fromJSON`
 - `SmartContract.fetchEvents` fixed when multiple event types existed https://github.com/o1-labs/snarkyjs/issues/627
+- Error when using reduce with a `Struct` as state type https://github.com/o1-labs/snarkyjs/pull/689
+- Fix use of stale cached accounts in `Mina.transaction` https://github.com/o1-labs/snarkyjs/issues/430
+- Fixed Apple silicon performance issue https://github.com/o1-labs/snarkyjs/issues/491
 
 ## [0.7.3](https://github.com/o1-labs/snarkyjs/compare/5f20f496...d880bd6e)
 

@@ -1,12 +1,12 @@
 import { blake2b } from 'blakejs';
-import { Field } from '../provable/field-bigint.js';
+import { Field } from '../../provable/field-bigint.js';
 import {
   Group,
   Scalar,
   PrivateKey,
   versionNumbers,
   PublicKey,
-} from '../provable/curve-bigint.js';
+} from '../../provable/curve-bigint.js';
 import {
   HashInput,
   hashWithPrefix,
@@ -17,16 +17,16 @@ import {
   packToFieldsLegacy,
   inputToBitsLegacy,
   HashLegacy,
-} from '../provable/poseidon-bigint.js';
+} from '../../provable/poseidon-bigint.js';
 import {
   bitsToBytes,
   bytesToBits,
-  tuple,
+  record,
   withVersionNumber,
-} from '../provable/binable.js';
-import { base58 } from '../provable/base58.js';
-import { versionBytes } from '../js_crypto/constants.js';
-import { Pallas } from '../js_crypto/elliptic_curve.js';
+} from '../../provable/binable.js';
+import { base58 } from '../../provable/base58.js';
+import { versionBytes } from '../../js_crypto/constants.js';
+import { Pallas } from '../../js_crypto/elliptic_curve.js';
 
 export {
   sign,
@@ -34,6 +34,7 @@ export {
   signFieldElement,
   verifyFieldElement,
   Signature,
+  SignatureJson,
   NetworkId,
   signLegacy,
   verifyLegacy,
@@ -43,19 +44,21 @@ const networkIdMainnet = 0x01n;
 const networkIdTestnet = 0x00n;
 type NetworkId = 'mainnet' | 'testnet';
 type Signature = { r: Field; s: Scalar };
+type SignatureJson = { field: string; scalar: string };
 
 const BinableSignature = withVersionNumber(
-  tuple([Field, Scalar]),
+  record({ r: Field, s: Scalar }, ['r', 's']),
   versionNumbers.signature
 );
-const BinableBase58 = base58(BinableSignature, versionBytes.signature);
-
 const Signature = {
-  toBase58({ r, s }: Signature) {
-    return BinableBase58.toBase58([r, s]);
+  ...BinableSignature,
+  ...base58(BinableSignature, versionBytes.signature),
+  toJSON({ r, s }: Signature): SignatureJson {
+    return { field: Field.toJSON(r), scalar: Scalar.toJSON(s) };
   },
-  fromBase58(signatureBase58: string): Signature {
-    let [r, s] = BinableBase58.fromBase58(signatureBase58);
+  fromJSON({ field, scalar }: SignatureJson) {
+    let r = Field.fromJSON(field);
+    let s = Scalar.fromJSON(scalar);
     return { r, s };
   },
 };

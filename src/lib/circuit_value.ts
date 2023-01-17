@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { bytesToBigInt } from '../js_crypto/finite_field.js';
+import { bytesToBigInt } from '../js_crypto/bigint-helpers.js';
 import { Circuit, ProvablePure, Provable, Keypair } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
