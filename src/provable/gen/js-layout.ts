@@ -124,6 +124,7 @@ let jsLayout = {
                         docs: null,
                         keys: [
                           'editState',
+                          'access',
                           'send',
                           'receive',
                           'setDelegate',
@@ -137,6 +138,7 @@ let jsLayout = {
                         ],
                         entries: {
                           editState: { type: 'AuthRequired' },
+                          access: { type: 'AuthRequired' },
                           send: { type: 'AuthRequired' },
                           receive: { type: 'AuthRequired' },
                           setDelegate: { type: 'AuthRequired' },
@@ -150,6 +152,7 @@ let jsLayout = {
                         },
                         docEntries: {
                           editState: null,
+                          access: null,
                           send: null,
                           receive: null,
                           setDelegate: null,
@@ -816,6 +819,7 @@ let jsLayout = {
                   docs: null,
                   keys: [
                     'editState',
+                    'access',
                     'send',
                     'receive',
                     'setDelegate',
@@ -829,6 +833,7 @@ let jsLayout = {
                   ],
                   entries: {
                     editState: { type: 'AuthRequired' },
+                    access: { type: 'AuthRequired' },
                     send: { type: 'AuthRequired' },
                     receive: { type: 'AuthRequired' },
                     setDelegate: { type: 'AuthRequired' },
@@ -842,6 +847,7 @@ let jsLayout = {
                   },
                   docEntries: {
                     editState: null,
+                    access: null,
                     send: null,
                     receive: null,
                     setDelegate: null,

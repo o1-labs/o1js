@@ -123,6 +123,7 @@ type ZkappCommand = {
           isSome: Bool;
           value: {
             editState: AuthRequired;
+            access: AuthRequired;
             send: AuthRequired;
             receive: AuthRequired;
             setDelegate: AuthRequired;
@@ -304,6 +305,7 @@ type AccountUpdate = {
         isSome: Bool;
         value: {
           editState: AuthRequired;
+          access: AuthRequired;
           send: AuthRequired;
           receive: AuthRequired;
           setDelegate: AuthRequired;
