@@ -713,7 +713,12 @@ function Network(graphqlEndpoint: string): Mina {
             reject: (err: Error) => void | Error
           ) => {
             let txId = response?.data?.sendZkapp?.zkapp?.id;
-            let res = await Fetch.fetchTransactionStatus(txId);
+            let res;
+            try {
+              res = await Fetch.fetchTransactionStatus(txId);
+            } catch (error) {
+              return reject(error as Error);
+            }
             attempts++;
             if (res === 'INCLUDED') {
               return resolve();

@@ -59,7 +59,7 @@ class TokenContract extends SmartContract {
     let totalAmountInCirculation = this.totalAmountInCirculation.get();
     this.totalAmountInCirculation.assertEquals(totalAmountInCirculation);
     let newTotalAmountInCirculation = totalAmountInCirculation.add(amount);
-    newTotalAmountInCirculation.value.assertLte(
+    newTotalAmountInCirculation.value.assertLessThanOrEqual(
       this.SUPPLY.value,
       "Can't mint more than the total supply"
     );
@@ -74,7 +74,7 @@ class TokenContract extends SmartContract {
     let totalAmountInCirculation = this.totalAmountInCirculation.get();
     this.totalAmountInCirculation.assertEquals(totalAmountInCirculation);
     let newTotalAmountInCirculation = totalAmountInCirculation.sub(amount);
-    totalAmountInCirculation.value.assertGte(
+    totalAmountInCirculation.value.assertGreaterThanOrEqual(
       UInt64.from(0).value,
       "Can't burn less than 0"
     );

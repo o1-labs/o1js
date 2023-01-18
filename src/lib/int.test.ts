@@ -450,7 +450,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => new UInt64(Field(1)));
               const y = Circuit.witness(UInt64, () => new UInt64(Field(2)));
-              x.assertLt(y);
+              x.assertLessThan(y);
             });
           }).not.toThrow();
         });
@@ -460,7 +460,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => new UInt64(Field(1)));
               const y = Circuit.witness(UInt64, () => new UInt64(Field(1)));
-              x.assertLt(y);
+              x.assertLessThan(y);
             });
           }).toThrow();
         });
@@ -470,7 +470,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => new UInt64(Field(2)));
               const y = Circuit.witness(UInt64, () => new UInt64(Field(1)));
-              x.assertLt(y);
+              x.assertLessThan(y);
             });
           }).toThrow();
         });
@@ -483,7 +483,7 @@ describe('int', () => {
                 UInt64,
                 () => new UInt64(Field(100000))
               );
-              x.assertLt(y);
+              x.assertLessThan(y);
             });
           }).not.toThrow();
         });
@@ -496,7 +496,7 @@ describe('int', () => {
                 () => new UInt64(Field(100000))
               );
               const y = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
-              x.assertLt(y);
+              x.assertLessThan(y);
             });
           }).toThrow();
         });
@@ -506,7 +506,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
               const y = Circuit.witness(UInt64, () => UInt64.MAXINT());
-              x.assertLt(y);
+              x.assertLessThan(y);
             });
           }).toThrow();
         });
@@ -518,7 +518,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => new UInt64(Field(1)));
               const y = Circuit.witness(UInt64, () => new UInt64(Field(1)));
-              x.assertLte(y);
+              x.assertLessThanOrEqual(y);
             });
           }).not.toThrow();
         });
@@ -528,7 +528,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => new UInt64(Field(2)));
               const y = Circuit.witness(UInt64, () => new UInt64(Field(1)));
-              x.assertLte(y);
+              x.assertLessThanOrEqual(y);
             });
           }).toThrow();
         });
@@ -541,7 +541,7 @@ describe('int', () => {
                 UInt64,
                 () => new UInt64(Field(100000))
               );
-              x.assertLte(y);
+              x.assertLessThanOrEqual(y);
             });
           }).not.toThrow();
         });
@@ -554,7 +554,7 @@ describe('int', () => {
                 () => new UInt64(Field(100000))
               );
               const y = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
-              x.assertLte(y);
+              x.assertLessThanOrEqual(y);
             });
           }).toThrow();
         });
@@ -564,19 +564,19 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
               const y = Circuit.witness(UInt64, () => UInt64.MAXINT());
-              x.assertLte(y);
+              x.assertLessThanOrEqual(y);
             });
           }).not.toThrow();
         });
       });
 
-      describe('assertGt', () => {
+      describe('assertGreaterThan', () => {
         it('2>1=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => new UInt64(Field(2)));
               const y = Circuit.witness(UInt64, () => new UInt64(Field(1)));
-              x.assertGt(y);
+              x.assertGreaterThan(y);
             });
           }).not.toThrow();
         });
@@ -586,7 +586,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => new UInt64(Field(1)));
               const y = Circuit.witness(UInt64, () => new UInt64(Field(1)));
-              x.assertGt(y);
+              x.assertGreaterThan(y);
             });
           }).toThrow();
         });
@@ -596,7 +596,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => new UInt64(Field(1)));
               const y = Circuit.witness(UInt64, () => new UInt64(Field(2)));
-              x.assertGt(y);
+              x.assertGreaterThan(y);
             });
           }).toThrow();
         });
@@ -609,7 +609,7 @@ describe('int', () => {
                 () => new UInt64(Field(100000))
               );
               const y = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
-              x.assertGt(y);
+              x.assertGreaterThan(y);
             });
           }).not.toThrow();
         });
@@ -622,7 +622,7 @@ describe('int', () => {
                 UInt64,
                 () => new UInt64(Field(100000))
               );
-              x.assertGt(y);
+              x.assertGreaterThan(y);
             });
           }).toThrow();
         });
@@ -632,19 +632,19 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
               const y = Circuit.witness(UInt64, () => UInt64.MAXINT());
-              x.assertGt(y);
+              x.assertGreaterThan(y);
             });
           }).toThrow();
         });
       });
 
-      describe('assertGte', () => {
+      describe('assertGreaterThanOrEqual', () => {
         it('1<=1=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => new UInt64(Field(1)));
               const y = Circuit.witness(UInt64, () => new UInt64(Field(1)));
-              x.assertGte(y);
+              x.assertGreaterThanOrEqual(y);
             });
           }).not.toThrow();
         });
@@ -654,7 +654,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => new UInt64(Field(1)));
               const y = Circuit.witness(UInt64, () => new UInt64(Field(2)));
-              x.assertGte(y);
+              x.assertGreaterThanOrEqual(y);
             });
           }).toThrow();
         });
@@ -667,7 +667,7 @@ describe('int', () => {
                 () => new UInt64(Field(100000))
               );
               const y = Circuit.witness(UInt64, () => new UInt64(Field(1000)));
-              x.assertGte(y);
+              x.assertGreaterThanOrEqual(y);
             });
           }).not.toThrow();
         });
@@ -680,7 +680,7 @@ describe('int', () => {
                 UInt64,
                 () => new UInt64(Field(100000))
               );
-              x.assertGte(y);
+              x.assertGreaterThanOrEqual(y);
             });
           }).toThrow();
         });
@@ -690,7 +690,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt64, () => UInt64.MAXINT());
               const y = Circuit.witness(UInt64, () => UInt64.MAXINT());
-              x.assertGte(y);
+              x.assertGreaterThanOrEqual(y);
             });
           }).not.toThrow();
         });
@@ -869,234 +869,258 @@ describe('int', () => {
 
       describe('lt', () => {
         it('1<2=true', () => {
-          expect(new UInt64(Field(1)).lt(new UInt64(Field(2)))).toEqual(
+          expect(new UInt64(Field(1)).lessThan(new UInt64(Field(2)))).toEqual(
             Bool(true)
           );
         });
 
         it('1<1=false', () => {
-          expect(new UInt64(Field(1)).lt(new UInt64(Field(1)))).toEqual(
+          expect(new UInt64(Field(1)).lessThan(new UInt64(Field(1)))).toEqual(
             Bool(false)
           );
         });
 
         it('2<1=false', () => {
-          expect(new UInt64(Field(2)).lt(new UInt64(Field(1)))).toEqual(
+          expect(new UInt64(Field(2)).lessThan(new UInt64(Field(1)))).toEqual(
             Bool(false)
           );
         });
 
         it('1000<100000=true', () => {
-          expect(new UInt64(Field(1000)).lt(new UInt64(Field(100000)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            new UInt64(Field(1000)).lessThan(new UInt64(Field(100000)))
+          ).toEqual(Bool(true));
         });
 
         it('100000<1000=false', () => {
-          expect(new UInt64(Field(100000)).lt(new UInt64(Field(1000)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            new UInt64(Field(100000)).lessThan(new UInt64(Field(1000)))
+          ).toEqual(Bool(false));
         });
 
         it('MAXINT<MAXINT=false', () => {
-          expect(UInt64.MAXINT().lt(UInt64.MAXINT())).toEqual(Bool(false));
+          expect(UInt64.MAXINT().lessThan(UInt64.MAXINT())).toEqual(
+            Bool(false)
+          );
         });
       });
 
       describe('lte', () => {
         it('1<=1=true', () => {
-          expect(new UInt64(Field(1)).lte(new UInt64(Field(1)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            new UInt64(Field(1)).lessThanOrEqual(new UInt64(Field(1)))
+          ).toEqual(Bool(true));
         });
 
         it('2<=1=false', () => {
-          expect(new UInt64(Field(2)).lte(new UInt64(Field(1)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            new UInt64(Field(2)).lessThanOrEqual(new UInt64(Field(1)))
+          ).toEqual(Bool(false));
         });
 
         it('1000<=100000=true', () => {
           expect(
-            new UInt64(Field(1000)).lte(new UInt64(Field(100000)))
+            new UInt64(Field(1000)).lessThanOrEqual(new UInt64(Field(100000)))
           ).toEqual(Bool(true));
         });
 
         it('100000<=1000=false', () => {
           expect(
-            new UInt64(Field(100000)).lte(new UInt64(Field(1000)))
+            new UInt64(Field(100000)).lessThanOrEqual(new UInt64(Field(1000)))
           ).toEqual(Bool(false));
         });
 
         it('MAXINT<=MAXINT=true', () => {
-          expect(UInt64.MAXINT().lte(UInt64.MAXINT())).toEqual(Bool(true));
+          expect(UInt64.MAXINT().lessThanOrEqual(UInt64.MAXINT())).toEqual(
+            Bool(true)
+          );
         });
       });
 
-      describe('assertLte', () => {
+      describe('assertLessThanOrEqual', () => {
         it('1<=1=true', () => {
           expect(() => {
-            new UInt64(Field(1)).assertLte(new UInt64(Field(1)));
+            new UInt64(Field(1)).assertLessThanOrEqual(new UInt64(Field(1)));
           }).not.toThrow();
         });
 
         it('2<=1=false', () => {
           expect(() => {
-            new UInt64(Field(2)).assertLte(new UInt64(Field(1)));
+            new UInt64(Field(2)).assertLessThanOrEqual(new UInt64(Field(1)));
           }).toThrow();
         });
 
         it('1000<=100000=true', () => {
           expect(() => {
-            new UInt64(Field(1000)).assertLte(new UInt64(Field(100000)));
+            new UInt64(Field(1000)).assertLessThanOrEqual(
+              new UInt64(Field(100000))
+            );
           }).not.toThrow();
         });
 
         it('100000<=1000=false', () => {
           expect(() => {
-            new UInt64(Field(100000)).assertLte(new UInt64(Field(1000)));
+            new UInt64(Field(100000)).assertLessThanOrEqual(
+              new UInt64(Field(1000))
+            );
           }).toThrow();
         });
 
         it('MAXINT<=MAXINT=true', () => {
           expect(() => {
-            UInt64.MAXINT().assertLte(UInt64.MAXINT());
+            UInt64.MAXINT().assertLessThanOrEqual(UInt64.MAXINT());
           }).not.toThrow();
         });
       });
 
-      describe('gt', () => {
+      describe('greaterThan', () => {
         it('2>1=true', () => {
-          expect(new UInt64(Field(2)).gt(new UInt64(Field(1)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            new UInt64(Field(2)).greaterThan(new UInt64(Field(1)))
+          ).toEqual(Bool(true));
         });
 
         it('1>1=false', () => {
-          expect(new UInt64(Field(1)).gt(new UInt64(Field(1)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            new UInt64(Field(1)).greaterThan(new UInt64(Field(1)))
+          ).toEqual(Bool(false));
         });
 
         it('1>2=false', () => {
-          expect(new UInt64(Field(1)).gt(new UInt64(Field(2)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            new UInt64(Field(1)).greaterThan(new UInt64(Field(2)))
+          ).toEqual(Bool(false));
         });
 
         it('100000>1000=true', () => {
-          expect(new UInt64(Field(100000)).gt(new UInt64(Field(1000)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            new UInt64(Field(100000)).greaterThan(new UInt64(Field(1000)))
+          ).toEqual(Bool(true));
         });
 
         it('1000>100000=false', () => {
-          expect(new UInt64(Field(1000)).gt(new UInt64(Field(100000)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            new UInt64(Field(1000)).greaterThan(new UInt64(Field(100000)))
+          ).toEqual(Bool(false));
         });
 
         it('MAXINT>MAXINT=false', () => {
-          expect(UInt64.MAXINT().gt(UInt64.MAXINT())).toEqual(Bool(false));
+          expect(UInt64.MAXINT().greaterThan(UInt64.MAXINT())).toEqual(
+            Bool(false)
+          );
         });
       });
 
-      describe('gte', () => {
+      describe('greaterThanOrEqual', () => {
         it('2>=1=true', () => {
-          expect(new UInt64(Field(2)).gte(new UInt64(Field(1)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            new UInt64(Field(2)).greaterThanOrEqual(new UInt64(Field(1)))
+          ).toEqual(Bool(true));
         });
 
         it('1>=1=true', () => {
-          expect(new UInt64(Field(1)).gte(new UInt64(Field(1)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            new UInt64(Field(1)).greaterThanOrEqual(new UInt64(Field(1)))
+          ).toEqual(Bool(true));
         });
 
         it('1>=2=false', () => {
-          expect(new UInt64(Field(1)).gte(new UInt64(Field(2)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            new UInt64(Field(1)).greaterThanOrEqual(new UInt64(Field(2)))
+          ).toEqual(Bool(false));
         });
 
         it('100000>=1000=true', () => {
           expect(
-            new UInt64(Field(100000)).gte(new UInt64(Field(1000)))
+            new UInt64(Field(100000)).greaterThanOrEqual(
+              new UInt64(Field(1000))
+            )
           ).toEqual(Bool(true));
         });
 
         it('1000>=100000=false', () => {
           expect(
-            new UInt64(Field(1000)).gte(new UInt64(Field(100000)))
+            new UInt64(Field(1000)).greaterThanOrEqual(
+              new UInt64(Field(100000))
+            )
           ).toEqual(Bool(false));
         });
 
         it('MAXINT>=MAXINT=true', () => {
-          expect(UInt64.MAXINT().gte(UInt64.MAXINT())).toEqual(Bool(true));
+          expect(UInt64.MAXINT().greaterThanOrEqual(UInt64.MAXINT())).toEqual(
+            Bool(true)
+          );
         });
       });
 
-      describe('assertGt', () => {
+      describe('assertGreaterThan', () => {
         it('1>1=false', () => {
           expect(() => {
-            new UInt64(Field(1)).assertGt(new UInt64(Field(1)));
+            new UInt64(Field(1)).assertGreaterThan(new UInt64(Field(1)));
           }).toThrow();
         });
 
         it('2>1=true', () => {
           expect(() => {
-            new UInt64(Field(2)).assertGt(new UInt64(Field(1)));
+            new UInt64(Field(2)).assertGreaterThan(new UInt64(Field(1)));
           }).not.toThrow();
         });
 
         it('1000>100000=false', () => {
           expect(() => {
-            new UInt64(Field(1000)).assertGt(new UInt64(Field(100000)));
+            new UInt64(Field(1000)).assertGreaterThan(
+              new UInt64(Field(100000))
+            );
           }).toThrow();
         });
 
         it('100000>1000=true', () => {
           expect(() => {
-            new UInt64(Field(100000)).assertGt(new UInt64(Field(1000)));
+            new UInt64(Field(100000)).assertGreaterThan(
+              new UInt64(Field(1000))
+            );
           }).not.toThrow();
         });
 
         it('MAXINT>MAXINT=false', () => {
           expect(() => {
-            UInt64.MAXINT().assertGt(UInt64.MAXINT());
+            UInt64.MAXINT().assertGreaterThan(UInt64.MAXINT());
           }).toThrow();
         });
       });
 
-      describe('assertGte', () => {
+      describe('assertGreaterThanOrEqual', () => {
         it('1>=1=true', () => {
           expect(() => {
-            new UInt64(Field(1)).assertGte(new UInt64(Field(1)));
+            new UInt64(Field(1)).assertGreaterThanOrEqual(new UInt64(Field(1)));
           }).not.toThrow();
         });
 
         it('2>=1=true', () => {
           expect(() => {
-            new UInt64(Field(2)).assertGte(new UInt64(Field(1)));
+            new UInt64(Field(2)).assertGreaterThanOrEqual(new UInt64(Field(1)));
           }).not.toThrow();
         });
 
         it('1000>=100000=false', () => {
           expect(() => {
-            new UInt64(Field(1000)).assertGte(new UInt64(Field(100000)));
+            new UInt64(Field(1000)).assertGreaterThanOrEqual(
+              new UInt64(Field(100000))
+            );
           }).toThrow();
         });
 
         it('100000>=1000=true', () => {
           expect(() => {
-            new UInt64(Field(100000)).assertGte(new UInt64(Field(1000)));
+            new UInt64(Field(100000)).assertGreaterThanOrEqual(
+              new UInt64(Field(1000))
+            );
           }).not.toThrow();
         });
 
         it('MAXINT>=MAXINT=true', () => {
           expect(() => {
-            UInt64.MAXINT().assertGte(UInt64.MAXINT());
+            UInt64.MAXINT().assertGreaterThanOrEqual(UInt64.MAXINT());
           }).not.toThrow();
         });
       });
@@ -1387,7 +1411,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => new UInt32(Field(1)));
               const y = Circuit.witness(UInt32, () => new UInt32(Field(2)));
-              x.assertLt(y);
+              x.assertLessThan(y);
             });
           }).not.toThrow();
         });
@@ -1397,7 +1421,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => new UInt32(Field(1)));
               const y = Circuit.witness(UInt32, () => new UInt32(Field(1)));
-              x.assertLt(y);
+              x.assertLessThan(y);
             });
           }).toThrow();
         });
@@ -1407,7 +1431,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => new UInt32(Field(2)));
               const y = Circuit.witness(UInt32, () => new UInt32(Field(1)));
-              x.assertLt(y);
+              x.assertLessThan(y);
             });
           }).toThrow();
         });
@@ -1420,7 +1444,7 @@ describe('int', () => {
                 UInt32,
                 () => new UInt32(Field(100000))
               );
-              x.assertLt(y);
+              x.assertLessThan(y);
             });
           }).not.toThrow();
         });
@@ -1433,7 +1457,7 @@ describe('int', () => {
                 () => new UInt32(Field(100000))
               );
               const y = Circuit.witness(UInt32, () => new UInt32(Field(1000)));
-              x.assertLt(y);
+              x.assertLessThan(y);
             });
           }).toThrow();
         });
@@ -1443,19 +1467,19 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => UInt32.MAXINT());
               const y = Circuit.witness(UInt32, () => UInt32.MAXINT());
-              x.assertLt(y);
+              x.assertLessThan(y);
             });
           }).toThrow();
         });
       });
 
-      describe('assertLte', () => {
+      describe('assertLessThanOrEqual', () => {
         it('1<=1=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => new UInt32(Field(1)));
               const y = Circuit.witness(UInt32, () => new UInt32(Field(1)));
-              x.assertLte(y);
+              x.assertLessThanOrEqual(y);
             });
           }).not.toThrow();
         });
@@ -1465,7 +1489,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => new UInt32(Field(2)));
               const y = Circuit.witness(UInt32, () => new UInt32(Field(1)));
-              x.assertLte(y);
+              x.assertLessThanOrEqual(y);
             });
           }).toThrow();
         });
@@ -1478,7 +1502,7 @@ describe('int', () => {
                 UInt32,
                 () => new UInt32(Field(100000))
               );
-              x.assertLte(y);
+              x.assertLessThanOrEqual(y);
             });
           }).not.toThrow();
         });
@@ -1491,7 +1515,7 @@ describe('int', () => {
                 () => new UInt32(Field(100000))
               );
               const y = Circuit.witness(UInt32, () => new UInt32(Field(1000)));
-              x.assertLte(y);
+              x.assertLessThanOrEqual(y);
             });
           }).toThrow();
         });
@@ -1501,19 +1525,19 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => UInt32.MAXINT());
               const y = Circuit.witness(UInt32, () => UInt32.MAXINT());
-              x.assertLte(y);
+              x.assertLessThanOrEqual(y);
             });
           }).not.toThrow();
         });
       });
 
-      describe('assertGt', () => {
+      describe('assertGreaterThan', () => {
         it('2>1=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => new UInt32(Field(2)));
               const y = Circuit.witness(UInt32, () => new UInt32(Field(1)));
-              x.assertGt(y);
+              x.assertGreaterThan(y);
             });
           }).not.toThrow();
         });
@@ -1523,7 +1547,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => new UInt32(Field(1)));
               const y = Circuit.witness(UInt32, () => new UInt32(Field(1)));
-              x.assertGt(y);
+              x.assertGreaterThan(y);
             });
           }).toThrow();
         });
@@ -1533,7 +1557,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => new UInt32(Field(1)));
               const y = Circuit.witness(UInt32, () => new UInt32(Field(2)));
-              x.assertGt(y);
+              x.assertGreaterThan(y);
             });
           }).toThrow();
         });
@@ -1546,7 +1570,7 @@ describe('int', () => {
                 () => new UInt32(Field(100000))
               );
               const y = Circuit.witness(UInt32, () => new UInt32(Field(1000)));
-              x.assertGt(y);
+              x.assertGreaterThan(y);
             });
           }).not.toThrow();
         });
@@ -1559,7 +1583,7 @@ describe('int', () => {
                 UInt32,
                 () => new UInt32(Field(100000))
               );
-              x.assertGt(y);
+              x.assertGreaterThan(y);
             });
           }).toThrow();
         });
@@ -1569,19 +1593,19 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => UInt32.MAXINT());
               const y = Circuit.witness(UInt32, () => UInt32.MAXINT());
-              x.assertGt(y);
+              x.assertGreaterThan(y);
             });
           }).toThrow();
         });
       });
 
-      describe('assertGte', () => {
+      describe('assertGreaterThanOrEqual', () => {
         it('1<=1=true', () => {
           expect(() => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => new UInt32(Field(1)));
               const y = Circuit.witness(UInt32, () => new UInt32(Field(1)));
-              x.assertGte(y);
+              x.assertGreaterThanOrEqual(y);
             });
           }).not.toThrow();
         });
@@ -1591,7 +1615,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => new UInt32(Field(1)));
               const y = Circuit.witness(UInt32, () => new UInt32(Field(2)));
-              x.assertGte(y);
+              x.assertGreaterThanOrEqual(y);
             });
           }).toThrow();
         });
@@ -1604,7 +1628,7 @@ describe('int', () => {
                 () => new UInt32(Field(100000))
               );
               const y = Circuit.witness(UInt32, () => new UInt32(Field(1000)));
-              x.assertGte(y);
+              x.assertGreaterThanOrEqual(y);
             });
           }).not.toThrow();
         });
@@ -1617,7 +1641,7 @@ describe('int', () => {
                 UInt32,
                 () => new UInt32(Field(100000))
               );
-              x.assertGte(y);
+              x.assertGreaterThanOrEqual(y);
             });
           }).toThrow();
         });
@@ -1627,7 +1651,7 @@ describe('int', () => {
             Circuit.runAndCheck(() => {
               const x = Circuit.witness(UInt32, () => UInt32.MAXINT());
               const y = Circuit.witness(UInt32, () => UInt32.MAXINT());
-              x.assertGte(y);
+              x.assertGreaterThanOrEqual(y);
             });
           }).not.toThrow();
         });
@@ -1804,236 +1828,260 @@ describe('int', () => {
         });
       });
 
-      describe('lt', () => {
+      describe('lessThan', () => {
         it('1<2=true', () => {
-          expect(new UInt32(Field(1)).lt(new UInt32(Field(2)))).toEqual(
+          expect(new UInt32(Field(1)).lessThan(new UInt32(Field(2)))).toEqual(
             Bool(true)
           );
         });
 
         it('1<1=false', () => {
-          expect(new UInt32(Field(1)).lt(new UInt32(Field(1)))).toEqual(
+          expect(new UInt32(Field(1)).lessThan(new UInt32(Field(1)))).toEqual(
             Bool(false)
           );
         });
 
         it('2<1=false', () => {
-          expect(new UInt32(Field(2)).lt(new UInt32(Field(1)))).toEqual(
+          expect(new UInt32(Field(2)).lessThan(new UInt32(Field(1)))).toEqual(
             Bool(false)
           );
         });
 
         it('1000<100000=true', () => {
-          expect(new UInt32(Field(1000)).lt(new UInt32(Field(100000)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            new UInt32(Field(1000)).lessThan(new UInt32(Field(100000)))
+          ).toEqual(Bool(true));
         });
 
         it('100000<1000=false', () => {
-          expect(new UInt32(Field(100000)).lt(new UInt32(Field(1000)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            new UInt32(Field(100000)).lessThan(new UInt32(Field(1000)))
+          ).toEqual(Bool(false));
         });
 
         it('MAXINT<MAXINT=false', () => {
-          expect(UInt32.MAXINT().lt(UInt32.MAXINT())).toEqual(Bool(false));
+          expect(UInt32.MAXINT().lessThan(UInt32.MAXINT())).toEqual(
+            Bool(false)
+          );
         });
       });
 
-      describe('lte', () => {
+      describe('lessThanOrEqual', () => {
         it('1<=1=true', () => {
-          expect(new UInt32(Field(1)).lte(new UInt32(Field(1)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            new UInt32(Field(1)).lessThanOrEqual(new UInt32(Field(1)))
+          ).toEqual(Bool(true));
         });
 
         it('2<=1=false', () => {
-          expect(new UInt32(Field(2)).lte(new UInt32(Field(1)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            new UInt32(Field(2)).lessThanOrEqual(new UInt32(Field(1)))
+          ).toEqual(Bool(false));
         });
 
         it('1000<=100000=true', () => {
           expect(
-            new UInt32(Field(1000)).lte(new UInt32(Field(100000)))
+            new UInt32(Field(1000)).lessThanOrEqual(new UInt32(Field(100000)))
           ).toEqual(Bool(true));
         });
 
         it('100000<=1000=false', () => {
           expect(
-            new UInt32(Field(100000)).lte(new UInt32(Field(1000)))
+            new UInt32(Field(100000)).lessThanOrEqual(new UInt32(Field(1000)))
           ).toEqual(Bool(false));
         });
 
         it('MAXINT<=MAXINT=true', () => {
-          expect(UInt32.MAXINT().lte(UInt32.MAXINT())).toEqual(Bool(true));
+          expect(UInt32.MAXINT().lessThanOrEqual(UInt32.MAXINT())).toEqual(
+            Bool(true)
+          );
         });
       });
 
-      describe('assertLte', () => {
+      describe('assertLessThanOrEqual', () => {
         it('1<=1=true', () => {
           expect(() => {
-            new UInt32(Field(1)).assertLte(new UInt32(Field(1)));
+            new UInt32(Field(1)).assertLessThanOrEqual(new UInt32(Field(1)));
           }).not.toThrow();
         });
 
         it('2<=1=false', () => {
           expect(() => {
-            new UInt32(Field(2)).assertLte(new UInt32(Field(1)));
+            new UInt32(Field(2)).assertLessThanOrEqual(new UInt32(Field(1)));
           }).toThrow();
         });
 
         it('1000<=100000=true', () => {
           expect(() => {
-            new UInt32(Field(1000)).assertLte(new UInt32(Field(100000)));
+            new UInt32(Field(1000)).assertLessThanOrEqual(
+              new UInt32(Field(100000))
+            );
           }).not.toThrow();
         });
 
         it('100000<=1000=false', () => {
           expect(() => {
-            new UInt32(Field(100000)).assertLte(new UInt32(Field(1000)));
+            new UInt32(Field(100000)).assertLessThanOrEqual(
+              new UInt32(Field(1000))
+            );
           }).toThrow();
         });
 
         it('MAXINT<=MAXINT=true', () => {
           expect(() => {
-            UInt32.MAXINT().assertLte(UInt32.MAXINT());
+            UInt32.MAXINT().assertLessThanOrEqual(UInt32.MAXINT());
           }).not.toThrow();
         });
       });
 
-      describe('gt', () => {
+      describe('greaterThan', () => {
         it('2>1=true', () => {
-          expect(new UInt32(Field(2)).gt(new UInt32(Field(1)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            new UInt32(Field(2)).greaterThan(new UInt32(Field(1)))
+          ).toEqual(Bool(true));
         });
 
         it('1>1=false', () => {
-          expect(new UInt32(Field(1)).gt(new UInt32(Field(1)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            new UInt32(Field(1)).greaterThan(new UInt32(Field(1)))
+          ).toEqual(Bool(false));
         });
 
         it('1>2=false', () => {
-          expect(new UInt32(Field(1)).gt(new UInt32(Field(2)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            new UInt32(Field(1)).greaterThan(new UInt32(Field(2)))
+          ).toEqual(Bool(false));
         });
 
         it('100000>1000=true', () => {
-          expect(new UInt32(Field(100000)).gt(new UInt32(Field(1000)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            new UInt32(Field(100000)).greaterThan(new UInt32(Field(1000)))
+          ).toEqual(Bool(true));
         });
 
         it('1000>100000=false', () => {
-          expect(new UInt32(Field(1000)).gt(new UInt32(Field(100000)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            new UInt32(Field(1000)).greaterThan(new UInt32(Field(100000)))
+          ).toEqual(Bool(false));
         });
 
         it('MAXINT>MAXINT=false', () => {
-          expect(UInt32.MAXINT().gt(UInt32.MAXINT())).toEqual(Bool(false));
+          expect(UInt32.MAXINT().greaterThan(UInt32.MAXINT())).toEqual(
+            Bool(false)
+          );
         });
       });
 
-      describe('assertGt', () => {
+      describe('assertGreaterThan', () => {
         it('1>1=false', () => {
           expect(() => {
-            new UInt32(Field(1)).assertGt(new UInt32(Field(1)));
+            new UInt32(Field(1)).assertGreaterThan(new UInt32(Field(1)));
           }).toThrow();
         });
 
         it('2>1=true', () => {
           expect(() => {
-            new UInt32(Field(2)).assertGt(new UInt32(Field(1)));
+            new UInt32(Field(2)).assertGreaterThan(new UInt32(Field(1)));
           }).not.toThrow();
         });
 
         it('1000>100000=false', () => {
           expect(() => {
-            new UInt32(Field(1000)).assertGt(new UInt32(Field(100000)));
+            new UInt32(Field(1000)).assertGreaterThan(
+              new UInt32(Field(100000))
+            );
           }).toThrow();
         });
 
         it('100000>1000=true', () => {
           expect(() => {
-            new UInt32(Field(100000)).assertGt(new UInt32(Field(1000)));
+            new UInt32(Field(100000)).assertGreaterThan(
+              new UInt32(Field(1000))
+            );
           }).not.toThrow();
         });
 
         it('MAXINT>MAXINT=false', () => {
           expect(() => {
-            UInt32.MAXINT().assertGt(UInt32.MAXINT());
+            UInt32.MAXINT().assertGreaterThan(UInt32.MAXINT());
           }).toThrow();
         });
       });
 
-      describe('gte', () => {
+      describe('greaterThanOrEqual', () => {
         it('2>=1=true', () => {
-          expect(new UInt32(Field(2)).gte(new UInt32(Field(1)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            new UInt32(Field(2)).greaterThanOrEqual(new UInt32(Field(1)))
+          ).toEqual(Bool(true));
         });
 
         it('1>=1=true', () => {
-          expect(new UInt32(Field(1)).gte(new UInt32(Field(1)))).toEqual(
-            Bool(true)
-          );
+          expect(
+            new UInt32(Field(1)).greaterThanOrEqual(new UInt32(Field(1)))
+          ).toEqual(Bool(true));
         });
 
         it('1>=2=false', () => {
-          expect(new UInt32(Field(1)).gte(new UInt32(Field(2)))).toEqual(
-            Bool(false)
-          );
+          expect(
+            new UInt32(Field(1)).greaterThanOrEqual(new UInt32(Field(2)))
+          ).toEqual(Bool(false));
         });
 
         it('100000>=1000=true', () => {
           expect(
-            new UInt32(Field(100000)).gte(new UInt32(Field(1000)))
+            new UInt32(Field(100000)).greaterThanOrEqual(
+              new UInt32(Field(1000))
+            )
           ).toEqual(Bool(true));
         });
 
         it('1000>=100000=false', () => {
           expect(
-            new UInt32(Field(1000)).gte(new UInt32(Field(100000)))
+            new UInt32(Field(1000)).greaterThanOrEqual(
+              new UInt32(Field(100000))
+            )
           ).toEqual(Bool(false));
         });
 
         it('MAXINT>=MAXINT=true', () => {
-          expect(UInt32.MAXINT().gte(UInt32.MAXINT())).toEqual(Bool(true));
+          expect(UInt32.MAXINT().greaterThanOrEqual(UInt32.MAXINT())).toEqual(
+            Bool(true)
+          );
         });
       });
 
-      describe('assertGte', () => {
+      describe('assertGreaterThanOrEqual', () => {
         it('1>=1=true', () => {
           expect(() => {
-            new UInt32(Field(1)).assertGte(new UInt32(Field(1)));
+            new UInt32(Field(1)).assertGreaterThanOrEqual(new UInt32(Field(1)));
           }).not.toThrow();
         });
 
         it('2>=1=true', () => {
           expect(() => {
-            new UInt32(Field(2)).assertGte(new UInt32(Field(1)));
+            new UInt32(Field(2)).assertGreaterThanOrEqual(new UInt32(Field(1)));
           }).not.toThrow();
         });
 
         it('1000>=100000=false', () => {
           expect(() => {
-            new UInt32(Field(1000)).assertGte(new UInt32(Field(100000)));
+            new UInt32(Field(1000)).assertGreaterThanOrEqual(
+              new UInt32(Field(100000))
+            );
           }).toThrow();
         });
 
         it('100000>=1000=true', () => {
           expect(() => {
-            new UInt32(Field(100000)).assertGte(new UInt32(Field(1000)));
+            new UInt32(Field(100000)).assertGreaterThanOrEqual(
+              new UInt32(Field(1000))
+            );
           }).not.toThrow();
         });
 
         it('MAXINT>=MAXINT=true', () => {
           expect(() => {
-            UInt32.MAXINT().assertGte(UInt32.MAXINT());
+            UInt32.MAXINT().assertGreaterThanOrEqual(UInt32.MAXINT());
           }).not.toThrow();
         });
       });
