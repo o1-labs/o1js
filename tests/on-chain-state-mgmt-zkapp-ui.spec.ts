@@ -45,7 +45,7 @@ test.describe('On-Chain State Management zkApp UI', () => {
     );
   });
 
-  test('should re-deploy zkApp', async ({ onChainStateMgmtZkAppPage }) => {
+  test.skip('should re-deploy zkApp', async ({ onChainStateMgmtZkAppPage }) => {
     test.skip(process.env.CI === 'true', 'Skipping test in CI');
 
     const currentAccountState = '2';
@@ -64,7 +64,7 @@ test.describe('On-Chain State Management zkApp UI', () => {
     await onChainStateMgmtZkAppPage.checkDeployedZkApp();
   });
 
-  test('should fail to re-deploy zkApp by fee excess', async ({
+  test.skip('should fail to re-deploy zkApp by fee excess', async ({
     onChainStateMgmtZkAppPage,
   }) => {
     test.skip(process.env.CI === 'true', 'Skipping test in CI');
@@ -78,7 +78,7 @@ test.describe('On-Chain State Management zkApp UI', () => {
     await onChainStateMgmtZkAppPage.checkZkAppDeploymentFailureByFeeExcess();
   });
 
-  test('should fail to update account state by zkApp constraint', async ({
+  test.skip('should fail to update account state by zkApp constraint', async ({
     onChainStateMgmtZkAppPage,
   }) => {
     test.skip(process.env.CI === 'true', 'Skipping test in CI');

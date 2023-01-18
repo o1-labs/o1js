@@ -34,7 +34,7 @@ type Erc20 = {
   // mutations which need @method
   transfer(to: PublicKey, value: UInt64): Bool; // emits "Transfer" event
   transferFrom(from: PublicKey, to: PublicKey, value: UInt64): Bool; // emits "Transfer" event
-  approve(spender: PublicKey, value: UInt64): Bool; // emits "Approve" event
+  approveSpend(spender: PublicKey, value: UInt64): Bool; // emits "Approve" event
 
   // events
   events: {
