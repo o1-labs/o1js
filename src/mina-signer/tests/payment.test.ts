@@ -40,7 +40,7 @@ describe('Payment', () => {
           nonce: '0',
         },
         keypair.privateKey
-      ) as Signed<Payment>;
+      );
       expect(payment.data).toBeDefined();
       expect(payment.signature).toBeDefined();
     });
@@ -70,7 +70,7 @@ describe('Payment', () => {
           nonce: '0',
         },
         keypair.privateKey
-      ) as Signed<Payment>;
+      );
       const verifiedPayment = client.verifyPayment(payment);
       expect(verifiedPayment).toBeTruthy();
     });
@@ -100,7 +100,7 @@ describe('Payment', () => {
           nonce: '0',
         },
         keypair.privateKey
-      ) as Signed<Payment>;
+      );
       const hashedPayment = client.hashPayment(payment);
       expect(hashedPayment).toBeDefined();
     });
@@ -156,7 +156,7 @@ describe('Payment', () => {
           nonce: '0',
         },
         keypair.privateKey
-      ) as Signed<Payment>;
+      );
       expect(payment.data).toBeDefined();
       expect(payment.signature).toBeDefined();
     });
@@ -186,7 +186,7 @@ describe('Payment', () => {
           nonce: '0',
         },
         keypair.privateKey
-      ) as Signed<Payment>;
+      );
       const verifiedPayment = client.verifyPayment(payment);
       expect(verifiedPayment).toBeTruthy();
     });
@@ -216,7 +216,7 @@ describe('Payment', () => {
           nonce: '0',
         },
         keypair.privateKey
-      ) as Signed<Payment>;
+      );
       const hashedPayment = client.hashPayment(payment);
       expect(hashedPayment).toBeDefined();
     });

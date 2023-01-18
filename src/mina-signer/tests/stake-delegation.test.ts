@@ -38,7 +38,7 @@ describe('Stake Delegation', () => {
           nonce: '0',
         },
         keypair.privateKey
-      ) as Signed<StakeDelegation>;
+      );
       expect(delegation.data).toBeDefined();
       expect(delegation.signature).toBeDefined();
     });
@@ -66,7 +66,7 @@ describe('Stake Delegation', () => {
           nonce: '0',
         },
         keypair.privateKey
-      ) as Signed<StakeDelegation>;
+      );
       const verifiedDelegation = client.verifyStakeDelegation(delegation);
       expect(verifiedDelegation).toBeTruthy();
     });
@@ -94,7 +94,7 @@ describe('Stake Delegation', () => {
           nonce: '0',
         },
         keypair.privateKey
-      ) as Signed<StakeDelegation>;
+      );
       const hashedDelegation = client.hashStakeDelegation(delegation);
       expect(hashedDelegation).toBeDefined();
     });
@@ -147,7 +147,7 @@ describe('Stake Delegation', () => {
           nonce: '0',
         },
         keypair.privateKey
-      ) as Signed<StakeDelegation>;
+      );
       expect(delegation.data).toBeDefined();
       expect(delegation.signature).toBeDefined();
     });
@@ -175,7 +175,7 @@ describe('Stake Delegation', () => {
           nonce: '0',
         },
         keypair.privateKey
-      ) as Signed<StakeDelegation>;
+      );
       const verifiedDelegation = client.verifyStakeDelegation(delegation);
       expect(verifiedDelegation).toBeTruthy();
     });
@@ -218,7 +218,7 @@ describe('Stake Delegation', () => {
           nonce: '0',
         },
         keypair.privateKey
-      ) as Signed<StakeDelegation>;
+      );
       const verifiedDelegation = client.verifyStakeDelegation(delegation);
       expect(verifiedDelegation).toBeTruthy();
     });
