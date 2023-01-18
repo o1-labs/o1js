@@ -9,7 +9,7 @@ async function getEfficientNumWorkers() {
   let gpuTier = await getGPUTier();
   let numCpus = navigator.hardwareConcurrency;
   // gpuTier.gpu is undefined if page was rendered server side
-  let gpuModel = gpuTier.gpu || 'SSR';
+  let gpuModel = gpuTier.gpu;
 
   var numWorkers =
     {
@@ -18,7 +18,6 @@ async function getEfficientNumWorkers() {
       'apple m1 max': 3,
       'apple m1 ultra': 7,
       'apple m2': 2,
-      'SSR': ((numCpus / 6) >> 0) + 1,
     }[gpuModel] || numCpus - 1;
 
   return numWorkers;
