@@ -383,21 +383,21 @@ class Client {
    * @param privateKey A private key
    * @returns A signed payload
    */
-  public signTransaction(
-    payload: Json.SignableData,
+  public signTransaction<T extends Json.SignableData>(
+    payload: T,
     privateKey: Json.PrivateKey
-  ): Signed<Json.SignableData> {
+  ): Signed<T> {
     if (typeof payload === 'string') {
-      return this.signMessage(payload, privateKey);
+      return this.signMessage(payload, privateKey) as Signed<T>;
     }
     if (isPayment(payload)) {
-      return this.signPayment(payload, privateKey);
+      return this.signPayment(payload, privateKey) as Signed<T>;
     }
     if (isStakeDelegation(payload)) {
-      return this.signStakeDelegation(payload, privateKey);
+      return this.signStakeDelegation(payload, privateKey) as Signed<T>;
     }
     if (isZkappCommand(payload)) {
-      return this.signZkappCommand(payload, privateKey);
+      return this.signZkappCommand(payload, privateKey) as Signed<T>;
     } else {
       throw new Error(`Expected signable payload, got '${payload}'.`);
     }
