@@ -397,6 +397,7 @@ class TokenContract extends SmartContract {
       ...Permissions.default(),
       send: Permissions.proof(),
       receive: Permissions.proof(),
+      access: Permissions.proofOrSignature(),
     });
   }
   @method init() {

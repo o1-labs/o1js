@@ -209,6 +209,13 @@ interface Permissions extends Permissions_ {
   incrementNonce: Permission;
   setVotingFor: Permission;
   setTiming: Permission;
+
+  /**
+   * Permission to control the ability to include _any_ account update for this account in a transaction. Note that this is more restrictive than
+   * all other permissions combined. For normal accounts it can safely be set to `none`, but for token contracts this has to be more restrictive, to
+   * prevent unauthorized token interactions -- for example, it could be `proofOrSignature`.
+   */
+  access: Permission;
 }
 let Permissions = {
   ...Permission,
@@ -247,6 +254,7 @@ let Permissions = {
     incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
     setTiming: Permission.signature(),
+    access: Permission.none(),
   }),
 
   initial: (): Permissions => ({
@@ -262,12 +270,14 @@ let Permissions = {
     incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
     setTiming: Permission.signature(),
+    access: Permission.none(),
   }),
 
   dummy: (): Permissions => ({
     editState: Permission.none(),
     send: Permission.none(),
     receive: Permission.none(),
+    access: Permission.none(),
     setDelegate: Permission.none(),
     setPermissions: Permission.none(),
     setVerificationKey: Permission.none(),
@@ -298,20 +308,11 @@ let Permissions = {
     }
   },
 
-  fromJSON: (permissions: {
-    editState: AuthRequired;
-    send: AuthRequired;
-    receive: AuthRequired;
-    setDelegate: AuthRequired;
-    setPermissions: AuthRequired;
-    setVerificationKey: AuthRequired;
-    setZkappUri: AuthRequired;
-    editSequenceState: AuthRequired;
-    setTokenSymbol: AuthRequired;
-    incrementNonce: AuthRequired;
-    setVotingFor: AuthRequired;
-    setTiming: AuthRequired;
-  }): Permissions => {
+  fromJSON: (
+    permissions: NonNullable<
+      Types.Json.AccountUpdate['body']['update']['permissions']
+    >
+  ): Permissions => {
     return Object.fromEntries(
       Object.entries(permissions).map(([k, v]) => [
         k,
@@ -377,6 +378,12 @@ interface Body extends AccountUpdateBody {
    * Defines if a full commitment is required for this transaction.
    */
   useFullCommitment: Bool;
+  /**
+   * Defines if the fee for creating this account should be paid out of this account's balance change.
+   *
+   * This must only be true if the balance change is larger than the account creation fee and the token ID is the default.
+   */
+  implicitAccountCreationFee: Bool;
   /**
    * Defines if the nonce should be incremented with this {@link AccountUpdate}.
    */
@@ -676,6 +683,7 @@ class AccountUpdate implements Types.AccountUpdate {
         let sender = AccountUpdate.defaultAccountUpdate(address, this.id);
         thisAccountUpdate.approve(sender);
         sender.body.useFullCommitment = Bool(true);
+        sender.body.implicitAccountCreationFee = Bool(false);
 
         // Sub the amount to burn from the sender's account
         sender.body.balanceChange = Int64.fromObject(
@@ -699,6 +707,7 @@ class AccountUpdate implements Types.AccountUpdate {
         let sender = AccountUpdate.defaultAccountUpdate(from, this.id);
         thisAccountUpdate.approve(sender);
         sender.body.useFullCommitment = Bool(true);
+        sender.body.implicitAccountCreationFee = Bool(false);
         sender.body.balanceChange = Int64.fromObject(
           sender.body.balanceChange
         ).sub(amount);
@@ -884,6 +893,7 @@ class AccountUpdate implements Types.AccountUpdate {
     let { nonce, isSameAsFeePayer } = AccountUpdate.getSigningInfo(this);
     // if this account is the same as the fee payer, we use the "full commitment" for replay protection
     this.body.useFullCommitment = isSameAsFeePayer;
+    this.body.implicitAccountCreationFee = Bool(false);
     // otherwise, we increment the nonce
     let doIncrementNonce = isSameAsFeePayer.not();
     this.body.incrementNonce = doIncrementNonce;
@@ -1317,6 +1327,7 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     if (body.incrementNonce === false) delete body.incrementNonce;
     if (body.useFullCommitment === false) delete body.useFullCommitment;
+    if (body.implicitAccountCreationFee === false) delete body.implicitAccountCreationFee;
     if (body.events?.length === 0) delete body.events;
     if (body.actions?.length === 0) delete body.actions;
     if (body.preconditions?.account) {
