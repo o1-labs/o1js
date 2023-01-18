@@ -16,8 +16,11 @@ case $TEST_TYPE in
     "DEX integration tests" )
       echo "Running DEX integration tests";
       ./run src/examples/zkapps/dex/run.ts --bundle
-      ./run src/examples/zkapps/dex/happy-path-with-proofs.ts --bundle
       ./run src/examples/zkapps/dex/upgradability.ts --bundle ;;
+
+    "DEX integration test with proofs" )
+      echo "Running DEX integration test with proofs";
+      ./run src/examples/zkapps/dex/happy-path-with-proofs.ts --bundle
 
     "Berkeley Live" )
       echo "Running Berkeley Live integration tests";
