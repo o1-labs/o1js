@@ -5,22 +5,12 @@ export type UInt64 = number | bigint | string;
 
 export type PublicKey = string;
 export type PrivateKey = string;
+export type Signature = string;
 export type Network = 'mainnet' | 'testnet';
 
 export type Keypair = {
   readonly privateKey: PrivateKey;
   readonly publicKey: PublicKey;
-};
-
-export type Message = {
-  publicKey: PublicKey;
-  message: string;
-};
-
-export type Signature = {
-  readonly field: string;
-  readonly scalar: string;
-  readonly signer: string;
 };
 
 export type Common = {
@@ -55,9 +45,6 @@ export type ZkappCommand = {
   };
 };
 
-export type SignableData = Message | StakeDelegation | Payment | ZkappCommand;
+export type SignableData = string | StakeDelegation | Payment | ZkappCommand;
 
-export type Signed<SignableData> = {
-  readonly signature: Signature;
-  readonly data: SignableData;
-};
+export type Signed<T> = { signature: Signature; publicKey: PublicKey; data: T };
