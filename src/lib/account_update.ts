@@ -375,6 +375,12 @@ interface Body extends AccountUpdateBody {
    */
   useFullCommitment: Bool;
   /**
+   * Defines if the fee for creating this account should be paid out of this account's balance change.
+   *
+   * This must only be true if the balance change is larger than the account creation fee and the token ID is the default.
+   */
+  implicitAccountCreationFee: Bool;
+  /**
    * Defines if the nonce should be incremented with this {@link AccountUpdate}.
    */
   incrementNonce: Bool;
@@ -673,6 +679,7 @@ class AccountUpdate implements Types.AccountUpdate {
         let sender = AccountUpdate.defaultAccountUpdate(address, this.id);
         thisAccountUpdate.approve(sender);
         sender.body.useFullCommitment = Bool(true);
+        sender.body.implicitAccountCreationFee = Bool(false);
 
         // Sub the amount to burn from the sender's account
         sender.body.balanceChange = Int64.fromObject(
@@ -696,6 +703,7 @@ class AccountUpdate implements Types.AccountUpdate {
         let sender = AccountUpdate.defaultAccountUpdate(from, this.id);
         thisAccountUpdate.approve(sender);
         sender.body.useFullCommitment = Bool(true);
+        sender.body.implicitAccountCreationFee = Bool(false);
         sender.body.balanceChange = Int64.fromObject(
           sender.body.balanceChange
         ).sub(amount);
@@ -881,6 +889,7 @@ class AccountUpdate implements Types.AccountUpdate {
     let { nonce, isSameAsFeePayer } = AccountUpdate.getSigningInfo(this);
     // if this account is the same as the fee payer, we use the "full commitment" for replay protection
     this.body.useFullCommitment = isSameAsFeePayer;
+    this.body.implicitAccountCreationFee = Bool(false);
     // otherwise, we increment the nonce
     let doIncrementNonce = isSameAsFeePayer.not();
     this.body.incrementNonce = doIncrementNonce;
@@ -1314,6 +1323,7 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     if (body.incrementNonce === false) delete body.incrementNonce;
     if (body.useFullCommitment === false) delete body.useFullCommitment;
+    if (body.implicitAccountCreationFee === false) delete body.implicitAccountCreationFee;
     if (body.events?.length === 0) delete body.events;
     if (body.actions?.length === 0) delete body.actions;
     if (body.preconditions?.account) {
