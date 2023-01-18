@@ -15,7 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/d880bd6e...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/c5a36207...HEAD)
+
+> No unreleased changes yet
+
+## [0.8.0](https://github.com/o1-labs/snarkyjs/compare/d880bd6e...c5a36207)
 
 ### Added
 
@@ -49,12 +53,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed Apple silicon performance issue https://github.com/o1-labs/snarkyjs/issues/491
 - Type inference for Structs with instance methods https://github.com/o1-labs/snarkyjs/pull/567
   - also fixes `Struct.fromJSON`
 - `SmartContract.fetchEvents` fixed when multiple event types existed https://github.com/o1-labs/snarkyjs/issues/627
 - Error when using reduce with a `Struct` as state type https://github.com/o1-labs/snarkyjs/pull/689
 - Fix use of stale cached accounts in `Mina.transaction` https://github.com/o1-labs/snarkyjs/issues/430
-- Fixed Apple silicon performance issue https://github.com/o1-labs/snarkyjs/issues/491
 
 ## [0.7.3](https://github.com/o1-labs/snarkyjs/compare/5f20f496...d880bd6e)
 
