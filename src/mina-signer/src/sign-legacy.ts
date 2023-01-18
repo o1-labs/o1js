@@ -2,13 +2,7 @@ import { UInt32, UInt64 } from '../../provable/field-bigint.js';
 import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
 import { HashInputLegacy } from '../../provable/poseidon-bigint.js';
 import { Memo } from './memo.js';
-import {
-  NetworkId,
-  Signature,
-  SignatureJson,
-  signLegacy,
-  verifyLegacy,
-} from './signature.js';
+import { NetworkId, Signature, signLegacy, verifyLegacy } from './signature.js';
 import { Json } from '../../provable/gen/transaction-bigint.js';
 import { bytesToBits, stringToBytes } from '../../provable/binable.js';
 
@@ -59,12 +53,12 @@ function signUserCommand(
   let input = toInputLegacy(command);
   let privateKey = PrivateKey.fromBase58(privateKeyBase58);
   let signature = signLegacy(input, privateKey, networkId);
-  return Signature.toJSON(signature);
+  return Signature.toBase58(signature);
 }
 
 function verifyPayment(
   payment: PaymentJson,
-  signatureJson: SignatureJson,
+  signatureJson: string,
   publicKeyBase58: string,
   networkId: NetworkId
 ) {
@@ -81,7 +75,7 @@ function verifyPayment(
 }
 function verifyStakeDelegation(
   delegation: DelegationJson,
-  signatureJson: SignatureJson,
+  signatureJson: string,
   publicKeyBase58: string,
   networkId: NetworkId
 ) {
@@ -99,12 +93,12 @@ function verifyStakeDelegation(
 
 function verifyUserCommand(
   command: UserCommand,
-  signatureJson: SignatureJson,
+  signatureJson: string,
   publicKeyBase58: string,
   networkId: NetworkId
 ) {
   let input = toInputLegacy(command);
-  let signature = Signature.fromJSON(signatureJson);
+  let signature = Signature.fromBase58(signatureJson);
   let publicKey = PublicKey.fromBase58(publicKeyBase58);
   return verifyLegacy(signature, input, publicKey, networkId);
 }
@@ -207,17 +201,17 @@ function signString(
   let input = stringToInput(string);
   let privateKey = PrivateKey.fromBase58(privateKeyBase58);
   let signature = signLegacy(input, privateKey, networkId);
-  return Signature.toJSON(signature);
+  return Signature.toBase58(signature);
 }
 function verifyStringSignature(
   string: string,
-  signatureJson: SignatureJson,
+  signatureJson: string,
   publicKeyBase58: string,
   networkId: NetworkId
 ) {
   try {
     let input = stringToInput(string);
-    let signature = Signature.fromJSON(signatureJson);
+    let signature = Signature.fromBase58(signatureJson);
     let publicKey = PublicKey.fromBase58(publicKeyBase58);
     return verifyLegacy(signature, input, publicKey, networkId);
   } catch {
