@@ -205,8 +205,6 @@ declare class Field {
    * Field(1).assertLessThan(2);
    * ```
    *
-   * This function can only be called inside a checked computation, like a
-   * SmartContract method, and causes it to fail if the assertion fails.
    */
   assertLessThan(y: Field | number | string | boolean, message?: string): void;
   /**
@@ -217,8 +215,6 @@ declare class Field {
    * Field(1).assertLessThanOrEqual(2);
    * ```
    *
-   * This function can only be called inside a checked computation, like a
-   * SmartContract method, and causes it to fail if the assertion fails.
    */
   assertLessThanOrEqual(
     y: Field | number | string | boolean,
@@ -232,8 +228,6 @@ declare class Field {
    * Field(1).assertGt(0);
    * ```
    *
-   * This function can only be called inside a checked computation, like a
-   * SmartContract method, and causes it to fail if the assertion fails.
    */
   assertGreaterThan(
     y: Field | number | string | boolean,
@@ -247,8 +241,6 @@ declare class Field {
    * Field(1).assertGte(0);
    * ```
    *
-   * This function can only be called inside a checked computation, like a
-   * SmartContract method, and causes it to fail if the assertion fails.
    */
   assertGreaterThanOrEqual(
     y: Field | number | string | boolean,
@@ -310,8 +302,6 @@ declare class Field {
    * Field(1).assertLessThan(2);
    * ```
    *
-   * This function can only be called inside a checked computation, like a
-   * SmartContract method, and causes it to fail if the assertion fails.
    */
   assertLt(y: Field | number | string | boolean, message?: string): void;
   /**
