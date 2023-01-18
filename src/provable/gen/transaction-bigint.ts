@@ -123,6 +123,7 @@ type ZkappCommand = {
           isSome: Bool;
           value: {
             editState: AuthRequired;
+            access: AuthRequired;
             send: AuthRequired;
             receive: AuthRequired;
             setDelegate: AuthRequired;
@@ -270,6 +271,7 @@ type ZkappCommand = {
         };
       };
       useFullCommitment: Bool;
+      implicitAccountCreationFee: Bool;
       caller: TokenId;
       authorizationKind: AuthorizationKind;
     };
@@ -303,6 +305,7 @@ type AccountUpdate = {
         isSome: Bool;
         value: {
           editState: AuthRequired;
+          access: AuthRequired;
           send: AuthRequired;
           receive: AuthRequired;
           setDelegate: AuthRequired;
@@ -450,6 +453,7 @@ type AccountUpdate = {
       };
     };
     useFullCommitment: Bool;
+    implicitAccountCreationFee: Bool;
     caller: TokenId;
     authorizationKind: AuthorizationKind;
   };
