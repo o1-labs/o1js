@@ -153,6 +153,7 @@ type ZkappCommand = {
         };
       };
       useFullCommitment: Bool;
+      implicitAccountCreationFee: Bool;
       callType: {
         isDelegateCall: Bool;
         isBlindCall: Bool;
@@ -282,6 +283,7 @@ type AccountUpdate = {
       };
     };
     useFullCommitment: Bool;
+    implicitAccountCreationFee: Bool;
     callType: {
       isDelegateCall: Bool;
       isBlindCall: Bool;
