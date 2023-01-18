@@ -312,9 +312,6 @@ declare class Field {
    * ```ts
    * Field(1).assertLte(2);
    * ```
-   *
-   * This function can only be called inside a checked computation, like a
-   * SmartContract method, and causes it to fail if the assertion fails.
    */
   assertLte(y: Field | number | string | boolean, message?: string): void;
   /**
@@ -326,8 +323,6 @@ declare class Field {
    * Field(1).assertGt(0);
    * ```
    *
-   * This function can only be called inside a checked computation, like a
-   * SmartContract method, and causes it to fail if the assertion fails.
    */
   assertGt(y: Field | number | string | boolean, message?: string): void;
   /**
@@ -339,8 +334,6 @@ declare class Field {
    * Field(1).assertGte(0);
    * ```
    *
-   * This function can only be called inside a checked computation, like a
-   * SmartContract method, and causes it to fail if the assertion fails.
    */
   assertGte(y: Field | number | string | boolean, message?: string): void;
 
@@ -361,8 +354,6 @@ declare class Field {
    * Field(0).assertBool();
    * ```
    *
-   * This function can only be called inside a checked computation, like a
-   * SmartContract method, and throws an error if the assertion fails.
    */
   assertBool(message?: string): void;
 
@@ -375,8 +366,6 @@ declare class Field {
    * Field(0).assertBoolean();
    * ```
    *
-   * This function can only be called inside a checked computation, like a
-   * SmartContract method, and throws an error if the assertion fails.
    */
   assertBoolean(message?: string): void;
 
