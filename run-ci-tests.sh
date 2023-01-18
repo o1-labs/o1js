@@ -20,7 +20,7 @@ case $TEST_TYPE in
 
     "DEX integration test with proofs" )
       echo "Running DEX integration test with proofs";
-      ./run src/examples/zkapps/dex/happy-path-with-proofs.ts --bundle
+      ./run src/examples/zkapps/dex/happy-path-with-proofs.ts --bundle ;;
 
     "Berkeley Live" )
       echo "Running Berkeley Live integration tests";
