@@ -1282,12 +1282,14 @@ class AccountUpdate implements Types.AccountUpdate {
     NoDelegation: 'NoDelegation' as const,
   };
 
-  static CallType = {
-    ChildrenMayUseMyToken: { isDelegateCall: Bool(false) },
-    ChildrenInheritMyTokenPermissions: { isDelegateCall: Bool(true) },
-    IMayUseParentsToken: { isDelegateCall: Bool(false) },
-    IInheritParentsTokenPermissions: { isDelegateCall: Bool(true) },
-  };
+  static get CallType() {
+    return {
+      ChildrenMayUseMyToken: { isDelegateCall: Bool(false) },
+      ChildrenInheritMyTokenPermissions: { isDelegateCall: Bool(true) },
+      IMayUseParentsToken: { isDelegateCall: Bool(false) },
+      IInheritParentsTokenPermissions: { isDelegateCall: Bool(true) },
+    };
+  }
 
   /**
    * Returns a JSON representation of only the fields that differ from the default {@link AccountUpdate}.
