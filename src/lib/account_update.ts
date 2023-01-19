@@ -46,6 +46,7 @@ export {
   createChildAccountUpdate,
   AccountUpdatesLayout,
   zkAppProver,
+  makeChildAccountUpdate,
 };
 
 const ZkappStateLength = 8;
@@ -363,7 +364,10 @@ interface Body extends AccountUpdateBody {
    * [Check out our documentation about Actions!](https://docs.minaprotocol.com/zkapps/advanced-snarkyjs/actions-and-reducer)
    */
   actions: Events;
-  caller: Field;
+  /**
+   * The type of call.
+   */
+  callType: CallType;
   callData: Field;
   callDepth: number;
   /**
@@ -400,8 +404,8 @@ const Body = {
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
-      body.caller = tokenId;
     }
+    // TODO: change default callType to BlindCall when it exists
     return body;
   },
 
@@ -585,7 +589,6 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   label: string = '';
   body: Body;
-  isDelegateCall = Bool(false);
   authorization: Control;
   lazyAuthorization: LazySignature | LazyProof | LazyNone | undefined =
     undefined;
@@ -637,7 +640,6 @@ class AccountUpdate implements Types.AccountUpdate {
     cloned.id = accountUpdate.id;
     cloned.label = accountUpdate.label;
     cloned.parent = accountUpdate.parent;
-    cloned.isDelegateCall = accountUpdate.isDelegateCall;
     return cloned;
   }
 
@@ -780,7 +782,7 @@ class AccountUpdate implements Types.AccountUpdate {
     layout: AccountUpdatesLayout = AccountUpdate.Layout.NoDelegation
   ) {
     makeChildAccountUpdate(this, childUpdate);
-    this.isDelegateCall = Bool(false);
+    this.body.callType = AccountUpdate.CallType.Call;
     AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
   }
 
@@ -851,7 +853,10 @@ class AccountUpdate implements Types.AccountUpdate {
    * }
    * ```
    */
-  static assertEquals<T>(property: OrIgnore<ClosedInterval<T> | T>, value: T) {
+  static assertEquals<T extends object>(
+    property: OrIgnore<ClosedInterval<T> | T>,
+    value: T
+  ) {
     property.isSome = Bool(true);
     if ('lower' in property.value && 'upper' in property.value) {
       property.value.lower = value;
@@ -977,7 +982,7 @@ class AccountUpdate implements Types.AccountUpdate {
     // TODO: there's no reason anymore to use two different hashing methods here!
     // -- the "inCheckedComputation" branch works in all circumstances now
     // we just leave this here for a couple more weeks, because it checks consistency between
-    // JS & OCaml hashing on *every single accountUpdate proof* we create. It will give us 100%
+    // JS & OCaml hashing on *every single account update proof* we create. It will give us 100%
     // confidence that the two implementations are equivalent, and catch regressions quickly
     if (inCheckedComputation()) {
       let input = Types.AccountUpdate.toInput(this);
@@ -1130,22 +1135,11 @@ class AccountUpdate implements Types.AccountUpdate {
     accountUpdate.balance.subInPlace(amount.add(Mina.accountCreationFee()));
   }
 
-  // static methods that implement Provable<{ accountUpdate: AccountUpdate, isDelegateCall: Bool }>
-  private static provable = provable({
-    accountUpdate: Types.AccountUpdate,
-    isDelegateCall: Bool,
-  });
-  private toProvable() {
-    return { accountUpdate: this, isDelegateCall: this.isDelegateCall };
-  }
-
-  static sizeInFields = AccountUpdate.provable.sizeInFields;
-
-  static toFields(a: AccountUpdate) {
-    return AccountUpdate.provable.toFields(a.toProvable());
-  }
+  // static methods that implement Provable<AccountUpdate>
+  static sizeInFields = Types.AccountUpdate.sizeInFields;
+  static toFields = Types.AccountUpdate.toFields;
   static toAuxiliary(a?: AccountUpdate) {
-    let aux = AccountUpdate.provable.toAuxiliary(a?.toProvable());
+    let aux = Types.AccountUpdate.toAuxiliary(a);
     let children: AccountUpdate['children'] = {
       callsType: { type: 'None' },
       accountUpdates: [],
@@ -1162,20 +1156,12 @@ class AccountUpdate implements Types.AccountUpdate {
     let label = a?.label ?? '';
     return [{ lazyAuthorization, children, parent, id, label }, aux];
   }
-  static toInput(a: AccountUpdate) {
-    return AccountUpdate.provable.toInput(a.toProvable());
-  }
-  static check(a: AccountUpdate) {
-    AccountUpdate.provable.check(a.toProvable());
-  }
+  static toInput = Types.AccountUpdate.toInput;
+  static check = Types.AccountUpdate.check;
   static fromFields(fields: Field[], [other, aux]: any[]): AccountUpdate {
-    let { accountUpdate, isDelegateCall } = AccountUpdate.provable.fromFields(
-      fields,
-      aux
-    );
+    let accountUpdate = Types.AccountUpdate.fromFields(fields, aux);
     return Object.assign(
       new AccountUpdate(accountUpdate.body, accountUpdate.authorization),
-      { isDelegateCall },
       other
     );
   }
@@ -1206,9 +1192,10 @@ class AccountUpdate implements Types.AccountUpdate {
       accountUpdate.children.callsType = { type: 'Witness' };
       return;
     }
+    // TODO: replace with BlindCall, "not a delegate call" actually doesn't prevent grandchildren from using your token
     if (childLayout === AccountUpdate.Layout.NoDelegation) {
       accountUpdate.children.callsType = { type: 'Witness' };
-      accountUpdate.isDelegateCall.assertFalse();
+      accountUpdate.body.callType.isDelegateCall.assertFalse();
       return;
     }
     let childArray: AccountUpdatesLayout[] =
@@ -1295,6 +1282,15 @@ class AccountUpdate implements Types.AccountUpdate {
     AnyChildren: 'AnyChildren' as const,
     NoDelegation: 'NoDelegation' as const,
   };
+
+  // TODO: more descriptive names
+  static get CallType() {
+    return {
+      Call: { isDelegateCall: Bool(false) },
+      DelegateCall: { isDelegateCall: Bool(true) },
+    };
+  }
+
   /**
    * Returns a JSON representation of only the fields that differ from the default {@link AccountUpdate}.
    */
@@ -1316,14 +1312,10 @@ class AccountUpdate implements Types.AccountUpdate {
     } else {
       body.tokenId = short(body.tokenId!);
     }
-    if (body.caller === TokenId.toBase58(TokenId.default)) {
-      delete body.caller;
-    } else {
-      body.caller = short(body.caller!);
-    }
     if (body.incrementNonce === false) delete body.incrementNonce;
     if (body.useFullCommitment === false) delete body.useFullCommitment;
-    if (body.implicitAccountCreationFee === false) delete body.implicitAccountCreationFee;
+    if (body.implicitAccountCreationFee === false)
+      delete body.implicitAccountCreationFee;
     if (body.events?.length === 0) delete body.events;
     if (body.actions?.length === 0) delete body.actions;
     if (body.preconditions?.account) {
@@ -1366,7 +1358,9 @@ class AccountUpdate implements Types.AccountUpdate {
     ) {
       (body as any).authorization = jsonUpdate.authorization;
     }
-    if (this.isDelegateCall.toBoolean()) (body as any).isDelegateCall = true;
+    body.callType = {
+      isDelegateCall: this.body.callType.isDelegateCall.toBoolean(),
+    };
     let pretty: any = { ...body };
     let withId = false;
     if (withId) pretty = { id: Math.floor(this.id * 1000), ...pretty };
@@ -1380,6 +1374,14 @@ type AccountUpdatesLayout =
   | 'AnyChildren'
   | 'NoDelegation'
   | AccountUpdatesLayout[];
+
+type CallType = { isDelegateCall: Bool };
+
+type WithCallers = {
+  accountUpdate: AccountUpdate;
+  caller: Field;
+  children: WithCallers[];
+};
 
 const CallForest = {
   // similar to Mina_base.ZkappCommand.Call_forest.to_account_updates_list
@@ -1440,28 +1442,43 @@ const CallForest = {
   },
 
   // Mina_base.Zkapp_command.Call_forest.add_callers
+  // TODO: currently unused, but could come back when we add caller to the public input
   addCallers(
     updates: AccountUpdate[],
     context: { self: Field; caller: Field } = {
       self: TokenId.default,
       caller: TokenId.default,
     }
-  ) {
+  ): WithCallers[] {
+    let withCallers: WithCallers[] = [];
     for (let update of updates) {
-      let { isDelegateCall } = update;
-      let caller = Circuit.if(isDelegateCall, context.caller, context.self);
+      let { callType } = update.body;
+      let caller = Circuit.if(
+        callType.isDelegateCall,
+        context.caller,
+        context.self
+      );
       let self = Circuit.if(
-        isDelegateCall,
+        callType.isDelegateCall,
         context.self,
         Token.getId(update.body.publicKey, update.body.tokenId)
       );
-      update.body.caller = caller;
       let childContext = { caller, self };
-      CallForest.addCallers(update.children.accountUpdates, childContext);
+      withCallers.push({
+        accountUpdate: update,
+        caller,
+        children: CallForest.addCallers(
+          update.children.accountUpdates,
+          childContext
+        ),
+      });
     }
+    return withCallers;
   },
   /**
    * Used in the prover to witness the context from which to compute its caller
+   *
+   * TODO: currently unused, but could come back when we add caller to the public input
    */
   computeCallerContext(update: AccountUpdate) {
     // compute the line of ancestors
@@ -1475,7 +1492,7 @@ const CallForest = {
     }
     let context = { self: TokenId.default, caller: TokenId.default };
     for (let update of ancestors) {
-      if (!update.isDelegateCall.toBoolean()) {
+      if (!update.body.callType.isDelegateCall.toBoolean()) {
         context.caller = context.self;
         context.self = Token.getId(update.body.publicKey, update.body.tokenId);
       }

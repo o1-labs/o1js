@@ -1,3 +1,4 @@
+// TODO: This file should be generated.
 export {
   PublicKey,
   Field,

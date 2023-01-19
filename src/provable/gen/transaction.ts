@@ -272,7 +272,9 @@ type ZkappCommand = {
       };
       useFullCommitment: Bool;
       implicitAccountCreationFee: Bool;
-      caller: TokenId;
+      callType: {
+        isDelegateCall: Bool;
+      };
       authorizationKind: AuthorizationKind;
     };
     authorization: {
@@ -454,7 +456,9 @@ type AccountUpdate = {
     };
     useFullCommitment: Bool;
     implicitAccountCreationFee: Bool;
-    caller: TokenId;
+    callType: {
+      isDelegateCall: Bool;
+    };
     authorizationKind: AuthorizationKind;
   };
   authorization: {
