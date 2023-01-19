@@ -1046,7 +1046,8 @@ super.init();
    * so it serves as a quick-to-run check for whether your contract can be compiled without errors, which can greatly speed up iterating.
    *
    * `analyzeMethods()` will also return the number of `rows` of each of your method circuits (i.e., the number of constraints in the underlying proof system),
-   * which is a good indicator for circuit size and the time it will take to create proofs.
+   * which is a good indicator for circuit size and the time it will take to create proofs. To inspect the created circuit in detail, you can look at the
+   * returned `gates`.
    *
    * Note: If this function was already called before, it will short-circuit and just return the metadata collected the first time.
    *
@@ -1055,6 +1056,7 @@ super.init();
    *  - `digest` a digest of the method circuit
    *  - `hasReturn` a boolean indicating whether the method returns a value
    *  - `sequenceEvents` the number of actions the method dispatches
+   *  - `gates` the constraint system, represented as an array of gates
    */
   static analyzeMethods() {
     let methodMetaData = this._methodMetadata;
