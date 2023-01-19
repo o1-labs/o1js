@@ -68,13 +68,11 @@ describe('accountUpdate', () => {
     });
   });
 
-  it("converts accountUpdate to a public input that's consistent with the ocaml implementation", async () => {
+  it("converts account update to a public input that's consistent with the ocaml implementation", async () => {
     let otherAddress = PrivateKey.random().toPublicKey();
 
     let accountUpdate = AccountUpdate.create(address);
     Experimental.createChildAccountUpdate(accountUpdate, otherAddress);
-    accountUpdate.children.accountUpdates[0].body.callType.isDelegateCall =
-      Bool(true);
 
     let publicInput = accountUpdate.toPublicInput();
 
