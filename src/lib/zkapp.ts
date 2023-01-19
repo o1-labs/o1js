@@ -6,6 +6,7 @@ import {
   Pickles,
   Poseidon as Poseidon_,
   Provable,
+  Gate,
 } from '../snarky.js';
 import {
   Circuit,
@@ -616,7 +617,7 @@ class SmartContract {
       rows: number;
       digest: string;
       hasReturn: boolean;
-      json: any;
+      gates: Gate[];
     }
   > = {}; // keyed by method name
   static _provers?: Pickles.Prover[];
@@ -1073,7 +1074,7 @@ super.init();
       }
       for (let methodIntf of methodIntfs) {
         let accountUpdate: AccountUpdate;
-        let { rows, digest, result, json } = analyzeMethod(
+        let { rows, digest, result, gates } = analyzeMethod(
           ZkappPublicInput,
           methodIntf,
           (publicInput, publicKey, tokenId, ...args) => {
@@ -1091,7 +1092,7 @@ super.init();
           rows,
           digest,
           hasReturn: result !== undefined,
-          json,
+          gates,
         };
       }
     }

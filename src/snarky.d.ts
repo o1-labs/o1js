@@ -681,8 +681,8 @@ declare class Circuit {
     rows: number;
     digest: string;
     result: T;
-    // TODO: proper type
-    json: any;
+    gates: Gate[];
+    publicInputSize: number;
   };
 
   /**
