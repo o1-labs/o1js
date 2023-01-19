@@ -1,4 +1,4 @@
-import { Bool, isReady } from '../snarky.js';
+import { Bool, isReady, shutdown } from '../snarky.js';
 import {
   AccountUpdate,
   makeChildAccountUpdate,
@@ -38,3 +38,5 @@ let tx = await Mina.transaction(privateKey, () => {
 
 // according to this test, the child doesn't get token permissions
 expect(tx.send()).rejects.toThrow('Token_owner_not_caller');
+
+shutdown();
