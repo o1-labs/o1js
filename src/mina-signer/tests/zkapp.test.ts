@@ -111,7 +111,7 @@ describe('ZkappCommand', () => {
     client = new Client({ network: 'mainnet' });
   });
 
-  it('generates a signed zkapp command', () => {
+  it('generates and verifies a signed zkapp command', () => {
     const keypair = client.genKeys();
     const zkappCommand = client.signZkappCommand(
       {
@@ -127,9 +127,11 @@ describe('ZkappCommand', () => {
     );
     expect(zkappCommand.data).toBeDefined();
     expect(zkappCommand.signature).toBeDefined();
+    expect(client.verifyZkappCommand(zkappCommand)).toEqual(true);
+    expect(client.verifyTransaction(zkappCommand)).toEqual(true);
   });
 
-  it('generates a signed accountUpdate by using signTransaction', () => {
+  it('generates and verifies a signed zkapp command by using signTransaction', () => {
     const keypair = client.genKeys();
     const zkappCommand = client.signTransaction(
       {
@@ -145,6 +147,27 @@ describe('ZkappCommand', () => {
     );
     expect(zkappCommand.data).toBeDefined();
     expect(zkappCommand.signature).toBeDefined();
+    expect(client.verifyZkappCommand(zkappCommand)).toEqual(true);
+    expect(client.verifyTransaction(zkappCommand)).toEqual(true);
+  });
+
+  it('does not verify a signed zkapp command from `testnet`', () => {
+    const keypair = client.genKeys();
+    const zkappCommand = client.signZkappCommand(
+      {
+        zkappCommand: mockedZkappCommand,
+        feePayer: {
+          feePayer: keypair.publicKey,
+          fee: '1',
+          nonce: '0',
+          memo: 'test memo',
+        },
+      },
+      keypair.privateKey
+    );
+    const testnetClient = new Client({ network: 'testnet' });
+    expect(testnetClient.verifyZkappCommand(zkappCommand)).toEqual(false);
+    expect(testnetClient.verifyTransaction(zkappCommand)).toEqual(false);
   });
 
   it('should throw an error if no fee is passed to the feePayer', () => {
