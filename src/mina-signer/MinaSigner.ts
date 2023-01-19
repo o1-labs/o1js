@@ -2,12 +2,7 @@ import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
 import * as Json from './src/TSTypes.js';
 import type { Signed, Network } from './src/TSTypes.js';
 
-import {
-  isPayment,
-  isMessage,
-  isStakeDelegation,
-  isZkappCommand,
-} from './src/Utils.js';
+import { isPayment, isStakeDelegation, isZkappCommand } from './src/Utils.js';
 import * as TransactionJson from '../provable/gen/transaction-json.js';
 import { ZkappCommand } from '../provable/gen/transaction-bigint.js';
 import {
@@ -23,7 +18,6 @@ import {
   verifyStringSignature,
 } from './src/sign-legacy.js';
 import { hashPayment, hashStakeDelegation } from './src/transaction-hash.js';
-import { Signature } from './src/signature.js';
 import { Memo } from './src/memo.js';
 import {
   publicKeyToHex,
@@ -53,7 +47,7 @@ class Client {
    *
    * @returns A Mina key pair
    */
-  public genKeys(): Json.Keypair {
+  genKeys(): Json.Keypair {
     let privateKey = PrivateKey.random();
     let publicKey = PrivateKey.toPublicKey(privateKey);
     return {
@@ -70,7 +64,7 @@ class Client {
    * @param keypair A key pair
    * @returns True if the `keypair` is a verifiable key pair, otherwise throw an exception
    */
-  public verifyKeypair({ privateKey, publicKey }: Json.Keypair): boolean {
+  verifyKeypair({ privateKey, publicKey }: Json.Keypair): boolean {
     let derivedPublicKey = PrivateKey.toPublicKey(
       PrivateKey.fromBase58(privateKey)
     );
@@ -96,7 +90,7 @@ class Client {
    * @param privateKey The private key used to get the corresponding public key
    * @returns A public key
    */
-  public derivePublicKey(privateKeyBase58: Json.PrivateKey): Json.PublicKey {
+  derivePublicKey(privateKeyBase58: Json.PrivateKey): Json.PublicKey {
     let privateKey = PrivateKey.fromBase58(privateKeyBase58);
     let publicKey = PrivateKey.toPublicKey(privateKey);
     return PublicKey.toBase58(publicKey);
@@ -106,19 +100,16 @@ class Client {
    * Signs an arbitrary message
    *
    * @param message An arbitrary string message to be signed
-   * @param key The key pair used to sign the message
+   * @param privateKey The private key used to sign the message
    * @returns A signed message
    */
-  public signMessage(message: string, key: Json.Keypair): Signed<Json.Message> {
+  signMessage(message: string, privateKey: Json.PrivateKey): Signed<string> {
+    let privateKey_ = PrivateKey.fromBase58(privateKey);
+    let publicKey = PublicKey.toBase58(PrivateKey.toPublicKey(privateKey_));
     return {
-      signature: {
-        ...signString(message, key.privateKey, this.network),
-        signer: key.publicKey,
-      },
-      // TODO: returning the public key, which is an input, twice seems awfully redundant
-      // this should just be `data: message`
-      // and do we really need `signer` as part of `Signature`?
-      data: { publicKey: key.publicKey, message },
+      signature: signString(message, privateKey, this.network),
+      publicKey,
+      data: message,
     };
   }
 
@@ -129,13 +120,8 @@ class Client {
    * @returns True if the `signedMessage` contains a valid signature matching
    * the message and publicKey.
    */
-  public verifyMessage(signedMessage: Signed<Json.Message>): boolean {
-    return verifyStringSignature(
-      signedMessage.data.message,
-      signedMessage.signature,
-      signedMessage.data.publicKey,
-      this.network
-    );
+  verifyMessage({ data, signature, publicKey }: Signed<string>): boolean {
+    return verifyStringSignature(data, signature, publicKey, this.network);
   }
 
   private normalizeCommon(common: Json.Common): Json.StrictCommon {
@@ -159,7 +145,7 @@ class Client {
    * @param privateKey The private key used to sign the transaction
    * @returns A signed payment transaction
    */
-  public signPayment(
+  signPayment(
     payment: Json.Payment,
     privateKey: Json.PrivateKey
   ): Signed<Json.Payment> {
@@ -175,7 +161,8 @@ class Client {
       this.network
     );
     return {
-      signature: { ...signature, signer: from },
+      signature,
+      publicKey: from,
       data: { to, from, fee, amount, nonce, memo, validUntil },
     };
   }
@@ -184,9 +171,9 @@ class Client {
    * Verifies a signed payment.
    *
    * @param signedPayment A signed payment transaction
-   * @returns True if the `signed(payment)` is a verifiable payment
+   * @returns True if the `signedPayment` is a verifiable payment
    */
-  public verifyPayment({ data, signature }: Signed<Json.Payment>): boolean {
+  verifyPayment({ data, signature, publicKey }: Signed<Json.Payment>): boolean {
     let { fee, to, from, nonce, validUntil, memo } = this.normalizeCommon(data);
     let amount = String(data.amount);
     return verifyPayment(
@@ -195,7 +182,7 @@ class Client {
         body: { source: from, receiver: to, amount },
       },
       signature,
-      signature.signer,
+      publicKey,
       this.network
     );
   }
@@ -212,7 +199,7 @@ class Client {
    * @param privateKey The private key used to sign the transaction
    * @returns A signed stake delegation
    */
-  public signStakeDelegation(
+  signStakeDelegation(
     stakeDelegation: Json.StakeDelegation,
     privateKey: Json.PrivateKey
   ): Signed<Json.StakeDelegation> {
@@ -227,7 +214,8 @@ class Client {
       this.network
     );
     return {
-      signature: { ...signature, signer: from },
+      signature,
+      publicKey: from,
       data: { to, from, fee, nonce, memo, validUntil },
     };
   }
@@ -236,11 +224,12 @@ class Client {
    * Verifies a signed stake delegation.
    *
    * @param signedStakeDelegation A signed stake delegation
-   * @returns True if the `signed(stakeDelegation)` is a verifiable stake delegation
+   * @returns True if the `signedStakeDelegation` is a verifiable stake delegation
    */
-  public verifyStakeDelegation({
+  verifyStakeDelegation({
     data,
     signature,
+    publicKey,
   }: Signed<Json.StakeDelegation>): boolean {
     let { fee, to, from, nonce, validUntil, memo } = this.normalizeCommon(data);
     return verifyStakeDelegation(
@@ -249,7 +238,7 @@ class Client {
         body: { newDelegate: to, delegator: from },
       },
       signature,
-      signature.signer,
+      publicKey,
       this.network
     );
   }
@@ -260,7 +249,7 @@ class Client {
    * @param signedPayment A signed payment transaction
    * @returns A transaction hash
    */
-  public hashPayment(
+  hashPayment(
     { data, signature }: Signed<Json.Payment>,
     options?: { berkeley?: boolean }
   ): string {
@@ -284,7 +273,7 @@ class Client {
    * @param signedStakeDelegation A signed stake delegation
    * @returns A transaction hash
    */
-  public hashStakeDelegation(
+  hashStakeDelegation(
     { data, signature }: Signed<Json.StakeDelegation>,
     options?: { berkeley?: boolean }
   ): string {
@@ -307,11 +296,11 @@ class Client {
    * This type of transaction allows a user to update state on a given
    * Smart Contract running on Mina.
    *
-   * @param zkappCommand A object representing a zkApp command tx
+   * @param zkappCommand An object representing a zkApp transaction
    * @param privateKey The fee payer private key
-   * @returns Signed ZkappCommand
+   * @returns Signed `zkappCommand`
    */
-  public signZkappCommand(
+  signZkappCommand(
     { feePayer, zkappCommand }: Json.ZkappCommand,
     privateKey: Json.PrivateKey
   ): Signed<Json.ZkappCommand> {
@@ -335,16 +324,29 @@ class Client {
       memo,
     };
     let signed = signZkappCommand(command, privateKey, this.network);
-    let signature = Signature.toJSON(
-      Signature.fromBase58(signed.feePayer.authorization)
-    );
+    let signature = signed.feePayer.authorization;
     return {
-      signature: { ...signature, signer: publicKey },
+      signature,
+      publicKey,
       data: {
         zkappCommand: signed,
         feePayer: { feePayer: publicKey, fee, nonce, memo, validUntil },
       },
     };
+  }
+
+  /**
+   * Verifies a signed zkApp transaction.
+   *
+   * @param signedZkappCommand A signed zkApp transaction
+   * @returns True if the signature is valid
+   */
+  verifyZkappCommand({ data, publicKey }: Signed<Json.ZkappCommand>): boolean {
+    return verifyZkappCommandSignature(
+      data.zkappCommand,
+      publicKey,
+      this.network
+    );
   }
 
   /**
@@ -355,9 +357,7 @@ class Client {
    * @param signedRosettaTxn A signed Rosetta transaction
    * @returns A string that represents the JSON conversion of a signed Rosetta transaction`.
    */
-  public signedRosettaTransactionToSignedCommand(
-    signedRosettaTxn: string
-  ): string {
+  signedRosettaTransactionToSignedCommand(signedRosettaTxn: string): string {
     let parsedTx = JSON.parse(signedRosettaTxn);
     let command = rosettaTransactionToSignedCommand(parsedTx);
     return JSON.stringify({ data: command });
@@ -370,40 +370,65 @@ class Client {
    * @param publicKey A valid public key
    * @returns A string that represents the hex encoding of a public key.
    */
-  public publicKeyToRaw(publicKeyBase58: string): string {
+  publicKeyToRaw(publicKeyBase58: string): string {
     let publicKey = PublicKey.fromBase58(publicKeyBase58);
     return publicKeyToHex(publicKey);
   }
 
   /**
-   * Signs an arbitrary payload using a private key. This function can sign messages,
+   * Signs an arbitrary payload using a private key. This function can sign strings,
    * payments, stake delegations, and zkapp commands. If the payload is unrecognized, an Error
    * is thrown.
    *
    * @param payload A signable payload
-   * @param key A valid keypair
+   * @param privateKey A private key
    * @returns A signed payload
    */
-  public signTransaction(
-    payload: Json.SignableData,
+  signTransaction<T extends Json.SignableData>(
+    payload: T,
     privateKey: Json.PrivateKey
-  ): Signed<Json.SignableData> {
-    if (isMessage(payload)) {
-      return this.signMessage(payload.message, {
-        publicKey: payload.publicKey,
-        privateKey,
-      });
+  ): Signed<T> {
+    if (typeof payload === 'string') {
+      return this.signMessage(payload, privateKey) as Signed<T>;
     }
     if (isPayment(payload)) {
-      return this.signPayment(payload, privateKey);
+      return this.signPayment(payload, privateKey) as Signed<T>;
     }
     if (isStakeDelegation(payload)) {
-      return this.signStakeDelegation(payload, privateKey);
+      return this.signStakeDelegation(payload, privateKey) as Signed<T>;
     }
     if (isZkappCommand(payload)) {
-      return this.signZkappCommand(payload, privateKey);
+      return this.signZkappCommand(payload, privateKey) as Signed<T>;
     } else {
-      throw new Error(`Expected signable payload, got '${payload}'.`);
+      throw Error(`Expected signable payload, got '${payload}'.`);
+    }
+  }
+
+  /**
+   * Verifies a signed payload. The payload can be a string, payment, stake delegation or zkApp transaction.
+   * If the payload is unrecognized, an Error is thrown.
+   *
+   * @param signedPayload A signed payload
+   * @returns True if the signature is valid
+   */
+  verifyTransaction({
+    data,
+    publicKey,
+    signature,
+  }: Signed<Json.SignableData>): boolean {
+    if (typeof data === 'string') {
+      return this.verifyMessage({ data, publicKey, signature });
+    }
+    if (isPayment(data)) {
+      return this.verifyPayment({ data, publicKey, signature });
+    }
+    if (isStakeDelegation(data)) {
+      return this.verifyStakeDelegation({ data, publicKey, signature });
+    }
+    if (isZkappCommand(data)) {
+      return this.verifyZkappCommand({ data, publicKey, signature });
+    } else {
+      throw Error(`Expected signable payload, got '${data}'.`);
     }
   }
 
@@ -411,14 +436,17 @@ class Client {
    * Calculates the minimum fee of a zkapp command transaction. A fee for a zkapp command transaction is
    * the sum of all account updates plus the specified fee amount. If no fee is passed in, `0.001`
    * is used (according to the Mina spec) by default.
-   * @param p An accountUpdates object
+   * @param accountUpdates A list of account updates
    * @param fee The fee per accountUpdate amount
    * @returns  The fee to be paid by the fee payer accountUpdate
    */
-  public getAccountUpdateMinimumFee(
-    p: TransactionJson.AccountUpdate[],
+  getAccountUpdateMinimumFee(
+    accountUpdates: TransactionJson.AccountUpdate[],
     fee: number = 0.001
   ) {
-    return p.reduce((accumulatedFee, _) => accumulatedFee + fee, 0);
+    return accountUpdates.reduce(
+      (accumulatedFee, _) => accumulatedFee + fee,
+      0
+    );
   }
 }

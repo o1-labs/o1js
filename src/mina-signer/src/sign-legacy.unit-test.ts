@@ -28,27 +28,30 @@ for (let network of networks) {
 
   for (let payment of payments) {
     let signature = signPayment(payment, privateKey, network);
+    let sig = Signature.fromBase58(signature);
     let ref = reference[i++];
-    expect(signature.field).toEqual(ref.field);
-    expect(signature.scalar).toEqual(ref.scalar);
+    expect(sig.r).toEqual(BigInt(ref.field));
+    expect(sig.s).toEqual(BigInt(ref.scalar));
     let ok = verifyPayment(payment, signature, publicKey, network);
     expect(ok).toEqual(true);
   }
 
   for (let delegation of delegations) {
     let signature = signStakeDelegation(delegation, privateKey, network);
+    let sig = Signature.fromBase58(signature);
     let ref = reference[i++];
-    expect(signature.field).toEqual(ref.field);
-    expect(signature.scalar).toEqual(ref.scalar);
+    expect(sig.r).toEqual(BigInt(ref.field));
+    expect(sig.s).toEqual(BigInt(ref.scalar));
     let ok = verifyStakeDelegation(delegation, signature, publicKey, network);
     expect(ok).toEqual(true);
   }
 
   for (let string of strings) {
     let signature = signString(string, privateKey, network);
+    let sig = Signature.fromBase58(signature);
     let ref = reference[i++];
-    expect(signature.field).toEqual(ref.field);
-    expect(signature.scalar).toEqual(ref.scalar);
+    expect(sig.r).toEqual(BigInt(ref.field));
+    expect(sig.s).toEqual(BigInt(ref.scalar));
     let ok = verifyStringSignature(string, signature, publicKey, network);
     expect(ok).toEqual(true);
   }
@@ -71,7 +74,7 @@ let invalidPublicKey: PaymentJson = {
     source: PublicKey.toBase58({ x: 0n, isOdd: 0n }),
   },
 };
-let signature = Signature.toJSON({ r: Field.random(), s: Scalar.random() });
+let signature = Signature.toBase58({ r: Field.random(), s: Scalar.random() });
 
 expect(() => signPayment(amountTooLarge, privateKey, 'mainnet')).toThrow(
   `inputs larger than ${2n ** 64n - 1n} are not allowed`
@@ -89,12 +92,12 @@ expect(
 
 // negative tests with invalid signatures
 
-let garbageSignature = { field: 'garbage', scalar: 'garbage' };
-let signatureFieldTooLarge = Signature.toJSON({
+let garbageSignature = 'garbage';
+let signatureFieldTooLarge = Signature.toBase58({
   r: Field.modulus,
   s: Scalar.random(),
 });
-let signatureScalarTooLarge = Signature.toJSON({
+let signatureScalarTooLarge = Signature.toBase58({
   r: Field.random(),
   s: Scalar.modulus,
 });

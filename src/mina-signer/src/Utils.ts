@@ -1,7 +1,6 @@
 import type {
   Payment,
   StakeDelegation,
-  Message,
   ZkappCommand,
   SignableData,
 } from './TSTypes.js';
@@ -25,8 +24,4 @@ export function isPayment(p: SignableData): p is Payment {
 
 export function isStakeDelegation(p: SignableData): p is StakeDelegation {
   return hasCommonProperties(p) && !p.hasOwnProperty('amount');
-}
-
-export function isMessage(p: SignableData): p is Message {
-  return p.hasOwnProperty('publicKey') && p.hasOwnProperty('message');
 }
