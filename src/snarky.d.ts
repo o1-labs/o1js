@@ -681,6 +681,8 @@ declare class Circuit {
     rows: number;
     digest: string;
     result: T;
+    gates: Gate[];
+    publicInputSize: number;
   };
 
   /**
@@ -1044,6 +1046,7 @@ type UInt64_ = { value: Field };
 type PublicKey_ = { x: Field; isOdd: Bool };
 
 // this closely corresponds to Mina_base.Account.t
+// TODO: auto-generate from the OCaml type
 interface Account {
   publicKey: PublicKey_;
   balance: UInt64_;
@@ -1063,6 +1066,7 @@ interface Account {
   };
   permissions: {
     editState: AuthRequired;
+    access: AuthRequired;
     send: AuthRequired;
     receive: AuthRequired;
     setDelegate: AuthRequired;

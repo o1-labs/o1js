@@ -6,6 +6,7 @@ import {
   Pickles,
   Poseidon as Poseidon_,
   Provable,
+  Gate,
 } from '../snarky.js';
 import {
   Circuit,
@@ -219,17 +220,18 @@ function wrapMethod(
                 accountUpdate.body.authorizationKind.isSigned = Bool(false);
                 accountUpdate.body.authorizationKind.isProved = Bool(true);
 
+                // TODO: currently commented out, but could come back in some form when we add caller to the public input
                 // compute `caller` field from `isDelegateCall` and a context determined by the transaction
-                let callerContext = Circuit.witness(
-                  CallForest.callerContextType,
-                  () => {
-                    let { accountUpdate } = zkAppProver.getData();
-                    return CallForest.computeCallerContext(accountUpdate);
-                  }
-                );
-                CallForest.addCallers([accountUpdate], callerContext);
+                // let callerContext = Circuit.witness(
+                //   CallForest.callerContextType,
+                //   () => {
+                //     let { accountUpdate } = zkAppProver.getData();
+                //     return CallForest.computeCallerContext(accountUpdate);
+                //   }
+                // );
+                // CallForest.addCallers([accountUpdate], callerContext);
 
-                // connect the public input to the accountUpdate & child account updates we created
+                // connect the public input to the account update & child account updates we created
                 if (DEBUG_PUBLIC_INPUT_CHECK) {
                   Circuit.asProver(() => {
                     // TODO: print a nice diff string instead of the two objects
@@ -484,8 +486,9 @@ function wrapMethod(
             : CallForest.computeCallDepth(parentAccountUpdate);
           return Bool(parentCallDepth === 0);
         });
-        parentAccountUpdate.isDelegateCall = isTopLevel.not();
-
+        parentAccountUpdate.body.callType = {
+          isDelegateCall: isTopLevel.not(),
+        };
         return result;
       }
     );
@@ -609,7 +612,13 @@ class SmartContract {
   static _methods?: MethodInterface[];
   static _methodMetadata: Record<
     string,
-    { sequenceEvents: number; rows: number; digest: string; hasReturn: boolean }
+    {
+      sequenceEvents: number;
+      rows: number;
+      digest: string;
+      hasReturn: boolean;
+      gates: Gate[];
+    }
   > = {}; // keyed by method name
   static _provers?: Pickles.Prover[];
   static _maxProofsVerified?: 0 | 1 | 2;
@@ -1037,7 +1046,8 @@ super.init();
    * so it serves as a quick-to-run check for whether your contract can be compiled without errors, which can greatly speed up iterating.
    *
    * `analyzeMethods()` will also return the number of `rows` of each of your method circuits (i.e., the number of constraints in the underlying proof system),
-   * which is a good indicator for circuit size and the time it will take to create proofs.
+   * which is a good indicator for circuit size and the time it will take to create proofs. To inspect the created circuit in detail, you can look at the
+   * returned `gates`.
    *
    * Note: If this function was already called before, it will short-circuit and just return the metadata collected the first time.
    *
@@ -1046,6 +1056,7 @@ super.init();
    *  - `digest` a digest of the method circuit
    *  - `hasReturn` a boolean indicating whether the method returns a value
    *  - `sequenceEvents` the number of actions the method dispatches
+   *  - `gates` the constraint system, represented as an array of gates
    */
   static analyzeMethods() {
     let methodMetaData = this._methodMetadata;
@@ -1065,7 +1076,7 @@ super.init();
       }
       for (let methodIntf of methodIntfs) {
         let accountUpdate: AccountUpdate;
-        let { rows, digest, result } = analyzeMethod(
+        let { rows, digest, result, gates } = analyzeMethod(
           ZkappPublicInput,
           methodIntf,
           (publicInput, publicKey, tokenId, ...args) => {
@@ -1083,6 +1094,7 @@ super.init();
           rows,
           digest,
           hasReturn: result !== undefined,
+          gates,
         };
       }
     }
