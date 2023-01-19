@@ -219,18 +219,18 @@ function wrapMethod(
                 accountUpdate.body.authorizationKind.isSigned = Bool(false);
                 accountUpdate.body.authorizationKind.isProved = Bool(true);
 
-                // I'll be back
-                /*// compute `caller` field from `isDelegateCall` and a context determined by the transaction
-                let callerContext = Circuit.witness(
-                  CallForest.callerContextType,
-                  () => {
-                    let { accountUpdate } = zkAppProver.getData();
-                    return CallForest.computeCallerContext(accountUpdate);
-                  }
-                );
-                CallForest.addCallers([accountUpdate], callerContext);*/
+                // TODO: currently commented out, but could come back in some form when we add caller to the public input
+                // compute `caller` field from `isDelegateCall` and a context determined by the transaction
+                // let callerContext = Circuit.witness(
+                //   CallForest.callerContextType,
+                //   () => {
+                //     let { accountUpdate } = zkAppProver.getData();
+                //     return CallForest.computeCallerContext(accountUpdate);
+                //   }
+                // );
+                // CallForest.addCallers([accountUpdate], callerContext);
 
-                // connect the public input to the accountUpdate & child account updates we created
+                // connect the public input to the account update & child account updates we created
                 if (DEBUG_PUBLIC_INPUT_CHECK) {
                   Circuit.asProver(() => {
                     // TODO: print a nice diff string instead of the two objects
@@ -485,8 +485,9 @@ function wrapMethod(
             : CallForest.computeCallDepth(parentAccountUpdate);
           return Bool(parentCallDepth === 0);
         });
-        parentAccountUpdate.isDelegateCall = isTopLevel.not();
-
+        parentAccountUpdate.body.callType = {
+          isDelegateCall: isTopLevel.not(),
+        };
         return result;
       }
     );
