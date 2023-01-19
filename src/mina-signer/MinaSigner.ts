@@ -347,6 +347,23 @@ class Client {
   }
 
   /**
+   * Verifies a signed zkApp transaction.
+   *
+   * @param signedZkappCommand A signed zkApp transaction
+   * @returns True if the signature is valid
+   */
+  public verifyZkappCommand({
+    data,
+    publicKey,
+  }: Signed<Json.ZkappCommand>): boolean {
+    return verifyZkappCommandSignature(
+      data.zkappCommand,
+      publicKey,
+      this.network
+    );
+  }
+
+  /**
    * Converts a Rosetta signed transaction to a JSON string that is
    * compatible with GraphQL. The JSON string is a representation of
    * a `Signed_command` which is what our GraphQL expects.
@@ -375,7 +392,7 @@ class Client {
   }
 
   /**
-   * Signs an arbitrary payload using a private key. This function can sign messages,
+   * Signs an arbitrary payload using a private key. This function can sign strings,
    * payments, stake delegations, and zkapp commands. If the payload is unrecognized, an Error
    * is thrown.
    *
@@ -399,7 +416,35 @@ class Client {
     if (isZkappCommand(payload)) {
       return this.signZkappCommand(payload, privateKey) as Signed<T>;
     } else {
-      throw new Error(`Expected signable payload, got '${payload}'.`);
+      throw Error(`Expected signable payload, got '${payload}'.`);
+    }
+  }
+
+  /**
+   * Verifies a signed payload. The payload can be a string, payment, stake delegation or zkApp transaction.
+   * If the payload is unrecognized, an Error is thrown.
+   *
+   * @param signedPayload A signed payload
+   * @returns True if the signature is valid
+   */
+  public verifyTransaction({
+    data,
+    publicKey,
+    signature,
+  }: Signed<Json.SignableData>): boolean {
+    if (typeof data === 'string') {
+      return this.verifyMessage({ data, publicKey, signature });
+    }
+    if (isPayment(data)) {
+      return this.verifyPayment({ data, publicKey, signature });
+    }
+    if (isStakeDelegation(data)) {
+      return this.verifyStakeDelegation({ data, publicKey, signature });
+    }
+    if (isZkappCommand(data)) {
+      return this.verifyZkappCommand({ data, publicKey, signature });
+    } else {
+      throw Error(`Expected signable payload, got '${data}'.`);
     }
   }
 
