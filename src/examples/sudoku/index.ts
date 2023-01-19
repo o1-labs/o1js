@@ -13,6 +13,12 @@ const zkAppAddress = zkAppPrivateKey.toPublicKey();
 // create an instance of the smart contract
 const zkApp = new SudokuZkApp(zkAppAddress);
 
+let methods = SudokuZkApp.analyzeMethods();
+console.log(
+  'first 5 gates of submitSolution method:',
+  ...methods.submitSolution.gates.slice(0, 5)
+);
+
 console.log('Deploying and initializing Sudoku...');
 await SudokuZkApp.compile();
 let tx = await Mina.transaction(account, () => {
