@@ -782,7 +782,7 @@ class AccountUpdate implements Types.AccountUpdate {
     layout: AccountUpdatesLayout = AccountUpdate.Layout.NoDelegation
   ) {
     makeChildAccountUpdate(this, childUpdate);
-    this.body.callType = AccountUpdate.CallType.ChildrenMayUseMyToken;
+    this.body.callType = AccountUpdate.CallType.Call;
     AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
   }
 
@@ -1283,12 +1283,11 @@ class AccountUpdate implements Types.AccountUpdate {
     NoDelegation: 'NoDelegation' as const,
   };
 
+  // TODO: more descriptive names
   static get CallType() {
     return {
-      ChildrenMayUseMyToken: { isDelegateCall: Bool(false) },
-      ChildrenInheritMyTokenPermissions: { isDelegateCall: Bool(true) },
-      IMayUseParentsToken: { isDelegateCall: Bool(false) },
-      IInheritParentsTokenPermissions: { isDelegateCall: Bool(true) },
+      Call: { isDelegateCall: Bool(false) },
+      DelegateCall: { isDelegateCall: Bool(true) },
     };
   }
 

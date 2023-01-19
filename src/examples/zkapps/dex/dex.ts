@@ -245,7 +245,7 @@ function createDex({
       this.balance.subInPlace(dy);
 
       // be approved by the token owner parent
-      this.self.body.callType = AccountUpdate.CallType.IMayUseParentsToken;
+      this.self.body.callType = AccountUpdate.CallType.Call;
 
       // return l, dy so callers don't have to walk their child account updates to get it
       return [l, dy];
@@ -273,7 +273,7 @@ function createDex({
       this.balance.subInPlace(dx);
 
       // be approved by the token owner parent
-      this.self.body.callType = AccountUpdate.CallType.IMayUseParentsToken;
+      this.self.body.callType = AccountUpdate.CallType.Call;
 
       return [dx, dy];
     }
@@ -298,7 +298,7 @@ function createDex({
       // just subtract dy balance and let adding balance be handled one level higher
       this.balance.subInPlace(dy);
       // be approved by the token owner parent
-      this.self.body.callType = AccountUpdate.CallType.IMayUseParentsToken;
+      this.self.body.callType = AccountUpdate.CallType.Call;
       return dy;
     }
   }
@@ -324,7 +324,7 @@ function createDex({
 
       this.balance.subInPlace(dy);
       // be approved by the token owner parent
-      this.self.body.callType = AccountUpdate.CallType.IMayUseParentsToken;
+      this.self.body.callType = AccountUpdate.CallType.Call;
       return dy;
     }
   }
