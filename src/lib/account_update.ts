@@ -18,7 +18,7 @@ import { inCheckedComputation, Proof, Prover } from './proof_system.js';
 import { hashWithPrefix, packToFields, prefixes, TokenSymbol } from './hash.js';
 import * as Encoding from './encoding.js';
 import { Context } from './global-context.js';
-import { Events, SequenceEvents, CallType } from '../provable/transaction-leaves.js';
+import { Events, SequenceEvents } from '../provable/transaction-leaves.js';
 
 // external API
 export { Permissions, AccountUpdate, ZkappPublicInput };
@@ -366,7 +366,7 @@ interface Body extends AccountUpdateBody {
   /**
    * The type of call.
    */
-  callType: CallType;
+  callType: { isDelegateCall: Bool };
   callData: Field;
   callDepth: number;
   /**
@@ -398,15 +398,13 @@ const Body = {
   /**
    * A body that doesn't change the underlying account record
    */
-  keepAll(publicKey: PublicKey, tokenId?: Field, callType?: CallType): Body {
+  keepAll(publicKey: PublicKey, tokenId?: Field): Body {
     let { body } = Types.AccountUpdate.emptyValue();
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
     }
-    if (callType) {
-        body.callType = callType;
-    }
+    // TODO: change default for callType to BlindCall
     return body;
   },
 
@@ -1323,7 +1321,8 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     if (body.incrementNonce === false) delete body.incrementNonce;
     if (body.useFullCommitment === false) delete body.useFullCommitment;
-    if (body.implicitAccountCreationFee === false) delete body.implicitAccountCreationFee;
+    if (body.implicitAccountCreationFee === false)
+      delete body.implicitAccountCreationFee;
     if (body.events?.length === 0) delete body.events;
     if (body.actions?.length === 0) delete body.actions;
     if (body.preconditions?.account) {
@@ -1439,8 +1438,7 @@ const CallForest = {
     return stackHash;
   },
 
-  /* Commenting, but this will be returning in a new form.. */
-  /*// Mina_base.Zkapp_command.Call_forest.add_callers
+  // Mina_base.Zkapp_command.Call_forest.add_callers
   addCallers(
     updates: AccountUpdate[],
     context: { self: Field; caller: Field } = {
@@ -1456,16 +1454,16 @@ const CallForest = {
         context.self,
         Token.getId(update.body.publicKey, update.body.tokenId)
       );
-      update.body.callKind = { isDelegateCall };
+      // TODO: make sense of the call type
+      update.body.callType = { isDelegateCall };
       let childContext = { caller, self };
       CallForest.addCallers(update.children.accountUpdates, childContext);
     }
-  },*/
+  },
   /**
    * Used in the prover to witness the context from which to compute its caller
    */
-  /* Commenting, but this will be returning in a new form.. */
-  /*computeCallerContext(update: AccountUpdate) {
+  computeCallerContext(update: AccountUpdate) {
     // compute the line of ancestors
     let current = update;
     let ancestors = [];
@@ -1484,7 +1482,7 @@ const CallForest = {
     }
     return context;
   },
-  callerContextType: provablePure({ self: Field, caller: Field }),*/
+  callerContextType: provablePure({ self: Field, caller: Field }),
 
   computeCallDepth(update: AccountUpdate) {
     for (let callDepth = 0; ; callDepth++) {
