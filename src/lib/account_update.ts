@@ -46,6 +46,7 @@ export {
   createChildAccountUpdate,
   AccountUpdatesLayout,
   zkAppProver,
+  makeChildAccountUpdate,
 };
 
 const ZkappStateLength = 8;
