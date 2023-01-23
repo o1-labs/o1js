@@ -317,7 +317,7 @@ let jsLayout = {
                   type: 'object',
                   name: 'Preconditions',
                   docs: null,
-                  keys: ['network', 'account'],
+                  keys: ['network', 'account', 'validWhile'],
                   entries: {
                     network: {
                       type: 'object',
@@ -684,8 +684,29 @@ let jsLayout = {
                         isNew: null,
                       },
                     },
+                    validWhile: {
+                      type: 'option',
+                      optionType: 'closedInterval',
+                      rangeMin: '0',
+                      rangeMax: '4294967295',
+                      inner: {
+                        type: 'object',
+                        name: 'GlobalSlotInterval',
+                        docs: null,
+                        keys: ['lower', 'upper'],
+                        entries: {
+                          lower: { type: 'UInt32' },
+                          upper: { type: 'UInt32' },
+                        },
+                        docEntries: { lower: null, upper: null },
+                      },
+                    },
                   },
-                  docEntries: { network: null, account: null },
+                  docEntries: {
+                    network: null,
+                    account: null,
+                    validWhile: null,
+                  },
                 },
                 useFullCommitment: { type: 'Bool' },
                 implicitAccountCreationFee: { type: 'Bool' },
@@ -1016,7 +1037,7 @@ let jsLayout = {
             type: 'object',
             name: 'Preconditions',
             docs: null,
-            keys: ['network', 'account'],
+            keys: ['network', 'account', 'validWhile'],
             entries: {
               network: {
                 type: 'object',
@@ -1383,8 +1404,25 @@ let jsLayout = {
                   isNew: null,
                 },
               },
+              validWhile: {
+                type: 'option',
+                optionType: 'closedInterval',
+                rangeMin: '0',
+                rangeMax: '4294967295',
+                inner: {
+                  type: 'object',
+                  name: 'GlobalSlotInterval',
+                  docs: null,
+                  keys: ['lower', 'upper'],
+                  entries: {
+                    lower: { type: 'UInt32' },
+                    upper: { type: 'UInt32' },
+                  },
+                  docEntries: { lower: null, upper: null },
+                },
+              },
             },
-            docEntries: { network: null, account: null },
+            docEntries: { network: null, account: null, validWhile: null },
           },
           useFullCommitment: { type: 'Bool' },
           implicitAccountCreationFee: { type: 'Bool' },

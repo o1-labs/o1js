@@ -151,6 +151,10 @@ type ZkappCommand = {
           provedState: Bool | null;
           isNew: Bool | null;
         };
+        validWhile: {
+          lower: UInt32;
+          upper: UInt32;
+        } | null;
       };
       useFullCommitment: Bool;
       implicitAccountCreationFee: Bool;
@@ -280,6 +284,10 @@ type AccountUpdate = {
         provedState: Bool | null;
         isNew: Bool | null;
       };
+      validWhile: {
+        lower: UInt32;
+        upper: UInt32;
+      } | null;
     };
     useFullCommitment: Bool;
     implicitAccountCreationFee: Bool;
