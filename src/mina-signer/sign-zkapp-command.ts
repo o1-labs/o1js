@@ -149,7 +149,7 @@ function accountUpdateFromFeePayer({
     value: { lower: nonce, upper: nonce },
   };
   body.useFullCommitment = Bool(true);
-  body.callType = { isDelegateCall: Bool(false), isBlindCall: Bool(true) };
+  body.mayUseToken = { parentsOwnToken: Bool(false), inheritFromParent: Bool(false) };
   body.implicitAccountCreationFee = Bool(true);
   body.authorizationKind = { isProved: Bool(false), isSigned: Bool(true) };
   return { body, authorization: { signature } };

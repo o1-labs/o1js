@@ -68,7 +68,7 @@ type AuthRequired = Types.Json.AuthRequired;
 type AccountUpdateBody = Types.AccountUpdate['body'];
 type Update = AccountUpdateBody['update'];
 
-type CallType = AccountUpdateBody['callType'];
+type MayUseToken = AccountUpdateBody['mayUseToken'];
 
 /**
  * Preconditions for the network and accounts
@@ -368,7 +368,7 @@ interface Body extends AccountUpdateBody {
   /**
    * The type of call.
    */
-  callType: CallType;
+  mayUseToken: MayUseToken;
   callData: Field;
   callDepth: number;
   /**
@@ -400,14 +400,14 @@ const Body = {
   /**
    * A body that doesn't change the underlying account record
    */
-  keepAll(publicKey: PublicKey, tokenId?: Field, callType?: CallType): Body {
+  keepAll(publicKey: PublicKey, tokenId?: Field, mayUseToken?: MayUseToken): Body {
     let { body } = Types.AccountUpdate.emptyValue();
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
     }
-    if (callType) {
-        body.callType = callType;
+    if (mayUseToken) {
+        body.mayUseToken = mayUseToken;
     }
     return body;
   },
