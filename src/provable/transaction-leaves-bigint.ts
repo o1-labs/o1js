@@ -10,7 +10,6 @@ export {
   Bool,
   AuthRequired,
   AuthorizationKind,
-  CallType,
   UInt64,
   UInt32,
   Sign,
@@ -25,7 +24,6 @@ type AuthRequired = {
   signatureSufficient: Bool;
 };
 type AuthorizationKind = { isSigned: Bool; isProved: Bool };
-type CallType = { isDelegateCall: Bool, isBlindCall: Bool };
 type TokenId = Field;
 type TokenSymbol = { symbol: string; field: Field };
 

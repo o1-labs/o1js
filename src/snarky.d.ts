@@ -681,6 +681,8 @@ declare class Circuit {
     rows: number;
     digest: string;
     result: T;
+    gates: Gate[];
+    publicInputSize: number;
   };
 
   /**
