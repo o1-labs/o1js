@@ -219,7 +219,8 @@ function wrapMethod(
                 accountUpdate.body.authorizationKind.isSigned = Bool(false);
                 accountUpdate.body.authorizationKind.isProved = Bool(true);
 
-                // compute `caller` field from `isDelegateCall` and a context determined by the transaction
+                // I'll be back
+                /*// compute `caller` field from `isDelegateCall` and a context determined by the transaction
                 let callerContext = Circuit.witness(
                   CallForest.callerContextType,
                   () => {
@@ -227,7 +228,7 @@ function wrapMethod(
                     return CallForest.computeCallerContext(accountUpdate);
                   }
                 );
-                CallForest.addCallers([accountUpdate], callerContext);
+                CallForest.addCallers([accountUpdate], callerContext);*/
 
                 // connect the public input to the accountUpdate & child account updates we created
                 if (DEBUG_PUBLIC_INPUT_CHECK) {

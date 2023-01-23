@@ -25,7 +25,7 @@ class TrivialProof extends TrivialZkapp.Proof() {}
 class NotSoSimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
 
-  @method init(proof: TrivialProof) {
+  @method initialize(proof: TrivialProof) {
     proof.verify();
     this.x.set(Field(1));
   }
@@ -90,7 +90,7 @@ await tx.send();
 
 console.log('init');
 tx = await Mina.transaction(feePayerKey, () => {
-  zkapp.init(trivialProof!);
+  zkapp.initialize(trivialProof!);
 });
 let [proof] = await tx.prove();
 await tx.send();

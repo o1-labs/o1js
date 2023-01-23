@@ -1,9 +1,11 @@
+// TODO: This file should be generated.
 export {
   PublicKey,
   Field,
   Bool,
   AuthRequired,
   AuthorizationKind,
+  CallType,
   UInt64,
   UInt32,
   Sign,
@@ -18,4 +20,5 @@ type PublicKey = string;
 type Sign = 'Positive' | 'Negative';
 type AuthRequired = 'Signature' | 'Proof' | 'Either' | 'None' | 'Impossible';
 type AuthorizationKind = 'Signature' | 'Proof' | 'None_given';
+type CallType = 'call' | 'delegate_call';
 type TokenId = Field;

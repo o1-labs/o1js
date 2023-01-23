@@ -64,7 +64,8 @@ let jsLayout = {
                 'callDepth',
                 'preconditions',
                 'useFullCommitment',
-                'caller',
+                'implicitAccountCreationFee',
+                'callType',
                 'authorizationKind',
               ],
               entries: {
@@ -123,6 +124,7 @@ let jsLayout = {
                         docs: null,
                         keys: [
                           'editState',
+                          'access',
                           'send',
                           'receive',
                           'setDelegate',
@@ -137,6 +139,7 @@ let jsLayout = {
                         ],
                         entries: {
                           editState: { type: 'AuthRequired' },
+                          access: { type: 'AuthRequired' },
                           send: { type: 'AuthRequired' },
                           receive: { type: 'AuthRequired' },
                           setDelegate: { type: 'AuthRequired' },
@@ -151,6 +154,7 @@ let jsLayout = {
                         },
                         docEntries: {
                           editState: null,
+                          access: null,
                           send: null,
                           receive: null,
                           setDelegate: null,
@@ -687,7 +691,15 @@ let jsLayout = {
                   docEntries: { network: null, account: null },
                 },
                 useFullCommitment: { type: 'Bool' },
-                caller: { type: 'TokenId' },
+                implicitAccountCreationFee: { type: 'Bool' },
+                callType: {
+                  type: 'object',
+                  name: 'CallType',
+                  docs: null,
+                  keys: ['isDelegateCall'],
+                  entries: { isDelegateCall: { type: 'Bool' } },
+                  docEntries: { isDelegateCall: null },
+                },
                 authorizationKind: { type: 'AuthorizationKind' },
               },
               docEntries: {
@@ -702,7 +714,8 @@ let jsLayout = {
                 callDepth: null,
                 preconditions: null,
                 useFullCommitment: null,
-                caller: null,
+                implicitAccountCreationFee: null,
+                callType: null,
                 authorizationKind: null,
               },
             },
@@ -756,7 +769,8 @@ let jsLayout = {
           'callDepth',
           'preconditions',
           'useFullCommitment',
-          'caller',
+          'implicitAccountCreationFee',
+          'callType',
           'authorizationKind',
         ],
         entries: {
@@ -815,6 +829,7 @@ let jsLayout = {
                   docs: null,
                   keys: [
                     'editState',
+                    'access',
                     'send',
                     'receive',
                     'setDelegate',
@@ -829,6 +844,7 @@ let jsLayout = {
                   ],
                   entries: {
                     editState: { type: 'AuthRequired' },
+                    access: { type: 'AuthRequired' },
                     send: { type: 'AuthRequired' },
                     receive: { type: 'AuthRequired' },
                     setDelegate: { type: 'AuthRequired' },
@@ -843,6 +859,7 @@ let jsLayout = {
                   },
                   docEntries: {
                     editState: null,
+                    access: null,
                     send: null,
                     receive: null,
                     setDelegate: null,
@@ -1376,7 +1393,15 @@ let jsLayout = {
             docEntries: { network: null, account: null },
           },
           useFullCommitment: { type: 'Bool' },
-          caller: { type: 'TokenId' },
+          implicitAccountCreationFee: { type: 'Bool' },
+          callType: {
+            type: 'object',
+            name: 'CallType',
+            docs: null,
+            keys: ['isDelegateCall'],
+            entries: { isDelegateCall: { type: 'Bool' } },
+            docEntries: { isDelegateCall: null },
+          },
           authorizationKind: { type: 'AuthorizationKind' },
         },
         docEntries: {
@@ -1391,7 +1416,8 @@ let jsLayout = {
           callDepth: null,
           preconditions: null,
           useFullCommitment: null,
-          caller: null,
+          implicitAccountCreationFee: null,
+          callType: null,
           authorizationKind: null,
         },
       },
