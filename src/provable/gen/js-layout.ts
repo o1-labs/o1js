@@ -712,7 +712,7 @@ let jsLayout = {
                 implicitAccountCreationFee: { type: 'Bool' },
                 mayUseToken: {
                   type: 'object',
-                  name: 'CallType',
+                  name: 'MayUseToken',
                   docs: null,
                   keys: ['parentsOwnToken', 'inheritFromParent'],
                   entries: {
@@ -1434,7 +1434,7 @@ let jsLayout = {
           implicitAccountCreationFee: { type: 'Bool' },
           mayUseToken: {
             type: 'object',
-            name: 'CallType',
+            name: 'MayUseToken',
             docs: null,
             keys: ['parentsOwnToken', 'inheritFromParent'],
             entries: {
