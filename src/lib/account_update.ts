@@ -208,6 +208,7 @@ interface Permissions extends Permissions_ {
   // TODO: doccomments
   incrementNonce: Permission;
   setVotingFor: Permission;
+  setTiming: Permission;
 
   /**
    * Permission to control the ability to include _any_ account update for this account in a transaction. Note that this is more restrictive than
@@ -215,7 +216,6 @@ interface Permissions extends Permissions_ {
    * prevent unauthorized token interactions -- for example, it could be `proofOrSignature`.
    */
   access: Permission;
-  setTiming: Permission;
 }
 let Permissions = {
   ...Permission,
