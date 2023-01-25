@@ -10,7 +10,6 @@ import {
   AuthRequired,
   TokenSymbol,
   Sign,
-  AuthorizationKind,
   StringWithHash,
   Events,
   SequenceEvents,
@@ -38,7 +37,6 @@ type TypeMap = {
   Bool: Bool;
   AuthRequired: AuthRequired;
   Sign: Sign;
-  AuthorizationKind: AuthorizationKind;
 };
 
 const TypeMap: {
@@ -52,7 +50,6 @@ const TypeMap: {
   Bool,
   AuthRequired,
   Sign,
-  AuthorizationKind,
 };
 
 type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, Field>;
@@ -282,7 +279,11 @@ type ZkappCommand = {
       callType: {
         isDelegateCall: Bool;
       };
-      authorizationKind: AuthorizationKind;
+      authorizationKind: {
+        isSigned: Bool;
+        isProved: Bool;
+        verificationKeyHash: Field;
+      };
     };
     authorization: {
       proof?: string;
@@ -473,7 +474,11 @@ type AccountUpdate = {
     callType: {
       isDelegateCall: Bool;
     };
-    authorizationKind: AuthorizationKind;
+    authorizationKind: {
+      isSigned: Bool;
+      isProved: Bool;
+      verificationKeyHash: Field;
+    };
   };
   authorization: {
     proof?: string;

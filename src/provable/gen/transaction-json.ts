@@ -9,7 +9,6 @@ import {
   Bool,
   AuthRequired,
   Sign,
-  AuthorizationKind,
 } from '../transaction-leaves-json.js';
 
 export { ZkappCommand, AccountUpdate };
@@ -25,7 +24,6 @@ type TypeMap = {
   Bool: Bool;
   AuthRequired: AuthRequired;
   Sign: Sign;
-  AuthorizationKind: AuthorizationKind;
 };
 
 type ZkappCommand = {
@@ -161,7 +159,11 @@ type ZkappCommand = {
       callType: {
         isDelegateCall: Bool;
       };
-      authorizationKind: AuthorizationKind;
+      authorizationKind: {
+        isSigned: Bool;
+        isProved: Bool;
+        verificationKeyHash: Field;
+      };
     };
     authorization: {
       proof: string | null;
@@ -294,7 +296,11 @@ type AccountUpdate = {
     callType: {
       isDelegateCall: Bool;
     };
-    authorizationKind: AuthorizationKind;
+    authorizationKind: {
+      isSigned: Bool;
+      isProved: Bool;
+      verificationKeyHash: Field;
+    };
   };
   authorization: {
     proof: string | null;

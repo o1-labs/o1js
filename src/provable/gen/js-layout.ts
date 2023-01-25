@@ -718,7 +718,22 @@ let jsLayout = {
                   entries: { isDelegateCall: { type: 'Bool' } },
                   docEntries: { isDelegateCall: null },
                 },
-                authorizationKind: { type: 'AuthorizationKind' },
+                authorizationKind: {
+                  type: 'object',
+                  name: 'AuthorizationKindStructured',
+                  docs: null,
+                  keys: ['isSigned', 'isProved', 'verificationKeyHash'],
+                  entries: {
+                    isSigned: { type: 'Bool' },
+                    isProved: { type: 'Bool' },
+                    verificationKeyHash: { type: 'Field' },
+                  },
+                  docEntries: {
+                    isSigned: null,
+                    isProved: null,
+                    verificationKeyHash: null,
+                  },
+                },
               },
               docEntries: {
                 publicKey: null,
@@ -1434,7 +1449,22 @@ let jsLayout = {
             entries: { isDelegateCall: { type: 'Bool' } },
             docEntries: { isDelegateCall: null },
           },
-          authorizationKind: { type: 'AuthorizationKind' },
+          authorizationKind: {
+            type: 'object',
+            name: 'AuthorizationKindStructured',
+            docs: null,
+            keys: ['isSigned', 'isProved', 'verificationKeyHash'],
+            entries: {
+              isSigned: { type: 'Bool' },
+              isProved: { type: 'Bool' },
+              verificationKeyHash: { type: 'Field' },
+            },
+            docEntries: {
+              isSigned: null,
+              isProved: null,
+              verificationKeyHash: null,
+            },
+          },
         },
         docEntries: {
           publicKey: null,
