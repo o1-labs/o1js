@@ -27,7 +27,11 @@ export {
 
 function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
   initializePreconditions(accountUpdate, isSelf);
-  return { account: Account(accountUpdate), network: Network(accountUpdate), validWhile: ValidWhile(accountUpdate) };
+  return {
+    account: Account(accountUpdate),
+    network: Network(accountUpdate),
+    validWhile: ValidWhile(accountUpdate),
+  };
 }
 
 // note: please keep the two precondition implementations separate
@@ -49,9 +53,15 @@ function Account(accountUpdate: AccountUpdate): Account {
 
 function ValidWhile(accountUpdate: AccountUpdate): ValidWhile {
   let layout =
-    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.validWhile;
+    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries
+      .validWhile;
   let context = getPreconditionContextExn(accountUpdate);
-  return preconditionClass(layout as Layout, 'validWhile', accountUpdate, context);
+  return preconditionClass(
+    layout as Layout,
+    'validWhile',
+    accountUpdate,
+    context
+  );
 }
 
 let unimplementedPreconditions: LongKey[] = [
