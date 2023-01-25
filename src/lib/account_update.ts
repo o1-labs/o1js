@@ -1708,17 +1708,17 @@ const Authorization = {
   },
   setProofAuthorizationKind(
     { body }: AccountUpdate,
-    priorAccountUpdates: AccountUpdate[]
+    priorAccountUpdates?: AccountUpdate[]
   ) {
     body.authorizationKind.isSigned = Bool(false);
     body.authorizationKind.isProved = Bool(true);
     let hash = Circuit.witness(Field, () => {
+      priorAccountUpdates ??= zkAppProver.getData().transaction.accountUpdates;
       let priorAccountUpdatesFlat = CallForest.toFlatList(priorAccountUpdates);
-
       let accountUpdate = [...priorAccountUpdatesFlat]
         .reverse()
-        .find(
-          (accountUpdate) => accountUpdate.body.update.verificationKey.isSome
+        .find((accountUpdate) =>
+          accountUpdate.body.update.verificationKey.isSome.toBoolean()
         );
       if (accountUpdate !== undefined) {
         return accountUpdate.body.update.verificationKey.value.hash;

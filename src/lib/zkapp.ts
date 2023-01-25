@@ -225,10 +225,7 @@ function wrapMethod(
                   blindingValue
                 );
                 accountUpdate.body.callData = Poseidon.hash(callDataFields);
-                Authorization.setProofAuthorizationKind(
-                  accountUpdate,
-                  zkAppProver.getData().transaction.accountUpdates
-                );
+                Authorization.setProofAuthorizationKind(accountUpdate);
 
                 // TODO: currently commented out, but could come back in
                 // some form when we add caller to the public input compute
