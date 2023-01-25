@@ -9,6 +9,7 @@ import {
   Bool,
   AuthRequired,
   Sign,
+  AuthorizationKind,
 } from '../transaction-leaves-json.js';
 
 export { ZkappCommand, AccountUpdate };
@@ -24,6 +25,7 @@ type TypeMap = {
   Bool: Bool;
   AuthRequired: AuthRequired;
   Sign: Sign;
+  AuthorizationKind: AuthorizationKind;
 };
 
 type ZkappCommand = {
@@ -49,6 +51,7 @@ type ZkappCommand = {
         } | null;
         permissions: {
           editState: AuthRequired;
+          access: AuthRequired;
           send: AuthRequired;
           receive: AuthRequired;
           setDelegate: AuthRequired;
@@ -148,14 +151,17 @@ type ZkappCommand = {
           provedState: Bool | null;
           isNew: Bool | null;
         };
+        validWhile: {
+          lower: UInt32;
+          upper: UInt32;
+        } | null;
       };
       useFullCommitment: Bool;
-      caller: TokenId;
-      authorizationKind: {
-        isSigned: Bool;
-        isProved: Bool;
-        verificationKeyHash: Field;
+      implicitAccountCreationFee: Bool;
+      callType: {
+        isDelegateCall: Bool;
       };
+      authorizationKind: AuthorizationKind;
     };
     authorization: {
       proof: string | null;
@@ -178,6 +184,7 @@ type AccountUpdate = {
       } | null;
       permissions: {
         editState: AuthRequired;
+        access: AuthRequired;
         send: AuthRequired;
         receive: AuthRequired;
         setDelegate: AuthRequired;
@@ -277,14 +284,17 @@ type AccountUpdate = {
         provedState: Bool | null;
         isNew: Bool | null;
       };
+      validWhile: {
+        lower: UInt32;
+        upper: UInt32;
+      } | null;
     };
     useFullCommitment: Bool;
-    caller: TokenId;
-    authorizationKind: {
-      isSigned: Bool;
-      isProved: Bool;
-      verificationKeyHash: Field;
+    implicitAccountCreationFee: Bool;
+    callType: {
+      isDelegateCall: Bool;
     };
+    authorizationKind: AuthorizationKind;
   };
   authorization: {
     proof: string | null;

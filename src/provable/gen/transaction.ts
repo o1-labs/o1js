@@ -10,6 +10,7 @@ import {
   AuthRequired,
   TokenSymbol,
   Sign,
+  AuthorizationKind,
   StringWithHash,
   Events,
   SequenceEvents,
@@ -37,6 +38,7 @@ type TypeMap = {
   Bool: Bool;
   AuthRequired: AuthRequired;
   Sign: Sign;
+  AuthorizationKind: AuthorizationKind;
 };
 
 const TypeMap: {
@@ -50,6 +52,7 @@ const TypeMap: {
   Bool,
   AuthRequired,
   Sign,
+  AuthorizationKind,
 };
 
 type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, Field>;
@@ -120,6 +123,7 @@ type ZkappCommand = {
           isSome: Bool;
           value: {
             editState: AuthRequired;
+            access: AuthRequired;
             send: AuthRequired;
             receive: AuthRequired;
             setDelegate: AuthRequired;
@@ -265,14 +269,20 @@ type ZkappCommand = {
           provedState: { isSome: Bool; value: Bool };
           isNew: { isSome: Bool; value: Bool };
         };
+        validWhile: {
+          isSome: Bool;
+          value: {
+            lower: UInt32;
+            upper: UInt32;
+          };
+        };
       };
       useFullCommitment: Bool;
-      caller: TokenId;
-      authorizationKind: {
-        isSigned: Bool;
-        isProved: Bool;
-        verificationKeyHash: Field;
+      implicitAccountCreationFee: Bool;
+      callType: {
+        isDelegateCall: Bool;
       };
+      authorizationKind: AuthorizationKind;
     };
     authorization: {
       proof?: string;
@@ -304,6 +314,7 @@ type AccountUpdate = {
         isSome: Bool;
         value: {
           editState: AuthRequired;
+          access: AuthRequired;
           send: AuthRequired;
           receive: AuthRequired;
           setDelegate: AuthRequired;
@@ -449,14 +460,20 @@ type AccountUpdate = {
         provedState: { isSome: Bool; value: Bool };
         isNew: { isSome: Bool; value: Bool };
       };
+      validWhile: {
+        isSome: Bool;
+        value: {
+          lower: UInt32;
+          upper: UInt32;
+        };
+      };
     };
     useFullCommitment: Bool;
-    caller: TokenId;
-    authorizationKind: {
-      isSigned: Bool;
-      isProved: Bool;
-      verificationKeyHash: Field;
+    implicitAccountCreationFee: Bool;
+    callType: {
+      isDelegateCall: Bool;
     };
+    authorizationKind: AuthorizationKind;
   };
   authorization: {
     proof?: string;

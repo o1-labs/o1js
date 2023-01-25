@@ -149,6 +149,7 @@ function accountUpdateFromFeePayer({
     value: { lower: nonce, upper: nonce },
   };
   body.useFullCommitment = Bool(true);
+  body.implicitAccountCreationFee = Bool(true);
   body.authorizationKind = {
     isProved: Bool(false),
     isSigned: Bool(true),

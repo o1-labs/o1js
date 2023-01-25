@@ -127,19 +127,9 @@ type FetchedAccount = {
   zkappState: string[] | null;
   receiptChainHash?: string;
   balance: { total: string };
-  permissions?: {
-    editState: AuthRequired;
-    send: AuthRequired;
-    receive: AuthRequired;
-    setDelegate: AuthRequired;
-    setPermissions: AuthRequired;
-    setVerificationKey: AuthRequired;
-    setZkappUri: AuthRequired;
-    editSequenceState: AuthRequired;
-    setTokenSymbol: AuthRequired;
-    incrementNonce: AuthRequired;
-    setVotingFor: AuthRequired;
-  };
+  permissions?: NonNullable<
+    Types.Json.AccountUpdate['body']['update']['permissions']
+  >;
   delegateAccount?: { publicKey: string };
   sequenceEvents?: string[] | null;
   verificationKey?: { verificationKey: string; hash: string };

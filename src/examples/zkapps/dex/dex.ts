@@ -244,8 +244,8 @@ function createDex({
       // just subtract the balance, user gets their part one level higher
       this.balance.subInPlace(dy);
 
-      // this can't be a delegate call, or it won't be approved by the token owner
-      this.self.isDelegateCall = Bool(false);
+      // be approved by the token owner parent
+      this.self.body.callType = AccountUpdate.CallType.Call;
 
       // return l, dy so callers don't have to walk their child account updates to get it
       return [l, dy];
@@ -272,8 +272,8 @@ function createDex({
       // just subtract the balance, user gets their part one level higher
       this.balance.subInPlace(dx);
 
-      // this can't be a delegate call, or it won't be approved by the token owner
-      this.self.isDelegateCall = Bool(false);
+      // be approved by the token owner parent
+      this.self.body.callType = AccountUpdate.CallType.Call;
 
       return [dx, dy];
     }
@@ -297,8 +297,8 @@ function createDex({
       let dy = y.mul(dx).div(x.add(dx));
       // just subtract dy balance and let adding balance be handled one level higher
       this.balance.subInPlace(dy);
-      // not be a delegate call
-      this.self.isDelegateCall = Bool(false);
+      // be approved by the token owner parent
+      this.self.body.callType = AccountUpdate.CallType.Call;
       return dy;
     }
   }
@@ -323,7 +323,8 @@ function createDex({
       let dy = y.mul(dx).div(x.add(dx)).add(15);
 
       this.balance.subInPlace(dy);
-      this.self.isDelegateCall = Bool(false);
+      // be approved by the token owner parent
+      this.self.body.callType = AccountUpdate.CallType.Call;
       return dy;
     }
   }
@@ -397,6 +398,7 @@ class TokenContract extends SmartContract {
       ...Permissions.default(),
       send: Permissions.proof(),
       receive: Permissions.proof(),
+      access: Permissions.proofOrSignature(),
     });
   }
   @method init() {
