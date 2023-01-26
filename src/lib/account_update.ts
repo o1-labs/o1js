@@ -426,6 +426,7 @@ const Body = {
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
+      body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
     }
     if (mayUseToken) {
       body.mayUseToken = mayUseToken;
@@ -833,7 +834,7 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   approve(
     childUpdate: AccountUpdate,
-    layout: AccountUpdatesLayout = AccountUpdate.Layout.NoDelegation
+    layout: AccountUpdatesLayout = AccountUpdate.Layout.NoChildren
   ) {
     makeChildAccountUpdate(this, childUpdate);
     this.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
