@@ -122,7 +122,7 @@ body.callDepth = 1;
 body.incrementNonce = Bool(true);
 let tokenOwner = PrivateKey.random().toPublicKey();
 body.tokenId = new Token({ tokenOwner }).id;
-body.callType = {isDelegateCall: Bool(true)};
+body.mayUseToken = { parentsOwnToken: Bool(true), inheritFromParent: Bool(false) };
 let events = Events.empty();
 events = Events.pushEvent(events, [Field(1)]);
 events = Events.pushEvent(events, [Field(0)]);
@@ -153,7 +153,7 @@ function testInput<T, TJson>(
   value: T
 ) {
   let json = Module.toJSON(value);
-  // console.log(json);
+  // console.log('json', json);
   let input1 = inputFromOcaml(toInputOcaml(JSON.stringify(json)));
   let input2 = Module.toInput(value);
   // console.log('snarkyjs', JSON.stringify(input2));

@@ -152,11 +152,16 @@ type ZkappCommand = {
           provedState: Bool | null;
           isNew: Bool | null;
         };
+        validWhile: {
+          lower: UInt32;
+          upper: UInt32;
+        } | null;
       };
       useFullCommitment: Bool;
       implicitAccountCreationFee: Bool;
-      callType: {
-        isDelegateCall: Bool;
+      mayUseToken: {
+        parentsOwnToken: Bool;
+        inheritFromParent: Bool;
       };
       authorizationKind: AuthorizationKind;
     };
@@ -282,11 +287,16 @@ type AccountUpdate = {
         provedState: Bool | null;
         isNew: Bool | null;
       };
+      validWhile: {
+        lower: UInt32;
+        upper: UInt32;
+      } | null;
     };
     useFullCommitment: Bool;
     implicitAccountCreationFee: Bool;
-    callType: {
-      isDelegateCall: Bool;
+    mayUseToken: {
+      parentsOwnToken: Bool;
+      inheritFromParent: Bool;
     };
     authorizationKind: AuthorizationKind;
   };

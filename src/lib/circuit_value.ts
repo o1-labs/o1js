@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { bytesToBigInt } from '../js_crypto/finite_field.js';
-import { Circuit, ProvablePure, Provable, Keypair } from '../snarky.js';
+import { Circuit, ProvablePure, Provable, Keypair, Gate } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
 import { inCheckedComputation, snarkContext } from './proof_system.js';
@@ -866,7 +866,13 @@ function cloneCircuitValue<T>(obj: T): T {
 
 function circuitValueEquals<T>(a: T, b: T): boolean {
   // primitive JS types and functions are checked for exact equality
-  if (typeof a !== 'object' || a === null) return a === b;
+  if (
+    typeof a !== 'object' ||
+    typeof b !== 'object' ||
+    a === null ||
+    b === null
+  )
+    return a === b;
 
   // built-in JS datatypes with custom equality checks
   if (Array.isArray(a)) {
@@ -1025,7 +1031,8 @@ Circuit.constraintSystem = function <T>(f: () => T) {
       let { rows, digest, json } = (Circuit as any)._constraintSystem(() => {
         result = f();
       });
-      return { rows, digest, result: result! };
+      let { gates, publicInputSize } = gatesFromJson(json);
+      return { rows, digest, result: result!, gates, publicInputSize };
     }
   );
   return result;
@@ -1049,9 +1056,12 @@ Circuit.log = function (...args: any) {
 };
 
 Circuit.constraintSystemFromKeypair = function (keypair: Keypair) {
-  let cs: { gates: { typ: string; wires: any; coeffs: number[][] }[] } =
-    JSON.parse((keypair as any)._constraintSystemJSON());
-  let gates = cs.gates.map(({ typ, wires, coeffs: byteCoeffs }) => {
+  return gatesFromJson(JSON.parse((keypair as any)._constraintSystemJSON()))
+    .gates;
+};
+
+function gatesFromJson(cs: { gates: JsonGate[]; public_input_size: number }) {
+  let gates: Gate[] = cs.gates.map(({ typ, wires, coeffs: byteCoeffs }) => {
     let coeffs = [];
     for (let coefficient of byteCoeffs) {
       let arr = new Uint8Array(coefficient);
@@ -1059,7 +1069,12 @@ Circuit.constraintSystemFromKeypair = function (keypair: Keypair) {
     }
     return { type: typ, wires, coeffs };
   });
-  return gates;
+  return { publicInputSize: cs.public_input_size, gates };
+}
+type JsonGate = {
+  typ: string;
+  wires: { row: number; col: number }[];
+  coeffs: number[][];
 };
 
 function auxiliary<T>(type: FlexibleProvable<T>, compute: () => any[]) {
