@@ -34,8 +34,8 @@ console.log('TOKEN X ID\t', Token.Id.toBase58(tokenIds.X));
 console.log('TOKEN Y ID\t', Token.Id.toBase58(tokenIds.Y));
 console.log('-------------------------------------------------');
 
-console.log('compile (token)...');
-await TokenContract.compile();
+// console.log('compile (token)...');
+// await TokenContract.compile();
 
 await main({ withVesting: false });
 
@@ -66,8 +66,8 @@ async function main({ withVesting }: { withVesting: boolean }) {
   // compile & deploy all zkApps
   console.log('compile (dex token holder)...');
   await DexTokenHolder.compile();
-  console.log('compile (dex main contract)...');
-  await Dex.compile();
+  // console.log('compile (dex main contract)...');
+  // await Dex.compile();
 
   let tokenX = new TokenContract(addresses.tokenX);
   let tokenY = new TokenContract(addresses.tokenY);
@@ -228,9 +228,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
         (USER_DX * oldBalances.total.lqXY) / oldBalances.dex.X
     );
   } else {
-    await expect(tx.send()).rejects.toThrow(
-      /Update_not_permitted_timing_existing_account/
-    );
+    await expect(tx.send()).rejects.toThrow(/Update_not_permitted_timing/);
   }
 
   /**

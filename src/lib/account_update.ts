@@ -405,14 +405,19 @@ const Body = {
   /**
    * A body that doesn't change the underlying account record
    */
-  keepAll(publicKey: PublicKey, tokenId?: Field, mayUseToken?: MayUseToken): Body {
+  keepAll(
+    publicKey: PublicKey,
+    tokenId?: Field,
+    mayUseToken?: MayUseToken
+  ): Body {
     let { body } = Types.AccountUpdate.emptyValue();
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
+      body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
     }
     if (mayUseToken) {
-        body.mayUseToken = mayUseToken;
+      body.mayUseToken = mayUseToken;
     }
     return body;
   },
@@ -525,16 +530,16 @@ const AccountPrecondition = {
 type ValidWhilePrecondition = Preconditions['validWhile'];
 const ValidWhilePrecondition = {
   ignoreAll(): ValidWhilePrecondition {
-    return ignore(uint32())
-  }
-}
+    return ignore(uint32());
+  },
+};
 
 const Preconditions = {
   ignoreAll(): Preconditions {
     return {
       account: AccountPrecondition.ignoreAll(),
       network: NetworkPrecondition.ignoreAll(),
-      validWhile : ValidWhilePrecondition.ignoreAll(),
+      validWhile: ValidWhilePrecondition.ignoreAll(),
     };
   },
 };
@@ -632,7 +637,10 @@ class AccountUpdate implements Types.AccountUpdate {
     this.id = Math.random();
     this.body = body;
     this.authorization = authorization;
-    let { account, network, validWhile } = Precondition.preconditions(this, isSelf);
+    let { account, network, validWhile } = Precondition.preconditions(
+      this,
+      isSelf
+    );
     this.account = account;
     this.network = network;
     this.validWhile = validWhile;
@@ -797,7 +805,7 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   approve(
     childUpdate: AccountUpdate,
-    layout: AccountUpdatesLayout = AccountUpdate.Layout.NoDelegation
+    layout: AccountUpdatesLayout = AccountUpdate.Layout.NoChildren
   ) {
     makeChildAccountUpdate(this, childUpdate);
     this.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
@@ -1304,8 +1312,14 @@ class AccountUpdate implements Types.AccountUpdate {
   static get MayUseToken() {
     return {
       No: { parentsOwnToken: Bool(false), inheritFromParent: Bool(false) },
-      ParentsOwnToken: { parentsOwnToken: Bool(true), inheritFromParent: Bool(false) },
-      InheritFromParent: { parentsOwnToken: Bool(false), inheritFromParent: Bool(true) },
+      ParentsOwnToken: {
+        parentsOwnToken: Bool(true),
+        inheritFromParent: Bool(false),
+      },
+      InheritFromParent: {
+        parentsOwnToken: Bool(false),
+        inheritFromParent: Bool(true),
+      },
     };
   }
 
@@ -1483,7 +1497,8 @@ const CallForest = {
         Circuit.if(
           mayUseToken.inheritFromParent,
           context.caller,
-          TokenId.default)
+          TokenId.default
+        )
       );
       let self = Token.getId(update.body.publicKey, update.body.tokenId);
       let childContext = { caller, self };
