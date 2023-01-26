@@ -273,7 +273,7 @@ function createDex({
       this.balance.subInPlace(dx);
 
       // be approved by the token owner parent
-      this.self.body.mayUseToken = AccountUpdate.MayUseToken.parentsOwnToken;
+      this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
       return [dx, dy];
     }
