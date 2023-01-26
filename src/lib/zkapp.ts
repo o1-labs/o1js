@@ -524,8 +524,9 @@ function wrapMethod(
             : CallForest.computeCallDepth(parentAccountUpdate);
           return Bool(parentCallDepth === 0);
         });
-        parentAccountUpdate.body.callType = {
-          isDelegateCall: isTopLevel.not(),
+        parentAccountUpdate.body.mayUseToken = {
+          parentsOwnToken: isTopLevel.not(),
+          inheritFromParent: Bool(false),
         };
         return result;
       }

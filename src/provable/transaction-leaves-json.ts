@@ -1,4 +1,3 @@
-// TODO: This file should be generated.
 export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
 type Field = string;

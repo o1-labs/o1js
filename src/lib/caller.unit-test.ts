@@ -9,9 +9,6 @@ import { expect } from 'expect';
 
 await isReady;
 
-const Call = { isDelegateCall: Bool(false) };
-const DelegateCall = { isDelegateCall: Bool(true) };
-
 let Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
@@ -22,15 +19,15 @@ let parentId = Token.getId(publicKey);
 /**
  * tests whether the following two account updates gives the child token permissions:
  *
- * Delegate_call -> Call
+ * InheritFromParent -> ParentsOwnToken
  */
 let tx = await Mina.transaction(privateKey, () => {
   let parent = AccountUpdate.defaultAccountUpdate(publicKey);
-  parent.body.callType = DelegateCall;
+  parent.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
   parent.balance.subInPlace(Mina.accountCreationFee());
 
   let child = AccountUpdate.defaultAccountUpdate(publicKey, parentId);
-  child.body.callType = Call;
+  child.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
   AccountUpdate.attachToTransaction(parent);
   makeChildAccountUpdate(parent, child);

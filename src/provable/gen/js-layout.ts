@@ -65,7 +65,7 @@ let jsLayout = {
                 'preconditions',
                 'useFullCommitment',
                 'implicitAccountCreationFee',
-                'callType',
+                'mayUseToken',
                 'authorizationKind',
               ],
               entries: {
@@ -135,6 +135,7 @@ let jsLayout = {
                           'setTokenSymbol',
                           'incrementNonce',
                           'setVotingFor',
+                          'setTiming',
                         ],
                         entries: {
                           editState: { type: 'AuthRequired' },
@@ -149,6 +150,7 @@ let jsLayout = {
                           setTokenSymbol: { type: 'AuthRequired' },
                           incrementNonce: { type: 'AuthRequired' },
                           setVotingFor: { type: 'AuthRequired' },
+                          setTiming: { type: 'AuthRequired' },
                         },
                         docEntries: {
                           editState: null,
@@ -163,6 +165,7 @@ let jsLayout = {
                           setTokenSymbol: null,
                           incrementNonce: null,
                           setVotingFor: null,
+                          setTiming: null,
                         },
                       },
                     },
@@ -710,13 +713,19 @@ let jsLayout = {
                 },
                 useFullCommitment: { type: 'Bool' },
                 implicitAccountCreationFee: { type: 'Bool' },
-                callType: {
+                mayUseToken: {
                   type: 'object',
-                  name: 'CallType',
+                  name: 'MayUseToken',
                   docs: null,
-                  keys: ['isDelegateCall'],
-                  entries: { isDelegateCall: { type: 'Bool' } },
-                  docEntries: { isDelegateCall: null },
+                  keys: ['parentsOwnToken', 'inheritFromParent'],
+                  entries: {
+                    parentsOwnToken: { type: 'Bool' },
+                    inheritFromParent: { type: 'Bool' },
+                  },
+                  docEntries: {
+                    parentsOwnToken: null,
+                    inheritFromParent: null,
+                  },
                 },
                 authorizationKind: {
                   type: 'object',
@@ -748,7 +757,7 @@ let jsLayout = {
                 preconditions: null,
                 useFullCommitment: null,
                 implicitAccountCreationFee: null,
-                callType: null,
+                mayUseToken: null,
                 authorizationKind: null,
               },
             },
@@ -803,7 +812,7 @@ let jsLayout = {
           'preconditions',
           'useFullCommitment',
           'implicitAccountCreationFee',
-          'callType',
+          'mayUseToken',
           'authorizationKind',
         ],
         entries: {
@@ -873,6 +882,7 @@ let jsLayout = {
                     'setTokenSymbol',
                     'incrementNonce',
                     'setVotingFor',
+                    'setTiming',
                   ],
                   entries: {
                     editState: { type: 'AuthRequired' },
@@ -887,6 +897,7 @@ let jsLayout = {
                     setTokenSymbol: { type: 'AuthRequired' },
                     incrementNonce: { type: 'AuthRequired' },
                     setVotingFor: { type: 'AuthRequired' },
+                    setTiming: { type: 'AuthRequired' },
                   },
                   docEntries: {
                     editState: null,
@@ -901,6 +912,7 @@ let jsLayout = {
                     setTokenSymbol: null,
                     incrementNonce: null,
                     setVotingFor: null,
+                    setTiming: null,
                   },
                 },
               },
@@ -1441,13 +1453,16 @@ let jsLayout = {
           },
           useFullCommitment: { type: 'Bool' },
           implicitAccountCreationFee: { type: 'Bool' },
-          callType: {
+          mayUseToken: {
             type: 'object',
-            name: 'CallType',
+            name: 'MayUseToken',
             docs: null,
-            keys: ['isDelegateCall'],
-            entries: { isDelegateCall: { type: 'Bool' } },
-            docEntries: { isDelegateCall: null },
+            keys: ['parentsOwnToken', 'inheritFromParent'],
+            entries: {
+              parentsOwnToken: { type: 'Bool' },
+              inheritFromParent: { type: 'Bool' },
+            },
+            docEntries: { parentsOwnToken: null, inheritFromParent: null },
           },
           authorizationKind: {
             type: 'object',
@@ -1479,7 +1494,7 @@ let jsLayout = {
           preconditions: null,
           useFullCommitment: null,
           implicitAccountCreationFee: null,
-          callType: null,
+          mayUseToken: null,
           authorizationKind: null,
         },
       },
