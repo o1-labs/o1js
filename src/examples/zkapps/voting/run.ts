@@ -1,11 +1,4 @@
-import {
-  Experimental,
-  Mina,
-  PrivateKey,
-  PublicKey,
-  UInt32,
-  UInt64,
-} from 'snarkyjs';
+import { PrivateKey, UInt32, UInt64 } from 'snarkyjs';
 import { VotingApp, VotingAppParams } from './factory.js';
 import {
   ElectionPreconditions,
