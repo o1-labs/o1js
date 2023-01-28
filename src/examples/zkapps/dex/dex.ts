@@ -245,7 +245,7 @@ function createDex({
       this.balance.subInPlace(dy);
 
       // be approved by the token owner parent
-      this.self.body.callType = AccountUpdate.CallType.Call;
+      this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
       // return l, dy so callers don't have to walk their child account updates to get it
       return [l, dy];
@@ -273,7 +273,7 @@ function createDex({
       this.balance.subInPlace(dx);
 
       // be approved by the token owner parent
-      this.self.body.callType = AccountUpdate.CallType.Call;
+      this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
       return [dx, dy];
     }
@@ -298,7 +298,7 @@ function createDex({
       // just subtract dy balance and let adding balance be handled one level higher
       this.balance.subInPlace(dy);
       // be approved by the token owner parent
-      this.self.body.callType = AccountUpdate.CallType.Call;
+      this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
       return dy;
     }
   }
@@ -324,7 +324,7 @@ function createDex({
 
       this.balance.subInPlace(dy);
       // be approved by the token owner parent
-      this.self.body.callType = AccountUpdate.CallType.Call;
+      this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
       return dy;
     }
   }
@@ -455,7 +455,17 @@ class TokenContract extends SmartContract {
     to: PublicKey,
     amount: UInt64
   ) {
-    this.approve(zkappUpdate);
+    // TODO: THIS IS INSECURE. The proper version has a prover error (compile != prove) that must be fixed
+    this.approve(zkappUpdate, AccountUpdate.Layout.AnyChildren);
+
+    // THIS IS HOW IT SHOULD BE DONE:
+    // // approve a layout of two grandchildren, both of which can't inherit the token permission
+    // let { StaticChildren, AnyChildren } = AccountUpdate.Layout;
+    // this.approve(zkappUpdate, StaticChildren(AnyChildren, AnyChildren));
+    // zkappUpdate.body.mayUseToken.parentsOwnToken.assertTrue();
+    // let [grandchild1, grandchild2] = zkappUpdate.children.accountUpdates;
+    // grandchild1.body.mayUseToken.inheritFromParent.assertFalse();
+    // grandchild2.body.mayUseToken.inheritFromParent.assertFalse();
 
     // see if balance change cancels the amount sent
     let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);

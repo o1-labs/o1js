@@ -62,6 +62,7 @@ type ZkappCommand = {
           setTokenSymbol: AuthRequired;
           incrementNonce: AuthRequired;
           setVotingFor: AuthRequired;
+          setTiming: AuthRequired;
         } | null;
         zkappUri: string | null;
         tokenSymbol: string | null;
@@ -158,8 +159,9 @@ type ZkappCommand = {
       };
       useFullCommitment: Bool;
       implicitAccountCreationFee: Bool;
-      callType: {
-        isDelegateCall: Bool;
+      mayUseToken: {
+        parentsOwnToken: Bool;
+        inheritFromParent: Bool;
       };
       authorizationKind: AuthorizationKind;
     };
@@ -195,6 +197,7 @@ type AccountUpdate = {
         setTokenSymbol: AuthRequired;
         incrementNonce: AuthRequired;
         setVotingFor: AuthRequired;
+        setTiming: AuthRequired;
       } | null;
       zkappUri: string | null;
       tokenSymbol: string | null;
@@ -291,8 +294,9 @@ type AccountUpdate = {
     };
     useFullCommitment: Bool;
     implicitAccountCreationFee: Bool;
-    callType: {
-      isDelegateCall: Bool;
+    mayUseToken: {
+      parentsOwnToken: Bool;
+      inheritFromParent: Bool;
     };
     authorizationKind: AuthorizationKind;
   };

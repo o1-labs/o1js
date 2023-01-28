@@ -69,6 +69,8 @@ type AuthRequired = Types.Json.AuthRequired;
 type AccountUpdateBody = Types.AccountUpdate['body'];
 type Update = AccountUpdateBody['update'];
 
+type MayUseToken = AccountUpdateBody['mayUseToken'];
+
 /**
  * Preconditions for the network and accounts
  */
@@ -209,6 +211,7 @@ interface Permissions extends Permissions_ {
   // TODO: doccomments
   incrementNonce: Permission;
   setVotingFor: Permission;
+  setTiming: Permission;
 
   /**
    * Permission to control the ability to include _any_ account update for this account in a transaction. Note that this is more restrictive than
@@ -253,6 +256,7 @@ let Permissions = {
     setTokenSymbol: Permission.signature(),
     incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
+    setTiming: Permission.signature(),
     access: Permission.none(),
   }),
 
@@ -268,6 +272,7 @@ let Permissions = {
     setTokenSymbol: Permission.signature(),
     incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
+    setTiming: Permission.signature(),
     access: Permission.none(),
   }),
 
@@ -284,6 +289,7 @@ let Permissions = {
     setTokenSymbol: Permission.none(),
     incrementNonce: Permission.none(),
     setVotingFor: Permission.none(),
+    setTiming: Permission.none(),
   }),
 
   fromString: (permission: AuthRequired): Permission => {
@@ -367,7 +373,7 @@ interface Body extends AccountUpdateBody {
   /**
    * The type of call.
    */
-  callType: CallType;
+  mayUseToken: MayUseToken;
   callData: Field;
   callDepth: number;
   /**
@@ -399,13 +405,20 @@ const Body = {
   /**
    * A body that doesn't change the underlying account record
    */
-  keepAll(publicKey: PublicKey, tokenId?: Field): Body {
+  keepAll(
+    publicKey: PublicKey,
+    tokenId?: Field,
+    mayUseToken?: MayUseToken
+  ): Body {
     let { body } = Types.AccountUpdate.emptyValue();
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
+      body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
     }
-    // TODO: change default callType to BlindCall when it exists
+    if (mayUseToken) {
+      body.mayUseToken = mayUseToken;
+    }
     return body;
   },
 
@@ -517,16 +530,16 @@ const AccountPrecondition = {
 type ValidWhilePrecondition = Preconditions['validWhile'];
 const ValidWhilePrecondition = {
   ignoreAll(): ValidWhilePrecondition {
-    return ignore(uint32())
-  }
-}
+    return ignore(uint32());
+  },
+};
 
 const Preconditions = {
   ignoreAll(): Preconditions {
     return {
       account: AccountPrecondition.ignoreAll(),
       network: NetworkPrecondition.ignoreAll(),
-      validWhile : ValidWhilePrecondition.ignoreAll(),
+      validWhile: ValidWhilePrecondition.ignoreAll(),
     };
   },
 };
@@ -624,7 +637,10 @@ class AccountUpdate implements Types.AccountUpdate {
     this.id = Math.random();
     this.body = body;
     this.authorization = authorization;
-    let { account, network, validWhile } = Precondition.preconditions(this, isSelf);
+    let { account, network, validWhile } = Precondition.preconditions(
+      this,
+      isSelf
+    );
     this.account = account;
     this.network = network;
     this.validWhile = validWhile;
@@ -789,10 +805,10 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   approve(
     childUpdate: AccountUpdate,
-    layout: AccountUpdatesLayout = AccountUpdate.Layout.NoDelegation
+    layout: AccountUpdatesLayout = AccountUpdate.Layout.NoChildren
   ) {
     makeChildAccountUpdate(this, childUpdate);
-    this.body.callType = AccountUpdate.CallType.Call;
+    this.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
     AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
   }
 
@@ -1202,10 +1218,10 @@ class AccountUpdate implements Types.AccountUpdate {
       accountUpdate.children.callsType = { type: 'Witness' };
       return;
     }
-    // TODO: replace with BlindCall, "not a delegate call" actually doesn't prevent grandchildren from using your token
     if (childLayout === AccountUpdate.Layout.NoDelegation) {
       accountUpdate.children.callsType = { type: 'Witness' };
-      accountUpdate.body.callType.isDelegateCall.assertFalse();
+      accountUpdate.body.mayUseToken.parentsOwnToken.assertFalse();
+      accountUpdate.body.mayUseToken.inheritFromParent.assertFalse();
       return;
     }
     let childArray: AccountUpdatesLayout[] =
@@ -1293,11 +1309,17 @@ class AccountUpdate implements Types.AccountUpdate {
     NoDelegation: 'NoDelegation' as const,
   };
 
-  // TODO: more descriptive names
-  static get CallType() {
+  static get MayUseToken() {
     return {
-      Call: { isDelegateCall: Bool(false) },
-      DelegateCall: { isDelegateCall: Bool(true) },
+      No: { parentsOwnToken: Bool(false), inheritFromParent: Bool(false) },
+      ParentsOwnToken: {
+        parentsOwnToken: Bool(true),
+        inheritFromParent: Bool(false),
+      },
+      InheritFromParent: {
+        parentsOwnToken: Bool(false),
+        inheritFromParent: Bool(true),
+      },
     };
   }
 
@@ -1373,8 +1395,9 @@ class AccountUpdate implements Types.AccountUpdate {
     ) {
       (body as any).authorization = jsonUpdate.authorization;
     }
-    body.callType = {
-      isDelegateCall: this.body.callType.isDelegateCall.toBoolean(),
+    body.mayUseToken = {
+      parentsOwnToken: this.body.mayUseToken.parentsOwnToken.toBoolean(),
+      inheritFromParent: this.body.mayUseToken.inheritFromParent.toBoolean(),
     };
     let pretty: any = { ...body };
     let withId = false;
@@ -1467,17 +1490,17 @@ const CallForest = {
   ): WithCallers[] {
     let withCallers: WithCallers[] = [];
     for (let update of updates) {
-      let { callType } = update.body;
+      let { mayUseToken } = update.body;
       let caller = Circuit.if(
-        callType.isDelegateCall,
-        context.caller,
-        context.self
-      );
-      let self = Circuit.if(
-        callType.isDelegateCall,
+        mayUseToken.parentsOwnToken,
         context.self,
-        Token.getId(update.body.publicKey, update.body.tokenId)
+        Circuit.if(
+          mayUseToken.inheritFromParent,
+          context.caller,
+          TokenId.default
+        )
       );
+      let self = Token.getId(update.body.publicKey, update.body.tokenId);
       let childContext = { caller, self };
       withCallers.push({
         accountUpdate: update,
@@ -1507,10 +1530,12 @@ const CallForest = {
     }
     let context = { self: TokenId.default, caller: TokenId.default };
     for (let update of ancestors) {
-      if (!update.body.callType.isDelegateCall.toBoolean()) {
+      if (update.body.mayUseToken.parentsOwnToken.toBoolean()) {
         context.caller = context.self;
-        context.self = Token.getId(update.body.publicKey, update.body.tokenId);
+      } else if (!update.body.mayUseToken.inheritFromParent.toBoolean()) {
+        context.caller = TokenId.default;
       }
+      context.self = Token.getId(update.body.publicKey, update.body.tokenId);
     }
     return context;
   },

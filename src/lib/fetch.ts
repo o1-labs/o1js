@@ -184,6 +184,7 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
       setTokenSymbol
       incrementNonce
       setVotingFor
+      setTiming
     }
     receiptChainHash
     balance { total }
