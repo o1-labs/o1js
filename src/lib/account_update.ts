@@ -1497,15 +1497,19 @@ const CallForest = {
   // returns a flattened list, with `accountUpdate.body.callDepth` specifying
   // positions in the forest
   // also removes any "dummy" accountUpdates
-  toFlatList(forest: AccountUpdate[], depth = 0): AccountUpdate[] {
+  toFlatList(
+    forest: AccountUpdate[],
+    mutate = true,
+    depth = 0
+  ): AccountUpdate[] {
     let accountUpdates = [];
     for (let accountUpdate of forest) {
       if (accountUpdate.isDummy().toBoolean()) continue;
-      accountUpdate.body.callDepth = depth;
+      if (mutate) accountUpdate.body.callDepth = depth;
       let children = accountUpdate.children.accountUpdates;
       accountUpdates.push(
         accountUpdate,
-        ...CallForest.toFlatList(children, depth + 1)
+        ...CallForest.toFlatList(children, mutate, depth + 1)
       );
     }
     return accountUpdates;
@@ -1735,7 +1739,10 @@ const Authorization = {
     body.authorizationKind.isProved = Bool(true);
     let hash = Circuit.witness(Field, () => {
       priorAccountUpdates ??= zkAppProver.getData().transaction.accountUpdates;
-      let priorAccountUpdatesFlat = CallForest.toFlatList(priorAccountUpdates);
+      let priorAccountUpdatesFlat = CallForest.toFlatList(
+        priorAccountUpdates,
+        false
+      );
       let accountUpdate = [...priorAccountUpdatesFlat]
         .reverse()
         .find((body_) =>
