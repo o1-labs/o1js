@@ -52,7 +52,7 @@ class TokenContract extends SmartContract {
     zkapp.sign();
   }
 
-  @method init() {
+  init() {
     super.init();
     let address = this.self.body.publicKey;
     let receiver = this.token.mint({
@@ -451,7 +451,10 @@ describe('Token', () => {
     */
     describe('Token Contract Creation/Deployment', () => {
       beforeEach(async () => {
-        await setupLocalProofs();
+        await setupLocalProofs().catch((err) => {
+          console.log(err);
+          throw err;
+        });
       });
 
       test('should successfully deploy a token account under a zkApp', async () => {
