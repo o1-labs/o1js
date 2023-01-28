@@ -1738,8 +1738,11 @@ const Authorization = {
       let priorAccountUpdatesFlat = CallForest.toFlatList(priorAccountUpdates);
       let accountUpdate = [...priorAccountUpdatesFlat]
         .reverse()
-        .find((accountUpdate) =>
-          accountUpdate.body.update.verificationKey.isSome.toBoolean()
+        .find((body_) =>
+          body_.update.verificationKey.isSome
+            .and(body_.tokenId.equals(body.tokenId))
+            .and(body_.publicKey.equals(body.publicKey))
+            .toBoolean()
         );
       if (accountUpdate !== undefined) {
         return accountUpdate.body.update.verificationKey.value.hash;
