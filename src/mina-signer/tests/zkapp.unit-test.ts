@@ -73,7 +73,7 @@ expect(() => {
     },
     privateKey
   );
-}).toThrow('Fee must be greater than');
+}).toThrow('Missing fee in fee payer');
 
 // should calculate a correct minimum fee
 expect(

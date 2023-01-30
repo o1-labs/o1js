@@ -307,7 +307,10 @@ class Client {
     let accountUpdates = zkappCommand.accountUpdates;
     let minimumFee = this.getAccountUpdateMinimumFee(accountUpdates);
     let fee_ = Number(feePayer.fee);
-    if (Number.isNaN(fee_) || fee_ < minimumFee) {
+    if (Number.isNaN(fee_)) {
+      throw Error('Missing fee in fee payer');
+    }
+    if (fee_ < minimumFee) {
       throw Error(`Fee must be greater than ${minimumFee}`);
     }
     let publicKey = feePayer.feePayer;
