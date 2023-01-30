@@ -99,7 +99,10 @@ type Transaction = {
 const Transaction = {
   fromJSON(json: Types.Json.ZkappCommand): Transaction {
     let transaction = ZkappCommand.fromJSON(json);
-    return newTransaction(transaction);
+    return newTransaction(
+      transaction,
+      (activeInstance as { proofsEnabled?: boolean }).proofsEnabled
+    );
   },
 };
 
@@ -366,6 +369,7 @@ function LocalBlockchain({
   const actions: Record<string, any> = {};
 
   return {
+    proofsEnabled,
     accountCreationFee: () => UInt64.from(accountCreationFee),
     currentSlot() {
       return UInt32.from(
@@ -1215,15 +1219,14 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
   n2 := signedPair
   n1 := signedSingle
   
-  10.26*np + 10.08*n2 + 9.14*n1 < 69.45
-
   formula used to calculate how expensive a zkapp transaction is
-  */
 
+  10.26*np + 10.08*n2 + 9.14*n1 < 69.45
+  */
   let totalTimeRequired =
-    proofCost * authTypes['proof'] +
-    signedPairCost * authTypes['signedPair'] +
-    signedSingleCost * authTypes['signedSingle'];
+    proofCost * authTypes.proof +
+    signedPairCost * authTypes.signedPair +
+    signedSingleCost * authTypes.signedSingle;
 
   let isWithinCostLimit = totalTimeRequired < costLimit;
 
