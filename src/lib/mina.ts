@@ -1,5 +1,3 @@
-// This is for an account where any of a list of public keys can update the state
-
 import { Circuit, Ledger, LedgerAccount } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { UInt32, UInt64 } from './int.js';
@@ -9,7 +7,6 @@ import {
   addMissingSignatures,
   FeePayerUnsigned,
   ZkappCommand,
-  zkappCommandToJson,
   AccountUpdate,
   ZkappStateLength,
   ZkappPublicInput,
@@ -37,6 +34,7 @@ export {
   LocalBlockchain,
   currentTransaction,
   CurrentTransaction,
+  Transaction,
   setActiveInstance,
   transaction,
   sender,
@@ -61,7 +59,7 @@ interface TransactionId {
   hash(): string | undefined;
 }
 
-interface Transaction {
+type Transaction = {
   /**
    * Transaction structure used to describe a state transition on the Mina blockchain.
    */
@@ -96,7 +94,14 @@ interface Transaction {
    * Sends the {@link Transaction} to the network.
    */
   send(): Promise<TransactionId>;
-}
+};
+
+const Transaction = {
+  fromJSON(json: Types.Json.ZkappCommand): Transaction {
+    let transaction = ZkappCommand.fromJSON(json);
+    return newTransaction(transaction);
+  },
+};
 
 type Account = Fetch.Account;
 
@@ -270,6 +275,10 @@ function createTransaction(
   };
 
   currentTransaction.leave(transactionId);
+  return newTransaction(transaction, proofsEnabled);
+}
+
+function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
   let self: Transaction = {
     transaction,
     sign(additionalKeys?: PrivateKey[]) {
@@ -284,7 +293,7 @@ function createTransaction(
       return proofs;
     },
     toJSON() {
-      let json = zkappCommandToJson(self.transaction);
+      let json = ZkappCommand.toJSON(self.transaction);
       return JSON.stringify(json);
     },
     toPretty() {
@@ -415,7 +424,7 @@ function LocalBlockchain({
       txn.sign();
 
       let commitments = Ledger.transactionCommitments(
-        JSON.stringify(zkappCommandToJson(txn.transaction))
+        JSON.stringify(ZkappCommand.toJSON(txn.transaction))
       );
 
       if (enforceTransactionLimits)
@@ -436,7 +445,7 @@ function LocalBlockchain({
         }
       }
 
-      let zkappCommandJson = zkappCommandToJson(txn.transaction);
+      let zkappCommandJson = ZkappCommand.toJSON(txn.transaction);
       try {
         ledger.applyJsonTransaction(
           JSON.stringify(zkappCommandJson),
