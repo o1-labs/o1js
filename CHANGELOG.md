@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `wait()` also now takes an optional `options` parameter to specify the polling interval or maximum attempts. `wait(options?: { maxAttempts?: number; interval?: number }): Promise<void>;`
 - `Circuit.constraintSystemFromKeypair(keypair)` to inspect the circuit at a low level https://github.com/o1-labs/snarkyjs/pull/529
   - Works with a `keypair` (prover + verifier key) generated with the `Circuit` API
-- `Mina.faucet()` can now be used to programmatically fund an address on the testnet, using the faucet provided by MinaExplorer https://github.com/o1-labs/snarkyjs/pull/693
+- `Mina.faucet()` can now be used to programmatically fund an address on the testnet, using the faucet provided by faucet.minaprotocol.com https://github.com/o1-labs/snarkyjs/pull/693
 
 ### Changed
 
