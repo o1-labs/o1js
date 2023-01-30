@@ -23,6 +23,7 @@ import {
   publicKeyToHex,
   rosettaTransactionToSignedCommand,
 } from './src/rosetta.js';
+import { sign, Signature } from './src/signature.js';
 
 export { Client as default };
 
@@ -95,6 +96,33 @@ class Client {
     let publicKey = PrivateKey.toPublicKey(privateKey);
     return PublicKey.toBase58(publicKey);
   }
+
+  /**
+   * Signs an arbitrary list of field elements in a SNARK-compatible way.
+   * The resulting signature can be verified in SnarkyJS as follows:
+   * ```ts
+   * // sign field elements with mina-signer
+   * let signed = client.signFieldElements(fields, privateKey);
+   *
+   * // read signature in snarkyjs and verify
+   * let signature = Signature.fromBase58(signed.signature);
+   * let isValid: Bool = signature.verify(publicKey, fields.map(Field));
+   * ```
+   *
+   * @param fields An arbitrary list of field elements
+   * @param privateKey The private key used for signing
+   * @returns The signed field elements
+   */
+  signFields(fields: bigint[], privateKey: Json.PrivateKey): Signed<bigint[]> {
+    let privateKey_ = PrivateKey.fromBase58(privateKey);
+    let signature = sign({ fields }, privateKey_, 'testnet');
+    return {
+      signature: Signature.toBase58(signature),
+      publicKey: PublicKey.toBase58(PrivateKey.toPublicKey(privateKey_)),
+      data: fields,
+    };
+  }
+  // TODO verifyFields
 
   /**
    * Signs an arbitrary message
