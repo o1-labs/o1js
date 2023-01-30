@@ -41,7 +41,7 @@ export type ZkappCommand = {
     readonly fee: UInt64;
     readonly nonce: UInt32;
     readonly memo?: string;
-    readonly validUntil?: UInt32;
+    readonly validUntil?: UInt32 | null;
   };
 };
 

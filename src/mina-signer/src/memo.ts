@@ -22,6 +22,17 @@ function fromString(memo: string) {
     '\x00'.repeat(32 - memo.length)
   );
 }
+function toString(memo: string) {
+  if (memo.length !== 34) {
+    throw Error(`Memo.toString: length ${memo.length} does not equal 34`);
+  }
+  if (memo[0] !== '\x01') {
+    throw Error('Memo.toString: expected memo to start with 0x01 byte');
+  }
+  let length = memo.charCodeAt(1);
+  if (length > 32) throw Error('Memo.toString: invalid length encoding');
+  return memo.slice(2, 2 + length);
+}
 
 function hash(memo: string) {
   let bits = Memo.toBits(memo);
@@ -43,6 +54,7 @@ const Binable: Binable<string> = defineBinable({
 
 const Memo = {
   fromString,
+  toString,
   hash,
   ...withBits(Binable, SIZE * 8),
   ...base58(Binable, versionBytes.userCommandMemo),

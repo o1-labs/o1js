@@ -313,7 +313,8 @@ class Client {
     let publicKey = feePayer.feePayer;
     let fee = String(fee_);
     let nonce = String(feePayer.nonce);
-    let validUntil = String(feePayer.validUntil ?? defaultValidUntil);
+    let validUntil =
+      feePayer.validUntil === undefined ? null : String(feePayer.validUntil);
     let memo = Memo.toBase58(Memo.fromString(feePayer.memo ?? ''));
     let command: TransactionJson.ZkappCommand = {
       feePayer: {
