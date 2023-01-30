@@ -39,7 +39,6 @@ export {
   AccountUpdate,
   Permissions,
   ZkappPublicInput,
-  zkappCommandToJson,
 } from './lib/account_update.js';
 
 export {

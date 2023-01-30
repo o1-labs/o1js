@@ -38,10 +38,23 @@ function signZkappCommand(
   networkId: NetworkId
 ): Json.ZkappCommand {
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
-  let fullCommitment = fullTransactionCommitment(zkappCommand);
+  let { commitment, fullCommitment } = transactionCommitments(zkappCommand);
   let privateKey = PrivateKey.fromBase58(privateKeyBase58);
+  let publicKey = zkappCommand.feePayer.body.publicKey;
+
+  // sign fee payer
   let signature = signFieldElement(fullCommitment, privateKey, networkId);
   zkappCommand.feePayer.authorization = Signature.toBase58(signature);
+
+  // sign other updates with the same public key that require a signature
+  for (let update of zkappCommand.accountUpdates) {
+    if (update.body.authorizationKind.isSigned === 0n) continue;
+    if (!PublicKey.equal(update.body.publicKey, publicKey)) continue;
+    let { useFullCommitment } = update.body;
+    let usedCommitment = useFullCommitment === 1n ? fullCommitment : commitment;
+    let signature = signFieldElement(usedCommitment, privateKey, networkId);
+    update.authorization = { signature: Signature.toBase58(signature) };
+  }
   return ZkappCommand.toJSON(zkappCommand);
 }
 
@@ -51,22 +64,39 @@ function verifyZkappCommandSignature(
   networkId: NetworkId
 ) {
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
-  let fullCommitment = fullTransactionCommitment(zkappCommand);
+  let { commitment, fullCommitment } = transactionCommitments(zkappCommand);
   let publicKey = PublicKey.fromBase58(publicKeyBase58);
+
+  // verify fee payer signature
   let signature = Signature.fromBase58(zkappCommand.feePayer.authorization);
-  return verifyFieldElement(signature, fullCommitment, publicKey, networkId);
+  let ok = verifyFieldElement(signature, fullCommitment, publicKey, networkId);
+  if (!ok) return false;
+
+  // verify other signatures for the same public key
+  for (let update of zkappCommand.accountUpdates) {
+    if (update.body.authorizationKind.isSigned === 0n) continue;
+    if (!PublicKey.equal(update.body.publicKey, publicKey)) continue;
+    let { useFullCommitment } = update.body;
+    let usedCommitment = useFullCommitment === 1n ? fullCommitment : commitment;
+    if (update.authorization.signature === undefined) return false;
+    let signature = Signature.fromBase58(update.authorization.signature);
+    ok = verifyFieldElement(signature, usedCommitment, publicKey, networkId);
+    if (!ok) return false;
+  }
+  return ok;
 }
 
-function fullTransactionCommitment(zkappCommand: ZkappCommand) {
+function transactionCommitments(zkappCommand: ZkappCommand) {
   let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
   let commitment = callForestHash(callForest);
   let memoHash = Memo.hash(Memo.fromBase58(zkappCommand.memo));
   let feePayerDigest = feePayerHash(zkappCommand.feePayer);
-  return hashWithPrefix(prefixes.accountUpdateCons, [
+  let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
     memoHash,
     feePayerDigest,
     commitment,
   ]);
+  return { commitment, fullCommitment };
 }
 
 type CallTree = { accountUpdate: AccountUpdate; children: CallForest };

@@ -307,13 +307,17 @@ class Client {
     let accountUpdates = zkappCommand.accountUpdates;
     let minimumFee = this.getAccountUpdateMinimumFee(accountUpdates);
     let fee_ = Number(feePayer.fee);
-    if (Number.isNaN(fee_) || fee_ < minimumFee) {
+    if (Number.isNaN(fee_)) {
+      throw Error('Missing fee in fee payer');
+    }
+    if (fee_ < minimumFee) {
       throw Error(`Fee must be greater than ${minimumFee}`);
     }
     let publicKey = feePayer.feePayer;
     let fee = String(fee_);
     let nonce = String(feePayer.nonce);
-    let validUntil = String(feePayer.validUntil ?? defaultValidUntil);
+    let validUntil =
+      feePayer.validUntil === undefined ? null : String(feePayer.validUntil);
     let memo = Memo.toBase58(Memo.fromString(feePayer.memo ?? ''));
     let command: TransactionJson.ZkappCommand = {
       feePayer: {

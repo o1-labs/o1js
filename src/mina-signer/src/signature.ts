@@ -51,6 +51,9 @@ const BinableSignature = withVersionNumber(
 const Signature = {
   ...BinableSignature,
   ...base58(BinableSignature, versionBytes.signature),
+  dummy() {
+    return { r: Field(0), s: Scalar(0) };
+  },
 };
 
 /**

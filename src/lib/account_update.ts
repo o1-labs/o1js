@@ -6,7 +6,7 @@ import {
   memoizeWitness,
   FlexibleProvable,
 } from './circuit_value.js';
-import { Field, Bool, Ledger, Circuit, Pickles, Provable } from '../snarky.js';
+import { Field, Bool, Ledger, Circuit, Pickles } from '../snarky.js';
 import { jsLayout } from '../provable/gen/js-layout.js';
 import { Types, toJSONEssential } from '../provable/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -19,6 +19,7 @@ import { hashWithPrefix, packToFields, prefixes, TokenSymbol } from './hash.js';
 import * as Encoding from './encoding.js';
 import { Context } from './global-context.js';
 import { Events, SequenceEvents } from '../provable/transaction-leaves.js';
+import { Memo } from '../mina-signer/src/memo.js';
 
 // external API
 export { Permissions, AccountUpdate, ZkappPublicInput };
@@ -33,7 +34,6 @@ export {
   Authorization,
   FeePayerUnsigned,
   ZkappCommand,
-  zkappCommandToJson,
   addMissingSignatures,
   addMissingProofs,
   signJsonTransaction,
@@ -1615,7 +1615,7 @@ type ZkappCommandProved = {
 
 const ZkappCommand = {
   toPretty(transaction: ZkappCommand) {
-    let feePayer = zkappCommandToJson(transaction).feePayer as any;
+    let feePayer = ZkappCommand.toJSON(transaction).feePayer as any;
     feePayer.body.publicKey = '..' + feePayer.body.publicKey.slice(-4);
     feePayer.body.authorization = '..' + feePayer.authorization.slice(-4);
     if (feePayer.body.validUntil === null) delete feePayer.body.validUntil;
@@ -1624,12 +1624,21 @@ const ZkappCommand = {
       ...transaction.accountUpdates.map((a) => a.toPretty()),
     ];
   },
+  fromJSON(json: Types.Json.ZkappCommand): ZkappCommand {
+    let { feePayer } = Types.ZkappCommand.fromJSON({
+      feePayer: json.feePayer,
+      accountUpdates: [],
+      memo: json.memo,
+    });
+    let memo = Memo.toString(Memo.fromBase58(json.memo));
+    let accountUpdates = json.accountUpdates.map(AccountUpdate.fromJSON);
+    return { feePayer, accountUpdates, memo };
+  },
+  toJSON({ feePayer, accountUpdates, memo }: ZkappCommand) {
+    memo = Ledger.memoToBase58(memo);
+    return Types.ZkappCommand.toJSON({ feePayer, accountUpdates, memo });
+  },
 };
-
-function zkappCommandToJson({ feePayer, accountUpdates, memo }: ZkappCommand) {
-  memo = Ledger.memoToBase58(memo);
-  return Types.ZkappCommand.toJSON({ feePayer, accountUpdates, memo });
-}
 
 const Authorization = {
   hasLazyProof(accountUpdate: AccountUpdate) {
@@ -1677,7 +1686,7 @@ function addMissingSignatures(
 ): ZkappCommandSigned {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
   let { commitment, fullCommitment } = Ledger.transactionCommitments(
-    JSON.stringify(zkappCommandToJson(zkappCommand))
+    JSON.stringify(ZkappCommand.toJSON(zkappCommand))
   );
   function addFeePayerSignature(accountUpdate: FeePayerUnsigned): FeePayer {
     let { body, authorization, lazyAuthorization } =

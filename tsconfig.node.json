@@ -5,6 +5,7 @@
     "./src/snarky.js",
     "./src/snarky/wrapper.js",
     "./src/mina-signer/src",
+    "./src/mina-signer/MinaSigner.ts",
     "./src/js_crypto",
     "./src/provable"
   ],

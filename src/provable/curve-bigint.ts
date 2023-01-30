@@ -99,6 +99,10 @@ const PublicKey = {
     return { x, isOdd };
   },
 
+  equal(pk1: PublicKey, pk2: PublicKey) {
+    return pk1.x === pk2.x && pk1.isOdd === pk2.isOdd;
+  },
+
   toInputLegacy({ x, isOdd }: PublicKey): HashInputLegacy {
     return { fields: [x], bits: [!!isOdd] };
   },

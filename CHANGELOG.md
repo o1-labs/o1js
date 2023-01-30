@@ -17,7 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/c5a36207...HEAD)
 
-> No unreleased changes yet
+### Added
+
+- `Transaction.fromJSON` to recover transaction object from JSON https://github.com/o1-labs/snarkyjs/pull/705
 
 ## [0.8.0](https://github.com/o1-labs/snarkyjs/compare/d880bd6e...c5a36207)
 
