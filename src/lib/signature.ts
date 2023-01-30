@@ -1,6 +1,8 @@
-import { Group, Field, Bool, Scalar, Ledger, Circuit } from '../snarky.js';
+import { Group, Field, Bool, Scalar, Ledger } from '../snarky.js';
 import { prop, CircuitValue, AnyConstructor } from './circuit_value.js';
-import { Poseidon } from './hash.js';
+import { hashWithPrefix } from './hash.js';
+import { Signature as SignatureBigint } from '../mina-signer/src/signature.js';
+import { prefixes } from '../js_crypto/constants.js';
 
 // external API
 export { PrivateKey, PublicKey, Signature };
@@ -192,12 +194,16 @@ class Signature extends CircuitValue {
   static create(privKey: PrivateKey, msg: Field[]): Signature {
     const publicKey = PublicKey.fromPrivateKey(privKey).toGroup();
     const d = privKey.s;
+    // TODO: derive nonce deterministically
     const kPrime = Scalar.random();
     let { x: r, y: ry } = Group.generator.scale(kPrime);
     const k = ry.toBits()[0].toBoolean() ? kPrime.neg() : kPrime;
-    const e = Scalar.fromBits(
-      Poseidon.hash(msg.concat([publicKey.x, publicKey.y, r])).toBits()
+    let h = hashWithPrefix(
+      prefixes.signatureTestnet,
+      msg.concat([publicKey.x, publicKey.y, r])
     );
+    // FIXME: this changes the value!
+    const e = Scalar.fromBits(h.toBits());
     const s = e.mul(d).add(k);
     return new Signature(r, s);
   }
@@ -208,10 +214,27 @@ class Signature extends CircuitValue {
    */
   verify(publicKey: PublicKey, msg: Field[]): Bool {
     const point = publicKey.toGroup();
-    let e = Scalar.fromBits(
-      Poseidon.hash(msg.concat([point.x, point.y, this.r])).toBits()
+    let h = hashWithPrefix(
+      prefixes.signatureTestnet,
+      msg.concat([point.x, point.y, this.r])
     );
+    // FIXME: this changes the value!
+    let e = Scalar.fromBits(h.toBits());
     let r = point.scale(e).neg().add(Group.generator.scale(this.s));
     return Bool.and(r.x.equals(this.r), r.y.toBits()[0].equals(false));
+  }
+
+  // TODO: doccomments
+  static fromBase58(signatureBase58: string) {
+    let { r, s } = SignatureBigint.fromBase58(signatureBase58);
+    return Signature.fromObject({
+      r: Field(r),
+      s: Scalar.fromJSON(s.toString()),
+    });
+  }
+  toBase58() {
+    let r = this.r.toBigInt();
+    let s = BigInt(this.s.toJSON());
+    return SignatureBigint.toBase58({ r, s });
   }
 }
