@@ -23,7 +23,7 @@ import {
   publicKeyToHex,
   rosettaTransactionToSignedCommand,
 } from './src/rosetta.js';
-import { sign, Signature } from './src/signature.js';
+import { sign, Signature, verify } from './src/signature.js';
 
 export { Client as default };
 
@@ -122,7 +122,22 @@ class Client {
       data: fields,
     };
   }
-  // TODO verifyFields
+
+  /**
+   * Verifies a signature created by {@link signFields}.
+   *
+   * @param signedFields The signed field elements
+   * @returns True if the `signedFields` contains a valid signature matching
+   * the fields and publicKey.
+   */
+  verifyFields({ data, signature, publicKey }: Signed<bigint[]>) {
+    return verify(
+      Signature.fromBase58(signature),
+      { fields: data },
+      PublicKey.fromBase58(publicKey),
+      'testnet'
+    );
+  }
 
   /**
    * Signs an arbitrary message
@@ -142,7 +157,7 @@ class Client {
   }
 
   /**
-   * Verifies that a signature matches a message.
+   * Verifies a signature created by {@link signMessage}.
    *
    * @param signedMessage A signed message
    * @returns True if the `signedMessage` contains a valid signature matching
