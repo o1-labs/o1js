@@ -2,6 +2,8 @@ import { bytesToBigInt } from '../js_crypto/bigint-helpers.js';
 import { defineBinable } from '../provable/binable.js';
 import { sizeInBits } from '../provable/field-bigint.js';
 import { Bool, Field, Scalar, Group } from '../snarky.js';
+import { Scalar as ScalarBigint } from '../provable/curve-bigint.js';
+import { mod } from '../js_crypto/finite_field.js';
 
 export { Field, Bool, Scalar, Group };
 
@@ -71,4 +73,9 @@ That means it can't be called in a @method or similar environment, and there's n
     field: Field(x & lowBitMask),
     highBit: Bool(x >> lowBitSize === 1n),
   };
+};
+
+Scalar.fromBigInt = function (scalar: bigint) {
+  scalar = mod(scalar, ScalarBigint.modulus);
+  return Scalar.fromJSON(scalar.toString());
 };

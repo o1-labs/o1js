@@ -990,6 +990,11 @@ declare class Scalar {
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Scalar.
    */
   static fromJSON(x: string | number | boolean): Scalar;
+  /**
+   * Create a constant {@link Scalar} from a bigint.
+   * If the bigint is too large, it is reduced modulo the scalar field order.
+   */
+  static fromBigInt(s: bigint): Scalar;
   static check(x: Scalar): void;
 }
 
