@@ -1,7 +1,11 @@
 import { Group, Field, Bool, Scalar, Ledger } from '../snarky.js';
 import { prop, CircuitValue, AnyConstructor } from './circuit_value.js';
 import { hashWithPrefix } from './hash.js';
-import { Signature as SignatureBigint } from '../mina-signer/src/signature.js';
+import {
+  deriveNonce,
+  Signature as SignatureBigint,
+} from '../mina-signer/src/signature.js';
+import { Scalar as ScalarBigint } from '../provable/curve-bigint.js';
 import { prefixes } from '../js_crypto/constants.js';
 
 // external API
@@ -194,16 +198,23 @@ class Signature extends CircuitValue {
   static create(privKey: PrivateKey, msg: Field[]): Signature {
     const publicKey = PublicKey.fromPrivateKey(privKey).toGroup();
     const d = privKey.s;
-    // TODO: derive nonce deterministically
-    const kPrime = Scalar.random();
+    const kPrime = Scalar.fromBigInt(
+      deriveNonce(
+        { fields: msg.map((f) => f.toBigInt()) },
+        { x: publicKey.x.toBigInt(), y: publicKey.y.toBigInt() },
+        BigInt(d.toJSON()),
+        'testnet'
+      )
+    );
     let { x: r, y: ry } = Group.generator.scale(kPrime);
     const k = ry.toBits()[0].toBoolean() ? kPrime.neg() : kPrime;
     let h = hashWithPrefix(
       prefixes.signatureTestnet,
       msg.concat([publicKey.x, publicKey.y, r])
     );
-    // FIXME: this changes the value!
-    const e = Scalar.fromBits(h.toBits());
+    // TODO: Scalar.fromBits interprets the input as a "shifted scalar"
+    // therefore we have to unshift e before using it
+    let e = unshift(Scalar.fromBits(h.toBits()));
     const s = e.mul(d).add(k);
     return new Signature(r, s);
   }
@@ -218,13 +229,16 @@ class Signature extends CircuitValue {
       prefixes.signatureTestnet,
       msg.concat([point.x, point.y, this.r])
     );
-    // FIXME: this changes the value!
+    // TODO: Scalar.fromBits interprets the input as a "shifted scalar"
+    // therefore we have to use scaleShifted which is very inefficient
     let e = Scalar.fromBits(h.toBits());
-    let r = point.scale(e).neg().add(Group.generator.scale(this.s));
+    let r = scaleShifted(point, e).neg().add(Group.generator.scale(this.s));
     return Bool.and(r.x.equals(this.r), r.y.toBits()[0].equals(false));
   }
 
-  // TODO: doccomments
+  /**
+   * Decodes a base58 encoded signature into a {@link Signature}.
+   */
   static fromBase58(signatureBase58: string) {
     let { r, s } = SignatureBigint.fromBase58(signatureBase58);
     return Signature.fromObject({
@@ -232,9 +246,30 @@ class Signature extends CircuitValue {
       s: Scalar.fromJSON(s.toString()),
     });
   }
+  /**
+   * Encodes a {@link Signature} in base58 format.
+   */
   toBase58() {
     let r = this.r.toBigInt();
     let s = BigInt(this.s.toJSON());
     return SignatureBigint.toBase58({ r, s });
   }
 }
+
+// performs scalar multiplication s*G assuming that instead of s, we got s' = 2s + 1 + 2^255
+// cost: 2x scale by constant, 1x scale by variable
+function scaleShifted(point: Group, shiftedScalar: Scalar) {
+  let oneHalfGroup = point.scale(Scalar.fromBigInt(oneHalf));
+  let shiftGroup = oneHalfGroup.scale(Scalar.fromBigInt(shift));
+  return oneHalfGroup.scale(shiftedScalar).sub(shiftGroup);
+}
+// returns s, assuming that instead of s, we got s' = 2s + 1 + 2^255
+// (only works out of snark)
+function unshift(shiftedScalar: Scalar) {
+  return shiftedScalar
+    .sub(Scalar.fromBigInt(shift))
+    .mul(Scalar.fromBigInt(oneHalf));
+}
+
+let shift = ScalarBigint(1n + 2n ** 255n);
+let oneHalf = ScalarBigint.inverse(2n)!;
