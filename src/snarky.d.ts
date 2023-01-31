@@ -1274,7 +1274,7 @@ declare class Ledger {
   /**
    * Signs an account update.
    */
-  static signAccountUpdate(
+  static signOtherAccountUpdate(
     txJson: string,
     privateKey: { s: Scalar },
     i: number
