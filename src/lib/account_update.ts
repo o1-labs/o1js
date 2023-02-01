@@ -426,7 +426,12 @@ const Body = {
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
-      body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
+      body.mayUseToken = Circuit.if(
+        tokenId.equals(TokenId.default),
+        AccountUpdate.MayUseToken.type,
+        AccountUpdate.MayUseToken.No,
+        AccountUpdate.MayUseToken.ParentsOwnToken
+      );
     }
     if (mayUseToken) {
       body.mayUseToken = mayUseToken;
@@ -1376,6 +1381,10 @@ class AccountUpdate implements Types.AccountUpdate {
 
   static get MayUseToken() {
     return {
+      type: provablePure(
+        { parentsOwnToken: Bool, inheritFromParent: Bool },
+        { customObjectKeys: ['parentsOwnToken', 'inheritFromParent'] }
+      ),
       No: { parentsOwnToken: Bool(false), inheritFromParent: Bool(false) },
       ParentsOwnToken: {
         parentsOwnToken: Bool(true),

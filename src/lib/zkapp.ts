@@ -1494,6 +1494,7 @@ async function deploy<S extends typeof SmartContract>(
       zkapp.self.balance.addInPlace(amount);
     }
   });
+  console.log(tx.toPretty());
   return tx.sign().toJSON();
 }
 
