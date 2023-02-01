@@ -842,7 +842,6 @@ class AccountUpdate implements Types.AccountUpdate {
     layout: AccountUpdatesLayout = AccountUpdate.Layout.NoChildren
   ) {
     makeChildAccountUpdate(this, childUpdate);
-    this.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
     AccountUpdate.witnessChildren(childUpdate, layout, { skipCheck: true });
   }
 
