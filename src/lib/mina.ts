@@ -893,6 +893,18 @@ async function verifyAccountUpdate(
   },
   proofsEnabled: boolean
 ): Promise<void> {
+  // check that that top-level updates have mayUseToken = No
+  // (equivalent check exists in the Mina node)
+  if (
+    accountUpdate.body.callDepth === 0 &&
+    !AccountUpdate.MayUseToken.isNo(accountUpdate).toBoolean()
+  ) {
+    throw Error(
+      'Top-level account update can not use or pass on custom token permissions. make sure that\n' +
+        'accountUpdate.body.mayUseToken = AccountUpdate.MayUseToken.No;'
+    );
+  }
+
   let perm = account.permissions;
 
   let { commitment, fullCommitment } = transactionCommitments;

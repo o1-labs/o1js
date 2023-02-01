@@ -1394,6 +1394,19 @@ class AccountUpdate implements Types.AccountUpdate {
         parentsOwnToken: Bool(false),
         inheritFromParent: Bool(true),
       },
+      isNo({
+        body: {
+          mayUseToken: { parentsOwnToken, inheritFromParent },
+        },
+      }: AccountUpdate) {
+        return parentsOwnToken.or(inheritFromParent).not();
+      },
+      isParentsOwnToken(a: AccountUpdate) {
+        return a.body.mayUseToken.parentsOwnToken;
+      },
+      isInheritFromParent(a: AccountUpdate) {
+        return a.body.mayUseToken.inheritFromParent;
+      },
     };
   }
 
@@ -1488,10 +1501,6 @@ type AccountUpdatesLayout =
   | 'AnyChildren'
   | 'NoDelegation'
   | AccountUpdatesLayout[];
-
-type CallType = {
-  isDelegateCall: Bool;
-};
 
 type WithCallers = {
   accountUpdate: AccountUpdate;
