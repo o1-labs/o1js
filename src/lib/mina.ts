@@ -900,7 +900,7 @@ async function verifyAccountUpdate(
     !AccountUpdate.MayUseToken.isNo(accountUpdate).toBoolean()
   ) {
     throw Error(
-      'Top-level account update can not use or pass on custom token permissions. make sure that\n' +
+      'Top-level account update can not use or pass on token permissions. Make sure that\n' +
         'accountUpdate.body.mayUseToken = AccountUpdate.MayUseToken.No;'
     );
   }
