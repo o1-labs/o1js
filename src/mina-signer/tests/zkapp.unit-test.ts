@@ -77,8 +77,8 @@ expect(() => {
 
 // should calculate a correct minimum fee
 expect(
-  client.getAccountUpdateMinimumFee(exampleZkappCommand.accountUpdates, 1)
-).toBe(2);
+  client.getAccountUpdateMinimumFee(exampleZkappCommand.accountUpdates)
+).toBe(0.002);
 
 // same transaction signed with snarkyjs (OCaml implementation) gives the same result
 await isReady;

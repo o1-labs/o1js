@@ -441,16 +441,9 @@ class Client {
    * the sum of all account updates plus the specified fee amount. If no fee is passed in, `0.001`
    * is used (according to the Mina spec) by default.
    * @param accountUpdates A list of account updates
-   * @param fee The fee per accountUpdate amount
    * @returns  The fee to be paid by the fee payer accountUpdate
    */
-  getAccountUpdateMinimumFee(
-    accountUpdates: TransactionJson.AccountUpdate[],
-    fee: number = 0.001
-  ) {
-    return accountUpdates.reduce(
-      (accumulatedFee, _) => accumulatedFee + fee,
-      0
-    );
+  getAccountUpdateMinimumFee(accountUpdates: TransactionJson.AccountUpdate[]) {
+    return 0.001 * accountUpdates.length;
   }
 }
