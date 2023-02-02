@@ -151,6 +151,10 @@ function accountUpdateFromFeePayer({
   body.useFullCommitment = Bool(true);
   body.mayUseToken = { parentsOwnToken: Bool(false), inheritFromParent: Bool(false) };
   body.implicitAccountCreationFee = Bool(true);
-  body.authorizationKind = { isProved: Bool(false), isSigned: Bool(true) };
+  body.authorizationKind = {
+    isProved: Bool(false),
+    isSigned: Bool(true),
+    verificationKeyHash: Field(0),
+  };
   return { body, authorization: { signature } };
 }

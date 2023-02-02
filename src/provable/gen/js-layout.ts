@@ -727,7 +727,22 @@ let jsLayout = {
                     inheritFromParent: null,
                   },
                 },
-                authorizationKind: { type: 'AuthorizationKind' },
+                authorizationKind: {
+                  type: 'object',
+                  name: 'AuthorizationKindStructured',
+                  docs: null,
+                  keys: ['isSigned', 'isProved', 'verificationKeyHash'],
+                  entries: {
+                    isSigned: { type: 'Bool' },
+                    isProved: { type: 'Bool' },
+                    verificationKeyHash: { type: 'Field' },
+                  },
+                  docEntries: {
+                    isSigned: null,
+                    isProved: null,
+                    verificationKeyHash: null,
+                  },
+                },
               },
               docEntries: {
                 publicKey: null,
@@ -1449,7 +1464,22 @@ let jsLayout = {
             },
             docEntries: { parentsOwnToken: null, inheritFromParent: null },
           },
-          authorizationKind: { type: 'AuthorizationKind' },
+          authorizationKind: {
+            type: 'object',
+            name: 'AuthorizationKindStructured',
+            docs: null,
+            keys: ['isSigned', 'isProved', 'verificationKeyHash'],
+            entries: {
+              isSigned: { type: 'Bool' },
+              isProved: { type: 'Bool' },
+              verificationKeyHash: { type: 'Field' },
+            },
+            docEntries: {
+              isSigned: null,
+              isProved: null,
+              verificationKeyHash: null,
+            },
+          },
         },
         docEntries: {
           publicKey: null,

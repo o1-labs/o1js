@@ -132,7 +132,7 @@ type FetchedAccount = {
   >;
   delegateAccount?: { publicKey: string };
   sequenceEvents?: string[] | null;
-  verificationKey?: { verificationKey: string };
+  verificationKey?: { verificationKey: string; hash: string };
   // TODO: how to query provedState?
 };
 
@@ -148,7 +148,7 @@ type Account = {
   delegate?: PublicKey;
   sequenceState?: Field;
   provedState: Bool;
-  verificationKey?: string;
+  verificationKey?: { data: string; hash: Field };
   timing?: NonNullable<
     Types.AccountUpdate['body']['update']['timing']['value']
   > & {
@@ -162,7 +162,10 @@ type FlexibleAccount = {
   tokenId?: string;
   tokenSymbol?: string;
   balance?: UInt64 | string | number;
-  zkapp?: { appState: (Field | string | number)[] };
+  zkapp?: {
+    appState: (Field | string | number)[];
+    verificationKey?: { data: string; hash: string };
+  };
 };
 
 // TODO provedState
@@ -241,7 +244,10 @@ function parseFetchedAccount({
       delegateAccount && PublicKey.fromBase58(delegateAccount.publicKey),
     tokenId: token !== undefined ? Ledger.fieldOfBase58(token) : undefined,
     tokenSymbol: tokenSymbol !== undefined ? tokenSymbol : undefined,
-    verificationKey: verificationKey?.verificationKey,
+    verificationKey: verificationKey && {
+      data: verificationKey.verificationKey,
+      hash: Field(verificationKey.hash),
+    },
   };
 }
 
@@ -257,6 +263,10 @@ function stringifyAccount(account: FlexibleAccount): FetchedAccount {
     balance: { total: balance?.toString() ?? '0' },
     token: tokenId ?? TokenId.toBase58(TokenId.default),
     tokenSymbol: tokenSymbol ?? '',
+    verificationKey: zkapp?.verificationKey && {
+      verificationKey: zkapp?.verificationKey.data,
+      hash: zkapp?.verificationKey.hash,
+    },
   };
 }
 
@@ -359,6 +369,7 @@ function addCachedAccount(
     balance?: string | number | UInt64;
     zkapp?: {
       appState: (string | number | Field)[];
+      verificationKey?: { data: string; hash: string };
     };
     tokenId: string;
   },
