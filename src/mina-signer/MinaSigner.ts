@@ -124,17 +124,6 @@ class Client {
     return verifyStringSignature(data, signature, publicKey, this.network);
   }
 
-  private normalizeCommon(common: Json.Common): Json.StrictCommon {
-    return {
-      to: common.to,
-      from: common.from,
-      fee: String(common.fee),
-      nonce: String(common.nonce),
-      memo: common.memo ?? '',
-      validUntil: String(common.validUntil ?? defaultValidUntil),
-    };
-  }
-
   /**
    * Signs a payment transaction using a private key.
    *
@@ -149,8 +138,7 @@ class Client {
     payment: Json.Payment,
     privateKey: Json.PrivateKey
   ): Signed<Json.Payment> {
-    let { fee, to, from, nonce, validUntil, memo } =
-      this.normalizeCommon(payment);
+    let { fee, to, from, nonce, validUntil, memo } = validCommon(payment);
     let amount = String(payment.amount);
     let signature = signPayment(
       {
@@ -174,8 +162,8 @@ class Client {
    * @returns True if the `signedPayment` is a verifiable payment
    */
   verifyPayment({ data, signature, publicKey }: Signed<Json.Payment>): boolean {
-    let { fee, to, from, nonce, validUntil, memo } = this.normalizeCommon(data);
-    let amount = String(data.amount);
+    let { fee, to, from, nonce, validUntil, memo } = validCommon(data);
+    let amount = validNonNegative(data.amount);
     return verifyPayment(
       {
         common: { fee, feePayer: from, nonce, validUntil, memo },
@@ -195,16 +183,15 @@ class Client {
    * account that is delegated to is then considered as having these
    * funds when determining whether it can produce a block in a given slot.
    *
-   * @param stakeDelegation An object describing the stake delegation
+   * @param delegation An object describing the stake delegation
    * @param privateKey The private key used to sign the transaction
    * @returns A signed stake delegation
    */
   signStakeDelegation(
-    stakeDelegation: Json.StakeDelegation,
+    delegation: Json.StakeDelegation,
     privateKey: Json.PrivateKey
   ): Signed<Json.StakeDelegation> {
-    let { fee, to, from, nonce, validUntil, memo } =
-      this.normalizeCommon(stakeDelegation);
+    let { fee, to, from, nonce, validUntil, memo } = validCommon(delegation);
     let signature = signStakeDelegation(
       {
         common: { fee, feePayer: from, nonce, validUntil, memo },
@@ -231,7 +218,7 @@ class Client {
     signature,
     publicKey,
   }: Signed<Json.StakeDelegation>): boolean {
-    let { fee, to, from, nonce, validUntil, memo } = this.normalizeCommon(data);
+    let { fee, to, from, nonce, validUntil, memo } = validCommon(data);
     return verifyStakeDelegation(
       {
         common: { fee, feePayer: from, nonce, validUntil, memo },
@@ -253,8 +240,8 @@ class Client {
     { data, signature }: Signed<Json.Payment>,
     options?: { berkeley?: boolean }
   ): string {
-    let { fee, to, from, nonce, validUntil, memo } = this.normalizeCommon(data);
-    let amount = String(data.amount);
+    let { fee, to, from, nonce, validUntil, memo } = validCommon(data);
+    let amount = validNonNegative(data.amount);
     return hashPayment(
       {
         signature,
@@ -277,7 +264,7 @@ class Client {
     { data, signature }: Signed<Json.StakeDelegation>,
     options?: { berkeley?: boolean }
   ): string {
-    let { fee, to, from, nonce, validUntil, memo } = this.normalizeCommon(data);
+    let { fee, to, from, nonce, validUntil, memo } = validCommon(data);
     return hashStakeDelegation(
       {
         signature,
@@ -301,42 +288,24 @@ class Client {
    * @returns Signed `zkappCommand`
    */
   signZkappCommand(
-    { feePayer, zkappCommand }: Json.ZkappCommand,
+    { feePayer: feePayer_, zkappCommand }: Json.ZkappCommand,
     privateKey: Json.PrivateKey
   ): Signed<Json.ZkappCommand> {
     let accountUpdates = zkappCommand.accountUpdates;
     let minimumFee = this.getAccountUpdateMinimumFee(accountUpdates);
-    let fee_ = Number(feePayer.fee);
-    if (Number.isNaN(fee_)) {
-      throw Error('Missing fee in fee payer');
-    }
-    if (fee_ < minimumFee) {
-      throw Error(`Fee must be greater than ${minimumFee}`);
-    }
-    let publicKey = feePayer.feePayer;
-    let fee = String(fee_);
-    let nonce = String(feePayer.nonce);
-    let validUntil =
-      feePayer.validUntil === undefined ? null : String(feePayer.validUntil);
-    let memo = Memo.toBase58(Memo.fromString(feePayer.memo ?? ''));
+    let feePayer = validFeePayer(feePayer_, minimumFee);
+    let { fee, nonce, validUntil, feePayer: publicKey, memo } = feePayer;
     let command: TransactionJson.ZkappCommand = {
       feePayer: {
         body: { publicKey, fee, nonce, validUntil },
         authorization: '', // gets filled below
       },
       accountUpdates,
-      memo,
+      memo: Memo.toBase58(Memo.fromString(memo)),
     };
     let signed = signZkappCommand(command, privateKey, this.network);
     let signature = signed.feePayer.authorization;
-    return {
-      signature,
-      publicKey,
-      data: {
-        zkappCommand: signed,
-        feePayer: { feePayer: publicKey, fee, nonce, memo, validUntil },
-      },
-    };
+    return { signature, publicKey, data: { zkappCommand: signed, feePayer } };
   }
 
   /**
@@ -446,4 +415,41 @@ class Client {
   getAccountUpdateMinimumFee(accountUpdates: TransactionJson.AccountUpdate[]) {
     return 0.001 * accountUpdates.length;
   }
+}
+
+function validNonNegative(n: number | string | bigint): string {
+  let n0 = BigInt(n); // validates that string represents an integer; also throws runtime errors for nullish inputs
+  if (n0 < 0) throw Error('input must be non-negative');
+  return n0.toString();
+}
+
+function validCommon(common: Json.Common): Json.StrictCommon {
+  return {
+    to: common.to,
+    from: common.from,
+    fee: validNonNegative(common.fee),
+    nonce: validNonNegative(common.nonce),
+    memo: common.memo ?? '',
+    validUntil: validNonNegative(common.validUntil ?? defaultValidUntil),
+  };
+}
+
+function validFeePayer(
+  feePayer: Json.ZkappCommand['feePayer'],
+  minimumFee: number
+): Json.StrictFeePayer {
+  if (feePayer.fee === undefined) throw Error('Missing fee in fee payer');
+  let fee = validNonNegative(feePayer.fee);
+  if (Number(fee) < minimumFee)
+    throw Error(`Fee must be greater than ${minimumFee}`);
+  return {
+    feePayer: feePayer.feePayer,
+    fee,
+    nonce: validNonNegative(feePayer.nonce),
+    memo: feePayer.memo ?? '',
+    validUntil:
+      feePayer.validUntil === undefined || feePayer.validUntil === null
+        ? null
+        : validNonNegative(feePayer.validUntil),
+  };
 }

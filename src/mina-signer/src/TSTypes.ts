@@ -33,16 +33,24 @@ export type StrictCommon = {
 export type StakeDelegation = Common;
 export type Payment = Common & { readonly amount: UInt64 };
 
+type FeePayer = {
+  readonly feePayer: PublicKey;
+  readonly fee: UInt64;
+  readonly nonce: UInt32;
+  readonly memo?: string;
+  readonly validUntil?: UInt32 | null;
+};
+export type StrictFeePayer = {
+  readonly feePayer: PublicKey;
+  readonly fee: string;
+  readonly nonce: string;
+  readonly memo: string;
+  readonly validUntil: string | null;
+};
+
 export type ZkappCommand = {
   readonly zkappCommand: ZkappCommandJson;
-
-  readonly feePayer: {
-    readonly feePayer: PublicKey;
-    readonly fee: UInt64;
-    readonly nonce: UInt32;
-    readonly memo?: string;
-    readonly validUntil?: UInt32 | null;
-  };
+  readonly feePayer: FeePayer;
 };
 
 export type SignableData = string | StakeDelegation | Payment | ZkappCommand;
