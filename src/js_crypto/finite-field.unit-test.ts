@@ -10,7 +10,7 @@ for (let F of [Fp, Fq]) {
   console.assert(rootFp === F.twoadicRoot);
 
   // the primitive roots of unity `r` actually satisfy the equations defining them:
-  // r^(2^32) = 1, r^(2^31) != 1
+  // r^(2^32) === 1, r^(2^31) !== 1
   let shouldBe1 = F.power(F.twoadicRoot, 1n << 32n);
   let shouldBeMinus1 = F.power(F.twoadicRoot, 1n << 31n);
   console.assert(shouldBe1 === 1n);

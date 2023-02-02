@@ -302,7 +302,7 @@ function ProvableFromLayout<
     if (typeData.type === 'array') {
       let arrayTypeData = typeData as ArrayLayout<TypeMap>;
       let { inner, staticLength } = arrayTypeData;
-      if (staticLength == null) return [];
+      if (staticLength === null) return [];
       return Array(staticLength).fill(emptyValue(inner));
     }
     if (typeData.type === 'option') {
@@ -430,7 +430,7 @@ function ProvableFromLayout<
     if (typeData.type === 'array') {
       let arrayTypeData = typeData as ArrayLayout<TypeMap>;
       let v: T[] | undefined[] | undefined = value as any;
-      if (arrayTypeData.staticLength != null && v === undefined) {
+      if (arrayTypeData.staticLength !== null && v === undefined) {
         v = Array<undefined>(arrayTypeData.staticLength).fill(undefined);
       }
       let array = v?.map((x) => layoutFold(spec, arrayTypeData.inner, x)) ?? [];

@@ -202,7 +202,7 @@ function test() {
   console.assert(rootFp === twoadicRootFp);
 
   // the primitive roots of unity `r` actually satisfy the equations defining them:
-  // r^(2^32) = 1, r^(2^31) != 1
+  // r^(2^32) === 1, r^(2^31) !== 1
   let shouldBe1 = power(twoadicRootFp, 1n << 32n, p);
   let shouldBeMinus1 = power(twoadicRootFp, 1n << 31n, p);
   console.assert(shouldBe1 === 1n);

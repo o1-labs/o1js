@@ -384,7 +384,7 @@ function LocalBlockchain({
       tokenId: Field = TokenId.default
     ): Account {
       let ledgerAccount = ledger.getAccount(publicKey, tokenId);
-      if (ledgerAccount == undefined) {
+      if (ledgerAccount === undefined) {
         throw new Error(
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
         );
@@ -1043,11 +1043,13 @@ async function verifyAccountUpdate(
   let { commitment, fullCommitment } = transactionCommitments;
 
   // we are essentially only checking if the update is empty or an actual update
-  function includesChange(val: any): boolean {
+  function includesChange<T extends {}>(
+    val: T | string | null | (string | null)[]
+  ): boolean {
     if (Array.isArray(val)) {
       return !val.every((v) => v === null);
     } else {
-      return val != null;
+      return val !== null;
     }
   }
 
@@ -1136,26 +1138,26 @@ async function verifyAccountUpdate(
   let verified = false;
 
   function checkPermission(p: Types.Json.AuthRequired, field: string) {
-    if (p == 'None') return;
+    if (p === 'None') return;
 
-    if (p == 'Impossible') {
+    if (p === 'Impossible') {
       throw Error(
         `Transaction verification failed: Cannot update field '${field}' because permission for this field is '${p}'`
       );
     }
 
-    if (p == 'Signature' || p == 'Either') {
+    if (p === 'Signature' || p === 'Either') {
       verified ||= isValidSignature;
     }
 
-    if (p == 'Proof' || p == 'Either') {
+    if (p === 'Proof' || p === 'Either') {
       verified ||= isValidProof;
     }
 
     if (!verified) {
       throw Error(
         `Transaction verification failed: Cannot update field '${field}' because permission for this field is '${p}', but the required authorization was not provided or is invalid.
-        ${errorTrace != '' ? 'Error trace: ' + errorTrace : ''}`
+        ${errorTrace !== '' ? 'Error trace: ' + errorTrace : ''}`
       );
     }
   }
@@ -1262,7 +1264,7 @@ let N = 'None_given';
 let P = 'Proof';
 
 const isPair = (pair: string) =>
-  pair == S + N || pair == N + S || pair == S + S || pair == N + N;
+  pair === S + N || pair === N + S || pair === S + S || pair === N + N;
 
 function filterPairs(xs: string[]): {
   xs: string[];
@@ -1296,7 +1298,7 @@ function filterGroups(xs: string[]) {
   let proofCount = 0;
 
   xs.forEach((t) => {
-    if (t == P) proofCount++;
+    if (t === P) proofCount++;
     else singleCount++;
   });
 
@@ -1342,7 +1344,7 @@ async function faucet(pub: PublicKey, network: string = 'berkeley-qanet') {
     }),
   });
   response = await response.json();
-  if (response.status.toString() != 'success') {
+  if (response.status.toString() !== 'success') {
     throw new Error(
       `Error funding account ${address}, got response status: ${response.status}, text: ${response.statusText}`
     );

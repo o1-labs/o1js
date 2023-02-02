@@ -243,7 +243,9 @@ function parseFetchedAccount({
         ])
       ) as unknown as Permissions),
     sequenceState:
-      sequenceEvents != undefined ? Field(sequenceEvents[0]) : undefined,
+      sequenceEvents !== undefined && sequenceEvents !== null
+        ? Field(sequenceEvents[0])
+        : undefined,
     receiptChainHash:
       receiptChainHash !== undefined
         ? Encoding.ReceiptChainHash.fromBase58(receiptChainHash)
