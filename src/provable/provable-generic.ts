@@ -50,6 +50,8 @@ function createProvable<Field>(): ProvableConstructor<Field> {
 
     function sizeInFields(typeObj: any): number {
       if (nonCircuitPrimitives.has(typeObj)) return 0;
+      if (!complexTypes.has(typeof typeObj))
+        throw Error(`provable: unsupported type "${typeObj}"`);
       if (Array.isArray(typeObj))
         return typeObj.map(sizeInFields).reduce((a, b) => a + b, 0);
       if ('sizeInFields' in typeObj) return typeObj.sizeInFields();
@@ -59,7 +61,8 @@ function createProvable<Field>(): ProvableConstructor<Field> {
     }
     function toFields(typeObj: any, obj: any, isToplevel = false): Field[] {
       if (nonCircuitPrimitives.has(typeObj)) return [];
-      if (!complexTypes.has(typeof typeObj) || typeObj === null) return [];
+      if (!complexTypes.has(typeof typeObj))
+        throw Error(`provable: unsupported type "${typeObj}"`);
       if (Array.isArray(typeObj))
         return typeObj.map((t, i) => toFields(t, obj[i])).flat();
       if ('toFields' in typeObj) return typeObj.toFields(obj);
@@ -73,6 +76,8 @@ function createProvable<Field>(): ProvableConstructor<Field> {
       if (typeObj === Boolean) return [obj ?? false];
       if (typeObj === BigInt) return [obj ?? 0n];
       if (typeObj === undefined || typeObj === null) return [];
+      if (!complexTypes.has(typeof typeObj))
+        throw Error(`provable: unsupported type "${typeObj}"`);
       if (Array.isArray(typeObj))
         return typeObj.map((t, i) => toAuxiliary(t, obj?.[i]));
       if ('toAuxiliary' in typeObj) return typeObj.toAuxiliary(obj);
@@ -82,6 +87,8 @@ function createProvable<Field>(): ProvableConstructor<Field> {
     }
     function toInput(typeObj: any, obj: any, isToplevel = false): HashInput {
       if (nonCircuitPrimitives.has(typeObj)) return {};
+      if (!complexTypes.has(typeof typeObj))
+        throw Error(`provable: unsupported type "${typeObj}"`);
       if (Array.isArray(typeObj)) {
         return typeObj
           .map((t, i) => toInput(t, obj[i]))
@@ -100,8 +107,8 @@ function createProvable<Field>(): ProvableConstructor<Field> {
       if (typeObj === String || typeObj === Number || typeObj === Boolean)
         return obj;
       if (typeObj === undefined || typeObj === null) return null;
-      if (!complexTypes.has(typeof typeObj) || typeObj === null)
-        return obj ?? null;
+      if (!complexTypes.has(typeof typeObj))
+        throw Error(`provable: unsupported type "${typeObj}"`);
       if (Array.isArray(typeObj))
         return typeObj.map((t, i) => toJSON(t, obj[i]));
       if ('toJSON' in typeObj) return typeObj.toJSON(obj);
@@ -126,7 +133,8 @@ function createProvable<Field>(): ProvableConstructor<Field> {
       )
         return aux[0];
       if (typeObj === undefined || typeObj === null) return typeObj;
-      if (!complexTypes.has(typeof typeObj)) return null;
+      if (!complexTypes.has(typeof typeObj))
+        throw Error(`provable: unsupported type "${typeObj}"`);
       if (Array.isArray(typeObj)) {
         let array: any[] = [];
         let i = 0;
@@ -154,8 +162,9 @@ function createProvable<Field>(): ProvableConstructor<Field> {
       if (typeObj === BigInt) return BigInt(json as string);
       if (typeObj === String || typeObj === Number || typeObj === Boolean)
         return json;
-      if (typeObj === null) return undefined;
-      if (!complexTypes.has(typeof typeObj)) return json ?? undefined;
+      if (typeObj === null || typeObj === undefined) return undefined;
+      if (!complexTypes.has(typeof typeObj))
+        throw Error(`provable: unsupported type "${typeObj}"`);
       if (Array.isArray(typeObj))
         return typeObj.map((t, i) => fromJSON(t, json[i]));
       if ('fromJSON' in typeObj) return typeObj.fromJSON(json);
@@ -168,6 +177,8 @@ function createProvable<Field>(): ProvableConstructor<Field> {
     }
     function check(typeObj: any, obj: any, isToplevel = false): void {
       if (nonCircuitPrimitives.has(typeObj)) return;
+      if (!complexTypes.has(typeof typeObj))
+        throw Error(`provable: unsupported type "${typeObj}"`);
       if (Array.isArray(typeObj))
         return typeObj.forEach((t, i) => check(t, obj[i]));
       if ('check' in typeObj) return typeObj.check(obj);
