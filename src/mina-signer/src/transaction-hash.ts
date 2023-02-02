@@ -1,8 +1,9 @@
 import { Bool, Field, UInt64 } from '../../provable/field-bigint.js';
 import {
   Binable,
-  BinableBigintInteger,
   BinableString,
+  BinableUint64,
+  BinableUint32,
   defineBinable,
   enumWithArgument,
   record,
@@ -95,10 +96,10 @@ let BinablePublicKey = record({ x: Field, isOdd: Bool }, ['x', 'isOdd']);
 
 const Common = record<Common>(
   {
-    fee: BinableBigintInteger,
+    fee: BinableUint64,
     feePayer: BinablePublicKey,
-    nonce: BinableBigintInteger,
-    validUntil: BinableBigintInteger,
+    nonce: BinableUint32,
+    validUntil: BinableUint32,
     memo: BinableString,
   },
   ['fee', 'feePayer', 'nonce', 'validUntil', 'memo']
@@ -107,7 +108,7 @@ const Payment = record<Payment>(
   {
     source: BinablePublicKey,
     receiver: BinablePublicKey,
-    amount: BinableBigintInteger,
+    amount: BinableUint64,
   },
   ['source', 'receiver', 'amount']
 );
@@ -215,17 +216,18 @@ function userCommandToV1({ common, body }: UserCommand): UserCommandV1 {
 // another version number on `fee`, and I'm not sure what the correct answer is. I think this doesn't matter because
 // the type layout here, including version numbers, is frozen, so if it works once it'll work forever.
 const with1 = <T>(binable: Binable<T>) => withVersionNumber(binable, 1);
-const IntegerV1 = with1(with1(BinableBigintInteger));
+const Uint64V1 = with1(with1(BinableUint64));
+const Uint32V1 = with1(with1(BinableUint32));
 type CommonV1 = Common & { feeToken: UInt64 };
 const CommonV1 = with1(
   with1(
     record<CommonV1>(
       {
-        fee: with1(IntegerV1),
-        feeToken: with1(IntegerV1),
+        fee: with1(Uint64V1),
+        feeToken: with1(Uint64V1),
         feePayer: PublicKey,
-        nonce: IntegerV1,
-        validUntil: IntegerV1,
+        nonce: Uint32V1,
+        validUntil: Uint32V1,
         memo: with1(BinableString),
       },
       ['fee', 'feeToken', 'feePayer', 'nonce', 'validUntil', 'memo']
@@ -239,8 +241,8 @@ const PaymentV1 = with1(
       {
         source: PublicKey,
         receiver: PublicKey,
-        tokenId: IntegerV1,
-        amount: with1(IntegerV1),
+        tokenId: Uint64V1,
+        amount: with1(Uint64V1),
       },
       ['source', 'receiver', 'tokenId', 'amount']
     )
