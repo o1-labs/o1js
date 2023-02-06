@@ -152,6 +152,7 @@ function projectiveEqual(g: GroupProjective, h: GroupProjective, p: bigint) {
 function projectiveOnCurve({ x, y, z }: GroupProjective, p: bigint) {
   // substitution x -> x/z^2 and y -> y/z^3 gives
   // the equation y^2 = x^3 + b*z^6
+  // (note: we allow a restricted set of x,y for z==0; this seems fine)
   let x3 = mod(mod(x * x, p) * x, p);
   let y2 = mod(y * y, p);
   let z3 = mod(mod(z * z, p) * z, p);
@@ -170,6 +171,7 @@ function createCurveProjective(
     one: generator,
     endoBase,
     endoScalar,
+    b,
 
     equal(g: GroupProjective, h: GroupProjective) {
       return projectiveEqual(g, h, p);

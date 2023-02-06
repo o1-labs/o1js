@@ -7,19 +7,32 @@ for (let [G, Field, Scalar] of [
   [Vesta, Fq, Fp] as const,
 ]) {
   // some random scalars
-  let [x, y, z] = [Scalar.random(), Scalar.random(), Scalar.random()];
+  let [x, y] = [Scalar.random(), Scalar.random()];
 
   // create random points by scaling 1 with a random scalar
   let X = G.scale(G.one, Scalar.random());
   let Y = G.scale(G.one, Scalar.random());
   let Z = G.scale(G.one, Scalar.random());
 
+  // check on curve
+  assert(G.isOnCurve(G.zero), 'on curve');
+  assert(G.isOnCurve(G.one), 'on curve');
+  assert(G.isOnCurve(X) && G.isOnCurve(Y) && G.isOnCurve(Z), 'on curve');
+  // can't be on curve because b=5 is a non-square
+  assert(!Field.isSquare(G.b));
+  assert(!G.isOnCurve({ x: 0n, y, z: 1n }), 'x=0 => y^2 = b is not on curve');
+  // can't be on curve because the implied equation is x^6 = x^6 + b
+  assert(
+    !G.isOnCurve({ x: Scalar.power(x, 2n), y: Scalar.power(x, 3n), z: 1n }),
+    'x^3 = y^2 is not on curve'
+  );
+
   // equal
   assert(G.equal(G.zero, G.zero), 'equal');
   assert(G.equal(G.one, G.one), 'equal');
-  assert(!G.equal(G.one, G.zero), 'equal');
+  assert(!G.equal(G.one, G.zero), 'not equal');
   assert(G.equal(X, X), 'equal');
-  assert(!G.equal(X, Y), 'equal');
+  assert(!G.equal(X, Y), 'not equal');
   // case where `equal` checks non-trivial z relationship
   let z_ = Field.random();
   let X_ = {
@@ -29,8 +42,33 @@ for (let [G, Field, Scalar] of [
   };
   assert(G.equal(X, X_), 'equal non-trivial');
 
-  // algebraic laws
+  // algebraic laws - addition
   assert(G.equal(G.add(X, Y), G.add(Y, X)), 'commutative');
   assert(G.equal(G.add(X, G.add(Y, Z)), G.add(G.add(X, Y), Z)), 'associative');
   assert(G.equal(G.add(X, G.zero), X), 'identity');
+  assert(G.equal(G.add(X, G.negate(X)), G.zero), 'inverse');
+
+  // addition does doubling
+  assert(G.equal(G.add(X, X), G.double(X)), 'double');
+
+  // scaling by small factors
+  assert(G.equal(G.scale(X, 0n), G.zero), 'scale by 0');
+  assert(G.equal(G.scale(X, 1n), X), 'scale by 1');
+  assert(G.equal(G.scale(X, 2n), G.add(X, X)), 'scale by 2');
+  assert(G.equal(G.scale(X, 3n), G.add(X, G.add(X, X))), 'scale by 3');
+  assert(G.equal(G.scale(X, 4n), G.double(G.double(X))), 'scale by 4');
+
+  // algebraic laws - scaling
+  assert(
+    G.equal(G.scale(X, Scalar.add(x, y)), G.add(G.scale(X, x), G.scale(X, y))),
+    'distributive'
+  );
+  assert(
+    G.equal(G.scale(X, Scalar.negate(x)), G.negate(G.scale(X, x))),
+    'distributive (negation)'
+  );
+  assert(
+    G.equal(G.scale(X, Scalar.mul(x, y)), G.scale(G.scale(X, x), y)),
+    'scale / multiply is associative'
+  );
 }
