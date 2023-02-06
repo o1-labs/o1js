@@ -149,7 +149,7 @@ function projectiveEqual(g: GroupProjective, h: GroupProjective, p: bigint) {
   return mod(g.y * hz3, p) === mod(h.y * gz3, p);
 }
 
-function projectiveOnCurve({ x, y, z }: GroupProjective, p: bigint) {
+function projectiveOnCurve({ x, y, z }: GroupProjective, p: bigint, b: bigint) {
   // substitution x -> x/z^2 and y -> y/z^3 gives
   // the equation y^2 = x^3 + b*z^6
   // (note: we allow a restricted set of x,y for z==0; this seems fine)
@@ -164,7 +164,8 @@ function createCurveProjective(
   p: bigint,
   generator: GroupProjective,
   endoBase: bigint,
-  endoScalar: bigint
+  endoScalar: bigint,
+  b: bigint
 ) {
   return {
     zero: projectiveZero,
@@ -177,7 +178,7 @@ function createCurveProjective(
       return projectiveEqual(g, h, p);
     },
     isOnCurve(g: GroupProjective) {
-      return projectiveOnCurve(g, p);
+      return projectiveOnCurve(g, p, b);
     },
     add(g: GroupProjective, h: GroupProjective) {
       return projectiveAdd(g, h, p);
@@ -233,11 +234,13 @@ const Pallas = createCurveProjective(
   p,
   pallasGeneratorProjective,
   pallasEndoBase,
-  pallasEndoScalar
+  pallasEndoScalar,
+  b
 );
 const Vesta = createCurveProjective(
   q,
   vestaGeneratorProjective,
   vestaEndoBase,
-  vestaEndoScalar
+  vestaEndoScalar,
+  b
 );

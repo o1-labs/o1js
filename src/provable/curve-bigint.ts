@@ -86,7 +86,7 @@ const PublicKey = {
 
   toGroup({ x, isOdd }: PublicKey): Group {
     let { mul, add } = Field;
-    let ySquared = add(mul(x, mul(x, x)), 5n);
+    let ySquared = add(mul(x, mul(x, x)), Pallas.b);
     let y = Field.sqrt(ySquared);
     if (y === undefined) {
       throw Error('PublicKey.toGroup: not a valid group element');
