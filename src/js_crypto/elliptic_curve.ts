@@ -47,7 +47,15 @@ function projectiveAdd(g: GroupProjective, h: GroupProjective, p: bigint) {
   // S2 = Y2*Z1*Z1Z1
   let S2 = mod(Y2 * Z1 * Z1Z1, p);
   // H = U2-U1
-  let H = U2 - U1;
+  let H = mod(U2 - U1, p);
+  // H = 0 <==> x1 = X1/Z1^2 = X2/Z2^2 = x2 <==> degenerate case (Z3 would become 0)
+  if (H === 0n) {
+    // if S1 = S2 <==> y1 = y2, the points are equal, so we double instead
+    if (S1 === S2) return projectiveDouble(g, p);
+    // if S1 = -S2, the points are inverse, so return zero
+    if (mod(S1 + S2, p) === 0n) return projectiveZero;
+    throw Error('projectiveAdd: invalid point');
+  }
   // I = (2*H)^2
   let I = mod((H * H) << 2n, p);
   // J = H*I
@@ -132,9 +140,12 @@ function projectiveEqual(g: GroupProjective, h: GroupProjective, p: bigint) {
   let gz3 = mod(gz2 * g.z, p);
   let hz2 = mod(h.z * h.z, p);
   let hz3 = mod(hz2 * h.z, p);
+  let gx = mod(g.x * hz2, p);
+  let hx = mod(h.x * gz2, p);
   return (
-    mod(g.x * hz2, p) === mod(h.x * gz2, p) &&
-    mod(g.y * hz3, p) === mod(h.y * gz3, p)
+    gx === hx &&
+    mod(g.y * hz3, p) === mod(h.y * gz3, p) &&
+    ((gx !== 0n && hx !== 0n) || (g.z === 0n && h.z === 0n))
   );
 }
 
@@ -155,6 +166,9 @@ function createCurveProjective(
     },
     add(g: GroupProjective, h: GroupProjective) {
       return projectiveAdd(g, h, p);
+    },
+    double(g: GroupProjective) {
+      return projectiveDouble(g, p);
     },
     negate(g: GroupProjective) {
       return projectiveNeg(g, p);
