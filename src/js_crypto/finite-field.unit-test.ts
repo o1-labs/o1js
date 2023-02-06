@@ -81,6 +81,9 @@ for (let F of [Fp, Fq]) {
   assert.equal(F.dot([x, y], [y, x]), F.mul(2n, F.mul(x, y)), 'dot');
   assert.equal(F.dot([x, y], [F.negate(y), x]), 0n, 'dot');
 
+  assert(x > 1n << 128n, 'random x is large');
+  assert(x < p - (1n << 128n), 'random x is not small negative');
+
   assert.equal(F.fromNumber(-1), p - 1n, 'fromNumber');
   assert.equal(F.fromBigint(-1n), p - 1n, 'fromBigint');
   assert.equal(F.fromBigint(p + 1n), 1n, 'fromBigint');

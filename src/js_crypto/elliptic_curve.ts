@@ -15,12 +15,10 @@ const vestaGeneratorProjective = {
   z: 1n,
 };
 
+const projectiveZero = { x: 1n, y: 1n, z: 0n };
+
 type GroupProjective = { x: bigint; y: bigint; z: bigint };
 type GroupAffine = { x: bigint; y: bigint; infinity: boolean };
-
-function projectiveZero() {
-  return { x: 1n, y: 1n, z: 0n };
-}
 
 function projectiveNeg({ x, y, z }: GroupProjective, p: bigint) {
   return { x, y: y === 0n ? 0n : p - y, z };
@@ -100,7 +98,7 @@ function projectiveSub(g: GroupProjective, h: GroupProjective, p: bigint) {
 }
 
 function projectiveScale(g: GroupProjective, x: bigint, p: bigint) {
-  let h = projectiveZero();
+  let h = projectiveZero;
   while (x > 0n) {
     if (x & 1n) h = projectiveAdd(h, g, p);
     g = projectiveDouble(g, p);
@@ -128,6 +126,18 @@ function projectiveToAffine(g: GroupProjective, p: bigint): GroupAffine {
   }
 }
 
+function projectiveEqual(g: GroupProjective, h: GroupProjective, p: bigint) {
+  // multiply out with z^2, z^3
+  let gz2 = mod(g.z * g.z, p);
+  let gz3 = mod(gz2 * g.z, p);
+  let hz2 = mod(h.z * h.z, p);
+  let hz3 = mod(hz2 * h.z, p);
+  return (
+    mod(g.x * hz2, p) === mod(h.x * gz2, p) &&
+    mod(g.y * gz3, p) === mod(h.y * hz3, p)
+  );
+}
+
 function createCurveProjective(
   p: bigint,
   generator: GroupProjective,
@@ -135,10 +145,14 @@ function createCurveProjective(
   endoScalar: bigint
 ) {
   return {
+    zero: projectiveZero,
     one: generator,
     endoBase,
     endoScalar,
 
+    equal(g: GroupProjective, h: GroupProjective) {
+      return projectiveEqual(g, h, p);
+    },
     add(g: GroupProjective, h: GroupProjective) {
       return projectiveAdd(g, h, p);
     },
