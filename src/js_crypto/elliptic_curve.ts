@@ -134,7 +134,7 @@ function projectiveEqual(g: GroupProjective, h: GroupProjective, p: bigint) {
   let hz3 = mod(hz2 * h.z, p);
   return (
     mod(g.x * hz2, p) === mod(h.x * gz2, p) &&
-    mod(g.y * gz3, p) === mod(h.y * hz3, p)
+    mod(g.y * hz3, p) === mod(h.y * gz3, p)
   );
 }
 

@@ -14,8 +14,23 @@ for (let [G, Field, Scalar] of [
   let Y = G.scale(G.one, Scalar.random());
   let Z = G.scale(G.one, Scalar.random());
 
+  // equal
+  assert(G.equal(G.zero, G.zero), 'equal');
+  assert(G.equal(G.one, G.one), 'equal');
+  assert(!G.equal(G.one, G.zero), 'equal');
+  assert(G.equal(X, X), 'equal');
+  assert(!G.equal(X, Y), 'equal');
+  // case where `equal` checks non-trivial z relationship
+  let z_ = Field.random();
+  let X_ = {
+    x: Field.mul(X.x, Field.square(z_)),
+    y: Field.mul(X.y, Field.power(z_, 3n)),
+    z: Field.mul(X.z, z_),
+  };
+  assert(G.equal(X, X_), 'equal non-trivial');
+
   // algebraic laws
-  assert.equal(G.add(X, Y), G.add(Y, X), 'commutative');
-  assert.equal(G.add(X, G.add(Y, Z)), G.add(G.add(X, Y), Z), 'associative');
-  assert.equal(G.add(X, G.zero), X);
+  assert(G.equal(G.add(X, Y), G.add(Y, X)), 'commutative');
+  assert(G.equal(G.add(X, G.add(Y, Z)), G.add(G.add(X, Y), Z)), 'associative');
+  assert(G.equal(G.add(X, G.zero), X), 'identity');
 }
