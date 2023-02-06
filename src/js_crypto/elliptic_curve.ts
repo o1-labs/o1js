@@ -14,6 +14,8 @@ const vestaGeneratorProjective = {
   y: 11426906929455361843568202299992114520848200991084027513389447476559454104162n,
   z: 1n,
 };
+// the b in y^2 = x^3 + b
+const b = 5n;
 
 const projectiveZero = { x: 1n, y: 1n, z: 0n };
 
@@ -135,18 +137,26 @@ function projectiveToAffine(g: GroupProjective, p: bigint): GroupAffine {
 }
 
 function projectiveEqual(g: GroupProjective, h: GroupProjective, p: bigint) {
+  // special case: z=0 can only be equal to another z=0; protects against (0,0,0) being equal to any point
+  if ((g.z === 0n || h.z === 0n) && !(g.z === 0n && h.z === 0n)) return false;
   // multiply out with z^2, z^3
   let gz2 = mod(g.z * g.z, p);
-  let gz3 = mod(gz2 * g.z, p);
   let hz2 = mod(h.z * h.z, p);
+  // early return if gx !== hx
+  if (mod(g.x * hz2, p) !== mod(h.x * gz2, p)) return false;
+  let gz3 = mod(gz2 * g.z, p);
   let hz3 = mod(hz2 * h.z, p);
-  let gx = mod(g.x * hz2, p);
-  let hx = mod(h.x * gz2, p);
-  return (
-    gx === hx &&
-    mod(g.y * hz3, p) === mod(h.y * gz3, p) &&
-    ((gx !== 0n && hx !== 0n) || (g.z === 0n && h.z === 0n))
-  );
+  return mod(g.y * hz3, p) === mod(h.y * gz3, p);
+}
+
+function projectiveOnCurve({ x, y, z }: GroupProjective, p: bigint) {
+  // substitution x -> x/z^2 and y -> y/z^3 gives
+  // the equation y^2 = x^3 + b*z^6
+  let x3 = mod(mod(x * x, p) * x, p);
+  let y2 = mod(y * y, p);
+  let z3 = mod(mod(z * z, p) * z, p);
+  let z6 = mod(z3 * z3, p);
+  return mod(y2 - x3 - b * z6, p) === 0n;
 }
 
 function createCurveProjective(
@@ -163,6 +173,9 @@ function createCurveProjective(
 
     equal(g: GroupProjective, h: GroupProjective) {
       return projectiveEqual(g, h, p);
+    },
+    isOnCurve(g: GroupProjective) {
+      return projectiveOnCurve(g, p);
     },
     add(g: GroupProjective, h: GroupProjective) {
       return projectiveAdd(g, h, p);
