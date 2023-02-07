@@ -61,7 +61,7 @@ let BinablePublicKey = withVersionNumber(
     record({ x: FieldWithVersion, isOdd: Bool }, ['x', 'isOdd']),
     ({ x }) => {
       let { mul, add } = Field;
-      let ySquared = add(mul(x, mul(x, x)), 5n);
+      let ySquared = add(mul(x, mul(x, x)), Pallas.b);
       if (!Field.isSquare(ySquared)) {
         throw Error('PublicKey: not a valid group element');
       }
