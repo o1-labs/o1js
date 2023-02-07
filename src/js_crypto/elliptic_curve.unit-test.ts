@@ -71,4 +71,12 @@ for (let [G, Field, Scalar] of [
     G.equal(G.scale(X, Scalar.mul(x, y)), G.scale(G.scale(X, x), y)),
     'scale / multiply is associative'
   );
+
+  // endomorphism
+  assert.equal(Field.power(G.endoBase, 3n), 1n, 'cube root in base field');
+  assert.equal(Scalar.power(G.endoScalar, 3n), 1n, 'cube root in scalar field');
+  assert(
+    G.equal(G.endomorphism(X), G.scale(X, G.endoScalar)),
+    'efficient endomorphism'
+  );
 }
