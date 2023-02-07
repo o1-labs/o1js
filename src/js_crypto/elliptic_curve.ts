@@ -209,7 +209,7 @@ function createCurveProjective(
     toAffine(g: GroupProjective) {
       return projectiveToAffine(g, p);
     },
-    ofAffine({ x, y }: GroupAffine) {
+    fromAffine({ x, y }: GroupAffine) {
       return { x, y, z: 1n };
     },
   };

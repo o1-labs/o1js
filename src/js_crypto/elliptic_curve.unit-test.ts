@@ -79,4 +79,14 @@ for (let [G, Field, Scalar] of [
     G.equal(G.endomorphism(X), G.scale(X, G.endoScalar)),
     'efficient endomorphism'
   );
+
+  // affine
+  let affineX = G.toAffine(X);
+  assert(G.equal(G.fromAffine(affineX), X), 'affine - projective roundtrip');
+  let { x: xa, y: ya } = affineX;
+  assert.equal(
+    Field.square(ya),
+    Field.add(Field.power(xa, 3n), G.b),
+    'affine on curve'
+  );
 }

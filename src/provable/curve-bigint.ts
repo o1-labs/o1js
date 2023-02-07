@@ -34,7 +34,7 @@ type PrivateKey = bigint;
  */
 const Group = {
   toProjective({ x, y }: Group): GroupProjective {
-    return Pallas.ofAffine({ x, y, infinity: false });
+    return Pallas.fromAffine({ x, y, infinity: false });
   },
   /**
    * Convert a projective point to a non-zero affine point.
