@@ -282,7 +282,12 @@ function deriveNonceLegacy(
 }
 
 /**
- * Same as {@link hashMessage}, but using the "legacy" style of hash input packing.
+ * Same as {@link hashMessage}, except for two differences:
+ * - uses the "legacy" style of hash input packing.
+ * - uses Poseidon with "legacy" parameters for hashing
+ *
+ * The method produces a hash in the Pallas base field ({@link Field}) and reinterprets it as a {@link Scalar}.
+ * This is possible, and a no-op, since the scalar field is larger and both fields are represented with bigints.
  */
 function hashMessageLegacy(
   message: HashInputLegacy,
