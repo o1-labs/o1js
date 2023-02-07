@@ -1,4 +1,3 @@
-import { bytesToBigInt } from './bigint-helpers.js';
 import { inverse, mod, p, q } from './finite_field.js';
 export { Pallas, Vesta, GroupAffine, GroupProjective };
 
@@ -14,6 +13,15 @@ const vestaGeneratorProjective = {
   y: 11426906929455361843568202299992114520848200991084027513389447476559454104162n,
   z: 1n,
 };
+const vestaEndoBase =
+  2942865608506852014473558576493638302197734138389222805617480874486368177743n;
+const pallasEndoBase =
+  20444556541222657078399132219657928148671392403212669005631716460534733845831n;
+const vestaEndoScalar =
+  8503465768106391777493614032514048814691664078728891710322960303815233784505n;
+const pallasEndoScalar =
+  26005156700822196841419187675678338661165322343552424574062261873906994770353n;
+
 // the b in y^2 = x^3 + b
 const b = 5n;
 
@@ -195,6 +203,9 @@ function createCurveProjective(
     scale(g: GroupProjective, s: bigint) {
       return projectiveScale(g, s, p);
     },
+    endomorphism({ x, y, z }: GroupProjective) {
+      return { x: mod(endoBase * x, p), y, z };
+    },
     toAffine(g: GroupProjective) {
       return projectiveToAffine(g, p);
     },
@@ -203,32 +214,6 @@ function createCurveProjective(
     },
   };
 }
-
-// TODO check if these really should be hardcoded, otherwise compute them
-const vestaEndoBase = bytesToBigInt(
-  new Uint8Array([
-    79, 14, 170, 80, 224, 210, 169, 42, 175, 51, 192, 71, 125, 70, 237, 15, 90,
-    15, 247, 28, 216, 180, 29, 81, 142, 82, 62, 40, 88, 154, 129, 6,
-  ])
-);
-const pallasEndoBase = bytesToBigInt(
-  new Uint8Array([
-    71, 181, 1, 2, 47, 210, 127, 123, 210, 199, 159, 209, 41, 13, 39, 5, 80, 78,
-    85, 168, 35, 42, 85, 211, 142, 69, 50, 181, 124, 53, 51, 45,
-  ])
-);
-const vestaEndoScalar = bytesToBigInt(
-  new Uint8Array([
-    185, 74, 254, 253, 189, 94, 173, 29, 73, 49, 173, 55, 210, 139, 31, 29, 176,
-    177, 170, 87, 220, 213, 170, 44, 113, 186, 205, 74, 131, 202, 204, 18,
-  ])
-);
-const pallasEndoScalar = bytesToBigInt(
-  new Uint8Array([
-    177, 241, 85, 175, 64, 24, 157, 97, 46, 117, 212, 193, 126, 82, 89, 18, 166,
-    240, 8, 227, 39, 75, 226, 174, 113, 173, 193, 215, 167, 101, 126, 57,
-  ])
-);
 
 const Pallas = createCurveProjective(
   p,
