@@ -116,7 +116,7 @@ const Sign = pseudoClass(
   function Sign(value: 1 | -1): Sign {
     if (value !== 1 && value !== -1)
       throw Error('Sign: input must be 1 or -1.');
-    return (BigInt(value) % Fp.modulus) as Sign;
+    return mod(BigInt(value), Fp.modulus) as Sign;
   },
   {
     ...ProvableBigint<Sign, 'Positive' | 'Negative'>(checkSign),
