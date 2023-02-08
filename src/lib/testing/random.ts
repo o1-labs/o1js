@@ -12,6 +12,7 @@ import { GenericProvable, primitiveTypeMap } from '../../provable/generic.js';
 import * as CurveBigint from '../../provable/curve-bigint.js';
 import { randomBytes } from '../../js_crypto/random.js';
 import { alphabet } from '../../provable/base58.js';
+import { bytesToBigInt } from '../../js_crypto/bigint-helpers.js';
 
 export { Random, RandomAccountUpdate };
 
@@ -22,13 +23,11 @@ function Random_<T>(next: () => T): Random<T> {
   return { next };
 }
 const boolean = Random_(() => drawOneOf8() < 4);
-const base58 = (size: number | Random<number>) =>
-  map(array(oneof(...alphabet), size), (a) => a.join(''));
 
 const Field = Random_(Bigint.Field.random);
 const Bool = map(boolean, Bigint.Bool);
-const UInt32 = Random_(Bigint.UInt32.random);
-const UInt64 = Random_(Bigint.UInt64.random);
+const UInt32 = biguint(32);
+const UInt64 = biguint(64);
 const Sign = map(boolean, (b) => Bigint.Sign(b ? 1 : -1));
 const PrivateKey = Random_(CurveBigint.PrivateKey.random);
 const PublicKey = map(PrivateKey, CurveBigint.PrivateKey.toPublicKey);
@@ -225,6 +224,10 @@ function string(size: number | Random<number>) {
   return map(uniformBytes(size), (b) => String.fromCharCode(...b));
 }
 
+function base58(size: number | Random<number>) {
+  return map(array(oneof(...alphabet), size), (a) => a.join(''));
+}
+
 function oneof<Types extends readonly any[]>(
   ...values: { [K in keyof Types]: Types[K] | Random<Types[K]> }
 ): Random<Types[number]> {
@@ -361,6 +364,27 @@ const byte = {
     return drawUniformUintBits(bitLength);
   },
 };
+/**
+ * log-uniform distribution over 2^n-bit range
+ * with bias towards 0, 1, 2, max
+ * outputs are bigints
+ */
+function biguint(bits: number): Random<bigint> {
+  let max = (1n << BigInt(bits)) - 1n;
+  let special = [0n, 0n, 0n, 1n, 1n, 2n, max, max];
+  let bitsBits = Math.log2(bits);
+  if (!Number.isInteger(bitsBits)) throw Error('bits must be a power of 2');
+  return {
+    next() {
+      // 25% of test cases are special numbers
+      if (drawOneOf8() < 2) return special[drawOneOf8()];
+      // the remaining follow log-uniform / cut off exponential distribution:
+      // we sample a bit length from [1, 8] and then a number with that length
+      let bitLength = 1 + drawUniformUintBits(bitsBits);
+      return drawUniformBigUintBits(bitLength);
+    },
+  };
+}
 
 /**
  * uniform positive integer in [0, max] drawn from secure randomness,
@@ -397,12 +421,22 @@ function drawUniformUintBits(bitLength: number) {
 }
 
 /**
+ * uniform positive bigint drawn from secure randomness,
+ * given a target bit length
+ */
+function drawUniformBigUintBits(bitLength: number) {
+  let byteLength = Math.ceil(bitLength / 8);
+  // draw random bytes, zero the excess bits
+  let bytes = randomBytes(byteLength);
+  if (bitLength % 8 !== 0) {
+    bytes[byteLength - 1] &= (1 << bitLength % 8) - 1;
+  }
+  return bytesToBigInt(bytes);
+}
+
+/**
  * draw number between 0,..,7 using secure randomness
  */
 function drawOneOf8() {
   return randomBytes(1)[0] >> 5;
 }
-
-// console.dir(AccountUpdate.toJSON(RandomAccountUpdate.next()), {
-//   depth: Infinity,
-// });
