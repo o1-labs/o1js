@@ -430,7 +430,8 @@ function ProvableFromLayout<
 type GenericFoldSpec<T, R, TypeMap extends AnyTypeMap> = {
   map: (
     type: GenericProvableExtended<any, any, TypeMap['Field']>,
-    value?: T
+    value?: T,
+    name?: string
   ) => R;
   reduceArray: (array: R[], typeData: ArrayLayout<TypeMap>) => R;
   reduceObject: (keys: string[], record: Record<string, R>) => R;
@@ -460,7 +461,7 @@ function genericLayoutFold<
   let { checkedTypeName } = typeData;
   if (checkedTypeName) {
     // there's a custom type!
-    return spec.map(customTypes[checkedTypeName], value);
+    return spec.map(customTypes[checkedTypeName], value, checkedTypeName);
   }
   if (typeData.type === 'array') {
     let arrayTypeData = typeData as ArrayLayout<TypeMap>;
@@ -482,7 +483,7 @@ function genericLayoutFold<
         let v: { isSome: T; value: T } | undefined = value as any;
         return spec.reduceFlaggedOption(
           {
-            isSome: spec.map(TypeMap.Bool, v?.isSome),
+            isSome: spec.map(TypeMap.Bool, v?.isSome, 'Bool'),
             value: genericLayoutFold(
               TypeMap,
               customTypes,
@@ -518,10 +519,10 @@ function genericLayoutFold<
     });
     return spec.reduceObject(keys, object);
   }
-  if (primitiveTypes.has(typeData.type as string)) {
-    return spec.map((PrimitiveMap as any)[typeData.type], value);
+  if (primitiveTypes.has(typeData.type)) {
+    return spec.map((PrimitiveMap as any)[typeData.type], value, typeData.type);
   }
-  return spec.map((TypeMap as any)[typeData.type], value);
+  return spec.map((TypeMap as any)[typeData.type], value, typeData.type);
 }
 
 // types
@@ -532,7 +533,7 @@ type WithChecked<TypeMap extends AnyTypeMap> = {
 };
 
 type BaseLayout<TypeMap extends AnyTypeMap> = {
-  type: keyof TypeMap;
+  type: keyof TypeMap & string;
 } & WithChecked<TypeMap>;
 
 type RangeLayout<TypeMap extends AnyTypeMap, T = BaseLayout<TypeMap>> = {
