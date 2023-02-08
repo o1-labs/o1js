@@ -1,3 +1,4 @@
+import { randomBytes } from '../js_crypto/random.js';
 import { bigIntToBytes } from '../js_crypto/bigint-helpers.js';
 import { Fp, mod } from '../js_crypto/finite_field.js';
 import { BinableWithBits, defineBinable, withBits } from './binable.js';
@@ -86,6 +87,8 @@ const Bool = pseudoClass(
 function Unsigned(bits: number) {
   let maxValue = (1n << BigInt(bits)) - 1n;
   let checkUnsigned = checkRange(0n, 1n << BigInt(bits), `UInt${bits}`);
+  let binable = BinableBigint(bits, checkUnsigned);
+  let bytes = Math.ceil(bits / 8);
 
   return pseudoClass(
     function Unsigned(value: bigint | number | string) {
@@ -95,11 +98,14 @@ function Unsigned(bits: number) {
     },
     {
       ...ProvableBigint(checkUnsigned),
-      ...BinableBigint(bits, checkUnsigned),
+      ...binable,
       toInput(x: bigint): HashInput {
         return { fields: [], packed: [[x, bits]] };
       },
       maxValue,
+      random() {
+        return binable.fromBytes([...randomBytes(bytes)]);
+      },
     }
   );
 }
