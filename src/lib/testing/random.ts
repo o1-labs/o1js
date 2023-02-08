@@ -21,7 +21,7 @@ type Random<T> = {
 function Random_<T>(next: () => T): Random<T> {
   return { next };
 }
-const boolean = Random_(() => Math.random() > 0.5);
+const boolean = Random_(() => drawOneOf8() < 4);
 const base58 = (size: number | Random<number>) =>
   map(array(oneof(...alphabet), size), (a) => a.join(''));
 
@@ -72,10 +72,13 @@ const AuthRequired = map(
   Bigint.AuthRequired.fromJSON
 );
 const TokenSymbol = map(string(nat(6)), Bigint.TokenSymbol.fromJSON);
-const Events = map(array(array(Field, nat(5)), nat(2)), Bigint.Events.fromList);
+const Events = map(
+  array(array(Field, int(1, 5)), nat(2)),
+  Bigint.Events.fromList
+);
 const SequenceEvents = Events;
 const SequenceState = oneof(Bigint.SequenceState.emptyValue(), Field);
-const ZkappUri = map(string(nat(20)), Bigint.ZkappUri.fromJSON);
+const ZkappUri = map(string(nat(50)), Bigint.ZkappUri.fromJSON);
 
 const PrimitiveMap = primitiveTypeMap<bigint>();
 type Types = typeof TypeMap & typeof customTypes & typeof PrimitiveMap;
@@ -99,8 +102,8 @@ const Generators: Generators = {
   SequenceState,
   ZkappUri,
   null: constant(null),
-  string: base58(50), // TODO replace various strings, like signature, with parsed types
-  number: nat(5), // TODO need richer type for call depth
+  string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types
+  number: nat(3), // TODO need richer type for call depth, it's weird to use "number" knowing that it's the only number
 };
 let typeToGenerator = new Map<Provable<any>, Random<any>>(
   [TypeMap, PrimitiveMap, customTypes]
@@ -136,7 +139,19 @@ function generate<T>(typeData: Layout): T {
       },
       reduceFlaggedOption({ isSome, value }, typeData) {
         let isSomeBoolean = TypeMap.Bool.toJSON(isSome);
-        return isSomeBoolean ? { isSome, value } : empty(typeData);
+        if (!isSomeBoolean) return empty(typeData);
+        if (typeData.optionType === 'closedInterval') {
+          let innerInner = typeData.inner.entries.lower;
+          let innerType = TypeMap[innerInner.type as 'UInt32' | 'UInt64'];
+          let { lower, upper } = value;
+          if (
+            BigInt(innerType.toJSON(lower)) > BigInt(innerType.toJSON(upper))
+          ) {
+            value.upper = lower;
+            value.lower = upper;
+          }
+        }
+        return { isSome, value };
       },
       reduceOrUndefined(value) {
         let isSome = this.map(TypeMap.Bool);
@@ -190,26 +205,15 @@ const RandomAccountUpdate = randomFromLayout<AccountUpdate>(
   jsLayout.AccountUpdate as any
 );
 
-/**
- * min and max are inclusive!
- */
-function int(min: number, max: number): Random<number> {
-  if (max < min) throw Error('max < min');
-  return {
-    next() {
-      return min + Math.floor((max + 1 - min) * Math.random());
-    },
-  };
-}
-function nat(max: number) {
-  return int(0, max);
-}
-
 function constant<T>(t: T) {
   return Random(() => t);
 }
 
 function bytes(size: number | Random<number>): Random<number[]> {
+  return array(byte, size);
+}
+
+function uniformBytes(size: number | Random<number>): Random<number[]> {
   let size_ = typeof size === 'number' ? constant(size) : size;
   return {
     next() {
@@ -218,20 +222,19 @@ function bytes(size: number | Random<number>): Random<number[]> {
   };
 }
 function string(size: number | Random<number>) {
-  return map(bytes(size), (b) => String.fromCharCode(...b));
+  return map(uniformBytes(size), (b) => String.fromCharCode(...b));
 }
 
 function oneof<Types extends readonly any[]>(
   ...values: { [K in keyof Types]: Types[K] | Random<Types[K]> }
 ): Random<Types[number]> {
   type T = Types[number];
-  let I = nat(values.length - 1);
   let isGenerator = values.map(
     (v) => typeof v === 'object' && v && 'next' in v
   );
   return {
     next(): T {
-      let i = I.next();
+      let i = drawUniformUint(values.length - 1);
       let value = values[i];
       return isGenerator[i] ? (value as Random<T>).next() : (value as T);
     },
@@ -278,3 +281,128 @@ function reject<T>(gen: Random<T>, isRejected: (t: T) => boolean) {
     },
   };
 }
+
+/**
+ * uniform distribution over range [min, max]
+ * with bias towards special values 0, 1, -1, 2, min, max
+ */
+function int(min: number, max: number): Random<number> {
+  if (max < min) throw Error('max < min');
+  // set of special numbers that will appear more often in tests
+  let specialSet = new Set<number>();
+  if (-1 >= min && -1 <= max) specialSet.add(-1);
+  if (1 >= min && 1 <= max) specialSet.add(1);
+  if (2 >= min && 2 <= max) specialSet.add(2);
+  specialSet.add(min);
+  specialSet.add(max);
+  let special = [...specialSet];
+  if (0 >= min && 0 <= max) special.unshift(0, 0);
+  let nSpecial = special.length;
+  return {
+    next() {
+      // 25% of test cases are special numbers
+      if (drawOneOf8() < 3) {
+        let i = drawUniformUint(nSpecial);
+        return special[i];
+      }
+      // the remaining follow a uniform distribution
+      return min + drawUniformUint(max - min);
+    },
+  };
+}
+
+/**
+ * log-uniform distribution over range [0, max]
+ * with bias towards 0, 1, 2, max
+ */
+function nat(max: number) {
+  if (max < 0) throw Error('max < 0');
+  if (max === 0) return constant(0);
+  let bits = max.toString(2).length;
+  let bitBits = bits.toString(2).length;
+  // set of special numbers that will appear more often in tests
+  let special = [0, 0, 1];
+  if (max > 1) special.push(2);
+  if (max > 2) special.push(max);
+  let nSpecial = special.length - 1;
+  return {
+    next() {
+      // 25% of test cases are special numbers
+      if (drawOneOf8() < 3) {
+        let i = drawUniformUint(nSpecial);
+        return special[i];
+      }
+      // the remaining follow a log-uniform / cut off exponential distribution:
+      // we sample a bit length (within a target range) and then a number with that length
+      while (true) {
+        // draw bit length from [1, 2**bitBits); reject if > bit length of max
+        let bitLength = 1 + drawUniformUintBits(bitBits);
+        if (bitLength > bits) continue;
+        // draw number from [0, 2**bitLength); reject if > max
+        let n = drawUniformUintBits(bitLength);
+        if (n <= max) return n;
+      }
+    },
+  };
+}
+
+let specialBytes = [0, 0, 0, 1, 1, 2, 255, 255];
+/**
+ * log-uniform distribution over range [0, 255]
+ * with bias towards 0, 1, 2, 255
+ */
+const byte = {
+  next() {
+    // 25% of test cases are special numbers
+    if (drawOneOf8() < 2) return specialBytes[drawOneOf8()];
+    // the remaining follow log-uniform / cut off exponential distribution:
+    // we sample a bit length from [1, 8] and then a number with that length
+    let bitLength = 1 + drawOneOf8();
+    return drawUniformUintBits(bitLength);
+  },
+};
+
+/**
+ * uniform positive integer in [0, max] drawn from secure randomness,
+ */
+function drawUniformUint(max: number) {
+  if (max === 0) return 0;
+  let bitLength = Math.floor(Math.log2(max)) + 1;
+  while (true) {
+    // values with same bit length can be too large by a factor of at most 2; those are rejected
+    let n = drawUniformUintBits(bitLength);
+    if (n <= max) return n;
+  }
+}
+
+/**
+ * uniform positive integer drawn from secure randomness,
+ * given a target bit length
+ */
+function drawUniformUintBits(bitLength: number) {
+  let byteLength = Math.ceil(bitLength / 8);
+  // draw random bytes, zero the excess bits
+  let bytes = randomBytes(byteLength);
+  if (bitLength % 8 !== 0) {
+    bytes[byteLength - 1] &= (1 << bitLength % 8) - 1;
+  }
+  // accumulate bytes to integer
+  let n = 0;
+  let bitPosition = 0;
+  for (let byte of bytes) {
+    n += byte << bitPosition;
+    bitPosition += 8;
+  }
+  return n;
+}
+
+/**
+ * draw number between 0,..,7 using secure randomness
+ */
+function drawOneOf8() {
+  return randomBytes(1)[0] >> 5;
+}
+
+// console.dir(AccountUpdate.toJSON(RandomAccountUpdate.next()), {
+//   depth: Infinity,
+// });

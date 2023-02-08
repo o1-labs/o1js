@@ -5,8 +5,8 @@ import { test, Random } from '../lib/testing/property.js';
 
 await isReady;
 
-let bytes = Random.bytes(Random.nat(10));
-let version = Random.nat(10);
+let bytes = Random.bytes(Random.nat(100));
+let version = Random.nat(100);
 
 test(bytes, version, (bytes, version, assert) => {
   let binaryString = String.fromCharCode(...bytes);
