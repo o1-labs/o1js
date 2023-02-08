@@ -4,6 +4,7 @@ import {
   TypeMap,
   Json,
   AccountUpdate,
+  ZkappCommand,
 } from '../../provable/gen/transaction-bigint.js';
 import * as Bigint from '../../provable/transaction-leaves-bigint.js';
 import { genericLayoutFold } from '../../provable/from-layout.js';
@@ -13,8 +14,9 @@ import * as CurveBigint from '../../provable/curve-bigint.js';
 import { randomBytes } from '../../js_crypto/random.js';
 import { alphabet } from '../../provable/base58.js';
 import { bytesToBigInt } from '../../js_crypto/bigint-helpers.js';
+import { Memo } from '../../mina-signer/src/memo.js';
 
-export { Random, RandomAccountUpdate };
+export { Random };
 
 type Random<T> = {
   next(): T;
@@ -31,26 +33,6 @@ const UInt64 = biguint(64);
 const Sign = map(boolean, (b) => Bigint.Sign(b ? 1 : -1));
 const PrivateKey = Random_(CurveBigint.PrivateKey.random);
 const PublicKey = map(PrivateKey, CurveBigint.PrivateKey.toPublicKey);
-
-const Random = Object.assign(Random_, {
-  constant,
-  int,
-  nat,
-  boolean,
-  bytes,
-  string,
-  base58,
-  array,
-  record,
-  map,
-  oneof,
-  field: Field,
-  bool: Bool,
-  uint32: UInt32,
-  uint64: UInt64,
-  privateKey: PrivateKey,
-  publicKey: PublicKey,
-});
 
 const TokenId = Field;
 const AuthorizationKind = reject(
@@ -110,6 +92,40 @@ let typeToGenerator = new Map<Provable<any>, Random<any>>(
     .flat()
     .map(([key, value]) => [value, Generators[key as keyof Generators]])
 );
+
+// transaction stuff
+const RandomAccountUpdate = randomFromLayout<AccountUpdate>(
+  jsLayout.AccountUpdate as any
+);
+const RandomFeePayer = randomFromLayout<ZkappCommand['feePayer']>(
+  jsLayout.ZkappCommand.entries.feePayer as any
+);
+const RandomMemo = map(string(nat(32)), (s) =>
+  Memo.toBase58(Memo.fromString(s))
+);
+
+const Random = Object.assign(Random_, {
+  constant,
+  int,
+  nat,
+  boolean,
+  bytes,
+  string,
+  base58,
+  array,
+  record,
+  map,
+  oneof,
+  field: Field,
+  bool: Bool,
+  uint32: UInt32,
+  uint64: UInt64,
+  privateKey: PrivateKey,
+  publicKey: PublicKey,
+  accountUpdate: RandomAccountUpdate,
+  feePayer: RandomFeePayer,
+  memo: RandomMemo,
+});
 
 function randomFromLayout<T>(typeData: Layout): Random<T> {
   return {
@@ -200,12 +216,8 @@ function empty(typeData: Layout) {
   );
 }
 
-const RandomAccountUpdate = randomFromLayout<AccountUpdate>(
-  jsLayout.AccountUpdate as any
-);
-
 function constant<T>(t: T) {
-  return Random(() => t);
+  return Random_(() => t);
 }
 
 function bytes(size: number | Random<number>): Random<number[]> {

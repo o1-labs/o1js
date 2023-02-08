@@ -1,5 +1,5 @@
-import { Random, RandomAccountUpdate } from './random.js';
-export { test, Random, RandomAccountUpdate };
+import { Random } from './random.js';
+export { test, Random };
 
 const defaultTimeBudget = 100; // ms
 const isVerbose = false;
@@ -41,7 +41,6 @@ function testN<T extends readonly Random<any>[]>(
       errorMessages.push(
         `Failed: ${message ? `"${message}"` : `assertion #${count}`}`
       );
-      console.log(errorMessages);
     }
     fail ||= !ok;
   }
