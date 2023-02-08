@@ -9,29 +9,50 @@ import * as Bigint from '../../provable/transaction-leaves-bigint.js';
 import { genericLayoutFold } from '../../provable/from-layout.js';
 import { jsLayout } from '../../provable/gen/js-layout.js';
 import { GenericProvable, primitiveTypeMap } from '../../provable/generic.js';
-import { PrivateKey } from '../../provable/curve-bigint.js';
+import * as CurveBigint from '../../provable/curve-bigint.js';
 import { randomBytes } from '../../js_crypto/random.js';
 import { alphabet } from '../../provable/base58.js';
 
-export { RandomAccountUpdate };
+export { Random, RandomAccountUpdate };
 
 type Random<T> = {
   next(): T;
 };
-function Random<T>(next: () => T): Random<T> {
+function Random_<T>(next: () => T): Random<T> {
   return { next };
 }
-
-const boolean = Random(() => Math.random() > 0.5);
+const boolean = Random_(() => Math.random() > 0.5);
 const base58 = (size: number | Random<number>) =>
   map(array(oneof(...alphabet), size), (a) => a.join(''));
 
-const Field = Random(Bigint.Field.random);
+const Field = Random_(Bigint.Field.random);
 const Bool = map(boolean, Bigint.Bool);
-const UInt32 = Random(Bigint.UInt32.random);
-const UInt64 = Random(Bigint.UInt64.random);
+const UInt32 = Random_(Bigint.UInt32.random);
+const UInt64 = Random_(Bigint.UInt64.random);
 const Sign = map(boolean, (b) => Bigint.Sign(b ? 1 : -1));
-const PublicKey = Random(() => PrivateKey.toPublicKey(PrivateKey.random()));
+const PrivateKey = Random_(CurveBigint.PrivateKey.random);
+const PublicKey = map(PrivateKey, CurveBigint.PrivateKey.toPublicKey);
+
+const Random = Object.assign(Random_, {
+  constant,
+  int,
+  nat,
+  boolean,
+  bytes,
+  string,
+  base58,
+  array,
+  record,
+  map,
+  oneof,
+  field: Field,
+  bool: Bool,
+  uint32: UInt32,
+  uint64: UInt64,
+  privateKey: PrivateKey,
+  publicKey: PublicKey,
+});
+
 const TokenId = Field;
 const AuthorizationKind = reject(
   record<Bigint.AuthorizationKind>({
@@ -88,7 +109,7 @@ let typeToGenerator = new Map<Provable<any>, Random<any>>(
     .map(([key, value]) => [value, Generators[key as keyof Generators]])
 );
 
-function generatorFromLayout<T>(typeData: Layout): Random<T> {
+function randomFromLayout<T>(typeData: Layout): Random<T> {
   return {
     next() {
       return generate(typeData);
@@ -165,7 +186,7 @@ function empty(typeData: Layout) {
   );
 }
 
-const RandomAccountUpdate = generatorFromLayout<AccountUpdate>(
+const RandomAccountUpdate = randomFromLayout<AccountUpdate>(
   jsLayout.AccountUpdate as any
 );
 
@@ -188,7 +209,7 @@ function constant<T>(t: T) {
   return Random(() => t);
 }
 
-function bytes(size: number | Random<number>) {
+function bytes(size: number | Random<number>): Random<number[]> {
   let size_ = typeof size === 'number' ? constant(size) : size;
   return {
     next() {
