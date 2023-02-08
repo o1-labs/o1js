@@ -22,6 +22,7 @@ function test<T extends readonly Random<any>[]>(...args: ArrayTestArgs<T>) {
   if (time > timeBudget) return 10;
   // (10 + remainingRuns) * timePerRun = timeBudget
   let remainingRuns = Math.floor(timeBudget / (time / 10)) - 10;
+  // run at most 100 times
   if (remainingRuns > 90) remainingRuns = 90;
   testN<T>(remainingRuns, gens, run);
   return 10 + remainingRuns;
@@ -38,13 +39,14 @@ function testN<T extends readonly Random<any>[]>(
   function assert(ok: boolean, message?: string) {
     count++;
     if (!ok) {
+      fail = true;
       errorMessages.push(
         `Failed: ${message ? `"${message}"` : `assertion #${count}`}`
       );
     }
-    fail ||= !ok;
   }
-  for (let i = 1; i < N; i++) {
+  for (let i = 0; i < N; i++) {
+    count = 0;
     fail = false;
     let error: Error | undefined;
     let values = gens.map((gen) => gen.next());
@@ -59,12 +61,10 @@ function testN<T extends readonly Random<any>[]>(
       console.log('failing inputs:');
       values.forEach((v) => console.dir(v, { depth: Infinity }));
       let message = '\n' + errorMessages.join('\n');
-      if (error !== undefined) {
-        error.message = `${message}\nFailed - error during test execution:
+      if (error === undefined) throw Error(message);
+      error.message = `${message}\nFailed - error during test execution:
 ${error.message}`;
-        throw error;
-      }
-      throw Error(message);
+      throw error;
     }
   }
 }
