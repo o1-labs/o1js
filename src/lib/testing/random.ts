@@ -11,6 +11,7 @@ import { genericLayoutFold } from '../../provable/from-layout.js';
 import { jsLayout } from '../../provable/gen/js-layout.js';
 import { GenericProvable, primitiveTypeMap } from '../../provable/generic.js';
 import * as CurveBigint from '../../provable/curve-bigint.js';
+import * as SignatureBigint from '../../mina-signer/src/signature.js';
 import { randomBytes } from '../../js_crypto/random.js';
 import { alphabet } from '../../provable/base58.js';
 import { bytesToBigInt } from '../../js_crypto/bigint-helpers.js';
@@ -27,6 +28,7 @@ function Random_<T>(next: () => T): Random<T> {
 const boolean = Random_(() => drawOneOf8() < 4);
 
 const Field = Random_(Bigint.Field.random);
+const Scalar = Random_(CurveBigint.Scalar.random);
 const Bool = map(boolean, Bigint.Bool);
 const UInt32 = biguint(32);
 const UInt64 = biguint(64);
@@ -34,7 +36,7 @@ const Sign = map(boolean, (b) => Bigint.Sign(b ? 1 : -1));
 const PrivateKey = Random_(CurveBigint.PrivateKey.random);
 const PublicKey = map(PrivateKey, CurveBigint.PrivateKey.toPublicKey);
 
-const TokenId = Field;
+const TokenId = oneOf(Bigint.TokenId.emptyValue(), Field);
 const AuthorizationKind = reject(
   record<Bigint.AuthorizationKind>({
     isProved: Bool,
@@ -103,6 +105,15 @@ const RandomFeePayer = randomFromLayout<ZkappCommand['feePayer']>(
 const RandomMemo = map(string(nat(32)), (s) =>
   Memo.toBase58(Memo.fromString(s))
 );
+const Signature = record({ r: Field, s: Scalar });
+
+// some json versions of those types
+const json = {
+  uint64: map(UInt64, Bigint.UInt64.toJSON),
+  uint32: map(UInt32, Bigint.UInt32.toJSON),
+  publicKey: map(PublicKey, CurveBigint.PublicKey.toJSON),
+  signature: map(Signature, SignatureBigint.Signature.toBase58),
+};
 
 const Random = Object.assign(Random_, {
   constant,
@@ -123,9 +134,12 @@ const Random = Object.assign(Random_, {
   uint64: UInt64,
   privateKey: PrivateKey,
   publicKey: PublicKey,
+  scalar: Scalar,
+  signature: Signature,
   accountUpdate: RandomAccountUpdate,
   feePayer: RandomFeePayer,
   memo: RandomMemo,
+  json,
 });
 
 function randomFromLayout<T>(typeData: Layout): Random<T> {
