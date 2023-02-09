@@ -19,10 +19,10 @@ import { Memo } from '../../mina-signer/src/memo.js';
 export { Random };
 
 type Random<T> = {
-  next(): T;
+  create(): () => T;
 };
 function Random_<T>(next: () => T): Random<T> {
-  return { next };
+  return { create: () => next };
 }
 const boolean = Random_(() => drawOneOf8() < 4);
 
@@ -129,22 +129,29 @@ const Random = Object.assign(Random_, {
 
 function randomFromLayout<T>(typeData: Layout): Random<T> {
   return {
-    next() {
-      return generate(typeData);
+    create() {
+      let typeToNext = new Map<Provable<any>, () => any>();
+      for (let [key, random] of typeToGenerator) {
+        typeToNext.set(key, random.create());
+      }
+      return () => nextFromLayout(typeData, typeToNext);
     },
   };
 }
 
-function generate<T>(typeData: Layout): T {
+function nextFromLayout<T>(
+  typeData: Layout,
+  typeToNext: Map<Provable<any>, () => any>
+): T {
   return genericLayoutFold<undefined, any, TypeMap, Json.TypeMap>(
     TypeMap,
     customTypes,
     {
       map(type, _, name) {
-        let gen = typeToGenerator.get(type);
-        if (gen === undefined)
+        let next = typeToNext.get(type);
+        if (next === undefined)
           throw Error(`could not find generator for type ${name}`);
-        return gen.next();
+        return next();
       },
       reduceArray(array) {
         return array;
@@ -227,8 +234,9 @@ function bytes(size: number | Random<number>): Random<number[]> {
 function uniformBytes(size: number | Random<number>): Random<number[]> {
   let size_ = typeof size === 'number' ? constant(size) : size;
   return {
-    next() {
-      return [...randomBytes(size_.next())];
+    create() {
+      let nextSize = size_.create();
+      return () => [...randomBytes(nextSize())];
     },
   };
 }
@@ -245,20 +253,25 @@ function oneof<Types extends readonly any[]>(
 ): Random<Types[number]> {
   type T = Types[number];
   let isGenerator = values.map(
-    (v) => typeof v === 'object' && v && 'next' in v
+    (v) => typeof v === 'object' && v && 'create' in v
   );
   return {
-    next(): T {
-      let i = drawUniformUint(values.length - 1);
-      let value = values[i];
-      return isGenerator[i] ? (value as Random<T>).next() : (value as T);
+    create() {
+      let nexts = values.map((v: Random<T>, i) =>
+        isGenerator[i] ? v.create() : undefined
+      );
+      return () => {
+        let i = drawUniformUint(values.length - 1);
+        return isGenerator[i] ? nexts[i]!() : (values[i] as T);
+      };
     },
   };
 }
 function map<T, S>(rng: Random<T>, to: (t: T) => S): Random<S> {
   return {
-    next() {
-      return to(rng.next());
+    create() {
+      let next = rng.create();
+      return () => to(next());
     },
   };
 }
@@ -269,8 +282,10 @@ function array<T>(
 ): Random<T[]> {
   let size_ = typeof size === 'number' ? constant(size) : size;
   return {
-    next() {
-      return Array.from({ length: size_.next() }, () => element.next());
+    create() {
+      let nextSize = size_.create();
+      let nextElement = element.create();
+      return () => Array.from({ length: nextSize() }, () => nextElement());
     },
   };
 }
@@ -278,21 +293,25 @@ function record<T extends {}>(gens: {
   [K in keyof T]: Random<T[K]>;
 }): Random<T> {
   return {
-    next() {
-      return Object.fromEntries(
-        Object.entries<Random<any>>(gens).map(([key, gen]) => [key, gen.next()])
-      ) as T;
+    create() {
+      let keys = Object.keys(gens);
+      let nexts = keys.map((key) => gens[key as keyof T].create());
+      return () =>
+        Object.fromEntries(keys.map((key, i) => [key, nexts[i]()])) as T;
     },
   };
 }
 
-function reject<T>(gen: Random<T>, isRejected: (t: T) => boolean) {
+function reject<T>(rng: Random<T>, isRejected: (t: T) => boolean): Random<T> {
   return {
-    next() {
-      while (true) {
-        let t = gen.next();
-        if (!isRejected(t)) return t;
-      }
+    create() {
+      let next = rng.create();
+      return () => {
+        while (true) {
+          let t = next();
+          if (!isRejected(t)) return t;
+        }
+      };
     },
   };
 }
@@ -314,7 +333,7 @@ function int(min: number, max: number): Random<number> {
   if (0 >= min && 0 <= max) special.unshift(0, 0);
   let nSpecial = special.length;
   return {
-    next() {
+    create: () => () => {
       // 25% of test cases are special numbers
       if (drawOneOf8() < 3) {
         let i = drawUniformUint(nSpecial);
@@ -330,7 +349,7 @@ function int(min: number, max: number): Random<number> {
  * log-uniform distribution over range [0, max]
  * with bias towards 0, 1, 2, max
  */
-function nat(max: number) {
+function nat(max: number): Random<number> {
   if (max < 0) throw Error('max < 0');
   if (max === 0) return constant(0);
   let bits = max.toString(2).length;
@@ -341,7 +360,7 @@ function nat(max: number) {
   if (max > 2) special.push(max);
   let nSpecial = special.length - 1;
   return {
-    next() {
+    create: () => () => {
       // 25% of test cases are special numbers
       if (drawOneOf8() < 3) {
         let i = drawUniformUint(nSpecial);
@@ -366,8 +385,8 @@ let specialBytes = [0, 0, 0, 1, 1, 2, 255, 255];
  * log-uniform distribution over range [0, 255]
  * with bias towards 0, 1, 2, 255
  */
-const byte = {
-  next() {
+const byte: Random<number> = {
+  create: () => () => {
     // 25% of test cases are special numbers
     if (drawOneOf8() < 2) return specialBytes[drawOneOf8()];
     // the remaining follow log-uniform / cut off exponential distribution:
@@ -387,7 +406,7 @@ function biguint(bits: number): Random<bigint> {
   let bitsBits = Math.log2(bits);
   if (!Number.isInteger(bitsBits)) throw Error('bits must be a power of 2');
   return {
-    next() {
+    create: () => () => {
       // 25% of test cases are special numbers
       if (drawOneOf8() < 2) return special[drawOneOf8()];
       // the remaining follow log-uniform / cut off exponential distribution:

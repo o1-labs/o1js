@@ -6,7 +6,7 @@ const isVerbose = false;
 
 function test<T extends readonly Random<any>[]>(...args: ArrayTestArgs<T>) {
   let timeBudget = defaultTimeBudget;
-  let run: (...args: ArrayRunArgs<T>) => void;
+  let run: (...args: ArrayRunArgs<Nexts<T>>) => void;
   let arg = args.pop();
   if (typeof arg !== 'function') {
     if (arg !== undefined) timeBudget = (arg as any).timeBudget;
@@ -15,22 +15,23 @@ function test<T extends readonly Random<any>[]>(...args: ArrayTestArgs<T>) {
     run = arg;
   }
   let gens = args as any as T;
+  let nexts = gens.map((g) => g.create()) as Nexts<T>;
   let start = performance.now();
   // run at least 10 times
-  testN<T>(10, gens, run);
+  testN(10, nexts, run);
   let time = performance.now() - start;
   if (time > timeBudget) return 10;
   // (10 + remainingRuns) * timePerRun = timeBudget
   let remainingRuns = Math.floor(timeBudget / (time / 10)) - 10;
   // run at most 100 times
   if (remainingRuns > 90) remainingRuns = 90;
-  testN<T>(remainingRuns, gens, run);
+  testN(remainingRuns, nexts, run);
   return 10 + remainingRuns;
 }
 
-function testN<T extends readonly Random<any>[]>(
+function testN<T extends readonly (() => any)[]>(
   N: number,
-  gens: T,
+  nexts: T,
   run: (...args: ArrayRunArgs<T>) => void
 ) {
   let errorMessages: string[] = [];
@@ -49,7 +50,7 @@ function testN<T extends readonly Random<any>[]>(
     count = 0;
     fail = false;
     let error: Error | undefined;
-    let values = gens.map((gen) => gen.next());
+    let values = nexts.map((next) => next());
     try {
       if (isVerbose) console.log('testing', ...values);
       (run as any)(...values, assert);
@@ -71,13 +72,17 @@ ${error.message}`;
 
 // types
 
+type Nexts<T extends readonly Random<any>[]> = {
+  [i in keyof T]: T[i]['create'] extends () => () => infer U ? () => U : never;
+};
+
 type ArrayTestArgs<T extends readonly Random<any>[]> = [
   ...gens: T,
-  run: (...args: ArrayRunArgs<T>) => void
+  run: (...args: ArrayRunArgs<Nexts<T>>) => void
   // options?: { timeBudget?: number } // TODO make this work
 ];
 
-type ArrayRunArgs<T extends readonly Random<any>[]> = [
-  ...values: { [K in keyof T]: T[K] extends Random<infer U> ? U : never },
+type ArrayRunArgs<Nexts extends readonly (() => any)[]> = [
+  ...values: { [i in keyof Nexts]: Nexts[i] extends () => infer U ? U : never },
   assert: (b: boolean, message?: string) => void
 ];
