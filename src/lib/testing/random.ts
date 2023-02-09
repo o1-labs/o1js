@@ -16,7 +16,7 @@ import { alphabet } from '../../provable/base58.js';
 import { bytesToBigInt } from '../../js_crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
 
-export { Random };
+export { Random, withHardCoded };
 
 type Random<T> = {
   create(): () => T;
@@ -43,7 +43,7 @@ const AuthorizationKind = reject(
   (t) => !!t.isProved && !!t.isSigned
 );
 const AuthRequired = map(
-  oneof<Json.AuthRequired[]>(
+  oneOf<Json.AuthRequired[]>(
     'None',
     'Proof',
     'Signature',
@@ -58,7 +58,7 @@ const Events = map(
   Bigint.Events.fromList
 );
 const SequenceEvents = Events;
-const SequenceState = oneof(Bigint.SequenceState.emptyValue(), Field);
+const SequenceState = oneOf(Bigint.SequenceState.emptyValue(), Field);
 const ZkappUri = map(string(nat(50)), Bigint.ZkappUri.fromJSON);
 
 const PrimitiveMap = primitiveTypeMap<bigint>();
@@ -115,7 +115,8 @@ const Random = Object.assign(Random_, {
   array,
   record,
   map,
-  oneof,
+  oneOf,
+  withHardCoded,
   field: Field,
   bool: Bool,
   uint32: UInt32,
@@ -245,10 +246,10 @@ function string(size: number | Random<number>) {
 }
 
 function base58(size: number | Random<number>) {
-  return map(array(oneof(...alphabet), size), (a) => a.join(''));
+  return map(array(oneOf(...alphabet), size), (a) => a.join(''));
 }
 
-function oneof<Types extends readonly any[]>(
+function oneOf<Types extends readonly any[]>(
   ...values: { [K in keyof Types]: Types[K] | Random<Types[K]> }
 ): Random<Types[number]> {
   type T = Types[number];
@@ -311,6 +312,19 @@ function reject<T>(rng: Random<T>, isRejected: (t: T) => boolean): Random<T> {
           let t = next();
           if (!isRejected(t)) return t;
         }
+      };
+    },
+  };
+}
+
+function withHardCoded<T>(rng: Random<T>, ...hardCoded: T[]): Random<T> {
+  return {
+    create() {
+      let next = rng.create();
+      let i = 0;
+      return () => {
+        if (i < hardCoded.length) return hardCoded[i++];
+        return next();
       };
     },
   };

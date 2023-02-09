@@ -1,11 +1,14 @@
 import { fromBase58Check, toBase58Check } from './base58.js';
 import { Ledger, isReady, shutdown } from '../snarky.js';
 import { expect } from 'expect';
-import { test, Random } from '../lib/testing/property.js';
+import { test, Random, withHardCoded } from '../lib/testing/property.js';
 
 await isReady;
 
-let bytes = Random.bytes(Random.nat(100));
+let bytes = withHardCoded(
+  Random.bytes(Random.nat(100)),
+  [0, 0, 0, 0] // definitely test some zero bytes
+);
 let version = Random.nat(100);
 
 test(bytes, version, (bytes, version, assert) => {

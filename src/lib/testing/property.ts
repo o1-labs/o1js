@@ -1,7 +1,9 @@
-import { Random } from './random.js';
-export { test, Random };
+import { Random, withHardCoded } from './random.js';
+export { test, Random, withHardCoded };
 
 const defaultTimeBudget = 100; // ms
+const minRuns = 15;
+const maxRuns = 100;
 const isVerbose = false;
 
 function test<T extends readonly Random<any>[]>(...args: ArrayTestArgs<T>) {
@@ -17,16 +19,16 @@ function test<T extends readonly Random<any>[]>(...args: ArrayTestArgs<T>) {
   let gens = args as any as T;
   let nexts = gens.map((g) => g.create()) as Nexts<T>;
   let start = performance.now();
-  // run at least 10 times
-  testN(10, nexts, run);
+  // run at least `minRuns` times
+  testN(minRuns, nexts, run);
   let time = performance.now() - start;
-  if (time > timeBudget) return 10;
-  // (10 + remainingRuns) * timePerRun = timeBudget
-  let remainingRuns = Math.floor(timeBudget / (time / 10)) - 10;
-  // run at most 100 times
-  if (remainingRuns > 90) remainingRuns = 90;
+  if (time > timeBudget) return minRuns;
+  // (minRuns + remainingRuns) * timePerRun = timeBudget
+  let remainingRuns = Math.floor(timeBudget / (time / minRuns)) - minRuns;
+  // run at most `maxRuns` times
+  if (remainingRuns > maxRuns - minRuns) remainingRuns = maxRuns - minRuns;
   testN(remainingRuns, nexts, run);
-  return 10 + remainingRuns;
+  return minRuns + remainingRuns;
 }
 
 function testN<T extends readonly (() => any)[]>(
