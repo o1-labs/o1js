@@ -23,8 +23,39 @@ import { Memo } from './memo.js';
 import { expect } from 'expect';
 import { versionBytes } from '../../js_crypto/constants.js';
 import { stringToBytes } from '../../provable/binable.js';
-import { Random, test } from '../../lib/testing/property.js';
+import { Random, test, withHardCoded } from '../../lib/testing/property.js';
 
+let { record } = Random;
+let commonGenerator = record({
+  fee: Random.map(Random.uint32, (x) => (x * BigInt(1e9)).toString()),
+  feePayer: Random.json.publicKey,
+  nonce: Random.json.uint32,
+  validUntil: Random.json.uint32,
+  memo: Random.string(Random.nat(32)),
+});
+let paymentGenerator = record<Signed<PaymentJson>>({
+  data: record({
+    common: commonGenerator,
+    body: record({
+      source: Random.json.publicKey,
+      receiver: Random.json.publicKey,
+      amount: Random.json.uint64,
+    }),
+  }),
+  signature: Random.json.signature,
+});
+let delegationGenerator = record<Signed<DelegationJson>>({
+  data: record({
+    common: commonGenerator,
+    body: record({
+      delegator: Random.json.publicKey,
+      newDelegate: Random.json.publicKey,
+    }),
+  }),
+  signature: Random.json.signature,
+});
+
+// TODO remove hard-coded values?
 let signature =
   '7mWyu5cpHDvYj28RGuJKzBQkU35KgHwaM34oPxoxXbFddv1kpL3e6NdUsMZMhyrrgkgVYo5cNvfiXhtshF35ZqTmSdPcUToN';
 
@@ -45,25 +76,6 @@ let payment: Signed<PaymentJson> = {
   },
   signature,
 };
-let { record } = Random;
-let commonGenerator = record({
-  fee: Random.json.uint64,
-  feePayer: Random.json.publicKey,
-  nonce: Random.json.uint32,
-  validUntil: Random.json.uint32,
-  memo: Random.string(Random.nat(32)),
-});
-let paymentGenerator = record<Signed<PaymentJson>>({
-  data: record({
-    common: commonGenerator,
-    body: record({
-      source: Random.json.publicKey,
-      receiver: Random.json.publicKey,
-      amount: Random.json.uint64,
-    }),
-  }),
-  signature: Random.json.signature,
-});
 
 let delegation: Signed<DelegationJson> = {
   data: {
@@ -75,16 +87,9 @@ let delegation: Signed<DelegationJson> = {
   },
   signature,
 };
-let delegationGenerator = record<Signed<DelegationJson>>({
-  data: record({
-    common: commonGenerator,
-    body: record({
-      delegator: Random.json.publicKey,
-      newDelegate: Random.json.publicKey,
-    }),
-  }),
-  signature: Random.json.signature,
-});
+
+paymentGenerator = withHardCoded(paymentGenerator, payment);
+delegationGenerator = withHardCoded(delegationGenerator, delegation);
 
 test(paymentGenerator, delegationGenerator, (payment, delegation, assert) => {
   // common serialization
@@ -124,8 +129,8 @@ test(paymentGenerator, delegationGenerator, (payment, delegation, assert) => {
   let delegationBytes0 = [...result.data];
   payload = userCommandToEnum(delegationFromJson(delegation.data));
   command = {
-    signer: PublicKey.fromBase58(payment.data.body.source),
-    signature: Signature.fromBase58(payment.signature),
+    signer: PublicKey.fromBase58(delegation.data.body.delegator),
+    signature: Signature.fromBase58(delegation.signature),
     payload,
   };
   let delegationBytes1 = SignedCommand.toBytes(command);
@@ -170,8 +175,8 @@ test(paymentGenerator, delegationGenerator, (payment, delegation, assert) => {
   );
   let delegationV1Body = userCommandToV1(delegationFromJson(delegation.data));
   let delegationV1 = {
-    signer: PublicKey.fromBase58(payment.data.body.source),
-    signature: Signature.fromBase58(payment.signature),
+    signer: PublicKey.fromBase58(delegation.data.body.delegator),
+    signature: Signature.fromBase58(delegation.signature),
     payload: delegationV1Body,
   };
   v1Bytes1 = SignedCommandV1.toBytes(delegationV1);
@@ -265,7 +270,7 @@ function delegationToOcamlV1({
 function commonToOcaml({ fee, feePayer, nonce, validUntil, memo }: CommonJson) {
   memo = Memo.toBase58(Memo.fromString(memo));
   return {
-    fee: fee.slice(0, -9),
+    fee: fee === '0' ? fee : fee.slice(0, -9),
     fee_payer_pk: feePayer,
     nonce,
     valid_until: validUntil,
