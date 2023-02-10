@@ -20,7 +20,11 @@ let accountUpdateExample2: TransactionJson.AccountUpdate = {
   body: {
     ...accountUpdateExample.body,
     publicKey,
-    authorizationKind: 'Signature',
+    authorizationKind: {
+      isSigned: true,
+      isProved: false,
+      verificationKeyHash: '0',
+    },
   },
   authorization: { proof: null, signature: dummySignature },
 };

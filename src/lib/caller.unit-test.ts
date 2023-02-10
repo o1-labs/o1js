@@ -1,9 +1,5 @@
-import { Bool, isReady, shutdown } from '../snarky.js';
-import {
-  AccountUpdate,
-  makeChildAccountUpdate,
-  Token,
-} from './account_update.js';
+import { isReady, shutdown } from '../snarky.js';
+import { AccountUpdate, Token } from './account_update.js';
 import * as Mina from './mina.js';
 import { expect } from 'expect';
 
@@ -30,7 +26,7 @@ let tx = await Mina.transaction(privateKey, () => {
   child.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
   AccountUpdate.attachToTransaction(parent);
-  makeChildAccountUpdate(parent, child);
+  parent.approve(child);
 });
 
 // according to this test, the child doesn't get token permissions
