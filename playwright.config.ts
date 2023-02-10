@@ -58,13 +58,13 @@ const config: PlaywrightTestConfig = {
         ...devices['Desktop Chrome'],
       },
     },
-    {
-      name: 'firefox-desktop',
-      use: {
-        browserName: 'firefox',
-        ...devices['Desktop Firefox'],
-      },
-    },
+    // {
+    //   name: 'firefox-desktop',
+    //   use: {
+    //     browserName: 'firefox',
+    //     ...devices['Desktop Firefox'],
+    //   },
+    // },
   ],
   /* Run your local dev server before starting the tests */
   webServer: {

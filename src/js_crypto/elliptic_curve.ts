@@ -1,4 +1,5 @@
-import { bytesToBigInt, inverse, mod, p, q } from './finite_field.js';
+import { bytesToBigInt } from './bigint-helpers.js';
+import { inverse, mod, p, q } from './finite_field.js';
 export { Pallas, Vesta, GroupAffine, GroupProjective };
 
 // TODO: constants, like generator points and cube roots for endomorphisms, should be drawn from

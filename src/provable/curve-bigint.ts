@@ -1,16 +1,18 @@
 import { Fq } from '../js_crypto/finite_field.js';
 import { GroupProjective, Pallas } from '../js_crypto/elliptic_curve.js';
 import { versionBytes } from '../js_crypto/constants.js';
-import { tuple, withVersionNumber } from './binable.js';
-import { base58 } from './base58.js';
+import { record, withCheck, withVersionNumber } from './binable.js';
+import { base58, withBase58 } from './base58.js';
 import {
   BinableBigint,
   Bool,
+  checkRange,
   Field,
   ProvableBigint,
   pseudoClass,
 } from './field-bigint.js';
 import { provable } from './provable-bigint.js';
+import { HashInputLegacy } from './poseidon-bigint.js';
 
 export { Group, PublicKey, Scalar, PrivateKey, versionNumbers };
 
@@ -44,39 +46,42 @@ const Group = {
     return { x, y };
   },
   get generatorMina(): Group {
-    return this.fromProjective(Pallas.one);
+    return Group.fromProjective(Pallas.one);
   },
   scale(point: Group, scalar: Scalar): Group {
-    return this.fromProjective(Pallas.scale(this.toProjective(point), scalar));
+    return Group.fromProjective(
+      Pallas.scale(Group.toProjective(point), scalar)
+    );
   },
 };
 
 let FieldWithVersion = withVersionNumber(Field, versionNumbers.field);
 let BinablePublicKey = withVersionNumber(
-  tuple([FieldWithVersion, Bool]),
+  withCheck(
+    record({ x: FieldWithVersion, isOdd: Bool }, ['x', 'isOdd']),
+    ({ x }) => {
+      let { mul, add } = Field;
+      let ySquared = add(mul(x, mul(x, x)), 5n);
+      if (!Field.isSquare(ySquared)) {
+        throw Error('PublicKey: not a valid group element');
+      }
+    }
+  ),
   versionNumbers.publicKey
 );
-let Base58PublicKey = base58(BinablePublicKey, versionBytes.publicKey);
 
 /**
  * A public key, represented by a non-zero point on the Pallas curve, in compressed form { x, isOdd }
  */
 const PublicKey = {
   ...provable({ x: Field, isOdd: Bool }),
-
-  toBase58({ x, isOdd }: PublicKey) {
-    return Base58PublicKey.toBase58([x, isOdd]);
-  },
-  fromBase58(json: string): PublicKey {
-    let [x, isOdd] = Base58PublicKey.fromBase58(json);
-    return { x, isOdd };
-  },
+  ...withBase58(BinablePublicKey, versionBytes.publicKey),
 
   toJSON(publicKey: PublicKey) {
-    return this.toBase58(publicKey);
+    return PublicKey.toBase58(publicKey);
   },
   fromJSON(json: string): PublicKey {
-    return this.fromBase58(json);
+    return PublicKey.fromBase58(json);
   },
 
   toGroup({ x, isOdd }: PublicKey): Group {
@@ -93,7 +98,17 @@ const PublicKey = {
     let isOdd = (y & 1n) as Bool;
     return { x, isOdd };
   },
+
+  equal(pk1: PublicKey, pk2: PublicKey) {
+    return pk1.x === pk2.x && pk1.isOdd === pk2.isOdd;
+  },
+
+  toInputLegacy({ x, isOdd }: PublicKey): HashInputLegacy {
+    return { fields: [x], bits: [!!isOdd] };
+  },
 };
+
+const checkScalar = checkRange(0n, Fq.modulus, 'Scalar');
 
 /**
  * The scalar field of the Pallas curve
@@ -102,7 +117,11 @@ const Scalar = pseudoClass(
   function Scalar(value: bigint | number | string): Scalar {
     return BigInt(value) % Fq.modulus;
   },
-  { ...ProvableBigint(), ...BinableBigint(Fq.sizeInBits), ...Fq }
+  {
+    ...ProvableBigint(checkScalar),
+    ...BinableBigint(Fq.sizeInBits, checkScalar),
+    ...Fq,
+  }
 );
 
 let BinablePrivateKey = withVersionNumber(Scalar, versionNumbers.scalar);

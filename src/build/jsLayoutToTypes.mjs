@@ -147,7 +147,7 @@ ${
   !isJson
     ? 'export { Json };\n' +
       `export * from '${leavesRelPath}';\n` +
-      'export { provableFromLayout, toJSONEssential, Layout };\n'
+      'export { provableFromLayout, toJSONEssential, Layout, TypeMap };\n'
     : `export * from '${leavesRelPath}';\n` + 'export { TypeMap };\n'
 }
 

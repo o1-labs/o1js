@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { bytesToBigInt } from '../js_crypto/finite_field.js';
+import { bytesToBigInt } from '../js_crypto/bigint-helpers.js';
 import { Circuit, ProvablePure, Provable, Keypair, Gate } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
@@ -868,8 +868,8 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
   // primitive JS types and functions are checked for exact equality
   if (
     typeof a !== 'object' ||
-    typeof b !== 'object' ||
     a === null ||
+    typeof b !== 'object' ||
     b === null
   )
     return a === b;

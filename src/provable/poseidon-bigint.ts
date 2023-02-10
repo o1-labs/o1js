@@ -1,31 +1,29 @@
 import { Field, sizeInBits } from './field-bigint.js';
-import { bitsToBytes, prefixToField } from './binable.js';
-import { Poseidon } from '../js_crypto/poseidon.js';
+import { Poseidon, PoseidonLegacy } from '../js_crypto/poseidon.js';
 import { prefixes } from '../js_crypto/constants.js';
 import { createHashInput } from './provable-generic.js';
 import { GenericHashInput } from './generic.js';
+import { createHashHelpers } from '../lib/hash-generic.js';
 
 export {
   Poseidon,
+  Hash,
   HashInput,
   prefixes,
   packToFields,
   hashWithPrefix,
   packToFieldsLegacy,
+  HashInputLegacy,
+  inputToBitsLegacy,
+  HashLegacy,
 };
 
 type HashInput = GenericHashInput<Field>;
 const HashInput = createHashInput<Field>();
+const Hash = createHashHelpers(Field, Poseidon);
+let { hashWithPrefix } = Hash;
 
-function salt(prefix: string) {
-  return Poseidon.update(Poseidon.initialState(), [
-    prefixToField(Field, prefix),
-  ]);
-}
-function hashWithPrefix(prefix: string, input: Field[]) {
-  let init = salt(prefix);
-  return Poseidon.update(init, input)[0];
-}
+const HashLegacy = createHashHelpers(Field, PoseidonLegacy);
 
 /**
  * Convert the {fields, packed} hash input representation to a list of field elements
@@ -49,15 +47,37 @@ function packToFields({ fields = [], packed = [] }: HashInput) {
   packedBits.push(currentPackedField);
   return fields.concat(packedBits);
 }
+
 /**
- * Random_oracle_input.Legacy.pack_to_fields, for the special case of a single bitstring
+ * Random_oracle_input.Legacy.pack_to_fields
  */
-function packToFieldsLegacy([...bits]: boolean[]) {
-  let fields = [];
+function packToFieldsLegacy({ fields, bits }: HashInputLegacy) {
+  let packedFields = [];
   while (bits.length > 0) {
-    let fieldBits = bits.splice(0, sizeInBits);
-    let field = Field.fromBytes(bitsToBytes(fieldBits));
-    fields.push(field);
+    let fieldBits = bits.splice(0, sizeInBits - 1);
+    let field = Field.fromBits(fieldBits);
+    packedFields.push(field);
   }
-  return fields;
+  return fields.concat(packedFields);
 }
+function inputToBitsLegacy({ fields, bits }: HashInputLegacy) {
+  let fieldBits = fields.map(Field.toBits).flat();
+  return fieldBits.concat(bits);
+}
+
+type HashInputLegacy = { fields: Field[]; bits: boolean[] };
+
+const HashInputLegacy = {
+  empty(): HashInputLegacy {
+    return { fields: [], bits: [] };
+  },
+  bits(bits: boolean[]): HashInputLegacy {
+    return { fields: [], bits };
+  },
+  append(input1: HashInputLegacy, input2: HashInputLegacy): HashInputLegacy {
+    return {
+      fields: (input1.fields ?? []).concat(input2.fields ?? []),
+      bits: (input1.bits ?? []).concat(input2.bits ?? []),
+    };
+  },
+};

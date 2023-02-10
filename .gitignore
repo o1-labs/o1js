@@ -4,3 +4,4 @@ dist/
 o1labs*.tgz
 tests/report/
 tests/test-artifacts/
+profiling.md

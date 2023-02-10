@@ -13,7 +13,7 @@ export class DummyContract extends SmartContract {
 
   deploy(args: DeployArgs) {
     super.deploy(args);
-    this.setPermissions({
+    this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
       editSequenceState: Permissions.proofOrSignature(),

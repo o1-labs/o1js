@@ -24,7 +24,6 @@ export * as Mina from './lib/mina.js';
 export {
   SmartContract,
   method,
-  deploy,
   DeployArgs,
   signFeePayer,
   declareMethods,
@@ -40,12 +39,13 @@ export {
   AccountUpdate,
   Permissions,
   ZkappPublicInput,
-  zkappCommandToJson,
 } from './lib/account_update.js';
 
 export {
   fetchAccount,
   fetchLastBlock,
+  fetchTransactionStatus,
+  TransactionStatus,
   addCachedAccount,
   setGraphqlEndpoint,
   sendZkapp,

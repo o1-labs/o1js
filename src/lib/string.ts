@@ -87,7 +87,7 @@ class CircuitString extends CircuitValue {
   append(str: CircuitString): CircuitString {
     let n = this.maxLength();
     // only allow append if the dynamic length does not overflow
-    this.length().add(str.length()).assertLt(n);
+    this.length().add(str.length()).assertLessThan(n);
 
     let chars = this.values;
     let otherChars = fillWithNull(str.values, n);
@@ -117,7 +117,7 @@ class CircuitString extends CircuitValue {
   // contains(str: CircuitString): Bool {
   //   // only succeed if the dynamic length is smaller
   //   let otherLength = str.length();
-  //   otherLength.assertLt(this.length());
+  //   otherLength.assertLessThan(this.length());
   // }
 
   hash(): Field {

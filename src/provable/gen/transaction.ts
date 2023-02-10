@@ -10,7 +10,7 @@ import {
   AuthRequired,
   TokenSymbol,
   Sign,
-  StringWithHash,
+  ZkappUri,
   Events,
   SequenceEvents,
   SequenceState,
@@ -26,7 +26,7 @@ import { jsLayout } from './js-layout.js';
 export { customTypes, ZkappCommand, AccountUpdate };
 export { Json };
 export * from '../transaction-leaves.js';
-export { provableFromLayout, toJSONEssential, Layout };
+export { provableFromLayout, toJSONEssential, Layout, TypeMap };
 
 type TypeMap = {
   PublicKey: PublicKey;
@@ -56,7 +56,7 @@ type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, Field>;
 type Layout = GenericLayout<TypeMap>;
 
 type CustomTypes = {
-  StringWithHash: ProvableExtended<
+  ZkappUri: ProvableExtended<
     {
       data: string;
       hash: Field;
@@ -81,7 +81,7 @@ type CustomTypes = {
   SequenceState: ProvableExtended<Field, Json.TypeMap['Field']>;
 };
 let customTypes: CustomTypes = {
-  StringWithHash,
+  ZkappUri,
   TokenSymbol,
   Events,
   SequenceEvents,

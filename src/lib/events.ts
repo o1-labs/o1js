@@ -1,17 +1,8 @@
+import { prefixes } from '../js_crypto/constants.js';
 import { prefixToField } from '../provable/binable.js';
 import { GenericField, GenericProvableExtended } from '../provable/generic.js';
-import { Poseidon as Poseidon_ } from '../snarky.js';
 
 export { createEvents, dataAsHash };
-
-const prefixes: typeof Poseidon_.prefixes = new Proxy({} as any, {
-  // hack bc Poseidon_.prefixes is not available at start-up
-  get(_target, prop) {
-    return Poseidon_.prefixes[
-      prop as keyof typeof Poseidon_.prefixes
-    ] as string;
-  },
-});
 
 type Poseidon<Field> = {
   update(state: Field[], input: Field[]): Field[];
@@ -56,9 +47,11 @@ function createEvents<Field>({
       let hash = hashWithPrefix(prefixes.events, [events.hash, eventHash]);
       return { hash, data: [event, ...events.data] };
     },
+    fromList(events: Event[]): Events {
+      return [...events].reverse().reduce(Events.pushEvent, Events.empty());
+    },
     hash(events: Event[]) {
-      return [...events].reverse().reduce(Events.pushEvent, Events.empty())
-        .hash;
+      return Events.fromList(events).hash;
     },
   };
   const EventsProvable = {
@@ -90,10 +83,13 @@ function createEvents<Field>({
       ]);
       return { hash, data: [event, ...sequenceEvents.data] };
     },
-    hash(events: Event[]) {
+    fromList(events: Event[]): Events {
       return [...events]
         .reverse()
-        .reduce(SequenceEvents.pushEvent, SequenceEvents.empty()).hash;
+        .reduce(SequenceEvents.pushEvent, SequenceEvents.empty());
+    },
+    hash(events: Event[]) {
+      return this.fromList(events).hash;
     },
     // different than events
     emptySequenceState() {
@@ -133,7 +129,9 @@ function dataAsHash<T, J, Field>({
   emptyValue: () => { data: T; hash: Field };
   toJSON: (value: T) => J;
   fromJSON: (json: J) => { data: T; hash: Field };
-}): GenericProvableExtended<{ data: T; hash: Field }, J, Field> {
+}): GenericProvableExtended<{ data: T; hash: Field }, J, Field> & {
+  emptyValue(): { data: T; hash: Field };
+} {
   return {
     emptyValue,
     sizeInFields() {
