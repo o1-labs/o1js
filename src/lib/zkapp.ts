@@ -739,6 +739,9 @@ class SmartContract {
   } = {}) {
     let accountUpdate = this.newSelf();
     verificationKey ??= (this.constructor as any)._verificationKey;
+    if (verificationKey === undefined && !Mina.getProofsEnabled()) {
+      verificationKey = Pickles.dummyVerificationKey();
+    }
     if (verificationKey !== undefined) {
       let { hash: hash_, data } = verificationKey;
       let hash = typeof hash_ === 'string' ? Field(hash_) : hash_;

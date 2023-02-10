@@ -50,6 +50,7 @@ export {
   FeePayerSpec,
   faucet,
   waitForFunding,
+  getProofsEnabled,
   // for internal testing only
   filterGroups,
 };
@@ -99,10 +100,7 @@ type Transaction = {
 const Transaction = {
   fromJSON(json: Types.Json.ZkappCommand): Transaction {
     let transaction = ZkappCommand.fromJSON(json);
-    return newTransaction(
-      transaction,
-      (activeInstance as { proofsEnabled?: boolean }).proofsEnabled
-    );
+    return newTransaction(transaction, activeInstance.proofsEnabled);
   },
 };
 
@@ -329,6 +327,7 @@ interface Mina {
     publicKey: PublicKey,
     tokenId?: Field
   ) => { hash: string; actions: string[][] }[];
+  proofsEnabled: boolean;
 }
 
 const defaultAccountCreationFee = 1_000_000_000;
@@ -774,6 +773,7 @@ function Network(graphqlEndpoint: string): Mina {
         'fetchEvents() is not implemented yet for remote blockchains.'
       );
     },
+    proofsEnabled: true,
   };
 }
 
@@ -848,6 +848,7 @@ let activeInstance: Mina = {
   getActions() {
     throw Error('must call Mina.setActiveInstance first');
   },
+  proofsEnabled: true,
 };
 
 /**
@@ -988,6 +989,10 @@ async function fetchEvents(publicKey: PublicKey, tokenId: Field) {
  */
 function getActions(publicKey: PublicKey, tokenId: Field) {
   return activeInstance.getActions(publicKey, tokenId);
+}
+
+function getProofsEnabled() {
+  return activeInstance.proofsEnabled;
 }
 
 function dummyAccount(pubkey?: PublicKey): Account {
