@@ -37,6 +37,7 @@ export {
   NetworkId,
   signLegacy,
   verifyLegacy,
+  deriveNonce,
 };
 
 const networkIdMainnet = 0x01n;
