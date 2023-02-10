@@ -23,6 +23,8 @@ let accountUpdateExample: Json.AccountUpdate = {
         setTokenSymbol: 'Signature',
         incrementNonce: 'Signature',
         setVotingFor: 'Signature',
+        access: 'None',
+        setTiming: 'Signature',
       },
       zkappUri: null,
       tokenSymbol: 'BLABLA',
@@ -38,18 +40,16 @@ let accountUpdateExample: Json.AccountUpdate = {
     balanceChange: { magnitude: '14197832', sgn: 'Negative' },
     incrementNonce: true,
     events: [['0'], ['1']],
-    sequenceEvents: [['0'], ['1']],
+    actions: [['0'], ['1']],
     callData:
       '6743900749438632952963252074409706338210982229126682817949490928992849119219',
     callDepth: 0,
     preconditions: {
       network: {
         snarkedLedgerHash: null,
-        timestamp: null,
         blockchainLength: null,
         minWindowDensity: null,
         totalCurrency: null,
-        globalSlotSinceHardFork: null,
         globalSlotSinceGenesis: null,
         stakingEpochData: {
           ledger: {
@@ -80,10 +80,16 @@ let accountUpdateExample: Json.AccountUpdate = {
         provedState: null,
         isNew: true,
       },
+      validWhile: null,
     },
     useFullCommitment: false,
-    caller: 'yEWUTZqtT8PmCFU32EXwCwudK4gtxCWkjcAC7eTwj2riWhCV8M',
-    authorizationKind: 'None_given',
+    implicitAccountCreationFee: false,
+    mayUseToken: { parentsOwnToken: false, inheritFromParent: false },
+    authorizationKind: {
+      isSigned: false,
+      isProved: false,
+      verificationKeyHash: '0',
+    },
   },
   authorization: { proof: null, signature: null },
 };

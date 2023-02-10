@@ -16,6 +16,11 @@ import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
 import { inCheckedComputation, Proof, Prover } from './proof_system.js';
 import { Memo } from '../mina-signer/src/memo.js';
+import { Events, SequenceEvents } from '../provable/transaction-leaves.js';
+import * as Encoding from './encoding.js';
+import { hashWithPrefix, packToFields } from './hash.js';
+import { prefixes } from '../js_crypto/constants.js';
+import { Context } from './global-context.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };

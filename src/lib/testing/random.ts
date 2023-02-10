@@ -37,13 +37,6 @@ const PrivateKey = Random_(CurveBigint.PrivateKey.random);
 const PublicKey = map(PrivateKey, CurveBigint.PrivateKey.toPublicKey);
 
 const TokenId = oneOf(Bigint.TokenId.emptyValue(), Field);
-const AuthorizationKind = reject(
-  record<Bigint.AuthorizationKind>({
-    isProved: Bool,
-    isSigned: Bool,
-  }),
-  (t) => !!t.isProved && !!t.isSigned
-);
 const AuthRequired = map(
   oneOf<Json.AuthRequired[]>(
     'None',
@@ -77,7 +70,6 @@ const Generators: Generators = {
   Sign,
   PublicKey,
   TokenId,
-  AuthorizationKind,
   AuthRequired,
   TokenSymbol,
   Events,
