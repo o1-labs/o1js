@@ -47,9 +47,11 @@ function createEvents<Field>({
       let hash = hashWithPrefix(prefixes.events, [events.hash, eventHash]);
       return { hash, data: [event, ...events.data] };
     },
+    fromList(events: Event[]): Events {
+      return [...events].reverse().reduce(Events.pushEvent, Events.empty());
+    },
     hash(events: Event[]) {
-      return [...events].reverse().reduce(Events.pushEvent, Events.empty())
-        .hash;
+      return Events.fromList(events).hash;
     },
   };
   const EventsProvable = {
@@ -81,10 +83,13 @@ function createEvents<Field>({
       ]);
       return { hash, data: [event, ...sequenceEvents.data] };
     },
-    hash(events: Event[]) {
+    fromList(events: Event[]): Events {
       return [...events]
         .reverse()
-        .reduce(SequenceEvents.pushEvent, SequenceEvents.empty()).hash;
+        .reduce(SequenceEvents.pushEvent, SequenceEvents.empty());
+    },
+    hash(events: Event[]) {
+      return this.fromList(events).hash;
     },
     // different than events
     emptySequenceState() {

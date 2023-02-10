@@ -17,7 +17,10 @@ export {
   BinableWithBits,
   stringToBytes,
   BinableString,
-  BinableBigintInteger,
+  BinableInt32,
+  BinableInt64,
+  BinableUint32,
+  BinableUint64,
 };
 
 type Binable<T> = {
@@ -188,54 +191,87 @@ const CODE_INT16 = 0xfe;
 const CODE_INT32 = 0xfd;
 const CODE_INT64 = 0xfc;
 
-const BinableBigintInteger = defineBinable({
-  toBytes(n: bigint) {
-    if (n >= 0) {
-      if (n < 0x80n) return bigIntToBytes(n, 1);
-      if (n < 0x8000n) return [CODE_INT16, ...bigIntToBytes(n, 2)];
-      if (n < 0x80000000) return [CODE_INT32, ...bigIntToBytes(n, 4)];
-      else return [CODE_INT64, ...bigIntToBytes(n, 8)];
-    } else {
-      let M = 1n << 64n;
-      if (n >= -0x80n)
-        return [CODE_NEG_INT8, ...bigIntToBytes((M + n) & 0xffn, 1)];
-      if (n >= -0x8000n)
-        return [CODE_INT16, ...bigIntToBytes((M + n) & 0xffffn, 2)];
-      if (n >= -0x80000000)
-        return [CODE_INT32, ...bigIntToBytes((M + n) & 0xffff_ffffn, 4)];
-      else return [CODE_INT64, ...bigIntToBytes(M + n, 8)];
-    }
-  },
-  readBytes(bytes, offset) {
-    let code = bytes[offset++];
-    if (code < 0x80) return [BigInt(code), offset];
-    let size = {
-      [CODE_NEG_INT8]: 1,
-      [CODE_INT16]: 2,
-      [CODE_INT32]: 4,
-      [CODE_INT64]: 8,
-    }[code];
-    if (size === undefined) {
-      throw Error('binable integer: invalid start byte');
-    }
-    let end = offset + size;
-    let x = fillInt64(bytes.slice(offset, end));
-    return [x, end];
-  },
-});
+function BinableInt(bits: number) {
+  let maxValue = 1n << BigInt(bits - 1);
+  let nBytes = bits >> 3;
+  if (nBytes * 8 !== bits) throw Error('bits must be evenly divisible by 8');
+  return defineBinable({
+    toBytes(n: bigint) {
+      if (n < -maxValue || n >= maxValue)
+        throw Error(`int${bits} out of range, got ${n}`);
+      if (n >= 0) {
+        if (n < 0x80n) return bigIntToBytes(n, 1);
+        if (n < 0x8000n) return [CODE_INT16, ...bigIntToBytes(n, 2)];
+        if (n < 0x80000000) return [CODE_INT32, ...bigIntToBytes(n, 4)];
+        else return [CODE_INT64, ...bigIntToBytes(n, 8)];
+      } else {
+        let M = 1n << 64n;
+        if (n >= -0x80n)
+          return [CODE_NEG_INT8, ...bigIntToBytes((M + n) & 0xffn, 1)];
+        if (n >= -0x8000n)
+          return [CODE_INT16, ...bigIntToBytes((M + n) & 0xffffn, 2)];
+        if (n >= -0x80000000)
+          return [CODE_INT32, ...bigIntToBytes((M + n) & 0xffff_ffffn, 4)];
+        else return [CODE_INT64, ...bigIntToBytes(M + n, 8)];
+      }
+    },
+    readBytes(bytes, offset) {
+      let code = bytes[offset++];
+      if (code < 0x80) return [BigInt(code), offset];
+      let size = {
+        [CODE_NEG_INT8]: 1,
+        [CODE_INT16]: 2,
+        [CODE_INT32]: 4,
+        [CODE_INT64]: 8,
+      }[code];
+      if (size === undefined) {
+        throw Error('binable integer: invalid start byte');
+      }
+      let end = offset + size;
+      let x = fillUInt(bytes.slice(offset, end), nBytes);
+      // map from uint to int range
+      if (x >= maxValue) x -= 2n * maxValue;
+      if (x < -maxValue || x >= maxValue)
+        throw Error(`int${bits} out of range, got ${x}`);
+      return [x, end];
+    },
+  });
+}
 
-function fillInt64(startBytes: number[]) {
+function fillUInt(startBytes: number[], nBytes: number) {
   let n = startBytes.length;
-  // fill up int64 with the highest bit of startBytes
+  // fill up int with the highest bit of startBytes
   let lastBit = startBytes[n - 1] >> 7;
   let fillByte = lastBit === 1 ? 0xff : 0x00;
-  let intBytes = startBytes.concat(Array(8 - n).fill(fillByte));
+  let intBytes = startBytes.concat(Array(nBytes - n).fill(fillByte));
   // interpret result as a bigint > 0
   let x = bytesToBigInt(intBytes);
-  // map from uint64 range to int64 range
-  if (x >= 1n << 63n) x -= 1n << 64n;
   return x;
 }
+
+function BinableUint(bits: number) {
+  let binableInt = BinableInt(bits);
+  let maxValue = 1n << BigInt(bits - 1);
+  return iso(binableInt, {
+    to(uint: bigint) {
+      if (uint < 0n || uint >= 2n * maxValue)
+        throw Error(`uint${bits} out of range, got ${uint}`);
+      let ret = uint >= maxValue ? uint - 2n * maxValue : uint;
+      return ret;
+    },
+    from(int: bigint) {
+      let uint = int < 0n ? int + 2n * maxValue : int;
+      if (uint < 0n || uint >= 2n * maxValue)
+        throw Error(`uint${bits} out of range, got ${uint}`);
+      return uint;
+    },
+  });
+}
+
+const BinableInt64 = BinableInt(64);
+const BinableInt32 = BinableInt(32);
+const BinableUint64 = BinableUint(64);
+const BinableUint32 = BinableUint(32);
 
 // same as Random_oracle.prefix_to_field in OCaml
 // converts string to bytes and bytes to field; throws if bytes don't fit in one field
@@ -300,6 +336,21 @@ function withBits<T>(
       return sizeInBits;
     },
   };
+}
+
+function iso<T, S>(
+  binable: Binable<T>,
+  { to, from }: { to(s: S): T; from(t: T): S }
+): Binable<S> {
+  return defineBinable({
+    toBytes(s: S) {
+      return binable.toBytes(to(s));
+    },
+    readBytes(bytes, offset) {
+      let [value, end] = binable.readBytes(bytes, offset);
+      return [from(value), end];
+    },
+  });
 }
 
 function stringToBytes(s: string) {
