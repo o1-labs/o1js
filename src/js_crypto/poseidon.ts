@@ -1,7 +1,7 @@
-import { poseidonParamsKimchiFp } from './constants.js';
+import { poseidonParamsKimchiFp, poseidonParamsLegacyFp } from './constants.js';
 import { FiniteField, Fp } from './finite_field.js';
 
-export { Poseidon };
+export { Poseidon, PoseidonLegacy };
 
 type PoseidonParameters = {
   fullRounds: number;
@@ -15,6 +15,7 @@ type PoseidonParameters = {
 };
 
 const Poseidon = createPoseidon(Fp, poseidonParamsKimchiFp);
+const PoseidonLegacy = createPoseidon(Fp, poseidonParamsLegacyFp);
 
 function createPoseidon(
   Fp: FiniteField,
@@ -29,9 +30,6 @@ function createPoseidon(
     mds: mds_,
   }: PoseidonParameters
 ) {
-  if (hasInitialRoundConstant) {
-    throw Error("we don't support an initial round constant");
-  }
   if (partialRounds !== 0) {
     throw Error("we don't support partial rounds");
   }
@@ -89,9 +87,19 @@ function createPoseidon(
    * -> ...
    * -> SBOX -> MDS -> ARK_{rounds - 1}
    *
+   * If `hasInitialRoundConstant` is true, another ARK step is added at the beginning.
+   *
    * See also Snarky.Sponge.Poseidon.block_cipher
    */
   function permutation(state: bigint[]) {
+    // special case: initial round constant
+    let offset = 0;
+    if (hasInitialRoundConstant) {
+      for (let i = 0; i < stateSize; i++) {
+        state[i] = Fp.add(state[i], roundConstants[0][i]);
+      }
+      offset = 1;
+    }
     for (let round = 0; round < fullRounds; round++) {
       // raise to a power
       for (let i = 0; i < stateSize; i++) {
@@ -102,7 +110,7 @@ function createPoseidon(
         // multiply by mds matrix
         state[i] = Fp.dot(mds[i], oldState);
         // add round constants
-        state[i] = Fp.add(state[i], roundConstants[round][i]);
+        state[i] = Fp.add(state[i], roundConstants[round + offset][i]);
       }
     }
   }

@@ -48,6 +48,7 @@ Mina.setActiveInstance(Local);
 
 // a test account that pays all the fees, and puts additional funds into the zkapp
 let feePayerKey = Local.testAccounts[0].privateKey;
+let feePayer = Local.testAccounts[0].publicKey;
 
 // the zkapp account
 let zkappKey = PrivateKey.random();
@@ -65,7 +66,7 @@ let { verificationKey: trivialVerificationKey } = await TrivialZkapp.compile();
 // would also improve the return type -- `Proof` instead of `(Proof | undefined)[]`
 console.log('prove (trivial zkapp)');
 let [trivialProof] = await (
-  await Mina.transaction(feePayerKey, () => {
+  await Mina.transaction(feePayer, () => {
     new TrivialZkapp(zkappAddress2).proveSomething(Field(1));
   })
 ).prove();
@@ -82,18 +83,19 @@ let { verificationKey } = await NotSoSimpleZkapp.compile();
 let zkapp = new NotSoSimpleZkapp(zkappAddress);
 
 console.log('deploy');
-let tx = await Mina.transaction(feePayerKey, () => {
-  AccountUpdate.fundNewAccount(feePayerKey);
+let tx = await Mina.transaction(feePayer, () => {
+  AccountUpdate.fundNewAccount(feePayer);
   zkapp.deploy({ zkappKey });
 });
-await tx.send();
+await tx.prove();
+await tx.sign([feePayerKey]).send();
 
-console.log('init');
+console.log('initialize');
 tx = await Mina.transaction(feePayerKey, () => {
   zkapp.initialize(trivialProof!);
 });
 let [proof] = await tx.prove();
-await tx.send();
+await tx.sign([feePayerKey]).send();
 
 proof = await testJsonRoundtripAndVerify(
   NotSoSimpleZkapp.Proof(),
@@ -104,11 +106,11 @@ proof = await testJsonRoundtripAndVerify(
 console.log('initial state: ' + zkapp.x.get());
 
 console.log('update');
-tx = await Mina.transaction(feePayerKey, () => {
+tx = await Mina.transaction(feePayer, () => {
   zkapp.update(Field(3), proof!, trivialProof!);
 });
 [proof] = await tx.prove();
-await tx.send();
+await tx.sign([feePayerKey]).send();
 
 proof = await testJsonRoundtripAndVerify(
   NotSoSimpleZkapp.Proof(),
@@ -119,11 +121,11 @@ proof = await testJsonRoundtripAndVerify(
 console.log('state 2: ' + zkapp.x.get());
 
 console.log('update');
-tx = await Mina.transaction(feePayerKey, () => {
+tx = await Mina.transaction(feePayer, () => {
   zkapp.update(Field(3), proof!, trivialProof!);
 });
 [proof] = await tx.prove();
-await tx.send();
+await tx.sign([feePayerKey]).send();
 
 proof = await testJsonRoundtripAndVerify(
   NotSoSimpleZkapp.Proof(),

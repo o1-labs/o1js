@@ -61,7 +61,7 @@ export class Membership_ extends SmartContract {
 
   deploy(args: DeployArgs) {
     super.deploy(args);
-    this.setPermissions({
+    this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
       editSequenceState: Permissions.proofOrSignature(),
@@ -95,8 +95,8 @@ export class Membership_ extends SmartContract {
 
     let balance = accountUpdate.account.balance.get();
 
-    balance.assertGte(participantPreconditions.minMina);
-    balance.assertLte(participantPreconditions.maxMina);
+    balance.assertGreaterThanOrEqual(participantPreconditions.minMina);
+    balance.assertLessThanOrEqual(participantPreconditions.maxMina);
 
     let accumulatedMembers = this.accumulatedMembers.get();
     this.accumulatedMembers.assertEquals(accumulatedMembers);

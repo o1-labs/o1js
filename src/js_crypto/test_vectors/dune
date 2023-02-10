@@ -1,5 +1,5 @@
 (rule
- (target poseidonKimchi.ts)
+ (targets poseidonKimchi.ts poseidonLegacy.ts)
  (mode promote)
  (deps
   (:script ./dump-test-vectors.sh)
@@ -9,4 +9,4 @@
  (action
   (progn
    (run chmod -R +w ../../../../../crypto/proof-systems/ .)
-   (run %{script} %{target}))))
+   (run %{script} poseidonKimchi.ts poseidonLegacy.ts))))

@@ -1,8 +1,3 @@
-import { jsLayout } from '../provable/gen/js-layout.js';
-import { Events, SequenceEvents } from '../provable/transaction-leaves.js';
-import { toJSONEssential, Types } from '../provable/types.js';
-import { Bool, Circuit, Field, Ledger, Pickles } from '../snarky.js';
-
 import {
   cloneCircuitValue,
   FlexibleProvable,
@@ -11,42 +6,41 @@ import {
   provable,
   provablePure,
 } from './circuit_value.js';
-import * as Encoding from './encoding.js';
-import { Context } from './global-context.js';
-import { hashWithPrefix, packToFields, prefixes, TokenSymbol } from './hash.js';
-import { Int64, Sign, UInt32, UInt64 } from './int.js';
+import { Field, Bool, Ledger, Circuit, Pickles } from '../snarky.js';
+import { jsLayout } from '../provable/gen/js-layout.js';
+import { Types, toJSONEssential } from '../provable/types.js';
+import { PrivateKey, PublicKey } from './signature.js';
+import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
+import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
 import { inCheckedComputation, Proof, Prover } from './proof_system.js';
-import { PrivateKey, PublicKey } from './signature.js';
-import { SmartContract } from './zkapp.js';
+import { Memo } from '../mina-signer/src/memo.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
 // internal API
 export {
-  AccountUpdatesLayout,
-  addMissingProofs,
-  addMissingSignatures,
-  Authorization,
-  Body,
-  CallForest,
-  createChildAccountUpdate,
-  Events,
-  FeePayerUnsigned,
-  makeChildAccountUpdate,
+  smartContractContext,
+  SetOrKeep,
   Permission,
   Preconditions,
-  SequenceEvents,
-  SetOrKeep,
-  signJsonTransaction,
-  smartContractContext,
-  Token,
-  TokenId,
+  Body,
+  Authorization,
+  FeePayerUnsigned,
   ZkappCommand,
-  zkappCommandToJson,
-  zkAppProver,
+  addMissingSignatures,
+  addMissingProofs,
+  signJsonTransaction,
   ZkappStateLength,
+  Events,
+  SequenceEvents,
+  TokenId,
+  Token,
+  CallForest,
+  createChildAccountUpdate,
+  AccountUpdatesLayout,
+  zkAppProver,
 };
 
 const ZkappStateLength = 8;
@@ -79,10 +73,7 @@ type Preconditions = AccountUpdateBody['preconditions'];
 /**
  * Either set a value or keep it the same.
  */
-type SetOrKeep<T> = {
-  isSome: Bool;
-  value: T;
-};
+type SetOrKeep<T> = { isSome: Bool; value: T };
 
 const True = () => Bool(true);
 const False = () => Bool(false);
@@ -126,8 +117,7 @@ let Permission = {
   }),
 
   /**
-   * Modification is permitted by signatures only, using the private key of the
-   * zkapp account
+   * Modification is permitted by signatures only, using the private key of the zkapp account
    */
   signature: (): Permission => ({
     constant: False(),
@@ -145,8 +135,7 @@ let Permission = {
   }),
 };
 
-// TODO: we could replace the interface below if we could bridge annotations
-// from OCaml
+// TODO: we could replace the interface below if we could bridge annotations from OCaml
 type Permissions_ = Update['permissions']['value'];
 
 /**
@@ -254,7 +243,7 @@ let Permissions = {
    */
   default: (): Permissions => ({
     editState: Permission.proof(),
-    send: Permission.signature(),
+    send: Permission.proof(),
     receive: Permission.none(),
     setDelegate: Permission.signature(),
     setPermissions: Permission.signature(),
@@ -465,10 +454,7 @@ type FeePayerUnsigned = FeePayer & {
  *
  * Used within [[ AccountPredicate ]]s and [[ ProtocolStatePredicate ]]s.
  */
-type OrIgnore<T> = {
-  isSome: Bool;
-  value: T;
-};
+type OrIgnore<T> = { isSome: Bool; value: T };
 
 /**
  * An interval representing all the values between `lower` and `upper` inclusive
@@ -477,10 +463,7 @@ type OrIgnore<T> = {
  * @typeParam A something with an ordering where one can quantify a lower and
  *            upper bound.
  */
-type ClosedInterval<T> = {
-  lower: T;
-  upper: T;
-};
+type ClosedInterval<T> = { lower: T; upper: T };
 
 type NetworkPrecondition = Preconditions['network'];
 let NetworkPrecondition = {
@@ -649,10 +632,7 @@ class AccountUpdate implements Types.AccountUpdate {
     callsType:
       | { type: 'None' }
       | { type: 'Witness' }
-      | {
-          type: 'Equals';
-          value: Field;
-        };
+      | { type: 'Equals'; value: Field };
     accountUpdates: AccountUpdate[];
   } = {
     callsType: { type: 'None' },
@@ -665,7 +645,7 @@ class AccountUpdate implements Types.AccountUpdate {
   static SequenceEvents = SequenceEvents;
 
   constructor(body: Body, authorization?: Control);
-  constructor(body: Body, authorization = {} as Control, isSelf = false) {
+  constructor(body: Body, authorization: Control = {}, isSelf = false) {
     this.id = Math.random();
     this.body = body;
     this.authorization = authorization;
@@ -793,15 +773,15 @@ class AccountUpdate implements Types.AccountUpdate {
     return this.body.tokenId;
   }
 
+  /**
+   * @deprecated use `this.account.tokenSymbol`
+   */
   get tokenSymbol() {
     let accountUpdate = this;
 
     return {
       set(tokenSymbol: string) {
-        AccountUpdate.setValue(
-          accountUpdate.update.tokenSymbol,
-          TokenSymbol.from(tokenSymbol)
-        );
+        accountUpdate.account.tokenSymbol.set(tokenSymbol);
       },
     };
   }
@@ -810,24 +790,26 @@ class AccountUpdate implements Types.AccountUpdate {
     to,
     amount,
   }: {
-    to: PublicKey | AccountUpdate;
+    to: PublicKey | AccountUpdate | SmartContract;
     amount: number | bigint | UInt64;
   }) {
-    let receiver;
+    let receiver: AccountUpdate;
     if (to instanceof AccountUpdate) {
       receiver = to;
       receiver.body.tokenId.assertEquals(this.body.tokenId);
+    } else if (to instanceof SmartContract) {
+      receiver = to.self;
+      receiver.body.tokenId.assertEquals(this.body.tokenId);
     } else {
       receiver = AccountUpdate.defaultAccountUpdate(to, this.body.tokenId);
+      this.approve(receiver);
     }
-    this.approve(receiver);
 
     // Sub the amount from the sender's account
     this.body.balanceChange = Int64.fromObject(this.body.balanceChange).sub(
       amount
     );
-
-    // Add the amount to send to the receiver's account
+    // Add the amount to the receiver's account
     receiver.body.balanceChange = Int64.fromObject(
       receiver.body.balanceChange
     ).add(amount);
@@ -883,8 +865,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * \@method onlyRunsWhenBalanceIsLow() {
    *   let lower = UInt64.zero;
    *   let upper = UInt64.from(20e9);
-   *   AccountUpdate.assertBetween(this.self.body.preconditions.account.balance,
-   * lower, upper);
+   *   AccountUpdate.assertBetween(this.self.body.preconditions.account.balance, lower, upper);
    *   // ...
    * }
    * ```
@@ -911,8 +892,7 @@ class AccountUpdate implements Types.AccountUpdate {
    *
    * ```ts
    * \@method onlyRunsWhenNonceIsZero() {
-   *   AccountUpdate.assertEquals(this.self.body.preconditions.account.nonce,
-   * UInt32.zero);
+   *   AccountUpdate.assertEquals(this.self.body.preconditions.account.nonce, UInt32.zero);
    *   // ...
    * }
    * ```
@@ -942,9 +922,8 @@ class AccountUpdate implements Types.AccountUpdate {
    * then you should use the following code before sending your transaction:
    *
    * ```ts
-   * let tx = Mina.transaction(...); // create transaction as usual, using
-   * `requireSignature()` somewhere tx.sign([privateKey]); // pass the private
-   * key of this account to `sign()`!
+   * let tx = Mina.transaction(...); // create transaction as usual, using `requireSignature()` somewhere
+   * tx.sign([privateKey]); // pass the private key of this account to `sign()`!
    * ```
    *
    * Note that an account's {@link Permissions} determine which updates have to
@@ -966,9 +945,11 @@ class AccountUpdate implements Types.AccountUpdate {
     let doIncrementNonce = isSameAsFeePayer.not();
     this.body.incrementNonce = doIncrementNonce;
     // in this case, we also have to set a nonce precondition
+    let lower = Circuit.if(doIncrementNonce, UInt32, nonce, UInt32.zero);
+    let upper = Circuit.if(doIncrementNonce, UInt32, nonce, UInt32.MAXINT());
     this.body.preconditions.account.nonce.isSome = doIncrementNonce;
-    this.body.preconditions.account.nonce.value.lower = nonce;
-    this.body.preconditions.account.nonce.value.upper = nonce;
+    this.body.preconditions.account.nonce.value.lower = lower;
+    this.body.preconditions.account.nonce.value.upper = upper;
     // set lazy signature
     Authorization.setLazySignature(this, { privateKey });
   }
@@ -1047,10 +1028,8 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   hash() {
-    // these two ways of hashing are (and have to be) consistent / produce the
-    // same hash
-    // TODO: there's no reason anymore to use two different hashing methods
-    // here!
+    // these two ways of hashing are (and have to be) consistent / produce the same hash
+    // TODO: there's no reason anymore to use two different hashing methods here!
     // -- the "inCheckedComputation" branch works in all circumstances now
     // we just leave this here for a couple more weeks, because it checks
     // consistency between JS & OCaml hashing on *every single account update
@@ -1081,16 +1060,12 @@ class AccountUpdate implements Types.AccountUpdate {
     return this.body.publicKey.isEmpty();
   }
 
-  static defaultFeePayer(
-    address: PublicKey,
-    key: PrivateKey,
-    nonce: UInt32
-  ): FeePayerUnsigned {
+  static defaultFeePayer(address: PublicKey, nonce: UInt32): FeePayerUnsigned {
     let body = FeePayerBody.keepAll(address, nonce);
     return {
       body,
       authorization: Ledger.dummySignature(),
-      lazyAuthorization: { kind: 'lazy-signature', privateKey: key },
+      lazyAuthorization: { kind: 'lazy-signature' },
     };
   }
 
@@ -1136,8 +1111,7 @@ class AccountUpdate implements Types.AccountUpdate {
     }
   }
   /**
-   * Disattach an account update from where it's currently located in the
-   * transaction
+   * Disattach an account update from where it's currently located in the transaction
    */
   static unlink(accountUpdate: AccountUpdate) {
     let siblings =
@@ -1159,9 +1133,8 @@ class AccountUpdate implements Types.AccountUpdate {
    * then you should use the following code before sending your transaction:
    *
    * ```ts
-   * let tx = Mina.transaction(...); // create transaction as usual, using
-   * `createSigned()` somewhere tx.sign([privateKey]); // pass the private key
-   * of this account to `sign()`!
+   * let tx = Mina.transaction(...); // create transaction as usual, using `createSigned()` somewhere
+   * tx.sign([privateKey]); // pass the private key of this account to `sign()`!
    * ```
    *
    * Note that an account's {@link Permissions} determine which updates have to
@@ -1169,18 +1142,12 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   static createSigned(signer: PublicKey, tokenId?: Field): AccountUpdate;
   /**
-   * @deprecated in favor of calling this function with a `PublicKey` as
-   *     `signer`
+   * @deprecated in favor of calling this function with a `PublicKey` as `signer`
    */
   static createSigned(signer: PrivateKey, tokenId?: Field): AccountUpdate;
   static createSigned(signer: PrivateKey | PublicKey, tokenId?: Field) {
     let publicKey =
       signer instanceof PrivateKey ? signer.toPublicKey() : signer;
-    if (!Mina.currentTransaction.has()) {
-      throw new Error(
-        'AccountUpdate.createSigned: Cannot run outside of a transaction'
-      );
-    }
     let accountUpdate = AccountUpdate.create(publicKey, tokenId);
     if (signer instanceof PrivateKey) {
       accountUpdate.sign(signer);
@@ -1191,28 +1158,43 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   /**
-   * Use this method to pay the account creation fee for another account.
-   * Beware that you _don't_ need to pass in the new account!
-   * Instead, the protocol will automatically identify accounts in your
-   * transaction that need funding.
+   * Use this method to pay the account creation fee for another account (or, multiple accounts using the optional second argument).
    *
-   * If you provide an optional `initialBalance`, this will be subtracted from
-   * the fee-paying account as well, but you have to separately ensure that it's
-   * added to the new account's balance.
+   * Beware that you _don't_ need to specify the account that is created!
+   * Instead, the protocol will automatically identify that accounts need to be created,
+   * and require that the net balance change of the transaction covers the account creation fee.
    *
-   * @param feePayerKey the private key of the account that pays the fee
-   * @param initialBalance the initial balance of the new account (default: 0)
+   * @param feePayer the address of the account that pays the fee
+   * @param numberOfAccounts the number of new accounts to fund (default: 1)
+   * @returns they {@link AccountUpdate} for the account which pays the fee
    */
   static fundNewAccount(
-    feePayerKey: PrivateKey,
-    { initialBalance = UInt64.zero as number | string | UInt64 } = {}
+    feePayer: PublicKey,
+    numberOfAccounts?: number
+  ): AccountUpdate;
+  /**
+   * @deprecated Call this function with a `PublicKey` as `feePayer`, and remove the `initialBalance` option.
+   * To send an initial balance to the new account, you can use the returned account update:
+   * ```
+   * let feePayerUpdate = AccountUpdate.fundNewAccount(feePayer);
+   * feePayerUpdate.send({ to: receiverAddress, amount: initialBalance });
+   * ```
+   */
+  static fundNewAccount(
+    feePayer: PrivateKey | PublicKey,
+    options?: { initialBalance: number | string | UInt64 } | number
+  ): AccountUpdate;
+  static fundNewAccount(
+    feePayer: PrivateKey | PublicKey,
+    numberOfAccounts?: number | { initialBalance: number | string | UInt64 }
   ) {
-    let accountUpdate = AccountUpdate.createSigned(feePayerKey);
-    let amount =
-      initialBalance instanceof UInt64
-        ? initialBalance
-        : UInt64.from(`${initialBalance}`);
-    accountUpdate.balance.subInPlace(amount.add(Mina.accountCreationFee()));
+    let accountUpdate = AccountUpdate.createSigned(feePayer as PrivateKey);
+    let fee = Mina.accountCreationFee();
+    numberOfAccounts ??= 1;
+    if (typeof numberOfAccounts === 'number') fee = fee.mul(numberOfAccounts);
+    else fee = fee.add(UInt64.from(numberOfAccounts.initialBalance ?? 0));
+    accountUpdate.balance.subInPlace(fee);
+    return accountUpdate;
   }
 
   // static methods that implement Provable<AccountUpdate>
@@ -1248,10 +1230,7 @@ class AccountUpdate implements Types.AccountUpdate {
 
   static witness<T>(
     type: FlexibleProvable<T>,
-    compute: () => {
-      accountUpdate: AccountUpdate;
-      result: T;
-    },
+    compute: () => { accountUpdate: AccountUpdate; result: T },
     { skipCheck = false } = {}
   ) {
     // construct the circuit type for a accountUpdate + other result
@@ -1333,18 +1312,11 @@ class AccountUpdate implements Types.AccountUpdate {
   /**
    * Describes the children of an account update, which are laid out in a tree.
    *
-   * The tree layout is described recursively by using a combination of
-   * `AccountUpdate.Layout.NoChildren`,
-   * `AccountUpdate.Layout.StaticChildren(...)` and
-   * `AccountUpdate.Layout.AnyChildren`.
+   * The tree layout is described recursively by using a combination of `AccountUpdate.Layout.NoChildren`, `AccountUpdate.Layout.StaticChildren(...)` and `AccountUpdate.Layout.AnyChildren`.
    * - `NoChildren` means an account update that can't have children
-   * - `AnyChildren` means an account update can have an arbitrary amount of
-   * children, which means you can't access those children in your circuit
-   * (because the circuit is static).
-   * - `StaticChildren` means the account update must have a certain static
-   * amount of children and expects as arguments a description of each of those
-   * children. As a shortcut, you can also pass `StaticChildren` a number, which
-   * means it has that amount of children but no grandchildren.
+   * - `AnyChildren` means an account update can have an arbitrary amount of children, which means you can't access those children in your circuit (because the circuit is static).
+   * - `StaticChildren` means the account update must have a certain static amount of children and expects as arguments a description of each of those children.
+   *   As a shortcut, you can also pass `StaticChildren` a number, which means it has that amount of children but no grandchildren.
    *
    * This is best understood by examples:
    *
@@ -1353,15 +1325,13 @@ class AccountUpdate implements Types.AccountUpdate {
    *
    * NoChildren                 // an account update with no children
    * AnyChildren                // an account update with arbitrary children
-   * StaticChildren(NoChildren) // an account update with 1 child, which doesn't
-   * have children itself StaticChildren(1)          // shortcut for
-   * StaticChildren(NoChildren) StaticChildren(2)          // shortcut for
-   * StaticChildren(NoChildren, NoChildren) StaticChildren(0)          //
-   * equivalent to NoChildren
+   * StaticChildren(NoChildren) // an account update with 1 child, which doesn't have children itself
+   * StaticChildren(1)          // shortcut for StaticChildren(NoChildren)
+   * StaticChildren(2)          // shortcut for StaticChildren(NoChildren, NoChildren)
+   * StaticChildren(0)          // equivalent to NoChildren
    *
-   * // an update with 2 children, of which one has arbitrary children and the
-   * other has exactly 1 descendant StaticChildren(AnyChildren,
-   * StaticChildren(1))
+   * // an update with 2 children, of which one has arbitrary children and the other has exactly 1 descendant
+   * StaticChildren(AnyChildren, StaticChildren(1))
    * ```
    */
   static Layout = {
@@ -1431,6 +1401,7 @@ class AccountUpdate implements Types.AccountUpdate {
     } else {
       body.tokenId = short(body.tokenId!);
     }
+    if (body.callDepth === 0) delete body.callDepth;
     if (body.incrementNonce === false) delete body.incrementNonce;
     if (body.useFullCommitment === false) delete body.useFullCommitment;
     if (body.implicitAccountCreationFee === false)
@@ -1509,10 +1480,8 @@ type WithCallers = {
 
 const CallForest = {
   // similar to Mina_base.ZkappCommand.Call_forest.to_account_updates_list
-  // takes a list of accountUpdates, which each can have children, so they form
-  // a "forest" (list of trees)
-  // returns a flattened list, with `accountUpdate.body.callDepth` specifying
-  // positions in the forest
+  // takes a list of accountUpdates, which each can have children, so they form a "forest" (list of trees)
+  // returns a flattened list, with `accountUpdate.body.callDepth` specifying positions in the forest
   // also removes any "dummy" accountUpdates
   toFlatList(
     forest: AccountUpdate[],
@@ -1706,7 +1675,7 @@ type ZkappCommandProved = {
 
 const ZkappCommand = {
   toPretty(transaction: ZkappCommand) {
-    let feePayer = zkappCommandToJson(transaction).feePayer as any;
+    let feePayer = ZkappCommand.toJSON(transaction).feePayer as any;
     feePayer.body.publicKey = '..' + feePayer.body.publicKey.slice(-4);
     feePayer.body.authorization = '..' + feePayer.authorization.slice(-4);
     if (feePayer.body.validUntil === null) delete feePayer.body.validUntil;
@@ -1715,12 +1684,21 @@ const ZkappCommand = {
       ...transaction.accountUpdates.map((a) => a.toPretty()),
     ];
   },
+  fromJSON(json: Types.Json.ZkappCommand): ZkappCommand {
+    let { feePayer } = Types.ZkappCommand.fromJSON({
+      feePayer: json.feePayer,
+      accountUpdates: [],
+      memo: json.memo,
+    });
+    let memo = Memo.toString(Memo.fromBase58(json.memo));
+    let accountUpdates = json.accountUpdates.map(AccountUpdate.fromJSON);
+    return { feePayer, accountUpdates, memo };
+  },
+  toJSON({ feePayer, accountUpdates, memo }: ZkappCommand) {
+    memo = Ledger.memoToBase58(memo);
+    return Types.ZkappCommand.toJSON({ feePayer, accountUpdates, memo });
+  },
 };
-
-function zkappCommandToJson({ feePayer, accountUpdates, memo }: ZkappCommand) {
-  memo = Ledger.memoToBase58(memo);
-  return Types.ZkappCommand.toJSON({ feePayer, accountUpdates, memo });
-}
 
 const Authorization = {
   hasLazyProof(accountUpdate: AccountUpdate) {
@@ -1803,7 +1781,7 @@ function addMissingSignatures(
 ): ZkappCommandSigned {
   let additionalPublicKeys = additionalKeys.map((sk) => sk.toPublicKey());
   let { commitment, fullCommitment } = Ledger.transactionCommitments(
-    JSON.stringify(zkappCommandToJson(zkappCommand))
+    JSON.stringify(ZkappCommand.toJSON(zkappCommand))
   );
   function addFeePayerSignature(accountUpdate: FeePayerUnsigned): FeePayer {
     let { body, authorization, lazyAuthorization } =
@@ -2005,7 +1983,11 @@ function signJsonTransaction(
       accountUpdate.authorization.proof === null
     ) {
       zkappCommand = JSON.parse(
-        Ledger.signAccountUpdate(JSON.stringify(zkappCommand), privateKey, i)
+        Ledger.signOtherAccountUpdate(
+          JSON.stringify(zkappCommand),
+          privateKey,
+          i
+        )
       );
     }
   }

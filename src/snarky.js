@@ -13,10 +13,11 @@ export {
   shutdown,
   isReady,
   Pickles,
+  Test,
 };
 let isReadyBoolean = false;
 let isReady = snarky_ready.then(() => (isReadyBoolean = true));
 let isItReady = () => isReadyBoolean;
 
-let { Field, Bool, Circuit, Poseidon, Group, Scalar, Ledger, Pickles } =
+let { Field, Bool, Circuit, Poseidon, Group, Scalar, Ledger, Pickles, Test } =
   proxyClasses(getSnarky, isItReady, snarkySpec);

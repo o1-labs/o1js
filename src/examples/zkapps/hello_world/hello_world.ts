@@ -3,7 +3,6 @@ import {
   SmartContract,
   state,
   State,
-  AccountUpdate,
   method,
   DeployArgs,
   PrivateKey,
@@ -19,15 +18,10 @@ export const adminPublicKey = adminPrivateKey.toPublicKey();
 export class HelloWorld extends SmartContract {
   @state(Field) x = State<Field>();
 
-  deploy(input: DeployArgs) {
-    super.deploy(input);
-    this.setPermissions({
-      ...Permissions.default(),
-      editState: Permissions.proofOrSignature(),
-    });
+  init() {
+    super.init();
     this.x.set(Field(2));
-
-    AccountUpdate.setValue(this.self.update.delegate, adminPublicKey);
+    this.account.delegate.set(adminPublicKey);
   }
 
   @method update(squared: Field, admin: PrivateKey) {

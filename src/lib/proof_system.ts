@@ -641,9 +641,13 @@ function inCompileMode() {
 
 // helper types
 
+type Infer<T> = T extends Subclass<typeof Proof>
+  ? InstanceType<T>
+  : InferCircuitValue<T>;
+
 type Tuple<T> = [T, ...T[]] | [];
 type TupleToInstances<T> = {
-  [I in keyof T]: InferCircuitValue<T[I]>;
+  [I in keyof T]: Infer<T[I]>;
 } & any[];
 
 type Subclass<Class extends new (...args: any) => any> = (new (

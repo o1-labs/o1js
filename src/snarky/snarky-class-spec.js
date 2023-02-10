@@ -75,6 +75,10 @@ export default [
         type: 'function',
       },
       {
+        name: 'assertBool',
+        type: 'function',
+      },
+      {
         name: 'assertBoolean',
         type: 'function',
       },
@@ -510,6 +514,15 @@ export default [
       {
         name: 'proofToBase64Transaction',
         type: 'function',
+      },
+    ],
+  },
+  {
+    name: 'Test',
+    props: [
+      {
+        name: 'transactionHash',
+        type: 'object',
       },
     ],
   },

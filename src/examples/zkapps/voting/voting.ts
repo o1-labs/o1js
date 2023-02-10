@@ -89,7 +89,7 @@ export class Voting_ extends SmartContract {
 
   deploy(args: DeployArgs) {
     super.deploy(args);
-    this.setPermissions({
+    this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
       editSequenceState: Permissions.proofOrSignature(),
@@ -110,7 +110,7 @@ export class Voting_ extends SmartContract {
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
     // can only register voters before the election has started
-    currentSlot.assertLte(electionPreconditions.startElection);
+    currentSlot.assertLessThanOrEqual(electionPreconditions.startElection);
 
     // can only register voters if their balance is gte the minimum amount required
     // this snippet pulls the account data of an address from the network
@@ -126,8 +126,8 @@ export class Voting_ extends SmartContract {
 
     let balance = accountUpdate.account.balance.get();
 
-    balance.assertGte(voterPreconditions.minMina);
-    balance.assertLte(voterPreconditions.maxMina);
+    balance.assertGreaterThanOrEqual(voterPreconditions.minMina);
+    balance.assertLessThanOrEqual(voterPreconditions.maxMina);
 
     let VoterContract: Membership_ = new Membership_(voterAddress);
     let exists = VoterContract.addEntry(member);
@@ -149,7 +149,7 @@ export class Voting_ extends SmartContract {
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
     // can only register candidates before the election has started
-    currentSlot.assertLte(electionPreconditions.startElection);
+    currentSlot.assertLessThanOrEqual(electionPreconditions.startElection);
 
     // can only register candidates if their balance is gte the minimum amount required
     // and lte the maximum amount
@@ -165,8 +165,8 @@ export class Voting_ extends SmartContract {
 
     let balance = accountUpdate.account.balance.get();
 
-    balance.assertGte(candidatePreconditions.minMina);
-    balance.assertLte(candidatePreconditions.maxMina);
+    balance.assertGreaterThanOrEqual(candidatePreconditions.minMina);
+    balance.assertLessThanOrEqual(candidatePreconditions.maxMina);
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
     let exists = CandidateContract.addEntry(member);
@@ -204,8 +204,8 @@ export class Voting_ extends SmartContract {
 
     // we can only vote in the election period time frame
     currentSlot
-      .gte(electionPreconditions.startElection)
-      .and(currentSlot.lte(electionPreconditions.endElection))
+      .greaterThanOrEqual(electionPreconditions.startElection)
+      .and(currentSlot.lessThanOrEqual(electionPreconditions.endElection))
       .assertTrue();
 
     // verifying that both the voter and the candidate are actually part of our member set

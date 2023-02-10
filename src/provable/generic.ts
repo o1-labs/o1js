@@ -35,10 +35,10 @@ type GenericProvableExtended<T, TJson, Field> = GenericProvable<T, Field> & {
 
 type GenericField<Field> = ((value: number | string | bigint) => Field) &
   GenericProvableExtended<Field, string, Field> &
-  Binable<Field>;
+  Binable<Field> & { sizeInBytes(): number };
 type GenericBool<Field, Bool = unknown> = ((value: boolean) => Bool) &
   GenericProvableExtended<Bool, boolean, Field> &
-  Binable<Bool>;
+  Binable<Bool> & { sizeInBytes(): number };
 
 type GenericHashInput<Field> = { fields?: Field[]; packed?: [Field, number][] };
 
@@ -59,21 +59,27 @@ function primitiveTypeMap<Field>(): {
   string: GenericProvableExtended<string, string, Field>;
   null: GenericProvableExtended<null, null, Field>;
 } {
-  return {
-    number: {
-      ...emptyType,
-      toAuxiliary: (value = 0) => [value],
-      toJSON: (value) => value,
-      fromJSON: (value) => value,
-      fromFields: (_, [value]) => value,
-    },
-    string: {
-      ...emptyType,
-      toAuxiliary: (value = '') => [value],
-      toJSON: (value) => value,
-      fromJSON: (value) => value,
-      fromFields: (_, [value]) => value,
-    },
-    null: emptyType,
-  };
+  return primitiveTypeMap_;
 }
+
+const primitiveTypeMap_: {
+  number: GenericProvableExtended<number, number, any>;
+  string: GenericProvableExtended<string, string, any>;
+  null: GenericProvableExtended<null, null, any>;
+} = {
+  number: {
+    ...emptyType,
+    toAuxiliary: (value = 0) => [value],
+    toJSON: (value) => value,
+    fromJSON: (value) => value,
+    fromFields: (_, [value]) => value,
+  },
+  string: {
+    ...emptyType,
+    toAuxiliary: (value = '') => [value],
+    toJSON: (value) => value,
+    fromJSON: (value) => value,
+    fromFields: (_, [value]) => value,
+  },
+  null: emptyType,
+};

@@ -71,11 +71,11 @@ let update = accountUpdate.body.update;
 update.timing.isSome = Bool(true);
 update.appState[0].isSome = Bool(true);
 update.appState[0].value = Field(9);
-update.delegate.isSome = Bool(true);
-let delegate = PrivateKey.random().toPublicKey();
-update.delegate.value = delegate;
 
-accountUpdate.tokenSymbol.set('BLABLA');
+let delegate = PrivateKey.random().toPublicKey();
+accountUpdate.account.delegate.set(delegate);
+accountUpdate.account.tokenSymbol.set('BLABLA');
+accountUpdate.account.zkappUri.set('https://example.com');
 testInput(Update, Ledger.hashInputFromJson.update, update);
 
 // account precondition

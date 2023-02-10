@@ -1,93 +1,283 @@
 // generic encoding infrastructure
+import { bytesToBigInt, bigIntToBytes } from '../js_crypto/bigint-helpers.js';
 import { GenericField } from './generic.js';
 
 export {
   Binable,
+  defineBinable,
   withVersionNumber,
   tuple,
+  record,
+  enumWithArgument,
   prefixToField,
   bytesToBits,
   bitsToBytes,
   withBits,
+  withCheck,
   BinableWithBits,
+  stringToBytes,
+  BinableString,
+  BinableInt32,
+  BinableInt64,
+  BinableUint32,
+  BinableUint64,
 };
 
 type Binable<T> = {
   toBytes(t: T): number[];
+  readBytes(bytes: number[], offset: number): [value: T, offset: number];
   fromBytes(bytes: number[]): T;
-  sizeInBytes(): number;
 };
 type BinableWithBits<T> = Binable<T> & {
   toBits(t: T): boolean[];
   fromBits(bits: boolean[]): T;
+  sizeInBytes(): number;
   sizeInBits(): number;
 };
+
+function defineBinable<T>({
+  toBytes,
+  readBytes,
+}: {
+  toBytes(t: T): number[];
+  readBytes(bytes: number[], offset: number): [value: T, offset: number];
+}): Binable<T> {
+  return {
+    toBytes,
+    readBytes,
+    // spec: fromBytes throws if the input bytes are not all used
+    fromBytes(bytes) {
+      let [value, offset] = readBytes(bytes, 0);
+      if (offset < bytes.length)
+        throw Error('fromBytes: input bytes left over');
+      return value;
+    },
+  };
+}
 
 function withVersionNumber<T>(
   binable: Binable<T>,
   versionNumber?: number
 ): Binable<T> {
-  return {
+  return defineBinable({
     toBytes(t) {
       let bytes = binable.toBytes(t);
       if (versionNumber !== undefined) bytes.unshift(versionNumber);
       return bytes;
     },
-    fromBytes(bytes) {
-      if (versionNumber !== undefined) bytes.shift();
-      return binable.fromBytes(bytes);
+    readBytes(bytes, offset) {
+      if (versionNumber !== undefined) offset++;
+      return binable.readBytes(bytes, offset);
     },
-    sizeInBytes() {
-      let size = binable.sizeInBytes();
-      return versionNumber !== undefined ? size + 1 : size;
+  });
+}
+
+function withCheck<T>(
+  { toBytes, readBytes }: Binable<T>,
+  check: (t: T) => void
+): Binable<T> {
+  return defineBinable({
+    toBytes,
+    readBytes(bytes, start) {
+      let [value, end] = readBytes(bytes, start);
+      check(value);
+      return [value, end];
     },
-  };
+  });
 }
 
 type Tuple<T> = [T, ...T[]] | [];
 
-function tuple<Types extends Tuple<any>>(
-  binables: Array<any> & {
+function record<Types extends Record<string, any>>(
+  binables: {
     [i in keyof Types]: Binable<Types[i]>;
-  }
+  },
+  keys: Tuple<keyof Types>
 ): Binable<Types> {
-  let n = binables.length;
-  let sizes = binables.map((b) => b.sizeInBytes());
-  let totalSize = sizes.reduce((s, c) => s + c);
-  return {
+  let binablesTuple = keys.map((key) => binables[key]) as Tuple<Binable<any>>;
+  let tupleBinable = tuple<Tuple<any>>(binablesTuple);
+  return defineBinable({
+    toBytes(t) {
+      let array = keys.map((key) => t[key]) as Tuple<any>;
+      return tupleBinable.toBytes(array);
+    },
+    readBytes(bytes, start) {
+      let [tupleValue, end] = tupleBinable.readBytes(bytes, start);
+      let value = Object.fromEntries(
+        keys.map((key, i) => [key, tupleValue[i]])
+      ) as any;
+      return [value, end];
+    },
+  });
+}
+
+function tuple<Types extends Tuple<any>>(binables: {
+  [i in keyof Types]: Binable<Types[i]>;
+}): Binable<Types> {
+  let n = (binables as any[]).length;
+  return defineBinable({
     toBytes(t) {
       let bytes: number[] = [];
       for (let i = 0; i < n; i++) {
         let subBytes = binables[i].toBytes(t[i]);
         bytes.push(...subBytes);
       }
-
       return bytes;
     },
-    fromBytes(bytes): Types {
-      let offset = 0;
+    readBytes(bytes, offset) {
       let values = [];
       for (let i = 0; i < n; i++) {
-        let size = sizes[i];
-        let subBytes = bytes.slice(offset, offset + size);
-        let value = binables[i].fromBytes(subBytes);
+        let [value, newOffset] = binables[i].readBytes(bytes, offset);
+        offset = newOffset;
         values.push(value);
-        offset += size;
       }
-      return values as any;
+      return [values as Types, offset];
     },
-    sizeInBytes() {
-      return totalSize;
-    },
-  };
+  });
 }
+
+type EnumNoArgument<T extends string> = { type: T };
+type EnumWithArgument<T extends string, V> = { type: T; value: V };
+type AnyEnum = EnumNoArgument<string> | EnumWithArgument<string, any>;
+
+function enumWithArgument<Enum_ extends Tuple<AnyEnum>>(types: {
+  [i in keyof Enum_]: Enum_[i] extends EnumWithArgument<string, any>
+    ? {
+        type: Enum_[i]['type'];
+        value: Binable<Enum_[i]['value']>;
+      }
+    : { type: Enum_[i]['type'] };
+}): Binable<Enum_[number]> {
+  let typeToIndex = Object.fromEntries(
+    (types as { type: string; value: any }[]).map(({ type }, i) => [type, i])
+  );
+  return defineBinable({
+    toBytes(en) {
+      let i = typeToIndex[en.type];
+      let type = types[i];
+      if ('value' in type) {
+        let binable = type.value;
+        return [i, ...binable.toBytes((en as any).value)];
+      }
+      return [i];
+    },
+    readBytes(bytes, offset) {
+      let i = bytes[offset];
+      offset++;
+      let type = types[i];
+      if ('value' in type) {
+        let [value, end] = type.value.readBytes(bytes, offset);
+        return [{ type: type.type, value }, end];
+      }
+      return [{ type: type.type }, offset];
+    },
+  });
+}
+
+const BinableString = defineBinable({
+  toBytes(t: string) {
+    return [t.length, ...stringToBytes(t)];
+  },
+  readBytes(bytes, offset) {
+    let length = bytes[offset++];
+    let end = offset + length;
+    let string = String.fromCharCode(...bytes.slice(offset, end));
+    return [string, end];
+  },
+});
+
+const CODE_NEG_INT8 = 0xff;
+const CODE_INT16 = 0xfe;
+const CODE_INT32 = 0xfd;
+const CODE_INT64 = 0xfc;
+
+function BinableInt(bits: number) {
+  let maxValue = 1n << BigInt(bits - 1);
+  let nBytes = bits >> 3;
+  if (nBytes * 8 !== bits) throw Error('bits must be evenly divisible by 8');
+  return defineBinable({
+    toBytes(n: bigint) {
+      if (n < -maxValue || n >= maxValue)
+        throw Error(`int${bits} out of range, got ${n}`);
+      if (n >= 0) {
+        if (n < 0x80n) return bigIntToBytes(n, 1);
+        if (n < 0x8000n) return [CODE_INT16, ...bigIntToBytes(n, 2)];
+        if (n < 0x80000000) return [CODE_INT32, ...bigIntToBytes(n, 4)];
+        else return [CODE_INT64, ...bigIntToBytes(n, 8)];
+      } else {
+        let M = 1n << 64n;
+        if (n >= -0x80n)
+          return [CODE_NEG_INT8, ...bigIntToBytes((M + n) & 0xffn, 1)];
+        if (n >= -0x8000n)
+          return [CODE_INT16, ...bigIntToBytes((M + n) & 0xffffn, 2)];
+        if (n >= -0x80000000)
+          return [CODE_INT32, ...bigIntToBytes((M + n) & 0xffff_ffffn, 4)];
+        else return [CODE_INT64, ...bigIntToBytes(M + n, 8)];
+      }
+    },
+    readBytes(bytes, offset) {
+      let code = bytes[offset++];
+      if (code < 0x80) return [BigInt(code), offset];
+      let size = {
+        [CODE_NEG_INT8]: 1,
+        [CODE_INT16]: 2,
+        [CODE_INT32]: 4,
+        [CODE_INT64]: 8,
+      }[code];
+      if (size === undefined) {
+        throw Error('binable integer: invalid start byte');
+      }
+      let end = offset + size;
+      let x = fillUInt(bytes.slice(offset, end), nBytes);
+      // map from uint to int range
+      if (x >= maxValue) x -= 2n * maxValue;
+      if (x < -maxValue || x >= maxValue)
+        throw Error(`int${bits} out of range, got ${x}`);
+      return [x, end];
+    },
+  });
+}
+
+function fillUInt(startBytes: number[], nBytes: number) {
+  let n = startBytes.length;
+  // fill up int with the highest bit of startBytes
+  let lastBit = startBytes[n - 1] >> 7;
+  let fillByte = lastBit === 1 ? 0xff : 0x00;
+  let intBytes = startBytes.concat(Array(nBytes - n).fill(fillByte));
+  // interpret result as a bigint > 0
+  let x = bytesToBigInt(intBytes);
+  return x;
+}
+
+function BinableUint(bits: number) {
+  let binableInt = BinableInt(bits);
+  let maxValue = 1n << BigInt(bits - 1);
+  return iso(binableInt, {
+    to(uint: bigint) {
+      if (uint < 0n || uint >= 2n * maxValue)
+        throw Error(`uint${bits} out of range, got ${uint}`);
+      let ret = uint >= maxValue ? uint - 2n * maxValue : uint;
+      return ret;
+    },
+    from(int: bigint) {
+      let uint = int < 0n ? int + 2n * maxValue : int;
+      if (uint < 0n || uint >= 2n * maxValue)
+        throw Error(`uint${bits} out of range, got ${uint}`);
+      return uint;
+    },
+  });
+}
+
+const BinableInt64 = BinableInt(64);
+const BinableInt32 = BinableInt(32);
+const BinableUint64 = BinableUint(64);
+const BinableUint32 = BinableUint(32);
 
 // same as Random_oracle.prefix_to_field in OCaml
 // converts string to bytes and bytes to field; throws if bytes don't fit in one field
 function prefixToField<Field>(Field: GenericField<Field>, prefix: string) {
   if (prefix.length >= Field.sizeInBytes()) throw Error('prefix too long');
-  let bytes = [...prefix].map((char) => char.charCodeAt(0));
-  return Field.fromBytes(bytes);
+  return Field.fromBytes(stringToBytes(prefix));
 }
 
 function bitsToBytes([...bits]: boolean[]) {
@@ -129,12 +319,8 @@ function bytesToBits(bytes: number[]) {
  */
 function withBits<T>(
   binable: Binable<T>,
-  sizeInBits?: number
+  sizeInBits: number
 ): BinableWithBits<T> {
-  let sizeInBytes = binable.sizeInBytes();
-  sizeInBits ??= sizeInBytes * 8;
-  if (Math.ceil(sizeInBits / 8) !== sizeInBytes)
-    throw Error('withBits: sizeInBits does not match sizeInBytes');
   return {
     ...binable,
     toBits(t: T) {
@@ -143,8 +329,30 @@ function withBits<T>(
     fromBits(bits: boolean[]) {
       return binable.fromBytes(bitsToBytes(bits));
     },
+    sizeInBytes() {
+      return Math.ceil(sizeInBits / 8);
+    },
     sizeInBits() {
-      return sizeInBits!;
+      return sizeInBits;
     },
   };
+}
+
+function iso<T, S>(
+  binable: Binable<T>,
+  { to, from }: { to(s: S): T; from(t: T): S }
+): Binable<S> {
+  return defineBinable({
+    toBytes(s: S) {
+      return binable.toBytes(to(s));
+    },
+    readBytes(bytes, offset) {
+      let [value, end] = binable.readBytes(bytes, offset);
+      return [from(value), end];
+    },
+  });
+}
+
+function stringToBytes(s: string) {
+  return [...s].map((_, i) => s.charCodeAt(i));
 }
