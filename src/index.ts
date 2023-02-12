@@ -17,6 +17,7 @@ export {
   SequenceEvents,
   TokenId,
   CallForest,
+  FeePayer,
 } from './lib/account_update.js';
 
 // standard snarkyjs exports

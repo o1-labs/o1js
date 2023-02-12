@@ -53,6 +53,7 @@ export {
   getProofsEnabled,
   // for internal testing only
   filterGroups,
+  Transaction,
 };
 interface TransactionId {
   isSuccess: boolean;
