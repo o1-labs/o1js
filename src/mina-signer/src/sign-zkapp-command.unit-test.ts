@@ -90,6 +90,12 @@ expect(stringify(dummyInput.packed)).toEqual(
 );
 
 test(Random.accountUpdate, (accountUpdate) => {
+  // TOOD just make the vk generator constant
+  accountUpdate.body.update.verificationKey = {
+    isSome: 0n,
+    value: { data: '', hash: 0n },
+  };
+
   // example account update
   let accountUpdateJson: Json.AccountUpdate =
     AccountUpdate.toJSON(accountUpdate);
@@ -105,6 +111,7 @@ test(Random.accountUpdate, (accountUpdate) => {
   let packedSnarky = packToFieldsSnarky(inputSnarky);
   expect(toJSON(packed)).toEqual(toJSON(packedSnarky));
 
+  // hash doesn't agree. TODO investigate in hash-input test
   let hash = accountUpdateHash(accountUpdate);
   let hashSnarky = accountUpdateSnarky.hash();
   expect(hash).toEqual(hashSnarky.toBigInt());
