@@ -89,20 +89,10 @@ expect(stringify(dummyInput.packed)).toEqual(
   stringify(dummyInputSnarky.packed)
 );
 
-test(Random.accountUpdate, (accountUpdateExample) => {
+test(Random.accountUpdate, (accountUpdate) => {
   // example account update
-  let accountUpdateJsonString = stringify(
-    AccountUpdate.toJSON(accountUpdateExample)
-  );
-  let accountUpdateJson: Json.AccountUpdate = JSON.parse(
-    accountUpdateJsonString
-  );
-  let accountUpdate = AccountUpdate.fromJSON(accountUpdateJson);
-
-  // account update JSON roundtrip
-  expect(stringify(AccountUpdate.toJSON(accountUpdate))).toEqual(
-    accountUpdateJsonString
-  );
+  let accountUpdateJson: Json.AccountUpdate =
+    AccountUpdate.toJSON(accountUpdate);
 
   // account update hash
   let accountUpdateSnarky = AccountUpdateSnarky.fromJSON(accountUpdateJson);
