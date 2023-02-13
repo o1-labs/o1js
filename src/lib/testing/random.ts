@@ -17,7 +17,7 @@ import { alphabet } from '../../provable/base58.js';
 import { bytesToBigInt } from '../../js_crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
 
-export { Random, withHardCoded };
+export { Random, sample, withHardCoded, drawUniformUint };
 
 type Random<T> = {
   create(): () => T;
@@ -25,6 +25,12 @@ type Random<T> = {
 function Random_<T>(next: () => T): Random<T> {
   return { create: () => next };
 }
+
+function sample<T>(rng: Random<T>, size: number) {
+  let next = rng.create();
+  return Array.from({ length: size }, next);
+}
+
 const boolean = Random_(() => drawOneOf8() < 4);
 
 const Field = Random_(Bigint.Field.random);
@@ -123,11 +129,16 @@ const Random = Object.assign(Random_, {
   bytes,
   string,
   base58,
-  array,
+  array: Object.assign(array, { ofSize: arrayOfSize }),
   record,
   map,
+  step,
   oneOf,
   withHardCoded,
+  dependent,
+  dice: Object.assign(dice, {
+    ofSize: diceOfSize(),
+  }),
   field: Field,
   bool: Bool,
   uint32: UInt32,
@@ -263,47 +274,109 @@ function base58(size: number | Random<number>) {
   return map(array(oneOf(...alphabet), size), (a) => a.join(''));
 }
 
+function isGenerator(rng: any): rng is Random<any> {
+  return typeof rng === 'object' && rng && 'create' in rng;
+}
+
 function oneOf<Types extends readonly any[]>(
   ...values: { [K in keyof Types]: Types[K] | Random<Types[K]> }
 ): Random<Types[number]> {
   type T = Types[number];
-  let isGenerator = values.map(
-    (v) => typeof v === 'object' && v && 'create' in v
-  );
+  let isGenerators = values.map(isGenerator);
   return {
     create() {
       let nexts = values.map((v: Random<T>, i) =>
-        isGenerator[i] ? v.create() : undefined
+        isGenerators[i] ? v.create() : undefined
       );
       return () => {
         let i = drawUniformUint(values.length - 1);
-        return isGenerator[i] ? nexts[i]!() : (values[i] as T);
+        return isGenerators[i] ? nexts[i]!() : (values[i] as T);
       };
     },
   };
 }
-function map<T, S>(rng: Random<T>, to: (t: T) => S): Random<S> {
+function map<T extends readonly any[], S>(
+  ...args: [...rngs: { [K in keyof T]: Random<T[K]> }, to: (...values: T) => S]
+): Random<S> {
+  const to = args.pop()! as (...values: T) => S;
+  let rngs = args as { [K in keyof T]: Random<T[K]> };
   return {
     create() {
-      let next = rng.create();
-      return () => to(next());
+      let nexts = rngs.map((rng) => rng.create());
+      return () => to(...(nexts.map((next) => next()) as any as T));
+    },
+  };
+}
+function dependent<T extends readonly any[], S, Free>(
+  ...args: [
+    ...rngs: { [K in keyof T]: Random<T[K]> },
+    to: (free: Free, values: T) => S
+  ]
+): Random<(arg: Free) => S> {
+  const to = args.pop()! as (free: Free, values: T) => S;
+  let rngs = args as { [K in keyof T]: Random<T[K]> };
+  return {
+    create() {
+      let nexts = rngs.map((rng) => rng.create());
+      return () => (free) => to(free, nexts.map((next) => next()) as any);
+    },
+  };
+}
+
+function step<T extends readonly any[], S>(
+  ...args: [
+    ...rngs: { [K in keyof T]: Random<T[K]> },
+    step: (current: S, ...values: T) => S,
+    initial: S
+  ]
+): Random<S> {
+  let initial = args.pop()! as S;
+  const step = args.pop()! as (current: S, ...values: T) => S;
+  let rngs = args as { [K in keyof T]: Random<T[K]> };
+  return {
+    create() {
+      let nexts = rngs.map((rng) => rng.create());
+      let current = initial;
+      return () => {
+        current = step(current, ...(nexts.map((next) => next()) as any as T));
+        return current;
+      };
     },
   };
 }
 
 function array<T>(
   element: Random<T>,
-  size: number | Random<number>
+  size: number | Random<number>,
+  { reset = false } = {}
 ): Random<T[]> {
   let size_ = typeof size === 'number' ? constant(size) : size;
   return {
     create() {
       let nextSize = size_.create();
       let nextElement = element.create();
-      return () => Array.from({ length: nextSize() }, () => nextElement());
+      return () => {
+        let nextElement_ = reset ? element.create() : nextElement;
+        return Array.from({ length: nextSize() }, nextElement_);
+      };
     },
   };
 }
+function arrayOfSize<T>(
+  element: Random<T>,
+  { reset = false } = {}
+): Random<(n: number) => T[]> {
+  return {
+    create() {
+      let nextElement = element.create();
+      return () => (length: number) => {
+        let nextElement_ = reset ? element.create() : nextElement;
+        return Array.from({ length }, nextElement_);
+      };
+    },
+  };
+}
+
 function record<T extends {}>(gens: {
   [K in keyof T]: Random<T[K]>;
 }): Random<T> {
@@ -375,7 +448,7 @@ function int(min: number, max: number): Random<number> {
 
 /**
  * log-uniform distribution over range [0, max]
- * with bias towards 0, 1, 2, max
+ * with bias towards 0, 1, 2
  */
 function nat(max: number): Random<number> {
   if (max < 0) throw Error('max < 0');
@@ -385,7 +458,6 @@ function nat(max: number): Random<number> {
   // set of special numbers that will appear more often in tests
   let special = [0, 0, 1];
   if (max > 1) special.push(2);
-  if (max > 2) special.push(max);
   let nSpecial = special.length - 1;
   return {
     create: () => () => {
@@ -404,6 +476,24 @@ function nat(max: number): Random<number> {
         let n = drawUniformUintBits(bitLength);
         if (n <= max) return n;
       }
+    },
+  };
+}
+
+/**
+ * unbiased, uniform distribution over range [0, max-1]
+ */
+function dice(max: number): Random<number> {
+  if (max < 1) throw Error('max as to be > 0');
+  return {
+    create: () => () => drawUniformUint(max - 1),
+  };
+}
+function diceOfSize(): Random<(size: number) => number> {
+  return {
+    create: () => () => (max: number) => {
+      if (max < 1) throw Error('max as to be > 0');
+      return drawUniformUint(max - 1);
     },
   };
 }
