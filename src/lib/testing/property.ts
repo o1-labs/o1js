@@ -1,5 +1,6 @@
-import { Random, withHardCoded, sample } from './random.js';
-export { test, Random, withHardCoded, sample };
+import { Random } from './random.js';
+export { test };
+export { Random, sample, withHardCoded } from './random.js';
 
 const defaultTimeBudget = 100; // ms
 const minRuns = 15;

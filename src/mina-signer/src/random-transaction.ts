@@ -1,10 +1,11 @@
 import { Signed } from '../dist/node/mina-signer/src/transaction-hash.js';
 import { DelegationJson, PaymentJson } from './sign-legacy.js';
-import { Random, sample } from '../../lib/testing/property.js';
+import { Random } from '../../lib/testing/property.js';
 import {
   PublicKey,
   ZkappCommand,
 } from '../../provable/gen/transaction-bigint.js';
+import { PrivateKey } from '../../provable/curve-bigint.js';
 
 export { RandomTransaction };
 
@@ -43,11 +44,11 @@ const delegation = record<Signed<DelegationJson>>({
 });
 
 // zkapp transactions
-// generator for { feePayer, accountUpdates, memo } with 2 modifications
+// generator for { feePayer, accountUpdates, memo } with 2 modifications to the naive version
 
-// modification 1: call depth
-
-// call depth starts from 0, can increase by at most one, decrease by any amount up to 0
+// modification #1: call depth
+// in every list of account updates, call depth starts from 0,
+// can increase by at most one, decrease by any amount up to 0.
 // we increment with 1/3 chance
 let incrementDepth = Random.map(Random.dice(3), (x) => x === 0);
 let callDepth = Random.step(
@@ -69,6 +70,7 @@ let accountUpdate = Random.map(
 );
 
 // modification #2: use the fee payer's public key for account updates, with 1/3 chance
+// this is an important test case and won't happen by chance
 let useFeePayerKey = Random.map(Random.dice(3), (x) => x === 0);
 let accountUpdateFrom = Random.dependent(
   accountUpdate,
@@ -78,24 +80,50 @@ let accountUpdateFrom = Random.dependent(
     return accountUpdate;
   }
 );
+let feePayerFrom = Random.dependent(
+  Random.feePayer,
+  (publicKey: PublicKey, [feePayer]) => {
+    feePayer.body.publicKey = publicKey;
+    return feePayer;
+  }
+);
 
 let size = Random.nat(20);
 // reset: true makes call depth start from 0 again at the start of each sampled array
 let accountUpdatesFrom = Random.array(accountUpdateFrom, size, { reset: true });
 
+let zkappCommandFrom: Random<(publicKey: PublicKey) => ZkappCommand> =
+  Random.dependent(
+    feePayerFrom,
+    accountUpdatesFrom,
+    Random.memo,
+    (publicKey: PublicKey, [feePayerFrom, accountUpdatesFrom, memo]) => {
+      let feePayer = feePayerFrom(publicKey);
+      let accountUpdates = accountUpdatesFrom.map((from) => from(publicKey));
+      return { feePayer, accountUpdates, memo };
+    }
+  );
+
 let zkappCommand: Random<ZkappCommand> = Random.map(
-  Random.feePayer,
-  accountUpdatesFrom,
-  Random.memo,
-  (feePayer, accountUpdatesFrom, memo) => {
-    let accountUpdates = accountUpdatesFrom.map((from) =>
-      from(feePayer.body.publicKey)
-    );
-    return { feePayer, accountUpdates, memo };
-  }
+  Random.publicKey,
+  zkappCommandFrom,
+  (pk, zkappCommandFrom) => zkappCommandFrom(pk)
+);
+let zkappCommandAndFeePayerKey = Random.map(
+  Random.privateKey,
+  zkappCommandFrom,
+  (feePayerKey, zkappCommandFrom) => ({
+    feePayerKey,
+    zkappCommand: zkappCommandFrom(PrivateKey.toPublicKey(feePayerKey)),
+  })
 );
 
-const RandomTransaction = { payment, delegation, zkappCommand };
+const RandomTransaction = {
+  payment,
+  delegation,
+  zkappCommand,
+  zkappCommandAndFeePayerKey,
+};
 
 // console.dir(
 //   sample(zkappCommand, 10).map(({ feePayer, accountUpdates }) =>

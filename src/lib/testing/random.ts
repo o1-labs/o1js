@@ -17,7 +17,7 @@ import { alphabet } from '../../provable/base58.js';
 import { bytesToBigInt } from '../../js_crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
 
-export { Random, sample, withHardCoded, drawUniformUint };
+export { Random, sample, withHardCoded };
 
 type Random<T> = {
   create(): () => T;
@@ -118,6 +118,7 @@ const json = {
   uint64: map(UInt64, Bigint.UInt64.toJSON),
   uint32: map(UInt32, Bigint.UInt32.toJSON),
   publicKey: map(PublicKey, CurveBigint.PublicKey.toJSON),
+  privateKey: map(PrivateKey, CurveBigint.PrivateKey.toJSON),
   signature: map(Signature, SignatureBigint.Signature.toBase58),
 };
 
