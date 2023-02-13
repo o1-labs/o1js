@@ -4,7 +4,7 @@ import {
   primitiveTypes,
 } from './generic.js';
 
-export { ProvableFromLayout, GenericLayout };
+export { ProvableFromLayout, GenericLayout, genericLayoutFold };
 
 type GenericTypeMap<
   Field,
@@ -52,6 +52,12 @@ function ProvableFromLayout<
   type Layout = GenericLayout<TypeMap>;
 
   const PrimitiveMap = primitiveTypeMap<Field>();
+
+  type FoldSpec<T, R> = GenericFoldSpec<T, R, TypeMap>;
+
+  function layoutFold<T, R>(spec: FoldSpec<T, R>, typeData: Layout, value?: T) {
+    return genericLayoutFold(TypeMap, customTypes, spec, typeData, value);
+  }
 
   function provableFromLayout<T, TJson>(typeData: Layout) {
     return {
@@ -294,65 +300,39 @@ function ProvableFromLayout<
     return (TypeMap as any)[typeData.type].fromFields(fields, aux);
   }
 
-  function emptyValue(typeData: Layout): any {
-    let { checkedTypeName } = typeData;
-    if (checkedTypeName) {
-      return emptyValueBase(typeData);
-    }
-    if (typeData.type === 'array') {
-      let arrayTypeData = typeData as ArrayLayout<TypeMap>;
-      let { inner, staticLength } = arrayTypeData;
-      if (staticLength === null) return [];
-      return Array(staticLength).fill(emptyValue(inner));
-    }
-    if (typeData.type === 'option') {
-      let optionTypeData = typeData as OptionLayout<TypeMap>;
-      switch (optionTypeData.optionType) {
-        case 'closedInterval':
-        case 'flaggedOption': {
-          let isSome = TypeMap.Bool.fromJSON(false);
-          let value = emptyValue(optionTypeData.inner);
-          if (optionTypeData.optionType === 'closedInterval') {
-            let innerInner = optionTypeData.inner.entries.lower;
-            let innerType =
-              TypeMap[innerInner.type as keyof TypeMap & keyof JsonMap];
-            value.lower = innerType.fromJSON(optionTypeData.rangeMin);
-            value.upper = innerType.fromJSON(optionTypeData.rangeMax);
+  function emptyValue(typeData: Layout) {
+    let zero = TypeMap.Field.fromJSON('0');
+    return layoutFold<undefined, any>(
+      {
+        map(type) {
+          if (type.emptyValue) return type.emptyValue();
+          return type.fromFields(
+            Array(type.sizeInFields()).fill(zero),
+            type.toAuxiliary()
+          );
+        },
+        reduceArray(array) {
+          return array;
+        },
+        reduceObject(_, object) {
+          return object;
+        },
+        reduceFlaggedOption({ isSome, value }, typeData) {
+          if (typeData.optionType === 'closedInterval') {
+            let innerInner = typeData.inner.entries.lower;
+            let innerType = TypeMap[innerInner.type as 'UInt32' | 'UInt64'];
+            value.lower = innerType.fromJSON(typeData.rangeMin);
+            value.upper = innerType.fromJSON(typeData.rangeMax);
           }
           return { isSome, value };
-        }
-        case 'orUndefined': {
+        },
+        reduceOrUndefined() {
           return undefined;
-        }
-        default:
-          throw Error('bug');
-      }
-    }
-    if (typeData.type === 'object') {
-      let { keys, entries } = typeData as ObjectLayout<TypeMap>;
-      let values: Record<string, any> = {};
-      for (let i = 0; i < keys.length; i++) {
-        let typeEntry = entries[keys[i]];
-        values[keys[i]] = emptyValue(typeEntry);
-      }
-      return values;
-    }
-    return emptyValueBase(typeData);
-  }
-  function emptyValueBase(typeData: Layout) {
-    let { checkedTypeName } = typeData;
-    if (checkedTypeName) {
-      let checkedType = customTypes[checkedTypeName];
-      if (checkedType.emptyValue) return checkedType.emptyValue();
-    }
-    let typeName = typeData.type as keyof TypeMap & keyof JsonMap;
-    if (TypeMap[typeName]) {
-      let type = TypeMap[typeName];
-      if (type.emptyValue) return type.emptyValue();
-    }
-    let zero = Field.fromJSON('0');
-    let fields: Field[] = Array(sizeInFields(typeData)).fill(zero);
-    return fromFields(typeData, fields, toAuxiliary(typeData));
+        },
+      },
+      typeData,
+      undefined
+    );
   }
 
   function check(typeData: Layout, value: any) {
@@ -409,66 +389,6 @@ function ProvableFromLayout<
     );
   }
 
-  type FoldSpec<T, R> = {
-    map: (type: GenericProvableExtended<any, any, Field>, value?: T) => R;
-    reduceArray: (array: R[], typeData: ArrayLayout<TypeMap>) => R;
-    reduceObject: (keys: string[], record: Record<string, R>) => R;
-    reduceFlaggedOption: (option: { isSome: R; value: R }) => R;
-    reduceOrUndefined: (value?: R) => R;
-  };
-
-  function layoutFold<T, R>(
-    spec: FoldSpec<T, R>,
-    typeData: Layout,
-    value?: T
-  ): R {
-    let { checkedTypeName } = typeData;
-    if (checkedTypeName) {
-      // there's a custom type!
-      return spec.map(customTypes[checkedTypeName], value);
-    }
-    if (typeData.type === 'array') {
-      let arrayTypeData = typeData as ArrayLayout<TypeMap>;
-      let v: T[] | undefined[] | undefined = value as any;
-      if (arrayTypeData.staticLength !== null && v === undefined) {
-        v = Array<undefined>(arrayTypeData.staticLength).fill(undefined);
-      }
-      let array = v?.map((x) => layoutFold(spec, arrayTypeData.inner, x)) ?? [];
-      return spec.reduceArray(array, arrayTypeData);
-    }
-    if (typeData.type === 'option') {
-      let { optionType, inner } = typeData as OptionLayout<TypeMap>;
-      switch (optionType) {
-        case 'closedInterval':
-        case 'flaggedOption':
-          let v: { isSome: T; value: T } | undefined = value as any;
-          return spec.reduceFlaggedOption({
-            isSome: spec.map(TypeMap.Bool, v?.isSome),
-            value: layoutFold(spec, inner, v?.value),
-          });
-        case 'orUndefined':
-          let mapped =
-            value === undefined ? undefined : layoutFold(spec, inner, value);
-          return spec.reduceOrUndefined(mapped);
-        default:
-          throw Error('bug');
-      }
-    }
-    if (typeData.type === 'object') {
-      let { keys, entries } = typeData as ObjectLayout<TypeMap>;
-      let v: Record<string, T> | undefined = value as any;
-      let object: Record<string, R> = {};
-      keys.forEach((key) => {
-        object[key] = layoutFold(spec, entries[key], v?.[key]);
-      });
-      return spec.reduceObject(keys, object);
-    }
-    if (primitiveTypes.has(typeData.type as string)) {
-      return spec.map((PrimitiveMap as any)[typeData.type], value);
-    }
-    return spec.map((TypeMap as any)[typeData.type], value);
-  }
-
   // helper for pretty-printing / debugging
 
   function toJSONEssential(typeData: Layout, value: any) {
@@ -505,6 +425,106 @@ function ProvableFromLayout<
   return { provableFromLayout, toJSONEssential };
 }
 
+// generic over leaf types
+
+type GenericFoldSpec<T, R, TypeMap extends AnyTypeMap> = {
+  map: (
+    type: GenericProvableExtended<any, any, TypeMap['Field']>,
+    value?: T,
+    name?: string
+  ) => R;
+  reduceArray: (array: R[], typeData: ArrayLayout<TypeMap>) => R;
+  reduceObject: (keys: string[], record: Record<string, R>) => R;
+  reduceFlaggedOption: (
+    option: { isSome: R; value: R },
+    typeData: FlaggedOptionLayout<TypeMap>
+  ) => R;
+  reduceOrUndefined: (value?: R) => R;
+};
+
+function genericLayoutFold<
+  T,
+  R,
+  TypeMap extends AnyTypeMap,
+  JsonMap extends AnyTypeMap
+>(
+  TypeMap: TypeMapValues<TypeMap, JsonMap>,
+  customTypes: Record<
+    string,
+    GenericProvableExtended<any, any, TypeMap['Field']>
+  >,
+  spec: GenericFoldSpec<T, R, TypeMap>,
+  typeData: GenericLayout<TypeMap>,
+  value?: T
+): R {
+  let PrimitiveMap = primitiveTypeMap<TypeMap['Field']>();
+  let { checkedTypeName } = typeData;
+  if (checkedTypeName) {
+    // there's a custom type!
+    return spec.map(customTypes[checkedTypeName], value, checkedTypeName);
+  }
+  if (typeData.type === 'array') {
+    let arrayTypeData = typeData as ArrayLayout<TypeMap>;
+    let v: T[] | undefined[] | undefined = value as any;
+    if (arrayTypeData.staticLength !== null && v === undefined) {
+      v = Array<undefined>(arrayTypeData.staticLength).fill(undefined);
+    }
+    let array =
+      v?.map((x) =>
+        genericLayoutFold(TypeMap, customTypes, spec, arrayTypeData.inner, x)
+      ) ?? [];
+    return spec.reduceArray(array, arrayTypeData);
+  }
+  if (typeData.type === 'option') {
+    let { optionType, inner } = typeData as OptionLayout<TypeMap>;
+    switch (optionType) {
+      case 'closedInterval':
+      case 'flaggedOption':
+        let v: { isSome: T; value: T } | undefined = value as any;
+        return spec.reduceFlaggedOption(
+          {
+            isSome: spec.map(TypeMap.Bool, v?.isSome, 'Bool'),
+            value: genericLayoutFold(
+              TypeMap,
+              customTypes,
+              spec,
+              inner,
+              v?.value
+            ),
+          },
+          typeData as FlaggedOptionLayout<TypeMap>
+        );
+      case 'orUndefined':
+        let mapped =
+          value === undefined
+            ? undefined
+            : genericLayoutFold(TypeMap, customTypes, spec, inner, value);
+        return spec.reduceOrUndefined(mapped);
+      default:
+        throw Error('bug');
+    }
+  }
+  if (typeData.type === 'object') {
+    let { keys, entries } = typeData as ObjectLayout<TypeMap>;
+    let v: Record<string, T> | undefined = value as any;
+    let object: Record<string, R> = {};
+    keys.forEach((key) => {
+      object[key] = genericLayoutFold(
+        TypeMap,
+        customTypes,
+        spec,
+        entries[key],
+        v?.[key]
+      );
+    });
+    return spec.reduceObject(keys, object);
+  }
+  if (primitiveTypes.has(typeData.type)) {
+    return spec.map((PrimitiveMap as any)[typeData.type], value, typeData.type);
+  }
+  return spec.map((TypeMap as any)[typeData.type], value, typeData.type);
+}
+
 // types
 
 type WithChecked<TypeMap extends AnyTypeMap> = {
@@ -513,7 +533,7 @@ type WithChecked<TypeMap extends AnyTypeMap> = {
 };
 
 type BaseLayout<TypeMap extends AnyTypeMap> = {
-  type: keyof TypeMap;
+  type: keyof TypeMap & string;
 } & WithChecked<TypeMap>;
 
 type RangeLayout<TypeMap extends AnyTypeMap, T = BaseLayout<TypeMap>> = {
@@ -542,6 +562,11 @@ type OptionLayout<TypeMap extends AnyTypeMap, T = BaseLayout<AnyTypeMap>> = {
     }
 ) &
   WithChecked<TypeMap>;
+
+type FlaggedOptionLayout<
+  TypeMap extends AnyTypeMap,
+  T = BaseLayout<AnyTypeMap>
+> = Exclude<OptionLayout<TypeMap, T>, { optionType: 'orUndefined' }>;
 
 type ArrayLayout<TypeMap extends AnyTypeMap> = {
   type: 'array';

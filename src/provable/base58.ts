@@ -10,6 +10,7 @@ export {
   withBase58,
   fieldEncodings,
   Base58,
+  alphabet,
 };
 
 const alphabet =

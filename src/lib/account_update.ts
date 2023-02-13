@@ -1877,7 +1877,11 @@ function signJsonTransaction(
       accountUpdate.authorization.proof === null
     ) {
       zkappCommand = JSON.parse(
-        Ledger.signAccountUpdate(JSON.stringify(zkappCommand), privateKey, i)
+        Ledger.signOtherAccountUpdate(
+          JSON.stringify(zkappCommand),
+          privateKey,
+          i
+        )
       );
     }
   }
