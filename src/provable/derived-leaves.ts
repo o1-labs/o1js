@@ -24,6 +24,7 @@ function derivedLeafTypes<Field, Bool>({
   const Encoding = fieldEncodings<Field>(Field);
 
   type TokenId = Field;
+  type StateHash = Field;
   type TokenSymbol = { symbol: string; field: Field };
   type AuthRequired = {
     constant: Bool;
@@ -43,6 +44,16 @@ function derivedLeafTypes<Field, Bool>({
     },
     fromJSON(x: Json.TokenId) {
       return Encoding.TokenId.fromBase58(x);
+    },
+  };
+
+  const StateHash = {
+    ...provable(Field),
+    toJSON(x: Field): Json.Field {
+      return Encoding.StateHash.toBase58(x);
+    },
+    fromJSON(x: Json.Field) {
+      return Encoding.StateHash.fromBase58(x);
     },
   };
 
@@ -163,6 +174,7 @@ function derivedLeafTypes<Field, Bool>({
 
   return {
     TokenId,
+    StateHash,
     TokenSymbol,
     AuthRequired,
     AuthorizationKind,

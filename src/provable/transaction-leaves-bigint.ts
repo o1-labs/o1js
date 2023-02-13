@@ -3,6 +3,7 @@ import { PublicKey } from './curve-bigint.js';
 import { derivedLeafTypes } from './derived-leaves.js';
 import { createEvents } from '../lib/events.js';
 import { Poseidon, Hash, packToFields } from './poseidon-bigint.js';
+import { Encoding } from 'src/index.js';
 
 export {
   PublicKey,
@@ -16,7 +17,14 @@ export {
   TokenId,
 };
 
-export { Events, SequenceEvents, ZkappUri, TokenSymbol, SequenceState };
+export {
+  Events,
+  SequenceEvents,
+  ZkappUri,
+  TokenSymbol,
+  SequenceState,
+  StateHash,
+};
 
 type AuthRequired = {
   constant: Bool;
@@ -25,11 +33,18 @@ type AuthRequired = {
 };
 type AuthorizationKind = { isSigned: Bool; isProved: Bool };
 type TokenId = Field;
+type StateHash = Field;
 type TokenSymbol = { symbol: string; field: Field };
 type ZkappUri = { data: string; hash: Field };
 
-const { TokenId, TokenSymbol, AuthRequired, AuthorizationKind, ZkappUri } =
-  derivedLeafTypes({ Field, Bool, Hash, packToFields });
+const {
+  TokenId,
+  StateHash,
+  TokenSymbol,
+  AuthRequired,
+  AuthorizationKind,
+  ZkappUri,
+} = derivedLeafTypes({ Field, Bool, Hash, packToFields });
 
 type Event = Field[];
 type Events = {

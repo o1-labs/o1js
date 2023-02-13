@@ -223,7 +223,11 @@ let jsLayout = {
                     votingFor: {
                       type: 'option',
                       optionType: 'flaggedOption',
-                      inner: { type: 'Field' },
+                      inner: {
+                        type: 'Field',
+                        checkedType: { type: 'Field' },
+                        checkedTypeName: 'StateHash',
+                      },
                     },
                   },
                   docEntries: {
@@ -950,7 +954,11 @@ let jsLayout = {
               votingFor: {
                 type: 'option',
                 optionType: 'flaggedOption',
-                inner: { type: 'Field' },
+                inner: {
+                  type: 'Field',
+                  checkedType: { type: 'Field' },
+                  checkedTypeName: 'StateHash',
+                },
               },
             },
             docEntries: {
