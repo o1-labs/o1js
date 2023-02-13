@@ -65,7 +65,10 @@ const Events = map(
   array(array(Field, int(1, 5)), nat(2)),
   Bigint.Events.fromList
 );
-const SequenceEvents = Events;
+const SequenceEvents = map(
+  array(array(Field, int(1, 5)), nat(2)),
+  Bigint.SequenceEvents.fromList
+);
 const SequenceState = oneOf(Bigint.SequenceState.emptyValue(), Field);
 const ZkappUri = map(string(nat(50)), Bigint.ZkappUri.fromJSON);
 

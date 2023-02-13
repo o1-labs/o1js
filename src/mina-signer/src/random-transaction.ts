@@ -1,4 +1,4 @@
-import { Signed } from '../dist/node/mina-signer/src/transaction-hash.js';
+import { Signed } from './transaction-hash.js';
 import { DelegationJson, PaymentJson } from './sign-legacy.js';
 import { Random } from '../../lib/testing/property.js';
 import {
