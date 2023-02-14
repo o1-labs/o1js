@@ -31,6 +31,7 @@ export {
   feePayerHash,
   createFeePayer,
   accountUpdateFromFeePayer,
+  emptyPermissions,
 };
 
 function signZkappCommand(
@@ -177,6 +178,13 @@ function accountUpdateFromFeePayer({
   // could be removed if we either
   // -) change the default hash input for permissions in the protocol
   // -) create a way to add a custom dummy for permissions
+  body.update.permissions.value = emptyPermissions();
+  body.useFullCommitment = Bool(true);
+  body.authorizationKind = { isProved: Bool(false), isSigned: Bool(true) };
+  return { body, authorization: { signature } };
+}
+
+function emptyPermissions() {
   let Signature: AuthRequired = {
     constant: Bool(false),
     signatureNecessary: Bool(true),
@@ -187,7 +195,7 @@ function accountUpdateFromFeePayer({
     signatureNecessary: Bool(false),
     signatureSufficient: Bool(true),
   };
-  body.update.permissions.value = {
+  return {
     editState: Signature,
     send: Signature,
     receive: None,
@@ -200,7 +208,4 @@ function accountUpdateFromFeePayer({
     incrementNonce: Signature,
     setVotingFor: Signature,
   };
-  body.useFullCommitment = Bool(true);
-  body.authorizationKind = { isProved: Bool(false), isSigned: Bool(true) };
-  return { body, authorization: { signature } };
 }

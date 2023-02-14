@@ -16,6 +16,7 @@ import { randomBytes } from '../../js_crypto/random.js';
 import { alphabet } from '../../provable/base58.js';
 import { bytesToBigInt } from '../../js_crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
+import { emptyPermissions } from '../../mina-signer/src/sign-zkapp-command.js';
 
 export { Random, sample, withHardCoded };
 
@@ -61,7 +62,8 @@ const AuthRequired = map(
   ),
   Bigint.AuthRequired.fromJSON
 );
-const TokenSymbol = map(string(nat(6)), Bigint.TokenSymbol.fromJSON);
+// TODO non ascii strings in zkapp uri and token symbol fail
+const TokenSymbol = map(ascii(nat(6)), Bigint.TokenSymbol.fromJSON);
 const Events = map(
   array(array(Field, int(1, 5)), nat(2)),
   Bigint.Events.fromList
@@ -71,7 +73,7 @@ const SequenceEvents = map(
   Bigint.SequenceEvents.fromList
 );
 const SequenceState = oneOf(Bigint.SequenceState.emptyValue(), Field);
-const ZkappUri = map(string(nat(50)), Bigint.ZkappUri.fromJSON);
+const ZkappUri = map(ascii(nat(50)), Bigint.ZkappUri.fromJSON);
 
 const PrimitiveMap = primitiveTypeMap<bigint>();
 type Types = typeof TypeMap & typeof customTypes & typeof PrimitiveMap;
@@ -107,8 +109,20 @@ let typeToGenerator = new Map<Provable<any>, Random<any>>(
 );
 
 // transaction stuff
-const RandomAccountUpdate = randomFromLayout<AccountUpdate>(
-  jsLayout.AccountUpdate as any
+const RandomAccountUpdate = map(
+  randomFromLayout<AccountUpdate>(jsLayout.AccountUpdate as any),
+  (a) => {
+    // TODO we set vk to null since we currently can't generate a valid random one
+    a.body.update.verificationKey = {
+      isSome: 0n,
+      value: { data: '', hash: 0n },
+    };
+    // TODO empty permissions hack
+    if (!a.body.update.permissions.isSome) {
+      a.body.update.permissions.value = emptyPermissions();
+    }
+    return a;
+  }
 );
 const RandomFeePayer = randomFromLayout<ZkappCommand['feePayer']>(
   jsLayout.ZkappCommand.entries.feePayer as any
@@ -125,6 +139,7 @@ const json = {
   publicKey: map(PublicKey, CurveBigint.PublicKey.toJSON),
   privateKey: map(PrivateKey, CurveBigint.PrivateKey.toJSON),
   signature: map(Signature, SignatureBigint.Signature.toBase58),
+  accountUpdate: map(RandomAccountUpdate, AccountUpdate.toJSON),
 };
 
 const Random = Object.assign(Random_, {
@@ -134,6 +149,7 @@ const Random = Object.assign(Random_, {
   boolean,
   bytes,
   string,
+  ascii,
   base58,
   array: Object.assign(array, { ofSize: arrayOfSize }),
   record,
@@ -274,6 +290,12 @@ function uniformBytes(size: number | Random<number>): Random<number[]> {
 }
 function string(size: number | Random<number>) {
   return map(uniformBytes(size), (b) => String.fromCharCode(...b));
+}
+function ascii(size: number | Random<number>) {
+  return map(uniformBytes(size), (b) =>
+    // ASCII
+    String.fromCharCode(...b.map((c) => c % 128))
+  );
 }
 
 function base58(size: number | Random<number>) {
