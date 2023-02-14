@@ -140,17 +140,16 @@ const Signature = record({ r: Field, s: Scalar });
 
 // invalid json inputs can contain invalid stringified numbers, but also non-numeric strings
 const toString = <T>(rng: Random<T>) => map(rng, String);
-const broken = <T extends bigint | number>(rng: Random<T>) =>
-  map(rng, fraction(3), (x, frac) => Number(x) + frac);
+const nonInteger = map(UInt32, fraction(3), (x, frac) => Number(x) + frac);
 const nonNumericString = reject(
   string(nat(20)),
   (str: any) => !isNaN(str) && !isNaN(parseFloat(str))
 );
 const InvalidUint64Json = toString(
-  oneOf(UInt64.invalid, broken(UInt64), nonNumericString)
+  oneOf(UInt64.invalid, nonInteger, nonNumericString)
 );
 const InvalidUint32Json = toString(
-  oneOf(UInt32.invalid, broken(UInt32), nonNumericString)
+  oneOf(UInt32.invalid, nonInteger, nonNumericString)
 );
 
 // some json versions of those types

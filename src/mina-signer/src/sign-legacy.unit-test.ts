@@ -16,7 +16,7 @@ import {
 } from './sign-legacy.js';
 import { NetworkId, Signature } from './signature.js';
 import { expect } from 'expect';
-import { PrivateKey, PublicKey, Scalar } from '../../provable/curve-bigint.js';
+import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
 import { Field } from '../../provable/field-bigint.js';
 import { Random, test } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
@@ -65,13 +65,9 @@ for (let network of networks) {
 
 test(
   RandomTransaction.payment,
+  Random.json.keypair,
   Random.json.privateKey,
-  Random.json.privateKey,
-  (payment, privateKey, otherKey, assert) => {
-    // derive public key
-    let publicKey = PublicKey.toBase58(
-      PrivateKey.toPublicKey(PrivateKey.fromBase58(privateKey))
-    );
+  (payment, { privateKey, publicKey }, otherKey, assert) => {
     let verify = (sig: string, network: NetworkId) =>
       verifyPayment(payment, sig, publicKey, network);
 
@@ -88,6 +84,17 @@ test(
     let mainnetWrong = signPayment(payment, otherKey, 'mainnet');
     assert(verify(testnetWrong, 'testnet') === false);
     assert(verify(mainnetWrong, 'mainnet') === false);
+  }
+);
+
+// generative negative tests
+
+test.negative(
+  RandomTransaction.payment.invalid!,
+  Random.json.keypair,
+  (payment, { privateKey, publicKey }, assert) => {
+    let testnet = signPayment(payment, privateKey, 'testnet');
+    assert(verifyPayment(payment, testnet, publicKey, 'testnet') === true);
   }
 );
 

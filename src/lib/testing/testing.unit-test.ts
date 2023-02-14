@@ -1,5 +1,9 @@
 import { expect } from 'expect';
-import { AccountUpdate } from '../../provable/gen/transaction-bigint.js';
+import {
+  AccountUpdate,
+  UInt32,
+  UInt64,
+} from '../../provable/gen/transaction-bigint.js';
 import { test, Random } from './property.js';
 
 // some trivial roundtrip tests
@@ -22,3 +26,8 @@ expect(() => {
     assert(x !== y, 'two different numbers can never be the same');
   });
 }).toThrow('two different numbers');
+
+// check that invalid JSON cannot be parsed
+// note: test.negative asserts that _every_ sample fails
+test.negative(Random.json.uint64.invalid, UInt64.fromJSON);
+test.negative(Random.json.uint32.invalid, UInt32.fromJSON);

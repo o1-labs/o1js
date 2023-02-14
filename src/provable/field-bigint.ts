@@ -179,6 +179,9 @@ function ProvableBigint<
       return x.toString() as TJSON;
     },
     fromJSON(json) {
+      if (isNaN(json as any) || isNaN(parseFloat(json))) {
+        throw Error(`fromJSON: expected a numeric string, got "${json}"`);
+      }
       let x = BigInt(json) as T;
       check(x);
       return x;
