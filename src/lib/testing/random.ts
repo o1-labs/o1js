@@ -727,7 +727,6 @@ function recordWithInvalid<T extends {}>(gens: {
   for (let key in gens) {
     let invalid = gens[key].invalid;
     if (invalid !== undefined) {
-      console.log('got invalid', invalid);
       invalidFields.push([key, invalid]);
     }
   }
@@ -744,7 +743,6 @@ function recordWithInvalid<T extends {}>(gens: {
         let i = drawUniformUint(nInvalid - 1);
         let [key, invalidNext] = invalidNexts[i];
         value[key] = invalidNext();
-        console.log('returning record', value, 'with invalid', value[key]);
         return value;
       };
     },
