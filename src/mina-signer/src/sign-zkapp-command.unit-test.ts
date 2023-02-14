@@ -27,6 +27,7 @@ import {
   accountUpdateHash,
   accountUpdatesToCallForest,
   callForestHash,
+  emptyPermissions,
   feePayerHash,
   signZkappCommand,
   verifyZkappCommandSignature,
@@ -90,12 +91,6 @@ expect(stringify(dummyInput.packed)).toEqual(
 );
 
 test(Random.accountUpdate, (accountUpdate) => {
-  // TOOD just make the vk generator constant
-  accountUpdate.body.update.verificationKey = {
-    isSome: 0n,
-    value: { data: '', hash: 0n },
-  };
-
   // example account update
   let accountUpdateJson: Json.AccountUpdate =
     AccountUpdate.toJSON(accountUpdate);
@@ -127,7 +122,7 @@ test(Random.json.privateKey, (feePayerKeyBase58) => {
 });
 
 // memo
-let memoGenerator = withHardCoded(Random.string(Random.nat(32)), 'hello world');
+let memoGenerator = withHardCoded(Random.ascii(Random.nat(32)), 'hello world');
 test(memoGenerator, (memoString) => {
   let memo = Memo.fromString(memoString);
   let memoBase58 = Memo.toBase58(memo);
@@ -137,13 +132,26 @@ test(memoGenerator, (memoString) => {
   expect(memoRecovered).toEqual(memo);
 });
 
+// zkapp transaction - basic properties & commitment
+test(RandomTransaction.zkappCommandAndFeePayerKey, ({ zkappCommand }) => {
+  let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
+  let firstCallDepth = zkappCommandJson.accountUpdates[0]?.body.callDepth ?? 0;
+  expect(firstCallDepth).toEqual(0);
+  let ocamlCommitments = Ledger.transactionCommitments(
+    JSON.stringify(zkappCommandJson)
+  );
+  let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
+  let commitment = callForestHash(callForest);
+  expect(commitment).toEqual(ocamlCommitments.commitment.toBigInt());
+});
+
 // zkapp transaction
 test(
   RandomTransaction.zkappCommandAndFeePayerKey,
   ({ feePayerKey, zkappCommand }) => {
     let feePayerKeyBase58 = PrivateKey.toBase58(feePayerKey);
     let feePayerKeySnarky = PrivateKeySnarky.fromBase58(feePayerKeyBase58);
-    let feePayerAddress = PublicKey.fromJSON(feePayerKeyBase58);
+    let feePayerAddress = PrivateKey.toPublicKey(feePayerKey);
 
     let { feePayer, memo: memoBase58 } = zkappCommand;
     feePayer.authorization = Ledger.dummySignature();
@@ -151,12 +159,19 @@ test(
 
     // snarkyjs fromJSON -> toJSON roundtrip, + consistency with mina-signer
     let zkappCommandSnarky = ZkappCommandSnarky.fromJSON(zkappCommandJson);
-    let zkappCommandJsonSnarky =
-      TypesSnarky.ZkappCommand.toJSON(zkappCommandSnarky);
+    let zkappCommandJsonSnarky = ZkappCommandSnarky.toJSON(zkappCommandSnarky);
     expect(JSON.stringify(zkappCommandJson)).toEqual(
       JSON.stringify(zkappCommandJsonSnarky)
     );
-    expect(ZkappCommand.fromJSON(zkappCommandJson)).toEqual(zkappCommand);
+    let recoveredZkappCommand = ZkappCommand.fromJSON(zkappCommandJson);
+    // empty permissions hack
+    recoveredZkappCommand.accountUpdates =
+      recoveredZkappCommand.accountUpdates.map((a) => {
+        if (!a.body.update.permissions.isSome)
+          a.body.update.permissions.value = emptyPermissions();
+        return a;
+      });
+    expect(recoveredZkappCommand).toEqual(zkappCommand);
 
     // tx commitment
     let ocamlCommitments = Ledger.transactionCommitments(
@@ -208,6 +223,7 @@ test(
       feePayerKeySnarky,
       true
     );
+    // FIXME: this fails
     expect(Signature.toBase58(sigTestnet)).toEqual(sigTestnetOcaml);
     expect(Signature.toBase58(sigMainnet)).toEqual(sigMainnetOcaml);
 

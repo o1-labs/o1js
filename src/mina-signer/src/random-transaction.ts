@@ -6,6 +6,7 @@ import {
   ZkappCommand,
 } from '../../provable/gen/transaction-bigint.js';
 import { PrivateKey } from '../../provable/curve-bigint.js';
+import { Signature } from './signature.js';
 
 export { RandomTransaction };
 
@@ -84,6 +85,7 @@ let feePayerFrom = Random.dependent(
   Random.feePayer,
   (publicKey: PublicKey, [feePayer]) => {
     feePayer.body.publicKey = publicKey;
+    feePayer.authorization = Signature.toBase58(Signature.dummy());
     return feePayer;
   }
 );

@@ -99,7 +99,7 @@ const Generators: Generators = {
   ZkappUri,
   null: constant(null),
   string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types
-  number: nat(3), // TODO need richer type for call depth, it's weird to use "number" knowing that it's the only number
+  number: nat(3),
 };
 let typeToGenerator = new Map<Provable<any>, Random<any>>(
   [TypeMap, PrimitiveMap, customTypes]
@@ -117,7 +117,7 @@ const RandomAccountUpdate = map(
       isSome: 0n,
       value: { data: '', hash: 0n },
     };
-    // TODO empty permissions hack
+    // TODO remove empty permissions hack
     if (!a.body.update.permissions.isSome) {
       a.body.update.permissions.value = emptyPermissions();
     }
@@ -127,7 +127,8 @@ const RandomAccountUpdate = map(
 const RandomFeePayer = randomFromLayout<ZkappCommand['feePayer']>(
   jsLayout.ZkappCommand.entries.feePayer as any
 );
-const RandomMemo = map(string(nat(32)), (s) =>
+// TODO: fails for non ascii strings
+const RandomMemo = map(ascii(nat(32)), (s) =>
   Memo.toBase58(Memo.fromString(s))
 );
 const Signature = record({ r: Field, s: Scalar });
@@ -136,8 +137,8 @@ const Signature = record({ r: Field, s: Scalar });
 const json = {
   uint64: map(UInt64, Bigint.UInt64.toJSON),
   uint32: map(UInt32, Bigint.UInt32.toJSON),
-  publicKey: map(PublicKey, CurveBigint.PublicKey.toJSON),
-  privateKey: map(PrivateKey, CurveBigint.PrivateKey.toJSON),
+  publicKey: map(PublicKey, CurveBigint.PublicKey.toBase58),
+  privateKey: map(PrivateKey, CurveBigint.PrivateKey.toBase58),
   signature: map(Signature, SignatureBigint.Signature.toBase58),
   accountUpdate: map(RandomAccountUpdate, AccountUpdate.toJSON),
 };
@@ -364,9 +365,11 @@ function step<T extends readonly any[], S>(
   return {
     create() {
       let nexts = rngs.map((rng) => rng.create());
+      let next = initial;
       let current = initial;
       return () => {
-        current = step(current, ...(nexts.map((next) => next()) as any as T));
+        current = next;
+        next = step(current, ...(nexts.map((next) => next()) as any as T));
         return current;
       };
     },

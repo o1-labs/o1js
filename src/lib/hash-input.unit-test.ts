@@ -55,10 +55,6 @@ test(Random.json.accountUpdate, (accountUpdateJson) => {
   // update
   // TODO non ascii strings in zkapp uri and token symbol fail
   let update = accountUpdate.body.update;
-  // TODO remove empty permissions hack
-  if (accountUpdateJson.body.update.permissions === null) {
-    update.permissions.value = Permissions.initial();
-  }
   testInput(Update, Ledger.hashInputFromJson.update, update);
 
   // account precondition
