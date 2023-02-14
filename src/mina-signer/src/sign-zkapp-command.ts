@@ -32,6 +32,7 @@ export {
   createFeePayer,
   accountUpdateFromFeePayer,
   emptyPermissions,
+  fixEmptyPermissions,
 };
 
 function signZkappCommand(
@@ -40,6 +41,8 @@ function signZkappCommand(
   networkId: NetworkId
 ): Json.ZkappCommand {
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
+  fixEmptyPermissions(zkappCommand);
+
   let { commitment, fullCommitment } = transactionCommitments(zkappCommand);
   let privateKey = PrivateKey.fromBase58(privateKeyBase58);
   let publicKey = zkappCommand.feePayer.body.publicKey;
@@ -66,6 +69,8 @@ function verifyZkappCommandSignature(
   networkId: NetworkId
 ) {
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
+  fixEmptyPermissions(zkappCommand);
+
   let { commitment, fullCommitment } = transactionCommitments(zkappCommand);
   let publicKey = PublicKey.fromBase58(publicKeyBase58);
 
@@ -182,6 +187,16 @@ function accountUpdateFromFeePayer({
   body.useFullCommitment = Bool(true);
   body.authorizationKind = { isProved: Bool(false), isSigned: Bool(true) };
   return { body, authorization: { signature } };
+}
+
+// TODO remove empty permissions hack
+function fixEmptyPermissions(zkappCommand: ZkappCommand) {
+  zkappCommand.accountUpdates = zkappCommand.accountUpdates.map((a) => {
+    if (!a.body.update.permissions.isSome)
+      a.body.update.permissions.value = emptyPermissions();
+    return a;
+  });
+  return zkappCommand;
 }
 
 function emptyPermissions() {

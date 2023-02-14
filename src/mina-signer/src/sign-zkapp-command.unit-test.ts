@@ -27,8 +27,8 @@ import {
   accountUpdateHash,
   accountUpdatesToCallForest,
   callForestHash,
-  emptyPermissions,
   feePayerHash,
+  fixEmptyPermissions,
   signZkappCommand,
   verifyZkappCommandSignature,
 } from './sign-zkapp-command.js';
@@ -164,13 +164,7 @@ test(
       JSON.stringify(zkappCommandJsonSnarky)
     );
     let recoveredZkappCommand = ZkappCommand.fromJSON(zkappCommandJson);
-    // empty permissions hack
-    recoveredZkappCommand.accountUpdates =
-      recoveredZkappCommand.accountUpdates.map((a) => {
-        if (!a.body.update.permissions.isSome)
-          a.body.update.permissions.value = emptyPermissions();
-        return a;
-      });
+    fixEmptyPermissions(recoveredZkappCommand);
     expect(recoveredZkappCommand).toEqual(zkappCommand);
 
     // tx commitment
@@ -223,7 +217,6 @@ test(
       feePayerKeySnarky,
       true
     );
-    // FIXME: this fails
     expect(Signature.toBase58(sigTestnet)).toEqual(sigTestnetOcaml);
     expect(Signature.toBase58(sigMainnet)).toEqual(sigMainnetOcaml);
 
