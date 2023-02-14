@@ -24,8 +24,13 @@ type Random<T> = {
   create(): () => T;
   invalid?: Random<T>;
 };
-function Random_<T>(next: () => T): Random<T> {
-  return { create: () => next };
+function Random_<T>(
+  next: () => T,
+  toInvalid?: (valid: Random<T>) => Random<T>
+): Random<T> {
+  let rng: Random<T> = { create: () => next };
+  if (toInvalid !== undefined) rng.invalid = toInvalid(rng);
+  return rng;
 }
 
 function sample<T>(rng: Random<T>, size: number) {
@@ -35,11 +40,13 @@ function sample<T>(rng: Random<T>, size: number) {
 
 const boolean = Random_(() => drawOneOf8() < 4);
 
-const Field = Random_(Bigint.Field.random);
-const Scalar = Random_(CurveBigint.Scalar.random);
 const Bool = map(boolean, Bigint.Bool);
 const UInt32 = biguintWithInvalid(32);
 const UInt64 = biguintWithInvalid(64);
+
+const Field = fieldWithInvalid(Bigint.Field);
+const Scalar = fieldWithInvalid(CurveBigint.Scalar);
+
 const Sign = map(boolean, (b) => Bigint.Sign(b ? 1 : -1));
 const PrivateKey = Random_(CurveBigint.PrivateKey.random);
 const PublicKey = map(PrivateKey, CurveBigint.PrivateKey.toPublicKey);
@@ -679,6 +686,14 @@ function drawOneOf8() {
 // convention is for invalid generators sit next to valid ones
 // so you can use uint64.invalid, array(uint64).invalid, etc
 
+function withInvalid<T>(
+  valid: Random<T>,
+  toInvalid: (valid: Random<T>) => Random<T>
+): Random<T> {
+  let invalid = toInvalid(valid);
+  return { ...valid, invalid };
+}
+
 /**
  * we get invalid uints by sampling from a larger range plus negative numbers, and reject if it's still valid
  */
@@ -690,6 +705,23 @@ function biguintWithInvalid(bits: number) {
   let tooLarge = map(valid, (uint) => uint + max);
   let invalid = oneOf(negative, tooLarge);
   return Object.assign(valid, { invalid });
+}
+
+function fieldWithInvalid(
+  F: typeof Bigint.Field | typeof CurveBigint.Scalar
+): Random<bigint> {
+  let randomField = Random_(F.random);
+  let specialField = oneOf(0n, 1n, F(-1));
+  let validField = oneOf<bigint[]>(
+    randomField,
+    randomField,
+    UInt64,
+    specialField
+  );
+  let tooLarge = map(validField, (x) => x + Bigint.Field.modulus);
+  let negative = map(validField, (x) => -x - 1n);
+  let invalid = oneOf(tooLarge, negative);
+  return withInvalid(validField, () => invalid);
 }
 
 /**
@@ -800,5 +832,3 @@ function mapWithInvalid<T extends readonly any[], S>(
   };
   return { ...valid, invalid };
 }
-
-console.log(sample(json.uint32.invalid, 20));
