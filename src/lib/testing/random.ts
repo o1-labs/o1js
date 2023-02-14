@@ -22,6 +22,7 @@ export { Random, sample, withHardCoded };
 
 type Random<T> = {
   create(): () => T;
+  invalid?: Random<T>;
 };
 function Random_<T>(next: () => T): Random<T> {
   return { create: () => next };
@@ -37,11 +38,15 @@ const boolean = Random_(() => drawOneOf8() < 4);
 const Field = Random_(Bigint.Field.random);
 const Scalar = Random_(CurveBigint.Scalar.random);
 const Bool = map(boolean, Bigint.Bool);
-const UInt32 = biguint(32);
-const UInt64 = biguint(64);
+const UInt32 = biguintWithInvalid(32);
+const UInt64 = biguintWithInvalid(64);
 const Sign = map(boolean, (b) => Bigint.Sign(b ? 1 : -1));
 const PrivateKey = Random_(CurveBigint.PrivateKey.random);
 const PublicKey = map(PrivateKey, CurveBigint.PrivateKey.toPublicKey);
+const keypair = map(PrivateKey, (privatekey) => ({
+  privatekey,
+  publicKey: CurveBigint.PrivateKey.toPublicKey(privatekey),
+}));
 
 const TokenId = oneOf(Bigint.TokenId.emptyValue(), Field);
 const StateHash = Field;
@@ -133,12 +138,31 @@ const RandomMemo = map(ascii(nat(32)), (s) =>
 );
 const Signature = record({ r: Field, s: Scalar });
 
+// invalid json inputs can contain invalid stringified numbers, but also non-numeric strings
+const toString = <T>(rng: Random<T>) => map(rng, String);
+const broken = <T extends bigint | number>(rng: Random<T>) =>
+  map(rng, fraction(3), (x, frac) => Number(x) + frac);
+const nonNumericString = reject(
+  string(nat(20)),
+  (str: any) => !isNaN(str) && !isNaN(parseFloat(str))
+);
+const InvalidUint64Json = toString(
+  oneOf(UInt64.invalid, broken(UInt64), nonNumericString)
+);
+const InvalidUint32Json = toString(
+  oneOf(UInt32.invalid, broken(UInt32), nonNumericString)
+);
+
 // some json versions of those types
 const json = {
-  uint64: map(UInt64, Bigint.UInt64.toJSON),
-  uint32: map(UInt32, Bigint.UInt32.toJSON),
+  uint64: { ...toString(UInt64), invalid: InvalidUint64Json },
+  uint32: { ...toString(UInt32), invalid: InvalidUint32Json },
   publicKey: map(PublicKey, CurveBigint.PublicKey.toBase58),
   privateKey: map(PrivateKey, CurveBigint.PrivateKey.toBase58),
+  keypair: map(keypair, ({ privatekey, publicKey }) => ({
+    privateKey: CurveBigint.PrivateKey.toBase58(privatekey),
+    publicKey: CurveBigint.PublicKey.toBase58(publicKey),
+  })),
   signature: map(Signature, SignatureBigint.Signature.toBase58),
   accountUpdate: map(RandomAccountUpdate, AccountUpdate.toJSON),
 };
@@ -147,13 +171,14 @@ const Random = Object.assign(Random_, {
   constant,
   int,
   nat,
+  fraction,
   boolean,
   bytes,
   string,
   ascii,
   base58,
-  array: Object.assign(array, { ofSize: arrayOfSize }),
-  record,
+  array: Object.assign(arrayWithInvalid, { ofSize: arrayOfSize }),
+  record: recordWithInvalid,
   map,
   step,
   oneOf,
@@ -303,23 +328,20 @@ function base58(size: number | Random<number>) {
   return map(array(oneOf(...alphabet), size), (a) => a.join(''));
 }
 
-function isGenerator(rng: any): rng is Random<any> {
+function isGenerator<T>(rng: any): rng is Random<T> {
   return typeof rng === 'object' && rng && 'create' in rng;
 }
 
 function oneOf<Types extends readonly any[]>(
   ...values: { [K in keyof Types]: Types[K] | Random<Types[K]> }
 ): Random<Types[number]> {
-  type T = Types[number];
-  let isGenerators = values.map(isGenerator);
+  let gens = values.map((v) => (isGenerator(v) ? v : constant(v)));
   return {
     create() {
-      let nexts = values.map((v: Random<T>, i) =>
-        isGenerators[i] ? v.create() : undefined
-      );
+      let nexts = gens.map((rng) => rng.create());
       return () => {
         let i = drawUniformUint(values.length - 1);
-        return isGenerators[i] ? nexts[i]!() : (values[i] as T);
+        return nexts[i]();
       };
     },
   };
@@ -430,6 +452,19 @@ function record<T extends {}>(gens: {
   };
 }
 
+function tuple<T extends readonly any[]>(
+  gens: {
+    [i in keyof T & number]: Random<T[i]>;
+  } & Random<any>[]
+): Random<T> {
+  return {
+    create() {
+      let nexts = gens.map((gen) => gen.create());
+      return () => nexts.map((next) => next()) as any;
+    },
+  };
+}
+
 function reject<T>(rng: Random<T>, isRejected: (t: T) => boolean): Random<T> {
   return {
     create() {
@@ -518,6 +553,13 @@ function nat(max: number): Random<number> {
       }
     },
   };
+}
+
+function fraction(fixedPrecision = 3) {
+  let denom = 10 ** fixedPrecision;
+  if (fixedPrecision < 1) throw Error('precision must be > 1');
+  let next = () => (drawUniformUint(denom - 2) + 1) / denom;
+  return { create: () => next };
 }
 
 /**
@@ -628,4 +670,139 @@ function drawUniformBigUintBits(bitLength: number) {
  */
 function drawOneOf8() {
   return randomBytes(1)[0] >> 5;
+}
+
+// generators for invalid samples
+// note: these only cover invalid samples with a _valid type_.
+// for example, numbers that are out of range or base58 strings with invalid characters.
+// what we don't cover is something like
+
+// convention is for invalid generators sit next to valid ones
+// so you can use uint64.invalid, array(uint64).invalid, etc
+
+/**
+ * we get invalid uints by sampling from a larger range plus negative numbers, and reject if it's still valid
+ */
+function biguintWithInvalid(bits: number) {
+  let valid = biguint(bits);
+  let max = 1n << BigInt(bits);
+  let uintDouble = biguint(2 * bits);
+  let intDouble = map(uintDouble, boolean, (uint, positive) =>
+    positive ? uint : -uint
+  );
+  let invalid = reject(intDouble, (int) => int >= 0n && int < max);
+  return Object.assign(valid, {
+    invalid,
+  });
+}
+
+/**
+ * invalid arrays are sampled by generating an array with exactly one invalid input (and any number of valid inputs);
+ * (note: invalid arrays have the same length distribution as valid ones, except that they are never empty)
+ */
+function arrayWithInvalid<T>(
+  element: Random<T>,
+  size: number | Random<number>,
+  options?: { reset?: boolean }
+): Random<T[]> {
+  let valid = array(element, size, options);
+  if (element.invalid === undefined) return valid;
+  let invalid = map(valid, element.invalid, (arr, invalid) => {
+    if (arr.length === 0) return [invalid];
+    let i = drawUniformUint(arr.length - 1);
+    arr[i] = invalid;
+    return arr;
+  });
+  return { ...valid, invalid };
+}
+/**
+ * invalid records are similar to arrays: randomly choose one of the fields that have an invalid generator,
+ * and set it to its invalid value
+ */
+function recordWithInvalid<T extends {}>(gens: {
+  [K in keyof T]: Random<T[K]>;
+}): Random<T> {
+  let valid = record(gens);
+  let invalidFields: [string & keyof T, Random<any>][] = [];
+  for (let key in gens) {
+    let invalid = gens[key].invalid;
+    if (invalid !== undefined) {
+      console.log('got invalid', invalid);
+      invalidFields.push([key, invalid]);
+    }
+  }
+  let nInvalid = invalidFields.length;
+  if (nInvalid === 0) return valid;
+  let invalid = {
+    create() {
+      let next = valid.create();
+      let invalidNexts = invalidFields.map(
+        ([key, rng]) => [key, rng.create()] as const
+      );
+      return () => {
+        let value = next();
+        let i = drawUniformUint(nInvalid - 1);
+        let [key, invalidNext] = invalidNexts[i];
+        value[key] = invalidNext();
+        console.log('returning record', value, 'with invalid', value[key]);
+        return value;
+      };
+    },
+  };
+  return { ...valid, invalid };
+}
+/**
+ * invalid tuples are like invalid records
+ */
+function tupleWithInvalid<T extends readonly any[]>(
+  gens: {
+    [K in keyof T & number]: Random<T[K]>;
+  } & Random<any>[]
+): Random<T> {
+  let valid = tuple<T>(gens);
+  let invalidFields: [number & keyof T, Random<any>][] = [];
+  gens.forEach((gen, i) => {
+    let invalid = gen.invalid;
+    if (invalid !== undefined) {
+      invalidFields.push([i, invalid]);
+    }
+  });
+  let nInvalid = invalidFields.length;
+  if (nInvalid === 0) return valid;
+  let invalid = {
+    create() {
+      let next = valid.create();
+      let invalidNexts = invalidFields.map(
+        ([key, rng]) => [key, rng.create()] as const
+      );
+      return () => {
+        let value = next();
+        let i = drawUniformUint(nInvalid - 1);
+        let [key, invalidNext] = invalidNexts[i];
+        value[key] = invalidNext();
+        return value;
+      };
+    },
+  };
+  return { ...valid, invalid };
+}
+/**
+ * map assuming that invalid inputs can be mapped just like valid ones
+ * _one_ of the inputs is sampled as invalid
+ */
+function mapWithInvalid<T extends readonly any[], S>(
+  ...args: [...rngs: { [K in keyof T]: Random<T[K]> }, to: (...values: T) => S]
+): Random<S> {
+  let valid = map(...args);
+  const to = args.pop()! as (...values: T) => S;
+  let rngs = args as { [K in keyof T]: Random<T[K]> } & Random<any>[];
+  let invalidInput = tupleWithInvalid<T>(rngs).invalid;
+  if (invalidInput === undefined) return valid;
+  let invalid = {
+    create() {
+      let nextInput = invalidInput!.create();
+      return () => to(...nextInput());
+    },
+  };
+  return { ...valid, invalid };
 }
