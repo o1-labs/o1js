@@ -685,14 +685,11 @@ function drawOneOf8() {
 function biguintWithInvalid(bits: number) {
   let valid = biguint(bits);
   let max = 1n << BigInt(bits);
-  let uintDouble = biguint(2 * bits);
-  let intDouble = map(uintDouble, boolean, (uint, positive) =>
-    positive ? uint : -uint
-  );
-  let invalid = reject(intDouble, (int) => int >= 0n && int < max);
-  return Object.assign(valid, {
-    invalid,
-  });
+  let double = biguint(2 * bits);
+  let negative = map(double, (uint) => -uint - 1n);
+  let tooLarge = map(valid, (uint) => uint + max);
+  let invalid = oneOf(negative, tooLarge);
+  return Object.assign(valid, { invalid });
 }
 
 /**
@@ -803,3 +800,5 @@ function mapWithInvalid<T extends readonly any[], S>(
   };
   return { ...valid, invalid };
 }
+
+console.log(sample(json.uint32.invalid, 20));
