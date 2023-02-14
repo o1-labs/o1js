@@ -16,11 +16,15 @@ import {
 } from './sign-legacy.js';
 import { NetworkId, Signature } from './signature.js';
 import { expect } from 'expect';
-import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
+import { PrivateKey, PublicKey, Scalar } from '../../provable/curve-bigint.js';
 import { Field } from '../../provable/field-bigint.js';
+import { Random, test } from '../../lib/testing/property.js';
+import { RandomTransaction } from './random-transaction.js';
 
 let { privateKey, publicKey } = keypair;
 let networks: NetworkId[] = ['testnet', 'mainnet'];
+
+// test hard-coded cases against reference signature
 
 for (let network of networks) {
   let i = 0;
@@ -56,6 +60,36 @@ for (let network of networks) {
     expect(ok).toEqual(true);
   }
 }
+
+// sign & verify with randomly generated payments
+
+test(
+  RandomTransaction.payment,
+  Random.json.privateKey,
+  Random.json.privateKey,
+  (payment, privateKey, otherKey, assert) => {
+    // derive public key
+    let publicKey = PublicKey.toBase58(
+      PrivateKey.toPublicKey(PrivateKey.fromBase58(privateKey))
+    );
+    let verify = (sig: string, network: NetworkId) =>
+      verifyPayment(payment, sig, publicKey, network);
+
+    // valid signatures & verification matrix
+    let testnet = signPayment(payment, privateKey, 'testnet');
+    let mainnet = signPayment(payment, privateKey, 'mainnet');
+    assert(verify(testnet, 'testnet') === true);
+    assert(verify(testnet, 'mainnet') === false);
+    assert(verify(mainnet, 'testnet') === false);
+    assert(verify(mainnet, 'mainnet') === true);
+
+    // fails when signing with wrong private key
+    let testnetWrong = signPayment(payment, otherKey, 'testnet');
+    let mainnetWrong = signPayment(payment, otherKey, 'mainnet');
+    assert(verify(testnetWrong, 'testnet') === false);
+    assert(verify(mainnetWrong, 'mainnet') === false);
+  }
+);
 
 // negative tests with invalid payments
 

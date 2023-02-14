@@ -27,8 +27,8 @@ import { test } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
 
 test(
-  RandomTransaction.payment,
-  RandomTransaction.delegation,
+  RandomTransaction.signedPayment,
+  RandomTransaction.signedDelegation,
   (payment, delegation) => {
     // common serialization
     let result = Test.transactionHash.serializeCommon(

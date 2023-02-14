@@ -20,27 +20,28 @@ const common = record({
   validUntil: Random.json.uint32,
   memo: Random.string(Random.nat(32)),
 });
-
-const payment = record<Signed<PaymentJson>>({
-  data: record({
-    common,
-    body: record({
-      source: Random.json.publicKey,
-      receiver: Random.json.publicKey,
-      amount: Random.json.uint64,
-    }),
+const payment = record<PaymentJson>({
+  common,
+  body: record({
+    source: Random.json.publicKey,
+    receiver: Random.json.publicKey,
+    amount: Random.json.uint64,
   }),
+});
+const signedPayment = record<Signed<PaymentJson>>({
+  data: payment,
   signature: Random.json.signature,
 });
 
-const delegation = record<Signed<DelegationJson>>({
-  data: record({
-    common,
-    body: record({
-      delegator: Random.json.publicKey,
-      newDelegate: Random.json.publicKey,
-    }),
+const delegation = record<DelegationJson>({
+  common,
+  body: record({
+    delegator: Random.json.publicKey,
+    newDelegate: Random.json.publicKey,
   }),
+});
+const signedDelegation = record<Signed<DelegationJson>>({
+  data: delegation,
   signature: Random.json.signature,
 });
 
@@ -121,6 +122,8 @@ let zkappCommandAndFeePayerKey = Random.map(
 const RandomTransaction = {
   payment,
   delegation,
+  signedPayment,
+  signedDelegation,
   zkappCommand,
   zkappCommandAndFeePayerKey,
 };
