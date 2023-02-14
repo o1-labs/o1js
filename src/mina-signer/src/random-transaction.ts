@@ -94,23 +94,21 @@ let size = Random.nat(20);
 // reset: true makes call depth start from 0 again at the start of each sampled array
 let accountUpdatesFrom = Random.array(accountUpdateFrom, size, { reset: true });
 
-let zkappCommandFrom: Random<(publicKey: PublicKey) => ZkappCommand> =
-  Random.dependent(
-    feePayerFrom,
-    accountUpdatesFrom,
-    Random.memo,
-    (publicKey: PublicKey, [feePayerFrom, accountUpdatesFrom, memo]) => {
-      let feePayer = feePayerFrom(publicKey);
-      let accountUpdates = accountUpdatesFrom.map((from) => from(publicKey));
-      return { feePayer, accountUpdates, memo };
-    }
-  );
-
-let zkappCommand: Random<ZkappCommand> = Random.map(
-  Random.publicKey,
-  zkappCommandFrom,
-  (pk, zkappCommandFrom) => zkappCommandFrom(pk)
+let zkappCommandFrom = Random.dependent(
+  feePayerFrom,
+  accountUpdatesFrom,
+  Random.memo,
+  (
+    publicKey: PublicKey,
+    [feePayerFrom, accountUpdatesFrom, memo]
+  ): ZkappCommand => {
+    let feePayer = feePayerFrom(publicKey);
+    let accountUpdates = accountUpdatesFrom.map((from) => from(publicKey));
+    return { feePayer, accountUpdates, memo };
+  }
 );
+
+let zkappCommand: Random<ZkappCommand> = zkappCommandFrom(Random.publicKey);
 let zkappCommandAndFeePayerKey = Random.map(
   Random.privateKey,
   zkappCommandFrom,
@@ -126,13 +124,3 @@ const RandomTransaction = {
   zkappCommand,
   zkappCommandAndFeePayerKey,
 };
-
-// console.dir(
-//   sample(zkappCommand, 10).map(({ feePayer, accountUpdates }) =>
-//     accountUpdates.map((a) => [
-//       a.body.callDepth,
-//       PublicKey.equal(a.body.publicKey, feePayer.body.publicKey),
-//     ])
-//   ),
-//   { depth: Infinity }
-// );

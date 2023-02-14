@@ -29,6 +29,7 @@ import {
   callForestHash,
   feePayerHash,
   fixEmptyPermissions,
+  isCallDepthValid,
   signZkappCommand,
   verifyZkappCommandSignature,
 } from './sign-zkapp-command.js';
@@ -133,10 +134,9 @@ test(memoGenerator, (memoString) => {
 });
 
 // zkapp transaction - basic properties & commitment
-test(RandomTransaction.zkappCommandAndFeePayerKey, ({ zkappCommand }) => {
+test(RandomTransaction.zkappCommand, (zkappCommand, assert) => {
+  assert(isCallDepthValid(zkappCommand));
   let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
-  let firstCallDepth = zkappCommandJson.accountUpdates[0]?.body.callDepth ?? 0;
-  expect(firstCallDepth).toEqual(0);
   let ocamlCommitments = Ledger.transactionCommitments(
     JSON.stringify(zkappCommandJson)
   );

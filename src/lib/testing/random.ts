@@ -336,20 +336,29 @@ function map<T extends readonly any[], S>(
     },
   };
 }
-function dependent<T extends readonly any[], S, Free>(
+function dependent<T extends readonly any[], Result, Free>(
   ...args: [
     ...rngs: { [K in keyof T]: Random<T[K]> },
-    to: (free: Free, values: T) => S
+    to: (free: Free, values: T) => Result
   ]
-): Random<(arg: Free) => S> {
-  const to = args.pop()! as (free: Free, values: T) => S;
+): Random<(arg: Free) => Result> & ((arg: Random<Free>) => Random<Result>) {
+  const to = args.pop()! as (free: Free, values: T) => Result;
   let rngs = args as { [K in keyof T]: Random<T[K]> };
-  return {
+  let rng: Random<(arg: Free) => Result> = {
     create() {
       let nexts = rngs.map((rng) => rng.create());
       return () => (free) => to(free, nexts.map((next) => next()) as any);
     },
   };
+  return Object.assign(function (free: Random<Free>): Random<Result> {
+    return {
+      create() {
+        let freeNext = free.create();
+        let nexts = rngs.map((rng) => rng.create());
+        return () => to(freeNext(), nexts.map((next) => next()) as any);
+      },
+    };
+  }, rng);
 }
 
 function step<T extends readonly any[], S>(

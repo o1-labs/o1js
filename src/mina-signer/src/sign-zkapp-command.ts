@@ -33,6 +33,7 @@ export {
   accountUpdateFromFeePayer,
   emptyPermissions,
   fixEmptyPermissions,
+  isCallDepthValid,
 };
 
 function signZkappCommand(
@@ -94,6 +95,9 @@ function verifyZkappCommandSignature(
 }
 
 function transactionCommitments(zkappCommand: ZkappCommand) {
+  if (!isCallDepthValid(zkappCommand)) {
+    throw Error('zkapp command: invalid call depth');
+  }
   let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
   let commitment = callForestHash(callForest);
   let memoHash = Memo.hash(Memo.fromBase58(zkappCommand.memo));
@@ -118,10 +122,6 @@ function accountUpdatesToCallForest(updates: AccountUpdate[], callDepth = 0) {
   let forest: CallForest = [];
   while (remainingUpdates.length > 0) {
     let accountUpdate = remainingUpdates[0];
-    assertNonNegativeInteger(
-      accountUpdate.body.callDepth,
-      `callDepth must be positive integer, got ${callDepth}`
-    );
     if (accountUpdate.body.callDepth < callDepth) return forest;
     remainingUpdates.shift();
     let children = accountUpdatesToCallForest(remainingUpdates, callDepth + 1);
@@ -187,6 +187,18 @@ function accountUpdateFromFeePayer({
   body.useFullCommitment = Bool(true);
   body.authorizationKind = { isProved: Bool(false), isSigned: Bool(true) };
   return { body, authorization: { signature } };
+}
+
+function isCallDepthValid(zkappCommand: ZkappCommand) {
+  let callDepths = zkappCommand.accountUpdates.map((a) => a.body.callDepth);
+  let current = callDepths.shift() ?? 0;
+  if (current !== 0) return false;
+  for (let callDepth of callDepths) {
+    if (callDepth < 0) return false;
+    if (callDepth - current > 1) return false;
+    current = callDepth;
+  }
+  return true;
 }
 
 // TODO remove empty permissions hack
