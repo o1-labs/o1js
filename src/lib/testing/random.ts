@@ -40,6 +40,7 @@ type Random<T> = {
   invalid?: Random<T>;
 };
 type RandomWithInvalid<T> = Required<Random<T>>;
+
 function Random_<T>(
   next: () => T,
   toInvalid?: (valid: Random<T>) => Random<T>
@@ -74,7 +75,7 @@ const keypair = map(privateKey, (privatekey) => ({
 const tokenId = oneOf(TokenId.emptyValue(), field);
 const stateHash = field;
 const authorizationKind = reject(
-  record<AuthorizationKind>({
+  recordValid<AuthorizationKind>({
     isProved: bool,
     isSigned: bool,
   }),
@@ -193,7 +194,7 @@ let json_ = {
     privateKey: PrivateKey.toBase58(privatekey),
     publicKey: PublicKey.toBase58(publicKey),
   })),
-  signature: withInvalidBase58(mapWithInvalid(signature, Signature.toBase58)),
+  signature: withInvalidBase58(map(signature, Signature.toBase58)),
   field: mapWithInvalid(field, Field.toJSON),
 };
 
@@ -267,8 +268,8 @@ const Random = Object.assign(Random_, {
   string,
   ascii,
   base58,
-  array: Object.assign(arrayWithInvalid, { ofSize: arrayOfSize }),
-  record: recordWithInvalid,
+  array: Object.assign(array, { ofSize: arrayOfSizeValid }),
+  record,
   map,
   step,
   oneOf,
@@ -310,10 +311,10 @@ function generatorFromLayout<T>(
           isJson,
         });
         let size = typeData.staticLength ?? Random.nat(20);
-        return arrayWithInvalid(element, size);
+        return array(element, size);
       },
       reduceObject(_, object) {
-        return recordWithInvalid(object);
+        return record(object);
       },
       reduceFlaggedOption({ isSome, value }, typeData) {
         if (isJson) {
@@ -380,7 +381,7 @@ function constant<T>(t: T) {
 }
 
 function bytes(size: number | Random<number>): Random<number[]> {
-  return array(byte, size);
+  return arrayValid(byte, size);
 }
 
 function uniformBytes(size: number | Random<number>): Random<number[]> {
@@ -403,7 +404,7 @@ function ascii(size: number | Random<number>) {
 }
 
 function base58(size: number | Random<number>) {
-  return map(array(oneOf(...alphabet), size), (a) => a.join(''));
+  return map(arrayValid(oneOf(...alphabet), size), (a) => a.join(''));
 }
 
 function isGenerator<T>(rng: any): rng is Random<T> {
@@ -418,8 +419,8 @@ function oneOf<Types extends readonly any[]>(
       | Types[K];
   }
 ): Random<Types[number]> {
-  let gens = values.map((v) => (isGenerator(v) ? v : constant(v)));
-  return {
+  let gens = values.map(maybeConstant);
+  let valid = {
     create() {
       let nexts = gens.map((rng) => rng.create());
       return () => {
@@ -428,7 +429,23 @@ function oneOf<Types extends readonly any[]>(
       };
     },
   };
+  let invalidGens = gens
+    .filter((g) => g.invalid !== undefined)
+    .map((g) => g.invalid!);
+  let nInvalid = invalidGens.length;
+  if (nInvalid === 0) return valid;
+  let invalid = {
+    create() {
+      let nexts = invalidGens.map((rng) => rng.create());
+      return () => {
+        let i = drawUniformUint(nInvalid - 1);
+        return nexts[i]();
+      };
+    },
+  };
+  return Object.assign(valid, { invalid });
 }
+
 function map<T extends readonly any[], S>(
   ...args: [...rngs: { [K in keyof T]: Random<T[K]> }, to: (...values: T) => S]
 ): Random<S> {
@@ -501,7 +518,7 @@ function step<T extends readonly any[], S>(
   };
 }
 
-function array<T>(
+function arrayValid<T>(
   element: Random<T>,
   size: number | Random<number>,
   { reset = false } = {}
@@ -518,7 +535,7 @@ function array<T>(
     },
   };
 }
-function arrayOfSize<T>(
+function arrayOfSizeValid<T>(
   element: Random<T>,
   { reset = false } = {}
 ): Random<(n: number) => T[]> {
@@ -533,7 +550,7 @@ function arrayOfSize<T>(
   };
 }
 
-function record<T extends {}>(gens: {
+function recordValid<T extends {}>(gens: {
   [K in keyof T]: Random<T[K]>;
 }): Random<T> {
   return {
@@ -546,7 +563,7 @@ function record<T extends {}>(gens: {
   };
 }
 
-function tuple<T extends readonly any[]>(
+function tupleValid<T extends readonly any[]>(
   gens: {
     [i in keyof T & number]: Random<T[i]>;
   } & Random<any>[]
@@ -842,12 +859,12 @@ function publicKeyWithInvalid() {
  * invalid arrays are sampled by generating an array with exactly one invalid input (and any number of valid inputs);
  * (note: invalid arrays have the same length distribution as valid ones, except that they are never empty)
  */
-function arrayWithInvalid<T>(
+function array<T>(
   element: Random<T>,
   size: number | Random<number>,
   options?: { reset?: boolean }
 ): Random<T[]> {
-  let valid = array(element, size, options);
+  let valid = arrayValid(element, size, options);
   if (element.invalid === undefined) return valid;
   let invalid = map(valid, element.invalid, (arr, invalid) => {
     if (arr.length === 0) return [invalid];
@@ -861,10 +878,10 @@ function arrayWithInvalid<T>(
  * invalid records are similar to arrays: randomly choose one of the fields that have an invalid generator,
  * and set it to its invalid value
  */
-function recordWithInvalid<T extends {}>(gens: {
+function record<T extends {}>(gens: {
   [K in keyof T]: Random<T[K]>;
 }): Random<T> {
-  let valid = record(gens);
+  let valid = recordValid(gens);
   let invalidFields: [string & keyof T, Random<any>][] = [];
   for (let key in gens) {
     let invalid = gens[key].invalid;
@@ -884,6 +901,7 @@ function recordWithInvalid<T extends {}>(gens: {
         let value = next();
         let i = drawUniformUint(nInvalid - 1);
         let [key, invalidNext] = invalidNexts[i];
+        console.log('picking invalid record field', key);
         value[key] = invalidNext();
         return value;
       };
@@ -894,12 +912,12 @@ function recordWithInvalid<T extends {}>(gens: {
 /**
  * invalid tuples are like invalid records
  */
-function tupleWithInvalid<T extends readonly any[]>(
+function tuple<T extends readonly any[]>(
   gens: {
     [K in keyof T & number]: Random<T[K]>;
   } & Random<any>[]
 ): Random<T> {
-  let valid = tuple<T>(gens);
+  let valid = tupleValid<T>(gens);
   let invalidFields: [number & keyof T, Random<any>][] = [];
   gens.forEach((gen, i) => {
     let invalid = gen.invalid;
@@ -936,7 +954,7 @@ function mapWithInvalid<T extends readonly any[], S>(
   let valid = map(...args);
   const to = args.pop()! as (...values: T) => S;
   let rngs = args as { [K in keyof T]: Random<T[K]> } & Random<any>[];
-  let invalidInput = tupleWithInvalid<T>(rngs).invalid;
+  let invalidInput = tuple<T>(rngs).invalid;
   if (invalidInput === undefined) return valid;
   let invalid = {
     create() {
