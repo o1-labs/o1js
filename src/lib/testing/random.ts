@@ -6,12 +6,25 @@ import {
   AccountUpdate,
   ZkappCommand,
 } from '../../provable/gen/transaction-bigint.js';
-import * as Bigint from '../../provable/transaction-leaves-bigint.js';
+import {
+  AuthorizationKind,
+  AuthRequired,
+  Bool,
+  Events,
+  Field,
+  SequenceEvents,
+  SequenceState,
+  Sign,
+  TokenId,
+  TokenSymbol,
+  ZkappUri,
+  PublicKey,
+} from '../../provable/transaction-leaves-bigint.js';
 import { genericLayoutFold } from '../../provable/from-layout.js';
 import { jsLayout } from '../../provable/gen/js-layout.js';
 import { GenericProvable, primitiveTypeMap } from '../../provable/generic.js';
-import * as CurveBigint from '../../provable/curve-bigint.js';
-import * as SignatureBigint from '../../mina-signer/src/signature.js';
+import { Scalar, PrivateKey } from '../../provable/curve-bigint.js';
+import { Signature } from '../../mina-signer/src/signature.js';
 import { randomBytes } from '../../js_crypto/random.js';
 import { alphabet } from '../../provable/base58.js';
 import { bytesToBigInt } from '../../js_crypto/bigint-helpers.js';
@@ -40,31 +53,31 @@ function sample<T>(rng: Random<T>, size: number) {
 
 const boolean = Random_(() => drawOneOf8() < 4);
 
-const Bool = map(boolean, Bigint.Bool);
-const UInt32 = biguintWithInvalid(32);
-const UInt64 = biguintWithInvalid(64);
+const bool = map(boolean, Bool);
+const uint32 = biguintWithInvalid(32);
+const uint64 = biguintWithInvalid(64);
 
-const Field = fieldWithInvalid(Bigint.Field);
-const Scalar = fieldWithInvalid(CurveBigint.Scalar);
+const field = fieldWithInvalid(Field);
+const scalar = fieldWithInvalid(Scalar);
 
-const Sign = map(boolean, (b) => Bigint.Sign(b ? 1 : -1));
-const PrivateKey = Random_(CurveBigint.PrivateKey.random);
-const PublicKey = map(PrivateKey, CurveBigint.PrivateKey.toPublicKey);
-const keypair = map(PrivateKey, (privatekey) => ({
+const sign = map(boolean, (b) => Sign(b ? 1 : -1));
+const privateKey = Random_(PrivateKey.random);
+const publicKey = map(privateKey, PrivateKey.toPublicKey);
+const keypair = map(privateKey, (privatekey) => ({
   privatekey,
-  publicKey: CurveBigint.PrivateKey.toPublicKey(privatekey),
+  publicKey: PrivateKey.toPublicKey(privatekey),
 }));
 
-const TokenId = oneOf(Bigint.TokenId.emptyValue(), Field);
-const StateHash = Field;
-const AuthorizationKind = reject(
-  record<Bigint.AuthorizationKind>({
-    isProved: Bool,
-    isSigned: Bool,
+const tokenId = oneOf(TokenId.emptyValue(), field);
+const stateHash = field;
+const authorizationKind = reject(
+  record<AuthorizationKind>({
+    isProved: bool,
+    isSigned: bool,
   }),
   (t) => !!t.isProved && !!t.isSigned
 );
-const AuthRequired = map(
+const authRequired = map(
   oneOf<Json.AuthRequired[]>(
     'None',
     'Proof',
@@ -72,20 +85,17 @@ const AuthRequired = map(
     'Either',
     'Impossible'
   ),
-  Bigint.AuthRequired.fromJSON
+  AuthRequired.fromJSON
 );
 // TODO non ascii strings in zkapp uri and token symbol fail
-const TokenSymbol = map(ascii(nat(6)), Bigint.TokenSymbol.fromJSON);
-const Events = map(
-  array(array(Field, int(1, 5)), nat(2)),
-  Bigint.Events.fromList
+const tokenSymbol = map(ascii(nat(6)), TokenSymbol.fromJSON);
+const events = map(array(array(field, int(1, 5)), nat(2)), Events.fromList);
+const actions = map(
+  array(array(field, int(1, 5)), nat(2)),
+  SequenceEvents.fromList
 );
-const SequenceEvents = map(
-  array(array(Field, int(1, 5)), nat(2)),
-  Bigint.SequenceEvents.fromList
-);
-const SequenceState = oneOf(Bigint.SequenceState.emptyValue(), Field);
-const ZkappUri = map(ascii(nat(50)), Bigint.ZkappUri.fromJSON);
+const sequenceState = oneOf(SequenceState.emptyValue(), field);
+const zkappUri = map(ascii(nat(50)), ZkappUri.fromJSON);
 
 const PrimitiveMap = primitiveTypeMap<bigint>();
 type Types = typeof TypeMap & typeof customTypes & typeof PrimitiveMap;
@@ -94,21 +104,21 @@ type Generators = {
   [K in keyof Types]: Types[K] extends Provable<infer U> ? Random<U> : never;
 };
 const Generators: Generators = {
-  Field,
-  Bool,
-  UInt32,
-  UInt64,
-  Sign,
-  PublicKey,
-  TokenId,
-  StateHash,
-  AuthorizationKind,
-  AuthRequired,
-  TokenSymbol,
-  Events,
-  SequenceEvents,
-  SequenceState,
-  ZkappUri,
+  Field: field,
+  Bool: bool,
+  UInt32: uint32,
+  UInt64: uint64,
+  Sign: sign,
+  PublicKey: publicKey,
+  TokenId: tokenId,
+  StateHash: stateHash,
+  AuthorizationKind: authorizationKind,
+  AuthRequired: authRequired,
+  TokenSymbol: tokenSymbol,
+  Events: events,
+  SequenceEvents: actions,
+  SequenceState: sequenceState,
+  ZkappUri: zkappUri,
   null: constant(null),
   string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types
   number: nat(3),
@@ -121,7 +131,7 @@ let typeToGenerator = new Map<Provable<any>, Random<any>>(
 );
 
 // transaction stuff
-const RandomAccountUpdate = map(
+const accountUpdate = map(
   randomFromLayout<AccountUpdate>(jsLayout.AccountUpdate as any),
   (a) => {
     // TODO we set vk to null since we currently can't generate a valid random one
@@ -136,41 +146,39 @@ const RandomAccountUpdate = map(
     return a;
   }
 );
-const RandomFeePayer = randomFromLayout<ZkappCommand['feePayer']>(
+const feePayer = randomFromLayout<ZkappCommand['feePayer']>(
   jsLayout.ZkappCommand.entries.feePayer as any
 );
 // TODO: fails for non ascii strings
-const RandomMemo = map(ascii(nat(32)), (s) =>
-  Memo.toBase58(Memo.fromString(s))
-);
-const Signature = record({ r: Field, s: Scalar });
+const memo = map(ascii(nat(32)), (s) => Memo.toBase58(Memo.fromString(s)));
+const signature = record({ r: field, s: scalar });
 
 // invalid json inputs can contain invalid stringified numbers, but also non-numeric strings
 const toString = <T>(rng: Random<T>) => map(rng, String);
-const nonInteger = map(UInt32, fraction(3), (x, frac) => Number(x) + frac);
+const nonInteger = map(uint32, fraction(3), (x, frac) => Number(x) + frac);
 const nonNumericString = reject(
   string(nat(20)),
   (str: any) => !isNaN(str) && !isNaN(parseFloat(str))
 );
-const InvalidUint64Json = toString(
-  oneOf(UInt64.invalid, nonInteger, nonNumericString)
+const invalidUint64Json = toString(
+  oneOf(uint64.invalid, nonInteger, nonNumericString)
 );
-const InvalidUint32Json = toString(
-  oneOf(UInt32.invalid, nonInteger, nonNumericString)
+const invalidUint32Json = toString(
+  oneOf(uint32.invalid, nonInteger, nonNumericString)
 );
 
 // some json versions of those types
 const json = {
-  uint64: { ...toString(UInt64), invalid: InvalidUint64Json },
-  uint32: { ...toString(UInt32), invalid: InvalidUint32Json },
-  publicKey: map(PublicKey, CurveBigint.PublicKey.toBase58),
-  privateKey: map(PrivateKey, CurveBigint.PrivateKey.toBase58),
+  uint64: { ...toString(uint64), invalid: invalidUint64Json },
+  uint32: { ...toString(uint32), invalid: invalidUint32Json },
+  publicKey: map(publicKey, PublicKey.toBase58),
+  privateKey: map(privateKey, PrivateKey.toBase58),
   keypair: map(keypair, ({ privatekey, publicKey }) => ({
-    privateKey: CurveBigint.PrivateKey.toBase58(privatekey),
-    publicKey: CurveBigint.PublicKey.toBase58(publicKey),
+    privateKey: PrivateKey.toBase58(privatekey),
+    publicKey: PublicKey.toBase58(publicKey),
   })),
-  signature: map(Signature, SignatureBigint.Signature.toBase58),
-  accountUpdate: map(RandomAccountUpdate, AccountUpdate.toJSON),
+  signature: map(signature, Signature.toBase58),
+  accountUpdate: map(accountUpdate, AccountUpdate.toJSON),
 };
 
 const Random = Object.assign(Random_, {
@@ -193,17 +201,17 @@ const Random = Object.assign(Random_, {
   dice: Object.assign(dice, {
     ofSize: diceOfSize(),
   }),
-  field: Field,
-  bool: Bool,
-  uint32: UInt32,
-  uint64: UInt64,
-  privateKey: PrivateKey,
-  publicKey: PublicKey,
-  scalar: Scalar,
-  signature: Signature,
-  accountUpdate: RandomAccountUpdate,
-  feePayer: RandomFeePayer,
-  memo: RandomMemo,
+  field,
+  bool,
+  uint32,
+  uint64,
+  privateKey,
+  publicKey,
+  scalar,
+  signature,
+  accountUpdate,
+  feePayer,
+  memo,
   json,
 });
 
@@ -707,18 +715,16 @@ function biguintWithInvalid(bits: number) {
   return Object.assign(valid, { invalid });
 }
 
-function fieldWithInvalid(
-  F: typeof Bigint.Field | typeof CurveBigint.Scalar
-): Random<bigint> {
+function fieldWithInvalid(F: typeof Field | typeof Scalar): Random<bigint> {
   let randomField = Random_(F.random);
   let specialField = oneOf(0n, 1n, F(-1));
   let validField = oneOf<bigint[]>(
     randomField,
     randomField,
-    UInt64,
+    uint64,
     specialField
   );
-  let tooLarge = map(validField, (x) => x + Bigint.Field.modulus);
+  let tooLarge = map(validField, (x) => x + Field.modulus);
   let negative = map(validField, (x) => -x - 1n);
   let invalid = oneOf(tooLarge, negative);
   return withInvalid(validField, () => invalid);
