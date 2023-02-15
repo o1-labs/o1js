@@ -31,7 +31,7 @@ import { alphabet } from '../../provable/base58.js';
 import { bytesToBigInt } from '../../js_crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
 import { emptyPermissions } from '../../mina-signer/src/sign-zkapp-command.js';
-import { ProvableExtended } from '../../mina-signer/dist/node/provable/field-bigint.js';
+import { ProvableExtended } from '../../provable/field-bigint.js';
 
 export { Random, sample, withHardCoded };
 
@@ -130,7 +130,7 @@ const Generators: Generators = {
   string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types
   number: nat(3),
 };
-let typeToGenerator = new Map<Provable<any>, Random<any>>(
+let typeToBigintGenerator = new Map<Provable<any>, Random<any>>(
   [TypeMap, PrimitiveMap, customTypes]
     .map(Object.entries)
     .flat()
@@ -139,11 +139,9 @@ let typeToGenerator = new Map<Provable<any>, Random<any>>(
 
 // transaction stuff
 const accountUpdate = mapWithInvalid(
-  generatorFromLayout<AccountUpdate>(
-    jsLayout.AccountUpdate as any,
-    typeToGenerator,
-    { isJson: false }
-  ),
+  generatorFromLayout<AccountUpdate>(jsLayout.AccountUpdate as any, {
+    isJson: false,
+  }),
   (a) => {
     // TODO set proof to none since we can't generate a valid random one
     a.authorization.proof = undefined;
@@ -158,7 +156,6 @@ const accountUpdate = mapWithInvalid(
 );
 const feePayer = generatorFromLayout<ZkappCommand['feePayer']>(
   jsLayout.ZkappCommand.entries.feePayer as any,
-  typeToGenerator,
   { isJson: false }
 );
 // TODO: fails for non ascii strings
@@ -232,11 +229,9 @@ let typeToJsonGenerator = new Map<Provable<any>, Random<any>>(
 );
 
 const accountUpdateJson = mapWithInvalid(
-  generatorFromLayout<Json.AccountUpdate>(
-    jsLayout.AccountUpdate as any,
-    typeToJsonGenerator,
-    { isJson: true }
-  ),
+  generatorFromLayout<Json.AccountUpdate>(jsLayout.AccountUpdate as any, {
+    isJson: true,
+  }),
   (a) => {
     // TODO set proof to null since we can't generate a valid random one
     a.authorization.proof = null;
@@ -245,10 +240,15 @@ const accountUpdateJson = mapWithInvalid(
     return a;
   }
 );
+const feePayerJson = generatorFromLayout<Json.ZkappCommand['feePayer']>(
+  jsLayout.ZkappCommand.entries.feePayer as any,
+  { isJson: true }
+);
 
 const json = {
   ...json_,
   accountUpdate: accountUpdateJson,
+  feePayer: feePayerJson,
 };
 
 const Random = Object.assign(Random_, {
@@ -286,9 +286,9 @@ const Random = Object.assign(Random_, {
 
 function generatorFromLayout<T>(
   typeData: Layout,
-  typeToGenerator: Map<Provable<any>, Random<any>>,
   { isJson }: { isJson: boolean }
 ): Random<T> {
+  let typeToGenerator = isJson ? typeToJsonGenerator : typeToBigintGenerator;
   return genericLayoutFold<undefined, Random<any>, TypeMap, Json.TypeMap>(
     TypeMap,
     customTypes,
@@ -300,9 +300,7 @@ function generatorFromLayout<T>(
         return rng;
       },
       reduceArray(_, typeData) {
-        let element = generatorFromLayout(typeData.inner, typeToGenerator, {
-          isJson,
-        });
+        let element = generatorFromLayout(typeData.inner, { isJson });
         let size = typeData.staticLength ?? Random.nat(20);
         return array(element, size);
       },
@@ -323,7 +321,7 @@ function generatorFromLayout<T>(
       reduceOrUndefined(_, innerTypeData) {
         return oneOf(
           isJson ? null : undefined,
-          generatorFromLayout(innerTypeData, typeToGenerator, { isJson })
+          generatorFromLayout(innerTypeData, { isJson })
         );
       },
     },

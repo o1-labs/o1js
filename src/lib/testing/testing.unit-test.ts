@@ -1,12 +1,16 @@
 import { expect } from 'expect';
+import { jsLayout } from '../../provable/gen/js-layout.js';
 import { Signature } from '../../mina-signer/src/signature.js';
 import {
   AccountUpdate,
   PublicKey,
   UInt32,
   UInt64,
+  provableFromLayout,
+  ZkappCommand,
+  Json,
 } from '../../provable/gen/transaction-bigint.js';
-import { test, Random } from './property.js';
+import { test, Random, sample } from './property.js';
 
 // some trivial roundtrip tests
 test(Random.accountUpdate, (accountUpdate, assert) => {
@@ -30,9 +34,13 @@ test(Random.json.accountUpdate, (json) => {
 
 // check that test fails for a property that does not hold in general
 expect(() => {
-  test(Random.nat(100), Random.nat(100), (x, y, assert) => {
-    assert(x !== y, 'two different numbers can never be the same');
-  });
+  test.custom({ logFailures: false })(
+    Random.nat(100),
+    Random.nat(100),
+    (x, y, assert) => {
+      assert(x !== y, 'two different numbers can never be the same');
+    }
+  );
 }).toThrow('two different numbers');
 
 // check that invalid JSON cannot be parsed
@@ -45,3 +53,8 @@ test.custom({ negative: true, timeBudget: 1000 })(
   Random.json.accountUpdate.invalid!,
   AccountUpdate.fromJSON
 );
+const FeePayer = provableFromLayout<
+  ZkappCommand['feePayer'],
+  Json.ZkappCommand['feePayer']
+>(jsLayout.ZkappCommand.entries.feePayer as any);
+test.negative(Random.json.feePayer.invalid!, FeePayer.fromJSON);
