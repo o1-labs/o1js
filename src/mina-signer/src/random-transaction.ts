@@ -6,7 +6,7 @@ import {
   ZkappCommand,
 } from '../../provable/gen/transaction-bigint.js';
 import { PrivateKey } from '../../provable/curve-bigint.js';
-import { Signature } from './signature.js';
+import { NetworkId, Signature } from './signature.js';
 
 export { RandomTransaction };
 
@@ -126,4 +126,5 @@ const RandomTransaction = {
   signedDelegation,
   zkappCommand,
   zkappCommandAndFeePayerKey,
+  networkId: Random.oneOf<NetworkId[]>('testnet', 'mainnet'),
 };

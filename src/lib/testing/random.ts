@@ -19,17 +19,19 @@ import {
   TokenSymbol,
   ZkappUri,
   PublicKey,
+  StateHash,
 } from '../../provable/transaction-leaves-bigint.js';
 import { genericLayoutFold } from '../../provable/from-layout.js';
 import { jsLayout } from '../../provable/gen/js-layout.js';
 import { GenericProvable, primitiveTypeMap } from '../../provable/generic.js';
-import { Scalar, PrivateKey } from '../../provable/curve-bigint.js';
+import { Scalar, PrivateKey, Group } from '../../provable/curve-bigint.js';
 import { Signature } from '../../mina-signer/src/signature.js';
 import { randomBytes } from '../../js_crypto/random.js';
 import { alphabet } from '../../provable/base58.js';
 import { bytesToBigInt } from '../../js_crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
 import { emptyPermissions } from '../../mina-signer/src/sign-zkapp-command.js';
+import { ProvableExtended } from '../../mina-signer/dist/node/provable/field-bigint.js';
 
 export { Random, sample, withHardCoded };
 
@@ -37,6 +39,7 @@ type Random<T> = {
   create(): () => T;
   invalid?: Random<T>;
 };
+type RandomWithInvalid<T> = Required<Random<T>>;
 function Random_<T>(
   next: () => T,
   toInvalid?: (valid: Random<T>) => Random<T>
@@ -62,7 +65,7 @@ const scalar = fieldWithInvalid(Scalar);
 
 const sign = map(boolean, (b) => Sign(b ? 1 : -1));
 const privateKey = Random_(PrivateKey.random);
-const publicKey = map(privateKey, PrivateKey.toPublicKey);
+const publicKey = publicKeyWithInvalid();
 const keypair = map(privateKey, (privatekey) => ({
   privatekey,
   publicKey: PrivateKey.toPublicKey(privatekey),
@@ -89,8 +92,11 @@ const authRequired = map(
 );
 // TODO non ascii strings in zkapp uri and token symbol fail
 const tokenSymbol = map(ascii(nat(6)), TokenSymbol.fromJSON);
-const events = map(array(array(field, int(1, 5)), nat(2)), Events.fromList);
-const actions = map(
+const events = mapWithInvalid(
+  array(array(field, int(1, 5)), nat(2)),
+  Events.fromList
+);
+const actions = mapWithInvalid(
   array(array(field, int(1, 5)), nat(2)),
   SequenceEvents.fromList
 );
@@ -168,17 +174,71 @@ const invalidUint32Json = toString(
 );
 
 // some json versions of those types
-const json = {
+let json_ = {
   uint64: { ...toString(uint64), invalid: invalidUint64Json },
   uint32: { ...toString(uint32), invalid: invalidUint32Json },
-  publicKey: map(publicKey, PublicKey.toBase58),
-  privateKey: map(privateKey, PrivateKey.toBase58),
+  publicKey: withInvalidBase58(mapWithInvalid(publicKey, PublicKey.toBase58)),
+  privateKey: withInvalidBase58(map(privateKey, PrivateKey.toBase58)),
   keypair: map(keypair, ({ privatekey, publicKey }) => ({
     privateKey: PrivateKey.toBase58(privatekey),
     publicKey: PublicKey.toBase58(publicKey),
   })),
-  signature: map(signature, Signature.toBase58),
-  accountUpdate: map(accountUpdate, AccountUpdate.toJSON),
+  signature: withInvalidBase58(mapWithInvalid(signature, Signature.toBase58)),
+  field: mapWithInvalid(field, Field.toJSON),
+};
+
+function withInvalidRandomString<T extends string>(rng: Random<T>) {
+  return { ...rng, invalid: string(30) as Random<T> };
+}
+
+type JsonGenerators = {
+  [K in keyof Types]: Types[K] extends ProvableExtended<any, infer J>
+    ? Random<J>
+    : never;
+};
+const JsonGenerators: JsonGenerators = {
+  Field: json_.field,
+  Bool: boolean,
+  UInt32: json_.uint32,
+  UInt64: json_.uint64,
+  Sign: withInvalidRandomString(map(sign, Sign.toJSON)),
+  PublicKey: json_.publicKey,
+  TokenId: withInvalidBase58(map(tokenId, TokenId.toJSON)),
+  StateHash: withInvalidBase58(map(stateHash, StateHash.toJSON)),
+  AuthorizationKind: withInvalidRandomString(
+    map(authorizationKind, AuthorizationKind.toJSON)
+  ),
+  AuthRequired: withInvalidRandomString(map(authRequired, AuthRequired.toJSON)),
+  TokenSymbol: Object.assign(ascii(nat(6)), { invalid: string(int(7, 20)) }),
+  Events: mapWithInvalid(events, Events.toJSON),
+  SequenceEvents: mapWithInvalid(actions, SequenceEvents.toJSON),
+  SequenceState: mapWithInvalid(sequenceState, SequenceState.toJSON),
+  ZkappUri: ascii(nat(50)),
+  null: constant(null),
+  string: base58(nat(50)),
+  number: nat(3),
+};
+let typeToJsonGenerator = new Map<Provable<any>, Random<any>>(
+  [TypeMap, PrimitiveMap, customTypes]
+    .map(Object.entries)
+    .flat()
+    .map(([key, value]) => [value, JsonGenerators[key as keyof JsonGenerators]])
+);
+
+// json transaction stuff
+const accountUpdateJson = map(
+  randomJsonFromLayout<Json.AccountUpdate>(jsLayout.AccountUpdate as any),
+  (a) => {
+    // TODO we set vk to null since we currently can't generate a valid random one
+    a.body.update.verificationKey = null;
+    return a;
+  }
+);
+
+const json = {
+  ...json_,
+  accountUpdate: accountUpdateJson,
+  accountUpdateSimple: map(accountUpdate, AccountUpdate.toJSON),
 };
 
 const Random = Object.assign(Random_, {
@@ -198,9 +258,8 @@ const Random = Object.assign(Random_, {
   oneOf,
   withHardCoded,
   dependent,
-  dice: Object.assign(dice, {
-    ofSize: diceOfSize(),
-  }),
+  apply,
+  dice: Object.assign(dice, { ofSize: diceOfSize() }),
   field,
   bool,
   uint32,
@@ -263,10 +322,65 @@ function nextFromLayout<T>(
         }
         return { isSome, value };
       },
-      reduceOrUndefined(value) {
+      reduceOrUndefined(_, innerTypeData) {
         let isSome = this.map(TypeMap.Bool);
         let isSomeBoolean = TypeMap.Bool.toJSON(isSome);
-        return isSomeBoolean ? value : undefined;
+        return isSomeBoolean
+          ? nextFromLayout(innerTypeData, typeToNext)
+          : undefined;
+      },
+    },
+    typeData,
+    undefined
+  );
+}
+
+function randomJsonFromLayout<T>(typeData: Layout): Random<T> {
+  return {
+    create() {
+      let typeToNext = new Map<Provable<any>, () => any>();
+      for (let [key, random] of typeToJsonGenerator) {
+        typeToNext.set(key, random.create());
+      }
+      return () => nextJsonFromLayout(typeData, typeToNext);
+    },
+  };
+}
+
+function nextJsonFromLayout<T>(
+  typeData: Layout,
+  typeToNext: Map<Provable<any>, () => any>
+): T {
+  return genericLayoutFold<undefined, any, TypeMap, Json.TypeMap>(
+    TypeMap,
+    customTypes,
+    {
+      map(type, _, name) {
+        let next = typeToNext.get(type);
+        if (next === undefined)
+          throw Error(`could not find generator for type ${name}`);
+        return next();
+      },
+      reduceArray(array) {
+        return array;
+      },
+      reduceObject(_, object) {
+        return object;
+      },
+      reduceFlaggedOption({ isSome, value }, typeData) {
+        if (!isSome) return null;
+        if (typeData.optionType === 'closedInterval') {
+          let { lower, upper } = value;
+          if (BigInt(lower) > BigInt(upper)) {
+            value.upper = lower;
+            value.lower = upper;
+          }
+        }
+        return value;
+      },
+      reduceOrUndefined(_, innerTypeData) {
+        let isSome = this.map(TypeMap.Bool);
+        return isSome ? nextJsonFromLayout(innerTypeData, typeToNext) : null;
       },
     },
     typeData,
@@ -347,7 +461,12 @@ function isGenerator<T>(rng: any): rng is Random<T> {
 }
 
 function oneOf<Types extends readonly any[]>(
-  ...values: { [K in keyof Types]: Types[K] | Random<Types[K]> }
+  ...values: {
+    [K in keyof Types]:
+      | Random<Types[K]>
+      | RandomWithInvalid<Types[K]>
+      | Types[K];
+  }
 ): Random<Types[number]> {
   let gens = values.map((v) => (isGenerator(v) ? v : constant(v)));
   return {
@@ -365,11 +484,22 @@ function map<T extends readonly any[], S>(
 ): Random<S> {
   const to = args.pop()! as (...values: T) => S;
   let rngs = args as { [K in keyof T]: Random<T[K]> };
+  // let functionRng: Random<(...args: T) => S> = { create: () => () => to };
+  // let mappedRng: (...rngs: { [K in keyof T]: Random<T[K]> }) => Random<S> =
+  //   function () {
+  //     return {
+  //       create() {
+  //         let nexts = rngs.map((rng) => rng.create());
+  //         return () => to(...(nexts.map((next) => next()) as any));
+  //       },
+  //     };
+  //   };
   return {
     create() {
       let nexts = rngs.map((rng) => rng.create());
-      return () => to(...(nexts.map((next) => next()) as any as T));
+      return () => to(...(nexts.map((next) => next()) as any));
     },
+    // from: Object.assign(mappedRng, functionRng),
   };
 }
 function dependent<T extends readonly any[], Result, Free>(
@@ -493,6 +623,32 @@ function reject<T>(rng: Random<T>, isRejected: (t: T) => boolean): Random<T> {
   };
 }
 
+type Action<S> = Random<(s: S) => S>;
+function apply<S>(
+  rng: Random<S>,
+  howMany: number | Random<number>,
+  ...actions: Action<S>[]
+): Random<S> {
+  let howMany_ = maybeConstant(howMany);
+  let action = oneOf(...actions);
+  return {
+    create() {
+      let next = rng.create();
+      let nextSize = howMany_.create();
+      let nextAction = action.create();
+      return () => {
+        let state = next();
+        let size = nextSize();
+        for (let i = 0; i < size; i++) {
+          let action = nextAction();
+          state = action(state);
+        }
+        return state;
+      };
+    },
+  };
+}
+
 function withHardCoded<T>(rng: Random<T>, ...hardCoded: T[]): Random<T> {
   return {
     create() {
@@ -504,6 +660,10 @@ function withHardCoded<T>(rng: Random<T>, ...hardCoded: T[]): Random<T> {
       };
     },
   };
+}
+
+function maybeConstant<T>(c: T | Random<T>): Random<T> {
+  return isGenerator(c) ? c : constant(c);
 }
 
 /**
@@ -694,18 +854,10 @@ function drawOneOf8() {
 // convention is for invalid generators sit next to valid ones
 // so you can use uint64.invalid, array(uint64).invalid, etc
 
-function withInvalid<T>(
-  valid: Random<T>,
-  toInvalid: (valid: Random<T>) => Random<T>
-): Random<T> {
-  let invalid = toInvalid(valid);
-  return { ...valid, invalid };
-}
-
 /**
  * we get invalid uints by sampling from a larger range plus negative numbers, and reject if it's still valid
  */
-function biguintWithInvalid(bits: number) {
+function biguintWithInvalid(bits: number): RandomWithInvalid<bigint> {
   let valid = biguint(bits);
   let max = 1n << BigInt(bits);
   let double = biguint(2 * bits);
@@ -715,19 +867,25 @@ function biguintWithInvalid(bits: number) {
   return Object.assign(valid, { invalid });
 }
 
-function fieldWithInvalid(F: typeof Field | typeof Scalar): Random<bigint> {
+function fieldWithInvalid(
+  F: typeof Field | typeof Scalar
+): RandomWithInvalid<bigint> {
   let randomField = Random_(F.random);
   let specialField = oneOf(0n, 1n, F(-1));
-  let validField = oneOf<bigint[]>(
-    randomField,
-    randomField,
-    uint64,
-    specialField
-  );
-  let tooLarge = map(validField, (x) => x + Field.modulus);
-  let negative = map(validField, (x) => -x - 1n);
+  let field = oneOf<bigint[]>(randomField, randomField, uint64, specialField);
+  let tooLarge = map(field, (x) => x + Field.modulus);
+  let negative = map(field, (x) => -x - 1n);
   let invalid = oneOf(tooLarge, negative);
-  return withInvalid(validField, () => invalid);
+  return Object.assign(field, { invalid });
+}
+
+function publicKeyWithInvalid() {
+  let publicKey = map(privateKey, PrivateKey.toPublicKey);
+  let invalidX = reject(field, (x) =>
+    Field.isSquare(Field.add(Field.power(x, 3n), Group.b))
+  );
+  let invalid = map(invalidX, bool, (x, isOdd): PublicKey => ({ x, isOdd }));
+  return Object.assign(publicKey, { invalid });
 }
 
 /**
@@ -837,4 +995,46 @@ function mapWithInvalid<T extends readonly any[], S>(
     },
   };
   return { ...valid, invalid };
+}
+
+// functions to create invalid base58
+let n = alphabet.length;
+
+function replaceCharacter(string: string, i: number, char: string) {
+  return string.slice(0, i) + char + string.slice(i + 1);
+}
+
+function makeCheckSumInvalid(base58: string) {
+  if (base58.length === 0) return base58;
+  // pick any character, and change it to any different one
+  let iChar = drawUniformUint(base58.length - 1);
+  let iAlph = alphabet.indexOf(base58[iChar]);
+  let iAlphNew = (iAlph + 1 + drawUniformUint(n - 2)) % n;
+  return replaceCharacter(base58, iChar, alphabet[iAlphNew]);
+}
+
+function makeBase58Invalid(base58: string) {
+  let iChar = drawUniformUint(base58.length - 1);
+  // sample a character that is not in the alphabet
+  let char: string;
+  while (true) {
+    let [byte] = randomBytes(1);
+    char = String.fromCharCode(byte);
+    if (!alphabet.includes(char)) break;
+  }
+  return replaceCharacter(base58, iChar, char);
+}
+
+function withInvalidBase58(rng: Random<string>): RandomWithInvalid<string> {
+  let invalidBase58 = apply(
+    rng,
+    1,
+    constant(makeBase58Invalid),
+    constant(makeCheckSumInvalid)
+  );
+  let invalid =
+    rng.invalid === undefined
+      ? invalidBase58
+      : oneOf(invalidBase58, rng.invalid);
+  return { ...rng, invalid };
 }

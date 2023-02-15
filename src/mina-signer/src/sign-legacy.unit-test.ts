@@ -87,15 +87,13 @@ test(
   }
 );
 
-// generative negative tests
+// generative negative tests - any invalid payment should fail
 
 test.negative(
   RandomTransaction.payment.invalid!,
-  Random.json.keypair,
-  (payment, { privateKey, publicKey }, assert) => {
-    let testnet = signPayment(payment, privateKey, 'testnet');
-    // assert(verifyPayment(payment, testnet, publicKey, 'testnet') === true);
-  }
+  Random.json.privateKey,
+  RandomTransaction.networkId,
+  (payment, privateKey, network) => signPayment(payment, privateKey, network)
 );
 
 // negative tests with invalid payments
