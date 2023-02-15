@@ -137,14 +137,22 @@ let typeToGenerator = new Map<Provable<any>, Random<any>>(
 );
 
 // transaction stuff
-const accountUpdate = map(
-  randomFromLayout<AccountUpdate>(jsLayout.AccountUpdate as any),
+const accountUpdate = mapWithInvalid(
+  generatorFromLayout<AccountUpdate>(
+    jsLayout.AccountUpdate as any,
+    typeToGenerator,
+    { isJson: false }
+  ),
   (a) => {
-    // TODO we set vk to null since we currently can't generate a valid random one
+    // TODO we set vk to null since we can't generate a valid random one
     a.body.update.verificationKey = {
       isSome: 0n,
       value: { data: '', hash: 0n },
     };
+    // TODO set proof to none since we can't generate a valid random one
+    a.authorization.proof = undefined;
+    // TODO set signature to null since the deriver encodes it as arbitrary string
+    a.authorization.signature = undefined;
     // TODO remove empty permissions hack
     if (!a.body.update.permissions.isSome) {
       a.body.update.permissions.value = emptyPermissions();
@@ -152,8 +160,10 @@ const accountUpdate = map(
     return a;
   }
 );
-const feePayer = randomFromLayout<ZkappCommand['feePayer']>(
-  jsLayout.ZkappCommand.entries.feePayer as any
+const feePayer = generatorFromLayout<ZkappCommand['feePayer']>(
+  jsLayout.ZkappCommand.entries.feePayer as any,
+  typeToGenerator,
+  { isJson: false }
 );
 // TODO: fails for non ascii strings
 const memo = map(ascii(nat(32)), (s) => Memo.toBase58(Memo.fromString(s)));
@@ -225,12 +235,19 @@ let typeToJsonGenerator = new Map<Provable<any>, Random<any>>(
     .map(([key, value]) => [value, JsonGenerators[key as keyof JsonGenerators]])
 );
 
-// json transaction stuff
-const accountUpdateJson = map(
-  randomJsonFromLayout<Json.AccountUpdate>(jsLayout.AccountUpdate as any),
+const accountUpdateJson = mapWithInvalid(
+  generatorFromLayout<Json.AccountUpdate>(
+    jsLayout.AccountUpdate as any,
+    typeToJsonGenerator,
+    { isJson: true }
+  ),
   (a) => {
     // TODO we set vk to null since we currently can't generate a valid random one
     a.body.update.verificationKey = null;
+    // TODO set proof to null since we can't generate a valid random one
+    a.authorization.proof = null;
+    // TODO set signature to null since the deriver encodes it as arbitrary string
+    a.authorization.signature = null;
     return a;
   }
 );
@@ -238,7 +255,6 @@ const accountUpdateJson = map(
 const json = {
   ...json_,
   accountUpdate: accountUpdateJson,
-  accountUpdateSimple: map(accountUpdate, AccountUpdate.toJSON),
 };
 
 const Random = Object.assign(Random_, {
@@ -274,113 +290,47 @@ const Random = Object.assign(Random_, {
   json,
 });
 
-function randomFromLayout<T>(typeData: Layout): Random<T> {
-  return {
-    create() {
-      let typeToNext = new Map<Provable<any>, () => any>();
-      for (let [key, random] of typeToGenerator) {
-        typeToNext.set(key, random.create());
-      }
-      return () => nextFromLayout(typeData, typeToNext);
-    },
-  };
-}
-
-function nextFromLayout<T>(
+function generatorFromLayout<T>(
   typeData: Layout,
-  typeToNext: Map<Provable<any>, () => any>
-): T {
-  return genericLayoutFold<undefined, any, TypeMap, Json.TypeMap>(
+  typeToGenerator: Map<Provable<any>, Random<any>>,
+  { isJson }: { isJson: boolean }
+): Random<T> {
+  return genericLayoutFold<undefined, Random<any>, TypeMap, Json.TypeMap>(
     TypeMap,
     customTypes,
     {
       map(type, _, name) {
-        let next = typeToNext.get(type);
-        if (next === undefined)
+        let rng = typeToGenerator.get(type);
+        if (rng === undefined)
           throw Error(`could not find generator for type ${name}`);
-        return next();
+        return rng;
       },
-      reduceArray(array) {
-        return array;
+      reduceArray(_, typeData) {
+        let element = generatorFromLayout(typeData.inner, typeToGenerator, {
+          isJson,
+        });
+        let size = typeData.staticLength ?? Random.nat(20);
+        return arrayWithInvalid(element, size);
       },
       reduceObject(_, object) {
-        return object;
+        return recordWithInvalid(object);
       },
       reduceFlaggedOption({ isSome, value }, typeData) {
-        let isSomeBoolean = TypeMap.Bool.toJSON(isSome);
-        if (!isSomeBoolean) return empty(typeData);
-        if (typeData.optionType === 'closedInterval') {
-          let innerInner = typeData.inner.entries.lower;
-          let innerType = TypeMap[innerInner.type as 'UInt32' | 'UInt64'];
-          let { lower, upper } = value;
-          if (
-            BigInt(innerType.toJSON(lower)) > BigInt(innerType.toJSON(upper))
-          ) {
-            value.upper = lower;
-            value.lower = upper;
-          }
+        if (isJson) {
+          return oneOf(null, value);
+        } else {
+          return mapWithInvalid(isSome, value, (isSome, value) => {
+            let isSomeBoolean = TypeMap.Bool.toJSON(isSome);
+            if (!isSomeBoolean) return empty(typeData);
+            return { isSome, value };
+          });
         }
-        return { isSome, value };
       },
       reduceOrUndefined(_, innerTypeData) {
-        let isSome = this.map(TypeMap.Bool);
-        let isSomeBoolean = TypeMap.Bool.toJSON(isSome);
-        return isSomeBoolean
-          ? nextFromLayout(innerTypeData, typeToNext)
-          : undefined;
-      },
-    },
-    typeData,
-    undefined
-  );
-}
-
-function randomJsonFromLayout<T>(typeData: Layout): Random<T> {
-  return {
-    create() {
-      let typeToNext = new Map<Provable<any>, () => any>();
-      for (let [key, random] of typeToJsonGenerator) {
-        typeToNext.set(key, random.create());
-      }
-      return () => nextJsonFromLayout(typeData, typeToNext);
-    },
-  };
-}
-
-function nextJsonFromLayout<T>(
-  typeData: Layout,
-  typeToNext: Map<Provable<any>, () => any>
-): T {
-  return genericLayoutFold<undefined, any, TypeMap, Json.TypeMap>(
-    TypeMap,
-    customTypes,
-    {
-      map(type, _, name) {
-        let next = typeToNext.get(type);
-        if (next === undefined)
-          throw Error(`could not find generator for type ${name}`);
-        return next();
-      },
-      reduceArray(array) {
-        return array;
-      },
-      reduceObject(_, object) {
-        return object;
-      },
-      reduceFlaggedOption({ isSome, value }, typeData) {
-        if (!isSome) return null;
-        if (typeData.optionType === 'closedInterval') {
-          let { lower, upper } = value;
-          if (BigInt(lower) > BigInt(upper)) {
-            value.upper = lower;
-            value.lower = upper;
-          }
-        }
-        return value;
-      },
-      reduceOrUndefined(_, innerTypeData) {
-        let isSome = this.map(TypeMap.Bool);
-        return isSome ? nextJsonFromLayout(innerTypeData, typeToNext) : null;
+        return oneOf(
+          isJson ? null : undefined,
+          generatorFromLayout(innerTypeData, typeToGenerator, { isJson })
+        );
       },
     },
     typeData,

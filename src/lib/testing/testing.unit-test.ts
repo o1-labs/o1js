@@ -41,3 +41,4 @@ test.negative(Random.json.uint64.invalid, UInt64.fromJSON);
 test.negative(Random.json.uint32.invalid, UInt32.fromJSON);
 test.negative(Random.json.publicKey.invalid, PublicKey.fromJSON);
 test.negative(Random.json.signature.invalid, Signature.fromBase58);
+test.negative(Random.json.accountUpdate.invalid!, AccountUpdate.fromJSON);
