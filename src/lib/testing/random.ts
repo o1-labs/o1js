@@ -145,11 +145,6 @@ const accountUpdate = mapWithInvalid(
     { isJson: false }
   ),
   (a) => {
-    // TODO we set vk to null since we can't generate a valid random one
-    a.body.update.verificationKey = {
-      isSome: 0n,
-      value: { data: '', hash: 0n },
-    };
     // TODO set proof to none since we can't generate a valid random one
     a.authorization.proof = undefined;
     // TODO set signature to null since the deriver encodes it as arbitrary string
@@ -243,8 +238,6 @@ const accountUpdateJson = mapWithInvalid(
     { isJson: true }
   ),
   (a) => {
-    // TODO we set vk to null since we currently can't generate a valid random one
-    a.body.update.verificationKey = null;
     // TODO set proof to null since we can't generate a valid random one
     a.authorization.proof = null;
     // TODO set signature to null since the deriver encodes it as arbitrary string
@@ -653,7 +646,7 @@ function int(min: number, max: number): Random<number> {
     create: () => () => {
       // 25% of test cases are special numbers
       if (drawOneOf8() < 3) {
-        let i = drawUniformUint(nSpecial);
+        let i = drawUniformUint(nSpecial - 1);
         return special[i];
       }
       // the remaining follow a uniform distribution
@@ -674,12 +667,12 @@ function nat(max: number): Random<number> {
   // set of special numbers that will appear more often in tests
   let special = [0, 0, 1];
   if (max > 1) special.push(2);
-  let nSpecial = special.length - 1;
+  let nSpecial = special.length;
   return {
     create: () => () => {
       // 25% of test cases are special numbers
       if (drawOneOf8() < 3) {
-        let i = drawUniformUint(nSpecial);
+        let i = drawUniformUint(nSpecial - 1);
         return special[i];
       }
       // the remaining follow a log-uniform / cut off exponential distribution:
@@ -901,7 +894,6 @@ function record<T extends {}>(gens: {
         let value = next();
         let i = drawUniformUint(nInvalid - 1);
         let [key, invalidNext] = invalidNexts[i];
-        console.log('picking invalid record field', key);
         value[key] = invalidNext();
         return value;
       };
@@ -951,10 +943,10 @@ function tuple<T extends readonly any[]>(
 function mapWithInvalid<T extends readonly any[], S>(
   ...args: [...rngs: { [K in keyof T]: Random<T[K]> }, to: (...values: T) => S]
 ): Random<S> {
-  let valid = map(...args);
   const to = args.pop()! as (...values: T) => S;
-  let rngs = args as { [K in keyof T]: Random<T[K]> } & Random<any>[];
-  let invalidInput = tuple<T>(rngs).invalid;
+  let rngs = args as { [K in keyof T]: Random<T[K]> };
+  let valid = map<T, S>(...rngs, to);
+  let invalidInput = tuple<T>(rngs as Random<any>[]).invalid;
   if (invalidInput === undefined) return valid;
   let invalid = {
     create() {

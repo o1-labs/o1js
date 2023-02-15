@@ -92,6 +92,8 @@ expect(stringify(dummyInput.packed)).toEqual(
 );
 
 test(Random.accountUpdate, (accountUpdate) => {
+  fixVerificationKey(accountUpdate);
+
   // example account update
   let accountUpdateJson: Json.AccountUpdate =
     AccountUpdate.toJSON(accountUpdate);
@@ -107,7 +109,6 @@ test(Random.accountUpdate, (accountUpdate) => {
   let packedSnarky = packToFieldsSnarky(inputSnarky);
   expect(toJSON(packed)).toEqual(toJSON(packedSnarky));
 
-  // hash doesn't agree. TODO investigate in hash-input test
   let hash = accountUpdateHash(accountUpdate);
   let hashSnarky = accountUpdateSnarky.hash();
   expect(hash).toEqual(hashSnarky.toBigInt());
@@ -135,6 +136,8 @@ test(memoGenerator, (memoString) => {
 
 // zkapp transaction - basic properties & commitment
 test(RandomTransaction.zkappCommand, (zkappCommand, assert) => {
+  zkappCommand.accountUpdates.forEach(fixVerificationKey);
+
   assert(isCallDepthValid(zkappCommand));
   let zkappCommandJson = ZkappCommand.toJSON(zkappCommand);
   let ocamlCommitments = Ledger.transactionCommitments(
@@ -149,6 +152,8 @@ test(RandomTransaction.zkappCommand, (zkappCommand, assert) => {
 test(
   RandomTransaction.zkappCommandAndFeePayerKey,
   ({ feePayerKey, zkappCommand }) => {
+    zkappCommand.accountUpdates.forEach(fixVerificationKey);
+
     let feePayerKeyBase58 = PrivateKey.toBase58(feePayerKey);
     let feePayerKeySnarky = PrivateKeySnarky.fromBase58(feePayerKeyBase58);
     let feePayerAddress = PrivateKey.toPublicKey(feePayerKey);
@@ -270,5 +275,13 @@ function inputFromOcaml({
   return {
     fields,
     packed: packed.map(({ field, size }) => [field, size] as [string, number]),
+  };
+}
+
+function fixVerificationKey(accountUpdate: AccountUpdate) {
+  // TODO we set vk to null since we can't generate a valid random one
+  accountUpdate.body.update.verificationKey = {
+    isSome: 0n,
+    value: { data: '', hash: 0n },
   };
 }

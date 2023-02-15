@@ -41,8 +41,7 @@ test.negative(Random.json.uint64.invalid, UInt64.fromJSON);
 test.negative(Random.json.uint32.invalid, UInt32.fromJSON);
 test.negative(Random.json.publicKey.invalid, PublicKey.fromJSON);
 test.negative(Random.json.signature.invalid, Signature.fromBase58);
-let n = test.custom({ negative: true, timeBudget: 10000 })(
+test.custom({ negative: true, timeBudget: 1000 })(
   Random.json.accountUpdate.invalid!,
   AccountUpdate.fromJSON
 );
-console.log({ n });

@@ -67,6 +67,11 @@ function derivedLeafTypes<Field, Bool>({
       return symbol;
     },
     fromJSON(symbol: string): TokenSymbol {
+      let bytesLength = new TextEncoder().encode(symbol).length;
+      if (bytesLength > 6)
+        throw Error(
+          `Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`
+        );
       return { symbol, field: prefixToField(Field, symbol) };
     },
   };
