@@ -10,7 +10,7 @@ import {
 } from '../index.js';
 import { expect } from 'expect';
 import { jsLayout } from '../provable/gen/js-layout.js';
-import { provableFromLayout } from '../provable/gen/transaction.js';
+import { Json, provableFromLayout } from '../provable/gen/transaction.js';
 import { packToFields } from './hash.js';
 import { Random, test } from './testing/property.js';
 
@@ -42,6 +42,7 @@ let Body = provableFromLayout<Body, any>(bodyLayout as any);
 
 // test with random account udpates
 test(Random.json.accountUpdate, (accountUpdateJson) => {
+  fixVerificationKey(accountUpdateJson);
   let accountUpdate = AccountUpdate.fromJSON(accountUpdateJson);
 
   // timing
@@ -144,4 +145,9 @@ function inputToOcaml({
     fields,
     packed: packed.map(([field, size]) => ({ field, size })),
   };
+}
+
+function fixVerificationKey(accountUpdate: Json.AccountUpdate) {
+  // TODO we set vk to null since we can't generate a valid random one
+  accountUpdate.body.update.verificationKey = null;
 }
