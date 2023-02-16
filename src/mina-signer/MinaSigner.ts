@@ -102,7 +102,7 @@ class Client {
    * The resulting signature can be verified in SnarkyJS as follows:
    * ```ts
    * // sign field elements with mina-signer
-   * let signed = client.signFieldElements(fields, privateKey);
+   * let signed = client.signFields(fields, privateKey);
    *
    * // read signature in snarkyjs and verify
    * let signature = Signature.fromBase58(signed.signature);
