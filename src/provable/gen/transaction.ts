@@ -27,7 +27,7 @@ import { jsLayout } from './js-layout.js';
 export { customTypes, ZkappCommand, AccountUpdate };
 export { Json };
 export * from '../transaction-leaves.js';
-export { provableFromLayout, toJSONEssential, Layout };
+export { provableFromLayout, toJSONEssential, Layout, TypeMap };
 
 type TypeMap = {
   PublicKey: PublicKey;

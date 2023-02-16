@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Transaction.fromJSON` to recover transaction object from JSON https://github.com/o1-labs/snarkyjs/pull/705
 
+### Changed
+
+- BREAKING CHANGE: Modify signature algorithm used by `Signature.{create,verify}` to be compatible with mina-signer https://github.com/o1-labs/snarkyjs/pull/710
+  - Signatures created with mina-signer's `client.signFields()` can now be verified inside a SNARK!
+  - Breaks existing deployed smart contracts which use `Signature.verify()`
+
 ## [0.8.0](https://github.com/o1-labs/snarkyjs/compare/d880bd6e...c5a36207)
 
 ### Added
