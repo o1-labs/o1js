@@ -148,6 +148,16 @@ test(RandomTransaction.zkappCommand, (zkappCommand, assert) => {
   expect(commitment).toEqual(ocamlCommitments.commitment.toBigInt());
 });
 
+// invalid zkapp transactions
+test.negative(
+  RandomTransaction.zkappCommandJson.invalid!,
+  Random.json.privateKey,
+  RandomTransaction.networkId,
+  (zkappCommand, feePayerKey, networkId) => {
+    signZkappCommand(zkappCommand, feePayerKey, networkId);
+  }
+);
+
 // zkapp transaction
 test(
   RandomTransaction.zkappCommandAndFeePayerKey,

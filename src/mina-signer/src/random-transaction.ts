@@ -119,6 +119,21 @@ let zkappCommandAndFeePayerKey = Random.map(
   })
 );
 
+// json zkapp command, supporting invalid samples
+let accountUpdateJson = Random.map.withInvalid(
+  Random.json.accountUpdate,
+  callDepth,
+  (accountUpdate, callDepth) => {
+    accountUpdate.body.callDepth = callDepth;
+    return accountUpdate;
+  }
+);
+let zkappCommandJson = Random.record({
+  feePayer: Random.json.feePayer,
+  accountUpdates: Random.array(accountUpdateJson, size),
+  memo: Random.memo,
+});
+
 const RandomTransaction = {
   payment,
   delegation,
@@ -126,5 +141,6 @@ const RandomTransaction = {
   signedDelegation,
   zkappCommand,
   zkappCommandAndFeePayerKey,
+  zkappCommandJson,
   networkId: Random.oneOf<NetworkId[]>('testnet', 'mainnet'),
 };

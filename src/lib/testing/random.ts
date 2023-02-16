@@ -263,7 +263,7 @@ const Random = Object.assign(Random_, {
   base58,
   array: Object.assign(array, { ofSize: arrayOfSizeValid }),
   record,
-  map,
+  map: Object.assign(map, { withInvalid: mapWithInvalid }),
   step,
   oneOf,
   withHardCoded,
