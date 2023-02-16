@@ -149,17 +149,14 @@ const SignedCommand = record<SignedCommand>(
 );
 
 const HashBase58 = base58(
-  withVersionNumber(
-    defineBinable<Uint8Array>({
-      toBytes(t: Uint8Array) {
-        return [t.length, ...t];
-      },
-      readBytes(bytes) {
-        return [Uint8Array.from(bytes.slice(1)), bytes.length];
-      },
-    }),
-    1
-  ),
+  defineBinable<Uint8Array>({
+    toBytes(t: Uint8Array) {
+      return [t.length, ...t];
+    },
+    readBytes(bytes) {
+      return [Uint8Array.from(bytes.slice(1)), bytes.length];
+    },
+  }),
   versionBytes.transactionHash
 );
 
