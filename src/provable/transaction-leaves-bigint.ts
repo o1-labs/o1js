@@ -3,7 +3,6 @@ import { PublicKey } from './curve-bigint.js';
 import { derivedLeafTypes } from './derived-leaves.js';
 import { createEvents } from '../lib/events.js';
 import { Poseidon, Hash, packToFields } from './poseidon-bigint.js';
-import { Encoding } from 'src/index.js';
 
 export {
   PublicKey,
