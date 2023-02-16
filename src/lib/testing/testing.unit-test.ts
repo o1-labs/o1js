@@ -33,14 +33,11 @@ test(Random.json.accountUpdate, (json) => {
 });
 
 // check that test fails for a property that does not hold in general
+let testSilent = test.custom({ logFailures: false });
 expect(() => {
-  test.custom({ logFailures: false })(
-    Random.nat(100),
-    Random.nat(100),
-    (x, y, assert) => {
-      assert(x !== y, 'two different numbers can never be the same');
-    }
-  );
+  testSilent(Random.nat(100), Random.nat(100), (x, y, assert) => {
+    assert(x !== y, 'two different numbers can never be the same');
+  });
 }).toThrow('two different numbers');
 
 // check that invalid JSON cannot be parsed
@@ -49,12 +46,15 @@ test.negative(Random.json.uint64.invalid, UInt64.fromJSON);
 test.negative(Random.json.uint32.invalid, UInt32.fromJSON);
 test.negative(Random.json.publicKey.invalid, PublicKey.fromJSON);
 test.negative(Random.json.signature.invalid, Signature.fromBase58);
+
 test.custom({ negative: true, timeBudget: 1000 })(
   Random.json.accountUpdate.invalid!,
   AccountUpdate.fromJSON
 );
+
 const FeePayer = provableFromLayout<
   ZkappCommand['feePayer'],
   Json.ZkappCommand['feePayer']
 >(jsLayout.ZkappCommand.entries.feePayer as any);
+
 test.negative(Random.json.feePayer.invalid!, FeePayer.fromJSON);
