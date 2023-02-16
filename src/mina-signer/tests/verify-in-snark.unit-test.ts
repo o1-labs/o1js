@@ -2,7 +2,7 @@ import { Field, isReady, shutdown } from '../../snarky.js';
 import { ZkProgram } from '../../lib/proof_system.js';
 import Client from '../MinaSigner.js';
 import { PrivateKey, Signature } from '../../lib/signature.js';
-import { provablePure } from '../../lib/circuit_value.js';
+import { Circuit, provablePure } from '../../lib/circuit_value.js';
 import { expect } from 'expect';
 
 let fields = [10n, 20n, 30n, 340817401n, 2091283n, 1n, 0n];
@@ -29,21 +29,50 @@ let signature = Signature.fromBase58(signed.signature);
 signature.verify(publicKey, fieldsSnarky).assertTrue();
 
 // verify in-snark with snarkyjs
+const Message = Circuit.array(Field, fields.length);
+
 const MyProgram = ZkProgram({
   publicInput: provablePure(null),
   methods: {
     verifySignature: {
-      privateInputs: [Signature],
-      method(_: null, signature: Signature) {
-        signature.verify(publicKey, fieldsSnarky).assertTrue();
+      privateInputs: [Signature, Message],
+      method(_: null, signature: Signature, message: Field[]) {
+        signature.verify(publicKey, message).assertTrue();
       },
     },
   },
 });
 
 await MyProgram.compile();
-let proof = await MyProgram.verifySignature(null, signature);
+let proof = await MyProgram.verifySignature(null, signature, fieldsSnarky);
 ok = await MyProgram.verify(proof);
 expect(ok).toEqual(true);
+
+// negative test - sign with the wrong private key
+
+let { privateKey: wrongKey } = client.genKeys();
+let invalidSigned = client.signFields(fields, wrongKey);
+let invalidSignature = Signature.fromBase58(invalidSigned.signature);
+
+// can't verify out of snark
+invalidSignature.verify(publicKey, fieldsSnarky).assertFalse();
+
+// can't verify in snark
+expect(() =>
+  MyProgram.verifySignature(null, invalidSignature, fieldsSnarky)
+).rejects.toThrow('Constraint unsatisfied');
+
+// negative test - try to verify a different message
+
+let wrongFields = [...fieldsSnarky];
+wrongFields[0] = wrongFields[0].add(1);
+
+// can't verify out of snark
+signature.verify(publicKey, wrongFields).assertFalse();
+
+// can't verify in snark
+expect(() =>
+  MyProgram.verifySignature(null, signature, wrongFields)
+).rejects.toThrow('Constraint unsatisfied');
 
 shutdown();
