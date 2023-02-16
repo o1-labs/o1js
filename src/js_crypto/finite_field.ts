@@ -185,30 +185,3 @@ function createField(p: bigint, t: bigint, twoadicRoot: bigint) {
     },
   };
 }
-
-// TESTS (activate by setting caml_bindings_debug = true)
-
-let caml_bindings_debug = false;
-
-if (caml_bindings_debug) test();
-
-function test() {
-  // t is computed correctly from p = 2^32 * t + 1
-  console.assert(pMinusOneOddFactor * (1n << 32n) + 1n === p);
-
-  // the primitive root of unity is computed correctly as 5^t
-  let generator = 5n;
-  let rootFp = power(generator, pMinusOneOddFactor, p);
-  console.assert(rootFp === twoadicRootFp);
-
-  // the primitive roots of unity `r` actually satisfy the equations defining them:
-  // r^(2^32) === 1, r^(2^31) !== 1
-  let shouldBe1 = power(twoadicRootFp, 1n << 32n, p);
-  let shouldBeMinus1 = power(twoadicRootFp, 1n << 31n, p);
-  console.assert(shouldBe1 === 1n);
-  console.assert(shouldBeMinus1 + 1n === p);
-
-  // the primitive roots of unity are non-squares
-  // -> verifies that the two-adicity is 32, and that they can be used as non-squares in the sqrt algorithm
-  console.assert(!Fp.isSquare(twoadicRootFp));
-}

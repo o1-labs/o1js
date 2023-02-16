@@ -34,7 +34,7 @@ type PrivateKey = bigint;
  */
 const Group = {
   toProjective({ x, y }: Group): GroupProjective {
-    return Pallas.ofAffine({ x, y, infinity: false });
+    return Pallas.fromAffine({ x, y, infinity: false });
   },
   /**
    * Convert a projective point to a non-zero affine point.
@@ -61,7 +61,7 @@ let BinablePublicKey = withVersionNumber(
     record({ x: FieldWithVersion, isOdd: Bool }, ['x', 'isOdd']),
     ({ x }) => {
       let { mul, add } = Field;
-      let ySquared = add(mul(x, mul(x, x)), 5n);
+      let ySquared = add(mul(x, mul(x, x)), Pallas.b);
       if (!Field.isSquare(ySquared)) {
         throw Error('PublicKey: not a valid group element');
       }
@@ -86,7 +86,7 @@ const PublicKey = {
 
   toGroup({ x, isOdd }: PublicKey): Group {
     let { mul, add } = Field;
-    let ySquared = add(mul(x, mul(x, x)), 5n);
+    let ySquared = add(mul(x, mul(x, x)), Pallas.b);
     let y = Field.sqrt(ySquared);
     if (y === undefined) {
       throw Error('PublicKey.toGroup: not a valid group element');
