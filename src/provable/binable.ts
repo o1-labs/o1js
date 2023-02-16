@@ -2,6 +2,7 @@
 import {
   assertNonNegativeInteger,
   NonNegativeInteger,
+  PositiveInteger,
 } from '../js_crypto/non-negative.js';
 import { bytesToBigInt, bigIntToBytes } from '../js_crypto/bigint-helpers.js';
 import { GenericField } from './generic.js';
@@ -218,7 +219,7 @@ const CODE_INT16 = 0xfe;
 const CODE_INT32 = 0xfd;
 const CODE_INT64 = 0xfc;
 
-function BinableInt(bits: number) {
+function BinableInt<N extends number>(bits: PositiveInteger<N>) {
   let maxValue = 1n << BigInt(bits - 1);
   let nBytes = bits >> 3;
   if (nBytes * 8 !== bits) throw Error('bits must be evenly divisible by 8');
@@ -257,9 +258,12 @@ function BinableInt(bits: number) {
       let end = offset + size;
       let x = fillUInt(bytes.slice(offset, end), nBytes);
       // map from uint to int range
-      if (x >= maxValue) x -= 2n * maxValue;
-      if (x < -maxValue || x >= maxValue)
+      if (x >= maxValue) {
+        x -= 2n * maxValue;
+      }
+      if (x < -maxValue || x >= maxValue) {
         throw Error(`int${bits} out of range, got ${x}`);
+      }
       return [x, end];
     },
   });
@@ -276,7 +280,7 @@ function fillUInt(startBytes: number[], nBytes: number) {
   return x;
 }
 
-function BinableUint(bits: number) {
+function BinableUint<N extends number>(bits: PositiveInteger<N>) {
   let binableInt = BinableInt(bits);
   let maxValue = 1n << BigInt(bits - 1);
   return iso(binableInt, {
