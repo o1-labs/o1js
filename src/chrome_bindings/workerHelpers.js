@@ -37,7 +37,7 @@ function inlineWorker(src) {
 function waitForMsg(target, type) {
   return new Promise((resolve) => {
     target.addEventListener('message', function onMsg({ data }) {
-      if (data == null || data.type !== type) return;
+      if (data?.type !== type) return;
       target.removeEventListener('message', onMsg);
       resolve(data);
     });

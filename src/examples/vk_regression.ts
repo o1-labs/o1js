@@ -8,7 +8,7 @@ import { TokenContract, createDex } from './zkapps/dex/dex.js';
 await isReady;
 
 // usage ./run ./src/examples/vk_regression.ts --bundle --dump ./src/examples/regression_test.json
-let dump = process.argv[4] == '--dump';
+let dump = process.argv[4] === '--dump';
 let jsonPath = process.argv[dump ? 5 : 4];
 
 const Contracts: typeof SmartContract[] = [

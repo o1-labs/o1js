@@ -18,6 +18,7 @@ import {
   signFieldElement,
   verifyFieldElement,
 } from './signature.js';
+import { assertNonNegativeInteger } from '../../js_crypto/non-negative.js';
 
 // external API
 export { signZkappCommand, verifyZkappCommandSignature };
@@ -111,8 +112,11 @@ function accountUpdatesToCallForest(updates: AccountUpdate[], callDepth = 0) {
   let forest: CallForest = [];
   while (remainingUpdates.length > 0) {
     let accountUpdate = remainingUpdates[0];
+    assertNonNegativeInteger(
+      accountUpdate.body.callDepth,
+      `callDepth must be positive integer, got ${callDepth}`
+    );
     if (accountUpdate.body.callDepth < callDepth) return forest;
-    console.assert(accountUpdate.body.callDepth === callDepth, 'toCallForest');
     remainingUpdates.shift();
     let children = accountUpdatesToCallForest(remainingUpdates, callDepth + 1);
     forest.push({ accountUpdate, children });

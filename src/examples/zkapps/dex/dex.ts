@@ -62,7 +62,7 @@ function createDex({
       let dexXBalance = tokenX.getBalance(this.address);
       let dexYBalance = tokenY.getBalance(this.address);
 
-      // // assert dy == [dx * y/x], or x == 0
+      // // assert dy === [dx * y/x], or x === 0
       let isXZero = dexXBalance.equals(UInt64.zero);
       let xSafe = Circuit.if(isXZero, UInt64.one, dexXBalance);
       let isDyCorrect = dy.equals(dx.mul(dexYBalance).div(xSafe));
@@ -269,7 +269,7 @@ function createDex({
       otherTokenAmount: UInt64,
       otherTokenAddress: PublicKey
     ): UInt64 {
-      // we're writing this as if our token == y and other token == x
+      // we're writing this as if our token === y and other token === x
       let dx = otherTokenAmount;
       let tokenX = new TokenContract(otherTokenAddress);
       // get balances

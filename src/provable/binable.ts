@@ -1,4 +1,9 @@
 // generic encoding infrastructure
+import {
+  assertNonNegativeInteger,
+  NonNegativeInteger,
+  PositiveInteger,
+} from '../js_crypto/non-negative.js';
 import { bytesToBigInt, bigIntToBytes } from '../js_crypto/bigint-helpers.js';
 import { GenericField } from './generic.js';
 
@@ -25,7 +30,10 @@ export {
 
 type Binable<T> = {
   toBytes(t: T): number[];
-  readBytes(bytes: number[], offset: number): [value: T, offset: number];
+  readBytes<N extends number>(
+    bytes: number[],
+    offset: NonNegativeInteger<N>
+  ): [value: T, offset: number];
   fromBytes(bytes: number[]): T;
 };
 type BinableWithBits<T> = Binable<T> & {
@@ -40,11 +48,31 @@ function defineBinable<T>({
   readBytes,
 }: {
   toBytes(t: T): number[];
-  readBytes(bytes: number[], offset: number): [value: T, offset: number];
+  readBytes<N extends number>(
+    bytes: number[],
+    offset: NonNegativeInteger<N>
+  ): [value: T, offset: number];
 }): Binable<T> {
   return {
     toBytes,
-    readBytes,
+    // spec: input offset has to be a non-negative integer;
+    // output offset has to be greater or equal input, and not exceed the bytes length
+    readBytes(bytes, offset) {
+      assertNonNegativeInteger(
+        offset,
+        'readBytes: offset must be integer >= 0'
+      );
+      let [value, end] = readBytes(bytes, offset);
+      if (end < offset)
+        throw Error(
+          'offset returned by readBytes must be greater than initial offset'
+        );
+      if (end > bytes.length)
+        throw Error(
+          'offset returned by readBytes must not exceed bytes length'
+        );
+      return [value, end];
+    },
     // spec: fromBytes throws if the input bytes are not all used
     fromBytes(bytes) {
       let [value, offset] = readBytes(bytes, 0);
@@ -128,7 +156,7 @@ function tuple<Types extends Tuple<any>>(binables: {
       let values = [];
       for (let i = 0; i < n; i++) {
         let [value, newOffset] = binables[i].readBytes(bytes, offset);
-        offset = newOffset;
+        offset = newOffset as any;
         values.push(value);
       }
       return [values as Types, offset];
@@ -191,7 +219,7 @@ const CODE_INT16 = 0xfe;
 const CODE_INT32 = 0xfd;
 const CODE_INT64 = 0xfc;
 
-function BinableInt(bits: number) {
+function BinableInt<N extends number>(bits: PositiveInteger<N>) {
   let maxValue = 1n << BigInt(bits - 1);
   let nBytes = bits >> 3;
   if (nBytes * 8 !== bits) throw Error('bits must be evenly divisible by 8');
@@ -230,9 +258,12 @@ function BinableInt(bits: number) {
       let end = offset + size;
       let x = fillUInt(bytes.slice(offset, end), nBytes);
       // map from uint to int range
-      if (x >= maxValue) x -= 2n * maxValue;
-      if (x < -maxValue || x >= maxValue)
+      if (x >= maxValue) {
+        x -= 2n * maxValue;
+      }
+      if (x < -maxValue || x >= maxValue) {
         throw Error(`int${bits} out of range, got ${x}`);
+      }
       return [x, end];
     },
   });
@@ -249,7 +280,7 @@ function fillUInt(startBytes: number[], nBytes: number) {
   return x;
 }
 
-function BinableUint(bits: number) {
+function BinableUint<N extends number>(bits: PositiveInteger<N>) {
   let binableInt = BinableInt(bits);
   let maxValue = 1n << BigInt(bits - 1);
   return iso(binableInt, {

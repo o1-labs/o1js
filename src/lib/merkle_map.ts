@@ -19,7 +19,7 @@ export class MerkleMap {
     if (bits > 255) {
       throw Error('bits must be <= 255');
     }
-    if (bits != 255) {
+    if (bits !== 255) {
       console.warn(
         'bits set to',
         bits + '. Should be set to 255 in production to avoid collisions'

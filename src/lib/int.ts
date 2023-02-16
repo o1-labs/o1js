@@ -682,7 +682,7 @@ class Sign extends CircuitValue {
     return new Sign(Field(-1));
   }
   static check(x: Sign) {
-    // x^2 == 1  <=>  x == 1 or x == -1
+    // x^2 === 1  <=>  x === 1 or x === -1
     x.value.square().assertEquals(Field(1));
   }
   static toInput(x: Sign): HashInput {
