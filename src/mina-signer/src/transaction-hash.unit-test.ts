@@ -129,6 +129,27 @@ test(
   }
 );
 
+// negative tests
+
+test.negative(RandomTransaction.signedPayment.invalid!, (payment) =>
+  hashPayment(payment)
+);
+test.negative(RandomTransaction.signedPayment.invalid!, (payment) => {
+  hashPayment(payment, { berkeley: true });
+  // for "berkeley" hashing, it's fine if the signature is invalid because it's not part of the hash
+  // => make invalid signatures fail independently
+  Signature.fromBase58(payment.signature);
+});
+test.negative(RandomTransaction.signedDelegation.invalid!, (delegation) =>
+  hashStakeDelegation(delegation)
+);
+test.negative(RandomTransaction.signedDelegation.invalid!, (delegation) => {
+  hashStakeDelegation(delegation, { berkeley: true });
+  // for "berkeley" hashing, it's fine if the signature is invalid because it's not part of the hash
+  // => make invalid signatures fail independently
+  Signature.fromBase58(delegation.signature);
+});
+
 shutdown();
 
 function paymentToOcaml({
