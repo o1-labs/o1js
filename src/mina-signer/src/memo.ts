@@ -64,4 +64,8 @@ const Memo = {
   emptyValue() {
     return Memo.fromString('');
   },
+  toValidString(memo = '') {
+    if (memo.length > 32) throw Error('Memo: string too long');
+    return memo;
+  },
 };

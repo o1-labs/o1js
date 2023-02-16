@@ -102,7 +102,7 @@ class Client {
    * The resulting signature can be verified in SnarkyJS as follows:
    * ```ts
    * // sign field elements with mina-signer
-   * let signed = client.signFieldElements(fields, privateKey);
+   * let signed = client.signFields(fields, privateKey);
    *
    * // read signature in snarkyjs and verify
    * let signature = Signature.fromBase58(signed.signature);
@@ -467,12 +467,13 @@ function validNonNegative(n: number | string | bigint): string {
 }
 
 function validCommon(common: Json.Common): Json.StrictCommon {
+  let memo = Memo.toValidString(common.memo);
   return {
     to: common.to,
     from: common.from,
     fee: validNonNegative(common.fee),
     nonce: validNonNegative(common.nonce),
-    memo: common.memo ?? '',
+    memo,
     validUntil: validNonNegative(common.validUntil ?? defaultValidUntil),
   };
 }
@@ -489,7 +490,7 @@ function validFeePayer(
     feePayer: feePayer.feePayer,
     fee,
     nonce: validNonNegative(feePayer.nonce),
-    memo: feePayer.memo ?? '',
+    memo: Memo.toValidString(feePayer.memo),
     validUntil:
       feePayer.validUntil === undefined || feePayer.validUntil === null
         ? null

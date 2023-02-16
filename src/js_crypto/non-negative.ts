@@ -42,21 +42,25 @@ function assertNonNegativeInteger(n: number, message: string) {
   if (!Number.isInteger(n) || n < 0) throw Error(message);
 }
 function assertPositiveInteger(n: number, message: string) {
-  if (!Number.isInteger(n) || n < 0) throw Error(message);
+  if (!Number.isInteger(n) || n <= 0) throw Error(message);
 }
 
 type Integer<T extends number> = number extends T
   ? never
-  : `${T}` extends `${string}.${string}`
+  : `${T}` extends `${string}.${string}` | `${string}e-${string}`
   ? never
   : T;
 type NonNegativeInteger<T extends number> = number extends T
   ? never
-  : `${T}` extends `-${string}` | `${string}.${string}`
+  : `${T}` extends `-${string}` | `${string}.${string}` | `${string}e-${string}`
   ? never
   : T;
 type PositiveInteger<T extends number> = number extends T
   ? never
-  : `${T}` extends `-${string}` | `${string}.${string}` | `0`
+  : `${T}` extends
+      | `-${string}`
+      | `${string}.${string}`
+      | `${string}e-${string}`
+      | `0`
   ? never
   : T;
