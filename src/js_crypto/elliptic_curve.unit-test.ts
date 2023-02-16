@@ -31,7 +31,7 @@ for (let [G, Field, Scalar] of [
     randomScalar,
     randomScalar,
     randomField,
-    (X, Y, Z, x, y, z_) => {
+    (X, Y, Z, x, y, f) => {
       // check on curve
       assert(G.isOnCurve(X) && G.isOnCurve(Y) && G.isOnCurve(Z), 'on curve');
       // can't be on curve because b=5 is a non-square
@@ -40,9 +40,9 @@ for (let [G, Field, Scalar] of [
         !G.isOnCurve({ x: 0n, y, z: 1n }),
         'x=0 => y^2 = b is not on curve'
       );
-      // can't be on curve because the implied equation is x^6 = x^6 + b
+      // can't be on curve because the implied equation is f^6 = f^6 + b
       assert(
-        !G.isOnCurve({ x: Scalar.power(x, 2n), y: Scalar.power(x, 3n), z: 1n }),
+        !G.isOnCurve({ x: Field.power(f, 2n), y: Field.power(f, 3n), z: 1n }),
         'x^3 = y^2 is not on curve'
       );
 
@@ -59,9 +59,9 @@ for (let [G, Field, Scalar] of [
       assert(!G.equal(X, Y) || X === Y, 'not equal (random points)');
       // case where `equal` checks non-trivial z relationship
       let X_ = {
-        x: Field.mul(X.x, Field.square(z_)),
-        y: Field.mul(X.y, Field.power(z_, 3n)),
-        z: Field.mul(X.z, z_),
+        x: Field.mul(X.x, Field.square(f)),
+        y: Field.mul(X.y, Field.power(f, 3n)),
+        z: Field.mul(X.z, f),
       };
       assert(G.equal(X, X_), 'equal non-trivial');
 
