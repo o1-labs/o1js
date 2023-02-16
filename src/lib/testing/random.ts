@@ -831,7 +831,7 @@ function fieldWithInvalid(
   let randomField = Random_(F.random);
   let specialField = oneOf(0n, 1n, F(-1));
   let field = oneOf<bigint[]>(randomField, randomField, uint64, specialField);
-  let tooLarge = map(field, (x) => x + Field.modulus);
+  let tooLarge = map(field, (x) => x + F.modulus);
   let negative = map(field, (x) => -x - 1n);
   let invalid = oneOf(tooLarge, negative);
   return Object.assign(field, { invalid });

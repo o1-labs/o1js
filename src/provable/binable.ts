@@ -52,29 +52,30 @@ function defineBinable<T>({
     offset: NonNegativeInteger<N>
   ): [value: T, offset: number];
 }): Binable<T> {
+  // spec: input offset has to be a non-negative integer, and be smaller than the bytes length
+  // output offset has to be greater or equal input, and not exceed the bytes length
+  let readBytes_ = <N extends number>(
+    bytes: number[],
+    offset: NonNegativeInteger<N>
+  ) => {
+    assertNonNegativeInteger(offset, 'readBytes: offset must be integer >= 0');
+    if (offset >= bytes.length)
+      throw Error('readBytes: offset must be within bytes length');
+    let [value, end] = readBytes(bytes, offset);
+    if (end < offset)
+      throw Error(
+        'offset returned by readBytes must be greater than initial offset'
+      );
+    if (end > bytes.length)
+      throw Error('offset returned by readBytes must not exceed bytes length');
+    return [value, end] as [T, number];
+  };
   return {
     toBytes,
-    // spec: input offset has to be a non-negative integer;
-    // output offset has to be greater or equal input, and not exceed the bytes length
-    readBytes(bytes, offset) {
-      assertNonNegativeInteger(
-        offset,
-        'readBytes: offset must be integer >= 0'
-      );
-      let [value, end] = readBytes(bytes, offset);
-      if (end < offset)
-        throw Error(
-          'offset returned by readBytes must be greater than initial offset'
-        );
-      if (end > bytes.length)
-        throw Error(
-          'offset returned by readBytes must not exceed bytes length'
-        );
-      return [value, end];
-    },
+    readBytes: readBytes_,
     // spec: fromBytes throws if the input bytes are not all used
     fromBytes(bytes) {
-      let [value, offset] = readBytes(bytes, 0);
+      let [value, offset] = readBytes_(bytes, 0);
       if (offset < bytes.length)
         throw Error('fromBytes: input bytes left over');
       return value;
@@ -84,16 +85,21 @@ function defineBinable<T>({
 
 function withVersionNumber<T>(
   binable: Binable<T>,
-  versionNumber?: number
+  versionNumber: number
 ): Binable<T> {
   return defineBinable({
     toBytes(t) {
       let bytes = binable.toBytes(t);
-      if (versionNumber !== undefined) bytes.unshift(versionNumber);
+      bytes.unshift(versionNumber);
       return bytes;
     },
     readBytes(bytes, offset) {
-      if (versionNumber !== undefined) offset++;
+      let version = bytes[offset++];
+      if (version !== versionNumber) {
+        throw Error(
+          `fromBytes: Invalid version byte. Expected ${versionNumber}, got ${version}.`
+        );
+      }
       return binable.readBytes(bytes, offset);
     },
   });
