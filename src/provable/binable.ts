@@ -309,8 +309,12 @@ const BinableUint32 = BinableUint(32);
 // same as Random_oracle.prefix_to_field in OCaml
 // converts string to bytes and bytes to field; throws if bytes don't fit in one field
 function prefixToField<Field>(Field: GenericField<Field>, prefix: string) {
-  if (prefix.length >= Field.sizeInBytes()) throw Error('prefix too long');
-  return Field.fromBytes(stringToBytes(prefix));
+  let fieldSize = Field.sizeInBytes();
+  if (prefix.length >= fieldSize) throw Error('prefix too long');
+  let stringBytes = stringToBytes(prefix);
+  return Field.fromBytes(
+    stringBytes.concat(Array(fieldSize - stringBytes.length).fill(0))
+  );
 }
 
 function bitsToBytes([...bits]: boolean[]) {
