@@ -24,7 +24,7 @@ import {
 import * as Json from './transaction-json.js';
 import { jsLayout } from './js-layout.js';
 
-export { customTypes, ZkappCommand, AccountUpdate };
+export { customTypes, ZkappCommand, AccountUpdate, Account };
 export { Json };
 export * from '../transaction-leaves.js';
 export { provableFromLayout, toJSONEssential, Layout, TypeMap };
@@ -507,4 +507,52 @@ type AccountUpdate = {
 
 let AccountUpdate = provableFromLayout<AccountUpdate, Json.AccountUpdate>(
   jsLayout.AccountUpdate as any
+);
+
+type Account = {
+  publicKey: PublicKey;
+  tokenId: Field;
+  tokenSymbol: string;
+  balance: UInt64;
+  nonce: UInt32;
+  receiptChainHash: Field;
+  delegate: PublicKey;
+  votingFor: Field;
+  timing: {
+    isTimed: Bool;
+    initialMinimumBalance: UInt64;
+    cliffTime: UInt32;
+    cliffAmount: UInt64;
+    vestingPeriod: UInt32;
+    vestingIncrement: UInt64;
+  };
+  permissions: {
+    editState: AuthRequired;
+    send: AuthRequired;
+    receive: AuthRequired;
+    setDelegate: AuthRequired;
+    setPermissions: AuthRequired;
+    setVerificationKey: AuthRequired;
+    setZkappUri: AuthRequired;
+    editSequenceState: AuthRequired;
+    setTokenSymbol: AuthRequired;
+    incrementNonce: AuthRequired;
+    setVotingFor: AuthRequired;
+  };
+  zkapp?: {
+    appState: Field[];
+    verificationKey?: {
+      data: string;
+      hash: Field;
+    };
+    zkappVersion: number;
+    sequenceState: Field[];
+    lastSequenceSlot: UInt32;
+    provedState: Bool;
+    zkappUri: string;
+  };
+};
+
+let Account = provableFromLayout<Account, Json.Account>(
+  jsLayout.Account as any
 );

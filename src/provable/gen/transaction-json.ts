@@ -12,7 +12,7 @@ import {
   AuthorizationKind,
 } from '../transaction-leaves-json.js';
 
-export { ZkappCommand, AccountUpdate };
+export { ZkappCommand, AccountUpdate, Account };
 export * from '../transaction-leaves-json.js';
 export { TypeMap };
 
@@ -300,4 +300,48 @@ type AccountUpdate = {
     proof: string | null;
     signature: string | null;
   };
+};
+
+type Account = {
+  publicKey: PublicKey;
+  tokenId: Field;
+  tokenSymbol: string;
+  balance: UInt64;
+  nonce: UInt32;
+  receiptChainHash: Field;
+  delegate: PublicKey;
+  votingFor: Field;
+  timing: {
+    isTimed: Bool;
+    initialMinimumBalance: UInt64;
+    cliffTime: UInt32;
+    cliffAmount: UInt64;
+    vestingPeriod: UInt32;
+    vestingIncrement: UInt64;
+  };
+  permissions: {
+    editState: AuthRequired;
+    send: AuthRequired;
+    receive: AuthRequired;
+    setDelegate: AuthRequired;
+    setPermissions: AuthRequired;
+    setVerificationKey: AuthRequired;
+    setZkappUri: AuthRequired;
+    editSequenceState: AuthRequired;
+    setTokenSymbol: AuthRequired;
+    incrementNonce: AuthRequired;
+    setVotingFor: AuthRequired;
+  };
+  zkapp: {
+    appState: Field[];
+    verificationKey: {
+      data: string;
+      hash: Field;
+    } | null;
+    zkappVersion: number;
+    sequenceState: Field[];
+    lastSequenceSlot: UInt32;
+    provedState: Bool;
+    zkappUri: string;
+  } | null;
 };
