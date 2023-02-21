@@ -25,7 +25,9 @@ import { Context } from './global-context.js';
 import { emptyReceiptChainHash } from './hash.js';
 import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './errors.js';
-import { Types } from 'src/index.js';
+import { Types } from '../provable/types.js';
+import { expect } from 'expect';
+import { ledgerAccountToJSON } from './mina/account.js';
 
 export {
   createTransaction,
@@ -388,38 +390,42 @@ function LocalBlockchain({
         throw new Error(
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
         );
-      } else {
-        let { timing } = ledgerAccount;
-        return {
-          publicKey: publicKey,
-          tokenId,
-          balance: new UInt64(ledgerAccount.balance.value),
-          nonce: new UInt32(ledgerAccount.nonce.value),
-          appState:
-            ledgerAccount.zkapp?.appState ??
-            Array(ZkappStateLength).fill(Field(0)),
-          tokenSymbol: ledgerAccount.tokenSymbol,
-          receiptChainHash: ledgerAccount.receiptChainHash,
-          provedState: Bool(ledgerAccount.zkapp?.provedState ?? false),
-          delegate:
-            ledgerAccount.delegate && PublicKey.from(ledgerAccount.delegate),
-          sequenceState:
-            ledgerAccount.zkapp?.sequenceState[0] ??
-            SequenceEvents.emptySequenceState(),
-          permissions: Permissions.fromJSON(ledgerAccount.permissions),
-          timing: {
-            isTimed: timing.isTimed,
-            initialMinimumBalance: UInt64.fromObject(
-              timing.initialMinimumBalance
-            ),
-            cliffAmount: UInt64.fromObject(timing.cliffAmount),
-            cliffTime: UInt32.fromObject(timing.cliffTime),
-            vestingPeriod: UInt32.fromObject(timing.vestingPeriod),
-            vestingIncrement: UInt64.fromObject(timing.vestingIncrement),
-          },
-          verificationKey: ledgerAccount.zkapp?.verificationKey?.data,
-        };
       }
+      let ledgerAccountNewJson = ledger.getAccountNew(publicKey, tokenId)!;
+      let ledgerAccountNew = Types.Account.fromJSON(
+        JSON.parse(ledgerAccountNewJson)
+      );
+      expect(ledgerAccountNew).toEqual(ledgerAccountToJSON(ledgerAccount));
+      let { timing } = ledgerAccount;
+      return {
+        publicKey: publicKey,
+        tokenId,
+        balance: new UInt64(ledgerAccount.balance.value),
+        nonce: new UInt32(ledgerAccount.nonce.value),
+        appState:
+          ledgerAccount.zkapp?.appState ??
+          Array(ZkappStateLength).fill(Field(0)),
+        tokenSymbol: ledgerAccount.tokenSymbol,
+        receiptChainHash: ledgerAccount.receiptChainHash,
+        provedState: Bool(ledgerAccount.zkapp?.provedState ?? false),
+        delegate:
+          ledgerAccount.delegate && PublicKey.from(ledgerAccount.delegate),
+        sequenceState:
+          ledgerAccount.zkapp?.sequenceState[0] ??
+          SequenceEvents.emptySequenceState(),
+        permissions: Permissions.fromJSON(ledgerAccount.permissions),
+        timing: {
+          isTimed: timing.isTimed,
+          initialMinimumBalance: UInt64.fromObject(
+            timing.initialMinimumBalance
+          ),
+          cliffAmount: UInt64.fromObject(timing.cliffAmount),
+          cliffTime: UInt32.fromObject(timing.cliffTime),
+          vestingPeriod: UInt32.fromObject(timing.vestingPeriod),
+          vestingIncrement: UInt64.fromObject(timing.vestingIncrement),
+        },
+        verificationKey: ledgerAccount.zkapp?.verificationKey?.data,
+      };
     },
     getNetworkState() {
       return networkState;

@@ -1239,6 +1239,7 @@ declare class Ledger {
    * Returns an account.
    */
   getAccount(publicKey: PublicKey_, tokenId: Field): Account | undefined;
+  getAccountNew(publicKey: PublicKey_, tokenId: Field): string | undefined;
 
   /**
    * Returns the commitment of a JSON transaction.
