@@ -186,7 +186,17 @@ let jsLayout = {
                       optionType: 'flaggedOption',
                       inner: {
                         type: 'string',
-                        checkedType: { type: 'TokenSymbol' },
+                        checkedType: {
+                          type: 'object',
+                          name: 'Anonymous',
+                          docs: null,
+                          keys: ['symbol', 'field'],
+                          entries: {
+                            symbol: { type: 'string' },
+                            field: { type: 'Field' },
+                          },
+                          docEntries: { symbol: '', field: '' },
+                        },
                         checkedTypeName: 'TokenSymbol',
                       },
                     },
@@ -913,7 +923,17 @@ let jsLayout = {
                 optionType: 'flaggedOption',
                 inner: {
                   type: 'string',
-                  checkedType: { type: 'TokenSymbol' },
+                  checkedType: {
+                    type: 'object',
+                    name: 'Anonymous',
+                    docs: null,
+                    keys: ['symbol', 'field'],
+                    entries: {
+                      symbol: { type: 'string' },
+                      field: { type: 'Field' },
+                    },
+                    docEntries: { symbol: '', field: '' },
+                  },
                   checkedTypeName: 'TokenSymbol',
                 },
               },

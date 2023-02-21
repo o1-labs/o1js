@@ -8,10 +8,10 @@ import {
   Field,
   Bool,
   AuthRequired,
-  TokenSymbol,
   Sign,
   AuthorizationKind,
   ZkappUri,
+  TokenSymbol,
   Events,
   SequenceEvents,
   SequenceState,
@@ -66,7 +66,13 @@ type CustomTypes = {
     },
     string
   >;
-  TokenSymbol: ProvableExtended<TokenSymbol, string>;
+  TokenSymbol: ProvableExtended<
+    {
+      symbol: string;
+      field: Field;
+    },
+    string
+  >;
   Events: ProvableExtended<
     {
       data: Field[][];
@@ -142,7 +148,13 @@ type ZkappCommand = {
             hash: Field;
           };
         };
-        tokenSymbol: { isSome: Bool; value: TokenSymbol };
+        tokenSymbol: {
+          isSome: Bool;
+          value: {
+            symbol: string;
+            field: Field;
+          };
+        };
         timing: {
           isSome: Bool;
           value: {
@@ -336,7 +348,13 @@ type AccountUpdate = {
           hash: Field;
         };
       };
-      tokenSymbol: { isSome: Bool; value: TokenSymbol };
+      tokenSymbol: {
+        isSome: Bool;
+        value: {
+          symbol: string;
+          field: Field;
+        };
+      };
       timing: {
         isSome: Bool;
         value: {
