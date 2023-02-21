@@ -205,6 +205,7 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
     tokenSymbol
     verificationKey {
       verificationKey
+      hash
     }
   }
 }
