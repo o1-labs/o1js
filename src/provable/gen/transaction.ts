@@ -511,12 +511,12 @@ let AccountUpdate = provableFromLayout<AccountUpdate, Json.AccountUpdate>(
 
 type Account = {
   publicKey: PublicKey;
-  tokenId: Field;
+  tokenId: TokenId;
   tokenSymbol: string;
   balance: UInt64;
   nonce: UInt32;
   receiptChainHash: Field;
-  delegate: PublicKey;
+  delegate?: PublicKey;
   votingFor: Field;
   timing: {
     isTimed: Bool;
@@ -545,7 +545,7 @@ type Account = {
       data: string;
       hash: Field;
     };
-    zkappVersion: number;
+    zkappVersion: UInt32;
     sequenceState: Field[];
     lastSequenceSlot: UInt32;
     provedState: Bool;

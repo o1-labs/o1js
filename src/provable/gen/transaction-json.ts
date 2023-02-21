@@ -304,12 +304,12 @@ type AccountUpdate = {
 
 type Account = {
   publicKey: PublicKey;
-  tokenId: Field;
+  tokenId: TokenId;
   tokenSymbol: string;
   balance: UInt64;
   nonce: UInt32;
   receiptChainHash: Field;
-  delegate: PublicKey;
+  delegate: PublicKey | null;
   votingFor: Field;
   timing: {
     isTimed: Bool;
@@ -338,7 +338,7 @@ type Account = {
       data: string;
       hash: Field;
     } | null;
-    zkappVersion: number;
+    zkappVersion: UInt32;
     sequenceState: Field[];
     lastSequenceSlot: UInt32;
     provedState: Bool;

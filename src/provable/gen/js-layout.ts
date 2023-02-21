@@ -1526,12 +1526,16 @@ let jsLayout = {
     ],
     entries: {
       publicKey: { type: 'PublicKey' },
-      tokenId: { type: 'Field' },
+      tokenId: { type: 'TokenId' },
       tokenSymbol: { type: 'string' },
       balance: { type: 'UInt64' },
       nonce: { type: 'UInt32' },
       receiptChainHash: { type: 'Field' },
-      delegate: { type: 'PublicKey' },
+      delegate: {
+        type: 'option',
+        optionType: 'orUndefined',
+        inner: { type: 'PublicKey' },
+      },
       votingFor: { type: 'Field' },
       timing: {
         type: 'object',
@@ -1640,7 +1644,7 @@ let jsLayout = {
                 docEntries: { data: null, hash: null },
               },
             },
-            zkappVersion: { type: 'number' },
+            zkappVersion: { type: 'UInt32' },
             sequenceState: {
               type: 'array',
               inner: { type: 'Field' },
