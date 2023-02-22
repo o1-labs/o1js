@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - BREAKING CHANGE: Modify signature algorithm used by `Signature.{create,verify}` to be compatible with mina-signer https://github.com/o1-labs/snarkyjs/pull/710
   - Signatures created with mina-signer's `client.signFields()` can now be verified inside a SNARK!
   - Breaks existing deployed smart contracts which use `Signature.verify()`
+- BREAKING CHANGE: Change structure of `Account` type which is returned by `Mina.getAccount()` https://github.com/o1-labs/snarkyjs/pull/741
+  - for example, `account.appState` -> `account.zkapp.appState`
+  - full new type: https://github.com/o1-labs/snarkyjs/blob/0be70cb8ceb423976f348980e9d6238820758cc0/src/provable/gen/transaction.ts#L515
 
 ## [0.8.0](https://github.com/o1-labs/snarkyjs/compare/d880bd6e...c5a36207)
 
