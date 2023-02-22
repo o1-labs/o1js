@@ -101,7 +101,6 @@ async function fetchAccountInternal(
       },
     };
   }
-  console.log(fetchedAccount);
   let account = parseFetchedAccount(fetchedAccount);
   // account successfully fetched - add to cache before returning
   addCachedAccountInternal(account, graphqlEndpoint);

@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `Transaction.fromJSON` to recover transaction object from JSON https://github.com/o1-labs/snarkyjs/pull/705
+- New precondition: `provedState`, a boolean which is true if the entire on-chain state of this account was last modified by a proof https://github.com/o1-labs/snarkyjs/pull/741
+  - Same API as all preconditions: `this.account.provedState.assertEquals(Bool(true))`
+  - Can be used to assert that the state wasn't tampered with by the zkApp developer using non-contract logic, for example, before deploying the zkApp
 
 ### Changed
 
@@ -29,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - BREAKING CHANGE: Change structure of `Account` type which is returned by `Mina.getAccount()` https://github.com/o1-labs/snarkyjs/pull/741
   - for example, `account.appState` -> `account.zkapp.appState`
   - full new type: https://github.com/o1-labs/snarkyjs/blob/0be70cb8ceb423976f348980e9d6238820758cc0/src/provable/gen/transaction.ts#L515
+- Test accounts hard-coded in `LocalBlockchain` now have default permissions, not permissions allowing everything. Fixes some unintuitive behaviour in tests, like requiring no signature when using these accounts to send MINA https://github.com/o1-labs/snarkyjs/issues/638
 
 ## [0.8.0](https://github.com/o1-labs/snarkyjs/compare/d880bd6e...c5a36207)
 
