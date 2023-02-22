@@ -99,7 +99,7 @@ console.log('initial state: ' + zkapp.x.get());
 console.log(`initial balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 
 let account = Mina.getAccount(zkappAddress);
-console.log('account is proved:', account.provedState.toBoolean());
+console.log('account is proved:', account.zkapp?.provedState.toBoolean());
 
 console.log('update');
 tx = await Mina.transaction(sender, () => {
