@@ -27,7 +27,7 @@ import { jsLayout } from './js-layout.js';
 export { customTypes, ZkappCommand, AccountUpdate, Account };
 export { Json };
 export * from '../transaction-leaves-bigint.js';
-export { provableFromLayout, toJSONEssential, Layout, TypeMap };
+export { provableFromLayout, toJSONEssential, emptyValue, Layout, TypeMap };
 
 type TypeMap = {
   PublicKey: PublicKey;
@@ -96,7 +96,7 @@ let customTypes: CustomTypes = {
   SequenceEvents,
   SequenceState,
 };
-let { provableFromLayout, toJSONEssential } = ProvableFromLayout<
+let { provableFromLayout, toJSONEssential, emptyValue } = ProvableFromLayout<
   TypeMap,
   Json.TypeMap
 >(TypeMap, customTypes);

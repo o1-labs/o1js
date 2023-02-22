@@ -242,9 +242,10 @@ function getAccountPreconditions(body: {
     balance: account.balance,
     nonce: account.nonce,
     receiptChainHash: account.receiptChainHash,
-    sequenceState: account.sequenceState ?? SequenceEvents.emptySequenceState(),
+    sequenceState:
+      account.zkapp?.sequenceState?.[0] ?? SequenceEvents.emptySequenceState(),
     delegate: account.delegate ?? account.publicKey,
-    provedState: account.provedState,
+    provedState: account.zkapp?.provedState ?? Bool(false),
     isNew: Bool(false),
   };
 }

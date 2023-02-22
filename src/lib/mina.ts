@@ -26,8 +26,7 @@ import { emptyReceiptChainHash } from './hash.js';
 import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './errors.js';
 import { Types } from '../provable/types.js';
-import { expect } from 'expect';
-import { ledgerAccountToJSON } from './mina/account.js';
+import { Account } from './mina/account.js';
 
 export {
   createTransaction,
@@ -107,8 +106,6 @@ const Transaction = {
     );
   },
 };
-
-type Account = Fetch.Account;
 
 type FetchMode = 'fetch' | 'cached' | 'test';
 type CurrentTransaction = {
@@ -251,15 +248,7 @@ function createTransaction(
     } else {
       nonce_ = UInt32.from(nonce);
       senderAccount.nonce = nonce_;
-      Fetch.addCachedAccount({
-        nonce: senderAccount.nonce,
-        publicKey: senderAccount.publicKey,
-        tokenId: senderAccount.tokenId.toString(),
-        balance: senderAccount.balance,
-        zkapp: {
-          appState: senderAccount.appState ?? [],
-        },
-      });
+      Fetch.addCachedAccount(senderAccount);
     }
     feePayerAccountUpdate = AccountUpdate.defaultFeePayer(sender, nonce_);
     if (feePayerKey !== undefined)
@@ -385,47 +374,13 @@ function LocalBlockchain({
       publicKey: PublicKey,
       tokenId: Field = TokenId.default
     ): Account {
-      let ledgerAccount = ledger.getAccount(publicKey, tokenId);
-      if (ledgerAccount === undefined) {
+      let accountJson = ledger.getAccountNew(publicKey, tokenId);
+      if (accountJson === undefined) {
         throw new Error(
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
         );
       }
-      let ledgerAccountNewJson = ledger.getAccountNew(publicKey, tokenId)!;
-      let ledgerAccountNew = Types.Account.fromJSON(
-        JSON.parse(ledgerAccountNewJson)
-      );
-      expect(ledgerAccountNew).toEqual(ledgerAccountToJSON(ledgerAccount));
-      let { timing } = ledgerAccount;
-      return {
-        publicKey: publicKey,
-        tokenId,
-        balance: new UInt64(ledgerAccount.balance.value),
-        nonce: new UInt32(ledgerAccount.nonce.value),
-        appState:
-          ledgerAccount.zkapp?.appState ??
-          Array(ZkappStateLength).fill(Field(0)),
-        tokenSymbol: ledgerAccount.tokenSymbol,
-        receiptChainHash: ledgerAccount.receiptChainHash,
-        provedState: Bool(ledgerAccount.zkapp?.provedState ?? false),
-        delegate:
-          ledgerAccount.delegate && PublicKey.from(ledgerAccount.delegate),
-        sequenceState:
-          ledgerAccount.zkapp?.sequenceState[0] ??
-          SequenceEvents.emptySequenceState(),
-        permissions: Permissions.fromJSON(ledgerAccount.permissions),
-        timing: {
-          isTimed: timing.isTimed,
-          initialMinimumBalance: UInt64.fromObject(
-            timing.initialMinimumBalance
-          ),
-          cliffAmount: UInt64.fromObject(timing.cliffAmount),
-          cliffTime: UInt32.fromObject(timing.cliffTime),
-          vestingPeriod: UInt32.fromObject(timing.vestingPeriod),
-          vestingIncrement: UInt64.fromObject(timing.vestingIncrement),
-        },
-        verificationKey: ledgerAccount.zkapp?.verificationKey?.data,
-      };
+      return Types.Account.fromJSON(JSON.parse(accountJson));
     },
     getNetworkState() {
       return networkState;
@@ -999,19 +954,25 @@ function getActions(publicKey: PublicKey, tokenId: Field) {
   return activeInstance.getActions(publicKey, tokenId);
 }
 
+// TODO
 function dummyAccount(pubkey?: PublicKey): Account {
-  return {
-    balance: UInt64.zero,
-    nonce: UInt32.zero,
-    publicKey: pubkey ?? PublicKey.empty(),
-    tokenId: TokenId.default,
-    appState: Array(ZkappStateLength).fill(Field(0)),
-    tokenSymbol: '',
-    provedState: Bool(false),
-    receiptChainHash: emptyReceiptChainHash(),
-    delegate: undefined,
-    sequenceState: SequenceEvents.emptySequenceState(),
-  };
+  let dummy = Types.Account.emptyValue();
+  if (pubkey) {
+    dummy.publicKey = pubkey;
+  }
+  return dummy;
+  // {
+  //   balance: UInt64.zero,
+  //   nonce: UInt32.zero,
+  //   publicKey: pubkey ?? PublicKey.empty(),
+  //   tokenId: TokenId.default,
+  //   // appState: Array(ZkappStateLength).fill(Field(0)),
+  //   tokenSymbol: '',
+  //   // provedState: Bool(false),
+  //   receiptChainHash: emptyReceiptChainHash(),
+  //   delegate: undefined,
+  //   // sequenceState: SequenceEvents.emptySequenceState(),
+  // };
 }
 
 function defaultNetworkState(): NetworkValue {

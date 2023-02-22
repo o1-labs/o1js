@@ -733,7 +733,7 @@ class SmartContract {
     // init if this account is not yet deployed or has no verification key on it
     let shouldInit =
       !Mina.hasAccount(this.address) ||
-      Mina.getAccount(this.address).verificationKey === undefined;
+      Mina.getAccount(this.address).zkapp?.verificationKey === undefined;
     if (!shouldInit) return;
     if (zkappKey) this.init(zkappKey);
     else this.init();
