@@ -61,6 +61,7 @@ const Events = map(
 );
 const SequenceEvents = Events;
 const SequenceState = oneOf(Bigint.SequenceState.emptyValue(), Field);
+const ReceiptChainHash = oneOf(Bigint.SequenceState.emptyValue(), Field);
 const ZkappUri = map(string(nat(50)), Bigint.ZkappUri.fromJSON);
 
 const PrimitiveMap = primitiveTypeMap<bigint>();
@@ -83,6 +84,7 @@ const Generators: Generators = {
   Events,
   SequenceEvents,
   SequenceState,
+  ReceiptChainHash,
   ZkappUri,
   null: constant(null),
   string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types

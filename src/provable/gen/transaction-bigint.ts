@@ -15,6 +15,7 @@ import {
   Events,
   SequenceEvents,
   SequenceState,
+  ReceiptChainHash,
 } from '../transaction-leaves-bigint.js';
 import { GenericProvableExtended } from '../../provable/generic.js';
 import {
@@ -88,6 +89,7 @@ type CustomTypes = {
     Json.TypeMap['Field'][][]
   >;
   SequenceState: ProvableExtended<Field, Json.TypeMap['Field']>;
+  ReceiptChainHash: ProvableExtended<Field, Json.TypeMap['Field']>;
 };
 let customTypes: CustomTypes = {
   ZkappUri,
@@ -95,6 +97,7 @@ let customTypes: CustomTypes = {
   Events,
   SequenceEvents,
   SequenceState,
+  ReceiptChainHash,
 };
 let { provableFromLayout, toJSONEssential, emptyValue } = ProvableFromLayout<
   TypeMap,

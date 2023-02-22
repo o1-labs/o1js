@@ -1530,7 +1530,11 @@ let jsLayout = {
       tokenSymbol: { type: 'string' },
       balance: { type: 'UInt64' },
       nonce: { type: 'UInt32' },
-      receiptChainHash: { type: 'Field' },
+      receiptChainHash: {
+        type: 'Field',
+        checkedType: { type: 'Field' },
+        checkedTypeName: 'ReceiptChainHash',
+      },
       delegate: {
         type: 'option',
         optionType: 'orUndefined',

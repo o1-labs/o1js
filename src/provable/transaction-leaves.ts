@@ -3,7 +3,12 @@ import { UInt32, UInt64, Sign } from '../lib/int.js';
 import { PublicKey } from '../lib/signature.js';
 import { derivedLeafTypes } from './derived-leaves.js';
 import { createEvents } from '../lib/events.js';
-import { Poseidon, Hash, packToFields } from '../lib/hash.js';
+import {
+  Poseidon,
+  Hash,
+  packToFields,
+  emptyHashWithPrefix,
+} from '../lib/hash.js';
 import { provable } from '../lib/circuit_value.js';
 
 export {
@@ -18,7 +23,14 @@ export {
   TokenId,
 };
 
-export { Events, SequenceEvents, ZkappUri, TokenSymbol, SequenceState };
+export {
+  Events,
+  SequenceEvents,
+  ZkappUri,
+  TokenSymbol,
+  SequenceState,
+  ReceiptChainHash,
+};
 
 type AuthRequired = {
   constant: Bool;
@@ -45,4 +57,10 @@ type SequenceState = Field;
 const SequenceState = {
   ...provable(Field),
   emptyValue: SequenceEvents.emptySequenceState,
+};
+
+type ReceiptChainHash = Field;
+const ReceiptChainHash = {
+  ...provable(Field),
+  emptyValue: () => emptyHashWithPrefix('CodaReceiptEmpty'),
 };

@@ -16,7 +16,14 @@ export {
   TokenId,
 };
 
-export { Events, SequenceEvents, ZkappUri, TokenSymbol, SequenceState };
+export {
+  Events,
+  SequenceEvents,
+  ZkappUri,
+  TokenSymbol,
+  SequenceState,
+  ReceiptChainHash,
+};
 
 type AuthRequired = {
   constant: Bool;
@@ -43,4 +50,10 @@ type SequenceState = Field;
 const SequenceState = {
   ...Field,
   emptyValue: SequenceEvents.emptySequenceState,
+};
+
+type ReceiptChainHash = Field;
+const ReceiptChainHash = {
+  ...Field,
+  emptyValue: () => Hash.emptyHashWithPrefix('CodaReceiptEmpty'),
 };
