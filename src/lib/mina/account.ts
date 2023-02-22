@@ -1,5 +1,5 @@
 import { Types } from '../../provable/types.js';
-import { Bool, Field, LedgerAccount } from '../../snarky.js';
+import { Bool, Field } from '../../snarky.js';
 import { Permissions } from '../account_update.js';
 import { UInt32, UInt64 } from '../int.js';
 import { PublicKey } from '../signature.js';

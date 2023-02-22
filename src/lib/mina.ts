@@ -1,5 +1,5 @@
-import { Circuit, Ledger, LedgerAccount } from '../snarky.js';
-import { Field, Bool } from './core.js';
+import { Circuit, Ledger } from '../snarky.js';
+import { Field } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import {
@@ -8,7 +8,6 @@ import {
   FeePayerUnsigned,
   ZkappCommand,
   AccountUpdate,
-  ZkappStateLength,
   ZkappPublicInput,
   TokenId,
   CallForest,
@@ -22,7 +21,6 @@ import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue } from './circuit_value.js';
 import { Proof, snarkContext, verify } from './proof_system.js';
 import { Context } from './global-context.js';
-import { emptyReceiptChainHash } from './hash.js';
 import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './errors.js';
 import { Types } from '../provable/types.js';
@@ -374,13 +372,13 @@ function LocalBlockchain({
       publicKey: PublicKey,
       tokenId: Field = TokenId.default
     ): Account {
-      let accountJson = ledger.getAccountNew(publicKey, tokenId);
+      let accountJson = ledger.getAccount(publicKey, tokenId);
       if (accountJson === undefined) {
         throw new Error(
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
         );
       }
-      return Types.Account.fromJSON(JSON.parse(accountJson));
+      return Types.Account.fromJSON(accountJson);
     },
     getNetworkState() {
       return networkState;
@@ -396,13 +394,14 @@ function LocalBlockchain({
         verifyTransactionLimits(txn.transaction.accountUpdates);
 
       for (const update of txn.transaction.accountUpdates) {
-        let account = ledger.getAccount(
+        let accountJson = ledger.getAccount(
           update.body.publicKey,
           update.body.tokenId
         );
-        if (account) {
+        if (accountJson) {
+          let account = Account.fromJSON(accountJson);
           await verifyAccountUpdate(
-            account!,
+            account,
             update,
             commitments,
             proofsEnabled
@@ -954,25 +953,10 @@ function getActions(publicKey: PublicKey, tokenId: Field) {
   return activeInstance.getActions(publicKey, tokenId);
 }
 
-// TODO
 function dummyAccount(pubkey?: PublicKey): Account {
   let dummy = Types.Account.emptyValue();
-  if (pubkey) {
-    dummy.publicKey = pubkey;
-  }
+  if (pubkey) dummy.publicKey = pubkey;
   return dummy;
-  // {
-  //   balance: UInt64.zero,
-  //   nonce: UInt32.zero,
-  //   publicKey: pubkey ?? PublicKey.empty(),
-  //   tokenId: TokenId.default,
-  //   // appState: Array(ZkappStateLength).fill(Field(0)),
-  //   tokenSymbol: '',
-  //   // provedState: Bool(false),
-  //   receiptChainHash: emptyReceiptChainHash(),
-  //   delegate: undefined,
-  //   // sequenceState: SequenceEvents.emptySequenceState(),
-  // };
 }
 
 function defaultNetworkState(): NetworkValue {
@@ -997,7 +981,7 @@ function defaultNetworkState(): NetworkValue {
 }
 
 async function verifyAccountUpdate(
-  account: LedgerAccount,
+  account: Account,
   accountUpdate: AccountUpdate,
   transactionCommitments: {
     commitment: Field;
@@ -1020,7 +1004,7 @@ async function verifyAccountUpdate(
     }
   }
 
-  function permissionForUpdate(key: string): Types.Json.AuthRequired {
+  function permissionForUpdate(key: string): Types.AuthRequired {
     switch (key) {
       case 'appState':
         return perm.editState;
@@ -1035,7 +1019,7 @@ async function verifyAccountUpdate(
       case 'tokenSymbol':
         return perm.setTokenSymbol;
       case 'timing':
-        return 'None';
+        return Permissions.none();
       case 'votingFor':
         return perm.setVotingFor;
       case 'sequenceEvents':
@@ -1104,7 +1088,8 @@ async function verifyAccountUpdate(
 
   let verified = false;
 
-  function checkPermission(p: Types.Json.AuthRequired, field: string) {
+  function checkPermission(p0: Types.AuthRequired, field: string) {
+    let p = Types.AuthRequired.toJSON(p0);
     if (p === 'None') return;
 
     if (p === 'Impossible') {
