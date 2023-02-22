@@ -331,6 +331,7 @@ type Account = {
   };
   permissions: {
     editState: AuthRequired;
+    access: AuthRequired;
     send: AuthRequired;
     receive: AuthRequired;
     setDelegate: AuthRequired;
@@ -341,6 +342,7 @@ type Account = {
     setTokenSymbol: AuthRequired;
     incrementNonce: AuthRequired;
     setVotingFor: AuthRequired;
+    setTiming: AuthRequired;
   };
   zkapp: {
     appState: Field[];

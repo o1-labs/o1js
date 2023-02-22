@@ -1609,6 +1609,7 @@ let jsLayout = {
         docs: null,
         keys: [
           'editState',
+          'access',
           'send',
           'receive',
           'setDelegate',
@@ -1619,9 +1620,11 @@ let jsLayout = {
           'setTokenSymbol',
           'incrementNonce',
           'setVotingFor',
+          'setTiming',
         ],
         entries: {
           editState: { type: 'AuthRequired' },
+          access: { type: 'AuthRequired' },
           send: { type: 'AuthRequired' },
           receive: { type: 'AuthRequired' },
           setDelegate: { type: 'AuthRequired' },
@@ -1632,9 +1635,11 @@ let jsLayout = {
           setTokenSymbol: { type: 'AuthRequired' },
           incrementNonce: { type: 'AuthRequired' },
           setVotingFor: { type: 'AuthRequired' },
+          setTiming: { type: 'AuthRequired' },
         },
         docEntries: {
           editState: null,
+          access: null,
           send: null,
           receive: null,
           setDelegate: null,
@@ -1645,6 +1650,7 @@ let jsLayout = {
           setTokenSymbol: null,
           incrementNonce: null,
           setVotingFor: null,
+          setTiming: null,
         },
       },
       zkapp: {
