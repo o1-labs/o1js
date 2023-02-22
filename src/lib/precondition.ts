@@ -84,9 +84,6 @@ let unimplementedPreconditions: LongKey[] = [
   // unimplemented because its not checked in the protocol
   'network.stakingEpochData.seed',
   'network.nextEpochData.seed',
-  // this is partially unimplemented because the field is missing on the account endpoint
-  // but with the local ledger it works!
-  'account.provedState',
 ];
 
 type BaseType = 'UInt64' | 'UInt32' | 'Field' | 'Bool' | 'PublicKey';
