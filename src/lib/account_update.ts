@@ -1756,7 +1756,7 @@ const Authorization = {
       }
       try {
         let account = Mina.getAccount(body.publicKey, body.tokenId);
-        return account.verificationKey?.hash ?? Field(0);
+        return account.zkapp?.verificationKey?.hash ?? Field(0);
       } catch {
         return Field(0);
       }

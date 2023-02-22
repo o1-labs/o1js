@@ -36,6 +36,7 @@ type FetchedAccount = {
   };
   permissions: {
     editState: AuthRequired;
+    access: AuthRequired;
     send: AuthRequired;
     receive: AuthRequired;
     setDelegate: AuthRequired;
