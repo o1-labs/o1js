@@ -46,6 +46,7 @@ type FetchedAccount = {
     setTokenSymbol: AuthRequired;
     incrementNonce: AuthRequired;
     setVotingFor: AuthRequired;
+    setTiming: AuthRequired;
   } | null;
   delegateAccount: { publicKey: string } | null;
   votingFor: string | null;
@@ -82,6 +83,7 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
       setTokenSymbol
       incrementNonce
       setVotingFor
+      setTiming
     }
     delegateAccount { publicKey }
     votingFor

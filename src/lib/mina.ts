@@ -49,6 +49,7 @@ export {
   FeePayerSpec,
   faucet,
   waitForFunding,
+  getProofsEnabled,
   // for internal testing only
   filterGroups,
 };
@@ -98,10 +99,7 @@ type Transaction = {
 const Transaction = {
   fromJSON(json: Types.Json.ZkappCommand): Transaction {
     let transaction = ZkappCommand.fromJSON(json);
-    return newTransaction(
-      transaction,
-      (activeInstance as { proofsEnabled?: boolean }).proofsEnabled
-    );
+    return newTransaction(transaction, activeInstance.proofsEnabled);
   },
 };
 
@@ -222,7 +220,8 @@ function createTransaction(
     throw err;
   }
   let accountUpdates = currentTransaction.get().accountUpdates;
-  CallForest.addCallers(accountUpdates);
+  // TODO: I'll be back
+  // CallForest.addCallers(accountUpdates);
   accountUpdates = CallForest.toFlatList(accountUpdates);
 
   try {
@@ -317,6 +316,7 @@ interface Mina {
     publicKey: PublicKey,
     tokenId?: Field
   ) => { hash: string; actions: string[][] }[];
+  proofsEnabled: boolean;
 }
 
 const defaultAccountCreationFee = 1_000_000_000;
@@ -443,7 +443,7 @@ function LocalBlockchain({
           }
           events[addr][tokenId].push({
             events: p.body.events,
-            slot: networkState.globalSlotSinceHardFork.toString(),
+            slot: networkState.globalSlotSinceGenesis.toString(),
           });
         }
 
@@ -461,7 +461,7 @@ function LocalBlockchain({
             ? SequenceEvents.emptySequenceState()
             : Ledger.fieldOfBase58(sequenceState);
 
-        let actionList = p.body.sequenceEvents;
+        let actionList = p.body.actions;
         let eventsHash = SequenceEvents.hash(
           actionList.map((e) => e.map((f) => Field(f)))
         );
@@ -469,7 +469,7 @@ function LocalBlockchain({
         if (actions[addr] === undefined) {
           actions[addr] = {};
         }
-        if (p.body.sequenceEvents.length > 0) {
+        if (p.body.actions.length > 0) {
           latestActionsHash = SequenceEvents.updateSequenceState(
             latestActionsHash,
             eventsHash
@@ -545,20 +545,13 @@ function LocalBlockchain({
      * 30000000000 units of currency.
      */
     testAccounts,
-    setTimestamp(ms: UInt64) {
-      networkState.timestamp = ms;
-    },
     setGlobalSlot(slot: UInt32 | number) {
       networkState.globalSlotSinceGenesis = UInt32.from(slot);
       let difference = networkState.globalSlotSinceGenesis.sub(slot);
-      networkState.globalSlotSinceHardFork =
-        networkState.globalSlotSinceHardFork.add(difference);
     },
     incrementGlobalSlot(increment: UInt32 | number) {
       networkState.globalSlotSinceGenesis =
         networkState.globalSlotSinceGenesis.add(increment);
-      networkState.globalSlotSinceHardFork =
-        networkState.globalSlotSinceHardFork.add(increment);
     },
     setBlockchainLength(height: UInt32) {
       networkState.blockchainLength = height;
@@ -737,6 +730,7 @@ function Network(graphqlEndpoint: string): Mina {
         'fetchEvents() is not implemented yet for remote blockchains.'
       );
     },
+    proofsEnabled: true,
   };
 }
 
@@ -811,6 +805,7 @@ let activeInstance: Mina = {
   getActions() {
     throw Error('must call Mina.setActiveInstance first');
   },
+  proofsEnabled: true,
 };
 
 /**
@@ -953,6 +948,10 @@ function getActions(publicKey: PublicKey, tokenId: Field) {
   return activeInstance.getActions(publicKey, tokenId);
 }
 
+function getProofsEnabled() {
+  return activeInstance.proofsEnabled;
+}
+
 function dummyAccount(pubkey?: PublicKey): Account {
   let dummy = Types.Account.emptyValue();
   if (pubkey) dummy.publicKey = pubkey;
@@ -969,11 +968,9 @@ function defaultNetworkState(): NetworkValue {
   };
   return {
     snarkedLedgerHash: Field(0),
-    timestamp: UInt64.zero,
     blockchainLength: UInt32.zero,
     minWindowDensity: UInt32.zero,
     totalCurrency: UInt64.zero,
-    globalSlotSinceHardFork: UInt32.zero,
     globalSlotSinceGenesis: UInt32.zero,
     stakingEpochData: epochData,
     nextEpochData: cloneCircuitValue(epochData),
@@ -989,6 +986,18 @@ async function verifyAccountUpdate(
   },
   proofsEnabled: boolean
 ): Promise<void> {
+  // check that that top-level updates have mayUseToken = No
+  // (equivalent check exists in the Mina node)
+  if (
+    accountUpdate.body.callDepth === 0 &&
+    !AccountUpdate.MayUseToken.isNo(accountUpdate).toBoolean()
+  ) {
+    throw Error(
+      'Top-level account update can not use or pass on token permissions. Make sure that\n' +
+        'accountUpdate.body.mayUseToken = AccountUpdate.MayUseToken.No;'
+    );
+  }
+
   let perm = account.permissions;
 
   let { commitment, fullCommitment } = transactionCommitments;
@@ -1019,7 +1028,7 @@ async function verifyAccountUpdate(
       case 'tokenSymbol':
         return perm.setTokenSymbol;
       case 'timing':
-        return Permissions.none();
+        return perm.setTiming;
       case 'votingFor':
         return perm.setVotingFor;
       case 'sequenceEvents':
@@ -1123,7 +1132,7 @@ async function verifyAccountUpdate(
   });
 
   // checks the sequence events (which result in an updated sequence state)
-  if (accountUpdate.body.sequenceEvents.data.length > 0) {
+  if (accountUpdate.body.actions.data.length > 0) {
     let p = permissionForUpdate('sequenceEvents');
     checkPermission(p, 'sequenceEvents');
   }
@@ -1164,7 +1173,7 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
     accountUpdates.map((update) => {
       let json = update.toJSON();
       eventElements.events += update.body.events.data.length;
-      eventElements.sequence += update.body.sequenceEvents.data.length;
+      eventElements.sequence += update.body.actions.data.length;
       return json.body.authorizationKind;
     })
   );
@@ -1211,38 +1220,26 @@ ${JSON.stringify(authTypes)}
   if (error) throw Error('Error during transaction sending:\n\n' + error);
 }
 
-let S = 'Signature';
-let N = 'None_given';
-let P = 'Proof';
+type AuthorizationKind = { isProved: boolean; isSigned: boolean };
 
-const isPair = (pair: string) =>
-  pair === S + N || pair === N + S || pair === S + S || pair === N + N;
+const isPair = (a: AuthorizationKind, b: AuthorizationKind) =>
+  !a.isProved && !b.isProved;
 
-function filterPairs(xs: string[]): {
-  xs: string[];
+function filterPairs(xs: AuthorizationKind[]): {
+  xs: { isProved: boolean; isSigned: boolean }[];
   pairs: number;
 } {
-  if (xs.length <= 1)
-    return {
-      xs,
-      pairs: 0,
-    };
-  if (isPair(xs[0].concat(xs[1]))) {
+  if (xs.length <= 1) return { xs, pairs: 0 };
+  if (isPair(xs[0], xs[1])) {
     let rec = filterPairs(xs.slice(2));
-    return {
-      xs: rec.xs,
-      pairs: rec.pairs + 1,
-    };
+    return { xs: rec.xs, pairs: rec.pairs + 1 };
   } else {
     let rec = filterPairs(xs.slice(1));
-    return {
-      xs: [xs[0]].concat(rec.xs),
-      pairs: rec.pairs,
-    };
+    return { xs: [xs[0]].concat(rec.xs), pairs: rec.pairs };
   }
 }
 
-function filterGroups(xs: string[]) {
+function filterGroups(xs: AuthorizationKind[]) {
   let pairs = filterPairs(xs);
   xs = pairs.xs;
 
@@ -1250,7 +1247,7 @@ function filterGroups(xs: string[]) {
   let proofCount = 0;
 
   xs.forEach((t) => {
-    if (t === P) proofCount++;
+    if (t.isProved) proofCount++;
     else singleCount++;
   });
 

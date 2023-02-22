@@ -21,6 +21,10 @@ await isReady;
 class TokenContract extends SmartContract {
   deploy(args: DeployArgs) {
     super.deploy(args);
+    this.setPermissions({
+      ...Permissions.default(),
+      access: Permissions.proofOrSignature(),
+    });
     this.balance.addInPlace(UInt64.from(initialBalance));
   }
 
@@ -170,7 +174,6 @@ tx = await Local.transaction(feePayer, () => {
 });
 console.log('approve send (proof)');
 await tx.prove();
-console.log('send (proof)');
 await tx.send();
 
 console.log(
@@ -192,7 +195,6 @@ tx = await Local.transaction(feePayer, () => {
 });
 console.log('approve send (proof)');
 await tx.prove();
-console.log('send (proof)');
 await tx.send();
 
 console.log(

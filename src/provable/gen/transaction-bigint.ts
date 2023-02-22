@@ -9,7 +9,6 @@ import {
   Bool,
   AuthRequired,
   Sign,
-  AuthorizationKind,
   ZkappUri,
   TokenSymbol,
   Events,
@@ -39,7 +38,6 @@ type TypeMap = {
   Bool: Bool;
   AuthRequired: AuthRequired;
   Sign: Sign;
-  AuthorizationKind: AuthorizationKind;
 };
 
 const TypeMap: {
@@ -53,7 +51,6 @@ const TypeMap: {
   Bool,
   AuthRequired,
   Sign,
-  AuthorizationKind,
 };
 
 type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, Field>;
@@ -132,6 +129,7 @@ type ZkappCommand = {
           isSome: Bool;
           value: {
             editState: AuthRequired;
+            access: AuthRequired;
             send: AuthRequired;
             receive: AuthRequired;
             setDelegate: AuthRequired;
@@ -142,6 +140,7 @@ type ZkappCommand = {
             setTokenSymbol: AuthRequired;
             incrementNonce: AuthRequired;
             setVotingFor: AuthRequired;
+            setTiming: AuthRequired;
           };
         };
         zkappUri: {
@@ -179,7 +178,7 @@ type ZkappCommand = {
         data: Field[][];
         hash: Field;
       };
-      sequenceEvents: {
+      actions: {
         data: Field[][];
         hash: Field;
       };
@@ -188,13 +187,6 @@ type ZkappCommand = {
       preconditions: {
         network: {
           snarkedLedgerHash: { isSome: Bool; value: Field };
-          timestamp: {
-            isSome: Bool;
-            value: {
-              lower: UInt64;
-              upper: UInt64;
-            };
-          };
           blockchainLength: {
             isSome: Bool;
             value: {
@@ -214,13 +206,6 @@ type ZkappCommand = {
             value: {
               lower: UInt64;
               upper: UInt64;
-            };
-          };
-          globalSlotSinceHardFork: {
-            isSome: Bool;
-            value: {
-              lower: UInt32;
-              upper: UInt32;
             };
           };
           globalSlotSinceGenesis: {
@@ -297,10 +282,25 @@ type ZkappCommand = {
           provedState: { isSome: Bool; value: Bool };
           isNew: { isSome: Bool; value: Bool };
         };
+        validWhile: {
+          isSome: Bool;
+          value: {
+            lower: UInt32;
+            upper: UInt32;
+          };
+        };
       };
       useFullCommitment: Bool;
-      caller: TokenId;
-      authorizationKind: AuthorizationKind;
+      implicitAccountCreationFee: Bool;
+      mayUseToken: {
+        parentsOwnToken: Bool;
+        inheritFromParent: Bool;
+      };
+      authorizationKind: {
+        isSigned: Bool;
+        isProved: Bool;
+        verificationKeyHash: Field;
+      };
     };
     authorization: {
       proof?: string;
@@ -332,6 +332,7 @@ type AccountUpdate = {
         isSome: Bool;
         value: {
           editState: AuthRequired;
+          access: AuthRequired;
           send: AuthRequired;
           receive: AuthRequired;
           setDelegate: AuthRequired;
@@ -342,6 +343,7 @@ type AccountUpdate = {
           setTokenSymbol: AuthRequired;
           incrementNonce: AuthRequired;
           setVotingFor: AuthRequired;
+          setTiming: AuthRequired;
         };
       };
       zkappUri: {
@@ -379,7 +381,7 @@ type AccountUpdate = {
       data: Field[][];
       hash: Field;
     };
-    sequenceEvents: {
+    actions: {
       data: Field[][];
       hash: Field;
     };
@@ -388,13 +390,6 @@ type AccountUpdate = {
     preconditions: {
       network: {
         snarkedLedgerHash: { isSome: Bool; value: Field };
-        timestamp: {
-          isSome: Bool;
-          value: {
-            lower: UInt64;
-            upper: UInt64;
-          };
-        };
         blockchainLength: {
           isSome: Bool;
           value: {
@@ -414,13 +409,6 @@ type AccountUpdate = {
           value: {
             lower: UInt64;
             upper: UInt64;
-          };
-        };
-        globalSlotSinceHardFork: {
-          isSome: Bool;
-          value: {
-            lower: UInt32;
-            upper: UInt32;
           };
         };
         globalSlotSinceGenesis: {
@@ -497,10 +485,25 @@ type AccountUpdate = {
         provedState: { isSome: Bool; value: Bool };
         isNew: { isSome: Bool; value: Bool };
       };
+      validWhile: {
+        isSome: Bool;
+        value: {
+          lower: UInt32;
+          upper: UInt32;
+        };
+      };
     };
     useFullCommitment: Bool;
-    caller: TokenId;
-    authorizationKind: AuthorizationKind;
+    implicitAccountCreationFee: Bool;
+    mayUseToken: {
+      parentsOwnToken: Bool;
+      inheritFromParent: Bool;
+    };
+    authorizationKind: {
+      isSigned: Bool;
+      isProved: Bool;
+      verificationKeyHash: Field;
+    };
   };
   authorization: {
     proof?: string;

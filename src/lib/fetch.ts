@@ -335,12 +335,9 @@ function parseFetchedBlock({
   return {
     snarkedLedgerHash: Encoding.LedgerHash.fromBase58(snarkedLedgerHash),
     // TODO: use date or utcDate?
-    timestamp: UInt64.from(utcDate),
     blockchainLength: UInt32.from(blockHeight),
     minWindowDensity: UInt32.from(minWindowDensity),
     totalCurrency: UInt64.from(totalCurrency),
-    // is this really `slot`?
-    globalSlotSinceHardFork: UInt32.from(slot),
     globalSlotSinceGenesis: UInt32.from(slotSinceGenesis),
     nextEpochData: parseEpochData(nextEpochData),
     stakingEpochData: parseEpochData(stakingEpochData),
