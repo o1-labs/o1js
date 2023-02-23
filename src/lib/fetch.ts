@@ -609,6 +609,30 @@ function sendZkappQuery(json: string) {
 `;
 }
 
+const getEventsQuery = (publicKey: string, tokenId: string) => `{
+  events(input: { address: "${publicKey}", tokenId: "${tokenId}" }) {
+    blockInfo {
+      stateHash
+      timestamp
+      ledgerHash
+      height
+      parentHash
+      chainStatus
+      distanceFromMaxBlockHeight
+    }
+    transactionInfo {
+      status
+      hash
+      memo
+    }
+    eventData {
+      index
+      data
+    }
+  }
+}
+`;
+
 // removes the quotes on JSON keys
 function removeJsonQuotes(json: string) {
   let cleaned = JSON.stringify(JSON.parse(json), null, 2);
