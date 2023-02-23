@@ -926,6 +926,12 @@ super.init();
     return this.self.network;
   }
   /**
+   * Current global slot on the network.
+   */
+  get validWhile() {
+    return this.self.validWhile;
+  }
+  /**
    * Token of the {@link SmartContract}.
    */
   get token() {

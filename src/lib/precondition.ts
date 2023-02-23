@@ -91,10 +91,12 @@ function ValidWhile(accountUpdate: AccountUpdate): ValidWhile {
     jsLayout.AccountUpdate.entries.body.entries.preconditions.entries
       .validWhile;
   let context = getPreconditionContextExn(accountUpdate);
-  return preconditionClass(
-    layout as Layout,
-    'validWhile',
+  let lower = layout.inner.entries.lower.type as BaseType;
+  let baseType = baseMap[lower];
+  return preconditionSubClassWithRange<'validWhile', UInt32>(
     accountUpdate,
+    'validWhile',
+    baseType as any,
     context
   );
 }
@@ -119,24 +121,12 @@ function preconditionClass(
     if (layout.optionType === 'closedInterval') {
       let lower = layout.inner.entries.lower.type as BaseType;
       let baseType = baseMap[lower];
-      return {
-        ...preconditionSubclass(
-          accountUpdate,
-          baseKey,
-          baseType as any,
-          context
-        ),
-        assertBetween(lower: any, upper: any) {
-          context.constrained.add(baseKey);
-          let property: RangeCondition<any> = getPath(
-            accountUpdate.body.preconditions,
-            baseKey
-          );
-          property.isSome = Bool(true);
-          property.value.lower = lower;
-          property.value.upper = upper;
-        },
-      };
+      return preconditionSubClassWithRange(
+        accountUpdate,
+        baseKey,
+        baseType as any,
+        context
+      );
     }
     // value condition
     else if (layout.optionType === 'flaggedOption') {
@@ -162,6 +152,30 @@ function preconditionClass(
       })
     );
   } else throw Error('bug');
+}
+
+function preconditionSubClassWithRange<
+  K extends LongKey,
+  U extends FlatPreconditionValue[K]
+>(
+  accountUpdate: AccountUpdate,
+  longKey: K,
+  fieldType: Provable<U>,
+  context: PreconditionContext
+) {
+  return {
+    ...preconditionSubclass(accountUpdate, longKey, fieldType as any, context),
+    assertBetween(lower: any, upper: any) {
+      context.constrained.add(longKey);
+      let property: RangeCondition<any> = getPath(
+        accountUpdate.body.preconditions,
+        longKey
+      );
+      property.isSome = Bool(true);
+      property.value.lower = lower;
+      property.value.upper = upper;
+    },
+  };
 }
 
 function preconditionSubclass<
@@ -229,6 +243,9 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
     } else if (accountOrNetwork === 'network') {
       let networkState = Mina.getNetworkState();
       value = getPath(networkState, key);
+    } else if (accountOrNetwork === 'validWhile') {
+      let networkState = Mina.getNetworkState();
+      value = networkState.globalSlotSinceGenesis as U;
     } else {
       throw Error('impossible');
     }
@@ -343,8 +360,12 @@ type AccountValue = PreconditionBaseTypes<AccountPrecondition>;
 type Account = PreconditionClassType<AccountPrecondition> & Update;
 
 type ValidWhilePrecondition = Preconditions['validWhile'];
-type ValidWhileValue = PreconditionBaseTypes<ValidWhilePrecondition>;
-type ValidWhile = PreconditionClassType<ValidWhilePrecondition>;
+type ValidWhileValue = PreconditionBaseTypes<{
+  validWhile: ValidWhilePrecondition;
+}>['validWhile'];
+type ValidWhile = PreconditionClassType<{
+  validWhile: ValidWhilePrecondition;
+}>['validWhile'];
 
 type PreconditionBaseTypes<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
@@ -397,7 +418,9 @@ type JoinEntries<K, P> = K extends string
     : never
   : never;
 
-type PreconditionFlatEntry<T> = T extends AnyCondition<infer U>
+type PreconditionFlatEntry<T> = T extends RangeCondition<infer V>
+  ? ['', T, V]
+  : T extends FlaggedOptionCondition<infer U>
   ? ['', T, U]
   : { [K in keyof T]: JoinEntries<K, PreconditionFlatEntry<T[K]>> }[keyof T];
 
@@ -405,7 +428,7 @@ type FlatPreconditionValue = {
   [S in PreconditionFlatEntry<NetworkPrecondition> as `network.${S[0]}`]: S[2];
 } & {
   [S in PreconditionFlatEntry<AccountPrecondition> as `account.${S[0]}`]: S[2];
-};
+} & { validWhile: PreconditionFlatEntry<ValidWhilePrecondition>[2] };
 
 type LongKey = keyof FlatPreconditionValue;
 
