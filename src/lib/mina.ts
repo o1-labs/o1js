@@ -1,5 +1,5 @@
-import { Circuit, Ledger, LedgerAccount } from '../snarky.js';
-import { Field, Bool } from './core.js';
+import { Circuit, Ledger } from '../snarky.js';
+import { Field } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import {
@@ -8,7 +8,6 @@ import {
   FeePayerUnsigned,
   ZkappCommand,
   AccountUpdate,
-  ZkappStateLength,
   ZkappPublicInput,
   TokenId,
   CallForest,
@@ -22,10 +21,10 @@ import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue } from './circuit_value.js';
 import { Proof, snarkContext, verify } from './proof_system.js';
 import { Context } from './global-context.js';
-import { emptyReceiptChainHash } from './hash.js';
 import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './errors.js';
-import { Types } from 'src/index.js';
+import { Types } from '../provable/types.js';
+import { Account } from './mina/account.js';
 
 export {
   createTransaction,
@@ -103,8 +102,6 @@ const Transaction = {
     return newTransaction(transaction, activeInstance.proofsEnabled);
   },
 };
-
-type Account = Fetch.Account;
 
 type FetchMode = 'fetch' | 'cached' | 'test';
 type CurrentTransaction = {
@@ -248,15 +245,7 @@ function createTransaction(
     } else {
       nonce_ = UInt32.from(nonce);
       senderAccount.nonce = nonce_;
-      Fetch.addCachedAccount({
-        nonce: senderAccount.nonce,
-        publicKey: senderAccount.publicKey,
-        tokenId: senderAccount.tokenId.toString(),
-        balance: senderAccount.balance,
-        zkapp: {
-          appState: senderAccount.appState ?? [],
-        },
-      });
+      Fetch.addCachedAccount(senderAccount);
     }
     feePayerAccountUpdate = AccountUpdate.defaultFeePayer(sender, nonce_);
     if (feePayerKey !== undefined)
@@ -383,46 +372,13 @@ function LocalBlockchain({
       publicKey: PublicKey,
       tokenId: Field = TokenId.default
     ): Account {
-      let ledgerAccount = ledger.getAccount(publicKey, tokenId);
-      if (ledgerAccount == undefined) {
+      let accountJson = ledger.getAccount(publicKey, tokenId);
+      if (accountJson === undefined) {
         throw new Error(
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
         );
-      } else {
-        let { timing } = ledgerAccount;
-        return {
-          publicKey: publicKey,
-          tokenId,
-          balance: new UInt64(ledgerAccount.balance.value),
-          nonce: new UInt32(ledgerAccount.nonce.value),
-          appState:
-            ledgerAccount.zkapp?.appState ??
-            Array(ZkappStateLength).fill(Field(0)),
-          tokenSymbol: ledgerAccount.tokenSymbol,
-          receiptChainHash: ledgerAccount.receiptChainHash,
-          provedState: Bool(ledgerAccount.zkapp?.provedState ?? false),
-          delegate:
-            ledgerAccount.delegate && PublicKey.from(ledgerAccount.delegate),
-          sequenceState:
-            ledgerAccount.zkapp?.sequenceState[0] ??
-            SequenceEvents.emptySequenceState(),
-          permissions: Permissions.fromJSON(ledgerAccount.permissions),
-          timing: {
-            isTimed: timing.isTimed,
-            initialMinimumBalance: UInt64.fromObject(
-              timing.initialMinimumBalance
-            ),
-            cliffAmount: UInt64.fromObject(timing.cliffAmount),
-            cliffTime: UInt32.fromObject(timing.cliffTime),
-            vestingPeriod: UInt32.fromObject(timing.vestingPeriod),
-            vestingIncrement: UInt64.fromObject(timing.vestingIncrement),
-          },
-          verificationKey: ledgerAccount.zkapp?.verificationKey && {
-            data: ledgerAccount.zkapp?.verificationKey.data,
-            hash: Field(ledgerAccount.zkapp?.verificationKey.hash),
-          },
-        };
       }
+      return Types.Account.fromJSON(accountJson);
     },
     getNetworkState() {
       return networkState;
@@ -438,13 +394,14 @@ function LocalBlockchain({
         verifyTransactionLimits(txn.transaction.accountUpdates);
 
       for (const update of txn.transaction.accountUpdates) {
-        let account = ledger.getAccount(
+        let accountJson = ledger.getAccount(
           update.body.publicKey,
           update.body.tokenId
         );
-        if (account) {
+        if (accountJson) {
+          let account = Account.fromJSON(accountJson);
           await verifyAccountUpdate(
-            account!,
+            account,
             update,
             commitments,
             proofsEnabled
@@ -996,18 +953,9 @@ function getProofsEnabled() {
 }
 
 function dummyAccount(pubkey?: PublicKey): Account {
-  return {
-    balance: UInt64.zero,
-    nonce: UInt32.zero,
-    publicKey: pubkey ?? PublicKey.empty(),
-    tokenId: TokenId.default,
-    appState: Array(ZkappStateLength).fill(Field(0)),
-    tokenSymbol: '',
-    provedState: Bool(false),
-    receiptChainHash: emptyReceiptChainHash(),
-    delegate: undefined,
-    sequenceState: SequenceEvents.emptySequenceState(),
-  };
+  let dummy = Types.Account.emptyValue();
+  if (pubkey) dummy.publicKey = pubkey;
+  return dummy;
 }
 
 function defaultNetworkState(): NetworkValue {
@@ -1030,7 +978,7 @@ function defaultNetworkState(): NetworkValue {
 }
 
 async function verifyAccountUpdate(
-  account: LedgerAccount,
+  account: Account,
   accountUpdate: AccountUpdate,
   transactionCommitments: {
     commitment: Field;
@@ -1055,15 +1003,17 @@ async function verifyAccountUpdate(
   let { commitment, fullCommitment } = transactionCommitments;
 
   // we are essentially only checking if the update is empty or an actual update
-  function includesChange(val: any): boolean {
+  function includesChange<T extends {}>(
+    val: T | string | null | (string | null)[]
+  ): boolean {
     if (Array.isArray(val)) {
       return !val.every((v) => v === null);
     } else {
-      return val != null;
+      return val !== null;
     }
   }
 
-  function permissionForUpdate(key: string): Types.Json.AuthRequired {
+  function permissionForUpdate(key: string): Types.AuthRequired {
     switch (key) {
       case 'appState':
         return perm.editState;
@@ -1147,27 +1097,28 @@ async function verifyAccountUpdate(
 
   let verified = false;
 
-  function checkPermission(p: Types.Json.AuthRequired, field: string) {
-    if (p == 'None') return;
+  function checkPermission(p0: Types.AuthRequired, field: string) {
+    let p = Types.AuthRequired.toJSON(p0);
+    if (p === 'None') return;
 
-    if (p == 'Impossible') {
+    if (p === 'Impossible') {
       throw Error(
         `Transaction verification failed: Cannot update field '${field}' because permission for this field is '${p}'`
       );
     }
 
-    if (p == 'Signature' || p == 'Either') {
+    if (p === 'Signature' || p === 'Either') {
       verified ||= isValidSignature;
     }
 
-    if (p == 'Proof' || p == 'Either') {
+    if (p === 'Proof' || p === 'Either') {
       verified ||= isValidProof;
     }
 
     if (!verified) {
       throw Error(
         `Transaction verification failed: Cannot update field '${field}' because permission for this field is '${p}', but the required authorization was not provided or is invalid.
-        ${errorTrace != '' ? 'Error trace: ' + errorTrace : ''}`
+        ${errorTrace !== '' ? 'Error trace: ' + errorTrace : ''}`
       );
     }
   }
@@ -1342,7 +1293,7 @@ async function faucet(pub: PublicKey, network: string = 'berkeley-qanet') {
     }),
   });
   response = await response.json();
-  if (response.status.toString() != 'success') {
+  if (response.status.toString() !== 'success') {
     throw new Error(
       `Error funding account ${address}, got response status: ${response.status}, text: ${response.statusText}`
     );

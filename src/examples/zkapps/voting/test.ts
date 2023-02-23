@@ -897,7 +897,7 @@ export async function testSet(
   let results = getResults(voting, votesStore);
   console.log(results);
 
-  if (results[currentCandidate!.publicKey.toBase58()] != 1) {
+  if (results[currentCandidate!.publicKey.toBase58()] !== 1) {
     throw Error(
       `Candidate ${currentCandidate!.publicKey.toBase58()} should have one vote, but has ${
         results[currentCandidate!.publicKey.toBase58()]

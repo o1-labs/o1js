@@ -72,7 +72,7 @@ let initialState = Field(1);
 console.log('Compiling smart contract...');
 let { verificationKey } = await SimpleZkapp.compile();
 
-// check if the zkapp is already deployed, based on whether the account exists and its first zkapp state is != 0
+// check if the zkapp is already deployed, based on whether the account exists and its first zkapp state is !== 0
 let zkapp = new SimpleZkapp(zkappAddress);
 let x = await zkapp.x.fetch();
 let isDeployed = x?.equals(0).not().toBoolean() ?? false;

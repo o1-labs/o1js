@@ -7,9 +7,10 @@ import {
 import { AccountUpdate, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import * as Mina from './mina.js';
-import { Account, fetchAccount } from './fetch.js';
+import { fetchAccount } from './fetch.js';
 import { inCheckedComputation, inProver } from './proof_system.js';
 import { SmartContract } from './zkapp.js';
+import { Account } from './mina/account.js';
 
 // external API
 export { State, state, declareState };
@@ -225,13 +226,13 @@ function createState<T>(): InternalStateType<T> {
               `If none of these are the case, then please reach out on Discord at #zkapp-developers and/or open an issue to tell us!`
           );
         }
-        if (account.appState === undefined) {
+        if (account.zkapp?.appState === undefined) {
           // if the account is not a zkapp account, let the default state be all zeroes
           return Array(layout.length).fill(Field(0));
         } else {
           let stateAsFields: Field[] = [];
           for (let i = 0; i < layout.length; ++i) {
-            stateAsFields.push(account.appState[layout.offset + i]);
+            stateAsFields.push(account.zkapp.appState[layout.offset + i]);
           }
           return stateAsFields;
         }
@@ -261,12 +262,12 @@ function createState<T>(): InternalStateType<T> {
       });
       if (account === undefined) return undefined;
       let stateAsFields: Field[];
-      if (account.appState === undefined) {
+      if (account.zkapp?.appState === undefined) {
         stateAsFields = Array(layout.length).fill(Field(0));
       } else {
         stateAsFields = [];
         for (let i = 0; i < layout.length; i++) {
-          stateAsFields.push(account.appState[layout.offset + i]);
+          stateAsFields.push(account.zkapp.appState[layout.offset + i]);
         }
       }
       return this._contract.stateType.fromFields(stateAsFields);

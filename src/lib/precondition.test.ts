@@ -233,7 +233,7 @@ let implementedNumber = [
 ];
 let implementedBool = [
   () => zkapp.account.isNew,
-  // () => zkapp.account.provedState,
+  () => zkapp.account.provedState,
 ];
 let implemented = [
   ...implementedNumber,
@@ -253,7 +253,6 @@ let implementedWithRange = [
   () => zkapp.network.nextEpochData.ledger.totalCurrency,
 ];
 let unimplemented = [
-  () => zkapp.account.provedState,
   () => zkapp.network.stakingEpochData.seed,
   () => zkapp.network.nextEpochData.seed,
 ];

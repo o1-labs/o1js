@@ -8,12 +8,13 @@ import {
   Field,
   Bool,
   AuthRequired,
-  TokenSymbol,
   Sign,
   ZkappUri,
+  TokenSymbol,
   Events,
   SequenceEvents,
   SequenceState,
+  ReceiptChainHash,
 } from '../transaction-leaves-bigint.js';
 import { GenericProvableExtended } from '../../provable/generic.js';
 import {
@@ -23,10 +24,10 @@ import {
 import * as Json from './transaction-json.js';
 import { jsLayout } from './js-layout.js';
 
-export { customTypes, ZkappCommand, AccountUpdate };
+export { customTypes, ZkappCommand, AccountUpdate, Account };
 export { Json };
 export * from '../transaction-leaves-bigint.js';
-export { provableFromLayout, toJSONEssential, Layout, TypeMap };
+export { provableFromLayout, toJSONEssential, emptyValue, Layout, TypeMap };
 
 type TypeMap = {
   PublicKey: PublicKey;
@@ -63,7 +64,13 @@ type CustomTypes = {
     },
     string
   >;
-  TokenSymbol: ProvableExtended<TokenSymbol, string>;
+  TokenSymbol: ProvableExtended<
+    {
+      symbol: string;
+      field: Field;
+    },
+    string
+  >;
   Events: ProvableExtended<
     {
       data: Field[][];
@@ -79,6 +86,7 @@ type CustomTypes = {
     Json.TypeMap['Field'][][]
   >;
   SequenceState: ProvableExtended<Field, Json.TypeMap['Field']>;
+  ReceiptChainHash: ProvableExtended<Field, Json.TypeMap['Field']>;
 };
 let customTypes: CustomTypes = {
   ZkappUri,
@@ -86,8 +94,9 @@ let customTypes: CustomTypes = {
   Events,
   SequenceEvents,
   SequenceState,
+  ReceiptChainHash,
 };
-let { provableFromLayout, toJSONEssential } = ProvableFromLayout<
+let { provableFromLayout, toJSONEssential, emptyValue } = ProvableFromLayout<
   TypeMap,
   Json.TypeMap
 >(TypeMap, customTypes);
@@ -141,7 +150,13 @@ type ZkappCommand = {
             hash: Field;
           };
         };
-        tokenSymbol: { isSome: Bool; value: TokenSymbol };
+        tokenSymbol: {
+          isSome: Bool;
+          value: {
+            symbol: string;
+            field: Field;
+          };
+        };
         timing: {
           isSome: Bool;
           value: {
@@ -338,7 +353,13 @@ type AccountUpdate = {
           hash: Field;
         };
       };
-      tokenSymbol: { isSome: Bool; value: TokenSymbol };
+      tokenSymbol: {
+        isSome: Bool;
+        value: {
+          symbol: string;
+          field: Field;
+        };
+      };
       timing: {
         isSome: Bool;
         value: {
@@ -492,4 +513,54 @@ type AccountUpdate = {
 
 let AccountUpdate = provableFromLayout<AccountUpdate, Json.AccountUpdate>(
   jsLayout.AccountUpdate as any
+);
+
+type Account = {
+  publicKey: PublicKey;
+  tokenId: TokenId;
+  tokenSymbol: string;
+  balance: UInt64;
+  nonce: UInt32;
+  receiptChainHash: Field;
+  delegate?: PublicKey;
+  votingFor: Field;
+  timing: {
+    isTimed: Bool;
+    initialMinimumBalance: UInt64;
+    cliffTime: UInt32;
+    cliffAmount: UInt64;
+    vestingPeriod: UInt32;
+    vestingIncrement: UInt64;
+  };
+  permissions: {
+    editState: AuthRequired;
+    access: AuthRequired;
+    send: AuthRequired;
+    receive: AuthRequired;
+    setDelegate: AuthRequired;
+    setPermissions: AuthRequired;
+    setVerificationKey: AuthRequired;
+    setZkappUri: AuthRequired;
+    editSequenceState: AuthRequired;
+    setTokenSymbol: AuthRequired;
+    incrementNonce: AuthRequired;
+    setVotingFor: AuthRequired;
+    setTiming: AuthRequired;
+  };
+  zkapp?: {
+    appState: Field[];
+    verificationKey?: {
+      data: string;
+      hash: Field;
+    };
+    zkappVersion: UInt32;
+    sequenceState: Field[];
+    lastSequenceSlot: UInt32;
+    provedState: Bool;
+    zkappUri: string;
+  };
+};
+
+let Account = provableFromLayout<Account, Json.Account>(
+  jsLayout.Account as any
 );

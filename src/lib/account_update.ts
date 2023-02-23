@@ -632,7 +632,7 @@ class AccountUpdate implements Types.AccountUpdate {
     undefined;
   account: Precondition.Account;
   network: Precondition.Network;
-  validWhile: Precondition.ValidWhile;
+  globalSlot: Precondition.ValidWhile;
   children: {
     callsType:
       | { type: 'None' }
@@ -660,7 +660,7 @@ class AccountUpdate implements Types.AccountUpdate {
     );
     this.account = account;
     this.network = network;
-    this.validWhile = validWhile;
+    this.globalSlot = validWhile;
     this.isSelf = isSelf;
   }
 
@@ -1756,7 +1756,7 @@ const Authorization = {
       }
       try {
         let account = Mina.getAccount(body.publicKey, body.tokenId);
-        return account.verificationKey?.hash ?? Field(0);
+        return account.zkapp?.verificationKey?.hash ?? Field(0);
       } catch {
         return Field(0);
       }

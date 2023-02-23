@@ -14,9 +14,9 @@ async function workerInit() {
     messageReceived = resolve;
   });
   self.onmessage = function (msg) {
-    if (msg.data.type == 'init') {
+    if (msg.data.type === 'init') {
       messageReceived(msg);
-    } else if (msg.data.type == 'run') {
+    } else if (msg.data.type === 'run') {
       let spec = worker_spec[msg.data.name];
       let spec_args = spec.args;
       let args = msg.data.args;

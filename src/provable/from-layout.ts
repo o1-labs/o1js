@@ -420,7 +420,7 @@ function ProvableFromLayout<
     );
   }
 
-  return { provableFromLayout, toJSONEssential };
+  return { provableFromLayout, toJSONEssential, emptyValue };
 }
 
 // generic over leaf types
