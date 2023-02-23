@@ -147,7 +147,7 @@ ${
   !isJson
     ? 'export { Json };\n' +
       `export * from '${leavesRelPath}';\n` +
-      'export { provableFromLayout, toJSONEssential, Layout, TypeMap };\n'
+      'export { provableFromLayout, toJSONEssential, emptyValue, Layout, TypeMap };\n'
     : `export * from '${leavesRelPath}';\n` + 'export { TypeMap };\n'
 }
 
@@ -175,7 +175,7 @@ type CustomTypes = { ${customTypes
     .map((c) => `${c.typeName}: ProvableExtended<${c.type}, ${c.jsonType}>;`)
     .join(' ')} }
 let customTypes: CustomTypes = { ${customTypeNames.join(', ')} };
-let { provableFromLayout, toJSONEssential } = ProvableFromLayout<
+let { provableFromLayout, toJSONEssential, emptyValue } = ProvableFromLayout<
   TypeMap,
   Json.TypeMap
 >(TypeMap, customTypes);

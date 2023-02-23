@@ -1,5 +1,5 @@
-import { Circuit, Ledger, LedgerAccount } from '../snarky.js';
-import { Field, Bool } from './core.js';
+import { Circuit, Ledger } from '../snarky.js';
+import { Field } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import {
@@ -8,7 +8,6 @@ import {
   FeePayerUnsigned,
   ZkappCommand,
   AccountUpdate,
-  ZkappStateLength,
   ZkappPublicInput,
   TokenId,
   CallForest,
@@ -22,10 +21,10 @@ import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue } from './circuit_value.js';
 import { Proof, snarkContext, verify } from './proof_system.js';
 import { Context } from './global-context.js';
-import { emptyReceiptChainHash } from './hash.js';
 import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './errors.js';
-import { Types } from 'src/index.js';
+import { Types } from '../provable/types.js';
+import { Account } from './mina/account.js';
 
 export {
   createTransaction,
@@ -50,6 +49,7 @@ export {
   FeePayerSpec,
   faucet,
   waitForFunding,
+  getProofsEnabled,
   // for internal testing only
   filterGroups,
 };
@@ -99,14 +99,9 @@ type Transaction = {
 const Transaction = {
   fromJSON(json: Types.Json.ZkappCommand): Transaction {
     let transaction = ZkappCommand.fromJSON(json);
-    return newTransaction(
-      transaction,
-      (activeInstance as { proofsEnabled?: boolean }).proofsEnabled
-    );
+    return newTransaction(transaction, activeInstance.proofsEnabled);
   },
 };
-
-type Account = Fetch.Account;
 
 type FetchMode = 'fetch' | 'cached' | 'test';
 type CurrentTransaction = {
@@ -225,7 +220,8 @@ function createTransaction(
     throw err;
   }
   let accountUpdates = currentTransaction.get().accountUpdates;
-  CallForest.addCallers(accountUpdates);
+  // TODO: I'll be back
+  // CallForest.addCallers(accountUpdates);
   accountUpdates = CallForest.toFlatList(accountUpdates);
 
   try {
@@ -249,15 +245,7 @@ function createTransaction(
     } else {
       nonce_ = UInt32.from(nonce);
       senderAccount.nonce = nonce_;
-      Fetch.addCachedAccount({
-        nonce: senderAccount.nonce,
-        publicKey: senderAccount.publicKey,
-        tokenId: senderAccount.tokenId.toString(),
-        balance: senderAccount.balance,
-        zkapp: {
-          appState: senderAccount.appState ?? [],
-        },
-      });
+      Fetch.addCachedAccount(senderAccount);
     }
     feePayerAccountUpdate = AccountUpdate.defaultFeePayer(sender, nonce_);
     if (feePayerKey !== undefined)
@@ -328,6 +316,7 @@ interface Mina {
     publicKey: PublicKey,
     tokenId?: Field
   ) => { hash: string; actions: string[][] }[];
+  proofsEnabled: boolean;
 }
 
 const defaultAccountCreationFee = 1_000_000_000;
@@ -383,43 +372,13 @@ function LocalBlockchain({
       publicKey: PublicKey,
       tokenId: Field = TokenId.default
     ): Account {
-      let ledgerAccount = ledger.getAccount(publicKey, tokenId);
-      if (ledgerAccount === undefined) {
+      let accountJson = ledger.getAccount(publicKey, tokenId);
+      if (accountJson === undefined) {
         throw new Error(
           reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
         );
-      } else {
-        let { timing } = ledgerAccount;
-        return {
-          publicKey: publicKey,
-          tokenId,
-          balance: new UInt64(ledgerAccount.balance.value),
-          nonce: new UInt32(ledgerAccount.nonce.value),
-          appState:
-            ledgerAccount.zkapp?.appState ??
-            Array(ZkappStateLength).fill(Field(0)),
-          tokenSymbol: ledgerAccount.tokenSymbol,
-          receiptChainHash: ledgerAccount.receiptChainHash,
-          provedState: Bool(ledgerAccount.zkapp?.provedState ?? false),
-          delegate:
-            ledgerAccount.delegate && PublicKey.from(ledgerAccount.delegate),
-          sequenceState:
-            ledgerAccount.zkapp?.sequenceState[0] ??
-            SequenceEvents.emptySequenceState(),
-          permissions: Permissions.fromJSON(ledgerAccount.permissions),
-          timing: {
-            isTimed: timing.isTimed,
-            initialMinimumBalance: UInt64.fromObject(
-              timing.initialMinimumBalance
-            ),
-            cliffAmount: UInt64.fromObject(timing.cliffAmount),
-            cliffTime: UInt32.fromObject(timing.cliffTime),
-            vestingPeriod: UInt32.fromObject(timing.vestingPeriod),
-            vestingIncrement: UInt64.fromObject(timing.vestingIncrement),
-          },
-          verificationKey: ledgerAccount.zkapp?.verificationKey?.data,
-        };
       }
+      return Types.Account.fromJSON(accountJson);
     },
     getNetworkState() {
       return networkState;
@@ -435,13 +394,14 @@ function LocalBlockchain({
         verifyTransactionLimits(txn.transaction.accountUpdates);
 
       for (const update of txn.transaction.accountUpdates) {
-        let account = ledger.getAccount(
+        let accountJson = ledger.getAccount(
           update.body.publicKey,
           update.body.tokenId
         );
-        if (account) {
+        if (accountJson) {
+          let account = Account.fromJSON(accountJson);
           await verifyAccountUpdate(
-            account!,
+            account,
             update,
             commitments,
             proofsEnabled
@@ -483,7 +443,7 @@ function LocalBlockchain({
           }
           events[addr][tokenId].push({
             events: p.body.events,
-            slot: networkState.globalSlotSinceHardFork.toString(),
+            slot: networkState.globalSlotSinceGenesis.toString(),
           });
         }
 
@@ -501,7 +461,7 @@ function LocalBlockchain({
             ? SequenceEvents.emptySequenceState()
             : Ledger.fieldOfBase58(sequenceState);
 
-        let actionList = p.body.sequenceEvents;
+        let actionList = p.body.actions;
         let eventsHash = SequenceEvents.hash(
           actionList.map((e) => e.map((f) => Field(f)))
         );
@@ -509,7 +469,7 @@ function LocalBlockchain({
         if (actions[addr] === undefined) {
           actions[addr] = {};
         }
-        if (p.body.sequenceEvents.length > 0) {
+        if (p.body.actions.length > 0) {
           latestActionsHash = SequenceEvents.updateSequenceState(
             latestActionsHash,
             eventsHash
@@ -585,20 +545,13 @@ function LocalBlockchain({
      * 30000000000 units of currency.
      */
     testAccounts,
-    setTimestamp(ms: UInt64) {
-      networkState.timestamp = ms;
-    },
     setGlobalSlot(slot: UInt32 | number) {
       networkState.globalSlotSinceGenesis = UInt32.from(slot);
       let difference = networkState.globalSlotSinceGenesis.sub(slot);
-      networkState.globalSlotSinceHardFork =
-        networkState.globalSlotSinceHardFork.add(difference);
     },
     incrementGlobalSlot(increment: UInt32 | number) {
       networkState.globalSlotSinceGenesis =
         networkState.globalSlotSinceGenesis.add(increment);
-      networkState.globalSlotSinceHardFork =
-        networkState.globalSlotSinceHardFork.add(increment);
     },
     setBlockchainLength(height: UInt32) {
       networkState.blockchainLength = height;
@@ -777,6 +730,7 @@ function Network(graphqlEndpoint: string): Mina {
         'fetchEvents() is not implemented yet for remote blockchains.'
       );
     },
+    proofsEnabled: true,
   };
 }
 
@@ -851,6 +805,7 @@ let activeInstance: Mina = {
   getActions() {
     throw Error('must call Mina.setActiveInstance first');
   },
+  proofsEnabled: true,
 };
 
 /**
@@ -993,19 +948,14 @@ function getActions(publicKey: PublicKey, tokenId: Field) {
   return activeInstance.getActions(publicKey, tokenId);
 }
 
+function getProofsEnabled() {
+  return activeInstance.proofsEnabled;
+}
+
 function dummyAccount(pubkey?: PublicKey): Account {
-  return {
-    balance: UInt64.zero,
-    nonce: UInt32.zero,
-    publicKey: pubkey ?? PublicKey.empty(),
-    tokenId: TokenId.default,
-    appState: Array(ZkappStateLength).fill(Field(0)),
-    tokenSymbol: '',
-    provedState: Bool(false),
-    receiptChainHash: emptyReceiptChainHash(),
-    delegate: undefined,
-    sequenceState: SequenceEvents.emptySequenceState(),
-  };
+  let dummy = Types.Account.emptyValue();
+  if (pubkey) dummy.publicKey = pubkey;
+  return dummy;
 }
 
 function defaultNetworkState(): NetworkValue {
@@ -1018,11 +968,9 @@ function defaultNetworkState(): NetworkValue {
   };
   return {
     snarkedLedgerHash: Field(0),
-    timestamp: UInt64.zero,
     blockchainLength: UInt32.zero,
     minWindowDensity: UInt32.zero,
     totalCurrency: UInt64.zero,
-    globalSlotSinceHardFork: UInt32.zero,
     globalSlotSinceGenesis: UInt32.zero,
     stakingEpochData: epochData,
     nextEpochData: cloneCircuitValue(epochData),
@@ -1030,7 +978,7 @@ function defaultNetworkState(): NetworkValue {
 }
 
 async function verifyAccountUpdate(
-  account: LedgerAccount,
+  account: Account,
   accountUpdate: AccountUpdate,
   transactionCommitments: {
     commitment: Field;
@@ -1038,6 +986,18 @@ async function verifyAccountUpdate(
   },
   proofsEnabled: boolean
 ): Promise<void> {
+  // check that that top-level updates have mayUseToken = No
+  // (equivalent check exists in the Mina node)
+  if (
+    accountUpdate.body.callDepth === 0 &&
+    !AccountUpdate.MayUseToken.isNo(accountUpdate).toBoolean()
+  ) {
+    throw Error(
+      'Top-level account update can not use or pass on token permissions. Make sure that\n' +
+        'accountUpdate.body.mayUseToken = AccountUpdate.MayUseToken.No;'
+    );
+  }
+
   let perm = account.permissions;
 
   let { commitment, fullCommitment } = transactionCommitments;
@@ -1053,7 +1013,7 @@ async function verifyAccountUpdate(
     }
   }
 
-  function permissionForUpdate(key: string): Types.Json.AuthRequired {
+  function permissionForUpdate(key: string): Types.AuthRequired {
     switch (key) {
       case 'appState':
         return perm.editState;
@@ -1068,7 +1028,7 @@ async function verifyAccountUpdate(
       case 'tokenSymbol':
         return perm.setTokenSymbol;
       case 'timing':
-        return 'None';
+        return perm.setTiming;
       case 'votingFor':
         return perm.setVotingFor;
       case 'sequenceEvents':
@@ -1137,7 +1097,8 @@ async function verifyAccountUpdate(
 
   let verified = false;
 
-  function checkPermission(p: Types.Json.AuthRequired, field: string) {
+  function checkPermission(p0: Types.AuthRequired, field: string) {
+    let p = Types.AuthRequired.toJSON(p0);
     if (p === 'None') return;
 
     if (p === 'Impossible') {
@@ -1171,7 +1132,7 @@ async function verifyAccountUpdate(
   });
 
   // checks the sequence events (which result in an updated sequence state)
-  if (accountUpdate.body.sequenceEvents.data.length > 0) {
+  if (accountUpdate.body.actions.data.length > 0) {
     let p = permissionForUpdate('sequenceEvents');
     checkPermission(p, 'sequenceEvents');
   }
@@ -1212,7 +1173,7 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
     accountUpdates.map((update) => {
       let json = update.toJSON();
       eventElements.events += update.body.events.data.length;
-      eventElements.sequence += update.body.sequenceEvents.data.length;
+      eventElements.sequence += update.body.actions.data.length;
       return json.body.authorizationKind;
     })
   );
@@ -1259,38 +1220,26 @@ ${JSON.stringify(authTypes)}
   if (error) throw Error('Error during transaction sending:\n\n' + error);
 }
 
-let S = 'Signature';
-let N = 'None_given';
-let P = 'Proof';
+type AuthorizationKind = { isProved: boolean; isSigned: boolean };
 
-const isPair = (pair: string) =>
-  pair === S + N || pair === N + S || pair === S + S || pair === N + N;
+const isPair = (a: AuthorizationKind, b: AuthorizationKind) =>
+  !a.isProved && !b.isProved;
 
-function filterPairs(xs: string[]): {
-  xs: string[];
+function filterPairs(xs: AuthorizationKind[]): {
+  xs: { isProved: boolean; isSigned: boolean }[];
   pairs: number;
 } {
-  if (xs.length <= 1)
-    return {
-      xs,
-      pairs: 0,
-    };
-  if (isPair(xs[0].concat(xs[1]))) {
+  if (xs.length <= 1) return { xs, pairs: 0 };
+  if (isPair(xs[0], xs[1])) {
     let rec = filterPairs(xs.slice(2));
-    return {
-      xs: rec.xs,
-      pairs: rec.pairs + 1,
-    };
+    return { xs: rec.xs, pairs: rec.pairs + 1 };
   } else {
     let rec = filterPairs(xs.slice(1));
-    return {
-      xs: [xs[0]].concat(rec.xs),
-      pairs: rec.pairs,
-    };
+    return { xs: [xs[0]].concat(rec.xs), pairs: rec.pairs };
   }
 }
 
-function filterGroups(xs: string[]) {
+function filterGroups(xs: AuthorizationKind[]) {
   let pairs = filterPairs(xs);
   xs = pairs.xs;
 
@@ -1298,7 +1247,7 @@ function filterGroups(xs: string[]) {
   let proofCount = 0;
 
   xs.forEach((t) => {
-    if (t === P) proofCount++;
+    if (t.isProved) proofCount++;
     else singleCount++;
   });
 

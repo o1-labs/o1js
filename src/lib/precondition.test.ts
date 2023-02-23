@@ -213,10 +213,8 @@ let implementedNumber = [
   () => zkapp.account.balance,
   () => zkapp.account.nonce,
   () => zkapp.account.receiptChainHash,
-  () => zkapp.network.timestamp,
   () => zkapp.network.blockchainLength,
   () => zkapp.network.globalSlotSinceGenesis,
-  () => zkapp.network.globalSlotSinceHardFork,
   () => zkapp.network.minWindowDensity,
   () => zkapp.network.totalCurrency,
   () => zkapp.network.stakingEpochData.epochLength,
@@ -235,7 +233,7 @@ let implementedNumber = [
 ];
 let implementedBool = [
   () => zkapp.account.isNew,
-  // () => zkapp.account.provedState,
+  () => zkapp.account.provedState,
 ];
 let implemented = [
   ...implementedNumber,
@@ -245,10 +243,8 @@ let implemented = [
 let implementedWithRange = [
   () => zkapp.account.balance,
   () => zkapp.account.nonce,
-  () => zkapp.network.timestamp,
   () => zkapp.network.blockchainLength,
   () => zkapp.network.globalSlotSinceGenesis,
-  () => zkapp.network.globalSlotSinceHardFork,
   () => zkapp.network.minWindowDensity,
   () => zkapp.network.totalCurrency,
   () => zkapp.network.stakingEpochData.epochLength,
@@ -257,7 +253,6 @@ let implementedWithRange = [
   () => zkapp.network.nextEpochData.ledger.totalCurrency,
 ];
 let unimplemented = [
-  () => zkapp.account.provedState,
   () => zkapp.network.stakingEpochData.seed,
   () => zkapp.network.nextEpochData.seed,
 ];

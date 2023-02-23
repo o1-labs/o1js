@@ -9,10 +9,9 @@ import {
   Bool,
   AuthRequired,
   Sign,
-  AuthorizationKind,
 } from '../transaction-leaves-json.js';
 
-export { ZkappCommand, AccountUpdate };
+export { ZkappCommand, AccountUpdate, Account };
 export * from '../transaction-leaves-json.js';
 export { TypeMap };
 
@@ -25,7 +24,6 @@ type TypeMap = {
   Bool: Bool;
   AuthRequired: AuthRequired;
   Sign: Sign;
-  AuthorizationKind: AuthorizationKind;
 };
 
 type ZkappCommand = {
@@ -51,6 +49,7 @@ type ZkappCommand = {
         } | null;
         permissions: {
           editState: AuthRequired;
+          access: AuthRequired;
           send: AuthRequired;
           receive: AuthRequired;
           setDelegate: AuthRequired;
@@ -61,6 +60,7 @@ type ZkappCommand = {
           setTokenSymbol: AuthRequired;
           incrementNonce: AuthRequired;
           setVotingFor: AuthRequired;
+          setTiming: AuthRequired;
         } | null;
         zkappUri: string | null;
         tokenSymbol: string | null;
@@ -79,16 +79,12 @@ type ZkappCommand = {
       };
       incrementNonce: Bool;
       events: Field[][];
-      sequenceEvents: Field[][];
+      actions: Field[][];
       callData: Field;
       callDepth: number;
       preconditions: {
         network: {
           snarkedLedgerHash: Field | null;
-          timestamp: {
-            lower: UInt64;
-            upper: UInt64;
-          } | null;
           blockchainLength: {
             lower: UInt32;
             upper: UInt32;
@@ -100,10 +96,6 @@ type ZkappCommand = {
           totalCurrency: {
             lower: UInt64;
             upper: UInt64;
-          } | null;
-          globalSlotSinceHardFork: {
-            lower: UInt32;
-            upper: UInt32;
           } | null;
           globalSlotSinceGenesis: {
             lower: UInt32;
@@ -158,10 +150,22 @@ type ZkappCommand = {
           provedState: Bool | null;
           isNew: Bool | null;
         };
+        validWhile: {
+          lower: UInt32;
+          upper: UInt32;
+        } | null;
       };
       useFullCommitment: Bool;
-      caller: TokenId;
-      authorizationKind: AuthorizationKind;
+      implicitAccountCreationFee: Bool;
+      mayUseToken: {
+        parentsOwnToken: Bool;
+        inheritFromParent: Bool;
+      };
+      authorizationKind: {
+        isSigned: Bool;
+        isProved: Bool;
+        verificationKeyHash: Field;
+      };
     };
     authorization: {
       proof: string | null;
@@ -184,6 +188,7 @@ type AccountUpdate = {
       } | null;
       permissions: {
         editState: AuthRequired;
+        access: AuthRequired;
         send: AuthRequired;
         receive: AuthRequired;
         setDelegate: AuthRequired;
@@ -194,6 +199,7 @@ type AccountUpdate = {
         setTokenSymbol: AuthRequired;
         incrementNonce: AuthRequired;
         setVotingFor: AuthRequired;
+        setTiming: AuthRequired;
       } | null;
       zkappUri: string | null;
       tokenSymbol: string | null;
@@ -212,16 +218,12 @@ type AccountUpdate = {
     };
     incrementNonce: Bool;
     events: Field[][];
-    sequenceEvents: Field[][];
+    actions: Field[][];
     callData: Field;
     callDepth: number;
     preconditions: {
       network: {
         snarkedLedgerHash: Field | null;
-        timestamp: {
-          lower: UInt64;
-          upper: UInt64;
-        } | null;
         blockchainLength: {
           lower: UInt32;
           upper: UInt32;
@@ -233,10 +235,6 @@ type AccountUpdate = {
         totalCurrency: {
           lower: UInt64;
           upper: UInt64;
-        } | null;
-        globalSlotSinceHardFork: {
-          lower: UInt32;
-          upper: UInt32;
         } | null;
         globalSlotSinceGenesis: {
           lower: UInt32;
@@ -291,13 +289,71 @@ type AccountUpdate = {
         provedState: Bool | null;
         isNew: Bool | null;
       };
+      validWhile: {
+        lower: UInt32;
+        upper: UInt32;
+      } | null;
     };
     useFullCommitment: Bool;
-    caller: TokenId;
-    authorizationKind: AuthorizationKind;
+    implicitAccountCreationFee: Bool;
+    mayUseToken: {
+      parentsOwnToken: Bool;
+      inheritFromParent: Bool;
+    };
+    authorizationKind: {
+      isSigned: Bool;
+      isProved: Bool;
+      verificationKeyHash: Field;
+    };
   };
   authorization: {
     proof: string | null;
     signature: string | null;
   };
+};
+
+type Account = {
+  publicKey: PublicKey;
+  tokenId: TokenId;
+  tokenSymbol: string;
+  balance: UInt64;
+  nonce: UInt32;
+  receiptChainHash: Field;
+  delegate: PublicKey | null;
+  votingFor: Field;
+  timing: {
+    isTimed: Bool;
+    initialMinimumBalance: UInt64;
+    cliffTime: UInt32;
+    cliffAmount: UInt64;
+    vestingPeriod: UInt32;
+    vestingIncrement: UInt64;
+  };
+  permissions: {
+    editState: AuthRequired;
+    access: AuthRequired;
+    send: AuthRequired;
+    receive: AuthRequired;
+    setDelegate: AuthRequired;
+    setPermissions: AuthRequired;
+    setVerificationKey: AuthRequired;
+    setZkappUri: AuthRequired;
+    editSequenceState: AuthRequired;
+    setTokenSymbol: AuthRequired;
+    incrementNonce: AuthRequired;
+    setVotingFor: AuthRequired;
+    setTiming: AuthRequired;
+  };
+  zkapp: {
+    appState: Field[];
+    verificationKey: {
+      data: string;
+      hash: Field;
+    } | null;
+    zkappVersion: UInt32;
+    sequenceState: Field[];
+    lastSequenceSlot: UInt32;
+    provedState: Bool;
+    zkappUri: string;
+  } | null;
 };

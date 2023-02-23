@@ -45,7 +45,6 @@ export async function testSet(
   }
 ) {
   let { votersStore, candidatesStore, votesStore } = storage;
-  let { votingKey, voterKey } = params;
 
   /*
     test case description:
@@ -480,7 +479,7 @@ export async function testSet(
       voting.voterRegistration(newVoter1);
     },
     feePayer,
-    'assert_equal: 1 != 0'
+    'assert_equal'
   );
 
   if (voterContract.reducer.getActions({}).length !== 1) {

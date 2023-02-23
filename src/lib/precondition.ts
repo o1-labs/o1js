@@ -17,16 +17,22 @@ export {
   preconditions,
   Account,
   Network,
+  ValidWhile,
   assertPreconditionInvariants,
   cleanPreconditionsCache,
   AccountValue,
   NetworkValue,
+  ValidWhileValue,
   getAccountPreconditions,
 };
 
 function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
   initializePreconditions(accountUpdate, isSelf);
-  return { account: Account(accountUpdate), network: Network(accountUpdate) };
+  return {
+    account: Account(accountUpdate),
+    network: Network(accountUpdate),
+    validWhile: ValidWhile(accountUpdate),
+  };
 }
 
 // note: please keep the two precondition implementations separate
@@ -80,13 +86,23 @@ function updateSubclass<K extends keyof Update>(
   };
 }
 
+function ValidWhile(accountUpdate: AccountUpdate): ValidWhile {
+  let layout =
+    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries
+      .validWhile;
+  let context = getPreconditionContextExn(accountUpdate);
+  return preconditionClass(
+    layout as Layout,
+    'validWhile',
+    accountUpdate,
+    context
+  );
+}
+
 let unimplementedPreconditions: LongKey[] = [
   // unimplemented because its not checked in the protocol
   'network.stakingEpochData.seed',
   'network.nextEpochData.seed',
-  // this is partially unimplemented because the field is missing on the account endpoint
-  // but with the local ledger it works!
-  'account.provedState',
 ];
 
 type BaseType = 'UInt64' | 'UInt32' | 'Field' | 'Bool' | 'PublicKey';
@@ -242,9 +258,10 @@ function getAccountPreconditions(body: {
     balance: account.balance,
     nonce: account.nonce,
     receiptChainHash: account.receiptChainHash,
-    sequenceState: account.sequenceState ?? SequenceEvents.emptySequenceState(),
+    sequenceState:
+      account.zkapp?.sequenceState?.[0] ?? SequenceEvents.emptySequenceState(),
     delegate: account.delegate ?? account.publicKey,
-    provedState: account.provedState,
+    provedState: account.zkapp?.provedState ?? Bool(false),
     isNew: Bool(false),
   };
 }
@@ -324,6 +341,10 @@ type Network = PreconditionClassType<NetworkPrecondition>;
 type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
 type AccountValue = PreconditionBaseTypes<AccountPrecondition>;
 type Account = PreconditionClassType<AccountPrecondition> & Update;
+
+type ValidWhilePrecondition = Preconditions['validWhile'];
+type ValidWhileValue = PreconditionBaseTypes<ValidWhilePrecondition>;
+type ValidWhile = PreconditionClassType<ValidWhilePrecondition>;
 
 type PreconditionBaseTypes<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>

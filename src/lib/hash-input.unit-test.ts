@@ -122,15 +122,15 @@ body.callDepth = 1;
 body.incrementNonce = Bool(true);
 let tokenOwner = PrivateKey.random().toPublicKey();
 body.tokenId = new Token({ tokenOwner }).id;
-body.caller = body.tokenId;
+body.mayUseToken = { parentsOwnToken: Bool(true), inheritFromParent: Bool(false) };
 let events = Events.empty();
 events = Events.pushEvent(events, [Field(1)]);
 events = Events.pushEvent(events, [Field(0)]);
 body.events = events;
-let sequenceEvents = SequenceEvents.empty();
-sequenceEvents = SequenceEvents.pushEvent(sequenceEvents, [Field(1)]);
-sequenceEvents = SequenceEvents.pushEvent(sequenceEvents, [Field(0)]);
-body.sequenceEvents = sequenceEvents;
+let actions = SequenceEvents.empty();
+actions = SequenceEvents.pushEvent(actions, [Field(1)]);
+actions = SequenceEvents.pushEvent(actions, [Field(0)]);
+body.actions = actions;
 
 testInput(Body, Ledger.hashInputFromJson.body, body);
 
@@ -153,7 +153,7 @@ function testInput<T, TJson>(
   value: T
 ) {
   let json = Module.toJSON(value);
-  // console.log(json);
+  // console.log('json', json);
   let input1 = inputFromOcaml(toInputOcaml(JSON.stringify(json)));
   let input2 = Module.toInput(value);
   // console.log('snarkyjs', JSON.stringify(input2));
