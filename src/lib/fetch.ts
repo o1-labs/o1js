@@ -189,9 +189,8 @@ function getCachedAccount(
   tokenId: Field,
   graphqlEndpoint = defaultGraphqlEndpoint
 ): Account | undefined {
-  return accountCache[
-    `${publicKey.toBase58()};${TokenId.toBase58(tokenId)};${graphqlEndpoint}`
-  ]?.account;
+  return accountCache[accountCacheKey(publicKey, tokenId, graphqlEndpoint)]
+    ?.account;
 }
 
 function getCachedNetwork(graphqlEndpoint = defaultGraphqlEndpoint) {
@@ -211,12 +210,22 @@ function addCachedAccount(
 
 function addCachedAccountInternal(account: Account, graphqlEndpoint: string) {
   accountCache[
-    `${account.publicKey.toBase58()};${account.tokenId.toString()};${graphqlEndpoint}`
+    accountCacheKey(account.publicKey, account.tokenId, graphqlEndpoint)
   ] = {
     account,
     graphqlEndpoint,
     timestamp: Date.now(),
   };
+}
+
+function accountCacheKey(
+  publicKey: PublicKey,
+  tokenId: Field,
+  graphqlEndpoint: string
+) {
+  return `${publicKey.toBase58()};${TokenId.toBase58(
+    tokenId
+  )};${graphqlEndpoint}`;
 }
 
 /**
