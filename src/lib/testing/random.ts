@@ -107,6 +107,7 @@ const json = {
   uint32: map(UInt32, Bigint.UInt32.toJSON),
   publicKey: map(PublicKey, CurveBigint.PublicKey.toJSON),
   signature: map(Signature, SignatureBigint.Signature.toBase58),
+  signatureJson: map(Signature, SignatureBigint.Signature.toJSON),
 };
 
 const Random = Object.assign(Random_, {
