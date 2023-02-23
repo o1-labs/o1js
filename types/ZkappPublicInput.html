@@ -14,11 +14,17 @@
 <li><a href="ZkappPublicInput.html">ZkappPublicInput</a></li></ul>
 <h1>Type alias ZkappPublicInput</h1></div>
 <div class="tsd-signature">Zkapp<wbr/>Public<wbr/>Input<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{ </span>accountUpdate<span class="tsd-signature-symbol">: </span><a href="../classes/Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a><span class="tsd-signature-symbol">; </span>calls<span class="tsd-signature-symbol">: </span><a href="../classes/Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a><span class="tsd-signature-symbol"> }</span></div>
-<div class="tsd-comment tsd-typography"><p>The public input for zkApps consists of certain hashes of the proving AccountUpdate (and its child accountUpdates) which is constructed during method execution.</p>
-<p> For SmartContract proving, a method is run twice: First outside the proof, to obtain the public input, and once in the prover,
- which takes the public input as input. The current transaction is hashed again inside the prover, which asserts that the result equals the input public input,
- as part of the snark circuit. The block producer will also hash the transaction they receive and pass it as a public input to the verifier.
- Thus, the transaction is fully constrained by the proof - the proof couldn&#39;t be used to attest to a different transaction.</p>
+<div class="tsd-comment tsd-typography"><p>The public input for zkApps consists of certain hashes of the proving
+AccountUpdate (and its child accountUpdates) which is constructed during method
+execution.</p>
+<p> For SmartContract proving, a method is run twice: First outside the proof, to
+obtain the public input, and once in the prover, which takes the public input
+as input. The current transaction is hashed again inside the prover, which
+asserts that the result equals the input public input, as part of the snark
+circuit. The block producer will also hash the transaction they receive and
+pass it as a public input to the verifier. Thus, the transaction is fully
+constrained by the proof - the proof couldn&#39;t be used to attest to a different
+transaction.</p>
 </div>
 <div class="tsd-type-declaration">
 <h4>Type declaration</h4>
@@ -28,8 +34,8 @@
 <li class="tsd-parameter">
 <h5>calls<span class="tsd-signature-symbol">: </span><a href="../classes/Field.html" class="tsd-signature-type" data-tsd-kind="Class">Field</a></h5></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/7afd571/src/lib/account_update.ts#L1755">lib/account_update.ts:1755</a></li>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/7afd571/src/lib/account_update.ts#L1756">lib/account_update.ts:1756</a></li></ul></aside></div>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/421e118/src/lib/account_update.ts#L1861">lib/account_update.ts:1861</a></li>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/421e118/src/lib/account_update.ts#L1865">lib/account_update.ts:1865</a></li></ul></aside></div>
 <div class="col-4 col-menu menu-sticky-wrap menu-highlight">
 <div class="tsd-navigation settings">
 <details class="tsd-index-accordion"><summary class="tsd-accordion-summary">
