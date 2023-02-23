@@ -928,8 +928,8 @@ super.init();
   /**
    * Current global slot on the network.
    */
-  get validWhile() {
-    return this.self.validWhile;
+  get globalSlot() {
+    return this.self.globalSlot;
   }
   /**
    * Token of the {@link SmartContract}.

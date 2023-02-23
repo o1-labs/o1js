@@ -632,7 +632,7 @@ class AccountUpdate implements Types.AccountUpdate {
     undefined;
   account: Precondition.Account;
   network: Precondition.Network;
-  validWhile: Precondition.ValidWhile;
+  globalSlot: Precondition.ValidWhile;
   children: {
     callsType:
       | { type: 'None' }
@@ -660,7 +660,7 @@ class AccountUpdate implements Types.AccountUpdate {
     );
     this.account = account;
     this.network = network;
-    this.validWhile = validWhile;
+    this.globalSlot = validWhile;
     this.isSelf = isSelf;
   }
 

@@ -326,6 +326,10 @@ function assertPreconditionInvariants(accountUpdate: AccountUpdate) {
 
     // we accessed a precondition field but not constrained it explicitly - throw an error
     let hasAssertBetween = isRangeCondition(precondition);
+    // TODO: maybe the "validWhile" should be changed to "globalSlot" in a more global way?
+    if (preconditionPath === 'validWhile') {
+      preconditionPath = 'globalSlot' as any;
+    }
     let shortPath = preconditionPath.split('.').pop();
     let errorMessage = `You used \`${self}.${preconditionPath}.get()\` without adding a precondition that links it to the actual ${shortPath}.
 Consider adding this line to your code:
