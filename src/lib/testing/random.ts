@@ -54,7 +54,7 @@ const Events = map(
 );
 const SequenceEvents = Events;
 const SequenceState = oneOf(Bigint.SequenceState.emptyValue(), Field);
-const ReceiptChainHash = oneOf(Bigint.SequenceState.emptyValue(), Field);
+const ReceiptChainHash = oneOf(Bigint.ReceiptChainHash.emptyValue(), Field);
 const ZkappUri = map(string(nat(50)), Bigint.ZkappUri.fromJSON);
 
 const PrimitiveMap = primitiveTypeMap<bigint>();
