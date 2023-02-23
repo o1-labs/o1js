@@ -22,7 +22,7 @@ import {
   paymentFromJson,
 } from './sign-legacy.js';
 import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
-import { Signature } from './signature.js';
+import { Signature, SignatureJson } from './signature.js';
 import { blake2b } from 'blakejs';
 import { base58, withBase58 } from '../../provable/base58.js';
 import { versionBytes } from '../../js_crypto/constants.js';
@@ -36,13 +36,18 @@ export {
   userCommandToEnum,
   userCommandToV1,
   Signed,
+  SignedLegacy,
   HashBase58,
 };
 
 type Signed<T> = { data: T; signature: string };
+type SignedLegacy<T> = { data: T; signature: SignatureJson };
 const dummySignature: Signature = { r: Field(1), s: Scalar(1) };
 
-function hashPayment(signed: Signed<PaymentJson>, { berkeley = false } = {}) {
+function hashPayment(
+  signed: SignedLegacy<PaymentJson>,
+  { berkeley = false } = {}
+) {
   if (!berkeley) return hashPaymentV1(signed);
   let payload = userCommandToEnum(paymentFromJson(signed.data));
   return hashSignedCommand({
@@ -53,7 +58,7 @@ function hashPayment(signed: Signed<PaymentJson>, { berkeley = false } = {}) {
 }
 
 function hashStakeDelegation(
-  signed: Signed<DelegationJson>,
+  signed: SignedLegacy<DelegationJson>,
   { berkeley = false } = {}
 ) {
   if (!berkeley) return hashStakeDelegationV1(signed);
@@ -162,20 +167,23 @@ const HashBase58 = base58(
 
 // legacy / v1 stuff
 
-function hashPaymentV1({ data, signature }: Signed<PaymentJson>) {
+function hashPaymentV1({ data, signature }: SignedLegacy<PaymentJson>) {
   let paymentV1 = userCommandToV1(paymentFromJson(data));
   return hashSignedCommandV1({
     signer: PublicKey.fromBase58(data.body.source),
-    signature: Signature.fromBase58(signature),
+    signature: Signature.fromJSON(signature),
     payload: paymentV1,
   });
 }
 
-function hashStakeDelegationV1({ data, signature }: Signed<DelegationJson>) {
+function hashStakeDelegationV1({
+  data,
+  signature,
+}: SignedLegacy<DelegationJson>) {
   let payload = userCommandToV1(delegationFromJson(data));
   return hashSignedCommandV1({
     signer: PublicKey.fromBase58(data.body.delegator),
-    signature: Signature.fromBase58(signature),
+    signature: Signature.fromJSON(signature),
     payload,
   });
 }

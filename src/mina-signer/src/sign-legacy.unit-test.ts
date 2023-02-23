@@ -28,7 +28,7 @@ for (let network of networks) {
 
   for (let payment of payments) {
     let signature = signPayment(payment, privateKey, network);
-    let sig = Signature.fromBase58(signature);
+    let sig = Signature.fromJSON(signature);
     let ref = reference[i++];
     expect(sig.r).toEqual(BigInt(ref.field));
     expect(sig.s).toEqual(BigInt(ref.scalar));
@@ -38,7 +38,7 @@ for (let network of networks) {
 
   for (let delegation of delegations) {
     let signature = signStakeDelegation(delegation, privateKey, network);
-    let sig = Signature.fromBase58(signature);
+    let sig = Signature.fromJSON(signature);
     let ref = reference[i++];
     expect(sig.r).toEqual(BigInt(ref.field));
     expect(sig.s).toEqual(BigInt(ref.scalar));
@@ -48,7 +48,7 @@ for (let network of networks) {
 
   for (let string of strings) {
     let signature = signString(string, privateKey, network);
-    let sig = Signature.fromBase58(signature);
+    let sig = Signature.fromJSON(signature);
     let ref = reference[i++];
     expect(sig.r).toEqual(BigInt(ref.field));
     expect(sig.s).toEqual(BigInt(ref.scalar));
@@ -74,7 +74,7 @@ let invalidPublicKey: PaymentJson = {
     source: PublicKey.toBase58({ x: 0n, isOdd: 0n }),
   },
 };
-let signature = Signature.toBase58({ r: Field.random(), s: Scalar.random() });
+let signature = Signature.toJSON({ r: Field.random(), s: Scalar.random() });
 
 expect(() => signPayment(amountTooLarge, privateKey, 'mainnet')).toThrow(
   `inputs larger than ${2n ** 64n - 1n} are not allowed`
@@ -92,12 +92,12 @@ expect(
 
 // negative tests with invalid signatures
 
-let garbageSignature = 'garbage';
-let signatureFieldTooLarge = Signature.toBase58({
+let garbageSignature = { field: 'garbage', scalar: 'garbage' };
+let signatureFieldTooLarge = Signature.toJSON({
   r: Field.modulus,
   s: Scalar.random(),
 });
-let signatureScalarTooLarge = Signature.toBase58({
+let signatureScalarTooLarge = Signature.toJSON({
   r: Field.random(),
   s: Scalar.modulus,
 });
