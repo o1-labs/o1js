@@ -17,12 +17,12 @@ export {
   preconditions,
   Account,
   Network,
-  ValidWhile,
+  GlobalSlot,
   assertPreconditionInvariants,
   cleanPreconditionsCache,
   AccountValue,
   NetworkValue,
-  ValidWhileValue,
+  GlobalSlotValue,
   getAccountPreconditions,
 };
 
@@ -31,7 +31,7 @@ function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
   return {
     account: Account(accountUpdate),
     network: Network(accountUpdate),
-    validWhile: ValidWhile(accountUpdate),
+    globalSlot: GlobalSlot(accountUpdate),
   };
 }
 
@@ -86,7 +86,7 @@ function updateSubclass<K extends keyof Update>(
   };
 }
 
-function ValidWhile(accountUpdate: AccountUpdate): ValidWhile {
+function GlobalSlot(accountUpdate: AccountUpdate): GlobalSlot {
   let layout =
     jsLayout.AccountUpdate.entries.body.entries.preconditions.entries
       .validWhile;
@@ -283,7 +283,7 @@ function getAccountPreconditions(body: {
   };
 }
 
-// per-accountUpdate context for checking invariants on precondition construction
+// per account update context for checking invariants on precondition construction
 type PreconditionContext = {
   isSelf: boolean;
   vars: Partial<FlatPreconditionValue>;
@@ -363,12 +363,12 @@ type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
 type AccountValue = PreconditionBaseTypes<AccountPrecondition>;
 type Account = PreconditionClassType<AccountPrecondition> & Update;
 
-type ValidWhilePrecondition = Preconditions['validWhile'];
-type ValidWhileValue = PreconditionBaseTypes<{
-  validWhile: ValidWhilePrecondition;
+type GlobalSlotPrecondition = Preconditions['validWhile'];
+type GlobalSlotValue = PreconditionBaseTypes<{
+  validWhile: GlobalSlotPrecondition;
 }>['validWhile'];
-type ValidWhile = PreconditionClassType<{
-  validWhile: ValidWhilePrecondition;
+type GlobalSlot = PreconditionClassType<{
+  validWhile: GlobalSlotPrecondition;
 }>['validWhile'];
 
 type PreconditionBaseTypes<T> = {
@@ -432,7 +432,7 @@ type FlatPreconditionValue = {
   [S in PreconditionFlatEntry<NetworkPrecondition> as `network.${S[0]}`]: S[2];
 } & {
   [S in PreconditionFlatEntry<AccountPrecondition> as `account.${S[0]}`]: S[2];
-} & { validWhile: PreconditionFlatEntry<ValidWhilePrecondition>[2] };
+} & { validWhile: PreconditionFlatEntry<GlobalSlotPrecondition>[2] };
 
 type LongKey = keyof FlatPreconditionValue;
 
