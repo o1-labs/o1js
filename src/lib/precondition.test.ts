@@ -210,6 +210,7 @@ describe('preconditions', () => {
 });
 
 let implementedNumber = [
+  () => zkapp.globalSlot,
   () => zkapp.account.balance,
   () => zkapp.account.nonce,
   () => zkapp.account.receiptChainHash,
@@ -241,6 +242,7 @@ let implemented = [
   () => zkapp.account.delegate,
 ];
 let implementedWithRange = [
+  () => zkapp.globalSlot,
   () => zkapp.account.balance,
   () => zkapp.account.nonce,
   () => zkapp.network.blockchainLength,
