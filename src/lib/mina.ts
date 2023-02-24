@@ -767,9 +767,13 @@ function Network(graphqlEndpoint: string): Mina {
         isFinalRunOutsideCircuit: !hasProofs,
       });
     },
-    async fetchEvents() {
-      throw Error(
-        'fetchEvents() is not implemented yet for remote blockchains.'
+    async fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+      let pubKey = publicKey.toBase58();
+      let token = TokenId.toBase58(tokenId);
+
+      return await Fetch.fetchEvents(
+        { publicKey: pubKey, tokenId: token },
+        graphqlEndpoint
       );
     },
     getActions() {
@@ -845,7 +849,7 @@ let activeInstance: Mina = {
   async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
     return createTransaction(sender, f, 0);
   },
-  fetchEvents() {
+  fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
     throw Error('must call Mina.setActiveInstance first');
   },
   getActions() {

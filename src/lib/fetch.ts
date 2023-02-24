@@ -24,6 +24,7 @@ export {
   sendZkappQuery,
   sendZkapp,
   removeJsonQuotes,
+  fetchEvents,
 };
 
 export { Account };
@@ -619,6 +620,7 @@ const getEventsQuery = (publicKey: string, tokenId: string) => `{
       parentHash
       chainStatus
       distanceFromMaxBlockHeight
+      globalSlotSinceGenesis
     }
     transactionInfo {
       status
@@ -632,6 +634,41 @@ const getEventsQuery = (publicKey: string, tokenId: string) => `{
   }
 }
 `;
+
+/**
+ * Fetches the events for an account.
+ */
+async function fetchEvents(
+  accountInfo: { publicKey: string; tokenId?: string },
+  graphqlEndpoint = defaultGraphqlEndpoint
+): Promise<any> {
+  const { publicKey, tokenId } = accountInfo;
+  let [response, error] = await makeGraphqlRequest(
+    getEventsQuery(publicKey, tokenId ?? TokenId.toBase58(TokenId.default)),
+    graphqlEndpoint
+  );
+  if (error) throw Error(error.statusText);
+  let fetchedEvents = response?.data.events;
+  if (fetchedEvents === undefined) {
+    throw Error(
+      `Failed to fetch events data. Account: ${publicKey} Token: ${tokenId}`
+    );
+  }
+  let events = [];
+  for (let i = 0; i < fetchedEvents.length; i++) {
+    let event = fetchedEvents[i];
+    let parsedEvents: any = [];
+
+    event.eventData.forEach((event: { index: string; data: string[] }) => {
+      parsedEvents.push([event.index].concat(event.data));
+    });
+    events.push({
+      events: parsedEvents,
+      slot: event.blockInfo.globalSlotSinceGenesis,
+    });
+  }
+  return events;
+}
 
 // removes the quotes on JSON keys
 function removeJsonQuotes(json: string) {
