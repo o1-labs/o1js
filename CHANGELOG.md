@@ -27,9 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New precondition: `provedState`, a boolean which is true if the entire on-chain state of this account was last modified by a proof https://github.com/o1-labs/snarkyjs/pull/741
   - Same API as all preconditions: `this.account.provedState.assertEquals(Bool(true))`
   - Can be used to assert that the state wasn't tampered with by the zkApp developer using non-contract logic, for example, before deploying the zkApp
-- New on-chain value `globalSlot`, to assert that a method can only in a certain time range https://github.com/o1-labs/snarkyjs/pull/649
-  - example: `this.globalSlot.assertBetween(lower, upper)`
-  - Replaces the `network.timestamp`, `network.globalSlotSinceGenesis` and `network.globalSlotSinceHardFork` preconditions. https://github.com/o1-labs/snarkyjs/pull/560
+- New on-chain value `globalSlot`, to make assertions about the current time https://github.com/o1-labs/snarkyjs/pull/649
+  - example: `this.globalSlot.get()`, `this.globalSlot.assertBetween(lower, upper)`
+  - Replaces `network.timestamp`, `network.globalSlotSinceGenesis` and `network.globalSlotSinceHardFork`. https://github.com/o1-labs/snarkyjs/pull/560
 - New permissions:
   - `access` to control whether account updates for this account can be used at all https://github.com/o1-labs/snarkyjs/pull/500
   - `setTiming` to control who can update the account's `timing` field https://github.com/o1-labs/snarkyjs/pull/685
@@ -50,8 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- Preconditions `timestamp` and `globalSlotSinceHardFork` are removed https://github.com/o1-labs/snarkyjs/pull/560
-  - these are expected to come back as wrappers for `validWhile`
+- Preconditions `timestamp` and `globalSlotSinceHardFork` https://github.com/o1-labs/snarkyjs/pull/560
+  - `timestamp` is expected to come back as a wrapper for the new `globalSlot`
 
 ## [0.8.0](https://github.com/o1-labs/snarkyjs/compare/d880bd6e...c5a36207)
 
