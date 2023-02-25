@@ -17,12 +17,12 @@ export {
   preconditions,
   Account,
   Network,
-  ValidWhile,
+  GlobalSlot,
   assertPreconditionInvariants,
   cleanPreconditionsCache,
   AccountValue,
   NetworkValue,
-  ValidWhileValue,
+  GlobalSlotValue,
   getAccountPreconditions,
 };
 
@@ -31,7 +31,7 @@ function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
   return {
     account: Account(accountUpdate),
     network: Network(accountUpdate),
-    validWhile: ValidWhile(accountUpdate),
+    globalSlot: GlobalSlot(accountUpdate),
   };
 }
 
@@ -86,15 +86,17 @@ function updateSubclass<K extends keyof Update>(
   };
 }
 
-function ValidWhile(accountUpdate: AccountUpdate): ValidWhile {
+function GlobalSlot(accountUpdate: AccountUpdate): GlobalSlot {
   let layout =
     jsLayout.AccountUpdate.entries.body.entries.preconditions.entries
       .validWhile;
   let context = getPreconditionContextExn(accountUpdate);
-  return preconditionClass(
-    layout as Layout,
-    'validWhile',
+  let lower = layout.inner.entries.lower.type as BaseType;
+  let baseType = baseMap[lower];
+  return preconditionSubClassWithRange<'validWhile', UInt32>(
     accountUpdate,
+    'validWhile',
+    baseType as any,
     context
   );
 }
@@ -119,24 +121,12 @@ function preconditionClass(
     if (layout.optionType === 'closedInterval') {
       let lower = layout.inner.entries.lower.type as BaseType;
       let baseType = baseMap[lower];
-      return {
-        ...preconditionSubclass(
-          accountUpdate,
-          baseKey,
-          baseType as any,
-          context
-        ),
-        assertBetween(lower: any, upper: any) {
-          context.constrained.add(baseKey);
-          let property: RangeCondition<any> = getPath(
-            accountUpdate.body.preconditions,
-            baseKey
-          );
-          property.isSome = Bool(true);
-          property.value.lower = lower;
-          property.value.upper = upper;
-        },
-      };
+      return preconditionSubClassWithRange(
+        accountUpdate,
+        baseKey,
+        baseType as any,
+        context
+      );
     }
     // value condition
     else if (layout.optionType === 'flaggedOption') {
@@ -162,6 +152,30 @@ function preconditionClass(
       })
     );
   } else throw Error('bug');
+}
+
+function preconditionSubClassWithRange<
+  K extends LongKey,
+  U extends FlatPreconditionValue[K]
+>(
+  accountUpdate: AccountUpdate,
+  longKey: K,
+  fieldType: Provable<U>,
+  context: PreconditionContext
+) {
+  return {
+    ...preconditionSubclass(accountUpdate, longKey, fieldType as any, context),
+    assertBetween(lower: any, upper: any) {
+      context.constrained.add(longKey);
+      let property: RangeCondition<any> = getPath(
+        accountUpdate.body.preconditions,
+        longKey
+      );
+      property.isSome = Bool(true);
+      property.value.lower = lower;
+      property.value.upper = upper;
+    },
+  };
 }
 
 function preconditionSubclass<
@@ -229,6 +243,9 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
     } else if (accountOrNetwork === 'network') {
       let networkState = Mina.getNetworkState();
       value = getPath(networkState, key);
+    } else if (accountOrNetwork === 'validWhile') {
+      let networkState = Mina.getNetworkState();
+      value = networkState.globalSlotSinceGenesis as U;
     } else {
       throw Error('impossible');
     }
@@ -266,7 +283,7 @@ function getAccountPreconditions(body: {
   };
 }
 
-// per-accountUpdate context for checking invariants on precondition construction
+// per account update context for checking invariants on precondition construction
 type PreconditionContext = {
   isSelf: boolean;
   vars: Partial<FlatPreconditionValue>;
@@ -309,6 +326,10 @@ function assertPreconditionInvariants(accountUpdate: AccountUpdate) {
 
     // we accessed a precondition field but not constrained it explicitly - throw an error
     let hasAssertBetween = isRangeCondition(precondition);
+    // TODO: maybe the "validWhile" should be changed to "globalSlot" in a more global way?
+    if (preconditionPath === 'validWhile') {
+      preconditionPath = 'globalSlot' as any;
+    }
     let shortPath = preconditionPath.split('.').pop();
     let errorMessage = `You used \`${self}.${preconditionPath}.get()\` without adding a precondition that links it to the actual ${shortPath}.
 Consider adding this line to your code:
@@ -342,9 +363,13 @@ type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
 type AccountValue = PreconditionBaseTypes<AccountPrecondition>;
 type Account = PreconditionClassType<AccountPrecondition> & Update;
 
-type ValidWhilePrecondition = Preconditions['validWhile'];
-type ValidWhileValue = PreconditionBaseTypes<ValidWhilePrecondition>;
-type ValidWhile = PreconditionClassType<ValidWhilePrecondition>;
+type GlobalSlotPrecondition = Preconditions['validWhile'];
+type GlobalSlotValue = PreconditionBaseTypes<{
+  validWhile: GlobalSlotPrecondition;
+}>['validWhile'];
+type GlobalSlot = PreconditionClassType<{
+  validWhile: GlobalSlotPrecondition;
+}>['validWhile'];
 
 type PreconditionBaseTypes<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
@@ -397,7 +422,9 @@ type JoinEntries<K, P> = K extends string
     : never
   : never;
 
-type PreconditionFlatEntry<T> = T extends AnyCondition<infer U>
+type PreconditionFlatEntry<T> = T extends RangeCondition<infer V>
+  ? ['', T, V]
+  : T extends FlaggedOptionCondition<infer U>
   ? ['', T, U]
   : { [K in keyof T]: JoinEntries<K, PreconditionFlatEntry<T[K]>> }[keyof T];
 
@@ -405,7 +432,7 @@ type FlatPreconditionValue = {
   [S in PreconditionFlatEntry<NetworkPrecondition> as `network.${S[0]}`]: S[2];
 } & {
   [S in PreconditionFlatEntry<AccountPrecondition> as `account.${S[0]}`]: S[2];
-};
+} & { validWhile: PreconditionFlatEntry<GlobalSlotPrecondition>[2] };
 
 type LongKey = keyof FlatPreconditionValue;
 

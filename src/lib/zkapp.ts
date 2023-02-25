@@ -926,6 +926,12 @@ super.init();
     return this.self.network;
   }
   /**
+   * Current global slot on the network.
+   */
+  get globalSlot() {
+    return this.self.globalSlot;
+  }
+  /**
    * Token of the {@link SmartContract}.
    */
   get token() {
