@@ -23,7 +23,6 @@ jobs:
             'DEX integration tests',
             'DEX integration test with proofs',
             'Voting integration tests',
-            'Berkeley Live',
             'Unit tests',
             'Verification Key Regression Check',
           ]
