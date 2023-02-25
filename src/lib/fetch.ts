@@ -117,7 +117,7 @@ type FetchError = {
   statusText: string;
 };
 // Specify 30s as the default timeout
-const defaultTimeout = 120000;
+const defaultTimeout = 30000;
 
 let accountCache = {} as Record<
   string,

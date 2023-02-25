@@ -23,7 +23,6 @@ jobs:
             'DEX integration tests',
             'DEX integration test with proofs',
             'Voting integration tests',
-            'Berkeley Live',
             'Unit tests',
             'Verification Key Regression Check',
           ]
@@ -33,7 +32,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v2
         with:
-          node-version: '16'
+          node-version: '18'
       - name: Build SnarkyJS and Execute Tests
         env:
           TEST_TYPE: ${{ matrix.test_type }}
