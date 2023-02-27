@@ -54,7 +54,10 @@ function Network(accountUpdate: AccountUpdate): Network {
       return globalSlotToTimestamp(slot);
     },
     assertEquals(value: UInt64) {
-      let slot = timestampToGlobalSlot(value);
+      let slot = timestampToGlobalSlot(
+        value,
+        `Timestamp precondition unsatisfied: the timestamp must be divisible by ${slotMs} (the milliseconds per slot).`
+      );
       return network.globalSlotSinceGenesis.assertEquals(slot);
     },
     assertBetween(lower: UInt64, upper: UInt64) {
@@ -286,12 +289,9 @@ const slotMs = 3 * 60 * 1000; // 3 minutes
 function globalSlotToTimestamp(slot: UInt32) {
   return UInt64.from(slot).mul(slotMs).add(genesisTimestamp);
 }
-function timestampToGlobalSlot(timestamp: UInt64) {
+function timestampToGlobalSlot(timestamp: UInt64, message: string) {
   let { quotient: slot, rest } = timestamp.sub(genesisTimestamp).divMod(slotMs);
-  rest.value.assertEquals(
-    Field(0),
-    `timestamp must be divisible by ${slotMs} (the milliseconds per slot)`
-  );
+  rest.value.assertEquals(Field(0), message);
   return slot.toUInt32();
 }
 

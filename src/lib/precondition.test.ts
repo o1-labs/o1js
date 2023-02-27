@@ -150,15 +150,14 @@ describe('preconditions', () => {
 
   it('unsatisfied assertEquals should be rejected (numbers)', async () => {
     for (let precondition of implementedNumber) {
-      let tx = await Mina.transaction(feePayer, () => {
-        let p = precondition().get();
-        precondition().assertEquals(p.add(1) as any);
-        AccountUpdate.attachToTransaction(zkapp.self);
-      });
-
-      await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
-        /unsatisfied/
-      );
+      await expect(async () => {
+        let tx = await Mina.transaction(feePayer, () => {
+          let p = precondition().get();
+          precondition().assertEquals(p.add(1) as any);
+          AccountUpdate.attachToTransaction(zkapp.self);
+        });
+        await tx.sign([feePayerKey]).send();
+      }).rejects.toThrow(/unsatisfied/);
     }
   });
 
@@ -216,6 +215,7 @@ let implementedNumber = [
   () => zkapp.account.receiptChainHash,
   () => zkapp.network.blockchainLength,
   () => zkapp.network.globalSlotSinceGenesis,
+  () => zkapp.network.timestamp,
   () => zkapp.network.minWindowDensity,
   () => zkapp.network.totalCurrency,
   () => zkapp.network.stakingEpochData.epochLength,
@@ -247,6 +247,7 @@ let implementedWithRange = [
   () => zkapp.account.nonce,
   () => zkapp.network.blockchainLength,
   () => zkapp.network.globalSlotSinceGenesis,
+  () => zkapp.network.timestamp,
   () => zkapp.network.minWindowDensity,
   () => zkapp.network.totalCurrency,
   () => zkapp.network.stakingEpochData.epochLength,
