@@ -6,7 +6,7 @@ import {
   AccountUpdate,
   Preconditions,
 } from './account_update.js';
-import { UInt32, UInt64 } from './int.js';
+import { Int64, UInt32, UInt64 } from './int.js';
 import { Layout } from '../provable/gen/transaction.js';
 import { jsLayout } from '../provable/gen/js-layout.js';
 import { emptyReceiptChainHash, TokenSymbol } from './hash.js';
@@ -42,7 +42,30 @@ function Network(accountUpdate: AccountUpdate): Network {
   let layout =
     jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.network;
   let context = getPreconditionContextExn(accountUpdate);
-  return preconditionClass(layout as Layout, 'network', accountUpdate, context);
+  let network: RawNetwork = preconditionClass(
+    layout as Layout,
+    'network',
+    accountUpdate,
+    context
+  );
+  let timestamp = {
+    get() {
+      let slot = network.globalSlotSinceGenesis.get();
+      return globalSlotToTimestamp(slot);
+    },
+    assertEquals(value: UInt64) {
+      let slot = timestampToGlobalSlot(value);
+      return network.globalSlotSinceGenesis.assertEquals(slot);
+    },
+    assertBetween(lower: UInt64, upper: UInt64) {
+      let [slotLower, slotUpper] = timestampToGlobalSlotRange(lower, upper);
+      return network.globalSlotSinceGenesis.assertBetween(slotLower, slotUpper);
+    },
+    assertNothing() {
+      return network.globalSlotSinceGenesis.assertNothing();
+    },
+  };
+  return { ...network, timestamp };
 }
 
 function Account(accountUpdate: AccountUpdate): Account {
@@ -263,19 +286,33 @@ const slotMs = 3 * 60 * 1000; // 3 minutes
 function globalSlotToTimestamp(slot: UInt32) {
   return UInt64.from(slot).mul(slotMs).add(genesisTimestamp);
 }
+function timestampToGlobalSlot(timestamp: UInt64) {
+  let { quotient: slot, rest } = timestamp.sub(genesisTimestamp).divMod(slotMs);
+  rest.value.assertEquals(
+    Field(0),
+    `timestamp must be divisible by ${slotMs} (the milliseconds per slot)`
+  );
+  return slot.toUInt32();
+}
 
-function timestampToGlobalSlotPrecondition(timestamp: {
-  lower: UInt64;
-  upper: UInt64;
-}): { lower: UInt32; upper: UInt32 } {
-  // we need `lower <= current slot <= upper` to imply `timestamp.lower <= current timestamp <= timestamp.upper`
-  // so we have to make the range smaller -- round up `timestamp.lower` to slot intervals, and round down `timestamp.upper`
-  let lower = timestamp.lower
-    .sub(genesisTimestamp - (slotMs - 1))
-    .div(slotMs)
-    .toUInt32();
-  let upper = timestamp.upper.sub(genesisTimestamp).div(slotMs).toUInt32();
-  return { lower, upper };
+function timestampToGlobalSlotRange(
+  tsLower: UInt64,
+  tsUpper: UInt64
+): [lower: UInt32, upper: UInt32] {
+  // we need `slotLower <= current slot <= slotUpper` to imply `tsLower <= current timestamp <= tsUpper`
+  // so we have to make the range smaller -- round up `tsLower` and round down `tsUpper`
+  // also, we should clamp to the UInt32 max range [0, 2**32-1]
+  let tsLowerInt = Int64.from(tsLower).sub(genesisTimestamp - (slotMs - 1));
+  let lowerCapped = Circuit.if<UInt64>(
+    tsLowerInt.isPositive(),
+    UInt64,
+    tsLowerInt.magnitude,
+    UInt64.from(0)
+  );
+  let slotLower = lowerCapped.div(slotMs).toUInt32Clamped();
+  // unsafe `sub` means the error in case tsUpper underflows slot 0 is ugly, but should not be relevant in practice
+  let slotUpper = tsUpper.sub(genesisTimestamp).div(slotMs).toUInt32Clamped();
+  return [slotLower, slotUpper];
 }
 
 function getAccountPreconditions(body: {
@@ -380,7 +417,10 @@ const preconditionContexts = new WeakMap<AccountUpdate, PreconditionContext>();
 
 type NetworkPrecondition = Preconditions['network'];
 type NetworkValue = PreconditionBaseTypes<NetworkPrecondition>;
-type Network = PreconditionClassType<NetworkPrecondition>;
+type RawNetwork = PreconditionClassType<NetworkPrecondition>;
+type Network = RawNetwork & {
+  timestamp: PreconditionSubclassRangeType<UInt64>;
+};
 
 // TODO: should we add account.state?
 // then can just use circuitArray(Field, 8) as the type
@@ -411,12 +451,13 @@ type PreconditionSubclassType<U> = {
   assertEquals(value: U): void;
   assertNothing(): void;
 };
+type PreconditionSubclassRangeType<U> = PreconditionSubclassType<U> & {
+  assertBetween(lower: U, upper: U): void;
+};
 
 type PreconditionClassType<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
-    ? PreconditionSubclassType<U> & {
-        assertBetween(lower: U, upper: U): void;
-      }
+    ? PreconditionSubclassRangeType<U>
     : T[K] extends FlaggedOptionCondition<infer U>
     ? PreconditionSubclassType<U>
     : T[K] extends Field
