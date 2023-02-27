@@ -456,19 +456,8 @@ function sendZkappQuery(json: string) {
 const getEventsQuery = (publicKey: string, tokenId: string) => `{
   events(input: { address: "${publicKey}", tokenId: "${tokenId}" }) {
     blockInfo {
-      stateHash
-      timestamp
-      ledgerHash
-      height
-      parentHash
-      chainStatus
       distanceFromMaxBlockHeight
       globalSlotSinceGenesis
-    }
-    transactionInfo {
-      status
-      hash
-      memo
     }
     eventData {
       index
