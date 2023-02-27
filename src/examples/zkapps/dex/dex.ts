@@ -87,16 +87,13 @@ function createDex({
          * supply liquidity again (or, create another account to supply liquidity from).
          */
         let amountLocked = dl;
-        userUpdate.update.timing = {
-          isSome: Bool(true),
-          value: {
-            initialMinimumBalance: amountLocked,
-            cliffAmount: amountLocked,
-            cliffTime: UInt32.from(lockedLiquiditySlots),
-            vestingIncrement: UInt64.zero,
-            vestingPeriod: UInt32.one,
-          },
-        };
+        userUpdate.account.timing.set({
+          initialMinimumBalance: amountLocked,
+          cliffAmount: amountLocked,
+          cliffTime: UInt32.from(lockedLiquiditySlots),
+          vestingIncrement: UInt64.zero,
+          vestingPeriod: UInt32.one,
+        });
         userUpdate.requireSignature();
       }
 
