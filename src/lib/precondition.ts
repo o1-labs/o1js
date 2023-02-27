@@ -253,6 +253,31 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   });
 }
 
+// copied from mina/genesis_ledgers/berkeley.json -- TODO fetch from graphql
+const genesisTimestampString = '2023-02-23T20:00:01Z';
+const genesisTimestamp = Date.parse(
+  genesisTimestampString.slice(0, -1) + '+00:00'
+);
+const slotMs = 3 * 60 * 1000; // 3 minutes
+
+function globalSlotToTimestamp(slot: UInt32) {
+  return UInt64.from(slot).mul(slotMs).add(genesisTimestamp);
+}
+
+function timestampToGlobalSlotPrecondition(timestamp: {
+  lower: UInt64;
+  upper: UInt64;
+}): { lower: UInt32; upper: UInt32 } {
+  // we need `lower <= current slot <= upper` to imply `timestamp.lower <= current timestamp <= timestamp.upper`
+  // so we have to make the range smaller -- round up `timestamp.lower` to slot intervals, and round down `timestamp.upper`
+  let lower = timestamp.lower
+    .sub(genesisTimestamp - (slotMs - 1))
+    .div(slotMs)
+    .toUInt32();
+  let upper = timestamp.upper.sub(genesisTimestamp).div(slotMs).toUInt32();
+  return { lower, upper };
+}
+
 function getAccountPreconditions(body: {
   publicKey: PublicKey;
   tokenId?: Field;
