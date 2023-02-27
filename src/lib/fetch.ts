@@ -497,6 +497,25 @@ async function fetchEvents(
       `Failed to fetch events data. Account: ${publicKey} Token: ${tokenId}`
     );
   }
+
+  // TODO: Is this what we want to do? Should we just return the events?
+  // If we have multiple blocks returned at the best tip (e.g. distanceFromMaxBlockHeight === 0),
+  // then filter out the blocks at the best tip. This is because we cannot guarantee that every block
+  // at the best tip will have the correct event data or guarantee that the specific block data will not
+  // fork in anyway. If this happens, we delay fetching event data until another block has been added to the network.
+  let numberOfBestTipBlocks = 0;
+  for (let i = 0; i < fetchedEvents.length; i++) {
+    if (fetchedEvents[i].blockInfo.distanceFromMaxBlockHeight === 0) {
+      numberOfBestTipBlocks++;
+    }
+    if (numberOfBestTipBlocks > 1) {
+      fetchedEvents = fetchedEvents.filter((event: any) => {
+        return event.blockInfo.distanceFromMaxBlockHeight !== 0;
+      });
+      break;
+    }
+  }
+
   let events = [];
   for (let i = 0; i < fetchedEvents.length; i++) {
     let event = fetchedEvents[i];
