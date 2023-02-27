@@ -49,6 +49,21 @@ class UInt64 extends CircuitValue {
     return uint32;
   }
 
+  /**
+   * Turns the {@link UInt64} into a {@link UInt32}, clamping to the 32 bits range if it's too large.
+   * ```ts
+   * UInt64.from(4294967296).toUInt32Clamped().toString(); // "4294967295"
+   * ```
+   */
+  toUInt32Clamped() {
+    let max = (1n << 32n) - 1n;
+    return Circuit.if(
+      this.greaterThan(UInt64.from(max)),
+      UInt32.from(max),
+      new UInt32(this.value)
+    );
+  }
+
   static check(x: UInt64) {
     let actual = x.value.rangeCheckHelper(64);
     actual.assertEquals(x.value);
