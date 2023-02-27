@@ -1,8 +1,16 @@
 import { PrivateKey, PublicKey } from '../provable/curve-bigint.js';
 import * as Json from './src/TSTypes.js';
-import type { Signed, Network } from './src/TSTypes.js';
+import type { SignedLegacy, Signed, Network } from './src/TSTypes.js';
 
-import { isPayment, isStakeDelegation, isZkappCommand } from './src/Utils.js';
+import {
+  isPayment,
+  isSignedDelegation,
+  isSignedPayment,
+  isSignedString,
+  isSignedZkappCommand,
+  isStakeDelegation,
+  isZkappCommand,
+} from './src/Utils.js';
 import * as TransactionJson from '../provable/gen/transaction-json.js';
 import { ZkappCommand } from '../provable/gen/transaction-bigint.js';
 import {
@@ -146,7 +154,10 @@ class Client {
    * @param privateKey The private key used to sign the message
    * @returns A signed message
    */
-  signMessage(message: string, privateKey: Json.PrivateKey): Signed<string> {
+  signMessage(
+    message: string,
+    privateKey: Json.PrivateKey
+  ): SignedLegacy<string> {
     let privateKey_ = PrivateKey.fromBase58(privateKey);
     let publicKey = PublicKey.toBase58(PrivateKey.toPublicKey(privateKey_));
     return {
@@ -163,7 +174,7 @@ class Client {
    * @returns True if the `signedMessage` contains a valid signature matching
    * the message and publicKey.
    */
-  verifyMessage({ data, signature, publicKey }: Signed<string>): boolean {
+  verifyMessage({ data, signature, publicKey }: SignedLegacy<string>): boolean {
     return verifyStringSignature(data, signature, publicKey, this.network);
   }
 
@@ -180,7 +191,7 @@ class Client {
   signPayment(
     payment: Json.Payment,
     privateKey: Json.PrivateKey
-  ): Signed<Json.Payment> {
+  ): SignedLegacy<Json.Payment> {
     let { fee, to, from, nonce, validUntil, memo } = validCommon(payment);
     let amount = String(payment.amount);
     let signature = signPayment(
@@ -204,7 +215,11 @@ class Client {
    * @param signedPayment A signed payment transaction
    * @returns True if the `signedPayment` is a verifiable payment
    */
-  verifyPayment({ data, signature, publicKey }: Signed<Json.Payment>): boolean {
+  verifyPayment({
+    data,
+    signature,
+    publicKey,
+  }: SignedLegacy<Json.Payment>): boolean {
     let { fee, to, from, nonce, validUntil, memo } = validCommon(data);
     let amount = validNonNegative(data.amount);
     return verifyPayment(
@@ -233,7 +248,7 @@ class Client {
   signStakeDelegation(
     delegation: Json.StakeDelegation,
     privateKey: Json.PrivateKey
-  ): Signed<Json.StakeDelegation> {
+  ): SignedLegacy<Json.StakeDelegation> {
     let { fee, to, from, nonce, validUntil, memo } = validCommon(delegation);
     let signature = signStakeDelegation(
       {
@@ -260,7 +275,7 @@ class Client {
     data,
     signature,
     publicKey,
-  }: Signed<Json.StakeDelegation>): boolean {
+  }: SignedLegacy<Json.StakeDelegation>): boolean {
     let { fee, to, from, nonce, validUntil, memo } = validCommon(data);
     return verifyStakeDelegation(
       {
@@ -280,7 +295,7 @@ class Client {
    * @returns A transaction hash
    */
   hashPayment(
-    { data, signature }: Signed<Json.Payment>,
+    { data, signature }: SignedLegacy<Json.Payment>,
     options?: { berkeley?: boolean }
   ): string {
     let { fee, to, from, nonce, validUntil, memo } = validCommon(data);
@@ -304,7 +319,7 @@ class Client {
    * @returns A transaction hash
    */
   hashStakeDelegation(
-    { data, signature }: Signed<Json.StakeDelegation>,
+    { data, signature }: SignedLegacy<Json.StakeDelegation>,
     options?: { berkeley?: boolean }
   ): string {
     let { fee, to, from, nonce, validUntil, memo } = validCommon(data);
@@ -357,11 +372,14 @@ class Client {
    * @param signedZkappCommand A signed zkApp transaction
    * @returns True if the signature is valid
    */
-  verifyZkappCommand({ data, publicKey }: Signed<Json.ZkappCommand>): boolean {
-    return verifyZkappCommandSignature(
-      data.zkappCommand,
-      publicKey,
-      this.network
+  verifyZkappCommand({
+    data,
+    publicKey,
+    signature,
+  }: Signed<Json.ZkappCommand>): boolean {
+    return (
+      signature === data.zkappCommand.feePayer.authorization &&
+      verifyZkappCommandSignature(data.zkappCommand, publicKey, this.network)
     );
   }
 
@@ -400,21 +418,22 @@ class Client {
    * @param privateKey A private key
    * @returns A signed payload
    */
-  signTransaction<T extends Json.SignableData>(
+  signTransaction<T extends Json.SignableData | Json.ZkappCommand>(
     payload: T,
     privateKey: Json.PrivateKey
-  ): Signed<T> {
+  ): T extends Json.SignableData ? SignedLegacy<T> : Signed<T> {
+    type Return = T extends Json.SignableData ? SignedLegacy<T> : Signed<T>;
     if (typeof payload === 'string') {
-      return this.signMessage(payload, privateKey) as Signed<T>;
+      return this.signMessage(payload, privateKey) as Return;
     }
     if (isPayment(payload)) {
-      return this.signPayment(payload, privateKey) as Signed<T>;
+      return this.signPayment(payload, privateKey) as Return;
     }
     if (isStakeDelegation(payload)) {
-      return this.signStakeDelegation(payload, privateKey) as Signed<T>;
+      return this.signStakeDelegation(payload, privateKey) as Return;
     }
     if (isZkappCommand(payload)) {
-      return this.signZkappCommand(payload, privateKey) as Signed<T>;
+      return this.signZkappCommand(payload, privateKey) as Return;
     } else {
       throw Error(`Expected signable payload, got '${payload}'.`);
     }
@@ -427,24 +446,24 @@ class Client {
    * @param signedPayload A signed payload
    * @returns True if the signature is valid
    */
-  verifyTransaction({
-    data,
-    publicKey,
-    signature,
-  }: Signed<Json.SignableData>): boolean {
-    if (typeof data === 'string') {
-      return this.verifyMessage({ data, publicKey, signature });
+  verifyTransaction(
+    signed: SignedLegacy<Json.SignableData> | Signed<Json.ZkappCommand>
+  ): boolean {
+    if (isSignedString(signed)) {
+      return this.verifyMessage(signed);
     }
-    if (isPayment(data)) {
-      return this.verifyPayment({ data, publicKey, signature });
+    if (isSignedPayment(signed)) {
+      return this.verifyPayment(signed);
     }
-    if (isStakeDelegation(data)) {
-      return this.verifyStakeDelegation({ data, publicKey, signature });
+    if (isSignedDelegation(signed)) {
+      return this.verifyStakeDelegation(signed);
     }
-    if (isZkappCommand(data)) {
-      return this.verifyZkappCommand({ data, publicKey, signature });
+    if (isSignedZkappCommand(signed)) {
+      return this.verifyZkappCommand(signed);
     } else {
-      throw Error(`Expected signable payload, got '${data}'.`);
+      throw Error(
+        `Expected signable payload, got '${JSON.stringify(signed.data)}'.`
+      );
     }
   }
 

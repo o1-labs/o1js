@@ -15,17 +15,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/c5a36207...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/71b6132b...HEAD)
+
+> There are no unreleased changes yet
+
+## [0.9.0](https://github.com/o1-labs/snarkyjs/compare/c5a36207...71b6132b)
 
 ### Added
 
 - `Transaction.fromJSON` to recover transaction object from JSON https://github.com/o1-labs/snarkyjs/pull/705
+- New precondition: `provedState`, a boolean which is true if the entire on-chain state of this account was last modified by a proof https://github.com/o1-labs/snarkyjs/pull/741
+  - Same API as all preconditions: `this.account.provedState.assertEquals(Bool(true))`
+  - Can be used to assert that the state wasn't tampered with by the zkApp developer using non-contract logic, for example, before deploying the zkApp
+- New on-chain value `globalSlot`, to make assertions about the current time https://github.com/o1-labs/snarkyjs/pull/649
+  - example: `this.globalSlot.get()`, `this.globalSlot.assertBetween(lower, upper)`
+  - Replaces `network.timestamp`, `network.globalSlotSinceGenesis` and `network.globalSlotSinceHardFork`. https://github.com/o1-labs/snarkyjs/pull/560
+- New permissions:
+  - `access` to control whether account updates for this account can be used at all https://github.com/o1-labs/snarkyjs/pull/500
+  - `setTiming` to control who can update the account's `timing` field https://github.com/o1-labs/snarkyjs/pull/685
+  - Example: `this.permissions.set({ ...Permissions.default(), access: Permissions.proofOrSignature() })`
+- Expose low-level view into the PLONK gates created by a smart contract method https://github.com/o1-labs/snarkyjs/pull/687
+  - `MyContract.analyzeMethods().<method name>.gates`
 
 ### Changed
 
 - BREAKING CHANGE: Modify signature algorithm used by `Signature.{create,verify}` to be compatible with mina-signer https://github.com/o1-labs/snarkyjs/pull/710
   - Signatures created with mina-signer's `client.signFields()` can now be verified inside a SNARK!
   - Breaks existing deployed smart contracts which use `Signature.verify()`
+- BREAKING CHANGE: Circuits changed due to core protocol and cryptography changes; this breaks all deployed contracts.
+- BREAKING CHANGE: Change structure of `Account` type which is returned by `Mina.getAccount()` https://github.com/o1-labs/snarkyjs/pull/741
+  - for example, `account.appState` -> `account.zkapp.appState`
+  - full new type (exported as `Types.Account`): https://github.com/o1-labs/snarkyjs/blob/0be70cb8ceb423976f348980e9d6238820758cc0/src/provable/gen/transaction.ts#L515
+- Test accounts hard-coded in `LocalBlockchain` now have default permissions, not permissions allowing everything. Fixes some unintuitive behaviour in tests, like requiring no signature when using these accounts to send MINA https://github.com/o1-labs/snarkyjs/issues/638
+
+### Removed
+
+- Preconditions `timestamp` and `globalSlotSinceHardFork` https://github.com/o1-labs/snarkyjs/pull/560
+  - `timestamp` is expected to come back as a wrapper for the new `globalSlot`
 
 ## [0.8.0](https://github.com/o1-labs/snarkyjs/compare/d880bd6e...c5a36207)
 

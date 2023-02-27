@@ -30,7 +30,6 @@ function derivedLeafTypes<Field, Bool>({
     signatureNecessary: Bool;
     signatureSufficient: Bool;
   };
-  type AuthorizationKind = { isSigned: Bool; isProved: Bool };
 
   const defaultTokenId = 1;
   const TokenId = {
@@ -109,36 +108,6 @@ function derivedLeafTypes<Field, Bool>({
     },
   };
 
-  const AuthorizationKind = {
-    ...provable(
-      { isSigned: Bool, isProved: Bool },
-      {
-        customObjectKeys: ['isSigned', 'isProved'],
-      }
-    ),
-    toJSON(x: AuthorizationKind): Json.AuthorizationKind {
-      let isSigned = Number(Bool.toJSON(x.isSigned));
-      let isProved = Number(Bool.toJSON(x.isProved));
-      // prettier-ignore
-      switch (`${isSigned}${isProved}`) {
-        case '00': return 'None_given';
-        case '10': return 'Signature';
-        case '01': return 'Proof';
-        default: throw Error('Unexpected authorization kind');
-      }
-    },
-    fromJSON(json: Json.AuthorizationKind): AuthorizationKind {
-      let booleans = {
-        None_given: [false, false],
-        Signature: [true, false],
-        Proof: [false, true],
-      }[json];
-      if (booleans === undefined) throw Error('Unexpected authorization kind');
-      let [isSigned, isProved] = booleans.map(Bool);
-      return { isSigned, isProved };
-    },
-  };
-
   // Mina_base.Zkapp_account.hash_zkapp_uri_opt
   function hashZkappUri(uri: string) {
     let bits = bytesToBits(stringToBytes(uri));
@@ -161,11 +130,5 @@ function derivedLeafTypes<Field, Bool>({
     },
   });
 
-  return {
-    TokenId,
-    TokenSymbol,
-    AuthRequired,
-    AuthorizationKind,
-    ZkappUri,
-  };
+  return { TokenId, TokenSymbol, AuthRequired, ZkappUri };
 }

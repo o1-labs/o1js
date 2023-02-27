@@ -29,6 +29,7 @@ class SimpleZkapp extends SmartContract {
   }
 
   @method update(y: Field): Field {
+    this.account.provedState.assertEquals(Bool(true));
     this.emitEvent('update', y);
     let x = this.x.get();
     this.x.assertEquals(x);
@@ -42,6 +43,8 @@ class SimpleZkapp extends SmartContract {
    * @param caller the privileged account
    */
   @method payout(caller: PrivateKey) {
+    this.account.provedState.assertEquals(Bool(true));
+
     // check that caller is the privileged account
     let callerAddress = caller.toPublicKey();
     callerAddress.assertEquals(privilegedAddress);
@@ -99,7 +102,7 @@ console.log('initial state: ' + zkapp.x.get());
 console.log(`initial balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 
 let account = Mina.getAccount(zkappAddress);
-console.log('account is proved:', account.provedState.toBoolean());
+console.log('account state is proved:', account.zkapp?.provedState.toBoolean());
 
 console.log('update');
 tx = await Mina.transaction(sender, () => {

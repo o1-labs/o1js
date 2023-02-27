@@ -52,6 +52,7 @@ class TokenContract extends SmartContract {
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
       receive: Permissions.proof(),
+      access: Permissions.proofOrSignature(),
     });
   }
 
@@ -452,7 +453,10 @@ describe('Token', () => {
     */
     describe('Token Contract Creation/Deployment', () => {
       beforeEach(async () => {
-        await setupLocalProofs();
+        await setupLocalProofs().catch((err) => {
+          console.log(err);
+          throw err;
+        });
       });
 
       test('should successfully deploy a token account under a zkApp', async () => {
@@ -594,7 +598,7 @@ describe('Token', () => {
         });
       });
 
-      test.skip('should reject tx if user bypasses the token contract by using an empty account update', async () => {
+      test('should reject tx if user bypasses the token contract by using an empty account update', async () => {
         let tx = await Mina.transaction(feePayer, () => {
           AccountUpdate.fundNewAccount(feePayer);
           tokenZkapp.token.mint({

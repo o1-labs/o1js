@@ -1,11 +1,19 @@
 import 'isomorphic-fetch';
-import { Bool, Field, Ledger } from '../snarky.js';
+import { Field } from '../snarky.js';
 import { UInt32, UInt64 } from './int.js';
-import { TokenId, Permissions, ZkappStateLength } from './account_update.js';
+import { TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
 import { Types } from '../provable/types.js';
 import * as Encoding from './encoding.js';
+import {
+  Account,
+  accountQuery,
+  FetchedAccount,
+  fillPartialAccount,
+  parseFetchedAccount,
+  PartialAccount,
+} from './mina/account.js';
 
 export {
   fetchAccount,
@@ -26,8 +34,6 @@ export {
   removeJsonQuotes,
   fetchEvents,
 };
-
-export { Account };
 
 let defaultGraphqlEndpoint = 'none';
 /**
@@ -55,26 +61,20 @@ async function fetchAccount(
   graphqlEndpoint = defaultGraphqlEndpoint,
   { timeout = defaultTimeout } = {}
 ): Promise<
-  | { account: Account; error: undefined }
+  | { account: Types.Account; error: undefined }
   | { account: undefined; error: FetchError }
 > {
   let publicKeyBase58 =
     accountInfo.publicKey instanceof PublicKey
       ? accountInfo.publicKey.toBase58()
       : accountInfo.publicKey;
-  let response = await fetchAccountInternal(
+  return await fetchAccountInternal(
     { publicKey: publicKeyBase58, tokenId: accountInfo.tokenId },
     graphqlEndpoint,
     {
       timeout,
     }
   );
-  return response.error === undefined
-    ? {
-        account: parseFetchedAccount(response.account),
-        error: undefined,
-      }
-    : { account: undefined, error: response.error };
 }
 
 // internal version of fetchAccount which does the same, but returns the original JSON version
@@ -91,9 +91,9 @@ async function fetchAccountInternal(
     config
   );
   if (error !== undefined) return { account: undefined, error };
-  let account = (response as FetchResponse).data
+  let fetchedAccount = (response as FetchResponse).data
     .account as FetchedAccount | null;
-  if (account === null) {
+  if (fetchedAccount === null) {
     return {
       account: undefined,
       error: {
@@ -102,6 +102,7 @@ async function fetchAccountInternal(
       },
     };
   }
+  let account = parseFetchedAccount(fetchedAccount);
   // account successfully fetched - add to cache before returning
   addCachedAccountInternal(account, graphqlEndpoint);
   return {
@@ -119,165 +120,10 @@ type FetchError = {
 // Specify 30s as the default timeout
 const defaultTimeout = 30000;
 
-type AuthRequired = Types.Json.AuthRequired;
-
-type FetchedAccount = {
-  publicKey: string;
-  nonce: string;
-  token: string;
-  tokenSymbol: string;
-  zkappUri?: string;
-  zkappState: string[] | null;
-  receiptChainHash?: string;
-  balance: { total: string };
-  permissions?: {
-    editState: AuthRequired;
-    send: AuthRequired;
-    receive: AuthRequired;
-    setDelegate: AuthRequired;
-    setPermissions: AuthRequired;
-    setVerificationKey: AuthRequired;
-    setZkappUri: AuthRequired;
-    editSequenceState: AuthRequired;
-    setTokenSymbol: AuthRequired;
-    incrementNonce: AuthRequired;
-    setVotingFor: AuthRequired;
-  };
-  delegateAccount?: { publicKey: string };
-  sequenceEvents?: string[] | null;
-  verificationKey?: { verificationKey: string };
-  // TODO: how to query provedState?
-};
-
-type Account = {
-  publicKey: PublicKey;
-  nonce: UInt32;
-  balance: UInt64;
-  tokenId: Field;
-  tokenSymbol: string;
-  appState?: Field[];
-  permissions?: Permissions;
-  receiptChainHash: Field;
-  delegate?: PublicKey;
-  sequenceState?: Field;
-  provedState: Bool;
-  verificationKey?: string;
-  timing?: NonNullable<
-    Types.AccountUpdate['body']['update']['timing']['value']
-  > & {
-    isTimed: Bool;
-  };
-};
-
-type FlexibleAccount = {
-  publicKey: PublicKey | string;
-  nonce: UInt32 | string | number;
-  tokenId?: string;
-  tokenSymbol?: string;
-  balance?: UInt64 | string | number;
-  zkapp?: { appState: (Field | string | number)[] };
-};
-
-// TODO provedState
-const accountQuery = (publicKey: string, tokenId: string) => `{
-  account(publicKey: "${publicKey}", token: "${tokenId}") {
-    publicKey
-    nonce
-    zkappUri
-    zkappState
-    permissions {
-      editState
-      send
-      receive
-      setDelegate
-      setPermissions
-      setVerificationKey
-      setZkappUri
-      editSequenceState
-      setTokenSymbol
-      incrementNonce
-      setVotingFor
-    }
-    receiptChainHash
-    balance { total }
-    delegateAccount { publicKey }
-    sequenceEvents
-    token
-    tokenSymbol
-    verificationKey {
-      verificationKey
-    }
-  }
-}
-`;
-
-// TODO automate these conversions (?)
-function parseFetchedAccount(account: FetchedAccount): Account;
-function parseFetchedAccount(
-  account: Partial<FetchedAccount>
-): Partial<Account>;
-function parseFetchedAccount({
-  publicKey,
-  nonce,
-  zkappState,
-  balance,
-  permissions,
-  delegateAccount,
-  receiptChainHash,
-  sequenceEvents,
-  token,
-  tokenSymbol,
-  verificationKey,
-}: Partial<FetchedAccount>): Partial<Account> {
-  return {
-    publicKey:
-      publicKey !== undefined ? PublicKey.fromBase58(publicKey) : undefined,
-    nonce: nonce !== undefined ? UInt32.from(nonce) : undefined,
-    balance: balance && UInt64.from(balance.total),
-    appState: (zkappState && zkappState.map(Field)) ?? undefined,
-    permissions:
-      permissions &&
-      (Object.fromEntries(
-        Object.entries(permissions).map(([k, v]) => [
-          k,
-          Permissions.fromString(v),
-        ])
-      ) as unknown as Permissions),
-    sequenceState:
-      sequenceEvents !== undefined && sequenceEvents !== null
-        ? Field(sequenceEvents[0])
-        : undefined,
-    receiptChainHash:
-      receiptChainHash !== undefined
-        ? Encoding.ReceiptChainHash.fromBase58(receiptChainHash)
-        : undefined,
-    delegate:
-      delegateAccount && PublicKey.fromBase58(delegateAccount.publicKey),
-    tokenId: token !== undefined ? Ledger.fieldOfBase58(token) : undefined,
-    tokenSymbol: tokenSymbol !== undefined ? tokenSymbol : undefined,
-    verificationKey: verificationKey?.verificationKey,
-  };
-}
-
-function stringifyAccount(account: FlexibleAccount): FetchedAccount {
-  let { publicKey, nonce, balance, zkapp, tokenId, tokenSymbol } = account;
-  return {
-    publicKey:
-      publicKey instanceof PublicKey ? publicKey.toBase58() : publicKey,
-    nonce: nonce?.toString(),
-    zkappState:
-      zkapp?.appState.map((s) => s.toString()) ??
-      Array(ZkappStateLength).fill('0'),
-    balance: { total: balance?.toString() ?? '0' },
-    token: tokenId ?? TokenId.toBase58(TokenId.default),
-    tokenSymbol: tokenSymbol ?? '',
-  };
-}
-
 let accountCache = {} as Record<
   string,
   {
-    account: FetchedAccount;
+    account: Account;
     graphqlEndpoint: string;
     timestamp: number;
   }
@@ -343,13 +189,11 @@ function getCachedAccount(
   publicKey: PublicKey,
   tokenId: Field,
   graphqlEndpoint = defaultGraphqlEndpoint
-) {
-  let account =
-    accountCache[
-      `${publicKey.toBase58()};${TokenId.toBase58(tokenId)};${graphqlEndpoint}`
-    ]?.account;
-  if (account !== undefined) return parseFetchedAccount(account);
+): Account | undefined {
+  return accountCache[accountCacheKey(publicKey, tokenId, graphqlEndpoint)]
+    ?.account;
 }
+
 function getCachedNetwork(graphqlEndpoint = defaultGraphqlEndpoint) {
   return networkCache[graphqlEndpoint]?.network;
 }
@@ -358,29 +202,31 @@ function getCachedNetwork(graphqlEndpoint = defaultGraphqlEndpoint) {
  * Adds an account to the local cache, indexed by a GraphQL endpoint.
  */
 function addCachedAccount(
-  account: {
-    publicKey: string | PublicKey;
-    nonce: string | number | UInt32;
-    balance?: string | number | UInt64;
-    zkapp?: {
-      appState: (string | number | Field)[];
-    };
-    tokenId: string;
-  },
+  partialAccount: PartialAccount,
   graphqlEndpoint = defaultGraphqlEndpoint
 ) {
-  addCachedAccountInternal(stringifyAccount(account), graphqlEndpoint);
+  let account = fillPartialAccount(partialAccount);
+  addCachedAccountInternal(account, graphqlEndpoint);
 }
 
-function addCachedAccountInternal(
-  account: FetchedAccount,
-  graphqlEndpoint: string
-) {
-  accountCache[`${account.publicKey};${account.token};${graphqlEndpoint}`] = {
+function addCachedAccountInternal(account: Account, graphqlEndpoint: string) {
+  accountCache[
+    accountCacheKey(account.publicKey, account.tokenId, graphqlEndpoint)
+  ] = {
     account,
     graphqlEndpoint,
     timestamp: Date.now(),
   };
+}
+
+function accountCacheKey(
+  publicKey: PublicKey,
+  tokenId: Field,
+  graphqlEndpoint: string
+) {
+  return `${publicKey.toBase58()};${TokenId.toBase58(
+    tokenId
+  )};${graphqlEndpoint}`;
 }
 
 /**
@@ -499,12 +345,9 @@ function parseFetchedBlock({
   return {
     snarkedLedgerHash: Encoding.LedgerHash.fromBase58(snarkedLedgerHash),
     // TODO: use date or utcDate?
-    timestamp: UInt64.from(utcDate),
     blockchainLength: UInt32.from(blockHeight),
     minWindowDensity: UInt32.from(minWindowDensity),
     totalCurrency: UInt64.from(totalCurrency),
-    // is this really `slot`?
-    globalSlotSinceHardFork: UInt32.from(slot),
     globalSlotSinceGenesis: UInt32.from(slotSinceGenesis),
     nextEpochData: parseEpochData(nextEpochData),
     stakingEpochData: parseEpochData(stakingEpochData),
@@ -554,7 +397,7 @@ async function fetchTransactionStatus(
 }
 
 /**
- * INCLUDES: A transaction that is on the longest chain
+ * INCLUDED: A transaction that is on the longest chain
  *
  * PENDING: A transaction either in the transition frontier or in transaction pool but is not on the longest chain
  *

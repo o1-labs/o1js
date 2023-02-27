@@ -95,6 +95,7 @@ class TrivialCoin extends SmartContract implements Erc20 {
       ...Permissions.default(),
       setVerificationKey: Permissions.impossible(),
       setPermissions: Permissions.impossible(),
+      access: Permissions.proofOrSignature(),
     });
   }
 

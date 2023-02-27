@@ -4,32 +4,32 @@ import { derivedLeafTypes } from './derived-leaves.js';
 import { createEvents } from '../lib/events.js';
 import { Poseidon, Hash, packToFields } from './poseidon-bigint.js';
 
-export {
-  PublicKey,
-  Field,
-  Bool,
-  AuthRequired,
-  AuthorizationKind,
-  UInt64,
-  UInt32,
-  Sign,
-  TokenId,
-};
+export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
-export { Events, SequenceEvents, ZkappUri, TokenSymbol, SequenceState };
+export {
+  Events,
+  SequenceEvents,
+  ZkappUri,
+  TokenSymbol,
+  SequenceState,
+  ReceiptChainHash,
+};
 
 type AuthRequired = {
   constant: Bool;
   signatureNecessary: Bool;
   signatureSufficient: Bool;
 };
-type AuthorizationKind = { isSigned: Bool; isProved: Bool };
 type TokenId = Field;
 type TokenSymbol = { symbol: string; field: Field };
 type ZkappUri = { data: string; hash: Field };
 
-const { TokenId, TokenSymbol, AuthRequired, AuthorizationKind, ZkappUri } =
-  derivedLeafTypes({ Field, Bool, Hash, packToFields });
+const { TokenId, TokenSymbol, AuthRequired, ZkappUri } = derivedLeafTypes({
+  Field,
+  Bool,
+  Hash,
+  packToFields,
+});
 
 type Event = Field[];
 type Events = {
@@ -43,4 +43,10 @@ type SequenceState = Field;
 const SequenceState = {
   ...Field,
   emptyValue: SequenceEvents.emptySequenceState,
+};
+
+type ReceiptChainHash = Field;
+const ReceiptChainHash = {
+  ...Field,
+  emptyValue: () => Hash.emptyHashWithPrefix('CodaReceiptEmpty'),
 };

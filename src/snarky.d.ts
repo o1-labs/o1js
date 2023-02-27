@@ -4,6 +4,7 @@ import type {
   InferJson,
   ProvableExtended,
 } from './lib/circuit_value.js';
+import type { Account as JsonAccount } from './provable/gen/transaction-json.js';
 export {
   Field,
   Bool,
@@ -19,7 +20,6 @@ export {
   isReady,
   shutdown,
   Pickles,
-  Account as LedgerAccount,
   Gate,
 };
 
@@ -802,6 +802,8 @@ declare class Circuit {
     rows: number;
     digest: string;
     result: T;
+    gates: Gate[];
+    publicInputSize: number;
   };
 
   /**
@@ -1165,50 +1167,7 @@ declare class Proof {
 }
 
 // these types should be implemented by corresponding snarkyjs classes
-type UInt32_ = { value: Field };
-type UInt64_ = { value: Field };
 type PublicKey_ = { x: Field; isOdd: Bool };
-
-// this closely corresponds to Mina_base.Account.t
-interface Account {
-  publicKey: PublicKey_;
-  balance: UInt64_;
-  nonce: UInt32_;
-  tokenId: Field;
-  tokenSymbol: string;
-  receiptChainHash: Field;
-  delegate?: PublicKey_;
-  votingFor: Field;
-  zkapp?: {
-    appState: Field[];
-    verificationKey?: { data: string; hash: string };
-    zkappVersion: number;
-    sequenceState: Field[];
-    lastSequenceSlot: number;
-    provedState: boolean;
-  };
-  permissions: {
-    editState: AuthRequired;
-    send: AuthRequired;
-    receive: AuthRequired;
-    setDelegate: AuthRequired;
-    setPermissions: AuthRequired;
-    setVerificationKey: AuthRequired;
-    setZkappUri: AuthRequired;
-    editSequenceState: AuthRequired;
-    setTokenSymbol: AuthRequired;
-    incrementNonce: AuthRequired;
-    setVotingFor: AuthRequired;
-  };
-  timing: {
-    isTimed: Bool;
-    initialMinimumBalance: UInt64_;
-    cliffTime: UInt32_;
-    cliffAmount: UInt64_;
-    vestingPeriod: UInt32_;
-    vestingIncrement: UInt64_;
-  };
-}
 
 /**
  * Represents the Mina ledger.
@@ -1233,12 +1192,12 @@ declare class Ledger {
     txJson: string,
     accountCreationFee: string,
     networkState: string
-  ): Account[];
+  ): void;
 
   /**
    * Returns an account.
    */
-  getAccount(publicKey: PublicKey_, tokenId: Field): Account | undefined;
+  getAccount(publicKey: PublicKey_, tokenId: Field): JsonAccount | undefined;
 
   /**
    * Returns the commitment of a JSON transaction.
@@ -1429,6 +1388,7 @@ declare const Pickles: {
   ): Promise<boolean>;
 
   dummyBase64Proof: () => string;
+  dummyVerificationKey: () => { data: string; hash: string };
 
   proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
   proofOfBase64: (

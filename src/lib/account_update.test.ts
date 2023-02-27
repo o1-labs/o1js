@@ -12,7 +12,7 @@ import {
   Int64,
   Encoding,
   Types,
-  Token,
+  Bool,
 } from 'snarkyjs';
 
 let address: PublicKey;
@@ -73,10 +73,6 @@ describe('AccountUpdate', () => {
 
     let accountUpdate = AccountUpdate.create(address);
     Experimental.createChildAccountUpdate(accountUpdate, otherAddress);
-    accountUpdate.children.accountUpdates[0].body.caller = Token.getId(
-      accountUpdate.body.publicKey,
-      accountUpdate.body.tokenId
-    );
 
     let publicInput = accountUpdate.toPublicInput();
 

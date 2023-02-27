@@ -37,13 +37,6 @@ const PrivateKey = Random_(CurveBigint.PrivateKey.random);
 const PublicKey = map(PrivateKey, CurveBigint.PrivateKey.toPublicKey);
 
 const TokenId = oneOf(Bigint.TokenId.emptyValue(), Field);
-const AuthorizationKind = reject(
-  record<Bigint.AuthorizationKind>({
-    isProved: Bool,
-    isSigned: Bool,
-  }),
-  (t) => !!t.isProved && !!t.isSigned
-);
 const AuthRequired = map(
   oneOf<Json.AuthRequired[]>(
     'None',
@@ -61,6 +54,7 @@ const Events = map(
 );
 const SequenceEvents = Events;
 const SequenceState = oneOf(Bigint.SequenceState.emptyValue(), Field);
+const ReceiptChainHash = oneOf(Bigint.ReceiptChainHash.emptyValue(), Field);
 const ZkappUri = map(string(nat(50)), Bigint.ZkappUri.fromJSON);
 
 const PrimitiveMap = primitiveTypeMap<bigint>();
@@ -77,12 +71,12 @@ const Generators: Generators = {
   Sign,
   PublicKey,
   TokenId,
-  AuthorizationKind,
   AuthRequired,
   TokenSymbol,
   Events,
   SequenceEvents,
   SequenceState,
+  ReceiptChainHash,
   ZkappUri,
   null: constant(null),
   string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types
@@ -113,6 +107,7 @@ const json = {
   uint32: map(UInt32, Bigint.UInt32.toJSON),
   publicKey: map(PublicKey, CurveBigint.PublicKey.toJSON),
   signature: map(Signature, SignatureBigint.Signature.toBase58),
+  signatureJson: map(Signature, SignatureBigint.Signature.toJSON),
 };
 
 const Random = Object.assign(Random_, {

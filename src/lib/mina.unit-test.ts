@@ -2,9 +2,9 @@ import { filterGroups } from './mina.js';
 import { expect } from 'expect';
 import { shutdown } from '../index.js';
 
-let S = 'Signature';
-let N = 'None_given';
-let P = 'Proof';
+let S = { isProved: false, isSigned: true };
+let N = { isProved: false, isSigned: false };
+let P = { isProved: true, isSigned: false };
 
 expect(filterGroups([S, S, S, S, S, S])).toEqual({
   proof: 0,

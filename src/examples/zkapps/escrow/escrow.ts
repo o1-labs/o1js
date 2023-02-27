@@ -1,13 +1,8 @@
 import {
   SmartContract,
-  state,
-  State,
   method,
-  DeployArgs,
-  Permissions,
   UInt64,
   AccountUpdate,
-  PrivateKey,
   PublicKey,
 } from 'snarkyjs';
 
