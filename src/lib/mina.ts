@@ -308,6 +308,10 @@ interface Mina {
   hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
+  getNetworkConstants(): {
+    genesisTimestamp: UInt64;
+    accountCreationFee: UInt64;
+  };
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): Promise<TransactionId>;
   fetchEvents: (publicKey: PublicKey, tokenId?: Field) => any;
@@ -356,9 +360,17 @@ function LocalBlockchain({
   const events: Record<string, any> = {};
   const actions: Record<string, any> = {};
 
+  const genesisTimestamp = UInt64.from(Date.now());
+
   return {
     proofsEnabled,
     accountCreationFee: () => UInt64.from(accountCreationFee),
+    getNetworkConstants() {
+      return {
+        genesisTimestamp,
+        accountCreationFee,
+      };
+    },
     currentSlot() {
       return UInt32.from(
         Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
@@ -570,8 +582,20 @@ function LocalBlockchain({
 function Network(graphqlEndpoint: string): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
   Fetch.setGraphqlEndpoint(graphqlEndpoint);
+
+  // TODO fetch from graphql instead of hardcoding
+  const genesisTimestampString = '2023-02-23T20:00:01Z';
+  const genesisTimestamp = UInt64.from(
+    Date.parse(genesisTimestampString.slice(0, -1) + '+00:00')
+  );
   return {
     accountCreationFee: () => accountCreationFee,
+    getNetworkConstants() {
+      return {
+        genesisTimestamp,
+        accountCreationFee,
+      };
+    },
     currentSlot() {
       throw Error(
         'currentSlot() is not implemented yet for remote blockchains.'
@@ -744,6 +768,9 @@ function BerkeleyQANet(graphqlEndpoint: string) {
 
 let activeInstance: Mina = {
   accountCreationFee: () => UInt64.from(defaultAccountCreationFee),
+  getNetworkConstants() {
+    throw new Error('must call Mina.setActiveInstance first');
+  },
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
   },
