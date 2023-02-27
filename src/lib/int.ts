@@ -40,6 +40,15 @@ class UInt64 extends CircuitValue {
     return this.value.toBigInt();
   }
 
+  /**
+   * Turns the {@link UInt64} into a {@link UInt32}, asserting that it fits in 32 bits.
+   */
+  toUInt32() {
+    let uint32 = new UInt32(this.value);
+    UInt32.check(uint32);
+    return uint32;
+  }
+
   static check(x: UInt64) {
     let actual = x.value.rangeCheckHelper(64);
     actual.assertEquals(x.value);

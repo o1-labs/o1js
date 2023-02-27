@@ -13,7 +13,6 @@ import {
   CallForest,
   Authorization,
   SequenceEvents,
-  Permissions,
 } from './account_update.js';
 
 import * as Fetch from './fetch.js';
