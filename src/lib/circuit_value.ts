@@ -18,6 +18,8 @@ export {
   provable,
   provablePure,
   Struct,
+  FlexibleProvable,
+  FlexibleProvablePure,
 };
 
 // internal API
@@ -32,8 +34,6 @@ export {
   toConstant,
   InferProvable,
   HashInput,
-  FlexibleProvable,
-  FlexibleProvablePure,
   InferJson,
   InferredProvable,
 };
