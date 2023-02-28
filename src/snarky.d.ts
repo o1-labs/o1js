@@ -1,8 +1,6 @@
 import type {
   FlexibleProvable,
-  InferCircuitValue,
-  InferJson,
-  ProvableExtended,
+  InferredProvable,
 } from './lib/circuit_value.js';
 import type { Account as JsonAccount } from './provable/gen/transaction-json.js';
 export {
@@ -818,7 +816,7 @@ declare class Circuit {
   static array<A extends FlexibleProvable<any>>(
     elementType: A,
     length: number
-  ): ProvableExtended<InferCircuitValue<A>[], InferJson<A>[]>;
+  ): InferredProvable<A[]>;
 
   /**
    * Asserts that two values are equal.

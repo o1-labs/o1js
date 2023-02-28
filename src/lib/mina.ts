@@ -13,6 +13,7 @@ import {
   CallForest,
   Authorization,
   SequenceEvents,
+  Events,
 } from './account_update.js';
 
 import * as Fetch from './fetch.js';
@@ -1198,19 +1199,16 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
   const costLimit = 69.45;
 
   // constants that define the maximum number of events in one transaction
-  const maxSequenceEventElements = 16;
+  const maxActionElements = 16;
   const maxEventElements = 16;
 
-  let eventElements = {
-    events: 0,
-    sequence: 0,
-  };
+  let eventElements = { events: 0, actions: 0 };
 
   let authTypes = filterGroups(
     accountUpdates.map((update) => {
       let json = update.toJSON();
-      eventElements.events += update.body.events.data.length;
-      eventElements.sequence += update.body.actions.data.length;
+      eventElements.events += countEventElements(update.body.events);
+      eventElements.actions += countEventElements(update.body.actions);
       return json.body.authorizationKind;
     })
   );
@@ -1230,9 +1228,8 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
 
   let isWithinCostLimit = totalTimeRequired < costLimit;
 
-  let isWithinEventsLimit = eventElements['events'] <= maxEventElements;
-  let isWithinSequenceEventsLimit =
-    eventElements['sequence'] <= maxSequenceEventElements;
+  let isWithinEventsLimit = eventElements.events <= maxEventElements;
+  let isWithinActionsLimit = eventElements.actions <= maxActionElements;
 
   let error = '';
 
@@ -1247,14 +1244,18 @@ ${JSON.stringify(authTypes)}
   }
 
   if (!isWithinEventsLimit) {
-    error += `Error: The AccountUpdates in your transaction are trying to emit too many events. The maximum allowed amount of events is ${maxEventElements}, but you tried to emit ${eventElements['events']}.\n\n`;
+    error += `Error: The account updates in your transaction are trying to emit too much event data. The maximum allowed number of field elements in events is ${maxEventElements}, but you tried to emit ${eventElements.events}.\n\n`;
   }
 
-  if (!isWithinSequenceEventsLimit) {
-    error += `Error: The AccountUpdates in your transaction are trying to emit too many actions. The maximum allowed amount of actions is ${maxSequenceEventElements}, but you tried to emit ${eventElements['sequence']}.\n\n`;
+  if (!isWithinActionsLimit) {
+    error += `Error: The account updates in your transaction are trying to emit too much action data. The maximum allowed number of field elements in actions is ${maxActionElements}, but you tried to emit ${eventElements.actions}.\n\n`;
   }
 
   if (error) throw Error('Error during transaction sending:\n\n' + error);
+}
+
+function countEventElements({ data }: Events) {
+  return data.reduce((acc, ev) => acc + ev.length, 0);
 }
 
 type AuthorizationKind = { isProved: boolean; isSigned: boolean };
