@@ -53,10 +53,11 @@ function Network(accountUpdate: AccountUpdate): Network {
       return globalSlotToTimestamp(slot);
     },
     assertEquals(value: UInt64) {
-      let { genesisTimestamp } = Mina.activeInstance.getNetworkConstants();
+      let { genesisTimestamp, slotTime } =
+        Mina.activeInstance.getNetworkConstants();
       let slot = timestampToGlobalSlot(
         value,
-        `Timestamp precondition unsatisfied: the timestamp can only equal numbers of the form ${genesisTimestamp} + k*${slotMs},\n` +
+        `Timestamp precondition unsatisfied: the timestamp can only equal numbers of the form ${genesisTimestamp} + k*${slotTime},\n` +
           `i.e., the genesis timestamp plus an integer number of slots. Received: ${value}.`
       );
       return network.globalSlotSinceGenesis.assertEquals(slot);
@@ -279,15 +280,17 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   });
 }
 
-const slotMs = 3 * 60 * 1000; // 3 minutes
-
 function globalSlotToTimestamp(slot: UInt32) {
-  let { genesisTimestamp } = Mina.activeInstance.getNetworkConstants();
-  return UInt64.from(slot).mul(slotMs).add(genesisTimestamp);
+  let { genesisTimestamp, slotTime } =
+    Mina.activeInstance.getNetworkConstants();
+  return UInt64.from(slot).mul(slotTime).add(genesisTimestamp);
 }
 function timestampToGlobalSlot(timestamp: UInt64, message: string) {
-  let { genesisTimestamp } = Mina.activeInstance.getNetworkConstants();
-  let { quotient: slot, rest } = timestamp.sub(genesisTimestamp).divMod(slotMs);
+  let { genesisTimestamp, slotTime } =
+    Mina.activeInstance.getNetworkConstants();
+  let { quotient: slot, rest } = timestamp
+    .sub(genesisTimestamp)
+    .divMod(slotTime);
   rest.value.assertEquals(Field(0), message);
   return slot.toUInt32();
 }
@@ -299,19 +302,21 @@ function timestampToGlobalSlotRange(
   // we need `slotLower <= current slot <= slotUpper` to imply `tsLower <= current timestamp <= tsUpper`
   // so we have to make the range smaller -- round up `tsLower` and round down `tsUpper`
   // also, we should clamp to the UInt32 max range [0, 2**32-1]
-  let { genesisTimestamp } = Mina.activeInstance.getNetworkConstants();
+  let { genesisTimestamp, slotTime } =
+    Mina.activeInstance.getNetworkConstants();
   let tsLowerInt = Int64.from(tsLower)
     .sub(genesisTimestamp)
-    .add(slotMs - 1);
+    .add(slotTime)
+    .sub(1);
   let lowerCapped = Circuit.if<UInt64>(
     tsLowerInt.isPositive(),
     UInt64,
     tsLowerInt.magnitude,
     UInt64.from(0)
   );
-  let slotLower = lowerCapped.div(slotMs).toUInt32Clamped();
+  let slotLower = lowerCapped.div(slotTime).toUInt32Clamped();
   // unsafe `sub` means the error in case tsUpper underflows slot 0 is ugly, but should not be relevant in practice
-  let slotUpper = tsUpper.sub(genesisTimestamp).div(slotMs).toUInt32Clamped();
+  let slotUpper = tsUpper.sub(genesisTimestamp).div(slotTime).toUInt32Clamped();
   return [slotLower, slotUpper];
 }
 

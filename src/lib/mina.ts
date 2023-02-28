@@ -311,6 +311,10 @@ interface Mina {
   getNetworkState(): NetworkValue;
   getNetworkConstants(): {
     genesisTimestamp: UInt64;
+    /**
+     * Duration of 1 slot in millisecondw
+     */
+    slotTime: UInt64;
     accountCreationFee: UInt64;
   };
   accountCreationFee(): UInt64;
@@ -333,7 +337,7 @@ function LocalBlockchain({
   proofsEnabled = true,
   enforceTransactionLimits = true,
 } = {}) {
-  const msPerSlot = 3 * 60 * 1000;
+  const slotTime = 3 * 60 * 1000;
   const startTime = Date.now();
   const genesisTimestamp = UInt64.from(startTime);
 
@@ -369,11 +373,12 @@ function LocalBlockchain({
       return {
         genesisTimestamp,
         accountCreationFee: UInt64.from(accountCreationFee),
+        slotTime: UInt64.from(slotTime),
       };
     },
     currentSlot() {
       return UInt32.from(
-        Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
+        Math.ceil((new Date().valueOf() - startTime) / slotTime)
       );
     },
     hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
@@ -591,11 +596,14 @@ function Network(graphqlEndpoint: string): Mina {
   const genesisTimestamp = UInt64.from(
     Date.parse(genesisTimestampString.slice(0, -1) + '+00:00')
   );
+  // TODO also fetch from graphql
+  const slotTime = UInt64.from(3 * 60 * 1000);
   return {
     accountCreationFee: () => accountCreationFee,
     getNetworkConstants() {
       return {
         genesisTimestamp,
+        slotTime,
         accountCreationFee,
       };
     },
