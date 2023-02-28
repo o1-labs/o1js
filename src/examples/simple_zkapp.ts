@@ -18,6 +18,8 @@ const doProofs = true;
 
 await isReady;
 
+const beforeGenesis = UInt64.from(Date.now());
+
 class SimpleZkapp extends SmartContract {
   @state(Field) x = State<Field>();
 
@@ -30,6 +32,7 @@ class SimpleZkapp extends SmartContract {
 
   @method update(y: Field): Field {
     this.account.provedState.assertEquals(Bool(true));
+    this.network.timestamp.assertBetween(beforeGenesis, UInt64.MAXINT());
     this.emitEvent('update', y);
     let x = this.x.get();
     this.x.assertEquals(x);

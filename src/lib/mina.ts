@@ -13,7 +13,6 @@ import {
   CallForest,
   Authorization,
   SequenceEvents,
-  Permissions,
 } from './account_update.js';
 
 import * as Fetch from './fetch.js';
@@ -34,6 +33,7 @@ export {
   currentTransaction,
   CurrentTransaction,
   Transaction,
+  activeInstance,
   setActiveInstance,
   transaction,
   sender,
@@ -309,6 +309,14 @@ interface Mina {
   hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
+  getNetworkConstants(): {
+    genesisTimestamp: UInt64;
+    /**
+     * Duration of 1 slot in millisecondw
+     */
+    slotTime: UInt64;
+    accountCreationFee: UInt64;
+  };
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): Promise<TransactionId>;
   fetchEvents: (publicKey: PublicKey, tokenId?: Field) => any;
@@ -329,8 +337,9 @@ function LocalBlockchain({
   proofsEnabled = true,
   enforceTransactionLimits = true,
 } = {}) {
-  const msPerSlot = 3 * 60 * 1000;
-  const startTime = new Date().valueOf();
+  const slotTime = 3 * 60 * 1000;
+  const startTime = Date.now();
+  const genesisTimestamp = UInt64.from(startTime);
 
   const ledger = Ledger.create([]);
 
@@ -360,9 +369,16 @@ function LocalBlockchain({
   return {
     proofsEnabled,
     accountCreationFee: () => UInt64.from(accountCreationFee),
+    getNetworkConstants() {
+      return {
+        genesisTimestamp,
+        accountCreationFee: UInt64.from(accountCreationFee),
+        slotTime: UInt64.from(slotTime),
+      };
+    },
     currentSlot() {
       return UInt32.from(
-        Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
+        Math.ceil((new Date().valueOf() - startTime) / slotTime)
       );
     },
     hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
@@ -564,6 +580,8 @@ function LocalBlockchain({
     },
   };
 }
+// assert type compatibility without preventing LocalBlockchain to return additional properties / methods
+LocalBlockchain satisfies (...args: any) => Mina;
 
 /**
  * Represents the Mina blockchain running on a real network
@@ -571,8 +589,24 @@ function LocalBlockchain({
 function Network(graphqlEndpoint: string): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
   Fetch.setGraphqlEndpoint(graphqlEndpoint);
+
+  // copied from mina/genesis_ledgers/berkeley.json
+  // TODO fetch from graphql instead of hardcoding
+  const genesisTimestampString = '2023-02-23T20:00:01Z';
+  const genesisTimestamp = UInt64.from(
+    Date.parse(genesisTimestampString.slice(0, -1) + '+00:00')
+  );
+  // TODO also fetch from graphql
+  const slotTime = UInt64.from(3 * 60 * 1000);
   return {
     accountCreationFee: () => accountCreationFee,
+    getNetworkConstants() {
+      return {
+        genesisTimestamp,
+        slotTime,
+        accountCreationFee,
+      };
+    },
     currentSlot() {
       throw Error(
         'currentSlot() is not implemented yet for remote blockchains.'
@@ -745,6 +779,9 @@ function BerkeleyQANet(graphqlEndpoint: string) {
 
 let activeInstance: Mina = {
   accountCreationFee: () => UInt64.from(defaultAccountCreationFee),
+  getNetworkConstants() {
+    throw new Error('must call Mina.setActiveInstance first');
+  },
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
   },
