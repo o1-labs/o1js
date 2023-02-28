@@ -53,9 +53,11 @@ function Network(accountUpdate: AccountUpdate): Network {
       return globalSlotToTimestamp(slot);
     },
     assertEquals(value: UInt64) {
+      let { genesisTimestamp } = Mina.activeInstance.getNetworkConstants();
       let slot = timestampToGlobalSlot(
         value,
-        `Timestamp precondition unsatisfied: the timestamp must be divisible by ${slotMs} (the milliseconds per slot).`
+        `Timestamp precondition unsatisfied: the timestamp can only equal numbers of the form ${genesisTimestamp} + k*${slotMs},\n` +
+          `i.e., the genesis timestamp plus an integer number of slots. Received: ${value}.`
       );
       return network.globalSlotSinceGenesis.assertEquals(slot);
     },
