@@ -29,7 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Incorrect counting of limit on events and actions https://github.com/o1-labs/snarkyjs/issues/757
+- Incorrect counting of limit on events and actions https://github.com/o1-labs/snarkyjs/pull/758
+- Type error when using `Circuit.array` in on-chain state or events https://github.com/o1-labs/snarkyjs/pull/758
 
 ## [0.9.1](https://github.com/o1-labs/snarkyjs/compare/71b6132b...9c44b9c2)
 
