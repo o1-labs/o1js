@@ -17,12 +17,11 @@ export {
   preconditions,
   Account,
   Network,
-  GlobalSlot,
+  CurrentSlot,
   assertPreconditionInvariants,
   cleanPreconditionsCache,
   AccountValue,
   NetworkValue,
-  GlobalSlotValue,
   getAccountPreconditions,
 };
 
@@ -31,7 +30,7 @@ function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
   return {
     account: Account(accountUpdate),
     network: Network(accountUpdate),
-    globalSlot: GlobalSlot(accountUpdate),
+    currentSlot: CurrentSlot(accountUpdate),
   };
 }
 
@@ -112,19 +111,18 @@ function updateSubclass<K extends keyof Update>(
   };
 }
 
-function GlobalSlot(accountUpdate: AccountUpdate): GlobalSlot {
-  let layout =
-    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries
-      .validWhile;
+function CurrentSlot(accountUpdate: AccountUpdate): CurrentSlot {
   let context = getPreconditionContextExn(accountUpdate);
-  let lower = layout.inner.entries.lower.type as BaseType;
-  let baseType = baseMap[lower];
-  return preconditionSubClassWithRange<'validWhile', UInt32>(
-    accountUpdate,
-    'validWhile',
-    baseType as any,
-    context
-  );
+  return {
+    assertBetween(lower: UInt32, upper: UInt32) {
+      context.constrained.add('validWhile');
+      let property: RangeCondition<UInt32> =
+        accountUpdate.body.preconditions.validWhile;
+      property.isSome = Bool(true);
+      property.value.lower = lower;
+      property.value.upper = upper;
+    },
+  };
 }
 
 let unimplementedPreconditions: LongKey[] = [
@@ -312,7 +310,6 @@ function timestampToGlobalSlotRange(
   let slotLower = lowerCapped.div(slotMs).toUInt32Clamped();
   // unsafe `sub` means the error in case tsUpper underflows slot 0 is ugly, but should not be relevant in practice
   let slotUpper = tsUpper.sub(genesisTimestamp).div(slotMs).toUInt32Clamped();
-  Circuit.log({ slotLower, slotUpper });
   return [slotLower, slotUpper];
 }
 
@@ -389,10 +386,6 @@ function assertPreconditionInvariants(accountUpdate: AccountUpdate) {
 
     // we accessed a precondition field but not constrained it explicitly - throw an error
     let hasAssertBetween = isRangeCondition(precondition);
-    // TODO: maybe the "validWhile" should be changed to "globalSlot" in a more global way?
-    if (preconditionPath === 'validWhile') {
-      preconditionPath = 'globalSlot' as any;
-    }
     let shortPath = preconditionPath.split('.').pop();
     let errorMessage = `You used \`${self}.${preconditionPath}.get()\` without adding a precondition that links it to the actual ${shortPath}.
 Consider adding this line to your code:
@@ -429,13 +422,10 @@ type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
 type AccountValue = PreconditionBaseTypes<AccountPrecondition>;
 type Account = PreconditionClassType<AccountPrecondition> & Update;
 
-type GlobalSlotPrecondition = Preconditions['validWhile'];
-type GlobalSlotValue = PreconditionBaseTypes<{
-  validWhile: GlobalSlotPrecondition;
-}>['validWhile'];
-type GlobalSlot = PreconditionClassType<{
-  validWhile: GlobalSlotPrecondition;
-}>['validWhile'];
+type CurrentSlotPrecondition = Preconditions['validWhile'];
+type CurrentSlot = {
+  assertBetween(lower: UInt32, upper: UInt32): void;
+};
 
 type PreconditionBaseTypes<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
@@ -499,7 +489,7 @@ type FlatPreconditionValue = {
   [S in PreconditionFlatEntry<NetworkPrecondition> as `network.${S[0]}`]: S[2];
 } & {
   [S in PreconditionFlatEntry<AccountPrecondition> as `account.${S[0]}`]: S[2];
-} & { validWhile: PreconditionFlatEntry<GlobalSlotPrecondition>[2] };
+} & { validWhile: PreconditionFlatEntry<CurrentSlotPrecondition>[2] };
 
 type LongKey = keyof FlatPreconditionValue;
 
