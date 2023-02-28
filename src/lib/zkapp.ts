@@ -34,7 +34,7 @@ import {
   cloneCircuitValue,
   FlexibleProvablePure,
   getBlindingValue,
-  InferCircuitValue,
+  InferProvable,
   memoizationContext,
   provable,
   Struct,
@@ -1464,7 +1464,7 @@ function declareMethods<T extends typeof SmartContract>(
 
 const Reducer: (<
   T extends FlexibleProvablePure<any>,
-  A extends InferCircuitValue<T> = InferCircuitValue<T>
+  A extends InferProvable<T> = InferProvable<T>
 >(reducer: {
   actionType: T;
 }) => ReducerReturn<A>) & {
