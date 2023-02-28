@@ -15,9 +15,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/71b6132b...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/9c44b9c2...HEAD)
 
-> There are no unreleased changes yet
+### Added
+
+- Add back `this.network.timestamp`, implemented on top of `this.network.globalSlotSinceGenesis` https://github.com/o1-labs/snarkyjs/pull/755
+
+### Changed
+
+- On-chain value `globalSlot` replaced by the clearer `currentSlot` https://github.com/o1-labs/snarkyjs/pull/755
+  - this refers to the slot at which the transaction _will be included in a block_.
+  - there is only `currentSlot.assertBetween()`; no `currentSlot.get()` (impossible to implement, since the value is determined in the future) and `currentSlot.assertEquals()` (error-prone)
+
+## [0.9.1](https://github.com/o1-labs/snarkyjs/compare/71b6132b...9c44b9c2)
+
+### Fixed
+
+- Bug when using `this.<state>.get()` outside a transaction https://github.com/o1-labs/snarkyjs/pull/754
 
 ## [0.9.0](https://github.com/o1-labs/snarkyjs/compare/c5a36207...71b6132b)
 
