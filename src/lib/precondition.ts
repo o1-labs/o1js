@@ -279,17 +279,14 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   });
 }
 
-// copied from mina/genesis_ledgers/berkeley.json -- TODO fetch from graphql
-const genesisTimestampString = '2023-02-23T20:00:01Z';
-const genesisTimestamp = Date.parse(
-  genesisTimestampString.slice(0, -1) + '+00:00'
-);
 const slotMs = 3 * 60 * 1000; // 3 minutes
 
 function globalSlotToTimestamp(slot: UInt32) {
+  let { genesisTimestamp } = Mina.activeInstance.getNetworkConstants();
   return UInt64.from(slot).mul(slotMs).add(genesisTimestamp);
 }
 function timestampToGlobalSlot(timestamp: UInt64, message: string) {
+  let { genesisTimestamp } = Mina.activeInstance.getNetworkConstants();
   let { quotient: slot, rest } = timestamp.sub(genesisTimestamp).divMod(slotMs);
   rest.value.assertEquals(Field(0), message);
   return slot.toUInt32();
@@ -302,7 +299,10 @@ function timestampToGlobalSlotRange(
   // we need `slotLower <= current slot <= slotUpper` to imply `tsLower <= current timestamp <= tsUpper`
   // so we have to make the range smaller -- round up `tsLower` and round down `tsUpper`
   // also, we should clamp to the UInt32 max range [0, 2**32-1]
-  let tsLowerInt = Int64.from(tsLower).sub(genesisTimestamp - (slotMs - 1));
+  let { genesisTimestamp } = Mina.activeInstance.getNetworkConstants();
+  let tsLowerInt = Int64.from(tsLower)
+    .sub(genesisTimestamp)
+    .add(slotMs - 1);
   let lowerCapped = Circuit.if<UInt64>(
     tsLowerInt.isPositive(),
     UInt64,
@@ -312,6 +312,7 @@ function timestampToGlobalSlotRange(
   let slotLower = lowerCapped.div(slotMs).toUInt32Clamped();
   // unsafe `sub` means the error in case tsUpper underflows slot 0 is ugly, but should not be relevant in practice
   let slotUpper = tsUpper.sub(genesisTimestamp).div(slotMs).toUInt32Clamped();
+  Circuit.log({ slotLower, slotUpper });
   return [slotLower, slotUpper];
 }
 

@@ -33,6 +33,7 @@ export {
   currentTransaction,
   CurrentTransaction,
   Transaction,
+  activeInstance,
   setActiveInstance,
   transaction,
   sender,
@@ -333,7 +334,8 @@ function LocalBlockchain({
   enforceTransactionLimits = true,
 } = {}) {
   const msPerSlot = 3 * 60 * 1000;
-  const startTime = new Date().valueOf();
+  const startTime = Date.now();
+  const genesisTimestamp = UInt64.from(startTime);
 
   const ledger = Ledger.create([]);
 
@@ -359,8 +361,6 @@ function LocalBlockchain({
 
   const events: Record<string, any> = {};
   const actions: Record<string, any> = {};
-
-  const genesisTimestamp = UInt64.from(Date.now());
 
   return {
     proofsEnabled,
@@ -585,6 +585,7 @@ function Network(graphqlEndpoint: string): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
   Fetch.setGraphqlEndpoint(graphqlEndpoint);
 
+  // copied from mina/genesis_ledgers/berkeley.json
   // TODO fetch from graphql instead of hardcoding
   const genesisTimestampString = '2023-02-23T20:00:01Z';
   const genesisTimestamp = UInt64.from(
