@@ -368,7 +368,7 @@ function LocalBlockchain({
     getNetworkConstants() {
       return {
         genesisTimestamp,
-        accountCreationFee,
+        accountCreationFee: UInt64.from(accountCreationFee),
       };
     },
     currentSlot() {
@@ -575,6 +575,8 @@ function LocalBlockchain({
     },
   };
 }
+// assert type compatibility without preventing LocalBlockchain to return additional properties / methods
+LocalBlockchain satisfies (...args: any) => Mina;
 
 /**
  * Represents the Mina blockchain running on a real network
