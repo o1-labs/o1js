@@ -1244,11 +1244,11 @@ ${JSON.stringify(authTypes)}
   }
 
   if (!isWithinEventsLimit) {
-    error += `Error: The AccountUpdates in your transaction are trying to emit too many events. The maximum allowed amount of events is ${maxEventElements}, but you tried to emit ${eventElements['events']}.\n\n`;
+    error += `Error: The account updates in your transaction are trying to emit too much event data. The maximum allowed number of field elements in events is ${maxEventElements}, but you tried to emit ${eventElements.events}.\n\n`;
   }
 
   if (!isWithinActionsLimit) {
-    error += `Error: The AccountUpdates in your transaction are trying to emit too many actions. The maximum allowed amount of actions is ${maxActionElements}, but you tried to emit ${eventElements['actions']}.\n\n`;
+    error += `Error: The account updates in your transaction are trying to emit too much action data. The maximum allowed number of field elements in actions is ${maxActionElements}, but you tried to emit ${eventElements.actions}.\n\n`;
   }
 
   if (error) throw Error('Error during transaction sending:\n\n' + error);
