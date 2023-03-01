@@ -536,20 +536,17 @@ async function fetchEvents(
     }
   }
 
-  let events = [];
-  for (let i = 0; i < fetchedEvents.length; i++) {
-    let event = fetchedEvents[i];
-    let parsedEvents: any = [];
-
-    event.eventData.forEach((event: { index: string; data: string[] }) => {
-      parsedEvents.push([event.index].concat(event.data));
-    });
-    events.push({
-      events: parsedEvents,
+  return fetchedEvents.map((event: any) => {
+    const events = event.eventData.map(
+      (eventData: { index: string; data: string[] }) => {
+        return [eventData.index].concat(eventData.data);
+      }
+    );
+    return {
+      events,
       height: event.blockInfo.height,
-    });
-  }
-  return events;
+    };
+  });
 }
 
 // removes the quotes on JSON keys
