@@ -6,7 +6,7 @@ SnarkyJS's documentation is available [here](https://docs.minaprotocol.com/en/zk
 
 See [CHANGELOG.md](https://github.com/o1-labs/snarkyjs/blob/main/CHANGELOG.md) for a list of changes between versions.
 
-## Community-maintained packages
+## Community packages
 
 > An initial list of community-maintained packages will be put together soon. If you want your package to appear on it, see [the next section](#contributing)
 
@@ -17,9 +17,9 @@ We appreciate any community contributions to SnarkyJS! There are two ways to con
 1. Maintain your own package, which people can install in addition to SnarkyJS
 2. Contribute to this repo directly
 
-If you maintain your own package, we highly encourage to add it to our [official list of community-maintained packages](#community-maintained-packages). The process is as follows:
+If you maintain your own package, we highly encourage to add it to our [official list of community packages](#community-packages). The process is as follows:
 
-- You open a PR which adds your package to the [list](#community-maintained-packages).
+- You open a PR which adds your package to the [list](#community-packages).
 - We review your package and decide if it fits our criteria.
 - If the package fulfills our [quality criteria](#creating-high-quality-community-packages), the PR is merged and your package appears on the list
 
