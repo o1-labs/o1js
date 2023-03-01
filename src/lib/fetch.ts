@@ -28,7 +28,9 @@ export {
   getCachedNetwork,
   addCachedAccount,
   defaultGraphqlEndpoint,
+  archiveGraphqlEndpoint,
   setGraphqlEndpoint,
+  setArchiveGraphqlEndpoint,
   sendZkappQuery,
   sendZkapp,
   removeJsonQuotes,
@@ -36,11 +38,16 @@ export {
 };
 
 let defaultGraphqlEndpoint = 'none';
+let archiveGraphqlEndpoint = 'none';
 /**
  * Specifies the default GraphQL endpoint.
  */
 function setGraphqlEndpoint(graphqlEndpoint: string) {
   defaultGraphqlEndpoint = graphqlEndpoint;
+}
+
+function setArchiveGraphqlEndpoint(graphqlEndpoint: string) {
+  archiveGraphqlEndpoint = graphqlEndpoint;
 }
 
 /**
@@ -472,7 +479,7 @@ const getEventsQuery = (publicKey: string, tokenId: string) => `{
  */
 async function fetchEvents(
   accountInfo: { publicKey: string; tokenId?: string },
-  graphqlEndpoint = defaultGraphqlEndpoint
+  graphqlEndpoint = archiveGraphqlEndpoint
 ): Promise<any> {
   const { publicKey, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest(

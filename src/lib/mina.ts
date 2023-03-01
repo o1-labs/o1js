@@ -568,9 +568,11 @@ function LocalBlockchain({
 /**
  * Represents the Mina blockchain running on a real network
  */
-function Network(graphqlEndpoint: string): Mina {
+// TODO: Should this be an object instead?
+function Network(graphqlEndpoint: string, archiveEndpoint?: string): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
   Fetch.setGraphqlEndpoint(graphqlEndpoint);
+  if (archiveEndpoint) Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
   return {
     accountCreationFee: () => accountCreationFee,
     currentSlot() {
@@ -726,7 +728,7 @@ function Network(graphqlEndpoint: string): Mina {
 
       return await Fetch.fetchEvents(
         { publicKey: pubKey, tokenId: token },
-        graphqlEndpoint
+        archiveEndpoint
       );
     },
     getActions() {
