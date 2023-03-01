@@ -17,7 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/c5a36207...HEAD)
 
-> There are no unreleased changes yet
+### Changed
+
+- BREAKING CHANGE: Circuits changed due to core protocol and cryptography changes; this breaks all deployed contracts.
 
 ## [0.9.0](https://github.com/o1-labs/snarkyjs/compare/c5a36207...HEAD)
 
