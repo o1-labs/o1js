@@ -20,8 +20,8 @@ We appreciate any community contributions to SnarkyJS! There are two ways to con
 If you maintain your own package, we highly encourage to add it to our [official list of community packages](#community-packages). The process is as follows:
 
 - You open a PR which adds your package to the [list](#community-packages).
-- We review your package and decide if it fits our criteria.
-- If the package fulfills our [quality criteria](#creating-high-quality-community-packages), the PR is merged and your package appears on the list
+- We review your package and decide if it fits our [quality criteria](#creating-high-quality-community-packages).
+- If yes, the PR is merged and your package appears on the list
 
 ### Creating high-quality community packages
 
