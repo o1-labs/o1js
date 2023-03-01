@@ -311,7 +311,11 @@ interface Mina {
   getNetworkState(): NetworkValue;
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): Promise<TransactionId>;
-  fetchEvents: (publicKey: PublicKey, tokenId?: Field) => any;
+  fetchEvents: (
+    publicKey: PublicKey,
+    tokenId?: Field,
+    filterOptions?: Fetch.EventActionFilterOptions
+  ) => any;
   getActions: (
     publicKey: PublicKey,
     tokenId?: Field
@@ -443,7 +447,7 @@ function LocalBlockchain({
           }
           events[addr][tokenId].push({
             events: p.body.events,
-            slot: networkState.globalSlotSinceGenesis.toString(),
+            height: networkState.blockchainLength.toString(),
           });
         }
 
@@ -568,7 +572,6 @@ function LocalBlockchain({
 /**
  * Represents the Mina blockchain running on a real network
  */
-// TODO: Should this be an object instead?
 function Network(graphqlEndpoint: string, archiveEndpoint?: string): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
   Fetch.setGraphqlEndpoint(graphqlEndpoint);
@@ -722,13 +725,18 @@ function Network(graphqlEndpoint: string, archiveEndpoint?: string): Mina {
         isFinalRunOutsideCircuit: !hasProofs,
       });
     },
-    async fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+    async fetchEvents(
+      publicKey: PublicKey,
+      tokenId: Field = TokenId.default,
+      filterOptions: Fetch.EventActionFilterOptions = {}
+    ) {
       let pubKey = publicKey.toBase58();
       let token = TokenId.toBase58(tokenId);
 
       return await Fetch.fetchEvents(
         { publicKey: pubKey, tokenId: token },
-        archiveEndpoint
+        archiveEndpoint,
+        filterOptions
       );
     },
     getActions() {
@@ -943,8 +951,12 @@ async function sendTransaction(txn: Transaction) {
 /**
  * @return A list of emitted events associated to the given public key.
  */
-async function fetchEvents(publicKey: PublicKey, tokenId: Field) {
-  return await activeInstance.fetchEvents(publicKey, tokenId);
+async function fetchEvents(
+  publicKey: PublicKey,
+  tokenId: Field,
+  filterOptions: Fetch.EventActionFilterOptions = {}
+) {
+  return await activeInstance.fetchEvents(publicKey, tokenId, filterOptions);
 }
 
 /**

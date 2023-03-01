@@ -1042,13 +1042,18 @@ super.init();
   ): Promise<{ type: string; event: ProvablePure<any> }[]> {
     // filters all elements so that they are within the given range
     // only returns { type: "", event: [] } in a flat format
-    let events = (await Mina.fetchEvents(this.address, this.self.body.tokenId))
+    let events = (
+      await Mina.fetchEvents(this.address, this.self.body.tokenId, {
+        from: start,
+        to: end,
+      })
+    )
       .filter((el: any) => {
-        let slot = UInt32.from(el.slot);
+        let height = UInt32.from(el.height);
         return end === undefined
-          ? start.lessThanOrEqual(slot).toBoolean()
-          : start.lessThanOrEqual(slot).toBoolean() &&
-              slot.lessThanOrEqual(end).toBoolean();
+          ? start.lessThanOrEqual(height).toBoolean()
+          : start.lessThanOrEqual(height).toBoolean() &&
+              height.lessThanOrEqual(end).toBoolean();
       })
       .map((el: any) => el.events)
       .flat();

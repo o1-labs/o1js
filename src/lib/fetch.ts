@@ -24,6 +24,7 @@ export {
   fetchMissingData,
   fetchTransactionStatus,
   TransactionStatus,
+  EventActionFilterOptions,
   getCachedAccount,
   getCachedNetwork,
   addCachedAccount,
@@ -460,11 +461,24 @@ function sendZkappQuery(json: string) {
 `;
 }
 
-const getEventsQuery = (publicKey: string, tokenId: string) => `{
-  events(input: { address: "${publicKey}", tokenId: "${tokenId}" }) {
+const getEventsQuery = (
+  publicKey: string,
+  tokenId: string,
+  filterOptions?: EventActionFilterOptions
+) => {
+  const { to, from } = filterOptions ?? {};
+  let input = `address: "${publicKey}", tokenId: "${tokenId}"`;
+  if (to !== undefined) {
+    input += `, to: ${to}`;
+  }
+  if (from !== undefined) {
+    input += `, from: ${from}`;
+  }
+  return `{
+  events(input: { ${input} }) {
     blockInfo {
       distanceFromMaxBlockHeight
-      globalSlotSinceGenesis
+      height
     }
     eventData {
       index
@@ -473,17 +487,27 @@ const getEventsQuery = (publicKey: string, tokenId: string) => `{
   }
 }
 `;
+};
 
+type EventActionFilterOptions = {
+  to?: UInt32;
+  from?: UInt32;
+};
 /**
  * Fetches the events for an account.
  */
 async function fetchEvents(
   accountInfo: { publicKey: string; tokenId?: string },
-  graphqlEndpoint = archiveGraphqlEndpoint
+  graphqlEndpoint = archiveGraphqlEndpoint,
+  filterOptions: EventActionFilterOptions = {}
 ): Promise<any> {
   const { publicKey, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
-    getEventsQuery(publicKey, tokenId ?? TokenId.toBase58(TokenId.default)),
+    getEventsQuery(
+      publicKey,
+      tokenId ?? TokenId.toBase58(TokenId.default),
+      filterOptions
+    ),
     graphqlEndpoint
   );
   if (error) throw Error(error.statusText);
@@ -522,7 +546,7 @@ async function fetchEvents(
     });
     events.push({
       events: parsedEvents,
-      slot: event.blockInfo.globalSlotSinceGenesis,
+      height: event.blockInfo.height,
     });
   }
   return events;
