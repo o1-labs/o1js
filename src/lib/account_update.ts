@@ -144,8 +144,8 @@ let Permission = {
 type Permissions_ = Update['permissions']['value'];
 
 /**
- * Permissions specify how specific aspects of the zkapp account are allowed to
- * be modified. All fields are denominated by a {@link Permission}.
+ * Permissions specify how specific aspects of the zkapp account are allowed
+ * to be modified. All fields are denominated by a {@link Permission}.
  */
 interface Permissions extends Permissions_ {
   /**
