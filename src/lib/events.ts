@@ -72,7 +72,7 @@ function createEvents<Field>({
   const Actions = {
     // same as events but w/ different hash prefixes
     empty(): Events {
-      let hash = emptyHashWithPrefix('MinaZkappSequenceEmpty');
+      let hash = emptyHashWithPrefix('MinaZkappActionsEmpty');
       return { hash, data: [] };
     },
     pushEvent(actions: Events, event: Event): Events {
@@ -91,7 +91,7 @@ function createEvents<Field>({
     },
     // different than events
     emptyActionState() {
-      return emptyHashWithPrefix('MinaZkappSequenceStateEmptyElt');
+      return emptyHashWithPrefix('MinaZkappActionStateEmptyElt');
     },
     updateSequenceState(state: Field, sequenceEventsHash: Field) {
       return hashWithPrefix(prefixes.sequenceEvents, [
