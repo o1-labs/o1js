@@ -28,13 +28,13 @@ If you maintain your own package, we highly encourage to add it to our [official
 Here are some guidelines for what constitutes a high-quality package and makes it easier for us to review and add to the official list:
 
 - The package is published to [npm](https://www.npmjs.com/)
-  - `npm install <your-package>` works and is all that needed to use the package
+  - `npm install <your-package>` works and is all that is needed to use the package
   - SnarkyJS should be listed as a [peer dependency](https://docs.npmjs.com/cli/v9/configuring-npm/package-json#peerdependencies)
-  - If applicable, the package should work both on the web and in node
-- _Recommended_: the package is created using the [zkApp CLI](https://github.com/o1-labs/zkapp-cli) for code consistency.
+  - If applicable: the package should work both on the web and in node
+- _Recommended_: the package is created using the [zkApp CLI](https://github.com/o1-labs/zkapp-cli) for code consistency.  
   If not using the CLI, follow these minimal recommendations:
   - Use TypeScript, and export types from `d.ts` files
-  - Code is auto-formatted with [prettier](https://prettier.io/)
+  - Code should be auto-formatted with [prettier](https://prettier.io/)
 - The package includes tests
   - If applicable: Tests should demonstrate that the package's methods can successfully run as provable code, i.e., when included in a SmartContract method that is compiled and proven.
 - Public API should be documented, and [JSDoc](https://jsdoc.app/) comments should be present on exported methods and globals
