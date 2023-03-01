@@ -69,30 +69,28 @@ function createEvents<Field>({
     }),
   };
 
-  const SequenceEvents = {
+  const Actions = {
     // same as events but w/ different hash prefixes
     empty(): Events {
       let hash = emptyHashWithPrefix('MinaZkappSequenceEmpty');
       return { hash, data: [] };
     },
-    pushEvent(sequenceEvents: Events, event: Event): Events {
+    pushEvent(actions: Events, event: Event): Events {
       let eventHash = hashWithPrefix(prefixes.event, event);
       let hash = hashWithPrefix(prefixes.sequenceEvents, [
-        sequenceEvents.hash,
+        actions.hash,
         eventHash,
       ]);
-      return { hash, data: [event, ...sequenceEvents.data] };
+      return { hash, data: [event, ...actions.data] };
     },
     fromList(events: Event[]): Events {
-      return [...events]
-        .reverse()
-        .reduce(SequenceEvents.pushEvent, SequenceEvents.empty());
+      return [...events].reverse().reduce(Actions.pushEvent, Actions.empty());
     },
     hash(events: Event[]) {
       return this.fromList(events).hash;
     },
     // different than events
-    emptySequenceState() {
+    emptyActionState() {
       return emptyHashWithPrefix('MinaZkappSequenceStateEmptyElt');
     },
     updateSequenceState(state: Field, sequenceEventsHash: Field) {
@@ -104,21 +102,21 @@ function createEvents<Field>({
   };
 
   const SequenceEventsProvable = {
-    ...SequenceEvents,
+    ...Actions,
     ...dataAsHash({
-      emptyValue: SequenceEvents.empty,
+      emptyValue: Actions.empty,
       toJSON(data: Field[][]) {
         return data.map((row) => row.map((e) => Field.toJSON(e)));
       },
       fromJSON(json: string[][]) {
         let data = json.map((row) => row.map((e) => Field.fromJSON(e)));
-        let hash = SequenceEvents.hash(data);
+        let hash = Actions.hash(data);
         return { data, hash };
       },
     }),
   };
 
-  return { Events: EventsProvable, SequenceEvents: SequenceEventsProvable };
+  return { Events: EventsProvable, Actions: SequenceEventsProvable };
 }
 
 function dataAsHash<T, J, Field>({

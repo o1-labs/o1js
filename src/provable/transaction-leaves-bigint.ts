@@ -8,10 +8,10 @@ export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, TokenId };
 
 export {
   Events,
-  SequenceEvents,
+  Actions,
   ZkappUri,
   TokenSymbol,
-  SequenceState,
+  ActionState,
   ReceiptChainHash,
 };
 
@@ -36,13 +36,13 @@ type Events = {
   hash: Field;
   data: Event[];
 };
-type SequenceEvents = Events;
-const { Events, SequenceEvents } = createEvents({ Field, Poseidon });
+type Actions = Events;
+const { Events, Actions } = createEvents({ Field, Poseidon });
 
-type SequenceState = Field;
-const SequenceState = {
+type ActionState = Field;
+const ActionState = {
   ...Field,
-  emptyValue: SequenceEvents.emptySequenceState,
+  emptyValue: Actions.emptyActionState,
 };
 
 type ReceiptChainHash = Field;

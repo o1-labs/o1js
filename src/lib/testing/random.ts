@@ -52,8 +52,8 @@ const Events = map(
   array(array(Field, int(1, 5)), nat(2)),
   Bigint.Events.fromList
 );
-const SequenceEvents = Events;
-const SequenceState = oneOf(Bigint.SequenceState.emptyValue(), Field);
+const Actions = Events;
+const ActionState = oneOf(Bigint.ActionState.emptyValue(), Field);
 const ReceiptChainHash = oneOf(Bigint.ReceiptChainHash.emptyValue(), Field);
 const ZkappUri = map(string(nat(50)), Bigint.ZkappUri.fromJSON);
 
@@ -74,8 +74,8 @@ const Generators: Generators = {
   AuthRequired,
   TokenSymbol,
   Events,
-  SequenceEvents,
-  SequenceState,
+  Actions,
+  ActionState,
   ReceiptChainHash,
   ZkappUri,
   null: constant(null),

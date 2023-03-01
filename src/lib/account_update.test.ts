@@ -88,7 +88,7 @@ describe('AccountUpdate', () => {
 
   it('creates the right empty sequence state', () => {
     expect(
-      accountUpdate.body.preconditions.account.sequenceState.value.toString()
+      accountUpdate.body.preconditions.account.actionState.value.toString()
     ).toEqual(
       '12935064460869035604753254773225484359407575580289870070671311469994328713165'
     );
