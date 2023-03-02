@@ -518,7 +518,8 @@ async function fetchEvents(
     );
   }
 
-  // TODO: Is this what we want to do? Should we just return the events?
+  // TODO: This is a temporary fix. We should be able to fetch the event/action data from any block at the best tip.
+  // Once https://github.com/o1-labs/Archive-Node-API/issues/7 is resolved, we can remove this.
   // If we have multiple blocks returned at the best tip (e.g. distanceFromMaxBlockHeight === 0),
   // then filter out the blocks at the best tip. This is because we cannot guarantee that every block
   // at the best tip will have the correct event data or guarantee that the specific block data will not
