@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- BREAKING CHANGE: Circuits changed due to core protocol and cryptography changes; this breaks all deployed contracts.
+- BREAKING CHANGE: Circuits changed due to an internal rename of "sequence events" to "actions" which included a change to some hash prefixes; this breaks all deployed contracts.
 
 ## [0.9.0](https://github.com/o1-labs/snarkyjs/compare/c5a36207...HEAD)
 
