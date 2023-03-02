@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > No unreleased changes yet
 
+### Added
+
+- Add functionality to fetch events from a GraphQL endpoint that implements the [following schema](https://github.com/o1-labs/Archive-Node-API/blob/efebc9fd3cfc028f536ae2125e0d2676e2b86cd2/src/schema.ts#L1) : https://github.com/o1-labs/snarkyjs/pull/749
+
 ## [0.9.2](https://github.com/o1-labs/snarkyjs/compare/9c44b9c2...1abdfb70)
 
 ### Added
