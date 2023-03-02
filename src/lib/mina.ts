@@ -598,14 +598,18 @@ function Network(input: { mina: string; archive: string } | string): Mina {
   let graphqlEndpoint: string;
   let archiveEndpoint: string;
 
-  if (typeof input === 'string') {
+  if (input && typeof input === 'string') {
     graphqlEndpoint = input;
     Fetch.setGraphqlEndpoint(graphqlEndpoint);
-  } else {
+  } else if (input && typeof input === 'object') {
     graphqlEndpoint = input.mina;
     archiveEndpoint = input.archive;
     Fetch.setGraphqlEndpoint(graphqlEndpoint);
     Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+  } else {
+    throw new Error(
+      "Network: malformed input. Please provide a string or an object with 'mina' and 'archive' endpoints."
+    );
   }
 
   // copied from mina/genesis_ledgers/berkeley.json

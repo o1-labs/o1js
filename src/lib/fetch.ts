@@ -50,7 +50,7 @@ function setGraphqlEndpoint(graphqlEndpoint: string) {
 /**
  * Sets up a GraphQL endpoint to be used for fetching information from an Archive Node.
  *
- * @param {string} - A GraphQL endpoint.
+ * @param A GraphQL endpoint.
  */
 function setArchiveGraphqlEndpoint(graphqlEndpoint: string) {
   archiveGraphqlEndpoint = graphqlEndpoint;
@@ -502,13 +502,13 @@ type EventActionFilterOptions = {
 /**
 Asynchronously fetches event data for an account from the Mina Archive Node GraphQL API.
 @async
-@param {object} accountInfo - The account information object.
-@param {string} accountInfo.publicKey - The account public key.
-@param {string} [accountInfo.tokenId] - The optional token ID for the account.
-@param {string} [graphqlEndpoint=archiveGraphqlEndpoint] - The GraphQL endpoint to query. Defaults to the Archive Node GraphQL API.
-@param {object} [filterOptions={}] - The optional filter options object.
-@returns {Promise<Array>} A promise that resolves to an array of objects containing event data and block height for the account.
-@throws {Error} If the GraphQL request fails or the response is invalid.
+@param accountInfo - The account information object.
+@param accountInfo.publicKey - The account public key.
+@param [accountInfo.tokenId] - The optional token ID for the account.
+@param [graphqlEndpoint=archiveGraphqlEndpoint] - The GraphQL endpoint to query. Defaults to the Archive Node GraphQL API.
+@param [filterOptions={}] - The optional filter options object.
+@returns A promise that resolves to an array of objects containing event data and block height for the account.
+@throws If the GraphQL request fails or the response is invalid.
 @example
 const accountInfo = { publicKey: 'B62qiwmXrWn7Cok5VhhB3KvCwyZ7NHHstFGbiU5n7m8s2RqqNW1p1wF' };
 const events = await fetchEvents(accountInfo);
@@ -519,6 +519,10 @@ async function fetchEvents(
   graphqlEndpoint = archiveGraphqlEndpoint,
   filterOptions: EventActionFilterOptions = {}
 ): Promise<any> {
+  if (!graphqlEndpoint)
+    throw new Error(
+      'fetchEvents: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
+    );
   const { publicKey, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
     getEventsQuery(

@@ -1038,10 +1038,10 @@ super.init();
   /**
     Asynchronously fetches events emitted by this {@link SmartContract} and returns an array of events with their corresponding types.
     @async
-    @param {UInt32} [start=UInt32.from(0)] - The start height of the events to fetch.
-    @param {UInt32} [end] - The end height of the events to fetch. If not provided, fetches events up to the latest height.
-    @returns {Promise<Array>} A promise that resolves to an array of objects, each containing the event type and event data for the specified range.
-    @throws {Error} If there is an error fetching events from the Mina network.
+    @param [start=UInt32.from(0)] - The start height of the events to fetch.
+    @param end - The end height of the events to fetch. If not provided, fetches events up to the latest height.
+    @returns A promise that resolves to an array of objects, each containing the event type and event data for the specified range.
+    @throws If there is an error fetching events from the Mina network.
     @example
     const startHeight = UInt32.from(1000);
     const endHeight = UInt32.from(2000);
