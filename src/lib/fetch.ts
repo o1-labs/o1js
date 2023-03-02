@@ -47,6 +47,11 @@ function setGraphqlEndpoint(graphqlEndpoint: string) {
   defaultGraphqlEndpoint = graphqlEndpoint;
 }
 
+/**
+ * Sets up a GraphQL endpoint to be used for fetching information from an Archive Node.
+ *
+ * @param {string} - A GraphQL endpoint.
+ */
 function setArchiveGraphqlEndpoint(graphqlEndpoint: string) {
   archiveGraphqlEndpoint = graphqlEndpoint;
 }
@@ -493,9 +498,22 @@ type EventActionFilterOptions = {
   to?: UInt32;
   from?: UInt32;
 };
+
 /**
- * Fetches the events for an account.
- */
+Asynchronously fetches event data for an account from the Mina Archive Node GraphQL API.
+@async
+@param {object} accountInfo - The account information object.
+@param {string} accountInfo.publicKey - The account public key.
+@param {string} [accountInfo.tokenId] - The optional token ID for the account.
+@param {string} [graphqlEndpoint=archiveGraphqlEndpoint] - The GraphQL endpoint to query. Defaults to the Archive Node GraphQL API.
+@param {object} [filterOptions={}] - The optional filter options object.
+@returns {Promise<Array>} A promise that resolves to an array of objects containing event data and block height for the account.
+@throws {Error} If the GraphQL request fails or the response is invalid.
+@example
+const accountInfo = { publicKey: 'Gt7YKtRQ2bm7mNgxkPT2SwmLYm55KJXgz7SBaE5z5WH5' };
+const events = await fetchEvents(accountInfo);
+console.log(events);
+*/
 async function fetchEvents(
   accountInfo: { publicKey: string; tokenId?: string },
   graphqlEndpoint = archiveGraphqlEndpoint,
