@@ -572,10 +572,24 @@ function LocalBlockchain({
 /**
  * Represents the Mina blockchain running on a real network
  */
-function Network(graphqlEndpoint: string, archiveEndpoint?: string): Mina {
+function Network(graphqlEndpoint: string): Mina;
+function Network(graphqlEndpoints: { mina: string; archive: string }): Mina;
+function Network(input: { mina: string; archive: string } | string): Mina;
+function Network(input: { mina: string; archive: string } | string): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
-  Fetch.setGraphqlEndpoint(graphqlEndpoint);
-  if (archiveEndpoint) Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+  let graphqlEndpoint: string;
+  let archiveEndpoint: string;
+
+  if (typeof input === 'string') {
+    graphqlEndpoint = input;
+    Fetch.setGraphqlEndpoint(graphqlEndpoint);
+  } else {
+    graphqlEndpoint = input.mina;
+    archiveEndpoint = input.archive;
+    Fetch.setGraphqlEndpoint(graphqlEndpoint);
+    Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+  }
+
   return {
     accountCreationFee: () => accountCreationFee,
     currentSlot() {
