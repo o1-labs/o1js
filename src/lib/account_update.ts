@@ -632,7 +632,7 @@ class AccountUpdate implements Types.AccountUpdate {
     undefined;
   account: Precondition.Account;
   network: Precondition.Network;
-  globalSlot: Precondition.GlobalSlot;
+  currentSlot: Precondition.CurrentSlot;
   children: {
     callsType:
       | { type: 'None' }
@@ -654,13 +654,13 @@ class AccountUpdate implements Types.AccountUpdate {
     this.id = Math.random();
     this.body = body;
     this.authorization = authorization;
-    let { account, network, globalSlot } = Precondition.preconditions(
+    let { account, network, currentSlot } = Precondition.preconditions(
       this,
       isSelf
     );
     this.account = account;
     this.network = network;
-    this.globalSlot = globalSlot;
+    this.currentSlot = currentSlot;
     this.isSelf = isSelf;
   }
 

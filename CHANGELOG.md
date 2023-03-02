@@ -15,9 +15,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/71b6132b...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/1abdfb70...HEAD)
 
-> There are no unreleased changes yet
+> No unreleased changes yet
+
+## [0.9.2](https://github.com/o1-labs/snarkyjs/compare/9c44b9c2...1abdfb70)
+
+### Added
+
+- Add back `this.network.timestamp`, implemented on top of `this.network.globalSlotSinceGenesis` https://github.com/o1-labs/snarkyjs/pull/755
+
+### Changed
+
+- On-chain value `globalSlot` replaced by the clearer `currentSlot` https://github.com/o1-labs/snarkyjs/pull/755
+  - this refers to the slot at which the transaction _will be included in a block_.
+  - there is only `currentSlot.assertBetween()`; no `currentSlot.get()` (impossible to implement, since the value is determined in the future) and `currentSlot.assertEquals()` (error-prone)
+
+### Fixed
+
+- Incorrect counting of limit on events and actions https://github.com/o1-labs/snarkyjs/pull/758
+- Type error when using `Circuit.array` in on-chain state or events https://github.com/o1-labs/snarkyjs/pull/758
+- Bug when using `Circuit.witness` outside the prover https://github.com/o1-labs/snarkyjs/pull/774
+
+## [0.9.1](https://github.com/o1-labs/snarkyjs/compare/71b6132b...9c44b9c2)
+
+### Fixed
+
+- Bug when using `this.<state>.get()` outside a transaction https://github.com/o1-labs/snarkyjs/pull/754
 
 ## [0.9.0](https://github.com/o1-labs/snarkyjs/compare/c5a36207...71b6132b)
 

@@ -34,7 +34,7 @@ import {
   cloneCircuitValue,
   FlexibleProvablePure,
   getBlindingValue,
-  InferCircuitValue,
+  InferProvable,
   memoizationContext,
   provable,
   Struct,
@@ -926,10 +926,12 @@ super.init();
     return this.self.network;
   }
   /**
-   * Current global slot on the network.
+   * Current global slot on the network. This is the slot at which this transaction is included in a block. Since we cannot know this value
+   * at the time of transaction construction, this only has the `assertBetween()` method but no `get()` (impossible to implement)
+   * or `assertEquals()` (confusing, because the developer can't know the exact slot at which this will be included either)
    */
-  get globalSlot() {
-    return this.self.globalSlot;
+  get currentSlot() {
+    return this.self.currentSlot;
   }
   /**
    * Token of the {@link SmartContract}.
@@ -1467,7 +1469,7 @@ function declareMethods<T extends typeof SmartContract>(
 
 const Reducer: (<
   T extends FlexibleProvablePure<any>,
-  A extends InferCircuitValue<T> = InferCircuitValue<T>
+  A extends InferProvable<T> = InferProvable<T>
 >(reducer: {
   actionType: T;
 }) => ReducerReturn<A>) & {

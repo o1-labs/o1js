@@ -10,7 +10,7 @@ export { createProvable, createHashInput, ProvableConstructor };
 type ProvableConstructor<Field> = <A>(
   typeObj: A,
   options?: { customObjectKeys?: string[]; isPure?: boolean }
-) => GenericProvableExtended<InferCircuitValue<A, Field>, InferJson<A>, Field>;
+) => GenericProvableExtended<InferProvable<A, Field>, InferJson<A>, Field>;
 
 function createProvable<Field>(): ProvableConstructor<Field> {
   type ProvableExtended<T, TJson = JSONValue> = GenericProvableExtended<
@@ -26,8 +26,8 @@ function createProvable<Field>(): ProvableConstructor<Field> {
   function provable<A>(
     typeObj: A,
     options?: { customObjectKeys?: string[]; isPure?: boolean }
-  ): ProvableExtended<InferCircuitValue<A, Field>, InferJson<A>> {
-    type T = InferCircuitValue<A, Field>;
+  ): ProvableExtended<InferProvable<A, Field>, InferJson<A>> {
+    type T = InferProvable<A, Field>;
     type J = InferJson<A>;
     let objectKeys =
       typeof typeObj === 'object' && typeObj !== null
@@ -278,25 +278,25 @@ type InferPrimitiveJson<P extends Primitive> = P extends typeof String
   ? null
   : JSONValue;
 
-type InferCircuitValue<A, Field> = A extends Constructor<infer U>
+type InferProvable<A, Field> = A extends Constructor<infer U>
   ? A extends GenericProvable<U, Field>
     ? U
-    : InferCircuitValueBase<A, Field>
-  : InferCircuitValueBase<A, Field>;
+    : InferProvableBase<A, Field>
+  : InferProvableBase<A, Field>;
 
-type InferCircuitValueBase<A, Field> = A extends GenericProvable<infer U, Field>
+type InferProvableBase<A, Field> = A extends GenericProvable<infer U, Field>
   ? U
   : A extends Primitive
   ? InferPrimitive<A>
   : A extends Tuple<any>
   ? {
-      [I in keyof A]: InferCircuitValue<A[I], Field>;
+      [I in keyof A]: InferProvable<A[I], Field>;
     }
   : A extends (infer U)[]
-  ? InferCircuitValue<U, Field>[]
+  ? InferProvable<U, Field>[]
   : A extends Record<any, any>
   ? {
-      [K in keyof A]: InferCircuitValue<A[K], Field>;
+      [K in keyof A]: InferProvable<A[K], Field>;
     }
   : never;
 

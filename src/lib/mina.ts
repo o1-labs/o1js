@@ -13,7 +13,7 @@ import {
   CallForest,
   Authorization,
   SequenceEvents,
-  Permissions,
+  Events,
 } from './account_update.js';
 
 import * as Fetch from './fetch.js';
@@ -34,6 +34,7 @@ export {
   currentTransaction,
   CurrentTransaction,
   Transaction,
+  activeInstance,
   setActiveInstance,
   transaction,
   sender,
@@ -309,6 +310,14 @@ interface Mina {
   hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
+  getNetworkConstants(): {
+    genesisTimestamp: UInt64;
+    /**
+     * Duration of 1 slot in millisecondw
+     */
+    slotTime: UInt64;
+    accountCreationFee: UInt64;
+  };
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): Promise<TransactionId>;
   fetchEvents: (
@@ -333,8 +342,9 @@ function LocalBlockchain({
   proofsEnabled = true,
   enforceTransactionLimits = true,
 } = {}) {
-  const msPerSlot = 3 * 60 * 1000;
-  const startTime = new Date().valueOf();
+  const slotTime = 3 * 60 * 1000;
+  const startTime = Date.now();
+  const genesisTimestamp = UInt64.from(startTime);
 
   const ledger = Ledger.create([]);
 
@@ -364,9 +374,16 @@ function LocalBlockchain({
   return {
     proofsEnabled,
     accountCreationFee: () => UInt64.from(accountCreationFee),
+    getNetworkConstants() {
+      return {
+        genesisTimestamp,
+        accountCreationFee: UInt64.from(accountCreationFee),
+        slotTime: UInt64.from(slotTime),
+      };
+    },
     currentSlot() {
       return UInt32.from(
-        Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
+        Math.ceil((new Date().valueOf() - startTime) / slotTime)
       );
     },
     hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
@@ -568,6 +585,8 @@ function LocalBlockchain({
     },
   };
 }
+// assert type compatibility without preventing LocalBlockchain to return additional properties / methods
+LocalBlockchain satisfies (...args: any) => Mina;
 
 /**
  * Represents the Mina blockchain running on a real network
@@ -590,8 +609,24 @@ function Network(input: { mina: string; archive: string } | string): Mina {
     Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
   }
 
+
+  // copied from mina/genesis_ledgers/berkeley.json
+  // TODO fetch from graphql instead of hardcoding
+  const genesisTimestampString = '2023-02-23T20:00:01Z';
+  const genesisTimestamp = UInt64.from(
+    Date.parse(genesisTimestampString.slice(0, -1) + '+00:00')
+  );
+  // TODO also fetch from graphql
+  const slotTime = UInt64.from(3 * 60 * 1000);
   return {
     accountCreationFee: () => accountCreationFee,
+    getNetworkConstants() {
+      return {
+        genesisTimestamp,
+        slotTime,
+        accountCreationFee,
+      };
+    },
     currentSlot() {
       throw Error(
         'currentSlot() is not implemented yet for remote blockchains.'
@@ -773,6 +808,9 @@ function BerkeleyQANet(graphqlEndpoint: string) {
 
 let activeInstance: Mina = {
   accountCreationFee: () => UInt64.from(defaultAccountCreationFee),
+  getNetworkConstants() {
+    throw new Error('must call Mina.setActiveInstance first');
+  },
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
   },
@@ -1193,19 +1231,16 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
   const costLimit = 69.45;
 
   // constants that define the maximum number of events in one transaction
-  const maxSequenceEventElements = 16;
+  const maxActionElements = 16;
   const maxEventElements = 16;
 
-  let eventElements = {
-    events: 0,
-    sequence: 0,
-  };
+  let eventElements = { events: 0, actions: 0 };
 
   let authTypes = filterGroups(
     accountUpdates.map((update) => {
       let json = update.toJSON();
-      eventElements.events += update.body.events.data.length;
-      eventElements.sequence += update.body.actions.data.length;
+      eventElements.events += countEventElements(update.body.events);
+      eventElements.actions += countEventElements(update.body.actions);
       return json.body.authorizationKind;
     })
   );
@@ -1225,9 +1260,8 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
 
   let isWithinCostLimit = totalTimeRequired < costLimit;
 
-  let isWithinEventsLimit = eventElements['events'] <= maxEventElements;
-  let isWithinSequenceEventsLimit =
-    eventElements['sequence'] <= maxSequenceEventElements;
+  let isWithinEventsLimit = eventElements.events <= maxEventElements;
+  let isWithinActionsLimit = eventElements.actions <= maxActionElements;
 
   let error = '';
 
@@ -1242,14 +1276,18 @@ ${JSON.stringify(authTypes)}
   }
 
   if (!isWithinEventsLimit) {
-    error += `Error: The AccountUpdates in your transaction are trying to emit too many events. The maximum allowed amount of events is ${maxEventElements}, but you tried to emit ${eventElements['events']}.\n\n`;
+    error += `Error: The account updates in your transaction are trying to emit too much event data. The maximum allowed number of field elements in events is ${maxEventElements}, but you tried to emit ${eventElements.events}.\n\n`;
   }
 
-  if (!isWithinSequenceEventsLimit) {
-    error += `Error: The AccountUpdates in your transaction are trying to emit too many actions. The maximum allowed amount of actions is ${maxSequenceEventElements}, but you tried to emit ${eventElements['sequence']}.\n\n`;
+  if (!isWithinActionsLimit) {
+    error += `Error: The account updates in your transaction are trying to emit too much action data. The maximum allowed number of field elements in actions is ${maxActionElements}, but you tried to emit ${eventElements.actions}.\n\n`;
   }
 
   if (error) throw Error('Error during transaction sending:\n\n' + error);
+}
+
+function countEventElements({ data }: Events) {
+  return data.reduce((acc, ev) => acc + ev.length, 0);
 }
 
 type AuthorizationKind = { isProved: boolean; isSigned: boolean };
