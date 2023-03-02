@@ -86,14 +86,14 @@ await tx.prove();
 await tx.sign([feePayerKey]).send();
 
 console.log('---- emitted events: ----');
-// fetches all events from zkapp starting slot 0
+// fetches all events from zkapp starting block height 0
 let events = await zkapp.fetchEvents(UInt32.from(0));
 console.log(events);
 console.log('---- emitted events: ----');
-// fetches all events
-events = await zkapp.fetchEvents();
+// fetches all events from zkapp starting block height 0 and ending at block height 10
+events = await zkapp.fetchEvents(UInt32.from(0), UInt64.from(10));
 console.log(events);
 console.log('---- emitted events: ----');
-// fetches all events second time
+// fetches all events
 events = await zkapp.fetchEvents();
 console.log(events);
