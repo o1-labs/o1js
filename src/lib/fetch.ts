@@ -510,7 +510,7 @@ Asynchronously fetches event data for an account from the Mina Archive Node Grap
 @returns {Promise<Array>} A promise that resolves to an array of objects containing event data and block height for the account.
 @throws {Error} If the GraphQL request fails or the response is invalid.
 @example
-const accountInfo = { publicKey: 'Gt7YKtRQ2bm7mNgxkPT2SwmLYm55KJXgz7SBaE5z5WH5' };
+const accountInfo = { publicKey: 'B62qiwmXrWn7Cok5VhhB3KvCwyZ7NHHstFGbiU5n7m8s2RqqNW1p1wF' };
 const events = await fetchEvents(accountInfo);
 console.log(events);
 */
