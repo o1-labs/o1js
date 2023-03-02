@@ -982,7 +982,7 @@ Circuit.witness = function <
       : createFields();
   let aux = type.toAuxiliary(proverValue);
   let value = type.fromFields(fields, aux) as T;
-  type.check(value);
+  if (inCheckedComputation()) type.check(value);
   return value;
 };
 
