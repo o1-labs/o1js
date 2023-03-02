@@ -593,7 +593,6 @@ LocalBlockchain satisfies (...args: any) => Mina;
  */
 function Network(graphqlEndpoint: string): Mina;
 function Network(graphqlEndpoints: { mina: string; archive: string }): Mina;
-function Network(input: { mina: string; archive: string } | string): Mina;
 function Network(input: { mina: string; archive: string } | string): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
   let graphqlEndpoint: string;
@@ -608,7 +607,6 @@ function Network(input: { mina: string; archive: string } | string): Mina {
     Fetch.setGraphqlEndpoint(graphqlEndpoint);
     Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
   }
-
 
   // copied from mina/genesis_ledgers/berkeley.json
   // TODO fetch from graphql instead of hardcoding
