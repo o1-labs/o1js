@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/9c44b9c2...HEAD)
 
+> No unreleased changes yet
+
+## [0.9.2](https://github.com/o1-labs/snarkyjs/compare/9c44b9c2...HEAD)
+
 ### Added
 
 - Add back `this.network.timestamp`, implemented on top of `this.network.globalSlotSinceGenesis` https://github.com/o1-labs/snarkyjs/pull/755
@@ -31,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Incorrect counting of limit on events and actions https://github.com/o1-labs/snarkyjs/pull/758
 - Type error when using `Circuit.array` in on-chain state or events https://github.com/o1-labs/snarkyjs/pull/758
+- Bug when using `Circuit.witness` outside the prover
 
 ## [0.9.1](https://github.com/o1-labs/snarkyjs/compare/71b6132b...9c44b9c2)
 
