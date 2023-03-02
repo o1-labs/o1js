@@ -36,7 +36,7 @@
     "build:node": "npm run build",
     "build:web": "rimraf ./dist/web && node src/build/buildWeb.js",
     "build:examples": "rimraf ./dist/examples && npx tsc -p tsconfig.examples.json || exit 0",
-    "serve:web": "cp src/chrome_bindings/server.js src/chrome_bindings/index.html dist/web && node dist/web/server.js",
+    "serve:web": "cp src/chrome_bindings/server.js src/chrome_bindings/index.html src/examples/simple_zkapp.js dist/web && node dist/web/server.js",
     "prepublish:web": "NODE_ENV=production node src/build/buildWeb.js",
     "prepublish:node": "npm run build && NODE_ENV=production node src/build/buildNode.js",
     "prepublish:both": "npm run prepublish:web && npm run prepublish:node",
