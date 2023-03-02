@@ -15,7 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/9c44b9c2...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/1abdfb70...HEAD)
+
+> No unreleased changes yet
+
+## [0.9.2](https://github.com/o1-labs/snarkyjs/compare/9c44b9c2...1abdfb70)
 
 ### Added
 
@@ -31,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Incorrect counting of limit on events and actions https://github.com/o1-labs/snarkyjs/pull/758
 - Type error when using `Circuit.array` in on-chain state or events https://github.com/o1-labs/snarkyjs/pull/758
+- Bug when using `Circuit.witness` outside the prover https://github.com/o1-labs/snarkyjs/pull/774
 
 ## [0.9.1](https://github.com/o1-labs/snarkyjs/compare/71b6132b...9c44b9c2)
 
