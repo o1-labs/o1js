@@ -14,7 +14,7 @@ import {
   shutdown,
   ProvableExtended,
 } from '../index.js';
-import { Events, SequenceEvents } from './account_update.js';
+import { Events, Actions } from './account_update.js';
 import { expect } from 'expect';
 import { jsLayout } from '../provable/gen/js-layout.js';
 import { provableFromLayout } from '../provable/gen/transaction.js';
@@ -122,14 +122,17 @@ body.callDepth = 1;
 body.incrementNonce = Bool(true);
 let tokenOwner = PrivateKey.random().toPublicKey();
 body.tokenId = new Token({ tokenOwner }).id;
-body.mayUseToken = { parentsOwnToken: Bool(true), inheritFromParent: Bool(false) };
+body.mayUseToken = {
+  parentsOwnToken: Bool(true),
+  inheritFromParent: Bool(false),
+};
 let events = Events.empty();
 events = Events.pushEvent(events, [Field(1)]);
 events = Events.pushEvent(events, [Field(0)]);
 body.events = events;
-let actions = SequenceEvents.empty();
-actions = SequenceEvents.pushEvent(actions, [Field(1)]);
-actions = SequenceEvents.pushEvent(actions, [Field(0)]);
+let actions = Actions.empty();
+actions = Actions.pushEvent(actions, [Field(1)]);
+actions = Actions.pushEvent(actions, [Field(0)]);
 body.actions = actions;
 
 testInput(Body, Ledger.hashInputFromJson.body, body);

@@ -12,8 +12,7 @@ import {
   TokenId,
   CallForest,
   Authorization,
-  SequenceEvents,
-  Permissions,
+  Actions,
 } from './account_update.js';
 
 import * as Fetch from './fetch.js';
@@ -453,16 +452,16 @@ function LocalBlockchain({
         let n = actions[addr]?.[tokenId]?.length ?? 1;
 
         // most recent sequence state
-        let sequenceState = actions?.[addr]?.[tokenId]?.[n - 1]?.hash;
+        let actionState = actions?.[addr]?.[tokenId]?.[n - 1]?.hash;
 
         // if there exists no hash, this means we initialize our latest hash with the empty state
         let latestActionsHash =
-          sequenceState === undefined
-            ? SequenceEvents.emptySequenceState()
-            : Ledger.fieldOfBase58(sequenceState);
+          actionState === undefined
+            ? Actions.emptyActionState()
+            : Ledger.fieldOfBase58(actionState);
 
         let actionList = p.body.actions;
-        let eventsHash = SequenceEvents.hash(
+        let eventsHash = Actions.hash(
           actionList.map((e) => e.map((f) => Field(f)))
         );
 
@@ -470,7 +469,7 @@ function LocalBlockchain({
           actions[addr] = {};
         }
         if (p.body.actions.length > 0) {
-          latestActionsHash = SequenceEvents.updateSequenceState(
+          latestActionsHash = Actions.updateSequenceState(
             latestActionsHash,
             eventsHash
           );
@@ -1031,8 +1030,8 @@ async function verifyAccountUpdate(
         return perm.setTiming;
       case 'votingFor':
         return perm.setVotingFor;
-      case 'sequenceEvents':
-        return perm.editSequenceState;
+      case 'actions':
+        return perm.editActionState;
       case 'incrementNonce':
         return perm.incrementNonce;
       case 'send':
@@ -1133,8 +1132,8 @@ async function verifyAccountUpdate(
 
   // checks the sequence events (which result in an updated sequence state)
   if (accountUpdate.body.actions.data.length > 0) {
-    let p = permissionForUpdate('sequenceEvents');
-    checkPermission(p, 'sequenceEvents');
+    let p = permissionForUpdate('actions');
+    checkPermission(p, 'actions');
   }
 
   if (accountUpdate.body.incrementNonce.toBoolean()) {

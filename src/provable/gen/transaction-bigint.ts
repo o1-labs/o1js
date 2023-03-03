@@ -12,8 +12,8 @@ import {
   ZkappUri,
   TokenSymbol,
   Events,
-  SequenceEvents,
-  SequenceState,
+  Actions,
+  ActionState,
   ReceiptChainHash,
 } from '../transaction-leaves-bigint.js';
 import { GenericProvableExtended } from '../../provable/generic.js';
@@ -78,22 +78,22 @@ type CustomTypes = {
     },
     Json.TypeMap['Field'][][]
   >;
-  SequenceEvents: ProvableExtended<
+  Actions: ProvableExtended<
     {
       data: Field[][];
       hash: Field;
     },
     Json.TypeMap['Field'][][]
   >;
-  SequenceState: ProvableExtended<Field, Json.TypeMap['Field']>;
+  ActionState: ProvableExtended<Field, Json.TypeMap['Field']>;
   ReceiptChainHash: ProvableExtended<Field, Json.TypeMap['Field']>;
 };
 let customTypes: CustomTypes = {
   ZkappUri,
   TokenSymbol,
   Events,
-  SequenceEvents,
-  SequenceState,
+  Actions,
+  ActionState,
   ReceiptChainHash,
 };
 let { provableFromLayout, toJSONEssential, emptyValue } = ProvableFromLayout<
@@ -136,7 +136,7 @@ type ZkappCommand = {
             setPermissions: AuthRequired;
             setVerificationKey: AuthRequired;
             setZkappUri: AuthRequired;
-            editSequenceState: AuthRequired;
+            editActionState: AuthRequired;
             setTokenSymbol: AuthRequired;
             incrementNonce: AuthRequired;
             setVotingFor: AuthRequired;
@@ -278,7 +278,7 @@ type ZkappCommand = {
           receiptChainHash: { isSome: Bool; value: Field };
           delegate: { isSome: Bool; value: PublicKey };
           state: { isSome: Bool; value: Field }[];
-          sequenceState: { isSome: Bool; value: Field };
+          actionState: { isSome: Bool; value: Field };
           provedState: { isSome: Bool; value: Bool };
           isNew: { isSome: Bool; value: Bool };
         };
@@ -339,7 +339,7 @@ type AccountUpdate = {
           setPermissions: AuthRequired;
           setVerificationKey: AuthRequired;
           setZkappUri: AuthRequired;
-          editSequenceState: AuthRequired;
+          editActionState: AuthRequired;
           setTokenSymbol: AuthRequired;
           incrementNonce: AuthRequired;
           setVotingFor: AuthRequired;
@@ -481,7 +481,7 @@ type AccountUpdate = {
         receiptChainHash: { isSome: Bool; value: Field };
         delegate: { isSome: Bool; value: PublicKey };
         state: { isSome: Bool; value: Field }[];
-        sequenceState: { isSome: Bool; value: Field };
+        actionState: { isSome: Bool; value: Field };
         provedState: { isSome: Bool; value: Bool };
         isNew: { isSome: Bool; value: Bool };
       };
@@ -541,7 +541,7 @@ type Account = {
     setPermissions: AuthRequired;
     setVerificationKey: AuthRequired;
     setZkappUri: AuthRequired;
-    editSequenceState: AuthRequired;
+    editActionState: AuthRequired;
     setTokenSymbol: AuthRequired;
     incrementNonce: AuthRequired;
     setVotingFor: AuthRequired;
@@ -554,8 +554,8 @@ type Account = {
       hash: Field;
     };
     zkappVersion: UInt32;
-    sequenceState: Field[];
-    lastSequenceSlot: UInt32;
+    actionState: Field[];
+    lastActionSlot: UInt32;
     provedState: Bool;
     zkappUri: string;
   };

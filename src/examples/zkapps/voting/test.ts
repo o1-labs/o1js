@@ -178,7 +178,7 @@ export async function testSet(
       permUpdate.account.permissions.set({
         ...Permissions.default(),
         setPermissions: Permissions.none(),
-        editSequenceState: Permissions.impossible(),
+        editActionState: Permissions.impossible(),
       });
     },
     permissionedSet.feePayer
@@ -199,7 +199,7 @@ export async function testSet(
       permissionedSet.voting.voterRegistration(m);
     },
     permissionedSet.feePayer,
-    'sequenceEvents'
+    'actions'
   );
 
   /*

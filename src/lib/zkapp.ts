@@ -18,7 +18,7 @@ import {
   CallForest,
   Events,
   Permissions,
-  SequenceEvents,
+  Actions,
   SetOrKeep,
   signJsonTransaction,
   smartContractContext,
@@ -622,7 +622,7 @@ class SmartContract {
   static _methodMetadata: Record<
     string,
     {
-      sequenceEvents: number;
+      actions: number;
       rows: number;
       digest: string;
       hasReturn: boolean;
@@ -1104,7 +1104,7 @@ super.init();
    *  - `rows` the size of the constraint system created by this method
    *  - `digest` a digest of the method circuit
    *  - `hasReturn` a boolean indicating whether the method returns a value
-   *  - `sequenceEvents` the number of actions the method dispatches
+   *  - `actions` the number of actions the method dispatches
    *  - `gates` the constraint system, represented as an array of gates
    */
   static analyzeMethods() {
@@ -1139,7 +1139,7 @@ super.init();
           }
         );
         ZkappClass._methodMetadata[methodIntf.methodName] = {
-          sequenceEvents: accountUpdate!.body.actions.data.length,
+          actions: accountUpdate!.body.actions.data.length,
           rows,
           digest,
           hasReturn: result !== undefined,
@@ -1239,7 +1239,7 @@ class ${contract.constructor.name} extends SmartContract {
     dispatch(action: A) {
       let accountUpdate = contract.self;
       let eventFields = reducer.actionType.toFields(action);
-      accountUpdate.body.actions = SequenceEvents.pushEvent(
+      accountUpdate.body.actions = Actions.pushEvent(
         accountUpdate.body.actions,
         eventFields
       );
@@ -1262,9 +1262,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         contract.constructor as typeof SmartContract
       ).analyzeMethods();
       let possibleActionsPerTransaction = [
-        ...new Set(Object.values(methodData).map((o) => o.sequenceEvents)).add(
-          0
-        ),
+        ...new Set(Object.values(methodData).map((o) => o.actions)).add(0),
       ].sort((x, y) => x - y);
 
       let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
@@ -1287,10 +1285,10 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         // for each action length, compute the events hash and then pick the actual one
         let eventsHashes = actionss.map((actions) => {
           let events = actions.map((u) => reducer.actionType.toFields(u));
-          return SequenceEvents.hash(events);
+          return Actions.hash(events);
         });
         let eventsHash = Circuit.switch(lengths, Field, eventsHashes);
-        let newActionsHash = SequenceEvents.updateSequenceState(
+        let newActionsHash = Actions.updateSequenceState(
           actionsHash,
           eventsHash
         );
@@ -1311,7 +1309,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         // update state
         state = Circuit.switch(lengths, stateType, newStates);
       }
-      contract.account.sequenceState.assertEquals(actionsHash);
+      contract.account.actionState.assertEquals(actionsHash);
       return { state, actionsHash };
     },
     getActions({
@@ -1325,7 +1323,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       Circuit.asProver(() => {
         // if the fromActionHash is the empty state, we fetch all events
         fromActionHash = fromActionHash
-          ?.equals(SequenceEvents.emptySequenceState())
+          ?.equals(Actions.emptyActionState())
           .toBoolean()
           ? undefined
           : fromActionHash;
@@ -1474,7 +1472,7 @@ const Reducer: (<
     return reducer;
   },
   'initialActionsHash',
-  { get: SequenceEvents.emptySequenceState }
+  { get: Actions.emptyActionState }
 ) as any;
 
 /**
