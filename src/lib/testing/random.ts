@@ -425,6 +425,10 @@ function oneOf<Types extends readonly any[]>(
   return Object.assign(valid, { invalid });
 }
 
+/**
+ * map a list of generators to a new generator, by specifying the transformation which maps samples
+ * of the input generators to a sample of the result.
+ */
 function map<T extends readonly any[], S>(
   ...args: [...rngs: { [K in keyof T]: Random<T[K]> }, to: (...values: T) => S]
 ): Random<S> {
@@ -437,6 +441,15 @@ function map<T extends readonly any[], S>(
     },
   };
 }
+/**
+ * dependent is like {@link map}, with the difference that the mapping contains a free variable
+ * whose samples have to be provided as inputs separately. this is useful to create correlated generators, where
+ * multiple generators are all dependent on the same extra variable which is sampled independently.
+ *
+ * dependent can be used in two different ways:
+ * - as a function from a random generator of the free variable to a random generator of the result
+ * - as a random generator whose samples are _functions_ from free variable to result: `Random<(arg: Free) => Result>`
+ */
 function dependent<T extends readonly any[], Result, Free>(
   ...args: [
     ...rngs: { [K in keyof T]: Random<T[K]> },
@@ -784,13 +797,13 @@ function drawOneOf8() {
 // generators for invalid samples
 // note: these only cover invalid samples with a _valid type_.
 // for example, numbers that are out of range or base58 strings with invalid characters.
-// what we don't cover is something like
+// what we don't cover is something like passing numbers where strings are expected
 
-// convention is for invalid generators sit next to valid ones
-// so you can use uint64.invalid, array(uint64).invalid, etc
+// convention is that invalid generators sit next to valid ones
+// so you can use uint64.invalid, array(uint64, 10).invalid, etc
 
 /**
- * we get invalid uints by sampling from a larger range plus negative numbers, and reject if it's still valid
+ * we get invalid uints by sampling from a larger range plus negative numbers
  */
 function biguintWithInvalid(bits: number): RandomWithInvalid<bigint> {
   let valid = biguint(bits);

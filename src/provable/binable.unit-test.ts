@@ -37,7 +37,6 @@ test(Random.field, (field) => {
   expect(result).toEqual(field);
 });
 test.negative(Random.field.invalid, (field) =>
-  // TODO: toBytes doesn't fail. But should it?
   Field.fromBytes(Field.toBytes(field))
 );
 
@@ -149,4 +148,5 @@ test.negative(Random.bool, (bool) => {
 let fieldBytes = Field.toBytes(Field.random());
 expect(() => Field.readBytes(fieldBytes, -1 as never)).toThrow();
 expect(() => Field.readBytes(fieldBytes, 0.1 as never)).toThrow();
+expect(() => Field.readBytes(fieldBytes, 3e-9 as never)).toThrow();
 expect(() => Field.readBytes(fieldBytes, fieldBytes.length as never)).toThrow();

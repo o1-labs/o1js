@@ -12,12 +12,12 @@ import {
 } from '../../lib/signature.js';
 import {
   AccountUpdate as AccountUpdateSnarky,
-  Permissions as PermissionsSnarky,
   ZkappCommand as ZkappCommandSnarky,
 } from '../../lib/account_update.js';
 import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
 import {
   AccountUpdate,
+  Field,
   Json,
   ZkappCommand,
 } from '../../provable/gen/transaction-bigint.js';
@@ -47,6 +47,7 @@ import {
 } from './signature.js';
 import { Random, test, withHardCoded } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
+import { Pickles } from '../../snarky.js';
 
 // monkey-patch bigint to json
 (BigInt.prototype as any).toJSON = function () {
@@ -284,10 +285,12 @@ function inputFromOcaml({
   };
 }
 
-function fixVerificationKey(accountUpdate: AccountUpdate) {
-  // TODO we set vk to null since we can't generate a valid random one
-  accountUpdate.body.update.verificationKey = {
-    isSome: 0n,
-    value: { data: '', hash: 0n },
-  };
+function fixVerificationKey(a: AccountUpdate) {
+  // ensure verification key is valid
+  if (a.body.update.verificationKey.isSome === 1n) {
+    let { data, hash } = Pickles.dummyVerificationKey();
+    a.body.update.verificationKey.value = { data, hash: Field(hash) };
+  } else {
+    a.body.update.verificationKey.value = { data: '', hash: Field(0) };
+  }
 }

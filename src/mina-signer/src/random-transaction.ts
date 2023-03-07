@@ -1,4 +1,4 @@
-import { Signed, SignedLegacy } from './transaction-hash.js';
+import { SignedLegacy } from './transaction-hash.js';
 import { DelegationJson, PaymentJson } from './sign-legacy.js';
 import { Random } from '../../lib/testing/property.js';
 import {
