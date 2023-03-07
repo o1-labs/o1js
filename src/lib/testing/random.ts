@@ -7,13 +7,13 @@ import {
   ZkappCommand,
 } from '../../provable/gen/transaction-bigint.js';
 import {
-  AuthorizationKind,
   AuthRequired,
   Bool,
   Events,
   Field,
   SequenceEvents,
   SequenceState,
+  ReceiptChainHash,
   Sign,
   TokenId,
   TokenSymbol,
@@ -74,13 +74,6 @@ const keypair = map(privateKey, (privatekey) => ({
 
 const tokenId = oneOf(TokenId.emptyValue(), field);
 const stateHash = field;
-const authorizationKind = reject(
-  recordValid<AuthorizationKind>({
-    isProved: bool,
-    isSigned: bool,
-  }),
-  (t) => !!t.isProved && !!t.isSigned
-);
 const authRequired = map(
   oneOf<Json.AuthRequired[]>(
     'None',
@@ -102,6 +95,7 @@ const actions = mapWithInvalid(
   SequenceEvents.fromList
 );
 const sequenceState = oneOf(SequenceState.emptyValue(), field);
+const receiptChainHash = oneOf(ReceiptChainHash.emptyValue(), field);
 const zkappUri = map(ascii(nat(50)), ZkappUri.fromJSON);
 
 const PrimitiveMap = primitiveTypeMap<bigint>();
@@ -119,12 +113,12 @@ const Generators: Generators = {
   PublicKey: publicKey,
   TokenId: tokenId,
   StateHash: stateHash,
-  AuthorizationKind: authorizationKind,
   AuthRequired: authRequired,
   TokenSymbol: tokenSymbol,
   Events: events,
   SequenceEvents: actions,
   SequenceState: sequenceState,
+  ReceiptChainHash: receiptChainHash,
   ZkappUri: zkappUri,
   null: constant(null),
   string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types
@@ -187,6 +181,7 @@ let json_ = {
     publicKey: PublicKey.toBase58(publicKey),
   })),
   signature: withInvalidBase58(map(signature, Signature.toBase58)),
+  signatureJson: map(signature, Signature.toJSON),
   field: mapWithInvalid(field, Field.toJSON),
 };
 
@@ -208,14 +203,12 @@ const JsonGenerators: JsonGenerators = {
   PublicKey: json_.publicKey,
   TokenId: withInvalidBase58(map(tokenId, TokenId.toJSON)),
   StateHash: withInvalidBase58(map(stateHash, StateHash.toJSON)),
-  AuthorizationKind: withInvalidRandomString(
-    map(authorizationKind, AuthorizationKind.toJSON)
-  ),
   AuthRequired: withInvalidRandomString(map(authRequired, AuthRequired.toJSON)),
   TokenSymbol: Object.assign(ascii(nat(6)), { invalid: string(int(7, 20)) }),
   Events: mapWithInvalid(events, Events.toJSON),
   SequenceEvents: mapWithInvalid(actions, SequenceEvents.toJSON),
   SequenceState: mapWithInvalid(sequenceState, SequenceState.toJSON),
+  ReceiptChainHash: mapWithInvalid(receiptChainHash, ReceiptChainHash.toJSON),
   ZkappUri: ascii(nat(50)),
   null: constant(null),
   string: base58(nat(50)),

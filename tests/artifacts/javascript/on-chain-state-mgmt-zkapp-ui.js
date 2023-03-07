@@ -52,7 +52,8 @@ deployButton.addEventListener('click', async () => {
     });
 
     await deploymentTransaction.sign([feePayerKey, zkAppPrivateKey]).send();
-    const initialState = Mina.getAccount(zkAppAddress).appState?.[0].toString();
+    const initialState =
+      Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
     zkAppStateContainer.innerHTML = initialState;
     logEvents(`Initial zkApp State: ${initialState}`, eventsContainer);
     logEvents('zkApp Deployed successfully!', eventsContainer);
@@ -77,7 +78,8 @@ updateButton.addEventListener('click', async (event) => {
   const zkAppStateValue = document.querySelector('#zkAppStateValue');
 
   try {
-    const currentState = Mina.getAccount(zkAppAddress).appState?.[0].toString();
+    const currentState =
+      Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
     logEvents(
       `Updating zkApp State from ${currentState} to ${zkAppStateValue.value} with Admin Private Key and using form data: ${formData}...`,
       eventsContainer
@@ -98,7 +100,8 @@ updateButton.addEventListener('click', async (event) => {
 
     await transaction.sign([feePayerKey]).send();
 
-    const newState = Mina.getAccount(zkAppAddress).appState?.[0].toString();
+    const newState =
+      Mina.getAccount(zkAppAddress).zkapp?.appState?.[0].toString();
     zkAppStateContainer.innerHTML = newState;
     logEvents(
       `zkApp State successfully updated to: ${newState}!`,

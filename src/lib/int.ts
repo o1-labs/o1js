@@ -40,6 +40,30 @@ class UInt64 extends CircuitValue {
     return this.value.toBigInt();
   }
 
+  /**
+   * Turns the {@link UInt64} into a {@link UInt32}, asserting that it fits in 32 bits.
+   */
+  toUInt32() {
+    let uint32 = new UInt32(this.value);
+    UInt32.check(uint32);
+    return uint32;
+  }
+
+  /**
+   * Turns the {@link UInt64} into a {@link UInt32}, clamping to the 32 bits range if it's too large.
+   * ```ts
+   * UInt64.from(4294967296).toUInt32Clamped().toString(); // "4294967295"
+   * ```
+   */
+  toUInt32Clamped() {
+    let max = (1n << 32n) - 1n;
+    return Circuit.if(
+      this.greaterThan(UInt64.from(max)),
+      UInt32.from(max),
+      new UInt32(this.value)
+    );
+  }
+
   static check(x: UInt64) {
     let actual = x.value.rangeCheckHelper(64);
     actual.assertEquals(x.value);
@@ -227,7 +251,10 @@ class UInt64 extends CircuitValue {
    * Asserts that a {@link UInt64} is less than or equal to another one.
    */
   assertLte(y: UInt64, message?: string) {
-    let yMinusX = y.value.sub(this.value).seal();
+    let yMinusX = Circuit.inCheckedComputation()
+      ? y.value.sub(this.value).seal()
+      : y.value.sub(this.value);
+
     yMinusX.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(yMinusX, message);
   }
 
@@ -559,7 +586,10 @@ class UInt32 extends CircuitValue {
    * Asserts that a {@link UInt32} is less than or equal to another one.
    */
   assertLte(y: UInt32, message?: string) {
-    let yMinusX = y.value.sub(this.value).seal();
+    let yMinusX = Circuit.inCheckedComputation()
+      ? y.value.sub(this.value).seal()
+      : y.value.sub(this.value);
+
     yMinusX.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(yMinusX, message);
   }
 
@@ -684,6 +714,9 @@ class Sign extends CircuitValue {
   static check(x: Sign) {
     // x^2 === 1  <=>  x === 1 or x === -1
     x.value.square().assertEquals(Field(1));
+  }
+  static emptyValue(): Sign {
+    return Sign.one;
   }
   static toInput(x: Sign): HashInput {
     return { packed: [[x.isPositive().toField(), 1]] };

@@ -98,7 +98,7 @@ function testInput<T, TJson>(
   value: T
 ) {
   let json = Module.toJSON(value);
-  // console.log(json);
+  // console.log('json', json);
   let input1 = inputFromOcaml(toInputOcaml(JSON.stringify(json)));
   let input2 = Module.toInput(value);
   // console.log('snarkyjs', JSON.stringify(input2));

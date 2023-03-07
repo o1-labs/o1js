@@ -504,6 +504,10 @@ export default [
         type: 'function',
       },
       {
+        name: 'dummyVerificationKey',
+        type: 'function',
+      },
+      {
         name: 'proofToBase64',
         type: 'function',
       },

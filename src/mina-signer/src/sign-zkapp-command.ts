@@ -179,13 +179,13 @@ function accountUpdateFromFeePayer({
     isSome: Bool(true),
     value: { lower: nonce, upper: nonce },
   };
-  // TODO: special permission here is ugly and should be replaced with auto-generated thing
-  // could be removed if we either
-  // -) change the default hash input for permissions in the protocol
-  // -) create a way to add a custom dummy for permissions
-  body.update.permissions.value = emptyPermissions();
   body.useFullCommitment = Bool(true);
-  body.authorizationKind = { isProved: Bool(false), isSigned: Bool(true) };
+  body.implicitAccountCreationFee = Bool(true);
+  body.authorizationKind = {
+    isProved: Bool(false),
+    isSigned: Bool(true),
+    verificationKeyHash: Field(0),
+  };
   return { body, authorization: { signature } };
 }
 
@@ -199,40 +199,4 @@ function isCallDepthValid(zkappCommand: ZkappCommand) {
     current = callDepth;
   }
   return true;
-}
-
-// TODO remove empty permissions hack
-function fixEmptyPermissions(zkappCommand: ZkappCommand) {
-  zkappCommand.accountUpdates = zkappCommand.accountUpdates.map((a) => {
-    if (!a.body.update.permissions.isSome)
-      a.body.update.permissions.value = emptyPermissions();
-    return a;
-  });
-  return zkappCommand;
-}
-
-function emptyPermissions() {
-  let Signature: AuthRequired = {
-    constant: Bool(false),
-    signatureNecessary: Bool(true),
-    signatureSufficient: Bool(true),
-  };
-  let None: AuthRequired = {
-    constant: Bool(true),
-    signatureNecessary: Bool(false),
-    signatureSufficient: Bool(true),
-  };
-  return {
-    editState: Signature,
-    send: Signature,
-    receive: None,
-    setDelegate: Signature,
-    setPermissions: Signature,
-    setVerificationKey: Signature,
-    setZkappUri: Signature,
-    editSequenceState: Signature,
-    setTokenSymbol: Signature,
-    incrementNonce: Signature,
-    setVotingFor: Signature,
-  };
 }

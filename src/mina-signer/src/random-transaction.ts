@@ -1,4 +1,4 @@
-import { Signed } from './transaction-hash.js';
+import { Signed, SignedLegacy } from './transaction-hash.js';
 import { DelegationJson, PaymentJson } from './sign-legacy.js';
 import { Random } from '../../lib/testing/property.js';
 import {
@@ -28,9 +28,9 @@ const payment = record<PaymentJson>({
     amount: Random.json.uint64,
   }),
 });
-const signedPayment = record<Signed<PaymentJson>>({
+const signedPayment = record<SignedLegacy<PaymentJson>>({
   data: payment,
-  signature: Random.json.signature,
+  signature: Random.json.signatureJson,
 });
 
 const delegation = record<DelegationJson>({
@@ -40,9 +40,9 @@ const delegation = record<DelegationJson>({
     newDelegate: Random.json.publicKey,
   }),
 });
-const signedDelegation = record<Signed<DelegationJson>>({
+const signedDelegation = record<SignedLegacy<DelegationJson>>({
   data: delegation,
-  signature: Random.json.signature,
+  signature: Random.json.signatureJson,
 });
 
 // zkapp transactions

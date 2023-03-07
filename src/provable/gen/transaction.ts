@@ -8,14 +8,14 @@ import {
   Field,
   Bool,
   AuthRequired,
-  TokenSymbol,
   Sign,
-  AuthorizationKind,
   ZkappUri,
   StateHash,
+  TokenSymbol,
   Events,
   SequenceEvents,
   SequenceState,
+  ReceiptChainHash,
 } from '../transaction-leaves.js';
 import { GenericProvableExtended } from '../../provable/generic.js';
 import {
@@ -25,10 +25,10 @@ import {
 import * as Json from './transaction-json.js';
 import { jsLayout } from './js-layout.js';
 
-export { customTypes, ZkappCommand, AccountUpdate };
+export { customTypes, ZkappCommand, AccountUpdate, Account };
 export { Json };
 export * from '../transaction-leaves.js';
-export { provableFromLayout, toJSONEssential, Layout, TypeMap };
+export { provableFromLayout, toJSONEssential, emptyValue, Layout, TypeMap };
 
 type TypeMap = {
   PublicKey: PublicKey;
@@ -39,7 +39,6 @@ type TypeMap = {
   Bool: Bool;
   AuthRequired: AuthRequired;
   Sign: Sign;
-  AuthorizationKind: AuthorizationKind;
 };
 
 const TypeMap: {
@@ -53,7 +52,6 @@ const TypeMap: {
   Bool,
   AuthRequired,
   Sign,
-  AuthorizationKind,
 };
 
 type ProvableExtended<T, TJson> = GenericProvableExtended<T, TJson, Field>;
@@ -67,7 +65,13 @@ type CustomTypes = {
     },
     string
   >;
-  TokenSymbol: ProvableExtended<TokenSymbol, string>;
+  TokenSymbol: ProvableExtended<
+    {
+      symbol: string;
+      field: Field;
+    },
+    string
+  >;
   StateHash: ProvableExtended<Field, Json.TypeMap['Field']>;
   Events: ProvableExtended<
     {
@@ -84,6 +88,7 @@ type CustomTypes = {
     Json.TypeMap['Field'][][]
   >;
   SequenceState: ProvableExtended<Field, Json.TypeMap['Field']>;
+  ReceiptChainHash: ProvableExtended<Field, Json.TypeMap['Field']>;
 };
 let customTypes: CustomTypes = {
   ZkappUri,
@@ -92,8 +97,9 @@ let customTypes: CustomTypes = {
   Events,
   SequenceEvents,
   SequenceState,
+  ReceiptChainHash,
 };
-let { provableFromLayout, toJSONEssential } = ProvableFromLayout<
+let { provableFromLayout, toJSONEssential, emptyValue } = ProvableFromLayout<
   TypeMap,
   Json.TypeMap
 >(TypeMap, customTypes);
@@ -126,6 +132,7 @@ type ZkappCommand = {
           isSome: Bool;
           value: {
             editState: AuthRequired;
+            access: AuthRequired;
             send: AuthRequired;
             receive: AuthRequired;
             setDelegate: AuthRequired;
@@ -136,6 +143,7 @@ type ZkappCommand = {
             setTokenSymbol: AuthRequired;
             incrementNonce: AuthRequired;
             setVotingFor: AuthRequired;
+            setTiming: AuthRequired;
           };
         };
         zkappUri: {
@@ -145,7 +153,13 @@ type ZkappCommand = {
             hash: Field;
           };
         };
-        tokenSymbol: { isSome: Bool; value: TokenSymbol };
+        tokenSymbol: {
+          isSome: Bool;
+          value: {
+            symbol: string;
+            field: Field;
+          };
+        };
         timing: {
           isSome: Bool;
           value: {
@@ -167,7 +181,7 @@ type ZkappCommand = {
         data: Field[][];
         hash: Field;
       };
-      sequenceEvents: {
+      actions: {
         data: Field[][];
         hash: Field;
       };
@@ -176,13 +190,6 @@ type ZkappCommand = {
       preconditions: {
         network: {
           snarkedLedgerHash: { isSome: Bool; value: Field };
-          timestamp: {
-            isSome: Bool;
-            value: {
-              lower: UInt64;
-              upper: UInt64;
-            };
-          };
           blockchainLength: {
             isSome: Bool;
             value: {
@@ -202,13 +209,6 @@ type ZkappCommand = {
             value: {
               lower: UInt64;
               upper: UInt64;
-            };
-          };
-          globalSlotSinceHardFork: {
-            isSome: Bool;
-            value: {
-              lower: UInt32;
-              upper: UInt32;
             };
           };
           globalSlotSinceGenesis: {
@@ -285,10 +285,25 @@ type ZkappCommand = {
           provedState: { isSome: Bool; value: Bool };
           isNew: { isSome: Bool; value: Bool };
         };
+        validWhile: {
+          isSome: Bool;
+          value: {
+            lower: UInt32;
+            upper: UInt32;
+          };
+        };
       };
       useFullCommitment: Bool;
-      caller: TokenId;
-      authorizationKind: AuthorizationKind;
+      implicitAccountCreationFee: Bool;
+      mayUseToken: {
+        parentsOwnToken: Bool;
+        inheritFromParent: Bool;
+      };
+      authorizationKind: {
+        isSigned: Bool;
+        isProved: Bool;
+        verificationKeyHash: Field;
+      };
     };
     authorization: {
       proof?: string;
@@ -320,6 +335,7 @@ type AccountUpdate = {
         isSome: Bool;
         value: {
           editState: AuthRequired;
+          access: AuthRequired;
           send: AuthRequired;
           receive: AuthRequired;
           setDelegate: AuthRequired;
@@ -330,6 +346,7 @@ type AccountUpdate = {
           setTokenSymbol: AuthRequired;
           incrementNonce: AuthRequired;
           setVotingFor: AuthRequired;
+          setTiming: AuthRequired;
         };
       };
       zkappUri: {
@@ -339,7 +356,13 @@ type AccountUpdate = {
           hash: Field;
         };
       };
-      tokenSymbol: { isSome: Bool; value: TokenSymbol };
+      tokenSymbol: {
+        isSome: Bool;
+        value: {
+          symbol: string;
+          field: Field;
+        };
+      };
       timing: {
         isSome: Bool;
         value: {
@@ -361,7 +384,7 @@ type AccountUpdate = {
       data: Field[][];
       hash: Field;
     };
-    sequenceEvents: {
+    actions: {
       data: Field[][];
       hash: Field;
     };
@@ -370,13 +393,6 @@ type AccountUpdate = {
     preconditions: {
       network: {
         snarkedLedgerHash: { isSome: Bool; value: Field };
-        timestamp: {
-          isSome: Bool;
-          value: {
-            lower: UInt64;
-            upper: UInt64;
-          };
-        };
         blockchainLength: {
           isSome: Bool;
           value: {
@@ -396,13 +412,6 @@ type AccountUpdate = {
           value: {
             lower: UInt64;
             upper: UInt64;
-          };
-        };
-        globalSlotSinceHardFork: {
-          isSome: Bool;
-          value: {
-            lower: UInt32;
-            upper: UInt32;
           };
         };
         globalSlotSinceGenesis: {
@@ -479,10 +488,25 @@ type AccountUpdate = {
         provedState: { isSome: Bool; value: Bool };
         isNew: { isSome: Bool; value: Bool };
       };
+      validWhile: {
+        isSome: Bool;
+        value: {
+          lower: UInt32;
+          upper: UInt32;
+        };
+      };
     };
     useFullCommitment: Bool;
-    caller: TokenId;
-    authorizationKind: AuthorizationKind;
+    implicitAccountCreationFee: Bool;
+    mayUseToken: {
+      parentsOwnToken: Bool;
+      inheritFromParent: Bool;
+    };
+    authorizationKind: {
+      isSigned: Bool;
+      isProved: Bool;
+      verificationKeyHash: Field;
+    };
   };
   authorization: {
     proof?: string;
@@ -492,4 +516,54 @@ type AccountUpdate = {
 
 let AccountUpdate = provableFromLayout<AccountUpdate, Json.AccountUpdate>(
   jsLayout.AccountUpdate as any
+);
+
+type Account = {
+  publicKey: PublicKey;
+  tokenId: TokenId;
+  tokenSymbol: string;
+  balance: UInt64;
+  nonce: UInt32;
+  receiptChainHash: Field;
+  delegate?: PublicKey;
+  votingFor: Field;
+  timing: {
+    isTimed: Bool;
+    initialMinimumBalance: UInt64;
+    cliffTime: UInt32;
+    cliffAmount: UInt64;
+    vestingPeriod: UInt32;
+    vestingIncrement: UInt64;
+  };
+  permissions: {
+    editState: AuthRequired;
+    access: AuthRequired;
+    send: AuthRequired;
+    receive: AuthRequired;
+    setDelegate: AuthRequired;
+    setPermissions: AuthRequired;
+    setVerificationKey: AuthRequired;
+    setZkappUri: AuthRequired;
+    editSequenceState: AuthRequired;
+    setTokenSymbol: AuthRequired;
+    incrementNonce: AuthRequired;
+    setVotingFor: AuthRequired;
+    setTiming: AuthRequired;
+  };
+  zkapp?: {
+    appState: Field[];
+    verificationKey?: {
+      data: string;
+      hash: Field;
+    };
+    zkappVersion: UInt32;
+    sequenceState: Field[];
+    lastSequenceSlot: UInt32;
+    provedState: Bool;
+    zkappUri: string;
+  };
+};
+
+let Account = provableFromLayout<Account, Json.Account>(
+  jsLayout.Account as any
 );

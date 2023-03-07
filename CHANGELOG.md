@@ -15,17 +15,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/c5a36207...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/1abdfb70...HEAD)
+
+> No unreleased changes yet
+
+## [0.9.2](https://github.com/o1-labs/snarkyjs/compare/9c44b9c2...1abdfb70)
+
+### Added
+
+- Add back `this.network.timestamp`, implemented on top of `this.network.globalSlotSinceGenesis` https://github.com/o1-labs/snarkyjs/pull/755
+
+### Changed
+
+- On-chain value `globalSlot` replaced by the clearer `currentSlot` https://github.com/o1-labs/snarkyjs/pull/755
+  - this refers to the slot at which the transaction _will be included in a block_.
+  - there is only `currentSlot.assertBetween()`; no `currentSlot.get()` (impossible to implement, since the value is determined in the future) and `currentSlot.assertEquals()` (error-prone)
+
+### Fixed
+
+- Incorrect counting of limit on events and actions https://github.com/o1-labs/snarkyjs/pull/758
+- Type error when using `Circuit.array` in on-chain state or events https://github.com/o1-labs/snarkyjs/pull/758
+- Bug when using `Circuit.witness` outside the prover https://github.com/o1-labs/snarkyjs/pull/774
+
+## [0.9.1](https://github.com/o1-labs/snarkyjs/compare/71b6132b...9c44b9c2)
+
+### Fixed
+
+- Bug when using `this.<state>.get()` outside a transaction https://github.com/o1-labs/snarkyjs/pull/754
+
+## [0.9.0](https://github.com/o1-labs/snarkyjs/compare/c5a36207...71b6132b)
 
 ### Added
 
 - `Transaction.fromJSON` to recover transaction object from JSON https://github.com/o1-labs/snarkyjs/pull/705
+- New precondition: `provedState`, a boolean which is true if the entire on-chain state of this account was last modified by a proof https://github.com/o1-labs/snarkyjs/pull/741
+  - Same API as all preconditions: `this.account.provedState.assertEquals(Bool(true))`
+  - Can be used to assert that the state wasn't tampered with by the zkApp developer using non-contract logic, for example, before deploying the zkApp
+- New on-chain value `globalSlot`, to make assertions about the current time https://github.com/o1-labs/snarkyjs/pull/649
+  - example: `this.globalSlot.get()`, `this.globalSlot.assertBetween(lower, upper)`
+  - Replaces `network.timestamp`, `network.globalSlotSinceGenesis` and `network.globalSlotSinceHardFork`. https://github.com/o1-labs/snarkyjs/pull/560
+- New permissions:
+  - `access` to control whether account updates for this account can be used at all https://github.com/o1-labs/snarkyjs/pull/500
+  - `setTiming` to control who can update the account's `timing` field https://github.com/o1-labs/snarkyjs/pull/685
+  - Example: `this.permissions.set({ ...Permissions.default(), access: Permissions.proofOrSignature() })`
+- Expose low-level view into the PLONK gates created by a smart contract method https://github.com/o1-labs/snarkyjs/pull/687
+  - `MyContract.analyzeMethods().<method name>.gates`
 
 ### Changed
 
 - BREAKING CHANGE: Modify signature algorithm used by `Signature.{create,verify}` to be compatible with mina-signer https://github.com/o1-labs/snarkyjs/pull/710
   - Signatures created with mina-signer's `client.signFields()` can now be verified inside a SNARK!
   - Breaks existing deployed smart contracts which use `Signature.verify()`
+- BREAKING CHANGE: Circuits changed due to core protocol and cryptography changes; this breaks all deployed contracts.
+- BREAKING CHANGE: Change structure of `Account` type which is returned by `Mina.getAccount()` https://github.com/o1-labs/snarkyjs/pull/741
+  - for example, `account.appState` -> `account.zkapp.appState`
+  - full new type (exported as `Types.Account`): https://github.com/o1-labs/snarkyjs/blob/0be70cb8ceb423976f348980e9d6238820758cc0/src/provable/gen/transaction.ts#L515
+- Test accounts hard-coded in `LocalBlockchain` now have default permissions, not permissions allowing everything. Fixes some unintuitive behaviour in tests, like requiring no signature when using these accounts to send MINA https://github.com/o1-labs/snarkyjs/issues/638
+
+### Removed
+
+- Preconditions `timestamp` and `globalSlotSinceHardFork` https://github.com/o1-labs/snarkyjs/pull/560
+  - `timestamp` is expected to come back as a wrapper for the new `globalSlot`
 
 ## [0.8.0](https://github.com/o1-labs/snarkyjs/compare/d880bd6e...c5a36207)
 

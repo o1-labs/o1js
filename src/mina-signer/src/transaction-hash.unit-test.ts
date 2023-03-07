@@ -3,9 +3,9 @@ import {
   Common,
   hashPayment,
   hashStakeDelegation,
-  Signed,
   SignedCommand,
   SignedCommandV1,
+  SignedLegacy,
   userCommandToEnum,
   userCommandToV1,
 } from './transaction-hash.js';
@@ -17,7 +17,7 @@ import {
   DelegationJson,
   delegationFromJson,
 } from './sign-legacy.js';
-import { Signature } from './signature.js';
+import { Signature, SignatureJson } from './signature.js';
 import { PublicKey } from '../../provable/curve-bigint.js';
 import { Memo } from './memo.js';
 import { expect } from 'expect';
@@ -46,7 +46,7 @@ test(
     let payload = userCommandToEnum(paymentFromJson(payment.data));
     let command = {
       signer: PublicKey.fromBase58(payment.data.body.source),
-      signature: Signature.fromBase58(payment.signature),
+      signature: Signature.fromJSON(payment.signature),
       payload,
     };
     let paymentBytes1 = SignedCommand.toBytes(command);
@@ -70,7 +70,7 @@ test(
     payload = userCommandToEnum(delegationFromJson(delegation.data));
     command = {
       signer: PublicKey.fromBase58(delegation.data.body.delegator),
-      signature: Signature.fromBase58(delegation.signature),
+      signature: Signature.fromJSON(delegation.signature),
       payload,
     };
     let delegationBytes1 = SignedCommand.toBytes(command);
@@ -96,7 +96,7 @@ test(
     let paymentV1Body = userCommandToV1(paymentFromJson(payment.data));
     let paymentV1 = {
       signer: PublicKey.fromBase58(payment.data.body.source),
-      signature: Signature.fromBase58(payment.signature),
+      signature: Signature.fromJSON(payment.signature),
       payload: paymentV1Body,
     };
     let v1Bytes1 = SignedCommandV1.toBytes(paymentV1);
@@ -116,7 +116,7 @@ test(
     let delegationV1Body = userCommandToV1(delegationFromJson(delegation.data));
     let delegationV1 = {
       signer: PublicKey.fromBase58(delegation.data.body.delegator),
-      signature: Signature.fromBase58(delegation.signature),
+      signature: Signature.fromJSON(delegation.signature),
       payload: delegationV1Body,
     };
     v1Bytes1 = SignedCommandV1.toBytes(delegationV1);
@@ -158,14 +158,14 @@ function paymentToOcaml({
     body: { source, receiver, amount },
   },
   signature,
-}: Signed<PaymentJson>) {
+}: SignedLegacy<PaymentJson>) {
   return {
     payload: {
       common: commonToOcaml(common),
       body: ['Payment', { source_pk: source, receiver_pk: receiver, amount }],
     },
     signer: source,
-    signature,
+    signature: signatureToOCaml(signature),
   };
 }
 
@@ -175,7 +175,7 @@ function paymentToOcamlV1({
     body: { source, receiver, amount },
   },
   signature,
-}: Signed<PaymentJson>) {
+}: SignedLegacy<PaymentJson>) {
   return {
     payload: {
       common: commonToOcamlV1(common),
@@ -185,7 +185,7 @@ function paymentToOcamlV1({
       ],
     },
     signer: source,
-    signature,
+    signature: signatureToOCaml(signature),
   };
 }
 
@@ -195,7 +195,7 @@ function delegationToOcaml({
     body: { delegator, newDelegate },
   },
   signature,
-}: Signed<DelegationJson>) {
+}: SignedLegacy<DelegationJson>) {
   return {
     payload: {
       common: commonToOcaml(common),
@@ -205,7 +205,7 @@ function delegationToOcaml({
       ],
     },
     signer: delegator,
-    signature,
+    signature: signatureToOCaml(signature),
   };
 }
 
@@ -215,7 +215,7 @@ function delegationToOcamlV1({
     body: { delegator, newDelegate },
   },
   signature,
-}: Signed<DelegationJson>) {
+}: SignedLegacy<DelegationJson>) {
   return {
     payload: {
       common: commonToOcamlV1(common),
@@ -225,7 +225,7 @@ function delegationToOcamlV1({
       ],
     },
     signer: delegator,
-    signature,
+    signature: signatureToOCaml(signature),
   };
 }
 
@@ -255,4 +255,8 @@ function commonToOcamlV1({
     memo,
     fee_token: '1',
   };
+}
+
+function signatureToOCaml(signature: SignatureJson) {
+  return Signature.toBase58(Signature.fromJSON(signature));
 }

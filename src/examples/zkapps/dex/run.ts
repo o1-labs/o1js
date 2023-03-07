@@ -232,9 +232,7 @@ async function main({ withVesting }: { withVesting: boolean }) {
         (USER_DX * oldBalances.total.lqXY) / oldBalances.dex.X
     );
   } else {
-    await expect(tx.send()).rejects.toThrow(
-      /Update_not_permitted_timing_existing_account/
-    );
+    await expect(tx.send()).rejects.toThrow(/Update_not_permitted_timing/);
   }
 
   /**

@@ -1,10 +1,8 @@
 #!/bin/bash
-set -e
-shopt -s globstar # to expand '**' into nested directories
+set -ex
 
+# run the build:test
 npm run build:test
 
-for f in ./dist/node/**/*.unit-test.js; do
-  echo "Running $f"
-  node $f;
-done
+# find all unit tests in dist/node and run them
+find ./dist/node -name "*.unit-test.js" -print -exec node {} \;

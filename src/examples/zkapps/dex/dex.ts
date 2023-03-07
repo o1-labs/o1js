@@ -87,16 +87,13 @@ function createDex({
          * supply liquidity again (or, create another account to supply liquidity from).
          */
         let amountLocked = dl;
-        userUpdate.update.timing = {
-          isSome: Bool(true),
-          value: {
-            initialMinimumBalance: amountLocked,
-            cliffAmount: amountLocked,
-            cliffTime: UInt32.from(lockedLiquiditySlots),
-            vestingIncrement: UInt64.zero,
-            vestingPeriod: UInt32.one,
-          },
-        };
+        userUpdate.account.timing.set({
+          initialMinimumBalance: amountLocked,
+          cliffAmount: amountLocked,
+          cliffTime: UInt32.from(lockedLiquiditySlots),
+          vestingIncrement: UInt64.zero,
+          vestingPeriod: UInt32.one,
+        });
         userUpdate.requireSignature();
       }
 
@@ -229,8 +226,8 @@ function createDex({
       // just subtract the balance, user gets their part one level higher
       this.balance.subInPlace(dy);
 
-      // this can't be a delegate call, or it won't be approved by the token owner
-      this.self.isDelegateCall = Bool(false);
+      // be approved by the token owner parent
+      this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
       // return l, dy so callers don't have to walk their child account updates to get it
       return [l, dy];
@@ -257,8 +254,8 @@ function createDex({
       // just subtract the balance, user gets their part one level higher
       this.balance.subInPlace(dx);
 
-      // this can't be a delegate call, or it won't be approved by the token owner
-      this.self.isDelegateCall = Bool(false);
+      // be approved by the token owner parent
+      this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
 
       return [dx, dy];
     }
@@ -282,8 +279,8 @@ function createDex({
       let dy = y.mul(dx).div(x.add(dx));
       // just subtract dy balance and let adding balance be handled one level higher
       this.balance.subInPlace(dy);
-      // not be a delegate call
-      this.self.isDelegateCall = Bool(false);
+      // be approved by the token owner parent
+      this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
       return dy;
     }
   }
@@ -308,7 +305,8 @@ function createDex({
       let dy = y.mul(dx).div(x.add(dx)).add(15);
 
       this.balance.subInPlace(dy);
-      this.self.isDelegateCall = Bool(false);
+      // be approved by the token owner parent
+      this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
       return dy;
     }
   }
@@ -376,6 +374,13 @@ function createDex({
  * Simple token with API flexible enough to handle all our use cases
  */
 class TokenContract extends SmartContract {
+  deploy(args?: DeployArgs) {
+    super.deploy(args);
+    this.account.permissions.set({
+      ...Permissions.default(),
+      access: Permissions.proofOrSignature(),
+    });
+  }
   @method init() {
     super.init();
     // mint the entire supply to the token account with the same address as this contract
@@ -426,7 +431,17 @@ class TokenContract extends SmartContract {
     to: PublicKey,
     amount: UInt64
   ) {
-    this.approve(zkappUpdate);
+    // TODO: THIS IS INSECURE. The proper version has a prover error (compile != prove) that must be fixed
+    this.approve(zkappUpdate, AccountUpdate.Layout.AnyChildren);
+
+    // THIS IS HOW IT SHOULD BE DONE:
+    // // approve a layout of two grandchildren, both of which can't inherit the token permission
+    // let { StaticChildren, AnyChildren } = AccountUpdate.Layout;
+    // this.approve(zkappUpdate, StaticChildren(AnyChildren, AnyChildren));
+    // zkappUpdate.body.mayUseToken.parentsOwnToken.assertTrue();
+    // let [grandchild1, grandchild2] = zkappUpdate.children.accountUpdates;
+    // grandchild1.body.mayUseToken.inheritFromParent.assertFalse();
+    // grandchild2.body.mayUseToken.inheritFromParent.assertFalse();
 
     // see if balance change cancels the amount sent
     let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);
