@@ -140,6 +140,19 @@ const accountUpdate = mapWithInvalid(
     a.authorization.proof = undefined;
     // TODO set signature to null since the deriver encodes it as arbitrary string
     a.authorization.signature = undefined;
+    // ensure authorization kind is valid
+    let { isProved, isSigned } = a.body.authorizationKind;
+    if (isProved && isSigned) {
+      a.body.authorizationKind.isProved = Bool(false);
+    }
+    if (!a.body.authorizationKind.isProved) {
+      a.body.authorizationKind.verificationKeyHash = Field(0);
+    }
+    // ensure mayUseToken is valid
+    let { inheritFromParent, parentsOwnToken } = a.body.mayUseToken;
+    if (inheritFromParent && parentsOwnToken) {
+      a.body.mayUseToken.inheritFromParent = Bool(false);
+    }
     return a;
   }
 );
@@ -225,6 +238,19 @@ const accountUpdateJson = mapWithInvalid(
     a.authorization.proof = null;
     // TODO set signature to null since the deriver encodes it as arbitrary string
     a.authorization.signature = null;
+    // ensure authorization kind is valid
+    let { isProved, isSigned } = a.body.authorizationKind;
+    if (isProved && isSigned) {
+      a.body.authorizationKind.isProved = false;
+    }
+    if (!a.body.authorizationKind.isProved) {
+      a.body.authorizationKind.verificationKeyHash = '0';
+    }
+    // ensure mayUseToken is valid
+    let { inheritFromParent, parentsOwnToken } = a.body.mayUseToken;
+    if (inheritFromParent && parentsOwnToken) {
+      a.body.mayUseToken.inheritFromParent = false;
+    }
     return a;
   }
 );
