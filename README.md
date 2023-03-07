@@ -38,8 +38,8 @@ Here are some guidelines for what constitutes a high-quality package and makes i
 - The package includes tests
   - If applicable, tests should demonstrate that the package's methods can successfully run as provable code, i.e., when included in a SmartContract or ZkProgram that is compiled and proven.
 - Public API should be documented, and [JSDoc](https://jsdoc.app/) comments should be present on exported methods and globals
-  - Code comments should be in English thoughout the repository
 - Include a README and LICENSE
+- Comments & README should be in English, American spelling preferred, for consistency.
 
 ### Contributing to SnarkyJS core
 
