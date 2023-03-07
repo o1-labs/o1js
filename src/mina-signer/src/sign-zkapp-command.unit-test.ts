@@ -122,7 +122,7 @@ test(Random.json.privateKey, (feePayerKeyBase58) => {
 });
 
 // memo
-let memoGenerator = withHardCoded(Random.ascii(Random.nat(32)), 'hello world');
+let memoGenerator = withHardCoded(Random.json.memoString, 'hello world');
 test(memoGenerator, (memoString) => {
   let memo = Memo.fromString(memoString);
   let memoBase58 = Memo.toBase58(memo);

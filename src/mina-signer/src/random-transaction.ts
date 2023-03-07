@@ -18,7 +18,7 @@ const common = record({
   feePayer: Random.json.publicKey,
   nonce: Random.json.uint32,
   validUntil: Random.json.uint32,
-  memo: Random.string(Random.nat(32)),
+  memo: Random.json.memoString,
 });
 const payment = record<PaymentJson>({
   common,

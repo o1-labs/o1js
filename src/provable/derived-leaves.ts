@@ -1,7 +1,12 @@
 import { GenericBool, GenericField, GenericHashInput } from './generic.js';
 import { createProvable } from './provable-generic.js';
 import * as Json from './gen/transaction-json.js';
-import { bytesToBits, prefixToField, stringToBytes } from './binable.js';
+import {
+  bytesToBits,
+  prefixToField,
+  stringLengthInBytes,
+  stringToBytes,
+} from './binable.js';
 import { fieldEncodings } from './base58.js';
 import { dataAsHash } from '../lib/events.js';
 import { HashHelpers } from '../lib/hash-generic.js';
@@ -68,7 +73,7 @@ function derivedLeafTypes<Field, Bool>({
       return symbol;
     },
     fromJSON(symbol: string): TokenSymbol {
-      let bytesLength = new TextEncoder().encode(symbol).length;
+      let bytesLength = stringLengthInBytes(symbol);
       if (bytesLength > tokenSymbolLength)
         throw Error(
           `Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`

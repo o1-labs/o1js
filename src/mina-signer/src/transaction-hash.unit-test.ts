@@ -22,7 +22,6 @@ import { PublicKey } from '../../provable/curve-bigint.js';
 import { Memo } from './memo.js';
 import { expect } from 'expect';
 import { versionBytes } from '../../js_crypto/constants.js';
-import { stringToBytes } from '../../provable/binable.js';
 import { test } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
 
@@ -90,7 +89,7 @@ test(
     // payment v1 serialization
     let ocamlPaymentV1 = JSON.stringify(paymentToOcamlV1(payment));
     let ocamlBase58V1 = Test.transactionHash.serializePaymentV1(ocamlPaymentV1);
-    let v1Bytes0 = stringToBytes(
+    let v1Bytes0 = stringToBytesOcaml(
       Ledger.encoding.ofBase58(ocamlBase58V1, versionBytes.signedCommandV1).c
     );
     let paymentV1Body = userCommandToV1(paymentFromJson(payment.data));
@@ -110,7 +109,7 @@ test(
     // delegation v1 serialization
     let ocamlDelegationV1 = JSON.stringify(delegationToOcamlV1(delegation));
     ocamlBase58V1 = Test.transactionHash.serializePaymentV1(ocamlDelegationV1);
-    v1Bytes0 = stringToBytes(
+    v1Bytes0 = stringToBytesOcaml(
       Ledger.encoding.ofBase58(ocamlBase58V1, versionBytes.signedCommandV1).c
     );
     let delegationV1Body = userCommandToV1(delegationFromJson(delegation.data));
@@ -259,4 +258,8 @@ function commonToOcamlV1({
 
 function signatureToOCaml(signature: SignatureJson) {
   return Signature.toBase58(Signature.fromJSON(signature));
+}
+
+function stringToBytesOcaml(string: string) {
+  return [...string].map((_, i) => string.charCodeAt(i));
 }

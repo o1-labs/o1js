@@ -21,6 +21,8 @@ export {
   withCheck,
   BinableWithBits,
   stringToBytes,
+  stringFromBytes,
+  stringLengthInBytes,
   BinableString,
   BinableInt32,
   BinableInt64,
@@ -210,12 +212,12 @@ function enumWithArgument<Enum_ extends Tuple<AnyEnum>>(types: {
 
 const BinableString = defineBinable({
   toBytes(t: string) {
-    return [t.length, ...stringToBytes(t)];
+    return [stringLengthInBytes(t), ...stringToBytes(t)];
   },
   readBytes(bytes, offset) {
     let length = bytes[offset++];
     let end = offset + length;
-    let string = String.fromCharCode(...bytes.slice(offset, end));
+    let string = stringFromBytes(bytes.slice(offset, end));
     return [string, end];
   },
 });
@@ -394,6 +396,15 @@ function iso<T, S>(
   });
 }
 
+let encoder = new TextEncoder();
+let decoder = new TextDecoder();
+
 function stringToBytes(s: string) {
-  return [...s].map((_, i) => s.charCodeAt(i));
+  return [...encoder.encode(s)];
+}
+function stringFromBytes(bytes: number[]) {
+  return decoder.decode(Uint8Array.from(bytes));
+}
+function stringLengthInBytes(s: string) {
+  return encoder.encode(s).length;
 }

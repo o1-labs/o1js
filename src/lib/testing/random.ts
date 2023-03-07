@@ -33,6 +33,7 @@ import { bytesToBigInt } from '../../js_crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
 import { ProvableExtended } from '../../provable/field-bigint.js';
 import { tokenSymbolLength } from '../../provable/derived-leaves.js';
+import { stringLengthInBytes } from '../../provable/binable.js';
 
 export { Random, sample, withHardCoded };
 
@@ -85,8 +86,11 @@ const authRequired = map(
   ),
   AuthRequired.fromJSON
 );
-// TODO non ascii strings in zkapp uri and token symbol fail
-const tokenSymbol = map(ascii(nat(tokenSymbolLength)), TokenSymbol.fromJSON);
+const tokenSymbolString = reject(
+  string(nat(tokenSymbolLength)),
+  (s) => stringLengthInBytes(s) > 6
+);
+const tokenSymbol = map(tokenSymbolString, TokenSymbol.fromJSON);
 const events = mapWithInvalid(
   array(array(field, int(1, 5)), nat(2)),
   Events.fromList
@@ -97,7 +101,7 @@ const actions = mapWithInvalid(
 );
 const sequenceState = oneOf(SequenceState.emptyValue(), field);
 const receiptChainHash = oneOf(ReceiptChainHash.emptyValue(), field);
-const zkappUri = map(ascii(nat(50)), ZkappUri.fromJSON);
+const zkappUri = map(string(nat(50)), ZkappUri.fromJSON);
 
 const PrimitiveMap = primitiveTypeMap<bigint>();
 type Types = typeof TypeMap & typeof customTypes & typeof PrimitiveMap;
@@ -163,8 +167,8 @@ const feePayer = generatorFromLayout<ZkappCommand['feePayer']>(
   jsLayout.ZkappCommand.entries.feePayer as any,
   { isJson: false }
 );
-// TODO: fails for non ascii strings
-const memo = map(ascii(nat(32)), (s) => Memo.toBase58(Memo.fromString(s)));
+const memoString = reject(string(nat(32)), (s) => stringLengthInBytes(s) > 32);
+const memo = map(memoString, (s) => Memo.toBase58(Memo.fromString(s)));
 const signature = record({ r: field, s: scalar });
 
 // invalid json inputs can contain invalid stringified numbers, but also non-numeric strings
@@ -215,14 +219,14 @@ const JsonGenerators: JsonGenerators = {
   TokenId: withInvalidBase58(map(tokenId, TokenId.toJSON)),
   StateHash: withInvalidBase58(map(stateHash, StateHash.toJSON)),
   AuthRequired: withInvalidRandomString(map(authRequired, AuthRequired.toJSON)),
-  TokenSymbol: Object.assign(ascii(nat(tokenSymbolLength)), {
+  TokenSymbol: Object.assign(tokenSymbolString, {
     invalid: string(int(tokenSymbolLength + 1, 20)),
   }),
   Events: mapWithInvalid(events, Events.toJSON),
   SequenceEvents: mapWithInvalid(actions, SequenceEvents.toJSON),
   SequenceState: mapWithInvalid(sequenceState, SequenceState.toJSON),
   ReceiptChainHash: mapWithInvalid(receiptChainHash, ReceiptChainHash.toJSON),
-  ZkappUri: ascii(nat(50)),
+  ZkappUri: string(nat(50)),
   null: constant(null),
   string: base58(nat(50)),
   number: nat(3),
@@ -268,6 +272,7 @@ const json = {
   ...json_,
   accountUpdate: accountUpdateJson,
   feePayer: feePayerJson,
+  memoString,
 };
 
 const Random = Object.assign(Random_, {
@@ -278,7 +283,6 @@ const Random = Object.assign(Random_, {
   boolean,
   bytes,
   string,
-  ascii,
   base58,
   array: Object.assign(array, { ofSize: arrayOfSizeValid }),
   record,
@@ -375,13 +379,6 @@ function uniformBytes(size: number | Random<number>): Random<number[]> {
 function string(size: number | Random<number>) {
   return map(uniformBytes(size), (b) => String.fromCharCode(...b));
 }
-function ascii(size: number | Random<number>) {
-  return map(uniformBytes(size), (b) =>
-    // ASCII
-    String.fromCharCode(...b.map((c) => c % 128))
-  );
-}
-
 function base58(size: number | Random<number>) {
   return map(arrayValid(oneOf(...alphabet), size), (a) => a.join(''));
 }
