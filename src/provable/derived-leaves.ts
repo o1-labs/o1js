@@ -7,7 +7,9 @@ import { dataAsHash } from '../lib/events.js';
 import { HashHelpers } from '../lib/hash-generic.js';
 import { prefixes } from '../js_crypto/constants.js';
 
-export { derivedLeafTypes };
+export { derivedLeafTypes, tokenSymbolLength };
+
+const tokenSymbolLength = 6;
 
 function derivedLeafTypes<Field, Bool>({
   Field,
@@ -67,7 +69,7 @@ function derivedLeafTypes<Field, Bool>({
     },
     fromJSON(symbol: string): TokenSymbol {
       let bytesLength = new TextEncoder().encode(symbol).length;
-      if (bytesLength > 6)
+      if (bytesLength > tokenSymbolLength)
         throw Error(
           `Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`
         );

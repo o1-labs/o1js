@@ -31,6 +31,7 @@ import { alphabet } from '../../provable/base58.js';
 import { bytesToBigInt } from '../../js_crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
 import { ProvableExtended } from '../../provable/field-bigint.js';
+import { tokenSymbolLength } from '../../provable/derived-leaves.js';
 
 export { Random, sample, withHardCoded };
 
@@ -84,7 +85,7 @@ const authRequired = map(
   AuthRequired.fromJSON
 );
 // TODO non ascii strings in zkapp uri and token symbol fail
-const tokenSymbol = map(ascii(nat(6)), TokenSymbol.fromJSON);
+const tokenSymbol = map(ascii(nat(tokenSymbolLength)), TokenSymbol.fromJSON);
 const events = mapWithInvalid(
   array(array(field, int(1, 5)), nat(2)),
   Events.fromList
@@ -156,6 +157,7 @@ const accountUpdate = mapWithInvalid(
     return a;
   }
 );
+
 const feePayer = generatorFromLayout<ZkappCommand['feePayer']>(
   jsLayout.ZkappCommand.entries.feePayer as any,
   { isJson: false }
@@ -212,7 +214,9 @@ const JsonGenerators: JsonGenerators = {
   TokenId: withInvalidBase58(map(tokenId, TokenId.toJSON)),
   StateHash: withInvalidBase58(map(stateHash, StateHash.toJSON)),
   AuthRequired: withInvalidRandomString(map(authRequired, AuthRequired.toJSON)),
-  TokenSymbol: Object.assign(ascii(nat(6)), { invalid: string(int(7, 20)) }),
+  TokenSymbol: Object.assign(ascii(nat(tokenSymbolLength)), {
+    invalid: string(int(tokenSymbolLength + 1, 20)),
+  }),
   Events: mapWithInvalid(events, Events.toJSON),
   SequenceEvents: mapWithInvalid(actions, SequenceEvents.toJSON),
   SequenceState: mapWithInvalid(sequenceState, SequenceState.toJSON),
@@ -456,22 +460,11 @@ function map<T extends readonly any[], S>(
 ): Random<S> {
   const to = args.pop()! as (...values: T) => S;
   let rngs = args as { [K in keyof T]: Random<T[K]> };
-  // let functionRng: Random<(...args: T) => S> = { create: () => () => to };
-  // let mappedRng: (...rngs: { [K in keyof T]: Random<T[K]> }) => Random<S> =
-  //   function () {
-  //     return {
-  //       create() {
-  //         let nexts = rngs.map((rng) => rng.create());
-  //         return () => to(...(nexts.map((next) => next()) as any));
-  //       },
-  //     };
-  //   };
   return {
     create() {
       let nexts = rngs.map((rng) => rng.create());
       return () => to(...(nexts.map((next) => next()) as any));
     },
-    // from: Object.assign(mappedRng, functionRng),
   };
 }
 function dependent<T extends readonly any[], Result, Free>(
@@ -949,7 +942,7 @@ function tuple<T extends readonly any[]>(
   return { ...valid, invalid };
 }
 /**
- * map assuming that invalid inputs can be mapped just like valid ones
+ * map assuming that invalid inputs can be mapped just like valid ones.
  * _one_ of the inputs is sampled as invalid
  */
 function mapWithInvalid<T extends readonly any[], S>(
