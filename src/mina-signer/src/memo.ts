@@ -1,6 +1,8 @@
 import {
   Binable,
   defineBinable,
+  stringFromBytes,
+  stringLengthInBytes,
   stringToBytes,
   withBits,
 } from '../../provable/binable.js';
@@ -16,22 +18,24 @@ import { versionBytes } from '../../js_crypto/constants.js';
 export { Memo };
 
 function fromString(memo: string) {
-  if (memo.length > 32) throw Error('Memo.fromString: string too long');
+  let length = stringLengthInBytes(memo);
+  if (length > 32) throw Error('Memo.fromString: string too long');
   return (
-    `\x01${String.fromCharCode(memo.length)}${memo}` +
-    '\x00'.repeat(32 - memo.length)
+    `\x01${String.fromCharCode(length)}${memo}` + '\x00'.repeat(32 - length)
   );
 }
 function toString(memo: string) {
-  if (memo.length !== 34) {
-    throw Error(`Memo.toString: length ${memo.length} does not equal 34`);
+  let totalLength = stringLengthInBytes(memo);
+  if (totalLength !== 34) {
+    throw Error(`Memo.toString: length ${totalLength} does not equal 34`);
   }
   if (memo[0] !== '\x01') {
     throw Error('Memo.toString: expected memo to start with 0x01 byte');
   }
   let length = memo.charCodeAt(1);
   if (length > 32) throw Error('Memo.toString: invalid length encoding');
-  return memo.slice(2, 2 + length);
+  let bytes = stringToBytes(memo).slice(2, 2 + length);
+  return stringFromBytes(bytes);
 }
 
 function hash(memo: string) {
@@ -47,7 +51,7 @@ const Binable: Binable<string> = defineBinable({
   },
   readBytes(bytes, start) {
     let end = start + SIZE;
-    let memo = String.fromCharCode(...bytes.slice(start, end));
+    let memo = stringFromBytes(bytes.slice(start, end));
     return [memo, end];
   },
 });
@@ -65,7 +69,7 @@ const Memo = {
     return Memo.fromString('');
   },
   toValidString(memo = '') {
-    if (memo.length > 32) throw Error('Memo: string too long');
+    if (stringLengthInBytes(memo) > 32) throw Error('Memo: string too long');
     return memo;
   },
 };

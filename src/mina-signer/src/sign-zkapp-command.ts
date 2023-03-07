@@ -4,7 +4,6 @@ import {
   Json,
   AccountUpdate,
   ZkappCommand,
-  AuthRequired,
 } from '../../provable/gen/transaction-bigint.js';
 import {
   hashWithPrefix,
@@ -18,7 +17,6 @@ import {
   signFieldElement,
   verifyFieldElement,
 } from './signature.js';
-import { assertNonNegativeInteger } from '../../js_crypto/non-negative.js';
 
 // external API
 export { signZkappCommand, verifyZkappCommandSignature };
@@ -31,6 +29,7 @@ export {
   feePayerHash,
   createFeePayer,
   accountUpdateFromFeePayer,
+  isCallDepthValid,
 };
 
 function signZkappCommand(
@@ -39,6 +38,7 @@ function signZkappCommand(
   networkId: NetworkId
 ): Json.ZkappCommand {
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
+
   let { commitment, fullCommitment } = transactionCommitments(zkappCommand);
   let privateKey = PrivateKey.fromBase58(privateKeyBase58);
   let publicKey = zkappCommand.feePayer.body.publicKey;
@@ -65,6 +65,7 @@ function verifyZkappCommandSignature(
   networkId: NetworkId
 ) {
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
+
   let { commitment, fullCommitment } = transactionCommitments(zkappCommand);
   let publicKey = PublicKey.fromBase58(publicKeyBase58);
 
@@ -88,6 +89,9 @@ function verifyZkappCommandSignature(
 }
 
 function transactionCommitments(zkappCommand: ZkappCommand) {
+  if (!isCallDepthValid(zkappCommand)) {
+    throw Error('zkapp command: invalid call depth');
+  }
   let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
   let commitment = callForestHash(callForest);
   let memoHash = Memo.hash(Memo.fromBase58(zkappCommand.memo));
@@ -112,10 +116,6 @@ function accountUpdatesToCallForest(updates: AccountUpdate[], callDepth = 0) {
   let forest: CallForest = [];
   while (remainingUpdates.length > 0) {
     let accountUpdate = remainingUpdates[0];
-    assertNonNegativeInteger(
-      accountUpdate.body.callDepth,
-      `callDepth must be positive integer, got ${callDepth}`
-    );
     if (accountUpdate.body.callDepth < callDepth) return forest;
     remainingUpdates.shift();
     let children = accountUpdatesToCallForest(remainingUpdates, callDepth + 1);
@@ -174,7 +174,6 @@ function accountUpdateFromFeePayer({
     value: { lower: nonce, upper: nonce },
   };
   body.useFullCommitment = Bool(true);
-  body.mayUseToken = { parentsOwnToken: Bool(false), inheritFromParent: Bool(false) };
   body.implicitAccountCreationFee = Bool(true);
   body.authorizationKind = {
     isProved: Bool(false),
@@ -182,4 +181,16 @@ function accountUpdateFromFeePayer({
     verificationKeyHash: Field(0),
   };
   return { body, authorization: { signature } };
+}
+
+function isCallDepthValid(zkappCommand: ZkappCommand) {
+  let callDepths = zkappCommand.accountUpdates.map((a) => a.body.callDepth);
+  let current = callDepths.shift() ?? 0;
+  if (current !== 0) return false;
+  for (let callDepth of callDepths) {
+    if (callDepth < 0) return false;
+    if (callDepth - current > 1) return false;
+    current = callDepth;
+  }
+  return true;
 }

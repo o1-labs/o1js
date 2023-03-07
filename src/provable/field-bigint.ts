@@ -33,8 +33,8 @@ type HashInput = GenericHashInput<Field>;
 type ProvableExtended<T, J> = GenericProvableExtended<T, J, Field>;
 
 const checkField = checkRange(0n, Fp.modulus, 'Field');
-const checkBool = checkWhitelist(new Set([0n, 1n]), 'Bool');
-const checkSign = checkWhitelist(new Set([1n, minusOne]), 'Sign');
+const checkBool = checkAllowList(new Set([0n, 1n]), 'Bool');
+const checkSign = checkAllowList(new Set([1n, minusOne]), 'Sign');
 
 /**
  * The base field of the Pallas curve
@@ -179,6 +179,9 @@ function ProvableBigint<
       return x.toString() as TJSON;
     },
     fromJSON(json) {
+      if (isNaN(json as any) || isNaN(parseFloat(json))) {
+        throw Error(`fromJSON: expected a numeric string, got "${json}"`);
+      }
       let x = BigInt(json) as T;
       check(x);
       return x;
@@ -227,7 +230,7 @@ function checkRange(lower: bigint, upper: bigint, name: string) {
   };
 }
 
-function checkWhitelist(valid: Set<bigint>, name: string) {
+function checkAllowList(valid: Set<bigint>, name: string) {
   return (x: bigint) => {
     if (!valid.has(x)) {
       throw Error(
