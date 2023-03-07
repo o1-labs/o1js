@@ -57,12 +57,12 @@ const Signature = {
   toJSON({ r, s }: Signature): SignatureJson {
     return {
       field: Field.toJSON(r),
-      scalar: Field.toJSON(s),
+      scalar: Scalar.toJSON(s),
     };
   },
   fromJSON({ field, scalar }: SignatureJson) {
     let r = Field.fromJSON(field);
-    let s = Field.fromJSON(scalar);
+    let s = Scalar.fromJSON(scalar);
     return { r, s };
   },
   dummy() {

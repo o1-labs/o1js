@@ -5,6 +5,7 @@ import {
   Json,
   AccountUpdate,
   ZkappCommand,
+  emptyValue,
 } from '../../provable/gen/transaction-bigint.js';
 import {
   AuthRequired,
@@ -322,7 +323,13 @@ function generatorFromLayout<T>(
         let size = typeData.staticLength ?? Random.nat(20);
         return array(element, size);
       },
-      reduceObject(_, object) {
+      reduceObject(keys, object) {
+        // hack to not sample invalid vk hashes (because vk hash is correlated with other fields, and has to be overriden)
+        if (keys.includes('verificationKeyHash')) {
+          (object as any).verificationKeyHash = noInvalid(
+            (object as any).verificationKeyHash
+          );
+        }
         return record(object);
       },
       reduceFlaggedOption({ isSome, value }, typeData) {
@@ -331,7 +338,7 @@ function generatorFromLayout<T>(
         } else {
           return mapWithInvalid(isSome, value, (isSome, value) => {
             let isSomeBoolean = TypeMap.Bool.toJSON(isSome);
-            if (!isSomeBoolean) return empty(typeData);
+            if (!isSomeBoolean) return emptyValue(typeData);
             return { isSome, value };
           });
         }
@@ -341,43 +348,6 @@ function generatorFromLayout<T>(
           isJson ? null : undefined,
           generatorFromLayout(innerTypeData, { isJson })
         );
-      },
-    },
-    typeData,
-    undefined
-  );
-}
-
-function empty(typeData: Layout) {
-  let zero = TypeMap.Field.fromJSON('0');
-  return genericLayoutFold<undefined, any, TypeMap, Json.TypeMap>(
-    TypeMap,
-    customTypes,
-    {
-      map(type) {
-        if (type.emptyValue) return type.emptyValue();
-        return type.fromFields(
-          Array(type.sizeInFields()).fill(zero),
-          type.toAuxiliary()
-        );
-      },
-      reduceArray(array) {
-        return array;
-      },
-      reduceObject(_, object) {
-        return object;
-      },
-      reduceFlaggedOption({ isSome, value }, typeData) {
-        if (typeData.optionType === 'closedInterval') {
-          let innerInner = typeData.inner.entries.lower;
-          let innerType = TypeMap[innerInner.type as 'UInt32' | 'UInt64'];
-          value.lower = innerType.fromJSON(typeData.rangeMin);
-          value.upper = innerType.fromJSON(typeData.rangeMax);
-        }
-        return { isSome, value };
-      },
-      reduceOrUndefined() {
-        return undefined;
       },
     },
     typeData,
@@ -960,6 +930,10 @@ function mapWithInvalid<T extends readonly any[], S>(
     },
   };
   return { ...valid, invalid };
+}
+
+function noInvalid<T>(rng: Random<T>): Random<T> {
+  return { ...rng, invalid: undefined };
 }
 
 // functions to create invalid base58
