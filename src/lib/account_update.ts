@@ -1029,10 +1029,6 @@ class AccountUpdate implements Types.AccountUpdate {
   }
   static fromJSON(json: Types.Json.AccountUpdate) {
     let accountUpdate = Types.AccountUpdate.fromJSON(json);
-    // TODO remove empty permissions hack
-    if (json.body.update.permissions === null) {
-      accountUpdate.body.update.permissions.value = Permissions.initial();
-    }
     return new AccountUpdate(accountUpdate.body, accountUpdate.authorization);
   }
 

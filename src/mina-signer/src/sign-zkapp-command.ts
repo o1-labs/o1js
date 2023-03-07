@@ -4,7 +4,6 @@ import {
   Json,
   AccountUpdate,
   ZkappCommand,
-  AuthRequired,
 } from '../../provable/gen/transaction-bigint.js';
 import {
   hashWithPrefix,
@@ -18,7 +17,6 @@ import {
   signFieldElement,
   verifyFieldElement,
 } from './signature.js';
-import { assertNonNegativeInteger } from '../../js_crypto/non-negative.js';
 
 // external API
 export { signZkappCommand, verifyZkappCommandSignature };
@@ -31,8 +29,6 @@ export {
   feePayerHash,
   createFeePayer,
   accountUpdateFromFeePayer,
-  emptyPermissions,
-  fixEmptyPermissions,
   isCallDepthValid,
 };
 
@@ -42,7 +38,6 @@ function signZkappCommand(
   networkId: NetworkId
 ): Json.ZkappCommand {
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
-  fixEmptyPermissions(zkappCommand);
 
   let { commitment, fullCommitment } = transactionCommitments(zkappCommand);
   let privateKey = PrivateKey.fromBase58(privateKeyBase58);
@@ -70,7 +65,6 @@ function verifyZkappCommandSignature(
   networkId: NetworkId
 ) {
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
-  fixEmptyPermissions(zkappCommand);
 
   let { commitment, fullCommitment } = transactionCommitments(zkappCommand);
   let publicKey = PublicKey.fromBase58(publicKeyBase58);

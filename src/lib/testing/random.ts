@@ -30,7 +30,6 @@ import { randomBytes } from '../../js_crypto/random.js';
 import { alphabet } from '../../provable/base58.js';
 import { bytesToBigInt } from '../../js_crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
-import { emptyPermissions } from '../../mina-signer/src/sign-zkapp-command.js';
 import { ProvableExtended } from '../../provable/field-bigint.js';
 
 export { Random, sample, withHardCoded };
@@ -141,10 +140,6 @@ const accountUpdate = mapWithInvalid(
     a.authorization.proof = undefined;
     // TODO set signature to null since the deriver encodes it as arbitrary string
     a.authorization.signature = undefined;
-    // TODO remove empty permissions hack
-    if (!a.body.update.permissions.isSome) {
-      a.body.update.permissions.value = emptyPermissions();
-    }
     return a;
   }
 );

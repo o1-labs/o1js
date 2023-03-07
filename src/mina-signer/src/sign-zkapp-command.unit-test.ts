@@ -28,7 +28,6 @@ import {
   accountUpdatesToCallForest,
   callForestHash,
   feePayerHash,
-  fixEmptyPermissions,
   isCallDepthValid,
   signZkappCommand,
   verifyZkappCommandSignature,
@@ -179,7 +178,6 @@ test(
       JSON.stringify(zkappCommandJsonSnarky)
     );
     let recoveredZkappCommand = ZkappCommand.fromJSON(zkappCommandJson);
-    fixEmptyPermissions(recoveredZkappCommand);
     expect(recoveredZkappCommand).toEqual(zkappCommand);
 
     // tx commitment

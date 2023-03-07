@@ -14,7 +14,7 @@ import {
   verifyStakeDelegation,
   verifyStringSignature,
 } from './sign-legacy.js';
-import { NetworkId, Signature } from './signature.js';
+import { NetworkId, Signature, SignatureJson } from './signature.js';
 import { expect } from 'expect';
 import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
 import { Field } from '../../provable/field-bigint.js';
@@ -68,7 +68,7 @@ test(
   Random.json.keypair,
   Random.json.privateKey,
   (payment, { privateKey, publicKey }, otherKey, assert) => {
-    let verify = (sig: string, network: NetworkId) =>
+    let verify = (sig: SignatureJson, network: NetworkId) =>
       verifyPayment(payment, sig, publicKey, network);
 
     // valid signatures & verification matrix
