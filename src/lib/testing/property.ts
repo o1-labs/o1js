@@ -11,6 +11,36 @@ const test = Object.assign(testCustom(), {
   custom: testCustom,
 });
 
+/**
+ * Create a customized test runner.
+ *
+ * The runner takes any number of generators (Random<T>) and a function which gets samples as inputs, and performs the test.
+ * The test can be either performed by using the `assert` function which is passed as argument, or simply throw an error when an assertion fails:
+ *
+ * ```ts
+ * let test = testCustom();
+ *
+ * test(Random.nat(5), (x, assert) => {
+ *   // x is one sample of the `Random.nat(5)` distribution
+ *   // we can make assertions about it by using `assert`
+ *   assert(x < 6, "should not exceed max value of 5");
+ *   // or by using any other assertion library which throws errors on failing assertions:
+ *   expect(x).toBeLessThan(6);
+ * })
+ * ```
+ *
+ * Parameters `minRuns`, `maxRuns` and `timeBudget` determine how often a test is run:
+ * - We definitely run the test `minRuns` times
+ * - Then we determine how many more test fit into the `timeBudget` (time the test should take, in milliseconds)
+ * - And we run the test as often as we can within that budget, but at most `maxRuns` times.
+ *
+ * If one run fails, the entire test stops immediately and the failing sample is printed to the console.
+ *
+ * The parameter `negative` inverts this behaviour: If `negative: true`, _every_ sample is expected to fail and the test
+ * stops if one sample succeeds.
+ *
+ * The default behaviour of printing out failing samples can be turned off by setting `logFailures: false`.
+ */
 function testCustom({
   minRuns = defaultMinRuns,
   maxRuns = defaultMaxRuns,
@@ -105,7 +135,6 @@ type Nexts<T extends readonly Random<any>[]> = {
 type ArrayTestArgs<T extends readonly Random<any>[]> = [
   ...gens: T,
   run: (...args: ArrayRunArgs<Nexts<T>>) => void
-  // options?: { timeBudget?: number } // TODO make this work
 ];
 
 type ArrayRunArgs<Nexts extends readonly (() => any)[]> = [
