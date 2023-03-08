@@ -500,20 +500,20 @@ type EventActionFilterOptions = {
 };
 
 /**
-Asynchronously fetches event data for an account from the Mina Archive Node GraphQL API.
-@async
-@param accountInfo - The account information object.
-@param accountInfo.publicKey - The account public key.
-@param [accountInfo.tokenId] - The optional token ID for the account.
-@param [graphqlEndpoint=archiveGraphqlEndpoint] - The GraphQL endpoint to query. Defaults to the Archive Node GraphQL API.
-@param [filterOptions={}] - The optional filter options object.
-@returns A promise that resolves to an array of objects containing event data and block height for the account.
-@throws If the GraphQL request fails or the response is invalid.
-@example
-const accountInfo = { publicKey: 'B62qiwmXrWn7Cok5VhhB3KvCwyZ7NHHstFGbiU5n7m8s2RqqNW1p1wF' };
-const events = await fetchEvents(accountInfo);
-console.log(events);
-*/
+ * Asynchronously fetches event data for an account from the Mina Archive Node GraphQL API.
+ * @async
+ * @param accountInfo - The account information object.
+ * @param accountInfo.publicKey - The account public key.
+ * @param [accountInfo.tokenId] - The optional token ID for the account.
+ * @param [graphqlEndpoint=archiveGraphqlEndpoint] - The GraphQL endpoint to query. Defaults to the Archive Node GraphQL API.
+ * @param [filterOptions={}] - The optional filter options object.
+ * @returns A promise that resolves to an array of objects containing event data and block height for the account.
+ * @throws If the GraphQL request fails or the response is invalid.
+ * @example
+ * const accountInfo = { publicKey: 'B62qiwmXrWn7Cok5VhhB3KvCwyZ7NHHstFGbiU5n7m8s2RqqNW1p1wF' };
+ * const events = await fetchEvents(accountInfo);
+ * console.log(events);
+ */
 async function fetchEvents(
   accountInfo: { publicKey: string; tokenId?: string },
   graphqlEndpoint = archiveGraphqlEndpoint,
