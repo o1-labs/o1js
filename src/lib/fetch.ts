@@ -465,8 +465,7 @@ function sendZkappQuery(json: string) {
 }
 `;
 }
-
-type FetchedEvents = {
+type FetchedEventActionBase = {
   blockInfo: {
     distanceFromMaxBlockHeight: number;
     globalSlotSinceGenesis: number;
@@ -480,11 +479,13 @@ type FetchedEvents = {
     memo: string;
     status: string;
   };
+};
+type FetchedEvents = {
   eventData: {
     index: string;
-    data: string;
+    data: string[];
   }[];
-};
+} & FetchedEventActionBase;
 
 type EventActionFilterOptions = {
   to?: UInt32;
@@ -588,12 +589,9 @@ async function fetchEvents(
   }
 
   return fetchedEvents.map((event) => {
-    let events = event.eventData.map((eventData) => {
-      return [eventData.index].concat(eventData.data);
-    });
     return {
-      events,
-      height: event.blockInfo.height,
+      events: event.eventData,
+      blockHeight: event.blockInfo.height,
       blockHash: event.blockInfo.stateHash,
       parentBlockHash: event.blockInfo.parentHash,
       globalSlot: event.blockInfo.globalSlotSinceGenesis,

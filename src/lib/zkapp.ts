@@ -1051,7 +1051,20 @@ super.init();
   async fetchEvents(
     start: UInt32 = UInt32.from(0),
     end?: UInt32
-  ): Promise<{ type: string; event: ProvablePure<any> }[]> {
+  ): Promise<
+    {
+      type: string;
+      event: ProvablePure<any>;
+      blockHeight: number;
+      blockHash: string;
+      parentBlockHash: string;
+      globalSlot: number;
+      chainStatus: string;
+      transactionHash: string;
+      transactionStatus: string;
+      transactionMemo: string;
+    }[]
+  > {
     // filters all elements so that they are within the given range
     // only returns { type: "", event: [] } in a flat format
     let events = (
@@ -1061,14 +1074,30 @@ super.init();
       })
     )
       .filter((eventData) => {
-        let height = UInt32.from(eventData.height);
+        let height = UInt32.from(eventData.blockHeight);
         return end === undefined
           ? start.lessThanOrEqual(height).toBoolean()
           : start.lessThanOrEqual(height).toBoolean() &&
               height.lessThanOrEqual(end).toBoolean();
       })
-      .map((eventData) => eventData.events)
-      .flat();
+      .map((event) => {
+        let eventData = event.events
+          .map((event) => {
+            return [event.index, ...event.data];
+          })
+          .flat();
+        return {
+          eventData,
+          blockHeight: event.blockHeight,
+          blockHash: event.blockHash,
+          parentBlockHash: event.parentBlockHash,
+          globalSlot: event.globalSlot,
+          chainStatus: event.chainStatus,
+          transactionHash: event.transactionHash,
+          transactionStatus: event.transactionStatus,
+          transactionMemo: event.transactionMemo,
+        };
+      });
 
     // used to match field values back to their original type
     let sortedEventTypes = Object.keys(this.events).sort();
@@ -1080,20 +1109,36 @@ super.init();
         return {
           type,
           event: this.events[type].fromFields(
-            event.map((f: string) => Field(f))
+            event.eventData.map((f: string) => Field(f))
           ),
+          blockHeight: event.blockHeight,
+          blockHash: event.blockHash,
+          parentBlockHash: event.parentBlockHash,
+          globalSlot: event.globalSlot,
+          chainStatus: event.chainStatus,
+          transactionHash: event.transactionHash,
+          transactionStatus: event.transactionStatus,
+          transactionMemo: event.transactionMemo,
         };
       } else {
         // if there are multiple events we have to use the index event[0] to find the exact event type
-        let eventObjectIndex = Number(event[0]);
+        let eventObjectIndex = Number(event.eventData[0]);
         let type = sortedEventTypes[eventObjectIndex];
         // all other elements of the array are values used to construct the original object, we can drop the first value since its just an index
-        let eventProps = event.slice(1);
+        let eventProps = event.eventData.slice(1);
         return {
           type,
           event: this.events[type].fromFields(
             eventProps.map((f: string) => Field(f))
           ),
+          blockHeight: event.blockHeight,
+          blockHash: event.blockHash,
+          parentBlockHash: event.parentBlockHash,
+          globalSlot: event.globalSlot,
+          chainStatus: event.chainStatus,
+          transactionHash: event.transactionHash,
+          transactionStatus: event.transactionStatus,
+          transactionMemo: event.transactionMemo,
         };
       }
     });

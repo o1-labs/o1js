@@ -324,7 +324,7 @@ interface Mina {
     publicKey: PublicKey,
     tokenId?: Field,
     filterOptions?: Fetch.EventActionFilterOptions
-  ) => Promise<{ events: string[][]; height: number }[]>;
+  ) => ReturnType<typeof Fetch.fetchEvents>;
   getActions: (
     publicKey: PublicKey,
     tokenId?: Field
@@ -546,10 +546,7 @@ function LocalBlockchain({
         JSON.stringify(networkState)
       );
     },
-    async fetchEvents(
-      publicKey: PublicKey,
-      tokenId: Field = TokenId.default
-    ): Promise<any[]> {
+    async fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       return events?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
     },
     getActions(
