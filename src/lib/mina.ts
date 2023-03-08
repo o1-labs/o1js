@@ -34,6 +34,7 @@ export {
   currentTransaction,
   CurrentTransaction,
   Transaction,
+  TransactionId,
   activeInstance,
   setActiveInstance,
   transaction,
