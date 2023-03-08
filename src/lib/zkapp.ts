@@ -1060,20 +1060,20 @@ super.init();
         to: end,
       })
     )
-      .filter((el: any) => {
-        let height = UInt32.from(el.height);
+      .filter((eventData) => {
+        let height = UInt32.from(eventData.height);
         return end === undefined
           ? start.lessThanOrEqual(height).toBoolean()
           : start.lessThanOrEqual(height).toBoolean() &&
               height.lessThanOrEqual(end).toBoolean();
       })
-      .map((el: any) => el.events)
+      .map((eventData) => eventData.events)
       .flat();
 
     // used to match field values back to their original type
     let sortedEventTypes = Object.keys(this.events).sort();
 
-    return events.map((event: any) => {
+    return events.map((event) => {
       // if there is only one event type, the event structure has no index and can directly be matched to the event type
       if (sortedEventTypes.length === 1) {
         let type = sortedEventTypes[0];
@@ -1085,7 +1085,8 @@ super.init();
         };
       } else {
         // if there are multiple events we have to use the index event[0] to find the exact event type
-        let type = sortedEventTypes[event[0]];
+        let eventObjectIndex = Number(event[0]);
+        let type = sortedEventTypes[eventObjectIndex];
         // all other elements of the array are values used to construct the original object, we can drop the first value since its just an index
         let eventProps = event.slice(1);
         return {

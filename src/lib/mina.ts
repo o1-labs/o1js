@@ -324,7 +324,7 @@ interface Mina {
     publicKey: PublicKey,
     tokenId?: Field,
     filterOptions?: Fetch.EventActionFilterOptions
-  ) => any;
+  ) => Promise<{ events: string[][]; height: number }[]>;
   getActions: (
     publicKey: PublicKey,
     tokenId?: Field
@@ -784,7 +784,7 @@ function Network(input: { mina: string; archive: string } | string): Mina {
       let pubKey = publicKey.toBase58();
       let token = TokenId.toBase58(tokenId);
 
-      return await Fetch.fetchEvents(
+      return Fetch.fetchEvents(
         { publicKey: pubKey, tokenId: token },
         archiveEndpoint,
         filterOptions

@@ -466,6 +466,22 @@ function sendZkappQuery(json: string) {
 `;
 }
 
+type FetchedEvents = {
+  blockInfo: {
+    distanceFromMaxBlockHeight: number;
+    height: number;
+  };
+  eventData: {
+    index: string;
+    data: string;
+  }[];
+};
+
+type EventActionFilterOptions = {
+  to?: UInt32;
+  from?: UInt32;
+};
+
 const getEventsQuery = (
   publicKey: string,
   tokenId: string,
@@ -490,13 +506,7 @@ const getEventsQuery = (
       data
     }
   }
-}
-`;
-};
-
-type EventActionFilterOptions = {
-  to?: UInt32;
-  from?: UInt32;
+}`;
 };
 
 /**
@@ -518,7 +528,7 @@ async function fetchEvents(
   accountInfo: { publicKey: string; tokenId?: string },
   graphqlEndpoint = archiveGraphqlEndpoint,
   filterOptions: EventActionFilterOptions = {}
-): Promise<any> {
+) {
   if (!graphqlEndpoint)
     throw new Error(
       'fetchEvents: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
@@ -533,7 +543,7 @@ async function fetchEvents(
     graphqlEndpoint
   );
   if (error) throw Error(error.statusText);
-  let fetchedEvents = response?.data.events;
+  let fetchedEvents = response?.data.events as FetchedEvents[];
   if (fetchedEvents === undefined) {
     throw Error(
       `Failed to fetch events data. Account: ${publicKey} Token: ${tokenId}`
@@ -552,19 +562,17 @@ async function fetchEvents(
       numberOfBestTipBlocks++;
     }
     if (numberOfBestTipBlocks > 1) {
-      fetchedEvents = fetchedEvents.filter((event: any) => {
+      fetchedEvents = fetchedEvents.filter((event) => {
         return event.blockInfo.distanceFromMaxBlockHeight !== 0;
       });
       break;
     }
   }
 
-  return fetchedEvents.map((event: any) => {
-    const events = event.eventData.map(
-      (eventData: { index: string; data: string[] }) => {
-        return [eventData.index].concat(eventData.data);
-      }
-    );
+  return fetchedEvents.map((event) => {
+    let events = event.eventData.map((eventData) => {
+      return [eventData.index].concat(eventData.data);
+    });
     return {
       events,
       height: event.blockInfo.height,
