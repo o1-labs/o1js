@@ -469,7 +469,16 @@ function sendZkappQuery(json: string) {
 type FetchedEvents = {
   blockInfo: {
     distanceFromMaxBlockHeight: number;
+    globalSlotSinceGenesis: number;
     height: number;
+    stateHash: string;
+    parentHash: string;
+    chainStatus: string;
+  };
+  transactionInfo: {
+    hash: string;
+    memo: string;
+    status: string;
   };
   eventData: {
     index: string;
@@ -500,6 +509,15 @@ const getEventsQuery = (
     blockInfo {
       distanceFromMaxBlockHeight
       height
+      globalSlotSinceGenesis
+      stateHash
+      parentHash
+      chainStatus
+    }
+    transactionInfo {
+      hash
+      memo
+      status
     }
     eventData {
       index
@@ -517,7 +535,7 @@ const getEventsQuery = (
  * @param [accountInfo.tokenId] - The optional token ID for the account.
  * @param [graphqlEndpoint=archiveGraphqlEndpoint] - The GraphQL endpoint to query. Defaults to the Archive Node GraphQL API.
  * @param [filterOptions={}] - The optional filter options object.
- * @returns A promise that resolves to an array of objects containing event data and block height for the account.
+ * @returns A promise that resolves to an array of objects containing event data, block information and transaction information for the account.
  * @throws If the GraphQL request fails or the response is invalid.
  * @example
  * const accountInfo = { publicKey: 'B62qiwmXrWn7Cok5VhhB3KvCwyZ7NHHstFGbiU5n7m8s2RqqNW1p1wF' };
@@ -576,6 +594,13 @@ async function fetchEvents(
     return {
       events,
       height: event.blockInfo.height,
+      blockHash: event.blockInfo.stateHash,
+      parentBlockHash: event.blockInfo.parentHash,
+      globalSlot: event.blockInfo.globalSlotSinceGenesis,
+      chainStatus: event.blockInfo.chainStatus,
+      transactionHash: event.transactionInfo.hash,
+      transactionStatus: event.transactionInfo.status,
+      transactionMemo: event.transactionInfo.memo,
     };
   });
 }
