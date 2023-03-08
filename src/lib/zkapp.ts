@@ -1055,10 +1055,10 @@ super.init();
     {
       type: string;
       event: ProvablePure<any>;
-      blockHeight: number;
+      blockHeight: string;
       blockHash: string;
       parentBlockHash: string;
-      globalSlot: number;
+      globalSlot: string;
       chainStatus: string;
       transactionHash: string;
       transactionStatus: string;
@@ -1084,10 +1084,10 @@ super.init();
         return event.events.map((eventData) => {
           return {
             event: eventData,
-            blockHeight: event.blockHeight,
+            blockHeight: event.blockHeight.toString(),
             blockHash: event.blockHash,
             parentBlockHash: event.parentBlockHash,
-            globalSlot: event.globalSlot,
+            globalSlot: event.globalSlot.toString(),
             chainStatus: event.chainStatus,
             transactionHash: event.transactionHash,
             transactionStatus: event.transactionStatus,
