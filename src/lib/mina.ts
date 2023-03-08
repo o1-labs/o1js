@@ -464,7 +464,16 @@ function LocalBlockchain({
           }
           events[addr][tokenId].push({
             events: p.body.events,
-            height: networkState.blockchainLength.toString(),
+            blockHeight: networkState.blockchainLength.toString(),
+            globalSlot: networkState.globalSlotSinceGenesis.toString(),
+            // The following fields are fetched from the Mina network. For now, we mock these values out
+            // since networkState does not contain these fields.
+            blockHash: '',
+            parentBlockHash: '',
+            chainStatus: '',
+            transactionHash: '',
+            transactionStatus: '',
+            transactionMemo: '',
           });
         }
 

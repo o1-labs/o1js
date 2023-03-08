@@ -1081,64 +1081,62 @@ super.init();
               height.lessThanOrEqual(end).toBoolean();
       })
       .map((event) => {
-        let eventData = event.events
-          .map((event) => {
-            return [event.index, ...event.data];
-          })
-          .flat();
-        return {
-          eventData,
-          blockHeight: event.blockHeight,
-          blockHash: event.blockHash,
-          parentBlockHash: event.parentBlockHash,
-          globalSlot: event.globalSlot,
-          chainStatus: event.chainStatus,
-          transactionHash: event.transactionHash,
-          transactionStatus: event.transactionStatus,
-          transactionMemo: event.transactionMemo,
-        };
-      });
+        return event.events.map((eventData) => {
+          return {
+            event: eventData,
+            blockHeight: event.blockHeight,
+            blockHash: event.blockHash,
+            parentBlockHash: event.parentBlockHash,
+            globalSlot: event.globalSlot,
+            chainStatus: event.chainStatus,
+            transactionHash: event.transactionHash,
+            transactionStatus: event.transactionStatus,
+            transactionMemo: event.transactionMemo,
+          };
+        });
+      })
+      .flat();
 
     // used to match field values back to their original type
     let sortedEventTypes = Object.keys(this.events).sort();
 
-    return events.map((event) => {
+    return events.map((eventData) => {
       // if there is only one event type, the event structure has no index and can directly be matched to the event type
       if (sortedEventTypes.length === 1) {
         let type = sortedEventTypes[0];
         return {
           type,
           event: this.events[type].fromFields(
-            event.eventData.map((f: string) => Field(f))
+            eventData.event.map((f: string) => Field(f))
           ),
-          blockHeight: event.blockHeight,
-          blockHash: event.blockHash,
-          parentBlockHash: event.parentBlockHash,
-          globalSlot: event.globalSlot,
-          chainStatus: event.chainStatus,
-          transactionHash: event.transactionHash,
-          transactionStatus: event.transactionStatus,
-          transactionMemo: event.transactionMemo,
+          blockHeight: eventData.blockHeight,
+          blockHash: eventData.blockHash,
+          parentBlockHash: eventData.parentBlockHash,
+          globalSlot: eventData.globalSlot,
+          chainStatus: eventData.chainStatus,
+          transactionHash: eventData.transactionHash,
+          transactionStatus: eventData.transactionStatus,
+          transactionMemo: eventData.transactionMemo,
         };
       } else {
         // if there are multiple events we have to use the index event[0] to find the exact event type
-        let eventObjectIndex = Number(event.eventData[0]);
+        let eventObjectIndex = Number(eventData.event[0]);
         let type = sortedEventTypes[eventObjectIndex];
         // all other elements of the array are values used to construct the original object, we can drop the first value since its just an index
-        let eventProps = event.eventData.slice(1);
+        let eventProps = eventData.event.slice(1);
         return {
           type,
           event: this.events[type].fromFields(
             eventProps.map((f: string) => Field(f))
           ),
-          blockHeight: event.blockHeight,
-          blockHash: event.blockHash,
-          parentBlockHash: event.parentBlockHash,
-          globalSlot: event.globalSlot,
-          chainStatus: event.chainStatus,
-          transactionHash: event.transactionHash,
-          transactionStatus: event.transactionStatus,
-          transactionMemo: event.transactionMemo,
+          blockHeight: eventData.blockHeight,
+          blockHash: eventData.blockHash,
+          parentBlockHash: eventData.parentBlockHash,
+          globalSlot: eventData.globalSlot,
+          chainStatus: eventData.chainStatus,
+          transactionHash: eventData.transactionHash,
+          transactionStatus: eventData.transactionStatus,
+          transactionMemo: eventData.transactionMemo,
         };
       }
     });

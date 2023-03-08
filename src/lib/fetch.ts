@@ -589,8 +589,11 @@ async function fetchEvents(
   }
 
   return fetchedEvents.map((event) => {
+    let events = event.eventData.map((eventData) => {
+      return [eventData.index, ...eventData.data];
+    });
     return {
-      events: event.eventData,
+      events,
       blockHeight: event.blockInfo.height,
       blockHash: event.blockInfo.stateHash,
       parentBlockHash: event.blockInfo.parentHash,
