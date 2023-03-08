@@ -17,7 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/1abdfb70...HEAD)
 
-> No unreleased changes yet
+### Fixed
+
+- Added missing export of `Mina.TransactionId` https://github.com/o1-labs/snarkyjs/pull/785
 
 ## [0.9.2](https://github.com/o1-labs/snarkyjs/compare/9c44b9c2...1abdfb70)
 
