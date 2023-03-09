@@ -4,10 +4,10 @@ import os from 'os';
 import wasm from '../_node_bindings/plonk_wasm.cjs';
 const __filename = import.meta.url.slice(7);
 
-export { snarky_ready };
+export { snarkyReady, wasm };
 
 let snarkyReadyResolve;
-let snarky_ready = new Promise((resolve) => (snarkyReadyResolve = resolve));
+let snarkyReady = new Promise((resolve) => (snarkyReadyResolve = resolve));
 
 // expose this globally so that it can be referenced from wasm
 globalThis.startWorkers = startWorkers;

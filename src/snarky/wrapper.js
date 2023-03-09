@@ -1,12 +1,12 @@
-import { snarky_ready } from './node-backend.js';
+import { snarkyReady, wasm } from './node-backend.js';
 import { default as snarky } from '../_node_bindings/snarky_js_node.bc.cjs';
 
-export { getSnarky, getWasm, snarky_ready, shutdown };
+export { getSnarky, getWasm, snarkyReady, shutdown };
 
 let getSnarky = () => snarky;
 
 function getWasm() {
-  return globalThis.jsoo_runtime.plonk_wasm;
+  return wasm;
 }
 
 // TODO get rid of shutdown
