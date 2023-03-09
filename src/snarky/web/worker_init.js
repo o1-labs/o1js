@@ -1,4 +1,4 @@
-import plonkWasm from './plonk_wasm.js';
+import plonkWasm from '../../chrome_bindings/plonk_wasm.js';
 import workerRun from './worker_run.js';
 
 export { workerInit as default };

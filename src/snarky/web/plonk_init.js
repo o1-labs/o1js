@@ -1,9 +1,9 @@
-import plonkWasm from './plonk_wasm.js';
+import plonkWasm from '../../chrome_bindings/plonk_wasm.js';
 import workerRun from './worker_run.js';
 import workerInit from './worker_init.js';
 import getEfficientNumWorkers from './getEfficientNumWorkers';
 import { srcFromFunctionModule, inlineWorker } from './workerHelpers.js';
-import snarkyJsChromeSrc from 'string:./snarky_js_chrome.bc.js';
+import snarkyJsChromeSrc from 'string:../../chrome_bindings/snarky_js_chrome.bc.js';
 let plonk_wasm = plonkWasm();
 let init = plonk_wasm.default;
 let { override_bindings } = workerRun();
