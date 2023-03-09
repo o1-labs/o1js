@@ -1,14 +1,8 @@
-import env from 'env';
-import { isMainThread } from 'node:worker_threads';
+import './prepare-node-backend.js';
+import wasm from '../_node_bindings/plonk_wasm.cjs';
+
+// console.log(wasm);
 
 export { snarky_ready };
 
 let snarky_ready = Promise.resolve();
-
-if (isMainThread) {
-  env.memory = new WebAssembly.Memory({
-    initial: 20,
-    maximum: 65536,
-    shared: true,
-  });
-}
