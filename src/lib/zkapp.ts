@@ -1055,10 +1055,10 @@ super.init();
     {
       type: string;
       event: ProvablePure<any>;
-      blockHeight: string;
+      blockHeight: UInt32;
       blockHash: string;
       parentBlockHash: string;
-      globalSlot: string;
+      globalSlot: UInt32;
       chainStatus: string;
       transactionHash: string;
       transactionStatus: string;
@@ -1083,15 +1083,8 @@ super.init();
       .map((event) => {
         return event.events.map((eventData) => {
           return {
+            ...event,
             event: eventData,
-            blockHeight: event.blockHeight.toString(),
-            blockHash: event.blockHash,
-            parentBlockHash: event.parentBlockHash,
-            globalSlot: event.globalSlot.toString(),
-            chainStatus: event.chainStatus,
-            transactionHash: event.transactionHash,
-            transactionStatus: event.transactionStatus,
-            transactionMemo: event.transactionMemo,
           };
         });
       })
@@ -1104,19 +1097,13 @@ super.init();
       // if there is only one event type, the event structure has no index and can directly be matched to the event type
       if (sortedEventTypes.length === 1) {
         let type = sortedEventTypes[0];
+        let event = this.events[type].fromFields(
+          eventData.event.map((f: string) => Field(f))
+        );
         return {
+          ...eventData,
           type,
-          event: this.events[type].fromFields(
-            eventData.event.map((f: string) => Field(f))
-          ),
-          blockHeight: eventData.blockHeight,
-          blockHash: eventData.blockHash,
-          parentBlockHash: eventData.parentBlockHash,
-          globalSlot: eventData.globalSlot,
-          chainStatus: eventData.chainStatus,
-          transactionHash: eventData.transactionHash,
-          transactionStatus: eventData.transactionStatus,
-          transactionMemo: eventData.transactionMemo,
+          event,
         };
       } else {
         // if there are multiple events we have to use the index event[0] to find the exact event type
@@ -1124,19 +1111,13 @@ super.init();
         let type = sortedEventTypes[eventObjectIndex];
         // all other elements of the array are values used to construct the original object, we can drop the first value since its just an index
         let eventProps = eventData.event.slice(1);
+        let event = this.events[type].fromFields(
+          eventProps.map((f: string) => Field(f))
+        );
         return {
+          ...eventData,
           type,
-          event: this.events[type].fromFields(
-            eventProps.map((f: string) => Field(f))
-          ),
-          blockHeight: eventData.blockHeight,
-          blockHash: eventData.blockHash,
-          parentBlockHash: eventData.parentBlockHash,
-          globalSlot: eventData.globalSlot,
-          chainStatus: eventData.chainStatus,
-          transactionHash: eventData.transactionHash,
-          transactionStatus: eventData.transactionStatus,
-          transactionMemo: eventData.transactionMemo,
+          event,
         };
       }
     });

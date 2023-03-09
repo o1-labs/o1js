@@ -594,10 +594,10 @@ async function fetchEvents(
     });
     return {
       events,
-      blockHeight: event.blockInfo.height.toString(),
+      blockHeight: UInt32.from(event.blockInfo.height),
       blockHash: event.blockInfo.stateHash,
       parentBlockHash: event.blockInfo.parentHash,
-      globalSlot: event.blockInfo.globalSlotSinceGenesis.toString(),
+      globalSlot: UInt32.from(event.blockInfo.globalSlotSinceGenesis),
       chainStatus: event.blockInfo.chainStatus,
       transactionHash: event.transactionInfo.hash,
       transactionStatus: event.transactionInfo.status,
