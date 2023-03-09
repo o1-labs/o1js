@@ -1,7 +1,7 @@
 import './prepare-node-backend.js';
 import { isMainThread, parentPort, workerData, Worker } from 'worker_threads';
 import os from 'os';
-import wasm from '../_node_bindings/plonk_wasm.cjs';
+import wasm from '../../_node_bindings/plonk_wasm.cjs';
 const __filename = import.meta.url.slice(7);
 
 export { snarkyReady, wasm };
