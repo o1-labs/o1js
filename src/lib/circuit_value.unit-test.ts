@@ -65,10 +65,10 @@ Circuit.runAndCheck(() => {
   type.check(value);
 });
 
-// should fail to create witness if `check` doesn't pass
+// should fail `check` if `check` of subfields doesn't pass
 expect(() =>
   Circuit.runAndCheck(() => {
-    Circuit.witness(type, () => ({
+    let x = Circuit.witness(type, () => ({
       ...value,
       uint: [
         UInt32.zero,
@@ -76,6 +76,7 @@ expect(() =>
         new UInt32(Field(-1)),
       ],
     }));
+    type.check(x);
   })
 ).toThrow(`Expected ${Field(-1)} to fit in 32 bits`);
 

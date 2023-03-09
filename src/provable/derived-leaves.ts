@@ -1,13 +1,20 @@
 import { GenericBool, GenericField, GenericHashInput } from './generic.js';
 import { createProvable } from './provable-generic.js';
 import * as Json from './gen/transaction-json.js';
-import { bytesToBits, prefixToField, stringToBytes } from './binable.js';
+import {
+  bytesToBits,
+  prefixToField,
+  stringLengthInBytes,
+  stringToBytes,
+} from './binable.js';
 import { fieldEncodings } from './base58.js';
 import { dataAsHash } from '../lib/events.js';
 import { HashHelpers } from '../lib/hash-generic.js';
 import { prefixes } from '../js_crypto/constants.js';
 
-export { derivedLeafTypes };
+export { derivedLeafTypes, tokenSymbolLength };
+
+const tokenSymbolLength = 6;
 
 function derivedLeafTypes<Field, Bool>({
   Field,
@@ -24,6 +31,7 @@ function derivedLeafTypes<Field, Bool>({
   const Encoding = fieldEncodings<Field>(Field);
 
   type TokenId = Field;
+  type StateHash = Field;
   type TokenSymbol = { symbol: string; field: Field };
   type AuthRequired = {
     constant: Bool;
@@ -45,6 +53,16 @@ function derivedLeafTypes<Field, Bool>({
     },
   };
 
+  const StateHash = {
+    ...provable(Field),
+    toJSON(x: Field): Json.Field {
+      return Encoding.StateHash.toBase58(x);
+    },
+    fromJSON(x: Json.Field) {
+      return Encoding.StateHash.fromBase58(x);
+    },
+  };
+
   type HashInput = GenericHashInput<Field>;
   const TokenSymbol = {
     ...provable({ field: Field, symbol: String }),
@@ -55,6 +73,11 @@ function derivedLeafTypes<Field, Bool>({
       return symbol;
     },
     fromJSON(symbol: string): TokenSymbol {
+      let bytesLength = stringLengthInBytes(symbol);
+      if (bytesLength > tokenSymbolLength)
+        throw Error(
+          `Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`
+        );
       return { symbol, field: prefixToField(Field, symbol) };
     },
   };
@@ -130,5 +153,5 @@ function derivedLeafTypes<Field, Bool>({
     },
   });
 
-  return { TokenId, TokenSymbol, AuthRequired, ZkappUri };
+  return { TokenId, StateHash, TokenSymbol, AuthRequired, ZkappUri };
 }

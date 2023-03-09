@@ -57,12 +57,12 @@ const Signature = {
   toJSON({ r, s }: Signature): SignatureJson {
     return {
       field: Field.toJSON(r),
-      scalar: Field.toJSON(s),
+      scalar: Scalar.toJSON(s),
     };
   },
   fromJSON({ field, scalar }: SignatureJson) {
     let r = Field.fromJSON(field);
-    let s = Field.fromJSON(scalar);
+    let s = Scalar.fromJSON(scalar);
     return { r, s };
   },
   dummy() {
@@ -296,7 +296,12 @@ function deriveNonceLegacy(
 }
 
 /**
- * Same as {@link hashMessage}, but using the "legacy" style of hash input packing.
+ * Same as {@link hashMessage}, except for two differences:
+ * - uses the "legacy" style of hash input packing.
+ * - uses Poseidon with "legacy" parameters for hashing
+ *
+ * The method produces a hash in the Pallas base field ({@link Field}) and reinterprets it as a {@link Scalar}.
+ * This is possible, and a no-op, since the scalar field is larger and both fields are represented with bigints.
  */
 function hashMessageLegacy(
   message: HashInputLegacy,

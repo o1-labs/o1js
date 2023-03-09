@@ -111,7 +111,11 @@ function customEncoding<Field>(
   versionByte: number,
   versionNumber?: number
 ) {
-  return base58(withVersionNumber(Field, versionNumber), versionByte);
+  let customField =
+    versionNumber !== undefined
+      ? withVersionNumber(Field, versionNumber)
+      : Field;
+  return base58(customField, versionByte);
 }
 
 const RECEIPT_CHAIN_HASH_VERSION = 1;

@@ -1,4 +1,4 @@
-import { Fq } from '../js_crypto/finite_field.js';
+import { Fq, mod } from '../js_crypto/finite_field.js';
 import { GroupProjective, Pallas } from '../js_crypto/elliptic_curve.js';
 import { versionBytes } from '../js_crypto/constants.js';
 import { record, withCheck, withVersionNumber } from './binable.js';
@@ -53,6 +53,7 @@ const Group = {
       Pallas.scale(Group.toProjective(point), scalar)
     );
   },
+  b: Pallas.b,
 };
 
 let FieldWithVersion = withVersionNumber(Field, versionNumbers.field);
@@ -115,7 +116,7 @@ const checkScalar = checkRange(0n, Fq.modulus, 'Scalar');
  */
 const Scalar = pseudoClass(
   function Scalar(value: bigint | number | string): Scalar {
-    return BigInt(value) % Fq.modulus;
+    return mod(BigInt(value), Fq.modulus);
   },
   {
     ...ProvableBigint(checkScalar),

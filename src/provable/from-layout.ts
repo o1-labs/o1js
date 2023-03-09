@@ -437,7 +437,10 @@ type GenericFoldSpec<T, R, TypeMap extends AnyTypeMap> = {
     option: { isSome: R; value: R },
     typeData: FlaggedOptionLayout<TypeMap>
   ) => R;
-  reduceOrUndefined: (value?: R) => R;
+  reduceOrUndefined: (
+    value: R | undefined,
+    innerTypeData: GenericLayout<TypeMap>
+  ) => R;
 };
 
 function genericLayoutFold<
@@ -497,7 +500,7 @@ function genericLayoutFold<
           value === undefined
             ? undefined
             : genericLayoutFold(TypeMap, customTypes, spec, inner, value);
-        return spec.reduceOrUndefined(mapped);
+        return spec.reduceOrUndefined(mapped, inner);
       default:
         throw Error('bug');
     }

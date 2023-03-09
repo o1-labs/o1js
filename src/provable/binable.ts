@@ -21,6 +21,8 @@ export {
   withCheck,
   BinableWithBits,
   stringToBytes,
+  stringFromBytes,
+  stringLengthInBytes,
   BinableString,
   BinableInt32,
   BinableInt64,
@@ -53,29 +55,30 @@ function defineBinable<T>({
     offset: NonNegativeInteger<N>
   ): [value: T, offset: number];
 }): Binable<T> {
+  // spec: input offset has to be a non-negative integer, and be smaller than the bytes length
+  // output offset has to be greater or equal input, and not exceed the bytes length
+  let readBytes_ = <N extends number>(
+    bytes: number[],
+    offset: NonNegativeInteger<N>
+  ) => {
+    assertNonNegativeInteger(offset, 'readBytes: offset must be integer >= 0');
+    if (offset >= bytes.length)
+      throw Error('readBytes: offset must be within bytes length');
+    let [value, end] = readBytes(bytes, offset);
+    if (end < offset)
+      throw Error(
+        'offset returned by readBytes must be greater than initial offset'
+      );
+    if (end > bytes.length)
+      throw Error('offset returned by readBytes must not exceed bytes length');
+    return [value, end] as [T, number];
+  };
   return {
     toBytes,
-    // spec: input offset has to be a non-negative integer;
-    // output offset has to be greater or equal input, and not exceed the bytes length
-    readBytes(bytes, offset) {
-      assertNonNegativeInteger(
-        offset,
-        'readBytes: offset must be integer >= 0'
-      );
-      let [value, end] = readBytes(bytes, offset);
-      if (end < offset)
-        throw Error(
-          'offset returned by readBytes must be greater than initial offset'
-        );
-      if (end > bytes.length)
-        throw Error(
-          'offset returned by readBytes must not exceed bytes length'
-        );
-      return [value, end];
-    },
+    readBytes: readBytes_,
     // spec: fromBytes throws if the input bytes are not all used
     fromBytes(bytes) {
-      let [value, offset] = readBytes(bytes, 0);
+      let [value, offset] = readBytes_(bytes, 0);
       if (offset < bytes.length)
         throw Error('fromBytes: input bytes left over');
       return value;
@@ -85,16 +88,21 @@ function defineBinable<T>({
 
 function withVersionNumber<T>(
   binable: Binable<T>,
-  versionNumber?: number
+  versionNumber: number
 ): Binable<T> {
   return defineBinable({
     toBytes(t) {
       let bytes = binable.toBytes(t);
-      if (versionNumber !== undefined) bytes.unshift(versionNumber);
+      bytes.unshift(versionNumber);
       return bytes;
     },
     readBytes(bytes, offset) {
-      if (versionNumber !== undefined) offset++;
+      let version = bytes[offset++];
+      if (version !== versionNumber) {
+        throw Error(
+          `fromBytes: Invalid version byte. Expected ${versionNumber}, got ${version}.`
+        );
+      }
       return binable.readBytes(bytes, offset);
     },
   });
@@ -204,12 +212,12 @@ function enumWithArgument<Enum_ extends Tuple<AnyEnum>>(types: {
 
 const BinableString = defineBinable({
   toBytes(t: string) {
-    return [t.length, ...stringToBytes(t)];
+    return [stringLengthInBytes(t), ...stringToBytes(t)];
   },
   readBytes(bytes, offset) {
     let length = bytes[offset++];
     let end = offset + length;
-    let string = String.fromCharCode(...bytes.slice(offset, end));
+    let string = stringFromBytes(bytes.slice(offset, end));
     return [string, end];
   },
 });
@@ -307,8 +315,12 @@ const BinableUint32 = BinableUint(32);
 // same as Random_oracle.prefix_to_field in OCaml
 // converts string to bytes and bytes to field; throws if bytes don't fit in one field
 function prefixToField<Field>(Field: GenericField<Field>, prefix: string) {
-  if (prefix.length >= Field.sizeInBytes()) throw Error('prefix too long');
-  return Field.fromBytes(stringToBytes(prefix));
+  let fieldSize = Field.sizeInBytes();
+  if (prefix.length >= fieldSize) throw Error('prefix too long');
+  let stringBytes = stringToBytes(prefix);
+  return Field.fromBytes(
+    stringBytes.concat(Array(fieldSize - stringBytes.length).fill(0))
+  );
 }
 
 function bitsToBytes([...bits]: boolean[]) {
@@ -384,6 +396,15 @@ function iso<T, S>(
   });
 }
 
+let encoder = new TextEncoder();
+let decoder = new TextDecoder();
+
 function stringToBytes(s: string) {
-  return [...s].map((_, i) => s.charCodeAt(i));
+  return [...encoder.encode(s)];
+}
+function stringFromBytes(bytes: number[]) {
+  return decoder.decode(Uint8Array.from(bytes));
+}
+function stringLengthInBytes(s: string) {
+  return encoder.encode(s).length;
 }
