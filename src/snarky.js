@@ -2,7 +2,7 @@ import {
   getSnarky,
   snarkyReady,
   shutdown,
-  initThreadPool,
+  withThreadPool,
 } from './snarky/wrapper.js';
 import snarkySpec from './snarky/snarky-class-spec.js';
 import { proxyClasses } from './snarky/proxy.js';
@@ -19,7 +19,7 @@ export {
   isReady,
   Pickles,
   Test,
-  initThreadPool,
+  withThreadPool,
 };
 let isReadyBoolean = false;
 let isReady = snarkyReady.then(() => (isReadyBoolean = true));

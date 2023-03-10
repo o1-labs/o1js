@@ -9,7 +9,7 @@ const __filename = import.meta.url.slice(7);
  */
 const wasm = wasm_;
 
-export { snarkyReady, wasm, initThreadPool, exitThreadPool, shutdown };
+export { snarkyReady, wasm, withThreadPool, shutdown };
 
 let snarkyReady = Promise.resolve();
 
@@ -26,6 +26,17 @@ if (!isMainThread) {
 }
 
 let isInitialized = false;
+
+async function withThreadPool(run) {
+  await initThreadPool();
+  let result;
+  try {
+    result = await run();
+  } finally {
+    await exitThreadPool();
+  }
+  return result;
+}
 
 async function initThreadPool() {
   if (isMainThread && !isInitialized) {
