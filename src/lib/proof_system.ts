@@ -412,9 +412,7 @@ async function compileProgram(
       methodEntry
     )
   );
-  console.time('init');
   await initThreadPool();
-  console.timeEnd('init');
   let [, { getVerificationKeyArtifact, provers, verify, tag }] =
     snarkContext.runWith({ inCompile: true }, () =>
       Pickles.compile(rules, publicInputType.sizeInFields())
