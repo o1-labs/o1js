@@ -521,7 +521,6 @@ const getEventsQuery = (
       status
     }
     eventData {
-      index
       data
     }
   }
@@ -589,14 +588,8 @@ async function fetchEvents(
   }
 
   return fetchedEvents.map((event) => {
-    let events = event.eventData.map((eventData) => {
-      return [eventData.index, ...eventData.data];
-    });
-    // If there is only one event type, SnarkyJS expects that the events array has
-    // no index and can directly be matched to the event type. If this is the case, we remove the index.
-    if (events.every((event) => event[0] === '0')) {
-      events = events.map((event) => event.slice(1));
-    }
+    let events = event.eventData.map((eventData) => eventData.data);
+
     return {
       events,
       blockHeight: UInt32.from(event.blockInfo.height),

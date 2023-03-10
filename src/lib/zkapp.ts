@@ -1082,8 +1082,9 @@ super.init();
       })
       .map((event) => {
         return event.events.map((eventData) => {
+          let { events, ...rest } = event;
           return {
-            ...event,
+            ...rest,
             event: eventData,
           };
         });
