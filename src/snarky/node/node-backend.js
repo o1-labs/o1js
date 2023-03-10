@@ -4,7 +4,7 @@ import os from 'os';
 import wasm from '../../_node_bindings/plonk_wasm.cjs';
 const __filename = import.meta.url.slice(7);
 
-export { snarkyReady, wasm };
+export { snarkyReady, wasm, initThreadPool, shutdown };
 
 let snarkyReadyResolve;
 let snarkyReady = new Promise((resolve) => (snarkyReadyResolve = resolve));
@@ -12,11 +12,15 @@ let snarkyReady = new Promise((resolve) => (snarkyReadyResolve = resolve));
 // expose this globally so that it can be referenced from wasm
 globalThis.startWorkers = startWorkers;
 
-if (isMainThread) {
-  wasm.initThreadPool(getEfficientNumWorkers(), __filename);
-} else {
+if (!isMainThread) {
   parentPort.postMessage({ type: 'wasm_bindgen_worker_ready' });
   wasm.wbg_rayon_start_worker(workerData.receiver);
+}
+
+function initThreadPool() {
+  if (isMainThread) {
+    wasm.initThreadPool(getEfficientNumWorkers(), __filename);
+  }
 }
 
 async function startWorkers(src, memory, builder) {
@@ -72,4 +76,15 @@ function getEfficientNumWorkers() {
     }[cpuModel] || numCpus - 1;
 
   return numWorkers;
+}
+
+// TODO get rid of shutdown
+// let didShutdown = false;
+async function shutdown() {
+  process.exit(0);
+  // if (global.wasm_rayon_poolbuilder && !didShutdown) {
+  //   didShutdown = true;
+  //   global.wasm_rayon_poolbuilder.free();
+  //   await Promise.all(global.wasm_workers.map((worker) => worker.terminate()));
+  // }
 }
