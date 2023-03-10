@@ -7,6 +7,7 @@ export {
   snarkyReady,
   shutdown,
   initThreadPool,
+  exitThreadPool,
 };
 
 type WasmModule = typeof wasm;
@@ -20,3 +21,4 @@ declare let snarkyReady: Promise<undefined>;
 declare function shutdown(): Promise<undefined>;
 
 declare function initThreadPool(): Promise<void>;
+declare function exitThreadPool(): Promise<void>;

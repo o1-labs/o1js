@@ -110,6 +110,4 @@ function getEfficientNumWorkers() {
   return numWorkers;
 }
 
-async function shutdown() {
-  await exitThreadPool();
-}
+async function shutdown() {}

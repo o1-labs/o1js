@@ -1,4 +1,4 @@
-import { initThreadPool } from '../snarky/wrapper.js';
+import { exitThreadPool, initThreadPool } from '../snarky/wrapper.js';
 import {
   Bool,
   Field,
@@ -412,11 +412,18 @@ async function compileProgram(
       methodEntry
     )
   );
+  console.time('init');
   await initThreadPool();
+  console.timeEnd('init');
+  console.time('compile');
   let [, { getVerificationKeyArtifact, provers, verify, tag }] =
     snarkContext.runWith({ inCompile: true }, () =>
       Pickles.compile(rules, publicInputType.sizeInFields())
     );
+  console.timeEnd('compile');
+  console.time('exit');
+  await exitThreadPool();
+  console.timeEnd('exit');
   CompiledTag.store(proofSystemTag, tag);
   return { getVerificationKeyArtifact, provers, verify, tag };
 }

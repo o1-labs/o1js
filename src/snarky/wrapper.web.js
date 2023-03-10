@@ -1,6 +1,13 @@
 import { initSnarkyJS } from './web/plonk_init.js';
 
-export { getSnarky, getWasm, snarkyReady, shutdown, initThreadPool };
+export {
+  getSnarky,
+  getWasm,
+  snarkyReady,
+  shutdown,
+  initThreadPool,
+  exitThreadPool,
+};
 
 let getSnarky = () => globalThis.__snarky;
 
@@ -13,3 +20,4 @@ let shutdown = () => {};
 
 // TODO
 async function initThreadPool() {}
+async function exitThreadPool() {}
