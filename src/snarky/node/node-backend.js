@@ -4,9 +4,7 @@ import os from 'os';
 import wasm from '../../_node_bindings/plonk_wasm.cjs';
 const __filename = import.meta.url.slice(7);
 
-export { snarkyReady, wasm, initThreadPool, shutdown };
-
-let snarkyReady = Promise.resolve();
+export { wasm, initThreadPool, shutdown };
 
 let workersReadyResolve;
 let workersReady = new Promise((resolve) => (workersReadyResolve = resolve));

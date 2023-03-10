@@ -9,7 +9,7 @@ import glob from 'glob';
 export { buildWeb };
 
 const entry = './src/index.ts';
-const target = 'es2021';
+const target = 'es2022';
 
 let nodePath = path.resolve(process.argv[1]);
 let modulePath = path.resolve(fileURLToPath(import.meta.url));
