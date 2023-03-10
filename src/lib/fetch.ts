@@ -50,13 +50,14 @@ function setGraphqlEndpoint(graphqlEndpoint: string) {
  * If an error is returned by the specified endpoint, an error is thrown. Otherwise,
  * the data is returned.
  *
- * @param publicKey The specified account to get account information on
+ * @param publicKey The specified publicKey to get account information on
+ * @param tokenId The specified tokenId to get account information on
  * @param graphqlEndpoint The graphql endpoint to fetch from
  * @param config An object that exposes an additional timeout option
  * @returns zkapp information on the specified account or an error is thrown
  */
 async function fetchAccount(
-  accountInfo: { publicKey: string | PublicKey; tokenId?: string },
+  accountInfo: { publicKey: string | PublicKey; tokenId?: string | Field },
   graphqlEndpoint = defaultGraphqlEndpoint,
   { timeout = defaultTimeout } = {}
 ): Promise<
@@ -67,8 +68,12 @@ async function fetchAccount(
     accountInfo.publicKey instanceof PublicKey
       ? accountInfo.publicKey.toBase58()
       : accountInfo.publicKey;
+  let tokenIdBase58 = 
+    accountInfo.tokenId instanceof Field
+      ? TokenId.toBase58(accountInfo.tokenId)
+      : accountInfo.tokenId
   return await fetchAccountInternal(
-    { publicKey: publicKeyBase58, tokenId: accountInfo.tokenId },
+    { publicKey: publicKeyBase58, tokenId: tokenIdBase58 },
     graphqlEndpoint,
     {
       timeout,
