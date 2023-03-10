@@ -201,14 +201,14 @@ function ZkProgram<
     | undefined;
 
   async function compile() {
-    let { provers, verify, getVerificationKeyArtifact } = await compileProgram(
+    let { provers, verify, verificationKey } = await compileProgram(
       publicInputType,
       methodIntfs,
       methodFunctions,
       selfTag
     );
     compileOutput = { provers, verify };
-    return { verificationKey: getVerificationKeyArtifact().data };
+    return { verificationKey: verificationKey.data };
   }
 
   function toProver<K extends keyof Types & string>(
@@ -421,11 +421,12 @@ async function compileProgram(
       Pickles.compile(rules, publicInputType.sizeInFields())
     );
   console.timeEnd('compile');
+  CompiledTag.store(proofSystemTag, tag);
+  let verificationKey = getVerificationKeyArtifact();
   console.time('exit');
   await exitThreadPool();
   console.timeEnd('exit');
-  CompiledTag.store(proofSystemTag, tag);
-  return { getVerificationKeyArtifact, provers, verify, tag };
+  return { verificationKey, provers, verify, tag };
 }
 
 function analyzeMethod<T>(
