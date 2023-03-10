@@ -1,18 +1,24 @@
 import './prepare-node-backend.js';
 import { isMainThread, parentPort, workerData, Worker } from 'worker_threads';
 import os from 'os';
-import wasm from '../../_node_bindings/plonk_wasm.cjs';
+import wasm_ from '../../_node_bindings/plonk_wasm.cjs';
 const __filename = import.meta.url.slice(7);
 
-export { snarkyReady, wasm, initThreadPool, shutdown };
+/**
+ * @type {import("../../node_bindings/plonk_wasm")}
+ */
+const wasm = wasm_;
+
+export { snarkyReady, wasm, initThreadPool, exitThreadPool, shutdown };
 
 let snarkyReady = Promise.resolve();
 
 let workersReadyResolve;
-let workersReady = new Promise((resolve) => (workersReadyResolve = resolve));
+let workersReady;
 
 // expose this globally so that it can be referenced from wasm
 globalThis.startWorkers = startWorkers;
+globalThis.terminateWorkers = terminateWorkers;
 
 if (!isMainThread) {
   parentPort.postMessage({ type: 'wasm_bindgen_worker_ready' });
@@ -24,23 +30,36 @@ let isInitialized = false;
 async function initThreadPool() {
   if (isMainThread && !isInitialized) {
     isInitialized = true;
+    workersReady = new Promise((resolve) => (workersReadyResolve = resolve));
     wasm.initThreadPool(getEfficientNumWorkers(), __filename);
     await workersReady;
+    workersReady = undefined;
   }
 }
 
+async function exitThreadPool() {
+  if (isMainThread && isInitialized) {
+    isInitialized = false;
+    await wasm.exitThreadPool();
+  }
+}
+
+/**
+ * @type {Worker[]}
+ */
+let wasmWorkers = [];
+
 async function startWorkers(src, memory, builder) {
-  globalThis.wasm_workers = [];
-  globalThis.wasm_rayon_poolbuilder = builder;
+  wasmWorkers = [];
   await Promise.all(
     Array.from({ length: builder.numThreads() }, () => {
       let worker = new Worker(src, {
         workerData: { memory, receiver: builder.receiver() },
       });
-      globalThis.wasm_workers.push(worker);
+      wasmWorkers.push(worker);
       let target = worker;
       let type = 'wasm_bindgen_worker_ready';
-      return new Promise(function (resolve) {
+      return new Promise((resolve) => {
         let done = false;
         target.on('message', function onMsg(data) {
           if (data == null || data.type !== type || done) return;
@@ -64,6 +83,13 @@ async function startWorkers(src, memory, builder) {
   }
 }
 
+async function terminateWorkers() {
+  await workersReady;
+  return Promise.all(wasmWorkers.map((w) => w.terminate())).then(
+    () => (wasmWorkers = undefined)
+  );
+}
+
 // Return the most efficient number of workers for the platform we're running
 // on. This is required because of an issue with Apple silicon that's outlined
 // here: https://bugs.chromium.org/p/chromium/issues/detail?id=1228686
@@ -84,13 +110,6 @@ function getEfficientNumWorkers() {
   return numWorkers;
 }
 
-// TODO get rid of shutdown
-// let didShutdown = false;
 async function shutdown() {
-  process.exit(0);
-  // if (global.wasm_rayon_poolbuilder && !didShutdown) {
-  //   didShutdown = true;
-  //   global.wasm_rayon_poolbuilder.free();
-  //   await Promise.all(global.wasm_workers.map((worker) => worker.terminate()));
-  // }
+  await exitThreadPool();
 }
