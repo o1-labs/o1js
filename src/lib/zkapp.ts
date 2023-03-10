@@ -687,7 +687,7 @@ class SmartContract {
     });
     // run methods once to get information that we need already at compile time
     this.analyzeMethods();
-    let { getVerificationKeyArtifact, provers, verify } = compileProgram(
+    let { getVerificationKeyArtifact, provers, verify } = await compileProgram(
       ZkappPublicInput,
       methodIntfs,
       methods,

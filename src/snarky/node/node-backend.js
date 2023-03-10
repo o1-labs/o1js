@@ -6,8 +6,10 @@ const __filename = import.meta.url.slice(7);
 
 export { snarkyReady, wasm, initThreadPool, shutdown };
 
-let snarkyReadyResolve;
-let snarkyReady = new Promise((resolve) => (snarkyReadyResolve = resolve));
+let snarkyReady = Promise.resolve();
+
+let workersReadyResolve;
+let workersReady = new Promise((resolve) => (workersReadyResolve = resolve));
 
 // expose this globally so that it can be referenced from wasm
 globalThis.startWorkers = startWorkers;
@@ -17,9 +19,13 @@ if (!isMainThread) {
   wasm.wbg_rayon_start_worker(workerData.receiver);
 }
 
-function initThreadPool() {
-  if (isMainThread) {
+let isInitialized = false;
+
+async function initThreadPool() {
+  if (isMainThread && !isInitialized) {
+    isInitialized = true;
     wasm.initThreadPool(getEfficientNumWorkers(), __filename);
+    await workersReady;
   }
 }
 
@@ -44,7 +50,7 @@ async function startWorkers(src, memory, builder) {
       });
     })
   );
-  snarkyReadyResolve();
+  workersReadyResolve();
   try {
     builder.build();
   } catch (_e) {

@@ -19,4 +19,4 @@ declare let snarkyReady: Promise<undefined>;
 
 declare function shutdown(): Promise<undefined>;
 
-declare function initThreadPool(): any;
+declare function initThreadPool(): Promise<void>;

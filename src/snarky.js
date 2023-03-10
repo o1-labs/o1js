@@ -27,5 +27,3 @@ let isItReady = () => isReadyBoolean;
 
 let { Field, Bool, Circuit, Poseidon, Group, Scalar, Ledger, Pickles, Test } =
   proxyClasses(getSnarky, isItReady, snarkySpec);
-
-initThreadPool();

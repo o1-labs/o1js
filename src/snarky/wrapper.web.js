@@ -12,4 +12,4 @@ let snarkyReady = initSnarkyJS();
 let shutdown = () => {};
 
 // TODO
-function initThreadPool() {}
+async function initThreadPool() {}

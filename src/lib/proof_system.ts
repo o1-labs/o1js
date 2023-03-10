@@ -1,3 +1,4 @@
+import { initThreadPool } from '../snarky/wrapper.js';
 import {
   Bool,
   Field,
@@ -200,7 +201,7 @@ function ZkProgram<
     | undefined;
 
   async function compile() {
-    let { provers, verify, getVerificationKeyArtifact } = compileProgram(
+    let { provers, verify, getVerificationKeyArtifact } = await compileProgram(
       publicInputType,
       methodIntfs,
       methodFunctions,
@@ -397,7 +398,7 @@ type MethodInterface = {
   returnType?: Provable<any>;
 };
 
-function compileProgram(
+async function compileProgram(
   publicInputType: ProvablePure<any>,
   methodIntfs: MethodInterface[],
   methods: ((...args: any) => void)[],
@@ -411,6 +412,9 @@ function compileProgram(
       methodEntry
     )
   );
+  console.time('init');
+  await initThreadPool();
+  console.timeEnd('init');
   let [, { getVerificationKeyArtifact, provers, verify, tag }] =
     snarkContext.runWith({ inCompile: true }, () =>
       Pickles.compile(rules, publicInputType.sizeInFields())
