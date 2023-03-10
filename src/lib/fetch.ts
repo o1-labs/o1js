@@ -69,9 +69,10 @@ async function fetchAccount(
       ? accountInfo.publicKey.toBase58()
       : accountInfo.publicKey;
   let tokenIdBase58 = 
-    accountInfo.tokenId instanceof Field
-      ? TokenId.toBase58(accountInfo.tokenId)
-      : accountInfo.tokenId
+    typeof accountInfo.tokenId === "string" || !accountInfo.tokenId
+      ? accountInfo.tokenId
+      : TokenId.toBase58(accountInfo.tokenId)
+      
   return await fetchAccountInternal(
     { publicKey: publicKeyBase58, tokenId: tokenIdBase58 },
     graphqlEndpoint,
