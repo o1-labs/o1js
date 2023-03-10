@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Added missing export of `Mina.TransactionId` https://github.com/o1-labs/snarkyjs/pull/785
+- Added option to specify `tokenId` as `Field` in `fetchAccount()` https://github.com/o1-labs/snarkyjs/pull/787
 
 ## [0.9.2](https://github.com/o1-labs/snarkyjs/compare/9c44b9c2...1abdfb70)
 
