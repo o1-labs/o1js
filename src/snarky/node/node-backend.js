@@ -31,7 +31,7 @@ async function initThreadPool() {
   if (isMainThread && !isInitialized) {
     isInitialized = true;
     workersReady = new Promise((resolve) => (workersReadyResolve = resolve));
-    wasm.initThreadPool(getEfficientNumWorkers(), __filename);
+    await wasm.initThreadPool(getEfficientNumWorkers(), __filename);
     await workersReady;
     workersReady = undefined;
   }
@@ -69,22 +69,11 @@ async function startWorkers(src, memory, builder) {
       });
     })
   );
+  builder.build();
   workersReadyResolve();
-  try {
-    builder.build();
-  } catch (_e) {
-    // We 'mute' this error here, since it can only ever throw when
-    // there is something wrong with the rayon subsystem in WASM, and
-    // we deliberately introduce such a problem by destroying builder
-    // when we want to shutdown the process (and thus need to kill the
-    // child threads). The error here won't be useful to developers
-    // using the library.
-    console.log(_e);
-  }
 }
 
 async function terminateWorkers() {
-  await workersReady;
   return Promise.all(wasmWorkers.map((w) => w.terminate())).then(
     () => (wasmWorkers = undefined)
   );

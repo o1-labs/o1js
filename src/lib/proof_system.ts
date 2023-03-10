@@ -116,22 +116,31 @@ class Proof<T> {
   }
 }
 
-function verify(proof: Proof<any> | JsonProof, verificationKey: string) {
+async function verify(proof: Proof<any> | JsonProof, verificationKey: string) {
+  let picklesProof: unknown;
+  let publicInputFields: Field[];
   if (typeof proof.proof === 'string') {
     // json proof
-    let [, picklesProof] = Pickles.proofOfBase64(
+    [, picklesProof] = Pickles.proofOfBase64(
       proof.proof,
       proof.maxProofsVerified
     );
-    let publicInputFields = (proof as JsonProof).publicInput.map(Field);
-    return Pickles.verify(publicInputFields, picklesProof, verificationKey);
+    publicInputFields = (proof as JsonProof).publicInput.map(Field);
   } else {
     // proof class
-    let publicInputFields = getPublicInputType(
-      proof.constructor as any
-    ).toFields(proof.publicInput);
-    return Pickles.verify(publicInputFields, proof.proof, verificationKey);
+    picklesProof = proof.proof;
+    publicInputFields = getPublicInputType(proof.constructor as any).toFields(
+      proof.publicInput
+    );
   }
+  await initThreadPool();
+  let ok = await Pickles.verify(
+    publicInputFields,
+    picklesProof,
+    verificationKey
+  );
+  await exitThreadPool();
+  return ok;
 }
 
 type RawProof = unknown;
@@ -420,13 +429,32 @@ async function compileProgram(
     snarkContext.runWith({ inCompile: true }, () =>
       Pickles.compile(rules, publicInputType.sizeInFields())
     );
-  console.timeEnd('compile');
   CompiledTag.store(proofSystemTag, tag);
   let verificationKey = getVerificationKeyArtifact();
+  console.timeEnd('compile');
   console.time('exit');
   await exitThreadPool();
   console.timeEnd('exit');
-  return { verificationKey, provers, verify, tag };
+  // wrap provers
+  let wrappedProvers = provers.map(
+    (prover) =>
+      async function picklesProver(
+        publicInput: Field[],
+        previousProofs: any[]
+      ) {
+        console.time('init');
+        await initThreadPool();
+        console.timeEnd('init');
+        console.time('prove');
+        let proof = await prover(publicInput, previousProofs);
+        console.timeEnd('prove');
+        console.time('exit');
+        await exitThreadPool();
+        console.timeEnd('exit');
+        return proof;
+      }
+  );
+  return { verificationKey, provers: wrappedProvers, verify, tag };
 }
 
 function analyzeMethod<T>(
