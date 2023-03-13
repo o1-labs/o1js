@@ -488,7 +488,6 @@ type FetchedEventActionBase = {
 };
 type FetchedEvents = {
   eventData: {
-    index: string;
     data: string[];
   }[];
 } & FetchedEventActionBase;
