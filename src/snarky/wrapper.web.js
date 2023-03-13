@@ -1,4 +1,4 @@
-import { initSnarkyJS } from './web/plonk_init.js';
+import { initSnarkyJS, withThreadPool } from './web/plonk_init.js';
 
 export { getSnarky, getWasm, snarkyReady, shutdown, withThreadPool };
 
@@ -10,8 +10,3 @@ function getWasm() {
 
 let snarkyReady = initSnarkyJS();
 let shutdown = () => {};
-
-// TODO
-async function withThreadPool(run) {
-  return run();
-}

@@ -1,21 +1,28 @@
 import plonkWasm from '../../chrome_bindings/plonk_wasm.js';
 import { workerSpec } from './worker_run.js';
-import getEfficientNumWorkers from './getEfficientNumWorkers';
+import getEfficientNumWorkers from './getEfficientNumWorkers.js';
 import {
   srcFromFunctionModule,
   inlineWorker,
   waitForMessage,
 } from './workerHelpers.js';
 import snarkyJsChromeSrc from 'string:../../chrome_bindings/snarky_js_chrome.bc.js';
+
+export { initSnarkyJS, withThreadPool };
+
 let wasm = plonkWasm();
 let init = wasm.default;
+/**
+ * @type {Worker}
+ */
+let worker;
 
-export async function initSnarkyJS() {
+async function initSnarkyJS() {
   let { memory } = await init();
   let module = init.__wbindgen_wasm_module;
   let numWorkers = await getEfficientNumWorkers();
 
-  let worker = inlineWorker(srcFromFunctionModule(mainWorker));
+  worker = inlineWorker(srcFromFunctionModule(mainWorker));
   await workerCall(worker, 'start', { memory, module, numWorkers });
   globalThis.plonk_wasm = overrideBindings(wasm, worker);
 
@@ -32,50 +39,68 @@ export async function initSnarkyJS() {
   new Function(snarkyJsChromeSrc)();
 }
 
+async function withThreadPool(run) {
+  if (worker === undefined) throw Error('need to initialize worker first');
+  await workerCall(worker, 'initThreadPool');
+  let result;
+  try {
+    result = await run();
+  } finally {
+    await workerCall(worker, 'exitThreadPool');
+  }
+  return result;
+}
+
 async function mainWorker() {
-  let wasm = plonkWasm();
+  const wasm = plonkWasm();
   let init = wasm.default;
 
-  let worker_spec = workerSpec(wasm);
+  let spec = workerSpec(wasm);
 
   let isInitialized = false;
   let data = await waitForMessage(self, 'start');
   let { module, memory, numWorkers } = data.message;
 
-  onMessage(self, 'run', (data) => {
-    let spec = worker_spec[data.name];
-    let spec_args = spec.args;
-    let args = data.args;
-    let res_args = args;
-    for (let i = 0, l = spec_args.length; i < l; i++) {
-      let spec_arg = spec_args[i];
-      if (spec_arg && spec_arg.__wrap) {
+  onMessage(self, 'run', ({ name, args, u32_ptr }) => {
+    let functionSpec = spec[name];
+    let specArgs = functionSpec.args;
+    let resArgs = args;
+    for (let i = 0, l = specArgs.length; i < l; i++) {
+      let specArg = specArgs[i];
+      if (specArg && specArg.__wrap) {
         // Class info got lost on transfer, rebuild it.
-        res_args[i] = spec_arg.__wrap(args[i].ptr);
+        resArgs[i] = specArg.__wrap(args[i].ptr);
       } else {
-        res_args[i] = args[i];
+        resArgs[i] = args[i];
       }
     }
-    let res = wasm[data.name].apply(wasm, res_args);
-    if (spec.res && spec.res.__wrap) {
+    let res = wasm[name].apply(wasm, resArgs);
+    if (functionSpec.res && functionSpec.res.__wrap) {
       res = res.ptr;
-    } else if (spec.res && spec.res.there) {
-      res = spec.res.there(res);
+    } else if (functionSpec.res && functionSpec.res.there) {
+      res = functionSpec.res.there(res);
     }
     /* Here be undefined behavior dragons. */
-    wasm.set_u32_ptr(data.u32_ptr, res);
+    wasm.set_u32_ptr(u32_ptr, res);
     /*postMessage(res);*/
   });
 
-  workerExport(self, 'init-workers', async () => {
-    if (!isInitialized) {
-      isInitialized = true;
-      await wasm.initThreadPool(numWorkers);
-    }
+  workerExport(self, {
+    async initThreadPool() {
+      if (!isInitialized) {
+        isInitialized = true;
+        await wasm.initThreadPool(numWorkers);
+      }
+    },
+    async exitThreadPool() {
+      if (isInitialized) {
+        isInitialized = false;
+        await wasm.exitThreadPool(numWorkers);
+      }
+    },
   });
 
   await init(module, memory);
-  await wasm.initThreadPool(numWorkers);
   postMessage({ type: data.id });
 }
 mainWorker.deps = [
@@ -112,6 +137,8 @@ function overrideBindings(wasm, worker) {
   return plonk_wasm_;
 }
 
+// helpers for main thread <-> worker communication
+
 function onMessage(worker, type, onMsg) {
   worker.addEventListener('message', function ({ data }) {
     if (data?.type !== type) return;
@@ -119,12 +146,14 @@ function onMessage(worker, type, onMsg) {
   });
 }
 
-function workerExport(worker, type, onMsg) {
-  worker.addEventListener('message', async function ({ data }) {
-    if (data?.type !== type) return;
-    let result = await onMsg(data.message);
-    postMessage({ type: data.id, result });
-  });
+function workerExport(worker, exportObject) {
+  for (let key in exportObject) {
+    worker.addEventListener('message', async function ({ data }) {
+      if (data?.type !== key) return;
+      let result = await exportObject[key](data.message);
+      postMessage({ type: data.id, result });
+    });
+  }
 }
 
 async function workerCall(worker, type, message) {
