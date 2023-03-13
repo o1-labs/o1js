@@ -1,7 +1,11 @@
 import plonkWasm from '../../chrome_bindings/plonk_wasm.js';
 import { workerSpec } from './worker_run.js';
 import getEfficientNumWorkers from './getEfficientNumWorkers';
-import { srcFromFunctionModule, inlineWorker } from './workerHelpers.js';
+import {
+  srcFromFunctionModule,
+  inlineWorker,
+  waitForMessage,
+} from './workerHelpers.js';
 import snarkyJsChromeSrc from 'string:../../chrome_bindings/snarky_js_chrome.bc.js';
 let wasm = plonkWasm();
 let init = wasm.default;
@@ -12,10 +16,7 @@ export async function initSnarkyJS() {
   let numWorkers = await getEfficientNumWorkers();
 
   let worker = inlineWorker(srcFromFunctionModule(mainWorker));
-  worker.postMessage({ type: 'init', memory, module, numWorkers });
-
-  let workersReady = new Promise((resolve) => (worker.onmessage = resolve));
-  await workersReady;
+  await workerCall(worker, 'start', { memory, module, numWorkers });
   globalThis.plonk_wasm = overrideBindings(wasm, worker);
 
   // we have two approaches to run the .bc.js code after its dependencies are ready, without fetching an additional script:
@@ -36,45 +37,54 @@ async function mainWorker() {
   let init = wasm.default;
 
   let worker_spec = workerSpec(wasm);
-  let messageReceived;
-  let message = new Promise((resolve) => {
-    messageReceived = resolve;
-  });
-  self.onmessage = function (msg) {
-    if (msg.data.type === 'init') {
-      messageReceived(msg);
-    } else if (msg.data.type === 'run') {
-      let spec = worker_spec[msg.data.name];
-      let spec_args = spec.args;
-      let args = msg.data.args;
-      let res_args = args;
-      for (let i = 0, l = spec_args.length; i < l; i++) {
-        let spec_arg = spec_args[i];
-        if (spec_arg && spec_arg.__wrap) {
-          // Class info got lost on transfer, rebuild it.
-          res_args[i] = spec_arg.__wrap(args[i].ptr);
-        } else {
-          res_args[i] = args[i];
-        }
-      }
-      let res = wasm[msg.data.name].apply(wasm, res_args);
-      if (spec.res && spec.res.__wrap) {
-        res = res.ptr;
-      } else if (spec.res && spec.res.there) {
-        res = spec.res.there(res);
-      }
-      /* Here be undefined behavior dragons. */
-      wasm.set_u32_ptr(msg.data.u32_ptr, res);
-      /*postMessage(res);*/
-    }
-  };
 
-  message = await message;
-  await init(message.data.module, message.data.memory);
-  await wasm.initThreadPool(message.data.numWorkers);
-  postMessage({ type: 'workers_ready' });
+  let isInitialized = false;
+  let data = await waitForMessage(self, 'start');
+  let { module, memory, numWorkers } = data.message;
+
+  onMessage(self, 'run', (data) => {
+    let spec = worker_spec[data.name];
+    let spec_args = spec.args;
+    let args = data.args;
+    let res_args = args;
+    for (let i = 0, l = spec_args.length; i < l; i++) {
+      let spec_arg = spec_args[i];
+      if (spec_arg && spec_arg.__wrap) {
+        // Class info got lost on transfer, rebuild it.
+        res_args[i] = spec_arg.__wrap(args[i].ptr);
+      } else {
+        res_args[i] = args[i];
+      }
+    }
+    let res = wasm[data.name].apply(wasm, res_args);
+    if (spec.res && spec.res.__wrap) {
+      res = res.ptr;
+    } else if (spec.res && spec.res.there) {
+      res = spec.res.there(res);
+    }
+    /* Here be undefined behavior dragons. */
+    wasm.set_u32_ptr(data.u32_ptr, res);
+    /*postMessage(res);*/
+  });
+
+  workerExport(self, 'init-workers', async () => {
+    if (!isInitialized) {
+      isInitialized = true;
+      await wasm.initThreadPool(numWorkers);
+    }
+  });
+
+  await init(module, memory);
+  await wasm.initThreadPool(numWorkers);
+  postMessage({ type: data.id });
 }
-mainWorker.deps = [plonkWasm, workerSpec];
+mainWorker.deps = [
+  plonkWasm,
+  workerSpec,
+  workerExport,
+  onMessage,
+  waitForMessage,
+];
 
 function overrideBindings(wasm, worker) {
   let spec = workerSpec(wasm);
@@ -82,7 +92,10 @@ function overrideBindings(wasm, worker) {
   for (let key in spec) {
     plonk_wasm_[key] = (...args) => {
       let u32_ptr = wasm.create_zero_u32_ptr();
-      worker.postMessage({ type: 'run', name: key, args, u32_ptr });
+      worker.postMessage({
+        type: 'run',
+        message: { name: key, args, u32_ptr },
+      });
       /* Here be undefined behavior dragons. */
       let res = wasm.wait_until_non_zero(u32_ptr);
       wasm.free_u32_ptr(u32_ptr);
@@ -97,4 +110,26 @@ function overrideBindings(wasm, worker) {
     };
   }
   return plonk_wasm_;
+}
+
+function onMessage(worker, type, onMsg) {
+  worker.addEventListener('message', function ({ data }) {
+    if (data?.type !== type) return;
+    onMsg(data.message);
+  });
+}
+
+function workerExport(worker, type, onMsg) {
+  worker.addEventListener('message', async function ({ data }) {
+    if (data?.type !== type) return;
+    let result = await onMsg(data.message);
+    postMessage({ type: data.id, result });
+  });
+}
+
+async function workerCall(worker, type, message) {
+  let id = Math.random();
+  let promise = waitForMessage(worker, id);
+  worker.postMessage({ type, id, message });
+  return (await promise).result;
 }
