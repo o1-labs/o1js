@@ -2,7 +2,7 @@ import './prepare-node-backend.js';
 import { isMainThread, parentPort, workerData, Worker } from 'worker_threads';
 import os from 'os';
 import wasm_ from '../../_node_bindings/plonk_wasm.cjs';
-const __filename = import.meta.url.slice(7);
+let filename = import.meta.url?.slice(7) ?? __filename;
 
 /**
  * @type {import("../../node_bindings/plonk_wasm")}
@@ -42,7 +42,7 @@ async function initThreadPool() {
   if (isMainThread && !isInitialized) {
     isInitialized = true;
     workersReady = new Promise((resolve) => (workersReadyResolve = resolve));
-    await wasm.initThreadPool(getEfficientNumWorkers(), __filename);
+    await wasm.initThreadPool(getEfficientNumWorkers(), filename);
     await workersReady;
     workersReady = undefined;
   }
