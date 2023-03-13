@@ -1,6 +1,12 @@
-import plonkWasm from '../../chrome_bindings/plonk_wasm.js';
+import wasm from '../../chrome_bindings/plonk_wasm.js';
 
-export { srcFromFunctionModule, inlineWorker, workerHelperMain, startWorkers };
+export {
+  srcFromFunctionModule,
+  inlineWorker,
+  workerHelperMain,
+  startWorkers,
+  terminateWorkers,
+};
 
 function srcFromFunctionModule(fun) {
   let deps = collectDependencies(fun, []);
@@ -45,7 +51,7 @@ function waitForMsg(target, type) {
 }
 
 function workerHelperMain() {
-  let { default: init, wbg_rayon_start_worker } = plonkWasm();
+  let { default: init, wbg_rayon_start_worker } = wasm();
 
   waitForMsg(self, 'wasm_bindgen_worker_init').then(async (data) => {
     await init(data.module, data.memory);
@@ -53,7 +59,7 @@ function workerHelperMain() {
     wbg_rayon_start_worker(data.receiver);
   });
 }
-workerHelperMain.deps = [plonkWasm, waitForMsg];
+workerHelperMain.deps = [wasm, waitForMsg];
 
 async function startWorkers(module, memory, builder) {
   const workerInit = {
@@ -82,3 +88,9 @@ startWorkers.deps = [
   waitForMsg,
   workerHelperMain,
 ];
+
+async function terminateWorkers() {
+  self._workers.forEach((worker) => {
+    worker.terinate();
+  });
+}
