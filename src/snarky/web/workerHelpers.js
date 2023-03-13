@@ -90,6 +90,6 @@ startWorkers.deps = [srcFromFunctionModule, waitForMessage, workerHelperMain];
 
 async function terminateWorkers() {
   self._workers.forEach((worker) => {
-    worker.terinate();
+    worker.terminate();
   });
 }
