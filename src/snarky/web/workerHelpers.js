@@ -72,22 +72,20 @@ async function startWorkers(module, memory, builder) {
 
   self._workers = []; // not used, prevents Firefox bug
 
+  let blob = new Blob([workerSrc], { type: 'application/javascript' });
+  let url = URL.createObjectURL(blob);
   for (let i = 0; i < builder.numThreads(); i++) {
-    let worker = inlineWorker(workerSrc);
+    let worker = new Worker(url);
     worker.postMessage(workerInit);
     self._workers.push(worker);
   }
+  URL.revokeObjectURL(url);
   await Promise.all(
     self._workers.map((w) => waitForMsg(w, 'wasm_bindgen_worker_ready'))
   );
   builder.build();
 }
-startWorkers.deps = [
-  srcFromFunctionModule,
-  inlineWorker,
-  waitForMsg,
-  workerHelperMain,
-];
+startWorkers.deps = [srcFromFunctionModule, waitForMsg, workerHelperMain];
 
 async function terminateWorkers() {
   self._workers.forEach((worker) => {
