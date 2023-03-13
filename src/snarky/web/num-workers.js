@@ -1,6 +1,6 @@
 import { getGPUTier } from 'detect-gpu';
 
-export { getEfficientNumWorkers as default };
+export { getEfficientNumWorkers };
 
 // Return the most efficient number of workers for the platform we're running
 // on. This is required because of an issue with Apple silicon that's outlined

@@ -141,7 +141,7 @@ function rewriteBundledWasmBindings(src) {
 
   src = src.replace('var startWorkers;\n', '');
   src = src.replace('var terminateWorkers;\n', '');
-  return `import { startWorkers, terminateWorkers } from '../snarky/web/workerHelpers.js'
+  return `import { startWorkers, terminateWorkers } from '../snarky/web/worker-helpers.js'
 export {plonkWasm as default};
 function plonkWasm() {
   ${src}

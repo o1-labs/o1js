@@ -1,4 +1,4 @@
-import { initSnarkyJS, withThreadPool } from './web/plonk_init.js';
+import { initSnarkyJS, withThreadPool } from './web/web-backend.js';
 
 export { getSnarky, getWasm, snarkyReady, shutdown, withThreadPool };
 

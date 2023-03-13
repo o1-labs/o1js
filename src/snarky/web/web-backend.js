@@ -1,11 +1,11 @@
 import plonkWasm from '../../chrome_bindings/plonk_wasm.js';
-import { workerSpec } from './worker_run.js';
-import getEfficientNumWorkers from './getEfficientNumWorkers.js';
+import { workerSpec } from './worker-spec.js';
+import { getEfficientNumWorkers } from './num-workers.js';
 import {
   srcFromFunctionModule,
   inlineWorker,
   waitForMessage,
-} from './workerHelpers.js';
+} from './worker-helpers.js';
 import snarkyJsChromeSrc from 'string:../../chrome_bindings/snarky_js_chrome.bc.js';
 
 export { initSnarkyJS, withThreadPool };
