@@ -744,12 +744,14 @@ async function fetchActions(
     };
   }
 
-  const actionData = fetchedActions.map((action) => {
-    return {
-      hash: Ledger.fieldToBase58(Field(action.actionState)),
-      actions: action.actionData.map((actionData) => actionData.data),
-    };
-  });
+  const actionData = fetchedActions
+    .map((action) => {
+      return {
+        hash: Ledger.fieldToBase58(Field(action.actionState)),
+        actions: action.actionData.map((actionData) => actionData.data),
+      };
+    })
+    .reverse(); // Reverse the order of actions since the API returns in descending order of block height while Localblockchain pushes new actions to end of array.
   addCachedActionsInternal(
     {
       publicKey: PublicKey.fromBase58(publicKey),
