@@ -21,12 +21,14 @@ export {
   parseFetchedAccount,
   markAccountToBeFetched,
   markNetworkToBeFetched,
+  markActionsToBeFetched,
   fetchMissingData,
   fetchTransactionStatus,
   TransactionStatus,
   EventActionFilterOptions,
   getCachedAccount,
   getCachedNetwork,
+  getCachedActions,
   addCachedAccount,
   defaultGraphqlEndpoint,
   archiveGraphqlEndpoint,
@@ -36,6 +38,7 @@ export {
   sendZkapp,
   removeJsonQuotes,
   fetchEvents,
+  fetchActions,
 };
 
 let defaultGraphqlEndpoint = 'none';
@@ -82,11 +85,11 @@ async function fetchAccount(
     accountInfo.publicKey instanceof PublicKey
       ? accountInfo.publicKey.toBase58()
       : accountInfo.publicKey;
-  let tokenIdBase58 = 
-    typeof accountInfo.tokenId === "string" || !accountInfo.tokenId
+  let tokenIdBase58 =
+    typeof accountInfo.tokenId === 'string' || !accountInfo.tokenId
       ? accountInfo.tokenId
-      : TokenId.toBase58(accountInfo.tokenId)
-      
+      : TokenId.toBase58(accountInfo.tokenId);
+
   return await fetchAccountInternal(
     { publicKey: publicKeyBase58, tokenId: tokenIdBase58 },
     graphqlEndpoint,
@@ -155,11 +158,23 @@ let networkCache = {} as Record<
     timestamp: number;
   }
 >;
+let actionsCache = {} as Record<
+  string,
+  {
+    actions: { hash: string; actions: string[][] }[];
+    graphqlEndpoint: string;
+    timestamp: number;
+  }
+>;
 let accountsToFetch = {} as Record<
   string,
   { publicKey: string; tokenId: string; graphqlEndpoint: string }
 >;
 let networksToFetch = {} as Record<string, { graphqlEndpoint: string }>;
+let actionsToFetch = {} as Record<
+  string,
+  { publicKey: string; tokenId: string; graphqlEndpoint: string }
+>;
 
 function markAccountToBeFetched(
   publicKey: PublicKey,
@@ -177,8 +192,24 @@ function markAccountToBeFetched(
 function markNetworkToBeFetched(graphqlEndpoint: string) {
   networksToFetch[graphqlEndpoint] = { graphqlEndpoint };
 }
+function markActionsToBeFetched(
+  publicKey: PublicKey,
+  tokenId: Field,
+  graphqlEndpoint: string
+) {
+  let publicKeyBase58 = publicKey.toBase58();
+  let tokenBase58 = TokenId.toBase58(tokenId);
+  actionsToFetch[`${publicKeyBase58};${tokenBase58};${graphqlEndpoint}`] = {
+    publicKey: publicKeyBase58,
+    tokenId: tokenBase58,
+    graphqlEndpoint,
+  };
+}
 
-async function fetchMissingData(graphqlEndpoint: string) {
+async function fetchMissingData(
+  graphqlEndpoint: string,
+  archiveEndpoint?: string
+) {
   let promises = Object.entries(accountsToFetch).map(
     async ([key, { publicKey, tokenId }]) => {
       let response = await fetchAccountInternal(
@@ -188,6 +219,17 @@ async function fetchMissingData(graphqlEndpoint: string) {
       if (response.error === undefined) delete accountsToFetch[key];
     }
   );
+  let actionPromises = Object.entries(actionsToFetch).map(
+    async ([key, { publicKey, tokenId }]) => {
+      let response = await fetchActions(
+        { publicKey, tokenId },
+        archiveEndpoint
+      );
+      if ('error' in response && response.error === undefined)
+        delete accountsToFetch[key];
+    }
+  );
+  promises.push(...actionPromises);
   let network = Object.entries(networksToFetch).find(([, network]) => {
     return network.graphqlEndpoint === graphqlEndpoint;
   });
@@ -217,6 +259,15 @@ function getCachedNetwork(graphqlEndpoint = defaultGraphqlEndpoint) {
   return networkCache[graphqlEndpoint]?.network;
 }
 
+function getCachedActions(
+  publicKey: PublicKey,
+  tokenId: Field,
+  graphqlEndpoint = archiveGraphqlEndpoint
+) {
+  return actionsCache[accountCacheKey(publicKey, tokenId, graphqlEndpoint)]
+    ?.actions;
+}
+
 /**
  * Adds an account to the local cache, indexed by a GraphQL endpoint.
  */
@@ -233,6 +284,20 @@ function addCachedAccountInternal(account: Account, graphqlEndpoint: string) {
     accountCacheKey(account.publicKey, account.tokenId, graphqlEndpoint)
   ] = {
     account,
+    graphqlEndpoint,
+    timestamp: Date.now(),
+  };
+}
+
+function addCachedActionsInternal(
+  accountInfo: { publicKey: PublicKey; tokenId: Field },
+  actions: { hash: string; actions: string[][] }[],
+  graphqlEndpoint: string
+) {
+  actionsCache[
+    accountCacheKey(accountInfo.publicKey, accountInfo.tokenId, graphqlEndpoint)
+  ] = {
+    actions,
     graphqlEndpoint,
     timestamp: Date.now(),
   };
@@ -491,6 +556,12 @@ type FetchedEvents = {
     data: string[];
   }[];
 } & FetchedEventActionBase;
+type FetchedActions = {
+  actionData: {
+    data: string[];
+  }[];
+  actionState: string;
+} & FetchedEventActionBase;
 
 type EventActionFilterOptions = {
   to?: UInt32;
@@ -526,6 +597,41 @@ const getEventsQuery = (
       status
     }
     eventData {
+      data
+    }
+  }
+}`;
+};
+const getActionsQuery = (
+  publicKey: string,
+  tokenId: string,
+  filterOptions?: EventActionFilterOptions
+) => {
+  const { to, from } = filterOptions ?? {};
+  let input = `address: "${publicKey}", tokenId: "${tokenId}"`;
+  if (to !== undefined) {
+    input += `, to: ${to}`;
+  }
+  if (from !== undefined) {
+    input += `, from: ${from}`;
+  }
+  return `{
+  actions(input: { ${input} }) {
+    blockInfo {
+      distanceFromMaxBlockHeight
+      height
+      globalSlotSinceGenesis
+      stateHash
+      parentHash
+      chainStatus
+    }
+    transactionInfo {
+      hash
+      memo
+      status
+    }
+    actionState
+    actionData {
       data
     }
   }
@@ -607,6 +713,52 @@ async function fetchEvents(
       transactionMemo: event.transactionInfo.memo,
     };
   });
+}
+
+async function fetchActions(
+  accountInfo: { publicKey: string; tokenId?: string },
+  graphqlEndpoint = archiveGraphqlEndpoint,
+  filterOptions: EventActionFilterOptions = {}
+) {
+  if (!graphqlEndpoint)
+    throw new Error(
+      'fetchEvents: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
+    );
+  const { publicKey, tokenId } = accountInfo;
+  let [response, error] = await makeGraphqlRequest(
+    getActionsQuery(
+      publicKey,
+      tokenId ?? TokenId.toBase58(TokenId.default),
+      filterOptions
+    ),
+    graphqlEndpoint
+  );
+  if (error) throw Error(error.statusText);
+  let fetchedActions = response?.data.actions as FetchedActions[];
+  if (fetchedActions === undefined) {
+    return {
+      error: {
+        statusCode: 404,
+        statusText: `fetchActions: Account with public key ${publicKey} does not exist.`,
+      },
+    };
+  }
+
+  const actionData = fetchedActions.map((action) => {
+    return {
+      hash: action.actionState,
+      actions: action.actionData.map((actionData) => actionData.data),
+    };
+  });
+  addCachedActionsInternal(
+    {
+      publicKey: PublicKey.fromBase58(publicKey),
+      tokenId: TokenId.fromBase58(tokenId ?? TokenId.toBase58(TokenId.default)),
+    },
+    actionData,
+    graphqlEndpoint
+  );
+  return actionData;
 }
 
 // removes the quotes on JSON keys
