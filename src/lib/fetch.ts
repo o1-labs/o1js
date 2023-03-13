@@ -1,5 +1,5 @@
 import 'isomorphic-fetch';
-import { Field } from '../snarky.js';
+import { Field, Ledger } from '../snarky.js';
 import { UInt32, UInt64 } from './int.js';
 import { TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
@@ -746,7 +746,7 @@ async function fetchActions(
 
   const actionData = fetchedActions.map((action) => {
     return {
-      hash: action.actionState,
+      hash: Ledger.fieldToBase58(Field(action.actionState)),
       actions: action.actionData.map((actionData) => actionData.data),
     };
   });
