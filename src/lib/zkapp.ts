@@ -1036,48 +1036,89 @@ super.init();
   }
 
   /**
-   * Fetches a list of events that have been emitted by this {@link SmartContract}.
+   * Asynchronously fetches events emitted by this {@link SmartContract} and returns an array of events with their corresponding types.
+   * @async
+   * @param [start=UInt32.from(0)] - The start height of the events to fetch.
+   * @param end - The end height of the events to fetch. If not provided, fetches events up to the latest height.
+   * @returns A promise that resolves to an array of objects, each containing the event type and event data for the specified range.
+   * @throws If there is an error fetching events from the Mina network.
+   * @example
+   * const startHeight = UInt32.from(1000);
+   * const endHeight = UInt32.from(2000);
+   * const events = await myZkapp.fetchEvents(startHeight, endHeight);
+   * console.log(events);
    */
   async fetchEvents(
     start: UInt32 = UInt32.from(0),
     end?: UInt32
-  ): Promise<{ type: string; event: ProvablePure<any> }[]> {
+  ): Promise<
+    {
+      type: string;
+      event: ProvablePure<any>;
+      blockHeight: UInt32;
+      blockHash: string;
+      parentBlockHash: string;
+      globalSlot: UInt32;
+      chainStatus: string;
+      transactionHash: string;
+      transactionStatus: string;
+      transactionMemo: string;
+    }[]
+  > {
     // filters all elements so that they are within the given range
     // only returns { type: "", event: [] } in a flat format
-    let events = (await Mina.fetchEvents(this.address, this.self.body.tokenId))
-      .filter((el: any) => {
-        let slot = UInt32.from(el.slot);
-        return end === undefined
-          ? start.lessThanOrEqual(slot).toBoolean()
-          : start.lessThanOrEqual(slot).toBoolean() &&
-              slot.lessThanOrEqual(end).toBoolean();
+    let events = (
+      await Mina.fetchEvents(this.address, this.self.body.tokenId, {
+        from: start,
+        to: end,
       })
-      .map((el: any) => el.events)
+    )
+      .filter((eventData) => {
+        let height = UInt32.from(eventData.blockHeight);
+        return end === undefined
+          ? start.lessThanOrEqual(height).toBoolean()
+          : start.lessThanOrEqual(height).toBoolean() &&
+              height.lessThanOrEqual(end).toBoolean();
+      })
+      .map((event) => {
+        return event.events.map((eventData) => {
+          let { events, ...rest } = event;
+          return {
+            ...rest,
+            event: eventData,
+          };
+        });
+      })
       .flat();
 
     // used to match field values back to their original type
     let sortedEventTypes = Object.keys(this.events).sort();
 
-    return events.map((event: any) => {
+    return events.map((eventData) => {
       // if there is only one event type, the event structure has no index and can directly be matched to the event type
       if (sortedEventTypes.length === 1) {
         let type = sortedEventTypes[0];
+        let event = this.events[type].fromFields(
+          eventData.event.map((f: string) => Field(f))
+        );
         return {
+          ...eventData,
           type,
-          event: this.events[type].fromFields(
-            event.map((f: string) => Field(f))
-          ),
+          event,
         };
       } else {
         // if there are multiple events we have to use the index event[0] to find the exact event type
-        let type = sortedEventTypes[event[0]];
+        let eventObjectIndex = Number(eventData.event[0]);
+        let type = sortedEventTypes[eventObjectIndex];
         // all other elements of the array are values used to construct the original object, we can drop the first value since its just an index
-        let eventProps = event.slice(1);
+        let eventProps = eventData.event.slice(1);
+        let event = this.events[type].fromFields(
+          eventProps.map((f: string) => Field(f))
+        );
         return {
+          ...eventData,
           type,
-          event: this.events[type].fromFields(
-            eventProps.map((f: string) => Field(f))
-          ),
+          event,
         };
       }
     });

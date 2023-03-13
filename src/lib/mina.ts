@@ -321,7 +321,11 @@ interface Mina {
   };
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): Promise<TransactionId>;
-  fetchEvents: (publicKey: PublicKey, tokenId?: Field) => any;
+  fetchEvents: (
+    publicKey: PublicKey,
+    tokenId?: Field,
+    filterOptions?: Fetch.EventActionFilterOptions
+  ) => ReturnType<typeof Fetch.fetchEvents>;
   getActions: (
     publicKey: PublicKey,
     tokenId?: Field
@@ -461,7 +465,16 @@ function LocalBlockchain({
           }
           events[addr][tokenId].push({
             events: p.body.events,
-            slot: networkState.globalSlotSinceGenesis.toString(),
+            blockHeight: networkState.blockchainLength,
+            globalSlot: networkState.globalSlotSinceGenesis,
+            // The following fields are fetched from the Mina network. For now, we mock these values out
+            // since networkState does not contain these fields.
+            blockHash: '',
+            parentBlockHash: '',
+            chainStatus: '',
+            transactionHash: '',
+            transactionStatus: '',
+            transactionMemo: '',
           });
         }
 
@@ -543,10 +556,7 @@ function LocalBlockchain({
         JSON.stringify(networkState)
       );
     },
-    async fetchEvents(
-      publicKey: PublicKey,
-      tokenId: Field = TokenId.default
-    ): Promise<any[]> {
+    async fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       return events?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
     },
     getActions(
@@ -588,9 +598,26 @@ LocalBlockchain satisfies (...args: any) => Mina;
 /**
  * Represents the Mina blockchain running on a real network
  */
-function Network(graphqlEndpoint: string): Mina {
+function Network(graphqlEndpoint: string): Mina;
+function Network(graphqlEndpoints: { mina: string; archive: string }): Mina;
+function Network(input: { mina: string; archive: string } | string): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
-  Fetch.setGraphqlEndpoint(graphqlEndpoint);
+  let graphqlEndpoint: string;
+  let archiveEndpoint: string;
+
+  if (input && typeof input === 'string') {
+    graphqlEndpoint = input;
+    Fetch.setGraphqlEndpoint(graphqlEndpoint);
+  } else if (input && typeof input === 'object') {
+    graphqlEndpoint = input.mina;
+    archiveEndpoint = input.archive;
+    Fetch.setGraphqlEndpoint(graphqlEndpoint);
+    Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+  } else {
+    throw new Error(
+      "Network: malformed input. Please provide a string or an object with 'mina' and 'archive' endpoints."
+    );
+  }
 
   // copied from mina/genesis_ledgers/berkeley.json
   // TODO fetch from graphql instead of hardcoding
@@ -756,9 +783,18 @@ function Network(graphqlEndpoint: string): Mina {
         isFinalRunOutsideCircuit: !hasProofs,
       });
     },
-    async fetchEvents() {
-      throw Error(
-        'fetchEvents() is not implemented yet for remote blockchains.'
+    async fetchEvents(
+      publicKey: PublicKey,
+      tokenId: Field = TokenId.default,
+      filterOptions: Fetch.EventActionFilterOptions = {}
+    ) {
+      let pubKey = publicKey.toBase58();
+      let token = TokenId.toBase58(tokenId);
+
+      return Fetch.fetchEvents(
+        { publicKey: pubKey, tokenId: token },
+        archiveEndpoint,
+        filterOptions
       );
     },
     getActions() {
@@ -838,7 +874,7 @@ let activeInstance: Mina = {
   async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
     return createTransaction(sender, f, 0);
   },
-  fetchEvents() {
+  fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
     throw Error('must call Mina.setActiveInstance first');
   },
   getActions() {
@@ -976,8 +1012,12 @@ async function sendTransaction(txn: Transaction) {
 /**
  * @return A list of emitted events associated to the given public key.
  */
-async function fetchEvents(publicKey: PublicKey, tokenId: Field) {
-  return await activeInstance.fetchEvents(publicKey, tokenId);
+async function fetchEvents(
+  publicKey: PublicKey,
+  tokenId: Field,
+  filterOptions: Fetch.EventActionFilterOptions = {}
+) {
+  return await activeInstance.fetchEvents(publicKey, tokenId, filterOptions);
 }
 
 /**

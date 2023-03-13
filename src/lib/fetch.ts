@@ -24,22 +24,36 @@ export {
   fetchMissingData,
   fetchTransactionStatus,
   TransactionStatus,
+  EventActionFilterOptions,
   getCachedAccount,
   getCachedNetwork,
   addCachedAccount,
   defaultGraphqlEndpoint,
+  archiveGraphqlEndpoint,
   setGraphqlEndpoint,
+  setArchiveGraphqlEndpoint,
   sendZkappQuery,
   sendZkapp,
   removeJsonQuotes,
+  fetchEvents,
 };
 
 let defaultGraphqlEndpoint = 'none';
+let archiveGraphqlEndpoint = 'none';
 /**
  * Specifies the default GraphQL endpoint.
  */
 function setGraphqlEndpoint(graphqlEndpoint: string) {
   defaultGraphqlEndpoint = graphqlEndpoint;
+}
+
+/**
+ * Sets up a GraphQL endpoint to be used for fetching information from an Archive Node.
+ *
+ * @param A GraphQL endpoint.
+ */
+function setArchiveGraphqlEndpoint(graphqlEndpoint: string) {
+  archiveGraphqlEndpoint = graphqlEndpoint;
 }
 
 /**
@@ -456,6 +470,144 @@ function sendZkappQuery(json: string) {
   }
 }
 `;
+}
+type FetchedEventActionBase = {
+  blockInfo: {
+    distanceFromMaxBlockHeight: number;
+    globalSlotSinceGenesis: number;
+    height: number;
+    stateHash: string;
+    parentHash: string;
+    chainStatus: string;
+  };
+  transactionInfo: {
+    hash: string;
+    memo: string;
+    status: string;
+  };
+};
+type FetchedEvents = {
+  eventData: {
+    index: string;
+    data: string[];
+  }[];
+} & FetchedEventActionBase;
+
+type EventActionFilterOptions = {
+  to?: UInt32;
+  from?: UInt32;
+};
+
+const getEventsQuery = (
+  publicKey: string,
+  tokenId: string,
+  filterOptions?: EventActionFilterOptions
+) => {
+  const { to, from } = filterOptions ?? {};
+  let input = `address: "${publicKey}", tokenId: "${tokenId}"`;
+  if (to !== undefined) {
+    input += `, to: ${to}`;
+  }
+  if (from !== undefined) {
+    input += `, from: ${from}`;
+  }
+  return `{
+  events(input: { ${input} }) {
+    blockInfo {
+      distanceFromMaxBlockHeight
+      height
+      globalSlotSinceGenesis
+      stateHash
+      parentHash
+      chainStatus
+    }
+    transactionInfo {
+      hash
+      memo
+      status
+    }
+    eventData {
+      data
+    }
+  }
+}`;
+};
+
+/**
+ * Asynchronously fetches event data for an account from the Mina Archive Node GraphQL API.
+ * @async
+ * @param accountInfo - The account information object.
+ * @param accountInfo.publicKey - The account public key.
+ * @param [accountInfo.tokenId] - The optional token ID for the account.
+ * @param [graphqlEndpoint=archiveGraphqlEndpoint] - The GraphQL endpoint to query. Defaults to the Archive Node GraphQL API.
+ * @param [filterOptions={}] - The optional filter options object.
+ * @returns A promise that resolves to an array of objects containing event data, block information and transaction information for the account.
+ * @throws If the GraphQL request fails or the response is invalid.
+ * @example
+ * const accountInfo = { publicKey: 'B62qiwmXrWn7Cok5VhhB3KvCwyZ7NHHstFGbiU5n7m8s2RqqNW1p1wF' };
+ * const events = await fetchEvents(accountInfo);
+ * console.log(events);
+ */
+async function fetchEvents(
+  accountInfo: { publicKey: string; tokenId?: string },
+  graphqlEndpoint = archiveGraphqlEndpoint,
+  filterOptions: EventActionFilterOptions = {}
+) {
+  if (!graphqlEndpoint)
+    throw new Error(
+      'fetchEvents: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
+    );
+  const { publicKey, tokenId } = accountInfo;
+  let [response, error] = await makeGraphqlRequest(
+    getEventsQuery(
+      publicKey,
+      tokenId ?? TokenId.toBase58(TokenId.default),
+      filterOptions
+    ),
+    graphqlEndpoint
+  );
+  if (error) throw Error(error.statusText);
+  let fetchedEvents = response?.data.events as FetchedEvents[];
+  if (fetchedEvents === undefined) {
+    throw Error(
+      `Failed to fetch events data. Account: ${publicKey} Token: ${tokenId}`
+    );
+  }
+
+  // TODO: This is a temporary fix. We should be able to fetch the event/action data from any block at the best tip.
+  // Once https://github.com/o1-labs/Archive-Node-API/issues/7 is resolved, we can remove this.
+  // If we have multiple blocks returned at the best tip (e.g. distanceFromMaxBlockHeight === 0),
+  // then filter out the blocks at the best tip. This is because we cannot guarantee that every block
+  // at the best tip will have the correct event data or guarantee that the specific block data will not
+  // fork in anyway. If this happens, we delay fetching event data until another block has been added to the network.
+  let numberOfBestTipBlocks = 0;
+  for (let i = 0; i < fetchedEvents.length; i++) {
+    if (fetchedEvents[i].blockInfo.distanceFromMaxBlockHeight === 0) {
+      numberOfBestTipBlocks++;
+    }
+    if (numberOfBestTipBlocks > 1) {
+      fetchedEvents = fetchedEvents.filter((event) => {
+        return event.blockInfo.distanceFromMaxBlockHeight !== 0;
+      });
+      break;
+    }
+  }
+
+  return fetchedEvents.map((event) => {
+    let events = event.eventData.map((eventData) => eventData.data);
+
+    return {
+      events,
+      blockHeight: UInt32.from(event.blockInfo.height),
+      blockHash: event.blockInfo.stateHash,
+      parentBlockHash: event.blockInfo.parentHash,
+      globalSlot: UInt32.from(event.blockInfo.globalSlotSinceGenesis),
+      chainStatus: event.blockInfo.chainStatus,
+      transactionHash: event.transactionInfo.hash,
+      transactionStatus: event.transactionInfo.status,
+      transactionMemo: event.transactionInfo.memo,
+    };
+  });
 }
 
 // removes the quotes on JSON keys
