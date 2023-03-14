@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added a new feature to the library: `fetchEvents` can now be used to fetch events for a specified zkApp from a GraphQL endpoint that implements the schema specified [here](https://github.com/o1-labs/Archive-Node-API/blob/efebc9fd3cfc028f536ae2125e0d2676e2b86cd2/src/schema.ts#L1). `Mina.Network` now accepts an additional endpoint to configure, which points to a GraphQL server running the mentioned schema. Use the `mina` property for normal usage and use `archive` to connect to the mentioned GraphQL server.
+- Added a new feature to the library: `getActions` can now be used to fetch actions for a specified zkApp from a GraphQL endpoint that implements the same schema as `fetchEvents`.
 
 ### Fixed
 
