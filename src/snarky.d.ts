@@ -22,7 +22,7 @@ export {
 };
 
 // internal
-export { Test };
+export { Test, Proof as SnarkyProof, VerificationKey as SnarkyVerificationKey };
 
 /**
  * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
@@ -723,11 +723,11 @@ declare class Bool {
   static sizeInBytes(): number;
 }
 
-declare interface CircuitMain<W, P> {
+type CircuitMain<W, P> = {
   snarkyWitnessTyp: ProvablePure<W>;
   snarkyPublicTyp: ProvablePure<P>;
   snarkyMain: (w: W, p: P) => void;
-}
+};
 
 type Gate = {
   type: string;
@@ -829,12 +829,17 @@ declare class Circuit {
   /**
    * Generates a proving key and a verification key for this circuit.
    */
-  static generateKeypair(): Keypair;
+  static generateKeypair(circuit: CircuitMain<any, any>): Keypair;
 
   /**
    * Proves a statement using the private input, public input and the {@link Keypair} of the circuit.
    */
-  static prove(privateInput: any[], publicInput: any[], kp: Keypair): Proof;
+  static prove(
+    circuit: CircuitMain<any, any>,
+    privateInput: any[],
+    publicInput: any[],
+    kp: Keypair
+  ): Proof;
 
   /**
    * Verifies a proof using the public input, the proof and the initial {@link Keypair} of the circuit.
@@ -857,7 +862,7 @@ declare class Circuit {
   static inCheckedComputation(): boolean;
 
   /**
-   * Interface to log elements within a circuit. Similar to `Console.log()`.
+   * Interface to log elements within a circuit. Similar to `console.log()`.
    */
   static log(...args: any): void;
 }
@@ -1109,9 +1114,7 @@ declare const Poseidon: {
 /**
  * Part of the circuit {@link Keypair}. A verification key can be used to verify a {@link Proof} when you provide the correct public input.
  */
-declare class VerificationKey {
-  verify(publicInput: any[], proof: Proof): boolean;
-}
+declare class VerificationKey {}
 
 /**
  * Contains a proving key and {@link VerificationKey} which can be used to verify proofs.
