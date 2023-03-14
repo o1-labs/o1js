@@ -1,10 +1,10 @@
+// TODO this code is not currently working
+
 import { Circuit } from '../snarky.js';
 /**
  * @type { import("./wrapper") }
  */
 import { getWasm } from './wrapper.js';
-
-export { getSrs, serializeVerificationKey, recoverVerificationKey };
 
 function getJsooRuntime() {
   return globalThis.jsoo_runtime;
