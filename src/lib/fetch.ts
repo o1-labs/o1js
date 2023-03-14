@@ -226,7 +226,7 @@ async function fetchMissingData(
         archiveEndpoint
       );
       if ('error' in response && response.error === undefined)
-        delete accountsToFetch[key];
+        delete actionsToFetch[key];
     }
   );
   promises.push(...actionPromises);
