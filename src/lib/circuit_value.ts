@@ -9,7 +9,11 @@ import {
 } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
-import { inCheckedComputation, snarkContext } from './proof_system.js';
+import {
+  inCheckedComputation,
+  inProver,
+  snarkContext,
+} from './proof_system.js';
 
 // external API
 export {
@@ -860,12 +864,15 @@ function toConstant<T>(type: Provable<T>, value: T): T {
 
 let oldAsProver = SnarkyCircuit.asProver;
 SnarkyCircuit.asProver = function (f: () => void) {
-  if (SnarkyCircuit.inCheckedComputation()) {
+  if (inCheckedComputation()) {
     oldAsProver(f);
   } else {
     f();
   }
 };
+
+SnarkyCircuit.inCheckedComputation = inCheckedComputation;
+SnarkyCircuit.inProver = inProver;
 
 SnarkyCircuit.witness = function <
   T,

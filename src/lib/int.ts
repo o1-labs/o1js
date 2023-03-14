@@ -2,6 +2,7 @@ import { Circuit, Field, Bool } from '../snarky.js';
 import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
 import { Types } from '../provable/types.js';
 import { HashInput } from './hash.js';
+import { inCheckedComputation } from './proof_system.js';
 
 // external API
 export { UInt32, UInt64, Int64, Sign };
@@ -251,7 +252,7 @@ class UInt64 extends CircuitValue {
    * Asserts that a {@link UInt64} is less than or equal to another one.
    */
   assertLte(y: UInt64, message?: string) {
-    let yMinusX = Circuit.inCheckedComputation()
+    let yMinusX = inCheckedComputation()
       ? y.value.sub(this.value).seal()
       : y.value.sub(this.value);
 
@@ -262,7 +263,7 @@ class UInt64 extends CircuitValue {
    * Asserts that a {@link UInt64} is less than or equal to another one.
    */
   assertLessThanOrEqual(y: UInt64, message?: string) {
-    let yMinusX = Circuit.inCheckedComputation()
+    let yMinusX = inCheckedComputation()
       ? y.value.sub(this.value).seal()
       : y.value.sub(this.value);
 
@@ -586,7 +587,7 @@ class UInt32 extends CircuitValue {
    * Asserts that a {@link UInt32} is less than or equal to another one.
    */
   assertLte(y: UInt32, message?: string) {
-    let yMinusX = Circuit.inCheckedComputation()
+    let yMinusX = inCheckedComputation()
       ? y.value.sub(this.value).seal()
       : y.value.sub(this.value);
 
@@ -597,7 +598,7 @@ class UInt32 extends CircuitValue {
    * Asserts that a {@link UInt32} is less than or equal to another one.
    */
   assertLessThanOrEqual(y: UInt32, message?: string) {
-    let yMinusX = Circuit.inCheckedComputation()
+    let yMinusX = inCheckedComputation()
       ? y.value.sub(this.value).seal()
       : y.value.sub(this.value);
 
