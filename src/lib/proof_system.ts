@@ -432,12 +432,24 @@ async function compileProgram(
     (prover) =>
       async function picklesProver(
         publicInput: Field[],
-        previousProofs: any[]
+        previousProofs: Pickles.ProofWithPublicInput[]
       ) {
         return withThreadPool(() => prover(publicInput, previousProofs));
       }
   );
-  return { verificationKey, provers: wrappedProvers, verify, tag };
+  // wrap verify
+  let wrappedVerify = async function picklesVerify(
+    publicInput: Pickles.PublicInput,
+    proof: Pickles.Proof
+  ) {
+    return withThreadPool(() => verify(publicInput, proof));
+  };
+  return {
+    verificationKey,
+    provers: wrappedProvers,
+    verify: wrappedVerify,
+    tag,
+  };
 }
 
 function analyzeMethod<T>(
