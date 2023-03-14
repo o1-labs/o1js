@@ -1,4 +1,4 @@
-import { Circuit, circuitMain } from './circuit_value.js';
+import { Circuit, circuitMain } from './circuit.js';
 import { isReady, shutdown } from '../snarky.js';
 import { UInt64, UInt32 } from './int.js';
 import { expect } from 'expect';
