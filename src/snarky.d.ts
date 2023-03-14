@@ -1284,7 +1284,7 @@ type OcamlInput = { fields: Field[]; packed: { field: Field; size: number }[] };
 declare const shutdown: () => Promise<undefined>;
 
 /**
- * A Promise that resolves when SnarkyJS is ready to be used
+ * @deprecated `await isReady` is no longer needed anymore. Just remove it from your code!
  */
 declare let isReady: Promise<undefined>;
 

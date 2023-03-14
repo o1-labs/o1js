@@ -8,9 +8,7 @@ let filename = import.meta.url?.slice(7) ?? __filename;
  */
 const wasm = wasm_;
 
-export { snarkyReady, wasm, withThreadPool, shutdown };
-
-let snarkyReady = Promise.resolve();
+export { wasm, withThreadPool, shutdown };
 
 let workersReadyResolve;
 let workersReady;

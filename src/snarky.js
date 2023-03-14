@@ -1,9 +1,4 @@
-import {
-  getSnarky,
-  snarkyReady,
-  shutdown,
-  withThreadPool,
-} from './snarky/wrapper.js';
+import { getSnarky, shutdown, withThreadPool } from './snarky/wrapper.js';
 import snarkySpec from './snarky/snarky-class-spec.js';
 import { proxyClasses } from './snarky/proxy.js';
 
@@ -21,8 +16,8 @@ export {
   Test,
   withThreadPool,
 };
-let isReadyBoolean = false;
-let isReady = snarkyReady.then(() => (isReadyBoolean = true));
+let isReadyBoolean = true;
+let isReady = Promise.resolve();
 let isItReady = () => isReadyBoolean;
 
 let { Field, Bool, Circuit, Poseidon, Group, Scalar, Ledger, Pickles, Test } =
