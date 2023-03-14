@@ -1,4 +1,3 @@
-import './prepare-node-backend.js';
 import { isMainThread, parentPort, workerData, Worker } from 'worker_threads';
 import os from 'os';
 import wasm_ from '../../_node_bindings/plonk_wasm.cjs';
