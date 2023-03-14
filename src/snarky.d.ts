@@ -739,43 +739,6 @@ type Gate = {
  * The {@link Circuit} API is a low level interface to interact and build circuits with
  */
 declare class Circuit {
-  /**
-   * Adds a constraint to the circuit.
-   */
-  static addConstraint(
-    this: Circuit,
-    kind: 'multiply',
-    x: Field,
-    y: Field,
-    z: Field
-  ): void;
-  static addConstraint(
-    this: Circuit,
-    kind: 'add',
-    x: Field,
-    y: Field,
-    z: Field
-  ): void;
-  static addConstraint(
-    this: Circuit,
-    kind: 'equal',
-    x: Field,
-    y: Field,
-    z: Field
-  ): void;
-  static addConstraint(
-    this: Circuit,
-    kind: 'boolean',
-    x: Field,
-    y: Field,
-    z: Field
-  ): void;
-
-  /**
-   * Creates a new variable inside the circuit.
-   */
-  static newVariable(f: () => Field | number | string | boolean): Field;
-
   // this convoluted generic typing is needed to give type inference enough flexibility
   static _witness<S extends Provable<any>>(ctor: S, f: () => Field[]): Field[];
   static witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
