@@ -54,8 +54,6 @@ async function withThreadPool(run) {
   } finally {
     // running -> exiting IF we don't need to run longer
     isNeededBy--;
-    console.log('state4', state);
-
     switch (state) {
       case 'none':
       case 'initializing':
