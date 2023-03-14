@@ -241,14 +241,6 @@ export default [
         type: 'function',
       },
       {
-        name: 'inProver',
-        type: 'function',
-      },
-      {
-        name: 'inCheckedComputation',
-        type: 'function',
-      },
-      {
         name: 'if',
         type: 'function',
       },
