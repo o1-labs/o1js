@@ -8,7 +8,7 @@ let filename = import.meta.url?.slice(7) ?? __filename;
  */
 const wasm = wasm_;
 
-export { wasm, withThreadPool, shutdown };
+export { wasm, withThreadPool };
 
 let workersReadyResolve;
 let workersReady;
@@ -106,5 +106,3 @@ function getEfficientNumWorkers() {
 
   return numWorkers;
 }
-
-async function shutdown() {}

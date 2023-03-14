@@ -1277,14 +1277,12 @@ type MlBytes = { t: number; c: string; l: number };
 type OcamlInput = { fields: Field[]; packed: { field: Field; size: number }[] };
 
 /**
- * This function *must* be called at the end of a nodejs program, otherwise the
- * worker threads will continue running and the program will never terminate.
- * From web applications, this function is a no-op.
+ * @deprecated `shutdown()` is no longer needed anymore, and is a no-op. Remove it from your code.
  */
 declare const shutdown: () => Promise<undefined>;
 
 /**
- * @deprecated `await isReady` is no longer needed anymore. Just remove it from your code!
+ * @deprecated `await isReady` is no longer needed anymore. Remove it from your code.
  */
 declare let isReady: Promise<undefined>;
 

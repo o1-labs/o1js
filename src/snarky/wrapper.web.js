@@ -1,6 +1,6 @@
 import { initSnarkyJS, withThreadPool } from './web/web-backend.js';
 
-export { getSnarky, getWasm, shutdown, withThreadPool };
+export { getSnarky, getWasm, withThreadPool };
 
 let getSnarky = () => globalThis.__snarky;
 
@@ -9,4 +9,3 @@ function getWasm() {
 }
 
 await initSnarkyJS();
-let shutdown = () => {};
