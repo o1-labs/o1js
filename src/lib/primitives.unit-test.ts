@@ -15,9 +15,11 @@ class Primitives extends Circuit {
 }
 
 await isReady;
-let keypair = Primitives.generateKeypair();
-let proof = Primitives.prove([], [], keypair);
-let ok = Primitives.verify([], keypair.verificationKey(), proof);
+
+let keypair = await Primitives.generateKeypair();
+let proof = await Primitives.prove([], [], keypair);
+let ok = await Primitives.verify([], keypair.verificationKey(), proof);
+
 expect(ok).toEqual(true);
+
 console.log('primitive operations in the circuit are working! 🎉');
-shutdown();
