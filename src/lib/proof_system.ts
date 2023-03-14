@@ -43,6 +43,7 @@ export {
   inAnalyze,
   inCheckedComputation,
   inCompileMode,
+  dummyBase64Proof,
 };
 
 // global circuit-related context
@@ -631,6 +632,10 @@ ZkProgram.Proof = function <
     static tag = () => program;
   };
 };
+
+function dummyBase64Proof() {
+  return withThreadPool(async () => Pickles.dummyBase64Proof());
+}
 
 // helpers for circuit context
 
