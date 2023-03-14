@@ -1,9 +1,9 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 <!--
   Possible subsections:
@@ -19,25 +19,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added a new feature to the library: `fetchEvents` can now be used to fetch events for a specified zkApp from a GraphQL endpoint that implements the schema specified [here](https://github.com/o1-labs/Archive-Node-API/blob/efebc9fd3cfc028f536ae2125e0d2676e2b86cd2/src/schema.ts#L1). `Mina.Network` now accepts an additional endpoint to configure, which points to a GraphQL server running the mentioned schema. Use the `mina` property for normal usage and use `archive` to connect to the mentioned GraphQL server.
-- Added a new feature to the library: `getActions` can now be used to fetch actions for a specified zkApp from a GraphQL endpoint that implements the same schema as `fetchEvents`.
+- Use `fetchEvents()` to fetch events for a specified zkApp from a GraphQL endpoint that implements [this schema](https://github.com/o1-labs/Archive-Node-API/blob/efebc9fd3cfc028f536ae2125e0d2676e2b86cd2/src/schema.ts#L1). `Mina.Network` accepts an additional endpoint which points to a GraphQL server.
+  - Use the `mina` property for the Mina node.
+  - Use `archive` for the archive node.
+- Use `getActions` to fetch actions for a specified zkApp from a GraphQL endpoint GraphQL endpoint that implements the same schema as `fetchEvents`.
 
 ### Fixed
 
-- Added missing export of `Mina.TransactionId` https://github.com/o1-labs/snarkyjs/pull/785
-- Added option to specify `tokenId` as `Field` in `fetchAccount()` https://github.com/o1-labs/snarkyjs/pull/787
+- Added the missing export of `Mina.TransactionId` https://github.com/o1-labs/snarkyjs/pull/785
+- Added an option to specify `tokenId` as `Field` in `fetchAccount()` https://github.com/o1-labs/snarkyjs/pull/787
 
 ## [0.9.2](https://github.com/o1-labs/snarkyjs/compare/9c44b9c2...1abdfb70)
 
 ### Added
 
-- Add back `this.network.timestamp`, implemented on top of `this.network.globalSlotSinceGenesis` https://github.com/o1-labs/snarkyjs/pull/755
+- `this.network.timestamp` is added back and is implemented on top of `this.network.globalSlotSinceGenesis` https://github.com/o1-labs/snarkyjs/pull/755
 
 ### Changed
 
-- On-chain value `globalSlot` replaced by the clearer `currentSlot` https://github.com/o1-labs/snarkyjs/pull/755
-  - this refers to the slot at which the transaction _will be included in a block_.
-  - there is only `currentSlot.assertBetween()`; no `currentSlot.get()` (impossible to implement, since the value is determined in the future) and `currentSlot.assertEquals()` (error-prone)
+- On-chain value `globalSlot` is replaced by the clearer `currentSlot` https://github.com/o1-labs/snarkyjs/pull/755
+  - `currentSlot` refers to the slot at which the transaction _will be included in a block_.
+  - the only supported method is `currentSlot.assertBetween()` because `currentSlot.get()` is impossible to implement since the value is determined in the future and `currentSlot.assertEquals()` is error-prone
 
 ### Fixed
 
