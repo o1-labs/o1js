@@ -739,7 +739,7 @@ async function fetchActions(
     return {
       error: {
         statusCode: 404,
-        statusText: `fetchActions: Account with public key ${publicKey} does not exist.`,
+        statusText: `fetchActions: Account with public key ${publicKey} with tokenId ${tokenId} does not exist.`,
       },
     };
   }
