@@ -1,6 +1,4 @@
 import {
-  shutdown,
-  isReady,
   State,
   state,
   UInt64,
@@ -205,13 +203,10 @@ async function setupLocalProofs() {
 
 describe('Token', () => {
   beforeAll(async () => {
-    await isReady;
     await TokenContract.compile();
     await ZkAppB.compile();
     await ZkAppC.compile();
   });
-
-  afterAll(() => setTimeout(shutdown, 0));
 
   describe('Signature Authorization', () => {
     /*

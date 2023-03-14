@@ -22,34 +22,74 @@ if (!isMainThread) {
   wasm.wbg_rayon_start_worker(workerData.receiver);
 }
 
-let isInitialized = false;
+// state machine to enable calling multiple functions that need a thread pool at once
+let state = 'none'; // 'initializing', 'running', 'exiting'
+let isNeededBy = 0;
+let initializingPromise, exitingPromise;
 
 async function withThreadPool(run) {
-  await initThreadPool();
+  isNeededBy++;
+  // none, exiting -> initializing
+  switch (state) {
+    case 'none':
+      initializingPromise = initThreadPool();
+      state = 'initializing';
+      break;
+    case 'initializing':
+    case 'running':
+      break;
+    case 'exiting':
+      initializingPromise = exitingPromise.then(initThreadPool);
+      state = 'initializing';
+      break;
+  }
+  // initializing -> running
+  await initializingPromise;
+  initializingPromise = undefined;
+  state = 'running';
+
   let result;
   try {
     result = await run();
   } finally {
-    await exitThreadPool();
+    // running -> exiting IF we don't need to run longer
+    isNeededBy--;
+    console.log('state4', state);
+
+    switch (state) {
+      case 'none':
+      case 'initializing':
+      case 'exiting':
+        console.error('bug in thread pool state machine');
+        break;
+      case 'running':
+        if (isNeededBy < 1) {
+          exitingPromise = exitThreadPool();
+          state = 'exiting';
+          // exiting -> none IF we didn't move exiting -> initializing
+          await exitingPromise;
+          if (state === 'exiting') {
+            exitingPromise = undefined;
+            state = 'none';
+          }
+        }
+        break;
+    }
   }
   return result;
 }
 
 async function initThreadPool() {
-  if (isMainThread && !isInitialized) {
-    isInitialized = true;
-    workersReady = new Promise((resolve) => (workersReadyResolve = resolve));
-    await wasm.initThreadPool(getEfficientNumWorkers(), filename);
-    await workersReady;
-    workersReady = undefined;
-  }
+  if (!isMainThread) return;
+  workersReady = new Promise((resolve) => (workersReadyResolve = resolve));
+  await wasm.initThreadPool(getEfficientNumWorkers(), filename);
+  await workersReady;
+  workersReady = undefined;
 }
 
 async function exitThreadPool() {
-  if (isMainThread && isInitialized) {
-    isInitialized = false;
-    await wasm.exitThreadPool();
-  }
+  if (!isMainThread) return;
+  await wasm.exitThreadPool();
 }
 
 /**
