@@ -1,8 +1,8 @@
 # How to develop SnarkyJS
 
-This README collects information helpful for SnarkyJS core contributors.
+This README includes information that is helpful for SnarkyJS core contributors.
 
-## Run examples in Node
+## Run examples in a node
 
 ```sh
 npm install
@@ -11,7 +11,7 @@ npm run build
 ./run src/examples/api_exploration.ts
 ```
 
-## Build and run web version
+## Build and run the web version
 
 ```sh
 npm install
@@ -19,7 +19,7 @@ npm run build:web
 npm run serve:web
 ```
 
-Then go to `http://localhost:8000/`
+To see the user interface in a web browser, go to `http://localhost:8000/`
 
 ## Run tests
 
