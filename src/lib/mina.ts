@@ -774,7 +774,7 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         fetchMode: 'test',
         isFinalRunOutsideCircuit: false,
       });
-      await Fetch.fetchMissingData(graphqlEndpoint);
+      await Fetch.fetchMissingData(graphqlEndpoint, archiveEndpoint);
       let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
@@ -797,9 +797,21 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         filterOptions
       );
     },
-    getActions() {
+    getActions(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+      if (currentTransaction()?.fetchMode === 'test') {
+        Fetch.markActionsToBeFetched(publicKey, tokenId, archiveEndpoint);
+        let actions = Fetch.getCachedActions(publicKey, tokenId);
+        return actions ?? [];
+      }
+      if (
+        !currentTransaction.has() ||
+        currentTransaction.get().fetchMode === 'cached'
+      ) {
+        let actions = Fetch.getCachedActions(publicKey, tokenId);
+        if (actions !== undefined) return actions;
+      }
       throw Error(
-        'fetchEvents() is not implemented yet for remote blockchains.'
+        `getActions: Could not find actions for the for public key ${publicKey}`
       );
     },
     proofsEnabled: true,
@@ -877,7 +889,7 @@ let activeInstance: Mina = {
   fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
     throw Error('must call Mina.setActiveInstance first');
   },
-  getActions() {
+  getActions(publicKey: PublicKey, tokenId: Field = TokenId.default) {
     throw Error('must call Mina.setActiveInstance first');
   },
   proofsEnabled: true,
@@ -1023,7 +1035,7 @@ async function fetchEvents(
 /**
  * @return A list of emitted sequencing actions associated to the given public key.
  */
-function getActions(publicKey: PublicKey, tokenId: Field) {
+function getActions(publicKey: PublicKey, tokenId?: Field) {
   return activeInstance.getActions(publicKey, tokenId);
 }
 
