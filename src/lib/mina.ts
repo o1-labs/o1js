@@ -811,7 +811,7 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         if (actions !== undefined) return actions;
       }
       throw Error(
-        `getActions: Could not find actions for the for public key ${publicKey}`
+        `getActions: Could not find actions for the public key ${publicKey}`
       );
     },
     proofsEnabled: true,

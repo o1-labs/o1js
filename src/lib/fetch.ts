@@ -225,7 +225,7 @@ async function fetchMissingData(
         { publicKey, tokenId },
         archiveEndpoint
       );
-      if ('error' in response && response.error === undefined)
+      if (!('error' in response) || response.error === undefined)
         delete actionsToFetch[key];
     }
   );
