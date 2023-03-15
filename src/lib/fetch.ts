@@ -617,19 +617,6 @@ const getActionsQuery = (
   }
   return `{
   actions(input: { ${input} }) {
-    blockInfo {
-      distanceFromMaxBlockHeight
-      height
-      globalSlotSinceGenesis
-      stateHash
-      parentHash
-      chainStatus
-    }
-    transactionInfo {
-      hash
-      memo
-      status
-    }
     actionState
     actionData {
       data
