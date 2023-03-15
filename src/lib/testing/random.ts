@@ -12,8 +12,8 @@ import {
   Bool,
   Events,
   Field,
-  SequenceEvents,
-  SequenceState,
+  Actions,
+  ActionState,
   ReceiptChainHash,
   Sign,
   TokenId,
@@ -99,7 +99,7 @@ const actions = mapWithInvalid(
   array(array(field, int(1, 5)), nat(2)),
   SequenceEvents.fromList
 );
-const sequenceState = oneOf(SequenceState.emptyValue(), field);
+const actionState = oneOf(ActionState.emptyValue(), field);
 const receiptChainHash = oneOf(ReceiptChainHash.emptyValue(), field);
 const zkappUri = map(string(nat(50)), ZkappUri.fromJSON);
 
@@ -121,8 +121,8 @@ const Generators: Generators = {
   AuthRequired: authRequired,
   TokenSymbol: tokenSymbol,
   Events: events,
-  SequenceEvents: actions,
-  SequenceState: sequenceState,
+  Actions: actions,
+  ActionState: sequenceState,
   ReceiptChainHash: receiptChainHash,
   ZkappUri: zkappUri,
   null: constant(null),
