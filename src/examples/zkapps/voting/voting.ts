@@ -119,7 +119,12 @@ export class Voting_ extends SmartContract {
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
     // can only register voters before the election has started
-    currentSlot.assertLessThanOrEqual(electionPreconditions.startElection);
+
+    Circuit.if(
+      electionPreconditions.enforce,
+      currentSlot.lessThanOrEqual(electionPreconditions.startElection),
+      Bool(true)
+    ).assertTrue();
 
     // can only register voters if their balance is gte the minimum amount required
     // this snippet pulls the account data of an address from the network
@@ -158,7 +163,11 @@ export class Voting_ extends SmartContract {
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
     // can only register candidates before the election has started
-    currentSlot.assertLessThanOrEqual(electionPreconditions.startElection);
+    Circuit.if(
+      electionPreconditions.enforce,
+      currentSlot.lessThanOrEqual(electionPreconditions.startElection),
+      Bool(true)
+    ).assertTrue();
 
     // can only register candidates if their balance is gte the minimum amount required
     // and lte the maximum amount
@@ -212,10 +221,13 @@ export class Voting_ extends SmartContract {
     this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
 
     // we can only vote in the election period time frame
-    currentSlot
-      .greaterThanOrEqual(electionPreconditions.startElection)
-      .and(currentSlot.lessThanOrEqual(electionPreconditions.endElection))
-      .assertTrue();
+    Circuit.if(
+      electionPreconditions.enforce,
+      currentSlot
+        .greaterThanOrEqual(electionPreconditions.startElection)
+        .and(currentSlot.lessThanOrEqual(electionPreconditions.endElection)),
+      Bool(true)
+    ).assertTrue();
 
     // verifying that both the voter and the candidate are actually part of our member set
     // ideally we would also verify a signature here, but ignoring that for now

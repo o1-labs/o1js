@@ -8,6 +8,7 @@ import {
   PrivateKey,
   UInt64,
   Reducer,
+  Bool,
 } from 'snarkyjs';
 import { VotingApp, VotingAppParams } from './factory.js';
 import { Member, MyMerkleWitness } from './member.js';
@@ -56,6 +57,7 @@ let params: VotingAppParams = {
   votingKey,
   doProofs: true,
 };
+params.electionPreconditions.enforce = Bool(true);
 
 let contracts = await VotingApp(params);
 

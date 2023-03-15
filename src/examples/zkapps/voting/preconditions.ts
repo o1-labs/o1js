@@ -1,16 +1,17 @@
-import { UInt32, UInt64 } from 'snarkyjs';
+import { Bool, UInt32, UInt64 } from 'snarkyjs';
 
 export class ElectionPreconditions {
   startElection: UInt32;
   endElection: UInt32;
-
+  enforce: Bool;
   static get default(): ElectionPreconditions {
-    return new ElectionPreconditions(UInt32.zero, UInt32.MAXINT());
+    return new ElectionPreconditions(UInt32.zero, UInt32.MAXINT(), Bool(false));
   }
 
-  constructor(startElection: UInt32, endElection: UInt32) {
+  constructor(startElection: UInt32, endElection: UInt32, enforce: Bool) {
     this.startElection = startElection;
     this.endElection = endElection;
+    this.enforce = enforce;
   }
 }
 
