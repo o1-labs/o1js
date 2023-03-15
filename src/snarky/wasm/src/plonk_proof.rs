@@ -551,7 +551,7 @@ macro_rules! impl_proof {
                 witness: WasmVecVecF,
                 prev_challenges: WasmFlatVector<$WasmF>,
                 prev_sgs: WasmVector<$WasmG>,
-            ) -> WasmProverProof {
+            ) -> Result<WasmProverProof, JsValue> {
                 console_error_panic_hook::set_once();
                 let (maybe_proof, public_input) = crate::rayon::run_in_pool(|| {
                     {
@@ -602,12 +602,15 @@ macro_rules! impl_proof {
                 });
 
                 return match maybe_proof {
-                    Ok(proof) => (proof, public_input).into(),
+                    Ok(proof) => Ok((proof, public_input).into()),
                     Err(err) => {
-                        // TODO give this a proper error
-                        log(&err.to_string());
-                        panic!("thrown an error")
+                        panic!("{}", err.to_string())
+                        // TODO: make an error here bubble up properly
+                        // right now the error gets swallowed by jsoo somewhere
+                        // the panic! hook is the best we can do because it logs the error + originating line number
+                        // Err(JsValue::from_str(&err.to_string()))
                     }
+
                 }
             }
 
@@ -616,17 +619,19 @@ macro_rules! impl_proof {
                 index: $WasmVerifierIndex,
                 proof: WasmProverProof,
             ) -> bool {
-                let group_map = <$G as CommitmentCurve>::Map::setup();
-                let verifier_index = &index.into();
-                let (proof, public_input) = &proof.into();
-                batch_verify::<
-                    $G,
-                    DefaultFqSponge<_, PlonkSpongeConstantsKimchi>,
-                    DefaultFrSponge<_, PlonkSpongeConstantsKimchi>,
-                >(
-                    &group_map,
-                    &[Context { verifier_index, proof, public_input }]
-                ).is_ok()
+                crate::rayon::run_in_pool(|| {
+                    let group_map = <$G as CommitmentCurve>::Map::setup();
+                    let verifier_index = &index.into();
+                    let (proof, public_input) = &proof.into();
+                    batch_verify::<
+                        $G,
+                        DefaultFqSponge<_, PlonkSpongeConstantsKimchi>,
+                        DefaultFrSponge<_, PlonkSpongeConstantsKimchi>,
+                    >(
+                        &group_map,
+                        &[Context { verifier_index, proof, public_input }]
+                    ).is_ok()
+                })
             }
 
             #[wasm_bindgen]

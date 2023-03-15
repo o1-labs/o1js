@@ -1,5 +1,4 @@
 use ark_poly::EvaluationDomain;
-use kimchi::circuits::lookup::index;
 
 use crate::gate_vector::fq::WasmGateVector;
 use crate::srs::fq::WasmFqSrs as WasmSrs;
@@ -47,13 +46,6 @@ pub fn caml_pasta_fq_plonk_index_create(
             })
             .collect();
 
-        /*
-        for (i, g) in gates.iter().enumerate() {
-            let x : Vec<_> = g.c.iter().map(|x| format!("{}", x)).collect();
-            let s = x.join(", ");
-            println!("c[{}][{:?}]: {}", i, g.typ, s);
-        } */
-
         // create constraint system
         let cs = match ConstraintSystem::<Fq>::create(gates)
             .public(public_ as usize)
@@ -61,7 +53,7 @@ pub fn caml_pasta_fq_plonk_index_create(
             .build()
         {
             Err(_) => {
-                panic!("caml_pasta_fq_plonk_index_create: could not create constraint system",);
+                return Err("caml_pasta_fq_plonk_index_create: could not create constraint system");
             }
             Ok(cs) => cs,
         };
@@ -80,10 +72,14 @@ pub fn caml_pasta_fq_plonk_index_create(
         // Compute and cache the verifier index digest
         index.compute_verifier_index_digest::<DefaultFqSponge<PallasParameters, PlonkSpongeConstantsKimchi>>();
 
-        index
+        Ok(index)
     });
+
     // create index
-    Ok(WasmPastaFqPlonkIndex(Box::new(index)))
+    match index {
+        Ok(index) => Ok(WasmPastaFqPlonkIndex(Box::new(index))),
+        Err(str) => Err(JsValue::from_str(str)),
+    }
 }
 
 #[wasm_bindgen]
