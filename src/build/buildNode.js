@@ -1,4 +1,3 @@
-import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { exec } from 'node:child_process';
@@ -58,12 +57,12 @@ function makeNodeModulesExternal() {
 }
 
 function makeJsooExternal() {
-  let isJsoo = /bc.cjs$/;
+  let isJsoo = /(bc.cjs|plonk_wasm.cjs)$/;
   return {
     name: 'plugin-external',
     setup(build) {
       build.onResolve({ filter: isJsoo }, ({ path }) => ({
-        path: path.replace('../', './'),
+        path: path.replace('../../', './').replace('../', './'),
         external: true,
       }));
     },
