@@ -2,7 +2,7 @@
 
 This README includes information that is helpful for SnarkyJS core contributors.
 
-## Run examples in a node
+## Run examples using NodeJS
 
 ```sh
 npm install
@@ -19,7 +19,7 @@ npm run build:web
 npm run serve:web
 ```
 
-To see the user interface in a web browser, go to `http://localhost:8000/`
+To see the test running in a web browser, go to `http://localhost:8000/`
 
 ## Run tests
 
