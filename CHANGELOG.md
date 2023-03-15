@@ -15,14 +15,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/1abdfb70...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/9acec55...HEAD)
+
+> No unreleased changes yet
+
+## [0.9.3](https://github.com/o1-labs/snarkyjs/compare/1abdfb70...9acec55)
 
 ### Added
 
-- Use `fetchEvents()` to fetch events for a specified zkApp from a GraphQL endpoint that implements [this schema](https://github.com/o1-labs/Archive-Node-API/blob/efebc9fd3cfc028f536ae2125e0d2676e2b86cd2/src/schema.ts#L1). `Mina.Network` accepts an additional endpoint which points to a GraphQL server.
+- Use `fetchEvents()` to fetch events for a specified zkApp from a GraphQL endpoint that implements [this schema](https://github.com/o1-labs/Archive-Node-API/blob/efebc9fd3cfc028f536ae2125e0d2676e2b86cd2/src/schema.ts#L1). `Mina.Network` accepts an additional endpoint which points to a GraphQL server. https://github.com/o1-labs/snarkyjs/pull/749
   - Use the `mina` property for the Mina node.
   - Use `archive` for the archive node.
-- Use `getActions` to fetch actions for a specified zkApp from a GraphQL endpoint GraphQL endpoint that implements the same schema as `fetchEvents`.
+- Use `getActions` to fetch actions for a specified zkApp from a GraphQL endpoint GraphQL endpoint that implements the same schema as `fetchEvents`. https://github.com/o1-labs/snarkyjs/pull/788
 
 ### Fixed
 
