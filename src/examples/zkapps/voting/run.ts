@@ -42,9 +42,9 @@ let params_set1: VotingAppParams = {
 };
 
 let storage_set1 = {
-  votesStore: new OffchainStorage<Member>(8),
-  candidatesStore: new OffchainStorage<Member>(8),
-  votersStore: new OffchainStorage<Member>(8),
+  votesStore: new OffchainStorage<Member>(3),
+  candidatesStore: new OffchainStorage<Member>(3),
+  votersStore: new OffchainStorage<Member>(3),
 };
 
 console.log('Building contracts for set 1...');

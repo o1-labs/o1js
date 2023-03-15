@@ -61,9 +61,9 @@ params.electionPreconditions.enforce = Bool(true);
 
 let contracts = await VotingApp(params);
 
-let voterStore = new OffchainStorage<Member>(8);
-let candidateStore = new OffchainStorage<Member>(8);
-let votesStore = new OffchainStorage<Member>(8);
+let voterStore = new OffchainStorage<Member>(3);
+let candidateStore = new OffchainStorage<Member>(3);
+let votesStore = new OffchainStorage<Member>(3);
 
 let initialRoot = voterStore.getRoot();
 tx = await Mina.transaction(feePayer, () => {
@@ -96,7 +96,7 @@ tx = await Mina.transaction(feePayer, () => {
       but instead a public key
       */
     0n,
-    Member.from(PrivateKey.random().toPublicKey(), Field(0), UInt64.from(150)),
+    Member.from(PrivateKey.random().toPublicKey(), UInt64.from(150)),
     voterStore
   );
 
@@ -116,7 +116,7 @@ tx = await Mina.transaction(feePayer, () => {
       but instead a public key
       */
     1n,
-    Member.from(PrivateKey.random().toPublicKey(), Field(0), UInt64.from(160)),
+    Member.from(PrivateKey.random().toPublicKey(), UInt64.from(160)),
     voterStore
   );
 
@@ -137,7 +137,7 @@ tx = await Mina.transaction(feePayer, () => {
       but instead a public key
       */
     2n,
-    Member.from(PrivateKey.random().toPublicKey(), Field(0), UInt64.from(170)),
+    Member.from(PrivateKey.random().toPublicKey(), UInt64.from(170)),
     voterStore
   );
 
@@ -172,7 +172,7 @@ tx = await Mina.transaction(feePayer, () => {
       but instead a public key
       */
     0n,
-    Member.from(PrivateKey.random().toPublicKey(), Field(0), UInt64.from(250)),
+    Member.from(PrivateKey.random().toPublicKey(), UInt64.from(250)),
     candidateStore
   );
 
@@ -192,7 +192,7 @@ tx = await Mina.transaction(feePayer, () => {
       but instead a public key
       */
     1n,
-    Member.from(PrivateKey.random().toPublicKey(), Field(0), UInt64.from(400)),
+    Member.from(PrivateKey.random().toPublicKey(), UInt64.from(400)),
     candidateStore
   );
 

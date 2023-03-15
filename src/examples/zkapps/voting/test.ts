@@ -80,7 +80,7 @@ export async function testSet(
     () => {
       let m = Member.from(
         PrivateKey.random().toPublicKey(),
-        Field(0),
+
         UInt64.from(15)
       );
       verificationKeySet.Local.addAccount(m.publicKey, m.balance.toString());
@@ -110,7 +110,7 @@ export async function testSet(
     () => {
       let m = Member.from(
         PrivateKey.random().toPublicKey(),
-        Field(0),
+
         UInt64.from(15)
       );
       verificationKeySet.Local.addAccount(m.publicKey, m.balance.toString());
@@ -158,7 +158,7 @@ export async function testSet(
     () => {
       let m = Member.from(
         PrivateKey.random().toPublicKey(),
-        Field(0),
+
         UInt64.from(15)
       );
       permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
@@ -191,7 +191,7 @@ export async function testSet(
     () => {
       let m = Member.from(
         PrivateKey.random().toPublicKey(),
-        Field(0),
+
         UInt64.from(15)
       );
       permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
@@ -236,7 +236,7 @@ export async function testSet(
     let tx = await Mina.transaction(invalidSet.feePayer.toPublicKey(), () => {
       let m = Member.from(
         PrivateKey.random().toPublicKey(),
-        Field(0),
+
         UInt64.from(15)
       );
       invalidSet.Local.addAccount(m.publicKey, m.balance.toString());
@@ -293,7 +293,7 @@ export async function testSet(
         () => {
           let m = Member.from(
             PrivateKey.random().toPublicKey(),
-            Field(0),
+
             UInt64.from(15)
           );
           sequenceOverflowSet.Local.addAccount(
@@ -389,7 +389,7 @@ export async function testSet(
         0n,
         Member.from(
           PrivateKey.random().toPublicKey(),
-          Field(0),
+
           UInt64.from(15)
         ),
         votersStore,
@@ -445,7 +445,7 @@ export async function testSet(
     () => {
       let v = Member.from(
         PrivateKey.random().toPublicKey(),
-        Field(0),
+
         params.voterPreconditions.minMina.sub(1)
       );
 
@@ -461,7 +461,7 @@ export async function testSet(
     () => {
       let v = Member.from(
         PrivateKey.random().toPublicKey(),
-        Field(0),
+
         params.voterPreconditions.maxMina.add(1)
       );
 
@@ -516,7 +516,7 @@ export async function testSet(
         0n,
         Member.from(
           PrivateKey.random().toPublicKey(),
-          Field(0),
+
           params.candidatePreconditions.minMina.add(1)
         ),
         candidatesStore,
@@ -538,7 +538,7 @@ export async function testSet(
         1n,
         Member.from(
           PrivateKey.random().toPublicKey(),
-          Field(0),
+
           params.candidatePreconditions.minMina.add(1)
         ),
         candidatesStore,
@@ -655,7 +655,7 @@ export async function testSet(
     () => {
       let lateCandidate = Member.from(
         PrivateKey.random().toPublicKey(),
-        Field(0),
+
         UInt64.from(200)
       );
       // register late candidate
@@ -672,7 +672,7 @@ export async function testSet(
     () => {
       let lateVoter = Member.from(
         PrivateKey.random().toPublicKey(),
-        Field(0),
+
         UInt64.from(50)
       );
 
@@ -822,7 +822,7 @@ export async function testSet(
       // attempting to vote for the registered candidate
       let fakeCandidate = Member.from(
         PrivateKey.random().toPublicKey(),
-        Field(0),
+
         params.candidatePreconditions.minMina.add(1)
       );
       voting.vote(fakeCandidate, votersStore.get(0n)!);
@@ -838,7 +838,7 @@ export async function testSet(
     () => {
       let fakeVoter = Member.from(
         PrivateKey.random().toPublicKey(),
-        Field(0),
+
         UInt64.from(50)
       );
       voting.vote(fakeVoter, votersStore.get(0n)!);
@@ -930,7 +930,7 @@ export async function testSet(
     () => {
       let voter = Member.from(
         PrivateKey.random().toPublicKey(),
-        Field(0),
+
         params.voterPreconditions.minMina.add(1)
       );
       voting.voterRegistration(voter);
@@ -946,7 +946,6 @@ export async function testSet(
     () => {
       let candidate = Member.from(
         PrivateKey.random().toPublicKey(),
-        Field(0),
         params.candidatePreconditions.minMina.add(1)
       );
       voting.candidateRegistration(candidate);

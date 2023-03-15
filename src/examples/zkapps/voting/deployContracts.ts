@@ -54,7 +54,7 @@ export async function deployContracts(
 }> {
   let Local = Mina.LocalBlockchain({
     proofsEnabled,
-    enforceTransactionLimits: false,
+    enforceTransactionLimits: true,
   });
   Mina.setActiveInstance(Local);
 
