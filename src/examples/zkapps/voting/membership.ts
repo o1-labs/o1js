@@ -11,6 +11,7 @@ import {
   Experimental,
   Circuit,
   Reducer,
+  provablePure,
 } from 'snarkyjs';
 import { Member } from './member.js';
 import { ParticipantPreconditions } from './preconditions.js';
@@ -58,6 +59,13 @@ export class Membership_ extends SmartContract {
   @state(Field) accumulatedMembers = State<Field>();
 
   reducer = Reducer({ actionType: Member });
+
+  events = {
+    newMemberState: provablePure({
+      committedMembersRoot: Field,
+      accumulatedMembersRoot: Field,
+    }),
+  };
 
   deploy(args: DeployArgs) {
     super.deploy(args);
@@ -184,5 +192,10 @@ export class Membership_ extends SmartContract {
 
     this.committedMembers.set(newCommittedMembers);
     this.accumulatedMembers.set(newAccumulatedMembers);
+
+    this.emitEvent('newMemberState', {
+      committedMembersRoot: newCommittedMembers,
+      accumulatedMembersRoot: newAccumulatedMembers,
+    });
   }
 }

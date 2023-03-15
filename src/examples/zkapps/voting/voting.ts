@@ -11,6 +11,7 @@ import {
   Circuit,
   Bool,
   Reducer,
+  provablePure,
 } from 'snarkyjs';
 
 import { Member } from './member.js';
@@ -86,6 +87,14 @@ export class Voting_ extends SmartContract {
   @state(Field) accumulatedVotes = State<Field>();
 
   reducer = Reducer({ actionType: Member });
+
+  events = {
+    newVoteFor: PublicKey,
+    newVoteState: provablePure({
+      committedVotesRoot: Field,
+      accumulatedVotesRoot: Field,
+    }),
+  };
 
   deploy(args: DeployArgs) {
     super.deploy(args);
@@ -218,6 +227,8 @@ export class Voting_ extends SmartContract {
 
     // emits a sequence event with the information about the candidate
     this.reducer.dispatch(candidate);
+
+    this.emitEvent('newVoteFor', candidate.publicKey);
   }
 
   /**
@@ -248,5 +259,10 @@ export class Voting_ extends SmartContract {
 
     this.committedVotes.set(newCommittedVotes);
     this.accumulatedVotes.set(newAccumulatedVotes);
+
+    this.emitEvent('newVoteState', {
+      committedVotesRoot: newCommittedVotes,
+      accumulatedVotesRoot: newAccumulatedVotes,
+    });
   }
 }
