@@ -97,7 +97,7 @@ const events = mapWithInvalid(
 );
 const actions = mapWithInvalid(
   array(array(field, int(1, 5)), nat(2)),
-  SequenceEvents.fromList
+  Actions.fromList
 );
 const actionState = oneOf(ActionState.emptyValue(), field);
 const receiptChainHash = oneOf(ReceiptChainHash.emptyValue(), field);
@@ -122,7 +122,7 @@ const Generators: Generators = {
   TokenSymbol: tokenSymbol,
   Events: events,
   Actions: actions,
-  ActionState: sequenceState,
+  ActionState: actionState,
   ReceiptChainHash: receiptChainHash,
   ZkappUri: zkappUri,
   null: constant(null),
@@ -223,8 +223,8 @@ const JsonGenerators: JsonGenerators = {
     invalid: string(int(tokenSymbolLength + 1, 20)),
   }),
   Events: mapWithInvalid(events, Events.toJSON),
-  SequenceEvents: mapWithInvalid(actions, SequenceEvents.toJSON),
-  SequenceState: mapWithInvalid(sequenceState, SequenceState.toJSON),
+  Actions: mapWithInvalid(actions, Actions.toJSON),
+  ActionState: mapWithInvalid(actionState, ActionState.toJSON),
   ReceiptChainHash: mapWithInvalid(receiptChainHash, ReceiptChainHash.toJSON),
   ZkappUri: string(nat(50)),
   null: constant(null),
