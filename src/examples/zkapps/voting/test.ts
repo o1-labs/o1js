@@ -662,7 +662,7 @@ export async function testSet(
       voting.candidateRegistration(lateCandidate);
     },
     feePayer,
-    'rangeCheckHelper'
+    'assert_equal'
   );
 
   console.log('attempting to register a voter within the election period ...');
@@ -680,7 +680,7 @@ export async function testSet(
       voting.voterRegistration(lateVoter);
     },
     feePayer,
-    'rangeCheckHelper'
+    'assert_equal'
   );
 
   if (previousEventsVoter !== voterContract.reducer.getActions({}).length) {
@@ -936,7 +936,7 @@ export async function testSet(
       voting.voterRegistration(voter);
     },
     feePayer,
-    'Expected'
+    'assert_equal'
   );
 
   console.log('attempting to register candidate after election has ended');
@@ -952,7 +952,7 @@ export async function testSet(
       voting.candidateRegistration(candidate);
     },
     feePayer,
-    'Expected'
+    'assert_equal'
   );
 
   console.log('test successful!');
