@@ -103,8 +103,14 @@ export class Membership_ extends SmartContract {
 
     let balance = accountUpdate.account.balance.get();
 
-    balance.assertGreaterThanOrEqual(participantPreconditions.minMina);
-    balance.assertLessThanOrEqual(participantPreconditions.maxMina);
+    balance.assertGreaterThanOrEqual(
+      participantPreconditions.minMina,
+      'Balance not high enough!'
+    );
+    balance.assertLessThanOrEqual(
+      participantPreconditions.maxMina,
+      'Balance too high!'
+    );
 
     let accumulatedMembers = this.accumulatedMembers.get();
     this.accumulatedMembers.assertEquals(accumulatedMembers);
@@ -164,11 +170,13 @@ export class Membership_ extends SmartContract {
     let committedMembers = this.committedMembers.get();
     this.committedMembers.assertEquals(committedMembers);
 
+    let pendingActions = this.reducer.getActions({
+      fromActionHash: accumulatedMembers,
+    });
+
     let { state: newCommittedMembers, actionsHash: newAccumulatedMembers } =
       this.reducer.reduce(
-        this.reducer.getActions({
-          fromActionHash: accumulatedMembers,
-        }),
+        pendingActions,
         Field,
         (state: Field, action: Member) => {
           // because we inserted empty members, we need to check if a member is empty or "real"
