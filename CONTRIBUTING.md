@@ -7,7 +7,7 @@ We also welcome contributions to [zkApps Developer](https://docs.minaprotocol.co
 There are two ways to contribute:
 
 1. Preferred: Maintain your own package that can be installed from NPM and used alongside SnarkyJS. See [Creating high-quality community packages](#creating-high-quality-community-packages).
-2. Directly contribute to this repo. See 
+2. Directly contribute to this repo. See [Contributing to SnarkyJS](#contributing-to-snarkyjs).
 
 If you maintain your own package, we strongly encourage to add it to our [official list of community packages](./README.md#community-packages).
 
@@ -21,31 +21,32 @@ To ensure consistency within the SnarkyJS ecosystem and ease review and use by o
   - `npm install <your-package>` works and is all that is needed to use the package.
   - SnarkyJS must be listed as a [peer dependency](https://docs.npmjs.com/cli/v9/configuring-npm/package-json#peerdependencies).
   - If applicable, the package must work both on the web and in NodeJS.
-- The package is created using the [zkApp CLI](https://github.com/o1-labs/zkapp-cli) for code consistency (recommended).  
-  If you did not create the package using the zkApp CLI, follow these minimum guidelines:
-  - Use TypeScript to export types from `d.ts` files.
-  - Code must be auto-formatted with [prettier](https://prettier.io/).
+- The package is created using the [zkApp CLI](https://github.com/o1-labs/zkapp-cli) (recommended).  
+  If you did not create the package using the zkApp CLI, follow these guidelines for code consistency:
+  - Use TypeScript, and export types from `d.ts` files. We suggest that you base your tsconfig on the one that SnarkyJS uses: [tsconfig.json](./tsconfig.json).
+  - Code must be auto-formatted with [prettier](https://prettier.io/). It's encouraged to use the same prettier config as SnarkyJS: [.prettierrc.cjs](./.prettierrc.cjs).
 - The package includes tests.
-  - If applicable, tests must demonstrate that the package's methods can successfully run as provable code. For example, when the package is included in a SmartContract or ZkProgram that is compiled and proven.
+  - If applicable, tests must demonstrate that the package's methods can successfully run as provable code. For example, when the package is used in a SmartContract or ZkProgram that is compiled and proven.
+  - Ideally, your tests are easy to use, modify, and port to other projects by developers in the ecosystem. This is achieved by using Jest (see [jest.config.js](./jest.config.js) for an example config) or by structuring your tests as plain node scripts, like [this example](./src/lib/circuit_value.unit-test.ts).
 - Public API must be documented and [JSDoc](https://jsdoc.app/) comments must be present on exported methods and globals.
 - Include README and LICENSE files.
 - Comments and README must be in English and preferably use American spelling.
 
 ### Contributing to SnarkyJS
 
-The `main` branch contains the development version of the code. 
+The `main` branch contains the development version of the code.
 
 To contribute directly to this project repo, follow these steps to get your changes in the `main` branch as quickly as possible.
 
 1. Create a new issue for your proposed changes or use an existing issue if a relevant one exists.
-1. Write a request for comment (RFC) to outline your proposed changes and motivation, like this [example RFC](https://github.com/o1-labs/snarkyjs/issues/233). Describe your objective and why the change is useful, how it works, and so on. 
-  
-    Note: If you are proposing a smaller change your RFC will be smaller, and that's ok! :)
+1. Write a request for comment (RFC) to outline your proposed changes and motivation, like this [example RFC](https://github.com/o1-labs/snarkyjs/issues/233). Describe your objective and why the change is useful, how it works, and so on.
+
+   Note: If you are proposing a smaller change your RFC will be smaller, and that's ok! :)
 
 1. One of the codebase maintainers reviews your RFC and works with you until it is approved.
 1. After your RFC proposal is approved, fork the repository and implement your changes.
 1. Submit a pull request and wait for code review. :)
 
-Our goal is to include functionality within SnarkyJS when the change is likely to be widely useful for developers. For more esoteric functionality, we prefer that the specialized functionality contributions live in a community package.
+Our goal is to include functionality within SnarkyJS when the change is likely to be widely useful for developers. For more esoteric functionality, we prefer that it lives in a community package.
 
 We appreciate your contribution!
