@@ -1,4 +1,4 @@
-# How to develop SnarkyJS
+# How to contribute to the SnarkyJS codebase
 
 This README includes information that is helpful for SnarkyJS core contributors.
 
