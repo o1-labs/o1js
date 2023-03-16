@@ -256,7 +256,6 @@ function registerMember(
   store.set(i, m); // setting voter 0n
   // setting the merkle witness
   m.witness = new MyMerkleWitness(store.getWitness(i));
-  console.log('storeRoot', store.getRoot().toString());
   return m;
 }
 
