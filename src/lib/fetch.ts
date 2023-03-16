@@ -225,7 +225,7 @@ async function fetchMissingData(
         { publicKey, tokenId },
         archiveEndpoint
       );
-      if ('error' in response && response.error === undefined)
+      if (!('error' in response) || response.error === undefined)
         delete actionsToFetch[key];
     }
   );
@@ -536,7 +536,7 @@ function sendZkappQuery(json: string) {
 }
 `;
 }
-type FetchedEventActionBase = {
+type FetchedEvents = {
   blockInfo: {
     distanceFromMaxBlockHeight: number;
     globalSlotSinceGenesis: number;
@@ -550,18 +550,16 @@ type FetchedEventActionBase = {
     memo: string;
     status: string;
   };
-};
-type FetchedEvents = {
   eventData: {
     data: string[];
   }[];
-} & FetchedEventActionBase;
+};
 type FetchedActions = {
+  actionState: string;
   actionData: {
     data: string[];
   }[];
-  actionState: string;
-} & FetchedEventActionBase;
+};
 
 type EventActionFilterOptions = {
   to?: UInt32;
@@ -617,19 +615,6 @@ const getActionsQuery = (
   }
   return `{
   actions(input: { ${input} }) {
-    blockInfo {
-      distanceFromMaxBlockHeight
-      height
-      globalSlotSinceGenesis
-      stateHash
-      parentHash
-      chainStatus
-    }
-    transactionInfo {
-      hash
-      memo
-      status
-    }
     actionState
     actionData {
       data
