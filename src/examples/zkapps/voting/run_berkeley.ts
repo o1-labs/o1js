@@ -3,6 +3,7 @@ import {
   addCachedAccount,
   Bool,
   fetchAccount,
+  fetchLastBlock,
   Field,
   isReady,
   Mina,
@@ -10,6 +11,7 @@ import {
   PublicKey,
   Reducer,
   shutdown,
+  SmartContract,
   UInt32,
   UInt64,
 } from 'snarkyjs';
@@ -21,18 +23,21 @@ import {
   ParticipantPreconditions,
   ElectionPreconditions,
 } from './preconditions.js';
+import { getResults, vote } from './voting_lib.js';
 await isReady;
 
 const Berkeley = Mina.Network({
   mina: 'https://proxy.berkeley.minaexplorer.com/graphql',
-  archive: 'https://archive.berkeley.minaexplorer.com/',
+  archive: 'https://archive-node-api.p42.xyz/',
 });
 Mina.setActiveInstance(Berkeley);
 
 let feePayerKey = PrivateKey.fromBase58(
-  'EKDyCXhknP36aznsLXL1R2C4tZnpd1jB8XZDo2MNiph6adTiKcA9'
+  'EKEaW7BFADc2C6NqemHGBqi2yK9C8qkSEudDs7x8BAnmw5mT4VWB'
 );
-let feePayerAddress = feePayerKey.toPublicKey();
+let feePayerAddress = PublicKey.fromBase58(
+  'B62qmHN4KwLyQwEhqmXA9BT9UpbKhDFXxRsjHHyaTnoFQnD2kAcExzd'
+);
 let params: VotingAppParams = {
   candidatePreconditions: new ParticipantPreconditions(
     UInt64.from(0),
@@ -47,15 +52,6 @@ let params: VotingAppParams = {
     UInt32.MAXINT(),
     Bool(false)
   ),
-  /*   voterKey: PrivateKey.fromBase58(
-    'EKEtaYw2bhVZo3LsKCmHRyXboDVnnNS1ugtDTjtGD9fStmNWHcbn'
-  ),
-  candidateKey: PrivateKey.fromBase58(
-    'EKDmEuckbfpJjcQqKBnCjwjY3FKvSFG1MqtjBZWQWRTtMsi8N6Zi'
-  ),
-  votingKey: PrivateKey.fromBase58(
-    'EKEoGQ2c3TUUECy5kzyZGxDYeCugc4chATBmPmFhDgW7ZvkuyV4D'
-  ), */
   voterKey: PrivateKey.random(),
   candidateKey: PrivateKey.random(),
   votingKey: PrivateKey.random(),
@@ -63,38 +59,12 @@ let params: VotingAppParams = {
 };
 
 const members = [
-  {
-    privateKey: PrivateKey.fromBase58(
-      'EKErBVQQQTtpAV2byz8M3vnemjYM46PN31NYGHE1RuiS2qSCFjaH'
-    ),
-    publicKey: PublicKey.fromBase58(
-      'B62qqzhd5U54JafhR4CB8NLWQM8PRfiCZ4TuoTT5UQHzGwdR2f5RLnK'
-    ),
-  },
-  {
-    privateKey: PrivateKey.fromBase58(
-      'EKFVSYMz5QTptLGtMi5xQLxFgMiD3RBC2kHi1vp6233awxzzVSTY'
-    ),
-    publicKey: PublicKey.fromBase58(
-      'B62qnScMYfgSUWwtzB1r6fB8i23YFXgA25rzcSXVCtYVfUxLHkMLr3G'
-    ),
-  },
-  {
-    privateKey: PrivateKey.fromBase58(
-      'EKFchpmPzRp713h3k3WmQo9pRctw9Jbwe9jsw5cpU45FNM4cXpmS'
-    ),
-    publicKey: PublicKey.fromBase58(
-      'B62qmGxWmoFJpsy3FJbHhYQr4YATVSwAcsMAa2e3MiSVTatig6jZHYo'
-    ),
-  },
-  {
-    privateKey: PrivateKey.fromBase58(
-      'EKECsQiRVnpUBFi3UbiNKWk8HW7xDogXP5o9MzYFgoiGVbjxYuRY'
-    ),
-    publicKey: PublicKey.fromBase58(
-      'B62qjsBtcM8FHN54ycLAVQgJwAx88eobdEHDbuSWoKjbo1WKSmLxUce'
-    ),
-  },
+  PublicKey.fromBase58(
+    'B62qqzhd5U54JafhR4CB8NLWQM8PRfiCZ4TuoTT5UQHzGwdR2f5RLnK'
+  ),
+  PublicKey.fromBase58(
+    'B62qnScMYfgSUWwtzB1r6fB8i23YFXgA25rzcSXVCtYVfUxLHkMLr3G'
+  ),
 ];
 
 let storage = {
@@ -134,18 +104,13 @@ let tx = await Mina.transaction(
   }
 );
 await tx.prove();
-let id = await tx.sign([feePayerKey]).send();
-console.log(id.hash());
-await id.wait();
+await (await tx.sign([feePayerKey]).send()).wait();
 
 console.log('successfully deployed contracts');
 
-console.log('Fetching updated accounts..');
 await fetchAllAccounts();
 
 console.log('registering one voter');
-
-let m = Member.empty();
 tx = await Mina.transaction(
   {
     sender: feePayerAddress,
@@ -153,23 +118,21 @@ tx = await Mina.transaction(
     memo: 'Registering a voter',
   },
   () => {
-    m = registerMember(
+    let m = registerMember(
       0n,
-      Member.from(members[0].publicKey, UInt64.from(150)),
+      Member.from(members[0], UInt64.from(150)),
       storage.votersStore
     );
     contracts.voting.voterRegistration(m);
   }
 );
 await tx.prove();
-
 await (await tx.sign([feePayerKey]).send()).wait();
-
 console.log('voter registered');
-await fetchAllAccounts();
-console.log('registering one candidate');
 
-m = Member.empty();
+await fetchAllAccounts();
+
+console.log('registering one candidate');
 tx = await Mina.transaction(
   {
     sender: feePayerAddress,
@@ -177,9 +140,9 @@ tx = await Mina.transaction(
     memo: 'Registering a candidate',
   },
   () => {
-    m = registerMember(
+    let m = registerMember(
       0n,
-      Member.from(members[1].publicKey, UInt64.from(150)),
+      Member.from(members[1], UInt64.from(150)),
       storage.candidatesStore
     );
     contracts.voting.candidateRegistration(m);
@@ -187,6 +150,7 @@ tx = await Mina.transaction(
 );
 await tx.prove();
 await (await tx.sign([feePayerKey]).send()).wait();
+console.log('candidate registered');
 
 console.log('approving registrations');
 tx = await Mina.transaction(
@@ -201,33 +165,84 @@ tx = await Mina.transaction(
 );
 await tx.prove();
 await (await tx.sign([feePayerKey]).send()).wait();
-
 console.log('registrations approved');
 
+await fetchAllAccounts();
+
 console.log('voting for a candidate');
-
 tx = await Mina.transaction(
-  { sender: feePayerAddress, fee: 10_000_000, memo: 'Approving registrations' },
+  { sender: feePayerAddress, fee: 10_000_000, memo: 'Casting vote' },
   () => {
-    let c = storage.candidatesStore.get(0n)!;
-    c.witness = new MyMerkleWitness(storage.candidatesStore.getWitness(0n));
-    c.votesWitness = new MyMerkleWitness(storage.votesStore.getWitness(0n));
+    let currentCandidate = storage.candidatesStore.get(0n)!;
 
-    contracts.voting.vote(c, storage.votersStore.get(0n)!);
+    currentCandidate.witness = new MyMerkleWitness(
+      storage.candidatesStore.getWitness(0n)
+    );
+    currentCandidate.votesWitness = new MyMerkleWitness(
+      storage.votesStore.getWitness(0n)
+    );
+
+    let v = storage.votersStore.get(0n)!;
+
+    v.witness = new MyMerkleWitness(storage.votersStore.getWitness(0n));
+
+    contracts.voting.vote(currentCandidate, v);
   }
 );
 await tx.prove();
 await (await tx.sign([feePayerKey]).send()).wait();
+vote(0n, storage.votesStore, storage.candidatesStore);
 console.log('voted for a candidate');
+
+await fetchAllAccounts();
+
+console.log('counting votes');
+tx = await Mina.transaction(
+  { sender: feePayerAddress, fee: 10_000_000, memo: 'Counting votes' },
+  () => {
+    contracts.voting.countVotes();
+  }
+);
+await tx.prove();
+await (await tx.sign([feePayerKey]).send()).wait();
+console.log('votes counted');
+
+await fetchAllAccounts();
+let results = getResults(contracts.voting, storage.votesStore);
+
+if (results[members[1].toBase58()] !== 1) {
+  throw Error(
+    `Candidate ${members[1].toBase58()} should have one vote, but has ${
+      results[members[1].toBase58()]
+    } `
+  );
+}
+console.log('final result', results);
+
+console.log('The following events were emitted during the voting process:');
+
+await displayEvents(contracts.voting);
+await displayEvents(contracts.candidateContract);
+await displayEvents(contracts.voterContract);
+
+async function displayEvents(contract: SmartContract) {
+  let events = await contract.fetchEvents();
+  console.log(
+    `events on ${contract.address.toBase58()}`,
+    events.map((e) => {
+      return { type: e.type, data: JSON.stringify(e.event) };
+    })
+  );
+}
 
 async function fetchAllAccounts() {
   await Promise.all(
     [
-      /*       feePayerAddress,
+      feePayerAddress,
       params.voterKey.toPublicKey(),
       params.candidateKey.toPublicKey(),
-      params.votingKey.toPublicKey(), */
-      ...members.map((m) => m.publicKey),
+      params.votingKey.toPublicKey(),
+      ...members,
     ].map((publicKey) => fetchAccount({ publicKey }))
   );
 }
@@ -241,25 +256,8 @@ function registerMember(
   store.set(i, m); // setting voter 0n
   // setting the merkle witness
   m.witness = new MyMerkleWitness(store.getWitness(i));
+  console.log('storeRoot', store.getRoot().toString());
   return m;
-}
-
-async function fundAccounts(n: number) {
-  let accounts: { privateKey: PrivateKey; publicKey: PublicKey }[] = [];
-
-  await Promise.all(
-    Array(n).map(() => {
-      let privateKey = PrivateKey.random();
-      let publicKey = privateKey.toPublicKey();
-      accounts.push({
-        privateKey,
-        publicKey,
-      });
-      return Mina.faucet(publicKey);
-    })
-  );
-
-  return accounts;
 }
 
 shutdown();
