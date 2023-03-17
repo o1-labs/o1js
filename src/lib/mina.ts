@@ -13,6 +13,7 @@ import {
   CallForest,
   Authorization,
   Actions,
+  Events,
 } from './account_update.js';
 
 import * as Fetch from './fetch.js';
@@ -33,6 +34,8 @@ export {
   currentTransaction,
   CurrentTransaction,
   Transaction,
+  TransactionId,
+  activeInstance,
   setActiveInstance,
   transaction,
   sender,
@@ -308,9 +311,21 @@ interface Mina {
   hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
+  getNetworkConstants(): {
+    genesisTimestamp: UInt64;
+    /**
+     * Duration of 1 slot in millisecondw
+     */
+    slotTime: UInt64;
+    accountCreationFee: UInt64;
+  };
   accountCreationFee(): UInt64;
   sendTransaction(transaction: Transaction): Promise<TransactionId>;
-  fetchEvents: (publicKey: PublicKey, tokenId?: Field) => any;
+  fetchEvents: (
+    publicKey: PublicKey,
+    tokenId?: Field,
+    filterOptions?: Fetch.EventActionFilterOptions
+  ) => ReturnType<typeof Fetch.fetchEvents>;
   getActions: (
     publicKey: PublicKey,
     tokenId?: Field
@@ -328,8 +343,9 @@ function LocalBlockchain({
   proofsEnabled = true,
   enforceTransactionLimits = true,
 } = {}) {
-  const msPerSlot = 3 * 60 * 1000;
-  const startTime = new Date().valueOf();
+  const slotTime = 3 * 60 * 1000;
+  const startTime = Date.now();
+  const genesisTimestamp = UInt64.from(startTime);
 
   const ledger = Ledger.create([]);
 
@@ -359,9 +375,16 @@ function LocalBlockchain({
   return {
     proofsEnabled,
     accountCreationFee: () => UInt64.from(accountCreationFee),
+    getNetworkConstants() {
+      return {
+        genesisTimestamp,
+        accountCreationFee: UInt64.from(accountCreationFee),
+        slotTime: UInt64.from(slotTime),
+      };
+    },
     currentSlot() {
       return UInt32.from(
-        Math.ceil((new Date().valueOf() - startTime) / msPerSlot)
+        Math.ceil((new Date().valueOf() - startTime) / slotTime)
       );
     },
     hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
@@ -442,7 +465,16 @@ function LocalBlockchain({
           }
           events[addr][tokenId].push({
             events: p.body.events,
-            slot: networkState.globalSlotSinceGenesis.toString(),
+            blockHeight: networkState.blockchainLength,
+            globalSlot: networkState.globalSlotSinceGenesis,
+            // The following fields are fetched from the Mina network. For now, we mock these values out
+            // since networkState does not contain these fields.
+            blockHash: '',
+            parentBlockHash: '',
+            chainStatus: '',
+            transactionHash: '',
+            transactionStatus: '',
+            transactionMemo: '',
           });
         }
 
@@ -524,10 +556,7 @@ function LocalBlockchain({
         JSON.stringify(networkState)
       );
     },
-    async fetchEvents(
-      publicKey: PublicKey,
-      tokenId: Field = TokenId.default
-    ): Promise<any[]> {
+    async fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       return events?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
     },
     getActions(
@@ -563,15 +592,50 @@ function LocalBlockchain({
     },
   };
 }
+// assert type compatibility without preventing LocalBlockchain to return additional properties / methods
+LocalBlockchain satisfies (...args: any) => Mina;
 
 /**
  * Represents the Mina blockchain running on a real network
  */
-function Network(graphqlEndpoint: string): Mina {
+function Network(graphqlEndpoint: string): Mina;
+function Network(graphqlEndpoints: { mina: string; archive: string }): Mina;
+function Network(input: { mina: string; archive: string } | string): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
-  Fetch.setGraphqlEndpoint(graphqlEndpoint);
+  let graphqlEndpoint: string;
+  let archiveEndpoint: string;
+
+  if (input && typeof input === 'string') {
+    graphqlEndpoint = input;
+    Fetch.setGraphqlEndpoint(graphqlEndpoint);
+  } else if (input && typeof input === 'object') {
+    graphqlEndpoint = input.mina;
+    archiveEndpoint = input.archive;
+    Fetch.setGraphqlEndpoint(graphqlEndpoint);
+    Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+  } else {
+    throw new Error(
+      "Network: malformed input. Please provide a string or an object with 'mina' and 'archive' endpoints."
+    );
+  }
+
+  // copied from mina/genesis_ledgers/berkeley.json
+  // TODO fetch from graphql instead of hardcoding
+  const genesisTimestampString = '2023-02-23T20:00:01Z';
+  const genesisTimestamp = UInt64.from(
+    Date.parse(genesisTimestampString.slice(0, -1) + '+00:00')
+  );
+  // TODO also fetch from graphql
+  const slotTime = UInt64.from(3 * 60 * 1000);
   return {
     accountCreationFee: () => accountCreationFee,
+    getNetworkConstants() {
+      return {
+        genesisTimestamp,
+        slotTime,
+        accountCreationFee,
+      };
+    },
     currentSlot() {
       throw Error(
         'currentSlot() is not implemented yet for remote blockchains.'
@@ -710,7 +774,7 @@ function Network(graphqlEndpoint: string): Mina {
         fetchMode: 'test',
         isFinalRunOutsideCircuit: false,
       });
-      await Fetch.fetchMissingData(graphqlEndpoint);
+      await Fetch.fetchMissingData(graphqlEndpoint, archiveEndpoint);
       let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
@@ -719,14 +783,35 @@ function Network(graphqlEndpoint: string): Mina {
         isFinalRunOutsideCircuit: !hasProofs,
       });
     },
-    async fetchEvents() {
-      throw Error(
-        'fetchEvents() is not implemented yet for remote blockchains.'
+    async fetchEvents(
+      publicKey: PublicKey,
+      tokenId: Field = TokenId.default,
+      filterOptions: Fetch.EventActionFilterOptions = {}
+    ) {
+      let pubKey = publicKey.toBase58();
+      let token = TokenId.toBase58(tokenId);
+
+      return Fetch.fetchEvents(
+        { publicKey: pubKey, tokenId: token },
+        archiveEndpoint,
+        filterOptions
       );
     },
-    getActions() {
+    getActions(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+      if (currentTransaction()?.fetchMode === 'test') {
+        Fetch.markActionsToBeFetched(publicKey, tokenId, archiveEndpoint);
+        let actions = Fetch.getCachedActions(publicKey, tokenId);
+        return actions ?? [];
+      }
+      if (
+        !currentTransaction.has() ||
+        currentTransaction.get().fetchMode === 'cached'
+      ) {
+        let actions = Fetch.getCachedActions(publicKey, tokenId);
+        if (actions !== undefined) return actions;
+      }
       throw Error(
-        'fetchEvents() is not implemented yet for remote blockchains.'
+        `getActions: Could not find actions for the public key ${publicKey}`
       );
     },
     proofsEnabled: true,
@@ -744,6 +829,9 @@ function BerkeleyQANet(graphqlEndpoint: string) {
 
 let activeInstance: Mina = {
   accountCreationFee: () => UInt64.from(defaultAccountCreationFee),
+  getNetworkConstants() {
+    throw new Error('must call Mina.setActiveInstance first');
+  },
   currentSlot: () => {
     throw new Error('must call Mina.setActiveInstance first');
   },
@@ -798,10 +886,10 @@ let activeInstance: Mina = {
   async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
     return createTransaction(sender, f, 0);
   },
-  fetchEvents() {
+  fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
     throw Error('must call Mina.setActiveInstance first');
   },
-  getActions() {
+  getActions(publicKey: PublicKey, tokenId: Field = TokenId.default) {
     throw Error('must call Mina.setActiveInstance first');
   },
   proofsEnabled: true,
@@ -936,14 +1024,18 @@ async function sendTransaction(txn: Transaction) {
 /**
  * @return A list of emitted events associated to the given public key.
  */
-async function fetchEvents(publicKey: PublicKey, tokenId: Field) {
-  return await activeInstance.fetchEvents(publicKey, tokenId);
+async function fetchEvents(
+  publicKey: PublicKey,
+  tokenId: Field,
+  filterOptions: Fetch.EventActionFilterOptions = {}
+) {
+  return await activeInstance.fetchEvents(publicKey, tokenId, filterOptions);
 }
 
 /**
  * @return A list of emitted sequencing actions associated to the given public key.
  */
-function getActions(publicKey: PublicKey, tokenId: Field) {
+function getActions(publicKey: PublicKey, tokenId?: Field) {
   return activeInstance.getActions(publicKey, tokenId);
 }
 
@@ -1160,19 +1252,16 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
   const costLimit = 69.45;
 
   // constants that define the maximum number of events in one transaction
-  const maxSequenceEventElements = 16;
+  const maxActionElements = 16;
   const maxEventElements = 16;
 
-  let eventElements = {
-    events: 0,
-    sequence: 0,
-  };
+  let eventElements = { events: 0, actions: 0 };
 
   let authTypes = filterGroups(
     accountUpdates.map((update) => {
       let json = update.toJSON();
-      eventElements.events += update.body.events.data.length;
-      eventElements.sequence += update.body.actions.data.length;
+      eventElements.events += countEventElements(update.body.events);
+      eventElements.actions += countEventElements(update.body.actions);
       return json.body.authorizationKind;
     })
   );
@@ -1192,9 +1281,8 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
 
   let isWithinCostLimit = totalTimeRequired < costLimit;
 
-  let isWithinEventsLimit = eventElements['events'] <= maxEventElements;
-  let isWithinSequenceEventsLimit =
-    eventElements['sequence'] <= maxSequenceEventElements;
+  let isWithinEventsLimit = eventElements.events <= maxEventElements;
+  let isWithinActionsLimit = eventElements.actions <= maxActionElements;
 
   let error = '';
 
@@ -1209,14 +1297,18 @@ ${JSON.stringify(authTypes)}
   }
 
   if (!isWithinEventsLimit) {
-    error += `Error: The AccountUpdates in your transaction are trying to emit too many events. The maximum allowed amount of events is ${maxEventElements}, but you tried to emit ${eventElements['events']}.\n\n`;
+    error += `Error: The account updates in your transaction are trying to emit too much event data. The maximum allowed number of field elements in events is ${maxEventElements}, but you tried to emit ${eventElements.events}.\n\n`;
   }
 
-  if (!isWithinSequenceEventsLimit) {
-    error += `Error: The AccountUpdates in your transaction are trying to emit too many actions. The maximum allowed amount of actions is ${maxSequenceEventElements}, but you tried to emit ${eventElements['sequence']}.\n\n`;
+  if (!isWithinActionsLimit) {
+    error += `Error: The account updates in your transaction are trying to emit too much action data. The maximum allowed number of field elements in actions is ${maxActionElements}, but you tried to emit ${eventElements.actions}.\n\n`;
   }
 
   if (error) throw Error('Error during transaction sending:\n\n' + error);
+}
+
+function countEventElements({ data }: Events) {
+  return data.reduce((acc, ev) => acc + ev.length, 0);
 }
 
 type AuthorizationKind = { isProved: boolean; isSigned: boolean };

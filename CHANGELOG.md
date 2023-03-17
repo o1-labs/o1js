@@ -1,9 +1,9 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 <!--
   Possible subsections:
@@ -15,13 +15,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/c5a36207...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/9acec55...HEAD)
+
+### Breaking changes
+
+- Circuits changed due to an internal rename of "sequence events" to "actions" which included a change to some hash prefixes; this breaks all deployed contracts.
+
+## [0.9.3](https://github.com/o1-labs/snarkyjs/compare/1abdfb70...9acec55)
+
+### Added
+
+- Use `fetchEvents()` to fetch events for a specified zkApp from a GraphQL endpoint that implements [this schema](https://github.com/o1-labs/Archive-Node-API/blob/efebc9fd3cfc028f536ae2125e0d2676e2b86cd2/src/schema.ts#L1). `Mina.Network` accepts an additional endpoint which points to a GraphQL server. https://github.com/o1-labs/snarkyjs/pull/749
+  - Use the `mina` property for the Mina node.
+  - Use `archive` for the archive node.
+- Use `getActions` to fetch actions for a specified zkApp from a GraphQL endpoint GraphQL endpoint that implements the same schema as `fetchEvents`. https://github.com/o1-labs/snarkyjs/pull/788
+
+### Fixed
+
+- Added the missing export of `Mina.TransactionId` https://github.com/o1-labs/snarkyjs/pull/785
+- Added an option to specify `tokenId` as `Field` in `fetchAccount()` https://github.com/o1-labs/snarkyjs/pull/787
+
+## [0.9.2](https://github.com/o1-labs/snarkyjs/compare/9c44b9c2...1abdfb70)
+
+### Added
+
+- `this.network.timestamp` is added back and is implemented on top of `this.network.globalSlotSinceGenesis` https://github.com/o1-labs/snarkyjs/pull/755
 
 ### Changed
 
-- BREAKING CHANGE: Circuits changed due to an internal rename of "sequence events" to "actions" which included a change to some hash prefixes; this breaks all deployed contracts.
+- On-chain value `globalSlot` is replaced by the clearer `currentSlot` https://github.com/o1-labs/snarkyjs/pull/755
+  - `currentSlot` refers to the slot at which the transaction _will be included in a block_.
+  - the only supported method is `currentSlot.assertBetween()` because `currentSlot.get()` is impossible to implement since the value is determined in the future and `currentSlot.assertEquals()` is error-prone
 
-## [0.9.0](https://github.com/o1-labs/snarkyjs/compare/c5a36207...HEAD)
+### Fixed
+
+- Incorrect counting of limit on events and actions https://github.com/o1-labs/snarkyjs/pull/758
+- Type error when using `Circuit.array` in on-chain state or events https://github.com/o1-labs/snarkyjs/pull/758
+- Bug when using `Circuit.witness` outside the prover https://github.com/o1-labs/snarkyjs/pull/774
+
+## [0.9.1](https://github.com/o1-labs/snarkyjs/compare/71b6132b...9c44b9c2)
+
+### Fixed
+
+- Bug when using `this.<state>.get()` outside a transaction https://github.com/o1-labs/snarkyjs/pull/754
+
+## [0.9.0](https://github.com/o1-labs/snarkyjs/compare/c5a36207...71b6132b)
 
 ### Added
 
@@ -29,9 +67,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New precondition: `provedState`, a boolean which is true if the entire on-chain state of this account was last modified by a proof https://github.com/o1-labs/snarkyjs/pull/741
   - Same API as all preconditions: `this.account.provedState.assertEquals(Bool(true))`
   - Can be used to assert that the state wasn't tampered with by the zkApp developer using non-contract logic, for example, before deploying the zkApp
-- New on-chain value `globalSlot`, to assert that a method can only in a certain time range https://github.com/o1-labs/snarkyjs/pull/649
-  - example: `this.globalSlot.assertBetween(lower, upper)`
-  - Replaces the `network.timestamp`, `network.globalSlotSinceGenesis` and `network.globalSlotSinceHardFork` preconditions. https://github.com/o1-labs/snarkyjs/pull/560
+- New on-chain value `globalSlot`, to make assertions about the current time https://github.com/o1-labs/snarkyjs/pull/649
+  - example: `this.globalSlot.get()`, `this.globalSlot.assertBetween(lower, upper)`
+  - Replaces `network.timestamp`, `network.globalSlotSinceGenesis` and `network.globalSlotSinceHardFork`. https://github.com/o1-labs/snarkyjs/pull/560
 - New permissions:
   - `access` to control whether account updates for this account can be used at all https://github.com/o1-labs/snarkyjs/pull/500
   - `setTiming` to control who can update the account's `timing` field https://github.com/o1-labs/snarkyjs/pull/685
@@ -52,8 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- Preconditions `timestamp` and `globalSlotSinceHardFork` are removed https://github.com/o1-labs/snarkyjs/pull/560
-  - these are expected to come back as wrappers for `validWhile`
+- Preconditions `timestamp` and `globalSlotSinceHardFork` https://github.com/o1-labs/snarkyjs/pull/560
+  - `timestamp` is expected to come back as a wrapper for the new `globalSlot`
 
 ## [0.8.0](https://github.com/o1-labs/snarkyjs/compare/d880bd6e...c5a36207)
 

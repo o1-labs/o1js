@@ -106,6 +106,20 @@ describe('preconditions', () => {
     expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
   });
 
+  it('satisfied currentSlot.assertBetween should not throw', async () => {
+    let nonce = zkapp.account.nonce.get();
+    let tx = await Mina.transaction(feePayer, () => {
+      zkapp.currentSlot.assertBetween(
+        UInt32.from(0),
+        UInt32.from(UInt32.MAXINT())
+      );
+      zkapp.requireSignature();
+      AccountUpdate.attachToTransaction(zkapp.self);
+    });
+    await tx.sign([feePayerKey, zkappKey]).send();
+    expect(zkapp.account.nonce.get()).toEqual(nonce.add(1));
+  });
+
   it('get + assertNothing should not throw', async () => {
     let nonce = zkapp.account.nonce.get();
     let tx = await Mina.transaction(feePayer, () => {
@@ -150,15 +164,14 @@ describe('preconditions', () => {
 
   it('unsatisfied assertEquals should be rejected (numbers)', async () => {
     for (let precondition of implementedNumber) {
-      let tx = await Mina.transaction(feePayer, () => {
-        let p = precondition().get();
-        precondition().assertEquals(p.add(1) as any);
-        AccountUpdate.attachToTransaction(zkapp.self);
-      });
-
-      await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(
-        /unsatisfied/
-      );
+      await expect(async () => {
+        let tx = await Mina.transaction(feePayer, () => {
+          let p = precondition().get();
+          precondition().assertEquals(p.add(1) as any);
+          AccountUpdate.attachToTransaction(zkapp.self);
+        });
+        await tx.sign([feePayerKey]).send();
+      }).rejects.toThrow(/unsatisfied/);
     }
   });
 
@@ -196,6 +209,14 @@ describe('preconditions', () => {
     }
   });
 
+  it('unsatisfied currentSlot.assertBetween should be rejected', async () => {
+    let tx = await Mina.transaction(feePayer, () => {
+      zkapp.currentSlot.assertBetween(UInt32.from(20), UInt32.from(30));
+      AccountUpdate.attachToTransaction(zkapp.self);
+    });
+    await expect(tx.sign([feePayerKey]).send()).rejects.toThrow(/unsatisfied/);
+  });
+
   // TODO: is this a gotcha that should be addressed?
   // the test below fails, so it seems that nonce is applied successfully with a WRONG precondition..
   // however, this is just because `zkapp.sign()` overwrites the nonce precondition with one that is satisfied
@@ -215,6 +236,7 @@ let implementedNumber = [
   () => zkapp.account.receiptChainHash,
   () => zkapp.network.blockchainLength,
   () => zkapp.network.globalSlotSinceGenesis,
+  () => zkapp.network.timestamp,
   () => zkapp.network.minWindowDensity,
   () => zkapp.network.totalCurrency,
   () => zkapp.network.stakingEpochData.epochLength,
@@ -245,6 +267,7 @@ let implementedWithRange = [
   () => zkapp.account.nonce,
   () => zkapp.network.blockchainLength,
   () => zkapp.network.globalSlotSinceGenesis,
+  () => zkapp.network.timestamp,
   () => zkapp.network.minWindowDensity,
   () => zkapp.network.totalCurrency,
   () => zkapp.network.stakingEpochData.epochLength,
@@ -252,6 +275,7 @@ let implementedWithRange = [
   () => zkapp.network.nextEpochData.epochLength,
   () => zkapp.network.nextEpochData.ledger.totalCurrency,
 ];
+let implementedWithRangeOnly = [() => zkapp.currentSlot];
 let unimplemented = [
   () => zkapp.network.stakingEpochData.seed,
   () => zkapp.network.nextEpochData.seed,

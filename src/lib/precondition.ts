@@ -2,7 +2,7 @@ import { Provable, Bool, Field } from '../snarky.js';
 import { circuitValueEquals, Circuit } from './circuit_value.js';
 import * as Mina from './mina.js';
 import { Actions, AccountUpdate, Preconditions } from './account_update.js';
-import { UInt32, UInt64 } from './int.js';
+import { Int64, UInt32, UInt64 } from './int.js';
 import { Layout } from '../provable/gen/transaction.js';
 import { jsLayout } from '../provable/gen/js-layout.js';
 import { emptyReceiptChainHash, TokenSymbol } from './hash.js';
@@ -13,12 +13,11 @@ export {
   preconditions,
   Account,
   Network,
-  ValidWhile,
+  CurrentSlot,
   assertPreconditionInvariants,
   cleanPreconditionsCache,
   AccountValue,
   NetworkValue,
-  ValidWhileValue,
   getAccountPreconditions,
 };
 
@@ -27,7 +26,7 @@ function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
   return {
     account: Account(accountUpdate),
     network: Network(accountUpdate),
-    validWhile: ValidWhile(accountUpdate),
+    currentSlot: CurrentSlot(accountUpdate),
   };
 }
 
@@ -38,7 +37,36 @@ function Network(accountUpdate: AccountUpdate): Network {
   let layout =
     jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.network;
   let context = getPreconditionContextExn(accountUpdate);
-  return preconditionClass(layout as Layout, 'network', accountUpdate, context);
+  let network: RawNetwork = preconditionClass(
+    layout as Layout,
+    'network',
+    accountUpdate,
+    context
+  );
+  let timestamp = {
+    get() {
+      let slot = network.globalSlotSinceGenesis.get();
+      return globalSlotToTimestamp(slot);
+    },
+    assertEquals(value: UInt64) {
+      let { genesisTimestamp, slotTime } =
+        Mina.activeInstance.getNetworkConstants();
+      let slot = timestampToGlobalSlot(
+        value,
+        `Timestamp precondition unsatisfied: the timestamp can only equal numbers of the form ${genesisTimestamp} + k*${slotTime},\n` +
+          `i.e., the genesis timestamp plus an integer number of slots. Received: ${value}.`
+      );
+      return network.globalSlotSinceGenesis.assertEquals(slot);
+    },
+    assertBetween(lower: UInt64, upper: UInt64) {
+      let [slotLower, slotUpper] = timestampToGlobalSlotRange(lower, upper);
+      return network.globalSlotSinceGenesis.assertBetween(slotLower, slotUpper);
+    },
+    assertNothing() {
+      return network.globalSlotSinceGenesis.assertNothing();
+    },
+  };
+  return { ...network, timestamp };
 }
 
 function Account(accountUpdate: AccountUpdate): Account {
@@ -82,19 +110,18 @@ function updateSubclass<K extends keyof Update>(
   };
 }
 
-function ValidWhile(accountUpdate: AccountUpdate): ValidWhile {
-  let layout =
-    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries
-      .validWhile;
+function CurrentSlot(accountUpdate: AccountUpdate): CurrentSlot {
   let context = getPreconditionContextExn(accountUpdate);
-  let lower = layout.inner.entries.lower.type as BaseType;
-  let baseType = baseMap[lower];
-  return preconditionSubClassWithRange<'validWhile', UInt32>(
-    accountUpdate,
-    'validWhile',
-    baseType as any,
-    context
-  );
+  return {
+    assertBetween(lower: UInt32, upper: UInt32) {
+      context.constrained.add('validWhile');
+      let property: RangeCondition<UInt32> =
+        accountUpdate.body.preconditions.validWhile;
+      property.isSome = Bool(true);
+      property.value.lower = lower;
+      property.value.upper = upper;
+    },
+  };
 }
 
 let unimplementedPreconditions: LongKey[] = [
@@ -249,6 +276,46 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   });
 }
 
+function globalSlotToTimestamp(slot: UInt32) {
+  let { genesisTimestamp, slotTime } =
+    Mina.activeInstance.getNetworkConstants();
+  return UInt64.from(slot).mul(slotTime).add(genesisTimestamp);
+}
+function timestampToGlobalSlot(timestamp: UInt64, message: string) {
+  let { genesisTimestamp, slotTime } =
+    Mina.activeInstance.getNetworkConstants();
+  let { quotient: slot, rest } = timestamp
+    .sub(genesisTimestamp)
+    .divMod(slotTime);
+  rest.value.assertEquals(Field(0), message);
+  return slot.toUInt32();
+}
+
+function timestampToGlobalSlotRange(
+  tsLower: UInt64,
+  tsUpper: UInt64
+): [lower: UInt32, upper: UInt32] {
+  // we need `slotLower <= current slot <= slotUpper` to imply `tsLower <= current timestamp <= tsUpper`
+  // so we have to make the range smaller -- round up `tsLower` and round down `tsUpper`
+  // also, we should clamp to the UInt32 max range [0, 2**32-1]
+  let { genesisTimestamp, slotTime } =
+    Mina.activeInstance.getNetworkConstants();
+  let tsLowerInt = Int64.from(tsLower)
+    .sub(genesisTimestamp)
+    .add(slotTime)
+    .sub(1);
+  let lowerCapped = Circuit.if<UInt64>(
+    tsLowerInt.isPositive(),
+    UInt64,
+    tsLowerInt.magnitude,
+    UInt64.from(0)
+  );
+  let slotLower = lowerCapped.div(slotTime).toUInt32Clamped();
+  // unsafe `sub` means the error in case tsUpper underflows slot 0 is ugly, but should not be relevant in practice
+  let slotUpper = tsUpper.sub(genesisTimestamp).div(slotTime).toUInt32Clamped();
+  return [slotLower, slotUpper];
+}
+
 function getAccountPreconditions(body: {
   publicKey: PublicKey;
   tokenId?: Field;
@@ -278,7 +345,7 @@ function getAccountPreconditions(body: {
   };
 }
 
-// per-accountUpdate context for checking invariants on precondition construction
+// per account update context for checking invariants on precondition construction
 type PreconditionContext = {
   isSelf: boolean;
   vars: Partial<FlatPreconditionValue>;
@@ -321,10 +388,6 @@ function assertPreconditionInvariants(accountUpdate: AccountUpdate) {
 
     // we accessed a precondition field but not constrained it explicitly - throw an error
     let hasAssertBetween = isRangeCondition(precondition);
-    // TODO: maybe the "validWhile" should be changed to "globalSlot" in a more global way?
-    if (preconditionPath === 'validWhile') {
-      preconditionPath = 'globalSlot' as any;
-    }
     let shortPath = preconditionPath.split('.').pop();
     let errorMessage = `You used \`${self}.${preconditionPath}.get()\` without adding a precondition that links it to the actual ${shortPath}.
 Consider adding this line to your code:
@@ -350,7 +413,10 @@ const preconditionContexts = new WeakMap<AccountUpdate, PreconditionContext>();
 
 type NetworkPrecondition = Preconditions['network'];
 type NetworkValue = PreconditionBaseTypes<NetworkPrecondition>;
-type Network = PreconditionClassType<NetworkPrecondition>;
+type RawNetwork = PreconditionClassType<NetworkPrecondition>;
+type Network = RawNetwork & {
+  timestamp: PreconditionSubclassRangeType<UInt64>;
+};
 
 // TODO: should we add account.state?
 // then can just use circuitArray(Field, 8) as the type
@@ -358,13 +424,10 @@ type AccountPrecondition = Omit<Preconditions['account'], 'state'>;
 type AccountValue = PreconditionBaseTypes<AccountPrecondition>;
 type Account = PreconditionClassType<AccountPrecondition> & Update;
 
-type ValidWhilePrecondition = Preconditions['validWhile'];
-type ValidWhileValue = PreconditionBaseTypes<{
-  validWhile: ValidWhilePrecondition;
-}>['validWhile'];
-type ValidWhile = PreconditionClassType<{
-  validWhile: ValidWhilePrecondition;
-}>['validWhile'];
+type CurrentSlotPrecondition = Preconditions['validWhile'];
+type CurrentSlot = {
+  assertBetween(lower: UInt32, upper: UInt32): void;
+};
 
 type PreconditionBaseTypes<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
@@ -381,12 +444,13 @@ type PreconditionSubclassType<U> = {
   assertEquals(value: U): void;
   assertNothing(): void;
 };
+type PreconditionSubclassRangeType<U> = PreconditionSubclassType<U> & {
+  assertBetween(lower: U, upper: U): void;
+};
 
 type PreconditionClassType<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
-    ? PreconditionSubclassType<U> & {
-        assertBetween(lower: U, upper: U): void;
-      }
+    ? PreconditionSubclassRangeType<U>
     : T[K] extends FlaggedOptionCondition<infer U>
     ? PreconditionSubclassType<U>
     : T[K] extends Field
@@ -427,7 +491,7 @@ type FlatPreconditionValue = {
   [S in PreconditionFlatEntry<NetworkPrecondition> as `network.${S[0]}`]: S[2];
 } & {
   [S in PreconditionFlatEntry<AccountPrecondition> as `account.${S[0]}`]: S[2];
-} & { validWhile: PreconditionFlatEntry<ValidWhilePrecondition>[2] };
+} & { validWhile: PreconditionFlatEntry<CurrentSlotPrecondition>[2] };
 
 type LongKey = keyof FlatPreconditionValue;
 

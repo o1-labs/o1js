@@ -268,52 +268,45 @@ export async function testSet(
 
   /*
     test case description:
-      overflowing maximum amount of sequence events allowed in the reducer (32 default)
+      overflowing maximum amount of sequence events allowed in the reducer (2)
     
     preconditions:
       - x
 
     tested cases:
-      - emitted 33 sequence events and trying to reduce them
+      - emitted 3 sequence events and trying to reduce them
 
     expected results:
       - throws an error
 
   */
 
-  console.log('trying to overflow sequence events (default 32)');
+  console.log('trying to overflow sequence events (custom max: 2)');
 
   console.log(
-    'emitting more than 32 sequence events without periodically updating them'
+    'emitting more than 2 actions without periodically updating them'
   );
-  for (let index = 0; index <= 32; index++) {
-    try {
-      let tx = await Mina.transaction(
-        sequenceOverflowSet.feePayer.toPublicKey(),
-        () => {
-          let m = Member.from(
-            PrivateKey.random().toPublicKey(),
-            Field(0),
-            UInt64.from(15)
-          );
-          sequenceOverflowSet.Local.addAccount(
-            m.publicKey,
-            m.balance.toString()
-          );
+  for (let index = 0; index <= 2; index++) {
+    let tx = await Mina.transaction(
+      sequenceOverflowSet.feePayer.toPublicKey(),
+      () => {
+        let m = Member.from(
+          PrivateKey.random().toPublicKey(),
+          Field(0),
+          UInt64.from(15)
+        );
+        sequenceOverflowSet.Local.addAccount(m.publicKey, m.balance.toString());
 
-          sequenceOverflowSet.voting.voterRegistration(m);
-        }
-      );
-      await tx.prove();
-      await tx.sign([sequenceOverflowSet.feePayer]).send();
-    } catch (error) {
-      throw new Error('Transaction failed!');
-    }
+        sequenceOverflowSet.voting.voterRegistration(m);
+      }
+    );
+    await tx.prove();
+    await tx.sign([sequenceOverflowSet.feePayer]).send();
   }
 
-  if (sequenceOverflowSet.voterContract.reducer.getActions({}).length < 32) {
+  if (sequenceOverflowSet.voterContract.reducer.getActions({}).length < 3) {
     throw Error(
-      `Did not emitted expected sequence events! Only emitted ${
+      `Did not emit expected actions! Only emitted ${
         sequenceOverflowSet.voterContract.reducer.getActions({}).length
       }`
     );

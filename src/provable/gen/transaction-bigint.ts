@@ -11,6 +11,7 @@ import {
   Sign,
   ZkappUri,
   TokenSymbol,
+  StateHash,
   Events,
   Actions,
   ActionState,
@@ -71,6 +72,7 @@ type CustomTypes = {
     },
     string
   >;
+  StateHash: ProvableExtended<Field, Json.TypeMap['Field']>;
   Events: ProvableExtended<
     {
       data: Field[][];
@@ -91,6 +93,7 @@ type CustomTypes = {
 let customTypes: CustomTypes = {
   ZkappUri,
   TokenSymbol,
+  StateHash,
   Events,
   Actions,
   ActionState,

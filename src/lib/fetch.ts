@@ -1,5 +1,5 @@
 import 'isomorphic-fetch';
-import { Field } from '../snarky.js';
+import { Field, Ledger } from '../snarky.js';
 import { UInt32, UInt64 } from './int.js';
 import { TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
@@ -21,25 +21,42 @@ export {
   parseFetchedAccount,
   markAccountToBeFetched,
   markNetworkToBeFetched,
+  markActionsToBeFetched,
   fetchMissingData,
   fetchTransactionStatus,
   TransactionStatus,
+  EventActionFilterOptions,
   getCachedAccount,
   getCachedNetwork,
+  getCachedActions,
   addCachedAccount,
   defaultGraphqlEndpoint,
+  archiveGraphqlEndpoint,
   setGraphqlEndpoint,
+  setArchiveGraphqlEndpoint,
   sendZkappQuery,
   sendZkapp,
   removeJsonQuotes,
+  fetchEvents,
+  fetchActions,
 };
 
 let defaultGraphqlEndpoint = 'none';
+let archiveGraphqlEndpoint = 'none';
 /**
  * Specifies the default GraphQL endpoint.
  */
 function setGraphqlEndpoint(graphqlEndpoint: string) {
   defaultGraphqlEndpoint = graphqlEndpoint;
+}
+
+/**
+ * Sets up a GraphQL endpoint to be used for fetching information from an Archive Node.
+ *
+ * @param A GraphQL endpoint.
+ */
+function setArchiveGraphqlEndpoint(graphqlEndpoint: string) {
+  archiveGraphqlEndpoint = graphqlEndpoint;
 }
 
 /**
@@ -50,13 +67,14 @@ function setGraphqlEndpoint(graphqlEndpoint: string) {
  * If an error is returned by the specified endpoint, an error is thrown. Otherwise,
  * the data is returned.
  *
- * @param publicKey The specified account to get account information on
+ * @param publicKey The specified publicKey to get account information on
+ * @param tokenId The specified tokenId to get account information on
  * @param graphqlEndpoint The graphql endpoint to fetch from
  * @param config An object that exposes an additional timeout option
  * @returns zkapp information on the specified account or an error is thrown
  */
 async function fetchAccount(
-  accountInfo: { publicKey: string | PublicKey; tokenId?: string },
+  accountInfo: { publicKey: string | PublicKey; tokenId?: string | Field },
   graphqlEndpoint = defaultGraphqlEndpoint,
   { timeout = defaultTimeout } = {}
 ): Promise<
@@ -67,8 +85,13 @@ async function fetchAccount(
     accountInfo.publicKey instanceof PublicKey
       ? accountInfo.publicKey.toBase58()
       : accountInfo.publicKey;
+  let tokenIdBase58 =
+    typeof accountInfo.tokenId === 'string' || !accountInfo.tokenId
+      ? accountInfo.tokenId
+      : TokenId.toBase58(accountInfo.tokenId);
+
   return await fetchAccountInternal(
-    { publicKey: publicKeyBase58, tokenId: accountInfo.tokenId },
+    { publicKey: publicKeyBase58, tokenId: tokenIdBase58 },
     graphqlEndpoint,
     {
       timeout,
@@ -135,11 +158,23 @@ let networkCache = {} as Record<
     timestamp: number;
   }
 >;
+let actionsCache = {} as Record<
+  string,
+  {
+    actions: { hash: string; actions: string[][] }[];
+    graphqlEndpoint: string;
+    timestamp: number;
+  }
+>;
 let accountsToFetch = {} as Record<
   string,
   { publicKey: string; tokenId: string; graphqlEndpoint: string }
 >;
 let networksToFetch = {} as Record<string, { graphqlEndpoint: string }>;
+let actionsToFetch = {} as Record<
+  string,
+  { publicKey: string; tokenId: string; graphqlEndpoint: string }
+>;
 
 function markAccountToBeFetched(
   publicKey: PublicKey,
@@ -157,8 +192,24 @@ function markAccountToBeFetched(
 function markNetworkToBeFetched(graphqlEndpoint: string) {
   networksToFetch[graphqlEndpoint] = { graphqlEndpoint };
 }
+function markActionsToBeFetched(
+  publicKey: PublicKey,
+  tokenId: Field,
+  graphqlEndpoint: string
+) {
+  let publicKeyBase58 = publicKey.toBase58();
+  let tokenBase58 = TokenId.toBase58(tokenId);
+  actionsToFetch[`${publicKeyBase58};${tokenBase58};${graphqlEndpoint}`] = {
+    publicKey: publicKeyBase58,
+    tokenId: tokenBase58,
+    graphqlEndpoint,
+  };
+}
 
-async function fetchMissingData(graphqlEndpoint: string) {
+async function fetchMissingData(
+  graphqlEndpoint: string,
+  archiveEndpoint?: string
+) {
   let promises = Object.entries(accountsToFetch).map(
     async ([key, { publicKey, tokenId }]) => {
       let response = await fetchAccountInternal(
@@ -168,6 +219,17 @@ async function fetchMissingData(graphqlEndpoint: string) {
       if (response.error === undefined) delete accountsToFetch[key];
     }
   );
+  let actionPromises = Object.entries(actionsToFetch).map(
+    async ([key, { publicKey, tokenId }]) => {
+      let response = await fetchActions(
+        { publicKey, tokenId },
+        archiveEndpoint
+      );
+      if (!('error' in response) || response.error === undefined)
+        delete actionsToFetch[key];
+    }
+  );
+  promises.push(...actionPromises);
   let network = Object.entries(networksToFetch).find(([, network]) => {
     return network.graphqlEndpoint === graphqlEndpoint;
   });
@@ -197,6 +259,15 @@ function getCachedNetwork(graphqlEndpoint = defaultGraphqlEndpoint) {
   return networkCache[graphqlEndpoint]?.network;
 }
 
+function getCachedActions(
+  publicKey: PublicKey,
+  tokenId: Field,
+  graphqlEndpoint = archiveGraphqlEndpoint
+) {
+  return actionsCache[accountCacheKey(publicKey, tokenId, graphqlEndpoint)]
+    ?.actions;
+}
+
 /**
  * Adds an account to the local cache, indexed by a GraphQL endpoint.
  */
@@ -213,6 +284,20 @@ function addCachedAccountInternal(account: Account, graphqlEndpoint: string) {
     accountCacheKey(account.publicKey, account.tokenId, graphqlEndpoint)
   ] = {
     account,
+    graphqlEndpoint,
+    timestamp: Date.now(),
+  };
+}
+
+function addCachedActionsInternal(
+  accountInfo: { publicKey: PublicKey; tokenId: Field },
+  actions: { hash: string; actions: string[][] }[],
+  graphqlEndpoint: string
+) {
+  actionsCache[
+    accountCacheKey(accountInfo.publicKey, accountInfo.tokenId, graphqlEndpoint)
+  ] = {
+    actions,
     graphqlEndpoint,
     timestamp: Date.now(),
   };
@@ -450,6 +535,217 @@ function sendZkappQuery(json: string) {
   }
 }
 `;
+}
+type FetchedEvents = {
+  blockInfo: {
+    distanceFromMaxBlockHeight: number;
+    globalSlotSinceGenesis: number;
+    height: number;
+    stateHash: string;
+    parentHash: string;
+    chainStatus: string;
+  };
+  transactionInfo: {
+    hash: string;
+    memo: string;
+    status: string;
+  };
+  eventData: {
+    data: string[];
+  }[];
+};
+type FetchedActions = {
+  actionState: string;
+  actionData: {
+    data: string[];
+  }[];
+};
+
+type EventActionFilterOptions = {
+  to?: UInt32;
+  from?: UInt32;
+};
+
+const getEventsQuery = (
+  publicKey: string,
+  tokenId: string,
+  filterOptions?: EventActionFilterOptions
+) => {
+  const { to, from } = filterOptions ?? {};
+  let input = `address: "${publicKey}", tokenId: "${tokenId}"`;
+  if (to !== undefined) {
+    input += `, to: ${to}`;
+  }
+  if (from !== undefined) {
+    input += `, from: ${from}`;
+  }
+  return `{
+  events(input: { ${input} }) {
+    blockInfo {
+      distanceFromMaxBlockHeight
+      height
+      globalSlotSinceGenesis
+      stateHash
+      parentHash
+      chainStatus
+    }
+    transactionInfo {
+      hash
+      memo
+      status
+    }
+    eventData {
+      data
+    }
+  }
+}`;
+};
+const getActionsQuery = (
+  publicKey: string,
+  tokenId: string,
+  filterOptions?: EventActionFilterOptions
+) => {
+  const { to, from } = filterOptions ?? {};
+  let input = `address: "${publicKey}", tokenId: "${tokenId}"`;
+  if (to !== undefined) {
+    input += `, to: ${to}`;
+  }
+  if (from !== undefined) {
+    input += `, from: ${from}`;
+  }
+  return `{
+  actions(input: { ${input} }) {
+    actionState
+    actionData {
+      data
+    }
+  }
+}`;
+};
+
+/**
+ * Asynchronously fetches event data for an account from the Mina Archive Node GraphQL API.
+ * @async
+ * @param accountInfo - The account information object.
+ * @param accountInfo.publicKey - The account public key.
+ * @param [accountInfo.tokenId] - The optional token ID for the account.
+ * @param [graphqlEndpoint=archiveGraphqlEndpoint] - The GraphQL endpoint to query. Defaults to the Archive Node GraphQL API.
+ * @param [filterOptions={}] - The optional filter options object.
+ * @returns A promise that resolves to an array of objects containing event data, block information and transaction information for the account.
+ * @throws If the GraphQL request fails or the response is invalid.
+ * @example
+ * const accountInfo = { publicKey: 'B62qiwmXrWn7Cok5VhhB3KvCwyZ7NHHstFGbiU5n7m8s2RqqNW1p1wF' };
+ * const events = await fetchEvents(accountInfo);
+ * console.log(events);
+ */
+async function fetchEvents(
+  accountInfo: { publicKey: string; tokenId?: string },
+  graphqlEndpoint = archiveGraphqlEndpoint,
+  filterOptions: EventActionFilterOptions = {}
+) {
+  if (!graphqlEndpoint)
+    throw new Error(
+      'fetchEvents: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
+    );
+  const { publicKey, tokenId } = accountInfo;
+  let [response, error] = await makeGraphqlRequest(
+    getEventsQuery(
+      publicKey,
+      tokenId ?? TokenId.toBase58(TokenId.default),
+      filterOptions
+    ),
+    graphqlEndpoint
+  );
+  if (error) throw Error(error.statusText);
+  let fetchedEvents = response?.data.events as FetchedEvents[];
+  if (fetchedEvents === undefined) {
+    throw Error(
+      `Failed to fetch events data. Account: ${publicKey} Token: ${tokenId}`
+    );
+  }
+
+  // TODO: This is a temporary fix. We should be able to fetch the event/action data from any block at the best tip.
+  // Once https://github.com/o1-labs/Archive-Node-API/issues/7 is resolved, we can remove this.
+  // If we have multiple blocks returned at the best tip (e.g. distanceFromMaxBlockHeight === 0),
+  // then filter out the blocks at the best tip. This is because we cannot guarantee that every block
+  // at the best tip will have the correct event data or guarantee that the specific block data will not
+  // fork in anyway. If this happens, we delay fetching event data until another block has been added to the network.
+  let numberOfBestTipBlocks = 0;
+  for (let i = 0; i < fetchedEvents.length; i++) {
+    if (fetchedEvents[i].blockInfo.distanceFromMaxBlockHeight === 0) {
+      numberOfBestTipBlocks++;
+    }
+    if (numberOfBestTipBlocks > 1) {
+      fetchedEvents = fetchedEvents.filter((event) => {
+        return event.blockInfo.distanceFromMaxBlockHeight !== 0;
+      });
+      break;
+    }
+  }
+
+  return fetchedEvents.map((event) => {
+    let events = event.eventData.map((eventData) => eventData.data);
+
+    return {
+      events,
+      blockHeight: UInt32.from(event.blockInfo.height),
+      blockHash: event.blockInfo.stateHash,
+      parentBlockHash: event.blockInfo.parentHash,
+      globalSlot: UInt32.from(event.blockInfo.globalSlotSinceGenesis),
+      chainStatus: event.blockInfo.chainStatus,
+      transactionHash: event.transactionInfo.hash,
+      transactionStatus: event.transactionInfo.status,
+      transactionMemo: event.transactionInfo.memo,
+    };
+  });
+}
+
+async function fetchActions(
+  accountInfo: { publicKey: string; tokenId?: string },
+  graphqlEndpoint = archiveGraphqlEndpoint,
+  filterOptions: EventActionFilterOptions = {}
+) {
+  if (!graphqlEndpoint)
+    throw new Error(
+      'fetchEvents: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
+    );
+  const { publicKey, tokenId } = accountInfo;
+  let [response, error] = await makeGraphqlRequest(
+    getActionsQuery(
+      publicKey,
+      tokenId ?? TokenId.toBase58(TokenId.default),
+      filterOptions
+    ),
+    graphqlEndpoint
+  );
+  if (error) throw Error(error.statusText);
+  let fetchedActions = response?.data.actions as FetchedActions[];
+  if (fetchedActions === undefined) {
+    return {
+      error: {
+        statusCode: 404,
+        statusText: `fetchActions: Account with public key ${publicKey} with tokenId ${tokenId} does not exist.`,
+      },
+    };
+  }
+
+  const actionData = fetchedActions
+    .map((action) => {
+      return {
+        hash: Ledger.fieldToBase58(Field(action.actionState)),
+        actions: action.actionData.map((actionData) => actionData.data),
+      };
+    })
+    .reverse(); // Reverse the order of actions since the API returns in descending order of block height while Localblockchain pushes new actions to end of array.
+  addCachedActionsInternal(
+    {
+      publicKey: PublicKey.fromBase58(publicKey),
+      tokenId: TokenId.fromBase58(tokenId ?? TokenId.toBase58(TokenId.default)),
+    },
+    actionData,
+    graphqlEndpoint
+  );
+  return actionData;
 }
 
 // removes the quotes on JSON keys

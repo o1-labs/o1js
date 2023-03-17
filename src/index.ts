@@ -16,6 +16,8 @@ export {
   provable,
   provablePure,
   Struct,
+  FlexibleProvable,
+  FlexibleProvablePure,
 } from './lib/circuit_value.js';
 export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
 export { Types } from './provable/types.js';
@@ -45,6 +47,7 @@ export {
   fetchAccount,
   fetchLastBlock,
   fetchTransactionStatus,
+  fetchEvents,
   TransactionStatus,
   addCachedAccount,
   setGraphqlEndpoint,
@@ -83,3 +86,5 @@ namespace Experimental {
   export let Callback = Experimental_.Callback;
   export type Callback<Result> = Callback_<Result>;
 }
+
+Error.stackTraceLimit = 1000;

@@ -239,7 +239,7 @@ function createState<T>(): InternalStateType<T> {
       });
 
       let state = this._contract.stateType.fromFields(stateAsFields);
-      this._contract.stateType.check?.(state);
+      if (inCheckedComputation()) this._contract.stateType.check?.(state);
       this._contract.wasRead = true;
       this._contract.cachedVariable = state;
       return state;

@@ -1,11 +1,12 @@
-import { ZkappCommand as ZkappCommandJson } from '../../provable/gen/transaction-json.js';
+import type { ZkappCommand as ZkappCommandJson } from '../../provable/gen/transaction-json.js';
+import type { SignatureJson } from './signature.js';
 
 export type UInt32 = number | bigint | string;
 export type UInt64 = number | bigint | string;
 
 export type PublicKey = string;
 export type PrivateKey = string;
-export type Signature = string;
+export type Signature = SignatureJson;
 export type Network = 'mainnet' | 'testnet';
 
 export type Keypair = {
@@ -53,6 +54,17 @@ export type ZkappCommand = {
   readonly feePayer: FeePayer;
 };
 
-export type SignableData = string | StakeDelegation | Payment | ZkappCommand;
+export type SignableData = string | StakeDelegation | Payment;
 
-export type Signed<T> = { signature: Signature; publicKey: PublicKey; data: T };
+export type SignedLegacy<T> = {
+  signature: SignatureJson;
+  publicKey: PublicKey;
+  data: T;
+};
+export type Signed<T> = {
+  signature: string; // base58
+  publicKey: PublicKey;
+  data: T;
+};
+
+export type SignedAny = SignedLegacy<SignableData> | Signed<ZkappCommand>;

@@ -10,7 +10,7 @@ import {
 import {
   FlexibleProvable,
   FlexibleProvablePure,
-  InferCircuitValue,
+  InferProvable,
   provable,
   toConstant,
 } from './circuit_value.js';
@@ -92,7 +92,7 @@ class Proof<T> {
       proof: proofString,
       publicInput: publicInputJson,
     }: JsonProof
-  ): Proof<InferCircuitValue<S['publicInputType']>> {
+  ): Proof<InferProvable<S['publicInputType']>> {
     let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
     let publicInput = getPublicInputType(this).fromFields(
       publicInputJson.map(Field)
@@ -163,22 +163,20 @@ function ZkProgram<
 }: {
   publicInput: PublicInputType;
   methods: {
-    [I in keyof Types]: Method<InferCircuitValue<PublicInputType>, Types[I]>;
+    [I in keyof Types]: Method<InferProvable<PublicInputType>, Types[I]>;
   };
 }): {
   name: string;
   compile: () => Promise<{ verificationKey: string }>;
-  verify: (
-    proof: Proof<InferCircuitValue<PublicInputType>>
-  ) => Promise<boolean>;
+  verify: (proof: Proof<InferProvable<PublicInputType>>) => Promise<boolean>;
   digest: () => string;
   publicInputType: PublicInputType;
 } & {
-  [I in keyof Types]: Prover<InferCircuitValue<PublicInputType>, Types[I]>;
+  [I in keyof Types]: Prover<InferProvable<PublicInputType>, Types[I]>;
 } {
   let selfTag = { name: `Program${i++}` };
 
-  type PublicInput = InferCircuitValue<PublicInputType>;
+  type PublicInput = InferProvable<PublicInputType>;
   class SelfProof extends Proof<PublicInput> {
     static publicInputType = publicInputType;
     static tag = () => selfTag;
@@ -594,7 +592,7 @@ function getPublicInputType<T, P extends Subclass<typeof Proof> = typeof Proof>(
 ZkProgram.Proof = function <
   PublicInputType extends FlexibleProvablePure<any>
 >(program: { name: string; publicInputType: PublicInputType }) {
-  type PublicInput = InferCircuitValue<PublicInputType>;
+  type PublicInput = InferProvable<PublicInputType>;
   return class ZkProgramProof extends Proof<PublicInput> {
     static publicInputType = program.publicInputType;
     static tag = () => program;
@@ -643,7 +641,7 @@ function inCompileMode() {
 
 type Infer<T> = T extends Subclass<typeof Proof>
   ? InstanceType<T>
-  : InferCircuitValue<T>;
+  : InferProvable<T>;
 
 type Tuple<T> = [T, ...T[]] | [];
 type TupleToInstances<T> = {

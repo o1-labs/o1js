@@ -34,6 +34,7 @@ export {
   signFieldElement,
   verifyFieldElement,
   Signature,
+  SignatureJson,
   NetworkId,
   signLegacy,
   verifyLegacy,
@@ -44,6 +45,7 @@ const networkIdMainnet = 0x01n;
 const networkIdTestnet = 0x00n;
 type NetworkId = 'mainnet' | 'testnet';
 type Signature = { r: Field; s: Scalar };
+type SignatureJson = { field: string; scalar: string };
 
 const BinableSignature = withVersionNumber(
   record({ r: Field, s: Scalar }, ['r', 's']),
@@ -52,6 +54,17 @@ const BinableSignature = withVersionNumber(
 const Signature = {
   ...BinableSignature,
   ...base58(BinableSignature, versionBytes.signature),
+  toJSON({ r, s }: Signature): SignatureJson {
+    return {
+      field: Field.toJSON(r),
+      scalar: Scalar.toJSON(s),
+    };
+  },
+  fromJSON({ field, scalar }: SignatureJson) {
+    let r = Field.fromJSON(field);
+    let s = Scalar.fromJSON(scalar);
+    return { r, s };
+  },
   dummy() {
     return { r: Field(0), s: Scalar(0) };
   },
@@ -283,7 +296,12 @@ function deriveNonceLegacy(
 }
 
 /**
- * Same as {@link hashMessage}, but using the "legacy" style of hash input packing.
+ * Same as {@link hashMessage}, except for two differences:
+ * - uses the "legacy" style of hash input packing.
+ * - uses Poseidon with "legacy" parameters for hashing
+ *
+ * The method produces a hash in the Pallas base field ({@link Field}) and reinterprets it as a {@link Scalar}.
+ * This is possible, and a no-op, since the scalar field is larger and both fields are represented with bigints.
  */
 function hashMessageLegacy(
   message: HashInputLegacy,

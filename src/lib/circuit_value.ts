@@ -18,6 +18,8 @@ export {
   provable,
   provablePure,
   Struct,
+  FlexibleProvable,
+  FlexibleProvablePure,
 };
 
 // internal API
@@ -30,11 +32,10 @@ export {
   memoizeWitness,
   getBlindingValue,
   toConstant,
-  InferCircuitValue,
+  InferProvable,
   HashInput,
-  FlexibleProvable,
-  FlexibleProvablePure,
   InferJson,
+  InferredProvable,
 };
 
 type Constructor<T> = new (...args: any) => T;
@@ -262,11 +263,12 @@ function prop(this: any, target: any, key: string) {
   }
 }
 
-function circuitArray<
-  A extends FlexibleProvable<any>,
-  T = InferCircuitValue<A>,
-  TJson = InferJson<A>
->(elementType: A, length: number): ProvableExtended<T[], TJson[]> {
+function circuitArray<A extends FlexibleProvable<any>>(
+  elementType: A,
+  length: number
+): InferredProvable<A[]> {
+  type T = InferProvable<A>;
+  type TJson = InferJson<A>;
   let type = elementType as ProvableExtended<T>;
   return {
     /**
@@ -343,7 +345,7 @@ function circuitArray<
         HashInput.empty
       );
     },
-  };
+  } satisfies ProvableExtended<T[], TJson[]> as any;
 }
 
 function arrayProp<T>(elementType: FlexibleProvable<T>, length: number) {
@@ -472,12 +474,14 @@ type ProvableExtension<T, TJson = any> = {
 };
 type ProvableExtended<T, TJson = any> = Provable<T> &
   ProvableExtension<T, TJson>;
+type ProvableExtendedPure<T, TJson = any> = ProvablePure<T> &
+  ProvableExtension<T, TJson>;
 
 function provable<A>(
   typeObj: A,
   options?: { customObjectKeys?: string[]; isPure?: boolean }
-): ProvableExtended<InferCircuitValue<A>, InferJson<A>> {
-  type T = InferCircuitValue<A>;
+): ProvableExtended<InferProvable<A>, InferJson<A>> {
+  type T = InferProvable<A>;
   type J = InferJson<A>;
   let objectKeys =
     typeof typeObj === 'object' && typeObj !== null
@@ -653,8 +657,8 @@ function provable<A>(
 function provablePure<A>(
   typeObj: A,
   options: { customObjectKeys?: string[] } = {}
-): ProvablePure<InferCircuitValue<A>> &
-  ProvableExtension<InferCircuitValue<A>, InferJson<A>> {
+): ProvablePure<InferProvable<A>> &
+  ProvableExtension<InferProvable<A>, InferJson<A>> {
   return provable(typeObj, { ...options, isPure: true }) as any;
 }
 
@@ -730,7 +734,7 @@ function provablePure<A>(
  */
 function Struct<
   A,
-  T extends InferCircuitValue<A> = InferCircuitValue<A>,
+  T extends InferProvable<A> = InferProvable<A>,
   J extends InferJson<A> = InferJson<A>,
   Pure extends boolean = IsPure<A>
 >(
@@ -943,7 +947,7 @@ function toConstant<T>(type: Provable<T>, value: T): T {
 
 let oldAsProver = Circuit.asProver;
 Circuit.asProver = function (f: () => void) {
-  if (Circuit.inCheckedComputation()) {
+  if (inCheckedComputation()) {
     oldAsProver(f);
   } else {
     f();
@@ -978,7 +982,7 @@ Circuit.witness = function <
       : createFields();
   let aux = type.toAuxiliary(proverValue);
   let value = type.fromFields(fields, aux) as T;
-  type.check(value);
+  if (inCheckedComputation()) type.check(value);
   return value;
 };
 
@@ -1162,27 +1166,27 @@ type InferPrimitiveJson<P extends Primitive> = P extends typeof String
   ? null
   : any;
 
-type InferCircuitValue<A> = A extends Constructor<infer U>
+type InferProvable<A> = A extends Constructor<infer U>
   ? A extends Provable<U>
     ? U
     : A extends Struct<U>
     ? U
-    : InferCircuitValueBase<A>
-  : InferCircuitValueBase<A>;
+    : InferProvableBase<A>
+  : InferProvableBase<A>;
 
-type InferCircuitValueBase<A> = A extends Provable<infer U>
+type InferProvableBase<A> = A extends Provable<infer U>
   ? U
   : A extends Primitive
   ? InferPrimitive<A>
   : A extends Tuple<any>
   ? {
-      [I in keyof A]: InferCircuitValue<A[I]>;
+      [I in keyof A]: InferProvable<A[I]>;
     }
   : A extends (infer U)[]
-  ? InferCircuitValue<U>[]
+  ? InferProvable<U>[]
   : A extends Record<any, any>
   ? {
-      [K in keyof A]: InferCircuitValue<A[K]>;
+      [K in keyof A]: InferProvable<A[K]>;
     }
   : never;
 
@@ -1219,3 +1223,7 @@ type IsPureBase<A> = A extends ProvablePure<any>
       [K in keyof A]: IsPure<A[K]>;
     }[keyof A]
   : false;
+
+type InferredProvable<A> = IsPure<A> extends true
+  ? ProvableExtendedPure<InferProvable<A>, InferJson<A>>
+  : ProvableExtended<InferProvable<A>, InferJson<A>>;

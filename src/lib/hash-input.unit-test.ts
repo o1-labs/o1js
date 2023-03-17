@@ -1,30 +1,20 @@
 import {
   isReady,
   AccountUpdate,
-  PrivateKey,
   Types,
   Field,
   Ledger,
-  UInt64,
-  UInt32,
-  Bool,
   Permissions,
-  Sign,
-  Token,
   shutdown,
   ProvableExtended,
 } from '../index.js';
-import { Events, Actions } from './account_update.js';
 import { expect } from 'expect';
 import { jsLayout } from '../provable/gen/js-layout.js';
-import { provableFromLayout } from '../provable/gen/transaction.js';
+import { Json, provableFromLayout } from '../provable/gen/transaction.js';
 import { packToFields } from './hash.js';
+import { Random, test } from './testing/property.js';
 
 await isReady;
-
-let accountUpdate = AccountUpdate.defaultAccountUpdate(
-  PrivateKey.random().toPublicKey()
-);
 
 // types
 type Body = Types.AccountUpdate['body'];
@@ -33,119 +23,71 @@ type Timing = Update['timing']['value'];
 type AccountPrecondition = Body['preconditions']['account'];
 type NetworkPrecondition = Body['preconditions']['network'];
 
-// timing
+// provables
+let bodyLayout = jsLayout.AccountUpdate.entries.body;
 let Timing = provableFromLayout<Timing, any>(
-  jsLayout.AccountUpdate.entries.body.entries.update.entries.timing.inner as any
+  bodyLayout.entries.update.entries.timing.inner as any
 );
-let timing = accountUpdate.body.update.timing.value;
-timing.initialMinimumBalance = UInt64.one;
-timing.vestingPeriod = UInt32.one;
-timing.vestingIncrement = UInt64.from(2);
-testInput(Timing, Ledger.hashInputFromJson.timing, timing);
-
-// permissions
 let Permissions_ = provableFromLayout<Permissions, any>(
-  jsLayout.AccountUpdate.entries.body.entries.update.entries.permissions
-    .inner as any
+  bodyLayout.entries.update.entries.permissions.inner as any
 );
-let permissions = accountUpdate.body.update.permissions;
-permissions.isSome = Bool(true);
-permissions.value = {
-  ...Permissions.default(),
-  setVerificationKey: Permissions.none(),
-  setPermissions: Permissions.none(),
-  receive: Permissions.proof(),
-};
-testInput(
-  Permissions_,
-  Ledger.hashInputFromJson.permissions,
-  permissions.value
-);
-
-// update
-let Update = provableFromLayout<Update, any>(
-  jsLayout.AccountUpdate.entries.body.entries.update as any
-);
-let update = accountUpdate.body.update;
-
-update.timing.isSome = Bool(true);
-update.appState[0].isSome = Bool(true);
-update.appState[0].value = Field(9);
-
-let delegate = PrivateKey.random().toPublicKey();
-accountUpdate.account.delegate.set(delegate);
-accountUpdate.account.tokenSymbol.set('BLABLA');
-accountUpdate.account.zkappUri.set('https://example.com');
-testInput(Update, Ledger.hashInputFromJson.update, update);
-
-// account precondition
+let Update = provableFromLayout<Update, any>(bodyLayout.entries.update as any);
 let AccountPrecondition = provableFromLayout<AccountPrecondition, any>(
-  jsLayout.AccountUpdate.entries.body.entries.preconditions.entries
-    .account as any
+  bodyLayout.entries.preconditions.entries.account as any
 );
-let account = accountUpdate.body.preconditions.account;
-accountUpdate.account.balance.assertEquals(UInt64.from(1e9));
-accountUpdate.account.isNew.assertEquals(Bool(true));
-accountUpdate.account.delegate.assertEquals(delegate);
-account.state[0].isSome = Bool(true);
-account.state[0].value = Field(9);
-testInput(
-  AccountPrecondition,
-  Ledger.hashInputFromJson.accountPrecondition,
-  account
-);
-
-// network precondition
 let NetworkPrecondition = provableFromLayout<NetworkPrecondition, any>(
-  jsLayout.AccountUpdate.entries.body.entries.preconditions.entries
-    .network as any
+  bodyLayout.entries.preconditions.entries.network as any
 );
-let network = accountUpdate.body.preconditions.network;
-accountUpdate.network.stakingEpochData.ledger.hash.assertEquals(Field.random());
-accountUpdate.network.nextEpochData.lockCheckpoint.assertEquals(Field.random());
+let Body = provableFromLayout<Body, any>(bodyLayout as any);
 
-testInput(
-  NetworkPrecondition,
-  Ledger.hashInputFromJson.networkPrecondition,
-  network
-);
+// test with random account udpates
+test(Random.json.accountUpdate, (accountUpdateJson) => {
+  fixVerificationKey(accountUpdateJson);
+  let accountUpdate = AccountUpdate.fromJSON(accountUpdateJson);
 
-// body
-let Body = provableFromLayout<Body, any>(
-  jsLayout.AccountUpdate.entries.body as any
-);
-let body = accountUpdate.body;
-body.balanceChange.magnitude = UInt64.from(14197832);
-body.balanceChange.sgn = Sign.minusOne;
-body.callData = Field.random();
-body.callDepth = 1;
-body.incrementNonce = Bool(true);
-let tokenOwner = PrivateKey.random().toPublicKey();
-body.tokenId = new Token({ tokenOwner }).id;
-body.mayUseToken = {
-  parentsOwnToken: Bool(true),
-  inheritFromParent: Bool(false),
-};
-let events = Events.empty();
-events = Events.pushEvent(events, [Field(1)]);
-events = Events.pushEvent(events, [Field(0)]);
-body.events = events;
-let actions = Actions.empty();
-actions = Actions.pushEvent(actions, [Field(1)]);
-actions = Actions.pushEvent(actions, [Field(0)]);
-body.actions = actions;
+  // timing
+  let timing = accountUpdate.body.update.timing.value;
+  testInput(Timing, Ledger.hashInputFromJson.timing, timing);
 
-testInput(Body, Ledger.hashInputFromJson.body, body);
+  // permissions
+  let permissions = accountUpdate.body.update.permissions.value;
+  testInput(Permissions_, Ledger.hashInputFromJson.permissions, permissions);
 
-// accountUpdate (should be same as body)
-testInput(
-  Types.AccountUpdate,
-  (accountUpdateJson) =>
-    Ledger.hashInputFromJson.body(
-      JSON.stringify(JSON.parse(accountUpdateJson).body)
-    ),
-  accountUpdate
-);
+  // update
+  // TODO non ascii strings in zkapp uri and token symbol fail
+  let update = accountUpdate.body.update;
+  testInput(Update, Ledger.hashInputFromJson.update, update);
+
+  // account precondition
+  let account = accountUpdate.body.preconditions.account;
+  testInput(
+    AccountPrecondition,
+    Ledger.hashInputFromJson.accountPrecondition,
+    account
+  );
+
+  // network precondition
+  let network = accountUpdate.body.preconditions.network;
+  testInput(
+    NetworkPrecondition,
+    Ledger.hashInputFromJson.networkPrecondition,
+    network
+  );
+
+  // body
+  let body = accountUpdate.body;
+  testInput(Body, Ledger.hashInputFromJson.body, body);
+
+  // accountUpdate (should be same as body)
+  testInput(
+    Types.AccountUpdate,
+    (accountUpdateJson) =>
+      Ledger.hashInputFromJson.body(
+        JSON.stringify(JSON.parse(accountUpdateJson).body)
+      ),
+    accountUpdate
+  );
+});
 
 console.log('all hash inputs are consistent! 🎉');
 shutdown();
@@ -203,4 +145,9 @@ function inputToOcaml({
     fields,
     packed: packed.map(([field, size]) => ({ field, size })),
   };
+}
+
+function fixVerificationKey(accountUpdate: Json.AccountUpdate) {
+  // TODO we set vk to null since we can't generate a valid random one
+  accountUpdate.body.update.verificationKey = null;
 }
