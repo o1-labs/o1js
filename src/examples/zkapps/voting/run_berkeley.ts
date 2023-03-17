@@ -1,10 +1,7 @@
 import {
   AccountUpdate,
-  addCachedAccount,
   Bool,
   fetchAccount,
-  fetchLastBlock,
-  Field,
   isReady,
   Mina,
   PrivateKey,
@@ -15,7 +12,6 @@ import {
   UInt32,
   UInt64,
 } from 'snarkyjs';
-import { Main } from 'src/examples/schnorr_sign.js';
 import { VotingApp, VotingAppParams } from './factory.js';
 import { Member, MyMerkleWitness } from './member.js';
 import { OffchainStorage } from './off_chain_storage.js';
@@ -32,12 +28,23 @@ const Berkeley = Mina.Network({
 });
 Mina.setActiveInstance(Berkeley);
 
-let feePayerKey = PrivateKey.fromBase58(
-  'EKEaW7BFADc2C6NqemHGBqi2yK9C8qkSEudDs7x8BAnmw5mT4VWB'
-);
-let feePayerAddress = PublicKey.fromBase58(
-  'B62qmHN4KwLyQwEhqmXA9BT9UpbKhDFXxRsjHHyaTnoFQnD2kAcExzd'
-);
+let feePayerKey = PrivateKey.random();
+let feePayerAddress = feePayerKey.toPublicKey();
+
+let voterKey = PrivateKey.random();
+let candidateKey = PrivateKey.random();
+let votingKey = PrivateKey.random();
+
+console.log('waiting for accounts to receive funds...');
+await Mina.faucet(feePayerAddress);
+console.log('funds received');
+
+console.log(`using the following addressed:
+feePayer: ${feePayerAddress.toBase58()}
+voting manager contract: ${votingKey.toPublicKey().toBase58()}
+candidate membership contract: ${candidateKey.toPublicKey().toBase58()}
+voter membership contract: ${voterKey.toPublicKey().toBase58()}`);
+
 let params: VotingAppParams = {
   candidatePreconditions: new ParticipantPreconditions(
     UInt64.from(0),
@@ -52,12 +59,13 @@ let params: VotingAppParams = {
     UInt32.MAXINT(),
     Bool(false)
   ),
-  voterKey: PrivateKey.random(),
-  candidateKey: PrivateKey.random(),
-  votingKey: PrivateKey.random(),
+  voterKey,
+  candidateKey,
+  votingKey,
   doProofs: false,
 };
 
+// we are using pre-funded voters here
 const members = [
   PublicKey.fromBase58(
     'B62qqzhd5U54JafhR4CB8NLWQM8PRfiCZ4TuoTT5UQHzGwdR2f5RLnK'
@@ -73,7 +81,7 @@ let storage = {
   votersStore: new OffchainStorage<Member>(3),
 };
 
-console.log('Building contracts');
+console.log('building contracts');
 let contracts = await VotingApp(params);
 
 console.log('deploying set of 3 contracts');
@@ -151,6 +159,10 @@ tx = await Mina.transaction(
 await tx.prove();
 await (await tx.sign([feePayerKey]).send()).wait();
 console.log('candidate registered');
+// we have to wait a few seconds before continuing, otherwise we might not get the actions from the archive, we if continue too fast
+await new Promise((resolve) => setTimeout(resolve, 20000));
+
+await fetchAllAccounts();
 
 console.log('approving registrations');
 tx = await Mina.transaction(
@@ -183,9 +195,9 @@ tx = await Mina.transaction(
     );
 
     let v = storage.votersStore.get(0n)!;
-
     v.witness = new MyMerkleWitness(storage.votersStore.getWitness(0n));
-
+    console.log(v.witness.calculateRoot(v.getHash()).toString());
+    console.log(contracts.voting.committedVotes.get().toString());
     contracts.voting.vote(currentCandidate, v);
   }
 );
@@ -193,6 +205,7 @@ await tx.prove();
 await (await tx.sign([feePayerKey]).send()).wait();
 vote(0n, storage.votesStore, storage.candidatesStore);
 console.log('voted for a candidate');
+await new Promise((resolve) => setTimeout(resolve, 20000));
 
 await fetchAllAccounts();
 
@@ -206,6 +219,7 @@ tx = await Mina.transaction(
 await tx.prove();
 await (await tx.sign([feePayerKey]).send()).wait();
 console.log('votes counted');
+await new Promise((resolve) => setTimeout(resolve, 20000));
 
 await fetchAllAccounts();
 let results = getResults(contracts.voting, storage.votesStore);

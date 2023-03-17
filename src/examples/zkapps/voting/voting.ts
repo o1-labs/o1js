@@ -116,10 +116,12 @@ export class Voting_ extends SmartContract {
   @method
   voterRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
+    this.network.globalSlotSinceGenesis.assertBetween(
+      currentSlot,
+      currentSlot.add(10)
+    );
 
     // can only register voters before the election has started
-
     Circuit.if(
       electionPreconditions.enforce,
       currentSlot.lessThanOrEqual(electionPreconditions.startElection),
@@ -166,7 +168,10 @@ export class Voting_ extends SmartContract {
   @method
   candidateRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
+    this.network.globalSlotSinceGenesis.assertBetween(
+      currentSlot,
+      currentSlot.add(10)
+    );
 
     // can only register candidates before the election has started
     Circuit.if(
