@@ -731,27 +731,34 @@ async function fetchActions(
     };
   }
 
-  const actionData = fetchedActions
-    .map((action) => {
-      const actionMap = action.actionData
-        .sort((a, b) => {
-          return Number(a.accountUpdateId) - Number(b.accountUpdateId);
-        })
-        .reduce((actionMap, action) => {
-          if (actionMap.has(action.accountUpdateId)) {
-            actionMap.get(action.accountUpdateId)?.concat(action.data);
-          } else {
-            actionMap.set(action.accountUpdateId, action.data);
-          }
-          return actionMap;
-        }, new Map<string, string[]>());
+  let actionMap = new Map<
+    string,
+    {
+      hash: string;
+      actions: string[][];
+    }
+  >();
+  for (const { actionState, actionData } of fetchedActions) {
+    for (const { accountUpdateId, data } of actionData) {
+      const action = actionMap.get(accountUpdateId);
+      if (action) {
+        const { actions } = action;
+        actions.push(data);
+        actionMap.set(accountUpdateId, {
+          hash: Ledger.fieldToBase58(Field(actionState)),
+          actions,
+        });
+      } else {
+        actionMap.set(accountUpdateId, {
+          hash: Ledger.fieldToBase58(Field(actionState)),
+          actions: [data],
+        });
+      }
+    }
+  }
 
-      return {
-        hash: Ledger.fieldToBase58(Field(action.actionState)),
-        actions: [...actionMap.values()],
-      };
-    })
-    .reverse(); // Reverse the order of actions since the API returns in descending order of block height while Localblockchain pushes new actions to end of array.
+  // Reverse the order of actions since the API returns in descending order of block height while Localblockchain pushes new actions to end of array.
+  const actionData = [...actionMap.values()].reverse();
   addCachedActionsInternal(
     {
       publicKey: PublicKey.fromBase58(publicKey),
