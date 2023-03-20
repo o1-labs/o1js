@@ -509,7 +509,7 @@ function LocalBlockchain({
             actions[addr][tokenId] = [];
           }
           actions[addr][tokenId].push({
-            actions: actionList,
+            actions: [actionList],
             hash: Ledger.fieldToBase58(latestActionsHash),
           });
         }
