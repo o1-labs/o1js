@@ -161,7 +161,7 @@ let networkCache = {} as Record<
 let actionsCache = {} as Record<
   string,
   {
-    actions: { hash: string; actions: string[][][] }[];
+    actions: { hash: string; actions: string[][] }[];
     graphqlEndpoint: string;
     timestamp: number;
   }
@@ -291,7 +291,7 @@ function addCachedAccountInternal(account: Account, graphqlEndpoint: string) {
 
 function addCachedActionsInternal(
   accountInfo: { publicKey: PublicKey; tokenId: Field },
-  actions: { hash: string; actions: string[][][] }[],
+  actions: { hash: string; actions: string[][] }[],
   graphqlEndpoint: string
 ) {
   actionsCache[
@@ -733,14 +733,19 @@ async function fetchActions(
 
   const actionData = fetchedActions
     .map((action) => {
-      const actionMap = action.actionData.reduce((acc, action) => {
-        if (acc.has(action.id)) {
-          acc.get(action.id)?.push(action.data);
+      const sortedActionsById = action.actionData.sort((a, b) => {
+        return Number(a.id) - Number(b.id);
+      });
+
+      const actionMap = sortedActionsById.reduce((actionMap, action) => {
+        if (actionMap.has(action.id)) {
+          actionMap.get(action.id)?.concat(action.data);
         } else {
-          acc.set(action.id, [action.data]);
+          actionMap.set(action.id, action.data);
         }
-        return acc;
-      }, new Map<string, string[][]>());
+        return actionMap;
+      }, new Map<string, string[]>());
+
       return {
         hash: Ledger.fieldToBase58(Field(action.actionState)),
         actions: [...actionMap.values()],
