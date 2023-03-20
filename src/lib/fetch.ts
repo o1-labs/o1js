@@ -161,7 +161,7 @@ let networkCache = {} as Record<
 let actionsCache = {} as Record<
   string,
   {
-    actions: { hash: string; actions: string[][] }[];
+    actions: { hash: string; actions: string[][][] }[];
     graphqlEndpoint: string;
     timestamp: number;
   }
@@ -291,7 +291,7 @@ function addCachedAccountInternal(account: Account, graphqlEndpoint: string) {
 
 function addCachedActionsInternal(
   accountInfo: { publicKey: PublicKey; tokenId: Field },
-  actions: { hash: string; actions: string[][] }[],
+  actions: { hash: string; actions: string[][][] }[],
   graphqlEndpoint: string
 ) {
   actionsCache[
@@ -557,6 +557,7 @@ type FetchedEvents = {
 type FetchedActions = {
   actionState: string;
   actionData: {
+    id: string;
     data: string[];
   }[];
 };
@@ -617,6 +618,7 @@ const getActionsQuery = (
   actions(input: { ${input} }) {
     actionState
     actionData {
+      id
       data
     }
   }
@@ -731,9 +733,17 @@ async function fetchActions(
 
   const actionData = fetchedActions
     .map((action) => {
+      const actionMap = action.actionData.reduce((acc, action) => {
+        if (acc.has(action.id)) {
+          acc.get(action.id)?.push(action.data);
+        } else {
+          acc.set(action.id, [action.data]);
+        }
+        return acc;
+      }, new Map<string, string[][]>());
       return {
         hash: Ledger.fieldToBase58(Field(action.actionState)),
-        actions: action.actionData.map((actionData) => actionData.data),
+        actions: [...actionMap.values()],
       };
     })
     .reverse(); // Reverse the order of actions since the API returns in descending order of block height while Localblockchain pushes new actions to end of array.

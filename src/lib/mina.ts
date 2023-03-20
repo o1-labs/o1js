@@ -329,7 +329,7 @@ interface Mina {
   getActions: (
     publicKey: PublicKey,
     tokenId?: Field
-  ) => { hash: string; actions: string[][] }[];
+  ) => { hash: string; actions: string[][][] }[];
   proofsEnabled: boolean;
 }
 
@@ -562,7 +562,7 @@ function LocalBlockchain({
     getActions(
       publicKey: PublicKey,
       tokenId: Field = TokenId.default
-    ): { hash: string; actions: string[][] }[] {
+    ): { hash: string; actions: string[][][] }[] {
       return (
         actions?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)] ?? []
       );

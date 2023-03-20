@@ -1265,7 +1265,7 @@ type ReducerReturn<Action> = {
   }: {
     fromActionHash?: Field;
     endActionHash?: Field;
-  }): Action[][];
+  }): Action[][][];
 };
 
 function getReducer<A>(contract: SmartContract): ReducerReturn<A> {
@@ -1363,8 +1363,8 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
     }: {
       fromActionHash?: Field;
       endActionHash?: Field;
-    }): A[][] {
-      let actionsForAccount: A[][] = [];
+    }): A[][][] {
+      let actionsForAccount: A[][][] = [];
       Circuit.asProver(() => {
         // if the fromActionHash is the empty state, we fetch all events
         fromActionHash = fromActionHash
@@ -1394,11 +1394,13 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         // slices the array so we only get the wanted range between fromActionHash and endActionHash
         actionsForAccount = actions
           .slice(startIndex, endIndex === 0 ? undefined : endIndex)
-          .map((event: { hash: string; actions: string[][] }) =>
+          .map((event: { hash: string; actions: string[][][] }) =>
             // putting our string-Fields back into the original action type
-            event.actions.map((action: string[]) =>
-              (reducer.actionType as ProvablePure<A>).fromFields(
-                action.map((fieldAsString: string) => Field(fieldAsString))
+            event.actions.map((actions: string[][]) =>
+              actions.map((action: string[]) =>
+                (reducer.actionType as ProvablePure<A>).fromFields(
+                  action.map((fieldAsString: string) => Field(fieldAsString))
+                )
               )
             )
           );
