@@ -557,7 +557,7 @@ type FetchedEvents = {
 type FetchedActions = {
   actionState: string;
   actionData: {
-    id: string;
+    accountUpdateId: string;
     data: string[];
   }[];
 };
@@ -618,7 +618,7 @@ const getActionsQuery = (
   actions(input: { ${input} }) {
     actionState
     actionData {
-      id
+      accountUpdateId
       data
     }
   }
@@ -733,18 +733,18 @@ async function fetchActions(
 
   const actionData = fetchedActions
     .map((action) => {
-      const sortedActionsById = action.actionData.sort((a, b) => {
-        return Number(a.id) - Number(b.id);
-      });
-
-      const actionMap = sortedActionsById.reduce((actionMap, action) => {
-        if (actionMap.has(action.id)) {
-          actionMap.get(action.id)?.concat(action.data);
-        } else {
-          actionMap.set(action.id, action.data);
-        }
-        return actionMap;
-      }, new Map<string, string[]>());
+      const actionMap = action.actionData
+        .sort((a, b) => {
+          return Number(a.accountUpdateId) - Number(b.accountUpdateId);
+        })
+        .reduce((actionMap, action) => {
+          if (actionMap.has(action.accountUpdateId)) {
+            actionMap.get(action.accountUpdateId)?.concat(action.data);
+          } else {
+            actionMap.set(action.accountUpdateId, action.data);
+          }
+          return actionMap;
+        }, new Map<string, string[]>());
 
       return {
         hash: Ledger.fieldToBase58(Field(action.actionState)),
