@@ -11,6 +11,7 @@ import {
   Circuit,
   Bool,
   Reducer,
+  provablePure,
 } from 'snarkyjs';
 
 import { Member } from './member.js';
@@ -87,6 +88,14 @@ export class Voting_ extends SmartContract {
 
   reducer = Reducer({ actionType: Member });
 
+  events = {
+    newVoteFor: PublicKey,
+    newVoteState: provablePure({
+      committedVotesRoot: Field,
+      accumulatedVotesRoot: Field,
+    }),
+  };
+
   deploy(args: DeployArgs) {
     super.deploy(args);
     this.account.permissions.set({
@@ -107,10 +116,17 @@ export class Voting_ extends SmartContract {
   @method
   voterRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
+    this.network.globalSlotSinceGenesis.assertBetween(
+      currentSlot,
+      currentSlot.add(10)
+    );
 
     // can only register voters before the election has started
-    currentSlot.assertLessThanOrEqual(electionPreconditions.startElection);
+    Circuit.if(
+      electionPreconditions.enforce,
+      currentSlot.lessThanOrEqual(electionPreconditions.startElection),
+      Bool(true)
+    ).assertTrue('Outside of election period!');
 
     // can only register voters if their balance is gte the minimum amount required
     // this snippet pulls the account data of an address from the network
@@ -126,8 +142,14 @@ export class Voting_ extends SmartContract {
 
     let balance = accountUpdate.account.balance.get();
 
-    balance.assertGreaterThanOrEqual(voterPreconditions.minMina);
-    balance.assertLessThanOrEqual(voterPreconditions.maxMina);
+    balance.assertGreaterThanOrEqual(
+      voterPreconditions.minMina,
+      'Balance not high enough!'
+    );
+    balance.assertLessThanOrEqual(
+      voterPreconditions.maxMina,
+      'Balance too high!'
+    );
 
     let VoterContract: Membership_ = new Membership_(voterAddress);
     let exists = VoterContract.addEntry(member);
@@ -146,10 +168,17 @@ export class Voting_ extends SmartContract {
   @method
   candidateRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
+    this.network.globalSlotSinceGenesis.assertBetween(
+      currentSlot,
+      currentSlot.add(10)
+    );
 
     // can only register candidates before the election has started
-    currentSlot.assertLessThanOrEqual(electionPreconditions.startElection);
+    Circuit.if(
+      electionPreconditions.enforce,
+      currentSlot.lessThanOrEqual(electionPreconditions.startElection),
+      Bool(true)
+    ).assertTrue();
 
     // can only register candidates if their balance is gte the minimum amount required
     // and lte the maximum amount
@@ -165,8 +194,14 @@ export class Voting_ extends SmartContract {
 
     let balance = accountUpdate.account.balance.get();
 
-    balance.assertGreaterThanOrEqual(candidatePreconditions.minMina);
-    balance.assertLessThanOrEqual(candidatePreconditions.maxMina);
+    balance.assertGreaterThanOrEqual(
+      candidatePreconditions.minMina,
+      'Balance not high enough!'
+    );
+    balance.assertLessThanOrEqual(
+      candidatePreconditions.maxMina,
+      'Balance too high!'
+    );
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
     let exists = CandidateContract.addEntry(member);
@@ -200,24 +235,34 @@ export class Voting_ extends SmartContract {
   @method
   vote(candidate: Member, voter: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.assertEquals(currentSlot);
+    this.network.globalSlotSinceGenesis.assertBetween(
+      currentSlot,
+      currentSlot.add(10)
+    );
 
     // we can only vote in the election period time frame
-    currentSlot
-      .greaterThanOrEqual(electionPreconditions.startElection)
-      .and(currentSlot.lessThanOrEqual(electionPreconditions.endElection))
-      .assertTrue();
+    Circuit.if(
+      electionPreconditions.enforce,
+      currentSlot
+        .greaterThanOrEqual(electionPreconditions.startElection)
+        .and(currentSlot.lessThanOrEqual(electionPreconditions.endElection)),
+      Bool(true)
+    ).assertTrue('Not in voting period!');
 
     // verifying that both the voter and the candidate are actually part of our member set
     // ideally we would also verify a signature here, but ignoring that for now
     let VoterContract: Membership_ = new Membership_(voterAddress);
-    VoterContract.isMember(voter).assertTrue();
+    VoterContract.isMember(voter).assertTrue('Member is not a voter!');
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
-    CandidateContract.isMember(candidate).assertTrue();
+    CandidateContract.isMember(candidate).assertTrue(
+      'Member is not a candidate!'
+    );
 
     // emits a sequence event with the information about the candidate
     this.reducer.dispatch(candidate);
+
+    this.emitEvent('newVoteFor', candidate.publicKey);
   }
 
   /**
@@ -248,5 +293,10 @@ export class Voting_ extends SmartContract {
 
     this.committedVotes.set(newCommittedVotes);
     this.accumulatedVotes.set(newAccumulatedVotes);
+
+    this.emitEvent('newVoteState', {
+      committedVotesRoot: newCommittedVotes,
+      accumulatedVotesRoot: newAccumulatedVotes,
+    });
   }
 }
