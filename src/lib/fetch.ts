@@ -773,7 +773,8 @@ async function fetchActions(
           // If the account update id is the same and it is the last action, then add the last action to the list
           currentActionList.push(data);
         } else if (isLastAction) {
-          // Process the current action list and then add the last action to the list
+          // If the account update id is different and it is the last action, then process the current action list
+          // And create a new action list with the last action
           const newLatestActionsHash = processActionData(
             actionsList,
             currentActionList,
@@ -792,6 +793,7 @@ async function fetchActions(
         currentAccountUpdateId = accountUpdateId;
         currentActionList = [data];
       } else {
+        // If the account update id is the same, then add the action to the list
         currentActionList.push(data);
       }
     });
