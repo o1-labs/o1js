@@ -1,7 +1,7 @@
 import 'isomorphic-fetch';
 import { Field, Ledger } from '../snarky.js';
 import { UInt32, UInt64 } from './int.js';
-import { TokenId } from './account_update.js';
+import { SequenceEvents, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
 import { Types } from '../provable/types.js';
@@ -730,44 +730,61 @@ async function fetchActions(
       },
     };
   }
+  // Archive Node API returns actions in the latest order, so we reverse the array to get the actions in chronological order.
+  fetchedActions.reverse();
+  let actionsList: { actions: string[][]; hash: string }[] = [];
+  let latestActionsHash = SequenceEvents.emptySequenceState();
 
-  let actionMap = new Map<
-    string,
-    {
-      hash: string;
-      actions: string[][];
-    }
-  >();
-  for (const { actionState, actionData } of fetchedActions) {
-    for (const { accountUpdateId, data } of actionData) {
-      const action = actionMap.get(accountUpdateId);
-      if (action) {
-        const { actions } = action;
-        actions.push(data);
-        actionMap.set(accountUpdateId, {
-          hash: Ledger.fieldToBase58(Field(actionState)),
-          actions,
+  fetchedActions.forEach((fetchedAction) => {
+    const { actionState, actionData } = fetchedAction;
+    if (actionData.length === 0)
+      throw new Error(
+        `No action data was found for the account ${publicKey} with the latest action state ${actionState}`
+      );
+    let currentAccountUpdateId = actionData[0].accountUpdateId;
+    let currentActionList: string[][] = [];
+    actionData.forEach((action, i) => {
+      const { accountUpdateId, data } = action;
+      const isLastAction = i === actionData.length - 1;
+
+      if (accountUpdateId !== currentAccountUpdateId || isLastAction) {
+        if (isLastAction) currentActionList.push(data);
+        let actionsHash = SequenceEvents.hash(
+          currentActionList.map((e) => e.map((f) => Field(f)))
+        );
+        latestActionsHash = SequenceEvents.updateSequenceState(
+          latestActionsHash,
+          actionsHash
+        );
+        actionsList.push({
+          actions: currentActionList,
+          hash: Ledger.fieldToBase58(Field(latestActionsHash)),
         });
+        currentAccountUpdateId = accountUpdateId;
+        currentActionList = [data];
       } else {
-        actionMap.set(accountUpdateId, {
-          hash: Ledger.fieldToBase58(Field(actionState)),
-          actions: [data],
-        });
+        currentActionList.push(data);
       }
-    }
-  }
+    });
 
-  // Reverse the order of actions since the API returns in descending order of block height while Localblockchain pushes new actions to end of array.
-  const actionData = [...actionMap.values()].reverse();
+    const currentActionHash = Ledger.fieldToBase58(Field(latestActionsHash));
+    const expectedActionHash = Ledger.fieldToBase58(Field(actionState));
+
+    if (currentActionHash !== expectedActionHash) {
+      throw new Error(
+        `Failed to derive correct actions hash for ${publicKey}. Derived hash: ${currentActionHash}, expected hash: ${expectedActionHash})`
+      );
+    }
+  });
   addCachedActionsInternal(
     {
       publicKey: PublicKey.fromBase58(publicKey),
       tokenId: TokenId.fromBase58(tokenId ?? TokenId.toBase58(TokenId.default)),
     },
-    actionData,
+    actionsList,
     graphqlEndpoint
   );
-  return actionData;
+  return actionsList;
 }
 
 // removes the quotes on JSON keys
