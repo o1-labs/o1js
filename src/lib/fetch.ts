@@ -730,6 +730,26 @@ async function fetchActions(
       },
     };
   }
+
+  const processActionData = (
+    actionsList: { actions: string[][]; hash: string }[],
+    currentActionList: string[][],
+    latestActionsHash: Field
+  ): Field => {
+    const actionsHash = SequenceEvents.hash(
+      currentActionList.map((e) => e.map((f) => Field(f)))
+    );
+    const newLatestActionsHash = SequenceEvents.updateSequenceState(
+      latestActionsHash,
+      actionsHash
+    );
+    actionsList.push({
+      actions: currentActionList,
+      hash: Ledger.fieldToBase58(Field(newLatestActionsHash)),
+    });
+    return newLatestActionsHash;
+  };
+
   // Archive Node API returns actions in the latest order, so we reverse the array to get the actions in chronological order.
   fetchedActions.reverse();
   let actionsList: { actions: string[][]; hash: string }[] = [];
@@ -743,23 +763,32 @@ async function fetchActions(
       );
     let currentAccountUpdateId = actionData[0].accountUpdateId;
     let currentActionList: string[][] = [];
+
     actionData.forEach((action, i) => {
       const { accountUpdateId, data } = action;
       const isLastAction = i === actionData.length - 1;
 
       if (accountUpdateId !== currentAccountUpdateId || isLastAction) {
-        if (isLastAction) currentActionList.push(data);
-        let actionsHash = SequenceEvents.hash(
-          currentActionList.map((e) => e.map((f) => Field(f)))
+        if (accountUpdateId === currentAccountUpdateId && isLastAction) {
+          // If the account update id is the same and it is the last action, then add the last action to the list
+          currentActionList.push(data);
+        } else if (isLastAction) {
+          // Process the current action list and then add the last action to the list
+          const newLatestActionsHash = processActionData(
+            actionsList,
+            currentActionList,
+            latestActionsHash
+          );
+          latestActionsHash = newLatestActionsHash;
+          currentAccountUpdateId = accountUpdateId;
+          currentActionList = [data];
+        }
+        const newLatestActionsHash = processActionData(
+          actionsList,
+          currentActionList,
+          latestActionsHash
         );
-        latestActionsHash = SequenceEvents.updateSequenceState(
-          latestActionsHash,
-          actionsHash
-        );
-        actionsList.push({
-          actions: currentActionList,
-          hash: Ledger.fieldToBase58(Field(latestActionsHash)),
-        });
+        latestActionsHash = newLatestActionsHash;
         currentAccountUpdateId = accountUpdateId;
         currentActionList = [data];
       } else {
