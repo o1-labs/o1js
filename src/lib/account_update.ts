@@ -1934,8 +1934,7 @@ async function addMissingProofs(
               console.error(
                 `Error when proving ${ZkappClass.name}.${methodName}()`
               );
-              console.error((err as any)[2]);
-              throw (err as any)[2];
+              throw err;
             }
           }
         )
