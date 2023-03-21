@@ -17,7 +17,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/9acec55...HEAD)
 
-> No unreleased changes yet
+### Fixed
+
+- `getActions` to handle multiple actions with multiple Account Updates https://github.com/o1-labs/snarkyjs/pull/801
 
 ## [0.9.3](https://github.com/o1-labs/snarkyjs/compare/1abdfb70...9acec55)
 
