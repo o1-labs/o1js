@@ -796,7 +796,11 @@ async function fetchActions(
 
     if (currentActionHash !== expectedActionHash) {
       throw new Error(
-        `Failed to derive correct actions hash for ${publicKey}. Derived hash: ${currentActionHash}, expected hash: ${expectedActionHash})`
+        `Failed to derive correct actions hash for ${publicKey}.
+        Derived hash: ${currentActionHash}, expected hash: ${expectedActionHash}).
+        All action hashes derived: ${JSON.stringify(actionsList, null, 2)}
+        Please try a different Archive Node API endpoint.
+        `
       );
     }
   });
