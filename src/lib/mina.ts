@@ -208,9 +208,13 @@ function createTransaction(
     while (true) {
       if (err !== undefined) err.bootstrap();
       try {
-        snarkContext.runWith({ inRunAndCheck: true }, () =>
-          Circuit.runAndCheck(f)
-        );
+        if (fetchMode === 'test') {
+          Circuit.runUnchecked(f);
+        } else {
+          snarkContext.runWith({ inRunAndCheck: true }, () =>
+            Circuit.runAndCheck(f)
+          );
+        }
         break;
       } catch (err_) {
         if ((err_ as any)?.bootstrap) err = err_;
@@ -540,6 +544,7 @@ function LocalBlockchain({
       let tx = createTransaction(sender, f, 0, {
         isFinalRunOutsideCircuit: false,
         proofsEnabled,
+        fetchMode: 'test',
       });
       let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
