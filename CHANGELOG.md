@@ -17,7 +17,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/21de489...HEAD)
 
-> No unreleased changes yet
+### Fixed
+
+- Update the zkApp from within one of its own methods, via proof https://github.com/o1-labs/snarkyjs/pull/808
 
 ## [0.9.4](https://github.com/o1-labs/snarkyjs/compare/9acec55...21de489)
 
