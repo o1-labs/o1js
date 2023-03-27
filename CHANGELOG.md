@@ -17,7 +17,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/21de489...HEAD)
 
-> No unreleased changes yet
+### Fixed
+
+- Failing `Mina.transaction` on Berkeley because of unsatisfied constraints caused by dummy data before we fetched account state https://github.com/o1-labs/snarkyjs/pull/807
+  - Previously, you could work around this by calling `fetchAccount()` for every account invovled in a transaction. This is not necessary anymore.
 
 ## [0.9.4](https://github.com/o1-labs/snarkyjs/compare/9acec55...21de489)
 
