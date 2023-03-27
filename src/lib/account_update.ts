@@ -1732,13 +1732,24 @@ const Authorization = {
     accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
   setProofAuthorizationKind(
-    { body }: AccountUpdate,
+    { body, id }: AccountUpdate,
     priorAccountUpdates?: AccountUpdate[]
   ) {
     body.authorizationKind.isSigned = Bool(false);
     body.authorizationKind.isProved = Bool(true);
     let hash = Circuit.witness(Field, () => {
-      priorAccountUpdates ??= zkAppProver.getData().transaction.accountUpdates;
+      let proverData = zkAppProver.getData();
+      let isProver = proverData !== undefined;
+      if (!isProver && priorAccountUpdates === undefined) {
+        throw Error(
+          'invariant violation: only the prover can call `setProofAuthorizationKind()` without passing in `priorAccountUpdates`'
+        );
+      }
+      let myAccountUpdateId = isProver ? proverData.accountUpdate.id : id;
+      priorAccountUpdates ??= proverData.transaction.accountUpdates;
+      priorAccountUpdates = priorAccountUpdates.filter(
+        (a) => a.id !== myAccountUpdateId
+      );
       let priorAccountUpdatesFlat = CallForest.toFlatList(
         priorAccountUpdates,
         false
