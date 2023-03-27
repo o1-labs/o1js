@@ -818,6 +818,7 @@ class AccountUpdate implements Types.AccountUpdate {
     receiver.body.balanceChange = Int64.fromObject(
       receiver.body.balanceChange
     ).add(amount);
+    return receiver;
   }
 
   /**
