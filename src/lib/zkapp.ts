@@ -694,12 +694,13 @@ class SmartContract {
       this
     );
 
-    let verificationKey = getVerificationKeyArtifact();
+    let verificationKey_ = getVerificationKeyArtifact();
+    let verificationKey = {
+      data: verificationKey_.data,
+      hash: Field(verificationKey_.hash),
+    } satisfies VerificationKey;
     this._provers = provers;
-    this._verificationKey = {
-      data: verificationKey.data,
-      hash: Field(verificationKey.hash),
-    };
+    this._verificationKey = verificationKey;
     // TODO: instead of returning provers, return an artifact from which provers can be recovered
     return { verificationKey, provers, verify };
   }

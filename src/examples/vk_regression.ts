@@ -11,7 +11,7 @@ await isReady;
 let dump = process.argv[4] === '--dump';
 let jsonPath = process.argv[dump ? 5 : 4];
 
-const Contracts: typeof SmartContract[] = [
+const Contracts: (typeof SmartContract)[] = [
   Voting_,
   Membership_,
   HelloWorld,
@@ -54,7 +54,7 @@ async function checkVk(contracts: typeof Contracts) {
       verificationKey: { data, hash },
     } = await c.compile();
 
-    if (data !== vk.data || hash !== vk.hash) {
+    if (data !== vk.data || hash.toString() !== vk.hash) {
       errorStack += `\n\nRegression test for contract ${
         c.name
       } failed, because of a verification key mismatch.
@@ -83,7 +83,10 @@ async function dumpVk(contracts: typeof Contracts) {
   for await (const c of contracts) {
     let { verificationKey } = await c.compile();
     newEntries[c.name] = {
-      verificationKey,
+      verificationKey: {
+        data: verificationKey.data,
+        hash: verificationKey.hash.toString(),
+      },
     };
   }
 

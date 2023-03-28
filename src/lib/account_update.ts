@@ -21,6 +21,7 @@ import * as Encoding from './encoding.js';
 import { hashWithPrefix, packToFields } from './hash.js';
 import { prefixes } from '../js_crypto/constants.js';
 import { Context } from './global-context.js';
+import { assert } from './errors.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -1732,13 +1733,23 @@ const Authorization = {
     accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
   setProofAuthorizationKind(
-    { body }: AccountUpdate,
+    { body, id }: AccountUpdate,
     priorAccountUpdates?: AccountUpdate[]
   ) {
     body.authorizationKind.isSigned = Bool(false);
     body.authorizationKind.isProved = Bool(true);
     let hash = Circuit.witness(Field, () => {
-      priorAccountUpdates ??= zkAppProver.getData().transaction.accountUpdates;
+      let proverData = zkAppProver.getData();
+      let isProver = proverData !== undefined;
+      assert(
+        isProver || priorAccountUpdates !== undefined,
+        'Called `setProofAuthorizationKind()` outside the prover without passing in `priorAccountUpdates`.'
+      );
+      let myAccountUpdateId = isProver ? proverData.accountUpdate.id : id;
+      priorAccountUpdates ??= proverData.transaction.accountUpdates;
+      priorAccountUpdates = priorAccountUpdates.filter(
+        (a) => a.id !== myAccountUpdateId
+      );
       let priorAccountUpdatesFlat = CallForest.toFlatList(
         priorAccountUpdates,
         false

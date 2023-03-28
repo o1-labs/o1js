@@ -17,7 +17,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/21de489...HEAD)
 
-> No unreleased changes yet
+### Breaking changes
+
+- Change type of verification key returned by `SmartContract.compile()` to match `VerificationKey` https://github.com/o1-labs/snarkyjs/pull/812
+
+### Fixed
+
+- Update the zkApp verification key from within one of its own methods, via proof https://github.com/o1-labs/snarkyjs/pull/812
 
 ## [0.9.4](https://github.com/o1-labs/snarkyjs/compare/9acec55...21de489)
 
