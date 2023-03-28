@@ -21,6 +21,7 @@ import * as Encoding from './encoding.js';
 import { hashWithPrefix, packToFields } from './hash.js';
 import { prefixes } from '../js_crypto/constants.js';
 import { Context } from './global-context.js';
+import { assert } from './errors.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -1740,11 +1741,10 @@ const Authorization = {
     let hash = Circuit.witness(Field, () => {
       let proverData = zkAppProver.getData();
       let isProver = proverData !== undefined;
-      if (!isProver && priorAccountUpdates === undefined) {
-        throw Error(
-          'invariant violation: only the prover can call `setProofAuthorizationKind()` without passing in `priorAccountUpdates`'
-        );
-      }
+      assert(
+        isProver || priorAccountUpdates !== undefined,
+        'Called `setProofAuthorizationKind()` outside the prover without passing in `priorAccountUpdates`.'
+      );
       let myAccountUpdateId = isProver ? proverData.accountUpdate.id : id;
       priorAccountUpdates ??= proverData.transaction.accountUpdates;
       priorAccountUpdates = priorAccountUpdates.filter(
