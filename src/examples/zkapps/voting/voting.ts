@@ -279,7 +279,7 @@ export class Voting_ extends SmartContract {
           // apply one vote
           action = action.addVote();
           // this is the new root after we added one vote
-          return action.votesWitness.calculateRoot(action.getHash());
+          return action.votesWitness.calculateRootSlow(action.getHash());
         },
         // initial state
         { state: committedVotes, actionsHash: accumulatedVotes }

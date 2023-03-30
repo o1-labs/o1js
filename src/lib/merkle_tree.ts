@@ -193,6 +193,23 @@ class BaseMerkleWitness extends CircuitValue {
   }
 
   /**
+   * Calculates a root depending on the leaf value.
+   * @deprecated This is a less efficient version of {@link calculateRoot} which was added for compatibility with existing deployed contracts
+   */
+  calculateRootSlow(leaf: Field): Field {
+    let hash = leaf;
+    let n = this.height();
+
+    for (let i = 1; i < n; ++i) {
+      let isLeft = this.isLeft[i - 1];
+      const [left, right] = maybeSwapBad(isLeft, hash, this.path[i - 1]);
+      hash = Poseidon.hash([left, right]);
+    }
+
+    return hash;
+  }
+
+  /**
    * Calculates the index of the leaf node that belongs to this Witness.
    * @returns Index of the leaf.
    */

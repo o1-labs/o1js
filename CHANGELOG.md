@@ -17,7 +17,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/4573252d...HEAD)
 
-> There are no unreleased changes yet
+### Breaking changes
+
+- Improve number of constraints needed for Merkle tree hashing https://github.com/o1-labs/snarkyjs/pull/820
+  - This breaks deployed zkApps which use `MerkleWitness.calculateRoot()`, because the circuit is changed
+  - You can make your existing contracts compatible again by switching to `MerkleWitness.calculateRootSlow()`, which has the old circuit
 
 ## [0.9.5](https://github.com/o1-labs/snarkyjs/compare/21de489...4573252d)
 
