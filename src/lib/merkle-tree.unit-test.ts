@@ -2,7 +2,7 @@ import { Bool, Field } from './core.js';
 import { maybeSwap, maybeSwapBad } from './merkle_tree.js';
 import { Random, test } from './testing/property.js';
 import { expect } from 'expect';
-import { isReady } from '../snarky.js';
+import { isReady, shutdown } from '../snarky.js';
 
 await isReady;
 
@@ -23,3 +23,5 @@ test(Random.bool, Random.field, Random.field, (b, x, y) => {
     expect(y0.toBigInt()).toEqual(x);
   }
 });
+
+shutdown();
