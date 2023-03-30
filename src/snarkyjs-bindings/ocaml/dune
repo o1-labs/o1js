@@ -20,8 +20,8 @@
   (javascript_files overrides.js))
  (libraries snarky_js_bindings_lib node_backend)
  (link_deps
-  ../../../../../crypto/kimchi_bindings/js/node_js/plonk_wasm.js
-  ../../../../../crypto/kimchi_bindings/js/node_js/plonk_wasm_bg.wasm)
+  ../../../../crypto/kimchi_bindings/js/node_js/plonk_wasm.js
+  ../../../../crypto/kimchi_bindings/js/node_js/plonk_wasm_bg.wasm)
  (instrumentation
   (backend bisect_ppx))
  (forbidden_libraries async core re2 ctypes)

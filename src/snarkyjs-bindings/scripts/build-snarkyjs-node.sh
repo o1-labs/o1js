@@ -3,7 +3,7 @@
 set -e
 
 SNARKY_JS_PATH=$1
-[ -z "$SNARKY_JS_PATH" ] && SNARKY_JS_PATH=src/lib/snarky_js_bindings/snarkyjs
+[ -z "$SNARKY_JS_PATH" ] && SNARKY_JS_PATH=src/lib/snarkyjs
 
 pushd "$SNARKY_JS_PATH"
   [ -d node_modules ] || npm i
@@ -11,7 +11,7 @@ popd
 
 export DUNE_USE_DEFAULT_LINKER="y"
 
-DUNE_PATH="src/lib/snarky_js_bindings/snarkyjs/src/snarkyjs-bindings/ocaml"
+DUNE_PATH="src/lib/snarkyjs/src/snarkyjs-bindings/ocaml"
 BUILD_PATH="_build/default/$DUNE_PATH"
 
 if [ -f "$BUILD_PATH/snarky_js_node.bc.js" ]; then

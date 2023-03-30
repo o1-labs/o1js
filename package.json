@@ -31,7 +31,7 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "dev": "npx tsc -p tsconfig.node.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
-    "make": "make -C ../../../.. snarkyjs",
+    "make": "make -C ../../.. snarkyjs",
     "build": "rimraf ./dist/node && npx tsc -p tsconfig.node.json && cp -r src/node_bindings dist/node/_node_bindings && node src/build/buildNode.js && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "build:test": "npx tsc -p tsconfig.test.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "build:node": "npm run build",
