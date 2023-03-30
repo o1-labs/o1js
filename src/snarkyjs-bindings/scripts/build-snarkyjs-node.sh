@@ -26,7 +26,7 @@ if [ -f "$BUILD_PATH/snarky_js_node.bc.js" ]; then
 fi
 
 dune b src/lib/crypto/kimchi_bindings/js/node_js \
-&& dune b "$DUNE_PATH/snarky_js_node.bc.js" || exit 1
+&& dune b $DUNE_PATH/snarky_js_node.bc.js || exit 1
 
 # update if new source map was built
 if [ -f "$BUILD_PATH/snarky_js_node.bc.map" ]; then

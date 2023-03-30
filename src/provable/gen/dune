@@ -7,7 +7,7 @@
  (mode promote)
  (deps
   (:script ../../build/jsLayoutToTypes.mjs)
-  ../../../../jsLayout.json
+  ../../snarkyjs-bindings/ocaml/jsLayout.json
   ../../../.prettierrc.cjs
   (glob_files ../../../node_modules/prettier/*))
  (action
