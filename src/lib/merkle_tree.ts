@@ -9,6 +9,9 @@ import { Bool, Field } from './core.js';
 // external API
 export { Witness, MerkleTree, MerkleWitness, BaseMerkleWitness };
 
+// internal API
+export { maybeSwap, maybeSwapBad };
+
 type Witness = { isLeft: boolean; sibling: Field }[];
 
 /**
@@ -181,8 +184,8 @@ class BaseMerkleWitness extends CircuitValue {
     let n = this.height();
 
     for (let i = 1; i < n; ++i) {
-      const left = Circuit.if(this.isLeft[i - 1], hash, this.path[i - 1]);
-      const right = Circuit.if(this.isLeft[i - 1], this.path[i - 1], hash);
+      let isLeft = this.isLeft[i - 1];
+      const [left, right] = maybeSwap(isLeft, hash, this.path[i - 1]);
       hash = Poseidon.hash([left, right]);
     }
 
@@ -219,4 +222,18 @@ function MerkleWitness(height: number): typeof BaseMerkleWitness {
   arrayProp(Field, height - 1)(MerkleWitness_.prototype, 'path');
   arrayProp(Bool, height - 1)(MerkleWitness_.prototype, 'isLeft');
   return MerkleWitness_;
+}
+
+function maybeSwapBad(b: Bool, x: Field, y: Field): [Field, Field] {
+  const x_ = Circuit.if(b, x, y); // y + b*(x - y)
+  const y_ = Circuit.if(b, y, x); // x + b*(y - x)
+  return [x_, y_];
+}
+
+// more efficient version of `maybeSwapBad` which reuses an intermediate variable
+function maybeSwap(b: Bool, x: Field, y: Field): [Field, Field] {
+  let m = b.toField().mul(x.sub(y)); // b*(x - y)
+  const x_ = y.add(m); // y + b*(x - y)
+  const y_ = x.sub(m); // x - b*(x - y) = x + b*(y - x)
+  return [x_, y_];
 }
