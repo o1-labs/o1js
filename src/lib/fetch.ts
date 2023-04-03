@@ -134,7 +134,7 @@ async function fetchAccountInternal(
 }
 
 type FetchConfig = { timeout?: number };
-type FetchResponse = { data: any };
+type FetchResponse = { data: any; errors?: any };
 type FetchError = {
   statusCode: number;
   statusText: string;
@@ -855,7 +855,17 @@ async function checkResponseStatus(
   response: Response
 ): Promise<[FetchResponse, undefined] | [undefined, FetchError]> {
   if (response.ok) {
-    return [(await response.json()) as FetchResponse, undefined];
+    let jsonResponse = await response.json();
+    if (jsonResponse.errors && jsonResponse.errors.length > 0) {
+      return [
+        undefined,
+        {
+          statusCode: response.status,
+          statusText: jsonResponse.errors,
+        } as FetchError,
+      ];
+    }
+    return [jsonResponse as FetchResponse, undefined];
   } else {
     return [
       undefined,

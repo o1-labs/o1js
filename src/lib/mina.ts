@@ -715,18 +715,17 @@ function Network(input: { mina: string; archive: string } | string): Mina {
 
       let [response, error] = await Fetch.sendZkapp(txn.toJSON());
       let errors: any[] | undefined;
-      if (error === undefined) {
-        if (response!.data === null && (response as any).errors?.length > 0) {
-          console.log(
-            'got graphql errors',
-            JSON.stringify((response as any).errors, null, 2)
-          );
-          errors = (response as any).errors;
-        }
-      } else {
+      if (response === undefined && error !== undefined) {
         console.log('got fetch error', error);
         errors = [error];
+      } else if (response && response.errors && response.errors.length > 0) {
+        console.log(
+          'got graphql errors',
+          JSON.stringify(response.errors, null, 2)
+        );
+        errors = response.errors;
       }
+
       let isSuccess = errors === undefined;
 
       let maxAttempts: number;
