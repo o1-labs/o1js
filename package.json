@@ -20,7 +20,8 @@
     "dist",
     "src/**/*.ts",
     "src/**/*.d.ts",
-    "**/*.map"
+    "dist/**/*.map",
+    "src/**/*.map"
   ],
   "bin": {
     "snarky-run": "src/build/run.js"
