@@ -7,18 +7,19 @@ DUNE_PATH="$SNARKY_JS_PATH/src/snarkyjs-bindings/ocaml"
 BUILD_PATH="_build/default/$DUNE_PATH"
 DIR_PATH=$(dirname "$0")
 KIMCHI_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/kimchi"
+WEB_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/compiled/web_bindings"
 
 # 1. node build
 
 $DIR_PATH/build-snarkyjs-node.sh
 
 BINDINGS_PATH="$SNARKY_JS_PATH"/dist/node/_node_bindings/
-cp "$BINDINGS_PATH"/snarky_js_node.bc.cjs "$SNARKY_JS_PATH"/src/node_bindings/snarky_js_node.bc.cjs
-cp "$BINDINGS_PATH"/snarky_js_node.bc.map "$SNARKY_JS_PATH"/src/node_bindings/snarky_js_node.bc.map
+cp "$BINDINGS_PATH"/snarky_js_node.bc.cjs "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/snarky_js_node.bc.cjs
+cp "$BINDINGS_PATH"/snarky_js_node.bc.map "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/snarky_js_node.bc.map
 
 cp _build/default/$KIMCHI_BINDINGS/js/node_js/plonk_wasm* "$SNARKY_JS_PATH"/src/node_bindings/
-mv -f "$SNARKY_JS_PATH"/src/node_bindings/plonk_wasm.js "$SNARKY_JS_PATH"/src/node_bindings/plonk_wasm.cjs
-sed -i 's/plonk_wasm.js/plonk_wasm.cjs/' "$SNARKY_JS_PATH"/src/node_bindings/snarky_js_node.bc.cjs
+mv -f "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/plonk_wasm.js "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/plonk_wasm.cjs
+sed -i 's/plonk_wasm.js/plonk_wasm.cjs/' "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/snarky_js_node.bc.cjs
 
 npm run build --prefix="$SNARKY_JS_PATH"
 
@@ -28,18 +29,18 @@ cp "$BUILD_PATH/snarky_js_node.bc.map" "_build/snarky_js_node.bc.map"
 dune b $DUNE_PATH/snarky_js_web.bc.js
 cp "_build/snarky_js_node.bc.map" "$BUILD_PATH/snarky_js_node.bc.map" 
 
-cp _build/default/$KIMCHI_BINDINGS/js/web/plonk_wasm* "$SNARKY_JS_PATH"/src/web_bindings/
-cp $BUILD_PATH/snarky_js_web*.js "$SNARKY_JS_PATH"/src/web_bindings/
+cp _build/default/$KIMCHI_BINDINGS/js/web/plonk_wasm* $WEB_BINDINGS/
+cp $BUILD_PATH/snarky_js_web*.js $WEB_BINDINGS/
 
 # better error messages
 # `s` is the jsoo representation of the error message string, and `s.c` is the actual JS string
-sed -i 's/function failwith(s){throw \[0,Failure,s\]/function failwith(s){throw joo_global_object.Error(s.c)/' "$SNARKY_JS_PATH"/src/web_bindings/snarky_js_web.bc.js
-sed -i 's/function invalid_arg(s){throw \[0,Invalid_argument,s\]/function invalid_arg(s){throw joo_global_object.Error(s.c)/' "$SNARKY_JS_PATH"/src/web_bindings/snarky_js_web.bc.js
-sed -i 's/return \[0,Exn,t\]/return joo_global_object.Error(t.c)/' "$SNARKY_JS_PATH"/src/web_bindings/snarky_js_web.bc.js
-sed -i 's/function raise(t){throw caml_call1(to_exn$0,t)}/function raise(t){throw Error(t?.[1]?.c ?? "Unknown error thrown by raise")}/' "$SNARKY_JS_PATH"/src/web_bindings/snarky_js_web.bc.js
+sed -i 's/function failwith(s){throw \[0,Failure,s\]/function failwith(s){throw joo_global_object.Error(s.c)/' $WEB_BINDINGS/snarky_js_web.bc.js
+sed -i 's/function invalid_arg(s){throw \[0,Invalid_argument,s\]/function invalid_arg(s){throw joo_global_object.Error(s.c)/' $WEB_BINDINGS/snarky_js_web.bc.js
+sed -i 's/return \[0,Exn,t\]/return joo_global_object.Error(t.c)/' $WEB_BINDINGS/snarky_js_web.bc.js
+sed -i 's/function raise(t){throw caml_call1(to_exn$0,t)}/function raise(t){throw Error(t?.[1]?.c ?? "Unknown error thrown by raise")}/' $WEB_BINDINGS/snarky_js_web.bc.js
 
 # optimize wasm / minify JS (we don't do this with jsoo to not break the error message fix above)
-pushd "$SNARKY_JS_PATH"/src/web_bindings
+pushd $WEB_BINDINGS
   wasm-opt --detect-features --enable-mutable-globals -O4 plonk_wasm_bg.wasm -o plonk_wasm_bg.wasm.opt
   mv plonk_wasm_bg.wasm.opt plonk_wasm_bg.wasm
   npx esbuild --minify --log-level=error snarky_js_web.bc.js > snarky_js_web.bc.min.js
