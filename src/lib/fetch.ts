@@ -686,10 +686,10 @@ async function fetchEvents(
   }
 
   return fetchedEvents.map((event) => {
-    let events = event.eventData.map((eventData) => {
+    let events = event.eventData.map(({ data, transactionInfo }) => {
       return {
-        data: eventData.data,
-        transactionInfo: eventData.transactionInfo,
+        data,
+        transactionInfo,
       };
     });
 
