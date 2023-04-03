@@ -1,4 +1,3 @@
-import Client from "mina-signer";
 import {
   Field,
   declareState,
@@ -13,7 +12,7 @@ import {
   verify,
   AccountUpdate,
   UInt32,
-} from "snarkyjs";
+} from 'snarkyjs';
 
 await isReady;
 const zkappTargetBalance = 10_000_000_000;
@@ -48,7 +47,7 @@ let [command, zkappKeyBase58, feePayerKeyBase58, feePayerNonce] =
   process.argv.slice(2);
 zkappKeyBase58 ||= PrivateKey.random().toBase58();
 feePayerKeyBase58 ||= PrivateKey.random().toBase58();
-feePayerNonce ||= command === "update" ? "1" : "0";
+feePayerNonce ||= command === 'update' ? '1' : '0';
 console.log(
   `simple-zkapp.js: Running "${command}" with zkapp key ${zkappKeyBase58}, fee payer key ${feePayerKeyBase58} and fee payer nonce ${feePayerNonce}`
 );
@@ -56,7 +55,7 @@ console.log(
 let zkappKey = PrivateKey.fromBase58(zkappKeyBase58);
 let zkappAddress = zkappKey.toPublicKey();
 
-if (command === "deploy") {
+if (command === 'deploy') {
   // snarkyjs part
   let feePayerKey = PrivateKey.fromBase58(feePayerKeyBase58);
   let feePayerAddress = feePayerKey.toPublicKey();
@@ -75,29 +74,14 @@ if (command === "deploy") {
       senderUpdate.send({ to: zkapp, amount: initialBalance });
     }
   );
-  tx.sign([zkappKey, feePayerKey]); // TODO: signing with the fee payer key has to be fully handled by mina-signer
+  tx.sign([zkappKey, feePayerKey]);
   let zkappCommandJson = tx.toJSON();
   console.log(zkappCommandJson);
-
-  // TODO support complex txs in mina-signer
-  // // mina-signer part
-  // let client = new Client({ network: "testnet" });
-  // let feePayerAddressBase58 = client.derivePublicKey(feePayerKeyBase58);
-  // let feePayer = {
-  //   feePayer: feePayerAddressBase58,
-  //   fee: transactionFee,
-  //   nonce: feePayerNonce,
-  // };
-  // let zkappCommand = JSON.parse(zkappCommandJson);
-  // let { data } = client.signTransaction(
-  //   { zkappCommand, feePayer },
-  //   feePayerKeyBase58
-  // );
-  // console.log(data.zkappCommand);
 }
 
-if (command === "update") {
+if (command === 'update') {
   // snarkyjs part
+  let feePayerKey = PrivateKey.fromBase58(feePayerKeyBase58);
   let { verificationKey } = await SimpleZkapp.compile();
   addCachedAccount({
     publicKey: zkappAddress,
@@ -107,25 +91,13 @@ if (command === "update") {
     new SimpleZkapp(zkappAddress).update(Field(2));
   });
   let [proof] = await transaction.prove();
+  transaction.sign([feePayerKey]);
   let zkappCommandJson = transaction.toJSON();
 
-  // mina-signer part
-  let client = new Client({ network: "testnet" });
-  let feePayerAddress = client.derivePublicKey(feePayerKeyBase58);
-  let feePayer = {
-    feePayer: feePayerAddress,
-    fee: transactionFee,
-    nonce: feePayerNonce,
-  };
-  let zkappCommand = JSON.parse(zkappCommandJson);
-  let { data } = client.signTransaction(
-    { zkappCommand, feePayer },
-    feePayerKeyBase58
-  );
   let ok = await verify(proof, verificationKey.data);
-  if (!ok) throw Error("verification failed");
+  if (!ok) throw Error('verification failed');
 
-  console.log(data.zkappCommand);
+  console.log(zkappCommandJson);
 }
 
 shutdown();
