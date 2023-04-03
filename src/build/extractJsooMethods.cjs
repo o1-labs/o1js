@@ -1,6 +1,6 @@
 // run this script once to generate src/snarky-class-spec
 let fs = require('fs').promises;
-let snarky = require('../node_bindings/snarky_js_node.bc.js');
+let snarky = require('../snarkyjs-bindings/compiled/node_bindings/snarky_js_node.bc.js');
 
 console.log('All exports:', Object.keys(snarky));
 

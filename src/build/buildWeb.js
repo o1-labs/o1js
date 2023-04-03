@@ -25,9 +25,13 @@ async function buildWeb({ production }) {
   let minify = !!production;
 
   // prepare plonk_wasm.js with bundled wasm in function-wrapped form
-  let bindings = await readFile('./src/web_bindings/plonk_wasm.js', 'utf8');
+  let bindings = await readFile(
+    './src/snarkyjs-bindings/compiled/web_bindings/plonk_wasm.js',
+    'utf8'
+  );
   bindings = rewriteWasmBindings(bindings);
-  let tmpBindingsPath = 'src/web_bindings/plonk_wasm.tmp.js';
+  let tmpBindingsPath =
+    'src/snarkyjs-bindings/compiled/web_bindings/plonk_wasm.tmp.js';
   await writeFile(tmpBindingsPath, bindings);
   await esbuild.build({
     entryPoints: [tmpBindingsPath],
@@ -47,7 +51,8 @@ async function buildWeb({ production }) {
 
   // copy over pure js files
   let copyPromise = copy({
-    './src/web_bindings/': './dist/web/web_bindings/',
+    './src/snarkyjs-bindings/compiled/web_bindings/':
+      './dist/web/web_bindings/',
     './src/snarky.d.ts': './dist/web/snarky.d.ts',
     './src/snarky/wrapper.web.js': './dist/web/snarky/wrapper.js',
   });
