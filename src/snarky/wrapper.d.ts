@@ -1,6 +1,6 @@
 import * as wasm from '../snarkyjs-bindings/compiled/node_bindings/plonk_wasm.js';
 
-export { WasmModule, getWasm, getSnarky, snarky_ready, shutdown };
+export { WasmModule, getWasm, getSnarky, withThreadPool };
 
 type WasmModule = typeof wasm;
 
@@ -8,6 +8,4 @@ declare function getWasm(): WasmModule;
 
 declare function getSnarky(): any;
 
-declare let snarky_ready: Promise<undefined>;
-
-declare function shutdown(): Promise<undefined>;
+declare function withThreadPool<T>(run: () => Promise<T>): Promise<T>;

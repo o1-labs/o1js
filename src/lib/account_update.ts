@@ -14,7 +14,12 @@ import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
-import { inCheckedComputation, Proof, Prover } from './proof_system.js';
+import {
+  dummyBase64Proof,
+  inCheckedComputation,
+  Proof,
+  Prover,
+} from './proof_system.js';
 import { Memo } from '../mina-signer/src/memo.js';
 import { Events, SequenceEvents } from '../provable/transaction-leaves.js';
 import * as Encoding from './encoding.js';
@@ -1913,7 +1918,7 @@ async function addMissingProofs(
       };
     }
     if (!proofsEnabled) {
-      Authorization.setProof(accountUpdate, Pickles.dummyBase64Proof());
+      Authorization.setProof(accountUpdate, await dummyBase64Proof());
       return {
         accountUpdateProved: accountUpdate as AccountUpdateProved,
         proof: undefined,

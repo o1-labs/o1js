@@ -1,6 +1,6 @@
-import { initSnarkyJS } from '../web_bindings/plonk_init.js';
+import { initSnarkyJS, withThreadPool } from './web/web-backend.js';
 
-export { getSnarky, getWasm, snarky_ready, shutdown };
+export { getSnarky, getWasm, withThreadPool };
 
 let getSnarky = () => globalThis.__snarky;
 
@@ -8,5 +8,4 @@ function getWasm() {
   return globalThis.plonk_wasm;
 }
 
-let snarky_ready = initSnarkyJS();
-let shutdown = () => {};
+await initSnarkyJS();

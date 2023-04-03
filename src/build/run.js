@@ -21,13 +21,8 @@ if (!bundle) {
   let module = await import(absPath);
   if (main) await module.main();
   if (runDefault) await module.default();
-  let { shutdown } = await import('../../dist/node/index.js');
-  shutdown();
 } else {
-  let { isReady, shutdown } = await import('../../dist/node/index.js');
-  await isReady;
   let module = await buildAndImport(filePath, { keepFile: !!keep });
   if (main) await module.main();
   if (runDefault) await module.default();
-  shutdown();
 }
