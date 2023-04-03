@@ -545,12 +545,12 @@ type FetchedEvents = {
     parentHash: string;
     chainStatus: string;
   };
-  transactionInfo: {
-    hash: string;
-    memo: string;
-    status: string;
-  };
   eventData: {
+    transactionInfo: {
+      hash: string;
+      memo: string;
+      status: string;
+    };
     data: string[];
   }[];
 };
@@ -590,12 +590,12 @@ const getEventsQuery = (
       parentHash
       chainStatus
     }
-    transactionInfo {
-      hash
-      memo
-      status
-    }
     eventData {
+      transactionInfo {
+        hash
+        memo
+        status
+      }
       data
     }
   }
@@ -686,7 +686,12 @@ async function fetchEvents(
   }
 
   return fetchedEvents.map((event) => {
-    let events = event.eventData.map((eventData) => eventData.data);
+    let events = event.eventData.map((eventData) => {
+      return {
+        data: eventData.data,
+        transactionInfo: eventData.transactionInfo,
+      };
+    });
 
     return {
       events,
@@ -695,9 +700,6 @@ async function fetchEvents(
       parentBlockHash: event.blockInfo.parentHash,
       globalSlot: UInt32.from(event.blockInfo.globalSlotSinceGenesis),
       chainStatus: event.blockInfo.chainStatus,
-      transactionHash: event.transactionInfo.hash,
-      transactionStatus: event.transactionInfo.status,
-      transactionMemo: event.transactionInfo.memo,
     };
   });
 }
