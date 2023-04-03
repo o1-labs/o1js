@@ -23,6 +23,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - This breaks deployed zkApps which use `MerkleWitness.calculateRoot()`, because the circuit is changed
   - You can make your existing contracts compatible again by switching to `MerkleWitness.calculateRootSlow()`, which has the old circuit
 
+### Fixed
+
+- Improved Event Handling in SnarkyJS https://github.com/o1-labs/snarkyjs/pull/825
+  - Updated the internal event type to better handle events emitted in different zkApp transactions and when multiple zkApp transactions are present within a block.
+  - The internal event type now includes event data and transaction information as separate objects, allowing for more accurate information about each event and its associated transaction.
+
 ## [0.9.5](https://github.com/o1-labs/snarkyjs/compare/21de489...4573252d)
 
 ### Breaking changes
