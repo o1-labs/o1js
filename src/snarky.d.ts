@@ -1282,12 +1282,12 @@ type MlBytes = { t: number; c: string; l: number };
 type OcamlInput = { fields: Field[]; packed: { field: Field; size: number }[] };
 
 /**
- * @deprecated `shutdown()` is no longer needed anymore, and is a no-op. Remove it from your code.
+ * @deprecated `shutdown()` is no longer needed, and is a no-op. Remove it from your code.
  */
 declare const shutdown: () => Promise<undefined>;
 
 /**
- * @deprecated `await isReady` is no longer needed anymore. Remove it from your code.
+ * @deprecated `await isReady` is no longer needed. Remove it from your code.
  */
 declare let isReady: Promise<undefined>;
 

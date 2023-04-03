@@ -701,14 +701,11 @@ class SmartContract {
     });
     // run methods once to get information that we need already at compile time
     this.analyzeMethods();
-    let { verificationKey, provers, verify } = await compileProgram(
-      ZkappPublicInput,
-      methodIntfs,
-      methods,
-      this
-    );
-
-    let verificationKey_ = getVerificationKeyArtifact();
+    let {
+      verificationKey: verificationKey_,
+      provers,
+      verify,
+    } = await compileProgram(ZkappPublicInput, methodIntfs, methods, this);
     let verificationKey = {
       data: verificationKey_.data,
       hash: Field(verificationKey_.hash),

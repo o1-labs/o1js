@@ -877,16 +877,8 @@ SnarkyCircuit.asProver = function (f: () => void) {
   }
 };
 
-let oldRunUnchecked = Circuit.runUnchecked;
-Circuit.runUnchecked = function (f: () => void) {
-  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
-    oldRunUnchecked(f)
-  );
-  return result;
-};
-
-let oldRunUnchecked = Circuit.runUnchecked;
-Circuit.runUnchecked = function (f: () => void) {
+let oldRunUnchecked = SnarkyCircuit.runUnchecked;
+SnarkyCircuit.runUnchecked = function (f: () => void) {
   let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
     oldRunUnchecked(f)
   );
