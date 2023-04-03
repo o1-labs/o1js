@@ -37,12 +37,14 @@ function caml_fatal_uncaught_exception(err) {
     }
   }
   throw_errors(err);
-  // if this didn't throw an error, we collect all strings in the error and throw that
+  // if this didn't throw an error, let's log whatever we got
+  console.dir(err, { depth: 20 });
+  // now, try to collect all strings in the error and throw that
   function collect_strings(err, acc) {
     var str = undefined;
-    if (typeof err === "string") {
+    if (typeof err === 'string') {
       str = err;
-    } else if (err && err.constructor && err.constructor.name === "MlBytes") {
+    } else if (err && err.constructor && err.constructor.name === 'MlBytes') {
       str = err.c;
     } else if (Array.isArray(err)) {
       err.forEach(function (e) {
@@ -51,12 +53,12 @@ function caml_fatal_uncaught_exception(err) {
     }
     if (!str) return acc.string;
     if (acc.string === undefined) acc.string = str;
-    else acc.string = acc.string + "\n" + str;
+    else acc.string = acc.string + '\n' + str;
     return acc.string;
   }
   var str = collect_strings(err, {});
   if (str !== undefined) throw joo_global_object.Error(str);
-  // otherwise, just log whatever we got and throw an unhelpful error
+  // otherwise, just throw an unhelpful error
   console.dir(err, { depth: 10 });
-  throw joo_global_object.Error("Unknown error thrown from OCaml");
+  throw joo_global_object.Error('Unknown error thrown from OCaml');
 }

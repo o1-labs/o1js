@@ -16,6 +16,7 @@ $DIR_PATH/build-snarkyjs-node.sh
 BINDINGS_PATH="$SNARKY_JS_PATH"/dist/node/_node_bindings/
 cp "$BINDINGS_PATH"/snarky_js_node.bc.cjs "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/snarky_js_node.bc.cjs
 cp "$BINDINGS_PATH"/snarky_js_node.bc.map "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/snarky_js_node.bc.map
+cp "$BINDINGS_PATH"/plonk_wasm* "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/
 
 cp _build/default/$KIMCHI_BINDINGS/js/node_js/plonk_wasm* "$SNARKY_JS_PATH"/src/node_bindings/
 mv -f "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/plonk_wasm.js "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/plonk_wasm.cjs
