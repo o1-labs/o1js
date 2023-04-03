@@ -1,9 +1,9 @@
 (library
- (name chrome_backend)
+ (name web_backend)
  (js_of_ocaml
   (flags
    (:include flags.sexp))
-  (javascript_files chrome_backend.js))
+  (javascript_files web_backend.js))
  (instrumentation
   (backend bisect_ppx))
  (preprocess
