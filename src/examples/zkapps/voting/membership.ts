@@ -151,7 +151,7 @@ export class Membership_ extends SmartContract {
     this.committedMembers.assertEquals(committedMembers);
 
     return member.witness
-      .calculateRoot(member.getHash())
+      .calculateRootSlow(member.getHash())
       .equals(committedMembers);
   }
 
@@ -187,7 +187,7 @@ export class Membership_ extends SmartContract {
           // otherwise, we simply return the unmodified state - this is our way of branching
           return Circuit.if(
             isRealMember,
-            action.witness.calculateRoot(action.getHash()),
+            action.witness.calculateRootSlow(action.getHash()),
             state
           );
         },

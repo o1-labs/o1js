@@ -19,20 +19,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Breaking changes
 
-- Change type of verification key returned by `SmartContract.compile()` to match `VerificationKey` https://github.com/o1-labs/snarkyjs/pull/812
+- Improve number of constraints needed for Merkle tree hashing https://github.com/o1-labs/snarkyjs/pull/820
+  - This breaks deployed zkApps which use `MerkleWitness.calculateRoot()`, because the circuit is changed
+  - You can make your existing contracts compatible again by switching to `MerkleWitness.calculateRootSlow()`, which has the old circuit
 
 ### Fixed
 
-- Update the zkApp verification key from within one of its own methods, via proof https://github.com/o1-labs/snarkyjs/pull/812
 - Removed multiple best tip blocks when fetching action data https://github.com/o1-labs/snarkyjs/pull/817
   - Implemented a temporary fix that filters out multiple best tip blocks, if they exist, while fetching actions. This fix will be removed once the related issue in the Archive-Node-API repository (https://github.com/o1-labs/Archive-Node-API/issues/7) is resolved.
 
 ## [0.9.5](https://github.com/o1-labs/snarkyjs/compare/21de489...4573252d)
 
+- Update the zkApp verification key from within one of its own methods, via proof https://github.com/o1-labs/snarkyjs/pull/812
+
+### Breaking changes
+
+- Change type of verification key returned by `SmartContract.compile()` to match `VerificationKey` https://github.com/o1-labs/snarkyjs/pull/812
+
 ### Fixed
 
 - Failing `Mina.transaction` on Berkeley because of unsatisfied constraints caused by dummy data before we fetched account state https://github.com/o1-labs/snarkyjs/pull/807
   - Previously, you could work around this by calling `fetchAccount()` for every account invovled in a transaction. This is not necessary anymore.
+- Update the zkApp verification key from within one of its own methods, via proof https://github.com/o1-labs/snarkyjs/pull/812
 
 ## [0.9.4](https://github.com/o1-labs/snarkyjs/compare/9acec55...21de489)
 
