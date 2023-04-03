@@ -1,4 +1,4 @@
-import plonkWasm from '../../chrome_bindings/plonk_wasm.js';
+import plonkWasm from '../../web_bindings/plonk_wasm.js';
 import { workerSpec } from './worker-spec.js';
 import { getEfficientNumWorkers } from './num-workers.js';
 import {
@@ -6,7 +6,7 @@ import {
   inlineWorker,
   waitForMessage,
 } from './worker-helpers.js';
-import snarkyJsChromeSrc from 'string:../../chrome_bindings/snarky_js_chrome.bc.js';
+import snarkyJsWebSrc from 'string:../../web_bindings/snarky_js_web.bc.js';
 
 export { initSnarkyJS, withThreadPool };
 
@@ -36,7 +36,7 @@ async function initSnarkyJS() {
 
   // 2. include the code as string and eval it:
   // (this works because it breaks out of strict mode)
-  new Function(snarkyJsChromeSrc)();
+  new Function(snarkyJsWebSrc)();
 }
 
 async function withThreadPool(run) {
