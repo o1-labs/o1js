@@ -38,6 +38,7 @@ jobs:
           TEST_TYPE: ${{ matrix.test_type }}
         continue-on-error: false
         run: |
+          git submodule update --init --recursive
           npm ci
           npm run build:node
           touch profiling.md
@@ -55,7 +56,9 @@ jobs:
         with:
           node-version: '18'
       - name: Install Node Dependencies
-        run: npm ci
+        run: |
+          git submodule update --init --recursive
+          npm ci
       - name: Install Playwright Browsers
         run: npm run e2e:install
       - name: Build SnarkyJS and Prepare the Web Server
@@ -85,6 +88,7 @@ jobs:
           node-version: '18'
       - name: Build SnarkyJS
         run: |
+          git submodule update --init --recursive
           npm ci
           npm run build:node
       - name: Publish to NPM if version has changed
@@ -108,6 +112,7 @@ jobs:
           node-version: '18'
       - name: Build mina-signer
         run: |
+          git submodule update --init --recursive
           npm ci
           cd src/mina-signer
           npm ci
