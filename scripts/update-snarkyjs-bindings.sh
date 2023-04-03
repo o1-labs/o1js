@@ -8,17 +8,20 @@ BUILD_PATH="_build/default/$DUNE_PATH"
 DIR_PATH=$(dirname "$0")
 KIMCHI_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/kimchi"
 WEB_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/compiled/web_bindings"
+NODE_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/compiled/node_bindings"
 
 # 1. node build
 
 $DIR_PATH/build-snarkyjs-node.sh
 
-BINDINGS_PATH="$SNARKY_JS_PATH"/dist/node/_node_bindings/
-cp "$BINDINGS_PATH"/snarky_js_node.bc.cjs "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/snarky_js_node.bc.cjs
-cp "$BINDINGS_PATH"/snarky_js_node.bc.map "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/snarky_js_node.bc.map
-cp "$BINDINGS_PATH"/plonk_wasm* "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/
+chmod -R 777 "$NODE_BINDINGS"
 
-cp _build/default/$KIMCHI_BINDINGS/js/node_js/plonk_wasm* "$SNARKY_JS_PATH"/src/node_bindings/
+BINDINGS_PATH="$SNARKY_JS_PATH"/dist/node/_node_bindings/
+cp "$BINDINGS_PATH"/snarky_js_node.bc.cjs "$NODE_BINDINGS"/snarky_js_node.bc.cjs
+cp "$BINDINGS_PATH"/snarky_js_node.bc.map "$NODE_BINDINGS"/snarky_js_node.bc.map
+cp "$BINDINGS_PATH"/plonk_wasm* "$NODE_BINDINGS"/
+
+cp _build/default/$KIMCHI_BINDINGS/js/node_js/plonk_wasm* "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/
 mv -f "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/plonk_wasm.js "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/plonk_wasm.cjs
 sed -i 's/plonk_wasm.js/plonk_wasm.cjs/' "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/snarky_js_node.bc.cjs
 
@@ -53,4 +56,4 @@ npm run build:web --prefix="$SNARKY_JS_PATH"
 # 3. update MINA_COMMIT file in snarkyjs
 
 echo "The mina commit used to generate the backends for node and web is
-$(git rev-parse HEAD)" > "$SNARKY_JS_PATH/MINA_COMMIT"
+$(git rev-parse HEAD)" > "$SNARKY_JS_PATH/src/snarkyjs-bindings/MINA_COMMIT"
