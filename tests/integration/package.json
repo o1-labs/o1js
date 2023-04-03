@@ -1,7 +1,5 @@
 {
   "name": "snarkyjs-integration-tests",
   "version": "0.0.0",
-  "dependencies": {
-    "snarkyjs": "file:../.."
-  }
+  "dependencies": {}
 }
