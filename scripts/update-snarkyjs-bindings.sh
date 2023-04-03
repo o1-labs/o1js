@@ -6,6 +6,7 @@ SNARKY_JS_PATH="src/lib/snarkyjs"
 DUNE_PATH="$SNARKY_JS_PATH/src/snarkyjs-bindings/ocaml"
 BUILD_PATH="_build/default/$DUNE_PATH"
 DIR_PATH=$(dirname "$0")
+KIMCHI_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/kimchi"
 
 # 1. node build
 
@@ -15,7 +16,7 @@ BINDINGS_PATH="$SNARKY_JS_PATH"/dist/node/_node_bindings/
 cp "$BINDINGS_PATH"/snarky_js_node.bc.cjs "$SNARKY_JS_PATH"/src/node_bindings/snarky_js_node.bc.cjs
 cp "$BINDINGS_PATH"/snarky_js_node.bc.map "$SNARKY_JS_PATH"/src/node_bindings/snarky_js_node.bc.map
 
-cp _build/default/src/lib/crypto/kimchi_bindings/js/node_js/plonk_wasm* "$SNARKY_JS_PATH"/src/node_bindings/
+cp _build/default/$KIMCHI_BINDINGS/js/node_js/plonk_wasm* "$SNARKY_JS_PATH"/src/node_bindings/
 mv -f "$SNARKY_JS_PATH"/src/node_bindings/plonk_wasm.js "$SNARKY_JS_PATH"/src/node_bindings/plonk_wasm.cjs
 sed -i 's/plonk_wasm.js/plonk_wasm.cjs/' "$SNARKY_JS_PATH"/src/node_bindings/snarky_js_node.bc.cjs
 
@@ -27,7 +28,7 @@ cp "$BUILD_PATH/snarky_js_node.bc.map" "_build/snarky_js_node.bc.map"
 dune b $DUNE_PATH/snarky_js_chrome.bc.js
 cp "_build/snarky_js_node.bc.map" "$BUILD_PATH/snarky_js_node.bc.map" 
 
-cp _build/default/src/lib/crypto/kimchi_bindings/js/chrome/plonk_wasm* "$SNARKY_JS_PATH"/src/chrome_bindings/
+cp _build/default/$KIMCHI_BINDINGS/js/chrome/plonk_wasm* "$SNARKY_JS_PATH"/src/chrome_bindings/
 cp $BUILD_PATH/snarky_js_chrome*.js "$SNARKY_JS_PATH"/src/chrome_bindings/
 
 # better error messages

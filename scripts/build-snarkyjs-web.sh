@@ -5,9 +5,10 @@ set -e
 SNARKY_JS_PATH="src/lib/snarkyjs"
 DUNE_PATH="$SNARKY_JS_PATH/src/snarkyjs-bindings/ocaml"
 BUILD_PATH="_build/default/$DUNE_PATH"
+KIMCHI_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/kimchi"
 
 dune b $DUNE_PATH/snarky_js_chrome.bc.js
-cp _build/default/src/lib/crypto/kimchi_bindings/js/chrome/plonk_wasm* "$SNARKY_JS_PATH"/src/chrome_bindings/
+cp _build/default/$KIMCHI_BINDINGS/js/chrome/plonk_wasm* "$SNARKY_JS_PATH"/src/chrome_bindings/
 cp $BUILD_PATH/snarky_js_chrome*.js "$SNARKY_JS_PATH"/src/chrome_bindings/
 
 # better error messages

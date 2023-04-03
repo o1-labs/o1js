@@ -5,6 +5,7 @@ set -e
 SNARKY_JS_PATH="src/lib/snarkyjs"
 DUNE_PATH="$SNARKY_JS_PATH/src/snarkyjs-bindings/ocaml"
 BUILD_PATH="_build/default/$DUNE_PATH"
+KIMCHI_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/kimchi"
 
 pushd "$SNARKY_JS_PATH"
   [ -d node_modules ] || npm i
@@ -23,7 +24,7 @@ if [ -f "$BUILD_PATH/snarky_js_node.bc.js" ]; then
   fi
 fi
 
-dune b src/lib/crypto/kimchi_bindings/js/node_js \
+dune b $KIMCHI_BINDINGS/js/node_js \
 && dune b $DUNE_PATH/snarky_js_node.bc.js || exit 1
 
 # update if new source map was built
@@ -40,7 +41,7 @@ dune b $SNARKY_JS_PATH/src/provable/gen/js-layout.ts \
 BINDINGS_PATH="$SNARKY_JS_PATH"/dist/node/_node_bindings/
 mkdir -p "$BINDINGS_PATH"
 chmod -R 777 "$BINDINGS_PATH"
-cp _build/default/src/lib/crypto/kimchi_bindings/js/node_js/plonk_wasm* "$BINDINGS_PATH"
+cp _build/default/$KIMCHI_BINDINGS/js/node_js/plonk_wasm* "$BINDINGS_PATH"
 mv -f $BINDINGS_PATH/plonk_wasm.js $BINDINGS_PATH/plonk_wasm.cjs
 cp $BUILD_PATH/snarky_js_node*.js "$BINDINGS_PATH"
 cp "_build/snarky_js_node.bc.map" "$BINDINGS_PATH"/snarky_js_node.bc.map
