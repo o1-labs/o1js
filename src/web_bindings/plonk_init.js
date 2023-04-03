@@ -1,9 +1,9 @@
 import plonkWasm from './plonk_wasm.js';
 import workerRun from './worker_run.js';
 import workerInit from './worker_init.js';
-import getEfficientNumWorkers from './getEfficientNumWorkers';
+import getEfficientNumWorkers from './getEfficientNumWorkers.js';
 import { srcFromFunctionModule, inlineWorker } from './workerHelpers.js';
-import snarkyJsChromeSrc from 'string:./snarky_js_chrome.bc.js';
+import snarkyJsWebSrc from 'string:./snarky_js_web.bc.js';
 let plonk_wasm = plonkWasm();
 let init = plonk_wasm.default;
 let { override_bindings } = workerRun();
@@ -30,5 +30,5 @@ export async function initSnarkyJS() {
 
   // 2. include the code as string and eval it:
   // (this works because it breaks out of strict mode)
-  new Function(snarkyJsChromeSrc)();
+  new Function(snarkyJsWebSrc)();
 }

@@ -1,5 +1,5 @@
-src/chrome_bindings/**/plonk_wasm*
-src/chrome_bindings/**/*.bc.js
+src/web_bindings/**/plonk_wasm*
+src/web_bindings/**/*.bc.js
 src/node_bindings/*
 dist/**/*
 src/snarkyjs-bindings/kimchi/js/**/*.js
