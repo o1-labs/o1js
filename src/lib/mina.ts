@@ -26,6 +26,8 @@ import { invalidTransactionError } from './errors.js';
 import { Types } from '../provable/types.js';
 import { Account } from './mina/account.js';
 
+import utils from 'util';
+
 export {
   createTransaction,
   BerkeleyQANet,
@@ -714,6 +716,12 @@ function Network(input: { mina: string; archive: string } | string): Mina {
       verifyTransactionLimits(txn.transaction.accountUpdates);
 
       let [response, error] = await Fetch.sendZkapp(txn.toJSON());
+      console.log(
+        'DEBUG: response and error',
+        utils.inspect(response, false, null, true),
+        utils.inspect(error, false, null, true)
+      );
+
       let errors: any[] | undefined;
       if (response === undefined && error !== undefined) {
         console.log('got fetch error', error);
@@ -727,6 +735,11 @@ function Network(input: { mina: string; archive: string } | string): Mina {
       }
 
       let isSuccess = errors === undefined;
+      console.log(
+        'DEBUG: isSuccess',
+        isSuccess,
+        utils.inspect(errors, false, null, true)
+      );
 
       let maxAttempts: number;
       let attempts = 0;
