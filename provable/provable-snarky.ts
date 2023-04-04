@@ -4,17 +4,10 @@ import { Field } from '../../lib/core.js';
 // TODO make this whole file reuse ./provable-generic.ts
 
 // external API
-export {
-  ProvableExtended,
-  FlexibleProvable,
-  FlexibleProvablePure,
-  provable,
-  provablePure,
-};
+export { ProvableExtended, provable, provablePure };
 
 // internal API
 export {
-  StructLike,
   NonMethods,
   HashInput,
   InferProvable,
@@ -35,13 +28,8 @@ type ProvableExtended<T, TJson = any> = Provable<T> &
 type ProvableExtendedPure<T, TJson = any> = ProvablePure<T> &
   ProvableExtension<T, TJson>;
 
-type StructLike<T> = ProvableExtended<NonMethods<T>> &
+type Struct<T> = ProvableExtended<NonMethods<T>> &
   Constructor<T> & { _isStruct: true };
-type StructPure<T> = ProvablePure<NonMethods<T>> &
-  ProvableExtension<NonMethods<T>> &
-  Constructor<T> & { _isStruct: true };
-type FlexibleProvable<T> = Provable<T> | StructLike<T>;
-type FlexibleProvablePure<T> = ProvablePure<T> | StructPure<T>;
 
 type HashInput = { fields?: Field[]; packed?: [Field, number][] };
 const HashInput = {
@@ -289,7 +277,7 @@ type InferPrimitiveJson<P extends Primitive> = P extends typeof String
 type InferProvable<A> = A extends Constructor<infer U>
   ? A extends Provable<U>
     ? U
-    : A extends StructLike<U>
+    : A extends Struct<U>
     ? U
     : InferProvableBase<A>
   : InferProvableBase<A>;
