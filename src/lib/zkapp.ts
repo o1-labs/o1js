@@ -1069,15 +1069,19 @@ super.init();
   ): Promise<
     {
       type: string;
-      event: ProvablePure<any>;
+      event: {
+        data: ProvablePure<any>;
+        transactionInfo: {
+          transactionHash: string;
+          transactionStatus: string;
+          transactionMemo: string;
+        };
+      };
       blockHeight: UInt32;
       blockHash: string;
       parentBlockHash: string;
       globalSlot: UInt32;
       chainStatus: string;
-      transactionHash: string;
-      transactionStatus: string;
-      transactionMemo: string;
     }[]
   > {
     // filters all elements so that they are within the given range
@@ -1114,26 +1118,40 @@ super.init();
       if (sortedEventTypes.length === 1) {
         let type = sortedEventTypes[0];
         let event = this.events[type].fromFields(
-          eventData.event.map((f: string) => Field(f))
+          eventData.event.data.map((f: string) => Field(f))
         );
         return {
           ...eventData,
           type,
-          event,
+          event: {
+            data: event,
+            transactionInfo: {
+              transactionHash: eventData.event.transactionInfo.hash,
+              transactionStatus: eventData.event.transactionInfo.status,
+              transactionMemo: eventData.event.transactionInfo.memo,
+            },
+          },
         };
       } else {
         // if there are multiple events we have to use the index event[0] to find the exact event type
-        let eventObjectIndex = Number(eventData.event[0]);
+        let eventObjectIndex = Number(eventData.event.data[0]);
         let type = sortedEventTypes[eventObjectIndex];
         // all other elements of the array are values used to construct the original object, we can drop the first value since its just an index
-        let eventProps = eventData.event.slice(1);
+        let eventProps = eventData.event.data.slice(1);
         let event = this.events[type].fromFields(
           eventProps.map((f: string) => Field(f))
         );
         return {
           ...eventData,
           type,
-          event,
+          event: {
+            data: event,
+            transactionInfo: {
+              transactionHash: eventData.event.transactionInfo.hash,
+              transactionStatus: eventData.event.transactionInfo.status,
+              transactionMemo: eventData.event.transactionInfo.memo,
+            },
+          },
         };
       }
     });

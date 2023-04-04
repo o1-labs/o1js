@@ -475,8 +475,18 @@ function LocalBlockchain({
           if (events[addr][tokenId] === undefined) {
             events[addr][tokenId] = [];
           }
+          let updatedEvents = p.body.events.map((data) => {
+            return {
+              data,
+              transactionInfo: {
+                transactionHash: '',
+                transactionStatus: '',
+                transactionMemo: '',
+              },
+            };
+          });
           events[addr][tokenId].push({
-            events: p.body.events,
+            events: updatedEvents,
             blockHeight: networkState.blockchainLength,
             globalSlot: networkState.globalSlotSinceGenesis,
             // The following fields are fetched from the Mina network. For now, we mock these values out
@@ -484,9 +494,6 @@ function LocalBlockchain({
             blockHash: '',
             parentBlockHash: '',
             chainStatus: '',
-            transactionHash: '',
-            transactionStatus: '',
-            transactionMemo: '',
           });
         }
 
