@@ -555,6 +555,9 @@ type FetchedEvents = {
   }[];
 };
 type FetchedActions = {
+  blockInfo: {
+    distanceFromMaxBlockHeight: number;
+  };
   actionState: string;
   actionData: {
     accountUpdateId: string;
@@ -616,6 +619,9 @@ const getActionsQuery = (
   }
   return `{
   actions(input: { ${input} }) {
+    blockInfo {
+      distanceFromMaxBlockHeight
+    }
     actionState
     actionData {
       accountUpdateId
@@ -731,6 +737,25 @@ async function fetchActions(
         statusText: `fetchActions: Account with public key ${publicKey} with tokenId ${tokenId} does not exist.`,
       },
     };
+  }
+
+  // TODO: This is a temporary fix. We should be able to fetch the event/action data from any block at the best tip.
+  // Once https://github.com/o1-labs/Archive-Node-API/issues/7 is resolved, we can remove this.
+  // If we have multiple blocks returned at the best tip (e.g. distanceFromMaxBlockHeight === 0),
+  // then filter out the blocks at the best tip. This is because we cannot guarantee that every block
+  // at the best tip will have the correct action data or guarantee that the specific block data will not
+  // fork in anyway. If this happens, we delay fetching action data until another block has been added to the network.
+  let numberOfBestTipBlocks = 0;
+  for (let i = 0; i < fetchedActions.length; i++) {
+    if (fetchedActions[i].blockInfo.distanceFromMaxBlockHeight === 0) {
+      numberOfBestTipBlocks++;
+    }
+    if (numberOfBestTipBlocks > 1) {
+      fetchedActions = fetchedActions.filter((action) => {
+        return action.blockInfo.distanceFromMaxBlockHeight !== 0;
+      });
+      break;
+    }
   }
 
   const processActionData = (
