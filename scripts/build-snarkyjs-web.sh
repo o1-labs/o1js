@@ -3,10 +3,10 @@
 set -e
 
 SNARKY_JS_PATH="src/lib/snarkyjs"
-DUNE_PATH="$SNARKY_JS_PATH/src/snarkyjs-bindings/ocaml"
+DUNE_PATH="$SNARKY_JS_PATH/src/bindings/ocaml"
 BUILD_PATH="_build/default/$DUNE_PATH"
-KIMCHI_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/kimchi"
-WEB_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/compiled/web_bindings"
+KIMCHI_BINDINGS="$SNARKY_JS_PATH/src/bindings/kimchi"
+WEB_BINDINGS="$SNARKY_JS_PATH/src/bindings/compiled/web_bindings"
 
 dune b $DUNE_PATH/snarky_js_web.bc.js
 cp _build/default/$KIMCHI_BINDINGS/js/web/plonk_wasm* $WEB_BINDINGS/
