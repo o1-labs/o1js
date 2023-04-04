@@ -1,6 +1,9 @@
-import { Fq, mod } from '../js_crypto/finite_field.js';
-import { GroupProjective, Pallas } from '../js_crypto/elliptic_curve.js';
-import { versionBytes } from '../js_crypto/constants.js';
+import { Fq, mod } from '../snarkyjs-bindings/crypto/finite_field.js';
+import {
+  GroupProjective,
+  Pallas,
+} from '../snarkyjs-bindings/crypto/elliptic_curve.js';
+import { versionBytes } from '../snarkyjs-bindings/crypto/constants.js';
 import { record, withCheck, withVersionNumber } from './binable.js';
 import { base58, withBase58 } from './base58.js';
 import {

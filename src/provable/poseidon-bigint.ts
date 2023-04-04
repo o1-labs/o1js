@@ -1,6 +1,9 @@
 import { Field, sizeInBits } from './field-bigint.js';
-import { Poseidon, PoseidonLegacy } from '../js_crypto/poseidon.js';
-import { prefixes } from '../js_crypto/constants.js';
+import {
+  Poseidon,
+  PoseidonLegacy,
+} from '../snarkyjs-bindings/crypto/poseidon.js';
+import { prefixes } from '../snarkyjs-bindings/crypto/constants.js';
 import { createHashInput } from './provable-generic.js';
 import { GenericHashInput } from './generic.js';
 import { createHashHelpers } from '../lib/hash-generic.js';

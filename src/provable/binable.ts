@@ -3,8 +3,11 @@ import {
   assertNonNegativeInteger,
   NonNegativeInteger,
   PositiveInteger,
-} from '../js_crypto/non-negative.js';
-import { bytesToBigInt, bigIntToBytes } from '../js_crypto/bigint-helpers.js';
+} from '../snarkyjs-bindings/crypto/non-negative.js';
+import {
+  bytesToBigInt,
+  bigIntToBytes,
+} from '../snarkyjs-bindings/crypto/bigint-helpers.js';
 import { GenericField } from './generic.js';
 
 export {

@@ -1,6 +1,6 @@
-import { randomBytes } from '../js_crypto/random.js';
-import { bigIntToBytes } from '../js_crypto/bigint-helpers.js';
-import { Fp, mod } from '../js_crypto/finite_field.js';
+import { randomBytes } from '../snarkyjs-bindings/crypto/random.js';
+import { bigIntToBytes } from '../snarkyjs-bindings/crypto/bigint-helpers.js';
+import { Fp, mod } from '../snarkyjs-bindings/crypto/finite_field.js';
 import { BinableWithBits, defineBinable, withBits } from './binable.js';
 import { GenericHashInput, GenericProvableExtended } from './generic.js';
 

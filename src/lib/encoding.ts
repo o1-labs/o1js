@@ -1,4 +1,7 @@
-import { bytesToBigInt, changeBase } from '../js_crypto/bigint-helpers.js';
+import {
+  bytesToBigInt,
+  changeBase,
+} from '../snarkyjs-bindings/crypto/bigint-helpers.js';
 import { fieldEncodings } from '../provable/base58.js';
 import { Field } from '../snarky.js';
 

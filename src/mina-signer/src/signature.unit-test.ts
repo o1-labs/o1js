@@ -16,7 +16,7 @@ import {
 import { Field, HashInput } from '../../provable/field-bigint.js';
 import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
 import { PrivateKey as PrivateKeySnarky } from '../../lib/signature.js';
-import { p } from '../../js_crypto/finite_field.js';
+import { p } from '../../snarkyjs-bindings/crypto/finite_field.js';
 import { AccountUpdate } from '../../provable/gen/transaction-bigint.js';
 
 await isReady;

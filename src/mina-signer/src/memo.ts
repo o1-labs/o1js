@@ -13,7 +13,7 @@ import {
   packToFieldsLegacy,
   prefixes,
 } from '../../provable/poseidon-bigint.js';
-import { versionBytes } from '../../js_crypto/constants.js';
+import { versionBytes } from '../../snarkyjs-bindings/crypto/constants.js';
 
 export { Memo };
 

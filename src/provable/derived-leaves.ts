@@ -10,7 +10,7 @@ import {
 import { fieldEncodings } from './base58.js';
 import { dataAsHash } from '../lib/events.js';
 import { HashHelpers } from '../lib/hash-generic.js';
-import { prefixes } from '../js_crypto/constants.js';
+import { prefixes } from '../snarkyjs-bindings/crypto/constants.js';
 
 export { derivedLeafTypes, tokenSymbolLength };
 

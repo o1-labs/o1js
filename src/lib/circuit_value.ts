@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { bytesToBigInt } from '../js_crypto/bigint-helpers.js';
+import { bytesToBigInt } from '../snarkyjs-bindings/crypto/bigint-helpers.js';
 import {
   Circuit as SnarkyCircuit,
   ProvablePure,

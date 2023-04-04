@@ -24,7 +24,7 @@ import { Memo } from '../mina-signer/src/memo.js';
 import { Events, SequenceEvents } from '../provable/transaction-leaves.js';
 import * as Encoding from './encoding.js';
 import { hashWithPrefix, packToFields } from './hash.js';
-import { prefixes } from '../js_crypto/constants.js';
+import { prefixes } from '../snarkyjs-bindings/crypto/constants.js';
 import { Context } from './global-context.js';
 import { assert } from './errors.js';
 

@@ -1,9 +1,9 @@
-import { bytesToBigInt } from '../js_crypto/bigint-helpers.js';
+import { bytesToBigInt } from '../snarkyjs-bindings/crypto/bigint-helpers.js';
 import { defineBinable } from '../provable/binable.js';
 import { sizeInBits } from '../provable/field-bigint.js';
 import { Bool, Field, Scalar, Group } from '../snarky.js';
 import { Scalar as ScalarBigint } from '../provable/curve-bigint.js';
-import { mod } from '../js_crypto/finite_field.js';
+import { mod } from '../snarkyjs-bindings/crypto/finite_field.js';
 
 export { Field, Bool, Scalar, Group };
 

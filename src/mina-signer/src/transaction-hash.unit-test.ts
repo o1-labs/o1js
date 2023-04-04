@@ -21,7 +21,7 @@ import { Signature, SignatureJson } from './signature.js';
 import { PublicKey } from '../../provable/curve-bigint.js';
 import { Memo } from './memo.js';
 import { expect } from 'expect';
-import { versionBytes } from '../../js_crypto/constants.js';
+import { versionBytes } from '../../snarkyjs-bindings/crypto/constants.js';
 import { test } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
 

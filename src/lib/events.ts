@@ -1,4 +1,4 @@
-import { prefixes } from '../js_crypto/constants.js';
+import { prefixes } from '../snarkyjs-bindings/crypto/constants.js';
 import { prefixToField } from '../provable/binable.js';
 import { GenericField, GenericProvableExtended } from '../provable/generic.js';
 

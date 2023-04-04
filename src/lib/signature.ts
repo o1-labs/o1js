@@ -6,7 +6,7 @@ import {
   Signature as SignatureBigint,
 } from '../mina-signer/src/signature.js';
 import { Scalar as ScalarBigint } from '../provable/curve-bigint.js';
-import { prefixes } from '../js_crypto/constants.js';
+import { prefixes } from '../snarkyjs-bindings/crypto/constants.js';
 
 // external API
 export { PrivateKey, PublicKey, Signature };
