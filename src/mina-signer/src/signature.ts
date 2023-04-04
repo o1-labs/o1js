@@ -23,10 +23,10 @@ import {
   bytesToBits,
   record,
   withVersionNumber,
-} from '../../snarkyjs-bindings/lib/binable.js';
+} from '../../bindings/lib/binable.js';
 import { base58 } from '../../lib/base58.js';
-import { versionBytes } from '../../snarkyjs-bindings/crypto/constants.js';
-import { Pallas } from '../../snarkyjs-bindings/crypto/elliptic_curve.js';
+import { versionBytes } from '../../bindings/crypto/constants.js';
+import { Pallas } from '../../bindings/crypto/elliptic_curve.js';
 
 export {
   sign,

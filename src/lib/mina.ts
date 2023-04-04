@@ -23,7 +23,7 @@ import { Proof, snarkContext, verify } from './proof_system.js';
 import { Context } from './global-context.js';
 import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './errors.js';
-import { Types } from '../snarkyjs-bindings/mina-transaction/types.js';
+import { Types } from '../bindings/mina-transaction/types.js';
 import { Account } from './mina/account.js';
 
 export {

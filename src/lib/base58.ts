@@ -1,10 +1,7 @@
-import { versionBytes } from '../snarkyjs-bindings/crypto/constants.js';
-import {
-  Binable,
-  withVersionNumber,
-} from '../snarkyjs-bindings/lib/binable.js';
+import { versionBytes } from '../bindings/crypto/constants.js';
+import { Binable, withVersionNumber } from '../bindings/lib/binable.js';
 import { sha256 } from 'js-sha256';
-import { changeBase } from '../snarkyjs-bindings/crypto/bigint-helpers.js';
+import { changeBase } from '../bindings/crypto/bigint-helpers.js';
 
 export {
   toBase58Check,

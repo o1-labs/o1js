@@ -11,8 +11,8 @@ import {
   isStakeDelegation,
   isZkappCommand,
 } from './src/Utils.js';
-import * as TransactionJson from '../snarkyjs-bindings/mina-transaction/gen/transaction-json.js';
-import { ZkappCommand } from '../snarkyjs-bindings/mina-transaction/gen/transaction-bigint.js';
+import * as TransactionJson from '../bindings/mina-transaction/gen/transaction-json.js';
+import { ZkappCommand } from '../bindings/mina-transaction/gen/transaction-bigint.js';
 import {
   signZkappCommand,
   verifyZkappCommandSignature,

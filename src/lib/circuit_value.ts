@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { bytesToBigInt } from '../snarkyjs-bindings/crypto/bigint-helpers.js';
+import { bytesToBigInt } from '../bindings/crypto/bigint-helpers.js';
 import {
   Circuit as SnarkyCircuit,
   ProvablePure,
@@ -23,7 +23,7 @@ import {
   InferProvable,
   InferredProvable,
   IsPure,
-} from '../snarkyjs-bindings/lib/provable-snarky.js';
+} from '../bindings/lib/provable-snarky.js';
 
 // external API
 export {

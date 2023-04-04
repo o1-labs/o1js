@@ -26,12 +26,11 @@ async function buildWeb({ production }) {
 
   // prepare plonk_wasm.js with bundled wasm in function-wrapped form
   let bindings = await readFile(
-    './src/snarkyjs-bindings/compiled/web_bindings/plonk_wasm.js',
+    './src/bindings/compiled/web_bindings/plonk_wasm.js',
     'utf8'
   );
   bindings = rewriteWasmBindings(bindings);
-  let tmpBindingsPath =
-    'src/snarkyjs-bindings/compiled/web_bindings/plonk_wasm.tmp.js';
+  let tmpBindingsPath = 'src/bindings/compiled/web_bindings/plonk_wasm.tmp.js';
   await writeFile(tmpBindingsPath, bindings);
   await esbuild.build({
     entryPoints: [tmpBindingsPath],
@@ -51,12 +50,10 @@ async function buildWeb({ production }) {
 
   // copy over pure js files
   let copyPromise = copy({
-    './src/snarkyjs-bindings/compiled/web_bindings/':
-      './dist/web/web_bindings/',
+    './src/bindings/compiled/web_bindings/': './dist/web/web_bindings/',
     './src/snarky.d.ts': './dist/web/snarky.d.ts',
-    './src/snarkyjs-bindings/js/wrapper.web.js':
-      './dist/web/snarkyjs-bindings/js/wrapper.js',
-    './src/snarkyjs-bindings/js/web/': './dist/web/snarkyjs-bindings/js/web/',
+    './src/bindings/js/wrapper.web.js': './dist/web/bindings/js/wrapper.js',
+    './src/bindings/js/web/': './dist/web/bindings/js/web/',
   });
 
   await Promise.all([tscPromise, copyPromise]);
@@ -146,7 +143,7 @@ function rewriteBundledWasmBindings(src) {
 
   src = src.replace('var startWorkers;\n', '');
   src = src.replace('var terminateWorkers;\n', '');
-  return `import { startWorkers, terminateWorkers } from '../snarkyjs-bindings/js/web/worker-helpers.js'
+  return `import { startWorkers, terminateWorkers } from '../bindings/js/web/worker-helpers.js'
 export {plonkWasm as default};
 function plonkWasm() {
   ${src}

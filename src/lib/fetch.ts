@@ -4,7 +4,7 @@ import { UInt32, UInt64 } from './int.js';
 import { SequenceEvents, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
-import { Types } from '../snarkyjs-bindings/mina-transaction/types.js';
+import { Types } from '../bindings/mina-transaction/types.js';
 import { LedgerHash, EpochSeed, StateHash } from './base58-encodings.js';
 import {
   Account,

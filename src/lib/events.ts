@@ -1,9 +1,9 @@
-import { prefixes } from '../snarkyjs-bindings/crypto/constants.js';
-import { prefixToField } from '../snarkyjs-bindings/lib/binable.js';
+import { prefixes } from '../bindings/crypto/constants.js';
+import { prefixToField } from '../bindings/lib/binable.js';
 import {
   GenericField,
   GenericProvableExtended,
-} from '../snarkyjs-bindings/lib/generic.js';
+} from '../bindings/lib/generic.js';
 
 export { createEvents, dataAsHash };
 

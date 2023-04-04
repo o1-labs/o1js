@@ -7,11 +7,8 @@ import {
   provablePure,
 } from './circuit_value.js';
 import { Field, Bool, Ledger, Circuit, Pickles } from '../snarky.js';
-import { jsLayout } from '../snarkyjs-bindings/mina-transaction/gen/js-layout.js';
-import {
-  Types,
-  toJSONEssential,
-} from '../snarkyjs-bindings/mina-transaction/types.js';
+import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
+import { Types, toJSONEssential } from '../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
@@ -27,10 +24,10 @@ import { Memo } from '../mina-signer/src/memo.js';
 import {
   Events,
   SequenceEvents,
-} from '../snarkyjs-bindings/mina-transaction/transaction-leaves.js';
+} from '../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
 import { hashWithPrefix, packToFields } from './hash.js';
-import { prefixes } from '../snarkyjs-bindings/crypto/constants.js';
+import { prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
 import { assert } from './errors.js';
 

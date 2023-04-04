@@ -6,7 +6,7 @@ import {
   AccountUpdate,
   ZkappCommand,
   emptyValue,
-} from '../../snarkyjs-bindings/mina-transaction/gen/transaction-bigint.js';
+} from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import {
   AuthRequired,
   Bool,
@@ -21,22 +21,22 @@ import {
   ZkappUri,
   PublicKey,
   StateHash,
-} from '../../snarkyjs-bindings/mina-transaction/transaction-leaves-bigint.js';
-import { genericLayoutFold } from '../../snarkyjs-bindings/lib/from-layout.js';
-import { jsLayout } from '../../snarkyjs-bindings/mina-transaction/gen/js-layout.js';
+} from '../../bindings/mina-transaction/transaction-leaves-bigint.js';
+import { genericLayoutFold } from '../../bindings/lib/from-layout.js';
+import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import {
   GenericProvable,
   primitiveTypeMap,
-} from '../../snarkyjs-bindings/lib/generic.js';
+} from '../../bindings/lib/generic.js';
 import { Scalar, PrivateKey, Group } from '../../provable/curve-bigint.js';
 import { Signature } from '../../mina-signer/src/signature.js';
-import { randomBytes } from '../../snarkyjs-bindings/crypto/random.js';
+import { randomBytes } from '../../bindings/crypto/random.js';
 import { alphabet } from '../base58.js';
-import { bytesToBigInt } from '../../snarkyjs-bindings/crypto/bigint-helpers.js';
+import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
-import { ProvableExtended } from '../../snarkyjs-bindings/lib/provable-bigint.js';
-import { tokenSymbolLength } from '../../snarkyjs-bindings/mina-transaction/derived-leaves.js';
-import { stringLengthInBytes } from '../../snarkyjs-bindings/lib/binable.js';
+import { ProvableExtended } from '../../bindings/lib/provable-bigint.js';
+import { tokenSymbolLength } from '../../bindings/mina-transaction/derived-leaves.js';
+import { stringLengthInBytes } from '../../bindings/lib/binable.js';
 
 export { Random, sample, withHardCoded };
 

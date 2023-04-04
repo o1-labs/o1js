@@ -1,15 +1,15 @@
-import { Types } from '../../snarkyjs-bindings/mina-transaction/types.js';
+import { Types } from '../../bindings/mina-transaction/types.js';
 import { Bool, Field } from '../../snarky.js';
 import { Permissions } from '../account_update.js';
 import { UInt32, UInt64 } from '../int.js';
 import { PublicKey } from '../signature.js';
 import { TokenId, ReceiptChainHash } from '../base58-encodings.js';
-import { genericLayoutFold } from '../../snarkyjs-bindings/lib/from-layout.js';
+import { genericLayoutFold } from '../../bindings/lib/from-layout.js';
 import {
   customTypes,
   TypeMap,
-} from '../../snarkyjs-bindings/mina-transaction/gen/transaction.js';
-import { jsLayout } from '../../snarkyjs-bindings/mina-transaction/gen/js-layout.js';
+} from '../../bindings/mina-transaction/gen/transaction.js';
+import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 
 export { FetchedAccount, Account, PartialAccount };
 export { accountQuery, parseFetchedAccount, fillPartialAccount };

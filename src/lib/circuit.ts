@@ -7,7 +7,7 @@ import {
   SnarkyVerificationKey,
 } from '../snarky.js';
 import { SnarkyCircuit } from './circuit_value.js';
-import { withThreadPool } from '../snarkyjs-bindings/js/wrapper.js';
+import { withThreadPool } from '../bindings/js/wrapper.js';
 
 // external API
 export { public_, circuitMain, Circuit };

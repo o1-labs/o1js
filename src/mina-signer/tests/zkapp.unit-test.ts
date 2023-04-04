@@ -1,5 +1,5 @@
-import { ZkappCommand } from '../../snarkyjs-bindings/mina-transaction/gen/transaction-bigint.js';
-import * as TransactionJson from '../../snarkyjs-bindings/mina-transaction/gen/transaction-json.js';
+import { ZkappCommand } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
+import * as TransactionJson from '../../bindings/mina-transaction/gen/transaction-json.js';
 import Client from '../MinaSigner.js';
 import { accountUpdateExample } from '../src/test-vectors/accountUpdate.js';
 import { expect } from 'expect';

@@ -6,10 +6,7 @@ import prettierRc from '../../.prettierrc.cjs';
 
 // let jsLayout = JSON.parse(process.argv[2]);
 let selfPath = fileURLToPath(import.meta.url);
-let jsonPath = path.resolve(
-  selfPath,
-  '../../snarkyjs-bindings/ocaml/jsLayout.json'
-);
+let jsonPath = path.resolve(selfPath, '../../bindings/ocaml/jsLayout.json');
 let jsLayout = JSON.parse(await fs.readFile(jsonPath, 'utf8'));
 
 console.log(`jsLayoutToTypes.mjs: generating TS types from ${jsonPath}`);
@@ -196,7 +193,7 @@ async function writeTsFile(content, relPath) {
   });
   await fs.writeFile(absPath, content);
 }
-let genPath = '../../snarkyjs-bindings/mina-transaction/gen';
+let genPath = '../../bindings/mina-transaction/gen';
 await ensureDir(genPath);
 
 let jsonTypesContent = writeTsContent(

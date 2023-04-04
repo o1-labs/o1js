@@ -4,7 +4,7 @@ import {
   Json,
   AccountUpdate,
   ZkappCommand,
-} from '../../snarkyjs-bindings/mina-transaction/gen/transaction-bigint.js';
+} from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import {
   hashWithPrefix,
   packToFields,

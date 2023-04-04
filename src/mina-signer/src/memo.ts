@@ -5,7 +5,7 @@ import {
   stringLengthInBytes,
   stringToBytes,
   withBits,
-} from '../../snarkyjs-bindings/lib/binable.js';
+} from '../../bindings/lib/binable.js';
 import { base58 } from '../../lib/base58.js';
 import {
   HashInputLegacy,
@@ -13,7 +13,7 @@ import {
   packToFieldsLegacy,
   prefixes,
 } from '../../provable/poseidon-bigint.js';
-import { versionBytes } from '../../snarkyjs-bindings/crypto/constants.js';
+import { versionBytes } from '../../bindings/crypto/constants.js';
 
 export { Memo };
 

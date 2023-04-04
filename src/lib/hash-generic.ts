@@ -1,5 +1,5 @@
-import { GenericField } from '../snarkyjs-bindings/lib/generic.js';
-import { prefixToField } from '../snarkyjs-bindings/lib/binable.js';
+import { GenericField } from '../bindings/lib/generic.js';
+import { prefixToField } from '../bindings/lib/binable.js';
 
 export { createHashHelpers, HashHelpers };
 

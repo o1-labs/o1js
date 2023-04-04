@@ -8,11 +8,11 @@ import {
   Preconditions,
 } from './account_update.js';
 import { Int64, UInt32, UInt64 } from './int.js';
-import { Layout } from '../snarkyjs-bindings/mina-transaction/gen/transaction.js';
-import { jsLayout } from '../snarkyjs-bindings/mina-transaction/gen/js-layout.js';
+import { Layout } from '../bindings/mina-transaction/gen/transaction.js';
+import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
 import { emptyReceiptChainHash, TokenSymbol } from './hash.js';
 import { PublicKey } from './signature.js';
-import { ZkappUri } from '../snarkyjs-bindings/mina-transaction/transaction-leaves.js';
+import { ZkappUri } from '../bindings/mina-transaction/transaction-leaves.js';
 
 export {
   preconditions,

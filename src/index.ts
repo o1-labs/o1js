@@ -17,7 +17,7 @@ export {
 } from './lib/circuit_value.js';
 export { Circuit, public_, circuitMain } from './lib/circuit.js';
 export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
-export { Types } from './snarkyjs-bindings/mina-transaction/types.js';
+export { Types } from './bindings/mina-transaction/types.js';
 
 export * as Mina from './lib/mina.js';
 export {
@@ -51,7 +51,7 @@ export {
   sendZkapp,
 } from './lib/fetch.js';
 export * as Encryption from './lib/encryption.js';
-export * as Encoding from './snarkyjs-bindings/lib/encoding.js';
+export * as Encoding from './bindings/lib/encoding.js';
 export { Character, CircuitString } from './lib/string.js';
 export { MerkleTree, MerkleWitness } from './lib/merkle_tree.js';
 export { MerkleMap, MerkleMapWitness } from './lib/merkle_map.js';
