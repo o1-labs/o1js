@@ -15,11 +15,8 @@ import {
   snarkContext,
 } from './proof_system.js';
 import {
-  ProvableExtended,
   provable,
   provablePure,
-  FlexibleProvable,
-  FlexibleProvablePure,
   HashInput,
   NonMethods,
   InferJson,
@@ -59,6 +56,23 @@ export {
   InferJson,
   InferredProvable,
 };
+
+type ProvableExtension<T, TJson = any> = {
+  toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
+  toJSON: (x: T) => TJson;
+  fromJSON: (x: TJson) => T;
+};
+
+type ProvableExtended<T, TJson = any> = Provable<T> &
+  ProvableExtension<T, TJson>;
+
+type Struct<T> = ProvableExtended<NonMethods<T>> &
+  Constructor<T> & { _isStruct: true };
+type StructPure<T> = ProvablePure<NonMethods<T>> &
+  ProvableExtension<NonMethods<T>> &
+  Constructor<T> & { _isStruct: true };
+type FlexibleProvable<T> = Provable<T> | Struct<T>;
+type FlexibleProvablePure<T> = ProvablePure<T> | StructPure<T>;
 
 type Constructor<T> = new (...args: any) => T;
 type AnyConstructor = Constructor<any>;
