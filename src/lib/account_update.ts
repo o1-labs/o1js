@@ -28,7 +28,7 @@ import {
   Events,
   SequenceEvents,
 } from '../snarkyjs-bindings/mina-transaction/transaction-leaves.js';
-import * as Encoding from './encoding.js';
+import { TokenId as Base58TokenId } from './base58-encodings.js';
 import { hashWithPrefix, packToFields } from './hash.js';
 import { prefixes } from '../snarkyjs-bindings/crypto/constants.js';
 import { Context } from './global-context.js';
@@ -587,7 +587,7 @@ type LazyProof = {
 
 const TokenId = {
   ...Types.TokenId,
-  ...Encoding.TokenId,
+  ...Base58TokenId,
   get default() {
     return Field(1);
   },

@@ -51,7 +51,7 @@ export {
   sendZkapp,
 } from './lib/fetch.js';
 export * as Encryption from './lib/encryption.js';
-export * as Encoding from './lib/encoding.js';
+export * as Encoding from './snarkyjs-bindings/provable/encoding.js';
 export { Character, CircuitString } from './lib/string.js';
 export { MerkleTree, MerkleWitness } from './lib/merkle_tree.js';
 export { MerkleMap, MerkleMapWitness } from './lib/merkle_map.js';
