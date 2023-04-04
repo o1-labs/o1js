@@ -49,6 +49,7 @@ export {
   fetchEvents,
   getActions,
   FeePayerSpec,
+  ActionHashes,
   faucet,
   waitForFunding,
   getProofsEnabled,
@@ -147,6 +148,11 @@ type DeprecatedFeePayerSpec =
       nonce?: number;
     })
   | undefined;
+
+type ActionHashes = {
+  fromActionHash?: Field;
+  endActionHash?: Field;
+};
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
   if (tokenId === TokenId.toBase58(TokenId.default)) {
@@ -340,6 +346,7 @@ interface Mina {
   ) => ReturnType<typeof Fetch.fetchEvents>;
   getActions: (
     publicKey: PublicKey,
+    actionHashes: ActionHashes,
     tokenId?: Field
   ) => { hash: string; actions: string[][] }[];
   proofsEnabled: boolean;
@@ -574,6 +581,7 @@ function LocalBlockchain({
     },
     getActions(
       publicKey: PublicKey,
+      _actionHashes: ActionHashes,
       tokenId: Field = TokenId.default
     ): { hash: string; actions: string[][] }[] {
       return (
@@ -810,9 +818,18 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         filterOptions
       );
     },
-    getActions(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+    getActions(
+      publicKey: PublicKey,
+      actionHashes: ActionHashes,
+      tokenId: Field = TokenId.default
+    ) {
       if (currentTransaction()?.fetchMode === 'test') {
-        Fetch.markActionsToBeFetched(publicKey, tokenId, archiveEndpoint);
+        Fetch.markActionsToBeFetched(
+          publicKey,
+          actionHashes,
+          tokenId,
+          archiveEndpoint
+        );
         let actions = Fetch.getCachedActions(publicKey, tokenId);
         return actions ?? [];
       }
@@ -899,10 +916,14 @@ let activeInstance: Mina = {
   async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
     return createTransaction(sender, f, 0);
   },
-  fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+  fetchEvents(_publicKey: PublicKey, _tokenId: Field = TokenId.default) {
     throw Error('must call Mina.setActiveInstance first');
   },
-  getActions(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+  getActions(
+    _publicKey: PublicKey,
+    _actionHashes: ActionHashes,
+    _tokenId: Field = TokenId.default
+  ) {
     throw Error('must call Mina.setActiveInstance first');
   },
   proofsEnabled: true,
@@ -1048,8 +1069,12 @@ async function fetchEvents(
 /**
  * @return A list of emitted sequencing actions associated to the given public key.
  */
-function getActions(publicKey: PublicKey, tokenId?: Field) {
-  return activeInstance.getActions(publicKey, tokenId);
+function getActions(
+  publicKey: PublicKey,
+  actionHashes: ActionHashes,
+  tokenId?: Field
+) {
+  return activeInstance.getActions(publicKey, actionHashes, tokenId);
 }
 
 function getProofsEnabled() {

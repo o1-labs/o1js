@@ -5,6 +5,7 @@ import { SequenceEvents, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
 import { Types } from '../provable/types.js';
+import { ActionHashes } from './mina.js';
 import * as Encoding from './encoding.js';
 import {
   Account,
@@ -173,7 +174,12 @@ let accountsToFetch = {} as Record<
 let networksToFetch = {} as Record<string, { graphqlEndpoint: string }>;
 let actionsToFetch = {} as Record<
   string,
-  { publicKey: string; tokenId: string; graphqlEndpoint: string }
+  {
+    publicKey: string;
+    tokenId: string;
+    actionHashes: { fromActionHash?: string; endActionHash?: string };
+    graphqlEndpoint: string;
+  }
 >;
 
 function markAccountToBeFetched(
@@ -194,14 +200,27 @@ function markNetworkToBeFetched(graphqlEndpoint: string) {
 }
 function markActionsToBeFetched(
   publicKey: PublicKey,
+  actionHashes: ActionHashes,
   tokenId: Field,
   graphqlEndpoint: string
 ) {
   let publicKeyBase58 = publicKey.toBase58();
   let tokenBase58 = TokenId.toBase58(tokenId);
+  let { fromActionHash, endActionHash } = actionHashes;
+  let fromActionHashBase58 = fromActionHash
+    ? fromActionHash.toString()
+    : undefined;
+  let endActionHashBase58 = endActionHash
+    ? endActionHash.toString()
+    : undefined;
+
   actionsToFetch[`${publicKeyBase58};${tokenBase58};${graphqlEndpoint}`] = {
     publicKey: publicKeyBase58,
     tokenId: tokenBase58,
+    actionHashes: {
+      fromActionHash: fromActionHashBase58,
+      endActionHash: endActionHashBase58,
+    },
     graphqlEndpoint,
   };
 }
@@ -220,9 +239,9 @@ async function fetchMissingData(
     }
   );
   let actionPromises = Object.entries(actionsToFetch).map(
-    async ([key, { publicKey, tokenId }]) => {
+    async ([key, { publicKey, actionHashes, tokenId }]) => {
       let response = await fetchActions(
-        { publicKey, tokenId },
+        { publicKey, actionHashes, tokenId },
         archiveEndpoint
       );
       if (!('error' in response) || response.error === undefined)
@@ -555,7 +574,10 @@ type FetchedEvents = {
   }[];
 };
 type FetchedActions = {
-  actionState: string;
+  actionState: {
+    actionStateOne: string;
+    actionStateTwo: string;
+  };
   actionData: {
     accountUpdateId: string;
     data: string[];
@@ -603,20 +625,24 @@ const getEventsQuery = (
 };
 const getActionsQuery = (
   publicKey: string,
+  actionHashes: { fromActionHash?: string; endActionHash?: string },
   tokenId: string,
-  filterOptions?: EventActionFilterOptions
+  _filterOptions?: EventActionFilterOptions
 ) => {
-  const { to, from } = filterOptions ?? {};
+  const { fromActionHash, endActionHash } = actionHashes ?? {};
   let input = `address: "${publicKey}", tokenId: "${tokenId}"`;
-  if (to !== undefined) {
-    input += `, to: ${to}`;
+  if (fromActionHash !== undefined) {
+    input += `, fromActionHash: "${fromActionHash}"`;
   }
-  if (from !== undefined) {
-    input += `, from: ${from}`;
+  if (endActionHash !== undefined) {
+    input += `, endActionHash: "${endActionHash}"`;
   }
   return `{
   actions(input: { ${input} }) {
-    actionState
+    actionState {
+      actionStateOne
+      actionStateTwo
+    }
     actionData {
       accountUpdateId
       data
@@ -703,20 +729,23 @@ async function fetchEvents(
 }
 
 async function fetchActions(
-  accountInfo: { publicKey: string; tokenId?: string },
-  graphqlEndpoint = archiveGraphqlEndpoint,
-  filterOptions: EventActionFilterOptions = {}
+  accountInfo: {
+    publicKey: string;
+    actionHashes: { fromActionHash?: string; endActionHash?: string };
+    tokenId?: string;
+  },
+  graphqlEndpoint = archiveGraphqlEndpoint
 ) {
   if (!graphqlEndpoint)
     throw new Error(
       'fetchEvents: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
     );
-  const { publicKey, tokenId } = accountInfo;
+  const { publicKey, actionHashes, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
     getActionsQuery(
       publicKey,
-      tokenId ?? TokenId.toBase58(TokenId.default),
-      filterOptions
+      actionHashes,
+      tokenId ?? TokenId.toBase58(TokenId.default)
     ),
     graphqlEndpoint
   );
@@ -744,10 +773,12 @@ async function fetchActions(
   // Archive Node API returns actions in the latest order, so we reverse the array to get the actions in chronological order.
   fetchedActions.reverse();
   let actionsList: { actions: string[][]; hash: string }[] = [];
-  let latestActionsHash = SequenceEvents.emptySequenceState();
 
   fetchedActions.forEach((fetchedAction) => {
-    const { actionState, actionData } = fetchedAction;
+    const { actionData } = fetchedAction;
+    let latestActionsHash = Field(fetchedAction.actionState.actionStateTwo);
+    let actionState = Field(fetchedAction.actionState.actionStateOne);
+
     if (actionData.length === 0)
       throw new Error(
         `No action data was found for the account ${publicKey} with the latest action state ${actionState}`
