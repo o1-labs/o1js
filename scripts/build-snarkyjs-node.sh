@@ -33,9 +33,9 @@ if [ -f "$BUILD_PATH/snarky_js_node.bc.map" ]; then
   cp "$BUILD_PATH/snarky_js_node.bc.map" "_build/snarky_js_node.bc.map";
 fi
 
-dune b $SNARKY_JS_PATH/src/provable/gen/js-layout.ts \
-&& dune b $SNARKY_JS_PATH/src/js_crypto/constants.ts \
- $SNARKY_JS_PATH/src/js_crypto/test_vectors/poseidonKimchi.ts \
+dune b $SNARKY_JS_PATH/src/snarkyjs-bindings/mina-transaction/gen/js-layout.ts \
+&& dune b $SNARKY_JS_PATH/src/snarkyjs-bindings/crypto/constants.ts \
+ $SNARKY_JS_PATH/src/snarkyjs-bindings/crypto/test_vectors/poseidonKimchi.ts \
 || exit 1
 
 BINDINGS_PATH="$SNARKY_JS_PATH"/dist/node/_node_bindings/

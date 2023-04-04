@@ -4,4 +4,4 @@
  (action
   (with-stdout-to
    constants.ts
-   (run %{exe:../snarkyjs-bindings/ocaml/snarky_js_constants.exe}))))
+   (run %{exe:../ocaml/snarky_js_constants.exe}))))
