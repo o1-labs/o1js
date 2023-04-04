@@ -1,6 +1,6 @@
 import { Circuit, Field, Bool } from '../snarky.js';
 import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
-import { Types } from '../provable/types.js';
+import { Types } from '../snarkyjs-bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { inCheckedComputation } from './proof_system.js';
 

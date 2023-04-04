@@ -9,7 +9,7 @@ import {
   signLegacy,
   verifyLegacy,
 } from './signature.js';
-import { Json } from '../../provable/gen/transaction-bigint.js';
+import { Json } from '../../snarkyjs-bindings/mina-transaction/gen/transaction-bigint.js';
 import { bytesToBits, stringToBytes } from '../../provable/binable.js';
 
 export {

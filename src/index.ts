@@ -17,7 +17,7 @@ export {
 } from './lib/circuit_value.js';
 export { Circuit, public_, circuitMain } from './lib/circuit.js';
 export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
-export { Types } from './provable/types.js';
+export { Types } from './snarkyjs-bindings/mina-transaction/types.js';
 
 export * as Mina from './lib/mina.js';
 export {

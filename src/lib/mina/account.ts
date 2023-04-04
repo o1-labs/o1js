@@ -1,12 +1,15 @@
-import { Types } from '../../provable/types.js';
+import { Types } from '../../snarkyjs-bindings/mina-transaction/types.js';
 import { Bool, Field } from '../../snarky.js';
 import { Permissions } from '../account_update.js';
 import { UInt32, UInt64 } from '../int.js';
 import { PublicKey } from '../signature.js';
 import * as Encoding from '../encoding.js';
 import { genericLayoutFold } from '../../provable/from-layout.js';
-import { customTypes, TypeMap } from '../../provable/gen/transaction.js';
-import { jsLayout } from '../../provable/gen/js-layout.js';
+import {
+  customTypes,
+  TypeMap,
+} from '../../snarkyjs-bindings/mina-transaction/gen/transaction.js';
+import { jsLayout } from '../../snarkyjs-bindings/mina-transaction/gen/js-layout.js';
 
 export { FetchedAccount, Account, PartialAccount };
 export { accountQuery, parseFetchedAccount, fillPartialAccount };

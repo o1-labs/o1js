@@ -9,8 +9,11 @@ import {
   ProvableExtended,
 } from '../index.js';
 import { expect } from 'expect';
-import { jsLayout } from '../provable/gen/js-layout.js';
-import { Json, provableFromLayout } from '../provable/gen/transaction.js';
+import { jsLayout } from '../snarkyjs-bindings/mina-transaction/gen/js-layout.js';
+import {
+  Json,
+  provableFromLayout,
+} from '../snarkyjs-bindings/mina-transaction/gen/transaction.js';
 import { packToFields } from './hash.js';
 import { Random, test } from './testing/property.js';
 

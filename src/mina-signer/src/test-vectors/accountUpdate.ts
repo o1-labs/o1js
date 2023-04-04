@@ -1,4 +1,4 @@
-import * as Json from '../../../provable/gen/transaction-json.js';
+import * as Json from '../../../snarkyjs-bindings/mina-transaction/gen/transaction-json.js';
 
 export { accountUpdateExample };
 

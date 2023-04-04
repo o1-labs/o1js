@@ -1,4 +1,4 @@
-import { Types } from '../provable/types.js';
+import { Types } from '../snarkyjs-bindings/mina-transaction/types.js';
 import {
   Bool,
   Field,

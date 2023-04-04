@@ -4,7 +4,7 @@ import { Random } from '../../lib/testing/property.js';
 import {
   PublicKey,
   ZkappCommand,
-} from '../../provable/gen/transaction-bigint.js';
+} from '../../snarkyjs-bindings/mina-transaction/gen/transaction-bigint.js';
 import { PrivateKey } from '../../provable/curve-bigint.js';
 import { NetworkId, Signature } from './signature.js';
 
