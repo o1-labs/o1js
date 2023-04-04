@@ -2,15 +2,15 @@ import {
   GenericBool,
   GenericField,
   GenericHashInput,
-} from '../../provable/generic.js';
-import { createProvable } from '../../provable/provable-generic.js';
+} from '../provable/generic.js';
+import { createProvable } from '../provable/provable-generic.js';
 import * as Json from './gen/transaction-json.js';
 import {
   bytesToBits,
   prefixToField,
   stringLengthInBytes,
   stringToBytes,
-} from '../../provable/binable.js';
+} from '../provable/binable.js';
 import { fieldEncodings } from '../../provable/base58.js';
 import { dataAsHash } from '../../lib/events.js';
 import { HashHelpers } from '../../lib/hash-generic.js';

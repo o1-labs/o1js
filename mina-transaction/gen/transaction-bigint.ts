@@ -17,11 +17,11 @@ import {
   SequenceState,
   ReceiptChainHash,
 } from '../transaction-leaves-bigint.js';
-import { GenericProvableExtended } from '../../../provable/generic.js';
+import { GenericProvableExtended } from '../../provable/generic.js';
 import {
   ProvableFromLayout,
   GenericLayout,
-} from '../../../provable/from-layout.js';
+} from '../../provable/from-layout.js';
 import * as Json from './transaction-json.js';
 import { jsLayout } from './js-layout.js';
 
