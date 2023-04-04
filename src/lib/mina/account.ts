@@ -4,7 +4,7 @@ import { Permissions } from '../account_update.js';
 import { UInt32, UInt64 } from '../int.js';
 import { PublicKey } from '../signature.js';
 import * as Encoding from '../encoding.js';
-import { genericLayoutFold } from '../../provable/from-layout.js';
+import { genericLayoutFold } from '../../snarkyjs-bindings/provable/from-layout.js';
 import {
   customTypes,
   TypeMap,

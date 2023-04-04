@@ -10,7 +10,10 @@ import {
   verifyLegacy,
 } from './signature.js';
 import { Json } from '../../snarkyjs-bindings/mina-transaction/gen/transaction-bigint.js';
-import { bytesToBits, stringToBytes } from '../../provable/binable.js';
+import {
+  bytesToBits,
+  stringToBytes,
+} from '../../snarkyjs-bindings/provable/binable.js';
 
 export {
   signPayment,

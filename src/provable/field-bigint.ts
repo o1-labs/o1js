@@ -1,8 +1,15 @@
 import { randomBytes } from '../snarkyjs-bindings/crypto/random.js';
 import { bigIntToBytes } from '../snarkyjs-bindings/crypto/bigint-helpers.js';
 import { Fp, mod } from '../snarkyjs-bindings/crypto/finite_field.js';
-import { BinableWithBits, defineBinable, withBits } from './binable.js';
-import { GenericHashInput, GenericProvableExtended } from './generic.js';
+import {
+  BinableWithBits,
+  defineBinable,
+  withBits,
+} from '../snarkyjs-bindings/provable/binable.js';
+import {
+  GenericHashInput,
+  GenericProvableExtended,
+} from '../snarkyjs-bindings/provable/generic.js';
 
 export { Field, Bool, UInt32, UInt64, Sign };
 export {

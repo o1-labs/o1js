@@ -9,7 +9,7 @@ import {
   record,
   stringToBytes,
   withVersionNumber,
-} from '../../provable/binable.js';
+} from '../../snarkyjs-bindings/provable/binable.js';
 import {
   Common,
   Delegation,

@@ -22,9 +22,12 @@ import {
   PublicKey,
   StateHash,
 } from '../../snarkyjs-bindings/mina-transaction/transaction-leaves-bigint.js';
-import { genericLayoutFold } from '../../provable/from-layout.js';
+import { genericLayoutFold } from '../../snarkyjs-bindings/provable/from-layout.js';
 import { jsLayout } from '../../snarkyjs-bindings/mina-transaction/gen/js-layout.js';
-import { GenericProvable, primitiveTypeMap } from '../../provable/generic.js';
+import {
+  GenericProvable,
+  primitiveTypeMap,
+} from '../../snarkyjs-bindings/provable/generic.js';
 import { Scalar, PrivateKey, Group } from '../../provable/curve-bigint.js';
 import { Signature } from '../../mina-signer/src/signature.js';
 import { randomBytes } from '../../snarkyjs-bindings/crypto/random.js';
@@ -33,7 +36,7 @@ import { bytesToBigInt } from '../../snarkyjs-bindings/crypto/bigint-helpers.js'
 import { Memo } from '../../mina-signer/src/memo.js';
 import { ProvableExtended } from '../../provable/field-bigint.js';
 import { tokenSymbolLength } from '../../snarkyjs-bindings/mina-transaction/derived-leaves.js';
-import { stringLengthInBytes } from '../../provable/binable.js';
+import { stringLengthInBytes } from '../../snarkyjs-bindings/provable/binable.js';
 
 export { Random, sample, withHardCoded };
 

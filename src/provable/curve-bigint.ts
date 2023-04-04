@@ -4,7 +4,11 @@ import {
   Pallas,
 } from '../snarkyjs-bindings/crypto/elliptic_curve.js';
 import { versionBytes } from '../snarkyjs-bindings/crypto/constants.js';
-import { record, withCheck, withVersionNumber } from './binable.js';
+import {
+  record,
+  withCheck,
+  withVersionNumber,
+} from '../snarkyjs-bindings/provable/binable.js';
 import { base58, withBase58 } from './base58.js';
 import {
   BinableBigint,
@@ -14,7 +18,7 @@ import {
   ProvableBigint,
   pseudoClass,
 } from './field-bigint.js';
-import { provable } from './provable-bigint.js';
+import { provable } from '../snarkyjs-bindings/provable/provable-bigint.js';
 import { HashInputLegacy } from './poseidon-bigint.js';
 
 export { Group, PublicKey, Scalar, PrivateKey, versionNumbers };

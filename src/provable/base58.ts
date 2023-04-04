@@ -1,5 +1,8 @@
 import { versionBytes } from '../snarkyjs-bindings/crypto/constants.js';
-import { Binable, withVersionNumber } from './binable.js';
+import {
+  Binable,
+  withVersionNumber,
+} from '../snarkyjs-bindings/provable/binable.js';
 import { sha256 } from 'js-sha256';
 import { changeBase } from '../snarkyjs-bindings/crypto/bigint-helpers.js';
 

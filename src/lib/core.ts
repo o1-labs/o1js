@@ -1,5 +1,5 @@
 import { bytesToBigInt } from '../snarkyjs-bindings/crypto/bigint-helpers.js';
-import { defineBinable } from '../provable/binable.js';
+import { defineBinable } from '../snarkyjs-bindings/provable/binable.js';
 import { sizeInBits } from '../provable/field-bigint.js';
 import { Bool, Field, Scalar, Group } from '../snarky.js';
 import { Scalar as ScalarBigint } from '../provable/curve-bigint.js';
