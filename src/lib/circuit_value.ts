@@ -23,7 +23,7 @@ import {
   InferProvable,
   InferredProvable,
   IsPure,
-} from '../snarkyjs-bindings/provable/provable-snarky.js';
+} from '../snarkyjs-bindings/lib/provable-snarky.js';
 
 // external API
 export {

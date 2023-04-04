@@ -4,7 +4,7 @@ import {
   BinableBigint,
   HashInput,
   ProvableBigint,
-} from '../snarkyjs-bindings/provable/provable-bigint.js';
+} from '../snarkyjs-bindings/lib/provable-bigint.js';
 
 export { Field, Bool, UInt32, UInt64, Sign };
 export { pseudoClass, sizeInBits, checkRange, checkField };

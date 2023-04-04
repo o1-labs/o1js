@@ -40,7 +40,7 @@ import {
   toConstant,
 } from './circuit_value.js';
 import { Circuit } from './circuit.js';
-import * as Encoding from '../snarkyjs-bindings/provable/encoding.js';
+import * as Encoding from '../snarkyjs-bindings/lib/encoding.js';
 import { Poseidon } from './hash.js';
 import { UInt32, UInt64 } from './int.js';
 import * as Mina from './mina.js';

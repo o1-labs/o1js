@@ -138,8 +138,8 @@ function writeTsContent(types, isJson, leavesRelPath) {
 import { ${[...imports].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? "import { GenericProvableExtended } from '../../../provable/generic.js';\n" +
-      "import { ProvableFromLayout, GenericLayout } from '../../../provable/from-layout.js';\n" +
+    ? "import { GenericProvableExtended } from '../../lib/generic.js';\n" +
+      "import { ProvableFromLayout, GenericLayout } from '../../lib/from-layout.js';\n" +
       "import * as Json from './transaction-json.js';\n" +
       "import { jsLayout } from './js-layout.js';\n"
     : ''

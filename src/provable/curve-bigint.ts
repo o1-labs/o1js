@@ -8,14 +8,14 @@ import {
   record,
   withCheck,
   withVersionNumber,
-} from '../snarkyjs-bindings/provable/binable.js';
+} from '../snarkyjs-bindings/lib/binable.js';
 import { base58, withBase58 } from '../lib/base58.js';
 import { Bool, checkRange, Field, pseudoClass } from './field-bigint.js';
 import {
   BinableBigint,
   ProvableBigint,
   provable,
-} from '../snarkyjs-bindings/provable/provable-bigint.js';
+} from '../snarkyjs-bindings/lib/provable-bigint.js';
 import { HashInputLegacy } from './poseidon-bigint.js';
 
 export { Group, PublicKey, Scalar, PrivateKey, versionNumbers };

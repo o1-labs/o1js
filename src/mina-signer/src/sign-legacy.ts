@@ -13,7 +13,7 @@ import { Json } from '../../snarkyjs-bindings/mina-transaction/gen/transaction-b
 import {
   bytesToBits,
   stringToBytes,
-} from '../../snarkyjs-bindings/provable/binable.js';
+} from '../../snarkyjs-bindings/lib/binable.js';
 
 export {
   signPayment,

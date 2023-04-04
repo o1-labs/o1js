@@ -23,7 +23,7 @@ import {
   bytesToBits,
   record,
   withVersionNumber,
-} from '../../snarkyjs-bindings/provable/binable.js';
+} from '../../snarkyjs-bindings/lib/binable.js';
 import { base58 } from '../../lib/base58.js';
 import { versionBytes } from '../../snarkyjs-bindings/crypto/constants.js';
 import { Pallas } from '../../snarkyjs-bindings/crypto/elliptic_curve.js';

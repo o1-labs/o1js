@@ -4,8 +4,8 @@ import {
   PoseidonLegacy,
 } from '../snarkyjs-bindings/crypto/poseidon.js';
 import { prefixes } from '../snarkyjs-bindings/crypto/constants.js';
-import { createHashInput } from '../snarkyjs-bindings/provable/provable-generic.js';
-import { GenericHashInput } from '../snarkyjs-bindings/provable/generic.js';
+import { createHashInput } from '../snarkyjs-bindings/lib/provable-generic.js';
+import { GenericHashInput } from '../snarkyjs-bindings/lib/generic.js';
 import { createHashHelpers } from '../lib/hash-generic.js';
 
 export {
