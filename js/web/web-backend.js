@@ -1,4 +1,4 @@
-import plonkWasm from '../../web_bindings/plonk_wasm.js';
+import plonkWasm from '../../../web_bindings/plonk_wasm.js';
 import { workerSpec } from './worker-spec.js';
 import { getEfficientNumWorkers } from './num-workers.js';
 import {
@@ -6,7 +6,7 @@ import {
   inlineWorker,
   waitForMessage,
 } from './worker-helpers.js';
-import snarkyJsWebSrc from 'string:../../web_bindings/snarky_js_web.bc.js';
+import snarkyJsWebSrc from 'string:../../../web_bindings/snarky_js_web.bc.js';
 
 export { initSnarkyJS, withThreadPool };
 
