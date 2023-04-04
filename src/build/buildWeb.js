@@ -54,8 +54,9 @@ async function buildWeb({ production }) {
     './src/snarkyjs-bindings/compiled/web_bindings/':
       './dist/web/web_bindings/',
     './src/snarky.d.ts': './dist/web/snarky.d.ts',
-    './src/snarky/wrapper.web.js': './dist/web/snarky/wrapper.js',
-    './src/snarky/web/': './dist/web/snarky/web/',
+    './src/snarkyjs-bindings/js/wrapper.web.js':
+      './dist/web/snarkyjs-bindings/js/wrapper.js',
+    './src/snarkyjs-bindings/js/web/': './dist/web/snarkyjs-bindings/js/web/',
   });
 
   await Promise.all([tscPromise, copyPromise]);
@@ -145,7 +146,7 @@ function rewriteBundledWasmBindings(src) {
 
   src = src.replace('var startWorkers;\n', '');
   src = src.replace('var terminateWorkers;\n', '');
-  return `import { startWorkers, terminateWorkers } from '../snarky/web/worker-helpers.js'
+  return `import { startWorkers, terminateWorkers } from '../snarkyjs-bindings/js/web/worker-helpers.js'
 export {plonkWasm as default};
 function plonkWasm() {
   ${src}
