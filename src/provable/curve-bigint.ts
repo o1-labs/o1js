@@ -9,16 +9,13 @@ import {
   withCheck,
   withVersionNumber,
 } from '../snarkyjs-bindings/provable/binable.js';
-import { base58, withBase58 } from './base58.js';
+import { base58, withBase58 } from '../lib/base58.js';
+import { Bool, checkRange, Field, pseudoClass } from './field-bigint.js';
 import {
   BinableBigint,
-  Bool,
-  checkRange,
-  Field,
   ProvableBigint,
-  pseudoClass,
-} from './field-bigint.js';
-import { provable } from '../snarkyjs-bindings/provable/provable-bigint.js';
+  provable,
+} from '../snarkyjs-bindings/provable/provable-bigint.js';
 import { HashInputLegacy } from './poseidon-bigint.js';
 
 export { Group, PublicKey, Scalar, PrivateKey, versionNumbers };

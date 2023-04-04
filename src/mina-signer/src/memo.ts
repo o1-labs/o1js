@@ -6,7 +6,7 @@ import {
   stringToBytes,
   withBits,
 } from '../../snarkyjs-bindings/provable/binable.js';
-import { base58 } from '../../provable/base58.js';
+import { base58 } from '../../lib/base58.js';
 import {
   HashInputLegacy,
   hashWithPrefix,

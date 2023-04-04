@@ -31,10 +31,10 @@ import {
 import { Scalar, PrivateKey, Group } from '../../provable/curve-bigint.js';
 import { Signature } from '../../mina-signer/src/signature.js';
 import { randomBytes } from '../../snarkyjs-bindings/crypto/random.js';
-import { alphabet } from '../../provable/base58.js';
+import { alphabet } from '../base58.js';
 import { bytesToBigInt } from '../../snarkyjs-bindings/crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
-import { ProvableExtended } from '../../provable/field-bigint.js';
+import { ProvableExtended } from '../../snarkyjs-bindings/provable/provable-bigint.js';
 import { tokenSymbolLength } from '../../snarkyjs-bindings/mina-transaction/derived-leaves.js';
 import { stringLengthInBytes } from '../../snarkyjs-bindings/provable/binable.js';
 

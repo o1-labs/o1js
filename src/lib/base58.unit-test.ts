@@ -1,7 +1,7 @@
 import { fromBase58Check, toBase58Check } from './base58.js';
 import { Ledger, isReady, shutdown } from '../snarky.js';
 import { expect } from 'expect';
-import { test, Random, withHardCoded } from '../lib/testing/property.js';
+import { test, Random, withHardCoded } from './testing/property.js';
 
 await isReady;
 
