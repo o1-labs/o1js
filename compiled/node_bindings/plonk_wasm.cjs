@@ -1,6 +1,21 @@
 let imports = {};
 imports['__wbindgen_placeholder__'] = module.exports;
-imports['env'] = require('env');
+
+let { isMainThread, workerData } = require('worker_threads');
+
+let env = {};
+if (isMainThread) {
+  env.memory = new WebAssembly.Memory({
+    initial: 20,
+    maximum: 65536,
+    shared: true,
+  });
+} else {
+  env.memory = workerData.memory;
+}
+
+imports['env'] = env;
+
 let wasm;
 const { TextDecoder, TextEncoder } = require(`util`);
 

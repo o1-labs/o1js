@@ -21,8 +21,6 @@ cp "$BINDINGS_PATH"/snarky_js_node.bc.cjs "$NODE_BINDINGS"/snarky_js_node.bc.cjs
 cp "$BINDINGS_PATH"/snarky_js_node.bc.map "$NODE_BINDINGS"/snarky_js_node.bc.map
 cp "$BINDINGS_PATH"/plonk_wasm* "$NODE_BINDINGS"/
 
-cp _build/default/$KIMCHI_BINDINGS/js/node_js/plonk_wasm* "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/
-mv -f "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/plonk_wasm.js "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/plonk_wasm.cjs
 sed -i 's/plonk_wasm.js/plonk_wasm.cjs/' "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/snarky_js_node.bc.cjs
 
 npm run build --prefix="$SNARKY_JS_PATH"
