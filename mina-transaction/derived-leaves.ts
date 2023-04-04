@@ -11,7 +11,7 @@ import {
   stringLengthInBytes,
   stringToBytes,
 } from '../provable/binable.js';
-import { fieldEncodings } from '../../provable/base58.js';
+import { fieldEncodings } from '../../lib/base58.js';
 import { dataAsHash } from '../../lib/events.js';
 import { HashHelpers } from '../../lib/hash-generic.js';
 import { prefixes } from '../crypto/constants.js';
