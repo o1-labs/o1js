@@ -23,7 +23,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - This breaks deployed zkApps which use `MerkleWitness.calculateRoot()`, because the circuit is changed
   - You can make your existing contracts compatible again by switching to `MerkleWitness.calculateRootSlow()`, which has the old circuit
 
+### Fixed
+
+- Removed multiple best tip blocks when fetching action data https://github.com/o1-labs/snarkyjs/pull/817
+  - Implemented a temporary fix that filters out multiple best tip blocks, if they exist, while fetching actions. This fix will be removed once the related issue in the Archive-Node-API repository (https://github.com/o1-labs/Archive-Node-API/issues/7) is resolved.
+
 ## [0.9.5](https://github.com/o1-labs/snarkyjs/compare/21de489...4573252d)
+
+- Update the zkApp verification key from within one of its own methods, via proof https://github.com/o1-labs/snarkyjs/pull/812
 
 ### Breaking changes
 
