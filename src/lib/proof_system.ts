@@ -1,4 +1,4 @@
-import { withThreadPool } from '../snarky/wrapper.js';
+import { withThreadPool } from '../snarkyjs-bindings/js/wrapper.js';
 import {
   Bool,
   Field,
