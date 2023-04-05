@@ -641,7 +641,7 @@ const getActionsQuery = (
     input += `, fromActionState: "${fromActionState}"`;
   }
   if (endActionState !== undefined) {
-    input += `, endActionHash: "${endActionState}"`;
+    input += `, endActionState: "${endActionState}"`;
   }
   return `{
   actions(input: { ${input} }) {

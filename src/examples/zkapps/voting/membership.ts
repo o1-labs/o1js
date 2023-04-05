@@ -115,7 +115,7 @@ export class Membership_ extends SmartContract {
     // checking if the member already exists within the accumulator
     let { state: exists } = this.reducer.reduce(
       this.reducer.getActions({
-        fromActionHash: accumulatedMembers,
+        fromActionState: accumulatedMembers,
       }),
       Bool,
       (state: Bool, action: Member) => {
@@ -168,7 +168,7 @@ export class Membership_ extends SmartContract {
     this.committedMembers.assertEquals(committedMembers);
 
     let pendingActions = this.reducer.getActions({
-      fromActionHash: accumulatedMembers,
+      fromActionState: accumulatedMembers,
     });
 
     let { state: newCommittedMembers, actionsHash: newAccumulatedMembers } =

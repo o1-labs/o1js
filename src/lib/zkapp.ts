@@ -1262,7 +1262,7 @@ type ReducerReturn<Action> = {
    *
    * ```ts
    *  let pendingActions = this.reducer.getActions({
-   *    fromActionHash: actionsHash,
+   *    fromActionState: actionsHash,
    *  });
    *
    *  let { state: newState, actionsHash: newActionsHash } =
@@ -1288,16 +1288,16 @@ type ReducerReturn<Action> = {
    * Fetches the list of previously emitted {@link Action}s by this {@link SmartContract}.
    * ```ts
    * let pendingActions = this.reducer.getActions({
-   *    fromActionHash: actionsHash,
+   *    fromActionState: actionsHash,
    * });
    * ```
    */
   getActions({
-    fromActionHash,
-    endActionHash,
+    fromActionState,
+    endActionState,
   }: {
-    fromActionHash?: Field;
-    endActionHash?: Field;
+    fromActionState?: Field;
+    endActionState?: Field;
   }): Action[][];
 };
 
@@ -1391,19 +1391,19 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       return { state, actionsHash };
     },
     getActions({
-      fromActionHash,
-      endActionHash,
+      fromActionState,
+      endActionState,
     }: {
-      fromActionHash?: Field;
-      endActionHash?: Field;
+      fromActionState?: Field;
+      endActionState?: Field;
     }): A[][] {
       let actionsForAccount: A[][] = [];
       Circuit.asProver(() => {
         let actions = Mina.getActions(
           contract.address,
           {
-            fromActionState: fromActionHash,
-            endActionState: endActionHash,
+            fromActionState,
+            endActionState,
           },
           contract.self.tokenId
         );

@@ -273,7 +273,7 @@ export class Voting_ extends SmartContract {
 
     let { state: newCommittedVotes, actionsHash: newAccumulatedVotes } =
       this.reducer.reduce(
-        this.reducer.getActions({ fromActionHash: accumulatedVotes }),
+        this.reducer.getActions({ fromActionState: accumulatedVotes }),
         Field,
         (state: Field, action: Member) => {
           // apply one vote
