@@ -591,48 +591,37 @@ function LocalBlockchain({
       actionStates?: ActionStates,
       tokenId: Field = TokenId.default
     ): { hash: string; actions: string[][] }[] {
+      let currentActions: { hash: string; actions: string[][] }[] =
+        actions?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)] ?? [];
       let { fromActionState, endActionState } = actionStates ?? {};
-      let actionsForAccount: { hash: string; actions: string[][] }[] = [];
 
-      Circuit.asProver(() => {
-        // if the fromActionState is the empty state, we fetch all events
-        fromActionState = fromActionState
-          ?.equals(SequenceEvents.emptySequenceState())
-          .toBoolean()
-          ? undefined
-          : fromActionState;
+      fromActionState = fromActionState
+        ?.equals(SequenceEvents.emptySequenceState())
+        .toBoolean()
+        ? undefined
+        : fromActionState;
 
-        // used to determine start and end values in string
-        let start: string | undefined = fromActionState
-          ? Ledger.fieldToBase58(fromActionState)
-          : undefined;
-        let end: string | undefined = endActionState
-          ? Ledger.fieldToBase58(endActionState)
-          : undefined;
+      // used to determine start and end values in string
+      let start: string | undefined = fromActionState
+        ? Ledger.fieldToBase58(fromActionState)
+        : undefined;
+      let end: string | undefined = endActionState
+        ? Ledger.fieldToBase58(endActionState)
+        : undefined;
 
-        let currentActions =
-          actions?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)] ??
-          [];
+      let startIndex = start
+        ? currentActions.findIndex((e) => e.hash === start) + 1
+        : 0;
+      let endIndex = end
+        ? currentActions.findIndex((e) => e.hash === end) + 1
+        : undefined;
 
-        // gets the start/end indices of our array slice
-        let startIndex = start
-          ? currentActions.findIndex(
-              (e: { hash: string; actions: string[] }) => e.hash === start
-            ) + 1
-          : 0;
-
-        let endIndex = end
-          ? currentActions.findIndex(
-              (e: { hash: string; actions: string[] }) => e.hash === end
-            ) + 1
-          : undefined;
-
-        actionsForAccount = actions.slice(
+      return (
+        currentActions?.slice(
           startIndex,
           endIndex === 0 ? undefined : endIndex
-        );
-      });
-      return actionsForAccount;
+        ) ?? []
+      );
     },
     addAccount,
     /**
