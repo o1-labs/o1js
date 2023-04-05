@@ -5,7 +5,7 @@ import { SequenceEvents, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
 import { Types } from '../provable/types.js';
-import { ActionHashes } from './mina.js';
+import { ActionStates } from './mina.js';
 import * as Encoding from './encoding.js';
 import {
   Account,
@@ -140,6 +140,9 @@ type FetchError = {
   statusCode: number;
   statusText: string;
 };
+type ActionStatesStringified = {
+  [K in keyof ActionStates]: string;
+};
 // Specify 30s as the default timeout
 const defaultTimeout = 30000;
 
@@ -177,7 +180,7 @@ let actionsToFetch = {} as Record<
   {
     publicKey: string;
     tokenId: string;
-    actionHashes: { fromActionHash?: string; endActionHash?: string };
+    actionStates: ActionStatesStringified;
     graphqlEndpoint: string;
   }
 >;
@@ -200,26 +203,26 @@ function markNetworkToBeFetched(graphqlEndpoint: string) {
 }
 function markActionsToBeFetched(
   publicKey: PublicKey,
-  actionHashes: ActionHashes,
   tokenId: Field,
-  graphqlEndpoint: string
+  graphqlEndpoint: string,
+  actionStates: ActionStates = {}
 ) {
   let publicKeyBase58 = publicKey.toBase58();
   let tokenBase58 = TokenId.toBase58(tokenId);
-  let { fromActionHash, endActionHash } = actionHashes;
-  let fromActionHashBase58 = fromActionHash
-    ? fromActionHash.toString()
+  let { fromActionState, endActionState } = actionStates;
+  let fromActionStateBase58 = fromActionState
+    ? fromActionState.toString()
     : undefined;
-  let endActionHashBase58 = endActionHash
-    ? endActionHash.toString()
+  let endActionStateBase58 = endActionState
+    ? endActionState.toString()
     : undefined;
 
   actionsToFetch[`${publicKeyBase58};${tokenBase58};${graphqlEndpoint}`] = {
     publicKey: publicKeyBase58,
     tokenId: tokenBase58,
-    actionHashes: {
-      fromActionHash: fromActionHashBase58,
-      endActionHash: endActionHashBase58,
+    actionStates: {
+      fromActionState: fromActionStateBase58,
+      endActionState: endActionStateBase58,
     },
     graphqlEndpoint,
   };
@@ -239,9 +242,9 @@ async function fetchMissingData(
     }
   );
   let actionPromises = Object.entries(actionsToFetch).map(
-    async ([key, { publicKey, actionHashes, tokenId }]) => {
+    async ([key, { publicKey, actionStates, tokenId }]) => {
       let response = await fetchActions(
-        { publicKey, actionHashes, tokenId },
+        { publicKey, actionStates, tokenId },
         archiveEndpoint
       );
       if (!('error' in response) || response.error === undefined)
@@ -628,17 +631,17 @@ const getEventsQuery = (
 };
 const getActionsQuery = (
   publicKey: string,
-  actionHashes: { fromActionHash?: string; endActionHash?: string },
+  actionStates: ActionStatesStringified,
   tokenId: string,
   _filterOptions?: EventActionFilterOptions
 ) => {
-  const { fromActionHash, endActionHash } = actionHashes ?? {};
+  const { fromActionState, endActionState } = actionStates ?? {};
   let input = `address: "${publicKey}", tokenId: "${tokenId}"`;
-  if (fromActionHash !== undefined) {
-    input += `, fromActionHash: "${fromActionHash}"`;
+  if (fromActionState !== undefined) {
+    input += `, fromActionState: "${fromActionState}"`;
   }
-  if (endActionHash !== undefined) {
-    input += `, endActionHash: "${endActionHash}"`;
+  if (endActionState !== undefined) {
+    input += `, endActionHash: "${endActionState}"`;
   }
   return `{
   actions(input: { ${input} }) {
@@ -739,7 +742,7 @@ async function fetchEvents(
 async function fetchActions(
   accountInfo: {
     publicKey: string;
-    actionHashes: { fromActionHash?: string; endActionHash?: string };
+    actionStates: ActionStatesStringified;
     tokenId?: string;
   },
   graphqlEndpoint = archiveGraphqlEndpoint
@@ -748,11 +751,11 @@ async function fetchActions(
     throw new Error(
       'fetchEvents: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
     );
-  const { publicKey, actionHashes, tokenId } = accountInfo;
+  const { publicKey, actionStates, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
     getActionsQuery(
       publicKey,
-      actionHashes,
+      actionStates,
       tokenId ?? TokenId.toBase58(TokenId.default)
     ),
     graphqlEndpoint
