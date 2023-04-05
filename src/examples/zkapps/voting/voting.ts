@@ -106,7 +106,7 @@ export class Voting_ extends SmartContract {
       setVerificationKey: Permissions.none(),
       setPermissions: Permissions.proofOrSignature(),
     });
-    this.accumulatedVotes.set(Reducer.initialActionsHash);
+    this.accumulatedVotes.set(Reducer.initialActionState);
   }
 
   /**
@@ -271,7 +271,7 @@ export class Voting_ extends SmartContract {
     let committedVotes = this.committedVotes.get();
     this.committedVotes.assertEquals(committedVotes);
 
-    let { state: newCommittedVotes, actionsHash: newAccumulatedVotes } =
+    let { state: newCommittedVotes, actionState: newAccumulatedVotes } =
       this.reducer.reduce(
         this.reducer.getActions({ fromActionState: accumulatedVotes }),
         Field,
@@ -282,7 +282,7 @@ export class Voting_ extends SmartContract {
           return action.votesWitness.calculateRootSlow(action.getHash());
         },
         // initial state
-        { state: committedVotes, actionsHash: accumulatedVotes }
+        { state: committedVotes, actionState: accumulatedVotes }
       );
 
     this.committedVotes.set(newCommittedVotes);

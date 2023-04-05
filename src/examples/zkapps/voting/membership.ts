@@ -122,7 +122,7 @@ export class Membership_ extends SmartContract {
         return action.equals(member).or(state);
       },
       // initial state
-      { state: Bool(false), actionsHash: accumulatedMembers }
+      { state: Bool(false), actionState: accumulatedMembers }
     );
 
     /*
@@ -171,7 +171,7 @@ export class Membership_ extends SmartContract {
       fromActionState: accumulatedMembers,
     });
 
-    let { state: newCommittedMembers, actionsHash: newAccumulatedMembers } =
+    let { state: newCommittedMembers, actionState: newAccumulatedMembers } =
       this.reducer.reduce(
         pendingActions,
         Field,
@@ -192,7 +192,7 @@ export class Membership_ extends SmartContract {
           );
         },
         // initial state
-        { state: committedMembers, actionsHash: accumulatedMembers }
+        { state: committedMembers, actionState: accumulatedMembers }
       );
 
     this.committedMembers.set(newCommittedMembers);

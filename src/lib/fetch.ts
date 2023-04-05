@@ -792,12 +792,12 @@ async function fetchActions(
 
   const processActionData = (
     currentActionList: string[][],
-    latestActionsHash: Field
+    latestActionState: Field
   ) => {
-    const actionsHash = SequenceEvents.hash(
+    const actionState = SequenceEvents.hash(
       currentActionList.map((e) => e.map((f) => Field(f)))
     );
-    return SequenceEvents.updateSequenceState(latestActionsHash, actionsHash);
+    return SequenceEvents.updateSequenceState(latestActionState, actionState);
   };
 
   // Archive Node API returns actions in the latest order, so we reverse the array to get the actions in chronological order.
@@ -806,7 +806,7 @@ async function fetchActions(
 
   fetchedActions.forEach((fetchedAction) => {
     const { actionData } = fetchedAction;
-    let latestActionsHash = Field(fetchedAction.actionState.actionStateTwo);
+    let latestActionState = Field(fetchedAction.actionState.actionStateTwo);
     let actionState = Field(fetchedAction.actionState.actionStateOne);
 
     if (actionData.length === 0)
@@ -828,37 +828,37 @@ async function fetchActions(
       } else if (isSameAccountUpdate && isLastAction) {
         currentActionList.push(data);
       } else if (!isSameAccountUpdate && isLastAction) {
-        latestActionsHash = processActionData(
+        latestActionState = processActionData(
           currentActionList,
-          latestActionsHash
+          latestActionState
         );
         actionsList.push({
           actions: currentActionList,
-          hash: Ledger.fieldToBase58(Field(latestActionsHash)),
+          hash: Ledger.fieldToBase58(Field(latestActionState)),
         });
         currentAccountUpdateId = accountUpdateId;
         currentActionList = [data];
       }
 
-      latestActionsHash = processActionData(
+      latestActionState = processActionData(
         currentActionList,
-        latestActionsHash
+        latestActionState
       );
       actionsList.push({
         actions: currentActionList,
-        hash: Ledger.fieldToBase58(Field(latestActionsHash)),
+        hash: Ledger.fieldToBase58(Field(latestActionState)),
       });
       currentAccountUpdateId = accountUpdateId;
       currentActionList = [data];
     });
 
-    const currentActionHash = Ledger.fieldToBase58(Field(latestActionsHash));
-    const expectedActionHash = Ledger.fieldToBase58(Field(actionState));
+    const currentActionState = Ledger.fieldToBase58(Field(latestActionState));
+    const expectedActionState = Ledger.fieldToBase58(Field(actionState));
 
-    if (currentActionHash !== expectedActionHash) {
+    if (currentActionState !== expectedActionState) {
       throw new Error(
         `Failed to derive correct actions hash for ${publicKey}.
-        Derived hash: ${currentActionHash}, expected hash: ${expectedActionHash}).
+        Derived hash: ${currentActionState}, expected hash: ${expectedActionState}).
         All action hashes derived: ${JSON.stringify(actionsList, null, 2)}
         Please try a different Archive Node API endpoint.
         `
