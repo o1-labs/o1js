@@ -22,6 +22,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Improve number of constraints needed for Merkle tree hashing https://github.com/o1-labs/snarkyjs/pull/820
   - This breaks deployed zkApps which use `MerkleWitness.calculateRoot()`, because the circuit is changed
   - You can make your existing contracts compatible again by switching to `MerkleWitness.calculateRootSlow()`, which has the old circuit
+- Renamed Function Parameters: The `getAction` function now accepts a new object structure for its parameters. https://github.com/o1-labs/snarkyjs/pull/828
+  - The previous object keys, `fromActionHash` and `endActionHash`, have been replaced by `fromActionState` and `endActionState`.
 
 ### Fixed
 
