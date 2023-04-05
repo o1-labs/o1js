@@ -970,6 +970,14 @@ Circuit.runUnchecked = function (f: () => void) {
   return result;
 };
 
+let oldRunAndCheck = Circuit.runAndCheck;
+Circuit.runAndCheck = function (f: () => void) {
+  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
+    oldRunAndCheck(f)
+  );
+  return result;
+};
+
 Circuit.witness = function <
   T,
   S extends FlexibleProvable<T> = FlexibleProvable<T>
