@@ -226,7 +226,15 @@ function createTransaction(
           });
         } else {
           snarkContext.runWith({ inRunAndCheck: true }, () =>
-            Circuit.runAndCheck(f)
+            Circuit.runAndCheck(() => {
+              f();
+              Circuit.asProver(() => {
+                let tx = currentTransaction.get();
+                tx.accountUpdates = CallForest.map(tx.accountUpdates, (a) =>
+                  toConstant(AccountUpdate, a)
+                );
+              });
+            })
           );
         }
         break;
