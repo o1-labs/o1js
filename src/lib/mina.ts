@@ -49,6 +49,7 @@ export {
   fetchEvents,
   getActions,
   FeePayerSpec,
+  ActionStates,
   faucet,
   waitForFunding,
   getProofsEnabled,
@@ -147,6 +148,11 @@ type DeprecatedFeePayerSpec =
       nonce?: number;
     })
   | undefined;
+
+type ActionStates = {
+  fromActionState?: Field;
+  endActionState?: Field;
+};
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
   if (tokenId === TokenId.toBase58(TokenId.default)) {
@@ -340,6 +346,7 @@ interface Mina {
   ) => ReturnType<typeof Fetch.fetchEvents>;
   getActions: (
     publicKey: PublicKey,
+    actionStates?: ActionStates,
     tokenId?: Field
   ) => { hash: string; actions: string[][] }[];
   proofsEnabled: boolean;
@@ -581,10 +588,39 @@ function LocalBlockchain({
     },
     getActions(
       publicKey: PublicKey,
+      actionStates?: ActionStates,
       tokenId: Field = TokenId.default
     ): { hash: string; actions: string[][] }[] {
+      let currentActions: { hash: string; actions: string[][] }[] =
+        actions?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)] ?? [];
+      let { fromActionState, endActionState } = actionStates ?? {};
+
+      fromActionState = fromActionState
+        ?.equals(SequenceEvents.emptySequenceState())
+        .toBoolean()
+        ? undefined
+        : fromActionState;
+
+      // used to determine start and end values in string
+      let start: string | undefined = fromActionState
+        ? Ledger.fieldToBase58(fromActionState)
+        : undefined;
+      let end: string | undefined = endActionState
+        ? Ledger.fieldToBase58(endActionState)
+        : undefined;
+
+      let startIndex = start
+        ? currentActions.findIndex((e) => e.hash === start) + 1
+        : 0;
+      let endIndex = end
+        ? currentActions.findIndex((e) => e.hash === end) + 1
+        : undefined;
+
       return (
-        actions?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)] ?? []
+        currentActions?.slice(
+          startIndex,
+          endIndex === 0 ? undefined : endIndex
+        ) ?? []
       );
     },
     addAccount,
@@ -817,9 +853,18 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         filterOptions
       );
     },
-    getActions(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+    getActions(
+      publicKey: PublicKey,
+      actionStates?: ActionStates,
+      tokenId: Field = TokenId.default
+    ) {
       if (currentTransaction()?.fetchMode === 'test') {
-        Fetch.markActionsToBeFetched(publicKey, tokenId, archiveEndpoint);
+        Fetch.markActionsToBeFetched(
+          publicKey,
+          tokenId,
+          archiveEndpoint,
+          actionStates
+        );
         let actions = Fetch.getCachedActions(publicKey, tokenId);
         return actions ?? [];
       }
@@ -906,10 +951,14 @@ let activeInstance: Mina = {
   async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
     return createTransaction(sender, f, 0);
   },
-  fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+  fetchEvents(_publicKey: PublicKey, _tokenId: Field = TokenId.default) {
     throw Error('must call Mina.setActiveInstance first');
   },
-  getActions(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+  getActions(
+    _publicKey: PublicKey,
+    _actionStates?: ActionStates,
+    _tokenId: Field = TokenId.default
+  ) {
     throw Error('must call Mina.setActiveInstance first');
   },
   proofsEnabled: true,
@@ -1055,8 +1104,12 @@ async function fetchEvents(
 /**
  * @return A list of emitted sequencing actions associated to the given public key.
  */
-function getActions(publicKey: PublicKey, tokenId?: Field) {
-  return activeInstance.getActions(publicKey, tokenId);
+function getActions(
+  publicKey: PublicKey,
+  actionStates: ActionStates,
+  tokenId?: Field
+) {
+  return activeInstance.getActions(publicKey, actionStates, tokenId);
 }
 
 function getProofsEnabled() {

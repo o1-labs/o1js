@@ -1262,7 +1262,7 @@ type ReducerReturn<Action> = {
    *
    * ```ts
    *  let pendingActions = this.reducer.getActions({
-   *    fromActionHash: actionsHash,
+   *    fromActionState: actionsHash,
    *  });
    *
    *  let { state: newState, actionsHash: newActionsHash } =
@@ -1288,16 +1288,16 @@ type ReducerReturn<Action> = {
    * Fetches the list of previously emitted {@link Action}s by this {@link SmartContract}.
    * ```ts
    * let pendingActions = this.reducer.getActions({
-   *    fromActionHash: actionsHash,
+   *    fromActionState: actionsHash,
    * });
    * ```
    */
   getActions({
-    fromActionHash,
-    endActionHash,
+    fromActionState,
+    endActionState,
   }: {
-    fromActionHash?: Field;
-    endActionHash?: Field;
+    fromActionState?: Field;
+    endActionState?: Field;
   }): Action[][];
 };
 
@@ -1391,50 +1391,32 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       return { state, actionsHash };
     },
     getActions({
-      fromActionHash,
-      endActionHash,
+      fromActionState,
+      endActionState,
     }: {
-      fromActionHash?: Field;
-      endActionHash?: Field;
+      fromActionState?: Field;
+      endActionState?: Field;
     }): A[][] {
       let actionsForAccount: A[][] = [];
       Circuit.asProver(() => {
-        // if the fromActionHash is the empty state, we fetch all events
-        fromActionHash = fromActionHash
-          ?.equals(SequenceEvents.emptySequenceState())
-          .toBoolean()
-          ? undefined
-          : fromActionHash;
+        let actions = Mina.getActions(
+          contract.address,
+          {
+            fromActionState,
+            endActionState,
+          },
+          contract.self.tokenId
+        );
 
-        // used to determine start and end values in string
-        let start: string | undefined = fromActionHash
-          ? Ledger.fieldToBase58(fromActionHash)
-          : undefined;
-        let end: string | undefined = endActionHash
-          ? Ledger.fieldToBase58(endActionHash)
-          : undefined;
-
-        let actions = Mina.getActions(contract.address, contract.self.tokenId);
-
-        // gets the start/end indices of our array slice
-        let startIndex = start
-          ? actions.findIndex((e) => e.hash === start) + 1
-          : 0;
-        let endIndex = end
-          ? actions.findIndex((e) => e.hash === end) + 1
-          : undefined;
-
-        // slices the array so we only get the wanted range between fromActionHash and endActionHash
-        actionsForAccount = actions
-          .slice(startIndex, endIndex === 0 ? undefined : endIndex)
-          .map((event: { hash: string; actions: string[][] }) =>
+        actionsForAccount = actions.map(
+          (event: { hash: string; actions: string[][] }) =>
             // putting our string-Fields back into the original action type
             event.actions.map((action: string[]) =>
               (reducer.actionType as ProvablePure<A>).fromFields(
                 action.map((fieldAsString: string) => Field(fieldAsString))
               )
             )
-          );
+        );
       });
 
       return actionsForAccount;

@@ -22,6 +22,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Improve number of constraints needed for Merkle tree hashing https://github.com/o1-labs/snarkyjs/pull/820
   - This breaks deployed zkApps which use `MerkleWitness.calculateRoot()`, because the circuit is changed
   - You can make your existing contracts compatible again by switching to `MerkleWitness.calculateRootSlow()`, which has the old circuit
+- Renamed Function Parameters: The `getAction` function now accepts a new object structure for its parameters. https://github.com/o1-labs/snarkyjs/pull/828
+  - The previous object keys, `fromActionHash` and `endActionHash`, have been replaced by `fromActionState` and `endActionState`.
 
 ### Fixed
 
@@ -30,6 +32,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - The internal event type now includes event data and transaction information as separate objects, allowing for more accurate information about each event and its associated transaction.
 - Removed multiple best tip blocks when fetching action data https://github.com/o1-labs/snarkyjs/pull/817
   - Implemented a temporary fix that filters out multiple best tip blocks, if they exist, while fetching actions. This fix will be removed once the related issue in the Archive-Node-API repository (https://github.com/o1-labs/Archive-Node-API/issues/7) is resolved.
+- New `fromActionState` and `endActionState` parameters for fetchActions function in SnarkyJS https://github.com/o1-labs/snarkyjs/pull/828
+  - Allows fetching only necessary actions to compute the latest actions state
+  - Eliminates the need to retrieve the entire actions history of a zkApp
+  - Utilizes `actionStateTwo` field returned by Archive Node API as a safe starting point for deriving the most recent action hash
 
 ## [0.9.5](https://github.com/o1-labs/snarkyjs/compare/21de489...4573252d)
 
