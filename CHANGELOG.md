@@ -15,10 +15,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/21de489...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/0b7a9ad...HEAD)
+
+> No unreleased changes
+
+## [0.9.6](https://github.com/o1-labs/snarkyjs/compare/21de489...0b7a9ad)
 
 ### Breaking changes
 
+- Temporarily reintroduces 2 known issues as a result of reverting a fix necessary for network redeployment:
+  - https://github.com/o1-labs/snarkyjs/issues/799
+  - https://github.com/o1-labs/snarkyjs/issues/530
+  - Please note that we plan to address these issues in a future release. In the meantime, to work around this breaking change, you can try calling `fetchAccount` for each account involved in a transaction before executing the `Mina.transaction` block.
 - Improve number of constraints needed for Merkle tree hashing https://github.com/o1-labs/snarkyjs/pull/820
   - This breaks deployed zkApps which use `MerkleWitness.calculateRoot()`, because the circuit is changed
   - You can make your existing contracts compatible again by switching to `MerkleWitness.calculateRootSlow()`, which has the old circuit
