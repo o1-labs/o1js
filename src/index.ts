@@ -86,3 +86,5 @@ namespace Experimental {
   export let Callback = Experimental_.Callback;
   export type Callback<Result> = Callback_<Result>;
 }
+
+Error.stackTraceLimit = 1000;

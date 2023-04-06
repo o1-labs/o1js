@@ -947,7 +947,7 @@ function toConstant<T>(type: Provable<T>, value: T): T {
 
 let oldAsProver = Circuit.asProver;
 Circuit.asProver = function (f: () => void) {
-  if (Circuit.inCheckedComputation()) {
+  if (inCheckedComputation()) {
     oldAsProver(f);
   } else {
     f();
