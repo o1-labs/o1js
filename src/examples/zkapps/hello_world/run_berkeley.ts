@@ -6,6 +6,8 @@ import {
   AccountUpdate,
   isReady,
   shutdown,
+  fetchAccount,
+  PublicKey,
 } from 'snarkyjs';
 import { adminPrivateKey, HelloWorld } from './hello_world.js';
 await isReady;
@@ -51,19 +53,15 @@ let transaction = await Mina.transaction(
 transaction.sign([senderKey, zkappKey]);
 
 console.log('Sending the transaction..');
-let pendingTx = await transaction.send();
-if (pendingTx.hash() !== undefined) {
-  console.log(`
-Success! Deploy transaction sent.
+await (
+  await transaction.send()
+).wait({
+  maxAttempts: 90,
+});
 
-Your smart contract state will be deployed
-as soon as the transaction is included in a block:
-https://berkeley.minaexplorer.com/transaction/${pendingTx.hash()}
-`);
-}
-
-console.log('Waiting for transaction inclusion..');
-await pendingTx.wait({ maxAttempts: 90 });
+console.log('Fetching updated accounts..');
+await fetchAccount({ publicKey: senderKey.toPublicKey() });
+await fetchAccount({ publicKey: zkappAddress });
 
 console.log('Trying to update deployed zkApp..');
 
@@ -73,19 +71,11 @@ transaction = await Mina.transaction({ sender, fee: transactionFee }, () => {
 await transaction.sign([senderKey]).prove();
 
 console.log('Sending the transaction..');
-pendingTx = await transaction.send();
-
-if (pendingTx.hash() !== undefined) {
-  console.log(`
-Success! Update transaction sent.
-
-Your smart contract state will be updated
-as soon as the transaction is included in a block:
-https://berkeley.minaexplorer.com/transaction/${pendingTx.hash()}
-`);
-}
-console.log('Waiting for transaction inclusion..');
-await pendingTx.wait({ maxAttempts: 90 });
+await (
+  await transaction.send()
+).wait({
+  maxAttempts: 90,
+});
 
 console.log('Checking if the update was valid..');
 

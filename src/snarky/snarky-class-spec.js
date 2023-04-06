@@ -201,10 +201,6 @@ export default [
         type: 'function',
       },
       {
-        name: 'runUnchecked',
-        type: 'function',
-      },
-      {
         name: '_constraintSystem',
         type: 'function',
       },

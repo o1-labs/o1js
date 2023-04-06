@@ -819,7 +819,6 @@ class AccountUpdate implements Types.AccountUpdate {
     receiver.body.balanceChange = Int64.fromObject(
       receiver.body.balanceChange
     ).add(amount);
-    return receiver;
   }
 
   /**
@@ -1617,19 +1616,6 @@ const CallForest = {
       if (update.parent === undefined) return callDepth;
       update = update.parent;
     }
-  },
-
-  map(updates: AccountUpdate[], map: (update: AccountUpdate) => AccountUpdate) {
-    let newUpdates: AccountUpdate[] = [];
-    for (let update of updates) {
-      let newUpdate = map(update);
-      newUpdate.children.accountUpdates = CallForest.map(
-        update.children.accountUpdates,
-        map
-      );
-      newUpdates.push(newUpdate);
-    }
-    return newUpdates;
   },
 
   forEach(updates: AccountUpdate[], callback: (update: AccountUpdate) => void) {
