@@ -951,8 +951,6 @@ function isConstant<T>(type: Provable<T>, value: T): boolean {
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
 
-Circuit.inCheckedComputation = inCheckedComputation;
-
 let oldAsProver = Circuit.asProver;
 Circuit.asProver = function (f: () => void) {
   if (Circuit.inCheckedComputation()) {
@@ -960,14 +958,6 @@ Circuit.asProver = function (f: () => void) {
   } else {
     f();
   }
-};
-
-let oldRunUnchecked = Circuit.runUnchecked;
-Circuit.runUnchecked = function (f: () => void) {
-  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
-    oldRunUnchecked(f)
-  );
-  return result;
 };
 
 Circuit.witness = function <
