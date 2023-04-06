@@ -583,7 +583,7 @@ function LocalBlockchain({
       let { fromActionState, endActionState } = actionStates ?? {};
 
       fromActionState = fromActionState
-        ?.equals(SequenceEvents.emptySequenceState())
+        ?.equals(Actions.emptyActionState())
         .toBoolean()
         ? undefined
         : fromActionState;

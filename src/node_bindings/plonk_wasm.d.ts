@@ -1004,8 +1004,8 @@ export function wbg_rayon_start_worker(receiver: number): void;
 * at `zeta` **and** `omega * zeta`.
 */
 export enum CurrOrNext {
-  Curr = 0,
-  Next = 1,
+  Curr,
+  Next,
 }
 /**
 * The different types of gates the system supports.
@@ -1018,48 +1018,48 @@ export enum GateType {
 /**
 * Zero gate
 */
-  Zero = 0,
+  Zero,
 /**
 * Generic arithmetic gate
 */
-  Generic = 1,
+  Generic,
 /**
 * Poseidon permutation gate
 */
-  Poseidon = 2,
+  Poseidon,
 /**
 * Complete EC addition in Affine form
 */
-  CompleteAdd = 3,
+  CompleteAdd,
 /**
 * EC variable base scalar multiplication
 */
-  VarBaseMul = 4,
+  VarBaseMul,
 /**
 * EC variable base scalar multiplication with group endomorphim optimization
 */
-  EndoMul = 5,
+  EndoMul,
 /**
 * Gate for computing the scalar corresponding to an endoscaling
 */
-  EndoMulScalar = 6,
-  Lookup = 11,
+  EndoMulScalar,
+  Lookup,
 /**
 * Cairo
 */
-  CairoClaim = 12,
-  CairoInstruction = 13,
-  CairoFlags = 14,
-  CairoTransition = 15,
+  CairoClaim,
+  CairoInstruction,
+  CairoFlags,
+  CairoTransition,
 /**
 * Range check
 */
-  RangeCheck0 = 16,
-  RangeCheck1 = 17,
-  ForeignFieldAdd = 18,
-  ForeignFieldMul = 19,
-  Xor16 = 20,
-  Rot64 = 21,
+  RangeCheck0,
+  RangeCheck1,
+  ForeignFieldAdd,
+  ForeignFieldMul,
+  Xor16,
+  Rot64,
 }
 /**
 */

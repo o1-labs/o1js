@@ -1,7 +1,7 @@
 import 'isomorphic-fetch';
 import { Field, Ledger } from '../snarky.js';
 import { UInt32, UInt64 } from './int.js';
-import { SequenceEvents, TokenId } from './account_update.js';
+import { Actions, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
 import { Types } from '../provable/types.js';
@@ -794,10 +794,10 @@ async function fetchActions(
     currentActionList: string[][],
     latestActionsHash: Field
   ) => {
-    const actionsHash = SequenceEvents.hash(
+    const actionsHash = Actions.hash(
       currentActionList.map((e) => e.map((f) => Field(f)))
     );
-    return SequenceEvents.updateSequenceState(latestActionsHash, actionsHash);
+    return Actions.updateSequenceState(latestActionsHash, actionsHash);
   };
 
   // Archive Node API returns actions in the latest order, so we reverse the array to get the actions in chronological order.
