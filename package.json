@@ -1,7 +1,7 @@
 {
   "name": "snarkyjs",
   "description": "JavaScript bindings for SnarkyJS",
-  "version": "0.9.3",
+  "version": "0.9.5",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/web/index.js",
@@ -18,8 +18,9 @@
   "files": [
     "src/build",
     "dist",
-    "src/lib",
-    "src/**/*.d.ts"
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "**/*.map"
   ],
   "bin": {
     "snarky-run": "src/build/run.js"

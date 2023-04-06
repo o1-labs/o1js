@@ -1,4 +1,4 @@
-import { PrivateKey, UInt32, UInt64 } from 'snarkyjs';
+import { Bool, PrivateKey, UInt32, UInt64 } from 'snarkyjs';
 import { VotingApp, VotingAppParams } from './factory.js';
 import {
   ElectionPreconditions,
@@ -32,7 +32,8 @@ let params_set1: VotingAppParams = {
   ),
   electionPreconditions: new ElectionPreconditions(
     UInt32.from(5),
-    UInt32.from(15)
+    UInt32.from(15),
+    Bool(true)
   ),
   voterKey: PrivateKey.random(),
   candidateKey: PrivateKey.random(),
@@ -41,9 +42,9 @@ let params_set1: VotingAppParams = {
 };
 
 let storage_set1 = {
-  votesStore: new OffchainStorage<Member>(8),
-  candidatesStore: new OffchainStorage<Member>(8),
-  votersStore: new OffchainStorage<Member>(8),
+  votesStore: new OffchainStorage<Member>(3),
+  candidatesStore: new OffchainStorage<Member>(3),
+  votersStore: new OffchainStorage<Member>(3),
 };
 
 console.log('Building contracts for set 1...');

@@ -21,6 +21,7 @@ import * as Encoding from './encoding.js';
 import { hashWithPrefix, packToFields } from './hash.js';
 import { prefixes } from '../js_crypto/constants.js';
 import { Context } from './global-context.js';
+import { assert } from './errors.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -815,6 +816,7 @@ class AccountUpdate implements Types.AccountUpdate {
     receiver.body.balanceChange = Int64.fromObject(
       receiver.body.balanceChange
     ).add(amount);
+    return receiver;
   }
 
   /**
@@ -1614,6 +1616,19 @@ const CallForest = {
     }
   },
 
+  map(updates: AccountUpdate[], map: (update: AccountUpdate) => AccountUpdate) {
+    let newUpdates: AccountUpdate[] = [];
+    for (let update of updates) {
+      let newUpdate = map(update);
+      newUpdate.children.accountUpdates = CallForest.map(
+        update.children.accountUpdates,
+        map
+      );
+      newUpdates.push(newUpdate);
+    }
+    return newUpdates;
+  },
+
   forEach(updates: AccountUpdate[], callback: (update: AccountUpdate) => void) {
     for (let update of updates) {
       callback(update);
@@ -1729,13 +1744,23 @@ const Authorization = {
     accountUpdate.lazyAuthorization = { ...signature, kind: 'lazy-signature' };
   },
   setProofAuthorizationKind(
-    { body }: AccountUpdate,
+    { body, id }: AccountUpdate,
     priorAccountUpdates?: AccountUpdate[]
   ) {
     body.authorizationKind.isSigned = Bool(false);
     body.authorizationKind.isProved = Bool(true);
     let hash = Circuit.witness(Field, () => {
-      priorAccountUpdates ??= zkAppProver.getData().transaction.accountUpdates;
+      let proverData = zkAppProver.getData();
+      let isProver = proverData !== undefined;
+      assert(
+        isProver || priorAccountUpdates !== undefined,
+        'Called `setProofAuthorizationKind()` outside the prover without passing in `priorAccountUpdates`.'
+      );
+      let myAccountUpdateId = isProver ? proverData.accountUpdate.id : id;
+      priorAccountUpdates ??= proverData.transaction.accountUpdates;
+      priorAccountUpdates = priorAccountUpdates.filter(
+        (a) => a.id !== myAccountUpdateId
+      );
       let priorAccountUpdatesFlat = CallForest.toFlatList(
         priorAccountUpdates,
         false

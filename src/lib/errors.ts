@@ -2,7 +2,7 @@ import { Types } from '../provable/types.js';
 import { TokenId } from './account_update.js';
 import { Int64 } from './int.js';
 
-export { invalidTransactionError };
+export { invalidTransactionError, Bug, assert };
 
 const ErrorHandlers = {
   Invalid_fee_excess({
@@ -100,4 +100,19 @@ function invalidTransactionError(
   }
   // fallback if we don't have a good error message yet
   return rawErrors;
+}
+
+/**
+ * An error that was assumed cannot happen, and communicates to users that it's not their fault but an internal bug.
+ */
+function Bug(message: string) {
+  return Error(
+    `${message}\nThis shouldn't have happened and indicates an internal bug.`
+  );
+}
+/**
+ * Make an assertion. When failing, this will communicate to users it's not their fault but indicates an internal bug.
+ */
+function assert(condition: boolean, message = 'Failed assertion.') {
+  if (!condition) throw Bug(message);
 }

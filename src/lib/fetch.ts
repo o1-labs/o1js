@@ -1,10 +1,11 @@
 import 'isomorphic-fetch';
 import { Field, Ledger } from '../snarky.js';
 import { UInt32, UInt64 } from './int.js';
-import { TokenId } from './account_update.js';
+import { SequenceEvents, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
 import { Types } from '../provable/types.js';
+import { ActionStates } from './mina.js';
 import * as Encoding from './encoding.js';
 import {
   Account,
@@ -139,6 +140,9 @@ type FetchError = {
   statusCode: number;
   statusText: string;
 };
+type ActionStatesStringified = {
+  [K in keyof ActionStates]: string;
+};
 // Specify 30s as the default timeout
 const defaultTimeout = 30000;
 
@@ -173,7 +177,12 @@ let accountsToFetch = {} as Record<
 let networksToFetch = {} as Record<string, { graphqlEndpoint: string }>;
 let actionsToFetch = {} as Record<
   string,
-  { publicKey: string; tokenId: string; graphqlEndpoint: string }
+  {
+    publicKey: string;
+    tokenId: string;
+    actionStates: ActionStatesStringified;
+    graphqlEndpoint: string;
+  }
 >;
 
 function markAccountToBeFetched(
@@ -195,13 +204,26 @@ function markNetworkToBeFetched(graphqlEndpoint: string) {
 function markActionsToBeFetched(
   publicKey: PublicKey,
   tokenId: Field,
-  graphqlEndpoint: string
+  graphqlEndpoint: string,
+  actionStates: ActionStates = {}
 ) {
   let publicKeyBase58 = publicKey.toBase58();
   let tokenBase58 = TokenId.toBase58(tokenId);
+  let { fromActionState, endActionState } = actionStates;
+  let fromActionStateBase58 = fromActionState
+    ? fromActionState.toString()
+    : undefined;
+  let endActionStateBase58 = endActionState
+    ? endActionState.toString()
+    : undefined;
+
   actionsToFetch[`${publicKeyBase58};${tokenBase58};${graphqlEndpoint}`] = {
     publicKey: publicKeyBase58,
     tokenId: tokenBase58,
+    actionStates: {
+      fromActionState: fromActionStateBase58,
+      endActionState: endActionStateBase58,
+    },
     graphqlEndpoint,
   };
 }
@@ -220,9 +242,9 @@ async function fetchMissingData(
     }
   );
   let actionPromises = Object.entries(actionsToFetch).map(
-    async ([key, { publicKey, tokenId }]) => {
+    async ([key, { publicKey, actionStates, tokenId }]) => {
       let response = await fetchActions(
-        { publicKey, tokenId },
+        { publicKey, actionStates, tokenId },
         archiveEndpoint
       );
       if (!('error' in response) || response.error === undefined)
@@ -545,18 +567,25 @@ type FetchedEvents = {
     parentHash: string;
     chainStatus: string;
   };
-  transactionInfo: {
-    hash: string;
-    memo: string;
-    status: string;
-  };
   eventData: {
+    transactionInfo: {
+      hash: string;
+      memo: string;
+      status: string;
+    };
     data: string[];
   }[];
 };
 type FetchedActions = {
-  actionState: string;
+  blockInfo: {
+    distanceFromMaxBlockHeight: number;
+  };
+  actionState: {
+    actionStateOne: string;
+    actionStateTwo: string;
+  };
   actionData: {
+    accountUpdateId: string;
     data: string[];
   }[];
 };
@@ -589,12 +618,12 @@ const getEventsQuery = (
       parentHash
       chainStatus
     }
-    transactionInfo {
-      hash
-      memo
-      status
-    }
     eventData {
+      transactionInfo {
+        hash
+        memo
+        status
+      }
       data
     }
   }
@@ -602,21 +631,29 @@ const getEventsQuery = (
 };
 const getActionsQuery = (
   publicKey: string,
+  actionStates: ActionStatesStringified,
   tokenId: string,
-  filterOptions?: EventActionFilterOptions
+  _filterOptions?: EventActionFilterOptions
 ) => {
-  const { to, from } = filterOptions ?? {};
+  const { fromActionState, endActionState } = actionStates ?? {};
   let input = `address: "${publicKey}", tokenId: "${tokenId}"`;
-  if (to !== undefined) {
-    input += `, to: ${to}`;
+  if (fromActionState !== undefined) {
+    input += `, fromActionState: "${fromActionState}"`;
   }
-  if (from !== undefined) {
-    input += `, from: ${from}`;
+  if (endActionState !== undefined) {
+    input += `, endActionState: "${endActionState}"`;
   }
   return `{
   actions(input: { ${input} }) {
-    actionState
+    blockInfo {
+      distanceFromMaxBlockHeight
+    }
+    actionState {
+      actionStateOne
+      actionStateTwo
+    }
     actionData {
+      accountUpdateId
       data
     }
   }
@@ -684,7 +721,12 @@ async function fetchEvents(
   }
 
   return fetchedEvents.map((event) => {
-    let events = event.eventData.map((eventData) => eventData.data);
+    let events = event.eventData.map(({ data, transactionInfo }) => {
+      return {
+        data,
+        transactionInfo,
+      };
+    });
 
     return {
       events,
@@ -693,28 +735,28 @@ async function fetchEvents(
       parentBlockHash: event.blockInfo.parentHash,
       globalSlot: UInt32.from(event.blockInfo.globalSlotSinceGenesis),
       chainStatus: event.blockInfo.chainStatus,
-      transactionHash: event.transactionInfo.hash,
-      transactionStatus: event.transactionInfo.status,
-      transactionMemo: event.transactionInfo.memo,
     };
   });
 }
 
 async function fetchActions(
-  accountInfo: { publicKey: string; tokenId?: string },
-  graphqlEndpoint = archiveGraphqlEndpoint,
-  filterOptions: EventActionFilterOptions = {}
+  accountInfo: {
+    publicKey: string;
+    actionStates: ActionStatesStringified;
+    tokenId?: string;
+  },
+  graphqlEndpoint = archiveGraphqlEndpoint
 ) {
   if (!graphqlEndpoint)
     throw new Error(
       'fetchEvents: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
     );
-  const { publicKey, tokenId } = accountInfo;
+  const { publicKey, actionStates, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
     getActionsQuery(
       publicKey,
-      tokenId ?? TokenId.toBase58(TokenId.default),
-      filterOptions
+      actionStates,
+      tokenId ?? TokenId.toBase58(TokenId.default)
     ),
     graphqlEndpoint
   );
@@ -729,23 +771,109 @@ async function fetchActions(
     };
   }
 
-  const actionData = fetchedActions
-    .map((action) => {
-      return {
-        hash: Ledger.fieldToBase58(Field(action.actionState)),
-        actions: action.actionData.map((actionData) => actionData.data),
-      };
-    })
-    .reverse(); // Reverse the order of actions since the API returns in descending order of block height while Localblockchain pushes new actions to end of array.
+  // TODO: This is a temporary fix. We should be able to fetch the event/action data from any block at the best tip.
+  // Once https://github.com/o1-labs/Archive-Node-API/issues/7 is resolved, we can remove this.
+  // If we have multiple blocks returned at the best tip (e.g. distanceFromMaxBlockHeight === 0),
+  // then filter out the blocks at the best tip. This is because we cannot guarantee that every block
+  // at the best tip will have the correct action data or guarantee that the specific block data will not
+  // fork in anyway. If this happens, we delay fetching action data until another block has been added to the network.
+  let numberOfBestTipBlocks = 0;
+  for (let i = 0; i < fetchedActions.length; i++) {
+    if (fetchedActions[i].blockInfo.distanceFromMaxBlockHeight === 0) {
+      numberOfBestTipBlocks++;
+    }
+    if (numberOfBestTipBlocks > 1) {
+      fetchedActions = fetchedActions.filter((action) => {
+        return action.blockInfo.distanceFromMaxBlockHeight !== 0;
+      });
+      break;
+    }
+  }
+
+  const processActionData = (
+    currentActionList: string[][],
+    latestActionsHash: Field
+  ) => {
+    const actionsHash = SequenceEvents.hash(
+      currentActionList.map((e) => e.map((f) => Field(f)))
+    );
+    return SequenceEvents.updateSequenceState(latestActionsHash, actionsHash);
+  };
+
+  // Archive Node API returns actions in the latest order, so we reverse the array to get the actions in chronological order.
+  fetchedActions.reverse();
+  let actionsList: { actions: string[][]; hash: string }[] = [];
+
+  fetchedActions.forEach((fetchedAction) => {
+    const { actionData } = fetchedAction;
+    let latestActionsHash = Field(fetchedAction.actionState.actionStateTwo);
+    let actionState = Field(fetchedAction.actionState.actionStateOne);
+
+    if (actionData.length === 0)
+      throw new Error(
+        `No action data was found for the account ${publicKey} with the latest action state ${actionState}`
+      );
+
+    let { accountUpdateId: currentAccountUpdateId } = actionData[0];
+    let currentActionList: string[][] = [];
+
+    actionData.forEach((action, i) => {
+      const { accountUpdateId, data } = action;
+      const isLastAction = i === actionData.length - 1;
+      const isSameAccountUpdate = accountUpdateId === currentAccountUpdateId;
+
+      if (isSameAccountUpdate && !isLastAction) {
+        currentActionList.push(data);
+        return;
+      } else if (isSameAccountUpdate && isLastAction) {
+        currentActionList.push(data);
+      } else if (!isSameAccountUpdate && isLastAction) {
+        latestActionsHash = processActionData(
+          currentActionList,
+          latestActionsHash
+        );
+        actionsList.push({
+          actions: currentActionList,
+          hash: Ledger.fieldToBase58(Field(latestActionsHash)),
+        });
+        currentAccountUpdateId = accountUpdateId;
+        currentActionList = [data];
+      }
+
+      latestActionsHash = processActionData(
+        currentActionList,
+        latestActionsHash
+      );
+      actionsList.push({
+        actions: currentActionList,
+        hash: Ledger.fieldToBase58(Field(latestActionsHash)),
+      });
+      currentAccountUpdateId = accountUpdateId;
+      currentActionList = [data];
+    });
+
+    const currentActionHash = Ledger.fieldToBase58(Field(latestActionsHash));
+    const expectedActionHash = Ledger.fieldToBase58(Field(actionState));
+
+    if (currentActionHash !== expectedActionHash) {
+      throw new Error(
+        `Failed to derive correct actions hash for ${publicKey}.
+        Derived hash: ${currentActionHash}, expected hash: ${expectedActionHash}).
+        All action hashes derived: ${JSON.stringify(actionsList, null, 2)}
+        Please try a different Archive Node API endpoint.
+        `
+      );
+    }
+  });
   addCachedActionsInternal(
     {
       publicKey: PublicKey.fromBase58(publicKey),
       tokenId: TokenId.fromBase58(tokenId ?? TokenId.toBase58(TokenId.default)),
     },
-    actionData,
+    actionsList,
     graphqlEndpoint
   );
-  return actionData;
+  return actionsList;
 }
 
 // removes the quotes on JSON keys
