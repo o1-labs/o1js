@@ -18,7 +18,7 @@ import {
 
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
-import { cloneCircuitValue, toConstant } from './circuit_value.js';
+import { cloneCircuitValue } from './circuit_value.js';
 import { Proof, snarkContext, verify } from './proof_system.js';
 import { Context } from './global-context.js';
 import { SmartContract } from './zkapp.js';
@@ -214,9 +214,13 @@ function createTransaction(
     while (true) {
       if (err !== undefined) err.bootstrap();
       try {
-        snarkContext.runWith({ inRunAndCheck: true }, () =>
-          Circuit.runAndCheck(f)
-        );
+        if (fetchMode === 'test') {
+          Circuit.runUnchecked(f);
+        } else {
+          snarkContext.runWith({ inRunAndCheck: true }, () =>
+            Circuit.runAndCheck(f)
+          );
+        }
         break;
       } catch (err_) {
         if ((err_ as any)?.bootstrap) err = err_;
