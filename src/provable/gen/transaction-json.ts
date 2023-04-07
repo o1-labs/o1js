@@ -56,7 +56,7 @@ type ZkappCommand = {
           setPermissions: AuthRequired;
           setVerificationKey: AuthRequired;
           setZkappUri: AuthRequired;
-          editSequenceState: AuthRequired;
+          editActionState: AuthRequired;
           setTokenSymbol: AuthRequired;
           incrementNonce: AuthRequired;
           setVotingFor: AuthRequired;
@@ -146,7 +146,7 @@ type ZkappCommand = {
           receiptChainHash: Field | null;
           delegate: PublicKey | null;
           state: (Field | null)[];
-          sequenceState: Field | null;
+          actionState: Field | null;
           provedState: Bool | null;
           isNew: Bool | null;
         };
@@ -195,7 +195,7 @@ type AccountUpdate = {
         setPermissions: AuthRequired;
         setVerificationKey: AuthRequired;
         setZkappUri: AuthRequired;
-        editSequenceState: AuthRequired;
+        editActionState: AuthRequired;
         setTokenSymbol: AuthRequired;
         incrementNonce: AuthRequired;
         setVotingFor: AuthRequired;
@@ -285,7 +285,7 @@ type AccountUpdate = {
         receiptChainHash: Field | null;
         delegate: PublicKey | null;
         state: (Field | null)[];
-        sequenceState: Field | null;
+        actionState: Field | null;
         provedState: Bool | null;
         isNew: Bool | null;
       };
@@ -338,7 +338,7 @@ type Account = {
     setPermissions: AuthRequired;
     setVerificationKey: AuthRequired;
     setZkappUri: AuthRequired;
-    editSequenceState: AuthRequired;
+    editActionState: AuthRequired;
     setTokenSymbol: AuthRequired;
     incrementNonce: AuthRequired;
     setVotingFor: AuthRequired;
@@ -351,8 +351,8 @@ type Account = {
       hash: Field;
     } | null;
     zkappVersion: UInt32;
-    sequenceState: Field[];
-    lastSequenceSlot: UInt32;
+    actionState: Field[];
+    lastActionSlot: UInt32;
     provedState: Bool;
     zkappUri: string;
   } | null;

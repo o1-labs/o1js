@@ -1,11 +1,7 @@
 import { Provable, Bool, Field } from '../snarky.js';
 import { circuitValueEquals, Circuit } from './circuit_value.js';
 import * as Mina from './mina.js';
-import {
-  SequenceEvents,
-  AccountUpdate,
-  Preconditions,
-} from './account_update.js';
+import { Actions, AccountUpdate, Preconditions } from './account_update.js';
 import { Int64, UInt32, UInt64 } from './int.js';
 import { Layout } from '../provable/gen/transaction.js';
 import { jsLayout } from '../provable/gen/js-layout.js';
@@ -58,7 +54,7 @@ function Network(accountUpdate: AccountUpdate): Network {
       let slot = timestampToGlobalSlot(
         value,
         `Timestamp precondition unsatisfied: the timestamp can only equal numbers of the form ${genesisTimestamp} + k*${slotTime},\n` +
-          `i.e., the genesis timestamp plus an integer number of slots.`
+          `i.e., the genesis timestamp plus an integer number of slots. Received: ${value}.`
       );
       return network.globalSlotSinceGenesis.assertEquals(slot);
     },
@@ -331,7 +327,7 @@ function getAccountPreconditions(body: {
       balance: UInt64.zero,
       nonce: UInt32.zero,
       receiptChainHash: emptyReceiptChainHash(),
-      sequenceState: SequenceEvents.emptySequenceState(),
+      actionState: Actions.emptyActionState(),
       delegate: publicKey,
       provedState: Bool(false),
       isNew: Bool(true),
@@ -342,8 +338,7 @@ function getAccountPreconditions(body: {
     balance: account.balance,
     nonce: account.nonce,
     receiptChainHash: account.receiptChainHash,
-    sequenceState:
-      account.zkapp?.sequenceState?.[0] ?? SequenceEvents.emptySequenceState(),
+    actionState: account.zkapp?.actionState?.[0] ?? Actions.emptyActionState(),
     delegate: account.delegate ?? account.publicKey,
     provedState: account.zkapp?.provedState ?? Bool(false),
     isNew: Bool(false),

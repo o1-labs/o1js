@@ -12,13 +12,13 @@ import {
   TokenId,
   CallForest,
   Authorization,
-  SequenceEvents,
+  Actions,
   Events,
 } from './account_update.js';
 
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
-import { cloneCircuitValue, toConstant } from './circuit_value.js';
+import { cloneCircuitValue } from './circuit_value.js';
 import { Proof, snarkContext, verify } from './proof_system.js';
 import { Context } from './global-context.js';
 import { SmartContract } from './zkapp.js';
@@ -214,21 +214,9 @@ function createTransaction(
     while (true) {
       if (err !== undefined) err.bootstrap();
       try {
-        if (fetchMode === 'test') {
-          Circuit.runUnchecked(() => {
-            f();
-            Circuit.asProver(() => {
-              let tx = currentTransaction.get();
-              tx.accountUpdates = CallForest.map(tx.accountUpdates, (a) =>
-                toConstant(AccountUpdate, a)
-              );
-            });
-          });
-        } else {
-          snarkContext.runWith({ inRunAndCheck: true }, () =>
-            Circuit.runAndCheck(f)
-          );
-        }
+        snarkContext.runWith({ inRunAndCheck: true }, () =>
+          Circuit.runAndCheck(f)
+        );
         break;
       } catch (err_) {
         if ((err_ as any)?.bootstrap) err = err_;
@@ -510,16 +498,16 @@ function LocalBlockchain({
         let n = actions[addr]?.[tokenId]?.length ?? 1;
 
         // most recent sequence state
-        let sequenceState = actions?.[addr]?.[tokenId]?.[n - 1]?.hash;
+        let actionState = actions?.[addr]?.[tokenId]?.[n - 1]?.hash;
 
         // if there exists no hash, this means we initialize our latest hash with the empty state
         let latestActionsHash =
-          sequenceState === undefined
-            ? SequenceEvents.emptySequenceState()
-            : Ledger.fieldOfBase58(sequenceState);
+          actionState === undefined
+            ? Actions.emptyActionState()
+            : Ledger.fieldOfBase58(actionState);
 
         let actionList = p.body.actions;
-        let eventsHash = SequenceEvents.hash(
+        let eventsHash = Actions.hash(
           actionList.map((e) => e.map((f) => Field(f)))
         );
 
@@ -527,7 +515,7 @@ function LocalBlockchain({
           actions[addr] = {};
         }
         if (p.body.actions.length > 0) {
-          latestActionsHash = SequenceEvents.updateSequenceState(
+          latestActionsHash = Actions.updateSequenceState(
             latestActionsHash,
             eventsHash
           );
@@ -566,7 +554,6 @@ function LocalBlockchain({
       let tx = createTransaction(sender, f, 0, {
         isFinalRunOutsideCircuit: false,
         proofsEnabled,
-        fetchMode: 'test',
       });
       let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
@@ -596,7 +583,7 @@ function LocalBlockchain({
       let { fromActionState, endActionState } = actionStates ?? {};
 
       fromActionState = fromActionState
-        ?.equals(SequenceEvents.emptySequenceState())
+        ?.equals(Actions.emptyActionState())
         .toBoolean()
         ? undefined
         : fromActionState;
@@ -1195,8 +1182,8 @@ async function verifyAccountUpdate(
         return perm.setTiming;
       case 'votingFor':
         return perm.setVotingFor;
-      case 'sequenceEvents':
-        return perm.editSequenceState;
+      case 'actions':
+        return perm.editActionState;
       case 'incrementNonce':
         return perm.incrementNonce;
       case 'send':
@@ -1297,8 +1284,8 @@ async function verifyAccountUpdate(
 
   // checks the sequence events (which result in an updated sequence state)
   if (accountUpdate.body.actions.data.length > 0) {
-    let p = permissionForUpdate('sequenceEvents');
-    checkPermission(p, 'sequenceEvents');
+    let p = permissionForUpdate('actions');
+    checkPermission(p, 'actions');
   }
 
   if (accountUpdate.body.incrementNonce.toBoolean()) {

@@ -6,12 +6,12 @@ import {
   method,
   DeployArgs,
   Permissions,
+  Experimental,
   PublicKey,
   Circuit,
   Bool,
   Reducer,
   provablePure,
-  AccountUpdate,
 } from 'snarkyjs';
 
 import { Member } from './member.js';
@@ -101,7 +101,7 @@ export class Voting_ extends SmartContract {
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
-      editSequenceState: Permissions.proofOrSignature(),
+      editActionState: Permissions.proofOrSignature(),
       incrementNonce: Permissions.proofOrSignature(),
       setVerificationKey: Permissions.none(),
       setPermissions: Permissions.proofOrSignature(),
@@ -131,7 +131,10 @@ export class Voting_ extends SmartContract {
     // can only register voters if their balance is gte the minimum amount required
     // this snippet pulls the account data of an address from the network
 
-    let accountUpdate = AccountUpdate.create(member.publicKey);
+    let accountUpdate = Experimental.createChildAccountUpdate(
+      this.self,
+      member.publicKey
+    );
 
     accountUpdate.account.balance.assertEquals(
       accountUpdate.account.balance.get()
@@ -181,7 +184,10 @@ export class Voting_ extends SmartContract {
     // and lte the maximum amount
     // this snippet pulls the account data of an address from the network
 
-    let accountUpdate = AccountUpdate.create(member.publicKey);
+    let accountUpdate = Experimental.createChildAccountUpdate(
+      this.self,
+      member.publicKey
+    );
     accountUpdate.account.balance.assertEquals(
       accountUpdate.account.balance.get()
     );

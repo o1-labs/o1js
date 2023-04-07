@@ -18,7 +18,7 @@ import {
   CallForest,
   Events,
   Permissions,
-  SequenceEvents,
+  Actions,
   SetOrKeep,
   signJsonTransaction,
   smartContractContext,
@@ -56,7 +56,6 @@ import {
   getPreviousProofsForProver,
   inAnalyze,
   inCheckedComputation,
-  inCompile,
   inProver,
   isAsFields,
   methodArgumentsToConstant,
@@ -180,10 +179,7 @@ function wrapMethod(
           selfUpdate: selfAccountUpdate(this, methodName),
         },
         (context) => {
-          if (
-            (inCompile() || inProver() || inAnalyze()) &&
-            !context.isCallback
-          ) {
+          if (inCheckedComputation() && !context.isCallback) {
             // important to run this with a fresh accountUpdate everytime, otherwise compile messes up our circuits
             // because it runs this multiple times
             let proverData = inProver() ? zkAppProver.getData() : undefined;
@@ -320,18 +316,7 @@ function wrapMethod(
                 currentIndex: 0,
                 blindingValue,
               },
-              () =>
-                method.apply(
-                  this,
-                  actualArgs.map((a, i) => {
-                    let arg = methodIntf.allArgs[i];
-                    if (arg.type === 'witness') {
-                      let type = methodIntf.witnessArgs[arg.index];
-                      return Circuit.witness(type, () => a);
-                    }
-                    return a;
-                  })
-                )
+              () => method.apply(this, actualArgs)
             );
             assertStatePrecondition(this);
 
@@ -637,7 +622,7 @@ class SmartContract {
   static _methodMetadata: Record<
     string,
     {
-      sequenceEvents: number;
+      actions: number;
       rows: number;
       digest: string;
       hasReturn: boolean;
@@ -682,9 +667,10 @@ class SmartContract {
    * so you don't actually have to use the return value of this function.
    *
    * Under the hood, "compiling" means calling into the lower-level [Pickles and Kimchi libraries](https://o1-labs.github.io/proof-systems/kimchi/overview.html) to
-   * create multiple prover & verifier indices (one for each smart contract method as part of a "step circuit" and one for the "wrap circuit" which recursively wraps
-   * it so that proofs end up in the original finite field). These are fairly expensive operations, so **expect compiling to take at least 20 seconds**,
-   * up to several minutes if your circuit is large or your hardware is not optimal for these operations.
+   * create two prover & verifier indices (one for the "step circuit" which combines all of your smart contract methods into one circuit,
+   * and one for the "wrap circuit" which wraps it so that proofs end up in the original finite field). These are fairly expensive
+   * operations, so **expect compiling to take at least 20 seconds**, up to several minutes if your circuit is large or your hardware
+   * is not optimal for these operations.
    */
   static async compile() {
     let methodIntfs = this._methods ?? [];
@@ -1180,7 +1166,7 @@ super.init();
    *  - `rows` the size of the constraint system created by this method
    *  - `digest` a digest of the method circuit
    *  - `hasReturn` a boolean indicating whether the method returns a value
-   *  - `sequenceEvents` the number of actions the method dispatches
+   *  - `actions` the number of actions the method dispatches
    *  - `gates` the constraint system, represented as an array of gates
    */
   static analyzeMethods() {
@@ -1215,7 +1201,7 @@ super.init();
           }
         );
         ZkappClass._methodMetadata[methodIntf.methodName] = {
-          sequenceEvents: accountUpdate!.body.actions.data.length,
+          actions: accountUpdate!.body.actions.data.length,
           rows,
           digest,
           hasReturn: result !== undefined,
@@ -1315,7 +1301,7 @@ class ${contract.constructor.name} extends SmartContract {
     dispatch(action: A) {
       let accountUpdate = contract.self;
       let eventFields = reducer.actionType.toFields(action);
-      accountUpdate.body.actions = SequenceEvents.pushEvent(
+      accountUpdate.body.actions = Actions.pushEvent(
         accountUpdate.body.actions,
         eventFields
       );
@@ -1338,9 +1324,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         contract.constructor as typeof SmartContract
       ).analyzeMethods();
       let possibleActionsPerTransaction = [
-        ...new Set(Object.values(methodData).map((o) => o.sequenceEvents)).add(
-          0
-        ),
+        ...new Set(Object.values(methodData).map((o) => o.actions)).add(0),
       ].sort((x, y) => x - y);
 
       let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
@@ -1363,10 +1347,10 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         // for each action length, compute the events hash and then pick the actual one
         let eventsHashes = actionss.map((actions) => {
           let events = actions.map((u) => reducer.actionType.toFields(u));
-          return SequenceEvents.hash(events);
+          return Actions.hash(events);
         });
         let eventsHash = Circuit.switch(lengths, Field, eventsHashes);
-        let newActionsHash = SequenceEvents.updateSequenceState(
+        let newActionsHash = Actions.updateSequenceState(
           actionsHash,
           eventsHash
         );
@@ -1387,7 +1371,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         // update state
         state = Circuit.switch(lengths, stateType, newStates);
       }
-      contract.account.sequenceState.assertEquals(actionsHash);
+      contract.account.actionState.assertEquals(actionsHash);
       return { state, actionsHash };
     },
     getActions({
@@ -1532,7 +1516,7 @@ const Reducer: (<
     return reducer;
   },
   'initialActionsHash',
-  { get: SequenceEvents.emptySequenceState }
+  { get: Actions.emptyActionState }
 ) as any;
 
 /**
