@@ -170,6 +170,7 @@ function ZkProgram<
   compile: () => Promise<{ verificationKey: string }>;
   verify: (proof: Proof<InferProvable<PublicInputType>>) => Promise<boolean>;
   digest: () => string;
+  analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
   publicInputType: PublicInputType;
 } & {
   [I in keyof Types]: Prover<InferProvable<PublicInputType>, Types[I]>;
@@ -267,9 +268,15 @@ function ZkProgram<
     return hash.toBigInt().toString(16);
   }
 
+  function analyzeMethods() {
+    return methodIntfs.map((methodEntry, i) =>
+      analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
+    );
+  }
+
   return Object.assign(
     selfTag,
-    { compile, verify, digest, publicInputType },
+    { compile, verify, digest, publicInputType, analyzeMethods },
     provers
   );
 }
