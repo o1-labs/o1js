@@ -15,7 +15,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/0b7a9ad...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/1a984089...HEAD)
+
+> No unreleased changes yet
+
+## [0.9.7](https://github.com/o1-labs/snarkyjs/compare/0b7a9ad...1a984089)
 
 ### Changes
 
