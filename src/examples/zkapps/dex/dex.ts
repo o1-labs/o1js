@@ -117,7 +117,7 @@ function createDex({
       // calculate dy outside circuit
       let x = Account(this.address, Token.getId(this.tokenX)).balance.get();
       let y = Account(this.address, Token.getId(this.tokenY)).balance.get();
-      if (x.value.isZero().toBoolean()) {
+      if (x.value.isConstant() && x.value.isZero().toBoolean()) {
         throw Error(
           'Cannot call `supplyLiquidity` when reserves are zero. Use `supplyLiquidityBase`.'
         );

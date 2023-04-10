@@ -54,7 +54,7 @@ function Network(accountUpdate: AccountUpdate): Network {
       let slot = timestampToGlobalSlot(
         value,
         `Timestamp precondition unsatisfied: the timestamp can only equal numbers of the form ${genesisTimestamp} + k*${slotTime},\n` +
-          `i.e., the genesis timestamp plus an integer number of slots. Received: ${value}.`
+          `i.e., the genesis timestamp plus an integer number of slots.`
       );
       return network.globalSlotSinceGenesis.assertEquals(slot);
     },

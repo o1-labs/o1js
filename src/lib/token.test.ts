@@ -581,21 +581,21 @@ describe('Token', () => {
           .sign([feePayerKey, tokenZkappKey])
           .send();
 
-        await Mina.transaction(feePayer, () => {
-          let approveSendingCallback = Experimental.Callback.create(
-            zkAppC,
-            'approveIncorrectLayout',
-            [UInt64.from(10_000)]
-          );
-          expect(() => {
+        await expect(() =>
+          Mina.transaction(feePayer, () => {
+            let approveSendingCallback = Experimental.Callback.create(
+              zkAppC,
+              'approveIncorrectLayout',
+              [UInt64.from(10_000)]
+            );
             tokenZkapp.approveTransferCallback(
               zkAppBAddress,
               zkAppCAddress,
               UInt64.from(10_000),
               approveSendingCallback
             );
-          }).toThrow();
-        });
+          })
+        ).rejects.toThrow();
       });
 
       test('should reject tx if user bypasses the token contract by using an empty account update', async () => {

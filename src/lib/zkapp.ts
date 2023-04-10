@@ -56,6 +56,7 @@ import {
   getPreviousProofsForProver,
   inAnalyze,
   inCheckedComputation,
+  inCompile,
   inProver,
   isAsFields,
   methodArgumentsToConstant,
@@ -179,7 +180,10 @@ function wrapMethod(
           selfUpdate: selfAccountUpdate(this, methodName),
         },
         (context) => {
-          if (inCheckedComputation() && !context.isCallback) {
+          if (
+            (inCompile() || inProver() || inAnalyze()) &&
+            !context.isCallback
+          ) {
             // important to run this with a fresh accountUpdate everytime, otherwise compile messes up our circuits
             // because it runs this multiple times
             let proverData = inProver() ? zkAppProver.getData() : undefined;
@@ -316,7 +320,18 @@ function wrapMethod(
                 currentIndex: 0,
                 blindingValue,
               },
-              () => method.apply(this, actualArgs)
+              () =>
+                method.apply(
+                  this,
+                  actualArgs.map((a, i) => {
+                    let arg = methodIntf.allArgs[i];
+                    if (arg.type === 'witness') {
+                      let type = methodIntf.witnessArgs[arg.index];
+                      return Circuit.witness(type, () => a);
+                    }
+                    return a;
+                  })
+                )
             );
             assertStatePrecondition(this);
 
@@ -667,10 +682,9 @@ class SmartContract {
    * so you don't actually have to use the return value of this function.
    *
    * Under the hood, "compiling" means calling into the lower-level [Pickles and Kimchi libraries](https://o1-labs.github.io/proof-systems/kimchi/overview.html) to
-   * create two prover & verifier indices (one for the "step circuit" which combines all of your smart contract methods into one circuit,
-   * and one for the "wrap circuit" which wraps it so that proofs end up in the original finite field). These are fairly expensive
-   * operations, so **expect compiling to take at least 20 seconds**, up to several minutes if your circuit is large or your hardware
-   * is not optimal for these operations.
+   * create multiple prover & verifier indices (one for each smart contract method as part of a "step circuit" and one for the "wrap circuit" which recursively wraps
+   * it so that proofs end up in the original finite field). These are fairly expensive operations, so **expect compiling to take at least 20 seconds**,
+   * up to several minutes if your circuit is large or your hardware is not optimal for these operations.
    */
   static async compile() {
     let methodIntfs = this._methods ?? [];
