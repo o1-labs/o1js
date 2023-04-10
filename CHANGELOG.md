@@ -17,12 +17,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/0b7a9ad...HEAD)
 
-> No unreleased changes
+### Changes
+
+- `Circuit.runAndCheck()` now uses `snarky` to create a constraint system and witnesses, and check constraints. It closely matches behavior during proving and can be used to test provable code without having to create an expensive proof https://github.com/o1-labs/snarkyjs/pull/840
+
+### Fixed
+
+- Fixes two issues that were temporarily reintroduced in the 0.9.6 release https://github.com/o1-labs/snarkyjs/issues/799 https://github.com/o1-labs/snarkyjs/issues/530
 
 ## [0.9.6](https://github.com/o1-labs/snarkyjs/compare/21de489...0b7a9ad)
 
 ### Breaking changes
 
+- Circuits changed due to an internal rename of "sequence events" to "actions" which included a change to some hash prefixes; this breaks all deployed contracts.
 - Temporarily reintroduces 2 known issues as a result of reverting a fix necessary for network redeployment:
   - https://github.com/o1-labs/snarkyjs/issues/799
   - https://github.com/o1-labs/snarkyjs/issues/530
@@ -30,7 +37,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Improve number of constraints needed for Merkle tree hashing https://github.com/o1-labs/snarkyjs/pull/820
   - This breaks deployed zkApps which use `MerkleWitness.calculateRoot()`, because the circuit is changed
   - You can make your existing contracts compatible again by switching to `MerkleWitness.calculateRootSlow()`, which has the old circuit
-- Renamed Function Parameters: The `getAction` function now accepts a new object structure for its parameters. https://github.com/o1-labs/snarkyjs/pull/828
+- Renamed function parameters: The `getAction` function now accepts a new object structure for its parameters. https://github.com/o1-labs/snarkyjs/pull/828
   - The previous object keys, `fromActionHash` and `endActionHash`, have been replaced by `fromActionState` and `endActionState`.
 
 ### Fixed
