@@ -1285,6 +1285,21 @@ type ReducerReturn<Action> = {
     fromActionState?: Field;
     endActionState?: Field;
   }): Action[][];
+  /**
+   * Fetches the list of previously emitted {@link Action}s by zkapp {@link SmartContract}.
+   * ```ts
+   * let pendingActions = await zkapp.reducer.fetchActions({
+   *    fromActionState: actionsHash,
+   * });
+   * ```
+   */
+  fetchActions({
+    fromActionState,
+    endActionState,
+  }: {
+    fromActionState?: Field;
+    endActionState?: Field;
+  }): Promise<Action[][]>;
 };
 
 function getReducer<A>(contract: SmartContract): ReducerReturn<A> {
@@ -1402,6 +1417,38 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
             )
         );
       });
+
+      return actionsForAccount;
+    },
+    async fetchActions({
+      fromActionState,
+      endActionState,
+    }: {
+      fromActionState?: Field;
+      endActionState?: Field;
+    }): Promise<A[][]> {
+      let actionsForAccount: A[][] = [];
+      let res = await Mina.fetchActions(
+        contract.address,
+        {
+          fromActionState,
+          endActionState,
+        },
+        contract.self.tokenId
+      );
+      if(res.hasOwnProperty('error')) {
+        throw Error(JSON.stringify(res));
+      }
+
+      actionsForAccount = (res as { hash: string; actions: string[][] }[]).map(
+        (event: { hash: string; actions: string[][] }) =>
+          // putting our string-Fields back into the original action type
+          event.actions.map((action: string[]) =>
+            (reducer.actionType as ProvablePure<A>).fromFields(
+              action.map((fieldAsString: string) => Field(fieldAsString))
+            )
+          )
+      );
 
       return actionsForAccount;
     },

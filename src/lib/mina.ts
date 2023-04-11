@@ -47,6 +47,7 @@ export {
   accountCreationFee,
   sendTransaction,
   fetchEvents,
+  fetchActions,
   getActions,
   FeePayerSpec,
   ActionStates,
@@ -332,6 +333,11 @@ interface Mina {
     tokenId?: Field,
     filterOptions?: Fetch.EventActionFilterOptions
   ) => ReturnType<typeof Fetch.fetchEvents>;
+  fetchActions: (
+    publicKey: PublicKey,
+    actionStates?: ActionStates,
+    tokenId?: Field
+  ) => ReturnType<typeof Fetch.fetchActions>;
   getActions: (
     publicKey: PublicKey,
     actionStates?: ActionStates,
@@ -572,6 +578,13 @@ function LocalBlockchain({
     },
     async fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       return events?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
+    },
+    async fetchActions(
+      publicKey: PublicKey,
+      actionStates?: ActionStates,
+      tokenId: Field = TokenId.default
+    ) {
+      return this.getActions(publicKey, actionStates, tokenId);
     },
     getActions(
       publicKey: PublicKey,
@@ -840,6 +853,33 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         filterOptions
       );
     },
+    async fetchActions(
+      publicKey: PublicKey,
+      actionStates?: ActionStates,
+      tokenId: Field = TokenId.default
+    ) {
+      let pubKey = publicKey.toBase58();
+      let token = TokenId.toBase58(tokenId);
+      let { fromActionState, endActionState } = actionStates ?? {};
+      let fromActionStateBase58 = fromActionState
+        ? fromActionState.toString()
+        : undefined;
+      let endActionStateBase58 = endActionState
+        ? endActionState.toString()
+        : undefined;
+
+      return Fetch.fetchActions(
+        {
+          publicKey: pubKey,
+          actionStates: {
+            fromActionState: fromActionStateBase58,
+            endActionState: endActionStateBase58,
+          },
+          tokenId: token,
+        },
+        archiveEndpoint
+      );
+    },
     getActions(
       publicKey: PublicKey,
       actionStates?: ActionStates,
@@ -939,6 +979,13 @@ let activeInstance: Mina = {
     return createTransaction(sender, f, 0);
   },
   fetchEvents(_publicKey: PublicKey, _tokenId: Field = TokenId.default) {
+    throw Error('must call Mina.setActiveInstance first');
+  },
+  fetchActions(
+    _publicKey: PublicKey,
+    _actionStates?: ActionStates,
+    _tokenId: Field = TokenId.default
+  ) {
     throw Error('must call Mina.setActiveInstance first');
   },
   getActions(
@@ -1086,6 +1133,17 @@ async function fetchEvents(
   filterOptions: Fetch.EventActionFilterOptions = {}
 ) {
   return await activeInstance.fetchEvents(publicKey, tokenId, filterOptions);
+}
+
+/**
+ * @return A list of emitted sequencing actions associated to the given public key.
+ */
+async function fetchActions(
+  publicKey: PublicKey,
+  actionStates: ActionStates,
+  tokenId?: Field
+) {
+  return await activeInstance.fetchActions(publicKey, actionStates, tokenId);
 }
 
 /**
