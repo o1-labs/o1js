@@ -143,8 +143,8 @@ type FetchError = {
 type ActionStatesStringified = {
   [K in keyof ActionStates]: string;
 };
-// Specify 30s as the default timeout
-const defaultTimeout = 30000;
+// Specify 5min as the default timeout
+const defaultTimeout = 5 * 60 * 1000;
 
 let accountCache = {} as Record<
   string,
