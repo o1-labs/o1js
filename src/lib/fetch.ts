@@ -805,7 +805,7 @@ async function fetchActions(
   let actionsList: { actions: string[][]; hash: string }[] = [];
 
   fetchedActions.forEach((fetchedAction) => {
-    const { actionData } = fetchedAction;
+    let { actionData } = fetchedAction;
     let latestActionsHash = Field(fetchedAction.actionState.actionStateTwo);
     let actionState = Field(fetchedAction.actionState.actionStateOne);
 
@@ -813,9 +813,12 @@ async function fetchActions(
       throw new Error(
         `No action data was found for the account ${publicKey} with the latest action state ${actionState}`
       );
-
+    
+    actionData.reverse();
     let { accountUpdateId: currentAccountUpdateId } = actionData[0];
     let currentActionList: string[][] = [];
+
+
 
     actionData.forEach((action, i) => {
       const { accountUpdateId, data } = action;
@@ -824,7 +827,6 @@ async function fetchActions(
 
       if (isSameAccountUpdate && !isLastAction) {
         currentActionList.push(data);
-        currentAccountUpdateId = accountUpdateId;
         return;
       } else if (isSameAccountUpdate && isLastAction) {
         currentActionList.push(data);
@@ -837,7 +839,7 @@ async function fetchActions(
           actions: currentActionList,
           hash: Ledger.fieldToBase58(Field(latestActionsHash)),
         });
-        currentAccountUpdateId = accountUpdateId;
+        
         currentActionList = [data];
       }
 
