@@ -15,17 +15,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/1a984089...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/97e393ed...HEAD)
+
+> No unreleased changes
+
+## [0.9.8](https://github.com/o1-labs/snarkyjs/compare/1a984089...97e393ed)
 
 ### Fixed
 
 - Fix fetching the `access` permission on accounts https://github.com/o1-labs/snarkyjs/pull/851
+- Fixes to `fetchActions` https://github.com/o1-labs/snarkyjs/pull/844 [@Comdex](https://github.com/Comdex)
 
 ## [0.9.7](https://github.com/o1-labs/snarkyjs/compare/0b7a9ad...1a984089)
 
 ### Added
 
-- `smartContract.fetchActions()` and `Mina.fetchActions()`, asynchronous methods to fetch actions directly from an archive node https://github.com/o1-labs/snarkyjs/pull/843 @Comdex
+- `smartContract.fetchActions()` and `Mina.fetchActions()`, asynchronous methods to fetch actions directly from an archive node https://github.com/o1-labs/snarkyjs/pull/843 [@Comdex](https://github.com/Comdex)
 
 ### Changed
 
@@ -52,7 +57,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- `zkProgram.analyzeMethods()` to obtain metadata about a ZkProgram's methods https://github.com/o1-labs/snarkyjs/pull/829 @maht0rz
+- `zkProgram.analyzeMethods()` to obtain metadata about a ZkProgram's methods https://github.com/o1-labs/snarkyjs/pull/829 [@maht0rz](https://github.com/maht0rz)
 
 ### Fixed
 
@@ -98,7 +103,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 - Added the missing export of `Mina.TransactionId` https://github.com/o1-labs/snarkyjs/pull/785
-- Added an option to specify `tokenId` as `Field` in `fetchAccount()` https://github.com/o1-labs/snarkyjs/pull/787
+- Added an option to specify `tokenId` as `Field` in `fetchAccount()` https://github.com/o1-labs/snarkyjs/pull/787 [@rpanic](https://github.com/rpanic)
 
 ## [0.9.2](https://github.com/o1-labs/snarkyjs/compare/9c44b9c2...1abdfb70)
 
@@ -320,7 +325,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
-- Infinite loop when compiling in web version https://github.com/o1-labs/snarkyjs/issues/379, by @maht0rz
+- Infinite loop when compiling in web version https://github.com/o1-labs/snarkyjs/issues/379, by [@maht0rz](https://github.com/maht0rz)
 
 ## [0.5.2](https://github.com/o1-labs/snarkyjs/compare/55c8ea0...4f0dd40)
 
