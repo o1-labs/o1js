@@ -955,7 +955,7 @@ Circuit.inCheckedComputation = inCheckedComputation;
 
 let oldAsProver = Circuit.asProver;
 Circuit.asProver = function (f: () => void) {
-  if (Circuit.inCheckedComputation()) {
+  if (inCheckedComputation()) {
     oldAsProver(f);
   } else {
     f();
@@ -966,6 +966,14 @@ let oldRunUnchecked = Circuit.runUnchecked;
 Circuit.runUnchecked = function (f: () => void) {
   let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
     oldRunUnchecked(f)
+  );
+  return result;
+};
+
+let oldRunAndCheck = Circuit.runAndCheck;
+Circuit.runAndCheck = function (f: () => void) {
+  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
+    oldRunAndCheck(f)
   );
   return result;
 };

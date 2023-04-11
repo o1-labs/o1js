@@ -21,32 +21,11 @@ describe('group', () => {
 
   describe('Inside circuit', () => {
     describe('add', () => {
-      it('(1,1)+(1,1) does not throw', () => {
+      it('g+g does not throw', () => {
         expect(() => {
           Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => new Group(1, 1));
-            const y = Circuit.witness(Group, () => new Group(1, 1));
-            x.add(y);
-          });
-        }).not.toThrow();
-      });
-
-      it('(5000,5000)+(5000,5000) does not throw', () => {
-        expect(() => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => new Group(5000, 5000));
-            const y = Circuit.witness(Group, () => new Group(5000, 5000));
-            x.add(y);
-          });
-        }).not.toThrow();
-      });
-
-      it('((2^64/2)+(2^64/2)) does not throw', () => {
-        const v = Field(((1n << 64n) - 2n).toString());
-        expect(() => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => new Group(v, v));
-            const y = Circuit.witness(Group, () => new Group(v, v));
+            const x = Circuit.witness(Group, () => Group.generator);
+            const y = Circuit.witness(Group, () => Group.generator);
             x.add(y);
           });
         }).not.toThrow();
@@ -54,41 +33,11 @@ describe('group', () => {
     });
 
     describe('sub', () => {
-      it('(1,1)-(1,1) does not throw', () => {
+      it('g-g does not throw', () => {
         expect(() => {
           Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => new Group(1, 1));
-            const y = Circuit.witness(Group, () => new Group(1, 1));
-            x.sub(y);
-          });
-        }).not.toThrow();
-      });
-
-      it('(5000,5000)-(5000,5000) does not throw', () => {
-        expect(() => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => new Group(5000, 5000));
-            const y = Circuit.witness(Group, () => new Group(5000, 5000));
-            x.sub(y);
-          });
-        }).not.toThrow();
-      });
-
-      it('(0,0)-(1,1) does not throw', () => {
-        expect(() => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => new Group(0, 0));
-            const y = Circuit.witness(Group, () => new Group(1, 1));
-            x.sub(y);
-          });
-        }).not.toThrow();
-      });
-
-      it('(1,1)-(-1,-1) does not throw', () => {
-        expect(() => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => new Group(1, 1));
-            const y = Circuit.witness(Group, () => new Group(-1, -1));
+            const x = Circuit.witness(Group, () => Group.generator);
+            const y = Circuit.witness(Group, () => Group.generator);
             x.sub(y);
           });
         }).not.toThrow();
@@ -96,28 +45,10 @@ describe('group', () => {
     });
 
     describe('neg', () => {
-      it('neg(1,1) not to throw', () => {
+      it('neg(g) not to throw', () => {
         expect(() => {
           Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => new Group(1, 1));
-            x.neg();
-          });
-        }).not.toThrow();
-      });
-
-      it('neg(-1,-1) does not throw', () => {
-        expect(() => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => new Group(-1, -1));
-            x.neg();
-          });
-        }).not.toThrow();
-      });
-
-      it('neg(0,0) does not throw', () => {
-        expect(() => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => new Group(0, 0));
+            const x = Circuit.witness(Group, () => Group.generator);
             x.neg();
           });
         }).not.toThrow();
@@ -128,7 +59,7 @@ describe('group', () => {
       it('scaling with random Scalar does not throw', () => {
         expect(() => {
           Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => new Group(1, 1));
+            const x = Circuit.witness(Group, () => Group.generator);
             x.scale(Scalar.random());
           });
         }).not.toThrow();
@@ -164,15 +95,21 @@ describe('group', () => {
     describe('equals', () => {
       it('should equal true with same group', () => {
         Circuit.runAndCheck(() => {
-          const x = Circuit.witness(Group, () => new Group(1, 1));
-          expect(x.equals(new Group(1, 1))).toEqual(Bool(true));
+          const x = Circuit.witness(Group, () => Group.generator);
+          let isEqual = x.equals(Group.generator);
+          Circuit.asProver(() => {
+            expect(isEqual.toBoolean()).toEqual(true);
+          });
         });
       });
 
       it('should equal false with different group', () => {
         Circuit.runAndCheck(() => {
-          const x = Circuit.witness(Group, () => new Group(1, 1));
-          expect(x.equals(new Group(0, 0))).toEqual(Bool(false));
+          const x = Circuit.witness(Group, () => Group.generator);
+          let isEqual = x.equals(new Group(0, 0));
+          Circuit.asProver(() => {
+            expect(isEqual.toBoolean()).toEqual(false);
+          });
         });
       });
     });
@@ -181,8 +118,8 @@ describe('group', () => {
       it('should not throw with same group', () => {
         expect(() => {
           Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => new Group(1, 1));
-            x.assertEquals(new Group(1, 1));
+            const x = Circuit.witness(Group, () => Group.generator);
+            x.assertEquals(Group.generator);
           });
         }).not.toThrow();
       });
@@ -190,7 +127,7 @@ describe('group', () => {
       it('should throw with different group', () => {
         expect(() => {
           Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => new Group(1, 1));
+            const x = Circuit.witness(Group, () => Group.generator);
             x.assertEquals(new Group(0, 0));
           });
         }).toThrow();
@@ -198,13 +135,15 @@ describe('group', () => {
     });
 
     describe('toJSON', () => {
-      it("fromJSON('1','1') should be the same as Group(1,1)", () => {
+      it('fromJSON(g.toJSON) should be the same as g', () => {
         Circuit.runAndCheck(() => {
           const x = Circuit.witness(
             Group,
-            () => Group.fromJSON({ x: 1, y: 1 })!
+            () => Group.fromJSON(Group.generator.toJSON())!
           );
-          expect(x).toEqual(new Group(1, 1));
+          Circuit.asProver(() => {
+            expect(x.equals(Group.generator).toBoolean()).toEqual(true);
+          });
         });
       });
     });

@@ -184,7 +184,7 @@ export async function testSet(
         permUpdate.account.permissions.set({
           ...Permissions.default(),
           setPermissions: Permissions.none(),
-          editSequenceState: Permissions.impossible(),
+          editActionState: Permissions.impossible(),
         });
       },
       permissionedSet.feePayer
@@ -205,7 +205,7 @@ export async function testSet(
         permissionedSet.voting.voterRegistration(m);
       },
       permissionedSet.feePayer,
-      'sequenceEvents'
+      'actions'
     );
   }
 
@@ -278,25 +278,25 @@ export async function testSet(
 
     /*
     test case description:
-      overflowing maximum amount of sequence events allowed in the reducer (32 default)
+      overflowing maximum amount of sequence events allowed in the reducer (2)
     
     preconditions:
       - x
 
     tested cases:
-      - emitted 33 sequence events and trying to reduce them
+      - emitted 3 sequence events and trying to reduce them
 
     expected results:
       - throws an error
 
   */
 
-    console.log('trying to overflow sequence events (default 32)');
+    console.log('trying to overflow actions (custom max: 2)');
 
     console.log(
-      'emitting more than 32 sequence events without periodically updating them'
+      'emitting more than 2 actions without periodically updating them'
     );
-    for (let index = 0; index <= 32; index++) {
+    for (let index = 0; index <= 3; index++) {
       try {
         let tx = await Mina.transaction(
           sequenceOverflowSet.feePayer.toPublicKey(),
@@ -321,9 +321,9 @@ export async function testSet(
       }
     }
 
-    if (sequenceOverflowSet.voterContract.reducer.getActions({}).length < 32) {
+    if (sequenceOverflowSet.voterContract.reducer.getActions({}).length < 3) {
       throw Error(
-        `Did not emitted expected sequence events! Only emitted ${
+        `Did not emit expected actions! Only emitted ${
           sequenceOverflowSet.voterContract.reducer.getActions({}).length
         }`
       );

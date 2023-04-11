@@ -72,7 +72,7 @@ export class Membership_ extends SmartContract {
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
-      editSequenceState: Permissions.proofOrSignature(),
+      editActionState: Permissions.proofOrSignature(),
       setPermissions: Permissions.proofOrSignature(),
       setVerificationKey: Permissions.proofOrSignature(),
       incrementNonce: Permissions.proofOrSignature(),
@@ -115,7 +115,7 @@ export class Membership_ extends SmartContract {
     // checking if the member already exists within the accumulator
     let { state: exists } = this.reducer.reduce(
       this.reducer.getActions({
-        fromActionHash: accumulatedMembers,
+        fromActionState: accumulatedMembers,
       }),
       Bool,
       (state: Bool, action: Member) => {
@@ -151,7 +151,7 @@ export class Membership_ extends SmartContract {
     this.committedMembers.assertEquals(committedMembers);
 
     return member.witness
-      .calculateRoot(member.getHash())
+      .calculateRootSlow(member.getHash())
       .equals(committedMembers);
   }
 
@@ -168,7 +168,7 @@ export class Membership_ extends SmartContract {
     this.committedMembers.assertEquals(committedMembers);
 
     let pendingActions = this.reducer.getActions({
-      fromActionHash: accumulatedMembers,
+      fromActionState: accumulatedMembers,
     });
 
     let { state: newCommittedMembers, actionsHash: newAccumulatedMembers } =
@@ -187,12 +187,13 @@ export class Membership_ extends SmartContract {
           // otherwise, we simply return the unmodified state - this is our way of branching
           return Circuit.if(
             isRealMember,
-            action.witness.calculateRoot(action.getHash()),
+            action.witness.calculateRootSlow(action.getHash()),
             state
           );
         },
         // initial state
-        { state: committedMembers, actionsHash: accumulatedMembers }
+        { state: committedMembers, actionsHash: accumulatedMembers },
+        { maxTransactionsWithActions: 2 }
       );
 
     this.committedMembers.set(newCommittedMembers);
