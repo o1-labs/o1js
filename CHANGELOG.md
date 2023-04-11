@@ -17,7 +17,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/1a984089...HEAD)
 
-> No unreleased changes yet
+### Fixed
+
+- Fix fetching the `access` permission on accounts https://github.com/o1-labs/snarkyjs/pull/851
 
 ## [0.9.7](https://github.com/o1-labs/snarkyjs/compare/0b7a9ad...1a984089)
 
