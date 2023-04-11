@@ -20,7 +20,7 @@ describe('Circuit String', () => {
       const same_str = CircuitString.fromString(
         'Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth'
       );
-      expect(str.equals(same_str)).toEqual(new Bool(true));
+      expect(str.equals(same_str)).toEqual(Bool(true));
 
       Circuit.runAndCheck(() => {
         const str = CircuitString.fromString(
@@ -29,14 +29,14 @@ describe('Circuit String', () => {
         const same_str = CircuitString.fromString(
           'Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth'
         );
-        expect(str.equals(same_str)).toEqual(new Bool(true));
+        expect(str.equals(same_str)).toEqual(Bool(true));
       });
     });
 
-    test('reutrns false when values are not equal', () => {
+    test('returns false when values are not equal', () => {
       const str = CircuitString.fromString('Your size');
       const not_same_str = CircuitString.fromString('size');
-      expect(str.equals(not_same_str)).toEqual(new Bool(false));
+      expect(str.equals(not_same_str)).toEqual(Bool(false));
 
       Circuit.runAndCheck(() => {
         const str = Circuit.witness(CircuitString, () => {
@@ -45,7 +45,9 @@ describe('Circuit String', () => {
         const not_same_str = Circuit.witness(CircuitString, () => {
           return CircuitString.fromString('size');
         });
-        expect(str.equals(not_same_str)).toEqual(new Bool(false));
+        Circuit.asProver(() => {
+          expect(str.equals(not_same_str).toBoolean()).toEqual(false);
+        });
       });
     });
   });

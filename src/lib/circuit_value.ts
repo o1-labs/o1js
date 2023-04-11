@@ -690,6 +690,14 @@ SnarkyCircuit.runUnchecked = function (f: () => void) {
   return result;
 };
 
+let oldRunAndCheck = SnarkyCircuit.runAndCheck;
+SnarkyCircuit.runAndCheck = function (f: () => void) {
+  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
+    oldRunAndCheck(f)
+  );
+  return result;
+};
+
 SnarkyCircuit.inCheckedComputation = inCheckedComputation;
 SnarkyCircuit.inProver = inProver;
 

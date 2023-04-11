@@ -101,7 +101,7 @@ export class Voting_ extends SmartContract {
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
-      editSequenceState: Permissions.proofOrSignature(),
+      editActionState: Permissions.proofOrSignature(),
       incrementNonce: Permissions.proofOrSignature(),
       setVerificationKey: Permissions.none(),
       setPermissions: Permissions.proofOrSignature(),
@@ -273,13 +273,13 @@ export class Voting_ extends SmartContract {
 
     let { state: newCommittedVotes, actionsHash: newAccumulatedVotes } =
       this.reducer.reduce(
-        this.reducer.getActions({ fromActionHash: accumulatedVotes }),
+        this.reducer.getActions({ fromActionState: accumulatedVotes }),
         Field,
         (state: Field, action: Member) => {
           // apply one vote
           action = action.addVote();
           // this is the new root after we added one vote
-          return action.votesWitness.calculateRoot(action.getHash());
+          return action.votesWitness.calculateRootSlow(action.getHash());
         },
         // initial state
         { state: committedVotes, actionsHash: accumulatedVotes }

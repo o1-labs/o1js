@@ -16,7 +16,7 @@ export class DummyContract extends SmartContract {
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
-      editSequenceState: Permissions.proofOrSignature(),
+      editActionState: Permissions.proofOrSignature(),
       setPermissions: Permissions.proofOrSignature(),
       setVerificationKey: Permissions.proofOrSignature(),
       incrementNonce: Permissions.proofOrSignature(),
