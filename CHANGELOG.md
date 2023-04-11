@@ -21,7 +21,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [0.9.7](https://github.com/o1-labs/snarkyjs/compare/0b7a9ad...1a984089)
 
-### Changes
+### Added
+
+- `smartContract.fetchActions()` and `Mina.fetchActions()`, asynchronous methods to fetch actions directly from an archive node https://github.com/o1-labs/snarkyjs/pull/843 @Comdex
+
+### Changed
 
 - `Circuit.runAndCheck()` now uses `snarky` to create a constraint system and witnesses, and check constraints. It closely matches behavior during proving and can be used to test provable code without having to create an expensive proof https://github.com/o1-labs/snarkyjs/pull/840
 
@@ -43,6 +47,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - You can make your existing contracts compatible again by switching to `MerkleWitness.calculateRootSlow()`, which has the old circuit
 - Renamed function parameters: The `getAction` function now accepts a new object structure for its parameters. https://github.com/o1-labs/snarkyjs/pull/828
   - The previous object keys, `fromActionHash` and `endActionHash`, have been replaced by `fromActionState` and `endActionState`.
+
+### Added
+
+- `zkProgram.analyzeMethods()` to obtain metadata about a ZkProgram's methods https://github.com/o1-labs/snarkyjs/pull/829 @maht0rz
 
 ### Fixed
 
