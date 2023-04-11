@@ -824,6 +824,7 @@ async function fetchActions(
 
       if (isSameAccountUpdate && !isLastAction) {
         currentActionList.push(data);
+        currentAccountUpdateId = accountUpdateId;
         return;
       } else if (isSameAccountUpdate && isLastAction) {
         currentActionList.push(data);
