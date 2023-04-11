@@ -39,7 +39,7 @@ class CounterZkapp extends SmartContract {
 
     // compute the new counter and hash from pending actions
     let pendingActions = this.reducer.getActions({
-      fromActionHash: actionsHash,
+      fromActionState: actionsHash,
     });
 
     let { state: newCounter, actionsHash: newActionsHash } =
@@ -79,6 +79,11 @@ let zkapp = new CounterZkapp(zkappAddress);
 if (doProofs) {
   console.log('compile');
   await CounterZkapp.compile();
+} else {
+  // TODO: if we don't do this, then `analyzeMethods()` will be called during `runUnchecked()` in the tx callback below,
+  // which currently fails due to `finalize_is_running` in snarky not resetting internal state, and instead setting is_running unconditionally to false,
+  // so we can't nest different snarky circuit runners
+  CounterZkapp.analyzeMethods();
 }
 
 console.log('deploy');

@@ -21,7 +21,7 @@ import {
   Prover,
 } from './proof_system.js';
 import { Memo } from '../mina-signer/src/memo.js';
-import { Events, SequenceEvents } from '../provable/transaction-leaves.js';
+import { Events, Actions } from '../provable/transaction-leaves.js';
 import * as Encoding from './encoding.js';
 import { hashWithPrefix, packToFields } from './hash.js';
 import { prefixes } from '../js_crypto/constants.js';
@@ -45,7 +45,7 @@ export {
   signJsonTransaction,
   ZkappStateLength,
   Events,
-  SequenceEvents,
+  Actions,
   TokenId,
   Token,
   CallForest,
@@ -150,8 +150,8 @@ let Permission = {
 type Permissions_ = Update['permissions']['value'];
 
 /**
- * Permissions specify how specific aspects of the zkapp account are allowed to
- * be modified. All fields are denominated by a {@link Permission}.
+ * Permissions specify how specific aspects of the zkapp account are allowed
+ * to be modified. All fields are denominated by a {@link Permission}.
  */
 interface Permissions extends Permissions_ {
   /**
@@ -200,12 +200,9 @@ interface Permissions extends Permissions_ {
   setZkappUri: Permission;
 
   /**
-   * The {@link Permission} corresponding to the ability to change the sequence
-   * state associated with the account.
-   *
-   * TODO: Define sequence state here as well.
+   * The {@link Permission} corresponding to the ability to emit actions to the account.
    */
-  editSequenceState: Permission;
+  editActionState: Permission;
 
   /**
    * The {@link Permission} corresponding to the ability to set the token symbol
@@ -247,7 +244,7 @@ let Permissions = {
    *
    *   {@link Permissions.setZkappUri} = {@link Permission.signature}
    *
-   *   {@link Permissions.editSequenceState} = {@link Permission.proof}
+   *   {@link Permissions.editActionState} = {@link Permission.proof}
    *
    *   {@link Permissions.setTokenSymbol} = {@link Permission.signature}
    *
@@ -260,7 +257,7 @@ let Permissions = {
     setPermissions: Permission.signature(),
     setVerificationKey: Permission.signature(),
     setZkappUri: Permission.signature(),
-    editSequenceState: Permission.proof(),
+    editActionState: Permission.proof(),
     setTokenSymbol: Permission.signature(),
     incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
@@ -276,7 +273,7 @@ let Permissions = {
     setPermissions: Permission.signature(),
     setVerificationKey: Permission.signature(),
     setZkappUri: Permission.signature(),
-    editSequenceState: Permission.signature(),
+    editActionState: Permission.signature(),
     setTokenSymbol: Permission.signature(),
     incrementNonce: Permission.signature(),
     setVotingFor: Permission.signature(),
@@ -293,7 +290,7 @@ let Permissions = {
     setPermissions: Permission.none(),
     setVerificationKey: Permission.none(),
     setZkappUri: Permission.none(),
-    editSequenceState: Permission.none(),
+    editActionState: Permission.none(),
     setTokenSymbol: Permission.none(),
     incrementNonce: Permission.none(),
     setVotingFor: Permission.none(),
@@ -532,7 +529,7 @@ const AccountPrecondition = {
       receiptChainHash: ignore(Field(0)),
       delegate: ignore(PublicKey.empty()),
       state: appState,
-      sequenceState: ignore(SequenceEvents.emptySequenceState()),
+      actionState: ignore(Actions.emptyActionState()),
       provedState: ignore(Bool(false)),
       isNew: ignore(Bool(false)),
     };
@@ -653,7 +650,7 @@ class AccountUpdate implements Types.AccountUpdate {
 
   private isSelf: boolean;
 
-  static SequenceEvents = SequenceEvents;
+  static Actions = Actions;
 
   constructor(body: Body, authorization?: Control);
   constructor(body: Body, authorization: Control = {}, isSelf = false) {
