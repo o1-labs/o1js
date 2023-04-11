@@ -791,7 +791,12 @@ declare class Circuit {
   /**
    * Runs code and checks its correctness.
    */
-  static runAndCheck<T>(f: () => T): T;
+  static runAndCheck(f: () => void): void;
+
+  /**
+   * Runs code in prover mode, without checking correctness.
+   */
+  static runUnchecked(f: () => void): void;
 
   /**
    * Returns information about the constraint system in the callback function.

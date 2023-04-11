@@ -32,6 +32,7 @@ export {
   memoizeWitness,
   getBlindingValue,
   toConstant,
+  isConstant,
   InferProvable,
   HashInput,
   InferJson,
@@ -943,7 +944,14 @@ function toConstant<T>(type: Provable<T>, value: T): T {
   );
 }
 
+function isConstant<T>(type: FlexibleProvable<T>, value: T): boolean;
+function isConstant<T>(type: Provable<T>, value: T): boolean {
+  return type.toFields(value).every((x) => x.isConstant());
+}
+
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
+
+Circuit.inCheckedComputation = inCheckedComputation;
 
 let oldAsProver = Circuit.asProver;
 Circuit.asProver = function (f: () => void) {
@@ -952,6 +960,22 @@ Circuit.asProver = function (f: () => void) {
   } else {
     f();
   }
+};
+
+let oldRunUnchecked = Circuit.runUnchecked;
+Circuit.runUnchecked = function (f: () => void) {
+  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
+    oldRunUnchecked(f)
+  );
+  return result;
+};
+
+let oldRunAndCheck = Circuit.runAndCheck;
+Circuit.runAndCheck = function (f: () => void) {
+  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
+    oldRunAndCheck(f)
+  );
+  return result;
 };
 
 Circuit.witness = function <

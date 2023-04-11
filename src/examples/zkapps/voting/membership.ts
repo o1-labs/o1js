@@ -8,10 +8,10 @@ import {
   Permissions,
   Bool,
   PublicKey,
-  Experimental,
   Circuit,
   Reducer,
   provablePure,
+  AccountUpdate,
 } from 'snarkyjs';
 import { Member } from './member.js';
 import { ParticipantPreconditions } from './preconditions.js';
@@ -92,10 +92,7 @@ export class Membership_ extends SmartContract {
     // even tho voters cant have a maximum balance, only candidates
     // but for a voter we simply use UInt64.MAXINT() as the maximum
 
-    let accountUpdate = Experimental.createChildAccountUpdate(
-      this.self,
-      member.publicKey
-    );
+    let accountUpdate = AccountUpdate.create(member.publicKey);
 
     accountUpdate.account.balance.assertEquals(
       accountUpdate.account.balance.get()
