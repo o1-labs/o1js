@@ -749,7 +749,7 @@ async function fetchActions(
 ) {
   if (!graphqlEndpoint)
     throw new Error(
-      'fetchEvents: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
+      'fetchActions: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
     );
   const { publicKey, actionStates, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
@@ -824,6 +824,7 @@ async function fetchActions(
 
       if (isSameAccountUpdate && !isLastAction) {
         currentActionList.push(data);
+        currentAccountUpdateId = accountUpdateId;
         return;
       } else if (isSameAccountUpdate && isLastAction) {
         currentActionList.push(data);
