@@ -791,41 +791,35 @@ async function fetchActions(
   fetchedActions.reverse();
   let actionsList: { actions: string[][]; hash: string }[] = [];
 
-  fetchedActions.forEach((fetchedAction) => {
-    let { actionData } = fetchedAction;
-    let latestActionState = Field(fetchedAction.actionState.actionStateTwo);
-    let actionState = fetchedAction.actionState.actionStateOne;
+  fetchedActions.forEach((actionBlock) => {
+    let { actionData } = actionBlock;
+    let latestActionState = Field(actionBlock.actionState.actionStateTwo);
+    let actionState = actionBlock.actionState.actionStateOne;
 
     if (actionData.length === 0)
       throw new Error(
         `No action data was found for the account ${publicKey} with the latest action state ${actionState}`
       );
 
-    let { accountUpdateId: currentAccountUpdateId } = actionData[0];
-    let actions: string[][] = [];
-
-    actionData.forEach((action, i) => {
-      const { accountUpdateId, data } = action;
-      const isLastAction = i === actionData.length - 1;
-      const isSameAccountUpdate = accountUpdateId === currentAccountUpdateId;
-
-      if (isSameAccountUpdate && !isLastAction) {
-        actions.push(data);
-        return;
-      } else if (isSameAccountUpdate && isLastAction) {
-        actions.push(data);
-      } else if (!isSameAccountUpdate && isLastAction) {
-        latestActionState = updateActionState(actions, latestActionState);
-        actionsList.push({ actions, hash: latestActionState.toString() });
-
-        actions = [data];
+    // split actions by account update
+    let actionsByAccountUpdate: string[][][] = [];
+    let currentAccountUpdateId = 'none';
+    let currentActions: string[][];
+    actionData.forEach(({ accountUpdateId, data }) => {
+      if (accountUpdateId === currentAccountUpdateId) {
+        currentActions.push(data);
+      } else {
+        currentAccountUpdateId = accountUpdateId;
+        currentActions = [data];
+        actionsByAccountUpdate.push(currentActions);
       }
+    });
 
+    // re-hash actions
+    for (let actions of actionsByAccountUpdate) {
       latestActionState = updateActionState(actions, latestActionState);
       actionsList.push({ actions, hash: latestActionState.toString() });
-      currentAccountUpdateId = accountUpdateId;
-      actions = [data];
-    });
+    }
 
     const finalActionState = latestActionState.toString();
     const expectedActionState = actionState;
