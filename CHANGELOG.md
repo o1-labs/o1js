@@ -24,7 +24,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 - Fix fetching the `access` permission on accounts https://github.com/o1-labs/snarkyjs/pull/851
-- Fixes to `fetchActions` https://github.com/o1-labs/snarkyjs/pull/844 https://github.com/o1-labs/snarkyjs/pull/854 [@Comdex](https://github.com/Comdex)
+- Fix `fetchActions` https://github.com/o1-labs/snarkyjs/pull/844 https://github.com/o1-labs/snarkyjs/pull/854 [@Comdex](https://github.com/Comdex)
 
 ## [0.9.7](https://github.com/o1-labs/snarkyjs/compare/0b7a9ad...1a984089)
 
