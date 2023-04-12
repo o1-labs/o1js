@@ -51,6 +51,7 @@ export {
   TransactionStatus,
   addCachedAccount,
   setGraphqlEndpoint,
+  setArchiveGraphqlEndpoint,
   sendZkapp,
 } from './lib/fetch.js';
 export * as Encryption from './lib/encryption.js';
