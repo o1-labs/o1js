@@ -1,5 +1,5 @@
 import 'isomorphic-fetch';
-import { Field, Ledger } from '../snarky.js';
+import { Field } from '../snarky.js';
 import { UInt32, UInt64 } from './int.js';
 import { Actions, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
@@ -311,14 +311,12 @@ function addCachedAccountInternal(account: Account, graphqlEndpoint: string) {
   };
 }
 
-function addCachedActionsInternal(
-  accountInfo: { publicKey: PublicKey; tokenId: Field },
+function addCachedActions(
+  { publicKey, tokenId }: { publicKey: string; tokenId: string },
   actions: { hash: string; actions: string[][] }[],
   graphqlEndpoint: string
 ) {
-  actionsCache[
-    accountCacheKey(accountInfo.publicKey, accountInfo.tokenId, graphqlEndpoint)
-  ] = {
+  actionsCache[`${publicKey};${tokenId};${graphqlEndpoint}`] = {
     actions,
     graphqlEndpoint,
     timestamp: Date.now(),
@@ -751,13 +749,13 @@ async function fetchActions(
     throw new Error(
       'fetchActions: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
     );
-  const { publicKey, actionStates, tokenId } = accountInfo;
+  const {
+    publicKey,
+    actionStates,
+    tokenId = TokenId.toBase58(TokenId.default),
+  } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
-    getActionsQuery(
-      publicKey,
-      actionStates,
-      tokenId ?? TokenId.toBase58(TokenId.default)
-    ),
+    getActionsQuery(publicKey, actionStates, tokenId),
     graphqlEndpoint
   );
   if (error) throw Error(error.statusText);
@@ -795,8 +793,8 @@ async function fetchActions(
 
   fetchedActions.forEach((fetchedAction) => {
     let { actionData } = fetchedAction;
-    let latestActionsHash = Field(fetchedAction.actionState.actionStateTwo);
-    let actionState = Field(fetchedAction.actionState.actionStateOne);
+    let latestActionState = Field(fetchedAction.actionState.actionStateTwo);
+    let actionState = fetchedAction.actionState.actionStateOne;
 
     if (actionData.length === 0)
       throw new Error(
@@ -804,7 +802,7 @@ async function fetchActions(
       );
 
     let { accountUpdateId: currentAccountUpdateId } = actionData[0];
-    let currentActionList: string[][] = [];
+    let actions: string[][] = [];
 
     actionData.forEach((action, i) => {
       const { accountUpdateId, data } = action;
@@ -812,56 +810,37 @@ async function fetchActions(
       const isSameAccountUpdate = accountUpdateId === currentAccountUpdateId;
 
       if (isSameAccountUpdate && !isLastAction) {
-        currentActionList.push(data);
+        actions.push(data);
         return;
       } else if (isSameAccountUpdate && isLastAction) {
-        currentActionList.push(data);
+        actions.push(data);
       } else if (!isSameAccountUpdate && isLastAction) {
-        latestActionsHash = updateActionState(
-          currentActionList,
-          latestActionsHash
-        );
-        actionsList.push({
-          actions: currentActionList,
-          hash: Ledger.fieldToBase58(Field(latestActionsHash)),
-        });
+        latestActionState = updateActionState(actions, latestActionState);
+        actionsList.push({ actions, hash: latestActionState.toString() });
 
-        currentActionList = [data];
+        actions = [data];
       }
 
-      latestActionsHash = updateActionState(
-        currentActionList,
-        latestActionsHash
-      );
-      actionsList.push({
-        actions: currentActionList,
-        hash: Ledger.fieldToBase58(Field(latestActionsHash)),
-      });
+      latestActionState = updateActionState(actions, latestActionState);
+      actionsList.push({ actions, hash: latestActionState.toString() });
       currentAccountUpdateId = accountUpdateId;
-      currentActionList = [data];
+      actions = [data];
     });
 
-    const currentActionHash = Ledger.fieldToBase58(Field(latestActionsHash));
-    const expectedActionHash = Ledger.fieldToBase58(Field(actionState));
+    const finalActionState = latestActionState.toString();
+    const expectedActionState = actionState;
 
-    if (currentActionHash !== expectedActionHash) {
+    if (finalActionState !== expectedActionState) {
       throw new Error(
         `Failed to derive correct actions hash for ${publicKey}.
-        Derived hash: ${currentActionHash}, expected hash: ${expectedActionHash}).
+        Derived hash: ${finalActionState}, expected hash: ${expectedActionState}).
         All action hashes derived: ${JSON.stringify(actionsList, null, 2)}
         Please try a different Archive Node API endpoint.
         `
       );
     }
   });
-  addCachedActionsInternal(
-    {
-      publicKey: PublicKey.fromBase58(publicKey),
-      tokenId: TokenId.fromBase58(tokenId ?? TokenId.toBase58(TokenId.default)),
-    },
-    actionsList,
-    graphqlEndpoint
-  );
+  addCachedActions({ publicKey, tokenId }, actionsList, graphqlEndpoint);
   return actionsList;
 }
 
