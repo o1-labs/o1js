@@ -789,17 +789,6 @@ async function fetchActions(
       break;
     }
   }
-
-  const processActionData = (
-    currentActionList: string[][],
-    latestActionsHash: Field
-  ) => {
-    const actionsHash = Actions.hash(
-      currentActionList.map((e) => e.map((f) => Field(f)))
-    );
-    return Actions.updateSequenceState(latestActionsHash, actionsHash);
-  };
-
   // Archive Node API returns actions in the latest order, so we reverse the array to get the actions in chronological order.
   fetchedActions.reverse();
   let actionsList: { actions: string[][]; hash: string }[] = [];
@@ -813,12 +802,9 @@ async function fetchActions(
       throw new Error(
         `No action data was found for the account ${publicKey} with the latest action state ${actionState}`
       );
-    
-    actionData.reverse();
+
     let { accountUpdateId: currentAccountUpdateId } = actionData[0];
     let currentActionList: string[][] = [];
-
-
 
     actionData.forEach((action, i) => {
       const { accountUpdateId, data } = action;
@@ -831,7 +817,7 @@ async function fetchActions(
       } else if (isSameAccountUpdate && isLastAction) {
         currentActionList.push(data);
       } else if (!isSameAccountUpdate && isLastAction) {
-        latestActionsHash = processActionData(
+        latestActionsHash = updateActionState(
           currentActionList,
           latestActionsHash
         );
@@ -839,11 +825,11 @@ async function fetchActions(
           actions: currentActionList,
           hash: Ledger.fieldToBase58(Field(latestActionsHash)),
         });
-        
+
         currentActionList = [data];
       }
 
-      latestActionsHash = processActionData(
+      latestActionsHash = updateActionState(
         currentActionList,
         latestActionsHash
       );
@@ -877,6 +863,11 @@ async function fetchActions(
     graphqlEndpoint
   );
   return actionsList;
+}
+
+function updateActionState(actions: string[][], actionState: Field) {
+  let actionsHash = Actions.fromJSON(actions).hash;
+  return Actions.updateSequenceState(actionState, actionsHash);
 }
 
 // removes the quotes on JSON keys
