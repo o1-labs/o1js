@@ -393,7 +393,10 @@ function LocalBlockchain({
   }
 
   const events: Record<string, any> = {};
-  const actions: Record<string, any> = {};
+  const actions: Record<
+    string,
+    Record<string, { actions: string[][]; hash: string }[]>
+  > = {};
 
   return {
     proofsEnabled,
@@ -476,17 +479,14 @@ function LocalBlockchain({
 
       // fetches all events from the transaction and stores them
       // events are identified and associated with a publicKey and tokenId
-      zkappCommandJson.accountUpdates.forEach((p) => {
-        let addr = p.body.publicKey;
-        let tokenId = p.body.tokenId;
-        if (events[addr] === undefined) {
-          events[addr] = {};
-        }
-        if (p.body.events.length > 0) {
-          if (events[addr][tokenId] === undefined) {
-            events[addr][tokenId] = [];
-          }
-          let updatedEvents = p.body.events.map((data) => {
+      txn.transaction.accountUpdates.forEach((p, i) => {
+        let pJson = zkappCommandJson.accountUpdates[i];
+        let addr = pJson.body.publicKey;
+        let tokenId = pJson.body.tokenId;
+        events[addr] ??= {};
+        if (p.body.events.data.length > 0) {
+          events[addr][tokenId] ??= [];
+          let updatedEvents = p.body.events.data.map((data) => {
             return {
               data,
               transactionInfo: {
@@ -510,37 +510,26 @@ function LocalBlockchain({
 
         // actions/sequencing events
 
-        // gets the index of the most up to date sequence state from our sequence list
-        let n = actions[addr]?.[tokenId]?.length ?? 1;
-
-        // most recent sequence state
-        let actionState = actions?.[addr]?.[tokenId]?.[n - 1]?.hash;
-
+        // most recent action state
+        let storedActions = actions[addr]?.[tokenId];
+        let latestActionState_ =
+          storedActions?.[storedActions.length - 1]?.hash;
         // if there exists no hash, this means we initialize our latest hash with the empty state
-        let latestActionsHash =
-          actionState === undefined
-            ? Actions.emptyActionState()
-            : Ledger.fieldOfBase58(actionState);
+        let latestActionState =
+          latestActionState_ !== undefined
+            ? Field(latestActionState_)
+            : Actions.emptyActionState();
 
-        let actionList = p.body.actions;
-        let eventsHash = Actions.hash(
-          actionList.map((e) => e.map((f) => Field(f)))
-        );
-
-        if (actions[addr] === undefined) {
-          actions[addr] = {};
-        }
-        if (p.body.actions.length > 0) {
-          latestActionsHash = Actions.updateSequenceState(
-            latestActionsHash,
-            eventsHash
+        actions[addr] ??= {};
+        if (p.body.actions.data.length > 0) {
+          let newActionState = Actions.updateSequenceState(
+            latestActionState,
+            p.body.actions.hash
           );
-          if (actions[addr][tokenId] === undefined) {
-            actions[addr][tokenId] = [];
-          }
+          actions[addr][tokenId] ??= [];
           actions[addr][tokenId].push({
-            actions: actionList,
-            hash: Ledger.fieldToBase58(latestActionsHash),
+            actions: pJson.body.actions,
+            hash: newActionState.toString(),
           });
         }
       });
@@ -602,37 +591,30 @@ function LocalBlockchain({
       actionStates?: ActionStates,
       tokenId: Field = TokenId.default
     ): { hash: string; actions: string[][] }[] {
-      let currentActions: { hash: string; actions: string[][] }[] =
-        actions?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)] ?? [];
+      let currentActions =
+        actions?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
       let { fromActionState, endActionState } = actionStates ?? {};
 
-      fromActionState = fromActionState
+      let start = fromActionState
         ?.equals(Actions.emptyActionState())
         .toBoolean()
         ? undefined
-        : fromActionState;
+        : fromActionState?.toString();
+      let end = endActionState?.toString();
 
-      // used to determine start and end values in string
-      let start: string | undefined = fromActionState
-        ? Ledger.fieldToBase58(fromActionState)
-        : undefined;
-      let end: string | undefined = endActionState
-        ? Ledger.fieldToBase58(endActionState)
-        : undefined;
-
-      let startIndex = start
-        ? currentActions.findIndex((e) => e.hash === start) + 1
-        : 0;
-      let endIndex = end
-        ? currentActions.findIndex((e) => e.hash === end) + 1
-        : undefined;
-
-      return (
-        currentActions?.slice(
-          startIndex,
-          endIndex === 0 ? undefined : endIndex
-        ) ?? []
-      );
+      let startIndex = 0;
+      if (start) {
+        let i = currentActions.findIndex((e) => e.hash === start);
+        if (i === -1) throw Error(`getActions: fromActionState not found.`);
+        startIndex = i + 1;
+      }
+      let endIndex: number | undefined;
+      if (end) {
+        let i = currentActions.findIndex((e) => e.hash === end);
+        if (i === -1) throw Error(`getActions: endActionState not found.`);
+        endIndex = i + 1;
+      }
+      return currentActions.slice(startIndex, endIndex);
     },
     addAccount,
     /**
