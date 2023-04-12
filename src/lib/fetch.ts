@@ -791,13 +791,22 @@ async function fetchActions(
   fetchedActions.reverse();
   let actionsList: { actions: string[][]; hash: string }[] = [];
 
+  // correct for archive node sending one block too many
+  if (
+    fetchedActions.length !== 0 &&
+    fetchedActions[0].actionState.actionStateOne ===
+      actionStates.fromActionState
+  ) {
+    fetchedActions = fetchedActions.slice(1);
+  }
+
   fetchedActions.forEach((actionBlock) => {
     let { actionData } = actionBlock;
     let latestActionState = Field(actionBlock.actionState.actionStateTwo);
     let actionState = actionBlock.actionState.actionStateOne;
 
     if (actionData.length === 0)
-      throw new Error(
+      throw Error(
         `No action data was found for the account ${publicKey} with the latest action state ${actionState}`
       );
 
