@@ -1375,7 +1375,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         });
         // for each action length, compute the events hash and then pick the actual one
         let eventsHashes = actionss.map((actions) => {
-          let events = actions.map((u) => reducer.actionType.toFields(u));
+          let events = actions.map((a) => reducer.actionType.toFields(a));
           return Actions.hash(events);
         });
         let eventsHash = Circuit.switch(lengths, Field, eventsHashes);
@@ -1386,13 +1386,13 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         let isEmpty = lengths[0];
         // update state hash, if this is not an empty action
         actionsHash = Circuit.if(isEmpty, actionsHash, newActionsHash);
-        // also, for each action length, compute the new state and then pick the
-        // actual one
+        // also, for each action length, compute the new state and then pick the actual one
         let newStates = actionss.map((actions) => {
           // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
           let newState = Circuit.witness(stateType, () => state);
           Circuit.assertEqual(stateType, newState, state);
-          actions.forEach((action) => {
+          // apply actions in reverse order since that's how they were stored at dispatch
+          [...actions].reverse().forEach((action) => {
             newState = reduce(newState, action);
           });
           return newState;
@@ -1414,24 +1414,18 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       Circuit.asProver(() => {
         let actions = Mina.getActions(
           contract.address,
-          {
-            fromActionState,
-            endActionState,
-          },
+          { fromActionState, endActionState },
           contract.self.tokenId
         );
-
-        actionsForAccount = actions.map(
-          (event: { hash: string; actions: string[][] }) =>
-            // putting our string-Fields back into the original action type
-            event.actions.map((action: string[]) =>
-              (reducer.actionType as ProvablePure<A>).fromFields(
-                action.map((fieldAsString: string) => Field(fieldAsString))
-              )
+        actionsForAccount = actions.map((event) =>
+          // putting our string-Fields back into the original action type
+          event.actions.map((action) =>
+            (reducer.actionType as ProvablePure<A>).fromFields(
+              action.map(Field)
             )
+          )
         );
       });
-
       return actionsForAccount;
     },
     async fetchActions({
@@ -1441,30 +1435,20 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       fromActionState?: Field;
       endActionState?: Field;
     }): Promise<A[][]> {
-      let actionsForAccount: A[][] = [];
-      let res = await Mina.fetchActions(
+      let result = await Mina.fetchActions(
         contract.address,
-        {
-          fromActionState,
-          endActionState,
-        },
+        { fromActionState, endActionState },
         contract.self.tokenId
       );
-      if(res.hasOwnProperty('error')) {
-        throw Error(JSON.stringify(res));
+      if ('error' in result) {
+        throw Error(JSON.stringify(result));
       }
-
-      actionsForAccount = (res as { hash: string; actions: string[][] }[]).map(
-        (event: { hash: string; actions: string[][] }) =>
-          // putting our string-Fields back into the original action type
-          event.actions.map((action: string[]) =>
-            (reducer.actionType as ProvablePure<A>).fromFields(
-              action.map((fieldAsString: string) => Field(fieldAsString))
-            )
-          )
+      return result.map((event) =>
+        // putting our string-Fields back into the original action type
+        event.actions.map((action) =>
+          (reducer.actionType as ProvablePure<A>).fromFields(action.map(Field))
+        )
       );
-
-      return actionsForAccount;
     },
   };
 }

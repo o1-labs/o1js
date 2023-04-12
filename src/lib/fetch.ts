@@ -1,5 +1,5 @@
 import 'isomorphic-fetch';
-import { Field, Ledger } from '../snarky.js';
+import { Field } from '../snarky.js';
 import { UInt32, UInt64 } from './int.js';
 import { Actions, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
@@ -311,14 +311,12 @@ function addCachedAccountInternal(account: Account, graphqlEndpoint: string) {
   };
 }
 
-function addCachedActionsInternal(
-  accountInfo: { publicKey: PublicKey; tokenId: Field },
+function addCachedActions(
+  { publicKey, tokenId }: { publicKey: string; tokenId: string },
   actions: { hash: string; actions: string[][] }[],
   graphqlEndpoint: string
 ) {
-  actionsCache[
-    accountCacheKey(accountInfo.publicKey, accountInfo.tokenId, graphqlEndpoint)
-  ] = {
+  actionsCache[`${publicKey};${tokenId};${graphqlEndpoint}`] = {
     actions,
     graphqlEndpoint,
     timestamp: Date.now(),
@@ -751,13 +749,13 @@ async function fetchActions(
     throw new Error(
       'fetchActions: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
     );
-  const { publicKey, actionStates, tokenId } = accountInfo;
+  const {
+    publicKey,
+    actionStates,
+    tokenId = TokenId.toBase58(TokenId.default),
+  } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
-    getActionsQuery(
-      publicKey,
-      actionStates,
-      tokenId ?? TokenId.toBase58(TokenId.default)
-    ),
+    getActionsQuery(publicKey, actionStates, tokenId),
     graphqlEndpoint
   );
   if (error) throw Error(error.statusText);
@@ -789,94 +787,69 @@ async function fetchActions(
       break;
     }
   }
-
-  const processActionData = (
-    currentActionList: string[][],
-    latestActionsHash: Field
-  ) => {
-    const actionsHash = Actions.hash(
-      currentActionList.map((e) => e.map((f) => Field(f)))
-    );
-    return Actions.updateSequenceState(latestActionsHash, actionsHash);
-  };
-
   // Archive Node API returns actions in the latest order, so we reverse the array to get the actions in chronological order.
   fetchedActions.reverse();
   let actionsList: { actions: string[][]; hash: string }[] = [];
 
-  fetchedActions.forEach((fetchedAction) => {
-    let { actionData } = fetchedAction;
-    let latestActionsHash = Field(fetchedAction.actionState.actionStateTwo);
-    let actionState = Field(fetchedAction.actionState.actionStateOne);
+  // correct for archive node sending one block too many
+  if (
+    fetchedActions.length !== 0 &&
+    fetchedActions[0].actionState.actionStateOne ===
+      actionStates.fromActionState
+  ) {
+    fetchedActions = fetchedActions.slice(1);
+  }
+
+  fetchedActions.forEach((actionBlock) => {
+    let { actionData } = actionBlock;
+    let latestActionState = Field(actionBlock.actionState.actionStateTwo);
+    let actionState = actionBlock.actionState.actionStateOne;
 
     if (actionData.length === 0)
-      throw new Error(
+      throw Error(
         `No action data was found for the account ${publicKey} with the latest action state ${actionState}`
       );
-    
-    actionData.reverse();
-    let { accountUpdateId: currentAccountUpdateId } = actionData[0];
-    let currentActionList: string[][] = [];
 
-
-
-    actionData.forEach((action, i) => {
-      const { accountUpdateId, data } = action;
-      const isLastAction = i === actionData.length - 1;
-      const isSameAccountUpdate = accountUpdateId === currentAccountUpdateId;
-
-      if (isSameAccountUpdate && !isLastAction) {
-        currentActionList.push(data);
-        return;
-      } else if (isSameAccountUpdate && isLastAction) {
-        currentActionList.push(data);
-      } else if (!isSameAccountUpdate && isLastAction) {
-        latestActionsHash = processActionData(
-          currentActionList,
-          latestActionsHash
-        );
-        actionsList.push({
-          actions: currentActionList,
-          hash: Ledger.fieldToBase58(Field(latestActionsHash)),
-        });
-        
-        currentActionList = [data];
+    // split actions by account update
+    let actionsByAccountUpdate: string[][][] = [];
+    let currentAccountUpdateId = 'none';
+    let currentActions: string[][];
+    actionData.forEach(({ accountUpdateId, data }) => {
+      if (accountUpdateId === currentAccountUpdateId) {
+        currentActions.push(data);
+      } else {
+        currentAccountUpdateId = accountUpdateId;
+        currentActions = [data];
+        actionsByAccountUpdate.push(currentActions);
       }
-
-      latestActionsHash = processActionData(
-        currentActionList,
-        latestActionsHash
-      );
-      actionsList.push({
-        actions: currentActionList,
-        hash: Ledger.fieldToBase58(Field(latestActionsHash)),
-      });
-      currentAccountUpdateId = accountUpdateId;
-      currentActionList = [data];
     });
 
-    const currentActionHash = Ledger.fieldToBase58(Field(latestActionsHash));
-    const expectedActionHash = Ledger.fieldToBase58(Field(actionState));
+    // re-hash actions
+    for (let actions of actionsByAccountUpdate) {
+      latestActionState = updateActionState(actions, latestActionState);
+      actionsList.push({ actions, hash: latestActionState.toString() });
+    }
 
-    if (currentActionHash !== expectedActionHash) {
+    const finalActionState = latestActionState.toString();
+    const expectedActionState = actionState;
+
+    if (finalActionState !== expectedActionState) {
       throw new Error(
         `Failed to derive correct actions hash for ${publicKey}.
-        Derived hash: ${currentActionHash}, expected hash: ${expectedActionHash}).
+        Derived hash: ${finalActionState}, expected hash: ${expectedActionState}).
         All action hashes derived: ${JSON.stringify(actionsList, null, 2)}
         Please try a different Archive Node API endpoint.
         `
       );
     }
   });
-  addCachedActionsInternal(
-    {
-      publicKey: PublicKey.fromBase58(publicKey),
-      tokenId: TokenId.fromBase58(tokenId ?? TokenId.toBase58(TokenId.default)),
-    },
-    actionsList,
-    graphqlEndpoint
-  );
+  addCachedActions({ publicKey, tokenId }, actionsList, graphqlEndpoint);
   return actionsList;
+}
+
+function updateActionState(actions: string[][], actionState: Field) {
+  let actionsHash = Actions.fromJSON(actions).hash;
+  return Actions.updateSequenceState(actionState, actionsHash);
 }
 
 // removes the quotes on JSON keys
