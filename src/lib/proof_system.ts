@@ -59,15 +59,17 @@ type SnarkContext = {
 };
 let snarkContext = Context.create<SnarkContext>({ default: {} });
 
-class Proof<T> {
+class Proof<Input, Output> {
   static publicInputType: FlexibleProvablePure<any> = undefined as any;
+  static publicOutputType: FlexibleProvablePure<any> = undefined as any;
   static tag: () => { name: string } = () => {
     throw Error(
       `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
         `class MyProof extends Proof<PublicInput> { ... }`
     );
   };
-  publicInput: T;
+  publicInput: Input;
+  publicOutput: Output;
   proof: RawProof;
   maxProofsVerified: 0 | 1 | 2;
   shouldVerify = Bool(false);
@@ -79,10 +81,10 @@ class Proof<T> {
     this.shouldVerify = condition;
   }
   toJSON(): JsonProof {
+    let type = getStatementType(this.constructor as any);
     return {
-      publicInput: getPublicInputType(this.constructor as any)
-        .toFields(this.publicInput)
-        .map(String),
+      publicInput: type.input.toFields(this.publicInput).map(String),
+      publicOutput: type.output.toFields(this.publicInput).map(String),
       maxProofsVerified: this.maxProofsVerified,
       proof: Pickles.proofToBase64([this.maxProofsVerified, this.proof]),
     };
@@ -93,13 +95,22 @@ class Proof<T> {
       maxProofsVerified,
       proof: proofString,
       publicInput: publicInputJson,
+      publicOutput: publicOutputJson,
     }: JsonProof
-  ): Proof<InferProvable<S['publicInputType']>> {
+  ): Proof<
+    InferProvable<S['publicInputType']>,
+    InferProvable<S['publicOutputType']>
+  > {
     let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
-    let publicInput = getPublicInputType(this).fromFields(
-      publicInputJson.map(Field)
-    );
-    return new this({ publicInput, proof, maxProofsVerified }) as any;
+    let type = getStatementType(this);
+    let publicInput = type.input.fromFields(publicInputJson.map(Field));
+    let publicOutput = type.output.fromFields(publicOutputJson.map(Field));
+    return new this({
+      publicInput,
+      publicOutput,
+      proof,
+      maxProofsVerified,
+    }) as any;
   }
 
   constructor({
@@ -108,7 +119,7 @@ class Proof<T> {
     maxProofsVerified,
   }: {
     proof: RawProof;
-    publicInput: T;
+    publicInput: Input;
     maxProofsVerified: 0 | 1 | 2;
   }) {
     this.publicInput = publicInput;
@@ -117,9 +128,13 @@ class Proof<T> {
   }
 }
 
-async function verify(proof: Proof<any> | JsonProof, verificationKey: string) {
+async function verify(
+  proof: Proof<any, any> | JsonProof,
+  verificationKey: string
+) {
   let picklesProof: unknown;
   let publicInputFields: Field[];
+  let publicOutputFields: Field[];
   if (typeof proof.proof === 'string') {
     // json proof
     [, picklesProof] = Pickles.proofOfBase64(
@@ -127,14 +142,16 @@ async function verify(proof: Proof<any> | JsonProof, verificationKey: string) {
       proof.maxProofsVerified
     );
     publicInputFields = (proof as JsonProof).publicInput.map(Field);
+    publicOutputFields = (proof as JsonProof).publicOutput.map(Field);
   } else {
     // proof class
     picklesProof = proof.proof;
-    publicInputFields = getPublicInputType(proof.constructor as any).toFields(
-      proof.publicInput
-    );
+    let type = getStatementType(proof.constructor as any);
+    publicInputFields = type.input.toFields(proof.publicInput);
+    publicOutputFields = type.output.toFields(proof.publicInput);
   }
   return withThreadPool(() =>
+    // TODO add publicOutputFields
     Pickles.verify(publicInputFields, picklesProof, verificationKey)
   );
 }
@@ -142,6 +159,7 @@ async function verify(proof: Proof<any> | JsonProof, verificationKey: string) {
 type RawProof = unknown;
 type JsonProof = {
   publicInput: string[];
+  publicOutput: string[];
   maxProofsVerified: 0 | 1 | 2;
   proof: string;
 };
@@ -174,17 +192,22 @@ function ZkProgram<
 }): {
   name: string;
   compile: () => Promise<{ verificationKey: string }>;
-  verify: (proof: Proof<InferProvable<PublicInputType>>) => Promise<boolean>;
+  verify: (
+    // TODO
+    proof: Proof<InferProvable<PublicInputType>, Field>
+  ) => Promise<boolean>;
   digest: () => string;
   analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
   publicInputType: PublicInputType;
 } & {
-  [I in keyof Types]: Prover<InferProvable<PublicInputType>, Types[I]>;
+  // TODO
+  [I in keyof Types]: Prover<InferProvable<PublicInputType>, Field, Types[I]>;
 } {
   let selfTag = { name: `Program${i++}` };
 
   type PublicInput = InferProvable<PublicInputType>;
-  class SelfProof extends Proof<PublicInput> {
+  // TODO
+  class SelfProof extends Proof<PublicInput, Field> {
     static publicInputType = publicInputType;
     static tag = () => selfTag;
   }
@@ -202,13 +225,18 @@ function ZkProgram<
   let compileOutput:
     | {
         provers: Pickles.Prover[];
-        verify: (publicInput: Field[], proof: unknown) => Promise<boolean>;
+        verify: (
+          publicInput: Field[],
+          publicOutput: Field[],
+          proof: unknown
+        ) => Promise<boolean>;
       }
     | undefined;
 
   async function compile() {
     let { provers, verify, verificationKey } = await compileProgram(
       publicInputType,
+      Field,
       methodIntfs,
       methodFunctions,
       selfTag
@@ -224,7 +252,8 @@ function ZkProgram<
     async function prove(
       publicInput: PublicInput,
       ...args: TupleToInstances<Types[typeof key]>
-    ): Promise<{ proof: Proof<PublicInput>; publicOutput: Field[] }> {
+    ): // TODO
+    Promise<{ proof: Proof<PublicInput, Field>; publicOutput: Field[] }> {
       let picklesProver = compileOutput?.provers?.[i];
       if (picklesProver === undefined) {
         throw Error(
@@ -239,7 +268,8 @@ function ZkProgram<
         { witnesses: args, inProver: true },
         () => picklesProver!(publicInputFields, previousProofs)
       );
-      class ProgramProof extends Proof<PublicInput> {
+      // TODO
+      class ProgramProof extends Proof<PublicInput, Field> {
         static publicInputType = publicInputType;
         static tag = () => selfTag;
       }
@@ -254,7 +284,8 @@ function ZkProgram<
     [I in keyof Types]: Prover<PublicInput, Types[I]>;
   };
 
-  function verify(proof: Proof<PublicInput>) {
+  // TODO
+  function verify(proof: Proof<PublicInput, Field>) {
     if (compileOutput?.verify === undefined) {
       throw Error(
         `Cannot verify proof, verification key not found. Try calling \`await program.compile()\` first.`
@@ -262,6 +293,7 @@ function ZkProgram<
     }
     return compileOutput.verify(
       publicInputType.toFields(proof.publicInput),
+      [Field(1)],
       proof.proof
     );
   }
@@ -292,7 +324,7 @@ function ZkProgram<
 
 let i = 0;
 
-class SelfProof<T> extends Proof<T> {}
+class SelfProof<T, S> extends Proof<T, S> {}
 
 function sortMethodArguments(
   programName: string,
@@ -391,8 +423,11 @@ function getPreviousProofsForProver(
   for (let i = 0; i < allArgs.length; i++) {
     let arg = allArgs[i];
     if (arg.type === 'proof') {
-      let { proof, publicInput } = methodArgs[i] as Proof<any>;
-      let publicInputType = getPublicInputType(proofArgs[arg.index]);
+      let { proof, publicInput, publicOutput } = methodArgs[i] as Proof<
+        any,
+        any
+      >;
+      let publicInputType = getStatementType(proofArgs[arg.index]);
       previousProofs[arg.index] = {
         publicInput: publicInputType.toFields(publicInput),
         publicOutput: [],
@@ -416,6 +451,7 @@ type MethodInterface = {
 
 async function compileProgram(
   publicInputType: ProvablePure<any>,
+  publicOutputType: ProvablePure<any>,
   methodIntfs: MethodInterface[],
   methods: ((...args: any) => void)[],
   proofSystemTag: { name: string }
@@ -434,7 +470,7 @@ async function compileProgram(
         snarkContext.runWith({ inCompile: true }, () =>
           Pickles.compile(rules, {
             publicInputSize: publicInputType.sizeInFields(),
-            publicOutputSize: 0,
+            publicOutputSize: publicOutputType.sizeInFields(),
           })
         );
       CompiledTag.store(proofSystemTag, tag);
@@ -455,9 +491,10 @@ async function compileProgram(
   // wrap verify
   let wrappedVerify = async function picklesVerify(
     publicInput: Pickles.PublicInput,
+    publicOutput: Pickles.PublicInput,
     proof: Pickles.Proof
   ) {
-    return withThreadPool(() => verify(publicInput, [], proof));
+    return withThreadPool(() => verify(publicInput, publicOutput, proof));
   };
   return {
     verificationKey,
@@ -502,8 +539,9 @@ function picklesRuleFromFunction(
       } else if (arg.type === 'proof') {
         let Proof = proofArgs[arg.index];
         // TODO: split in input & output
-        let publicInput = getPublicInputType(Proof).fromFields(
-          previousInputsAndOutputs[arg.index]
+        console.log(previousInputsAndOutputs[arg.index]);
+        let publicInput = getStatementType(Proof).fromFields(
+          previousInputsAndOutputs[arg.index].slice(0, -1)
         );
         let proofInstance: Proof<any>;
         if (argsWithoutPublicInput) {
@@ -559,7 +597,7 @@ function synthesizeMethodArguments(
       args.push(empty(witnessArgs[arg.index]));
     } else if (arg.type === 'proof') {
       let Proof = proofArgs[arg.index];
-      let publicInput = empty(getPublicInputType(Proof));
+      let publicInput = empty(getStatementType(Proof));
       args.push(new Proof({ publicInput, proof: undefined }));
     } else if (arg.type === 'generic') {
       args.push(emptyGeneric());
@@ -580,7 +618,7 @@ function methodArgumentsToConstant(
       constArgs.push(toConstant(witnessArgs[index], arg));
     } else if (type === 'proof') {
       let Proof = proofArgs[index];
-      let publicInput = toConstant(getPublicInputType(Proof), arg.publicInput);
+      let publicInput = toConstant(getStatementType(Proof), arg.publicInput);
       constArgs.push(new Proof({ publicInput, proof: arg.proof }));
     } else if (type === 'generic') {
       constArgs.push(arg);
@@ -606,7 +644,7 @@ function methodArgumentTypesAndValues(
     } else if (type === 'proof') {
       let Proof = proofArgs[index];
       typesAndValues.push({
-        type: getPublicInputType(Proof),
+        type: getStatementType(Proof),
         value: (arg as Proof<any>).publicInput,
       });
     } else if (type === 'generic') {
@@ -629,23 +667,29 @@ function emptyWitness<T>(type: Provable<T>) {
   return Circuit.witness(type, () => emptyValue(type));
 }
 
-function getPublicInputType<T, P extends Subclass<typeof Proof> = typeof Proof>(
-  Proof: P
-): ProvablePure<T> {
+function getStatementType<
+  T,
+  O,
+  P extends Subclass<typeof Proof> = typeof Proof
+>(Proof: P): { input: ProvablePure<T>; output: ProvablePure<O> } {
   if (Proof.publicInputType === undefined) {
     throw Error(
       `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
         `class MyProof extends Proof<PublicInput> { ... }`
     );
   }
-  return Proof.publicInputType as any;
+  return {
+    input: Proof.publicInputType as any,
+    output: Proof.publicOutputType as any,
+  };
 }
 
 ZkProgram.Proof = function <
   PublicInputType extends FlexibleProvablePure<any>
 >(program: { name: string; publicInputType: PublicInputType }) {
   type PublicInput = InferProvable<PublicInputType>;
-  return class ZkProgramProof extends Proof<PublicInput> {
+  // TODO
+  return class ZkProgramProof extends Proof<PublicInput, Field> {
     static publicInputType = program.publicInputType;
     static tag = () => program;
   };
@@ -717,7 +761,10 @@ type Method<PublicInput, Args extends Tuple<PrivateInput>> = {
   method(publicInput: PublicInput, ...args: TupleToInstances<Args>): void;
 };
 
-type Prover<PublicInput, Args extends Tuple<PrivateInput>> = (
+type Prover<PublicInput, PublicOutput, Args extends Tuple<PrivateInput>> = (
   publicInput: PublicInput,
   ...args: TupleToInstances<Args>
-) => Promise<{ publicOutput: Field[]; proof: Proof<PublicInput> }>;
+) => Promise<{
+  publicOutput: PublicOutput;
+  proof: Proof<PublicInput, PublicOutput>;
+}>;

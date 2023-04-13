@@ -67,6 +67,7 @@ import {
 } from './proof_system.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
+import { Empty } from '../bindings/lib/generic.js';
 
 // external API
 export {
@@ -704,7 +705,13 @@ class SmartContract {
       verificationKey: verificationKey_,
       provers,
       verify,
-    } = await compileProgram(ZkappPublicInput, methodIntfs, methods, this);
+    } = await compileProgram(
+      ZkappPublicInput,
+      Empty(),
+      methodIntfs,
+      methods,
+      this
+    );
     let verificationKey = {
       data: verificationKey_.data,
       hash: Field(verificationKey_.hash),
