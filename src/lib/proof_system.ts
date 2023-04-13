@@ -428,7 +428,10 @@ async function compileProgram(
     async () => {
       let [, { getVerificationKeyArtifact, provers, verify, tag }] =
         snarkContext.runWith({ inCompile: true }, () =>
-          Pickles.compile(rules, publicInputType.sizeInFields())
+          Pickles.compile(rules, {
+            publicInputSize: publicInputType.sizeInFields(),
+            publicOutputSize: 0,
+          })
         );
       CompiledTag.store(proofSystemTag, tag);
       let verificationKey = getVerificationKeyArtifact();

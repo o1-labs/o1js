@@ -1310,11 +1310,10 @@ declare const Pickles: {
   /**
    * This is the core API of the `Pickles` library, exposed from OCaml to JS. It takes a list of circuits --
    * each in the form of a function which takes a public input `{ accountUpdate: Field; calls: Field }` as argument --,
-   * and joins them into one single circuit which can not only provide proofs for any of the sub-circuits, but also
-   * adds the necessary circuit logic to recursively merge in earlier proofs.
+   * and augments them to add the necessary circuit logic to recursively merge in earlier proofs.
    *
-   * After forming that big circuit in the finite field represented by `Field`, it gets wrapped in a
-   * recursive circuit in the field represented by `Scalar`. Any SmartContract proof will go through both of these circuits,
+   * After forming those augmented circuits in the finite field represented by `Field`, they gets wrapped in a
+   * single recursive circuit in the field represented by `Scalar`. Any SmartContract proof will go through both of these steps,
    * so that the final proof ends up back in `Field`.
    *
    * The function returns the building blocks needed for SmartContract proving:
@@ -1331,7 +1330,7 @@ declare const Pickles: {
    */
   compile: (
     rules: Pickles.Rule[],
-    publicInputSize: number
+    signature: { publicInputSize: number; publicOutputSize: number }
   ) => {
     provers: Pickles.Prover[];
     verify: (
@@ -1341,12 +1340,6 @@ declare const Pickles: {
     tag: unknown;
     getVerificationKeyArtifact: () => { data: string; hash: string };
   };
-
-  /**
-   * This function has the same inputs as compile, but is a quick-to-compute
-   * hash that can be used to short-circuit proofs if rules haven't changed.
-   */
-  circuitDigest: (rules: Pickles.Rule[], publicInputSize: number) => string;
 
   verify(
     publicInput: Pickles.PublicInput,
