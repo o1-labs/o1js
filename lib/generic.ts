@@ -9,6 +9,7 @@ export {
   GenericHashInput,
   primitiveTypes,
   primitiveTypeMap,
+  Empty,
 };
 
 type GenericProvable<T, Field> = {
@@ -42,10 +43,10 @@ type GenericBool<Field, Bool = unknown> = ((value: boolean) => Bool) &
 
 type GenericHashInput<Field> = { fields?: Field[]; packed?: [Field, number][] };
 
-let emptyType = {
+const emptyType = {
   sizeInFields: () => 0,
   toFields: () => [],
-  toAuxiliary: () => [],
+  toAuxiliary: (): [] => [],
   fromFields: () => null,
   check: () => {},
   toInput: () => ({}),
@@ -53,6 +54,11 @@ let emptyType = {
   fromJSON: () => null,
 };
 let primitiveTypes = new Set(['number', 'string', 'null']);
+
+function Empty<Field>(): GenericProvableExtended<null, null, Field> &
+  GenericProvablePure<null, Field> {
+  return emptyType;
+}
 
 function primitiveTypeMap<Field>(): {
   number: GenericProvableExtended<number, number, Field>;
