@@ -1629,9 +1629,9 @@ module Circuit = struct
       Js.wrap_callback (fun (circuit : _ Circuit_main.t) : keypair_class Js.t ->
           generate_keypair circuit ) ;
     circuit##.prove :=
-    Js.wrap_callback
-    (fun (circuit : _ Circuit_main.t) w p (kp : keypair_class Js.t) ->
-      prove circuit w p kp##.value ) ;
+      Js.wrap_callback
+        (fun (circuit : _ Circuit_main.t) w p (kp : keypair_class Js.t) ->
+          prove circuit w p kp##.value ) ;
     (circuit##.verify :=
        fun (pub : Js.Unsafe.any Js.js_array Js.t)
            (vk : verification_key_class Js.t) (pi : proof_class Js.t) :
@@ -2210,30 +2210,6 @@ let constraint_constants =
   ; fork = None
   }
 
-let pickles_digest (choices : pickles_rule_js Js.js_array Js.t)
-    (public_input_size : int) =
-  let branches = choices##.length in
-  let max_proofs =
-    let choices = choices |> Js.to_array |> Array.to_list in
-    List.map choices ~f:(fun c ->
-        c##.proofsToVerify |> Js.to_array |> Array.length )
-    |> List.max_elt ~compare |> Option.value ~default:0
-  in
-  let (module Branches) = nat_module branches in
-  let (module Max_proofs_verified) = nat_add_module max_proofs in
-  let (Choices choices) = Choices.of_js ~public_input_size choices in
-  try
-    let _ =
-      Pickles.compile_promise () ~choices ~return_early_digest_exception:true
-        ~public_input:(Input (public_input_typ public_input_size))
-        ~auxiliary_typ:Typ.unit
-        ~branches:(module Branches)
-        ~max_proofs_verified:(module Pickles_types.Nat.N0)
-        ~name ~constraint_constants
-    in
-    failwith "Unexpected: The exception will always fire"
-  with Pickles.Return_digest md5 -> Md5.to_hex md5 |> Js.string
-
 let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
     (public_input_size : int) =
   let branches = choices##.length in
@@ -2404,8 +2380,6 @@ let dummy_verification_key () =
 let pickles =
   object%js
     val compile = pickles_compile
-
-    val circuitDigest = pickles_digest
 
     val verify = verify
 
