@@ -224,7 +224,7 @@ function ZkProgram<
     async function prove(
       publicInput: PublicInput,
       ...args: TupleToInstances<Types[typeof key]>
-    ): Promise<Proof<PublicInput>> {
+    ): Promise<{ proof: Proof<PublicInput>; publicOutput: Field[] }> {
       let picklesProver = compileOutput?.provers?.[i];
       if (picklesProver === undefined) {
         throw Error(
@@ -235,7 +235,7 @@ function ZkProgram<
       let publicInputFields = publicInputType.toFields(publicInput);
       let previousProofs = getPreviousProofsForProver(args, methodIntfs[i]);
 
-      let [, proof] = await snarkContext.runWithAsync(
+      let [, { proof, publicOutput }] = await snarkContext.runWithAsync(
         { witnesses: args, inProver: true },
         () => picklesProver!(publicInputFields, previousProofs)
       );
@@ -243,7 +243,10 @@ function ZkProgram<
         static publicInputType = publicInputType;
         static tag = () => selfTag;
       }
-      return new ProgramProof({ publicInput, proof, maxProofsVerified });
+      return {
+        proof: new ProgramProof({ publicInput, proof, maxProofsVerified }),
+        publicOutput: [],
+      };
     }
     return [key, prove];
   }
@@ -392,6 +395,7 @@ function getPreviousProofsForProver(
       let publicInputType = getPublicInputType(proofArgs[arg.index]);
       previousProofs[arg.index] = {
         publicInput: publicInputType.toFields(publicInput),
+        publicOutput: [],
         proof,
       };
     }
@@ -453,7 +457,7 @@ async function compileProgram(
     publicInput: Pickles.PublicInput,
     proof: Pickles.Proof
   ) {
-    return withThreadPool(() => verify(publicInput, proof));
+    return withThreadPool(() => verify(publicInput, [], proof));
   };
   return {
     verificationKey,
@@ -483,8 +487,8 @@ function picklesRuleFromFunction(
 ): Pickles.Rule {
   function main(
     publicInput: Pickles.PublicInput,
-    previousInputs: Pickles.PublicInput[]
-  ) {
+    previousInputsAndOutputs: Pickles.PublicInput[]
+  ): ReturnType<Pickles.Rule['main']> {
     let { witnesses: argsWithoutPublicInput } = snarkContext.get();
     let finalArgs = [];
     let proofs: Proof<any>[] = [];
@@ -497,8 +501,9 @@ function picklesRuleFromFunction(
           : emptyWitness(type);
       } else if (arg.type === 'proof') {
         let Proof = proofArgs[arg.index];
+        // TODO: split in input & output
         let publicInput = getPublicInputType(Proof).fromFields(
-          previousInputs[arg.index]
+          previousInputsAndOutputs[arg.index]
         );
         let proofInstance: Proof<any>;
         if (argsWithoutPublicInput) {
@@ -514,7 +519,10 @@ function picklesRuleFromFunction(
       }
     }
     func(publicInputType.fromFields(publicInput), ...finalArgs);
-    return proofs.map((proof) => proof.shouldVerify);
+    return {
+      publicOutput: [],
+      shouldVerify: proofs.map((proof) => proof.shouldVerify),
+    };
   }
 
   if (proofArgs.length > 2) {
@@ -712,4 +720,4 @@ type Method<PublicInput, Args extends Tuple<PrivateInput>> = {
 type Prover<PublicInput, Args extends Tuple<PrivateInput>> = (
   publicInput: PublicInput,
   ...args: TupleToInstances<Args>
-) => Promise<Proof<PublicInput>>;
+) => Promise<{ publicOutput: Field[]; proof: Proof<PublicInput> }>;

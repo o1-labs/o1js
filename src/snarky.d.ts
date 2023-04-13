@@ -1294,16 +1294,24 @@ declare let isReady: Promise<undefined>;
 declare namespace Pickles {
   type Proof = unknown; // opaque to js
   type PublicInput = Field[];
-  type ProofWithPublicInput = { publicInput: PublicInput; proof: Proof };
+  type ProofWithPublicInput = {
+    publicInput: PublicInput;
+    publicOutput: PublicInput;
+    proof: Proof;
+  };
   type Rule = {
     identifier: string;
-    main: (publicInput: PublicInput, previousInputs: PublicInput[]) => Bool[];
+    main: (
+      publicInput: PublicInput,
+      // TODO: these are flat Field arrays which have to be split into input & output
+      previousInputsAndOutputs: Field[][]
+    ) => { publicOutput: PublicInput; shouldVerify: Bool[] };
     proofsToVerify: ({ isSelf: true } | { isSelf: false; tag: unknown })[];
   };
   type Prover = (
     publicInput: Field[],
     previousProofs: ProofWithPublicInput[]
-  ) => Promise<Proof>;
+  ) => Promise<{ publicOutput: PublicInput; proof: Proof }>;
 }
 
 declare const Pickles: {
@@ -1335,6 +1343,7 @@ declare const Pickles: {
     provers: Pickles.Prover[];
     verify: (
       publicInput: Pickles.PublicInput,
+      publicOutput: Pickles.PublicInput,
       proof: Pickles.Proof
     ) => Promise<boolean>;
     tag: unknown;

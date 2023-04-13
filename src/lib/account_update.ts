@@ -573,7 +573,11 @@ type LazyProof = {
   kind: 'lazy-proof';
   methodName: string;
   args: any[];
-  previousProofs: { publicInput: Field[]; proof: Pickles.Proof }[];
+  previousProofs: {
+    publicInput: Field[];
+    publicOutput: Field[];
+    proof: Pickles.Proof;
+  }[];
   ZkappClass: typeof SmartContract;
   memoized: { fields: Field[]; aux: any[] }[];
   blindingValue: Field;
@@ -1946,7 +1950,7 @@ async function addMissingProofs(
     if (ZkappClass._methods === undefined) throw Error(methodError);
     let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
     if (i === -1) throw Error(methodError);
-    let [, [, proof]] = await zkAppProver.run(
+    let [, [, { proof }]] = await zkAppProver.run(
       [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
       { transaction: zkappCommand, accountUpdate, index },
       () =>
