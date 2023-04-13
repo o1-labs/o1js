@@ -2211,7 +2211,10 @@ let constraint_constants =
   }
 
 let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
-    (public_input_size : int) =
+    (signature :
+      < publicInputSize : int Js.prop ; publicOutputSize : int Js.prop > Js.t )
+    =
+  (* translate number of branches and recursively verified proofs from JS *)
   let branches = choices##.length in
   let max_proofs =
     let choices = choices |> Js.to_array |> Array.to_list in
@@ -2221,7 +2224,12 @@ let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
   in
   let (module Branches) = nat_module branches in
   let (module Max_proofs_verified) = nat_add_module max_proofs in
+
+  (* translate method circuits from JS *)
+  let public_input_size = signature##.publicInputSize in
   let (Choices choices) = Choices.of_js ~public_input_size choices in
+
+  (* call into Pickles *)
   let tag, _cache, p, provers =
     Pickles.compile_promise () ~choices
       ~public_input:(Input (public_input_typ public_input_size))
@@ -2230,6 +2238,8 @@ let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
       ~max_proofs_verified:(module Max_proofs_verified)
       ~name ~constraint_constants
   in
+
+  (* translate returned prover and verify functions to JS *)
   let module Proof = (val p) in
   let to_js_prover prover =
     let prove (public_input_js : public_input_js)
