@@ -27,6 +27,7 @@ txn = await Mina.transaction(feePayer1.publicKey, () => {
   AccountUpdate.fundNewAccount(feePayer1.publicKey);
   zkAppInstance.deploy();
 });
+
 await txn.sign([feePayer1.privateKey, zkAppPrivateKey]).send();
 
 const initialState =

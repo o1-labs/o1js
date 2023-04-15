@@ -1395,6 +1395,7 @@ declare const Pickles: {
   ) => [0 | 1 | 2, Pickles.Proof];
 
   proofToBase64Transaction: (proof: Pickles.Proof) => string;
+  proofOfBase64Transaction: (proof: string) => Pickles.Proof;
 };
 
 type AuthRequired = 'Signature' | 'Proof' | 'Either' | 'None' | 'Impossible';

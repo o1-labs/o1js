@@ -519,6 +519,10 @@ export default [
         name: 'proofToBase64Transaction',
         type: 'function',
       },
+      {
+        name: "proofOfBase64Transaction",
+        type: "function"
+      }
     ],
   },
   {

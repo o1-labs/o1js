@@ -47,6 +47,7 @@ export {
   AccountUpdatesLayout,
   zkAppProver,
   FeePayer,
+  NetworkPrecondition,
 };
 
 const ZkappStateLength = 8;

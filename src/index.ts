@@ -18,6 +18,7 @@ export {
   TokenId,
   CallForest,
   FeePayer,
+  NetworkPrecondition,
 } from './lib/account_update.js';
 
 // standard snarkyjs exports
