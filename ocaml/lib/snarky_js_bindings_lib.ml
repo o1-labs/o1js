@@ -1731,8 +1731,8 @@ type 'a statement = 'a array * 'a array
 type public_input_js = field_class Js.t Js.js_array Js.t
 
 type statement_js =
-  < publicInput : public_input_js Js.readonly_prop
-  ; publicOutput : public_input_js Js.readonly_prop >
+  < input : public_input_js Js.readonly_prop
+  ; output : public_input_js Js.readonly_prop >
   Js.t
 
 type 'proof public_input_with_proof_js =
@@ -1779,20 +1779,20 @@ module Statement = struct
 
   let to_js ((input, output) : t) : statement_js =
     object%js
-      val publicInput = Public_input.to_js input
+      val input = Public_input.to_js input
 
-      val publicOutput = Public_input.to_js output
+      val output = Public_input.to_js output
     end
 
   let of_js (s : statement_js) : t =
-    (Public_input.of_js s##.publicInput, Public_input.of_js s##.publicOutput)
+    (Public_input.of_js s##.input, Public_input.of_js s##.output)
 
   module Constant = struct
     type t = Field.Constant.t statement
 
     let of_js (s : statement_js) : t =
-      ( Public_input.Constant.of_js s##.publicInput
-      , Public_input.Constant.of_js s##.publicOutput )
+      ( Public_input.Constant.of_js s##.input
+      , Public_input.Constant.of_js s##.output )
   end
 end
 
@@ -2053,8 +2053,7 @@ module Choices = struct
                           | None ->
                               Pickles.Types_map.public_input tag
                           | Some T ->
-                              statement_typ public_input_size
-                                public_output_size
+                              statement_typ public_input_size public_output_size
                         in
                         let typ = get_typ tag self in
                         let public_input =
@@ -2430,10 +2429,11 @@ let proof_of_base64 str i : some_proof =
   | _ ->
       failwith "invalid proof index"
 
-let verify (statement : statement_js) (proof : proof)
-    (vk : Js.js_string Js.t) =
+let verify (statement : statement_js) (proof : proof) (vk : Js.js_string Js.t) =
   let statement = Statement.Constant.of_js statement in
-  let typ = statement_typ (Array.length (fst statement)) (Array.length (snd statement)) in
+  let typ =
+    statement_typ (Array.length (fst statement)) (Array.length (snd statement))
+  in
   let proof = Pickles.Side_loaded.Proof.of_proof proof in
   let vk =
     match Pickles.Side_loaded.Verification_key.of_base64 (Js.to_string vk) with
