@@ -1155,18 +1155,27 @@ type sponge =
   | Checked of Poseidon_sponge_checked.t
   | Unchecked of Poseidon_sponge.t
 
+let hash_array (xs : field_class Js.t Js.js_array Js.t) (is_checked : bool Js.t)
+    =
+  let input = Array.map (Js.to_array xs) ~f:of_js_field in
+  let digest =
+    if Js.to_bool is_checked then Random_oracle.Checked.hash input
+    else Random_oracle.hash (Array.map ~f:to_unchecked input) |> Field.constant
+  in
+  digest
+
 let poseidon =
   object%js
     (* this could be removed eventually since it's easily implemented using `update` *)
     method hash (xs : field_class Js.t Js.js_array Js.t)
         (is_checked : bool Js.t) : field_class Js.t =
-      let input = Array.map (Js.to_array xs) ~f:of_js_field in
-      let digest =
-        if Js.to_bool is_checked then Random_oracle.Checked.hash input
-        else
-          Random_oracle.hash (Array.map ~f:to_unchecked input) |> Field.constant
-      in
-      to_js_field digest
+      to_js_field (hash_array xs is_checked)
+
+    method hashToGroup (xs : field_class Js.t Js.js_array Js.t)
+        (is_checked : bool Js.t) =
+      let input = hash_array xs is_checked in
+      let digest = Snark_params.Group_map.Checked.to_group input in
+      to_js_group (fst digest) (snd digest)
 
     method update (state : field_class Js.t Js.js_array Js.t)
         (xs : field_class Js.t Js.js_array Js.t) (is_checked : bool Js.t)
