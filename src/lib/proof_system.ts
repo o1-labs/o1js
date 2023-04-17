@@ -136,26 +136,28 @@ async function verify(
   verificationKey: string
 ) {
   let picklesProof: unknown;
-  let publicInputFields: Field[];
-  let publicOutputFields: Field[];
+  let statement: Pickles.Statement;
   if (typeof proof.proof === 'string') {
     // json proof
     [, picklesProof] = Pickles.proofOfBase64(
       proof.proof,
       proof.maxProofsVerified
     );
-    publicInputFields = (proof as JsonProof).publicInput.map(Field);
-    publicOutputFields = (proof as JsonProof).publicOutput.map(Field);
+    statement = {
+      publicInput: (proof as JsonProof).publicInput.map(Field),
+      publicOutput: (proof as JsonProof).publicOutput.map(Field),
+    };
   } else {
     // proof class
     picklesProof = proof.proof;
     let type = getStatementType(proof.constructor as any);
-    publicInputFields = type.input.toFields(proof.publicInput);
-    publicOutputFields = type.output.toFields(proof.publicOutput);
+    statement = {
+      publicInput: type.input.toFields(proof.publicInput),
+      publicOutput: type.output.toFields(proof.publicOutput),
+    };
   }
   return withThreadPool(() =>
-    // TODO add publicOutputFields
-    Pickles.verify(publicInputFields, picklesProof, verificationKey)
+    Pickles.verify(statement, picklesProof, verificationKey)
   );
 }
 
@@ -233,8 +235,7 @@ function ZkProgram<
     | {
         provers: Pickles.Prover[];
         verify: (
-          publicInput: Field[],
-          publicOutput: Field[],
+          statement: Pickles.Statement,
           proof: unknown
         ) => Promise<boolean>;
       }
@@ -307,11 +308,11 @@ function ZkProgram<
         `Cannot verify proof, verification key not found. Try calling \`await program.compile()\` first.`
       );
     }
-    return compileOutput.verify(
-      publicInputType.toFields(proof.publicInput),
-      publicOutputType.toFields(proof.publicOutput),
-      proof.proof
-    );
+    let statement = {
+      publicInput: publicInputType.toFields(proof.publicInput),
+      publicOutput: publicOutputType.toFields(proof.publicOutput),
+    };
+    return compileOutput.verify(statement, proof.proof);
   }
 
   function digest() {
@@ -507,11 +508,10 @@ async function compileProgram(
   );
   // wrap verify
   let wrappedVerify = async function picklesVerify(
-    publicInput: Field[],
-    publicOutput: Field[],
+    statement: Pickles.Statement,
     proof: Pickles.Proof
   ) {
-    return withThreadPool(() => verify(publicInput, publicOutput, proof));
+    return withThreadPool(() => verify(statement, proof));
   };
   return {
     verificationKey,

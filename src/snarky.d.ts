@@ -1293,6 +1293,7 @@ declare let isReady: Promise<undefined>;
 
 declare namespace Pickles {
   type Proof = unknown; // opaque to js
+  type Statement = { publicInput: Field[]; publicOutput: Field[] };
   type ProofWithStatement = {
     publicInput: Field[];
     publicOutput: Field[];
@@ -1341,17 +1342,15 @@ declare const Pickles: {
   ) => {
     provers: Pickles.Prover[];
     verify: (
-      publicInput: Field[],
-      publicOutput: Field[],
+      statement: Pickles.Statement,
       proof: Pickles.Proof
     ) => Promise<boolean>;
     tag: unknown;
     getVerificationKeyArtifact: () => { data: string; hash: string };
   };
 
-  // TODO: take public output
   verify(
-    publicInput: Field[],
+    statement: Pickles.Statement,
     proof: Pickles.Proof,
     verificationKey: string
   ): Promise<boolean>;
