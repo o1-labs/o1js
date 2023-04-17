@@ -34,7 +34,7 @@ let MyProgram0 = Experimental.ZkProgram({
 });
 
 let MyProgram = Experimental.ZkProgram({
-  publicInput: Undefined,
+  publicInput: undefined,
   publicOutput: Field,
 
   methods: {
@@ -47,7 +47,7 @@ let MyProgram = Experimental.ZkProgram({
 
     inductiveCase: {
       privateInputs: [SelfProof],
-      method(_, earlierProof: SelfProof<Undefined, Field>) {
+      method(earlierProof: SelfProof<Undefined, Field>) {
         earlierProof.verify();
         return earlierProof.publicOutput.add(1);
       },
@@ -64,7 +64,7 @@ let { verificationKey } = await MyProgram.compile();
 console.log('verification key', verificationKey.slice(0, 10) + '..');
 
 console.log('proving base case...');
-let { proof } = await MyProgram.baseCase(undefined);
+let { proof } = await MyProgram.baseCase();
 proof = testJsonRoundtrip(proof);
 
 console.log('verify...');
@@ -76,7 +76,7 @@ ok = await MyProgram.verify(proof);
 console.log('ok (alternative)?', ok);
 
 console.log('proving step 1...');
-({ proof } = await MyProgram.inductiveCase(undefined, proof));
+({ proof } = await MyProgram.inductiveCase(proof));
 proof = testJsonRoundtrip(proof);
 
 console.log('verify...');
@@ -88,7 +88,7 @@ ok = await MyProgram.verify(proof);
 console.log('ok (alternative)?', ok);
 
 console.log('proving step 2...');
-({ proof } = await MyProgram.inductiveCase(undefined, proof));
+({ proof } = await MyProgram.inductiveCase(proof));
 proof = testJsonRoundtrip(proof);
 
 console.log('verify...');

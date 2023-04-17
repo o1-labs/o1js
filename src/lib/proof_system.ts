@@ -191,14 +191,14 @@ let CompiledTag = {
 };
 
 function ZkProgram<
-  PublicInputType extends FlexibleProvablePure<any>,
+  PublicInputType extends FlexibleProvablePure<any> | undefined,
   PublicOutputType extends FlexibleProvablePure<any>,
   Types extends {
     // TODO: how to prevent a method called `compile` from type-checking?
     [I in string]: Tuple<PrivateInput>;
   }
 >({
-  publicInput: publicInputType,
+  publicInput: publicInputType = Undefined,
   publicOutput: publicOutputType,
   methods,
 }: {
@@ -206,7 +206,7 @@ function ZkProgram<
   publicOutput: PublicOutputType;
   methods: {
     [I in keyof Types]: Method<
-      InferProvable<PublicInputType>,
+      InferProvableOrUndefined<PublicInputType>,
       InferProvable<PublicOutputType>,
       Types[I]
     >;
@@ -216,24 +216,23 @@ function ZkProgram<
   compile: () => Promise<{ verificationKey: string }>;
   verify: (
     proof: Proof<
-      InferProvable<PublicInputType>,
+      InferProvableOrUndefined<PublicInputType>,
       InferProvable<PublicOutputType>
     >
   ) => Promise<boolean>;
   digest: () => string;
   analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
-  publicInputType: PublicInputType;
+  publicInputType: ProvableOrUndefined<PublicInputType>;
   publicOutputType: PublicOutputType;
 } & {
   [I in keyof Types]: Prover<
-    InferProvable<PublicInputType>,
+    InferProvableOrUndefined<PublicInputType>,
     InferProvable<PublicOutputType>,
     Types[I]
   >;
 } {
   let selfTag = { name: `Program${i++}` };
-
-  type PublicInput = InferProvable<PublicInputType>;
+  type PublicInput = InferProvableOrUndefined<PublicInputType>;
   type PublicOutput = InferProvable<PublicOutputType>;
 
   class SelfProof extends Proof<PublicInput, PublicOutput> {
@@ -278,7 +277,7 @@ function ZkProgram<
     key: K,
     i: number
   ): [K, Prover<PublicInput, PublicOutput, Types[K]>] {
-    async function prove(
+    async function prove_(
       publicInput: PublicInput,
       ...args: TupleToInstances<Types[typeof key]>
     ): Promise<{
@@ -315,6 +314,16 @@ function ZkProgram<
         }),
         publicOutput,
       };
+    }
+    let prove: Prover<PublicInput, PublicOutput, Types[K]>;
+    if (
+      (publicInputType as any) === Undefined ||
+      (publicInputType as any) === Void
+    ) {
+      prove = ((...args: TupleToInstances<Types[typeof key]>) =>
+        (prove_ as any)(undefined, ...args)) as any;
+    } else {
+      prove = prove_ as any;
     }
     return [key, prove];
   }
@@ -358,7 +367,7 @@ function ZkProgram<
       compile,
       verify,
       digest,
-      publicInputType,
+      publicInputType: publicInputType as any,
       publicOutputType,
       analyzeMethods,
     },
@@ -559,6 +568,7 @@ function analyzeMethod<T>(
   return Circuit.constraintSystem(() => {
     let args = synthesizeMethodArguments(methodIntf, true);
     let publicInput = emptyWitness(publicInputType);
+    if (publicInputType === Undefined) return method(...args);
     return method(publicInput, ...args);
   });
 }
@@ -566,7 +576,7 @@ function analyzeMethod<T>(
 function picklesRuleFromFunction(
   publicInputType: ProvablePure<any>,
   publicOutputType: ProvablePure<any>,
-  func: (...args: unknown[]) => void,
+  func: (...args: unknown[]) => any,
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface
 ): Pickles.Rule {
@@ -606,7 +616,12 @@ function picklesRuleFromFunction(
         finalArgs[i] = argsWithoutPublicInput?.[i] ?? emptyGeneric();
       }
     }
-    let result = func(publicInputType.fromFields(publicInput), ...finalArgs);
+    let result: any;
+    if (publicInputType === Undefined) {
+      result = func(...finalArgs);
+    } else {
+      result = func(publicInputType.fromFields(publicInput), ...finalArgs);
+    }
     // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
     let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
     let publicOutput = hasPublicOutput ? publicOutputType.toFields(result) : [];
@@ -827,18 +842,45 @@ type Subclass<Class extends new (...args: any) => any> = (new (
 
 type PrivateInput = Provable<any> | Subclass<typeof Proof>;
 
-type Method<PublicInput, PublicOutput, Args extends Tuple<PrivateInput>> = {
-  privateInputs: Args;
-  method(
-    publicInput: PublicInput,
-    ...args: TupleToInstances<Args>
-  ): PublicOutput;
-};
+type Method<
+  PublicInput,
+  PublicOutput,
+  Args extends Tuple<PrivateInput>
+> = PublicInput extends undefined
+  ? {
+      privateInputs: Args;
+      method(...args: TupleToInstances<Args>): PublicOutput;
+    }
+  : {
+      privateInputs: Args;
+      method(
+        publicInput: PublicInput,
+        ...args: TupleToInstances<Args>
+      ): PublicOutput;
+    };
 
-type Prover<PublicInput, PublicOutput, Args extends Tuple<PrivateInput>> = (
-  publicInput: PublicInput,
-  ...args: TupleToInstances<Args>
-) => Promise<{
-  publicOutput: PublicOutput;
-  proof: Proof<PublicInput, PublicOutput>;
-}>;
+type Prover<
+  PublicInput,
+  PublicOutput,
+  Args extends Tuple<PrivateInput>
+> = PublicInput extends undefined
+  ? (...args: TupleToInstances<Args>) => Promise<{
+      publicOutput: PublicOutput;
+      proof: Proof<PublicInput, PublicOutput>;
+    }>
+  : (
+      publicInput: PublicInput,
+      ...args: TupleToInstances<Args>
+    ) => Promise<{
+      publicOutput: PublicOutput;
+      proof: Proof<PublicInput, PublicOutput>;
+    }>;
+
+type ProvableOrUndefined<A> = Exclude<
+  A extends undefined ? Undefined : A,
+  undefined
+>;
+
+type InferProvableOrUndefined<A> = A extends undefined
+  ? undefined
+  : InferProvable<A>;
