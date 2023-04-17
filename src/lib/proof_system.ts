@@ -65,7 +65,7 @@ class Proof<Input, Output> {
   static tag: () => { name: string } = () => {
     throw Error(
       `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
-        `class MyProof extends Proof<PublicInput> { ... }`
+        `class MyProof extends Proof<PublicInput, PublicOutput> { ... }`
     );
   };
   publicInput: Input;
@@ -341,7 +341,10 @@ function ZkProgram<
 
 let i = 0;
 
-class SelfProof<T, S> extends Proof<T, S> {}
+class SelfProof<PublicInput, PublicOutput> extends Proof<
+  PublicInput,
+  PublicOutput
+> {}
 
 function sortMethodArguments(
   programName: string,
@@ -359,7 +362,7 @@ function sortMethodArguments(
       if (privateInput === Proof) {
         throw Error(
           `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
-            `class MyProof extends Proof<PublicInput> { ... }`
+            `class MyProof extends Proof<PublicInput, PublicOutput> { ... }`
         );
       }
       allArgs.push({ type: 'proof', index: proofArgs.length });
@@ -710,7 +713,7 @@ function getStatementType<
   ) {
     throw Error(
       `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
-        `class MyProof extends Proof<PublicInput> { ... }`
+        `class MyProof extends Proof<PublicInput, PublicOutput> { ... }`
     );
   }
   return {
