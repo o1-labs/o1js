@@ -1,3 +1,4 @@
+import { EmptyUndefined, EmptyVoid } from '../bindings/lib/generic.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
 import {
   Bool,
@@ -12,6 +13,7 @@ import {
   FlexibleProvable,
   FlexibleProvablePure,
   InferProvable,
+  ProvablePureExtended,
   provable,
   toConstant,
 } from './circuit_value.js';
@@ -44,6 +46,8 @@ export {
   inCheckedComputation,
   inCompileMode,
   dummyBase64Proof,
+  Undefined,
+  Void,
 };
 
 // global circuit-related context
@@ -58,6 +62,12 @@ type SnarkContext = {
   inWitnessBlock?: boolean;
 };
 let snarkContext = Context.create<SnarkContext>({ default: {} });
+
+type Undefined = undefined;
+const Undefined: ProvablePureExtended<undefined, null> =
+  EmptyUndefined<Field>();
+type Void = undefined;
+const Void: ProvablePureExtended<void, null> = EmptyVoid<Field>();
 
 class Proof<Input, Output> {
   static publicInputType: FlexibleProvablePure<any> = undefined as any;
@@ -182,39 +192,50 @@ let CompiledTag = {
 
 function ZkProgram<
   PublicInputType extends FlexibleProvablePure<any>,
+  PublicOutputType extends FlexibleProvablePure<any>,
   Types extends {
     // TODO: how to prevent a method called `compile` from type-checking?
     [I in string]: Tuple<PrivateInput>;
   }
 >({
   publicInput: publicInputType,
+  publicOutput: publicOutputType,
   methods,
 }: {
   publicInput: PublicInputType;
+  publicOutput: PublicOutputType;
   methods: {
-    [I in keyof Types]: Method<InferProvable<PublicInputType>, Types[I]>;
+    [I in keyof Types]: Method<
+      InferProvable<PublicInputType>,
+      InferProvable<PublicOutputType>,
+      Types[I]
+    >;
   };
 }): {
   name: string;
   compile: () => Promise<{ verificationKey: string }>;
   verify: (
-    // TODO don't hard-code public output type
-    proof: Proof<InferProvable<PublicInputType>, Field>
+    proof: Proof<
+      InferProvable<PublicInputType>,
+      InferProvable<PublicOutputType>
+    >
   ) => Promise<boolean>;
   digest: () => string;
   analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
   publicInputType: PublicInputType;
+  publicOutputType: PublicOutputType;
 } & {
-  // TODO don't hard-code public output type
-  [I in keyof Types]: Prover<InferProvable<PublicInputType>, Field, Types[I]>;
+  [I in keyof Types]: Prover<
+    InferProvable<PublicInputType>,
+    InferProvable<PublicOutputType>,
+    Types[I]
+  >;
 } {
-  // TODO don't hard-code public output type
-  type PublicOutput = Field;
-  let publicOutputType = Field;
-
   let selfTag = { name: `Program${i++}` };
 
   type PublicInput = InferProvable<PublicInputType>;
+  type PublicOutput = InferProvable<PublicOutputType>;
+
   class SelfProof extends Proof<PublicInput, PublicOutput> {
     static publicInputType = publicInputType;
     static publicOutputType = publicOutputType;
@@ -260,8 +281,7 @@ function ZkProgram<
     async function prove(
       publicInput: PublicInput,
       ...args: TupleToInstances<Types[typeof key]>
-    ): // TODO public output should come out as `PublicOutput`
-    Promise<{
+    ): Promise<{
       proof: Proof<PublicInput, PublicOutput>;
       publicOutput: PublicOutput;
     }> {
@@ -334,7 +354,14 @@ function ZkProgram<
 
   return Object.assign(
     selfTag,
-    { compile, verify, digest, publicInputType, analyzeMethods },
+    {
+      compile,
+      verify,
+      digest,
+      publicInputType,
+      publicOutputType,
+      analyzeMethods,
+    },
     provers
   );
 }
@@ -559,8 +586,9 @@ function picklesRuleFromFunction(
           : emptyWitness(type);
       } else if (arg.type === 'proof') {
         let Proof = proofArgs[arg.index];
-        // TODO: split in input & output
-        // console.log(previousInputsAndOutputs[arg.index]);
+        // split in input & output
+        // TODO: would be nice to either make Pickles return the right split or completely move
+        // getting the public input & outputs to the JS side, from `snarkContext`, like private inputs
         let type = getStatementType(Proof);
         let previousStatement = previousInputsAndOutputs[arg.index];
         let inputFields = previousStatement.slice(0, type.input.sizeInFields());
@@ -578,11 +606,10 @@ function picklesRuleFromFunction(
         finalArgs[i] = argsWithoutPublicInput?.[i] ?? emptyGeneric();
       }
     }
-    func(publicInputType.fromFields(publicInput), ...finalArgs);
-    // TODO get public output from function return
-    let publicOutput = Array<Field>(publicOutputType.sizeInFields()).fill(
-      Field(1)
-    );
+    let result = func(publicInputType.fromFields(publicInput), ...finalArgs);
+    // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
+    let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
+    let publicOutput = hasPublicOutput ? publicOutputType.toFields(result) : [];
     return {
       publicOutput,
       shouldVerify: proofs.map((proof) => proof.shouldVerify),
@@ -723,14 +750,18 @@ function getStatementType<
 }
 
 ZkProgram.Proof = function <
-  PublicInputType extends FlexibleProvablePure<any>
->(program: { name: string; publicInputType: PublicInputType }) {
+  PublicInputType extends FlexibleProvablePure<any>,
+  PublicOutputType extends FlexibleProvablePure<any>
+>(program: {
+  name: string;
+  publicInputType: PublicInputType;
+  publicOutputType: PublicOutputType;
+}) {
   type PublicInput = InferProvable<PublicInputType>;
-  // TODO don't hard code
-  return class ZkProgramProof extends Proof<PublicInput, Field> {
+  type PublicOutput = InferProvable<PublicOutputType>;
+  return class ZkProgramProof extends Proof<PublicInput, PublicOutput> {
     static publicInputType = program.publicInputType;
-    // TODO don't hard code
-    static publicOutputType = Field;
+    static publicOutputType = program.publicOutputType;
     static tag = () => program;
   };
 };
@@ -796,9 +827,12 @@ type Subclass<Class extends new (...args: any) => any> = (new (
 
 type PrivateInput = Provable<any> | Subclass<typeof Proof>;
 
-type Method<PublicInput, Args extends Tuple<PrivateInput>> = {
+type Method<PublicInput, PublicOutput, Args extends Tuple<PrivateInput>> = {
   privateInputs: Args;
-  method(publicInput: PublicInput, ...args: TupleToInstances<Args>): void;
+  method(
+    publicInput: PublicInput,
+    ...args: TupleToInstances<Args>
+  ): PublicOutput;
 };
 
 type Prover<PublicInput, PublicOutput, Args extends Tuple<PrivateInput>> = (

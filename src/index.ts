@@ -31,7 +31,13 @@ export {
   Reducer,
 } from './lib/zkapp.js';
 export { state, State, declareState } from './lib/state.js';
-export { Proof, SelfProof, verify } from './lib/proof_system.js';
+export {
+  Proof,
+  SelfProof,
+  verify,
+  Undefined,
+  Void,
+} from './lib/proof_system.js';
 
 export {
   Token,
