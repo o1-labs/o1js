@@ -144,16 +144,16 @@ async function verify(
       proof.maxProofsVerified
     );
     statement = {
-      publicInput: (proof as JsonProof).publicInput.map(Field),
-      publicOutput: (proof as JsonProof).publicOutput.map(Field),
+      input: (proof as JsonProof).publicInput.map(Field),
+      output: (proof as JsonProof).publicOutput.map(Field),
     };
   } else {
     // proof class
     picklesProof = proof.proof;
     let type = getStatementType(proof.constructor as any);
     statement = {
-      publicInput: type.input.toFields(proof.publicInput),
-      publicOutput: type.output.toFields(proof.publicOutput),
+      input: type.input.toFields(proof.publicInput),
+      output: type.output.toFields(proof.publicOutput),
     };
   }
   return withThreadPool(() =>
@@ -309,8 +309,8 @@ function ZkProgram<
       );
     }
     let statement = {
-      publicInput: publicInputType.toFields(proof.publicInput),
-      publicOutput: publicOutputType.toFields(proof.publicOutput),
+      input: publicInputType.toFields(proof.publicInput),
+      output: publicOutputType.toFields(proof.publicOutput),
     };
     return compileOutput.verify(statement, proof.proof);
   }

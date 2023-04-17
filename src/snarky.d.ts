@@ -1293,7 +1293,7 @@ declare let isReady: Promise<undefined>;
 
 declare namespace Pickles {
   type Proof = unknown; // opaque to js
-  type Statement = { publicInput: Field[]; publicOutput: Field[] };
+  type Statement = { input: Field[]; output: Field[] };
   type ProofWithStatement = {
     publicInput: Field[];
     publicOutput: Field[];
