@@ -10,6 +10,8 @@ export {
   primitiveTypes,
   primitiveTypeMap,
   Empty,
+  EmptyUndefined,
+  EmptyVoid,
 };
 
 type GenericProvable<T, Field> = {
@@ -53,11 +55,31 @@ const emptyType = {
   toJSON: () => null,
   fromJSON: () => null,
 };
+
+const undefinedType = {
+  ...emptyType,
+  fromFields: () => undefined,
+  toJSON: () => null,
+  fromJSON: () => undefined,
+};
+
 let primitiveTypes = new Set(['number', 'string', 'null']);
 
 function Empty<Field>(): GenericProvableExtended<null, null, Field> &
   GenericProvablePure<null, Field> {
   return emptyType;
+}
+function EmptyUndefined<Field>(): GenericProvableExtended<
+  undefined,
+  null,
+  Field
+> &
+  GenericProvablePure<undefined, Field> {
+  return undefinedType;
+}
+function EmptyVoid<Field>(): GenericProvableExtended<void, null, Field> &
+  GenericProvablePure<void, Field> {
+  return undefinedType;
 }
 
 function primitiveTypeMap<Field>(): {
