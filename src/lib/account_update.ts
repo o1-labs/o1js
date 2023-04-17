@@ -1906,7 +1906,7 @@ async function addMissingProofs(
   { proofsEnabled = true }
 ): Promise<{
   zkappCommand: ZkappCommandProved;
-  proofs: (Proof<ZkappPublicInput> | undefined)[];
+  proofs: (Proof<ZkappPublicInput, null> | undefined)[];
 }> {
   type AccountUpdateProved = AccountUpdate & {
     lazyAuthorization?: LazySignature;
@@ -1976,7 +1976,12 @@ async function addMissingProofs(
     const Proof = ZkappClass.Proof();
     return {
       accountUpdateProved: accountUpdate as AccountUpdateProved,
-      proof: new Proof({ publicInput, proof, maxProofsVerified }),
+      proof: new Proof({
+        publicInput,
+        publicOutput: null,
+        proof,
+        maxProofsVerified,
+      }),
     };
   }
 
@@ -1984,7 +1989,7 @@ async function addMissingProofs(
   // compute proofs serially. in parallel would clash with our global variable
   // hacks
   let accountUpdatesProved: AccountUpdateProved[] = [];
-  let proofs: (Proof<ZkappPublicInput> | undefined)[] = [];
+  let proofs: (Proof<ZkappPublicInput, null> | undefined)[] = [];
   for (let i = 0; i < accountUpdates.length; i++) {
     let { accountUpdateProved, proof } = await addProof(i, accountUpdates[i]);
     accountUpdatesProved.push(accountUpdateProved);

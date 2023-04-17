@@ -17,7 +17,7 @@ let MyProgram = Experimental.ZkProgram({
     inductiveCase: {
       privateInputs: [SelfProof],
 
-      method(publicInput: Field, earlierProof: SelfProof<Field>) {
+      method(publicInput: Field, earlierProof: SelfProof<Field, Field>) {
         earlierProof.verify();
         earlierProof.publicInput.add(1).assertEquals(publicInput);
       },
@@ -41,17 +41,21 @@ console.log('verify...');
 let ok = await verify(proof.toJSON(), verificationKey);
 console.log('ok?', ok);
 
-console.log('proving step 1...');
-({ proof } = await MyProgram.inductiveCase(Field(1), proof));
-proof = testJsonRoundtrip(proof);
-
 console.log('verify alternative...');
 ok = await MyProgram.verify(proof);
 console.log('ok (alternative)?', ok);
 
+console.log('proving step 1...');
+({ proof } = await MyProgram.inductiveCase(Field(1), proof));
+proof = testJsonRoundtrip(proof);
+
 console.log('verify...');
 ok = await verify(proof, verificationKey);
 console.log('ok?', ok);
+
+console.log('verify alternative...');
+ok = await MyProgram.verify(proof);
+console.log('ok (alternative)?', ok);
 
 console.log('proving step 2...');
 ({ proof } = await MyProgram.inductiveCase(Field(2), proof));

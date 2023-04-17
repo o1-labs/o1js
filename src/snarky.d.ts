@@ -1293,25 +1293,24 @@ declare let isReady: Promise<undefined>;
 
 declare namespace Pickles {
   type Proof = unknown; // opaque to js
-  type PublicInput = Field[];
-  type ProofWithPublicInput = {
-    publicInput: PublicInput;
-    publicOutput: PublicInput;
+  type ProofWithStatement = {
+    publicInput: Field[];
+    publicOutput: Field[];
     proof: Proof;
   };
   type Rule = {
     identifier: string;
     main: (
-      publicInput: PublicInput,
+      publicInput: Field[],
       // TODO: these are flat Field arrays which have to be split into input & output
       previousInputsAndOutputs: Field[][]
-    ) => { publicOutput: PublicInput; shouldVerify: Bool[] };
+    ) => { publicOutput: Field[]; shouldVerify: Bool[] };
     proofsToVerify: ({ isSelf: true } | { isSelf: false; tag: unknown })[];
   };
   type Prover = (
     publicInput: Field[],
-    previousProofs: ProofWithPublicInput[]
-  ) => Promise<{ publicOutput: PublicInput; proof: Proof }>;
+    previousProofs: ProofWithStatement[]
+  ) => Promise<{ publicOutput: Field[]; proof: Proof }>;
 }
 
 declare const Pickles: {
@@ -1342,16 +1341,17 @@ declare const Pickles: {
   ) => {
     provers: Pickles.Prover[];
     verify: (
-      publicInput: Pickles.PublicInput,
-      publicOutput: Pickles.PublicInput,
+      publicInput: Field[],
+      publicOutput: Field[],
       proof: Pickles.Proof
     ) => Promise<boolean>;
     tag: unknown;
     getVerificationKeyArtifact: () => { data: string; hash: string };
   };
 
+  // TODO: take public output
   verify(
-    publicInput: Pickles.PublicInput,
+    publicInput: Field[],
     proof: Pickles.Proof,
     verificationKey: string
   ): Promise<boolean>;

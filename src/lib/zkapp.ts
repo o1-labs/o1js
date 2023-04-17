@@ -119,8 +119,9 @@ function method<T extends SmartContract>(
     methodName
   );
 
-  class SelfProof extends Proof<ZkappPublicInput> {
+  class SelfProof extends Proof<ZkappPublicInput, null> {
     static publicInputType = ZkappPublicInput;
+    static publicOutputType = Empty<Field>();
     static tag = () => ZkappClass;
   }
   let internalMethodEntry = sortMethodArguments(
@@ -653,8 +654,9 @@ class SmartContract {
    */
   static Proof() {
     let Contract = this;
-    return class extends Proof<ZkappPublicInput> {
+    return class extends Proof<ZkappPublicInput, null> {
       static publicInputType = ZkappPublicInput;
+      static publicOutputType = Empty<Field>();
       static tag = () => Contract;
     };
   }

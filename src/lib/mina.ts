@@ -92,7 +92,7 @@ type Transaction = {
    *
    * This can take some time.
    */
-  prove(): Promise<(Proof<ZkappPublicInput> | undefined)[]>;
+  prove(): Promise<(Proof<ZkappPublicInput, null> | undefined)[]>;
   /**
    * Sends the {@link Transaction} to the network.
    */
@@ -1225,6 +1225,7 @@ async function verifyAccountUpdate(
         maxProofsVerified: 2,
         proof: accountUpdate.authorization.proof!,
         publicInput: publicInputFields.map((f) => f.toString()),
+        publicOutput: [],
       });
 
       let verificationKey = account.zkapp?.verificationKey?.data!;
