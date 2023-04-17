@@ -1789,12 +1789,16 @@ module Statement = struct
 
   module Constant = struct
     type t = Field.Constant.t statement
+
+    let of_js (s : statement_js) : t =
+      ( Public_input.Constant.of_js s##.publicInput
+      , Public_input.Constant.of_js s##.publicOutput )
   end
 end
 
 let public_input_typ (i : int) = Typ.array ~length:i Field.typ
 
-let public_input_and_output_typ (input_size : int) (output_size : int) =
+let statement_typ (input_size : int) (output_size : int) =
   Typ.(array ~length:input_size Field.typ * array ~length:output_size Field.typ)
 
 let dummy_constraints =
@@ -1975,7 +1979,7 @@ module Choices = struct
             | None ->
                 Pickles.Types_map.public_input tag
             | Some T ->
-                public_input_and_output_typ public_input_size public_output_size
+                statement_typ public_input_size public_output_size
           in
           let input = fst (typ.var_to_fields input) in
           let inputs =
@@ -2049,7 +2053,7 @@ module Choices = struct
                           | None ->
                               Pickles.Types_map.public_input tag
                           | Some T ->
-                              public_input_and_output_typ public_input_size
+                              statement_typ public_input_size
                                 public_output_size
                         in
                         let typ = get_typ tag self in
@@ -2368,13 +2372,9 @@ let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
         to_js_prover p :: to_js_provers ps
   in
   let provers = provers |> to_js_provers |> Array.of_list |> Js.array in
-  let verify (public_input_js : public_input_js)
-      (public_output_js : public_input_js) (proof : _ Pickles.Proof.t) =
-    let public_input = Public_input.(public_input_js |> of_js |> to_constant) in
-    let public_output =
-      Public_input.(public_output_js |> of_js |> to_constant)
-    in
-    Proof.verify_promise [ ((public_input, public_output), proof) ]
+  let verify (statement : statement_js) (proof : _ Pickles.Proof.t) =
+    let statement = Statement.Constant.of_js statement in
+    Proof.verify_promise [ (statement, proof) ]
     |> Promise.map ~f:(fun x -> Js.bool (Or_error.is_ok x))
     |> Promise_js_helpers.to_js
   in
@@ -2430,10 +2430,10 @@ let proof_of_base64 str i : some_proof =
   | _ ->
       failwith "invalid proof index"
 
-let verify (public_input : public_input_js) (proof : proof)
+let verify (statement : statement_js) (proof : proof)
     (vk : Js.js_string Js.t) =
-  let public_input = Public_input.Constant.of_js public_input in
-  let typ = public_input_typ (Array.length public_input) in
+  let statement = Statement.Constant.of_js statement in
+  let typ = statement_typ (Array.length (fst statement)) (Array.length (snd statement)) in
   let proof = Pickles.Side_loaded.Proof.of_proof proof in
   let vk =
     match Pickles.Side_loaded.Verification_key.of_base64 (Js.to_string vk) with
@@ -2443,7 +2443,7 @@ let verify (public_input : public_input_js) (proof : proof)
         failwithf "Could not decode base64 verification key: %s"
           (Error.to_string_hum err) ()
   in
-  Pickles.Side_loaded.verify_promise ~typ [ (vk, public_input, proof) ]
+  Pickles.Side_loaded.verify_promise ~typ [ (vk, statement, proof) ]
   |> Promise.map ~f:(fun x -> Js.bool (Or_error.is_ok x))
   |> Promise_js_helpers.to_js
 
