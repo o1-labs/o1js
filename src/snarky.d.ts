@@ -1128,6 +1128,7 @@ declare class Group {
 
 declare const Poseidon: {
   hash(input: Field[], isChecked: boolean): Field;
+  hashToCurve(input: Field[], isChecked: boolean): Group;
   update(
     state: [Field, Field, Field],
     input: Field[],

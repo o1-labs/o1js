@@ -43,6 +43,11 @@ const Poseidon = {
     return Poseidon_.hash(input, isChecked);
   },
 
+  hashToCurve(input: Field[]) {
+    let isChecked = !input.every((x) => x.isConstant());
+    return Poseidon_.hashToCurve(input, isChecked);
+  },
+
   update(state: [Field, Field, Field], input: Field[]) {
     let isChecked = !(
       state.every((x) => x.isConstant()) && input.every((x) => x.isConstant())

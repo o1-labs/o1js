@@ -289,6 +289,10 @@ export default [
         name: 'spongeSqueeze',
         type: 'function',
       },
+      {
+        name: 'hashToCurve',
+        type: 'function',
+      },
     ],
   },
   {
