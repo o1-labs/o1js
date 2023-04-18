@@ -44,7 +44,7 @@ let { verificationKey } = await MyProgram.compile();
 console.log('verification key', verificationKey.slice(0, 10) + '..');
 
 console.log('proving base case...');
-let { proof } = await MyProgram.baseCase(Field(0));
+let proof = await MyProgram.baseCase(Field(0));
 proof = testJsonRoundtrip(MyProof, proof);
 
 // type sanity check
@@ -59,7 +59,7 @@ ok = await MyProgram.verify(proof);
 console.log('ok (alternative)?', ok);
 
 console.log('proving step 1...');
-({ proof } = await MyProgram.inductiveCase(Field(1), proof));
+proof = await MyProgram.inductiveCase(Field(1), proof);
 proof = testJsonRoundtrip(MyProof, proof);
 
 console.log('verify...');
@@ -71,7 +71,7 @@ ok = await MyProgram.verify(proof);
 console.log('ok (alternative)?', ok);
 
 console.log('proving step 2...');
-({ proof } = await MyProgram.inductiveCase(Field(2), proof));
+proof = await MyProgram.inductiveCase(Field(2), proof);
 proof = testJsonRoundtrip(MyProof, proof);
 
 console.log('verify...');

@@ -283,10 +283,7 @@ function ZkProgram<
     async function prove_(
       publicInput: PublicInput,
       ...args: TupleToInstances<Types[typeof key]>
-    ): Promise<{
-      proof: Proof<PublicInput, PublicOutput>;
-      publicOutput: PublicOutput;
-    }> {
+    ): Promise<Proof<PublicInput, PublicOutput>> {
       let picklesProver = compileOutput?.provers?.[i];
       if (picklesProver === undefined) {
         throw Error(
@@ -308,15 +305,12 @@ function ZkProgram<
         static publicOutputType = publicOutputType;
         static tag = () => selfTag;
       }
-      return {
-        proof: new ProgramProof({
-          publicInput,
-          publicOutput,
-          proof,
-          maxProofsVerified,
-        }),
+      return new ProgramProof({
+        publicInput,
         publicOutput,
-      };
+        proof,
+        maxProofsVerified,
+      });
     }
     let prove: Prover<PublicInput, PublicOutput, Types[K]>;
     if (
@@ -872,17 +866,13 @@ type Prover<
   PublicOutput,
   Args extends Tuple<PrivateInput>
 > = PublicInput extends undefined
-  ? (...args: TupleToInstances<Args>) => Promise<{
-      publicOutput: PublicOutput;
-      proof: Proof<PublicInput, PublicOutput>;
-    }>
+  ? (
+      ...args: TupleToInstances<Args>
+    ) => Promise<Proof<PublicInput, PublicOutput>>
   : (
       publicInput: PublicInput,
       ...args: TupleToInstances<Args>
-    ) => Promise<{
-      publicOutput: PublicOutput;
-      proof: Proof<PublicInput, PublicOutput>;
-    }>;
+    ) => Promise<Proof<PublicInput, PublicOutput>>;
 
 type ProvableOrUndefined<A> = A extends undefined ? typeof Undefined : A;
 type ProvableOrVoid<A> = A extends undefined ? typeof Void : A;
