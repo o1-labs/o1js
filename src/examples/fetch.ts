@@ -5,6 +5,7 @@ import {
   shutdown,
   fetchLastBlock,
   PublicKey,
+  Types,
 } from 'snarkyjs';
 
 await isReady;
@@ -16,7 +17,7 @@ let zkappAddress = PublicKey.fromBase58(
 let { account, error } = await fetchAccount({
   publicKey: zkappAddress,
 });
-console.log('account', JSON.stringify(account, null, 2));
+console.log('account', Types.Account.toJSON(account!));
 console.log('error', error);
 
 let block = await fetchLastBlock();

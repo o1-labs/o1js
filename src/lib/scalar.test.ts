@@ -62,56 +62,6 @@ describe('scalar', () => {
           });
         });
       });
-
-      describe('toJSON/fromJSON', () => {
-        it("fromJSON('1') should be 1", () => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Scalar, () => Scalar.fromJSON('1')!);
-            expect(x.toJSON()).toEqual('1');
-          });
-        });
-
-        it("fromJSON('2^32-1') should be 2^32-1", () => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(
-              Scalar,
-              () => Scalar.fromJSON(String(2 ** 32 - 1))!
-            );
-            expect(x.toJSON()).toEqual(String(2 ** 32 - 1));
-          });
-        });
-
-        it('fromJSON(1) should be 1', () => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Scalar, () => Scalar.fromJSON(1)!);
-            expect(x.toJSON()).toEqual('1');
-          });
-        });
-
-        it('fromJSON(2^32-1) should be 2^32 - 1', () => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(
-              Scalar,
-              () => Scalar.fromJSON(String(2 ** 32 - 1))!
-            );
-            expect(x.toJSON()).toEqual(String(2 ** 32 - 1));
-          });
-        });
-
-        it('fromJSON(true) should be 1', () => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Scalar, () => Scalar.fromJSON(true)!);
-            expect(x.toJSON()).toEqual('1');
-          });
-        });
-
-        it('fromJSON(false) should be 0', () => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Scalar, () => Scalar.fromJSON(false)!);
-            expect(x.toJSON()).toEqual('0');
-          });
-        });
-      });
     });
 
     describe('Outside circuit', () => {

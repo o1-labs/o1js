@@ -18,7 +18,7 @@ import {
   CallForest,
   Events,
   Permissions,
-  SequenceEvents,
+  Actions,
   SetOrKeep,
   signJsonTransaction,
   smartContractContext,
@@ -637,7 +637,7 @@ class SmartContract {
   static _methodMetadata: Record<
     string,
     {
-      sequenceEvents: number;
+      actions: number;
       rows: number;
       digest: string;
       hasReturn: boolean;
@@ -1069,15 +1069,19 @@ super.init();
   ): Promise<
     {
       type: string;
-      event: ProvablePure<any>;
+      event: {
+        data: ProvablePure<any>;
+        transactionInfo: {
+          transactionHash: string;
+          transactionStatus: string;
+          transactionMemo: string;
+        };
+      };
       blockHeight: UInt32;
       blockHash: string;
       parentBlockHash: string;
       globalSlot: UInt32;
       chainStatus: string;
-      transactionHash: string;
-      transactionStatus: string;
-      transactionMemo: string;
     }[]
   > {
     // filters all elements so that they are within the given range
@@ -1114,26 +1118,40 @@ super.init();
       if (sortedEventTypes.length === 1) {
         let type = sortedEventTypes[0];
         let event = this.events[type].fromFields(
-          eventData.event.map((f: string) => Field(f))
+          eventData.event.data.map((f: string) => Field(f))
         );
         return {
           ...eventData,
           type,
-          event,
+          event: {
+            data: event,
+            transactionInfo: {
+              transactionHash: eventData.event.transactionInfo.hash,
+              transactionStatus: eventData.event.transactionInfo.status,
+              transactionMemo: eventData.event.transactionInfo.memo,
+            },
+          },
         };
       } else {
         // if there are multiple events we have to use the index event[0] to find the exact event type
-        let eventObjectIndex = Number(eventData.event[0]);
+        let eventObjectIndex = Number(eventData.event.data[0]);
         let type = sortedEventTypes[eventObjectIndex];
         // all other elements of the array are values used to construct the original object, we can drop the first value since its just an index
-        let eventProps = eventData.event.slice(1);
+        let eventProps = eventData.event.data.slice(1);
         let event = this.events[type].fromFields(
           eventProps.map((f: string) => Field(f))
         );
         return {
           ...eventData,
           type,
-          event,
+          event: {
+            data: event,
+            transactionInfo: {
+              transactionHash: eventData.event.transactionInfo.hash,
+              transactionStatus: eventData.event.transactionInfo.status,
+              transactionMemo: eventData.event.transactionInfo.memo,
+            },
+          },
         };
       }
     });
@@ -1162,7 +1180,7 @@ super.init();
    *  - `rows` the size of the constraint system created by this method
    *  - `digest` a digest of the method circuit
    *  - `hasReturn` a boolean indicating whether the method returns a value
-   *  - `sequenceEvents` the number of actions the method dispatches
+   *  - `actions` the number of actions the method dispatches
    *  - `gates` the constraint system, represented as an array of gates
    */
   static analyzeMethods() {
@@ -1197,7 +1215,7 @@ super.init();
           }
         );
         ZkappClass._methodMetadata[methodIntf.methodName] = {
-          sequenceEvents: accountUpdate!.body.actions.data.length,
+          actions: accountUpdate!.body.actions.data.length,
           rows,
           digest,
           hasReturn: result !== undefined,
@@ -1244,7 +1262,7 @@ type ReducerReturn<Action> = {
    *
    * ```ts
    *  let pendingActions = this.reducer.getActions({
-   *    fromActionHash: actionsHash,
+   *    fromActionState: actionsHash,
    *  });
    *
    *  let { state: newState, actionsHash: newActionsHash } =
@@ -1270,17 +1288,32 @@ type ReducerReturn<Action> = {
    * Fetches the list of previously emitted {@link Action}s by this {@link SmartContract}.
    * ```ts
    * let pendingActions = this.reducer.getActions({
-   *    fromActionHash: actionsHash,
+   *    fromActionState: actionsHash,
    * });
    * ```
    */
   getActions({
-    fromActionHash,
-    endActionHash,
+    fromActionState,
+    endActionState,
   }: {
-    fromActionHash?: Field;
-    endActionHash?: Field;
+    fromActionState?: Field;
+    endActionState?: Field;
   }): Action[][];
+  /**
+   * Fetches the list of previously emitted {@link Action}s by zkapp {@link SmartContract}.
+   * ```ts
+   * let pendingActions = await zkapp.reducer.fetchActions({
+   *    fromActionState: actionsHash,
+   * });
+   * ```
+   */
+  fetchActions({
+    fromActionState,
+    endActionState,
+  }: {
+    fromActionState?: Field;
+    endActionState?: Field;
+  }): Promise<Action[][]>;
 };
 
 function getReducer<A>(contract: SmartContract): ReducerReturn<A> {
@@ -1297,7 +1330,7 @@ class ${contract.constructor.name} extends SmartContract {
     dispatch(action: A) {
       let accountUpdate = contract.self;
       let eventFields = reducer.actionType.toFields(action);
-      accountUpdate.body.actions = SequenceEvents.pushEvent(
+      accountUpdate.body.actions = Actions.pushEvent(
         accountUpdate.body.actions,
         eventFields
       );
@@ -1320,9 +1353,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         contract.constructor as typeof SmartContract
       ).analyzeMethods();
       let possibleActionsPerTransaction = [
-        ...new Set(Object.values(methodData).map((o) => o.sequenceEvents)).add(
-          0
-        ),
+        ...new Set(Object.values(methodData).map((o) => o.actions)).add(0),
       ].sort((x, y) => x - y);
 
       let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
@@ -1344,24 +1375,24 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         });
         // for each action length, compute the events hash and then pick the actual one
         let eventsHashes = actionss.map((actions) => {
-          let events = actions.map((u) => reducer.actionType.toFields(u));
-          return SequenceEvents.hash(events);
+          let events = actions.map((a) => reducer.actionType.toFields(a));
+          return Actions.hash(events);
         });
         let eventsHash = Circuit.switch(lengths, Field, eventsHashes);
-        let newActionsHash = SequenceEvents.updateSequenceState(
+        let newActionsHash = Actions.updateSequenceState(
           actionsHash,
           eventsHash
         );
         let isEmpty = lengths[0];
         // update state hash, if this is not an empty action
         actionsHash = Circuit.if(isEmpty, actionsHash, newActionsHash);
-        // also, for each action length, compute the new state and then pick the
-        // actual one
+        // also, for each action length, compute the new state and then pick the actual one
         let newStates = actionss.map((actions) => {
           // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
           let newState = Circuit.witness(stateType, () => state);
           Circuit.assertEqual(stateType, newState, state);
-          actions.forEach((action) => {
+          // apply actions in reverse order since that's how they were stored at dispatch
+          [...actions].reverse().forEach((action) => {
             newState = reduce(newState, action);
           });
           return newState;
@@ -1369,57 +1400,55 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         // update state
         state = Circuit.switch(lengths, stateType, newStates);
       }
-      contract.account.sequenceState.assertEquals(actionsHash);
+      contract.account.actionState.assertEquals(actionsHash);
       return { state, actionsHash };
     },
     getActions({
-      fromActionHash,
-      endActionHash,
+      fromActionState,
+      endActionState,
     }: {
-      fromActionHash?: Field;
-      endActionHash?: Field;
+      fromActionState?: Field;
+      endActionState?: Field;
     }): A[][] {
       let actionsForAccount: A[][] = [];
       Circuit.asProver(() => {
-        // if the fromActionHash is the empty state, we fetch all events
-        fromActionHash = fromActionHash
-          ?.equals(SequenceEvents.emptySequenceState())
-          .toBoolean()
-          ? undefined
-          : fromActionHash;
-
-        // used to determine start and end values in string
-        let start: string | undefined = fromActionHash
-          ? Ledger.fieldToBase58(fromActionHash)
-          : undefined;
-        let end: string | undefined = endActionHash
-          ? Ledger.fieldToBase58(endActionHash)
-          : undefined;
-
-        let actions = Mina.getActions(contract.address, contract.self.tokenId);
-
-        // gets the start/end indices of our array slice
-        let startIndex = start
-          ? actions.findIndex((e) => e.hash === start) + 1
-          : 0;
-        let endIndex = end
-          ? actions.findIndex((e) => e.hash === end) + 1
-          : undefined;
-
-        // slices the array so we only get the wanted range between fromActionHash and endActionHash
-        actionsForAccount = actions
-          .slice(startIndex, endIndex === 0 ? undefined : endIndex)
-          .map((event: { hash: string; actions: string[][] }) =>
-            // putting our string-Fields back into the original action type
-            event.actions.map((action: string[]) =>
-              (reducer.actionType as ProvablePure<A>).fromFields(
-                action.map((fieldAsString: string) => Field(fieldAsString))
-              )
+        let actions = Mina.getActions(
+          contract.address,
+          { fromActionState, endActionState },
+          contract.self.tokenId
+        );
+        actionsForAccount = actions.map((event) =>
+          // putting our string-Fields back into the original action type
+          event.actions.map((action) =>
+            (reducer.actionType as ProvablePure<A>).fromFields(
+              action.map(Field)
             )
-          );
+          )
+        );
       });
-
       return actionsForAccount;
+    },
+    async fetchActions({
+      fromActionState,
+      endActionState,
+    }: {
+      fromActionState?: Field;
+      endActionState?: Field;
+    }): Promise<A[][]> {
+      let result = await Mina.fetchActions(
+        contract.address,
+        { fromActionState, endActionState },
+        contract.self.tokenId
+      );
+      if ('error' in result) {
+        throw Error(JSON.stringify(result));
+      }
+      return result.map((event) =>
+        // putting our string-Fields back into the original action type
+        event.actions.map((action) =>
+          (reducer.actionType as ProvablePure<A>).fromFields(action.map(Field))
+        )
+      );
     },
   };
 }
@@ -1532,7 +1561,7 @@ const Reducer: (<
     return reducer;
   },
   'initialActionsHash',
-  { get: SequenceEvents.emptySequenceState }
+  { get: Actions.emptyActionState }
 ) as any;
 
 /**

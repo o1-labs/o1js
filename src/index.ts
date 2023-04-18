@@ -51,6 +51,7 @@ export {
   TransactionStatus,
   addCachedAccount,
   setGraphqlEndpoint,
+  setArchiveGraphqlEndpoint,
   sendZkapp,
 } from './lib/fetch.js';
 export * as Encryption from './lib/encryption.js';
@@ -86,3 +87,5 @@ namespace Experimental {
   export let Callback = Experimental_.Callback;
   export type Callback<Result> = Callback_<Result>;
 }
+
+Error.stackTraceLimit = 1000;

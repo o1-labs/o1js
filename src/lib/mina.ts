@@ -12,7 +12,7 @@ import {
   TokenId,
   CallForest,
   Authorization,
-  SequenceEvents,
+  Actions,
   Events,
 } from './account_update.js';
 
@@ -49,8 +49,10 @@ export {
   accountCreationFee,
   sendTransaction,
   fetchEvents,
+  fetchActions,
   getActions,
   FeePayerSpec,
+  ActionStates,
   faucet,
   waitForFunding,
   getProofsEnabled,
@@ -150,6 +152,11 @@ type DeprecatedFeePayerSpec =
     })
   | undefined;
 
+type ActionStates = {
+  fromActionState?: Field;
+  endActionState?: Field;
+};
+
 function reportGetAccountError(publicKey: string, tokenId: string) {
   if (tokenId === TokenId.toBase58(TokenId.default)) {
     return `getAccount: Could not find account for public key ${publicKey}`;
@@ -221,9 +228,7 @@ function createTransaction(
             });
           });
         } else {
-          snarkContext.runWith({ inRunAndCheck: true }, () =>
-            Circuit.runAndCheck(f)
-          );
+          f();
         }
         break;
       } catch (err_) {
@@ -340,8 +345,14 @@ interface Mina {
     tokenId?: Field,
     filterOptions?: Fetch.EventActionFilterOptions
   ) => ReturnType<typeof Fetch.fetchEvents>;
+  fetchActions: (
+    publicKey: PublicKey,
+    actionStates?: ActionStates,
+    tokenId?: Field
+  ) => ReturnType<typeof Fetch.fetchActions>;
   getActions: (
     publicKey: PublicKey,
+    actionStates?: ActionStates,
     tokenId?: Field
   ) => { hash: string; actions: string[][] }[];
   proofsEnabled: boolean;
@@ -384,7 +395,10 @@ function LocalBlockchain({
   }
 
   const events: Record<string, any> = {};
-  const actions: Record<string, any> = {};
+  const actions: Record<
+    string,
+    Record<string, { actions: string[][]; hash: string }[]>
+  > = {};
 
   return {
     proofsEnabled,
@@ -467,18 +481,25 @@ function LocalBlockchain({
 
       // fetches all events from the transaction and stores them
       // events are identified and associated with a publicKey and tokenId
-      zkappCommandJson.accountUpdates.forEach((p) => {
-        let addr = p.body.publicKey;
-        let tokenId = p.body.tokenId;
-        if (events[addr] === undefined) {
-          events[addr] = {};
-        }
-        if (p.body.events.length > 0) {
-          if (events[addr][tokenId] === undefined) {
-            events[addr][tokenId] = [];
-          }
+      txn.transaction.accountUpdates.forEach((p, i) => {
+        let pJson = zkappCommandJson.accountUpdates[i];
+        let addr = pJson.body.publicKey;
+        let tokenId = pJson.body.tokenId;
+        events[addr] ??= {};
+        if (p.body.events.data.length > 0) {
+          events[addr][tokenId] ??= [];
+          let updatedEvents = p.body.events.data.map((data) => {
+            return {
+              data,
+              transactionInfo: {
+                transactionHash: '',
+                transactionStatus: '',
+                transactionMemo: '',
+              },
+            };
+          });
           events[addr][tokenId].push({
-            events: p.body.events,
+            events: updatedEvents,
             blockHeight: networkState.blockchainLength,
             globalSlot: networkState.globalSlotSinceGenesis,
             // The following fields are fetched from the Mina network. For now, we mock these values out
@@ -486,45 +507,31 @@ function LocalBlockchain({
             blockHash: '',
             parentBlockHash: '',
             chainStatus: '',
-            transactionHash: '',
-            transactionStatus: '',
-            transactionMemo: '',
           });
         }
 
         // actions/sequencing events
 
-        // gets the index of the most up to date sequence state from our sequence list
-        let n = actions[addr]?.[tokenId]?.length ?? 1;
-
-        // most recent sequence state
-        let sequenceState = actions?.[addr]?.[tokenId]?.[n - 1]?.hash;
-
+        // most recent action state
+        let storedActions = actions[addr]?.[tokenId];
+        let latestActionState_ =
+          storedActions?.[storedActions.length - 1]?.hash;
         // if there exists no hash, this means we initialize our latest hash with the empty state
-        let latestActionsHash =
-          sequenceState === undefined
-            ? SequenceEvents.emptySequenceState()
-            : Ledger.fieldOfBase58(sequenceState);
+        let latestActionState =
+          latestActionState_ !== undefined
+            ? Field(latestActionState_)
+            : Actions.emptyActionState();
 
-        let actionList = p.body.actions;
-        let eventsHash = SequenceEvents.hash(
-          actionList.map((e) => e.map((f) => Field(f)))
-        );
-
-        if (actions[addr] === undefined) {
-          actions[addr] = {};
-        }
-        if (p.body.actions.length > 0) {
-          latestActionsHash = SequenceEvents.updateSequenceState(
-            latestActionsHash,
-            eventsHash
+        actions[addr] ??= {};
+        if (p.body.actions.data.length > 0) {
+          let newActionState = Actions.updateSequenceState(
+            latestActionState,
+            p.body.actions.hash
           );
-          if (actions[addr][tokenId] === undefined) {
-            actions[addr][tokenId] = [];
-          }
+          actions[addr][tokenId] ??= [];
           actions[addr][tokenId].push({
-            actions: actionList,
-            hash: Ledger.fieldToBase58(latestActionsHash),
+            actions: pJson.body.actions,
+            hash: newActionState.toString(),
           });
         }
       });
@@ -574,13 +581,43 @@ function LocalBlockchain({
     async fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       return events?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
     },
+    async fetchActions(
+      publicKey: PublicKey,
+      actionStates?: ActionStates,
+      tokenId: Field = TokenId.default
+    ) {
+      return this.getActions(publicKey, actionStates, tokenId);
+    },
     getActions(
       publicKey: PublicKey,
+      actionStates?: ActionStates,
       tokenId: Field = TokenId.default
     ): { hash: string; actions: string[][] }[] {
-      return (
-        actions?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)] ?? []
-      );
+      let currentActions =
+        actions?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
+      let { fromActionState, endActionState } = actionStates ?? {};
+
+      let emptyState = Actions.emptyActionState();
+      if (endActionState?.equals(emptyState).toBoolean()) return [];
+
+      let start = fromActionState?.equals(emptyState).toBoolean()
+        ? undefined
+        : fromActionState?.toString();
+      let end = endActionState?.toString();
+
+      let startIndex = 0;
+      if (start) {
+        let i = currentActions.findIndex((e) => e.hash === start);
+        if (i === -1) throw Error(`getActions: fromActionState not found.`);
+        startIndex = i + 1;
+      }
+      let endIndex: number | undefined;
+      if (end) {
+        let i = currentActions.findIndex((e) => e.hash === end);
+        if (i === -1) throw Error(`getActions: endActionState not found.`);
+        endIndex = i + 1;
+      }
+      return currentActions.slice(startIndex, endIndex);
     },
     addAccount,
     /**
@@ -590,7 +627,6 @@ function LocalBlockchain({
     testAccounts,
     setGlobalSlot(slot: UInt32 | number) {
       networkState.globalSlotSinceGenesis = UInt32.from(slot);
-      let difference = networkState.globalSlotSinceGenesis.sub(slot);
     },
     incrementGlobalSlot(increment: UInt32 | number) {
       networkState.globalSlotSinceGenesis =
@@ -822,9 +858,45 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         filterOptions
       );
     },
-    getActions(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+    async fetchActions(
+      publicKey: PublicKey,
+      actionStates?: ActionStates,
+      tokenId: Field = TokenId.default
+    ) {
+      let pubKey = publicKey.toBase58();
+      let token = TokenId.toBase58(tokenId);
+      let { fromActionState, endActionState } = actionStates ?? {};
+      let fromActionStateBase58 = fromActionState
+        ? fromActionState.toString()
+        : undefined;
+      let endActionStateBase58 = endActionState
+        ? endActionState.toString()
+        : undefined;
+
+      return Fetch.fetchActions(
+        {
+          publicKey: pubKey,
+          actionStates: {
+            fromActionState: fromActionStateBase58,
+            endActionState: endActionStateBase58,
+          },
+          tokenId: token,
+        },
+        archiveEndpoint
+      );
+    },
+    getActions(
+      publicKey: PublicKey,
+      actionStates?: ActionStates,
+      tokenId: Field = TokenId.default
+    ) {
       if (currentTransaction()?.fetchMode === 'test') {
-        Fetch.markActionsToBeFetched(publicKey, tokenId, archiveEndpoint);
+        Fetch.markActionsToBeFetched(
+          publicKey,
+          tokenId,
+          archiveEndpoint,
+          actionStates
+        );
         let actions = Fetch.getCachedActions(publicKey, tokenId);
         return actions ?? [];
       }
@@ -911,10 +983,21 @@ let activeInstance: Mina = {
   async transaction(sender: DeprecatedFeePayerSpec, f: () => void) {
     return createTransaction(sender, f, 0);
   },
-  fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+  fetchEvents(_publicKey: PublicKey, _tokenId: Field = TokenId.default) {
     throw Error('must call Mina.setActiveInstance first');
   },
-  getActions(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+  fetchActions(
+    _publicKey: PublicKey,
+    _actionStates?: ActionStates,
+    _tokenId: Field = TokenId.default
+  ) {
+    throw Error('must call Mina.setActiveInstance first');
+  },
+  getActions(
+    _publicKey: PublicKey,
+    _actionStates?: ActionStates,
+    _tokenId: Field = TokenId.default
+  ) {
     throw Error('must call Mina.setActiveInstance first');
   },
   proofsEnabled: true,
@@ -1060,8 +1143,23 @@ async function fetchEvents(
 /**
  * @return A list of emitted sequencing actions associated to the given public key.
  */
-function getActions(publicKey: PublicKey, tokenId?: Field) {
-  return activeInstance.getActions(publicKey, tokenId);
+async function fetchActions(
+  publicKey: PublicKey,
+  actionStates: ActionStates,
+  tokenId?: Field
+) {
+  return await activeInstance.fetchActions(publicKey, actionStates, tokenId);
+}
+
+/**
+ * @return A list of emitted sequencing actions associated to the given public key.
+ */
+function getActions(
+  publicKey: PublicKey,
+  actionStates: ActionStates,
+  tokenId?: Field
+) {
+  return activeInstance.getActions(publicKey, actionStates, tokenId);
 }
 
 function getProofsEnabled() {
@@ -1147,8 +1245,8 @@ async function verifyAccountUpdate(
         return perm.setTiming;
       case 'votingFor':
         return perm.setVotingFor;
-      case 'sequenceEvents':
-        return perm.editSequenceState;
+      case 'actions':
+        return perm.editActionState;
       case 'incrementNonce':
         return perm.incrementNonce;
       case 'send':
@@ -1249,8 +1347,8 @@ async function verifyAccountUpdate(
 
   // checks the sequence events (which result in an updated sequence state)
   if (accountUpdate.body.actions.data.length > 0) {
-    let p = permissionForUpdate('sequenceEvents');
-    checkPermission(p, 'sequenceEvents');
+    let p = permissionForUpdate('actions');
+    checkPermission(p, 'actions');
   }
 
   if (accountUpdate.body.incrementNonce.toBoolean()) {

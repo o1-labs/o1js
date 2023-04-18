@@ -50,7 +50,7 @@ class CounterZkapp extends SmartContract {
 
     // compute the new counter and hash from pending actions
     let pendingActions = this.reducer.getActions({
-      fromActionHash: actionsHash,
+      fromActionState: actionsHash,
     });
 
     let { state: newCounter, actionsHash: newActionsHash } =

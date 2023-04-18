@@ -43,7 +43,7 @@ type FetchedAccount = {
     setPermissions: AuthRequired;
     setVerificationKey: AuthRequired;
     setZkappUri: AuthRequired;
-    editSequenceState: AuthRequired;
+    editActionState: AuthRequired;
     setTokenSymbol: AuthRequired;
     incrementNonce: AuthRequired;
     setVotingFor: AuthRequired;
@@ -53,7 +53,7 @@ type FetchedAccount = {
   votingFor: string | null;
   zkappState: string[] | null;
   verificationKey: { verificationKey: string; hash: string } | null;
-  sequenceEvents: string[] | null;
+  actionState: string[] | null;
   provedState: boolean | null;
   zkappUri: string | null;
 };
@@ -74,13 +74,14 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
     }
     permissions {
       editState
+      access
       send
       receive
       setDelegate
       setPermissions
       setVerificationKey
       setZkappUri
-      editSequenceState
+      editActionState
       setTokenSymbol
       incrementNonce
       setVotingFor
@@ -93,7 +94,7 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
       verificationKey
       hash
     }
-    sequenceEvents
+    actionState
     provedState
     zkappUri
   }
@@ -116,7 +117,7 @@ function parseFetchedAccount({
   },
   delegateAccount,
   receiptChainHash,
-  sequenceEvents,
+  actionState,
   token,
   tokenSymbol,
   verificationKey,
@@ -126,7 +127,7 @@ function parseFetchedAccount({
   let hasZkapp =
     zkappState !== null ||
     verificationKey !== null ||
-    sequenceEvents !== null ||
+    actionState !== null ||
     zkappUri !== null ||
     provedState;
   let partialAccount: PartialAccount = {
@@ -170,9 +171,8 @@ function parseFetchedAccount({
             }) ??
             undefined,
           zkappVersion: undefined, // TODO
-          sequenceState:
-            (sequenceEvents && sequenceEvents.map(Field)) ?? undefined,
-          lastSequenceSlot: undefined, // TODO
+          actionState: (actionState && actionState.map(Field)) ?? undefined,
+          lastActionSlot: undefined, // TODO
           provedState: provedState !== null ? Bool(provedState) : undefined,
           zkappUri: zkappUri !== null ? zkappUri : undefined,
         }
