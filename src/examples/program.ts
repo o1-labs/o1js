@@ -6,12 +6,12 @@ import {
   isReady,
   Proof,
   JsonProof,
+  Provable,
 } from 'snarkyjs';
 
 await isReady;
 
 let MyProgram = Experimental.ZkProgram({
-  publicInput: undefined,
   publicOutput: Field,
 
   methods: {
@@ -31,6 +31,9 @@ let MyProgram = Experimental.ZkProgram({
     },
   },
 });
+// type sanity checks
+MyProgram.publicInputType satisfies Provable<undefined>;
+MyProgram.publicOutputType satisfies typeof Field;
 
 let MyProof = Experimental.ZkProgram.Proof(MyProgram);
 
@@ -43,6 +46,9 @@ console.log('verification key', verificationKey.slice(0, 10) + '..');
 console.log('proving base case...');
 let { proof } = await MyProgram.baseCase();
 proof = testJsonRoundtrip(MyProof, proof);
+
+// type sanity check
+proof satisfies Proof<undefined, Field>;
 
 console.log('verify...');
 let ok = await verify(proof.toJSON(), verificationKey);
