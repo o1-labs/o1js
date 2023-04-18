@@ -892,6 +892,13 @@ type InferProvableOrUndefined<A> = A extends undefined
   : InferProvable<A>;
 type InferProvableOrVoid<A> = A extends undefined ? void : InferProvable<A>;
 
+/**
+ * helper to get property type from an object, in place of `T[Key]`
+ *
+ * assume `T extends { Key?: Something }`.
+ * if we use `Get<T, Key>` instead of `T[Key]`, we allow `T` to be inferred _without_ the `Key` key,
+ * and thus retain the precise type of `T` during inference
+ */
 type Get<T, Key extends string> = T extends { [K in Key]: infer Value }
   ? Value
   : undefined;
