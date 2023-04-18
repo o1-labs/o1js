@@ -573,11 +573,7 @@ type LazyProof = {
   kind: 'lazy-proof';
   methodName: string;
   args: any[];
-  previousProofs: {
-    publicInput: Field[];
-    publicOutput: Field[];
-    proof: Pickles.Proof;
-  }[];
+  previousProofs: Pickles.Proof[];
   ZkappClass: typeof SmartContract;
   memoized: { fields: Field[]; aux: any[] }[];
   blindingValue: Field;

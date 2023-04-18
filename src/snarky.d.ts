@@ -1301,16 +1301,16 @@ declare namespace Pickles {
   };
   type Rule = {
     identifier: string;
-    main: (
-      publicInput: Field[],
-      // TODO: these are flat Field arrays which have to be split into input & output
-      previousInputsAndOutputs: Field[][]
-    ) => { publicOutput: Field[]; shouldVerify: Bool[] };
+    main: (publicInput: Field[]) => {
+      publicOutput: Field[];
+      previousStatements: Statement[];
+      shouldVerify: Bool[];
+    };
     proofsToVerify: ({ isSelf: true } | { isSelf: false; tag: unknown })[];
   };
   type Prover = (
     publicInput: Field[],
-    previousProofs: ProofWithStatement[]
+    previousProofs: Proof[]
   ) => Promise<{ publicOutput: Field[]; proof: Proof }>;
 }
 
