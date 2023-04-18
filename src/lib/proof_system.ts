@@ -202,8 +202,8 @@ function ZkProgram<
   config: StatementType & {
     methods: {
       [I in keyof Types]: Method<
-        InferProvableOrUndefined<GetPublicInput<StatementType>>,
-        InferProvableOrVoid<GetPublicOutput<StatementType>>,
+        InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+        InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
         Types[I]
       >;
     };
@@ -213,18 +213,18 @@ function ZkProgram<
   compile: () => Promise<{ verificationKey: string }>;
   verify: (
     proof: Proof<
-      InferProvableOrUndefined<GetPublicInput<StatementType>>,
-      InferProvableOrVoid<GetPublicOutput<StatementType>>
+      InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+      InferProvableOrVoid<Get<StatementType, 'publicOutput'>>
     >
   ) => Promise<boolean>;
   digest: () => string;
   analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
-  publicInputType: ProvableOrUndefined<GetPublicInput<StatementType>>;
-  publicOutputType: ProvableOrVoid<GetPublicOutput<StatementType>>;
+  publicInputType: ProvableOrUndefined<Get<StatementType, 'publicInput'>>;
+  publicOutputType: ProvableOrVoid<Get<StatementType, 'publicOutput'>>;
 } & {
   [I in keyof Types]: Prover<
-    InferProvableOrUndefined<GetPublicInput<StatementType>>,
-    InferProvableOrVoid<GetPublicOutput<StatementType>>,
+    InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
+    InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
     Types[I]
   >;
 } {
@@ -233,8 +233,10 @@ function ZkProgram<
   let publicOutputType: ProvablePure<any> = config.publicOutput! ?? Void;
 
   let selfTag = { name: `Program${i++}` };
-  type PublicInput = InferProvableOrUndefined<GetPublicInput<StatementType>>;
-  type PublicOutput = InferProvableOrVoid<GetPublicOutput<StatementType>>;
+  type PublicInput = InferProvableOrUndefined<
+    Get<StatementType, 'publicInput'>
+  >;
+  type PublicOutput = InferProvableOrVoid<Get<StatementType, 'publicOutput'>>;
 
   class SelfProof extends Proof<PublicInput, PublicOutput> {
     static publicInputType = publicInputType;
@@ -369,10 +371,10 @@ function ZkProgram<
       verify,
       digest,
       publicInputType: publicInputType as ProvableOrUndefined<
-        GetPublicInput<StatementType>
+        Get<StatementType, 'publicInput'>
       >,
       publicOutputType: publicOutputType as ProvableOrVoid<
-        GetPublicOutput<StatementType>
+        Get<StatementType, 'publicOutput'>
       >,
       analyzeMethods,
     },
@@ -890,9 +892,6 @@ type InferProvableOrUndefined<A> = A extends undefined
   : InferProvable<A>;
 type InferProvableOrVoid<A> = A extends undefined ? void : InferProvable<A>;
 
-type GetPublicInput<T> = T extends { publicInput: infer Value }
-  ? Value
-  : undefined;
-type GetPublicOutput<T> = T extends { publicOutput: infer Value }
+type Get<T, Key extends string> = T extends { [K in Key]: infer Value }
   ? Value
   : undefined;
