@@ -1,4 +1,4 @@
-import { EmptyUndefined, EmptyVoid } from '../bindings/lib/generic.js';
+import { Empty, EmptyUndefined, EmptyVoid } from '../bindings/lib/generic.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
 import {
   Bool,
@@ -14,13 +14,12 @@ import {
   FlexibleProvablePure,
   InferProvable,
   ProvablePureExtended,
-  provable,
   toConstant,
 } from './circuit_value.js';
 import { Context } from './global-context.js';
 
 // public API
-export { Proof, SelfProof, ZkProgram, verify };
+export { Proof, SelfProof, JsonProof, ZkProgram, verify };
 
 // internal API
 export {
@@ -192,14 +191,14 @@ let CompiledTag = {
 
 function ZkProgram<
   PublicInputType extends FlexibleProvablePure<any> | undefined,
-  PublicOutputType extends FlexibleProvablePure<any>,
+  PublicOutputType extends FlexibleProvablePure<any> | undefined,
   Types extends {
     // TODO: how to prevent a method called `compile` from type-checking?
     [I in string]: Tuple<PrivateInput>;
   }
 >({
   publicInput: publicInputType = Undefined,
-  publicOutput: publicOutputType,
+  publicOutput: publicOutputType = Void,
   methods,
 }: {
   publicInput: PublicInputType;
@@ -207,7 +206,7 @@ function ZkProgram<
   methods: {
     [I in keyof Types]: Method<
       InferProvableOrUndefined<PublicInputType>,
-      InferProvable<PublicOutputType>,
+      InferProvableOrVoid<PublicOutputType>,
       Types[I]
     >;
   };
@@ -217,23 +216,23 @@ function ZkProgram<
   verify: (
     proof: Proof<
       InferProvableOrUndefined<PublicInputType>,
-      InferProvable<PublicOutputType>
+      InferProvableOrVoid<PublicOutputType>
     >
   ) => Promise<boolean>;
   digest: () => string;
   analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
   publicInputType: ProvableOrUndefined<PublicInputType>;
-  publicOutputType: PublicOutputType;
+  publicOutputType: ProvableOrVoid<PublicOutputType>;
 } & {
   [I in keyof Types]: Prover<
     InferProvableOrUndefined<PublicInputType>,
-    InferProvable<PublicOutputType>,
+    InferProvableOrVoid<PublicOutputType>,
     Types[I]
   >;
 } {
   let selfTag = { name: `Program${i++}` };
   type PublicInput = InferProvableOrUndefined<PublicInputType>;
-  type PublicOutput = InferProvable<PublicOutputType>;
+  type PublicOutput = InferProvableOrVoid<PublicOutputType>;
 
   class SelfProof extends Proof<PublicInput, PublicOutput> {
     static publicInputType = publicInputType;
@@ -368,7 +367,7 @@ function ZkProgram<
       verify,
       digest,
       publicInputType: publicInputType as any,
-      publicOutputType,
+      publicOutputType: publicOutputType as any,
       analyzeMethods,
     },
     provers
@@ -568,7 +567,8 @@ function analyzeMethod<T>(
   return Circuit.constraintSystem(() => {
     let args = synthesizeMethodArguments(methodIntf, true);
     let publicInput = emptyWitness(publicInputType);
-    if (publicInputType === Undefined) return method(...args);
+    if (publicInputType === Undefined || publicInputType === Void)
+      return method(...args);
     return method(publicInput, ...args);
   });
 }
@@ -617,7 +617,7 @@ function picklesRuleFromFunction(
       }
     }
     let result: any;
-    if (publicInputType === Undefined) {
+    if (publicInputType === Undefined || publicInputType === Void) {
       result = func(...finalArgs);
     } else {
       result = func(publicInputType.fromFields(publicInput), ...finalArgs);
@@ -701,7 +701,7 @@ function methodArgumentsToConstant(
   return constArgs;
 }
 
-let Generic = provable(null);
+let Generic = Empty<Field>();
 
 type TypeAndValue<T> = { type: Provable<T>; value: T };
 
@@ -876,11 +876,10 @@ type Prover<
       proof: Proof<PublicInput, PublicOutput>;
     }>;
 
-type ProvableOrUndefined<A> = Exclude<
-  A extends undefined ? Undefined : A,
-  undefined
->;
+type ProvableOrUndefined<A> = A extends undefined ? typeof Undefined : A;
+type ProvableOrVoid<A> = A extends undefined ? typeof Void : A;
 
 type InferProvableOrUndefined<A> = A extends undefined
   ? undefined
   : InferProvable<A>;
+type InferProvableOrVoid<A> = A extends undefined ? void : InferProvable<A>;

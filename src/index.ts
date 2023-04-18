@@ -35,6 +35,7 @@ export {
   Proof,
   SelfProof,
   verify,
+  JsonProof,
   Undefined,
   Void,
 } from './lib/proof_system.js';
