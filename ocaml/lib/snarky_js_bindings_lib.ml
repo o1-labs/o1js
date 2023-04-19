@@ -1172,9 +1172,17 @@ let poseidon =
       to_js_field (hash_array xs is_checked)
 
     method hashToGroup (xs : field_class Js.t Js.js_array Js.t)
-        (is_checked : bool Js.t) =
+      (is_checked : bool Js.t) =
       let input = hash_array xs is_checked in
-      let digest = Snark_params.Group_map.Checked.to_group input in
+      let digest =
+        if Js.to_bool is_checked then
+          Snark_params.Group_map.Checked.to_group input
+        else
+          let unchecked =
+            Snark_params.Group_map.to_group (to_unchecked input)
+          in
+          (Field.constant @@ fst unchecked, Field.constant @@ snd unchecked)
+      in
       to_js_group (fst digest) (snd digest)
 
     method update (state : field_class Js.t Js.js_array Js.t)
