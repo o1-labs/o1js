@@ -1172,7 +1172,7 @@ let poseidon =
       to_js_field (hash_array xs is_checked)
 
     method hashToGroup (xs : field_class Js.t Js.js_array Js.t)
-      (is_checked : bool Js.t) =
+        (is_checked : bool Js.t) =
       let input = hash_array xs is_checked in
       let digest =
         if Js.to_bool is_checked then
