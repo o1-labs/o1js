@@ -38,6 +38,7 @@ export { Proof, SelfProof, verify } from './lib/proof_system.js';
 
 export {
   Token,
+  TokenId,
   AccountUpdate,
   Permissions,
   ZkappPublicInput,

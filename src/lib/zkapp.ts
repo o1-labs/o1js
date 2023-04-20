@@ -739,10 +739,11 @@ class SmartContract {
    * Deploys a {@link SmartContract}.
    *
    * ```ts
-   * let tx = await Mina.transaction(feePayer, () => {
-   *    AccountUpdate.fundNewAccount(feePayer, { initialBalance });
-   *    zkapp.deploy({ zkappKey });
+   * let tx = await Mina.transaction(sender, () => {
+   *   AccountUpdate.fundNewAccount(sender);
+   *   zkapp.deploy();
    * });
+   * tx.sign([senderKey, zkAppKey]);
    * ```
    */
   deploy({

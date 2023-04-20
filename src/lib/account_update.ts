@@ -577,41 +577,26 @@ const TokenId = {
   get default() {
     return Field(1);
   },
-};
-
-class Token {
-  readonly id: Field;
-  readonly parentTokenId: Field;
-  readonly tokenOwner: PublicKey;
-
-  static Id = TokenId;
-
-  static getId(tokenOwner: PublicKey, parentTokenId = TokenId.default) {
+  derive(tokenOwner: PublicKey, parentTokenId = Field(1)) {
     if (tokenOwner.isConstant() && parentTokenId.isConstant()) {
       return Ledger.customTokenId(tokenOwner, parentTokenId);
     } else {
       return Ledger.customTokenIdChecked(tokenOwner, parentTokenId);
     }
-  }
+  },
+};
 
-  constructor({
-    tokenOwner,
-    parentTokenId = TokenId.default,
-  }: {
-    tokenOwner: PublicKey;
-    parentTokenId?: Field;
-  }) {
-    this.parentTokenId = parentTokenId;
-    this.tokenOwner = tokenOwner;
-    try {
-      this.id = Token.getId(tokenOwner, parentTokenId);
-    } catch (e) {
-      throw new Error(
-        `Could not create a custom token id:\nError: ${(e as Error).message}`
-      );
-    }
+/**
+ * @deprecated use `TokenId` instead of `Token.Id` and `TokenId.derive()` instead of `Token.getId()`
+ */
+class Token {
+  static Id = TokenId;
+
+  static getId(tokenOwner: PublicKey, parentTokenId = TokenId.default) {
+    return TokenId.derive(tokenOwner, parentTokenId);
   }
 }
+
 /**
  * An {@link AccountUpdate} is a set of instructions for the Mina network.
  * It includes {@link Preconditions} and a list of state updates, which need to
@@ -686,15 +671,14 @@ class AccountUpdate implements Types.AccountUpdate {
 
   token() {
     let thisAccountUpdate = this;
-    let customToken = new Token({
-      tokenOwner: thisAccountUpdate.body.publicKey,
-      parentTokenId: thisAccountUpdate.body.tokenId,
-    });
+    let tokenOwner = this.publicKey;
+    let parentTokenId = this.tokenId;
+    let id = TokenId.derive(tokenOwner, parentTokenId);
 
     return {
-      id: customToken.id,
-      parentTokenId: customToken.parentTokenId,
-      tokenOwner: customToken.tokenOwner,
+      id,
+      parentTokenId,
+      tokenOwner,
 
       mint({
         address,
@@ -1193,6 +1177,7 @@ class AccountUpdate implements Types.AccountUpdate {
     numberOfAccounts?: number | { initialBalance: number | string | UInt64 }
   ) {
     let accountUpdate = AccountUpdate.createSigned(feePayer as PrivateKey);
+    accountUpdate.label = 'fundNewAccount';
     let fee = Mina.accountCreationFee();
     numberOfAccounts ??= 1;
     if (typeof numberOfAccounts === 'number') fee = fee.mul(numberOfAccounts);
@@ -1567,7 +1552,7 @@ const CallForest = {
           TokenId.default
         )
       );
-      let self = Token.getId(update.body.publicKey, update.body.tokenId);
+      let self = TokenId.derive(update.body.publicKey, update.body.tokenId);
       let childContext = { caller, self };
       withCallers.push({
         accountUpdate: update,
@@ -1603,7 +1588,7 @@ const CallForest = {
       } else if (!update.body.mayUseToken.inheritFromParent.toBoolean()) {
         context.caller = TokenId.default;
       }
-      context.self = Token.getId(update.body.publicKey, update.body.tokenId);
+      context.self = TokenId.derive(update.body.publicKey, update.body.tokenId);
     }
     return context;
   },
@@ -1693,6 +1678,7 @@ type ZkappCommandProved = {
 const ZkappCommand = {
   toPretty(transaction: ZkappCommand) {
     let feePayer = ZkappCommand.toJSON(transaction).feePayer as any;
+    feePayer.label = 'Fee payer';
     feePayer.body.publicKey = '..' + feePayer.body.publicKey.slice(-4);
     feePayer.body.authorization = '..' + feePayer.authorization.slice(-4);
     if (feePayer.body.validUntil === null) delete feePayer.body.validUntil;
