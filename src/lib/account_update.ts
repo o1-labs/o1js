@@ -675,83 +675,90 @@ class AccountUpdate implements Types.AccountUpdate {
     let parentTokenId = this.tokenId;
     let id = TokenId.derive(tokenOwner, parentTokenId);
 
+    function getApprovedAccountUpdate(
+      accountLike: PublicKey | AccountUpdate | SmartContract,
+      label: string
+    ) {
+      if (accountLike instanceof SmartContract) {
+        accountLike = accountLike.self;
+      }
+      if (accountLike instanceof AccountUpdate) {
+        accountLike.tokenId.assertEquals(id);
+        thisAccountUpdate.approve(accountLike);
+      }
+      if (accountLike instanceof PublicKey) {
+        accountLike = AccountUpdate.defaultAccountUpdate(accountLike, id);
+        makeChildAccountUpdate(thisAccountUpdate, accountLike);
+      }
+      if (!accountLike.label)
+        accountLike.label = `${
+          thisAccountUpdate.label ?? 'Unlabeled'
+        }.${label}`;
+      return accountLike;
+    }
+
     return {
       id,
       parentTokenId,
       tokenOwner,
 
+      /**
+       * Mints token balance to `address`. Returns the mint account update.
+       */
       mint({
         address,
         amount,
       }: {
-        address: PublicKey;
+        address: PublicKey | AccountUpdate | SmartContract;
         amount: number | bigint | UInt64;
       }) {
-        let receiver = AccountUpdate.defaultAccountUpdate(address, this.id);
-        thisAccountUpdate.approve(receiver);
-        // Add the amount to mint to the receiver's account
-        receiver.body.balanceChange = Int64.fromObject(
-          receiver.body.balanceChange
-        ).add(amount);
+        let receiver = getApprovedAccountUpdate(address, 'token.mint()');
+        receiver.balance.addInPlace(amount);
         return receiver;
       },
 
+      /**
+       * Burn token balance on `address`. Returns the burn account update.
+       */
       burn({
         address,
         amount,
       }: {
-        address: PublicKey;
+        address: PublicKey | AccountUpdate | SmartContract;
         amount: number | bigint | UInt64;
       }) {
-        let sender = AccountUpdate.defaultAccountUpdate(address, this.id);
-        thisAccountUpdate.approve(sender);
-        sender.body.useFullCommitment = Bool(true);
-        sender.body.implicitAccountCreationFee = Bool(false);
+        let sender = getApprovedAccountUpdate(address, 'token.burn()');
 
         // Sub the amount to burn from the sender's account
-        sender.body.balanceChange = Int64.fromObject(
-          sender.body.balanceChange
-        ).sub(amount);
+        sender.balance.subInPlace(amount);
 
         // Require signature from the sender account being deducted
+        sender.body.useFullCommitment = Bool(true);
         Authorization.setLazySignature(sender);
+        return sender;
       },
 
+      /**
+       * Move token balance from `from` to `to`. Returns the `to` account update.
+       */
       send({
         from,
         to,
         amount,
       }: {
-        from: PublicKey;
-        to: PublicKey;
+        from: PublicKey | AccountUpdate | SmartContract;
+        to: PublicKey | AccountUpdate | SmartContract;
         amount: number | bigint | UInt64;
       }) {
-        // Create a new accountUpdate for the sender to send the amount to the
-        // receiver
-        let sender = AccountUpdate.defaultAccountUpdate(from, this.id);
-        thisAccountUpdate.approve(sender);
+        let sender = getApprovedAccountUpdate(from, 'token.send() (sender)');
+        sender.balance.subInPlace(amount);
         sender.body.useFullCommitment = Bool(true);
-        sender.body.implicitAccountCreationFee = Bool(false);
-        sender.body.balanceChange = Int64.fromObject(
-          sender.body.balanceChange
-        ).sub(amount);
-
-        // Require signature from the sender accountUpdate
         Authorization.setLazySignature(sender);
 
-        let receiverAccountUpdate = createChildAccountUpdate(
-          thisAccountUpdate,
-          to,
-          this.id
-        );
+        let receiver = getApprovedAccountUpdate(to, 'token.send() (receiver)');
+        receiver.balance.addInPlace(amount);
 
-        // Add the amount to send to the receiver's account
-        let i1 = receiverAccountUpdate.body.balanceChange;
-        receiverAccountUpdate.body.balanceChange = new Int64(
-          i1.magnitude,
-          i1.sgn
-        ).add(amount);
-        return receiverAccountUpdate;
+        return receiver;
       },
     };
   }
@@ -925,8 +932,7 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   sign(privateKey?: PrivateKey) {
     let { nonce, isSameAsFeePayer } = AccountUpdate.getSigningInfo(this);
-    // if this account is the same as the fee payer, we use the "full
-    // commitment" for replay protection
+    // if this account is the same as the fee payer, we use the "full commitment" for replay protection
     this.body.useFullCommitment = isSameAsFeePayer;
     this.body.implicitAccountCreationFee = Bool(false);
     // otherwise, we increment the nonce
@@ -1072,9 +1078,14 @@ class AccountUpdate implements Types.AccountUpdate {
   static create(publicKey: PublicKey, tokenId?: Field) {
     let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey, tokenId);
     if (smartContractContext.has()) {
-      smartContractContext.get().this.self.approve(accountUpdate);
+      let self = smartContractContext.get().this.self;
+      self.approve(accountUpdate);
+      accountUpdate.label = `${
+        self.label || 'Unlabeled'
+      } > AccountUpdate.create()`;
     } else {
       Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
+      accountUpdate.label = `Mina.transaction > AccountUpdate.create()`;
     }
     return accountUpdate;
   }
@@ -1137,6 +1148,10 @@ class AccountUpdate implements Types.AccountUpdate {
     let publicKey =
       signer instanceof PrivateKey ? signer.toPublicKey() : signer;
     let accountUpdate = AccountUpdate.create(publicKey, tokenId);
+    accountUpdate.label = accountUpdate.label.replace(
+      '.create()',
+      '.createSigned()'
+    );
     if (signer instanceof PrivateKey) {
       accountUpdate.sign(signer);
     } else {
@@ -1177,7 +1192,7 @@ class AccountUpdate implements Types.AccountUpdate {
     numberOfAccounts?: number | { initialBalance: number | string | UInt64 }
   ) {
     let accountUpdate = AccountUpdate.createSigned(feePayer as PrivateKey);
-    accountUpdate.label = 'fundNewAccount';
+    accountUpdate.label = 'AccountUpdate.fundNewAccount()';
     let fee = Mina.accountCreationFee();
     numberOfAccounts ??= 1;
     if (typeof numberOfAccounts === 'number') fee = fee.mul(numberOfAccounts);
@@ -1678,12 +1693,11 @@ type ZkappCommandProved = {
 const ZkappCommand = {
   toPretty(transaction: ZkappCommand) {
     let feePayer = ZkappCommand.toJSON(transaction).feePayer as any;
-    feePayer.label = 'Fee payer';
     feePayer.body.publicKey = '..' + feePayer.body.publicKey.slice(-4);
     feePayer.body.authorization = '..' + feePayer.authorization.slice(-4);
     if (feePayer.body.validUntil === null) delete feePayer.body.validUntil;
     return [
-      feePayer.body,
+      { label: 'feePayer', ...feePayer.body },
       ...transaction.accountUpdates.map((a) => a.toPretty()),
     ];
   },
