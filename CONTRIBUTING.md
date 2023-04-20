@@ -23,8 +23,8 @@ To ensure consistency within the SnarkyJS ecosystem and ease review and use by o
   - If applicable, the package must work both on the web and in NodeJS.
 - The package is created using the [zkApp CLI](https://github.com/o1-labs/zkapp-cli) (recommended).  
   If you did not create the package using the zkApp CLI, follow these guidelines for code consistency:
-  - Use TypeScript, and export types from `d.ts` files. We suggest that you base your tsconfig on the one that SnarkyJS uses: [tsconfig.json](./tsconfig.json).
-  - Code must be auto-formatted with [prettier](https://prettier.io/). We encouraged you to use [.prettierrc.cjs](./.prettierrc.cjs), the same prettier config as SnarkyJS.
+  - Use TypeScript, and export types from `d.ts` files. We suggest that you base your tsconfig on the [tsconfig.json](./tsconfig.json) that SnarkyJS uses.
+  - Code must be auto-formatted with [prettier](https://prettier.io/). We encourage you to use [.prettierrc.cjs](./.prettierrc.cjs), the same prettier config as SnarkyJS.
 - The package includes tests.
   - If applicable, tests must demonstrate that the package's methods can successfully run as provable code. For example, when the package is used in a SmartContract or ZkProgram that is compiled and proven.
   - Ideally, your tests are easy to use, modify, and port to other projects by developers in the ecosystem. This is achieved by using Jest (see [jest.config.js](./jest.config.js) for an example config) or by structuring your tests as plain node scripts, like [this example](./src/lib/circuit_value.unit-test.ts).
