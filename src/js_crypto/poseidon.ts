@@ -1,8 +1,10 @@
 import { assertPositiveInteger } from './non-negative.js';
 import { poseidonParamsKimchiFp, poseidonParamsLegacyFp } from './constants.js';
-import { FiniteField, Fp } from './finite_field.js';
+import { FiniteField, Fp, Fq } from './finite_field.js';
+import { bigIntToBytes } from './bigint-helpers.js';
+import { Field, Group } from 'src/snarky.js';
 
-export { Poseidon, PoseidonLegacy };
+export { Poseidon, PoseidonLegacy, toGroup };
 
 type PoseidonParameters = {
   fullRounds: number;
@@ -17,6 +19,129 @@ type PoseidonParameters = {
 
 const Poseidon = createPoseidon(Fp, poseidonParamsKimchiFp);
 const PoseidonLegacy = createPoseidon(Fp, poseidonParamsLegacyFp);
+
+type GroupMapParams = {
+  u: bigint;
+  u_over_2: bigint;
+  conic_c: bigint;
+  projection_point: {
+    z: bigint;
+    y: bigint;
+  };
+  spec: { a: bigint; b: bigint };
+};
+
+type Conic = {
+  z: bigint;
+  y: bigint;
+};
+
+type STuple = {
+  u: bigint;
+  v: bigint;
+  y: bigint;
+};
+const GroupMap = {
+  Tock: (F: FiniteField) => {
+    const params: GroupMapParams = {
+      u: 0n,
+      u_over_2: 0n,
+      conic_c: 0n,
+      projection_point: {
+        z: 0n,
+        y: 0n,
+      },
+      spec: {
+        a: 0n,
+        b: 5n,
+      },
+    };
+
+    function tryDecode(x: bigint): [bigint, bigint] | undefined {
+      const { a, b } = params.spec;
+
+      function f(x: bigint) {
+        // a * a * a = a^3
+        const pow3 = F.power(x, 3n);
+        // a * x
+        const ax = F.mul(a, x);
+        // a^3 + ax + b
+        return F.add(F.add(pow3, ax), b);
+      }
+
+      const y = f(x);
+
+      const sqrtY = F.sqrt(y);
+      return F.isSquare(y) && sqrtY ? [x, sqrtY] : undefined;
+    }
+
+    function s_to_v_truncated(s: STuple): [bigint, bigint, bigint] {
+      const { u, v, y } = s;
+      return [v, F.negate(F.add(u, v)), F.add(u, F.square(y))];
+    }
+
+    function conic_to_s(c: Conic): STuple {
+      const d = F.div(c.z, c.y);
+      if (!d) throw Error(`Division undefined! ${c.z}/${c.y}`);
+      const v = F.sub(d, params.u_over_2);
+
+      return {
+        u: params.u,
+        v,
+        y: c.y,
+      };
+    }
+
+    function field_to_conic(t: bigint): Conic {
+      const { z: z0, y: y0 } = params.projection_point;
+
+      const ct = F.mul(params.conic_c, t);
+
+      const d1 = F.add(F.mul(ct, y0), z0);
+      const d2 = F.add(F.mul(ct, t), 1n);
+
+      const d = F.div(d1, d2);
+
+      if (!d) throw Error(`Division undefined! ${d1}/${d2}`);
+
+      const s = F.mul(2n, d);
+
+      return {
+        z: F.sub(z0, s),
+        y: F.sub(y0, F.mul(s, t)),
+      };
+    }
+
+    return {
+      potentialXs: (t: bigint) =>
+        s_to_v_truncated(conic_to_s(field_to_conic(t))),
+      tryDecode,
+    };
+  },
+};
+
+const params: {
+  u?: BigInt;
+  u_over_2?: BigInt;
+  conic_c?: BigInt;
+  projection_point?: BigInt;
+  spec: { a: BigInt; b: BigInt };
+} = {
+  spec: {
+    a: 0n,
+    b: 5n,
+  },
+};
+
+/*
+the field is Tick, the target params are Tock
+
+*/
+function toGroup(x: bigint) {
+  const { potentialXs, tryDecode } = GroupMap.Tock(Fq);
+  const xs = potentialXs(x);
+  return xs.map((x) => tryDecode(x)).find((x) => x);
+}
 
 function createPoseidon(
   Fp: FiniteField,
@@ -48,6 +173,11 @@ function createPoseidon(
   function hash(input: bigint[]) {
     let state = update(initialState(), input);
     return state[0];
+  }
+
+  function hashToCurve(input: bigint[]) {
+    // reference implementation Message.hash_to_group
+    let digest = hash(input);
   }
 
   function update([...state]: bigint[], input: bigint[]) {
@@ -119,5 +249,5 @@ function createPoseidon(
     }
   }
 
-  return { initialState, update, hash };
+  return { initialState, update, hash, hashToCurve };
 }
