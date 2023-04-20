@@ -13,13 +13,13 @@ import {
   PrivateKey,
   PublicKey,
   SmartContract,
-  Token,
   UInt64,
   VerificationKey,
   Struct,
   State,
   state,
   UInt32,
+  TokenId,
 } from 'snarkyjs';
 
 export { createDex, TokenContract, keys, addresses, tokenIds };
@@ -59,8 +59,11 @@ function createDex({
       // get balances of X and Y token
       // TODO: this creates extra account updates. we need to reuse these by passing them to or returning them from transfer()
       // but for that, we need the @method argument generalization
-      let dexXBalance = tokenX.getBalance(this.address);
-      let dexYBalance = tokenY.getBalance(this.address);
+      let dexXUpdate = AccountUpdate.create(this.address, tokenX.token.id);
+      let dexXBalance = dexXUpdate.account.balance.getAndAssertEquals();
+
+      let dexYUpdate = AccountUpdate.create(this.address, tokenY.token.id);
+      let dexYBalance = dexYUpdate.account.balance.getAndAssertEquals();
 
       // // assert dy === [dx * y/x], or x === 0
       let isXZero = dexXBalance.equals(UInt64.zero);
@@ -68,8 +71,8 @@ function createDex({
       let isDyCorrect = dy.equals(dx.mul(dexYBalance).div(xSafe));
       isDyCorrect.or(isXZero).assertTrue();
 
-      tokenX.transfer(user, this.address, dx);
-      tokenY.transfer(user, this.address, dy);
+      tokenX.transfer(user, dexXUpdate, dx);
+      tokenY.transfer(user, dexYUpdate, dy);
 
       // calculate liquidity token output simply as dl = dx + dx
       // => maintains ratio x/l, y/l
@@ -115,8 +118,8 @@ function createDex({
      */
     supplyLiquidity(dx: UInt64): UInt64 {
       // calculate dy outside circuit
-      let x = Account(this.address, Token.getId(this.tokenX)).balance.get();
-      let y = Account(this.address, Token.getId(this.tokenY)).balance.get();
+      let x = Account(this.address, TokenId.derive(this.tokenX)).balance.get();
+      let y = Account(this.address, TokenId.derive(this.tokenY)).balance.get();
       if (x.value.isConstant() && x.value.isZero().toBoolean()) {
         throw Error(
           'Cannot call `supplyLiquidity` when reserves are zero. Use `supplyLiquidityBase`.'
@@ -425,6 +428,12 @@ class TokenContract extends SmartContract {
     zkapp.requireSignature();
   }
 
+  @method approveUpdate(zkappUpdate: AccountUpdate) {
+    this.approve(zkappUpdate);
+    let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);
+    balanceChange.assertEquals(Int64.from(0));
+  }
+
   // let a zkapp send tokens to someone, provided the token supply stays constant
   @method approveUpdateAndSend(
     zkappUpdate: AccountUpdate,
@@ -450,7 +459,16 @@ class TokenContract extends SmartContract {
     this.token.mint({ address: to, amount });
   }
 
-  @method transfer(from: PublicKey, to: PublicKey, value: UInt64) {
+  transfer(from: PublicKey, to: PublicKey | AccountUpdate, amount: UInt64) {
+    if (to instanceof PublicKey)
+      return this.transferToAddress(from, to, amount);
+    if (to instanceof AccountUpdate)
+      return this.transferToUpdate(from, to, amount);
+  }
+  @method transferToAddress(from: PublicKey, to: PublicKey, value: UInt64) {
+    this.token.send({ from, to, amount: value });
+  }
+  @method transferToUpdate(from: PublicKey, to: AccountUpdate, value: UInt64) {
     this.token.send({ from, to, amount: value });
   }
 
@@ -474,9 +492,9 @@ let { keys, addresses } = randomAccounts(
   'user3'
 );
 let tokenIds = {
-  X: Token.getId(addresses.tokenX),
-  Y: Token.getId(addresses.tokenY),
-  lqXY: Token.getId(addresses.dex),
+  X: TokenId.derive(addresses.tokenX),
+  Y: TokenId.derive(addresses.tokenY),
+  lqXY: TokenId.derive(addresses.dex),
 };
 
 /**
