@@ -1,4 +1,4 @@
-# SnarkyJS &nbsp; [![npm version](https://img.shields.io/npm/v/snarkyjs.svg?style=flat)](https://www.npmjs.com/package/snarkyjs) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]([CONTRIBUTING.md](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md)
+# SnarkyJS &nbsp; [![npm version](https://img.shields.io/npm/v/snarkyjs.svg?style=flat)](https://www.npmjs.com/package/snarkyjs) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md)
 
 To write a zkApp smart contract for the Mina Protocol, we recommend using the [zkApp CLI](https://github.com/o1-labs/zkapp-cli). The zkApp CLI allows you to scaffold, write, test, and deploy zkApps using recommended best practices. zkApps created with the zkApp CLI include SnarkyJS and provide project scaffolding, a test framework, and correct formatting.
 
