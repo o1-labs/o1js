@@ -120,23 +120,6 @@ const GroupMap = {
   },
 };
 
-const params: {
-  u?: BigInt;
-  u_over_2?: BigInt;
-  conic_c?: BigInt;
-  projection_point?: BigInt;
-  spec: { a: BigInt; b: BigInt };
-} = {
-  spec: {
-    a: 0n,
-    b: 5n,
-  },
-};
-
-/*
-the field is Tick, the target params are Tock
-
-*/
 function toGroup(x: bigint) {
   const { potentialXs, tryDecode } = GroupMap.Tock(Fq);
   const xs = potentialXs(x);
