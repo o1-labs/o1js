@@ -135,8 +135,11 @@ function createDex({
      * @return output amount of X and Y tokens, as a tuple [outputX, outputY]
      *
      * The transaction needs to be signed by the user's private key.
+     *
+     * Note: this is not a `@method` because there's nothing to prove which isn't already proven
+     * by the called methods
      */
-    @method redeemLiquidity(dl: UInt64) {
+    redeemLiquidity(dl: UInt64) {
       // call the token X holder inside a token X-approved callback
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.token.id);

@@ -1,5 +1,5 @@
 import { isReady, Mina, AccountUpdate, UInt64 } from 'snarkyjs';
-import { createDex, TokenContract, addresses, keys } from './dex.js';
+import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
 import { tic, toc } from '../tictoc.js';
 import { getProfiler } from '../../profiler.js';
@@ -8,13 +8,13 @@ await isReady;
 
 const TokenProfiler = getProfiler('Token with Proofs');
 TokenProfiler.start('Token with proofs test flow');
-let doProofs = true;
+let proofsEnabled = true;
 
 tic('Happy path with proofs');
 console.log();
 
 let Local = Mina.LocalBlockchain({
-  proofsEnabled: doProofs,
+  proofsEnabled,
   enforceTransactionLimits: false,
 });
 Mina.setActiveInstance(Local);
@@ -29,19 +29,23 @@ TokenContract.analyzeMethods();
 DexTokenHolder.analyzeMethods();
 Dex.analyzeMethods();
 
-tic('compile (token)');
-await TokenContract.compile();
-toc();
-tic('compile (dex token holder)');
-await DexTokenHolder.compile();
-toc();
-tic('compile (dex main contract)');
-await Dex.compile();
-toc();
+if (proofsEnabled) {
+  tic('compile (token)');
+  await TokenContract.compile();
+  toc();
+  tic('compile (dex token holder)');
+  await DexTokenHolder.compile();
+  toc();
+  tic('compile (dex main contract)');
+  await Dex.compile();
+  toc();
+}
 
 let tokenX = new TokenContract(addresses.tokenX);
 let tokenY = new TokenContract(addresses.tokenY);
 let dex = new Dex(addresses.dex);
+let dexTokenHolderX = new DexTokenHolder(addresses.dex, tokenIds.X);
+let dexTokenHolderY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
 tic('deploy & init token contracts');
 tx = await Mina.transaction(feePayerAddress, () => {
@@ -56,6 +60,7 @@ tx = await Mina.transaction(feePayerAddress, () => {
 await tx.prove();
 await tx.sign([feePayerKey, keys.tokenX, keys.tokenY]).send();
 toc();
+console.log('account updates length', tx.transaction.accountUpdates.length);
 
 tic('deploy dex contracts');
 tx = await Mina.transaction(feePayerAddress, () => {
@@ -64,12 +69,15 @@ tx = await Mina.transaction(feePayerAddress, () => {
     accountFee.mul(3)
   );
   dex.deploy();
-  tokenX.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
-  tokenY.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
+  dexTokenHolderX.deploy();
+  tokenX.approveUpdate(dexTokenHolderX.self);
+  dexTokenHolderY.deploy();
+  tokenY.approveUpdate(dexTokenHolderY.self);
 });
 await tx.prove();
 await tx.sign([feePayerKey, keys.dex]).send();
 toc();
+console.log('account updates length', tx.transaction.accountUpdates.length);
 
 tic('transfer tokens to user');
 let USER_DX = 1_000n;
@@ -83,6 +91,7 @@ tx = await Mina.transaction(feePayerAddress, () => {
 await tx.prove();
 await tx.sign([feePayerKey, keys.tokenX, keys.tokenY]).send();
 toc();
+console.log('account updates length', tx.transaction.accountUpdates.length);
 [oldBalances, balances] = [balances, getTokenBalances()];
 expect(balances.user.X).toEqual(USER_DX);
 
@@ -94,6 +103,7 @@ tx = await Mina.transaction(addresses.user, () => {
 await tx.prove();
 await tx.sign([keys.user]).send();
 toc();
+console.log('account updates length', tx.transaction.accountUpdates.length);
 [oldBalances, balances] = [balances, getTokenBalances()];
 expect(balances.user.X).toEqual(0n);
 
@@ -105,6 +115,7 @@ tx = await Mina.transaction(addresses.user, () => {
 await tx.prove();
 await tx.sign([keys.user]).send();
 toc();
+console.log('account updates length', tx.transaction.accountUpdates.length);
 [oldBalances, balances] = [balances, getTokenBalances()];
 expect(balances.user.X).toEqual(USER_DL / 2n);
 
@@ -116,6 +127,7 @@ tx = await Mina.transaction(addresses.user, () => {
 await tx.prove();
 await tx.sign([keys.user]).send();
 toc();
+console.log('account updates length', tx.transaction.accountUpdates.length);
 [oldBalances, balances] = [balances, getTokenBalances()];
 expect(balances.user.X).toEqual(oldBalances.user.X - USER_DX);
 
