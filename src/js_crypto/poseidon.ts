@@ -44,12 +44,12 @@ type STuple = {
 const GroupMap = {
   Tock: (F: FiniteField) => {
     const params: GroupMapParams = {
-      u: 0n,
-      u_over_2: 0n,
-      conic_c: 0n,
+      u: 2n,
+      u_over_2: 1n,
+      conic_c: 3n,
       projection_point: {
-        z: 0n,
-        y: 0n,
+        z: 12196889842669319921865617096620076994180062626450149327690483414064673774441n,
+        y: 1n,
       },
       spec: {
         a: 0n,
@@ -121,8 +121,9 @@ const GroupMap = {
 };
 
 function toGroup(x: bigint) {
-  const { potentialXs, tryDecode } = GroupMap.Tock(Fq);
+  const { potentialXs, tryDecode } = GroupMap.Tock(Fp);
   const xs = potentialXs(x);
+  console.log(xs);
   return xs.map((x) => tryDecode(x)).find((x) => x);
 }
 
@@ -161,6 +162,7 @@ function createPoseidon(
   function hashToCurve(input: bigint[]) {
     // reference implementation Message.hash_to_group
     let digest = hash(input);
+    return toGroup(digest);
   }
 
   function update([...state]: bigint[], input: bigint[]) {
