@@ -211,7 +211,7 @@ function wrapMethod(
                 };
                 let [, result] = memoizationContext.runWith(
                   { ...context, blindingValue },
-                  () => method.apply(this, actualArgs)
+                  () => method.apply(this, actualArgs.map(cloneCircuitValue))
                 );
 
                 // connects our input + result with callData, so this method can be called
@@ -338,7 +338,7 @@ function wrapMethod(
             // connect our input + result with callData, so this method can be called
             let callDataFields = computeCallData(
               methodIntf,
-              actualArgs,
+              clonedArgs,
               result,
               blindingValue
             );
@@ -413,7 +413,7 @@ function wrapMethod(
               currentIndex: 0,
               blindingValue: constantBlindingValue,
             },
-            () => method.apply(this, constantArgs)
+            () => method.apply(this, constantArgs.map(cloneCircuitValue))
           );
           assertStatePrecondition(this);
 
