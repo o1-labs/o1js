@@ -26,8 +26,6 @@ import { invalidTransactionError } from './errors.js';
 import { Types } from '../provable/types.js';
 import { Account } from './mina/account.js';
 
-import utils from 'util';
-
 export {
   createTransaction,
   BerkeleyQANet,
@@ -754,11 +752,11 @@ function Network(input: { mina: string; archive: string } | string): Mina {
       let [response, error] = await Fetch.sendZkapp(txn.toJSON());
       let errors: any[] | undefined;
       if (response === undefined && error !== undefined) {
-        console.log('got fetch error', error);
+        console.log('Error: Failed to send transaction', error);
         errors = [error];
       } else if (response && response.errors && response.errors.length > 0) {
         console.log(
-          'got graphql errors',
+          'Error: Transaction returned with errors',
           JSON.stringify(response.errors, null, 2)
         );
         errors = response.errors;
@@ -809,7 +807,7 @@ function Network(input: { mina: string; archive: string } | string): Mina {
             } else if (maxAttempts && attempts === maxAttempts) {
               return reject(
                 new Error(
-                  `Exceeded max attempts. TransactionId: ${txId}, attempts: ${attempts}, last received status: ${res}`
+                  `Exceeded max attempts.\n\tTransactionId: ${txId}\n\tAttempts: ${attempts}\n\tLast received status: ${res}`
                 )
               );
             } else {
