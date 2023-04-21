@@ -8,7 +8,7 @@ For a list of changes between versions, see the [CHANGELOG.md](https://github.co
 
 ## Community Packages
 
-To include your package, see the [Contributing guidelines](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md#creating-high-quality-community-packages).
+To include your package, see [Creating high-quality community packages](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md#creating-high-quality-community-packages) in the contributing guidelines.
 
 Thank you to our community members who contribute packages that can be installed from [npm](https://www.npmjs.com/) and used alongside SnarkyJS. 
 
