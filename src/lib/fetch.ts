@@ -446,9 +446,9 @@ async function checkZkappTransaction(txnId: string) {
           let failureReason = zkappCommand.failureReason
             .reverse()
             .map((failure) => {
-              return `AccountUpdate #${
+              return ` AccountUpdate #${
                 failure.index
-              } failed. Reason: ${failure.failures.join(', ')}`;
+              } failed. Reason: "${failure.failures.join(', ')}"`;
             });
           return {
             success: false,
