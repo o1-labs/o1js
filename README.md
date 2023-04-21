@@ -8,16 +8,9 @@ For a list of changes between versions, see the [CHANGELOG.md](https://github.co
 
 ## Community Packages
 
-To include your package, see [Creating high-quality community packages](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md#creating-high-quality-community-packages) in the contributing guidelines.
+Here is a list of community-maintained packages. To include your package, see the [Contributing guidelines](./CONTRIBUTING.md#creating-high-quality-community-packages).
 
-Thank you to our community members who contribute packages that can be installed from [npm](https://www.npmjs.com/) and used alongside SnarkyJS. 
-
-Here's our official list of community-maintained packages:
-
-- [snarkyjs-elgamal](https://github.com/Trivo25/snarkyjs-elgamal) repository on GitHub
-  - A partially homomorphic encryption library for SnarkyJS based on Elgamal encryption. 
-  - [snarkyjs-elgamal](https://www.npmjs.com/package/snarkyjs-elgamal) package on the public npm registry.
-  - Contributed by https://github.com/Trivo25/.
+- **snarkyjs-elgamal** A partially homomorphic encryption library for SnarkyJS based on Elgamal encryption: [GitHub](https://github.com/Trivo25/snarkyjs-elgamal) and [npm](https://www.npmjs.com/package/snarkyjs-elgamal) 
 
 ## Contributing
 
