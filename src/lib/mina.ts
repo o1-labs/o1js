@@ -595,9 +595,10 @@ function LocalBlockchain({
         actions?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
       let { fromActionState, endActionState } = actionStates ?? {};
 
-      let start = fromActionState
-        ?.equals(Actions.emptyActionState())
-        .toBoolean()
+      let emptyState = Actions.emptyActionState();
+      if (endActionState?.equals(emptyState).toBoolean()) return [];
+
+      let start = fromActionState?.equals(emptyState).toBoolean()
         ? undefined
         : fromActionState?.toString();
       let end = endActionState?.toString();
@@ -624,7 +625,6 @@ function LocalBlockchain({
     testAccounts,
     setGlobalSlot(slot: UInt32 | number) {
       networkState.globalSlotSinceGenesis = UInt32.from(slot);
-      let difference = networkState.globalSlotSinceGenesis.sub(slot);
     },
     incrementGlobalSlot(increment: UInt32 | number) {
       networkState.globalSlotSinceGenesis =
