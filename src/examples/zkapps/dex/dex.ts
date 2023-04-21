@@ -437,6 +437,11 @@ class TokenContract extends SmartContract {
     balanceChange.assertEquals(Int64.from(0));
   }
 
+  // FIXME: remove this
+  @method approveAny(zkappUpdate: AccountUpdate) {
+    this.approve(zkappUpdate, AccountUpdate.Layout.AnyChildren);
+  }
+
   // let a zkapp send tokens to someone, provided the token supply stays constant
   @method approveUpdateAndSend(
     zkappUpdate: AccountUpdate,
