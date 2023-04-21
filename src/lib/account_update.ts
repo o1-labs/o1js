@@ -292,6 +292,22 @@ let Permissions = {
     setTiming: Permission.none(),
   }),
 
+  allImpossible: (): Permissions => ({
+    editState: Permission.impossible(),
+    send: Permission.impossible(),
+    receive: Permission.impossible(),
+    access: Permission.impossible(),
+    setDelegate: Permission.impossible(),
+    setPermissions: Permission.impossible(),
+    setVerificationKey: Permission.impossible(),
+    setZkappUri: Permission.impossible(),
+    editActionState: Permission.impossible(),
+    setTokenSymbol: Permission.impossible(),
+    incrementNonce: Permission.impossible(),
+    setVotingFor: Permission.impossible(),
+    setTiming: Permission.impossible(),
+  }),
+
   fromString: (permission: AuthRequired): Permission => {
     switch (permission) {
       case 'None':
@@ -796,6 +812,7 @@ class AccountUpdate implements Types.AccountUpdate {
       receiver.body.tokenId.assertEquals(this.body.tokenId);
     } else {
       receiver = AccountUpdate.defaultAccountUpdate(to, this.body.tokenId);
+      receiver.label = `${this.label ?? 'Unlabeled'}.send()`;
       this.approve(receiver);
     }
 
