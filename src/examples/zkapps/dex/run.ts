@@ -4,8 +4,8 @@ import {
   AccountUpdate,
   UInt64,
   shutdown,
-  Token,
   Permissions,
+  TokenId,
 } from 'snarkyjs';
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
@@ -32,8 +32,8 @@ console.log('TOKEN Y ADDRESS\t', addresses.tokenY.toBase58());
 console.log('DEX ADDRESS\t', addresses.dex.toBase58());
 console.log('USER ADDRESS\t', addresses.user.toBase58());
 console.log('-------------------------------------------------');
-console.log('TOKEN X ID\t', Token.Id.toBase58(tokenIds.X));
-console.log('TOKEN Y ID\t', Token.Id.toBase58(tokenIds.Y));
+console.log('TOKEN X ID\t', TokenId.toBase58(tokenIds.X));
+console.log('TOKEN Y ID\t', TokenId.toBase58(tokenIds.Y));
 console.log('-------------------------------------------------');
 
 TokenContract.analyzeMethods();

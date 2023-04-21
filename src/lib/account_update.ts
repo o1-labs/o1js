@@ -611,6 +611,27 @@ class Token {
   static getId(tokenOwner: PublicKey, parentTokenId = TokenId.default) {
     return TokenId.derive(tokenOwner, parentTokenId);
   }
+
+  readonly id: Field;
+  readonly parentTokenId: Field;
+  readonly tokenOwner: PublicKey;
+  constructor({
+    tokenOwner,
+    parentTokenId = TokenId.default,
+  }: {
+    tokenOwner: PublicKey;
+    parentTokenId?: Field;
+  }) {
+    this.parentTokenId = parentTokenId;
+    this.tokenOwner = tokenOwner;
+    try {
+      this.id = TokenId.derive(tokenOwner, parentTokenId);
+    } catch (e) {
+      throw new Error(
+        `Could not create a custom token id:\nError: ${(e as Error).message}`
+      );
+    }
+  }
 }
 
 /**
