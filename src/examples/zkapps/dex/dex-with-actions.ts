@@ -18,10 +18,9 @@ import {
   Reducer,
   Field,
   Permissions,
-  isReady,
 } from 'snarkyjs';
 
-import { TokenContract, addresses, tokenIds } from './dex.js';
+import { TokenContract, addresses } from './dex.js';
 
 export { Dex, DexTokenHolder };
 
@@ -284,13 +283,3 @@ class DexTokenHolder extends SmartContract {
     return dy;
   }
 }
-
-// // TODO remove if not needed
-
-// await isReady;
-
-// // build map of token id -> token contract address
-// // so that the dex token holder can figure out its token contract
-// let tokenAddresses = new Map<bigint, PublicKey>();
-// tokenAddresses.set(tokenIds.X.toBigInt(), addresses.tokenX);
-// tokenAddresses.set(tokenIds.Y.toBigInt(), addresses.tokenY);
