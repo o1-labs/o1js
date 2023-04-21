@@ -52,6 +52,7 @@ type STuple = {
   y: bigint;
 };
 
+// reference implementation https://github.com/o1-labs/snarky/blob/78e0d952518f75b5382f6d735adb24eef7a0fa90/group_map/group_map.ml
 const GroupMap = {
   Tock: (F: FiniteField) => {
     const params: GroupMapParams = {

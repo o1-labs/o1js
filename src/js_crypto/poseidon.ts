@@ -19,7 +19,7 @@ type PoseidonParameters = {
 const Poseidon = createPoseidon(Fp, poseidonParamsKimchiFp);
 const PoseidonLegacy = createPoseidon(Fp, poseidonParamsLegacyFp);
 
-function toGroup(x: bigint) {
+function fieldToGroup(x: bigint) {
   const { potentialXs, tryDecode } = GroupMap.Tock(Fp);
   const xs = potentialXs(x);
   return xs.map((x) => tryDecode(x)).find((x) => x);
@@ -58,9 +58,8 @@ function createPoseidon(
   }
 
   function hashToCurve(input: bigint[]) {
-    // reference implementation Message.hash_to_group
     let digest = hash(input);
-    return toGroup(digest);
+    return fieldToGroup(digest);
   }
 
   function update([...state]: bigint[], input: bigint[]) {
