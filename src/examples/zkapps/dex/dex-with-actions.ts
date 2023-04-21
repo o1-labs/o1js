@@ -76,22 +76,20 @@ class Dex extends SmartContract {
     let tokenY = new TokenContract(this.tokenY);
 
     // get balances of X and Y token
-    // TODO: this creates extra account updates. we need to reuse these by passing them to or returning them from transfer()
-    // but for that, we need the @method argument generalization
-    let dexXUpdate = AccountUpdate.create(this.address, tokenX.token.id);
-    let dexXBalance = dexXUpdate.account.balance.getAndAssertEquals();
+    let dexX = AccountUpdate.create(this.address, tokenX.token.id);
+    let x = dexX.account.balance.getAndAssertEquals();
 
-    let dexYUpdate = AccountUpdate.create(this.address, tokenY.token.id);
-    let dexYBalance = dexYUpdate.account.balance.getAndAssertEquals();
+    let dexY = AccountUpdate.create(this.address, tokenY.token.id);
+    let y = dexY.account.balance.getAndAssertEquals();
 
     // // assert dy === [dx * y/x], or x === 0
-    let isXZero = dexXBalance.equals(UInt64.zero);
-    let xSafe = Circuit.if(isXZero, UInt64.one, dexXBalance);
-    let isDyCorrect = dy.equals(dx.mul(dexYBalance).div(xSafe));
+    let isXZero = x.equals(UInt64.zero);
+    let xSafe = Circuit.if(isXZero, UInt64.one, x);
+    let isDyCorrect = dy.equals(dx.mul(y).div(xSafe));
     isDyCorrect.or(isXZero).assertTrue();
 
-    tokenX.transfer(user, dexXUpdate, dx);
-    tokenY.transfer(user, dexYUpdate, dy);
+    tokenX.transfer(user, dexX, dx);
+    tokenY.transfer(user, dexY, dy);
 
     // calculate liquidity token output simply as dl = dx + dx
     // => maintains ratio x/l, y/l
@@ -163,8 +161,11 @@ class Dex extends SmartContract {
    * @return output amount Y tokens
    *
    * The transaction needs to be signed by the user's private key.
+   *
+   * Note: this is not a `@method`, since it doesn't do anything beyond
+   * the called methods which requires proof authorization.
    */
-  @method swapX(dx: UInt64): UInt64 {
+  swapX(dx: UInt64): UInt64 {
     let tokenY = new TokenContract(this.tokenY);
     let dexY = new DexTokenHolder(this.address, tokenY.token.id);
     let dy = dexY.swap(this.sender, dx, this.tokenX);
@@ -178,8 +179,11 @@ class Dex extends SmartContract {
    * @return output amount Y tokens
    *
    * The transaction needs to be signed by the user's private key.
+   *
+   * Note: this is not a `@method`, since it doesn't do anything beyond
+   * the called methods which requires proof authorization.
    */
-  @method swapY(dy: UInt64): UInt64 {
+  swapY(dy: UInt64): UInt64 {
     let tokenX = new TokenContract(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.token.id);
     let dx = dexX.swap(this.sender, dy, this.tokenY);
@@ -261,16 +265,20 @@ class DexTokenHolder extends SmartContract {
     // we're writing this as if our token === y and other token === x
     let dx = otherTokenAmount;
     let tokenX = new TokenContract(otherTokenAddress);
-    // get balances
-    let x = tokenX.getBalance(this.address);
-    let y = this.account.balance.get();
-    this.account.balance.assertEquals(y);
+
+    // get balances of X and Y token
+    let dexX = AccountUpdate.create(this.address, tokenX.token.id);
+    let x = dexX.account.balance.getAndAssertEquals();
+    let y = this.account.balance.getAndAssertEquals();
+
     // send x from user to us (i.e., to the same address as this but with the other token)
-    tokenX.transfer(user, this.address, dx);
+    tokenX.transfer(user, dexX, dx);
+
     // compute and send dy
     let dy = y.mul(dx).div(x.add(dx));
     // just subtract dy balance and let adding balance be handled one level higher
     this.balance.subInPlace(dy);
+
     // be approved by the token owner parent
     this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
     return dy;
