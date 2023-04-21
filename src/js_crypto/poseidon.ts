@@ -1,6 +1,6 @@
 import { assertPositiveInteger } from './non-negative.js';
 import { poseidonParamsKimchiFp, poseidonParamsLegacyFp } from './constants.js';
-import { FiniteField, Fp } from './finite_field.js';
+import { FiniteField, Fp, Fq } from './finite_field.js';
 import { GroupMap } from './elliptic_curve.js';
 
 export { Poseidon, PoseidonLegacy };

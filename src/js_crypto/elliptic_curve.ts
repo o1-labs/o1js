@@ -1,4 +1,4 @@
-import { FiniteField, inverse, mod, p, q } from './finite_field.js';
+import { FiniteField, Fq, inverse, mod, p, q } from './finite_field.js';
 export { Pallas, Vesta, GroupAffine, GroupProjective, GroupMap };
 
 // TODO: constants, like generator points and cube roots for endomorphisms, should be drawn from
@@ -73,8 +73,6 @@ const GroupMap = {
     function tryDecode(x: bigint): { x: bigint; y: bigint } | undefined {
       const { a, b } = params.spec;
 
-      console.log(`[SNARKYJS] tryDecode x: ${x}`);
-
       function f(x: bigint) {
         // a * a * a = a^3
         const pow3 = F.power(x, 3n);
@@ -85,7 +83,6 @@ const GroupMap = {
       }
 
       const y = f(x);
-      console.log(`[SNARKYJS] y: ${y}`);
       const sqrtY = F.sqrt(y);
       return F.isSquare(y) && sqrtY ? { x, y: sqrtY } : undefined;
     }
