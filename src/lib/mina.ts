@@ -752,12 +752,6 @@ function Network(input: { mina: string; archive: string } | string): Mina {
       verifyTransactionLimits(txn.transaction.accountUpdates);
 
       let [response, error] = await Fetch.sendZkapp(txn.toJSON());
-      console.log(
-        'DEBUG: response and error',
-        utils.inspect(response, false, null, true),
-        utils.inspect(error, false, null, true)
-      );
-
       let errors: any[] | undefined;
       if (response === undefined && error !== undefined) {
         console.log('got fetch error', error);
@@ -771,12 +765,6 @@ function Network(input: { mina: string; archive: string } | string): Mina {
       }
 
       let isSuccess = errors === undefined;
-      console.log(
-        'DEBUG: isSuccess',
-        isSuccess,
-        utils.inspect(errors, false, null, true)
-      );
-
       let maxAttempts: number;
       let attempts = 0;
       let interval: number;
@@ -802,16 +790,22 @@ function Network(input: { mina: string; archive: string } | string): Mina {
             resolve: () => void,
             reject: (err: Error) => void | Error
           ) => {
-            let txId = response?.data?.sendZkapp?.zkapp?.id;
+            let txId = response?.data?.sendZkapp?.zkapp?.hash;
             let res;
             try {
-              res = await Fetch.fetchTransactionStatus(txId);
+              res = await Fetch.checkZkappTransaction(txId);
             } catch (error) {
               return reject(error as Error);
             }
             attempts++;
-            if (res === 'INCLUDED') {
+            if (res.success) {
               return resolve();
+            } else if (res.failureReason) {
+              return reject(
+                new Error(
+                  `Transaction failed.\n\tTransactionId: ${txId}\n\tAttempts: ${attempts}\n\tfailureReason(s): ${res.failureReason}`
+                )
+              );
             } else if (maxAttempts && attempts === maxAttempts) {
               return reject(
                 new Error(

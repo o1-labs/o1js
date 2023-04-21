@@ -19,6 +19,7 @@ import {
 export {
   fetchAccount,
   fetchLastBlock,
+  checkZkappTransaction,
   parseFetchedAccount,
   markAccountToBeFetched,
   markNetworkToBeFetched,
@@ -389,6 +390,85 @@ const lastBlockQuery = `{
     }
   }
 }`;
+
+type LastBlockQueryFailureCheckResponse = {
+  bestChain: {
+    transactions: {
+      zkappCommands: {
+        hash: string;
+        failureReason: {
+          failures: string[];
+          index: number;
+        }[];
+      }[];
+    };
+  }[];
+};
+
+const lastBlockQueryFailureCheck = `{
+  bestChain(maxLength: 1) {
+    transactions {
+      zkappCommands {
+        hash
+        failureReason {
+          failures
+          index
+        }
+      }
+    }
+  }
+}`;
+
+async function fetchLatestBlockZkappStatus(
+  graphqlEndpoint = defaultGraphqlEndpoint
+) {
+  let [resp, error] = await makeGraphqlRequest(
+    lastBlockQueryFailureCheck,
+    graphqlEndpoint
+  );
+  if (error) throw Error(`Error making GraphQL request: ${error.statusText}`);
+  let bestChain = resp?.data as LastBlockQueryFailureCheckResponse;
+  if (bestChain === undefined) {
+    throw Error(
+      'Failed to fetch the latest zkApp transaction status. The response data is undefined.'
+    );
+  }
+  return bestChain;
+}
+
+async function checkZkappTransaction(txnId: string) {
+  let bestChainBlocks = await fetchLatestBlockZkappStatus();
+
+  for (let block of bestChainBlocks.bestChain) {
+    for (let zkappCommand of block.transactions.zkappCommands) {
+      if (zkappCommand.hash === txnId) {
+        if (zkappCommand.failureReason !== null) {
+          let failureReason = zkappCommand.failureReason
+            .reverse()
+            .map((failure) => {
+              return `AccountUpdate #${
+                failure.index
+              } failed. Reason: ${failure.failures.join(', ')}`;
+            });
+          return {
+            success: false,
+            failureReason,
+          };
+        } else {
+          return {
+            success: true,
+            failureReason: null,
+          };
+        }
+      }
+    }
+  }
+
+  return {
+    success: false,
+    failureReason: null,
+  };
+}
 
 type FetchedBlock = {
   protocolState: {
