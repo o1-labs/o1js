@@ -57,7 +57,7 @@ const GroupMap = {
       },
     };
 
-    function tryDecode(x: bigint): [bigint, bigint] | undefined {
+    function tryDecode(x: bigint): { x: bigint; y: bigint } | undefined {
       const { a, b } = params.spec;
 
       function f(x: bigint) {
@@ -70,9 +70,9 @@ const GroupMap = {
       }
 
       const y = f(x);
-
+      console.log(y);
       const sqrtY = F.sqrt(y);
-      return F.isSquare(y) && sqrtY ? [x, sqrtY] : undefined;
+      return F.isSquare(y) && sqrtY ? { x, y: sqrtY } : undefined;
     }
 
     function s_to_v_truncated(s: STuple): [bigint, bigint, bigint] {
@@ -123,7 +123,6 @@ const GroupMap = {
 function toGroup(x: bigint) {
   const { potentialXs, tryDecode } = GroupMap.Tock(Fp);
   const xs = potentialXs(x);
-  console.log(xs);
   return xs.map((x) => tryDecode(x)).find((x) => x);
 }
 
