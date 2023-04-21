@@ -3,7 +3,7 @@ import { poseidonParamsKimchiFp, poseidonParamsLegacyFp } from './constants.js';
 import { FiniteField, Fp } from './finite_field.js';
 import { GroupMap } from './elliptic_curve.js';
 
-export { Poseidon, PoseidonLegacy, toGroup };
+export { Poseidon, PoseidonLegacy };
 
 type PoseidonParameters = {
   fullRounds: number;
@@ -57,7 +57,7 @@ function createPoseidon(
     return state[0];
   }
 
-  function hashToCurve(input: bigint[]) {
+  function hashToGroup(input: bigint[]) {
     let digest = hash(input);
     return fieldToGroup(digest);
   }
@@ -131,5 +131,5 @@ function createPoseidon(
     }
   }
 
-  return { initialState, update, hash, hashToCurve };
+  return { initialState, update, hash, hashToGroup };
 }

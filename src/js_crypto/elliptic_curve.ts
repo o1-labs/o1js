@@ -53,6 +53,7 @@ type STuple = {
 };
 
 // reference implementation https://github.com/o1-labs/snarky/blob/78e0d952518f75b5382f6d735adb24eef7a0fa90/group_map/group_map.ml
+
 const GroupMap = {
   Tock: (F: FiniteField) => {
     const params: GroupMapParams = {
@@ -72,6 +73,8 @@ const GroupMap = {
     function tryDecode(x: bigint): { x: bigint; y: bigint } | undefined {
       const { a, b } = params.spec;
 
+      console.log(`[SNARKYJS] tryDecode x: ${x}`);
+
       function f(x: bigint) {
         // a * a * a = a^3
         const pow3 = F.power(x, 3n);
@@ -82,7 +85,7 @@ const GroupMap = {
       }
 
       const y = f(x);
-      console.log(y);
+      console.log(`[SNARKYJS] y: ${y}`);
       const sqrtY = F.sqrt(y);
       return F.isSquare(y) && sqrtY ? { x, y: sqrtY } : undefined;
     }
