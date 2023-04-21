@@ -290,7 +290,7 @@ export default [
         type: 'function',
       },
       {
-        name: 'hashToCurve',
+        name: 'hashToGroup',
         type: 'function',
       },
     ],
