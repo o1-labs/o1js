@@ -24,7 +24,6 @@ import { TokenContract, addresses } from './dex.js';
 
 export { Dex, DexTokenHolder };
 
-class UInt64x2 extends Struct([UInt64, UInt64]) {}
 class RedeemAction extends Struct({ address: PublicKey, dl: UInt64 }) {}
 
 class Dex extends SmartContract {
@@ -43,6 +42,11 @@ class Dex extends SmartContract {
    * redeeming liquidity is a 2-step process leveraging actions, to get past the account update limit
    */
   reducer = Reducer({ actionType: RedeemAction });
+
+  events = {
+    'supply-liquidity': Struct({ address: PublicKey, dx: UInt64, dy: UInt64 }),
+    'redeem-liquidity': Struct({ address: PublicKey, dl: UInt64 }),
+  };
 
   /**
    * Initialization. We set _all_ permissions to impossible except the ones we explicitly need.
@@ -99,6 +103,13 @@ class Dex extends SmartContract {
     let l = this.totalSupply.get();
     this.totalSupply.assertEquals(l);
     this.totalSupply.set(l.add(dl));
+
+    // emit event
+    let key = 'supply-liquidity' as const satisfies keyof Dex['events'];
+    let event = { address: user, dx, dy } satisfies InstanceType<
+      Dex['events'][typeof key]
+    >;
+    this.emitEvent(key, event);
     return dl;
   }
 
@@ -134,15 +145,22 @@ class Dex extends SmartContract {
    * to get back the tokens, you have to call {@link DexTokenHolder}.redeemFinalize()
    * on both token holder contracts, after `redeemInitialize()` has been accepted into a block.
    *
-   * @emits RedeemAction  - action on the Dex account that will make the token holder
+   * @emits RedeemAction - action on the Dex account that will make the token holder
    * contracts pay you tokens when reducing the action.
    */
   @method redeemInitialize(dl: UInt64) {
     this.reducer.dispatch(new RedeemAction({ address: this.sender, dl }));
     this.token.burn({ address: this.sender, amount: dl });
     // TODO: preconditioning on the state here ruins concurrent interactions,
-    // there should be another `finalize` DEX method which reduced actions & updates state
+    // there should be another `finalize` DEX method which reduces actions & updates state
     this.totalSupply.set(this.totalSupply.getAndAssertEquals().sub(dl));
+
+    // emit event
+    let key = 'redeem-liquidity' as const satisfies keyof Dex['events'];
+    let event = { address: this.sender, dl } satisfies InstanceType<
+      Dex['events'][typeof key]
+    >;
+    this.emitEvent(key, event);
   }
 
   /**
@@ -198,6 +216,10 @@ class Dex extends SmartContract {
 class DexTokenHolder extends SmartContract {
   @state(Field) redeemActionState = State<Field>();
   static redeemActionBatchSize = 5;
+
+  events = {
+    swap: Struct({ address: PublicKey, dx: UInt64 }),
+  };
 
   init() {
     super.init();
@@ -278,8 +300,13 @@ class DexTokenHolder extends SmartContract {
     // just subtract dy balance and let adding balance be handled one level higher
     this.balance.subInPlace(dy);
 
-    // be approved by the token owner parent
-    this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
+    // emit event
+    let key = 'swap' as const satisfies keyof DexTokenHolder['events'];
+    let event = { address: this.sender, dx } satisfies InstanceType<
+      DexTokenHolder['events'][typeof key]
+    >;
+    this.emitEvent(key, event);
+
     return dy;
   }
 }

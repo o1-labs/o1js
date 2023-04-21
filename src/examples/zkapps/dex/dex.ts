@@ -260,9 +260,6 @@ function createDex({
       // just subtract the balance, user gets their part one level higher
       this.balance.subInPlace(dx);
 
-      // be approved by the token owner parent
-      this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
-
       return [dx, dy];
     }
 
@@ -285,8 +282,6 @@ function createDex({
       let dy = y.mul(dx).div(x.add(dx));
       // just subtract dy balance and let adding balance be handled one level higher
       this.balance.subInPlace(dy);
-      // be approved by the token owner parent
-      this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
       return dy;
     }
   }
@@ -311,8 +306,6 @@ function createDex({
       let dy = y.mul(dx).div(x.add(dx)).add(15);
 
       this.balance.subInPlace(dy);
-      // be approved by the token owner parent
-      this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
       return dy;
     }
   }
