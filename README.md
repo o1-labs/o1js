@@ -10,7 +10,7 @@ For a list of changes between versions, see the [CHANGELOG.md](https://github.co
 
 > A list of community-maintained packages is being collected. To include your package, see the [Contributing guidelines](./CONTRIBUTING.md#creating-high-quality-community-packages).
 
-- [SnarkyJS Elgamal](https://www.npmjs.com/package/snarkyjs-elgamal): A partially homomorphic encryption library for SnarkyJS based on Elgamal encryption.
+- [snarkyjs-elgamal](https://github.com/Trivo25/snarkyjs-elgamal): A partially homomorphic encryption library for SnarkyJS based on Elgamal encryption. [npm](https://www.npmjs.com/package/snarkyjs-elgamal)
 
 ## Contributing
 
