@@ -16,7 +16,7 @@ Here's our official list of community-maintained packages:
 
 - [snarkyjs-elgamal](https://github.com/Trivo25/snarkyjs-elgamal) repository on GitHub
   - A partially homomorphic encryption library for SnarkyJS based on Elgamal encryption. 
-  - The [snarkyjs-elgamal](https://www.npmjs.com/package/snarkyjs-elgamal) package is published on the public npm registry.
+  - [snarkyjs-elgamal](https://www.npmjs.com/package/snarkyjs-elgamal) package on the public npm registry.
   - Contributed by https://github.com/Trivo25/.
 
 ## Contributing
