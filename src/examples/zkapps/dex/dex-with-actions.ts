@@ -187,26 +187,6 @@ class Dex extends SmartContract {
     return dx;
   }
 
-  /**
-   * helper method to approve burning of user's liquidity.
-   * this just burns user tokens, so there is no incentive to call this directly.
-   * instead, the dex token holders call this and in turn pay back tokens.
-   *
-   * @param user caller address
-   * @param dl input amount of lq tokens
-   * @returns total supply of lq tokens _before_ burning dl, so that caller can calculate how much dx / dx to returns
-   *
-   * The transaction needs to be signed by the user's private key.
-   */
-  @method burnLiquidity(user: PublicKey, dl: UInt64): UInt64 {
-    // this makes sure there is enough l to burn (user balance stays >= 0), so l stays >= 0, so l was >0 before
-    this.token.burn({ address: user, amount: dl });
-    let l = this.totalSupply.get();
-    this.totalSupply.assertEquals(l);
-    this.totalSupply.set(l.sub(dl));
-    return l;
-  }
-
   @method transfer(from: PublicKey, to: PublicKey, amount: UInt64) {
     this.token.send({ from, to, amount });
   }
@@ -270,57 +250,6 @@ class DexTokenHolder extends SmartContract {
 
     // precondition on the DEX contract, to prove we used the right actions & token supply
     dex.assertActionsAndSupply(redeemActionState, l);
-  }
-
-  // simpler circuit for redeeming liquidity -- direct trade between our token and lq token
-  // it's incomplete, as it gives the user only the Y part for an lqXY token; but doesn't matter as there's no incentive to call it directly
-  // see the more complicated method `redeemLiquidity` below which gives back both tokens, by calling this method,
-  // for the other token, in a callback
-  @method redeemLiquidityPartial(user: PublicKey, dl: UInt64): UInt64x2 {
-    // user burns dl, approved by the Dex main contract
-    let dex = new Dex(addresses.dex);
-    let l = dex.burnLiquidity(user, dl);
-
-    // in return, we give dy back
-    let y = this.account.balance.get();
-    this.account.balance.assertEquals(y);
-    // we can safely divide by l here because the Dex contract logic wouldn't allow burnLiquidity if not l>0
-    let dy = y.mul(dl).div(l);
-    // just subtract the balance, user gets their part one level higher
-    this.balance.subInPlace(dy);
-
-    // be approved by the token owner parent
-    this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
-
-    // return l, dy so callers don't have to walk their child account updates to get it
-    return [l, dy];
-  }
-
-  // more complicated circuit, where we trigger the Y(other)-lqXY trade in our child account updates and then add the X(our) part
-  @method redeemLiquidity(
-    user: PublicKey,
-    dl: UInt64,
-    otherTokenAddress: PublicKey
-  ): UInt64x2 {
-    // first call the Y token holder, approved by the Y token contract; this makes sure we get dl, the user's lqXY
-    let tokenY = new TokenContract(otherTokenAddress);
-    let dexY = new DexTokenHolder(this.address, tokenY.token.id);
-    let result = dexY.redeemLiquidityPartial(user, dl);
-    let l = result[0];
-    let dy = result[1];
-    tokenY.approveUpdateAndSend(dexY.self, user, dy);
-
-    // in return for dl, we give back dx, the X token part
-    let x = this.account.balance.get();
-    this.account.balance.assertEquals(x);
-    let dx = x.mul(dl).div(l);
-    // just subtract the balance, user gets their part one level higher
-    this.balance.subInPlace(dx);
-
-    // be approved by the token owner parent
-    this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
-
-    return [dx, dy];
   }
 
   // this works for both directions (in our case where both tokens use the same contract)

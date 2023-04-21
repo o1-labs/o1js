@@ -152,12 +152,14 @@ tx = await Mina.transaction(addresses.user, () => {
   dex.swapX(UInt64.from(USER_DX));
 });
 await tx.prove();
-await tx.sign([keys.user]).send();
-toc();
 console.log('account updates length', tx.transaction.accountUpdates.length);
 console.log(tx.toPretty());
+await tx.sign([keys.user]).send();
+toc();
+
 [oldBalances, balances] = [balances, getTokenBalances()];
 expect(balances.user.X).toEqual(oldBalances.user.X - USER_DX);
+console.log(balances);
 
 toc();
 console.log('dex happy path with proofs was successful! 🎉');
