@@ -1133,7 +1133,7 @@ async function fetchEvents(
  */
 async function fetchActions(
   publicKey: PublicKey,
-  actionStates: ActionStates,
+  actionStates?: ActionStates,
   tokenId?: Field
 ) {
   return await activeInstance.fetchActions(publicKey, actionStates, tokenId);
@@ -1144,7 +1144,7 @@ async function fetchActions(
  */
 function getActions(
   publicKey: PublicKey,
-  actionStates: ActionStates,
+  actionStates?: ActionStates,
   tokenId?: Field
 ) {
   return activeInstance.getActions(publicKey, actionStates, tokenId);

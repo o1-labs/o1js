@@ -492,27 +492,6 @@ function wrapMethod(
         );
         let callData = Poseidon.hash(callDataFields);
         accountUpdate.body.callData.assertEquals(callData);
-
-        // caller circuits should be Delegate_call by default, except if they're called at the top level
-        let isTopLevel = Circuit.witness(Bool, () => {
-          // TODO: this logic is fragile.. need better way of finding out if parent is the prover account update or not
-          let isProverUpdate =
-            inProver() &&
-            zkAppProver
-              .getData()
-              .accountUpdate.body.publicKey.equals(
-                parentAccountUpdate.body.publicKey
-              )
-              .toBoolean();
-          let parentCallDepth = isProverUpdate
-            ? zkAppProver.getData().accountUpdate.body.callDepth
-            : CallForest.computeCallDepth(parentAccountUpdate);
-          return Bool(parentCallDepth === 0);
-        });
-        parentAccountUpdate.body.mayUseToken = {
-          parentsOwnToken: isTopLevel.not(),
-          inheritFromParent: Bool(false),
-        };
         return result;
       }
     );
@@ -1283,8 +1262,26 @@ type ReducerReturn<Action> = {
     stateType: Provable<State>,
     reduce: (state: State, action: Action) => State,
     initial: { state: State; actionsHash: Field },
-    options?: { maxTransactionsWithActions?: number }
+    options?: {
+      maxTransactionsWithActions?: number;
+      skipActionStatePrecondition?: boolean;
+    }
   ): { state: State; actionsHash: Field };
+  /**
+   * Perform circuit logic for every {@link Action} in the list.
+   *
+   * This is a wrapper around {@link reduce} for when you don't need `state`.
+   * Accepts the `fromActionState` and returns the updated action state.
+   */
+  forEach(
+    actions: Action[][],
+    reduce: (action: Action) => void,
+    fromActionState: Field,
+    options?: {
+      maxTransactionsWithActions?: number;
+      skipActionStatePrecondition?: boolean;
+    }
+  ): Field;
   /**
    * Fetches the list of previously emitted {@link Action}s by this {@link SmartContract}.
    * ```ts
@@ -1296,7 +1293,7 @@ type ReducerReturn<Action> = {
   getActions({
     fromActionState,
     endActionState,
-  }: {
+  }?: {
     fromActionState?: Field;
     endActionState?: Field;
   }): Action[][];
@@ -1342,7 +1339,10 @@ class ${contract.constructor.name} extends SmartContract {
       stateType: Provable<S>,
       reduce: (state: S, action: A) => S,
       { state, actionsHash }: { state: S; actionsHash: Field },
-      { maxTransactionsWithActions = 32 } = {}
+      {
+        maxTransactionsWithActions = 32,
+        skipActionStatePrecondition = false,
+      } = {}
     ): { state: S; actionsHash: Field } {
       if (actionLists.length > maxTransactionsWithActions) {
         throw Error(
@@ -1401,13 +1401,33 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         // update state
         state = Circuit.switch(lengths, stateType, newStates);
       }
-      contract.account.actionState.assertEquals(actionsHash);
+      if (!skipActionStatePrecondition) {
+        contract.account.actionState.assertEquals(actionsHash);
+      }
       return { state, actionsHash };
     },
-    getActions({
-      fromActionState,
-      endActionState,
-    }: {
+
+    forEach(
+      actionLists: A[][],
+      callback: (action: A) => void,
+      fromActionState: Field,
+      config
+    ): Field {
+      const stateType = provable(undefined);
+      let { actionsHash } = this.reduce(
+        actionLists,
+        stateType,
+        (_, action) => {
+          callback(action);
+          return undefined;
+        },
+        { state: undefined, actionsHash: fromActionState },
+        config
+      );
+      return actionsHash;
+    },
+
+    getActions(config?: {
       fromActionState?: Field;
       endActionState?: Field;
     }): A[][] {
@@ -1415,7 +1435,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       Circuit.asProver(() => {
         let actions = Mina.getActions(
           contract.address,
-          { fromActionState, endActionState },
+          config,
           contract.self.tokenId
         );
         actionsForAccount = actions.map((event) =>
@@ -1429,16 +1449,13 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       });
       return actionsForAccount;
     },
-    async fetchActions({
-      fromActionState,
-      endActionState,
-    }: {
+    async fetchActions(config?: {
       fromActionState?: Field;
       endActionState?: Field;
     }): Promise<A[][]> {
       let result = await Mina.fetchActions(
         contract.address,
-        { fromActionState, endActionState },
+        config,
         contract.self.tokenId
       );
       if ('error' in result) {
