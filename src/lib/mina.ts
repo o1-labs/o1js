@@ -793,18 +793,22 @@ function Network(input: { mina: string; archive: string } | string): Mina {
             try {
               res = await Fetch.checkZkappTransaction(txId);
             } catch (error) {
+              isSuccess = false;
               return reject(error as Error);
             }
             attempts++;
             if (res.success) {
+              isSuccess = true;
               return resolve();
             } else if (res.failureReason) {
+              isSuccess = false;
               return reject(
                 new Error(
                   `Transaction failed.\n\tTransactionId: ${txId}\n\tAttempts: ${attempts}\n\tfailureReason(s): ${res.failureReason}`
                 )
               );
             } else if (maxAttempts && attempts === maxAttempts) {
+              isSuccess = false;
               return reject(
                 new Error(
                   `Exceeded max attempts.\n\tTransactionId: ${txId}\n\tAttempts: ${attempts}\n\tLast received status: ${res}`
