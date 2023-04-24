@@ -319,7 +319,7 @@ class DexTokenHolder extends SmartContract {
 
 await isReady;
 let { keys, addresses } = randomAccounts(
-  true,
+  false,
   'tokenX',
   'tokenY',
   'dex',
