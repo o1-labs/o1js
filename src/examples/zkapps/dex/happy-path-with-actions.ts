@@ -3,16 +3,13 @@ import { Dex, DexTokenHolder } from './dex-with-actions.js';
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
 import { tic, toc } from '../tictoc.js';
-import { getProfiler } from '../../profiler.js';
 
 await isReady;
-let { getTokenBalances } = createDex();
+let { getTokenBalances: getBalances } = createDex();
 
-const TokenProfiler = getProfiler('Token with Proofs');
-TokenProfiler.start('Token with proofs test flow');
 let proofsEnabled = false;
 
-tic('Happy path with proofs');
+tic('Happy path with actions');
 console.log();
 
 let Local = Mina.LocalBlockchain({
@@ -102,6 +99,7 @@ tx = await Mina.transaction(addresses.user, () => {
   dex.supplyLiquidityBase(UInt64.from(USER_DX), UInt64.from(USER_DX));
 });
 await tx.prove();
+console.log(tx.toPretty());
 await tx.sign([keys.user]).send();
 toc();
 console.log('account updates length', tx.transaction.accountUpdates.length);
@@ -115,7 +113,6 @@ tx = await Mina.transaction(addresses.user, () => {
   dex.redeemInitialize(UInt64.from(USER_DL));
 });
 await tx.prove();
-console.log(tx.toPretty());
 await tx.sign([keys.user]).send();
 toc();
 console.log('account updates length', tx.transaction.accountUpdates.length);
@@ -152,15 +149,24 @@ tx = await Mina.transaction(addresses.user, () => {
   dex.swapX(UInt64.from(USER_DX));
 });
 await tx.prove();
-console.log('account updates length', tx.transaction.accountUpdates.length);
-console.log(tx.toPretty());
 await tx.sign([keys.user]).send();
 toc();
+console.log('account updates length', tx.transaction.accountUpdates.length);
 
 [oldBalances, balances] = [balances, getTokenBalances()];
 expect(balances.user.X).toEqual(oldBalances.user.X - USER_DX);
 console.log(balances);
 
 toc();
-console.log('dex happy path with proofs was successful! 🎉');
-TokenProfiler.stop().store();
+console.log('dex happy path with actions was successful! 🎉');
+
+// make console outputs more minimal
+function getTokenBalances() {
+  let balances: any = getBalances();
+  delete balances.user2;
+  delete balances.tokenContract;
+  return balances as Omit<
+    ReturnType<typeof getBalances>,
+    'user2' | 'tokenContract'
+  >;
+}
