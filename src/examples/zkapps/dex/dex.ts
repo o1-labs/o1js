@@ -22,7 +22,7 @@ import {
   TokenId,
 } from 'snarkyjs';
 
-export { createDex, TokenContract, keys, addresses, tokenIds };
+export { createDex, TokenContract, keys, addresses, tokenIds, randomAccounts };
 
 class UInt64x2 extends Struct([UInt64, UInt64]) {}
 
@@ -483,8 +483,18 @@ class TokenContract extends SmartContract {
   }
 }
 
+const savedKeys = [
+  'EKFcUu4FLygkyZR8Ch4F8hxuJps97GCfiMRSWXDP55sgvjcmNGHc',
+  'EKENfq7tEdTf5dnNxUgVo9dUnAqrEaB9syTgFyuRWinR5gPuZtbG',
+  'EKEPVj2PDzQUrMwL2yeUikoQYXvh4qrkSxsDa7gegVcDvNjAteS5',
+  'EKDm7SHWHEP5xiSbu52M1Z4rTFZ5Wx7YMzeaC27BQdPvvGvF42VH',
+  'EKEuJJmmHNVHD1W2qmwExDyGbkSoKdKmKNPZn8QbqybVfd2Sd4hs',
+  'EKEyPVU37EGw8CdGtUYnfDcBT2Eu7B6rSdy64R68UHYbrYbVJett',
+];
+
 await isReady;
 let { keys, addresses } = randomAccounts(
+  false,
   'tokenX',
   'tokenY',
   'dex',
@@ -515,19 +525,16 @@ function balanceSum(accountUpdate: AccountUpdate, tokenId: Field) {
  * Predefined accounts keys, labeled by the input strings. Useful for testing/debugging with consistent keys.
  */
 function randomAccounts<K extends string>(
+  createNewAccounts: boolean,
   ...names: [K, ...K[]]
 ): { keys: Record<K, PrivateKey>; addresses: Record<K, PublicKey> } {
-  let savedKeys = [
-    'EKFV5T1zG13ksXKF4kDFx4bew2w4t27V3Hx1VTsbb66AKYVGL1Eu',
-    'EKFE2UKugtoVMnGTxTakF2M9wwL9sp4zrxSLhuzSn32ZAYuiKh5R',
-    'EKEn2s1jSNADuC8CmvCQP5CYMSSoNtx5o65H7Lahqkqp2AVdsd12',
-    'EKE21kTAb37bekHbLvQpz2kvDYeKG4hB21x8VTQCbhy6m2BjFuxA',
-    'EKF9JA8WiEAk7o3ENnvgMHg5XKwgQfyMowNFFrEDCevoSozSgLTn',
-    'EKFZ41h3EDiTXAkwD3Mh2gVfy4CdeRGUzDPrEfXPgZR85J3KZ3WA',
-  ];
-
+  let base58Keys = createNewAccounts
+    ? Array(6)
+        .fill('')
+        .map(() => PrivateKey.random().toBase58())
+    : savedKeys;
   let keys = Object.fromEntries(
-    names.map((name, idx) => [name, PrivateKey.fromBase58(savedKeys[idx])])
+    names.map((name, idx) => [name, PrivateKey.fromBase58(base58Keys[idx])])
   ) as Record<K, PrivateKey>;
   let addresses = Object.fromEntries(
     names.map((name) => [name, keys[name].toPublicKey()])

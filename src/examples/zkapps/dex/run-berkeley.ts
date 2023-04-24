@@ -6,8 +6,14 @@ import {
   PrivateKey,
   fetchAccount,
 } from 'snarkyjs';
-import { Dex, DexTokenHolder } from './dex-with-actions.js';
-import { TokenContract, addresses, keys, tokenIds } from './dex.js';
+import {
+  Dex,
+  DexTokenHolder,
+  addresses,
+  keys,
+  tokenIds,
+} from './dex-with-actions.js';
+import { TokenContract } from './dex.js';
 import { expect } from 'expect';
 import { tic, toc } from '../tictoc.js';
 
@@ -66,13 +72,12 @@ tx = await Mina.transaction(senderSpec, () => {
 await tx.prove();
 pendingTx = await tx.sign([senderKey, keys.tokenX, keys.tokenY]).send();
 toc();
+console.log('account updates length', tx.transaction.accountUpdates.length);
 logPendingTransaction(pendingTx);
 tic('waiting');
 await pendingTx.wait();
 await sleep(10);
 toc();
-
-console.log('account updates length', tx.transaction.accountUpdates.length);
 
 tic('deploy dex contracts');
 tx = await Mina.transaction(senderSpec, () => {
@@ -105,6 +110,22 @@ tx = await Mina.transaction(senderSpec, () => {
 });
 await tx.prove();
 pendingTx = await tx.sign([senderKey, keys.tokenX, keys.tokenY]).send();
+toc();
+console.log('account updates length', tx.transaction.accountUpdates.length);
+logPendingTransaction(pendingTx);
+tic('waiting');
+await pendingTx.wait();
+await sleep(10);
+toc();
+
+// this is done in advance to avoid account update limit in `supply`
+tic("create user's lq token account");
+tx = await Mina.transaction(addresses.user, () => {
+  AccountUpdate.fundNewAccount(addresses.user);
+  dex.createAccount();
+});
+await tx.prove();
+await tx.sign([keys.user]).send();
 toc();
 console.log('account updates length', tx.transaction.accountUpdates.length);
 logPendingTransaction(pendingTx);

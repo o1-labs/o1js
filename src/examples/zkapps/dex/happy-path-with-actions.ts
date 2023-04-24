@@ -1,11 +1,17 @@
 import { isReady, Mina, AccountUpdate, UInt64 } from 'snarkyjs';
-import { Dex, DexTokenHolder } from './dex-with-actions.js';
-import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
+import {
+  Dex,
+  DexTokenHolder,
+  addresses,
+  keys,
+  tokenIds,
+  getTokenBalances,
+} from './dex-with-actions.js';
+import { TokenContract } from './dex.js';
 import { expect } from 'expect';
 import { tic, toc } from '../tictoc.js';
 
 await isReady;
-let { getTokenBalances: getBalances } = createDex();
 
 let proofsEnabled = false;
 
@@ -89,17 +95,27 @@ await tx.prove();
 await tx.sign([feePayerKey, keys.tokenX, keys.tokenY]).send();
 toc();
 console.log('account updates length', tx.transaction.accountUpdates.length);
+
+// this is done in advance to avoid account update limit in `supply`
+tic("create user's lq token account");
+tx = await Mina.transaction(addresses.user, () => {
+  AccountUpdate.fundNewAccount(addresses.user);
+  dex.createAccount();
+});
+await tx.prove();
+await tx.sign([keys.user]).send();
+toc();
+console.log('account updates length', tx.transaction.accountUpdates.length);
+
 [oldBalances, balances] = [balances, getTokenBalances()];
 expect(balances.user.X).toEqual(USER_DX);
 console.log(balances);
 
 tic('supply liquidity');
 tx = await Mina.transaction(addresses.user, () => {
-  AccountUpdate.fundNewAccount(addresses.user);
   dex.supplyLiquidityBase(UInt64.from(USER_DX), UInt64.from(USER_DX));
 });
 await tx.prove();
-console.log(tx.toPretty());
 await tx.sign([keys.user]).send();
 toc();
 console.log('account updates length', tx.transaction.accountUpdates.length);
@@ -159,14 +175,3 @@ console.log(balances);
 
 toc();
 console.log('dex happy path with actions was successful! 🎉');
-
-// make console outputs more minimal
-function getTokenBalances() {
-  let balances: any = getBalances();
-  delete balances.user2;
-  delete balances.tokenContract;
-  return balances as Omit<
-    ReturnType<typeof getBalances>,
-    'user2' | 'tokenContract'
-  >;
-}

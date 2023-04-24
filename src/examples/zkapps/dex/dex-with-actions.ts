@@ -18,11 +18,13 @@ import {
   Reducer,
   Field,
   Permissions,
+  isReady,
+  Mina,
 } from 'snarkyjs';
 
-import { TokenContract, addresses } from './dex.js';
+import { TokenContract, randomAccounts } from './dex.js';
 
-export { Dex, DexTokenHolder };
+export { Dex, DexTokenHolder, addresses, keys, tokenIds, getTokenBalances };
 
 class RedeemAction extends Struct({ address: PublicKey, dl: UInt64 }) {}
 
@@ -61,6 +63,10 @@ class Dex extends SmartContract {
       editActionState: proof,
       send: proof,
     });
+  }
+
+  @method createAccount() {
+    this.token.mint({ address: this.sender, amount: UInt64.from(0) });
   }
 
   /**
@@ -309,4 +315,53 @@ class DexTokenHolder extends SmartContract {
 
     return dy;
   }
+}
+
+await isReady;
+let { keys, addresses } = randomAccounts(
+  true,
+  'tokenX',
+  'tokenY',
+  'dex',
+  'user'
+);
+let tokenIds = {
+  X: TokenId.derive(addresses.tokenX),
+  Y: TokenId.derive(addresses.tokenY),
+  lqXY: TokenId.derive(addresses.dex),
+};
+
+/**
+ * Helper to get the various token balances for checks in tests
+ */
+function getTokenBalances() {
+  let balances = {
+    user: { MINA: 0n, X: 0n, Y: 0n, lqXY: 0n },
+    dex: { X: 0n, Y: 0n, lqXYSupply: 0n },
+  };
+  for (let user of ['user'] as const) {
+    try {
+      balances[user].MINA =
+        Mina.getBalance(addresses[user]).toBigInt() / 1_000_000_000n;
+    } catch {}
+    for (let token of ['X', 'Y', 'lqXY'] as const) {
+      try {
+        balances[user][token] = Mina.getBalance(
+          addresses[user],
+          tokenIds[token]
+        ).toBigInt();
+      } catch {}
+    }
+  }
+  try {
+    balances.dex.X = Mina.getBalance(addresses.dex, tokenIds.X).toBigInt();
+  } catch {}
+  try {
+    balances.dex.Y = Mina.getBalance(addresses.dex, tokenIds.Y).toBigInt();
+  } catch {}
+  try {
+    let dex = new Dex(addresses.dex);
+    balances.dex.lqXYSupply = dex.totalSupply.get().toBigInt();
+  } catch {}
+  return balances;
 }
