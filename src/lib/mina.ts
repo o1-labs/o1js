@@ -804,14 +804,14 @@ function Network(input: { mina: string; archive: string } | string): Mina {
               isSuccess = false;
               return reject(
                 new Error(
-                  `Transaction failed.\n\tTransactionId: ${txId}\n\tAttempts: ${attempts}\n\tfailureReason(s): ${res.failureReason}`
+                  `Transaction failed.\nTransactionId: ${txId}\nAttempts: ${attempts}\nfailureReason(s): ${res.failureReason}`
                 )
               );
             } else if (maxAttempts && attempts === maxAttempts) {
               isSuccess = false;
               return reject(
                 new Error(
-                  `Exceeded max attempts.\n\tTransactionId: ${txId}\n\tAttempts: ${attempts}\n\tLast received status: ${res}`
+                  `Exceeded max attempts.\nTransactionId: ${txId}\nAttempts: ${attempts}\nLast received status: ${res}`
                 )
               );
             } else {

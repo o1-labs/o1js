@@ -463,7 +463,6 @@ async function checkZkappTransaction(txnId: string) {
       }
     }
   }
-
   return {
     success: false,
     failureReason: null,
