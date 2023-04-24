@@ -153,7 +153,6 @@ if (successfulTransactions <= 3) {
 if (successfulTransactions <= 4) {
   tic('supply liquidity');
   tx = await Mina.transaction(userSpec, () => {
-    AccountUpdate.fundNewAccount(addresses.user);
     dex.supplyLiquidityBase(UInt64.from(USER_DX), UInt64.from(USER_DX));
   });
   await tx.prove();
@@ -262,7 +261,7 @@ async function ensureFundedAccount(privateKeyBase58: string) {
   let sender = senderKey.toPublicKey();
   let result = await fetchAccount({ publicKey: sender });
   let balance = result.account?.balance.toBigInt();
-  if (balance === undefined || balance < 15_000_000_000n) {
+  if (balance === undefined || balance <= 15_000_000_000n) {
     await Mina.faucet(sender);
     await sleep(1);
   }
