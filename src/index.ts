@@ -47,6 +47,7 @@ export {
   fetchAccount,
   fetchLastBlock,
   fetchTransactionStatus,
+  checkZkappTransaction,
   fetchEvents,
   TransactionStatus,
   addCachedAccount,
