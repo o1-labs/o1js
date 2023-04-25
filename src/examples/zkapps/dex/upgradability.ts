@@ -6,13 +6,13 @@ import {
   PrivateKey,
   UInt64,
 } from 'snarkyjs';
-import { createDex, TokenContract, addresses, keys } from './dex.js';
+import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
 import { getProfiler } from '../../profiler.js';
 
 await isReady;
 
-let doProofs = false;
+let proofsEnabled = false;
 
 console.log('starting upgradeability tests');
 
@@ -33,7 +33,7 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   const DexProfiler = getProfiler('DEX profiler atomic actions');
   DexProfiler.start('DEX test flow');
   let Local = Mina.LocalBlockchain({
-    proofsEnabled: doProofs,
+    proofsEnabled,
     enforceTransactionLimits: false,
   });
   Mina.setActiveInstance(Local);
@@ -49,15 +49,19 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   DexTokenHolder.analyzeMethods();
   Dex.analyzeMethods();
 
-  // compile & deploy all zkApps
-  console.log('compile (dex token holder)...');
-  await DexTokenHolder.compile();
-  console.log('compile (dex main contract)...');
-  await Dex.compile();
+  if (proofsEnabled) {
+    // compile & deploy all zkApps
+    console.log('compile (dex token holder)...');
+    await DexTokenHolder.compile();
+    console.log('compile (dex main contract)...');
+    await Dex.compile();
+  }
 
   let tokenX = new TokenContract(addresses.tokenX);
   let tokenY = new TokenContract(addresses.tokenY);
   let dex = new Dex(addresses.dex);
+  let dexTokenHolderX = new DexTokenHolder(addresses.dex, tokenIds.X);
+  let dexTokenHolderY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
   console.log('deploy & init token contracts...');
   tx = await Mina.transaction(feePayerAddress, () => {
@@ -97,8 +101,10 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
     // pay fees for creating 3 dex accounts
     AccountUpdate.fundNewAccount(feePayerAddress, 3);
     dex.deploy();
-    tokenX.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
-    tokenY.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
+    dexTokenHolderX.deploy();
+    tokenX.approveUpdate(dexTokenHolderX.self);
+    dexTokenHolderY.deploy();
+    tokenY.approveUpdate(dexTokenHolderY.self);
     console.log('manipulating setDelegate field to impossible...');
     // setting the setDelegate permission field to impossible
     let dexAccount = AccountUpdate.create(addresses.dex);
@@ -231,7 +237,7 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   const DexProfiler = getProfiler('DEX profiler upgradeability tests');
   DexProfiler.start('DEX test flow');
   let Local = Mina.LocalBlockchain({
-    proofsEnabled: doProofs,
+    proofsEnabled: proofsEnabled,
     enforceTransactionLimits: false,
   });
   Mina.setActiveInstance(Local);

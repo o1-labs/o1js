@@ -25,6 +25,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Fix fetching the `access` permission on accounts https://github.com/o1-labs/snarkyjs/pull/851
 - Fix `fetchActions` https://github.com/o1-labs/snarkyjs/pull/844 https://github.com/o1-labs/snarkyjs/pull/854 [@Comdex](https://github.com/Comdex)
+- Updated `Mina.TransactionId.isSuccess` to accurately verify zkApp transaction status after using `Mina.TransactionId.wait()`. https://github.com/o1-labs/snarkyjs/pull/826
+  - This change ensures that the function correctly checks for transaction completion and provides the expected result.
 
 ## [0.9.7](https://github.com/o1-labs/snarkyjs/compare/0b7a9ad...1a984089)
 

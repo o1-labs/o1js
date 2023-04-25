@@ -438,8 +438,7 @@ function LocalBlockchain({
         JSON.stringify(ZkappCommand.toJSON(txn.transaction))
       );
 
-      if (enforceTransactionLimits)
-        verifyTransactionLimits(txn.transaction.accountUpdates);
+      if (enforceTransactionLimits) verifyTransactionLimits(txn.transaction);
 
       for (const update of txn.transaction.accountUpdates) {
         let accountJson = ledger.getAccount(
@@ -747,24 +746,22 @@ function Network(input: { mina: string; archive: string } | string): Mina {
     async sendTransaction(txn: Transaction) {
       txn.sign();
 
-      verifyTransactionLimits(txn.transaction.accountUpdates);
+      verifyTransactionLimits(txn.transaction);
 
       let [response, error] = await Fetch.sendZkapp(txn.toJSON());
       let errors: any[] | undefined;
-      if (error === undefined) {
-        if (response!.data === null && (response as any).errors?.length > 0) {
-          console.log(
-            'got graphql errors',
-            JSON.stringify((response as any).errors, null, 2)
-          );
-          errors = (response as any).errors;
-        }
-      } else {
-        console.log('got fetch error', error);
+      if (response === undefined && error !== undefined) {
+        console.log('Error: Failed to send transaction', error);
         errors = [error];
+      } else if (response && response.errors && response.errors.length > 0) {
+        console.log(
+          'Error: Transaction returned with errors',
+          JSON.stringify(response.errors, null, 2)
+        );
+        errors = response.errors;
       }
-      let isSuccess = errors === undefined;
 
+      let isSuccess = errors === undefined;
       let maxAttempts: number;
       let attempts = 0;
       let interval: number;
@@ -790,20 +787,30 @@ function Network(input: { mina: string; archive: string } | string): Mina {
             resolve: () => void,
             reject: (err: Error) => void | Error
           ) => {
-            let txId = response?.data?.sendZkapp?.zkapp?.id;
+            let txId = response?.data?.sendZkapp?.zkapp?.hash;
             let res;
             try {
-              res = await Fetch.fetchTransactionStatus(txId);
+              res = await Fetch.checkZkappTransaction(txId);
             } catch (error) {
+              isSuccess = false;
               return reject(error as Error);
             }
             attempts++;
-            if (res === 'INCLUDED') {
+            if (res.success) {
+              isSuccess = true;
               return resolve();
-            } else if (maxAttempts && attempts === maxAttempts) {
+            } else if (res.failureReason) {
+              isSuccess = false;
               return reject(
                 new Error(
-                  `Exceeded max attempts. TransactionId: ${txId}, attempts: ${attempts}, last received status: ${res}`
+                  `Transaction failed.\nTransactionId: ${txId}\nAttempts: ${attempts}\nfailureReason(s): ${res.failureReason}`
+                )
+              );
+            } else if (maxAttempts && attempts === maxAttempts) {
+              isSuccess = false;
+              return reject(
+                new Error(
+                  `Exceeded max attempts.\nTransactionId: ${txId}\nAttempts: ${attempts}\nLast received status: ${res}`
                 )
               );
             } else {
@@ -1133,7 +1140,7 @@ async function fetchEvents(
  */
 async function fetchActions(
   publicKey: PublicKey,
-  actionStates: ActionStates,
+  actionStates?: ActionStates,
   tokenId?: Field
 ) {
   return await activeInstance.fetchActions(publicKey, actionStates, tokenId);
@@ -1144,7 +1151,7 @@ async function fetchActions(
  */
 function getActions(
   publicKey: PublicKey,
-  actionStates: ActionStates,
+  actionStates?: ActionStates,
   tokenId?: Field
 ) {
   return activeInstance.getActions(publicKey, actionStates, tokenId);
@@ -1355,7 +1362,7 @@ async function verifyAccountUpdate(
   }
 }
 
-function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
+function verifyTransactionLimits({ accountUpdates }: ZkappCommand) {
   // constants used to calculate cost of a transaction - originally defined in the genesis_constants file in the mina repo
   const proofCost = 10.26;
   const signedPairCost = 10.08;
@@ -1368,14 +1375,25 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
 
   let eventElements = { events: 0, actions: 0 };
 
-  let authTypes = filterGroups(
-    accountUpdates.map((update) => {
-      let json = update.toJSON();
-      eventElements.events += countEventElements(update.body.events);
-      eventElements.actions += countEventElements(update.body.actions);
-      return json.body.authorizationKind;
-    })
-  );
+  let authKinds = accountUpdates.map((update) => {
+    eventElements.events += countEventElements(update.body.events);
+    eventElements.actions += countEventElements(update.body.actions);
+    let { isSigned, isProved, verificationKeyHash } =
+      update.body.authorizationKind;
+    return {
+      isSigned: isSigned.toBoolean(),
+      isProved: isProved.toBoolean(),
+      verificationKeyHash: verificationKeyHash.toString(),
+    };
+  });
+  // insert entry for the fee payer
+  authKinds.unshift({
+    isSigned: true,
+    isProved: false,
+    verificationKeyHash: '',
+  });
+  let authTypes = filterGroups(authKinds);
+
   /*
   np := proof
   n2 := signedPair
