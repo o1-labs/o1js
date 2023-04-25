@@ -20,6 +20,7 @@ import {
   Permissions,
   isReady,
   Mina,
+  InferProvable,
 } from 'snarkyjs';
 
 import { TokenContract, randomAccounts } from './dex.js';
@@ -49,6 +50,10 @@ class Dex extends SmartContract {
     'supply-liquidity': Struct({ address: PublicKey, dx: UInt64, dy: UInt64 }),
     'redeem-liquidity': Struct({ address: PublicKey, dl: UInt64 }),
   };
+  // better-typed wrapper for `this.emitEvent()`. TODO: remove after fixing event typing
+  get typedEvents() {
+    return getTypedEvents<Dex>(this);
+  }
 
   /**
    * Initialization. _All_ permissions are set to impossible except the explicitly required permissions.
@@ -111,11 +116,7 @@ class Dex extends SmartContract {
     this.totalSupply.set(l.add(dl));
 
     // emit event
-    let key = 'supply-liquidity' as const satisfies keyof Dex['events'];
-    let event = { address: user, dx, dy } satisfies InstanceType<
-      Dex['events'][typeof key]
-    >;
-    this.emitEvent(key, event);
+    this.typedEvents.emit('supply-liquidity', { address: user, dx, dy });
     return dl;
   }
 
@@ -162,11 +163,7 @@ class Dex extends SmartContract {
     this.totalSupply.set(this.totalSupply.getAndAssertEquals().sub(dl));
 
     // emit event
-    let key = 'redeem-liquidity' as const satisfies keyof Dex['events'];
-    let event = { address: this.sender, dl } satisfies InstanceType<
-      Dex['events'][typeof key]
-    >;
-    this.emitEvent(key, event);
+    this.typedEvents.emit('redeem-liquidity', { address: this.sender, dl });
   }
 
   /**
@@ -226,6 +223,10 @@ class DexTokenHolder extends SmartContract {
   events = {
     swap: Struct({ address: PublicKey, dx: UInt64 }),
   };
+  // better-typed wrapper for `this.emitEvent()`. TODO: remove after fixing event typing
+  get typedEvents() {
+    return getTypedEvents<DexTokenHolder>(this);
+  }
 
   init() {
     super.init();
@@ -307,11 +308,7 @@ class DexTokenHolder extends SmartContract {
     this.balance.subInPlace(dy);
 
     // emit event
-    let key = 'swap' as const satisfies keyof DexTokenHolder['events'];
-    let event = { address: this.sender, dx } satisfies InstanceType<
-      DexTokenHolder['events'][typeof key]
-    >;
-    this.emitEvent(key, event);
+    this.typedEvents.emit('swap', { address: this.sender, dx });
 
     return dy;
   }
@@ -364,4 +361,15 @@ function getTokenBalances() {
     balances.dex.lqXYSupply = dex.totalSupply.get().toBigInt();
   } catch {}
   return balances;
+}
+
+function getTypedEvents<Contract extends SmartContract>(contract: Contract) {
+  return {
+    emit<Key extends keyof Contract['events']>(
+      key: Key,
+      event: InferProvable<Contract['events'][Key]>
+    ) {
+      contract.emitEvent(key, event);
+    },
+  };
 }
