@@ -24,8 +24,8 @@ type State<A> = {
   /**
    * Get the current on-chain state.
    *
-   * Beware: If you use this method inside a smart contract, calling it alone will not prove that your contract uses the current on-chain state.
-   * To achieve that, either add an additional `.assertEquals()` statement or use `.getAndAssertEquals()`:
+   * Caution: If you use this method alone inside a smart contract, it does not prove that your contract uses the current on-chain state.
+   * To successfully prove that your contract uses the current on-chain state, you must add an additional `.assertEquals()` statement or use `.getAndAssertEquals()`:
    *
    * ```ts
    * let x = this.x.get();

@@ -1,7 +1,7 @@
 /**
  * This DEX implementation differs from ./dex.ts in two ways:
  * - More minimal & realistic; stuff designed only for testing protocol features was removed
- * - Uses an "async" pattern with actions that lets users claim funds later & reduces account updates
+ * - Uses an async pattern with actions that lets users claim funds later and reduces account updates
  */
 import {
   Account,
@@ -34,9 +34,9 @@ class Dex extends SmartContract {
   tokenY = addresses.tokenY;
 
   /**
-   * state which keeps track of total lqXY supply -- this is needed to calculate what to return when redeeming liquidity
+   * state that keeps track of total lqXY supply -- this is needed to calculate what to return when redeeming liquidity
    *
-   * total supply is zero initially; it increases when supplying liquidity and decreases when redeeming it
+   * total supply is initially zero; it increases when supplying liquidity and decreases when redeeming it
    */
   @state(UInt64) totalSupply = State<UInt64>();
 
@@ -51,7 +51,7 @@ class Dex extends SmartContract {
   };
 
   /**
-   * Initialization. We set _all_ permissions to impossible except the ones we explicitly need.
+   * Initialization. _All_ permissions are set to impossible except the explicitly required permissions.
    */
   init() {
     super.init();
