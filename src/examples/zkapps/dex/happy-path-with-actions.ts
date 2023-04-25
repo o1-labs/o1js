@@ -1,33 +1,32 @@
 import { isReady, Mina, AccountUpdate, UInt64 } from 'snarkyjs';
-import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
+import {
+  Dex,
+  DexTokenHolder,
+  addresses,
+  keys,
+  tokenIds,
+  getTokenBalances,
+} from './dex-with-actions.js';
+import { TokenContract } from './dex.js';
 import { expect } from 'expect';
 import { tic, toc } from '../tictoc.js';
-import { getProfiler } from '../../profiler.js';
 
 await isReady;
 
-const TokenProfiler = getProfiler('Token with Proofs');
-TokenProfiler.start('Token with proofs test flow');
-let proofsEnabled = true;
+let proofsEnabled = false;
 
-tic('Happy path with proofs');
+tic('Happy path with actions');
 console.log();
 
 let Local = Mina.LocalBlockchain({
   proofsEnabled,
-  enforceTransactionLimits: false,
+  enforceTransactionLimits: true,
 });
 Mina.setActiveInstance(Local);
 let accountFee = Mina.accountCreationFee();
 let [{ privateKey: feePayerKey, publicKey: feePayerAddress }] =
   Local.testAccounts;
 let tx, balances, oldBalances;
-
-let { Dex, DexTokenHolder, getTokenBalances } = createDex();
-
-TokenContract.analyzeMethods();
-DexTokenHolder.analyzeMethods();
-Dex.analyzeMethods();
 
 if (proofsEnabled) {
   tic('compile (token)');
@@ -92,12 +91,24 @@ await tx.prove();
 await tx.sign([feePayerKey, keys.tokenX, keys.tokenY]).send();
 toc();
 console.log('account updates length', tx.transaction.accountUpdates.length);
+
+// this is done in advance to avoid account update limit in `supply`
+tic("create user's lq token account");
+tx = await Mina.transaction(addresses.user, () => {
+  AccountUpdate.fundNewAccount(addresses.user);
+  dex.createAccount();
+});
+await tx.prove();
+await tx.sign([keys.user]).send();
+toc();
+console.log('account updates length', tx.transaction.accountUpdates.length);
+
 [oldBalances, balances] = [balances, getTokenBalances()];
 expect(balances.user.X).toEqual(USER_DX);
+console.log(balances);
 
 tic('supply liquidity');
 tx = await Mina.transaction(addresses.user, () => {
-  AccountUpdate.fundNewAccount(addresses.user);
   dex.supplyLiquidityBase(UInt64.from(USER_DX), UInt64.from(USER_DX));
 });
 await tx.prove();
@@ -106,16 +117,41 @@ toc();
 console.log('account updates length', tx.transaction.accountUpdates.length);
 [oldBalances, balances] = [balances, getTokenBalances()];
 expect(balances.user.X).toEqual(0n);
+console.log(balances);
 
-tic('redeem liquidity');
+tic('redeem liquidity, step 1');
 let USER_DL = 100n;
 tx = await Mina.transaction(addresses.user, () => {
-  dex.redeemLiquidity(UInt64.from(USER_DL));
+  dex.redeemInitialize(UInt64.from(USER_DL));
 });
 await tx.prove();
 await tx.sign([keys.user]).send();
 toc();
 console.log('account updates length', tx.transaction.accountUpdates.length);
+console.log(getTokenBalances());
+
+tic('redeem liquidity, step 2a (get back token X)');
+tx = await Mina.transaction(addresses.user, () => {
+  dexTokenHolderX.redeemLiquidityFinalize();
+  tokenX.approveAny(dexTokenHolderX.self);
+});
+await tx.prove();
+await tx.sign([keys.user]).send();
+toc();
+console.log('account updates length', tx.transaction.accountUpdates.length);
+console.log(getTokenBalances());
+
+tic('redeem liquidity, step 2b (get back token Y)');
+tx = await Mina.transaction(addresses.user, () => {
+  dexTokenHolderY.redeemLiquidityFinalize();
+  tokenY.approveAny(dexTokenHolderY.self);
+});
+await tx.prove();
+await tx.sign([keys.user]).send();
+toc();
+console.log('account updates length', tx.transaction.accountUpdates.length);
+console.log(getTokenBalances());
+
 [oldBalances, balances] = [balances, getTokenBalances()];
 expect(balances.user.X).toEqual(USER_DL / 2n);
 
@@ -128,9 +164,10 @@ await tx.prove();
 await tx.sign([keys.user]).send();
 toc();
 console.log('account updates length', tx.transaction.accountUpdates.length);
+
 [oldBalances, balances] = [balances, getTokenBalances()];
 expect(balances.user.X).toEqual(oldBalances.user.X - USER_DX);
+console.log(balances);
 
 toc();
-console.log('dex happy path with proofs was successful! 🎉');
-TokenProfiler.stop().store();
+console.log('dex happy path with actions was successful! 🎉');

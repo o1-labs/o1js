@@ -27,6 +27,7 @@ import {
   zkAppProver,
   ZkappPublicInput,
   ZkappStateLength,
+  SmartContractContext,
 } from './account_update.js';
 import {
   Circuit,
@@ -55,7 +56,6 @@ import {
   GenericArgument,
   getPreviousProofsForProver,
   inAnalyze,
-  inCheckedComputation,
   inCompile,
   inProver,
   isAsFields,
@@ -171,19 +171,16 @@ function wrapMethod(
 
     // TODO: the callback case is actually more similar to the composability
     // case below, should reconcile with that to get the same callData hashing
-    if (!smartContractContext.has() || smartContractContext()?.isCallback) {
-      return smartContractContext.runWith(
-        smartContractContext() ?? {
+    let insideContract = smartContractContext.get();
+    if (!insideContract) {
+      return smartContractContext.runWith<SmartContractContext, any>(
+        {
           this: this,
           methodCallDepth: 0,
-          isCallback: false,
           selfUpdate: selfAccountUpdate(this, methodName),
         },
         (context) => {
-          if (
-            (inCompile() || inProver() || inAnalyze()) &&
-            !context.isCallback
-          ) {
+          if (inCompile() || inProver() || inAnalyze()) {
             // important to run this with a fresh accountUpdate everytime, otherwise compile messes up our circuits
             // because it runs this multiple times
             let proverData = inProver() ? zkAppProver.getData() : undefined;
@@ -211,7 +208,7 @@ function wrapMethod(
                 };
                 let [, result] = memoizationContext.runWith(
                   { ...context, blindingValue },
-                  () => method.apply(this, actualArgs)
+                  () => method.apply(this, actualArgs.map(cloneCircuitValue))
                 );
 
                 // connects our input + result with callData, so this method can be called
@@ -304,9 +301,7 @@ function wrapMethod(
             // called smart contract at the top level, in a transaction!
             // => attach ours to the current list of account updates
             let accountUpdate = context.selfUpdate;
-            if (!context.isCallback) {
-              Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
-            }
+            Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
 
             // first, clone to protect against the method modifying arguments!
             // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
@@ -338,7 +333,7 @@ function wrapMethod(
             // connect our input + result with callData, so this method can be called
             let callDataFields = computeCallData(
               methodIntf,
-              actualArgs,
+              clonedArgs,
               result,
               blindingValue
             );
@@ -369,16 +364,15 @@ function wrapMethod(
     }
 
     // if we're here, this method was called inside _another_ smart contract method
-    let parentAccountUpdate = smartContractContext.get().this.self;
-    let methodCallDepth = smartContractContext.get().methodCallDepth;
-    let [, result] = smartContractContext.runWith(
+    let parentAccountUpdate = insideContract.this.self;
+    let methodCallDepth = insideContract.methodCallDepth;
+    let [, result] = smartContractContext.runWith<SmartContractContext, any>(
       {
         this: this,
         methodCallDepth: methodCallDepth + 1,
-        isCallback: false,
         selfUpdate: selfAccountUpdate(this, methodName),
       },
-      () => {
+      (innerContext) => {
         // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
         // so we have to explain to the user how to do that
         let { returnType } = methodIntf;
@@ -413,7 +407,7 @@ function wrapMethod(
               currentIndex: 0,
               blindingValue: constantBlindingValue,
             },
-            () => method.apply(this, constantArgs)
+            () => method.apply(this, constantArgs.map(cloneCircuitValue))
           );
           assertStatePrecondition(this);
 
@@ -469,7 +463,7 @@ function wrapMethod(
         // we're back in the _caller's_ circuit now, where we assert stuff about the method call
 
         // overwrite this.self with the witnessed update, so it's this one we access later in the caller method
-        smartContractContext.get().selfUpdate = accountUpdate;
+        innerContext.selfUpdate = accountUpdate;
 
         // connect accountUpdate to our own. outside Circuit.witness so compile knows the right structure when hashing children
         accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
@@ -492,27 +486,6 @@ function wrapMethod(
         );
         let callData = Poseidon.hash(callDataFields);
         accountUpdate.body.callData.assertEquals(callData);
-
-        // caller circuits should be Delegate_call by default, except if they're called at the top level
-        let isTopLevel = Circuit.witness(Bool, () => {
-          // TODO: this logic is fragile.. need better way of finding out if parent is the prover account update or not
-          let isProverUpdate =
-            inProver() &&
-            zkAppProver
-              .getData()
-              .accountUpdate.body.publicKey.equals(
-                parentAccountUpdate.body.publicKey
-              )
-              .toBoolean();
-          let parentCallDepth = isProverUpdate
-            ? zkAppProver.getData().accountUpdate.body.callDepth
-            : CallForest.computeCallDepth(parentAccountUpdate);
-          return Bool(parentCallDepth === 0);
-        });
-        parentAccountUpdate.body.mayUseToken = {
-          parentsOwnToken: isTopLevel.not(),
-          inheritFromParent: Bool(false),
-        };
         return result;
       }
     );
@@ -739,10 +712,11 @@ class SmartContract {
    * Deploys a {@link SmartContract}.
    *
    * ```ts
-   * let tx = await Mina.transaction(feePayer, () => {
-   *    AccountUpdate.fundNewAccount(feePayer, { initialBalance });
-   *    zkapp.deploy({ zkappKey });
+   * let tx = await Mina.transaction(sender, () => {
+   *   AccountUpdate.fundNewAccount(sender);
+   *   zkapp.deploy();
    * });
+   * tx.sign([senderKey, zkAppKey]);
    * ```
    */
   deploy({
@@ -859,7 +833,7 @@ super.init();
    */
   get self(): AccountUpdate {
     let inTransaction = Mina.currentTransaction.has();
-    let inSmartContract = smartContractContext.has();
+    let inSmartContract = smartContractContext.get();
     if (!inTransaction && !inSmartContract) {
       // TODO: it's inefficient to return a fresh account update everytime, would be better to return a constant "non-writable" account update,
       // or even expose the .get() methods independently of any account update (they don't need one)
@@ -870,8 +844,8 @@ super.init();
     // this logic also implies that when calling `this.self` inside a method on `this`, it will always
     // return the same account update uniquely associated with that method call.
     // it won't create new updates and add them to a transaction implicitly
-    if (inSmartContract && smartContractContext.get().this === this) {
-      let accountUpdate = smartContractContext.get().selfUpdate;
+    if (inSmartContract && inSmartContract.this === this) {
+      let accountUpdate = inSmartContract.selfUpdate;
       this.#executionState = { accountUpdate, transactionId };
       return accountUpdate;
     }
@@ -1199,28 +1173,35 @@ super.init();
         (err as any).bootstrap = () => ZkappClass.analyzeMethods();
         throw err;
       }
-      for (let methodIntf of methodIntfs) {
-        let accountUpdate: AccountUpdate;
-        let { rows, digest, result, gates } = analyzeMethod(
-          ZkappPublicInput,
-          methodIntf,
-          (publicInput, publicKey, tokenId, ...args) => {
-            let instance: SmartContract = new ZkappClass(publicKey, tokenId);
-            let result = (instance as any)[methodIntf.methodName](
-              publicInput,
-              ...args
-            );
-            accountUpdate = instance.#executionState!.accountUpdate;
-            return result;
-          }
-        );
-        ZkappClass._methodMetadata[methodIntf.methodName] = {
-          actions: accountUpdate!.body.actions.data.length,
-          rows,
-          digest,
-          hasReturn: result !== undefined,
-          gates,
-        };
+      let id: number;
+      let insideSmartContract = !!smartContractContext.get();
+      if (insideSmartContract) id = smartContractContext.enter(null);
+      try {
+        for (let methodIntf of methodIntfs) {
+          let accountUpdate: AccountUpdate;
+          let { rows, digest, result, gates } = analyzeMethod(
+            ZkappPublicInput,
+            methodIntf,
+            (publicInput, publicKey, tokenId, ...args) => {
+              let instance: SmartContract = new ZkappClass(publicKey, tokenId);
+              let result = (instance as any)[methodIntf.methodName](
+                publicInput,
+                ...args
+              );
+              accountUpdate = instance.#executionState!.accountUpdate;
+              return result;
+            }
+          );
+          ZkappClass._methodMetadata[methodIntf.methodName] = {
+            actions: accountUpdate!.body.actions.data.length,
+            rows,
+            digest,
+            hasReturn: result !== undefined,
+            gates,
+          };
+        }
+      } finally {
+        if (insideSmartContract) smartContractContext.leave(id!);
       }
     }
     return ZkappClass._methodMetadata;
@@ -1282,8 +1263,26 @@ type ReducerReturn<Action> = {
     stateType: Provable<State>,
     reduce: (state: State, action: Action) => State,
     initial: { state: State; actionsHash: Field },
-    options?: { maxTransactionsWithActions?: number }
+    options?: {
+      maxTransactionsWithActions?: number;
+      skipActionStatePrecondition?: boolean;
+    }
   ): { state: State; actionsHash: Field };
+  /**
+   * Perform circuit logic for every {@link Action} in the list.
+   *
+   * This is a wrapper around {@link reduce} for when you don't need `state`.
+   * Accepts the `fromActionState` and returns the updated action state.
+   */
+  forEach(
+    actions: Action[][],
+    reduce: (action: Action) => void,
+    fromActionState: Field,
+    options?: {
+      maxTransactionsWithActions?: number;
+      skipActionStatePrecondition?: boolean;
+    }
+  ): Field;
   /**
    * Fetches the list of previously emitted {@link Action}s by this {@link SmartContract}.
    * ```ts
@@ -1295,7 +1294,7 @@ type ReducerReturn<Action> = {
   getActions({
     fromActionState,
     endActionState,
-  }: {
+  }?: {
     fromActionState?: Field;
     endActionState?: Field;
   }): Action[][];
@@ -1341,7 +1340,10 @@ class ${contract.constructor.name} extends SmartContract {
       stateType: Provable<S>,
       reduce: (state: S, action: A) => S,
       { state, actionsHash }: { state: S; actionsHash: Field },
-      { maxTransactionsWithActions = 32 } = {}
+      {
+        maxTransactionsWithActions = 32,
+        skipActionStatePrecondition = false,
+      } = {}
     ): { state: S; actionsHash: Field } {
       if (actionLists.length > maxTransactionsWithActions) {
         throw Error(
@@ -1400,13 +1402,33 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         // update state
         state = Circuit.switch(lengths, stateType, newStates);
       }
-      contract.account.actionState.assertEquals(actionsHash);
+      if (!skipActionStatePrecondition) {
+        contract.account.actionState.assertEquals(actionsHash);
+      }
       return { state, actionsHash };
     },
-    getActions({
-      fromActionState,
-      endActionState,
-    }: {
+
+    forEach(
+      actionLists: A[][],
+      callback: (action: A) => void,
+      fromActionState: Field,
+      config
+    ): Field {
+      const stateType = provable(undefined);
+      let { actionsHash } = this.reduce(
+        actionLists,
+        stateType,
+        (_, action) => {
+          callback(action);
+          return undefined;
+        },
+        { state: undefined, actionsHash: fromActionState },
+        config
+      );
+      return actionsHash;
+    },
+
+    getActions(config?: {
       fromActionState?: Field;
       endActionState?: Field;
     }): A[][] {
@@ -1414,7 +1436,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       Circuit.asProver(() => {
         let actions = Mina.getActions(
           contract.address,
-          { fromActionState, endActionState },
+          config,
           contract.self.tokenId
         );
         actionsForAccount = actions.map((event) =>
@@ -1428,16 +1450,13 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       });
       return actionsForAccount;
     },
-    async fetchActions({
-      fromActionState,
-      endActionState,
-    }: {
+    async fetchActions(config?: {
       fromActionState?: Field;
       endActionState?: Field;
     }): Promise<A[][]> {
       let result = await Mina.fetchActions(
         contract.address,
-        { fromActionState, endActionState },
+        config,
         contract.self.tokenId
       );
       if ('error' in result) {
@@ -1483,7 +1502,7 @@ type DeployArgs =
   | undefined;
 
 function Account(address: PublicKey, tokenId?: Field) {
-  if (smartContractContext.has()) {
+  if (smartContractContext.get()) {
     return AccountUpdate.create(address, tokenId).account;
   } else {
     return AccountUpdate.defaultAccountUpdate(address, tokenId).account;
