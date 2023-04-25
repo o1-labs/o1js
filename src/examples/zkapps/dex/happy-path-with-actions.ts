@@ -28,10 +28,6 @@ let [{ privateKey: feePayerKey, publicKey: feePayerAddress }] =
   Local.testAccounts;
 let tx, balances, oldBalances;
 
-TokenContract.analyzeMethods();
-DexTokenHolder.analyzeMethods();
-Dex.analyzeMethods();
-
 if (proofsEnabled) {
   tic('compile (token)');
   await TokenContract.compile();

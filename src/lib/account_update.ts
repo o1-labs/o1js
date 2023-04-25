@@ -47,16 +47,19 @@ export {
   createChildAccountUpdate,
   AccountUpdatesLayout,
   zkAppProver,
+  SmartContractContext,
 };
 
 const ZkappStateLength = 8;
 
-let smartContractContext = Context.create<{
+type SmartContractContext = {
   this: SmartContract;
   methodCallDepth: number;
-  isCallback: boolean;
   selfUpdate: AccountUpdate;
-}>();
+};
+let smartContractContext = Context.create<null | SmartContractContext>({
+  default: null,
+});
 
 let zkAppProver = Prover<{
   transaction: ZkappCommand;
@@ -1115,8 +1118,9 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   static create(publicKey: PublicKey, tokenId?: Field) {
     let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey, tokenId);
-    if (smartContractContext.has()) {
-      let self = smartContractContext.get().this.self;
+    let insideContract = smartContractContext.get();
+    if (insideContract) {
+      let self = insideContract.this.self;
       self.approve(accountUpdate);
       accountUpdate.label = `${
         self.label || 'Unlabeled'
@@ -1132,13 +1136,14 @@ class AccountUpdate implements Types.AccountUpdate {
    * -- if in a smart contract, to its children
    */
   static attachToTransaction(accountUpdate: AccountUpdate) {
-    if (smartContractContext.has()) {
-      let selfUpdate = smartContractContext.get().this.self;
+    let insideContract = smartContractContext.get();
+    if (insideContract) {
+      let selfUpdate = insideContract.this.self;
       // avoid redundant attaching & cycle in account update structure, happens
       // when calling attachToTransaction(this.self) inside a @method
       // TODO avoid account update cycles more generally
       if (selfUpdate === accountUpdate) return;
-      smartContractContext.get().this.self.approve(accountUpdate);
+      insideContract.this.self.approve(accountUpdate);
     } else {
       if (!Mina.currentTransaction.has()) return;
       let updates = Mina.currentTransaction.get().accountUpdates;
