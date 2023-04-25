@@ -51,347 +51,540 @@ declare interface ProvablePure<T> extends Provable<T> {
 }
 
 /**
- * An element of a finite field.
+ * An element of a finite pasta field of order 28948022309329048855892746252171976963363056481941560715954676764349967630337.
  */
-declare function Field(x: Field | number | string | boolean | bigint): Field;
+declare function Field(value: Field | number | string | boolean | bigint): Field;
 declare class Field {
   /**
-   * Coerces anything field-like to a {@link Field}.
+   * Coerces anything `field-like` (bigint, boolean, number, string, and {@link Field}) to a {@link Field}.
+   * A {@link Field} is an element of a prime order field. Every other provable type is build using the {@link Field} type.
+   * The field is the [pasta fp field](https://electriccoin.co/blog/the-pasta-curves-for-halo-2-and-beyond/) of order 28948022309329048855892746252171976963363056481941560715954676764349967630337.
+   * **Warning: You cannot create a {@link Field} from a non-integer number.
+   * 
+   * ```ts
+   * const fieldBigInt = new Field(1n); // Valid Field contruction from a big integer
+   * const fieldBoolean = new Field(true); // Valid Field construction from a boolean, equivalent to `new Field(1)`
+   * const fieldBoolean = new Field(false); // Valid Field construction from a boolean, equivalent to `new Field(0)`
+   * const fieldBumber = new Field(4); // Valid Field construction from a number
+   * const fieldWrong = new Field(1.3); // Unvalid Field construction. Will result in error: `Cannot convert a float to a field element`
+   * ```
+   * 
+   * Creating a {@link Field} from a negative number may result in an unexpected behaviour if you are not familiar with [modular arithmatic](https://en.wikipedia.org/wiki/Modular_arithmetic).
+   * 
+   * ```typescript
+   * const field_negative = new Field(-1); // Valid Field contruction, equivalent to `new Field(28948022309329048855892746252171976963363056481941560715954676764349967630336n)`as the order of the pasta field is 28948022309329048855892746252171976963363056481941560715954676764349967630337n
+   * ```
+   * 
+   * **Important: All the functions defined on a Field (arithmetic, logic, etc.) takes their arguments as `field-like`. A {@link Field} itself is also defined as a field-like element.
+   * 
+   * @param value - the value to coerce to a {@link Field}
+   * 
+   * @return A {@link Field} element which the value coerced from the argument in the pasta field.
    */
-  constructor(x: Field | number | string | boolean | bigint);
+  constructor(value: Field | number | string | boolean | bigint);
 
   /**
-   * Negates this {@link Field}. This is equivalent to multiplying the {@link Field}
-   * by -1.
+   * Negates a {@link Field}. This is equivalent to multiplying the {@link Field} by -1.
    *
-   * ```typescript
+   * ```ts
    * const negOne = Field(1).neg();
    * negOne.assertEquals(-1);
    * ```
+   * 
+   * ```ts
+   * const someField = Field(42);
+   * const negation = someField.neg();
+   * 
+   * negation.neg().assertEquals(someField.mul(Field(-1))); // This statement is always true regardless of the value of `someField`
+   * ```
+   * 
+   * **Warning: This is a modular negation. Please see `sub()` function for more details.
+   * 
+   * @return A {@link Field} element that is equivalent to the element multiplied by -1.
    */
   neg(): Field;
 
   /**
-   * Inverts this {@link Field} element.
+   * Inverts this {@link Field} element. This is equivalent to equalize the {@link Field} to 1 over its value.
    *
    * ```typescript
-   * const invX = x.inv();
-   * invX.assertEquals(Field(1).div(x));
+   * const someField = Field(42);
+   * const inverse = someField.inv();
+   * inverse.assertEquals(Field(1).div(example)); // This statement is always true regardless of the value of `someField`
    * ```
+   * 
+   * **Warning: This is a modular inverse. Please see `div()` function for more details.
    *
    * @return A {@link Field} element that is equivalent to one divided by this element.
    */
   inv(): Field;
 
   /**
-   * Adds this {@link Field} element to another to a {@link Field} element.
+   * Adds a `field-like` element to a {@link Field} element and returns the result.
    *
    * ```ts
-   * let a = Field(3);
-   * let sum = a.add(5)
+   * const value1 = Field(3);
+   * const value2 = 5; // A `field-like` element
+   * 
+   * const sum = value1.add(value2);
+   * 
+   * sum.assertEquals(Field(8));
    * ```
+   * 
+   * **Warning: This is a modular addition in the pasta field.
+   *
+   * ```ts
+   * const value1 = Field(1);
+   * const value2 = Field(-7);
+   * 
+   * const sum = value1.add(value2);
+   * 
+   * // If you try to print sum - `console.log(sum.toBigInt())` - you will realize that it prints a very big integer, so you cannot use arithmetic operations on snarkyJS as in regular programming languages.
+   * // However, all the operations always stay provable: This means you can use the reverse operation of addition (substraction) to prove the sum is calculated correctly.
+   * sum.sub(value1).assertEquals(value2);
+   * sum.sub(value2).assertEquals(value1);
+   * ```
+   * 
+   * @param value - a `field-like` value to add to the {@link Field}.
+   * 
+   * @return A {@link Field} element equivalent to the modular addition of the two value.
    */
-  add(y: Field | number | string | boolean): Field;
+  add(value: Field | number | string | boolean): Field;
 
   /**
-   * Subtracts another {@link Field}-like element from this one.
+   * Substracts another `field-like` element from this {@link Field} and returns the result.
+   *
+   * ```ts
+   * const value1 = Field(3);
+   * const value2 = 5; // A `field-like` element
+   * 
+   * const difference = value1.sub(value2);
+   * 
+   * difference.assertEquals(Field(-2));
+   * ```
+   * 
+   * **Warning: This is a modular substraction in the pasta field.
+   * 
+   * ```ts
+   * const value1 = Field(1);
+   * const value2 = Field(2);
+   * 
+   * const difference = value1.sub(value2);
+   * 
+   * // If you try to print difference - `console.log(difference.toBigInt())` - you will realize that it prints a very big integer, so you cannot use arithmetic operations on snarkyJS as in regular programming languages.
+   * // However, all the operations always stay provable: This means you can use the reverse operation of substraction (addition) to prove the difference is calculated correctly.
+   * difference.add(value2).assertEquals(value1);
+   * ```
+   * 
+   * @param value - a `field-like` value to substract from the {@link Field}.
+   * 
+   * @return A {@link Field} element equivalent to the modular difference of the two value.
    */
-  sub(y: Field | number | string | boolean): Field;
+  sub(value: Field | number | string | boolean): Field;
 
   /**
-   * Multiplies this {@link Field} element with another coercible to a field.
+   * Multiplies another `field-like` element with this {@link Field} and returns the result.
+   *
+   * ```ts
+   * const value1 = Field(3);
+   * const value2 = 5; // A `field-like` element
+   * 
+   * const product = value1.mul(value2);
+   * 
+   * product.assertEquals(Field(15));
+   * ```
+   * 
+   * **Warning: This is a modular multiplication in the pasta field.
+   * 
+   * ```ts
+   * const value1 = Field(409034234915762252310977182347851274525699134624909316457281397679077977n);
+   * const value2 = Field(396799155229642886214345240347513675246314887144578160280866744058082566n);
+   * 
+   * const product = value1.mul(value2);
+   * 
+   * // If you try to print product - `console.log(product.toBigInt())` - you will realize that it prints a very big integer, so you cannot use arithmetic operations on snarkyJS as in regular programming languages.
+   * // However, all the operations always stay provable: This means you can use the reverse operation of multiplication (division) to prove the product is calculated correctly.
+   * product.div(value1).assertEquals(value2);
+   * product.div(value2).assertEquals(value1);
+   * ```
+   * 
+   * @param value - a `field-like` value to multiply with the {@link Field}.
+   * 
+   * @return A {@link Field} element equivalent to the modular difference of the two value.
    */
-  mul(y: Field | number | string | boolean): Field;
+  mul(value: Field | number | string | boolean): Field;
 
   /**
-   * Divides this {@link Field} element through another coercible to a field.
+   * Divides another `field-like` element through this {@link Field} and returns the result.
+   *
+   * ```ts
+   * const value1 = Field(6);
+   * const value2 = 3; // A `field-like` element
+   * 
+   * const product = value1.div(value2);
+   * 
+   * product.assertEquals(Field(2));
+   * ```
+   * 
+   * **Warning: This is a modular division in the pasta field. You can think it as the reverse operation of modular multiplication.
+   * 
+   * ```ts
+   * const value1 = Field(2);
+   * const value2 = Field(5);
+   * 
+   * const quotient = value1.div(value2);
+   * 
+   * // If you try to print product - `console.log(quotient.toBigInt())` - you will realize that it prints a very big integer, so you cannot use arithmetic operations on snarkyJS as in regular programming languages.
+   * // However, all the operations always stay provable: This means you can use the reverse operation of division (multiplication) to prove the quotient is calculated correctly.
+   * quotient.mul(value2).assertEquals(value1);
+   * ```
+   * 
+   * @param value - a `field-like` value to multiply with the {@link Field}.
+   * 
+   * @return A {@link Field} element equivalent to the modular difference of the two value.
    */
-  div(y: Field | number | string | boolean): Field;
+  div(value: Field | number | string | boolean): Field;
 
   /**
    * Squares this {@link Field} element.
    *
    * ```typescript
-   * const x2 = x.square();
-   * x2.assertEquals(x.mul(x));
+   * const someField = Field(7);
+   * const square = someField.square();
+   * 
+   * square.assertEquals(someField.mul(someField)); // This statement is always true regardless of the value of `someField`
    * ```
+   * 
+   * ** Warning: This is a modular multiplication. Please see `mul()` function for more details.
+   * 
+   * @return A {@link Field} element equivalent to the multiplication of the {@link Field} element with itself.
    */
   square(): Field;
 
   /**
-   * Square roots this {@link Field} element.
+   * Squares this {@link Field} element.
    *
    * ```typescript
-   * x.square().sqrt().assertEquals(x);
+   * const someField = Field(42);
+   * const squareRoot = someField.sqrt();
+   * 
+   * squareRoot.mul(squareRoot).assertEquals(someField); // This statement is always true regardless of the value of `someField`
    * ```
+   * 
+   * **Warning: This is a modular square root. Please see `div()` function for more details.
+   * 
+   * @return A {@link Field} element equivalent to the square root of the {@link Field} element.
    */
   sqrt(): Field;
 
   /**
-   * Serialize the {@link Field} to a string, e.g. for printing.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   * Serialize the {@link Field} to a string, e.g. for printing. If you try to print a {@link Field} without this function it will directly stringify the Field object, resulting in an unreadable output.
+   * 
+   * **Warning: This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the {@link Field}. Please use it only during debugging.
+   * 
+   * ```ts
+   * const someField = Field(42);
+   * console.log(someField.toString());
+   * ```
+   * 
+   * @return A string equivalent to the string representation of the Field.
    */
   toString(): string;
+
   /**
-   * Serialize this instance of a {@link Field} to a bigint.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the bigint representation of the Field.
+   * Serialize the {@link Field} to a bigint, e.g. for printing. If you try to print a {@link Field} without this function it will directly stringify the Field object, resulting in an unreadable output.
+   * 
+   * **Warning: This operation does NOT affect the circuit and can't be used to prove anything about the bigint representation of the {@link Field}. Please use it only during debugging.
+   * 
+   * ```ts
+   * const someField = Field(42);
+   * console.log(someField.toBigInt());
+   * ```
+   * 
+   * @return A bigint equivalent to the bigint representation of the Field.
    */
   toBigInt(): bigint;
+
   /**
-   * Serialize this instance of a {@link Field} to a JSON string.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   * Serialize the {@link Field} to a JSON string, e.g. for printing. If you try to print a {@link Field} without this function it will directly stringify the Field object, resulting in an unreadable output.
+   * 
+   * **Warning: This operation does NOT affect the circuit and can't be used to prove anything about the JSON string representation of the {@link Field}. Please use it only during debugging.
+   * 
+   * ```ts
+   * const someField = Field(42);
+   * console.log(someField.toJSON());
+   * ```
+   * 
+   * @return A string equivalent to the JSON representation of the Field.
    */
   toJSON(): string;
 
   /**
-   * Returns the size of this type.
+   * Returns the size of this type. Size of a {@link Field} is always 1, as it is already the primitive type.
+   * This function returns a reular number, so you cannot use it to prove something on chain. You can use it during debugging or to understand the memory complexity of some type.
+   * 
+   * ```ts
+   * const someField = Field(42);
+   * 
+   * console.log(someField.sizeInFields()); // Will always print 1, regardless of the value of `someField`
+   * ```
+   * 
+   * @return A number representing the size of a {@link Field} element in terms of {@link Field} elements.
    */
   sizeInFields(): number;
 
   /**
-   * Serializes this data structure into {@link Field} elements.
+   * Serializes this {@link Field} element into an array of {@link Field} elements.
+   * You can use this array to calculate the {@link Poseidon} hash of a {@link Field}.
+   * This will be always an array of length 1, where the first and only element equals the {@link Field} itself.
+   * 
+   * @return A {@link Field} array of length 1 created from this {@link Field}.
    */
   toFields(): Field[];
 
   /**
-   *
-   * Check if this {@link Field} is lower than another Field-like value.
-   * Returns a {@link Bool}.
-   *
-   * ```ts
-   * Field(2).lessThan(3); // Bool(true)
-   * ```
-   */
-  lessThan(y: Field | number | string | boolean): Bool;
-  /**
-   *
-   * Check if this {@link Field} is lower than or equal to another Field-like value.
-   * Returns a {@link Bool}.
+   * Check if this {@link Field} is lower than another `field-like` value.
+   * Returns a {@link Bool}, which is a `provable` type and can be used prove to the validity of this statement.
    *
    * ```ts
-   * Field(2).lessThanOrEqual(3); // Bool(true)
+   * Field(2).lessThan(3).assertEquals(Bool(true));
    * ```
-   */
-  lessThanOrEqual(y: Field | number | string | boolean): Bool;
-  /**
-   *
-   * Check if this {@link Field} is greater than another Field-like value.
-   * Returns a {@link Bool}.
-   *
+   * 
+   * **Warning: As this function compares the bigint value of a {@link Field}, it can result in an unexpected behaviour while comparing negative numbers or floating point operations.
+   * 
    * ```ts
-   * Field(2).greaterThan(1); // Bool(true)
+   * Field(1).div(Field(3)).lessThan(Field(1).div(Field(2))).assertEquals(Bool(true)); // This code will throw an error
    * ```
+   * 
+   * @param value - the `field-like` value to compare with this {@link Field}.
+   * 
+   * @return A {@link Bool} representing if this {@link Field} is less than another `field-like` value.
    */
-  greaterThan(y: Field | number | string | boolean): Bool;
-  /**
-   *
-   * Check if this {@link Field} is greater than or equal to another Field-like value.
-   * Returns a {@link Bool}.
-   *
-   * ```ts
-   * Field(2).greaterThanOrEqual(1); // Bool(true)
-   * ```
-   */
-  greaterThanOrEqual(y: Field | number | string | boolean): Bool;
-
-  // TODO: Make these long form version
-  /**
-   *
-   * Assert that this {@link Field} is lower than another Field-like value.
-   *
-   * ```ts
-   * Field(1).assertLessThan(2);
-   * ```
-   *
-   */
-  assertLessThan(y: Field | number | string | boolean, message?: string): void;
-  /**
-   *
-   * Assert that this {@link Field} is lower than or equal to another Field-like value.
-   *
-   * ```ts
-   * Field(1).assertLessThanOrEqual(2);
-   * ```
-   *
-   */
-  assertLessThanOrEqual(
-    y: Field | number | string | boolean,
-    message?: string
-  ): void;
-  /**
-   *
-   * Assert that this {@link Field} is greater than another Field-like value.
-   *
-   * ```ts
-   * Field(1).assertGt(0);
-   * ```
-   *
-   */
-  assertGreaterThan(
-    y: Field | number | string | boolean,
-    message?: string
-  ): void;
-  /**
-   *
-   * Assert that this {@link Field} is greater than or equal to another Field-like value.
-   *
-   * ```ts
-   * Field(1).assertGte(0);
-   * ```
-   *
-   */
-  assertGreaterThanOrEqual(
-    y: Field | number | string | boolean,
-    message?: string
-  ): void;
+  lessThan(value: Field | number | string | boolean): Bool;
 
   /**
-   * @deprecated Deprecated - use {@link lessThan} instead
-   *
-   * Check if this {@link Field} is lower than another Field-like value.
-   * Returns a {@link Bool}.
+   * Check if this {@link Field} is lower than or equal another `field-like` value.
+   * Returns a {@link Bool}, which is a `provable` type and can be used to prove the validity of this statement.
    *
    * ```ts
-   * Field(2).lt(3); // Bool(true)
+   * Field(3).lessThanOrEqual(3).assertEquals(Bool(true));
    * ```
-   */
-  lt(y: Field | number | string | boolean): Bool;
-  /**
-   * @deprecated Deprecated - use {@link lessThanOrEqual} instead
-   *
-   * Check if this {@link Field} is lower than or equal to another Field-like value.
-   * Returns a {@link Bool}.
-   *
+   * 
+   * **Warning: As this function compares the bigint value of a {@link Field}, it can result in an unexpected behaviour while comparing negative numbers or floating point operations.
+   * 
    * ```ts
-   * Field(2).lte(3); // Bool(true)
+   * Field(1).div(Field(3)).lessThanOrEqual(Field(1).div(Field(2))).assertEquals(Bool(true)); // This code will throw an error
    * ```
+   * 
+   * @param value - the `field-like` value to compare with this {@link Field}.
+   * 
+   * @return A {@link Bool} representing if this {@link Field} is less than or equal another `field-like` value.
    */
-  lte(y: Field | number | string | boolean): Bool;
-  /**
-   * @deprecated Deprecated - use `{@link greaterThan}` instead
-   *
-   * Check if this {@link Field} is greater than another Field-like value.
-   * Returns a {@link Bool}.
-   *
-   * ```ts
-   * Field(2).gt(1); // Bool(true)
-   * ```
-   */
-  gt(y: Field | number | string | boolean): Bool;
-  /**
-   * @deprecated Deprecated - use {@link greaterThanOrEqual} instead
-   *
-   * Check if this {@link Field} is greater than or equal to another Field-like value.
-   * Returns a {@link Bool}.
-   *
-   * ```ts
-   * Field(2).gte(1); // Bool(true)
-   * ```
-   */
-  gte(y: Field | number | string | boolean): Bool;
+  lessThanOrEqual(value: Field | number | string | boolean): Bool;
 
-  // TODO: Make these long form version
+  /**
+   * Check if this {@link Field} is greater than another `field-like` value.
+   * Returns a {@link Bool}, which is a `provable` type and can be used to prove the validity of this statement.
+   *
+   * ```ts
+   * Field(5).greaterThan(3).assertEquals(Bool(true));
+   * ```
+   * 
+   * **Warning: As this function compares the bigint value of a {@link Field}, it can result in an unexpected behaviour while comparing negative numbers or floating point operations.
+   * 
+   * ```ts
+   * Field(1).div(Field(2)).greaterThan(Field(1).div(Field(3))).assertEquals(Bool(true)); // This code will throw an error
+   * ```
+   * 
+   * @param value - the `field-like` value to compare with this {@link Field}.
+   * 
+   * @return A {@link Bool} representing if this {@link Field} is greater than another `field-like` value.
+   */
+  greaterThan(value: Field | number | string | boolean): Bool;
+  
+  /**
+   * Check if this {@link Field} is greater than or equal another `field-like` value.
+   * Returns a {@link Bool}, which is a `provable` type and can be used to prove the validity of this statement.
+   *
+   * ```ts
+   * Field(3).greaterThanOrEqual(3).assertEquals(Bool(true));
+   * ```
+   * 
+   * **Warning: As this function compares the bigint value of a {@link Field}, it can result in an unexpected behaviour while comparing negative numbers or floating point operations.
+   * 
+   * ```ts
+   * Field(1).div(Field(2)).greaterThanOrEqual(Field(1).div(Field(3))).assertEquals(Bool(true)); // This code will throw an error
+   * ```
+   * 
+   * @param value - the `field-like` value to compare with this {@link Field}.
+   * 
+   * @return A {@link Bool} representing if this {@link Field} is greater than or equal another `field-like` value.
+   */
+  greaterThanOrEqual(value: Field | number | string | boolean): Bool;
+
+  /**
+   * Assert that this {@link Field} is less than another `field-like` value.
+   * It is equivalent to `Field(...).lessThan(...).assertEquals(Bool(true))`.
+   * Please see {@link Field.lessThan} for more details.
+   * 
+   * **Important: If an assertion fails, the code throws an error.
+   * 
+   * @param value - the `field-like` value to compare & assert with this {@link Field}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertLessThan(value: Field | number | string | boolean, message?: string): void;
+  
+  /**
+   * Assert that this {@link Field} is less than or equal another `field-like` value.
+   * It is equivalent to `Field(...).lessThanOrEqual(...).assertEquals(Bool(true))`.
+   * Please see {@link Field.lessThanOrEqual} for more details.
+   * 
+   * **Important: If an assertion fails, the code throws an error.
+   * 
+   * @param value - the `field-like` value to compare & assert with this {@link Field}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertLessThanOrEqual(value: Field | number | string | boolean, message?: string): void;
+
+  /**
+   * Assert that this {@link Field} is greater than another `field-like` value.
+   * It is equivalent to `Field(...).greaterThan(...).assertEquals(Bool(true))`.
+   * Please see {@link Field.greaterThan} for more details.
+   * 
+   * **Important: If an assertion fails, the code throws an error.
+   * 
+   * @param value - the `field-like` value to compare & assert with this {@link Field}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertGreaterThan(value: Field | number | string | boolean, message?: string): void;
+
+  /**
+   * Assert that this {@link Field} is greater than or equal another `field-like` value.
+   * It is equivalent to `Field(...).greaterThanOrEqual(...).assertEquals(Bool(true))`.
+   * Please see {@link Field.greaterThanOrEqual} for more details.
+   * 
+   * **Important: If an assertion fails, the code throws an error.
+   * 
+   * @param value - the `field-like` value to compare & assert with this {@link Field}.
+   * @param message? - a string error message to print if the assertion fails, optional.
+   */
+  assertGreaterThanOrEqual(value: Field | number | string | boolean, message?: string): void;
+
+  /**
+   * @deprecated Deprecated - use {@link lessThan} instead.
+   */
+  lt(value: Field | number | string | boolean): Bool;
+  
+  /**
+   * @deprecated Deprecated - use {@link lessThanOrEqual} instead.
+   */
+  lte(value: Field | number | string | boolean): Bool;
+  
+  /**
+   * @deprecated Deprecated - use `{@link greaterThan}` instead.
+   */
+  gt(value: Field | number | string | boolean): Bool;
+  
+  /**
+   * @deprecated Deprecated - use {@link greaterThanOrEqual} instead.
+   */
+  gte(value: Field | number | string | boolean): Bool;
+
   /**
    * @deprecated Deprecated - use {@link assertLessThan} instead
-   *
-   * Assert that this {@link Field} is lower than another Field-like value.
-   *
-   * ```ts
-   * Field(1).assertLessThan(2);
-   * ```
-   *
    */
-  assertLt(y: Field | number | string | boolean, message?: string): void;
+  assertLt(value: Field | number | string | boolean, message?: string): void;
+  
   /**
    * @deprecated Deprecated - use {@link assertLessThanOrEqual}instead
-   *
-   * Assert that this {@link Field} is lower than or equal to another Field-like value.
-   *
-   * ```ts
-   * Field(1).assertLte(2);
-   * ```
    */
-  assertLte(y: Field | number | string | boolean, message?: string): void;
+  assertLte(value: Field | number | string | boolean, message?: string): void;
+  
   /**
    * @deprecated Deprecated - use {@link assertGreaterThan} instead
-   *
-   * Assert that this {@link Field} is greater than another Field-like value.
-   *
-   * ```ts
-   * Field(1).assertGt(0);
-   * ```
-   *
    */
-  assertGt(y: Field | number | string | boolean, message?: string): void;
+  assertGt(value: Field | number | string | boolean, message?: string): void;
+  
   /**
    *  @deprecated Deprecated - use {@link assertGreaterThanOrEqual} instead
-   *
-   * Assert that this {@link Field} is greater than or equal to another Field-like value.
-   *
-   * ```ts
-   * Field(1).assertGte(0);
-   * ```
-   *
    */
-  assertGte(y: Field | number | string | boolean, message?: string): void;
+  assertGte(value: Field | number | string | boolean, message?: string): void;
 
   /**
-   * Assert that this {@link Field} equals another Field-like value.
-   * Throws an error if the assertion fails.
-   *
-   * ```ts
-   * Field(1).assertEquals(1);
-   * ```
+   * Assert that this {@link Field} is equal another `field-like` value.
+   * It is equivalent to `Field(...).equals(...).assertEquals(Bool(true))`.
+   * Please see {@link Field.equals} for more details.
+   * 
+   * **Important: If an assertion fails, the code throws an error.
+   * 
+   * @param value - the `field-like` value to compare & assert with this {@link Field}.
+   * @param message? - a string error message to print if the assertion fails, optional.
    */
-  assertEquals(y: Field | number | string | boolean, message?: string): void;
+  assertEquals(value: Field | number | string | boolean, message?: string): void;
 
   /**
-   * Assert that this {@link Field} is either 0 or 1.
-   *
-   * ```ts
-   * Field(0).assertBool();
-   * ```
-   *
+   * Assert that this {@link Field} is equal to 1 or 0 as a `field-like` value.
+   * It is equivalent to `Bool.or(Field(...).equals(1), Field(...).equals(0)).assertEquals(Bool(true))`.
+   * 
+   * **Important: If an assertion fails, the code throws an error.
+   * 
+   * @param value - the `field-like` value to compare & assert with this {@link Field}.
+   * @param message? - a string error message to print if the assertion fails, optional.
    */
   assertBool(message?: string): void;
 
   /**
-   * @deprecated Deprecated - use {@link assertBool} instead
-   *
-   * Assert that this {@link Field} is either 0 or 1.
-   *
-   * ```ts
-   * Field(0).assertBoolean();
-   * ```
-   *
+   * @deprecated Deprecated - use {@link assertBool} instead.
    */
   assertBoolean(message?: string): void;
 
+  /**
+   * Checks if this {@link Field} is 0,
+   * It is equivalent to `Field(...).equals(Field(0))`.
+   * See {@link Field.equals} for more details.
+   * 
+   * @return A {@link Bool} representing if this {@link Field} equals 0.
+   */
   isZero(): Bool;
 
   /**
-   * Little endian binary representation of the field element.
+   * Returns an array of {@link Bool} elements representing [little endian binary representation](https://betterexplained.com/articles/understanding-big-and-little-endian-byte-order/) of this {@link Field} element.
+   * 
+   * **Warning: Binary operations on snarkyJS are currently really costy on chain. Do not use this function if it is not absolutely necessary.
+   * 
+   * @return An array of {@link Bool} element representing little endian binary representation of this {@link Field}.
    */
   toBits(): Bool[];
 
   /**
-   * Little endian binary representation of the field element.
-   * Fails if the field element cannot fit in `length` bits.
+   * Returns an array of {@link Bool} elements representing [little endian binary representation](https://betterexplained.com/articles/understanding-big-and-little-endian-byte-order/) of this {@link Field} element.
+   * Throws an error if the element cannot fit in `length` bits.
+   * 
+   * **Warning: Binary operations on snarkyJS are currently really costy on chain. Do not use this function if it is not absolutely necessary.
+   * 
+   * @param length - the number of bits to fit the element. If the element does not fit in `length` bits, the functions throws an error.
+   * 
+   * @return An array of {@link Bool} element representing little endian binary representation of this {@link Field}.
    */
   toBits(length: number): Bool[];
 
   /**
-   * Check if this {@link Field} equals another {@link Field}-like value.
-   * Returns a {@link Bool}.
+   * Check if this {@link Field} is equal another `field-like` value.
+   * Returns a {@link Bool}, which is a `provable` type and can be used to prove the validity of this statement.
    *
    * ```ts
-   * Field(2).equals(2); // Bool(true)
+   * Field(5).equals(5).assertEquals(Bool(true));
    * ```
+   * 
+   * @param value - the `field-like` value to compare with this {@link Field}.
+   * 
+   * @return A {@link Bool} representing if this {@link Field} is equal another `field-like` value.
    */
-  equals(y: Field | number | string | boolean): Bool;
+  equals(value: Field | number | string | boolean): Bool;
 
   // TODO: Izzy to document
   seal(): Field;
+  
   // TODO: Izzy to document
   rangeCheckHelper(numBits: number): Field;
 
@@ -408,31 +601,42 @@ declare class Field {
   // value(this: Field | number | string | boolean): Field;
 
   /* Self members */
+
   /**
    * @deprecated Static constant values on Field are deprecated in favor of using the constructor `Field(1)`.
    *
-   * The number 1 as a [[`Field`]].
+   * The number 1 as a {@link Field}.
    */
   static one: Field;
+
   /**
    * @deprecated Static constant values on Field are deprecated in favor of using the constructor `Field(0)`.
    *
-   * The number 0 as a [[`Field`]].
+   * The number 0 as a {@link Field}.
    */
   static zero: Field;
+
   /**
    * @deprecated Static constant values on Field are deprecated in favor of using the constructor `Field(-1)`.
    *
-   * The number -1 as a [[`Field`]].
+   * The number -1 as a {@link Field}.
    */
   static minusOne: Field;
+
   /**
-   * The field order as a `bigint`.
+   * The order of the pasta curve that {@link Field} type build on as a `bigint`.
+   * Order of the {@link Field} is 28948022309329048855892746252171976963363056481941560715954676764349967630337.
    */
   static ORDER: bigint;
 
   /**
-   * A random field element.
+   * A random {@link Field} element.
+   * 
+   * ```ts
+   * console.log(Field.random().toBigInt()); // Run this code twice!
+   * ```
+   * 
+   * @return A random {@link Field} element.
    */
   static random(): Field;
 
@@ -469,19 +673,41 @@ declare class Field {
   fromFields(fields: Field[]): Field;
 
   /**
-   * Creates a data structure from an array of serialized {@link Field} elements.
+   * Creates a {@link Field} from an array of length 1 serialized from {@link Field} elements.
+   * It is equivalent to `fields[0]`, the first index of the {@link Field} array.
+   * This function may seem unnecessary. It is designed as the reverse function of {@link Field.toFields}.
+   * 
+   * @param fields - an array of length 1 serialized from {@link Field} elements.
+   * 
+   * @return The first {@link Field} element of the given array.
    */
   static fromFields(fields: Field[]): Field;
 
   /**
-   * Returns the size of this type.
+   * Returns the size of this type. Size of the {@link Field} type is 1, as it is the primitive type.
+   * This function returns a reular number, so you cannot use it to prove something on chain. You can use it during debugging or to understand the memory complexity of some type.
+   * 
+   * This function has the same utility as the {@link Field.sizeInFields}.
+   * 
+   * ```ts
+   * console.log(Field.sizeInFields()); // Prints 1
+   * ```
+   * 
+   * @return A number representing the size of the {@link Field} type in terms of {@link Field} type itself.
    */
   static sizeInFields(): number;
 
   /**
-   * Static method to serialize a {@link Field} into an array of {@link Field} elements.
+   * Static function to serializes a {@link Field} into an array of {@link Field} elements.
+   * You can use this array to calculate the {@link Poseidon} hash of a {@link Field}.
+   * This will be always an array of length 1, where the first and only element equals the given parameter itself.
+   * 
+   * @param value - the {@link Field} element to cast the array from.
+   * 
+   * @return A {@link Field} array of length 1 created from this {@link Field}.
    */
-  static toFields(x: Field): Field[];
+  static toFields(value: Field): Field[];
+
   /**
    * Static method to serialize a {@link Field} into its auxiliary data.
    */
