@@ -4,7 +4,7 @@ This repository collects code needed by [SnarkyJS](https://github.com/o1-labs/sn
 
 The repo is included as a git submodule in the [SnarkyJS repo](https://github.com/o1-labs/snarkyjs) under `src/bindings`, and typically used from there.
 
-**Repository structure**
+**Directory structure**
 
 - `/compiled` - compiled JS and Wasm artifacts produced by `js_of_ocaml` and `wasm-bindgen` from Rust and OCaml source code. We keep these artifacts in the source tree so that developing on SnarkyJS can be done with standard JS tooling and doesn't require setting up the full OCaml/Rust build pipeline.
 - `/crypto` - pure TS implementations of a subset of the crypto primitives we use, including finite field and elliptic curve arithmetic. This is used by mina-signer (a pure TS package) to hash and sign transactions.
