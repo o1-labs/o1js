@@ -20,7 +20,7 @@ class InvalidContract extends SmartContract {
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.none(),
-      editSequenceState: Permissions.none(),
+      editActionState: Permissions.none(),
     });
   }
 }

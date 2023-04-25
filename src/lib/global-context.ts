@@ -9,10 +9,10 @@ namespace Context {
 
     get(): Context;
     has(): boolean;
-    runWith<Result>(
+    runWith<C extends Context, Result>(
       context: Context,
-      func: (context: Context) => Result
-    ): [Context, Result];
+      func: (context: C) => Result
+    ): [C, Result];
     runWithAsync<Result>(
       context: Context,
       func: (context: Context) => Promise<Result>
@@ -39,8 +39,8 @@ function create<C>(
       allowsNesting: options.allowsNesting ?? true,
       get: () => get(t),
       has: () => t.data.length !== 0,
-      runWith: <R>(context: C, func: (context: C) => R) =>
-        runWith(t, context, func),
+      runWith: <C0 extends C, R>(context: C0, func: (context: C0) => R) =>
+        runWith<any, R>(t, context, func),
       runWithAsync: <R>(context: C, func: (context: C) => Promise<R>) =>
         runWithAsync(t, context, func),
       enter: (context: C) => enter(t, context),

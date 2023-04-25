@@ -79,16 +79,12 @@ export async function testSet(
     );
     console.log('checking that the tx is valid using default verification key');
 
+    let m = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(15));
+    verificationKeySet.Local.addAccount(m.publicKey, m.balance.toString());
+
     await assertValidTx(
       true,
       () => {
-        let m = Member.from(
-          PrivateKey.random().toPublicKey(),
-
-          UInt64.from(15)
-        );
-        verificationKeySet.Local.addAccount(m.publicKey, m.balance.toString());
-
         verificationKeySet.voting.voterRegistration(m);
       },
       verificationKeySet.feePayer
@@ -109,16 +105,12 @@ export async function testSet(
       verificationKeySet.feePayer
     );
 
+    m = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(15));
+    verificationKeySet.Local.addAccount(m.publicKey, m.balance.toString());
+
     await assertValidTx(
       false,
       () => {
-        let m = Member.from(
-          PrivateKey.random().toPublicKey(),
-
-          UInt64.from(15)
-        );
-        verificationKeySet.Local.addAccount(m.publicKey, m.balance.toString());
-
         verificationKeySet.voting.voterRegistration(m);
       },
       verificationKeySet.feePayer,
@@ -159,16 +151,12 @@ export async function testSet(
     );
     console.log('checking that the tx is valid using default permissions');
 
+    let m = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(15));
+    permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
+
     await assertValidTx(
       true,
       () => {
-        let m = Member.from(
-          PrivateKey.random().toPublicKey(),
-
-          UInt64.from(15)
-        );
-        permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
-
         permissionedSet.voting.voterRegistration(m);
       },
       permissionedSet.feePayer
@@ -184,7 +172,7 @@ export async function testSet(
         permUpdate.account.permissions.set({
           ...Permissions.default(),
           setPermissions: Permissions.none(),
-          editSequenceState: Permissions.impossible(),
+          editActionState: Permissions.impossible(),
         });
       },
       permissionedSet.feePayer
@@ -192,20 +180,16 @@ export async function testSet(
 
     console.log('trying to invoke method with invalid permissions...');
 
+    m = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(15));
+    permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
+
     await assertValidTx(
       false,
       () => {
-        let m = Member.from(
-          PrivateKey.random().toPublicKey(),
-
-          UInt64.from(15)
-        );
-        permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
-
         permissionedSet.voting.voterRegistration(m);
       },
       permissionedSet.feePayer,
-      'sequenceEvents'
+      'actions'
     );
   }
 
@@ -240,24 +224,19 @@ export async function testSet(
 
     console.log('trying to invoke invalid contract method...');
 
+    let m = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(15));
+    invalidSet.Local.addAccount(m.publicKey, m.balance.toString());
+
     try {
       let tx = await Mina.transaction(invalidSet.feePayer.toPublicKey(), () => {
-        let m = Member.from(
-          PrivateKey.random().toPublicKey(),
-
-          UInt64.from(15)
-        );
-        invalidSet.Local.addAccount(m.publicKey, m.balance.toString());
-
         invalidSet.voting.voterRegistration(m);
       });
-
       await tx.prove();
       await tx.sign([invalidSet.feePayer]).send();
     } catch (err: any) {
-      if (!err.toString().includes('precondition_unsatisfied')) {
+      if (!err.toString().includes('fromActionState not found')) {
         throw Error(
-          `Transaction should have failed but went through! Error: ${err}`
+          `Transaction should have failed, but failed with an unexpected error! ${err}`
         );
       }
     }
@@ -278,25 +257,25 @@ export async function testSet(
 
     /*
     test case description:
-      overflowing maximum amount of sequence events allowed in the reducer (32 default)
+      overflowing maximum amount of sequence events allowed in the reducer (2)
     
     preconditions:
       - x
 
     tested cases:
-      - emitted 33 sequence events and trying to reduce them
+      - emitted 3 sequence events and trying to reduce them
 
     expected results:
       - throws an error
 
   */
 
-    console.log('trying to overflow sequence events (default 32)');
+    console.log('trying to overflow actions (custom max: 2)');
 
     console.log(
-      'emitting more than 32 sequence events without periodically updating them'
+      'emitting more than 2 actions without periodically updating them'
     );
-    for (let index = 0; index <= 32; index++) {
+    for (let index = 0; index <= 3; index++) {
       try {
         let tx = await Mina.transaction(
           sequenceOverflowSet.feePayer.toPublicKey(),
@@ -321,9 +300,9 @@ export async function testSet(
       }
     }
 
-    if (sequenceOverflowSet.voterContract.reducer.getActions({}).length < 32) {
+    if (sequenceOverflowSet.voterContract.reducer.getActions({}).length < 3) {
       throw Error(
-        `Did not emitted expected sequence events! Only emitted ${
+        `Did not emit expected actions! Only emitted ${
           sequenceOverflowSet.voterContract.reducer.getActions({}).length
         }`
       );

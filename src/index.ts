@@ -18,6 +18,7 @@ export {
   Struct,
   FlexibleProvable,
   FlexibleProvablePure,
+  InferProvable,
 } from './lib/circuit_value.js';
 export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
 export { Types } from './provable/types.js';
@@ -38,6 +39,7 @@ export { Proof, SelfProof, verify } from './lib/proof_system.js';
 
 export {
   Token,
+  TokenId,
   AccountUpdate,
   Permissions,
   ZkappPublicInput,
@@ -47,10 +49,12 @@ export {
   fetchAccount,
   fetchLastBlock,
   fetchTransactionStatus,
+  checkZkappTransaction,
   fetchEvents,
   TransactionStatus,
   addCachedAccount,
   setGraphqlEndpoint,
+  setArchiveGraphqlEndpoint,
   sendZkapp,
 } from './lib/fetch.js';
 export * as Encryption from './lib/encryption.js';
@@ -86,3 +90,5 @@ namespace Experimental {
   export let Callback = Experimental_.Callback;
   export type Callback<Result> = Callback_<Result>;
 }
+
+Error.stackTraceLimit = 1000;

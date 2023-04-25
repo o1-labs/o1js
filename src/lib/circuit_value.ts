@@ -836,11 +836,14 @@ function cloneCircuitValue<T>(obj: T): T {
   // primitive JS types and functions aren't cloned
   if (typeof obj !== 'object' || obj === null) return obj;
 
-  // HACK: callbacks
+  // HACK: callbacks, account udpates
   if (
     ['GenericArgument', 'Callback'].includes((obj as any).constructor?.name)
   ) {
     return obj;
+  }
+  if (['AccountUpdate'].includes((obj as any).constructor?.name)) {
+    return (obj as any).constructor.clone(obj);
   }
 
   // built-in JS datatypes with custom cloning strategies
@@ -955,7 +958,7 @@ Circuit.inCheckedComputation = inCheckedComputation;
 
 let oldAsProver = Circuit.asProver;
 Circuit.asProver = function (f: () => void) {
-  if (Circuit.inCheckedComputation()) {
+  if (inCheckedComputation()) {
     oldAsProver(f);
   } else {
     f();
@@ -966,6 +969,14 @@ let oldRunUnchecked = Circuit.runUnchecked;
 Circuit.runUnchecked = function (f: () => void) {
   let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
     oldRunUnchecked(f)
+  );
+  return result;
+};
+
+let oldRunAndCheck = Circuit.runAndCheck;
+Circuit.runAndCheck = function (f: () => void) {
+  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
+    oldRunAndCheck(f)
   );
   return result;
 };

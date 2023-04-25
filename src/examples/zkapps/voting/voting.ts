@@ -101,7 +101,7 @@ export class Voting_ extends SmartContract {
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
-      editSequenceState: Permissions.proofOrSignature(),
+      editActionState: Permissions.proofOrSignature(),
       incrementNonce: Permissions.proofOrSignature(),
       setVerificationKey: Permissions.none(),
       setPermissions: Permissions.proofOrSignature(),

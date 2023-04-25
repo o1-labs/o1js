@@ -1,11 +1,7 @@
 import { Provable, Bool, Field } from '../snarky.js';
 import { circuitValueEquals, Circuit } from './circuit_value.js';
 import * as Mina from './mina.js';
-import {
-  SequenceEvents,
-  AccountUpdate,
-  Preconditions,
-} from './account_update.js';
+import { Actions, AccountUpdate, Preconditions } from './account_update.js';
 import { Int64, UInt32, UInt64 } from './int.js';
 import { Layout } from '../provable/gen/transaction.js';
 import { jsLayout } from '../provable/gen/js-layout.js';
@@ -50,6 +46,10 @@ function Network(accountUpdate: AccountUpdate): Network {
   let timestamp = {
     get() {
       let slot = network.globalSlotSinceGenesis.get();
+      return globalSlotToTimestamp(slot);
+    },
+    getAndAssertEquals() {
+      let slot = network.globalSlotSinceGenesis.getAndAssertEquals();
       return globalSlotToTimestamp(slot);
     },
     assertEquals(value: UInt64) {
@@ -217,7 +217,7 @@ function preconditionSubclass<
   if (fieldType === undefined) {
     throw Error(`this.${longKey}: fieldType undefined`);
   }
-  return {
+  let obj = {
     get() {
       if (unimplementedPreconditions.includes(longKey)) {
         let self = context.isSelf ? 'this' : 'accountUpdate';
@@ -230,6 +230,11 @@ function preconditionSubclass<
         longKey,
         fieldType
       )) as U;
+    },
+    getAndAssertEquals() {
+      let value = obj.get();
+      obj.assertEquals(value);
+      return value;
     },
     assertEquals(value: U) {
       context.constrained.add(longKey);
@@ -253,6 +258,7 @@ function preconditionSubclass<
       context.constrained.add(longKey);
     },
   };
+  return obj;
 }
 
 function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
@@ -331,7 +337,7 @@ function getAccountPreconditions(body: {
       balance: UInt64.zero,
       nonce: UInt32.zero,
       receiptChainHash: emptyReceiptChainHash(),
-      sequenceState: SequenceEvents.emptySequenceState(),
+      actionState: Actions.emptyActionState(),
       delegate: publicKey,
       provedState: Bool(false),
       isNew: Bool(true),
@@ -342,8 +348,7 @@ function getAccountPreconditions(body: {
     balance: account.balance,
     nonce: account.nonce,
     receiptChainHash: account.receiptChainHash,
-    sequenceState:
-      account.zkapp?.sequenceState?.[0] ?? SequenceEvents.emptySequenceState(),
+    actionState: account.zkapp?.actionState?.[0] ?? Actions.emptyActionState(),
     delegate: account.delegate ?? account.publicKey,
     provedState: account.zkapp?.provedState ?? Bool(false),
     isNew: Bool(false),
@@ -446,6 +451,7 @@ type PreconditionBaseTypes<T> = {
 
 type PreconditionSubclassType<U> = {
   get(): U;
+  getAndAssertEquals(): U;
   assertEquals(value: U): void;
   assertNothing(): void;
 };

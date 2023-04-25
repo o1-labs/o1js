@@ -76,9 +76,8 @@ expect(() =>
         new UInt32(Field(-1)),
       ],
     }));
-    type.check(x);
   })
-).toThrow(`Expected ${Field(-1)} to fit in 32 bits`);
+).toThrow(`Constraint unsatisfied`);
 
 // class version of `provable`
 class MyStruct extends Struct({

@@ -15,17 +15,53 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/4573252d...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/97e393ed...HEAD)
+
+> No unreleased changes
+
+## [0.9.8](https://github.com/o1-labs/snarkyjs/compare/1a984089...97e393ed)
+
+### Fixed
+
+- Fix fetching the `access` permission on accounts https://github.com/o1-labs/snarkyjs/pull/851
+- Fix `fetchActions` https://github.com/o1-labs/snarkyjs/pull/844 https://github.com/o1-labs/snarkyjs/pull/854 [@Comdex](https://github.com/Comdex)
+- Updated `Mina.TransactionId.isSuccess` to accurately verify zkApp transaction status after using `Mina.TransactionId.wait()`. https://github.com/o1-labs/snarkyjs/pull/826
+  - This change ensures that the function correctly checks for transaction completion and provides the expected result.
+
+## [0.9.7](https://github.com/o1-labs/snarkyjs/compare/0b7a9ad...1a984089)
+
+### Added
+
+- `smartContract.fetchActions()` and `Mina.fetchActions()`, asynchronous methods to fetch actions directly from an archive node https://github.com/o1-labs/snarkyjs/pull/843 [@Comdex](https://github.com/Comdex)
+
+### Changed
+
+- `Circuit.runAndCheck()` now uses `snarky` to create a constraint system and witnesses, and check constraints. It closely matches behavior during proving and can be used to test provable code without having to create an expensive proof https://github.com/o1-labs/snarkyjs/pull/840
+
+### Fixed
+
+- Fixes two issues that were temporarily reintroduced in the 0.9.6 release https://github.com/o1-labs/snarkyjs/issues/799 https://github.com/o1-labs/snarkyjs/issues/530
+
+## [0.9.6](https://github.com/o1-labs/snarkyjs/compare/21de489...0b7a9ad)
 
 ### Breaking changes
 
+- Circuits changed due to an internal rename of "sequence events" to "actions" which included a change to some hash prefixes; this breaks all deployed contracts.
+- Temporarily reintroduces 2 known issues as a result of reverting a fix necessary for network redeployment:
+  - https://github.com/o1-labs/snarkyjs/issues/799
+  - https://github.com/o1-labs/snarkyjs/issues/530
+  - Please note that we plan to address these issues in a future release. In the meantime, to work around this breaking change, you can try calling `fetchAccount` for each account involved in a transaction before executing the `Mina.transaction` block.
 - Improve number of constraints needed for Merkle tree hashing https://github.com/o1-labs/snarkyjs/pull/820
   - This breaks deployed zkApps which use `MerkleWitness.calculateRoot()`, because the circuit is changed
   - You can make your existing contracts compatible again by switching to `MerkleWitness.calculateRootSlow()`, which has the old circuit
-- Renamed Function Parameters: The `getAction` function now accepts a new object structure for its parameters. https://github.com/o1-labs/snarkyjs/pull/828
+- Renamed function parameters: The `getAction` function now accepts a new object structure for its parameters. https://github.com/o1-labs/snarkyjs/pull/828
   - The previous object keys, `fromActionHash` and `endActionHash`, have been replaced by `fromActionState` and `endActionState`.
 - Renamed Variable: All references to `actionsHash` have been renamed to `actionState` to better mirror what is used in the Mina protocol implementation. https://github.com/o1-labs/snarkyjs/pull/833
   - This change affects variables, function parameters, and object keys throughout the codebase.
+
+### Added
+
+- `zkProgram.analyzeMethods()` to obtain metadata about a ZkProgram's methods https://github.com/o1-labs/snarkyjs/pull/829 [@maht0rz](https://github.com/maht0rz)
 
 ### Fixed
 
@@ -71,7 +107,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 - Added the missing export of `Mina.TransactionId` https://github.com/o1-labs/snarkyjs/pull/785
-- Added an option to specify `tokenId` as `Field` in `fetchAccount()` https://github.com/o1-labs/snarkyjs/pull/787
+- Added an option to specify `tokenId` as `Field` in `fetchAccount()` https://github.com/o1-labs/snarkyjs/pull/787 [@rpanic](https://github.com/rpanic)
 
 ## [0.9.2](https://github.com/o1-labs/snarkyjs/compare/9c44b9c2...1abdfb70)
 
@@ -293,7 +329,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
-- Infinite loop when compiling in web version https://github.com/o1-labs/snarkyjs/issues/379, by @maht0rz
+- Infinite loop when compiling in web version https://github.com/o1-labs/snarkyjs/issues/379, by [@maht0rz](https://github.com/maht0rz)
 
 ## [0.5.2](https://github.com/o1-labs/snarkyjs/compare/55c8ea0...4f0dd40)
 

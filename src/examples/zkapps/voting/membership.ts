@@ -72,7 +72,7 @@ export class Membership_ extends SmartContract {
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
-      editSequenceState: Permissions.proofOrSignature(),
+      editActionState: Permissions.proofOrSignature(),
       setPermissions: Permissions.proofOrSignature(),
       setVerificationKey: Permissions.proofOrSignature(),
       incrementNonce: Permissions.proofOrSignature(),
@@ -192,7 +192,8 @@ export class Membership_ extends SmartContract {
           );
         },
         // initial state
-        { state: committedMembers, actionState: accumulatedMembers }
+        { state: committedMembers, actionState: accumulatedMembers },
+        { maxTransactionsWithActions: 2 }
       );
 
     this.committedMembers.set(newCommittedMembers);
