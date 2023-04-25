@@ -2,7 +2,7 @@
 
 This repository collects code needed by [SnarkyJS](https://github.com/o1-labs/snarkyjs) to bind to lower layers of the proof system and the Mina transaction logic, which are written in Rust and OCaml.
 
-This repository is included as a git submodule in the [SnarkyJS repo](https://github.com/o1-labs/snarkyjs) under `src/bindings`, and typically used from there.
+The repo is included as a git submodule in the [SnarkyJS repo](https://github.com/o1-labs/snarkyjs) under `src/bindings`, and typically used from there.
 
 **Repository structure**
 
