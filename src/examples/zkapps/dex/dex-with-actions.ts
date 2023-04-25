@@ -1,6 +1,6 @@
 /**
  * This DEX implementation differs from ./dex.ts in two ways:
- * - More minimal & realistic; stuff only designed for testing protocol features was removed
+ * - More minimal & realistic; stuff designed only for testing protocol features was removed
  * - Uses an "async" pattern with actions that lets users claim funds later & reduces account updates
  */
 import {
