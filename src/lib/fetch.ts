@@ -1024,10 +1024,16 @@ async function makeGraphqlRequest(
       });
       return checkResponseStatus(response);
     } catch (error) {
-      if (error instanceof Error) {
-        console.error(`Request to ${endpoint} failed: ${error.message}`);
+      let networkError = inferError(error);
+      // If the request timed out, try the next endpoint
+      if (networkError.statusCode === 408) {
+        if (error instanceof Error)
+          console.error(`Request to ${endpoint} failed: ${error.message}`);
+        errorMessages.push({ endpoint, error: inferError(error) });
+      } else {
+        clearTimeout(timer);
+        return networkError;
       }
-      errorMessages.push({ endpoint, error: inferError(error) });
     }
   }
   clearTimeout(timer);
