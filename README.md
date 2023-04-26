@@ -6,7 +6,7 @@ To learn more, see the [SnarkyJS reference](https://docs.minaprotocol.com/en/zka
 
 For a list of changes between versions, see the [CHANGELOG.md](https://github.com/o1-labs/snarkyjs/blob/main/CHANGELOG.md).
 
-## Community packages
+## Community Packages
 
 Here is a list of community-maintained packages. To include your package, see the [Contributing guidelines](./CONTRIBUTING.md#creating-high-quality-community-packages).
 
