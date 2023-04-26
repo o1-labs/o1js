@@ -1032,7 +1032,7 @@ async function makeGraphqlRequest(
         errorMessages.push({ endpoint, error: inferError(error) });
       } else {
         clearTimeout(timer);
-        return networkError;
+        return [undefined, networkError] as [undefined, FetchError];
       }
     }
   }
