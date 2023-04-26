@@ -168,6 +168,7 @@ async function fetchAccountInternal(
   let [response, error] = await makeGraphqlRequest(
     accountQuery(publicKey, tokenId ?? TokenId.toBase58(TokenId.default)),
     graphqlEndpoint,
+    networkConfig.minaFallbackEndpoints,
     config
   );
   if (error !== undefined) return { account: undefined, error };
@@ -394,7 +395,11 @@ function accountCacheKey(
  * Fetches the last block on the Mina network.
  */
 async function fetchLastBlock(graphqlEndpoint = networkConfig.minaEndpoint) {
-  let [resp, error] = await makeGraphqlRequest(lastBlockQuery, graphqlEndpoint);
+  let [resp, error] = await makeGraphqlRequest(
+    lastBlockQuery,
+    graphqlEndpoint,
+    networkConfig.minaFallbackEndpoints
+  );
   if (error) throw Error(error.statusText);
   let lastBlock = resp?.data?.bestChain?.[0];
   if (lastBlock === undefined) {
@@ -480,7 +485,8 @@ async function fetchLatestBlockZkappStatus(
 ) {
   let [resp, error] = await makeGraphqlRequest(
     lastBlockQueryFailureCheck,
-    graphqlEndpoint
+    graphqlEndpoint,
+    networkConfig.minaFallbackEndpoints
   );
   if (error) throw Error(`Error making GraphQL request: ${error.statusText}`);
   let bestChain = resp?.data as LastBlockQueryFailureCheckResponse;
@@ -625,7 +631,8 @@ async function fetchTransactionStatus(
 ): Promise<TransactionStatus> {
   let [resp, error] = await makeGraphqlRequest(
     transactionStatusQuery(txId),
-    graphqlEndpoint
+    graphqlEndpoint,
+    networkConfig.minaFallbackEndpoints
   );
   if (error) throw Error(error.statusText);
   let txStatus = resp?.data?.transactionStatus;
@@ -653,9 +660,14 @@ function sendZkapp(
   graphqlEndpoint = networkConfig.minaEndpoint,
   { timeout = defaultTimeout } = {}
 ) {
-  return makeGraphqlRequest(sendZkappQuery(json), graphqlEndpoint, {
-    timeout,
-  });
+  return makeGraphqlRequest(
+    sendZkappQuery(json),
+    graphqlEndpoint,
+    networkConfig.minaFallbackEndpoints,
+    {
+      timeout,
+    }
+  );
 }
 
 // TODO: Decide an appropriate response structure.
@@ -824,7 +836,8 @@ async function fetchEvents(
       tokenId ?? TokenId.toBase58(TokenId.default),
       filterOptions
     ),
-    graphqlEndpoint
+    graphqlEndpoint,
+    networkConfig.archiveFallbackEndpoints
   );
   if (error) throw Error(error.statusText);
   let fetchedEvents = response?.data.events as FetchedEvents[];
@@ -891,7 +904,8 @@ async function fetchActions(
   } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
     getActionsQuery(publicKey, actionStates, tokenId),
-    graphqlEndpoint
+    graphqlEndpoint,
+    networkConfig.archiveFallbackEndpoints
   );
   if (error) throw Error(error.statusText);
   let fetchedActions = response?.data.actions as FetchedActions[];
@@ -997,6 +1011,7 @@ function removeJsonQuotes(json: string) {
 async function makeGraphqlRequest(
   query: string,
   graphqlEndpoint = networkConfig.minaEndpoint,
+  fallbackEndpoints: string[],
   { timeout = defaultTimeout } = {} as FetchConfig
 ) {
   if (graphqlEndpoint === 'none')
@@ -1007,20 +1022,36 @@ async function makeGraphqlRequest(
   const timer = setTimeout(() => {
     controller.abort();
   }, timeout);
+  let errorMessages = [];
 
-  try {
-    let body = JSON.stringify({ operationName: null, query, variables: {} });
-    let response = await fetch(graphqlEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-      signal: controller.signal,
-    });
-    return await checkResponseStatus(response);
-  } catch (error) {
-    clearTimeout(timer);
-    return [undefined, inferError(error)] as [undefined, FetchError];
+  for (const endpoint of [graphqlEndpoint, ...fallbackEndpoints]) {
+    try {
+      let body = JSON.stringify({ operationName: null, query, variables: {} });
+      let response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        signal: controller.signal,
+      });
+      return checkResponseStatus(response);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Request to ${endpoint} failed: ${error.message}`);
+      }
+      errorMessages.push({ endpoint, error: inferError(error) });
+    }
   }
+  clearTimeout(timer);
+  const statusText = errorMessages
+    .map(
+      (networkError) =>
+        `Request to ${networkError.endpoint} failed. Reason: ${networkError.error.statusCode}: ${networkError.error.statusText}`
+    )
+    .join('\n');
+  return [undefined, { statusCode: 503, statusText }] as [
+    undefined,
+    FetchError
+  ];
 }
 
 async function checkResponseStatus(
