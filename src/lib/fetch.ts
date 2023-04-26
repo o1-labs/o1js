@@ -1031,6 +1031,7 @@ async function makeGraphqlRequest(
           console.error(`Request to ${endpoint} failed: ${error.message}`);
         errorMessages.push({ endpoint, error: inferError(error) });
       } else {
+        // If the request failed for some other reason (e.g. SnarkyJS error), return the error
         clearTimeout(timer);
         return [undefined, networkError] as [undefined, FetchError];
       }
