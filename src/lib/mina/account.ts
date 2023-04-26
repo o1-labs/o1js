@@ -74,6 +74,7 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
     }
     permissions {
       editState
+      access
       send
       receive
       setDelegate
