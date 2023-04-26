@@ -33,8 +33,6 @@ export {
   getCachedActions,
   addCachedAccount,
   networkConfig,
-  // defaultGraphqlEndpoint,
-  // archiveGraphqlEndpoint,
   setGraphqlEndpoint,
   setMinaGraphqlFallbackEndpoints,
   setArchiveGraphqlEndpoint,
@@ -68,15 +66,6 @@ function checkForValidUrl(url: string) {
     return false;
   }
 }
-
-// let defaultGraphqlEndpoint = 'none';
-//let archiveGraphqlEndpoint = 'none';
-/**
- * Specifies the default GraphQL endpoint.
- */
-// function setGraphqlEndpoint(graphqlEndpoint: string) {
-//   defaultGraphqlEndpoint = graphqlEndpoint;
-// }
 
 function setGraphqlEndpoint(graphqlEndpoint: string) {
   if (!checkForValidUrl(graphqlEndpoint)) {
