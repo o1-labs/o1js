@@ -56,7 +56,7 @@ let networkConfig = {
   minaFallbackEndpoints: [] as string[],
   archiveEndpoint: '',
   archiveFallbackEndpoints: [] as string[],
-};
+} satisfies NetworkConfig;
 
 function checkForValidUrl(url: string) {
   try {
