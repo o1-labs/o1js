@@ -7,6 +7,7 @@ DUNE_PATH="$SNARKY_JS_PATH/src/snarkyjs-bindings/ocaml"
 BUILD_PATH="_build/default/$DUNE_PATH"
 DIR_PATH=$(dirname "$0")
 KIMCHI_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/kimchi"
+NODE_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/compiled/node_bindings"
 WEB_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/compiled/web_bindings"
 
 # 1. node build
@@ -14,12 +15,12 @@ WEB_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/compiled/web_bindings"
 $DIR_PATH/build-snarkyjs-node.sh
 
 BINDINGS_PATH="$SNARKY_JS_PATH"/dist/node/_node_bindings/
-cp "$BINDINGS_PATH"/snarky_js_node.bc.cjs "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/snarky_js_node.bc.cjs
-cp "$BINDINGS_PATH"/snarky_js_node.bc.map "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/snarky_js_node.bc.map
+cp "$BINDINGS_PATH"/snarky_js_node.bc.cjs "$NODE_BINDINGS"/snarky_js_node.bc.cjs
+cp "$BINDINGS_PATH"/snarky_js_node.bc.map "$NODE_BINDINGS"/snarky_js_node.bc.map
 
-cp _build/default/$KIMCHI_BINDINGS/js/node_js/plonk_wasm* "$SNARKY_JS_PATH"/src/node_bindings/
-mv -f "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/plonk_wasm.js "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/plonk_wasm.cjs
-sed -i 's/plonk_wasm.js/plonk_wasm.cjs/' "$SNARKY_JS_PATH"/src/snarkyjs-bindings/compiled/node_bindings/snarky_js_node.bc.cjs
+cp _build/default/$KIMCHI_BINDINGS/js/node_js/plonk_wasm* "$NODE_BINDINGS"/
+mv -f "$NODE_BINDINGS"/plonk_wasm.js "$NODE_BINDINGS"/plonk_wasm.cjs
+sed -i 's/plonk_wasm.js/plonk_wasm.cjs/' "$NODE_BINDINGS"/snarky_js_node.bc.cjs
 
 npm run build --prefix="$SNARKY_JS_PATH"
 
@@ -31,6 +32,7 @@ cp "_build/snarky_js_node.bc.map" "$BUILD_PATH/snarky_js_node.bc.map"
 
 cp _build/default/$KIMCHI_BINDINGS/js/web/plonk_wasm* $WEB_BINDINGS/
 cp $BUILD_PATH/snarky_js_web*.js $WEB_BINDINGS/
+chmod -R 666 "$WEB_BINDINGS"/*
 
 # better error messages
 # `s` is the jsoo representation of the error message string, and `s.c` is the actual JS string
