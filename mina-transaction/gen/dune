@@ -5,6 +5,8 @@
   transaction-json.ts
   transaction-bigint.ts)
  (mode promote)
+ (enabled_if
+  (<> %{env:NO_JS_BUILD=0} 1))
  (deps
   (:script ../../../build/jsLayoutToTypes.mjs)
   ../../ocaml/jsLayout.json
