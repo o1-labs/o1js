@@ -10,11 +10,11 @@ import {
   method,
   PublicKey,
   Permissions,
-  Token,
   VerificationKey,
   Field,
   Experimental,
   Int64,
+  TokenId,
 } from 'snarkyjs';
 
 const tokenSymbol = 'TOKEN';
@@ -224,19 +224,11 @@ describe('Token', () => {
       });
 
       test('correct token id can be derived with an existing token owner', () => {
-        expect(tokenId).toEqual(Token.getId(tokenZkappAddress));
+        expect(tokenId).toEqual(TokenId.derive(tokenZkappAddress));
       });
 
       test('deployed token contract exists in the ledger', () => {
         expect(Mina.getAccount(tokenZkappAddress, tokenId)).toBeDefined();
-      });
-
-      test('create a valid token with a different parentTokenId', async () => {
-        const newTokenId = new Token({
-          tokenOwner: zkAppBAddress,
-          parentTokenId: tokenId,
-        }).id;
-        expect(newTokenId).toBeDefined();
       });
 
       test('setting a valid token symbol on a token contract', async () => {

@@ -14,7 +14,7 @@ import {
   shutdown,
   Permissions,
   fetchAccount,
-} from "snarkyjs";
+} from 'snarkyjs';
 
 await isReady;
 
@@ -56,8 +56,8 @@ class NotSoSimpleZkapp extends SmartContract {
     this.send({ to: callerAccountUpdate, amount: halfBalance });
 
     // emit some events
-    this.emitEvent("payoutReceiver", callerAddress);
-    this.emitEvent("payout", halfBalance);
+    this.emitEvent('payoutReceiver', callerAddress);
+    this.emitEvent('payout', halfBalance);
   }
 
   deposit(amount) {
@@ -84,15 +84,15 @@ let [feePayerKeyBase58, graphql_uri] = process.argv.slice(2);
 
 let isLocal = false;
 
-if (feePayerKeyBase58 === "local") {
+if (feePayerKeyBase58 === 'local') {
   isLocal = true;
   let LocalNetwork = Mina.LocalBlockchain(graphql_uri);
   Mina.setActiveInstance(LocalNetwork);
   let { privateKey } = LocalNetwork.testAccounts[0];
   feePayerKeyBase58 = privateKey.toBase58();
 } else {
-  if (!graphql_uri) throw Error("Graphql uri is undefined, aborting");
-  if (!feePayerKeyBase58) throw Error("Fee payer key is undefined, aborting");
+  if (!graphql_uri) throw Error('Graphql uri is undefined, aborting');
+  if (!feePayerKeyBase58) throw Error('Fee payer key is undefined, aborting');
   let LocalNetwork = Mina.Network(graphql_uri);
   Mina.setActiveInstance(LocalNetwork);
 }
@@ -135,7 +135,7 @@ console.log(`simple-zkapp.js: Starting integration test\n`);
 let zkapp = new NotSoSimpleZkapp(zkappAddress);
 await NotSoSimpleZkapp.compile();
 
-console.log("deploying contract\n");
+console.log('deploying contract\n');
 let tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 100_000_000 },
   () => {
@@ -156,7 +156,7 @@ expectAssertEquals(zkappAccount.zkapp.appState[0], Field(1));
 // the fresh zkapp account shouldn't have any funds
 expectAssertEquals(zkappAccount.balance, UInt64.from(0));
 
-console.log("deposit funds\n");
+console.log('deposit funds\n');
 tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 100_000_000 },
   () => {
@@ -172,7 +172,7 @@ zkappAccount = Mina.getAccount(zkappAddress);
 // we deposit 10_000_000_000 funds into the zkapp account
 expectAssertEquals(zkappAccount.balance, UInt64.from(initialBalance));
 
-console.log("update 1\n");
+console.log('update 1\n');
 tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 100_000_000 },
   () => {
@@ -182,7 +182,7 @@ tx = await Mina.transaction(
 await tx.prove();
 await (await tx.sign([feePayerKey]).send()).wait(waitParams);
 
-console.log("update 2\n");
+console.log('update 2\n');
 tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 100_000_000 },
   () => {
@@ -201,7 +201,7 @@ expectAssertEquals(zkappAccount.balance, UInt64.from(initialBalance));
 // we updated the zkapp state to 131
 expectAssertEquals(zkappAccount.zkapp.appState[0], Field(131));
 
-console.log("payout 1\n");
+console.log('payout 1\n');
 tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 100_000_000 },
   () => {
@@ -218,7 +218,7 @@ zkappAccount = Mina.getAccount(zkappAddress);
 // we withdraw (payout) half of the initial balance
 expectAssertEquals(zkappAccount.balance, UInt64.from(initialBalance / 2));
 
-console.log("payout 2 (expected to fail)\n");
+console.log('payout 2 (expected to fail)\n');
 tx = await Mina.transaction(
   { sender: feePayerAddress, fee: 100_000_000 },
   () => {
@@ -226,10 +226,18 @@ tx = await Mina.transaction(
   }
 );
 
-// this tx should fail, but we wont know that here - so we just check that no state has changed
 await tx.prove();
-let txId = await tx.sign([feePayerKey]).send();
-await txId.wait(waitParams);
+
+// this tx should fail
+try {
+  let txId = await tx.sign([feePayerKey]).send();
+  await txId.wait(waitParams);
+} catch (err) {
+  // throw if this is not the expected error
+  if (!err.message.includes('Account_is_new_precondition_unsatisfied')) {
+    throw err;
+  }
+}
 
 // although we just checked above that the tx failed, I just would like to double-check that anyway (cross checking logic)
 if (!isLocal) await fetchAccount({ publicKey: zkappAddress });
