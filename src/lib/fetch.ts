@@ -1013,23 +1013,32 @@ async function makeGraphqlRequest(
   }, timeout);
   let errorMessages = [];
 
-  for (const endpoint of [graphqlEndpoint, ...fallbackEndpoints]) {
+  const makeRequest = async (url: string) => {
+    let body = JSON.stringify({ operationName: null, query, variables: {} });
+    let response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      signal: controller.signal,
+    });
+    return checkResponseStatus(response);
+  };
+
+  for (const fallbackUrl of fallbackEndpoints) {
     try {
-      let body = JSON.stringify({ operationName: null, query, variables: {} });
-      let response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        signal: controller.signal,
-      });
-      return checkResponseStatus(response);
+      const result = await Promise.race([
+        makeRequest(graphqlEndpoint),
+        makeRequest(fallbackUrl),
+      ]);
+      clearTimeout(timer);
+      return result;
     } catch (error) {
       let networkError = inferError(error);
       // If the request timed out, try the next endpoint
       if (networkError.statusCode === 408) {
         if (error instanceof Error)
-          console.error(`Request to ${endpoint} failed: ${error.message}`);
-        errorMessages.push({ endpoint, error: inferError(error) });
+          console.error(`Request to ${fallbackUrl} failed: ${error.message}`);
+        errorMessages.push({ endpoint: fallbackUrl, error: inferError(error) });
       } else {
         // If the request failed for some other reason (e.g. SnarkyJS error), return the error
         clearTimeout(timer);
