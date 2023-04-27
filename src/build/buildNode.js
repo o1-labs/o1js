@@ -5,7 +5,9 @@ import { exec } from 'node:child_process';
 import esbuild from 'esbuild';
 import minimist from 'minimist';
 
-let { bindings = './src/node_bindings/' } = minimist(process.argv.slice(2));
+let { bindings = './src/snarkyjs-bindings/compiled/node_bindings/' } = minimist(
+  process.argv.slice(2)
+);
 
 export { buildNode };
 

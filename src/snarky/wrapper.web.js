@@ -1,4 +1,4 @@
-import { initSnarkyJS } from '../chrome_bindings/plonk_init.js';
+import { initSnarkyJS } from '../web_bindings/plonk_init.js';
 
 export { getSnarky, getWasm, snarky_ready, shutdown };
 

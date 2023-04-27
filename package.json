@@ -20,7 +20,8 @@
     "dist",
     "src/**/*.ts",
     "src/**/*.d.ts",
-    "**/*.map"
+    "dist/**/*.map",
+    "src/**/*.map"
   ],
   "bin": {
     "snarky-run": "src/build/run.js"
@@ -31,13 +32,13 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "dev": "npx tsc -p tsconfig.node.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
-    "make": "make -C ../../../.. snarkyjs",
-    "build": "rimraf ./dist/node && npx tsc -p tsconfig.node.json && cp -r src/node_bindings dist/node/_node_bindings && node src/build/buildNode.js && cp src/snarky.d.ts dist/node/snarky.d.ts",
+    "make": "make -C ../../.. snarkyjs",
+    "build": "rimraf ./dist/node && npx tsc -p tsconfig.node.json && cp -r src/snarkyjs-bindings/compiled/node_bindings dist/node/_node_bindings && node src/build/buildNode.js && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "build:test": "npx tsc -p tsconfig.test.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "build:node": "npm run build",
     "build:web": "rimraf ./dist/web && node src/build/buildWeb.js",
     "build:examples": "rimraf ./dist/examples && npx tsc -p tsconfig.examples.json || exit 0",
-    "serve:web": "cp src/chrome_bindings/server.js src/chrome_bindings/index.html dist/web && node dist/web/server.js",
+    "serve:web": "cp src/snarkyjs-bindings/compiled/web_bindings/server.js src/snarkyjs-bindings/compiled/web_bindings/index.html dist/web && node dist/web/server.js",
     "prepublish:web": "NODE_ENV=production node src/build/buildWeb.js",
     "prepublish:node": "npm run build && NODE_ENV=production node src/build/buildNode.js",
     "prepublish:both": "npm run prepublish:web && npm run prepublish:node",
@@ -50,7 +51,7 @@
     "test:integration": "./run-integration-tests.sh",
     "test:unit": "./run-unit-tests.sh",
     "test:e2e": "rimraf ./tests/report && rimraf ./tests/test-artifacts && npx playwright test",
-    "e2e:prepare-server": "npm run build:examples && (cp -rf dist/examples dist/web || :) && node src/build/e2eTestsBuildHelper.js && cp -rf src/chrome_bindings/index.html src/chrome_bindings/server.js tests/artifacts/html/*.html tests/artifacts/javascript/*.js dist/web",
+    "e2e:prepare-server": "npm run build:examples && (cp -rf dist/examples dist/web || :) && node src/build/e2eTestsBuildHelper.js && cp -rf src/snarkyjs-bindings/compiled/web_bindings/index.html src/snarkyjs-bindings/compiled/web_bindings/server.js tests/artifacts/html/*.html tests/artifacts/javascript/*.js dist/web",
     "e2e:run-server": "node dist/web/server.js",
     "e2e:install": "npx playwright install --with-deps",
     "e2e:show-report": "npx playwright show-report tests/report"
