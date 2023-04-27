@@ -666,7 +666,7 @@ function Network(
       throw new Error(
         "Network: malformed input. Please provide an object with 'mina' and 'archive' endpoints."
       );
-    if (Array.isArray(input.mina) && input.mina.length > 1) {
+    if (Array.isArray(input.mina) && input.mina.length !== 0) {
       minaGraphqlEndpoint = input.mina[0];
       Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
       Fetch.setMinaGraphqlFallbackEndpoints(input.mina.slice(1));
@@ -675,7 +675,7 @@ function Network(
       Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
     }
 
-    if (Array.isArray(input.archive) && input.archive.length > 1) {
+    if (Array.isArray(input.archive) && input.archive.length !== 0) {
       archiveEndpoint = input.archive[0];
       Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
       Fetch.setArchiveGraphqlFallbackEndpoints(input.archive.slice(1));
