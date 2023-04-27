@@ -28,13 +28,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changes
 
-- **Massive memory consumption improvement**, thanks to a refactor of SnarkyJS' worker usage https://github.com/o1-labs/snarkyjs/pull/872
-  - Workers are no longer running by default, and are only started when compiling or proving. Since workers used a lot of memory, this leads to a memory improvement when workers aren't needed.
-  - In addition, we achieved a large reduction of memory consumption of each worker in the Node.js version
-  - Memory reduction examples with 16 threads in Node.js:
-    - From 3.2GB down to 300MB when not compiling or proving
-    - From 3.6GB down to 1.7GB when proving a small contract (`src/examples/simple_zkapp.ts`)
-    - From 4.9GB down to 3.2GB when proving complex, multi-contract zkApp (`src/examples/zkapps/dex/happy-path-with-proofs.ts`)
+- **Massive improvement of memory consumption**, thanks to a refactor of SnarkyJS' worker usage https://github.com/o1-labs/snarkyjs/pull/872
+  - Memory reduced by up to 10x; see [the PR](https://github.com/o1-labs/snarkyjs/pull/872) for details
 
 ### Deprecated
 
