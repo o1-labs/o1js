@@ -18,11 +18,57 @@ export { assertStatePrecondition, cleanStatePrecondition };
  * Gettable and settable state that can be checked for equality.
  */
 type State<A> = {
+  /**
+   * Get the current on-chain state.
+   *
+   * Caution: If you use this method alone inside a smart contract, it does not prove that your contract uses the current on-chain state.
+   * To successfully prove that your contract uses the current on-chain state, you must add an additional `.assertEquals()` statement or use `.getAndAssertEquals()`:
+   *
+   * ```ts
+   * let x = this.x.get();
+   * this.x.assertEquals(x);
+   * ```
+   *
+   * OR
+   *
+   * ```ts
+   * let x = this.x.getAndAssertEquals();
+   * ```
+   */
   get(): A;
+  /**
+   * Get the current on-chain state and prove it really has to equal the on-chain state,
+   * by adding a precondition which the verifying Mina node will check before accepting this transaction.
+   */
+  getAndAssertEquals(): A;
+  /**
+   * Set the on-chain state to a new value.
+   */
   set(a: A): void;
+  /**
+   * Asynchronously fetch the on-chain state. This is intended for getting the state outside a smart contract.
+   */
   fetch(): Promise<A | undefined>;
+  /**
+   * Prove that the on-chain state has to equal the given state,
+   * by adding a precondition which the verifying Mina node will check before accepting this transaction.
+   */
   assertEquals(a: A): void;
+  /**
+   * **DANGER ZONE**: Override the error message that warns you when you use `.get()` without adding a precondition.
+   */
   assertNothing(): void;
+  /**
+   * Get the state from the raw list of field elements on a zkApp account, for example:
+   *
+   * ```ts
+   * let myContract = new MyContract(address);
+   * let account = Mina.getAccount(address);
+   *
+   * let x = myContract.x.fromAppState(account.zkapp!.appState);
+   * ```
+   */
+  fromAppState(appState: Field[]): A;
 };
 function State<A>(): State<A> {
   return createState<A>();
@@ -242,6 +288,12 @@ function createState<T>(): InternalStateType<T> {
       return state;
     },
 
+    getAndAssertEquals() {
+      let state = this.get();
+      this.assertEquals(state);
+      return state;
+    },
+
     async fetch() {
       if (this._contract === undefined)
         throw Error(
@@ -266,6 +318,19 @@ function createState<T>(): InternalStateType<T> {
         for (let i = 0; i < layout.length; i++) {
           stateAsFields.push(account.zkapp.appState[layout.offset + i]);
         }
+      }
+      return this._contract.stateType.fromFields(stateAsFields);
+    },
+
+    fromAppState(appState: Field[]) {
+      if (this._contract === undefined)
+        throw Error(
+          'fromAppState() can only be called when the State is assigned to a SmartContract @state.'
+        );
+      let layout = getLayoutPosition(this._contract);
+      let stateAsFields: Field[] = [];
+      for (let i = 0; i < layout.length; ++i) {
+        stateAsFields.push(appState[layout.offset + i]);
       }
       return this._contract.stateType.fromFields(stateAsFields);
     },
