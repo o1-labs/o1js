@@ -14,6 +14,7 @@ export {
   Struct,
   FlexibleProvable,
   FlexibleProvablePure,
+  InferProvable,
 } from './lib/circuit_value.js';
 export { Circuit, public_, circuitMain } from './lib/circuit.js';
 export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
@@ -35,6 +36,7 @@ export { Proof, SelfProof, verify } from './lib/proof_system.js';
 
 export {
   Token,
+  TokenId,
   AccountUpdate,
   Permissions,
   ZkappPublicInput,
@@ -44,10 +46,12 @@ export {
   fetchAccount,
   fetchLastBlock,
   fetchTransactionStatus,
+  checkZkappTransaction,
   fetchEvents,
   TransactionStatus,
   addCachedAccount,
   setGraphqlEndpoint,
+  setArchiveGraphqlEndpoint,
   sendZkapp,
 } from './lib/fetch.js';
 export * as Encryption from './lib/encryption.js';

@@ -1,5 +1,5 @@
 import 'isomorphic-fetch';
-import { Field, Ledger } from '../snarky.js';
+import { Field } from '../snarky.js';
 import { UInt32, UInt64 } from './int.js';
 import { Actions, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
@@ -19,6 +19,7 @@ import {
 export {
   fetchAccount,
   fetchLastBlock,
+  checkZkappTransaction,
   parseFetchedAccount,
   markAccountToBeFetched,
   markNetworkToBeFetched,
@@ -135,7 +136,7 @@ async function fetchAccountInternal(
 }
 
 type FetchConfig = { timeout?: number };
-type FetchResponse = { data: any };
+type FetchResponse = { data: any; errors?: any };
 type FetchError = {
   statusCode: number;
   statusText: string;
@@ -143,8 +144,8 @@ type FetchError = {
 type ActionStatesStringified = {
   [K in keyof ActionStates]: string;
 };
-// Specify 30s as the default timeout
-const defaultTimeout = 30000;
+// Specify 5min as the default timeout
+const defaultTimeout = 5 * 60 * 1000;
 
 let accountCache = {} as Record<
   string,
@@ -311,14 +312,12 @@ function addCachedAccountInternal(account: Account, graphqlEndpoint: string) {
   };
 }
 
-function addCachedActionsInternal(
-  accountInfo: { publicKey: PublicKey; tokenId: Field },
+function addCachedActions(
+  { publicKey, tokenId }: { publicKey: string; tokenId: string },
   actions: { hash: string; actions: string[][] }[],
   graphqlEndpoint: string
 ) {
-  actionsCache[
-    accountCacheKey(accountInfo.publicKey, accountInfo.tokenId, graphqlEndpoint)
-  ] = {
+  actionsCache[`${publicKey};${tokenId};${graphqlEndpoint}`] = {
     actions,
     graphqlEndpoint,
     timestamp: Date.now(),
@@ -391,6 +390,84 @@ const lastBlockQuery = `{
     }
   }
 }`;
+
+type LastBlockQueryFailureCheckResponse = {
+  bestChain: {
+    transactions: {
+      zkappCommands: {
+        hash: string;
+        failureReason: {
+          failures: string[];
+          index: number;
+        }[];
+      }[];
+    };
+  }[];
+};
+
+const lastBlockQueryFailureCheck = `{
+  bestChain(maxLength: 1) {
+    transactions {
+      zkappCommands {
+        hash
+        failureReason {
+          failures
+          index
+        }
+      }
+    }
+  }
+}`;
+
+async function fetchLatestBlockZkappStatus(
+  graphqlEndpoint = defaultGraphqlEndpoint
+) {
+  let [resp, error] = await makeGraphqlRequest(
+    lastBlockQueryFailureCheck,
+    graphqlEndpoint
+  );
+  if (error) throw Error(`Error making GraphQL request: ${error.statusText}`);
+  let bestChain = resp?.data as LastBlockQueryFailureCheckResponse;
+  if (bestChain === undefined) {
+    throw Error(
+      'Failed to fetch the latest zkApp transaction status. The response data is undefined.'
+    );
+  }
+  return bestChain;
+}
+
+async function checkZkappTransaction(txnId: string) {
+  let bestChainBlocks = await fetchLatestBlockZkappStatus();
+
+  for (let block of bestChainBlocks.bestChain) {
+    for (let zkappCommand of block.transactions.zkappCommands) {
+      if (zkappCommand.hash === txnId) {
+        if (zkappCommand.failureReason !== null) {
+          let failureReason = zkappCommand.failureReason
+            .reverse()
+            .map((failure) => {
+              return ` AccountUpdate #${
+                failure.index
+              } failed. Reason: "${failure.failures.join(', ')}"`;
+            });
+          return {
+            success: false,
+            failureReason,
+          };
+        } else {
+          return {
+            success: true,
+            failureReason: null,
+          };
+        }
+      }
+    }
+  }
+  return {
+    success: false,
+    failureReason: null,
+  };
+}
 
 type FetchedBlock = {
   protocolState: {
@@ -749,15 +826,15 @@ async function fetchActions(
 ) {
   if (!graphqlEndpoint)
     throw new Error(
-      'fetchEvents: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
+      'fetchActions: Specified GraphQL endpoint is undefined. Please specify a valid endpoint.'
     );
-  const { publicKey, actionStates, tokenId } = accountInfo;
+  const {
+    publicKey,
+    actionStates,
+    tokenId = TokenId.toBase58(TokenId.default),
+  } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
-    getActionsQuery(
-      publicKey,
-      actionStates,
-      tokenId ?? TokenId.toBase58(TokenId.default)
-    ),
+    getActionsQuery(publicKey, actionStates, tokenId),
     graphqlEndpoint
   );
   if (error) throw Error(error.statusText);
@@ -789,91 +866,69 @@ async function fetchActions(
       break;
     }
   }
-
-  const processActionData = (
-    currentActionList: string[][],
-    latestActionsHash: Field
-  ) => {
-    const actionsHash = Actions.hash(
-      currentActionList.map((e) => e.map((f) => Field(f)))
-    );
-    return Actions.updateSequenceState(latestActionsHash, actionsHash);
-  };
-
   // Archive Node API returns actions in the latest order, so we reverse the array to get the actions in chronological order.
   fetchedActions.reverse();
   let actionsList: { actions: string[][]; hash: string }[] = [];
 
-  fetchedActions.forEach((fetchedAction) => {
-    const { actionData } = fetchedAction;
-    let latestActionsHash = Field(fetchedAction.actionState.actionStateTwo);
-    let actionState = Field(fetchedAction.actionState.actionStateOne);
+  // correct for archive node sending one block too many
+  if (
+    fetchedActions.length !== 0 &&
+    fetchedActions[0].actionState.actionStateOne ===
+      actionStates.fromActionState
+  ) {
+    fetchedActions = fetchedActions.slice(1);
+  }
+
+  fetchedActions.forEach((actionBlock) => {
+    let { actionData } = actionBlock;
+    let latestActionState = Field(actionBlock.actionState.actionStateTwo);
+    let actionState = actionBlock.actionState.actionStateOne;
 
     if (actionData.length === 0)
-      throw new Error(
+      throw Error(
         `No action data was found for the account ${publicKey} with the latest action state ${actionState}`
       );
 
-    let { accountUpdateId: currentAccountUpdateId } = actionData[0];
-    let currentActionList: string[][] = [];
-
-    actionData.forEach((action, i) => {
-      const { accountUpdateId, data } = action;
-      const isLastAction = i === actionData.length - 1;
-      const isSameAccountUpdate = accountUpdateId === currentAccountUpdateId;
-
-      if (isSameAccountUpdate && !isLastAction) {
-        currentActionList.push(data);
-        return;
-      } else if (isSameAccountUpdate && isLastAction) {
-        currentActionList.push(data);
-      } else if (!isSameAccountUpdate && isLastAction) {
-        latestActionsHash = processActionData(
-          currentActionList,
-          latestActionsHash
-        );
-        actionsList.push({
-          actions: currentActionList,
-          hash: Ledger.fieldToBase58(Field(latestActionsHash)),
-        });
+    // split actions by account update
+    let actionsByAccountUpdate: string[][][] = [];
+    let currentAccountUpdateId = 'none';
+    let currentActions: string[][];
+    actionData.forEach(({ accountUpdateId, data }) => {
+      if (accountUpdateId === currentAccountUpdateId) {
+        currentActions.push(data);
+      } else {
         currentAccountUpdateId = accountUpdateId;
-        currentActionList = [data];
+        currentActions = [data];
+        actionsByAccountUpdate.push(currentActions);
       }
-
-      latestActionsHash = processActionData(
-        currentActionList,
-        latestActionsHash
-      );
-      actionsList.push({
-        actions: currentActionList,
-        hash: Ledger.fieldToBase58(Field(latestActionsHash)),
-      });
-      currentAccountUpdateId = accountUpdateId;
-      currentActionList = [data];
     });
 
-    const currentActionHash = Ledger.fieldToBase58(Field(latestActionsHash));
-    const expectedActionHash = Ledger.fieldToBase58(Field(actionState));
+    // re-hash actions
+    for (let actions of actionsByAccountUpdate) {
+      latestActionState = updateActionState(actions, latestActionState);
+      actionsList.push({ actions, hash: latestActionState.toString() });
+    }
 
-    if (currentActionHash !== expectedActionHash) {
+    const finalActionState = latestActionState.toString();
+    const expectedActionState = actionState;
+
+    if (finalActionState !== expectedActionState) {
       throw new Error(
         `Failed to derive correct actions hash for ${publicKey}.
-        Derived hash: ${currentActionHash}, expected hash: ${expectedActionHash}).
+        Derived hash: ${finalActionState}, expected hash: ${expectedActionState}).
         All action hashes derived: ${JSON.stringify(actionsList, null, 2)}
         Please try a different Archive Node API endpoint.
         `
       );
     }
   });
-  addCachedActionsInternal(
-    {
-      publicKey: PublicKey.fromBase58(publicKey),
-      tokenId: TokenId.fromBase58(tokenId ?? TokenId.toBase58(TokenId.default)),
-    },
-    actionsList,
-    graphqlEndpoint
-  );
+  addCachedActions({ publicKey, tokenId }, actionsList, graphqlEndpoint);
   return actionsList;
+}
+
+function updateActionState(actions: string[][], actionState: Field) {
+  let actionsHash = Actions.fromJSON(actions).hash;
+  return Actions.updateSequenceState(actionState, actionsHash);
 }
 
 // removes the quotes on JSON keys
@@ -916,7 +971,17 @@ async function checkResponseStatus(
   response: Response
 ): Promise<[FetchResponse, undefined] | [undefined, FetchError]> {
   if (response.ok) {
-    return [(await response.json()) as FetchResponse, undefined];
+    let jsonResponse = await response.json();
+    if (jsonResponse.errors && jsonResponse.errors.length > 0) {
+      return [
+        undefined,
+        {
+          statusCode: response.status,
+          statusText: jsonResponse.errors,
+        } as FetchError,
+      ];
+    }
+    return [jsonResponse as FetchResponse, undefined];
   } else {
     return [
       undefined,

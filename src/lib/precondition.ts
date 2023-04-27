@@ -49,6 +49,10 @@ function Network(accountUpdate: AccountUpdate): Network {
       let slot = network.globalSlotSinceGenesis.get();
       return globalSlotToTimestamp(slot);
     },
+    getAndAssertEquals() {
+      let slot = network.globalSlotSinceGenesis.getAndAssertEquals();
+      return globalSlotToTimestamp(slot);
+    },
     assertEquals(value: UInt64) {
       let { genesisTimestamp, slotTime } =
         Mina.activeInstance.getNetworkConstants();
@@ -214,7 +218,7 @@ function preconditionSubclass<
   if (fieldType === undefined) {
     throw Error(`this.${longKey}: fieldType undefined`);
   }
-  return {
+  let obj = {
     get() {
       if (unimplementedPreconditions.includes(longKey)) {
         let self = context.isSelf ? 'this' : 'accountUpdate';
@@ -227,6 +231,11 @@ function preconditionSubclass<
         longKey,
         fieldType
       )) as U;
+    },
+    getAndAssertEquals() {
+      let value = obj.get();
+      obj.assertEquals(value);
+      return value;
     },
     assertEquals(value: U) {
       context.constrained.add(longKey);
@@ -250,6 +259,7 @@ function preconditionSubclass<
       context.constrained.add(longKey);
     },
   };
+  return obj;
 }
 
 function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
@@ -442,6 +452,7 @@ type PreconditionBaseTypes<T> = {
 
 type PreconditionSubclassType<U> = {
   get(): U;
+  getAndAssertEquals(): U;
   assertEquals(value: U): void;
   assertNothing(): void;
 };

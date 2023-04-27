@@ -4,7 +4,7 @@ import {
   AccountUpdate,
   UInt64,
   shutdown,
-  Token,
+  TokenId,
 } from 'snarkyjs';
 import { TokenContract, addresses, keys, tokenIds } from './dex.js';
 
@@ -22,7 +22,7 @@ console.log('-------------------------------------------------');
 console.log('TOKEN X ADDRESS\t', addresses.tokenX.toBase58());
 console.log('USER ADDRESS\t', userAddress.toBase58());
 console.log('-------------------------------------------------');
-console.log('TOKEN X ID\t', Token.Id.toBase58(tokenIds.X));
+console.log('TOKEN X ID\t', TokenId.toBase58(tokenIds.X));
 console.log('-------------------------------------------------');
 
 // compile & deploy all 5 zkApps
