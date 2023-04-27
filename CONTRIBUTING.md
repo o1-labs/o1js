@@ -6,10 +6,10 @@ We also welcome contributions to [zkApps Developer](https://docs.minaprotocol.co
 
 There are two ways to contribute:
 
-1. Preferred: Maintain your own package that can be installed from NPM and used alongside SnarkyJS. See [Creating high-quality community packages](#creating-high-quality-community-packages).
+1. Preferred: Maintain your own package that can be installed from [npm](https://www.npmjs.com/) and used alongside SnarkyJS. See [Creating high-quality community packages](#creating-high-quality-community-packages).
 2. Directly contribute to this repo. See [Contributing to SnarkyJS](#contributing-to-snarkyjs).
 
-If you maintain your own package, we strongly encourage to add it to our [official list of community packages](./README.md#community-packages).
+If you maintain your own package, we strongly encourage you to add it to our official list of [community packages](./README.md#community-packages).
 
 For information that is helpful for SnarkyJS core contributors, see [README-dev](README-dev.md).
 
@@ -23,8 +23,8 @@ To ensure consistency within the SnarkyJS ecosystem and ease review and use by o
   - If applicable, the package must work both on the web and in NodeJS.
 - The package is created using the [zkApp CLI](https://github.com/o1-labs/zkapp-cli) (recommended).  
   If you did not create the package using the zkApp CLI, follow these guidelines for code consistency:
-  - Use TypeScript, and export types from `d.ts` files. We suggest that you base your tsconfig on the one that SnarkyJS uses: [tsconfig.json](./tsconfig.json).
-  - Code must be auto-formatted with [prettier](https://prettier.io/). It's encouraged to use the same prettier config as SnarkyJS: [.prettierrc.cjs](./.prettierrc.cjs).
+  - Use TypeScript, and export types from `d.ts` files. We suggest that you base your tsconfig on the [tsconfig.json](./tsconfig.json) that SnarkyJS uses.
+  - Code must be auto-formatted with [prettier](https://prettier.io/). We encourage you to use [.prettierrc.cjs](./.prettierrc.cjs), the same prettier config as SnarkyJS.
 - The package includes tests.
   - If applicable, tests must demonstrate that the package's methods can successfully run as provable code. For example, when the package is used in a SmartContract or ZkProgram that is compiled and proven.
   - Ideally, your tests are easy to use, modify, and port to other projects by developers in the ecosystem. This is achieved by using Jest (see [jest.config.js](./jest.config.js) for an example config) or by structuring your tests as plain node scripts, like [this example](./src/lib/circuit_value.unit-test.ts).
@@ -47,6 +47,6 @@ To contribute directly to this project repo, follow these steps to get your chan
 1. After your RFC proposal is approved, fork the repository and implement your changes.
 1. Submit a pull request and wait for code review. :)
 
-Our goal is to include functionality within SnarkyJS when the change is likely to be widely useful for developers. For more esoteric functionality, we prefer that it lives in a community package.
+Our goal is to include functionality within SnarkyJS when the change is likely to be widely useful for developers. For more esoteric functionality, it makes more sense to provide high-quality community packages that can be used alongside SnarkyJS.
 
 We appreciate your contribution!

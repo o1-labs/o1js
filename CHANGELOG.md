@@ -21,6 +21,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [0.9.8](https://github.com/o1-labs/snarkyjs/compare/1a984089...97e393ed)
 
+### Breaking Changes
+
+- Renamed Variable: All references to `actionsHash` have been renamed to `actionState` to better mirror what is used in the Mina protocol implementation. https://github.com/o1-labs/snarkyjs/pull/833
+  - This change affects variables, function parameters, and object keys throughout the codebase.
+
 ### Fixed
 
 - Fix fetching the `access` permission on accounts https://github.com/o1-labs/snarkyjs/pull/851

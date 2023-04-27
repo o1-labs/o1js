@@ -927,8 +927,8 @@ async function fetchActions(
 }
 
 function updateActionState(actions: string[][], actionState: Field) {
-  let actionsHash = Actions.fromJSON(actions).hash;
-  return Actions.updateSequenceState(actionState, actionsHash);
+  let actionHash = Actions.fromJSON(actions).hash;
+  return Actions.updateSequenceState(actionState, actionHash);
 }
 
 // removes the quotes on JSON keys
