@@ -11,8 +11,8 @@ import {
   Permissions,
   verify,
   AccountUpdate,
-} from "snarkyjs";
-import { tic, toc } from "./tictoc.js";
+} from '../../dist/node/index.js';
+import { tic, toc } from './tictoc.js';
 
 await isReady;
 
@@ -57,15 +57,15 @@ let zkappKey = PrivateKey.random();
 let zkappAddress = zkappKey.toPublicKey();
 let zkapp = new SimpleZkapp(zkappAddress);
 
-tic("compute circuit digest");
+tic('compute circuit digest');
 SimpleZkapp.digest();
 toc();
 
-tic("compile smart contract");
+tic('compile smart contract');
 let { verificationKey } = await SimpleZkapp.compile();
 toc();
 
-tic("create deploy transaction (with proof)");
+tic('create deploy transaction (with proof)');
 let deployTx = await Mina.transaction(sender, () => {
   AccountUpdate.fundNewAccount(sender);
   zkapp.deploy();
@@ -74,22 +74,22 @@ let [, , proof] = await deployTx.prove();
 deployTx.sign([zkappKey, senderKey]);
 toc();
 
-tic("verify transaction proof");
+tic('verify transaction proof');
 let ok = await verify(proof, verificationKey.data);
 toc();
-console.log("did proof verify?", ok);
+console.log('did proof verify?', ok);
 if (!ok) throw Error("proof didn't verify");
 
-tic("apply deploy transaction");
+tic('apply deploy transaction');
 await deployTx.send();
 toc();
 
 // check that deploy and initialize txns were applied
 let zkappState = zkapp.x.get();
 zkappState.assertEquals(1);
-console.log("got initial state: " + zkappState);
+console.log('got initial state: ' + zkappState);
 
-tic("create update transaction (no proof)");
+tic('create update transaction (no proof)');
 let tx = await Mina.transaction(sender, () => {
   zkapp.update(Field(2));
   zkapp.requireSignature();
@@ -97,16 +97,16 @@ let tx = await Mina.transaction(sender, () => {
 tx.sign([senderKey, zkappKey]);
 toc();
 
-tic("apply update transaction (no proof)");
+tic('apply update transaction (no proof)');
 await tx.send();
 toc();
 
 // check that first update txn was applied
 zkappState = zkapp.x.get();
 zkappState.assertEquals(3);
-console.log("got updated state: " + zkappState);
+console.log('got updated state: ' + zkappState);
 
-tic("create update transaction (with proof)");
+tic('create update transaction (with proof)');
 tx = await Mina.transaction(sender, () => {
   zkapp.update(Field(2));
 });
@@ -114,19 +114,19 @@ tx = await Mina.transaction(sender, () => {
 tx.sign([senderKey]);
 toc();
 
-tic("verify transaction proof");
+tic('verify transaction proof');
 ok = await verify(proof, verificationKey.data);
 toc();
-console.log("did proof verify?", ok);
+console.log('did proof verify?', ok);
 if (!ok) throw Error("proof didn't verify");
 
-tic("apply update transaction (with proof)");
+tic('apply update transaction (with proof)');
 await tx.send();
 toc();
 
 // check that second update txn was applied
 zkappState = zkapp.x.get();
 zkappState.assertEquals(5);
-console.log("got updated state: " + zkappState);
+console.log('got updated state: ' + zkappState);
 
 shutdown();
