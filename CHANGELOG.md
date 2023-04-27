@@ -19,12 +19,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 > No unreleased changes
 
-## [0.9.8](https://github.com/o1-labs/snarkyjs/compare/1a984089...97e393ed)
+## [0.10.0](https://github.com/o1-labs/snarkyjs/compare/97e393ed...HEAD)
 
 ### Breaking Changes
 
 - Renamed Variable: All references to `actionsHash` have been renamed to `actionState` to better mirror what is used in the Mina protocol implementation. https://github.com/o1-labs/snarkyjs/pull/833
   - This change affects variables, function parameters, and object keys throughout the codebase.
+
+### Changes
+
+- **Massive memory consumption improvement**, thanks to a refactor of SnarkyJS' worker usage https://github.com/o1-labs/snarkyjs/pull/872
+  - Workers are no longer running by default, and are only started when compiling or proving. Since workers used a lot of memory, this leads to a memory improvement when workers aren't needed.
+  - In addition, we achieved a large reduction of memory consumption of each worker in the Node.js version
+  - Memory reduction examples with 16 threads in Node.js:
+    - From 3.2GB down to 300MB when not compiling or proving
+    - From 3.6GB down to 1.7GB when proving a small contract (`src/examples/simple_zkapp.ts`)
+    - From 4.9GB down to 3.2GB when proving complex, multi-contract zkApp (`src/examples/zkapps/dex/happy-path-with-proofs.ts`)
+
+### Deprecated
+
+- Deprecate both `shutdown()` and `await isReady`, which are no longer needed https://github.com/o1-labs/snarkyjs/pull/872
+
+## [0.9.8](https://github.com/o1-labs/snarkyjs/compare/1a984089...97e393ed)
 
 ### Fixed
 
