@@ -1,5 +1,4 @@
 import type { ZkappCommand as ZkappCommandJson } from '../../provable/gen/transaction-json.js';
-import { Group } from '../dist/node/provable/curve-bigint.js';
 import type { SignatureJson } from './signature.js';
 
 export type UInt32 = number | bigint | string;
@@ -69,6 +68,11 @@ export type Signed<T> = {
 };
 
 export type SignedAny = SignedLegacy<SignableData> | Signed<ZkappCommand>;
+
+export type Group = {
+  x: bigint;
+  y: bigint;
+};
 
 export type Nullifier = {
   public: {
