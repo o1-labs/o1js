@@ -15,7 +15,7 @@ export { public_, circuitMain, Circuit };
 class Circuit {
   // circuit-writing interface
 
- /**
+  /**
    * Generates a proving key and a verification key for this circuit.
    * @example
    * ```ts
@@ -92,20 +92,32 @@ class Circuit {
    */
   static asProver = SnarkyCircuit.asProver;
   /**
-   * Runs code and checks its correctness.
+   * Runs provable code quickly, without creating a proof, but still checking whether constraints are satisfied.
    * @example
    * ```ts
    * Circuit.runAndCheck(() => {
    *   // Your code to check here
    * });
+   * ```
    */
   static runAndCheck = SnarkyCircuit.runAndCheck;
+  /**
+   * Runs provable code quickly, without creating a proof, and not checking whether constraints are satisfied.
+   * @example
+   * ```ts
+   * Circuit.runUnchecked(() => {
+   *   // Your code to run here
+   * });
+   * ```
+   */
+  static runUnchecked = SnarkyCircuit.runUnchecked;
   /**
    * Returns information about the constraint system in the callback function.
    * @example
    * ```ts
    * const result = Circuit.constraintSystem(circuit);
    * console.log(result);
+   * ```
    */
   static constraintSystem = SnarkyCircuit.constraintSystem;
   /**
@@ -146,6 +158,7 @@ class Circuit {
    * const a: MyStruct = { a: Field(0), b: Bool(false) };
    * const b: MyStruct = { a: Field(1), b: Bool(true) };
    * const isEqual = Circuit.equal(MyStruct, a, b);
+   * ```
    */
   static equal = SnarkyCircuit.equal;
   /**
