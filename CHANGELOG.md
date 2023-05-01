@@ -30,6 +30,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - **Massive improvement of memory consumption**, thanks to a refactor of SnarkyJS' worker usage https://github.com/o1-labs/snarkyjs/pull/872
   - Memory reduced by up to 10x; see [the PR](https://github.com/o1-labs/snarkyjs/pull/872) for details
+  - Side effect: `Circuit` API becomes async, for example `MyCircuit.prove(...)` becomes `await MyCircuit.prove(...)`
 
 ### Deprecated
 
