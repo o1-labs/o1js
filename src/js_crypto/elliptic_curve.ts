@@ -1,5 +1,12 @@
 import { FiniteField, Fq, inverse, mod, p, q } from './finite_field.js';
-export { Pallas, Vesta, GroupAffine, GroupProjective, GroupMap };
+export {
+  Pallas,
+  Vesta,
+  GroupAffine,
+  GroupProjective,
+  GroupMap,
+  groupMapToGroup,
+};
 
 // TODO: constants, like generator points and cube roots for endomorphisms, should be drawn from
 // a common source, i.e. generated from the Rust code
@@ -51,6 +58,19 @@ type STuple = {
   v: bigint;
   y: bigint;
 };
+
+function groupMapToGroup(g: {
+  x: bigint;
+  y: {
+    x0: bigint;
+    x1: bigint;
+  };
+}) {
+  return {
+    x: g.x,
+    y: g.y.x0,
+  };
+}
 
 // reference implementation https://github.com/o1-labs/snarky/blob/78e0d952518f75b5382f6d735adb24eef7a0fa90/group_map/group_map.ml
 

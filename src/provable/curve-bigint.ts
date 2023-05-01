@@ -54,6 +54,9 @@ const Group = {
     );
   },
   b: Pallas.b,
+  toFields({ x, y }: Group) {
+    return [x, y];
+  },
 };
 
 let FieldWithVersion = withVersionNumber(Field, versionNumbers.field);

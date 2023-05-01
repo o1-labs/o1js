@@ -1,6 +1,7 @@
+import { groupMapToGroup } from 'src/js_crypto/elliptic_curve.js';
 import { Fp } from 'src/js_crypto/finite_field.js';
 import { Poseidon } from 'src/js_crypto/poseidon.js';
-import { Group } from 'src/provable/curve-bigint.js';
+import { Group, PublicKey } from 'src/provable/curve-bigint.js';
 import { PrivateKey } from 'src/provable/curve-bigint.js';
 import { Field } from 'src/provable/field-bigint.js';
 
@@ -18,36 +19,42 @@ type JsonNullifier = {
 };
 
 function createNullifier(message: Field[], sk: PrivateKey) {
-  const hash2 = Poseidon.hash;
-  const hash = Poseidon.hashToGroup;
+  const Hash2 = Poseidon.hash;
+  const Hash = Poseidon.hashToGroup;
 
-  let pk = PrivateKey.toPublicKey(sk);
+  const pk = PrivateKey.toPublicKey(sk);
 
-  let g = Group.generatorMina;
+  const G = Group.generatorMina;
 
-  let r = Field.random();
+  const r = Field.random();
 
-  let h = hash([...message, ...[pk.x, pk.isOdd ? 1n : 0n]])!;
+  const h_m_pk_gm = Hash([...message, pk.x, pk.isOdd ? 1n : 0n])!;
+  const h_m_pk = groupMapToGroup(h_m_pk_gm);
 
-  let hash_m_pk = [h.x, h.y.x0];
+  const nullifier = Group.scale(h_m_pk, sk);
+  const h_m_pk_r = Group.scale(h_m_pk, r);
 
-  let nullifier = Fp.power(hash_m_pk, sk);
-
-  let c_ = hash2([
-    g.y,
-    Fp.power(g.y, sk),
-    hash_m_pk,
-    nullifier,
-    Fp.power(g.y, r),
-    Fp.power(hash_m_pk, r),
+  const c = Hash2([
+    ...Group.toFields(G),
+    ...PublicKey.toFields(pk),
+    ...Group.toFields(h_m_pk),
+    ...Group.toFields(nullifier),
+    ...Group.toFields(Group.scale(G, r)),
+    ...Group.toFields(h_m_pk_r),
   ]);
 
-  if (!c_) throw Error('123123');
+  const s = Fp.add(r, Fp.mul(sk, c));
 
-  let c = {
-    x: c_.x,
-    y: c_.y.x0,
-  } as Group;
-
-  let s = Group.scale(c, sk);
+  return {
+    public: {
+      c,
+      pk,
+      g_r: Group.scale(G, r),
+      h_m_pk_r,
+    },
+    private: {
+      nullifier,
+      s,
+    },
+  };
 }
