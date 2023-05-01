@@ -32,57 +32,54 @@ pub fn caml_pasta_fq_plonk_index_create(
     public_: i32,
     prev_challenges: i32,
     srs: &WasmSrs,
-) -> Result<WasmPastaFqPlonkIndex, JsValue> {
+) -> Result<WasmPastaFqPlonkIndex, JsError> {
     console_error_panic_hook::set_once();
+    let index = crate::rayon::run_in_pool(|| {
+        // flatten the permutation information (because OCaml has a different way of keeping track of permutations)
+        let gates: Vec<_> = gates
+            .0
+            .iter()
+            .map(|gate| CircuitGate::<Fq> {
+                typ: gate.typ,
+                wires: gate.wires,
+                coeffs: gate.coeffs.clone(),
+            })
+            .collect();
 
-    // flatten the permutation information (because OCaml has a different way of keeping track of permutations)
-    let gates: Vec<_> = gates
-        .0
-        .iter()
-        .map(|gate| CircuitGate::<Fq> {
-            typ: gate.typ,
-            wires: gate.wires,
-            coeffs: gate.coeffs.clone(),
-        })
-        .collect();
+        // create constraint system
+        let cs = match ConstraintSystem::<Fq>::create(gates)
+            .public(public_ as usize)
+            .prev_challenges(prev_challenges as usize)
+            .build()
+        {
+            Err(_) => {
+                return Err("caml_pasta_fq_plonk_index_create: could not create constraint system");
+            }
+            Ok(cs) => cs,
+        };
 
-    /*
-    for (i, g) in gates.iter().enumerate() {
-        let x : Vec<_> = g.c.iter().map(|x| format!("{}", x)).collect();
-        let s = x.join(", ");
-        println!("c[{}][{:?}]: {}", i, g.typ, s);
-    } */
+        // endo
+        let (endo_q, _endo_r) = poly_commitment::srs::endos::<GAffineOther>();
 
-    // create constraint system
-    let cs = match ConstraintSystem::<Fq>::create(gates)
-        .public(public_ as usize)
-        .prev_challenges(prev_challenges as usize)
-        .build()
-    {
-        Err(_) => {
-            return Err(JsValue::from_str(
-                "caml_pasta_fq_plonk_index_create: could not create constraint system",
-            ));
+        // Unsafe if we are in a multi-core ocaml
+        {
+            let ptr: &mut poly_commitment::srs::SRS<GAffine> =
+                unsafe { &mut *(std::sync::Arc::as_ptr(&srs.0) as *mut _) };
+            ptr.add_lagrange_basis(cs.domain.d1);
         }
-        Ok(cs) => cs,
-    };
 
-    // endo
-    let (endo_q, _endo_r) = poly_commitment::srs::endos::<GAffineOther>();
+        let mut index = ProverIndex::<GAffine>::create(cs, endo_q, srs.0.clone());
+        // Compute and cache the verifier index digest
+        index.compute_verifier_index_digest::<DefaultFqSponge<PallasParameters, PlonkSpongeConstantsKimchi>>();
 
-    // Unsafe if we are in a multi-core ocaml
-    {
-        let ptr: &mut poly_commitment::srs::SRS<GAffine> =
-            unsafe { &mut *(std::sync::Arc::as_ptr(&srs.0) as *mut _) };
-        ptr.add_lagrange_basis(cs.domain.d1);
-    }
-
-    let mut index = ProverIndex::<GAffine>::create(cs, endo_q, srs.0.clone());
-    // Compute and cache the verifier index digest
-    index.compute_verifier_index_digest::<DefaultFqSponge<PallasParameters, PlonkSpongeConstantsKimchi>>();
+        Ok(index)
+    });
 
     // create index
-    Ok(WasmPastaFqPlonkIndex(Box::new(index)))
+    match index {
+        Ok(index) => Ok(WasmPastaFqPlonkIndex(Box::new(index))),
+        Err(str) => Err(JsError::new(str)),
+    }
 }
 
 #[wasm_bindgen]
