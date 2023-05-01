@@ -25,6 +25,14 @@ import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './errors.js';
 import { Types } from '../provable/types.js';
 import { Account } from './mina/account.js';
+import {
+  proofCost,
+  signedPairCost,
+  signedSingleCost,
+  costLimit,
+  maxActionElements,
+  maxEventElements,
+} from './mina/constants.js';
 
 export {
   createTransaction,
@@ -1389,16 +1397,6 @@ async function verifyAccountUpdate(
 }
 
 function verifyTransactionLimits({ accountUpdates }: ZkappCommand) {
-  // constants used to calculate cost of a transaction - originally defined in the genesis_constants file in the mina repo
-  const proofCost = 10.26;
-  const signedPairCost = 10.08;
-  const signedSingleCost = 9.14;
-  const costLimit = 69.45;
-
-  // constants that define the maximum number of events in one transaction
-  const maxActionElements = 16;
-  const maxEventElements = 16;
-
   let eventElements = { events: 0, actions: 0 };
 
   let authKinds = accountUpdates.map((update) => {
