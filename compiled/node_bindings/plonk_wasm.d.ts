@@ -839,22 +839,6 @@ export function caml_pasta_fq_plonk_verifier_index_dummy(): WasmFqPlonkVerifierI
 export function caml_pasta_fq_plonk_verifier_index_deep_copy(x: WasmFqPlonkVerifierIndex): WasmFqPlonkVerifierIndex;
 /**
 * @param {Uint32Array} lgr_comm
-* @param {WasmFpPlonkVerifierIndex} index
-* @param {WasmFpProverProof} proof
-* @returns {WasmFpOracles}
-*/
-export function fp_oracles_create(lgr_comm: Uint32Array, index: WasmFpPlonkVerifierIndex, proof: WasmFpProverProof): WasmFpOracles;
-/**
-* @returns {WasmFpOracles}
-*/
-export function fp_oracles_dummy(): WasmFpOracles;
-/**
-* @param {WasmFpProverProof} x
-* @returns {WasmFpProverProof}
-*/
-export function fp_oracles_deep_copy(x: WasmFpProverProof): WasmFpProverProof;
-/**
-* @param {Uint32Array} lgr_comm
 * @param {WasmFqPlonkVerifierIndex} index
 * @param {WasmFqProverProof} proof
 * @returns {WasmFqOracles}
@@ -869,6 +853,22 @@ export function fq_oracles_dummy(): WasmFqOracles;
 * @returns {WasmFqProverProof}
 */
 export function fq_oracles_deep_copy(x: WasmFqProverProof): WasmFqProverProof;
+/**
+* @param {Uint32Array} lgr_comm
+* @param {WasmFpPlonkVerifierIndex} index
+* @param {WasmFpProverProof} proof
+* @returns {WasmFpOracles}
+*/
+export function fp_oracles_create(lgr_comm: Uint32Array, index: WasmFpPlonkVerifierIndex, proof: WasmFpProverProof): WasmFpOracles;
+/**
+* @returns {WasmFpOracles}
+*/
+export function fp_oracles_dummy(): WasmFpOracles;
+/**
+* @param {WasmFpProverProof} x
+* @returns {WasmFpProverProof}
+*/
+export function fp_oracles_deep_copy(x: WasmFpProverProof): WasmFpProverProof;
 /**
 * @param {WasmPastaFpPlonkIndex} index
 * @param {WasmVecVecFp} witness

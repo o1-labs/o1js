@@ -2741,7 +2741,7 @@ export function fp_oracles_dummy() {
 export function fp_oracles_deep_copy(x) {
     _assertClass(x, WasmFpProverProof);
     var ptr0 = x.__destroy_into_raw();
-    const ret = wasm.caml_pasta_fp_plonk_proof_deep_copy(ptr0);
+    const ret = wasm.fp_oracles_deep_copy(ptr0);
     return WasmFpProverProof.__wrap(ret);
 }
 
@@ -2777,7 +2777,7 @@ export function fq_oracles_create(lgr_comm, index, proof) {
 * @returns {WasmFqOracles}
 */
 export function fq_oracles_dummy() {
-    const ret = wasm.fp_oracles_dummy();
+    const ret = wasm.fq_oracles_dummy();
     return WasmFqOracles.__wrap(ret);
 }
 
@@ -5393,7 +5393,7 @@ export class WasmFqOracles {
     * @returns {WasmFqRandomOracles}
     */
     get o() {
-        const ret = wasm.__wbg_get_wasmfporacles_o(this.ptr);
+        const ret = wasm.__wbg_get_wasmfqoracles_o(this.ptr);
         return WasmFqRandomOracles.__wrap(ret);
     }
     /**
@@ -5402,7 +5402,7 @@ export class WasmFqOracles {
     set o(arg0) {
         _assertClass(arg0, WasmFqRandomOracles);
         var ptr0 = arg0.__destroy_into_raw();
-        wasm.__wbg_set_wasmfporacles_o(this.ptr, ptr0);
+        wasm.__wbg_set_wasmfqoracles_o(this.ptr, ptr0);
     }
     /**
     * @returns {Uint8Array}
