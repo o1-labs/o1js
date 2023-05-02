@@ -1,9 +1,22 @@
 {
   "name": "snarkyjs",
-  "description": "JavaScript bindings for SnarkyJS",
+  "description": "TypeScript framework for zk-SNARKs and zkApps",
   "version": "0.10.0",
   "license": "Apache-2.0",
-  "type": "module",
+  "homepage": "https://github.com/o1-labs/snarkyjs/",
+  "keywords": [
+    "mina",
+    "snarkyjs",
+    "zkapp",
+    "zk",
+    "smart contract",
+    "cryptography",
+    "blockchain",
+    "web3",
+    "zk-snark",
+    "zero knowledge"
+  ],
+    "type": "module",
   "main": "./dist/web/index.js",
   "exports": {
     "types": "./dist/node/index.d.ts",
