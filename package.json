@@ -16,7 +16,7 @@
     "zk-snark",
     "zero knowledge"
   ],
-    "type": "module",
+  "type": "module",
   "main": "./dist/web/index.js",
   "exports": {
     "types": "./dist/node/index.d.ts",
@@ -89,7 +89,7 @@
     "replace-in-file": "^6.3.5",
     "rimraf": "^3.0.2",
     "ts-jest": "^28.0.8",
-    "typedoc": "^0.23.26",
+    "typedoc": "^0.24.6",
     "typescript": "^4.9.5"
   },
   "dependencies": {
