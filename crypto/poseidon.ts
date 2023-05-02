@@ -1,6 +1,7 @@
-import { assertPositiveInteger } from './non-negative.js';
-import { poseidonParamsKimchiFp, poseidonParamsLegacyFp } from './constants.js';
-import { FiniteField, Fp } from './finite_field.js';
+import { assertPositiveInteger } from "./non-negative.js";
+import { poseidonParamsKimchiFp, poseidonParamsLegacyFp } from "./constants.js";
+import { FiniteField, Fp } from "./finite_field.js";
+import { GroupMap } from "./elliptic_curve.js";
 
 export { Poseidon, PoseidonLegacy };
 
@@ -18,6 +19,12 @@ type PoseidonParameters = {
 const Poseidon = createPoseidon(Fp, poseidonParamsKimchiFp);
 const PoseidonLegacy = createPoseidon(Fp, poseidonParamsLegacyFp);
 
+function fieldToGroup(x: bigint) {
+  const { potentialXs, tryDecode } = GroupMap.Tock(Fp);
+  const xs = potentialXs(x);
+  return xs.map((x) => tryDecode(x)).find((x) => x);
+}
+
 function createPoseidon(
   Fp: FiniteField,
   {
@@ -34,9 +41,9 @@ function createPoseidon(
   if (partialRounds !== 0) {
     throw Error("we don't support partial rounds");
   }
-  assertPositiveInteger(rate, 'rate must be a positive integer');
-  assertPositiveInteger(fullRounds, 'fullRounds must be a positive integer');
-  assertPositiveInteger(power_, 'power must be a positive integer');
+  assertPositiveInteger(rate, "rate must be a positive integer");
+  assertPositiveInteger(fullRounds, "fullRounds must be a positive integer");
+  assertPositiveInteger(power_, "power must be a positive integer");
   let power = BigInt(power_);
   let roundConstants = roundConstants_.map((arr) => arr.map(BigInt));
   let mds = mds_.map((arr) => arr.map(BigInt));
@@ -48,6 +55,23 @@ function createPoseidon(
   function hash(input: bigint[]) {
     let state = update(initialState(), input);
     return state[0];
+  }
+
+  function hashToGroup(input: bigint[]) {
+    let digest = hash(input);
+    let g = fieldToGroup(digest);
+    if (!g) return undefined;
+    // we split the y coordinate into two elements, x0 = -sqrt(y^2) and x1 = sqrt(y^2)
+    // then put the even root into x0, and the odd one into x1 so APIs equal even tho the underlying algorithms to calculate the sqrt differ
+    // we do the same in-snark - so both APIs are deterministic
+    let isEven = g.y % 2n === 0n ? true : false;
+    return {
+      x: g.x,
+      y: {
+        x0: isEven ? g.y : Fp.mul(g.y, -1n),
+        x1: isEven ? Fp.mul(g.y, -1n) : g.y,
+      },
+    };
   }
 
   function update([...state]: bigint[], input: bigint[]) {
