@@ -16,10 +16,6 @@ SnarkyJS is automatically included when you create a project using the [Mina zkA
 
 - To meet other developers building zkApps with SnarkyJS, participate in the [#zkapps-developers](https://discord.com/channels/484437221055922177/915745847692636181) channel on Mina Protocol Discord.
 
-- For a list of changes between versions, see the [CHANGELOG](https://github.com/o1-labs/snarkyjs/blob/main/CHANGELOG.md).
-
-- To stay up to date with SnarkyJS, see the [O(1) Labs Blog](https://blog.o1labs.org/tagged/snarkyjs).
-
 ## Contributing
 
 SnarkyJS is an open source project. We appreciate all community contributions to SnarkyJS! 

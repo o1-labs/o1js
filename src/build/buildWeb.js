@@ -25,9 +25,13 @@ async function buildWeb({ production }) {
   let minify = !!production;
 
   // prepare plonk_wasm.js with bundled wasm in function-wrapped form
-  let bindings = await readFile('./src/chrome_bindings/plonk_wasm.js', 'utf8');
+  let bindings = await readFile(
+    './src/snarkyjs-bindings/compiled/web_bindings/plonk_wasm.js',
+    'utf8'
+  );
   bindings = rewriteWasmBindings(bindings);
-  let tmpBindingsPath = 'src/chrome_bindings/plonk_wasm.tmp.js';
+  let tmpBindingsPath =
+    'src/snarkyjs-bindings/compiled/web_bindings/plonk_wasm.tmp.js';
   await writeFile(tmpBindingsPath, bindings);
   await esbuild.build({
     entryPoints: [tmpBindingsPath],
@@ -47,7 +51,8 @@ async function buildWeb({ production }) {
 
   // copy over pure js files
   let copyPromise = copy({
-    './src/chrome_bindings/': './dist/web/chrome_bindings/',
+    './src/snarkyjs-bindings/compiled/web_bindings/':
+      './dist/web/web_bindings/',
     './src/snarky.d.ts': './dist/web/snarky.d.ts',
     './src/snarky/wrapper.web.js': './dist/web/snarky/wrapper.js',
   });
@@ -55,19 +60,18 @@ async function buildWeb({ production }) {
   await Promise.all([tscPromise, copyPromise]);
 
   if (minify) {
-    let snarkyJsChromePath =
-      './dist/web/chrome_bindings/snarky_js_chrome.bc.js';
-    let snarkyJsChrome = await readFile(snarkyJsChromePath, 'utf8');
-    let { code } = await esbuild.transform(snarkyJsChrome, {
+    let snarkyJsWebPath = './dist/web/web_bindings/snarky_js_web.bc.js';
+    let snarkyJsWeb = await readFile(snarkyJsWebPath, 'utf8');
+    let { code } = await esbuild.transform(snarkyJsWeb, {
       target,
       logLevel: 'error',
       minify,
     });
-    await writeFile(snarkyJsChromePath, code);
+    await writeFile(snarkyJsWebPath, code);
   }
 
   // overwrite plonk_wasm with bundled version
-  await copy({ [tmpBindingsPath]: './dist/web/chrome_bindings/plonk_wasm.js' });
+  await copy({ [tmpBindingsPath]: './dist/web/web_bindings/plonk_wasm.js' });
   await unlink(tmpBindingsPath);
 
   // move all .web.js files to their .js counterparts

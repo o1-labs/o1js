@@ -17,9 +17,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/97e393ed...HEAD)
 
-> No unreleased changes
+### Added
+
+- Support for fallback endpoints when making network requests, allowing users to provide an array of endpoints for GraphQL network requests. https://github.com/o1-labs/snarkyjs/pull/871
+  - Endpoints are checked for validity, and a "waterfall" approach is used to loop through fallback endpoints if needed.
+
+### Fixed
+
+- `SmartContract.deploy()` throws an error when no verification key is found https://github.com/o1-labs/snarkyjs/pull/885
+  - The old, confusing behaviour was to silently not update the verification key (but still update some permissions to "proof", breaking the zkApp)
 
 ## [0.9.8](https://github.com/o1-labs/snarkyjs/compare/1a984089...97e393ed)
+
+### Breaking Changes
+
+- Renamed Variable: All references to `actionsHash` have been renamed to `actionState` to better mirror what is used in the Mina protocol implementation. https://github.com/o1-labs/snarkyjs/pull/833
+  - This change affects variables, function parameters, and object keys throughout the codebase.
 
 ### Fixed
 

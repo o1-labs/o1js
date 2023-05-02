@@ -438,8 +438,7 @@ function LocalBlockchain({
         JSON.stringify(ZkappCommand.toJSON(txn.transaction))
       );
 
-      if (enforceTransactionLimits)
-        verifyTransactionLimits(txn.transaction.accountUpdates);
+      if (enforceTransactionLimits) verifyTransactionLimits(txn.transaction);
 
       for (const update of txn.transaction.accountUpdates) {
         let accountJson = ledger.getAccount(
@@ -648,20 +647,42 @@ LocalBlockchain satisfies (...args: any) => Mina;
  * Represents the Mina blockchain running on a real network
  */
 function Network(graphqlEndpoint: string): Mina;
-function Network(graphqlEndpoints: { mina: string; archive: string }): Mina;
-function Network(input: { mina: string; archive: string } | string): Mina {
+function Network(graphqlEndpoints: {
+  mina: string | string[];
+  archive: string | string[];
+}): Mina;
+function Network(
+  input: { mina: string | string[]; archive: string | string[] } | string
+): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
-  let graphqlEndpoint: string;
+  let minaGraphqlEndpoint: string;
   let archiveEndpoint: string;
 
   if (input && typeof input === 'string') {
-    graphqlEndpoint = input;
-    Fetch.setGraphqlEndpoint(graphqlEndpoint);
+    minaGraphqlEndpoint = input;
+    Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
   } else if (input && typeof input === 'object') {
-    graphqlEndpoint = input.mina;
-    archiveEndpoint = input.archive;
-    Fetch.setGraphqlEndpoint(graphqlEndpoint);
-    Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+    if (!input.mina || !input.archive)
+      throw new Error(
+        "Network: malformed input. Please provide an object with 'mina' and 'archive' endpoints."
+      );
+    if (Array.isArray(input.mina) && input.mina.length !== 0) {
+      minaGraphqlEndpoint = input.mina[0];
+      Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
+      Fetch.setMinaGraphqlFallbackEndpoints(input.mina.slice(1));
+    } else if (typeof input.mina === 'string') {
+      minaGraphqlEndpoint = input.mina;
+      Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
+    }
+
+    if (Array.isArray(input.archive) && input.archive.length !== 0) {
+      archiveEndpoint = input.archive[0];
+      Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+      Fetch.setArchiveGraphqlFallbackEndpoints(input.archive.slice(1));
+    } else if (typeof input.archive === 'string') {
+      archiveEndpoint = input.archive;
+      Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+    }
   } else {
     throw new Error(
       "Network: malformed input. Please provide a string or an object with 'mina' and 'archive' endpoints."
@@ -695,17 +716,21 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         !currentTransaction.has() ||
         currentTransaction.get().fetchMode === 'cached'
       ) {
-        return !!Fetch.getCachedAccount(publicKey, tokenId, graphqlEndpoint);
+        return !!Fetch.getCachedAccount(
+          publicKey,
+          tokenId,
+          minaGraphqlEndpoint
+        );
       }
       return false;
     },
     getAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       if (currentTransaction()?.fetchMode === 'test') {
-        Fetch.markAccountToBeFetched(publicKey, tokenId, graphqlEndpoint);
+        Fetch.markAccountToBeFetched(publicKey, tokenId, minaGraphqlEndpoint);
         let account = Fetch.getCachedAccount(
           publicKey,
           tokenId,
-          graphqlEndpoint
+          minaGraphqlEndpoint
         );
         return account ?? dummyAccount(publicKey);
       }
@@ -716,7 +741,7 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         let account = Fetch.getCachedAccount(
           publicKey,
           tokenId,
-          graphqlEndpoint
+          minaGraphqlEndpoint
         );
         if (account !== undefined) return account;
       }
@@ -724,30 +749,30 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         `${reportGetAccountError(
           publicKey.toBase58(),
           TokenId.toBase58(tokenId)
-        )}\nGraphql endpoint: ${graphqlEndpoint}`
+        )}\nGraphql endpoint: ${minaGraphqlEndpoint}`
       );
     },
     getNetworkState() {
       if (currentTransaction()?.fetchMode === 'test') {
-        Fetch.markNetworkToBeFetched(graphqlEndpoint);
-        let network = Fetch.getCachedNetwork(graphqlEndpoint);
+        Fetch.markNetworkToBeFetched(minaGraphqlEndpoint);
+        let network = Fetch.getCachedNetwork(minaGraphqlEndpoint);
         return network ?? defaultNetworkState();
       }
       if (
         !currentTransaction.has() ||
         currentTransaction.get().fetchMode === 'cached'
       ) {
-        let network = Fetch.getCachedNetwork(graphqlEndpoint);
+        let network = Fetch.getCachedNetwork(minaGraphqlEndpoint);
         if (network !== undefined) return network;
       }
       throw Error(
-        `getNetworkState: Could not fetch network state from graphql endpoint ${graphqlEndpoint}`
+        `getNetworkState: Could not fetch network state from graphql endpoint ${minaGraphqlEndpoint}`
       );
     },
     async sendTransaction(txn: Transaction) {
       txn.sign();
 
-      verifyTransactionLimits(txn.transaction.accountUpdates);
+      verifyTransactionLimits(txn.transaction);
 
       let [response, error] = await Fetch.sendZkapp(txn.toJSON());
       let errors: any[] | undefined;
@@ -831,7 +856,7 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         fetchMode: 'test',
         isFinalRunOutsideCircuit: false,
       });
-      await Fetch.fetchMissingData(graphqlEndpoint, archiveEndpoint);
+      await Fetch.fetchMissingData(minaGraphqlEndpoint, archiveEndpoint);
       let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
@@ -936,7 +961,7 @@ let activeInstance: Mina = {
       return !!Fetch.getCachedAccount(
         publicKey,
         tokenId,
-        Fetch.defaultGraphqlEndpoint
+        Fetch.networkConfig.minaEndpoint
       );
     }
     return false;
@@ -946,7 +971,7 @@ let activeInstance: Mina = {
       Fetch.markAccountToBeFetched(
         publicKey,
         tokenId,
-        Fetch.defaultGraphqlEndpoint
+        Fetch.networkConfig.minaEndpoint
       );
       return dummyAccount(publicKey);
     }
@@ -957,7 +982,7 @@ let activeInstance: Mina = {
       let account = Fetch.getCachedAccount(
         publicKey,
         tokenId,
-        Fetch.defaultGraphqlEndpoint
+        Fetch.networkConfig.minaEndpoint
       );
       if (account === undefined)
         throw Error(
@@ -1141,7 +1166,7 @@ async function fetchEvents(
  */
 async function fetchActions(
   publicKey: PublicKey,
-  actionStates: ActionStates,
+  actionStates?: ActionStates,
   tokenId?: Field
 ) {
   return await activeInstance.fetchActions(publicKey, actionStates, tokenId);
@@ -1152,7 +1177,7 @@ async function fetchActions(
  */
 function getActions(
   publicKey: PublicKey,
-  actionStates: ActionStates,
+  actionStates?: ActionStates,
   tokenId?: Field
 ) {
   return activeInstance.getActions(publicKey, actionStates, tokenId);
@@ -1363,7 +1388,7 @@ async function verifyAccountUpdate(
   }
 }
 
-function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
+function verifyTransactionLimits({ accountUpdates }: ZkappCommand) {
   // constants used to calculate cost of a transaction - originally defined in the genesis_constants file in the mina repo
   const proofCost = 10.26;
   const signedPairCost = 10.08;
@@ -1376,14 +1401,25 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
 
   let eventElements = { events: 0, actions: 0 };
 
-  let authTypes = filterGroups(
-    accountUpdates.map((update) => {
-      let json = update.toJSON();
-      eventElements.events += countEventElements(update.body.events);
-      eventElements.actions += countEventElements(update.body.actions);
-      return json.body.authorizationKind;
-    })
-  );
+  let authKinds = accountUpdates.map((update) => {
+    eventElements.events += countEventElements(update.body.events);
+    eventElements.actions += countEventElements(update.body.actions);
+    let { isSigned, isProved, verificationKeyHash } =
+      update.body.authorizationKind;
+    return {
+      isSigned: isSigned.toBoolean(),
+      isProved: isProved.toBoolean(),
+      verificationKeyHash: verificationKeyHash.toString(),
+    };
+  });
+  // insert entry for the fee payer
+  authKinds.unshift({
+    isSigned: true,
+    isProved: false,
+    verificationKeyHash: '',
+  });
+  let authTypes = filterGroups(authKinds);
+
   /*
   np := proof
   n2 := signedPair

@@ -18,6 +18,7 @@ export {
   Struct,
   FlexibleProvable,
   FlexibleProvablePure,
+  InferProvable,
 } from './lib/circuit_value.js';
 export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
 export { Types } from './provable/types.js';
@@ -38,6 +39,7 @@ export { Proof, SelfProof, verify } from './lib/proof_system.js';
 
 export {
   Token,
+  TokenId,
   AccountUpdate,
   Permissions,
   ZkappPublicInput,

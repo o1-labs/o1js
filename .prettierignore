@@ -1,4 +1,5 @@
-src/chrome_bindings/**/plonk_wasm*
-src/chrome_bindings/**/*.bc.js
-src/node_bindings/*
+src/snarkyjs-bindings/compiled/web_bindings/**/plonk_wasm*
+src/snarkyjs-bindings/compiled/web_bindings/**/*.bc.js
+src/snarkyjs-bindings/compiled/node_bindings/*
 dist/**/*
+src/snarkyjs-bindings/kimchi/js/**/*.js

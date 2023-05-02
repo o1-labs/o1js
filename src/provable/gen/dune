@@ -5,9 +5,11 @@
   transaction-json.ts
   transaction-bigint.ts)
  (mode promote)
+ (enabled_if
+  (<> %{env:NO_JS_BUILD=0} 1))
  (deps
   (:script ../../build/jsLayoutToTypes.mjs)
-  ../../../../jsLayout.json
+  ../../snarkyjs-bindings/ocaml/jsLayout.json
   ../../../.prettierrc.cjs
   (glob_files ../../../node_modules/prettier/*))
  (action
