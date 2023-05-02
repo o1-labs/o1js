@@ -17,10 +17,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/bcc666f2...HEAD)
 
-### Added
-
-- Support for fallback endpoints when making network requests, allowing users to provide an array of endpoints for GraphQL network requests. https://github.com/o1-labs/snarkyjs/pull/871
-  - Endpoints are checked for validity, and a "waterfall" approach is used to loop through fallback endpoints if needed.
+> No unreleased changes yet
 
 ## [0.10.0](https://github.com/o1-labs/snarkyjs/compare/97e393ed...bcc666f2)
 
@@ -35,6 +32,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - `this.state.getAndAssertEquals()` as a shortcut for `let x = this.state.get(); this.state.assertEquals(x);` https://github.com/o1-labs/snarkyjs/pull/863
   - also added `.getAndAssertEquals()` on `this.account` and `this.network` fields
+- Support for fallback endpoints when making network requests, allowing users to provide an array of endpoints for GraphQL network requests. https://github.com/o1-labs/snarkyjs/pull/871
+  - Endpoints are fetched two at a time, and the result returned from the faster response
 - `reducer.forEach(actions, ...)` as a shortcut for `reducer.reduce()` when you don't need a `state` https://github.com/o1-labs/snarkyjs/pull/863
 - New export `TokenId` which supersedes `Token.Id`; `TokenId.deriveId()` replaces `Token.Id.getId()` https://github.com/o1-labs/snarkyjs/pull/863
 - Add `Permissions.allImpossible()` for the set of permissions where nothing is allowed (more convenient than `Permissions.default()` when you want to make most actions impossible) https://github.com/o1-labs/snarkyjs/pull/863
