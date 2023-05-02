@@ -1,0 +1,14 @@
+(rule
+ (targets poseidonKimchi.ts poseidonLegacy.ts)
+ (mode promote)
+ (enabled_if
+  (<> %{env:NO_JS_BUILD=0} 1))
+ (deps
+  (:script ./dump-test-vectors.sh)
+  (source_tree ../../../../../crypto/proof-systems)
+  ../../../../.prettierrc.cjs
+  (glob_files ../../../../node_modules/prettier/*))
+ (action
+  (progn
+   (run chmod -R +w ../../../../../crypto/proof-systems/ .)
+   (run %{script} poseidonKimchi.ts poseidonLegacy.ts))))

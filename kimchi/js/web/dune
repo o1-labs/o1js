@@ -15,8 +15,7 @@
   plonk_wasm_bg.wasm
   plonk_wasm.d.ts
   plonk_wasm.js
-  flags.sexp
-  snippets/)
+  flags.sexp)
  (deps
   ../../wasm/Cargo.toml
   (source_tree ../../wasm/src)

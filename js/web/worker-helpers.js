@@ -1,6 +1,13 @@
-import plonkWasm from './plonk_wasm.js';
+import wasm from '../../../web_bindings/plonk_wasm.js';
 
-export { srcFromFunctionModule, inlineWorker, workerHelperMain, startWorkers };
+export {
+  srcFromFunctionModule,
+  inlineWorker,
+  workerHelperMain,
+  startWorkers,
+  terminateWorkers,
+  waitForMessage,
+};
 
 function srcFromFunctionModule(fun) {
   let deps = collectDependencies(fun, []);
@@ -34,7 +41,7 @@ function inlineWorker(src) {
   return worker;
 }
 
-function waitForMsg(target, type) {
+function waitForMessage(target, type) {
   return new Promise((resolve) => {
     target.addEventListener('message', function onMsg({ data }) {
       if (data?.type !== type) return;
@@ -45,15 +52,15 @@ function waitForMsg(target, type) {
 }
 
 function workerHelperMain() {
-  let { default: init, wbg_rayon_start_worker } = plonkWasm();
+  let { default: init, wbg_rayon_start_worker } = wasm();
 
-  waitForMsg(self, 'wasm_bindgen_worker_init').then(async (data) => {
+  waitForMessage(self, 'wasm_bindgen_worker_init').then(async (data) => {
     await init(data.module, data.memory);
     postMessage({ type: 'wasm_bindgen_worker_ready' });
     wbg_rayon_start_worker(data.receiver);
   });
 }
-workerHelperMain.deps = [plonkWasm, waitForMsg];
+workerHelperMain.deps = [wasm, waitForMessage];
 
 async function startWorkers(module, memory, builder) {
   const workerInit = {
@@ -66,19 +73,23 @@ async function startWorkers(module, memory, builder) {
 
   self._workers = []; // not used, prevents Firefox bug
 
+  let blob = new Blob([workerSrc], { type: 'application/javascript' });
+  let url = URL.createObjectURL(blob);
   for (let i = 0; i < builder.numThreads(); i++) {
-    let worker = inlineWorker(workerSrc);
+    let worker = new Worker(url);
     worker.postMessage(workerInit);
     self._workers.push(worker);
   }
+  URL.revokeObjectURL(url);
   await Promise.all(
-    self._workers.map((w) => waitForMsg(w, 'wasm_bindgen_worker_ready'))
+    self._workers.map((w) => waitForMessage(w, 'wasm_bindgen_worker_ready'))
   );
   builder.build();
 }
-startWorkers.deps = [
-  srcFromFunctionModule,
-  inlineWorker,
-  waitForMsg,
-  workerHelperMain,
-];
+startWorkers.deps = [srcFromFunctionModule, waitForMessage, workerHelperMain];
+
+async function terminateWorkers() {
+  self._workers.forEach((worker) => {
+    worker.terminate();
+  });
+}

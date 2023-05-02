@@ -3,9 +3,9 @@
 set -e
 
 SNARKY_JS_PATH="src/lib/snarkyjs"
-DUNE_PATH="$SNARKY_JS_PATH/src/snarkyjs-bindings/ocaml"
+DUNE_PATH="$SNARKY_JS_PATH/src/bindings/ocaml"
 BUILD_PATH="_build/default/$DUNE_PATH"
-KIMCHI_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/kimchi"
+KIMCHI_BINDINGS="$SNARKY_JS_PATH/src/bindings/kimchi"
 
 pushd "$SNARKY_JS_PATH"
   [ -d node_modules ] || npm i
@@ -33,9 +33,9 @@ if [ -f "$BUILD_PATH/snarky_js_node.bc.map" ]; then
   cp "$BUILD_PATH/snarky_js_node.bc.map" "_build/snarky_js_node.bc.map";
 fi
 
-dune b $SNARKY_JS_PATH/src/provable/gen/js-layout.ts \
-&& dune b $SNARKY_JS_PATH/src/js_crypto/constants.ts \
- $SNARKY_JS_PATH/src/js_crypto/test_vectors/poseidonKimchi.ts \
+dune b $SNARKY_JS_PATH/src/bindings/mina-transaction/gen/js-layout.ts \
+&& dune b $SNARKY_JS_PATH/src/bindings/crypto/constants.ts \
+ $SNARKY_JS_PATH/src/bindings/crypto/test_vectors/poseidonKimchi.ts \
 || exit 1
 
 BINDINGS_PATH="$SNARKY_JS_PATH"/dist/node/_node_bindings/
@@ -61,5 +61,7 @@ sed -i 's/return \[0,Exn,t\]/return joo_global_object.Error(t.c)/' "$BINDINGS_PA
 # TODO: this doesn't cover all cases, maybe should rewrite to_exn instead
 sed -i 's/function raise(t){throw caml_call1(to_exn$0,t)}/function raise(t){throw Error(t?.[1]?.c ?? "Unknown error thrown by raise")}/' "$BINDINGS_PATH"/snarky_js_node.bc.cjs
 
+chmod 777 "$BINDINGS_PATH"/*
+node "$SNARKY_JS_PATH/src/build/fix-wasm-bindings-node.js" "$BINDINGS_PATH/plonk_wasm.cjs"
 
 npm run --prefix="$SNARKY_JS_PATH" dev
