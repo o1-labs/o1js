@@ -15,19 +15,43 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/97e393ed...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/bcc666f2...HEAD)
 
 ### Added
 
 - Support for fallback endpoints when making network requests, allowing users to provide an array of endpoints for GraphQL network requests. https://github.com/o1-labs/snarkyjs/pull/871
   - Endpoints are checked for validity, and a "waterfall" approach is used to loop through fallback endpoints if needed.
 
-## [0.9.8](https://github.com/o1-labs/snarkyjs/compare/1a984089...97e393ed)
+## [0.10.0](https://github.com/o1-labs/snarkyjs/compare/97e393ed...bcc666f2)
 
 ### Breaking Changes
 
-- Renamed Variable: All references to `actionsHash` have been renamed to `actionState` to better mirror what is used in the Mina protocol implementation. https://github.com/o1-labs/snarkyjs/pull/833
-  - This change affects variables, function parameters, and object keys throughout the codebase.
+- All references to `actionsHash` are renamed to `actionState` to better mirror what is used in Mina protocol APIs https://github.com/o1-labs/snarkyjs/pull/833
+  - This change affects function parameters and returned object keys throughout the API
+- No longer make `MayUseToken.InheritFromParent` the default `mayUseToken` value on the caller if one zkApp method calls another one; this removes the need to manually override `mayUseToken` in several known cases https://github.com/o1-labs/snarkyjs/pull/863
+  - Causes a breaking change to the verification key of deployed contracts that use zkApp composability
+
+### Added
+
+- `this.state.getAndAssertEquals()` as a shortcut for `let x = this.state.get(); this.state.assertEquals(x);` https://github.com/o1-labs/snarkyjs/pull/863
+  - also added `.getAndAssertEquals()` on `this.account` and `this.network` fields
+- `reducer.forEach(actions, ...)` as a shortcut for `reducer.reduce()` when you don't need a `state` https://github.com/o1-labs/snarkyjs/pull/863
+- New export `TokenId` which supersedes `Token.Id`; `TokenId.deriveId()` replaces `Token.Id.getId()` https://github.com/o1-labs/snarkyjs/pull/863
+- Add `Permissions.allImpossible()` for the set of permissions where nothing is allowed (more convenient than `Permissions.default()` when you want to make most actions impossible) https://github.com/o1-labs/snarkyjs/pull/863
+
+### Changes
+
+- **Massive improvement of memory consumption**, thanks to a refactor of SnarkyJS' worker usage https://github.com/o1-labs/snarkyjs/pull/872
+  - Memory reduced by up to 10x; see [the PR](https://github.com/o1-labs/snarkyjs/pull/872) for details
+  - Side effect: `Circuit` API becomes async, for example `MyCircuit.prove(...)` becomes `await MyCircuit.prove(...)`
+- Token APIs `this.token.{send,burn,mint}()` now accept an `AccountUpdate` or `SmartContract` as from / to input https://github.com/o1-labs/snarkyjs/pull/863
+- Improve `Transaction.toPretty()` output by adding account update labels in most methods that create account updates https://github.com/o1-labs/snarkyjs/pull/863
+
+### Deprecated
+
+- Deprecate both `shutdown()` and `await isReady`, which are no longer needed https://github.com/o1-labs/snarkyjs/pull/872
+
+## [0.9.8](https://github.com/o1-labs/snarkyjs/compare/1a984089...97e393ed)
 
 ### Fixed
 
