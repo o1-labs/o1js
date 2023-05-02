@@ -122,14 +122,13 @@ pub fn caml_pasta_fq_plonk_index_read(
 
     // optional offset in file
     if let Some(offset) = offset {
-        r.seek(Start(offset as u64)).map_err(|err| {
-            JsValue::from_str(&format!("caml_pasta_fq_plonk_index_read: {}", err))
-        })?;
+        r.seek(Start(offset as u64))
+            .map_err(|err| JsValue::from_str(&format!("caml_pasta_fq_plonk_index_read: {err}")))?;
     }
 
     // deserialize the index
     let mut t = ProverIndex::<GAffine>::deserialize(&mut rmp_serde::Deserializer::new(r))
-        .map_err(|err| JsValue::from_str(&format!("caml_pasta_fq_plonk_index_read: {}", err)))?;
+        .map_err(|err| JsValue::from_str(&format!("caml_pasta_fq_plonk_index_read: {err}")))?;
     t.srs = srs.0.clone();
     let (linearization, powers_of_alpha) = expr_linearization(Some(&t.cs.feature_flags), true);
     t.linearization = linearization;
@@ -153,7 +152,7 @@ pub fn caml_pasta_fq_plonk_index_write(
     index
         .0
         .serialize(&mut rmp_serde::Serializer::new(w))
-        .map_err(|e| JsValue::from_str(&format!("caml_pasta_fq_plonk_index_read: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("caml_pasta_fq_plonk_index_read: {e}")))
 }
 
 #[wasm_bindgen]

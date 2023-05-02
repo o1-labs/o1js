@@ -58,6 +58,7 @@ macro_rules! impl_oracles {
 
             #[wasm_bindgen]
             impl [<Wasm $field_name:camel RandomOracles>] {
+                #[allow(clippy::too_many_arguments)]
                 #[wasm_bindgen(constructor)]
                 pub fn new(
                     joint_combiner_chal: Option<$WasmF>,
