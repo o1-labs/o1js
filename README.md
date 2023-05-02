@@ -29,4 +29,3 @@ High-quality community packages from open source developers are available for yo
 - **snarkyjs-elgamal** A partially homomorphic encryption library for SnarkyJS based on Elgamal encryption: [GitHub](https://github.com/Trivo25/snarkyjs-elgamal) and [npm](https://www.npmjs.com/package/snarkyjs-elgamal) 
 
 To include your package, see [Creating high-quality community packages](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md#creating-high-quality-community-packages).
-
