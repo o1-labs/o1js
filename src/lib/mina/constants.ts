@@ -6,10 +6,10 @@
 
 // Constants used to calculate cost of a transaction
 export namespace TransactionCost {
-  // Defined in https://github.com/MinaProtocol/mina/blob/e39abf79b7fdf96717eb8a8ee88ec42ba1e2663d/src/lib/mina_compile_config/mina_compile_config.ml#LL67C21
+  // Defined in https://github.com/MinaProtocol/mina/blob/e8c743488cf0c8f0b7925b7a48a914ca73ed13a1/src/lib/mina_compile_config/mina_compile_config.ml#L67
   export const PROOF_COST = 10.26 as const;
 
-  // Defined in https://github.com/MinaProtocol/mina/blob/e39abf79b7fdf96717eb8a8ee88ec42ba1e2663d/src/lib/mina_compile_config/mina_compile_config.ml#LL69C8
+  // Defined in https://github.com/MinaProtocol/mina/blob/e8c743488cf0c8f0b7925b7a48a914ca73ed13a1/src/lib/mina_compile_config/mina_compile_config.ml#L69
   export const SIGNED_PAIR_COST = 10.08 as const;
 
   // Defined in https://github.com/MinaProtocol/mina/blob/e39abf79b7fdf96717eb8a8ee88ec42ba1e2663d/src/lib/mina_compile_config/mina_compile_config.ml#L71
