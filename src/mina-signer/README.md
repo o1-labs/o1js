@@ -20,7 +20,7 @@ const client = new Client({ network: 'mainnet' });
 let keypair = client.genKeys();
 
 // Sign and verify message
-let signed = client.signMessage('hello', keypair);
+let signed = client.signMessage('hello', keypair.privateKey);
 if (client.verifyMessage(signed)) {
   console.log('Message was verified successfully');
 }
