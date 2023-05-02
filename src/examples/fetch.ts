@@ -1,7 +1,7 @@
 import {
   fetchAccount,
   isReady,
-  setGraphqlEndpoint,
+  setGraphqlEndpoints,
   shutdown,
   fetchLastBlock,
   PublicKey,
@@ -9,7 +9,10 @@ import {
 } from 'snarkyjs';
 
 await isReady;
-setGraphqlEndpoint('https://proxy.berkeley.minaexplorer.com/graphql');
+setGraphqlEndpoints([
+  'https://proxy.berkeley.minaexplorer.com/graphql',
+  'https://berkeley.minascan.io/graphql',
+]);
 
 let zkappAddress = PublicKey.fromBase58(
   'B62qpRzFVjd56FiHnNfxokVbcHMQLT119My1FEdSq8ss7KomLiSZcan'
@@ -17,8 +20,8 @@ let zkappAddress = PublicKey.fromBase58(
 let { account, error } = await fetchAccount({
   publicKey: zkappAddress,
 });
-console.log('account', Types.Account.toJSON(account!));
 console.log('error', error);
+console.log('account', Types.Account.toJSON(account!));
 
 let block = await fetchLastBlock();
 console.log('last block', JSON.stringify(block, null, 2));
