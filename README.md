@@ -1,19 +1,29 @@
 # SnarkyJS &nbsp; [![npm version](https://img.shields.io/npm/v/snarkyjs.svg?style=flat)](https://www.npmjs.com/package/snarkyjs) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md)
 
-SnarkyJS helps developers build apps powered by zero-knowledge cryptography.
+SnarkyJS helps developers build apps powered by zero-knowledge (zk) cryptography.
 
-SnarkyJS is a TypeScript library for writing smart contracts based on zero-knowledge proofs for the Mina Protocol. The easiest way to write zero-knowledge (zk) programs is using the SnarkyJS TypeScript framework for zk-SNARKs and zkApps. 
+The easiest way to write zk programs is using SnarkyJS.  
+
+SnarkyJS is:
+
+- A general purpose zk smart contract framework for zk-SNARKs and zkApps
+- A TypeScript library for writing smart contracts based on zero-knowledge proofs for the Mina Protocol. 
 
 SnarkyJS is automatically included when you write a zkApp smart contract for the Mina Protocol using the [Mina zkApp CLI](https://github.com/o1-labs/zkapp-cli). 
 
-## Quick Links
+## Learn More
 
-- [zkApp Developers Docs](https://docs.minaprotocol.com/zkapps)
-- [zkApp Developers Tutorials](https://docs.minaprotocol.com/zkapps/tutorials/hello-world)
-- [SnarkyJS Contributing Guidelines](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md)
-[Online Communities](https://docs.minaprotocol.com/participate/online-communities)
-- [SnarkyJS API Reference](https://docs.minaprotocol.com/en/zkapps/snarkyjs-reference)
-- [CHANGELOG](https://github.com/o1-labs/snarkyjs/blob/main/CHANGELOG.md)
+- To learn more about developing zkApps, see the [zkApp Developers](https://docs.minaprotocol.com/zkapps) docs.
+
+- For guided steps building and using zkApps, see the [zkApp Developers Tutorials](https://docs.minaprotocol.com/zkapps/tutorials/hello-world).
+
+- To meet other developers building zkApps with SnarkyJS, participate in the [#zkapps-developers](https://discord.com/channels/484437221055922177/915745847692636181) channel on Mina Protocol Discord.
+
+- To learn about ???, see the auto-generated [SnarkyJS API Reference](https://docs.minaprotocol.com/en/zkapps/snarkyjs-reference) docs.
+
+- For a list of changes between versions, see the [CHANGELOG](https://github.com/o1-labs/snarkyjs/blob/main/CHANGELOG.md).
+
+- To stay up to date with SnarkyJS, see the [O(1) Labs Blog](https://blog.o1labs.org/tagged/snarkyjs).
 
 ## Community Packages
 
@@ -28,6 +38,3 @@ To include your package, see [Creating high-quality community packages](https://
 SnarkyJS is an open source project. We appreciate all community contributions to SnarkyJS! 
 
 See the [Contributing guidelines](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md) for ways you can contribute. 
-
-- To learn about ways to participate and interact with community members, see [Online Communities](https://docs.minaprotocol.com/participate/online-communities). 
-- To meet other developers building zkApps with SnarkyJS, participate in the [#zkapps-developers](https://discord.com/channels/484437221055922177/915745847692636181) channel on Mina Protocol Discord.
