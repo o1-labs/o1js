@@ -1,6 +1,6 @@
 # SnarkyJS &nbsp; [![npm version](https://img.shields.io/npm/v/snarkyjs.svg?style=flat)](https://www.npmjs.com/package/snarkyjs) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md)
 
-The SnarkyJS SDK helps developers build apps powered by zero-knowledge cryptography.
+SnarkyJS helps developers build apps powered by zero-knowledge cryptography.
 
 SnarkyJS is a TypeScript library for writing smart contracts based on zero-knowledge proofs for the Mina Protocol. The easiest way to write zero-knowledge (zk) programs is using the SnarkyJS TypeScript framework for zk-SNARKs and zkApps. 
 
