@@ -22,6 +22,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Support for fallback endpoints when making network requests, allowing users to provide an array of endpoints for GraphQL network requests. https://github.com/o1-labs/snarkyjs/pull/871
   - Endpoints are checked for validity, and a "waterfall" approach is used to loop through fallback endpoints if needed.
 
+### Changed
+
+- Raises the limit of actions/events per transaction from 16 to 100, providing users with the ability to submit a larger number of events/actions in a single transaction. https://github.com/o1-labs/snarkyjs/pull/883.
+
 ### Fixed
 
 - `SmartContract.deploy()` throws an error when no verification key is found https://github.com/o1-labs/snarkyjs/pull/885
