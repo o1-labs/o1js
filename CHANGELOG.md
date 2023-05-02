@@ -50,6 +50,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Deprecate both `shutdown()` and `await isReady`, which are no longer needed https://github.com/o1-labs/snarkyjs/pull/872
 
+### Fixed
+
+- `SmartContract.deploy()` now throws an error when no verification key is found https://github.com/o1-labs/snarkyjs/pull/885
+  - The old, confusing behaviour was to silently not update the verification key (but still update some permissions to "proof", breaking the zkApp)
+
 ## [0.9.8](https://github.com/o1-labs/snarkyjs/compare/1a984089...97e393ed)
 
 ### Fixed
