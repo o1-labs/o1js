@@ -96,19 +96,19 @@ let tx = await Mina.transaction(
 
     contracts.voting.deploy({ zkappKey: params.votingKey });
     contracts.voting.committedVotes.set(storage.votesStore.getRoot());
-    contracts.voting.accumulatedVotes.set(Reducer.initialActionsHash);
+    contracts.voting.accumulatedVotes.set(Reducer.initialActionState);
 
     contracts.candidateContract.deploy({ zkappKey: params.candidateKey });
     contracts.candidateContract.committedMembers.set(
       storage.candidatesStore.getRoot()
     );
     contracts.candidateContract.accumulatedMembers.set(
-      Reducer.initialActionsHash
+      Reducer.initialActionState
     );
 
     contracts.voterContract.deploy({ zkappKey: params.voterKey });
     contracts.voterContract.committedMembers.set(storage.votersStore.getRoot());
-    contracts.voterContract.accumulatedMembers.set(Reducer.initialActionsHash);
+    contracts.voterContract.accumulatedMembers.set(Reducer.initialActionState);
   }
 );
 await tx.prove();

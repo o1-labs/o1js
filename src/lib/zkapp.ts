@@ -1240,17 +1240,17 @@ type ReducerReturn<Action> = {
    *
    * ```ts
    *  let pendingActions = this.reducer.getActions({
-   *    fromActionState: actionsHash,
+   *    fromActionState: actionState,
    *  });
    *
-   *  let { state: newState, actionsHash: newActionsHash } =
+   *  let { state: newState, actionState: newActionState } =
    *  this.reducer.reduce(
    *     pendingActions,
    *     Field,
    *     (state: Field, _action: Field) => {
    *       return state.add(1);
    *     },
-   *     { state: initialState, actionsHash: initialActionsHash  }
+   *     { state: initialState, actionState: initialActionState  }
    *   );
    * ```
    *
@@ -1259,12 +1259,12 @@ type ReducerReturn<Action> = {
     actions: Action[][],
     stateType: Provable<State>,
     reduce: (state: State, action: Action) => State,
-    initial: { state: State; actionsHash: Field },
+    initial: { state: State; actionState: Field },
     options?: {
       maxTransactionsWithActions?: number;
       skipActionStatePrecondition?: boolean;
     }
-  ): { state: State; actionsHash: Field };
+  ): { state: State; actionState: Field };
   /**
    * Perform circuit logic for every {@link Action} in the list.
    *
@@ -1284,7 +1284,7 @@ type ReducerReturn<Action> = {
    * Fetches the list of previously emitted {@link Action}s by this {@link SmartContract}.
    * ```ts
    * let pendingActions = this.reducer.getActions({
-   *    fromActionState: actionsHash,
+   *    fromActionState: actionState,
    * });
    * ```
    */
@@ -1299,7 +1299,7 @@ type ReducerReturn<Action> = {
    * Fetches the list of previously emitted {@link Action}s by zkapp {@link SmartContract}.
    * ```ts
    * let pendingActions = await zkapp.reducer.fetchActions({
-   *    fromActionState: actionsHash,
+   *    fromActionState: actionState,
    * });
    * ```
    */
@@ -1336,12 +1336,12 @@ class ${contract.constructor.name} extends SmartContract {
       actionLists: A[][],
       stateType: Provable<S>,
       reduce: (state: S, action: A) => S,
-      { state, actionsHash }: { state: S; actionsHash: Field },
+      { state, actionState }: { state: S; actionState: Field },
       {
         maxTransactionsWithActions = 32,
         skipActionStatePrecondition = false,
       } = {}
-    ): { state: S; actionsHash: Field } {
+    ): { state: S; actionState: Field } {
       if (actionLists.length > maxTransactionsWithActions) {
         throw Error(
           `reducer.reduce: Exceeded the maximum number of lists of actions, ${maxTransactionsWithActions}.
@@ -1379,12 +1379,12 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         });
         let eventsHash = Circuit.switch(lengths, Field, eventsHashes);
         let newActionsHash = Actions.updateSequenceState(
-          actionsHash,
+          actionState,
           eventsHash
         );
         let isEmpty = lengths[0];
         // update state hash, if this is not an empty action
-        actionsHash = Circuit.if(isEmpty, actionsHash, newActionsHash);
+        actionState = Circuit.if(isEmpty, actionState, newActionsHash);
         // also, for each action length, compute the new state and then pick the actual one
         let newStates = actionss.map((actions) => {
           // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
@@ -1400,9 +1400,9 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         state = Circuit.switch(lengths, stateType, newStates);
       }
       if (!skipActionStatePrecondition) {
-        contract.account.actionState.assertEquals(actionsHash);
+        contract.account.actionState.assertEquals(actionState);
       }
-      return { state, actionsHash };
+      return { state, actionState };
     },
 
     forEach(
@@ -1412,17 +1412,17 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       config
     ): Field {
       const stateType = provable(undefined);
-      let { actionsHash } = this.reduce(
+      let { actionState } = this.reduce(
         actionLists,
         stateType,
         (_, action) => {
           callback(action);
           return undefined;
         },
-        { state: undefined, actionsHash: fromActionState },
+        { state: undefined, actionState: fromActionState },
         config
       );
-      return actionsHash;
+      return actionState;
     },
 
     getActions(config?: {
@@ -1569,14 +1569,14 @@ const Reducer: (<
 >(reducer: {
   actionType: T;
 }) => ReducerReturn<A>) & {
-  initialActionsHash: Field;
+  initialActionState: Field;
 } = Object.defineProperty(
   function (reducer: any) {
     // we lie about the return value here, and instead overwrite this.reducer with
     // a getter, so we can get access to `this` inside functions on this.reducer (see constructor)
     return reducer;
   },
-  'initialActionsHash',
+  'initialActionState',
   { get: Actions.emptyActionState }
 ) as any;
 
