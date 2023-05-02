@@ -4,12 +4,9 @@ SnarkyJS helps developers build apps powered by zero-knowledge (zk) cryptography
 
 The easiest way to write zk programs is using SnarkyJS.  
 
-SnarkyJS is:
+SnarkyJS is a TypeScript library for [zk-SNARKs](https://minaprotocol.com/blog/what-are-zk-snarks) and zkApps. You can use SnarkyJS to write zk smart contracts based on zero-knowledge proofs for the Mina Protocol. 
 
-- A general purpose zk smart contract framework for zk-SNARKs and zkApps
-- A TypeScript library for writing smart contracts based on zero-knowledge proofs for the Mina Protocol. 
-
-SnarkyJS is automatically included when you write a zkApp smart contract for the Mina Protocol using the [Mina zkApp CLI](https://github.com/o1-labs/zkapp-cli). 
+SnarkyJS is automatically included when you create a project using the [Mina zkApp CLI](https://github.com/o1-labs/zkapp-cli). 
 
 ## Learn More
 
@@ -19,11 +16,15 @@ SnarkyJS is automatically included when you write a zkApp smart contract for the
 
 - To meet other developers building zkApps with SnarkyJS, participate in the [#zkapps-developers](https://discord.com/channels/484437221055922177/915745847692636181) channel on Mina Protocol Discord.
 
-- To learn about ???, see the auto-generated [SnarkyJS API Reference](https://docs.minaprotocol.com/en/zkapps/snarkyjs-reference) docs.
-
 - For a list of changes between versions, see the [CHANGELOG](https://github.com/o1-labs/snarkyjs/blob/main/CHANGELOG.md).
 
 - To stay up to date with SnarkyJS, see the [O(1) Labs Blog](https://blog.o1labs.org/tagged/snarkyjs).
+
+## Contributing
+
+SnarkyJS is an open source project. We appreciate all community contributions to SnarkyJS! 
+
+See the [Contributing guidelines](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md) for ways you can contribute. 
 
 ## Community Packages
 
@@ -33,8 +34,3 @@ High-quality community packages from open source developers are available for yo
 
 To include your package, see [Creating high-quality community packages](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md#creating-high-quality-community-packages).
 
-## Contributing
-
-SnarkyJS is an open source project. We appreciate all community contributions to SnarkyJS! 
-
-See the [Contributing guidelines](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md) for ways you can contribute. 
