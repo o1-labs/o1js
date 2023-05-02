@@ -728,14 +728,19 @@ class SmartContract {
   } = {}) {
     let accountUpdate = this.newSelf();
     verificationKey ??= (this.constructor as any)._verificationKey;
-    if (verificationKey === undefined && !Mina.getProofsEnabled()) {
-      verificationKey = Pickles.dummyVerificationKey();
+    if (verificationKey === undefined) {
+      if (!Mina.getProofsEnabled()) {
+        verificationKey = Pickles.dummyVerificationKey();
+      } else {
+        throw Error(
+          `\`${this.constructor.name}.deploy()\` was called but no verification key was found.\n` +
+            `Try calling \`await ${this.constructor.name}.compile()\` first, this will cache the verification key in the background.`
+        );
+      }
     }
-    if (verificationKey !== undefined) {
-      let { hash: hash_, data } = verificationKey;
-      let hash = typeof hash_ === 'string' ? Field(hash_) : hash_;
-      accountUpdate.account.verificationKey.set({ hash, data });
-    }
+    let { hash: hash_, data } = verificationKey;
+    let hash = typeof hash_ === 'string' ? Field(hash_) : hash_;
+    accountUpdate.account.verificationKey.set({ hash, data });
     accountUpdate.account.permissions.set(Permissions.default());
     accountUpdate.sign(zkappKey);
     AccountUpdate.attachToTransaction(accountUpdate);
