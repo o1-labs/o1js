@@ -5,10 +5,10 @@
  */
 
 // ---- Constants used to calculate cost of a transaction ----
-// Defined in https://github.com/MinaProtocol/mina/blob/e39abf79b7fdf96717eb8a8ee88ec42ba1e2663d/src/lib/mina_compile_config/mina_compile_config.ml#LL67C21-L67C21
+// Defined in https://github.com/MinaProtocol/mina/blob/e39abf79b7fdf96717eb8a8ee88ec42ba1e2663d/src/lib/mina_compile_config/mina_compile_config.ml#LL67C21
 export const proofCost = 10.26 as const;
 
-// Defined in https://github.com/MinaProtocol/mina/blob/e39abf79b7fdf96717eb8a8ee88ec42ba1e2663d/src/lib/mina_compile_config/mina_compile_config.ml#LL69C8-L69C8
+// Defined in https://github.com/MinaProtocol/mina/blob/e39abf79b7fdf96717eb8a8ee88ec42ba1e2663d/src/lib/mina_compile_config/mina_compile_config.ml#LL69C8
 export const signedPairCost = 10.08 as const;
 
 // Defined in https://github.com/MinaProtocol/mina/blob/e39abf79b7fdf96717eb8a8ee88ec42ba1e2663d/src/lib/mina_compile_config/mina_compile_config.ml#L71
@@ -18,7 +18,7 @@ export const signedSingleCost = 9.14 as const;
 export const costLimit = 69.45 as const;
 // ----
 
-// --- Constants to define the maximum number of events and actions in a transaction ----
+// ---- Constants to define the maximum number of events and actions in a transaction ----
 // Defined in https://github.com/MinaProtocol/mina/blob/e39abf79b7fdf96717eb8a8ee88ec42ba1e2663d/src/lib/mina_compile_config/mina_compile_config.ml#L75
 export const maxActionElements = 100 as const;
 // Defined in https://github.com/MinaProtocol/mina/blob/e39abf79b7fdf96717eb8a8ee88ec42ba1e2663d/src/lib/mina_compile_config/mina_compile_config.ml#L77
