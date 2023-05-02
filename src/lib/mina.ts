@@ -25,6 +25,7 @@ import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './errors.js';
 import { Types } from '../provable/types.js';
 import { Account } from './mina/account.js';
+import { TransactionCost, TransactionLimits } from './mina/constants.js';
 
 export {
   createTransaction,
@@ -1389,16 +1390,6 @@ async function verifyAccountUpdate(
 }
 
 function verifyTransactionLimits({ accountUpdates }: ZkappCommand) {
-  // constants used to calculate cost of a transaction - originally defined in the genesis_constants file in the mina repo
-  const proofCost = 10.26;
-  const signedPairCost = 10.08;
-  const signedSingleCost = 9.14;
-  const costLimit = 69.45;
-
-  // constants that define the maximum number of events in one transaction
-  const maxActionElements = 16;
-  const maxEventElements = 16;
-
   let eventElements = { events: 0, actions: 0 };
 
   let authKinds = accountUpdates.map((update) => {
@@ -1430,14 +1421,16 @@ function verifyTransactionLimits({ accountUpdates }: ZkappCommand) {
   10.26*np + 10.08*n2 + 9.14*n1 < 69.45
   */
   let totalTimeRequired =
-    proofCost * authTypes.proof +
-    signedPairCost * authTypes.signedPair +
-    signedSingleCost * authTypes.signedSingle;
+    TransactionCost.PROOF_COST * authTypes.proof +
+    TransactionCost.SIGNED_PAIR_COST * authTypes.signedPair +
+    TransactionCost.SIGNED_SINGLE_COST * authTypes.signedSingle;
 
-  let isWithinCostLimit = totalTimeRequired < costLimit;
+  let isWithinCostLimit = totalTimeRequired < TransactionCost.COST_LIMIT;
 
-  let isWithinEventsLimit = eventElements.events <= maxEventElements;
-  let isWithinActionsLimit = eventElements.actions <= maxActionElements;
+  let isWithinEventsLimit =
+    eventElements.events <= TransactionLimits.MAX_EVENT_ELEMENTS;
+  let isWithinActionsLimit =
+    eventElements.actions <= TransactionLimits.MAX_ACTION_ELEMENTS;
 
   let error = '';
 
@@ -1452,11 +1445,11 @@ ${JSON.stringify(authTypes)}
   }
 
   if (!isWithinEventsLimit) {
-    error += `Error: The account updates in your transaction are trying to emit too much event data. The maximum allowed number of field elements in events is ${maxEventElements}, but you tried to emit ${eventElements.events}.\n\n`;
+    error += `Error: The account updates in your transaction are trying to emit too much event data. The maximum allowed number of field elements in events is ${TransactionLimits.MAX_EVENT_ELEMENTS}, but you tried to emit ${eventElements.events}.\n\n`;
   }
 
   if (!isWithinActionsLimit) {
-    error += `Error: The account updates in your transaction are trying to emit too much action data. The maximum allowed number of field elements in actions is ${maxActionElements}, but you tried to emit ${eventElements.actions}.\n\n`;
+    error += `Error: The account updates in your transaction are trying to emit too much action data. The maximum allowed number of field elements in actions is ${TransactionLimits.MAX_ACTION_ELEMENTS}, but you tried to emit ${eventElements.actions}.\n\n`;
   }
 
   if (error) throw Error('Error during transaction sending:\n\n' + error);

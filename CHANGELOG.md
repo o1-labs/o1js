@@ -50,6 +50,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Deprecate both `shutdown()` and `await isReady`, which are no longer needed https://github.com/o1-labs/snarkyjs/pull/872
 
+### Changed
+
+- Raises the limit of actions/events per transaction from 16 to 100, providing users with the ability to submit a larger number of events/actions in a single transaction. https://github.com/o1-labs/snarkyjs/pull/883.
+
 ### Fixed
 
 - `SmartContract.deploy()` now throws an error when no verification key is found https://github.com/o1-labs/snarkyjs/pull/885
