@@ -17,7 +17,7 @@ class Main extends Circuit {
 await isReady;
 
 console.log('generating keypair...');
-let kp = Main.generateKeypair();
+let kp = await Main.generateKeypair();
 
 let cs = Circuit.constraintSystemFromKeypair(kp);
 console.dir(cs, { depth: Infinity });

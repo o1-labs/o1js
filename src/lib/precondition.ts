@@ -1,5 +1,6 @@
 import { Provable, Bool, Field } from '../snarky.js';
-import { circuitValueEquals, Circuit } from './circuit_value.js';
+import { circuitValueEquals } from './circuit_value.js';
+import { Circuit } from './circuit.js';
 import * as Mina from './mina.js';
 import { Actions, AccountUpdate, Preconditions } from './account_update.js';
 import { Int64, UInt32, UInt64 } from './int.js';

@@ -1,4 +1,4 @@
-import { Circuit, circuitMain } from './circuit_value.js';
+import { Circuit, circuitMain } from './circuit.js';
 import { isReady, shutdown } from '../snarky.js';
 import { UInt64, UInt32 } from './int.js';
 import { expect } from 'expect';
@@ -15,9 +15,11 @@ class Primitives extends Circuit {
 }
 
 await isReady;
-let keypair = Primitives.generateKeypair();
-let proof = Primitives.prove([], [], keypair);
-let ok = Primitives.verify([], keypair.verificationKey(), proof);
+
+let keypair = await Primitives.generateKeypair();
+let proof = await Primitives.prove([], [], keypair);
+let ok = await Primitives.verify([], keypair.verificationKey(), proof);
+
 expect(ok).toEqual(true);
+
 console.log('primitive operations in the circuit are working! 🎉');
-shutdown();

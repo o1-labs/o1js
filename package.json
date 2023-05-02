@@ -1,7 +1,7 @@
 {
   "name": "snarkyjs",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "0.9.8",
+  "version": "0.10.0",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/snarkyjs/",
   "keywords": [
@@ -46,12 +46,13 @@
     "type-check": "tsc --noEmit",
     "dev": "npx tsc -p tsconfig.node.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "make": "make -C ../../.. snarkyjs",
+    "bindings": "cd ../../.. && ./scripts/update-snarkyjs-bindings.sh && cd src/lib/snarkyjs",
     "build": "rimraf ./dist/node && npx tsc -p tsconfig.node.json && cp -r src/snarkyjs-bindings/compiled/node_bindings dist/node/_node_bindings && node src/build/buildNode.js && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "build:test": "npx tsc -p tsconfig.test.json && cp src/snarky.d.ts dist/node/snarky.d.ts",
     "build:node": "npm run build",
     "build:web": "rimraf ./dist/web && node src/build/buildWeb.js",
     "build:examples": "rimraf ./dist/examples && npx tsc -p tsconfig.examples.json || exit 0",
-    "serve:web": "cp src/snarkyjs-bindings/compiled/web_bindings/server.js src/snarkyjs-bindings/compiled/web_bindings/index.html dist/web && node dist/web/server.js",
+    "serve:web": "cp src/snarkyjs-bindings/compiled/web_bindings/server.js src/snarkyjs-bindings/compiled/web_bindings/index.html src/examples/simple_zkapp.js dist/web && node dist/web/server.js",
     "prepublish:web": "NODE_ENV=production node src/build/buildWeb.js",
     "prepublish:node": "npm run build && NODE_ENV=production node src/build/buildNode.js",
     "prepublish:both": "npm run prepublish:web && npm run prepublish:node",
@@ -94,7 +95,6 @@
   "dependencies": {
     "blakejs": "1.2.1",
     "detect-gpu": "^5.0.5",
-    "env": "^0.0.2",
     "isomorphic-fetch": "^3.0.0",
     "js-sha256": "^0.9.0",
     "reflect-metadata": "^0.1.13",

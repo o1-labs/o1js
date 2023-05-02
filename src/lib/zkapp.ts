@@ -30,7 +30,6 @@ import {
   SmartContractContext,
 } from './account_update.js';
 import {
-  Circuit,
   circuitArray,
   cloneCircuitValue,
   FlexibleProvablePure,
@@ -41,6 +40,7 @@ import {
   Struct,
   toConstant,
 } from './circuit_value.js';
+import { Circuit } from './circuit.js';
 import * as Encoding from './encoding.js';
 import { Poseidon } from './hash.js';
 import { UInt32, UInt64 } from './int.js';
@@ -674,14 +674,11 @@ class SmartContract {
     });
     // run methods once to get information that we need already at compile time
     this.analyzeMethods();
-    let { getVerificationKeyArtifact, provers, verify } = compileProgram(
-      ZkappPublicInput,
-      methodIntfs,
-      methods,
-      this
-    );
-
-    let verificationKey_ = getVerificationKeyArtifact();
+    let {
+      verificationKey: verificationKey_,
+      provers,
+      verify,
+    } = await compileProgram(ZkappPublicInput, methodIntfs, methods, this);
     let verificationKey = {
       data: verificationKey_.data,
       hash: Field(verificationKey_.hash),

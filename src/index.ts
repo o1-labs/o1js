@@ -1,18 +1,14 @@
 export { ProvablePure, Provable, Ledger, isReady, shutdown } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/core.js';
 export type { Keypair } from './snarky.js';
-export * from './snarky/addons.js';
 export { Poseidon, TokenSymbol } from './lib/hash.js';
 export * from './lib/signature.js';
 export {
-  Circuit,
   CircuitValue,
   ProvableExtended,
   prop,
   arrayProp,
   matrixProp,
-  public_,
-  circuitMain,
   provable,
   provablePure,
   Struct,
@@ -20,6 +16,7 @@ export {
   FlexibleProvablePure,
   InferProvable,
 } from './lib/circuit_value.js';
+export { Circuit, public_, circuitMain } from './lib/circuit.js';
 export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
 export { Types } from './provable/types.js';
 
@@ -54,6 +51,7 @@ export {
   TransactionStatus,
   addCachedAccount,
   setGraphqlEndpoint,
+  setGraphqlEndpoints,
   setArchiveGraphqlEndpoint,
   sendZkapp,
 } from './lib/fetch.js';

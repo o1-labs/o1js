@@ -9,7 +9,7 @@ import glob from 'glob';
 export { buildWeb };
 
 const entry = './src/index.ts';
-const target = 'es2021';
+const target = 'es2022';
 
 let nodePath = path.resolve(process.argv[1]);
 let modulePath = path.resolve(fileURLToPath(import.meta.url));
@@ -54,7 +54,9 @@ async function buildWeb({ production }) {
     './src/snarkyjs-bindings/compiled/web_bindings/':
       './dist/web/web_bindings/',
     './src/snarky.d.ts': './dist/web/snarky.d.ts',
-    './src/snarky/wrapper.web.js': './dist/web/snarky/wrapper.js',
+    './src/snarkyjs-bindings/js/wrapper.web.js':
+      './dist/web/snarkyjs-bindings/js/wrapper.js',
+    './src/snarkyjs-bindings/js/web/': './dist/web/snarkyjs-bindings/js/web/',
   });
 
   await Promise.all([tscPromise, copyPromise]);
@@ -128,14 +130,10 @@ function execPromise(cmd) {
 function rewriteWasmBindings(src) {
   src = src
     .replace("new URL('plonk_wasm_bg.wasm', import.meta.url)", 'wasmCode')
-    .replace('import.meta.url', '"/"')
-    .replace(
-      "import { startWorkers } from './snippets/wasm-bindgen-rayon-7afa899f36665473/src/workerHelpers.no-bundler.js';",
-      `import wasmCode from './plonk_wasm_bg.wasm';
-let startWorkers;
-`
-    );
-  return src;
+    .replace('import.meta.url', '"/"');
+  return `import wasmCode from './plonk_wasm_bg.wasm';
+  let startWorkers, terminateWorkers;  
+${src}`;
 }
 function rewriteBundledWasmBindings(src) {
   let i = src.indexOf('export {');
@@ -147,12 +145,13 @@ function rewriteBundledWasmBindings(src) {
   src = src.slice(0, i) + exportSlice;
 
   src = src.replace('var startWorkers;\n', '');
-  return `import {startWorkers} from './workerHelpers.js'
+  src = src.replace('var terminateWorkers;\n', '');
+  return `import { startWorkers, terminateWorkers } from '../snarkyjs-bindings/js/web/worker-helpers.js'
 export {plonkWasm as default};
 function plonkWasm() {
   ${src}
 }
-plonkWasm.deps = [startWorkers]`;
+plonkWasm.deps = [startWorkers, terminateWorkers]`;
 }
 
 function wasmPlugin() {

@@ -31,7 +31,10 @@ let classNames = [
   }
 
   let specJson = JSON.stringify(classList, null, 2);
-  await fs.writeFile('src/snarky/snarky-class-spec.json', specJson + '\n');
+  await fs.writeFile(
+    'src/snarkyjs-bindings/js/snarky-class-spec.json',
+    specJson + '\n'
+  );
   // this could be useful for the browser version:
   // await fs.writeFile('src/snarky-class-spec.js', 'export default ' + specJson);
 

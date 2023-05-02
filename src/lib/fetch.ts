@@ -34,6 +34,7 @@ export {
   addCachedAccount,
   networkConfig,
   setGraphqlEndpoint,
+  setGraphqlEndpoints,
   setMinaGraphqlFallbackEndpoints,
   setArchiveGraphqlEndpoint,
   setArchiveGraphqlFallbackEndpoints,
@@ -67,6 +68,13 @@ function checkForValidUrl(url: string) {
   }
 }
 
+function setGraphqlEndpoints([
+  graphqlEndpoint,
+  ...fallbackEndpoints
+]: string[]) {
+  setGraphqlEndpoint(graphqlEndpoint);
+  setMinaGraphqlFallbackEndpoints(fallbackEndpoints);
+}
 function setGraphqlEndpoint(graphqlEndpoint: string) {
   if (!checkForValidUrl(graphqlEndpoint)) {
     throw new Error(
@@ -1007,53 +1015,62 @@ async function makeGraphqlRequest(
     throw Error(
       "Should have made a graphql request, but don't know to which endpoint. Try calling `setGraphqlEndpoint` first."
     );
-  const controller = new AbortController();
-  const timer = setTimeout(() => {
-    controller.abort();
-  }, timeout);
-  let errorMessages = [];
-
-  const makeRequest = async (url: string) => {
-    let body = JSON.stringify({ operationName: null, query, variables: {} });
-    let response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-      signal: controller.signal,
-    });
-    return checkResponseStatus(response);
+  let timeouts: NodeJS.Timeout[] = [];
+  const clearTimeouts = () => {
+    timeouts.forEach((t) => clearTimeout(t));
+    timeouts = [];
   };
 
-  for (const fallbackUrl of fallbackEndpoints) {
+  const makeRequest = async (url: string) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    timeouts.push(timer);
+    let body = JSON.stringify({ operationName: null, query, variables: {} });
     try {
-      const result = await Promise.race([
-        makeRequest(graphqlEndpoint),
-        makeRequest(fallbackUrl),
-      ]);
-      clearTimeout(timer);
-      return result;
-    } catch (error) {
-      let networkError = inferError(error);
-      // If the request timed out, try the next endpoint
-      if (networkError.statusCode === 408) {
-        if (error instanceof Error)
-          console.error(`Request to ${fallbackUrl} failed: ${error.message}`);
-        errorMessages.push({ endpoint: fallbackUrl, error: inferError(error) });
+      let response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        signal: controller.signal,
+      });
+      return checkResponseStatus(response);
+    } finally {
+      clearTimeouts();
+    }
+  };
+  // try to fetch from endpoints in pairs
+  let timeoutErrors: { url1: string; url2: string; error: any }[] = [];
+  let urls = [graphqlEndpoint, ...fallbackEndpoints];
+  for (let i = 0; i < urls.length; i += 2) {
+    let url1 = urls[i];
+    let url2 = urls[i + 1];
+    if (url2 === undefined) {
+      try {
+        return await makeRequest(url1);
+      } catch (error) {
+        return [undefined, inferError(error)] as [undefined, FetchError];
+      }
+    }
+    try {
+      return await Promise.race([makeRequest(url1), makeRequest(url2)]);
+    } catch (unknownError) {
+      let error = inferError(unknownError);
+      if (error.statusCode === 408) {
+        // If the request timed out, try the next 2 endpoints
+        timeoutErrors.push({ url1, url2, error });
       } else {
         // If the request failed for some other reason (e.g. SnarkyJS error), return the error
-        clearTimeout(timer);
-        return [undefined, networkError] as [undefined, FetchError];
+        return [undefined, error] as [undefined, FetchError];
       }
     }
   }
-  clearTimeout(timer);
-  const statusText = errorMessages
+  const statusText = timeoutErrors
     .map(
-      (networkError) =>
-        `Request to ${networkError.endpoint} failed. Reason: ${networkError.error.statusCode}: ${networkError.error.statusText}`
+      ({ url1, url2, error }) =>
+        `Request to ${url1} and ${url2} timed out. Error: ${error}`
     )
     .join('\n');
-  return [undefined, { statusCode: 503, statusText }] as [
+  return [undefined, { statusCode: 408, statusText }] as [
     undefined,
     FetchError
   ];

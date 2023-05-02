@@ -1,3 +1,4 @@
+import { withThreadPool } from '../snarkyjs-bindings/js/wrapper.js';
 import {
   Bool,
   Field,
@@ -42,6 +43,7 @@ export {
   inAnalyze,
   inCheckedComputation,
   inCompileMode,
+  dummyBase64Proof,
 };
 
 // global circuit-related context
@@ -115,22 +117,26 @@ class Proof<T> {
   }
 }
 
-function verify(proof: Proof<any> | JsonProof, verificationKey: string) {
+async function verify(proof: Proof<any> | JsonProof, verificationKey: string) {
+  let picklesProof: unknown;
+  let publicInputFields: Field[];
   if (typeof proof.proof === 'string') {
     // json proof
-    let [, picklesProof] = Pickles.proofOfBase64(
+    [, picklesProof] = Pickles.proofOfBase64(
       proof.proof,
       proof.maxProofsVerified
     );
-    let publicInputFields = (proof as JsonProof).publicInput.map(Field);
-    return Pickles.verify(publicInputFields, picklesProof, verificationKey);
+    publicInputFields = (proof as JsonProof).publicInput.map(Field);
   } else {
     // proof class
-    let publicInputFields = getPublicInputType(
-      proof.constructor as any
-    ).toFields(proof.publicInput);
-    return Pickles.verify(publicInputFields, proof.proof, verificationKey);
+    picklesProof = proof.proof;
+    publicInputFields = getPublicInputType(proof.constructor as any).toFields(
+      proof.publicInput
+    );
   }
+  return withThreadPool(() =>
+    Pickles.verify(publicInputFields, picklesProof, verificationKey)
+  );
 }
 
 type RawProof = unknown;
@@ -201,14 +207,14 @@ function ZkProgram<
     | undefined;
 
   async function compile() {
-    let { provers, verify, getVerificationKeyArtifact } = compileProgram(
+    let { provers, verify, verificationKey } = await compileProgram(
       publicInputType,
       methodIntfs,
       methodFunctions,
       selfTag
     );
     compileOutput = { provers, verify };
-    return { verificationKey: getVerificationKeyArtifact().data };
+    return { verificationKey: verificationKey.data };
   }
 
   function toProver<K extends keyof Types & string>(
@@ -404,7 +410,7 @@ type MethodInterface = {
   returnType?: Provable<any>;
 };
 
-function compileProgram(
+async function compileProgram(
   publicInputType: ProvablePure<any>,
   methodIntfs: MethodInterface[],
   methods: ((...args: any) => void)[],
@@ -418,12 +424,40 @@ function compileProgram(
       methodEntry
     )
   );
-  let [, { getVerificationKeyArtifact, provers, verify, tag }] =
-    snarkContext.runWith({ inCompile: true }, () =>
-      Pickles.compile(rules, publicInputType.sizeInFields())
-    );
-  CompiledTag.store(proofSystemTag, tag);
-  return { getVerificationKeyArtifact, provers, verify, tag };
+  let { verificationKey, provers, verify, tag } = await withThreadPool(
+    async () => {
+      let [, { getVerificationKeyArtifact, provers, verify, tag }] =
+        snarkContext.runWith({ inCompile: true }, () =>
+          Pickles.compile(rules, publicInputType.sizeInFields())
+        );
+      CompiledTag.store(proofSystemTag, tag);
+      let verificationKey = getVerificationKeyArtifact();
+      return { verificationKey, provers, verify, tag };
+    }
+  );
+  // wrap provers
+  let wrappedProvers = provers.map(
+    (prover) =>
+      async function picklesProver(
+        publicInput: Field[],
+        previousProofs: Pickles.ProofWithPublicInput[]
+      ) {
+        return withThreadPool(() => prover(publicInput, previousProofs));
+      }
+  );
+  // wrap verify
+  let wrappedVerify = async function picklesVerify(
+    publicInput: Pickles.PublicInput,
+    proof: Pickles.Proof
+  ) {
+    return withThreadPool(() => verify(publicInput, proof));
+  };
+  return {
+    verificationKey,
+    provers: wrappedProvers,
+    verify: wrappedVerify,
+    tag,
+  };
 }
 
 function analyzeMethod<T>(
@@ -605,6 +639,10 @@ ZkProgram.Proof = function <
     static tag = () => program;
   };
 };
+
+function dummyBase64Proof() {
+  return withThreadPool(async () => Pickles.dummyBase64Proof());
+}
 
 // helpers for circuit context
 

@@ -1,20 +1,27 @@
 import 'reflect-metadata';
 import { bytesToBigInt } from '../js_crypto/bigint-helpers.js';
-import { Circuit, ProvablePure, Provable, Keypair, Gate } from '../snarky.js';
+import {
+  Circuit as SnarkyCircuit,
+  ProvablePure,
+  Provable,
+  Keypair,
+  Gate,
+} from '../snarky.js';
 import { Field, Bool } from './core.js';
 import { Context } from './global-context.js';
-import { inCheckedComputation, snarkContext } from './proof_system.js';
+import {
+  inCheckedComputation,
+  inProver,
+  snarkContext,
+} from './proof_system.js';
 
 // external API
 export {
-  Circuit,
   CircuitValue,
   ProvableExtended,
   prop,
   arrayProp,
   matrixProp,
-  public_,
-  circuitMain,
   provable,
   provablePure,
   Struct,
@@ -24,6 +31,7 @@ export {
 
 // internal API
 export {
+  SnarkyCircuit,
   AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,
@@ -157,11 +165,11 @@ abstract class CircuitValue {
   }
 
   equals(x: this) {
-    return Circuit.equal(this, x);
+    return SnarkyCircuit.equal(this, x);
   }
 
   assertEquals(x: this) {
-    Circuit.assertEqual(this, x);
+    SnarkyCircuit.assertEqual(this, x);
   }
 
   isConstant() {
@@ -372,97 +380,6 @@ function matrixProp<T>(
       circuitArray(circuitArray(elementType, nColumns), nRows),
     ]);
   };
-}
-
-function public_(target: any, _key: string | symbol, index: number) {
-  // const fieldType = Reflect.getMetadata('design:paramtypes', target, key);
-
-  if (target._public === undefined) {
-    target._public = [];
-  }
-  target._public.push(index);
-}
-
-function provableFromTuple(typs: ProvablePure<any>[]): ProvablePure<any> {
-  return {
-    sizeInFields: () => {
-      return typs.reduce((acc, typ) => acc + typ.sizeInFields(), 0);
-    },
-
-    toFields: (t: Array<any>) => {
-      if (t.length !== typs.length) {
-        throw new Error(`typOfArray: Expected ${typs.length}, got ${t.length}`);
-      }
-
-      let res = [];
-      for (let i = 0; i < t.length; ++i) {
-        res.push(...typs[i].toFields(t[i]));
-      }
-      return res;
-    },
-
-    toAuxiliary() {
-      return [];
-    },
-
-    fromFields: (xs: Array<any>) => {
-      let offset = 0;
-      let res: Array<any> = [];
-      typs.forEach((typ) => {
-        const n = typ.sizeInFields();
-        res.push(typ.fromFields(xs.slice(offset, offset + n)));
-        offset += n;
-      });
-      return res;
-    },
-
-    check(xs: Array<any>) {
-      typs.forEach((typ, i) => (typ as any).check(xs[i]));
-    },
-  };
-}
-
-function circuitMain(
-  target: any,
-  propertyName: string,
-  _descriptor?: PropertyDescriptor
-): any {
-  const paramTypes = Reflect.getMetadata(
-    'design:paramtypes',
-    target,
-    propertyName
-  );
-  const numArgs = paramTypes.length;
-
-  const publicIndexSet: Set<number> = new Set(target._public);
-  const witnessIndexSet: Set<number> = new Set();
-  for (let i = 0; i < numArgs; ++i) {
-    if (!publicIndexSet.has(i)) {
-      witnessIndexSet.add(i);
-    }
-  }
-
-  target.snarkyMain = (w: Array<any>, pub: Array<any>) => {
-    let [, result] = snarkContext.runWith(
-      { inCheckedComputation: true },
-      () => {
-        let args = [];
-        for (let i = 0; i < numArgs; ++i) {
-          args.push((publicIndexSet.has(i) ? pub : w).shift());
-        }
-
-        return target[propertyName].apply(target, args);
-      }
-    );
-    return result;
-  };
-
-  target.snarkyWitnessTyp = provableFromTuple(
-    Array.from(witnessIndexSet).map((i) => paramTypes[i])
-  );
-  target.snarkyPublicTyp = provableFromTuple(
-    Array.from(publicIndexSet).map((i) => paramTypes[i])
-  );
 }
 
 let primitives = new Set(['Field', 'Bool', 'Scalar', 'Group']);
@@ -954,10 +871,8 @@ function isConstant<T>(type: Provable<T>, value: T): boolean {
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
 
-Circuit.inCheckedComputation = inCheckedComputation;
-
-let oldAsProver = Circuit.asProver;
-Circuit.asProver = function (f: () => void) {
+let oldAsProver = SnarkyCircuit.asProver;
+SnarkyCircuit.asProver = function (f: () => void) {
   if (inCheckedComputation()) {
     oldAsProver(f);
   } else {
@@ -965,23 +880,26 @@ Circuit.asProver = function (f: () => void) {
   }
 };
 
-let oldRunUnchecked = Circuit.runUnchecked;
-Circuit.runUnchecked = function (f: () => void) {
+let oldRunUnchecked = SnarkyCircuit.runUnchecked;
+SnarkyCircuit.runUnchecked = function (f: () => void) {
   let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
     oldRunUnchecked(f)
   );
   return result;
 };
 
-let oldRunAndCheck = Circuit.runAndCheck;
-Circuit.runAndCheck = function (f: () => void) {
+let oldRunAndCheck = SnarkyCircuit.runAndCheck;
+SnarkyCircuit.runAndCheck = function (f: () => void) {
   let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
     oldRunAndCheck(f)
   );
   return result;
 };
 
-Circuit.witness = function <
+SnarkyCircuit.inCheckedComputation = inCheckedComputation;
+SnarkyCircuit.inProver = inProver;
+
+SnarkyCircuit.witness = function <
   T,
   S extends FlexibleProvable<T> = FlexibleProvable<T>
 >(type: S, compute: () => T): T {
@@ -1004,7 +922,7 @@ Circuit.witness = function <
   let fields =
     inCheckedComputation() && !ctx.inWitnessBlock
       ? snarkContext.runWith({ ...ctx, inWitnessBlock: true }, () =>
-          Circuit._witness(type, createFields)
+          SnarkyCircuit._witness(type, createFields)
         )[1]
       : createFields();
   let aux = type.toAuxiliary(proverValue);
@@ -1013,9 +931,9 @@ Circuit.witness = function <
   return value;
 };
 
-Circuit.array = circuitArray;
+SnarkyCircuit.array = circuitArray;
 
-Circuit.switch = function <T, A extends FlexibleProvable<T>>(
+SnarkyCircuit.switch = function <T, A extends FlexibleProvable<T>>(
   mask: Bool[],
   type: A,
   values: T[]
@@ -1035,7 +953,7 @@ Circuit.switch = function <T, A extends FlexibleProvable<T>>(
     }
   };
   if (mask.every((b) => b.toField().isConstant())) checkMask();
-  else Circuit.asProver(checkMask);
+  else SnarkyCircuit.asProver(checkMask);
   let size = type.sizeInFields();
   let fields = Array(size).fill(Field(0));
   for (let i = 0; i < nValues; i++) {
@@ -1054,14 +972,16 @@ Circuit.switch = function <T, A extends FlexibleProvable<T>>(
   return type.fromFields(fields, aux) as T;
 };
 
-Circuit.constraintSystem = function <T>(f: () => T) {
+SnarkyCircuit.constraintSystem = function <T>(f: () => T) {
   let [, result] = snarkContext.runWith(
     { inAnalyze: true, inCheckedComputation: true },
     () => {
       let result: T;
-      let { rows, digest, json } = (Circuit as any)._constraintSystem(() => {
-        result = f();
-      });
+      let { rows, digest, json } = (SnarkyCircuit as any)._constraintSystem(
+        () => {
+          result = f();
+        }
+      );
       let { gates, publicInputSize } = gatesFromJson(json);
       return { rows, digest, result: result!, gates, publicInputSize };
     }
@@ -1069,8 +989,8 @@ Circuit.constraintSystem = function <T>(f: () => T) {
   return result;
 };
 
-Circuit.log = function (...args: any) {
-  Circuit.asProver(() => {
+SnarkyCircuit.log = function (...args: any) {
+  SnarkyCircuit.asProver(() => {
     let prettyArgs = [];
     for (let arg of args) {
       if (arg?.toPretty !== undefined) prettyArgs.push(arg.toPretty());
@@ -1086,7 +1006,7 @@ Circuit.log = function (...args: any) {
   });
 };
 
-Circuit.constraintSystemFromKeypair = function (keypair: Keypair) {
+SnarkyCircuit.constraintSystemFromKeypair = function (keypair: Keypair) {
   return gatesFromJson(JSON.parse((keypair as any)._constraintSystemJSON()))
     .gates;
 };
@@ -1110,7 +1030,7 @@ type JsonGate = {
 
 function auxiliary<T>(type: FlexibleProvable<T>, compute: () => any[]) {
   let aux;
-  if (inCheckedComputation()) Circuit.asProver(() => (aux = compute()));
+  if (inCheckedComputation()) SnarkyCircuit.asProver(() => (aux = compute()));
   else aux = compute();
   return aux ?? type.toAuxiliary();
 }
@@ -1126,7 +1046,7 @@ let memoizationContext = Context.create<{
  * for reuse by the prover. This is needed to witness non-deterministic values.
  */
 function memoizeWitness<T>(type: FlexibleProvable<T>, compute: () => T) {
-  return Circuit.witness<T>(type as Provable<T>, () => {
+  return SnarkyCircuit.witness<T>(type as Provable<T>, () => {
     if (!memoizationContext.has()) return compute();
     let context = memoizationContext.get();
     let { memoized, currentIndex } = context;

@@ -126,7 +126,7 @@ class MyContract extends SmartContract {
 
 setActiveInstance(LocalBlockchain());
 
-MyContract.compile();
+await MyContract.compile();
 let key = PrivateKey.random();
 let address = key.toPublicKey();
 let contract = new MyContract(address);
