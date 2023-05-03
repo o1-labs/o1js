@@ -1158,11 +1158,9 @@ type sponge =
 let hash_array (xs : field_class Js.t Js.js_array Js.t) (is_checked : bool Js.t)
     =
   let input = Array.map (Js.to_array xs) ~f:of_js_field in
-  let digest =
-    if Js.to_bool is_checked then Random_oracle.Checked.hash input
-    else Random_oracle.hash (Array.map ~f:to_unchecked input) |> Field.constant
-  in
-  digest
+  if Js.to_bool is_checked then Random_oracle.Checked.hash input
+  else Random_oracle.hash (Array.map ~f:to_unchecked input) |> Field.constant
+
 
 let poseidon =
   object%js
