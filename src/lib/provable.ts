@@ -149,6 +149,7 @@ const Provable = {
   },
 
   assertEqual,
+  equal,
 
   /**
    * Creates a {@link Provable} for a generic array.
@@ -280,7 +281,7 @@ const Provable = {
 
 type ToFieldable = { toFields(): Field[] };
 
-// provable helpers
+// general provable methods
 
 /**
  * Asserts that two values are equal.
@@ -302,21 +303,64 @@ function assertEqual(typeOrX: any, xOrY: any, yOrUndefined?: any) {
   }
 }
 function assertEqualInstance<T extends ToFieldable>(x: T, y: T) {
-  let xFields = x.toFields();
-  let yFields = y.toFields();
-  if (xFields.length !== yFields.length) {
-    throw Error(
-      `Provable.assertEqual: inputs must contain the same number of field elements, got ${xFields.length} !== ${yFields.length}`
-    );
+  let xs = x.toFields();
+  let ys = y.toFields();
+  let n = checkLength('Provable.assertEqual', xs, ys);
+  for (let i = 0; i < n; i++) {
+    xs[i].assertEquals(ys[i]);
   }
-  xFields.forEach((x, i) => x.assertEquals(yFields[i]));
 }
 function assertEqualStruct<T>(type: Provable<T>, x: T, y: T) {
-  let yFields = type.toFields(y);
-  type.toFields(x).forEach((x, i) => x.assertEquals(yFields[i]));
+  let xs = type.toFields(x);
+  let ys = type.toFields(y);
+  for (let i = 0; i < xs.length; i++) {
+    xs[i].assertEquals(ys[i]);
+  }
+}
+
+/**
+ * Checks if two elements are equal.
+ * @example
+ * ```ts
+ * class MyStruct extends Struct({ a: Field, b: Bool }) {};
+ * const a: MyStruct = { a: Field(0), b: Bool(false) };
+ * const b: MyStruct = { a: Field(1), b: Bool(true) };
+ * const isEqual = Circuit.equal(MyStruct, a, b);
+ * ```
+ */
+function equal<T>(type: FlexibleProvable<T>, x: T, y: T): Bool;
+function equal<T extends ToFieldable>(x: T, y: T): Bool;
+function equal(typeOrX: any, xOrY: any, yOrUndefined?: any) {
+  if (yOrUndefined === undefined) {
+    return equalInstance(typeOrX, xOrY);
+  } else {
+    return equalStruct(typeOrX, xOrY, yOrUndefined);
+  }
+}
+function equalInstance<T extends ToFieldable>(x: T, y: T) {
+  let xs = x.toFields();
+  let ys = y.toFields();
+  checkLength('Provable.equal', xs, ys);
+  return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
+}
+function equalStruct<T>(type: Provable<T>, x: T, y: T) {
+  let xs = type.toFields(x);
+  let ys = type.toFields(y);
+  return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
 }
 
 // helpers
+
+function checkLength(name: string, xs: Field[], ys: Field[]) {
+  let n = xs.length;
+  let m = ys.length;
+  if (n !== m) {
+    throw Error(
+      `${name}: inputs must contain the same number of field elements, got ${n} !== ${m}`
+    );
+  }
+  return n;
+}
 
 function gatesFromJson(cs: { gates: JsonGate[]; public_input_size: number }) {
   let gates: Gate[] = cs.gates.map(({ typ, wires, coeffs: byteCoeffs }) => {

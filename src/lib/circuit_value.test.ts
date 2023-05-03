@@ -8,6 +8,7 @@ import {
   Struct,
   Field,
   PrivateKey,
+  PublicKey,
 } from 'snarkyjs';
 
 describe('circuit', () => {
@@ -67,6 +68,44 @@ describe('circuit', () => {
         )
       ).toThrow();
       expect(() => Provable.assertEqual(b, PrivateKey.random() as any)).toThrow(
+        'must contain the same number of field elements'
+      );
+    });
+  });
+
+  it('Provable.equal', () => {
+    const FieldAndBool = Struct({ x: Field, b: Bool });
+    let pk1 = PublicKey.fromBase58(
+      'B62qoCHJ1dcGjKhdMTMuAytzRkLxRFUgq6YC5XSgmmxAt8r7FVi1DhT'
+    );
+    let pk2 = PublicKey.fromBase58(
+      'B62qnDjh7J27q6CoG6hkQzP6J6t1USA6bCoKsBFhxNughNHQgVwEtT9'
+    );
+
+    function expectBoolean(b: Bool, expected: boolean) {
+      Provable.asProver(() => {
+        expect(b.toBoolean()).toEqual(expected);
+      });
+    }
+
+    Provable.runAndCheck(() => {
+      let x = Provable.witness(Field, () => Field(1));
+      let b = Provable.witness(Bool, () => Bool(true));
+      let pk = Provable.witness(PublicKey, () => pk1);
+
+      expectBoolean(Provable.equal(pk, pk1), true);
+      expectBoolean(
+        Provable.equal(FieldAndBool, { x, b }, { x: Field(1), b: Bool(true) }),
+        true
+      );
+
+      expectBoolean(Provable.equal(pk, pk2), false);
+      expectBoolean(
+        Provable.equal(FieldAndBool, { x, b }, { x: Field(1), b: Bool(false) }),
+        false
+      );
+
+      expect(() => Provable.equal(b, pk2 as any)).toThrow(
         'must contain the same number of field elements'
       );
     });

@@ -150,11 +150,11 @@ abstract class CircuitValue {
   }
 
   equals(x: this) {
-    return SnarkyCircuit.equal(this, x);
+    return Provable.equal(this, x);
   }
 
   assertEquals(x: this) {
-    SnarkyCircuit.assertEqual(this, x);
+    Provable.assertEqual(this, x);
   }
 
   isConstant() {

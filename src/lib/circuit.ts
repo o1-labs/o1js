@@ -106,16 +106,9 @@ class Circuit {
    */
   static assertEqual = Provable.assertEqual;
   /**
-   * Checks if two elements are equal.
-   * @example
-   * ```ts
-   * class MyStruct extends Struct({ a: Field, b: Bool }) {};
-   * const a: MyStruct = { a: Field(0), b: Bool(false) };
-   * const b: MyStruct = { a: Field(1), b: Bool(true) };
-   * const isEqual = Circuit.equal(MyStruct, a, b);
-   * ```
+   * @deprecated use {@link Provable.equal}
    */
-  static equal = SnarkyCircuit.equal;
+  static equal = Provable.equal;
   /**
    * Circuit-compatible if-statement.
    * @example
@@ -129,15 +122,6 @@ class Circuit {
    * @deprecated use {@link Provable.switch}
    */
   static switch = Provable.switch;
-  /**
-   * Serializes an element into {@link Field} elements.
-   * @example
-   * ```ts
-   * const element = Field(42);
-   * const fields = Circuit.toFields(element);
-   * ```
-   */
-  static toFields = SnarkyCircuit.toFields;
   /**
    * @deprecated use {@link Provable.inProver}
    */

@@ -784,26 +784,6 @@ type Gate = {
  */
 declare class Circuit {
   /**
-   * Asserts that two values are equal.
-   */
-  static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
-
-  /**
-   * Asserts that two values are equal.
-   */
-  static assertEqual<T>(x: T, y: T): void;
-
-  /**
-   * Checks if two elements are equal.
-   */
-  static equal<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): Bool;
-
-  /**
-   * Checks if two elements are equal.
-   */
-  static equal<T>(x: T, y: T): Bool;
-
-  /**
    * Circuit-compatible if-statement.
    */
   static if<T>(b: Bool | boolean, ctor: ProvablePure<T>, x: T, y: T): T;
