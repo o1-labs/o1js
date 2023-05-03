@@ -1384,59 +1384,6 @@ module Circuit = struct
          | None ->
              raise_error "toFields: Argument did not have a constructor." )
 
-  let assert_equal =
-    let f t1 t2 =
-      (* TODO: Have better error handling here that throws at proving time
-         for the specific position where they differ. *)
-      check_lengths "assertEqual" t1 t2 ;
-      for i = 0 to t1##.length - 1 do
-        Field.Assert.equal
-          (array_get_exn t1 i)##.value
-          (array_get_exn t2 i)##.value
-      done
-    in
-    let implicit
-        (t1 :
-          < toFields : field_class Js.t Js.js_array Js.t Js.meth > Js.t as 'a )
-        (t2 : 'a) : unit =
-      f (to_field_elts_magic t1) (to_field_elts_magic t2)
-    in
-    let explicit
-        (ctor :
-          < toFields : 'a -> field_class Js.t Js.js_array Js.t Js.meth > Js.t )
-        (t1 : 'a) (t2 : 'a) : unit =
-      f (ctor##toFields t1) (ctor##toFields t2)
-    in
-    wrap "assertEqual" ~pre_args:0 ~post_args:2 ~explicit ~implicit
-
-  let equal =
-    let f t1 t2 =
-      check_lengths "equal" t1 t2 ;
-      (* TODO: Have better error handling here that throws at proving time
-         for the specific position where they differ. *)
-      new%js bool_constr
-        ( Boolean.Array.all
-            (Array.init t1##.length ~f:(fun i ->
-                 Field.equal
-                   (array_get_exn t1 i)##.value
-                   (array_get_exn t2 i)##.value ) )
-        |> As_bool.of_boolean )
-    in
-    let _implicit
-        (t1 :
-          < toFields : field_class Js.t Js.js_array Js.t Js.meth > Js.t as 'a )
-        (t2 : 'a) : bool_class Js.t =
-      f t1##toFields t2##toFields
-    in
-    let implicit t1 t2 = f (to_field_elts_magic t1) (to_field_elts_magic t2) in
-    let explicit
-        (ctor :
-          < toFields : 'a -> field_class Js.t Js.js_array Js.t Js.meth > Js.t )
-        (t1 : 'a) (t2 : 'a) : bool_class Js.t =
-      f (ctor##toFields t1) (ctor##toFields t2)
-    in
-    wrap "equal" ~pre_args:0 ~post_args:2 ~explicit ~implicit
-
   let if_explicit (type a) (b : As_bool.t) (ctor : a as_field_elements Js.t)
       (x1 : a) (x2 : a) =
     let b = As_bool.value b in
@@ -1586,9 +1533,6 @@ module Circuit = struct
            (vk : verification_key_class Js.t) (pi : proof_class Js.t) :
            bool Js.t ->
          vk##verify pub pi ) ;
-    circuit##.assertEqual := assert_equal ;
-    circuit##.equal := equal ;
-    circuit##.toFields := Js.wrap_callback to_field_elts_magic ;
     Js.Unsafe.set circuit (Js.string "if") if_ ;
     circuit##.getVerificationKey
     := fun (vk : Verification_key.t) -> new%js verification_key_constr vk

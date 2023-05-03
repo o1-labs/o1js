@@ -213,18 +213,6 @@ export default [
         type: 'function',
       },
       {
-        name: 'assertEqual',
-        type: 'function',
-      },
-      {
-        name: 'equal',
-        type: 'function',
-      },
-      {
-        name: 'toFields',
-        type: 'function',
-      },
-      {
         name: 'if',
         type: 'function',
       },
