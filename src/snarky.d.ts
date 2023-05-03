@@ -1096,19 +1096,12 @@ declare class Group {
 
 declare const Poseidon: {
   hash(input: Field[], isChecked: boolean): Field;
-  hashToGroup(input: Field[], isChecked: boolean): Group;
   update(
     state: [Field, Field, Field],
     input: Field[],
     isChecked: boolean
   ): [Field, Field, Field];
-  hashToGroup(
-    input: Field[],
-    isChecked: boolean
-  ): {
-    x: Field;
-    y: Field;
-  };
+  hashToGroup(input: Field[], isChecked: boolean): Group;
   prefixes: Record<
     | 'event'
     | 'events'
