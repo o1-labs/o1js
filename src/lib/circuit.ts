@@ -8,7 +8,7 @@ import {
 } from '../snarky.js';
 import { SnarkyCircuit } from './circuit_value.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
-import { Provable } from './provable.js';
+import { Provable, gatesFromJson } from './provable.js';
 
 // external API
 export { public_, circuitMain, Circuit };
@@ -62,6 +62,19 @@ class Circuit {
     );
   }
 
+  /**
+   * Returns a low-level JSON representation of the {@link Circuit} from its {@link Keypair}:
+   * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
+   * @example
+   * ```ts
+   * const keypair = await Circuit.generateKeypair();
+   * const jsonRepresentation = Circuit.constraintSystemFromKeypair(keypair);
+   * ```
+   */
+  static constraintSystemFromKeypair(keypair: Keypair) {
+    return gatesFromJson(keypair.constraintSystemJSON()).gates;
+  }
+
   // utility namespace
 
   /**
@@ -85,17 +98,9 @@ class Circuit {
    */
   static constraintSystem = Provable.constraintSystem;
   /**
-   * @deprecated use {@link Provable.constraintSystemFromKeypair}
+   * @deprecated use {@link Provable.array}
    */
-  static constraintSystemFromKeypair = Provable.constraintSystemFromKeypair;
-  /**
-   * Creates a {@link Provable} for a generic array.
-   * @example
-   * ```ts
-   * const ProvableArray = Circuit.array(Field, 5);
-   * ```
-   */
-  static array = SnarkyCircuit.array;
+  static array = Provable.array;
   /**
    * Asserts that two values are equal.
    * @example
@@ -148,25 +153,13 @@ class Circuit {
    */
   static toFields = SnarkyCircuit.toFields;
   /**
-   * Checks if the circuit is in prover mode.
-   * @example
-   * ```ts
-   * if (Circuit.inProver()) {
-   *   // Prover-specific code
-   * }
-   * ```
+   * @deprecated use {@link Provable.inProver}
    */
-  static inProver = SnarkyCircuit.inProver;
+  static inProver = Provable.inProver;
   /**
-   * Checks if the circuit is in checked computation mode.
-   * @example
-   * ```ts
-   * if (Circuit.inCheckedComputation()) {
-   *   // Checked computation-specific code
-   * }
-   * ```
+   * @deprecated use {@link Provable.inCheckedComputation}
    */
-  static inCheckedComputation = SnarkyCircuit.inCheckedComputation;
+  static inCheckedComputation = Provable.inCheckedComputation;
   /**
    * Interface to log elements within a circuit. Similar to `console.log()`.
    * @example

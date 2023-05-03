@@ -1,6 +1,4 @@
-import { Field, provable, Circuit, isReady } from 'snarkyjs';
-
-await isReady;
+import { Field, provable, Provable } from 'snarkyjs';
 
 // there are two ways of specifying an n*m matrix
 
@@ -11,8 +9,8 @@ let Matrix3x3 = provable([
   [Field, Field, Field],
 ]);
 // Circuit.array -- types somewhat more loosely but can be easier to write
-let Matrix3x4 = Circuit.array(Circuit.array(Field, 4), 3);
-let Matrix4x3 = Circuit.array(Circuit.array(Field, 3), 4);
+let Matrix3x4 = Provable.array(Provable.array(Field, 4), 3);
+let Matrix4x3 = Provable.array(Provable.array(Field, 3), 4);
 
 /* @param x an n*m matrix, encoded as x[i][k] for row i column k.
  * @param y an m*o matrix, both encoded as y[k][j] for row j column j.
@@ -39,14 +37,14 @@ function matrixMul(x: Field[][], y: Field[][]): Field[][] {
 }
 
 function circuit(): Field[][] {
-  let x = Circuit.witness(Matrix3x4, () => {
+  let x = Provable.witness(Matrix3x4, () => {
     return [
       [Field.random(), Field.random(), Field.random(), Field.random()],
       [Field.random(), Field.random(), Field.random(), Field.random()],
       [Field.random(), Field.random(), Field.random(), Field.random()],
     ];
   });
-  let y = Circuit.witness(Matrix4x3, () => {
+  let y = Provable.witness(Matrix4x3, () => {
     return [
       [Field.random(), Field.random(), Field.random()],
       [Field.random(), Field.random(), Field.random()],
@@ -57,6 +55,12 @@ function circuit(): Field[][] {
   return matrixMul(x, y);
 }
 
-let { rows } = Circuit.constraintSystem(circuit);
-let result = Circuit.runAndCheck(circuit);
-console.log({ rows, result: Matrix3x3.toJSON(result) });
+let { rows } = Provable.constraintSystem(circuit);
+let result: Field[][];
+Provable.runAndCheck(() => {
+  let result_ = circuit();
+  Provable.asProver(() => {
+    result = result_.map((x) => x.map((y) => y.toConstant()));
+  });
+});
+console.log({ rows, result: Matrix3x3.toJSON(result!) });

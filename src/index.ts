@@ -1,4 +1,4 @@
-export { ProvablePure, Provable, Ledger, isReady, shutdown } from './snarky.js';
+export { ProvablePure, Ledger, isReady, shutdown } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/core.js';
 export type { Keypair } from './snarky.js';
 export { Poseidon, TokenSymbol } from './lib/hash.js';
@@ -16,6 +16,7 @@ export {
   FlexibleProvablePure,
   InferProvable,
 } from './lib/circuit_value.js';
+export { Provable } from './lib/provable.js';
 export { Circuit, public_, circuitMain } from './lib/circuit.js';
 export { UInt32, UInt64, Int64, Sign } from './lib/int.js';
 export { Types } from './bindings/mina-transaction/types.js';

@@ -27,7 +27,6 @@ import {
   SmartContractContext,
 } from './account_update.js';
 import {
-  circuitArray,
   cloneCircuitValue,
   FlexibleProvablePure,
   InferProvable,
@@ -1357,7 +1356,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       ].sort((x, y) => x - y);
 
       let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
-        circuitArray(reducer.actionType, n)
+        Provable.array(reducer.actionType, n)
       );
       for (let i = 0; i < maxTransactionsWithActions; i++) {
         let actions = i < actionLists.length ? actionLists[i] : [];

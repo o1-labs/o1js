@@ -784,14 +784,6 @@ type Gate = {
  */
 declare class Circuit {
   /**
-   * Creates a {@link Provable} for a generic array.
-   */
-  static array<A extends FlexibleProvable<any>>(
-    elementType: A,
-    length: number
-  ): InferredProvable<A[]>;
-
-  /**
    * Asserts that two values are equal.
    */
   static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
@@ -860,16 +852,6 @@ declare class Circuit {
    * Serializes an element into {@link Field} elements.
    */
   static toFields<A>(a: A): Field[];
-
-  /**
-   * Checks if the circuit is in prover mode.
-   */
-  static inProver(): boolean;
-
-  /**
-   * Checks if the circuit is in checked computation mode.
-   */
-  static inCheckedComputation(): boolean;
 
   /**
    * Interface to log elements within a circuit. Similar to `console.log()`.

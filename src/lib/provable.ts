@@ -8,19 +8,28 @@ import {
   Field,
   Gate,
   JsonGate,
-  Keypair,
   Provable as Provable_,
   Snarky,
 } from '../snarky.js';
-import type { FlexibleProvable } from './circuit_value.js';
+import type { FlexibleProvable, ProvableExtended } from './circuit_value.js';
 import { Context } from './global-context.js';
-import { inCheckedComputation, snarkContext } from './proof_system.js';
+import {
+  inCheckedComputation,
+  inProver,
+  snarkContext,
+} from './proof_system.js';
+import {
+  HashInput,
+  InferJson,
+  InferProvable,
+  InferredProvable,
+} from '../bindings/lib/provable-snarky.js';
 
 // external API
 export { Provable };
 
 // internal API
-export { memoizationContext, memoizeWitness, getBlindingValue };
+export { memoizationContext, memoizeWitness, getBlindingValue, gatesFromJson };
 
 // TODO move type declaration here
 type Provable<T> = Provable_<T>;
@@ -89,6 +98,15 @@ const Provable = {
 
     return value;
   },
+  /**
+   * Creates a {@link Provable} for a generic array.
+   * @example
+   * ```ts
+   * const ProvableArray = Circuit.array(Field, 5);
+   * ```
+   */
+  array: provableArray,
+
   /**
    * Runs code as a prover.
    * @example
@@ -160,18 +178,27 @@ const Provable = {
     );
     return result;
   },
+
   /**
-   * Returns a low-level JSON representation of the `Circuit` from its {@link Keypair}:
-   * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
+   * Checks if the circuit is in prover mode.
    * @example
    * ```ts
-   * const keypair = await Circuit.generateKeypair();
-   * const jsonRepresentation = Circuit.constraintSystemFromKeypair(keypair);
+   * if (Circuit.inProver()) {
+   *   // Prover-specific code
+   * }
    * ```
    */
-  constraintSystemFromKeypair(keypair: Keypair) {
-    return gatesFromJson(keypair.constraintSystemJSON()).gates;
-  },
+  inProver,
+  /**
+   * Checks if the circuit is in checked computation mode.
+   * @example
+   * ```ts
+   * if (Circuit.inCheckedComputation()) {
+   *   // Checked computation-specific code
+   * }
+   * ```
+   */
+  inCheckedComputation,
 };
 
 function gatesFromJson(cs: { gates: JsonGate[]; public_input_size: number }) {
@@ -232,4 +259,91 @@ function getBlindingValue() {
     context.blindingValue = Field.random();
   }
   return context.blindingValue;
+}
+
+// provable array
+
+function provableArray<A extends FlexibleProvable<any>>(
+  elementType: A,
+  length: number
+): InferredProvable<A[]> {
+  type T = InferProvable<A>;
+  type TJson = InferJson<A>;
+  let type = elementType as ProvableExtended<T>;
+  return {
+    /**
+     * Returns the size of this structure in {@link Field} elements.
+     * @returns size of this structure
+     */
+    sizeInFields() {
+      let elementLength = type.sizeInFields();
+      return elementLength * length;
+    },
+    /**
+     * Serializes this structure into {@link Field} elements.
+     * @returns an array of {@link Field} elements
+     */
+    toFields(array: T[]) {
+      return array.map((e) => type.toFields(e)).flat();
+    },
+    /**
+     * Serializes this structure's auxiliary data.
+     * @returns auxiliary data
+     */
+    toAuxiliary(array?) {
+      let array_ = array ?? Array<undefined>(length).fill(undefined);
+      return array_?.map((e) => type.toAuxiliary(e));
+    },
+
+    /**
+     * Deserializes an array of {@link Field} elements into this structure.
+     */
+    fromFields(fields: Field[], aux?: any[]) {
+      let array = [];
+      let size = type.sizeInFields();
+      let n = length;
+      for (let i = 0, offset = 0; i < n; i++, offset += size) {
+        array[i] = type.fromFields(
+          fields.slice(offset, offset + size),
+          aux?.[i]
+        );
+      }
+      return array;
+    },
+    check(array: T[]) {
+      for (let i = 0; i < length; i++) {
+        (type as any).check(array[i]);
+      }
+    },
+    /**
+     * Encodes this structure into a JSON-like object.
+     */
+    toJSON(array) {
+      if (!('toJSON' in type)) {
+        throw Error('circuitArray.toJSON: element type has no toJSON method');
+      }
+      return array.map((v) => type.toJSON(v));
+    },
+
+    /**
+     * Decodes a JSON-like object into this structure.
+     */
+    fromJSON(json) {
+      if (!('fromJSON' in type)) {
+        throw Error(
+          'circuitArray.fromJSON: element type has no fromJSON method'
+        );
+      }
+      return json.map((a) => type.fromJSON(a));
+    },
+    toInput(array) {
+      if (!('toInput' in type)) {
+        throw Error('circuitArray.toInput: element type has no toInput method');
+      }
+      return array.reduce(
+        (curr, value) => HashInput.append(curr, type.toInput(value)),
+        HashInput.empty
+      );
+    },
+  } satisfies ProvableExtended<T[], TJson[]> as any;
 }

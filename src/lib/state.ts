@@ -1,6 +1,5 @@
 import { Field, ProvablePure } from '../snarky.js';
-import { circuitArray, FlexibleProvablePure } from './circuit_value.js';
-import { Circuit } from './circuit.js';
+import { FlexibleProvablePure } from './circuit_value.js';
 import { AccountUpdate, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import * as Mina from './mina.js';
@@ -8,6 +7,7 @@ import { fetchAccount } from './fetch.js';
 import { inCheckedComputation, inProver } from './proof_system.js';
 import { SmartContract } from './zkapp.js';
 import { Account } from './mina/account.js';
+import { Provable } from './provable.js';
 
 // external API
 export { State, state, declareState };
@@ -248,8 +248,8 @@ function createState<T>(): InternalStateType<T> {
       let layout = getLayoutPosition(this._contract);
       let contract = this._contract;
       let inProver_ = inProver();
-      let stateFieldsType = circuitArray(Field, layout.length);
-      let stateAsFields = Circuit.witness(stateFieldsType, () => {
+      let stateFieldsType = Provable.array(Field, layout.length);
+      let stateAsFields = Provable.witness(stateFieldsType, () => {
         let account: Account;
         try {
           account = Mina.getAccount(

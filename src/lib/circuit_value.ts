@@ -44,7 +44,6 @@ export {
   AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,
-  circuitArray,
   toConstant,
   isConstant,
   InferProvable,
@@ -269,97 +268,12 @@ function prop(this: any, target: any, key: string) {
   }
 }
 
-function circuitArray<A extends FlexibleProvable<any>>(
-  elementType: A,
-  length: number
-): InferredProvable<A[]> {
-  type T = InferProvable<A>;
-  type TJson = InferJson<A>;
-  let type = elementType as ProvableExtended<T>;
-  return {
-    /**
-     * Returns the size of this structure in {@link Field} elements.
-     * @returns size of this structure
-     */
-    sizeInFields() {
-      let elementLength = type.sizeInFields();
-      return elementLength * length;
-    },
-    /**
-     * Serializes this structure into {@link Field} elements.
-     * @returns an array of {@link Field} elements
-     */
-    toFields(array: T[]) {
-      return array.map((e) => type.toFields(e)).flat();
-    },
-    /**
-     * Serializes this structure's auxiliary data.
-     * @returns auxiliary data
-     */
-    toAuxiliary(array?) {
-      let array_ = array ?? Array<undefined>(length).fill(undefined);
-      return array_?.map((e) => type.toAuxiliary(e));
-    },
-
-    /**
-     * Deserializes an array of {@link Field} elements into this structure.
-     */
-    fromFields(fields: Field[], aux?: any[]) {
-      let array = [];
-      let size = type.sizeInFields();
-      let n = length;
-      for (let i = 0, offset = 0; i < n; i++, offset += size) {
-        array[i] = type.fromFields(
-          fields.slice(offset, offset + size),
-          aux?.[i]
-        );
-      }
-      return array;
-    },
-    check(array: T[]) {
-      for (let i = 0; i < length; i++) {
-        (type as any).check(array[i]);
-      }
-    },
-    /**
-     * Encodes this structure into a JSON-like object.
-     */
-    toJSON(array) {
-      if (!('toJSON' in type)) {
-        throw Error('circuitArray.toJSON: element type has no toJSON method');
-      }
-      return array.map((v) => type.toJSON(v));
-    },
-
-    /**
-     * Decodes a JSON-like object into this structure.
-     */
-    fromJSON(json) {
-      if (!('fromJSON' in type)) {
-        throw Error(
-          'circuitArray.fromJSON: element type has no fromJSON method'
-        );
-      }
-      return json.map((a) => type.fromJSON(a));
-    },
-    toInput(array) {
-      if (!('toInput' in type)) {
-        throw Error('circuitArray.toInput: element type has no toInput method');
-      }
-      return array.reduce(
-        (curr, value) => HashInput.append(curr, type.toInput(value)),
-        HashInput.empty
-      );
-    },
-  } satisfies ProvableExtended<T[], TJson[]> as any;
-}
-
 function arrayProp<T>(elementType: FlexibleProvable<T>, length: number) {
   return function (target: any, key: string) {
     if (!target.hasOwnProperty('_fields')) {
       target._fields = [];
     }
-    target._fields.push([key, circuitArray(elementType, length)]);
+    target._fields.push([key, Provable.array(elementType, length)]);
   };
 }
 
@@ -374,7 +288,7 @@ function matrixProp<T>(
     }
     target._fields.push([
       key,
-      circuitArray(circuitArray(elementType, nColumns), nRows),
+      Provable.array(Provable.array(elementType, nColumns), nRows),
     ]);
   };
 }
@@ -671,10 +585,6 @@ function isConstant<T>(type: Provable<T>, value: T): boolean {
 }
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
-
-SnarkyCircuit.inCheckedComputation = inCheckedComputation;
-SnarkyCircuit.inProver = inProver;
-SnarkyCircuit.array = circuitArray;
 
 SnarkyCircuit.switch = function <T, A extends FlexibleProvable<T>>(
   mask: Bool[],
