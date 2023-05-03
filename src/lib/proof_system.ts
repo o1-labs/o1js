@@ -6,7 +6,6 @@ import {
   Pickles,
   Circuit,
   Poseidon,
-  Provable,
 } from '../snarky.js';
 import {
   FlexibleProvable,
@@ -16,6 +15,7 @@ import {
   toConstant,
 } from './circuit_value.js';
 import { Context } from './global-context.js';
+import { Provable } from './provable.js';
 
 // public API
 export { Proof, SelfProof, ZkProgram, verify };
@@ -490,7 +490,7 @@ function picklesRuleFromFunction(
       if (arg.type === 'witness') {
         let type = witnessArgs[arg.index];
         finalArgs[i] = argsWithoutPublicInput
-          ? Circuit.witness(type, () => argsWithoutPublicInput![i])
+          ? Provable.witness(type, () => argsWithoutPublicInput![i])
           : emptyWitness(type);
       } else if (arg.type === 'proof') {
         let Proof = proofArgs[arg.index];
@@ -615,7 +615,7 @@ function emptyValue<T>(type: Provable<T>) {
 
 function emptyWitness<T>(type: FlexibleProvable<T>): T;
 function emptyWitness<T>(type: Provable<T>) {
-  return Circuit.witness(type, () => emptyValue(type));
+  return Provable.witness(type, () => emptyValue(type));
 }
 
 function getPublicInputType<T, P extends Subclass<typeof Proof> = typeof Proof>(

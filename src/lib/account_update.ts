@@ -1,11 +1,10 @@
 import {
   cloneCircuitValue,
   FlexibleProvable,
-  memoizationContext,
-  memoizeWitness,
   provable,
   provablePure,
 } from './circuit_value.js';
+import { memoizationContext, memoizeWitness, Provable } from './provable.js';
 import { Field, Bool, Ledger, Circuit, Pickles } from '../snarky.js';
 import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
 import { Types, toJSONEssential } from '../bindings/mina-transaction/types.js';
@@ -1296,7 +1295,7 @@ class AccountUpdate implements Types.AccountUpdate {
       accountUpdate: accountUpdateType,
       result: type as any,
     });
-    return Circuit.witness(combinedType, compute);
+    return Provable.witness(combinedType, compute);
   }
 
   static witnessChildren(
@@ -1569,7 +1568,7 @@ const CallForest = {
     // compute hash outside the circuit if callsType is "Witness"
     // i.e., allowing accountUpdates with arbitrary children
     if (callsType.type === 'Witness') {
-      return Circuit.witness(Field, () => CallForest.hashChildrenBase(update));
+      return Provable.witness(Field, () => CallForest.hashChildrenBase(update));
     }
     let calls = CallForest.hashChildrenBase(update);
     if (callsType.type === 'Equals' && inCheckedComputation()) {
@@ -1800,7 +1799,7 @@ const Authorization = {
   ) {
     body.authorizationKind.isSigned = Bool(false);
     body.authorizationKind.isProved = Bool(true);
-    let hash = Circuit.witness(Field, () => {
+    let hash = Provable.witness(Field, () => {
       let proverData = zkAppProver.getData();
       let isProver = proverData !== undefined;
       assert(

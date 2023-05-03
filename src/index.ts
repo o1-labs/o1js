@@ -65,7 +65,7 @@ export { MerkleMap, MerkleMapWitness } from './lib/merkle_map.js';
 import { ZkProgram } from './lib/proof_system.js';
 import { Callback } from './lib/zkapp.js';
 import { createChildAccountUpdate } from './lib/account_update.js';
-import { memoizeWitness } from './lib/circuit_value.js';
+import { memoizeWitness } from './lib/provable.js';
 export { Experimental };
 
 const Experimental_ = {

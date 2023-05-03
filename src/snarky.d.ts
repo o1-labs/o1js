@@ -756,13 +756,6 @@ type Gate = {
  * The {@link Circuit} API is a low level interface to interact and build circuits with
  */
 declare class Circuit {
-  // this convoluted generic typing is needed to give type inference enough flexibility
-  static _witness<S extends Provable<any>>(ctor: S, f: () => Field[]): Field[];
-  static witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
-    ctor: S,
-    f: () => T
-  ): T;
-
   /**
    * Runs code as a prover.
    */

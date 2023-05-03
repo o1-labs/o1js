@@ -46,9 +46,6 @@ export {
   cloneCircuitValue,
   circuitValueEquals,
   circuitArray,
-  memoizationContext,
-  memoizeWitness,
-  getBlindingValue,
   toConstant,
   isConstant,
   InferProvable,
@@ -703,39 +700,6 @@ SnarkyCircuit.runAndCheck = function (f: () => void) {
 
 SnarkyCircuit.inCheckedComputation = inCheckedComputation;
 SnarkyCircuit.inProver = inProver;
-
-SnarkyCircuit.witness = function <
-  T,
-  S extends FlexibleProvable<T> = FlexibleProvable<T>
->(type: S, compute: () => T): T {
-  let proverValue: T | undefined;
-  let createFields = () => {
-    proverValue = compute();
-    let fields = type.toFields(proverValue);
-    // TODO: enable this check
-    // currently it throws for Scalar.. which seems to be flexible about what length is returned by toFields
-    // if (fields.length !== type.sizeInFields()) {
-    //   throw Error(
-    //     `Invalid witness. Expected ${type.sizeInFields()} field elements, got ${
-    //       fields.length
-    //     }.`
-    //   );
-    // }
-    return fields;
-  };
-  let ctx = snarkContext.get();
-  let fields =
-    inCheckedComputation() && !ctx.inWitnessBlock
-      ? snarkContext.runWith({ ...ctx, inWitnessBlock: true }, () =>
-          SnarkyCircuit._witness(type, createFields)
-        )[1]
-      : createFields();
-  let aux = type.toAuxiliary(proverValue);
-  let value = type.fromFields(fields, aux) as T;
-  if (inCheckedComputation()) type.check(value);
-  return value;
-};
-
 SnarkyCircuit.array = circuitArray;
 
 SnarkyCircuit.switch = function <T, A extends FlexibleProvable<T>>(
@@ -838,44 +802,4 @@ function auxiliary<T>(type: FlexibleProvable<T>, compute: () => any[]) {
   if (inCheckedComputation()) SnarkyCircuit.asProver(() => (aux = compute()));
   else aux = compute();
   return aux ?? type.toAuxiliary();
-}
-
-let memoizationContext = Context.create<{
-  memoized: { fields: Field[]; aux: any[] }[];
-  currentIndex: number;
-  blindingValue: Field;
-}>();
-
-/**
- * Like Circuit.witness, but memoizes the witness during transaction construction
- * for reuse by the prover. This is needed to witness non-deterministic values.
- */
-function memoizeWitness<T>(type: FlexibleProvable<T>, compute: () => T) {
-  return SnarkyCircuit.witness<T>(type as Provable<T>, () => {
-    if (!memoizationContext.has()) return compute();
-    let context = memoizationContext.get();
-    let { memoized, currentIndex } = context;
-    let currentValue = memoized[currentIndex];
-    if (currentValue === undefined) {
-      let value = compute();
-      let fields = type.toFields(value).map((x) => x.toConstant());
-      let aux = type.toAuxiliary(value);
-      currentValue = { fields, aux };
-      memoized[currentIndex] = currentValue;
-    }
-    context.currentIndex += 1;
-    return (type as Provable<T>).fromFields(
-      currentValue.fields,
-      currentValue.aux
-    );
-  });
-}
-
-function getBlindingValue() {
-  if (!memoizationContext.has()) return Field.random();
-  let context = memoizationContext.get();
-  if (context.blindingValue === undefined) {
-    context.blindingValue = Field.random();
-  }
-  return context.blindingValue;
 }

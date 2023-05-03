@@ -6,16 +6,13 @@ import {
   Ledger,
   Pickles,
   Poseidon as Poseidon_,
-  Provable,
   ProvablePure,
 } from '../snarky.js';
-
 import {
   AccountUpdate,
   AccountUpdatesLayout,
   Authorization,
   Body,
-  CallForest,
   Events,
   Permissions,
   Actions,
@@ -33,14 +30,13 @@ import {
   circuitArray,
   cloneCircuitValue,
   FlexibleProvablePure,
-  getBlindingValue,
   InferProvable,
-  memoizationContext,
   provable,
   Struct,
   toConstant,
 } from './circuit_value.js';
 import { Circuit } from './circuit.js';
+import { Provable, getBlindingValue, memoizationContext } from './provable.js';
 import * as Encoding from '../bindings/lib/encoding.js';
 import { Poseidon } from './hash.js';
 import { UInt32, UInt64 } from './int.js';
@@ -199,7 +195,7 @@ function wrapMethod(
                 let accountUpdate = this.self;
 
                 // the blinding value is important because otherwise, putting callData on the transaction would leak information about the private inputs
-                let blindingValue = Circuit.witness(Field, getBlindingValue);
+                let blindingValue = Provable.witness(Field, getBlindingValue);
                 // it's also good if we prove that we use the same blinding value across the method
                 // that's why we pass the variable (not the constant) into a new context
                 let context = memoizationContext() ?? {
@@ -223,7 +219,7 @@ function wrapMethod(
 
                 // TODO: currently commented out, but could come back in some form when we add caller to the public input
                 // // compute `caller` field from `isDelegateCall` and a context determined by the transaction
-                // let callerContext = Circuit.witness(
+                // let callerContext = Provable.witness(
                 //   CallForest.callerContextType,
                 //   () => {
                 //     let { accountUpdate } = zkAppProver.getData();
@@ -322,7 +318,7 @@ function wrapMethod(
                     let arg = methodIntf.allArgs[i];
                     if (arg.type === 'witness') {
                       let type = methodIntf.witnessArgs[arg.index];
-                      return Circuit.witness(type, () => a);
+                      return Provable.witness(type, () => a);
                     }
                     return a;
                   })
@@ -465,7 +461,7 @@ function wrapMethod(
         // overwrite this.self with the witnessed update, so it's this one we access later in the caller method
         innerContext.selfUpdate = accountUpdate;
 
-        // connect accountUpdate to our own. outside Circuit.witness so compile knows the right structure when hashing children
+        // connect accountUpdate to our own. outside Provable.witness so compile knows the right structure when hashing children
         accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
         accountUpdate.parent = parentAccountUpdate;
         // beware: we don't include the callee's children in the caller circuit
@@ -898,7 +894,7 @@ super.init();
     if (this.#_senderState?.transactionId === transactionId) {
       return this.#_senderState.sender;
     } else {
-      let sender = Circuit.witness(PublicKey, () => Mina.sender());
+      let sender = Provable.witness(PublicKey, () => Mina.sender());
       this.#_senderState = { transactionId, sender };
       return sender;
     }
@@ -960,7 +956,7 @@ super.init();
     let accountUpdate =
       updateOrCallback instanceof AccountUpdate
         ? updateOrCallback
-        : Circuit.witness(AccountUpdate, () => updateOrCallback.accountUpdate);
+        : Provable.witness(AccountUpdate, () => updateOrCallback.accountUpdate);
     this.self.approve(accountUpdate, layout);
     return accountUpdate;
   }
@@ -1367,13 +1363,13 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         let actions = i < actionLists.length ? actionLists[i] : [];
         let length = actions.length;
         let lengths = possibleActionsPerTransaction.map((n) =>
-          Circuit.witness(Bool, () => Bool(length === n))
+          Provable.witness(Bool, () => Bool(length === n))
         );
         // create dummy actions for the other possible action lengths,
         // -> because this needs to be a statically-sized computation we have to operate on all of them
         let actionss = possibleActionsPerTransaction.map((n, i) => {
           let type = possibleActionTypes[i];
-          return Circuit.witness(type, () =>
+          return Provable.witness(type, () =>
             length === n ? actions : emptyValue(type)
           );
         });
@@ -1393,7 +1389,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         // also, for each action length, compute the new state and then pick the actual one
         let newStates = actionss.map((actions) => {
           // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
-          let newState = Circuit.witness(stateType, () => state);
+          let newState = Provable.witness(stateType, () => state);
           Circuit.assertEqual(stateType, newState, state);
           // apply actions in reverse order since that's how they were stored at dispatch
           [...actions].reverse().forEach((action) => {
