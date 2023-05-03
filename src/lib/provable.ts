@@ -148,6 +148,8 @@ const Provable = {
     return type.fromFields(fields, aux) as T;
   },
 
+  assertEqual,
+
   /**
    * Creates a {@link Provable} for a generic array.
    * @example
@@ -276,6 +278,46 @@ const Provable = {
   inCheckedComputation,
 };
 
+type ToFieldable = { toFields(): Field[] };
+
+// provable helpers
+
+/**
+ * Asserts that two values are equal.
+ * @example
+ * ```ts
+ * class MyStruct extends Struct({ a: Field, b: Bool }) {};
+ * const a: MyStruct = { a: Field(0), b: Bool(false) };
+ * const b: MyStruct = { a: Field(1), b: Bool(true) };
+ * Circuit.assertEqual(MyStruct, a, b);
+ * ```
+ */
+function assertEqual<T>(type: FlexibleProvable<T>, x: T, y: T): void;
+function assertEqual<T extends ToFieldable>(x: T, y: T): void;
+function assertEqual(typeOrX: any, xOrY: any, yOrUndefined?: any) {
+  if (yOrUndefined === undefined) {
+    return assertEqualInstance(typeOrX, xOrY);
+  } else {
+    return assertEqualStruct(typeOrX, xOrY, yOrUndefined);
+  }
+}
+function assertEqualInstance<T extends ToFieldable>(x: T, y: T) {
+  let xFields = x.toFields();
+  let yFields = y.toFields();
+  if (xFields.length !== yFields.length) {
+    throw Error(
+      `Provable.assertEqual: inputs must contain the same number of field elements, got ${xFields.length} !== ${yFields.length}`
+    );
+  }
+  xFields.forEach((x, i) => x.assertEquals(yFields[i]));
+}
+function assertEqualStruct<T>(type: Provable<T>, x: T, y: T) {
+  let yFields = type.toFields(y);
+  type.toFields(x).forEach((x, i) => x.assertEquals(yFields[i]));
+}
+
+// helpers
+
 function gatesFromJson(cs: { gates: JsonGate[]; public_input_size: number }) {
   let gates: Gate[] = cs.gates.map(({ typ, wires, coeffs: byteCoeffs }) => {
     let coeffs = [];
@@ -287,8 +329,6 @@ function gatesFromJson(cs: { gates: JsonGate[]; public_input_size: number }) {
   });
   return { publicInputSize: cs.public_input_size, gates };
 }
-
-// helpers
 
 function clone<T, S extends FlexibleProvable<T>>(type: S, value: T): T {
   let fields = type.toFields(value);

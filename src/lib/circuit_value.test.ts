@@ -1,6 +1,7 @@
 import {
   Bool,
   Circuit,
+  Provable,
   isReady,
   shutdown,
   Int64,
@@ -41,9 +42,39 @@ describe('circuit', () => {
     ).toThrow(/`mask` must have 0 or 1 true element, found 2/);
   });
 
+  it('Provable.assertEqual', () => {
+    const FieldAndBool = Struct({ x: Field, b: Bool });
+
+    Provable.runAndCheck(() => {
+      let x = Provable.witness(Field, () => Field(1));
+      let b = Provable.witness(Bool, () => Bool(true));
+
+      // positive
+      Provable.assertEqual(b, Bool(true));
+      Provable.assertEqual(
+        FieldAndBool,
+        { x, b },
+        { x: Field(1), b: Bool(true) }
+      );
+
+      //negative
+      expect(() => Provable.assertEqual(b, Bool(false))).toThrow();
+      expect(() =>
+        Provable.assertEqual(
+          FieldAndBool,
+          { x, b },
+          { x: Field(5), b: Bool(true) }
+        )
+      ).toThrow();
+      expect(() => Provable.assertEqual(b, PrivateKey.random() as any)).toThrow(
+        'must contain the same number of field elements'
+      );
+    });
+  });
+
   it('can serialize Struct with array', async () => {
     class MyStruct extends Struct({
-      values: Circuit.array(Field, 2),
+      values: Provable.array(Field, 2),
     }) {}
 
     const original = new MyStruct({ values: [Field(0), Field(1)] });

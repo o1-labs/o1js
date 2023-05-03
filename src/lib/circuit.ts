@@ -102,16 +102,9 @@ class Circuit {
    */
   static array = Provable.array;
   /**
-   * Asserts that two values are equal.
-   * @example
-   * ```ts
-   * class MyStruct extends Struct({ a: Field, b: Bool }) {};
-   * const a: MyStruct = { a: Field(0), b: Bool(false) };
-   * const b: MyStruct = { a: Field(1), b: Bool(true) };
-   * Circuit.assertEqual(MyStruct, a, b);
-   * ```
+   * @deprecated use {@link Provable.assertEqual}
    */
-  static assertEqual = SnarkyCircuit.assertEqual;
+  static assertEqual = Provable.assertEqual;
   /**
    * Checks if two elements are equal.
    * @example
