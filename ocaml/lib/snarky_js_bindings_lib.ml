@@ -35,6 +35,12 @@ let log_and_raise_error_with_message ~exn ~msg =
       in
       raise_error msg
 
+let json_parse (str : Js.js_string Js.t) =
+  Js.Unsafe.(fun_call global ##. JSON##.parse [| inject str |])
+
+let json_stringify value : Js.js_string Js.t =
+  Js.Unsafe.(fun_call global ##. JSON##.stringify [| inject value |])
+
 class type field_class =
   object
     method value : Impl.Field.t Js.prop
@@ -1552,31 +1558,6 @@ module Circuit = struct
     let kp = Impl.Keypair.generate ~prev_challenges:0 cs in
     new%js keypair_constr kp
 
-  let constraint_system (main : unit -> unit) =
-    let cs =
-      Impl.constraint_system ~input_typ:Impl.Typ.unit
-        ~return_typ:Snark_params.Tick.Typ.unit (fun () -> main)
-    in
-    let rows =
-      Kimchi_pasta_constraint_system.Vesta_constraint_system.get_rows_len cs
-    in
-    let digest =
-      Backend.R1CS_constraint_system.digest cs |> Md5.to_hex |> Js.string
-    in
-    let json =
-      Js.Unsafe.(
-        fun_call
-          global ##. JSON##.parse
-          [| inject (Backend.R1CS_constraint_system.to_json cs |> Js.string) |])
-    in
-    object%js
-      val rows = rows
-
-      val digest = digest
-
-      val json = json
-    end
-
   let prove (type w p) (c : (w, p) Circuit_main.t) (priv : w) (pub : p) kp :
       proof_class Js.t =
     let main, input_typ = main_and_input c in
@@ -1593,27 +1574,6 @@ module Circuit = struct
   let circuit = Js.Unsafe.eval_string {js|(function() { return this })|js}
 
   let () =
-    circuit##.runAndCheck :=
-      Js.wrap_callback (fun (f : unit -> unit) ->
-          try
-            Impl.run_and_check_exn (fun () ->
-                f () ;
-                fun () -> () )
-          with exn -> raise_exn exn ) ;
-
-    circuit##.runUnchecked :=
-      Js.wrap_callback (fun (f : unit -> unit) ->
-          try
-            Impl.run_and_check_exn (fun () ->
-                Snarky_backendless.Snark0.set_eval_constraints false ;
-                f () ;
-                Snarky_backendless.Snark0.set_eval_constraints true ;
-                fun () -> () )
-          with exn -> raise_exn exn ) ;
-
-    circuit##.asProver :=
-      Js.wrap_callback (fun (f : (unit -> unit) Js.callback) : unit ->
-          Impl.as_prover (fun () -> Js.Unsafe.fun_call f [||]) ) ;
     circuit##.generateKeypair :=
       Js.wrap_callback (fun (circuit : _ Circuit_main.t) : keypair_class Js.t ->
           generate_keypair circuit ) ;
@@ -1630,7 +1590,6 @@ module Circuit = struct
     circuit##.equal := equal ;
     circuit##.toFields := Js.wrap_callback to_field_elts_magic ;
     Js.Unsafe.set circuit (Js.string "if") if_ ;
-    Js.Unsafe.set circuit (Js.string "_constraintSystem") constraint_system ;
     circuit##.getVerificationKey
     := fun (vk : Verification_key.t) -> new%js verification_key_constr vk
 end
@@ -1715,17 +1674,56 @@ module Snarky = struct
   let typ (size_in_fields : int) = Typ.array ~length:size_in_fields Field.typ
 
   let exists (size_in_fields : int)
-      (compute : (unit -> field_class Js.t Js.js_array Js.t) Js.callback) =
+      (compute : unit -> field_class Js.t Js.js_array Js.t) =
     Impl.exists (typ size_in_fields) ~compute:(fun () ->
-        Js.Unsafe.fun_call compute [||]
-        |> Js.to_array
-        |> Array.map ~f:of_js_field_unchecked )
+        compute () |> Js.to_array |> Array.map ~f:of_js_field_unchecked )
     |> Array.map ~f:to_js_field |> Js.array
+
+  let as_prover = Impl.as_prover
+
+  let run_and_check (f : unit -> unit) =
+    try
+      Impl.run_and_check_exn (fun () ->
+          f () ;
+          fun () -> () )
+    with exn -> raise_exn exn
+
+  let run_unchecked (f : unit -> unit) =
+    try
+      Impl.run_and_check_exn (fun () ->
+          Snarky_backendless.Snark0.set_eval_constraints false ;
+          f () ;
+          Snarky_backendless.Snark0.set_eval_constraints true ;
+          fun () -> () )
+    with exn -> raise_exn exn
+
+  let constraint_system (main : unit -> unit) =
+    let cs =
+      Impl.constraint_system ~input_typ:Impl.Typ.unit ~return_typ:Impl.Typ.unit
+        (fun () -> main)
+    in
+    object%js
+      val rows = Backend.R1CS_constraint_system.get_rows_len cs
+
+      val digest =
+        Backend.R1CS_constraint_system.digest cs |> Md5.to_hex |> Js.string
+
+      val json =
+        Backend.R1CS_constraint_system.to_json cs |> Js.string |> json_parse
+    end
 end
 
 let snarky =
   object%js
     method exists = Snarky.exists
+
+    method asProver = Snarky.as_prover
+
+    method runAndCheck = Snarky.run_and_check
+
+    method runUnchecked = Snarky.run_unchecked
+
+    method constraintSystem = Snarky.constraint_system
   end
 
 (* helpers for pickles_compile *)

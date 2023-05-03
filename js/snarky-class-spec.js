@@ -197,22 +197,6 @@ export default [
     name: 'Circuit',
     props: [
       {
-        name: 'runAndCheck',
-        type: 'function',
-      },
-      {
-        name: 'runUnchecked',
-        type: 'function',
-      },
-      {
-        name: '_constraintSystem',
-        type: 'function',
-      },
-      {
-        name: 'asProver',
-        type: 'function',
-      },
-      {
         name: 'array',
         type: 'function',
       },
@@ -246,6 +230,28 @@ export default [
       },
       {
         name: 'getVerificationKey',
+        type: 'function',
+      },
+    ],
+  },
+  {
+    name: 'Snarky',
+    props: [
+      { name: 'exists', type: 'function' },
+      {
+        name: 'asProver',
+        type: 'function',
+      },
+      {
+        name: 'runAndCheck',
+        type: 'function',
+      },
+      {
+        name: 'runUnchecked',
+        type: 'function',
+      },
+      {
+        name: 'constraintSystem',
         type: 'function',
       },
     ],
@@ -372,10 +378,6 @@ export default [
         type: 'function',
       },
     ],
-  },
-  {
-    name: 'Snarky',
-    props: [{ name: 'exists', type: 'function' }],
   },
   {
     name: 'Ledger',
