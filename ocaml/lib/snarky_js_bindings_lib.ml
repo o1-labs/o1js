@@ -1176,10 +1176,8 @@ let poseidon =
         if Js.to_bool is_checked then
           Snark_params.Group_map.Checked.to_group input
         else
-          let unchecked =
-            Snark_params.Group_map.to_group (to_unchecked input)
-          in
-          (Field.constant @@ fst unchecked, Field.constant @@ snd unchecked)
+          let x, y = Snark_params.Group_map.to_group (to_unchecked input) in
+          (Field.constant @@ x, Field.constant @@ y)
       in
       to_js_group (fst digest) (snd digest)
 
