@@ -65,6 +65,32 @@ declare const Snarky: {
    * witness `sizeInFields` field element variables
    */
   exists(sizeInFields: number, compute: () => Field[]): Field[];
+  /**
+   * Runs code as a prover.
+   */
+  asProver(f: () => void): void;
+  /**
+   * Runs code and checks its correctness.
+   */
+  runAndCheck(f: () => void): void;
+  /**
+   * Runs code in prover mode, without checking correctness.
+   */
+  runUnchecked(f: () => void): void;
+  /**
+   * Returns information about the constraint system in the callback function.
+   */
+  constraintSystem(f: () => void): {
+    rows: number;
+    digest: string;
+    json: { gates: JsonGate[]; public_input_size: number };
+  };
+};
+
+type JsonGate = {
+  typ: string;
+  wires: { row: number; col: number }[];
+  coeffs: number[][];
 };
 
 /**
@@ -756,11 +782,6 @@ type Gate = {
  * The {@link Circuit} API is a low level interface to interact and build circuits with
  */
 declare class Circuit {
-  /**
-   * Runs code as a prover.
-   */
-  static asProver(f: () => void): void;
-
   /**
    * Runs code and checks its correctness.
    */
