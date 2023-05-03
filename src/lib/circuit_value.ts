@@ -3,12 +3,10 @@ import { bytesToBigInt } from '../bindings/crypto/bigint-helpers.js';
 import {
   Circuit as SnarkyCircuit,
   ProvablePure,
-  Provable,
   Keypair,
   Gate,
 } from '../snarky.js';
 import { Field, Bool } from './core.js';
-import { Context } from './global-context.js';
 import {
   inCheckedComputation,
   inProver,
@@ -24,6 +22,7 @@ import {
   InferredProvable,
   IsPure,
 } from '../bindings/lib/provable-snarky.js';
+import { Provable } from './provable.js';
 
 // external API
 export {
@@ -673,15 +672,6 @@ function isConstant<T>(type: Provable<T>, value: T): boolean {
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
 
-let oldAsProver = SnarkyCircuit.asProver;
-SnarkyCircuit.asProver = function (f: () => void) {
-  if (inCheckedComputation()) {
-    oldAsProver(f);
-  } else {
-    f();
-  }
-};
-
 let oldRunUnchecked = SnarkyCircuit.runUnchecked;
 SnarkyCircuit.runUnchecked = function (f: () => void) {
   let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
@@ -722,7 +712,7 @@ SnarkyCircuit.switch = function <T, A extends FlexibleProvable<T>>(
     }
   };
   if (mask.every((b) => b.toField().isConstant())) checkMask();
-  else SnarkyCircuit.asProver(checkMask);
+  else Provable.asProver(checkMask);
   let size = type.sizeInFields();
   let fields = Array(size).fill(Field(0));
   for (let i = 0; i < nValues; i++) {
@@ -759,7 +749,7 @@ SnarkyCircuit.constraintSystem = function <T>(f: () => T) {
 };
 
 SnarkyCircuit.log = function (...args: any) {
-  SnarkyCircuit.asProver(() => {
+  Provable.asProver(() => {
     let prettyArgs = [];
     for (let arg of args) {
       if (arg?.toPretty !== undefined) prettyArgs.push(arg.toPretty());
@@ -799,7 +789,7 @@ type JsonGate = {
 
 function auxiliary<T>(type: FlexibleProvable<T>, compute: () => any[]) {
   let aux;
-  if (inCheckedComputation()) SnarkyCircuit.asProver(() => (aux = compute()));
+  if (inCheckedComputation()) Provable.asProver(() => (aux = compute()));
   else aux = compute();
   return aux ?? type.toAuxiliary();
 }

@@ -69,25 +69,13 @@ class Circuit {
    */
   static witness = Provable.witness;
   /**
-   * Runs code as a prover.
-   * @example
-   * ```ts
-   * Circuit.asProver(() => {
-   *   // Your prover code here
-   * });
-   * ```
+   * @deprecated use {@link Provable.asProver}
    */
-  static asProver = SnarkyCircuit.asProver;
+  static asProver = Provable.asProver;
   /**
-   * Runs provable code quickly, without creating a proof, but still checking whether constraints are satisfied.
-   * @example
-   * ```ts
-   * Circuit.runAndCheck(() => {
-   *   // Your code to check here
-   * });
-   * ```
+   * @deprecated use {@link Provable.runAndCheck}
    */
-  static runAndCheck = SnarkyCircuit.runAndCheck;
+  static runAndCheck = Provable.runAndCheck;
   /**
    * Runs provable code quickly, without creating a proof, and not checking whether constraints are satisfied.
    * @example

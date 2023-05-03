@@ -15,17 +15,17 @@ import {
   Actions,
   Events,
 } from './account_update.js';
-
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue, toConstant } from './circuit_value.js';
-import { Proof, snarkContext, verify } from './proof_system.js';
+import { Proof, verify } from './proof_system.js';
 import { Context } from './global-context.js';
 import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './errors.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { Account } from './mina/account.js';
 import { TransactionCost, TransactionLimits } from './mina/constants.js';
+import { Provable } from './provable.js';
 
 export {
   createTransaction,
@@ -219,7 +219,7 @@ function createTransaction(
         if (fetchMode === 'test') {
           Circuit.runUnchecked(() => {
             f();
-            Circuit.asProver(() => {
+            Provable.asProver(() => {
               let tx = currentTransaction.get();
               tx.accountUpdates = CallForest.map(tx.accountUpdates, (a) =>
                 toConstant(AccountUpdate, a)

@@ -4,7 +4,7 @@
  * - the main interface for types that can be used in provable code
  */
 import { Field, Provable as Provable_, Snarky } from '../snarky.js';
-import { FlexibleProvable } from './circuit_value.js';
+import type { FlexibleProvable } from './circuit_value.js';
 import { Context } from './global-context.js';
 import { inCheckedComputation, snarkContext } from './proof_system.js';
 
@@ -21,13 +21,13 @@ const Provable = {
   /**
    * Create a new witness. A witness, or variable, is a value that is provided as input
    * by the prover. This provides a flexible way to introduce values from outside into the circuit.
-   * However, note that nothing about how the value was created is part of the proof - `Circuit.witness`
+   * However, note that nothing about how the value was created is part of the proof - `Provable.witness`
    * behaves exactly like user input. So, make sure that after receiving the witness you make any assertions
    * that you want to associate with it.
    * @example
    * Example for re-implementing `Field.inv` with the help of `witness`:
    * ```ts
-   * let invX = Circuit.witness(Field, () => {
+   * let invX = Provable.witness(Field, () => {
    *   // compute the inverse of `x` outside the circuit, however you like!
    *   return Field.inv(x));
    * }
@@ -80,6 +80,38 @@ const Provable = {
     type.check(value);
 
     return value;
+  },
+  /**
+   * Runs code as a prover.
+   * @example
+   * ```ts
+   * Provable.asProver(() => {
+   *   // Your prover code here
+   * });
+   * ```
+   */
+  asProver(f: () => void) {
+    if (inCheckedComputation()) {
+      Snarky.asProver(f);
+    } else {
+      f();
+    }
+  },
+
+  /**
+   * Runs provable code quickly, without creating a proof, but still checking whether constraints are satisfied.
+   * @example
+   * ```ts
+   * Provable.runAndCheck(() => {
+   *   // Your code to check here
+   * });
+   * ```
+   */
+  runAndCheck(f: () => void) {
+    let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
+      Snarky.runAndCheck(f)
+    );
+    return result;
   },
 };
 
