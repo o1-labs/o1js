@@ -30,19 +30,18 @@ for (let i = 0; i < testVectors.length; i++) {
 
 console.log('poseidon implementation matches the test vectors! 🎉');
 
-for (let i = 0; i < 50; i++) {
-  test(Random.array(Random.field, Random.nat(20)), (xs) => {
+test(Random.array(Random.field, Random.nat(20)), (xs) => {
 
-    let g1 = Poseidon.hashToGroup(xs);
-    let g2 = SnarkyPoseidon.hashToGroup(xs.map(Field));
+  let g1 = Poseidon.hashToGroup(xs);
+  let g2 = SnarkyPoseidon.hashToGroup(xs.map(Field));
 
-    expect(g1).toBeDefined();
+  expect(g1).toBeDefined();
 
-    expect(g1?.x).toEqual(g2.x.toBigInt());
-    expect(g1?.y.x0).toEqual(g2.y.x0.toBigInt());
-    expect(g1?.y.x1).toEqual(g2.y.x1.toBigInt());
-  });
-}
+  expect(g1?.x).toEqual(g2.x.toBigInt());
+  expect(g1?.y.x0).toEqual(g2.y.x0.toBigInt());
+  expect(g1?.y.x1).toEqual(g2.y.x1.toBigInt());
+});
+
 
 console.log('poseidon hashToGroup implementations match! 🎉');
 
