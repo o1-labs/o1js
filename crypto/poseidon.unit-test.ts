@@ -31,9 +31,7 @@ for (let i = 0; i < testVectors.length; i++) {
 console.log('poseidon implementation matches the test vectors! 🎉');
 
 for (let i = 0; i < 50; i++) {
-  let randomF = Random(Fp.random);
-  test(randomF, randomF, randomF, (x, y, z) => {
-    let xs = [x, y, z];
+  test(Random.array(Random.field, Random.nat(20)), (xs) => {
 
     let g1 = Poseidon.hashToGroup(xs);
     let g2 = SnarkyPoseidon.hashToGroup(xs.map(Field));
