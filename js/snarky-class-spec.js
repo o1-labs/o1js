@@ -378,6 +378,10 @@ export default [
     ],
   },
   {
+    name: 'Snarky',
+    props: [{ name: 'exists', type: 'function' }],
+  },
+  {
     name: 'Ledger',
     props: [
       {

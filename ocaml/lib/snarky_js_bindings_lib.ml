@@ -1629,9 +1629,9 @@ module Circuit = struct
       Js.wrap_callback (fun (circuit : _ Circuit_main.t) : keypair_class Js.t ->
           generate_keypair circuit ) ;
     circuit##.prove :=
-    Js.wrap_callback
-    (fun (circuit : _ Circuit_main.t) w p (kp : keypair_class Js.t) ->
-      prove circuit w p kp##.value ) ;
+      Js.wrap_callback
+        (fun (circuit : _ Circuit_main.t) w p (kp : keypair_class Js.t) ->
+          prove circuit w p kp##.value ) ;
     (circuit##.verify :=
        fun (pub : Js.Unsafe.any Js.js_array Js.t)
            (vk : verification_key_class Js.t) (pi : proof_class Js.t) :
@@ -1721,6 +1721,25 @@ let () =
       :
       bool Js.t
     -> vk##verify pub this )
+
+(* light-weight wrapper around snarky-ml core *)
+
+module Snarky = struct
+  let typ (size_in_fields : int) = Typ.array ~length:size_in_fields Field.typ
+
+  let exists (size_in_fields : int)
+      (compute : (unit -> field_class Js.t Js.js_array Js.t) Js.callback) =
+    Impl.exists (typ size_in_fields) ~compute:(fun () ->
+        Js.Unsafe.fun_call compute [||]
+        |> Js.to_array
+        |> Array.map ~f:of_js_field_unchecked )
+    |> Array.map ~f:to_js_field |> Js.array
+end
+
+let snarky =
+  object%js
+    method exists = Snarky.exists
+  end
 
 (* helpers for pickles_compile *)
 
@@ -3286,6 +3305,7 @@ let export () =
   Js.export "Group" group_class ;
   Js.export "Poseidon" poseidon ;
   Js.export "Circuit" Circuit.circuit ;
+  Js.export "Snarky" snarky ;
   Js.export "Ledger" Ledger.ledger_class ;
   Js.export "Pickles" pickles ;
   Js.export "Test" test
@@ -3301,6 +3321,7 @@ let export_global () =
          ; ("Group", i group_class)
          ; ("Poseidon", i poseidon)
          ; ("Circuit", i Circuit.circuit)
+         ; ("Snarky", i snarky)
          ; ("Ledger", i Ledger.ledger_class)
          ; ("Pickles", i pickles)
          ; ("Test", i test)
