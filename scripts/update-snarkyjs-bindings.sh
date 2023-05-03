@@ -3,12 +3,12 @@
 set -e
 
 SNARKY_JS_PATH="src/lib/snarkyjs"
-DUNE_PATH="$SNARKY_JS_PATH/src/snarkyjs-bindings/ocaml"
+DUNE_PATH="$SNARKY_JS_PATH/src/bindings/ocaml"
 BUILD_PATH="_build/default/$DUNE_PATH"
 DIR_PATH=$(dirname "$0")
-KIMCHI_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/kimchi"
-NODE_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/compiled/node_bindings"
-WEB_BINDINGS="$SNARKY_JS_PATH/src/snarkyjs-bindings/compiled/web_bindings"
+KIMCHI_BINDINGS="$SNARKY_JS_PATH/src/bindings/kimchi"
+NODE_BINDINGS="$SNARKY_JS_PATH/src/bindings/compiled/node_bindings"
+WEB_BINDINGS="$SNARKY_JS_PATH/src/bindings/compiled/web_bindings"
 
 # 1. node build
 
@@ -55,4 +55,4 @@ npm run build:web --prefix="$SNARKY_JS_PATH"
 # 3. update MINA_COMMIT file in snarkyjs
 
 echo "The mina commit used to generate the backends for node and web is
-$(git rev-parse HEAD)" > "$SNARKY_JS_PATH/src/snarkyjs-bindings/MINA_COMMIT"
+$(git rev-parse HEAD)" > "$SNARKY_JS_PATH/src/bindings/MINA_COMMIT"

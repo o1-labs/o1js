@@ -1,0 +1,7 @@
+(rule
+ (targets constants.ts)
+ (mode promote)
+ (action
+  (with-stdout-to
+   constants.ts
+   (run %{exe:../ocaml/snarky_js_constants.exe}))))
