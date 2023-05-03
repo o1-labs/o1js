@@ -1,7 +1,3 @@
-import type {
-  FlexibleProvable,
-  InferredProvable,
-} from './lib/circuit_value.js';
 import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
 export {
   Field,
@@ -811,11 +807,6 @@ declare class Circuit {
    * Verifies a proof using the public input, the proof and the initial {@link Keypair} of the circuit.
    */
   static verify(publicInput: any[], vk: VerificationKey, pi: Proof): boolean;
-
-  /**
-   * Serializes an element into {@link Field} elements.
-   */
-  static toFields<A>(a: A): Field[];
 }
 
 /**

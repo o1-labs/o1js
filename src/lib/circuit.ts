@@ -1,6 +1,5 @@
 import { snarkContext } from './proof_system.js';
 import {
-  Field,
   Keypair,
   ProvablePure,
   SnarkyProof,
