@@ -22,7 +22,12 @@ export {
 };
 
 // internal
-export { Test, Proof as SnarkyProof, VerificationKey as SnarkyVerificationKey };
+export {
+  Snarky,
+  Test,
+  Proof as SnarkyProof,
+  VerificationKey as SnarkyVerificationKey,
+};
 
 /**
  * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
@@ -49,6 +54,18 @@ declare interface ProvablePure<T> extends Provable<T> {
   sizeInFields(): number;
   check: (x: T) => void;
 }
+
+/**
+ * Internal API interface to snarky-ml
+ *
+ * Note for devs: This module is intended to closely mirror snarky-ml's core, low-level APIs.
+ */
+declare const Snarky: {
+  /**
+   * witness `sizeInFields` field element variables
+   */
+  exists(sizeInFields: number, compute: () => Field[]): Field[];
+};
 
 /**
  * An element of a finite field.
