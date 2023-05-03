@@ -217,7 +217,7 @@ function createTransaction(
       if (err !== undefined) err.bootstrap();
       try {
         if (fetchMode === 'test') {
-          Circuit.runUnchecked(() => {
+          Provable.runUnchecked(() => {
             f();
             Provable.asProver(() => {
               let tx = currentTransaction.get();

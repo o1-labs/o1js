@@ -77,35 +77,17 @@ class Circuit {
    */
   static runAndCheck = Provable.runAndCheck;
   /**
-   * Runs provable code quickly, without creating a proof, and not checking whether constraints are satisfied.
-   * @example
-   * ```ts
-   * Circuit.runUnchecked(() => {
-   *   // Your code to run here
-   * });
-   * ```
+   * @deprecated use {@link Provable.runUnchecked}
    */
-  static runUnchecked = SnarkyCircuit.runUnchecked;
+  static runUnchecked = Provable.runUnchecked;
   /**
-   * Returns information about the constraint system in the callback function.
-   * @example
-   * ```ts
-   * const result = Circuit.constraintSystem(circuit);
-   * console.log(result);
-   * ```
+   * @deprecated use {@link Provable.constraintSystem}
    */
-  static constraintSystem = SnarkyCircuit.constraintSystem;
+  static constraintSystem = Provable.constraintSystem;
   /**
-   * Returns a low-level JSON representation of the `Circuit` from its {@link Keypair}:
-   * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
-   * @example
-   * ```ts
-   * const keypair = await Circuit.generateKeypair();
-   * const jsonRepresentation = Circuit.constraintSystemFromKeypair(keypair);
-   * ```
+   * @deprecated use {@link Provable.constraintSystemFromKeypair}
    */
-  static constraintSystemFromKeypair =
-    SnarkyCircuit.constraintSystemFromKeypair;
+  static constraintSystemFromKeypair = Provable.constraintSystemFromKeypair;
   /**
    * Creates a {@link Provable} for a generic array.
    * @example

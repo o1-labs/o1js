@@ -27,6 +27,7 @@ export {
   Test,
   Proof as SnarkyProof,
   VerificationKey as SnarkyVerificationKey,
+  JsonGate,
 };
 
 /**
@@ -783,33 +784,6 @@ type Gate = {
  */
 declare class Circuit {
   /**
-   * Runs code and checks its correctness.
-   */
-  static runAndCheck(f: () => void): void;
-
-  /**
-   * Runs code in prover mode, without checking correctness.
-   */
-  static runUnchecked(f: () => void): void;
-
-  /**
-   * Returns information about the constraint system in the callback function.
-   */
-  static constraintSystem<T>(f: () => T): {
-    rows: number;
-    digest: string;
-    result: T;
-    gates: Gate[];
-    publicInputSize: number;
-  };
-
-  /**
-   * Returns a low-level JSON representation of the `Circuit` from its {@link Keypair}:
-   * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
-   */
-  static constraintSystemFromKeypair(keypair: Keypair): Gate[];
-
-  /**
    * Creates a {@link Provable} for a generic array.
    */
   static array<A extends FlexibleProvable<any>>(
@@ -1157,6 +1131,11 @@ declare class VerificationKey {}
  */
 declare class Keypair {
   verificationKey(): VerificationKey;
+  /**
+   * Returns a low-level JSON representation of the `Circuit`:
+   * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
+   */
+  constraintSystemJSON(): { gates: JsonGate[]; public_input_size: number };
 }
 
 /**

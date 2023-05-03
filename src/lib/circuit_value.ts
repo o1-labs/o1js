@@ -672,22 +672,6 @@ function isConstant<T>(type: Provable<T>, value: T): boolean {
 
 // TODO: move `Circuit` to JS entirely, this patching harms code discoverability
 
-let oldRunUnchecked = SnarkyCircuit.runUnchecked;
-SnarkyCircuit.runUnchecked = function (f: () => void) {
-  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
-    oldRunUnchecked(f)
-  );
-  return result;
-};
-
-let oldRunAndCheck = SnarkyCircuit.runAndCheck;
-SnarkyCircuit.runAndCheck = function (f: () => void) {
-  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
-    oldRunAndCheck(f)
-  );
-  return result;
-};
-
 SnarkyCircuit.inCheckedComputation = inCheckedComputation;
 SnarkyCircuit.inProver = inProver;
 SnarkyCircuit.array = circuitArray;
@@ -731,23 +715,6 @@ SnarkyCircuit.switch = function <T, A extends FlexibleProvable<T>>(
   return type.fromFields(fields, aux) as T;
 };
 
-SnarkyCircuit.constraintSystem = function <T>(f: () => T) {
-  let [, result] = snarkContext.runWith(
-    { inAnalyze: true, inCheckedComputation: true },
-    () => {
-      let result: T;
-      let { rows, digest, json } = (SnarkyCircuit as any)._constraintSystem(
-        () => {
-          result = f();
-        }
-      );
-      let { gates, publicInputSize } = gatesFromJson(json);
-      return { rows, digest, result: result!, gates, publicInputSize };
-    }
-  );
-  return result;
-};
-
 SnarkyCircuit.log = function (...args: any) {
   Provable.asProver(() => {
     let prettyArgs = [];
@@ -763,28 +730,6 @@ SnarkyCircuit.log = function (...args: any) {
     }
     console.log(...prettyArgs);
   });
-};
-
-SnarkyCircuit.constraintSystemFromKeypair = function (keypair: Keypair) {
-  return gatesFromJson(JSON.parse((keypair as any)._constraintSystemJSON()))
-    .gates;
-};
-
-function gatesFromJson(cs: { gates: JsonGate[]; public_input_size: number }) {
-  let gates: Gate[] = cs.gates.map(({ typ, wires, coeffs: byteCoeffs }) => {
-    let coeffs = [];
-    for (let coefficient of byteCoeffs) {
-      let arr = new Uint8Array(coefficient);
-      coeffs.push(bytesToBigInt(arr).toString());
-    }
-    return { type: typ, wires, coeffs };
-  });
-  return { publicInputSize: cs.public_input_size, gates };
-}
-type JsonGate = {
-  typ: string;
-  wires: { row: number; col: number }[];
-  coeffs: number[][];
 };
 
 function auxiliary<T>(type: FlexibleProvable<T>, compute: () => any[]) {

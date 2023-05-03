@@ -3,7 +3,15 @@
  * - a namespace with tools for writing provable code
  * - the main interface for types that can be used in provable code
  */
-import { Field, Provable as Provable_, Snarky } from '../snarky.js';
+import { bytesToBigInt } from '../bindings/crypto/bigint-helpers.js';
+import {
+  Field,
+  Gate,
+  JsonGate,
+  Keypair,
+  Provable as Provable_,
+  Snarky,
+} from '../snarky.js';
 import type { FlexibleProvable } from './circuit_value.js';
 import { Context } from './global-context.js';
 import { inCheckedComputation, snarkContext } from './proof_system.js';
@@ -113,7 +121,70 @@ const Provable = {
     );
     return result;
   },
+
+  /**
+   * Runs provable code quickly, without creating a proof, and not checking whether constraints are satisfied.
+   * @example
+   * ```ts
+   * Provable.runUnchecked(() => {
+   *   // Your code to run here
+   * });
+   * ```
+   */
+  runUnchecked(f: () => void) {
+    let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
+      Snarky.runUnchecked(f)
+    );
+    return result;
+  },
+
+  /**
+   * Returns information about the constraints created by the callback function.
+   * @example
+   * ```ts
+   * const result = Provable.constraintSystem(circuit);
+   * console.log(result);
+   * ```
+   */
+  constraintSystem<T>(f: () => T) {
+    let [, result] = snarkContext.runWith(
+      { inAnalyze: true, inCheckedComputation: true },
+      () => {
+        let result: T;
+        let { rows, digest, json } = Snarky.constraintSystem(() => {
+          result = f();
+        });
+        let { gates, publicInputSize } = gatesFromJson(json);
+        return { rows, digest, result: result! as T, gates, publicInputSize };
+      }
+    );
+    return result;
+  },
+  /**
+   * Returns a low-level JSON representation of the `Circuit` from its {@link Keypair}:
+   * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
+   * @example
+   * ```ts
+   * const keypair = await Circuit.generateKeypair();
+   * const jsonRepresentation = Circuit.constraintSystemFromKeypair(keypair);
+   * ```
+   */
+  constraintSystemFromKeypair(keypair: Keypair) {
+    return gatesFromJson(keypair.constraintSystemJSON()).gates;
+  },
 };
+
+function gatesFromJson(cs: { gates: JsonGate[]; public_input_size: number }) {
+  let gates: Gate[] = cs.gates.map(({ typ, wires, coeffs: byteCoeffs }) => {
+    let coeffs = [];
+    for (let coefficient of byteCoeffs) {
+      let arr = new Uint8Array(coefficient);
+      coeffs.push(bytesToBigInt(arr).toString());
+    }
+    return { type: typ, wires, coeffs };
+  });
+  return { publicInputSize: cs.public_input_size, gates };
+}
 
 // helpers
 
