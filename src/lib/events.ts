@@ -1,6 +1,9 @@
-import { prefixes } from '../js_crypto/constants.js';
-import { prefixToField } from '../provable/binable.js';
-import { GenericField, GenericProvableExtended } from '../provable/generic.js';
+import { prefixes } from '../bindings/crypto/constants.js';
+import { prefixToField } from '../bindings/lib/binable.js';
+import {
+  GenericField,
+  GenericProvableExtended,
+} from '../bindings/lib/generic.js';
 
 export { createEvents, dataAsHash };
 

@@ -2,7 +2,7 @@ import type {
   FlexibleProvable,
   InferredProvable,
 } from './lib/circuit_value.js';
-import type { Account as JsonAccount } from './provable/gen/transaction-json.js';
+import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
 export {
   Field,
   Bool,

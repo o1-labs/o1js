@@ -4,9 +4,9 @@ import { UInt32, UInt64 } from './int.js';
 import { Actions, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';
 import { NetworkValue } from './precondition.js';
-import { Types } from '../provable/types.js';
+import { Types } from '../bindings/mina-transaction/types.js';
 import { ActionStates } from './mina.js';
-import * as Encoding from './encoding.js';
+import { LedgerHash, EpochSeed, StateHash } from './base58-encodings.js';
 import {
   Account,
   accountQuery,
@@ -585,7 +585,7 @@ function parseFetchedBlock({
   },
 }: FetchedBlock): NetworkValue {
   return {
-    snarkedLedgerHash: Encoding.LedgerHash.fromBase58(snarkedLedgerHash),
+    snarkedLedgerHash: LedgerHash.fromBase58(snarkedLedgerHash),
     // TODO: use date or utcDate?
     blockchainLength: UInt32.from(blockHeight),
     minWindowDensity: UInt32.from(minWindowDensity),
@@ -605,12 +605,12 @@ function parseEpochData({
 }: FetchedBlock['protocolState']['consensusState']['nextEpochData']): NetworkValue['nextEpochData'] {
   return {
     ledger: {
-      hash: Encoding.LedgerHash.fromBase58(hash),
+      hash: LedgerHash.fromBase58(hash),
       totalCurrency: UInt64.from(totalCurrency),
     },
-    seed: Encoding.EpochSeed.fromBase58(seed),
-    startCheckpoint: Encoding.StateHash.fromBase58(startCheckpoint),
-    lockCheckpoint: Encoding.StateHash.fromBase58(lockCheckpoint),
+    seed: EpochSeed.fromBase58(seed),
+    startCheckpoint: StateHash.fromBase58(startCheckpoint),
+    lockCheckpoint: StateHash.fromBase58(lockCheckpoint),
     epochLength: UInt32.from(epochLength),
   };
 }

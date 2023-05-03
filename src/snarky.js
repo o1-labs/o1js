@@ -1,6 +1,6 @@
-import { getSnarky, withThreadPool } from './snarkyjs-bindings/js/wrapper.js';
-import snarkySpec from './snarkyjs-bindings/js/snarky-class-spec.js';
-import { proxyClasses } from './snarkyjs-bindings/js/proxy.js';
+import { getSnarky, withThreadPool } from './bindings/js/wrapper.js';
+import snarkySpec from './bindings/js/snarky-class-spec.js';
+import { proxyClasses } from './bindings/js/proxy.js';
 
 export {
   Field,

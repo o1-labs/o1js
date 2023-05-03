@@ -9,8 +9,8 @@ import {
   signLegacy,
   verifyLegacy,
 } from './signature.js';
-import { Json } from '../../provable/gen/transaction-bigint.js';
-import { bytesToBits, stringToBytes } from '../../provable/binable.js';
+import { Json } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
+import { bytesToBits, stringToBytes } from '../../bindings/lib/binable.js';
 
 export {
   signPayment,

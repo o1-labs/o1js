@@ -1,12 +1,15 @@
-import { Types } from '../../provable/types.js';
+import { Types } from '../../bindings/mina-transaction/types.js';
 import { Bool, Field } from '../../snarky.js';
 import { Permissions } from '../account_update.js';
 import { UInt32, UInt64 } from '../int.js';
 import { PublicKey } from '../signature.js';
-import * as Encoding from '../encoding.js';
-import { genericLayoutFold } from '../../provable/from-layout.js';
-import { customTypes, TypeMap } from '../../provable/gen/transaction.js';
-import { jsLayout } from '../../provable/gen/js-layout.js';
+import { TokenId, ReceiptChainHash } from '../base58-encodings.js';
+import { genericLayoutFold } from '../../bindings/lib/from-layout.js';
+import {
+  customTypes,
+  TypeMap,
+} from '../../bindings/mina-transaction/gen/transaction.js';
+import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 
 export { FetchedAccount, Account, PartialAccount };
 export { accountQuery, parseFetchedAccount, fillPartialAccount };
@@ -132,13 +135,12 @@ function parseFetchedAccount({
     provedState;
   let partialAccount: PartialAccount = {
     publicKey: PublicKey.fromBase58(publicKey),
-    tokenId: Encoding.TokenId.fromBase58(token),
+    tokenId: TokenId.fromBase58(token),
     tokenSymbol: tokenSymbol ?? undefined,
     balance: balance && UInt64.from(balance.total),
     nonce: UInt32.from(nonce),
     receiptChainHash:
-      (receiptChainHash &&
-        Encoding.ReceiptChainHash.fromBase58(receiptChainHash)) ||
+      (receiptChainHash && ReceiptChainHash.fromBase58(receiptChainHash)) ||
       undefined,
     delegate:
       (delegateAccount && PublicKey.fromBase58(delegateAccount.publicKey)) ??

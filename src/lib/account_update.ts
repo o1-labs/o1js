@@ -7,8 +7,8 @@ import {
   provablePure,
 } from './circuit_value.js';
 import { Field, Bool, Ledger, Circuit, Pickles } from '../snarky.js';
-import { jsLayout } from '../provable/gen/js-layout.js';
-import { Types, toJSONEssential } from '../provable/types.js';
+import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
+import { Types, toJSONEssential } from '../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
@@ -21,10 +21,13 @@ import {
   Prover,
 } from './proof_system.js';
 import { Memo } from '../mina-signer/src/memo.js';
-import { Events, Actions } from '../provable/transaction-leaves.js';
-import * as Encoding from './encoding.js';
+import {
+  Events,
+  Actions,
+} from '../bindings/mina-transaction/transaction-leaves.js';
+import { TokenId as Base58TokenId } from './base58-encodings.js';
 import { hashWithPrefix, packToFields } from './hash.js';
-import { prefixes } from '../js_crypto/constants.js';
+import { prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
 import { assert } from './errors.js';
 
@@ -597,7 +600,7 @@ type LazyProof = {
 
 const TokenId = {
   ...Types.TokenId,
-  ...Encoding.TokenId,
+  ...Base58TokenId,
   get default() {
     return Field(1);
   },

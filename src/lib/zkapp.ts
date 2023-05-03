@@ -1,4 +1,4 @@
-import { Types } from '../provable/types.js';
+import { Types } from '../bindings/mina-transaction/types.js';
 import {
   Bool,
   Field,
@@ -41,7 +41,7 @@ import {
   toConstant,
 } from './circuit_value.js';
 import { Circuit } from './circuit.js';
-import * as Encoding from './encoding.js';
+import * as Encoding from '../bindings/lib/encoding.js';
 import { Poseidon } from './hash.js';
 import { UInt32, UInt64 } from './int.js';
 import * as Mina from './mina.js';
