@@ -27,6 +27,11 @@ export { Provable };
 export { memoizationContext, memoizeWitness, getBlindingValue, gatesFromJson };
 
 // TODO move type declaration here
+/**
+ * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
+ *
+ * You will find this as the required input type in a few places in snarkyjs. One convenient way to create a `Provable<T>` is using `Struct`.
+ */
 type Provable<T> = Provable_<T>;
 
 const Provable = {
