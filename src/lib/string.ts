@@ -1,5 +1,6 @@
 import { Bool, Field } from '../snarky.js';
-import { Circuit, arrayProp, CircuitValue, prop } from './circuit_value.js';
+import { arrayProp, CircuitValue, prop } from './circuit_value.js';
+import { Circuit } from './circuit.js';
 import { Poseidon } from './hash.js';
 
 export { Character, CircuitString };

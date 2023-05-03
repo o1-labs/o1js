@@ -20,8 +20,8 @@ import {
   Field,
   Json,
   ZkappCommand,
-} from '../../provable/gen/transaction-bigint.js';
-import * as TypesSnarky from '../../provable/gen/transaction.js';
+} from '../../bindings/mina-transaction/gen/transaction-bigint.js';
+import * as TypesSnarky from '../../bindings/mina-transaction/gen/transaction.js';
 import {
   accountUpdateFromFeePayer,
   accountUpdateHash,

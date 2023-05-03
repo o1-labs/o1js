@@ -9,7 +9,7 @@ import glob from 'glob';
 export { buildWeb };
 
 const entry = './src/index.ts';
-const target = 'es2021';
+const target = 'es2022';
 
 let nodePath = path.resolve(process.argv[1]);
 let modulePath = path.resolve(fileURLToPath(import.meta.url));
@@ -26,12 +26,11 @@ async function buildWeb({ production }) {
 
   // prepare plonk_wasm.js with bundled wasm in function-wrapped form
   let bindings = await readFile(
-    './src/snarkyjs-bindings/compiled/web_bindings/plonk_wasm.js',
+    './src/bindings/compiled/web_bindings/plonk_wasm.js',
     'utf8'
   );
   bindings = rewriteWasmBindings(bindings);
-  let tmpBindingsPath =
-    'src/snarkyjs-bindings/compiled/web_bindings/plonk_wasm.tmp.js';
+  let tmpBindingsPath = 'src/bindings/compiled/web_bindings/plonk_wasm.tmp.js';
   await writeFile(tmpBindingsPath, bindings);
   await esbuild.build({
     entryPoints: [tmpBindingsPath],
@@ -51,10 +50,10 @@ async function buildWeb({ production }) {
 
   // copy over pure js files
   let copyPromise = copy({
-    './src/snarkyjs-bindings/compiled/web_bindings/':
-      './dist/web/web_bindings/',
+    './src/bindings/compiled/web_bindings/': './dist/web/web_bindings/',
     './src/snarky.d.ts': './dist/web/snarky.d.ts',
-    './src/snarky/wrapper.web.js': './dist/web/snarky/wrapper.js',
+    './src/bindings/js/wrapper.web.js': './dist/web/bindings/js/wrapper.js',
+    './src/bindings/js/web/': './dist/web/bindings/js/web/',
   });
 
   await Promise.all([tscPromise, copyPromise]);
@@ -128,14 +127,10 @@ function execPromise(cmd) {
 function rewriteWasmBindings(src) {
   src = src
     .replace("new URL('plonk_wasm_bg.wasm', import.meta.url)", 'wasmCode')
-    .replace('import.meta.url', '"/"')
-    .replace(
-      "import { startWorkers } from './snippets/wasm-bindgen-rayon-7afa899f36665473/src/workerHelpers.no-bundler.js';",
-      `import wasmCode from './plonk_wasm_bg.wasm';
-let startWorkers;
-`
-    );
-  return src;
+    .replace('import.meta.url', '"/"');
+  return `import wasmCode from './plonk_wasm_bg.wasm';
+  let startWorkers, terminateWorkers;  
+${src}`;
 }
 function rewriteBundledWasmBindings(src) {
   let i = src.indexOf('export {');
@@ -147,12 +142,13 @@ function rewriteBundledWasmBindings(src) {
   src = src.slice(0, i) + exportSlice;
 
   src = src.replace('var startWorkers;\n', '');
-  return `import {startWorkers} from './workerHelpers.js'
+  src = src.replace('var terminateWorkers;\n', '');
+  return `import { startWorkers, terminateWorkers } from '../bindings/js/web/worker-helpers.js'
 export {plonkWasm as default};
 function plonkWasm() {
   ${src}
 }
-plonkWasm.deps = [startWorkers]`;
+plonkWasm.deps = [startWorkers, terminateWorkers]`;
 }
 
 function wasmPlugin() {

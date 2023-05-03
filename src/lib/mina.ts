@@ -23,8 +23,9 @@ import { Proof, snarkContext, verify } from './proof_system.js';
 import { Context } from './global-context.js';
 import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './errors.js';
-import { Types } from '../provable/types.js';
+import { Types } from '../bindings/mina-transaction/types.js';
 import { Account } from './mina/account.js';
+import { TransactionCost, TransactionLimits } from './mina/constants.js';
 
 export {
   createTransaction,
@@ -47,6 +48,7 @@ export {
   accountCreationFee,
   sendTransaction,
   fetchEvents,
+  fetchActions,
   getActions,
   FeePayerSpec,
   ActionStates,
@@ -342,6 +344,11 @@ interface Mina {
     tokenId?: Field,
     filterOptions?: Fetch.EventActionFilterOptions
   ) => ReturnType<typeof Fetch.fetchEvents>;
+  fetchActions: (
+    publicKey: PublicKey,
+    actionStates?: ActionStates,
+    tokenId?: Field
+  ) => ReturnType<typeof Fetch.fetchActions>;
   getActions: (
     publicKey: PublicKey,
     actionStates?: ActionStates,
@@ -387,7 +394,10 @@ function LocalBlockchain({
   }
 
   const events: Record<string, any> = {};
-  const actions: Record<string, any> = {};
+  const actions: Record<
+    string,
+    Record<string, { actions: string[][]; hash: string }[]>
+  > = {};
 
   return {
     proofsEnabled,
@@ -429,8 +439,7 @@ function LocalBlockchain({
         JSON.stringify(ZkappCommand.toJSON(txn.transaction))
       );
 
-      if (enforceTransactionLimits)
-        verifyTransactionLimits(txn.transaction.accountUpdates);
+      if (enforceTransactionLimits) verifyTransactionLimits(txn.transaction);
 
       for (const update of txn.transaction.accountUpdates) {
         let accountJson = ledger.getAccount(
@@ -470,17 +479,14 @@ function LocalBlockchain({
 
       // fetches all events from the transaction and stores them
       // events are identified and associated with a publicKey and tokenId
-      zkappCommandJson.accountUpdates.forEach((p) => {
-        let addr = p.body.publicKey;
-        let tokenId = p.body.tokenId;
-        if (events[addr] === undefined) {
-          events[addr] = {};
-        }
-        if (p.body.events.length > 0) {
-          if (events[addr][tokenId] === undefined) {
-            events[addr][tokenId] = [];
-          }
-          let updatedEvents = p.body.events.map((data) => {
+      txn.transaction.accountUpdates.forEach((p, i) => {
+        let pJson = zkappCommandJson.accountUpdates[i];
+        let addr = pJson.body.publicKey;
+        let tokenId = pJson.body.tokenId;
+        events[addr] ??= {};
+        if (p.body.events.data.length > 0) {
+          events[addr][tokenId] ??= [];
+          let updatedEvents = p.body.events.data.map((data) => {
             return {
               data,
               transactionInfo: {
@@ -504,37 +510,26 @@ function LocalBlockchain({
 
         // actions/sequencing events
 
-        // gets the index of the most up to date sequence state from our sequence list
-        let n = actions[addr]?.[tokenId]?.length ?? 1;
-
-        // most recent sequence state
-        let actionState = actions?.[addr]?.[tokenId]?.[n - 1]?.hash;
-
+        // most recent action state
+        let storedActions = actions[addr]?.[tokenId];
+        let latestActionState_ =
+          storedActions?.[storedActions.length - 1]?.hash;
         // if there exists no hash, this means we initialize our latest hash with the empty state
-        let latestActionsHash =
-          actionState === undefined
-            ? Actions.emptyActionState()
-            : Ledger.fieldOfBase58(actionState);
+        let latestActionState =
+          latestActionState_ !== undefined
+            ? Field(latestActionState_)
+            : Actions.emptyActionState();
 
-        let actionList = p.body.actions;
-        let eventsHash = Actions.hash(
-          actionList.map((e) => e.map((f) => Field(f)))
-        );
-
-        if (actions[addr] === undefined) {
-          actions[addr] = {};
-        }
-        if (p.body.actions.length > 0) {
-          latestActionsHash = Actions.updateSequenceState(
-            latestActionsHash,
-            eventsHash
+        actions[addr] ??= {};
+        if (p.body.actions.data.length > 0) {
+          let newActionState = Actions.updateSequenceState(
+            latestActionState,
+            p.body.actions.hash
           );
-          if (actions[addr][tokenId] === undefined) {
-            actions[addr][tokenId] = [];
-          }
+          actions[addr][tokenId] ??= [];
           actions[addr][tokenId].push({
-            actions: actionList,
-            hash: Ledger.fieldToBase58(latestActionsHash),
+            actions: pJson.body.actions,
+            hash: newActionState.toString(),
           });
         }
       });
@@ -584,42 +579,43 @@ function LocalBlockchain({
     async fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       return events?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
     },
+    async fetchActions(
+      publicKey: PublicKey,
+      actionStates?: ActionStates,
+      tokenId: Field = TokenId.default
+    ) {
+      return this.getActions(publicKey, actionStates, tokenId);
+    },
     getActions(
       publicKey: PublicKey,
       actionStates?: ActionStates,
       tokenId: Field = TokenId.default
     ): { hash: string; actions: string[][] }[] {
-      let currentActions: { hash: string; actions: string[][] }[] =
-        actions?.[publicKey.toBase58()]?.[Ledger.fieldToBase58(tokenId)] ?? [];
+      let currentActions =
+        actions?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
       let { fromActionState, endActionState } = actionStates ?? {};
 
-      fromActionState = fromActionState
-        ?.equals(Actions.emptyActionState())
-        .toBoolean()
+      let emptyState = Actions.emptyActionState();
+      if (endActionState?.equals(emptyState).toBoolean()) return [];
+
+      let start = fromActionState?.equals(emptyState).toBoolean()
         ? undefined
-        : fromActionState;
+        : fromActionState?.toString();
+      let end = endActionState?.toString();
 
-      // used to determine start and end values in string
-      let start: string | undefined = fromActionState
-        ? Ledger.fieldToBase58(fromActionState)
-        : undefined;
-      let end: string | undefined = endActionState
-        ? Ledger.fieldToBase58(endActionState)
-        : undefined;
-
-      let startIndex = start
-        ? currentActions.findIndex((e) => e.hash === start) + 1
-        : 0;
-      let endIndex = end
-        ? currentActions.findIndex((e) => e.hash === end) + 1
-        : undefined;
-
-      return (
-        currentActions?.slice(
-          startIndex,
-          endIndex === 0 ? undefined : endIndex
-        ) ?? []
-      );
+      let startIndex = 0;
+      if (start) {
+        let i = currentActions.findIndex((e) => e.hash === start);
+        if (i === -1) throw Error(`getActions: fromActionState not found.`);
+        startIndex = i + 1;
+      }
+      let endIndex: number | undefined;
+      if (end) {
+        let i = currentActions.findIndex((e) => e.hash === end);
+        if (i === -1) throw Error(`getActions: endActionState not found.`);
+        endIndex = i + 1;
+      }
+      return currentActions.slice(startIndex, endIndex);
     },
     addAccount,
     /**
@@ -629,7 +625,6 @@ function LocalBlockchain({
     testAccounts,
     setGlobalSlot(slot: UInt32 | number) {
       networkState.globalSlotSinceGenesis = UInt32.from(slot);
-      let difference = networkState.globalSlotSinceGenesis.sub(slot);
     },
     incrementGlobalSlot(increment: UInt32 | number) {
       networkState.globalSlotSinceGenesis =
@@ -653,20 +648,42 @@ LocalBlockchain satisfies (...args: any) => Mina;
  * Represents the Mina blockchain running on a real network
  */
 function Network(graphqlEndpoint: string): Mina;
-function Network(graphqlEndpoints: { mina: string; archive: string }): Mina;
-function Network(input: { mina: string; archive: string } | string): Mina {
+function Network(graphqlEndpoints: {
+  mina: string | string[];
+  archive: string | string[];
+}): Mina;
+function Network(
+  input: { mina: string | string[]; archive: string | string[] } | string
+): Mina {
   let accountCreationFee = UInt64.from(defaultAccountCreationFee);
-  let graphqlEndpoint: string;
+  let minaGraphqlEndpoint: string;
   let archiveEndpoint: string;
 
   if (input && typeof input === 'string') {
-    graphqlEndpoint = input;
-    Fetch.setGraphqlEndpoint(graphqlEndpoint);
+    minaGraphqlEndpoint = input;
+    Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
   } else if (input && typeof input === 'object') {
-    graphqlEndpoint = input.mina;
-    archiveEndpoint = input.archive;
-    Fetch.setGraphqlEndpoint(graphqlEndpoint);
-    Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+    if (!input.mina || !input.archive)
+      throw new Error(
+        "Network: malformed input. Please provide an object with 'mina' and 'archive' endpoints."
+      );
+    if (Array.isArray(input.mina) && input.mina.length !== 0) {
+      minaGraphqlEndpoint = input.mina[0];
+      Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
+      Fetch.setMinaGraphqlFallbackEndpoints(input.mina.slice(1));
+    } else if (typeof input.mina === 'string') {
+      minaGraphqlEndpoint = input.mina;
+      Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
+    }
+
+    if (Array.isArray(input.archive) && input.archive.length !== 0) {
+      archiveEndpoint = input.archive[0];
+      Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+      Fetch.setArchiveGraphqlFallbackEndpoints(input.archive.slice(1));
+    } else if (typeof input.archive === 'string') {
+      archiveEndpoint = input.archive;
+      Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+    }
   } else {
     throw new Error(
       "Network: malformed input. Please provide a string or an object with 'mina' and 'archive' endpoints."
@@ -700,17 +717,21 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         !currentTransaction.has() ||
         currentTransaction.get().fetchMode === 'cached'
       ) {
-        return !!Fetch.getCachedAccount(publicKey, tokenId, graphqlEndpoint);
+        return !!Fetch.getCachedAccount(
+          publicKey,
+          tokenId,
+          minaGraphqlEndpoint
+        );
       }
       return false;
     },
     getAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       if (currentTransaction()?.fetchMode === 'test') {
-        Fetch.markAccountToBeFetched(publicKey, tokenId, graphqlEndpoint);
+        Fetch.markAccountToBeFetched(publicKey, tokenId, minaGraphqlEndpoint);
         let account = Fetch.getCachedAccount(
           publicKey,
           tokenId,
-          graphqlEndpoint
+          minaGraphqlEndpoint
         );
         return account ?? dummyAccount(publicKey);
       }
@@ -721,7 +742,7 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         let account = Fetch.getCachedAccount(
           publicKey,
           tokenId,
-          graphqlEndpoint
+          minaGraphqlEndpoint
         );
         if (account !== undefined) return account;
       }
@@ -729,47 +750,45 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         `${reportGetAccountError(
           publicKey.toBase58(),
           TokenId.toBase58(tokenId)
-        )}\nGraphql endpoint: ${graphqlEndpoint}`
+        )}\nGraphql endpoint: ${minaGraphqlEndpoint}`
       );
     },
     getNetworkState() {
       if (currentTransaction()?.fetchMode === 'test') {
-        Fetch.markNetworkToBeFetched(graphqlEndpoint);
-        let network = Fetch.getCachedNetwork(graphqlEndpoint);
+        Fetch.markNetworkToBeFetched(minaGraphqlEndpoint);
+        let network = Fetch.getCachedNetwork(minaGraphqlEndpoint);
         return network ?? defaultNetworkState();
       }
       if (
         !currentTransaction.has() ||
         currentTransaction.get().fetchMode === 'cached'
       ) {
-        let network = Fetch.getCachedNetwork(graphqlEndpoint);
+        let network = Fetch.getCachedNetwork(minaGraphqlEndpoint);
         if (network !== undefined) return network;
       }
       throw Error(
-        `getNetworkState: Could not fetch network state from graphql endpoint ${graphqlEndpoint}`
+        `getNetworkState: Could not fetch network state from graphql endpoint ${minaGraphqlEndpoint}`
       );
     },
     async sendTransaction(txn: Transaction) {
       txn.sign();
 
-      verifyTransactionLimits(txn.transaction.accountUpdates);
+      verifyTransactionLimits(txn.transaction);
 
       let [response, error] = await Fetch.sendZkapp(txn.toJSON());
       let errors: any[] | undefined;
-      if (error === undefined) {
-        if (response!.data === null && (response as any).errors?.length > 0) {
-          console.log(
-            'got graphql errors',
-            JSON.stringify((response as any).errors, null, 2)
-          );
-          errors = (response as any).errors;
-        }
-      } else {
-        console.log('got fetch error', error);
+      if (response === undefined && error !== undefined) {
+        console.log('Error: Failed to send transaction', error);
         errors = [error];
+      } else if (response && response.errors && response.errors.length > 0) {
+        console.log(
+          'Error: Transaction returned with errors',
+          JSON.stringify(response.errors, null, 2)
+        );
+        errors = response.errors;
       }
-      let isSuccess = errors === undefined;
 
+      let isSuccess = errors === undefined;
       let maxAttempts: number;
       let attempts = 0;
       let interval: number;
@@ -795,20 +814,30 @@ function Network(input: { mina: string; archive: string } | string): Mina {
             resolve: () => void,
             reject: (err: Error) => void | Error
           ) => {
-            let txId = response?.data?.sendZkapp?.zkapp?.id;
+            let txId = response?.data?.sendZkapp?.zkapp?.hash;
             let res;
             try {
-              res = await Fetch.fetchTransactionStatus(txId);
+              res = await Fetch.checkZkappTransaction(txId);
             } catch (error) {
+              isSuccess = false;
               return reject(error as Error);
             }
             attempts++;
-            if (res === 'INCLUDED') {
+            if (res.success) {
+              isSuccess = true;
               return resolve();
-            } else if (maxAttempts && attempts === maxAttempts) {
+            } else if (res.failureReason) {
+              isSuccess = false;
               return reject(
                 new Error(
-                  `Exceeded max attempts. TransactionId: ${txId}, attempts: ${attempts}, last received status: ${res}`
+                  `Transaction failed.\nTransactionId: ${txId}\nAttempts: ${attempts}\nfailureReason(s): ${res.failureReason}`
+                )
+              );
+            } else if (maxAttempts && attempts === maxAttempts) {
+              isSuccess = false;
+              return reject(
+                new Error(
+                  `Exceeded max attempts.\nTransactionId: ${txId}\nAttempts: ${attempts}\nLast received status: ${res}`
                 )
               );
             } else {
@@ -828,7 +857,7 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         fetchMode: 'test',
         isFinalRunOutsideCircuit: false,
       });
-      await Fetch.fetchMissingData(graphqlEndpoint, archiveEndpoint);
+      await Fetch.fetchMissingData(minaGraphqlEndpoint, archiveEndpoint);
       let hasProofs = tx.transaction.accountUpdates.some(
         Authorization.hasLazyProof
       );
@@ -849,6 +878,33 @@ function Network(input: { mina: string; archive: string } | string): Mina {
         { publicKey: pubKey, tokenId: token },
         archiveEndpoint,
         filterOptions
+      );
+    },
+    async fetchActions(
+      publicKey: PublicKey,
+      actionStates?: ActionStates,
+      tokenId: Field = TokenId.default
+    ) {
+      let pubKey = publicKey.toBase58();
+      let token = TokenId.toBase58(tokenId);
+      let { fromActionState, endActionState } = actionStates ?? {};
+      let fromActionStateBase58 = fromActionState
+        ? fromActionState.toString()
+        : undefined;
+      let endActionStateBase58 = endActionState
+        ? endActionState.toString()
+        : undefined;
+
+      return Fetch.fetchActions(
+        {
+          publicKey: pubKey,
+          actionStates: {
+            fromActionState: fromActionStateBase58,
+            endActionState: endActionStateBase58,
+          },
+          tokenId: token,
+        },
+        archiveEndpoint
       );
     },
     getActions(
@@ -906,7 +962,7 @@ let activeInstance: Mina = {
       return !!Fetch.getCachedAccount(
         publicKey,
         tokenId,
-        Fetch.defaultGraphqlEndpoint
+        Fetch.networkConfig.minaEndpoint
       );
     }
     return false;
@@ -916,7 +972,7 @@ let activeInstance: Mina = {
       Fetch.markAccountToBeFetched(
         publicKey,
         tokenId,
-        Fetch.defaultGraphqlEndpoint
+        Fetch.networkConfig.minaEndpoint
       );
       return dummyAccount(publicKey);
     }
@@ -927,7 +983,7 @@ let activeInstance: Mina = {
       let account = Fetch.getCachedAccount(
         publicKey,
         tokenId,
-        Fetch.defaultGraphqlEndpoint
+        Fetch.networkConfig.minaEndpoint
       );
       if (account === undefined)
         throw Error(
@@ -950,6 +1006,13 @@ let activeInstance: Mina = {
     return createTransaction(sender, f, 0);
   },
   fetchEvents(_publicKey: PublicKey, _tokenId: Field = TokenId.default) {
+    throw Error('must call Mina.setActiveInstance first');
+  },
+  fetchActions(
+    _publicKey: PublicKey,
+    _actionStates?: ActionStates,
+    _tokenId: Field = TokenId.default
+  ) {
     throw Error('must call Mina.setActiveInstance first');
   },
   getActions(
@@ -1102,9 +1165,20 @@ async function fetchEvents(
 /**
  * @return A list of emitted sequencing actions associated to the given public key.
  */
+async function fetchActions(
+  publicKey: PublicKey,
+  actionStates?: ActionStates,
+  tokenId?: Field
+) {
+  return await activeInstance.fetchActions(publicKey, actionStates, tokenId);
+}
+
+/**
+ * @return A list of emitted sequencing actions associated to the given public key.
+ */
 function getActions(
   publicKey: PublicKey,
-  actionStates: ActionStates,
+  actionStates?: ActionStates,
   tokenId?: Field
 ) {
   return activeInstance.getActions(publicKey, actionStates, tokenId);
@@ -1315,27 +1389,28 @@ async function verifyAccountUpdate(
   }
 }
 
-function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
-  // constants used to calculate cost of a transaction - originally defined in the genesis_constants file in the mina repo
-  const proofCost = 10.26;
-  const signedPairCost = 10.08;
-  const signedSingleCost = 9.14;
-  const costLimit = 69.45;
-
-  // constants that define the maximum number of events in one transaction
-  const maxActionElements = 16;
-  const maxEventElements = 16;
-
+function verifyTransactionLimits({ accountUpdates }: ZkappCommand) {
   let eventElements = { events: 0, actions: 0 };
 
-  let authTypes = filterGroups(
-    accountUpdates.map((update) => {
-      let json = update.toJSON();
-      eventElements.events += countEventElements(update.body.events);
-      eventElements.actions += countEventElements(update.body.actions);
-      return json.body.authorizationKind;
-    })
-  );
+  let authKinds = accountUpdates.map((update) => {
+    eventElements.events += countEventElements(update.body.events);
+    eventElements.actions += countEventElements(update.body.actions);
+    let { isSigned, isProved, verificationKeyHash } =
+      update.body.authorizationKind;
+    return {
+      isSigned: isSigned.toBoolean(),
+      isProved: isProved.toBoolean(),
+      verificationKeyHash: verificationKeyHash.toString(),
+    };
+  });
+  // insert entry for the fee payer
+  authKinds.unshift({
+    isSigned: true,
+    isProved: false,
+    verificationKeyHash: '',
+  });
+  let authTypes = filterGroups(authKinds);
+
   /*
   np := proof
   n2 := signedPair
@@ -1346,14 +1421,16 @@ function verifyTransactionLimits(accountUpdates: AccountUpdate[]) {
   10.26*np + 10.08*n2 + 9.14*n1 < 69.45
   */
   let totalTimeRequired =
-    proofCost * authTypes.proof +
-    signedPairCost * authTypes.signedPair +
-    signedSingleCost * authTypes.signedSingle;
+    TransactionCost.PROOF_COST * authTypes.proof +
+    TransactionCost.SIGNED_PAIR_COST * authTypes.signedPair +
+    TransactionCost.SIGNED_SINGLE_COST * authTypes.signedSingle;
 
-  let isWithinCostLimit = totalTimeRequired < costLimit;
+  let isWithinCostLimit = totalTimeRequired < TransactionCost.COST_LIMIT;
 
-  let isWithinEventsLimit = eventElements.events <= maxEventElements;
-  let isWithinActionsLimit = eventElements.actions <= maxActionElements;
+  let isWithinEventsLimit =
+    eventElements.events <= TransactionLimits.MAX_EVENT_ELEMENTS;
+  let isWithinActionsLimit =
+    eventElements.actions <= TransactionLimits.MAX_ACTION_ELEMENTS;
 
   let error = '';
 
@@ -1368,11 +1445,11 @@ ${JSON.stringify(authTypes)}
   }
 
   if (!isWithinEventsLimit) {
-    error += `Error: The account updates in your transaction are trying to emit too much event data. The maximum allowed number of field elements in events is ${maxEventElements}, but you tried to emit ${eventElements.events}.\n\n`;
+    error += `Error: The account updates in your transaction are trying to emit too much event data. The maximum allowed number of field elements in events is ${TransactionLimits.MAX_EVENT_ELEMENTS}, but you tried to emit ${eventElements.events}.\n\n`;
   }
 
   if (!isWithinActionsLimit) {
-    error += `Error: The account updates in your transaction are trying to emit too much action data. The maximum allowed number of field elements in actions is ${maxActionElements}, but you tried to emit ${eventElements.actions}.\n\n`;
+    error += `Error: The account updates in your transaction are trying to emit too much action data. The maximum allowed number of field elements in actions is ${TransactionLimits.MAX_ACTION_ELEMENTS}, but you tried to emit ${eventElements.actions}.\n\n`;
   }
 
   if (error) throw Error('Error during transaction sending:\n\n' + error);

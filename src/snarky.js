@@ -1,6 +1,6 @@
-import { getSnarky, snarky_ready, shutdown } from './snarky/wrapper.js';
-import snarkySpec from './snarky/snarky-class-spec.js';
-import { proxyClasses } from './snarky/proxy.js';
+import { getSnarky, withThreadPool } from './bindings/js/wrapper.js';
+import snarkySpec from './bindings/js/snarky-class-spec.js';
+import { proxyClasses } from './bindings/js/proxy.js';
 
 export {
   Field,
@@ -14,10 +14,13 @@ export {
   isReady,
   Pickles,
   Test,
+  withThreadPool,
 };
-let isReadyBoolean = false;
-let isReady = snarky_ready.then(() => (isReadyBoolean = true));
+let isReadyBoolean = true;
+let isReady = Promise.resolve();
 let isItReady = () => isReadyBoolean;
+
+function shutdown() {}
 
 let { Field, Bool, Circuit, Poseidon, Group, Scalar, Ledger, Pickles, Test } =
   proxyClasses(getSnarky, isItReady, snarkySpec);

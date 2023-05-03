@@ -68,15 +68,15 @@ export async function deployContracts(
 
     voting.deploy({ zkappKey: params.votingKey });
     voting.committedVotes.set(votesRoot);
-    voting.accumulatedVotes.set(Reducer.initialActionsHash);
+    voting.accumulatedVotes.set(Reducer.initialActionState);
 
     candidateContract.deploy({ zkappKey: params.candidateKey });
     candidateContract.committedMembers.set(candidateRoot);
-    candidateContract.accumulatedMembers.set(Reducer.initialActionsHash);
+    candidateContract.accumulatedMembers.set(Reducer.initialActionState);
 
     voterContract.deploy({ zkappKey: params.voterKey });
     voterContract.committedMembers.set(voterRoot);
-    voterContract.accumulatedMembers.set(Reducer.initialActionsHash);
+    voterContract.accumulatedMembers.set(Reducer.initialActionState);
   });
   await tx.sign([feePayerKey]).send();
 
@@ -132,7 +132,7 @@ export async function deployInvalidContracts(
 
     voting.deploy({ zkappKey: params.votingKey });
     voting.committedVotes.set(votesRoot);
-    voting.accumulatedVotes.set(Reducer.initialActionsHash);
+    voting.accumulatedVotes.set(Reducer.initialActionState);
 
     // invalid contracts
 

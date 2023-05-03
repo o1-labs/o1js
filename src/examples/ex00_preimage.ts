@@ -24,15 +24,16 @@ class Main extends Circuit {
 await isReady;
 
 console.log('generating keypair...');
-const kp = Main.generateKeypair();
+const kp = await Main.generateKeypair();
 
 const preimage = Field(1);
 const hash = Poseidon.hash([preimage]);
 
 console.log('prove...');
-const pi = Main.prove([preimage], [hash], kp);
-console.log('proof', pi);
+const pi = await Main.prove([preimage], [hash], kp);
 
 console.log('verify...');
-let ok = Main.verify([hash], kp.verificationKey(), pi);
+let ok = await Main.verify([hash], kp.verificationKey(), pi);
 console.log('ok?', ok);
+
+if (!ok) throw Error('verification failed');

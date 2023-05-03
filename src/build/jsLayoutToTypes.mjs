@@ -6,10 +6,7 @@ import prettierRc from '../../.prettierrc.cjs';
 
 // let jsLayout = JSON.parse(process.argv[2]);
 let selfPath = fileURLToPath(import.meta.url);
-let jsonPath = path.resolve(
-  selfPath,
-  '../../snarkyjs-bindings/ocaml/jsLayout.json'
-);
+let jsonPath = path.resolve(selfPath, '../../bindings/ocaml/jsLayout.json');
 let jsLayout = JSON.parse(await fs.readFile(jsonPath, 'utf8'));
 
 console.log(`jsLayoutToTypes.mjs: generating TS types from ${jsonPath}`);
@@ -138,8 +135,8 @@ function writeTsContent(types, isJson, leavesRelPath) {
 import { ${[...imports].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? "import { GenericProvableExtended } from '../../provable/generic.js';\n" +
-      "import { ProvableFromLayout, GenericLayout } from '../../provable/from-layout.js';\n" +
+    ? "import { GenericProvableExtended } from '../../lib/generic.js';\n" +
+      "import { ProvableFromLayout, GenericLayout } from '../../lib/from-layout.js';\n" +
       "import * as Json from './transaction-json.js';\n" +
       "import { jsLayout } from './js-layout.js';\n"
     : ''
@@ -196,7 +193,7 @@ async function writeTsFile(content, relPath) {
   });
   await fs.writeFile(absPath, content);
 }
-let genPath = '../../provable/gen';
+let genPath = '../../bindings/mina-transaction/gen';
 await ensureDir(genPath);
 
 let jsonTypesContent = writeTsContent(

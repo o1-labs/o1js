@@ -1,5 +1,5 @@
 import { expect } from 'expect';
-import { jsLayout } from '../../provable/gen/js-layout.js';
+import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import { Signature } from '../../mina-signer/src/signature.js';
 import {
   AccountUpdate,
@@ -9,7 +9,7 @@ import {
   provableFromLayout,
   ZkappCommand,
   Json,
-} from '../../provable/gen/transaction-bigint.js';
+} from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import { test, Random, sample } from './property.js';
 
 // some trivial roundtrip tests

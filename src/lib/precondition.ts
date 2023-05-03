@@ -1,13 +1,14 @@
 import { Provable, Bool, Field } from '../snarky.js';
-import { circuitValueEquals, Circuit } from './circuit_value.js';
+import { circuitValueEquals } from './circuit_value.js';
+import { Circuit } from './circuit.js';
 import * as Mina from './mina.js';
 import { Actions, AccountUpdate, Preconditions } from './account_update.js';
 import { Int64, UInt32, UInt64 } from './int.js';
-import { Layout } from '../provable/gen/transaction.js';
-import { jsLayout } from '../provable/gen/js-layout.js';
+import { Layout } from '../bindings/mina-transaction/gen/transaction.js';
+import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
 import { emptyReceiptChainHash, TokenSymbol } from './hash.js';
 import { PublicKey } from './signature.js';
-import { ZkappUri } from '../provable/transaction-leaves.js';
+import { ZkappUri } from '../bindings/mina-transaction/transaction-leaves.js';
 
 export {
   preconditions,
@@ -46,6 +47,10 @@ function Network(accountUpdate: AccountUpdate): Network {
   let timestamp = {
     get() {
       let slot = network.globalSlotSinceGenesis.get();
+      return globalSlotToTimestamp(slot);
+    },
+    getAndAssertEquals() {
+      let slot = network.globalSlotSinceGenesis.getAndAssertEquals();
       return globalSlotToTimestamp(slot);
     },
     assertEquals(value: UInt64) {
@@ -213,7 +218,7 @@ function preconditionSubclass<
   if (fieldType === undefined) {
     throw Error(`this.${longKey}: fieldType undefined`);
   }
-  return {
+  let obj = {
     get() {
       if (unimplementedPreconditions.includes(longKey)) {
         let self = context.isSelf ? 'this' : 'accountUpdate';
@@ -226,6 +231,11 @@ function preconditionSubclass<
         longKey,
         fieldType
       )) as U;
+    },
+    getAndAssertEquals() {
+      let value = obj.get();
+      obj.assertEquals(value);
+      return value;
     },
     assertEquals(value: U) {
       context.constrained.add(longKey);
@@ -249,6 +259,7 @@ function preconditionSubclass<
       context.constrained.add(longKey);
     },
   };
+  return obj;
 }
 
 function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
@@ -441,6 +452,7 @@ type PreconditionBaseTypes<T> = {
 
 type PreconditionSubclassType<U> = {
   get(): U;
+  getAndAssertEquals(): U;
   assertEquals(value: U): void;
   assertNothing(): void;
 };

@@ -1,20 +1,13 @@
-import { randomBytes } from '../js_crypto/random.js';
-import { bigIntToBytes } from '../js_crypto/bigint-helpers.js';
-import { Fp, mod } from '../js_crypto/finite_field.js';
-import { BinableWithBits, defineBinable, withBits } from './binable.js';
-import { GenericHashInput, GenericProvableExtended } from './generic.js';
-
-export { Field, Bool, UInt32, UInt64, Sign };
-export {
-  pseudoClass,
-  ProvableExtended,
+import { randomBytes } from '../bindings/crypto/random.js';
+import { Fp, mod } from '../bindings/crypto/finite_field.js';
+import {
+  BinableBigint,
   HashInput,
   ProvableBigint,
-  BinableBigint,
-  sizeInBits,
-  checkRange,
-  checkField,
-};
+} from '../bindings/lib/provable-bigint.js';
+
+export { Field, Bool, UInt32, UInt64, Sign };
+export { pseudoClass, sizeInBits, checkRange, checkField };
 
 type Field = bigint;
 type Bool = 0n | 1n;
@@ -28,9 +21,6 @@ type minusOne =
 const minusOne: minusOne =
   0x40000000000000000000000000000000224698fc094cf91b992d30ed00000000n;
 type Sign = 1n | minusOne;
-
-type HashInput = GenericHashInput<Field>;
-type ProvableExtended<T, J> = GenericProvableExtended<T, J, Field>;
 
 const checkField = checkRange(0n, Fp.modulus, 'Field');
 const checkBool = checkAllowList(new Set([0n, 1n]), 'Bool');
@@ -151,68 +141,6 @@ function pseudoClass<
   // M extends Provable<ReturnType<F>>
 >(constructor: F, module: M) {
   return Object.assign<F, M>(constructor, module);
-}
-
-function ProvableBigint<
-  T extends bigint = bigint,
-  TJSON extends string = string
->(check: (x: bigint) => void): ProvableExtended<T, TJSON> {
-  return {
-    sizeInFields() {
-      return 1;
-    },
-    toFields(x): Field[] {
-      return [x];
-    },
-    toAuxiliary() {
-      return [];
-    },
-    check,
-    fromFields([x]) {
-      check(x);
-      return x as T;
-    },
-    toInput(x) {
-      return { fields: [x], packed: [] };
-    },
-    toJSON(x) {
-      return x.toString() as TJSON;
-    },
-    fromJSON(json) {
-      if (isNaN(json as any) || isNaN(parseFloat(json))) {
-        throw Error(`fromJSON: expected a numeric string, got "${json}"`);
-      }
-      let x = BigInt(json) as T;
-      check(x);
-      return x;
-    },
-  };
-}
-
-function BinableBigint<T extends bigint = bigint>(
-  sizeInBits: number,
-  check: (x: bigint) => void
-): BinableWithBits<T> {
-  let sizeInBytes = Math.ceil(sizeInBits / 8);
-  return withBits(
-    defineBinable({
-      toBytes(x) {
-        return bigIntToBytes(x, sizeInBytes);
-      },
-      readBytes(bytes, start) {
-        let x = 0n;
-        let bitPosition = 0n;
-        let end = Math.min(start + sizeInBytes, bytes.length);
-        for (let i = start; i < end; i++) {
-          x += BigInt(bytes[i]) << bitPosition;
-          bitPosition += 8n;
-        }
-        check(x);
-        return [x as T, end];
-      },
-    }),
-    sizeInBits
-  );
 }
 
 // validity checks

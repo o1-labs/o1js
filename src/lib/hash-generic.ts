@@ -1,5 +1,5 @@
-import { GenericField } from '../provable/generic.js';
-import { prefixToField } from '../provable/binable.js';
+import { GenericField } from '../bindings/lib/generic.js';
+import { prefixToField } from '../bindings/lib/binable.js';
 
 export { createHashHelpers, HashHelpers };
 
@@ -8,7 +8,7 @@ type Hash<Field> = {
   update(state: Field[], input: Field[]): Field[];
 };
 
-type HashHelpers<Field> = ReturnType<typeof createHashHelpers<Field>>
+type HashHelpers<Field> = ReturnType<typeof createHashHelpers<Field>>;
 
 function createHashHelpers<Field>(
   Field: GenericField<Field>,

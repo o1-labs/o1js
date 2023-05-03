@@ -71,17 +71,17 @@ tx = await Mina.transaction(feePayer, () => {
 
   contracts.voting.deploy({ zkappKey: votingKey });
   contracts.voting.committedVotes.set(votesStore.getRoot());
-  contracts.voting.accumulatedVotes.set(Reducer.initialActionsHash);
+  contracts.voting.accumulatedVotes.set(Reducer.initialActionState);
 
   contracts.candidateContract.deploy({ zkappKey: candidateKey });
   contracts.candidateContract.committedMembers.set(candidateStore.getRoot());
   contracts.candidateContract.accumulatedMembers.set(
-    Reducer.initialActionsHash
+    Reducer.initialActionState
   );
 
   contracts.voterContract.deploy({ zkappKey: voterKey });
   contracts.voterContract.committedMembers.set(voterStore.getRoot());
-  contracts.voterContract.accumulatedMembers.set(Reducer.initialActionsHash);
+  contracts.voterContract.accumulatedMembers.set(Reducer.initialActionState);
 });
 await tx.sign([feePayerKey]).send();
 

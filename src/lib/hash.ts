@@ -1,12 +1,10 @@
 import {
-  Circuit,
-  circuitArray,
   HashInput,
   provable,
   ProvableExtended,
   Struct,
 } from './circuit_value.js';
-import { Poseidon as Poseidon_, Field, Bool } from '../snarky.js';
+import { Poseidon as Poseidon_, Field, Bool, Circuit } from '../snarky.js';
 import { inCheckedComputation } from './proof_system.js';
 import { createHashHelpers } from './hash-generic.js';
 
