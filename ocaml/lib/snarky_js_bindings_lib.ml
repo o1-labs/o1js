@@ -1524,17 +1524,6 @@ module Circuit = struct
     else failwith "Circuit.witness: input does not have a `check` method" ;
     a
 
-  let typ_minimal (type a) (typ : a as_field_elements_minimal Js.t) =
-    Typ.array ~length:typ##sizeInFields Field.typ
-
-  let witness_minimal (type a) (typ : a as_field_elements_minimal Js.t)
-      (f : (unit -> field_class Js.t Js.js_array Js.t) Js.callback) =
-    Impl.exists (typ_minimal typ) ~compute:(fun () ->
-        Js.Unsafe.fun_call f [||]
-        |> Js.to_array
-        |> Array.map ~f:of_js_field_unchecked )
-    |> Array.map ~f:to_js_field |> Js.array
-
   module Circuit_main = struct
     type ('w, 'p) t =
       < snarkyMain : ('w -> 'p -> unit) Js.callback Js.prop
@@ -1642,8 +1631,6 @@ module Circuit = struct
     circuit##.toFields := Js.wrap_callback to_field_elts_magic ;
     Js.Unsafe.set circuit (Js.string "if") if_ ;
     Js.Unsafe.set circuit (Js.string "_constraintSystem") constraint_system ;
-    Js.Unsafe.set circuit (Js.string "_witness")
-      (Js.wrap_callback witness_minimal) ;
     circuit##.getVerificationKey
     := fun (vk : Verification_key.t) -> new%js verification_key_constr vk
 end

@@ -213,10 +213,6 @@ export default [
         type: 'function',
       },
       {
-        name: '_witness',
-        type: 'function',
-      },
-      {
         name: 'array',
         type: 'function',
       },
