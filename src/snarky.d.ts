@@ -813,22 +813,6 @@ declare class Circuit {
   static if<T>(b: Bool | boolean, x: T, y: T): T;
 
   /**
-   * Generalization of `Circuit.if` for choosing between more than two different cases.
-   * It takes a "mask", which is an array of `Bool`s that contains only one `true` element, as well as a type/constructor and an array of values of that type.
-   * The result is that value which corresponds to the true element of the mask. Example:
-   *
-   * ```ts
-   * let x = Circuit.switch([Bool(false), Bool(true)], Field, [Field(1), Field(2)]);
-   * x.assertEquals(2);
-   * ```
-   */
-  static switch<T, A extends FlexibleProvable<T>>(
-    mask: Bool[],
-    type: A,
-    values: T[]
-  ): T;
-
-  /**
    * Generates a proving key and a verification key for this circuit.
    */
   static generateKeypair(circuit: CircuitMain<any, any>): Keypair;
@@ -852,11 +836,6 @@ declare class Circuit {
    * Serializes an element into {@link Field} elements.
    */
   static toFields<A>(a: A): Field[];
-
-  /**
-   * Interface to log elements within a circuit. Similar to `console.log()`.
-   */
-  static log(...args: any): void;
 }
 
 /**

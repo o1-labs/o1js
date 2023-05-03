@@ -4,13 +4,8 @@
  * - the main interface for types that can be used in provable code
  */
 import { bytesToBigInt } from '../bindings/crypto/bigint-helpers.js';
-import {
-  Field,
-  Gate,
-  JsonGate,
-  Provable as Provable_,
-  Snarky,
-} from '../snarky.js';
+import { Field, Bool } from './core.js';
+import { Gate, JsonGate, Provable as Provable_, Snarky } from '../snarky.js';
 import type { FlexibleProvable, ProvableExtended } from './circuit_value.js';
 import { Context } from './global-context.js';
 import {
@@ -98,6 +93,56 @@ const Provable = {
 
     return value;
   },
+
+  /**
+   * Generalization of `Circuit.if` for choosing between more than two different cases.
+   * It takes a "mask", which is an array of `Bool`s that contains only one `true` element, a type/constructor, and an array of values of that type.
+   * The result is that value which corresponds to the true element of the mask.
+   * @example
+   * ```ts
+   * let x = Circuit.switch([Bool(false), Bool(true)], Field, [Field(1), Field(2)]);
+   * x.assertEquals(2);
+   * ```
+   */
+  switch<T, A extends FlexibleProvable<T>>(
+    mask: Bool[],
+    type: A,
+    values: T[]
+  ): T {
+    // picks the value at the index where mask is true
+    let nValues = values.length;
+    if (mask.length !== nValues)
+      throw Error(
+        `Circuit.switch: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
+      );
+    let checkMask = () => {
+      let nTrue = mask.filter((b) => b.toBoolean()).length;
+      if (nTrue > 1) {
+        throw Error(
+          `Circuit.switch: \`mask\` must have 0 or 1 true element, found ${nTrue}.`
+        );
+      }
+    };
+    if (mask.every((b) => b.toField().isConstant())) checkMask();
+    else Provable.asProver(checkMask);
+    let size = type.sizeInFields();
+    let fields = Array(size).fill(Field(0));
+    for (let i = 0; i < nValues; i++) {
+      let valueFields = type.toFields(values[i]);
+      let maskField = mask[i].toField();
+      for (let j = 0; j < size; j++) {
+        let maybeField = valueFields[j].mul(maskField);
+        fields[j] = fields[j].add(maybeField);
+      }
+    }
+    let aux = auxiliary(type as Provable<T>, () => {
+      let i = mask.findIndex((b) => b.toBoolean());
+      if (i === -1) return type.toAuxiliary();
+      return type.toAuxiliary(values[i]);
+    });
+    return type.fromFields(fields, aux) as T;
+  },
+
   /**
    * Creates a {@link Provable} for a generic array.
    * @example
@@ -106,6 +151,31 @@ const Provable = {
    * ```
    */
   array: provableArray,
+
+  /**
+   * Interface to log elements within a circuit. Similar to `console.log()`.
+   * @example
+   * ```ts
+   * const element = Field(42);
+   * Circuit.log(element);
+   * ```
+   */
+  log(...args: any) {
+    Provable.asProver(() => {
+      let prettyArgs = [];
+      for (let arg of args) {
+        if (arg?.toPretty !== undefined) prettyArgs.push(arg.toPretty());
+        else {
+          try {
+            prettyArgs.push(JSON.parse(JSON.stringify(arg)));
+          } catch {
+            prettyArgs.push(arg);
+          }
+        }
+      }
+      console.log(...prettyArgs);
+    });
+  },
 
   /**
    * Runs code as a prover.
@@ -219,6 +289,13 @@ function clone<T, S extends FlexibleProvable<T>>(type: S, value: T): T {
   let fields = type.toFields(value);
   let aux = type.toAuxiliary(value);
   return (type as Provable<T>).fromFields(fields, aux);
+}
+
+function auxiliary<T>(type: FlexibleProvable<T>, compute: () => any[]) {
+  let aux;
+  if (inCheckedComputation()) Provable.asProver(() => (aux = compute()));
+  else aux = compute();
+  return aux ?? type.toAuxiliary();
 }
 
 let memoizationContext = Context.create<{

@@ -133,16 +133,9 @@ class Circuit {
    */
   static if = SnarkyCircuit.if;
   /**
-   * Generalization of `Circuit.if` for choosing between more than two different cases.
-   * It takes a "mask", which is an array of `Bool`s that contains only one `true` element, a type/constructor, and an array of values of that type.
-   * The result is that value which corresponds to the true element of the mask.
-   * @example
-   * ```ts
-   * let x = Circuit.switch([Bool(false), Bool(true)], Field, [Field(1), Field(2)]);
-   * x.assertEquals(2);
-   * ```
+   * @deprecated use {@link Provable.switch}
    */
-  static switch = SnarkyCircuit.switch;
+  static switch = Provable.switch;
   /**
    * Serializes an element into {@link Field} elements.
    * @example
@@ -161,14 +154,9 @@ class Circuit {
    */
   static inCheckedComputation = Provable.inCheckedComputation;
   /**
-   * Interface to log elements within a circuit. Similar to `console.log()`.
-   * @example
-   * ```ts
-   * const element = Field(42);
-   * Circuit.log(element);
-   * ```
+   * @deprecated use {@link Provable.log}
    */
-  static log = SnarkyCircuit.log;
+  static log = Provable.log;
 }
 
 function public_(target: any, _key: string | symbol, index: number) {

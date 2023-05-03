@@ -1,17 +1,6 @@
 import 'reflect-metadata';
-import { bytesToBigInt } from '../bindings/crypto/bigint-helpers.js';
-import {
-  Circuit as SnarkyCircuit,
-  ProvablePure,
-  Keypair,
-  Gate,
-} from '../snarky.js';
+import { Circuit as SnarkyCircuit, ProvablePure } from '../snarky.js';
 import { Field, Bool } from './core.js';
-import {
-  inCheckedComputation,
-  inProver,
-  snarkContext,
-} from './proof_system.js';
 import {
   provable,
   provablePure,
@@ -582,69 +571,4 @@ function toConstant<T>(type: Provable<T>, value: T): T {
 function isConstant<T>(type: FlexibleProvable<T>, value: T): boolean;
 function isConstant<T>(type: Provable<T>, value: T): boolean {
   return type.toFields(value).every((x) => x.isConstant());
-}
-
-// TODO: move `Circuit` to JS entirely, this patching harms code discoverability
-
-SnarkyCircuit.switch = function <T, A extends FlexibleProvable<T>>(
-  mask: Bool[],
-  type: A,
-  values: T[]
-): T {
-  // picks the value at the index where mask is true
-  let nValues = values.length;
-  if (mask.length !== nValues)
-    throw Error(
-      `Circuit.switch: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
-    );
-  let checkMask = () => {
-    let nTrue = mask.filter((b) => b.toBoolean()).length;
-    if (nTrue > 1) {
-      throw Error(
-        `Circuit.switch: \`mask\` must have 0 or 1 true element, found ${nTrue}.`
-      );
-    }
-  };
-  if (mask.every((b) => b.toField().isConstant())) checkMask();
-  else Provable.asProver(checkMask);
-  let size = type.sizeInFields();
-  let fields = Array(size).fill(Field(0));
-  for (let i = 0; i < nValues; i++) {
-    let valueFields = type.toFields(values[i]);
-    let maskField = mask[i].toField();
-    for (let j = 0; j < size; j++) {
-      let maybeField = valueFields[j].mul(maskField);
-      fields[j] = fields[j].add(maybeField);
-    }
-  }
-  let aux = auxiliary(type as Provable<T>, () => {
-    let i = mask.findIndex((b) => b.toBoolean());
-    if (i === -1) return type.toAuxiliary();
-    return type.toAuxiliary(values[i]);
-  });
-  return type.fromFields(fields, aux) as T;
-};
-
-SnarkyCircuit.log = function (...args: any) {
-  Provable.asProver(() => {
-    let prettyArgs = [];
-    for (let arg of args) {
-      if (arg?.toPretty !== undefined) prettyArgs.push(arg.toPretty());
-      else {
-        try {
-          prettyArgs.push(JSON.parse(JSON.stringify(arg)));
-        } catch {
-          prettyArgs.push(arg);
-        }
-      }
-    }
-    console.log(...prettyArgs);
-  });
-};
-
-function auxiliary<T>(type: FlexibleProvable<T>, compute: () => any[]) {
-  let aux;
-  if (inCheckedComputation()) Provable.asProver(() => (aux = compute()));
-  else aux = compute();
-  return aux ?? type.toAuxiliary();
 }
