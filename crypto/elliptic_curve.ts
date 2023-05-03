@@ -1,5 +1,5 @@
-import { FiniteField, inverse, mod, p, q } from "./finite_field.js";
-export { Pallas, Vesta, GroupAffine, GroupProjective, GroupMap };
+import { FiniteField, Fp, inverse, mod, p, q } from "./finite_field.js";
+export { Pallas, Vesta, GroupAffine, GroupProjective, GroupMapPallas };
 
 // TODO: constants, like generator points and cube roots for endomorphisms, should be drawn from
 // a common source, i.e. generated from the Rust code
@@ -41,67 +41,38 @@ type GroupMapParams = {
   spec: { a: bigint; b: bigint };
 };
 
-type Conic = {
-  z: bigint;
-  y: bigint;
-};
+type Conic = { z: bigint; y: bigint };
 
-type STuple = {
-  u: bigint;
-  v: bigint;
-  y: bigint;
-};
+type STuple = { u: bigint; v: bigint; y: bigint };
 
 // reference implementation https://github.com/o1-labs/snarky/blob/78e0d952518f75b5382f6d735adb24eef7a0fa90/group_map/group_map.ml
-
 const GroupMap = {
-  Tock: (F: FiniteField) => {
-    const params: GroupMapParams = {
-      u: 2n,
-      u_over_2: 1n,
-      conic_c: 3n,
-      projection_point: {
-        z: 12196889842669319921865617096620076994180062626450149327690483414064673774441n,
-        y: 1n,
-      },
-      spec: {
-        a: 0n,
-        b: 5n,
-      },
-    };
-
+  create: (F: FiniteField, params: GroupMapParams) => {
+    const { a, b } = params.spec;
     function tryDecode(x: bigint): { x: bigint; y: bigint } | undefined {
-      const { a, b } = params.spec;
+      // a * a * a = a^3
+      const pow3 = F.power(x, 3n);
+      // a * x - since a = 0, ax will be 0 as well
+      // const ax = F.mul(a, x);
 
-      function f(x: bigint) {
-        // a * a * a = a^3
-        const pow3 = F.power(x, 3n);
-        // a * x
-        const ax = F.mul(a, x);
-        // a^3 + ax + b
-        return F.add(F.add(pow3, ax), b);
-      }
+      // a^3 + ax + b, but since ax = 0 we can write a^3 + b
+      const y = F.add(pow3, b);
 
-      const y = f(x);
-      const sqrtY = F.sqrt(y);
-      return F.isSquare(y) && sqrtY ? { x, y: sqrtY } : undefined;
+      if (!F.isSquare(y)) return undefined;
+      return { x, y: F.sqrt(y)! };
     }
 
-    function s_to_v_truncated(s: STuple): [bigint, bigint, bigint] {
+    function sToVTruncated(s: STuple): [bigint, bigint, bigint] {
       const { u, v, y } = s;
       return [v, F.negate(F.add(u, v)), F.add(u, F.square(y))];
     }
 
     function conic_to_s(c: Conic): STuple {
       const d = F.div(c.z, c.y);
-      if (!d) throw Error(`Division undefined! ${c.z}/${c.y}`);
+      if (d === undefined) throw Error(`Division undefined! ${c.z}/${c.y}`);
       const v = F.sub(d, params.u_over_2);
 
-      return {
-        u: params.u,
-        v,
-        y: c.y,
-      };
+      return { u: params.u, v, y: c.y };
     }
 
     function field_to_conic(t: bigint): Conic {
@@ -114,7 +85,7 @@ const GroupMap = {
 
       const d = F.div(d1, d2);
 
-      if (!d) throw Error(`Division undefined! ${d1}/${d2}`);
+      if (d === undefined) throw Error(`Division undefined! ${d1}/${d2}`);
 
       const s = F.mul(2n, d);
 
@@ -125,12 +96,28 @@ const GroupMap = {
     }
 
     return {
-      potentialXs: (t: bigint) =>
-        s_to_v_truncated(conic_to_s(field_to_conic(t))),
+      potentialXs: (t: bigint) => sToVTruncated(conic_to_s(field_to_conic(t))),
       tryDecode,
     };
   },
 };
+
+// https://github.com/MinaProtocol/mina/blob/af7bc89270b66c06e2cc8d1bb093ba31d6a7b372/src/lib/crypto_params/gen/gen.ml#L8-L11
+const GroupMapParamsFp = {
+  u: 2n,
+  u_over_2: 1n,
+  conic_c: 3n,
+  projection_point: {
+    z: 12196889842669319921865617096620076994180062626450149327690483414064673774441n,
+    y: 1n,
+  },
+  spec: {
+    a: 0n,
+    b: 5n,
+  },
+};
+
+const GroupMapPallas = GroupMap.create(Fp, GroupMapParamsFp);
 
 function projectiveNeg({ x, y, z }: GroupProjective, p: bigint) {
   return { x, y: y === 0n ? 0n : p - y, z };
