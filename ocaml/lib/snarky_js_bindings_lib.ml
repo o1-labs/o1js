@@ -1601,13 +1601,10 @@ let () =
   method_ "verificationKey"
     (fun (this : keypair_class Js.t) : verification_key_class Js.t ->
       new%js verification_key_constr (Keypair.vk this##.value) ) ;
-  method_ "_constraintSystemJSON"
+  method_ "constraintSystemJSON"
     (fun (this : keypair_class Js.t) : Js.js_string Js.t ->
-      let wrapper_prover_index : Backend.Keypair.t = Keypair.pk this##.value in
-      let prover_index : Kimchi_bindings.Protocol.Index.Fp.t =
-        wrapper_prover_index.index
-      in
-      prover_to_json prover_index )
+      let prover_index : Backend.Keypair.t = Keypair.pk this##.value in
+      prover_to_json prover_index.index |> json_parse )
 
 (* TODO: add verificationKey.toString / fromString *)
 let () =
