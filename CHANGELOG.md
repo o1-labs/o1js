@@ -17,7 +17,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/bcc666f2...HEAD)
 
-> No unreleased changes yet
+### Added
+
+- `Poseidon.hashToGroup` enables hashing to a group https://github.com/o1-labs/snarkyjs/pull/887
+- Implemented `Nullifier` as a new primitive https://github.com/o1-labs/snarkyjs/pull/882
 
 ## [0.10.0](https://github.com/o1-labs/snarkyjs/compare/97e393ed...bcc666f2)
 
