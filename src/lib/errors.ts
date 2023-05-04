@@ -2,7 +2,7 @@ import { Types } from '../bindings/mina-transaction/types.js';
 import { TokenId } from './account_update.js';
 import { Int64 } from './int.js';
 
-export { invalidTransactionError, Bug, assert };
+export { invalidTransactionError, Bug, assert, prettifyStackTrace };
 
 const ErrorHandlers = {
   Invalid_fee_excess({
@@ -115,4 +115,13 @@ function Bug(message: string) {
  */
 function assert(condition: boolean, message = 'Failed assertion.') {
   if (!condition) throw Bug(message);
+}
+
+const linesToRemove = ['snarky_js_node.bc.cjs', '/builtin/+stdlib.js'] as const;
+function prettifyStackTrace(stacktrace: string) {
+  const lines = stacktrace.split('\n');
+  const filteredLines = lines.filter((line) => {
+    return !linesToRemove.some((lineToRemove) => line.includes(lineToRemove));
+  });
+  return filteredLines.join('\n');
 }
