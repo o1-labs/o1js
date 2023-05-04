@@ -487,7 +487,7 @@ class Client {
    * @returns A nullifier
    */
   createNullifier(
-    message: bigint[],
+    message: bigint,
     privateKeyBase58: Json.PrivateKey
   ): Json.Nullifier {
     let sk = PrivateKey.fromBase58(privateKeyBase58);

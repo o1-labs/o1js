@@ -61,6 +61,8 @@ export { Character, CircuitString } from './lib/string.js';
 export { MerkleTree, MerkleWitness } from './lib/merkle_tree.js';
 export { MerkleMap, MerkleMapWitness } from './lib/merkle_map.js';
 
+export { Nullifier } from './lib/nullifier.js';
+
 // experimental APIs
 import { ZkProgram } from './lib/proof_system.js';
 import { Callback } from './lib/zkapp.js';
