@@ -1273,60 +1273,6 @@ let proof_constr : (Backend.Proof.t -> proof_class Js.t) Js.constr =
   Obj.magic proof_class
 
 module Circuit = struct
-  let check_lengths s t1 t2 =
-    if t1##.length <> t2##.length then
-      raise_error
-        (sprintf "%s: Got mismatched lengths, %d != %d" s t1##.length
-           t2##.length )
-    else ()
-
-  let wrap name ~pre_args ~post_args ~explicit ~implicit =
-    let total_implicit = pre_args + post_args in
-    let total_explicit = 1 + total_implicit in
-    let wrapped =
-      let err =
-        if pre_args > 0 then
-          sprintf
-            "%s: Must be called with %d arguments, or, if passing constructor \
-             explicitly, with %d arguments, followed by the constructor, \
-             followed by %d arguments"
-            name total_implicit pre_args post_args
-        else
-          sprintf
-            "%s: Must be called with %d arguments, or, if passing constructor \
-             explicitly, with the constructor as the first argument, followed \
-             by %d arguments"
-            name total_implicit post_args
-      in
-      ksprintf Js.Unsafe.eval_string
-        {js|
-        (function(explicit, implicit) {
-          return function() {
-            var err = '%s';
-            if (arguments.length === %d) {
-              return explicit.apply(this, arguments);
-            } else if (arguments.length === %d) {
-              return implicit.apply(this, arguments);
-            } else {
-              throw (Error(err));
-            }
-          }
-        } )
-      |js}
-        err total_explicit total_implicit
-    in
-    Js.Unsafe.(
-      fun_call wrapped
-        [| inject (Js.wrap_callback explicit)
-         ; inject (Js.wrap_callback implicit)
-        |])
-
-  let if_array b t1 t2 =
-    check_lengths "if" t1 t2 ;
-    array_map2 t1 t2 ~f:(fun x1 x2 ->
-        new%js field_constr
-          (As_field.of_field (Field.if_ b ~then_:x1##.value ~else_:x2##.value)) )
-
   let js_equal (type b) (x : b) (y : b) : bool =
     let f = Js.Unsafe.eval_string "(function(x, y) { return x === y; })" in
     Js.to_bool Js.Unsafe.(fun_call f [| inject x; inject y |])
@@ -1383,72 +1329,6 @@ module Circuit = struct
              (Obj.magic arr)##flat
          | None ->
              raise_error "toFields: Argument did not have a constructor." )
-
-  let if_explicit (type a) (b : As_bool.t) (ctor : a as_field_elements Js.t)
-      (x1 : a) (x2 : a) =
-    let b = As_bool.value b in
-    match (b :> Field.t) with
-    | Constant b ->
-        if Field.Constant.(equal one b) then x1 else x2
-    | _ ->
-        let t1 = ctor##toFields x1 in
-        let t2 = ctor##toFields x2 in
-        let arr = if_array b t1 t2 in
-        ctor##fromFields arr
-
-  let rec if_magic : type a. As_bool.t -> a Js.t -> a Js.t -> a Js.t =
-    fun (type a) (b : As_bool.t) (t1 : a Js.t) (t2 : a Js.t) : a Js.t ->
-     check_type "if" (Js.typeof t1) ;
-     check_type "if" (Js.typeof t2) ;
-     let t1_is_array = Js.Unsafe.global ##. Array##isArray t1 in
-     let t2_is_array = Js.Unsafe.global ##. Array##isArray t2 in
-     match (t1_is_array, t2_is_array) with
-     | false, true | true, false ->
-         raise_error "if: Mismatched argument types"
-     | true, true ->
-         array_map2 (Obj.magic t1) (Obj.magic t2) ~f:(fun x1 x2 ->
-             if_magic b x1 x2 )
-         |> Obj.magic
-     | false, false -> (
-         let ctor1 : _ Js.Optdef.t = (Obj.magic t1)##.constructor in
-         let ctor2 : _ Js.Optdef.t = (Obj.magic t2)##.constructor in
-         let has_methods ctor =
-           let has s = Js.Optdef.test (Js.Unsafe.get ctor (Js.string s)) in
-           has "toFields" && has "fromFields"
-         in
-         if not (js_equal ctor1 ctor2) then
-           raise_error "if: Mismatched argument types" ;
-         match Js.Optdef.(to_option ctor1, to_option ctor2) with
-         | Some ctor1, Some _ when has_methods ctor1 ->
-             if_explicit b ctor1 t1 t2
-         | Some ctor1, Some _ ->
-             (* Try to match them as generic objects *)
-             let ks1 = (keys t1)##sort_asStrings in
-             let ks2 = (keys t2)##sort_asStrings in
-             check_lengths
-               (sprintf "if (%s vs %s)"
-                  (Js.to_string (ks1##join (Js.string ", ")))
-                  (Js.to_string (ks2##join (Js.string ", "))) )
-               ks1 ks2 ;
-             array_iter2 ks1 ks2 ~f:(fun k1 k2 ->
-                 if not (js_equal k1 k2) then
-                   raise_error "if: Arguments had mismatched types" ) ;
-             (* we use Object.create to avoid calling the constructor with the wrong number of arguments *)
-             let result =
-               Js.Unsafe.global ##. Object##create
-                 (Js.Unsafe.coerce ctor1)##.prototype
-             in
-             array_iter ks1 ~f:(fun k ->
-                 Js.Unsafe.set result k
-                   (if_magic b (Js.Unsafe.get t1 k) (Js.Unsafe.get t2 k)) ) ;
-             Obj.magic result
-         | Some _, None | None, Some _ ->
-             assert false
-         | None, None ->
-             raise_error "if: Arguments did not have a constructor." )
-
-  let if_ =
-    wrap "if" ~pre_args:1 ~post_args:2 ~explicit:if_explicit ~implicit:if_magic
 
   let typ_ (type a) (typ : a as_field_elements Js.t) : (a, a) Typ.t =
     let to_array conv a =
@@ -1533,7 +1413,6 @@ module Circuit = struct
            (vk : verification_key_class Js.t) (pi : proof_class Js.t) :
            bool Js.t ->
          vk##verify pub pi ) ;
-    Js.Unsafe.set circuit (Js.string "if") if_ ;
     circuit##.getVerificationKey
     := fun (vk : Verification_key.t) -> new%js verification_key_constr vk
 end

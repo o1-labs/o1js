@@ -197,10 +197,6 @@ export default [
     name: 'Circuit',
     props: [
       {
-        name: 'array',
-        type: 'function',
-      },
-      {
         name: 'generateKeypair',
         type: 'function',
       },
@@ -210,10 +206,6 @@ export default [
       },
       {
         name: 'verify',
-        type: 'function',
-      },
-      {
-        name: 'if',
         type: 'function',
       },
       {
