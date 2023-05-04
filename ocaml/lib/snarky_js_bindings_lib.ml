@@ -1488,6 +1488,41 @@ let () =
       bool Js.t
     -> vk##verify pub this )
 
+(* conversion of field arrays *)
+
+type public_input_js = field_class Js.t Js.js_array Js.t
+
+type 'proof public_input_with_proof_js =
+  < publicInput : public_input_js Js.prop ; proof : 'proof Js.prop > Js.t
+
+module Public_input = struct
+  type t = Field.t array
+
+  let to_field_elements (t : t) : Field.t array = t
+
+  let to_constant (t : t) = Array.map ~f:to_unchecked t
+
+  let to_js (t : t) : public_input_js = Array.map ~f:to_js_field t |> Js.array
+
+  let of_js (a : public_input_js) : t =
+    Js.to_array a |> Array.map ~f:of_js_field
+
+  let list_to_js (public_inputs : t list) =
+    List.map ~f:to_js public_inputs |> Array.of_list |> Js.array
+
+  module Constant = struct
+    type t = Field.Constant.t array
+
+    let to_field_elements (t : t) : Field.Constant.t array = t
+
+    let to_js (t : t) : public_input_js =
+      Array.map ~f:to_js_field_unchecked t |> Js.array
+
+    let of_js (a : public_input_js) : t =
+      Js.to_array a |> Array.map ~f:of_js_field_unchecked
+  end
+end
+
 (* light-weight wrapper around snarky-ml core *)
 
 module Snarky = struct
@@ -1531,6 +1566,47 @@ module Snarky = struct
       val json =
         Backend.R1CS_constraint_system.to_json cs |> Js.string |> json_parse
     end
+
+  module Circuit = struct
+    module Main = struct
+      let of_js (main : public_input_js -> unit) =
+        let main' public_input () = main (Public_input.to_js public_input) in
+        main'
+    end
+
+    let compile main public_input_size =
+      let input_typ = typ public_input_size in
+      let return_typ = Impl.Typ.unit in
+      let cs =
+        Impl.constraint_system ~input_typ ~return_typ (Main.of_js main)
+      in
+      Impl.Keypair.generate ~prev_challenges:0 cs
+
+    let prove main public_input_size public_input keypair =
+      let pk = Impl.Keypair.pk keypair in
+      let input_typ = typ public_input_size in
+      let return_typ = Impl.Typ.unit in
+      Impl.generate_witness_conv ~input_typ ~return_typ
+        ~f:(fun { Impl.Proof_inputs.auxiliary_inputs; public_inputs } () ->
+          Backend.Proof.create pk ~auxiliary:auxiliary_inputs
+            ~primary:public_inputs )
+        (Main.of_js main)
+        (Public_input.Constant.of_js public_input)
+
+    let verify public_input_js proof vk =
+      let public_input = Public_input.Constant.of_js public_input_js in
+      let public_input_vec = Backend.Field.Vector.create () in
+      Array.iter public_input ~f:(fun x ->
+          Backend.Field.Vector.emplace_back public_input_vec x ) ;
+      Backend.Proof.verify proof vk public_input_vec |> Js.bool
+
+    module Keypair = struct
+      let get_vk t = Impl.Keypair.vk t
+
+      let get_cs_json t =
+        (Impl.Keypair.pk t).index |> prover_to_json |> json_parse
+    end
+  end
 end
 
 let snarky =
@@ -1544,44 +1620,25 @@ let snarky =
     method runUnchecked = Snarky.run_unchecked
 
     method constraintSystem = Snarky.constraint_system
+
+    val circuit =
+      object%js
+        method compile = Snarky.Circuit.compile
+
+        method prove = Snarky.Circuit.prove
+
+        method verify = Snarky.Circuit.verify
+
+        val keypair =
+          object%js
+            method getVerificationKey = Snarky.Circuit.Keypair.get_vk
+
+            method getConstraintSystemJSON = Snarky.Circuit.Keypair.get_cs_json
+          end
+      end
   end
 
 (* helpers for pickles_compile *)
-
-type 'a public_input = 'a array
-
-type public_input_js = field_class Js.t Js.js_array Js.t
-
-type 'proof public_input_with_proof_js =
-  < publicInput : public_input_js Js.prop ; proof : 'proof Js.prop > Js.t
-
-module Public_input = struct
-  type t = Field.t public_input
-
-  let to_field_elements (t : t) : Field.t array = t
-
-  let to_constant (t : t) = Array.map ~f:to_unchecked t
-
-  let to_js (t : t) : public_input_js = Array.map ~f:to_js_field t |> Js.array
-
-  let of_js (a : public_input_js) : t =
-    Js.to_array a |> Array.map ~f:of_js_field
-
-  let list_to_js (public_inputs : t list) =
-    List.map ~f:to_js public_inputs |> Array.of_list |> Js.array
-
-  module Constant = struct
-    type t = Field.Constant.t public_input
-
-    let to_field_elements (t : t) : Field.Constant.t array = t
-
-    let to_js (t : t) : public_input_js =
-      Array.map ~f:to_js_field_unchecked t |> Js.array
-
-    let of_js (a : public_input_js) : t =
-      Js.to_array a |> Array.map ~f:of_js_field_unchecked
-  end
-end
 
 let public_input_typ (i : int) = Typ.array ~length:i Field.typ
 
@@ -1819,8 +1876,8 @@ module Choices = struct
                           (fun (type a1 a2 a3 a4 b3 b4)
                                (tag : (a1, a2, a3, a4) Pickles.Tag.t)
                                (self :
-                                 ( Field.t public_input
-                                 , Impl.field public_input
+                                 ( Field.t array
+                                 , Impl.field array
                                  , b3
                                  , b4 )
                                  Pickles.Tag.t ) ->
@@ -2085,7 +2142,7 @@ let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
       let to_prev (previous : Proof.t public_input_with_proof_js) =
         (Public_input.Constant.of_js previous##.publicInput, previous##.proof)
       in
-      let prevs : (Field.Constant.t public_input * Proof.t) array =
+      let prevs : (Field.Constant.t array * Proof.t) array =
         prevs_js |> Js.to_array |> Array.map ~f:to_prev
       in
       let public_input =

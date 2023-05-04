@@ -234,6 +234,10 @@ export default [
         name: 'constraintSystem',
         type: 'function',
       },
+      {
+        name: 'circuit',
+        type: 'object',
+      },
     ],
   },
   {
