@@ -99,6 +99,8 @@ const Provable = {
     return value;
   },
 
+  if: if_,
+
   /**
    * Generalization of `Circuit.if` for choosing between more than two different cases.
    * It takes a "mask", which is an array of `Bool`s that contains only one `true` element, a type/constructor, and an array of values of that type.
@@ -142,10 +144,10 @@ const Provable = {
     }
     let aux = auxiliary(type as Provable<T>, () => {
       let i = mask.findIndex((b) => b.toBoolean());
-      if (i === -1) return type.toAuxiliary();
-      return type.toAuxiliary(values[i]);
+      if (i === -1) return undefined;
+      return values[i];
     });
-    return type.fromFields(fields, aux) as T;
+    return (type as Provable<T>).fromFields(fields, aux);
   },
 
   assertEqual,
@@ -297,12 +299,12 @@ function assertEqual<T>(type: FlexibleProvable<T>, x: T, y: T): void;
 function assertEqual<T extends ToFieldable>(x: T, y: T): void;
 function assertEqual(typeOrX: any, xOrY: any, yOrUndefined?: any) {
   if (yOrUndefined === undefined) {
-    return assertEqualInstance(typeOrX, xOrY);
+    return assertEqualImplicit(typeOrX, xOrY);
   } else {
-    return assertEqualStruct(typeOrX, xOrY, yOrUndefined);
+    return assertEqualExplicit(typeOrX, xOrY, yOrUndefined);
   }
 }
-function assertEqualInstance<T extends ToFieldable>(x: T, y: T) {
+function assertEqualImplicit<T extends ToFieldable>(x: T, y: T) {
   let xs = x.toFields();
   let ys = y.toFields();
   let n = checkLength('Provable.assertEqual', xs, ys);
@@ -310,7 +312,7 @@ function assertEqualInstance<T extends ToFieldable>(x: T, y: T) {
     xs[i].assertEquals(ys[i]);
   }
 }
-function assertEqualStruct<T>(type: Provable<T>, x: T, y: T) {
+function assertEqualExplicit<T>(type: Provable<T>, x: T, y: T) {
   let xs = type.toFields(x);
   let ys = type.toFields(y);
   for (let i = 0; i < xs.length; i++) {
@@ -332,21 +334,89 @@ function equal<T>(type: FlexibleProvable<T>, x: T, y: T): Bool;
 function equal<T extends ToFieldable>(x: T, y: T): Bool;
 function equal(typeOrX: any, xOrY: any, yOrUndefined?: any) {
   if (yOrUndefined === undefined) {
-    return equalInstance(typeOrX, xOrY);
+    return equalImplicit(typeOrX, xOrY);
   } else {
-    return equalStruct(typeOrX, xOrY, yOrUndefined);
+    return equalExplicit(typeOrX, xOrY, yOrUndefined);
   }
 }
-function equalInstance<T extends ToFieldable>(x: T, y: T) {
+// TODO: constraints can be reduced by 2-3x for large structures by using a variant
+// of the `equals` argument where we return 1 - z(x0 - y0)(x1 - y1)...(xn - yn)
+// current version will do (1 - z0(x0 - y0))(1 - z1(x1 - y1))... + constrain each factor
+function equalImplicit<T extends ToFieldable>(x: T, y: T) {
   let xs = x.toFields();
   let ys = y.toFields();
   checkLength('Provable.equal', xs, ys);
   return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
 }
-function equalStruct<T>(type: Provable<T>, x: T, y: T) {
+function equalExplicit<T>(type: Provable<T>, x: T, y: T) {
   let xs = type.toFields(x);
   let ys = type.toFields(y);
   return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
+}
+
+/**
+ * Circuit-compatible if-statement.
+ * @example
+ * ```ts
+ * const condition = Bool(true);
+ * const result = Circuit.if(condition, Field(1), Field(2)); // Returns Field(1)
+ * ```
+ */
+function if_<T>(condition: Bool, type: FlexibleProvable<T>, x: T, y: T): T;
+function if_<T extends ToFieldable>(condition: Bool, x: T, y: T): T;
+function if_(condition: Bool, typeOrX: any, xOrY: any, yOrUndefined?: any) {
+  if (yOrUndefined === undefined) {
+    return ifImplicit(condition, typeOrX, xOrY);
+  } else {
+    return ifExplicit(condition, typeOrX, xOrY, yOrUndefined);
+  }
+}
+
+function ifField(b: Field, x: Field, y: Field) {
+  // b*(x - y) + y
+  // NOTE: the R1CS constraint used by Field.if_ in snarky-ml
+  // leads to a different but equivalent layout (same # constraints)
+  // https://github.com/o1-labs/snarky/blob/14f8e2ff981a9c9ea48c94b2cc1d8c161301537b/src/base/utils.ml#L171
+  // in the case x, y are constant, the layout is the same
+  return b.mul(x.sub(y)).add(y).seal();
+}
+
+function ifExplicit<T>(condition: Bool, type: Provable<T>, x: T, y: T): T {
+  let xs = type.toFields(x);
+  let ys = type.toFields(y);
+  let b = condition.toField();
+
+  // simple case: b is constant - it's like a normal if statement
+  if (b.isConstant()) {
+    return clone(type, condition.toBoolean() ? x : y);
+  }
+
+  // if b is variable, we compute if as follows:
+  // if(b, x, y)[i] = b*(x[i] - y[i]) + y[i]
+  let fields = xs.map((xi, i) => ifField(b, xi, ys[i]));
+  let aux = auxiliary(type, () => (condition.toBoolean() ? x : y));
+  return type.fromFields(fields, aux);
+}
+
+function ifImplicit<T extends ToFieldable>(condition: Bool, x: T, y: T): T {
+  let type = x.constructor;
+  if (type === undefined)
+    throw Error(
+      `You called Provable.if(bool, x, y) with an argument x that has no constructor, which is not supported.\n` +
+        `If x, y are Structs or other custom types, you can use the following:\n` +
+        `Provable.if(bool, MyType, x, y)`
+    );
+  if (type !== y.constructor)
+    throw Error(
+      'Provable.if: Mismatched argument types. Try using an explicit type argument:\n' +
+        `Provable.if(bool, MyType, x, y)`
+    );
+  if (!('fromFields' in type && 'toFields' in type && 'toAuxiliary' in type))
+    throw Error(
+      'Provable.if: Invalid argument type. Try using an explicit type argument:\n' +
+        `Provable.if(bool, MyType, x, y)`
+    );
+  return ifExplicit(condition, type as any as Provable<T>, x, y);
 }
 
 // helpers
@@ -380,10 +450,14 @@ function clone<T, S extends FlexibleProvable<T>>(type: S, value: T): T {
   return (type as Provable<T>).fromFields(fields, aux);
 }
 
-function auxiliary<T>(type: FlexibleProvable<T>, compute: () => any[]) {
+function auxiliary<T>(type: Provable<T>, compute: () => T | undefined) {
   let aux;
-  if (inCheckedComputation()) Provable.asProver(() => (aux = compute()));
-  else aux = compute();
+  Provable.asProver(() => {
+    let value = compute();
+    if (value !== undefined) {
+      aux = type.toAuxiliary(value);
+    }
+  });
   return aux ?? type.toAuxiliary();
 }
 

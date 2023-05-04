@@ -4,8 +4,8 @@ import {
   ProvablePure,
   SnarkyProof,
   SnarkyVerificationKey,
+  Circuit as SnarkyCircuit,
 } from '../snarky.js';
-import { SnarkyCircuit } from './circuit_value.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
 import { Provable, gatesFromJson } from './provable.js';
 
@@ -74,7 +74,7 @@ class Circuit {
     return gatesFromJson(keypair.constraintSystemJSON()).gates;
   }
 
-  // utility namespace
+  // utility namespace, moved to `Provable`
 
   /**
    * @deprecated use {@link Provable.witness}
@@ -109,14 +109,9 @@ class Circuit {
    */
   static equal = Provable.equal;
   /**
-   * Circuit-compatible if-statement.
-   * @example
-   * ```ts
-   * const condition = Bool(true);
-   * const result = Circuit.if(condition, Field(1), Field(2)); // Returns Field(1)
-   * ```
+   * @deprecated use {@link Provable.if}
    */
-  static if = SnarkyCircuit.if;
+  static if = Provable.if;
   /**
    * @deprecated use {@link Provable.switch}
    */

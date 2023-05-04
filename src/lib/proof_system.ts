@@ -1,12 +1,5 @@
 import { withThreadPool } from '../bindings/js/wrapper.js';
-import {
-  Bool,
-  Field,
-  ProvablePure,
-  Pickles,
-  Circuit,
-  Poseidon,
-} from '../snarky.js';
+import { Bool, Field, ProvablePure, Pickles, Poseidon } from '../snarky.js';
 import {
   FlexibleProvable,
   FlexibleProvablePure,

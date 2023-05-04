@@ -6,7 +6,6 @@ export {
   Scalar,
   ProvablePure,
   Provable,
-  Circuit,
   CircuitMain,
   Poseidon,
   Keypair,
@@ -20,6 +19,7 @@ export {
 // internal
 export {
   Snarky,
+  Circuit,
   Test,
   Proof as SnarkyProof,
   VerificationKey as SnarkyVerificationKey,
@@ -779,15 +779,6 @@ type Gate = {
  * The {@link Circuit} API is a low level interface to interact and build circuits with
  */
 declare class Circuit {
-  /**
-   * Circuit-compatible if-statement.
-   */
-  static if<T>(b: Bool | boolean, ctor: ProvablePure<T>, x: T, y: T): T;
-  /**
-   * Circuit-compatible if-statement.
-   */
-  static if<T>(b: Bool | boolean, x: T, y: T): T;
-
   /**
    * Generates a proving key and a verification key for this circuit.
    */

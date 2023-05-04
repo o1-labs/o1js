@@ -1,9 +1,6 @@
 import {
   Bool,
-  Circuit,
   Provable,
-  isReady,
-  shutdown,
   Int64,
   Struct,
   Field,
@@ -12,11 +9,49 @@ import {
 } from 'snarkyjs';
 
 describe('circuit', () => {
-  beforeAll(() => isReady);
-  afterAll(() => setTimeout(shutdown, 0));
+  it('Provable.if out of snark', () => {
+    let x = Provable.if(Bool(false), Int64, Int64.from(-1), Int64.from(-2));
+    expect(x.toString()).toBe('-2');
+  });
 
-  it('Circuit.switch picks the right value', () => {
-    const x = Circuit.switch([Bool(false), Bool(true), Bool(false)], Int64, [
+  it('Provable.if in snark', () => {
+    Provable.runAndCheck(() => {
+      let x = Provable.witness(Int64, () => Int64.from(-1));
+      let y = Provable.witness(Int64, () => Int64.from(-2));
+      let b = Provable.witness(Bool, () => Bool(true));
+
+      let z = Provable.if(b, Int64, x, y);
+
+      Provable.assertEqual(z, Int64.from(-1));
+      Provable.asProver(() => {
+        expect(z.toString()).toBe('-1');
+      });
+
+      z = Provable.if(b, Int64, Int64.from(99), y);
+
+      Provable.assertEqual(z, Int64.from(99));
+      Provable.asProver(() => {
+        expect(z.toString()).toBe('99');
+      });
+
+      z = Provable.if(b.not(), Int64, Int64.from(99), y);
+
+      Provable.assertEqual(z, Int64.from(-2));
+      Provable.asProver(() => {
+        expect(z.toString()).toBe('-2');
+      });
+
+      z = Provable.if(Bool(false), Int64, x, y);
+
+      Provable.assertEqual(z, Int64.from(-2));
+      Provable.asProver(() => {
+        expect(z.toString()).toBe('-2');
+      });
+    });
+  });
+
+  it('Provable.switch picks the right value', () => {
+    const x = Provable.switch([Bool(false), Bool(true), Bool(false)], Int64, [
       Int64.from(-1),
       Int64.from(-2),
       Int64.from(-3),
@@ -24,8 +59,8 @@ describe('circuit', () => {
     expect(x.toString()).toBe('-2');
   });
 
-  it('Circuit.switch returns 0 if the mask has only false elements', () => {
-    const x = Circuit.switch([Bool(false), Bool(false), Bool(false)], Int64, [
+  it('Provable.switch returns 0 if the mask has only false elements', () => {
+    const x = Provable.switch([Bool(false), Bool(false), Bool(false)], Int64, [
       Int64.from(-1),
       Int64.from(-2),
       Int64.from(-3),
@@ -33,9 +68,9 @@ describe('circuit', () => {
     expect(x.toString()).toBe('0');
   });
 
-  it('Circuit.switch throws when mask has >1 true elements', () => {
+  it('Provable.switch throws when mask has >1 true elements', () => {
     expect(() =>
-      Circuit.switch([Bool(true), Bool(true), Bool(false)], Int64, [
+      Provable.switch([Bool(true), Bool(true), Bool(false)], Int64, [
         Int64.from(-1),
         Int64.from(-2),
         Int64.from(-3),
@@ -121,7 +156,7 @@ describe('circuit', () => {
     const serialized = MyStruct.toJSON(original);
     const reconstructed = MyStruct.fromJSON(serialized);
 
-    Circuit.assertEqual<MyStruct>(MyStruct, original, reconstructed);
+    Provable.assertEqual<MyStruct>(MyStruct, original, reconstructed);
   });
 
   it('can serialize nested Struct', async () => {
@@ -152,7 +187,7 @@ describe('circuit', () => {
     const serialized = MyStruct.toJSON(original);
     const reconstructed = MyStruct.fromJSON(serialized);
 
-    Circuit.assertEqual(MyStruct, original, reconstructed);
+    Provable.assertEqual(MyStruct, original, reconstructed);
     expect(reconstructed.toString()).toEqual(original.toString());
   });
 });

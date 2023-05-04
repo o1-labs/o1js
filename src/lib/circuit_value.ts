@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Circuit as SnarkyCircuit, ProvablePure } from '../snarky.js';
+import { ProvablePure } from '../snarky.js';
 import { Field, Bool } from './core.js';
 import {
   provable,
@@ -29,7 +29,6 @@ export {
 
 // internal API
 export {
-  SnarkyCircuit,
   AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,

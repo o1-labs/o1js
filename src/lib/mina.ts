@@ -1,4 +1,4 @@
-import { Circuit, Ledger } from '../snarky.js';
+import { Ledger } from '../snarky.js';
 import { Field } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -207,9 +207,9 @@ function createTransaction(
 
   // run circuit
   // we have this while(true) loop because one of the smart contracts we're calling inside `f` might be calling
-  // SmartContract.analyzeMethods, which would be running its methods again inside `Circuit.constraintSystem`, which
-  // would throw an error when nested inside `Circuit.runAndCheck`. So if that happens, we have to run `analyzeMethods` first
-  // and retry `Circuit.runAndCheck(f)`. Since at this point in the function, we don't know which smart contracts are involved,
+  // SmartContract.analyzeMethods, which would be running its methods again inside `Provable.constraintSystem`, which
+  // would throw an error when nested inside `Provable.runAndCheck`. So if that happens, we have to run `analyzeMethods` first
+  // and retry `Provable.runAndCheck(f)`. Since at this point in the function, we don't know which smart contracts are involved,
   // we created that hack with a `bootstrap()` function that analyzeMethods sticks on the error, to call itself again.
   try {
     let err: any;

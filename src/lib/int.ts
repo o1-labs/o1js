@@ -1,4 +1,4 @@
-import { Circuit, Field, Bool } from '../snarky.js';
+import { Field, Bool } from '../snarky.js';
 import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
@@ -58,7 +58,7 @@ class UInt64 extends CircuitValue {
    */
   toUInt32Clamped() {
     let max = (1n << 32n) - 1n;
-    return Circuit.if(
+    return Provable.if(
       this.greaterThan(UInt64.from(max)),
       UInt32.from(max),
       new UInt32(this.value)
@@ -932,7 +932,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   mod(y: UInt64 | number | string | bigint | UInt32) {
     let y_ = UInt64.from(y);
     let rest = this.magnitude.divMod(y_).rest.value;
-    rest = Circuit.if(this.isPositive(), rest, y_.value.sub(rest));
+    rest = Provable.if(this.isPositive(), rest, y_.value.sub(rest));
     return new Int64(new UInt64(rest));
   }
 
