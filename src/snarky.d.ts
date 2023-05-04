@@ -52,8 +52,14 @@ declare interface ProvablePure<T> extends Provable<T> {
   check: (x: T) => void;
 }
 
+declare namespace Snarky {
+  type Keypair = unknown;
+  type VerificationKey = unknown;
+  type Proof = unknown;
+}
+
 /**
- * Internal API interface to snarky-ml
+ * Internal interface to snarky-ml
  *
  * Note for devs: This module is intended to closely mirror snarky-ml's core, low-level APIs.
  */
@@ -80,7 +86,48 @@ declare const Snarky: {
   constraintSystem(f: () => void): {
     rows: number;
     digest: string;
-    json: { gates: JsonGate[]; public_input_size: number };
+    json: JsonConstraintSystem;
+  };
+
+  /**
+   * The circuit API is a low level interface to create zero-knowledge proofs
+   */
+  circuit: {
+    /**
+     * Generates a proving key and a verification key for the provable function `main`
+     */
+    compile(
+      main: (publicInput: Field[]) => void,
+      publicInputSize: number
+    ): Snarky.Keypair;
+
+    /**
+     * Proves a statement using the private input, public input and the keypair of the circuit.
+     */
+    prove(
+      main: (publicInput: Field[]) => void,
+      publicInputSize: number,
+      publicInput: Field[],
+      keypair: Snarky.Keypair
+    ): Snarky.Proof;
+
+    /**
+     * Verifies a proof using the public input, the proof and the verification key of the circuit.
+     */
+    verify(
+      publicInput: Field[],
+      proof: Snarky.Proof,
+      verificationKey: Snarky.VerificationKey
+    ): boolean;
+
+    keypair: {
+      getVerificationKey(keypair: Snarky.Keypair): Snarky.VerificationKey;
+      /**
+       * Returns a low-level JSON representation of the circuit:
+       * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
+       */
+      getConstraintSystemJSON(keypair: Snarky.Keypair): JsonConstraintSystem;
+    };
   };
 };
 
@@ -89,6 +136,7 @@ type JsonGate = {
   wires: { row: number; col: number }[];
   coeffs: number[][];
 };
+type JsonConstraintSystem = { gates: JsonGate[]; public_input_size: number };
 
 /**
  * An element of a finite field.

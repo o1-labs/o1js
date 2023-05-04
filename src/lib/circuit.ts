@@ -1,11 +1,6 @@
 import { snarkContext } from './proof_system.js';
-import {
-  Keypair,
-  ProvablePure,
-  SnarkyProof,
-  SnarkyVerificationKey,
-  Circuit as SnarkyCircuit,
-} from '../snarky.js';
+import { ProvablePure, Snarky } from '../snarky.js';
+import { Field } from './core.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
 import { Provable, gatesFromJson } from './provable.js';
 
@@ -15,30 +10,43 @@ export { public_, circuitMain, Circuit };
 class Circuit {
   // circuit-writing interface
 
+  static _main: CircuitData<any, any>;
+
   /**
    * Generates a proving key and a verification key for this circuit.
    * @example
    * ```ts
-   * const keypair = await Circuit.generateKeypair();
+   * const keypair = await MyCircuit.generateKeypair();
    * ```
    */
   static generateKeypair() {
-    return withThreadPool(async () =>
-      SnarkyCircuit.generateKeypair(this as any)
-    );
+    let main = mainFromCircuitData(this._main);
+    let publicInputSize = this._main.publicInputType.sizeInFields();
+    return withThreadPool(async () => {
+      let keypair = Snarky.circuit.compile(main, publicInputSize);
+      return new Keypair(keypair);
+    });
   }
 
   /**
    * Proves a statement using the private input, public input, and the {@link Keypair} of the circuit.
    * @example
    * ```ts
-   * const keypair = await Circuit.generateKeypair();
-   * const proof = await Circuit.prove(privateInput, publicInput, keypair);
+   * const keypair = await MyCircuit.generateKeypair();
+   * const proof = await MyCircuit.prove(privateInput, publicInput, keypair);
    * ```
    */
   static prove(privateInput: any[], publicInput: any[], keypair: Keypair) {
+    let main = mainFromCircuitData(this._main, privateInput);
+    let publicInputSize = this._main.publicInputType.sizeInFields();
+    let publicInputFields = this._main.publicInputType.toFields(publicInput);
     return withThreadPool(async () =>
-      SnarkyCircuit.prove(this as any, privateInput, publicInput, keypair)
+      Snarky.circuit.prove(
+        main,
+        publicInputSize,
+        publicInputFields,
+        keypair.value
+      )
     );
   }
 
@@ -46,32 +54,20 @@ class Circuit {
    * Verifies a proof using the public input, the proof, and the initial {@link Keypair} of the circuit.
    * @example
    * ```ts
-   * const keypair = await Circuit.generateKeypair();
-   * const proof = await Circuit.prove(privateInput, publicInput, keypair);
-   * const isValid = await Circuit.verify(publicInput, keypair.vk, proof);
+   * const keypair = await MyCircuit.generateKeypair();
+   * const proof = await MyCircuit.prove(privateInput, publicInput, keypair);
+   * const isValid = await MyCircuit.verify(publicInput, keypair.vk, proof);
    * ```
    */
   static verify(
     publicInput: any[],
-    vk: SnarkyVerificationKey,
-    proof: SnarkyProof
+    verificationKey: Snarky.VerificationKey,
+    proof: Snarky.Proof
   ) {
+    let publicInputFields = this._main.publicInputType.toFields(publicInput);
     return withThreadPool(async () =>
-      SnarkyCircuit.verify(publicInput, vk, proof)
+      Snarky.circuit.verify(publicInputFields, proof, verificationKey)
     );
-  }
-
-  /**
-   * Returns a low-level JSON representation of the {@link Circuit} from its {@link Keypair}:
-   * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
-   * @example
-   * ```ts
-   * const keypair = await Circuit.generateKeypair();
-   * const jsonRepresentation = Circuit.constraintSystemFromKeypair(keypair);
-   * ```
-   */
-  static constraintSystemFromKeypair(keypair: Keypair) {
-    return gatesFromJson(keypair.constraintSystemJSON()).gates;
   }
 
   // utility namespace, moved to `Provable`
@@ -130,6 +126,33 @@ class Circuit {
   static log = Provable.log;
 }
 
+class Keypair {
+  value: Snarky.Keypair;
+
+  constructor(value: Snarky.Keypair) {
+    this.value = value;
+  }
+
+  verificationKey() {
+    return Snarky.circuit.keypair.getVerificationKey(this.value);
+  }
+
+  /**
+   * Returns a low-level JSON representation of the {@link Circuit} from its {@link Keypair}:
+   * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
+   * @example
+   * ```ts
+   * const keypair = await MyCircuit.generateKeypair();
+   * const json = MyCircuit.constraintSystemFromKeypair(keypair);
+   * ```
+   */
+  constraintSystem() {
+    return gatesFromJson(
+      Snarky.circuit.keypair.getConstraintSystemJSON(this.value)
+    ).gates;
+  }
+}
+
 function public_(target: any, _key: string | symbol, index: number) {
   // const fieldType = Reflect.getMetadata('design:paramtypes', target, key);
 
@@ -139,6 +162,68 @@ function public_(target: any, _key: string | symbol, index: number) {
   target._public.push(index);
 }
 
+type CircuitData<P, W> = {
+  main(publicInput: P, privateInput: W): void;
+  publicInputType: ProvablePure<P>;
+  privateInputType: ProvablePure<W>;
+};
+
+function mainFromCircuitData<P, W>(
+  data: CircuitData<P, W>,
+  privateInput?: W
+): (publicInput: Field[]) => void {
+  return function main(publicInputFields: Field[]) {
+    let id = snarkContext.enter({ inCheckedComputation: true });
+    try {
+      let publicInput = data.publicInputType.fromFields(publicInputFields);
+      let privateInput_ = Provable.witness(
+        data.privateInputType,
+        () => privateInput as W
+      );
+      data.main(publicInput, privateInput_);
+    } finally {
+      snarkContext.leave(id);
+    }
+  };
+}
+
+function circuitMain(
+  target: typeof Circuit,
+  propertyName: string,
+  _descriptor?: PropertyDescriptor
+): any {
+  const paramTypes = Reflect.getMetadata(
+    'design:paramtypes',
+    target,
+    propertyName
+  );
+  const numArgs = paramTypes.length;
+
+  const publicIndexSet: Set<number> = new Set((target as any)._public);
+  const witnessIndexSet: Set<number> = new Set();
+  for (let i = 0; i < numArgs; ++i) {
+    if (!publicIndexSet.has(i)) witnessIndexSet.add(i);
+  }
+
+  target._main = {
+    main(publicInput: any[], privateInput: any[]) {
+      let args = [];
+      for (let i = 0; i < numArgs; ++i) {
+        let nextInput = publicIndexSet.has(i) ? publicInput : privateInput;
+        args.push(nextInput.shift());
+      }
+      return (target as any)[propertyName].apply(target, args);
+    },
+    publicInputType: provableFromTuple(
+      Array.from(publicIndexSet).map((i) => paramTypes[i])
+    ),
+    privateInputType: provableFromTuple(
+      Array.from(witnessIndexSet).map((i) => paramTypes[i])
+    ),
+  };
+}
+
+// TODO support auxiliary data
 function provableFromTuple(typs: ProvablePure<any>[]): ProvablePure<any> {
   return {
     sizeInFields: () => {
@@ -149,7 +234,6 @@ function provableFromTuple(typs: ProvablePure<any>[]): ProvablePure<any> {
       if (t.length !== typs.length) {
         throw new Error(`typOfArray: Expected ${typs.length}, got ${t.length}`);
       }
-
       let res = [];
       for (let i = 0; i < t.length; ++i) {
         res.push(...typs[i].toFields(t[i]));
@@ -176,47 +260,4 @@ function provableFromTuple(typs: ProvablePure<any>[]): ProvablePure<any> {
       typs.forEach((typ, i) => (typ as any).check(xs[i]));
     },
   };
-}
-
-function circuitMain(
-  target: any,
-  propertyName: string,
-  _descriptor?: PropertyDescriptor
-): any {
-  const paramTypes = Reflect.getMetadata(
-    'design:paramtypes',
-    target,
-    propertyName
-  );
-  const numArgs = paramTypes.length;
-
-  const publicIndexSet: Set<number> = new Set(target._public);
-  const witnessIndexSet: Set<number> = new Set();
-  for (let i = 0; i < numArgs; ++i) {
-    if (!publicIndexSet.has(i)) {
-      witnessIndexSet.add(i);
-    }
-  }
-
-  target.snarkyMain = (w: Array<any>, pub: Array<any>) => {
-    let [, result] = snarkContext.runWith(
-      { inCheckedComputation: true },
-      () => {
-        let args = [];
-        for (let i = 0; i < numArgs; ++i) {
-          args.push((publicIndexSet.has(i) ? pub : w).shift());
-        }
-
-        return target[propertyName].apply(target, args);
-      }
-    );
-    return result;
-  };
-
-  target.snarkyWitnessTyp = provableFromTuple(
-    Array.from(witnessIndexSet).map((i) => paramTypes[i])
-  );
-  target.snarkyPublicTyp = provableFromTuple(
-    Array.from(publicIndexSet).map((i) => paramTypes[i])
-  );
 }
