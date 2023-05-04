@@ -5,7 +5,7 @@ import { withThreadPool } from '../bindings/js/wrapper.js';
 import { Provable, gatesFromJson } from './provable.js';
 
 // external API
-export { public_, circuitMain, Circuit };
+export { public_, circuitMain, Circuit, Keypair, Proof, VerificationKey };
 
 class Circuit {
   // circuit-writing interface

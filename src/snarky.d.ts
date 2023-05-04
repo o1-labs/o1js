@@ -6,9 +6,7 @@ export {
   Scalar,
   ProvablePure,
   Provable,
-  CircuitMain,
   Poseidon,
-  Keypair,
   Ledger,
   isReady,
   shutdown,
@@ -17,14 +15,7 @@ export {
 };
 
 // internal
-export {
-  Snarky,
-  Circuit,
-  Test,
-  Proof as SnarkyProof,
-  VerificationKey as SnarkyVerificationKey,
-  JsonGate,
-};
+export { Snarky, Test, JsonGate };
 
 /**
  * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
@@ -811,42 +802,11 @@ declare class Bool {
   static sizeInBytes(): number;
 }
 
-type CircuitMain<W, P> = {
-  snarkyWitnessTyp: ProvablePure<W>;
-  snarkyPublicTyp: ProvablePure<P>;
-  snarkyMain: (w: W, p: P) => void;
-};
-
 type Gate = {
   type: string;
   wires: { row: number; col: number }[];
   coeffs: string[];
 };
-
-/**
- * The {@link Circuit} API is a low level interface to interact and build circuits with
- */
-declare class Circuit {
-  /**
-   * Generates a proving key and a verification key for this circuit.
-   */
-  static generateKeypair(circuit: CircuitMain<any, any>): Keypair;
-
-  /**
-   * Proves a statement using the private input, public input and the {@link Keypair} of the circuit.
-   */
-  static prove(
-    circuit: CircuitMain<any, any>,
-    privateInput: any[],
-    publicInput: any[],
-    kp: Keypair
-  ): Proof;
-
-  /**
-   * Verifies a proof using the public input, the proof and the initial {@link Keypair} of the circuit.
-   */
-  static verify(publicInput: any[], vk: VerificationKey, pi: Proof): boolean;
-}
 
 /**
  * Represents a {@link Scalar}.
@@ -1091,30 +1051,6 @@ declare const Poseidon: {
   spongeAbsorb(sponge: unknown, x: Field): void;
   spongeSqueeze(sponge: unknown): Field;
 };
-
-/**
- * Part of the circuit {@link Keypair}. A verification key can be used to verify a {@link Proof} when you provide the correct public input.
- */
-declare class VerificationKey {}
-
-/**
- * Contains a proving key and {@link VerificationKey} which can be used to verify proofs.
- */
-declare class Keypair {
-  verificationKey(): VerificationKey;
-  /**
-   * Returns a low-level JSON representation of the `Circuit`:
-   * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
-   */
-  constraintSystemJSON(): { gates: JsonGate[]; public_input_size: number };
-}
-
-/**
- * Proofs can be verified using a {@link VerificationKey} and the public input.
- */
-declare class Proof {
-  verify(verificationKey: VerificationKey, publicInput: any[]): boolean;
-}
 
 // these types should be implemented by corresponding snarkyjs classes
 type PublicKey_ = { x: Field; isOdd: Bool };
