@@ -53,27 +53,21 @@ const Poseidon = {
     // y = sqrt(y^2)
     let { x, y } = Poseidon_.hashToGroup(input, isChecked);
 
-    let { x0, x1 } = Circuit.witness(provable({ x0: Field, x1: Field }), () => {
+    let x0 = Circuit.witness(Field, () => {
       // the even root of y^2 will become x0, so the APIs are uniform
       let isEven = y.toBigInt() % 2n === 0n;
 
-      // r is the second root of sqrt(y^2)
-      let r = y.mul(-1);
-      // we just change the order so the even root is x0 and the odd x1
-      return isEven ? { x0: y, x1: r } : { x0: r, x1: y };
+      // we just change the order so the even root is x0
+      // y.mul(-1); is the second root of sqrt(y^2)
+      return isEven ? y : y.mul(-1);
     });
+
+    let x1 = x0.mul(-1);
 
     // we check that either x0 or x1 match the original root y
     y.equals(x0).or(y.equals(x1)).assertTrue();
 
-    // and then we check that either x0 or x1 is the expected second root of y^2
-    let y_ = y.mul(-1);
-    y_.equals(x0).or(y_.equals(x1)).assertTrue();
-
-    return {
-      x,
-      y: { x0, x1 },
-    };
+    return { x, y: { x0, x1 } };
   },
 
   update(state: [Field, Field, Field], input: Field[]) {
