@@ -16,8 +16,8 @@ class Nullifier extends Struct({
     h_m_pk_r: Group,
   },
 }) {
-  static fromJSON(json: any): Nullifier {
-    return super.fromJSON(json) as Nullifier;
+  static fromJSON(json: JsonNullifier): Nullifier {
+    return super.fromJSON(json as any) as Nullifier;
   }
 
   verify() {

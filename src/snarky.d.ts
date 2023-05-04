@@ -522,7 +522,7 @@ declare class Field {
    * Deserialize a JSON structure into a {@link Field}.
    * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
-  static fromJSON(x: string): Field;
+  static fromJSON(x: number | boolean | string | bigint): Field;
 
   static check(x: Field): void;
 
