@@ -21,6 +21,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - `Poseidon.hashToGroup` enables hashing to a group https://github.com/o1-labs/snarkyjs/pull/887
 - Implemented `Nullifier` as a new primitive https://github.com/o1-labs/snarkyjs/pull/882
+  - mina-signer can now be used to generate a Nullifier, which can be consumed by zkApps using the newly added Nullifier Struct
 
 ## [0.10.0](https://github.com/o1-labs/snarkyjs/compare/97e393ed...bcc666f2)
 
