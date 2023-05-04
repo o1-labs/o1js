@@ -40,14 +40,15 @@ class Circuit {
     let main = mainFromCircuitData(this._main, privateInput);
     let publicInputSize = this._main.publicInputType.sizeInFields();
     let publicInputFields = this._main.publicInputType.toFields(publicInput);
-    return withThreadPool(async () =>
-      Snarky.circuit.prove(
+    return withThreadPool(async () => {
+      let proof = Snarky.circuit.prove(
         main,
         publicInputSize,
         publicInputFields,
         keypair.value
-      )
-    );
+      );
+      return new Proof(proof);
+    });
   }
 
   /**
@@ -61,12 +62,16 @@ class Circuit {
    */
   static verify(
     publicInput: any[],
-    verificationKey: Snarky.VerificationKey,
-    proof: Snarky.Proof
+    verificationKey: VerificationKey,
+    proof: Proof
   ) {
     let publicInputFields = this._main.publicInputType.toFields(publicInput);
     return withThreadPool(async () =>
-      Snarky.circuit.verify(publicInputFields, proof, verificationKey)
+      Snarky.circuit.verify(
+        publicInputFields,
+        proof.value,
+        verificationKey.value
+      )
     );
   }
 
@@ -134,7 +139,9 @@ class Keypair {
   }
 
   verificationKey() {
-    return Snarky.circuit.keypair.getVerificationKey(this.value);
+    return new VerificationKey(
+      Snarky.circuit.keypair.getVerificationKey(this.value)
+    );
   }
 
   /**
@@ -150,6 +157,28 @@ class Keypair {
     return gatesFromJson(
       Snarky.circuit.keypair.getConstraintSystemJSON(this.value)
     ).gates;
+  }
+}
+
+/**
+ * Proofs can be verified using a {@link VerificationKey} and the public input.
+ */
+class Proof {
+  value: Snarky.Proof;
+
+  constructor(value: Snarky.Proof) {
+    this.value = value;
+  }
+}
+
+/**
+ * Part of the circuit {@link Keypair}. A verification key can be used to verify a {@link Proof} when you provide the correct public input.
+ */
+class VerificationKey {
+  value: Snarky.VerificationKey;
+
+  constructor(value: Snarky.VerificationKey) {
+    this.value = value;
   }
 }
 
