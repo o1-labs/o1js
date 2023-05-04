@@ -575,6 +575,8 @@ let () =
                      Kimchi_pasta.Pasta.Fp.(of_bigint (Bigint.of_hex_string s))
                    else Field.Constant.of_string s ) )
             with Failure _ -> None )
+      | "bigint" ->
+          return (Obj.magic value)
         | _ ->
             None
       in
@@ -970,8 +972,8 @@ let () =
               else Other_impl.Field.Constant.of_string s )
           with Failure _ -> Js.Opt.empty )
       | _ ->
-          Js.Opt.empty )
-
+          Js.Opt.empty ) 
+  
 let () =
   let mk (x, y) : group_class Js.t =
     new%js group_constr (As_field.of_field x) (As_field.of_field y)
