@@ -411,11 +411,12 @@ function ifImplicit<T extends ToFieldable>(condition: Bool, x: T, y: T): T {
       'Provable.if: Mismatched argument types. Try using an explicit type argument:\n' +
         `Provable.if(bool, MyType, x, y)`
     );
-  if (!('fromFields' in type && 'toFields' in type && 'toAuxiliary' in type))
+  if (!('fromFields' in type && 'toFields' in type)) {
     throw Error(
       'Provable.if: Invalid argument type. Try using an explicit type argument:\n' +
         `Provable.if(bool, MyType, x, y)`
     );
+  }
   return ifExplicit(condition, type as any as Provable<T>, x, y);
 }
 
@@ -446,19 +447,20 @@ function gatesFromJson(cs: { gates: JsonGate[]; public_input_size: number }) {
 
 function clone<T, S extends FlexibleProvable<T>>(type: S, value: T): T {
   let fields = type.toFields(value);
-  let aux = type.toAuxiliary(value);
+  let aux = type.toAuxiliary?.(value) ?? [];
   return (type as Provable<T>).fromFields(fields, aux);
 }
 
 function auxiliary<T>(type: Provable<T>, compute: () => T | undefined) {
   let aux;
+  // TODO: this accepts types without .toAuxiliary(), should be changed when all snarky types are moved to TS
   Provable.asProver(() => {
     let value = compute();
     if (value !== undefined) {
-      aux = type.toAuxiliary(value);
+      aux = type.toAuxiliary?.(value);
     }
   });
-  return aux ?? type.toAuxiliary();
+  return aux ?? type.toAuxiliary?.() ?? [];
 }
 
 let memoizationContext = Context.create<{

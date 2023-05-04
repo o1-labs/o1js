@@ -5,7 +5,8 @@ import {
   provablePure,
 } from './circuit_value.js';
 import { memoizationContext, memoizeWitness, Provable } from './provable.js';
-import { Field, Bool, Ledger, Pickles } from '../snarky.js';
+import { Field, Bool } from './core.js';
+import { Ledger, Pickles } from '../snarky.js';
 import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
 import { Types, toJSONEssential } from '../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
