@@ -194,27 +194,6 @@ export default [
     ],
   },
   {
-    name: 'Circuit',
-    props: [
-      {
-        name: 'generateKeypair',
-        type: 'function',
-      },
-      {
-        name: 'prove',
-        type: 'function',
-      },
-      {
-        name: 'verify',
-        type: 'function',
-      },
-      {
-        name: 'getVerificationKey',
-        type: 'function',
-      },
-    ],
-  },
-  {
     name: 'Snarky',
     props: [
       { name: 'exists', type: 'function' },
@@ -380,14 +359,6 @@ export default [
       },
       {
         name: 'createTokenAccount',
-        type: 'function',
-      },
-      {
-        name: 'hashTransaction',
-        type: 'function',
-      },
-      {
-        name: 'hashTransactionChecked',
         type: 'function',
       },
       {
