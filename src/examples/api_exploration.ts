@@ -1,20 +1,17 @@
 import {
-  isReady,
   Field,
   Bool,
   Group,
-  Circuit,
   Scalar,
   PrivateKey,
   PublicKey,
   Signature,
   Int64,
+  Provable,
+  Struct,
 } from 'snarkyjs';
 
 /* This file demonstrates the classes and functions available in snarkyjs */
-
-// Wait for SnarkyJS to load
-await isReady;
 
 /* # Field */
 
@@ -34,7 +31,7 @@ x1 = Field(37);
 console.assert(x0.equals(x1).toBoolean());
 
 // When initializing with booleans, true corresponds to the field element 1, and false corresponds to 0
-const b = new Field(true);
+const b = Field(true);
 console.assert(b.equals(Field(1)).toBoolean());
 
 /* You can perform arithmetic operations on field elements.
@@ -67,22 +64,22 @@ console.assert(smallBits.length === 32);
 
 /* Another important type is Bool. The Bool type is the in-SNARK representation of booleans.
    They are different from normal booleans in that you cannot write an if-statement whose
-   condition has type Bool. You need to use the Circuit.if function, which is like a value-level
+   condition has type Bool. You need to use the Provable.if function, which is like a value-level
    if (or something like a ternary expression). We will see how that works in a little.
 */
 
 /* Bool values can be initialized using booleans. */
 
-const b0 = new Bool(false);
-const b1 = new Bool(true);
+const b0 = Bool(false);
+const b1 = Bool(true);
 
 /* There are a number of methods available on Bool, like `and`, `or`, and `not`. */
 const b3: Bool = b0.and(b1.not()).or(b1);
 
-/* The most important thing you can do with a Bool is use the `Circuit.if` function
+/* The most important thing you can do with a Bool is use the `Provable.if` function
    to conditionally select a value.
 
-   `Circuit.if` has the type
+   `Provable.if` has the type
 
    ```
    if<T>(
@@ -92,7 +89,7 @@ const b3: Bool = b0.and(b1.not()).or(b1);
    ): T
    ```
 
-   `Circuit.if(b, x, y)` evaluates to `x` if `b` is true, and evalutes to `y` if `b` is false,
+   `Provable.if(b, x, y)` evaluates to `x` if `b` is true, and evalutes to `y` if `b` is false,
    so it works like a ternary if expression `b ? x : y`.
 
    The generic type T can be instantiated to primitive types like Bool, Field, or Group, or
@@ -100,27 +97,27 @@ const b3: Bool = b0.and(b1.not()).or(b1);
    match).
 */
 
-const v: Field = Circuit.if(b0, x0, z);
+const v: Field = Provable.if(b0, x0, z);
 /* b0 is false, so we expect v to be equal to z. */
 console.assert(v.equals(z).toBoolean());
 
-/* As mentioned, we can also use `Circuit.if` with compound types. */
-const c = Circuit.if(
+/* As mentioned, we can also use `Provable.if` with compound types. */
+let CompoundType = Struct({
+  foo: [Field, Field],
+  bar: { x: Field, b: Bool },
+});
+
+const c = Provable.if(
   b1,
-  {
-    foo: [x0, z],
-    bar: { someFieldElt: x1, someBool: b1 },
-  },
-  {
-    foo: [z, x0],
-    bar: { someFieldElt: z, someBool: b0 },
-  }
+  CompoundType,
+  { foo: [x0, z], bar: { x: x1, b: b1 } },
+  { foo: [z, x0], bar: { x: z, b: b0 } }
 );
 
-console.assert(c.bar.someFieldElt.equals(x1).toBoolean());
+console.assert(c.bar.x.equals(x1).toBoolean());
 
-// Circuit.switch is a generalization of Circuit.if, for when you need to distinguish between multiple cases.
-let x = Circuit.switch([Bool(false), Bool(true), Bool(false)], Int64, [
+// Provable.switch is a generalization of Provable.if, for when you need to distinguish between multiple cases.
+let x = Provable.switch([Bool(false), Bool(true), Bool(false)], Int64, [
   Int64.from(1),
   Int64.from(2),
   Int64.from(3),
