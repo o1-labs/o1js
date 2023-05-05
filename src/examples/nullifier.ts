@@ -31,8 +31,8 @@ class PayoutOnlyOnce extends SmartContract {
     );
 
     // we compute the current root and make sure the entry is set to 0 (= unused)
-    let isSet = nullifier.isUnused(nullifierWitness, nullifierRoot);
-    isSet.assertFalse(
+    let isUnused = nullifier.isUnused(nullifierWitness, nullifierRoot);
+    isUnused.assertTrue(
       'Nullifier root does not match on-chain root - the nullifier is either incorrect or has already been set!'
     );
 

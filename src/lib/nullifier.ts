@@ -72,15 +72,13 @@ class Nullifier extends Struct({
    * Checks if the Nullifier has been used before.
    */
   isUnused(witness: MerkleMapWitness, root: Field) {
-    let [hash, key] = witness.computeRootAndKey(Field(0));
-    return hash.equals(root);
+    return witness.computeRootAndKey(Field(0))[0].equals(root);
   }
 
   /**
    * Sets the Nullifier, returns the new Merkle root.
    */
   setUsed(witness: MerkleMapWitness) {
-    let [newRoot] = witness.computeRootAndKey(Field(1));
-    return newRoot;
+    return witness.computeRootAndKey(Field(1))[0];
   }
 }
