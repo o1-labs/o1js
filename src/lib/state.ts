@@ -248,7 +248,7 @@ function createState<T>(): InternalStateType<T> {
       let layout = getLayoutPosition(this._contract);
       let contract = this._contract;
       let inProver_ = inProver();
-      let stateFieldsType = Provable.array(Field, layout.length);
+      let stateFieldsType = Provable.Array(Field, layout.length);
       let stateAsFields = Provable.witness(stateFieldsType, () => {
         let account: Account;
         try {

@@ -99,10 +99,10 @@ const Provable = {
    * Creates a {@link Provable} for a generic array.
    * @example
    * ```ts
-   * const ProvableArray = Provable.array(Field, 5);
+   * const ProvableArray = Provable.Array(Field, 5);
    * ```
    */
-  array: provableArray,
+  Array: provableArray,
   /**
    * Interface to log elements within a circuit. Similar to `console.log()`.
    * @example
@@ -509,6 +509,7 @@ function getBlindingValue() {
   return context.blindingValue;
 }
 
+// TODO this should return a class, like Struct, so you can just use `class Array3 extends Provable.Array(Field, 3) {}`
 function provableArray<A extends FlexibleProvable<any>>(
   elementType: A,
   length: number

@@ -1356,7 +1356,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       ].sort((x, y) => x - y);
 
       let possibleActionTypes = possibleActionsPerTransaction.map((n) =>
-        Provable.array(reducer.actionType, n)
+        Provable.Array(reducer.actionType, n)
       );
       for (let i = 0; i < maxTransactionsWithActions; i++) {
         let actions = i < actionLists.length ? actionLists[i] : [];

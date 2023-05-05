@@ -148,7 +148,7 @@ describe('circuit', () => {
 
   it('can serialize Struct with array', async () => {
     class MyStruct extends Struct({
-      values: Provable.array(Field, 2),
+      values: Provable.Array(Field, 2),
     }) {}
 
     const original = new MyStruct({ values: [Field(0), Field(1)] });

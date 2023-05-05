@@ -9,8 +9,8 @@ let Matrix3x3 = provable([
   [Field, Field, Field],
 ]);
 // Circuit.array -- types somewhat more loosely but can be easier to write
-let Matrix3x4 = Provable.array(Provable.array(Field, 4), 3);
-let Matrix4x3 = Provable.array(Provable.array(Field, 3), 4);
+let Matrix3x4 = Provable.Array(Provable.Array(Field, 4), 3);
+let Matrix4x3 = Provable.Array(Provable.Array(Field, 3), 4);
 
 /* @param x an n*m matrix, encoded as x[i][k] for row i column k.
  * @param y an m*o matrix, both encoded as y[k][j] for row j column j.

@@ -98,9 +98,9 @@ class Circuit {
    */
   static constraintSystem = Provable.constraintSystem;
   /**
-   * @deprecated use {@link Provable.array}
+   * @deprecated use {@link Provable.Array}
    */
-  static array = Provable.array;
+  static array = Provable.Array;
   /**
    * @deprecated use {@link Provable.assertEqual}
    */

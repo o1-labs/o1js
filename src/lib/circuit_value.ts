@@ -261,7 +261,7 @@ function arrayProp<T>(elementType: FlexibleProvable<T>, length: number) {
     if (!target.hasOwnProperty('_fields')) {
       target._fields = [];
     }
-    target._fields.push([key, Provable.array(elementType, length)]);
+    target._fields.push([key, Provable.Array(elementType, length)]);
   };
 }
 
@@ -276,7 +276,7 @@ function matrixProp<T>(
     }
     target._fields.push([
       key,
-      Provable.array(Provable.array(elementType, nColumns), nRows),
+      Provable.Array(Provable.Array(elementType, nColumns), nRows),
     ]);
   };
 }
