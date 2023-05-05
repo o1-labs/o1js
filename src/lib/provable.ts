@@ -35,38 +35,83 @@ export { memoizationContext, memoizeWitness, getBlindingValue, gatesFromJson };
 type Provable<T> = Provable_<T>;
 
 const Provable = {
+  /**
+   * Create a new witness. A witness, or variable, is a value that is provided as input
+   * by the prover. This provides a flexible way to introduce values from outside into the circuit.
+   * However, note that nothing about how the value was created is part of the proof - `Provable.witness`
+   * behaves exactly like user input. So, make sure that after receiving the witness you make any assertions
+   * that you want to associate with it.
+   * @example
+   * Example for re-implementing `Field.inv` with the help of `witness`:
+   * ```ts
+   * let invX = Provable.witness(Field, () => {
+   *   // compute the inverse of `x` outside the circuit, however you like!
+   *   return Field.inv(x));
+   * }
+   * // prove that `invX` is really the inverse of `x`:
+   * invX.mul(x).assertEquals(1);
+   * ```
+   */
   witness,
+  /**
+   * Proof-compatible if-statement.
+   * @example
+   * ```ts
+   * const condition = Bool(true);
+   * const result = Provable.if(condition, Field(1), Field(2)); // Returns Field(1)
+   * ```
+   */
   if: if_,
+  /**
+   * Generalization of {@link Provable.if} for choosing between more than two different cases.
+   * It takes a "mask", which is an array of `Bool`s that contains only one `true` element, a type/constructor, and an array of values of that type.
+   * The result is that value which corresponds to the true element of the mask.
+   * @example
+   * ```ts
+   * let x = Provable.switch([Bool(false), Bool(true)], Field, [Field(1), Field(2)]);
+   * x.assertEquals(2);
+   * ```
+   */
   switch: switch_,
+  /**
+   * Asserts that two values are equal.
+   * @example
+   * ```ts
+   * class MyStruct extends Struct({ a: Field, b: Bool }) {};
+   * const a: MyStruct = { a: Field(0), b: Bool(false) };
+   * const b: MyStruct = { a: Field(1), b: Bool(true) };
+   * Provable.assertEqual(MyStruct, a, b);
+   * ```
+   */
   assertEqual,
+  /**
+   * Checks if two elements are equal.
+   * @example
+   * ```ts
+   * class MyStruct extends Struct({ a: Field, b: Bool }) {};
+   * const a: MyStruct = { a: Field(0), b: Bool(false) };
+   * const b: MyStruct = { a: Field(1), b: Bool(true) };
+   * const isEqual = Provable.equal(MyStruct, a, b);
+   * ```
+   */
   equal,
+  /**
+   * Creates a {@link Provable} for a generic array.
+   * @example
+   * ```ts
+   * const ProvableArray = Provable.array(Field, 5);
+   * ```
+   */
   array: provableArray,
-
   /**
    * Interface to log elements within a circuit. Similar to `console.log()`.
    * @example
    * ```ts
    * const element = Field(42);
-   * Circuit.log(element);
+   * Provable.log(element);
    * ```
    */
-  log(...args: any) {
-    Provable.asProver(() => {
-      let prettyArgs = [];
-      for (let arg of args) {
-        if (arg?.toPretty !== undefined) prettyArgs.push(arg.toPretty());
-        else {
-          try {
-            prettyArgs.push(JSON.parse(JSON.stringify(arg)));
-          } catch {
-            prettyArgs.push(arg);
-          }
-        }
-      }
-      console.log(...prettyArgs);
-    });
-  },
-
+  log,
   /**
    * Runs code as a prover.
    * @example
@@ -76,14 +121,7 @@ const Provable = {
    * });
    * ```
    */
-  asProver(f: () => void) {
-    if (inCheckedComputation()) {
-      Snarky.asProver(f);
-    } else {
-      f();
-    }
-  },
-
+  asProver,
   /**
    * Runs provable code quickly, without creating a proof, but still checking whether constraints are satisfied.
    * @example
@@ -93,13 +131,7 @@ const Provable = {
    * });
    * ```
    */
-  runAndCheck(f: () => void) {
-    let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
-      Snarky.runAndCheck(f)
-    );
-    return result;
-  },
-
+  runAndCheck,
   /**
    * Runs provable code quickly, without creating a proof, and not checking whether constraints are satisfied.
    * @example
@@ -109,13 +141,7 @@ const Provable = {
    * });
    * ```
    */
-  runUnchecked(f: () => void) {
-    let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
-      Snarky.runUnchecked(f)
-    );
-    return result;
-  },
-
+  runUnchecked,
   /**
    * Returns information about the constraints created by the callback function.
    * @example
@@ -124,36 +150,22 @@ const Provable = {
    * console.log(result);
    * ```
    */
-  constraintSystem<T>(f: () => T) {
-    let [, result] = snarkContext.runWith(
-      { inAnalyze: true, inCheckedComputation: true },
-      () => {
-        let result: T;
-        let { rows, digest, json } = Snarky.constraintSystem(() => {
-          result = f();
-        });
-        let { gates, publicInputSize } = gatesFromJson(json);
-        return { rows, digest, result: result! as T, gates, publicInputSize };
-      }
-    );
-    return result;
-  },
-
+  constraintSystem,
   /**
-   * Checks if the circuit is in prover mode.
+   * Checks if the code is run in prover mode.
    * @example
    * ```ts
-   * if (Circuit.inProver()) {
+   * if (Provable.inProver()) {
    *   // Prover-specific code
    * }
    * ```
    */
   inProver,
   /**
-   * Checks if the circuit is in checked computation mode.
+   * Checks if the code is run in checked computation mode.
    * @example
    * ```ts
-   * if (Circuit.inCheckedComputation()) {
+   * if (Provable.inCheckedComputation()) {
    *   // Checked computation-specific code
    * }
    * ```
@@ -161,23 +173,6 @@ const Provable = {
   inCheckedComputation,
 };
 
-/**
- * Create a new witness. A witness, or variable, is a value that is provided as input
- * by the prover. This provides a flexible way to introduce values from outside into the circuit.
- * However, note that nothing about how the value was created is part of the proof - `Provable.witness`
- * behaves exactly like user input. So, make sure that after receiving the witness you make any assertions
- * that you want to associate with it.
- * @example
- * Example for re-implementing `Field.inv` with the help of `witness`:
- * ```ts
- * let invX = Provable.witness(Field, () => {
- *   // compute the inverse of `x` outside the circuit, however you like!
- *   return Field.inv(x));
- * }
- * // prove that `invX` is really the inverse of `x`:
- * invX.mul(x).assertEquals(1);
- * ```
- */
 function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
   type: S,
   compute: () => T
@@ -229,16 +224,6 @@ type ToFieldable = { toFields(): Field[] };
 
 // general provable methods
 
-/**
- * Asserts that two values are equal.
- * @example
- * ```ts
- * class MyStruct extends Struct({ a: Field, b: Bool }) {};
- * const a: MyStruct = { a: Field(0), b: Bool(false) };
- * const b: MyStruct = { a: Field(1), b: Bool(true) };
- * Circuit.assertEqual(MyStruct, a, b);
- * ```
- */
 function assertEqual<T>(type: FlexibleProvable<T>, x: T, y: T): void;
 function assertEqual<T extends ToFieldable>(x: T, y: T): void;
 function assertEqual(typeOrX: any, xOrY: any, yOrUndefined?: any) {
@@ -264,16 +249,6 @@ function assertEqualExplicit<T>(type: Provable<T>, x: T, y: T) {
   }
 }
 
-/**
- * Checks if two elements are equal.
- * @example
- * ```ts
- * class MyStruct extends Struct({ a: Field, b: Bool }) {};
- * const a: MyStruct = { a: Field(0), b: Bool(false) };
- * const b: MyStruct = { a: Field(1), b: Bool(true) };
- * const isEqual = Circuit.equal(MyStruct, a, b);
- * ```
- */
 function equal<T>(type: FlexibleProvable<T>, x: T, y: T): Bool;
 function equal<T extends ToFieldable>(x: T, y: T): Bool;
 function equal(typeOrX: any, xOrY: any, yOrUndefined?: any) {
@@ -298,14 +273,6 @@ function equalExplicit<T>(type: Provable<T>, x: T, y: T) {
   return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
 }
 
-/**
- * Circuit-compatible if-statement.
- * @example
- * ```ts
- * const condition = Bool(true);
- * const result = Circuit.if(condition, Field(1), Field(2)); // Returns Field(1)
- * ```
- */
 function if_<T>(condition: Bool, type: FlexibleProvable<T>, x: T, y: T): T;
 function if_<T extends ToFieldable>(condition: Bool, x: T, y: T): T;
 function if_(condition: Bool, typeOrX: any, xOrY: any, yOrUndefined?: any) {
@@ -364,16 +331,6 @@ function ifImplicit<T extends ToFieldable>(condition: Bool, x: T, y: T): T {
   return ifExplicit(condition, type as any as Provable<T>, x, y);
 }
 
-/**
- * Generalization of `Circuit.if` for choosing between more than two different cases.
- * It takes a "mask", which is an array of `Bool`s that contains only one `true` element, a type/constructor, and an array of values of that type.
- * The result is that value which corresponds to the true element of the mask.
- * @example
- * ```ts
- * let x = Circuit.switch([Bool(false), Bool(true)], Field, [Field(1), Field(2)]);
- * x.assertEquals(2);
- * ```
- */
 function switch_<T, A extends FlexibleProvable<T>>(
   mask: Bool[],
   type: A,
@@ -383,13 +340,13 @@ function switch_<T, A extends FlexibleProvable<T>>(
   let nValues = values.length;
   if (mask.length !== nValues)
     throw Error(
-      `Circuit.switch: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
+      `Provable.switch: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
     );
   let checkMask = () => {
     let nTrue = mask.filter((b) => b.toBoolean()).length;
     if (nTrue > 1) {
       throw Error(
-        `Circuit.switch: \`mask\` must have 0 or 1 true element, found ${nTrue}.`
+        `Provable.switch: \`mask\` must have 0 or 1 true element, found ${nTrue}.`
       );
     }
   };
@@ -411,6 +368,62 @@ function switch_<T, A extends FlexibleProvable<T>>(
     return values[i];
   });
   return (type as Provable<T>).fromFields(fields, aux);
+}
+
+// runners for provable code
+
+function log(...args: any) {
+  Provable.asProver(() => {
+    let prettyArgs = [];
+    for (let arg of args) {
+      if (arg?.toPretty !== undefined) prettyArgs.push(arg.toPretty());
+      else {
+        try {
+          prettyArgs.push(JSON.parse(JSON.stringify(arg)));
+        } catch {
+          prettyArgs.push(arg);
+        }
+      }
+    }
+    console.log(...prettyArgs);
+  });
+}
+
+function asProver(f: () => void) {
+  if (inCheckedComputation()) {
+    Snarky.asProver(f);
+  } else {
+    f();
+  }
+}
+
+function runAndCheck(f: () => void) {
+  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
+    Snarky.runAndCheck(f)
+  );
+  return result;
+}
+
+function runUnchecked(f: () => void) {
+  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
+    Snarky.runUnchecked(f)
+  );
+  return result;
+}
+
+function constraintSystem<T>(f: () => T) {
+  let [, result] = snarkContext.runWith(
+    { inAnalyze: true, inCheckedComputation: true },
+    () => {
+      let result: T;
+      let { rows, digest, json } = Snarky.constraintSystem(() => {
+        result = f();
+      });
+      let { gates, publicInputSize } = gatesFromJson(json);
+      return { rows, digest, result: result! as T, gates, publicInputSize };
+    }
+  );
+  return result;
 }
 
 // helpers
@@ -463,7 +476,7 @@ let memoizationContext = Context.create<{
 }>();
 
 /**
- * Like Circuit.witness, but memoizes the witness during transaction construction
+ * Like Provable.witness, but memoizes the witness during transaction construction
  * for reuse by the prover. This is needed to witness non-deterministic values.
  */
 function memoizeWitness<T>(type: FlexibleProvable<T>, compute: () => T) {
@@ -496,13 +509,6 @@ function getBlindingValue() {
   return context.blindingValue;
 }
 
-/**
- * Creates a {@link Provable} for a generic array.
- * @example
- * ```ts
- * const ProvableArray = Circuit.array(Field, 5);
- * ```
- */
 function provableArray<A extends FlexibleProvable<any>>(
   elementType: A,
   length: number

@@ -660,16 +660,17 @@ function Prover<ProverData>() {
 function inProver() {
   return !!snarkContext.get().inProver;
 }
+function inCheckedComputation() {
+  let ctx = snarkContext.get();
+  return !!ctx.inCompile || !!ctx.inProver || !!ctx.inCheckedComputation;
+}
 function inCompile() {
   return !!snarkContext.get().inCompile;
 }
 function inAnalyze() {
   return !!snarkContext.get().inAnalyze;
 }
-function inCheckedComputation() {
-  let ctx = snarkContext.get();
-  return !!ctx.inCompile || !!ctx.inProver || !!ctx.inCheckedComputation;
-}
+
 function inCompileMode() {
   let ctx = snarkContext.get();
   return !!ctx.inCompile || !!ctx.inAnalyze;
