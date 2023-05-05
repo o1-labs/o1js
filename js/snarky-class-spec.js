@@ -246,6 +246,10 @@ export default [
         name: 'spongeSqueeze',
         type: 'function',
       },
+      {
+        name: 'hashToGroup',
+        type: 'function',
+      },
     ],
   },
   {
