@@ -32,7 +32,7 @@ class NotSoSimpleZkapp extends SmartContract {
 
   @method update(
     y: Field,
-    oldProof: SelfProof<ZkappPublicInput>,
+    oldProof: SelfProof<ZkappPublicInput, null>,
     trivialProof: TrivialProof
   ) {
     oldProof.verify();
