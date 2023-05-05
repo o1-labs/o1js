@@ -11,6 +11,8 @@ import {
   MerkleMapWitness,
   Mina,
   AccountUpdate,
+  Poseidon,
+  Scalar,
 } from 'snarkyjs';
 
 import { createNullifier } from '../mina-signer/src/nullifier.js';

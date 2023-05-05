@@ -5,8 +5,10 @@ import {
   Group,
   Struct,
   MerkleMapWitness,
+  Scalar,
 } from 'snarkyjs';
 import type { Nullifier as JsonNullifier } from '../mina-signer/src/TSTypes.js';
+import { scaleShifted } from './signature.js';
 
 export { Nullifier };
 
@@ -20,7 +22,7 @@ class Nullifier extends Struct({
   publicKey: PublicKey,
   public: {
     nullifier: Group,
-    s: Field,
+    s: Scalar,
   },
   private: {
     c: Field,
@@ -39,20 +41,42 @@ class Nullifier extends Struct({
     let {
       message,
       publicKey,
-      public: { nullifier },
-      private: { g_r, h_m_pk_r, c },
+      public: { nullifier, s },
+      private: { c },
     } = this;
 
     let G = Group.generator;
 
+    let pk_fields = publicKey.toFields();
+
+    //let s = Scalar.fromBits(s_.toBits());
+
     let {
       x,
       y: { x0 },
-    } = Poseidon.hashToGroup([message, ...publicKey.toFields()]);
+    } = Poseidon.hashToGroup([message, ...pk_fields]);
+
+    // see https://github.com/o1-labs/snarkyjs/blob/5333817a62890c43ac1b9cb345748984df271b62/src/lib/signature.ts#L220
+    let pk_c = scaleShifted(
+      publicKey.toGroup(),
+      Scalar.fromBits(c.toBits())
+    ).neg();
+
+    // g^r = g^s / pk^c
+    let g_r = G.scale(s).sub(pk_c);
+
+    let {
+      x: x_hmpk,
+      y: { x0: y_hmpk },
+    } = Poseidon.hashToGroup([message, ...pk_fields]);
+
+    let h_m_pk = Group.fromFields([x_hmpk, y_hmpk]);
+    // h_m_pk_r =  h(m,pk)^s / nullifier^c
+    let h_m_pk_r = Group.scale(h_m_pk, s).sub(Group.scale(nullifier, s));
 
     Poseidon.hash([
       ...Group.toFields(G),
-      ...publicKey.toFields(),
+      ...pk_fields,
       x,
       x0,
       ...Group.toFields(nullifier),
