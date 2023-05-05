@@ -1,6 +1,7 @@
-import { assertPositiveInteger } from './non-negative.js';
-import { poseidonParamsKimchiFp, poseidonParamsLegacyFp } from './constants.js';
-import { FiniteField, Fp } from './finite_field.js';
+import { assertPositiveInteger } from "./non-negative.js";
+import { poseidonParamsKimchiFp, poseidonParamsLegacyFp } from "./constants.js";
+import { FiniteField, Fp } from "./finite_field.js";
+import { GroupMapPallas } from "./elliptic_curve.js";
 
 export { Poseidon, PoseidonLegacy };
 
@@ -15,7 +16,38 @@ type PoseidonParameters = {
   mds: string[][];
 };
 
-const Poseidon = createPoseidon(Fp, poseidonParamsKimchiFp);
+function fieldToGroup(x: bigint) {
+  const { potentialXs, tryDecode } = GroupMapPallas;
+  const xs = potentialXs(x);
+  return xs.map((x) => tryDecode(x)).find((x) => x);
+}
+
+function makeHashToGroup(hash: (i: bigint[]) => bigint) {
+  return (input: bigint[]) => {
+    let digest = hash(input);
+    let g = fieldToGroup(digest);
+    if (g === undefined) return undefined;
+    // we split the y coordinate into two elements, x0 = -sqrt(y^2) and x1 = sqrt(y^2)
+    // then put the even root into x0, and the odd one into x1 so APIs equal even tho the underlying algorithms to calculate the sqrt differ
+    // we do the same in-snark - so both APIs are deterministic
+    let isEven = g.y % 2n === 0n;
+    let gy_neg = Fp.negate(g.y);
+    return {
+      x: g.x,
+      y: {
+        x0: isEven ? g.y : gy_neg,
+        x1: isEven ? gy_neg : g.y,
+      },
+    };
+  };
+}
+
+const PoseidonSpec = createPoseidon(Fp, poseidonParamsKimchiFp);
+
+const Poseidon = {
+  ...PoseidonSpec,
+  hashToGroup: makeHashToGroup(PoseidonSpec.hash),
+};
 const PoseidonLegacy = createPoseidon(Fp, poseidonParamsLegacyFp);
 
 function createPoseidon(
@@ -34,9 +66,9 @@ function createPoseidon(
   if (partialRounds !== 0) {
     throw Error("we don't support partial rounds");
   }
-  assertPositiveInteger(rate, 'rate must be a positive integer');
-  assertPositiveInteger(fullRounds, 'fullRounds must be a positive integer');
-  assertPositiveInteger(power_, 'power must be a positive integer');
+  assertPositiveInteger(rate, "rate must be a positive integer");
+  assertPositiveInteger(fullRounds, "fullRounds must be a positive integer");
+  assertPositiveInteger(power_, "power must be a positive integer");
   let power = BigInt(power_);
   let roundConstants = roundConstants_.map((arr) => arr.map(BigInt));
   let mds = mds_.map((arr) => arr.map(BigInt));

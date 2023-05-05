@@ -174,10 +174,9 @@ macro_rules! impl_oracles {
                 lgr_comm: WasmVector<$WasmPolyComm>, // the bases to commit polynomials
                 index: $index,    // parameters
                 proof: $WasmProverProof, // the final proof (contains public elements at the beginning)
-            ) -> Result<[<Wasm $field_name:camel Oracles>], JsValue> {
+            ) -> Result<[<Wasm $field_name:camel Oracles>], JsError> {
                 // conversions
-                let (oracles, p_eval, opening_prechallenges, digest) = crate::rayon::run_in_pool(|| {
-
+                let result = crate::rayon::run_in_pool(|| {
                     let index: DlogVerifierIndex<$G> = index.into();
 
                     let lgr_comm: Vec<PolyComm<$G>> = lgr_comm
@@ -210,7 +209,13 @@ macro_rules! impl_oracles {
                     let (proof, public_input): (ProverProof<$G>, Vec<$F>) = proof.into();
 
                     let oracles_result =
-                        proof.oracles::<DefaultFqSponge<$curve_params, PlonkSpongeConstantsKimchi>, DefaultFrSponge<$F, PlonkSpongeConstantsKimchi>>(&index, &p_comm,&public_input).unwrap();
+                        proof.oracles::<DefaultFqSponge<$curve_params, PlonkSpongeConstantsKimchi>, DefaultFrSponge<$F, PlonkSpongeConstantsKimchi>>(&index, &p_comm,&public_input);
+                    let oracles_result = match oracles_result {
+                        Err(e) => {
+                            return Err(format!("oracles_create: {}", e));
+                        }
+                        Ok(cs) => cs,
+                    };
 
                     let (mut sponge, combined_inner_product, p_eval, digest, oracles) = (
                         oracles_result.fq_sponge,
@@ -229,16 +234,19 @@ macro_rules! impl_oracles {
                         .map(|x| x.0.into())
                         .collect();
 
-                    (oracles, p_eval, opening_prechallenges, digest)
+                    Ok((oracles, p_eval, opening_prechallenges, digest))
                 });
 
-                Ok([<Wasm $field_name:camel Oracles>] {
-                    o: oracles.into(),
-                    p_eval0: p_eval[0][0].into(),
-                    p_eval1: p_eval[1][0].into(),
-                    opening_prechallenges,
-                    digest_before_evaluations: digest.into(),
-                })
+                match result {
+                    Ok((oracles, p_eval, opening_prechallenges, digest)) => Ok([<Wasm $field_name:camel Oracles>] {
+                        o: oracles.into(),
+                        p_eval0: p_eval[0][0].into(),
+                        p_eval1: p_eval[1][0].into(),
+                        opening_prechallenges,
+                        digest_before_evaluations: digest.into()
+                    }),
+                    Err(err) => Err(JsError::new(&err))
+                }
             }
 
             #[wasm_bindgen]
