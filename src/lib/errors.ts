@@ -117,7 +117,7 @@ function assert(condition: boolean, message = 'Failed assertion.') {
   if (!condition) throw Bug(message);
 }
 
-const linesToRemove = ['snarky_js_node.bc.cjs', '/builtin/+stdlib.js'] as const;
+const linesToRemove = ['snarky_js_node.bc.cjs', '/builtin/'] as const;
 function prettifyStackTrace(stacktrace: string) {
   const lines = stacktrace.split('\n');
   const filteredLines: string[] = [];
