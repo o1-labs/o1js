@@ -5,7 +5,6 @@ import { proxyClasses } from './bindings/js/proxy.js';
 export {
   Field,
   Bool,
-  Circuit,
   Snarky,
   Poseidon,
   Group,
@@ -23,15 +22,5 @@ let isItReady = () => isReadyBoolean;
 
 function shutdown() {}
 
-let {
-  Field,
-  Bool,
-  Circuit,
-  Snarky,
-  Poseidon,
-  Group,
-  Scalar,
-  Ledger,
-  Pickles,
-  Test,
-} = proxyClasses(getSnarky, isItReady, snarkySpec);
+let { Field, Bool, Snarky, Poseidon, Group, Scalar, Ledger, Pickles, Test } =
+  proxyClasses(getSnarky, isItReady, snarkySpec);
