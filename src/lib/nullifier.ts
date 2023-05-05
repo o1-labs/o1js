@@ -3,6 +3,10 @@ import { Nullifier as JsonNullifier } from '../mina-signer/src/TSTypes.js';
 
 export { Nullifier };
 
+/*
+RFC: https://github.com/o1-labs/snarkyjs/issues/756
+Paper: PLUME https://eprint.iacr.org/2022/1255.pdf
+*/
 class Nullifier extends Struct({
   message: Field,
   publicKey: PublicKey,
