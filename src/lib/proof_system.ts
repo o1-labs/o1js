@@ -14,6 +14,7 @@ import {
   FlexibleProvablePure,
   InferProvable,
   ProvablePureExtended,
+  provablePure,
   toConstant,
 } from './circuit_value.js';
 import { Context } from './global-context.js';
@@ -696,8 +697,6 @@ let Generic = Empty<Field>();
 
 type TypeAndValue<T> = { type: Provable<T>; value: T };
 
-// TODO this ignores public output; works because we know that this function is only usewd by zkapps which have no public output
-// but should be fixed when we unify public input + public output into one "statement" type
 function methodArgumentTypesAndValues(
   { allArgs, proofArgs, witnessArgs }: MethodInterface,
   args: unknown[]
@@ -710,11 +709,12 @@ function methodArgumentTypesAndValues(
       typesAndValues.push({ type: witnessArgs[index], value: arg });
     } else if (type === 'proof') {
       let Proof = proofArgs[index];
-      let type = getStatementType(Proof);
-      typesAndValues.push({
-        type: type.input,
-        value: (arg as Proof<any, any>).publicInput,
-      });
+      let proof = arg as Proof<any, any>;
+      let types = getStatementType(Proof);
+      // TODO this is cumbersome, would be nicer to have a single Provable for the statement stored on Proof
+      let type = provablePure({ input: types.input, output: types.output });
+      let value = { input: proof.publicInput, output: proof.publicOutput };
+      typesAndValues.push({ type, value });
     } else if (type === 'generic') {
       typesAndValues.push({ type: Generic, value: arg });
     }

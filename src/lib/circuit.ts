@@ -17,6 +17,10 @@ class Circuit {
 
   /**
    * Generates a proving key and a verification key for this circuit.
+   * @example
+   * ```ts
+   * const keypair = await Circuit.generateKeypair();
+   * ```
    */
   static generateKeypair() {
     return withThreadPool(async () =>
@@ -25,7 +29,12 @@ class Circuit {
   }
 
   /**
-   * Proves a statement using the private input, public input and the {@link Keypair} of the circuit.
+   * Proves a statement using the private input, public input, and the {@link Keypair} of the circuit.
+   * @example
+   * ```ts
+   * const keypair = await Circuit.generateKeypair();
+   * const proof = await Circuit.prove(privateInput, publicInput, keypair);
+   * ```
    */
   static prove(privateInput: any[], publicInput: any[], keypair: Keypair) {
     return withThreadPool(async () =>
@@ -34,7 +43,13 @@ class Circuit {
   }
 
   /**
-   * Verifies a proof using the public input, the proof and the initial {@link Keypair} of the circuit.
+   * Verifies a proof using the public input, the proof, and the initial {@link Keypair} of the circuit.
+   * @example
+   * ```ts
+   * const keypair = await Circuit.generateKeypair();
+   * const proof = await Circuit.prove(privateInput, publicInput, keypair);
+   * const isValid = await Circuit.verify(publicInput, keypair.vk, proof);
+   * ```
    */
   static verify(
     publicInput: any[],
@@ -54,9 +69,9 @@ class Circuit {
    * However, note that nothing about how the value was created is part of the proof - `Circuit.witness`
    * behaves exactly like user input. So, make sure that after receiving the witness you make any assertions
    * that you want to associate with it.
-   *
+   * @example
    * Example for re-implementing `Field.inv` with the help of `witness`:
-   * ```
+   * ```ts
    * let invX = Circuit.witness(Field, () => {
    *   // compute the inverse of `x` outside the circuit, however you like!
    *   return Field.inv(x));
@@ -68,43 +83,98 @@ class Circuit {
   static witness = SnarkyCircuit.witness;
   /**
    * Runs code as a prover.
+   * @example
+   * ```ts
+   * Circuit.asProver(() => {
+   *   // Your prover code here
+   * });
+   * ```
    */
   static asProver = SnarkyCircuit.asProver;
   /**
-   * Runs code and checks its correctness.
+   * Runs provable code quickly, without creating a proof, but still checking whether constraints are satisfied.
+   * @example
+   * ```ts
+   * Circuit.runAndCheck(() => {
+   *   // Your code to check here
+   * });
+   * ```
    */
   static runAndCheck = SnarkyCircuit.runAndCheck;
   /**
+   * Runs provable code quickly, without creating a proof, and not checking whether constraints are satisfied.
+   * @example
+   * ```ts
+   * Circuit.runUnchecked(() => {
+   *   // Your code to run here
+   * });
+   * ```
+   */
+  static runUnchecked = SnarkyCircuit.runUnchecked;
+  /**
    * Returns information about the constraint system in the callback function.
+   * @example
+   * ```ts
+   * const result = Circuit.constraintSystem(circuit);
+   * console.log(result);
+   * ```
    */
   static constraintSystem = SnarkyCircuit.constraintSystem;
   /**
    * Returns a low-level JSON representation of the `Circuit` from its {@link Keypair}:
    * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
+   * @example
+   * ```ts
+   * const keypair = await Circuit.generateKeypair();
+   * const jsonRepresentation = Circuit.constraintSystemFromKeypair(keypair);
+   * ```
    */
   static constraintSystemFromKeypair =
     SnarkyCircuit.constraintSystemFromKeypair;
   /**
    * Creates a {@link Provable} for a generic array.
+   * @example
+   * ```ts
+   * const ProvableArray = Circuit.array(Field, 5);
+   * ```
    */
   static array = SnarkyCircuit.array;
   /**
    * Asserts that two values are equal.
+   * @example
+   * ```ts
+   * class MyStruct extends Struct({ a: Field, b: Bool }) {};
+   * const a: MyStruct = { a: Field(0), b: Bool(false) };
+   * const b: MyStruct = { a: Field(1), b: Bool(true) };
+   * Circuit.assertEqual(MyStruct, a, b);
+   * ```
    */
   static assertEqual = SnarkyCircuit.assertEqual;
   /**
    * Checks if two elements are equal.
+   * @example
+   * ```ts
+   * class MyStruct extends Struct({ a: Field, b: Bool }) {};
+   * const a: MyStruct = { a: Field(0), b: Bool(false) };
+   * const b: MyStruct = { a: Field(1), b: Bool(true) };
+   * const isEqual = Circuit.equal(MyStruct, a, b);
+   * ```
    */
   static equal = SnarkyCircuit.equal;
   /**
    * Circuit-compatible if-statement.
+   * @example
+   * ```ts
+   * const condition = Bool(true);
+   * const result = Circuit.if(condition, Field(1), Field(2)); // Returns Field(1)
+   * ```
    */
   static if = SnarkyCircuit.if;
   /**
    * Generalization of `Circuit.if` for choosing between more than two different cases.
-   * It takes a "mask", which is an array of `Bool`s that contains only one `true` element, as well as a type/constructor and an array of values of that type.
-   * The result is that value which corresponds to the true element of the mask. Example:
-   *
+   * It takes a "mask", which is an array of `Bool`s that contains only one `true` element, a type/constructor, and an array of values of that type.
+   * The result is that value which corresponds to the true element of the mask.
+   * @example
    * ```ts
    * let x = Circuit.switch([Bool(false), Bool(true)], Field, [Field(1), Field(2)]);
    * x.assertEquals(2);
@@ -113,18 +183,40 @@ class Circuit {
   static switch = SnarkyCircuit.switch;
   /**
    * Serializes an element into {@link Field} elements.
+   * @example
+   * ```ts
+   * const element = Field(42);
+   * const fields = Circuit.toFields(element);
+   * ```
    */
   static toFields = SnarkyCircuit.toFields;
   /**
    * Checks if the circuit is in prover mode.
+   * @example
+   * ```ts
+   * if (Circuit.inProver()) {
+   *   // Prover-specific code
+   * }
+   * ```
    */
   static inProver = SnarkyCircuit.inProver;
   /**
    * Checks if the circuit is in checked computation mode.
+   * @example
+   * ```ts
+   * if (Circuit.inCheckedComputation()) {
+   *   // Checked computation-specific code
+   * }
+   * ```
    */
   static inCheckedComputation = SnarkyCircuit.inCheckedComputation;
   /**
    * Interface to log elements within a circuit. Similar to `console.log()`.
+   * @example
+   * ```ts
+   * const element = Field(42);
+   * Circuit.log(element);
+   * ```
    */
   static log = SnarkyCircuit.log;
 }

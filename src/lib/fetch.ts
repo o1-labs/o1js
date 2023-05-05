@@ -32,10 +32,12 @@ export {
   getCachedNetwork,
   getCachedActions,
   addCachedAccount,
-  defaultGraphqlEndpoint,
-  archiveGraphqlEndpoint,
+  networkConfig,
   setGraphqlEndpoint,
+  setGraphqlEndpoints,
+  setMinaGraphqlFallbackEndpoints,
   setArchiveGraphqlEndpoint,
+  setArchiveGraphqlFallbackEndpoints,
   sendZkappQuery,
   sendZkapp,
   removeJsonQuotes,
@@ -43,13 +45,51 @@ export {
   fetchActions,
 };
 
-let defaultGraphqlEndpoint = 'none';
-let archiveGraphqlEndpoint = 'none';
-/**
- * Specifies the default GraphQL endpoint.
- */
+type NetworkConfig = {
+  minaEndpoint: string;
+  minaFallbackEndpoints: string[];
+  archiveEndpoint: string;
+  archiveFallbackEndpoints: string[];
+};
+
+let networkConfig = {
+  minaEndpoint: '',
+  minaFallbackEndpoints: [] as string[],
+  archiveEndpoint: '',
+  archiveFallbackEndpoints: [] as string[],
+} satisfies NetworkConfig;
+
+function checkForValidUrl(url: string) {
+  try {
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function setGraphqlEndpoints([
+  graphqlEndpoint,
+  ...fallbackEndpoints
+]: string[]) {
+  setGraphqlEndpoint(graphqlEndpoint);
+  setMinaGraphqlFallbackEndpoints(fallbackEndpoints);
+}
 function setGraphqlEndpoint(graphqlEndpoint: string) {
-  defaultGraphqlEndpoint = graphqlEndpoint;
+  if (!checkForValidUrl(graphqlEndpoint)) {
+    throw new Error(
+      `Invalid GraphQL endpoint: ${graphqlEndpoint}. Please specify a valid URL.`
+    );
+  }
+  networkConfig.minaEndpoint = graphqlEndpoint;
+}
+function setMinaGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
+  if (graphqlEndpoints.some((endpoint) => !checkForValidUrl(endpoint))) {
+    throw new Error(
+      `Invalid GraphQL endpoint: ${graphqlEndpoints}. Please specify a valid URL.`
+    );
+  }
+  networkConfig.minaFallbackEndpoints = graphqlEndpoints;
 }
 
 /**
@@ -58,7 +98,20 @@ function setGraphqlEndpoint(graphqlEndpoint: string) {
  * @param A GraphQL endpoint.
  */
 function setArchiveGraphqlEndpoint(graphqlEndpoint: string) {
-  archiveGraphqlEndpoint = graphqlEndpoint;
+  if (!checkForValidUrl(graphqlEndpoint)) {
+    throw new Error(
+      `Invalid GraphQL endpoint: ${graphqlEndpoint}. Please specify a valid URL.`
+    );
+  }
+  networkConfig.archiveEndpoint = graphqlEndpoint;
+}
+function setArchiveGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
+  if (graphqlEndpoints.some((endpoint) => !checkForValidUrl(endpoint))) {
+    throw new Error(
+      `Invalid GraphQL endpoint: ${graphqlEndpoints}. Please specify a valid URL.`
+    );
+  }
+  networkConfig.archiveFallbackEndpoints = graphqlEndpoints;
 }
 
 /**
@@ -77,7 +130,7 @@ function setArchiveGraphqlEndpoint(graphqlEndpoint: string) {
  */
 async function fetchAccount(
   accountInfo: { publicKey: string | PublicKey; tokenId?: string | Field },
-  graphqlEndpoint = defaultGraphqlEndpoint,
+  graphqlEndpoint = networkConfig.minaEndpoint,
   { timeout = defaultTimeout } = {}
 ): Promise<
   | { account: Types.Account; error: undefined }
@@ -105,13 +158,14 @@ async function fetchAccount(
 // of the account, to save some back-and-forth conversions when caching accounts
 async function fetchAccountInternal(
   accountInfo: { publicKey: string; tokenId?: string },
-  graphqlEndpoint = defaultGraphqlEndpoint,
+  graphqlEndpoint = networkConfig.minaEndpoint,
   config?: FetchConfig
 ) {
   const { publicKey, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
     accountQuery(publicKey, tokenId ?? TokenId.toBase58(TokenId.default)),
     graphqlEndpoint,
+    networkConfig.minaFallbackEndpoints,
     config
   );
   if (error !== undefined) return { account: undefined, error };
@@ -272,20 +326,20 @@ async function fetchMissingData(
 function getCachedAccount(
   publicKey: PublicKey,
   tokenId: Field,
-  graphqlEndpoint = defaultGraphqlEndpoint
+  graphqlEndpoint = networkConfig.minaEndpoint
 ): Account | undefined {
   return accountCache[accountCacheKey(publicKey, tokenId, graphqlEndpoint)]
     ?.account;
 }
 
-function getCachedNetwork(graphqlEndpoint = defaultGraphqlEndpoint) {
+function getCachedNetwork(graphqlEndpoint = networkConfig.minaEndpoint) {
   return networkCache[graphqlEndpoint]?.network;
 }
 
 function getCachedActions(
   publicKey: PublicKey,
   tokenId: Field,
-  graphqlEndpoint = archiveGraphqlEndpoint
+  graphqlEndpoint = networkConfig.minaEndpoint
 ) {
   return actionsCache[accountCacheKey(publicKey, tokenId, graphqlEndpoint)]
     ?.actions;
@@ -296,7 +350,7 @@ function getCachedActions(
  */
 function addCachedAccount(
   partialAccount: PartialAccount,
-  graphqlEndpoint = defaultGraphqlEndpoint
+  graphqlEndpoint = networkConfig.minaEndpoint
 ) {
   let account = fillPartialAccount(partialAccount);
   addCachedAccountInternal(account, graphqlEndpoint);
@@ -337,8 +391,12 @@ function accountCacheKey(
 /**
  * Fetches the last block on the Mina network.
  */
-async function fetchLastBlock(graphqlEndpoint = defaultGraphqlEndpoint) {
-  let [resp, error] = await makeGraphqlRequest(lastBlockQuery, graphqlEndpoint);
+async function fetchLastBlock(graphqlEndpoint = networkConfig.minaEndpoint) {
+  let [resp, error] = await makeGraphqlRequest(
+    lastBlockQuery,
+    graphqlEndpoint,
+    networkConfig.minaFallbackEndpoints
+  );
   if (error) throw Error(error.statusText);
   let lastBlock = resp?.data?.bestChain?.[0];
   if (lastBlock === undefined) {
@@ -420,11 +478,12 @@ const lastBlockQueryFailureCheck = `{
 }`;
 
 async function fetchLatestBlockZkappStatus(
-  graphqlEndpoint = defaultGraphqlEndpoint
+  graphqlEndpoint = networkConfig.minaEndpoint
 ) {
   let [resp, error] = await makeGraphqlRequest(
     lastBlockQueryFailureCheck,
-    graphqlEndpoint
+    graphqlEndpoint,
+    networkConfig.minaFallbackEndpoints
   );
   if (error) throw Error(`Error making GraphQL request: ${error.statusText}`);
   let bestChain = resp?.data as LastBlockQueryFailureCheckResponse;
@@ -565,11 +624,12 @@ const transactionStatusQuery = (txId: string) => `query {
  */
 async function fetchTransactionStatus(
   txId: string,
-  graphqlEndpoint = defaultGraphqlEndpoint
+  graphqlEndpoint = networkConfig.minaEndpoint
 ): Promise<TransactionStatus> {
   let [resp, error] = await makeGraphqlRequest(
     transactionStatusQuery(txId),
-    graphqlEndpoint
+    graphqlEndpoint,
+    networkConfig.minaFallbackEndpoints
   );
   if (error) throw Error(error.statusText);
   let txStatus = resp?.data?.transactionStatus;
@@ -594,12 +654,17 @@ type TransactionStatus = 'INCLUDED' | 'PENDING' | 'UNKNOWN';
  */
 function sendZkapp(
   json: string,
-  graphqlEndpoint = defaultGraphqlEndpoint,
+  graphqlEndpoint = networkConfig.minaEndpoint,
   { timeout = defaultTimeout } = {}
 ) {
-  return makeGraphqlRequest(sendZkappQuery(json), graphqlEndpoint, {
-    timeout,
-  });
+  return makeGraphqlRequest(
+    sendZkappQuery(json),
+    graphqlEndpoint,
+    networkConfig.minaFallbackEndpoints,
+    {
+      timeout,
+    }
+  );
 }
 
 // TODO: Decide an appropriate response structure.
@@ -743,7 +808,7 @@ const getActionsQuery = (
  * @param accountInfo - The account information object.
  * @param accountInfo.publicKey - The account public key.
  * @param [accountInfo.tokenId] - The optional token ID for the account.
- * @param [graphqlEndpoint=archiveGraphqlEndpoint] - The GraphQL endpoint to query. Defaults to the Archive Node GraphQL API.
+ * @param [graphqlEndpoint=networkConfig.archiveEndpoint] - The GraphQL endpoint to query. Defaults to the Archive Node GraphQL API.
  * @param [filterOptions={}] - The optional filter options object.
  * @returns A promise that resolves to an array of objects containing event data, block information and transaction information for the account.
  * @throws If the GraphQL request fails or the response is invalid.
@@ -754,7 +819,7 @@ const getActionsQuery = (
  */
 async function fetchEvents(
   accountInfo: { publicKey: string; tokenId?: string },
-  graphqlEndpoint = archiveGraphqlEndpoint,
+  graphqlEndpoint = networkConfig.archiveEndpoint,
   filterOptions: EventActionFilterOptions = {}
 ) {
   if (!graphqlEndpoint)
@@ -768,7 +833,8 @@ async function fetchEvents(
       tokenId ?? TokenId.toBase58(TokenId.default),
       filterOptions
     ),
-    graphqlEndpoint
+    graphqlEndpoint,
+    networkConfig.archiveFallbackEndpoints
   );
   if (error) throw Error(error.statusText);
   let fetchedEvents = response?.data.events as FetchedEvents[];
@@ -822,7 +888,7 @@ async function fetchActions(
     actionStates: ActionStatesStringified;
     tokenId?: string;
   },
-  graphqlEndpoint = archiveGraphqlEndpoint
+  graphqlEndpoint = networkConfig.archiveEndpoint
 ) {
   if (!graphqlEndpoint)
     throw new Error(
@@ -835,7 +901,8 @@ async function fetchActions(
   } = accountInfo;
   let [response, error] = await makeGraphqlRequest(
     getActionsQuery(publicKey, actionStates, tokenId),
-    graphqlEndpoint
+    graphqlEndpoint,
+    networkConfig.archiveFallbackEndpoints
   );
   if (error) throw Error(error.statusText);
   let fetchedActions = response?.data.actions as FetchedActions[];
@@ -927,8 +994,8 @@ async function fetchActions(
 }
 
 function updateActionState(actions: string[][], actionState: Field) {
-  let actionsHash = Actions.fromJSON(actions).hash;
-  return Actions.updateSequenceState(actionState, actionsHash);
+  let actionHash = Actions.fromJSON(actions).hash;
+  return Actions.updateSequenceState(actionState, actionHash);
 }
 
 // removes the quotes on JSON keys
@@ -940,31 +1007,73 @@ function removeJsonQuotes(json: string) {
 // TODO it seems we're not actually catching most errors here
 async function makeGraphqlRequest(
   query: string,
-  graphqlEndpoint = defaultGraphqlEndpoint,
+  graphqlEndpoint = networkConfig.minaEndpoint,
+  fallbackEndpoints: string[],
   { timeout = defaultTimeout } = {} as FetchConfig
 ) {
   if (graphqlEndpoint === 'none')
     throw Error(
       "Should have made a graphql request, but don't know to which endpoint. Try calling `setGraphqlEndpoint` first."
     );
-  const controller = new AbortController();
-  const timer = setTimeout(() => {
-    controller.abort();
-  }, timeout);
+  let timeouts: NodeJS.Timeout[] = [];
+  const clearTimeouts = () => {
+    timeouts.forEach((t) => clearTimeout(t));
+    timeouts = [];
+  };
 
-  try {
+  const makeRequest = async (url: string) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    timeouts.push(timer);
     let body = JSON.stringify({ operationName: null, query, variables: {} });
-    let response = await fetch(graphqlEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-      signal: controller.signal,
-    });
-    return await checkResponseStatus(response);
-  } catch (error) {
-    clearTimeout(timer);
-    return [undefined, inferError(error)] as [undefined, FetchError];
+    try {
+      let response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        signal: controller.signal,
+      });
+      return checkResponseStatus(response);
+    } finally {
+      clearTimeouts();
+    }
+  };
+  // try to fetch from endpoints in pairs
+  let timeoutErrors: { url1: string; url2: string; error: any }[] = [];
+  let urls = [graphqlEndpoint, ...fallbackEndpoints];
+  for (let i = 0; i < urls.length; i += 2) {
+    let url1 = urls[i];
+    let url2 = urls[i + 1];
+    if (url2 === undefined) {
+      try {
+        return await makeRequest(url1);
+      } catch (error) {
+        return [undefined, inferError(error)] as [undefined, FetchError];
+      }
+    }
+    try {
+      return await Promise.race([makeRequest(url1), makeRequest(url2)]);
+    } catch (unknownError) {
+      let error = inferError(unknownError);
+      if (error.statusCode === 408) {
+        // If the request timed out, try the next 2 endpoints
+        timeoutErrors.push({ url1, url2, error });
+      } else {
+        // If the request failed for some other reason (e.g. SnarkyJS error), return the error
+        return [undefined, error] as [undefined, FetchError];
+      }
+    }
   }
+  const statusText = timeoutErrors
+    .map(
+      ({ url1, url2, error }) =>
+        `Request to ${url1} and ${url2} timed out. Error: ${error}`
+    )
+    .join('\n');
+  return [undefined, { statusCode: 408, statusText }] as [
+    undefined,
+    FetchError
+  ];
 }
 
 async function checkResponseStatus(

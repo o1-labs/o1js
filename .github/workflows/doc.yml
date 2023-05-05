@@ -18,6 +18,7 @@ jobs:
 
       - name: run typedoc
         run: |
+          git submodule update --init --recursive
           npm ci
           npx typedoc --tsconfig tsconfig.node.json src/index.ts
 
