@@ -120,8 +120,12 @@ function assert(condition: boolean, message = 'Failed assertion.') {
 const linesToRemove = ['snarky_js_node.bc.cjs', '/builtin/+stdlib.js'] as const;
 function prettifyStackTrace(stacktrace: string) {
   const lines = stacktrace.split('\n');
-  const filteredLines = lines.filter((line) => {
-    return !linesToRemove.some((lineToRemove) => line.includes(lineToRemove));
-  });
+  const filteredLines: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (linesToRemove.some((lineToRemove) => lines[i].includes(lineToRemove))) {
+      continue;
+    }
+    filteredLines.push(lines[i]);
+  }
   return filteredLines.join('\n');
 }
