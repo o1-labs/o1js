@@ -9,7 +9,6 @@ import {
   MerkleMap,
   Circuit,
   MerkleMapWitness,
-  Poseidon,
   Mina,
   AccountUpdate,
 } from 'snarkyjs';
@@ -27,11 +26,8 @@ class PayoutOnlyOnce extends SmartContract {
     // making sure the nullifier really belongs to this contract
     nullifier.message.assertEquals(nullifierMessage);
 
-    let { x: nX, y: nY } = nullifier.public.nullifier;
-    let nullifierKey = Poseidon.hash([nX, nY]);
-
     let nullifierWitness = Circuit.witness(MerkleMapWitness, () =>
-      NullifierTree.getWitness(nullifierKey)
+      NullifierTree.getWitness(nullifier.key())
     );
     // we compute the current root and make sure the entry is set to 0 (= unused)
     let [oldRoot] = nullifierWitness.computeRootAndKey(Field(0));

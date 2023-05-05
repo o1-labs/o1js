@@ -20,6 +20,9 @@ class Nullifier extends Struct({
     return super.fromJSON(json as any) as Nullifier;
   }
 
+  /**
+   * Verifies the correctness of the Nullifier. Throws an error if the Nullifier is incorrect.
+   */
   verify() {
     let {
       message,
@@ -44,5 +47,13 @@ class Nullifier extends Struct({
       ...Group.toFields(g_r),
       ...Group.toFields(h_m_pk_r),
     ]).assertEquals(c, 'Nullifier does not match private input!');
+  }
+
+  /**
+   * The key of the nullifier, which belongs to a unique message and a public key.
+   * Used as an index in Merkle trees.
+   */
+  key() {
+    return Poseidon.hash(Group.toFields(this.public.nullifier));
   }
 }
