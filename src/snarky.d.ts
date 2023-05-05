@@ -1037,6 +1037,13 @@ declare const Poseidon: {
     input: Field[],
     isChecked: boolean
   ): [Field, Field, Field];
+  hashToGroup(
+    input: Field[],
+    isChecked: boolean
+  ): {
+    x: Field;
+    y: Field;
+  };
   prefixes: Record<
     | 'event'
     | 'events'
