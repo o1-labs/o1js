@@ -125,6 +125,21 @@ function prettifyStackTrace(stacktrace: string) {
     if (linesToRemove.some((lineToRemove) => lines[i].includes(lineToRemove))) {
       continue;
     }
+
+    const snarkyJSIndex = lines[i].indexOf('snarkyjs');
+    if (snarkyJSIndex !== -1) {
+      const firstCharacterIndex = lines[i].search(/\w/);
+      if (firstCharacterIndex === -1) continue;
+
+      const formattedLine = ' '
+        .repeat(firstCharacterIndex)
+        .concat('at ')
+        .concat(lines[i].slice(snarkyJSIndex));
+
+      filteredLines.push(formattedLine);
+      continue;
+    }
+
     filteredLines.push(lines[i]);
   }
   return filteredLines.join('\n');
