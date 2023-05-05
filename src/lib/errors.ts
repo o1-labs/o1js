@@ -118,8 +118,9 @@ function assert(condition: boolean, message = 'Failed assertion.') {
 }
 
 const lineRemovalKeywords = ['snarky_js_node.bc.cjs', '/builtin/'] as const;
-function prettifyStacktrace(error: Error) {
-  if (!error.stack) return error.toString();
+function prettifyStacktrace(error: unknown) {
+  if (!(error instanceof Error) || !error.stack) return error;
+
   const stacktrace = error.stack;
   const stacktraceLines = stacktrace.split('\n');
   const newStacktrace: string[] = [];
