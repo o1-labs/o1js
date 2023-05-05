@@ -1,4 +1,11 @@
-import { Poseidon, PublicKey, Field, Group, Struct } from 'snarkyjs';
+import {
+  Poseidon,
+  PublicKey,
+  Field,
+  Group,
+  Struct,
+  MerkleMapWitness,
+} from 'snarkyjs';
 import { Nullifier as JsonNullifier } from '../mina-signer/src/TSTypes.js';
 
 export { Nullifier };
@@ -59,5 +66,21 @@ class Nullifier extends Struct({
    */
   key() {
     return Poseidon.hash(Group.toFields(this.public.nullifier));
+  }
+
+  /**
+   * Checks if the Nullifier has been set before.
+   */
+  isUnused(witness: MerkleMapWitness, root: Field) {
+    let [hash, key] = witness.computeRootAndKey(Field(0));
+    return hash.equals(root);
+  }
+
+  /**
+   * Sets the Nullifier, returns the new Merkle root.
+   */
+  setUsed(witness: MerkleMapWitness) {
+    let [newRoot] = witness.computeRootAndKey(Field(1));
+    return newRoot;
   }
 }

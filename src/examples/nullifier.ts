@@ -29,16 +29,15 @@ class PayoutOnlyOnce extends SmartContract {
     let nullifierWitness = Circuit.witness(MerkleMapWitness, () =>
       NullifierTree.getWitness(nullifier.key())
     );
-    // we compute the current root and make sure the entry is set to 0 (= unused)
-    let [oldRoot] = nullifierWitness.computeRootAndKey(Field(0));
 
-    oldRoot.assertEquals(
-      nullifierRoot,
+    // we compute the current root and make sure the entry is set to 0 (= unused)
+    let isSet = nullifier.isUnused(nullifierWitness, nullifierRoot);
+    isSet.assertFalse(
       'Nullifier root does not match on-chain root - the nullifier is either incorrect or has already been set!'
     );
 
     // we set the nullifier to 1 (= used) and calculate the new root
-    let [newRoot] = nullifierWitness.computeRootAndKey(Field(1));
+    let newRoot = nullifier.setUsed(nullifierWitness);
 
     // we update the on-chain root
     this.nullifierRoot.set(newRoot);
