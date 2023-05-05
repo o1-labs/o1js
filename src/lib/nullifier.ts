@@ -69,7 +69,7 @@ class Nullifier extends Struct({
   }
 
   /**
-   * Checks if the Nullifier has been set before.
+   * Checks if the Nullifier has been used before.
    */
   isUnused(witness: MerkleMapWitness, root: Field) {
     let [hash, key] = witness.computeRootAndKey(Field(0));
