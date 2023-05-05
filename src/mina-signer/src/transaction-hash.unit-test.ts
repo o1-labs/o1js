@@ -234,7 +234,7 @@ function commonToOcaml({ fee, feePayer, nonce, validUntil, memo }: CommonJson) {
     fee: fee === '0' ? fee : fee.slice(0, -9),
     fee_payer_pk: feePayer,
     nonce,
-    valid_until: validUntil,
+    valid_until: ['Since_genesis', validUntil],
     memo,
   };
 }

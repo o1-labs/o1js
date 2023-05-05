@@ -1,4 +1,4 @@
-import { Bool, Field, UInt64 } from '../../provable/field-bigint.js';
+import { Bool, Field, UInt32, UInt64 } from '../../provable/field-bigint.js';
 import {
   Binable,
   BinableString,
@@ -98,13 +98,17 @@ function userCommandToEnum({ common, body }: UserCommand): UserCommandEnum {
 // binable
 
 let BinablePublicKey = record({ x: Field, isOdd: Bool }, ['x', 'isOdd']);
+type GlobalSlotSinceGenesis = Common['validUntil'];
+let GlobalSlotSinceGenesis = enumWithArgument<[GlobalSlotSinceGenesis]>([
+  { type: 'SinceGenesis', value: BinableUint32 },
+]);
 
 const Common = record<Common>(
   {
     fee: BinableUint64,
     feePayer: BinablePublicKey,
     nonce: BinableUint32,
-    validUntil: BinableUint32,
+    validUntil: GlobalSlotSinceGenesis,
     memo: BinableString,
   },
   ['fee', 'feePayer', 'nonce', 'validUntil', 'memo']
@@ -197,7 +201,11 @@ function hashSignedCommandV1(command: SignedCommandV1) {
 
 function userCommandToV1({ common, body }: UserCommand): UserCommandV1 {
   let { tag: type, ...value } = body;
-  let commonV1: CommonV1 = { ...common, feeToken: 1n };
+  let commonV1: CommonV1 = {
+    ...common,
+    validUntil: common.validUntil.value,
+    feeToken: 1n,
+  };
   switch (type) {
     case 'Payment':
       let paymentV1: PaymentV1 = { ...value, tokenId: 1n };
@@ -223,7 +231,15 @@ function userCommandToV1({ common, body }: UserCommand): UserCommandV1 {
 const with1 = <T>(binable: Binable<T>) => withVersionNumber(binable, 1);
 const Uint64V1 = with1(with1(BinableUint64));
 const Uint32V1 = with1(with1(BinableUint32));
-type CommonV1 = Common & { feeToken: UInt64 };
+type CommonV1 = {
+  fee: UInt64;
+  feePayer: PublicKey;
+  nonce: UInt32;
+  validUntil: UInt32;
+  memo: string;
+  feeToken: UInt64;
+};
+
 const CommonV1 = with1(
   with1(
     record<CommonV1>(
