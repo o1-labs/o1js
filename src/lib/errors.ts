@@ -128,19 +128,35 @@ function prettifyStackTrace(stacktrace: string) {
 
     const snarkyJSIndex = lines[i].indexOf('snarkyjs');
     if (snarkyJSIndex !== -1) {
-      const firstCharacterIndex = lines[i].search(/\w/);
-      if (firstCharacterIndex === -1) continue;
-
-      const formattedLine = ' '
-        .repeat(firstCharacterIndex)
-        .concat('at ')
-        .concat(lines[i].slice(snarkyJSIndex));
-
-      filteredLines.push(formattedLine);
+      filteredLines.push(trimSnarkyJSPath(lines[i]));
       continue;
     }
 
     filteredLines.push(lines[i]);
   }
   return filteredLines.join('\n');
+}
+
+function trimSnarkyJSPath(line: string): string {
+  const firstNonWhitespaceIndex = line.search(/\S/);
+  const prefix =
+    ' '.repeat(firstNonWhitespaceIndex) +
+    line.slice(firstNonWhitespaceIndex, line.indexOf('('));
+
+  // Regex to match the path inside the parentheses
+  const regex = /\(([^)]+)\)/;
+  const match = line.match(regex);
+  if (!match) {
+    return line;
+  }
+
+  const fullPath = match[1];
+  const snarkyjsIndex = fullPath.indexOf('snarkyjs');
+
+  if (snarkyjsIndex !== -1) {
+    const updatedPath = fullPath.slice(snarkyjsIndex);
+    return `${prefix}(${updatedPath})`;
+  }
+
+  return line;
 }
