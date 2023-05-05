@@ -1,4 +1,8 @@
-import { Empty, EmptyUndefined, EmptyVoid } from '../bindings/lib/generic.js';
+import {
+  EmptyNull,
+  EmptyUndefined,
+  EmptyVoid,
+} from '../bindings/lib/generic.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
 import {
   Bool,
@@ -20,7 +24,16 @@ import {
 import { Context } from './global-context.js';
 
 // public API
-export { Proof, SelfProof, JsonProof, ZkProgram, verify };
+export {
+  Proof,
+  SelfProof,
+  JsonProof,
+  ZkProgram,
+  verify,
+  Empty,
+  Undefined,
+  Void,
+};
 
 // internal API
 export {
@@ -46,8 +59,6 @@ export {
   inCheckedComputation,
   inCompileMode,
   dummyBase64Proof,
-  Undefined,
-  Void,
 };
 
 // global circuit-related context
@@ -66,6 +77,8 @@ let snarkContext = Context.create<SnarkContext>({ default: {} });
 type Undefined = undefined;
 const Undefined: ProvablePureExtended<undefined, null> =
   EmptyUndefined<Field>();
+type Empty = Undefined;
+const Empty = Undefined;
 type Void = undefined;
 const Void: ProvablePureExtended<void, null> = EmptyVoid<Field>();
 
@@ -693,7 +706,7 @@ function methodArgumentsToConstant(
   return constArgs;
 }
 
-let Generic = Empty<Field>();
+let Generic = EmptyNull<Field>();
 
 type TypeAndValue<T> = { type: Provable<T>; value: T };
 
