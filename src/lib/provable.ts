@@ -35,131 +35,11 @@ export { memoizationContext, memoizeWitness, getBlindingValue, gatesFromJson };
 type Provable<T> = Provable_<T>;
 
 const Provable = {
-  /**
-   * Create a new witness. A witness, or variable, is a value that is provided as input
-   * by the prover. This provides a flexible way to introduce values from outside into the circuit.
-   * However, note that nothing about how the value was created is part of the proof - `Provable.witness`
-   * behaves exactly like user input. So, make sure that after receiving the witness you make any assertions
-   * that you want to associate with it.
-   * @example
-   * Example for re-implementing `Field.inv` with the help of `witness`:
-   * ```ts
-   * let invX = Provable.witness(Field, () => {
-   *   // compute the inverse of `x` outside the circuit, however you like!
-   *   return Field.inv(x));
-   * }
-   * // prove that `invX` is really the inverse of `x`:
-   * invX.mul(x).assertEquals(1);
-   * ```
-   */
-  witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
-    type: S,
-    compute: () => T
-  ): T {
-    let ctx = snarkContext.get();
-
-    // outside provable code, we just call the callback and return its cloned result
-    if (!inCheckedComputation() || ctx.inWitnessBlock) {
-      return clone(type, compute());
-    }
-    let proverValue: T | undefined = undefined;
-    let fields: Field[];
-
-    let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
-    try {
-      fields = Snarky.exists(type.sizeInFields(), () => {
-        proverValue = compute();
-        let fields = type.toFields(proverValue);
-
-        // TODO currently not needed, because fields are converted in OCaml, but will be
-        // fields = fields.map((x) => x.toConstant());
-
-        // TODO: enable this check
-        // currently it throws for Scalar.. which seems to be flexible about what length is returned by toFields
-        // if (fields.length !== type.sizeInFields()) {
-        //   throw Error(
-        //     `Invalid witness. Expected ${type.sizeInFields()} field elements, got ${
-        //       fields.length
-        //     }.`
-        //   );
-        // }
-        return fields;
-      });
-    } finally {
-      snarkContext.leave(id);
-    }
-
-    // rebuild the value from its fields (which are now variables) and aux data
-    let aux = type.toAuxiliary(proverValue);
-    let value = (type as Provable<T>).fromFields(fields, aux);
-
-    // add type-specific constraints
-    type.check(value);
-
-    return value;
-  },
-
+  witness,
   if: if_,
-
-  /**
-   * Generalization of `Circuit.if` for choosing between more than two different cases.
-   * It takes a "mask", which is an array of `Bool`s that contains only one `true` element, a type/constructor, and an array of values of that type.
-   * The result is that value which corresponds to the true element of the mask.
-   * @example
-   * ```ts
-   * let x = Circuit.switch([Bool(false), Bool(true)], Field, [Field(1), Field(2)]);
-   * x.assertEquals(2);
-   * ```
-   */
-  switch<T, A extends FlexibleProvable<T>>(
-    mask: Bool[],
-    type: A,
-    values: T[]
-  ): T {
-    // picks the value at the index where mask is true
-    let nValues = values.length;
-    if (mask.length !== nValues)
-      throw Error(
-        `Circuit.switch: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
-      );
-    let checkMask = () => {
-      let nTrue = mask.filter((b) => b.toBoolean()).length;
-      if (nTrue > 1) {
-        throw Error(
-          `Circuit.switch: \`mask\` must have 0 or 1 true element, found ${nTrue}.`
-        );
-      }
-    };
-    if (mask.every((b) => b.toField().isConstant())) checkMask();
-    else Provable.asProver(checkMask);
-    let size = type.sizeInFields();
-    let fields = Array(size).fill(Field(0));
-    for (let i = 0; i < nValues; i++) {
-      let valueFields = type.toFields(values[i]);
-      let maskField = mask[i].toField();
-      for (let j = 0; j < size; j++) {
-        let maybeField = valueFields[j].mul(maskField);
-        fields[j] = fields[j].add(maybeField);
-      }
-    }
-    let aux = auxiliary(type as Provable<T>, () => {
-      let i = mask.findIndex((b) => b.toBoolean());
-      if (i === -1) return undefined;
-      return values[i];
-    });
-    return (type as Provable<T>).fromFields(fields, aux);
-  },
-
+  switch: switch_,
   assertEqual,
   equal,
-
-  /**
-   * Creates a {@link Provable} for a generic array.
-   * @example
-   * ```ts
-   * const ProvableArray = Circuit.array(Field, 5);
-   * ```
-   */
   array: provableArray,
 
   /**
@@ -280,6 +160,70 @@ const Provable = {
    */
   inCheckedComputation,
 };
+
+/**
+ * Create a new witness. A witness, or variable, is a value that is provided as input
+ * by the prover. This provides a flexible way to introduce values from outside into the circuit.
+ * However, note that nothing about how the value was created is part of the proof - `Provable.witness`
+ * behaves exactly like user input. So, make sure that after receiving the witness you make any assertions
+ * that you want to associate with it.
+ * @example
+ * Example for re-implementing `Field.inv` with the help of `witness`:
+ * ```ts
+ * let invX = Provable.witness(Field, () => {
+ *   // compute the inverse of `x` outside the circuit, however you like!
+ *   return Field.inv(x));
+ * }
+ * // prove that `invX` is really the inverse of `x`:
+ * invX.mul(x).assertEquals(1);
+ * ```
+ */
+function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
+  type: S,
+  compute: () => T
+): T {
+  let ctx = snarkContext.get();
+
+  // outside provable code, we just call the callback and return its cloned result
+  if (!inCheckedComputation() || ctx.inWitnessBlock) {
+    return clone(type, compute());
+  }
+  let proverValue: T | undefined = undefined;
+  let fields: Field[];
+
+  let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
+  try {
+    fields = Snarky.exists(type.sizeInFields(), () => {
+      proverValue = compute();
+      let fields = type.toFields(proverValue);
+
+      // TODO currently not needed, because fields are converted in OCaml, but will be
+      // fields = fields.map((x) => x.toConstant());
+
+      // TODO: enable this check
+      // currently it throws for Scalar.. which seems to be flexible about what length is returned by toFields
+      // if (fields.length !== type.sizeInFields()) {
+      //   throw Error(
+      //     `Invalid witness. Expected ${type.sizeInFields()} field elements, got ${
+      //       fields.length
+      //     }.`
+      //   );
+      // }
+      return fields;
+    });
+  } finally {
+    snarkContext.leave(id);
+  }
+
+  // rebuild the value from its fields (which are now variables) and aux data
+  let aux = type.toAuxiliary(proverValue);
+  let value = (type as Provable<T>).fromFields(fields, aux);
+
+  // add type-specific constraints
+  type.check(value);
+
+  return value;
+}
 
 type ToFieldable = { toFields(): Field[] };
 
@@ -420,6 +364,55 @@ function ifImplicit<T extends ToFieldable>(condition: Bool, x: T, y: T): T {
   return ifExplicit(condition, type as any as Provable<T>, x, y);
 }
 
+/**
+ * Generalization of `Circuit.if` for choosing between more than two different cases.
+ * It takes a "mask", which is an array of `Bool`s that contains only one `true` element, a type/constructor, and an array of values of that type.
+ * The result is that value which corresponds to the true element of the mask.
+ * @example
+ * ```ts
+ * let x = Circuit.switch([Bool(false), Bool(true)], Field, [Field(1), Field(2)]);
+ * x.assertEquals(2);
+ * ```
+ */
+function switch_<T, A extends FlexibleProvable<T>>(
+  mask: Bool[],
+  type: A,
+  values: T[]
+): T {
+  // picks the value at the index where mask is true
+  let nValues = values.length;
+  if (mask.length !== nValues)
+    throw Error(
+      `Circuit.switch: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
+    );
+  let checkMask = () => {
+    let nTrue = mask.filter((b) => b.toBoolean()).length;
+    if (nTrue > 1) {
+      throw Error(
+        `Circuit.switch: \`mask\` must have 0 or 1 true element, found ${nTrue}.`
+      );
+    }
+  };
+  if (mask.every((b) => b.toField().isConstant())) checkMask();
+  else Provable.asProver(checkMask);
+  let size = type.sizeInFields();
+  let fields = Array(size).fill(Field(0));
+  for (let i = 0; i < nValues; i++) {
+    let valueFields = type.toFields(values[i]);
+    let maskField = mask[i].toField();
+    for (let j = 0; j < size; j++) {
+      let maybeField = valueFields[j].mul(maskField);
+      fields[j] = fields[j].add(maybeField);
+    }
+  }
+  let aux = auxiliary(type as Provable<T>, () => {
+    let i = mask.findIndex((b) => b.toBoolean());
+    if (i === -1) return undefined;
+    return values[i];
+  });
+  return (type as Provable<T>).fromFields(fields, aux);
+}
+
 // helpers
 
 function checkLength(name: string, xs: Field[], ys: Field[]) {
@@ -503,8 +496,13 @@ function getBlindingValue() {
   return context.blindingValue;
 }
 
-// provable array
-
+/**
+ * Creates a {@link Provable} for a generic array.
+ * @example
+ * ```ts
+ * const ProvableArray = Circuit.array(Field, 5);
+ * ```
+ */
 function provableArray<A extends FlexibleProvable<any>>(
   elementType: A,
   length: number
