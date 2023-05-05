@@ -58,6 +58,7 @@ export {
   TransactionStatus,
   addCachedAccount,
   setGraphqlEndpoint,
+  setGraphqlEndpoints,
   setArchiveGraphqlEndpoint,
   sendZkapp,
 } from './lib/fetch.js';

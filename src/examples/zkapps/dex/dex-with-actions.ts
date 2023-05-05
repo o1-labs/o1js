@@ -230,7 +230,7 @@ class DexTokenHolder extends SmartContract {
 
   init() {
     super.init();
-    this.redeemActionState.set(Reducer.initialActionsHash);
+    this.redeemActionState.set(Reducer.initialActionState);
   }
 
   @method redeemLiquidityFinalize() {
