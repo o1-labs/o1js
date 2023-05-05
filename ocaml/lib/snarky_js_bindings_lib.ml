@@ -806,6 +806,11 @@ class type group_class = As_group.group_class
 
 let group_constr = As_group.group_constr
 
+let to_js_group (x : Impl.Field.t) (y : Impl.Field.t) : group_class Js.t =
+  new%js group_constr
+    (As_field.of_field_obj (to_js_field x))
+    (As_field.of_field_obj (to_js_field y))
+
 let scalar_shift =
   Pickles_types.Shifted_value.Type1.Shift.create (module Other_backend.Field)
 
@@ -1127,7 +1132,6 @@ let hash_array (xs : field_class Js.t Js.js_array Js.t) (is_checked : bool Js.t)
   let input = Array.map (Js.to_array xs) ~f:of_js_field in
   if Js.to_bool is_checked then Random_oracle.Checked.hash input
   else Random_oracle.hash (Array.map ~f:to_unchecked input) |> Field.constant
-
 
 let poseidon =
   object%js
