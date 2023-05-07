@@ -4,8 +4,8 @@ import {
   AccountUpdate,
   UInt64,
   shutdown,
-  Token,
   Permissions,
+  TokenId,
 } from 'snarkyjs';
 import { createDex, TokenContract, addresses, keys, tokenIds } from './dex.js';
 import { expect } from 'expect';
@@ -13,10 +13,10 @@ import { expect } from 'expect';
 import { getProfiler } from '../../profiler.js';
 
 await isReady;
-let doProofs = false;
+let proofsEnabled = false;
 
 let Local = Mina.LocalBlockchain({
-  proofsEnabled: doProofs,
+  proofsEnabled,
   enforceTransactionLimits: false,
 });
 Mina.setActiveInstance(Local);
@@ -32,18 +32,21 @@ console.log('TOKEN Y ADDRESS\t', addresses.tokenY.toBase58());
 console.log('DEX ADDRESS\t', addresses.dex.toBase58());
 console.log('USER ADDRESS\t', addresses.user.toBase58());
 console.log('-------------------------------------------------');
-console.log('TOKEN X ID\t', Token.Id.toBase58(tokenIds.X));
-console.log('TOKEN Y ID\t', Token.Id.toBase58(tokenIds.Y));
+console.log('TOKEN X ID\t', TokenId.toBase58(tokenIds.X));
+console.log('TOKEN Y ID\t', TokenId.toBase58(tokenIds.Y));
 console.log('-------------------------------------------------');
 
-console.log('compile (token)...');
-await TokenContract.compile();
+TokenContract.analyzeMethods();
+if (proofsEnabled) {
+  console.log('compile (token)...');
+  await TokenContract.compile();
+}
 
 await main({ withVesting: false });
 
 // swap out ledger so we can start fresh
 Local = Mina.LocalBlockchain({
-  proofsEnabled: doProofs,
+  proofsEnabled,
   enforceTransactionLimits: false,
 });
 Mina.setActiveInstance(Local);
@@ -69,15 +72,19 @@ async function main({ withVesting }: { withVesting: boolean }) {
   DexTokenHolder.analyzeMethods();
   Dex.analyzeMethods();
 
-  // compile & deploy all zkApps
-  console.log('compile (dex token holder)...');
-  await DexTokenHolder.compile();
-  console.log('compile (dex main contract)...');
-  await Dex.compile();
+  if (proofsEnabled) {
+    // compile & deploy all zkApps
+    console.log('compile (dex token holder)...');
+    await DexTokenHolder.compile();
+    console.log('compile (dex main contract)...');
+    await Dex.compile();
+  }
 
   let tokenX = new TokenContract(addresses.tokenX);
   let tokenY = new TokenContract(addresses.tokenY);
   let dex = new Dex(addresses.dex);
+  let dexTokenHolderX = new DexTokenHolder(addresses.dex, tokenIds.X);
+  let dexTokenHolderY = new DexTokenHolder(addresses.dex, tokenIds.Y);
 
   console.log('deploy & init token contracts...');
   tx = await Mina.transaction(feePayerAddress, () => {
@@ -103,8 +110,10 @@ async function main({ withVesting }: { withVesting: boolean }) {
     // pay fees for creating 3 dex accounts
     AccountUpdate.fundNewAccount(feePayerAddress, 3);
     dex.deploy();
-    tokenX.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
-    tokenY.deployZkapp(addresses.dex, DexTokenHolder._verificationKey!);
+    dexTokenHolderX.deploy();
+    tokenX.approveUpdate(dexTokenHolderX.self);
+    dexTokenHolderY.deploy();
+    tokenY.approveUpdate(dexTokenHolderY.self);
   });
   await tx.prove();
   tx.sign([feePayerKey, keys.dex]);

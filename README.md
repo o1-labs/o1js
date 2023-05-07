@@ -1,63 +1,35 @@
-# SnarkyJS
+# SnarkyJS &nbsp; [![npm version](https://img.shields.io/npm/v/snarkyjs.svg?style=flat)](https://www.npmjs.com/package/snarkyjs) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md)
 
-To write a zkApp, we recommend using the [zkApp CLI](https://github.com/o1-labs/zkapp-cli), which makes writing a zkApp easy by including SnarkyJS & providing project scaffolding, a test framework, and formatting.
+SnarkyJS helps developers build apps powered by zero-knowledge (zk) cryptography.
 
-SnarkyJS's documentation is available [here](https://docs.minaprotocol.com/en/zkapps/snarkyjs-reference).
+The easiest way to write zk programs is using SnarkyJS.  
 
-See [CHANGELOG.md](https://github.com/o1-labs/snarkyjs/blob/main/CHANGELOG.md) for a list of changes between versions.
+SnarkyJS is a TypeScript library for [zk-SNARKs](https://minaprotocol.com/blog/what-are-zk-snarks) and zkApps. You can use SnarkyJS to write zk smart contracts based on zero-knowledge proofs for the Mina Protocol. 
 
-## Run examples in Node
+SnarkyJS is automatically included when you create a project using the [Mina zkApp CLI](https://github.com/o1-labs/zkapp-cli). 
 
-```sh
-npm install
-npm run build
+## Learn More
 
-./run src/examples/api_exploration.ts
-```
+- To learn more about developing zkApps, see the [zkApp Developers](https://docs.minaprotocol.com/zkapps) docs.
 
-## Build and run web version
+- For guided steps building and using zkApps, see the [zkApp Developers Tutorials](https://docs.minaprotocol.com/zkapps/tutorials/hello-world).
 
-```sh
-npm install
-npm run build:web
-npm run serve:web
-```
+- To meet other developers building zkApps with SnarkyJS, participate in the [#zkapps-developers](https://discord.com/channels/484437221055922177/915745847692636181) channel on Mina Protocol Discord.
 
-Then go to `http://localhost:8000/`
+- For a list of changes between versions, see the [CHANGELOG](https://github.com/o1-labs/snarkyjs/blob/main/CHANGELOG.md).
 
-## Run tests
-
-- Unit tests
-
-  ```sh
-  npm run test
-  npm run test:unit
-  ```
-
-- Integration tests
-
-  ```sh
-  npm run test:integration
-  ```
-
-- E2E tests
-
-  ```sh
-  npm install
-  npm run e2e:install
-  npm run build:web
-
-  npm run e2e:prepare-server
-  npm run test:e2e
-  npm run e2e:show-report
-  ```
+- To stay up to date with SnarkyJS, see the [O(1) Labs Blog](https://blog.o1labs.org/tagged/snarkyjs).
 
 ## Contributing
 
-We appreciate any community contributions to SnarkyJS! Below are some steps that will help you get your changes in main as quickly as possible.
+SnarkyJS is an open source project. We appreciate all community contributions to SnarkyJS! 
 
-1. Create a new issue for your proposed changes (or use an existing issue if a relevant one exists).
-2. Write an RFC in your issue outlining your proposed changes and motivation. [Example](https://github.com/o1-labs/snarkyjs/issues/233) Note: if you are proposing a smaller change your RFC will be smaller, and that's ok! :)
-3. One of the maintainers will review your RFC and work with you until it is approved.
-4. Fork the repository and implement your changes.
-5. Submit pull request and wait for code review :)
+See the [Contributing guidelines](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md) for ways you can contribute. 
+
+## Community Packages
+
+High-quality community packages from open source developers are available for your project. 
+
+- **snarkyjs-elgamal** A partially homomorphic encryption library for SnarkyJS based on Elgamal encryption: [GitHub](https://github.com/Trivo25/snarkyjs-elgamal) and [npm](https://www.npmjs.com/package/snarkyjs-elgamal) 
+
+To include your package, see [Creating high-quality community packages](https://github.com/o1-labs/snarkyjs/blob/main/CONTRIBUTING.md#creating-high-quality-community-packages).

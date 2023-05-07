@@ -8,6 +8,7 @@ import {
   PrivateKey,
   UInt64,
   Reducer,
+  Bool,
 } from 'snarkyjs';
 import { VotingApp, VotingAppParams } from './factory.js';
 import { Member, MyMerkleWitness } from './member.js';
@@ -56,12 +57,13 @@ let params: VotingAppParams = {
   votingKey,
   doProofs: true,
 };
+params.electionPreconditions.enforce = Bool(true);
 
 let contracts = await VotingApp(params);
 
-let voterStore = new OffchainStorage<Member>(8);
-let candidateStore = new OffchainStorage<Member>(8);
-let votesStore = new OffchainStorage<Member>(8);
+let voterStore = new OffchainStorage<Member>(3);
+let candidateStore = new OffchainStorage<Member>(3);
+let votesStore = new OffchainStorage<Member>(3);
 
 let initialRoot = voterStore.getRoot();
 tx = await Mina.transaction(feePayer, () => {
@@ -69,17 +71,17 @@ tx = await Mina.transaction(feePayer, () => {
 
   contracts.voting.deploy({ zkappKey: votingKey });
   contracts.voting.committedVotes.set(votesStore.getRoot());
-  contracts.voting.accumulatedVotes.set(Reducer.initialActionsHash);
+  contracts.voting.accumulatedVotes.set(Reducer.initialActionState);
 
   contracts.candidateContract.deploy({ zkappKey: candidateKey });
   contracts.candidateContract.committedMembers.set(candidateStore.getRoot());
   contracts.candidateContract.accumulatedMembers.set(
-    Reducer.initialActionsHash
+    Reducer.initialActionState
   );
 
   contracts.voterContract.deploy({ zkappKey: voterKey });
   contracts.voterContract.committedMembers.set(voterStore.getRoot());
-  contracts.voterContract.accumulatedMembers.set(Reducer.initialActionsHash);
+  contracts.voterContract.accumulatedMembers.set(Reducer.initialActionState);
 });
 await tx.sign([feePayerKey]).send();
 
@@ -94,7 +96,7 @@ tx = await Mina.transaction(feePayer, () => {
       but instead a public key
       */
     0n,
-    Member.from(PrivateKey.random().toPublicKey(), Field(0), UInt64.from(150)),
+    Member.from(PrivateKey.random().toPublicKey(), UInt64.from(150)),
     voterStore
   );
 
@@ -114,7 +116,7 @@ tx = await Mina.transaction(feePayer, () => {
       but instead a public key
       */
     1n,
-    Member.from(PrivateKey.random().toPublicKey(), Field(0), UInt64.from(160)),
+    Member.from(PrivateKey.random().toPublicKey(), UInt64.from(160)),
     voterStore
   );
 
@@ -135,7 +137,7 @@ tx = await Mina.transaction(feePayer, () => {
       but instead a public key
       */
     2n,
-    Member.from(PrivateKey.random().toPublicKey(), Field(0), UInt64.from(170)),
+    Member.from(PrivateKey.random().toPublicKey(), UInt64.from(170)),
     voterStore
   );
 
@@ -170,7 +172,7 @@ tx = await Mina.transaction(feePayer, () => {
       but instead a public key
       */
     0n,
-    Member.from(PrivateKey.random().toPublicKey(), Field(0), UInt64.from(250)),
+    Member.from(PrivateKey.random().toPublicKey(), UInt64.from(250)),
     candidateStore
   );
 
@@ -190,7 +192,7 @@ tx = await Mina.transaction(feePayer, () => {
       but instead a public key
       */
     1n,
-    Member.from(PrivateKey.random().toPublicKey(), Field(0), UInt64.from(400)),
+    Member.from(PrivateKey.random().toPublicKey(), UInt64.from(400)),
     candidateStore
   );
 

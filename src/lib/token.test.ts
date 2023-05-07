@@ -1,6 +1,4 @@
 import {
-  shutdown,
-  isReady,
   State,
   state,
   UInt64,
@@ -12,11 +10,11 @@ import {
   method,
   PublicKey,
   Permissions,
-  Token,
   VerificationKey,
   Field,
   Experimental,
   Int64,
+  TokenId,
 } from 'snarkyjs';
 
 const tokenSymbol = 'TOKEN';
@@ -205,13 +203,10 @@ async function setupLocalProofs() {
 
 describe('Token', () => {
   beforeAll(async () => {
-    await isReady;
     await TokenContract.compile();
     await ZkAppB.compile();
     await ZkAppC.compile();
   });
-
-  afterAll(() => setTimeout(shutdown, 0));
 
   describe('Signature Authorization', () => {
     /*
@@ -229,19 +224,11 @@ describe('Token', () => {
       });
 
       test('correct token id can be derived with an existing token owner', () => {
-        expect(tokenId).toEqual(Token.getId(tokenZkappAddress));
+        expect(tokenId).toEqual(TokenId.derive(tokenZkappAddress));
       });
 
       test('deployed token contract exists in the ledger', () => {
         expect(Mina.getAccount(tokenZkappAddress, tokenId)).toBeDefined();
-      });
-
-      test('create a valid token with a different parentTokenId', async () => {
-        const newTokenId = new Token({
-          tokenOwner: zkAppBAddress,
-          parentTokenId: tokenId,
-        }).id;
-        expect(newTokenId).toBeDefined();
       });
 
       test('setting a valid token symbol on a token contract', async () => {
@@ -581,21 +568,21 @@ describe('Token', () => {
           .sign([feePayerKey, tokenZkappKey])
           .send();
 
-        await Mina.transaction(feePayer, () => {
-          let approveSendingCallback = Experimental.Callback.create(
-            zkAppC,
-            'approveIncorrectLayout',
-            [UInt64.from(10_000)]
-          );
-          expect(() => {
+        await expect(() =>
+          Mina.transaction(feePayer, () => {
+            let approveSendingCallback = Experimental.Callback.create(
+              zkAppC,
+              'approveIncorrectLayout',
+              [UInt64.from(10_000)]
+            );
             tokenZkapp.approveTransferCallback(
               zkAppBAddress,
               zkAppCAddress,
               UInt64.from(10_000),
               approveSendingCallback
             );
-          }).toThrow();
-        });
+          })
+        ).rejects.toThrow();
       });
 
       test('should reject tx if user bypasses the token contract by using an empty account update', async () => {

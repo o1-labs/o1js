@@ -23,10 +23,10 @@ import {
   bytesToBits,
   record,
   withVersionNumber,
-} from '../../provable/binable.js';
-import { base58 } from '../../provable/base58.js';
-import { versionBytes } from '../../js_crypto/constants.js';
-import { Pallas } from '../../js_crypto/elliptic_curve.js';
+} from '../../bindings/lib/binable.js';
+import { base58 } from '../../lib/base58.js';
+import { versionBytes } from '../../bindings/crypto/constants.js';
+import { Pallas } from '../../bindings/crypto/elliptic_curve.js';
 
 export {
   sign,

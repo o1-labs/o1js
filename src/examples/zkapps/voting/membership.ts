@@ -8,9 +8,10 @@ import {
   Permissions,
   Bool,
   PublicKey,
-  Experimental,
   Circuit,
   Reducer,
+  provablePure,
+  AccountUpdate,
 } from 'snarkyjs';
 import { Member } from './member.js';
 import { ParticipantPreconditions } from './preconditions.js';
@@ -59,6 +60,13 @@ export class Membership_ extends SmartContract {
 
   reducer = Reducer({ actionType: Member });
 
+  events = {
+    newMemberState: provablePure({
+      committedMembersRoot: Field,
+      accumulatedMembersRoot: Field,
+    }),
+  };
+
   deploy(args: DeployArgs) {
     super.deploy(args);
     this.account.permissions.set({
@@ -84,10 +92,7 @@ export class Membership_ extends SmartContract {
     // even tho voters cant have a maximum balance, only candidates
     // but for a voter we simply use UInt64.MAXINT() as the maximum
 
-    let accountUpdate = Experimental.createChildAccountUpdate(
-      this.self,
-      member.publicKey
-    );
+    let accountUpdate = AccountUpdate.create(member.publicKey);
 
     accountUpdate.account.balance.assertEquals(
       accountUpdate.account.balance.get()
@@ -95,8 +100,14 @@ export class Membership_ extends SmartContract {
 
     let balance = accountUpdate.account.balance.get();
 
-    balance.assertGreaterThanOrEqual(participantPreconditions.minMina);
-    balance.assertLessThanOrEqual(participantPreconditions.maxMina);
+    balance.assertGreaterThanOrEqual(
+      participantPreconditions.minMina,
+      'Balance not high enough!'
+    );
+    balance.assertLessThanOrEqual(
+      participantPreconditions.maxMina,
+      'Balance too high!'
+    );
 
     let accumulatedMembers = this.accumulatedMembers.get();
     this.accumulatedMembers.assertEquals(accumulatedMembers);
@@ -104,14 +115,14 @@ export class Membership_ extends SmartContract {
     // checking if the member already exists within the accumulator
     let { state: exists } = this.reducer.reduce(
       this.reducer.getActions({
-        fromActionHash: accumulatedMembers,
+        fromActionState: accumulatedMembers,
       }),
       Bool,
       (state: Bool, action: Member) => {
         return action.equals(member).or(state);
       },
       // initial state
-      { state: Bool(false), actionsHash: accumulatedMembers }
+      { state: Bool(false), actionState: accumulatedMembers }
     );
 
     /*
@@ -140,7 +151,7 @@ export class Membership_ extends SmartContract {
     this.committedMembers.assertEquals(committedMembers);
 
     return member.witness
-      .calculateRoot(member.getHash())
+      .calculateRootSlow(member.getHash())
       .equals(committedMembers);
   }
 
@@ -156,11 +167,13 @@ export class Membership_ extends SmartContract {
     let committedMembers = this.committedMembers.get();
     this.committedMembers.assertEquals(committedMembers);
 
-    let { state: newCommittedMembers, actionsHash: newAccumulatedMembers } =
+    let pendingActions = this.reducer.getActions({
+      fromActionState: accumulatedMembers,
+    });
+
+    let { state: newCommittedMembers, actionState: newAccumulatedMembers } =
       this.reducer.reduce(
-        this.reducer.getActions({
-          fromActionHash: accumulatedMembers,
-        }),
+        pendingActions,
         Field,
         (state: Field, action: Member) => {
           // because we inserted empty members, we need to check if a member is empty or "real"
@@ -174,16 +187,21 @@ export class Membership_ extends SmartContract {
           // otherwise, we simply return the unmodified state - this is our way of branching
           return Circuit.if(
             isRealMember,
-            action.witness.calculateRoot(action.getHash()),
+            action.witness.calculateRootSlow(action.getHash()),
             state
           );
         },
         // initial state
-        { state: committedMembers, actionsHash: accumulatedMembers },
+        { state: committedMembers, actionState: accumulatedMembers },
         { maxTransactionsWithActions: 2 }
       );
 
     this.committedMembers.set(newCommittedMembers);
     this.accumulatedMembers.set(newAccumulatedMembers);
+
+    this.emitEvent('newMemberState', {
+      committedMembersRoot: newCommittedMembers,
+      accumulatedMembersRoot: newAccumulatedMembers,
+    });
   }
 }

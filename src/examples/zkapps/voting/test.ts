@@ -46,7 +46,11 @@ export async function testSet(
 ) {
   let { votersStore, candidatesStore, votesStore } = storage;
 
-  /*
+  // toggle these to only run a subset for debugging
+  let runTestingPhases = { 1: true, 2: true, 3: true, 4: true, 5: true };
+
+  if (runTestingPhases[1]) {
+    /*
     test case description:
       change verification key of a deployed zkapp
     
@@ -63,65 +67,59 @@ export async function testSet(
       - transaction fails if verification key does not match the proof 
 
   */
-  console.log('deploying testing phase 1 contracts');
+    console.log('deploying testing phase 1 contracts');
 
-  let verificationKeySet = await deployContracts(
-    contracts,
-    params,
-    Field(0),
-    Field(0),
-    Field(0),
-    true
-  );
-  console.log('checking that the tx is valid using default verification key');
+    let verificationKeySet = await deployContracts(
+      contracts,
+      params,
+      Field(0),
+      Field(0),
+      Field(0),
+      true
+    );
+    console.log('checking that the tx is valid using default verification key');
 
-  await assertValidTx(
-    true,
-    () => {
-      let m = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        UInt64.from(15)
-      );
-      verificationKeySet.Local.addAccount(m.publicKey, m.balance.toString());
+    let m = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(15));
+    verificationKeySet.Local.addAccount(m.publicKey, m.balance.toString());
 
-      verificationKeySet.voting.voterRegistration(m);
-    },
-    verificationKeySet.feePayer
-  );
+    await assertValidTx(
+      true,
+      () => {
+        verificationKeySet.voting.voterRegistration(m);
+      },
+      verificationKeySet.feePayer
+    );
 
-  console.log('changing verification key');
-  let { verificationKey } = await DummyContract.compile();
+    console.log('changing verification key');
+    let { verificationKey } = await DummyContract.compile();
 
-  await assertValidTx(
-    true,
-    () => {
-      let vkUpdate = AccountUpdate.createSigned(params.votingKey);
-      vkUpdate.account.verificationKey.set({
-        ...verificationKey,
-        hash: Field(verificationKey.hash),
-      });
-    },
-    verificationKeySet.feePayer
-  );
+    await assertValidTx(
+      true,
+      () => {
+        let vkUpdate = AccountUpdate.createSigned(params.votingKey);
+        vkUpdate.account.verificationKey.set({
+          ...verificationKey,
+          hash: Field(verificationKey.hash),
+        });
+      },
+      verificationKeySet.feePayer
+    );
 
-  await assertValidTx(
-    false,
-    () => {
-      let m = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        UInt64.from(15)
-      );
-      verificationKeySet.Local.addAccount(m.publicKey, m.balance.toString());
+    m = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(15));
+    verificationKeySet.Local.addAccount(m.publicKey, m.balance.toString());
 
-      verificationKeySet.voting.voterRegistration(m);
-    },
-    verificationKeySet.feePayer,
-    'Invalid proof'
-  );
+    await assertValidTx(
+      false,
+      () => {
+        verificationKeySet.voting.voterRegistration(m);
+      },
+      verificationKeySet.feePayer,
+      'Invalid proof'
+    );
+  }
 
-  /*
+  if (runTestingPhases[2]) {
+    /*
     test case description:
       permissions of the zkapp account change in the middle of a transaction
     
@@ -142,67 +140,61 @@ export async function testSet(
       - transaction fails or succeeds, depending on the ordering of permissions changes
 
   */
-  console.log('deploying testing phase 2 contracts');
+    console.log('deploying testing phase 2 contracts');
 
-  let permissionedSet = await deployContracts(
-    contracts,
-    params,
-    Field(0),
-    Field(0),
-    Field(0)
-  );
-  console.log('checking that the tx is valid using default permissions');
+    let permissionedSet = await deployContracts(
+      contracts,
+      params,
+      Field(0),
+      Field(0),
+      Field(0)
+    );
+    console.log('checking that the tx is valid using default permissions');
 
-  await assertValidTx(
-    true,
-    () => {
-      let m = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        UInt64.from(15)
-      );
-      permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
+    let m = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(15));
+    permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
 
-      permissionedSet.voting.voterRegistration(m);
-    },
-    permissionedSet.feePayer
-  );
+    await assertValidTx(
+      true,
+      () => {
+        permissionedSet.voting.voterRegistration(m);
+      },
+      permissionedSet.feePayer
+    );
 
-  console.log('trying to change permissions...');
+    console.log('trying to change permissions...');
 
-  await assertValidTx(
-    true,
-    () => {
-      let permUpdate = AccountUpdate.createSigned(params.voterKey);
+    await assertValidTx(
+      true,
+      () => {
+        let permUpdate = AccountUpdate.createSigned(params.voterKey);
 
-      permUpdate.account.permissions.set({
-        ...Permissions.default(),
-        setPermissions: Permissions.none(),
-        editActionState: Permissions.impossible(),
-      });
-    },
-    permissionedSet.feePayer
-  );
+        permUpdate.account.permissions.set({
+          ...Permissions.default(),
+          setPermissions: Permissions.none(),
+          editActionState: Permissions.impossible(),
+        });
+      },
+      permissionedSet.feePayer
+    );
 
-  console.log('trying to invoke method with invalid permissions...');
+    console.log('trying to invoke method with invalid permissions...');
 
-  await assertValidTx(
-    false,
-    () => {
-      let m = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        UInt64.from(15)
-      );
-      permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
+    m = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(15));
+    permissionedSet.Local.addAccount(m.publicKey, m.balance.toString());
 
-      permissionedSet.voting.voterRegistration(m);
-    },
-    permissionedSet.feePayer,
-    'actions'
-  );
+    await assertValidTx(
+      false,
+      () => {
+        permissionedSet.voting.voterRegistration(m);
+      },
+      permissionedSet.feePayer,
+      'actions'
+    );
+  }
 
-  /*
+  if (runTestingPhases[3]) {
+    /*
     test case description:
       voting contract is trying to call methods of an invalid contract 
     
@@ -220,53 +212,50 @@ export async function testSet(
 
   */
 
-  console.log('deploying testing phase 3 contracts');
+    console.log('deploying testing phase 3 contracts');
 
-  let invalidSet = await deployInvalidContracts(
-    contracts,
-    params,
-    votersStore.getRoot(),
-    candidatesStore.getRoot(),
-    votesStore.getRoot()
-  );
+    let invalidSet = await deployInvalidContracts(
+      contracts,
+      params,
+      votersStore.getRoot(),
+      candidatesStore.getRoot(),
+      votesStore.getRoot()
+    );
 
-  console.log('trying to invoke invalid contract method...');
+    console.log('trying to invoke invalid contract method...');
 
-  try {
-    let tx = await Mina.transaction(invalidSet.feePayer.toPublicKey(), () => {
-      let m = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        UInt64.from(15)
-      );
-      invalidSet.Local.addAccount(m.publicKey, m.balance.toString());
+    let m = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(15));
+    invalidSet.Local.addAccount(m.publicKey, m.balance.toString());
 
-      invalidSet.voting.voterRegistration(m);
-    });
-
-    await tx.prove();
-    await tx.sign([invalidSet.feePayer]).send();
-  } catch (err: any) {
-    if (!err.toString().includes('precondition_unsatisfied')) {
-      throw Error(
-        `Transaction should have failed but went through! Error: ${err}`
-      );
+    try {
+      let tx = await Mina.transaction(invalidSet.feePayer.toPublicKey(), () => {
+        invalidSet.voting.voterRegistration(m);
+      });
+      await tx.prove();
+      await tx.sign([invalidSet.feePayer]).send();
+    } catch (err: any) {
+      if (!err.toString().includes('fromActionState not found')) {
+        throw Error(
+          `Transaction should have failed, but failed with an unexpected error! ${err}`
+        );
+      }
     }
   }
 
   const initialRoot = votersStore.getRoot();
 
-  console.log('deploying testing phase 4 contracts');
+  if (runTestingPhases[4]) {
+    console.log('deploying testing phase 4 contracts');
 
-  let sequenceOverflowSet = await deployContracts(
-    contracts,
-    params,
-    votersStore.getRoot(),
-    candidatesStore.getRoot(),
-    votesStore.getRoot()
-  );
+    let sequenceOverflowSet = await deployContracts(
+      contracts,
+      params,
+      votersStore.getRoot(),
+      candidatesStore.getRoot(),
+      votesStore.getRoot()
+    );
 
-  /*
+    /*
     test case description:
       overflowing maximum amount of sequence events allowed in the reducer (2)
     
@@ -281,66 +270,75 @@ export async function testSet(
 
   */
 
-  console.log('trying to overflow sequence events (custom max: 2)');
+    console.log('trying to overflow actions (custom max: 2)');
 
-  console.log(
-    'emitting more than 2 actions without periodically updating them'
-  );
-  for (let index = 0; index <= 2; index++) {
-    let tx = await Mina.transaction(
-      sequenceOverflowSet.feePayer.toPublicKey(),
-      () => {
-        let m = Member.from(
-          PrivateKey.random().toPublicKey(),
-          Field(0),
-          UInt64.from(15)
+    console.log(
+      'emitting more than 2 actions without periodically updating them'
+    );
+    for (let index = 0; index <= 3; index++) {
+      try {
+        let tx = await Mina.transaction(
+          sequenceOverflowSet.feePayer.toPublicKey(),
+          () => {
+            let m = Member.from(
+              PrivateKey.random().toPublicKey(),
+
+              UInt64.from(15)
+            );
+            sequenceOverflowSet.Local.addAccount(
+              m.publicKey,
+              m.balance.toString()
+            );
+
+            sequenceOverflowSet.voting.voterRegistration(m);
+          }
         );
-        sequenceOverflowSet.Local.addAccount(m.publicKey, m.balance.toString());
-
-        sequenceOverflowSet.voting.voterRegistration(m);
+        await tx.prove();
+        await tx.sign([sequenceOverflowSet.feePayer]).send();
+      } catch (error) {
+        throw new Error('Transaction failed!');
       }
-    );
-    await tx.prove();
-    await tx.sign([sequenceOverflowSet.feePayer]).send();
-  }
+    }
 
-  if (sequenceOverflowSet.voterContract.reducer.getActions({}).length < 3) {
-    throw Error(
-      `Did not emit expected actions! Only emitted ${
-        sequenceOverflowSet.voterContract.reducer.getActions({}).length
-      }`
-    );
-  }
-
-  try {
-    let tx = await Mina.transaction(
-      sequenceOverflowSet.feePayer.toPublicKey(),
-      () => {
-        sequenceOverflowSet.voting.approveRegistrations();
-      }
-    );
-    await tx.prove();
-    await tx.sign([sequenceOverflowSet.feePayer]).send();
-  } catch (err: any) {
-    if (!err.toString().includes('the maximum number of lists of actions')) {
+    if (sequenceOverflowSet.voterContract.reducer.getActions({}).length < 3) {
       throw Error(
-        `Transaction should have failed but went through! Error: ${err}`
+        `Did not emit expected actions! Only emitted ${
+          sequenceOverflowSet.voterContract.reducer.getActions({}).length
+        }`
       );
+    }
+
+    try {
+      let tx = await Mina.transaction(
+        sequenceOverflowSet.feePayer.toPublicKey(),
+        () => {
+          sequenceOverflowSet.voting.approveRegistrations();
+        }
+      );
+      await tx.prove();
+      await tx.sign([sequenceOverflowSet.feePayer]).send();
+    } catch (err: any) {
+      if (!err.toString().includes('the maximum number of lists of actions')) {
+        throw Error(
+          `Transaction should have failed but went through! Error: ${err}`
+        );
+      }
     }
   }
 
-  console.log('deploying testing phase 5 contracts');
+  if (runTestingPhases[5]) {
+    console.log('deploying testing phase 5 contracts');
 
-  let { voterContract, candidateContract, voting, feePayer, Local } =
-    await deployContracts(
-      contracts,
-      params,
-      votersStore.getRoot(),
-      candidatesStore.getRoot(),
-      votesStore.getRoot()
-    );
+    let { voterContract, candidateContract, voting, feePayer, Local } =
+      await deployContracts(
+        contracts,
+        params,
+        votersStore.getRoot(),
+        candidatesStore.getRoot(),
+        votesStore.getRoot()
+      );
 
-  /*
+    /*
     test case description:
       Happy path - invokes addEntry on voter membership SC
     
@@ -359,59 +357,54 @@ export async function testSet(
 
   */
 
-  let initialAccumulatedMembers = voterContract.accumulatedMembers.get();
-  let initialCommittedMembers = voterContract.committedMembers.get();
+    let initialAccumulatedMembers = voterContract.accumulatedMembers.get();
+    let initialCommittedMembers = voterContract.committedMembers.get();
 
-  console.log(
-    `setting slot to ${params.electionPreconditions.startElection
-      .sub(1)
-      .toString()}, before election has started`
-  );
-  Local.setGlobalSlot(
-    UInt32.from(params.electionPreconditions.startElection.sub(1))
-  );
-
-  console.log('attempting to register a valid voter... ');
-
-  let newVoter1: Member;
-
-  await assertValidTx(
-    true,
-    () => {
-      newVoter1 = registerMember(
-        0n,
-        Member.from(
-          PrivateKey.random().toPublicKey(),
-          Field(0),
-          UInt64.from(15)
-        ),
-        votersStore,
-        Local
-      );
-      // register new member
-      voting.voterRegistration(newVoter1);
-    },
-    feePayer
-  );
-
-  if (voterContract.reducer.getActions({}).length !== 1) {
-    throw Error(
-      'Should have emitted 1 event after registering only one valid voter'
+    console.log(
+      `setting slot to ${params.electionPreconditions.startElection
+        .sub(1)
+        .toString()}, before election has started`
     );
-  }
+    Local.setGlobalSlot(
+      UInt32.from(params.electionPreconditions.startElection.sub(1))
+    );
 
-  if (
-    !initialAccumulatedMembers
-      .equals(voterContract.accumulatedMembers.get())
-      .toBoolean() ||
-    !initialCommittedMembers
-      .equals(voterContract.committedMembers.get())
-      .toBoolean()
-  ) {
-    throw Error('State changed, but should not have!');
-  }
+    console.log('attempting to register a valid voter... ');
 
-  /*
+    // register new member
+    let newVoter1 = registerMember(
+      0n,
+      Member.from(PrivateKey.random().toPublicKey(), UInt64.from(15)),
+      votersStore,
+      Local
+    );
+
+    await assertValidTx(
+      true,
+      () => {
+        voting.voterRegistration(newVoter1);
+      },
+      feePayer
+    );
+
+    if (voterContract.reducer.getActions({}).length !== 1) {
+      throw Error(
+        'Should have emitted 1 event after registering only one valid voter'
+      );
+    }
+
+    if (
+      !initialAccumulatedMembers
+        .equals(voterContract.accumulatedMembers.get())
+        .toBoolean() ||
+      !initialCommittedMembers
+        .equals(voterContract.committedMembers.get())
+        .toBoolean()
+    ) {
+      throw Error('State changed, but should not have!');
+    }
+
+    /*
     test case description:
       checking the methods failure, depending on different predefined preconditions
       (voterPreconditions - minimum balance and maximum balance)
@@ -432,56 +425,59 @@ export async function testSet(
       - no state change at all
       - voter SC emits one sequence event
   */
-  console.log('attempting to register a voter with not enough balance...');
-  await assertValidTx(
-    false,
-    () => {
-      let v = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        params.voterPreconditions.minMina.sub(1)
-      );
-
-      voting.voterRegistration(v);
-    },
-    feePayer,
-    'rangeCheckHelper'
-  );
-
-  console.log('attempting to register a voter with too high balance...');
-  await assertValidTx(
-    false,
-    () => {
-      let v = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        params.voterPreconditions.maxMina.add(1)
-      );
-
-      voting.voterRegistration(v);
-    },
-    feePayer,
-    'rangeCheckHelper'
-  );
-
-  console.log('attempting to register the same voter twice...');
-
-  await assertValidTx(
-    false,
-    () => {
-      voting.voterRegistration(newVoter1);
-    },
-    feePayer,
-    'assert_equal'
-  );
-
-  if (voterContract.reducer.getActions({}).length !== 1) {
-    throw Error(
-      'Should have emitted 1 event after registering only one valid voter'
+    function addAccount(member: Member) {
+      Local.addAccount(member.publicKey, member.balance.toString());
+    }
+    console.log('attempting to register a voter with not enough balance...');
+    let newVoterLow = Member.from(
+      PrivateKey.random().toPublicKey(),
+      params.voterPreconditions.minMina.sub(1)
     );
-  }
+    addAccount(newVoterLow);
 
-  /*
+    await assertValidTx(
+      false,
+      () => {
+        voting.voterRegistration(newVoterLow);
+      },
+      feePayer,
+      'Balance not high enough!'
+    );
+
+    console.log('attempting to register a voter with too high balance...');
+    let newVoterHigh = Member.from(
+      PrivateKey.random().toPublicKey(),
+      params.voterPreconditions.maxMina.add(1)
+    );
+    addAccount(newVoterHigh);
+
+    await assertValidTx(
+      false,
+      () => {
+        voting.voterRegistration(newVoterHigh);
+      },
+      feePayer,
+      'Balance too high!'
+    );
+
+    console.log('attempting to register the same voter twice...');
+
+    await assertValidTx(
+      false,
+      () => {
+        voting.voterRegistration(newVoter1);
+      },
+      feePayer,
+      'assert_equal'
+    );
+
+    if (voterContract.reducer.getActions({}).length !== 1) {
+      throw Error(
+        'Should have emitted 1 event after registering only one valid voter'
+      );
+    }
+
+    /*
 
     test case description:
       Happy path - invokes addEntry on candidate membership SC
@@ -500,70 +496,70 @@ export async function testSet(
       - voter SC emits one sequence event
       - -> invoked addEntry method on voter SC
   */
-  console.log('attempting to register a candidate...');
+    console.log('attempting to register a candidate...');
 
-  await assertValidTx(
-    true,
-    () => {
-      let newCandidate = registerMember(
-        0n,
-        Member.from(
-          PrivateKey.random().toPublicKey(),
-          Field(0),
-          params.candidatePreconditions.minMina.add(1)
-        ),
-        candidatesStore,
-        Local
-      );
+    await assertValidTx(
+      true,
+      () => {
+        let newCandidate = registerMember(
+          0n,
+          Member.from(
+            PrivateKey.random().toPublicKey(),
 
-      // register new candidate
-      voting.candidateRegistration(newCandidate);
-    },
-    feePayer
-  );
+            params.candidatePreconditions.minMina.add(1)
+          ),
+          candidatesStore,
+          Local
+        );
 
-  console.log('attempting to register another candidate...');
-
-  await assertValidTx(
-    true,
-    () => {
-      let newCandidate = registerMember(
-        1n,
-        Member.from(
-          PrivateKey.random().toPublicKey(),
-          Field(0),
-          params.candidatePreconditions.minMina.add(1)
-        ),
-        candidatesStore,
-        Local
-      );
-
-      // register new candidate
-      voting.candidateRegistration(newCandidate);
-    },
-    feePayer
-  );
-
-  let numberOfEvents = candidateContract.reducer.getActions({}).length;
-  if (candidateContract.reducer.getActions({}).length !== 2) {
-    throw Error(
-      `Should have emitted 2 event after registering 2 candidates. ${numberOfEvents} emitted`
+        // register new candidate
+        voting.candidateRegistration(newCandidate);
+      },
+      feePayer
     );
-  }
 
-  // the merkle roots of both membership contract should still be the initial ones because publish hasn't been invoked
-  // therefor the state should not have changes
-  if (
-    !candidateContract.committedMembers.get().equals(initialRoot).toBoolean()
-  ) {
-    throw Error('candidate merkle root is not the initialroot');
-  }
+    console.log('attempting to register another candidate...');
 
-  if (!voterContract.committedMembers.get().equals(initialRoot).toBoolean()) {
-    throw Error('voter merkle root is not the initialroot');
-  }
+    await assertValidTx(
+      true,
+      () => {
+        let newCandidate = registerMember(
+          1n,
+          Member.from(
+            PrivateKey.random().toPublicKey(),
 
-  /*
+            params.candidatePreconditions.minMina.add(1)
+          ),
+          candidatesStore,
+          Local
+        );
+
+        // register new candidate
+        voting.candidateRegistration(newCandidate);
+      },
+      feePayer
+    );
+
+    let numberOfEvents = candidateContract.reducer.getActions({}).length;
+    if (candidateContract.reducer.getActions({}).length !== 2) {
+      throw Error(
+        `Should have emitted 2 event after registering 2 candidates. ${numberOfEvents} emitted`
+      );
+    }
+
+    // the merkle roots of both membership contract should still be the initial ones because publish hasn't been invoked
+    // therefor the state should not have changes
+    if (
+      !candidateContract.committedMembers.get().equals(initialRoot).toBoolean()
+    ) {
+      throw Error('candidate merkle root is not the initialroot');
+    }
+
+    if (!voterContract.committedMembers.get().equals(initialRoot).toBoolean()) {
+      throw Error('voter merkle root is not the initialroot');
+    }
+
+    /*
     test case description:
       approve registrations, invoked publish on both membership SCs
     
@@ -579,47 +575,47 @@ export async function testSet(
         - committed state should now equal off-chain state
       - voting contract state unchanged
   */
-  console.log('authorizing registrations...');
+    console.log('authorizing registrations...');
 
-  await assertValidTx(
-    true,
-    () => {
-      // register new candidate
-      voting.approveRegistrations();
-    },
-    feePayer
-  );
-
-  // approve updates the committed members on both contracts by invoking the publish method.
-  // We check if offchain storage merkle roots match both on-chain committedMembers for voters and candidates
-
-  if (!voting.committedVotes.get().equals(initialRoot).toBoolean()) {
-    throw Error('voter contract state changed, but should not have');
-  }
-
-  if (
-    !candidateContract.committedMembers
-      .get()
-      .equals(candidatesStore.getRoot())
-      .toBoolean()
-  ) {
-    throw Error(
-      'candidatesStore merkle root does not match on-chain committed members'
+    await assertValidTx(
+      true,
+      () => {
+        // register new candidate
+        voting.approveRegistrations();
+      },
+      feePayer
     );
-  }
 
-  if (
-    !voterContract.committedMembers
-      .get()
-      .equals(votersStore.getRoot())
-      .toBoolean()
-  ) {
-    throw Error(
-      'votersStore merkle root does not match on-chain committed members'
-    );
-  }
+    // approve updates the committed members on both contracts by invoking the publish method.
+    // We check if offchain storage merkle roots match both on-chain committedMembers for voters and candidates
 
-  /*
+    if (!voting.committedVotes.get().equals(initialRoot).toBoolean()) {
+      throw Error('voter contract state changed, but should not have');
+    }
+
+    if (
+      !candidateContract.committedMembers
+        .get()
+        .equals(candidatesStore.getRoot())
+        .toBoolean()
+    ) {
+      throw Error(
+        'candidatesStore merkle root does not match on-chain committed members'
+      );
+    }
+
+    if (
+      !voterContract.committedMembers
+        .get()
+        .equals(votersStore.getRoot())
+        .toBoolean()
+    ) {
+      throw Error(
+        'votersStore merkle root does not match on-chain committed members'
+      );
+    }
+
+    /*
     test case description:
       registering candidate within the election period
     
@@ -635,79 +631,85 @@ export async function testSet(
       - no state changes
   */
 
-  console.log(
-    'attempting to register a candidate within the election period ...'
-  );
-  Local.setGlobalSlot(params.electionPreconditions.startElection.add(1));
-
-  let previousEventsVoter = voterContract.reducer.getActions({}).length;
-  let previousEventsCandidate = candidateContract.reducer.getActions({}).length;
-
-  await assertValidTx(
-    false,
-    () => {
-      let lateCandidate = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        UInt64.from(200)
-      );
-      // register late candidate
-      voting.candidateRegistration(lateCandidate);
-    },
-    feePayer,
-    'rangeCheckHelper'
-  );
-
-  console.log('attempting to register a voter within the election period ...');
-
-  await assertValidTx(
-    false,
-    () => {
-      let lateVoter = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        UInt64.from(50)
-      );
-
-      // register late voter
-      voting.voterRegistration(lateVoter);
-    },
-    feePayer,
-    'rangeCheckHelper'
-  );
-
-  if (previousEventsVoter !== voterContract.reducer.getActions({}).length) {
-    throw Error('events emitted but should not have been');
-  }
-  if (
-    previousEventsCandidate !== candidateContract.reducer.getActions({}).length
-  ) {
-    throw Error('events emitted but should not have been');
-  }
-
-  if (
-    !candidateContract.committedMembers
-      .get()
-      .equals(candidatesStore.getRoot())
-      .toBoolean()
-  ) {
-    throw Error(
-      'candidatesStore merkle root does not match on-chain committed members'
+    console.log(
+      'attempting to register a candidate within the election period ...'
     );
-  }
+    Local.setGlobalSlot(params.electionPreconditions.startElection.add(1));
 
-  if (
-    !voterContract.committedMembers
-      .get()
-      .equals(votersStore.getRoot())
-      .toBoolean()
-  ) {
-    throw Error(
-      'votersStore merkle root does not match on-chain committed members'
+    let previousEventsVoter = voterContract.reducer.getActions({}).length;
+    let previousEventsCandidate = candidateContract.reducer.getActions(
+      {}
+    ).length;
+
+    let lateCandidate = Member.from(
+      PrivateKey.random().toPublicKey(),
+      UInt64.from(200)
     );
-  }
+    addAccount(lateCandidate);
 
-  /*
+    await assertValidTx(
+      false,
+      () => {
+        // register late candidate
+        voting.candidateRegistration(lateCandidate);
+      },
+      feePayer,
+      'assert_equal'
+    );
+
+    console.log(
+      'attempting to register a voter within the election period ...'
+    );
+
+    let lateVoter = Member.from(
+      PrivateKey.random().toPublicKey(),
+      UInt64.from(50)
+    );
+    addAccount(lateVoter);
+
+    await assertValidTx(
+      false,
+      () => {
+        // register late voter
+        voting.voterRegistration(lateVoter);
+      },
+      feePayer,
+      'assert_equal'
+    );
+
+    if (previousEventsVoter !== voterContract.reducer.getActions({}).length) {
+      throw Error('events emitted but should not have been');
+    }
+    if (
+      previousEventsCandidate !==
+      candidateContract.reducer.getActions({}).length
+    ) {
+      throw Error('events emitted but should not have been');
+    }
+
+    if (
+      !candidateContract.committedMembers
+        .get()
+        .equals(candidatesStore.getRoot())
+        .toBoolean()
+    ) {
+      throw Error(
+        'candidatesStore merkle root does not match on-chain committed members'
+      );
+    }
+
+    if (
+      !voterContract.committedMembers
+        .get()
+        .equals(votersStore.getRoot())
+        .toBoolean()
+    ) {
+      throw Error(
+        'votersStore merkle root does not match on-chain committed members'
+      );
+    }
+
+    /*
     test case description:
       attempting to count votes before any votes were casted
     
@@ -720,26 +722,26 @@ export async function testSet(
     expected results:
       - no state change
   */
-  console.log('attempting to count votes but no votes were casted...');
+    console.log('attempting to count votes but no votes were casted...');
 
-  let beforeAccumulator = voting.accumulatedVotes.get();
-  let beforeCommitted = voting.committedVotes.get();
-  await assertValidTx(
-    true,
-    () => {
-      voting.countVotes();
-    },
-    feePayer
-  );
+    let beforeAccumulator = voting.accumulatedVotes.get();
+    let beforeCommitted = voting.committedVotes.get();
+    await assertValidTx(
+      true,
+      () => {
+        voting.countVotes();
+      },
+      feePayer
+    );
 
-  if (!beforeAccumulator.equals(voting.accumulatedVotes.get()).toBoolean()) {
-    throw Error('state changed but it should not have!');
-  }
-  if (!beforeCommitted.equals(voting.committedVotes.get()).toBoolean()) {
-    throw Error('state changed but it should not have!');
-  }
+    if (!beforeAccumulator.equals(voting.accumulatedVotes.get()).toBoolean()) {
+      throw Error('state changed but it should not have!');
+    }
+    if (!beforeCommitted.equals(voting.committedVotes.get()).toBoolean()) {
+      throw Error('state changed but it should not have!');
+    }
 
-  /*
+    /*
     test case description:
       happy path voting for candidate
     
@@ -756,38 +758,38 @@ export async function testSet(
       - vote sequence event emitted
       - state unchanged
   */
-  console.log('attempting to vote for the candidate...');
+    console.log('attempting to vote for the candidate...');
 
-  let currentCandidate: Member;
+    let currentCandidate: Member;
 
-  await assertValidTx(
-    true,
-    () => {
-      // attempting to vote for the registered candidate
-      currentCandidate = candidatesStore.get(0n)!;
-      currentCandidate.witness = new MyMerkleWitness(
-        candidatesStore.getWitness(0n)
-      );
-      currentCandidate.votesWitness = new MyMerkleWitness(
-        votesStore.getWitness(0n)
-      );
+    await assertValidTx(
+      true,
+      () => {
+        // attempting to vote for the registered candidate
+        currentCandidate = candidatesStore.get(0n)!;
+        currentCandidate.witness = new MyMerkleWitness(
+          candidatesStore.getWitness(0n)
+        );
+        currentCandidate.votesWitness = new MyMerkleWitness(
+          votesStore.getWitness(0n)
+        );
 
-      let v = votersStore.get(0n)!;
-      v.witness = new MyMerkleWitness(votersStore.getWitness(0n));
+        let v = votersStore.get(0n)!;
+        v.witness = new MyMerkleWitness(votersStore.getWitness(0n));
 
-      voting.vote(currentCandidate, v);
-    },
-    feePayer
-  );
+        voting.vote(currentCandidate, v);
+      },
+      feePayer
+    );
 
-  vote(0n, votesStore, candidatesStore);
+    vote(0n, votesStore, candidatesStore);
 
-  numberOfEvents = voting.reducer.getActions({}).length;
-  if (numberOfEvents !== 1) {
-    throw Error('Should have emitted 1 event after voting for a candidate');
-  }
+    numberOfEvents = voting.reducer.getActions({}).length;
+    if (numberOfEvents !== 1) {
+      throw Error('Should have emitted 1 event after voting for a candidate');
+    }
 
-  /*
+    /*
     test case description:
       voting for invalid candidate
     
@@ -807,53 +809,55 @@ export async function testSet(
       - no state changes and no emitted events
 
   */
-  console.log('attempting to vote for a fake candidate...');
+    console.log('attempting to vote for a fake candidate...');
 
-  await assertValidTx(
-    false,
-    () => {
-      // attempting to vote for the registered candidate
-      let fakeCandidate = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        params.candidatePreconditions.minMina.add(1)
-      );
-      voting.vote(fakeCandidate, votersStore.get(0n)!);
-    },
-    feePayer,
-    'assert_equal'
-  );
+    let fakeCandidate = Member.from(
+      PrivateKey.random().toPublicKey(),
+      params.candidatePreconditions.minMina.add(1)
+    );
+    addAccount(fakeCandidate);
 
-  console.log('unregistered voter attempting to vote');
+    await assertValidTx(
+      false,
+      () => {
+        // attempting to vote for the registered candidate
 
-  await assertValidTx(
-    false,
-    () => {
-      let fakeVoter = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        UInt64.from(50)
-      );
-      voting.vote(fakeVoter, votersStore.get(0n)!);
-    },
-    feePayer,
-    'assert_equal'
-  );
+        voting.vote(fakeCandidate, votersStore.get(0n)!);
+      },
+      feePayer,
+      'assert_equal'
+    );
 
-  console.log('attempting to vote for voter...');
+    console.log('unregistered voter attempting to vote');
 
-  await assertValidTx(
-    false,
-    () => {
-      const voter = votersStore.get(0n)!;
+    let fakeVoter = Member.from(
+      PrivateKey.random().toPublicKey(),
+      UInt64.from(50)
+    );
+    addAccount(fakeVoter);
 
-      voting.vote(voter, votersStore.get(0n)!);
-    },
-    feePayer,
-    'assert_equal'
-  );
+    await assertValidTx(
+      false,
+      () => {
+        voting.vote(fakeVoter, votersStore.get(0n)!);
+      },
+      feePayer,
+      'assert_equal'
+    );
 
-  /*
+    console.log('attempting to vote for voter...');
+
+    await assertValidTx(
+      false,
+      () => {
+        const voter = votersStore.get(0n)!;
+        voting.vote(voter, votersStore.get(0n)!);
+      },
+      feePayer,
+      'assert_equal'
+    );
+
+    /*
     test case description:
       happy path - vote counting
 
@@ -869,38 +873,38 @@ export async function testSet(
       - prints final result (helper function)
 
   */
-  console.log('counting votes...');
+    console.log('counting votes...');
 
-  await assertValidTx(
-    true,
-    () => {
-      voting.countVotes();
-    },
-    feePayer
-  );
-
-  if (!voting.committedVotes.get().equals(votesStore.getRoot()).toBoolean()) {
-    throw Error(
-      'votesStore merkle root does not match on-chain committed votes'
+    await assertValidTx(
+      true,
+      () => {
+        voting.countVotes();
+      },
+      feePayer
     );
-  }
 
-  console.log('election is over, printing results');
+    if (!voting.committedVotes.get().equals(votesStore.getRoot()).toBoolean()) {
+      throw Error(
+        'votesStore merkle root does not match on-chain committed votes'
+      );
+    }
 
-  let results = getResults(voting, votesStore);
-  console.log(results);
+    console.log('election is over, printing results');
 
-  if (results[currentCandidate!.publicKey.toBase58()] !== 1) {
-    throw Error(
-      `Candidate ${currentCandidate!.publicKey.toBase58()} should have one vote, but has ${
-        results[currentCandidate!.publicKey.toBase58()]
-      } `
-    );
-  }
+    let results = getResults(voting, votesStore);
+    console.log(results);
 
-  console.log('testing after election state');
+    if (results[currentCandidate!.publicKey.toBase58()] !== 1) {
+      throw Error(
+        `Candidate ${currentCandidate!.publicKey.toBase58()} should have one vote, but has ${
+          results[currentCandidate!.publicKey.toBase58()]
+        } `
+      );
+    }
 
-  /*
+    console.log('testing after election state');
+
+    /*
     test case description:
       registering voter and candidates AFTER election has ended
     
@@ -916,37 +920,40 @@ export async function testSet(
       - no events emitted
 
   */
-  console.log('attempting to register voter after election has ended');
+    console.log('attempting to register voter after election has ended');
 
-  await assertValidTx(
-    false,
-    () => {
-      let voter = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        params.voterPreconditions.minMina.add(1)
-      );
-      voting.voterRegistration(voter);
-    },
-    feePayer,
-    'Expected'
-  );
+    let voter = Member.from(
+      PrivateKey.random().toPublicKey(),
+      params.voterPreconditions.minMina.add(1)
+    );
+    addAccount(voter);
 
-  console.log('attempting to register candidate after election has ended');
+    await assertValidTx(
+      false,
+      () => {
+        voting.voterRegistration(voter);
+      },
+      feePayer,
+      'assert_equal'
+    );
 
-  await assertValidTx(
-    false,
-    () => {
-      let candidate = Member.from(
-        PrivateKey.random().toPublicKey(),
-        Field(0),
-        params.candidatePreconditions.minMina.add(1)
-      );
-      voting.candidateRegistration(candidate);
-    },
-    feePayer,
-    'Expected'
-  );
+    console.log('attempting to register candidate after election has ended');
+
+    let candidate = Member.from(
+      PrivateKey.random().toPublicKey(),
+      params.candidatePreconditions.minMina.add(1)
+    );
+    addAccount(candidate);
+
+    await assertValidTx(
+      false,
+      () => {
+        voting.candidateRegistration(candidate);
+      },
+      feePayer,
+      'assert_equal'
+    );
+  }
 
   console.log('test successful!');
 }

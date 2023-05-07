@@ -76,9 +76,8 @@ expect(() =>
         new UInt32(Field(-1)),
       ],
     }));
-    type.check(x);
   })
-).toThrow(`Expected ${Field(-1)} to fit in 32 bits`);
+).toThrow(`Constraint unsatisfied`);
 
 // class version of `provable`
 class MyStruct extends Struct({
@@ -127,7 +126,7 @@ class MyContract extends SmartContract {
 
 setActiveInstance(LocalBlockchain());
 
-MyContract.compile();
+await MyContract.compile();
 let key = PrivateKey.random();
 let address = key.toPublicKey();
 let contract = new MyContract(address);

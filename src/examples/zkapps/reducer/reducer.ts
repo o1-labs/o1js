@@ -24,7 +24,7 @@ class CounterZkapp extends SmartContract {
   // version that's implicitly represented by the list of actions
   @state(Field) counter = State<Field>();
   // helper field to store the point in the action history that our on-chain state is at
-  @state(Field) actionsHash = State<Field>();
+  @state(Field) actionState = State<Field>();
 
   @method incrementCounter() {
     this.reducer.dispatch(INCREMENT);
@@ -34,15 +34,15 @@ class CounterZkapp extends SmartContract {
     // get previous counter & actions hash, assert that they're the same as on-chain values
     let counter = this.counter.get();
     this.counter.assertEquals(counter);
-    let actionsHash = this.actionsHash.get();
-    this.actionsHash.assertEquals(actionsHash);
+    let actionState = this.actionState.get();
+    this.actionState.assertEquals(actionState);
 
     // compute the new counter and hash from pending actions
     let pendingActions = this.reducer.getActions({
-      fromActionHash: actionsHash,
+      fromActionState: actionState,
     });
 
-    let { state: newCounter, actionsHash: newActionsHash } =
+    let { state: newCounter, actionState: newActionState } =
       this.reducer.reduce(
         pendingActions,
         // state type
@@ -51,12 +51,12 @@ class CounterZkapp extends SmartContract {
         (state: Field, _action: Field) => {
           return state.add(1);
         },
-        { state: counter, actionsHash }
+        { state: counter, actionState }
       );
 
     // update on-chain state
     this.counter.set(newCounter);
-    this.actionsHash.set(newActionsHash);
+    this.actionState.set(newActionState);
   }
 }
 
@@ -79,6 +79,11 @@ let zkapp = new CounterZkapp(zkappAddress);
 if (doProofs) {
   console.log('compile');
   await CounterZkapp.compile();
+} else {
+  // TODO: if we don't do this, then `analyzeMethods()` will be called during `runUnchecked()` in the tx callback below,
+  // which currently fails due to `finalize_is_running` in snarky not resetting internal state, and instead setting is_running unconditionally to false,
+  // so we can't nest different snarky circuit runners
+  CounterZkapp.analyzeMethods();
 }
 
 console.log('deploy');
@@ -86,7 +91,7 @@ let tx = await Mina.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer);
   zkapp.deploy();
   zkapp.counter.set(initialCounter);
-  zkapp.actionsHash.set(Reducer.initialActionsHash);
+  zkapp.actionState.set(Reducer.initialActionState);
 });
 await tx.sign([feePayerKey, zkappKey]).send();
 

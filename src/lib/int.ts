@@ -1,7 +1,8 @@
 import { Circuit, Field, Bool } from '../snarky.js';
 import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
-import { Types } from '../provable/types.js';
+import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
+import { inCheckedComputation } from './proof_system.js';
 
 // external API
 export { UInt32, UInt64, Int64, Sign };
@@ -251,21 +252,23 @@ class UInt64 extends CircuitValue {
    * Asserts that a {@link UInt64} is less than or equal to another one.
    */
   assertLte(y: UInt64, message?: string) {
-    let yMinusX = Circuit.inCheckedComputation()
-      ? y.value.sub(this.value).seal()
-      : y.value.sub(this.value);
-
-    yMinusX.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(yMinusX, message);
+    this.assertLessThanOrEqual(y, message);
   }
 
   /**
    * Asserts that a {@link UInt64} is less than or equal to another one.
    */
   assertLessThanOrEqual(y: UInt64, message?: string) {
-    let yMinusX = Circuit.inCheckedComputation()
-      ? y.value.sub(this.value).seal()
-      : y.value.sub(this.value);
-
+    if (this.value.isConstant() && y.value.isConstant()) {
+      let x0 = this.value.toBigInt();
+      let y0 = y.value.toBigInt();
+      if (x0 > y0) {
+        if (message !== undefined) throw Error(message);
+        throw Error(`UInt64.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
+      }
+      return;
+    }
+    let yMinusX = y.value.sub(this.value).seal();
     yMinusX.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(yMinusX, message);
   }
 
@@ -586,21 +589,23 @@ class UInt32 extends CircuitValue {
    * Asserts that a {@link UInt32} is less than or equal to another one.
    */
   assertLte(y: UInt32, message?: string) {
-    let yMinusX = Circuit.inCheckedComputation()
-      ? y.value.sub(this.value).seal()
-      : y.value.sub(this.value);
-
-    yMinusX.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(yMinusX, message);
+    this.assertLessThanOrEqual(y, message);
   }
 
   /**
    * Asserts that a {@link UInt32} is less than or equal to another one.
    */
   assertLessThanOrEqual(y: UInt32, message?: string) {
-    let yMinusX = Circuit.inCheckedComputation()
-      ? y.value.sub(this.value).seal()
-      : y.value.sub(this.value);
-
+    if (this.value.isConstant() && y.value.isConstant()) {
+      let x0 = this.value.toBigInt();
+      let y0 = y.value.toBigInt();
+      if (x0 > y0) {
+        if (message !== undefined) throw Error(message);
+        throw Error(`UInt32.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
+      }
+      return;
+    }
+    let yMinusX = y.value.sub(this.value).seal();
     yMinusX.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(yMinusX, message);
   }
 

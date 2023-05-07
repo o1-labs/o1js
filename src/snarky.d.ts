@@ -2,7 +2,7 @@ import type {
   FlexibleProvable,
   InferredProvable,
 } from './lib/circuit_value.js';
-import type { Account as JsonAccount } from './provable/gen/transaction-json.js';
+import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
 export {
   Field,
   Bool,
@@ -22,7 +22,7 @@ export {
 };
 
 // internal
-export { Test };
+export { Test, Proof as SnarkyProof, VerificationKey as SnarkyVerificationKey };
 
 /**
  * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
@@ -723,11 +723,11 @@ declare class Bool {
   static sizeInBytes(): number;
 }
 
-declare interface CircuitMain<W, P> {
+type CircuitMain<W, P> = {
   snarkyWitnessTyp: ProvablePure<W>;
   snarkyPublicTyp: ProvablePure<P>;
   snarkyMain: (w: W, p: P) => void;
-}
+};
 
 type Gate = {
   type: string;
@@ -739,43 +739,6 @@ type Gate = {
  * The {@link Circuit} API is a low level interface to interact and build circuits with
  */
 declare class Circuit {
-  /**
-   * Adds a constraint to the circuit.
-   */
-  static addConstraint(
-    this: Circuit,
-    kind: 'multiply',
-    x: Field,
-    y: Field,
-    z: Field
-  ): void;
-  static addConstraint(
-    this: Circuit,
-    kind: 'add',
-    x: Field,
-    y: Field,
-    z: Field
-  ): void;
-  static addConstraint(
-    this: Circuit,
-    kind: 'equal',
-    x: Field,
-    y: Field,
-    z: Field
-  ): void;
-  static addConstraint(
-    this: Circuit,
-    kind: 'boolean',
-    x: Field,
-    y: Field,
-    z: Field
-  ): void;
-
-  /**
-   * Creates a new variable inside the circuit.
-   */
-  static newVariable(f: () => Field | number | string | boolean): Field;
-
   // this convoluted generic typing is needed to give type inference enough flexibility
   static _witness<S extends Provable<any>>(ctor: S, f: () => Field[]): Field[];
   static witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
@@ -791,7 +754,12 @@ declare class Circuit {
   /**
    * Runs code and checks its correctness.
    */
-  static runAndCheck<T>(f: () => T): T;
+  static runAndCheck(f: () => void): void;
+
+  /**
+   * Runs code in prover mode, without checking correctness.
+   */
+  static runUnchecked(f: () => void): void;
 
   /**
    * Returns information about the constraint system in the callback function.
@@ -866,12 +834,17 @@ declare class Circuit {
   /**
    * Generates a proving key and a verification key for this circuit.
    */
-  static generateKeypair(): Keypair;
+  static generateKeypair(circuit: CircuitMain<any, any>): Keypair;
 
   /**
    * Proves a statement using the private input, public input and the {@link Keypair} of the circuit.
    */
-  static prove(privateInput: any[], publicInput: any[], kp: Keypair): Proof;
+  static prove(
+    circuit: CircuitMain<any, any>,
+    privateInput: any[],
+    publicInput: any[],
+    kp: Keypair
+  ): Proof;
 
   /**
    * Verifies a proof using the public input, the proof and the initial {@link Keypair} of the circuit.
@@ -894,7 +867,7 @@ declare class Circuit {
   static inCheckedComputation(): boolean;
 
   /**
-   * Interface to log elements within a circuit. Similar to `Console.log()`.
+   * Interface to log elements within a circuit. Similar to `console.log()`.
    */
   static log(...args: any): void;
 }
@@ -1128,6 +1101,13 @@ declare const Poseidon: {
     input: Field[],
     isChecked: boolean
   ): [Field, Field, Field];
+  hashToGroup(
+    input: Field[],
+    isChecked: boolean
+  ): {
+    x: Field;
+    y: Field;
+  };
   prefixes: Record<
     | 'event'
     | 'events'
@@ -1146,9 +1126,7 @@ declare const Poseidon: {
 /**
  * Part of the circuit {@link Keypair}. A verification key can be used to verify a {@link Proof} when you provide the correct public input.
  */
-declare class VerificationKey {
-  verify(publicInput: any[], proof: Proof): boolean;
-}
+declare class VerificationKey {}
 
 /**
  * Contains a proving key and {@link VerificationKey} which can be used to verify proofs.
@@ -1311,14 +1289,12 @@ type MlBytes = { t: number; c: string; l: number };
 type OcamlInput = { fields: Field[]; packed: { field: Field; size: number }[] };
 
 /**
- * This function *must* be called at the end of a nodejs program, otherwise the
- * worker threads will continue running and the program will never terminate.
- * From web applications, this function is a no-op.
+ * @deprecated `shutdown()` is no longer needed, and is a no-op. Remove it from your code.
  */
 declare const shutdown: () => Promise<undefined>;
 
 /**
- * A Promise that resolves when SnarkyJS is ready to be used
+ * @deprecated `await isReady` is no longer needed. Remove it from your code.
  */
 declare let isReady: Promise<undefined>;
 
@@ -1396,5 +1372,3 @@ declare const Pickles: {
 
   proofToBase64Transaction: (proof: Pickles.Proof) => string;
 };
-
-type AuthRequired = 'Signature' | 'Proof' | 'Either' | 'None' | 'Impossible';
