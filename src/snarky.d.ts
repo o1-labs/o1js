@@ -28,6 +28,8 @@ export { Test };
  * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
  *
  * You will find this as the required input type in a few places in snarkyjs. One convenient way to create a `Provable<T>` is using `Struct`.
+ * 
+ * The properties and methods on the `Provable` type exist in all base snarkyjs types as well (aka. {@link Field}, {@link Bool}, etc.). In most of the cases, a ZK app developer does not need these functions to create dApps.
  */
 declare interface Provable<T> {
   toFields: (x: T) => Field[];
@@ -56,7 +58,7 @@ declare interface ProvablePure<T> extends Provable<T> {
 declare function Field(value: Field | number | string | boolean | bigint): Field;
 declare class Field {
   /**
-   * Coerces anything `field-like` (bigint, boolean, number, string, and {@link Field}) to a {@link Field}.
+   * Coerce anything `field-like` (bigint, boolean, number, string, and {@link Field}) to a {@link Field}.
    * A {@link Field} is an element of a prime order field. Every other provable type is build using the {@link Field} type.
    * The field is the [pasta fp field](https://electriccoin.co/blog/the-pasta-curves-for-halo-2-and-beyond/) of order 28948022309329048855892746252171976963363056481941560715954676764349967630337.
    * **Warning: You cannot create a {@link Field} from a non-integer number.
@@ -84,7 +86,7 @@ declare class Field {
   constructor(value: Field | number | string | boolean | bigint);
 
   /**
-   * Negates a {@link Field}. This is equivalent to multiplying the {@link Field} by -1.
+   * Negate a {@link Field}. This is equivalent to multiplying the {@link Field} by -1.
    *
    * ```ts
    * const negOne = Field(1).neg();
@@ -105,7 +107,7 @@ declare class Field {
   neg(): Field;
 
   /**
-   * Inverts this {@link Field} element. This is equivalent to equalize the {@link Field} to 1 over its value.
+   * Invert this {@link Field} element. This is equivalent to equalize the {@link Field} to 1 over its value.
    *
    * ```typescript
    * const someField = Field(42);
@@ -120,7 +122,7 @@ declare class Field {
   inv(): Field;
 
   /**
-   * Adds a `field-like` element to a {@link Field} element and returns the result.
+   * Add a `field-like` element to a {@link Field} element and returns the result.
    *
    * ```ts
    * const value1 = Field(3);
@@ -152,7 +154,7 @@ declare class Field {
   add(value: Field | number | string | boolean): Field;
 
   /**
-   * Substracts another `field-like` element from this {@link Field} and returns the result.
+   * Substract another `field-like` element from this {@link Field} and returns the result.
    *
    * ```ts
    * const value1 = Field(3);
@@ -183,7 +185,7 @@ declare class Field {
   sub(value: Field | number | string | boolean): Field;
 
   /**
-   * Multiplies another `field-like` element with this {@link Field} and returns the result.
+   * Multiply another `field-like` element with this {@link Field} and returns the result.
    *
    * ```ts
    * const value1 = Field(3);
@@ -215,7 +217,7 @@ declare class Field {
   mul(value: Field | number | string | boolean): Field;
 
   /**
-   * Divides another `field-like` element through this {@link Field} and returns the result.
+   * Divide another `field-like` element through this {@link Field} and returns the result.
    *
    * ```ts
    * const value1 = Field(6);
@@ -239,14 +241,14 @@ declare class Field {
    * quotient.mul(value2).assertEquals(value1);
    * ```
    * 
-   * @param value - a `field-like` value to multiply with the {@link Field}.
+   * @param value - a `field-like` value to divide with the {@link Field}.
    * 
-   * @return A {@link Field} element equivalent to the modular difference of the two value.
+   * @return A {@link Field} element equivalent to the modular division of the two value.
    */
   div(value: Field | number | string | boolean): Field;
 
   /**
-   * Squares this {@link Field} element.
+   * Square this {@link Field} element.
    *
    * ```typescript
    * const someField = Field(7);
@@ -262,7 +264,7 @@ declare class Field {
   square(): Field;
 
   /**
-   * Squares this {@link Field} element.
+   * Take the square root of this {@link Field} element.
    *
    * ```typescript
    * const someField = Field(42);
@@ -315,26 +317,13 @@ declare class Field {
    * console.log(someField.toJSON());
    * ```
    * 
-   * @return A string equivalent to the JSON representation of the Field.
+   * @return A string equivalent to the JSON representation of the {@link Field}.
    */
   toJSON(): string;
 
   /**
-   * Returns the size of this type. Size of a {@link Field} is always 1, as it is already the primitive type.
-   * This function returns a reular number, so you cannot use it to prove something on chain. You can use it during debugging or to understand the memory complexity of some type.
-   * 
-   * ```ts
-   * const someField = Field(42);
-   * 
-   * console.log(someField.sizeInFields()); // Will always print 1, regardless of the value of `someField`
-   * ```
-   * 
-   * @return A number representing the size of a {@link Field} element in terms of {@link Field} elements.
-   */
-  sizeInFields(): number;
-
-  /**
-   * Serializes this {@link Field} element into an array of {@link Field} elements.
+   * This function is the implementation of {@link Provable.toFields} in {@link Field} type.
+   * Serialize this {@link Field} element into an array of {@link Field} elements.
    * You can use this array to calculate the {@link Poseidon} hash of a {@link Field}.
    * This will be always an array of length 1, where the first and only element equals the {@link Field} itself.
    * 
@@ -582,23 +571,59 @@ declare class Field {
    */
   equals(value: Field | number | string | boolean): Bool;
 
-  // TODO: Izzy to document
+  /**
+   * **Warning: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
+   * 
+   * In snarkyJS, addition and scaling (multiplication of variables by a constant) of variables is represented as an AST - [abstract syntax tree](https://en.wikipedia.org/wiki/Abstract_syntax_tree). For example, the expression `x.add(y).mul(2)` is represented as `Scale(2, Add(x, y))`.
+   * 
+   * Only when the variable is needed in a multiplicative or any higher level constraint (for example multiplication of two {@link Field} elements) a new internal variable is created to represent the operation.
+   * 
+   * The `seal()` function tells snarkyJS to stop building an AST and create a new variable right away.
+   * 
+   * @return A {@link Field} element that is equal to the result of AST that was previously on this {@link Field} element.
+   */
   seal(): Field;
   
-  // TODO: Izzy to document
+  /**
+   * Create a new {@link Field} element from the first `numBits` of this {@link Field} element.
+   * As {@link Field} elements are represented using [little endian binary representation](https://betterexplained.com/articles/understanding-big-and-little-endian-byte-order/), the resulting {@link Field} element will equal the original one if the variable fits in `numBits` bits.
+   * 
+   * @param numBits - The number of bits to take from this {@link Field} element.
+   * 
+   * @return A {@link Field} element that is equal to the `numBits` of this {@link Field} element.
+   */
   rangeCheckHelper(numBits: number): Field;
 
   /**
-   * Checks whether this is a hard-coded constant in the Circuit.
+   * Check whether this {@link Field} element is a hard-coded constant in the Circuit.
+   * If a {@link Field} is constructed outside a zkApp method, it is a constant.
+   * 
+   * ```ts
+   * console.log(Field(42).isConstant()); // False
+   * ```
+   * 
+   * ```ts
+   * @method(x: Field) {
+   *    console.log(x.isConstant()); // True
+   * }
+   * ```
+   * 
+   * @return A `boolean` showing if this {@link Field} is a constant or not.
    */
   isConstant(): boolean;
 
   /**
-   * Returns a constant.
+   * Create a {@link Field} element equivalent to this {@link Field} elements value, but it is a constant in the Circuit.
+   * See {@link Field.isConstant} for more information about what is a constant {@link Field}.
+   * 
+   * ```ts
+   * const someField = Field(42);
+   * someField.toConstant().assertEquals(someField); // Always true
+   * ```
+   * 
+   * @return A constant {@link Field} element equivalent to this {@link Field} element.
    */
   toConstant(): Field;
-
-  // value(this: Field | number | string | boolean): Field;
 
   /* Self members */
 
@@ -640,42 +665,12 @@ declare class Field {
    */
   static random(): Field;
 
-  /*
-  static neg(x: Field | number | string | boolean): Field;
-  static inv(x: Field | number | string | boolean): Field;
-
-  static add(
-    x: Field | number | string | boolean,
-    y: Field | number | string | boolean
-  ): Field;
-  static sub(
-    x: Field | number | string | boolean,
-    y: Field | number | string | boolean
-  ): Field;
-  static mul(
-    x: Field | number | string | boolean,
-    y: Field | number | string | boolean
-  ): Field;
-  static div(
-    x: Field | number | string | boolean,
-    y: Field | number | string | boolean
-  ): Field;
-
-  static square(x: Field | number | string | boolean): Field;
-  static sqrt(x: Field | number | string | boolean): Field;
-
-  static toString(x: Field | number | string | boolean): string;
-  */
-
   /**
-   * Creates a data structure from an array of serialized {@link Field} elements.
-   */
-  fromFields(fields: Field[]): Field;
-
-  /**
+   * **Warning: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
+   * 
    * Creates a {@link Field} from an array of length 1 serialized from {@link Field} elements.
    * It is equivalent to `fields[0]`, the first index of the {@link Field} array.
-   * This function may seem unnecessary. It is designed as the reverse function of {@link Field.toFields}.
+   * This function may seem unnecessary for dApps. It is designed as the reverse function of {@link Field.toFields}.
    * 
    * @param fields - an array of length 1 serialized from {@link Field} elements.
    * 
@@ -684,7 +679,8 @@ declare class Field {
   static fromFields(fields: Field[]): Field;
 
   /**
-   * Returns the size of this type. Size of the {@link Field} type is 1, as it is the primitive type.
+   * This function is the implementation of {@link Provable.sizeInFields} in {@link Field} type.
+   * Size of the {@link Field} type is always 1, as it is the primitive type.
    * This function returns a reular number, so you cannot use it to prove something on chain. You can use it during debugging or to understand the memory complexity of some type.
    * 
    * This function has the same utility as the {@link Field.sizeInFields}.
@@ -698,6 +694,7 @@ declare class Field {
   static sizeInFields(): number;
 
   /**
+   * This function is the implementation of {@link Provable.toFields} in {@link Field} type.
    * Static function to serializes a {@link Field} into an array of {@link Field} elements.
    * You can use this array to calculate the {@link Poseidon} hash of a {@link Field}.
    * This will be always an array of length 1, where the first and only element equals the given parameter itself.
@@ -709,57 +706,114 @@ declare class Field {
   static toFields(value: Field): Field[];
 
   /**
-   * Static method to serialize a {@link Field} into its auxiliary data.
+   * This function is the implementation of {@link Provable.toAuxiliary} in {@link Field} type.
+   * As the primitive {@link Field} type has no auxiliary data associated with it, this function will always return an empty array.
+   * 
+   * @param value - The {@link Field} element to get the auxiliary data of, optional. If not provided, the function returns an empty array.
    */
-  static toAuxiliary(x?: Field): [];
-
-  /*
-  static assertEqual(
-    x: Field | number | string | boolean,
-    y: Field | number | string | boolean
-  ): Field;
-  static assertBoolean(x: Field | number | string | boolean): void;
-  static isZero(x: Field | number | string | boolean): Bool;
-  */
+  static toAuxiliary(value?: Field): [];
 
   /**
-   * Converts a bit array into a field element (little endian)
-   * Fails if the field element cannot fit given too many bits.
+   * Convert a bit array into a {@link Field} element using [little endian binary representation](https://betterexplained.com/articles/understanding-big-and-little-endian-byte-order/)
+   * The function fails if the element cannot fit given too many bits. Note that a {@link Field} element can be 254 bits at most.
+   * 
+   * **Important: If the given `bytes` array is an array of `booleans` or {@link Bool} elements that all are `constant`, the resulting {@link Field} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type, the resulting {@link Field} will be a variable as well.
+   * 
+   * @param bytes - An array of {@link Bool} or `boolean` type.
+   * 
+   * @return A {@link Field} element matching the [little endian binary representation](https://betterexplained.com/articles/understanding-big-and-little-endian-byte-order/) of the given `bytes` array.
    */
-  static fromBits(x: (Bool | boolean)[]): Field;
-  /*
-  static toBits(x: Field | number | string | boolean): Bool[];
-  */
-
-  /*
-  static equal(
-    x: Field | number | string | boolean,
-    y: Field | number | string | boolean
-  ): Bool;
-  */
+  static fromBits(bytes: (Bool | boolean)[]): Field;
 
   /**
-   * Serialize a {@link Field} to a JSON string.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   * Serialize the given {@link Field} element to a JSON string, e.g. for printing. If you try to print a {@link Field} without this function it will directly stringify the Field object, resulting in an unreadable output.
+   * 
+   * **Warning: This operation does NOT affect the circuit and can't be used to prove anything about the JSON string representation of the {@link Field}. Please use it only during debugging.
+   * 
+   * ```ts
+   * const someField = Field(42);
+   * console.log(Field.toJSON(someField));
+   * ```
+   * 
+   * @param value - The JSON string to coerce the {@link Field} from.
+   * 
+   * @return A string equivalent to the JSON representation of the given {@link Field}.
    */
-  static toJSON(x: Field): string;
+  static toJSON(value: Field): string;
 
   /**
-   * Deserialize a JSON structure into a {@link Field}.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   * Deserialize a JSON string containing a `field-like` value into a {@link Field} element.
+   * 
+   * **Warning: This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the {@link Field}.
+   * 
+   * @param value - the `field-like` value to coerce the {@link Field} from.
+   * 
+   * @return A {@link Field} coerced from the given JSON string.
    */
-  static fromJSON(x: string): Field;
+  static fromJSON(value: string): Field;
 
-  static check(x: Field): void;
+  /**
+   * This function is the implementation of {@link Provable.check} in {@link Field} type.
+   * 
+   * As any {@link Provable} type can be a {@link Field}, this function does not create any assertions on the chain, so it basically does nothing :)
+   * 
+   * @param value - the {@link Field} element to check.
+   */
+  static check(value: Field): void;
 
-  // monkey-patched in JS
-  static toInput(x: Field): { fields: Field[] };
-  static toBytes(x: Field): number[];
+  /**
+   * **Warning: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
+   * 
+   * This function is the implementation of {@link Provable.toInput} in {@link Field} type.
+   * This function acts identical to {@link Field.toFields} for {@link Field} type.
+   * 
+   * @param value - The {@link Field} element to get the `input` array.
+   * 
+   * @return A {@link Field} array of length 1 created from this {@link Field}.
+   * 
+   */
+  static toInput(value: Field): { fields: Field[] };
+
+  /**
+   * Create an array of digits equal to the [little-endian](https://betterexplained.com/articles/understanding-big-and-little-endian-byte-order/) byte order of the given {@link Field} element.
+   * Note that the array has always 32 elements as the {@link Field} is a `finite-field` in the order of {@link Field.ORDER}.
+   * 
+   * @param value - The {@link Field} element to generate the array of bytes of.
+   * 
+   * @return An array of digits equal to the [little-endian](https://betterexplained.com/articles/understanding-big-and-little-endian-byte-order/) byte order of the given {@link Field} element.
+   * 
+   */
+  static toBytes(value: Field): number[];
+
+  /**
+   * Coerce a new {@link Field} element using the [little-endian](https://betterexplained.com/articles/understanding-big-and-little-endian-byte-order/) representation of the given `bytes` array.
+   * Note that the given `bytes` array may have at most 32 elements as the {@link Field} is a `finite-field` in the order of {@link Field.ORDER}.
+   * 
+   * **Warning: This operation does NOT affect the circuit and can't be used to prove anything about the byte representation of the {@link Field}.
+   * 
+   * @param bytes - The bytes array to coerce the {@link Field} from.
+   * 
+   * @return A new {@link Field} element created using the [little-endian](https://betterexplained.com/articles/understanding-big-and-little-endian-byte-order/) representation of the given `bytes` array.
+   */
   static fromBytes(bytes: number[]): Field;
+
+  /**
+   * 
+   * @param bytes 
+   * @param offset 
+   */
   static readBytes(
     bytes: number[],
     offset: number
   ): [value: Field, offset: number];
+
+  /**
+   * **Warning: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
+   * 
+   * As all {@link Field} elements have 31 bits, this function returns 31.
+   * 
+   * @return The size of a {@link Field} element - 31.
+   */
   static sizeInBytes(): number;
 }
 
