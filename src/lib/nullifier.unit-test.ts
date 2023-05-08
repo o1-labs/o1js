@@ -4,6 +4,9 @@ import { Nullifier } from './nullifier.js';
 import { PrivateKey } from './signature.js';
 
 let priv = PrivateKey.random();
+
+console.log(JSON.stringify(priv.toFields()));
+
 let sk = BigInt(priv.s.toJSON());
 
 let jsonNullifier1 = createNullifier(5000n, sk);
