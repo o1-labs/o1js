@@ -13,7 +13,7 @@ let _console_log_string s = Js_of_ocaml.Firebug.console##log (Js.string s)
 
 let _console_log s = Js_of_ocaml.Firebug.console##log s
 
-let console_dir s : unit =
+let _console_dir s : unit =
   let f =
     Js.Unsafe.eval_string {js|(function(s) { console.dir(s, {depth: 5}); })|js}
   in
@@ -1233,9 +1233,6 @@ module Public_input = struct
   let of_js (a : public_input_js) : t =
     Js.to_array a |> Array.map ~f:of_js_field
 
-  let list_to_js (public_inputs : t list) =
-    List.map ~f:to_js public_inputs |> Array.of_list |> Js.array
-
   module Constant = struct
     type t = Field.Constant.t array
 
@@ -1371,18 +1368,17 @@ type statement_js =
   ; output : public_input_js Js.readonly_prop >
   Js.t
 
-type 'proof public_input_with_proof_js =
-  < publicInput : public_input_js Js.prop
-  ; publicOutput : public_input_js Js.prop
-  ; proof : 'proof Js.prop >
-  Js.t
-
 type 'proof public_output_with_proof_js =
   < publicOutput : public_input_js Js.readonly_prop
   ; proof : 'proof Js.readonly_prop >
   Js.t
 
 module Statement = struct
+  type t = Field.t statement
+
+  let of_js (s : statement_js) : t =
+    (Public_input.of_js s##.input, Public_input.of_js s##.output)
+
   module Constant = struct
     type t = Field.Constant.t statement
 
@@ -1616,9 +1612,6 @@ module Choices = struct
         statements
 
     type _ Snarky_backendless.Request.t +=
-      | Get_public_input :
-          int * (_, 'value, _, _) Pickles.Tag.t
-          -> 'value Snarky_backendless.Request.t
       | Get_prev_proof : int -> _ Pickles.Proof.t Snarky_backendless.Request.t
 
     let create ~public_input_size ~public_output_size (rule : pickles_rule_js) :
