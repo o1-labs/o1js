@@ -1,31 +1,56 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
-* @param {string} name
+* @param {WasmFpGateVector} gates
+* @param {number} public_
+* @param {number} prev_challenges
+* @param {WasmFpSrs} srs
+* @returns {WasmPastaFpPlonkIndex}
 */
-export function greet(name: string): void;
+export function caml_pasta_fp_plonk_index_create(gates: WasmFpGateVector, public_: number, prev_challenges: number, srs: WasmFpSrs): WasmPastaFpPlonkIndex;
 /**
-* @param {string} s
-*/
-export function console_log(s: string): void;
-/**
+* @param {WasmPastaFpPlonkIndex} index
 * @returns {number}
 */
-export function create_zero_u32_ptr(): number;
+export function caml_pasta_fp_plonk_index_max_degree(index: WasmPastaFpPlonkIndex): number;
 /**
-* @param {number} ptr
-*/
-export function free_u32_ptr(ptr: number): void;
-/**
-* @param {number} ptr
-* @param {number} arg
-*/
-export function set_u32_ptr(ptr: number, arg: number): void;
-/**
-* @param {number} ptr
+* @param {WasmPastaFpPlonkIndex} index
 * @returns {number}
 */
-export function wait_until_non_zero(ptr: number): number;
+export function caml_pasta_fp_plonk_index_public_inputs(index: WasmPastaFpPlonkIndex): number;
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
+*/
+export function caml_pasta_fp_plonk_index_domain_d1_size(index: WasmPastaFpPlonkIndex): number;
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
+*/
+export function caml_pasta_fp_plonk_index_domain_d4_size(index: WasmPastaFpPlonkIndex): number;
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {number}
+*/
+export function caml_pasta_fp_plonk_index_domain_d8_size(index: WasmPastaFpPlonkIndex): number;
+/**
+* @param {number | undefined} offset
+* @param {WasmFpSrs} srs
+* @param {string} path
+* @returns {WasmPastaFpPlonkIndex}
+*/
+export function caml_pasta_fp_plonk_index_read(offset: number | undefined, srs: WasmFpSrs, path: string): WasmPastaFpPlonkIndex;
+/**
+* @param {boolean | undefined} append
+* @param {WasmPastaFpPlonkIndex} index
+* @param {string} path
+*/
+export function caml_pasta_fp_plonk_index_write(append: boolean | undefined, index: WasmPastaFpPlonkIndex, path: string): void;
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {string}
+*/
+export function caml_pasta_fp_plonk_index_serialize(index: WasmPastaFpPlonkIndex): string;
 /**
 * @returns {number}
 */
@@ -289,115 +314,75 @@ export function caml_pasta_fq_of_bytes(x: Uint8Array): Uint8Array;
 */
 export function caml_pasta_fq_deep_copy(x: Uint8Array): Uint8Array;
 /**
-* @param {WasmFpGateVector} gates
-* @param {number} public_
-* @param {number} prev_challenges
-* @param {WasmFpSrs} srs
-* @returns {WasmPastaFpPlonkIndex}
+* @returns {WasmPallasGProjective}
 */
-export function caml_pasta_fp_plonk_index_create(gates: WasmFpGateVector, public_: number, prev_challenges: number, srs: WasmFpSrs): WasmPastaFpPlonkIndex;
+export function caml_pallas_one(): WasmPallasGProjective;
 /**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
+* @param {WasmPallasGProjective} x
+* @param {WasmPallasGProjective} y
+* @returns {WasmPallasGProjective}
 */
-export function caml_pasta_fp_plonk_index_max_degree(index: WasmPastaFpPlonkIndex): number;
+export function caml_pallas_add(x: WasmPallasGProjective, y: WasmPallasGProjective): WasmPallasGProjective;
 /**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
+* @param {WasmPallasGProjective} x
+* @param {WasmPallasGProjective} y
+* @returns {WasmPallasGProjective}
 */
-export function caml_pasta_fp_plonk_index_public_inputs(index: WasmPastaFpPlonkIndex): number;
+export function caml_pallas_sub(x: WasmPallasGProjective, y: WasmPallasGProjective): WasmPallasGProjective;
 /**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
+* @param {WasmPallasGProjective} x
+* @returns {WasmPallasGProjective}
 */
-export function caml_pasta_fp_plonk_index_domain_d1_size(index: WasmPastaFpPlonkIndex): number;
+export function caml_pallas_negate(x: WasmPallasGProjective): WasmPallasGProjective;
 /**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
+* @param {WasmPallasGProjective} x
+* @returns {WasmPallasGProjective}
 */
-export function caml_pasta_fp_plonk_index_domain_d4_size(index: WasmPastaFpPlonkIndex): number;
+export function caml_pallas_double(x: WasmPallasGProjective): WasmPallasGProjective;
 /**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {number}
+* @param {WasmPallasGProjective} x
+* @param {Uint8Array} y
+* @returns {WasmPallasGProjective}
 */
-export function caml_pasta_fp_plonk_index_domain_d8_size(index: WasmPastaFpPlonkIndex): number;
+export function caml_pallas_scale(x: WasmPallasGProjective, y: Uint8Array): WasmPallasGProjective;
 /**
-* @param {number | undefined} offset
-* @param {WasmFpSrs} srs
-* @param {string} path
-* @returns {WasmPastaFpPlonkIndex}
+* @returns {WasmPallasGProjective}
 */
-export function caml_pasta_fp_plonk_index_read(offset: number | undefined, srs: WasmFpSrs, path: string): WasmPastaFpPlonkIndex;
+export function caml_pallas_random(): WasmPallasGProjective;
 /**
-* @param {boolean | undefined} append
-* @param {WasmPastaFpPlonkIndex} index
-* @param {string} path
+* @param {number} i
+* @returns {WasmPallasGProjective}
 */
-export function caml_pasta_fp_plonk_index_write(append: boolean | undefined, index: WasmPastaFpPlonkIndex, path: string): void;
+export function caml_pallas_rng(i: number): WasmPallasGProjective;
 /**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {string}
+* @returns {Uint8Array}
 */
-export function caml_pasta_fp_plonk_index_serialize(index: WasmPastaFpPlonkIndex): string;
+export function caml_pallas_endo_base(): Uint8Array;
 /**
-* @param {WasmFqGateVector} gates
-* @param {number} public_
-* @param {number} prev_challenges
-* @param {WasmFqSrs} srs
-* @returns {WasmPastaFqPlonkIndex}
+* @returns {Uint8Array}
 */
-export function caml_pasta_fq_plonk_index_create(gates: WasmFqGateVector, public_: number, prev_challenges: number, srs: WasmFqSrs): WasmPastaFqPlonkIndex;
+export function caml_pallas_endo_scalar(): Uint8Array;
 /**
-* @param {WasmPastaFqPlonkIndex} index
-* @returns {number}
-*/
-export function caml_pasta_fq_plonk_index_max_degree(index: WasmPastaFqPlonkIndex): number;
-/**
-* @param {WasmPastaFqPlonkIndex} index
-* @returns {number}
-*/
-export function caml_pasta_fq_plonk_index_public_inputs(index: WasmPastaFqPlonkIndex): number;
-/**
-* @param {WasmPastaFqPlonkIndex} index
-* @returns {number}
-*/
-export function caml_pasta_fq_plonk_index_domain_d1_size(index: WasmPastaFqPlonkIndex): number;
-/**
-* @param {WasmPastaFqPlonkIndex} index
-* @returns {number}
-*/
-export function caml_pasta_fq_plonk_index_domain_d4_size(index: WasmPastaFqPlonkIndex): number;
-/**
-* @param {WasmPastaFqPlonkIndex} index
-* @returns {number}
-*/
-export function caml_pasta_fq_plonk_index_domain_d8_size(index: WasmPastaFqPlonkIndex): number;
-/**
-* @param {number | undefined} offset
-* @param {WasmFqSrs} srs
-* @param {string} path
-* @returns {WasmPastaFqPlonkIndex}
-*/
-export function caml_pasta_fq_plonk_index_read(offset: number | undefined, srs: WasmFqSrs, path: string): WasmPastaFqPlonkIndex;
-/**
-* @param {boolean | undefined} append
-* @param {WasmPastaFqPlonkIndex} index
-* @param {string} path
-*/
-export function caml_pasta_fq_plonk_index_write(append: boolean | undefined, index: WasmPastaFqPlonkIndex, path: string): void;
-/**
-* @param {WasmPastaFqPlonkIndex} index
-* @returns {string}
-*/
-export function caml_pasta_fq_plonk_index_serialize(index: WasmPastaFqPlonkIndex): string;
-/**
+* @param {WasmPallasGProjective} x
 * @returns {WasmGPallas}
 */
-export function caml_pallas_affine_one(): WasmGPallas;
+export function caml_pallas_to_affine(x: WasmPallasGProjective): WasmGPallas;
 /**
-* @returns {WasmGVesta}
+* @param {WasmGPallas} x
+* @returns {WasmPallasGProjective}
 */
-export function caml_vesta_affine_one(): WasmGVesta;
+export function caml_pallas_of_affine(x: WasmGPallas): WasmPallasGProjective;
+/**
+* @param {Uint8Array} x
+* @param {Uint8Array} y
+* @returns {WasmPallasGProjective}
+*/
+export function caml_pallas_of_affine_coordinates(x: Uint8Array, y: Uint8Array): WasmPallasGProjective;
+/**
+* @param {WasmGPallas} x
+* @returns {WasmGPallas}
+*/
+export function caml_pallas_affine_deep_copy(x: WasmGPallas): WasmGPallas;
 /**
 * @returns {WasmVestaGProjective}
 */
@@ -479,75 +464,21 @@ export function caml_pasta_fp_poseidon_block_cipher(state: Uint8Array): Uint8Arr
 */
 export function caml_pasta_fq_poseidon_block_cipher(state: Uint8Array): Uint8Array;
 /**
-* @returns {WasmPallasGProjective}
+* @param {Uint32Array} lgr_comm
+* @param {WasmFpPlonkVerifierIndex} index
+* @param {WasmFpProverProof} proof
+* @returns {WasmFpOracles}
 */
-export function caml_pallas_one(): WasmPallasGProjective;
+export function fp_oracles_create(lgr_comm: Uint32Array, index: WasmFpPlonkVerifierIndex, proof: WasmFpProverProof): WasmFpOracles;
 /**
-* @param {WasmPallasGProjective} x
-* @param {WasmPallasGProjective} y
-* @returns {WasmPallasGProjective}
+* @returns {WasmFpOracles}
 */
-export function caml_pallas_add(x: WasmPallasGProjective, y: WasmPallasGProjective): WasmPallasGProjective;
+export function fp_oracles_dummy(): WasmFpOracles;
 /**
-* @param {WasmPallasGProjective} x
-* @param {WasmPallasGProjective} y
-* @returns {WasmPallasGProjective}
+* @param {WasmFpProverProof} x
+* @returns {WasmFpProverProof}
 */
-export function caml_pallas_sub(x: WasmPallasGProjective, y: WasmPallasGProjective): WasmPallasGProjective;
-/**
-* @param {WasmPallasGProjective} x
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_negate(x: WasmPallasGProjective): WasmPallasGProjective;
-/**
-* @param {WasmPallasGProjective} x
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_double(x: WasmPallasGProjective): WasmPallasGProjective;
-/**
-* @param {WasmPallasGProjective} x
-* @param {Uint8Array} y
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_scale(x: WasmPallasGProjective, y: Uint8Array): WasmPallasGProjective;
-/**
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_random(): WasmPallasGProjective;
-/**
-* @param {number} i
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_rng(i: number): WasmPallasGProjective;
-/**
-* @returns {Uint8Array}
-*/
-export function caml_pallas_endo_base(): Uint8Array;
-/**
-* @returns {Uint8Array}
-*/
-export function caml_pallas_endo_scalar(): Uint8Array;
-/**
-* @param {WasmPallasGProjective} x
-* @returns {WasmGPallas}
-*/
-export function caml_pallas_to_affine(x: WasmPallasGProjective): WasmGPallas;
-/**
-* @param {WasmGPallas} x
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_of_affine(x: WasmGPallas): WasmPallasGProjective;
-/**
-* @param {Uint8Array} x
-* @param {Uint8Array} y
-* @returns {WasmPallasGProjective}
-*/
-export function caml_pallas_of_affine_coordinates(x: Uint8Array, y: Uint8Array): WasmPallasGProjective;
-/**
-* @param {WasmGPallas} x
-* @returns {WasmGPallas}
-*/
-export function caml_pallas_affine_deep_copy(x: WasmGPallas): WasmGPallas;
+export function fp_oracles_deep_copy(x: WasmFpProverProof): WasmFpProverProof;
 /**
 * @returns {WasmFpGateVector}
 */
@@ -586,6 +517,103 @@ export function caml_pasta_fp_plonk_gate_vector_digest(public_input_size: number
 * @returns {string}
 */
 export function caml_pasta_fp_plonk_circuit_serialize(public_input_size: number, v: WasmFpGateVector): string;
+/**
+* @returns {WasmFqGateVector}
+*/
+export function caml_pasta_fq_plonk_gate_vector_create(): WasmFqGateVector;
+/**
+* @param {WasmFqGateVector} v
+* @param {WasmFqGate} gate
+*/
+export function caml_pasta_fq_plonk_gate_vector_add(v: WasmFqGateVector, gate: WasmFqGate): void;
+/**
+* @param {WasmFqGateVector} v
+* @param {number} i
+* @returns {WasmFqGate}
+*/
+export function caml_pasta_fq_plonk_gate_vector_get(v: WasmFqGateVector, i: number): WasmFqGate;
+/**
+* @param {WasmFqGateVector} v
+* @returns {number}
+*/
+export function caml_pasta_fq_plonk_gate_vector_len(v: WasmFqGateVector): number;
+/**
+* @param {WasmFqGateVector} v
+* @param {Wire} t
+* @param {Wire} h
+*/
+export function caml_pasta_fq_plonk_gate_vector_wrap(v: WasmFqGateVector, t: Wire, h: Wire): void;
+/**
+* @param {number} public_input_size
+* @param {WasmFqGateVector} v
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fq_plonk_gate_vector_digest(public_input_size: number, v: WasmFqGateVector): Uint8Array;
+/**
+* @param {number} public_input_size
+* @param {WasmFqGateVector} v
+* @returns {string}
+*/
+export function caml_pasta_fq_plonk_circuit_serialize(public_input_size: number, v: WasmFqGateVector): string;
+/**
+* @param {number | undefined} offset
+* @param {WasmFpSrs} srs
+* @param {string} path
+* @returns {WasmFpPlonkVerifierIndex}
+*/
+export function caml_pasta_fp_plonk_verifier_index_read(offset: number | undefined, srs: WasmFpSrs, path: string): WasmFpPlonkVerifierIndex;
+/**
+* @param {boolean | undefined} append
+* @param {WasmFpPlonkVerifierIndex} index
+* @param {string} path
+*/
+export function caml_pasta_fp_plonk_verifier_index_write(append: boolean | undefined, index: WasmFpPlonkVerifierIndex, path: string): void;
+/**
+* @param {WasmFpPlonkVerifierIndex} index
+* @returns {string}
+*/
+export function caml_pasta_fp_plonk_verifier_index_serialize(index: WasmFpPlonkVerifierIndex): string;
+/**
+* @param {WasmFpSrs} srs
+* @param {string} index
+* @returns {WasmFpPlonkVerifierIndex}
+*/
+export function caml_pasta_fp_plonk_verifier_index_deserialize(srs: WasmFpSrs, index: string): WasmFpPlonkVerifierIndex;
+/**
+* @param {WasmPastaFpPlonkIndex} index
+* @returns {WasmFpPlonkVerifierIndex}
+*/
+export function caml_pasta_fp_plonk_verifier_index_create(index: WasmPastaFpPlonkIndex): WasmFpPlonkVerifierIndex;
+/**
+* @param {number} log2_size
+* @returns {WasmFpShifts}
+*/
+export function caml_pasta_fp_plonk_verifier_index_shifts(log2_size: number): WasmFpShifts;
+/**
+* @returns {WasmFpPlonkVerifierIndex}
+*/
+export function caml_pasta_fp_plonk_verifier_index_dummy(): WasmFpPlonkVerifierIndex;
+/**
+* @param {WasmFpPlonkVerifierIndex} x
+* @returns {WasmFpPlonkVerifierIndex}
+*/
+export function caml_pasta_fp_plonk_verifier_index_deep_copy(x: WasmFpPlonkVerifierIndex): WasmFpPlonkVerifierIndex;
+/**
+* @param {Uint32Array} lgr_comm
+* @param {WasmFqPlonkVerifierIndex} index
+* @param {WasmFqProverProof} proof
+* @returns {WasmFqOracles}
+*/
+export function fq_oracles_create(lgr_comm: Uint32Array, index: WasmFqPlonkVerifierIndex, proof: WasmFqProverProof): WasmFqOracles;
+/**
+* @returns {WasmFqOracles}
+*/
+export function fq_oracles_dummy(): WasmFqOracles;
+/**
+* @param {WasmFqProverProof} x
+* @returns {WasmFqProverProof}
+*/
+export function fq_oracles_deep_copy(x: WasmFqProverProof): WasmFqProverProof;
 /**
 * @param {number} depth
 * @returns {WasmFpSrs}
@@ -709,92 +737,6 @@ export function caml_fq_srs_batch_accumulator_generate(srs: WasmFqSrs, comms: nu
 */
 export function caml_fq_srs_h(srs: WasmFqSrs): WasmGPallas;
 /**
-* @param {WasmPastaFpPlonkIndex} prover_index
-* @returns {string}
-*/
-export function prover_to_json(prover_index: WasmPastaFpPlonkIndex): string;
-/**
-* @returns {WasmFqGateVector}
-*/
-export function caml_pasta_fq_plonk_gate_vector_create(): WasmFqGateVector;
-/**
-* @param {WasmFqGateVector} v
-* @param {WasmFqGate} gate
-*/
-export function caml_pasta_fq_plonk_gate_vector_add(v: WasmFqGateVector, gate: WasmFqGate): void;
-/**
-* @param {WasmFqGateVector} v
-* @param {number} i
-* @returns {WasmFqGate}
-*/
-export function caml_pasta_fq_plonk_gate_vector_get(v: WasmFqGateVector, i: number): WasmFqGate;
-/**
-* @param {WasmFqGateVector} v
-* @returns {number}
-*/
-export function caml_pasta_fq_plonk_gate_vector_len(v: WasmFqGateVector): number;
-/**
-* @param {WasmFqGateVector} v
-* @param {Wire} t
-* @param {Wire} h
-*/
-export function caml_pasta_fq_plonk_gate_vector_wrap(v: WasmFqGateVector, t: Wire, h: Wire): void;
-/**
-* @param {number} public_input_size
-* @param {WasmFqGateVector} v
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fq_plonk_gate_vector_digest(public_input_size: number, v: WasmFqGateVector): Uint8Array;
-/**
-* @param {number} public_input_size
-* @param {WasmFqGateVector} v
-* @returns {string}
-*/
-export function caml_pasta_fq_plonk_circuit_serialize(public_input_size: number, v: WasmFqGateVector): string;
-/**
-* @param {number | undefined} offset
-* @param {WasmFpSrs} srs
-* @param {string} path
-* @returns {WasmFpPlonkVerifierIndex}
-*/
-export function caml_pasta_fp_plonk_verifier_index_read(offset: number | undefined, srs: WasmFpSrs, path: string): WasmFpPlonkVerifierIndex;
-/**
-* @param {boolean | undefined} append
-* @param {WasmFpPlonkVerifierIndex} index
-* @param {string} path
-*/
-export function caml_pasta_fp_plonk_verifier_index_write(append: boolean | undefined, index: WasmFpPlonkVerifierIndex, path: string): void;
-/**
-* @param {WasmFpPlonkVerifierIndex} index
-* @returns {string}
-*/
-export function caml_pasta_fp_plonk_verifier_index_serialize(index: WasmFpPlonkVerifierIndex): string;
-/**
-* @param {WasmFpSrs} srs
-* @param {string} index
-* @returns {WasmFpPlonkVerifierIndex}
-*/
-export function caml_pasta_fp_plonk_verifier_index_deserialize(srs: WasmFpSrs, index: string): WasmFpPlonkVerifierIndex;
-/**
-* @param {WasmPastaFpPlonkIndex} index
-* @returns {WasmFpPlonkVerifierIndex}
-*/
-export function caml_pasta_fp_plonk_verifier_index_create(index: WasmPastaFpPlonkIndex): WasmFpPlonkVerifierIndex;
-/**
-* @param {number} log2_size
-* @returns {WasmFpShifts}
-*/
-export function caml_pasta_fp_plonk_verifier_index_shifts(log2_size: number): WasmFpShifts;
-/**
-* @returns {WasmFpPlonkVerifierIndex}
-*/
-export function caml_pasta_fp_plonk_verifier_index_dummy(): WasmFpPlonkVerifierIndex;
-/**
-* @param {WasmFpPlonkVerifierIndex} x
-* @returns {WasmFpPlonkVerifierIndex}
-*/
-export function caml_pasta_fp_plonk_verifier_index_deep_copy(x: WasmFpPlonkVerifierIndex): WasmFpPlonkVerifierIndex;
-/**
 * @param {number | undefined} offset
 * @param {WasmFqSrs} srs
 * @param {string} path
@@ -837,38 +779,6 @@ export function caml_pasta_fq_plonk_verifier_index_dummy(): WasmFqPlonkVerifierI
 * @returns {WasmFqPlonkVerifierIndex}
 */
 export function caml_pasta_fq_plonk_verifier_index_deep_copy(x: WasmFqPlonkVerifierIndex): WasmFqPlonkVerifierIndex;
-/**
-* @param {Uint32Array} lgr_comm
-* @param {WasmFpPlonkVerifierIndex} index
-* @param {WasmFpProverProof} proof
-* @returns {WasmFpOracles}
-*/
-export function fp_oracles_create(lgr_comm: Uint32Array, index: WasmFpPlonkVerifierIndex, proof: WasmFpProverProof): WasmFpOracles;
-/**
-* @returns {WasmFpOracles}
-*/
-export function fp_oracles_dummy(): WasmFpOracles;
-/**
-* @param {WasmFpProverProof} x
-* @returns {WasmFpProverProof}
-*/
-export function fp_oracles_deep_copy(x: WasmFpProverProof): WasmFpProverProof;
-/**
-* @param {Uint32Array} lgr_comm
-* @param {WasmFqPlonkVerifierIndex} index
-* @param {WasmFqProverProof} proof
-* @returns {WasmFqOracles}
-*/
-export function fq_oracles_create(lgr_comm: Uint32Array, index: WasmFqPlonkVerifierIndex, proof: WasmFqProverProof): WasmFqOracles;
-/**
-* @returns {WasmFqOracles}
-*/
-export function fq_oracles_dummy(): WasmFqOracles;
-/**
-* @param {WasmFqProverProof} x
-* @returns {WasmFqProverProof}
-*/
-export function fq_oracles_deep_copy(x: WasmFqProverProof): WasmFqProverProof;
 /**
 * @param {WasmPastaFpPlonkIndex} index
 * @param {WasmVecVecFp} witness
@@ -927,6 +837,45 @@ export function caml_pasta_fq_plonk_proof_dummy(): WasmFqProverProof;
 * @returns {WasmFqProverProof}
 */
 export function caml_pasta_fq_plonk_proof_deep_copy(x: WasmFqProverProof): WasmFqProverProof;
+/**
+* @param {WasmPastaFpPlonkIndex} prover_index
+* @returns {string}
+*/
+export function prover_to_json(prover_index: WasmPastaFpPlonkIndex): string;
+/**
+* @returns {WasmGPallas}
+*/
+export function caml_pallas_affine_one(): WasmGPallas;
+/**
+* @returns {WasmGVesta}
+*/
+export function caml_vesta_affine_one(): WasmGVesta;
+/**
+* @param {string} name
+*/
+export function greet(name: string): void;
+/**
+* @param {string} s
+*/
+export function console_log(s: string): void;
+/**
+* @returns {number}
+*/
+export function create_zero_u32_ptr(): number;
+/**
+* @param {number} ptr
+*/
+export function free_u32_ptr(ptr: number): void;
+/**
+* @param {number} ptr
+* @param {number} arg
+*/
+export function set_u32_ptr(ptr: number, arg: number): void;
+/**
+* @param {number} ptr
+* @returns {number}
+*/
+export function wait_until_non_zero(ptr: number): number;
 /**
 * @param {number} num_threads
 * @param {string} worker_source
@@ -1003,6 +952,57 @@ export function caml_bigint_256_of_bytes(x: Uint8Array): Uint8Array;
 * @returns {Uint8Array}
 */
 export function caml_bigint_256_deep_copy(x: Uint8Array): Uint8Array;
+/**
+* @param {WasmFqGateVector} gates
+* @param {number} public_
+* @param {number} prev_challenges
+* @param {WasmFqSrs} srs
+* @returns {WasmPastaFqPlonkIndex}
+*/
+export function caml_pasta_fq_plonk_index_create(gates: WasmFqGateVector, public_: number, prev_challenges: number, srs: WasmFqSrs): WasmPastaFqPlonkIndex;
+/**
+* @param {WasmPastaFqPlonkIndex} index
+* @returns {number}
+*/
+export function caml_pasta_fq_plonk_index_max_degree(index: WasmPastaFqPlonkIndex): number;
+/**
+* @param {WasmPastaFqPlonkIndex} index
+* @returns {number}
+*/
+export function caml_pasta_fq_plonk_index_public_inputs(index: WasmPastaFqPlonkIndex): number;
+/**
+* @param {WasmPastaFqPlonkIndex} index
+* @returns {number}
+*/
+export function caml_pasta_fq_plonk_index_domain_d1_size(index: WasmPastaFqPlonkIndex): number;
+/**
+* @param {WasmPastaFqPlonkIndex} index
+* @returns {number}
+*/
+export function caml_pasta_fq_plonk_index_domain_d4_size(index: WasmPastaFqPlonkIndex): number;
+/**
+* @param {WasmPastaFqPlonkIndex} index
+* @returns {number}
+*/
+export function caml_pasta_fq_plonk_index_domain_d8_size(index: WasmPastaFqPlonkIndex): number;
+/**
+* @param {number | undefined} offset
+* @param {WasmFqSrs} srs
+* @param {string} path
+* @returns {WasmPastaFqPlonkIndex}
+*/
+export function caml_pasta_fq_plonk_index_read(offset: number | undefined, srs: WasmFqSrs, path: string): WasmPastaFqPlonkIndex;
+/**
+* @param {boolean | undefined} append
+* @param {WasmPastaFqPlonkIndex} index
+* @param {string} path
+*/
+export function caml_pasta_fq_plonk_index_write(append: boolean | undefined, index: WasmPastaFqPlonkIndex, path: string): void;
+/**
+* @param {WasmPastaFqPlonkIndex} index
+* @returns {string}
+*/
+export function caml_pasta_fq_plonk_index_serialize(index: WasmPastaFqPlonkIndex): string;
 /**
 * A row accessible from a given row, corresponds to the fact that we open all polynomials
 * at `zeta` **and** `omega * zeta`.
@@ -1121,6 +1121,107 @@ export class WasmFpGateVector {
 }
 /**
 */
+export class WasmFpLookupFeatures {
+  free(): void;
+/**
+*/
+  joint_lookup_used: boolean;
+/**
+*/
+  patterns: WasmFpLookupPatterns;
+/**
+*/
+  uses_runtime_tables: boolean;
+}
+/**
+*/
+export class WasmFpLookupInfo {
+  free(): void;
+/**
+*/
+  features: WasmFpLookupFeatures;
+/**
+*/
+  max_joint_size: number;
+/**
+*/
+  max_per_row: number;
+}
+/**
+*/
+export class WasmFpLookupPatterns {
+  free(): void;
+/**
+*/
+  foreign_field_mul: boolean;
+/**
+*/
+  lookup: boolean;
+/**
+*/
+  range_check: boolean;
+/**
+*/
+  xor: boolean;
+}
+/**
+*/
+export class WasmFpLookupSelectors {
+  free(): void;
+/**
+* @param {WasmFpPolyComm | undefined} xor
+* @param {WasmFpPolyComm | undefined} lookup
+* @param {WasmFpPolyComm | undefined} range_check
+* @param {WasmFpPolyComm | undefined} ffmul
+*/
+  constructor(xor?: WasmFpPolyComm, lookup?: WasmFpPolyComm, range_check?: WasmFpPolyComm, ffmul?: WasmFpPolyComm);
+/**
+*/
+  ffmul?: WasmFpPolyComm;
+/**
+*/
+  lookup?: WasmFpPolyComm;
+/**
+*/
+  range_check?: WasmFpPolyComm;
+/**
+*/
+  xor?: WasmFpPolyComm;
+}
+/**
+*/
+export class WasmFpLookupVerifier {
+  free(): void;
+/**
+* @param {boolean} joint_lookup_used
+* @param {Uint32Array} lookup_table
+* @param {WasmFpLookupSelectors} lookup_selectors
+* @param {WasmFpPolyComm | undefined} table_ids
+* @param {WasmFpLookupInfo} lookup_info
+* @param {WasmFpPolyComm | undefined} runtime_tables_selector
+*/
+  constructor(joint_lookup_used: boolean, lookup_table: Uint32Array, lookup_selectors: WasmFpLookupSelectors, table_ids: WasmFpPolyComm | undefined, lookup_info: WasmFpLookupInfo, runtime_tables_selector?: WasmFpPolyComm);
+/**
+*/
+  joint_lookup_used: boolean;
+/**
+*/
+  lookup_info: WasmFpLookupInfo;
+/**
+*/
+  lookup_selectors: WasmFpLookupSelectors;
+/**
+*/
+  lookup_table: Uint32Array;
+/**
+*/
+  runtime_tables_selector?: WasmFpPolyComm;
+/**
+*/
+  table_ids?: WasmFpPolyComm;
+}
+/**
+*/
 export class WasmFpOpeningProof {
   free(): void;
 /**
@@ -1192,8 +1293,16 @@ export class WasmFpPlonkVerificationEvals {
 * @param {WasmFpPolyComm} mul_comm
 * @param {WasmFpPolyComm} emul_comm
 * @param {WasmFpPolyComm} endomul_scalar_comm
+* @param {WasmFpPolyComm | undefined} xor_comm
+* @param {WasmFpPolyComm | undefined} range_check0_comm
+* @param {WasmFpPolyComm | undefined} range_check1_comm
+* @param {WasmFpPolyComm | undefined} foreign_field_add_comm
+* @param {WasmFpPolyComm | undefined} foreign_field_mul_comm
+* @param {WasmFpPolyComm | undefined} rot_comm
+* @param {WasmFpPolyComm | undefined} lookup_gate_comm
+* @param {WasmFpPolyComm | undefined} runtime_tables_comm
 */
-  constructor(sigma_comm: Uint32Array, coefficients_comm: Uint32Array, generic_comm: WasmFpPolyComm, psm_comm: WasmFpPolyComm, complete_add_comm: WasmFpPolyComm, mul_comm: WasmFpPolyComm, emul_comm: WasmFpPolyComm, endomul_scalar_comm: WasmFpPolyComm);
+  constructor(sigma_comm: Uint32Array, coefficients_comm: Uint32Array, generic_comm: WasmFpPolyComm, psm_comm: WasmFpPolyComm, complete_add_comm: WasmFpPolyComm, mul_comm: WasmFpPolyComm, emul_comm: WasmFpPolyComm, endomul_scalar_comm: WasmFpPolyComm, xor_comm?: WasmFpPolyComm, range_check0_comm?: WasmFpPolyComm, range_check1_comm?: WasmFpPolyComm, foreign_field_add_comm?: WasmFpPolyComm, foreign_field_mul_comm?: WasmFpPolyComm, rot_comm?: WasmFpPolyComm, lookup_gate_comm?: WasmFpPolyComm, runtime_tables_comm?: WasmFpPolyComm);
 /**
 */
   coefficients_comm: Uint32Array;
@@ -1208,7 +1317,16 @@ export class WasmFpPlonkVerificationEvals {
   endomul_scalar_comm: WasmFpPolyComm;
 /**
 */
+  foreign_field_add_comm?: WasmFpPolyComm;
+/**
+*/
+  foreign_field_mul_comm?: WasmFpPolyComm;
+/**
+*/
   generic_comm: WasmFpPolyComm;
+/**
+*/
+  lookup_gate_comm?: WasmFpPolyComm;
 /**
 */
   mul_comm: WasmFpPolyComm;
@@ -1217,7 +1335,22 @@ export class WasmFpPlonkVerificationEvals {
   psm_comm: WasmFpPolyComm;
 /**
 */
+  range_check0_comm?: WasmFpPolyComm;
+/**
+*/
+  range_check1_comm?: WasmFpPolyComm;
+/**
+*/
+  rot_comm?: WasmFpPolyComm;
+/**
+*/
+  runtime_tables_comm?: WasmFpPolyComm;
+/**
+*/
   sigma_comm: Uint32Array;
+/**
+*/
+  xor_comm?: WasmFpPolyComm;
 }
 /**
 */
@@ -1231,14 +1364,18 @@ export class WasmFpPlonkVerifierIndex {
 * @param {WasmFpSrs} srs
 * @param {WasmFpPlonkVerificationEvals} evals
 * @param {WasmFpShifts} shifts
+* @param {WasmFpLookupVerifier | undefined} lookup_index
 */
-  constructor(domain: WasmFpDomain, max_poly_size: number, public_: number, prev_challenges: number, srs: WasmFpSrs, evals: WasmFpPlonkVerificationEvals, shifts: WasmFpShifts);
+  constructor(domain: WasmFpDomain, max_poly_size: number, public_: number, prev_challenges: number, srs: WasmFpSrs, evals: WasmFpPlonkVerificationEvals, shifts: WasmFpShifts, lookup_index?: WasmFpLookupVerifier);
 /**
 */
   domain: WasmFpDomain;
 /**
 */
   evals: WasmFpPlonkVerificationEvals;
+/**
+*/
+  lookup_index?: WasmFpLookupVerifier;
 /**
 */
   max_poly_size: number;
@@ -1468,6 +1605,107 @@ export class WasmFqGateVector {
 }
 /**
 */
+export class WasmFqLookupFeatures {
+  free(): void;
+/**
+*/
+  joint_lookup_used: boolean;
+/**
+*/
+  patterns: WasmFqLookupPatterns;
+/**
+*/
+  uses_runtime_tables: boolean;
+}
+/**
+*/
+export class WasmFqLookupInfo {
+  free(): void;
+/**
+*/
+  features: WasmFqLookupFeatures;
+/**
+*/
+  max_joint_size: number;
+/**
+*/
+  max_per_row: number;
+}
+/**
+*/
+export class WasmFqLookupPatterns {
+  free(): void;
+/**
+*/
+  foreign_field_mul: boolean;
+/**
+*/
+  lookup: boolean;
+/**
+*/
+  range_check: boolean;
+/**
+*/
+  xor: boolean;
+}
+/**
+*/
+export class WasmFqLookupSelectors {
+  free(): void;
+/**
+* @param {WasmFqPolyComm | undefined} xor
+* @param {WasmFqPolyComm | undefined} lookup
+* @param {WasmFqPolyComm | undefined} range_check
+* @param {WasmFqPolyComm | undefined} ffmul
+*/
+  constructor(xor?: WasmFqPolyComm, lookup?: WasmFqPolyComm, range_check?: WasmFqPolyComm, ffmul?: WasmFqPolyComm);
+/**
+*/
+  ffmul?: WasmFqPolyComm;
+/**
+*/
+  lookup?: WasmFqPolyComm;
+/**
+*/
+  range_check?: WasmFqPolyComm;
+/**
+*/
+  xor?: WasmFqPolyComm;
+}
+/**
+*/
+export class WasmFqLookupVerifier {
+  free(): void;
+/**
+* @param {boolean} joint_lookup_used
+* @param {Uint32Array} lookup_table
+* @param {WasmFqLookupSelectors} lookup_selectors
+* @param {WasmFqPolyComm | undefined} table_ids
+* @param {WasmFqLookupInfo} lookup_info
+* @param {WasmFqPolyComm | undefined} runtime_tables_selector
+*/
+  constructor(joint_lookup_used: boolean, lookup_table: Uint32Array, lookup_selectors: WasmFqLookupSelectors, table_ids: WasmFqPolyComm | undefined, lookup_info: WasmFqLookupInfo, runtime_tables_selector?: WasmFqPolyComm);
+/**
+*/
+  joint_lookup_used: boolean;
+/**
+*/
+  lookup_info: WasmFqLookupInfo;
+/**
+*/
+  lookup_selectors: WasmFqLookupSelectors;
+/**
+*/
+  lookup_table: Uint32Array;
+/**
+*/
+  runtime_tables_selector?: WasmFqPolyComm;
+/**
+*/
+  table_ids?: WasmFqPolyComm;
+}
+/**
+*/
 export class WasmFqOpeningProof {
   free(): void;
 /**
@@ -1539,8 +1777,16 @@ export class WasmFqPlonkVerificationEvals {
 * @param {WasmFqPolyComm} mul_comm
 * @param {WasmFqPolyComm} emul_comm
 * @param {WasmFqPolyComm} endomul_scalar_comm
+* @param {WasmFqPolyComm | undefined} xor_comm
+* @param {WasmFqPolyComm | undefined} range_check0_comm
+* @param {WasmFqPolyComm | undefined} range_check1_comm
+* @param {WasmFqPolyComm | undefined} foreign_field_add_comm
+* @param {WasmFqPolyComm | undefined} foreign_field_mul_comm
+* @param {WasmFqPolyComm | undefined} rot_comm
+* @param {WasmFqPolyComm | undefined} lookup_gate_comm
+* @param {WasmFqPolyComm | undefined} runtime_tables_comm
 */
-  constructor(sigma_comm: Uint32Array, coefficients_comm: Uint32Array, generic_comm: WasmFqPolyComm, psm_comm: WasmFqPolyComm, complete_add_comm: WasmFqPolyComm, mul_comm: WasmFqPolyComm, emul_comm: WasmFqPolyComm, endomul_scalar_comm: WasmFqPolyComm);
+  constructor(sigma_comm: Uint32Array, coefficients_comm: Uint32Array, generic_comm: WasmFqPolyComm, psm_comm: WasmFqPolyComm, complete_add_comm: WasmFqPolyComm, mul_comm: WasmFqPolyComm, emul_comm: WasmFqPolyComm, endomul_scalar_comm: WasmFqPolyComm, xor_comm?: WasmFqPolyComm, range_check0_comm?: WasmFqPolyComm, range_check1_comm?: WasmFqPolyComm, foreign_field_add_comm?: WasmFqPolyComm, foreign_field_mul_comm?: WasmFqPolyComm, rot_comm?: WasmFqPolyComm, lookup_gate_comm?: WasmFqPolyComm, runtime_tables_comm?: WasmFqPolyComm);
 /**
 */
   coefficients_comm: Uint32Array;
@@ -1555,7 +1801,16 @@ export class WasmFqPlonkVerificationEvals {
   endomul_scalar_comm: WasmFqPolyComm;
 /**
 */
+  foreign_field_add_comm?: WasmFqPolyComm;
+/**
+*/
+  foreign_field_mul_comm?: WasmFqPolyComm;
+/**
+*/
   generic_comm: WasmFqPolyComm;
+/**
+*/
+  lookup_gate_comm?: WasmFqPolyComm;
 /**
 */
   mul_comm: WasmFqPolyComm;
@@ -1564,7 +1819,22 @@ export class WasmFqPlonkVerificationEvals {
   psm_comm: WasmFqPolyComm;
 /**
 */
+  range_check0_comm?: WasmFqPolyComm;
+/**
+*/
+  range_check1_comm?: WasmFqPolyComm;
+/**
+*/
+  rot_comm?: WasmFqPolyComm;
+/**
+*/
+  runtime_tables_comm?: WasmFqPolyComm;
+/**
+*/
   sigma_comm: Uint32Array;
+/**
+*/
+  xor_comm?: WasmFqPolyComm;
 }
 /**
 */
@@ -1578,14 +1848,18 @@ export class WasmFqPlonkVerifierIndex {
 * @param {WasmFqSrs} srs
 * @param {WasmFqPlonkVerificationEvals} evals
 * @param {WasmFqShifts} shifts
+* @param {WasmFqLookupVerifier | undefined} lookup_index
 */
-  constructor(domain: WasmFqDomain, max_poly_size: number, public_: number, prev_challenges: number, srs: WasmFqSrs, evals: WasmFqPlonkVerificationEvals, shifts: WasmFqShifts);
+  constructor(domain: WasmFqDomain, max_poly_size: number, public_: number, prev_challenges: number, srs: WasmFqSrs, evals: WasmFqPlonkVerificationEvals, shifts: WasmFqShifts, lookup_index?: WasmFqLookupVerifier);
 /**
 */
   domain: WasmFqDomain;
 /**
 */
   evals: WasmFqPlonkVerificationEvals;
+/**
+*/
+  lookup_index?: WasmFqLookupVerifier;
 /**
 */
   max_poly_size: number;
