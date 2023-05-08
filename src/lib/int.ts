@@ -31,6 +31,7 @@ class UInt64 extends CircuitValue {
    * Turns the {@link UInt64} into a string.
    * @returns
    */
+  @CatchAndPrettifyStacktrace
   toString() {
     return this.value.toString();
   }
@@ -38,6 +39,7 @@ class UInt64 extends CircuitValue {
    * Turns the {@link UInt64} into a {@link BigInt}.
    * @returns
    */
+  @CatchAndPrettifyStacktrace
   toBigInt() {
     return this.value.toBigInt();
   }
@@ -45,6 +47,7 @@ class UInt64 extends CircuitValue {
   /**
    * Turns the {@link UInt64} into a {@link UInt32}, asserting that it fits in 32 bits.
    */
+  @CatchAndPrettifyStacktrace
   toUInt32() {
     let uint32 = new UInt32(this.value);
     UInt32.check(uint32);
@@ -57,6 +60,7 @@ class UInt64 extends CircuitValue {
    * UInt64.from(4294967296).toUInt32Clamped().toString(); // "4294967295"
    * ```
    */
+  @CatchAndPrettifyStacktrace
   toUInt32Clamped() {
     let max = (1n << 32n) - 1n;
     return Circuit.if(
@@ -362,6 +366,7 @@ class UInt64 extends CircuitValue {
    *
    * Checks if a {@link UInt64} is greater than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   gte(y: UInt64) {
     return this.lessThan(y).not();
   }
