@@ -19,5 +19,5 @@ await isReady;
 console.log('generating keypair...');
 let kp = await Main.generateKeypair();
 
-let cs = Circuit.constraintSystemFromKeypair(kp);
+let cs = kp.constraintSystem();
 console.dir(cs, { depth: Infinity });

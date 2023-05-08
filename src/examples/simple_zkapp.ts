@@ -8,15 +8,12 @@ import {
   SmartContract,
   Mina,
   AccountUpdate,
-  isReady,
   Bool,
   PublicKey,
 } from 'snarkyjs';
 import { getProfiler } from './profiler.js';
 
 const doProofs = true;
-
-await isReady;
 
 const beforeGenesis = UInt64.from(Date.now());
 

@@ -1,19 +1,6 @@
 import 'reflect-metadata';
-import { bytesToBigInt } from '../bindings/crypto/bigint-helpers.js';
-import {
-  Circuit as SnarkyCircuit,
-  ProvablePure,
-  Provable,
-  Keypair,
-  Gate,
-} from '../snarky.js';
+import { ProvablePure } from '../snarky.js';
 import { Field, Bool } from './core.js';
-import { Context } from './global-context.js';
-import {
-  inCheckedComputation,
-  inProver,
-  snarkContext,
-} from './proof_system.js';
 import {
   provable,
   provablePure,
@@ -24,6 +11,7 @@ import {
   InferredProvable,
   IsPure,
 } from '../bindings/lib/provable-snarky.js';
+import { Provable } from './provable.js';
 
 // external API
 export {
@@ -42,14 +30,9 @@ export {
 
 // internal API
 export {
-  SnarkyCircuit,
   AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,
-  circuitArray,
-  memoizationContext,
-  memoizeWitness,
-  getBlindingValue,
   toConstant,
   isConstant,
   InferProvable,
@@ -169,11 +152,11 @@ abstract class CircuitValue {
   }
 
   equals(x: this) {
-    return SnarkyCircuit.equal(this, x);
+    return Provable.equal(this, x);
   }
 
   assertEquals(x: this) {
-    SnarkyCircuit.assertEqual(this, x);
+    Provable.assertEqual(this, x);
   }
 
   isConstant() {
@@ -276,97 +259,12 @@ function prop(this: any, target: any, key: string) {
   }
 }
 
-function circuitArray<A extends FlexibleProvable<any>>(
-  elementType: A,
-  length: number
-): InferredProvable<A[]> {
-  type T = InferProvable<A>;
-  type TJson = InferJson<A>;
-  let type = elementType as ProvableExtended<T>;
-  return {
-    /**
-     * Returns the size of this structure in {@link Field} elements.
-     * @returns size of this structure
-     */
-    sizeInFields() {
-      let elementLength = type.sizeInFields();
-      return elementLength * length;
-    },
-    /**
-     * Serializes this structure into {@link Field} elements.
-     * @returns an array of {@link Field} elements
-     */
-    toFields(array: T[]) {
-      return array.map((e) => type.toFields(e)).flat();
-    },
-    /**
-     * Serializes this structure's auxiliary data.
-     * @returns auxiliary data
-     */
-    toAuxiliary(array?) {
-      let array_ = array ?? Array<undefined>(length).fill(undefined);
-      return array_?.map((e) => type.toAuxiliary(e));
-    },
-
-    /**
-     * Deserializes an array of {@link Field} elements into this structure.
-     */
-    fromFields(fields: Field[], aux?: any[]) {
-      let array = [];
-      let size = type.sizeInFields();
-      let n = length;
-      for (let i = 0, offset = 0; i < n; i++, offset += size) {
-        array[i] = type.fromFields(
-          fields.slice(offset, offset + size),
-          aux?.[i]
-        );
-      }
-      return array;
-    },
-    check(array: T[]) {
-      for (let i = 0; i < length; i++) {
-        (type as any).check(array[i]);
-      }
-    },
-    /**
-     * Encodes this structure into a JSON-like object.
-     */
-    toJSON(array) {
-      if (!('toJSON' in type)) {
-        throw Error('circuitArray.toJSON: element type has no toJSON method');
-      }
-      return array.map((v) => type.toJSON(v));
-    },
-
-    /**
-     * Decodes a JSON-like object into this structure.
-     */
-    fromJSON(json) {
-      if (!('fromJSON' in type)) {
-        throw Error(
-          'circuitArray.fromJSON: element type has no fromJSON method'
-        );
-      }
-      return json.map((a) => type.fromJSON(a));
-    },
-    toInput(array) {
-      if (!('toInput' in type)) {
-        throw Error('circuitArray.toInput: element type has no toInput method');
-      }
-      return array.reduce(
-        (curr, value) => HashInput.append(curr, type.toInput(value)),
-        HashInput.empty
-      );
-    },
-  } satisfies ProvableExtended<T[], TJson[]> as any;
-}
-
 function arrayProp<T>(elementType: FlexibleProvable<T>, length: number) {
   return function (target: any, key: string) {
     if (!target.hasOwnProperty('_fields')) {
       target._fields = [];
     }
-    target._fields.push([key, circuitArray(elementType, length)]);
+    target._fields.push([key, Provable.Array(elementType, length)]);
   };
 }
 
@@ -381,7 +279,7 @@ function matrixProp<T>(
     }
     target._fields.push([
       key,
-      circuitArray(circuitArray(elementType, nColumns), nRows),
+      Provable.Array(Provable.Array(elementType, nColumns), nRows),
     ]);
   };
 }
@@ -675,210 +573,4 @@ function toConstant<T>(type: Provable<T>, value: T): T {
 function isConstant<T>(type: FlexibleProvable<T>, value: T): boolean;
 function isConstant<T>(type: Provable<T>, value: T): boolean {
   return type.toFields(value).every((x) => x.isConstant());
-}
-
-// TODO: move `Circuit` to JS entirely, this patching harms code discoverability
-
-let oldAsProver = SnarkyCircuit.asProver;
-SnarkyCircuit.asProver = function (f: () => void) {
-  if (inCheckedComputation()) {
-    oldAsProver(f);
-  } else {
-    f();
-  }
-};
-
-let oldRunUnchecked = SnarkyCircuit.runUnchecked;
-SnarkyCircuit.runUnchecked = function (f: () => void) {
-  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
-    oldRunUnchecked(f)
-  );
-  return result;
-};
-
-let oldRunAndCheck = SnarkyCircuit.runAndCheck;
-SnarkyCircuit.runAndCheck = function (f: () => void) {
-  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
-    oldRunAndCheck(f)
-  );
-  return result;
-};
-
-SnarkyCircuit.inCheckedComputation = inCheckedComputation;
-SnarkyCircuit.inProver = inProver;
-
-SnarkyCircuit.witness = function <
-  T,
-  S extends FlexibleProvable<T> = FlexibleProvable<T>
->(type: S, compute: () => T): T {
-  let proverValue: T | undefined;
-  let createFields = () => {
-    proverValue = compute();
-    let fields = type.toFields(proverValue);
-    // TODO: enable this check
-    // currently it throws for Scalar.. which seems to be flexible about what length is returned by toFields
-    // if (fields.length !== type.sizeInFields()) {
-    //   throw Error(
-    //     `Invalid witness. Expected ${type.sizeInFields()} field elements, got ${
-    //       fields.length
-    //     }.`
-    //   );
-    // }
-    return fields;
-  };
-  let ctx = snarkContext.get();
-  let fields =
-    inCheckedComputation() && !ctx.inWitnessBlock
-      ? snarkContext.runWith({ ...ctx, inWitnessBlock: true }, () =>
-          SnarkyCircuit._witness(type, createFields)
-        )[1]
-      : createFields();
-  let aux = type.toAuxiliary(proverValue);
-  let value = type.fromFields(fields, aux) as T;
-  if (inCheckedComputation()) type.check(value);
-  return value;
-};
-
-SnarkyCircuit.array = circuitArray;
-
-SnarkyCircuit.switch = function <T, A extends FlexibleProvable<T>>(
-  mask: Bool[],
-  type: A,
-  values: T[]
-): T {
-  // picks the value at the index where mask is true
-  let nValues = values.length;
-  if (mask.length !== nValues)
-    throw Error(
-      `Circuit.switch: \`values\` and \`mask\` have different lengths (${values.length} vs. ${mask.length}), which is not allowed.`
-    );
-  let checkMask = () => {
-    let nTrue = mask.filter((b) => b.toBoolean()).length;
-    if (nTrue > 1) {
-      throw Error(
-        `Circuit.switch: \`mask\` must have 0 or 1 true element, found ${nTrue}.`
-      );
-    }
-  };
-  if (mask.every((b) => b.toField().isConstant())) checkMask();
-  else SnarkyCircuit.asProver(checkMask);
-  let size = type.sizeInFields();
-  let fields = Array(size).fill(Field(0));
-  for (let i = 0; i < nValues; i++) {
-    let valueFields = type.toFields(values[i]);
-    let maskField = mask[i].toField();
-    for (let j = 0; j < size; j++) {
-      let maybeField = valueFields[j].mul(maskField);
-      fields[j] = fields[j].add(maybeField);
-    }
-  }
-  let aux = auxiliary(type as Provable<T>, () => {
-    let i = mask.findIndex((b) => b.toBoolean());
-    if (i === -1) return type.toAuxiliary();
-    return type.toAuxiliary(values[i]);
-  });
-  return type.fromFields(fields, aux) as T;
-};
-
-SnarkyCircuit.constraintSystem = function <T>(f: () => T) {
-  let [, result] = snarkContext.runWith(
-    { inAnalyze: true, inCheckedComputation: true },
-    () => {
-      let result: T;
-      let { rows, digest, json } = (SnarkyCircuit as any)._constraintSystem(
-        () => {
-          result = f();
-        }
-      );
-      let { gates, publicInputSize } = gatesFromJson(json);
-      return { rows, digest, result: result!, gates, publicInputSize };
-    }
-  );
-  return result;
-};
-
-SnarkyCircuit.log = function (...args: any) {
-  SnarkyCircuit.asProver(() => {
-    let prettyArgs = [];
-    for (let arg of args) {
-      if (arg?.toPretty !== undefined) prettyArgs.push(arg.toPretty());
-      else {
-        try {
-          prettyArgs.push(JSON.parse(JSON.stringify(arg)));
-        } catch {
-          prettyArgs.push(arg);
-        }
-      }
-    }
-    console.log(...prettyArgs);
-  });
-};
-
-SnarkyCircuit.constraintSystemFromKeypair = function (keypair: Keypair) {
-  return gatesFromJson(JSON.parse((keypair as any)._constraintSystemJSON()))
-    .gates;
-};
-
-function gatesFromJson(cs: { gates: JsonGate[]; public_input_size: number }) {
-  let gates: Gate[] = cs.gates.map(({ typ, wires, coeffs: byteCoeffs }) => {
-    let coeffs = [];
-    for (let coefficient of byteCoeffs) {
-      let arr = new Uint8Array(coefficient);
-      coeffs.push(bytesToBigInt(arr).toString());
-    }
-    return { type: typ, wires, coeffs };
-  });
-  return { publicInputSize: cs.public_input_size, gates };
-}
-type JsonGate = {
-  typ: string;
-  wires: { row: number; col: number }[];
-  coeffs: number[][];
-};
-
-function auxiliary<T>(type: FlexibleProvable<T>, compute: () => any[]) {
-  let aux;
-  if (inCheckedComputation()) SnarkyCircuit.asProver(() => (aux = compute()));
-  else aux = compute();
-  return aux ?? type.toAuxiliary();
-}
-
-let memoizationContext = Context.create<{
-  memoized: { fields: Field[]; aux: any[] }[];
-  currentIndex: number;
-  blindingValue: Field;
-}>();
-
-/**
- * Like Circuit.witness, but memoizes the witness during transaction construction
- * for reuse by the prover. This is needed to witness non-deterministic values.
- */
-function memoizeWitness<T>(type: FlexibleProvable<T>, compute: () => T) {
-  return SnarkyCircuit.witness<T>(type as Provable<T>, () => {
-    if (!memoizationContext.has()) return compute();
-    let context = memoizationContext.get();
-    let { memoized, currentIndex } = context;
-    let currentValue = memoized[currentIndex];
-    if (currentValue === undefined) {
-      let value = compute();
-      let fields = type.toFields(value).map((x) => x.toConstant());
-      let aux = type.toAuxiliary(value);
-      currentValue = { fields, aux };
-      memoized[currentIndex] = currentValue;
-    }
-    context.currentIndex += 1;
-    return (type as Provable<T>).fromFields(
-      currentValue.fields,
-      currentValue.aux
-    );
-  });
-}
-
-function getBlindingValue() {
-  if (!memoizationContext.has()) return Field.random();
-  let context = memoizationContext.get();
-  if (context.blindingValue === undefined) {
-    context.blindingValue = Field.random();
-  }
-  return context.blindingValue;
 }
