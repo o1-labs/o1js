@@ -73,14 +73,10 @@ function trimPaths(stacktracePath: string) {
 }
 
 function trimSnarkyJSPath(stacktraceLine: string) {
-  // Regex to match the path inside the parentheses (e.g. (/home/../snarkyjs/../*.ts))
-  const fullPathRegex = /\(([^)]+)\)/;
-  const matchedPaths = stacktraceLine.match(fullPathRegex);
-  if (!matchedPaths) {
+  const fullPath = getDirectoryPath(stacktraceLine);
+  if (!fullPath) {
     return stacktraceLine;
   }
-
-  const fullPath = matchedPaths[1];
   const snarkyJSIndex = fullPath.indexOf('snarkyjs');
   if (snarkyJSIndex === -1) {
     return stacktraceLine;
@@ -94,14 +90,10 @@ function trimSnarkyJSPath(stacktraceLine: string) {
 }
 
 function trimOpamPath(stacktraceLine: string) {
-  // Regex to match the path inside the parentheses (e.g. (/home/../snarkyjs/../*.ts))
-  const fullPathRegex = /\(([^)]+)\)/;
-  const matchedPaths = stacktraceLine.match(fullPathRegex);
-  if (!matchedPaths) {
+  const fullPath = getDirectoryPath(stacktraceLine);
+  if (!fullPath) {
     return stacktraceLine;
   }
-
-  const fullPath = matchedPaths[1];
   const opamIndex = fullPath.indexOf('opam');
   if (opamIndex === -1) {
     return stacktraceLine;
@@ -120,4 +112,13 @@ function trimOpamPath(stacktraceLine: string) {
   // Add the ocaml directory to the beginning of the path
   trimmedPath.unshift('ocaml');
   return `${prefix}${trimmedPath.join('/')})`;
+}
+
+function getDirectoryPath(stacktraceLine: string) {
+  // Regex to match the path inside the parentheses (e.g. (/home/../snarkyjs/../*.ts))
+  const fullPathRegex = /\(([^)]+)\)/;
+  const matchedPaths = stacktraceLine.match(fullPathRegex);
+  if (matchedPaths) {
+    return matchedPaths[1];
+  }
 }
