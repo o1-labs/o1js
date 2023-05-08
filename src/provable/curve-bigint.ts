@@ -111,6 +111,10 @@ const PublicKey = {
   toInputLegacy({ x, isOdd }: PublicKey): HashInputLegacy {
     return { fields: [x], bits: [!!isOdd] };
   },
+
+  toFields({ x, isOdd }: PublicKey) {
+    return [x, isOdd ? 1n : 0n];
+  },
 };
 
 const checkScalar = checkRange(0n, Fq.modulus, 'Scalar');
