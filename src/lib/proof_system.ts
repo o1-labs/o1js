@@ -1,4 +1,8 @@
-import { Empty, EmptyUndefined, EmptyVoid } from '../bindings/lib/generic.js';
+import {
+  EmptyNull,
+  EmptyUndefined,
+  EmptyVoid,
+} from '../bindings/lib/generic.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
 import { Bool, Field, ProvablePure, Pickles, Poseidon } from '../snarky.js';
 import {
@@ -13,7 +17,16 @@ import { Context } from './global-context.js';
 import { Provable } from './provable.js';
 
 // public API
-export { Proof, SelfProof, JsonProof, ZkProgram, verify };
+export {
+  Proof,
+  SelfProof,
+  JsonProof,
+  ZkProgram,
+  verify,
+  Empty,
+  Undefined,
+  Void,
+};
 
 // internal API
 export {
@@ -39,8 +52,6 @@ export {
   inCheckedComputation,
   inCompileMode,
   dummyBase64Proof,
-  Undefined,
-  Void,
 };
 
 // global circuit-related context
@@ -59,6 +70,8 @@ let snarkContext = Context.create<SnarkContext>({ default: {} });
 type Undefined = undefined;
 const Undefined: ProvablePureExtended<undefined, null> =
   EmptyUndefined<Field>();
+type Empty = Undefined;
+const Empty = Undefined;
 type Void = undefined;
 const Void: ProvablePureExtended<void, null> = EmptyVoid<Field>();
 
@@ -73,7 +86,7 @@ class Proof<Input, Output> {
   };
   publicInput: Input;
   publicOutput: Output;
-  proof: RawProof;
+  proof: Pickles.Proof;
   maxProofsVerified: 0 | 1 | 2;
   shouldVerify = Bool(false);
 
@@ -122,7 +135,7 @@ class Proof<Input, Output> {
     publicOutput,
     maxProofsVerified,
   }: {
-    proof: RawProof;
+    proof: Pickles.Proof;
     publicInput: Input;
     publicOutput: Output;
     maxProofsVerified: 0 | 1 | 2;
@@ -138,7 +151,7 @@ async function verify(
   proof: Proof<any, any> | JsonProof,
   verificationKey: string
 ) {
-  let picklesProof: unknown;
+  let picklesProof: Pickles.Proof;
   let statement: Pickles.Statement;
   if (typeof proof.proof === 'string') {
     // json proof
@@ -164,7 +177,6 @@ async function verify(
   );
 }
 
-type RawProof = unknown;
 type JsonProof = {
   publicInput: string[];
   publicOutput: string[];
@@ -253,7 +265,7 @@ function ZkProgram<
         provers: Pickles.Prover[];
         verify: (
           statement: Pickles.Statement,
-          proof: unknown
+          proof: Pickles.Proof
         ) => Promise<boolean>;
       }
     | undefined;
@@ -468,22 +480,13 @@ function isGeneric(type: unknown): type is typeof GenericArgument {
 
 function getPreviousProofsForProver(
   methodArgs: any[],
-  { allArgs, proofArgs }: MethodInterface
+  { allArgs }: MethodInterface
 ) {
-  let previousProofs: Pickles.ProofWithStatement[] = [];
+  let previousProofs: Pickles.Proof[] = [];
   for (let i = 0; i < allArgs.length; i++) {
     let arg = allArgs[i];
     if (arg.type === 'proof') {
-      let { proof, publicInput, publicOutput } = methodArgs[i] as Proof<
-        any,
-        any
-      >;
-      let type = getStatementType(proofArgs[arg.index]);
-      previousProofs[arg.index] = {
-        publicInput: type.input.toFields(publicInput),
-        publicOutput: type.output.toFields(publicOutput),
-        proof,
-      };
+      previousProofs[arg.index] = (methodArgs[i] as Proof<any, any>).proof;
     }
   }
   return previousProofs;
@@ -532,10 +535,10 @@ async function compileProgram(
   );
   // wrap provers
   let wrappedProvers = provers.map(
-    (prover) =>
+    (prover): Pickles.Prover =>
       async function picklesProver(
         publicInput: Field[],
-        previousProofs: Pickles.ProofWithStatement[]
+        previousProofs: Pickles.Proof[]
       ) {
         return withThreadPool(() => prover(publicInput, previousProofs));
       }
@@ -576,13 +579,11 @@ function picklesRuleFromFunction(
   proofSystemTag: { name: string },
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface
 ): Pickles.Rule {
-  function main(
-    publicInput: Field[],
-    previousInputsAndOutputs: Field[][]
-  ): ReturnType<Pickles.Rule['main']> {
+  function main(publicInput: Field[]): ReturnType<Pickles.Rule['main']> {
     let { witnesses: argsWithoutPublicInput } = snarkContext.get();
     let finalArgs = [];
     let proofs: Proof<any, any>[] = [];
+    let previousStatements: Pickles.Statement[] = [];
     for (let i = 0; i < allArgs.length; i++) {
       let arg = allArgs[i];
       if (arg.type === 'witness') {
@@ -592,22 +593,22 @@ function picklesRuleFromFunction(
           : emptyWitness(type);
       } else if (arg.type === 'proof') {
         let Proof = proofArgs[arg.index];
-        // split in input & output
-        // TODO: would be nice to either make Pickles return the right split or completely move
-        // getting the public input & outputs to the JS side, from `snarkContext`, like private inputs
         let type = getStatementType(Proof);
-        let previousStatement = previousInputsAndOutputs[arg.index];
-        let inputFields = previousStatement.slice(0, type.input.sizeInFields());
-        let outputFields = previousStatement.slice(type.input.sizeInFields());
-        let publicInput = type.input.fromFields(inputFields);
-        let publicOutput = type.output.fromFields(outputFields);
-        let proof: unknown;
-        if (argsWithoutPublicInput) {
-          ({ proof } = argsWithoutPublicInput[i] as any);
-        }
+        let proof_ = (argsWithoutPublicInput?.[i] as Proof<any, any>) ?? {
+          proof: undefined,
+          publicInput: emptyValue(type.input),
+          publicOutput: emptyValue(type.output),
+        };
+        let { proof, publicInput, publicOutput } = proof_;
+        publicInput = Provable.witness(type.input, () => publicInput);
+        publicOutput = Provable.witness(type.output, () => publicOutput);
         let proofInstance = new Proof({ publicInput, publicOutput, proof });
         finalArgs[i] = proofInstance;
         proofs.push(proofInstance);
+        previousStatements.push({
+          input: type.input.toFields(publicInput),
+          output: type.output.toFields(publicOutput),
+        });
       } else if (arg.type === 'generic') {
         finalArgs[i] = argsWithoutPublicInput?.[i] ?? emptyGeneric();
       }
@@ -623,6 +624,7 @@ function picklesRuleFromFunction(
     let publicOutput = hasPublicOutput ? publicOutputType.toFields(result) : [];
     return {
       publicOutput,
+      previousStatements,
       shouldVerify: proofs.map((proof) => proof.shouldVerify),
     };
   }
@@ -697,7 +699,7 @@ function methodArgumentsToConstant(
   return constArgs;
 }
 
-let Generic = Empty<Field>();
+let Generic = EmptyNull<Field>();
 
 type TypeAndValue<T> = { type: Provable<T>; value: T };
 

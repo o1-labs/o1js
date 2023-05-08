@@ -18,7 +18,7 @@ import {
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue, toConstant } from './circuit_value.js';
-import { Proof, verify } from './proof_system.js';
+import { Empty, Proof, verify } from './proof_system.js';
 import { Context } from './global-context.js';
 import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './errors.js';
@@ -94,7 +94,7 @@ type Transaction = {
    *
    * This can take some time.
    */
-  prove(): Promise<(Proof<ZkappPublicInput, null> | undefined)[]>;
+  prove(): Promise<(Proof<ZkappPublicInput, Empty> | undefined)[]>;
   /**
    * Sends the {@link Transaction} to the network.
    */

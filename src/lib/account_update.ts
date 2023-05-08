@@ -16,6 +16,7 @@ import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
 import {
   dummyBase64Proof,
+  Empty,
   inCheckedComputation,
   Proof,
   Prover,
@@ -592,11 +593,7 @@ type LazyProof = {
   kind: 'lazy-proof';
   methodName: string;
   args: any[];
-  previousProofs: {
-    publicInput: Field[];
-    publicOutput: Field[];
-    proof: Pickles.Proof;
-  }[];
+  previousProofs: Pickles.Proof[];
   ZkappClass: typeof SmartContract;
   memoized: { fields: Field[]; aux: any[] }[];
   blindingValue: Field;
@@ -1949,7 +1946,7 @@ async function addMissingProofs(
   { proofsEnabled = true }
 ): Promise<{
   zkappCommand: ZkappCommandProved;
-  proofs: (Proof<ZkappPublicInput, null> | undefined)[];
+  proofs: (Proof<ZkappPublicInput, Empty> | undefined)[];
 }> {
   type AccountUpdateProved = AccountUpdate & {
     lazyAuthorization?: LazySignature;
@@ -2021,7 +2018,7 @@ async function addMissingProofs(
       accountUpdateProved: accountUpdate as AccountUpdateProved,
       proof: new Proof({
         publicInput,
-        publicOutput: null,
+        publicOutput: undefined,
         proof,
         maxProofsVerified,
       }),
@@ -2032,7 +2029,7 @@ async function addMissingProofs(
   // compute proofs serially. in parallel would clash with our global variable
   // hacks
   let accountUpdatesProved: AccountUpdateProved[] = [];
-  let proofs: (Proof<ZkappPublicInput, null> | undefined)[] = [];
+  let proofs: (Proof<ZkappPublicInput, Empty> | undefined)[] = [];
   for (let i = 0; i < accountUpdates.length; i++) {
     let { accountUpdateProved, proof } = await addProof(i, accountUpdates[i]);
     accountUpdatesProved.push(accountUpdateProved);
