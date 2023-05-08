@@ -194,8 +194,13 @@ export default [
     ],
   },
   {
-    name: 'Circuit',
+    name: 'Snarky',
     props: [
+      { name: 'exists', type: 'function' },
+      {
+        name: 'asProver',
+        type: 'function',
+      },
       {
         name: 'runAndCheck',
         type: 'function',
@@ -205,52 +210,12 @@ export default [
         type: 'function',
       },
       {
-        name: '_constraintSystem',
+        name: 'constraintSystem',
         type: 'function',
       },
       {
-        name: 'asProver',
-        type: 'function',
-      },
-      {
-        name: '_witness',
-        type: 'function',
-      },
-      {
-        name: 'array',
-        type: 'function',
-      },
-      {
-        name: 'generateKeypair',
-        type: 'function',
-      },
-      {
-        name: 'prove',
-        type: 'function',
-      },
-      {
-        name: 'verify',
-        type: 'function',
-      },
-      {
-        name: 'assertEqual',
-        type: 'function',
-      },
-      {
-        name: 'equal',
-        type: 'function',
-      },
-      {
-        name: 'toFields',
-        type: 'function',
-      },
-      {
-        name: 'if',
-        type: 'function',
-      },
-      {
-        name: 'getVerificationKey',
-        type: 'function',
+        name: 'circuit',
+        type: 'object',
       },
     ],
   },
@@ -398,14 +363,6 @@ export default [
       },
       {
         name: 'createTokenAccount',
-        type: 'function',
-      },
-      {
-        name: 'hashTransaction',
-        type: 'function',
-      },
-      {
-        name: 'hashTransactionChecked',
         type: 'function',
       },
       {
