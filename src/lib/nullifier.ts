@@ -45,12 +45,10 @@ class Nullifier extends Struct({
       private: { c },
     } = this;
 
+    // generator
     let G = Group.generator;
 
-    let pk_fields = [
-      publicKey.isOdd.toBoolean() ? Field(1) : Field(0),
-      publicKey.x,
-    ];
+    let pk_fields = publicKey.toFields();
 
     let {
       x,
@@ -71,8 +69,6 @@ class Nullifier extends Struct({
     let h_m_pk_s_div_nullifier_s = h_m_pk_s.sub(
       scaleShifted(nullifier, Scalar.fromBits(c.toBits()))
     );
-
-    console.log(JSON.stringify(h_m_pk_s_div_nullifier_s));
 
     Poseidon.hash([
       ...Group.toFields(G),

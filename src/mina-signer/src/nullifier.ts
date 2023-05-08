@@ -47,6 +47,7 @@ function createNullifier(message: Field, sk: PrivateKey): Nullifier {
   // operations on scalars (r) should be in Fq, rather than Fp
   // while c is in Fp (due to Poseidon.hash), c needs to be handled as an element from Fq
   const s = Fq.add(r, Fq.mul(sk, c));
+
   return {
     publicKey: PublicKey.toBase58(pk),
     message,
