@@ -600,8 +600,8 @@ function picklesRuleFromFunction(
           publicOutput: emptyValue(type.output),
         };
         let { proof, publicInput, publicOutput } = proof_;
-        publicInput = Circuit.witness(type.input, () => publicInput);
-        publicOutput = Circuit.witness(type.output, () => publicOutput);
+        publicInput = Provable.witness(type.input, () => publicInput);
+        publicOutput = Provable.witness(type.output, () => publicOutput);
         let proofInstance = new Proof({ publicInput, publicOutput, proof });
         finalArgs[i] = proofInstance;
         proofs.push(proofInstance);
