@@ -28,6 +28,9 @@ class PayoutOnlyOnce extends SmartContract {
     // making sure the nullifier really belongs to this contract
     nullifier.message.assertEquals(nullifierMessage);
 
+    // verify the nullifier
+    nullifier.verify();
+
     let nullifierWitness = Circuit.witness(MerkleMapWitness, () =>
       NullifierTree.getWitness(nullifier.key())
     );
