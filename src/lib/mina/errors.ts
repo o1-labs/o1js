@@ -93,6 +93,12 @@ function trimPaths(stacktracePath: string) {
   if (includesOpam) {
     return trimOpamPath(stacktracePath);
   }
+
+  const includesWorkspace = stacktracePath.includes('workspace_root');
+  if (includesWorkspace) {
+    return trimWorkspacePath(stacktracePath);
+  }
+
   return stacktracePath;
 }
 
@@ -147,6 +153,28 @@ function trimOpamPath(stacktraceLine: string) {
   const trimmedPath = updatedPathArray.slice(libIndex + 1);
   // Add the ocaml directory to the beginning of the path
   trimmedPath.unshift('ocaml');
+  return `${prefix}${trimmedPath.join('/')})`;
+}
+
+/**
+ * Trims the 'workspace_root' portion of the stack trace line's path.
+ *
+ * @param stacktraceLine - The stack trace line containing the 'workspace_root' path to trim.
+ * @returns The stack trace line with the trimmed 'workspace_root' path.
+ */
+function trimWorkspacePath(stacktraceLine: string) {
+  const fullPath = getDirectoryPath(stacktraceLine);
+  if (!fullPath) {
+    return stacktraceLine;
+  }
+  const workspaceIndex = fullPath.indexOf('workspace_root');
+  if (workspaceIndex === -1) {
+    return stacktraceLine;
+  }
+
+  const updatedPathArray = fullPath.slice(workspaceIndex).split('/');
+  const prefix = stacktraceLine.slice(0, stacktraceLine.indexOf('(') + 1);
+  const trimmedPath = updatedPathArray.slice(workspaceIndex);
   return `${prefix}${trimmedPath.join('/')})`;
 }
 
