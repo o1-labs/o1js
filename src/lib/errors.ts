@@ -1,4 +1,45 @@
-export { CatchAndPrettifyStacktrace, assert };
+export {
+  CatchAndPrettifyStacktraceForAllMethods,
+  CatchAndPrettifyStacktrace,
+  assert,
+};
+
+/**
+ * A class decorator that applies the CatchAndPrettifyStacktrace decorator function
+ * to all methods of the target class.
+ *
+ * @param constructor - The target class constructor.
+ */
+function CatchAndPrettifyStacktraceForAllMethods<
+  T extends { new (...args: any[]): {} }
+>(constructor: T) {
+  // Iterate through all properties (including methods) of the class prototype
+  for (const propertyName of Object.getOwnPropertyNames(
+    constructor.prototype
+  )) {
+    // Skip the constructor
+    if (propertyName === 'constructor') continue;
+
+    // Get the property descriptor
+    const descriptor = Object.getOwnPropertyDescriptor(
+      constructor.prototype,
+      propertyName
+    );
+
+    // Check if the property is a method
+    if (descriptor && typeof descriptor.value === 'function') {
+      // Apply the CatchAndPrettifyStacktrace decorator to the method
+      CatchAndPrettifyStacktrace(
+        constructor.prototype,
+        propertyName,
+        descriptor
+      );
+
+      // Update the method descriptor
+      Object.defineProperty(constructor.prototype, propertyName, descriptor);
+    }
+  }
+}
 
 /**
  * A decorator function that wraps the target method with error handling logic.
