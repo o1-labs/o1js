@@ -2,7 +2,7 @@ import { Circuit, Field, Bool } from '../snarky.js';
 import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
-import { CatchAndPrettifyStacktrace } from './mina/errors.js';
+import { CatchAndPrettifyStacktrace } from './errors.js';
 import { inCheckedComputation } from './proof_system.js';
 
 // external API
