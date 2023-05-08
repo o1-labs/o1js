@@ -16,19 +16,6 @@ function CatchAndPrettifyStacktrace(
 ) {
   const originalMethod = descriptor.value;
   descriptor.value = function (...args: any[]) {
-    const handleResult = (result: any) => {
-      if (result instanceof Promise) {
-        return result.catch((error: Error) => {
-          const prettyStacktrace = prettifyStacktrace(error);
-          if (prettyStacktrace && error instanceof Error) {
-            error.stack = prettyStacktrace;
-          }
-          throw error;
-        });
-      }
-      return result;
-    };
-
     try {
       const result = originalMethod.apply(this, args);
       return handleResult(result);
@@ -40,6 +27,28 @@ function CatchAndPrettifyStacktrace(
       throw error;
     }
   };
+}
+
+/**
+ * Handles the result of a function call, wrapping a Promise with error handling logic
+ * that prettifies the stack trace before rethrowing the error. For non-Promise results,
+ * the function returns the result unchanged. This function is intended for internal usage
+ * and not exposed to users.
+ *
+ * @param result - The result of the function call, which can be a Promise or any other value.
+ * @returns A Promise with error handling logic for prettifying the stack trace, or the original result if it's not a Promise.
+ */
+function handleResult(result: any) {
+  if (result instanceof Promise) {
+    return result.catch((error: Error) => {
+      const prettyStacktrace = prettifyStacktrace(error);
+      if (prettyStacktrace && error instanceof Error) {
+        error.stack = prettyStacktrace;
+      }
+      throw error;
+    });
+  }
+  return result;
 }
 
 /**
