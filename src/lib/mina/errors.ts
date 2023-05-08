@@ -6,10 +6,23 @@ function CatchAndPrettifyStacktrace(
   descriptor: PropertyDescriptor
 ) {
   const originalMethod = descriptor.value;
-  descriptor.value = async function (...args: any[]) {
-    try {
-      const result = await originalMethod.apply(this, args);
+  descriptor.value = function (...args: any[]) {
+    const handleResult = (result: any) => {
+      if (result instanceof Promise) {
+        return result.catch((error: Error) => {
+          const prettyStacktrace = prettifyStacktrace(error);
+          if (prettyStacktrace && error instanceof Error) {
+            error.stack = prettyStacktrace;
+          }
+          throw error;
+        });
+      }
       return result;
+    };
+
+    try {
+      const result = originalMethod.apply(this, args);
+      return handleResult(result);
     } catch (error) {
       const prettyStacktrace = prettifyStacktrace(error);
       if (prettyStacktrace && error instanceof Error) {
