@@ -19,7 +19,7 @@ import {
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue, toConstant } from './circuit_value.js';
-import { Proof, snarkContext, verify } from './proof_system.js';
+import { Proof, verify } from './proof_system.js';
 import { Context } from './global-context.js';
 import { SmartContract } from './zkapp.js';
 import { invalidTransactionError } from './mina/errors.js';
