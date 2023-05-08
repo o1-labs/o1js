@@ -1,5 +1,14 @@
 export { CatchAndPrettifyStacktrace };
 
+/**
+ * A decorator function that wraps the target method with error handling logic.
+ * It catches errors thrown by the method, prettifies the stack trace, and then
+ * rethrows the error with the updated stack trace.
+ *
+ * @param _target - The target object.
+ * @param _propertyName - The name of the property being decorated.
+ * @param descriptor - The property descriptor of the target method.
+ */
 function CatchAndPrettifyStacktrace(
   _target: any,
   _propertyName: string,
@@ -33,12 +42,21 @@ function CatchAndPrettifyStacktrace(
   };
 }
 
+/**
+ * A list of keywords used to filter out unwanted lines from the error stack trace.
+ */
 const lineRemovalKeywords = [
   'snarky_js_node.bc.cjs',
   '/builtin/',
   'CatchAndPrettifyStacktrace', // Decorator name to remove from stacktrace
 ] as const;
 
+/**
+ * Prettifies the stack trace of an error by removing unwanted lines and trimming paths.
+ *
+ * @param error - The error object with a stack trace to prettify.
+ * @returns The prettified stack trace as a string or undefined if the error is not an instance of Error or has no stack trace.
+ */
 function prettifyStacktrace(error: unknown): string | undefined {
   if (!(error instanceof Error) || !error.stack) return undefined;
 
@@ -59,6 +77,12 @@ function prettifyStacktrace(error: unknown): string | undefined {
   return newStacktrace.join('\n');
 }
 
+/**
+ * Trims paths in the stack trace line based on whether it includes 'snarkyjs' or 'opam'.
+ *
+ * @param stacktracePath - The stack trace line containing the path to trim.
+ * @returns The trimmed stack trace line.
+ */
 function trimPaths(stacktracePath: string) {
   const includesSnarkyJS = stacktracePath.includes('snarkyjs');
   if (includesSnarkyJS) {
@@ -72,6 +96,12 @@ function trimPaths(stacktracePath: string) {
   return stacktracePath;
 }
 
+/**
+ * Trims the 'snarkyjs' portion of the stack trace line's path.
+ *
+ * @param stacktraceLine - The stack trace line containing the 'snarkyjs' path to trim.
+ * @returns The stack trace line with the trimmed 'snarkyjs' path.
+ */
 function trimSnarkyJSPath(stacktraceLine: string) {
   const fullPath = getDirectoryPath(stacktraceLine);
   if (!fullPath) {
@@ -89,6 +119,12 @@ function trimSnarkyJSPath(stacktraceLine: string) {
   return `${prefix}${updatedPath})`;
 }
 
+/**
+ * Trims the 'opam' portion of the stack trace line's path.
+ *
+ * @param stacktraceLine - The stack trace line containing the 'opam' path to trim.
+ * @returns The stack trace line with the trimmed 'opam' path.
+ */
 function trimOpamPath(stacktraceLine: string) {
   const fullPath = getDirectoryPath(stacktraceLine);
   if (!fullPath) {
@@ -114,6 +150,12 @@ function trimOpamPath(stacktraceLine: string) {
   return `${prefix}${trimmedPath.join('/')})`;
 }
 
+/**
+ * Extracts the directory path from a stack trace line.
+ *
+ * @param stacktraceLine - The stack trace line to extract the path from.
+ * @returns The extracted directory path or undefined if not found.
+ */
 function getDirectoryPath(stacktraceLine: string) {
   // Regex to match the path inside the parentheses (e.g. (/home/../snarkyjs/../*.ts))
   const fullPathRegex = /\(([^)]+)\)/;
