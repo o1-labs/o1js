@@ -7,6 +7,7 @@ import {
   Proof,
   JsonProof,
   Provable,
+  Empty,
 } from 'snarkyjs';
 
 await isReady;
@@ -24,7 +25,7 @@ let MyProgram = Experimental.ZkProgram({
 
     inductiveCase: {
       privateInputs: [SelfProof],
-      method(earlierProof: SelfProof<undefined, Field>) {
+      method(earlierProof: SelfProof<Empty, Field>) {
         earlierProof.verify();
         return earlierProof.publicOutput.add(1);
       },
@@ -32,7 +33,7 @@ let MyProgram = Experimental.ZkProgram({
   },
 });
 // type sanity checks
-MyProgram.publicInputType satisfies Provable<undefined>;
+MyProgram.publicInputType satisfies Provable<Empty>;
 MyProgram.publicOutputType satisfies typeof Field;
 
 let MyProof = Experimental.ZkProgram.Proof(MyProgram);

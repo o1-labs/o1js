@@ -52,6 +52,7 @@ import {
 import {
   analyzeMethod,
   compileProgram,
+  Empty,
   emptyValue,
   GenericArgument,
   getPreviousProofsForProver,
@@ -68,7 +69,6 @@ import {
 } from './proof_system.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
-import { Empty } from '../bindings/lib/generic.js';
 
 // external API
 export {
@@ -120,9 +120,9 @@ function method<T extends SmartContract>(
     methodName
   );
 
-  class SelfProof extends Proof<ZkappPublicInput, null> {
+  class SelfProof extends Proof<ZkappPublicInput, Empty> {
     static publicInputType = ZkappPublicInput;
-    static publicOutputType = Empty<Field>();
+    static publicOutputType = Empty;
     static tag = () => ZkappClass;
   }
   let internalMethodEntry = sortMethodArguments(
@@ -628,9 +628,9 @@ class SmartContract {
    */
   static Proof() {
     let Contract = this;
-    return class extends Proof<ZkappPublicInput, null> {
+    return class extends Proof<ZkappPublicInput, Empty> {
       static publicInputType = ZkappPublicInput;
-      static publicOutputType = Empty<Field>();
+      static publicOutputType = Empty;
       static tag = () => Contract;
     };
   }
@@ -683,7 +683,7 @@ class SmartContract {
       verify,
     } = await compileProgram(
       ZkappPublicInput,
-      Empty(),
+      Empty,
       methodIntfs,
       methods,
       this
