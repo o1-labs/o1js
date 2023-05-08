@@ -2,6 +2,7 @@ import { Circuit, Field, Bool } from '../snarky.js';
 import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
+import { CatchAndPrettifyStacktrace } from './mina/errors.js';
 import { inCheckedComputation } from './proof_system.js';
 
 // external API
@@ -118,6 +119,7 @@ class UInt64 extends CircuitValue {
    *
    * `x.divMod(y)` returns the quotient and the remainder.
    */
+  @CatchAndPrettifyStacktrace
   divMod(y: UInt64 | number | string) {
     let x = this.value;
     let y_ = UInt64.from(y).value;
@@ -161,6 +163,7 @@ class UInt64 extends CircuitValue {
    * `z` such that `z * y <= x`.
    *
    */
+  @CatchAndPrettifyStacktrace
   div(y: UInt64 | number) {
     return this.divMod(y).quotient;
   }
@@ -171,6 +174,7 @@ class UInt64 extends CircuitValue {
    * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
    * `x - z` is divisble by `y`.
    */
+  @CatchAndPrettifyStacktrace
   mod(y: UInt64 | number) {
     return this.divMod(y).rest;
   }
@@ -178,6 +182,7 @@ class UInt64 extends CircuitValue {
   /**
    * Multiplication with overflow checking.
    */
+  @CatchAndPrettifyStacktrace
   mul(y: UInt64 | number) {
     let z = this.value.mul(UInt64.from(y).value);
     z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
@@ -187,6 +192,7 @@ class UInt64 extends CircuitValue {
   /**
    * Addition with overflow checking.
    */
+  @CatchAndPrettifyStacktrace
   add(y: UInt64 | number) {
     let z = this.value.add(UInt64.from(y).value);
     z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
@@ -196,6 +202,7 @@ class UInt64 extends CircuitValue {
   /**
    * Subtraction with underflow checking.
    */
+  @CatchAndPrettifyStacktrace
   sub(y: UInt64 | number) {
     let z = this.value.sub(UInt64.from(y).value);
     z.rangeCheckHelper(UInt64.NUM_BITS).assertEquals(z);
@@ -207,6 +214,7 @@ class UInt64 extends CircuitValue {
    *
    * Checks if a {@link UInt64} is less than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   lte(y: UInt64) {
     if (this.value.isConstant() && y.value.isConstant()) {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
@@ -228,6 +236,7 @@ class UInt64 extends CircuitValue {
   /**
    * Checks if a {@link UInt64} is less than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   lessThanOrEqual(y: UInt64) {
     if (this.value.isConstant() && y.value.isConstant()) {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
@@ -251,6 +260,7 @@ class UInt64 extends CircuitValue {
    *
    * Asserts that a {@link UInt64} is less than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   assertLte(y: UInt64, message?: string) {
     this.assertLessThanOrEqual(y, message);
   }
@@ -258,6 +268,7 @@ class UInt64 extends CircuitValue {
   /**
    * Asserts that a {@link UInt64} is less than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   assertLessThanOrEqual(y: UInt64, message?: string) {
     if (this.value.isConstant() && y.value.isConstant()) {
       let x0 = this.value.toBigInt();
@@ -277,6 +288,7 @@ class UInt64 extends CircuitValue {
    *
    * Checks if a {@link UInt64} is less than another one.
    */
+  @CatchAndPrettifyStacktrace
   lt(y: UInt64) {
     return this.lessThanOrEqual(y).and(this.value.equals(y.value).not());
   }
@@ -285,6 +297,7 @@ class UInt64 extends CircuitValue {
    *
    * Checks if a {@link UInt64} is less than another one.
    */
+  @CatchAndPrettifyStacktrace
   lessThan(y: UInt64) {
     return this.lessThanOrEqual(y).and(this.value.equals(y.value).not());
   }
@@ -295,6 +308,7 @@ class UInt64 extends CircuitValue {
    *
    * Asserts that a {@link UInt64} is less than another one.
    */
+  @CatchAndPrettifyStacktrace
   assertLt(y: UInt64, message?: string) {
     this.lessThan(y).assertEquals(true, message);
   }
@@ -302,6 +316,7 @@ class UInt64 extends CircuitValue {
   /**
    * Asserts that a {@link UInt64} is less than another one.
    */
+  @CatchAndPrettifyStacktrace
   assertLessThan(y: UInt64, message?: string) {
     this.lessThan(y).assertEquals(true, message);
   }
@@ -311,6 +326,7 @@ class UInt64 extends CircuitValue {
    *
    * Checks if a {@link UInt64} is greater than another one.
    */
+  @CatchAndPrettifyStacktrace
   gt(y: UInt64) {
     return y.lessThan(this);
   }
@@ -318,6 +334,7 @@ class UInt64 extends CircuitValue {
   /**
    * Checks if a {@link UInt64} is greater than another one.
    */
+  @CatchAndPrettifyStacktrace
   greaterThan(y: UInt64) {
     return y.lessThan(this);
   }
@@ -327,6 +344,7 @@ class UInt64 extends CircuitValue {
    *
    * Asserts that a {@link UInt64} is greater than another one.
    */
+  @CatchAndPrettifyStacktrace
   assertGt(y: UInt64, message?: string) {
     y.assertLessThan(this, message);
   }
@@ -334,6 +352,7 @@ class UInt64 extends CircuitValue {
   /**
    * Asserts that a {@link UInt64} is greater than another one.
    */
+  @CatchAndPrettifyStacktrace
   assertGreaterThan(y: UInt64, message?: string) {
     y.assertLessThan(this, message);
   }
@@ -350,6 +369,7 @@ class UInt64 extends CircuitValue {
   /**
    * Checks if a {@link UInt64} is greater than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   greaterThanOrEqual(y: UInt64) {
     return this.lessThan(y).not();
   }
@@ -359,6 +379,7 @@ class UInt64 extends CircuitValue {
    *
    * Asserts that a {@link UInt64} is greater than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   assertGte(y: UInt64, message?: string) {
     y.assertLessThanOrEqual(this, message);
   }
@@ -366,6 +387,7 @@ class UInt64 extends CircuitValue {
   /**
    * Asserts that a {@link UInt64} is greater than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   assertGreaterThanOrEqual(y: UInt64, message?: string) {
     y.assertLessThanOrEqual(this, message);
   }
@@ -393,18 +415,21 @@ class UInt32 extends CircuitValue {
   /**
    * Turns the {@link UInt32} into a string.
    */
+  @CatchAndPrettifyStacktrace
   toString(): string {
     return this.value.toString();
   }
   /**
    * Turns the {@link UInt32} into a {@link BigInt}.
    */
+  @CatchAndPrettifyStacktrace
   toBigint() {
     return this.value.toBigInt();
   }
   /**
    * Turns the {@link UInt32} into a {@link UInt64}.
    */
+  @CatchAndPrettifyStacktrace
   toUInt64(): UInt64 {
     // this is safe, because the UInt32 range is included in the UInt64 range
     return new UInt64(this.value);
@@ -461,6 +486,7 @@ class UInt32 extends CircuitValue {
    *
    * `x.divMod(y)` returns the quotient and the remainder.
    */
+  @CatchAndPrettifyStacktrace
   divMod(y: UInt32 | number | string) {
     let x = this.value;
     let y_ = UInt32.from(y).value;
@@ -503,6 +529,7 @@ class UInt32 extends CircuitValue {
    * `z` such that `x * y <= x`.
    *
    */
+  @CatchAndPrettifyStacktrace
   div(y: UInt32 | number) {
     return this.divMod(y).quotient;
   }
@@ -512,12 +539,14 @@ class UInt32 extends CircuitValue {
    * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
    * `x - z` is divisble by `y`.
    */
+  @CatchAndPrettifyStacktrace
   mod(y: UInt32 | number) {
     return this.divMod(y).rest;
   }
   /**
    * Multiplication with overflow checking.
    */
+  @CatchAndPrettifyStacktrace
   mul(y: UInt32 | number) {
     let z = this.value.mul(UInt32.from(y).value);
     z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
@@ -526,6 +555,7 @@ class UInt32 extends CircuitValue {
   /**
    * Addition with overflow checking.
    */
+  @CatchAndPrettifyStacktrace
   add(y: UInt32 | number) {
     let z = this.value.add(UInt32.from(y).value);
     z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
@@ -534,6 +564,7 @@ class UInt32 extends CircuitValue {
   /**
    * Subtraction with underflow checking.
    */
+  @CatchAndPrettifyStacktrace
   sub(y: UInt32 | number) {
     let z = this.value.sub(UInt32.from(y).value);
     z.rangeCheckHelper(UInt32.NUM_BITS).assertEquals(z);
@@ -544,6 +575,7 @@ class UInt32 extends CircuitValue {
    *
    * Checks if a {@link UInt32} is less than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   lte(y: UInt32) {
     if (this.value.isConstant() && y.value.isConstant()) {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
@@ -565,6 +597,7 @@ class UInt32 extends CircuitValue {
   /**
    * Checks if a {@link UInt32} is less than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   lessThanOrEqual(y: UInt32) {
     if (this.value.isConstant() && y.value.isConstant()) {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
@@ -588,6 +621,7 @@ class UInt32 extends CircuitValue {
    *
    * Asserts that a {@link UInt32} is less than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   assertLte(y: UInt32, message?: string) {
     this.assertLessThanOrEqual(y, message);
   }
@@ -595,6 +629,7 @@ class UInt32 extends CircuitValue {
   /**
    * Asserts that a {@link UInt32} is less than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   assertLessThanOrEqual(y: UInt32, message?: string) {
     if (this.value.isConstant() && y.value.isConstant()) {
       let x0 = this.value.toBigInt();
@@ -614,6 +649,7 @@ class UInt32 extends CircuitValue {
    *
    * Checks if a {@link UInt32} is less than another one.
    */
+  @CatchAndPrettifyStacktrace
   lt(y: UInt32) {
     return this.lessThanOrEqual(y).and(this.value.equals(y.value).not());
   }
@@ -621,6 +657,7 @@ class UInt32 extends CircuitValue {
   /**
    * Checks if a {@link UInt32} is less than another one.
    */
+  @CatchAndPrettifyStacktrace
   lessThan(y: UInt32) {
     return this.lessThanOrEqual(y).and(this.value.equals(y.value).not());
   }
@@ -630,6 +667,7 @@ class UInt32 extends CircuitValue {
    *
    * Asserts that a {@link UInt32} is less than another one.
    */
+  @CatchAndPrettifyStacktrace
   assertLt(y: UInt32, message?: string) {
     this.lessThan(y).assertEquals(true, message);
   }
@@ -637,6 +675,7 @@ class UInt32 extends CircuitValue {
   /**
    * Asserts that a {@link UInt32} is less than another one.
    */
+  @CatchAndPrettifyStacktrace
   assertLessThan(y: UInt32, message?: string) {
     this.lessThan(y).assertEquals(true, message);
   }
@@ -646,6 +685,7 @@ class UInt32 extends CircuitValue {
    *
    * Checks if a {@link UInt32} is greater than another one.
    */
+  @CatchAndPrettifyStacktrace
   gt(y: UInt32) {
     return y.lessThan(this);
   }
@@ -653,6 +693,7 @@ class UInt32 extends CircuitValue {
   /**
    * Checks if a {@link UInt32} is greater than another one.
    */
+  @CatchAndPrettifyStacktrace
   greaterThan(y: UInt32) {
     return y.lessThan(this);
   }
@@ -662,6 +703,7 @@ class UInt32 extends CircuitValue {
    *
    * Asserts that a {@link UInt32} is greater than another one.
    */
+  @CatchAndPrettifyStacktrace
   assertGt(y: UInt32, message?: string) {
     y.assertLessThan(this, message);
   }
@@ -669,6 +711,7 @@ class UInt32 extends CircuitValue {
   /**
    * Asserts that a {@link UInt32} is greater than another one.
    */
+  @CatchAndPrettifyStacktrace
   assertGreaterThan(y: UInt32, message?: string) {
     y.assertLessThan(this, message);
   }
@@ -678,6 +721,7 @@ class UInt32 extends CircuitValue {
    *
    * Checks if a {@link UInt32} is greater than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   gte(y: UInt32) {
     return this.lessThan(y).not();
   }
@@ -685,6 +729,7 @@ class UInt32 extends CircuitValue {
   /**
    * Checks if a {@link UInt32} is greater than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   greaterThanOrEqual(y: UInt32) {
     return this.lessThan(y).not();
   }
@@ -695,6 +740,7 @@ class UInt32 extends CircuitValue {
    * 
    * Asserts that a {@link UInt32} is greater than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   assertGte(y: UInt32, message?: string) {
     y.assertLessThanOrEqual(this, message);
   }
@@ -702,6 +748,7 @@ class UInt32 extends CircuitValue {
   /**
    * Asserts that a {@link UInt32} is greater than or equal to another one.
    */
+  @CatchAndPrettifyStacktrace
   assertGreaterThanOrEqual(y: UInt32, message?: string) {
     y.assertLessThanOrEqual(this, message);
   }
@@ -736,15 +783,19 @@ class Sign extends CircuitValue {
   ): InstanceType<T> {
     return (x === 'Positive' ? new Sign(Field(1)) : new Sign(Field(-1))) as any;
   }
+  @CatchAndPrettifyStacktrace
   neg() {
     return new Sign(this.value.neg());
   }
+  @CatchAndPrettifyStacktrace
   mul(y: Sign) {
     return new Sign(this.value.mul(y.value));
   }
+  @CatchAndPrettifyStacktrace
   isPositive() {
     return this.value.equals(Field(1));
   }
+  @CatchAndPrettifyStacktrace
   toString() {
     return this.value.toString();
   }
@@ -829,12 +880,14 @@ class Int64 extends CircuitValue implements BalanceChange {
   /**
    * Turns the {@link Int64} into a string.
    */
+  @CatchAndPrettifyStacktrace
   toString() {
     let abs = this.magnitude.toString();
     let sgn = this.isPositive().toBoolean() || abs === '0' ? '' : '-';
     return sgn + abs;
   }
 
+  @CatchAndPrettifyStacktrace
   isConstant() {
     return this.magnitude.value.isConstant() && this.sgn.isConstant();
   }
@@ -865,6 +918,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   /**
    * Returns the {@link Field} value.
    */
+  @CatchAndPrettifyStacktrace
   toField() {
     return this.magnitude.value.mul(this.sgn.value);
   }
@@ -885,6 +939,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    *
    * `Int64.from(5).neg()` will turn into `Int64.from(-5)`
    */
+  @CatchAndPrettifyStacktrace
   neg() {
     // doesn't need further check if `this` is valid
     return new Int64(this.magnitude, this.sgn.neg());
@@ -892,6 +947,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   /**
    * Addition with overflow checking.
    */
+  @CatchAndPrettifyStacktrace
   add(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = Int64.from(y);
     return Int64.fromField(this.toField().add(y_.toField()));
@@ -899,6 +955,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   /**
    * Subtraction with underflow checking.
    */
+  @CatchAndPrettifyStacktrace
   sub(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = Int64.from(y);
     return Int64.fromField(this.toField().sub(y_.toField()));
@@ -906,6 +963,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   /**
    * Multiplication with overflow checking.
    */
+  @CatchAndPrettifyStacktrace
   mul(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = Int64.from(y);
     return Int64.fromField(this.toField().mul(y_.toField()));
@@ -917,6 +975,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    * `z` such that `z * y <= x`.
    *
    */
+  @CatchAndPrettifyStacktrace
   div(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = Int64.from(y);
     let { quotient } = this.magnitude.divMod(y_.magnitude);
@@ -929,6 +988,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
    * `x - z` is divisble by `y`.
    */
+  @CatchAndPrettifyStacktrace
   mod(y: UInt64 | number | string | bigint | UInt32) {
     let y_ = UInt64.from(y);
     let rest = this.magnitude.divMod(y_).rest.value;
@@ -939,6 +999,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   /**
    * Checks if two values are equal.
    */
+  @CatchAndPrettifyStacktrace
   equals(y: Int64 | number | string | bigint | UInt64 | UInt32) {
     let y_ = Int64.from(y);
     return this.toField().equals(y_.toField());
@@ -946,6 +1007,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   /**
    * Asserts that two values are equal.
    */
+  @CatchAndPrettifyStacktrace
   assertEquals(
     y: Int64 | number | string | bigint | UInt64 | UInt32,
     message?: string
@@ -956,6 +1018,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   /**
    * Checks if the value is postive.
    */
+  @CatchAndPrettifyStacktrace
   isPositive() {
     return this.sgn.isPositive();
   }
