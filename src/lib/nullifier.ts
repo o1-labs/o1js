@@ -92,7 +92,7 @@ class Nullifier extends Struct({
   }
 
   /**
-   * Checks if the Nullifier has been used before.
+   * Returns the state of the Nullifier.
    */
   isUnused(witness: MerkleMapWitness, root: Field) {
     let isUnused = witness.computeRootAndKey(Field(0))[0].equals(root);
@@ -102,6 +102,9 @@ class Nullifier extends Struct({
     return isUnused; // if this is false, `isUsed` is true because of the check before
   }
 
+  /**
+   * Checks if the Nullifier has been used before.
+   */
   assertUnused(witness: MerkleMapWitness, root: Field) {
     let [impliedRoot, key] = witness.computeRootAndKey(Field(0));
     this.key().assertEquals(key);
