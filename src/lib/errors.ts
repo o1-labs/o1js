@@ -98,7 +98,7 @@ function handleResult(result: any) {
 const lineRemovalKeywords = [
   'snarky_js_node.bc.cjs',
   '/builtin/',
-  'CatchAndPrettifyStacktrace', // Decorator name to remove from stacktrace
+  'CatchAndPrettifyStacktrace', // Decorator name to remove from stacktrace (covers both class and method decorator)
 ] as const;
 
 /**
