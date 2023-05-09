@@ -581,8 +581,8 @@ let () =
                      Kimchi_pasta.Pasta.Fp.(of_bigint (Bigint.of_hex_string s))
                    else Field.Constant.of_string s ) )
             with Failure _ -> None )
-        | "bigint" -> 
-          return (Obj.magic value)
+        | "bigint" ->
+            return (Obj.magic value)
         | _ ->
             None
       in
@@ -1168,7 +1168,6 @@ let hash_array (xs : field_class Js.t Js.js_array Js.t) (is_checked : bool Js.t)
   let input = Array.map (Js.to_array xs) ~f:of_js_field in
   if Js.to_bool is_checked then Random_oracle.Checked.hash input
   else Random_oracle.hash (Array.map ~f:to_unchecked input) |> Field.constant
-
 
 let poseidon =
   object%js
