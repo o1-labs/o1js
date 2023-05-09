@@ -298,11 +298,19 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       return self;
     },
     async prove() {
-      let { zkappCommand, proofs } = await addMissingProofs(self.transaction, {
-        proofsEnabled,
-      });
-      self.transaction = zkappCommand;
-      return proofs;
+      try {
+        let { zkappCommand, proofs } = await addMissingProofs(
+          self.transaction,
+          {
+            proofsEnabled,
+          }
+        );
+        self.transaction = zkappCommand;
+        return proofs;
+      } catch (error) {
+        if (error instanceof Error) error.stack = prettifyStacktrace(error);
+        throw error;
+      }
     },
     toJSON() {
       let json = ZkappCommand.toJSON(self.transaction);
