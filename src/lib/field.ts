@@ -11,7 +11,8 @@ const Field = toFunctionConstructor(
 
     constructor(x: Field | bigint) {
       if (x instanceof Field) {
-        return Object.assign(Object.create(Field.prototype), x);
+        this.value = x.value;
+        return;
       }
       let field = BigintField.fromBigint(x);
       let bytes = bigIntToBytes(field, 32);
@@ -32,7 +33,7 @@ const Field = toFunctionConstructor(
     }
 
     add(y: Field | bigint) {
-      return new Field(this.toBigInt() + new Field(y).toBigInt());
+      return new Field(this.toBigInt() + toBigint(y));
     }
   }
 );
@@ -58,8 +59,12 @@ function toFunctionConstructor<Class extends new (...args: any) => any>(
     return new Class(...args);
   }
   Object.assign(Constructor, Class);
-  Object.assign(Constructor.prototype, Class.prototype);
   return Constructor as any;
+}
+
+function toBigint(x: Field | bigint) {
+  if (typeof x === 'bigint') return x;
+  return x.toBigInt();
 }
 
 type InferArgs<T> = T extends new (...args: infer Args) => any ? Args : never;
