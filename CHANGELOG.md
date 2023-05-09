@@ -17,7 +17,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/a632313a...HEAD)
 
-> No unreleased changes yet
+### Changes
+
+- New decorator `CatchAndPrettifyStacktrace` for printing better stack traces thrown from SnarkyJS https://github.com/o1-labs/snarkyjs/pull/890
+  - Cleans up stack traces by filtering out extra details, making them more readable
 
 ## [0.10.1](https://github.com/o1-labs/snarkyjs/compare/bcc666f2...a632313a)
 
