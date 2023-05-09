@@ -1,11 +1,11 @@
-import {
-  bigIntToBytes,
-  bytesToBigInt,
-} from '../bindings/crypto/bigint-helpers.js';
 import { Field as SnarkyField } from '../snarky.js';
-import { Field as BigintField } from '../provable/field-bigint.js';
+import { Field as Fp } from '../provable/field-bigint.js';
 import { SmartContract, method } from './zkapp.js';
-import { Provable } from './provable.js';
+import { Bool } from '../snarky.js';
+
+function unimplemented() {
+  return Error('unimplemented');
+}
 
 enum FieldType {
   Constant,
@@ -23,31 +23,228 @@ const Field = toFunctionConstructor(
   class Field {
     value: FieldVar;
 
+    static ORDER = Fp.modulus;
+
     constructor(x: Field | bigint) {
       if (x instanceof Field) {
         this.value = x.value;
         return;
       }
-      let field = BigintField.fromBigint(x);
-      let bytes = BigintField.toBytes(field);
+      let field = Fp.fromBigint(x);
+      let bytes = Fp.toBytes(field);
       this.value = [0, Uint8Array.from(bytes)];
     }
 
+    isConstant(): this is { value: [FieldType.Constant, Uint8Array] } {
+      return this.value[0] === FieldType.Constant;
+    }
+    toConstant(): Field & { value: [FieldType.Constant, Uint8Array] } {
+      if (this.isConstant()) return this;
+      // TODO: actually, try to read the variable here
+      throw Error(`Can't evaluate prover code outside an as_prover block 🧌🧌🧌`);
+    }
+
     toBigInt() {
-      if (this.value[0] !== FieldType.Constant) {
-        throw Error(
-          `Can't evaluate prover code outside an as_prover block 🧌🧌🧌`
-        );
-      }
-      return BigintField.fromBytes([...this.value[1]]);
+      let x = this.toConstant();
+      return Fp.fromBytes([...x.value[1]]);
     }
     toString() {
       return this.toBigInt().toString();
     }
 
-    add(y: Field | bigint) {
-      return new Field(this.toBigInt() + toBigint(y));
+    assertEquals(y: Field | bigint) {
+      if (this.isConstant()) {
+        if (this.toBigInt() !== toFp(y)) {
+          throw Error(`Field.assertEquals(): ${x} != ${y}`);
+        }
+        return;
+      }
+      throw unimplemented();
     }
+
+    add(y: Field | bigint) {
+      if (this.isConstant()) {
+        return new Field(Fp.add(this.toBigInt(), toFp(y)));
+      }
+      throw unimplemented();
+    }
+    sub(y: Field | bigint) {
+      if (this.isConstant()) {
+        return new Field(Fp.sub(this.toBigInt(), toFp(y)));
+      }
+      throw unimplemented();
+    }
+    neg() {
+      if (this.isConstant()) {
+        return new Field(Fp.negate(this.toBigInt()));
+      }
+      throw unimplemented();
+    }
+
+    mul(y: Field | bigint) {
+      if (this.isConstant()) {
+        return new Field(Fp.mul(this.toBigInt(), toFp(y)));
+      }
+      throw unimplemented();
+    }
+    div(y: Field | bigint) {
+      if (this.isConstant()) {
+        let z = Fp.div(this.toBigInt(), toFp(y));
+        if (z === undefined) throw Error('Field.div(): Division by zero');
+        return new Field(z);
+      }
+    }
+    inv() {
+      if (this.isConstant()) {
+        let xInv = Fp.inverse(this.toBigInt());
+        if (xInv === undefined) throw Error('Field.inv(): Division by zero');
+        return new Field(xInv);
+      }
+      throw unimplemented();
+    }
+
+    square() {
+      if (this.isConstant()) {
+        return new Field(Fp.square(this.toBigInt()));
+      }
+      throw unimplemented();
+    }
+    sqrt() {
+      if (this.isConstant()) {
+        let q = Fp.sqrt(this.toBigInt());
+        if (q === undefined)
+          throw Error(
+            `Field.sqrt(): input ${x} has no square root in the field.`
+          );
+        return new Field(q);
+      }
+      throw unimplemented();
+    }
+
+    equals(y: Field | bigint) {
+      if (this.isConstant()) {
+        return Bool(this.toBigInt() === toFp(y));
+      }
+      throw unimplemented();
+    }
+
+    lessThan(y: Field | bigint) {
+      if (this.isConstant()) {
+        return Bool(this.toBigInt() < toFp(y));
+      }
+      throw unimplemented();
+    }
+    lessThanOrEqual(y: Field | bigint) {
+      if (this.isConstant()) {
+        return Bool(this.toBigInt() <= toFp(y));
+      }
+      throw unimplemented();
+    }
+    greaterThan(y: Field | bigint) {
+      return new Field(y).lessThan(this);
+    }
+    greaterThanOrEqual(y: Field | bigint) {
+      return new Field(y).lessThanOrEqual(this);
+    }
+
+    assertLessThan(y: Field | bigint) {
+      if (this.isConstant()) {
+        if (!(this.toBigInt() < toFp(y))) {
+          throw Error(`Field.assertLessThan(): expected ${x} < ${y}`);
+        }
+        return;
+      }
+      throw unimplemented();
+    }
+    assertLessThanOrEqual(y: Field | bigint) {
+      if (this.isConstant()) {
+        if (!(this.toBigInt() <= toFp(y))) {
+          throw Error(`Field.assertLessThan(): expected ${x} <= ${y}`);
+        }
+        return;
+      }
+      throw unimplemented();
+    }
+    assertGreaterThan(y: Field | bigint) {
+      new Field(y).assertLessThan(this);
+    }
+    assertGreaterThanOrEqual(y: Field | bigint) {
+      new Field(y).assertLessThanOrEqual(this);
+    }
+
+    isZero() {
+      if (this.isConstant()) {
+        return Bool(this.toBigInt() === 0n);
+      }
+      throw unimplemented();
+    }
+    assertBool() {
+      if (this.isConstant()) {
+        let x = this.toBigInt();
+        if (x !== 0n && x !== 1n) {
+          throw Error(`Field.assertBool(): expected ${x} to be 0 or 1`);
+        }
+        return;
+      }
+      throw unimplemented();
+    }
+
+    static #checkBitLength(name: string, length: number) {
+      if (length > Fp.sizeInBits)
+        throw Error(
+          `${name}: bit length must be ${Fp.sizeInBits} or less, got ${length}`
+        );
+      if (length <= 0)
+        throw Error(`${name}: bit length must be positive, got ${length}`);
+    }
+
+    toBits(length?: number) {
+      if (length !== undefined) Field.#checkBitLength('Field.toBits()', length);
+      if (this.isConstant()) {
+        let bits = Fp.toBits(this.toBigInt());
+        if (length !== undefined) {
+          if (bits.slice(length).some((bit) => bit))
+            throw Error(
+              `Field.toBits(): ${this} does not fit in ${length} bits`
+            );
+          return bits.slice(0, length).map(Bool);
+        }
+        return bits.map(Bool);
+      }
+      throw unimplemented();
+    }
+
+    static fromBits(bits: (Bool | boolean)[]) {
+      let length = bits.length;
+      Field.#checkBitLength('Field.fromBits()', length);
+      if (
+        bits.every((b) => typeof b === 'boolean' || b.toField().isConstant())
+      ) {
+        let bits_ = bits
+          .map((b) => (typeof b === 'boolean' ? b : b.toBoolean()))
+          .concat(Array(Fp.sizeInBits - length).fill(false));
+        return new Field(Fp.fromBits(bits_));
+      }
+      throw unimplemented();
+    }
+
+    // TODO rename
+    rangeCheckHelper(numBits: number) {
+      Field.#checkBitLength('Field.rangeCheckHelper()', numBits);
+      if (this.isConstant()) {
+        let bits = Fp.toBits(this.toBigInt())
+          .slice(0, numBits)
+          .concat(Array(Fp.sizeInBits - length).fill(false));
+        return new Field(Fp.fromBits(bits));
+      }
+      throw unimplemented();
+    }
+
+    random() {
+      return new Field(Fp.random());
+    }
+
+    // internal stuff
 
     // Provable<Field>
     static toFields(x: Field) {
@@ -63,10 +260,25 @@ const Field = toFunctionConstructor(
       return x;
     }
     static check() {}
+
+    // ProvableExtended<Field>
+    toJSON() {
+      return this.toString();
+    }
+    static toJSON(x: Field) {
+      return x.toJSON();
+    }
+    static fromJSON(json: string) {
+      return new Field(Fp.fromJSON(json));
+    }
+    static toInput(x: Field) {
+      return { fields: [x] };
+    }
   }
 );
 
 type Field = InferReturn<typeof Field>;
+type ConstantField = Field & { value: [FieldType.Constant, Uint8Array] };
 
 type ProvablePure<T> = {
   toFields: (x: T) => Field[];
@@ -117,6 +329,10 @@ function toFunctionConstructor<Class extends new (...args: any) => any>(
 
 function toBigint(x: Field | bigint) {
   if (typeof x === 'bigint') return x;
+  return x.toBigInt();
+}
+function toFp(x: Field | bigint) {
+  if (typeof x === 'bigint') return Fp(x);
   return x.toBigInt();
 }
 
