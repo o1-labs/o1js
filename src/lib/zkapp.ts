@@ -52,6 +52,7 @@ import {
 import {
   analyzeMethod,
   compileProgram,
+  Empty,
   emptyValue,
   GenericArgument,
   getPreviousProofsForProver,
@@ -119,8 +120,9 @@ function method<T extends SmartContract>(
     methodName
   );
 
-  class SelfProof extends Proof<ZkappPublicInput> {
+  class SelfProof extends Proof<ZkappPublicInput, Empty> {
     static publicInputType = ZkappPublicInput;
+    static publicOutputType = Empty;
     static tag = () => ZkappClass;
   }
   let internalMethodEntry = sortMethodArguments(
@@ -626,8 +628,9 @@ class SmartContract {
    */
   static Proof() {
     let Contract = this;
-    return class extends Proof<ZkappPublicInput> {
+    return class extends Proof<ZkappPublicInput, Empty> {
       static publicInputType = ZkappPublicInput;
+      static publicOutputType = Empty;
       static tag = () => Contract;
     };
   }
@@ -678,7 +681,13 @@ class SmartContract {
       verificationKey: verificationKey_,
       provers,
       verify,
-    } = await compileProgram(ZkappPublicInput, methodIntfs, methods, this);
+    } = await compileProgram(
+      ZkappPublicInput,
+      Empty,
+      methodIntfs,
+      methods,
+      this
+    );
     let verificationKey = {
       data: verificationKey_.data,
       hash: Field(verificationKey_.hash),
