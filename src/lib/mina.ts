@@ -26,6 +26,7 @@ import { invalidTransactionError } from './mina/errors.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { Account } from './mina/account.js';
 import { TransactionCost, TransactionLimits } from './mina/constants.js';
+import { prettifyStacktrace } from './errors.js';
 
 export {
   createTransaction,
@@ -314,7 +315,12 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       return Fetch.sendZkappQuery(self.toJSON());
     },
     async send() {
-      return await sendTransaction(self);
+      try {
+        return await sendTransaction(self);
+      } catch (error) {
+        if (error instanceof Error) error.stack = prettifyStacktrace(error);
+        throw error;
+      }
     },
   };
   return self;

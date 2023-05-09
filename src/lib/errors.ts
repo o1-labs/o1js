@@ -1,6 +1,7 @@
 export {
   CatchAndPrettifyStacktraceForAllMethods,
   CatchAndPrettifyStacktrace,
+  prettifyStacktrace,
   assert,
 };
 
