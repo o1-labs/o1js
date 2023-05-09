@@ -95,7 +95,10 @@ class Nullifier extends Struct({
    * Returns the state of the Nullifier.
    */
   isUnused(witness: MerkleMapWitness, root: Field) {
-    let isUnused = witness.computeRootAndKey(Field(0))[0].equals(root);
+    let [newRoot, key] = witness.computeRootAndKey(Field(0));
+    key.assertEquals(this.key());
+    let isUnused = newRoot.equals(root);
+
     let isUsed = witness.computeRootAndKey(Field(1))[0].equals(root);
     // prove that our Merkle witness is correct
     isUsed.or(isUnused).assertTrue();
