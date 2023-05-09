@@ -79,7 +79,7 @@ let BinablePublicKey = withVersionNumber(
  * A public key, represented by a non-zero point on the Pallas curve, in compressed form { x, isOdd }
  */
 const PublicKey = {
-  ...provable({ x: Field, isOdd: Bool }),
+  ...provable({ x: Field, isOdd: Bool }, { customObjectKeys: ['x', 'isOdd'] }),
   ...withBase58(BinablePublicKey, versionBytes.publicKey),
 
   toJSON(publicKey: PublicKey) {
@@ -110,10 +110,6 @@ const PublicKey = {
 
   toInputLegacy({ x, isOdd }: PublicKey): HashInputLegacy {
     return { fields: [x], bits: [!!isOdd] };
-  },
-
-  toFields({ x, isOdd }: PublicKey) {
-    return [x, isOdd ? 1n : 0n];
   },
 };
 
