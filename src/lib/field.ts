@@ -4,6 +4,8 @@ import {
 } from '../bindings/crypto/bigint-helpers.js';
 import { Field as SnarkyField } from '../snarky.js';
 import { Field as BigintField } from '../provable/field-bigint.js';
+import { SmartContract, method } from './zkapp.js';
+import { Provable } from './provable.js';
 
 const Field = toFunctionConstructor(
   class Field {
@@ -15,7 +17,7 @@ const Field = toFunctionConstructor(
         return;
       }
       let field = BigintField.fromBigint(x);
-      let bytes = bigIntToBytes(field, 32);
+      let bytes = BigintField.toBytes(field);
       this.value = [0, Uint8Array.from(bytes)];
     }
 
@@ -35,22 +37,62 @@ const Field = toFunctionConstructor(
     add(y: Field | bigint) {
       return new Field(this.toBigInt() + toBigint(y));
     }
+
+    // Provable<Field>
+    static toFields(x: Field) {
+      return [x];
+    }
+    static toAuxiliary(): [] {
+      return [];
+    }
+    static sizeInFields() {
+      return 1;
+    }
+    static fromFields([x]: Field[]) {
+      return x;
+    }
+    static check() {}
   }
 );
+
 type Field = InferReturn<typeof Field>;
 
-let x: Field = Field(200n);
-let z: Field = x.add(20n);
+type ProvablePure<T> = {
+  toFields: (x: T) => Field[];
+  toAuxiliary: (x?: T) => [];
+  fromFields: (x: Field[]) => T;
+  sizeInFields(): number;
+  check: (x: T) => void;
+};
 
-console.dir(z, { depth: Infinity });
+Field satisfies ProvablePure<Field>;
+
+let x: Field = Field(200n);
+
+console.log(x instanceof Field);
+
+let y: Field = new Field(-1n);
+let z: Field = x.add(y).add(20n);
+
+console.log(Field.toFields(z));
+console.log(z instanceof Field);
 
 console.log(`z = ${z}`);
 
 z = Field(z);
 
+console.log(z instanceof Field);
+
 console.dir(z, { depth: Infinity });
 
 console.log(`z = ${z}`);
+
+class MyContract extends SmartContract {
+  @method myMethod(x: Field) {
+    console.log('inside method:', x);
+  }
+}
+MyContract.analyzeMethods();
 
 function toFunctionConstructor<Class extends new (...args: any) => any>(
   Class: Class
@@ -58,7 +100,7 @@ function toFunctionConstructor<Class extends new (...args: any) => any>(
   function Constructor(...args: any) {
     return new Class(...args);
   }
-  Object.assign(Constructor, Class);
+  Object.defineProperties(Constructor, Object.getOwnPropertyDescriptors(Class));
   return Constructor as any;
 }
 
