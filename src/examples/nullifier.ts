@@ -25,11 +25,8 @@ class PayoutOnlyOnce extends SmartContract {
     let nullifierRoot = this.nullifierRoot.getAndAssertEquals();
     let nullifierMessage = this.nullifierMessage.getAndAssertEquals();
 
-    // making sure the nullifier really belongs to this contract
-    nullifier.message.assertEquals(nullifierMessage);
-
     // verify the nullifier
-    nullifier.verify();
+    nullifier.verify([nullifierMessage]);
 
     let nullifierWitness = Circuit.witness(MerkleMapWitness, () =>
       NullifierTree.getWitness(nullifier.key())
@@ -97,7 +94,7 @@ console.log(`zkapp balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 console.log('generating nullifier');
 
 let jsonNullifier = createNullifier(
-  nullifierMessage.toBigInt(),
+  [nullifierMessage.toBigInt()],
   BigInt(privilegedKey.s.toJSON())
 );
 

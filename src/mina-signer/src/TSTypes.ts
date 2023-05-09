@@ -77,7 +77,6 @@ export type Group = {
 };
 
 export type Nullifier = {
-  message: Field;
   publicKey: PublicKey;
   public: {
     nullifier: Group;

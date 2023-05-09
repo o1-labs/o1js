@@ -18,7 +18,6 @@ export { Nullifier };
  * Paper: https://eprint.iacr.org/2022/1255.pdf
  */
 class Nullifier extends Struct({
-  message: Field,
   publicKey: PublicKey,
   public: {
     nullifier: Group,
@@ -35,11 +34,10 @@ class Nullifier extends Struct({
   }
 
   /**
-   * Verifies the correctness of the Nullifier. Throws an error if the Nullifier is incorrect.
+   * Verifies that the Nullifier belongs to a specific message. Throws an error if the Nullifier is incorrect.
    */
-  verify() {
+  verify(message: Field[]) {
     let {
-      message,
       publicKey,
       public: { nullifier, s },
       private: { c },
@@ -53,7 +51,7 @@ class Nullifier extends Struct({
     let {
       x,
       y: { x0 },
-    } = Poseidon.hashToGroup([message, ...pk_fields]);
+    } = Poseidon.hashToGroup([...message, ...pk_fields]);
 
     // see https://github.com/o1-labs/snarkyjs/blob/5333817a62890c43ac1b9cb345748984df271b62/src/lib/signature.ts#L220
     let pk_c = scaleShifted(publicKey.toGroup(), Scalar.fromBits(c.toBits()));

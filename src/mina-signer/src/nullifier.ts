@@ -16,7 +16,7 @@ export { createNullifier };
  * Pseudonymity within Zero Knowledge Proofs
  * https://eprint.iacr.org/2022/1255.pdf chapter 3 page 14
  */
-function createNullifier(message: Field, sk: PrivateKey): Nullifier {
+function createNullifier(message: Field[], sk: PrivateKey): Nullifier {
   const Hash2 = Poseidon.hash;
   const Hash = Poseidon.hashToGroup;
 
@@ -26,7 +26,7 @@ function createNullifier(message: Field, sk: PrivateKey): Nullifier {
 
   const r = Scalar.random();
 
-  const gm = Hash([message, ...PublicKey.toFields(pk)]);
+  const gm = Hash([...message, ...PublicKey.toFields(pk)]);
   if (!gm) throw Error('hashToGroup: Point is undefined');
   const h_m_pk = { x: gm.x, y: gm.y.x0 };
 
@@ -50,7 +50,6 @@ function createNullifier(message: Field, sk: PrivateKey): Nullifier {
 
   return {
     publicKey: PublicKey.toBase58(pk),
-    message,
     private: {
       c,
       g_r,
