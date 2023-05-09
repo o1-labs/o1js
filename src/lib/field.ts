@@ -7,9 +7,21 @@ import { Field as BigintField } from '../provable/field-bigint.js';
 import { SmartContract, method } from './zkapp.js';
 import { Provable } from './provable.js';
 
+enum FieldType {
+  Constant,
+  Var,
+  Add,
+  Scale,
+}
+type FieldVar =
+  | [FieldType.Constant, Uint8Array]
+  | [FieldType.Var, number]
+  | [FieldType.Add, FieldVar, FieldVar]
+  | [FieldType.Scale, Uint8Array, FieldVar];
+
 const Field = toFunctionConstructor(
   class Field {
-    value: [0, Uint8Array] | [1, number] | [2 | 3, any];
+    value: FieldVar;
 
     constructor(x: Field | bigint) {
       if (x instanceof Field) {
@@ -22,13 +34,12 @@ const Field = toFunctionConstructor(
     }
 
     toBigInt() {
-      let [flag, value] = this.value;
-      if (flag !== 0) {
+      if (this.value[0] !== FieldType.Constant) {
         throw Error(
           `Can't evaluate prover code outside an as_prover block 🧌🧌🧌`
         );
       }
-      return BigintField.fromBytes(value);
+      return BigintField.fromBytes([...this.value[1]]);
     }
     toString() {
       return this.toBigInt().toString();
