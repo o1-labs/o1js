@@ -1090,7 +1090,12 @@ function transaction(
     sender = undefined;
     f = senderOrF as () => void;
   }
-  return activeInstance.transaction(sender, f);
+  try {
+    return activeInstance.transaction(sender, f);
+  } catch (error) {
+    if (error instanceof Error) error.stack = prettifyStacktrace(error);
+    throw error;
+  }
 }
 
 /**
