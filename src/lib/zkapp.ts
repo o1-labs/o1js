@@ -323,7 +323,7 @@ function wrapMethod(
                   this,
                   actualArgs.map((a, i) => {
                     let arg = methodIntf.allArgs[i];
-                    if (arg.type === 'witness') {
+                    if (arg?.type === 'witness') {
                       let type = methodIntf.witnessArgs[arg.index];
                       return Circuit.witness(type, () => a);
                     }
