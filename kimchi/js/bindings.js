@@ -1378,6 +1378,12 @@ var caml_plonk_verification_evals_of_rust = function (x, affine_klass) {
         return caml_poly_comm_of_rust_poly_comm(poly_comm, affine_klass, false);
     };
 
+    var convert_opt = function (poly_comm_opt) {
+        // Borrowing from caml_option_of_maybe_undefined
+        if (poly_comm_opt === undefined) { return 0; }
+        return [0, caml_poly_comm_of_rust_poly_comm(poly_comm_opt, affine_klass, false)];
+    };
+
     // var convertArray = function(comms) {
     //     var n = comms.length;
     //     var res = new Array(n-1);
@@ -1404,6 +1410,15 @@ var caml_plonk_verification_evals_of_rust = function (x, affine_klass) {
     var emul_comm = convert(x.emul_comm);
     var endomul_scalar_comm = convert(x.endomul_scalar_comm);
 
+    var xor_comm = convert_opt(x.xor_comm);
+    var range_check0_comm = convert_opt(x.range_check0_comm);
+    var range_check1_comm = convert_opt(x.range_check1_comm);
+    var foreign_field_add_comm = convert_opt(x.foreign_field_add_comm);
+    var foreign_field_mul_comm = convert_opt(x.foreign_field_mul_comm);
+    var rot_comm = convert_opt(x.rot_comm);
+    var lookup_gate_comm = convert_opt(x.lookup_gate_comm);
+    var runtime_tables_comm = convert_opt(x.runtime_tables_comm);
+
     x.free();
     return [0
         , sigma_comm
@@ -1414,6 +1429,14 @@ var caml_plonk_verification_evals_of_rust = function (x, affine_klass) {
         , mul_comm
         , emul_comm
         , endomul_scalar_comm
+        , xor_comm
+        , range_check0_comm
+        , range_check1_comm
+        , foreign_field_add_comm
+        , foreign_field_mul_comm
+        , rot_comm
+        , lookup_gate_comm
+        , runtime_tables_comm
         , 0];
 };
 
@@ -1423,6 +1446,12 @@ var caml_plonk_verification_evals_to_rust = function (x, klass, poly_comm_class,
     var convert = function (poly_comm) {
         return caml_poly_comm_to_rust_poly_comm(poly_comm, poly_comm_class, mk_affine);
     };
+
+    var convert_opt = function (poly_comm_opt) {
+        // Borrowing from caml_option_to_maybe_undefined
+        if (poly_comm_opt === 0) { return undefined; }
+        return caml_poly_comm_to_rust_poly_comm(poly_comm_opt[1], poly_comm_class, mk_affine);
+    }
 
     var convertArray = function (comms) {
         var n = comms.length;
@@ -1442,6 +1471,15 @@ var caml_plonk_verification_evals_to_rust = function (x, klass, poly_comm_class,
     var emul_comm = convert(x[7]);
     var endomul_scalar_comm = convert(x[8]);
 
+    var xor_comm = convert_opt(x[9]);
+    var range_check0_comm = convert_opt(x[10]);
+    var range_check1_comm = convert_opt(x[11]);
+    var foreign_field_add_comm = convert_opt(x[12]);
+    var foreign_field_mul_comm = convert_opt(x[13]);
+    var rot_comm = convert_opt(x[14]);
+    var lookup_gate_comm = convert_opt(x[15]);
+    var runtime_tables_comm = convert_opt(x[16]);
+
     return new klass(
         sigma_comm,
         coefficients_comm,
@@ -1450,7 +1488,16 @@ var caml_plonk_verification_evals_to_rust = function (x, klass, poly_comm_class,
         complete_add_comm,
         mul_comm,
         emul_comm,
-        endomul_scalar_comm);
+        endomul_scalar_comm,
+        xor_comm,
+        range_check0_comm,
+        range_check1_comm,
+        foreign_field_add_comm,
+        foreign_field_mul_comm,
+        rot_comm,
+        lookup_gate_comm,
+        runtime_tables_comm
+    );
 };
 
 // Provides: caml_plonk_verification_shifts_of_rust
