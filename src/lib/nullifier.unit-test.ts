@@ -28,7 +28,11 @@ let jsonNullifier2 = createNullifier(
 );
 
 // trying to manipulate the nullifier to take a real pk that it doesnt know the sk to
-jsonNullifier2.publicKey = priv.toPublicKey().toBase58();
+let pk = priv.toPublicKey().toGroup();
+jsonNullifier2.publicKey = {
+  x: pk.x.toBigInt(),
+  y: pk.y.toBigInt(),
+};
 
 let nullifier2 = Nullifier.fromJSON(jsonNullifier2);
 try {

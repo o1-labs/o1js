@@ -33,10 +33,7 @@ class PayoutOnlyOnce extends SmartContract {
     );
 
     // we compute the current root and make sure the entry is set to 0 (= unused)
-    let isUnused = nullifier.isUnused(nullifierWitness, nullifierRoot);
-    isUnused.assertTrue(
-      'Nullifier root does not match on-chain root - the nullifier is either incorrect or has already been set!'
-    );
+    nullifier.assertUnused(nullifierWitness, nullifierRoot);
 
     // we set the nullifier to 1 (= used) and calculate the new root
     let newRoot = nullifier.setUsed(nullifierWitness);
@@ -48,7 +45,8 @@ class PayoutOnlyOnce extends SmartContract {
     let balance = this.account.balance.getAndAssertEquals();
 
     let halfBalance = balance.div(2);
-    this.send({ to: nullifier.publicKey, amount: halfBalance });
+    // finally, we send the payout to the public key associated with the nullifier
+    this.send({ to: nullifier.getPublicKey(), amount: halfBalance });
   }
 }
 

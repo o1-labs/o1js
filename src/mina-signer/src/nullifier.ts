@@ -20,13 +20,13 @@ function createNullifier(message: Field[], sk: PrivateKey): Nullifier {
   const Hash2 = Poseidon.hash;
   const Hash = Poseidon.hashToGroup;
 
-  const pk = PrivateKey.toPublicKey(sk);
+  const pk = PublicKey.toGroup(PrivateKey.toPublicKey(sk));
 
   const G = Group.generatorMina;
 
   const r = Scalar.random();
 
-  const gm = Hash([...message, ...PublicKey.toFields(pk)]);
+  const gm = Hash([...message, ...Group.toFields(pk)]);
   if (!gm) throw Error('hashToGroup: Point is undefined');
   const h_m_pk = { x: gm.x, y: gm.y.x0 };
 
@@ -37,7 +37,7 @@ function createNullifier(message: Field[], sk: PrivateKey): Nullifier {
 
   const c = Hash2([
     ...Group.toFields(G),
-    ...PublicKey.toFields(pk),
+    ...Group.toFields(pk),
     ...Group.toFields(h_m_pk),
     ...Group.toFields(nullifier),
     ...Group.toFields(g_r),
@@ -49,7 +49,7 @@ function createNullifier(message: Field[], sk: PrivateKey): Nullifier {
   const s = Fq.add(r, Fq.mul(sk, c));
 
   return {
-    publicKey: PublicKey.toBase58(pk),
+    publicKey: pk,
     private: {
       c,
       g_r,
