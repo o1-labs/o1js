@@ -1083,14 +1083,14 @@ function transaction(
 ): Promise<Transaction> {
   let sender: DeprecatedFeePayerSpec;
   let f: () => void;
-  if (fOrUndefined !== undefined) {
-    sender = senderOrF as DeprecatedFeePayerSpec;
-    f = fOrUndefined;
-  } else {
-    sender = undefined;
-    f = senderOrF as () => void;
-  }
   try {
+    if (fOrUndefined !== undefined) {
+      sender = senderOrF as DeprecatedFeePayerSpec;
+      f = fOrUndefined;
+    } else {
+      sender = undefined;
+      f = senderOrF as () => void;
+    }
     return activeInstance.transaction(sender, f);
   } catch (error) {
     if (error instanceof Error) error.stack = prettifyStacktrace(error);
