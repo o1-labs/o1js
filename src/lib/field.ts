@@ -5,7 +5,7 @@ import { Bool } from '../snarky.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 
-export { Field, FieldType, FieldVar };
+export { Field, ConstantField, FieldType, FieldVar };
 
 function unimplemented() {
   return Error('unimplemented');
@@ -65,13 +65,17 @@ const Field = toFunctionConstructor(
     }
 
     assertEquals(y: Field | bigint, message?: string) {
-      if (this.isConstant()) {
-        if (this.toBigInt() !== toFp(y)) {
-          throw Error(`Field.assertEquals(): ${x} != ${y}`);
+      try {
+        if (this.isConstant()) {
+          if (this.toBigInt() !== toFp(y)) {
+            throw Error(`Field.assertEquals(): ${x} != ${y}`);
+          }
+          return;
         }
-        return;
+        throw unimplemented();
+      } catch (err) {
+        throw withMessage(err, message);
       }
-      throw unimplemented();
     }
 
     add(y: Field | bigint) {
@@ -160,28 +164,36 @@ const Field = toFunctionConstructor(
     }
 
     assertLessThan(y: Field | bigint, message?: string) {
-      if (this.isConstant()) {
-        if (!(this.toBigInt() < toFp(y))) {
-          throw Error(`Field.assertLessThan(): expected ${x} < ${y}`);
+      try {
+        if (this.isConstant()) {
+          if (!(this.toBigInt() < toFp(y))) {
+            throw Error(`Field.assertLessThan(): expected ${x} < ${y}`);
+          }
+          return;
         }
-        return;
+        throw unimplemented();
+      } catch (err) {
+        throw withMessage(err, message);
       }
-      throw unimplemented();
     }
     assertLessThanOrEqual(y: Field | bigint, message?: string) {
-      if (this.isConstant()) {
-        if (!(this.toBigInt() <= toFp(y))) {
-          throw Error(`Field.assertLessThan(): expected ${x} <= ${y}`);
+      try {
+        if (this.isConstant()) {
+          if (!(this.toBigInt() <= toFp(y))) {
+            throw Error(`Field.assertLessThan(): expected ${x} <= ${y}`);
+          }
+          return;
         }
-        return;
+        throw unimplemented();
+      } catch (err) {
+        throw withMessage(err, message);
       }
-      throw unimplemented();
     }
     assertGreaterThan(y: Field | bigint, message?: string) {
-      new Field(y).assertLessThan(this);
+      new Field(y).assertLessThan(this, message);
     }
     assertGreaterThanOrEqual(y: Field | bigint, message?: string) {
-      new Field(y).assertLessThanOrEqual(this);
+      new Field(y).assertLessThanOrEqual(this, message);
     }
 
     isZero() {
@@ -191,14 +203,18 @@ const Field = toFunctionConstructor(
       throw unimplemented();
     }
     assertBool(message?: string) {
-      if (this.isConstant()) {
-        let x = this.toBigInt();
-        if (x !== 0n && x !== 1n) {
-          throw Error(`Field.assertBool(): expected ${x} to be 0 or 1`);
+      try {
+        if (this.isConstant()) {
+          let x = this.toBigInt();
+          if (x !== 0n && x !== 1n) {
+            throw Error(`Field.assertBool(): expected ${x} to be 0 or 1`);
+          }
+          return;
         }
-        return;
+        throw unimplemented();
+      } catch (err) {
+        throw withMessage(err, message);
       }
-      throw unimplemented();
     }
 
     static #checkBitLength(name: string, length: number) {
@@ -366,6 +382,8 @@ console.dir(z, { depth: Infinity });
 
 console.log(`z = ${z}`);
 
+z.assertEquals(0n, 'z must be 0');
+
 class MyContract extends SmartContract {
   @method myMethod(x: Field) {
     console.log('inside method:', x);
@@ -383,13 +401,15 @@ function toFunctionConstructor<Class extends new (...args: any) => any>(
   return Constructor as any;
 }
 
-function toBigint(x: Field | bigint) {
-  if (typeof x === 'bigint') return x;
-  return x.toBigInt();
-}
 function toFp(x: Field | bigint) {
   if (typeof x === 'bigint') return Fp(x);
   return x.toBigInt();
+}
+
+function withMessage(error: unknown, message?: string) {
+  if (message === undefined || !(error instanceof Error)) return error;
+  error.message = `${message}\n${error.message}`;
+  return error;
 }
 
 type InferArgs<T> = T extends new (...args: infer Args) => any ? Args : never;
