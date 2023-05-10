@@ -2,7 +2,7 @@ import { isMainThread, parentPort, workerData, Worker } from 'worker_threads';
 import os from 'os';
 import wasm_ from '../../../_node_bindings/plonk_wasm.cjs';
 import { fileURLToPath } from 'url';
-let filename = fileURLToPath(import.meta.url);
+let filename = fileURLToPath(import.meta.url ?? __filename);
 
 /**
  * @type {import("../../node_bindings/plonk_wasm")}
