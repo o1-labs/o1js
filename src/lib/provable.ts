@@ -57,8 +57,8 @@ const Provable = {
    * Proof-compatible if-statement.
    * This behaves like a ternary conditional statement in JS.
    *
-   * **Warning**: Since it is a normal JS function call, both the if and the else branch
-   * are evaluated before calling `Provable.if()`. Therefore, you can't use this function
+   * **Warning**: Since `Provable.if()` is a normal JS function call, both the if and the else branch
+   * are evaluated before calling it. Therefore, you can't use this function
    * to guard against execution of one of the branches. It only allows you to pick one of two values.
    *
    * @example
