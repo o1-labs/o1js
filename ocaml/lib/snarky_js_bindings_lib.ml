@@ -1288,6 +1288,45 @@ module Snarky = struct
         Backend.R1CS_constraint_system.to_json cs |> Js.string |> json_parse
     end
 
+  module Field = struct
+    let assert_equals x y = Field.Assert.equal x y
+
+    let read (x : Field.t) =
+      match x with Constant x -> x | x -> As_prover.read_var x
+
+    let add x y = Field.add x y
+
+    let sub x y = Field.sub x y
+
+    let negate x = Field.negate x
+
+    let mul x y = Field.mul x y
+
+    (* this covers all comparisons, including with assert *)
+    let compare (bit_length : int) x y =
+      let ({ less; less_or_equal } : Field.comparison_result) =
+        Field.compare ~bit_length x y
+      in
+      (less, less_or_equal)
+
+    let to_bits (length : int) x = Field.unpack ~length x
+
+    let from_bits bits = Field.project bits
+
+    let range_check_helper (num_bits : int) x =
+      let _a, _b, n =
+        Pickles.Scalar_challenge.to_field_checked' ~num_bits
+          (module Impl)
+          { inner = x }
+      in
+      n
+
+    (* can be implemented with Field.to_constant_and_terms *)
+    let seal x = Pickles.Util.seal (module Impl) x
+
+    let to_constant_and_terms x = Field.to_constant_and_terms x
+  end
+
   module Circuit = struct
     module Main = struct
       let of_js (main : public_input_js -> unit) =
