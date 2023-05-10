@@ -19,21 +19,27 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Breaking changes
 
+- Rewrite of `Provable.if()` causes breaking changes to all deployed contracts https://github.com/o1-labs/snarkyjs/pull/889
+
+### Changed
+
+- **Make stack traces more readable** https://github.com/o1-labs/snarkyjs/pull/890
+  - Stack traces thrown from SnarkyJS are cleaned up by filtering out unnecessary lines and other noisy details
 - Remove optional `zkappKey` argument in `smartContract.init()`, and instead assert that `provedState` is false when `init()` is called https://github.com/o1-labs/snarkyjs/pull/908
-  - Breaks deployed zkApps which make `init()` a `@method`
 
-### Changes
+### Deprecated
 
-- New decorator `CatchAndPrettifyStacktrace` for printing better stack traces thrown from SnarkyJS https://github.com/o1-labs/snarkyjs/pull/890
-  - Cleans up stack traces by filtering out extra details, making them more readable
+- Utility methods on `Circuit` are deprecated in favor of the same methods on `Provable` https://github.com/o1-labs/snarkyjs/pull/889
+  - `Circuit.if()`, `Circuit.witness()`, `Circuit.log()` and others replaced by `Provable.if()`, `Provable.witness()`, `Provable.log()`
+  - Under the hood, some of these methods were rewritten in TypeScript
 
-### Fixes
+### Fixed
 
 - Fix running SnarkyJS in Node.js on Windows https://github.com/o1-labs/snarkyjs-bindings/pull/19 (@wizicer)[https://github.com/wizicer]
 
 ## [0.10.1](https://github.com/o1-labs/snarkyjs/compare/bcc666f2...a632313a)
 
-### Changes
+### Changed
 
 - Allow ZkPrograms to return their public output https://github.com/o1-labs/snarkyjs/pull/874 https://github.com/o1-labs/snarkyjs/pull/876
   - new option `ZkProgram({ publicOutput?: Provable<any>, ... })`; `publicOutput` has to match the _return type_ of all ZkProgram methods.
@@ -59,21 +65,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - New export `TokenId` which supersedes `Token.Id`; `TokenId.deriveId()` replaces `Token.Id.getId()` https://github.com/o1-labs/snarkyjs/pull/863
 - Add `Permissions.allImpossible()` for the set of permissions where nothing is allowed (more convenient than `Permissions.default()` when you want to make most actions impossible) https://github.com/o1-labs/snarkyjs/pull/863
 
-### Changes
+### Changed
 
 - **Massive improvement of memory consumption**, thanks to a refactor of SnarkyJS' worker usage https://github.com/o1-labs/snarkyjs/pull/872
   - Memory reduced by up to 10x; see [the PR](https://github.com/o1-labs/snarkyjs/pull/872) for details
   - Side effect: `Circuit` API becomes async, for example `MyCircuit.prove(...)` becomes `await MyCircuit.prove(...)`
 - Token APIs `this.token.{send,burn,mint}()` now accept an `AccountUpdate` or `SmartContract` as from / to input https://github.com/o1-labs/snarkyjs/pull/863
 - Improve `Transaction.toPretty()` output by adding account update labels in most methods that create account updates https://github.com/o1-labs/snarkyjs/pull/863
+- Raises the limit of actions/events per transaction from 16 to 100, providing users with the ability to submit a larger number of events/actions in a single transaction. https://github.com/o1-labs/snarkyjs/pull/883.
 
 ### Deprecated
 
 - Deprecate both `shutdown()` and `await isReady`, which are no longer needed https://github.com/o1-labs/snarkyjs/pull/872
-
-### Changed
-
-- Raises the limit of actions/events per transaction from 16 to 100, providing users with the ability to submit a larger number of events/actions in a single transaction. https://github.com/o1-labs/snarkyjs/pull/883.
 
 ### Fixed
 
