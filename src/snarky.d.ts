@@ -1,7 +1,7 @@
 import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
-// import type { Field } from './lib/field.js';
-export { Field };
-// export { SnarkyField };
+import type { Field } from './lib/field.js';
+// export { Field };
+export { SnarkyField };
 export {
   Bool,
   Group,
@@ -134,8 +134,10 @@ type JsonConstraintSystem = { gates: JsonGate[]; public_input_size: number };
 /**
  * An element of a finite field.
  */
-declare function Field(x: Field | number | string | boolean | bigint): Field;
-declare class Field {
+declare function SnarkyField(
+  x: Field | number | string | boolean | bigint
+): Field;
+declare class SnarkyField {
   /**
    * Coerces anything field-like to a {@link Field}.
    */

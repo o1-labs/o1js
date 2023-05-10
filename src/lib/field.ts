@@ -1,9 +1,8 @@
-import { Field as SnarkyField } from '../snarky.js';
+import { SnarkyField } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
-import { SmartContract, method } from './zkapp.js';
 import { Bool } from '../snarky.js';
 import { defineBinable } from '../bindings/lib/binable.js';
-import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
+import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 
 export { Field, ConstantField, FieldType, FieldVar };
 
@@ -59,7 +58,7 @@ const Field = toFunctionConstructor(
       try {
         if (this.isConstant()) {
           if (this.toBigInt() !== toFp(y)) {
-            throw Error(`Field.assertEquals(): ${x} != ${y}`);
+            throw Error(`Field.assertEquals(): ${this} != ${y}`);
           }
           return;
         }
@@ -121,7 +120,7 @@ const Field = toFunctionConstructor(
         let q = Fp.sqrt(this.toBigInt());
         if (q === undefined)
           throw Error(
-            `Field.sqrt(): input ${x} has no square root in the field.`
+            `Field.sqrt(): input ${this} has no square root in the field.`
           );
         return new Field(q);
       }
@@ -158,7 +157,7 @@ const Field = toFunctionConstructor(
       try {
         if (this.isConstant()) {
           if (!(this.toBigInt() < toFp(y))) {
-            throw Error(`Field.assertLessThan(): expected ${x} < ${y}`);
+            throw Error(`Field.assertLessThan(): expected ${this} < ${y}`);
           }
           return;
         }
@@ -174,7 +173,7 @@ const Field = toFunctionConstructor(
       try {
         if (this.isConstant()) {
           if (!(this.toBigInt() <= toFp(y))) {
-            throw Error(`Field.assertLessThan(): expected ${x} <= ${y}`);
+            throw Error(`Field.assertLessThan(): expected ${this} <= ${y}`);
           }
           return;
         }
@@ -269,7 +268,7 @@ const Field = toFunctionConstructor(
       throw unimplemented();
     }
 
-    random() {
+    static random() {
       return new Field(Fp.random());
     }
 
@@ -357,37 +356,6 @@ const FieldBinable = defineBinable({
   },
 });
 
-Field satisfies ProvablePure<Field>;
-
-let x: Field = Field(200n);
-
-console.log(x instanceof Field);
-
-let y: Field = new Field(-1);
-let z: Field = x.add(y).add(20);
-
-console.log(Field.toFields(z));
-console.log(z instanceof Field);
-
-console.log(`z = ${z}`);
-
-z = Field(z);
-
-console.log(z instanceof Field);
-
-console.dir(z, { depth: Infinity });
-
-console.log(`z = ${z}`);
-
-// z.assertEquals(0n, 'z must be 0');
-
-class MyContract extends SmartContract {
-  @method myMethod(x: Field) {
-    console.log('inside method:', x);
-  }
-}
-MyContract.analyzeMethods();
-
 function toFunctionConstructor<Class extends new (...args: any) => any>(
   Class: Class
 ): Class & ((...args: InferArgs<Class>) => InferReturn<Class>) {
@@ -399,8 +367,11 @@ function toFunctionConstructor<Class extends new (...args: any) => any>(
 }
 
 function toFp(x: bigint | number | string | Field): Fp {
-  if (x instanceof Field) return x.toBigInt();
-  return Fp(x);
+  let type = typeof x;
+  if (type === 'bigint' || type === 'number' || type === 'string') {
+    return Fp(x as bigint | number | string);
+  }
+  return (x as Field).toBigInt();
 }
 
 function withMessage(error: unknown, message?: string) {

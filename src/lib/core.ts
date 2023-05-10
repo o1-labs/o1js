@@ -2,8 +2,8 @@ import { bytesToBigInt } from '../bindings/crypto/bigint-helpers.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { sizeInBits } from '../provable/field-bigint.js';
 import { Bool, Scalar, Group } from '../snarky.js';
-import { Field } from '../snarky.js';
-// import { Field } from './field.js';
+// import { Field } from '../snarky.js';
+import { Field } from './field.js';
 import { Scalar as ScalarBigint } from '../provable/curve-bigint.js';
 import { mod } from '../bindings/crypto/finite_field.js';
 
