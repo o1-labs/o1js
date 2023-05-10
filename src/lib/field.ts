@@ -1,4 +1,4 @@
-import { SnarkyField } from '../snarky.js';
+import { Field as SnarkyField } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { SmartContract, method } from './zkapp.js';
 import { Bool } from '../snarky.js';
@@ -64,7 +64,7 @@ const Field = toFunctionConstructor(
       return this.toBigInt().toString();
     }
 
-    assertEquals(y: Field | bigint) {
+    assertEquals(y: Field | bigint, message?: string) {
       if (this.isConstant()) {
         if (this.toBigInt() !== toFp(y)) {
           throw Error(`Field.assertEquals(): ${x} != ${y}`);
@@ -159,7 +159,7 @@ const Field = toFunctionConstructor(
       return new Field(y).lessThanOrEqual(this);
     }
 
-    assertLessThan(y: Field | bigint) {
+    assertLessThan(y: Field | bigint, message?: string) {
       if (this.isConstant()) {
         if (!(this.toBigInt() < toFp(y))) {
           throw Error(`Field.assertLessThan(): expected ${x} < ${y}`);
@@ -168,7 +168,7 @@ const Field = toFunctionConstructor(
       }
       throw unimplemented();
     }
-    assertLessThanOrEqual(y: Field | bigint) {
+    assertLessThanOrEqual(y: Field | bigint, message?: string) {
       if (this.isConstant()) {
         if (!(this.toBigInt() <= toFp(y))) {
           throw Error(`Field.assertLessThan(): expected ${x} <= ${y}`);
@@ -177,10 +177,10 @@ const Field = toFunctionConstructor(
       }
       throw unimplemented();
     }
-    assertGreaterThan(y: Field | bigint) {
+    assertGreaterThan(y: Field | bigint, message?: string) {
       new Field(y).assertLessThan(this);
     }
-    assertGreaterThanOrEqual(y: Field | bigint) {
+    assertGreaterThanOrEqual(y: Field | bigint, message?: string) {
       new Field(y).assertLessThanOrEqual(this);
     }
 
@@ -190,7 +190,7 @@ const Field = toFunctionConstructor(
       }
       throw unimplemented();
     }
-    assertBool() {
+    assertBool(message?: string) {
       if (this.isConstant()) {
         let x = this.toBigInt();
         if (x !== 0n && x !== 1n) {
