@@ -339,7 +339,7 @@ function getCachedNetwork(graphqlEndpoint = networkConfig.minaEndpoint) {
 function getCachedActions(
   publicKey: PublicKey,
   tokenId: Field,
-  graphqlEndpoint = networkConfig.minaEndpoint
+  graphqlEndpoint = networkConfig.archiveEndpoint
 ) {
   return actionsCache[accountCacheKey(publicKey, tokenId, graphqlEndpoint)]
     ?.actions;
