@@ -398,32 +398,35 @@ function asProver(f: () => void) {
 }
 
 function runAndCheck(f: () => void) {
-  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
-    Snarky.runAndCheck(f)
-  );
-  return result;
+  let id = snarkContext.enter({ inCheckedComputation: true });
+  try {
+    Snarky.runAndCheck(f);
+  } finally {
+    snarkContext.leave(id);
+  }
 }
 
 function runUnchecked(f: () => void) {
-  let [, result] = snarkContext.runWith({ inCheckedComputation: true }, () =>
-    Snarky.runUnchecked(f)
-  );
-  return result;
+  let id = snarkContext.enter({ inCheckedComputation: true });
+  try {
+    Snarky.runUnchecked(f);
+  } finally {
+    snarkContext.leave(id);
+  }
 }
 
 function constraintSystem<T>(f: () => T) {
-  let [, result] = snarkContext.runWith(
-    { inAnalyze: true, inCheckedComputation: true },
-    () => {
-      let result: T;
-      let { rows, digest, json } = Snarky.constraintSystem(() => {
-        result = f();
-      });
-      let { gates, publicInputSize } = gatesFromJson(json);
-      return { rows, digest, result: result! as T, gates, publicInputSize };
-    }
-  );
-  return result;
+  let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
+  try {
+    let result: T;
+    let { rows, digest, json } = Snarky.constraintSystem(() => {
+      result = f();
+    });
+    let { gates, publicInputSize } = gatesFromJson(json);
+    return { rows, digest, result: result! as T, gates, publicInputSize };
+  } finally {
+    snarkContext.leave(id);
+  }
 }
 
 // helpers
