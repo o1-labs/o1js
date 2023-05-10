@@ -25,8 +25,8 @@ class SimpleZkapp extends SmartContract {
 
   events = { update: Field, payout: UInt64, payoutReceiver: PublicKey };
 
-  @method init(zkappKey: PrivateKey) {
-    super.init(zkappKey);
+  @method init() {
+    super.init();
     this.x.set(initialState);
   }
 
