@@ -4,15 +4,7 @@ import {
   EmptyVoid,
 } from '../bindings/lib/generic.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
-import {
-  Bool,
-  Field,
-  ProvablePure,
-  Pickles,
-  Circuit,
-  Poseidon,
-  Provable,
-} from '../snarky.js';
+import { Bool, Field, ProvablePure, Pickles, Poseidon } from '../snarky.js';
 import {
   FlexibleProvable,
   FlexibleProvablePure,
@@ -22,6 +14,7 @@ import {
   toConstant,
 } from './circuit_value.js';
 import { Context } from './global-context.js';
+import { Provable } from './provable.js';
 
 // public API
 export {
@@ -570,7 +563,7 @@ function analyzeMethod<T>(
   methodIntf: MethodInterface,
   method: (...args: any) => T
 ) {
-  return Circuit.constraintSystem(() => {
+  return Provable.constraintSystem(() => {
     let args = synthesizeMethodArguments(methodIntf, true);
     let publicInput = emptyWitness(publicInputType);
     if (publicInputType === Undefined || publicInputType === Void)
@@ -596,7 +589,7 @@ function picklesRuleFromFunction(
       if (arg.type === 'witness') {
         let type = witnessArgs[arg.index];
         finalArgs[i] = argsWithoutPublicInput
-          ? Circuit.witness(type, () => argsWithoutPublicInput?.[i])
+          ? Provable.witness(type, () => argsWithoutPublicInput![i])
           : emptyWitness(type);
       } else if (arg.type === 'proof') {
         let Proof = proofArgs[arg.index];
@@ -607,8 +600,8 @@ function picklesRuleFromFunction(
           publicOutput: emptyValue(type.output),
         };
         let { proof, publicInput, publicOutput } = proof_;
-        publicInput = Circuit.witness(type.input, () => publicInput);
-        publicOutput = Circuit.witness(type.output, () => publicOutput);
+        publicInput = Provable.witness(type.input, () => publicInput);
+        publicOutput = Provable.witness(type.output, () => publicOutput);
         let proofInstance = new Proof({ publicInput, publicOutput, proof });
         finalArgs[i] = proofInstance;
         proofs.push(proofInstance);
@@ -745,7 +738,7 @@ function emptyValue<T>(type: Provable<T>) {
 
 function emptyWitness<T>(type: FlexibleProvable<T>): T;
 function emptyWitness<T>(type: Provable<T>) {
-  return Circuit.witness(type, () => emptyValue(type));
+  return Provable.witness(type, () => emptyValue(type));
 }
 
 function getStatementType<
@@ -812,16 +805,17 @@ function Prover<ProverData>() {
 function inProver() {
   return !!snarkContext.get().inProver;
 }
+function inCheckedComputation() {
+  let ctx = snarkContext.get();
+  return !!ctx.inCompile || !!ctx.inProver || !!ctx.inCheckedComputation;
+}
 function inCompile() {
   return !!snarkContext.get().inCompile;
 }
 function inAnalyze() {
   return !!snarkContext.get().inAnalyze;
 }
-function inCheckedComputation() {
-  let ctx = snarkContext.get();
-  return !!ctx.inCompile || !!ctx.inProver || !!ctx.inCheckedComputation;
-}
+
 function inCompileMode() {
   let ctx = snarkContext.get();
   return !!ctx.inCompile || !!ctx.inAnalyze;

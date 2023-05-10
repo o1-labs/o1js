@@ -1,12 +1,12 @@
 import {
   cloneCircuitValue,
   FlexibleProvable,
-  memoizationContext,
-  memoizeWitness,
   provable,
   provablePure,
 } from './circuit_value.js';
-import { Field, Bool, Ledger, Circuit, Pickles } from '../snarky.js';
+import { memoizationContext, memoizeWitness, Provable } from './provable.js';
+import { Field, Bool } from './core.js';
+import { Ledger, Pickles } from '../snarky.js';
 import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
 import { Types, toJSONEssential } from '../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -446,7 +446,7 @@ const Body = {
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
-      body.mayUseToken = Circuit.if(
+      body.mayUseToken = Provable.if(
         tokenId.equals(TokenId.default),
         AccountUpdate.MayUseToken.type,
         AccountUpdate.MayUseToken.No,
@@ -994,8 +994,8 @@ class AccountUpdate implements Types.AccountUpdate {
     let doIncrementNonce = isSameAsFeePayer.not();
     this.body.incrementNonce = doIncrementNonce;
     // in this case, we also have to set a nonce precondition
-    let lower = Circuit.if(doIncrementNonce, UInt32, nonce, UInt32.zero);
-    let upper = Circuit.if(doIncrementNonce, UInt32, nonce, UInt32.MAXINT());
+    let lower = Provable.if(doIncrementNonce, UInt32, nonce, UInt32.zero);
+    let upper = Provable.if(doIncrementNonce, UInt32, nonce, UInt32.MAXINT());
     this.body.preconditions.account.nonce.isSome = doIncrementNonce;
     this.body.preconditions.account.nonce.value.lower = lower;
     this.body.preconditions.account.nonce.value.upper = upper;
@@ -1302,7 +1302,7 @@ class AccountUpdate implements Types.AccountUpdate {
       accountUpdate: accountUpdateType,
       result: type as any,
     });
-    return Circuit.witness(combinedType, compute);
+    return Provable.witness(combinedType, compute);
   }
 
   static witnessChildren(
@@ -1575,7 +1575,7 @@ const CallForest = {
     // compute hash outside the circuit if callsType is "Witness"
     // i.e., allowing accountUpdates with arbitrary children
     if (callsType.type === 'Witness') {
-      return Circuit.witness(Field, () => CallForest.hashChildrenBase(update));
+      return Provable.witness(Field, () => CallForest.hashChildrenBase(update));
     }
     let calls = CallForest.hashChildrenBase(update);
     if (callsType.type === 'Equals' && inCheckedComputation()) {
@@ -1597,7 +1597,7 @@ const CallForest = {
         stackHash,
       ]);
       // skip accountUpdate if it's a dummy
-      stackHash = Circuit.if(accountUpdate.isDummy(), stackHash, newHash);
+      stackHash = Provable.if(accountUpdate.isDummy(), stackHash, newHash);
     }
     return stackHash;
   },
@@ -1615,10 +1615,10 @@ const CallForest = {
     let withCallers: WithCallers[] = [];
     for (let update of updates) {
       let { mayUseToken } = update.body;
-      let caller = Circuit.if(
+      let caller = Provable.if(
         mayUseToken.parentsOwnToken,
         context.self,
-        Circuit.if(
+        Provable.if(
           mayUseToken.inheritFromParent,
           context.caller,
           TokenId.default
@@ -1806,7 +1806,7 @@ const Authorization = {
   ) {
     body.authorizationKind.isSigned = Bool(false);
     body.authorizationKind.isProved = Bool(true);
-    let hash = Circuit.witness(Field, () => {
+    let hash = Provable.witness(Field, () => {
       let proverData = zkAppProver.getData();
       let isProver = proverData !== undefined;
       assert(

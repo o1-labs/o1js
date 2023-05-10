@@ -1,7 +1,8 @@
-import { Circuit, Field, Bool } from '../snarky.js';
+import { Field, Bool } from '../snarky.js';
 import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
+import { Provable } from './provable.js';
 import { CatchAndPrettifyStacktraceForAllMethods } from './errors.js';
 
 // external API
@@ -59,7 +60,7 @@ class UInt64 extends CircuitValue {
    */
   toUInt32Clamped() {
     let max = (1n << 32n) - 1n;
-    return Circuit.if(
+    return Provable.if(
       this.greaterThan(UInt64.from(max)),
       UInt32.from(max),
       new UInt32(this.value)
@@ -136,7 +137,7 @@ class UInt64 extends CircuitValue {
 
     y_ = y_.seal();
 
-    let q = Circuit.witness(
+    let q = Provable.witness(
       Field,
       () => new Field(x.toBigInt() / y_.toBigInt())
     );
@@ -480,7 +481,7 @@ class UInt32 extends CircuitValue {
 
     y_ = y_.seal();
 
-    let q = Circuit.witness(
+    let q = Provable.witness(
       Field,
       () => new Field(x.toBigInt() / y_.toBigInt())
     );
@@ -878,7 +879,7 @@ class Int64 extends CircuitValue implements BalanceChange {
     // constant case - just return unchecked value
     if (x.isConstant()) return Int64.fromFieldUnchecked(x);
     // variable case - create a new checked witness and prove consistency with original field
-    let xInt = Circuit.witness(Int64, () => Int64.fromFieldUnchecked(x));
+    let xInt = Provable.witness(Int64, () => Int64.fromFieldUnchecked(x));
     xInt.toField().assertEquals(x); // sign(x) * |x| === x
     return xInt;
   }
@@ -935,7 +936,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   mod(y: UInt64 | number | string | bigint | UInt32) {
     let y_ = UInt64.from(y);
     let rest = this.magnitude.divMod(y_).rest.value;
-    rest = Circuit.if(this.isPositive(), rest, y_.value.sub(rest));
+    rest = Provable.if(this.isPositive(), rest, y_.value.sub(rest));
     return new Int64(new UInt64(rest));
   }
 

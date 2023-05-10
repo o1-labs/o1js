@@ -1,4 +1,4 @@
-import { Circuit, Ledger } from '../snarky.js';
+import { Ledger } from '../snarky.js';
 import { Field } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { PrivateKey, PublicKey } from './signature.js';
@@ -15,7 +15,6 @@ import {
   Actions,
   Events,
 } from './account_update.js';
-
 import * as Fetch from './fetch.js';
 import { assertPreconditionInvariants, NetworkValue } from './precondition.js';
 import { cloneCircuitValue, toConstant } from './circuit_value.js';
@@ -26,6 +25,7 @@ import { invalidTransactionError } from './mina/errors.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { Account } from './mina/account.js';
 import { TransactionCost, TransactionLimits } from './mina/constants.js';
+import { Provable } from './provable.js';
 import { prettifyStacktrace } from './errors.js';
 
 export {
@@ -208,9 +208,9 @@ function createTransaction(
 
   // run circuit
   // we have this while(true) loop because one of the smart contracts we're calling inside `f` might be calling
-  // SmartContract.analyzeMethods, which would be running its methods again inside `Circuit.constraintSystem`, which
-  // would throw an error when nested inside `Circuit.runAndCheck`. So if that happens, we have to run `analyzeMethods` first
-  // and retry `Circuit.runAndCheck(f)`. Since at this point in the function, we don't know which smart contracts are involved,
+  // SmartContract.analyzeMethods, which would be running its methods again inside `Provable.constraintSystem`, which
+  // would throw an error when nested inside `Provable.runAndCheck`. So if that happens, we have to run `analyzeMethods` first
+  // and retry `Provable.runAndCheck(f)`. Since at this point in the function, we don't know which smart contracts are involved,
   // we created that hack with a `bootstrap()` function that analyzeMethods sticks on the error, to call itself again.
   try {
     let err: any;
@@ -218,9 +218,9 @@ function createTransaction(
       if (err !== undefined) err.bootstrap();
       try {
         if (fetchMode === 'test') {
-          Circuit.runUnchecked(() => {
+          Provable.runUnchecked(() => {
             f();
-            Circuit.asProver(() => {
+            Provable.asProver(() => {
               let tx = currentTransaction.get();
               tx.accountUpdates = CallForest.map(tx.accountUpdates, (a) =>
                 toConstant(AccountUpdate, a)

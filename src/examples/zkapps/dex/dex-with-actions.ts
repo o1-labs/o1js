@@ -5,7 +5,6 @@
  */
 import {
   Account,
-  Circuit,
   method,
   AccountUpdate,
   PublicKey,
@@ -21,6 +20,7 @@ import {
   isReady,
   Mina,
   InferProvable,
+  Provable,
 } from 'snarkyjs';
 
 import { TokenContract, randomAccounts } from './dex.js';
@@ -98,7 +98,7 @@ class Dex extends SmartContract {
 
     // // assert dy === [dx * y/x], or x === 0
     let isXZero = x.equals(UInt64.zero);
-    let xSafe = Circuit.if(isXZero, UInt64.one, x);
+    let xSafe = Provable.if(isXZero, UInt64.one, x);
     let isDyCorrect = dy.equals(dx.mul(y).div(xSafe));
     isDyCorrect.or(isXZero).assertTrue();
 
@@ -241,7 +241,7 @@ class DexTokenHolder extends SmartContract {
 
     // get total supply of liquidity tokens _before_ applying these actions
     // (each redeem action _decreases_ the supply, so we increase it here)
-    let l = Circuit.witness(UInt64, (): UInt64 => {
+    let l = Provable.witness(UInt64, (): UInt64 => {
       let l = dex.totalSupply.get().toBigInt();
       // dex.totalSupply.assertNothing();
       for (let [action] of actions) {
