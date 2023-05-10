@@ -1,7 +1,8 @@
 import { isMainThread, parentPort, workerData, Worker } from 'worker_threads';
 import os from 'os';
 import wasm_ from '../../../_node_bindings/plonk_wasm.cjs';
-let filename = import.meta.url?.slice(7) ?? __filename;
+import { fileURLToPath } from 'url';
+let filename = fileURLToPath(import.meta.url);
 
 /**
  * @type {import("../../node_bindings/plonk_wasm")}
