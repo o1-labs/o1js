@@ -34,15 +34,7 @@ const Field = toFunctionConstructor(
         this.value = x.value;
         return;
       }
-      let field =
-        typeof x === 'bigint'
-          ? Fp.fromBigint(x)
-          : typeof x === 'number'
-          ? Fp.fromNumber(x)
-          : typeof x === 'string'
-          ? Fp.fromJSON(x)
-          : undefined;
-      if (field === undefined) throw Error('todo');
+      let field = toFp(x);
       let bytes = Fp.toBytes(field);
       this.value = [0, Uint8Array.from(bytes)];
     }
@@ -64,7 +56,7 @@ const Field = toFunctionConstructor(
       return this.toBigInt().toString();
     }
 
-    assertEquals(y: Field | bigint, message?: string) {
+    assertEquals(y: Field | bigint | number | string, message?: string) {
       try {
         if (this.isConstant()) {
           if (this.toBigInt() !== toFp(y)) {
@@ -78,13 +70,13 @@ const Field = toFunctionConstructor(
       }
     }
 
-    add(y: Field | bigint) {
+    add(y: Field | bigint | number | string) {
       if (this.isConstant()) {
         return new Field(Fp.add(this.toBigInt(), toFp(y)));
       }
       throw unimplemented();
     }
-    sub(y: Field | bigint) {
+    sub(y: Field | bigint | number | string) {
       if (this.isConstant()) {
         return new Field(Fp.sub(this.toBigInt(), toFp(y)));
       }
@@ -97,13 +89,13 @@ const Field = toFunctionConstructor(
       throw unimplemented();
     }
 
-    mul(y: Field | bigint) {
+    mul(y: Field | bigint | number | string) {
       if (this.isConstant()) {
         return new Field(Fp.mul(this.toBigInt(), toFp(y)));
       }
       throw unimplemented();
     }
-    div(y: Field | bigint) {
+    div(y: Field | bigint | number | string) {
       if (this.isConstant()) {
         let z = Fp.div(this.toBigInt(), toFp(y));
         if (z === undefined) throw Error('Field.div(): Division by zero');
@@ -137,33 +129,33 @@ const Field = toFunctionConstructor(
       throw unimplemented();
     }
 
-    equals(y: Field | bigint) {
+    equals(y: Field | bigint | number | string) {
       if (this.isConstant()) {
         return Bool(this.toBigInt() === toFp(y));
       }
       throw unimplemented();
     }
 
-    lessThan(y: Field | bigint) {
+    lessThan(y: Field | bigint | number | string) {
       if (this.isConstant()) {
         return Bool(this.toBigInt() < toFp(y));
       }
       throw unimplemented();
     }
-    lessThanOrEqual(y: Field | bigint) {
+    lessThanOrEqual(y: Field | bigint | number | string) {
       if (this.isConstant()) {
         return Bool(this.toBigInt() <= toFp(y));
       }
       throw unimplemented();
     }
-    greaterThan(y: Field | bigint) {
+    greaterThan(y: Field | bigint | number | string) {
       return new Field(y).lessThan(this);
     }
-    greaterThanOrEqual(y: Field | bigint) {
+    greaterThanOrEqual(y: Field | bigint | number | string) {
       return new Field(y).lessThanOrEqual(this);
     }
 
-    assertLessThan(y: Field | bigint, message?: string) {
+    assertLessThan(y: Field | bigint | number | string, message?: string) {
       try {
         if (this.isConstant()) {
           if (!(this.toBigInt() < toFp(y))) {
@@ -176,7 +168,10 @@ const Field = toFunctionConstructor(
         throw withMessage(err, message);
       }
     }
-    assertLessThanOrEqual(y: Field | bigint, message?: string) {
+    assertLessThanOrEqual(
+      y: Field | bigint | number | string,
+      message?: string
+    ) {
       try {
         if (this.isConstant()) {
           if (!(this.toBigInt() <= toFp(y))) {
@@ -189,10 +184,13 @@ const Field = toFunctionConstructor(
         throw withMessage(err, message);
       }
     }
-    assertGreaterThan(y: Field | bigint, message?: string) {
+    assertGreaterThan(y: Field | bigint | number | string, message?: string) {
       new Field(y).assertLessThan(this, message);
     }
-    assertGreaterThanOrEqual(y: Field | bigint, message?: string) {
+    assertGreaterThanOrEqual(
+      y: Field | bigint | number | string,
+      message?: string
+    ) {
       new Field(y).assertLessThanOrEqual(this, message);
     }
 
@@ -382,7 +380,10 @@ console.dir(z, { depth: Infinity });
 
 console.log(`z = ${z}`);
 
-z.assertEquals(0n, 'z must be 0');
+// z.assertEquals(0n, 'z must be 0');
+
+console.log(Field('124345'), Field(12345), Field(-1), Field(0.01));
+Field('abc');
 
 class MyContract extends SmartContract {
   @method myMethod(x: Field) {
@@ -401,9 +402,12 @@ function toFunctionConstructor<Class extends new (...args: any) => any>(
   return Constructor as any;
 }
 
-function toFp(x: Field | bigint) {
+function toFp(x: bigint | number | string | Field): Fp {
   if (typeof x === 'bigint') return Fp(x);
-  return x.toBigInt();
+  if (typeof x === 'number') return Fp.fromNumber(x);
+  if (typeof x === 'string') return Fp.fromJSON(x);
+  if (x instanceof Field) return x.toBigInt();
+  throw Error(`Field can not be created from input, got ${x}`);
 }
 
 function withMessage(error: unknown, message?: string) {
