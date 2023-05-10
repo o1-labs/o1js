@@ -1,4 +1,5 @@
-import { Field, isReady, shutdown } from '../snarky.js';
+import { isReady, shutdown } from '../snarky.js';
+import { Field } from './core.js';
 import { Struct } from './circuit_value.js';
 import { UInt64 } from './int.js';
 import { ZkProgram } from './proof_system.js';

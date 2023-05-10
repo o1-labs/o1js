@@ -6,6 +6,8 @@ import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 
 export { Field, ConstantField, FieldType, FieldVar };
 
+const SnarkyFieldConstructor = SnarkyField(1).constructor;
+
 enum FieldType {
   Constant,
   Var,
@@ -25,8 +27,8 @@ const Field = toFunctionConstructor(
     static ORDER = Fp.modulus;
 
     constructor(x: bigint | number | string | Field) {
-      if (x instanceof Field) {
-        this.value = x.value;
+      if (x instanceof Field || (x as any) instanceof SnarkyFieldConstructor) {
+        this.value = (x as any).value;
         return;
       }
       let bytes = Fp.toBytes(Fp(x));

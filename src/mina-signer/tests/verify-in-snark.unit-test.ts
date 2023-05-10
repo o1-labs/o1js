@@ -1,4 +1,5 @@
-import { Field, isReady, shutdown } from '../../snarky.js';
+import { isReady, shutdown } from '../../snarky.js';
+import { Field } from '../../lib/core.js';
 import { ZkProgram } from '../../lib/proof_system.js';
 import Client from '../MinaSigner.js';
 import { PrivateKey, Signature } from '../../lib/signature.js';
