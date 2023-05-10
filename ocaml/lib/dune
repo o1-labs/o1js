@@ -58,6 +58,7 @@
   ;; js-specific overrides ;;
   cache_dir.fake
   digestif.ocaml
+  logger.fake
   mina_metrics.none
   promise.js
   promise.js_helpers
