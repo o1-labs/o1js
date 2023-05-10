@@ -69,13 +69,13 @@ const Field = toFunctionConstructor(
     }
 
     add(y: Field | bigint | number | string) {
-      if (this.isConstant()) {
+      if (this.isConstant() && isConstant(y)) {
         return new Field(Fp.add(this.toBigInt(), toFp(y)));
       }
       throw unimplemented();
     }
     sub(y: Field | bigint | number | string) {
-      if (this.isConstant()) {
+      if (this.isConstant() && isConstant(y)) {
         return new Field(Fp.sub(this.toBigInt(), toFp(y)));
       }
       throw unimplemented();
@@ -88,13 +88,13 @@ const Field = toFunctionConstructor(
     }
 
     mul(y: Field | bigint | number | string) {
-      if (this.isConstant()) {
+      if (this.isConstant() && isConstant(y)) {
         return new Field(Fp.mul(this.toBigInt(), toFp(y)));
       }
       throw unimplemented();
     }
     div(y: Field | bigint | number | string) {
-      if (this.isConstant()) {
+      if (this.isConstant() && isConstant(y)) {
         let z = Fp.div(this.toBigInt(), toFp(y));
         if (z === undefined) throw Error('Field.div(): Division by zero');
         return new Field(z);
@@ -128,20 +128,20 @@ const Field = toFunctionConstructor(
     }
 
     equals(y: Field | bigint | number | string) {
-      if (this.isConstant()) {
+      if (this.isConstant() && isConstant(y)) {
         return Bool(this.toBigInt() === toFp(y));
       }
       throw unimplemented();
     }
 
     lessThan(y: Field | bigint | number | string) {
-      if (this.isConstant()) {
+      if (this.isConstant() && isConstant(y)) {
         return Bool(this.toBigInt() < toFp(y));
       }
       throw unimplemented();
     }
     lessThanOrEqual(y: Field | bigint | number | string) {
-      if (this.isConstant()) {
+      if (this.isConstant() && isConstant(y)) {
         return Bool(this.toBigInt() <= toFp(y));
       }
       throw unimplemented();
@@ -155,7 +155,7 @@ const Field = toFunctionConstructor(
 
     assertLessThan(y: Field | bigint | number | string, message?: string) {
       try {
-        if (this.isConstant()) {
+        if (this.isConstant() && isConstant(y)) {
           if (!(this.toBigInt() < toFp(y))) {
             throw Error(`Field.assertLessThan(): expected ${this} < ${y}`);
           }
@@ -171,7 +171,7 @@ const Field = toFunctionConstructor(
       message?: string
     ) {
       try {
-        if (this.isConstant()) {
+        if (this.isConstant() && isConstant(y)) {
           if (!(this.toBigInt() <= toFp(y))) {
             throw Error(`Field.assertLessThan(): expected ${this} <= ${y}`);
           }
@@ -364,6 +364,22 @@ function toFunctionConstructor<Class extends new (...args: any) => any>(
   }
   Object.defineProperties(Constructor, Object.getOwnPropertyDescriptors(Class));
   return Constructor as any;
+}
+
+function isConstant(x: bigint | number | string | Field) {
+  let type = typeof x;
+  if (type === 'bigint' || type === 'number' || type === 'string') {
+    return true;
+  }
+  return (x as Field).isConstant();
+}
+
+function toField(x: bigint | number | string | Field): Field {
+  let type = typeof x;
+  if (type === 'bigint' || type === 'number' || type === 'string') {
+    return Field(x as bigint | number | string);
+  }
+  return x as Field;
 }
 
 function toFp(x: bigint | number | string | Field): Fp {
