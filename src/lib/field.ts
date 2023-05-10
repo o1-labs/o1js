@@ -34,8 +34,7 @@ const Field = toFunctionConstructor(
         this.value = x.value;
         return;
       }
-      let field = toFp(x);
-      let bytes = Fp.toBytes(field);
+      let bytes = Fp.toBytes(Fp(x));
       this.value = [0, Uint8Array.from(bytes)];
     }
 
@@ -364,8 +363,8 @@ let x: Field = Field(200n);
 
 console.log(x instanceof Field);
 
-let y: Field = new Field(-1n);
-let z: Field = x.add(y).add(20n);
+let y: Field = new Field(-1);
+let z: Field = x.add(y).add(20);
 
 console.log(Field.toFields(z));
 console.log(z instanceof Field);
@@ -381,9 +380,6 @@ console.dir(z, { depth: Infinity });
 console.log(`z = ${z}`);
 
 // z.assertEquals(0n, 'z must be 0');
-
-console.log(Field('124345'), Field(12345), Field(-1), Field(0.01));
-Field('abc');
 
 class MyContract extends SmartContract {
   @method myMethod(x: Field) {
@@ -403,11 +399,8 @@ function toFunctionConstructor<Class extends new (...args: any) => any>(
 }
 
 function toFp(x: bigint | number | string | Field): Fp {
-  if (typeof x === 'bigint') return Fp(x);
-  if (typeof x === 'number') return Fp.fromNumber(x);
-  if (typeof x === 'string') return Fp.fromJSON(x);
   if (x instanceof Field) return x.toBigInt();
-  throw Error(`Field can not be created from input, got ${x}`);
+  return Fp(x);
 }
 
 function withMessage(error: unknown, message?: string) {
