@@ -584,6 +584,8 @@ let () =
                      Kimchi_pasta.Pasta.Fp.(of_bigint (Bigint.of_hex_string s))
                    else Field.Constant.of_string s ) )
             with Failure _ -> None )
+        | "bigint" ->
+            return (Obj.magic value)
         | _ ->
             None
       in
