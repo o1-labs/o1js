@@ -3,7 +3,7 @@ import snarkySpec from './bindings/js/snarky-class-spec.js';
 import { proxyClasses } from './bindings/js/proxy.js';
 
 export {
-  Field,
+  Field as SnarkyField,
   Bool,
   Snarky,
   Poseidon,

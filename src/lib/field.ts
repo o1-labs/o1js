@@ -6,10 +6,6 @@ import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 
 export { Field, ConstantField, FieldType, FieldVar };
 
-function unimplemented() {
-  return Error('unimplemented');
-}
-
 enum FieldType {
   Constant,
   Var,
@@ -56,13 +52,13 @@ const Field = toFunctionConstructor(
 
     assertEquals(y: Field | bigint | number | string, message?: string) {
       try {
-        if (this.isConstant()) {
+        if (this.isConstant() && isConstant(y)) {
           if (this.toBigInt() !== toFp(y)) {
             throw Error(`Field.assertEquals(): ${this} != ${y}`);
           }
           return;
         }
-        throw unimplemented();
+        SnarkyField(this).assertEquals(y);
       } catch (err) {
         throw withMessage(err, message);
       }
@@ -72,26 +68,26 @@ const Field = toFunctionConstructor(
       if (this.isConstant() && isConstant(y)) {
         return new Field(Fp.add(this.toBigInt(), toFp(y)));
       }
-      throw unimplemented();
+      return SnarkyField(this).add(y);
     }
     sub(y: Field | bigint | number | string) {
       if (this.isConstant() && isConstant(y)) {
         return new Field(Fp.sub(this.toBigInt(), toFp(y)));
       }
-      throw unimplemented();
+      return SnarkyField(this).sub(y);
     }
     neg() {
       if (this.isConstant()) {
         return new Field(Fp.negate(this.toBigInt()));
       }
-      throw unimplemented();
+      return SnarkyField(this).neg();
     }
 
     mul(y: Field | bigint | number | string) {
       if (this.isConstant() && isConstant(y)) {
         return new Field(Fp.mul(this.toBigInt(), toFp(y)));
       }
-      throw unimplemented();
+      return SnarkyField(this).mul(y);
     }
     div(y: Field | bigint | number | string) {
       if (this.isConstant() && isConstant(y)) {
@@ -99,6 +95,7 @@ const Field = toFunctionConstructor(
         if (z === undefined) throw Error('Field.div(): Division by zero');
         return new Field(z);
       }
+      return SnarkyField(this).div(y);
     }
     inv() {
       if (this.isConstant()) {
@@ -106,14 +103,14 @@ const Field = toFunctionConstructor(
         if (xInv === undefined) throw Error('Field.inv(): Division by zero');
         return new Field(xInv);
       }
-      throw unimplemented();
+      return SnarkyField(this).inv();
     }
 
     square() {
       if (this.isConstant()) {
         return new Field(Fp.square(this.toBigInt()));
       }
-      throw unimplemented();
+      return SnarkyField(this).square();
     }
     sqrt() {
       if (this.isConstant()) {
@@ -124,27 +121,27 @@ const Field = toFunctionConstructor(
           );
         return new Field(q);
       }
-      throw unimplemented();
+      return SnarkyField(this).sqrt();
     }
 
     equals(y: Field | bigint | number | string) {
       if (this.isConstant() && isConstant(y)) {
         return Bool(this.toBigInt() === toFp(y));
       }
-      throw unimplemented();
+      return SnarkyField(this).equals(y);
     }
 
     lessThan(y: Field | bigint | number | string) {
       if (this.isConstant() && isConstant(y)) {
         return Bool(this.toBigInt() < toFp(y));
       }
-      throw unimplemented();
+      return SnarkyField(this).lessThan(y);
     }
     lessThanOrEqual(y: Field | bigint | number | string) {
       if (this.isConstant() && isConstant(y)) {
         return Bool(this.toBigInt() <= toFp(y));
       }
-      throw unimplemented();
+      return SnarkyField(this).lessThanOrEqual(y);
     }
     greaterThan(y: Field | bigint | number | string) {
       return new Field(y).lessThan(this);
@@ -161,7 +158,7 @@ const Field = toFunctionConstructor(
           }
           return;
         }
-        throw unimplemented();
+        SnarkyField(this).assertLessThan(y);
       } catch (err) {
         throw withMessage(err, message);
       }
@@ -177,7 +174,7 @@ const Field = toFunctionConstructor(
           }
           return;
         }
-        throw unimplemented();
+        SnarkyField(this).assertLessThanOrEqual(y);
       } catch (err) {
         throw withMessage(err, message);
       }
@@ -196,7 +193,7 @@ const Field = toFunctionConstructor(
       if (this.isConstant()) {
         return Bool(this.toBigInt() === 0n);
       }
-      throw unimplemented();
+      return SnarkyField(this).isZero();
     }
     assertBool(message?: string) {
       try {
@@ -207,7 +204,7 @@ const Field = toFunctionConstructor(
           }
           return;
         }
-        throw unimplemented();
+        SnarkyField(this).assertBool();
       } catch (err) {
         throw withMessage(err, message);
       }
@@ -235,7 +232,7 @@ const Field = toFunctionConstructor(
         }
         return bits.map(Bool);
       }
-      throw unimplemented();
+      return SnarkyField(this).toBits();
     }
 
     static fromBits(bits: (Bool | boolean)[]) {
@@ -249,7 +246,7 @@ const Field = toFunctionConstructor(
           .concat(Array(Fp.sizeInBits - length).fill(false));
         return new Field(Fp.fromBits(bits_));
       }
-      throw unimplemented();
+      return SnarkyField.fromBits(bits);
     }
 
     // TODO rename
@@ -258,14 +255,14 @@ const Field = toFunctionConstructor(
       if (this.isConstant()) {
         let bits = Fp.toBits(this.toBigInt())
           .slice(0, numBits)
-          .concat(Array(Fp.sizeInBits - length).fill(false));
+          .concat(Array(Fp.sizeInBits - numBits).fill(false));
         return new Field(Fp.fromBits(bits));
       }
-      throw unimplemented();
+      return SnarkyField(this).rangeCheckHelper(numBits);
     }
     seal() {
       if (this.isConstant()) return this;
-      throw unimplemented();
+      return SnarkyField(this).seal();
     }
 
     static random() {
@@ -366,20 +363,12 @@ function toFunctionConstructor<Class extends new (...args: any) => any>(
   return Constructor as any;
 }
 
-function isConstant(x: bigint | number | string | Field) {
+function isConstant(x: bigint | number | string | Field): x is Field {
   let type = typeof x;
   if (type === 'bigint' || type === 'number' || type === 'string') {
     return true;
   }
   return (x as Field).isConstant();
-}
-
-function toField(x: bigint | number | string | Field): Field {
-  let type = typeof x;
-  if (type === 'bigint' || type === 'number' || type === 'string') {
-    return Field(x as bigint | number | string);
-  }
-  return x as Field;
 }
 
 function toFp(x: bigint | number | string | Field): Fp {

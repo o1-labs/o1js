@@ -135,8 +135,8 @@ type JsonConstraintSystem = { gates: JsonGate[]; public_input_size: number };
  * An element of a finite field.
  */
 declare function SnarkyField(
-  x: Field | number | string | boolean | bigint
-): Field;
+  x: SnarkyField | Field | number | string | boolean | bigint
+): SnarkyField;
 declare class SnarkyField {
   /**
    * Coerces anything field-like to a {@link Field}.
@@ -174,22 +174,22 @@ declare class SnarkyField {
    * let sum = a.add(5)
    * ```
    */
-  add(y: Field | number | string | boolean): Field;
+  add(y: Field | number | string | bigint): Field;
 
   /**
    * Subtracts another {@link Field}-like element from this one.
    */
-  sub(y: Field | number | string | boolean): Field;
+  sub(y: Field | number | string | bigint): Field;
 
   /**
    * Multiplies this {@link Field} element with another coercible to a field.
    */
-  mul(y: Field | number | string | boolean): Field;
+  mul(y: Field | number | string | bigint): Field;
 
   /**
    * Divides this {@link Field} element through another coercible to a field.
    */
-  div(y: Field | number | string | boolean): Field;
+  div(y: Field | number | string | bigint): Field;
 
   /**
    * Squares this {@link Field} element.
@@ -245,7 +245,7 @@ declare class SnarkyField {
    * Field(2).lessThan(3); // Bool(true)
    * ```
    */
-  lessThan(y: Field | number | string | boolean): Bool;
+  lessThan(y: Field | number | string | bigint): Bool;
   /**
    *
    * Check if this {@link Field} is lower than or equal to another Field-like value.
@@ -255,7 +255,7 @@ declare class SnarkyField {
    * Field(2).lessThanOrEqual(3); // Bool(true)
    * ```
    */
-  lessThanOrEqual(y: Field | number | string | boolean): Bool;
+  lessThanOrEqual(y: Field | number | string | bigint): Bool;
   /**
    *
    * Check if this {@link Field} is greater than another Field-like value.
@@ -265,7 +265,7 @@ declare class SnarkyField {
    * Field(2).greaterThan(1); // Bool(true)
    * ```
    */
-  greaterThan(y: Field | number | string | boolean): Bool;
+  greaterThan(y: Field | number | string | bigint): Bool;
   /**
    *
    * Check if this {@link Field} is greater than or equal to another Field-like value.
@@ -275,7 +275,7 @@ declare class SnarkyField {
    * Field(2).greaterThanOrEqual(1); // Bool(true)
    * ```
    */
-  greaterThanOrEqual(y: Field | number | string | boolean): Bool;
+  greaterThanOrEqual(y: Field | number | string | bigint): Bool;
 
   // TODO: Make these long form version
   /**
@@ -287,7 +287,7 @@ declare class SnarkyField {
    * ```
    *
    */
-  assertLessThan(y: Field | number | string | boolean, message?: string): void;
+  assertLessThan(y: Field | number | string | bigint, message?: string): void;
   /**
    *
    * Assert that this {@link Field} is lower than or equal to another Field-like value.
@@ -298,7 +298,7 @@ declare class SnarkyField {
    *
    */
   assertLessThanOrEqual(
-    y: Field | number | string | boolean,
+    y: Field | number | string | bigint,
     message?: string
   ): void;
   /**
@@ -311,7 +311,7 @@ declare class SnarkyField {
    *
    */
   assertGreaterThan(
-    y: Field | number | string | boolean,
+    y: Field | number | string | bigint,
     message?: string
   ): void;
   /**
@@ -324,7 +324,7 @@ declare class SnarkyField {
    *
    */
   assertGreaterThanOrEqual(
-    y: Field | number | string | boolean,
+    y: Field | number | string | bigint,
     message?: string
   ): void;
 
@@ -426,7 +426,7 @@ declare class SnarkyField {
    * Field(1).assertEquals(1);
    * ```
    */
-  assertEquals(y: Field | number | string | boolean, message?: string): void;
+  assertEquals(y: Field | number | string | bigint, message?: string): void;
 
   /**
    * Assert that this {@link Field} is either 0 or 1.
@@ -471,7 +471,7 @@ declare class SnarkyField {
    * Field(2).equals(2); // Bool(true)
    * ```
    */
-  equals(y: Field | number | string | boolean): Bool;
+  equals(y: Field | number | string | bigint): Bool;
 
   // TODO: Izzy to document
   seal(): Field;
