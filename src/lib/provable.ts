@@ -30,7 +30,7 @@ export { memoizationContext, memoizeWitness, getBlindingValue, gatesFromJson };
 /**
  * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
  *
- * You will find this as the required input type in a few places in snarkyjs. One convenient way to create a `Provable<T>` is using `Struct`.
+ * You will find this as the required input type in a few places in SnarkyJS. One convenient way to create a `Provable<T>` is using `Struct`.
  */
 type Provable<T> = Provable_<T>;
 
@@ -55,10 +55,16 @@ const Provable = {
   witness,
   /**
    * Proof-compatible if-statement.
+   * This behaves like a ternary conditional statement in JS.
+   *
+   * **Warning**: Since it is a normal JS function call, both the if and the else branch
+   * are evaluated before calling `Provable.if()`. Therefore, you can't use this function
+   * to guard against execution of one of the branches. It only allows you to pick one of two values.
+   *
    * @example
    * ```ts
    * const condition = Bool(true);
-   * const result = Provable.if(condition, Field(1), Field(2)); // Returns Field(1)
+   * const result = Provable.if(condition, Field(1), Field(2)); // returns Field(1)
    * ```
    */
   if: if_,
