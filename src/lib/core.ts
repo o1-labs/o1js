@@ -1,44 +1,17 @@
 import { bytesToBigInt } from '../bindings/crypto/bigint-helpers.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { sizeInBits } from '../provable/field-bigint.js';
-import { Bool, Field, Scalar, Group } from '../snarky.js';
+import { Bool, Scalar, Group } from '../snarky.js';
+// import { Field } from '../snarky.js';
+import { Field } from './field.js';
 import { Scalar as ScalarBigint } from '../provable/curve-bigint.js';
 import { mod } from '../bindings/crypto/finite_field.js';
 
 export { Field, Bool, Scalar, Group };
 
-type InternalConstantField = { value: [0, Uint8Array] };
-
-Field.toAuxiliary = () => [];
 Bool.toAuxiliary = () => [];
 Scalar.toAuxiliary = () => [];
 Group.toAuxiliary = () => [];
-
-Field.toInput = function (x) {
-  return { fields: [x] };
-};
-
-// binable
-const FieldBinable = defineBinable({
-  toBytes(t: Field) {
-    return [...(t.toConstant() as any as InternalConstantField).value[1]];
-  },
-  readBytes(bytes, offset) {
-    let uint8array = new Uint8Array(32);
-    uint8array.set(bytes.slice(offset, offset + 32));
-    return [
-      Object.assign(Object.create(Field(1).constructor.prototype), {
-        value: [0, uint8array],
-      }) as Field,
-      offset + 32,
-    ];
-  },
-});
-
-Field.toBytes = FieldBinable.toBytes;
-Field.fromBytes = FieldBinable.fromBytes;
-Field.readBytes = FieldBinable.readBytes;
-Field.sizeInBytes = () => 32;
 
 Bool.toInput = function (x) {
   return { packed: [[x.toField(), 1] as [Field, number]] };

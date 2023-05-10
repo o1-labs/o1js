@@ -1,13 +1,13 @@
 import { Types } from '../bindings/mina-transaction/types.js';
 import {
   Bool,
-  Field,
   Gate,
   Ledger,
   Pickles,
   Poseidon as Poseidon_,
   ProvablePure,
 } from '../snarky.js';
+import { Field } from './core.js';
 import {
   AccountUpdate,
   AccountUpdatesLayout,

@@ -1,5 +1,5 @@
 import 'isomorphic-fetch';
-import { Field } from '../snarky.js';
+import { Field } from './core.js';
 import { UInt32, UInt64 } from './int.js';
 import { Actions, TokenId } from './account_update.js';
 import { PublicKey } from './signature.js';

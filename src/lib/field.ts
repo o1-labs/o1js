@@ -1,7 +1,11 @@
-import { Field as SnarkyField } from '../snarky.js';
+import { SnarkyField } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { SmartContract, method } from './zkapp.js';
 import { Bool } from '../snarky.js';
+import { defineBinable } from '../bindings/lib/binable.js';
+import { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
+
+export { Field, FieldType, FieldVar };
 
 function unimplemented() {
   return Error('unimplemented');
@@ -25,12 +29,20 @@ const Field = toFunctionConstructor(
 
     static ORDER = Fp.modulus;
 
-    constructor(x: Field | bigint) {
+    constructor(x: bigint | number | string | Field) {
       if (x instanceof Field) {
         this.value = x.value;
         return;
       }
-      let field = Fp.fromBigint(x);
+      let field =
+        typeof x === 'bigint'
+          ? Fp.fromBigint(x)
+          : typeof x === 'number'
+          ? Fp.fromNumber(x)
+          : typeof x === 'string'
+          ? Fp.fromJSON(x)
+          : undefined;
+      if (field === undefined) throw Error('todo');
       let bytes = Fp.toBytes(field);
       this.value = [0, Uint8Array.from(bytes)];
     }
@@ -239,6 +251,10 @@ const Field = toFunctionConstructor(
       }
       throw unimplemented();
     }
+    seal() {
+      if (this.isConstant()) return this;
+      throw unimplemented();
+    }
 
     random() {
       return new Field(Fp.random());
@@ -261,6 +277,13 @@ const Field = toFunctionConstructor(
     }
     static check() {}
 
+    toFields() {
+      return Field.toFields(this);
+    }
+    toAuxiliary() {
+      return Field.toAuxiliary();
+    }
+
     // ProvableExtended<Field>
     toJSON() {
       return this.toString();
@@ -273,6 +296,23 @@ const Field = toFunctionConstructor(
     }
     static toInput(x: Field) {
       return { fields: [x] };
+    }
+
+    // Binable<Field>
+    static toBytes(x: Field) {
+      return FieldBinable.toBytes(x);
+    }
+    static readBytes<N extends number>(
+      bytes: number[],
+      offset: NonNegativeInteger<N>
+    ) {
+      return FieldBinable.readBytes(bytes, offset);
+    }
+    static fromBytes(bytes: number[]) {
+      return FieldBinable.fromBytes(bytes);
+    }
+    static sizeInBytes() {
+      return Fp.sizeInBytes();
     }
   }
 );
@@ -287,6 +327,22 @@ type ProvablePure<T> = {
   sizeInFields(): number;
   check: (x: T) => void;
 };
+
+const FieldBinable = defineBinable({
+  toBytes(t: Field) {
+    return [...t.toConstant().value[1]];
+  },
+  readBytes(bytes, offset) {
+    let uint8array = new Uint8Array(32);
+    uint8array.set(bytes.slice(offset, offset + 32));
+    return [
+      Object.assign(Object.create(Field(1).constructor.prototype), {
+        value: [0, uint8array],
+      }) as Field,
+      offset + 32,
+    ];
+  },
+});
 
 Field satisfies ProvablePure<Field>;
 
