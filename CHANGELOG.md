@@ -17,6 +17,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/a632313a...HEAD)
 
+### Breaking changes
+
+- Remove optional `zkappKey` argument in `smartContract.init()`, and instead assert that `provedState` is false when `init()` is called https://github.com/o1-labs/snarkyjs/pull/908
+  - Breaks deployed zkApps which make `init()` a `@method`
+
 ### Changes
 
 - New decorator `CatchAndPrettifyStacktrace` for printing better stack traces thrown from SnarkyJS https://github.com/o1-labs/snarkyjs/pull/890
