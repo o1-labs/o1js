@@ -171,6 +171,30 @@ function getInt32Memory0() {
     return cachedInt32Memory0;
 }
 /**
+* @param {number} num_threads
+* @returns {Promise<any>}
+*/
+export function initThreadPool(num_threads) {
+    const ret = wasm.initThreadPool(num_threads);
+    return takeObject(ret);
+}
+
+/**
+* @returns {Promise<any>}
+*/
+export function exitThreadPool() {
+    const ret = wasm.exitThreadPool();
+    return takeObject(ret);
+}
+
+/**
+* @param {number} receiver
+*/
+export function wbg_rayon_start_worker(receiver) {
+    wasm.wbg_rayon_start_worker(receiver);
+}
+
+/**
 * @param {string} name
 */
 export function greet(name) {
@@ -1673,46 +1697,6 @@ export function caml_pallas_affine_deep_copy(x) {
 }
 
 /**
-* @param {Uint8Array} state
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fp_poseidon_block_cipher(state) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passArray8ToWasm0(state, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.caml_pasta_fp_poseidon_block_cipher(retptr, ptr0, len0);
-        var r0 = getInt32Memory0()[retptr / 4 + 0];
-        var r1 = getInt32Memory0()[retptr / 4 + 1];
-        var v1 = getArrayU8FromWasm0(r0, r1).slice();
-        wasm.__wbindgen_free(r0, r1 * 1);
-        return v1;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
-* @param {Uint8Array} state
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fq_poseidon_block_cipher(state) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passArray8ToWasm0(state, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.caml_pasta_fq_poseidon_block_cipher(retptr, ptr0, len0);
-        var r0 = getInt32Memory0()[retptr / 4 + 0];
-        var r1 = getInt32Memory0()[retptr / 4 + 1];
-        var v1 = getArrayU8FromWasm0(r0, r1).slice();
-        wasm.__wbindgen_free(r0, r1 * 1);
-        return v1;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
 * @returns {WasmVestaGProjective}
 */
 export function caml_vesta_one() {
@@ -1870,8 +1854,48 @@ export function caml_vesta_of_affine_coordinates(x, y) {
 export function caml_vesta_affine_deep_copy(x) {
     _assertClass(x, WasmGVesta);
     var ptr0 = x.__destroy_into_raw();
-    const ret = wasm.caml_vesta_affine_deep_copy(ptr0);
+    const ret = wasm.caml_pallas_affine_deep_copy(ptr0);
     return WasmGVesta.__wrap(ret);
+}
+
+/**
+* @param {Uint8Array} state
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fp_poseidon_block_cipher(state) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passArray8ToWasm0(state, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.caml_pasta_fp_poseidon_block_cipher(retptr, ptr0, len0);
+        var r0 = getInt32Memory0()[retptr / 4 + 0];
+        var r1 = getInt32Memory0()[retptr / 4 + 1];
+        var v1 = getArrayU8FromWasm0(r0, r1).slice();
+        wasm.__wbindgen_free(r0, r1 * 1);
+        return v1;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
+* @param {Uint8Array} state
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fq_poseidon_block_cipher(state) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passArray8ToWasm0(state, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.caml_pasta_fq_poseidon_block_cipher(retptr, ptr0, len0);
+        var r0 = getInt32Memory0()[retptr / 4 + 0];
+        var r1 = getInt32Memory0()[retptr / 4 + 1];
+        var v1 = getArrayU8FromWasm0(r0, r1).slice();
+        wasm.__wbindgen_free(r0, r1 * 1);
+        return v1;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
 }
 
 /**
@@ -1958,6 +1982,99 @@ export function caml_pasta_fp_plonk_circuit_serialize(public_input_size, v) {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
         _assertClass(v, WasmFpGateVector);
         wasm.caml_pasta_fp_plonk_circuit_serialize(retptr, public_input_size, v.ptr);
+        var r0 = getInt32Memory0()[retptr / 4 + 0];
+        var r1 = getInt32Memory0()[retptr / 4 + 1];
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_free(r0, r1);
+    }
+}
+
+/**
+* @returns {WasmFqGateVector}
+*/
+export function caml_pasta_fq_plonk_gate_vector_create() {
+    const ret = wasm.caml_pasta_fp_plonk_gate_vector_create();
+    return WasmFqGateVector.__wrap(ret);
+}
+
+/**
+* @param {WasmFqGateVector} v
+* @param {WasmFqGate} gate
+*/
+export function caml_pasta_fq_plonk_gate_vector_add(v, gate) {
+    _assertClass(v, WasmFqGateVector);
+    _assertClass(gate, WasmFqGate);
+    var ptr0 = gate.__destroy_into_raw();
+    wasm.caml_pasta_fq_plonk_gate_vector_add(v.ptr, ptr0);
+}
+
+/**
+* @param {WasmFqGateVector} v
+* @param {number} i
+* @returns {WasmFqGate}
+*/
+export function caml_pasta_fq_plonk_gate_vector_get(v, i) {
+    _assertClass(v, WasmFqGateVector);
+    const ret = wasm.caml_pasta_fq_plonk_gate_vector_get(v.ptr, i);
+    return WasmFqGate.__wrap(ret);
+}
+
+/**
+* @param {WasmFqGateVector} v
+* @returns {number}
+*/
+export function caml_pasta_fq_plonk_gate_vector_len(v) {
+    _assertClass(v, WasmFqGateVector);
+    const ret = wasm.caml_pasta_fp_plonk_gate_vector_len(v.ptr);
+    return ret >>> 0;
+}
+
+/**
+* @param {WasmFqGateVector} v
+* @param {Wire} t
+* @param {Wire} h
+*/
+export function caml_pasta_fq_plonk_gate_vector_wrap(v, t, h) {
+    _assertClass(v, WasmFqGateVector);
+    _assertClass(t, Wire);
+    var ptr0 = t.__destroy_into_raw();
+    _assertClass(h, Wire);
+    var ptr1 = h.__destroy_into_raw();
+    wasm.caml_pasta_fq_plonk_gate_vector_wrap(v.ptr, ptr0, ptr1);
+}
+
+/**
+* @param {number} public_input_size
+* @param {WasmFqGateVector} v
+* @returns {Uint8Array}
+*/
+export function caml_pasta_fq_plonk_gate_vector_digest(public_input_size, v) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        _assertClass(v, WasmFqGateVector);
+        wasm.caml_pasta_fq_plonk_gate_vector_digest(retptr, public_input_size, v.ptr);
+        var r0 = getInt32Memory0()[retptr / 4 + 0];
+        var r1 = getInt32Memory0()[retptr / 4 + 1];
+        var v0 = getArrayU8FromWasm0(r0, r1).slice();
+        wasm.__wbindgen_free(r0, r1 * 1);
+        return v0;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
+* @param {number} public_input_size
+* @param {WasmFqGateVector} v
+* @returns {string}
+*/
+export function caml_pasta_fq_plonk_circuit_serialize(public_input_size, v) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        _assertClass(v, WasmFqGateVector);
+        wasm.caml_pasta_fq_plonk_circuit_serialize(retptr, public_input_size, v.ptr);
         var r0 = getInt32Memory0()[retptr / 4 + 0];
         var r1 = getInt32Memory0()[retptr / 4 + 1];
         return getStringFromWasm0(r0, r1);
@@ -2372,96 +2489,50 @@ export function prover_to_json(prover_index) {
 }
 
 /**
-* @returns {WasmFqGateVector}
+* @param {Uint32Array} lgr_comm
+* @param {WasmFqPlonkVerifierIndex} index
+* @param {WasmFqProverProof} proof
+* @returns {WasmFqOracles}
 */
-export function caml_pasta_fq_plonk_gate_vector_create() {
-    const ret = wasm.caml_pasta_fq_plonk_gate_vector_create();
-    return WasmFqGateVector.__wrap(ret);
-}
-
-/**
-* @param {WasmFqGateVector} v
-* @param {WasmFqGate} gate
-*/
-export function caml_pasta_fq_plonk_gate_vector_add(v, gate) {
-    _assertClass(v, WasmFqGateVector);
-    _assertClass(gate, WasmFqGate);
-    var ptr0 = gate.__destroy_into_raw();
-    wasm.caml_pasta_fq_plonk_gate_vector_add(v.ptr, ptr0);
-}
-
-/**
-* @param {WasmFqGateVector} v
-* @param {number} i
-* @returns {WasmFqGate}
-*/
-export function caml_pasta_fq_plonk_gate_vector_get(v, i) {
-    _assertClass(v, WasmFqGateVector);
-    const ret = wasm.caml_pasta_fq_plonk_gate_vector_get(v.ptr, i);
-    return WasmFqGate.__wrap(ret);
-}
-
-/**
-* @param {WasmFqGateVector} v
-* @returns {number}
-*/
-export function caml_pasta_fq_plonk_gate_vector_len(v) {
-    _assertClass(v, WasmFqGateVector);
-    const ret = wasm.caml_pasta_fq_plonk_gate_vector_len(v.ptr);
-    return ret >>> 0;
-}
-
-/**
-* @param {WasmFqGateVector} v
-* @param {Wire} t
-* @param {Wire} h
-*/
-export function caml_pasta_fq_plonk_gate_vector_wrap(v, t, h) {
-    _assertClass(v, WasmFqGateVector);
-    _assertClass(t, Wire);
-    var ptr0 = t.__destroy_into_raw();
-    _assertClass(h, Wire);
-    var ptr1 = h.__destroy_into_raw();
-    wasm.caml_pasta_fq_plonk_gate_vector_wrap(v.ptr, ptr0, ptr1);
-}
-
-/**
-* @param {number} public_input_size
-* @param {WasmFqGateVector} v
-* @returns {Uint8Array}
-*/
-export function caml_pasta_fq_plonk_gate_vector_digest(public_input_size, v) {
+export function fq_oracles_create(lgr_comm, index, proof) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        _assertClass(v, WasmFqGateVector);
-        wasm.caml_pasta_fq_plonk_gate_vector_digest(retptr, public_input_size, v.ptr);
+        const ptr0 = passArray32ToWasm0(lgr_comm, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        _assertClass(index, WasmFqPlonkVerifierIndex);
+        var ptr1 = index.__destroy_into_raw();
+        _assertClass(proof, WasmFqProverProof);
+        var ptr2 = proof.__destroy_into_raw();
+        wasm.fq_oracles_create(retptr, ptr0, len0, ptr1, ptr2);
         var r0 = getInt32Memory0()[retptr / 4 + 0];
         var r1 = getInt32Memory0()[retptr / 4 + 1];
-        var v0 = getArrayU8FromWasm0(r0, r1).slice();
-        wasm.__wbindgen_free(r0, r1 * 1);
-        return v0;
+        var r2 = getInt32Memory0()[retptr / 4 + 2];
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return WasmFqOracles.__wrap(r0);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
     }
 }
 
 /**
-* @param {number} public_input_size
-* @param {WasmFqGateVector} v
-* @returns {string}
+* @returns {WasmFqOracles}
 */
-export function caml_pasta_fq_plonk_circuit_serialize(public_input_size, v) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        _assertClass(v, WasmFqGateVector);
-        wasm.caml_pasta_fq_plonk_circuit_serialize(retptr, public_input_size, v.ptr);
-        var r0 = getInt32Memory0()[retptr / 4 + 0];
-        var r1 = getInt32Memory0()[retptr / 4 + 1];
-        return getStringFromWasm0(r0, r1);
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_free(r0, r1);
-    }
+export function fq_oracles_dummy() {
+    const ret = wasm.fq_oracles_dummy();
+    return WasmFqOracles.__wrap(ret);
+}
+
+/**
+* @param {WasmFqProverProof} x
+* @returns {WasmFqProverProof}
+*/
+export function fq_oracles_deep_copy(x) {
+    _assertClass(x, WasmFqProverProof);
+    var ptr0 = x.__destroy_into_raw();
+    const ret = wasm.fq_oracles_deep_copy(ptr0);
+    return WasmFqProverProof.__wrap(ret);
 }
 
 /**
@@ -2700,53 +2771,6 @@ export function caml_pasta_fq_plonk_verifier_index_deep_copy(x) {
 
 /**
 * @param {Uint32Array} lgr_comm
-* @param {WasmFqPlonkVerifierIndex} index
-* @param {WasmFqProverProof} proof
-* @returns {WasmFqOracles}
-*/
-export function fq_oracles_create(lgr_comm, index, proof) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passArray32ToWasm0(lgr_comm, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        _assertClass(index, WasmFqPlonkVerifierIndex);
-        var ptr1 = index.__destroy_into_raw();
-        _assertClass(proof, WasmFqProverProof);
-        var ptr2 = proof.__destroy_into_raw();
-        wasm.fq_oracles_create(retptr, ptr0, len0, ptr1, ptr2);
-        var r0 = getInt32Memory0()[retptr / 4 + 0];
-        var r1 = getInt32Memory0()[retptr / 4 + 1];
-        var r2 = getInt32Memory0()[retptr / 4 + 2];
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return WasmFqOracles.__wrap(r0);
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
-* @returns {WasmFqOracles}
-*/
-export function fq_oracles_dummy() {
-    const ret = wasm.fq_oracles_dummy();
-    return WasmFqOracles.__wrap(ret);
-}
-
-/**
-* @param {WasmFqProverProof} x
-* @returns {WasmFqProverProof}
-*/
-export function fq_oracles_deep_copy(x) {
-    _assertClass(x, WasmFqProverProof);
-    var ptr0 = x.__destroy_into_raw();
-    const ret = wasm.fq_oracles_deep_copy(ptr0);
-    return WasmFqProverProof.__wrap(ret);
-}
-
-/**
-* @param {Uint32Array} lgr_comm
 * @param {WasmFpPlonkVerifierIndex} index
 * @param {WasmFpProverProof} proof
 * @returns {WasmFpOracles}
@@ -2944,30 +2968,6 @@ export function caml_pasta_fq_plonk_proof_deep_copy(x) {
     var ptr0 = x.__destroy_into_raw();
     const ret = wasm.caml_pasta_fp_plonk_proof_deep_copy(ptr0);
     return WasmFqProverProof.__wrap(ret);
-}
-
-/**
-* @param {number} num_threads
-* @returns {Promise<any>}
-*/
-export function initThreadPool(num_threads) {
-    const ret = wasm.initThreadPool(num_threads);
-    return takeObject(ret);
-}
-
-/**
-* @returns {Promise<any>}
-*/
-export function exitThreadPool() {
-    const ret = wasm.exitThreadPool();
-    return takeObject(ret);
-}
-
-/**
-* @param {number} receiver
-*/
-export function wbg_rayon_start_worker(receiver) {
-    wasm.wbg_rayon_start_worker(receiver);
 }
 
 /**
@@ -3422,6 +3422,488 @@ export class WasmFpGateVector {
 }
 /**
 */
+export class WasmFpLookupFeatures {
+
+    static __wrap(ptr) {
+        const obj = Object.create(WasmFpLookupFeatures.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmfplookupfeatures_free(ptr);
+    }
+    /**
+    * @returns {boolean}
+    */
+    get joint_lookup_used() {
+        const ret = wasm.__wbg_get_wasmfplookupfeatures_joint_lookup_used(this.ptr);
+        return ret !== 0;
+    }
+    /**
+    * @param {boolean} arg0
+    */
+    set joint_lookup_used(arg0) {
+        wasm.__wbg_set_wasmfplookupfeatures_joint_lookup_used(this.ptr, arg0);
+    }
+    /**
+    * @returns {boolean}
+    */
+    get uses_runtime_tables() {
+        const ret = wasm.__wbg_get_wasmfplookupfeatures_uses_runtime_tables(this.ptr);
+        return ret !== 0;
+    }
+    /**
+    * @param {boolean} arg0
+    */
+    set uses_runtime_tables(arg0) {
+        wasm.__wbg_set_wasmfplookupfeatures_uses_runtime_tables(this.ptr, arg0);
+    }
+    /**
+    * @returns {WasmFpLookupPatterns}
+    */
+    get patterns() {
+        const ret = wasm.__wbg_get_wasmfplookupfeatures_patterns(this.ptr);
+        return WasmFpLookupPatterns.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpLookupPatterns} arg0
+    */
+    set patterns(arg0) {
+        _assertClass(arg0, WasmFpLookupPatterns);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_wasmfplookupfeatures_patterns(this.ptr, ptr0);
+    }
+}
+/**
+*/
+export class WasmFpLookupInfo {
+
+    static __wrap(ptr) {
+        const obj = Object.create(WasmFpLookupInfo.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmfplookupinfo_free(ptr);
+    }
+    /**
+    * @returns {number}
+    */
+    get max_per_row() {
+        const ret = wasm.__wbg_get_wasmfplookupinfo_max_per_row(this.ptr);
+        return ret >>> 0;
+    }
+    /**
+    * @param {number} arg0
+    */
+    set max_per_row(arg0) {
+        wasm.__wbg_set_wasmfplookupinfo_max_per_row(this.ptr, arg0);
+    }
+    /**
+    * @returns {number}
+    */
+    get max_joint_size() {
+        const ret = wasm.__wbg_get_wasmfplookupinfo_max_joint_size(this.ptr);
+        return ret >>> 0;
+    }
+    /**
+    * @param {number} arg0
+    */
+    set max_joint_size(arg0) {
+        wasm.__wbg_set_wasmfplookupinfo_max_joint_size(this.ptr, arg0);
+    }
+    /**
+    * @returns {WasmFpLookupFeatures}
+    */
+    get features() {
+        const ret = wasm.__wbg_get_wasmfplookupinfo_features(this.ptr);
+        return WasmFpLookupFeatures.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpLookupFeatures} arg0
+    */
+    set features(arg0) {
+        _assertClass(arg0, WasmFpLookupFeatures);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_wasmfplookupinfo_features(this.ptr, ptr0);
+    }
+}
+/**
+*/
+export class WasmFpLookupPatterns {
+
+    static __wrap(ptr) {
+        const obj = Object.create(WasmFpLookupPatterns.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmfplookuppatterns_free(ptr);
+    }
+    /**
+    * @returns {boolean}
+    */
+    get xor() {
+        const ret = wasm.__wbg_get_wasmfplookupfeatures_joint_lookup_used(this.ptr);
+        return ret !== 0;
+    }
+    /**
+    * @param {boolean} arg0
+    */
+    set xor(arg0) {
+        wasm.__wbg_set_wasmfplookupfeatures_joint_lookup_used(this.ptr, arg0);
+    }
+    /**
+    * @returns {boolean}
+    */
+    get lookup() {
+        const ret = wasm.__wbg_get_wasmfplookupfeatures_uses_runtime_tables(this.ptr);
+        return ret !== 0;
+    }
+    /**
+    * @param {boolean} arg0
+    */
+    set lookup(arg0) {
+        wasm.__wbg_set_wasmfplookupfeatures_uses_runtime_tables(this.ptr, arg0);
+    }
+    /**
+    * @returns {boolean}
+    */
+    get range_check() {
+        const ret = wasm.__wbg_get_wasmfplookuppatterns_range_check(this.ptr);
+        return ret !== 0;
+    }
+    /**
+    * @param {boolean} arg0
+    */
+    set range_check(arg0) {
+        wasm.__wbg_set_wasmfplookuppatterns_range_check(this.ptr, arg0);
+    }
+    /**
+    * @returns {boolean}
+    */
+    get foreign_field_mul() {
+        const ret = wasm.__wbg_get_wasmfplookuppatterns_foreign_field_mul(this.ptr);
+        return ret !== 0;
+    }
+    /**
+    * @param {boolean} arg0
+    */
+    set foreign_field_mul(arg0) {
+        wasm.__wbg_set_wasmfplookuppatterns_foreign_field_mul(this.ptr, arg0);
+    }
+}
+/**
+*/
+export class WasmFpLookupSelectors {
+
+    static __wrap(ptr) {
+        const obj = Object.create(WasmFpLookupSelectors.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmfplookupselectors_free(ptr);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} xor
+    * @param {WasmFpPolyComm | undefined} lookup
+    * @param {WasmFpPolyComm | undefined} range_check
+    * @param {WasmFpPolyComm | undefined} ffmul
+    */
+    constructor(xor, lookup, range_check, ffmul) {
+        let ptr0 = 0;
+        if (!isLikeNone(xor)) {
+            _assertClass(xor, WasmFpPolyComm);
+            ptr0 = xor.__destroy_into_raw();
+        }
+        let ptr1 = 0;
+        if (!isLikeNone(lookup)) {
+            _assertClass(lookup, WasmFpPolyComm);
+            ptr1 = lookup.__destroy_into_raw();
+        }
+        let ptr2 = 0;
+        if (!isLikeNone(range_check)) {
+            _assertClass(range_check, WasmFpPolyComm);
+            ptr2 = range_check.__destroy_into_raw();
+        }
+        let ptr3 = 0;
+        if (!isLikeNone(ffmul)) {
+            _assertClass(ffmul, WasmFpPolyComm);
+            ptr3 = ffmul.__destroy_into_raw();
+        }
+        const ret = wasm.wasmfplookupselectors_new(ptr0, ptr1, ptr2, ptr3);
+        return WasmFpLookupSelectors.__wrap(ret);
+    }
+    /**
+    * @returns {WasmFpPolyComm | undefined}
+    */
+    get xor() {
+        const ret = wasm.wasmfplookupselectors_xor(this.ptr);
+        return ret === 0 ? undefined : WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} x
+    */
+    set xor(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFpPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfplookupselectors_set_xor(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFpPolyComm | undefined}
+    */
+    get lookup() {
+        const ret = wasm.wasmfplookupselectors_lookup(this.ptr);
+        return ret === 0 ? undefined : WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} x
+    */
+    set lookup(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFpPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfplookupselectors_set_lookup(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFpPolyComm | undefined}
+    */
+    get range_check() {
+        const ret = wasm.wasmfplookupselectors_range_check(this.ptr);
+        return ret === 0 ? undefined : WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} x
+    */
+    set range_check(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFpPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfplookupselectors_set_range_check(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFpPolyComm | undefined}
+    */
+    get ffmul() {
+        const ret = wasm.wasmfplookupselectors_ffmul(this.ptr);
+        return ret === 0 ? undefined : WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} x
+    */
+    set ffmul(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFpPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfplookupselectors_set_ffmul(this.ptr, ptr0);
+    }
+}
+/**
+*/
+export class WasmFpLookupVerifier {
+
+    static __wrap(ptr) {
+        const obj = Object.create(WasmFpLookupVerifier.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmfplookupverifier_free(ptr);
+    }
+    /**
+    * @returns {boolean}
+    */
+    get joint_lookup_used() {
+        const ret = wasm.__wbg_get_wasmfplookupverifier_joint_lookup_used(this.ptr);
+        return ret !== 0;
+    }
+    /**
+    * @param {boolean} arg0
+    */
+    set joint_lookup_used(arg0) {
+        wasm.__wbg_set_wasmfplookupverifier_joint_lookup_used(this.ptr, arg0);
+    }
+    /**
+    * @returns {WasmFpLookupInfo}
+    */
+    get lookup_info() {
+        const ret = wasm.__wbg_get_wasmfplookupverifier_lookup_info(this.ptr);
+        return WasmFpLookupInfo.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpLookupInfo} arg0
+    */
+    set lookup_info(arg0) {
+        _assertClass(arg0, WasmFpLookupInfo);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_wasmfplookupverifier_lookup_info(this.ptr, ptr0);
+    }
+    /**
+    * @param {boolean} joint_lookup_used
+    * @param {Uint32Array} lookup_table
+    * @param {WasmFpLookupSelectors} lookup_selectors
+    * @param {WasmFpPolyComm | undefined} table_ids
+    * @param {WasmFpLookupInfo} lookup_info
+    * @param {WasmFpPolyComm | undefined} runtime_tables_selector
+    */
+    constructor(joint_lookup_used, lookup_table, lookup_selectors, table_ids, lookup_info, runtime_tables_selector) {
+        const ptr0 = passArray32ToWasm0(lookup_table, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        _assertClass(lookup_selectors, WasmFpLookupSelectors);
+        var ptr1 = lookup_selectors.__destroy_into_raw();
+        let ptr2 = 0;
+        if (!isLikeNone(table_ids)) {
+            _assertClass(table_ids, WasmFpPolyComm);
+            ptr2 = table_ids.__destroy_into_raw();
+        }
+        _assertClass(lookup_info, WasmFpLookupInfo);
+        var ptr3 = lookup_info.__destroy_into_raw();
+        let ptr4 = 0;
+        if (!isLikeNone(runtime_tables_selector)) {
+            _assertClass(runtime_tables_selector, WasmFpPolyComm);
+            ptr4 = runtime_tables_selector.__destroy_into_raw();
+        }
+        const ret = wasm.wasmfplookupverifier_new(joint_lookup_used, ptr0, len0, ptr1, ptr2, ptr3, ptr4);
+        return WasmFpLookupVerifier.__wrap(ret);
+    }
+    /**
+    * @returns {Uint32Array}
+    */
+    get lookup_table() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmfplookupverifier_lookup_table(retptr, this.ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var v0 = getArrayU32FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_free(r0, r1 * 4);
+            return v0;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @param {Uint32Array} x
+    */
+    set lookup_table(x) {
+        const ptr0 = passArray32ToWasm0(x, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.wasmfplookupverifier_set_lookup_table(this.ptr, ptr0, len0);
+    }
+    /**
+    * @returns {WasmFpLookupSelectors}
+    */
+    get lookup_selectors() {
+        const ret = wasm.wasmfplookupverifier_lookup_selectors(this.ptr);
+        return WasmFpLookupSelectors.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpLookupSelectors} x
+    */
+    set lookup_selectors(x) {
+        _assertClass(x, WasmFpLookupSelectors);
+        var ptr0 = x.__destroy_into_raw();
+        wasm.wasmfplookupverifier_set_lookup_selectors(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFpPolyComm | undefined}
+    */
+    get table_ids() {
+        const ret = wasm.wasmfplookupverifier_table_ids(this.ptr);
+        return ret === 0 ? undefined : WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} x
+    */
+    set table_ids(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFpPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfplookupverifier_set_table_ids(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFpPolyComm | undefined}
+    */
+    get runtime_tables_selector() {
+        const ret = wasm.wasmfplookupverifier_runtime_tables_selector(this.ptr);
+        return ret === 0 ? undefined : WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} x
+    */
+    set runtime_tables_selector(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFpPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfplookupverifier_set_runtime_tables_selector(this.ptr, ptr0);
+    }
+}
+/**
+*/
 export class WasmFpOpeningProof {
 
     static __wrap(ptr) {
@@ -3779,8 +4261,16 @@ export class WasmFpPlonkVerificationEvals {
     * @param {WasmFpPolyComm} mul_comm
     * @param {WasmFpPolyComm} emul_comm
     * @param {WasmFpPolyComm} endomul_scalar_comm
+    * @param {WasmFpPolyComm | undefined} xor_comm
+    * @param {WasmFpPolyComm | undefined} range_check0_comm
+    * @param {WasmFpPolyComm | undefined} range_check1_comm
+    * @param {WasmFpPolyComm | undefined} foreign_field_add_comm
+    * @param {WasmFpPolyComm | undefined} foreign_field_mul_comm
+    * @param {WasmFpPolyComm | undefined} rot_comm
+    * @param {WasmFpPolyComm | undefined} lookup_gate_comm
+    * @param {WasmFpPolyComm | undefined} runtime_tables_comm
     */
-    constructor(sigma_comm, coefficients_comm, generic_comm, psm_comm, complete_add_comm, mul_comm, emul_comm, endomul_scalar_comm) {
+    constructor(sigma_comm, coefficients_comm, generic_comm, psm_comm, complete_add_comm, mul_comm, emul_comm, endomul_scalar_comm, xor_comm, range_check0_comm, range_check1_comm, foreign_field_add_comm, foreign_field_mul_comm, rot_comm, lookup_gate_comm, runtime_tables_comm) {
         const ptr0 = passArray32ToWasm0(sigma_comm, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passArray32ToWasm0(coefficients_comm, wasm.__wbindgen_malloc);
@@ -3791,7 +4281,47 @@ export class WasmFpPlonkVerificationEvals {
         _assertClass(mul_comm, WasmFpPolyComm);
         _assertClass(emul_comm, WasmFpPolyComm);
         _assertClass(endomul_scalar_comm, WasmFpPolyComm);
-        const ret = wasm.wasmfpplonkverificationevals_new(ptr0, len0, ptr1, len1, generic_comm.ptr, psm_comm.ptr, complete_add_comm.ptr, mul_comm.ptr, emul_comm.ptr, endomul_scalar_comm.ptr);
+        let ptr2 = 0;
+        if (!isLikeNone(xor_comm)) {
+            _assertClass(xor_comm, WasmFpPolyComm);
+            ptr2 = xor_comm.__destroy_into_raw();
+        }
+        let ptr3 = 0;
+        if (!isLikeNone(range_check0_comm)) {
+            _assertClass(range_check0_comm, WasmFpPolyComm);
+            ptr3 = range_check0_comm.__destroy_into_raw();
+        }
+        let ptr4 = 0;
+        if (!isLikeNone(range_check1_comm)) {
+            _assertClass(range_check1_comm, WasmFpPolyComm);
+            ptr4 = range_check1_comm.__destroy_into_raw();
+        }
+        let ptr5 = 0;
+        if (!isLikeNone(foreign_field_add_comm)) {
+            _assertClass(foreign_field_add_comm, WasmFpPolyComm);
+            ptr5 = foreign_field_add_comm.__destroy_into_raw();
+        }
+        let ptr6 = 0;
+        if (!isLikeNone(foreign_field_mul_comm)) {
+            _assertClass(foreign_field_mul_comm, WasmFpPolyComm);
+            ptr6 = foreign_field_mul_comm.__destroy_into_raw();
+        }
+        let ptr7 = 0;
+        if (!isLikeNone(rot_comm)) {
+            _assertClass(rot_comm, WasmFpPolyComm);
+            ptr7 = rot_comm.__destroy_into_raw();
+        }
+        let ptr8 = 0;
+        if (!isLikeNone(lookup_gate_comm)) {
+            _assertClass(lookup_gate_comm, WasmFpPolyComm);
+            ptr8 = lookup_gate_comm.__destroy_into_raw();
+        }
+        let ptr9 = 0;
+        if (!isLikeNone(runtime_tables_comm)) {
+            _assertClass(runtime_tables_comm, WasmFpPolyComm);
+            ptr9 = runtime_tables_comm.__destroy_into_raw();
+        }
+        const ret = wasm.wasmfpplonkverificationevals_new(ptr0, len0, ptr1, len1, generic_comm.ptr, psm_comm.ptr, complete_add_comm.ptr, mul_comm.ptr, emul_comm.ptr, endomul_scalar_comm.ptr, ptr2, ptr3, ptr4, ptr5, ptr6, ptr7, ptr8, ptr9);
         return WasmFpPlonkVerificationEvals.__wrap(ret);
     }
     /**
@@ -3932,6 +4462,150 @@ export class WasmFpPlonkVerificationEvals {
         var ptr0 = x.__destroy_into_raw();
         wasm.wasmfpplonkverificationevals_set_endomul_scalar_comm(this.ptr, ptr0);
     }
+    /**
+    * @returns {WasmFpPolyComm | undefined}
+    */
+    get xor_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_xor_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} x
+    */
+    set xor_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFpPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_xor_comm(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFpPolyComm | undefined}
+    */
+    get rot_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_rot_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} x
+    */
+    set rot_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFpPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_rot_comm(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFpPolyComm | undefined}
+    */
+    get range_check0_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_range_check0_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} x
+    */
+    set range_check0_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFpPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_range_check0_comm(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFpPolyComm | undefined}
+    */
+    get range_check1_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_range_check1_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} x
+    */
+    set range_check1_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFpPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_range_check1_comm(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFpPolyComm | undefined}
+    */
+    get foreign_field_add_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_foreign_field_add_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} x
+    */
+    set foreign_field_add_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFpPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_foreign_field_add_comm(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFpPolyComm | undefined}
+    */
+    get foreign_field_mul_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_foreign_field_mul_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} x
+    */
+    set foreign_field_mul_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFpPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_foreign_field_mul_comm(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFpPolyComm | undefined}
+    */
+    get lookup_gate_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_lookup_gate_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} x
+    */
+    set lookup_gate_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFpPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_lookup_gate_comm(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFpPolyComm | undefined}
+    */
+    get runtime_tables_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_runtime_tables_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFpPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpPolyComm | undefined} x
+    */
+    set runtime_tables_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFpPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_runtime_tables_comm(this.ptr, ptr0);
+    }
 }
 /**
 */
@@ -4032,13 +4706,19 @@ export class WasmFpPlonkVerifierIndex {
     * @param {WasmFpSrs} srs
     * @param {WasmFpPlonkVerificationEvals} evals
     * @param {WasmFpShifts} shifts
+    * @param {WasmFpLookupVerifier | undefined} lookup_index
     */
-    constructor(domain, max_poly_size, public_, prev_challenges, srs, evals, shifts) {
+    constructor(domain, max_poly_size, public_, prev_challenges, srs, evals, shifts, lookup_index) {
         _assertClass(domain, WasmFpDomain);
         _assertClass(srs, WasmFpSrs);
         _assertClass(evals, WasmFpPlonkVerificationEvals);
         _assertClass(shifts, WasmFpShifts);
-        const ret = wasm.wasmfpplonkverifierindex_new(domain.ptr, max_poly_size, public_, prev_challenges, srs.ptr, evals.ptr, shifts.ptr);
+        let ptr0 = 0;
+        if (!isLikeNone(lookup_index)) {
+            _assertClass(lookup_index, WasmFpLookupVerifier);
+            ptr0 = lookup_index.__destroy_into_raw();
+        }
+        const ret = wasm.wasmfpplonkverifierindex_new(domain.ptr, max_poly_size, public_, prev_challenges, srs.ptr, evals.ptr, shifts.ptr, ptr0);
         return WasmFpPlonkVerifierIndex.__wrap(ret);
     }
     /**
@@ -4070,6 +4750,24 @@ export class WasmFpPlonkVerifierIndex {
         _assertClass(x, WasmFpPlonkVerificationEvals);
         var ptr0 = x.__destroy_into_raw();
         wasm.wasmfpplonkverifierindex_set_evals(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFpLookupVerifier | undefined}
+    */
+    get lookup_index() {
+        const ret = wasm.wasmfpplonkverifierindex_lookup_index(this.ptr);
+        return ret === 0 ? undefined : WasmFpLookupVerifier.__wrap(ret);
+    }
+    /**
+    * @param {WasmFpLookupVerifier | undefined} x
+    */
+    set lookup_index(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFpLookupVerifier);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverifierindex_set_lookup_index(this.ptr, ptr0);
     }
 }
 /**
@@ -4209,14 +4907,14 @@ export class WasmFpProverCommitments {
     * @returns {WasmFpPolyComm}
     */
     get z_comm() {
-        const ret = wasm.wasmfpprovercommitments_z_comm(this.ptr);
+        const ret = wasm.wasmfpplonkverificationevals_generic_comm(this.ptr);
         return WasmFpPolyComm.__wrap(ret);
     }
     /**
     * @returns {WasmFpPolyComm}
     */
     get t_comm() {
-        const ret = wasm.wasmfpprovercommitments_t_comm(this.ptr);
+        const ret = wasm.wasmfpplonkverificationevals_psm_comm(this.ptr);
         return WasmFpPolyComm.__wrap(ret);
     }
     /**
@@ -4233,7 +4931,7 @@ export class WasmFpProverCommitments {
     set z_comm(x) {
         _assertClass(x, WasmFpPolyComm);
         var ptr0 = x.__destroy_into_raw();
-        wasm.wasmfpprovercommitments_set_z_comm(this.ptr, ptr0);
+        wasm.wasmfpplonkverificationevals_set_generic_comm(this.ptr, ptr0);
     }
     /**
     * @param {WasmFpPolyComm} x
@@ -4241,7 +4939,7 @@ export class WasmFpProverCommitments {
     set t_comm(x) {
         _assertClass(x, WasmFpPolyComm);
         var ptr0 = x.__destroy_into_raw();
-        wasm.wasmfpprovercommitments_set_t_comm(this.ptr, ptr0);
+        wasm.wasmfpplonkverificationevals_set_psm_comm(this.ptr, ptr0);
     }
 }
 /**
@@ -5133,20 +5831,20 @@ export class WasmFqGate {
     * @returns {number}
     */
     get typ() {
-        const ret = wasm.__wbg_get_wasmfqgate_typ(this.ptr);
+        const ret = wasm.__wbg_get_wasmfpgate_typ(this.ptr);
         return ret >>> 0;
     }
     /**
     * @param {number} arg0
     */
     set typ(arg0) {
-        wasm.__wbg_set_wasmfqgate_typ(this.ptr, arg0);
+        wasm.__wbg_set_wasmfpgate_typ(this.ptr, arg0);
     }
     /**
     * @returns {WasmGateWires}
     */
     get wires() {
-        const ret = wasm.__wbg_get_wasmfqgate_wires(this.ptr);
+        const ret = wasm.__wbg_get_wasmfpgate_wires(this.ptr);
         return WasmGateWires.__wrap(ret);
     }
     /**
@@ -5155,7 +5853,7 @@ export class WasmFqGate {
     set wires(arg0) {
         _assertClass(arg0, WasmGateWires);
         var ptr0 = arg0.__destroy_into_raw();
-        wasm.__wbg_set_wasmfqgate_wires(this.ptr, ptr0);
+        wasm.__wbg_set_wasmfpgate_wires(this.ptr, ptr0);
     }
     /**
     * @param {number} typ
@@ -5192,6 +5890,488 @@ export class WasmFqGateVector {
     free() {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_wasmfqgatevector_free(ptr);
+    }
+}
+/**
+*/
+export class WasmFqLookupFeatures {
+
+    static __wrap(ptr) {
+        const obj = Object.create(WasmFqLookupFeatures.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmfqlookupfeatures_free(ptr);
+    }
+    /**
+    * @returns {boolean}
+    */
+    get joint_lookup_used() {
+        const ret = wasm.__wbg_get_wasmfplookupfeatures_joint_lookup_used(this.ptr);
+        return ret !== 0;
+    }
+    /**
+    * @param {boolean} arg0
+    */
+    set joint_lookup_used(arg0) {
+        wasm.__wbg_set_wasmfplookupfeatures_joint_lookup_used(this.ptr, arg0);
+    }
+    /**
+    * @returns {boolean}
+    */
+    get uses_runtime_tables() {
+        const ret = wasm.__wbg_get_wasmfplookupfeatures_uses_runtime_tables(this.ptr);
+        return ret !== 0;
+    }
+    /**
+    * @param {boolean} arg0
+    */
+    set uses_runtime_tables(arg0) {
+        wasm.__wbg_set_wasmfplookupfeatures_uses_runtime_tables(this.ptr, arg0);
+    }
+    /**
+    * @returns {WasmFqLookupPatterns}
+    */
+    get patterns() {
+        const ret = wasm.__wbg_get_wasmfplookupfeatures_patterns(this.ptr);
+        return WasmFqLookupPatterns.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqLookupPatterns} arg0
+    */
+    set patterns(arg0) {
+        _assertClass(arg0, WasmFqLookupPatterns);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_wasmfplookupfeatures_patterns(this.ptr, ptr0);
+    }
+}
+/**
+*/
+export class WasmFqLookupInfo {
+
+    static __wrap(ptr) {
+        const obj = Object.create(WasmFqLookupInfo.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmfqlookupinfo_free(ptr);
+    }
+    /**
+    * @returns {number}
+    */
+    get max_per_row() {
+        const ret = wasm.__wbg_get_wasmfplookupinfo_max_per_row(this.ptr);
+        return ret >>> 0;
+    }
+    /**
+    * @param {number} arg0
+    */
+    set max_per_row(arg0) {
+        wasm.__wbg_set_wasmfplookupinfo_max_per_row(this.ptr, arg0);
+    }
+    /**
+    * @returns {number}
+    */
+    get max_joint_size() {
+        const ret = wasm.__wbg_get_wasmfplookupinfo_max_joint_size(this.ptr);
+        return ret >>> 0;
+    }
+    /**
+    * @param {number} arg0
+    */
+    set max_joint_size(arg0) {
+        wasm.__wbg_set_wasmfplookupinfo_max_joint_size(this.ptr, arg0);
+    }
+    /**
+    * @returns {WasmFqLookupFeatures}
+    */
+    get features() {
+        const ret = wasm.__wbg_get_wasmfplookupinfo_features(this.ptr);
+        return WasmFqLookupFeatures.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqLookupFeatures} arg0
+    */
+    set features(arg0) {
+        _assertClass(arg0, WasmFqLookupFeatures);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_wasmfplookupinfo_features(this.ptr, ptr0);
+    }
+}
+/**
+*/
+export class WasmFqLookupPatterns {
+
+    static __wrap(ptr) {
+        const obj = Object.create(WasmFqLookupPatterns.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmfqlookuppatterns_free(ptr);
+    }
+    /**
+    * @returns {boolean}
+    */
+    get xor() {
+        const ret = wasm.__wbg_get_wasmfplookupfeatures_joint_lookup_used(this.ptr);
+        return ret !== 0;
+    }
+    /**
+    * @param {boolean} arg0
+    */
+    set xor(arg0) {
+        wasm.__wbg_set_wasmfplookupfeatures_joint_lookup_used(this.ptr, arg0);
+    }
+    /**
+    * @returns {boolean}
+    */
+    get lookup() {
+        const ret = wasm.__wbg_get_wasmfplookupfeatures_uses_runtime_tables(this.ptr);
+        return ret !== 0;
+    }
+    /**
+    * @param {boolean} arg0
+    */
+    set lookup(arg0) {
+        wasm.__wbg_set_wasmfplookupfeatures_uses_runtime_tables(this.ptr, arg0);
+    }
+    /**
+    * @returns {boolean}
+    */
+    get range_check() {
+        const ret = wasm.__wbg_get_wasmfplookuppatterns_range_check(this.ptr);
+        return ret !== 0;
+    }
+    /**
+    * @param {boolean} arg0
+    */
+    set range_check(arg0) {
+        wasm.__wbg_set_wasmfplookuppatterns_range_check(this.ptr, arg0);
+    }
+    /**
+    * @returns {boolean}
+    */
+    get foreign_field_mul() {
+        const ret = wasm.__wbg_get_wasmfplookuppatterns_foreign_field_mul(this.ptr);
+        return ret !== 0;
+    }
+    /**
+    * @param {boolean} arg0
+    */
+    set foreign_field_mul(arg0) {
+        wasm.__wbg_set_wasmfplookuppatterns_foreign_field_mul(this.ptr, arg0);
+    }
+}
+/**
+*/
+export class WasmFqLookupSelectors {
+
+    static __wrap(ptr) {
+        const obj = Object.create(WasmFqLookupSelectors.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmfqlookupselectors_free(ptr);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} xor
+    * @param {WasmFqPolyComm | undefined} lookup
+    * @param {WasmFqPolyComm | undefined} range_check
+    * @param {WasmFqPolyComm | undefined} ffmul
+    */
+    constructor(xor, lookup, range_check, ffmul) {
+        let ptr0 = 0;
+        if (!isLikeNone(xor)) {
+            _assertClass(xor, WasmFqPolyComm);
+            ptr0 = xor.__destroy_into_raw();
+        }
+        let ptr1 = 0;
+        if (!isLikeNone(lookup)) {
+            _assertClass(lookup, WasmFqPolyComm);
+            ptr1 = lookup.__destroy_into_raw();
+        }
+        let ptr2 = 0;
+        if (!isLikeNone(range_check)) {
+            _assertClass(range_check, WasmFqPolyComm);
+            ptr2 = range_check.__destroy_into_raw();
+        }
+        let ptr3 = 0;
+        if (!isLikeNone(ffmul)) {
+            _assertClass(ffmul, WasmFqPolyComm);
+            ptr3 = ffmul.__destroy_into_raw();
+        }
+        const ret = wasm.wasmfplookupselectors_new(ptr0, ptr1, ptr2, ptr3);
+        return WasmFqLookupSelectors.__wrap(ret);
+    }
+    /**
+    * @returns {WasmFqPolyComm | undefined}
+    */
+    get xor() {
+        const ret = wasm.wasmfplookupselectors_xor(this.ptr);
+        return ret === 0 ? undefined : WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} x
+    */
+    set xor(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFqPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfplookupselectors_set_xor(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFqPolyComm | undefined}
+    */
+    get lookup() {
+        const ret = wasm.wasmfplookupselectors_lookup(this.ptr);
+        return ret === 0 ? undefined : WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} x
+    */
+    set lookup(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFqPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfplookupselectors_set_lookup(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFqPolyComm | undefined}
+    */
+    get range_check() {
+        const ret = wasm.wasmfplookupselectors_range_check(this.ptr);
+        return ret === 0 ? undefined : WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} x
+    */
+    set range_check(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFqPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfplookupselectors_set_range_check(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFqPolyComm | undefined}
+    */
+    get ffmul() {
+        const ret = wasm.wasmfplookupselectors_ffmul(this.ptr);
+        return ret === 0 ? undefined : WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} x
+    */
+    set ffmul(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFqPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfplookupselectors_set_ffmul(this.ptr, ptr0);
+    }
+}
+/**
+*/
+export class WasmFqLookupVerifier {
+
+    static __wrap(ptr) {
+        const obj = Object.create(WasmFqLookupVerifier.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmfqlookupverifier_free(ptr);
+    }
+    /**
+    * @returns {boolean}
+    */
+    get joint_lookup_used() {
+        const ret = wasm.__wbg_get_wasmfplookupverifier_joint_lookup_used(this.ptr);
+        return ret !== 0;
+    }
+    /**
+    * @param {boolean} arg0
+    */
+    set joint_lookup_used(arg0) {
+        wasm.__wbg_set_wasmfplookupverifier_joint_lookup_used(this.ptr, arg0);
+    }
+    /**
+    * @returns {WasmFqLookupInfo}
+    */
+    get lookup_info() {
+        const ret = wasm.__wbg_get_wasmfplookupverifier_lookup_info(this.ptr);
+        return WasmFqLookupInfo.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqLookupInfo} arg0
+    */
+    set lookup_info(arg0) {
+        _assertClass(arg0, WasmFqLookupInfo);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_wasmfplookupverifier_lookup_info(this.ptr, ptr0);
+    }
+    /**
+    * @param {boolean} joint_lookup_used
+    * @param {Uint32Array} lookup_table
+    * @param {WasmFqLookupSelectors} lookup_selectors
+    * @param {WasmFqPolyComm | undefined} table_ids
+    * @param {WasmFqLookupInfo} lookup_info
+    * @param {WasmFqPolyComm | undefined} runtime_tables_selector
+    */
+    constructor(joint_lookup_used, lookup_table, lookup_selectors, table_ids, lookup_info, runtime_tables_selector) {
+        const ptr0 = passArray32ToWasm0(lookup_table, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        _assertClass(lookup_selectors, WasmFqLookupSelectors);
+        var ptr1 = lookup_selectors.__destroy_into_raw();
+        let ptr2 = 0;
+        if (!isLikeNone(table_ids)) {
+            _assertClass(table_ids, WasmFqPolyComm);
+            ptr2 = table_ids.__destroy_into_raw();
+        }
+        _assertClass(lookup_info, WasmFqLookupInfo);
+        var ptr3 = lookup_info.__destroy_into_raw();
+        let ptr4 = 0;
+        if (!isLikeNone(runtime_tables_selector)) {
+            _assertClass(runtime_tables_selector, WasmFqPolyComm);
+            ptr4 = runtime_tables_selector.__destroy_into_raw();
+        }
+        const ret = wasm.wasmfqlookupverifier_new(joint_lookup_used, ptr0, len0, ptr1, ptr2, ptr3, ptr4);
+        return WasmFqLookupVerifier.__wrap(ret);
+    }
+    /**
+    * @returns {Uint32Array}
+    */
+    get lookup_table() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmfqlookupverifier_lookup_table(retptr, this.ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var v0 = getArrayU32FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_free(r0, r1 * 4);
+            return v0;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @param {Uint32Array} x
+    */
+    set lookup_table(x) {
+        const ptr0 = passArray32ToWasm0(x, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.wasmfqlookupverifier_set_lookup_table(this.ptr, ptr0, len0);
+    }
+    /**
+    * @returns {WasmFqLookupSelectors}
+    */
+    get lookup_selectors() {
+        const ret = wasm.wasmfplookupverifier_lookup_selectors(this.ptr);
+        return WasmFqLookupSelectors.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqLookupSelectors} x
+    */
+    set lookup_selectors(x) {
+        _assertClass(x, WasmFqLookupSelectors);
+        var ptr0 = x.__destroy_into_raw();
+        wasm.wasmfplookupverifier_set_lookup_selectors(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFqPolyComm | undefined}
+    */
+    get table_ids() {
+        const ret = wasm.wasmfplookupverifier_table_ids(this.ptr);
+        return ret === 0 ? undefined : WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} x
+    */
+    set table_ids(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFqPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfplookupverifier_set_table_ids(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFqPolyComm | undefined}
+    */
+    get runtime_tables_selector() {
+        const ret = wasm.wasmfplookupverifier_runtime_tables_selector(this.ptr);
+        return ret === 0 ? undefined : WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} x
+    */
+    set runtime_tables_selector(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFqPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfplookupverifier_set_runtime_tables_selector(this.ptr, ptr0);
     }
 }
 /**
@@ -5553,8 +6733,16 @@ export class WasmFqPlonkVerificationEvals {
     * @param {WasmFqPolyComm} mul_comm
     * @param {WasmFqPolyComm} emul_comm
     * @param {WasmFqPolyComm} endomul_scalar_comm
+    * @param {WasmFqPolyComm | undefined} xor_comm
+    * @param {WasmFqPolyComm | undefined} range_check0_comm
+    * @param {WasmFqPolyComm | undefined} range_check1_comm
+    * @param {WasmFqPolyComm | undefined} foreign_field_add_comm
+    * @param {WasmFqPolyComm | undefined} foreign_field_mul_comm
+    * @param {WasmFqPolyComm | undefined} rot_comm
+    * @param {WasmFqPolyComm | undefined} lookup_gate_comm
+    * @param {WasmFqPolyComm | undefined} runtime_tables_comm
     */
-    constructor(sigma_comm, coefficients_comm, generic_comm, psm_comm, complete_add_comm, mul_comm, emul_comm, endomul_scalar_comm) {
+    constructor(sigma_comm, coefficients_comm, generic_comm, psm_comm, complete_add_comm, mul_comm, emul_comm, endomul_scalar_comm, xor_comm, range_check0_comm, range_check1_comm, foreign_field_add_comm, foreign_field_mul_comm, rot_comm, lookup_gate_comm, runtime_tables_comm) {
         const ptr0 = passArray32ToWasm0(sigma_comm, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passArray32ToWasm0(coefficients_comm, wasm.__wbindgen_malloc);
@@ -5565,7 +6753,47 @@ export class WasmFqPlonkVerificationEvals {
         _assertClass(mul_comm, WasmFqPolyComm);
         _assertClass(emul_comm, WasmFqPolyComm);
         _assertClass(endomul_scalar_comm, WasmFqPolyComm);
-        const ret = wasm.wasmfqplonkverificationevals_new(ptr0, len0, ptr1, len1, generic_comm.ptr, psm_comm.ptr, complete_add_comm.ptr, mul_comm.ptr, emul_comm.ptr, endomul_scalar_comm.ptr);
+        let ptr2 = 0;
+        if (!isLikeNone(xor_comm)) {
+            _assertClass(xor_comm, WasmFqPolyComm);
+            ptr2 = xor_comm.__destroy_into_raw();
+        }
+        let ptr3 = 0;
+        if (!isLikeNone(range_check0_comm)) {
+            _assertClass(range_check0_comm, WasmFqPolyComm);
+            ptr3 = range_check0_comm.__destroy_into_raw();
+        }
+        let ptr4 = 0;
+        if (!isLikeNone(range_check1_comm)) {
+            _assertClass(range_check1_comm, WasmFqPolyComm);
+            ptr4 = range_check1_comm.__destroy_into_raw();
+        }
+        let ptr5 = 0;
+        if (!isLikeNone(foreign_field_add_comm)) {
+            _assertClass(foreign_field_add_comm, WasmFqPolyComm);
+            ptr5 = foreign_field_add_comm.__destroy_into_raw();
+        }
+        let ptr6 = 0;
+        if (!isLikeNone(foreign_field_mul_comm)) {
+            _assertClass(foreign_field_mul_comm, WasmFqPolyComm);
+            ptr6 = foreign_field_mul_comm.__destroy_into_raw();
+        }
+        let ptr7 = 0;
+        if (!isLikeNone(rot_comm)) {
+            _assertClass(rot_comm, WasmFqPolyComm);
+            ptr7 = rot_comm.__destroy_into_raw();
+        }
+        let ptr8 = 0;
+        if (!isLikeNone(lookup_gate_comm)) {
+            _assertClass(lookup_gate_comm, WasmFqPolyComm);
+            ptr8 = lookup_gate_comm.__destroy_into_raw();
+        }
+        let ptr9 = 0;
+        if (!isLikeNone(runtime_tables_comm)) {
+            _assertClass(runtime_tables_comm, WasmFqPolyComm);
+            ptr9 = runtime_tables_comm.__destroy_into_raw();
+        }
+        const ret = wasm.wasmfqplonkverificationevals_new(ptr0, len0, ptr1, len1, generic_comm.ptr, psm_comm.ptr, complete_add_comm.ptr, mul_comm.ptr, emul_comm.ptr, endomul_scalar_comm.ptr, ptr2, ptr3, ptr4, ptr5, ptr6, ptr7, ptr8, ptr9);
         return WasmFqPlonkVerificationEvals.__wrap(ret);
     }
     /**
@@ -5706,6 +6934,150 @@ export class WasmFqPlonkVerificationEvals {
         var ptr0 = x.__destroy_into_raw();
         wasm.wasmfpplonkverificationevals_set_endomul_scalar_comm(this.ptr, ptr0);
     }
+    /**
+    * @returns {WasmFqPolyComm | undefined}
+    */
+    get xor_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_xor_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} x
+    */
+    set xor_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFqPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_xor_comm(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFqPolyComm | undefined}
+    */
+    get rot_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_rot_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} x
+    */
+    set rot_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFqPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_rot_comm(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFqPolyComm | undefined}
+    */
+    get range_check0_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_range_check0_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} x
+    */
+    set range_check0_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFqPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_range_check0_comm(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFqPolyComm | undefined}
+    */
+    get range_check1_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_range_check1_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} x
+    */
+    set range_check1_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFqPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_range_check1_comm(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFqPolyComm | undefined}
+    */
+    get foreign_field_add_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_foreign_field_add_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} x
+    */
+    set foreign_field_add_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFqPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_foreign_field_add_comm(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFqPolyComm | undefined}
+    */
+    get foreign_field_mul_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_foreign_field_mul_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} x
+    */
+    set foreign_field_mul_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFqPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_foreign_field_mul_comm(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFqPolyComm | undefined}
+    */
+    get lookup_gate_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_lookup_gate_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} x
+    */
+    set lookup_gate_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFqPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_lookup_gate_comm(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFqPolyComm | undefined}
+    */
+    get runtime_tables_comm() {
+        const ret = wasm.wasmfpplonkverificationevals_runtime_tables_comm(this.ptr);
+        return ret === 0 ? undefined : WasmFqPolyComm.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqPolyComm | undefined} x
+    */
+    set runtime_tables_comm(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFqPolyComm);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverificationevals_set_runtime_tables_comm(this.ptr, ptr0);
+    }
 }
 /**
 */
@@ -5806,13 +7178,19 @@ export class WasmFqPlonkVerifierIndex {
     * @param {WasmFqSrs} srs
     * @param {WasmFqPlonkVerificationEvals} evals
     * @param {WasmFqShifts} shifts
+    * @param {WasmFqLookupVerifier | undefined} lookup_index
     */
-    constructor(domain, max_poly_size, public_, prev_challenges, srs, evals, shifts) {
+    constructor(domain, max_poly_size, public_, prev_challenges, srs, evals, shifts, lookup_index) {
         _assertClass(domain, WasmFqDomain);
         _assertClass(srs, WasmFqSrs);
         _assertClass(evals, WasmFqPlonkVerificationEvals);
         _assertClass(shifts, WasmFqShifts);
-        const ret = wasm.wasmfqplonkverifierindex_new(domain.ptr, max_poly_size, public_, prev_challenges, srs.ptr, evals.ptr, shifts.ptr);
+        let ptr0 = 0;
+        if (!isLikeNone(lookup_index)) {
+            _assertClass(lookup_index, WasmFqLookupVerifier);
+            ptr0 = lookup_index.__destroy_into_raw();
+        }
+        const ret = wasm.wasmfqplonkverifierindex_new(domain.ptr, max_poly_size, public_, prev_challenges, srs.ptr, evals.ptr, shifts.ptr, ptr0);
         return WasmFqPlonkVerifierIndex.__wrap(ret);
     }
     /**
@@ -5844,6 +7222,24 @@ export class WasmFqPlonkVerifierIndex {
         _assertClass(x, WasmFqPlonkVerificationEvals);
         var ptr0 = x.__destroy_into_raw();
         wasm.wasmfpplonkverifierindex_set_evals(this.ptr, ptr0);
+    }
+    /**
+    * @returns {WasmFqLookupVerifier | undefined}
+    */
+    get lookup_index() {
+        const ret = wasm.wasmfqplonkverifierindex_lookup_index(this.ptr);
+        return ret === 0 ? undefined : WasmFqLookupVerifier.__wrap(ret);
+    }
+    /**
+    * @param {WasmFqLookupVerifier | undefined} x
+    */
+    set lookup_index(x) {
+        let ptr0 = 0;
+        if (!isLikeNone(x)) {
+            _assertClass(x, WasmFqLookupVerifier);
+            ptr0 = x.__destroy_into_raw();
+        }
+        wasm.wasmfpplonkverifierindex_set_lookup_index(this.ptr, ptr0);
     }
 }
 /**
@@ -5911,7 +7307,7 @@ export class WasmFqPolyComm {
     * @returns {WasmGPallas | undefined}
     */
     get shifted() {
-        const ret = wasm.__wbg_get_wasmfqpolycomm_shifted(this.ptr);
+        const ret = wasm.__wbg_get_wasmfppolycomm_shifted(this.ptr);
         return ret === 0 ? undefined : WasmGPallas.__wrap(ret);
     }
     /**
@@ -5923,7 +7319,7 @@ export class WasmFqPolyComm {
             _assertClass(arg0, WasmGPallas);
             ptr0 = arg0.__destroy_into_raw();
         }
-        wasm.__wbg_set_wasmfqpolycomm_shifted(this.ptr, ptr0);
+        wasm.__wbg_set_wasmfppolycomm_shifted(this.ptr, ptr0);
     }
 }
 /**
@@ -5983,14 +7379,14 @@ export class WasmFqProverCommitments {
     * @returns {WasmFqPolyComm}
     */
     get z_comm() {
-        const ret = wasm.wasmfqprovercommitments_z_comm(this.ptr);
+        const ret = wasm.wasmfpplonkverificationevals_generic_comm(this.ptr);
         return WasmFqPolyComm.__wrap(ret);
     }
     /**
     * @returns {WasmFqPolyComm}
     */
     get t_comm() {
-        const ret = wasm.wasmfqprovercommitments_t_comm(this.ptr);
+        const ret = wasm.wasmfpplonkverificationevals_psm_comm(this.ptr);
         return WasmFqPolyComm.__wrap(ret);
     }
     /**
@@ -6007,7 +7403,7 @@ export class WasmFqProverCommitments {
     set z_comm(x) {
         _assertClass(x, WasmFqPolyComm);
         var ptr0 = x.__destroy_into_raw();
-        wasm.wasmfqprovercommitments_set_z_comm(this.ptr, ptr0);
+        wasm.wasmfpplonkverificationevals_set_generic_comm(this.ptr, ptr0);
     }
     /**
     * @param {WasmFqPolyComm} x
@@ -6015,7 +7411,7 @@ export class WasmFqProverCommitments {
     set t_comm(x) {
         _assertClass(x, WasmFqPolyComm);
         var ptr0 = x.__destroy_into_raw();
-        wasm.wasmfqprovercommitments_set_t_comm(this.ptr, ptr0);
+        wasm.wasmfpplonkverificationevals_set_psm_comm(this.ptr, ptr0);
     }
 }
 /**
@@ -7531,6 +8927,14 @@ function getImports() {
     imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
         takeObject(arg0);
     };
+    imports.wbg.__wbg_startWorkers_f430e3766320935f = function(arg0, arg1, arg2) {
+        const ret = startWorkers(takeObject(arg0), takeObject(arg1), PoolBuilder.__wrap(arg2));
+        return addHeapObject(ret);
+    };
+    imports.wbg.__wbg_terminateWorkers_bf82de78d64704cb = function() {
+        const ret = terminateWorkers();
+        return addHeapObject(ret);
+    };
     imports.wbg.__wbindgen_number_new = function(arg0) {
         const ret = arg0;
         return addHeapObject(ret);
@@ -7547,14 +8951,6 @@ function getImports() {
     };
     imports.wbg.__wbindgen_error_new = function(arg0, arg1) {
         const ret = new Error(getStringFromWasm0(arg0, arg1));
-        return addHeapObject(ret);
-    };
-    imports.wbg.__wbg_startWorkers_f430e3766320935f = function(arg0, arg1, arg2) {
-        const ret = startWorkers(takeObject(arg0), takeObject(arg1), PoolBuilder.__wrap(arg2));
-        return addHeapObject(ret);
-    };
-    imports.wbg.__wbg_terminateWorkers_bf82de78d64704cb = function() {
-        const ret = terminateWorkers();
         return addHeapObject(ret);
     };
     imports.wbg.__wbg_new_abda76e883ba8a5f = function() {
