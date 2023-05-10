@@ -3,6 +3,7 @@ import { AnyConstructor, CircuitValue, prop } from './circuit_value.js';
 import { Types } from '../bindings/mina-transaction/types.js';
 import { HashInput } from './hash.js';
 import { Provable } from './provable.js';
+import { CatchAndPrettifyStacktraceForAllMethods } from './errors.js';
 
 // external API
 export { UInt32, UInt64, Int64, Sign };
@@ -10,6 +11,7 @@ export { UInt32, UInt64, Int64, Sign };
 /**
  * A 64 bit unsigned integer with values ranging from 0 to 18,446,744,073,709,551,615.
  */
+@CatchAndPrettifyStacktraceForAllMethods
 class UInt64 extends CircuitValue {
   @prop value: Field;
   static NUM_BITS = 64;
@@ -373,6 +375,7 @@ class UInt64 extends CircuitValue {
 /**
  * A 32 bit unsigned integer with values ranging from 0 to 4,294,967,295.
  */
+@CatchAndPrettifyStacktraceForAllMethods
 class UInt32 extends CircuitValue {
   @prop value: Field;
   static NUM_BITS = 32;
@@ -707,6 +710,7 @@ class UInt32 extends CircuitValue {
   }
 }
 
+@CatchAndPrettifyStacktraceForAllMethods
 class Sign extends CircuitValue {
   @prop value: Field; // +/- 1
 
@@ -755,6 +759,7 @@ type BalanceChange = Types.AccountUpdate['body']['balanceChange'];
 /**
  * A 64 bit signed integer with values ranging from -18,446,744,073,709,551,615 to 18,446,744,073,709,551,615.
  */
+@CatchAndPrettifyStacktraceForAllMethods
 class Int64 extends CircuitValue implements BalanceChange {
   // * in the range [-2^64+1, 2^64-1], unlike a normal int64
   // * under- and overflowing is disallowed, similar to UInt64, unlike a normal int64+
@@ -834,7 +839,6 @@ class Int64 extends CircuitValue implements BalanceChange {
     let sgn = this.isPositive().toBoolean() || abs === '0' ? '' : '-';
     return sgn + abs;
   }
-
   isConstant() {
     return this.magnitude.value.isConstant() && this.sgn.isConstant();
   }
