@@ -1289,18 +1289,23 @@ module Snarky = struct
     end
 
   module Field = struct
-    let assert_equals x y = Field.Assert.equal x y
-
-    let read (x : Field.t) =
-      match x with Constant x -> x | x -> As_prover.read_var x
-
+    (** add x, y to get a new AST node Add(x, y); handles if x, y are constants *)
     let add x y = Field.add x y
 
-    let sub x y = Field.sub x y
+    (** scale x by a constant to get a new AST node Scale(c, x); handles if x is a constant *)
+    let scale x c = Field.scale x c
 
-    let negate x = Field.negate x
-
+    (** witnesses z = x*y and constrains it with [assert_r1cs]; handles constants *)
     let mul x y = Field.mul x y
+
+    (** evaluates a CVar by walking the AST and reading Vars from a list of public input + aux values *)
+    let read_var (x : Field.t) = As_prover.read_var x
+
+    (** x === y without handling of constants *)
+    let assert_equal x y = Impl.assert_ (Impl.Constraint.equal x y)
+
+    (** x*y === z without handling of constants *)
+    let assert_r1cs x y z = Impl.assert_ (Impl.Constraint.r1cs x y z)
 
     (* this covers all comparisons, including with assert *)
     let compare (bit_length : int) x y =
@@ -1313,13 +1318,21 @@ module Snarky = struct
 
     let from_bits bits = Field.project bits
 
-    let range_check_helper (num_bits : int) x =
-      let _a, _b, n =
-        Pickles.Scalar_challenge.to_field_checked' ~num_bits
+    (** returns x truncated to the lowest [length] bits
+       => can be used to assert that x fits in [length] bits.
+
+       more efficient than [to_bits] because it uses the [EC_endoscalar] gate;
+       does 16 bits per row (vs 1 bits per row that you can do with generic gates).
+       [length] has to be a multiple of 16
+    *)
+    let truncate_to_bits (length : int) x =
+      assert (length mod 16 = 0) ;
+      let _a, _b, x0 =
+        Pickles.Scalar_challenge.to_field_checked' ~num_bits:length
           (module Impl)
           { inner = x }
       in
-      n
+      x0
 
     (* can be implemented with Field.to_constant_and_terms *)
     let seal x = Pickles.Util.seal (module Impl) x
@@ -1380,6 +1393,33 @@ let snarky =
     method runUnchecked = Snarky.run_unchecked
 
     method constraintSystem = Snarky.constraint_system
+
+    val field =
+      object%js
+        method add = Snarky.Field.add
+
+        method scale = Snarky.Field.scale
+
+        method mul = Snarky.Field.mul
+
+        method readVar = Snarky.Field.read_var
+
+        method assertEqual = Snarky.Field.assert_equal
+
+        method assertR1cs = Snarky.Field.assert_r1cs
+
+        method compare = Snarky.Field.compare
+
+        method toBits = Snarky.Field.to_bits
+
+        method fromBits = Snarky.Field.from_bits
+
+        method truncateToBits = Snarky.Field.truncate_to_bits
+
+        method seal = Snarky.Field.seal
+
+        method toConstantAndTerms = Snarky.Field.to_constant_and_terms
+      end
 
     val circuit =
       object%js

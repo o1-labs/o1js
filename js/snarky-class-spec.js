@@ -214,6 +214,10 @@ export default [
         type: 'function',
       },
       {
+        name: 'field',
+        type: 'object',
+      },
+      {
         name: 'circuit',
         type: 'object',
       },
