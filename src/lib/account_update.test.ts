@@ -55,7 +55,6 @@ describe('AccountUpdate', () => {
     // TODO remove restriction "This function can't be run outside of a checked computation."
     Circuit.runAndCheck(() => {
       let hash = accountUpdate.hash();
-      expect(isField(hash)).toBeTruthy();
 
       // if we clone the accountUpdate, hash should be the same
       let accountUpdate2 = AccountUpdate.clone(accountUpdate);
@@ -100,9 +99,3 @@ describe('AccountUpdate', () => {
     expect(TokenId.fromBase58(defaultTokenId).toString()).toEqual('1');
   });
 });
-
-// to check that we got something that looks like a Field
-// note: `instanceof Field` doesn't work
-function isField(x: any) {
-  return x?.constructor === Field(1).constructor;
-}

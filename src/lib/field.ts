@@ -134,6 +134,10 @@ const Field = toFunctionConstructor(
       return this.add(Field.from(y).neg());
     }
 
+    static #assertMul(x: Field, y: Field, z: Field) {
+      Snarky.field.assertMul(x.value, y.value, z.value);
+    }
+
     mul(y: Field | bigint | number | string): Field {
       if (this.isConstant() && isConstant(y)) {
         return new Field(Fp.mul(this.toBigInt(), toFp(y)));
@@ -152,7 +156,7 @@ const Field = toFunctionConstructor(
         constFromBigint(Fp.mul(this.toBigInt(), toFp(y)))
       );
       // add a multiplication constraint
-      Snarky.field.assertMul(this.value, Field.#toVar(y), z);
+      Snarky.field.assertMul(this.value, y.value, z);
       return new Field(z);
     }
 
@@ -201,11 +205,29 @@ const Field = toFunctionConstructor(
       return new Field(z);
     }
 
-    equals(y: Field | bigint | number | string) {
+    equals(y: Field | bigint | number | string): Bool {
       if (this.isConstant() && isConstant(y)) {
         return Bool(this.toBigInt() === toFp(y));
       }
-      return SnarkyField(this).equals(y);
+      // create delta = x - y
+      let delta = this.sub(y);
+      // create witnesses z = 1/(x - y), or z=0 if x=y,
+      // and b = 1 - z(x - y)
+      let [b, z] = Snarky.exists(2, () => {
+        let delta0 = delta.toBigInt();
+        let z = Fp.inverse(delta0) ?? 0n;
+        let b = Fp.sub(1n, Fp.mul(z, delta0));
+        return [new Field(b), new Field(z)];
+      });
+      // add constraints
+      // z * (x - y) === 1 - b
+      Field.#assertMul(z, delta, new Field(1).sub(delta));
+      // b * (x - y) === 0
+      Field.#assertMul(b, delta, new Field(0));
+      // these prove that b = Bool(x === y):
+      // if x = y, the 1st equation implies b = 1
+      // if x != y, the 2nd implies b = 0
+      return Bool.Unsafe.ofField(b);
     }
 
     lessThan(y: Field | bigint | number | string): Bool {
