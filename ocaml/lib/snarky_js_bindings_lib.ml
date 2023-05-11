@@ -1255,6 +1255,9 @@ module Snarky = struct
         compute () |> Js.to_array |> Array.map ~f:of_js_field_unchecked )
     |> Array.map ~f:to_js_field |> Js.array
 
+  let exists_var (compute : unit -> Field.Constant.t) =
+    Impl.exists Field.typ ~compute
+
   let as_prover = Impl.as_prover
 
   let run_and_check (f : unit -> unit) =
@@ -1305,7 +1308,7 @@ module Snarky = struct
     let assert_equal x y = Impl.assert_ (Impl.Constraint.equal x y)
 
     (** x*y === z without handling of constants *)
-    let assert_r1cs x y z = Impl.assert_ (Impl.Constraint.r1cs x y z)
+    let assert_mul x y z = Impl.assert_ (Impl.Constraint.r1cs x y z)
 
     (** check x < y and x <= y.
         this is used in all comparisons, including with assert *)
@@ -1387,6 +1390,8 @@ let snarky =
   object%js
     method exists = Snarky.exists
 
+    method existsVar = Snarky.exists_var
+
     method asProver = Snarky.as_prover
 
     method runAndCheck = Snarky.run_and_check
@@ -1407,7 +1412,7 @@ let snarky =
 
         method assertEqual = Snarky.Field.assert_equal
 
-        method assertR1cs = Snarky.Field.assert_r1cs
+        method assertMul = Snarky.Field.assert_mul
 
         method compare = Snarky.Field.compare
 
