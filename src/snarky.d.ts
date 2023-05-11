@@ -1,5 +1,5 @@
 import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
-import type { Field } from './lib/field.js';
+import type { Field, FieldConst, FieldVar } from './lib/field.js';
 // export { Field };
 export { SnarkyField };
 export {
@@ -45,6 +45,11 @@ declare interface ProvablePure<T> extends Provable<T> {
   check: (x: T) => void;
 }
 
+// ocaml types
+type Tuple<X, Y> = [0, X, Y];
+type List<T> = [0, ...T[]];
+type Option<T> = 0 | [0, T];
+
 declare namespace Snarky {
   type Keypair = unknown;
   type VerificationKey = unknown;
@@ -80,6 +85,73 @@ declare const Snarky: {
     rows: number;
     digest: string;
     json: JsonConstraintSystem;
+  };
+
+  /**
+   * APIs to add constraints on field variables
+   */
+  field: {
+    /**
+     * add x, y to get a new AST node Add(x, y); handles if x, y are constants
+     */
+    add(x: FieldVar, y: FieldVar): FieldVar;
+    /**
+     * scale x by a constant to get a new AST node Scale(c, x); handles if x is a constant
+     */
+    scale(x: FieldVar, c: FieldConst): FieldVar;
+    /**
+     * witnesses z = x*y and constrains it with [assert_r1cs]; handles constants
+     */
+    mul(x: FieldVar, y: FieldVar): FieldVar;
+    /**
+     * evaluates a CVar by walking the AST and reading Vars from a list of public input + aux values
+     */
+    readVar(x: FieldVar): FieldConst;
+    /**
+     * x === y without handling of constants
+     */
+    assertEqual(x: FieldVar, y: FieldVar): void;
+    /**
+     * x*y === z without handling of constants
+     */
+    assertR1CS(x: FieldVar, y: FieldVar, z: FieldVar): void;
+    /**
+     * check x < y and x <= y
+     */
+    compare(
+      x: FieldVar,
+      y: FieldVar
+    ): [flag: 0, less: FieldVar, lessOrEqual: FieldVar];
+    /**
+     *
+     */
+    toBits(length: number, x: FieldVar): List<FieldVar>;
+    /**
+     *
+     */
+    fromBits(bits: List<FieldVar>): FieldVar;
+    /**
+     * returns x truncated to the lowest `length` bits
+     * => can be used to assert that x fits in `length` bits.
+     *
+     * more efficient than `toBits()` because it uses the EC_endoscalar gate;
+     * does 16 bits per row (vs 1 bits per row that you can do with generic gates).
+     * `length` has to be a multiple of 16
+     */
+    truncateToBits(length: number, x: FieldVar): FieldVar;
+    /**
+     * returns a new witness from an AST
+     * (implemented with toConstantAndTerms)
+     */
+    seal(x: FieldVar): FieldVar;
+    /**
+     * Unfolds AST to get `x = c + c0*Var(i0) + ... + cn*Var(in)`,
+     * returns `(c, [(c0, i0), ..., (cn, in)])`;
+     * c is optional
+     */
+    toConstantAndTerms(
+      x: FieldVar
+    ): Tuple<Option<FieldConst>, List<Tuple<FieldConst, number>>>;
   };
 
   /**

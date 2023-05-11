@@ -4,9 +4,11 @@ import { Bool } from '../snarky.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 
-export { Field, ConstantField, FieldType, FieldVar };
+export { Field, ConstantField, FieldType, FieldVar, FieldConst };
 
 const SnarkyFieldConstructor = SnarkyField(1).constructor;
+
+type FieldConst = Uint8Array;
 
 enum FieldType {
   Constant,
@@ -14,11 +16,12 @@ enum FieldType {
   Add,
   Scale,
 }
+
 type FieldVar =
-  | [FieldType.Constant, Uint8Array]
+  | [FieldType.Constant, FieldConst]
   | [FieldType.Var, number]
   | [FieldType.Add, FieldVar, FieldVar]
-  | [FieldType.Scale, Uint8Array, FieldVar];
+  | [FieldType.Scale, FieldConst, FieldVar];
 
 const Field = toFunctionConstructor(
   class Field {
