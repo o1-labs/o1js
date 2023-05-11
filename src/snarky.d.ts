@@ -67,6 +67,10 @@ declare const Snarky: {
    */
   exists(sizeInFields: number, compute: () => Field[]): Field[];
   /**
+   * witness a single field element variable
+   */
+  existsVar(compute: () => FieldConst): FieldVar;
+  /**
    * Runs code as a prover.
    */
   asProver(f: () => void): void;
@@ -114,7 +118,7 @@ declare const Snarky: {
     /**
      * x*y === z without handling of constants
      */
-    assertR1CS(x: FieldVar, y: FieldVar, z: FieldVar): void;
+    assertMul(x: FieldVar, y: FieldVar, z: FieldVar): void;
     /**
      * check x < y and x <= y
      */

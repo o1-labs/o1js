@@ -1,4 +1,4 @@
-import { SnarkyField } from '../snarky.js';
+import { Snarky, SnarkyField } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { Bool } from '../snarky.js';
 import { defineBinable } from '../bindings/lib/binable.js';
@@ -23,33 +23,76 @@ type FieldVar =
   | [FieldType.Add, FieldVar, FieldVar]
   | [FieldType.Scale, FieldConst, FieldVar];
 
+type ConstantFieldRaw = { value: [FieldType.Constant, FieldConst] };
+
+function constToBigint(x: FieldConst): Fp {
+  return Fp.fromBytes([...x]);
+}
+function constFromBigint(x: Fp) {
+  return Uint8Array.from(Fp.toBytes(x));
+}
+
 const Field = toFunctionConstructor(
   class Field {
     value: FieldVar;
 
     static ORDER = Fp.modulus;
 
-    constructor(x: bigint | number | string | Field) {
-      if (x instanceof Field || (x as any) instanceof SnarkyFieldConstructor) {
-        this.value = (x as any).value;
+    constructor(x: bigint | number | string | Field | FieldVar) {
+      if (Field.#isField(x)) {
+        this.value = x.value;
         return;
       }
-      let bytes = Fp.toBytes(Fp(x));
-      this.value = [0, Uint8Array.from(bytes)];
+      // fieldVar
+      if (Array.isArray(x)) {
+        this.value = x;
+        return;
+      }
+      // TODO this should handle common values efficiently by reading from a lookup table
+      this.value = [0, constFromBigint(Fp(x))];
     }
 
-    isConstant(): this is { value: [FieldType.Constant, Uint8Array] } {
+    // helpers
+    static #isField(
+      x: bigint | number | string | Field | FieldVar
+    ): x is Field {
+      return x instanceof Field || (x as any) instanceof SnarkyFieldConstructor;
+    }
+    static #fromConst(value: FieldConst): Field & ConstantFieldRaw {
+      return new Field([0, value]) as Field & ConstantFieldRaw;
+    }
+    static #toConst(
+      x: bigint | number | string | (Field & ConstantFieldRaw)
+    ): FieldConst {
+      if (Field.#isField(x)) return x.value[1];
+      return constFromBigint(Fp(x));
+    }
+    static #toVar(x: bigint | number | string | Field): FieldVar {
+      if (Field.#isField(x)) return x.value;
+      return [0, constFromBigint(Fp(x))];
+    }
+    static from(x: bigint | number | string | Field): Field {
+      if (Field.#isField(x)) return x;
+      return new Field(x);
+    }
+
+    static #zero = Uint8Array.from(Fp.toBytes(0n));
+    static #one = Uint8Array.from(Fp.toBytes(1n));
+    static #negOne = Uint8Array.from(Fp.toBytes(Fp(-1n)));
+
+    isConstant(): this is ConstantFieldRaw {
       return this.value[0] === FieldType.Constant;
     }
-    toConstant(): Field & { value: [FieldType.Constant, Uint8Array] } {
+    toConstant(): Field & ConstantFieldRaw {
       if (this.isConstant()) return this;
-      // TODO: actually, try to read the variable here
-      throw Error(`Can't evaluate prover code outside an as_prover block 🧌🧌🧌`);
+      // TODO: fix OCaml error message, `Can't evaluate prover code outside an as_prover block`
+      let value = Snarky.field.readVar(this.value);
+      return Field.#fromConst(value);
     }
 
     toBigInt() {
       let x = this.toConstant();
-      return Fp.fromBytes([...x.value[1]]);
+      return constToBigint(x.value[1]);
     }
     toString() {
       return this.toBigInt().toString();
@@ -63,70 +106,99 @@ const Field = toFunctionConstructor(
           }
           return;
         }
-        SnarkyField(this).assertEquals(y);
+        Snarky.field.assertEqual(this.value, Field.#toVar(y));
       } catch (err) {
         throw withMessage(err, message);
       }
     }
 
-    add(y: Field | bigint | number | string) {
+    add(y: Field | bigint | number | string): Field {
       if (this.isConstant() && isConstant(y)) {
         return new Field(Fp.add(this.toBigInt(), toFp(y)));
       }
-      return SnarkyField(this).add(y);
+      // return new AST node Add(x, y)
+      let z = Snarky.field.add(this.value, Field.#toVar(y));
+      return new Field(z);
     }
-    sub(y: Field | bigint | number | string) {
-      if (this.isConstant() && isConstant(y)) {
-        return new Field(Fp.sub(this.toBigInt(), toFp(y)));
-      }
-      return SnarkyField(this).sub(y);
-    }
+
     neg() {
       if (this.isConstant()) {
         return new Field(Fp.negate(this.toBigInt()));
       }
-      return SnarkyField(this).neg();
+      // return new AST node Scale(-1, x)
+      let z = Snarky.field.scale(this.value, Field.#negOne);
+      return new Field(z);
     }
 
-    mul(y: Field | bigint | number | string) {
+    sub(y: Field | bigint | number | string) {
+      return this.add(Field.from(y).neg());
+    }
+
+    mul(y: Field | bigint | number | string): Field {
       if (this.isConstant() && isConstant(y)) {
         return new Field(Fp.mul(this.toBigInt(), toFp(y)));
       }
-      return SnarkyField(this).mul(y);
-    }
-    div(y: Field | bigint | number | string) {
-      if (this.isConstant() && isConstant(y)) {
-        let z = Fp.div(this.toBigInt(), toFp(y));
-        if (z === undefined) throw Error('Field.div(): Division by zero');
+      // if one of the factors is constant, return Scale AST node
+      if (this.isConstant()) {
+        let z = Snarky.field.scale((y as Field).value, this.value[1]);
         return new Field(z);
       }
-      return SnarkyField(this).div(y);
+      if (isConstant(y)) {
+        let z = Snarky.field.scale(this.value, Field.#toConst(y));
+        return new Field(z);
+      }
+      // create a new witness for z = x*y
+      let z = Snarky.existsVar(() =>
+        constFromBigint(Fp.mul(this.toBigInt(), toFp(y)))
+      );
+      // add a multiplication constraint
+      Snarky.field.assertMul(this.value, Field.#toVar(y), z);
+      return new Field(z);
     }
+
     inv() {
       if (this.isConstant()) {
-        let xInv = Fp.inverse(this.toBigInt());
-        if (xInv === undefined) throw Error('Field.inv(): Division by zero');
-        return new Field(xInv);
+        let z = Fp.inverse(this.toBigInt());
+        if (z === undefined) throw Error('Field.inv(): Division by zero');
+        return new Field(z);
       }
-      return SnarkyField(this).inv();
+      // create a witness for z = x^(-1)
+      let z = Snarky.existsVar(() => {
+        let z = Fp.inverse(this.toBigInt()) ?? 0n;
+        return constFromBigint(z);
+      });
+      // constrain x * z === 1
+      Snarky.field.assertMul(this.value, z, [0, Field.#one]);
+      return new Field(z);
+    }
+
+    div(y: Field | bigint | number | string) {
+      // TODO this is the same as snarky-ml but could use 1 constraint instead of 2
+      return this.mul(Field.from(y).inv());
     }
 
     square() {
-      if (this.isConstant()) {
-        return new Field(Fp.square(this.toBigInt()));
-      }
-      return SnarkyField(this).square();
+      // snarky-ml uses assert_square which leads to an equivalent but slightly different gate
+      return this.mul(this);
     }
+
     sqrt() {
       if (this.isConstant()) {
-        let q = Fp.sqrt(this.toBigInt());
-        if (q === undefined)
+        let z = Fp.sqrt(this.toBigInt());
+        if (z === undefined)
           throw Error(
             `Field.sqrt(): input ${this} has no square root in the field.`
           );
-        return new Field(q);
+        return new Field(z);
       }
-      return SnarkyField(this).sqrt();
+      // create a witness for sqrt(x)
+      let z = Snarky.existsVar(() => {
+        let z = Fp.sqrt(this.toBigInt()) ?? 0n;
+        return constFromBigint(z);
+      });
+      // constrain z * z === x
+      Snarky.field.assertMul(z, z, this.value);
+      return new Field(z);
     }
 
     equals(y: Field | bigint | number | string) {
@@ -136,13 +208,13 @@ const Field = toFunctionConstructor(
       return SnarkyField(this).equals(y);
     }
 
-    lessThan(y: Field | bigint | number | string) {
+    lessThan(y: Field | bigint | number | string): Bool {
       if (this.isConstant() && isConstant(y)) {
         return Bool(this.toBigInt() < toFp(y));
       }
       return SnarkyField(this).lessThan(y);
     }
-    lessThanOrEqual(y: Field | bigint | number | string) {
+    lessThanOrEqual(y: Field | bigint | number | string): Bool {
       if (this.isConstant() && isConstant(y)) {
         return Bool(this.toBigInt() <= toFp(y));
       }
@@ -368,12 +440,17 @@ function toFunctionConstructor<Class extends new (...args: any) => any>(
   return Constructor as any;
 }
 
-function isConstant(x: bigint | number | string | Field): x is Field {
+function isConstant(
+  x: bigint | number | string | Field
+): x is bigint | number | string | (Field & ConstantFieldRaw) {
   let type = typeof x;
   if (type === 'bigint' || type === 'number' || type === 'string') {
     return true;
   }
   return (x as Field).isConstant();
+}
+function isVariable(x: bigint | number | string | Field): x is Field {
+  return !isConstant(x);
 }
 
 function toFp(x: bigint | number | string | Field): Fp {
