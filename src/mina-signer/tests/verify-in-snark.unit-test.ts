@@ -30,7 +30,7 @@ let signature = Signature.fromBase58(signed.signature);
 signature.verify(publicKey, fieldsSnarky).assertTrue();
 
 // verify in-snark with snarkyjs
-const Message = Circuit.array(Field, fields.length);
+const Message = Provable.Array(Field, fields.length);
 
 const MyProgram = ZkProgram({
   publicInput: provablePure(null),

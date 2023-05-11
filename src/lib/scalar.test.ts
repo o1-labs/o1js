@@ -16,8 +16,8 @@ describe('scalar', () => {
       describe('toFields', () => {
         it('should return an array of Fields', () => {
           expect(() => {
-            Circuit.runAndCheck(() => {
-              const x = Circuit.witness(Scalar, () => Scalar.random());
+            Provable.runAndCheck(() => {
+              const x = Provable.witness(Scalar, () => Scalar.random());
               const fieldArr = x.toFields();
               expect(Array.isArray(fieldArr)).toBe(true);
             });
@@ -28,8 +28,8 @@ describe('scalar', () => {
       describe('fromFields', () => {
         it('should return a Scalar', () => {
           expect(() => {
-            Circuit.runAndCheck(() => {
-              Circuit.witness(Scalar, () => Scalar.fromFields([Field(1)]));
+            Provable.runAndCheck(() => {
+              Provable.witness(Scalar, () => Scalar.fromFields([Field(1)]));
             });
           }).not.toThrow();
         });
@@ -38,8 +38,8 @@ describe('scalar', () => {
       describe('fromBits', () => {
         it('should return a Scalar', () => {
           expect(() => {
-            Circuit.runAndCheck(() => {
-              Circuit.witness(Scalar, () => Scalar.fromBits([Bool(true)]));
+            Provable.runAndCheck(() => {
+              Provable.witness(Scalar, () => Scalar.fromBits([Bool(true)]));
             });
           }).not.toThrow();
         });
@@ -48,16 +48,16 @@ describe('scalar', () => {
       describe('random', () => {
         it('should not crash', () => {
           expect(() => {
-            Circuit.runAndCheck(() => {
-              Circuit.witness(Scalar, () => Scalar.random());
+            Provable.runAndCheck(() => {
+              Provable.witness(Scalar, () => Scalar.random());
             });
           }).not.toThrow();
         });
 
         it('two different calls should be different', () => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Scalar, () => Scalar.random());
-            const y = Circuit.witness(Scalar, () => Scalar.random());
+          Provable.runAndCheck(() => {
+            const x = Provable.witness(Scalar, () => Scalar.random());
+            const y = Provable.witness(Scalar, () => Scalar.random());
             expect(x).not.toEqual(y);
           });
         });

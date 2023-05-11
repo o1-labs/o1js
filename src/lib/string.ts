@@ -1,6 +1,6 @@
 import { Bool, Field } from '../snarky.js';
 import { arrayProp, CircuitValue, prop } from './circuit_value.js';
-import { Circuit } from './circuit.js';
+import { Provable } from './provable.js';
 import { Poseidon } from './hash.js';
 
 export { Character, CircuitString };
@@ -106,7 +106,7 @@ class CircuitString extends CircuitValue {
     let mask = this.lengthMask();
     for (let i = 0; i < n; i++) {
       let possibleCharsAtI = possibleResults.map((r) => r[i]);
-      result[i] = Circuit.switch(mask, Character, possibleCharsAtI);
+      result[i] = Provable.switch(mask, Character, possibleCharsAtI);
     }
     return CircuitString.fromCharacters(result);
   }
