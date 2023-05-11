@@ -1,4 +1,4 @@
-import { Provable, Bool, Field } from '../snarky.js';
+import { Provable, Bool, Field, Provable } from '../snarky.js';
 import { circuitValueEquals } from './circuit_value.js';
 import { Circuit } from './circuit.js';
 import * as Mina from './mina.js';
@@ -315,7 +315,7 @@ function timestampToGlobalSlotRange(
     .sub(genesisTimestamp)
     .add(slotTime)
     .sub(1);
-  let lowerCapped = Circuit.if<UInt64>(
+  let lowerCapped = Provable.if<UInt64>(
     tsLowerInt.isPositive(),
     UInt64,
     tsLowerInt.magnitude,

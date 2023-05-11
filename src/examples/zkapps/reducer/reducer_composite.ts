@@ -9,9 +9,9 @@ import {
   AccountUpdate,
   isReady,
   Bool,
-  Circuit,
   Struct,
   Reducer,
+  Provable,
 } from 'snarkyjs';
 import assert from 'node:assert/strict';
 import { getProfiler } from '../../profiler.js';
@@ -60,7 +60,7 @@ class CounterZkapp extends SmartContract {
         Field,
         // function that says how to apply an action
         (state: Field, action: MaybeIncrement) => {
-          return Circuit.if(action.isIncrement, state.add(1), state);
+          return Provable.if(action.isIncrement, state.add(1), state);
         },
         { state: counter, actionState }
       );

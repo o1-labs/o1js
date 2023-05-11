@@ -1392,7 +1392,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
         );
         let isEmpty = lengths[0];
         // update state hash, if this is not an empty action
-        actionState = Circuit.if(isEmpty, actionState, newActionsHash);
+        actionState = Provable.if(isEmpty, actionState, newActionsHash);
         // also, for each action length, compute the new state and then pick the actual one
         let newStates = actionss.map((actions) => {
           // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
