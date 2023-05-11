@@ -1307,7 +1307,8 @@ module Snarky = struct
     (** x*y === z without handling of constants *)
     let assert_r1cs x y z = Impl.assert_ (Impl.Constraint.r1cs x y z)
 
-    (* this covers all comparisons, including with assert *)
+    (** check x < y and x <= y.
+        this is used in all comparisons, including with assert *)
     let compare (bit_length : int) x y =
       let ({ less; less_or_equal } : Field.comparison_result) =
         Field.compare ~bit_length x y
