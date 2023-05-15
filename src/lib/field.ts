@@ -1,4 +1,4 @@
-import { Snarky, SnarkyField } from '../snarky.js';
+import { Snarky, SnarkyField, Provable } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { Bool } from '../snarky.js';
 import { defineBinable } from '../bindings/lib/binable.js';
@@ -60,12 +60,21 @@ const FieldVar = {
 
 type ConstantFieldRaw = { value: [FieldType.Constant, FieldConst] };
 
+/**
+ * An element of a finite field.
+ */
 const Field = toFunctionConstructor(
   class Field {
     value: FieldVar;
 
+    /**
+     * The field order as a `bigint`.
+     */
     static ORDER = Fp.modulus;
 
+    /**
+     * Coerces anything field-like to a {@link Field}.
+     */
     constructor(x: bigint | number | string | Field | FieldVar) {
       if (Field.#isField(x)) {
         this.value = x.value;
@@ -86,9 +95,6 @@ const Field = toFunctionConstructor(
     ): x is Field {
       return x instanceof Field || (x as any) instanceof SnarkyFieldConstructor;
     }
-    static #fromConst(value: FieldConst): Field & ConstantFieldRaw {
-      return new Field([0, value]) as Field & ConstantFieldRaw;
-    }
     static #toConst(
       x: bigint | number | string | (Field & ConstantFieldRaw)
     ): FieldConst {
@@ -104,9 +110,16 @@ const Field = toFunctionConstructor(
       return new Field(x);
     }
 
+    /**
+     * Checks whether this is a hard-coded constant in the Circuit.
+     */
     isConstant(): this is ConstantFieldRaw {
       return this.value[0] === FieldType.Constant;
     }
+
+    /**
+     * Returns a constant.
+     */
     toConstant(): Field & ConstantFieldRaw {
       if (this.isConstant()) return this;
       // TODO: fix OCaml error message, `Can't evaluate prover code outside an as_prover block`
@@ -114,14 +127,31 @@ const Field = toFunctionConstructor(
       return new Field(FieldVar.constant(value)) as Field & ConstantFieldRaw;
     }
 
+    /**
+     * Serialize this instance of a {@link Field} to a bigint.
+     * This operation does NOT affect the circuit and can't be used to prove anything about the bigint representation of the Field.
+     */
     toBigInt() {
       let x = this.toConstant();
       return FieldConst.toBigint(x.value[1]);
     }
+
+    /**
+     * Serialize the {@link Field} to a string, e.g. for printing.
+     * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+     */
     toString() {
       return this.toBigInt().toString();
     }
 
+    /**
+     * Assert that this {@link Field} equals another Field-like value.
+     * Throws an error if the assertion fails.
+     *
+     * ```ts
+     * Field(1).assertEquals(1);
+     * ```
+     */
     assertEquals(y: Field | bigint | number | string, message?: string) {
       try {
         if (this.isConstant() && isConstant(y)) {
@@ -136,6 +166,14 @@ const Field = toFunctionConstructor(
       }
     }
 
+    /**
+     * Adds this {@link Field} element to another to a {@link Field} element.
+     *
+     * ```ts
+     * let a = Field(3);
+     * let sum = a.add(5)
+     * ```
+     */
     add(y: Field | bigint | number | string): Field {
       if (this.isConstant() && isConstant(y)) {
         return new Field(Fp.add(this.toBigInt(), toFp(y)));
@@ -145,6 +183,15 @@ const Field = toFunctionConstructor(
       return new Field(z);
     }
 
+    /**
+     * Negates this {@link Field}. This is equivalent to multiplying the {@link Field}
+     * by -1.
+     *
+     * ```typescript
+     * const negOne = Field(1).neg();
+     * negOne.assertEquals(-1);
+     * ```
+     */
     neg() {
       if (this.isConstant()) {
         return new Field(Fp.negate(this.toBigInt()));
@@ -154,10 +201,16 @@ const Field = toFunctionConstructor(
       return new Field(z);
     }
 
+    /**
+     * Subtracts another {@link Field}-like element from this one.
+     */
     sub(y: Field | bigint | number | string) {
       return this.add(Field.from(y).neg());
     }
 
+    /**
+     * Multiplies this {@link Field} element with another coercible to a field.
+     */
     mul(y: Field | bigint | number | string): Field {
       if (this.isConstant() && isConstant(y)) {
         return new Field(Fp.mul(this.toBigInt(), toFp(y)));
@@ -180,6 +233,16 @@ const Field = toFunctionConstructor(
       return new Field(z);
     }
 
+    /**
+     * Inverts this {@link Field} element.
+     *
+     * ```typescript
+     * const invX = x.inv();
+     * invX.assertEquals(Field(1).div(x));
+     * ```
+     *
+     * @return A {@link Field} element that is equivalent to one divided by this element.
+     */
     inv() {
       if (this.isConstant()) {
         let z = Fp.inverse(this.toBigInt());
@@ -196,16 +259,34 @@ const Field = toFunctionConstructor(
       return new Field(z);
     }
 
+    /**
+     * Divides this {@link Field} element through another coercible to a field.
+     */
     div(y: Field | bigint | number | string) {
       // TODO this is the same as snarky-ml but could use 1 constraint instead of 2
       return this.mul(Field.from(y).inv());
     }
 
+    /**
+     * Squares this {@link Field} element.
+     *
+     * ```typescript
+     * const x2 = x.square();
+     * x2.assertEquals(x.mul(x));
+     * ```
+     */
     square() {
       // snarky-ml uses assert_square which leads to an equivalent but slightly different gate
       return this.mul(this);
     }
 
+    /**
+     * Square roots this {@link Field} element.
+     *
+     * ```typescript
+     * x.square().sqrt().assertEquals(x);
+     * ```
+     */
     sqrt() {
       if (this.isConstant()) {
         let z = Fp.sqrt(this.toBigInt());
@@ -225,6 +306,9 @@ const Field = toFunctionConstructor(
       return new Field(z);
     }
 
+    /**
+     * @deprecated use `x.equals(0)` which is equivalent
+     */
     isZero() {
       if (this.isConstant()) {
         return Bool(this.toBigInt() === 0n);
@@ -248,6 +332,14 @@ const Field = toFunctionConstructor(
       return Bool.Unsafe.ofField(new Field(b));
     }
 
+    /**
+     * Check if this {@link Field} equals another {@link Field}-like value.
+     * Returns a {@link Bool}.
+     *
+     * ```ts
+     * Field(2).equals(2); // Bool(true)
+     * ```
+     */
     equals(y: Field | bigint | number | string): Bool {
       // x == y is equivalent to x - y == 0
       // if one of the two is constant, we just need the two constraints in `isZero`
@@ -273,6 +365,15 @@ const Field = toFunctionConstructor(
       };
     }
 
+    /**
+     *
+     * Check if this {@link Field} is lower than another Field-like value.
+     * Returns a {@link Bool}.
+     *
+     * ```ts
+     * Field(2).lessThan(3); // Bool(true)
+     * ```
+     */
     lessThan(y: Field | bigint | number | string): Bool {
       if (this.isConstant() && isConstant(y)) {
         return Bool(this.toBigInt() < toFp(y));
@@ -280,6 +381,15 @@ const Field = toFunctionConstructor(
       return this.#compare(Field.#toVar(y)).less;
     }
 
+    /**
+     *
+     * Check if this {@link Field} is lower than or equal to another Field-like value.
+     * Returns a {@link Bool}.
+     *
+     * ```ts
+     * Field(2).lessThanOrEqual(3); // Bool(true)
+     * ```
+     */
     lessThanOrEqual(y: Field | bigint | number | string): Bool {
       if (this.isConstant() && isConstant(y)) {
         return Bool(this.toBigInt() <= toFp(y));
@@ -287,14 +397,41 @@ const Field = toFunctionConstructor(
       return this.#compare(Field.#toVar(y)).lessOrEqual;
     }
 
+    /**
+     *
+     * Check if this {@link Field} is greater than another Field-like value.
+     * Returns a {@link Bool}.
+     *
+     * ```ts
+     * Field(2).greaterThan(1); // Bool(true)
+     * ```
+     */
     greaterThan(y: Field | bigint | number | string) {
       return Field.from(y).lessThan(this);
     }
 
+    /**
+     *
+     * Check if this {@link Field} is greater than or equal to another Field-like value.
+     * Returns a {@link Bool}.
+     *
+     * ```ts
+     * Field(2).greaterThanOrEqual(1); // Bool(true)
+     * ```
+     */
     greaterThanOrEqual(y: Field | bigint | number | string) {
       return Field.from(y).lessThanOrEqual(this);
     }
 
+    /**
+     *
+     * Assert that this {@link Field} is lower than another Field-like value.
+     *
+     * ```ts
+     * Field(1).assertLessThan(2);
+     * ```
+     *
+     */
     assertLessThan(y: Field | bigint | number | string, message?: string) {
       try {
         if (this.isConstant() && isConstant(y)) {
@@ -310,6 +447,15 @@ const Field = toFunctionConstructor(
       }
     }
 
+    /**
+     *
+     * Assert that this {@link Field} is lower than or equal to another Field-like value.
+     *
+     * ```ts
+     * Field(1).assertLessThanOrEqual(2);
+     * ```
+     *
+     */
     assertLessThanOrEqual(
       y: Field | bigint | number | string,
       message?: string
@@ -328,10 +474,28 @@ const Field = toFunctionConstructor(
       }
     }
 
+    /**
+     *
+     * Assert that this {@link Field} is greater than another Field-like value.
+     *
+     * ```ts
+     * Field(1).assertGreaterThan(0);
+     * ```
+     *
+     */
     assertGreaterThan(y: Field | bigint | number | string, message?: string) {
       Field.from(y).assertLessThan(this, message);
     }
 
+    /**
+     *
+     * Assert that this {@link Field} is greater than or equal to another Field-like value.
+     *
+     * ```ts
+     * Field(1).assertGreaterThanOrEqual(0);
+     * ```
+     *
+     */
     assertGreaterThanOrEqual(
       y: Field | bigint | number | string,
       message?: string
@@ -339,6 +503,16 @@ const Field = toFunctionConstructor(
       Field.from(y).assertLessThanOrEqual(this, message);
     }
 
+    /**
+     * Assert that this {@link Field} is not equal to zero. This is cheaper than
+     * using `x.equals(0).assertFalse()`.
+     *
+     * @example
+     * ```ts
+     * x.assertNonZero("expect x to be non-zero");
+     * ```
+     *
+     */
     assertNonZero(message?: string) {
       try {
         if (this.isConstant()) {
@@ -354,6 +528,14 @@ const Field = toFunctionConstructor(
       }
     }
 
+    /**
+     * Assert that this {@link Field} is either 0 or 1.
+     *
+     * ```ts
+     * Field(0).assertBool();
+     * ```
+     *
+     */
     assertBool(message?: string) {
       try {
         if (this.isConstant()) {
@@ -379,6 +561,11 @@ const Field = toFunctionConstructor(
         throw Error(`${name}: bit length must be positive, got ${length}`);
     }
 
+    /**
+     * Little endian binary representation of the field element. This method is provable.
+     *
+     * If you use the optional `length` argument, it proves that the field element fits in `length` bits.
+     */
     toBits(length?: number) {
       if (length !== undefined) Field.#checkBitLength('Field.toBits()', length);
       if (this.isConstant()) {
@@ -399,6 +586,11 @@ const Field = toFunctionConstructor(
       return bits.map((b) => Bool.Unsafe.ofField(new Field(b)));
     }
 
+    /**
+     * Converts a bit array into a field element (little endian).
+     *
+     * Fails if the field element cannot fit given too many bits.
+     */
     static fromBits(bits: (Bool | boolean)[]) {
       let length = bits.length;
       Field.#checkBitLength('Field.fromBits()', length);
@@ -444,34 +636,83 @@ const Field = toFunctionConstructor(
     // internal stuff
 
     // Provable<Field>
+    /**
+     * Part of the {@link Provable} interface.
+     *
+     * Returns an array containing this field element.
+     */
     static toFields(x: Field) {
       return [x];
     }
+    /**
+     * Part of the {@link Provable} interface.
+     *
+     * Returns an empty array.
+     */
     static toAuxiliary(): [] {
       return [];
     }
+    /**
+     * Part of the {@link Provable} interface.
+     *
+     * Returns 1.
+     */
     static sizeInFields() {
       return 1;
     }
+    /**
+     * Part of the {@link Provable} interface.
+     *
+     * Deserializes a Field from a list of field elements.
+     */
     static fromFields([x]: Field[]) {
       return x;
     }
+    /**
+     * Part of the {@link Provable} interface.
+     *
+     * Does nothing.
+     */
     static check() {}
-
+    /**
+     * Part of the {@link Provable} interface.
+     *
+     * Returns an array containing this field element.
+     */
     toFields() {
       return Field.toFields(this);
     }
+    /**
+     * Part of the {@link Provable} interface.
+     *
+     * Returns an empty array.
+     */
     toAuxiliary() {
       return Field.toAuxiliary();
     }
 
     // ProvableExtended<Field>
+    /**
+     * Serialize {@link Field} to a JSON string.
+     *
+     * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+     */
     toJSON() {
       return this.toString();
     }
+    /**
+     * Serialize a {@link Field} to a JSON string.
+     *
+     * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+     */
     static toJSON(x: Field) {
       return x.toJSON();
     }
+    /**
+     * Deserialize a JSON structure into a {@link Field}.
+     *
+     * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+     */
     static fromJSON(json: string) {
       return new Field(Fp.fromJSON(json));
     }
