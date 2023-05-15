@@ -1315,9 +1315,9 @@ module Snarky = struct
       in
       (less, less_or_equal)
 
-    let to_bits (length : int) x = Field.unpack ~length x
+    let to_bits (length : int) x = Field.unpack ~length x |> Array.of_list
 
-    let from_bits bits = Field.project bits
+    let from_bits bits = Array.to_list bits |> Field.project
 
     (** returns x truncated to the lowest [length] bits
        => can be used to assert that x fits in [length] bits.
