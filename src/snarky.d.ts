@@ -56,6 +56,8 @@ declare namespace Snarky {
   type VerificationKey = unknown;
   type Proof = unknown;
 }
+// same representation, but use a different name to communicate intent / constraints
+type BoolVar = FieldVar;
 
 /**
  * Internal interface to snarky-ml
@@ -127,17 +129,18 @@ declare const Snarky: {
      * check x < y and x <= y
      */
     compare(
+      bitLength: number,
       x: FieldVar,
       y: FieldVar
-    ): [flag: 0, less: FieldVar, lessOrEqual: FieldVar];
+    ): [flag: 0, less: BoolVar, lessOrEqual: BoolVar];
     /**
      *
      */
-    toBits(length: number, x: FieldVar): MlList<FieldVar>;
+    toBits(length: number, x: FieldVar): MlArray<BoolVar>;
     /**
      *
      */
-    fromBits(bits: MlList<FieldVar>): FieldVar;
+    fromBits(bits: MlArray<BoolVar>): FieldVar;
     /**
      * returns x truncated to the lowest `length` bits
      * => can be used to assert that x fits in `length` bits.
