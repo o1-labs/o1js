@@ -194,12 +194,10 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
 
   let id = snarkContext.enter({ ...ctx, inWitnessBlock: true });
   try {
-    fields = Snarky.exists(type.sizeInFields(), () => {
+    let [, ...fieldVars] = Snarky.exists(type.sizeInFields(), () => {
       proverValue = compute();
       let fields = type.toFields(proverValue);
-
-      // TODO currently not needed, because fields are converted in OCaml, but will be
-      // fields = fields.map((x) => x.toConstant());
+      let fieldConstants = fields.map((x) => x.toConstant().value[1]);
 
       // TODO: enable this check
       // currently it throws for Scalar.. which seems to be flexible about what length is returned by toFields
@@ -210,8 +208,9 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
       //     }.`
       //   );
       // }
-      return fields;
+      return [0, ...fieldConstants];
     });
+    fields = fieldVars.map(Field);
   } finally {
     snarkContext.leave(id);
   }

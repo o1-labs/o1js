@@ -10,6 +10,21 @@ const SnarkyFieldConstructor = SnarkyField(1).constructor;
 
 type FieldConst = Uint8Array;
 
+function constToBigint(x: FieldConst): Fp {
+  return Fp.fromBytes([...x]);
+}
+function constFromBigint(x: Fp) {
+  return Uint8Array.from(Fp.toBytes(x));
+}
+
+const FieldConst = {
+  fromBigint: constFromBigint,
+  toBigint: constToBigint,
+  [0]: constFromBigint(0n),
+  [1]: constFromBigint(1n),
+  [-1]: constFromBigint(Fp(-1n)),
+};
+
 enum FieldType {
   Constant,
   Var,
@@ -23,14 +38,27 @@ type FieldVar =
   | [FieldType.Add, FieldVar, FieldVar]
   | [FieldType.Scale, FieldConst, FieldVar];
 
-type ConstantFieldRaw = { value: [FieldType.Constant, FieldConst] };
+type ConstantFieldVar = [FieldType.Constant, FieldConst];
 
-function constToBigint(x: FieldConst): Fp {
-  return Fp.fromBytes([...x]);
-}
-function constFromBigint(x: Fp) {
-  return Uint8Array.from(Fp.toBytes(x));
-}
+const FieldVar = {
+  constant(x: bigint | FieldConst): [FieldType.Constant, FieldConst] {
+    if (typeof x === 'bigint') return [0, constFromBigint(x)];
+    return [FieldType.Constant, x];
+  },
+  // TODO: handle (special) constants
+  add(x: FieldVar, y: FieldVar): FieldVar {
+    return [FieldType.Add, x, y];
+  },
+  // TODO: handle (special) constants
+  scale(x: FieldVar, c: FieldConst): FieldVar {
+    return [FieldType.Scale, c, x];
+  },
+  [0]: [0, FieldConst[0]] satisfies ConstantFieldVar,
+  [1]: [0, FieldConst[1]] satisfies ConstantFieldVar,
+  [-1]: [0, FieldConst[-1]] satisfies ConstantFieldVar,
+};
+
+type ConstantFieldRaw = { value: [FieldType.Constant, FieldConst] };
 
 const Field = toFunctionConstructor(
   class Field {
@@ -49,7 +77,7 @@ const Field = toFunctionConstructor(
         return;
       }
       // TODO this should handle common values efficiently by reading from a lookup table
-      this.value = [0, constFromBigint(Fp(x))];
+      this.value = FieldVar.constant(Fp(x));
     }
 
     // helpers
@@ -65,20 +93,16 @@ const Field = toFunctionConstructor(
       x: bigint | number | string | (Field & ConstantFieldRaw)
     ): FieldConst {
       if (Field.#isField(x)) return x.value[1];
-      return constFromBigint(Fp(x));
+      return FieldConst.fromBigint(Fp(x));
     }
     static #toVar(x: bigint | number | string | Field): FieldVar {
       if (Field.#isField(x)) return x.value;
-      return [0, constFromBigint(Fp(x))];
+      return FieldVar.constant(Fp(x));
     }
     static from(x: bigint | number | string | Field): Field {
       if (Field.#isField(x)) return x;
       return new Field(x);
     }
-
-    static #zero = Uint8Array.from(Fp.toBytes(0n));
-    static #one = Uint8Array.from(Fp.toBytes(1n));
-    static #negOne = Uint8Array.from(Fp.toBytes(Fp(-1n)));
 
     isConstant(): this is ConstantFieldRaw {
       return this.value[0] === FieldType.Constant;
@@ -92,7 +116,7 @@ const Field = toFunctionConstructor(
 
     toBigInt() {
       let x = this.toConstant();
-      return constToBigint(x.value[1]);
+      return FieldConst.toBigint(x.value[1]);
     }
     toString() {
       return this.toBigInt().toString();
@@ -126,7 +150,7 @@ const Field = toFunctionConstructor(
         return new Field(Fp.negate(this.toBigInt()));
       }
       // return new AST node Scale(-1, x)
-      let z = Snarky.field.scale(this.value, Field.#negOne);
+      let z = FieldVar.scale(this.value, FieldConst[-1]);
       return new Field(z);
     }
 
@@ -134,26 +158,22 @@ const Field = toFunctionConstructor(
       return this.add(Field.from(y).neg());
     }
 
-    static #assertMul(x: Field, y: Field, z: Field) {
-      Snarky.field.assertMul(x.value, y.value, z.value);
-    }
-
     mul(y: Field | bigint | number | string): Field {
       if (this.isConstant() && isConstant(y)) {
         return new Field(Fp.mul(this.toBigInt(), toFp(y)));
       }
       // if one of the factors is constant, return Scale AST node
-      if (this.isConstant()) {
-        let z = Snarky.field.scale((y as Field).value, this.value[1]);
-        return new Field(z);
-      }
       if (isConstant(y)) {
         let z = Snarky.field.scale(this.value, Field.#toConst(y));
         return new Field(z);
       }
+      if (this.isConstant()) {
+        let z = Snarky.field.scale(y.value, this.value[1]);
+        return new Field(z);
+      }
       // create a new witness for z = x*y
       let z = Snarky.existsVar(() =>
-        constFromBigint(Fp.mul(this.toBigInt(), toFp(y)))
+        FieldConst.fromBigint(Fp.mul(this.toBigInt(), toFp(y)))
       );
       // add a multiplication constraint
       Snarky.field.assertMul(this.value, y.value, z);
@@ -169,10 +189,10 @@ const Field = toFunctionConstructor(
       // create a witness for z = x^(-1)
       let z = Snarky.existsVar(() => {
         let z = Fp.inverse(this.toBigInt()) ?? 0n;
-        return constFromBigint(z);
+        return FieldConst.fromBigint(z);
       });
       // constrain x * z === 1
-      Snarky.field.assertMul(this.value, z, [0, Field.#one]);
+      Snarky.field.assertMul(this.value, z, FieldVar[1]);
       return new Field(z);
     }
 
@@ -198,7 +218,7 @@ const Field = toFunctionConstructor(
       // create a witness for sqrt(x)
       let z = Snarky.existsVar(() => {
         let z = Fp.sqrt(this.toBigInt()) ?? 0n;
-        return constFromBigint(z);
+        return FieldConst.fromBigint(z);
       });
       // constrain z * z === x
       Snarky.field.assertMul(z, z, this.value);
@@ -209,25 +229,25 @@ const Field = toFunctionConstructor(
       if (this.isConstant() && isConstant(y)) {
         return Bool(this.toBigInt() === toFp(y));
       }
-      // create delta = x - y
-      let delta = this.sub(y);
-      // create witnesses z = 1/(x - y), or z=0 if x=y,
-      // and b = 1 - z(x - y)
-      let [b, z] = Snarky.exists(2, () => {
-        let delta0 = delta.toBigInt();
-        let z = Fp.inverse(delta0) ?? 0n;
-        let b = Fp.sub(1n, Fp.mul(z, delta0));
-        return [new Field(b), new Field(z)];
+      // create x - y
+      let xMinusY = this.sub(y);
+      // create witnesses z = -1/(x - y), or z=0 if x=y,
+      // and b = 1 + z(x - y)
+      let [, b, z] = Snarky.exists(2, () => {
+        let delta = xMinusY.toBigInt();
+        let z = Fp.negate(Fp.inverse(delta) ?? 0n);
+        let b = Fp.add(1n, Fp.mul(z, delta));
+        return [0, FieldConst.fromBigint(b), FieldConst.fromBigint(z)];
       });
       // add constraints
-      // z * (x - y) === 1 - b
-      Field.#assertMul(z, delta, new Field(1).sub(delta));
+      // z * (x - y) === b - 1
+      Snarky.field.assertMul(z, xMinusY.value, FieldVar.add(b, FieldVar[-1]));
       // b * (x - y) === 0
-      Field.#assertMul(b, delta, new Field(0));
-      // these prove that b = Bool(x === y):
+      Snarky.field.assertMul(b, xMinusY.value, FieldVar[0]);
+      // ^^^ these prove that b = Bool(x === y):
       // if x = y, the 1st equation implies b = 1
       // if x != y, the 2nd implies b = 0
-      return Bool.Unsafe.ofField(b);
+      return Bool.Unsafe.ofField(new Field(b));
     }
 
     lessThan(y: Field | bigint | number | string): Bool {
@@ -428,14 +448,6 @@ const Field = toFunctionConstructor(
 type Field = InferReturn<typeof Field>;
 type ConstantField = Field & { value: [FieldType.Constant, Uint8Array] };
 
-type ProvablePure<T> = {
-  toFields: (x: T) => Field[];
-  toAuxiliary: (x?: T) => [];
-  fromFields: (x: Field[]) => T;
-  sizeInFields(): number;
-  check: (x: T) => void;
-};
-
 const FieldBinable = defineBinable({
   toBytes(t: Field) {
     return [...t.toConstant().value[1]];
@@ -470,9 +482,6 @@ function isConstant(
     return true;
   }
   return (x as Field).isConstant();
-}
-function isVariable(x: bigint | number | string | Field): x is Field {
-  return !isConstant(x);
 }
 
 function toFp(x: bigint | number | string | Field): Fp {

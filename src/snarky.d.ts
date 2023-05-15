@@ -46,9 +46,10 @@ declare interface ProvablePure<T> extends Provable<T> {
 }
 
 // ocaml types
-type Tuple<X, Y> = [0, X, Y];
-type List<T> = [0, ...T[]];
-type Option<T> = 0 | [0, T];
+type MlTuple<X, Y> = [0, X, Y];
+type MlArray<T> = [0, ...T[]];
+type MlList<T> = [0, T, 0 | MlList<T>];
+type MlOption<T> = 0 | [0, T];
 
 declare namespace Snarky {
   type Keypair = unknown;
@@ -65,7 +66,10 @@ declare const Snarky: {
   /**
    * witness `sizeInFields` field element variables
    */
-  exists(sizeInFields: number, compute: () => Field[]): Field[];
+  exists(
+    sizeInFields: number,
+    compute: () => MlArray<FieldConst>
+  ): MlArray<FieldVar>;
   /**
    * witness a single field element variable
    */
@@ -129,11 +133,11 @@ declare const Snarky: {
     /**
      *
      */
-    toBits(length: number, x: FieldVar): List<FieldVar>;
+    toBits(length: number, x: FieldVar): MlList<FieldVar>;
     /**
      *
      */
-    fromBits(bits: List<FieldVar>): FieldVar;
+    fromBits(bits: MlList<FieldVar>): FieldVar;
     /**
      * returns x truncated to the lowest `length` bits
      * => can be used to assert that x fits in `length` bits.
@@ -155,7 +159,7 @@ declare const Snarky: {
      */
     toConstantAndTerms(
       x: FieldVar
-    ): Tuple<Option<FieldConst>, List<Tuple<FieldConst, number>>>;
+    ): MlTuple<MlOption<FieldConst>, MlList<MlTuple<FieldConst, number>>>;
   };
 
   /**
