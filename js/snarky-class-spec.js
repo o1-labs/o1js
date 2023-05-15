@@ -197,6 +197,7 @@ export default [
     name: 'Snarky',
     props: [
       { name: 'exists', type: 'function' },
+      { name: 'existsVar', type: 'function' },
       {
         name: 'asProver',
         type: 'function',

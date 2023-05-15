@@ -1249,11 +1249,8 @@ end
 module Snarky = struct
   let typ (size_in_fields : int) = Typ.array ~length:size_in_fields Field.typ
 
-  let exists (size_in_fields : int)
-      (compute : unit -> field_class Js.t Js.js_array Js.t) =
-    Impl.exists (typ size_in_fields) ~compute:(fun () ->
-        compute () |> Js.to_array |> Array.map ~f:of_js_field_unchecked )
-    |> Array.map ~f:to_js_field |> Js.array
+  let exists (size_in_fields : int) (compute : unit -> Field.Constant.t array) =
+    Impl.exists (typ size_in_fields) ~compute
 
   let exists_var (compute : unit -> Field.Constant.t) =
     Impl.exists Field.typ ~compute
@@ -1295,13 +1292,13 @@ module Snarky = struct
     (** add x, y to get a new AST node Add(x, y); handles if x, y are constants *)
     let add x y = Field.add x y
 
-    (** scale x by a constant to get a new AST node Scale(c, x); handles if x is a constant *)
+    (** scale x by a constant to get a new AST node Scale(c, x); handles if x is a constant; handles c=0,1 *)
     let scale x c = Field.scale x c
 
     (** witnesses z = x*y and constrains it with [assert_r1cs]; handles constants *)
     let mul x y = Field.mul x y
 
-    (** evaluates a CVar by walking the AST and reading Vars from a list of public input + aux values *)
+    (** evaluates a CVar by unfolding the AST and reading Vars from a list of public input + aux values *)
     let read_var (x : Field.t) = As_prover.read_var x
 
     (** x === y without handling of constants *)
