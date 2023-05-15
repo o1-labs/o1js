@@ -106,7 +106,7 @@ const Field = toFunctionConstructor(
       return FieldVar.constant(Fp(x));
     }
     static from(x: bigint | number | string | Field): Field {
-      if (Field.#isField(x)) return x;
+      if (x instanceof Field) return x;
       return new Field(x);
     }
 
@@ -706,7 +706,7 @@ const Field = toFunctionConstructor(
      * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
      */
     static toJSON(x: Field) {
-      return x.toJSON();
+      return new Field(x).toJSON();
     }
     /**
      * Deserialize a JSON structure into a {@link Field}.
@@ -744,7 +744,7 @@ type ConstantField = Field & { value: [FieldType.Constant, Uint8Array] };
 
 const FieldBinable = defineBinable({
   toBytes(t: Field) {
-    return [...t.toConstant().value[1]];
+    return [...Field(t).toConstant().value[1]];
   },
   readBytes(bytes, offset) {
     let uint8array = new Uint8Array(32);
@@ -775,7 +775,8 @@ function isConstant(
   if (type === 'bigint' || type === 'number' || type === 'string') {
     return true;
   }
-  return (x as Field).isConstant();
+  if (x instanceof Field) return (x as Field).isConstant();
+  return new Field(x).isConstant();
 }
 
 function toFp(x: bigint | number | string | Field): Fp {
@@ -783,7 +784,8 @@ function toFp(x: bigint | number | string | Field): Fp {
   if (type === 'bigint' || type === 'number' || type === 'string') {
     return Fp(x as bigint | number | string);
   }
-  return (x as Field).toBigInt();
+  if (x instanceof Field) return (x as Field).toBigInt();
+  return new Field(x).toBigInt();
 }
 
 function withMessage(error: unknown, message?: string) {
