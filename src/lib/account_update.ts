@@ -447,7 +447,7 @@ const Body = {
     if (tokenId) {
       body.tokenId = tokenId;
       body.mayUseToken = Provable.if(
-        tokenId.equals(TokenId.default),
+        Field(tokenId).equals(TokenId.default),
         AccountUpdate.MayUseToken.type,
         AccountUpdate.MayUseToken.No,
         AccountUpdate.MayUseToken.ParentsOwnToken

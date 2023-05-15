@@ -42,13 +42,15 @@ const Poseidon = {
     let isChecked = !input.every((x) => x.isConstant());
     // this is the same:
     // return Poseidon_.update(this.initialState, input, isChecked)[0];
-    return Poseidon_.hash(input, isChecked);
+    return Field(Poseidon_.hash(input, isChecked));
   },
 
   hashToGroup(input: Field[]) {
     let isChecked = !input.every((x) => x.isConstant());
     // y = sqrt(y^2)
     let { x, y } = Poseidon_.hashToGroup(input, isChecked);
+    x = Field(x);
+    y = Field(y);
 
     let x0 = Provable.witness(Field, () => {
       // the even root of y^2 will become x0, so the APIs are uniform
@@ -71,7 +73,7 @@ const Poseidon = {
     let isChecked = !(
       state.every((x) => x.isConstant()) && input.every((x) => x.isConstant())
     );
-    return Poseidon_.update(state, input, isChecked);
+    return Poseidon_.update(state, input, isChecked).map(Field);
   },
 
   initialState(): [Field, Field, Field] {

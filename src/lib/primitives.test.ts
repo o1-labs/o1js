@@ -13,15 +13,12 @@ describe('bool', () => {
 
   describe('inside circuit', () => {
     describe('toField', () => {
-      it('should return a Field', async () => {
-        expect(true).toEqual(true);
-      });
       it('should convert false to Field element 0', () => {
         expect(() => {
           Circuit.runAndCheck(() => {
             const xFalse = Circuit.witness(Bool, () => new Bool(false));
 
-            xFalse.toField().assertEquals(new Field(0));
+            Field(xFalse.toField()).assertEquals(new Field(0));
           });
         }).not.toThrow();
       });
@@ -38,7 +35,7 @@ describe('bool', () => {
         expect(() => {
           Circuit.runAndCheck(() => {
             const xTrue = Circuit.witness(Bool, () => new Bool(true));
-            xTrue.toField().assertEquals(new Field(1));
+            Field(xTrue.toField()).assertEquals(new Field(1));
           });
         }).not.toThrow();
       });
@@ -58,7 +55,7 @@ describe('bool', () => {
         expect(() => {
           Circuit.runAndCheck(() => {
             const x = Circuit.witness(Bool, () => new Bool(false));
-            const fieldArr = x.toFields();
+            const fieldArr = x.toFields().map(Field);
             const isArr = Array.isArray(fieldArr);
             expect(isArr).toBe(true);
             fieldArr[0].assertEquals(new Field(0));
@@ -139,7 +136,7 @@ describe('bool', () => {
         expect(() => {
           Circuit.runAndCheck(() => {
             const xTrue = Circuit.witness(Bool, () => new Bool(true));
-            xTrue.toField().assertEquals(new Field(1));
+            Field(xTrue.toField()).assertEquals(new Field(1));
           });
         }).not.toThrow();
       });

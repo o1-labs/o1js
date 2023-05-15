@@ -496,8 +496,8 @@ function checkPublicInput(
   self: AccountUpdate
 ) {
   let otherInput = self.toPublicInput();
-  accountUpdate.assertEquals(otherInput.accountUpdate);
-  calls.assertEquals(otherInput.calls);
+  Field(accountUpdate).assertEquals(otherInput.accountUpdate);
+  Field(calls).assertEquals(otherInput.calls);
 }
 
 /**

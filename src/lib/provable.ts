@@ -197,7 +197,7 @@ function witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
     let [, ...fieldVars] = Snarky.exists(type.sizeInFields(), () => {
       proverValue = compute();
       let fields = type.toFields(proverValue);
-      let fieldConstants = fields.map((x) => x.toConstant().value[1]);
+      let fieldConstants = fields.map((x) => Field(x).toConstant().value[1]);
 
       // TODO: enable this check
       // currently it throws for Scalar.. which seems to be flexible about what length is returned by toFields
@@ -243,14 +243,14 @@ function assertEqualImplicit<T extends ToFieldable>(x: T, y: T) {
   let ys = y.toFields();
   let n = checkLength('Provable.assertEqual', xs, ys);
   for (let i = 0; i < n; i++) {
-    xs[i].assertEquals(ys[i]);
+    Field(xs[i]).assertEquals(ys[i]);
   }
 }
 function assertEqualExplicit<T>(type: Provable<T>, x: T, y: T) {
   let xs = type.toFields(x);
   let ys = type.toFields(y);
   for (let i = 0; i < xs.length; i++) {
-    xs[i].assertEquals(ys[i]);
+    Field(xs[i]).assertEquals(ys[i]);
   }
 }
 
@@ -270,12 +270,12 @@ function equalImplicit<T extends ToFieldable>(x: T, y: T) {
   let xs = x.toFields();
   let ys = y.toFields();
   checkLength('Provable.equal', xs, ys);
-  return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
+  return xs.map((x, i) => Field(x).equals(ys[i])).reduce(Bool.and);
 }
 function equalExplicit<T>(type: Provable<T>, x: T, y: T) {
   let xs = type.toFields(x);
   let ys = type.toFields(y);
-  return xs.map((x, i) => x.equals(ys[i])).reduce(Bool.and);
+  return xs.map((x, i) => Field(x).equals(ys[i])).reduce(Bool.and);
 }
 
 function if_<T>(condition: Bool, type: FlexibleProvable<T>, x: T, y: T): T;
@@ -294,7 +294,7 @@ function ifField(b: Field, x: Field, y: Field) {
   // leads to a different but equivalent layout (same # constraints)
   // https://github.com/o1-labs/snarky/blob/14f8e2ff981a9c9ea48c94b2cc1d8c161301537b/src/base/utils.ml#L171
   // in the case x, y are constant, the layout is the same
-  return b.mul(x.sub(y)).add(y).seal();
+  return Field(b).mul(Field(x).sub(y)).add(y).seal();
 }
 
 function ifExplicit<T>(condition: Bool, type: Provable<T>, x: T, y: T): T {

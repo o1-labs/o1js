@@ -94,13 +94,12 @@ class PublicKey extends CircuitValue {
     // compute y from elliptic curve equation y^2 = x^3 + 5
     // TODO: we have to improve constraint efficiency by using range checks
     let { x, isOdd } = this;
-    let ySquared = x.mul(x).mul(x).add(5);
+    let ySquared = Field(x).mul(x).mul(x).add(5);
     let someY = ySquared.sqrt();
     let isTheRightY = isOdd.equals(someY.toBits()[0]);
-    let y = isTheRightY
-      .toField()
+    let y = Field(isTheRightY.toField())
       .mul(someY)
-      .add(isTheRightY.not().toField().mul(someY.neg()));
+      .add(Field(isTheRightY.not().toField()).mul(someY.neg()));
     return new Group(x, y);
   }
 
@@ -109,7 +108,7 @@ class PublicKey extends CircuitValue {
    * @returns a {@link PublicKey}.
    */
   static fromGroup({ x, y }: Group): PublicKey {
-    let isOdd = y.toBits()[0];
+    let isOdd = Field(y).toBits()[0];
     return PublicKey.fromObject({ x, isOdd });
   }
 
@@ -143,7 +142,7 @@ class PublicKey extends CircuitValue {
    */
   isEmpty() {
     // there are no curve points with x === 0
-    return this.x.isZero();
+    return Field(this.x).isZero();
   }
 
   /**
@@ -152,6 +151,7 @@ class PublicKey extends CircuitValue {
    */
   static fromBase58(publicKeyBase58: string) {
     let pk = Ledger.publicKeyOfString(publicKeyBase58);
+    pk.x = Field(pk.x);
     return PublicKey.from(pk);
   }
   /**
@@ -208,7 +208,7 @@ class Signature extends CircuitValue {
       )
     );
     let { x: r, y: ry } = Group.generator.scale(kPrime);
-    const k = ry.toBits()[0].toBoolean() ? kPrime.neg() : kPrime;
+    const k = Field(ry).toBits()[0].toBoolean() ? kPrime.neg() : kPrime;
     let h = hashWithPrefix(
       prefixes.signatureTestnet,
       msg.concat([publicKey.x, publicKey.y, r])
@@ -234,7 +234,10 @@ class Signature extends CircuitValue {
     // therefore we have to use scaleShifted which is very inefficient
     let e = Scalar.fromBits(h.toBits());
     let r = scaleShifted(point, e).neg().add(Group.generator.scale(this.s));
-    return Bool.and(r.x.equals(this.r), r.y.toBits()[0].equals(false));
+    return Bool.and(
+      Field(r.x).equals(this.r),
+      Field(r.y).toBits()[0].equals(false)
+    );
   }
 
   /**

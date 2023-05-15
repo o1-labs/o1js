@@ -250,7 +250,7 @@ function maybeSwapBad(b: Bool, x: Field, y: Field): [Field, Field] {
 
 // more efficient version of `maybeSwapBad` which reuses an intermediate variable
 function maybeSwap(b: Bool, x: Field, y: Field): [Field, Field] {
-  let m = b.toField().mul(x.sub(y)); // b*(x - y)
+  let m = Field(b.toField()).mul(x.sub(y)); // b*(x - y)
   const x_ = y.add(m); // y + b*(x - y)
   const y_ = x.sub(m); // x - b*(x - y) = x + b*(y - x)
   return [x_, y_];

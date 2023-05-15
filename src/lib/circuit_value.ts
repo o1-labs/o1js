@@ -565,7 +565,7 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
 function toConstant<T>(type: FlexibleProvable<T>, value: T): T;
 function toConstant<T>(type: Provable<T>, value: T): T {
   return type.fromFields(
-    type.toFields(value).map((x) => x.toConstant()),
+    type.toFields(value).map((x) => Field(x).toConstant()),
     type.toAuxiliary(value)
   );
 }
