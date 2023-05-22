@@ -199,7 +199,7 @@ const Field = toFunctionConstructor(
         return new Field(Fp.negate(this.toBigInt()));
       }
       // return new AST node Scale(-1, x)
-      let z = FieldVar.scale(this.value, FieldConst[-1]);
+      let z = Snarky.field.scale(this.value, FieldConst[-1]);
       return new Field(z);
     }
 
