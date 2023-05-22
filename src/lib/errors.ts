@@ -62,6 +62,7 @@ function CatchAndPrettifyStacktrace(
       const result = originalMethod.apply(this, args);
       return handleResult(result);
     } catch (error) {
+      error = unwrapMlException(error);
       const prettyStacktrace = prettifyStacktrace(error);
       if (prettyStacktrace && error instanceof Error) {
         error.stack = prettyStacktrace;
@@ -83,6 +84,7 @@ function CatchAndPrettifyStacktrace(
 function handleResult(result: any) {
   if (result instanceof Promise) {
     return result.catch((error: Error) => {
+      error = unwrapMlException(error);
       const prettyStacktrace = prettifyStacktrace(error);
       if (prettyStacktrace && error instanceof Error) {
         error.stack = prettyStacktrace;
@@ -126,6 +128,13 @@ function prettifyStacktrace(error: unknown): string | undefined {
     newStacktrace.push(trimmedLine);
   }
   return newStacktrace.join('\n');
+}
+
+function unwrapMlException<E extends unknown>(error: E) {
+  if (error instanceof Error) return error;
+  // ocaml exception re-thrown from JS
+  if (Array.isArray(error) && error[2] instanceof Error) return error[2];
+  return error;
 }
 
 /**
