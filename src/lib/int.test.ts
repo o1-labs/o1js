@@ -1,7 +1,7 @@
 import {
-  shutdown,
   isReady,
   Provable,
+  shutdown,
   Int64,
   UInt64,
   UInt32,
