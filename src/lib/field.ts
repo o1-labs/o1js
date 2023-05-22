@@ -277,6 +277,7 @@ class Field {
    */
   square() {
     // snarky-ml uses assert_square which leads to an equivalent but slightly different gate
+    // return SnarkyField(this).square();
     return this.mul(this);
   }
 
@@ -296,6 +297,7 @@ class Field {
         );
       return new Field(z);
     }
+    // return SnarkyField(this).sqrt();
     // create a witness for sqrt(x)
     let z = Snarky.existsVar(() => {
       let z = Fp.sqrt(this.toBigInt()) ?? 0n;
@@ -313,22 +315,26 @@ class Field {
     if (this.isConstant()) {
       return Bool(this.toBigInt() === 0n);
     }
-    // create witnesses z = -1/x, or z=0 if x=0,
-    // and b = 1 + zx
+    // create witnesses z = 1/x, or z=0 if x=0,
+    // and b = 1 - zx
     let [, b, z] = Snarky.exists(2, () => {
       let x = this.toBigInt();
-      let z = Fp.negate(Fp.inverse(x) ?? 0n);
-      let b = Fp.add(1n, Fp.mul(z, x));
+      let z = Fp.inverse(x) ?? 0n;
+      let b = Fp.sub(1n, Fp.mul(z, x));
       return [0, FieldConst.fromBigint(b), FieldConst.fromBigint(z)];
     });
     // add constraints
-    // z * x === b - 1
-    Snarky.field.assertMul(z, this.value, FieldVar.add(b, FieldVar[-1]));
     // b * x === 0
     Snarky.field.assertMul(b, this.value, FieldVar[0]);
+    // z * x === 1 - b
+    Snarky.field.assertMul(
+      z,
+      this.value,
+      Snarky.field.add(FieldVar[1], Snarky.field.scale(b, FieldConst[-1]))
+    );
     // ^^^ these prove that b = Bool(x === 0):
-    // if x = 0, the 1st equation implies b = 1
-    // if x != 0, the 2nd implies b = 0
+    // if x = 0, the 2nd equation implies b = 1
+    // if x != 0, the 1st implies b = 0
     return Bool.Unsafe.ofField(new Field(b));
   }
 
