@@ -70,7 +70,9 @@ const Field = toFunctionConstructor(
     /**
      * The field order as a `bigint`.
      */
-    static ORDER = Fp.modulus;
+    static get ORDER() {
+      return Fp.modulus;
+    }
 
     /**
      * Coerces anything field-like to a {@link Field}.
