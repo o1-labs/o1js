@@ -1091,6 +1091,14 @@ async function checkResponseStatus(
             .join('\n'),
         } as FetchError,
       ];
+    } else if (jsonResponse.data === undefined) {
+      return [
+        undefined,
+        {
+          statusCode: response.status,
+          statusText: `GraphQL response data is undefined`,
+        } as FetchError,
+      ];
     }
     return [jsonResponse as FetchResponse, undefined];
   } else {
