@@ -4,7 +4,7 @@ import { Bool } from '../snarky.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
 
-export { Field, ConstantField, FieldType, FieldVar, FieldConst };
+export { Field, ConstantField, FieldType, FieldVar, FieldConst, isField };
 
 const SnarkyFieldConstructor = SnarkyField(1).constructor;
 
@@ -768,6 +768,10 @@ function toFunctionConstructor<Class extends new (...args: any) => any>(
   }
   Object.defineProperties(Constructor, Object.getOwnPropertyDescriptors(Class));
   return Constructor as any;
+}
+
+function isField(x: unknown): x is Field {
+  return x instanceof Field || (x as any) instanceof SnarkyFieldConstructor;
 }
 
 function isConstant(
