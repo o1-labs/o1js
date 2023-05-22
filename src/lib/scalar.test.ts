@@ -1,4 +1,4 @@
-import { shutdown, isReady, Field, Bool, Circuit, Scalar } from 'snarkyjs';
+import { shutdown, isReady, Field, Bool, Provable, Scalar } from 'snarkyjs';
 
 describe('scalar', () => {
   beforeAll(async () => {

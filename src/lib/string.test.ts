@@ -1,7 +1,7 @@
 import {
   Bool,
   Character,
-  Circuit,
+  Provable,
   CircuitString,
   Field,
   shutdown,
