@@ -93,7 +93,7 @@ try {
   await txn.prove();
   await txn.sign([feePayer1.privateKey]).send();
 } catch (err: any) {
-  handleError(err, 'assert_equal');
+  handleError(err, 'assertEquals');
 }
 
 if (!correctlyFails) {
@@ -120,7 +120,8 @@ try {
   await txn.prove();
   await txn.sign([feePayer1.privateKey]).send();
 } catch (err: any) {
-  handleError(err, 'assert_equal');
+  console.log(err);
+  handleError(err, 'assertEquals');
 }
 
 if (!correctlyFails) {
@@ -176,7 +177,7 @@ try {
   await txn4.prove();
   await txn4.sign([feePayer4.privateKey]).send();
 } catch (err: any) {
-  handleError(err, 'assert_equal');
+  handleError(err, 'assertEquals');
 }
 
 if (!correctlyFails) {

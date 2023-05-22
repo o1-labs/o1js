@@ -468,7 +468,7 @@ export async function testSet(
         voting.voterRegistration(newVoter1);
       },
       feePayer,
-      'assert_equal'
+      'assertEquals'
     );
 
     if (voterContract.reducer.getActions({}).length !== 1) {
@@ -654,7 +654,7 @@ export async function testSet(
         voting.candidateRegistration(lateCandidate);
       },
       feePayer,
-      'assert_equal'
+      'assertEquals'
     );
 
     console.log(
@@ -674,7 +674,7 @@ export async function testSet(
         voting.voterRegistration(lateVoter);
       },
       feePayer,
-      'assert_equal'
+      'assertEquals'
     );
 
     if (previousEventsVoter !== voterContract.reducer.getActions({}).length) {
@@ -825,7 +825,7 @@ export async function testSet(
         voting.vote(fakeCandidate, votersStore.get(0n)!);
       },
       feePayer,
-      'assert_equal'
+      'assertEquals'
     );
 
     console.log('unregistered voter attempting to vote');
@@ -842,7 +842,7 @@ export async function testSet(
         voting.vote(fakeVoter, votersStore.get(0n)!);
       },
       feePayer,
-      'assert_equal'
+      'assertEquals'
     );
 
     console.log('attempting to vote for voter...');
@@ -854,7 +854,7 @@ export async function testSet(
         voting.vote(voter, votersStore.get(0n)!);
       },
       feePayer,
-      'assert_equal'
+      'assertEquals'
     );
 
     /*
@@ -934,7 +934,7 @@ export async function testSet(
         voting.voterRegistration(voter);
       },
       feePayer,
-      'assert_equal'
+      'assertEquals'
     );
 
     console.log('attempting to register candidate after election has ended');
@@ -951,7 +951,7 @@ export async function testSet(
         voting.candidateRegistration(candidate);
       },
       feePayer,
-      'assert_equal'
+      'assertEquals'
     );
   }
 
