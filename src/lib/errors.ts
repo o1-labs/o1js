@@ -2,6 +2,7 @@ export {
   CatchAndPrettifyStacktraceForAllMethods,
   CatchAndPrettifyStacktrace,
   prettifyStacktrace,
+  prettifyError,
   assert,
 };
 
@@ -112,6 +113,15 @@ const lineRemovalKeywords = [
   '/builtin/',
   'CatchAndPrettifyStacktrace', // Decorator name to remove from stacktrace (covers both class and method decorator)
 ] as const;
+
+function prettifyError(error: unknown) {
+  error = unwrapMlException(error);
+  const prettyStacktrace = prettifyStacktrace(error);
+  if (prettyStacktrace && error instanceof Error) {
+    error.stack = prettyStacktrace;
+  }
+  return error;
+}
 
 /**
  * Prettifies the stack trace of an error by removing unwanted lines and trimming paths.

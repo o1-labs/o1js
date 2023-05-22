@@ -26,7 +26,7 @@ import { Types } from '../bindings/mina-transaction/types.js';
 import { Account } from './mina/account.js';
 import { TransactionCost, TransactionLimits } from './mina/constants.js';
 import { Provable } from './provable.js';
-import { prettifyStacktrace } from './errors.js';
+import { prettifyError, prettifyStacktrace } from './errors.js';
 
 export {
   createTransaction,
@@ -308,7 +308,7 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
         self.transaction = zkappCommand;
         return proofs;
       } catch (error) {
-        if (error instanceof Error) error.stack = prettifyStacktrace(error);
+        prettifyError(error);
         throw error;
       }
     },
