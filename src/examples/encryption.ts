@@ -1,4 +1,11 @@
-import { Encryption, Encoding, PrivateKey, isReady, Circuit } from 'snarkyjs';
+import {
+  Encryption,
+  Encoding,
+  PrivateKey,
+  isReady,
+  Circuit,
+  Provable,
+} from 'snarkyjs';
 
 await isReady;
 
@@ -23,7 +30,7 @@ console.log(`Recovered message: "${decryptedMessage}"`);
 
 // the same but in a checked computation
 
-Circuit.runAndCheck(() => {
+Provable.runAndCheck(() => {
   // encrypt
   let cipherText = Encryption.encrypt(messageFields, publicKey);
 
@@ -69,7 +76,7 @@ console.log(`Recovered message: "${decryptedMessage}"`);
 
 // the same but in a checked computation
 
-Circuit.runAndCheck(() => {
+Provable.runAndCheck(() => {
   // encrypt
   let cipherText = Encryption.encrypt(messageFields, publicKey);
 
