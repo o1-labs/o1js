@@ -2000,23 +2000,26 @@ async function addMissingProofs(
     if (ZkappClass._methods === undefined) throw Error(methodError);
     let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
     if (i === -1) throw Error(methodError);
-    let [, [, { proof }]] = await zkAppProver.run(
+    let { proof } = await zkAppProver.run(
       [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
       { transaction: zkappCommand, accountUpdate, index },
-      () =>
-        memoizationContext.runWithAsync(
-          { memoized, currentIndex: 0, blindingValue },
-          async () => {
-            try {
-              return await provers[i](publicInputFields, previousProofs);
-            } catch (err) {
-              console.error(
-                `Error when proving ${ZkappClass.name}.${methodName}()`
-              );
-              throw err;
-            }
-          }
-        )
+      async () => {
+        let id = memoizationContext.enter({
+          memoized,
+          currentIndex: 0,
+          blindingValue,
+        });
+        try {
+          return await provers[i](publicInputFields, previousProofs);
+        } catch (err) {
+          console.error(
+            `Error when proving ${ZkappClass.name}.${methodName}()`
+          );
+          throw err;
+        } finally {
+          memoizationContext.leave(id);
+        }
+      }
     );
     Authorization.setProof(
       accountUpdate,

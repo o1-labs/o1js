@@ -171,323 +171,331 @@ function wrapMethod(
     // case below, should reconcile with that to get the same callData hashing
     let insideContract = smartContractContext.get();
     if (!insideContract) {
-      return smartContractContext.runWith<SmartContractContext, any>(
-        {
-          this: this,
-          methodCallDepth: 0,
-          selfUpdate: selfAccountUpdate(this, methodName),
-        },
-        (context) => {
-          if (inCompile() || inProver() || inAnalyze()) {
-            // important to run this with a fresh accountUpdate everytime, otherwise compile messes up our circuits
-            // because it runs this multiple times
-            let proverData = inProver() ? zkAppProver.getData() : undefined;
-            let [, result] = Mina.currentTransaction.runWith(
-              {
-                sender: proverData?.transaction.feePayer.body.publicKey,
-                accountUpdates: [],
-                fetchMode: inProver() ? 'cached' : 'test',
-                isFinalRunOutsideCircuit: false,
-                numberOfRuns: undefined,
-              },
-              () => {
-                // inside prover / compile, the method is always called with the public input as first argument
-                // -- so we can add assertions about it
-                let publicInput = actualArgs.shift();
-                let accountUpdate = this.self;
+      const context: SmartContractContext = {
+        this: this,
+        methodCallDepth: 0,
+        selfUpdate: selfAccountUpdate(this, methodName),
+      };
+      let id = smartContractContext.enter(context);
+      try {
+        if (inCompile() || inProver() || inAnalyze()) {
+          // important to run this with a fresh accountUpdate everytime, otherwise compile messes up our circuits
+          // because it runs this multiple times
+          let proverData = inProver() ? zkAppProver.getData() : undefined;
+          let txId = Mina.currentTransaction.enter({
+            sender: proverData?.transaction.feePayer.body.publicKey,
+            accountUpdates: [],
+            fetchMode: inProver() ? 'cached' : 'test',
+            isFinalRunOutsideCircuit: false,
+            numberOfRuns: undefined,
+          });
+          try {
+            // inside prover / compile, the method is always called with the public input as first argument
+            // -- so we can add assertions about it
+            let publicInput = actualArgs.shift();
+            let accountUpdate = this.self;
 
-                // the blinding value is important because otherwise, putting callData on the transaction would leak information about the private inputs
-                let blindingValue = Provable.witness(Field, getBlindingValue);
-                // it's also good if we prove that we use the same blinding value across the method
-                // that's why we pass the variable (not the constant) into a new context
-                let context = memoizationContext() ?? {
-                  memoized: [],
-                  currentIndex: 0,
-                };
-                let [, result] = memoizationContext.runWith(
-                  { ...context, blindingValue },
-                  () => method.apply(this, actualArgs.map(cloneCircuitValue))
-                );
+            // the blinding value is important because otherwise, putting callData on the transaction would leak information about the private inputs
+            let blindingValue = Provable.witness(Field, getBlindingValue);
+            // it's also good if we prove that we use the same blinding value across the method
+            // that's why we pass the variable (not the constant) into a new context
+            let context = memoizationContext() ?? {
+              memoized: [],
+              currentIndex: 0,
+            };
+            let id = memoizationContext.enter({ ...context, blindingValue });
+            let result: unknown;
+            try {
+              result = method.apply(this, actualArgs.map(cloneCircuitValue));
+            } finally {
+              memoizationContext.leave(id);
+            }
 
-                // connects our input + result with callData, so this method can be called
-                let callDataFields = computeCallData(
-                  methodIntf,
-                  actualArgs,
-                  result,
-                  blindingValue
-                );
-                accountUpdate.body.callData = Poseidon.hash(callDataFields);
-                Authorization.setProofAuthorizationKind(accountUpdate);
-
-                // TODO: currently commented out, but could come back in some form when we add caller to the public input
-                // // compute `caller` field from `isDelegateCall` and a context determined by the transaction
-                // let callerContext = Provable.witness(
-                //   CallForest.callerContextType,
-                //   () => {
-                //     let { accountUpdate } = zkAppProver.getData();
-                //     return CallForest.computeCallerContext(accountUpdate);
-                //   }
-                // );
-                // CallForest.addCallers([accountUpdate], callerContext);
-
-                // connect the public input to the account update & child account updates we created
-                if (DEBUG_PUBLIC_INPUT_CHECK) {
-                  Circuit.asProver(() => {
-                    // TODO: print a nice diff string instead of the two objects
-                    // something like `expect` or `json-diff`, but web-compatible
-                    function diff(prover: any, input: any) {
-                      delete prover.id;
-                      delete prover.callDepth;
-                      delete input.id;
-                      delete input.callDepth;
-                      if (JSON.stringify(prover) !== JSON.stringify(input)) {
-                        console.log(
-                          'transaction:',
-                          ZkappCommand.toPretty(transaction)
-                        );
-                        console.log('index', index);
-                        console.log('inconsistent account updates:');
-                        console.log('update created by the prover:');
-                        console.log(prover);
-                        console.log('update created in transaction block:');
-                        console.log(input);
-                      }
-                    }
-                    function diffRecursive(
-                      prover: AccountUpdate,
-                      input: AccountUpdate
-                    ) {
-                      diff(prover.toPretty(), input.toPretty());
-                      let nChildren = input.children.accountUpdates.length;
-                      for (let i = 0; i < nChildren; i++) {
-                        let inputChild = input.children.accountUpdates[i];
-                        let child = prover.children.accountUpdates[i];
-                        if (!inputChild || !child) return;
-                        diffRecursive(child, inputChild);
-                      }
-                    }
-
-                    let {
-                      accountUpdate: inputUpdate,
-                      transaction,
-                      index,
-                    } = zkAppProver.getData();
-                    diffRecursive(accountUpdate, inputUpdate);
-                  });
-                }
-                checkPublicInput(publicInput, accountUpdate);
-
-                // check the self accountUpdate right after calling the method
-                // TODO: this needs to be done in a unified way for all account updates that are created
-                assertPreconditionInvariants(accountUpdate);
-                cleanPreconditionsCache(accountUpdate);
-                assertStatePrecondition(this);
-                return result;
-              }
-            );
-            return result;
-          } else if (!Mina.currentTransaction.has()) {
-            // outside a transaction, just call the method, but check precondition invariants
-            let result = method.apply(this, actualArgs);
-            // check the self accountUpdate right after calling the method
-            // TODO: this needs to be done in a unified way for all account updates that are created
-            assertPreconditionInvariants(this.self);
-            cleanPreconditionsCache(this.self);
-            assertStatePrecondition(this);
-            return result;
-          } else {
-            // called smart contract at the top level, in a transaction!
-            // => attach ours to the current list of account updates
-            let accountUpdate = context.selfUpdate;
-            Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
-
-            // first, clone to protect against the method modifying arguments!
-            // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
-            let clonedArgs = cloneCircuitValue(actualArgs);
-
-            // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
-            let blindingValue = getBlindingValue();
-            let [{ memoized }, result] = memoizationContext.runWith(
-              {
-                memoized: [],
-                currentIndex: 0,
-                blindingValue,
-              },
-              () =>
-                method.apply(
-                  this,
-                  actualArgs.map((a, i) => {
-                    let arg = methodIntf.allArgs[i];
-                    if (arg.type === 'witness') {
-                      let type = methodIntf.witnessArgs[arg.index];
-                      return Provable.witness(type, () => a);
-                    }
-                    return a;
-                  })
-                )
-            );
-            assertStatePrecondition(this);
-
-            // connect our input + result with callData, so this method can be called
+            // connects our input + result with callData, so this method can be called
             let callDataFields = computeCallData(
               methodIntf,
-              clonedArgs,
+              actualArgs,
               result,
               blindingValue
             );
             accountUpdate.body.callData = Poseidon.hash(callDataFields);
+            Authorization.setProofAuthorizationKind(accountUpdate);
 
-            if (!Authorization.hasAny(accountUpdate)) {
-              Authorization.setLazyProof(
-                accountUpdate,
-                {
-                  methodName: methodIntf.methodName,
-                  args: clonedArgs,
-                  // proofs actually don't have to be cloned
-                  previousProofs: getPreviousProofsForProver(
-                    actualArgs,
-                    methodIntf
-                  ),
-                  ZkappClass,
-                  memoized,
-                  blindingValue,
-                },
-                Mina.currentTransaction()!.accountUpdates
-              );
+            // TODO: currently commented out, but could come back in some form when we add caller to the public input
+            // // compute `caller` field from `isDelegateCall` and a context determined by the transaction
+            // let callerContext = Provable.witness(
+            //   CallForest.callerContextType,
+            //   () => {
+            //     let { accountUpdate } = zkAppProver.getData();
+            //     return CallForest.computeCallerContext(accountUpdate);
+            //   }
+            // );
+            // CallForest.addCallers([accountUpdate], callerContext);
+
+            // connect the public input to the account update & child account updates we created
+            if (DEBUG_PUBLIC_INPUT_CHECK) {
+              Circuit.asProver(() => {
+                // TODO: print a nice diff string instead of the two objects
+                // something like `expect` or `json-diff`, but web-compatible
+                function diff(prover: any, input: any) {
+                  delete prover.id;
+                  delete prover.callDepth;
+                  delete input.id;
+                  delete input.callDepth;
+                  if (JSON.stringify(prover) !== JSON.stringify(input)) {
+                    console.log(
+                      'transaction:',
+                      ZkappCommand.toPretty(transaction)
+                    );
+                    console.log('index', index);
+                    console.log('inconsistent account updates:');
+                    console.log('update created by the prover:');
+                    console.log(prover);
+                    console.log('update created in transaction block:');
+                    console.log(input);
+                  }
+                }
+                function diffRecursive(
+                  prover: AccountUpdate,
+                  input: AccountUpdate
+                ) {
+                  diff(prover.toPretty(), input.toPretty());
+                  let nChildren = input.children.accountUpdates.length;
+                  for (let i = 0; i < nChildren; i++) {
+                    let inputChild = input.children.accountUpdates[i];
+                    let child = prover.children.accountUpdates[i];
+                    if (!inputChild || !child) return;
+                    diffRecursive(child, inputChild);
+                  }
+                }
+
+                let {
+                  accountUpdate: inputUpdate,
+                  transaction,
+                  index,
+                } = zkAppProver.getData();
+                diffRecursive(accountUpdate, inputUpdate);
+              });
             }
+            checkPublicInput(publicInput, accountUpdate);
+
+            // check the self accountUpdate right after calling the method
+            // TODO: this needs to be done in a unified way for all account updates that are created
+            assertPreconditionInvariants(accountUpdate);
+            cleanPreconditionsCache(accountUpdate);
+            assertStatePrecondition(this);
             return result;
+          } finally {
+            Mina.currentTransaction.leave(txId);
           }
-        }
-      )[1];
-    }
+        } else if (!Mina.currentTransaction.has()) {
+          // outside a transaction, just call the method, but check precondition invariants
+          let result = method.apply(this, actualArgs);
+          // check the self accountUpdate right after calling the method
+          // TODO: this needs to be done in a unified way for all account updates that are created
+          assertPreconditionInvariants(this.self);
+          cleanPreconditionsCache(this.self);
+          assertStatePrecondition(this);
+          return result;
+        } else {
+          // called smart contract at the top level, in a transaction!
+          // => attach ours to the current list of account updates
+          let accountUpdate = context.selfUpdate;
+          Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
 
-    // if we're here, this method was called inside _another_ smart contract method
-    let parentAccountUpdate = insideContract.this.self;
-    let methodCallDepth = insideContract.methodCallDepth;
-    let [, result] = smartContractContext.runWith<SmartContractContext, any>(
-      {
-        this: this,
-        methodCallDepth: methodCallDepth + 1,
-        selfUpdate: selfAccountUpdate(this, methodName),
-      },
-      (innerContext) => {
-        // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
-        // so we have to explain to the user how to do that
-        let { returnType } = methodIntf;
-        let noReturnTypeError =
-          `To return a result from ${methodIntf.methodName}() inside another zkApp, you need to declare the return type.\n` +
-          `This can be done by annotating the type at the end of the function signature. For example:\n\n` +
-          `@method ${methodIntf.methodName}(): Field {\n` +
-          `  // ...\n` +
-          `}\n\n` +
-          `Note: Only types built out of \`Field\` are valid return types. This includes snarkyjs primitive types and custom CircuitValues.`;
-        // if we're lucky, analyzeMethods was already run on the callee smart contract, and we can catch this error early
-        if (
-          (ZkappClass as any)._methodMetadata[methodIntf.methodName]
-            ?.hasReturn &&
-          returnType === undefined
-        ) {
-          throw Error(noReturnTypeError);
-        }
-        // we just reuse the blinding value of the caller for the callee
-        let blindingValue = getBlindingValue();
+          // first, clone to protect against the method modifying arguments!
+          // TODO: double-check that this works on all possible inputs, e.g. CircuitValue, snarkyjs primitives
+          let clonedArgs = cloneCircuitValue(actualArgs);
 
-        let runCalledContract = () => {
-          let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
-          let constantBlindingValue = blindingValue.toConstant();
-          let accountUpdate = this.self;
-          accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
-          accountUpdate.parent = parentAccountUpdate;
+          // we run this in a "memoization context" so that we can remember witnesses for reuse when proving
+          let blindingValue = getBlindingValue();
+          let memoContext = { memoized: [], currentIndex: 0, blindingValue };
+          let memoId = memoizationContext.enter(memoContext);
+          let result: any;
+          try {
+            result = method.apply(
+              this,
+              actualArgs.map((a, i) => {
+                let arg = methodIntf.allArgs[i];
+                if (arg.type === 'witness') {
+                  let type = methodIntf.witnessArgs[arg.index];
+                  return Provable.witness(type, () => a);
+                }
+                return a;
+              })
+            );
+          } finally {
+            memoizationContext.leave(memoId);
+          }
+          let { memoized } = memoContext;
 
-          let [{ memoized }, result] = memoizationContext.runWith(
-            {
-              memoized: [],
-              currentIndex: 0,
-              blindingValue: constantBlindingValue,
-            },
-            () => method.apply(this, constantArgs.map(cloneCircuitValue))
-          );
           assertStatePrecondition(this);
 
-          if (result !== undefined) {
-            if (returnType === undefined) {
-              throw Error(noReturnTypeError);
-            } else {
-              result = toConstant(returnType, result);
-            }
-          }
-
-          // store inputs + result in callData
+          // connect our input + result with callData, so this method can be called
           let callDataFields = computeCallData(
             methodIntf,
-            constantArgs,
+            clonedArgs,
             result,
-            constantBlindingValue
+            blindingValue
           );
-          accountUpdate.body.callData = Poseidon_.hash(callDataFields, false);
+          accountUpdate.body.callData = Poseidon.hash(callDataFields);
 
           if (!Authorization.hasAny(accountUpdate)) {
             Authorization.setLazyProof(
               accountUpdate,
               {
                 methodName: methodIntf.methodName,
-                args: constantArgs,
+                args: clonedArgs,
+                // proofs actually don't have to be cloned
                 previousProofs: getPreviousProofsForProver(
-                  constantArgs,
+                  actualArgs,
                   methodIntf
                 ),
                 ZkappClass,
                 memoized,
-                blindingValue: constantBlindingValue,
+                blindingValue,
               },
               Mina.currentTransaction()!.accountUpdates
             );
           }
-          return { accountUpdate, result: result ?? null };
-        };
+          return result;
+        }
+      } finally {
+        smartContractContext.leave(id);
+      }
+    }
 
-        // we have to run the called contract inside a witness block, to not affect the caller's circuit
-        // however, if this is a nested call -- the caller is already called by another contract --,
-        // then we're already in a witness block, and shouldn't open another one
-        let { accountUpdate, result } =
-          methodCallDepth === 0
-            ? AccountUpdate.witness<any>(
-                returnType ?? provable(null),
-                runCalledContract,
-                { skipCheck: true }
-              )
-            : runCalledContract();
+    // if we're here, this method was called inside _another_ smart contract method
+    let parentAccountUpdate = insideContract.this.self;
+    let methodCallDepth = insideContract.methodCallDepth;
+    let innerContext: SmartContractContext = {
+      this: this,
+      methodCallDepth: methodCallDepth + 1,
+      selfUpdate: selfAccountUpdate(this, methodName),
+    };
+    let id = smartContractContext.enter(innerContext);
+    try {
+      // if the call result is not undefined but there's no known returnType, the returnType was probably not annotated properly,
+      // so we have to explain to the user how to do that
+      let { returnType } = methodIntf;
+      let noReturnTypeError =
+        `To return a result from ${methodIntf.methodName}() inside another zkApp, you need to declare the return type.\n` +
+        `This can be done by annotating the type at the end of the function signature. For example:\n\n` +
+        `@method ${methodIntf.methodName}(): Field {\n` +
+        `  // ...\n` +
+        `}\n\n` +
+        `Note: Only types built out of \`Field\` are valid return types. This includes snarkyjs primitive types and custom CircuitValues.`;
+      // if we're lucky, analyzeMethods was already run on the callee smart contract, and we can catch this error early
+      if (
+        (ZkappClass as any)._methodMetadata[methodIntf.methodName]?.hasReturn &&
+        returnType === undefined
+      ) {
+        throw Error(noReturnTypeError);
+      }
+      // we just reuse the blinding value of the caller for the callee
+      let blindingValue = getBlindingValue();
 
-        // we're back in the _caller's_ circuit now, where we assert stuff about the method call
-
-        // overwrite this.self with the witnessed update, so it's this one we access later in the caller method
-        innerContext.selfUpdate = accountUpdate;
-
-        // connect accountUpdate to our own. outside Provable.witness so compile knows the right structure when hashing children
+      let runCalledContract = () => {
+        let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
+        let constantBlindingValue = blindingValue.toConstant();
+        let accountUpdate = this.self;
         accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
         accountUpdate.parent = parentAccountUpdate;
-        // beware: we don't include the callee's children in the caller circuit
-        // nothing is asserted about them -- it's the callee's task to check their children
-        accountUpdate.children.callsType = { type: 'Witness' };
-        parentAccountUpdate.children.accountUpdates.push(accountUpdate);
 
-        // assert that we really called the right zkapp
-        accountUpdate.body.publicKey.assertEquals(this.address);
-        accountUpdate.body.tokenId.assertEquals(this.self.body.tokenId);
+        let memoContext = {
+          memoized: [],
+          currentIndex: 0,
+          blindingValue: constantBlindingValue,
+        };
+        let memoId = memoizationContext.enter(memoContext);
+        let result: any;
+        try {
+          result = method.apply(this, constantArgs.map(cloneCircuitValue));
+        } finally {
+          memoizationContext.leave(memoId);
+        }
+        let { memoized } = memoContext;
+        assertStatePrecondition(this);
 
-        // assert that the inputs & outputs we have match what the callee put on its callData
+        if (result !== undefined) {
+          if (returnType === undefined) {
+            throw Error(noReturnTypeError);
+          } else {
+            result = toConstant(returnType, result);
+          }
+        }
+
+        // store inputs + result in callData
         let callDataFields = computeCallData(
           methodIntf,
-          actualArgs,
+          constantArgs,
           result,
-          blindingValue
+          constantBlindingValue
         );
-        let callData = Poseidon.hash(callDataFields);
-        accountUpdate.body.callData.assertEquals(callData);
-        return result;
-      }
-    );
-    return result;
+        accountUpdate.body.callData = Poseidon_.hash(callDataFields, false);
+
+        if (!Authorization.hasAny(accountUpdate)) {
+          Authorization.setLazyProof(
+            accountUpdate,
+            {
+              methodName: methodIntf.methodName,
+              args: constantArgs,
+              previousProofs: getPreviousProofsForProver(
+                constantArgs,
+                methodIntf
+              ),
+              ZkappClass,
+              memoized,
+              blindingValue: constantBlindingValue,
+            },
+            Mina.currentTransaction()!.accountUpdates
+          );
+        }
+        return { accountUpdate, result: result ?? null };
+      };
+
+      // we have to run the called contract inside a witness block, to not affect the caller's circuit
+      // however, if this is a nested call -- the caller is already called by another contract --,
+      // then we're already in a witness block, and shouldn't open another one
+      let { accountUpdate, result } =
+        methodCallDepth === 0
+          ? AccountUpdate.witness<any>(
+              returnType ?? provable(null),
+              runCalledContract,
+              { skipCheck: true }
+            )
+          : runCalledContract();
+
+      // we're back in the _caller's_ circuit now, where we assert stuff about the method call
+
+      // overwrite this.self with the witnessed update, so it's this one we access later in the caller method
+      innerContext.selfUpdate = accountUpdate;
+
+      // connect accountUpdate to our own. outside Provable.witness so compile knows the right structure when hashing children
+      accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
+      accountUpdate.parent = parentAccountUpdate;
+      // beware: we don't include the callee's children in the caller circuit
+      // nothing is asserted about them -- it's the callee's task to check their children
+      accountUpdate.children.callsType = { type: 'Witness' };
+      parentAccountUpdate.children.accountUpdates.push(accountUpdate);
+
+      // assert that we really called the right zkapp
+      accountUpdate.body.publicKey.assertEquals(this.address);
+      accountUpdate.body.tokenId.assertEquals(this.self.body.tokenId);
+
+      // assert that the inputs & outputs we have match what the callee put on its callData
+      let callDataFields = computeCallData(
+        methodIntf,
+        actualArgs,
+        result,
+        blindingValue
+      );
+      let callData = Poseidon.hash(callDataFields);
+      accountUpdate.body.callData.assertEquals(callData);
+      return result;
+    } finally {
+      smartContractContext.leave(id);
+    }
   };
 }
 

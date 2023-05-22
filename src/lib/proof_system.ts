@@ -16,6 +16,7 @@ import {
 } from './circuit_value.js';
 import { Context } from './global-context.js';
 import { Provable } from './provable.js';
+import { assert } from './errors.js';
 
 // public API
 export {
@@ -522,13 +523,17 @@ async function compileProgram(
   );
   let { verificationKey, provers, verify, tag } = await withThreadPool(
     async () => {
-      let [, { getVerificationKeyArtifact, provers, verify, tag }] =
-        snarkContext.runWith({ inCompile: true }, () =>
-          Pickles.compile(rules, {
-            publicInputSize: publicInputType.sizeInFields(),
-            publicOutputSize: publicOutputType.sizeInFields(),
-          })
-        );
+      let result: ReturnType<typeof Pickles.compile>;
+      let id = snarkContext.enter({ inCompile: true });
+      try {
+        result = Pickles.compile(rules, {
+          publicInputSize: publicInputType.sizeInFields(),
+          publicOutputSize: publicOutputType.sizeInFields(),
+        });
+      } finally {
+        snarkContext.leave(id);
+      }
+      let { getVerificationKeyArtifact, provers, verify, tag } = result;
       CompiledTag.store(proofSystemTag, tag);
       let verificationKey = getVerificationKeyArtifact();
       return { verificationKey, provers, verify, tag };
@@ -581,7 +586,8 @@ function picklesRuleFromFunction(
   { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface
 ): Pickles.Rule {
   function main(publicInput: Field[]): ReturnType<Pickles.Rule['main']> {
-    let { witnesses: argsWithoutPublicInput } = snarkContext.get();
+    let { witnesses: argsWithoutPublicInput, inProver } = snarkContext.get();
+    assert(!(inProver && argsWithoutPublicInput === undefined));
     let finalArgs = [];
     let proofs: Proof<any, any>[] = [];
     let previousStatements: Pickles.Statement[] = [];
@@ -589,9 +595,9 @@ function picklesRuleFromFunction(
       let arg = allArgs[i];
       if (arg.type === 'witness') {
         let type = witnessArgs[arg.index];
-        finalArgs[i] = argsWithoutPublicInput
-          ? Provable.witness(type, () => argsWithoutPublicInput![i])
-          : emptyWitness(type);
+        finalArgs[i] = Provable.witness(type, () => {
+          return argsWithoutPublicInput?.[i] ?? emptyValue(type);
+        });
       } else if (arg.type === 'proof') {
         let Proof = proofArgs[arg.index];
         let type = getStatementType(Proof);
@@ -792,10 +798,12 @@ function Prover<ProverData>() {
       proverData: ProverData,
       callback: () => Promise<Result>
     ) {
-      return snarkContext.runWithAsync(
-        { witnesses, proverData, inProver: true },
-        callback
-      );
+      let id = snarkContext.enter({ witnesses, proverData, inProver: true });
+      try {
+        return await callback();
+      } finally {
+        snarkContext.leave(id);
+      }
     },
     getData(): ProverData {
       return snarkContext.get().proverData;
