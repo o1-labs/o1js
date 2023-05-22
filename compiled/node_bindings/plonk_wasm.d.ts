@@ -549,43 +549,43 @@ export function caml_pallas_of_affine_coordinates(x: Uint8Array, y: Uint8Array):
 */
 export function caml_pallas_affine_deep_copy(x: WasmGPallas): WasmGPallas;
 /**
-* @returns {WasmFpGateVector}
+* @returns {WasmFqGateVector}
 */
-export function caml_pasta_fp_plonk_gate_vector_create(): WasmFpGateVector;
+export function caml_pasta_fq_plonk_gate_vector_create(): WasmFqGateVector;
 /**
-* @param {WasmFpGateVector} v
-* @param {WasmFpGate} gate
+* @param {WasmFqGateVector} v
+* @param {WasmFqGate} gate
 */
-export function caml_pasta_fp_plonk_gate_vector_add(v: WasmFpGateVector, gate: WasmFpGate): void;
+export function caml_pasta_fq_plonk_gate_vector_add(v: WasmFqGateVector, gate: WasmFqGate): void;
 /**
-* @param {WasmFpGateVector} v
+* @param {WasmFqGateVector} v
 * @param {number} i
-* @returns {WasmFpGate}
+* @returns {WasmFqGate}
 */
-export function caml_pasta_fp_plonk_gate_vector_get(v: WasmFpGateVector, i: number): WasmFpGate;
+export function caml_pasta_fq_plonk_gate_vector_get(v: WasmFqGateVector, i: number): WasmFqGate;
 /**
-* @param {WasmFpGateVector} v
+* @param {WasmFqGateVector} v
 * @returns {number}
 */
-export function caml_pasta_fp_plonk_gate_vector_len(v: WasmFpGateVector): number;
+export function caml_pasta_fq_plonk_gate_vector_len(v: WasmFqGateVector): number;
 /**
-* @param {WasmFpGateVector} v
+* @param {WasmFqGateVector} v
 * @param {Wire} t
 * @param {Wire} h
 */
-export function caml_pasta_fp_plonk_gate_vector_wrap(v: WasmFpGateVector, t: Wire, h: Wire): void;
+export function caml_pasta_fq_plonk_gate_vector_wrap(v: WasmFqGateVector, t: Wire, h: Wire): void;
 /**
 * @param {number} public_input_size
-* @param {WasmFpGateVector} v
+* @param {WasmFqGateVector} v
 * @returns {Uint8Array}
 */
-export function caml_pasta_fp_plonk_gate_vector_digest(public_input_size: number, v: WasmFpGateVector): Uint8Array;
+export function caml_pasta_fq_plonk_gate_vector_digest(public_input_size: number, v: WasmFqGateVector): Uint8Array;
 /**
 * @param {number} public_input_size
-* @param {WasmFpGateVector} v
+* @param {WasmFqGateVector} v
 * @returns {string}
 */
-export function caml_pasta_fp_plonk_circuit_serialize(public_input_size: number, v: WasmFpGateVector): string;
+export function caml_pasta_fq_plonk_circuit_serialize(public_input_size: number, v: WasmFqGateVector): string;
 /**
 * @param {number} depth
 * @returns {WasmFpSrs}
@@ -714,43 +714,43 @@ export function caml_fq_srs_h(srs: WasmFqSrs): WasmGPallas;
 */
 export function prover_to_json(prover_index: WasmPastaFpPlonkIndex): string;
 /**
-* @returns {WasmFqGateVector}
+* @returns {WasmFpGateVector}
 */
-export function caml_pasta_fq_plonk_gate_vector_create(): WasmFqGateVector;
+export function caml_pasta_fp_plonk_gate_vector_create(): WasmFpGateVector;
 /**
-* @param {WasmFqGateVector} v
-* @param {WasmFqGate} gate
+* @param {WasmFpGateVector} v
+* @param {WasmFpGate} gate
 */
-export function caml_pasta_fq_plonk_gate_vector_add(v: WasmFqGateVector, gate: WasmFqGate): void;
+export function caml_pasta_fp_plonk_gate_vector_add(v: WasmFpGateVector, gate: WasmFpGate): void;
 /**
-* @param {WasmFqGateVector} v
+* @param {WasmFpGateVector} v
 * @param {number} i
-* @returns {WasmFqGate}
+* @returns {WasmFpGate}
 */
-export function caml_pasta_fq_plonk_gate_vector_get(v: WasmFqGateVector, i: number): WasmFqGate;
+export function caml_pasta_fp_plonk_gate_vector_get(v: WasmFpGateVector, i: number): WasmFpGate;
 /**
-* @param {WasmFqGateVector} v
+* @param {WasmFpGateVector} v
 * @returns {number}
 */
-export function caml_pasta_fq_plonk_gate_vector_len(v: WasmFqGateVector): number;
+export function caml_pasta_fp_plonk_gate_vector_len(v: WasmFpGateVector): number;
 /**
-* @param {WasmFqGateVector} v
+* @param {WasmFpGateVector} v
 * @param {Wire} t
 * @param {Wire} h
 */
-export function caml_pasta_fq_plonk_gate_vector_wrap(v: WasmFqGateVector, t: Wire, h: Wire): void;
+export function caml_pasta_fp_plonk_gate_vector_wrap(v: WasmFpGateVector, t: Wire, h: Wire): void;
 /**
 * @param {number} public_input_size
-* @param {WasmFqGateVector} v
+* @param {WasmFpGateVector} v
 * @returns {Uint8Array}
 */
-export function caml_pasta_fq_plonk_gate_vector_digest(public_input_size: number, v: WasmFqGateVector): Uint8Array;
+export function caml_pasta_fp_plonk_gate_vector_digest(public_input_size: number, v: WasmFpGateVector): Uint8Array;
 /**
 * @param {number} public_input_size
-* @param {WasmFqGateVector} v
+* @param {WasmFpGateVector} v
 * @returns {string}
 */
-export function caml_pasta_fq_plonk_circuit_serialize(public_input_size: number, v: WasmFqGateVector): string;
+export function caml_pasta_fp_plonk_circuit_serialize(public_input_size: number, v: WasmFpGateVector): string;
 /**
 * @param {number | undefined} offset
 * @param {WasmFpSrs} srs
