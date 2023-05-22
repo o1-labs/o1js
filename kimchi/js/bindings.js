@@ -499,7 +499,11 @@ var caml_fp_vector_emplace_back = function (v, x) {
 
 // Provides: caml_fp_vector_get
 var caml_fp_vector_get = function (v, i) {
-    return new joo_global_object.Uint8Array(v[i + 1]);
+    var value = v[i + 1];
+    if (value === undefined) {
+      throw Error('caml_fp_vector_get: Index out of bounds, got ' + i + '/' + (v.length - 1));
+    }
+    return new joo_global_object.Uint8Array(value);
 }
 
 // Provides: caml_fp_vector_to_rust
@@ -536,7 +540,11 @@ var caml_fq_vector_emplace_back = function (v, x) {
 
 // Provides: caml_fq_vector_get
 var caml_fq_vector_get = function (v, i) {
-    return new joo_global_object.Uint8Array(v[i + 1]);
+    var value = v[i + 1];
+    if (value === undefined) {
+      throw Error('caml_fq_vector_get: Index out of bounds, got ' + i + '/' + (v.length - 1));
+    }
+    return new joo_global_object.Uint8Array(value);
 }
 
 // Provides: caml_fq_vector_to_rust
