@@ -40,6 +40,15 @@ function CatchAndPrettifyStacktraceForAllMethods<
       Object.defineProperty(constructor.prototype, propertyName, descriptor);
     }
   }
+  // do the same thing for static methods
+  for (let [propertyName, descriptor] of Object.entries(
+    Object.getOwnPropertyDescriptors(constructor)
+  )) {
+    if (descriptor && typeof descriptor.value === 'function') {
+      CatchAndPrettifyStacktrace(constructor, propertyName, descriptor);
+      Object.defineProperty(constructor, propertyName, descriptor);
+    }
+  }
 }
 
 /**
