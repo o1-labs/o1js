@@ -1,7 +1,7 @@
 import {
   shutdown,
   isReady,
-  Circuit,
+  Provable,
   Int64,
   UInt64,
   UInt32,
