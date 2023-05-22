@@ -167,8 +167,6 @@ function wrapMethod(
       }
     });
 
-    // TODO: the callback case is actually more similar to the composability
-    // case below, should reconcile with that to get the same callData hashing
     let insideContract = smartContractContext.get();
     if (!insideContract) {
       return smartContractContext.runWith<SmartContractContext, any>(
