@@ -1,6 +1,6 @@
 import { ProvablePure } from '../snarky.js';
 import { SmartContract, method } from './zkapp.js';
-import { Field } from './field.js';
+import { Field } from './core.js';
 
 Field satisfies ProvablePure<Field>;
 
