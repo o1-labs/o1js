@@ -1,6 +1,6 @@
-import { Provable, Bool, Field } from '../snarky.js';
+import { Bool, Field } from '../snarky.js';
 import { circuitValueEquals } from './circuit_value.js';
-import { Circuit } from './circuit.js';
+import { Provable } from './provable.js';
 import * as Mina from './mina.js';
 import { Actions, AccountUpdate, Preconditions } from './account_update.js';
 import { Int64, UInt32, UInt64 } from './int.js';
@@ -267,7 +267,7 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
   longKey: K,
   fieldType: Provable<U>
 ): U {
-  return Circuit.witness(fieldType, () => {
+  return Provable.witness(fieldType, () => {
     let [accountOrNetwork, ...rest] = longKey.split('.');
     let key = rest.join('.');
     let value: U;
@@ -315,7 +315,7 @@ function timestampToGlobalSlotRange(
     .sub(genesisTimestamp)
     .add(slotTime)
     .sub(1);
-  let lowerCapped = Circuit.if<UInt64>(
+  let lowerCapped = Provable.if<UInt64>(
     tsLowerInt.isPositive(),
     UInt64,
     tsLowerInt.magnitude,

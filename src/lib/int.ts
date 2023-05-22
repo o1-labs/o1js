@@ -845,7 +845,7 @@ class Int64 extends CircuitValue implements BalanceChange {
 
   // --- circuit-compatible operations below ---
   // the assumption here is that all Int64 values that appear in a circuit are already checked as valid
-  // this is because Circuit.witness calls .check, which calls .check on each prop, i.e. UInt64 and Sign
+  // this is because Provable.witness calls .check, which calls .check on each prop, i.e. UInt64 and Sign
   // so we only have to do additional checks if an operation on valid inputs can have an invalid outcome (example: overflow)
   /**
    * Static method to create a {@link Int64} with value `0`.
