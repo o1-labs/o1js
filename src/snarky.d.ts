@@ -572,7 +572,7 @@ declare class Field {
   /**
    * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link Field} element.
    * 
-   * **Warning**: This is a costly operation in a zk proof, because a Field can have 255 bits, each of which has to be constrained to prove that the bits equal the original field element. Prefer to use this method with the optional `length` argument to reduce the maximum amount of bits that the input can have.
+   * **Warning**: This is a costly operation in a zk proof, because a Field can have 255 bits, each of which has to be constrained to prove that the bits equal the original field element. To reduce the maximum amount of bits that the input can have, use this method with the optional `length` argument.
    * 
    * @return An array of {@link Bool} element representing little endian binary representation of this {@link Field}.
    */
