@@ -72,7 +72,7 @@ declare interface ProvablePure<T> extends Provable<T> {
  * Field("abc"); // ERROR: Invalid argument "abc"
  * ```
  * 
- * Creating a Field from a negative number may result in an unexpected behaviour if you are not familiar with [modular arithmetic](https://en.wikipedia.org/wiki/Modular_arithmetic).
+ * Creating a Field from a negative number can result in unexpected behavior if you are not familiar with [modular arithmetic](https://en.wikipedia.org/wiki/Modular_arithmetic).
  * @example
  * ```
  * const x = Field(-1); // Valid Field construction from negative number
