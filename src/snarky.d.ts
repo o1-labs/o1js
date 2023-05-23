@@ -357,7 +357,7 @@ declare class Field {
   toFields(): Field[];
 
   /**
-   * Check if this {@link Field} is lower than another "field-like" value.
+   * Check if this {@link Field} is less than another "field-like" value.
    * Returns a {@link Bool}, which is a provable type and can be used prove to the validity of this statement.
    *
    * @example
