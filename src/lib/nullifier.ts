@@ -13,6 +13,10 @@ import { scaleShifted } from './signature.js';
 export { Nullifier };
 
 /**
+ *
+ * Nullifiers are used as a public commitment to a specific anonymous account,
+ * to forbid actions like double spending, or allow a consistent identity between anonymous actions.
+ *
  * RFC: https://github.com/o1-labs/snarkyjs/issues/756
  *
  * Paper: https://eprint.iacr.org/2022/1255.pdf
@@ -35,6 +39,14 @@ class Nullifier extends Struct({
 
   /**
    * Verifies that the Nullifier belongs to a specific message. Throws an error if the Nullifier is incorrect.
+   *
+   * @example
+   *
+   * ```ts
+   * let nullifierMessage = [voteId, ...otherData];
+   * // throws an error if the nullifier is invalid or doesn't belong to this specific message
+   * nullifier.verify(nullifierMessage);
+   * ```
    */
   verify(message: Field[]) {
     let {
@@ -86,6 +98,12 @@ class Nullifier extends Struct({
   /**
    * The key of the nullifier, which belongs to a unique message and a public key.
    * Used as an index in Merkle trees.
+   *
+   * @example
+   * ```ts
+   * // returns the key of the nullifier which can be used as index in a Merkle tree/map
+   * let key = nullifier.key();
+   * ```
    */
   key() {
     return Poseidon.hash(Group.toFields(this.public.nullifier));
@@ -93,6 +111,12 @@ class Nullifier extends Struct({
 
   /**
    * Returns the state of the Nullifier.
+   *
+   * @example
+   * ```ts
+   * // returns a Bool based on whether or not the nullifier has been used before
+   * let isUnused = nullifier.isUnused();
+   * ```
    */
   isUnused(witness: MerkleMapWitness, root: Field) {
     let [newRoot, key] = witness.computeRootAndKey(Field(0));
@@ -107,6 +131,12 @@ class Nullifier extends Struct({
 
   /**
    * Checks if the Nullifier has been used before.
+   *
+   * @example
+   * ```ts
+   * // asserts that the nullifier has not been used before, throws an error otherwise
+   * nullifier.assertUnused();
+   * ```
    */
   assertUnused(witness: MerkleMapWitness, root: Field) {
     let [impliedRoot, key] = witness.computeRootAndKey(Field(0));
@@ -116,6 +146,12 @@ class Nullifier extends Struct({
 
   /**
    * Sets the Nullifier, returns the new Merkle root.
+   *
+   * @example
+   * ```ts
+   * // calculates the new root of the Merkle tree in which the nullifier is set to used
+   * let newRoot = nullifier.setUsed(witness);
+   * ```
    */
   setUsed(witness: MerkleMapWitness) {
     let [newRoot, key] = witness.computeRootAndKey(Field(1));
@@ -125,6 +161,11 @@ class Nullifier extends Struct({
 
   /**
    * Returns the {@link PublicKey} that is associated with this Nullifier.
+   *
+   * @example
+   * ```ts
+   * let pk = nullifier.getPublicKey();
+   * ```
    */
   getPublicKey() {
     return PublicKey.fromGroup(this.publicKey);
