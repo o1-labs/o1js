@@ -276,9 +276,16 @@ class Field {
    * ```
    */
   square() {
-    // snarky-ml uses assert_square which leads to an equivalent but slightly different gate
-    // return SnarkyField(this).square();
-    return this.mul(this);
+    if (this.isConstant()) {
+      return new Field(Fp.square(this.toBigInt()));
+    }
+    // create a new witness for z = x^2
+    let z = Snarky.existsVar(() =>
+      FieldConst.fromBigint(Fp.square(this.toBigInt()))
+    );
+    // add a squaring constraint
+    Snarky.field.assertSquare(this.value, z);
+    return new Field(z);
   }
 
   /**
@@ -297,14 +304,13 @@ class Field {
         );
       return new Field(z);
     }
-    // return SnarkyField(this).sqrt();
     // create a witness for sqrt(x)
     let z = Snarky.existsVar(() => {
       let z = Fp.sqrt(this.toBigInt()) ?? 0n;
       return FieldConst.fromBigint(z);
     });
     // constrain z * z === x
-    Snarky.field.assertMul(z, z, this.value);
+    Snarky.field.assertSquare(z, this.value);
     return new Field(z);
   }
 
@@ -348,16 +354,18 @@ class Field {
    */
   equals(y: Field | bigint | number | string): Bool {
     // x == y is equivalent to x - y == 0
-    // if one of the two is constant, we just need the two constraints in `isZero`
-    if (this.isConstant() || isConstant(y)) {
-      return this.sub(y).isZero();
-    }
-    // if both are variables, we create one new variable for x-y so that `isZero` doesn't create two
-    let xMinusY = Snarky.existsVar(() =>
-      FieldConst.fromBigint(Fp.sub(this.toBigInt(), toFp(y)))
-    );
-    Snarky.field.assertEqual(this.sub(y).value, xMinusY);
-    return new Field(xMinusY).isZero();
+    // TODO: this is less efficient than possible for equivalence with snarky-ml
+    return this.sub(y).isZero();
+    // // if one of the two is constant, we just need the two constraints in `isZero`
+    // if (this.isConstant() || isConstant(y)) {
+    //   return this.sub(y).isZero();
+    // }
+    // // if both are variables, we create one new variable for x-y so that `isZero` doesn't create two
+    // let xMinusY = Snarky.existsVar(() =>
+    //   FieldConst.fromBigint(Fp.sub(this.toBigInt(), toFp(y)))
+    // );
+    // Snarky.field.assertEqual(this.sub(y).value, xMinusY);
+    // return new Field(xMinusY).isZero();
   }
 
   // internal base method for all comparisons
@@ -372,7 +380,6 @@ class Field {
   }
 
   /**
-   *
    * Check if this {@link Field} is lower than another Field-like value.
    * Returns a {@link Bool}.
    *
@@ -413,7 +420,8 @@ class Field {
    * ```
    */
   greaterThan(y: Field | bigint | number | string) {
-    return Field.from(y).lessThan(this);
+    // TODO: this is less efficient than possible for equivalence with ml
+    return this.lessThanOrEqual(y).not();
   }
 
   /**
@@ -426,7 +434,8 @@ class Field {
    * ```
    */
   greaterThanOrEqual(y: Field | bigint | number | string) {
-    return Field.from(y).lessThanOrEqual(this);
+    // TODO: this is less efficient than possible for equivalence with ml
+    return this.lessThan(y).not();
   }
 
   /**
@@ -548,8 +557,7 @@ class Field {
         }
         return;
       }
-      // x^2 = x <--> x(1 - x) = 0 <--> x is 0 or 1
-      Snarky.field.assertMul(this.value, this.value, this.value);
+      Snarky.field.assertBoolean(this.value);
     } catch (err) {
       throw withMessage(err, message);
     }
