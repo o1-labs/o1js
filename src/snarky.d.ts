@@ -610,7 +610,7 @@ declare class Field {
    * 
    * In SnarkyJS, addition and scaling (multiplication of variables by a constant) of variables is represented as an AST - [abstract syntax tree](https://en.wikipedia.org/wiki/Abstract_syntax_tree). For example, the expression `x.add(y).mul(2)` is represented as `Scale(2, Add(x, y))`.
    * 
-   * Only when the variable is needed in a multiplicative or any higher level constraint (for example multiplication of two {@link Field} elements) a new internal variable is created to represent the operation.
+   *  A new internal variable is created only when the variable is needed in a multiplicative or any higher level constraint (for example multiplication of two {@link Field} elements) to represent the operation.
    * 
    * The `seal()` function tells SnarkyJS to stop building an AST and create a new variable right away.
    * 
