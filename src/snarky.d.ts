@@ -350,7 +350,7 @@ declare class Field {
   /**
    * This function is the implementation of {@link Provable.toFields} in {@link Field} type.
    * You can use this array to calculate the {@link Poseidon} hash of a {@link Field}.
-   * This will be always an array of length 1, where the first and only element equals the {@link Field} itself.
+   * This data structure will be always an array of length 1, where the first and only element equals the {@link Field} itself.
    * 
    * @return A {@link Field} array of length 1 created from this {@link Field}.
    */
