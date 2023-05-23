@@ -35,7 +35,13 @@ test(Random.field, Random.json.field, (x, y, assert) => {
   assert(z.toJSON() === y);
 });
 
-// constant arithmetic
+// special generator
+let SmallField = Random.reject(
+  Random.field,
+  (x) => x.toString(2).length > Fp.sizeInBits - 2
+);
+
+// arithmetic, both in- and outside provable code
 equivalent2((x, y) => x.add(y), Fp.add);
 equivalent1((x) => x.neg(), Fp.negate);
 equivalent2((x, y) => x.sub(y), Fp.sub);
@@ -59,11 +65,13 @@ equivalent2(
 );
 equivalent2(
   (x, y) => x.lessThan(y).toField(),
-  (x, y) => BigInt(x < y)
+  (x, y) => BigInt(x < y),
+  SmallField
 );
 equivalent2(
   (x, y) => x.lessThanOrEqual(y).toField(),
-  (x, y) => BigInt(x <= y)
+  (x, y) => BigInt(x <= y),
+  SmallField
 );
 equivalentVoid2(
   (x, y) => x.assertEquals(y),
@@ -75,11 +83,13 @@ equivalentVoid2(
 );
 equivalentVoid2(
   (x, y) => x.assertLessThan(y),
-  (x, y) => x < y || throwError('not less than')
+  (x, y) => x < y || throwError('not less than'),
+  SmallField
 );
 equivalentVoid2(
   (x, y) => x.assertLessThanOrEqual(y),
-  (x, y) => x <= y || throwError('not less than')
+  (x, y) => x <= y || throwError('not less than or equal'),
+  SmallField
 );
 equivalentVoid1(
   (x) => x.assertBool(),
@@ -151,38 +161,45 @@ test(Random.field, Random.field, (x0, y0, assert) => {
     Provable.asProver(() =>
       assert(bitsVars.every((b, i) => b.toBoolean() === bits[i]))
     );
-
-    // assertGreater / Less
-    let isSmall =
-      Math.max(x0.toString(2).length, y0.toString(2).length) <=
-      Fp.sizeInBits - 2;
-    let isGreater = x0 > y0;
-    if (isSmall) {
-      if (isGreater) x.assertGreaterThan(y);
-      else x.assertLessThanOrEqual(y);
-    }
   });
 });
 
 // helpers
 
-function equivalent1(op1: (x: Field) => Field, op2: (x: bigint) => bigint) {
-  test(Random.field, (x0, assert) => {
+function equivalent1(
+  op1: (x: Field) => Field,
+  op2: (x: bigint) => bigint,
+  rng: Random<bigint> = Random.field
+) {
+  test(rng, (x0, assert) => {
     let x = Field(x0);
+    // outside provable code
     handleErrors(
       () => op1(x),
       () => op2(x0),
       (a, b) => assert(a.toBigInt() === b, 'equal results')
     );
+    // inside provable code
+    Provable.runAndCheck(() => {
+      x = Provable.witness(Field, () => x);
+      handleErrors(
+        () => op1(x),
+        () => op2(x0),
+        (a, b) =>
+          Provable.asProver(() => assert(a.toBigInt() === b, 'equal results'))
+      );
+    });
   });
 }
 function equivalent2(
   op1: (x: Field, y: Field | bigint) => Field,
-  op2: (x: bigint, y: bigint) => bigint
+  op2: (x: bigint, y: bigint) => bigint,
+  rng: Random<bigint> = Random.field
 ) {
-  test(Random.field, Random.field, (x0, y0, assert) => {
+  test(rng, rng, (x0, y0, assert) => {
     let x = Field(x0);
     let y = Field(y0);
+    // outside provable code
     handleErrors(
       () => op1(x, y),
       () => op2(x0, y0),
@@ -193,24 +210,56 @@ function equivalent2(
       () => op2(x0, y0),
       (a, b) => assert(a.toBigInt() === b, 'equal results')
     );
+    // inside provable code
+    Provable.runAndCheck(() => {
+      x = Provable.witness(Field, () => x);
+      y = Provable.witness(Field, () => y);
+      handleErrors(
+        () => op1(x, y),
+        () => op2(x0, y0),
+        (a, b) =>
+          Provable.asProver(() => assert(a.toBigInt() === b, 'equal results'))
+      );
+      handleErrors(
+        () => op1(x, y0),
+        () => op2(x0, y0),
+        (a, b) =>
+          Provable.asProver(() => assert(a.toBigInt() === b, 'equal results'))
+      );
+    });
   });
 }
-function equivalentVoid1(op1: (x: Field) => void, op2: (x: bigint) => void) {
-  test(Random.field, (x0) => {
+function equivalentVoid1(
+  op1: (x: Field) => void,
+  op2: (x: bigint) => void,
+  rng: Random<bigint> = Random.field
+) {
+  test(rng, (x0) => {
     let x = Field(x0);
+    // outside provable code
     handleErrors(
       () => op1(x),
       () => op2(x0)
     );
+    // inside provable code
+    Provable.runAndCheck(() => {
+      x = Provable.witness(Field, () => x);
+      handleErrors(
+        () => op1(x),
+        () => op2(x0)
+      );
+    });
   });
 }
 function equivalentVoid2(
   op1: (x: Field, y: Field | bigint) => void,
-  op2: (x: bigint, y: bigint) => void
+  op2: (x: bigint, y: bigint) => void,
+  rng: Random<bigint> = Random.field
 ) {
-  test(Random.field, Random.field, (x0, y0) => {
+  test(rng, rng, (x0, y0) => {
     let x = Field(x0);
     let y = Field(y0);
+    // outside provable code
     handleErrors(
       () => op1(x, y),
       () => op2(x0, y0)
@@ -219,6 +268,19 @@ function equivalentVoid2(
       () => op1(x, y0),
       () => op2(x0, y0)
     );
+    // inside provable code
+    Provable.runAndCheck(() => {
+      x = Provable.witness(Field, () => x);
+      y = Provable.witness(Field, () => y);
+      handleErrors(
+        () => op1(x, y),
+        () => op2(x0, y0)
+      );
+      handleErrors(
+        () => op1(x, y0),
+        () => op2(x0, y0)
+      );
+    });
   });
 }
 
