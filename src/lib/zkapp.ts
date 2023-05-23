@@ -140,6 +140,8 @@ function method<T extends SmartContract>(
     methodEntry.returnType = returnType;
   }
   ZkappClass._methods ??= [];
+  // FIXME: overriding a method implies pushing a separate method entry here, yielding two entries with the same name
+  // this should only be changed once we no longer share the _methods array with the parent class (otherwise a subclass declaration messes up the parent class)
   ZkappClass._methods.push(methodEntry);
   ZkappClass._maxProofsVerified ??= 0;
   ZkappClass._maxProofsVerified = Math.max(
@@ -383,8 +385,7 @@ function wrapMethod(
           `Note: Only types built out of \`Field\` are valid return types. This includes snarkyjs primitive types and custom CircuitValues.`;
         // if we're lucky, analyzeMethods was already run on the callee smart contract, and we can catch this error early
         if (
-          (ZkappClass as any)._methodMetadata[methodIntf.methodName]
-            ?.hasReturn &&
+          ZkappClass._methodMetadata?.[methodIntf.methodName]?.hasReturn &&
           returnType === undefined
         ) {
           throw Error(noReturnTypeError);
@@ -605,8 +606,13 @@ class SmartContract {
   tokenId: Field;
 
   #executionState: ExecutionState | undefined;
+
+  // here we store various metadata associated with a SmartContract subclass.
+  // by initializing all of these to `undefined`, we ensure that
+  // subclasses aren't sharing the same property with the base class and each other
+  // FIXME: these are still shared between a subclass and its own subclasses, which means extending SmartContracts is broken
   static _methods?: MethodInterface[];
-  static _methodMetadata: Record<
+  static _methodMetadata?: Record<
     string,
     {
       actions: number;
@@ -615,7 +621,7 @@ class SmartContract {
       hasReturn: boolean;
       gates: Gate[];
     }
-  > = {}; // keyed by method name
+  >; // keyed by method name
   static _provers?: Pickles.Prover[];
   static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
@@ -1163,11 +1169,11 @@ super.init();
    *  - `gates` the constraint system, represented as an array of gates
    */
   static analyzeMethods() {
-    let methodMetaData = this._methodMetadata;
     let ZkappClass = this as typeof SmartContract;
+    let methodMetadata = (ZkappClass._methodMetadata ??= {});
     let methodIntfs = ZkappClass._methods ?? [];
     if (
-      !methodIntfs.every((m) => m.methodName in methodMetaData) &&
+      !methodIntfs.every((m) => m.methodName in methodMetadata) &&
       !inAnalyze()
     ) {
       if (snarkContext.get().inRunAndCheck) {
@@ -1197,7 +1203,7 @@ super.init();
               return result;
             }
           );
-          ZkappClass._methodMetadata[methodIntf.methodName] = {
+          methodMetadata[methodIntf.methodName] = {
             actions: accountUpdate!.body.actions.data.length,
             rows,
             digest,
@@ -1209,7 +1215,7 @@ super.init();
         if (insideSmartContract) smartContractContext.leave(id!);
       }
     }
-    return ZkappClass._methodMetadata;
+    return methodMetadata;
   }
 
   /**
