@@ -58,7 +58,7 @@ declare interface ProvablePure<T> extends Provable<T> {
  *
  * The field is the [pasta base field](https://electriccoin.co/blog/the-pasta-curves-for-halo-2-and-beyond/) of order 2^254 + 0x224698fc094cf91b992d30ed00000001 ({@link Field.ORDER}).
  *
- * You can create a new Field from everything "field-like" (`bigint`, integer, `number`, decimal, `string`, `Field`).
+ * You can create a new Field from everything "field-like" (`bigint`, integer `number`, decimal `string`, `Field`).
  * @example
  * ```
  * Field(10n); // Field contruction from a big integer
