@@ -1894,69 +1894,69 @@ module.exports.caml_pallas_affine_deep_copy = function(x) {
 };
 
 /**
-* @returns {WasmFpGateVector}
+* @returns {WasmFqGateVector}
 */
-module.exports.caml_pasta_fp_plonk_gate_vector_create = function() {
-    const ret = wasm.caml_pasta_fp_plonk_gate_vector_create();
-    return WasmFpGateVector.__wrap(ret);
+module.exports.caml_pasta_fq_plonk_gate_vector_create = function() {
+    const ret = wasm.caml_pasta_fq_plonk_gate_vector_create();
+    return WasmFqGateVector.__wrap(ret);
 };
 
 /**
-* @param {WasmFpGateVector} v
-* @param {WasmFpGate} gate
+* @param {WasmFqGateVector} v
+* @param {WasmFqGate} gate
 */
-module.exports.caml_pasta_fp_plonk_gate_vector_add = function(v, gate) {
-    _assertClass(v, WasmFpGateVector);
-    _assertClass(gate, WasmFpGate);
+module.exports.caml_pasta_fq_plonk_gate_vector_add = function(v, gate) {
+    _assertClass(v, WasmFqGateVector);
+    _assertClass(gate, WasmFqGate);
     var ptr0 = gate.__destroy_into_raw();
-    wasm.caml_pasta_fp_plonk_gate_vector_add(v.ptr, ptr0);
+    wasm.caml_pasta_fq_plonk_gate_vector_add(v.ptr, ptr0);
 };
 
 /**
-* @param {WasmFpGateVector} v
+* @param {WasmFqGateVector} v
 * @param {number} i
-* @returns {WasmFpGate}
+* @returns {WasmFqGate}
 */
-module.exports.caml_pasta_fp_plonk_gate_vector_get = function(v, i) {
-    _assertClass(v, WasmFpGateVector);
-    const ret = wasm.caml_pasta_fp_plonk_gate_vector_get(v.ptr, i);
-    return WasmFpGate.__wrap(ret);
+module.exports.caml_pasta_fq_plonk_gate_vector_get = function(v, i) {
+    _assertClass(v, WasmFqGateVector);
+    const ret = wasm.caml_pasta_fq_plonk_gate_vector_get(v.ptr, i);
+    return WasmFqGate.__wrap(ret);
 };
 
 /**
-* @param {WasmFpGateVector} v
+* @param {WasmFqGateVector} v
 * @returns {number}
 */
-module.exports.caml_pasta_fp_plonk_gate_vector_len = function(v) {
-    _assertClass(v, WasmFpGateVector);
-    const ret = wasm.caml_pasta_fp_plonk_gate_vector_len(v.ptr);
+module.exports.caml_pasta_fq_plonk_gate_vector_len = function(v) {
+    _assertClass(v, WasmFqGateVector);
+    const ret = wasm.caml_pasta_fq_plonk_gate_vector_len(v.ptr);
     return ret >>> 0;
 };
 
 /**
-* @param {WasmFpGateVector} v
+* @param {WasmFqGateVector} v
 * @param {Wire} t
 * @param {Wire} h
 */
-module.exports.caml_pasta_fp_plonk_gate_vector_wrap = function(v, t, h) {
-    _assertClass(v, WasmFpGateVector);
+module.exports.caml_pasta_fq_plonk_gate_vector_wrap = function(v, t, h) {
+    _assertClass(v, WasmFqGateVector);
     _assertClass(t, Wire);
     var ptr0 = t.__destroy_into_raw();
     _assertClass(h, Wire);
     var ptr1 = h.__destroy_into_raw();
-    wasm.caml_pasta_fp_plonk_gate_vector_wrap(v.ptr, ptr0, ptr1);
+    wasm.caml_pasta_fq_plonk_gate_vector_wrap(v.ptr, ptr0, ptr1);
 };
 
 /**
 * @param {number} public_input_size
-* @param {WasmFpGateVector} v
+* @param {WasmFqGateVector} v
 * @returns {Uint8Array}
 */
-module.exports.caml_pasta_fp_plonk_gate_vector_digest = function(public_input_size, v) {
+module.exports.caml_pasta_fq_plonk_gate_vector_digest = function(public_input_size, v) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        _assertClass(v, WasmFpGateVector);
-        wasm.caml_pasta_fp_plonk_gate_vector_digest(retptr, public_input_size, v.ptr);
+        _assertClass(v, WasmFqGateVector);
+        wasm.caml_pasta_fq_plonk_gate_vector_digest(retptr, public_input_size, v.ptr);
         var r0 = getInt32Memory0()[retptr / 4 + 0];
         var r1 = getInt32Memory0()[retptr / 4 + 1];
         var v0 = getArrayU8FromWasm0(r0, r1).slice();
@@ -1969,14 +1969,14 @@ module.exports.caml_pasta_fp_plonk_gate_vector_digest = function(public_input_si
 
 /**
 * @param {number} public_input_size
-* @param {WasmFpGateVector} v
+* @param {WasmFqGateVector} v
 * @returns {string}
 */
-module.exports.caml_pasta_fp_plonk_circuit_serialize = function(public_input_size, v) {
+module.exports.caml_pasta_fq_plonk_circuit_serialize = function(public_input_size, v) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        _assertClass(v, WasmFpGateVector);
-        wasm.caml_pasta_fp_plonk_circuit_serialize(retptr, public_input_size, v.ptr);
+        _assertClass(v, WasmFqGateVector);
+        wasm.caml_pasta_fq_plonk_circuit_serialize(retptr, public_input_size, v.ptr);
         var r0 = getInt32Memory0()[retptr / 4 + 0];
         var r1 = getInt32Memory0()[retptr / 4 + 1];
         return getStringFromWasm0(r0, r1);
@@ -2391,69 +2391,69 @@ module.exports.prover_to_json = function(prover_index) {
 };
 
 /**
-* @returns {WasmFqGateVector}
+* @returns {WasmFpGateVector}
 */
-module.exports.caml_pasta_fq_plonk_gate_vector_create = function() {
-    const ret = wasm.caml_pasta_fq_plonk_gate_vector_create();
-    return WasmFqGateVector.__wrap(ret);
+module.exports.caml_pasta_fp_plonk_gate_vector_create = function() {
+    const ret = wasm.caml_pasta_fp_plonk_gate_vector_create();
+    return WasmFpGateVector.__wrap(ret);
 };
 
 /**
-* @param {WasmFqGateVector} v
-* @param {WasmFqGate} gate
+* @param {WasmFpGateVector} v
+* @param {WasmFpGate} gate
 */
-module.exports.caml_pasta_fq_plonk_gate_vector_add = function(v, gate) {
-    _assertClass(v, WasmFqGateVector);
-    _assertClass(gate, WasmFqGate);
+module.exports.caml_pasta_fp_plonk_gate_vector_add = function(v, gate) {
+    _assertClass(v, WasmFpGateVector);
+    _assertClass(gate, WasmFpGate);
     var ptr0 = gate.__destroy_into_raw();
-    wasm.caml_pasta_fq_plonk_gate_vector_add(v.ptr, ptr0);
+    wasm.caml_pasta_fp_plonk_gate_vector_add(v.ptr, ptr0);
 };
 
 /**
-* @param {WasmFqGateVector} v
+* @param {WasmFpGateVector} v
 * @param {number} i
-* @returns {WasmFqGate}
+* @returns {WasmFpGate}
 */
-module.exports.caml_pasta_fq_plonk_gate_vector_get = function(v, i) {
-    _assertClass(v, WasmFqGateVector);
-    const ret = wasm.caml_pasta_fq_plonk_gate_vector_get(v.ptr, i);
-    return WasmFqGate.__wrap(ret);
+module.exports.caml_pasta_fp_plonk_gate_vector_get = function(v, i) {
+    _assertClass(v, WasmFpGateVector);
+    const ret = wasm.caml_pasta_fp_plonk_gate_vector_get(v.ptr, i);
+    return WasmFpGate.__wrap(ret);
 };
 
 /**
-* @param {WasmFqGateVector} v
+* @param {WasmFpGateVector} v
 * @returns {number}
 */
-module.exports.caml_pasta_fq_plonk_gate_vector_len = function(v) {
-    _assertClass(v, WasmFqGateVector);
-    const ret = wasm.caml_pasta_fq_plonk_gate_vector_len(v.ptr);
+module.exports.caml_pasta_fp_plonk_gate_vector_len = function(v) {
+    _assertClass(v, WasmFpGateVector);
+    const ret = wasm.caml_pasta_fp_plonk_gate_vector_len(v.ptr);
     return ret >>> 0;
 };
 
 /**
-* @param {WasmFqGateVector} v
+* @param {WasmFpGateVector} v
 * @param {Wire} t
 * @param {Wire} h
 */
-module.exports.caml_pasta_fq_plonk_gate_vector_wrap = function(v, t, h) {
-    _assertClass(v, WasmFqGateVector);
+module.exports.caml_pasta_fp_plonk_gate_vector_wrap = function(v, t, h) {
+    _assertClass(v, WasmFpGateVector);
     _assertClass(t, Wire);
     var ptr0 = t.__destroy_into_raw();
     _assertClass(h, Wire);
     var ptr1 = h.__destroy_into_raw();
-    wasm.caml_pasta_fq_plonk_gate_vector_wrap(v.ptr, ptr0, ptr1);
+    wasm.caml_pasta_fp_plonk_gate_vector_wrap(v.ptr, ptr0, ptr1);
 };
 
 /**
 * @param {number} public_input_size
-* @param {WasmFqGateVector} v
+* @param {WasmFpGateVector} v
 * @returns {Uint8Array}
 */
-module.exports.caml_pasta_fq_plonk_gate_vector_digest = function(public_input_size, v) {
+module.exports.caml_pasta_fp_plonk_gate_vector_digest = function(public_input_size, v) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        _assertClass(v, WasmFqGateVector);
-        wasm.caml_pasta_fq_plonk_gate_vector_digest(retptr, public_input_size, v.ptr);
+        _assertClass(v, WasmFpGateVector);
+        wasm.caml_pasta_fp_plonk_gate_vector_digest(retptr, public_input_size, v.ptr);
         var r0 = getInt32Memory0()[retptr / 4 + 0];
         var r1 = getInt32Memory0()[retptr / 4 + 1];
         var v0 = getArrayU8FromWasm0(r0, r1).slice();
@@ -2466,14 +2466,14 @@ module.exports.caml_pasta_fq_plonk_gate_vector_digest = function(public_input_si
 
 /**
 * @param {number} public_input_size
-* @param {WasmFqGateVector} v
+* @param {WasmFpGateVector} v
 * @returns {string}
 */
-module.exports.caml_pasta_fq_plonk_circuit_serialize = function(public_input_size, v) {
+module.exports.caml_pasta_fp_plonk_circuit_serialize = function(public_input_size, v) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        _assertClass(v, WasmFqGateVector);
-        wasm.caml_pasta_fq_plonk_circuit_serialize(retptr, public_input_size, v.ptr);
+        _assertClass(v, WasmFpGateVector);
+        wasm.caml_pasta_fp_plonk_circuit_serialize(retptr, public_input_size, v.ptr);
         var r0 = getInt32Memory0()[retptr / 4 + 0];
         var r1 = getInt32Memory0()[retptr / 4 + 1];
         return getStringFromWasm0(r0, r1);
@@ -7622,14 +7622,6 @@ module.exports.__wbindgen_is_object = function(arg0) {
     return ret;
 };
 
-module.exports.__wbg_getRandomValues_3774744e221a22ad = function() { return handleError(function (arg0, arg1) {
-    getObject(arg0).getRandomValues(getObject(arg1));
-}, arguments) };
-
-module.exports.__wbg_randomFillSync_e950366c42764a07 = function() { return handleError(function (arg0, arg1) {
-    getObject(arg0).randomFillSync(takeObject(arg1));
-}, arguments) };
-
 module.exports.__wbg_crypto_70a96de3b6b73dac = function(arg0) {
     const ret = getObject(arg0).crypto;
     return addHeapObject(ret);
@@ -7669,6 +7661,14 @@ module.exports.__wbindgen_is_function = function(arg0) {
     const ret = typeof(getObject(arg0)) === 'function';
     return ret;
 };
+
+module.exports.__wbg_getRandomValues_3774744e221a22ad = function() { return handleError(function (arg0, arg1) {
+    getObject(arg0).getRandomValues(getObject(arg1));
+}, arguments) };
+
+module.exports.__wbg_randomFillSync_e950366c42764a07 = function() { return handleError(function (arg0, arg1) {
+    getObject(arg0).randomFillSync(takeObject(arg1));
+}, arguments) };
 
 module.exports.__wbg_get_27fe3dac1c4d0224 = function(arg0, arg1) {
     const ret = getObject(arg0)[arg1 >>> 0];
