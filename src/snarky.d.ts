@@ -481,7 +481,7 @@ declare class Field {
   assertGreaterThan(value: Field | number | string | boolean, message?: string): void;
 
   /**
-   * Assert that this {@link Field} is greater than or equal another "field-like" value.
+   * Assert that this {@link Field} is greater than or equal to another "field-like" value.
    * It is equivalent to `Field(...).greaterThanOrEqual(...).assertEquals(Bool(true))`.
    * Please see {@link Field.greaterThanOrEqual} for more details.
    * 
