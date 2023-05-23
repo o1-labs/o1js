@@ -365,7 +365,7 @@ declare class Field {
    * Field(2).lessThan(3).assertEquals(Bool(true));
    * ```
    * 
-   * **Warning**: As this method compares the bigint value of a {@link Field}, it can result in unexpected behaviour when used with negative inputs or modular division.
+   * **Warning**: As this method compares the bigint value of a {@link Field}, it can result in unexpected behavior when used with negative inputs or modular division.
    * 
    * @example
    * ```ts
