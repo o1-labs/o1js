@@ -150,7 +150,7 @@ class Keypair {
    * @example
    * ```ts
    * const keypair = await MyCircuit.generateKeypair();
-   * const json = MyCircuit.constraintSystemFromKeypair(keypair);
+   * const json = MyProvable.witnessFromKeypair(keypair);
    * ```
    */
   constraintSystem() {

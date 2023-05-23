@@ -230,7 +230,7 @@ function wrapMethod(
 
                 // connect the public input to the account update & child account updates we created
                 if (DEBUG_PUBLIC_INPUT_CHECK) {
-                  Circuit.asProver(() => {
+                  Provable.asProver(() => {
                     // TODO: print a nice diff string instead of the two objects
                     // something like `expect` or `json-diff`, but web-compatible
                     function diff(prover: any, input: any) {
@@ -761,7 +761,7 @@ class SmartContract {
     // check if the entire state was overwritten, show a warning if not
     let isFirstRun = Mina.currentTransaction()?.numberOfRuns === 0;
     if (!isFirstRun) return;
-    Circuit.asProver(() => {
+    Provable.asProver(() => {
       if (
         initUpdate.update.appState.some(({ isSome }) => !isSome.toBoolean())
       ) {
@@ -1136,7 +1136,7 @@ super.init();
 
   static runOutsideCircuit(run: () => void) {
     if (Mina.currentTransaction()?.isFinalRunOutsideCircuit || inProver())
-      Circuit.asProver(run);
+      Provable.asProver(run);
   }
 
   // TODO: this could also be used to quickly perform any invariant checks on account updates construction
@@ -1170,7 +1170,7 @@ super.init();
     ) {
       if (snarkContext.get().inRunAndCheck) {
         let err = new Error(
-          'Can not analyze methods inside Circuit.runAndCheck, because this creates a circuit nested in another circuit'
+          'Can not analyze methods inside Provable.runAndCheck, because this creates a circuit nested in another circuit'
         );
         // EXCEPT if the code that calls this knows that it can first run `analyzeMethods` OUTSIDE runAndCheck and try again
         (err as any).bootstrap = () => ZkappClass.analyzeMethods();
@@ -1383,19 +1383,19 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           let events = actions.map((a) => reducer.actionType.toFields(a));
           return Actions.hash(events);
         });
-        let eventsHash = Circuit.switch(lengths, Field, eventsHashes);
+        let eventsHash = Provable.switch(lengths, Field, eventsHashes);
         let newActionsHash = Actions.updateSequenceState(
           actionState,
           eventsHash
         );
         let isEmpty = lengths[0];
         // update state hash, if this is not an empty action
-        actionState = Circuit.if(isEmpty, actionState, newActionsHash);
+        actionState = Provable.if(isEmpty, actionState, newActionsHash);
         // also, for each action length, compute the new state and then pick the actual one
         let newStates = actionss.map((actions) => {
           // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
           let newState = Provable.witness(stateType, () => state);
-          Circuit.assertEqual(stateType, newState, state);
+          Provable.assertEqual(stateType, newState, state);
           // apply actions in reverse order since that's how they were stored at dispatch
           [...actions].reverse().forEach((action) => {
             newState = reduce(newState, action);
@@ -1403,7 +1403,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           return newState;
         });
         // update state
-        state = Circuit.switch(lengths, stateType, newStates);
+        state = Provable.switch(lengths, stateType, newStates);
       }
       if (!skipActionStatePrecondition) {
         contract.account.actionState.assertEquals(actionState);
@@ -1436,7 +1436,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       endActionState?: Field;
     }): A[][] {
       let actionsForAccount: A[][] = [];
-      Circuit.asProver(() => {
+      Provable.asProver(() => {
         let actions = Mina.getActions(
           contract.address,
           config,

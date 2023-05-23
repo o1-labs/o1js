@@ -12,6 +12,7 @@ import {
   Int64,
   Types,
   TokenId,
+  Provable,
 } from 'snarkyjs';
 
 let address: PublicKey;
@@ -53,7 +54,7 @@ describe('AccountUpdate', () => {
 
   it('can hash an account update', () => {
     // TODO remove restriction "This function can't be run outside of a checked computation."
-    Circuit.runAndCheck(() => {
+    Provable.runAndCheck(() => {
       let hash = accountUpdate.hash();
 
       // if we clone the accountUpdate, hash should be the same

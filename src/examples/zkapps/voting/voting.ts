@@ -7,11 +7,11 @@ import {
   DeployArgs,
   Permissions,
   PublicKey,
-  Circuit,
   Bool,
   Reducer,
   provablePure,
   AccountUpdate,
+  Provable,
 } from 'snarkyjs';
 
 import { Member } from './member.js';
@@ -122,7 +122,7 @@ export class Voting_ extends SmartContract {
     );
 
     // can only register voters before the election has started
-    Circuit.if(
+    Provable.if(
       electionPreconditions.enforce,
       currentSlot.lessThanOrEqual(electionPreconditions.startElection),
       Bool(true)
@@ -171,7 +171,7 @@ export class Voting_ extends SmartContract {
     );
 
     // can only register candidates before the election has started
-    Circuit.if(
+    Provable.if(
       electionPreconditions.enforce,
       currentSlot.lessThanOrEqual(electionPreconditions.startElection),
       Bool(true)
@@ -235,7 +235,7 @@ export class Voting_ extends SmartContract {
     );
 
     // we can only vote in the election period time frame
-    Circuit.if(
+    Provable.if(
       electionPreconditions.enforce,
       currentSlot
         .greaterThanOrEqual(electionPreconditions.startElection)
