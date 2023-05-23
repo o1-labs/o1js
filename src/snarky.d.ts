@@ -25,7 +25,7 @@ export {
 export { Test };
 
 /**
- * `Provable<T>` is the general circuit type interface. It describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
+ * `Provable<T>` is the general circuit type interface. Provable interface describes how a type `T` is made up of field elements and auxiliary (non-field element) data.
  *
  * You will find `Provable<T>` as the required input type in a few places in SnarkyJS. One convenient way to create a `Provable<T>` is using `Struct`.
  * 
@@ -94,7 +94,7 @@ declare class Field {
    * 
    * The field is the [pasta base field](https://electriccoin.co/blog/the-pasta-curves-for-halo-2-and-beyond/) of order 2^254 + 0x224698fc094cf91b992d30ed00000001 ({@link Field.ORDER}).
    * 
-   * You can create a new Field from everything "field-like" (`bigint`, integer, `number`, decimal, `string`, `Field`).
+   * You can create a new Field from everything "field-like" (`bigint`, integer `number`, decimal `string`, `Field`).
    * @example
    * ```
    * new Field(10n); // Field contruction from a big integer
@@ -154,7 +154,7 @@ declare class Field {
    * inverse.assertEquals(Field(1).div(example)); // This statement is always true regardless of the value of `someField`
    * ```
    * 
-   * **Warning**: This is a modular inverse. Please see {@link div} method for more details.
+   * **Warning**: This is a modular inverse. See {@link div} method for more details.
    *
    * @return A {@link Field} element that is equivalent to one divided by this element.
    */
@@ -247,7 +247,7 @@ declare class Field {
    * quotient.assertEquals(Field(2));
    * ```
    * 
-   * **Warning**: This is a modular division in the pasta field. You can think it as the reverse operation of modular multiplication.
+   * **Warning**: This is a modular division in the pasta field. You can think this as the reverse operation of modular multiplication.
    * 
    * @example
    * ```ts
@@ -279,7 +279,7 @@ declare class Field {
    * square.assertEquals(someField.mul(someField)); // This statement is always true regardless of the value of `someField`
    * ```
    * 
-   * ** Warning: This is a modular multiplication. Please see `mul()` function for more details.
+   * ** Warning: This is a modular multiplication. See `mul()` method for more details.
    * 
    * @return A {@link Field} element equivalent to the multiplication of the {@link Field} element with itself.
    */
@@ -296,16 +296,16 @@ declare class Field {
    * squareRoot.mul(squareRoot).assertEquals(someField); // This statement is always true regardless of the value of `someField`
    * ```
    * 
-   * **Warning**: This is a modular square root. Please see `div()` function for more details.
+   * **Warning**: This is a modular square root. See `div()` method for more details.
    * 
    * @return A {@link Field} element equivalent to the square root of the {@link Field} element.
    */
   sqrt(): Field;
 
   /**
-   * Serialize the {@link Field} to a string, e.g. for printing. If you try to print a {@link Field} without this function it will directly stringify the Field object, resulting in an unreadable output.
+   * Serialize the {@link Field} to a string, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in an unreadable output.
    * 
-   * **Warning**: This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the {@link Field}. Please use it only during debugging.
+   * **Warning**: This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the {@link Field}. Use the operation only during debugging.
    * 
    * @example
    * ```ts
@@ -320,7 +320,7 @@ declare class Field {
   /**
    * Serialize the {@link Field} to a bigint, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in an unreadable output.
    * 
-   * **Warning**: This operation does NOT affect the circuit and can't be used to prove anything about the bigint representation of the {@link Field}. Use the operation only during debugging.
+   * **Warning**: This operation does _not_ affect the circuit and can't be used to prove anything about the bigint representation of the {@link Field}. Use the operation only during debugging.
    * 
    * @example
    * ```ts
@@ -333,9 +333,9 @@ declare class Field {
   toBigInt(): bigint;
 
   /**
-   * Serialize the {@link Field} to a JSON string, e.g. for printing. If you try to print a {@link Field} without this function it will directly stringify the Field object, resulting in an unreadable output.
+   * Serialize the {@link Field} to a JSON string, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in an unreadable output.
    * 
-   * **Warning**: This operation does NOT affect the circuit and can't be used to prove anything about the JSON string representation of the {@link Field}. Please use it only during debugging.
+   * **Warning**: This operation does _not_ affect the circuit and can't be used to prove anything about the JSON string representation of the {@link Field}. Use the operation only during debugging.
    * 
    * @example
    * ```ts
@@ -446,10 +446,10 @@ declare class Field {
 
   /**
    * Assert that this {@link Field} is less than another "field-like" value.
-   * It is equivalent to `Field(...).lessThan(...).assertEquals(Bool(true))`.
-   * Please see {@link Field.lessThan} for more details.
+   * Calling this function is equivalent to `Field(...).lessThan(...).assertEquals(Bool(true))`.
+   * See {@link Field.lessThan} for more details.
    * 
-   * **Important: If an assertion fails, the code throws an error.
+   * **Important**: If an assertion fails, the code throws an error.
    * 
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
@@ -458,10 +458,10 @@ declare class Field {
   
   /**
    * Assert that this {@link Field} is less than or equal to another "field-like" value.
-   * It is equivalent to `Field(...).lessThanOrEqual(...).assertEquals(Bool(true))`.
-   * Please see {@link Field.lessThanOrEqual} for more details.
+   * Calling this function is equivalent to `Field(...).lessThanOrEqual(...).assertEquals(Bool(true))`.
+   * See {@link Field.lessThanOrEqual} for more details.
    * 
-   * **Important: If an assertion fails, the code throws an error.
+   * **Important**: If an assertion fails, the code throws an error.
    * 
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
@@ -470,10 +470,10 @@ declare class Field {
 
   /**
    * Assert that this {@link Field} is greater than another "field-like" value.
-   * It is equivalent to `Field(...).greaterThan(...).assertEquals(Bool(true))`.
-   * Please see {@link Field.greaterThan} for more details.
+   * Calling this function is equivalent to `Field(...).greaterThan(...).assertEquals(Bool(true))`.
+   * See {@link Field.greaterThan} for more details.
    * 
-   * **Important: If an assertion fails, the code throws an error.
+   * **Important**: If an assertion fails, the code throws an error.
    * 
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
@@ -482,10 +482,10 @@ declare class Field {
 
   /**
    * Assert that this {@link Field} is greater than or equal to another "field-like" value.
-   * It is equivalent to `Field(...).greaterThanOrEqual(...).assertEquals(Bool(true))`.
-   * Please see {@link Field.greaterThanOrEqual} for more details.
+   * Calling this function is equivalent to `Field(...).greaterThanOrEqual(...).assertEquals(Bool(true))`.
+   * See {@link Field.greaterThanOrEqual} for more details.
    * 
-   * **Important: If an assertion fails, the code throws an error.
+   * **Important**: If an assertion fails, the code throws an error.
    * 
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
@@ -534,10 +534,10 @@ declare class Field {
 
   /**
    * Assert that this {@link Field} is equal another "field-like" value.
-   * It is equivalent to `Field(...).equals(...).assertEquals(Bool(true))`.
-   * Please see {@link Field.equals} for more details.
+   * Calling this function is equivalent to `Field(...).equals(...).assertEquals(Bool(true))`.
+   * See {@link Field.equals} for more details.
    * 
-   * **Important: If an assertion fails, the code throws an error.
+   * **Important**: If an assertion fails, the code throws an error.
    * 
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
@@ -546,9 +546,9 @@ declare class Field {
 
   /**
    * Assert that this {@link Field} is equal to 1 or 0 as a "field-like" value.
-   * It is equivalent to `Bool.or(Field(...).equals(1), Field(...).equals(0)).assertEquals(Bool(true))`.
+   * Calling this function is equivalent to `Bool.or(Field(...).equals(1), Field(...).equals(0)).assertEquals(Bool(true))`.
    * 
-   * **Important: If an assertion fails, the code throws an error.
+   * **Important**: If an assertion fails, the code throws an error.
    * 
    * @param value - the "field-like" value to compare & assert with this {@link Field}.
    * @param message? - a string error message to print if the assertion fails, optional.
@@ -562,7 +562,7 @@ declare class Field {
 
   /**
    * Checks if this {@link Field} is 0,
-   * It is equivalent to `Field(...).equals(Field(0))`.
+   * Calling this function is equivalent to `Field(...).equals(Field(0))`.
    * See {@link Field.equals} for more details.
    * 
    * @return A {@link Bool} representing if this {@link Field} equals 0.
@@ -707,7 +707,7 @@ declare class Field {
    * **Warning**: This function is mainly for internal use. Normally it is not intended to be used by a zkApp developer.
    * 
    * Creates a {@link Field} from an array of length 1 serialized from {@link Field} elements.
-   * It is equivalent to `fields[0]`, the first index of the {@link Field} array.
+   * Calling this function is equivalent to `fields[0]`, the first index of the {@link Field} array.
    * This function might seem unnecessary for Dapps since it is designed as the reverse function of {@link Field.toFields}.
    * 
    * @param fields - an array of length 1 serialized from {@link Field} elements.
@@ -756,7 +756,7 @@ declare class Field {
    * Convert a bit array into a {@link Field} element using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness)
    * The function fails if the element cannot fit given too many bits. Note that a {@link Field} element can be 254 bits at most.
    * 
-   * **Important: If the given `bytes` array is an array of `booleans` or {@link Bool} elements that all are `constant`, the resulting {@link Field} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type, the resulting {@link Field} will be a variable as well.
+   * **Important**: If the given `bytes` array is an array of `booleans` or {@link Bool} elements that all are `constant`, the resulting {@link Field} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type, the resulting {@link Field} will be a variable as well.
    * 
    * @param bytes - An array of {@link Bool} or `boolean` type.
    * 
@@ -765,9 +765,9 @@ declare class Field {
   static fromBits(bytes: (Bool | boolean)[]): Field;
 
   /**
-   * Serialize the given {@link Field} element to a JSON string, e.g. for printing. If you try to print a {@link Field} without this function it will directly stringify the Field object, resulting in an unreadable output.
+   * Serialize the given {@link Field} element to a JSON string, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in an unreadable output.
    * 
-   * **Warning**: This operation does NOT affect the circuit and can't be used to prove anything about the JSON string representation of the {@link Field}. Please use it only during debugging.
+   * **Warning**: This operation does _not_ affect the circuit and can't be used to prove anything about the JSON string representation of the {@link Field}. Use the operation only during debugging.
    * 
    * @example
    * ```ts
@@ -784,7 +784,7 @@ declare class Field {
   /**
    * Deserialize a JSON string containing a "field-like" value into a {@link Field} element.
    * 
-   * **Warning**: This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the {@link Field}.
+   * **Warning**: This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the {@link Field}.
    * 
    * @param value - the "field-like" value to coerce the {@link Field} from.
    * 
@@ -828,7 +828,7 @@ declare class Field {
    * Coerce a new {@link Field} element using the [little-endian](https://en.wikipedia.org/wiki/Endianness) representation of the given `bytes` array.
    * Note that the given `bytes` array may have at most 32 elements as the {@link Field} is a `finite-field` in the order of {@link Field.ORDER}.
    * 
-   * **Warning**: This operation does NOT affect the circuit and can't be used to prove anything about the byte representation of the {@link Field}.
+   * **Warning**: This operation does _not_ affect the circuit and can't be used to prove anything about the byte representation of the {@link Field}.
    * 
    * @param bytes - The bytes array to coerce the {@link Field} from.
    * 
@@ -929,12 +929,12 @@ declare class Bool {
 
   /**
    * Serialize the {@link Bool} to a string, e.g. for printing.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
   toString(): string;
   /**
    * Serialize the {@link Bool} to a JSON string.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
   toJSON(): boolean;
 
@@ -1020,12 +1020,12 @@ declare class Bool {
 
   /**
    * Serialize a {@link Bool} to a JSON string.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
   static toJSON(x: Bool): boolean;
   /**
    * Deserialize a JSON structure into a {@link Bool}.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Field.
+   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Field.
    */
   static fromJSON(x: boolean): Bool;
 
@@ -1307,12 +1307,12 @@ declare class Scalar {
   static random(): Scalar;
   /**
    * Serialize a {@link Scalar} to a JSON string.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Scalar.
+   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Scalar.
    */
   static toJSON(x: Scalar): string;
   /**
    * Deserialize a JSON structure into a {@link Scalar}.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Scalar.
+   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Scalar.
    */
   static fromJSON(x: string | number | boolean): Scalar;
   /**
@@ -1429,12 +1429,12 @@ declare class Group {
   static sizeInFields(): number;
   /**
    * Serialize a {@link Group} to a JSON string.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Group.
+   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Group.
    */
   static toJSON(x: Group): { x: string; y: string };
   /**
    * Deserialize a JSON structure into a {@link Group}.
-   * This operation does NOT affect the circuit and can't be used to prove anything about the string representation of the Group.
+   * This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the Group.
    */
   static fromJSON({
     x,
