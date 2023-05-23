@@ -318,7 +318,7 @@ declare class Field {
   toString(): string;
 
   /**
-   * Serialize the {@link Field} to a bigint, e.g. for printing. If you try to print a {@link Field} without this function it will directly stringify the Field object, resulting in an unreadable output.
+   * Serialize the {@link Field} to a bigint, e.g. for printing. Trying to print a {@link Field} without this function will directly stringify the Field object, resulting in an unreadable output.
    * 
    * **Warning**: This operation does NOT affect the circuit and can't be used to prove anything about the bigint representation of the {@link Field}. Use the operation only during debugging.
    * 
