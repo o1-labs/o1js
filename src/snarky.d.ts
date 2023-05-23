@@ -379,7 +379,7 @@ declare class Field {
   lessThan(value: Field | number | string | boolean): Bool;
 
   /**
-   * Check if this {@link Field} is lower than or equal another "field-like" value.
+   * Check if this {@link Field} is less than or equal to another "field-like" value.
    * Returns a {@link Bool}, which is a provable type and can be used to prove the validity of this statement.
    *
    * @example
