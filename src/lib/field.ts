@@ -513,25 +513,27 @@ class Field {
   }
 
   /**
-   * Assert that this {@link Field} is not equal to zero. This is cheaper than
-   * using `x.equals(0).assertFalse()`.
+   * Assert that this {@link Field} does not equal another field-like value.
+   *
+   * Note: This uses fewer constraints than `x.equals(y).assertFalse()`.
    *
    * @example
    * ```ts
-   * x.assertNonZero("expect x to be non-zero");
+   * x.assertNotEquals(0, "expect x to be non-zero");
    * ```
    *
    */
-  assertNonZero(message?: string) {
+  assertNotEquals(y: Field | bigint | number | string, message?: string) {
     try {
-      if (this.isConstant()) {
-        if (!(this.toBigInt() !== 0n)) {
-          throw Error(`Field.assertNonZero(): expected 0, got ${this}`);
+      if (this.isConstant() && isConstant(y)) {
+        if (this.toBigInt() === toFp(y)) {
+          throw Error(`Field.assertNotEquals(): ${this} = ${y}`);
         }
         return;
       }
-      // proving the inverse also proves that the field element is non-zero
-      this.inv();
+      // inv() proves that a field element is non-zero, using 1 constraint.
+      // so this takes 1-2 generic gates, while x.equals(y).assertTrue() takes 3-5
+      this.sub(y).inv();
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -543,7 +545,6 @@ class Field {
    * ```ts
    * Field(0).assertBool();
    * ```
-   *
    */
   assertBool(message?: string) {
     try {
