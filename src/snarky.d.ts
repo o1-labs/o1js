@@ -29,7 +29,7 @@ export { Test };
  *
  * You will find `Provable<T>` as the required input type in a few places in SnarkyJS. One convenient way to create a `Provable<T>` is using `Struct`.
  * 
- * The properties and methods on the provable type exist in all base SnarkyJS types as well (aka. {@link Field}, {@link Bool}, etc.). In most cases, a ZK app developer does not need these functions to create Dapps.
+ * The properties and methods on the provable type exist in all base SnarkyJS types as well (aka. {@link Field}, {@link Bool}, etc.). In most cases, a zkApp developer does not need these functions to create Dapps.
  */
 declare interface Provable<T> {
   toFields: (x: T) => Field[];
