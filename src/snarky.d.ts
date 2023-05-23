@@ -457,7 +457,7 @@ declare class Field {
   assertLessThan(value: Field | number | string | boolean, message?: string): void;
   
   /**
-   * Assert that this {@link Field} is less than or equal another "field-like" value.
+   * Assert that this {@link Field} is less than or equal to another "field-like" value.
    * It is equivalent to `Field(...).lessThanOrEqual(...).assertEquals(Bool(true))`.
    * Please see {@link Field.lessThanOrEqual} for more details.
    * 
