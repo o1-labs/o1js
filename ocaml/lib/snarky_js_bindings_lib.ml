@@ -1307,6 +1307,12 @@ module Snarky = struct
     (** x*y === z without handling of constants *)
     let assert_mul x y z = Impl.assert_ (Impl.Constraint.r1cs x y z)
 
+    (** x*x === y without handling of constants *)
+    let assert_square x y = Impl.assert_ (Impl.Constraint.square x y)
+
+    (** x*x === x without handling of constants *)
+    let assert_boolean x = Impl.assert_ (Impl.Constraint.boolean x)
+
     (** check x < y and x <= y.
         this is used in all comparisons, including with assert *)
     let compare (bit_length : int) x y =
@@ -1411,6 +1417,10 @@ let snarky =
         method assertEqual = Snarky.Field.assert_equal
 
         method assertMul = Snarky.Field.assert_mul
+
+        method assertSquare = Snarky.Field.assert_square
+
+        method assertBoolean = Snarky.Field.assert_boolean
 
         method compare = Snarky.Field.compare
 
