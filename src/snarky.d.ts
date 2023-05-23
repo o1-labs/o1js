@@ -138,7 +138,7 @@ declare class Field {
    * someField.neg().assertEquals(someField.mul(Field(-1))); // This statement is always true regardless of the value of `someField`
    * ```
    * 
-   * **Warning**: This is a modular negation. Please see the {@link sub} method for more details.
+   * **Warning**: This is a modular negation. For details, see the {@link sub} method.
    * 
    * @return A {@link Field} element that is equivalent to the element multiplied by -1.
    */
