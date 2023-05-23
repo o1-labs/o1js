@@ -66,7 +66,7 @@ declare interface ProvablePure<T> extends Provable<T> {
  * Field("1"); // Field construction from a decimal string
  * ```
  *
- * **Beware**: Fields can _not_ be constructed from fractional numbers or alphanumeric strings:
+ * **Beware**: Fields _cannot_ be constructed from fractional numbers or alphanumeric strings:
  * ```ts
  * Field(3.141); // ERROR: Cannot convert a float to a field element
  * Field("abc"); // ERROR: Invalid argument "abc"
