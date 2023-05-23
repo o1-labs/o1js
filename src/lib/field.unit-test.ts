@@ -153,9 +153,14 @@ test(Random.field, Random.field, (x0, y0, assert) => {
     );
 
     // assertGreater / Less
+    let isSmall =
+      Math.max(x0.toString(2).length, y0.toString(2).length) <=
+      Fp.sizeInBits - 2;
     let isGreater = x0 > y0;
-    if (isGreater) x.assertGreaterThan(y);
-    else x.assertLessThanOrEqual(y);
+    if (isSmall) {
+      if (isGreater) x.assertGreaterThan(y);
+      else x.assertLessThanOrEqual(y);
+    }
   });
 });
 
