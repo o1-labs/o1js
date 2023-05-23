@@ -58,7 +58,6 @@ const FieldVar = {
   [-1]: [0, FieldConst[-1]] satisfies ConstantFieldVar,
 };
 
-type ConstantFieldRaw = { value: [FieldType.Constant, FieldConst] };
 type ConstantField = Field & { value: [FieldType.Constant, FieldConst] };
 
 /**
@@ -95,9 +94,7 @@ class Field {
   static #isField(x: bigint | number | string | Field | FieldVar): x is Field {
     return x instanceof Field || (x as any) instanceof SnarkyFieldConstructor;
   }
-  static #toConst(
-    x: bigint | number | string | (Field & ConstantFieldRaw)
-  ): FieldConst {
+  static #toConst(x: bigint | number | string | ConstantField): FieldConst {
     if (Field.#isField(x)) return x.value[1];
     return FieldConst.fromBigint(Fp(x));
   }
@@ -113,18 +110,18 @@ class Field {
   /**
    * Checks whether this is a hard-coded constant in the Circuit.
    */
-  isConstant(): this is ConstantFieldRaw {
+  isConstant(): this is { value: [FieldType.Constant, FieldConst] } {
     return this.value[0] === FieldType.Constant;
   }
 
   /**
    * Returns a constant.
    */
-  toConstant(): Field & ConstantFieldRaw {
+  toConstant(): ConstantField {
     if (this.isConstant()) return this;
     // TODO: fix OCaml error message, `Can't evaluate prover code outside an as_prover block`
     let value = Snarky.field.readVar(this.value);
-    return new Field(FieldVar.constant(value)) as Field & ConstantFieldRaw;
+    return new Field(FieldVar.constant(value)) as ConstantField;
   }
 
   /**
@@ -764,7 +761,7 @@ function isField(x: unknown): x is Field {
 
 function isConstant(
   x: bigint | number | string | Field
-): x is bigint | number | string | (Field & ConstantFieldRaw) {
+): x is bigint | number | string | ConstantField {
   let type = typeof x;
   if (type === 'bigint' || type === 'number' || type === 'string') {
     return true;

@@ -120,7 +120,6 @@ try {
   await txn.prove();
   await txn.sign([feePayer1.privateKey]).send();
 } catch (err: any) {
-  console.log(err);
   handleError(err, 'assertEquals');
 }
 

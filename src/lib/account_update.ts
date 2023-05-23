@@ -1597,12 +1597,7 @@ const CallForest = {
         stackHash,
       ]);
       // skip accountUpdate if it's a dummy
-      stackHash = Provable.if(
-        accountUpdate.isDummy(),
-        Field,
-        stackHash,
-        newHash
-      );
+      stackHash = Provable.if(accountUpdate.isDummy(), stackHash, newHash);
     }
     return stackHash;
   },

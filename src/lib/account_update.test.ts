@@ -1,7 +1,6 @@
 import {
   isReady,
   Ledger,
-  Circuit,
   AccountUpdate,
   PrivateKey,
   shutdown,
