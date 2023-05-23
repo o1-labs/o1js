@@ -708,7 +708,7 @@ declare class Field {
    * 
    * Creates a {@link Field} from an array of length 1 serialized from {@link Field} elements.
    * It is equivalent to `fields[0]`, the first index of the {@link Field} array.
-   * This function may seem unnecessary for dApps. It is designed as the reverse function of {@link Field.toFields}.
+   * This function might seem unnecessary for Dapps since it is designed as the reverse function of {@link Field.toFields}.
    * 
    * @param fields - an array of length 1 serialized from {@link Field} elements.
    * 
