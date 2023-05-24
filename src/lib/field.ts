@@ -3,6 +3,7 @@ import { Field as Fp } from '../provable/field-bigint.js';
 import { Bool } from '../snarky.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../bindings/crypto/non-negative.js';
+import { asProver } from './provable-context.js';
 
 export { Field, ConstantField, FieldType, FieldVar, FieldConst, isField };
 
@@ -41,9 +42,9 @@ type FieldVar =
 type ConstantFieldVar = [FieldType.Constant, FieldConst];
 
 const FieldVar = {
-  constant(x: bigint | FieldConst): [FieldType.Constant, FieldConst] {
-    if (typeof x === 'bigint') return [0, FieldConst.fromBigint(x)];
-    return [FieldType.Constant, x];
+  constant(x: bigint | FieldConst): ConstantFieldVar {
+    let x0 = typeof x === 'bigint' ? FieldConst.fromBigint(x) : x;
+    return [FieldType.Constant, x0];
   },
   // TODO: handle (special) constants
   add(x: FieldVar, y: FieldVar): FieldVar {
@@ -58,7 +59,7 @@ const FieldVar = {
   [-1]: [0, FieldConst[-1]] satisfies ConstantFieldVar,
 };
 
-type ConstantField = Field & { value: [FieldType.Constant, FieldConst] };
+type ConstantField = Field & { value: ConstantFieldVar };
 
 /**
  * An element of a finite field.
@@ -69,9 +70,7 @@ class Field {
   /**
    * The field order as a `bigint`.
    */
-  static get ORDER() {
-    return Fp.modulus;
-  }
+  static ORDER = Fp.modulus;
 
   /**
    * Coerces anything field-like to a {@link Field}.
@@ -110,7 +109,7 @@ class Field {
   /**
    * Checks whether this is a hard-coded constant in the Circuit.
    */
-  isConstant(): this is { value: [FieldType.Constant, FieldConst] } {
+  isConstant(): this is { value: ConstantFieldVar } {
     return this.value[0] === FieldType.Constant;
   }
 
@@ -353,23 +352,33 @@ class Field {
     // x == y is equivalent to x - y == 0
     // TODO: this is less efficient than possible for equivalence with snarky-ml
     return this.sub(y).isZero();
-    // // if one of the two is constant, we just need the two constraints in `isZero`
-    // if (this.isConstant() || isConstant(y)) {
-    //   return this.sub(y).isZero();
-    // }
-    // // if both are variables, we create one new variable for x-y so that `isZero` doesn't create two
-    // let xMinusY = Snarky.existsVar(() =>
-    //   FieldConst.fromBigint(Fp.sub(this.toBigInt(), toFp(y)))
-    // );
-    // Snarky.field.assertEqual(this.sub(y).value, xMinusY);
-    // return new Field(xMinusY).isZero();
+    // more efficient code is commented below
+    /* 
+    // if one of the two is constant, we just need the two constraints in `isZero`
+    if (this.isConstant() || isConstant(y)) {
+      return this.sub(y).isZero();
+    }
+    // if both are variables, we create one new variable for x-y so that `isZero` doesn't create two
+    let xMinusY = Snarky.existsVar(() =>
+      FieldConst.fromBigint(Fp.sub(this.toBigInt(), toFp(y)))
+    );
+    Snarky.field.assertEqual(this.sub(y).value, xMinusY);
+    return new Field(xMinusY).isZero();
+    */
   }
 
   // internal base method for all comparisons
   #compare(y: FieldVar) {
     // TODO: support all bit lengths
-    let length = Fp.sizeInBits - 2;
-    let [, less, lessOrEqual] = Snarky.field.compare(length, this.value, y);
+    let maxLength = Fp.sizeInBits - 2;
+    asProver(() => {
+      let actualLength = this.toBigInt().toString(2).length;
+      if (actualLength > maxLength)
+        throw Error(
+          `Provable comparison functions can only be used on Fields of size <= ${maxLength} bits, got ${actualLength} bits.`
+        );
+    });
+    let [, less, lessOrEqual] = Snarky.field.compare(maxLength, this.value, y);
     return {
       less: Bool.Unsafe.ofField(new Field(less)),
       lessOrEqual: Bool.Unsafe.ofField(new Field(lessOrEqual)),

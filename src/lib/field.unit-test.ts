@@ -290,20 +290,24 @@ function handleErrors<T, S, R>(
   useResults?: (a: T, b: S) => R
 ): R | undefined {
   let result1: T, result2: S;
-  let hadError1: Error | undefined;
-  let hadError2: Error | undefined;
+  let error1: Error | undefined;
+  let error2: Error | undefined;
   try {
     result1 = op1();
   } catch (err) {
-    hadError1 = err as Error;
+    error1 = err as Error;
   }
   try {
     result2 = op2();
   } catch (err) {
-    hadError2 = err as Error;
+    error2 = err as Error;
   }
-  deepEqual(!!hadError1, !!hadError2, 'equivalent errors');
-  if (!(hadError1 || hadError2) && useResults !== undefined) {
+  if (!!error1 !== !!error2) {
+    error1 && console.log(error1);
+    error2 && console.log(error2);
+  }
+  deepEqual(!!error1, !!error2, 'equivalent errors');
+  if (!(error1 || error2) && useResults !== undefined) {
     return useResults(result1!, result2!);
   }
 }
