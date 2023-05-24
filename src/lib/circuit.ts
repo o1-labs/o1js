@@ -1,8 +1,8 @@
-import { snarkContext } from './proof_system.js';
 import { ProvablePure, Snarky } from '../snarky.js';
 import { Field } from './core.js';
 import { withThreadPool } from '../bindings/js/wrapper.js';
-import { Provable, gatesFromJson } from './provable.js';
+import { Provable } from './provable.js';
+import { snarkContext, gatesFromJson } from './provable-context.js';
 
 // external API
 export { public_, circuitMain, Circuit, Keypair, Proof, VerificationKey };

@@ -51,20 +51,22 @@ import {
   emptyValue,
   GenericArgument,
   getPreviousProofsForProver,
-  inAnalyze,
-  inCompile,
-  inProver,
   isAsFields,
   methodArgumentsToConstant,
   methodArgumentTypesAndValues,
   MethodInterface,
   Proof,
-  snarkContext,
   sortMethodArguments,
 } from './proof_system.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import { CatchAndPrettifyStacktraceForAllMethods } from './errors.js';
+import {
+  inAnalyze,
+  inCompile,
+  inProver,
+  snarkContext,
+} from './provable-context.js';
 
 // external API
 export {
