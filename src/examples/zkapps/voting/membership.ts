@@ -8,10 +8,10 @@ import {
   Permissions,
   Bool,
   PublicKey,
-  Circuit,
   Reducer,
   provablePure,
   AccountUpdate,
+  Provable,
 } from 'snarkyjs';
 import { Member } from './member.js';
 import { ParticipantPreconditions } from './preconditions.js';
@@ -131,7 +131,7 @@ export class Membership_ extends SmartContract {
     it the member doesn't exist, emit the "real" member
     */
 
-    let toEmit = Circuit.if(exists, Member.empty(), member);
+    let toEmit = Provable.if(exists, Member.empty(), member);
 
     this.reducer.dispatch(toEmit);
 
@@ -177,7 +177,7 @@ export class Membership_ extends SmartContract {
         Field,
         (state: Field, action: Member) => {
           // because we inserted empty members, we need to check if a member is empty or "real"
-          let isRealMember = Circuit.if(
+          let isRealMember = Provable.if(
             action.publicKey.equals(PublicKey.empty()),
             Bool(false),
             Bool(true)
@@ -185,7 +185,7 @@ export class Membership_ extends SmartContract {
 
           // if the member is real and not empty, we calculate and return the new merkle root
           // otherwise, we simply return the unmodified state - this is our way of branching
-          return Circuit.if(
+          return Provable.if(
             isRealMember,
             action.witness.calculateRootSlow(action.getHash()),
             state

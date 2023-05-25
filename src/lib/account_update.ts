@@ -14,13 +14,7 @@ import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
-import {
-  dummyBase64Proof,
-  Empty,
-  inCheckedComputation,
-  Proof,
-  Prover,
-} from './proof_system.js';
+import { dummyBase64Proof, Empty, Proof, Prover } from './proof_system.js';
 import { Memo } from '../mina-signer/src/memo.js';
 import {
   Events,
@@ -1084,7 +1078,7 @@ class AccountUpdate implements Types.AccountUpdate {
     // consistency between JS & OCaml hashing on *every single account update
     // proof* we create. It will give us 100% confidence that the two
     // implementations are equivalent, and catch regressions quickly
-    if (inCheckedComputation()) {
+    if (Provable.inCheckedComputation()) {
       let input = Types.AccountUpdate.toInput(this);
       return hashWithPrefix(prefixes.body, packToFields(input));
     } else {
@@ -1578,7 +1572,7 @@ const CallForest = {
       return Provable.witness(Field, () => CallForest.hashChildrenBase(update));
     }
     let calls = CallForest.hashChildrenBase(update);
-    if (callsType.type === 'Equals' && inCheckedComputation()) {
+    if (callsType.type === 'Equals' && Provable.inCheckedComputation()) {
       calls.assertEquals(callsType.value);
     }
     return calls;
@@ -1597,12 +1591,7 @@ const CallForest = {
         stackHash,
       ]);
       // skip accountUpdate if it's a dummy
-      stackHash = Provable.if(
-        accountUpdate.isDummy(),
-        Field,
-        stackHash,
-        newHash
-      );
+      stackHash = Provable.if(accountUpdate.isDummy(), stackHash, newHash);
     }
     return stackHash;
   },

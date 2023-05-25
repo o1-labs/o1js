@@ -51,20 +51,22 @@ import {
   emptyValue,
   GenericArgument,
   getPreviousProofsForProver,
-  inAnalyze,
-  inCompile,
-  inProver,
   isAsFields,
   methodArgumentsToConstant,
   methodArgumentTypesAndValues,
   MethodInterface,
   Proof,
-  snarkContext,
   sortMethodArguments,
 } from './proof_system.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
 import { CatchAndPrettifyStacktraceForAllMethods } from './errors.js';
+import {
+  inAnalyze,
+  inCompile,
+  inProver,
+  snarkContext,
+} from './provable-context.js';
 
 // external API
 export {
@@ -140,6 +142,8 @@ function method<T extends SmartContract>(
     methodEntry.returnType = returnType;
   }
   ZkappClass._methods ??= [];
+  // FIXME: overriding a method implies pushing a separate method entry here, yielding two entries with the same name
+  // this should only be changed once we no longer share the _methods array with the parent class (otherwise a subclass declaration messes up the parent class)
   ZkappClass._methods.push(methodEntry);
   ZkappClass._maxProofsVerified ??= 0;
   ZkappClass._maxProofsVerified = Math.max(
@@ -167,8 +171,6 @@ function wrapMethod(
       }
     });
 
-    // TODO: the callback case is actually more similar to the composability
-    // case below, should reconcile with that to get the same callData hashing
     let insideContract = smartContractContext.get();
     if (!insideContract) {
       const context: SmartContractContext = {
@@ -234,7 +236,7 @@ function wrapMethod(
 
             // connect the public input to the account update & child account updates we created
             if (DEBUG_PUBLIC_INPUT_CHECK) {
-              Circuit.asProver(() => {
+              Provable.asProver(() => {
                 // TODO: print a nice diff string instead of the two objects
                 // something like `expect` or `json-diff`, but web-compatible
                 function diff(prover: any, input: any) {
@@ -387,7 +389,7 @@ function wrapMethod(
         `Note: Only types built out of \`Field\` are valid return types. This includes snarkyjs primitive types and custom CircuitValues.`;
       // if we're lucky, analyzeMethods was already run on the callee smart contract, and we can catch this error early
       if (
-        (ZkappClass as any)._methodMetadata[methodIntf.methodName]?.hasReturn &&
+        ZkappClass._methodMetadata?.[methodIntf.methodName]?.hasReturn &&
         returnType === undefined
       ) {
         throw Error(noReturnTypeError);
@@ -613,8 +615,13 @@ class SmartContract {
   tokenId: Field;
 
   #executionState: ExecutionState | undefined;
+
+  // here we store various metadata associated with a SmartContract subclass.
+  // by initializing all of these to `undefined`, we ensure that
+  // subclasses aren't sharing the same property with the base class and each other
+  // FIXME: these are still shared between a subclass and its own subclasses, which means extending SmartContracts is broken
   static _methods?: MethodInterface[];
-  static _methodMetadata: Record<
+  static _methodMetadata?: Record<
     string,
     {
       actions: number;
@@ -623,7 +630,7 @@ class SmartContract {
       hasReturn: boolean;
       gates: Gate[];
     }
-  > = {}; // keyed by method name
+  >; // keyed by method name
   static _provers?: Pickles.Prover[];
   static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
@@ -771,7 +778,7 @@ class SmartContract {
     // check if the entire state was overwritten, show a warning if not
     let isFirstRun = Mina.currentTransaction()?.numberOfRuns === 0;
     if (!isFirstRun) return;
-    Circuit.asProver(() => {
+    Provable.asProver(() => {
       if (
         initUpdate.update.appState.some(({ isSome }) => !isSome.toBoolean())
       ) {
@@ -1146,7 +1153,7 @@ super.init();
 
   static runOutsideCircuit(run: () => void) {
     if (Mina.currentTransaction()?.isFinalRunOutsideCircuit || inProver())
-      Circuit.asProver(run);
+      Provable.asProver(run);
   }
 
   // TODO: this could also be used to quickly perform any invariant checks on account updates construction
@@ -1171,16 +1178,16 @@ super.init();
    *  - `gates` the constraint system, represented as an array of gates
    */
   static analyzeMethods() {
-    let methodMetaData = this._methodMetadata;
     let ZkappClass = this as typeof SmartContract;
+    let methodMetadata = (ZkappClass._methodMetadata ??= {});
     let methodIntfs = ZkappClass._methods ?? [];
     if (
-      !methodIntfs.every((m) => m.methodName in methodMetaData) &&
+      !methodIntfs.every((m) => m.methodName in methodMetadata) &&
       !inAnalyze()
     ) {
       if (snarkContext.get().inRunAndCheck) {
         let err = new Error(
-          'Can not analyze methods inside Circuit.runAndCheck, because this creates a circuit nested in another circuit'
+          'Can not analyze methods inside Provable.runAndCheck, because this creates a circuit nested in another circuit'
         );
         // EXCEPT if the code that calls this knows that it can first run `analyzeMethods` OUTSIDE runAndCheck and try again
         (err as any).bootstrap = () => ZkappClass.analyzeMethods();
@@ -1205,7 +1212,7 @@ super.init();
               return result;
             }
           );
-          ZkappClass._methodMetadata[methodIntf.methodName] = {
+          methodMetadata[methodIntf.methodName] = {
             actions: accountUpdate!.body.actions.data.length,
             rows,
             digest,
@@ -1217,7 +1224,7 @@ super.init();
         if (insideSmartContract) smartContractContext.leave(id!);
       }
     }
-    return ZkappClass._methodMetadata;
+    return methodMetadata;
   }
 
   /**
@@ -1393,19 +1400,19 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           let events = actions.map((a) => reducer.actionType.toFields(a));
           return Actions.hash(events);
         });
-        let eventsHash = Circuit.switch(lengths, Field, eventsHashes);
+        let eventsHash = Provable.switch(lengths, Field, eventsHashes);
         let newActionsHash = Actions.updateSequenceState(
           actionState,
           eventsHash
         );
         let isEmpty = lengths[0];
         // update state hash, if this is not an empty action
-        actionState = Circuit.if(isEmpty, actionState, newActionsHash);
+        actionState = Provable.if(isEmpty, actionState, newActionsHash);
         // also, for each action length, compute the new state and then pick the actual one
         let newStates = actionss.map((actions) => {
           // we generate a new witness for the state so that this doesn't break if `apply` modifies the state
           let newState = Provable.witness(stateType, () => state);
-          Circuit.assertEqual(stateType, newState, state);
+          Provable.assertEqual(stateType, newState, state);
           // apply actions in reverse order since that's how they were stored at dispatch
           [...actions].reverse().forEach((action) => {
             newState = reduce(newState, action);
@@ -1413,7 +1420,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
           return newState;
         });
         // update state
-        state = Circuit.switch(lengths, stateType, newStates);
+        state = Provable.switch(lengths, stateType, newStates);
       }
       if (!skipActionStatePrecondition) {
         contract.account.actionState.assertEquals(actionState);
@@ -1446,7 +1453,7 @@ Use the optional \`maxTransactionsWithActions\` argument to increase this number
       endActionState?: Field;
     }): A[][] {
       let actionsForAccount: A[][] = [];
-      Circuit.asProver(() => {
+      Provable.asProver(() => {
         let actions = Mina.getActions(
           contract.address,
           config,

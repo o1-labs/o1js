@@ -8,7 +8,7 @@ let Matrix3x3 = provable([
   [Field, Field, Field],
   [Field, Field, Field],
 ]);
-// Circuit.array -- types somewhat more loosely but can be easier to write
+// Provable.Array -- types somewhat more loosely but can be easier to write
 let Matrix3x4 = Provable.Array(Provable.Array(Field, 4), 3);
 let Matrix4x3 = Provable.Array(Provable.Array(Field, 3), 4);
 

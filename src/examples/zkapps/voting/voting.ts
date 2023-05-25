@@ -7,11 +7,11 @@ import {
   DeployArgs,
   Permissions,
   PublicKey,
-  Circuit,
   Bool,
   Reducer,
   provablePure,
   AccountUpdate,
+  Provable,
 } from 'snarkyjs';
 
 import { Member } from './member.js';
@@ -122,7 +122,7 @@ export class Voting_ extends SmartContract {
     );
 
     // can only register voters before the election has started
-    Circuit.if(
+    Provable.if(
       electionPreconditions.enforce,
       currentSlot.lessThanOrEqual(electionPreconditions.startElection),
       Bool(true)
@@ -154,7 +154,7 @@ export class Voting_ extends SmartContract {
     // the check happens here because we want to see if the other contract returns a value
     // if exists is true, that means the member already exists within the accumulated state
     // if its false, its a new entry
-    exists.assertEquals(false);
+    exists.assertFalse('Member already exists!');
   }
 
   /**
@@ -171,11 +171,11 @@ export class Voting_ extends SmartContract {
     );
 
     // can only register candidates before the election has started
-    Circuit.if(
+    Provable.if(
       electionPreconditions.enforce,
       currentSlot.lessThanOrEqual(electionPreconditions.startElection),
       Bool(true)
-    ).assertTrue();
+    ).assertTrue('Outside of election period!');
 
     // can only register candidates if their balance is gte the minimum amount required
     // and lte the maximum amount
@@ -235,7 +235,7 @@ export class Voting_ extends SmartContract {
     );
 
     // we can only vote in the election period time frame
-    Circuit.if(
+    Provable.if(
       electionPreconditions.enforce,
       currentSlot
         .greaterThanOrEqual(electionPreconditions.startElection)

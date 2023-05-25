@@ -2,12 +2,34 @@ import { bytesToBigInt } from '../bindings/crypto/bigint-helpers.js';
 import { defineBinable } from '../bindings/lib/binable.js';
 import { sizeInBits } from '../provable/field-bigint.js';
 import { Bool, Scalar, Group } from '../snarky.js';
-// import { Field } from '../snarky.js';
-import { Field } from './field.js';
+import { Field as InternalField } from './field.js';
 import { Scalar as ScalarBigint } from '../provable/curve-bigint.js';
 import { mod } from '../bindings/crypto/finite_field.js';
 
 export { Field, Bool, Scalar, Group };
+
+/**
+ * An element of a finite field.
+ */
+const Field = toFunctionConstructor(InternalField);
+type Field = InternalField;
+
+function toFunctionConstructor<Class extends new (...args: any) => any>(
+  Class: Class
+): Class & ((...args: InferArgs<Class>) => InferReturn<Class>) {
+  function Constructor(...args: any) {
+    return new Class(...args);
+  }
+  Object.defineProperties(Constructor, Object.getOwnPropertyDescriptors(Class));
+  return Constructor as any;
+}
+
+type InferArgs<T> = T extends new (...args: infer Args) => any ? Args : never;
+type InferReturn<T> = T extends new (...args: any) => infer Return
+  ? Return
+  : never;
+
+// patching ocaml classes
 
 Bool.toAuxiliary = () => [];
 Scalar.toAuxiliary = () => [];

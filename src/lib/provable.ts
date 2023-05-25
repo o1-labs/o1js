@@ -3,16 +3,10 @@
  * - a namespace with tools for writing provable code
  * - the main interface for types that can be used in provable code
  */
-import { bytesToBigInt } from '../bindings/crypto/bigint-helpers.js';
 import { Field, Bool } from './core.js';
-import { Gate, JsonGate, Provable as Provable_, Snarky } from '../snarky.js';
+import { Provable as Provable_, Snarky } from '../snarky.js';
 import type { FlexibleProvable, ProvableExtended } from './circuit_value.js';
 import { Context } from './global-context.js';
-import {
-  inCheckedComputation,
-  inProver,
-  snarkContext,
-} from './proof_system.js';
 import {
   HashInput,
   InferJson,
@@ -20,6 +14,15 @@ import {
   InferredProvable,
 } from '../bindings/lib/provable-snarky.js';
 import { isField } from './field.js';
+import {
+  inCheckedComputation,
+  inProver,
+  snarkContext,
+  asProver,
+  runAndCheck,
+  runUnchecked,
+  constraintSystem,
+} from './provable-context.js';
 
 // external API
 export { Provable };
@@ -30,7 +33,6 @@ export {
   MemoizationContext,
   memoizeWitness,
   getBlindingValue,
-  gatesFromJson,
 };
 
 // TODO move type declaration here
@@ -385,10 +387,10 @@ function switch_<T, A extends FlexibleProvable<T>>(
   return (type as Provable<T>).fromFields(fields, aux);
 }
 
-// runners for provable code
+// logging in provable code
 
 function log(...args: any) {
-  Provable.asProver(() => {
+  asProver(() => {
     let prettyArgs = [];
     for (let arg of args) {
       if (arg?.toPretty !== undefined) prettyArgs.push(arg.toPretty());
@@ -404,46 +406,6 @@ function log(...args: any) {
   });
 }
 
-function asProver(f: () => void) {
-  if (inCheckedComputation()) {
-    Snarky.asProver(f);
-  } else {
-    f();
-  }
-}
-
-function runAndCheck(f: () => void) {
-  let id = snarkContext.enter({ inCheckedComputation: true });
-  try {
-    Snarky.runAndCheck(f);
-  } finally {
-    snarkContext.leave(id);
-  }
-}
-
-function runUnchecked(f: () => void) {
-  let id = snarkContext.enter({ inCheckedComputation: true });
-  try {
-    Snarky.runUnchecked(f);
-  } finally {
-    snarkContext.leave(id);
-  }
-}
-
-function constraintSystem<T>(f: () => T) {
-  let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
-  try {
-    let result: T;
-    let { rows, digest, json } = Snarky.constraintSystem(() => {
-      result = f();
-    });
-    let { gates, publicInputSize } = gatesFromJson(json);
-    return { rows, digest, result: result! as T, gates, publicInputSize };
-  } finally {
-    snarkContext.leave(id);
-  }
-}
-
 // helpers
 
 function checkLength(name: string, xs: Field[], ys: Field[]) {
@@ -455,18 +417,6 @@ function checkLength(name: string, xs: Field[], ys: Field[]) {
     );
   }
   return n;
-}
-
-function gatesFromJson(cs: { gates: JsonGate[]; public_input_size: number }) {
-  let gates: Gate[] = cs.gates.map(({ typ, wires, coeffs: byteCoeffs }) => {
-    let coeffs = [];
-    for (let coefficient of byteCoeffs) {
-      let arr = new Uint8Array(coefficient);
-      coeffs.push(bytesToBigInt(arr).toString());
-    }
-    return { type: typ, wires, coeffs };
-  });
-  return { publicInputSize: cs.public_input_size, gates };
 }
 
 function clone<T, S extends FlexibleProvable<T>>(type: S, value: T): T {

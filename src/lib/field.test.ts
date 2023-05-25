@@ -4,7 +4,7 @@ describe('Field constructor', () => {
   beforeAll(() => isReady);
   afterAll(() => setTimeout(shutdown, 0));
 
-  // Field(number), Field.fromNumber
+  // Field(number)
 
   it('handles small numbers', () => {
     expect(Field(5).toString()).toEqual('5');
@@ -28,17 +28,16 @@ describe('Field constructor', () => {
     expect(() => Field(-1.1)).toThrow();
   });
 
-  // Field(bigint), Field.fromBigInt, toBigInt
+  // Field(bigint)
 
   it('handles bigints', () => {
     expect(Field(-1n)).toEqual(Field(1).neg());
     expect(Field(-1n)).toEqual(Field(-1));
     expect(Field(Field.ORDER - 1n)).toEqual(Field(1).neg());
-    expect(Field(1n << 64n).toString()).toEqual('18446744073709551616');
     expect(Field(1n << 64n)).toEqual(Field('18446744073709551616'));
+    // correctly overflows the field
+    expect(Field(Field.ORDER + 1n)).toEqual(Field(1));
   });
-
-  // TODO Field(string), Field(boolean), Field(otherField)
 });
 
 describe('Field serialization and static props', () => {

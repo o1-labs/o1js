@@ -22,6 +22,8 @@ const Contracts: (typeof SmartContract)[] = [
 let filePath = jsonPath ? jsonPath : './src/examples/regression_test.json';
 let RegressionJson: {
   [contractName: string]: {
+    digest: string;
+    methods: Record<string, { rows: number; digest: string }>;
     verificationKey: {
       hash: string;
       data: string;
@@ -81,8 +83,17 @@ but expected was
 async function dumpVk(contracts: typeof Contracts) {
   let newEntries: typeof RegressionJson = {};
   for await (const c of contracts) {
+    let data = c.analyzeMethods();
+    let digest = c.digest();
     let { verificationKey } = await c.compile();
     newEntries[c.name] = {
+      digest,
+      methods: Object.fromEntries(
+        Object.entries(data).map(([key, { rows, digest }]) => [
+          key,
+          { rows, digest },
+        ])
+      ),
       verificationKey: {
         data: verificationKey.data,
         hash: verificationKey.hash.toString(),

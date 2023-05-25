@@ -4,8 +4,8 @@ import { ZkProgram } from '../../lib/proof_system.js';
 import Client from '../MinaSigner.js';
 import { PrivateKey, Signature } from '../../lib/signature.js';
 import { provablePure } from '../../lib/circuit_value.js';
-import { Circuit } from '../../lib/circuit.js';
 import { expect } from 'expect';
+import { Provable } from '../../lib/provable.js';
 
 let fields = [10n, 20n, 30n, 340817401n, 2091283n, 1n, 0n];
 let privateKey = 'EKENaWFuAiqktsnWmxq8zaoR8bSgVdscsghJE5tV6hPoNm8qBKWM';
@@ -31,7 +31,7 @@ let signature = Signature.fromBase58(signed.signature);
 signature.verify(publicKey, fieldsSnarky).assertTrue();
 
 // verify in-snark with snarkyjs
-const Message = Circuit.array(Field, fields.length);
+const Message = Provable.Array(Field, fields.length);
 
 const MyProgram = ZkProgram({
   publicInput: provablePure(null),
