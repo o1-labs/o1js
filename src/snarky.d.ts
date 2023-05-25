@@ -10,7 +10,6 @@ export {
   Scalar,
   ProvablePure,
   Provable,
-  CircuitMain,
   Poseidon,
   Ledger,
   isReady,
@@ -1296,7 +1295,7 @@ declare const Poseidon: {
   spongeSqueeze(sponge: unknown): Field;
 };
 
-// these types should be implemented by corresponding SnarkyJS classes
+// these types should be implemented by corresponding snarkyjs classes
 type PublicKey_ = { x: Field; isOdd: Bool };
 
 /**
