@@ -24,7 +24,7 @@ import { TokenId as Base58TokenId } from './base58-encodings.js';
 import { hashWithPrefix, packToFields } from './hash.js';
 import { prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
-import { assert, prettifyStacktrace } from './errors.js';
+import { assert } from './errors.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -969,11 +969,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * be (can be) authorized by a signature.
    */
   requireSignature() {
-    try {
-      this.sign();
-    } catch (error) {
-      throw prettifyStacktrace(error);
-    }
+    this.sign();
   }
   /**
    * @deprecated `.sign()` is deprecated in favor of `.requireSignature()`

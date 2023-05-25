@@ -60,7 +60,6 @@ import {
 } from './proof_system.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
-import { CatchAndPrettifyStacktraceForAllMethods } from './errors.js';
 import {
   inAnalyze,
   inCompile,
@@ -609,7 +608,6 @@ class Callback<Result> extends GenericArgument {
  * ```
  *
  */
-@CatchAndPrettifyStacktraceForAllMethods
 class SmartContract {
   address: PublicKey;
   tokenId: Field;
