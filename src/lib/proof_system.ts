@@ -15,7 +15,7 @@ import {
   toConstant,
 } from './circuit_value.js';
 import { Provable } from './provable.js';
-import { assert } from './errors.js';
+import { assert, prettifyStacktracePromise } from './errors.js';
 import { snarkContext } from './provable-context.js';
 
 // public API
@@ -155,8 +155,10 @@ async function verify(
       output: type.output.toFields(proof.publicOutput),
     };
   }
-  return withThreadPool(() =>
-    Pickles.verify(statement, picklesProof, verificationKey)
+  return prettifyStacktracePromise(
+    withThreadPool(() =>
+      Pickles.verify(statement, picklesProof, verificationKey)
+    )
   );
 }
 
@@ -283,12 +285,15 @@ function ZkProgram<
       let publicInputFields = publicInputType.toFields(publicInput);
       let previousProofs = getPreviousProofsForProver(args, methodIntfs[i]);
 
-      let [, { proof, publicOutput: publicOutputFields }] =
-        await snarkContext.runWithAsync(
-          { witnesses: args, inProver: true },
-          () => picklesProver!(publicInputFields, previousProofs)
-        );
-      let publicOutput = publicOutputType.fromFields(publicOutputFields);
+      let id = snarkContext.enter({ witnesses: args, inProver: true });
+      let result: UnwrapPromise<ReturnType<typeof picklesProver>>;
+      try {
+        result = await picklesProver(publicInputFields, previousProofs);
+      } finally {
+        snarkContext.leave(id);
+      }
+      let { proof } = result;
+      let publicOutput = publicOutputType.fromFields(result.publicOutput);
       class ProgramProof extends Proof<PublicInput, PublicOutput> {
         static publicInputType = publicInputType;
         static publicOutputType = publicOutputType;
@@ -502,24 +507,25 @@ async function compileProgram(
       methodEntry
     )
   );
-  let { verificationKey, provers, verify, tag } = await withThreadPool(
-    async () => {
-      let result: ReturnType<typeof Pickles.compile>;
-      let id = snarkContext.enter({ inCompile: true });
-      try {
-        result = Pickles.compile(rules, {
-          publicInputSize: publicInputType.sizeInFields(),
-          publicOutputSize: publicOutputType.sizeInFields(),
-        });
-      } finally {
-        snarkContext.leave(id);
-      }
-      let { getVerificationKeyArtifact, provers, verify, tag } = result;
-      CompiledTag.store(proofSystemTag, tag);
-      let verificationKey = getVerificationKeyArtifact();
-      return { verificationKey, provers, verify, tag };
-    }
-  );
+  let { verificationKey, provers, verify, tag } =
+    await prettifyStacktracePromise(
+      withThreadPool(async () => {
+        let result: ReturnType<typeof Pickles.compile>;
+        let id = snarkContext.enter({ inCompile: true });
+        try {
+          result = Pickles.compile(rules, {
+            publicInputSize: publicInputType.sizeInFields(),
+            publicOutputSize: publicOutputType.sizeInFields(),
+          });
+        } finally {
+          snarkContext.leave(id);
+        }
+        let { getVerificationKeyArtifact, provers, verify, tag } = result;
+        CompiledTag.store(proofSystemTag, tag);
+        let verificationKey = getVerificationKeyArtifact();
+        return { verificationKey, provers, verify, tag };
+      })
+    );
   // wrap provers
   let wrappedProvers = provers.map(
     (prover): Pickles.Prover =>
@@ -527,7 +533,9 @@ async function compileProgram(
         publicInput: Field[],
         previousProofs: Pickles.Proof[]
       ) {
-        return withThreadPool(() => prover(publicInput, previousProofs));
+        return prettifyStacktracePromise(
+          withThreadPool(() => prover(publicInput, previousProofs))
+        );
       }
   );
   // wrap verify
@@ -535,7 +543,9 @@ async function compileProgram(
     statement: Pickles.Statement,
     proof: Pickles.Proof
   ) {
-    return withThreadPool(() => verify(statement, proof));
+    return prettifyStacktracePromise(
+      withThreadPool(() => verify(statement, proof))
+    );
   };
   return {
     verificationKey,
@@ -848,6 +858,8 @@ type InferProvableOrUndefined<A> = A extends undefined
   ? undefined
   : InferProvable<A>;
 type InferProvableOrVoid<A> = A extends undefined ? void : InferProvable<A>;
+
+type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
 
 /**
  * helper to get property type from an object, in place of `T[Key]`

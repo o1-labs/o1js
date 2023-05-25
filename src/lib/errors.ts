@@ -2,6 +2,7 @@ export {
   CatchAndPrettifyStacktraceForAllMethods,
   CatchAndPrettifyStacktrace,
   prettifyStacktrace,
+  prettifyStacktracePromise,
   assert,
 };
 
@@ -129,6 +130,14 @@ function prettifyStacktrace(error: unknown) {
   }
   error.stack = newStacktrace.join('\n');
   return error;
+}
+
+async function prettifyStacktracePromise<T>(result: Promise<T>): Promise<T> {
+  try {
+    return await result;
+  } catch (error) {
+    throw prettifyStacktrace(error);
+  }
 }
 
 function unwrapMlException<E extends unknown>(error: E) {
