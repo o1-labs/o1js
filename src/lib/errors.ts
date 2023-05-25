@@ -2,7 +2,6 @@ export {
   CatchAndPrettifyStacktraceForAllMethods,
   CatchAndPrettifyStacktrace,
   prettifyStacktrace,
-  prettifyError,
   assert,
 };
 
@@ -72,12 +71,7 @@ function CatchAndPrettifyStacktrace(
       const result = originalMethod.apply(this, args);
       return handleResult(result);
     } catch (error) {
-      error = unwrapMlException(error);
-      const prettyStacktrace = prettifyStacktrace(error);
-      if (prettyStacktrace && error instanceof Error) {
-        error.stack = prettyStacktrace;
-      }
-      throw error;
+      throw prettifyStacktrace(error);
     }
   };
 }
@@ -94,12 +88,7 @@ function CatchAndPrettifyStacktrace(
 function handleResult(result: any) {
   if (result instanceof Promise) {
     return result.catch((error: Error) => {
-      error = unwrapMlException(error);
-      const prettyStacktrace = prettifyStacktrace(error);
-      if (prettyStacktrace && error instanceof Error) {
-        error.stack = prettyStacktrace;
-      }
-      throw error;
+      throw prettifyStacktrace(error);
     });
   }
   return result;
@@ -114,23 +103,15 @@ const lineRemovalKeywords = [
   'CatchAndPrettifyStacktrace', // Decorator name to remove from stacktrace (covers both class and method decorator)
 ] as const;
 
-function prettifyError(error: unknown) {
-  error = unwrapMlException(error);
-  const prettyStacktrace = prettifyStacktrace(error);
-  if (prettyStacktrace && error instanceof Error) {
-    error.stack = prettyStacktrace;
-  }
-  return error;
-}
-
 /**
  * Prettifies the stack trace of an error by removing unwanted lines and trimming paths.
  *
  * @param error - The error object with a stack trace to prettify.
- * @returns The prettified stack trace as a string or undefined if the error is not an instance of Error or has no stack trace.
+ * @returns The same error with the prettified stack trace
  */
-function prettifyStacktrace(error: unknown): string | undefined {
-  if (!(error instanceof Error) || !error.stack) return undefined;
+function prettifyStacktrace(error: unknown) {
+  error = unwrapMlException(error);
+  if (!(error instanceof Error) || !error.stack) return error;
 
   const stacktrace = error.stack;
   const stacktraceLines = stacktrace.split('\n');
@@ -146,7 +127,8 @@ function prettifyStacktrace(error: unknown): string | undefined {
     const trimmedLine = trimPaths(stacktraceLines[i]);
     newStacktrace.push(trimmedLine);
   }
-  return newStacktrace.join('\n');
+  error.stack = newStacktrace.join('\n');
+  return error;
 }
 
 function unwrapMlException<E extends unknown>(error: E) {

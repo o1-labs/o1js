@@ -972,8 +972,7 @@ class AccountUpdate implements Types.AccountUpdate {
     try {
       this.sign();
     } catch (error) {
-      if (error instanceof Error) error.stack = prettifyStacktrace(error);
-      throw error;
+      throw prettifyStacktrace(error);
     }
   }
   /**
