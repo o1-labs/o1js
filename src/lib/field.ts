@@ -33,6 +33,19 @@ enum FieldType {
   Scale,
 }
 
+/**
+ * `FieldVar` is the core data type in snarky. It is eqivalent to `Cvar.t` in OCaml.
+ * It represents a field element that is part of provable code - either a constant or a variable.
+ *
+ * **Variables** end up filling the witness columns of a constraint system.
+ * Think of a variable as a value that has to be provided by the prover, and that has to satisfy all the
+ * constraints it is involved in.
+ *
+ * **Constants** end up being hard-coded into the constraint system as gate coefficients.
+ * Think of a constant as a value that is known publicly, at compile time, and that defines the constraint system.
+ *
+ * Both constants and variables can be combined into an AST using the Add and Scale combinators.
+ */
 type FieldVar =
   | [FieldType.Constant, FieldConst]
   | [FieldType.Var, number]
