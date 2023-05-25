@@ -10,10 +10,8 @@ export {
   Scalar,
   ProvablePure,
   Provable,
-  Circuit,
   CircuitMain,
   Poseidon,
-  Keypair,
   Ledger,
   isReady,
   shutdown,
@@ -1055,176 +1053,6 @@ type Gate = {
 };
 
 /**
- * The {@link Circuit} API is a low level interface to interact and build circuits with
- */
-declare class Circuit {
-  /**
-   * Adds a constraint to the circuit.
-   */
-  static addConstraint(
-    this: Circuit,
-    kind: 'multiply',
-    x: Field,
-    y: Field,
-    z: Field
-  ): void;
-  static addConstraint(
-    this: Circuit,
-    kind: 'add',
-    x: Field,
-    y: Field,
-    z: Field
-  ): void;
-  static addConstraint(
-    this: Circuit,
-    kind: 'equal',
-    x: Field,
-    y: Field,
-    z: Field
-  ): void;
-  static addConstraint(
-    this: Circuit,
-    kind: 'boolean',
-    x: Field,
-    y: Field,
-    z: Field
-  ): void;
-
-  /**
-   * Creates a new variable inside the circuit.
-   */
-  static newVariable(f: () => Field | number | string | boolean): Field;
-
-  // this convoluted generic typing is needed to give type inference enough flexibility
-  static _witness<S extends Provable<any>>(ctor: S, f: () => Field[]): Field[];
-  static witness<T, S extends FlexibleProvable<T> = FlexibleProvable<T>>(
-    ctor: S,
-    f: () => T
-  ): T;
-
-  /**
-   * Runs code as a prover.
-   */
-  static asProver(f: () => void): void;
-
-  /**
-   * Runs code and checks its correctness.
-   */
-  static runAndCheck(f: () => void): void;
-
-  /**
-   * Runs code in prover mode, without checking correctness.
-   */
-  static runUnchecked(f: () => void): void;
-
-  /**
-   * Returns information about the constraint system in the callback function.
-   */
-  static constraintSystem<T>(f: () => T): {
-    rows: number;
-    digest: string;
-    result: T;
-    gates: Gate[];
-    publicInputSize: number;
-  };
-
-  /**
-   * Returns a low-level JSON representation of the `Circuit` from its {@link Keypair}:
-   * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
-   */
-  static constraintSystemFromKeypair(keypair: Keypair): Gate[];
-
-  /**
-   * Creates a {@link Provable} for a generic array.
-   */
-  static array<A extends FlexibleProvable<any>>(
-    elementType: A,
-    length: number
-  ): InferredProvable<A[]>;
-
-  /**
-   * Asserts that two values are equal.
-   */
-  static assertEqual<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): void;
-
-  /**
-   * Asserts that two values are equal.
-   */
-  static assertEqual<T>(x: T, y: T): void;
-
-  /**
-   * Checks if two elements are equal.
-   */
-  static equal<T>(ctor: { toFields(x: T): Field[] }, x: T, y: T): Bool;
-
-  /**
-   * Checks if two elements are equal.
-   */
-  static equal<T>(x: T, y: T): Bool;
-
-  /**
-   * Circuit-compatible if-statement.
-   */
-  static if<T>(b: Bool | boolean, ctor: ProvablePure<T>, x: T, y: T): T;
-  /**
-   * Circuit-compatible if-statement.
-   */
-  static if<T>(b: Bool | boolean, x: T, y: T): T;
-
-  /**
-   * Generalization of `Circuit.if` for choosing between more than two different cases.
-   * It takes a "mask", which is an array of `Bool`s that contains only one `true` element, as well as a type/constructor and an array of values of that type.
-   * The result is that value which corresponds to the true element of the mask. Example:
-   *
-   * @example
-   * ```ts
-   * let x = Circuit.switch([Bool(false), Bool(true)], Field, [Field(1), Field(2)]);
-   * x.assertEquals(2);
-   * ```
-   */
-  static switch<T, A extends FlexibleProvable<T>>(
-    mask: Bool[],
-    type: A,
-    values: T[]
-  ): T;
-
-  /**
-   * Generates a proving key and a verification key for this circuit.
-   */
-  static generateKeypair(): Keypair;
-
-  /**
-   * Proves a statement using the private input, public input and the {@link Keypair} of the circuit.
-   */
-  static prove(privateInput: any[], publicInput: any[], kp: Keypair): Proof;
-
-  /**
-   * Verifies a proof using the public input, the proof and the initial {@link Keypair} of the circuit.
-   */
-  static verify(publicInput: any[], vk: VerificationKey, pi: Proof): boolean;
-
-  /**
-   * Serializes an element into {@link Field} elements.
-   */
-  static toFields<A>(a: A): Field[];
-
-  /**
-   * Checks if the circuit is in prover mode.
-   */
-  static inProver(): boolean;
-
-  /**
-   * Checks if the circuit is in checked computation mode.
-   */
-  static inCheckedComputation(): boolean;
-
-  /**
-   * Interface to log elements within a circuit. Similar to `Console.log()`.
-   */
-  static log(...args: any): void;
-}
-
-/**
  * Represents a {@link Scalar}.
  */
 declare class Scalar {
@@ -1467,27 +1295,6 @@ declare const Poseidon: {
   spongeAbsorb(sponge: unknown, x: Field): void;
   spongeSqueeze(sponge: unknown): Field;
 };
-
-/**
- * Part of the circuit {@link Keypair}. A verification key can be used to verify a {@link Proof} when you provide the correct public input.
- */
-declare class VerificationKey {
-  verify(publicInput: any[], proof: Proof): boolean;
-}
-
-/**
- * Contains a proving key and {@link VerificationKey} which can be used to verify proofs.
- */
-declare class Keypair {
-  verificationKey(): VerificationKey;
-}
-
-/**
- * Proofs can be verified using a {@link VerificationKey} and the public input.
- */
-declare class Proof {
-  verify(verificationKey: VerificationKey, publicInput: any[]): boolean;
-}
 
 // these types should be implemented by corresponding SnarkyJS classes
 type PublicKey_ = { x: Field; isOdd: Bool };
