@@ -264,9 +264,9 @@ declare class SnarkyField {
   /**
    * Coerce anything "field-like" (bigint, boolean, number, string, and {@link Field}) to a {@link Field}.
    * A {@link Field} is an element of a prime order field. Every other provable type is build using the {@link Field} type.
-   * 
+   *
    * The field is the [pasta base field](https://electriccoin.co/blog/the-pasta-curves-for-halo-2-and-beyond/) of order 2^254 + 0x224698fc094cf91b992d30ed00000001 ({@link Field.ORDER}).
-   * 
+   *
    * You can create a new Field from everything "field-like" (`bigint`, integer `number`, decimal `string`, `Field`).
    * @example
    * ```
@@ -280,18 +280,18 @@ declare class SnarkyField {
    * new Field(3.141); // ERROR: Cannot convert a float to a field element
    * new Field("abc"); // ERROR: Invalid argument "abc"
    * ```
-   * 
-Creating a {@link Field} from a negative number can result in unexpected behavior if you are not familiar with [modular arithmetic](https://en.wikipedia.org/wiki/Modular_arithmetic).```
+   *
+   * Creating a {@link Field} from a negative number can result in unexpected behavior if you are not familiar with [modular arithmetic](https://en.wikipedia.org/wiki/Modular_arithmetic).```
    * @example
    * ```
    * const x = new Field(-1); // Valid Field construction from negative number
    * const y = new Field(Field.ORDER - 1n); // equivalent to `x`
    * ```
-   * 
+   *
    * **Important**: All the functions defined on a Field (arithmetic, logic, etc.) take their arguments as "field-like". A {@link Field} itself is also defined as a "field-like" value.
-   * 
+   *
    * @param value - the value to coerce to a {@link Field}
-   * 
+   *
    * @return A {@link Field} element which the value coerced from the argument in the pasta field.
    */
   constructor(value: Field | number | string | boolean | bigint);
