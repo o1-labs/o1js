@@ -13,11 +13,12 @@ import {
   Field as FieldSnarky,
   shutdown,
 } from '../../snarky.js';
-import { Field, HashInput } from '../../provable/field-bigint.js';
+import { Field } from '../../provable/field-bigint.js';
 import { PrivateKey, PublicKey } from '../../provable/curve-bigint.js';
 import { PrivateKey as PrivateKeySnarky } from '../../lib/signature.js';
-import { p } from '../../js_crypto/finite_field.js';
-import { AccountUpdate } from '../../provable/gen/transaction-bigint.js';
+import { p } from '../../bindings/crypto/finite_field.js';
+import { AccountUpdate } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
+import { HashInput } from '../../bindings/lib/provable-bigint.js';
 
 await isReady;
 

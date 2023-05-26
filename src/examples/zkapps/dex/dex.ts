@@ -13,16 +13,17 @@ import {
   PrivateKey,
   PublicKey,
   SmartContract,
-  Token,
   UInt64,
   VerificationKey,
   Struct,
   State,
   state,
   UInt32,
+  TokenId,
+  Provable,
 } from 'snarkyjs';
 
-export { createDex, TokenContract, keys, addresses, tokenIds };
+export { createDex, TokenContract, keys, addresses, tokenIds, randomAccounts };
 
 class UInt64x2 extends Struct([UInt64, UInt64]) {}
 
@@ -59,17 +60,20 @@ function createDex({
       // get balances of X and Y token
       // TODO: this creates extra account updates. we need to reuse these by passing them to or returning them from transfer()
       // but for that, we need the @method argument generalization
-      let dexXBalance = tokenX.getBalance(this.address);
-      let dexYBalance = tokenY.getBalance(this.address);
+      let dexXUpdate = AccountUpdate.create(this.address, tokenX.token.id);
+      let dexXBalance = dexXUpdate.account.balance.getAndAssertEquals();
+
+      let dexYUpdate = AccountUpdate.create(this.address, tokenY.token.id);
+      let dexYBalance = dexYUpdate.account.balance.getAndAssertEquals();
 
       // // assert dy === [dx * y/x], or x === 0
       let isXZero = dexXBalance.equals(UInt64.zero);
-      let xSafe = Circuit.if(isXZero, UInt64.one, dexXBalance);
+      let xSafe = Provable.if(isXZero, UInt64.one, dexXBalance);
       let isDyCorrect = dy.equals(dx.mul(dexYBalance).div(xSafe));
       isDyCorrect.or(isXZero).assertTrue();
 
-      tokenX.transfer(user, this.address, dx);
-      tokenY.transfer(user, this.address, dy);
+      tokenX.transfer(user, dexXUpdate, dx);
+      tokenY.transfer(user, dexYUpdate, dy);
 
       // calculate liquidity token output simply as dl = dx + dx
       // => maintains ratio x/l, y/l
@@ -115,8 +119,8 @@ function createDex({
      */
     supplyLiquidity(dx: UInt64): UInt64 {
       // calculate dy outside circuit
-      let x = Account(this.address, Token.getId(this.tokenX)).balance.get();
-      let y = Account(this.address, Token.getId(this.tokenY)).balance.get();
+      let x = Account(this.address, TokenId.derive(this.tokenX)).balance.get();
+      let y = Account(this.address, TokenId.derive(this.tokenY)).balance.get();
       if (x.value.isConstant() && x.value.isZero().toBoolean()) {
         throw Error(
           'Cannot call `supplyLiquidity` when reserves are zero. Use `supplyLiquidityBase`.'
@@ -132,8 +136,11 @@ function createDex({
      * @return output amount of X and Y tokens, as a tuple [outputX, outputY]
      *
      * The transaction needs to be signed by the user's private key.
+     *
+     * Note: this is not a `@method` because there's nothing to prove which isn't already proven
+     * by the called methods
      */
-    @method redeemLiquidity(dl: UInt64) {
+    redeemLiquidity(dl: UInt64) {
       // call the token X holder inside a token X-approved callback
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.token.id);
@@ -254,9 +261,6 @@ function createDex({
       // just subtract the balance, user gets their part one level higher
       this.balance.subInPlace(dx);
 
-      // be approved by the token owner parent
-      this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
-
       return [dx, dy];
     }
 
@@ -279,8 +283,6 @@ function createDex({
       let dy = y.mul(dx).div(x.add(dx));
       // just subtract dy balance and let adding balance be handled one level higher
       this.balance.subInPlace(dy);
-      // be approved by the token owner parent
-      this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
       return dy;
     }
   }
@@ -305,8 +307,6 @@ function createDex({
       let dy = y.mul(dx).div(x.add(dx)).add(15);
 
       this.balance.subInPlace(dy);
-      // be approved by the token owner parent
-      this.self.body.mayUseToken = AccountUpdate.MayUseToken.ParentsOwnToken;
       return dy;
     }
   }
@@ -425,6 +425,17 @@ class TokenContract extends SmartContract {
     zkapp.requireSignature();
   }
 
+  @method approveUpdate(zkappUpdate: AccountUpdate) {
+    this.approve(zkappUpdate);
+    let balanceChange = Int64.fromObject(zkappUpdate.body.balanceChange);
+    balanceChange.assertEquals(Int64.from(0));
+  }
+
+  // FIXME: remove this
+  @method approveAny(zkappUpdate: AccountUpdate) {
+    this.approve(zkappUpdate, AccountUpdate.Layout.AnyChildren);
+  }
+
   // let a zkapp send tokens to someone, provided the token supply stays constant
   @method approveUpdateAndSend(
     zkappUpdate: AccountUpdate,
@@ -450,7 +461,16 @@ class TokenContract extends SmartContract {
     this.token.mint({ address: to, amount });
   }
 
-  @method transfer(from: PublicKey, to: PublicKey, value: UInt64) {
+  transfer(from: PublicKey, to: PublicKey | AccountUpdate, amount: UInt64) {
+    if (to instanceof PublicKey)
+      return this.transferToAddress(from, to, amount);
+    if (to instanceof AccountUpdate)
+      return this.transferToUpdate(from, to, amount);
+  }
+  @method transferToAddress(from: PublicKey, to: PublicKey, value: UInt64) {
+    this.token.send({ from, to, amount: value });
+  }
+  @method transferToUpdate(from: PublicKey, to: AccountUpdate, value: UInt64) {
     this.token.send({ from, to, amount: value });
   }
 
@@ -464,8 +484,18 @@ class TokenContract extends SmartContract {
   }
 }
 
+const savedKeys = [
+  'EKFcUu4FLygkyZR8Ch4F8hxuJps97GCfiMRSWXDP55sgvjcmNGHc',
+  'EKENfq7tEdTf5dnNxUgVo9dUnAqrEaB9syTgFyuRWinR5gPuZtbG',
+  'EKEPVj2PDzQUrMwL2yeUikoQYXvh4qrkSxsDa7gegVcDvNjAteS5',
+  'EKDm7SHWHEP5xiSbu52M1Z4rTFZ5Wx7YMzeaC27BQdPvvGvF42VH',
+  'EKEuJJmmHNVHD1W2qmwExDyGbkSoKdKmKNPZn8QbqybVfd2Sd4hs',
+  'EKEyPVU37EGw8CdGtUYnfDcBT2Eu7B6rSdy64R68UHYbrYbVJett',
+];
+
 await isReady;
 let { keys, addresses } = randomAccounts(
+  false,
   'tokenX',
   'tokenY',
   'dex',
@@ -474,9 +504,9 @@ let { keys, addresses } = randomAccounts(
   'user3'
 );
 let tokenIds = {
-  X: Token.getId(addresses.tokenX),
-  Y: Token.getId(addresses.tokenY),
-  lqXY: Token.getId(addresses.dex),
+  X: TokenId.derive(addresses.tokenX),
+  Y: TokenId.derive(addresses.tokenY),
+  lqXY: TokenId.derive(addresses.dex),
 };
 
 /**
@@ -485,7 +515,7 @@ let tokenIds = {
 function balanceSum(accountUpdate: AccountUpdate, tokenId: Field) {
   let myTokenId = accountUpdate.body.tokenId;
   let myBalance = Int64.fromObject(accountUpdate.body.balanceChange);
-  let balance = Circuit.if(myTokenId.equals(tokenId), myBalance, Int64.zero);
+  let balance = Provable.if(myTokenId.equals(tokenId), myBalance, Int64.zero);
   for (let child of accountUpdate.children.accountUpdates) {
     balance = balance.add(balanceSum(child, tokenId));
   }
@@ -496,19 +526,16 @@ function balanceSum(accountUpdate: AccountUpdate, tokenId: Field) {
  * Predefined accounts keys, labeled by the input strings. Useful for testing/debugging with consistent keys.
  */
 function randomAccounts<K extends string>(
+  createNewAccounts: boolean,
   ...names: [K, ...K[]]
 ): { keys: Record<K, PrivateKey>; addresses: Record<K, PublicKey> } {
-  let savedKeys = [
-    'EKFV5T1zG13ksXKF4kDFx4bew2w4t27V3Hx1VTsbb66AKYVGL1Eu',
-    'EKFE2UKugtoVMnGTxTakF2M9wwL9sp4zrxSLhuzSn32ZAYuiKh5R',
-    'EKEn2s1jSNADuC8CmvCQP5CYMSSoNtx5o65H7Lahqkqp2AVdsd12',
-    'EKE21kTAb37bekHbLvQpz2kvDYeKG4hB21x8VTQCbhy6m2BjFuxA',
-    'EKF9JA8WiEAk7o3ENnvgMHg5XKwgQfyMowNFFrEDCevoSozSgLTn',
-    'EKFZ41h3EDiTXAkwD3Mh2gVfy4CdeRGUzDPrEfXPgZR85J3KZ3WA',
-  ];
-
+  let base58Keys = createNewAccounts
+    ? Array(6)
+        .fill('')
+        .map(() => PrivateKey.random().toBase58())
+    : savedKeys;
   let keys = Object.fromEntries(
-    names.map((name, idx) => [name, PrivateKey.fromBase58(savedKeys[idx])])
+    names.map((name, idx) => [name, PrivateKey.fromBase58(base58Keys[idx])])
   ) as Record<K, PrivateKey>;
   let addresses = Object.fromEntries(
     names.map((name) => [name, keys[name].toPublicKey()])

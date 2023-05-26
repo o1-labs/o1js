@@ -1,5 +1,5 @@
-import { isReady, shutdown } from '../snarky.js';
-import { AccountUpdate, Token } from './account_update.js';
+import { isReady } from '../snarky.js';
+import { AccountUpdate, TokenId } from './account_update.js';
 import * as Mina from './mina.js';
 import { expect } from 'expect';
 
@@ -10,7 +10,7 @@ Mina.setActiveInstance(Local);
 
 let [{ privateKey, publicKey }] = Local.testAccounts;
 
-let parentId = Token.getId(publicKey);
+let parentId = TokenId.derive(publicKey);
 
 /**
  * tests whether the following two account updates gives the child token permissions:
@@ -30,6 +30,6 @@ let tx = await Mina.transaction(privateKey, () => {
 });
 
 // according to this test, the child doesn't get token permissions
-expect(tx.send()).rejects.toThrow('Token_owner_not_caller');
-
-shutdown();
+await expect(tx.send()).rejects.toThrow(
+  'can not use or pass on token permissions'
+);

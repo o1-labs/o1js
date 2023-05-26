@@ -6,6 +6,7 @@ import {
   Circuit,
   Group,
   Scalar,
+  Provable,
 } from 'snarkyjs';
 
 describe('group', () => {
@@ -23,9 +24,9 @@ describe('group', () => {
     describe('add', () => {
       it('g+g does not throw', () => {
         expect(() => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => Group.generator);
-            const y = Circuit.witness(Group, () => Group.generator);
+          Provable.runAndCheck(() => {
+            const x = Provable.witness(Group, () => Group.generator);
+            const y = Provable.witness(Group, () => Group.generator);
             x.add(y);
           });
         }).not.toThrow();
@@ -35,9 +36,9 @@ describe('group', () => {
     describe('sub', () => {
       it('g-g does not throw', () => {
         expect(() => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => Group.generator);
-            const y = Circuit.witness(Group, () => Group.generator);
+          Provable.runAndCheck(() => {
+            const x = Provable.witness(Group, () => Group.generator);
+            const y = Provable.witness(Group, () => Group.generator);
             x.sub(y);
           });
         }).not.toThrow();
@@ -47,8 +48,8 @@ describe('group', () => {
     describe('neg', () => {
       it('neg(g) not to throw', () => {
         expect(() => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => Group.generator);
+          Provable.runAndCheck(() => {
+            const x = Provable.witness(Group, () => Group.generator);
             x.neg();
           });
         }).not.toThrow();
@@ -58,8 +59,8 @@ describe('group', () => {
     describe('scale', () => {
       it('scaling with random Scalar does not throw', () => {
         expect(() => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => Group.generator);
+          Provable.runAndCheck(() => {
+            const x = Provable.witness(Group, () => Group.generator);
             x.scale(Scalar.random());
           });
         }).not.toThrow();
@@ -67,7 +68,7 @@ describe('group', () => {
 
       it('x*g+y*g = (x+y)*g', () => {
         expect(() => {
-          Circuit.runAndCheck(() => {
+          Provable.runAndCheck(() => {
             const g = new Group(1, 1);
             const x = Scalar.fromJSON(2)!;
             const y = Scalar.fromJSON(3)!;
@@ -80,7 +81,7 @@ describe('group', () => {
 
       it('x*(y*g) = (x*y)*g', () => {
         expect(() => {
-          Circuit.runAndCheck(() => {
+          Provable.runAndCheck(() => {
             const g = new Group(1, 1);
             const x = Scalar.fromJSON(2)!;
             const y = Scalar.fromJSON(3)!;
@@ -94,20 +95,20 @@ describe('group', () => {
 
     describe('equals', () => {
       it('should equal true with same group', () => {
-        Circuit.runAndCheck(() => {
-          const x = Circuit.witness(Group, () => Group.generator);
+        Provable.runAndCheck(() => {
+          const x = Provable.witness(Group, () => Group.generator);
           let isEqual = x.equals(Group.generator);
-          Circuit.asProver(() => {
+          Provable.asProver(() => {
             expect(isEqual.toBoolean()).toEqual(true);
           });
         });
       });
 
       it('should equal false with different group', () => {
-        Circuit.runAndCheck(() => {
-          const x = Circuit.witness(Group, () => Group.generator);
+        Provable.runAndCheck(() => {
+          const x = Provable.witness(Group, () => Group.generator);
           let isEqual = x.equals(new Group(0, 0));
-          Circuit.asProver(() => {
+          Provable.asProver(() => {
             expect(isEqual.toBoolean()).toEqual(false);
           });
         });
@@ -117,8 +118,8 @@ describe('group', () => {
     describe('assertEquals', () => {
       it('should not throw with same group', () => {
         expect(() => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => Group.generator);
+          Provable.runAndCheck(() => {
+            const x = Provable.witness(Group, () => Group.generator);
             x.assertEquals(Group.generator);
           });
         }).not.toThrow();
@@ -126,8 +127,8 @@ describe('group', () => {
 
       it('should throw with different group', () => {
         expect(() => {
-          Circuit.runAndCheck(() => {
-            const x = Circuit.witness(Group, () => Group.generator);
+          Provable.runAndCheck(() => {
+            const x = Provable.witness(Group, () => Group.generator);
             x.assertEquals(new Group(0, 0));
           });
         }).toThrow();
@@ -136,12 +137,12 @@ describe('group', () => {
 
     describe('toJSON', () => {
       it('fromJSON(g.toJSON) should be the same as g', () => {
-        Circuit.runAndCheck(() => {
-          const x = Circuit.witness(
+        Provable.runAndCheck(() => {
+          const x = Provable.witness(
             Group,
             () => Group.fromJSON(Group.generator.toJSON())!
           );
-          Circuit.asProver(() => {
+          Provable.asProver(() => {
             expect(x.equals(Group.generator).toBoolean()).toEqual(true);
           });
         });

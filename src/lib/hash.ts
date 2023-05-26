@@ -2,6 +2,7 @@ import { HashInput, ProvableExtended, Struct } from './circuit_value.js';
 import { Poseidon as Poseidon_, Field } from '../snarky.js';
 import { inCheckedComputation } from './proof_system.js';
 import { createHashHelpers } from './hash-generic.js';
+import { Provable } from './provable.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -41,6 +42,28 @@ const Poseidon = {
     // this is the same:
     // return Poseidon_.update(this.initialState, input, isChecked)[0];
     return Poseidon_.hash(input, isChecked);
+  },
+
+  hashToGroup(input: Field[]) {
+    let isChecked = !input.every((x) => x.isConstant());
+    // y = sqrt(y^2)
+    let { x, y } = Poseidon_.hashToGroup(input, isChecked);
+
+    let x0 = Provable.witness(Field, () => {
+      // the even root of y^2 will become x0, so the APIs are uniform
+      let isEven = y.toBigInt() % 2n === 0n;
+
+      // we just change the order so the even root is x0
+      // y.mul(-1); is the second root of sqrt(y^2)
+      return isEven ? y : y.mul(-1);
+    });
+
+    let x1 = x0.mul(-1);
+
+    // we check that either x0 or x1 match the original root y
+    y.equals(x0).or(y.equals(x1)).assertTrue();
+
+    return { x, y: { x0, x1 } };
   },
 
   update(state: [Field, Field, Field], input: Field[]) {

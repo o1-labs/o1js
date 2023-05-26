@@ -1,8 +1,4 @@
-import type {
-  FlexibleProvable,
-  InferredProvable,
-} from './lib/circuit_value.js';
-import type { Account as JsonAccount } from './provable/gen/transaction-json.js';
+import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
 export {
   Field,
   Bool,
@@ -19,7 +15,7 @@ export {
 };
 
 // internal
-export { Test };
+export { Snarky, Test, JsonGate };
 
 /**
  * `Provable<T>` is the general circuit type interface in SnarkyJS. `Provable<T>` interface describes how a type `T` is made up of {@link Field} elements and "auxiliary" (non-provable) data.
@@ -141,6 +137,92 @@ declare interface ProvablePure<T> extends Provable<T> {
    */
   check: (value: T) => void;
 }
+
+declare namespace Snarky {
+  type Keypair = unknown;
+  type VerificationKey = unknown;
+  type Proof = unknown;
+}
+
+/**
+ * Internal interface to snarky-ml
+ *
+ * Note for devs: This module is intended to closely mirror snarky-ml's core, low-level APIs.
+ */
+declare const Snarky: {
+  /**
+   * witness `sizeInFields` field element variables
+   */
+  exists(sizeInFields: number, compute: () => Field[]): Field[];
+  /**
+   * Runs code as a prover.
+   */
+  asProver(f: () => void): void;
+  /**
+   * Runs code and checks its correctness.
+   */
+  runAndCheck(f: () => void): void;
+  /**
+   * Runs code in prover mode, without checking correctness.
+   */
+  runUnchecked(f: () => void): void;
+  /**
+   * Returns information about the constraint system in the callback function.
+   */
+  constraintSystem(f: () => void): {
+    rows: number;
+    digest: string;
+    json: JsonConstraintSystem;
+  };
+
+  /**
+   * The circuit API is a low level interface to create zero-knowledge proofs
+   */
+  circuit: {
+    /**
+     * Generates a proving key and a verification key for the provable function `main`
+     */
+    compile(
+      main: (publicInput: Field[]) => void,
+      publicInputSize: number
+    ): Snarky.Keypair;
+
+    /**
+     * Proves a statement using the private input, public input and the keypair of the circuit.
+     */
+    prove(
+      main: (publicInput: Field[]) => void,
+      publicInputSize: number,
+      publicInput: Field[],
+      keypair: Snarky.Keypair
+    ): Snarky.Proof;
+
+    /**
+     * Verifies a proof using the public input, the proof and the verification key of the circuit.
+     */
+    verify(
+      publicInput: Field[],
+      proof: Snarky.Proof,
+      verificationKey: Snarky.VerificationKey
+    ): boolean;
+
+    keypair: {
+      getVerificationKey(keypair: Snarky.Keypair): Snarky.VerificationKey;
+      /**
+       * Returns a low-level JSON representation of the circuit:
+       * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
+       */
+      getConstraintSystemJSON(keypair: Snarky.Keypair): JsonConstraintSystem;
+    };
+  };
+};
+
+type JsonGate = {
+  typ: string;
+  wires: { row: number; col: number }[];
+  coeffs: number[][];
+};
+type JsonConstraintSystem = { gates: JsonGate[]; public_input_size: number };
 
 /**
  * A {@link Field} is an element of a prime order [finite field](https://en.wikipedia.org/wiki/Finite_field).
@@ -1133,12 +1215,6 @@ declare class Bool {
   static sizeInBytes(): number;
 }
 
-declare interface CircuitMain<W, P> {
-  snarkyWitnessTyp: ProvablePure<W>;
-  snarkyPublicTyp: ProvablePure<P>;
-  snarkyMain: (w: W, p: P) => void;
-}
-
 type Gate = {
   type: string;
   wires: { row: number; col: number }[];
@@ -1374,6 +1450,13 @@ declare const Poseidon: {
     input: Field[],
     isChecked: boolean
   ): [Field, Field, Field];
+  hashToGroup(
+    input: Field[],
+    isChecked: boolean
+  ): {
+    x: Field;
+    y: Field;
+  };
   prefixes: Record<
     | 'event'
     | 'events'
@@ -1536,41 +1619,46 @@ type MlBytes = { t: number; c: string; l: number };
 type OcamlInput = { fields: Field[]; packed: { field: Field; size: number }[] };
 
 /**
- * This function *must* be called at the end of a nodejs program, otherwise the
- * worker threads will continue running and the program will never terminate.
- * From web applications, this function is a no-op.
+ * @deprecated `shutdown()` is no longer needed, and is a no-op. Remove it from your code.
  */
 declare const shutdown: () => Promise<undefined>;
 
 /**
- * A Promise that resolves when SnarkyJS is ready to be used
+ * @deprecated `await isReady` is no longer needed. Remove it from your code.
  */
 declare let isReady: Promise<undefined>;
 
 declare namespace Pickles {
   type Proof = unknown; // opaque to js
-  type PublicInput = Field[];
-  type ProofWithPublicInput = { publicInput: PublicInput; proof: Proof };
+  type Statement = { input: Field[]; output: Field[] };
+  type ProofWithStatement = {
+    publicInput: Field[];
+    publicOutput: Field[];
+    proof: Proof;
+  };
   type Rule = {
     identifier: string;
-    main: (publicInput: PublicInput, previousInputs: PublicInput[]) => Bool[];
+    main: (publicInput: Field[]) => {
+      publicOutput: Field[];
+      previousStatements: Statement[];
+      shouldVerify: Bool[];
+    };
     proofsToVerify: ({ isSelf: true } | { isSelf: false; tag: unknown })[];
   };
   type Prover = (
     publicInput: Field[],
-    previousProofs: ProofWithPublicInput[]
-  ) => Promise<Proof>;
+    previousProofs: Proof[]
+  ) => Promise<{ publicOutput: Field[]; proof: Proof }>;
 }
 
 declare const Pickles: {
   /**
    * This is the core API of the `Pickles` library, exposed from OCaml to JS. It takes a list of circuits --
    * each in the form of a function which takes a public input `{ accountUpdate: Field; calls: Field }` as argument --,
-   * and joins them into one single circuit which can not only provide proofs for any of the sub-circuits, but also
-   * adds the necessary circuit logic to recursively merge in earlier proofs.
+   * and augments them to add the necessary circuit logic to recursively merge in earlier proofs.
    *
-   * After forming that big circuit in the finite field represented by `Field`, it gets wrapped in a
-   * recursive circuit in the field represented by `Scalar`. Any SmartContract proof will go through both of these circuits,
+   * After forming those augmented circuits in the finite field represented by `Field`, they gets wrapped in a
+   * single recursive circuit in the field represented by `Scalar`. Any SmartContract proof will go through both of these steps,
    * so that the final proof ends up back in `Field`.
    *
    * The function returns the building blocks needed for SmartContract proving:
@@ -1587,25 +1675,19 @@ declare const Pickles: {
    */
   compile: (
     rules: Pickles.Rule[],
-    publicInputSize: number
+    signature: { publicInputSize: number; publicOutputSize: number }
   ) => {
     provers: Pickles.Prover[];
     verify: (
-      publicInput: Pickles.PublicInput,
+      statement: Pickles.Statement,
       proof: Pickles.Proof
     ) => Promise<boolean>;
     tag: unknown;
     getVerificationKeyArtifact: () => { data: string; hash: string };
   };
 
-  /**
-   * This function has the same inputs as compile, but is a quick-to-compute
-   * hash that can be used to short-circuit proofs if rules haven't changed.
-   */
-  circuitDigest: (rules: Pickles.Rule[], publicInputSize: number) => string;
-
   verify(
-    publicInput: Pickles.PublicInput,
+    statement: Pickles.Statement,
     proof: Pickles.Proof,
     verificationKey: string
   ): Promise<boolean>;
@@ -1621,5 +1703,3 @@ declare const Pickles: {
 
   proofToBase64Transaction: (proof: Pickles.Proof) => string;
 };
-
-type AuthRequired = 'Signature' | 'Proof' | 'Either' | 'None' | 'Impossible';

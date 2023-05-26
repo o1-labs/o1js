@@ -9,9 +9,9 @@ import {
   AccountUpdate,
   isReady,
   Bool,
-  Circuit,
   Struct,
   Reducer,
+  Provable,
 } from 'snarkyjs';
 import assert from 'node:assert/strict';
 import { getProfiler } from '../../profiler.js';
@@ -32,7 +32,7 @@ class CounterZkapp extends SmartContract {
   // version that's implicitly represented by the list of actions
   @state(Field) counter = State<Field>();
   // helper field to store the point in the action history that our on-chain state is at
-  @state(Field) actionsHash = State<Field>();
+  @state(Field) actionState = State<Field>();
 
   @method incrementCounter() {
     this.reducer.dispatch(INCREMENT);
@@ -45,29 +45,29 @@ class CounterZkapp extends SmartContract {
     // get previous counter & actions hash, assert that they're the same as on-chain values
     let counter = this.counter.get();
     this.counter.assertEquals(counter);
-    let actionsHash = this.actionsHash.get();
-    this.actionsHash.assertEquals(actionsHash);
+    let actionState = this.actionState.get();
+    this.actionState.assertEquals(actionState);
 
     // compute the new counter and hash from pending actions
     let pendingActions = this.reducer.getActions({
-      fromActionState: actionsHash,
+      fromActionState: actionState,
     });
 
-    let { state: newCounter, actionsHash: newActionsHash } =
+    let { state: newCounter, actionState: newActionState } =
       this.reducer.reduce(
         pendingActions,
         // state type
         Field,
         // function that says how to apply an action
         (state: Field, action: MaybeIncrement) => {
-          return Circuit.if(action.isIncrement, state.add(1), state);
+          return Provable.if(action.isIncrement, state.add(1), state);
         },
-        { state: counter, actionsHash }
+        { state: counter, actionState }
       );
 
     // update on-chain state
     this.counter.set(newCounter);
-    this.actionsHash.set(newActionsHash);
+    this.actionState.set(newActionState);
   }
 }
 
@@ -99,7 +99,7 @@ let tx = await Mina.transaction(feePayer, () => {
   AccountUpdate.fundNewAccount(feePayer);
   zkapp.deploy();
   zkapp.counter.set(initialCounter);
-  zkapp.actionsHash.set(Reducer.initialActionsHash);
+  zkapp.actionState.set(Reducer.initialActionState);
 });
 await tx.sign([feePayerKey, zkappKey]).send();
 

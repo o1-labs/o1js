@@ -10,9 +10,9 @@ import {
   Mina,
   Experimental,
   Int64,
-  Encoding,
   Types,
-  Bool,
+  TokenId,
+  Provable,
 } from 'snarkyjs';
 
 let address: PublicKey;
@@ -54,7 +54,7 @@ describe('AccountUpdate', () => {
 
   it('can hash an account update', () => {
     // TODO remove restriction "This function can't be run outside of a checked computation."
-    Circuit.runAndCheck(() => {
+    Provable.runAndCheck(() => {
       let hash = accountUpdate.hash();
       expect(isField(hash)).toBeTruthy();
 
@@ -97,8 +97,8 @@ describe('AccountUpdate', () => {
   it('encodes token ids correctly', () => {
     let x = Field.random();
     let defaultTokenId = 'wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf';
-    expect(Encoding.TokenId.toBase58(x)).toEqual(Ledger.fieldToBase58(x));
-    expect(Encoding.TokenId.fromBase58(defaultTokenId).toString()).toEqual('1');
+    expect(TokenId.toBase58(x)).toEqual(Ledger.fieldToBase58(x));
+    expect(TokenId.fromBase58(defaultTokenId).toString()).toEqual('1');
   });
 });
 

@@ -1,0 +1,3 @@
+[submodule "src/snarkyjs-bindings"]
+	path = src/bindings
+	url = https://github.com/o1-labs/snarkyjs-bindings.git

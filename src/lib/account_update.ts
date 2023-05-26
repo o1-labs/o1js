@@ -1,27 +1,36 @@
 import {
   cloneCircuitValue,
   FlexibleProvable,
-  memoizationContext,
-  memoizeWitness,
   provable,
   provablePure,
 } from './circuit_value.js';
-import { Field, Bool, Ledger, Circuit, Pickles } from '../snarky.js';
-import { jsLayout } from '../provable/gen/js-layout.js';
-import { Types, toJSONEssential } from '../provable/types.js';
+import { memoizationContext, memoizeWitness, Provable } from './provable.js';
+import { Field, Bool } from './core.js';
+import { Ledger, Pickles } from '../snarky.js';
+import { jsLayout } from '../bindings/mina-transaction/gen/js-layout.js';
+import { Types, toJSONEssential } from '../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from './signature.js';
 import { UInt64, UInt32, Int64, Sign } from './int.js';
 import * as Mina from './mina.js';
 import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
-import { inCheckedComputation, Proof, Prover } from './proof_system.js';
+import {
+  dummyBase64Proof,
+  Empty,
+  inCheckedComputation,
+  Proof,
+  Prover,
+} from './proof_system.js';
 import { Memo } from '../mina-signer/src/memo.js';
-import { Events, Actions } from '../provable/transaction-leaves.js';
-import * as Encoding from './encoding.js';
+import {
+  Events,
+  Actions,
+} from '../bindings/mina-transaction/transaction-leaves.js';
+import { TokenId as Base58TokenId } from './base58-encodings.js';
 import { hashWithPrefix, packToFields } from './hash.js';
-import { prefixes } from '../js_crypto/constants.js';
+import { prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
-import { assert } from './errors.js';
+import { assert, prettifyStacktrace } from './errors.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -47,16 +56,19 @@ export {
   createChildAccountUpdate,
   AccountUpdatesLayout,
   zkAppProver,
+  SmartContractContext,
 };
 
 const ZkappStateLength = 8;
 
-let smartContractContext = Context.create<{
+type SmartContractContext = {
   this: SmartContract;
   methodCallDepth: number;
-  isCallback: boolean;
   selfUpdate: AccountUpdate;
-}>();
+};
+let smartContractContext = Context.create<null | SmartContractContext>({
+  default: null,
+});
 
 let zkAppProver = Prover<{
   transaction: ZkappCommand;
@@ -292,6 +304,22 @@ let Permissions = {
     setTiming: Permission.none(),
   }),
 
+  allImpossible: (): Permissions => ({
+    editState: Permission.impossible(),
+    send: Permission.impossible(),
+    receive: Permission.impossible(),
+    access: Permission.impossible(),
+    setDelegate: Permission.impossible(),
+    setPermissions: Permission.impossible(),
+    setVerificationKey: Permission.impossible(),
+    setZkappUri: Permission.impossible(),
+    editActionState: Permission.impossible(),
+    setTokenSymbol: Permission.impossible(),
+    incrementNonce: Permission.impossible(),
+    setVotingFor: Permission.impossible(),
+    setTiming: Permission.impossible(),
+  }),
+
   fromString: (permission: AuthRequired): Permission => {
     switch (permission) {
       case 'None':
@@ -418,7 +446,7 @@ const Body = {
     body.publicKey = publicKey;
     if (tokenId) {
       body.tokenId = tokenId;
-      body.mayUseToken = Circuit.if(
+      body.mayUseToken = Provable.if(
         tokenId.equals(TokenId.default),
         AccountUpdate.MayUseToken.type,
         AccountUpdate.MayUseToken.No,
@@ -565,7 +593,7 @@ type LazyProof = {
   kind: 'lazy-proof';
   methodName: string;
   args: any[];
-  previousProofs: { publicInput: Field[]; proof: Pickles.Proof }[];
+  previousProofs: Pickles.Proof[];
   ZkappClass: typeof SmartContract;
   memoized: { fields: Field[]; aux: any[] }[];
   blindingValue: Field;
@@ -573,27 +601,32 @@ type LazyProof = {
 
 const TokenId = {
   ...Types.TokenId,
-  ...Encoding.TokenId,
+  ...Base58TokenId,
   get default() {
     return Field(1);
   },
-};
-
-class Token {
-  readonly id: Field;
-  readonly parentTokenId: Field;
-  readonly tokenOwner: PublicKey;
-
-  static Id = TokenId;
-
-  static getId(tokenOwner: PublicKey, parentTokenId = TokenId.default) {
+  derive(tokenOwner: PublicKey, parentTokenId = Field(1)) {
     if (tokenOwner.isConstant() && parentTokenId.isConstant()) {
       return Ledger.customTokenId(tokenOwner, parentTokenId);
     } else {
       return Ledger.customTokenIdChecked(tokenOwner, parentTokenId);
     }
+  },
+};
+
+/**
+ * @deprecated use `TokenId` instead of `Token.Id` and `TokenId.derive()` instead of `Token.getId()`
+ */
+class Token {
+  static Id = TokenId;
+
+  static getId(tokenOwner: PublicKey, parentTokenId = TokenId.default) {
+    return TokenId.derive(tokenOwner, parentTokenId);
   }
 
+  readonly id: Field;
+  readonly parentTokenId: Field;
+  readonly tokenOwner: PublicKey;
   constructor({
     tokenOwner,
     parentTokenId = TokenId.default,
@@ -604,7 +637,7 @@ class Token {
     this.parentTokenId = parentTokenId;
     this.tokenOwner = tokenOwner;
     try {
-      this.id = Token.getId(tokenOwner, parentTokenId);
+      this.id = TokenId.derive(tokenOwner, parentTokenId);
     } catch (e) {
       throw new Error(
         `Could not create a custom token id:\nError: ${(e as Error).message}`
@@ -612,6 +645,7 @@ class Token {
     }
   }
 }
+
 /**
  * An {@link AccountUpdate} is a set of instructions for the Mina network.
  * It includes {@link Preconditions} and a list of state updates, which need to
@@ -686,88 +720,94 @@ class AccountUpdate implements Types.AccountUpdate {
 
   token() {
     let thisAccountUpdate = this;
-    let customToken = new Token({
-      tokenOwner: thisAccountUpdate.body.publicKey,
-      parentTokenId: thisAccountUpdate.body.tokenId,
-    });
+    let tokenOwner = this.publicKey;
+    let parentTokenId = this.tokenId;
+    let id = TokenId.derive(tokenOwner, parentTokenId);
+
+    function getApprovedAccountUpdate(
+      accountLike: PublicKey | AccountUpdate | SmartContract,
+      label: string
+    ) {
+      if (accountLike instanceof SmartContract) {
+        accountLike = accountLike.self;
+      }
+      if (accountLike instanceof AccountUpdate) {
+        accountLike.tokenId.assertEquals(id);
+        thisAccountUpdate.approve(accountLike);
+      }
+      if (accountLike instanceof PublicKey) {
+        accountLike = AccountUpdate.defaultAccountUpdate(accountLike, id);
+        makeChildAccountUpdate(thisAccountUpdate, accountLike);
+      }
+      if (!accountLike.label)
+        accountLike.label = `${
+          thisAccountUpdate.label ?? 'Unlabeled'
+        }.${label}`;
+      return accountLike;
+    }
 
     return {
-      id: customToken.id,
-      parentTokenId: customToken.parentTokenId,
-      tokenOwner: customToken.tokenOwner,
+      id,
+      parentTokenId,
+      tokenOwner,
 
+      /**
+       * Mints token balance to `address`. Returns the mint account update.
+       */
       mint({
         address,
         amount,
       }: {
-        address: PublicKey;
+        address: PublicKey | AccountUpdate | SmartContract;
         amount: number | bigint | UInt64;
       }) {
-        let receiver = AccountUpdate.defaultAccountUpdate(address, this.id);
-        thisAccountUpdate.approve(receiver);
-        // Add the amount to mint to the receiver's account
-        receiver.body.balanceChange = Int64.fromObject(
-          receiver.body.balanceChange
-        ).add(amount);
+        let receiver = getApprovedAccountUpdate(address, 'token.mint()');
+        receiver.balance.addInPlace(amount);
         return receiver;
       },
 
+      /**
+       * Burn token balance on `address`. Returns the burn account update.
+       */
       burn({
         address,
         amount,
       }: {
-        address: PublicKey;
+        address: PublicKey | AccountUpdate | SmartContract;
         amount: number | bigint | UInt64;
       }) {
-        let sender = AccountUpdate.defaultAccountUpdate(address, this.id);
-        thisAccountUpdate.approve(sender);
-        sender.body.useFullCommitment = Bool(true);
-        sender.body.implicitAccountCreationFee = Bool(false);
+        let sender = getApprovedAccountUpdate(address, 'token.burn()');
 
         // Sub the amount to burn from the sender's account
-        sender.body.balanceChange = Int64.fromObject(
-          sender.body.balanceChange
-        ).sub(amount);
+        sender.balance.subInPlace(amount);
 
         // Require signature from the sender account being deducted
+        sender.body.useFullCommitment = Bool(true);
         Authorization.setLazySignature(sender);
+        return sender;
       },
 
+      /**
+       * Move token balance from `from` to `to`. Returns the `to` account update.
+       */
       send({
         from,
         to,
         amount,
       }: {
-        from: PublicKey;
-        to: PublicKey;
+        from: PublicKey | AccountUpdate | SmartContract;
+        to: PublicKey | AccountUpdate | SmartContract;
         amount: number | bigint | UInt64;
       }) {
-        // Create a new accountUpdate for the sender to send the amount to the
-        // receiver
-        let sender = AccountUpdate.defaultAccountUpdate(from, this.id);
-        thisAccountUpdate.approve(sender);
+        let sender = getApprovedAccountUpdate(from, 'token.send() (sender)');
+        sender.balance.subInPlace(amount);
         sender.body.useFullCommitment = Bool(true);
-        sender.body.implicitAccountCreationFee = Bool(false);
-        sender.body.balanceChange = Int64.fromObject(
-          sender.body.balanceChange
-        ).sub(amount);
-
-        // Require signature from the sender accountUpdate
         Authorization.setLazySignature(sender);
 
-        let receiverAccountUpdate = createChildAccountUpdate(
-          thisAccountUpdate,
-          to,
-          this.id
-        );
+        let receiver = getApprovedAccountUpdate(to, 'token.send() (receiver)');
+        receiver.balance.addInPlace(amount);
 
-        // Add the amount to send to the receiver's account
-        let i1 = receiverAccountUpdate.body.balanceChange;
-        receiverAccountUpdate.body.balanceChange = new Int64(
-          i1.magnitude,
-          i1.sgn
-        ).add(amount);
-        return receiverAccountUpdate;
+        return receiver;
       },
     };
   }
@@ -805,6 +845,7 @@ class AccountUpdate implements Types.AccountUpdate {
       receiver.body.tokenId.assertEquals(this.body.tokenId);
     } else {
       receiver = AccountUpdate.defaultAccountUpdate(to, this.body.tokenId);
+      receiver.label = `${this.label ?? 'Unlabeled'}.send()`;
       this.approve(receiver);
     }
 
@@ -934,23 +975,27 @@ class AccountUpdate implements Types.AccountUpdate {
    * be (can be) authorized by a signature.
    */
   requireSignature() {
-    this.sign();
+    try {
+      this.sign();
+    } catch (error) {
+      if (error instanceof Error) error.stack = prettifyStacktrace(error);
+      throw error;
+    }
   }
   /**
    * @deprecated `.sign()` is deprecated in favor of `.requireSignature()`
    */
   sign(privateKey?: PrivateKey) {
     let { nonce, isSameAsFeePayer } = AccountUpdate.getSigningInfo(this);
-    // if this account is the same as the fee payer, we use the "full
-    // commitment" for replay protection
+    // if this account is the same as the fee payer, we use the "full commitment" for replay protection
     this.body.useFullCommitment = isSameAsFeePayer;
     this.body.implicitAccountCreationFee = Bool(false);
     // otherwise, we increment the nonce
     let doIncrementNonce = isSameAsFeePayer.not();
     this.body.incrementNonce = doIncrementNonce;
     // in this case, we also have to set a nonce precondition
-    let lower = Circuit.if(doIncrementNonce, UInt32, nonce, UInt32.zero);
-    let upper = Circuit.if(doIncrementNonce, UInt32, nonce, UInt32.MAXINT());
+    let lower = Provable.if(doIncrementNonce, UInt32, nonce, UInt32.zero);
+    let upper = Provable.if(doIncrementNonce, UInt32, nonce, UInt32.MAXINT());
     this.body.preconditions.account.nonce.isSome = doIncrementNonce;
     this.body.preconditions.account.nonce.value.lower = lower;
     this.body.preconditions.account.nonce.value.upper = upper;
@@ -1087,10 +1132,16 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   static create(publicKey: PublicKey, tokenId?: Field) {
     let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey, tokenId);
-    if (smartContractContext.has()) {
-      smartContractContext.get().this.self.approve(accountUpdate);
+    let insideContract = smartContractContext.get();
+    if (insideContract) {
+      let self = insideContract.this.self;
+      self.approve(accountUpdate);
+      accountUpdate.label = `${
+        self.label || 'Unlabeled'
+      } > AccountUpdate.create()`;
     } else {
       Mina.currentTransaction()?.accountUpdates.push(accountUpdate);
+      accountUpdate.label = `Mina.transaction > AccountUpdate.create()`;
     }
     return accountUpdate;
   }
@@ -1099,13 +1150,14 @@ class AccountUpdate implements Types.AccountUpdate {
    * -- if in a smart contract, to its children
    */
   static attachToTransaction(accountUpdate: AccountUpdate) {
-    if (smartContractContext.has()) {
-      let selfUpdate = smartContractContext.get().this.self;
+    let insideContract = smartContractContext.get();
+    if (insideContract) {
+      let selfUpdate = insideContract.this.self;
       // avoid redundant attaching & cycle in account update structure, happens
       // when calling attachToTransaction(this.self) inside a @method
       // TODO avoid account update cycles more generally
       if (selfUpdate === accountUpdate) return;
-      smartContractContext.get().this.self.approve(accountUpdate);
+      insideContract.this.self.approve(accountUpdate);
     } else {
       if (!Mina.currentTransaction.has()) return;
       let updates = Mina.currentTransaction.get().accountUpdates;
@@ -1153,6 +1205,10 @@ class AccountUpdate implements Types.AccountUpdate {
     let publicKey =
       signer instanceof PrivateKey ? signer.toPublicKey() : signer;
     let accountUpdate = AccountUpdate.create(publicKey, tokenId);
+    accountUpdate.label = accountUpdate.label.replace(
+      '.create()',
+      '.createSigned()'
+    );
     if (signer instanceof PrivateKey) {
       accountUpdate.sign(signer);
     } else {
@@ -1193,6 +1249,7 @@ class AccountUpdate implements Types.AccountUpdate {
     numberOfAccounts?: number | { initialBalance: number | string | UInt64 }
   ) {
     let accountUpdate = AccountUpdate.createSigned(feePayer as PrivateKey);
+    accountUpdate.label = 'AccountUpdate.fundNewAccount()';
     let fee = Mina.accountCreationFee();
     numberOfAccounts ??= 1;
     if (typeof numberOfAccounts === 'number') fee = fee.mul(numberOfAccounts);
@@ -1245,7 +1302,7 @@ class AccountUpdate implements Types.AccountUpdate {
       accountUpdate: accountUpdateType,
       result: type as any,
     });
-    return Circuit.witness(combinedType, compute);
+    return Provable.witness(combinedType, compute);
   }
 
   static witnessChildren(
@@ -1518,7 +1575,7 @@ const CallForest = {
     // compute hash outside the circuit if callsType is "Witness"
     // i.e., allowing accountUpdates with arbitrary children
     if (callsType.type === 'Witness') {
-      return Circuit.witness(Field, () => CallForest.hashChildrenBase(update));
+      return Provable.witness(Field, () => CallForest.hashChildrenBase(update));
     }
     let calls = CallForest.hashChildrenBase(update);
     if (callsType.type === 'Equals' && inCheckedComputation()) {
@@ -1540,7 +1597,7 @@ const CallForest = {
         stackHash,
       ]);
       // skip accountUpdate if it's a dummy
-      stackHash = Circuit.if(accountUpdate.isDummy(), stackHash, newHash);
+      stackHash = Provable.if(accountUpdate.isDummy(), stackHash, newHash);
     }
     return stackHash;
   },
@@ -1558,16 +1615,16 @@ const CallForest = {
     let withCallers: WithCallers[] = [];
     for (let update of updates) {
       let { mayUseToken } = update.body;
-      let caller = Circuit.if(
+      let caller = Provable.if(
         mayUseToken.parentsOwnToken,
         context.self,
-        Circuit.if(
+        Provable.if(
           mayUseToken.inheritFromParent,
           context.caller,
           TokenId.default
         )
       );
-      let self = Token.getId(update.body.publicKey, update.body.tokenId);
+      let self = TokenId.derive(update.body.publicKey, update.body.tokenId);
       let childContext = { caller, self };
       withCallers.push({
         accountUpdate: update,
@@ -1603,7 +1660,7 @@ const CallForest = {
       } else if (!update.body.mayUseToken.inheritFromParent.toBoolean()) {
         context.caller = TokenId.default;
       }
-      context.self = Token.getId(update.body.publicKey, update.body.tokenId);
+      context.self = TokenId.derive(update.body.publicKey, update.body.tokenId);
     }
     return context;
   },
@@ -1697,7 +1754,7 @@ const ZkappCommand = {
     feePayer.body.authorization = '..' + feePayer.authorization.slice(-4);
     if (feePayer.body.validUntil === null) delete feePayer.body.validUntil;
     return [
-      feePayer.body,
+      { label: 'feePayer', ...feePayer.body },
       ...transaction.accountUpdates.map((a) => a.toPretty()),
     ];
   },
@@ -1749,7 +1806,7 @@ const Authorization = {
   ) {
     body.authorizationKind.isSigned = Bool(false);
     body.authorizationKind.isProved = Bool(true);
-    let hash = Circuit.witness(Field, () => {
+    let hash = Provable.witness(Field, () => {
       let proverData = zkAppProver.getData();
       let isProver = proverData !== undefined;
       assert(
@@ -1894,7 +1951,7 @@ async function addMissingProofs(
   { proofsEnabled = true }
 ): Promise<{
   zkappCommand: ZkappCommandProved;
-  proofs: (Proof<ZkappPublicInput> | undefined)[];
+  proofs: (Proof<ZkappPublicInput, Empty> | undefined)[];
 }> {
   type AccountUpdateProved = AccountUpdate & {
     lazyAuthorization?: LazySignature;
@@ -1910,7 +1967,7 @@ async function addMissingProofs(
       };
     }
     if (!proofsEnabled) {
-      Authorization.setProof(accountUpdate, Pickles.dummyBase64Proof());
+      Authorization.setProof(accountUpdate, await dummyBase64Proof());
       return {
         accountUpdateProved: accountUpdate as AccountUpdateProved,
         proof: undefined,
@@ -1938,7 +1995,7 @@ async function addMissingProofs(
     if (ZkappClass._methods === undefined) throw Error(methodError);
     let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
     if (i === -1) throw Error(methodError);
-    let [, [, proof]] = await zkAppProver.run(
+    let [, [, { proof }]] = await zkAppProver.run(
       [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
       { transaction: zkappCommand, accountUpdate, index },
       () =>
@@ -1964,7 +2021,12 @@ async function addMissingProofs(
     const Proof = ZkappClass.Proof();
     return {
       accountUpdateProved: accountUpdate as AccountUpdateProved,
-      proof: new Proof({ publicInput, proof, maxProofsVerified }),
+      proof: new Proof({
+        publicInput,
+        publicOutput: undefined,
+        proof,
+        maxProofsVerified,
+      }),
     };
   }
 
@@ -1972,7 +2034,7 @@ async function addMissingProofs(
   // compute proofs serially. in parallel would clash with our global variable
   // hacks
   let accountUpdatesProved: AccountUpdateProved[] = [];
-  let proofs: (Proof<ZkappPublicInput> | undefined)[] = [];
+  let proofs: (Proof<ZkappPublicInput, Empty> | undefined)[] = [];
   for (let i = 0; i < accountUpdates.length; i++) {
     let { accountUpdateProved, proof } = await addProof(i, accountUpdates[i]);
     accountUpdatesProved.push(accountUpdateProved);

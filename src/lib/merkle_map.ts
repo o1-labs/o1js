@@ -1,7 +1,8 @@
-import { arrayProp, CircuitValue, Circuit } from './circuit_value.js';
+import { arrayProp, CircuitValue } from './circuit_value.js';
 import { Field, Bool } from './core.js';
 import { Poseidon } from './hash.js';
 import { MerkleTree, MerkleWitness } from './merkle_tree.js';
+import { Provable } from './provable.js';
 
 const bits = 255;
 const printDebugs = false;
@@ -137,11 +138,11 @@ export class MerkleMapWitness extends CircuitValue {
     let key = Field(0);
 
     for (let i = 0; i < bits; i++) {
-      const left = Circuit.if(isLeft[i], hash, siblings[i]);
-      const right = Circuit.if(isLeft[i], siblings[i], hash);
+      const left = Provable.if(isLeft[i], hash, siblings[i]);
+      const right = Provable.if(isLeft[i], siblings[i], hash);
       hash = Poseidon.hash([left, right]);
 
-      const bit = Circuit.if(isLeft[i], Field(0), Field(1));
+      const bit = Provable.if(isLeft[i], Field(0), Field(1));
 
       key = key.mul(2).add(bit);
     }

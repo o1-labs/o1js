@@ -7,11 +7,11 @@ import {
   DeployArgs,
   Permissions,
   PublicKey,
-  Circuit,
   Bool,
   Reducer,
   provablePure,
   AccountUpdate,
+  Provable,
 } from 'snarkyjs';
 
 import { Member } from './member.js';
@@ -106,7 +106,7 @@ export class Voting_ extends SmartContract {
       setVerificationKey: Permissions.none(),
       setPermissions: Permissions.proofOrSignature(),
     });
-    this.accumulatedVotes.set(Reducer.initialActionsHash);
+    this.accumulatedVotes.set(Reducer.initialActionState);
   }
 
   /**
@@ -122,7 +122,7 @@ export class Voting_ extends SmartContract {
     );
 
     // can only register voters before the election has started
-    Circuit.if(
+    Provable.if(
       electionPreconditions.enforce,
       currentSlot.lessThanOrEqual(electionPreconditions.startElection),
       Bool(true)
@@ -171,7 +171,7 @@ export class Voting_ extends SmartContract {
     );
 
     // can only register candidates before the election has started
-    Circuit.if(
+    Provable.if(
       electionPreconditions.enforce,
       currentSlot.lessThanOrEqual(electionPreconditions.startElection),
       Bool(true)
@@ -235,7 +235,7 @@ export class Voting_ extends SmartContract {
     );
 
     // we can only vote in the election period time frame
-    Circuit.if(
+    Provable.if(
       electionPreconditions.enforce,
       currentSlot
         .greaterThanOrEqual(electionPreconditions.startElection)
@@ -271,7 +271,7 @@ export class Voting_ extends SmartContract {
     let committedVotes = this.committedVotes.get();
     this.committedVotes.assertEquals(committedVotes);
 
-    let { state: newCommittedVotes, actionsHash: newAccumulatedVotes } =
+    let { state: newCommittedVotes, actionState: newAccumulatedVotes } =
       this.reducer.reduce(
         this.reducer.getActions({ fromActionState: accumulatedVotes }),
         Field,
@@ -282,7 +282,7 @@ export class Voting_ extends SmartContract {
           return action.votesWitness.calculateRootSlow(action.getHash());
         },
         // initial state
-        { state: committedVotes, actionsHash: accumulatedVotes }
+        { state: committedVotes, actionState: accumulatedVotes }
       );
 
     this.committedVotes.set(newCommittedVotes);

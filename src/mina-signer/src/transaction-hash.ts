@@ -9,7 +9,7 @@ import {
   record,
   stringToBytes,
   withVersionNumber,
-} from '../../provable/binable.js';
+} from '../../bindings/lib/binable.js';
 import {
   Common,
   Delegation,
@@ -24,8 +24,8 @@ import {
 import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
 import { Signature, SignatureJson } from './signature.js';
 import { blake2b } from 'blakejs';
-import { base58, withBase58 } from '../../provable/base58.js';
-import { versionBytes } from '../../js_crypto/constants.js';
+import { base58, withBase58 } from '../../lib/base58.js';
+import { versionBytes } from '../../bindings/crypto/constants.js';
 
 export {
   hashPayment,

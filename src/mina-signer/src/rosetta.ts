@@ -1,4 +1,4 @@
-import { Binable } from '../../provable/binable.js';
+import { Binable } from '../../bindings/lib/binable.js';
 import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
 import { Field } from '../../provable/field-bigint.js';
 import { Memo } from './memo.js';

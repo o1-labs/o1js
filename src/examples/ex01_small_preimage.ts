@@ -1,4 +1,11 @@
-import { Poseidon, Field, Circuit, circuitMain, public_, isReady } from 'snarkyjs';
+import {
+  Poseidon,
+  Field,
+  Circuit,
+  circuitMain,
+  public_,
+  isReady,
+} from 'snarkyjs';
 
 await isReady;
 
@@ -17,9 +24,9 @@ class Main extends Circuit {
   }
 }
 
-const kp = Main.generateKeypair();
+const kp = await Main.generateKeypair();
 
 const preimage = Field.fromBits(Field.random().toBits().slice(0, 32));
 const hash = Poseidon.hash([preimage]);
-const pi = Main.prove([preimage], [hash], kp);
+const pi = await Main.prove([preimage], [hash], kp);
 console.log('proof', pi);

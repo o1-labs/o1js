@@ -15,9 +15,74 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/97e393ed...HEAD)
+## [Unreleased](https://github.com/o1-labs/snarkyjs/compare/a632313a...HEAD)
 
-> No unreleased changes
+### Breaking changes
+
+- Rewrite of `Provable.if()` causes breaking changes to all deployed contracts https://github.com/o1-labs/snarkyjs/pull/889
+
+### Changed
+
+- **Make stack traces more readable** https://github.com/o1-labs/snarkyjs/pull/890
+  - Stack traces thrown from SnarkyJS are cleaned up by filtering out unnecessary lines and other noisy details
+- Remove optional `zkappKey` argument in `smartContract.init()`, and instead assert that `provedState` is false when `init()` is called https://github.com/o1-labs/snarkyjs/pull/908
+
+### Deprecated
+
+- Utility methods on `Circuit` are deprecated in favor of the same methods on `Provable` https://github.com/o1-labs/snarkyjs/pull/889
+  - `Circuit.if()`, `Circuit.witness()`, `Circuit.log()` and others replaced by `Provable.if()`, `Provable.witness()`, `Provable.log()`
+  - Under the hood, some of these methods were rewritten in TypeScript
+
+### Fixed
+
+- Fix running SnarkyJS in Node.js on Windows https://github.com/o1-labs/snarkyjs-bindings/pull/19 (@wizicer)[https://github.com/wizicer]
+- Fix error reporting from GraphQL requests https://github.com/o1-labs/snarkyjs/pull/919
+
+## [0.10.1](https://github.com/o1-labs/snarkyjs/compare/bcc666f2...a632313a)
+
+### Changed
+
+- Allow ZkPrograms to return their public output https://github.com/o1-labs/snarkyjs/pull/874 https://github.com/o1-labs/snarkyjs/pull/876
+  - new option `ZkProgram({ publicOutput?: Provable<any>, ... })`; `publicOutput` has to match the _return type_ of all ZkProgram methods.
+  - the `publicInput` option becomes optional; if not provided, methods no longer expect the public input as first argument
+  - full usage example: https://github.com/o1-labs/snarkyjs/blob/f95cf2903e97292df9e703b74ee1fc3825df826d/src/examples/program.ts
+
+## [0.10.0](https://github.com/o1-labs/snarkyjs/compare/97e393ed...bcc666f2)
+
+### Breaking Changes
+
+- All references to `actionsHash` are renamed to `actionState` to better mirror what is used in Mina protocol APIs https://github.com/o1-labs/snarkyjs/pull/833
+  - This change affects function parameters and returned object keys throughout the API
+- No longer make `MayUseToken.InheritFromParent` the default `mayUseToken` value on the caller if one zkApp method calls another one; this removes the need to manually override `mayUseToken` in several known cases https://github.com/o1-labs/snarkyjs/pull/863
+  - Causes a breaking change to the verification key of deployed contracts that use zkApp composability
+
+### Added
+
+- `this.state.getAndAssertEquals()` as a shortcut for `let x = this.state.get(); this.state.assertEquals(x);` https://github.com/o1-labs/snarkyjs/pull/863
+  - also added `.getAndAssertEquals()` on `this.account` and `this.network` fields
+- Support for fallback endpoints when making network requests, allowing users to provide an array of endpoints for GraphQL network requests. https://github.com/o1-labs/snarkyjs/pull/871
+  - Endpoints are fetched two at a time, and the result returned from the faster response
+- `reducer.forEach(actions, ...)` as a shortcut for `reducer.reduce()` when you don't need a `state` https://github.com/o1-labs/snarkyjs/pull/863
+- New export `TokenId` which supersedes `Token.Id`; `TokenId.deriveId()` replaces `Token.Id.getId()` https://github.com/o1-labs/snarkyjs/pull/863
+- Add `Permissions.allImpossible()` for the set of permissions where nothing is allowed (more convenient than `Permissions.default()` when you want to make most actions impossible) https://github.com/o1-labs/snarkyjs/pull/863
+
+### Changed
+
+- **Massive improvement of memory consumption**, thanks to a refactor of SnarkyJS' worker usage https://github.com/o1-labs/snarkyjs/pull/872
+  - Memory reduced by up to 10x; see [the PR](https://github.com/o1-labs/snarkyjs/pull/872) for details
+  - Side effect: `Circuit` API becomes async, for example `MyCircuit.prove(...)` becomes `await MyCircuit.prove(...)`
+- Token APIs `this.token.{send,burn,mint}()` now accept an `AccountUpdate` or `SmartContract` as from / to input https://github.com/o1-labs/snarkyjs/pull/863
+- Improve `Transaction.toPretty()` output by adding account update labels in most methods that create account updates https://github.com/o1-labs/snarkyjs/pull/863
+- Raises the limit of actions/events per transaction from 16 to 100, providing users with the ability to submit a larger number of events/actions in a single transaction. https://github.com/o1-labs/snarkyjs/pull/883.
+
+### Deprecated
+
+- Deprecate both `shutdown()` and `await isReady`, which are no longer needed https://github.com/o1-labs/snarkyjs/pull/872
+
+### Fixed
+
+- `SmartContract.deploy()` now throws an error when no verification key is found https://github.com/o1-labs/snarkyjs/pull/885
+  - The old, confusing behaviour was to silently not update the verification key (but still update some permissions to "proof", breaking the zkApp)
 
 ## [0.9.8](https://github.com/o1-labs/snarkyjs/compare/1a984089...97e393ed)
 
@@ -25,6 +90,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Fix fetching the `access` permission on accounts https://github.com/o1-labs/snarkyjs/pull/851
 - Fix `fetchActions` https://github.com/o1-labs/snarkyjs/pull/844 https://github.com/o1-labs/snarkyjs/pull/854 [@Comdex](https://github.com/Comdex)
+- Updated `Mina.TransactionId.isSuccess` to accurately verify zkApp transaction status after using `Mina.TransactionId.wait()`. https://github.com/o1-labs/snarkyjs/pull/826
+  - This change ensures that the function correctly checks for transaction completion and provides the expected result.
 
 ## [0.9.7](https://github.com/o1-labs/snarkyjs/compare/0b7a9ad...1a984089)
 

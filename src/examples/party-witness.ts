@@ -4,6 +4,7 @@ import {
   Circuit,
   provable,
   isReady,
+  Provable,
 } from 'snarkyjs';
 
 await isReady;
@@ -27,27 +28,27 @@ if (address.toBase58() !== json.body.publicKey) throw Error('fail');
 
 let Null = provable(null);
 
-Circuit.runAndCheck(() => {
+Provable.runAndCheck(() => {
   let accountUpdateWitness = AccountUpdate.witness(Null, () => ({
     accountUpdate,
     result: null,
   })).accountUpdate;
   console.assert(accountUpdateWitness.body.callDepth === 5);
-  Circuit.assertEqual(AccountUpdate, accountUpdateWitness, accountUpdate);
-  Circuit.assertEqual(
+  Provable.assertEqual(AccountUpdate, accountUpdateWitness, accountUpdate);
+  Provable.assertEqual(
     PrivateKey,
     (accountUpdateWitness.lazyAuthorization as any).privateKey,
     (accountUpdate.lazyAuthorization as any).privateKey
   );
 });
 
-let result = Circuit.constraintSystem(() => {
+let result = Provable.witness(() => {
   let accountUpdateWitness = AccountUpdate.witness(Null, () => ({
     accountUpdate,
     result: null,
   })).accountUpdate;
   console.assert(accountUpdateWitness.body.callDepth === 0);
-  Circuit.assertEqual(AccountUpdate, accountUpdateWitness, accountUpdate);
+  Provable.assertEqual(AccountUpdate, accountUpdateWitness, accountUpdate);
 });
 
 console.log(`an account update has ${AccountUpdate.sizeInFields()} fields`);
@@ -55,7 +56,7 @@ console.log(
   `witnessing an account update and comparing it to another one creates ${result.rows} rows`
 );
 
-result = Circuit.constraintSystem(() => {
+result = Provable.witness(() => {
   let accountUpdateWitness = AccountUpdate.witness(
     Null,
     () => ({
@@ -65,7 +66,7 @@ result = Circuit.constraintSystem(() => {
     { skipCheck: true }
   ).accountUpdate;
   console.assert(accountUpdateWitness.body.callDepth === 0);
-  Circuit.assertEqual(AccountUpdate, accountUpdateWitness, accountUpdate);
+  Provable.assertEqual(AccountUpdate, accountUpdateWitness, accountUpdate);
 });
 
 console.log(
