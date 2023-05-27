@@ -1259,7 +1259,7 @@ async function verifyAccountUpdate(
 
   // check if addMissingSignatures failed to include a signature
   // due to a missing private key
-  if (accountUpdate.authorization === "") {
+  if (accountUpdate.authorization === undefined) {
     let pk = PublicKey.toBase58(accountUpdate.body.publicKey);
     throw Error(
       `verifyAccountUpdate: Detected a missing signature for (${pk}), private key was missing.`
