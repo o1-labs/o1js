@@ -1877,10 +1877,11 @@ function addMissingSignatures(
         pk.equals(accountUpdate.body.publicKey).toBoolean()
       );
       if (i === -1) {
-        let pk = PublicKey.toBase58(accountUpdate.body.publicKey);
-        throw Error(
-          `addMissingSignatures: Cannot add signature for fee payer (${pk}), private key is missing.`
-        );
+        // private key is missing, but we are not throwing an error here
+        // there is a change signature will be added by the wallet
+        // if not, error will be thrown by verifyAccountUpdate
+        // while .send() execution
+        return { body, authorization: "" }
       }
       privateKey = additionalKeys[i];
     }
