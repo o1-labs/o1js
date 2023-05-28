@@ -1881,7 +1881,7 @@ function addMissingSignatures(
         // there is a change signature will be added by the wallet
         // if not, error will be thrown by verifyAccountUpdate
         // while .send() execution
-        return { body, authorization: undefined }
+        return { body, authorization: Ledger.dummySignature() }
       }
       privateKey = additionalKeys[i];
     }
