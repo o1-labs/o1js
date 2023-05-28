@@ -219,6 +219,10 @@ export default [
         type: 'object',
       },
       {
+        name: 'group',
+        type: 'object',
+      },
+      {
         name: 'circuit',
         type: 'object',
       },

@@ -1348,6 +1348,11 @@ module Snarky = struct
     let to_constant_and_terms x = Field.to_constant_and_terms x
   end
 
+  module Group = struct
+    (** p1 + p2; handles variables *)
+    let add p1 p2 = Pickles.Step_main_inputs.Ops.add_fast p1 p2
+  end
+
   module Circuit = struct
     module Main = struct
       let of_js (main : public_input_js -> unit) =
@@ -1433,6 +1438,11 @@ let snarky =
         method seal = Snarky.Field.seal
 
         method toConstantAndTerms = Snarky.Field.to_constant_and_terms
+      end
+
+    val group =
+      object%js
+        method add = Snarky.Group.add
       end
 
     val circuit =
