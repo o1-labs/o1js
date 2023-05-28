@@ -173,6 +173,16 @@ declare const Snarky: {
     ): MlTuple<MlOption<FieldConst>, MlList<MlTuple<FieldConst, number>>>;
   };
 
+  group: {
+    /**
+     * Addition of two group elements, handles only variables.
+     */
+    add(
+      p1: MlTuple<FieldVar, FieldVar>,
+      p2: MlTuple<FieldVar, FieldVar>
+    ): MlTuple<FieldVar, FieldVar>;
+  };
+
   /**
    * The circuit API is a low level interface to create zero-knowledge proofs
    */
