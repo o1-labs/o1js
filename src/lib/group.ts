@@ -1,6 +1,6 @@
 import { Scalar } from './core.js';
 import { Field, FieldConst, FieldType, FieldVar, isField } from './field.js';
-import { Snarky, Group as SnarkyGroup } from '../snarky.js';
+import { Bool, Snarky, Group as SnarkyGroup } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
 import { Pallas } from '../bindings/crypto/elliptic_curve.js';
 import { Provable } from './provable.js';
@@ -41,12 +41,15 @@ class Group {
 
   onCurve() {
     if (this.x.isConstant() && this.y.isConstant()) {
-      const { add, mul, sqrt, square } = Fp;
+      const { add, mul, square } = Fp;
       let y = this.y.toBigInt();
       let x = this.x.toBigInt();
       return add(mul(x, mul(x, x)), Pallas.b) === square(y);
     } else {
-      throw Error('TODO');
+      let y = this.y;
+      let x = this.x;
+      // TODO: revisit
+      return x.square().mul(x).add(Pallas.b).equals(y.square());
     }
   }
 
@@ -94,11 +97,31 @@ class Group {
       });
     }
   }
-  sub(y: Group) {}
-  neg() {}
-  scale(y: Scalar) {}
-  assertEquals(y: Group, message?: string) {}
-  equals(y: Group) {}
+
+  sub(y: Group) {
+    return this.add(y.neg());
+  }
+
+  neg() {
+    let { x, y } = this;
+    return new Group({
+      x,
+      y: y.neg(),
+    });
+  }
+
+  scale(p: Scalar) {}
+
+  assertEquals(p: Group, message?: string) {
+    this.equals(p).assertTrue(message);
+  }
+
+  equals(p: Group) {
+    let { x: x1, y: y1 } = p;
+    let { x: x2, y: y2 } = this;
+
+    return x1.equals(x2).and(y1.equals(y2));
+  }
 
   toJSON(): {
     x: string;
@@ -164,5 +187,9 @@ class Group {
 
   static check(g: Group) {
     throw Error('TODO');
+  }
+
+  static onCurve(g: Group) {
+    return g.onCurve();
   }
 }
