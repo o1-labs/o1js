@@ -99,23 +99,70 @@ class Group {
   scale(y: Scalar) {}
   assertEquals(y: Group, message?: string) {}
   equals(y: Group) {}
-  toJSON() {
-    return `{ x: ${this.x}, y: ${this.y} }`;
+
+  toJSON(): {
+    x: string;
+    y: string;
+  } {
+    return {
+      x: this.x.toString(),
+      y: this.y.toString(),
+    };
   }
 
-  static add(x: Group, y: Group) {}
-  static sub(x: Group, y: Group) {}
-  static neg(x: Group) {}
-  static scale(x: Group, y: Scalar) {}
-  static assertEqual(x: Group, y: Group) {}
-  static equal(x: Group, y: Group) {}
-  static toFields(x: Group) {}
-  static toAuxiliary(x?: Group) {}
+  toFields() {
+    return [this.x, this.y];
+  }
+
+  static add(x: Group, y: Group) {
+    return x.add(y);
+  }
+
+  static sub(x: Group, y: Group) {
+    return x.sub(y);
+  }
+
+  static neg(x: Group) {
+    return x.neg();
+  }
+
+  static scale(x: Group, y: Scalar) {
+    return x.scale(y);
+  }
+
+  static assertEqual(x: Group, y: Group) {
+    x.assertEquals(y);
+  }
+
+  static equal(x: Group, y: Group) {
+    return x.equals(y);
+  }
+
+  static toFields(x: Group) {
+    return x.toFields();
+  }
+
+  static toAuxiliary(x?: Group) {
+    return [];
+  }
+
   static fromFields([x, y]: Field[]) {
     return new Group({ x, y });
   }
-  static sizeInFields() {}
-  static toJSON(x: Group) {}
-  static fromJSON({ x, y }: any) {}
-  static check(g: Group) {}
+
+  static sizeInFields() {
+    return 2;
+  }
+
+  static toJSON(x: Group) {
+    return x.toJSON();
+  }
+
+  static fromJSON({ x, y }: { x: string | number; y: string | number }) {
+    return new Group({ x, y });
+  }
+
+  static check(g: Group) {
+    throw Error('TODO');
+  }
 }
