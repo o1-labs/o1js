@@ -9,6 +9,9 @@ import { mod } from '../bindings/crypto/finite_field.js';
 
 export { Field, Bool, Scalar, Group };
 
+// internal
+export { withMessage };
+
 /**
  * An element of a finite field.
  */
@@ -35,6 +38,12 @@ type InferArgs<T> = T extends new (...args: infer Args) => any ? Args : never;
 type InferReturn<T> = T extends new (...args: any) => infer Return
   ? Return
   : never;
+
+function withMessage(error: unknown, message?: string) {
+  if (message === undefined || !(error instanceof Error)) return error;
+  error.message = `${message}\n${error.message}`;
+  return error;
+}
 
 // patching ocaml classes
 
