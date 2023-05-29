@@ -1,4 +1,4 @@
-import { Scalar } from './core.js';
+import { Scalar, withMessage } from './core.js';
 import { Field, FieldConst, FieldType, FieldVar, isField } from './field.js';
 import { Bool, Snarky, Group as SnarkyGroup } from '../snarky.js';
 import { Field as Fp } from '../provable/field-bigint.js';
@@ -48,8 +48,10 @@ class Group {
     } else {
       let y = this.y;
       let x = this.x;
-      // TODO: revisit
-      return x.square().mul(x).add(Pallas.b).equals(y.square());
+
+      // x^3 + 5 === y^2
+      let x3 = x.square().mul(x);
+      return x3.add(Pallas.b).equals(y.square());
     }
   }
 
@@ -186,7 +188,14 @@ class Group {
   }
 
   static check(g: Group) {
-    throw Error('TODO');
+    try {
+      Snarky.group.onCurve([0, g.x.value, g.y.value]);
+    } catch (err) {
+      throw withMessage(
+        err,
+        `Element (x: ${g.x}, y: ${g.y}) is not an element of the group.`
+      );
+    }
   }
 
   static onCurve(g: Group) {
