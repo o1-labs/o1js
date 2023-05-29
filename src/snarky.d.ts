@@ -181,6 +181,8 @@ declare const Snarky: {
       p1: MlTuple<FieldVar, FieldVar>,
       p2: MlTuple<FieldVar, FieldVar>
     ): MlTuple<FieldVar, FieldVar>;
+
+    onCurve(p1: MlTuple<FieldVar, FieldVar>): void;
   };
 
   /**
