@@ -44,7 +44,7 @@ class Group {
       const { add, mul, square } = Fp;
       let y = this.y.toBigInt();
       let x = this.x.toBigInt();
-      return add(mul(x, mul(x, x)), Pallas.b) === square(y);
+      return Bool(add(mul(x, mul(x, x)), Pallas.b) === square(y));
     } else {
       let y = this.y;
       let x = this.x;
@@ -188,12 +188,14 @@ class Group {
   }
 
   static check(g: Group) {
+    console.log('its running check');
+    let { x, y } = g;
     try {
-      Snarky.group.onCurve([0, g.x.value, g.y.value]);
+      Snarky.group.onCurve([0, x.value, y.value]);
     } catch (err) {
       throw withMessage(
         err,
-        `Element (x: ${g.x}, y: ${g.y}) is not an element of the group.`
+        `Element (x: ${x}, y: ${y}) is not an element of the group.`
       );
     }
   }
