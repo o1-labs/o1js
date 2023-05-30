@@ -37,6 +37,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Fix running SnarkyJS in Node.js on Windows https://github.com/o1-labs/snarkyjs-bindings/pull/19 (@wizicer)[https://github.com/wizicer]
 - Fix error reporting from GraphQL requests https://github.com/o1-labs/snarkyjs/pull/919
+- Resolved an `Out of Memory error` experienced on iOS devices (iPhones and iPads) during the initialization of the WASM memory https://github.com/o1-labs/snarkyjs-bindings/pull/26
 
 ## [0.10.1](https://github.com/o1-labs/snarkyjs/compare/bcc666f2...a632313a)
 
