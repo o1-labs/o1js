@@ -7,34 +7,33 @@ import {
   Proof,
   JsonProof,
   Provable,
-  Empty,
 } from 'snarkyjs';
 
 await isReady;
 
 let MyProgram = Experimental.ZkProgram({
-  publicOutput: Field,
+  publicInput: Field,
 
   methods: {
     baseCase: {
       privateInputs: [],
-      method() {
-        return Field(0);
+      method(input: Field) {
+        input.assertEquals(Field(0));
       },
     },
 
     inductiveCase: {
       privateInputs: [SelfProof],
-      method(earlierProof: SelfProof<Empty, Field>) {
+      method(input: Field, earlierProof: SelfProof<Field, void>) {
         earlierProof.verify();
-        return earlierProof.publicOutput.add(1);
+        earlierProof.publicInput.add(1).assertEquals(input);
       },
     },
   },
 });
 // type sanity checks
-MyProgram.publicInputType satisfies Provable<Empty>;
-MyProgram.publicOutputType satisfies typeof Field;
+MyProgram.publicInputType satisfies typeof Field;
+MyProgram.publicOutputType satisfies Provable<void>;
 
 let MyProof = Experimental.ZkProgram.Proof(MyProgram);
 
@@ -45,11 +44,11 @@ let { verificationKey } = await MyProgram.compile();
 console.log('verification key', verificationKey.slice(0, 10) + '..');
 
 console.log('proving base case...');
-let proof = await MyProgram.baseCase();
+let proof = await MyProgram.baseCase(Field(0));
 proof = testJsonRoundtrip(MyProof, proof);
 
 // type sanity check
-proof satisfies Proof<undefined, Field>;
+proof satisfies Proof<Field, void>;
 
 console.log('verify...');
 let ok = await verify(proof.toJSON(), verificationKey);
@@ -60,7 +59,7 @@ ok = await MyProgram.verify(proof);
 console.log('ok (alternative)?', ok);
 
 console.log('proving step 1...');
-proof = await MyProgram.inductiveCase(proof);
+proof = await MyProgram.inductiveCase(Field(1), proof);
 proof = testJsonRoundtrip(MyProof, proof);
 
 console.log('verify...');
@@ -72,13 +71,13 @@ ok = await MyProgram.verify(proof);
 console.log('ok (alternative)?', ok);
 
 console.log('proving step 2...');
-proof = await MyProgram.inductiveCase(proof);
+proof = await MyProgram.inductiveCase(Field(2), proof);
 proof = testJsonRoundtrip(MyProof, proof);
 
 console.log('verify...');
 ok = await verify(proof.toJSON(), verificationKey);
 
-console.log('ok?', ok && proof.publicOutput.toString() === '2');
+console.log('ok?', ok && proof.publicInput.toString() === '2');
 
 function testJsonRoundtrip<
   P extends Proof<any, any>,

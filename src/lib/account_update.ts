@@ -16,6 +16,7 @@ import { SmartContract } from './zkapp.js';
 import * as Precondition from './precondition.js';
 import {
   dummyBase64Proof,
+  Empty,
   inCheckedComputation,
   Proof,
   Prover,
@@ -29,7 +30,7 @@ import { TokenId as Base58TokenId } from './base58-encodings.js';
 import { hashWithPrefix, packToFields } from './hash.js';
 import { prefixes } from '../bindings/crypto/constants.js';
 import { Context } from './global-context.js';
-import { assert } from './errors.js';
+import { assert, prettifyStacktrace } from './errors.js';
 
 // external API
 export { AccountUpdate, Permissions, ZkappPublicInput };
@@ -592,7 +593,7 @@ type LazyProof = {
   kind: 'lazy-proof';
   methodName: string;
   args: any[];
-  previousProofs: { publicInput: Field[]; proof: Pickles.Proof }[];
+  previousProofs: Pickles.Proof[];
   ZkappClass: typeof SmartContract;
   memoized: { fields: Field[]; aux: any[] }[];
   blindingValue: Field;
@@ -974,7 +975,12 @@ class AccountUpdate implements Types.AccountUpdate {
    * be (can be) authorized by a signature.
    */
   requireSignature() {
-    this.sign();
+    try {
+      this.sign();
+    } catch (error) {
+      if (error instanceof Error) error.stack = prettifyStacktrace(error);
+      throw error;
+    }
   }
   /**
    * @deprecated `.sign()` is deprecated in favor of `.requireSignature()`
@@ -1945,7 +1951,7 @@ async function addMissingProofs(
   { proofsEnabled = true }
 ): Promise<{
   zkappCommand: ZkappCommandProved;
-  proofs: (Proof<ZkappPublicInput> | undefined)[];
+  proofs: (Proof<ZkappPublicInput, Empty> | undefined)[];
 }> {
   type AccountUpdateProved = AccountUpdate & {
     lazyAuthorization?: LazySignature;
@@ -1989,7 +1995,7 @@ async function addMissingProofs(
     if (ZkappClass._methods === undefined) throw Error(methodError);
     let i = ZkappClass._methods.findIndex((m) => m.methodName === methodName);
     if (i === -1) throw Error(methodError);
-    let [, [, proof]] = await zkAppProver.run(
+    let [, [, { proof }]] = await zkAppProver.run(
       [accountUpdate.publicKey, accountUpdate.tokenId, ...args],
       { transaction: zkappCommand, accountUpdate, index },
       () =>
@@ -2015,7 +2021,12 @@ async function addMissingProofs(
     const Proof = ZkappClass.Proof();
     return {
       accountUpdateProved: accountUpdate as AccountUpdateProved,
-      proof: new Proof({ publicInput, proof, maxProofsVerified }),
+      proof: new Proof({
+        publicInput,
+        publicOutput: undefined,
+        proof,
+        maxProofsVerified,
+      }),
     };
   }
 
@@ -2023,7 +2034,7 @@ async function addMissingProofs(
   // compute proofs serially. in parallel would clash with our global variable
   // hacks
   let accountUpdatesProved: AccountUpdateProved[] = [];
-  let proofs: (Proof<ZkappPublicInput> | undefined)[] = [];
+  let proofs: (Proof<ZkappPublicInput, Empty> | undefined)[] = [];
   for (let i = 0; i < accountUpdates.length; i++) {
     let { accountUpdateProved, proof } = await addProof(i, accountUpdates[i]);
     accountUpdatesProved.push(accountUpdateProved);

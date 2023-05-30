@@ -29,6 +29,7 @@ import {
 export {
   CircuitValue,
   ProvableExtended,
+  ProvablePureExtended,
   prop,
   arrayProp,
   matrixProp,
@@ -64,6 +65,8 @@ type ProvableExtension<T, TJson = any> = {
 };
 
 type ProvableExtended<T, TJson = any> = Provable<T> &
+  ProvableExtension<T, TJson>;
+type ProvablePureExtended<T, TJson = any> = ProvablePure<T> &
   ProvableExtension<T, TJson>;
 
 type Struct<T> = ProvableExtended<NonMethods<T>> &
