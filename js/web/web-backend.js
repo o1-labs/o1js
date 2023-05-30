@@ -19,8 +19,8 @@ let worker;
 
 async function initSnarkyJS() {
   const memory = allocateWasmMemoryForUserAgent(window.navigator.userAgent);
-
   await init(undefined, memory);
+
   let module = init.__wbindgen_wasm_module;
   let numWorkers = await getEfficientNumWorkers();
 
@@ -167,8 +167,7 @@ async function workerCall(worker, type, message) {
 
 function allocateWasmMemoryForUserAgent(userAgent) {
   const isIOSDevice = /iPad|iPhone|iPod/.test(userAgent);
-  const isSafari = /Safari/.test(userAgent);
-  if (isIOSDevice && isSafari) {
+  if (isIOSDevice) {
     return new WebAssembly.Memory({
       initial: 19,
       maximum: 16384, // 1 GiB
