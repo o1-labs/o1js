@@ -22,7 +22,7 @@
 <div class="tsd-comment tsd-typography"><p>A decorator to use within a zkapp to indicate what will be stored on-chain.
 For example, if you want to store a field element <code>some_state</code> in a zkapp,
 you can use the following in the declaration of your zkapp:</p>
-<pre><code><span class="hl-1">@</span><span class="hl-4">state</span><span class="hl-1">(</span><span class="hl-2">Field</span><span class="hl-1">) </span><span class="hl-2">some_state</span><span class="hl-1"> = </span><span class="hl-4">State</span><span class="hl-1">&lt;</span><span class="hl-9">Field</span><span class="hl-1">&gt;();</span>
+<pre><code><span class="hl-1">@</span><span class="hl-4">state</span><span class="hl-1">(</span><span class="hl-2">Field</span><span class="hl-1">) </span><span class="hl-2">some_state</span><span class="hl-1"> = </span><span class="hl-4">State</span><span class="hl-1">&lt;</span><span class="hl-8">Field</span><span class="hl-1">&gt;();</span>
 </code><button>Copy</button></pre>
 </div>
 <section class="tsd-panel">
@@ -52,7 +52,7 @@ you can use the following in the declaration of your zkapp:</p>
 <h5><code class="tsd-tag ts-flagOptional">Optional</code> <span class="tsd-kind-parameter">_descriptor</span>: <span class="tsd-signature-type ">PropertyDescriptor</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4></li></ul></li></ul><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/11a1fba/src/lib/state.ts#L87">lib/state.ts:87</a></li></ul></aside></li></ul></section></div>
+<li>Defined in <a href="https://github.com/o1-labs/snarkyjs/blob/c331808/src/lib/state.ts#L87">lib/state.ts:87</a></li></ul></aside></li></ul></section></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -192,7 +192,6 @@ you can use the following in the declaration of your zkapp:</p>
 <li><a href="../classes/Circuit.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-128-path"></use><use href="#icon-128-text"></use></svg><span>Circuit</span></a></li>
 <li><a href="../classes/CircuitString.html" class="deprecated"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-128-path"></use><use href="#icon-128-text"></use></svg><span>Circuit<wbr/>String</span></a></li>
 <li><a href="../classes/CircuitValue.html" class="deprecated"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-128-path"></use><use href="#icon-128-text"></use></svg><span>Circuit<wbr/>Value</span></a></li>
-<li><a href="../classes/Field.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-128-path"></use><use href="#icon-128-text"></use></svg><span>Field</span></a></li>
 <li><a href="../classes/Group.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-128-path"></use><use href="#icon-128-text"></use></svg><span>Group</span></a></li>
 <li><a href="../classes/Int64.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-128-path"></use><use href="#icon-128-text"></use></svg><span>Int64</span></a></li>
 <li><a href="../classes/Keypair.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-128-path"></use><use href="#icon-128-text"></use></svg><span>Keypair</span></a></li>
@@ -216,6 +215,7 @@ you can use the following in the declaration of your zkapp:</p>
 <li><a href="../interfaces/ProvablePure.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-256-path"></use><use href="#icon-256-text"></use></svg><span>Provable<wbr/>Pure</span></a></li>
 <li><a href="../types/DeployArgs.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg><span>Deploy<wbr/>Args</span></a></li>
 <li><a href="../types/Empty.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg><span>Empty</span></a></li>
+<li><a href="../types/Field.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg><span>Field</span></a></li>
 <li><a href="../types/FlexibleProvable.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg><span>Flexible<wbr/>Provable</span></a></li>
 <li><a href="../types/FlexibleProvablePure.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg><span>Flexible<wbr/>Provable<wbr/>Pure</span></a></li>
 <li><a href="../types/InferProvable.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg><span>Infer<wbr/>Provable</span></a></li>
@@ -239,6 +239,7 @@ you can use the following in the declaration of your zkapp:</p>
 <li><a href="../variables/ZkappPublicInput-1.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-32-path"></use><use href="#icon-32-text"></use></svg><span>Zkapp<wbr/>Public<wbr/>Input</span></a></li>
 <li><a href="../variables/isReady.html" class="deprecated"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-32-path"></use><use href="#icon-32-text"></use></svg><span>is<wbr/>Ready</span></a></li>
 <li><a href="Account.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg><span>Account</span></a></li>
+<li><a href="Field-1.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg><span>Field</span></a></li>
 <li><a href="MerkleWitness.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg><span>Merkle<wbr/>Witness</span></a></li>
 <li><a href="Reducer-1.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg><span>Reducer</span></a></li>
 <li><a href="State-1.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg><span>State</span></a></li>
