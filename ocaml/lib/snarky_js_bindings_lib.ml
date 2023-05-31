@@ -1346,6 +1346,18 @@ module Snarky = struct
     let to_constant_and_terms x = Field.to_constant_and_terms x
   end
 
+  module Bool = struct
+    let not x = Boolean.not x
+
+    let and_ x y = Boolean.(x &&& y)
+
+    let or_ x y = Boolean.(x ||| y)
+
+    let assert_equal x y = Boolean.Assert.(x = y)
+
+    let read_var x = As_prover.read Boolean.typ x
+  end
+
   module Circuit = struct
     module Main = struct
       let of_js (main : public_input_js -> unit) =
@@ -1431,6 +1443,19 @@ let snarky =
         method seal = Snarky.Field.seal
 
         method toConstantAndTerms = Snarky.Field.to_constant_and_terms
+      end
+
+    val bool =
+      object%js
+        method not = Snarky.Bool.not
+
+        method and_ = Snarky.Bool.and_
+
+        method or_ = Snarky.Bool.or_
+
+        method assertEqual = Snarky.Bool.assert_equal
+
+        method readVar = Snarky.Bool.read_var
       end
 
     val circuit =
