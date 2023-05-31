@@ -1904,7 +1904,8 @@ function addMissingSignatures(
         // there is a change signature will be added by the wallet
         // if not, error will be thrown by verifyAccountUpdate
         // while .send() execution
-        return accountUpdate as AccountUpdate & { lazyAuthorization?: LazyProof };
+        Authorization.setSignature(accountUpdate, Ledger.dummySignature())
+        return accountUpdate as AccountUpdate & { lazyAuthorization: undefined };
       }
       privateKey = additionalKeys[i];
     }
