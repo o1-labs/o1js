@@ -1899,10 +1899,13 @@ function addMissingSignatures(
       let i = additionalPublicKeys.findIndex((pk) =>
         pk.equals(accountUpdate.body.publicKey).toBoolean()
       );
-      if (i === -1)
-        throw Error(
-          `addMissingSignatures: Cannot add signature for ${accountUpdate.publicKey.toBase58()}, private key is missing.`
-        );
+      if (i === -1) {
+        // private key is missing, but we are not throwing an error here
+        // there is a change signature will be added by the wallet
+        // if not, error will be thrown by verifyAccountUpdate
+        // while .send() execution
+        return accountUpdate as AccountUpdate & { lazyAuthorization?: LazyProof };
+      }
       privateKey = additionalKeys[i];
     }
     let transactionCommitment = accountUpdate.body.useFullCommitment.toBoolean()
