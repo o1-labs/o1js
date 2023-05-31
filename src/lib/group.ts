@@ -19,6 +19,10 @@ class Group {
     return [0, g.x.value, g.y.value];
   }
 
+  static #fromAffine({ x, y }: { x: bigint; y: bigint; infinity: boolean }) {
+    return new Group({ x, y });
+  }
+
   constructor({
     x,
     y,
@@ -72,7 +76,7 @@ class Group {
         return this;
       } else {
         // TODO: figure out if the conversion of infinite is correct like that
-        let r = Pallas.add(
+        let g_proj = Pallas.add(
           Pallas.fromAffine({
             x: x1.toBigInt(),
             y: y1.toBigInt(),
@@ -85,12 +89,7 @@ class Group {
           })
         );
 
-        let { x, y } = Pallas.toAffine(r);
-
-        return new Group({
-          x,
-          y,
-        });
+        return Group.#fromAffine(Pallas.toAffine(g_proj));
       }
     } else {
       let [, x, y] = Snarky.group.add(Group.#toTuple(this), Group.#toTuple(p));
@@ -115,13 +114,23 @@ class Group {
 
   scale(s: Scalar) {
     let fields = s.toFields();
+
     if (
       this.x.isConstant() &&
       this.y.isConstant() &&
       fields.every((f) => f.isConstant())
     ) {
-      console.log('constant');
-      // TODO: constant implementation
+      let { x, y } = this;
+
+      let g_proj = Pallas.scale(
+        Pallas.fromAffine({
+          x: x.toBigInt(),
+          y: y.toBigInt(),
+          infinity: x.toBigInt() === 1n && y.toBigInt() === 1n,
+        }),
+        BigInt(s.toJSON())
+      );
+      return Group.#fromAffine(Pallas.toAffine(g_proj));
     } else {
       let [, x, y] = Snarky.group.scale(Group.#toTuple(this), [
         0,
